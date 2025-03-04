@@ -1,0 +1,7 @@
+---
+description: Elixir
+globs: **/*.ex,**/*.exs
+---
+- After changing Elixir files, run `mix format`.
+- Don't add `@doc` or `@moduledoc` tags to file unless I explicitly tell you to.
+- always add module aliases instead of using their fully-qualified names
