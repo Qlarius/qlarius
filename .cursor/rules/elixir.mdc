@@ -1,7 +1,8 @@
 ---
 description: Elixir
 globs: **/*.ex,**/*.exs
+alwaysApply: false
 ---
 - After changing Elixir files, run `mix format`.
-- Don't add `@doc` or `@moduledoc` tags to file unless I explicitly tell you to.
+- Never add documentation (i.e. `@doc` or `@moduledoc`) unless I explicitly tell you to.
 - always add module aliases instead of using their fully-qualified names

@@ -2,12 +2,16 @@ defmodule Qlarius.Accounts.User do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Qlarius.LedgerHeader
+
   schema "users" do
     field :email, :string
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :current_password, :string, virtual: true, redact: true
     field :confirmed_at, :utc_datetime
+
+    has_one :ledger_header, LedgerHeader
 
     timestamps(type: :utc_datetime)
   end
