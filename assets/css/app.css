@@ -3,3 +3,24 @@
 @import "tailwindcss/utilities";
 
 /* This file is for your main application CSS */
+
+/* Ads page styles */
+.ad-card {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.ad-card:hover {
+  @apply transform scale-105 shadow-lg;
+}
+
+.ad-amount {
+  @apply text-green-600 font-bold;
+}
+
+.ad-detail-row {
+  @apply flex justify-between items-center p-3 bg-gray-50 rounded-md mb-2;
+}
+
+.ad-detail-row span:last-child {
+  @apply text-green-600 font-bold;
+}

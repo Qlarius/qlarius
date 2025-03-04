@@ -6,7 +6,7 @@ defmodule Qlarius.Offer do
     # but I'm putting them in here for now:
     field :phase_1_amount, :decimal
     field :phase_2_amount, :decimal
-    
+
     field :amount, :decimal
 
     belongs_to :user, Qlarius.Accounts.User

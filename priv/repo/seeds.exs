@@ -45,12 +45,13 @@ for _ <- 1..20 do
 end
 
 for _ <- 1..10 do
-  media_piece = %MediaPiece{
-    title: Faker.Lorem.sentence(),
-    display_url: "example.com",
-    body_copy: Faker.Lorem.paragraph()
-  }
-  |> Repo.insert!()
+  media_piece =
+    %MediaPiece{
+      title: Faker.Lorem.sentence(),
+      display_url: "example.com",
+      body_copy: Faker.Lorem.paragraph()
+    }
+    |> Repo.insert!()
 
   p1_amt = Decimal.new("#{Enum.random(100..999)}.#{Enum.random(0..99)}")
   p2_amt = Decimal.new("#{Enum.random(100..999)}.#{Enum.random(0..99)}")
