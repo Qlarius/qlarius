@@ -10,9 +10,15 @@
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
 
-alias Qlarius.Repo
-alias Qlarius.{LedgerHeader, LedgerEntry}
 alias Qlarius.Accounts
+alias Qlarius.Accounts.User
+alias Qlarius.LedgerEntry
+alias Qlarius.LedgerHeader
+alias Qlarius.MediaPiece
+alias Qlarius.Offer
+alias Qlarius.Repo
+
+Repo.delete_all(User)
 
 {:ok, user} =
   Accounts.register_user(%{
@@ -34,6 +40,27 @@ for _ <- 1..20 do
     amount: Decimal.new("#{Enum.random(1..100)}.#{Enum.random(0..99)}"),
     description: Faker.Lorem.sentence(2..3),
     ledger_header_id: ledger_header.id
+  }
+  |> Repo.insert!()
+end
+
+for _ <- 1..10 do
+  media_piece = %MediaPiece{
+    title: Faker.Lorem.sentence(),
+    display_url: "example.com",
+    body_copy: Faker.Lorem.paragraph()
+  }
+  |> Repo.insert!()
+
+  p1_amt = Decimal.new("#{Enum.random(100..999)}.#{Enum.random(0..99)}")
+  p2_amt = Decimal.new("#{Enum.random(100..999)}.#{Enum.random(0..99)}")
+
+  %Offer{
+    user_id: user.id,
+    media_piece_id: media_piece.id,
+    phase_1_amount: p1_amt,
+    phase_2_amount: p2_amt,
+    amount: Decimal.add(p1_amt, p2_amt)
   }
   |> Repo.insert!()
 end

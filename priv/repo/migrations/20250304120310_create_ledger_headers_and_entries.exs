@@ -10,6 +10,8 @@ defmodule Qlarius.Repo.Migrations.CreateLedgerHeadersAndEntries do
       timestamps()
     end
 
+    create index(:ledger_headers, :user_id)
+
     create table(:ledger_entries) do
       add :amount, :decimal, precision: 8, scale: 2, null: false
       add :description, :text, null: false
@@ -17,5 +19,7 @@ defmodule Qlarius.Repo.Migrations.CreateLedgerHeadersAndEntries do
 
       timestamps()
     end
+
+    create index(:ledger_entries, :ledger_header_id)
   end
 end
