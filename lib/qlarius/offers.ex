@@ -6,7 +6,6 @@ defmodule Qlarius.Offers do
   import Ecto.Query, warn: false
   alias Qlarius.Repo
   alias Qlarius.Offer
-  alias Qlarius.MediaPiece
 
   @doc """
   Returns the list of offers for a user.
