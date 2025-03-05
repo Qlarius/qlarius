@@ -2,10 +2,13 @@
 title: Qlarius Data Model
 ---
 erDiagram
+    Campaign ||--o| MediaSequence : belongs_to
     Campaign ||--o| Target : belongs_to
     LedgerEntry ||--o| LedgerHeader : belongs_to
     LedgerHeader ||--o{ LedgerEntry : has
     LedgerHeader ||--o| User : belongs_to
+    MediaRun ||--o| MediaPiece : belongs_to
+    MediaRun ||--o| MediaSequence : belongs_to
     Offer ||--o| MediaPiece : belongs_to
     Offer ||--o| User : belongs_to
     Target ||--o{ Campaign : has
@@ -40,6 +43,26 @@ erDiagram
         string sent_to
     }
 
+    MediaSequence {
+        string title
+        string description
+    }
+
+    MediaRun {
+        integer frequency
+        integer frequency_buffer_hours
+        integer maximum_banner_count
+        integer banner_retry_buffer_hours
+    }
+
+    MediaPiece {
+        string title
+        string body_copy
+        string display_url
+        string jump_url
+        integer ad_category_id
+    }
+
     LedgerEntry {
         decimal amount
         string description
@@ -53,12 +76,6 @@ erDiagram
         string title
         string description
         boolean bullseye
-    }
-
-    MediaPiece {
-        string title
-        string display_url
-        string body_copy
     }
 
     Campaign {

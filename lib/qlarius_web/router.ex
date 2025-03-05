@@ -24,6 +24,9 @@ defmodule QlariusWeb.Router do
 
     # Target routes - basic auth handled in controller
     resources "/targets", TargetController
+
+    # Media pieces routes - basic auth handled in controller
+    resources "/media_pieces", MediaPieceController
   end
 
   # Other scopes may use custom stacks.

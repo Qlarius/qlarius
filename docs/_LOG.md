@@ -30,7 +30,7 @@ The application uses the following primary schemas (see `docs/data_model.mmd` fo
 
 3. **Advertising System**
    - `Qlarius.Campaigns.Campaign` - Advertising campaigns
-   - `Qlarius.Campaigns.MediaPiece` - Creative content for ads
+   - `Qlarius.Marketing.MediaPiece` - Creative content for ads
    - `Qlarius.Campaigns.Target` - Targeting information for campaigns
    - `Qlarius.Campaigns.AdCategory` - Categories for advertisements
    - `Qlarius.Offer` - Offers presented to users
@@ -90,6 +90,11 @@ Based on the schema relationships, the system appears to:
   - Automatic creation of "Bullseye" Target Bands when creating a Target
   - HTTP basic auth protection for marketer access
   - Cascading deletion of Target Bands when a Target is deleted
+
+- Media Pieces management system has been implemented with the following features:
+  - Media Piece CRUD operations with validation
+  - Integration with Ad Categories
+  - HTTP basic auth protection for marketer access
 
 ---
 

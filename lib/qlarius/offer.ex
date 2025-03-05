@@ -2,7 +2,7 @@ defmodule Qlarius.Offer do
   use Ecto.Schema
 
   alias Qlarius.Accounts.User
-  alias Qlarius.Campaigns.MediaPiece
+  alias Qlarius.Marketing.MediaPiece
 
   schema "offers" do
     # In the Rails app these two fields come from associated records,

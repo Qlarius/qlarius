@@ -12,7 +12,7 @@
 
 alias Qlarius.Accounts
 alias Qlarius.Accounts.User
-alias Qlarius.Campaigns.MediaPiece
+alias Qlarius.Marketing.MediaPiece
 alias Qlarius.LedgerEntry
 alias Qlarius.LedgerHeader
 alias Qlarius.Offer

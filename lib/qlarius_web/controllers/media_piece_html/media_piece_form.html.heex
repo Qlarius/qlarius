@@ -1,0 +1,21 @@
+<.simple_form :let={f} for={@changeset} action={@action}>
+  <.error :if={@changeset.action}>
+    Oops, something went wrong! Please check the errors below.
+  </.error>
+
+  <.input field={f[:title]} type="text" label="Title" required />
+  <.input field={f[:body_copy]} type="textarea" label="Body Copy" required />
+  <.input field={f[:display_url]} type="text" label="Display URL" required />
+  <.input field={f[:jump_url]} type="text" label="Jump URL" required />
+  <.input
+    field={f[:ad_category_id]}
+    type="select"
+    label="Ad Category"
+    options={Enum.map(@ad_categories, &{&1.name, &1.id})}
+    required
+  />
+
+  <:actions>
+    <.button>Save Media Piece</.button>
+  </:actions>
+</.simple_form>

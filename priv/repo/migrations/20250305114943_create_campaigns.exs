@@ -4,6 +4,7 @@ defmodule Qlarius.Repo.Migrations.CreateCampaigns do
   def change do
     create table(:campaigns) do
       add :target_id, references(:targets, on_delete: :delete_all), null: false
+      add :media_sequence_id, references(:media_sequences, on_delete: :delete_all), null: false
 
       add :title, :text, null: false
       add :description, :text, null: false
