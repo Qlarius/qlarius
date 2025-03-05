@@ -7,13 +7,12 @@
   </:actions>
 </.header>
 
-<.table
-  id="media_pieces"
-  rows={@media_pieces}
-  row_click={&JS.navigate(~p"/media_pieces/#{&1}/edit")}
->
-  <:col :let={media_piece} label="Title">{media_piece.title}</:col>
-  <:col :let={media_piece} label="Ad Category">{media_piece.ad_category_id}</:col>
+<.table id="media_pieces" rows={@media_pieces}>
+  <:col :let={media_piece} label="Category">{media_piece.ad_category.name}</:col>
+  <:col :let={media_piece} label="Headline">{media_piece.title}</:col>
+  <:col :let={media_piece} label="Copy">{media_piece.body_copy}</:col>
+  <:col :let={media_piece} label="Display URL">{media_piece.display_url}</:col>
+  <:col :let={media_piece} label="Jump URL">{media_piece.jump_url}</:col>
   <:action :let={media_piece}>
     <div class="sr-only">
       <.link navigate={~p"/media_pieces/#{media_piece}/edit"}>Edit</.link>

@@ -1,6 +1,7 @@
 defmodule QlariusWeb.Router do
   use QlariusWeb, :router
 
+  import Plug.BasicAuth
   import QlariusWeb.UserAuth
 
   pipeline :browser do
@@ -13,6 +14,13 @@ defmodule QlariusWeb.Router do
     plug :fetch_current_user
   end
 
+  pipeline :marketer do
+    plug :put_root_layout, html: {QlariusWeb.Layouts, :marketer}
+
+    # Temporary until we've added real auth for marketers
+    plug :basic_auth, username: "marketer", password: "password"
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
   end
@@ -21,11 +29,12 @@ defmodule QlariusWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+  end
 
-    # Target routes - basic auth handled in controller
+  scope "/", QlariusWeb do
+    pipe_through [:browser, :marketer]
+
     resources "/targets", TargetController
-
-    # Media pieces routes - basic auth handled in controller
     resources "/media_pieces", MediaPieceController
   end
 

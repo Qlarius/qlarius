@@ -11,4 +11,21 @@ defmodule QlariusWeb.Layouts do
   use QlariusWeb, :html
 
   embed_templates "layouts/*"
+
+  attr :current_path, :string, required: true
+  attr :path, :string, required: true
+
+  def marketer_navbar_link(assigns) do
+    ~H"""
+    <.link
+      class={[
+        "flex items-center px-4 py-2 border-r border-green-400",
+        @current_path == @path && "bg-green-600"
+      ]}
+      navigate={@path}
+    >
+      {render_slot(@inner_block)}
+    </.link>
+    """
+  end
 end

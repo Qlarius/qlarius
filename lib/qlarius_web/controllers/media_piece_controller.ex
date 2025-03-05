@@ -4,8 +4,6 @@ defmodule QlariusWeb.MediaPieceController do
   alias Qlarius.Marketing
   alias Qlarius.Marketing.MediaPiece
 
-  plug :authenticate_marketer when action in [:index, :new, :create, :edit, :update, :delete]
-
   def index(conn, _params) do
     media_pieces = Marketing.list_media_pieces()
     render(conn, :index, media_pieces: media_pieces)
@@ -69,21 +67,5 @@ defmodule QlariusWeb.MediaPieceController do
     conn
     |> put_flash(:info, "Media piece deleted successfully.")
     |> redirect(to: ~p"/media_pieces")
-  end
-
-  # Basic auth for marketer access
-  defp authenticate_marketer(conn, _opts) do
-    username = "marketer"
-    password = "password"
-
-    case Plug.BasicAuth.parse_basic_auth(conn) do
-      {^username, ^password} ->
-        conn
-
-      _ ->
-        conn
-        |> Plug.BasicAuth.request_basic_auth()
-        |> halt()
-    end
   end
 end

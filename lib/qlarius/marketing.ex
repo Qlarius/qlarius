@@ -7,14 +7,13 @@ defmodule Qlarius.Marketing do
   alias Qlarius.Repo
 
   alias Qlarius.Marketing.MediaPiece
-  alias Qlarius.Campaigns
   alias Qlarius.Campaigns.AdCategory
 
   @doc """
   Returns the list of media_pieces.
   """
   def list_media_pieces do
-    Repo.all(MediaPiece)
+    Repo.all(MediaPiece) |> Repo.preload(:ad_category)
   end
 
   @doc """

@@ -4,8 +4,6 @@ defmodule QlariusWeb.TargetController do
   alias Qlarius.Campaigns
   alias Qlarius.Campaigns.Target
 
-  plug :authenticate_marketer when action in [:index, :new, :create, :edit, :update, :delete]
-
   def index(conn, _params) do
     targets = Campaigns.list_targets()
     render(conn, :index, targets: targets)
@@ -18,7 +16,7 @@ defmodule QlariusWeb.TargetController do
 
   def create(conn, %{"target" => target_params}) do
     case Campaigns.create_target(target_params) do
-      {:ok, target} ->
+      {:ok, _target} ->
         conn
         |> put_flash(:info, "Target created successfully.")
         |> redirect(to: ~p"/targets")
@@ -55,21 +53,5 @@ defmodule QlariusWeb.TargetController do
     conn
     |> put_flash(:info, "Target deleted successfully.")
     |> redirect(to: ~p"/targets")
-  end
-
-  # Basic auth for marketer access
-  defp authenticate_marketer(conn, _opts) do
-    username = "marketer"
-    password = "password"
-
-    case Plug.BasicAuth.parse_basic_auth(conn) do
-      {^username, ^password} ->
-        conn
-
-      _ ->
-        conn
-        |> Plug.BasicAuth.request_basic_auth()
-        |> halt()
-    end
   end
 end
