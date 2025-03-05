@@ -7,6 +7,7 @@ erDiagram
     LedgerEntry ||--o| LedgerHeader : belongs_to
     LedgerHeader ||--o{ LedgerEntry : has
     LedgerHeader ||--o| User : belongs_to
+    MediaPiece ||--o| AdCategory : belongs_to
     MediaRun ||--o| MediaPiece : belongs_to
     MediaRun ||--o| MediaSequence : belongs_to
     Offer ||--o| MediaPiece : belongs_to
@@ -60,7 +61,6 @@ erDiagram
         string body_copy
         string display_url
         string jump_url
-        integer ad_category_id
     }
 
     LedgerEntry {
