@@ -1,4 +1,4 @@
-defmodule Qlarius.MediaPiece do
+defmodule Qlarius.Campaigns.MediaPiece do
   use Ecto.Schema
 
   schema "media_pieces" do

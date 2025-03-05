@@ -1,0 +1,77 @@
+---
+title: Qlarius Data Model
+---
+erDiagram
+    Campaign ||--o| Target : belongs_to
+    LedgerEntry ||--o| LedgerHeader : belongs_to
+    LedgerHeader ||--o{ LedgerEntry : has
+    LedgerHeader ||--o| User : belongs_to
+    Offer ||--o| MediaPiece : belongs_to
+    Offer ||--o| User : belongs_to
+    Target ||--o{ Campaign : has
+    Target ||--o{ TargetBand : has
+    TargetBand ||--o| Target : belongs_to
+    Trait }|--|{ User : has
+    User ||--|| LedgerHeader : has
+    User }|--|{ Trait : has
+    UserToken ||--o| User : belongs_to
+
+    Trait {
+        string name
+    }
+
+    Offer {
+        decimal phase_1_amount
+        decimal phase_2_amount
+        decimal amount
+    }
+
+    User {
+        string email
+        string password
+        string hashed_password
+        string current_password
+        utc_datetime confirmed_at
+    }
+
+    UserToken {
+        binary token
+        string context
+        string sent_to
+    }
+
+    LedgerEntry {
+        decimal amount
+        string description
+    }
+
+    AdCategory {
+        string name
+    }
+
+    TargetBand {
+        string title
+        string description
+        boolean bullseye
+    }
+
+    MediaPiece {
+        string title
+        string display_url
+        string body_copy
+    }
+
+    Campaign {
+        string description
+        string title
+    }
+
+    Target {
+        string name
+        string description
+    }
+
+    LedgerHeader {
+        string description
+        decimal balance
+    }

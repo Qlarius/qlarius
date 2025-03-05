@@ -1,0 +1,31 @@
+<.header>
+  Target Listing
+  <:actions>
+    <.link href={~p"/targets/new"}>
+      <.button>New Target</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table id="targets" rows={@targets} row_click={&JS.navigate(~p"/targets/#{&1}/edit")}>
+  <:col :let={target} label="Name">{target.name}</:col>
+  <:col :let={target} label="Description">{target.description}</:col>
+  <:action :let={target}>
+    <div class="sr-only">
+      <.link navigate={~p"/targets/#{target}/edit"}>Edit</.link>
+    </div>
+    <.link navigate={~p"/targets/#{target}/edit"} class="text-zinc-600 hover:text-zinc-900">
+      <.icon name="hero-pencil-square" />
+    </.link>
+  </:action>
+  <:action :let={target}>
+    <.link
+      href={~p"/targets/#{target}"}
+      method="delete"
+      data-confirm="Are you sure you want to delete this target and all its bands?"
+      class="text-zinc-600 hover:text-zinc-900"
+    >
+      <.icon name="hero-trash" />
+    </.link>
+  </:action>
+</.table>

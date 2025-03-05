@@ -21,6 +21,9 @@ defmodule QlariusWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+
+    # Target routes - basic auth handled in controller
+    resources "/targets", TargetController
   end
 
   # Other scopes may use custom stacks.

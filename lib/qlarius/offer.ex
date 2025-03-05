@@ -1,6 +1,9 @@
 defmodule Qlarius.Offer do
   use Ecto.Schema
 
+  alias Qlarius.Accounts.User
+  alias Qlarius.Campaigns.MediaPiece
+
   schema "offers" do
     # In the Rails app these two fields come from associated records,
     # but I'm putting them in here for now:
@@ -9,8 +12,8 @@ defmodule Qlarius.Offer do
 
     field :amount, :decimal
 
-    belongs_to :user, Qlarius.Accounts.User
-    belongs_to :media_piece, Qlarius.MediaPiece
+    belongs_to :user, User
+    belongs_to :media_piece, MediaPiece
 
     timestamps()
   end

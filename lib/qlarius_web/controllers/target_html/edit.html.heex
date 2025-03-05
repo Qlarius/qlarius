@@ -1,0 +1,8 @@
+<.header>
+  Edit Target {@target.name}
+  <:subtitle>Update your target information.</:subtitle>
+</.header>
+
+<.target_form changeset={@changeset} action={~p"/targets/#{@target}"} />
+
+<.back navigate={~p"/targets"}>Back to targets</.back>
