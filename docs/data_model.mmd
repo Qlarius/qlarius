@@ -15,13 +15,33 @@ erDiagram
     Target ||--o{ Campaign : has
     Target ||--o{ TargetBand : has
     TargetBand ||--o| Target : belongs_to
+    TargetBand }|--|{ TraitGroup : has
+    Trait ||--o| Category : belongs_to
+    Trait ||--o| Parent : belongs_to
+    Trait }|--|{ TraitGroup : has
     Trait }|--|{ User : has
+    TraitCategory ||--o{ Trait : has
+    TraitGroup }|--|{ TargetBand : has
+    TraitGroup }|--|{ Trait : has
     User ||--|| LedgerHeader : has
     User }|--|{ Trait : has
     UserToken ||--o| User : belongs_to
 
     Trait {
         string name
+        boolean campaign_only
+        integer display_order
+        boolean numeric
+        boolean immutable
+        boolean taggable
+        boolean is_date
+        boolean active
+        string input_type
+    }
+
+    TraitCategory {
+        string name
+        integer display_order
     }
 
     Offer {
@@ -76,6 +96,11 @@ erDiagram
         string title
         string description
         boolean bullseye
+    }
+
+    TraitGroup {
+        string description
+        string title
     }
 
     Campaign {

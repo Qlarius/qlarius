@@ -36,6 +36,7 @@ defmodule QlariusWeb.Router do
 
     resources "/targets", TargetController
     resources "/media_pieces", MediaPieceController
+    live "/trait_groups", TraitGroupLive.Index, :index
   end
 
   # Other scopes may use custom stacks.

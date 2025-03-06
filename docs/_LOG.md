@@ -37,6 +37,8 @@ The application uses the following primary schemas (see `docs/data_model.mmd` fo
 
 4. **User Attributes**
    - `Qlarius.Traits.Trait` - User characteristics/interests
+   - `Qlarius.Traits.TraitCategory` - Categories for organizing traits
+   - `Qlarius.Campaigns.TraitGroup` - Groups of related traits for targeting
 
 ### Module Relationships
 
@@ -53,6 +55,12 @@ The application uses the following primary schemas (see `docs/data_model.mmd` fo
   - Manages advertising campaigns and their components
   - Campaigns have targets (demographic/interest targeting)
   - Campaigns use media pieces for content
+  - Trait groups define sets of traits for targeting
+
+- **Traits System** (`Qlarius.Traits`)
+  - Manages user characteristics for targeting
+  - Traits are organized into categories
+  - Trait groups combine related traits for targeting purposes
 
 - **Offers System** (`Qlarius.Offers`)
   - Connects users with media pieces
@@ -66,6 +74,7 @@ The Phoenix web interface is organized as:
 - **LiveView** - Real-time UI components without JavaScript
   - `AdsLive` - Manages ad viewing experience
   - `WalletLive` - User's financial dashboard
+  - `TraitGroupLive` - Management of trait groups
   - Various authentication-related LiveView modules
 
 ## System Flow
@@ -95,6 +104,13 @@ Based on the schema relationships, the system appears to:
   - Media Piece CRUD operations with validation
   - Integration with Ad Categories
   - HTTP basic auth protection for marketer access
+
+- Trait Groups management system has been implemented with the following features:
+  - LiveView interface for viewing trait groups
+  - Two-column layout with trait groups on the left and trait categories with parent traits on the right
+  - Display of trait groups with their associated traits
+  - Hierarchical display of trait categories and parent traits
+  - No user authentication required to access trait groups page
 
 ---
 

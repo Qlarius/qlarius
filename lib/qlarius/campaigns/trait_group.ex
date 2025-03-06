@@ -14,4 +14,12 @@ defmodule Qlarius.Campaigns.TraitGroup do
 
     timestamps(type: :utc_datetime)
   end
+
+  @doc false
+  def changeset(trait_group, attrs) do
+    trait_group
+    |> cast(attrs, [:title, :description])
+    |> validate_required([:title])
+    |> put_assoc(:traits, Map.get(attrs, :traits, []))
+  end
 end
