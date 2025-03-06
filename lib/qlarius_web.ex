@@ -56,6 +56,7 @@ defmodule QlariusWeb do
         layout: {QlariusWeb.Layouts, :app}
 
       unquote(html_helpers())
+      unquote(socket_helpers())
     end
   end
 
@@ -64,6 +65,7 @@ defmodule QlariusWeb do
       use Phoenix.LiveComponent
 
       unquote(html_helpers())
+      unquote(socket_helpers())
     end
   end
 
@@ -104,6 +106,20 @@ defmodule QlariusWeb do
         endpoint: QlariusWeb.Endpoint,
         router: QlariusWeb.Router,
         statics: QlariusWeb.static_paths()
+    end
+  end
+
+  defp socket_helpers do
+    quote do
+      def ok(socket) do
+        {:ok, socket}
+      end
+
+      def ok(socket, opts) do
+        {:ok, socket, opts}
+      end
+
+      def noreply(socket), do: {:noreply, socket}
     end
   end
 
