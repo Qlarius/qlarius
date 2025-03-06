@@ -1,0 +1,16 @@
+<.header>
+  Media Sequences
+  <:actions>
+    <.link href={~p"/media_sequences/new"}>
+      <.button>New</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table id="media_sequences" rows={@media_sequences}>
+  <:col :let={seq} label="Sequence name">{seq.title}</:col>
+  <:col :let={seq} label="Description">{seq.description}</:col>
+  <:col label="Phase Count"></:col>
+  <:col label="Current Campaign Count"></:col>
+  <:col label="Notes"></:col>
+</.table>

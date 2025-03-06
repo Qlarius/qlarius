@@ -6,10 +6,10 @@ defmodule Qlarius.Marketing.MediaRun do
   alias Qlarius.Marketing.MediaSequence
 
   schema "media_runs" do
-    field :frequency, :integer
-    field :frequency_buffer_hours, :integer
-    field :maximum_banner_count, :integer
-    field :banner_retry_buffer_hours, :integer
+    field :frequency, :integer, default: 3
+    field :frequency_buffer_hours, :integer, default: 24
+    field :maximum_banner_count, :integer, default: 3
+    field :banner_retry_buffer_hours, :integer, default: 10
 
     belongs_to :media_piece, MediaPiece
     belongs_to :media_sequence, MediaSequence

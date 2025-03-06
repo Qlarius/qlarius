@@ -31,11 +31,13 @@ defmodule QlariusWeb.Router do
     get "/", PageController, :home
   end
 
+  # MARKETER
   scope "/", QlariusWeb do
     pipe_through [:browser, :marketer]
 
     resources "/targets", TargetController
     resources "/media_pieces", MediaPieceController
+    resources "/media_sequences", MediaSequenceController, only: [:index, :new, :create]
     live "/trait_groups", TraitGroupLive.Index, :index
   end
 

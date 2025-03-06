@@ -1,0 +1,14 @@
+<.header>
+  New Media Sequence
+  <:subtitle>Create a new media sequence.</:subtitle>
+</.header>
+
+<div class="mx-auto max-w-2xl">
+  <.media_run_form
+    changeset={@changeset}
+    action={~p"/media_sequences"}
+    media_pieces={@media_pieces}
+  />
+
+  <.back navigate={~p"/media_sequences"}>Back to media sequences</.back>
+</div>
