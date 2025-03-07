@@ -10,6 +10,10 @@ defmodule Qlarius.Repo.Migrations.CreateCampaigns do
       add :description, :text, null: false
       add :starts_at, :utc_datetime, null: false
       add :ends_at, :utc_datetime, null: false
+      add :payable, :boolean, null: false, default: false
+      add :throttled, :boolean, null: false, default: false
+      add :demo, :boolean, null: false, default: false
+      add :deactivated_at, :utc_datetime
 
       timestamps(type: :utc_datetime)
     end
