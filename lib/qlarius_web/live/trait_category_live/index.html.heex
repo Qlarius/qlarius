@@ -1,0 +1,39 @@
+<.header>
+  Listing Trait Categories
+  <:actions>
+    <.link patch={~p"/trait_categories/new"}>
+      <.button>New Trait Category</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="trait_categories"
+  rows={@trait_categories}
+>
+  <:col :let={trait_category} label="Name"><%= trait_category.name %></:col>
+  <:col :let={trait_category} label="Display order"><%= trait_category.display_order %></:col>
+  <:action :let={trait_category}>
+    <.link patch={~p"/trait_categories/#{trait_category}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={trait_category}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: trait_category.id}) |> 
+        JS.hide(to: "##{trait_category.id}")}
+      data-confirm="Are you sure you want to delete this trait category?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal :if={@live_action in [:new, :edit]} id="trait_category-modal" show on_cancel={JS.patch(~p"/trait_categories")}>
+  <.live_component
+    module={QlariusWeb.TraitCategoryLive.FormComponent}
+    id={@trait_category.id || :new}
+    title={@page_title}
+    action={@live_action}
+    trait_category={@trait_category}
+    patch={~p"/trait_categories"}
+  />
+</.modal> 

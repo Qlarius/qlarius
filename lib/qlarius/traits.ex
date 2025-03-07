@@ -10,6 +10,56 @@ defmodule Qlarius.Traits do
   alias Qlarius.Traits.TraitCategory
   alias Qlarius.Campaigns.TraitGroup
 
+  # TraitCategory functions
+
+  @doc """
+  Returns the list of trait categories sorted by display_order.
+  """
+  def list_trait_categories do
+    Repo.all(from c in TraitCategory, order_by: c.display_order)
+  end
+
+  @doc """
+  Gets a single trait_category.
+
+  Raises `Ecto.NoResultsError` if the Trait category does not exist.
+  """
+  def get_trait_category!(id), do: Repo.get!(TraitCategory, id)
+
+  @doc """
+  Creates a trait_category.
+  """
+  def create_trait_category(attrs \\ %{}) do
+    %TraitCategory{}
+    |> TraitCategory.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a trait_category.
+  """
+  def update_trait_category(%TraitCategory{} = trait_category, attrs) do
+    trait_category
+    |> TraitCategory.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a trait_category.
+  """
+  def delete_trait_category(%TraitCategory{} = trait_category) do
+    Repo.delete(trait_category)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking trait_category changes.
+  """
+  def change_trait_category(%TraitCategory{} = trait_category, attrs \\ %{}) do
+    TraitCategory.changeset(trait_category, attrs)
+  end
+
+  # TraitGroup functions
+  
   @doc """
   Returns the list of trait groups with their associated traits.
   """

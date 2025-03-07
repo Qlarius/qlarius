@@ -1,6 +1,6 @@
 defmodule Qlarius.Traits.TraitCategory do
   use Ecto.Schema
-  import Ecto.Changeset
+  import Ecto.Changeset, warn: false
 
   alias Qlarius.Traits.Trait
 
@@ -11,5 +11,14 @@ defmodule Qlarius.Traits.TraitCategory do
     has_many :traits, Trait, foreign_key: :category_id
 
     timestamps(type: :utc_datetime)
+  end
+
+  @doc """
+  Changeset for trait_category.
+  """
+  def changeset(trait_category, attrs) do
+    trait_category
+    |> cast(attrs, [:name, :display_order])
+    |> validate_required([:name, :display_order])
   end
 end

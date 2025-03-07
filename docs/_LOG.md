@@ -75,6 +75,7 @@ The Phoenix web interface is organized as:
   - `AdsLive` - Manages ad viewing experience
   - `WalletLive` - User's financial dashboard
   - `TraitGroupLive` - Management of trait groups
+  - `TraitCategoryLive` - Management of trait categories
   - Various authentication-related LiveView modules
 
 ## System Flow
@@ -120,6 +121,14 @@ Based on the schema relationships, the system appears to:
   - Integration with Media Pieces for selecting content
   - HTTP basic auth protection for marketer access
   - Creation of both MediaSequence and MediaRun in a transaction
+
+- Trait Categories management system has been implemented with the following features:
+  - LiveView interface for listing, creating, editing, and deleting trait categories
+  - Table display with columns for name, display order, and actions
+  - Modal forms for editing and creating trait categories
+  - Confirmation before deletion
+  - HTTP basic auth protection for marketer access
+  - Categories displayed in order of their display_order attribute
 
 ---
 
