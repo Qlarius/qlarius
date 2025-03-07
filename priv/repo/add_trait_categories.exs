@@ -12,8 +12,6 @@ Repo.delete_all(TraitCategory)
 |> Enum.each(fn line ->
   [id, name, display_order] = Enum.map(line, &String.trim/1)
 
-  IO.inspect(line)
-
   %TraitCategory{}
   |> cast(
     %{id: id, name: name, display_order: display_order},

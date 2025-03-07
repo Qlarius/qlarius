@@ -16,13 +16,14 @@ erDiagram
     Target ||--o{ TargetBand : has
     TargetBand ||--o| Target : belongs_to
     TargetBand }|--|{ TraitGroup : has
+    Trait ||--o{ Value : has
     Trait ||--o| Category : belongs_to
-    Trait ||--o| Parent : belongs_to
     Trait }|--|{ TraitGroup : has
     Trait }|--|{ User : has
     TraitCategory ||--o{ Trait : has
     TraitGroup }|--|{ TargetBand : has
     TraitGroup }|--|{ Trait : has
+    TraitValue ||--o| Trait : belongs_to
     User ||--|| LedgerHeader : has
     User }|--|{ Trait : has
     UserToken ||--o| User : belongs_to
@@ -30,7 +31,6 @@ erDiagram
     Trait {
         string name
         boolean campaign_only
-        integer display_order
         boolean numeric
         boolean immutable
         boolean taggable
@@ -40,6 +40,11 @@ erDiagram
     }
 
     TraitCategory {
+        string name
+        integer display_order
+    }
+
+    TraitValue {
         string name
         integer display_order
     }
@@ -106,6 +111,12 @@ erDiagram
     Campaign {
         string description
         string title
+        utc_datetime starts_at
+        utc_datetime ends_at
+        boolean payable
+        boolean throttled
+        boolean demo
+        utc_datetime deactivated_at
     }
 
     Target {

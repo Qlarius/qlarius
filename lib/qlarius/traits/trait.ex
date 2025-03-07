@@ -5,11 +5,11 @@ defmodule Qlarius.Traits.Trait do
   alias Qlarius.Accounts.User
   alias Qlarius.Campaigns.TraitGroup
   alias Qlarius.Traits.TraitCategory
+  alias Qlarius.Traits.TraitValue
 
   schema "traits" do
     field :name, :string
     field :campaign_only, :boolean
-    field :display_order, :integer
     field :numeric, :boolean
     field :immutable, :boolean
     field :taggable, :boolean
@@ -17,8 +17,9 @@ defmodule Qlarius.Traits.Trait do
     field :active, :boolean
     field :input_type, :string
 
-    belongs_to :parent, __MODULE__
     belongs_to :category, TraitCategory
+
+    has_many :values, TraitValue
 
     many_to_many :users, User, join_through: "user_traits"
     many_to_many :trait_groups, TraitGroup, join_through: "traits_trait_groups"

@@ -5,19 +5,25 @@ defmodule Qlarius.Repo.Migrations.CreateTraits do
     create table(:traits) do
       add :name, :text, null: false
       add :campaign_only, :boolean
-      add :display_order, :integer
       add :numeric, :boolean
       add :immutable, :boolean
       add :taggable, :boolean
       add :is_date, :boolean
       add :active, :boolean
       add :input_type, :string
-      add :parent_id, references(:traits, on_delete: :nilify_all)
 
       timestamps(type: :utc_datetime)
     end
 
-    create index(:traits, :parent_id)
+    create table(:trait_values) do
+      add :trait_id, references(:traits, on_delete: :delete_all)
+      add :name, :text, null: false
+      add :display_order, :integer
+
+      timestamps(type: :utc_datetime)
+    end
+
+    create index(:trait_values, :trait_id)
 
     create table(:user_traits) do
       add :user_id, references(:users, on_delete: :delete_all)
