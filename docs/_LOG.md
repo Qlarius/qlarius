@@ -140,6 +140,15 @@ Based on the schema relationships, the system appears to:
   - HTTP basic auth protection for marketer access
   - Bug fix: Resolved Phoenix.HTML.FormData protocol error by using Phoenix's modern form handling approach with `to_form/1` and the `CoreComponents.input/1` component
 
+- Survey Manager system has been implemented with the following features:
+  - LiveView interface at `/survey_manager` for managing surveys and their categories
+  - Two-column layout with survey categories and surveys on the left, selected survey details on the right
+  - Display of survey categories with their associated surveys, ordered by display_order
+  - Ability to add new surveys via a modal form with name, category, and display order fields
+  - Ability to select a survey and view its details in the right panel
+  - Ability to edit existing surveys via a modal form
+  - HTTP basic auth protection for marketer access
+
 ---
 
 *This document should be updated when significant architectural changes are made to the project.*

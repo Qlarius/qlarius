@@ -44,6 +44,10 @@ defmodule QlariusWeb.Router do
     live "/trait_categories", TraitCategoryLive.Index, :index
     live "/trait_categories/new", TraitCategoryLive.Index, :new
     live "/trait_categories/:id/edit", TraitCategoryLive.Index, :edit
+
+    live "/survey_manager", SurveyManagerLive, :index
+    live "/survey_manager/new/:category_id", SurveyManagerLive, :new
+    live "/survey_manager/edit/:id", SurveyManagerLive, :edit
   end
 
   # Other scopes may use custom stacks.

@@ -8,7 +8,7 @@ defmodule Qlarius.Surveys.SurveyCategory do
     field :name, :string
     field :display_order, :integer
 
-    has_many :surveys, Survey
+    has_many :surveys, Survey, foreign_key: :category_id
 
     timestamps(type: :utc_datetime)
   end

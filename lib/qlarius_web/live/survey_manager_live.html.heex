@@ -1,0 +1,102 @@
+<div class="container mx-auto">
+  <h1 class="text-2xl font-bold mb-6">Survey Manager</h1>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Left Column: Categories and Surveys List -->
+    <div class="bg-white rounded-lg shadow p-4">
+      <%= for category <- @categories_with_surveys do %>
+        <div class="mb-4">
+          <div class="flex justify-between items-center mb-2">
+            <h2 class="text-lg font-semibold"><%= category.name %></h2>
+            <button 
+              phx-click="add_survey" 
+              phx-value-category_id={category.id} 
+              class="text-blue-500 hover:text-blue-700"
+            >
+              <.icon name="hero-plus" class="h-5 w-5" />
+            </button>
+          </div>
+          <ul class="pl-4">
+            <%= for survey <- category.surveys do %>
+              <li class="py-1">
+                <button 
+                  phx-click="select_survey" 
+                  phx-value-id={survey.id} 
+                  class={"text-left w-full hover:text-blue-700 #{if @selected_survey && @selected_survey.id == survey.id, do: "font-semibold text-blue-600", else: ""}"}
+                >
+                  <%= survey.name %>
+                </button>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Right Column: Selected Survey Details -->
+    <div class="bg-white rounded-lg shadow p-4">
+      <%= if @selected_survey do %>
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold"><%= @selected_survey.name %></h2>
+          <button 
+            phx-click="edit_survey" 
+            phx-value-id={@selected_survey.id} 
+            class="text-blue-500 hover:text-blue-700"
+          >
+            <.icon name="hero-pencil" class="h-5 w-5" />
+          </button>
+        </div>
+        <!-- Additional survey details will be added here in future iterations -->
+      <% else %>
+        <div class="text-gray-500 italic text-center py-10">
+          Select a survey from the left panel to view details
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<%= if @live_action in [:new, :edit] do %>
+  <.modal id="survey-modal" show on_cancel={JS.patch(~p"/survey_manager")}>
+    <.header>
+      <%= if @live_action == :new, do: "New Survey", else: "Edit Survey" %>
+    </.header>
+
+    <.simple_form
+      for={%{"survey" => @survey}}
+      id="survey-form"
+      phx-submit="save"
+    >
+      <.input 
+        field={:name} 
+        type="text" 
+        label="Name" 
+        value={@survey.name}
+        required
+      />
+      
+      <.input 
+        field={:category_id} 
+        type="select" 
+        label="Category" 
+        value={@survey.category_id}
+        options={Enum.map(@categories_with_surveys, &{&1.name, &1.id})}
+        required
+      />
+      
+      <.input 
+        field={:display_order} 
+        type="number" 
+        label="Display Order" 
+        value={@survey.display_order}
+        min="1"
+        required
+      />
+
+      <:actions>
+        <.button type="button" phx-click="close_modal" class="mr-2">Cancel</.button>
+        <.button type="submit" phx-disable-with="Saving...">Save</.button>
+      </:actions>
+    </.simple_form>
+  </.modal>
+<% end %>
