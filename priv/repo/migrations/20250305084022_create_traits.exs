@@ -7,6 +7,7 @@ defmodule Qlarius.Repo.Migrations.CreateTraits do
       add :campaign_only, :boolean
       add :numeric, :boolean
       add :immutable, :boolean
+      add :display_order, :integer, null: false
       add :taggable, :boolean
       add :is_date, :boolean
       add :active, :boolean
@@ -14,6 +15,8 @@ defmodule Qlarius.Repo.Migrations.CreateTraits do
 
       timestamps(type: :utc_datetime)
     end
+
+    create index(:traits, :display_order)
 
     create table(:trait_values) do
       add :trait_id, references(:traits, on_delete: :delete_all)
