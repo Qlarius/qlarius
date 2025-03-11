@@ -10,7 +10,7 @@ defmodule Qlarius.Surveys.SurveyCategory do
 
     has_many :surveys, Survey
 
-    timestamps()
+    timestamps(type: :utc_datetime)
   end
 
   def changeset(survey_category, attrs) do

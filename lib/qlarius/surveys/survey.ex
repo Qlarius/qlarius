@@ -13,7 +13,7 @@ defmodule Qlarius.Surveys.Survey do
     belongs_to :category, SurveyCategory
     many_to_many :questions, SurveyQuestion, join_through: "survey_question_surveys"
 
-    timestamps()
+    timestamps(type: :utc_datetime)
   end
 
   def changeset(survey, attrs) do

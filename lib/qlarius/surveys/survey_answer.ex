@@ -14,7 +14,7 @@ defmodule Qlarius.Surveys.SurveyAnswer do
     belongs_to :trait, Trait
     belongs_to :next_question, SurveyQuestion
 
-    timestamps()
+    timestamps(type: :utc_datetime)
   end
 
   def changeset(survey_answer, attrs) do

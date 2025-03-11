@@ -16,7 +16,7 @@ defmodule Qlarius.Surveys.SurveyQuestion do
     has_many :answers, SurveyAnswer
     has_many :next_questions, SurveyAnswer, foreign_key: :next_question_id
 
-    timestamps()
+    timestamps(type: :utc_datetime)
   end
 
   def changeset(survey_question, attrs) do
