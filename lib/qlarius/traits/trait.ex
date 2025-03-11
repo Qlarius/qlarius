@@ -26,4 +26,23 @@ defmodule Qlarius.Traits.Trait do
 
     timestamps(type: :utc_datetime)
   end
+
+  @doc """
+  Changeset for trait.
+  """
+  def changeset(trait, attrs) do
+    trait
+    |> cast(attrs, [
+      :name,
+      :input_type,
+      :category_id,
+      :campaign_only,
+      :numeric,
+      :immutable,
+      :taggable,
+      :is_date,
+      :active
+    ])
+    |> validate_required([:name, :input_type, :category_id])
+  end
 end

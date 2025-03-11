@@ -39,7 +39,8 @@ defmodule QlariusWeb.Router do
     resources "/media_pieces", MediaPieceController
     resources "/media_sequences", MediaSequenceController, only: [:index, :new, :create]
     live "/trait_groups", TraitGroupLive.Index, :index
-    
+    live "/trait_manager", TraitManagerLive.Index, :index
+
     live "/trait_categories", TraitCategoryLive.Index, :index
     live "/trait_categories/new", TraitCategoryLive.Index, :new
     live "/trait_categories/:id/edit", TraitCategoryLive.Index, :edit

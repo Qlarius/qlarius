@@ -53,4 +53,4 @@ defmodule QlariusWeb.TraitCategoryLive.Index do
   defp list_trait_categories do
     Traits.list_trait_categories()
   end
-end 
+end

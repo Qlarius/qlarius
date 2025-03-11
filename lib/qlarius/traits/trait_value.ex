@@ -12,4 +12,13 @@ defmodule Qlarius.Traits.TraitValue do
 
     timestamps(type: :utc_datetime)
   end
+
+  @doc """
+  Changeset for trait_value.
+  """
+  def changeset(trait_value, attrs) do
+    trait_value
+    |> cast(attrs, [:name, :display_order, :trait_id])
+    |> validate_required([:name, :display_order, :trait_id])
+  end
 end

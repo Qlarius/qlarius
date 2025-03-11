@@ -8,6 +8,7 @@ defmodule Qlarius.Traits do
 
   alias Qlarius.Traits.Trait
   alias Qlarius.Traits.TraitCategory
+  alias Qlarius.Traits.TraitValue
   alias Qlarius.Campaigns.TraitGroup
 
   # TraitCategory functions
@@ -58,8 +59,82 @@ defmodule Qlarius.Traits do
     TraitCategory.changeset(trait_category, attrs)
   end
 
+  # Trait functions
+
+  @doc """
+  Returns the list of traits ordered by name.
+  """
+  def list_traits do
+    Repo.all(from t in Trait, order_by: t.name)
+  end
+
+  @doc """
+  Gets a single trait with preloaded values ordered by display_order.
+  """
+  def get_trait_with_values!(id) do
+    Repo.get!(Trait, id)
+    |> Repo.preload(values: from(v in TraitValue, order_by: v.display_order))
+  end
+
+  @doc """
+  Creates a trait.
+  """
+  def create_trait(attrs \\ %{}) do
+    %Trait{}
+    |> Trait.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a trait.
+  """
+  def update_trait(%Trait{} = trait, attrs) do
+    trait
+    |> Trait.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a trait.
+  """
+  def delete_trait(%Trait{} = trait) do
+    Repo.delete(trait)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking trait changes.
+  """
+  def change_trait(%Trait{} = trait, attrs \\ %{}) do
+    Trait.changeset(trait, attrs)
+  end
+
+  # TraitValue functions
+
+  @doc """
+  Creates a trait value.
+  """
+  def create_trait_value(attrs \\ %{}) do
+    %TraitValue{}
+    |> TraitValue.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Deletes a trait value.
+  """
+  def delete_trait_value(%TraitValue{} = trait_value) do
+    Repo.delete(trait_value)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking trait value changes.
+  """
+  def change_trait_value(%TraitValue{} = trait_value, attrs \\ %{}) do
+    TraitValue.changeset(trait_value, attrs)
+  end
+
   # TraitGroup functions
-  
+
   @doc """
   Returns the list of trait groups with their associated traits.
   """

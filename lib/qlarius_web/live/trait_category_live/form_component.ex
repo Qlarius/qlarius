@@ -8,7 +8,7 @@ defmodule QlariusWeb.TraitCategoryLive.FormComponent do
     ~H"""
     <div>
       <.header>
-        <%= @title %>
+        {@title}
         <:subtitle>Use this form to manage trait category records in your database.</:subtitle>
       </.header>
 
@@ -58,7 +58,7 @@ defmodule QlariusWeb.TraitCategoryLive.FormComponent do
       {:ok, _trait_category} ->
         # Notify parent to refresh the list
         send(self(), {:trait_category_updated})
-        
+
         {:noreply,
          socket
          |> put_flash(:info, "Trait category updated successfully")
@@ -74,7 +74,7 @@ defmodule QlariusWeb.TraitCategoryLive.FormComponent do
       {:ok, _trait_category} ->
         # Notify parent to refresh the list
         send(self(), {:trait_category_created})
-        
+
         {:noreply,
          socket
          |> put_flash(:info, "Trait category created successfully")
@@ -88,4 +88,4 @@ defmodule QlariusWeb.TraitCategoryLive.FormComponent do
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     assign(socket, :form, to_form(changeset))
   end
-end 
+end
