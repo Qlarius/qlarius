@@ -2,9 +2,12 @@ defmodule Qlarius.Surveys.Survey do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Qlarius.Surveys.SurveyCategory
+  alias Qlarius.Surveys.SurveyQuestion
+
   schema "surveys" do
     field :name, :string
-    field :display_order, :integer
+    field :display_order, :integer, default: 1
     field :active, :boolean, default: false
 
     belongs_to :category, SurveyCategory

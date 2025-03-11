@@ -22,6 +22,7 @@ defmodule Qlarius.Repo.Migrations.CreateSurveySystem do
       add :text, :text, null: false
       add :active, :boolean, default: true, null: false
       add :display_order, :integer, null: false
+      add :trait_id, references(:traits, on_delete: :restrict), null: false
 
       timestamps()
     end
@@ -40,7 +41,7 @@ defmodule Qlarius.Repo.Migrations.CreateSurveySystem do
     create table(:survey_answers) do
       add :text, :text, null: false
       add :question_id, references(:survey_questions, on_delete: :delete_all), null: false
-      add :trait_id, references(:traits, on_delete: :nilify_all)
+      add :trait_value_id, references(:trait_values, on_delete: :nilify_all)
       add :display_order, :integer
       add :next_question_id, references(:survey_questions, on_delete: :nilify_all)
 
@@ -53,9 +54,10 @@ defmodule Qlarius.Repo.Migrations.CreateSurveySystem do
 
     create index(:survey_questions, [:display_order])
     create index(:survey_questions, [:active])
+    create index(:survey_questions, [:trait_id])
 
     create index(:survey_answers, [:question_id])
-    create index(:survey_answers, [:trait_id])
+    create index(:survey_answers, [:trait_value_id])
     create index(:survey_answers, [:next_question_id])
     create index(:survey_answers, [:display_order])
   end

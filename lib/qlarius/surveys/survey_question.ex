@@ -9,7 +9,7 @@ defmodule Qlarius.Surveys.SurveyQuestion do
   schema "survey_questions" do
     field :text, :string
     field :active, :boolean, default: false
-    field :display_order, :integer
+    field :display_order, :integer, default: 1
 
     belongs_to :trait, Trait
     many_to_many :surveys, Survey, join_through: "survey_question_surveys"
