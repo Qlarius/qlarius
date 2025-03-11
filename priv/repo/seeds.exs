@@ -13,6 +13,7 @@
 alias Qlarius.Accounts
 alias Qlarius.Accounts.User
 alias Qlarius.Marketing.MediaPiece
+alias Qlarius.Marketing.MediaRun
 alias Qlarius.LedgerEntry
 alias Qlarius.LedgerHeader
 alias Qlarius.Offer
@@ -49,7 +50,14 @@ for _ <- 1..10 do
     %MediaPiece{
       title: Faker.Lorem.sentence(),
       display_url: "example.com",
-      body_copy: Faker.Lorem.paragraph()
+      body_copy: Faker.Lorem.paragraph(),
+      jump_url: "example.com"
+    }
+    |> Repo.insert!()
+
+  media_run =
+    %MediaRun{
+      media_piece: media_piece
     }
     |> Repo.insert!()
 
@@ -58,7 +66,7 @@ for _ <- 1..10 do
 
   %Offer{
     user_id: user.id,
-    media_piece_id: media_piece.id,
+    media_run: media_run,
     phase_1_amount: p1_amt,
     phase_2_amount: p2_amt,
     amount: Decimal.add(p1_amt, p2_amt)
