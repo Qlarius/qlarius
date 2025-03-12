@@ -1,0 +1,2 @@
+#!/bin/sh
+npx repomix@latest --style xml --ignore "priv/repo/seeds.exs,priv/repo/add_*,**/*.csv,.cursor*"

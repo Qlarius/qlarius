@@ -35,3 +35,4 @@ qlarius-*.tar
 npm-debug.log
 /assets/node_modules/
 
+repomix-output.xml
