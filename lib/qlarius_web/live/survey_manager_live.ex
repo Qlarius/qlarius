@@ -13,47 +13,53 @@ defmodule QlariusWeb.SurveyManagerLive do
       socket
       |> assign(:categories_with_surveys, categories_with_surveys)
       |> assign(:selected_survey, nil)
+      |> assign(:available_traits, [])
       |> assign(:page_title, "Survey Manager")
 
     {:ok, socket}
   end
 
   @impl true
-  def handle_params(params, _url, socket) do
-    {:noreply, apply_action(socket, socket.assigns.live_action, params)}
-  end
+  def handle_params(params, _uri, socket) do
+    socket =
+      case socket.assigns.live_action do
+        :new ->
+          category_id = params["category_id"]
+          category = Surveys.get_survey_category!(category_id)
+          survey = %Survey{category_id: category.id, display_order: 1}
+          changeset = Surveys.change_survey(survey)
 
-  defp apply_action(socket, :index, _params) do
-    socket
-    |> assign(:survey, nil)
-    |> assign(:form, nil)
-  end
+          socket
+          |> assign(:survey, survey)
+          |> assign(:categories_with_surveys, Surveys.list_surveys_by_category())
+          |> assign(:form, to_form(changeset))
 
-  defp apply_action(socket, :new, %{"category_id" => category_id}) do
-    category = Surveys.get_survey_category!(category_id)
-    survey = %Survey{category_id: category.id, display_order: 1}
-    changeset = Surveys.change_survey(survey)
+        :edit ->
+          survey = Surveys.get_survey!(params["id"])
+          changeset = Surveys.change_survey(survey)
 
-    socket
-    |> assign(:survey, survey)
-    |> assign(:categories_with_surveys, Surveys.list_surveys_by_category())
-    |> assign(:form, to_form(changeset))
-  end
+          socket
+          |> assign(:survey, survey)
+          |> assign(:categories_with_surveys, Surveys.list_surveys_by_category())
+          |> assign(:form, to_form(changeset))
 
-  defp apply_action(socket, :edit, %{"id" => id}) do
-    survey = Surveys.get_survey!(id)
-    changeset = Surveys.change_survey(survey)
+        :show ->
+          survey = Surveys.get_survey!(params["id"])
+          available_traits = Traits.list_available_traits_by_category(params["id"])
 
-    socket
-    |> assign(:survey, survey)
-    |> assign(:categories_with_surveys, Surveys.list_surveys_by_category())
-    |> assign(:form, to_form(changeset))
-  end
+          socket
+          |> assign(:selected_survey, survey)
+          |> assign(:available_traits, available_traits)
 
-  @impl true
-  def handle_event("select_survey", %{"id" => id}, socket) do
-    survey = Surveys.get_survey!(id)
-    {:noreply, assign(socket, :selected_survey, survey)}
+        :index ->
+          socket
+          |> assign(:survey, nil)
+          |> assign(:form, nil)
+          |> assign(:selected_survey, nil)
+          |> assign(:available_traits, [])
+      end
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -79,11 +85,21 @@ defmodule QlariusWeb.SurveyManagerLive do
 
     case Traits.remove_trait_from_survey(survey, trait) do
       {:ok, _} ->
-        updated_survey = Surveys.get_survey!(survey_id)
-        {:noreply, assign(socket, :selected_survey, updated_survey)}
+        {:noreply, push_patch(socket, to: ~p"/survey_manager/#{survey_id}")}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to remove trait from survey")}
+    end
+  end
+
+  @impl true
+  def handle_event("add_trait", %{"survey-id" => survey_id, "trait-id" => trait_id}, socket) do
+    case Traits.add_trait_to_survey(survey_id, trait_id) do
+      {:ok, _} ->
+        {:noreply, push_patch(socket, to: ~p"/survey_manager/#{survey_id}")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add trait to survey")}
     end
   end
 
@@ -92,9 +108,7 @@ defmodule QlariusWeb.SurveyManagerLive do
       {:ok, survey} ->
         socket
         |> put_flash(:info, "Survey created successfully")
-        |> push_patch(to: ~p"/survey_manager")
-        |> assign(:categories_with_surveys, Surveys.list_surveys_by_category())
-        |> assign(:selected_survey, survey)
+        |> push_patch(to: ~p"/survey_manager/#{survey.id}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         assign(socket, changeset: changeset)
@@ -108,9 +122,7 @@ defmodule QlariusWeb.SurveyManagerLive do
       {:ok, updated_survey} ->
         socket
         |> put_flash(:info, "Survey updated successfully")
-        |> push_patch(to: ~p"/survey_manager")
-        |> assign(:categories_with_surveys, Surveys.list_surveys_by_category())
-        |> assign(:selected_survey, updated_survey)
+        |> push_patch(to: ~p"/survey_manager/#{updated_survey.id}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         assign(socket, changeset: changeset)

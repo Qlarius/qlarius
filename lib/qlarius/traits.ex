@@ -247,4 +247,54 @@ defmodule Qlarius.Traits do
 
     {:ok, survey}
   end
+
+  @doc """
+  Returns traits grouped by category that are not in the given survey.
+  Only includes categories that have at least one trait not in the survey.
+  Categories and traits are ordered by display_order.
+  """
+  def list_available_traits_by_category(survey_id) when is_binary(survey_id) do
+    list_available_traits_by_category(String.to_integer(survey_id))
+  end
+
+  def list_available_traits_by_category(survey_id) when is_integer(survey_id) do
+    query =
+      from t in Trait,
+        left_join: ts in "traits_surveys",
+        on: ts.trait_id == t.id and ts.survey_id == ^survey_id,
+        where: is_nil(ts.survey_id),
+        order_by: t.display_order,
+        preload: [:category]
+
+    traits = Repo.all(query)
+
+    traits
+    |> Enum.group_by(& &1.category)
+    |> Enum.sort_by(fn {category, _} -> category.display_order end)
+  end
+
+  @doc """
+  Adds a trait to a survey.
+  """
+  def add_trait_to_survey(survey_id, trait_id) when is_binary(survey_id) do
+    add_trait_to_survey(String.to_integer(survey_id), trait_id)
+  end
+
+  def add_trait_to_survey(survey_id, trait_id) when is_binary(trait_id) do
+    add_trait_to_survey(survey_id, String.to_integer(trait_id))
+  end
+
+  def add_trait_to_survey(survey_id, trait_id)
+      when is_integer(survey_id) and is_integer(trait_id) do
+    Repo.insert_all("traits_surveys", [
+      %{
+        survey_id: survey_id,
+        trait_id: trait_id,
+        inserted_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
+        updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+      }
+    ])
+
+    {:ok, survey_id}
+  end
 end

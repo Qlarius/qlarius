@@ -154,15 +154,25 @@ Based on the schema relationships, the system appears to:
 
 - Survey Manager system has been implemented with the following features:
   - LiveView interface at `/survey_manager` for managing surveys and their categories
-  - Two-column layout with survey categories and surveys on the left, selected survey details on the right
-  - Display of survey categories with their associated surveys, ordered by display_order
+  - Three-column layout:
+    - Left column: Survey categories and their associated surveys, ordered by display_order
+    - Middle column: Selected survey details with trait panels
+    - Right column: Available traits that can be added to the selected survey
   - Ability to add new surveys via a modal form with name, category, and display order fields
-  - Ability to select a survey and view its details in the right panel
+  - Ability to select a survey and view its details in the middle panel
   - Ability to edit existing surveys via a modal form
   - Display of survey traits in panels showing:
     - Trait name and question
     - Trait values with checkboxes/radio buttons based on trait type
+    - Each value shows its answer if present, otherwise shows its name
     - Ability to remove traits from surveys
+  - Available traits panel features:
+    - Traits grouped by category and ordered by display_order
+    - Only shows traits not already in the selected survey
+    - Categories only shown if they have available traits
+    - Each trait shows name and optional question
+    - Left chevron button to add trait to survey
+    - Dynamic updates when adding/removing traits
   - HTTP basic auth protection for marketer access
 
 - MeFile system has been implemented with the following features:

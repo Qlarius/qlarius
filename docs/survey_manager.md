@@ -24,21 +24,22 @@ The `/survey_manager` LiveView is considered ready for release when it meets all
 
 **5.1.  Survey Listing and Overall Page Structure**
 
-- [ ] The page displays a heading "Survey Manager".
-- [ ] The page is divided into two columns.
-- [ ] The left column displays survey categories and their associated surveys.
-- [ ] The right column displays details of the selected survey (or a message if none is selected).
-- [ ] Survey Categories are displayed in ascending order of their `display_order` attribute.
-- [ ] Surveys within each category are displayed in ascending order of their `display_order` attribute.
+- [x] The page displays a heading "Survey Manager".
+- [x] The page is divided into three columns.
+- [x] The left column displays survey categories and their associated surveys.
+- [x] The middle column displays details of the selected survey (or a message if none is selected).
+- [x] The right column displays available traits that can be added to the selected survey.
+- [x] Survey Categories are displayed in ascending order of their `display_order` attribute.
+- [x] Surveys within each category are displayed in ascending order of their `display_order` attribute.
 
 **5.2. Left Column: Categories and Surveys**
 
 - [ ] Each category is displayed with its name as a heading.
 - [ ] A "+" button is displayed next to each category name, linking to the "new survey" form pre-selected with that category.
-- [ ] Under each category heading, surveys are listed by name, ordered by their `display_order`
-- [ ] Clicking a survey button selects that survey and displays its details in the right column.
+- [x] Under each category heading, surveys are listed by name, ordered by their `display_order`
+- [x] Clicking a survey link updates the URL to `/survey_manager/<survey_id>` and displays its details.
 
-**5.3. Right Column: Survey Details**
+**5.3. Middle Column: Survey Details**
 
 - [x] If no survey is selected, the right column displays the message "Select a survey from the left panel to view details".
 - [x] If a survey is selected, the right column displays the survey's name as a heading.
@@ -52,7 +53,7 @@ The `/survey_manager` LiveView is considered ready for release when it meets all
   - A list of the trait's values ordered by display_order
   - For each value:
     - A disabled checkbox (if trait type is "checkboxes") or radio button (if trait type is "radios")
-    - The value's answer text (if present) or name
+    - The value's answer (if present) or name as fallback
 - [x] Clicking the "x" button removes the trait from the survey immediately
 
 **5.4.  New Survey Creation**
@@ -65,9 +66,9 @@ The `/survey_manager` LiveView is considered ready for release when it meets all
 - [ ] The form contains a "Save" button.
 - [ ] The form contains a "Cancel" button that closes the modal.
 - [ ] Clicking "Save" with valid data creates a new survey.
-- [ ] After successful creation, the user is redirected back to the survey list (same view).
-- [ ] A success flash message is displayed upon successful creation.
-- [ ] The newly created survey is automatically selected, and its details are displayed in the right column.
+- [x] After successful creation, the URL updates to `/survey_manager/<survey_id>` to select the new survey.
+- [x] A success flash message is displayed upon successful creation.
+- [x] The newly created survey is automatically selected, and its details are displayed in the right column.
 - [ ] Clicking "Save" with invalid data (e.g., empty name) displays an error message within the modal.
 - [ ] The modal remains open if there are validation errors.
 
@@ -91,6 +92,20 @@ The `/survey_manager` LiveView is considered ready for release when it meets all
 *   **Usability:** The interface should be intuitive and easy to use.
 *   **Accessibility:** The LiveView should be accessible to users with disabilities. (Note: This is a general requirement, and the provided code may or may not fully meet accessibility standards. This PRD focuses on *current* functionality.)
 *   **Security:** The LiveView should prevent unauthorized access and modification of data.
+
+**5.6. Right Column: Available Traits**
+
+- [x] The right column is only visible when a survey is selected.
+- [x] Available traits are grouped by their categories.
+- [x] Categories are ordered by their `display_order` attribute.
+- [x] Only categories with at least one available trait are shown.
+- [x] Each trait is displayed in a three-column table:
+  - A left chevron button that adds the trait to the survey
+  - The trait name
+  - The trait's question (if present)
+- [x] Adding a trait to the survey immediately removes it from the available traits list.
+- [x] If removing a trait from the survey makes it available again, it reappears in the right column.
+- [x] If a trait is the last one in its category, removing it from the survey makes the category reappear.
 
 **7. Open Issues and Risks**
 
