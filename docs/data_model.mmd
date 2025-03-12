@@ -1,147 +1,212 @@
 ---
-title: Qlarius Data Model
+title Database Schema
 ---
 erDiagram
-    Campaign ||--o| MediaSequence : belongs_to
-    Campaign ||--o| Target : belongs_to
-    LedgerEntry ||--o| LedgerHeader : belongs_to
-    LedgerHeader ||--o{ LedgerEntry : has
-    LedgerHeader ||--o| User : belongs_to
-    MediaPiece ||--o| AdCategory : belongs_to
-    MediaRun ||--o| MediaPiece : belongs_to
-    MediaRun ||--o| MediaSequence : belongs_to
-    Offer ||--o| MediaRun : belongs_to
-    Offer ||--o| User : belongs_to
-    Survey ||--o| Category : belongs_to
-    Survey }|--|{ Trait : has
-    SurveyCategory ||--o{ Survey : has
-    Target ||--o{ Campaign : has
-    Target ||--o{ TargetBand : has
-    TargetBand ||--o| Target : belongs_to
-    TargetBand }|--|{ TraitGroup : has
-    Trait ||--o{ Value : has
-    Trait ||--o| Category : belongs_to
-    Trait }|--|{ TraitGroup : has
-    Trait }|--|{ User : has
-    TraitCategory ||--o{ Trait : has
-    TraitGroup }|--|{ TargetBand : has
-    TraitGroup }|--|{ Trait : has
-    TraitValue ||--o| Trait : belongs_to
-    User ||--|| LedgerHeader : has
-    User }|--|{ Trait : has
-    UserToken ||--o| User : belongs_to
-
-    Trait {
-        string name
-        boolean campaign_only
-        boolean numeric
-        boolean immutable
-        boolean taggable
-        boolean is_date
-        boolean active
-        integer display_order
-        Ecto.Enum input_type
-        string question
-    }
-
-    TraitCategory {
-        string name
-        integer display_order
-    }
-
-    TraitValue {
-        string name
-        integer display_order
-        string answer
-    }
-
-    Offer {
-        decimal phase_1_amount
-        decimal phase_2_amount
-        decimal amount
-    }
-
-    User {
-        string email
-        string password
-        string hashed_password
-        string current_password
-        utc_datetime confirmed_at
-    }
-
-    UserToken {
-        binary token
-        string context
-        string sent_to
-    }
-
-    SurveyCategory {
-        string name
-        integer display_order
-    }
-
-    Survey {
-        string name
-        integer display_order
-        boolean active
-    }
-
-    MediaSequence {
-        string title
-        string description
-    }
-
-    MediaRun {
-        integer frequency
-        integer frequency_buffer_hours
-        integer maximum_banner_count
-        integer banner_retry_buffer_hours
-    }
-
-    MediaPiece {
-        string title
-        string body_copy
-        string display_url
-        string jump_url
-    }
-
-    LedgerEntry {
-        decimal amount
-        string description
-    }
-
-    AdCategory {
-        string name
-    }
-
-    TargetBand {
-        string title
-        string description
-        boolean bullseye
-    }
-
-    TraitGroup {
-        string description
-        string title
-    }
-
-    Campaign {
-        string description
-        string title
-        utc_datetime starts_at
-        utc_datetime ends_at
-        boolean payable
-        boolean throttled
-        boolean demo
-        utc_datetime deactivated_at
-    }
-
-    Target {
-        string name
-        string description
-    }
-
-    LedgerHeader {
-        string description
-        decimal balance
-    }
+  ad_categories {
+    int id
+    string name
+    datetime inserted_at
+    datetime updated_at
+  }
+  campaigns {
+    int id
+    int target_id
+    int media_sequence_id
+    string title
+    string description
+    datetime starts_at
+    datetime ends_at
+    bool payable
+    bool throttled
+    bool demo
+    datetime deactivated_at
+    datetime inserted_at
+    datetime updated_at
+  }
+  ledger_entries {
+    int id
+    float amount
+    string description
+    int ledger_header_id
+    datetime inserted_at
+    datetime updated_at
+  }
+  ledger_headers {
+    int id
+    int user_id
+    string description
+    float balance
+    datetime inserted_at
+    datetime updated_at
+  }
+  media_pieces {
+    int id
+    string title
+    string body_copy
+    string display_url
+    string jump_url
+    int ad_category_id
+    datetime inserted_at
+    datetime updated_at
+  }
+  media_runs {
+    int id
+    int frequency
+    int frequency_buffer_hours
+    int maximum_banner_count
+    int banner_retry_buffer_hours
+    int media_piece_id
+    datetime inserted_at
+    datetime updated_at
+  }
+  media_sequences {
+    int id
+    string title
+    string description
+    datetime inserted_at
+    datetime updated_at
+  }
+  offers {
+    int id
+    int user_id
+    int media_run_id
+    float phase_1_amount
+    float phase_2_amount
+    float amount
+    datetime inserted_at
+    datetime updated_at
+  }
+  schema_migrations {
+    int version
+    datetime inserted_at
+  }
+  survey_categories {
+    int id
+    string name
+    int display_order
+    datetime inserted_at
+    datetime updated_at
+  }
+  surveys {
+    int id
+    string name
+    int category_id
+    int display_order
+    bool active
+    datetime inserted_at
+    datetime updated_at
+  }
+  target_bands {
+    int id
+    int target_id
+    string title
+    string description
+    bool bullseye
+    datetime inserted_at
+    datetime updated_at
+  }
+  target_bands_trait_groups {
+    int id
+    int target_band_id
+    int trait_group_id
+  }
+  targets {
+    int id
+    string name
+    string description
+    datetime inserted_at
+    datetime updated_at
+  }
+  trait_categories {
+    int id
+    string name
+    int display_order
+    datetime inserted_at
+    datetime updated_at
+  }
+  trait_groups {
+    int id
+    string title
+    string description
+    datetime inserted_at
+    datetime updated_at
+  }
+  trait_values {
+    int id
+    int trait_id
+    string name
+    int display_order
+    datetime inserted_at
+    datetime updated_at
+    string answer
+  }
+  traits {
+    int id
+    string name
+    bool campaign_only
+    bool numeric
+    bool immutable
+    int display_order
+    bool taggable
+    bool is_date
+    bool active
+    string input_type
+    datetime inserted_at
+    datetime updated_at
+    int category_id
+    string question
+  }
+  traits_surveys {
+    int id
+    int survey_id
+    int trait_id
+    datetime inserted_at
+    datetime updated_at
+  }
+  traits_trait_groups {
+    int id
+    int trait_id
+    int trait_group_id
+  }
+  user_traits {
+    int id
+    int user_id
+    int trait_id
+  }
+  users {
+    int id
+    unknown email
+    string hashed_password
+    datetime confirmed_at
+    datetime inserted_at
+    datetime updated_at
+  }
+  users_tokens {
+    int id
+    int user_id
+    unknown token
+    string context
+    string sent_to
+    datetime inserted_at
+  }
+  users_tokens }|--|| users : "user_id → id"
+  ledger_headers }|--|| users : "user_id → id"
+  ledger_entries }|--|| ledger_headers : "ledger_header_id → id"
+  trait_values }|--|| traits : "trait_id → id"
+  user_traits }|--|| users : "user_id → id"
+  user_traits }|--|| traits : "trait_id → id"
+  target_bands }|--|| targets : "target_id → id"
+  media_pieces }|--|| ad_categories : "ad_category_id → id"
+  media_runs }|--|| media_pieces : "media_piece_id → id"
+  campaigns }|--|| targets : "target_id → id"
+  campaigns }|--|| media_sequences : "media_sequence_id → id"
+  offers }|--|| users : "user_id → id"
+  offers }|--|| media_runs : "media_run_id → id"
+  traits_trait_groups }|--|| traits : "trait_id → id"
+  traits_trait_groups }|--|| trait_groups : "trait_group_id → id"
+  target_bands_trait_groups }|--|| target_bands : "target_band_id → id"
+  target_bands_trait_groups }|--|| trait_groups : "trait_group_id → id"
+  surveys }|--|| survey_categories : "category_id → id"
+  traits_surveys }|--|| surveys : "survey_id → id"
+  traits_surveys }|--|| traits : "trait_id → id"
+  traits }|--|| trait_categories : "category_id → id"
