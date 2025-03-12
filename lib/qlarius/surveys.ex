@@ -40,10 +40,11 @@ defmodule Qlarius.Surveys do
   end
 
   def list_surveys_by_category do
-    query = from c in SurveyCategory,
-      order_by: c.display_order,
-      preload: [surveys: ^from(s in Survey, order_by: s.display_order)]
-    
+    query =
+      from c in SurveyCategory,
+        order_by: c.display_order,
+        preload: [surveys: ^from(s in Survey, order_by: s.display_order)]
+
     Repo.all(query)
   end
 
