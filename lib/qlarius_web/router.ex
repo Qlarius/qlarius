@@ -100,6 +100,7 @@ defmodule QlariusWeb.Router do
       live "/ads", AdsLive, :index
       live "/me_file", MeFileLive, :index
       get "/me_file/surveys", MeFileController, :surveys
+      live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
     end
   end
 

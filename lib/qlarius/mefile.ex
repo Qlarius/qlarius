@@ -6,6 +6,51 @@ defmodule Qlarius.MeFile do
   alias Qlarius.Surveys.{Survey, SurveyCategory}
 
   @doc """
+  Creates UserTag records linking a user to selected trait values.
+  Deletes any existing UserTags for this trait before creating new ones.
+  """
+  def create_user_trait_values(user_id, trait_id, value_ids) when is_list(value_ids) do
+    # Start a transaction
+    Repo.transaction(fn ->
+      # Delete existing tags for this trait
+      delete_trait_tags(trait_id, user_id)
+
+      # Create new tags
+      value_ids
+      |> Enum.map(fn value_id ->
+        %UserTag{}
+        |> UserTag.changeset(%{user_id: user_id, trait_value_id: value_id})
+        |> Repo.insert!()
+      end)
+    end)
+  end
+
+  @doc """
+  Deletes all UserTags for a given trait and user.
+  """
+  def delete_trait_tags(trait_id, user_id) do
+    from(ut in UserTag,
+      join: tv in TraitValue,
+      on: ut.trait_value_id == tv.id,
+      where: tv.trait_id == ^trait_id and ut.user_id == ^user_id
+    )
+    |> Repo.delete_all()
+  end
+
+  @doc """
+  Gets all trait values that a user has selected for a given trait.
+  """
+  def get_user_trait_values(trait_id, user_id) do
+    from(tv in TraitValue,
+      join: ut in UserTag,
+      on: ut.trait_value_id == tv.id,
+      where: tv.trait_id == ^trait_id and ut.user_id == ^user_id,
+      select: tv.id
+    )
+    |> Repo.all()
+  end
+
+  @doc """
   Gets all trait categories with their traits and values for a given user.
   Categories and traits are ordered by display_order.
   Only returns traits that have at least one value for the user.
@@ -122,7 +167,11 @@ defmodule Qlarius.MeFile do
     })
   end
 
-  defp count_completed_questions(surveys, user_id) do
+  @doc """
+  Counts the number of completed questions (traits with answers) for a list of surveys and a user.
+  Returns 0 if no questions are completed.
+  """
+  def count_completed_questions(surveys, user_id) do
     trait_ids = surveys |> Enum.flat_map(& &1.traits) |> Enum.map(& &1.id)
 
     from(t in Trait,

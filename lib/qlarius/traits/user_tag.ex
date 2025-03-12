@@ -11,4 +11,15 @@ defmodule Qlarius.Traits.UserTag do
 
     timestamps(type: :utc_datetime)
   end
+
+  @doc """
+  Changeset for user_tag.
+  """
+  def changeset(user_tag, attrs) do
+    user_tag
+    |> cast(attrs, [:user_id, :trait_value_id])
+    |> validate_required([:user_id, :trait_value_id])
+    |> foreign_key_constraint(:user_id)
+    |> foreign_key_constraint(:trait_value_id)
+  end
 end

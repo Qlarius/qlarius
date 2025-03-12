@@ -1,0 +1,47 @@
+<div class="min-h-screen flex flex-col">
+  <div class="bg-white shadow fixed top-0 left-0 right-0 z-10">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-900">{@survey.name}</h1>
+        <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+          {@completed_count}/{length(@traits)} complete
+        </div>
+      </div>
+
+      <div class="flex justify-center mt-4">
+        <%= for i <- 0..length(@traits)-1 do %>
+          <div class={"w-2 h-2 rounded-full mx-1 #{if i <= @current_trait_index, do: "bg-blue-500", else: "bg-gray-300"}"} />
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex-grow mt-32 mb-24">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <.trait_panel
+            trait={Enum.at(@traits, @current_trait_index)}
+            disabled={false}
+            on_submit="save_trait"
+            selected_values={@selected_values}
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white shadow fixed bottom-0 left-0 right-0 z-10">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex justify-center">
+        <button
+          type="button"
+          phx-click="done"
+          class="px-6 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 font-medium"
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

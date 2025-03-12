@@ -207,6 +207,21 @@ Based on the schema relationships, the system appears to:
     - Distinct counts for completed questions
     - Single query for category stats
 
+- MeFile Survey Builder spec has been created with the following requirements:
+  - LiveView page at `/me_file/surveys/:survey_id` for completing individual surveys
+  - Step-by-step question interface showing one trait at a time
+  - Navigation bar with survey title, completion badge, and progress dots
+  - Question panel with radio/checkbox inputs based on trait type
+  - Immediate saving of answers when moving between questions
+  - Green "Done" button to exit survey at any time
+  - Shared trait panel component between survey manager and builder
+  - Technical requirements for:
+    - LiveView module creation
+    - Authentication handling
+    - Database schema and context updates
+    - Error handling
+    - Component extraction
+
 ---
 
 *This document should be updated when significant architectural changes are made to the project.*

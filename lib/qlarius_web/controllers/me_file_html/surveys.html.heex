@@ -41,7 +41,10 @@
 
             <div class="mt-6 space-y-4">
               <%= for survey <- category.surveys do %>
-                <div class="flex items-center justify-between py-2 border-b border-gray-200">
+                <.link
+                  navigate={~p"/me_file/surveys/#{survey.id}"}
+                  class="flex items-center justify-between py-2 border-b border-gray-200 hover:bg-gray-50"
+                >
                   <div class="text-sm font-medium text-gray-900">
                     {survey.name}
                   </div>
@@ -49,20 +52,9 @@
                     <span class={"px-2 py-1 text-xs font-medium rounded-full #{badge_color(survey.completion_percentage)}"}>
                       {survey.completed_questions}/{survey.total_questions}
                     </span>
-                    <svg
-                      class="h-5 w-5 text-gray-400"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
+                    <.icon name="hero-chevron-right" class="h-5 w-5 text-gray-400" />
                   </div>
-                </div>
+                </.link>
               <% end %>
             </div>
           </div>
