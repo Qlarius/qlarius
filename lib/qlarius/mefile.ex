@@ -3,6 +3,7 @@ defmodule Qlarius.MeFile do
 
   alias Qlarius.Repo
   alias Qlarius.Traits.{Trait, TraitCategory, TraitValue, UserTag}
+  alias Qlarius.Surveys.{Survey, SurveyCategory}
 
   @doc """
   Gets all trait categories with their traits and values for a given user.
@@ -74,5 +75,64 @@ defmodule Qlarius.MeFile do
       where: tv.trait_id == ^trait_id and ut.user_id == ^user_id
     )
     |> Repo.delete_all()
+  end
+
+  @doc """
+  Gets all survey categories with their surveys and completion stats for a user.
+  Categories and surveys are ordered by display_order.
+  """
+  def list_survey_categories_with_stats(user_id) do
+    SurveyCategory
+    |> order_by([c], asc: c.display_order)
+    |> preload(
+      surveys:
+        ^from(s in Survey,
+          where: s.active == true,
+          order_by: [asc: s.display_order],
+          preload: [:traits]
+        )
+    )
+    |> Repo.all()
+    |> Enum.map(&add_completion_stats(&1, user_id))
+  end
+
+  defp add_completion_stats(category, user_id) do
+    total_questions = Enum.reduce(category.surveys, 0, &(&2 + length(&1.traits)))
+    completed_questions = count_completed_questions(category.surveys, user_id)
+
+    surveys_with_stats =
+      Enum.map(category.surveys, fn survey ->
+        survey_completed = count_completed_questions([survey], user_id)
+        survey_total = length(survey.traits)
+
+        Map.merge(survey, %{
+          completed_questions: survey_completed,
+          total_questions: survey_total,
+          completion_percentage:
+            if(survey_total > 0, do: survey_completed / survey_total * 100, else: 0)
+        })
+      end)
+
+    Map.merge(category, %{
+      surveys: surveys_with_stats,
+      completed_questions: completed_questions,
+      total_questions: total_questions,
+      completion_percentage:
+        if(total_questions > 0, do: completed_questions / total_questions * 100, else: 0)
+    })
+  end
+
+  defp count_completed_questions(surveys, user_id) do
+    trait_ids = surveys |> Enum.flat_map(& &1.traits) |> Enum.map(& &1.id)
+
+    from(t in Trait,
+      join: tv in TraitValue,
+      on: tv.trait_id == t.id,
+      join: ut in UserTag,
+      on: ut.trait_value_id == tv.id,
+      where: t.id in ^trait_ids and ut.user_id == ^user_id,
+      select: count(fragment("DISTINCT ?", t.id))
+    )
+    |> Repo.one() || 0
   end
 end

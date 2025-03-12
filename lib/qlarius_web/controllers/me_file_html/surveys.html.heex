@@ -1,0 +1,73 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <h1 class="text-3xl font-bold leading-tight text-gray-900">MeFile Builder</h1>
+  <p class="mt-2 text-lg text-gray-600">Tag yourself to build up your MeFile.</p>
+
+  <div class="mt-4 flex space-x-4">
+    <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+      {@trait_count} traits
+    </div>
+    <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+      {@tag_count} tags
+    </div>
+  </div>
+
+  <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    <%= for category <- @categories do %>
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <h3 class="text-lg font-medium leading-6 text-gray-900">
+            {category.name}
+          </h3>
+
+          <div class="mt-4">
+            <div class="relative pt-1">
+              <div class="flex mb-2 items-center justify-between">
+                <div class="text-sm font-semibold text-gray-700">
+                  {category.completed_questions}/{category.total_questions}
+                </div>
+              </div>
+              <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
+                <div
+                  style={"width: #{category.completion_percentage}%"}
+                  class={progress_bar_color(category.completion_percentage)}
+                  role="progressbar"
+                  aria-valuenow={category.completion_percentage}
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                >
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-6 space-y-4">
+              <%= for survey <- category.surveys do %>
+                <div class="flex items-center justify-between py-2 border-b border-gray-200">
+                  <div class="text-sm font-medium text-gray-900">
+                    {survey.name}
+                  </div>
+                  <div class="flex items-center space-x-4">
+                    <span class={"px-2 py-1 text-xs font-medium rounded-full #{badge_color(survey.completion_percentage)}"}>
+                      {survey.completed_questions}/{survey.total_questions}
+                    </span>
+                    <svg
+                      class="h-5 w-5 text-gray-400"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
