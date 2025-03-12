@@ -28,7 +28,10 @@
 <!-- Middle Column - Trait Values -->
   <div class="bg-white p-4 rounded shadow">
     <%= if @selected_trait do %>
-      <h2 class="text-xl font-semibold mb-4">{@selected_trait.name}</h2>
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold">{@selected_trait.name}</h2>
+        <button phx-click="add_mode" class="text-2xl font-bold">+</button>
+      </div>
 
       <%= if Enum.empty?(@trait_values) do %>
         <p class="text-gray-500 italic">No values defined.</p>
@@ -36,15 +39,27 @@
         <table class="w-full">
           <thead>
             <tr>
+              <th class="w-16"></th>
               <th class="text-left py-2">Name</th>
-              <th class="text-left py-2">Order</th>
+              <th class="text-left py-2">Survey answer</th>
+              <th class="w-8"></th>
             </tr>
           </thead>
           <tbody>
             <%= for value <- @trait_values do %>
               <tr>
+                <td class="py-2 text-gray-500">{value.display_order}</td>
                 <td class="py-2">{value.name}</td>
-                <td class="py-2">{value.display_order}</td>
+                <td class="py-2">{value.answer || "--"}</td>
+                <td class="py-2">
+                  <button
+                    phx-click="edit_value"
+                    phx-value-id={value.id}
+                    class="text-blue-500 hover:text-blue-700"
+                  >
+                    ✎
+                  </button>
+                </td>
               </tr>
             <% end %>
           </tbody>
@@ -56,7 +71,9 @@
 <!-- Right Column - Add Value Form -->
   <div class="bg-white p-4 rounded shadow">
     <%= if @selected_trait do %>
-      <h2 class="text-xl font-semibold mb-4">Add value</h2>
+      <h2 class="text-xl font-semibold mb-4">
+        {if @editing_value_id, do: "Edit value", else: "Add value"}
+      </h2>
 
       <.simple_form
         for={@new_trait_value_form}
@@ -73,11 +90,31 @@
           label="Display Order"
           required
         />
+        <%= if @selected_trait.question do %>
+          <.input
+            field={@new_trait_value_form[:answer]}
+            label="Answer"
+            placeholder="Optional answer to trait question"
+          />
+        <% end %>
 
         <:actions>
-          <.button class="bg-blue-500 text-white px-4 py-2 rounded">
-            Add Value
-          </.button>
+          <%= if @editing_value_id do %>
+            <button
+              type="button"
+              phx-click="cancel_edit"
+              class="bg-gray-300 text-gray-800 px-4 py-2 rounded mr-2"
+            >
+              Cancel
+            </button>
+            <.button class="bg-blue-500 text-white px-4 py-2 rounded">
+              Update
+            </.button>
+          <% else %>
+            <.button class="bg-blue-500 text-white px-4 py-2 rounded">
+              Add Value
+            </.button>
+          <% end %>
         </:actions>
       </.simple_form>
     <% end %>
@@ -119,6 +156,12 @@
           options={Enum.map(@trait_categories, fn c -> {c.name, c.id} end)}
           prompt="Select category"
           required
+        />
+
+        <.input
+          field={@new_trait_form[:question]}
+          label="Question"
+          placeholder="Optional question for this trait"
         />
 
         <:actions>

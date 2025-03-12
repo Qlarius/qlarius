@@ -58,6 +58,7 @@ The Trait Manager feature will be considered complete and ready for release when
 - [x] The modal shall include a "Trait Category" field (Dropdown, required).
 - [x] The "Trait Category" dropdown shall allow selection from existing trait categories, sorted by `display_order`.
 - [x] The "Trait Category" dropdown shall show a "Select category" prompt.
+- [x] The modal shall include a "Question" field (Text input, optional) for defining a question associated with this trait.
 - [x] The modal shall include a "Create Trait" button.
 - [x] The modal shall include a "Cancel" button.
 - [x] Clicking the "Cancel" button shall close the modal without creating a trait.
@@ -72,21 +73,34 @@ The Trait Manager feature will be considered complete and ready for release when
 ### 5.4. Middle Column: Trait Values
 
 - [x] The name of the currently selected trait shall be displayed as a subheading.
+- [x] A "+" button shall be displayed next to the subheading to switch to "Add value" mode.
 - [x] If the selected trait has associated values, they shall be displayed in a table.
-- [x] The table shall have two columns: "Name" and "Order".
+- [x] The table shall have the following columns in order:
+  - [x] Display order (no header)
+  - [x] Name
+  - [x] Survey answer (shows "--" if null/blank)
+  - [x] Actions (no header, contains edit icon)
 - [x] Trait values shall be sorted by their `display_order` attribute.
 - [x] If the selected trait has no associated values, a message "No values defined." shall be displayed.
+- [x] Clicking the edit icon for a value shall:
+  - [x] Switch the right column form to edit mode
+  - [x] Populate the form with the selected value's data
 
-### 5.5. Right Column: Add Value Form
+### 5.5. Right Column: Value Form
 
-- [x] The heading "Add value" shall be displayed.
+- [x] The heading shall change between "Add value" and "Edit value" based on mode.
 - [x] The form shall be displayed only when a trait is selected.
 - [x] The form shall include a "Name" field (Text input, required).
 - [x] The form shall include a "Display Order" field (Number input, required).
+- [x] The form shall include an "Answer" field (Text input, optional) for providing an answer associated with this trait value.
 - [x] A hidden input field for `trait_id` shall be included, pre-populated with the ID of the selected trait.
-- [x] The form shall include an "Add Value" button.
-- [x] Clicking the "Add Value" button shall submit the form.
-- [x] Upon successful submission, the new trait value shall be created and associated with the selected trait.
+- [x] When in add mode:
+  - [x] The form shall show an "Add Value" button
+  - [x] Submission shall create a new trait value
+- [x] When in edit mode:
+  - [x] The form shall show "Update" and "Cancel" buttons
+  - [x] Submission shall update the existing trait value
+  - [x] Cancel shall return to add mode
 - [x] Upon successful submission, the trait values list in the middle column shall be updated.
 - [x] Upon successful submission, the form fields shall be cleared and reset.
 - [x] Upon failed submission, validation errors shall be displayed within the form.

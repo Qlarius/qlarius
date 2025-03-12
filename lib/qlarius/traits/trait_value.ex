@@ -19,7 +19,7 @@ defmodule Qlarius.Traits.TraitValue do
   """
   def changeset(trait_value, attrs) do
     trait_value
-    |> cast(attrs, [:name, :display_order, :trait_id])
+    |> cast(attrs, [:name, :display_order, :trait_id, :answer])
     |> validate_required([:name, :display_order, :trait_id])
   end
 end

@@ -42,7 +42,8 @@ defmodule Qlarius.Traits.Trait do
       :immutable,
       :taggable,
       :is_date,
-      :active
+      :active,
+      :question
     ])
     |> validate_required([:name, :input_type, :category_id])
   end

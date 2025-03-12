@@ -20,6 +20,7 @@ defmodule QlariusWeb.TraitManagerLive.Index do
       |> assign(:new_trait_form, to_form(Traits.change_trait(%Trait{})))
       |> assign(:new_trait_value_form, to_form(Traits.change_trait_value(%TraitValue{})))
       |> assign(:trait_modal_open, false)
+      |> assign(:editing_value_id, nil)
 
     {:ok, socket}
   end
@@ -52,6 +53,7 @@ defmodule QlariusWeb.TraitManagerLive.Index do
      socket
      |> assign(:selected_trait, trait)
      |> assign(:trait_values, trait.values)
+     |> assign(:editing_value_id, nil)
      |> assign(
        :new_trait_value_form,
        to_form(Traits.change_trait_value(%TraitValue{trait_id: trait.id}))
@@ -77,21 +79,45 @@ defmodule QlariusWeb.TraitManagerLive.Index do
 
   @impl true
   def handle_event("save_trait_value", %{"trait_value" => value_params}, socket) do
-    case Traits.create_trait_value(value_params) do
-      {:ok, _value} ->
-        trait = Traits.get_trait_with_values!(socket.assigns.selected_trait.id)
+    if socket.assigns.editing_value_id do
+      # Update existing value
+      value = Traits.get_trait_value!(socket.assigns.editing_value_id)
 
-        {:noreply,
-         socket
-         |> assign(:selected_trait, trait)
-         |> assign(:trait_values, trait.values)
-         |> assign(
-           :new_trait_value_form,
-           to_form(Traits.change_trait_value(%TraitValue{trait_id: trait.id}))
-         )}
+      case Traits.update_trait_value(value, value_params) do
+        {:ok, _value} ->
+          trait = Traits.get_trait_with_values!(socket.assigns.selected_trait.id)
 
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign(socket, :new_trait_value_form, to_form(changeset))}
+          {:noreply,
+           socket
+           |> assign(:selected_trait, trait)
+           |> assign(:trait_values, trait.values)
+           |> assign(:editing_value_id, nil)
+           |> assign(
+             :new_trait_value_form,
+             to_form(Traits.change_trait_value(%TraitValue{trait_id: trait.id}))
+           )}
+
+        {:error, %Ecto.Changeset{} = changeset} ->
+          {:noreply, assign(socket, :new_trait_value_form, to_form(changeset))}
+      end
+    else
+      # Create new value
+      case Traits.create_trait_value(value_params) do
+        {:ok, _value} ->
+          trait = Traits.get_trait_with_values!(socket.assigns.selected_trait.id)
+
+          {:noreply,
+           socket
+           |> assign(:selected_trait, trait)
+           |> assign(:trait_values, trait.values)
+           |> assign(
+             :new_trait_value_form,
+             to_form(Traits.change_trait_value(%TraitValue{trait_id: trait.id}))
+           )}
+
+        {:error, %Ecto.Changeset{} = changeset} ->
+          {:noreply, assign(socket, :new_trait_value_form, to_form(changeset))}
+      end
     end
   end
 
@@ -113,5 +139,37 @@ defmodule QlariusWeb.TraitManagerLive.Index do
       |> Map.put(:action, :validate)
 
     {:noreply, assign(socket, :new_trait_value_form, to_form(changeset))}
+  end
+
+  @impl true
+  def handle_event("edit_value", %{"id" => id}, socket) do
+    value = Enum.find(socket.assigns.trait_values, &(&1.id == String.to_integer(id)))
+
+    {:noreply,
+     socket
+     |> assign(:editing_value_id, value.id)
+     |> assign(:new_trait_value_form, to_form(Traits.change_trait_value(value)))}
+  end
+
+  @impl true
+  def handle_event("cancel_edit", _, socket) do
+    {:noreply,
+     socket
+     |> assign(:editing_value_id, nil)
+     |> assign(
+       :new_trait_value_form,
+       to_form(Traits.change_trait_value(%TraitValue{trait_id: socket.assigns.selected_trait.id}))
+     )}
+  end
+
+  @impl true
+  def handle_event("add_mode", _, socket) do
+    {:noreply,
+     socket
+     |> assign(:editing_value_id, nil)
+     |> assign(
+       :new_trait_value_form,
+       to_form(Traits.change_trait_value(%TraitValue{trait_id: socket.assigns.selected_trait.id}))
+     )}
   end
 end

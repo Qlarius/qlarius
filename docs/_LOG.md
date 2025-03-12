@@ -139,6 +139,18 @@ Based on the schema relationships, the system appears to:
   - Values displayed in order of their display_order attribute
   - HTTP basic auth protection for marketer access
   - Bug fix: Resolved Phoenix.HTML.FormData protocol error by using Phoenix's modern form handling approach with `to_form/1` and the `CoreComponents.input/1` component
+  - Added support for trait questions and answers:
+    - Optional question field for traits to define a question associated with the trait
+    - Optional answer field for trait values to provide answers to trait questions
+    - Dynamic UI that shows answer field in trait value form when trait has a question
+    - Updated trait values table to show answers column when trait has a question
+  - Enhanced trait value management UI:
+    - Reordered table columns: display order (no header), name, survey answer, actions
+    - Added edit functionality with pencil icon in actions column
+    - Added "+" button above values table to switch to add mode
+    - Form now switches between "Add value" and "Edit value" modes
+    - Edit mode includes Update and Cancel buttons
+    - Survey answer column shows "--" for null/blank values
 
 - Survey Manager system has been implemented with the following features:
   - LiveView interface at `/survey_manager` for managing surveys and their categories

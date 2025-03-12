@@ -111,6 +111,22 @@ defmodule Qlarius.Traits do
   # TraitValue functions
 
   @doc """
+  Gets a single trait value.
+
+  Raises `Ecto.NoResultsError` if the Trait value does not exist.
+  """
+  def get_trait_value!(id), do: Repo.get!(TraitValue, id)
+
+  @doc """
+  Updates a trait value.
+  """
+  def update_trait_value(%TraitValue{} = trait_value, attrs) do
+    trait_value
+    |> TraitValue.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
   Creates a trait value.
   """
   def create_trait_value(attrs \\ %{}) do
