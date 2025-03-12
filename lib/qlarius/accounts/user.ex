@@ -3,7 +3,8 @@ defmodule Qlarius.Accounts.User do
   import Ecto.Changeset
 
   alias Qlarius.LedgerHeader
-  alias Qlarius.Traits.Trait
+  alias Qlarius.Traits.TraitValue
+  alias Qlarius.Traits.UserTag
 
   schema "users" do
     field :email, :string
@@ -14,7 +15,7 @@ defmodule Qlarius.Accounts.User do
 
     has_one :ledger_header, LedgerHeader
 
-    many_to_many :traits, Trait, join_through: "user_traits"
+    many_to_many :trait_values, TraitValue, join_through: UserTag
 
     timestamps(type: :utc_datetime)
   end

@@ -2,6 +2,7 @@ defmodule Qlarius.Traits.TraitValue do
   use Ecto.Schema
   import Ecto.Changeset, warn: false
 
+  alias Qlarius.Accounts.User
   alias Qlarius.Traits.Trait
 
   schema "trait_values" do
@@ -10,6 +11,8 @@ defmodule Qlarius.Traits.TraitValue do
     field :name, :string
     field :display_order, :integer
     field :answer, :string
+
+    many_to_many :users, User, join_through: UserTag
 
     timestamps(type: :utc_datetime)
   end

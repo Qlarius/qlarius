@@ -28,13 +28,15 @@ defmodule Qlarius.Repo.Migrations.CreateTraits do
 
     create index(:trait_values, :trait_id)
 
-    create table(:user_traits) do
+    create table(:user_trait_values) do
       add :user_id, references(:users, on_delete: :delete_all)
-      add :trait_id, references(:traits, on_delete: :delete_all)
+      add :trait_value_id, references(:trait_values, on_delete: :delete_all)
+
+      timestamps(type: :utc_datetime)
     end
 
-    create index(:user_traits, :user_id)
-    create index(:user_traits, :trait_id)
-    create unique_index(:user_traits, [:user_id, :trait_id])
+    create index(:user_trait_values, :user_id)
+    create index(:user_trait_values, :trait_value_id)
+    create unique_index(:user_trait_values, [:user_id, :trait_value_id])
   end
 end
