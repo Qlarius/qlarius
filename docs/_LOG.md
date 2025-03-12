@@ -159,6 +159,10 @@ Based on the schema relationships, the system appears to:
   - Ability to add new surveys via a modal form with name, category, and display order fields
   - Ability to select a survey and view its details in the right panel
   - Ability to edit existing surveys via a modal form
+  - Display of survey traits in panels showing:
+    - Trait name and question
+    - Trait values with checkboxes/radio buttons based on trait type
+    - Ability to remove traits from surveys
   - HTTP basic auth protection for marketer access
 
 - MeFile system has been implemented with the following features:

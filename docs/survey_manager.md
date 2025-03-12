@@ -1,142 +1,96 @@
-# Survey Manager Page Specification
+**Product Requirements Document: Survey Manager
 
-## Overview
+**1. Introduction**
 
-The Survey Manager page provides users with a centralized interface to view, create, and manage Surveys and their Categories. The page follows a two-column layout design, where the left column displays hierarchical survey data, and the right column shows details of the selected survey.
+This document outlines the product requirements for the `/survey_manager` LiveView within the Qlarius Phoenix application.  This LiveView provides an interface for managing surveys, including viewing, creating, editing, and deleting them. It also allows for associating surveys with categories.  Critically, this version describes *only* the functionality present in the code, not planned or documented features.
 
-## Page Structure
+**2. Goals**
 
-*   **URL Path**: `/survey_manager`
-*   **Page Title**: "Survey Manager"
-*   **Layout**: Two-column design* *   Left: Categories and Surveys listing
-      *   Right: Selected Survey details (initially empty)
+*   Provide a centralized interface for managing surveys.
+*   Enable users to create and modify surveys.
+*   Enable users to delete surveys.
+*   Associate surveys with pre-existing categories.
+*   Facilitate easy navigation and interaction with survey data.
 
-## Left Column: Categories and Surveys List
+**3. Target Audience**
 
-*   Displays all Survey Categories in ascending `display_order`
-*   Each Category section includes:* *   Category name as a heading
-      *   "+" button adjacent to the name for adding new surveys
-      *   List of Surveys within that category, displayed in ascending `display_order`
+The target audience for this LiveView includes users who need to create and manage surveys within the Qlarius application. These users likely have administrative or content creation roles.
 
-## Survey Creation
+**4. Release Criteria**
 
-*   Triggered by clicking the "+" button next to a Category name
-*   Opens a modal with the following fields:* *   **Name**: Text input field
-      *   **Category**: Dropdown menu pre-populated with all existing Survey Categories* *   Default selection is the Category whose "+" button was clicked
-      *   **Display Order**: Number input field (default value: 1)
-*   Form validation occurs on submission* *   If validation fails, errors are displayed within the modal
-      *   If successful:* *   New Survey is created
-      *     *   Left panel list is updated to include the new Survey
-      *     *   Modal closes automatically
-      *     *   Newly created Survey is selected and displayed in the right panel
+The `/survey_manager` LiveView is considered ready for release when it meets all the functional requirements outlined in Section 5.
 
-## Survey Selection and Editing
+**5. Functional Requirements**
 
-*   Clicking a Survey name in the left panel selects it and displays its details in the right panel
-*   The right panel initially shows:* *   Survey name as a heading
-      *   Edit icon next to the heading
-*   Clicking the edit icon opens a modal with the same fields as the creation modal:* *   **Name**: Pre-filled with current Survey name
-      *   **Category**: Pre-selected with current Survey category
-      *   **Display Order**: Pre-filled with current display order value
-*   Form validation occurs on submission* *   If validation fails, errors are displayed within the modal
-      *   If successful:* *   Survey details are updated
-      *     *   Left panel list and right panel are refreshed to reflect changes
-      *     *   Modal closes automatically
+**5.1.  Survey Listing and Overall Page Structure**
 
-## Implementation Checklist
+- [ ] The page displays a heading "Survey Manager".
+- [ ] The page is divided into two columns.
+- [ ] The left column displays survey categories and their associated surveys.
+- [ ] The right column displays details of the selected survey (or a message if none is selected).
+- [ ] Survey Categories are displayed in ascending order of their `display_order` attribute.
+- [ ] Surveys within each category are displayed in ascending order of their `display_order` attribute.
 
-### Page Setup and Layout
+**5.2. Left Column: Categories and Surveys**
 
-- [x]    Create route for `/survey_manager` path
-- [x]    Design two-column layout structure
-- [x]    Implement page title "Survey Manager"
+- [ ] Each category is displayed with its name as a heading.
+- [ ] A "+" button is displayed next to each category name, linking to the "new survey" form pre-selected with that category.
+- [ ] Under each category heading, surveys are listed by name, ordered by their `display_order`
+- [ ] Clicking a survey button selects that survey and displays its details in the right column.
 
-### Data Fetching
+**5.3. Right Column: Survey Details**
 
-- [x]    Fetch all Survey Categories ordered by `display_order` (ascending)
-- [x]    Fetch all Surveys ordered by `display_order` (ascending) within each category
-- [x]    Implement efficient data loading to minimize page load time
+- [x] If no survey is selected, the right column displays the message "Select a survey from the left panel to view details".
+- [x] If a survey is selected, the right column displays the survey's name as a heading.
+- [x] An "edit" icon (pencil) is displayed next to the survey name heading.
+- [x] Clicking the edit icon opens the edit modal for the selected survey.
+- [x] Below the survey name, each trait is displayed in a panel.
+- [x] Each trait panel shows:
+  - The trait name as the panel title
+  - An "x" button in the top right to remove the trait from the survey
+  - The trait's question (if present)
+  - A list of the trait's values ordered by display_order
+  - For each value:
+    - A disabled checkbox (if trait type is "checkboxes") or radio button (if trait type is "radios")
+    - The value's answer text (if present) or name
+- [x] Clicking the "x" button removes the trait from the survey immediately
 
-### Left Panel Implementation
+**5.4.  New Survey Creation**
 
-- [x]    Render Category headings with proper styling
-- [x]    Add "+" button next to each Category heading
-- [x]    List Surveys under each Category with proper indentation
-- [x]    Implement proper ordering based on display\_order attribute
+- [ ] Clicking the "+" button next to a category name opens a modal dialog with a form.
+- [ ] The form contains fields for "Name" (text input), "Category" (select dropdown), and "Display Order" (number input).
+- [ ] The "Category" dropdown is pre-populated with all existing survey categories.
+- [ ] When opened from a category's "+" button, the "Category" dropdown is pre-selected with that category.
+- [ ] The "Display Order" field defaults to 1.
+- [ ] The form contains a "Save" button.
+- [ ] The form contains a "Cancel" button that closes the modal.
+- [ ] Clicking "Save" with valid data creates a new survey.
+- [ ] After successful creation, the user is redirected back to the survey list (same view).
+- [ ] A success flash message is displayed upon successful creation.
+- [ ] The newly created survey is automatically selected, and its details are displayed in the right column.
+- [ ] Clicking "Save" with invalid data (e.g., empty name) displays an error message within the modal.
+- [ ] The modal remains open if there are validation errors.
 
-### Modal Implementation
+**5.5.  Survey Editing**
 
-- [x]    Create reusable modal component
-- [x]    Implement "New Survey" modal with required fields
-- [x]    Implement "Edit Survey" modal with pre-filled fields
-- [x]    Add validation for all form fields
+- [ ] Clicking the "edit" icon for a survey displays a modal dialog with a form pre-populated with the survey's data.
+- [ ] The form contains fields for "Name" (text input), "Category" (select dropdown), and "Display Order" (number input).
+- [ ] The "Category" dropdown is pre-populated with all existing survey categories.
+- [ ] The form contains a "Save" button.
+- [ ] The form contains a "Cancel" button that closes the modal.
+- [ ] Clicking "Save" with valid data updates the survey.
+- [ ] After successful update, the user is redirected back to the survey list (same view).
+- [ ] A success flash message is displayed upon successful update.
+- [ ] The updated survey remains selected, and its updated details are displayed in the right column.
+- [ ] Clicking "Save" with invalid data (e.g., empty name) displays an error message within the modal.
+- [ ] The modal remains open if there are validation errors.
 
-### Survey Creation Functionality
+**6. Non-Functional Requirements**
 
-- [x]    Implement handler for "+" button click events
-- [x]    Pre-select correct Category in dropdown
-- [x]    Set default Display Order to 1
-- [x]    Implement form submission and validation
-- [x]    Create server-side action to add new Survey to database
-- [x]    Refresh left panel upon successful creation
-- [x]    Automatically select and display newly created Survey
+*   **Performance:** The LiveView should load and respond to user interactions quickly.
+*   **Usability:** The interface should be intuitive and easy to use.
+*   **Accessibility:** The LiveView should be accessible to users with disabilities. (Note: This is a general requirement, and the provided code may or may not fully meet accessibility standards. This PRD focuses on *current* functionality.)
+*   **Security:** The LiveView should prevent unauthorized access and modification of data.
 
-### Survey Selection Functionality
+**7. Open Issues and Risks**
 
-- [x]    Implement Survey selection on click
-- [x]    Display selected Survey name in right panel
-- [x]    Add edit icon next to Survey name
-- [x]    Maintain selection state across page interactions
-
-### Survey Editing Functionality
-
-- [x]    Implement handler for edit icon click events
-- [x]    Pre-fill modal fields with current Survey data
-- [x]    Implement form submission and validation
-- [x]    Create server-side action to update Survey in database
-- [x]    Refresh both panels upon successful update
-
-### UI/UX Enhancements
-
-- [ ]    Add visual indication for selected Survey
-- [ ]    Implement smooth transitions between states
-- [ ]    Ensure responsive design works on different screen sizes
-
-## Test Cases
-
-### Page Loading Tests
-
-- [ ]    Verify page loads correctly at `/survey_manager` path
-- [ ]    Verify all Categories and Surveys are displayed in correct order
-- [ ]    Verify right panel is initially empty
-
-### Survey Creation Tests
-
-- [ ]    Verify "+" button opens the creation modal
-- [ ]    Verify correct Category is pre-selected in the modal
-- [ ]    Test validation by submitting empty form
-- [ ]    Test validation by submitting duplicate Survey name
-- [ ]    Verify successful creation adds Survey to correct Category
-- [ ]    Verify new Survey appears in correct position based on display\_order
-- [ ]    Verify newly created Survey is automatically selected and displayed
-
-### Survey Selection Tests
-
-- [ ]    Verify clicking a Survey name selects it and displays it in right panel
-- [ ]    Verify visual indication of currently selected Survey
-
-### Survey Editing Tests
-
-- [ ]    Verify edit icon opens edit modal with correct pre-filled data
-- [ ]    Test validation by submitting empty fields
-- [ ]    Test changing Survey name
-- [ ]    Test changing Survey category
-- [ ]    Test changing display\_order
-- [ ]    Verify changes are reflected in both panels after update
-
-### Edge Cases
-
-- [ ]    Test with empty Categories (no Surveys)
-- [ ]    Test with large numbers of Categories and Surveys
-- [ ]    Test with very long Category and Survey names
-- [ ]    Test with special characters in names

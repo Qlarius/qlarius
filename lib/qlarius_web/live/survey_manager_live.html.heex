@@ -44,7 +44,44 @@
             <.icon name="hero-pencil" class="h-5 w-5" />
           </.link>
         </div>
-        <!-- Additional survey details will be added here in future iterations -->
+
+        <div class="space-y-4">
+          <%= for trait <- @selected_survey.traits do %>
+            <div class="bg-gray-50 rounded-lg p-4 shadow-sm">
+              <div class="flex justify-between items-center mb-2">
+                <h3 class="text-lg font-medium">{trait.name}</h3>
+                <button
+                  type="button"
+                  phx-click="remove_trait"
+                  phx-value-survey-id={@selected_survey.id}
+                  phx-value-trait-id={trait.id}
+                  class="text-gray-400 hover:text-gray-600"
+                >
+                  <.icon name="hero-x-mark" class="h-5 w-5" />
+                </button>
+              </div>
+
+              <%= if trait.question do %>
+                <p class="text-gray-600 mb-3">{trait.question}</p>
+              <% end %>
+
+              <div class="space-y-2">
+                <%= for value <- trait.values do %>
+                  <div class="flex items-center gap-2">
+                    <%= if trait.input_type == :checkboxes do %>
+                      <input type="checkbox" disabled class="rounded border-gray-300" />
+                    <% else %>
+                      <input type="radio" disabled class="rounded-full border-gray-300" />
+                    <% end %>
+                    <span class="text-gray-700">
+                      {value.answer || value.name}
+                    </span>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
       <% else %>
         <div class="text-gray-500 italic text-center py-10">
           Select a survey from the left panel to view details

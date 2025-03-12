@@ -69,6 +69,13 @@ defmodule Qlarius.Traits do
   end
 
   @doc """
+  Gets a single trait.
+
+  Raises `Ecto.NoResultsError` if the Trait does not exist.
+  """
+  def get_trait!(id), do: Repo.get!(Trait, id)
+
+  @doc """
   Gets a single trait with preloaded values ordered by display_order.
   """
   def get_trait_with_values!(id) do
@@ -227,5 +234,17 @@ defmodule Qlarius.Traits do
         where: t.parent_id == ^parent_id,
         order_by: t.display_order
     )
+  end
+
+  @doc """
+  Removes a trait from a survey.
+  """
+  def remove_trait_from_survey(survey, trait) do
+    Repo.delete_all(
+      from ts in "traits_surveys",
+        where: ts.survey_id == ^survey.id and ts.trait_id == ^trait.id
+    )
+
+    {:ok, survey}
   end
 end

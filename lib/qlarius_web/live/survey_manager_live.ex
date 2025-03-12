@@ -3,6 +3,7 @@ defmodule QlariusWeb.SurveyManagerLive do
 
   alias Qlarius.Surveys
   alias Qlarius.Surveys.Survey
+  alias Qlarius.Traits
 
   @impl true
   def mount(_params, _session, socket) do
@@ -52,7 +53,6 @@ defmodule QlariusWeb.SurveyManagerLive do
   @impl true
   def handle_event("select_survey", %{"id" => id}, socket) do
     survey = Surveys.get_survey!(id)
-
     {:noreply, assign(socket, :selected_survey, survey)}
   end
 
@@ -70,6 +70,21 @@ defmodule QlariusWeb.SurveyManagerLive do
     socket
     |> assign(form: to_form(changeset, action: :validate))
     |> noreply()
+  end
+
+  @impl true
+  def handle_event("remove_trait", %{"survey-id" => survey_id, "trait-id" => trait_id}, socket) do
+    survey = Surveys.get_survey!(survey_id)
+    trait = Traits.get_trait!(trait_id)
+
+    case Traits.remove_trait_from_survey(survey, trait) do
+      {:ok, _} ->
+        updated_survey = Surveys.get_survey!(survey_id)
+        {:noreply, assign(socket, :selected_survey, updated_survey)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to remove trait from survey")}
+    end
   end
 
   defp save_survey(socket, :new, survey_params) do

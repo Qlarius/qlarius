@@ -40,16 +40,24 @@ defmodule Qlarius.Surveys do
   end
 
   def list_surveys_by_category do
+    values_query = from v in Qlarius.Traits.TraitValue, order_by: v.display_order
+    traits_query = from t in Qlarius.Traits.Trait, preload: [values: ^values_query]
+    surveys_query = from s in Survey, order_by: s.display_order, preload: [traits: ^traits_query]
+
     query =
       from c in SurveyCategory,
         order_by: c.display_order,
-        preload: [surveys: ^from(s in Survey, order_by: s.display_order)]
+        preload: [surveys: ^surveys_query]
 
     Repo.all(query)
   end
 
   def get_survey!(id) do
-    Repo.get!(Survey, id) |> Repo.preload(:category)
+    Repo.get!(Survey, id)
+    |> Repo.preload([
+      :category,
+      traits: [values: from(v in Qlarius.Traits.TraitValue, order_by: v.display_order)]
+    ])
   end
 
   def create_survey(attrs \\ %{}) do

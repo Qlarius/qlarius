@@ -4,6 +4,7 @@ defmodule Qlarius.Traits.TraitValue do
 
   alias Qlarius.Accounts.User
   alias Qlarius.Traits.Trait
+  alias Qlarius.Traits.UserTag
 
   schema "trait_values" do
     belongs_to :trait, Trait

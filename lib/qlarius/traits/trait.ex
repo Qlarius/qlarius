@@ -3,6 +3,7 @@ defmodule Qlarius.Traits.Trait do
   import Ecto.Changeset, warn: false
 
   alias Qlarius.Campaigns.TraitGroup
+  alias Qlarius.Surveys.Survey
   alias Qlarius.Traits.TraitCategory
   alias Qlarius.Traits.TraitValue
 
@@ -22,6 +23,7 @@ defmodule Qlarius.Traits.Trait do
 
     has_many :values, TraitValue
 
+    many_to_many :surveys, Survey, join_through: "traits_surveys"
     many_to_many :trait_groups, TraitGroup, join_through: "traits_trait_groups"
 
     timestamps(type: :utc_datetime)
