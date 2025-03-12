@@ -41,6 +41,10 @@ All users of the Qlarius application.
 - [x] Traits are displayed as one-column tables with trait name as header
 - [x] Below each trait header, all trait values for the user are listed in ascending display_order
 - [x] Only traits that have at least one value for the user are shown
+- [x] A blue "Builder" button floats in the bottom right corner of the screen
+  - [x] Button has rounded corners and shadow for depth
+  - [x] Button remains fixed in position while scrolling
+  - [x] Clicking the button navigates to `/me_file/surveys`
 
 **5.2. Tag Management**
 
