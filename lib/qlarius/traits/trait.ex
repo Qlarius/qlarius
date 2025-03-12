@@ -15,7 +15,8 @@ defmodule Qlarius.Traits.Trait do
     field :taggable, :boolean
     field :is_date, :boolean
     field :active, :boolean
-    field :input_type, :string
+    field :display_order, :integer, default: 1
+    field :input_type, Ecto.Enum, values: ~w[radios checkboxes text select]a
     field :question, :string
 
     belongs_to :category, TraitCategory

@@ -1,5 +1,6 @@
 alias Qlarius.Repo
 alias Qlarius.Traits.Trait
+alias Qlarius.Traits.TraitCategory
 alias Qlarius.Traits.TraitValue
 alias NimbleCSV.RFC4180, as: CSV
 
@@ -7,6 +8,21 @@ import Ecto.Changeset
 
 Repo.delete_all(Trait)
 Repo.delete_all(TraitValue)
+Repo.delete_all(TraitCategory)
+
+"priv/repo/trait_categories.csv"
+|> File.read!()
+|> CSV.parse_string(skip_headers: true)
+|> Enum.each(fn line ->
+  [id, name, display_order] = Enum.map(line, &String.trim/1)
+
+  %TraitCategory{}
+  |> cast(
+    %{id: id, name: name, display_order: display_order},
+    [:id, :name, :display_order]
+  )
+  |> Repo.insert!()
+end)
 
 "priv/repo/traits.csv"
 |> File.read!()
@@ -26,6 +42,15 @@ Repo.delete_all(TraitValue)
     name,
     input_type
   ] = Enum.map(row, &String.trim/1)
+
+  input_type =
+    case input_type do
+      "SingleSelect" -> :radios
+      "MultiSelect" -> :checkboxes
+      "MultiSelectList" -> :select
+      "FreeText" -> :text
+      "single_select_from_text" -> :text
+    end
 
   %Trait{}
   |> cast(
@@ -85,4 +110,8 @@ end)
     [:id, :name, :display_order, :trait_id]
   )
   |> Repo.insert!()
+end)
+
+Enum.each(~w[traits trait_values trait_categories], fn table ->
+  Ecto.Adapters.SQL.query(Repo, "SELECT setval('#{table}_id_seq', (SELECT MAX(id) FROM #{table}) + 1);")
 end)

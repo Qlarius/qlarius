@@ -7,7 +7,7 @@ defmodule Qlarius.Repo.Migrations.CreateTraits do
       add :campaign_only, :boolean
       add :numeric, :boolean
       add :immutable, :boolean
-      add :display_order, :integer, null: false
+      add :display_order, :integer, null: false, default: 1
       add :taggable, :boolean
       add :is_date, :boolean
       add :active, :boolean
