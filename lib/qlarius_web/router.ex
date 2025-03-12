@@ -97,6 +97,7 @@ defmodule QlariusWeb.Router do
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
       live "/wallet", WalletLive, :index
       live "/ads", AdsLive, :index
+      live "/me_file", MeFileLive, :index
     end
   end
 

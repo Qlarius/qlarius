@@ -23,7 +23,7 @@ Repo.delete_all(User)
 
 {:ok, user} =
   Accounts.register_user(%{
-    email: "test@qlarius.com",
+    email: "test2@qlarius.com",
     password: "password1234",
     password_confirmation: "password1234"
   })
