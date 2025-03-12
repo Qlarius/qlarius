@@ -4,46 +4,18 @@ defmodule Qlarius.Repo.Migrations.CreateSurveySystem do
   def change do
     create table(:survey_categories) do
       add :name, :text, null: false
-      add :display_order, :integer, null: false
+      add :display_order, :integer, null: false, default: 1
 
       timestamps()
     end
+
+    create index(:survey_categories, :display_order)
 
     create table(:surveys) do
       add :name, :text, null: false
       add :category_id, references(:survey_categories, on_delete: :restrict), null: false
-      add :display_order, :integer, null: false
-      add :active, :boolean, default: false
-
-      timestamps()
-    end
-
-    create table(:survey_questions) do
-      add :text, :text, null: false
+      add :display_order, :integer, null: false, default: 1
       add :active, :boolean, default: true, null: false
-      add :display_order, :integer, null: false
-      add :trait_id, references(:traits, on_delete: :restrict), null: false
-
-      timestamps()
-    end
-
-    create table(:survey_question_surveys) do
-      add :survey_id, references(:surveys, on_delete: :delete_all), null: false
-      add :question_id, references(:survey_questions, on_delete: :delete_all), null: false
-
-      timestamps()
-    end
-
-    create index(:survey_question_surveys, :survey_id)
-    create index(:survey_question_surveys, :question_id)
-    create unique_index(:survey_question_surveys, [:survey_id, :question_id])
-
-    create table(:survey_answers) do
-      add :text, :text, null: false
-      add :question_id, references(:survey_questions, on_delete: :delete_all), null: false
-      add :trait_value_id, references(:trait_values, on_delete: :nilify_all)
-      add :display_order, :integer
-      add :next_question_id, references(:survey_questions, on_delete: :nilify_all)
 
       timestamps()
     end
@@ -52,13 +24,23 @@ defmodule Qlarius.Repo.Migrations.CreateSurveySystem do
     create index(:surveys, [:display_order])
     create index(:surveys, [:active])
 
-    create index(:survey_questions, [:display_order])
-    create index(:survey_questions, [:active])
-    create index(:survey_questions, [:trait_id])
+    create table(:traits_surveys) do
+      add :survey_id, references(:surveys, on_delete: :delete_all), null: false
+      add :trait_id, references(:traits, on_delete: :delete_all), null: false
 
-    create index(:survey_answers, [:question_id])
-    create index(:survey_answers, [:trait_value_id])
-    create index(:survey_answers, [:next_question_id])
-    create index(:survey_answers, [:display_order])
+      timestamps()
+    end
+
+    create index(:traits_surveys, :survey_id)
+    create index(:traits_surveys, :trait_id)
+    create unique_index(:traits_surveys, [:survey_id, :trait_id])
+
+    alter table(:traits) do
+      add :question, :text
+    end
+
+    alter table(:trait_values) do
+      add :answer, :text
+    end
   end
 end

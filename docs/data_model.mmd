@@ -10,18 +10,11 @@ erDiagram
     MediaPiece ||--o| AdCategory : belongs_to
     MediaRun ||--o| MediaPiece : belongs_to
     MediaRun ||--o| MediaSequence : belongs_to
-    Offer ||--o| MediaPiece : belongs_to
+    Offer ||--o| MediaRun : belongs_to
     Offer ||--o| User : belongs_to
     Survey ||--o| Category : belongs_to
-    Survey }|--|{ Question : has
-    SurveyAnswer ||--o| NextQuestion : belongs_to
-    SurveyAnswer ||--o| Question : belongs_to
-    SurveyAnswer ||--o| Trait : belongs_to
+    Survey }|--|{ Trait : has
     SurveyCategory ||--o{ Survey : has
-    SurveyQuestion ||--o{ Answer : has
-    SurveyQuestion ||--o{ NextQuestion : has
-    SurveyQuestion ||--o| Trait : belongs_to
-    SurveyQuestion }|--|{ Survey : has
     Target ||--o{ Campaign : has
     Target ||--o{ TargetBand : has
     TargetBand ||--o| Target : belongs_to
@@ -47,6 +40,7 @@ erDiagram
         boolean is_date
         boolean active
         string input_type
+        string question
     }
 
     TraitCategory {
@@ -57,6 +51,7 @@ erDiagram
     TraitValue {
         string name
         integer display_order
+        string answer
     }
 
     Offer {
@@ -88,17 +83,6 @@ erDiagram
         string name
         integer display_order
         boolean active
-    }
-
-    SurveyQuestion {
-        string text
-        boolean active
-        integer display_order
-    }
-
-    SurveyAnswer {
-        string text
-        integer display_order
     }
 
     MediaSequence {

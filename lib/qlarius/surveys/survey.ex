@@ -3,7 +3,7 @@ defmodule Qlarius.Surveys.Survey do
   import Ecto.Changeset
 
   alias Qlarius.Surveys.SurveyCategory
-  alias Qlarius.Surveys.SurveyQuestion
+  alias Qlarius.Traits.Trait
 
   schema "surveys" do
     field :name, :string
@@ -11,7 +11,7 @@ defmodule Qlarius.Surveys.Survey do
     field :active, :boolean, default: false
 
     belongs_to :category, SurveyCategory
-    many_to_many :questions, SurveyQuestion, join_through: "survey_question_surveys"
+    many_to_many :traits, Trait, join_through: "traits_surveys"
 
     timestamps(type: :utc_datetime)
   end

@@ -16,6 +16,7 @@ defmodule Qlarius.Traits.Trait do
     field :is_date, :boolean
     field :active, :boolean
     field :input_type, :string
+    field :question, :string
 
     belongs_to :category, TraitCategory
 

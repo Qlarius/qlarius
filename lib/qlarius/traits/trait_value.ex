@@ -9,6 +9,7 @@ defmodule Qlarius.Traits.TraitValue do
 
     field :name, :string
     field :display_order, :integer
+    field :answer, :string
 
     timestamps(type: :utc_datetime)
   end
