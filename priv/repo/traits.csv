@@ -55,8 +55,6 @@ id,active,taggable,campaign_only,numeric,immutable,is_date,display_order,categor
 1155,true,false,false,false,false,false,51 ,9 ,"Wine Bottles Owned ","SingleSelect"
 1162,true,false,false,false,false,false,52 ,9 ,"Wine Type Preference   ","MultiSelect"
 1182,true,false,false,false,false,false,60 ,10,"Shade of Green ","SingleSelect"
-1189,true,true,false,false,false,false,7  ,10,"7 - I only use green cleaning products and have energy-saving light bulbs. That said, I could always be better.","MultiSelectList"
-1192,true,true,false,false,false,false,10 ,10,"10 - I rely on solar or wind energy, own only eco-furniture, compost, and own a hybrid car.","MultiSelectList"
 1193,true,false,false,false,false,false,61 ,10,"Green Intent   ","SingleSelect"
 1199,true,false,false,false,false,false,62 ,10,"Green Buying   ","SingleSelect"
 1206,true,false,false,false,false,false,63 ,10,"Recycling Habits   ","MultiSelect"
