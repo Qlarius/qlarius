@@ -15,6 +15,8 @@ defmodule QlariusWeb.Layouts do
   attr :current_path, :string, required: true
   attr :path, :string, required: true
 
+  slot :inner_block
+
   def marketer_navbar_link(assigns) do
     ~H"""
     <.link
