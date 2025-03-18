@@ -1,0 +1,49 @@
+<!-- App Bottom Menu -->
+<div class="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between bg-white border-t border-gray-200 h-16 px-2">
+  <.link
+    navigate={~p"/"}
+    class="flex-1 flex flex-col items-center justify-center text-blue-600 h-full"
+  >
+    <.icon name="hero-home" class="h-6 w-6" />
+    <span class="text-xs font-semibold mt-1">Home</span>
+  </.link>
+
+  <.link
+    navigate={~p"/ads"}
+    class="flex-1 flex flex-col items-center justify-center text-gray-600 h-full relative"
+  >
+    <.icon name="hero-eye" class="h-6 w-6" />
+    <span class="absolute top-0 right-1/4 flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-white text-xs">
+    </span>
+    <span class="text-xs font-semibold mt-1">Ads</span>
+  </.link>
+
+  <.link
+    navigate={~p"/wallet"}
+    class="flex-1 flex flex-col items-center justify-center text-gray-600 h-full relative"
+  >
+    <.icon name="hero-banknotes" class="h-6 w-6" />
+    <span class="absolute top-0 right-1/4 flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-white text-xs">
+    </span>
+    <span class="text-xs font-semibold mt-1">Wallet</span>
+  </.link>
+
+  <.link
+    navigate={~p"/"}
+    class="flex-1 flex flex-col items-center justify-center text-gray-600 h-full relative"
+  >
+    <.icon name="hero-identification" class="h-6 w-6" />
+    <span class="absolute top-0 right-1/4 flex h-5 w-5 items-center justify-center rounded-full bg-purple-600 text-white text-xs">
+    </span>
+    <span class="text-xs font-semibold mt-1">MeFile</span>
+  </.link>
+
+  <button
+    id="more"
+    class="flex-1 flex flex-col items-center justify-center text-gray-600 h-full cursor-pointer"
+  >
+    <.icon name="hero-bars-3" class="h-6 w-6" />
+    <span class="text-xs font-semibold mt-1">More</span>
+  </button>
+</div>
+<!-- * App Bottom Menu -->

@@ -60,6 +60,19 @@ defmodule QlariusWeb do
     end
   end
 
+  # same as live_view/0 except setting a different app layout. I'd rather do
+  # this in the router so I don't have to repeat it in each individual
+  # LiveView, but can't figure out how :'(
+  def sponster_live_view do
+    quote do
+      use Phoenix.LiveView,
+        layout: {QlariusWeb.Layouts, :sponster}
+
+      unquote(html_helpers())
+      unquote(socket_helpers())
+    end
+  end
+
   def live_component do
     quote do
       use Phoenix.LiveComponent

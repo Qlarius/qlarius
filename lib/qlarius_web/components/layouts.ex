@@ -30,4 +30,12 @@ defmodule QlariusWeb.Layouts do
     </.link>
     """
   end
+
+  def toggle_sponster_sidebar(on) when on in [:on, :off] do
+    if on == :on do
+      JS.show(to: "#sponster-sidebar") |> JS.show(to: "#sponster-sidebar-bg")
+    else
+      JS.hide(to: "#sponster-sidebar") |> JS.hide(to: "#sponster-sidebar-bg")
+    end
+  end
 end

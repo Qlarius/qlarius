@@ -25,13 +25,18 @@ defmodule QlariusWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/", QlariusWeb do
-    pipe_through :browser
-
-    get "/", PageController, :home
+  pipeline :sponster do
+    # NB this only works for controllers, not LiveViews.
+    # See QlariusWeb.sponster_live_view/0
+    plug :put_layout, html: {QlariusWeb.Layouts, :sponster}
   end
 
-  # MARKETER
+  pipeline :auth_layout do
+    plug :put_root_layout, html: {QlariusWeb.Layouts, :auth}
+  end
+
+  # ------ MARKETER ROUTES ------
+
   scope "/", QlariusWeb do
     pipe_through [:browser, :marketer]
 
@@ -51,10 +56,7 @@ defmodule QlariusWeb.Router do
     live "/survey_manager", SurveyManagerLive, :index
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", QlariusWeb do
-  #   pipe_through :api
-  # end
+  # ------ /MARKETER ROUTES ------
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:qlarius, :dev_routes) do
@@ -76,7 +78,7 @@ defmodule QlariusWeb.Router do
   ## Authentication routes
 
   scope "/", QlariusWeb do
-    pipe_through [:browser, :redirect_if_user_is_authenticated]
+    pipe_through [:browser, :redirect_if_user_is_authenticated, :auth_layout]
 
     live_session :redirect_if_user_is_authenticated,
       on_mount: [{QlariusWeb.UserAuth, :redirect_if_user_is_authenticated}] do
@@ -90,7 +92,9 @@ defmodule QlariusWeb.Router do
   end
 
   scope "/", QlariusWeb do
-    pipe_through [:browser, :require_authenticated_user]
+    pipe_through [:browser, :require_authenticated_user, :sponster]
+
+    get "/", PageController, :home
 
     live_session :require_authenticated_user,
       on_mount: [{QlariusWeb.UserAuth, :ensure_authenticated}] do
@@ -105,7 +109,7 @@ defmodule QlariusWeb.Router do
   end
 
   scope "/", QlariusWeb do
-    pipe_through [:browser]
+    pipe_through [:browser, :auth_layout]
 
     delete "/users/log_out", UserSessionController, :delete
 

@@ -11,6 +11,7 @@ module.exports = {
     "../lib/qlarius_web.ex",
     "../lib/qlarius_web/**/*.*ex"
   ],
+  darkMode: "selector",
   theme: {
     extend: {
       colors: {

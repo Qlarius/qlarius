@@ -1,0 +1,164 @@
+<div
+  id="sponster-sidebar-bg"
+  class="bg-gray-400/70 fixed inset-0 transition-opacity"
+  style="display:none;"
+  aria-hidden="true"
+/>
+<div
+  id="sponster-sidebar"
+  class="fixed inset-y-0 left-0 z-50 w-64 transform -translate-x-full transition-transform duration-300 ease-in-out bg-gray-900 md:translate-x-0"
+  tabindex="1"
+  phx-click-away={toggle_sponster_sidebar(:off)}
+  style="display:none;"
+>
+  <div class="flex flex-col h-full overflow-y-auto py-4 px-3">
+    <!-- profile box -->
+    <div class="flex items-center justify-between p-3 mb-4 border-b border-gray-700">
+      <div class="flex items-center">
+        <img src="/images/qlarius_logo_squares_white.png" class="h-7 mr-2.5" alt="Logo" />
+        <div>
+          <span class="font-bold text-white" data-app-target="mobileNumber">
+            {@current_user.email}
+          </span>
+          <div class="text-gray-400 flex items-center text-sm">
+            <.icon name="hero-map-pin" class="h-4 w-4 mr-1" />
+            <span data-app-target="homeZip">
+              NO HOME ZIP
+            </span>
+          </div>
+        </div>
+      </div>
+      <button phx-click={toggle_sponster_sidebar(:off)} class="text-gray-400 hover:text-white">
+        <.icon name="hero-x-mark" class="h-5 w-5" />
+      </button>
+    </div>
+    <!-- * profile box -->
+
+    <ul class="space-y-1 mt-2">
+      <li>
+        <.link
+          navigate={~p"/"}
+          class="flex items-center p-2 rounded-lg text-white hover:bg-gray-700 group"
+        >
+          <div class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-600">
+            <.icon name="hero-home" class="h-5 w-5 text-white" />
+          </div>
+          <span class="ml-3">Home</span>
+        </.link>
+      </li>
+      <li>
+        <div class="flex items-center justify-between p-2 rounded-lg text-white hover:bg-gray-700 group">
+          <div class="flex items-center">
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-600">
+              <.icon name="hero-moon" class="h-5 w-5 text-white" />
+            </div>
+            <span class="ml-3">Dark Mode</span>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" class="sr-only peer" phx-click="toggle_dark_mode" />
+            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
+            </div>
+          </label>
+        </div>
+      </li>
+    </ul>
+
+    <div class="mt-4 mb-1 px-2 text-gray-400 text-sm font-medium">
+      <span>Sponster</span>
+    </div>
+    <ul class="space-y-1">
+      <li>
+        <.link
+          navigate={~p"/ads"}
+          class="flex items-center justify-between p-2 rounded-lg text-white hover:bg-gray-700 group"
+        >
+          <div class="flex items-center">
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-green-600">
+              <.icon name="hero-eye" class="h-5 w-5 text-white" />
+            </div>
+            <span class="ml-3">Ads</span>
+          </div>
+          <span
+            class="bg-green-600 text-white text-xs font-medium px-2.5 py-0.5 rounded"
+            data-app-target="offerCount"
+          >
+            ...
+          </span>
+        </.link>
+      </li>
+      <li>
+        <.link
+          navigate={~p"/wallet"}
+          class="flex items-center justify-between p-2 rounded-lg text-white hover:bg-gray-700 group"
+        >
+          <div class="flex items-center">
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-green-600">
+              <.icon name="hero-banknotes" class="h-5 w-5 text-white" />
+            </div>
+            <span class="ml-3">Wallet</span>
+          </div>
+          <span
+            class="bg-green-600 text-white text-xs font-medium px-2.5 py-0.5 rounded"
+            data-app-target="balance"
+          >
+            ...
+          </span>
+        </.link>
+      </li>
+    </ul>
+
+    <div class="mt-4 mb-1 px-2 text-gray-400 text-sm font-medium">
+      <span>YouData</span>
+    </div>
+    <ul class="space-y-1">
+      <li>
+        <.link
+          navigate={~p"/me_file"}
+          class="flex items-center justify-between p-2 rounded-lg text-white hover:bg-gray-700 group"
+        >
+          <div class="flex items-center">
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-purple-600">
+              <.icon name="hero-identification" class="h-5 w-5 text-white" />
+            </div>
+            <span class="ml-3">Your MeFile</span>
+          </div>
+          <span
+            class="bg-purple-600 text-white text-xs font-medium px-2.5 py-0.5 rounded"
+            data-app-target="tagCount"
+          >
+            ...
+          </span>
+        </.link>
+      </li>
+      <li>
+        <.link
+          navigate={~p"/me_file/surveys"}
+          class="flex items-center p-2 rounded-lg text-white hover:bg-gray-700 group"
+        >
+          <div class="flex items-center justify-center h-8 w-8 rounded-full bg-purple-600">
+            <.icon name="hero-wrench" class="h-5 w-5 text-white" />
+          </div>
+          <span class="ml-3">MeFile Builder</span>
+        </.link>
+      </li>
+    </ul>
+
+    <div class="mt-auto p-3 border-t border-gray-700">
+      <div class="grid grid-cols-2 gap-2">
+        <.link
+          navigate={~p"/users/settings"}
+          class="flex flex-col items-center justify-center p-2 rounded-lg text-white hover:bg-gray-700 text-sm"
+        >
+          <.icon name="hero-cog-6-tooth" class="h-5 w-5 mb-1" /> Settings
+        </.link>
+        <.link
+          href={~p"/users/log_out"}
+          class="flex flex-col items-center justify-center p-2 rounded-lg text-white hover:bg-gray-700 text-sm"
+          method="delete"
+        >
+          <.icon name="hero-arrow-right-on-rectangle" class="h-5 w-5 mb-1" /> Log out
+        </.link>
+      </div>
+    </div>
+  </div>
+</div>
