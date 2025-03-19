@@ -3,8 +3,6 @@ defmodule Qlarius.Offer do
 
   alias Qlarius.Accounts.User
   alias Qlarius.Marketing.MediaRun
-  alias Qlarius.Marketing.MediaPiece
-  alias Qlarius.Campaigns.AdCategory
 
   schema "offers" do
     # In the Rails app these two fields come from associated records,

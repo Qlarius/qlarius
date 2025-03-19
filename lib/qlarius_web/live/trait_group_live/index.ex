@@ -37,11 +37,11 @@ defmodule QlariusWeb.TraitGroupLive.Index do
   end
 
   @impl true
-  def handle_event("submit-trait-group-form", %{"trait_group" => trait_group_params}, socket) do
+  def handle_event("submit-trait-group-form", %{"trait_group" => _trait_group_params}, _socket) do
   end
 
   @impl true
-  def handle_event("validate-trait-group-form", %{"trait_group" => trait_group_params}, socket) do
+  def handle_event("validate-trait-group-form", %{"trait_group" => _trait_group_params}, _socket) do
   end
 
   def trait_checkbox(assigns) do

@@ -110,19 +110,6 @@ defmodule Qlarius.MeFile do
   end
 
   @doc """
-  Deletes all UserTags for a given trait and user.
-  Returns the number of tags deleted.
-  """
-  def delete_trait_tags(trait_id, user_id) do
-    from(ut in UserTag,
-      join: tv in TraitValue,
-      on: ut.trait_value_id == tv.id,
-      where: tv.trait_id == ^trait_id and ut.user_id == ^user_id
-    )
-    |> Repo.delete_all()
-  end
-
-  @doc """
   Gets all survey categories with their surveys and completion stats for a user.
   Categories and surveys are ordered by display_order.
   """

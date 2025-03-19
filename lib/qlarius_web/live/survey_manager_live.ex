@@ -83,13 +83,9 @@ defmodule QlariusWeb.SurveyManagerLive do
     survey = Surveys.get_survey!(survey_id)
     trait = Traits.get_trait!(trait_id)
 
-    case Traits.remove_trait_from_survey(survey, trait) do
-      {:ok, _} ->
-        {:noreply, push_patch(socket, to: ~p"/survey_manager/#{survey_id}")}
+    {:ok, _survey} = Traits.remove_trait_from_survey(survey, trait)
 
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Failed to remove trait from survey")}
-    end
+    {:noreply, push_patch(socket, to: ~p"/survey_manager/#{survey_id}")}
   end
 
   @impl true

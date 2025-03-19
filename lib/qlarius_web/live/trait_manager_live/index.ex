@@ -4,7 +4,6 @@ defmodule QlariusWeb.TraitManagerLive.Index do
   alias Qlarius.Traits
   alias Qlarius.Traits.Trait
   alias Qlarius.Traits.TraitValue
-  alias Phoenix.HTML.Form
 
   @impl true
   def mount(_params, _session, socket) do
