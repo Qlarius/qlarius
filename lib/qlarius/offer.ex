@@ -3,6 +3,8 @@ defmodule Qlarius.Offer do
 
   alias Qlarius.Accounts.User
   alias Qlarius.Marketing.MediaRun
+  alias Qlarius.Marketing.MediaPiece
+  alias Qlarius.Campaigns.AdCategory
 
   schema "offers" do
     # In the Rails app these two fields come from associated records,
@@ -10,10 +12,14 @@ defmodule Qlarius.Offer do
     field :phase_1_amount, :decimal
     field :phase_2_amount, :decimal
 
+    # TODO do I need this?
     field :amount, :decimal
 
     belongs_to :user, User
     belongs_to :media_run, MediaRun
+
+    has_one :media_piece, through: [:media_run, :media_piece]
+    has_one :ad_category, through: [:media_run, :media_piece, :ad_category]
 
     timestamps()
   end

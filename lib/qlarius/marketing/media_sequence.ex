@@ -4,7 +4,7 @@ defmodule Qlarius.Marketing.MediaSequence do
 
   schema "media_sequences" do
     field :title, :string
-    # TODO make the DB field non-nullable. I'm not sure we even need it;
+    # TODO make the DB field nullable. I'm not sure we even need it;
     # I don't see a place in the Rails app that sets it anywhere:
     field :description, :string, default: ""
 

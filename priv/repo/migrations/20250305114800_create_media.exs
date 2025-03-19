@@ -27,10 +27,12 @@ defmodule Qlarius.Repo.Migrations.CreateMedia do
       add :maximum_banner_count, :integer, null: false
       add :banner_retry_buffer_hours, :integer, null: false
       add :media_piece_id, references(:media_pieces, on_delete: :delete_all), null: false
+      add :media_sequence_id, references(:media_sequences, on_delete: :delete_all), null: false
 
       timestamps()
     end
 
-    create index(:media_runs, [:media_piece_id])
+    create unique_index(:media_runs, [:media_piece_id])
+    create index(:media_runs, [:media_sequence_id])
   end
 end
