@@ -41,16 +41,21 @@ defmodule QlariusWeb.OfferHTML do
       2 ->
         ~H"""
         <.offer_container offer={@offer} class="px-3 py-2">
-          <div class="text-blue-800 font-bold text-lg mb-1 underline">
-            {@offer.media_piece.title}
-          </div>
-          <div class="text-gray-700 text-sm mb-1">
-            {@offer.media_piece.body_copy}
-          </div>
-          <div class="text-gray-500 text-xs">
-            {@offer.media_piece.display_url}
-          </div>
-          <.click_jump_actions phase_1_complete? phase_2_amount={@offer.phase_2_amount} />
+          <%!-- clicking this link opens the 'jump' link in a new tab, and also
+          triggers the phx-click="click-offer" handler on the wrapping
+          <.offer_container> --%>
+          <a class="block w-full h-full" href={~p"/jump/#{@offer}"} target="_blank">
+            <div class="text-blue-800 font-bold text-lg mb-1 underline">
+              {@offer.media_piece.title}
+            </div>
+            <div class="text-gray-700 text-sm mb-1">
+              {@offer.media_piece.body_copy}
+            </div>
+            <div class="text-gray-500 text-xs">
+              {@offer.media_piece.display_url}
+            </div>
+            <.click_jump_actions phase_1_complete? phase_2_amount={@offer.phase_2_amount} />
+          </a>
         </.offer_container>
         """
 

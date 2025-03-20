@@ -106,6 +106,8 @@ defmodule QlariusWeb.Router do
       get "/me_file/surveys", MeFileController, :surveys
       live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
     end
+
+    get "/jump/:id", AdController, :jump
   end
 
   scope "/", QlariusWeb do

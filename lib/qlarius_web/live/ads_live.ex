@@ -32,6 +32,7 @@ defmodule QlariusWeb.AdsLive do
     |> update(:offers, fn offers ->
       Enum.map(offers, fn {offer, phase} ->
         if offer.id == offer_id && phase < 3 do
+          handle_phase(offer, phase)
           {offer, phase + 1}
         else
           {offer, phase}
@@ -39,6 +40,16 @@ defmodule QlariusWeb.AdsLive do
       end)
     end)
     |> noreply()
+  end
+
+  defp handle_phase(_offer, 0), do: :noop
+
+  defp handle_phase(_offer, 1) do
+    # TODO create AdEvent etc
+  end
+
+  defp handle_phase(_offer, 2) do
+    # TODO create AdEvent etc
   end
 
   @impl true
