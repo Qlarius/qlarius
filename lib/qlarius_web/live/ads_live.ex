@@ -5,6 +5,8 @@ defmodule QlariusWeb.AdsLive do
 
   import QlariusWeb.OfferHTML
 
+  on_mount {QlariusWeb.GetUserIP, :assign_ip}
+
   @impl true
   def mount(_params, _session, socket) do
     offers =
