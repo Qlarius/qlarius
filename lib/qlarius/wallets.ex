@@ -84,4 +84,39 @@ defmodule Qlarius.Wallets do
 
     :ok
   end
+
+  def create_ad_jump_event_and_update_ledger(offer, user, ip_address) do
+    Repo.transaction(fn ->
+      # Create AdEvent
+      ad_event = %AdEvent{
+        offer_id: offer.id,
+        offer_amount: offer.amount,
+        demo: offer.demo,
+        throttled: offer.throttled,
+        ip_address: ip_address,
+        offer_complete: true
+      } |> Repo.insert!()
+
+      # Get user's ledger header
+      ledger_header = Repo.get_by!(LedgerHeader, user_id: user.id)
+      amount = Decimal.sub(offer.amount, Decimal.new("0.05"))
+      new_balance = Decimal.add(ledger_header.balance, amount)
+
+      # Update ledger header balance
+      ledger_header
+      |> Ecto.Changeset.change(balance: new_balance)
+      |> Repo.update!()
+
+      # Create ledger entry
+      %LedgerEntry{
+        ledger_header_id: ledger_header.id,
+        amount: amount,
+        running_balance: new_balance,
+        description: "TODO placeholder", # TODO - we need to get this from the media_piece_phase
+        ad_event_id: ad_event.id
+      } |> Repo.insert!()
+
+      :ok
+    end)
+  end
 end

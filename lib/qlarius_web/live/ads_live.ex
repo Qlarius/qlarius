@@ -57,7 +57,11 @@ defmodule QlariusWeb.AdsLive do
   end
 
   defp handle_phase(socket, offer, 2) do
-    # TODO create AdEvent etc.
+    :ok = Wallets.create_ad_jump_event_and_update_ledger(
+      offer,
+      socket.assigns.current_user,
+      socket.assigns.user_ip
+    )
 
     balance = Wallets.get_user_current_balance(socket.assigns.current_user)
 
