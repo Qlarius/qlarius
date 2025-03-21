@@ -1,0 +1,59 @@
+---
+description: Phoenix and HEEx
+globs: **/*.ex,**/*.exs,**/*.heex
+alwaysApply: false
+---
+
+## HEEx syntax
+
+### Conditionals
+- Use `:if={condition}` attribute syntax for simple conditionals without an else clause
+- Use `<%= if condition do %>` block syntax when you need an else clause
+- Never use `{#if}` syntax as it's invalid
+
+Examples:
+```elixir
+# ✅ Preferred simple conditional
+<.component :if={@show_component} />
+
+# ✅ When else clause needed
+<%= if @show_component do %>
+  <.component />
+<% else %>
+  <.other_component />
+<% end %>
+
+# ❌ Invalid syntax
+{#if condition}
+  <.component />
+{/if}
+```
+
+## Components and Templates
+
+### Link Component
+- Use modern `<.link>` component instead of deprecated `link` helper
+- Use `navigate={~p"/path"}` for full LiveView mounts, or when the target page is served by a non-LiveView controller
+- Use `patch={~p"/path"}` for handle_params without remount
+- Always use sigil `~p` for paths
+- Place content between opening/closing tags: `<.link>Content</.link>`
+
+Examples:
+```elixir
+# ✅ Modern syntax
+<.link navigate={~p"/admin/kitchens/#{kitchen}"}>View</.link>
+<.link patch={~p"/users/settings"}>Settings</.link>
+
+# ❌ Deprecated syntax
+<%= link "View", to: ~p"/admin/kitchens/#{kitchen}" %>
+```
+
+### When to use navigate vs patch
+- Use `navigate` when:
+  - Changing to a different LiveView
+  - Moving between regular controller routes
+  - Need full LiveView remount
+- Use `patch` when:
+  - Staying in same LiveView but updating params
+  - Want to preserve LiveView state
+  - Only need handle_params callback 
