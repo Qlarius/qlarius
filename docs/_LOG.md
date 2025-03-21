@@ -25,8 +25,8 @@ The application uses the following primary schemas (see `docs/data_model.mmd` fo
    - `Qlarius.Accounts.UserToken` - Authentication tokens
 
 2. **Financial System**
-   - `Qlarius.LedgerHeader` - Main ledger for a user (wallet)
-   - `Qlarius.LedgerEntry` - Individual transactions in a ledger
+   - `Qlarius.Wallets.LedgerHeader` - Main ledger for a user (wallet)
+   - `Qlarius.Wallets.LedgerEntry` - Individual transactions in a ledger
 
 3. **Advertising System**
    - `Qlarius.Campaigns.Campaign` - Advertising campaigns
@@ -47,7 +47,7 @@ The application uses the following primary schemas (see `docs/data_model.mmd` fo
   - Each user has one ledger header (wallet)
   - Users can have multiple traits (many-to-many)
 
-- **Financial Module**
+- **Financial Module** (`Qlarius.Wallets`)
   - `LedgerHeader` represents a user's wallet
   - `LedgerEntry` records individual transactions in the ledger
 
@@ -221,6 +221,13 @@ Based on the schema relationships, the system appears to:
     - Database schema and context updates
     - Error handling
     - Component extraction
+
+- Ad Event and Ledger Integration has been implemented with the following features:
+  - Transaction-based creation of ad events and ledger updates
+  - Automatic ledger balance updates when ads are viewed
+  - IP address tracking for ad events
+  - Integration with the offer system for ad event creation
+  - Placeholder for media piece phase descriptions
 
 ---
 

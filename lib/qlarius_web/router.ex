@@ -26,9 +26,12 @@ defmodule QlariusWeb.Router do
   end
 
   pipeline :sponster do
+    import QlariusWeb.Sponster
+
     # NB this only works for controllers, not LiveViews.
     # See QlariusWeb.sponster_live_view/0
     plug :put_layout, html: {QlariusWeb.Layouts, :sponster}
+    plug :initialize_bottom_bar
   end
 
   pipeline :auth_layout do
@@ -97,7 +100,10 @@ defmodule QlariusWeb.Router do
     get "/", PageController, :home
 
     live_session :require_authenticated_user,
-      on_mount: [{QlariusWeb.UserAuth, :ensure_authenticated}] do
+      on_mount: [
+        {QlariusWeb.UserAuth, :ensure_authenticated},
+        {QlariusWeb.Sponster, :initialize_bottom_bar}
+      ] do
       live "/users/settings", UserSettingsLive, :edit
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
       live "/wallet", WalletLive, :index

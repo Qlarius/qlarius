@@ -1,9 +1,9 @@
-defmodule Qlarius.LedgerHeader do
+defmodule Qlarius.Wallets.LedgerHeader do
   use Ecto.Schema
   import Ecto.Changeset, warn: false
 
   alias Qlarius.Accounts.User
-  alias Qlarius.LedgerEntry
+  alias Qlarius.Wallets.LedgerEntry
 
   schema "ledger_headers" do
     field :description, :string

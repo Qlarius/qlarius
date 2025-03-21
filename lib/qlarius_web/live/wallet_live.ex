@@ -1,19 +1,19 @@
 defmodule QlariusWeb.WalletLive do
   use QlariusWeb, :sponster_live_view
 
-  alias Qlarius.Ledger
+  alias Qlarius.Wallets
 
   @impl true
   def mount(_params, _session, socket) do
     user = socket.assigns.current_user
 
-    ledger_header = Ledger.get_user_ledger_header(user.id)
+    ledger_header = Wallets.get_user_ledger_header(user.id)
 
     socket =
       if ledger_header do
         page = 1
         per_page = 20
-        paginated_entries = Ledger.list_ledger_entries(ledger_header.id, page, per_page)
+        paginated_entries = Wallets.list_ledger_entries(ledger_header.id, page, per_page)
 
         socket
         |> assign(:ledger_header, ledger_header)
@@ -48,7 +48,7 @@ defmodule QlariusWeb.WalletLive do
       end
 
     if socket.assigns[:ledger_header] do
-      paginated_entries = Ledger.list_ledger_entries(socket.assigns.ledger_header.id, page, 20)
+      paginated_entries = Wallets.list_ledger_entries(socket.assigns.ledger_header.id, page, 20)
 
       {:noreply,
        socket

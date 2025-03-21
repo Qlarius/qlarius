@@ -12,8 +12,8 @@
 
 alias Qlarius.Accounts
 alias Qlarius.Accounts.User
-alias Qlarius.LedgerEntry
-alias Qlarius.LedgerHeader
+alias Qlarius.Wallets.LedgerEntry
+alias Qlarius.Wallets.LedgerHeader
 alias Qlarius.Repo
 
 Repo.delete_all(User)

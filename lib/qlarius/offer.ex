@@ -19,6 +19,11 @@ defmodule Qlarius.Offer do
     has_one :media_piece, through: [:media_run, :media_piece]
     has_one :ad_category, through: [:media_run, :media_piece, :ad_category]
 
+    field :throttled, :boolean, default: false
+    field :demo, :boolean, default: false
+    field :current, :boolean, default: false
+    field :jobbed, :boolean, default: false
+
     timestamps()
   end
 end
