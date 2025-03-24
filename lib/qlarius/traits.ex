@@ -217,7 +217,6 @@ defmodule Qlarius.Traits do
     Repo.all(query)
   end
 
-
   def get_parent_trait!(id) do
     Repo.one!(from t in Trait, where: t.id == ^id and is_nil(t.parent_id))
   end

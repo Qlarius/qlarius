@@ -1,5 +1,5 @@
 defmodule Qlarius.Wallets do
-  import Ecto.Query, warn: false
+  import Ecto.Query
 
   alias Qlarius.Accounts.User
   alias Qlarius.AdEvent
@@ -17,6 +17,18 @@ defmodule Qlarius.Wallets do
   def get_user_ledger_header(user_id) do
     Repo.get_by(LedgerHeader, user_id: user_id)
     |> Repo.preload(:user)
+  end
+
+  def get_ledger_entry!(ledger_entry_id, %User{} = user) do
+    Repo.one!(
+      from(
+        e in LedgerEntry,
+        join: h in assoc(e, :ledger_header),
+        where: e.id == ^ledger_entry_id and h.user_id == ^user.id,
+        select: e,
+        preload: :ad_event
+      )
+    )
   end
 
   @doc """
@@ -88,14 +100,16 @@ defmodule Qlarius.Wallets do
   def create_ad_jump_event_and_update_ledger(offer, user, ip_address) do
     Repo.transaction(fn ->
       # Create AdEvent
-      ad_event = %AdEvent{
-        offer_id: offer.id,
-        offer_amount: offer.amount,
-        demo: offer.demo,
-        throttled: offer.throttled,
-        ip_address: ip_address,
-        offer_complete: true
-      } |> Repo.insert!()
+      ad_event =
+        %AdEvent{
+          offer_id: offer.id,
+          offer_amount: offer.amount,
+          demo: offer.demo,
+          throttled: offer.throttled,
+          ip_address: ip_address,
+          offer_complete: true
+        }
+        |> Repo.insert!()
 
       # Get user's ledger header
       ledger_header = Repo.get_by!(LedgerHeader, user_id: user.id)
@@ -112,9 +126,11 @@ defmodule Qlarius.Wallets do
         ledger_header_id: ledger_header.id,
         amount: amount,
         running_balance: new_balance,
-        description: "TODO placeholder", # TODO - we need to get this from the media_piece_phase
+        # TODO - we need to get this from the media_piece_phase
+        description: "TODO placeholder",
         ad_event_id: ad_event.id
-      } |> Repo.insert!()
+      }
+      |> Repo.insert!()
 
       :ok
     end)

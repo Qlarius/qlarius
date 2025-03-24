@@ -2,7 +2,7 @@ defmodule Qlarius.Wallets.LedgerEntry do
   use Ecto.Schema
   import Ecto.Changeset, warn: false
 
-  alias Qlarius.LedgerHeader
+  alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.AdEvent
 
   schema "ledger_entries" do

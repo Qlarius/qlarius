@@ -1,6 +1,8 @@
 defmodule QlariusWeb.WalletLive do
   use QlariusWeb, :sponster_live_view
 
+  import QlariusWeb.WalletHTML
+
   alias Qlarius.Wallets
 
   @impl true
@@ -9,21 +11,16 @@ defmodule QlariusWeb.WalletLive do
 
     ledger_header = Wallets.get_user_ledger_header(user.id)
 
-    socket =
-      if ledger_header do
-        page = 1
-        per_page = 20
-        paginated_entries = Wallets.list_ledger_entries(ledger_header.id, page, per_page)
+    page = 1
+    per_page = 20
+    paginated_entries = Wallets.list_ledger_entries(ledger_header.id, page, per_page)
 
-        socket
-        |> assign(:ledger_header, ledger_header)
-        |> assign(:page, page)
-        |> assign(:paginated_entries, paginated_entries)
-      else
-        assign(socket, :error, "No ledger found for this user")
-      end
-
-    {:ok, socket}
+    socket
+    |> assign(:ledger_header, ledger_header)
+    |> assign(:sidebar_entry, nil)
+    |> assign(:page, page)
+    |> assign(:paginated_entries, paginated_entries)
+    |> ok()
   end
 
   @impl true
@@ -57,6 +54,20 @@ defmodule QlariusWeb.WalletLive do
     else
       {:noreply, socket}
     end
+  end
+
+  @impl true
+  def handle_event("close-ledger-entry-sidebar", _params, socket) do
+    {:noreply, assign(socket, :sidebar_entry, nil)}
+  end
+
+  @impl true
+  def handle_event("open-ledger-entry-sidebar", %{"entry_id" => entry_id}, socket) do
+    entry = Wallets.get_ledger_entry!(entry_id, socket.assigns.current_user)
+
+    socket
+    |> assign(:sidebar_entry, entry)
+    |> noreply()
   end
 
   @impl true
@@ -130,30 +141,35 @@ defmodule QlariusWeb.WalletLive do
       <h2 class="text-xl font-semibold mb-4">Ledger History</h2>
 
       <div class="divide-y divide-gray-200">
-        <%= for entry <- @paginated_entries.entries do %>
-          <div class="py-4 flex justify-between items-center">
-            <div>
-              <div class="font-medium">Some ad</div>
-              <div class="text-gray-500">{entry.description}</div>
-              <div class="text-gray-500">{format_date(entry.inserted_at)}</div>
+        <div
+          :for={entry <- @paginated_entries.entries}
+          class="py-4 flex justify-between items-center cursor-pointer"
+          phx-click="open-ledger-entry-sidebar"
+          phx-value-entry_id={entry.id}
+        >
+          <div>
+            <div class="font-medium">Some ad</div>
+            <div class="text-gray-500">{entry.description}</div>
+            <div class="text-gray-500">{format_date(entry.inserted_at)}</div>
+          </div>
+          <div class="flex items-center">
+            <div class="text-right mr-4">
+              <div>{format_currency(entry.amount)}</div>
+              <div class="text-gray-500">
+                {format_currency(
+                  calculate_balance_at_entry(@ledger_header, entry, @paginated_entries.entries)
+                )}
+              </div>
             </div>
-            <div class="flex items-center">
-              <div class="text-right mr-4">
-                <div>{format_currency(entry.amount)}</div>
-                <div class="text-gray-500">
-                  {format_currency(
-                    calculate_balance_at_entry(@ledger_header, entry, @paginated_entries.entries)
-                  )}
-                </div>
-              </div>
-              <div class="text-gray-400">
-                >
-              </div>
+            <div class="text-gray-400">
+              >
             </div>
           </div>
-        <% end %>
+        </div>
       </div>
     <% end %>
+
+    <.ledger_entry_detail_sidebar :if={@sidebar_entry} entry={@sidebar_entry} />
     """
   end
 

@@ -1,0 +1,30 @@
+<div
+  id="ledger-entry-detail-sidebar-bg"
+  class="bg-gray-400/70 fixed inset-0 transition-opacity"
+  aria-hidden="true"
+/>
+<div
+  id="ledger-entry-detail-sidebar"
+  class="fixed inset-y-0 right-0 z-50 w-64 transform -translate-x-full transition-transform duration-300 ease-in-out bg-white md:translate-x-0"
+  tabindex="1"
+  phx-click-away="close-ledger-entry-sidebar"
+>
+  <div class="flex flex-col h-full overflow-y-auto py-4 px-3">
+    <h2 class="mb-4">Ledger Entry Detail</h2>
+
+    <p class="mb-0"><strong>Date:</strong> {@entry.ad_event.inserted_at}</p>
+    <%!-- TODO use real data --%>
+    <p class="mb-0"><strong>Sponsor:</strong> [Marketer name]</p>
+    <p class="mb-0"><strong>Event collected:</strong> [Amount]</p>
+    <p class="mb-0"><strong>Ad collected (total):</strong> [Amount]</p>
+
+    <hr class="my-4" />
+
+    <p class="mb-0"><strong>Ad type:</strong> [Type]</p>
+    <p><strong>Ad contents:</strong></p>
+
+    <img src={"/images/banner_#{rem(@entry.id, 4)}.png"} alt="Ad image" class="w-full h-auto" />
+
+    <.sidebar_down_arrow />
+  </div>
+</div>
