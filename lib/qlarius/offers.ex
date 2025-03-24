@@ -16,4 +16,11 @@ defmodule Qlarius.Offers do
     |> preload([:media_piece, :ad_category])
     |> Repo.all()
   end
+
+  def count_user_offers(user_id) do
+    Offer
+    |> where([o], o.user_id == ^user_id)
+    |> preload([:media_piece, :ad_category])
+    |> Repo.count()
+  end
 end

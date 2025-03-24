@@ -45,14 +45,23 @@ defmodule QlariusWeb.Layouts do
     ~H"""
     <div class="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between bg-white border-t border-gray-200 h-16 px-2">
       <.sponster_bottom_bar_link text="Home" href={~p"/"} icon_name="hero-home" />
-      <.sponster_bottom_bar_link text="Ads" href={~p"/ads"} icon_name="hero-eye" />
       <.sponster_bottom_bar_link
-        text="Wallet"
+        badge={@ads_count}
+        href={~p"/ads"}
+        icon_name="hero-eye"
+        text="Ads"
+      />
+      <.sponster_bottom_bar_link
+        badge={format_usd(@wallet_balance)}
         href={~p"/wallet"}
         icon_name="hero-banknotes"
-        badge={format_usd(@wallet_balance)}
+        text="Wallet"
       />
-      <.sponster_bottom_bar_link text="MeFile" href={~p"/"} icon_name="hero-identification" />
+      <.sponster_bottom_bar_link
+        text="MeFile"
+        href={~p"/me_file"}
+        icon_name="hero-identification"
+      />
       <button
         id="more"
         class="flex-1 flex flex-col items-center justify-center text-gray-600 h-full cursor-pointer"

@@ -1,5 +1,5 @@
 defmodule QlariusWeb.MeFileLive do
-  use QlariusWeb, :live_view
+  use QlariusWeb, :sponster_live_view
 
   alias Qlarius.MeFile
 

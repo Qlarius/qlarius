@@ -67,6 +67,7 @@ defmodule QlariusWeb.AdsLive do
 
     socket
     |> increment_phase(offer.id)
+    |> update_ads_count()
     |> assign(:wallet_balance, balance)
   end
 
@@ -82,6 +83,15 @@ defmodule QlariusWeb.AdsLive do
         end
       end)
     end)
+  end
+
+  # Update the badge in the bottom bar
+  defp update_ads_count(socket) do
+    assign(
+      socket,
+      :ads_count,
+      Offers.count_user_offers(socket.assigns.current_user.id)
+    )
   end
 
   @impl true
