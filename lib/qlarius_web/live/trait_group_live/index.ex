@@ -7,7 +7,7 @@ defmodule QlariusWeb.TraitGroupLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     trait_groups = Traits.list_trait_groups()
-    categories_with_traits = Traits.list_categories_with_parent_traits()
+    categories_with_traits = Traits.list_categories_with_traits()
 
     socket
     |> assign(
