@@ -3,6 +3,8 @@ defmodule QlariusWeb.MeFileLive do
 
   alias Qlarius.MeFile
 
+  import QlariusWeb.MeFileHTML
+
   @impl true
   def handle_event("delete_trait", %{"id" => trait_id}, socket) do
     {trait_id, _} = Integer.parse(trait_id)

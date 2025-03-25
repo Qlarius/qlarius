@@ -1,15 +1,11 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <h1 class="text-3xl font-bold leading-tight text-gray-900">MeFile Builder</h1>
-  <p class="mt-2 text-lg text-gray-600">Tag yourself to build up your MeFile.</p>
+  <p class="mt-2 mb-4 text-lg text-gray-600">Tag yourself to build up your MeFile.</p>
 
-  <div class="mt-4 flex space-x-4">
-    <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-      {@trait_count} traits
-    </div>
-    <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-      {@tag_count} tags
-    </div>
-  </div>
+<.tag_and_trait_count_badges
+  trait_count={@trait_count}
+  tag_count={@tag_count}
+/>
 
   <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
     <%= for category <- @categories do %>

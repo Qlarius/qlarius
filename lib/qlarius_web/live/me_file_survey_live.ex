@@ -7,32 +7,25 @@ defmodule QlariusWeb.MeFileSurveyLive do
 
   @impl true
   def mount(%{"survey_id" => survey_id}, _session, socket) do
-    with {:ok, survey} <- fetch_survey(survey_id),
-         traits <- Enum.sort_by(survey.traits, & &1.display_order) do
-      current_trait = Enum.at(traits, 0)
+    {:ok, survey} = fetch_survey(survey_id)
+    traits = Enum.sort_by(survey.traits, & &1.display_order)
+    current_trait = Enum.at(traits, 0)
 
-      selected_values =
-        if current_trait,
-          do: MeFile.get_user_trait_values(current_trait.id, socket.assigns.current_user.id),
-          else: []
+    selected_values =
+      if current_trait,
+        do: MeFile.get_user_trait_values(current_trait.id, socket.assigns.current_user.id),
+        else: []
 
-      socket =
-        socket
-        |> assign(:survey, survey)
-        |> assign(:traits, traits)
-        |> assign(:current_trait_index, 0)
-        |> assign(
-          :completed_count,
-          MeFile.count_completed_questions([survey], socket.assigns.current_user.id)
-        )
-        |> assign(:selected_values, selected_values)
-
-      {:ok, socket}
-    else
-      {:error, :not_found} ->
-        {:ok,
-         socket |> put_flash(:error, "Survey not found") |> redirect(to: ~p"/me_file/surveys")}
-    end
+    socket
+    |> assign(:survey, survey)
+    |> assign(:traits, traits)
+    |> assign(:current_trait_index, 0)
+    |> assign(
+      :completed_count,
+      MeFile.count_completed_questions([survey], socket.assigns.current_user.id)
+    )
+    |> assign(:selected_values, selected_values)
+    |> ok()
   end
 
   @impl true
