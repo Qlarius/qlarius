@@ -1,31 +1,44 @@
 defmodule QlariusWeb.MeFileSurveyLive do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Surveys
   alias Qlarius.MeFile
+  alias Qlarius.Surveys
+  alias Qlarius.Traits.Trait
+
   import QlariusWeb.TraitPanelComponent
 
   @impl true
   def mount(%{"survey_id" => survey_id}, _session, socket) do
-    {:ok, survey} = fetch_survey(survey_id)
+    {:ok, survey} = {:ok, Surveys.get_survey!(survey_id)}
     traits = Enum.sort_by(survey.traits, & &1.display_order)
-    current_trait = Enum.at(traits, 0)
-
-    selected_values =
-      if current_trait,
-        do: MeFile.get_user_trait_values(current_trait.id, socket.assigns.current_user.id),
-        else: []
 
     socket
     |> assign(:survey, survey)
     |> assign(:traits, traits)
-    |> assign(:current_trait_index, 0)
-    |> assign(
-      :completed_count,
-      MeFile.count_completed_questions([survey], socket.assigns.current_user.id)
-    )
-    |> assign(:selected_values, selected_values)
     |> ok()
+  end
+
+  @impl true
+  def handle_params(params, _uri, socket) do
+    index = params |> Map.get("index", "0") |> String.to_integer()
+
+    %{survey: survey, traits: traits} = socket.assigns
+
+    current_trait = %Trait{} = Enum.at(traits, index)
+
+    selected_values =
+      MeFile.get_user_trait_values(current_trait.id, socket.assigns.current_user.id)
+
+    completed_count =
+      MeFile.count_completed_questions([survey], socket.assigns.current_user.id)
+
+    socket
+    |> assign(
+      completed_count: completed_count,
+      current_trait_index: index,
+      selected_values: selected_values
+    )
+    |> noreply()
   end
 
   @impl true
@@ -54,29 +67,29 @@ defmodule QlariusWeb.MeFileSurveyLive do
 
     case MeFile.create_user_trait_values(user.id, current_trait.id, value_ids) do
       {:ok, _} ->
-        socket =
-          if index + 1 >= length(traits) do
-            push_navigate(socket, to: ~p"/me_file/surveys")
-          else
-            next_trait = Enum.at(traits, index + 1)
-            next_values = MeFile.get_user_trait_values(next_trait.id, user.id)
-
-            socket
-            |> assign(:current_trait_index, index + 1)
-            |> assign(:completed_count, MeFile.count_completed_questions([survey], user.id))
-            |> assign(:selected_values, next_values)
-          end
-
-        {:noreply, socket}
+        if index + 1 >= length(traits) do
+          push_navigate(socket, to: ~p"/me_file/surveys")
+        else
+          push_patch(socket, to: ~p"/me_file/surveys/#{survey}/#{index + 1}")
+        end
 
       {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Failed to save answer")}
+        put_flash(socket, :error, "Failed to save answer")
     end
+    |> noreply()
   end
 
-  defp fetch_survey(survey_id) do
-    {:ok, Surveys.get_survey!(survey_id)}
-  rescue
-    Ecto.NoResultsError -> {:error, :not_found}
+  defp index_badge(assigns) do
+    ~H"""
+    <.link
+      patch={@link}
+      class={[
+        "h-2 w-2 rounded-full mx-1",
+        if(@completed, do: "bg-green-500", else: "bg-gray-300"),
+        if(@current, do: "scale-150 origin-center")
+      ]}
+    >
+    </.link>
+    """
   end
 end

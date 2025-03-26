@@ -2,10 +2,7 @@
   <h1 class="text-3xl font-bold leading-tight text-gray-900">MeFile Builder</h1>
   <p class="mt-2 mb-4 text-lg text-gray-600">Tag yourself to build up your MeFile.</p>
 
-<.tag_and_trait_count_badges
-  trait_count={@trait_count}
-  tag_count={@tag_count}
-/>
+  <.tag_and_trait_count_badges trait_count={@trait_count} tag_count={@tag_count} />
 
   <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
     <%= for category <- @categories do %>

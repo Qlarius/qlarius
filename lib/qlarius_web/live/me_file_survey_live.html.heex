@@ -8,10 +8,13 @@
         </div>
       </div>
 
-      <div class="flex justify-center mt-4">
-        <%= for i <- 0..length(@traits)-1 do %>
-          <div class={"w-2 h-2 rounded-full mx-1 #{if i <= @current_trait_index, do: "bg-blue-500", else: "bg-gray-300"}"} />
-        <% end %>
+      <div class="flex items-center justify-center mt-4">
+        <.index_badge
+          :for={i <- 0..(length(@traits) - 1)}
+          completed={Enum.at(@traits, i).values |> Enum.any?()}
+          current={i == @current_trait_index}
+          link={~p"/me_file/surveys/#{@survey}/#{i}"}
+        />
       </div>
     </div>
   </div>
