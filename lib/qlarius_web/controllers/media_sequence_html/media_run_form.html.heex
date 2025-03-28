@@ -10,18 +10,32 @@
     options={Enum.map(@media_pieces, &{&1.title, &1.id})}
   />
 
-  <.input field={f[:frequency]} type="number" label="Frequency" min="1" />
-
   <.input
-    field={f[:frequency_buffer_hours]}
+    description="How many times should this ad be completed?"
+    field={f[:frequency]}
+    label="Frequency"
+    min="1"
     type="number"
-    label="Frequency Buffer (hours)"
-    min="0"
   />
 
-  <.input field={f[:maximum_banner_count]} type="number" label="Maximum Banner Count" min="1" />
+  <.input
+    description="After each completion, how many hours until the next?"
+    field={f[:frequency_buffer_hours]}
+    label="Frequency Buffer (hours)"
+    min="0"
+    type="number"
+  />
 
   <.input
+    description="Max times to pay for banner impression with no click-thru?"
+    field={f[:maximum_banner_count]}
+    type="number"
+    label="Maximum Banner Count"
+    min="1"
+  />
+
+  <.input
+    description="After impression with no click-thru, how many hours until next banner?"
     field={f[:banner_retry_buffer_hours]}
     type="number"
     label="Banner Retry Buffer (hours)"

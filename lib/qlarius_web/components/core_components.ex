@@ -284,6 +284,7 @@ defmodule QlariusWeb.CoreComponents do
   attr :errors, :list, default: []
   attr :checked, :boolean, doc: "the checked flag for checkbox inputs"
   attr :prompt, :string, default: nil, doc: "the prompt for select inputs"
+  attr :description, :string, default: nil
   attr :options, :list, doc: "the options to pass to Phoenix.HTML.Form.options_for_select/2"
   attr :multiple, :boolean, default: false, doc: "the multiple flag for select inputs"
 
@@ -371,6 +372,9 @@ defmodule QlariusWeb.CoreComponents do
     ~H"""
     <div>
       <.label for={@id}>{@label}</.label>
+      <div :if={@description} class="text-sm text-zinc-500">
+        {@description}
+      </div>
       <input
         type={@type}
         name={@name}
