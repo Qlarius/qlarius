@@ -99,7 +99,7 @@ defmodule QlariusWeb.Router do
 
     get "/", PageController, :home
 
-    live_session :require_authenticated_user,
+    live_session :require_authenticated_user_bottom_bar,
       on_mount: [
         {QlariusWeb.UserAuth, :ensure_authenticated},
         {QlariusWeb.Sponster, :initialize_bottom_bar}
@@ -112,6 +112,13 @@ defmodule QlariusWeb.Router do
       get "/me_file/surveys", MeFileController, :surveys
       live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
       live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show
+    end
+
+    live_session :require_authenticated_user,
+      on_mount: [
+        {QlariusWeb.UserAuth, :ensure_authenticated}
+      ] do
+      live "/arcade", ArcadeLive
     end
 
     get "/jump/:id", AdController, :jump

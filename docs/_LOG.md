@@ -229,6 +229,13 @@ Based on the schema relationships, the system appears to:
   - Integration with the offer system for ad event creation
   - Placeholder for media piece phase descriptions
 
+- Arcade system has been implemented with the following features:
+  - LiveView interface at `/arcade` for viewing content
+  - Display of latest 5 content items from database
+  - Integration with user's wallet balance
+  - Fixed price display of $0.05 per content item
+  - Basic content preview placeholder UI
+
 ---
 
 *This document should be updated when significant architectural changes are made to the project.*

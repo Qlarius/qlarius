@@ -1,0 +1,4 @@
+---
+description: Ecto
+---
+- Always use Postgres 'text' type for textual columns.
