@@ -204,28 +204,15 @@ defmodule Qlarius.Traits do
   end
 
   @doc """
-  Returns the list of trait categories with their associated parent traits.
+  Returns the list of trait categories with their associated traits.
   """
   def list_categories_with_traits do
     traits_query = from t in Trait, order_by: t.display_order
 
-    query =
+    Repo.all(
       from c in TraitCategory,
         order_by: c.display_order,
         preload: [traits: ^traits_query]
-
-    Repo.all(query)
-  end
-
-  def get_parent_trait!(id) do
-    Repo.one!(from t in Trait, where: t.id == ^id and is_nil(t.parent_id))
-  end
-
-  def list_child_traits(parent_id) do
-    Repo.all(
-      from t in Trait,
-        where: t.parent_id == ^parent_id,
-        order_by: t.display_order
     )
   end
 

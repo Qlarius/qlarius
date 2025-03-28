@@ -18,9 +18,8 @@ defmodule QlariusWeb.TraitGroupLive.Index do
   end
 
   @impl true
-  def handle_event("show-trait-group-form-modal", %{"parent_id" => parent_id}, socket) do
-    parent = Traits.get_parent_trait!(parent_id)
-    children = Traits.list_child_traits(parent.id)
+  def handle_params(%{"trait_id" => trait_id}, _uri, socket) do
+    trait = Traits.get_trait_with_values!(trait_id)
 
     form =
       %TraitGroup{}
@@ -28,12 +27,12 @@ defmodule QlariusWeb.TraitGroupLive.Index do
       |> to_form()
 
     socket
-    |> assign(children: children, parent: parent, trait_group_form: form)
+    |> assign(selected_trait: trait, trait_group_form: form)
     |> noreply()
   end
 
-  def handle_event("reset-trait-group-form", _params, socket) do
-    socket |> assign(trait_group_form: nil) |> noreply()
+  def handle_params(_params, _uri, socket) do
+    {:noreply, assign(socket, trait_group_form: nil)}
   end
 
   @impl true
@@ -44,7 +43,7 @@ defmodule QlariusWeb.TraitGroupLive.Index do
   def handle_event("validate-trait-group-form", %{"trait_group" => _trait_group_params}, _socket) do
   end
 
-  def trait_checkbox(assigns) do
+  def value_checkbox(assigns) do
     ~H"""
     <div>
       <label class="flex items-center gap-4 text-sm leading-6 text-zinc-600">

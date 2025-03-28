@@ -1,6 +1,6 @@
 defmodule Qlarius.Campaigns.TraitGroup do
   use Ecto.Schema
-  import Ecto.Changeset, warn: false
+  import Ecto.Changeset
 
   alias Qlarius.Campaigns.TargetBand
   alias Qlarius.Traits.Trait

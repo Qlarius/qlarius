@@ -29,27 +29,27 @@
 
   <div class="w-1/2">
     <div class="mb-4">
-      <h2 class="text-2xl font-semibold mb-4">Trait Categories and Traits</h2>
+      <h2 class="text-2xl font-semibold mb-4">
+        Trait Categories and Traits
+      </h2>
+
       <div class="overflow-y-auto max-h-screen">
         <ul class="pl-0">
-          <%= for category <- @categories_with_traits do %>
-            <li class="mb-2">
-              <div class="font-bold text-lg">{category.name}</div>
-              <ul class="pl-6">
-                <li :for={trait <- category.traits} class="flex items-center py-1">
-                  <span>{trait.name}</span>
-                  <button
-                    type="button"
-                    class="ml-2 text-gray-500 hover:text-gray-800 text-xl"
-                    phx-click="show-trait-group-form-modal"
-                    phx-value-parent_id={trait.id}
-                  >
-                    +
-                  </button>
-                </li>
-              </ul>
-            </li>
-          <% end %>
+          <li :for={category <- @categories_with_traits} class="mb-2">
+            <div class="font-bold text-lg">{category.name}</div>
+            <ul class="pl-6">
+              <li :for={trait <- category.traits} class="flex items-center py-1">
+                <span>{trait.name}</span>
+                <.link
+                  type="button"
+                  class="ml-2 text-gray-500 hover:text-gray-800 text-xl"
+                  patch={~p"/trait_groups?trait_id=#{trait.id}"}
+                >
+                  +
+                </.link>
+              </li>
+            </ul>
+          </li>
         </ul>
       </div>
     </div>
@@ -60,9 +60,9 @@
   :if={assigns[:trait_group_form]}
   show={!!assigns[:trait_group_form]}
   id="trait-group-form-modal"
-  on_cancel={JS.push("reset-trait-group-form")}
+  on_cancel={JS.patch(~p"/trait_groups")}
 >
-  <h3 class="text-2xl">Create/Update Trait Group</h3>
+  <h3 class="text-2xl">Create Trait Group</h3>
 
   <.simple_form
     id="trait-group-form"
@@ -70,19 +70,30 @@
     phx-change="validate-trait-group"
     phx-submit="submit-trait-group"
   >
-    <.input field={@trait_group_form[:name]} label="Name" />
-    <p>
-      Name your Trait Group something descriptive, so that you may easily select it when building Targets
-    </p>
+    <.input
+      description="Name your Trait Group something descriptive, so that you may easily select it when building Targets"
+      field={@trait_group_form[:name]}
+      label="Name"
+    />
 
     <.input field={@trait_group_form[:description]} label="Description (optional)" />
 
-    <div><strong>Trait Type:</strong> {@parent.name}</div>
+    <div><strong>Trait Type:</strong> {@selected_trait.name}</div>
+    <div>
+      <strong>Survey Question:</strong>
+      {@selected_trait.question || "Not found"}
+    </div>
 
-    <div class="multi-select-answer-box">
-      <label :for={child <- @children}>
-        <.trait_checkbox trait={child} />
+    <div>
+      <label :for={value <- @selected_trait.values}>
+        <.value_checkbox trait={value} />
       </label>
     </div>
+
+    <:actions>
+      <.button phx-disable-with="Sending..." class="w-full">
+        Create
+      </.button>
+    </:actions>
   </.simple_form>
 </.modal>
