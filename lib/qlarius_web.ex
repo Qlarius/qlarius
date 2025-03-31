@@ -73,6 +73,17 @@ defmodule QlariusWeb do
     end
   end
 
+  # See comment on sponster_live_view/0
+  def arcade_live_view do
+    quote do
+      use Phoenix.LiveView,
+        layout: {QlariusWeb.Layouts, :arcade}
+
+      unquote(html_helpers())
+      unquote(socket_helpers())
+    end
+  end
+
   def live_component do
     quote do
       use Phoenix.LiveComponent

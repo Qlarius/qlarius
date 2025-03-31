@@ -1,0 +1,33 @@
+<main class="p-4 sm:px-6 lg:px-8 max-w-2xl mx-auto">
+  <ul class="relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
+    <li class="text-[0.8125rem] leading-6 text-zinc-900">
+      {@current_user.email}
+    </li>
+    <%= for {text, href} <- [
+      {"Arcade", ~p"/arcade"}
+    ] do %>
+      <li>
+        <.link
+          href={href}
+          class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
+        >
+          {text}
+        </.link>
+      </li>
+    <% end %>
+    <li>
+      <.link
+        href={~p"/users/log_out"}
+        class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
+        method="delete"
+      >
+        Log out
+      </.link>
+    </li>
+  </ul>
+
+  <div class="p-6 py-20">
+    <.flash_group flash={@flash} />
+    {@inner_content}
+  </div>
+</main>
