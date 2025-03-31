@@ -2,8 +2,8 @@ defmodule Qlarius.Arcade.Content do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Arcade.TicketType
-  alias Qlarius.Arcade.Ticket
+  alias Qlarius.Arcade.TiqitType
+  alias Qlarius.Arcade.Tiqit
 
   schema "content" do
     field :title, :string
@@ -16,8 +16,8 @@ defmodule Qlarius.Arcade.Content do
     field :preview_url, :string
     field :price_default, :decimal
 
-    has_many :ticket_types, TicketType
-    has_many :tickets, Ticket
+    has_many :tiqit_types, TiqitType
+    has_many :tiqits, Tiqit
 
     timestamps()
   end

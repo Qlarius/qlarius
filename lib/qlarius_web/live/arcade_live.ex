@@ -40,11 +40,11 @@ defmodule QlariusWeb.ArcadeLive do
           </p>
 
           <div class="mt-4">
-            <%= for ticket_type <- @selected.ticket_types do %>
+            <%= for tiqit_type <- @selected.tiqit_types do %>
               <div class="flex justify-between items-center bg-white p-1 rounded-lg">
-                <span class="text-sm">{ticket_type.name}</span>
+                <span class="text-sm">{tiqit_type.name}</span>
                 <button class="bg-gray-300 px-3 py-1 rounded text-sm font-medium">
-                  ${Decimal.round(ticket_type.price, 2)}
+                  ${Decimal.round(tiqit_type.price, 2)}
                 </button>
               </div>
             <% end %>
