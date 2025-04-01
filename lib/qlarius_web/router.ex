@@ -118,6 +118,7 @@ defmodule QlariusWeb.Router do
       on_mount: [
         {QlariusWeb.UserAuth, :ensure_authenticated}
       ] do
+      get "/content/:id", ContentController, :show
       live "/arcade", ArcadeLive
       resources "/admin/content", Marketers.ContentController
     end

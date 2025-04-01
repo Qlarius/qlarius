@@ -7,7 +7,7 @@
   </:actions>
 </.header>
 
-<.table id="content" rows={@content_collection} row_click={& JS.navigate(~p"/admin/content/#{&1}")}>
+<.table id="content" rows={@content_collection} row_click={&JS.navigate(~p"/admin/content/#{&1}")}>
   <:col :let={content} label="Title">{content.title}</:col>
   <:col :let={content} label="Description">
     {if String.length(content.description) > 50 do
