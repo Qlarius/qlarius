@@ -16,32 +16,31 @@ defmodule Qlarius.Repo.Migrations.CreateArcadeTables do
       timestamps()
     end
 
-    create table(:ticket_types) do
-      add :content_id, references(:content, on_delete: :nothing)
+    create table(:tiqit_types) do
+      add :content_id, references(:content, on_delete: :delete_all)
       add :name, :string, null: false
       add :duration_seconds, :integer, null: false
       add :price, :decimal, precision: 10, scale: 2, null: false
-      add :is_active, :boolean, default: true, null: false
+      add :active, :boolean, default: true, null: false
 
       timestamps()
     end
 
-    create index(:ticket_types, [:content_id])
+    create index(:tiqit_types, [:content_id])
 
-    create table(:tickets) do
-      add :user_id, references(:users, on_delete: :nothing), null: false
-      add :content_id, references(:content, on_delete: :nothing), null: false
-      add :ticket_type_id, references(:ticket_types, on_delete: :nothing), null: false
-      add :purchase_timestamp, :utc_datetime, null: false
-      add :expiration_timestamp, :utc_datetime, null: false
-      add :is_active, :boolean, default: true, null: false
+    create table(:tiqits) do
+      add :user_id, references(:users, on_delete: :delete_all), null: false
+      add :content_id, references(:content, on_delete: :nilify_all), null: false
+      add :tiqit_type_id, references(:tiqit_types, on_delete: :nilify_all), null: false
+      add :purchased_at, :utc_datetime, null: false
+      add :expires_at, :utc_datetime
 
       timestamps()
     end
 
-    create index(:tickets, [:user_id])
-    create index(:tickets, [:content_id])
-    create index(:tickets, [:ticket_type_id])
-    create index(:tickets, [:expiration_timestamp])
+    create index(:tiqits, [:user_id])
+    create index(:tiqits, [:content_id])
+    create index(:tiqits, [:tiqit_type_id])
+    create index(:tiqits, [:expires_at])
   end
 end
