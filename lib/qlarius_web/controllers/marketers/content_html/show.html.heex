@@ -12,4 +12,16 @@
   <:item title="Description">{@content.description}</:item>
 </.list>
 
+<h2 class="font-semibold leading-8 text-zinc-800">
+  Tiqits
+</h2>
+
+<div :for={tt <- @content.tiqit_types} class="flex flex-col gap-4 divider-y">
+  <.list>
+    <:item title="Name">{tt.name}</:item>
+    <:item title="Duration">{tt.duration_seconds}</:item>
+    <:item title="Price">{tt.price}</:item>
+  </.list>
+</div>
+
 <.back navigate={~p"/admin/content"}>Back to content</.back>

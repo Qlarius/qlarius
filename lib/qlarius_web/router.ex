@@ -120,7 +120,9 @@ defmodule QlariusWeb.Router do
       ] do
       get "/content/:id", ContentController, :show
       live "/arcade", ArcadeLive
-      resources "/admin/content", Marketers.ContentController
+      live "/admin/content/new", Marketers.ContentLive.Form, :new
+      live "/admin/content/:id/edit", Marketers.ContentLive.Form, :edit
+      resources "/admin/content", Marketers.ContentController, only: [:show, :index, :delete]
     end
 
     get "/jump/:id", AdController, :jump

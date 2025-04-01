@@ -19,22 +19,7 @@ defmodule Qlarius.Arcade.Tiqit do
 
   def changeset(tiqit, attrs) do
     tiqit
-    |> cast(attrs, [
-      :user_id,
-      :content_id,
-      :tiqit_type_id,
-      :purchased_at,
-      :expires_at
-    ])
-    |> validate_required([
-      :user_id,
-      :content_id,
-      :tiqit_type_id,
-      :purchased_apurchased_at,
-      :expires_at
-    ])
-    |> assoc_constraint(:user)
-    |> assoc_constraint(:content)
-    |> assoc_constraint(:tiqit_type)
+    |> cast(attrs, ~w[purchased_at expires_at]a)
+    |> validate_required(~w[purchased_at expires_at]a)
   end
 end

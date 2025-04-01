@@ -16,7 +16,7 @@ defmodule Qlarius.Arcade.Content do
     field :preview_url, :string, default: "http://example.com"
     field :price_default, :decimal, default: Decimal.new("0.00")
 
-    has_many :tiqit_types, TiqitType
+    has_many :tiqit_types, TiqitType, on_replace: :delete
     has_many :tiqits, Tiqit
 
     timestamps()
@@ -41,5 +41,19 @@ defmodule Qlarius.Arcade.Content do
       :date_published
     ])
     |> validate_length(:title, max: 200)
+    |> cast_assoc(
+      :tiqit_types,
+      drop_param: :tiqit_type_drop,
+      sort_param: :tiqit_type_sort,
+      with: &tiqit_type_changeset/2
+    )
+  end
+
+  defp tiqit_type_changeset(tt, params) do
+    tt
+    |> cast(params, ~w[name duration_seconds price]a)
+    |> validate_required([:name, :price])
+    |> validate_number(:duration_seconds, greater_than: 0)
+    |> validate_number(:price, greater_than: 0)
   end
 end

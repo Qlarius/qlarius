@@ -30,7 +30,7 @@ defmodule Qlarius.Arcade do
     )
   end
 
-  def get_content!(id), do: Repo.get!(Content, id)
+  def get_content!(id), do: Content |> Repo.get!(id) |> Repo.preload(:tiqit_types)
 
   def create_content(attrs \\ %{}) do
     %Content{}
@@ -50,5 +50,18 @@ defmodule Qlarius.Arcade do
 
   def change_content(%Content{} = content, attrs \\ %{}) do
     Content.changeset(content, attrs)
+  end
+
+  def create_tiqit(%User{} = user, %TiqitType{} = tiqit_type) do
+    purchased_at = DateTime.utc_now()
+
+    expires_at =
+      if tiqit_type.duration_seconds > 0 do
+        DateTime.add(purchased_at, tiqit_type.duration_seconds, :second)
+      end
+
+    %Tiqit{user: user, tiqit_type: tiqit_type}
+    |> Tiqit.changeset(%{purchased_at: purchased_at, expires_at: expires_at})
+    |> Repo.insert()
   end
 end

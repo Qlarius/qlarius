@@ -25,6 +25,24 @@ defmodule QlariusWeb.ArcadeLive do
     {:noreply, assign(socket, selected: selected)}
   end
 
+  def handle_event("purchase_tiqit", %{"tiqit-type-id" => tiqit_type_id}, socket) do
+    tiqit_type_id = String.to_integer(tiqit_type_id)
+    tiqit_type = Enum.find(socket.assigns.selected.tiqit_types, &(&1.id == tiqit_type_id))
+
+    case Arcade.create_tiqit(socket.assigns.current_user, tiqit_type) do
+      {:ok, _tiqit} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Purchase successful!")
+         |> redirect(to: ~p"/content/#{socket.assigns.selected.id}")}
+
+      {:error, _changeset} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "Failed to purchase ticket")}
+    end
+  end
+
   def render(assigns) do
     ~H"""
     <div class="flex flex-col md:flex-row gap-6">
@@ -42,7 +60,12 @@ defmodule QlariusWeb.ArcadeLive do
           <%= for tiqit_type <- @selected.tiqit_types do %>
             <div class="flex justify-between items-center bg-white p-1 rounded-lg">
               <span class="text-sm">{tiqit_type.name}</span>
-              <button class="bg-gray-300 px-3 py-1 rounded text-sm font-medium">
+              <button
+                phx-click="purchase_tiqit"
+                phx-value-tiqit-type-id={tiqit_type.id}
+                data-confirm={"Are you sure you want to purchase #{tiqit_type.name} for $#{Decimal.round(tiqit_type.price, 2)}?"}
+                class="bg-gray-300 px-3 py-1 rounded text-sm font-medium hover:bg-gray-400"
+              >
                 ${Decimal.round(tiqit_type.price, 2)}
               </button>
             </div>

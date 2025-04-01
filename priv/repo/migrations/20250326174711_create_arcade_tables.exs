@@ -17,20 +17,23 @@ defmodule Qlarius.Repo.Migrations.CreateArcadeTables do
     end
 
     create table(:tiqit_types) do
-      add :content_id, references(:content, on_delete: :delete_all)
+      add :content_id, references(:content, on_delete: :delete_all), null: false
       add :name, :string, null: false
-      add :duration_seconds, :integer, null: false
+      add :duration_seconds, :integer
       add :price, :decimal, precision: 10, scale: 2, null: false
       add :active, :boolean, default: true, null: false
 
       timestamps()
     end
 
+    create constraint(:tiqit_types, :duration_seconds_must_be_positive,
+             check: "duration_seconds > 0"
+           )
+
     create index(:tiqit_types, [:content_id])
 
     create table(:tiqits) do
       add :user_id, references(:users, on_delete: :delete_all), null: false
-      add :content_id, references(:content, on_delete: :nilify_all), null: false
       add :tiqit_type_id, references(:tiqit_types, on_delete: :nilify_all), null: false
       add :purchased_at, :utc_datetime, null: false
       add :expires_at, :utc_datetime
@@ -39,7 +42,6 @@ defmodule Qlarius.Repo.Migrations.CreateArcadeTables do
     end
 
     create index(:tiqits, [:user_id])
-    create index(:tiqits, [:content_id])
     create index(:tiqits, [:tiqit_type_id])
     create index(:tiqits, [:expires_at])
   end

@@ -1,7 +1,7 @@
 # CRUD actions for managing content. For the demo they're accessible to anyone
 # who's logged in. Later we'll make them only accessible to markters (and make
 # the content itself scoped to the marketer who created it.)
-defmodule QlariusWeb.Marketing.ContentController do
+defmodule QlariusWeb.Marketers.ContentController do
   use QlariusWeb, :controller
 
   alias Qlarius.Arcade
