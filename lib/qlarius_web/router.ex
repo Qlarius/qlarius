@@ -119,7 +119,7 @@ defmodule QlariusWeb.Router do
         {QlariusWeb.UserAuth, :ensure_authenticated}
       ] do
       live "/arcade", ArcadeLive
-      resources "/content", ContentController
+      resources "/admin/content", Marketers.ContentController
     end
 
     get "/jump/:id", AdController, :jump

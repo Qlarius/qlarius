@@ -1,7 +1,7 @@
 <.header>
   Content {@content.id}
   <:actions>
-    <.link href={~p"/content/#{@content}/edit"}>
+    <.link href={~p"/admin/content/#{@content}/edit"}>
       <.button>Edit content</.button>
     </.link>
   </:actions>
@@ -12,4 +12,4 @@
   <:item title="Description">{@content.description}</:item>
 </.list>
 
-<.back navigate={~p"/content"}>Back to content</.back>
+<.back navigate={~p"/admin/content"}>Back to content</.back>

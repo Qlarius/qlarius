@@ -1,4 +1,7 @@
-defmodule QlariusWeb.ContentController do
+# CRUD actions for managing content. For the demo they're accessible to anyone
+# who's logged in. Later we'll make them only accessible to markters (and make
+# the content itself scoped to the marketer who created it.)
+defmodule QlariusWeb.Marketers.ContentController do
   use QlariusWeb, :controller
 
   alias Qlarius.Arcade
@@ -21,7 +24,7 @@ defmodule QlariusWeb.ContentController do
       {:ok, content} ->
         conn
         |> put_flash(:info, "Content created successfully.")
-        |> redirect(to: ~p"/content/#{content}")
+        |> redirect(to: ~p"/admin/content/#{content}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :new, changeset: changeset)
@@ -46,7 +49,7 @@ defmodule QlariusWeb.ContentController do
       {:ok, content} ->
         conn
         |> put_flash(:info, "Content updated successfully.")
-        |> redirect(to: ~p"/content/#{content}")
+        |> redirect(to: ~p"/admin/content/#{content}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :edit, content: content, changeset: changeset)
@@ -59,6 +62,6 @@ defmodule QlariusWeb.ContentController do
 
     conn
     |> put_flash(:info, "Content deleted successfully.")
-    |> redirect(to: ~p"/content")
+    |> redirect(to: ~p"/admin/content")
   end
 end
