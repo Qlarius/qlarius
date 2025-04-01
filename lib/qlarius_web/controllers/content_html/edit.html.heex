@@ -1,0 +1,8 @@
+<.header>
+  Edit Content {@content.id}
+  <:subtitle>Use this form to edit content.</:subtitle>
+</.header>
+
+<.content_form changeset={@changeset} action={~p"/content/#{@content}"} />
+
+<.back navigate={~p"/content"}>Back to content</.back>

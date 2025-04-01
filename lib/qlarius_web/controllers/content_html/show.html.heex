@@ -1,0 +1,15 @@
+<.header>
+  Content {@content.id}
+  <:actions>
+    <.link href={~p"/content/#{@content}/edit"}>
+      <.button>Edit content</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Title">{@content.title}</:item>
+  <:item title="Description">{@content.description}</:item>
+</.list>
+
+<.back navigate={~p"/content"}>Back to content</.back>
