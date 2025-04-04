@@ -3,7 +3,6 @@ defmodule Qlarius.Arcade.Content do
   import Ecto.Changeset
 
   alias Qlarius.Arcade.TiqitType
-  alias Qlarius.Arcade.Tiqit
 
   schema "content" do
     field :title, :string
@@ -17,7 +16,6 @@ defmodule Qlarius.Arcade.Content do
     field :price_default, :decimal, default: Decimal.new("0.00")
 
     has_many :tiqit_types, TiqitType, on_replace: :delete
-    has_many :tiqits, Tiqit
 
     timestamps()
   end

@@ -8,7 +8,7 @@ defmodule QlariusWeb.ContentController do
   def show(conn, %{"id" => id}) do
     content = Arcade.get_content!(id)
 
-    if true || Arcade.has_valid_tiqit?(content, conn.assigns.current_user) do
+    if Arcade.has_valid_tiqit?(content, conn.assigns.current_user) do
       render(conn, "show.html", content: content)
     else
       conn

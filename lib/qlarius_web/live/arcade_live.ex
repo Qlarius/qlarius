@@ -57,18 +57,27 @@ defmodule QlariusWeb.ArcadeLive do
         </p>
 
         <div class="mt-4">
-          <%= for tiqit_type <- @selected.tiqit_types do %>
-            <div class="flex justify-between items-center bg-white p-1 rounded-lg">
-              <span class="text-sm">{tiqit_type.name}</span>
-              <button
-                phx-click="purchase_tiqit"
-                phx-value-tiqit-type-id={tiqit_type.id}
-                data-confirm={"Are you sure you want to purchase #{tiqit_type.name} for $#{Decimal.round(tiqit_type.price, 2)}?"}
-                class="bg-gray-300 px-3 py-1 rounded text-sm font-medium hover:bg-gray-400"
-              >
-                ${Decimal.round(tiqit_type.price, 2)}
-              </button>
-            </div>
+          <%= if Arcade.has_valid_tiqit?(@selected, @current_user) do %>
+            <.link
+              navigate={~p"/content/#{@selected.id}"}
+              class="inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+            >
+              Go to content
+            </.link>
+          <% else %>
+            <%= for tiqit_type <- @selected.tiqit_types do %>
+              <div class="flex justify-between items-center bg-white p-1 rounded-lg">
+                <span class="text-sm">{tiqit_type.name}</span>
+                <button
+                  phx-click="purchase_tiqit"
+                  phx-value-tiqit-type-id={tiqit_type.id}
+                  data-confirm={"Are you sure you want to purchase #{tiqit_type.name} for $#{Decimal.round(tiqit_type.price, 2)}?"}
+                  class="bg-gray-300 px-3 py-1 rounded text-sm font-medium hover:bg-gray-400"
+                >
+                  ${Decimal.round(tiqit_type.price, 2)}
+                </button>
+              </div>
+            <% end %>
           <% end %>
         </div>
       </div>
