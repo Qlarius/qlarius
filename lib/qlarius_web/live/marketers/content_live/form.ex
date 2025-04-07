@@ -2,7 +2,7 @@ defmodule QlariusWeb.Marketers.ContentLive.Form do
   use QlariusWeb, :live_view
 
   alias Qlarius.Arcade
-  alias Qlarius.Arcade.Content
+  alias Qlarius.Arcade.ContentPiece
 
   @impl true
   def mount(_params, _session, socket) do
@@ -22,11 +22,11 @@ defmodule QlariusWeb.Marketers.ContentLive.Form do
   end
 
   def handle_params(_params, _uri, socket) do
-    changeset = Arcade.change_content(%Content{})
+    changeset = Arcade.change_content(%ContentPiece{})
 
     socket
     |> assign(:page_title, "New Content")
-    |> assign(:content, %Content{})
+    |> assign(:content, %ContentPiece{})
     |> assign(:form, to_form(changeset))
     |> noreply()
   end

@@ -5,7 +5,7 @@ defmodule QlariusWeb.Marketers.ContentController do
   use QlariusWeb, :controller
 
   alias Qlarius.Arcade
-  alias Qlarius.Arcade.Content
+  alias Qlarius.Arcade.ContentPiece
 
   plug :put_new_layout, {QlariusWeb.Layouts, :arcade}
 
@@ -15,7 +15,7 @@ defmodule QlariusWeb.Marketers.ContentController do
   end
 
   def new(conn, _params) do
-    changeset = Arcade.change_content(%Content{})
+    changeset = Arcade.change_content(%ContentPiece{})
     render(conn, :new, changeset: changeset)
   end
 

@@ -12,7 +12,7 @@ defmodule Qlarius.Arcade.Tiqit do
     belongs_to :user, User
     belongs_to :tiqit_type, TiqitType
 
-    has_one :content, through: [:tiqit_type, :content]
+    has_one :content_piece, through: [:tiqit_type, :content_piece]
 
     timestamps()
   end

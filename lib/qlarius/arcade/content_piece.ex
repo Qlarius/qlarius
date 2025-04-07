@@ -1,10 +1,10 @@
-defmodule Qlarius.Arcade.Content do
+defmodule Qlarius.Arcade.ContentPiece do
   use Ecto.Schema
   import Ecto.Changeset
 
   alias Qlarius.Arcade.TiqitType
 
-  schema "content" do
+  schema "content_pieces" do
     field :title, :string
     field :description, :string
     field :content_type, Ecto.Enum, values: ~w[video podcast blog]a, default: :video
@@ -16,6 +16,7 @@ defmodule Qlarius.Arcade.Content do
     field :price_default, :decimal, default: Decimal.new("0.00")
 
     has_many :tiqit_types, TiqitType, on_replace: :delete
+    many_to_many :content_groups, ContentGroup, join_through: "content_groups_content_pieces"
 
     timestamps()
   end

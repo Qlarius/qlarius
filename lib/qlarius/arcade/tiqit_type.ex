@@ -8,7 +8,7 @@ defmodule Qlarius.Arcade.TiqitType do
     field :price, :decimal
     field :active, :boolean, default: true
 
-    belongs_to :content, Qlarius.Arcade.Content
+    belongs_to :content_piece, Qlarius.Arcade.ContentPiece
     has_many :tiqits, Qlarius.Arcade.Tiqit
 
     timestamps()
@@ -16,9 +16,9 @@ defmodule Qlarius.Arcade.TiqitType do
 
   def changeset(tiqit_type, attrs) do
     tiqit_type
-    |> cast(attrs, [:content_id, :name, :duration_seconds, :price, :active])
-    |> validate_required([:content_id, :name, :duration_seconds, :price, :active])
+    |> cast(attrs, [:content_piece_id, :name, :duration_seconds, :price, :active])
+    |> validate_required([:content_piece_id, :name, :duration_seconds, :price, :active])
     |> validate_length(:name, max: 50)
-    |> assoc_constraint(:content)
+    |> assoc_constraint(:content_piece)
   end
 end

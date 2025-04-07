@@ -2,7 +2,7 @@ defmodule QlariusWeb.ArcadeLive do
   use QlariusWeb, :arcade_live_view
 
   alias Qlarius.Arcade
-  alias Qlarius.Arcade.Content
+  alias Qlarius.Arcade.ContentPiece
   alias Qlarius.Wallets
 
   def mount(_params, _session, socket) do
@@ -15,7 +15,7 @@ defmodule QlariusWeb.ArcadeLive do
     selected =
       with {:ok, content_id} <- Map.fetch(params, "content_id"),
            content_id = String.to_integer(content_id),
-           content = %Content{} <- Enum.find(socket.assigns.content, &(&1.id == content_id)) do
+           content = %ContentPiece{} <- Enum.find(socket.assigns.content, &(&1.id == content_id)) do
         content
       else
         _ ->
