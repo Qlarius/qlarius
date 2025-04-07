@@ -49,5 +49,12 @@ defmodule QlariusWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
+
+  # Add CORS support
+  plug CORSPlug,
+    origin: ["*"],
+    headers: ["*"],
+    methods: ["GET", "POST"]
+
   plug QlariusWeb.Router
 end
