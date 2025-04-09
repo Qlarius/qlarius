@@ -12,7 +12,7 @@ defmodule QlariusWeb.AdsLive do
   @impl true
   def mount(_params, _session, socket) do
     offers =
-      socket.assigns.current_user.id
+      socket.assigns.current_scope.user.id
       |> Offers.list_user_offers()
       |> Enum.map(fn offer ->
         # {offer, phase}. Phase is an integer between 0 and 3
@@ -45,11 +45,11 @@ defmodule QlariusWeb.AdsLive do
     :ok =
       Wallets.create_ad_event_and_update_ledger(
         offer,
-        socket.assigns.current_user,
+        socket.assigns.current_scope.user,
         socket.assigns.user_ip
       )
 
-    balance = Wallets.get_user_current_balance(socket.assigns.current_user)
+    balance = Wallets.get_user_current_balance(socket.assigns.current_scope.user)
 
     socket
     |> increment_phase(offer.id)
@@ -60,11 +60,11 @@ defmodule QlariusWeb.AdsLive do
     :ok =
       Wallets.create_ad_jump_event_and_update_ledger(
         offer,
-        socket.assigns.current_user,
+        socket.assigns.current_scope.user,
         socket.assigns.user_ip
       )
 
-    balance = Wallets.get_user_current_balance(socket.assigns.current_user)
+    balance = Wallets.get_user_current_balance(socket.assigns.current_scope.user)
 
     socket
     |> increment_phase(offer.id)
@@ -91,7 +91,7 @@ defmodule QlariusWeb.AdsLive do
     assign(
       socket,
       :ads_count,
-      Offers.count_user_offers(socket.assigns.current_user.id)
+      Offers.count_user_offers(socket.assigns.current_scope.user.id)
     )
   end
 

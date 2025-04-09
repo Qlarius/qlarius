@@ -27,10 +27,10 @@ defmodule QlariusWeb.MeFileSurveyLive do
     current_trait = %Trait{} = Enum.at(traits, index)
 
     selected_values =
-      MeFile.get_user_trait_values(current_trait.id, socket.assigns.current_user.id)
+      MeFile.get_user_trait_values(current_trait.id, socket.assigns.current_scope.user.id)
 
     completed_count =
-      MeFile.count_completed_questions([survey], socket.assigns.current_user.id)
+      MeFile.count_completed_questions([survey], socket.assigns.current_scope.user.id)
 
     socket
     |> assign(
@@ -57,7 +57,7 @@ defmodule QlariusWeb.MeFileSurveyLive do
 
   defp handle_trait_save(socket, value_ids) do
     %{
-      current_user: user,
+      current_scope: %{user: user},
       survey: survey,
       traits: traits,
       current_trait_index: index

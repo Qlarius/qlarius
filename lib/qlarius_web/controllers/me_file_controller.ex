@@ -4,7 +4,7 @@ defmodule QlariusWeb.MeFileController do
   alias Qlarius.MeFile
 
   def surveys(conn, _params) do
-    user = conn.assigns.current_user
+    user = conn.assigns.current_scope.user
 
     categories = MeFile.list_survey_categories_with_stats(user.id)
     trait_count = MeFile.count_traits_with_values(user.id)

@@ -7,7 +7,7 @@ defmodule QlariusWeb.ArcadeLive do
 
   def mount(_params, _session, socket) do
     content = Arcade.list_content()
-    balance = Wallets.get_user_current_balance(socket.assigns.current_user)
+    balance = Wallets.get_user_current_balance(socket.assigns.current_scope.user)
     {:ok, assign(socket, content: content, balance: balance)}
   end
 
@@ -29,7 +29,7 @@ defmodule QlariusWeb.ArcadeLive do
     tiqit_type_id = String.to_integer(tiqit_type_id)
     tiqit_type = Enum.find(socket.assigns.selected.tiqit_types, &(&1.id == tiqit_type_id))
 
-    case Arcade.create_tiqit(socket.assigns.current_user, tiqit_type) do
+    case Arcade.create_tiqit(socket.assigns.current_scope, tiqit_type) do
       {:ok, _tiqit} ->
         {:noreply,
          socket
@@ -58,7 +58,7 @@ defmodule QlariusWeb.ArcadeLive do
           </p>
 
           <div class="mt-4">
-            <%= if Arcade.has_valid_tiqit?(@selected, @current_user) do %>
+            <%= if Arcade.has_valid_tiqit?(@current_scope, @selected) do %>
               <.link
                 navigate={~p"/content/#{@selected.id}"}
                 class="inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"

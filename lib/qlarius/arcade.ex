@@ -1,13 +1,14 @@
 defmodule Qlarius.Arcade do
   import Ecto.Query
 
+  alias Qlarius.Accounts.Scope
   alias Qlarius.Accounts.User
   alias Qlarius.Arcade.ContentPiece
   alias Qlarius.Arcade.Tiqit
   alias Qlarius.Arcade.TiqitType
   alias Qlarius.Repo
 
-  def has_valid_tiqit?(%ContentPiece{} = content, %User{} = user) do
+  def has_valid_tiqit?(%Scope{} = scope, %ContentPiece{} = content) do
     now = DateTime.utc_now()
 
     query =
@@ -15,7 +16,7 @@ defmodule Qlarius.Arcade do
         join: tt in TiqitType,
         on: t.tiqit_type_id == tt.id,
         where: tt.content_piece_id == ^content.id,
-        where: t.user_id == ^user.id,
+        where: t.user_id == ^scope.user.id,
         where: is_nil(t.expires_at) or t.expires_at > ^now
 
     Repo.exists?(query)

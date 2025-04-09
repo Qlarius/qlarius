@@ -7,7 +7,7 @@ defmodule QlariusWeb.WalletLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    user = socket.assigns.current_user
+    user = socket.assigns.current_scope.user
 
     ledger_header = Wallets.get_user_ledger_header(user.id)
 
@@ -63,7 +63,7 @@ defmodule QlariusWeb.WalletLive do
 
   @impl true
   def handle_event("open-ledger-entry-sidebar", %{"entry_id" => entry_id}, socket) do
-    entry = Wallets.get_ledger_entry!(entry_id, socket.assigns.current_user)
+    entry = Wallets.get_ledger_entry!(entry_id, socket.assigns.current_scope.user)
 
     socket
     |> assign(:sidebar_entry, entry)

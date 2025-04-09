@@ -61,7 +61,7 @@ defmodule QlariusWeb.MeFileLive do
   @impl true
   def handle_event("delete_trait", %{"id" => trait_id}, socket) do
     {trait_id, _} = Integer.parse(trait_id)
-    MeFile.delete_trait_tags(trait_id, socket.assigns.current_user.id)
+    MeFile.delete_trait_tags(trait_id, socket.assigns.current_scope.user.id)
 
     socket =
       socket
@@ -81,7 +81,7 @@ defmodule QlariusWeb.MeFileLive do
   end
 
   defp assign_stats(socket) do
-    user_id = socket.assigns.current_user.id
+    user_id = socket.assigns.current_scope.user.id
 
     socket
     |> assign(:trait_count, MeFile.count_traits_with_values(user_id))
@@ -89,7 +89,7 @@ defmodule QlariusWeb.MeFileLive do
   end
 
   defp assign_categories(socket) do
-    user_id = socket.assigns.current_user.id
+    user_id = socket.assigns.current_scope.user.id
     categories = MeFile.list_categories_with_traits(user_id)
     assign(socket, :categories, categories)
   end
