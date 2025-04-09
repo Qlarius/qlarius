@@ -11,7 +11,7 @@ defmodule QlariusWeb.Router do
     plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers, %{"x-frame-options" => "ALLOWALL"}
-    plug :fetch_current_user
+    plug :fetch_current_scope_for_user
   end
 
   pipeline :marketer do
@@ -23,12 +23,6 @@ defmodule QlariusWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
-  end
-
-  pipeline :sponster do
-    import QlariusWeb.Sponster
-
-    plug :initialize_bottom_bar
   end
 
   pipeline :auth_layout do
@@ -92,15 +86,12 @@ defmodule QlariusWeb.Router do
   end
 
   scope "/", QlariusWeb do
-    pipe_through [:browser, :require_authenticated_user, :sponster]
+    pipe_through [:browser, :require_authenticated_user]
 
     get "/", PageController, :home
 
-    live_session :require_authenticated_user_bottom_bar,
-      on_mount: [
-        {QlariusWeb.UserAuth, :ensure_authenticated},
-        {QlariusWeb.Sponster, :initialize_bottom_bar}
-      ] do
+    live_session :require_authenticated_user,
+      on_mount: [{QlariusWeb.UserAuth, :require_authenticated}] do
       live "/users/settings", UserSettingsLive, :edit
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
       live "/wallet", WalletLive, :index
@@ -109,12 +100,6 @@ defmodule QlariusWeb.Router do
       get "/me_file/surveys", MeFileController, :surveys
       live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
       live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show
-    end
-
-    live_session :require_authenticated_user,
-      on_mount: [
-        {QlariusWeb.UserAuth, :ensure_authenticated}
-      ] do
       get "/content/:id", ContentController, :show
       live "/arcade", ArcadeLive
       live "/admin/content/new", Marketers.ContentLive.Form, :new
@@ -131,7 +116,7 @@ defmodule QlariusWeb.Router do
     delete "/users/log_out", UserSessionController, :delete
 
     live_session :current_user,
-      on_mount: [{QlariusWeb.UserAuth, :mount_current_user}] do
+      on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
       live "/users/confirm/:token", UserConfirmationLive, :edit
       live "/users/confirm", UserConfirmationInstructionsLive, :new
     end
