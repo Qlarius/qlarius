@@ -1,58 +1,60 @@
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  <h1 class="text-3xl font-bold leading-tight text-gray-900">MeFile Builder</h1>
-  <p class="mt-2 mb-4 text-lg text-gray-600">Tag yourself to build up your MeFile.</p>
+<Layouts.sponster {assigns}>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-3xl font-bold leading-tight text-gray-900">MeFile Builder</h1>
+    <p class="mt-2 mb-4 text-lg text-gray-600">Tag yourself to build up your MeFile.</p>
 
-  <.tag_and_trait_count_badges trait_count={@trait_count} tag_count={@tag_count} />
+    <.tag_and_trait_count_badges trait_count={@trait_count} tag_count={@tag_count} />
 
-  <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-    <%= for category <- @categories do %>
-      <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="px-4 py-5 sm:p-6">
-          <h3 class="text-lg font-medium leading-6 text-gray-900">
-            {category.name}
-          </h3>
+    <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <%= for category <- @categories do %>
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg font-medium leading-6 text-gray-900">
+              {category.name}
+            </h3>
 
-          <div class="mt-4">
-            <div class="relative pt-1">
-              <div class="flex mb-2 items-center justify-between">
-                <div class="text-sm font-semibold text-gray-700">
-                  {category.completed_questions}/{category.total_questions}
+            <div class="mt-4">
+              <div class="relative pt-1">
+                <div class="flex mb-2 items-center justify-between">
+                  <div class="text-sm font-semibold text-gray-700">
+                    {category.completed_questions}/{category.total_questions}
+                  </div>
+                </div>
+                <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
+                  <div
+                    style={"width: #{category.completion_percentage}%"}
+                    class={progress_bar_color(category.completion_percentage)}
+                    role="progressbar"
+                    aria-valuenow={category.completion_percentage}
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                  >
+                  </div>
                 </div>
               </div>
-              <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
-                <div
-                  style={"width: #{category.completion_percentage}%"}
-                  class={progress_bar_color(category.completion_percentage)}
-                  role="progressbar"
-                  aria-valuenow={category.completion_percentage}
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                >
-                </div>
-              </div>
-            </div>
 
-            <div class="mt-6 space-y-4">
-              <%= for survey <- category.surveys do %>
-                <.link
-                  navigate={~p"/me_file/surveys/#{survey.id}"}
-                  class="flex items-center justify-between py-2 border-b border-gray-200 hover:bg-gray-50"
-                >
-                  <div class="text-sm font-medium text-gray-900">
-                    {survey.name}
-                  </div>
-                  <div class="flex items-center space-x-4">
-                    <span class={"px-2 py-1 text-xs font-medium rounded-full #{badge_color(survey.completion_percentage)}"}>
-                      {survey.completed_questions}/{survey.total_questions}
-                    </span>
-                    <.icon name="hero-chevron-right" class="h-5 w-5 text-gray-400" />
-                  </div>
-                </.link>
-              <% end %>
+              <div class="mt-6 space-y-4">
+                <%= for survey <- category.surveys do %>
+                  <.link
+                    navigate={~p"/me_file/surveys/#{survey.id}"}
+                    class="flex items-center justify-between py-2 border-b border-gray-200 hover:bg-gray-50"
+                  >
+                    <div class="text-sm font-medium text-gray-900">
+                      {survey.name}
+                    </div>
+                    <div class="flex items-center space-x-4">
+                      <span class={"px-2 py-1 text-xs font-medium rounded-full #{badge_color(survey.completion_percentage)}"}>
+                        {survey.completed_questions}/{survey.total_questions}
+                      </span>
+                      <.icon name="hero-chevron-right" class="h-5 w-5 text-gray-400" />
+                    </div>
+                  </.link>
+                <% end %>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    <% end %>
+      <% end %>
+    </div>
   </div>
-</div>
+</Layouts.sponster>

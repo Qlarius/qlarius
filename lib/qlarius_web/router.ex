@@ -28,9 +28,6 @@ defmodule QlariusWeb.Router do
   pipeline :sponster do
     import QlariusWeb.Sponster
 
-    # NB this only works for controllers, not LiveViews.
-    # See QlariusWeb.sponster_live_view/0
-    plug :put_layout, html: {QlariusWeb.Layouts, :sponster}
     plug :initialize_bottom_bar
   end
 

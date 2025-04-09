@@ -1,5 +1,5 @@
 defmodule QlariusWeb.ArcadeLive do
-  use QlariusWeb, :arcade_live_view
+  use QlariusWeb, :live_view
 
   alias Qlarius.Arcade
   alias Qlarius.Arcade.ContentPiece
@@ -45,69 +45,71 @@ defmodule QlariusWeb.ArcadeLive do
 
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col md:flex-row gap-6">
-      <!-- Video Section -->
-      <div class="w-full md:w-1/2">
-        <div class="aspect-video bg-gray-200 rounded-lg flex items-center justify-center">
-          <.icon name="hero-play" class="w-12 h-12 text-gray-500" />
-        </div>
-        <h2 class="text-xl font-bold mt-4">{@selected.title}</h2>
-        <p class="text-sm text-gray-600 mt-2">
-          {@selected.description}
-        </p>
+    <Layouts.arcade {assigns}>
+      <div class="flex flex-col md:flex-row gap-6">
+        <!-- Video Section -->
+        <div class="w-full md:w-1/2">
+          <div class="aspect-video bg-gray-200 rounded-lg flex items-center justify-center">
+            <.icon name="hero-play" class="w-12 h-12 text-gray-500" />
+          </div>
+          <h2 class="text-xl font-bold mt-4">{@selected.title}</h2>
+          <p class="text-sm text-gray-600 mt-2">
+            {@selected.description}
+          </p>
 
-        <div class="mt-4">
-          <%= if Arcade.has_valid_tiqit?(@selected, @current_user) do %>
-            <.link
-              navigate={~p"/content/#{@selected.id}"}
-              class="inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-            >
-              Go to content
-            </.link>
-          <% else %>
-            <%= for tiqit_type <- @selected.tiqit_types do %>
-              <div class="flex justify-between items-center bg-white p-1 rounded-lg">
-                <span class="text-sm">{tiqit_type.name}</span>
-                <button
-                  phx-click="purchase_tiqit"
-                  phx-value-tiqit-type-id={tiqit_type.id}
-                  data-confirm={"Are you sure you want to purchase #{tiqit_type.name} for $#{Decimal.round(tiqit_type.price, 2)}?"}
-                  class="bg-gray-300 px-3 py-1 rounded text-sm font-medium hover:bg-gray-400"
-                >
-                  ${Decimal.round(tiqit_type.price, 2)}
-                </button>
-              </div>
+          <div class="mt-4">
+            <%= if Arcade.has_valid_tiqit?(@selected, @current_user) do %>
+              <.link
+                navigate={~p"/content/#{@selected.id}"}
+                class="inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+              >
+                Go to content
+              </.link>
+            <% else %>
+              <%= for tiqit_type <- @selected.tiqit_types do %>
+                <div class="flex justify-between items-center bg-white p-1 rounded-lg">
+                  <span class="text-sm">{tiqit_type.name}</span>
+                  <button
+                    phx-click="purchase_tiqit"
+                    phx-value-tiqit-type-id={tiqit_type.id}
+                    data-confirm={"Are you sure you want to purchase #{tiqit_type.name} for $#{Decimal.round(tiqit_type.price, 2)}?"}
+                    class="bg-gray-300 px-3 py-1 rounded text-sm font-medium hover:bg-gray-400"
+                  >
+                    ${Decimal.round(tiqit_type.price, 2)}
+                  </button>
+                </div>
+              <% end %>
             <% end %>
+          </div>
+        </div>
+
+        <div class="w-full md:w-1/2 space-y-3">
+          <%= for content <- @content do %>
+            <.link
+              patch={~p"/arcade?content_id=#{content.id}"}
+              class={"flex flex-col bg-gray-100 p-3 rounded-lg cursor-pointer #{if content.id == @selected.id, do: "ring-2 ring-black"}"}
+            >
+              <div class="flex gap-2 mb-1">
+                <div class="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full">
+                  {Calendar.strftime(content.inserted_at, "%d/%m/%y")}
+                </div>
+                <div class="bg-gray-200 text-gray-700 text-xs font-semibold px-2 py-1 rounded-full">
+                  {format_duration(content.length)}
+                </div>
+                <div class="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">
+                  $0.05
+                </div>
+              </div>
+              <div class="font-semibold text-sm">{content.title}</div>
+            </.link>
           <% end %>
         </div>
       </div>
 
-      <div class="w-full md:w-1/2 space-y-3">
-        <%= for content <- @content do %>
-          <.link
-            patch={~p"/arcade?content_id=#{content.id}"}
-            class={"flex flex-col bg-gray-100 p-3 rounded-lg cursor-pointer #{if content.id == @selected.id, do: "ring-2 ring-black"}"}
-          >
-            <div class="flex gap-2 mb-1">
-              <div class="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full">
-                {Calendar.strftime(content.inserted_at, "%d/%m/%y")}
-              </div>
-              <div class="bg-gray-200 text-gray-700 text-xs font-semibold px-2 py-1 rounded-full">
-                {format_duration(content.length)}
-              </div>
-              <div class="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">
-                $0.05
-              </div>
-            </div>
-            <div class="font-semibold text-sm">{content.title}</div>
-          </.link>
-        <% end %>
+      <div class="mt-6 pt-4 text-center border-t text-gray-800 font-semibold">
+        Wallet ${Decimal.round(@balance, 2)}
       </div>
-    </div>
-
-    <div class="mt-6 pt-4 text-center border-t text-gray-800 font-semibold">
-      Wallet ${Decimal.round(@balance, 2)}
-    </div>
+    </Layouts.arcade>
     """
   end
 

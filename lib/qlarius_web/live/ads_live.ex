@@ -1,5 +1,5 @@
 defmodule QlariusWeb.AdsLive do
-  use QlariusWeb, :sponster_live_view
+  use QlariusWeb, :live_view
 
   alias Qlarius.Offer
   alias Qlarius.Offers
@@ -98,21 +98,23 @@ defmodule QlariusWeb.AdsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="container mx-auto px-4 py-8 max-w-3xl">
-      <h1 class="text-3xl font-bold mb-8 text-center">Ads</h1>
+    <Layouts.sponster {assigns}>
+      <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <h1 class="text-3xl font-bold mb-8 text-center">Ads</h1>
 
-      <div class="w-fit mx-auto">
-        <%= if Enum.any?(@offers) do %>
-          <div class="space-y-4">
-            <.clickable_offer :for={{offer, phase} <- @offers} offer={offer} phase={phase} />
-          </div>
-        <% else %>
-          <div class="text-center py-8">
-            <p class="text-gray-500">You don't have any ads yet.</p>
-          </div>
-        <% end %>
+        <div class="w-fit mx-auto">
+          <%= if Enum.any?(@offers) do %>
+            <div class="space-y-4">
+              <.clickable_offer :for={{offer, phase} <- @offers} offer={offer} phase={phase} />
+            </div>
+          <% else %>
+            <div class="text-center py-8">
+              <p class="text-gray-500">You don't have any ads yet.</p>
+            </div>
+          <% end %>
+        </div>
       </div>
-    </div>
+    </Layouts.sponster>
     """
   end
 end

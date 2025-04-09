@@ -1,5 +1,5 @@
 defmodule QlariusWeb.WalletLive do
-  use QlariusWeb, :sponster_live_view
+  use QlariusWeb, :live_view
 
   import QlariusWeb.WalletHTML
 
@@ -78,98 +78,100 @@ defmodule QlariusWeb.WalletLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <h1 class="text-3xl font-bold mb-4">Wallet</h1>
+    <Layouts.sponster {assigns}>
+      <h1 class="text-3xl font-bold mb-4">Wallet</h1>
 
-    <%= if assigns[:error] do %>
-      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-        {@error}
-      </div>
-    <% else %>
-      <div class="mb-6">
-        <div class="text-lg">Current Balance:</div>
-        <div class="text-2xl text-green-500 font-bold">
-          {format_currency(@ledger_header.balance)}
+      <%= if assigns[:error] do %>
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {@error}
         </div>
-      </div>
-
-      <div class="flex justify-center mb-6 space-x-2">
-        <%= if @page > 1 do %>
-          <button
-            phx-click="paginate"
-            phx-value-page="1"
-            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-          >
-            Newest
-          </button>
-
-          <button
-            phx-click="paginate"
-            phx-value-page={@page - 1}
-            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-          >
-            &lt;
-          </button>
-        <% end %>
-
-        <div class="flex items-center px-4 py-2 bg-green-500 text-white rounded-md">
-          {@page}
+      <% else %>
+        <div class="mb-6">
+          <div class="text-lg">Current Balance:</div>
+          <div class="text-2xl text-green-500 font-bold">
+            {format_currency(@ledger_header.balance)}
+          </div>
         </div>
 
-        <%= if @page < @paginated_entries.total_pages do %>
+        <div class="flex justify-center mb-6 space-x-2">
+          <%= if @page > 1 do %>
+            <button
+              phx-click="paginate"
+              phx-value-page="1"
+              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+            >
+              Newest
+            </button>
+
+            <button
+              phx-click="paginate"
+              phx-value-page={@page - 1}
+              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+            >
+              &lt;
+            </button>
+          <% end %>
+
+          <div class="flex items-center px-4 py-2 bg-green-500 text-white rounded-md">
+            {@page}
+          </div>
+
+          <%= if @page < @paginated_entries.total_pages do %>
+            <button
+              phx-click="paginate"
+              phx-value-page={@page + 1}
+              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+            >
+              &gt;
+            </button>
+          <% else %>
+            <div class="px-2 py-2 flex items-center text-gray-400">
+              &gt;
+            </div>
+          <% end %>
+
           <button
             phx-click="paginate"
-            phx-value-page={@page + 1}
+            phx-value-page="oldest"
             class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
           >
-            &gt;
+            Oldest
           </button>
-        <% else %>
-          <div class="px-2 py-2 flex items-center text-gray-400">
-            &gt;
-          </div>
-        <% end %>
+        </div>
 
-        <button
-          phx-click="paginate"
-          phx-value-page="oldest"
-          class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-        >
-          Oldest
-        </button>
-      </div>
+        <h2 class="text-xl font-semibold mb-4">Ledger History</h2>
 
-      <h2 class="text-xl font-semibold mb-4">Ledger History</h2>
-
-      <div class="divide-y divide-gray-200">
-        <div
-          :for={entry <- @paginated_entries.entries}
-          class="py-4 flex justify-between items-center cursor-pointer"
-          phx-click="open-ledger-entry-sidebar"
-          phx-value-entry_id={entry.id}
-        >
-          <div>
-            <div class="font-medium">Some ad</div>
-            <div class="text-gray-500">{entry.description}</div>
-            <div class="text-gray-500">{format_date(entry.inserted_at)}</div>
-          </div>
-          <div class="flex items-center">
-            <div class="text-right mr-4">
-              <div>{format_currency(entry.amount)}</div>
-              <div class="text-gray-500">
-                {format_currency(
-                  calculate_balance_at_entry(@ledger_header, entry, @paginated_entries.entries)
-                )}
+        <div class="divide-y divide-gray-200">
+          <div
+            :for={entry <- @paginated_entries.entries}
+            class="py-4 flex justify-between items-center cursor-pointer"
+            phx-click="open-ledger-entry-sidebar"
+            phx-value-entry_id={entry.id}
+          >
+            <div>
+              <div class="font-medium">Some ad</div>
+              <div class="text-gray-500">{entry.description}</div>
+              <div class="text-gray-500">{format_date(entry.inserted_at)}</div>
+            </div>
+            <div class="flex items-center">
+              <div class="text-right mr-4">
+                <div>{format_currency(entry.amount)}</div>
+                <div class="text-gray-500">
+                  {format_currency(
+                    calculate_balance_at_entry(@ledger_header, entry, @paginated_entries.entries)
+                  )}
+                </div>
+              </div>
+              <div class="text-gray-400">
+                >
               </div>
             </div>
-            <div class="text-gray-400">
-              >
-            </div>
           </div>
         </div>
-      </div>
-    <% end %>
+      <% end %>
 
-    <.ledger_entry_detail_sidebar :if={@sidebar_entry} entry={@sidebar_entry} />
+      <.ledger_entry_detail_sidebar :if={@sidebar_entry} entry={@sidebar_entry} />
+    </Layouts.sponster>
     """
   end
 
