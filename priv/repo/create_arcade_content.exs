@@ -1,23 +1,44 @@
-alias Qlarius.Arcade.{Content, TiqitType}
+alias Qlarius.Arcade.ContentGroup
+alias Qlarius.Arcade.ContentPiece
+alias Qlarius.Arcade.TiqitType
+alias Qlarius.Creators, warn: false
 alias Qlarius.Repo
 
-# Example Content 1: Video
-video = %Content{
+Repo.delete_all(ContentGroup)
+Repo.delete_all(ContentPiece)
+Repo.delete_all(TiqitType)
+
+# creator = Creators.get_creator_by_email!("creator@qlarius.com")
+
+group = %ContentGroup{
+  title: "Learn Elixir",
+  description: "Elixir is a functional programming language created by José Valim",
+  # creator_id: creator.id
+}
+|> Repo.insert!()
+
+video = %ContentPiece{
   title: "Introduction to Elixir",
-  description: "Learn the fundamentals of Elixir programming in this comprehensive introduction. We'll cover functional programming concepts, pattern matching, the actor model with processes, and how to build concurrent applications. Perfect for developers coming from object-oriented languages who want to explore the power of Elixir.",
+  description: "Learn the fundamentals of Elixir programming in this comprehensive introduction.",
   content_type: :video,
-  date_published: ~D[2025-03-01],
-  length: 1200, # 20 minutes in seconds
-  preview_length: 60, # 1 minute preview
   file_url: "https://example.com/videos/intro_elixir.mp4",
   preview_url: "https://example.com/videos/intro_elixir_preview.mp4",
+  date_published: Date.utc_today(),
   price_default: Decimal.new("5.00")
 }
 |> Repo.insert!()
 
+# Associate video with group
+Repo.insert_all("content_groups_content_pieces", [%{
+  content_group_id: group.id,
+  content_piece_id: video.id,
+  inserted_at: DateTime.utc_now(),
+  updated_at: DateTime.utc_now()
+}])
+
 # Tiqit Types for Video
 %TiqitType{
-  content_id: video.id,
+  content_piece_id: video.id,
   name: "1-hour access",
   duration_seconds: 3600,
   price: Decimal.new("2.00"),
@@ -26,7 +47,7 @@ video = %Content{
 |> Repo.insert!()
 
 %TiqitType{
-  content_id: video.id,
+  content_piece_id: video.id,
   name: "24-hour access",
   duration_seconds: 86_400,
   price: Decimal.new("4.50"),
@@ -34,8 +55,8 @@ video = %Content{
 }
 |> Repo.insert!()
 
-# Example Content 2: Podcast
-podcast = %Content{
+# Example ContentPiece 2: Podcast
+podcast = %ContentPiece{
   title: "Tech Talk: AI Innovations",
   description: "Join us as we dive into the latest advancements in artificial intelligence. We'll explore the latest trends in AI, including natural language processing, machine learning, and more. Perfect for tech enthusiasts who want to stay ahead of the curve.",
   content_type: :podcast,
@@ -48,9 +69,17 @@ podcast = %Content{
 }
 |> Repo.insert!()
 
+# Associate podcast with group
+Repo.insert_all("content_groups_content_pieces", [%{
+  content_group_id: group.id,
+  content_piece_id: podcast.id,
+  inserted_at: DateTime.utc_now(),
+  updated_at: DateTime.utc_now()
+}])
+
 # Tiqit Types for Podcast
 %TiqitType{
-  content_id: podcast.id,
+  content_piece_id: podcast.id,
   name: "1-hour access",
   duration_seconds: 3600,
   price: Decimal.new("1.50"),
@@ -59,7 +88,7 @@ podcast = %Content{
 |> Repo.insert!()
 
 %TiqitType{
-  content_id: podcast.id,
+  content_piece_id: podcast.id,
   name: "7-day access",
   duration_seconds: 604_800,
   price: Decimal.new("2.75"),
@@ -67,8 +96,8 @@ podcast = %Content{
 }
 |> Repo.insert!()
 
-# Example Content 3: Blog Post
-blog = %Content{
+# Example ContentPiece 3: Blog Post
+blog = %ContentPiece{
   title: "The Future of Content Creation",
   description: "In this blog post, we'll explore the latest trends in content creation, including the rise of AI-powered tools and the importance of user engagement. We'll also discuss the future of content creation and how it will continue to evolve in the coming years.",
   content_type: :blog,
@@ -81,9 +110,16 @@ blog = %Content{
 }
 |> Repo.insert!()
 
+Repo.insert_all("content_groups_content_pieces", [%{
+  content_group_id: group.id,
+  content_piece_id: blog.id,
+  inserted_at: DateTime.utc_now(),
+  updated_at: DateTime.utc_now()
+}])
+
 # Tiqit Types for Blog Post
 %TiqitType{
-  content_id: blog.id,
+  content_piece_id: blog.id,
   name: "24-hour access",
   duration_seconds: 86_400,
   price: Decimal.new("1.00"),
@@ -92,12 +128,54 @@ blog = %Content{
 |> Repo.insert!()
 
 %TiqitType{
-  content_id: blog.id,
+  content_piece_id: blog.id,
   name: "Permanent access",
-  duration_seconds: 31_536_000, # 1 year, effectively permanent
+  duration_seconds: nil,
   price: Decimal.new("1.75"),
   active: true
 }
 |> Repo.insert!()
 
-IO.puts "Example content and tiqit types seeded successfully!"
+group = %ContentGroup{
+  title: "Rick Astley",
+  description: "The Greatest Hits",
+  # creator_id: creator.id
+}
+|> Repo.insert!()
+
+
+[
+"Never gonna give you up",
+"Never gonna let you down",
+"Never gonna make you cry",
+"Never gonna say goodbye"
+] |> Enum.each(fn title ->
+  song = %ContentPiece{
+    title: title,
+    content_type: :song,
+    date_published: Date.utc_today(),
+    length: 600,
+    preview_length: 200,
+    file_url: "https://example.com/astley",
+    preview_url: "https://example.com/astley-preview",
+  }
+  |> Repo.insert!()
+
+  %TiqitType{
+    content_piece_id: song.id,
+    name: "Purchase",
+    duration_seconds: nil,
+    price: Decimal.new("0.79"),
+    active: true
+  }
+  |> Repo.insert!()
+
+  Repo.insert_all("content_groups_content_pieces", [%{
+    content_group_id: group.id,
+    content_piece_id: song.id,
+    inserted_at: DateTime.utc_now(),
+    updated_at: DateTime.utc_now()
+  }])
+end)
+
+IO.puts "Example content, tiqit types, and content group seeded successfully!"
