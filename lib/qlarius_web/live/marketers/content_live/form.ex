@@ -11,7 +11,7 @@ defmodule QlariusWeb.Marketers.ContentLive.Form do
 
   @impl true
   def handle_params(%{"id" => id}, _uri, socket) do
-    content = Arcade.get_content!(id)
+    content = Arcade.get_content_piece!(id)
     changeset = Arcade.change_content(content)
 
     socket

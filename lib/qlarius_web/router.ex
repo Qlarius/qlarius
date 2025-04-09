@@ -88,10 +88,9 @@ defmodule QlariusWeb.Router do
   scope "/", QlariusWeb do
     pipe_through [:browser, :require_authenticated_user]
 
-    get "/", PageController, :home
-
     live_session :require_authenticated_user,
       on_mount: [{QlariusWeb.UserAuth, :require_authenticated}] do
+      get "/", PageController, :home
       live "/users/settings", UserSettingsLive, :edit
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
       live "/wallet", WalletLive, :index
@@ -101,7 +100,8 @@ defmodule QlariusWeb.Router do
       live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
       live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show
       get "/content/:id", ContentController, :show
-      live "/arcade", ArcadeLive
+      get "/arcade", ContentController, :groups
+      live "/arcade/group/:group_id", ArcadeLive
       live "/admin/content/new", Marketers.ContentLive.Form, :new
       live "/admin/content/:id/edit", Marketers.ContentLive.Form, :edit
       resources "/admin/content", Marketers.ContentController, only: [:show, :index, :delete]

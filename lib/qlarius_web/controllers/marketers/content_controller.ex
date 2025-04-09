@@ -32,18 +32,18 @@ defmodule QlariusWeb.Marketers.ContentController do
   end
 
   def show(conn, %{"id" => id}) do
-    content = Arcade.get_content!(id)
+    content = Arcade.get_content_piece!(id)
     render(conn, :show, content: content)
   end
 
   def edit(conn, %{"id" => id}) do
-    content = Arcade.get_content!(id)
+    content = Arcade.get_content_piece!(id)
     changeset = Arcade.change_content(content)
     render(conn, :edit, content: content, changeset: changeset)
   end
 
   def update(conn, %{"id" => id, "content" => content_params}) do
-    content = Arcade.get_content!(id)
+    content = Arcade.get_content_piece!(id)
 
     case Arcade.update_content(content, content_params) do
       {:ok, content} ->
@@ -57,7 +57,7 @@ defmodule QlariusWeb.Marketers.ContentController do
   end
 
   def delete(conn, %{"id" => id}) do
-    content = Arcade.get_content!(id)
+    content = Arcade.get_content_piece!(id)
     {:ok, _content} = Arcade.delete_content(content)
 
     conn

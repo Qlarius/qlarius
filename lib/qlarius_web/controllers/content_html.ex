@@ -2,6 +2,7 @@ defmodule QlariusWeb.ContentHTML do
   use QlariusWeb, :html
 
   def show(assigns) do
+    # TODO 'back' should go to the right group for the content
     ~H"""
     <div class="flex flex-col gap-4">
       <.header>View content</.header>
@@ -17,11 +18,23 @@ defmodule QlariusWeb.ContentHTML do
         allowfullscreen
       >
       </iframe>
-
-      <.link navigate={~p"/arcade?content_id=#{@content.id}"}>
-        Back to arcade
-      </.link>
     </div>
+    """
+  end
+
+  def groups(assigns) do
+    ~H"""
+    <Layouts.app {assigns}>
+      <div class="flex flex-col gap-4">
+        <.header>Content groups</.header>
+
+        <ul class="list-disc">
+          <li :for={group <- @groups}>
+            <.link navigate={~p"/arcade/group/#{group}"}>{group.title}</.link>
+          </li>
+        </ul>
+      </div>
+    </Layouts.app>
     """
   end
 end

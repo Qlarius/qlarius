@@ -2,7 +2,7 @@ defmodule Qlarius.Arcade do
   import Ecto.Query
 
   alias Qlarius.Accounts.Scope
-  alias Qlarius.Accounts.User
+  alias Qlarius.Arcade.ContentGroup
   alias Qlarius.Arcade.ContentPiece
   alias Qlarius.Arcade.Tiqit
   alias Qlarius.Arcade.TiqitType
@@ -22,16 +22,27 @@ defmodule Qlarius.Arcade do
     Repo.exists?(query)
   end
 
-  def list_content do
+  def list_content_groups do
+    Repo.all(from g in ContentGroup, order_by: [asc: g.title])
+  end
+
+  def get_content_group!(id) do
+    Repo.get!(ContentGroup, id) |> Repo.preload(content_pieces: :tiqit_types)
+  end
+
+  def list_pieces_in_content_group(%ContentGroup{} = group) do
     Repo.all(
       from c in ContentPiece,
+        where: c.group_id == ^group.id,
         order_by: [desc: c.inserted_at],
         limit: 5,
         preload: [tiqit_types: ^from(t in TiqitType, order_by: t.price)]
     )
   end
 
-  def get_content!(id), do: ContentPiece |> Repo.get!(id) |> Repo.preload(:tiqit_types)
+  def get_content_piece!(id) do
+    ContentPiece |> Repo.get!(id) |> Repo.preload(:tiqit_types)
+  end
 
   def create_content(attrs \\ %{}) do
     %ContentPiece{}
@@ -53,15 +64,15 @@ defmodule Qlarius.Arcade do
     ContentPiece.changeset(content, attrs)
   end
 
-  def create_tiqit(%User{} = user, %TiqitType{} = tiqit_type) do
+  def create_tiqit(%Scope{} = scope, %TiqitType{} = tiqit_type) do
     purchased_at = DateTime.utc_now()
 
     expires_at =
-      if tiqit_type.duration_seconds > 0 do
+      if tiqit_type.duration_seconds do
         DateTime.add(purchased_at, tiqit_type.duration_seconds, :second)
       end
 
-    %Tiqit{user: user, tiqit_type: tiqit_type}
+    %Tiqit{user: scope.user, tiqit_type: tiqit_type}
     |> Tiqit.changeset(%{purchased_at: purchased_at, expires_at: expires_at})
     |> Repo.insert()
   end
