@@ -10,7 +10,17 @@ defmodule QlariusWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
     plug :protect_from_forgery
-    plug :put_secure_browser_headers, %{"x-frame-options" => "ALLOWALL"}
+    plug :put_secure_browser_headers
+    plug :fetch_current_scope_for_user
+  end
+
+  pipeline :widgets do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
+    plug :protect_from_forgery
+    # plug :put_secure_browser_headers, %{"x-frame-options" => "ALLOWALL"}
     plug :fetch_current_scope_for_user
   end
 
@@ -85,6 +95,15 @@ defmodule QlariusWeb.Router do
     post "/users/log_in", UserSessionController, :create
   end
 
+  scope "/", QlariusWeb.Widgets do
+    pipe_through [:widgets, :require_authenticated_user]
+
+    live_session :widgets, on_mount: [{QlariusWeb.UserAuth, :require_authenticated}] do
+      live "/widgets/arcade/group/:group_id", ArcadeLive
+      live "/widgets/wallet", WalletLive
+    end
+  end
+
   scope "/", QlariusWeb do
     pipe_through [:browser, :require_authenticated_user]
 
@@ -101,7 +120,6 @@ defmodule QlariusWeb.Router do
       live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show
       get "/content/:id", ContentController, :show
       get "/arcade", ContentController, :groups
-      live "/arcade/group/:group_id", ArcadeLive
       live "/admin/content/new", Marketers.ContentLive.Form, :new
       live "/admin/content/:id/edit", Marketers.ContentLive.Form, :edit
       resources "/admin/content", Marketers.ContentController, only: [:show, :index, :delete]
