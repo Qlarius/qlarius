@@ -4,7 +4,9 @@ defmodule QlariusWeb.Widgets.WalletLive do
   alias Qlarius.Wallets
 
   def mount(_params, _session, socket) do
-    balance = Wallets.get_user_current_balance(socket.assigns.current_scope.user)
+    user = socket.assigns.current_scope.user
+    balance = Wallets.get_user_current_balance(user)
+    Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{user.id}")
     {:ok, assign(socket, balance: balance)}
   end
 
@@ -14,5 +16,11 @@ defmodule QlariusWeb.Widgets.WalletLive do
       <div>Qlarius Wallet: ${Decimal.round(@balance, 2)}</div>
     </div>
     """
+  end
+
+  def handle_info(:update_balance, socket) do
+    user = socket.assigns.current_scope.user
+    balance = Wallets.get_user_current_balance(user)
+    {:noreply, assign(socket, balance: balance)}
   end
 end

@@ -6,7 +6,8 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
   alias Qlarius.Wallets
 
   def mount(_params, _session, socket) do
-    balance = Wallets.get_user_current_balance(socket.assigns.current_scope.user)
+    user = socket.assigns.current_scope.user
+    balance = Wallets.get_user_current_balance(user)
     {:ok, assign(socket, balance: balance)}
   end
 
@@ -32,18 +33,15 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
     tiqit_type_id = String.to_integer(tiqit_type_id)
     tiqit_type = Enum.find(socket.assigns.selected_piece.tiqit_types, &(&1.id == tiqit_type_id))
 
-    case Arcade.create_tiqit(socket.assigns.current_scope, tiqit_type) do
-      {:ok, _tiqit} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Purchase successful!")
-         |> redirect(to: ~p"/content/#{socket.assigns.selected_piece.id}")}
+    :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_type)
 
-      {:error, _changeset} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "Failed to purchase ticket")}
-    end
+    user = socket.assigns.current_scope.user
+
+    Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
+
+    socket
+    |> redirect(to: ~p"/widgets/content/#{socket.assigns.selected_piece.id}")
+    |> noreply()
   end
 
   def render(assigns) do
@@ -62,7 +60,7 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
         <div class="mt-4">
           <%= if Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>
             <.link
-              navigate={~p"/content/#{@selected_piece.id}"}
+              navigate={~p"/widgets/content/#{@selected_piece.id}"}
               class="inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
             >
               Go to content

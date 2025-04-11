@@ -6,6 +6,8 @@ defmodule Qlarius.Arcade do
   alias Qlarius.Arcade.ContentPiece
   alias Qlarius.Arcade.Tiqit
   alias Qlarius.Arcade.TiqitType
+  alias Qlarius.Wallets.LedgerEntry
+  alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
 
   def has_valid_tiqit?(%Scope{} = scope, %ContentPiece{} = content) do
@@ -64,7 +66,7 @@ defmodule Qlarius.Arcade do
     ContentPiece.changeset(content, attrs)
   end
 
-  def create_tiqit(%Scope{} = scope, %TiqitType{} = tiqit_type) do
+  def purchase_tiqit(%Scope{user: user} = scope, %TiqitType{} = tiqit_type) do
     purchased_at = DateTime.utc_now()
 
     expires_at =
@@ -72,8 +74,30 @@ defmodule Qlarius.Arcade do
         DateTime.add(purchased_at, tiqit_type.duration_seconds, :second)
       end
 
-    %Tiqit{user: scope.user, tiqit_type: tiqit_type}
-    |> Tiqit.changeset(%{purchased_at: purchased_at, expires_at: expires_at})
-    |> Repo.insert()
+    Repo.transaction(fn ->
+      ledger_header = Repo.get_by!(LedgerHeader, user_id: user.id)
+
+      amount = tiqit_type.price
+      new_balance = Decimal.sub(ledger_header.balance, amount)
+
+      %LedgerEntry{
+        ledger_header_id: ledger_header.id,
+        amount: amount,
+        running_balance: new_balance,
+        description: "Purchased Tiqit"
+      }
+      |> Repo.insert!()
+
+      ledger_header
+      |> Ecto.Changeset.change(balance: new_balance)
+      |> Repo.update!()
+
+      {:ok, _tiqit} =
+        %Tiqit{user: scope.user, tiqit_type: tiqit_type}
+        |> Tiqit.changeset(%{purchased_at: purchased_at, expires_at: expires_at})
+        |> Repo.insert()
+    end)
+
+    :ok
   end
 end
