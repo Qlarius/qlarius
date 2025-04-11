@@ -70,8 +70,8 @@ defmodule Qlarius.Arcade do
     purchased_at = DateTime.utc_now()
 
     expires_at =
-      if tiqit_type.duration_seconds do
-        DateTime.add(purchased_at, tiqit_type.duration_seconds, :second)
+      if tiqit_type.duration_hours do
+        DateTime.add(purchased_at, tiqit_type.duration_hours, :hour)
       end
 
     Repo.transaction(fn ->

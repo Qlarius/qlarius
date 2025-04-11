@@ -40,7 +40,7 @@ Repo.insert_all("content_groups_content_pieces", [%{
 %TiqitType{
   content_piece_id: video.id,
   name: "1-hour access",
-  duration_seconds: 3600,
+  duration_hours: 1,
   price: Decimal.new("2.00"),
   active: true
 }
@@ -49,7 +49,7 @@ Repo.insert_all("content_groups_content_pieces", [%{
 %TiqitType{
   content_piece_id: video.id,
   name: "24-hour access",
-  duration_seconds: 86_400,
+  duration_hours: 24,
   price: Decimal.new("4.50"),
   active: true
 }
@@ -81,7 +81,7 @@ Repo.insert_all("content_groups_content_pieces", [%{
 %TiqitType{
   content_piece_id: podcast.id,
   name: "1-hour access",
-  duration_seconds: 3600,
+  duration_hours: 1,
   price: Decimal.new("1.50"),
   active: true
 }
@@ -90,7 +90,7 @@ Repo.insert_all("content_groups_content_pieces", [%{
 %TiqitType{
   content_piece_id: podcast.id,
   name: "7-day access",
-  duration_seconds: 604_800,
+  duration_hours: 7 * 24,
   price: Decimal.new("2.75"),
   active: true
 }
@@ -121,7 +121,7 @@ Repo.insert_all("content_groups_content_pieces", [%{
 %TiqitType{
   content_piece_id: blog.id,
   name: "24-hour access",
-  duration_seconds: 86_400,
+  duration_hours: 24,
   price: Decimal.new("1.00"),
   active: true
 }
@@ -130,7 +130,7 @@ Repo.insert_all("content_groups_content_pieces", [%{
 %TiqitType{
   content_piece_id: blog.id,
   name: "Permanent access",
-  duration_seconds: nil,
+  duration_hours: nil,
   price: Decimal.new("1.75"),
   active: true
 }
@@ -163,9 +163,18 @@ group = %ContentGroup{
 
   %TiqitType{
     content_piece_id: song.id,
+    name: "Rent (24 hours)",
+    duration_hours: 24,
+    price: Decimal.new("0.49"),
+    active: true
+  }
+  |> Repo.insert!()
+
+  %TiqitType{
+    content_piece_id: song.id,
     name: "Purchase",
-    duration_seconds: nil,
-    price: Decimal.new("0.79"),
+    duration_hours: nil,
+    price: Decimal.new("0.99"),
     active: true
   }
   |> Repo.insert!()
