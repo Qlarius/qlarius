@@ -5,6 +5,7 @@ defmodule Qlarius.Accounts.User do
   alias Qlarius.LedgerHeader
   alias Qlarius.Traits.TraitValue
   alias Qlarius.Traits.UserTag
+  alias Qlarius.Accounts.UserProxy
 
   schema "users" do
     field :email, :string
@@ -16,6 +17,10 @@ defmodule Qlarius.Accounts.User do
     has_one :ledger_header, LedgerHeader
 
     many_to_many :trait_values, TraitValue, join_through: UserTag
+
+    # Proxy user associations
+    has_many :proxy_users, UserProxy, foreign_key: :true_user_id
+    has_many :proxied_by, UserProxy, foreign_key: :proxy_user_id
 
     timestamps(type: :utc_datetime)
   end

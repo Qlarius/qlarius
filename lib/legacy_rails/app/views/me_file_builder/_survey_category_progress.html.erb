@@ -1,0 +1,10 @@
+<div class="progress mt-1">
+  <div class="progress-bar <%= completion_array[1] %>" 
+      role="progressbar" 
+      aria-valuenow="<%= completion_array[0] %>"
+      aria-valuemin="0" 
+      aria-valuemax="100" 
+      style="width: <%= completion_array[0] %>%; min-width: 3em;">
+    <%= completion_array[2] %>/<%= completion_array[3] %>
+  </div>
+</div>

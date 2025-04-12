@@ -1,0 +1,52 @@
+<%= turbo_frame_tag "app_window" do %>
+  <div data-controller="app-page" data-app-target="appPage" data-app-page-app-page-value="none">
+    <div class="header-large-title">
+        <h1 class="title">Proxy Users</h1>
+    </div>
+    <div class="listview-title mt-2">Select for demo mode</div>
+    <%= turbo_frame_tag "proxy_user_list" do %>
+      <%= render partial: "proxy_user_list" %>
+    <% end %>
+    <div class="p-3">
+      <%= button_to "/proxy_user_manager/exit_proxy", class: "btn btn-primary btn-block" do %>
+        Exit Demo Mode
+      <% end %>
+    </div>
+    <div class="p-3">
+      <%= form_with url: proxy_user_manager_create_new_user_as_proxy_path do |form| %>
+        <div class="row">
+          <div class="col-6">
+            <div class="form-group boxed p-0">
+              <div class="input-wrapper">
+                <label class="form-label" for="username">Display name</label>
+                <input type="text" class="form-control" id="username" name="username">
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="form-group boxed p-0">
+              <div class="input-wrapper">
+                <label class="form-label" for="mobile_number">Mobile number</label>
+                <input type="text" class="form-control" id="mobile_number" name="mobile_number">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12">
+            <div class="form-group boxed">
+              <div class="input-wrapper">
+                <button type="submit" class="btn btn-secondary btn-block">
+                  Create New User
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+      <% end %>
+      
+    </div>
+  </div>
+<% end %>
+

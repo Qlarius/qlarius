@@ -1,0 +1,24 @@
+@use "../theme-settings";
+
+.divider{
+    height: 1px;
+    background: theme-settings.$colorLine;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    .icon-box{
+        background: theme-settings.$colorLine;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #FFF;
+        border-radius: 100%;
+        width: 28px;
+        height: 28px;
+        font-size: 18px;
+    }
+    &.inset{
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+}

@@ -1,0 +1,130 @@
+@use "../theme-settings";
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: theme-settings.$colorHeading;
+  margin: 0 0 10px 0;
+  letter-spacing: -0.02em;
+  line-height: 1.3em;
+  small {
+    color: rgba(theme-settings.$colorHeading, 0.6);
+  }
+  .badge {
+    line-height: 1em;
+  }
+}
+.text-muted {
+  font-size: theme-settings.$fontSizeSub;
+  color: theme-settings.$colorText !important;
+}
+h1 {
+  font-size: theme-settings.$fontSizeHeadingXLarge;
+  font-weight: theme-settings.$bold;
+}
+h2 {
+  font-size: theme-settings.$fontSizeHeadingLarge;
+  font-weight: theme-settings.$bold;
+}
+h3 {
+  font-size: theme-settings.$fontSizeHeading;
+  font-weight: theme-settings.$bold;
+}
+h4 {
+  font-size: theme-settings.$fontSize;
+  font-weight: theme-settings.$medium;
+}
+h5 {
+  font-size: theme-settings.$fontSizeSub;
+  font-weight: theme-settings.$medium;
+}
+h6 {
+  font-size: theme-settings.$fontSizeCaption;
+  font-weight: theme-settings.$medium;
+}
+.lead {
+  font-weight: theme-settings.$regular;
+  font-size: theme-settings.$fontSizeHeading;
+  color: theme-settings.$colorText !important;
+}
+mark {
+  border-radius: theme-settings.$borderRadius;
+}
+.text-large {
+  font-size: theme-settings.$fontSizeHeadingXLarge;
+}
+
+strong,
+b {
+  font-weight: theme-settings.$medium;
+}
+
+.page-title {
+  &.inset {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  .in {
+    padding-right: 16px;
+  }
+  .link {
+    font-size: theme-settings.$fontSizeSub;
+    font-weight: theme-settings.$medium;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 3px;
+    &:hover,
+    &:active {
+      opacity: 0.8;
+    }
+  }
+  strong {
+    font-weight: theme-settings.$medium;
+    color: theme-settings.$colorLight;
+    font-size: theme-settings.$fontSizeSub;
+    text-transform: uppercase;
+    line-height: 1.2em;
+  }
+  .title {
+    margin: 0;
+    font-size: theme-settings.$fontSizeHeadingLarge;
+    line-height: 1.2em;
+  }
+}
+.section.full {
+  .page-title {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+code{
+  color: theme-settings.$colorPrimary;
+}
+figure.codebox{
+  background: theme-settings.$colorLine;
+  border-radius: theme-settings.$borderRadius;
+  padding: 5px 12px;
+  code{
+      color: theme-settings.$colorHeading;
+      line-height: 1.2em;
+  }
+}
+.placeholder-xs {
+  min-height: 0.5em;
+}
+
+.placeholder-sm {
+  min-height: 0.7em;
+}
+
+.placeholder-lg {
+  min-height: 1.6em;
+}

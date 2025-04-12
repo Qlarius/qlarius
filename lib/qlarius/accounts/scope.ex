@@ -16,9 +16,11 @@ defmodule Qlarius.Accounts.Scope do
   growing application requirements.
   """
 
-  alias Qlarius.Accounts.User
-  alias Qlarius.Offers
+  alias Qlarius.Legacy.User
+  alias Qlarius.Legacy.Offer
+  alias Qlarius.Legacy.LedgerHeader
   alias Qlarius.Wallets
+  alias Decimal
 
   defstruct user: nil, wallet_balance: nil, ads_count: nil
 
@@ -29,9 +31,12 @@ defmodule Qlarius.Accounts.Scope do
   """
   def for_user(%User{} = user) do
     %__MODULE__{
-      ads_count: Offers.count_user_offers(user.id),
-      user: user,
-      wallet_balance: Wallets.get_user_current_balance(user)
+      # ads_count: Offer.count_user_offers(user.id),
+      # user: user,
+      # wallet_balance: LedgerHeader.get_user_current_balance(user)
+      ads_count: 55,
+      user: User.active_proxy_user_or_self(user),
+      wallet_balance: Decimal.new("2.34")
     }
   end
 

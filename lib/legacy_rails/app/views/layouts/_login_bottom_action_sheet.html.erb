@@ -1,0 +1,60 @@
+<style>
+  passage-auth {
+  /* Passage Container Styles */
+  --passage-container-background: transparent;
+  --passage-container-max-width: 220px;
+  --passage-container-margin: auto;
+  --passage-container-padding: 30px 30px 20px;
+  --passage-error-color: #ff0000;
+
+  /* Body Font Styles */
+  --passage-body-font-family: -apple-system, "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  --passage-body-font-size: 14px;
+  --passage-body-font-weight: 400;
+  --passage-body-text-color: inherit;
+
+  /* Header Font Styles */
+  --passage-header-font-family: -apple-system, "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  --passage-header-font-weight: 700;
+  --passage-header-text-color: inherit;
+  --passage-header-font-size: 24px;
+
+  /* Button Styles */
+  --passage-button-font-size: 16px;
+  --passage-button-font-weight: 400;
+  --passage-button-width: 50%;
+  --passage-button-border-radius: 5px;
+
+  /* Color Palette */
+  --passage-onprimary-color: #fff; /* text color on primary control background */
+  --passage-primary-color: #3278b3; /* main color used for controls */
+
+  --passage-onhover-color: #fff;
+  --passage-hover-color: #3f8ac9;
+
+  --passage-onactive-color: #fff;
+  --passage-active-color: #6b6b6b;
+
+  /* Email and Phone Input Box Styles */
+  --passage-control-border-radius: 5px;
+  --passage-control-border-color: #dbdbdb;
+}
+</style>
+
+<div data-app-target="login" class="q-offcanvas offcanvas-bottom action-sheet inset" style="visibility: hidden;">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">Establish your private connection.</h5>
+  </div>
+  <div class="offcanvas-body">
+    <div class="d-flex justify-content-center align-items-center mt-3" style="margin-bottom:-20px;">
+      <%= image_tag("qlarius_logo_squares.png", size:"50x35") %>
+    </div>
+      <% if flash[:alert] %>
+      <div class="alert alert-warning text-center" role="alert">
+        <%= flash[:alert] %>
+      </div>
+      <% end %>
+      <passage-auth app-id="<%= ENV['PASSAGE_APP_ID'] %>"></passage-auth>
+      <script src="https://psg.so/web.js"></script>
+  </div>
+</div>

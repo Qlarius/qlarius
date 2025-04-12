@@ -1,0 +1,120 @@
+@use "sass:color";
+@use "../body";
+@use "../theme-settings";
+
+.search-form {
+  display: block;
+  width: 100%;
+}
+.searchbox {
+  width: 100%;
+  margin: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  .form-control {
+    height: 36px;
+    border-radius: theme-settings.$borderRadius;
+    border: 1px solid theme-settings.$colorLine !important;
+    padding: 0 16px 0 36px;
+    font-size: theme-settings.$fontSize;
+    box-shadow: none !important;
+    color: theme-settings.$colorHeading;
+    &:focus {
+      border-color: color.adjust(theme-settings.$colorLine, $lightness: -10%) !important;
+      & ~ .input-icon {
+        color: theme-settings.$colorHeading;
+      }
+    }
+  }
+  i.bi,
+  i.icon,
+  ion-icon {
+    font-size: 26px;
+    line-height: 1em;
+    margin: 0;
+  }
+  .close {
+    opacity: 1;
+    color: theme-settings.$colorLight;
+    width: 46px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    right: 8px;
+    top: 0;
+  }
+  .input-icon {
+    font-size: 26px;
+    position: absolute;
+    left: 0px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: theme-settings.$colorLight;
+    top: 0;
+  }
+}
+
+#search {
+  display: block;
+  padding: 0;
+  background: #fff;
+  border-bottom: 1px solid #FFF;
+  position: fixed;
+  box-shadow: theme-settings.$boxShadow;
+  left: 0;
+  top: -100px;
+  right: 0;
+  width: 100%;
+  z-index: 1001;
+  transition: 0.3s all ease-in-out;
+  &.show {
+    top: body.$safeTop;
+    transition: 0.22s all ease-in-out;
+  }
+  .searchbox {
+    .form-control {
+      box-shadow: none !important;
+      border: 0 !important;
+      border-radius: 0;
+      height: 56px;
+      padding: 0 56px 0 56px;
+      background: transparent;
+      font-size: theme-settings.$fontSizeHeading;
+      color: theme-settings.$colorHeading;
+      width: 100%;
+      &:focus {
+        border-color: color.adjust(theme-settings.$colorLine, $lightness: -15%);
+        & ~ .input-icon {
+          color: theme-settings.$colorHeading;
+        }
+      }
+    }
+    .input-icon {
+      font-size: 26px;
+      position: absolute;
+      left: 8px;
+      width: 46px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: theme-settings.$colorLight;
+      top: 0;
+    }
+  }
+}
+
+.search-result{
+  li > .item,
+  li > a{
+      padding-top: 20px;
+      padding-bottom: 20px;
+  }
+}

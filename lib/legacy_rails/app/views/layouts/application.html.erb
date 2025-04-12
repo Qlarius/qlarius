@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <title>Sponster</title>
+    <meta name="description" content="Sponster - Personal Sponsorship from Qlarius - Me is mine">
+    <meta name="keywords" content="" />
+    <link rel="icon" type="image/png" href="/assets/images/favicon.png" sizes="32x32">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/icon/sponster_symbol_192.png">
+    
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_include_tag "application", "data-turbo-track": "reload", defer: true %>
+    <%= csrf_meta_tag %>
+  </head>
+
+  <body>
+  <div data-controller="app" data-action="app-page:newPageLoad->app#loadNewPage modal:closeModal->app#closeModal">
+    <%= turbo_frame_tag "app_body" do %>
+    
+      <%= render partial:"layouts/header" %>
+
+      <div id="appCapsule">
+        <%= turbo_frame_tag "app_window", src: "welcome" do %>
+
+        <% end %>
+      </div>
+
+      
+        <%= render partial:"layouts/bottom_menu" %>
+        <%= render partial:"layouts/sidebar" %>
+        <%= render partial:"layouts/offpanel_right" %>
+        <%= render partial:"layouts/modal" %>
+        <%= render partial:"layouts/dialog_log_out" %>
+        <div class="offcanvas-backdrop fade d-none" data-app-target="backdrop" data-action="click->app#closeSidebar click->app#closePanelRight click->app#closeModal" style="cursor:pointer"></div>
+
+        <%= render partial:"layouts/loader" %>
+
+      <% end %>
+    </div>
+  </body>
+</html>

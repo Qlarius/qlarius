@@ -1,0 +1,20 @@
+<div class="modal fade dialogbox" data-app-target="logoutDialog" style="display: none;">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmation</h5>
+            </div>
+            <div class="modal-body">
+                Log out now?
+            </div>
+            <div class="modal-footer">
+                <div class="btn-inline">
+                    <a class="btn btn-text-secondary" style="cursor:pointer;" data-action="app#closeLogoutDialog">Cancel</a>
+                    <%= link_to logout_path, class: "btn bg-danger btn-text-danger", data: {"turbo-frame": :"app_window", "action":"app#clearSession app#hideStats app#closeLogoutDialog"} do %>
+                      Yes, log out
+                    <% end %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

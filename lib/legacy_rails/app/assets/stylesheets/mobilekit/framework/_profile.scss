@@ -1,0 +1,52 @@
+@use "../theme-settings";
+
+.profile-head{
+    display: flex;
+    align-items: center;
+    .avatar{
+        margin-right: 16px;
+    }
+    .in{
+        .name{
+            margin: 0 0 5px 0;
+            font-weight: 500;
+        }
+        .subtext{
+            color: theme-settings.$colorLight;
+            font-weight: 400;
+            margin: 0;
+        }
+    }
+}
+.profile-info{
+    font-size: theme-settings.$fontSizeSub;
+    line-height: 1.5em;
+    .bio{
+        color: theme-settings.$colorText;
+    }
+    .link{
+        margin-top: 4px;
+        color: theme-settings.$colorPrimary;
+    }
+}
+.profile-stats{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    .item{
+        font-size: theme-settings.$fontSizeCaption;
+        line-height: 1.6em;
+        padding: 5px;
+        color: theme-settings.$colorText;
+        text-align: center;
+        &:last-child{
+            border-right-color: transparent;
+        }
+        strong{
+            display: block;
+            line-height: 1.4em;
+            color: theme-settings.$colorHeading;
+            font-size: theme-settings.$fontSizeHeading;
+        }
+    }
+}

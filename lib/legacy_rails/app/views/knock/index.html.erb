@@ -1,0 +1,72 @@
+ <%= turbo_frame_tag "app_window" do %>
+
+    <div data-controller="app-page" data-app-target="appPage" data-app-page-app-page-value="knock">
+
+      <style>
+
+        passage-auth {
+        /* Passage Container Styles */
+          --passage-error-color: #ff0000;
+          --passage-container-background-color: transparent;
+
+          /* Body Font Styles */
+          --passage-body-font-family: -apple-system, "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+          --passage-body-font-size: 16px;
+          --passage-body-text-color: inherit;
+
+          /* Header Font Styles */
+          --passage-header-font-family: -apple-system, "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+          --passage-header-text-color: inherit;
+          --passage-header-font-size: 24px;
+
+          /* Button Styles */
+          --passage-button-font-size: 16px;
+          --passage-button-font-weight: 400;
+          --passage-button-width: 50%;
+          --passage-button-border-radius: 5px;
+          --passage-primary-button-background-color: #1E74FD;
+          --passage-primary-button-background-hover-color: #0564fd;
+
+          /* Color Palette */
+          --passage-onprimary-color: #fff; /* text color on primary control background */
+          --passage-primary-color: #3278b3; /* main color used for controls */
+
+          --passage-onhover-color: #fff;
+          --passage-hover-color: #3f8ac9;
+
+          --passage-onactive-color: #fff;
+          --passage-active-color: #6b6b6b;
+
+          /* Email and Phone Input Box Styles */
+          --passage-control-border-radius: 5px;
+          --passage-control-border-color: #dbdbdb;
+        }
+
+        body.dark-mode-active  passage-auth {
+          --passage-body-text-color: #8195a6;
+          --passage-header-text-color: white;
+          --passage-anchor-text-color: white;
+          --passage-anchor-hover-color: white;
+        }
+
+      </style>
+
+      <div class="d-flex flex-column justify-content-center align-items-center p-2">
+        <% if flash[:alert] %>
+          <div class="alert alert-warning text-center mb-2" role="alert">
+            <%= flash[:alert] %>
+          </div>
+        <% end %>
+        <%= image_tag("qlarius_logo_squares.png", size:"50x35", style:"margin: 20px 0 -40px 0") %>
+      </div>
+        <passage-auth app-id="<%= ENV['PASSAGE_APP_ID'] %>"></passage-auth>
+        <script src="https://psg.so/web.js"></script>
+
+
+    </div>
+
+<% end %>
+
+
+
+

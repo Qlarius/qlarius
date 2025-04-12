@@ -1,0 +1,32 @@
+<% Survey.find(params[:survey_id]).surveys_with_shared_questions.each do |sid| %>
+  <turbo-stream action="update" targets=".survey-comp-label-<%=sid%>">
+    <template>
+      <%= render partial: "survey_comp_label", formats: [:html], locals: {survey: Survey.find(sid)} %>
+    </template>
+  </turbo-stream>
+<% end %>
+
+<turbo-stream action="update" target="survey-cat-progress-<%=params[:survey_category_id]%>">
+  <template>
+    <%= render partial: "survey_category_progress", formats: [:html], locals: {completion_array: survey_category_percentage_complete(SurveyCategory.find(params[:survey_category_id]))} %>
+  </template>
+</turbo-stream>
+
+<turbo-stream action="update" targets=".trait-count">
+  <template>
+    <%= @current_me_file.trait_tag_count %>  
+  </template>
+</turbo-stream>
+
+<turbo-stream action="update" targets=".tag-count">
+  <template>
+    <%= @current_me_file.tag_count %>  
+  </template>
+</turbo-stream>
+
+
+<turbo-stream action="update" target="completion_string_frame">
+  <template>
+    <%= render partial: "completion_string", formats: [:html], locals: {survey_id: params[:survey_id]} %>
+  </template>
+</turbo-stream>

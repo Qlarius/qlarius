@@ -1,0 +1,37 @@
+<!-- App Bottom Menu -->
+<div class="appBottomMenu disabled">
+    <%= link_to home_path, class: "item active", data: {"turbo-frame": :"app_window", "action":"app#loadSelectedPage", "app-target":"bmLink", "bottom-menu-item":"home"} do %>
+        <div class="col">
+            <ion-icon><i class="bi bi-house-door"></i></ion-icon>
+            <strong>Home</strong>
+        </div>
+    <% end %>
+    <%= link_to ad_viewer_path, class: "item", data: {"turbo-frame": :"app_window", "action":"click->app#loadSelectedPage", "app-target":"bmLink", "bottom-menu-item":"ads"} do %>
+        <div class="col">
+            <ion-icon><i class="bi bi-eye"></i></ion-icon>
+            <span class="badge background-sponster ad-count" data-app-target="offerCount"></span>
+            <strong>Ads</strong>
+        </div>
+    <% end %>
+    <%= link_to me_file_ledger_path, class: "item", data: {"turbo-frame": :"app_window", "action":"click->app#loadSelectedPage", "app-target":"bmLink", "bottom-menu-item":"ledger"} do %>        
+        <div class="col">
+            <ion-icon><i class="bi bi-cash-coin"></i></ion-icon>
+            <span class="badge background-sponster acct-balance"  data-app-target="balance"></span>
+            <strong>Wallet</strong>
+        </div>
+    <% end %>
+    <%= link_to me_file_tags_path, class: "item", data: {"turbo-frame": :"app_window", "action":"app#loadSelectedPage", "app-target":"bmLink", "bottom-menu-item":"mefile"} do %>
+        <div class="col">
+            <ion-icon><i class="bi bi-person-bounding-box"></i></ion-icon>
+                <span class="badge background-youdata trait-count"  data-app-target="tagCount"></span>
+            <strong>MeFile</strong>
+        </div>
+    <% end %>
+    <a id="more" class="item" data-action="app#openSidebar" style="cursor:pointer;">
+        <div class="col">
+            <ion-icon><i class="bi bi-list"></i></ion-icon>
+            <strong>More</strong>
+        </div>
+    </a>
+</div>
+<!-- * App Bottom Menu -->

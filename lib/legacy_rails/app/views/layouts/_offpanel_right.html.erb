@@ -1,0 +1,17 @@
+<div data-app-target="panelRight" class="offcanvas offcanvas-end" style="visibility: hidden;">
+
+    <%= turbo_frame_tag "offpanel-contents-turboframe" do %>
+        <div class="offcanvas-header">
+            <h5 id="offcanvas-title" class="offcanvas-title">LOADING...</h5>
+            <a class="offcanvas-close" data-action="app#closePanelRight">
+                <ion-icon name="close-outline" role="img" class="md hydrated" aria-label="close outline">
+                <i class="bi bi-x"></i>
+                </ion-icon>
+            </a>
+        </div>
+        <div class="offcanvas-body overflow-y-auto">
+            Loading...
+        </div>
+    <% end %>
+
+</div>

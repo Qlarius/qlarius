@@ -75,9 +75,20 @@ defmodule Qlarius.Accounts do
 
   """
   def register_user(attrs) do
-    %User{}
-    |> User.registration_changeset(attrs)
-    |> Repo.insert()
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:user, User.registration_changeset(%User{}, attrs))
+    |> Ecto.Multi.insert(:ledger_header, fn %{user: user} ->
+      %Qlarius.Wallets.LedgerHeader{
+        user_id: user.id,
+        description: "Main Ledger",
+        balance: Decimal.new("0.00")
+      }
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{user: user}} -> {:ok, user}
+      {:error, :user, changeset, _} -> {:error, changeset}
+    end
   end
 
   @doc """

@@ -1,0 +1,1254 @@
+@use "sass:color";
+@use '../qlarius/qlarius-theme-settings';
+@use "framework/accordion";
+@use "theme-settings";
+
+body.dark-mode-active {
+  background: theme-settings.$darkModeBackground !important;
+  color: theme-settings.$darkModeColorText;
+  &.bg-light,
+  &.bg-white {
+    background: theme-settings.$darkModeBackground !important;
+  }
+  #loader {
+    background: theme-settings.$darkModeBackground;
+  }
+  select option {
+    background: theme-settings.$darkModeBackground;
+    color: #fff;
+  }
+  .text-muted {
+    color: theme-settings.$darkModeColorLight !important;
+  }
+  .bg-dark {
+    background: #000 !important;
+  }
+  .bg-light {
+    background: #fff !important;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: theme-settings.$darkModeColorHeading;
+    small {
+      color: theme-settings.$darkModeColorText;
+    }
+  }
+  .lead {
+    color: theme-settings.$darkModeColorLight !important;
+  }
+  // app header
+  .appHeader {
+    background: theme-settings.$darkModeContentBackground;
+    border-bottom-color: theme-settings.$darkModeColorLine;
+    .pageTitle {
+      color: theme-settings.$darkModeColorHeading;
+    }
+    &.transparent {
+      background: transparent !important;
+    }
+    &.bg-light {
+      .left,
+      .right {
+        .headerButton {
+          color: theme-settings.$colorHeading;
+        }
+      }
+      .pageTitle {
+        color: theme-settings.$colorHeading;
+      }
+    }
+    .left,
+    .right {
+      .headerButton {
+        color: theme-settings.$darkModeColorHeading;
+      }
+    }
+  }
+  .extraHeader {
+    background: theme-settings.$darkModeContentBackground;
+    border-bottom-color: theme-settings.$darkModeColorLine;
+  }
+  .appHeader.scrolled {
+    background: transparent;
+    border-bottom-color: transparent;
+    &.is-active {
+      background: theme-settings.$darkModeContentBackground;
+      border-bottom-color: theme-settings.$darkModeColorLine;
+    }
+  }
+
+  .section-title {
+    color: theme-settings.$darkModeColorText;
+  }
+  .section {
+    .wide-block {
+      background: theme-settings.$darkModeContentBackground;
+      border-top-color: theme-settings.$darkModeColorLine;
+      border-bottom-color: theme-settings.$darkModeColorLine;
+    }
+    .content-header,
+    .content-footer {
+      color: theme-settings.$darkModeColorLight;
+    }
+    &.inset {
+      .wide-block {
+        border-color: theme-settings.$darkModeColorLine;
+      }
+    }
+  }
+
+  .header-large-title {
+    .title {
+      color: theme-settings.$darkModeColorHeading;
+    }
+    .subtitle {
+      color: theme-settings.$darkModeColorHeading !important;
+    }
+  }
+
+  .appBottomMenu {
+    background: theme-settings.$darkModeContentBackground;
+    border-top-color: theme-settings.$darkModeColorLine;
+    .item {
+      i.bi,
+      i.icon,
+      ion-icon,
+      strong {
+        color: theme-settings.$darkModeColorHeading;
+      }
+      &:hover {
+        i.bi,
+        i.icon,
+        ion-icon,
+        strong {
+          color: theme-settings.$darkModeColorHeading;
+        }
+      }
+    }
+    &.bg-light {
+      .item {
+        i.bi,
+        i.icon,
+        ion-icon,
+        strong {
+          color: theme-settings.$colorHeading;
+        }
+        &:hover {
+          i.bi,
+          i.icon,
+          ion-icon,
+          strong {
+            color: theme-settings.$colorHeading;
+          }
+        }
+      }
+    }
+  }
+  .accordion {
+    border-top-color: theme-settings.$darkModeColorLine;
+    border-bottom-color: theme-settings.$darkModeColorLine;
+    background: theme-settings.$darkModeBackground !important;
+    .accordion-body {
+      background: theme-settings.$darkModeContentBackground;
+    }
+    .accordion-header {
+      .btn,
+      .accordion-button {
+        color: theme-settings.$darkModeColorHeading;
+        background: theme-settings.$darkModeContentBackground !important;
+        &:active,
+        &:hover {
+          background-color: theme-settings.$darkModeContentBackground !important;
+        }
+        &:after {
+          color: theme-settings.$darkModeColorLight;
+        }
+        &.collapsed {
+          &:before {
+            background: theme-settings.$darkModeColorLine !important;
+          }
+        }
+      }
+    }
+  }
+  .inset {
+    .accordion {
+      border-color: theme-settings.$darkModeColorLine;
+    }
+  }
+
+  .action-sheet {
+    .offcanvas-header {
+      border-bottom-color: theme-settings.$darkModeColorLine;
+      .close-button {
+        color: theme-settings.$darkModeColorLight;
+      }
+      .offcanvas-title {
+        color: theme-settings.$darkModeColorHeading;
+      }
+    }
+  }
+  .ios-add-to-home,
+  .android-add-to-home{
+    .action-sheet-content {
+      color: theme-settings.$darkModeColorHeading;
+    }
+    &:before {
+      border-top-color: theme-settings.$darkModeContentBackground;
+    }
+  }
+  .action-button-list {
+    > li {
+      .btn {
+        color: theme-settings.$darkModeColorHeading;
+        &:active,
+        &.active {
+          background: rgba(theme-settings.$darkModeColorLine, 0.3) !important;
+        }
+      }
+    }
+    .action-divider {
+      background: theme-settings.$darkModeColorLine;
+    }
+  }
+
+  .listview.transparent {
+    background: transparent !important;
+  }
+  .listview-title {
+    color: theme-settings.$darkModeColorText;
+    .link {
+      color: theme-settings.$darkModeColorLight;
+    }
+    &.sticky-title {
+      background: theme-settings.$darkModeBackground;
+      box-shadow: 0 1px 0 theme-settings.$darkModeColorLine, 0 -1px 0 theme-settings.$darkModeColorLine;
+      strong {
+        color: theme-settings.$darkModeColorHeading;
+      }
+      .text-small {
+        color: theme-settings.$darkModeColorLight;
+      }
+    }
+  }
+  .listview {
+    color: theme-settings.$darkModeColorHeading;
+    background-color: theme-settings.$darkModeContentBackground !important;
+    border-top-color: theme-settings.$darkModeColorLine;
+    border-bottom-color: theme-settings.$darkModeColorLine;
+    .text-muted {
+      color: theme-settings.$darkModeColorLight !important;
+    }
+    > li {
+      &:after {
+        background: theme-settings.$darkModeColorLine;
+      }
+      header,
+      footer {
+        color: theme-settings.$darkModeColorText;
+      }
+    }
+    > li.divider-title {
+      background: rgba(0, 0, 0, 0.1);
+      color: theme-settings.$darkModeColorText;
+      border-top-color: theme-settings.$darkModeColorLine;
+      border-bottom-color: theme-settings.$darkModeColorLine;
+    }
+  }
+  .link-listview {
+    > li {
+      a {
+        color: theme-settings.$darkModeColorHeading !important;
+        &:after {
+          background-image: url("data:image/svg+xml,%0A%3Csvg width='10px' height='16px' viewBox='0 0 10 16' version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'%3E%3Cg id='Page-1' stroke='none' stroke-width='1' fill='none' fill-rule='evenodd' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg id='Listview' transform='translate(-112.000000, -120.000000)' stroke='#{accordion.svg-bg-color(theme-settings.$darkModeColorLight)}' stroke-width='2.178'%3E%3Cpolyline id='Path' points='114 122 120 128 114 134'%3E%3C/polyline%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        &:active {
+          background: rgba(theme-settings.$darkModeColorLine, 0.3);
+        }
+      }
+    }
+  }
+  .image-listview {
+    > li {
+      a.item {
+        color: theme-settings.$darkModeColorHeading !important;
+        &:active {
+          background: rgba(theme-settings.$darkModeColorLine, 0.3);
+        }
+        &:after {
+          background-image: url("data:image/svg+xml,%0A%3Csvg width='10px' height='16px' viewBox='0 0 10 16' version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'%3E%3Cg id='Page-1' stroke='none' stroke-width='1' fill='none' fill-rule='evenodd' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg id='Listview' transform='translate(-112.000000, -120.000000)' stroke='#{accordion.svg-bg-color(theme-settings.$darkModeColorLight)}' stroke-width='2.178'%3E%3Cpolyline id='Path' points='114 122 120 128 114 134'%3E%3C/polyline%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+      }
+    }
+    &.media {
+      > li {
+        border-bottom: 1px solid theme-settings.$darkModeColorLine;
+      }
+    }
+  }
+
+  .btn-light {
+    background: #fff !important;
+    color: #000 !important;
+    border-color: #fff !important;
+    &:hover,
+    &:active {
+      background: #fff !important;
+      color: #000 !important;
+      border-color: #fff !important;
+      opacity: 0.8;
+    }
+  }
+  .btn-dark {
+    background: #000 !important;
+    color: #fff !important;
+    border-color: #000 !important;
+    &:hover,
+    &:active {
+      background: #000 !important;
+      color: #fff !important;
+      border-color: #000 !important;
+      opacity: 0.6;
+    }
+  }
+  .btn-outline-light {
+    border-color: #fff !important;
+    color: #fff !important;
+    &:hover,
+    &:active {
+      color: #fff !important;
+      border-color: #fff !important;
+    }
+  }
+  .btn-outline-dark {
+    border-color: #000 !important;
+    color: #000 !important;
+    &:hover,
+    &:active {
+      color: #000 !important;
+      border-color: #000 !important;
+      background: rgba(0, 0, 0, 0.2) !important;
+    }
+  }
+
+  .card {
+    background: theme-settings.$darkModeContentBackground;
+    .card-title {
+      color: theme-settings.$darkModeColorHeading;
+    }
+    .card-subtitle {
+      color: theme-settings.$darkModeColorHeading;
+    }
+    .card-header {
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+      color: theme-settings.$darkModeColorHeading;
+    }
+    .card-footer {
+      border-top-color: rgba(255, 255, 255, 0.1);
+      color: theme-settings.$darkModeColorText;
+    }
+    .text-muted {
+      color: theme-settings.$darkModeColorLight !important;
+    }
+    &.bg-light {
+      color: theme-settings.$colorText;
+      .card-title {
+        color: theme-settings.$colorHeading;
+      }
+      .card-subtitle {
+        color: theme-settings.$colorHeading;
+      }
+      .card-header {
+        color: #000;
+        border-bottom-color: theme-settings.$colorLine;
+      }
+    }
+  }
+  .blockquote-footer {
+    color: theme-settings.$darkModeColorText;
+  }
+
+  .custom-control {
+    .custom-control-label {
+      color: theme-settings.$darkModeColorHeading;
+      &:before {
+        background: transparent;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+      }
+      &:active {
+        &:before {
+          background: transparent !important;
+          border-color: theme-settings.$darkModeColorLine !important;
+        }
+      }
+    }
+  }
+
+  .input-list {
+    .custom-control {
+      &:after {
+        background: theme-settings.$darkModeColorLine;
+      }
+    }
+    .custom-control-label {
+      &:active {
+        background: rgba(theme-settings.$darkModeColorLine, 0.3);
+      }
+    }
+  }
+
+  // Form check
+  .form-check {
+    .form-check-label {
+      color: theme-settings.$darkModeColorHeading;
+      &:after {
+        border-color: color.adjust(theme-settings.$darkModeColorLine, $lightness: 5%);
+      }
+    }
+  }
+  .input-list {
+    .form-check {
+      &:after {
+        background: theme-settings.$darkModeColorLine;
+      }
+      .form-check-label {
+        &:active {
+          background: rgba(theme-settings.$darkModeColorLine, 0.3);
+        }
+      }
+    }
+  }
+  .form-switch {
+    .form-check-label {
+      &:after {
+        background: color.adjust(theme-settings.$darkModeContentBackground, $lightness: -2%);
+      }
+      &:before {
+        background: #ffffff;
+      }
+    }
+    .form-check-input:checked ~ .form-check-label {
+      &:after {
+        background-color: theme-settings.$colorPrimary;
+        border-color: theme-settings.$colorPrimary !important;
+      }
+      &:before {
+        opacity: 1;
+      }
+    }
+  }
+
+  .chip {
+    background: theme-settings.$darkModeColorLine;
+    color: theme-settings.$darkModeColorHeading;
+    &.chip-outline {
+      box-shadow: inset 0 0 0 1px theme-settings.$darkModeColorLine;
+      background: transparent;
+    }
+    .chip-icon {
+      background: theme-settings.$darkModeColorText;
+      color: #fff;
+    }
+    .chip-delete {
+      color: theme-settings.$darkModeColorHeading;
+    }
+  }
+  .comment-block {
+    .item {
+      .text {
+        color: theme-settings.$darkModeColorText;
+      }
+      .comment-header {
+        .title {
+          color: theme-settings.$darkModeColorHeading;
+        }
+        .time {
+          color: theme-settings.$darkModeColorLight;
+        }
+      }
+      .comment-footer {
+        .comment-button {
+          color: theme-settings.$darkModeColorText !important;
+        }
+      }
+    }
+  }
+
+  .dialogbox {
+    .modal-dialog {
+        .modal-content {
+          background: theme-settings.$darkModeContentBackground;
+            .btn-list {
+                .btn {
+                    border-bottom-color: theme-settings.$darkModeColorLine !important;
+
+                    &:hover,
+                    &:focus,
+                    &:active,
+                    &.active {
+                        background: rgba(theme-settings.$darkModeColorLine, 0.3) !important;
+                    }
+                }
+            }
+            .btn-inline {
+                background: theme-settings.$darkModeColorLine;
+                .btn {
+                    background: theme-settings.$darkModeContentBackground;
+                    color: theme-settings.$darkModeColorText;
+                    border-right-color: theme-settings.$darkModeColorLine !important;
+                    &:hover,
+                    &:focus,
+                    &:active,
+                    &.active {
+                        background: rgba(theme-settings.$darkModeContentBackground, 0.7) !important;
+                    }
+                }
+            }
+            .modal-header {
+                .modal-title {
+                    color: theme-settings.$darkModeColorHeading;
+                }
+            }
+            .modal-footer {
+                border-top-color: theme-settings.$darkModeColorLine;
+            }
+        }
+    }
+}
+  
+  
+
+
+
+
+
+
+
+
+  .divider {
+    background: theme-settings.$darkModeColorLine;
+    .icon-box {
+      background: theme-settings.$darkModeColorLine;
+    }
+  }
+
+  .dropdown,
+  .dropup {
+    .dropdown-menu {
+      background: theme-settings.$darkModeBackground;
+      border: 1px solid theme-settings.$darkModeColorLine;
+      .dropdown-item {
+        color: theme-settings.$darkModeColorHeading;
+        &:hover,
+        &:active {
+          background: rgba(theme-settings.$darkModeColorLine, 0.5) !important;
+          color: theme-settings.$darkModeColorHeading;
+        }
+      }
+      .dropdown-divider {
+        border-top-color: theme-settings.$darkModeColorLine !important;
+      }
+      .dropdown-header {
+        color: theme-settings.$darkModeColorText;
+      }
+      .text {
+        color: theme-settings.$darkModeColorText;
+      }
+      i.bi,
+      i.icon,
+      ion-icon {
+        color: theme-settings.$darkModeColorHeading;
+      }
+    }
+  }
+
+  .error-page {
+    .title {
+      color: theme-settings.$darkModeColorHeading;
+    }
+  }
+  .fixed-footer {
+    background: theme-settings.$darkModeBackground;
+  }
+
+  .fab-button {
+    .dropdown-menu {
+      background: transparent;
+      border-color: transparent;
+    }
+  }
+
+  .form-wizard-section {
+    &:before {
+      background: theme-settings.$darkModeColorLine;
+    }
+    .button-item {
+      strong {
+        background: theme-settings.$darkModeColorLine;
+        color: theme-settings.$darkModeColorLight;
+      }
+      p {
+        color: theme-settings.$darkModeColorLight;
+      }
+      &.active {
+        strong {
+          background: theme-settings.$colorPrimary;
+          color: #fff;
+        }
+        p {
+          color: theme-settings.$darkModeColorHeading;
+        }
+      }
+    }
+  }
+  .exampleBox {
+    border-color: theme-settings.$darkModeColorLine;
+    background: rgba(theme-settings.$darkModeColorLine, 0.3);
+  }
+  .form-group {
+    .form-label {
+      color: theme-settings.$darkModeColorHeading;
+    }
+    .input-info {
+      color: theme-settings.$darkModeColorLight;
+    }
+    .clear-input {
+      color: theme-settings.$darkModeColorLight;
+    }
+  }
+  .form-group.basic {
+    .form-control,
+    .custom-select {
+      border-bottom-color: theme-settings.$darkModeColorLine;
+      color: theme-settings.$darkModeColorHeading;
+    }
+  }
+  .form-group.boxed {
+    .form-control,
+    .custom-select {
+      color: theme-settings.$darkModeColorHeading;
+      background: theme-settings.$darkModeColorLine;
+      border-color: theme-settings.$darkModeColorLine;
+    }
+  }
+  .input-group {
+    .input-group-text {
+      border-bottom-color: theme-settings.$darkModeColorLine;
+      color: theme-settings.$darkModeColorHeading;
+    }
+  }
+  .form-button-group {
+    background: theme-settings.$darkModeBackground;
+  }
+  .message-divider {
+    color: theme-settings.$darkModeColorText;
+  }
+  .message-item {
+    .bubble {
+      background: theme-settings.$darkModeColorLine;
+      color: theme-settings.$darkModeColorHeading;
+    }
+    .title {
+      color: theme-settings.$darkModeColorText;
+    }
+    .footer {
+      color: theme-settings.$darkModeColorHeading;
+    }
+    &.user {
+      .bubble {
+        background: theme-settings.$colorPrimary;
+      }
+    }
+  }
+
+  .chatFooter {
+    background: theme-settings.$darkModeContentBackground;
+    border-top-color: theme-settings.$darkModeColorLine;
+  }
+  .modalbox {
+    background: theme-settings.$darkModeBackground;
+    .modal-dialog {
+      .modal-content {
+        background: theme-settings.$darkModeBackground;
+        .modal-header {
+          border-bottom-color: theme-settings.$darkModeColorLine;
+          background: theme-settings.$darkModeContentBackground;
+          .modal-title {
+            color: theme-settings.$darkModeColorHeading;
+          }
+        }
+      }
+    }
+  }
+
+  .notification-box {
+    position: fixed;
+    left: 0;
+    top: -100%;
+    right: 0;
+    width: 100%;
+    z-index: 9999;
+    transition: 0.3s all;
+    &.show {
+      top: 0;
+    }
+  }
+
+  .notification-dialog.android-style {
+    background: color.adjust(theme-settings.$darkModeContentBackground, $lightness: -4%);
+    .notification-header {
+      .in {
+        strong {
+          color: theme-settings.$darkModeColorHeading;
+        }
+      }
+      .close-button {
+        color: theme-settings.$darkModeColorLight;
+        &:hover,
+        &:active {
+          color: theme-settings.$darkModeColorText;
+        }
+      }
+    }
+    .icon-box {
+      color: theme-settings.$darkModeColorLight;
+    }
+    .notification-footer {
+      border-top: 1px solid theme-settings.$darkModeColorLine;
+      .notification-button {
+        border-right: 1px solid theme-settings.$darkModeColorLine;
+        &:last-child {
+          border-right: 0;
+        }
+        &:hover,
+        &:active {
+          background: rgba(theme-settings.$darkModeColorLine, 0.3);
+        }
+      }
+    }
+  }
+  .notification-dialog.ios-style {
+    background: color.adjust(theme-settings.$darkModeContentBackground, $lightness: -4%);
+    .notification-header {
+    }
+    .icon-box {
+      color: theme-settings.$darkModeColorLight;
+    }
+  }
+
+  .panelbox {
+    .modal-dialog {
+      .modal-content {
+        background: theme-settings.$darkModeContentBackground;
+        .modal-header {
+          .modal-title {
+            color: theme-settings.$darkModeColorHeading;
+          }
+        }
+      }
+    }
+  }
+  .offcanvas {
+    background: theme-settings.$darkModeContentBackground;
+  }
+
+  .pagination {
+    &.pagination-secondary {
+      .page-item {
+        .page-link {
+          background: theme-settings.$darkModeBackground;
+          color: theme-settings.$darkModeColorText;
+        }
+      }
+    }
+  }
+
+  .progress {
+    background: color.adjust(theme-settings.$darkModeContentBackground, $lightness: 6%);
+  }
+
+  .searchbox {
+    .form-control {
+      border-color: theme-settings.$darkModeColorLine !important;
+      color: theme-settings.$darkModeColorHeading;
+      background: theme-settings.$darkModeColorLine;
+      &:focus {
+        border-color: color.adjust(theme-settings.$darkModeColorLine, $lightness: 10%) !important;
+        & ~ .input-icon {
+          color: theme-settings.$darkModeColorHeading;
+        }
+      }
+    }
+    .close {
+      color: theme-settings.$darkModeColorLight;
+    }
+    .input-icon {
+      color: theme-settings.$darkModeColorLight;
+    }
+  }
+
+  #search {
+    background: theme-settings.$darkModeContentBackground;
+    border-bottom-color: theme-settings.$darkModeContentBackground;
+    .searchbox {
+      .form-control {
+        color: theme-settings.$darkModeColorHeading;
+        &:focus {
+          border-color: color.adjust(theme-settings.$darkModeColorLine, $lightness: -15%);
+          & ~ .input-icon {
+            color: theme-settings.$darkModeColorHeading;
+          }
+        }
+      }
+      .input-icon {
+        color: theme-settings.$darkModeColorLight;
+      }
+    }
+  }
+
+  .table {
+    color: theme-settings.$darkModeColorText;
+    tr {
+      border-color: theme-settings.$darkModeColorLine;
+    }
+    thead {
+      th {
+        color: theme-settings.$darkModeColorHeading;
+      }
+    }
+    td,
+    th {
+      border-top-color: rgba(255, 255, 255, 0.08);
+    }
+  }
+  .table-striped > tbody > tr:nth-of-type(odd) {
+    background: rgba(theme-settings.$darkModeColorLine, 0.5) !important;
+    color: theme-settings.$darkModeColorText;
+  }
+  .table-bordered {
+    td,
+    th {
+      border-color: theme-settings.$darkModeColorLine;
+    }
+  }
+  .table.bg-primary,
+  .table.bg-secondary,
+  .table.bg-success,
+  .table.bg-danger,
+  .table.bg-warning,
+  .table.bg-info {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .timeline {
+    &:before {
+      background: theme-settings.$darkModeColorLine;
+    }
+    .dot {
+      background: theme-settings.$darkModeColorLight;
+      box-shadow: 0 0 0 4px theme-settings.$darkModeContentBackground;
+    }
+  }
+  .toast-box {
+    background: color.adjust(theme-settings.$darkModeBackground, $lightness: -5%);
+  }
+
+  .appFooter {
+    border-top-color: theme-settings.$darkModeColorLine;
+    background: theme-settings.$darkModeBackground;
+    .footer-title {
+      color: theme-settings.$darkModeColorHeading;
+    }
+    .btn-icon {
+      color: theme-settings.$darkModeColorLight;
+    }
+  }
+
+  .sidebar-buttons {
+    background: theme-settings.$darkModeBackground;
+    border-top: 1px solid theme-settings.$darkModeColorLine;
+    .button {
+      color: theme-settings.$darkModeColorHeading;
+      &:hover,
+      &:active {
+        background: rgba(theme-settings.$darkModeColorLine, 0.2);
+      }
+    }
+    &:last-child {
+      border-right-color: transparent;
+    }
+  }
+  .profileBox {
+    .in {
+      strong {
+        color: #fff;
+      }
+      .text-muted {
+        color: rgba(255, 255, 255, 0.5) !important;
+      }
+    }
+  }
+  .close-sidebar-button {
+    color: rgba(255, 255, 255, 0.5) !important;
+    &:active {
+      background: rgba(theme-settings.$darkModeColorLine, 0.3);
+    }
+  }
+
+  .demoIcons {
+    color: theme-settings.$darkModeColorText;
+  }
+
+  .custom-file-upload {
+    label {
+      background-color: rgba(theme-settings.$darkModeColorLine, 0.2);
+      border-color: theme-settings.$darkModeColorLine;
+      span {
+        color: theme-settings.$darkModeColorLight;
+        i.bi,
+        i.icon,
+        ion-icon {
+          color: theme-settings.$darkModeColorLight;
+        }
+      }
+      &.file-uploaded {
+        span {
+          color: theme-settings.$darkModeColorText;
+          background-color: theme-settings.$darkModeColorLine;
+        }
+      }
+    }
+  }
+
+  .nav-tabs.capsuled {
+    background: rgba(theme-settings.$darkModeColorLine, 0.4);
+    .nav-item {
+      .nav-link {
+        color: theme-settings.$darkModeColorText;
+        &.active {
+          background: color.adjust(theme-settings.$darkModeColorLine, $lightness: 5%);
+          color: theme-settings.$darkModeColorHeading;
+        }
+      }
+    }
+  }
+
+  .nav-tabs.lined {
+    .nav-item {
+      .nav-link {
+        color: theme-settings.$darkModeColorText;
+        background: transparent;
+        &.active {
+          background: transparent;
+          color: theme-settings.$colorPrimary;
+        }
+      }
+    }
+  }
+
+  .blog-post {
+    .post-header {
+      color: theme-settings.$darkModeColorLight;
+      border-top-color: theme-settings.$darkModeColorLine;
+      border-bottom-color: theme-settings.$darkModeColorLine;
+      a {
+        color: theme-settings.$darkModeColorHeading;
+      }
+    }
+  }
+
+  #countDown {
+    color: theme-settings.$darkModeColorHeading;
+    > div {
+      border-color: theme-settings.$darkModeColorLine;
+      span {
+        color: theme-settings.$darkModeColorLight;
+      }
+    }
+  }
+
+  figure.codebox {
+    background: theme-settings.$darkModeColorLine;
+    code {
+      color: theme-settings.$darkModeColorHeading;
+    }
+  }
+
+  .profile-head {
+    .in {
+      .subtext {
+        color: theme-settings.$darkModeColorLight;
+      }
+    }
+  }
+  .profile-info {
+    .bio {
+      color: theme-settings.$darkModeColorText;
+    }
+  }
+  .profile-stats {
+    .item {
+      color: theme-settings.$darkModeColorText;
+      strong {
+        color: theme-settings.$darkModeColorHeading;
+      }
+    }
+  }
+
+  .rate-block {
+    color: theme-settings.$darkModeColorLight;
+  }
+  .product-detail-header {
+    .title {
+      color: theme-settings.$darkModeColorHeading;
+    }
+    .text {
+      color: theme-settings.$darkModeColorText;
+    }
+    .detail-footer {
+      .price {
+        .old-price {
+          color: theme-settings.$darkModeColorText;
+        }
+      }
+    }
+  }
+
+  .cart-item {
+    .in {
+      .text {
+        .detail {
+          color: theme-settings.$darkModeColorLight;
+        }
+      }
+    }
+    .cart-item-footer {
+      border-top: 1px solid theme-settings.$darkModeColorLine;
+    }
+  }
+  .invoice {
+    color: theme-settings.$colorText;
+    .invoice-total {
+      .listview {
+        border-color: theme-settings.$colorLine;
+        li {
+          color: theme-settings.$colorHeading;
+          &:after {
+            background: theme-settings.$colorLine;
+          }
+        }
+      }
+    }
+  }
+  .story-block {
+    .splide__slide {
+      img {
+        box-shadow: 0 0 0 3px theme-settings.$darkModeContentBackground, 0 0 0 5px theme-settings.$colorPrimary;
+      }
+    }
+    .seen {
+      img {
+        box-shadow: 0 0 0 4px theme-settings.$darkModeContentBackground, 0 0 0 5px rgba(theme-settings.$darkModeColorLight, 0.5);
+      }
+    }
+    .passive {
+      img {
+        box-shadow: 0 0 0 4px theme-settings.$darkModeContentBackground, 0 0 0 5px rgba(theme-settings.$darkModeColorLight, 0.5);
+      }
+    }
+  }
+  .cookies-modal{
+    background: color.adjust(theme-settings.$darkModeContentBackground, $lightness: 5%);
+    border-color: color.adjust(theme-settings.$darkModeContentBackground, $lightness: 8%);
+  }
+  &.rtl-mode{
+   .notification-dialog.android-style{
+     .notification-footer{
+       .notification-button{
+         border-left-color: theme-settings.$darkModeColorLine;
+       }
+     }
+   }
+  }
+
+  // qlarius-custom
+
+  .q-list-text {
+    color: white;
+  }
+
+
+  .trait-count-header-badge {
+    background-color: #393955;
+    color: white;
+  }
+  .trait-name {
+    background-color: #393955;
+    color: white;
+  }
+  .tag-count-header-badge {
+    background-color: qlarius-theme-settings.$tagValue-dark;
+    border-color: qlarius-theme-settings.$tagValueBorder;
+    color: white;
+  }
+  .tag-value {
+    background-color: qlarius-theme-settings.$tagValue-dark;
+    color: white;
+  }
+  .survey-panel-heading {
+    background-color: #393955 !important; 
+    color: white;
+  }
+  .multi-select-answer-box {
+    background-color: qlarius-theme-settings.$tagValue-dark;
+    border-color: qlarius-theme-settings.$tagValueBorder;
+    color: white;
+  }
+  .tag-selection{
+    border-color: qlarius-theme-settings.$tagValueBorder;
+  }
+  .input-list .form-check:after {
+    background: #8195a6;
+  }
+  .form-check .form-check-label:after {
+    border-color: white;
+  }
+  .trait-name a {
+    color: white;
+  }
+  .trait-name a:hover {
+    opacity: .8;
+  }
+
+  // ad viewer
+
+  .ydadget-category-announce {
+    background: theme-settings.$darkModeContentBackground;
+    color: #fff !important;
+  }
+  .ydadget-banner-text-ad-unit {
+    border-color: #6C7C94 !important;
+    background: theme-settings.$darkModeBackground;
+  }
+  .ydadget-banner-text-bottom-well {
+    background: theme-settings.$darkModeBackground;
+  }
+  .ydadget-amount-tab {
+    background: theme-settings.$darkModeContentBackground;
+    color: white;
+    top: 115px;
+    border-bottom: 1px solid #6C7C94 !important;
+    border-left: 1px solid #6C7C94 !important;
+    border-right: 1px solid #6C7C94 !important;
+    border-top: 1px solid theme-settings.$darkModeContentBackground !important;
+  }
+  .ydadget-banner-phase {
+    border-bottom: 1px solid #6C7C94 !important;
+  }
+  .ydadget-text-ad-container {
+    background: theme-settings.$darkModeContentBackground;
+    border-bottom: 1px solid #6C7C94 !important;
+    height: 116px;
+    color: #8195a6;
+  }
+  .ydadget-ad-title {
+    color: white;
+  }
+  .ydadget-complete-container {
+    opacity: 1;
+  }
+
+  .trait-name.flash-green {
+    background-color: #29ac83;
+    transform: scale(1.05);
+  }
+  
+  .tag-value.flash-green {
+    background-color: #9addc9;
+    transform: scale(1.05);
+  }
+  
+  .trait-name.flash-red {
+    background-color: #d0695d;
+  }
+  
+  .tag-value.flash-red {
+    background-color: #d3a29d;
+  }
+
+  .pagination.pagination-secondary .page-item .page-link {
+    border: 1px solid #1B283B;
+  }
+
+  // Three Tap Unit Dark Mode
+  .three-tap-banner-text-ad-unit {
+    border-color: #6C7C94;
+    background: theme-settings.$darkModeBackground;
+  }
+
+  .three-tap-text-phase {
+    background: theme-settings.$darkModeContentBackground;
+    
+    .three-tap-ad-title {
+      color: white;
+    }
+    
+    .three-tap-ad-copy {
+      color: #8195a6;
+    }
+    
+    .three-tap-ad-display-url {
+      color: #6C7C94;
+    }
+  }
+
+  .three-tap-cover-container {
+    background: theme-settings.$darkModeContentBackground;
+
+    .three-tap-category-text {
+      color: white;
+    }
+
+    .three-tap-amount-text {
+      color: white;
+    }
+  }
+
+  #three-tap-banner-state,
+  #three-tap-text-state {
+    color: white;
+  }
+
+  #three-tap-banner-state {
+    background-color: #3b3b3b;
+  }
+
+  #three-tap-text-state {
+    background-color: #2a2a2a;
+  }
+
+  .three-tap-complete-container {
+    background: theme-settings.$darkModeBackground;
+    color: white;
+
+    .three-tap-paid-info-amounts {
+      color: white;
+      
+    }
+  }
+
+  #three-tap-banner-state-check {
+    background-color: theme-settings.$darkModeBackground;
+  }
+
+  // Three Tap State Strip Dark Mode
+  #three-tap-state-strip {
+    background: theme-settings.$darkModeBackground;
+  }
+
+
+}

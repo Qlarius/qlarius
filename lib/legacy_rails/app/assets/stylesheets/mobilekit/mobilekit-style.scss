@@ -1,0 +1,62 @@
+//-------------------------------------------------------------
+// Bootstrap 5
+//-------------------------------------------------------------
+@use 'inc/bootstrap/bootstrap.min'; //use 5.1.2 as shipped in mobilekit to avoid conflicts
+
+
+//-------------------------------------------------------------
+// Plugins
+//-------------------------------------------------------------
+// Splide
+@use 'inc/splide/splide.min';
+
+
+//-------------------------------------------------------------
+// Icons
+//-------------------------------------------------------------
+// Bootstrap Icons
+// @import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css");
+@use "../mobilekit/bootstrap-icons/font/bootstrap-icons.scss";
+// Note: ionicons removed from template framework due to inability to pipeline without web conection
+
+
+
+//-------------------------------------------------------------
+// Theme Settings
+//-------------------------------------------------------------
+@use 'theme-settings';
+
+
+//-------------------------------------------------------------
+// Layout
+//-------------------------------------------------------------
+// Body - General Settings
+// @use './body';
+// Header
+@use 'section/header';
+// Bottom Menu
+@use 'section/bottomMenu';
+// Content
+@use 'section/content';
+// Sidebar
+@use 'section/sidebar';
+// Footer
+@use 'section/footer';
+
+
+//-------------------------------------------------------------
+// UI Kit Framework
+//-------------------------------------------------------------
+@use './ui-framework';
+
+
+//-------------------------------------------------------------
+// RTL
+//-------------------------------------------------------------
+@use './rtl';
+
+
+//-------------------------------------------------------------
+// Dark Mode
+//-------------------------------------------------------------
+@use './darkmode';

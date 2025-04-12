@@ -1,0 +1,35 @@
+<turbo-stream action="update" target="proxy_user_list">
+  <template>
+    <%= render partial: "proxy_user_list", formats: [:html] %>
+  </template>
+</turbo-stream>
+
+<turbo-stream action="update" targets=".trait-count">
+  <template>
+    <%= @current_me_file.trait_tag_count %>  
+  </template>
+</turbo-stream>
+
+<turbo-stream action="update" targets=".acct-balance">
+  <template>
+    <%= number_to_currency(@current_me_file.ledger_header.balance) %>  
+  </template>
+</turbo-stream>
+
+<turbo-stream action="update" targets=".ad-count">
+  <template>
+    <%= @current_me_file.current_offers.count %>  
+  </template>
+</turbo-stream>
+
+<turbo-stream action="update" targets=".mefile-home-zip">
+  <template>
+    <%= @current_me_file.home_zip %>  
+  </template>
+</turbo-stream>
+
+<turbo-stream action="update" targets=".mefile-mobile">
+  <template>
+    <strong><%= @current_me_file.user.email %></strong>
+  </template>
+</turbo-stream>

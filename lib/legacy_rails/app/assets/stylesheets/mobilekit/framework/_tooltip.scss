@@ -1,0 +1,9 @@
+@use "../theme-settings";
+
+.tooltip{
+    .tooltip-inner{
+        font-size: theme-settings.$fontSizeSub;
+        padding: 6px 10px;
+        border-radius: theme-settings.$borderRadius;
+    }
+}

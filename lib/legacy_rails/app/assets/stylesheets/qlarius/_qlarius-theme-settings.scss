@@ -1,0 +1,21 @@
+//Qlaris Colors
+$colorQlarius:         #F5A622;
+$colorYouData:         #8585AD;
+$colorSponster:        #43B375;
+$colorTiqit:           #F5A622;
+$tagValue-dark:        #1a2029;
+$tagValue:             #f7f7f7;
+$tagValueBorder:       #858585;
+
+.bg-qlarius{
+  background: $colorQlarius !important;
+  color: #FFF;
+}
+
+.color-youdata {
+  color: $colorYouData;
+}
+
+.color-sponster {
+  color: $colorSponster;
+}

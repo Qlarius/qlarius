@@ -1,0 +1,46 @@
+<%= turbo_frame_tag "app_window" do %>
+  <div data-controller="app-page" data-app-target="appPage" data-app-page-app-page-value="mefile">
+
+    <div class="header-large-title">
+        <h1 class="title">MeFile</h1>
+    </div>
+    <div class="badge d-inline-block trait-tag-count-header-badge trait-count-header-badge">
+      <span class="trait-count"><%= @current_me_file.trait_tag_count %></span>&nbsp;traits
+    </div>
+    <div class="badge d-inline-block trait-tag-count-header-badge tag-count-header-badge">
+      <span class="tag-count"><%= @current_me_file.tag_count %></span>&nbsp;tags
+    </div>
+
+    <% @current_me_file.unique_trait_categories_tagged.each do |tc| %>
+
+        <div class="section full mt-4">
+          <div class="section-title medium">
+            <%= tc[:trait_category_name] %> 
+            <div id="trait_category_<%= tc[:id] %>" class="trait-category-tag-count">
+              <%= turbo_frame_tag "trait_category_#{tc[:id]}_count" do %>
+                <%= render partial: "trait_category_tag_count", locals: {tc_id: tc[:id]} %>
+              <% end %>
+            </div>
+          </div>
+          <div class="wide-block">
+            
+              <div id="trait-category-<%= tc[:id] %>">
+                <div class="tag-row">
+                  <%= render partial: 'trait_with_tags_static', collection: @current_me_file.tags_grouped_by_trait_name_for_category(tc.id) %>
+                </div> 
+              </div>           
+            </div>
+          </div>
+        </div>
+
+    <% end %>
+    <div class="fab-button text bottom-right">
+      <%= link_to 'me_file_builder', class: "fab", data: {"turbo-frame": :"app_window", "action":"click->app#loadSelectedPage"} do %>
+        <ion-icon name="add-outline" role="img" class="md hydrated" aria-label="add outline">
+          <i class="bi bi-plus"></i>
+        </ion-icon>
+        Builder
+      <% end %>
+    </div>
+  </div>
+<% end %>

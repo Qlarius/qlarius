@@ -1,0 +1,29 @@
+<%= turbo_frame_tag "app_window" do %>
+  <div data-controller="app-page" data-app-target="appPage" data-app-page-app-page-value="welcome">
+
+    <div class="header-large-title">
+        <h1 class="title">Settings</h1>
+    </div>
+
+     <% if @current_user && @current_user.role == "admin" %>
+            <div class="listview-title mt-2 mb-1">
+                <span>Admin</span>
+            </div>
+            <ul class="listview flush transparent no-line image-listview">
+                <li>
+                    <%= link_to proxy_user_manager_index_path, class: "item", data: {"turbo-frame": :"app_window", "action":"app#update_mefile_stats app#loadSelectedPage app#closeSidebar"} do %>
+                        <div class="icon-box bg-secondary" style="padding-top:2px;">
+                                <ion-icon>
+                                    <i class="bi bi-person-circle"></i>
+                                </ion-icon>
+                            </div>
+                            <div class="in">
+                                <div>Proxy Users (Demo)</div>
+                            </div>
+                    <% end %>
+                </li>
+            </ul>
+        <% end %>
+
+  </div>
+<% end %>

@@ -6,6 +6,7 @@ defmodule QlariusWeb.UserAuth do
 
   alias Qlarius.Accounts
   alias Qlarius.Accounts.Scope
+  alias Qlarius.Legacy
 
   # Make the remember me cookie valid for 60 days.
   # If you want bump or reduce this value, also change
@@ -92,9 +93,17 @@ defmodule QlariusWeb.UserAuth do
   and remember me token.
   """
   def fetch_current_scope_for_user(conn, _opts) do
-    {user_token, conn} = ensure_user_token(conn)
-    user = user_token && Accounts.get_user_by_session_token(user_token)
+    user = Legacy.get_user(508)
     assign(conn, :current_scope, Scope.for_user(user))
+  end
+
+  def fetch_current_user(conn, _opts) do
+    user = Legacy.get_user(508)
+    assign(conn, :current_user, user)
+  end
+
+  def require_authenticated_user(conn, _opts) do
+    conn
   end
 
   defp ensure_user_token(conn) do
@@ -143,75 +152,13 @@ defmodule QlariusWeb.UserAuth do
         live "/profile", ProfileLive, :index
       end
   """
-  def on_mount(:mount_current_scope, _params, session, socket) do
-    {:cont, mount_current_scope(socket, session)}
+  def on_mount(:mount_current_user, _params, _session, socket) do
+    user = Legacy.get_user(508)
+    {:cont, Phoenix.Component.assign(socket, current_user: user, current_scope: Scope.for_user(user))}
   end
 
-  def on_mount(:require_authenticated, _params, session, socket) do
-    socket = mount_current_scope(socket, session)
-
-    if socket.assigns.current_scope && socket.assigns.current_scope.user do
-      {:cont, socket}
-    else
-      socket =
-        socket
-        |> Phoenix.LiveView.put_flash(:error, "You must log in to access this page.")
-        |> Phoenix.LiveView.redirect(to: ~p"/delete_me/users/log-in")
-
-      {:halt, socket}
-    end
-  end
-
-  def on_mount(:redirect_if_user_is_authenticated, _params, session, socket) do
-    socket = mount_current_scope(socket, session)
-
-    if socket.assigns.current_scope do
-      {:halt, Phoenix.LiveView.redirect(socket, to: signed_in_path(socket))}
-    else
-      {:cont, socket}
-    end
-  end
-
-  defp mount_current_scope(socket, session) do
-    Phoenix.Component.assign_new(socket, :current_scope, fn ->
-      user =
-        if user_token = session["user_token"] do
-          Accounts.get_user_by_session_token(user_token)
-        end
-
-      Scope.for_user(user)
-    end)
-  end
-
-  @doc """
-  Used for routes that require the user to not be authenticated.
-  """
-  def redirect_if_user_is_authenticated(conn, _opts) do
-    if conn.assigns[:current_scope] do
-      conn
-      |> redirect(to: signed_in_path(conn))
-      |> halt()
-    else
-      conn
-    end
-  end
-
-  @doc """
-  Used for routes that require the user to be authenticated.
-
-  If you want to enforce the user email is confirmed before
-  they use the application at all, here would be a good place.
-  """
-  def require_authenticated_user(conn, _opts) do
-    if conn.assigns.current_scope && conn.assigns.current_scope.user do
-      conn
-    else
-      conn
-      |> put_flash(:error, "You must log in to access this page.")
-      |> maybe_store_return_to()
-      |> redirect(to: ~p"/users/log_in")
-      |> halt()
-    end
+  def on_mount(:ensure_authenticated, _params, _session, socket) do
+    {:cont, socket}
   end
 
   defp put_token_in_session(conn, token) do

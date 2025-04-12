@@ -1,0 +1,52 @@
+@use "theme-settings";
+
+body {
+  font-family: theme-settings.$fontFamily;
+  font-size: theme-settings.$fontSize;
+  line-height: theme-settings.$lineHeight;
+  letter-spacing: theme-settings.$letterSpacing;
+  color: theme-settings.$colorText;
+  background: theme-settings.$colorBackground;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// close all the scroll bars
+::-webkit-scrollbar {
+  width: 0;
+}
+
+// Selection color
+::selection {
+  background: rgba(theme-settings.$colorPrimary, 0.3);
+}
+
+// default link options
+a {
+  transition: none;
+  color: theme-settings.$colorPrimary;
+  outline: 0 !important;
+  text-decoration: none;
+  &:hover,
+  &:active,
+  &:focus {
+    outline: 0 !important;
+    color: theme-settings.$colorPrimary;
+    text-decoration: none;
+  }
+}
+button {
+  outline: 0 !important;
+  &:hover,
+  &:active,
+  &:focus {
+    outline: 0 !important;
+  }
+}
+
+// Safearea
+$safeBottom: env(safe-area-inset-bottom);
+$safeTop: env(safe-area-inset-top);

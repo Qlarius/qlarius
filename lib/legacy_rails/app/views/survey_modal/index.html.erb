@@ -1,0 +1,17 @@
+<%= turbo_frame_tag "modal-content-turboframe" do %>
+
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="myModalLabel"><%= @survey.name %></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+      </div>
+      <div class="modal-body">
+        Body
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" aria-hidden="true">CLOSE</button>
+        <%= submit_tag "CREATE/UPDATE TAG", class: "btn btn-primary", "data-action"=>"modal#close" %>
+      </div>
+    </div>
+    
+<% end %>

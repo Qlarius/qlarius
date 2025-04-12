@@ -1,0 +1,17 @@
+<%= turbo_frame_tag "autosplit_settings" do %>
+  <div class="split-selector" style="margin: 0 18px; border: 1px solid #ddd; border-radius: 8px; display: flex; overflow: hidden;">
+    <%= form_tag '', method: :patch, style: "display: flex; width: 100%;" do %>
+      <% [0, 25, 50, 75, 100].each_with_index do |percentage, index| %>
+        <button 
+          type="submit"
+          data-turbo-method="patch"
+          formaction="<%= tip_jar_ext_script_update_split_amount_path(split_amount: percentage) %>"
+          class="split-option <%= @current_me_file.split_amount == percentage ? 'active' : '' %>"
+          style="flex: 1; padding: 12px; text-align: center; font-size: 12px; font-weight: 600; background: <%= @current_me_file.split_amount == percentage ? '#37373C' : 'white' %>; color: <%= @current_me_file.split_amount == percentage ? 'white' : '#37373C' %>; border: none; cursor: pointer; border-right: <%= index < 4 ? '1px solid #ddd' : 'none' %>;"
+        >
+          <%= percentage %>%
+        </button>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

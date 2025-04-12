@@ -1,0 +1,25 @@
+<%= turbo_frame_tag "modal-content-turboframe" do %>
+
+  <%= form_tag delete_tags_me_file_tags_path, class: "modal-form" do |form| %>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="myModalLabel">Confirm deletion</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+      </div>
+      <div class="modal-body">
+        <div class="survey-question">
+          Delete tag?
+        </div>
+        <div class="tag-selection">
+        <%= hidden_field_tag :trait_id, params[:trait_id] %>
+        <%= render partial: 'shared/trait_with_current_tags', object: @current_me_file.trait_with_tags(params[:trait_id].to_i) %>
+        </div>
+      </div>
+      <div class="modal-footer pwa-safe-bottom">
+        <button type="button" class="btn btn-default-outline" data-controller="tag" data-action="tag#flash_green">Cancel</button>
+        <%= button_tag "Delete", class: "btn btn-danger", "data-controller"=>"tag", "data-action"=>"tag#flash_red" %>
+      </div>
+    </div>
+  <% end %>
+    
+<% end %>

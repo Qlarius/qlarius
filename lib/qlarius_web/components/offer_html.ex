@@ -1,7 +1,7 @@
 defmodule QlariusWeb.OfferHTML do
   use QlariusWeb, :html
 
-  alias Qlarius.Offer
+  alias Qlarius.Legacy.Offer
 
   import QlariusWeb.Money
 
@@ -13,9 +13,9 @@ defmodule QlariusWeb.OfferHTML do
       0 ->
         ~H"""
         <.offer_container offer={@offer} class="p-5 text-neutral-800">
-          <div class="text-2xl font-bold mb-4">{format_usd(@offer.amount)}</div>
+          <div class="text-2xl font-bold mb-4">{format_usd(@offer.offer_amt)}</div>
           <div class="mb-4">
-            {@offer.ad_category.name}
+            {@offer.media_piece.ad_category.ad_category_name}
           </div>
           <div class="flex justify-between w-full">
             <div class="text-blue-400">
@@ -34,7 +34,7 @@ defmodule QlariusWeb.OfferHTML do
           <div class="flex justify-center items-center">
             <img src={"/images/banner_#{rem(@offer.id, 4)}.png"} alt="Ad image" class="w-full h-auto" />
           </div>
-          <.click_jump_actions phase_2_amount={@offer.phase_2_amount} />
+          <.click_jump_actions phase_2_amount={@offer.offer_amt} />
         </.offer_container>
         """
 
@@ -54,7 +54,7 @@ defmodule QlariusWeb.OfferHTML do
             <div class="text-gray-500 text-xs">
               {@offer.media_piece.display_url}
             </div>
-            <.click_jump_actions phase_1_complete? phase_2_amount={@offer.phase_2_amount} />
+            <.click_jump_actions phase_1_complete? phase_2_amount={@offer.offer_amt} />
           </a>
         </.offer_container>
         """
@@ -72,7 +72,7 @@ defmodule QlariusWeb.OfferHTML do
             ATTENTION PAID™
           </div>
           <div class="text-sm">
-            Collected: <span class="font-semibold">{format_usd(@offer.amount)}</span>
+            Collected: <span class="font-semibold">{format_usd(@offer.offer_amt)}</span>
           </div>
         </.offer_container>
         """
