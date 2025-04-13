@@ -16,26 +16,25 @@ defmodule Qlarius.Accounts.Scope do
   growing application requirements.
   """
 
-  alias Qlarius.Legacy.User
-  alias Qlarius.Legacy.Offer
-  alias Qlarius.Legacy.LedgerHeader
-  alias Qlarius.Wallets
+  alias Qlarius.Legacy.{User, MeFile}
+  alias Qlarius.{LegacyRepo, Wallets}
   alias Decimal
 
-  defstruct user: nil, wallet_balance: nil, ads_count: nil
+  defstruct user: nil, wallet_balance: nil, ads_count: nil, home_zip: nil
 
   @doc """
   Creates a scope for the given user.
 
   Returns nil if no user is given.
   """
-  def for_user(%User{} = user) do
+  def for_user(user) do
+    user = User.active_proxy_user_or_self(user)
+    me_file = LegacyRepo.get_by(MeFile, user_id: user.id)
+
     %__MODULE__{
-      # ads_count: Offer.count_user_offers(user.id),
-      # user: user,
-      # wallet_balance: LedgerHeader.get_user_current_balance(user)
+      user: user,
+      home_zip: MeFile.home_zip(me_file),
       ads_count: 55,
-      user: User.active_proxy_user_or_self(user),
       wallet_balance: Decimal.new("2.34")
     }
   end

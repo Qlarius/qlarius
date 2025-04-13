@@ -4,7 +4,8 @@ defmodule Qlarius.Legacy.User do
   import Ecto.Query
 
   alias Qlarius.Legacy.UserProxy
-  alias Qlarius.Repo
+  # alias Qlarius.Legacy.Repo
+  alias Qlarius.Legacy.MeFile
 
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
@@ -12,32 +13,29 @@ defmodule Qlarius.Legacy.User do
   schema "users" do
     field :username, :string
     field :email, :string
-    field :encrypted_password, :string
-    field :reset_password_token, :string
-    field :reset_password_sent_at, :naive_datetime
-    field :remember_created_at, :naive_datetime
-    field :sign_in_count, :integer, default: 0
-    field :current_sign_in_at, :naive_datetime
-    field :last_sign_in_at, :naive_datetime
-    field :current_sign_in_ip, :string
-    field :last_sign_in_ip, :string
-    field :confirmation_token, :string
-    field :confirmed_at, :naive_datetime
-    field :confirmation_sent_at, :naive_datetime
-    field :unconfirmed_email, :string
-    field :failed_attempts, :integer, default: 0
-    field :unlock_token, :string
-    field :locked_at, :naive_datetime
-    field :authentication_token, :string
+    # field :encrypted_password, :string
+    # field :reset_password_token, :string
+    # field :reset_password_sent_at, :naive_datetime
+    # field :remember_created_at, :naive_datetime
+    # field :sign_in_count, :integer, default: 0
+    # field :current_sign_in_at, :naive_datetime
+    # field :last_sign_in_at, :naive_datetime
+    # field :current_sign_in_ip, :string
+    # field :last_sign_in_ip, :string
+    # field :confirmation_token, :string
+    # field :confirmed_at, :naive_datetime
+    # field :confirmation_sent_at, :naive_datetime
+    # field :unconfirmed_email, :string
+    # field :failed_attempts, :integer, default: 0
+    # field :unlock_token, :string
+    # field :locked_at, :naive_datetime
+    # field :authentication_token, :string
     field :referrer_code, :string
     field :role, :string
     field :passage_id, :string
     field :mobile_number, :string
 
-    has_many :me_files, Qlarius.Legacy.MeFile
-    has_many :marketer_users, Qlarius.Legacy.MarketerUser
-    has_many :marketers, through: [:marketer_users, :marketer]
-    has_one :user_pref, Qlarius.Legacy.UserPref
+    has_one :me_file, MeFile
 
     # Proxy associations matching Rails model
     has_many :proxy_users, UserProxy, foreign_key: :true_user_id
@@ -48,9 +46,8 @@ defmodule Qlarius.Legacy.User do
 
   def changeset(user, attrs) do
     user
-    |> cast(attrs, [:username, :email, :encrypted_password, :role, :mobile_number])
-    |> validate_required([:username, :email, :encrypted_password])
-    |> unique_constraint(:email)
+    |> cast(attrs, [:username])
+    |> validate_required([:username])
     |> unique_constraint(:username)
   end
 

@@ -57,6 +57,7 @@ defmodule QlariusWeb.AdsLive do
       default_scope = %{
         ads_count: 0,
         wallet_balance: Decimal.new(0),
+        home_zip: "NO ZIP",
         user: %{
           email: "Loading...",
           id: nil
