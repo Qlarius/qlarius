@@ -2,12 +2,13 @@ defmodule Qlarius.Arcade.ContentPiece do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Qlarius.Arcade.ContentGroup
   alias Qlarius.Arcade.TiqitType
 
   schema "content_pieces" do
     field :title, :string
     field :description, :string
-    field :content_type, Ecto.Enum, values: ~w[video podcast blog]a, default: :video
+    field :content_type, Ecto.Enum, values: ~w[video podcast blog song]a, default: :video
     field :date_published, :date
     field :length, :integer, default: 0
     field :preview_length, :integer, default: 0

@@ -122,13 +122,17 @@ defmodule QlariusWeb.UserAuth do
 
   @doc """
   Handles mounting and authenticating the current_scope in LiveViews.
+  Handles mounting and authenticating the current_scope in LiveViews.
 
   ## `on_mount` arguments
 
     * `:mount_current_scope` - Assigns current_scope
+    * `:mount_current_scope` - Assigns current_scope
       to socket assigns based on user_token, or nil if
       there's no user_token or no matching user.
 
+    * `:require_authenticated` - Authenticates the user from the session,
+      and assigns the current_scope to socket assigns based
     * `:require_authenticated` - Authenticates the user from the session,
       and assigns the current_scope to socket assigns based
       on user_token.
@@ -138,16 +142,19 @@ defmodule QlariusWeb.UserAuth do
 
   Use the `on_mount` lifecycle macro in LiveViews to mount or authenticate
   the `current_scope`:
+  the `current_scope`:
 
       defmodule QlariusWeb.PageLive do
         use QlariusWeb, :live_view
 
+        on_mount {QlariusWeb.UserAuth, :mount_current_scope}
         on_mount {QlariusWeb.UserAuth, :mount_current_scope}
         ...
       end
 
   Or use the `live_session` of your router to invoke the on_mount callback:
 
+      live_session :authenticated, on_mount: [{QlariusWeb.UserAuth, :require_authenticated}] do
       live_session :authenticated, on_mount: [{QlariusWeb.UserAuth, :require_authenticated}] do
         live "/profile", ProfileLive, :index
       end

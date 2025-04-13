@@ -2,8 +2,9 @@ defmodule Qlarius.Arcade.ContentGroup do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Qlarius.Arcade.ContentPiece
+
   schema "content_groups" do
-    field :type, :string
     field :description, :string
     field :title, :string
 

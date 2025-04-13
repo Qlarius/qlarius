@@ -10,7 +10,17 @@ defmodule QlariusWeb.Router do
     plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-    plug :fetch_current_user
+    plug :fetch_current_scope_for_user
+  end
+
+  pipeline :widgets do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
+    plug :protect_from_forgery
+    # plug :put_secure_browser_headers
+    plug :fetch_current_scope_for_user
     plug :fetch_current_scope_for_user
   end
 
@@ -18,7 +28,12 @@ defmodule QlariusWeb.Router do
     plug :accepts, ["json"]
   end
 
-  # Public routes
+  pipeline :auth_layout do
+    plug :put_root_layout, html: {QlariusWeb.Layouts, :auth}
+  end
+
+  # ------ MARKETER ROUTES ------
+
   scope "/", QlariusWeb do
     pipe_through [:browser]
 
@@ -54,6 +69,68 @@ defmodule QlariusWeb.Router do
 
       live_dashboard "/dashboard", metrics: QlariusWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
+    end
+  end
+
+  ## Authentication routes
+
+  scope "/", QlariusWeb do
+    pipe_through [:browser, :redirect_if_user_is_authenticated, :auth_layout]
+
+    live_session :redirect_if_user_is_authenticated,
+      on_mount: [{QlariusWeb.UserAuth, :redirect_if_user_is_authenticated}] do
+      live "/users/register", UserRegistrationLive, :new
+      live "/users/log_in", UserLoginLive, :new
+      live "/users/reset_password", UserForgotPasswordLive, :new
+      live "/users/reset_password/:token", UserResetPasswordLive, :edit
+    end
+
+    post "/users/log_in", UserSessionController, :create
+  end
+
+  scope "/widgets", QlariusWeb.Widgets do
+    pipe_through [:widgets, :require_authenticated_user]
+
+    get "/content/:id", ContentController, :show
+
+    live_session :widgets, on_mount: [{QlariusWeb.UserAuth, :require_authenticated}] do
+      live "/arcade/group/:group_id", ArcadeLive
+      live "/wallet", WalletLive
+    end
+  end
+
+  scope "/", QlariusWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    live_session :require_authenticated_user,
+      on_mount: [{QlariusWeb.UserAuth, :require_authenticated}] do
+      get "/", PageController, :home
+      live "/users/settings", UserSettingsLive, :edit
+      live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
+      live "/wallet", WalletLive, :index
+      live "/ads", AdsLive, :index
+      live "/me_file", MeFileLive, :index
+      get "/me_file/surveys", MeFileController, :surveys
+      live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
+      live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show
+      get "/arcade", ContentController, :groups
+      live "/admin/content/new", Marketers.ContentLive.Form, :new
+      live "/admin/content/:id/edit", Marketers.ContentLive.Form, :edit
+      resources "/admin/content", Marketers.ContentController, only: [:show, :index, :delete]
+    end
+
+    get "/jump/:id", AdController, :jump
+  end
+
+  scope "/", QlariusWeb do
+    pipe_through [:browser, :auth_layout]
+
+    delete "/users/log_out", UserSessionController, :delete
+
+    live_session :current_user,
+      on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
+      live "/users/confirm/:token", UserConfirmationLive, :edit
+      live "/users/confirm", UserConfirmationInstructionsLive, :new
     end
   end
 end
