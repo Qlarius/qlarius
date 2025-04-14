@@ -1,0 +1,148 @@
+@use "../theme-settings";
+
+.chip {
+  background: theme-settings.$colorLine;
+  font-size: 13px;
+  color: theme-settings.$colorHeading;
+  line-height: 1em;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+  border-radius: 100px;
+  .chip-label {
+    padding: 0 12px;
+  }
+  &.chip-outline {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px theme-settings.$colorLine;
+  }
+  &.chip-media {
+    position: relative;
+    padding-left: 20px;
+    img {
+      width: 26px;
+      height: 26px;
+      border-radius: 100px;
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+  }
+  .chip-icon {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 26px;
+    height: 26px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 100px;
+    background: theme-settings.$colorText;
+    color: #fff;
+    font-size: 14px;
+  }
+  .chip-delete {
+    width: 26px;
+    margin-left: -10px;
+    height: 26px;
+    display: inline-flex;
+    color: theme-settings.$colorHeading;
+    opacity: 0.7;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    border-radius: 100px;
+    &:hover,
+    &:active {
+      opacity: 1;
+    }
+  }
+}
+.chip-primary {
+  background: theme-settings.$colorPrimary !important;
+  color: #fff !important;
+  .chip-delete {
+    color: #fff !important;
+  }
+  &.chip-outline {
+    background: transparent !important;
+    color: theme-settings.$colorPrimary !important;
+    box-shadow: inset 0 0 0 1px theme-settings.$colorPrimary !important;
+  }
+}
+.chip-danger {
+  background: theme-settings.$colorDanger !important;
+  color: #fff !important;
+  .chip-delete {
+    color: #fff !important;
+  }
+  &.chip-outline {
+    background: transparent !important;
+    color: theme-settings.$colorDanger !important;
+    box-shadow: inset 0 0 0 1px theme-settings.$colorDanger !important;
+  }
+}
+.chip-success {
+  background: theme-settings.$colorSuccess !important;
+  color: #fff !important;
+  .chip-delete {
+    color: #fff !important;
+  }
+  &.chip-outline {
+    background: transparent !important;
+    color: theme-settings.$colorSuccess !important;
+    box-shadow: inset 0 0 0 1px theme-settings.$colorSuccess !important;
+  }
+}
+.chip-warning {
+  background: theme-settings.$colorWarning !important;
+  color: #fff !important;
+  .chip-delete {
+    color: #fff !important;
+  }
+  &.chip-outline {
+    background: transparent !important;
+    color: theme-settings.$colorWarning !important;
+    box-shadow: inset 0 0 0 1px theme-settings.$colorWarning !important;
+  }
+}
+.chip-info {
+  background: theme-settings.$colorInfo !important;
+  color: #fff !important;
+  .chip-delete {
+    color: #fff !important;
+  }
+  &.chip-outline {
+    background: transparent !important;
+    color: theme-settings.$colorInfo !important;
+    box-shadow: inset 0 0 0 1px theme-settings.$colorInfo !important;
+  }
+}
+.chip-light {
+  background: #fff !important;
+  color: #000 !important;
+  .chip-delete {
+    color: #000 !important;
+  }
+  &.chip-outline {
+    background: transparent !important;
+    color: #fff !important;
+    box-shadow: inset 0 0 0 1px #fff !important;
+  }
+}
+.chip-dark {
+  background: #000 !important;
+  color: #fff !important;
+  .chip-delete {
+    color: #fff !important;
+  }
+  &.chip-outline {
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: inset 0 0 0 1px #000 !important;
+  }
+}

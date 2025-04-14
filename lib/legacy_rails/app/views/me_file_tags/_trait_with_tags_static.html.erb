@@ -1,0 +1,27 @@
+  
+    <div id="tag-box-trait-id-<%= trait_with_tags_static[:tag_values].first[:trait_id] %>" class="tag-box" data-modal="tag" data-modal-traitid-value="<%= trait_with_tags_static[:tag_values].first[:trait_id] %>">
+        <div class="trait-name <%= local_assigns[:flash_green]==1 ? 'flash-green' : '' %>">
+          <div id="tag-name-trait-id-<%= trait_with_tags_static[:tag_values].first[:trait_id] %>"><%= trait_with_tags_static[:trait_name] %></div>
+          <% if is_tag_editable? trait_with_tags_static[:trait_name] %>
+            <div class="ms-3">
+              <%= link_to open_tag_editor_modal_me_file_tags_path(trait_id: trait_with_tags_static[:tag_values].first[:trait_id]), "data-turbo-frame"=>"modal-content-turboframe", "data-action"=>"app#openModal" do %>
+                <i class="bi bi-pencil"></i>
+              <% end %>
+              <%= link_to open_delete_confirm_modal_me_file_tags_path(trait_id: trait_with_tags_static[:tag_values].first[:trait_id]), "data-turbo-frame"=>"modal-content-turboframe", "data-action"=>"app#openModal" do %>
+                <i class="bi bi-trash3 ms-1"></i>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+        <div class="tag-value <%= local_assigns[:flash_green]==1 ? 'flash-green' : '' %>">
+          <% if trait_with_tags_static[:tag_values].empty? %>
+            <span class="no-tags-text">No tags</span>
+          <% else %>
+            <ul id="tag-list-trait-id-<%= trait_with_tags_static[:tag_values].first[:trait_id] %>">
+              <% trait_with_tags_static[:tag_values].each do |t_value| %>
+                <li><%= t_value[:tag_value] %></li>
+              <% end %>
+            </ul>
+          <% end %>
+        </div>
+    </div>

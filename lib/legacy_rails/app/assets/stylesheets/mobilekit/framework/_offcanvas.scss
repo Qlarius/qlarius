@@ -1,0 +1,74 @@
+@use "../body";
+@use "../theme-settings";
+
+$offcanvasWidth: 300px;
+
+.offcanvas {
+    width: $offcanvasWidth;
+    border: 0;
+    .offcanvas-header {
+        box-shadow: theme-settings.$boxShadow;
+        min-height: 56px;
+        padding: 10px 16px;
+        .offcanvas-title {
+            font-size: theme-settings.$fontSize;
+            font-weight: theme-settings.$medium;
+        }
+        .offcanvas-close {
+            color: theme-settings.$colorPrimary;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            i.bi,
+            i.icon,
+            ion-icon {
+                font-size: 26px;
+            }
+        }
+    }
+    .offcanvas-body {
+        padding: 16px;
+    }
+}
+.offcanvas-start,
+.offcanvas-end,
+.offcanvas-top {
+    padding-top: body.$safeTop;
+}
+.offcanvas-top {
+    transform: translateY(-120%);
+}
+.offcanvas-bottom {
+    padding-bottom: body.$safeBottom;
+    transform: translateY(120%);
+}
+.offcanvas-top,
+.offcanvas-bottom {
+    width: 100%;
+    height: 40vh;
+}
+
+.cookies-modal{
+    background: #FFF;
+    border-radius: theme-settings.$borderRadius;
+    box-shadow: theme-settings.$boxShadow;
+    border: 1px solid theme-settings.$colorLine;
+    position: fixed;
+    z-index: 100;
+    bottom: 72px;
+    left: 16px;
+    right: 16px;
+    padding: 16px;
+    font-size: theme-settings.$fontSizeSub;
+    line-height: 1.56em;
+    transform: translate(0%, 150%);
+    transition: .4s ease-in-out;
+    .title{
+        font-size: theme-settings.$fontSize;
+        line-height: 1.7em;
+    }
+    &.show{
+        transform: translate(0%, 0%);
+    }
+}

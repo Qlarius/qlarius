@@ -1,0 +1,2 @@
+class GlobalVariable < ApplicationRecord
+end

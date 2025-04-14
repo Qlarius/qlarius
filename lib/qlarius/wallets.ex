@@ -5,18 +5,26 @@ defmodule Qlarius.Wallets do
   alias Qlarius.AdEvent
   alias Qlarius.Repo
   alias Qlarius.Wallets.LedgerEntry
-  alias Qlarius.Wallets.LedgerHeader
+  alias Qlarius.LegacyRepo
+  alias Qlarius.Legacy.LedgerHeader
 
   def get_user_current_balance(%User{} = user) do
-    get_user_ledger_header(user.id).balance
+    case get_user_ledger_header(user.id) do
+      nil -> Decimal.new("0.00")
+      header -> header.balance || Decimal.new("0.00")
+    end
   end
 
   @doc """
-  Gets a user's ledger header.
+  Gets a user's ledger header from the legacy database.
   """
-  def get_user_ledger_header(user_id) do
-    Repo.get_by(LedgerHeader, user_id: user_id)
-    |> Repo.preload(:user)
+  def get_user_ledger_header(user_id) when is_integer(user_id) do
+    me_file_query = from(m in "me_files", where: m.user_id == ^user_id, select: m.id)
+
+    LegacyRepo.one(
+      from h in LedgerHeader,
+        where: h.me_file_id in subquery(me_file_query)
+    )
   end
 
   def get_ledger_entry!(ledger_entry_id, %User{} = user) do

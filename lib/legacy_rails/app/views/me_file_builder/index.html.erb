@@ -1,0 +1,65 @@
+<%= turbo_frame_tag "app_window" do %>
+  <div data-controller="app-page" data-app-target="appPage" data-app-page-app-page-value="mefile">
+    <%= render partial: "layouts/session_status_string" %>
+
+    <div class="header-large-title">
+        <h1 class="title">MeFile Builder</h1>
+        <h4 class="subtitle">Tag yourself to build up your MeFile.</h4>
+    </div>
+    <div class="mb-4">
+      <div class="badge d-inline-block trait-tag-count-header-badge trait-count-header-badge">
+        <span class="trait-count"><%= @current_me_file.trait_tag_count %></span>&nbsp;traits
+      </div>
+      <div class="badge d-inline-block trait-tag-count-header-badge tag-count-header-badge">
+        <span class="tag-count"><%= @current_me_file.tag_count %></span>&nbsp;tags
+      </div>
+    </div>
+
+    
+
+    <div class="row m-1">
+      <div class="col-md-12">
+        <div class="row">
+          <% @survey_categories.each do |survey_category| %>
+            <% completion_array = survey_category_percentage_complete(survey_category) %>
+            <% next if 0 == completion_array[3] %>
+            <div class="col-sm-6 col-md-4">
+              <div class="card mb-3">
+                <div class="card-header">
+                  <div class="panel-title">
+                    <%= survey_category[:survey_category_name] %>
+                    <%= turbo_frame_tag "survey-cat-progress-#{survey_category.id}" do %>
+                      <%= render partial: "survey_category_progress", locals: {completion_array: completion_array} %>
+                    <% end %>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <ul class="listview flush link-listview">
+                    <% survey_category.active_surveys.each do |survey, index| %>
+                      <% survey_data = survey_completion_label_info(survey) %>
+                      <% if survey_data[1] > 0 %>
+                        <li>
+                          <%= link_to open_survey_modal_path(survey_id: survey), "data-turbo-frame"=>"modal-content-turboframe", "data-action"=>"app#openModal" do %>
+                            <%= survey[:name] %>
+                            <div id="survey-comp-label-<%=survey.id%>", class="survey-comp-label-<%=survey.id%>" >
+                              <%= render partial: "survey_comp_label", locals: {survey: survey} %>
+                            </div>
+                          <% end %>   
+                        </li>
+                      <% end %>
+                    <% end %>
+                  
+                </ul>
+                      
+
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>  
+  </div>
+
+<% end %>
+

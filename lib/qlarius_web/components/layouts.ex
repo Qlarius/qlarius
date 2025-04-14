@@ -37,9 +37,15 @@ defmodule QlariusWeb.Layouts do
 
   def toggle_sponster_sidebar(on) when on in [:on, :off] do
     if on == :on do
-      JS.show(to: "#sponster-sidebar") |> JS.show(to: "#sponster-sidebar-bg")
+      JS.add_class("translate-x-0", to: "#sponster-sidebar")
+      |> JS.remove_class("-translate-x-full", to: "#sponster-sidebar")
+      |> JS.remove_class("opacity-0", to: "#sponster-sidebar-bg")
+      |> JS.remove_class("pointer-events-none", to: "#sponster-sidebar-bg")
     else
-      JS.hide(to: "#sponster-sidebar") |> JS.hide(to: "#sponster-sidebar-bg")
+      JS.remove_class("translate-x-0", to: "#sponster-sidebar")
+      |> JS.add_class("-translate-x-full", to: "#sponster-sidebar")
+      |> JS.add_class("opacity-0", to: "#sponster-sidebar-bg")
+      |> JS.add_class("pointer-events-none", to: "#sponster-sidebar-bg")
     end
   end
 
@@ -117,6 +123,7 @@ defmodule QlariusWeb.Layouts do
       <.sponster_bottom_bar_link text="MeFile" href={~p"/me_file"} icon_name="hero-identification" />
       <button
         id="more"
+        phx-click={toggle_sponster_sidebar(:on)}
         class="flex-1 flex flex-col items-center justify-center text-gray-600 h-full cursor-pointer"
       >
         <.icon name="hero-bars-3" class="h-6 w-6" />

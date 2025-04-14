@@ -1,0 +1,54 @@
+<div class="pwa-safe-bottom">
+
+<% if @this_ad_event.present? %>
+  <p class="mb-0"><strong>Date:</strong> <%= @this_ad_event.created_at %></p>
+  <p class="mb-0"><strong>Sponsor:</strong> <%= @this_ad_event.campaign ? @this_ad_event.campaign.marketer.business_name : "Archived"%></p>
+  <p class="mb-0"><strong>Event collected:</strong> <%= number_to_currency(@this_ad_event.event_me_file_collect_amt) %></p>
+  <p class="mb-0"><strong>Ad collected (total):</strong> <%= number_to_currency(@this_ad_event.related_ad_events_summary[:collected_amount]) %></p>
+<% else %>
+  <p>No event details available</p>
+<% end %>
+
+
+<div class="divider bg-primary mt-3 mb-3"></div>
+<p class="mb-0"><strong>Ad type:</strong> <%= @this_ad_event.media_piece.media_piece_type.name %></p>
+<p><strong>Ad contents:</strong></p>
+<%= image_tag(url_for(@this_ad_event.media_piece.banner), class: "banner img-fluid", style:"border: 1px solid lightgrey; min-height:90px; background-color:#fff;") if @this_ad_event.media_piece %>
+<div class="divider mt-2 mb-2" style="background: transparent;">
+    <div class="icon-box">
+        <ion-icon name="arrow-down" role="img" class="md hydrated" aria-label="arrow down">
+          <i class="bi bi-arrow-down"></i>
+        </ion-icon>
+    </div>
+</div>
+<div style="border: 1px solid lightgrey;">
+  <p class="ydadget-ad-title" style="font-size: .8rem"><strong><%= @this_ad_event.media_piece.title %></strong></p>
+  <p class="ydadget-ad-copy" style="font-size: .8rem"><%= @this_ad_event.media_piece.body_copy %></p>
+  <p class="ydadget-ad-display-url" style="font-size:.8rem"><%= @this_ad_event.media_piece.display_url %></p>
+</div>
+<div class="divider mt-2 mb-2" style="background: transparent;">
+    <div class="icon-box">
+        <ion-icon name="arrow-down" role="img" class="md hydrated" aria-label="arrow down">
+          <i class="bi bi-arrow-down"></i>
+        </ion-icon>
+    </div>
+</div>
+<div style="border: 1px solid lightgrey; padding: 4px; overflow: hidden;">
+  <p style="font-size: .8rem; line-height:.9rem"><strong>Link:<br/></strong> <a href="<%= @this_ad_event.media_piece.jump_url %>" target="_blank"><%= @this_ad_event.media_piece.jump_url %></a></p>
+</div>
+
+<div class="divider bg-primary mt-3 mb-3"></div>
+
+
+<div class="mb-5">
+  <p><strong>Matching tags (Why you?):</strong></p>
+  <% if @this_ad_event.matching_tags_snapshot %>
+    <% Array(eval(@this_ad_event.matching_tags_snapshot)).each do |t| %>
+      <%= render partial: 'shared/tag_detail', object: t, formats: :html %>
+    <% end %>
+  <% else %>
+    <p>No matching tags found.</p>
+  <% end %>
+</div>
+
+</div>

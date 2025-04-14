@@ -10,6 +10,18 @@ config :qlarius, Qlarius.Repo,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
+# Configure your legacy Rails database
+config :qlarius, Qlarius.LegacyRepo,
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "qlarius_dev_rails",  # Make sure this matches your Rails database name
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true,
+  pool_size: 10,
+  migration_timestamps: [type: :naive_datetime],
+  migration_primary_key: [type: :bigserial]
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

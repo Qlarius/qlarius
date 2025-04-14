@@ -1,0 +1,79 @@
+@use "../theme-settings";
+
+.comment-block{
+    font-size: theme-settings.$fontSizeSub;
+    line-height: 1.6em;
+    .item{
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 30px;
+        &:last-child{
+            margin-bottom: 0;
+        }
+        .avatar{
+            margin-right: 14px;
+        }
+        .in{
+            width: 100%;
+        }
+        .text{
+            color: theme-settings.$colorText;
+        }
+        .comment-header{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            .title{
+                margin: 0;
+                padding-right: 10px;
+                color: theme-settings.$colorHeading;
+                font-size: theme-settings.$fontSize;
+            }
+            .time{
+                font-size: theme-settings.$fontSizeCaption;
+                color: theme-settings.$colorLight;
+            }
+        }
+        .comment-footer{
+            margin-top: 10px;
+            display: flex;
+            align-content: flex-start;
+            font-size: theme-settings.$fontSizeCaption;
+            .comment-button{
+                font-weight: theme-settings.$medium;
+                display: flex;
+                align-content: center;
+                margin-right: 14px;
+                color: theme-settings.$colorText !important;
+                i.bi,
+                i.icon,
+                ion-icon{
+                    margin-right: 5px;
+                    font-size: 18px;
+                    line-height: 1em;
+                }
+            }
+        }
+    }
+}
+
+.comment-box{
+    padding: 24px 16px;
+    text-align: center;
+    .imaged{
+        margin: 0 auto 10px auto;
+        box-shadow: theme-settings.$boxShadow;
+    }
+    .card-title{
+        margin: 0;
+        font-size: theme-settings.$fontSizeHeading;
+        font-weight: theme-settings.$medium;
+    }
+    .card-text{
+        font-size: theme-settings.$fontSizeCaption;
+    }
+    .text{
+        margin-top: 6px;
+    }
+}

@@ -1,0 +1,36 @@
+/* FONTS
+===================================================================== */
+
+@font-face {
+  font-family: 'qlarius-fonts';
+  font-style: normal;
+  font-weight: 400;
+  src: url('qlarius-fonts.ttf') format('truetype');
+}
+
+
+
+i-qlarius {
+    font-family: 'qlarius-fonts' !important;
+    speak: none;
+    font-style: normal;
+    font-weight: normal;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-sponster-logo:before {
+    content: "\e900";
+}
+.icon-youdata-logo:before {
+    content: "\e901";
+}
+
+.i-qlarius-side-menu {
+  font-size: 24px;
+  line-height: 0.75em;
+}

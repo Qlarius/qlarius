@@ -1,0 +1,17 @@
+<turbo-stream action="update" target="unit_state_frame_<%= params[:offer_id] %>">
+  <template>
+    <%= render partial: "unit_state", formats: [:html], locals: {offer_id: params[:offer_id], phase: "text"} %>
+  </template>
+</turbo-stream>
+
+<turbo-stream action="update" targets=".acct-balance">
+  <template>
+    <%= number_to_currency(@current_me_file.ledger_header.balance) %>  
+  </template>
+</turbo-stream>
+
+<turbo-stream action="update" targets=".ad-count">
+  <template>
+    <%= @current_me_file.current_offers.count %>  
+  </template>
+</turbo-stream>

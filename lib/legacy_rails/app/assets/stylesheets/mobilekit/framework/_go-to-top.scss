@@ -1,0 +1,28 @@
+@use "sass:color";
+@use "../body";
+@use "../theme-settings";
+
+.button.goTop{
+    width: 46px;
+    height: 46px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: 100px;
+    background: theme-settings.$colorSecondary;
+    color: #FFF;
+    position: fixed;
+    z-index: 99;
+    right: 16px;
+    bottom: 70px;
+    font-size: 18px;
+    margin-bottom: body.$safeBottom;
+    box-shadow: theme-settings.$boxShadow;
+    &:hover,
+    &:active{
+        background: color.adjust(theme-settings.$colorSecondary, $lightness: -5%);
+    }
+    &.show{
+        display: flex;
+    }
+}

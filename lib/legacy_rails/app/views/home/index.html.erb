@@ -1,0 +1,27 @@
+<%= turbo_frame_tag "app_window" do %>
+  <div data-controller="app-page" data-app-target="appPage" data-app-page-app-page-value="home">
+    <%= render partial: "layouts/session_status_string" %>
+    
+    <div class="header-large-title">
+      <h1 class="title">Home</h1>
+    </div>
+
+    <%= turbo_frame_tag "me_file_stats" do %>
+      <%= render partial: "me_file_stats" %>
+    <% end %>
+
+    <%= turbo_frame_tag "guide_strip" do %>
+      <%= render partial: "guide_strip" %>
+    <% end %>
+
+    <div class="d-flex flex-column justify-content-center align-items-center p-3">
+      <div class="mb-3">
+        <i-qlarius class="icon-youdata-logo color-youdata" style="font-size:260px"></i-qlarius>
+      </div>
+      <div class="mb-3">
+        <i-qlarius class="icon-sponster-logo color-sponster" style="font-size:260px"></i-qlarius>
+      </div>
+    </div>
+  </div>
+<% end %>
+

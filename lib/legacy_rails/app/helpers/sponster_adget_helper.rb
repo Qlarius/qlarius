@@ -1,0 +1,2 @@
+module SponsterAdgetHelper
+end

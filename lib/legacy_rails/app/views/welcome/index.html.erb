@@ -1,0 +1,77 @@
+
+<%= turbo_frame_tag "app_window" do %>
+  <div data-controller="app-page" data-app-target="appPage" data-app-page-app-page-value="welcome">
+    <div>
+
+    <div style="width:100%; text-align:center;">
+        <%= image_tag "sponster_logo_main.png", style: "width:60%; max-width: 280px;"  %>
+    </div>
+
+    <style>
+    /* override pagination back to inherited bottom poistion */
+        .splide__pagination {
+            top: inherit;
+            bottom: 6px;
+        }
+    </style>
+
+        <!-- carousel slider -->
+        <div data-controller="guide-splide" class="splide">  
+                <div class="splide__track">
+                    <ul class="splide__list">
+                        <li class="splide__slide p-2">
+                            <div class="card">
+                                <div class="card-body">
+                                    <%= image_tag "splide_image_1.jpg", class: "imaged w-100 square mb-4" %>
+                                    <h2>Sponsorship just got personal.</h2>
+                                    <p>You are going to love Personal Sponsorship, the first and final model for advertising and sponsorship that puts you in complete control.</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="splide__slide p-2">
+                            <div class="card">
+                                <div class="card-body">
+                                    <%= image_tag "splide_image_3.jpg", class: "imaged w-100 square mb-4" %>
+                                    <h2>Sell your own attention.</h2>
+                                    <p>Attention is a valuable product. Advertisers have been buying your attention for decades - just not from you. That changes now.</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="splide__slide p-2">
+                            <div class="card">
+                                <div class="card-body">
+                                    <%= image_tag "splide_image_4.jpg", class: "imaged w-100 square mb-4" %>
+                                    <h2>Live life sponsored.</h2>
+                                    <p>Link your Sponster account to your favorite card or mobile wallet account and spend your sponsorship proceeds on the media you really want.</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="splide__slide p-2">
+                            <div class="card">
+                                <div class="card-body">
+                                    <%= image_tag "splide_image_2.jpg", class: "imaged w-100 square mb-4" %>
+                                    <h2>Privacy built in.</h2>
+                                    <p>Sponster integrates with YouData (also from Qlarius), the first real "zero-party" data platform where you, <u>and only you</u>, own and control your own data.</p>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <!-- * carousel slider -->
+
+            <div class="carousel-button-footer">
+                <div class="row">
+                    <div class="col-6">
+                        <a href="#" class="btn btn-secondary btn-lg btn-block goBack">Tell me more</a>
+                    </div>
+                    <div class="col-6">
+                        <%= link_to home_path, class: "btn btn-primary btn-lg btn-block" do %>
+                            Let me in
+                        <% end %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<% end %>

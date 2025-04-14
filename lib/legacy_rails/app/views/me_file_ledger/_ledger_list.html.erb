@@ -1,0 +1,30 @@
+<div class="pagination pagination-secondary justify-content-center mt-3">
+  <%= paginate @ledger_entries, remote: true %>
+</div>
+
+<div class="pt-3 ps-2"><h3>Ledger History</h3></div>
+
+<ul class="listview image-listview media mb-2">
+      <% @ledger_entries.each do |le| %>
+        <li id="ad-event-<%= le.ad_event.offer_id if le.ad_event %>">
+          <%= link_to show_ledger_detail_path(le.id), "data-turbo-frame"=>"offpanel-contents-turboframe", class: "item", data: { action: "app#openPanelRight"} do %>
+            <div class="d-flex in">
+                <div>
+                  <div class="card-text"><%= le.description %></div>
+                  <div class="text-muted">Event description</div>
+                  <div class="text-muted"><%= le.created_at.in_time_zone("Central Time (US & Canada)").strftime("%Y-%m-%d") %></div>
+                </div>
+                <div class="text-end">
+                  <div>
+                    <span><%= number_to_currency(le.amt) %></span>
+                  </div>
+                  <div class="text-muted"><%= number_to_currency(le.running_balance) %></div>
+                </div>
+            </div>
+          <% end %>
+        </li>
+      <% end %>
+</ul>
+<div class="pagination pagination-secondary justify-content-center mb-3">
+  <%= paginate @ledger_entries, remote: true %>
+</div>

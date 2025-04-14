@@ -10,6 +10,7 @@ defmodule Qlarius.Application do
     children = [
       QlariusWeb.Telemetry,
       Qlarius.Repo,
+      Qlarius.LegacyRepo,
       {DNSCluster, query: Application.get_env(:qlarius, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Qlarius.PubSub},
       # Start the Finch HTTP client for sending emails

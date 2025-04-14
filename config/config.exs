@@ -21,8 +21,20 @@ config :qlarius, :scopes,
   ]
 
 config :qlarius,
-  ecto_repos: [Qlarius.Repo],
+  ecto_repos: [Qlarius.Repo, Qlarius.LegacyRepo],
   generators: [timestamp_type: :utc_datetime]
+
+# Primary database configuration
+config :qlarius, Qlarius.Repo,
+  migration_primary_key: [type: :binary_id],
+  migration_timestamps: [type: :utc_datetime]
+
+# Legacy Rails database configuration
+config :qlarius, Qlarius.LegacyRepo,
+  migration_primary_key: [type: :bigserial],
+  migration_timestamps: [type: :naive_datetime],
+  migration_foreign_key: [type: :bigint],
+  start_apps_before_migration: [:ssl]
 
 # Configures the endpoint
 config :qlarius, QlariusWeb.Endpoint,

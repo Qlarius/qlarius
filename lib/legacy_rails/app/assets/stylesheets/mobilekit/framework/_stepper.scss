@@ -1,0 +1,144 @@
+@use "../theme-settings";
+
+.stepper {
+    height: 40px;
+    width: 120px;
+    min-width: 120px;
+    border-radius: theme-settings.$borderRadius;
+    display: inline-flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    overflow: hidden;
+    .stepper-button {
+        width: 40px;
+        height: 40px;
+        color: #fff;
+        display: flex;
+        font-size: theme-settings.$fontSizeHeadingLarge;
+        align-items: center;
+        justify-content: center;
+        background: theme-settings.$colorPrimary;
+        position: relative;
+        border: 2px solid theme-settings.$colorPrimary;
+    }
+    .form-control {
+        padding: 0 3px;
+        width: 52px;
+        height: 40px;
+        border-radius: 0;
+        box-shadow: none !important;
+        background: transparent;
+        text-align: center;
+        border: 2px solid theme-settings.$colorPrimary;
+        font-size: theme-settings.$fontSizeHeading;
+        font-weight: theme-settings.$medium;
+        color: theme-settings.$colorPrimary;
+    }
+}
+.stepper-sm {
+    height: 30px;
+    width: 80px;
+    min-width: 80px;
+    .stepper-button {
+        height: 30px;
+        width: 24px;
+        font-size: theme-settings.$fontSizeHeading;
+    }
+    .form-control {
+        height: 30px;
+        width: 32px;
+        font-size: theme-settings.$fontSize;
+    }
+}
+
+.stepper-lg {
+    height: 48px;
+    .stepper-button {
+        height: 48px;
+        font-size: theme-settings.$fontSizeHeadingLarge;
+    }
+    .form-control {
+        height: 48px;
+    }
+}
+
+@mixin stepperColor($color) {
+    .stepper-button {
+        background: $color;
+        border-color: $color;
+    }
+    .form-control {
+        border-color: $color;
+        color: $color;
+    }
+}
+
+.stepper-primary {
+    @include stepperColor(theme-settings.$colorPrimary);
+}
+
+.stepper-secondary {
+    @include stepperColor(theme-settings.$colorSecondary);
+}
+.stepper-success {
+    @include stepperColor(theme-settings.$colorSuccess);
+}
+.stepper-danger {
+    @include stepperColor(theme-settings.$colorDanger);
+}
+.stepper-warning {
+    @include stepperColor(theme-settings.$colorWarning);
+}
+.stepper-info {
+    @include stepperColor(theme-settings.$colorInfo);
+}
+.stepper-dark {
+    @include stepperColor(#333);
+}
+
+
+@mixin stepperOutlineColor($color) {
+    .stepper-button {
+        background: transparent;
+        color: $color;
+        border-color: $color;
+        &.stepper-down{
+            border-radius: theme-settings.$borderRadius 0 0 theme-settings.$borderRadius;
+        }
+        &.stepper-up{
+            border-radius: 0 theme-settings.$borderRadius theme-settings.$borderRadius 0;
+        }
+        &:first-child{
+            border-right: 0;
+        }
+        &:last-child{
+            border-left: 0;
+        }
+    }
+    .form-control {
+        border-color: $color;
+        color: $color;
+    }
+}
+
+.stepper-outline-primary{
+    @include stepperOutlineColor(theme-settings.$colorPrimary);
+}
+.stepper-outline-secondary{
+    @include stepperOutlineColor(theme-settings.$colorSecondary);
+}
+.stepper-outline-success{
+    @include stepperOutlineColor(theme-settings.$colorSuccess);
+}
+.stepper-outline-danger{
+    @include stepperOutlineColor(theme-settings.$colorDanger);
+}
+.stepper-outline-warning{
+    @include stepperOutlineColor(theme-settings.$colorWarning);
+}
+.stepper-outline-info{
+    @include stepperOutlineColor(theme-settings.$colorInfo);
+}
+.stepper-outline-dark{
+    @include stepperOutlineColor(#333);
+}
