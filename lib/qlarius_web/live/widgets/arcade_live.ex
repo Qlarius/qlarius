@@ -4,14 +4,15 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
   alias Qlarius.Arcade
   alias Qlarius.Arcade.ContentPiece
   alias Qlarius.Arcade.TiqitType
-  alias Qlarius.Wallets
 
   def mount(_params, _session, socket) do
-    user = socket.assigns.current_scope.user
-    balance = Wallets.get_user_current_balance(user)
+    scope = socket.assigns.current_scope
 
     socket
-    |> assign(balance: balance, selected_tiqit_type: nil)
+    |> assign(
+      balance: scope && scope.wallet_balance,
+      selected_tiqit_type: nil
+    )
     |> ok()
   end
 
@@ -47,7 +48,7 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
         </p>
 
         <div class="mt-4">
-          <%= if Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>
+          <%= if @current_scope && Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>
             <.link
               navigate={~p"/widgets/content/#{@selected_piece.id}"}
               class="inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"

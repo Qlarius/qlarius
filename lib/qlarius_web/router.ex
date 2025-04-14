@@ -96,11 +96,11 @@ defmodule QlariusWeb.Router do
   end
 
   scope "/widgets", QlariusWeb.Widgets do
-    pipe_through [:widgets, :require_authenticated_user]
+    pipe_through [:widgets]
 
     get "/content/:id", ContentController, :show
 
-    live_session :widgets, on_mount: [{QlariusWeb.UserAuth, :require_authenticated}] do
+    live_session :widgets, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
       live "/arcade/group/:group_id", ArcadeLive
       live "/wallet", WalletLive
     end
