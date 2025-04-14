@@ -60,7 +60,7 @@ defmodule Qlarius.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.5"},
-      {:faker, "~> 0.18.0", only: :dev},
+      {:faker, "~> 0.18.0"},
       {:nimble_csv, "~> 1.2"},
       {:cors_plug, "~> 3.0"}
     ]
