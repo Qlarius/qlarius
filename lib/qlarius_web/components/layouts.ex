@@ -135,7 +135,7 @@ defmodule QlariusWeb.Layouts do
 
   slot :inner_block, required: true
 
-  def arcade(assigns) do
+  def creators(assigns) do
     ~H"""
     <main class="p-4 sm:px-6 lg:px-8 max-w-2xl mx-auto">
       <ul class="relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
@@ -143,8 +143,7 @@ defmodule QlariusWeb.Layouts do
           {@current_scope.user.email}
         </li>
         <%= for {text, href} <- [
-          {"Admin", ~p"/admin/content"},
-          {"Arcade", ~p"/arcade"}
+          {"Manage content", ~p"/creators/content_groups"},
         ] do %>
           <li>
             <.link

@@ -677,4 +677,10 @@ defmodule QlariusWeb.CoreComponents do
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
+
+  def format_duration(seconds) do
+    minutes = div(seconds, 60)
+    remaining_seconds = rem(seconds, 60)
+    :io_lib.format("~2..0B:~2..0B", [minutes, remaining_seconds])
+  end
 end

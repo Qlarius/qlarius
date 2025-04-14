@@ -1,0 +1,33 @@
+<Layouts.creators {assigns}>
+  <.header>
+    Content Groups
+    <:actions>
+      <.link navigate={~p"/creators/content_groups/new"}>
+        <.button>New Content Group</.button>
+      </.link>
+    </:actions>
+  </.header>
+
+  <.table
+    id="content_groups"
+    rows={@content_groups}
+    row_click={&JS.navigate(~p"/creators/content_groups/#{&1}")}
+  >
+    <:col :let={content_group} label="Name">{content_group.title}</:col>
+    <:action :let={content_group}>
+      <.link navigate={~p"/creators/content_groups/#{content_group}"}>View</.link>
+    </:action>
+    <:action :let={content_group}>
+      <.link navigate={~p"/creators/content_groups/#{content_group}/edit"}>Edit</.link>
+    </:action>
+    <:action :let={content_group}>
+      <.link
+        href={~p"/creators/content_groups/#{content_group}"}
+        method="delete"
+        data-confirm="Are you sure?"
+      >
+        Delete
+      </.link>
+    </:action>
+  </.table>
+</Layouts.creators>

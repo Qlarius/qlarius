@@ -2,13 +2,17 @@ defmodule Qlarius.Arcade.ContentGroup do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Qlarius.Accounts.User
+  alias Qlarius.Arcade.ContentGroupsPieces
   alias Qlarius.Arcade.ContentPiece
 
   schema "content_groups" do
+    belongs_to :creator, User
+
     field :description, :string
     field :title, :string
 
-    many_to_many :content_pieces, ContentPiece, join_through: "content_groups_content_pieces"
+    many_to_many :content_pieces, ContentPiece, join_through: ContentGroupsPieces
 
     timestamps(type: :utc_datetime)
   end
@@ -16,7 +20,7 @@ defmodule Qlarius.Arcade.ContentGroup do
   @doc false
   def changeset(content_group, attrs) do
     content_group
-    |> cast(attrs, [:title, :description, :type])
-    |> validate_required([:title, :description, :type])
+    |> cast(attrs, [:title, :description])
+    |> validate_required([:title])
   end
 end

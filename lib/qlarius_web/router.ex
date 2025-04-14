@@ -120,13 +120,23 @@ defmodule QlariusWeb.Router do
       get "/me_file/surveys", MeFileController, :surveys
       live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
       live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show
-      get "/arcade", ContentController, :groups
-      live "/admin/content/new", Marketers.ContentLive.Form, :new
-      live "/admin/content/:id/edit", Marketers.ContentLive.Form, :edit
-      resources "/admin/content", Marketers.ContentController, only: [:show, :index, :delete]
     end
 
     get "/jump/:id", AdController, :jump
+  end
+
+  scope "/creators", QlariusWeb.Creators do
+    pipe_through [:browser, :require_authenticated_user]
+
+    get "/", CreatorController, :redirect_to_content_groups
+
+    live_session :creators, on_mount: [{QlariusWeb.UserAuth, :require_authenticated}] do
+      resources "/content_groups", ContentGroupController do
+        live "/pieces/new", ContentPieceLive.Form, :new
+        live "/pieces/:id/edit", ContentPieceLive.Form, :edit
+        resources "/pieces", ContentController, only: [:show, :index, :delete]
+      end
+    end
   end
 
   scope "/", QlariusWeb do

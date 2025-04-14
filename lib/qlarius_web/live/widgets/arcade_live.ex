@@ -162,12 +162,6 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
     end
   end
 
-  defp format_duration(seconds) do
-    minutes = div(seconds, 60)
-    remaining_seconds = rem(seconds, 60)
-    :io_lib.format("~2..0B:~2..0B", [minutes, remaining_seconds])
-  end
-
   def handle_event("close-confirm-purchase-modal", _params, socket) do
     socket |> assign(selected_tiqit_type: nil) |> noreply()
   end

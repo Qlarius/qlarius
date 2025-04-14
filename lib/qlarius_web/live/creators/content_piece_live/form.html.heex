@@ -1,0 +1,55 @@
+<Layouts.creators {assigns}>
+  <.header>
+    {@page_title}
+
+    <:subtitle>
+      Group: {@group.title}
+    </:subtitle>
+  </.header>
+
+  <.simple_form for={@form} phx-change="validate" phx-submit="save">
+    <.input field={@form[:title]} type="text" label="Title" />
+    <.input field={@form[:date_published]} type="date" label="Published Date" />
+    <.input field={@form[:description]} type="textarea" label="Description" />
+
+    <h2 class="font-semibold leading-8 text-zinc-800">
+      Tiqits
+    </h2>
+
+    <.inputs_for :let={ttf} field={@form[:tiqit_types]}>
+      <input type="hidden" name="content_piece[tiqit_type_sort][]" value={ttf.index} />
+
+      <div class="flex align-start gap-4">
+        <.input field={ttf[:name]} type="text" label="Name" />
+        <.input field={ttf[:duration_hours]} type="number" label="Duration (hours)" />
+        <.input field={ttf[:price]} type="text" label="Price ($)" />
+
+        <button
+          type="button"
+          name="content_piece[tiqit_type_drop][]"
+          value={ttf.index}
+          phx-click={JS.dispatch("change")}
+          class="relative top-4"
+        >
+          <.icon name="hero-x-mark" class="w-6 h-6" />
+        </button>
+      </div>
+    </.inputs_for>
+
+    <button
+      class="mt-4 text-zinc-700"
+      name="content_piece[tiqit_type_sort][]"
+      phx-click={JS.dispatch("change")}
+      type="button"
+      value="new"
+    >
+      <.icon name="hero-plus-circle" class="h-5 w-5 relative top-[-1px]" /> Add Tiqit type
+    </button>
+
+    <:actions>
+      <.button>Save Content</.button>
+    </:actions>
+  </.simple_form>
+
+  <.back navigate={~p"/creators/content_groups/#{@group}"}>Back to group</.back>
+</Layouts.creators>

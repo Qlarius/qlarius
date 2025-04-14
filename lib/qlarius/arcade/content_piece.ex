@@ -2,10 +2,13 @@ defmodule Qlarius.Arcade.ContentPiece do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Qlarius.Accounts.User
   alias Qlarius.Arcade.ContentGroup
+  alias Qlarius.Arcade.ContentGroupsPieces
   alias Qlarius.Arcade.TiqitType
 
   schema "content_pieces" do
+    belongs_to :creator, User
     field :title, :string
     field :description, :string
     field :content_type, Ecto.Enum, values: ~w[video podcast blog song]a, default: :video
@@ -17,7 +20,7 @@ defmodule Qlarius.Arcade.ContentPiece do
     field :price_default, :decimal, default: Decimal.new("0.00")
 
     has_many :tiqit_types, TiqitType, on_replace: :delete
-    many_to_many :content_groups, ContentGroup, join_through: "content_groups_content_pieces"
+    many_to_many :content_groups, ContentGroup, join_through: ContentGroupsPieces
 
     timestamps()
   end
@@ -45,15 +48,7 @@ defmodule Qlarius.Arcade.ContentPiece do
       :tiqit_types,
       drop_param: :tiqit_type_drop,
       sort_param: :tiqit_type_sort,
-      with: &tiqit_type_changeset/2
+      with: &TiqitType.changeset/2
     )
-  end
-
-  defp tiqit_type_changeset(tt, params) do
-    tt
-    |> cast(params, ~w[name duration_seconds price]a)
-    |> validate_required([:name, :price])
-    |> validate_number(:duration_seconds, greater_than: 0)
-    |> validate_number(:price, greater_than: 0)
   end
 end

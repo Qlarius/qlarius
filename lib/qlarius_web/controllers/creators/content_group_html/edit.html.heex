@@ -1,0 +1,12 @@
+<Layouts.creators {assigns}>
+  <.header>
+    Edit Content Group
+  </.header>
+
+  <.content_group_form
+    changeset={@changeset}
+    action={~p"/creators/content_groups/#{@content_group}"}
+  />
+
+  <.back navigate={~p"/creators/content_groups/#{@content_group}"}>Back to content group</.back>
+</Layouts.creators>
