@@ -1,7 +1,12 @@
 defmodule QlariusWeb.Router do
   use QlariusWeb, :router
 
-  import QlariusWeb.UserAuth
+  import QlariusWeb.UserAuth,
+    only: [
+      fetch_current_scope_for_user: 2,
+      redirect_if_user_is_authenticated: 2,
+      require_authenticated_user: 2
+    ]
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -19,8 +24,6 @@ defmodule QlariusWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
     plug :protect_from_forgery
-    # plug :put_secure_browser_headers
-    plug :fetch_current_scope_for_user
     plug :fetch_current_scope_for_user
   end
 
@@ -32,36 +35,30 @@ defmodule QlariusWeb.Router do
     plug :put_root_layout, html: {QlariusWeb.Layouts, :auth}
   end
 
-  # ------ MARKETER ROUTES ------
-
+  # Main routes
   scope "/", QlariusWeb do
     pipe_through [:browser]
 
     get "/", PageController, :home
     live "/me", MeFileLive
     live "/ads", AdsLive
+    live "/wallet", WalletLive
+    get "/me_file/surveys", MeFileController, :surveys
+    live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
+    live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show
   end
 
-  # Authenticated routes
-  # scope "/", QlariusWeb do
-  #   pipe_through [:browser, :require_authenticated_user]
-  #
-  #   live "/me", MeFileLive
-  #   live "/ads", AdsLive
-  # end
+  # Widget routes
+  scope "/widgets", QlariusWeb.Widgets do
+    pipe_through [:widgets]
 
-  # Other scopes may use custom stacks.
-  # scope "/api", QlariusWeb do
-  #   pipe_through :api
-  # end
+    get "/content/:id", ContentController, :show
+    live "/arcade/group/:group_id", ArcadeLive
+    live "/wallet", WalletLive
+  end
 
   # Enable LiveDashboard in development
   if Application.compile_env(:qlarius, :dev_routes) do
-    # If you want to use the LiveDashboard in production, you should put
-    # it behind authentication and allow only admins to access it.
-    # If your application does not have an admins-only section yet,
-    # you can use Plug.BasicAuth to set up some basic authentication
-    # as long as you are also using SSL (which you should anyway).
     import Phoenix.LiveDashboard.Router
 
     scope "/dev" do
@@ -88,17 +85,6 @@ defmodule QlariusWeb.Router do
     post "/users/log_in", UserSessionController, :create
   end
 
-  scope "/widgets", QlariusWeb.Widgets do
-    pipe_through [:widgets, :require_authenticated_user]
-
-    get "/content/:id", ContentController, :show
-
-    live_session :widgets, on_mount: [{QlariusWeb.UserAuth, :require_authenticated}] do
-      live "/arcade/group/:group_id", ArcadeLive
-      live "/wallet", WalletLive
-    end
-  end
-
   scope "/", QlariusWeb do
     pipe_through [:browser, :require_authenticated_user]
 
@@ -110,6 +96,7 @@ defmodule QlariusWeb.Router do
       live "/wallet", WalletLive, :index
       live "/ads", AdsLive, :index
       live "/me_file", MeFileLive, :index
+      live "/proxy_users", ProxyUsersLive, :index
       get "/me_file/surveys", MeFileController, :surveys
       live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
       live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show

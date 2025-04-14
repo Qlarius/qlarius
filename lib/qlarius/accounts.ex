@@ -125,18 +125,14 @@ defmodule Qlarius.Accounts do
 
   ## Examples
 
-      iex> apply_user_email(user, "valid password", %{email: ...})
+      iex> apply_user_email(user, %{email: ...})
       {:ok, %User{}}
 
-      iex> apply_user_email(user, "invalid password", %{email: ...})
-      {:error, %Ecto.Changeset{}}
-
   """
-  def apply_user_email(user, password, attrs) do
+  def apply_user_email(user, attrs) do
     user
     |> User.email_changeset(attrs)
-    |> User.validate_current_password(password)
-    |> Ecto.Changeset.apply_action(:update)
+    |> Repo.update()
   end
 
   @doc """
@@ -147,7 +143,6 @@ defmodule Qlarius.Accounts do
   """
   def update_user_email(user, token) do
     context = "change:#{user.email}"
-
     with {:ok, query} <- UserToken.verify_change_email_token_query(token, context),
          %UserToken{sent_to: email} <- Repo.one(query),
          {:ok, _} <- Repo.transaction(user_email_multi(user, email, context)) do
@@ -165,7 +160,7 @@ defmodule Qlarius.Accounts do
 
     Ecto.Multi.new()
     |> Ecto.Multi.update(:user, changeset)
-    |> Ecto.Multi.delete_all(:tokens, UserToken.by_user_and_contexts_query(user, [context]))
+    |> Ecto.Multi.delete_all(:tokens, UserToken.user_and_contexts_query(user, [context]))
   end
 
   @doc ~S"""
@@ -203,18 +198,18 @@ defmodule Qlarius.Accounts do
 
   ## Examples
 
-      iex> update_user_password(user, "valid password", %{password: ...})
+      iex> update_user_password(user, %{password: ...})
       {:ok, %User{}}
 
-      iex> update_user_password(user, "invalid password", %{password: ...})
+      iex> update_user_password(user, %{password: ...})
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_user_password(user, password, attrs) do
+  def update_user_password(user, attrs) do
     changeset =
       user
       |> User.password_changeset(attrs)
-      |> User.validate_current_password(password)
+      |> User.validate_current_password(attrs.password)
 
     Ecto.Multi.new()
     |> Ecto.Multi.update(:user, changeset)

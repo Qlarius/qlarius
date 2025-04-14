@@ -6,10 +6,14 @@ defmodule Qlarius.Legacy do
   import Ecto.Query
 
   alias Qlarius.LegacyRepo
-  alias Qlarius.Legacy.{User, MeFile}
+  alias Qlarius.Legacy.{User, MeFile, UserProxy}
 
   def get_user(id) do
     LegacyRepo.get(User, id)
+  end
+
+  def get_user!(_id) do
+    LegacyRepo.get!(User, 508)
   end
 
   def get_user_by_email(email) do
@@ -35,5 +39,32 @@ defmodule Qlarius.Legacy do
   def list_me_files do
     LegacyRepo.all(MeFile)
     |> LegacyRepo.preload([:user])
+  end
+
+  # Proxy user functions
+  def list_proxy_users(user) do
+    UserProxy
+    |> where([p], p.true_user_id == ^user.id)
+    |> join(:inner, [p], u in User, on: p.proxy_user_id == u.id)
+    |> order_by([p, u], asc: u.username)
+    |> select([p, u], p)
+    |> LegacyRepo.all()
+  end
+
+  def preload_proxy_users(proxies) do
+    LegacyRepo.preload(proxies, [:proxy_user])
+  end
+
+  def get_active_proxy_user(user) do
+    UserProxy
+    |> where([p], p.true_user_id == ^user.id and p.active == true)
+    |> LegacyRepo.one()
+    |> LegacyRepo.preload([:proxy_user])
+  end
+
+  def update_user_proxy(%UserProxy{} = proxy, attrs) do
+    proxy
+    |> UserProxy.changeset(attrs)
+    |> LegacyRepo.update()
   end
 end

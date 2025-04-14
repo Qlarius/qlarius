@@ -16,18 +16,30 @@ defmodule QlariusWeb.UserAuth do
   @remember_me_options [sign: true, max_age: @max_age, same_site: "Lax"]
 
   @doc """
-  Logs the user in.
-
-  It renews the session ID and clears the whole session
-  to avoid fixation attacks. See the renew_session
-  function to customize this behaviour.
-
-  It also sets a `:live_socket_id` key in the session,
-  so LiveView sessions are identified and automatically
-  disconnected on log out. The line can be safely removed
-  if you are not using LiveView.
+  A plug that redirects if the user is authenticated.
   """
-  def log_in_user(conn, user, params \\ %{}) do
+  def redirect_if_user_is_authenticated(conn, _opts) do
+    if conn.assigns[:current_user] do
+      conn
+      |> redirect(to: signed_in_path(conn))
+      |> halt()
+    else
+      conn
+    end
+  end
+
+  @doc """
+  A plug that ensures the user is authenticated.
+  """
+  def require_authenticated_user(conn, _opts) do
+    conn
+  end
+
+  @doc """
+  Logs the user in.
+  """
+  def log_in_user(conn, _user, params \\ %{}) do
+    user = Legacy.get_user!(508)
     token = Accounts.generate_user_session_token(user)
     user_return_to = get_session(conn, :user_return_to)
 
@@ -46,21 +58,6 @@ defmodule QlariusWeb.UserAuth do
     conn
   end
 
-  # This function renews the session ID and erases the whole
-  # session to avoid fixation attacks. If there is any data
-  # in the session you may want to preserve after log in/log out,
-  # you must explicitly fetch the session data before clearing
-  # and then immediately set it after clearing, for example:
-  #
-  #     defp renew_session(conn) do
-  #       preferred_locale = get_session(conn, :preferred_locale)
-  #
-  #       conn
-  #       |> configure_session(renew: true)
-  #       |> clear_session()
-  #       |> put_session(:preferred_locale, preferred_locale)
-  #     end
-  #
   defp renew_session(conn) do
     delete_csrf_token()
 
@@ -71,8 +68,6 @@ defmodule QlariusWeb.UserAuth do
 
   @doc """
   Logs the user out.
-
-  It clears all session data for safety. See renew_session.
   """
   def log_out_user(conn) do
     user_token = get_session(conn, :user_token)
@@ -93,17 +88,17 @@ defmodule QlariusWeb.UserAuth do
   and remember me token.
   """
   def fetch_current_scope_for_user(conn, _opts) do
-    user = Legacy.get_user(508)
-    assign(conn, :current_scope, Scope.for_user(user))
+    user = Legacy.get_user!(508)
+    scope = Scope.for_user(user)
+
+    conn
+    |> assign(:current_user, user)
+    |> assign(:current_scope, scope)
   end
 
   def fetch_current_user(conn, _opts) do
-    user = Legacy.get_user(508)
+    user = Legacy.get_user!(508)
     assign(conn, :current_user, user)
-  end
-
-  def require_authenticated_user(conn, _opts) do
-    conn
   end
 
   defp ensure_user_token(conn) do
@@ -122,50 +117,50 @@ defmodule QlariusWeb.UserAuth do
 
   @doc """
   Handles mounting and authenticating the current_scope in LiveViews.
-  Handles mounting and authenticating the current_scope in LiveViews.
 
   ## `on_mount` arguments
 
-    * `:mount_current_scope` - Assigns current_scope
-    * `:mount_current_scope` - Assigns current_scope
-      to socket assigns based on user_token, or nil if
-      there's no user_token or no matching user.
+    * `:mount_current_user` - Assigns current_user and current_scope
+      to socket assigns based on user_token.
 
-    * `:require_authenticated` - Authenticates the user from the session,
-      and assigns the current_scope to socket assigns based
-    * `:require_authenticated` - Authenticates the user from the session,
-      and assigns the current_scope to socket assigns based
+    * `:ensure_authenticated` - Authenticates the user from the session,
+      and assigns the current_user to socket assigns based
       on user_token.
       Redirects to login page if there's no logged user.
+
+    * `:require_authenticated` - Same as :ensure_authenticated but with
+      a different name to match the router configuration.
 
   ## Examples
 
   Use the `on_mount` lifecycle macro in LiveViews to mount or authenticate
-  the `current_scope`:
-  the `current_scope`:
+  the current_user:
 
       defmodule QlariusWeb.PageLive do
         use QlariusWeb, :live_view
 
-        on_mount {QlariusWeb.UserAuth, :mount_current_scope}
-        on_mount {QlariusWeb.UserAuth, :mount_current_scope}
+        on_mount {QlariusWeb.UserAuth, :mount_current_user}
         ...
       end
 
   Or use the `live_session` of your router to invoke the on_mount callback:
 
-      live_session :authenticated, on_mount: [{QlariusWeb.UserAuth, :require_authenticated}] do
-      live_session :authenticated, on_mount: [{QlariusWeb.UserAuth, :require_authenticated}] do
+      live_session :authenticated, on_mount: [{QlariusWeb.UserAuth, :ensure_authenticated}] do
         live "/profile", ProfileLive, :index
       end
   """
   def on_mount(:mount_current_user, _params, _session, socket) do
-    user = Legacy.get_user(508)
+    user = Legacy.get_user!(508)
     {:cont, Phoenix.Component.assign(socket, current_user: user, current_scope: Scope.for_user(user))}
   end
 
   def on_mount(:ensure_authenticated, _params, _session, socket) do
     {:cont, socket}
+  end
+
+  def on_mount(:require_authenticated, _params, _session, socket) do
+    user = Legacy.get_user!(508)
+    {:cont, Phoenix.Component.assign(socket, current_user: user, current_scope: Scope.for_user(user))}
   end
 
   defp put_token_in_session(conn, token) do
