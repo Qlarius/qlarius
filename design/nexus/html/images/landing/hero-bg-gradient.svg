@@ -1,0 +1,37 @@
+<svg width="1920" height="1705" viewBox="0 0 1920 1705" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_101_2)">
+<g filter="url(#filter0_f_101_2)">
+<ellipse cx="1212.5" cy="275" rx="570.5" ry="550" fill="url(#paint0_linear_101_2)"/>
+</g>
+<g filter="url(#filter1_f_101_2)">
+<path d="M407.614 496.02C379.628 324.237 174.061 297.879 159.358 123.883C133.558 -181.438 830.706 234.219 862.012 538.757C875.132 666.375 858.076 753.287 779.74 865.884C637.565 1070.24 328.886 1239.47 150.275 1082.63C-33.27 921.45 445.996 731.612 407.614 496.02Z" fill="#3D91FF"/>
+</g>
+<g filter="url(#filter2_f_101_2)">
+<circle cx="1313" cy="870" r="300" fill="#FF3B3B"/>
+</g>
+</g>
+<defs>
+<filter id="filter0_f_101_2" x="242" y="-675" width="1941" height="1900" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="200" result="effect1_foregroundBlur_101_2"/>
+</filter>
+<filter id="filter1_f_101_2" x="-291.763" y="-382.94" width="1557.78" height="1927.04" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="200" result="effect1_foregroundBlur_101_2"/>
+</filter>
+<filter id="filter2_f_101_2" x="613" y="170" width="1400" height="1400" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="200" result="effect1_foregroundBlur_101_2"/>
+</filter>
+<linearGradient id="paint0_linear_101_2" x1="1212.5" y1="-275" x2="1212.5" y2="825" gradientUnits="userSpaceOnUse">
+<stop stop-color="#DA9EFF"/>
+<stop offset="1" stop-color="#9448DF"/>
+</linearGradient>
+<clipPath id="clip0_101_2">
+<rect width="1920" height="1705" fill="white"/>
+</clipPath>
+</defs>
+</svg>
