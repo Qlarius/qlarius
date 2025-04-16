@@ -33,4 +33,3 @@ defmodule Qlarius.Release do
     Application.load(@app)
   end
 end
-

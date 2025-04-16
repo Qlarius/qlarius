@@ -26,17 +26,10 @@ defmodule QlariusWeb.Router do
 
   pipeline :marketer do
     plug :put_root_layout, html: {QlariusWeb.Layouts, :marketer}
-
-    # Temporary until we've added real auth for marketers
-    plug :basic_auth, username: "marketer", password: "password"
   end
 
   pipeline :api do
     plug :accepts, ["json"]
-  end
-
-  pipeline :auth_layout do
-    plug :put_root_layout, html: {QlariusWeb.Layouts, :auth}
   end
 
   # ------ MARKETER ROUTES ------
@@ -82,7 +75,7 @@ defmodule QlariusWeb.Router do
   ## Authentication routes
 
   scope "/", QlariusWeb do
-    pipe_through [:browser, :redirect_if_user_is_authenticated, :auth_layout]
+    pipe_through [:browser, :redirect_if_user_is_authenticated]
 
     live_session :redirect_if_user_is_authenticated,
       on_mount: [{QlariusWeb.UserAuth, :redirect_if_user_is_authenticated}] do
@@ -140,7 +133,7 @@ defmodule QlariusWeb.Router do
   end
 
   scope "/", QlariusWeb do
-    pipe_through [:browser, :auth_layout]
+    pipe_through [:browser]
 
     delete "/users/log_out", UserSessionController, :delete
 
