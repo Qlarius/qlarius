@@ -1,4 +1,0 @@
-module TagEditorModalHelper
-
-
-end

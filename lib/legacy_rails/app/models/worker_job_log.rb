@@ -1,2 +1,0 @@
-class WorkerJobLog < ApplicationRecord
-end

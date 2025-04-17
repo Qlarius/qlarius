@@ -1,2 +1,0 @@
-class GlobalVariable < ApplicationRecord
-end
