@@ -20,8 +20,21 @@ defmodule QlariusWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
     plug :protect_from_forgery
-    # plug :put_secure_browser_headers, %{"x-frame-options" => "ALLOWALL"}
-    plug :fetch_current_scope_for_user
+    plug :put_secure_browser_headers
+    plug :fetch_hardcoded_scope_from_param
+    plug :allow_iframe
+  end
+
+  # Based on https://elixirforum.com/t/how-to-embed-a-liveview-via-iframe/65066
+  defp allow_iframe(conn, _opts) do
+    conn
+    # This header is set to SAMEORIGIN by put_secure_browser_headers, which
+    # prevents embedding in an iframe.
+    |> delete_resp_header("x-frame-options")
+    # Not sure where it's set but the default CSP header appears to be
+    # "base-uri 'self'; frame-ancestors 'self';" Override it here to remove
+    # frame-ancestors as that also blocks iframes
+    |> put_resp_header("content-security-policy", "base-url 'self'")
   end
 
   pipeline :marketer do
@@ -93,7 +106,7 @@ defmodule QlariusWeb.Router do
 
     get "/content/:id", ContentController, :show
 
-    live_session :widgets, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
+    live_session :widgets, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope_unsafe_dont_use}] do
       live "/arcade/group/:group_id", ArcadeLive
       live "/wallet", WalletLive
     end

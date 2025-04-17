@@ -15,6 +15,12 @@ defmodule QlariusWeb.Endpoint do
     websocket: [connect_info: [:x_headers, session: @session_options]],
     longpoll: [connect_info: [:x_headers, session: @session_options]]
 
+  # Based on https://elixirforum.com/t/how-to-embed-a-liveview-via-iframe/65066
+  # This isn't a good long-term solution; I just need to get the demo working.
+  socket "/widgets/live", Phoenix.LiveView.Socket,
+    websocket: true,
+    longpoll: true
+
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phx.digest

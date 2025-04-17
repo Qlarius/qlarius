@@ -49,8 +49,9 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
 
         <div class="mt-4">
           <%= if @current_scope && Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>
+            <%!-- TODO remove hardcoded user --%>
             <.link
-              navigate={~p"/widgets/content/#{@selected_piece.id}"}
+              navigate={~p"/widgets/content/#{@selected_piece.id}?user=#{@current_scope.user.email}"}
               class="inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
             >
               Go to content
@@ -76,7 +77,7 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
       <div class="w-full md:w-1/2 space-y-3">
         <.link
           :for={piece <- @group.content_pieces}
-          patch={~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}"}
+          patch={~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}&user=#{@current_scope.user.email}"}
           class={"flex flex-col bg-gray-100 p-3 rounded-lg cursor-pointer #{if piece.id == @selected_piece.id, do: "ring-2 ring-black"}"}
         >
           <div class="flex gap-2 mb-1">
@@ -183,7 +184,7 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
     Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
 
     socket
-    |> redirect(to: ~p"/widgets/content/#{socket.assigns.selected_piece.id}")
+    |> redirect(to: ~p"/widgets/content/#{socket.assigns.selected_piece.id}?user=#{@current_scope.user.email}")
     |> noreply()
   end
 end

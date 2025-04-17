@@ -147,6 +147,18 @@ defmodule QlariusWeb.UserAuth do
     {:cont, mount_current_scope(socket, session)}
   end
 
+  # Awful hack to get the demo working.
+  def on_mount(:mount_current_scope_unsafe_dont_use, params, session, socket) do
+    socket =
+      Phoenix.Component.assign_new(socket, :current_scope, fn ->
+        user = Accounts.get_user_by_email(Map.fetch!(params, "user"))
+
+        Scope.for_user(user)
+      end)
+
+    {:cont, socket}
+  end
+
   def on_mount(:require_authenticated, _params, session, socket) do
     socket = mount_current_scope(socket, session)
 
@@ -227,4 +239,13 @@ defmodule QlariusWeb.UserAuth do
   defp maybe_store_return_to(conn), do: conn
 
   defp signed_in_path(_conn), do: ~p"/"
+
+  # NB this is LAUGHABLY insecure but I'm running out of
+  # time before the demo and I'm out of ideas.
+  def fetch_hardcoded_scope_from_param(conn, _opts) do
+    email = Map.fetch!(conn.query_params, "user")
+    user = Accounts.get_user_by_email(email)
+
+    assign(conn, :current_scope, Scope.for_user(user))
+  end
 end
