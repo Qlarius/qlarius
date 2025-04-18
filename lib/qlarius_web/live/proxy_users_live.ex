@@ -47,10 +47,7 @@ defmodule QlariusWeb.ProxyUsersLive do
             <.button
               phx-click="toggle_proxy"
               phx-value-id={proxy.id}
-              class={[
-                proxy.active && "bg-green-500",
-                !proxy.active && "bg-gray-500"
-              ]}
+              class={["transition-colors", proxy.active && "!bg-green-500 hover:!bg-green-600" || "!bg-gray-500 hover:!bg-gray-600"]}
             >
               <%= if proxy.active, do: "Active", else: "Inactive" %>
             </.button>
