@@ -2,20 +2,18 @@
   <div class="container mx-auto p-4">
     <h1 class="text-4xl font-bold text-gray-700 mb-6">Home</h1>
 
-    <div class="mb-4">
-      <h2 class="text-lg font-medium">Account Summary</h2>
-    </div>
-
     <div class="border rounded-lg p-6 mb-6">
       <div class="mb-4">
-        <p><span class="font-medium">Mobile #:</span></p>
-        <p><span class="font-medium">Home zip:</span> 94040</p>
-        <p><span class="font-medium">Active since:</span> 2008-08-29</p>
+        <h2 class="text-2xl font-bold">{@current_scope.user.email}</h2>
+        <p class="flex items-center gap-1">
+          <.icon name="hero-map-pin-solid" class="h-5 w-5 text-gray-500" />
+          {@current_scope.home_zip}
+        </p>
       </div>
 
       <hr class="my-4 border-gray-200" />
 
-      <div class="grid grid-cols-3 gap-4">
+      <div class="grid grid-cols-2 gap-4">
         <div class="bg-green-500 text-white rounded-lg p-4 flex flex-col items-center justify-center">
           <div class="text-3xl font-bold">{@current_scope.ads_count}</div>
           <div class="text-sm">ads</div>
@@ -27,8 +25,13 @@
         </div>
 
         <div class="bg-indigo-400 text-white rounded-lg p-4 flex flex-col items-center justify-center">
-          <div class="text-3xl font-bold">{@trait_count}</div>
+          <div class="text-3xl font-bold">{@current_scope.trait_count}</div>
           <div class="text-sm">traits</div>
+        </div>
+
+        <div class="bg-indigo-400 text-white rounded-lg p-4 flex flex-col items-center justify-center">
+          <div class="text-3xl font-bold">{@current_scope.tag_count}</div>
+          <div class="text-sm">tags</div>
         </div>
       </div>
     </div>

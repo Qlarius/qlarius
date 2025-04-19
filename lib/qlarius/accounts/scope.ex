@@ -16,11 +16,11 @@ defmodule Qlarius.Accounts.Scope do
   growing application requirements.
   """
 
-  alias Qlarius.Legacy.{User, MeFile}
+  alias Qlarius.Legacy.{User, MeFile, LedgerHeader}
   alias Qlarius.{LegacyRepo, Wallets}
   alias Decimal
 
-  defstruct user: nil, wallet_balance: nil, ads_count: nil, home_zip: nil
+  defstruct user: nil, wallet_balance: nil, ads_count: nil, home_zip: nil, tag_count: nil, trait_count: nil
 
   @doc """
   Creates a scope for the given user.
@@ -30,12 +30,15 @@ defmodule Qlarius.Accounts.Scope do
   def for_user(user) do
     user = User.active_proxy_user_or_self(user)
     me_file = LegacyRepo.get_by(MeFile, user_id: user.id)
+    ledger_header = LegacyRepo.get_by(LedgerHeader, me_file_id: me_file.id)
 
     %__MODULE__{
       user: user,
       home_zip: MeFile.home_zip(me_file),
-      ads_count: 55,
-      wallet_balance: Decimal.new("2.34")
+      ads_count: MeFile.ad_offer_count(me_file),
+      trait_count: MeFile.trait_tag_count(me_file),
+      tag_count: MeFile.tag_count(me_file),
+      wallet_balance: ledger_header.balance
     }
   end
 

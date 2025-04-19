@@ -68,21 +68,31 @@ defmodule Qlarius.Legacy.MeFile do
     end
   end
 
-  # def tag_count(me_file) do
-  #   # add 1 for birthdate
-  #   LegacyRepo.aggregate(assoc(me_file, :me_file_tags), :count) + 1
-  # end
+  def tag_count(me_file) do
+    # add 1 for birthdate
+    query = from(mt in MeFileTag,
+      where: mt.me_file_id == ^me_file.id,
+      select: count(mt.id))
+    LegacyRepo.one(query) + 1
+  end
 
-  # def trait_tag_count(me_file) do
-  #   me_file = LegacyRepo.preload(me_file, :traits)
+  def trait_tag_count(me_file) do
+    count = from(t in Trait,
+      join: mt in MeFileTag,
+      on: mt.trait_id == t.id,
+      where: mt.me_file_id == ^me_file.id,
+      select: count(fragment("DISTINCT ?", t.parent_trait_id)))
+    |> LegacyRepo.one()
 
-  #   count = from(t in assoc(me_file, :traits),
-  #     distinct: t.parent_trait_id,
-  #     select: count(t.parent_trait_id))
-  #   |> LegacyRepo.one()
+    if count > 0, do: count + 1, else: count # add one for birthdate if me_file has traits
+  end
 
-  #   if count > 0, do: count + 1, else: count # add one for birthdate if me_file has traits
-  # end
+  def ad_offer_count(me_file) do
+    from(o in Offer,
+      where: o.me_file_id == ^me_file.id and o.is_current == true
+    )
+    |> LegacyRepo.aggregate(:count)
+  end
 
   # def birthday_tag(me_file) do
   #   %{

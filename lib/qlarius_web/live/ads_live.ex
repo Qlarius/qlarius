@@ -23,15 +23,6 @@ defmodule QlariusWeb.AdsLive do
 
       # Get the user's me_file to count their offers
       me_file = Legacy.get_user_me_file(user.id)
-      ads_count =
-        from(o in Offer,
-          where: o.me_file_id == ^me_file.id and o.is_current == true
-        )
-        |> LegacyRepo.aggregate(:count)
-
-      current_scope =
-        current_scope
-        |> Map.put(:ads_count, ads_count)
 
       query =
         from(o in Offer,
@@ -56,8 +47,10 @@ defmodule QlariusWeb.AdsLive do
       # Create a default scope with mock data for the initial render
       default_scope = %{
         ads_count: 0,
+        tag_count: 0,
+        trait_count: 0,
         wallet_balance: Decimal.new(0),
-        home_zip: "NO ZIP",
+        home_zip: "-----",
         user: %{
           email: "Loading...",
           id: nil

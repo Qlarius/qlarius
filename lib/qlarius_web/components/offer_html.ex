@@ -22,7 +22,7 @@ defmodule QlariusWeb.OfferHTML do
               <.icon name="hero-map-pin" class="w-6 h-6" />
             </div>
             <div class="text-green-600">
-              <.icon name="hero-forward" class="w-6 h-6" />
+              <.icon name="hero-chevron-double-right" class="w-6 h-6" />
             </div>
           </div>
         </.offer_container>
@@ -96,9 +96,11 @@ defmodule QlariusWeb.OfferHTML do
           <span class="font-bold">$0.05</span>
         <% end %>
       </div>
-      <div class="bg-neutral-500 py-2 flex-1 border-l border-neutral-400">
-        <span>CLICK/JUMP FOR </span>
-        <span class="font-bold">{format_usd(@phase_2_amount)}</span>
+      <div class={[
+        "bg-neutral-500 py-2 flex-1 border-l border-neutral-400",
+        if(@phase_1_complete?, do: "text-white", else: "text-neutral-400")
+      ]}>
+        CLICK/JUMP FOR <span class="font-bold">{format_usd(@phase_2_amount)}</span>
       </div>
     </div>
     """

@@ -120,7 +120,13 @@ defmodule QlariusWeb.Layouts do
         icon_name="hero-banknotes"
         text="Wallet"
       />
-      <.sponster_bottom_bar_link text="MeFile" href={~p"/me_file"} icon_name="hero-identification" />
+      <.sponster_bottom_bar_link
+        badge={@current_scope.trait_count}
+        text="MeFile"
+        href={~p"/me_file"}
+        icon_name="hero-identification"
+      />
+
       <button
         id="more"
         phx-click={toggle_sponster_sidebar(:on)}
