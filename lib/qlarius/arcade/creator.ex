@@ -12,9 +12,10 @@ defmodule Qlarius.Arcade.Creator do
   end
 
   @doc false
-  def changeset(creator, attrs, _user_scope) do
+  def changeset(creator, attrs) do
     creator
     |> cast(attrs, [:name])
     |> validate_required([:name])
+    |> validate_length(:name, max: 20)
   end
 end

@@ -1,4 +1,12 @@
-<Layouts.creators {assigns}>
+<Layouts.creators
+  breadcrumbs={[
+    {@creator.name, ~p"/creators/#{@creator}"},
+    {@catalog.name, ~p"/creators/catalogs/#{@catalog}"},
+    {@content_group.title, ~p"/creators/content_groups/#{@content_group}"},
+    {"Edit", ~p"/creators/content_groups/#{@content_group}/edit"}
+  ]}
+  {assigns}
+>
   <.header>
     Edit Content Group
   </.header>
@@ -6,7 +14,6 @@
   <.content_group_form
     changeset={@changeset}
     action={~p"/creators/content_groups/#{@content_group}"}
+    return_to={~p"/creators/content_groups/#{@content_group}"}
   />
-
-  <.back navigate={~p"/creators/content_groups/#{@content_group}"}>Back to content group</.back>
 </Layouts.creators>

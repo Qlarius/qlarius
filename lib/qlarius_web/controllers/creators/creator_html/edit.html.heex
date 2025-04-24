@@ -1,10 +1,17 @@
-<Layouts.creators {assigns}>
+<Layouts.creators
+  breadcrumbs={[
+    {@creator.name, ~p"/creators/#{@creator}"},
+    {"Edit", ~p"/creators/#{@creator}/edit"}
+  ]}
+  {assigns}
+>
   <.header>
     Edit Creator
-    <:subtitle>Edit creator details.</:subtitle>
   </.header>
 
-  <.creator_form changeset={@changeset} action={~p"/creators/#{@creator}"} />
-
-  <.back navigate={~p"/creators"}>Back to creators</.back>
+  <.creator_form
+    changeset={@changeset}
+    action={~p"/creators/#{@creator}"}
+    return_to={~p"/creators/#{@creator}"}
+  />
 </Layouts.creators>

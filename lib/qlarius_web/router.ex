@@ -135,25 +135,19 @@ defmodule QlariusWeb.Router do
     pipe_through [:browser]
 
     live_session :creators, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
+      resources "/content_pieces", ContentPieceController, only: [:show, :delete]
+      live "/content_pieces/:id/edit", ContentPieceLive.Form, :edit
+
+      resources "/content_groups", ContentGroupController, only: [:show, :edit, :update, :delete] do
+        live "/content_pieces/new", ContentPieceLive.Form, :new
+      end
+
+      resources "/catalogs", CatalogController, only: [:show, :edit, :update, :delete] do
+        resources "/content_groups", ContentGroupController, only: [:new, :create]
+      end
+
       resources "/", CreatorController do
-        resources "/catalogs", CatalogController, except: [:index]
-
-        live "/content_groups", ContentGroupController, :index
-        live "/content_groups/new", ContentGroupController, :new
-        get "/content_groups", ContentGroupController, :index
-        get "/content_groups/new", ContentGroupController, :new
-        post "/content_groups", ContentGroupController, :create
-        get "/content_groups/:id", ContentGroupController, :show
-        get "/content_groups/:id/edit", ContentGroupController, :edit
-        patch "/content_groups/:id", ContentGroupController, :update
-        put "/content_groups/:id", ContentGroupController, :update
-        delete "/content_groups/:id", ContentGroupController, :delete
-
-        live "/content_groups/:content_group_id/pieces/new", ContentPieceLive.Form, :new
-        live "/content_groups/:content_group_id/pieces/:id/edit", ContentPieceLive.Form, :edit
-
-        resources "/content_groups/:content_group_id/pieces", ContentPieceController,
-          only: [:show, :index, :delete]
+        resources "/catalogs", CatalogController, only: [:new, :create]
       end
     end
   end

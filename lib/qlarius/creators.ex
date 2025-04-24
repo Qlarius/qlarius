@@ -2,16 +2,15 @@ defmodule Qlarius.Creators do
   import Ecto.Query
 
   alias Qlarius.Accounts.User
-  alias Qlarius.Accounts.Scope
+  alias Qlarius.Arcade.Catalog
   alias Qlarius.Arcade.ContentGroup
   alias Qlarius.Arcade.ContentPiece
+  alias Qlarius.Arcade.Creator
   alias Qlarius.Arcade.Tiqit
   alias Qlarius.Arcade.TiqitType
+  alias Qlarius.Repo
   alias Qlarius.Wallets.LedgerEntry
   alias Qlarius.Wallets.LedgerHeader
-  alias Qlarius.Repo
-  alias Qlarius.Arcade.Creator
-  alias Qlarius.Arcade.Catalog
 
   # ---------------------------------------
   #                CREATORS
@@ -26,15 +25,15 @@ defmodule Qlarius.Creators do
     |> Repo.preload([:catalogs])
   end
 
-  def create_creator(%Scope{} = scope, attrs \\ %{}) do
+  def create_creator(attrs \\ %{}) do
     %Creator{}
-    |> Creator.changeset(attrs, scope)
+    |> Creator.changeset(attrs)
     |> Repo.insert()
   end
 
-  def update_creator(%Scope{} = scope, %Creator{} = creator, attrs) do
+  def update_creator(%Creator{} = creator, attrs) do
     creator
-    |> Creator.changeset(attrs, scope)
+    |> Creator.changeset(attrs)
     |> Repo.update()
   end
 
@@ -42,8 +41,8 @@ defmodule Qlarius.Creators do
     Repo.delete(creator)
   end
 
-  def change_creator(%Creator{} = creator, attrs \\ %{}, scope \\ nil) do
-    Creator.changeset(creator, attrs, scope)
+  def change_creator(%Creator{} = creator, attrs \\ %{}) do
+    Creator.changeset(creator, attrs)
   end
 
   # ---------------------------------------
@@ -60,17 +59,18 @@ defmodule Qlarius.Creators do
 
   def get_catalog!(id) do
     Repo.get!(Catalog, id)
+    |> Repo.preload([:content_groups, :creator])
   end
 
-  def create_catalog(%Scope{} = scope, attrs \\ %{}, %Creator{} = creator) do
+  def create_catalog(%Creator{} = creator, attrs \\ %{}) do
     %Catalog{creator_id: creator.id}
-    |> Catalog.changeset(attrs, scope)
+    |> Catalog.changeset(attrs)
     |> Repo.insert()
   end
 
-  def update_catalog(%Scope{} = scope, %Catalog{} = catalog, attrs) do
+  def update_catalog(%Catalog{} = catalog, attrs) do
     catalog
-    |> Catalog.changeset(attrs, scope)
+    |> Catalog.changeset(attrs)
     |> Repo.update()
   end
 
@@ -78,18 +78,18 @@ defmodule Qlarius.Creators do
     Repo.delete(catalog)
   end
 
-  def change_catalog(%Catalog{} = catalog, attrs \\ %{}, scope \\ nil) do
-    Catalog.changeset(catalog, attrs, scope)
+  def change_catalog(%Catalog{} = catalog, attrs \\ %{}) do
+    Catalog.changeset(catalog, attrs)
   end
 
   # ---------------------------------------
   #             CONTENT GROUPS
   # ---------------------------------------
 
-  def list_content_groups(%Scope{} = scope) do
+  def list_content_groups_for_catalog(%Catalog{} = catalog) do
     Repo.all(
       from g in ContentGroup,
-        where: g.creator_id == ^scope.user.id,
+        where: g.catalog_id == ^catalog.id,
         preload: :content_pieces,
         order_by: [asc: g.title]
     )
@@ -99,28 +99,24 @@ defmodule Qlarius.Creators do
     ContentGroup.changeset(group, attrs)
   end
 
-  def create_content_group(%Scope{} = scope, attrs \\ %{}) do
-    %ContentGroup{creator: scope.user}
+  def create_content_group(%Catalog{} = catalog, attrs \\ %{}) do
+    %ContentGroup{catalog: catalog}
     |> ContentGroup.changeset(attrs)
     |> Repo.insert()
   end
 
-  def get_content_group!(%Scope{} = scope, id) do
-    Repo.one!(from ContentGroup, where: [id: ^id, creator_id: ^scope.user.id])
-    |> Repo.preload(content_pieces: :tiqit_types)
+  def get_content_group!(id) do
+    Repo.one!(from ContentGroup, where: [id: ^id])
+    |> Repo.preload(content_pieces: :tiqit_types, catalog: :creator)
   end
 
-  def update_content_group(
-        %Scope{user: %{id: uid}},
-        %ContentGroup{creator_id: uid} = group,
-        attrs
-      ) do
+  def update_content_group(%ContentGroup{} = group, attrs) do
     group
     |> ContentGroup.changeset(attrs)
     |> Repo.update()
   end
 
-  def delete_content_group(%Scope{user: %{id: uid}}, %ContentGroup{creator_id: uid} = group) do
+  def delete_content_group(%ContentGroup{} = group) do
     Repo.delete(group)
   end
 
@@ -132,21 +128,13 @@ defmodule Qlarius.Creators do
     ContentPiece.changeset(piece, attrs)
   end
 
-  def create_content_piece(%Scope{} = scope, %ContentGroup{} = group, attrs \\ %{}) do
-    if group.creator_id != scope.user.id do
-      raise "not allowed"
-    end
-
-    %ContentPiece{creator: scope.user, content_groups: [group]}
+  def create_content_piece(%ContentGroup{} = group, attrs \\ %{}) do
+    %ContentPiece{content_groups: [group]}
     |> ContentPiece.changeset(attrs)
     |> Repo.insert()
   end
 
-  def update_content_piece(%Scope{} = scope, %ContentPiece{} = piece, attrs) do
-    if piece.creator_id != scope.user.id do
-      raise "not allowed"
-    end
-
+  def update_content_piece(%ContentPiece{} = piece, attrs) do
     piece
     |> ContentPiece.changeset(attrs)
     |> Repo.update()

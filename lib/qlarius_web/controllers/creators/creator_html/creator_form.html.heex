@@ -1,11 +1,7 @@
-<.simple_form :let={f} for={@changeset} action={@action}>
-  <.error :if={@changeset.action}>
-    Oops, something went wrong! Please check the errors below.
-  </.error>
-
-  <.input field={f[:name]} type="text" label="Name" required />
-
-  <:actions>
-    <.button>Save Creator</.button>
-  </:actions>
-</.simple_form>
+<.form :let={f} for={@changeset} action={@action}>
+  <.input field={f[:name]} type="text" label="Name" />
+  <footer>
+    <.button variant="primary">Save Creator</.button>
+    <.button :if={@return_to} href={@return_to}>Cancel</.button>
+  </footer>
+</.form>

@@ -1,22 +1,15 @@
 defmodule QlariusWeb.Creators.ContentPieceLive.Form do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Creators
   alias Qlarius.Arcade.ContentPiece
+  alias Qlarius.Creators
+  alias Qlarius.Repo
 
-  @impl true
-  def mount(%{"content_group_id" => group_id}, _session, socket) do
-    group = Creators.get_content_group!(socket.assigns.current_scope, group_id)
-
-    socket
-    |> assign(group: group)
-    |> ok()
-  end
-
+  # EDIT
   @impl true
   def handle_params(%{"id" => id}, _uri, socket) do
-    id = String.to_integer(id)
-    group = socket.assigns.group
+    piece = Creators.get_content_piece!(id)
+    group = piece.content_group
     piece = %ContentPiece{} = Enum.find(group.content_pieces, &(&1.id == id))
 
     changeset = Creators.change_content_piece(piece)
@@ -30,10 +23,16 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
     |> noreply()
   end
 
-  def handle_params(_params, _uri, socket) do
+  # NEW
+  def handle_params(%{"content_group_id" => group_id}, _uri, socket) do
     changeset = Creators.change_content_piece(%ContentPiece{})
 
+    group = Creators.get_content_group!(group_id)
+    catalog = group.catalog
+    creator = catalog.creator
+
     socket
+    |> assign(catalog: catalog, creator: creator, group: group)
     |> assign(:page_title, "New Content Piece")
     |> assign(:piece, %ContentPiece{})
     |> assign(:form, to_form(changeset))
@@ -55,11 +54,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
   end
 
   defp save_content(socket, :edit, piece_params) do
-    case Creators.update_content_piece(
-           socket.assigns.current_scope,
-           socket.assigns.piece,
-           piece_params
-         ) do
+    case Creators.update_content_piece(socket.assigns.piece, piece_params) do
       {:ok, piece} ->
         socket
         |> put_flash(:info, "Content updated successfully")
@@ -74,11 +69,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
   defp save_content(socket, :new, piece_params) do
     group = socket.assigns.group
 
-    case Creators.create_content_piece(
-           socket.assigns.current_scope,
-           group,
-           piece_params
-         ) do
+    case Creators.create_content_piece(group, piece_params) do
       {:ok, content} ->
         socket
         |> put_flash(:info, "Content created successfully")

@@ -8,7 +8,6 @@ defmodule Qlarius.Arcade.ContentPiece do
   alias Qlarius.Arcade.TiqitType
 
   schema "content_pieces" do
-    belongs_to :creator, User
     field :title, :string
     field :description, :string
     field :content_type, Ecto.Enum, values: ~w[video podcast blog song]a, default: :video

@@ -1,4 +1,21 @@
-<Layouts.creators {assigns}>
+<Layouts.creators
+  breadcrumbs={
+    [
+      {@creator.name, ~p"/creators/#{@creator}"},
+      {@catalog.name, ~p"/creators/catalogs/#{@catalog}"},
+      {@group.title, ~p"/creators/content_groups/#{@group}"}
+    ] ++
+      if @live_action == :new do
+        [{"New Content Piece", ~p"/creators/content_groups/#{@group}/content_pieces/new"}]
+      else
+        [
+          {@piece.title, ~p"/creators/content_pieces/#{@piece}"},
+          {"Edit", ~p"/creators/content_pieces/#{@piece}/edit"}
+        ]
+      end
+  }
+  {assigns}
+>
   <.header>
     {@page_title}
 
@@ -7,7 +24,7 @@
     </:subtitle>
   </.header>
 
-  <.simple_form for={@form} phx-change="validate" phx-submit="save">
+  <.form for={@form} phx-change="validate" phx-submit="save">
     <.input field={@form[:title]} type="text" label="Title" />
     <.input field={@form[:date_published]} type="date" label="Published Date" />
     <.input field={@form[:description]} type="textarea" label="Description" />
@@ -37,7 +54,7 @@
     </.inputs_for>
 
     <button
-      class="mt-4 text-zinc-700"
+      class="my-4 text-zinc-700"
       name="content_piece[tiqit_type_sort][]"
       phx-click={JS.dispatch("change")}
       type="button"
@@ -46,10 +63,16 @@
       <.icon name="hero-plus-circle" class="h-5 w-5 relative top-[-1px]" /> Add Tiqit type
     </button>
 
-    <:actions>
-      <.button>Save Content</.button>
-    </:actions>
-  </.simple_form>
+    <footer>
+      <.button variant="primary">Save Content</.button>
+      <.button navigate={
+        if @live_action == :new do
+          ~p"/creators/content_groups/#{@group}"
+        else
+          ~p"/creators/content_pieces/#{@piece}"
+        end
+      }>Cancel</.button>
+    </footer>
+  </.form>
 
-  <.back navigate={~p"/creators/content_groups/#{@group}"}>Back to group</.back>
 </Layouts.creators>

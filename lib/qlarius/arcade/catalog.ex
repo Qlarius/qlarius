@@ -3,9 +3,11 @@ defmodule Qlarius.Arcade.Catalog do
   import Ecto.Changeset
 
   alias Qlarius.Arcade.Creator
+  alias Qlarius.Arcade.ContentGroup
 
   schema "catalogs" do
     belongs_to :creator, Creator
+    has_many :content_groups, ContentGroup
 
     field :name, :string
     field :url, :string
@@ -15,9 +17,10 @@ defmodule Qlarius.Arcade.Catalog do
   end
 
   @doc false
-  def changeset(catalog, attrs, _user_scope) do
+  def changeset(catalog, attrs) do
     catalog
     |> cast(attrs, [:name, :url, :type])
     |> validate_required([:name, :url, :type])
+    |> validate_length(:name, max: 20)
   end
 end

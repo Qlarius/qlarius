@@ -1,42 +1,50 @@
-<Layouts.creators {assigns}>
+<Layouts.creators breadcrumbs={[{@creator.name, ~p"/creators/#{@creator}"}]} {assigns}>
   <.header>
     {@creator.name}
+    <:subtitle>Creator</:subtitle>
     <:actions>
-      <.link href={~p"/creators/#{@creator}/edit"}>
-        <.button>Edit</.button>
-      </.link>
-      <.link href={~p"/creators/#{@creator}"} method="delete" data-confirm="Are you sure?">
-        <.button class="bg-red-500 hover:bg-red-700">Delete</.button>
-      </.link>
+      <div class="space-x-2">
+        <.a href={~p"/creators/#{@creator}/edit"}>
+          Edit
+        </.a>
+        <.a href={~p"/creators/#{@creator}"} method="delete" data-confirm="Are you sure?">
+          Delete
+        </.a>
+        <.a href={~p"/creators/#{@creator}/catalogs/new"}>
+          New Catalog
+        </.a>
+      </div>
     </:actions>
   </.header>
 
-  <.header>
-    Catalogs
-    <:actions>
-      <.link href={~p"/creators/#{@creator}/catalogs/new"}>
-        <.button>Add Catalog</.button>
-      </.link>
-    </:actions>
-  </.header>
-
-  <.table id="catalogs" rows={@creator.catalogs}>
-    <:col :let={catalog} label="Name">{catalog.name}</:col>
-    <:col :let={catalog} label="URL">{catalog.url}</:col>
-    <:col :let={catalog} label="Type">{catalog.type}</:col>
-    <:action :let={catalog}>
-      <.link navigate={~p"/creators/#{@creator}/catalogs/#{catalog}/edit"}>Edit</.link>
-    </:action>
-    <:action :let={catalog}>
-      <.link
-        href={~p"/creators/#{@creator}/catalogs/#{catalog}"}
-        method="delete"
-        data-confirm="Are you sure?"
-      >
-        Delete
-      </.link>
-    </:action>
-  </.table>
-
-  <.back navigate={~p"/creators"}>Back to creators</.back>
+  <%= if Enum.any?(@creator.catalogs) do %>
+    <.table
+      id="catalogs"
+      rows={@creator.catalogs}
+      row_click={&JS.navigate(~p"/creators/catalogs/#{&1}")}
+      zebra={false}
+    >
+      <:col :let={catalog} label="Catalogs">{catalog.name}</:col>
+      <:col :let={catalog}>{catalog.type |> to_string |> String.capitalize()}</:col>
+      <:action :let={catalog}>
+        <.link navigate={~p"/creators/catalogs/#{catalog}/edit"}>Edit</.link>
+      </:action>
+      <:action :let={catalog}>
+        <.link
+          href={~p"/creators/catalogs/#{catalog}"}
+          method="delete"
+          data-confirm="Are you sure?"
+        >
+          Delete
+        </.link>
+      </:action>
+    </.table>
+  <% else %>
+    <div class="mt-10 text-sm">
+      No catalogs yet!
+      <.a href={~p"/creators/#{@creator}/catalogs/new"}>
+        Click here to add the first.
+      </.a>
+    </div>
+  <% end %>
 </Layouts.creators>

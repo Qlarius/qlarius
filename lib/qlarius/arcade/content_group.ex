@@ -3,11 +3,12 @@ defmodule Qlarius.Arcade.ContentGroup do
   import Ecto.Changeset
 
   alias Qlarius.Accounts.User
+  alias Qlarius.Arcade.Catalog
   alias Qlarius.Arcade.ContentGroupsPieces
   alias Qlarius.Arcade.ContentPiece
 
   schema "content_groups" do
-    belongs_to :creator, User
+    belongs_to :catalog, Catalog
 
     field :description, :string
     field :title, :string

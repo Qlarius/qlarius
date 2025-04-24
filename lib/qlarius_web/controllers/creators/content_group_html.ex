@@ -8,6 +8,7 @@ defmodule QlariusWeb.Creators.ContentGroupHTML do
   """
   attr :changeset, Ecto.Changeset, required: true
   attr :action, :string, required: true
+  attr :return_to, :string, default: nil
 
   def content_group_form(assigns)
 end

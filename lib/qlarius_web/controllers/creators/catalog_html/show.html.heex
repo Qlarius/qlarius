@@ -1,0 +1,65 @@
+<Layouts.creators
+  breadcrumbs={[
+    {@creator.name, ~p"/creators/#{@creator}"},
+    {@catalog.name, ~p"/creators/catalogs/#{@catalog}"}
+  ]}
+  {assigns}
+>
+  <.header>
+    {@catalog.name}
+    <:subtitle>Catalog for {@creator.name}</:subtitle>
+    <:actions>
+      <div class="space-x-3">
+        <.a href={~p"/creators/catalogs/#{@catalog}/edit"}>
+          Edit
+        </.a>
+        <.a href={~p"/creators/catalogs/#{@catalog}"} method="delete" data-confirm="Are you sure?">
+          Delete
+        </.a>
+        <.a href={~p"/creators/catalogs/#{@catalog}/content_groups/new"}>
+          New Content Group
+        </.a>
+      </div>
+    </:actions>
+  </.header>
+
+  <div class="mb-8 text-sm leading-8 text-zinc-600">
+    <div>
+      <span>URL:</span>
+      <.a href={@catalog.url}>{@catalog.url}</.a>
+    </div>
+    <div><span>Type:</span> {@catalog.type |> to_string |> String.capitalize()}</div>
+  </div>
+
+  <%= if Enum.any?(@catalog.content_groups) do %>
+    <.table
+      id="content_groups"
+      rows={@catalog.content_groups}
+      row_click={&JS.navigate(~p"/creators/content_groups/#{&1}")}
+      zebra={false}
+    >
+      <:col :let={group} label="Content Groups">{group.title}</:col>
+      <:col :let={group}>{group.description}</:col>
+      <:col :let={group}>{group.type}</:col>
+      <:action :let={group}>
+        <.link navigate={~p"/creators/content_groups/#{group}/edit"}>Edit</.link>
+      </:action>
+      <:action :let={group}>
+        <.link
+          href={~p"/creators/content_groups/#{group}"}
+          method="delete"
+          data-confirm="Are you sure?"
+        >
+          Delete
+        </.link>
+      </:action>
+    </.table>
+  <% else %>
+    <div class="text-sm text-zinc-600">
+      No content groups yet!
+      <.a href={~p"/creators/catalogs/#{@catalog}/content_groups/new"}>
+        Click here to add the first.
+      </.a>
+    </div>
+  <% end %>
+</Layouts.creators>

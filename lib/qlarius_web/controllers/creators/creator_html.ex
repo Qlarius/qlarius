@@ -10,6 +10,7 @@ defmodule QlariusWeb.Creators.CreatorHTML do
   """
   attr :changeset, Ecto.Changeset, required: true
   attr :action, :string, required: true
+  attr :return_to, :string, default: nil
 
   def creator_form(assigns)
 end

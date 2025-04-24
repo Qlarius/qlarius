@@ -131,45 +131,49 @@ defmodule QlariusWeb.Layouts do
   def sponster_sidebar(assigns)
 
   attr :flash, :map, required: true
-  attr :current_scope, Scope, required: true
+  attr :current_scope, Scope, default: nil
+  attr :breadcrumbs, :list, default: []
 
   slot :inner_block, required: true
 
   def creators(assigns) do
     ~H"""
     <main class="p-4 sm:px-6 lg:px-8 max-w-2xl mx-auto">
-      <ul class="relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
-        <li class="text-[0.8125rem] leading-6 text-zinc-900">
+      <ul class="relative z-10 flex items-center gap-4 justify-end mb-5">
+        <li :if={@current_scope} class="text-[0.8125rem] leading-6 text-zinc-900">
           {@current_scope.user.email}
         </li>
-        <%= for {text, href} <- [
-          {"Manage content", ~p"/creators/content_groups"},
-        ] do %>
-          <li>
-            <.link
-              href={href}
-              class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
-            >
-              {text}
-            </.link>
-          </li>
+        <%= if @current_scope do %>
+          <li><.layouts_navbar_link text="Log out" href={~p"/users/log_out"} method="delete" /></li>
+        <% else %>
+          <li><.layouts_navbar_link text="Log in" href={~p"/users/log_in"} /></li>
+          <li><.layouts_navbar_link text="Sign up" href={~p"/users/register"} /></li>
         <% end %>
-        <li>
-          <.link
-            href={~p"/users/log_out"}
-            class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
-            method="delete"
-          >
-            Log out
-          </.link>
-        </li>
       </ul>
 
-      <div class="p-6 py-20">
+      <.breadcrumbs crumbs={@breadcrumbs} />
+
+      <div class="py-20">
         <.flash_group flash={@flash} />
         {render_slot(@inner_block)}
       </div>
     </main>
+    """
+  end
+
+  attr :text, :string, required: true
+  attr :href, :string, required: true
+  attr :method, :string, default: nil
+
+  defp layouts_navbar_link(assigns) do
+    ~H"""
+    <.link
+      href={@href}
+      class="text-[0.8125rem] leading-6 text-zinc-700 font-semibold hover:text-zinc-900"
+      method={@method}
+    >
+      {@text}
+    </.link>
     """
   end
 

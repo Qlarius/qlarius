@@ -1,10 +1,7 @@
-<Layouts.creators {assigns}>
+<Layouts.creators breadcrumbs={[{"New", ~p"/creators/new"}]} {assigns}>
   <.header>
     New Creator
-    <:subtitle>Enter details for a new creator.</:subtitle>
   </.header>
 
-  <.creator_form changeset={@changeset} action={~p"/creators"} />
-
-  <.back navigate={~p"/creators"}>Back to creators</.back>
+  <.creator_form changeset={@changeset} action={~p"/creators"} return_to={~p"/creators"} />
 </Layouts.creators>

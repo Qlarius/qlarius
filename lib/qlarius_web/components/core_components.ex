@@ -1,4 +1,6 @@
 defmodule QlariusWeb.CoreComponents do
+  use QlariusWeb, :verified_routes
+
   @moduledoc """
   Provides core UI components.
 
@@ -309,6 +311,7 @@ defmodule QlariusWeb.CoreComponents do
   attr :rows, :list, required: true
   attr :row_id, :any, default: nil, doc: "the function for generating the row id"
   attr :row_click, :any, default: nil, doc: "the function for handling phx-click on each row"
+  attr :zebra, :boolean, default: true
 
   attr :row_item, :any,
     default: &Function.identity/1,
@@ -327,7 +330,7 @@ defmodule QlariusWeb.CoreComponents do
       end
 
     ~H"""
-    <table class="table table-zebra">
+    <table class={["table", @zebra && "table-zebra"]}>
       <thead>
         <tr>
           <th :for={col <- @col}>{col[:label]}</th>
@@ -631,11 +634,59 @@ defmodule QlariusWeb.CoreComponents do
   ##      CUSTOM
   ## --------------------
 
-  # Our own components/functions (not provided by Phoenix
+  # Our own components/functions (not provided by Phoenix)
 
   def format_duration(seconds) do
     minutes = div(seconds, 60)
     remaining_seconds = rem(seconds, 60)
     :io_lib.format("~2..0B:~2..0B", [minutes, remaining_seconds])
+  end
+
+  attr :class, :string, default: nil
+  attr :href, :string, required: true
+  attr :method, :string, default: nil
+
+  attr :rest, :global
+
+  def a(assigns) do
+    ~H"""
+    <.link
+      class={["text-sm text-orange-500 hover:text-orange-700", @class]}
+      href={@href}
+      method={@method}
+      {@rest}
+    >
+      {render_slot(@inner_block)}
+    </.link>
+    """
+  end
+
+  # Based on https://flowbite.com/docs/components/breadcrumb/
+  def breadcrumbs(assigns) do
+    ~H"""
+    <nav class="flex" aria-label="Breadcrumb">
+      <ol class="inline-flex flex-wrap items-center space-x-1 md:space-x-2 gap-y-2">
+        <li class="inline-flex items-center">
+          <.link
+            navigate={~p"/creators"}
+            class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-orange-600"
+          >
+            <.icon name="hero-home-mini" class="w-3 h-3 me-2.5" /> Creators
+          </.link>
+        </li>
+        <li :for={{text, href} <- @crumbs}>
+          <div class="flex items-center">
+            <.icon name="hero-chevron-right-mini" class="h-3 w-3 text-gray-400 mx-1" />
+            <.link
+              navigate={href}
+              class="ms-1 text-sm font-medium text-gray-700 hover:text-orange-600 md:ms-2 whitespace-nowrap utility"
+            >
+              {text}
+            </.link>
+          </div>
+        </li>
+      </ol>
+    </nav>
+    """
   end
 end

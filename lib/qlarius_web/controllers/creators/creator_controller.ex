@@ -10,16 +10,16 @@ defmodule QlariusWeb.Creators.CreatorController do
   end
 
   def new(conn, _params) do
-    changeset = Creators.change_creator(%Creator{}, %{}, conn.assigns.current_scope)
+    changeset = Creators.change_creator(%Creator{})
     render(conn, :new, changeset: changeset)
   end
 
   def create(conn, %{"creator" => creator_params}) do
-    case Creators.create_creator(conn.assigns.current_scope, creator_params) do
-      {:ok, _creator} ->
+    case Creators.create_creator(creator_params) do
+      {:ok, creator} ->
         conn
         |> put_flash(:info, "Creator created successfully.")
-        |> redirect(to: ~p"/creators")
+        |> redirect(to: ~p"/creators/#{creator}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :new, changeset: changeset)
@@ -33,18 +33,18 @@ defmodule QlariusWeb.Creators.CreatorController do
 
   def edit(conn, %{"id" => id}) do
     creator = Creators.get_creator!(id)
-    changeset = Creators.change_creator(creator, %{}, conn.assigns.current_scope)
+    changeset = Creators.change_creator(creator)
     render(conn, :edit, creator: creator, changeset: changeset)
   end
 
   def update(conn, %{"id" => id, "creator" => creator_params}) do
     creator = Creators.get_creator!(id)
 
-    case Creators.update_creator(conn.assigns.current_scope, creator, creator_params) do
-      {:ok, _creator} ->
+    case Creators.update_creator(creator, creator_params) do
+      {:ok, creator} ->
         conn
         |> put_flash(:info, "Creator updated successfully.")
-        |> redirect(to: ~p"/creators")
+        |> redirect(to: ~p"/creators/#{creator}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :edit, creator: creator, changeset: changeset)
