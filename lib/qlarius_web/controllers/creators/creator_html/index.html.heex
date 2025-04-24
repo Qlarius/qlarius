@@ -1,0 +1,25 @@
+<Layouts.creators {assigns}>
+  <.header>
+    Creators
+    <:actions>
+      <.link href={~p"/creators/new"}>
+        <.button>New Creator</.button>
+      </.link>
+    </:actions>
+  </.header>
+
+  <.table id="creators" rows={@creators} row_click={&JS.navigate(~p"/creators/#{&1}")}>
+    <:col :let={creator} label="Name">{creator.name}</:col>
+    <:action :let={creator}>
+      <div class="sr-only">
+        <.link navigate={~p"/creators/#{creator}"}>Show</.link>
+      </div>
+      <.link navigate={~p"/creators/#{creator}/edit"}>Edit</.link>
+    </:action>
+    <:action :let={creator}>
+      <.link href={~p"/creators/#{creator}"} method="delete" data-confirm="Are you sure?">
+        Delete
+      </.link>
+    </:action>
+  </.table>
+</Layouts.creators>

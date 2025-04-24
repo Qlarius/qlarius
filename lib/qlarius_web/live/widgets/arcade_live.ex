@@ -77,7 +77,9 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
       <div class="w-full md:w-1/2 space-y-3">
         <.link
           :for={piece <- @group.content_pieces}
-          patch={~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}&user=#{@current_scope.user.email}"}
+          patch={
+            ~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}&user=#{@current_scope.user.email}"
+          }
           class={"flex flex-col bg-gray-100 p-3 rounded-lg cursor-pointer #{if piece.id == @selected_piece.id, do: "ring-2 ring-black"}"}
         >
           <div class="flex gap-2 mb-1">
@@ -184,7 +186,10 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
     Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
 
     socket
-    |> redirect(to: ~p"/widgets/content/#{socket.assigns.selected_piece.id}?user=#{@current_scope.user.email}")
+    |> redirect(
+      to:
+        ~p"/widgets/content/#{socket.assigns.selected_piece.id}?user=#{@current_scope.user.email}"
+    )
     |> noreply()
   end
 end

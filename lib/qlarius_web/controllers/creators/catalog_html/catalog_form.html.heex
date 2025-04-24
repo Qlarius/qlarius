@@ -1,0 +1,26 @@
+<.simple_form :let={f} for={@changeset} action={@action}>
+  <.error :if={@changeset.action}>
+    Oops, something went wrong! Please check the errors below.
+  </.error>
+
+  <.input field={f[:name]} type="text" label="Name" required />
+  <.input field={f[:url]} type="url" label="URL" required />
+  <.input
+    field={f[:type]}
+    type="select"
+    label="Type"
+    options={[
+      {"Site", :site},
+      {"Catalog", :catalog},
+      {"Collection", :collection},
+      {"Show", :show},
+      {"Curriculum", :curriculum},
+      {"Semester", :semester}
+    ]}
+    required
+  />
+
+  <:actions>
+    <.button>Save Catalog</.button>
+  </:actions>
+</.simple_form>

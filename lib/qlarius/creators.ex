@@ -10,6 +10,77 @@ defmodule Qlarius.Creators do
   alias Qlarius.Wallets.LedgerEntry
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
+  alias Qlarius.Arcade.Creator
+  alias Qlarius.Arcade.Catalog
+
+  # ---------------------------------------
+  #                CREATORS
+  # ---------------------------------------
+
+  def list_creators do
+    Repo.all(from c in Creator, order_by: [asc: c.name])
+  end
+
+  def get_creator!(id) do
+    Repo.get!(Creator, id)
+    |> Repo.preload([:catalogs])
+  end
+
+  def create_creator(%Scope{} = scope, attrs \\ %{}) do
+    %Creator{}
+    |> Creator.changeset(attrs, scope)
+    |> Repo.insert()
+  end
+
+  def update_creator(%Scope{} = scope, %Creator{} = creator, attrs) do
+    creator
+    |> Creator.changeset(attrs, scope)
+    |> Repo.update()
+  end
+
+  def delete_creator(%Creator{} = creator) do
+    Repo.delete(creator)
+  end
+
+  def change_creator(%Creator{} = creator, attrs \\ %{}, scope \\ nil) do
+    Creator.changeset(creator, attrs, scope)
+  end
+
+  # ---------------------------------------
+  #                CATALOGS
+  # ---------------------------------------
+
+  def list_catalogs_by_creator(creator_id) do
+    Repo.all(
+      from c in Catalog,
+        where: c.creator_id == ^creator_id,
+        order_by: [asc: c.name]
+    )
+  end
+
+  def get_catalog!(id) do
+    Repo.get!(Catalog, id)
+  end
+
+  def create_catalog(%Scope{} = scope, attrs \\ %{}, %Creator{} = creator) do
+    %Catalog{creator_id: creator.id}
+    |> Catalog.changeset(attrs, scope)
+    |> Repo.insert()
+  end
+
+  def update_catalog(%Scope{} = scope, %Catalog{} = catalog, attrs) do
+    catalog
+    |> Catalog.changeset(attrs, scope)
+    |> Repo.update()
+  end
+
+  def delete_catalog(%Catalog{} = catalog) do
+    Repo.delete(catalog)
+  end
+
+  def change_catalog(%Catalog{} = catalog, attrs \\ %{}, scope \\ nil) do
+    Catalog.changeset(catalog, attrs, scope)
+  end
 
   # ---------------------------------------
   #             CONTENT GROUPS

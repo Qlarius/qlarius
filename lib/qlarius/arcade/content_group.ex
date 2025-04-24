@@ -11,6 +11,7 @@ defmodule Qlarius.Arcade.ContentGroup do
 
     field :description, :string
     field :title, :string
+    field :type, Ecto.Enum, values: ~w[show season album book class]a
 
     many_to_many :content_pieces, ContentPiece, join_through: ContentGroupsPieces
 

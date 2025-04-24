@@ -1,0 +1,10 @@
+<Layouts.creators {assigns}>
+  <.header>
+    Edit Catalog
+    <:subtitle>Edit catalog details.</:subtitle>
+  </.header>
+
+  <.catalog_form changeset={@changeset} action={~p"/creators/#{@creator}/catalogs/#{@catalog}"} />
+
+  <.back navigate={~p"/creators/#{@creator}"}>Back to creator</.back>
+</Layouts.creators>

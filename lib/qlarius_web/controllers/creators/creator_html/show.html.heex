@@ -1,0 +1,42 @@
+<Layouts.creators {assigns}>
+  <.header>
+    {@creator.name}
+    <:actions>
+      <.link href={~p"/creators/#{@creator}/edit"}>
+        <.button>Edit</.button>
+      </.link>
+      <.link href={~p"/creators/#{@creator}"} method="delete" data-confirm="Are you sure?">
+        <.button class="bg-red-500 hover:bg-red-700">Delete</.button>
+      </.link>
+    </:actions>
+  </.header>
+
+  <.header>
+    Catalogs
+    <:actions>
+      <.link href={~p"/creators/#{@creator}/catalogs/new"}>
+        <.button>Add Catalog</.button>
+      </.link>
+    </:actions>
+  </.header>
+
+  <.table id="catalogs" rows={@creator.catalogs}>
+    <:col :let={catalog} label="Name">{catalog.name}</:col>
+    <:col :let={catalog} label="URL">{catalog.url}</:col>
+    <:col :let={catalog} label="Type">{catalog.type}</:col>
+    <:action :let={catalog}>
+      <.link navigate={~p"/creators/#{@creator}/catalogs/#{catalog}/edit"}>Edit</.link>
+    </:action>
+    <:action :let={catalog}>
+      <.link
+        href={~p"/creators/#{@creator}/catalogs/#{catalog}"}
+        method="delete"
+        data-confirm="Are you sure?"
+      >
+        Delete
+      </.link>
+    </:action>
+  </.table>
+
+  <.back navigate={~p"/creators"}>Back to creators</.back>
+</Layouts.creators>
