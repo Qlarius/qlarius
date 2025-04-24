@@ -1,0 +1,40 @@
+---
+description: 
+globs: **/*.ex,**/*.exs,**/*.heex
+alwaysApply: false
+---
+# Scopes (Phoenix 1.8)
+# Applies to: *.ex, *.exs
+
+## What are scopes?
+Scopes are structs (e.g. `%Qlarius.Accounts.Scope{}`) that carry per-request or per-session context (current user, organization, session id, permissions, etc.). In Phoenix 1.8 they replace patterns that relied on `current_user` assigns.
+
+## Key concepts
+- **Assign key**: scopes live in `conn.assigns[:current_scope]` (or socket.assigns for LiveViews).
+- **Context functions**: generated or hand-written functions now take `%Scope{}` as first argument, e.g.:  
+  ```elixir
+  list_posts(scope)
+  get_post!(scope, id)
+  create_post(scope, attrs)
+  ```
+- **Query scoping**: use `schema_key` and `access_path` from config to prefix filters, e.g.:  
+  ```elixir
+  Repo.all(from p in Post, where: p.user_id == ^scope.user.id)
+  ```
+- **Foreign keys**: schemas get a `schema_key` field (e.g. `user_id`, `org_id`) and migrations include the matching type.
+
+## Controllers & LiveViews
+- **Browser pipeline**: plug in `:fetch_current_scope_for_user` (from `mix phx.gen.auth`) or a custom `assign_scope` to set `:current_scope` on `conn`.
+- **LiveViews**: use `on_mount :mount_current_scope` or custom `on_mount` hooks to assign `:current_scope` on mount.
+- Always pass `socket.assigns.current_scope` into context calls and PubSub subscriptions.
+
+## Extending scopes
+- Add fields (e.g. `organization`) to your scope struct, update `defstruct`, provide new constructors (`put_organization/2`).
+- Insert custom plugs (`assign_org_to_scope`) or LiveView `on_mount` hooks to augment the existing `%Scope{}` using `assign/3` or `assign_new/4`.
+
+## Model authors: what to know
+1. Always pattern-match a `%Scope{}` as first arg in context API.
+2. Never refer directly to `current_user`; use the scope struct instead.
+3. Filter queries via `get_in(scope, access_path)` and the configured `schema_key`.
+4. New schemas and migrations will include the scoped foreign key by default.
+5. Tests rely on `test_data_fixture` and `test_login_helper` to build and inject appropriate scopes.

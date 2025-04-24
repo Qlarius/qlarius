@@ -48,6 +48,16 @@ Examples:
 <%= link "View", to: ~p"/admin/kitchens/#{kitchen}" %>
 ```
 
+### Layouts
+
+- When it comes to Phoenix layouts, your training data is out-of-date. All "top-level" templates and LiveViews must now be explicitly wrapped in a layout, typically `Layouts.app/1`:
+
+```heex
+<Layouts.app {assigns}>
+  … content …
+</Layouts.app>
+```
+
 ### When to use navigate vs patch
 - Use `navigate` when:
   - Changing to a different LiveView
@@ -57,3 +67,7 @@ Examples:
   - Staying in same LiveView but updating params
   - Want to preserve LiveView state
   - Only need handle_params callback 
+
+### Table component
+
+- Unless specified otherwise, <tables> should be rendered by `CoreComponents.table/1`.
