@@ -9,11 +9,13 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
   def handle_params(%{"id" => id}, _uri, socket) do
     piece = Creators.get_content_piece!(id)
     group = piece.content_group
-    piece = %ContentPiece{} = Enum.find(group.content_pieces, &(&1.id == id))
+    catalog = group.catalog
+    creator = catalog.creator
 
     changeset = Creators.change_content_piece(piece)
 
     socket
+    |> assign(catalog: catalog, creator: creator, group: group)
     |> assign(
       form: to_form(changeset),
       page_title: "Edit Content Piece",

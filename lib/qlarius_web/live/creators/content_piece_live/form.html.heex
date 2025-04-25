@@ -5,14 +5,11 @@
       {@catalog.name, ~p"/creators/catalogs/#{@catalog}"},
       {@group.title, ~p"/creators/content_groups/#{@group}"}
     ] ++
-      if @live_action == :new do
-        [{"New Content Piece", ~p"/creators/content_groups/#{@group}/content_pieces/new"}]
+      [if @live_action == :new do
+        {"New Content Piece", ~p"/creators/content_groups/#{@group}/content_pieces/new"}
       else
-        [
-          {@piece.title, ~p"/creators/content_pieces/#{@piece}"},
-          {"Edit", ~p"/creators/content_pieces/#{@piece}/edit"}
-        ]
-      end
+          {"Edit Content Piece", ~p"/creators/content_pieces/#{@piece}/edit"}
+      end]
   }
   {assigns}
 >
@@ -65,13 +62,7 @@
 
     <footer>
       <.button variant="primary">Save Content</.button>
-      <.button navigate={
-        if @live_action == :new do
-          ~p"/creators/content_groups/#{@group}"
-        else
-          ~p"/creators/content_pieces/#{@piece}"
-        end
-      }>
+      <.button navigate={~p"/creators/content_groups/#{@group}"}>
         Cancel
       </.button>
     </footer>

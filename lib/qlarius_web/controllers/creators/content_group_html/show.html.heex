@@ -29,7 +29,7 @@
     </:actions>
   </.header>
 
-  <div class="leading-6 text-zinc-600 text-sm space-y-4 mt-6">
+  <div class="leading-6 text-zinc-600 text-sm space-y-4 mt-6 mb-8">
     <p><em>{@content_group.description}</em></p>
 
     <div class="flex items-center">
@@ -48,23 +48,26 @@
     </div>
   </div>
 
-  <script>
-    function copyCode(element) {
-      navigator.clipboard.writeText(element.querySelector('code').textContent);
-      const popup = element.querySelector('.popup');
-      popup.classList.remove('hidden');
-      setTimeout(() => popup.classList.add('hidden'), 1000);
-    }
-  </script>
-
   <%= if Enum.any?(@content_group.content_pieces) do %>
+    <h2 class="text-sm text-zinc-600 font-semibold mb-5">Content pieces</h2>
+
     <.table
       id="catalogs"
       rows={@content_group.content_pieces}
-      row_click={&JS.navigate(~p"/creators/content_pieces/#{&1}")}
       zebra={false}
     >
-      <:col :let={piece} label="Content pieces">{piece.title}</:col>
+      <:col :let={piece} label="Title">{piece.title}</:col>
+      <:col :let={piece} label="Added">{Calendar.strftime(piece.inserted_at, "%d/%m/%y")}</:col>
+      <:col :let={piece} label="Length">{format_duration(piece.length)}</:col>
+
+      <%!-- TODO show price and tiqit type count?
+      <div class="text-sm font-light mt-1">
+        {length(piece.tiqit_types)} tiqit type{if length(piece.tiqit_types) == 1,
+          do: "",
+          else: "s"}
+      </div>
+      --%>
+
       <:action :let={piece}>
         <.link navigate={~p"/creators/content_pieces/#{piece}/edit"}>Edit</.link>
       </:action>
@@ -72,13 +75,27 @@
         <.link
           data-confirm="Are you sure?"
           method="delete"
-          navigate={~p"/creators/content_pieces/#{piece}"}
+          href={~p"/creators/content_pieces/#{piece}"}
         >
           Delete
         </.link>
       </:action>
     </.table>
   <% else %>
-    <p class="mt-6 mb-4 text-sm leading-6 text-zinc-600">No content pieces!</p>
+    <div class="text-sm text-zinc-600">
+      No content pieces yet!
+      <.a href={~p"/creators/content_groups/#{@content_group}/content_pieces/new"}>
+        Click here to add the first.
+      </.a>
+    </div>
   <% end %>
 </Layouts.creators>
+
+<script type="text/javascript">
+  function copyCode(element) {
+    navigator.clipboard.writeText(element.querySelector('code').textContent);
+    const popup = element.querySelector('.popup');
+    popup.classList.remove('hidden');
+    setTimeout(() => popup.classList.add('hidden'), 1000);
+  }
+</script>

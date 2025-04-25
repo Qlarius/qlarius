@@ -134,7 +134,7 @@ defmodule QlariusWeb.Router do
     pipe_through [:browser]
 
     live_session :creators, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
-      resources "/content_pieces", ContentPieceController, only: [:show, :delete]
+      resources "/content_pieces", ContentPieceController, only: [:delete]
       live "/content_pieces/:id/edit", ContentPieceLive.Form, :edit
 
       resources "/content_groups", ContentGroupController,

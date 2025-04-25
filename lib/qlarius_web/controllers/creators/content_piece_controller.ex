@@ -1,21 +1,17 @@
 defmodule QlariusWeb.Creators.ContentPieceController do
   use QlariusWeb, :controller
 
-  alias Qlarius.Arcade
+  alias Qlarius.Creators
 
   plug :put_new_layout, {QlariusWeb.Layouts, :arcade}
 
-  def show(conn, %{"id" => id}) do
-    content = Arcade.get_content_piece!(id)
-    render(conn, :show, content: content)
-  end
-
   def delete(conn, %{"id" => id}) do
-    content = Arcade.get_content_piece!(id)
-    {:ok, _content} = Arcade.delete_content(content)
+    piece = Creators.get_content_piece!(id)
+    group = piece.content_group
+    {:ok, _piece} = Creators.delete_content_piece(piece)
 
     conn
-    |> put_flash(:info, "Content deleted successfully.")
-    |> redirect(to: ~p"/admin/content")
+    |> put_flash(:info, "Deleted content piece.")
+    |> redirect(to: ~p"/creators/content_groups/#{group}")
   end
 end

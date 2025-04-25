@@ -119,12 +119,16 @@ defmodule Qlarius.Creators do
   #             CONTENT PIECES
   # ---------------------------------------
 
+  def get_content_piece!(id) do
+    ContentPiece |> Repo.get!(id) |> Repo.preload([:tiqit_types, content_group: [catalog: :creator]])
+  end
+
   def change_content_piece(%ContentPiece{} = piece, attrs \\ %{}) do
     ContentPiece.changeset(piece, attrs)
   end
 
   def create_content_piece(%ContentGroup{} = group, attrs \\ %{}) do
-    %ContentPiece{content_groups: [group]}
+    %ContentPiece{content_group: group}
     |> ContentPiece.changeset(attrs)
     |> Repo.insert()
   end
@@ -133,5 +137,9 @@ defmodule Qlarius.Creators do
     piece
     |> ContentPiece.changeset(attrs)
     |> Repo.update()
+  end
+
+  def delete_content_piece(%ContentPiece{} = piece) do
+    Repo.delete(piece)
   end
 end

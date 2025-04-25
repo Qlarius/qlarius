@@ -3,7 +3,6 @@ defmodule Qlarius.Arcade.ContentGroup do
   import Ecto.Changeset
 
   alias Qlarius.Arcade.Catalog
-  alias Qlarius.Arcade.ContentGroupsPieces
   alias Qlarius.Arcade.ContentPiece
 
   schema "content_groups" do
@@ -13,7 +12,7 @@ defmodule Qlarius.Arcade.ContentGroup do
     field :title, :string
     field :type, Ecto.Enum, values: ~w[show season album book class]a
 
-    many_to_many :content_pieces, ContentPiece, join_through: ContentGroupsPieces
+    has_many :content_pieces, ContentPiece
 
     timestamps(type: :utc_datetime)
   end

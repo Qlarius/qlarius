@@ -42,6 +42,7 @@ defmodule Qlarius.Arcade do
     )
   end
 
+  # TODO use Creators.get_content_piece! instead? ... maybe
   def get_content_piece!(id) do
     ContentPiece |> Repo.get!(id) |> Repo.preload(:tiqit_types)
   end
@@ -56,10 +57,6 @@ defmodule Qlarius.Arcade do
     content
     |> ContentPiece.changeset(attrs)
     |> Repo.update()
-  end
-
-  def delete_content(%ContentPiece{} = content) do
-    Repo.delete(content)
   end
 
   def change_content(%ContentPiece{} = content, attrs \\ %{}) do

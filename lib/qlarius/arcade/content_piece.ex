@@ -3,7 +3,6 @@ defmodule Qlarius.Arcade.ContentPiece do
   import Ecto.Changeset
 
   alias Qlarius.Arcade.ContentGroup
-  alias Qlarius.Arcade.ContentGroupsPieces
   alias Qlarius.Arcade.TiqitType
 
   schema "content_pieces" do
@@ -19,7 +18,7 @@ defmodule Qlarius.Arcade.ContentPiece do
     field :type, Ecto.Enum, values: ~w[episode chapter song piece lesson]a
 
     has_many :tiqit_types, TiqitType, on_replace: :delete
-    many_to_many :content_groups, ContentGroup, join_through: ContentGroupsPieces
+    belongs_to :content_group, ContentGroup
 
     timestamps()
   end

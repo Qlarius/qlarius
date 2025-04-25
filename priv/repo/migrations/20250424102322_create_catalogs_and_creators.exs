@@ -21,6 +21,12 @@ defmodule Qlarius.Repo.Migrations.CreateCatalogsAndCreators do
 
     drop index(:content_groups, :creator_id)
 
+    drop index(:content_groups_content_pieces, [:content_group_id])
+    drop index(:content_groups_content_pieces, [:content_piece_id])
+    drop unique_index(:content_groups_content_pieces, [:content_group_id, :content_piece_id])
+
+    drop table(:content_groups_content_pieces)
+
     alter table(:content_groups) do
       remove :creator_id, references(:users)
       add :catalog_id, references(:catalogs, on_delete: :delete_all)
@@ -32,6 +38,7 @@ defmodule Qlarius.Repo.Migrations.CreateCatalogsAndCreators do
 
     alter table(:content_pieces) do
       add :type, :string
+      add :content_group_id, references(:content_groups, on_delete: :delete_all), null: false
       remove :creator_id, references(:users), null: false
     end
   end
