@@ -2,7 +2,6 @@ defmodule QlariusWeb.Creators.ContentPieceController do
   use QlariusWeb, :controller
 
   alias Qlarius.Arcade
-  alias Qlarius.Arcade.ContentPiece
 
   plug :put_new_layout, {QlariusWeb.Layouts, :arcade}
 

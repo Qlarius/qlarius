@@ -1,7 +1,6 @@
 defmodule QlariusWeb.Router do
   use QlariusWeb, :router
 
-  import Plug.BasicAuth
   import QlariusWeb.UserAuth
 
   pipeline :browser do
@@ -138,7 +137,8 @@ defmodule QlariusWeb.Router do
       resources "/content_pieces", ContentPieceController, only: [:show, :delete]
       live "/content_pieces/:id/edit", ContentPieceLive.Form, :edit
 
-      resources "/content_groups", ContentGroupController, only: [:show, :edit, :update, :delete] do
+      resources "/content_groups", ContentGroupController,
+        only: [:show, :edit, :update, :delete] do
         live "/content_pieces/new", ContentPieceLive.Form, :new
       end
 

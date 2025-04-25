@@ -188,7 +188,7 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
     socket
     |> redirect(
       to:
-        ~p"/widgets/content/#{socket.assigns.selected_piece.id}?user=#{@current_scope.user.email}"
+        ~p"/widgets/content/#{socket.assigns.selected_piece.id}?user=#{socket.assigns.current_scope.user.email}"
     )
     |> noreply()
   end

@@ -148,7 +148,7 @@ defmodule QlariusWeb.UserAuth do
   end
 
   # Awful hack to get the demo working.
-  def on_mount(:mount_current_scope_unsafe_dont_use, params, session, socket) do
+  def on_mount(:mount_current_scope_unsafe_dont_use, params, _session, socket) do
     socket =
       Phoenix.Component.assign_new(socket, :current_scope, fn ->
         user = Accounts.get_user_by_email(Map.fetch!(params, "user"))

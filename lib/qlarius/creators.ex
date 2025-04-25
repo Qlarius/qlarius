@@ -1,16 +1,11 @@
 defmodule Qlarius.Creators do
   import Ecto.Query
 
-  alias Qlarius.Accounts.User
   alias Qlarius.Arcade.Catalog
   alias Qlarius.Arcade.ContentGroup
   alias Qlarius.Arcade.ContentPiece
   alias Qlarius.Arcade.Creator
-  alias Qlarius.Arcade.Tiqit
-  alias Qlarius.Arcade.TiqitType
   alias Qlarius.Repo
-  alias Qlarius.Wallets.LedgerEntry
-  alias Qlarius.Wallets.LedgerHeader
 
   # ---------------------------------------
   #                CREATORS

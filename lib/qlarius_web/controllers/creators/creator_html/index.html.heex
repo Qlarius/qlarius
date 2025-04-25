@@ -9,7 +9,12 @@
   </.header>
 
   <%= if Enum.any?(@creators) do %>
-    <.table id="creators" rows={@creators} row_click={&JS.navigate(~p"/creators/#{&1}")} zebra={false}>
+    <.table
+      id="creators"
+      rows={@creators}
+      row_click={&JS.navigate(~p"/creators/#{&1}")}
+      zebra={false}
+    >
       <:col :let={creator} label="Name">{creator.name}</:col>
       <:action :let={creator}>
         <div class="sr-only">

@@ -645,8 +645,9 @@ defmodule QlariusWeb.CoreComponents do
   attr :class, :string, default: nil
   attr :href, :string, required: true
   attr :method, :string, default: nil
-
   attr :rest, :global
+
+  slot :inner_block, required: true
 
   def a(assigns) do
     ~H"""

@@ -2,7 +2,6 @@ defmodule Qlarius.Arcade.ContentPiece do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Accounts.User
   alias Qlarius.Arcade.ContentGroup
   alias Qlarius.Arcade.ContentGroupsPieces
   alias Qlarius.Arcade.TiqitType

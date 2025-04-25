@@ -3,7 +3,6 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
 
   alias Qlarius.Arcade.ContentPiece
   alias Qlarius.Creators
-  alias Qlarius.Repo
 
   # EDIT
   @impl true
