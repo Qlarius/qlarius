@@ -16,53 +16,48 @@ defmodule QlariusWeb.AdsLive do
 
   @impl true
   def mount(_params, session, socket) do
+    # Load initial data during first mount
+    user = Legacy.get_user(508)
+    current_scope = Scope.for_user(user)
+    me_file = Legacy.get_user_me_file(user.id)
+
+    socket =
+      socket
+      |> assign(:user, user)
+      |> assign(:current_scope, current_scope)
+      |> assign(:me_file, me_file)
+      |> assign(:active_offers, [])
+      |> assign(:loading, true)
+      |> assign(:debug, @debug)
+
     if connected?(socket) do
-      # For WebSocket mount, we need to fetch the user and scope again
-      user = Legacy.get_user(508)
-      current_scope = Scope.for_user(user)
-
-      # Get the user's me_file to count their offers
-      me_file = Legacy.get_user_me_file(user.id)
-
-      query =
-        from(o in Offer,
-          join: m in MeFile,
-          on: m.user_id == ^current_scope.user.id,
-          where: o.me_file_id == m.id and o.is_current == true,
-          order_by: [desc: o.offer_amt],
-          preload: [media_piece: :ad_category]
-        )
-
-      active_offers =
-        query
-        |> LegacyRepo.all()
-        |> Enum.map(fn offer -> {offer, 0} end)
-
-      {:ok,
-       socket
-       |> assign(:current_scope, current_scope)
-       |> assign(:active_offers, active_offers)
-       |> assign(:debug, @debug)}
+      send(self(), :load_offers)
+      {:ok, socket}
     else
-      # Create a default scope with mock data for the initial render
-      default_scope = %{
-        ads_count: 0,
-        tag_count: 0,
-        trait_count: 0,
-        wallet_balance: Decimal.new(0),
-        home_zip: "-----",
-        user: %{
-          email: "Loading...",
-          id: nil
-        }
-      }
-
-      {:ok,
-       socket
-       |> assign(:current_scope, default_scope)
-       |> assign(:active_offers, [])
-       |> assign(:debug, @debug)}
+      {:ok, socket}
     end
+  end
+
+  @impl true
+  def handle_info(:load_offers, socket) do
+    query =
+      from(o in Offer,
+        join: m in MeFile,
+        on: m.user_id == ^socket.assigns.current_scope.user.id,
+        where: o.me_file_id == m.id and o.is_current == true,
+        order_by: [desc: o.offer_amt],
+        preload: [media_piece: :ad_category]
+      )
+
+    active_offers =
+      query
+      |> LegacyRepo.all()
+      |> Enum.map(fn offer -> {offer, 0} end)
+
+    {:noreply,
+     socket
+     |> assign(:active_offers, active_offers)
+     |> assign(:loading, false)}
   end
 
   @impl true
@@ -97,7 +92,7 @@ defmodule QlariusWeb.AdsLive do
     |> LegacyRepo.insert!()
 
     # Update ledger header balance
-    new_balance = Decimal.add(ledger_header.balance || Decimal.new(0), Decimal.new("0.05"))
+    new_balance = Decimal.add(ledger_header.balance || Decimal.new(0), Decimal.new("0.05")) # TODO: phase 1 amount move to global variable
 
     ledger_header
     |> Ecto.Changeset.change(balance: new_balance)

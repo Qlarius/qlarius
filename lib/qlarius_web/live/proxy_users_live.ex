@@ -44,7 +44,7 @@ defmodule QlariusWeb.ProxyUsersLive do
 
         <.table id="proxy_users" rows={@proxy_users}>
           <:col :let={proxy} label="Username"><%= proxy.proxy_user.username %></:col>
-          <:col :let={proxy} label="Email"><%= proxy.proxy_user.email %></:col>
+          <:col :let={proxy} label="Alias"><%= proxy.proxy_user.email %></:col>
           <:col :let={proxy} label="Status">
             <.button
               phx-click="toggle_proxy"
