@@ -2,20 +2,22 @@ import Config
 
 # Configure your database
 config :qlarius, Qlarius.Repo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "qlarius_dev",
+  url: System.get_env("DATABASE_URL"),
+  # Fallback configuration if DATABASE_URL is not set
+  username: System.get_env("DB_USER") || "postgres",
+  password: System.get_env("DB_PASS") || "postgres",
+  hostname: System.get_env("DB_HOST") || "localhost",
+  database: System.get_env("DB_NAME") || "qlarius_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
-  pool_size: 10
+  pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
 
 # Configure your legacy Rails database
 config :qlarius, Qlarius.LegacyRepo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "qlarius_dev_rails",  # Make sure this matches your Rails database name
+  username: System.get_env("LOCAL_DB_USER") || "postgres",
+  password: System.get_env("LOCAL_DB_PASS") || "postgres",
+  hostname: System.get_env("LOCAL_DB_HOST") || "localhost",
+  database: System.get_env("LOCAL_DB_NAME") || "qlarius_dev_rails",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10,

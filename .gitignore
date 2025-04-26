@@ -40,3 +40,6 @@ repomix-output.xml
 # Ignore .DS_Store files anywhere in the repository
 .DS_Store
 **/.DS_Store
+
+# Environment variables
+.env

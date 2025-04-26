@@ -7,6 +7,12 @@ import Config
 # any compile-time configuration in here, as it won't be applied.
 # The block below contains prod specific runtime configuration.
 
+# Configure remote database URL for switching - this needs to be available in all environments
+remote_database_url = System.get_env("REMOTE_DATABASE_URL")
+if remote_database_url do
+  config :qlarius, :remote_database_url, remote_database_url
+end
+
 # ## Using releases
 #
 # If you use `mix release`, you need to explicitly enable the server
