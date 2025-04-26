@@ -3,24 +3,43 @@ defmodule QlariusWeb.WalletLive do
 
   import QlariusWeb.WalletHTML
 
+  alias Qlarius.Accounts.Scope
   alias Qlarius.Wallets
+  alias Qlarius.Legacy
+  alias Qlarius.Legacy.{MeFile, Offer, User, LedgerHeader, AdEvent, LedgerEntry}
+  alias Qlarius.LegacyRepo
+  @debug true
 
   @impl true
   def mount(_params, _session, socket) do
-    user = socket.assigns.current_scope.user
 
-    ledger_header = Wallets.get_user_ledger_header(user.id)
+    # Load initial data during first mount
+    true_user = Legacy.get_user(508)
+    user = User.active_proxy_user_or_self(true_user)
+    current_scope = Scope.for_user(user)
+    me_file = Legacy.get_user_me_file(user.id)
+
+
+    # me_file = LegacyRepo.get_by(MeFile, user_id: user.id)
+    ledger_header = LegacyRepo.get_by(LedgerHeader, me_file_id: me_file.id)
+
+    # ledger_header = Wallets.get_user_ledger_header(user.id)
 
     page = 1
     per_page = 20
     paginated_entries = Wallets.list_ledger_entries(ledger_header.id, page, per_page)
 
     socket
-    |> assign(:ledger_header, ledger_header)
-    |> assign(:sidebar_entry, nil)
-    |> assign(:page, page)
-    |> assign(:paginated_entries, paginated_entries)
-    |> ok()
+      |> assign(:true_user, true_user)
+      |> assign(:current_scope, current_scope)
+      |> assign(:me_file, me_file)
+      |> assign(:loading, true)
+      |> assign(:debug, @debug)
+      |> assign(:ledger_header, ledger_header)
+      |> assign(:sidebar_entry, nil)
+      |> assign(:page, page)
+      |> assign(:paginated_entries, paginated_entries)
+      |> ok()
   end
 
   @impl true
@@ -126,7 +145,7 @@ defmodule QlariusWeb.WalletLive do
             </button>
           <% else %>
             <div class="px-2 py-2 flex items-center text-gray-400">
-              &gt;
+              <.icon name="hero-chevron-right" class="h-6 w-6" />
             </div>
           <% end %>
 
@@ -151,11 +170,11 @@ defmodule QlariusWeb.WalletLive do
             <div>
               <div class="font-medium">Some ad</div>
               <div class="text-gray-500">{entry.description}</div>
-              <div class="text-gray-500">{format_date(entry.inserted_at)}</div>
+              <div class="text-gray-500">{format_date(entry.created_at)}</div>
             </div>
             <div class="flex items-center">
               <div class="text-right mr-4">
-                <div>{format_currency(entry.amount)}</div>
+                <div>{format_currency(entry.amt)}</div>
                 <div class="text-gray-500">
                   {format_currency(
                     calculate_balance_at_entry(@ledger_header, entry, @paginated_entries.entries)
@@ -163,12 +182,17 @@ defmodule QlariusWeb.WalletLive do
                 </div>
               </div>
               <div class="text-gray-400">
-                >
+                <.icon name="hero-chevron-right" class="h-6 w-6" />
               </div>
             </div>
           </div>
         </div>
       <% end %>
+
+      <!-- Debug section -->
+      <pre :if={@debug} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
+        <%= inspect(assigns, pretty: true) %>
+      </pre>
 
       <.ledger_entry_detail_sidebar :if={@sidebar_entry} entry={@sidebar_entry} />
     </Layouts.sponster>
@@ -194,14 +218,14 @@ defmodule QlariusWeb.WalletLive do
     newer_entries =
       entries
       |> Enum.filter(fn entry ->
-        NaiveDateTime.compare(entry.inserted_at, current_entry.inserted_at) == :gt
+        NaiveDateTime.compare(entry.created_at, current_entry.created_at) == :gt
       end)
 
     # Subtract the sum of newer entries from the current balance
     newer_entries_sum =
       newer_entries
       |> Enum.reduce(Decimal.new(0), fn entry, acc ->
-        Decimal.add(acc, entry.amount)
+        Decimal.add(acc, entry.amt)
       end)
 
     Decimal.sub(ledger_header.balance, newer_entries_sum)

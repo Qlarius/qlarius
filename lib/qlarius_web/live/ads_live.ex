@@ -81,39 +81,39 @@ defmodule QlariusWeb.AdsLive do
     me_file = Legacy.get_user_me_file(socket.assigns.current_scope.user.id)
     ledger_header = me_file.ledger_header
 
-    # Create ad event
-    ad_event = %AdEvent{
-      offer_id: offer.id,
-      offer_amount: offer.offer_amt,
-      is_throttled: offer.is_throttled,
-      is_offer_complete: false,
-      ip_address: socket.assigns.user_ip
-    }
-    |> LegacyRepo.insert!()
+    # # Create ad event
+    # ad_event = %AdEvent{
+    #   offer_id: offer.id,
+    #   offer_amount: offer.offer_amt,
+    #   is_throttled: offer.is_throttled,
+    #   is_offer_complete: false,
+    #   ip_address: socket.assigns.user_ip
+    # }
+    # |> LegacyRepo.insert!()
 
-    # Update ledger header balance
-    new_balance = Decimal.add(ledger_header.balance || Decimal.new(0), Decimal.new("0.05")) # TODO: phase 1 amount move to global variable
+    # # Update ledger header balance
+    # new_balance = Decimal.add(ledger_header.balance || Decimal.new(0), Decimal.new("0.05")) # TODO: phase 1 amount move to global variable
 
-    ledger_header
-    |> Ecto.Changeset.change(balance: new_balance)
-    |> LegacyRepo.update!()
+    # ledger_header
+    # |> Ecto.Changeset.change(balance: new_balance)
+    # |> LegacyRepo.update!()
 
-    # Create ledger entry
-    %LedgerEntry{
-      ledger_header_id: ledger_header.id,
-      amount: Decimal.new("0.05"),
-      running_balance: new_balance,
-      description: "Ad view payment",
-      ad_event_id: ad_event.id
-    }
-    |> LegacyRepo.insert!()
+    # # Create ledger entry
+    # %LedgerEntry{
+    #   ledger_header_id: ledger_header.id,
+    #   amount: Decimal.new("0.05"),
+    #   running_balance: new_balance,
+    #   description: "Ad view payment",
+    #   ad_event_id: ad_event.id
+    # }
+    # |> LegacyRepo.insert!()
 
-    # Update the scope with the new balance
-    current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
+    # # Update the scope with the new balance
+    # current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
 
     socket
     |> increment_phase(offer.id)
-    |> assign(:current_scope, current_scope)
+    # |> assign(:current_scope, current_scope)
   end
 
   defp handle_phase(socket, offer, 2) do
@@ -121,42 +121,42 @@ defmodule QlariusWeb.AdsLive do
     me_file = Legacy.get_user_me_file(socket.assigns.current_scope.user.id)
     ledger_header = me_file.ledger_header
 
-    # Create ad event
-    ad_event = %AdEvent{
-      offer_id: offer.id,
-      offer_amount: offer.offer_amt,
-      is_throttled: offer.is_throttled,
-      is_offer_complete: true,
-      ip_address: socket.assigns.user_ip,
-      url: offer.media_piece.jump_url
-    }
-    |> LegacyRepo.insert!()
+    # # Create ad event
+    # ad_event = %AdEvent{
+    #   offer_id: offer.id,
+    #   offer_amount: offer.offer_amt,
+    #   is_throttled: offer.is_throttled,
+    #   is_offer_complete: true,
+    #   ip_address: socket.assigns.user_ip,
+    #   url: offer.media_piece.jump_url
+    # }
+    # |> LegacyRepo.insert!()
 
-    # Calculate jump payment (full offer amount minus initial view payment)
-    jump_amount = Decimal.sub(offer.offer_amt, Decimal.new("0.05"))
-    new_balance = Decimal.add(ledger_header.balance || Decimal.new(0), jump_amount)
+    # # Calculate jump payment (full offer amount minus initial view payment)
+    # jump_amount = Decimal.sub(offer.offer_amt, Decimal.new("0.05"))
+    # new_balance = Decimal.add(ledger_header.balance || Decimal.new(0), jump_amount)
 
-    ledger_header
-    |> Ecto.Changeset.change(balance: new_balance)
-    |> LegacyRepo.update!()
+    # ledger_header
+    # |> Ecto.Changeset.change(balance: new_balance)
+    # |> LegacyRepo.update!()
 
-    # Create ledger entry
-    %LedgerEntry{
-      ledger_header_id: ledger_header.id,
-      amount: jump_amount,
-      running_balance: new_balance,
-      description: "Ad jump payment",
-      ad_event_id: ad_event.id
-    }
-    |> LegacyRepo.insert!()
+    # # Create ledger entry
+    # %LedgerEntry{
+    #   ledger_header_id: ledger_header.id,
+    #   amount: jump_amount,
+    #   running_balance: new_balance,
+    #   description: "Ad jump payment",
+    #   ad_event_id: ad_event.id
+    # }
+    # |> LegacyRepo.insert!()
 
-    # Update the scope with the new balance
-    current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
+    # # Update the scope with the new balance
+    # current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
 
     socket
     |> increment_phase(offer.id)
-    |> update_ads_count()
-    |> assign(:current_scope, current_scope)
+    # |> update_ads_count()
+    # |> assign(:current_scope, current_scope)
   end
 
   defp handle_phase(socket, _offer, _), do: socket

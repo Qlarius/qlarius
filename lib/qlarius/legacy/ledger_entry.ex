@@ -8,7 +8,7 @@ defmodule Qlarius.Legacy.LedgerEntry do
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
 
   schema "ledger_entries" do
-    field :amount, :decimal
+    field :amt, :decimal
     field :running_balance, :decimal
     field :description, :string
 
@@ -21,14 +21,14 @@ defmodule Qlarius.Legacy.LedgerEntry do
   def changeset(ledger_entry, attrs) do
     ledger_entry
     |> cast(attrs, [
-      :amount,
+      :amt,
       :running_balance,
       :description,
       :ledger_header_id,
       :ad_event_id
     ])
     |> validate_required([
-      :amount,
+      :amt,
       :running_balance,
       :description,
       :ledger_header_id
