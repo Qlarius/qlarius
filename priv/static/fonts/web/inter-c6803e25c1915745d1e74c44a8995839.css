@@ -1,0 +1,57 @@
+/* Variable fonts usage:
+:root { font-family: "Inter", sans-serif; }
+@supports (font-variation-settings: normal) {
+  :root { font-family: "InterVariable", sans-serif; font-optical-sizing: auto; }
+} */
+@font-face {
+  font-family: InterVariable;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./InterVariable-499fcada6ddb2c38718c2c16a190d639.woff2?vsn=d") format("woff2");
+}
+@font-face {
+  font-family: InterVariable;
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./InterVariable-Italic-650756001f1c3d7c39c59e812c2736e7.woff2?vsn=d") format("woff2");
+}
+
+/* static fonts */
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 100; font-display: swap; src: url("./Inter-Thin-ecac2bd6dcb4057d8c0ef86564b46aad.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: italic; font-weight: 100; font-display: swap; src: url("./Inter-ThinItalic-9419ad4e071951229345284f24a519a3.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 200; font-display: swap; src: url("./Inter-ExtraLight-45ae3cbc652d8987f03185b808196f20.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: italic; font-weight: 200; font-display: swap; src: url("./Inter-ExtraLightItalic-ff6505a76bb0e6216439764372d33ec4.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 300; font-display: swap; src: url("./Inter-Light-762e762ce4f4f602f7936cdac9905366.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: italic; font-weight: 300; font-display: swap; src: url("./Inter-LightItalic-4981e8ac2ce99b015bce2c151b7a7e5c.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 400; font-display: swap; src: url("./Inter-Regular-46a1550a4bbaccd13a8eb46a359a9f89.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: italic; font-weight: 400; font-display: swap; src: url("./Inter-Italic-8944f8c2a3dd2373bd6351e19e699d23.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 500; font-display: swap; src: url("./Inter-Medium-60824932303e81c4af185cd9229dd24b.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: italic; font-weight: 500; font-display: swap; src: url("./Inter-MediumItalic-c541df43ab9ca7f3b737d7eddc2d66c5.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 600; font-display: swap; src: url("./Inter-SemiBold-01fdc3828f4efe9208e2149531a8933d.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: italic; font-weight: 600; font-display: swap; src: url("./Inter-SemiBoldItalic-6fc9977f6a237a65e6caf218c87d6e01.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 700; font-display: swap; src: url("./Inter-Bold-279e5a64038565325a5fda8f14a9b9ec.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: italic; font-weight: 700; font-display: swap; src: url("./Inter-BoldItalic-33083aa00dfe1e31f0ff2fb645dc75be.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 800; font-display: swap; src: url("./Inter-ExtraBold-bfed6ba70058e1d8734fa9b2ddd41467.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: italic; font-weight: 800; font-display: swap; src: url("./Inter-ExtraBoldItalic-722ae48ba2e44bed1232658e902ed1d0.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 900; font-display: swap; src: url("./Inter-Black-f5e097ac1c7219a9ea750c3f94c251c6.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: italic; font-weight: 900; font-display: swap; src: url("./Inter-BlackItalic-69570adced2197957588191162562dad.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: normal; font-weight: 100; font-display: swap; src: url("./InterDisplay-Thin-8fc9fed9f5a9c48893dd52a246532855.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: italic; font-weight: 100; font-display: swap; src: url("./InterDisplay-ThinItalic-bccf5acb95615d2a624ac8b3b54b7964.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: normal; font-weight: 200; font-display: swap; src: url("./InterDisplay-ExtraLight-263c2a9b3471bc33b0a99526d15eff8f.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: italic; font-weight: 200; font-display: swap; src: url("./InterDisplay-ExtraLightItalic-5c194a648d9de5c9909dc511a8072228.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: normal; font-weight: 300; font-display: swap; src: url("./InterDisplay-Light-25403047d1ada9a5db1791058c047060.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: italic; font-weight: 300; font-display: swap; src: url("./InterDisplay-LightItalic-3a4c9ce821c778bd116cf61fa42cc1be.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: normal; font-weight: 400; font-display: swap; src: url("./InterDisplay-Regular-88f580f0ec92864a1980758ef67241e1.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: italic; font-weight: 400; font-display: swap; src: url("./InterDisplay-Italic-1ea31063dbf6359195e775b621ac0789.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: normal; font-weight: 500; font-display: swap; src: url("./InterDisplay-Medium-037b2cd8257065336d3e6405f29af798.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: italic; font-weight: 500; font-display: swap; src: url("./InterDisplay-MediumItalic-537f574d12bfea54fb98539504e3c248.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: normal; font-weight: 600; font-display: swap; src: url("./InterDisplay-SemiBold-80f115e7732671a8b7ef67b1ef31b77f.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: italic; font-weight: 600; font-display: swap; src: url("./InterDisplay-SemiBoldItalic-9440a9ed7a4885aa2475fe2ae0cf5eab.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: normal; font-weight: 700; font-display: swap; src: url("./InterDisplay-Bold-ca6987aa2536abc37b30f2c58891b82e.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: italic; font-weight: 700; font-display: swap; src: url("./InterDisplay-BoldItalic-121e20492f97b01850fe83fb817c375a.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: normal; font-weight: 800; font-display: swap; src: url("./InterDisplay-ExtraBold-f0bcce474b659035e6fd2a41195df09f.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: italic; font-weight: 800; font-display: swap; src: url("./InterDisplay-ExtraBoldItalic-b00d8e4b37bd8d719d6dc78994d4eb59.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: normal; font-weight: 900; font-display: swap; src: url("./InterDisplay-Black-385d634f2e44fbf005601c58010ad9ce.woff2?vsn=d") format("woff2"); }
+@font-face { font-family: "InterDisplay"; font-style: italic; font-weight: 900; font-display: swap; src: url("./InterDisplay-BlackItalic-d74cdbee62398eb8ca4bed71668c46c3.woff2?vsn=d") format("woff2"); }
