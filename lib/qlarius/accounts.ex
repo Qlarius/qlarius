@@ -6,7 +6,8 @@ defmodule Qlarius.Accounts do
   import Ecto.Query, warn: false
   alias Qlarius.Repo
 
-  alias Qlarius.Accounts.{User, UserToken, UserNotifier}
+  alias Qlarius.Accounts.UserUnused, as: User
+  alias Qlarius.Accounts.{UserToken, UserNotifier}
 
   ## Database getters
 

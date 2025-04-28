@@ -17,8 +17,8 @@ defmodule Qlarius.Accounts.Scope do
   """
 
   alias Qlarius.Accounts.User
-  alias Qlarius.Offers
-  alias Qlarius.Wallets
+  alias Qlarius.Offers, warn: false
+  alias Qlarius.Wallets, warn: false
 
   defstruct user: nil, wallet_balance: nil, ads_count: nil
 
@@ -29,9 +29,11 @@ defmodule Qlarius.Accounts.Scope do
   """
   def for_user(%User{} = user) do
     %__MODULE__{
-      ads_count: Offers.count_user_offers(user.id),
+      # TODO ads_count: Offers.count_user_offers(user.id),
+      ads_count: 0,
       user: user,
-      wallet_balance: Wallets.get_user_current_balance(user)
+      wallet_balance: Decimal.new("0.0")
+      # TODO wallet_balance: Wallets.get_user_current_balance(user)
     }
   end
 

@@ -22,6 +22,7 @@ defmodule Qlarius.Help do
       alias Qlarius.Accounts
       alias Qlarius.AdEvent
       alias Qlarius.Accounts.User
+      alias Qlarius.Accounts.UserUnused
       alias Qlarius.Accounts.Scope
       alias Qlarius.Accounts.UserNotifier
       alias Qlarius.Accounts.UserToken

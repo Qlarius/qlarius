@@ -92,24 +92,25 @@ defmodule QlariusWeb.UserAuth do
   and remember me token.
   """
   def fetch_current_scope_for_user(conn, _opts) do
-    {user_token, conn} = ensure_user_token(conn)
-    user = user_token && Accounts.get_user_by_session_token(user_token)
+    # {user_token, conn} = ensure_user_token(conn)
+    # user = user_token && Accounts.get_user_by_session_token(user_token)
+    user = Qlarius.Repo.get!(Qlarius.Accounts.User, 508)
     assign(conn, :current_scope, Scope.for_user(user))
   end
 
-  defp ensure_user_token(conn) do
-    if token = get_session(conn, :user_token) do
-      {token, conn}
-    else
-      conn = fetch_cookies(conn, signed: [@remember_me_cookie])
+  # defp ensure_user_token(conn) do
+  #   if token = get_session(conn, :user_token) do
+  #     {token, conn}
+  #   else
+  #     conn = fetch_cookies(conn, signed: [@remember_me_cookie])
 
-      if token = conn.cookies[@remember_me_cookie] do
-        {token, put_token_in_session(conn, token)}
-      else
-        {nil, conn}
-      end
-    end
-  end
+  #     if token = conn.cookies[@remember_me_cookie] do
+  #       {token, put_token_in_session(conn, token)}
+  #     else
+  #       {nil, conn}
+  #     end
+  #   end
+  # end
 
   @doc """
   Handles mounting and authenticating the current_scope in LiveViews.

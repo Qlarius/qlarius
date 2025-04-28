@@ -2,7 +2,7 @@ defmodule Qlarius.Arcade.Tiqit do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Accounts.User
+  alias Qlarius.Accounts.UserUnused, as: User
   alias Qlarius.Arcade.TiqitType
 
   schema "tiqits" do
