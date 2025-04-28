@@ -120,7 +120,9 @@ defmodule Qlarius.Creators do
   # ---------------------------------------
 
   def get_content_piece!(id) do
-    ContentPiece |> Repo.get!(id) |> Repo.preload([:tiqit_types, content_group: [catalog: :creator]])
+    ContentPiece
+    |> Repo.get!(id)
+    |> Repo.preload([:tiqit_types, content_group: [catalog: :creator]])
   end
 
   def change_content_piece(%ContentPiece{} = piece, attrs \\ %{}) do

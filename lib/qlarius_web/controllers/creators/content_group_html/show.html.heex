@@ -51,11 +51,7 @@
   <%= if Enum.any?(@content_group.content_pieces) do %>
     <h2 class="text-sm text-zinc-600 font-semibold mb-5">Content pieces</h2>
 
-    <.table
-      id="catalogs"
-      rows={@content_group.content_pieces}
-      zebra={false}
-    >
+    <.table id="catalogs" rows={@content_group.content_pieces} zebra={false}>
       <:col :let={piece} label="Title">{piece.title}</:col>
       <:col :let={piece} label="Added">{Calendar.strftime(piece.inserted_at, "%d/%m/%y")}</:col>
       <:col :let={piece} label="Length">{format_duration(piece.length)}</:col>

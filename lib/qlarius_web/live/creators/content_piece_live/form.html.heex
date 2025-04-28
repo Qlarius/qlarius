@@ -5,11 +5,13 @@
       {@catalog.name, ~p"/creators/catalogs/#{@catalog}"},
       {@group.title, ~p"/creators/content_groups/#{@group}"}
     ] ++
-      [if @live_action == :new do
-        {"New Content Piece", ~p"/creators/content_groups/#{@group}/content_pieces/new"}
-      else
+      [
+        if @live_action == :new do
+          {"New Content Piece", ~p"/creators/content_groups/#{@group}/content_pieces/new"}
+        else
           {"Edit Content Piece", ~p"/creators/content_pieces/#{@piece}/edit"}
-      end]
+        end
+      ]
   }
   {assigns}
 >

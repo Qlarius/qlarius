@@ -56,7 +56,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
 
   defp save_content(socket, :edit, piece_params) do
     case Creators.update_content_piece(socket.assigns.piece, piece_params) do
-      {:ok, piece} ->
+      {:ok, _piece} ->
         socket
         |> put_flash(:info, "Content updated successfully")
         |> push_navigate(to: ~p"/creators/content_groups/#{socket.assigns.group}")
@@ -71,7 +71,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
     group = socket.assigns.group
 
     case Creators.create_content_piece(group, piece_params) do
-      {:ok, content} ->
+      {:ok, _content} ->
         socket
         |> put_flash(:info, "Content created successfully")
         |> push_navigate(to: ~p"/creators/content_groups/#{group}")

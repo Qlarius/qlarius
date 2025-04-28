@@ -4,14 +4,14 @@ defmodule QlariusWeb.Widgets.ContentController do
   alias Qlarius.Arcade
 
   def show(conn, %{"id" => id}) do
-    content_piece = Arcade.get_content_piece!(id)
+    piece = Arcade.get_content_piece!(id)
 
-    if Arcade.has_valid_tiqit?(conn.assigns.current_scope, content_piece) do
-      render(conn, "show.html", content: content_piece)
+    if Arcade.has_valid_tiqit?(conn.assigns.current_scope, piece) do
+      render(conn, "show.html", content: piece)
     else
       conn
       |> put_flash(:error, "You don't have access to this content")
-      |> redirect(to: ~p"/arcade?content_id=#{id}")
+      |> redirect(to: ~p"/widgets/arcade/group/#{piece.content_group}?content_id=#{piece}")
     end
   end
 end
