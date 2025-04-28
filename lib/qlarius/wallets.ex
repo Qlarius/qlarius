@@ -4,8 +4,8 @@ defmodule Qlarius.Wallets do
   alias Qlarius.Accounts.UserUnused, as: User
   alias Qlarius.AdEvent
   alias Qlarius.Repo
-  alias Qlarius.Wallets.LedgerEntry
-  alias Qlarius.Wallets.LedgerHeader
+  alias Qlarius.Wallets.LedgerEntryOld, as: LedgerEntry
+  alias Qlarius.Wallets.LedgerHeaderOld, as: LedgerHeader
 
   def get_user_current_balance(%User{} = user) do
     get_user_ledger_header(user.id).balance

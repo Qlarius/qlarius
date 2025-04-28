@@ -2,7 +2,7 @@ defmodule Qlarius.Accounts.UserUnused do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Wallets.LedgerHeader
+  alias Qlarius.Wallets.LedgerHeaderOld, as: LedgerHeader
   alias Qlarius.Traits.TraitValue
   alias Qlarius.Traits.UserTag
 
