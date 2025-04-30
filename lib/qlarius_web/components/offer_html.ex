@@ -5,42 +5,40 @@ defmodule QlariusWeb.OfferHTML do
 
   import QlariusWeb.Money
 
+  @phase_1_amount Decimal.new("0.05")
+
   attr :phase, :integer, default: 0
   attr :offer, Offer, required: true
 
   def clickable_offer(assigns) do
-    case assigns.phase do
-      0 ->
-        ~H"""
-        <.offer_container offer={@offer} class="p-5 text-neutral-800">
-          <div class="text-2xl font-bold mb-4">{format_usd(@offer.amount)}</div>
-          <div class="mb-4">
-            {@offer.ad_category.name}
-          </div>
-          <div class="flex justify-between w-full">
-            <div class="text-blue-400">
-              <.icon name="hero-map-pin" class="w-6 h-6" />
-            </div>
-            <div class="text-green-600">
-              <.icon name="hero-forward" class="w-6 h-6" />
-            </div>
-          </div>
-        </.offer_container>
-        """
+    phase_2_amount = Decimal.sub(assigns.offer.amount, @phase_1_amount)
+    assigns = assign(assigns, :phase_2_amount, phase_2_amount)
 
-      1 ->
-        ~H"""
-        <.offer_container offer={@offer}>
+    ~H"""
+    <div class="relative w-96 h-40 mb-4 overflow-hidden">
+          <.offer_container offer={@offer} class={"p-5 text-neutral-800 phase-0 bg-white #{if @phase > 0, do: "slide-left"}"}>
+            <div class="text-2xl font-bold mb-4">{format_usd(@offer.amount)}</div>
+            <div class="mb-4">
+              {@offer.ad_category.name}
+            </div>
+            <div class="flex justify-between w-full">
+              <div class="text-blue-400">
+                <.icon name="hero-map-pin" class="w-6 h-6" />
+              </div>
+              <div class="text-green-600">
+                <.icon name="hero-forward" class="w-6 h-6" />
+              </div>
+            </div>
+          </.offer_container>
+
+        <.offer_container offer={@offer} class={"phase-1 #{if @phase > 1, do: "slide-up"}"}>
           <div class="flex justify-center items-center">
             <img src={"/images/banner_#{rem(@offer.id, 4)}.png"} alt="Ad image" class="w-full h-auto" />
           </div>
-          <.click_jump_actions phase_2_amount={@offer.amount} />
+          <.click_jump_actions phase_2_amount={@phase_2_amount} />
         </.offer_container>
-        """
 
-      2 ->
-        ~H"""
-        <.offer_container offer={@offer} class="px-3 py-2">
+        <.offer_container offer={@offer} class={"px-3 py-2 phase-2 #{if @phase > 2, do: "hidden"}"}>
           <%!-- clicking this link opens the 'jump' link in a new tab, and also
           triggers the phx-click="click-offer" handler on the wrapping
           <.offer_container> --%>
@@ -54,16 +52,13 @@ defmodule QlariusWeb.OfferHTML do
             <div class="text-green-500 text-xs">
               {@offer.media_piece.display_url}
             </div>
-            <.click_jump_actions phase_1_complete? phase_2_amount={@offer.amount} />
+            <.click_jump_actions phase_1_complete? phase_2_amount={@phase_2_amount} />
           </a>
         </.offer_container>
-        """
 
-      3 ->
-        ~H"""
         <.offer_container
           offer={@offer}
-          class="p-3 bg-neutral-100 flex flex-col justify-center text-center text-neutral-600 select-none"
+          class={"p-3 bg-neutral-100 flex flex-col justify-center text-center text-neutral-600 select-none phase-3 #{if @phase < 3, do: "hidden"}"}
         >
           <div class="text-green-500 mb-1">
             <.icon name="hero-check" class="w-6 h-6" />
@@ -75,8 +70,8 @@ defmodule QlariusWeb.OfferHTML do
             Collected: <span class="font-semibold">{format_usd(@offer.amount)}</span>
           </div>
         </.offer_container>
-        """
-    end
+    </div>
+    """
   end
 
   attr :phase_1_complete?, :boolean, default: false
@@ -115,7 +110,7 @@ defmodule QlariusWeb.OfferHTML do
       phx-click="click-offer"
       phx-value-offer-id={@offer.id}
       class={[
-        "relative w-96 h-40 rounded-md border border-neutral-400 overflow-hidden cursor-pointer",
+        "offer-phase relative w-96 h-40 rounded-md border border-neutral-400 overflow-hidden cursor-pointer",
         @class
       ]}
     >
