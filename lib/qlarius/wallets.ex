@@ -1,39 +1,28 @@
 defmodule Qlarius.Wallets do
   import Ecto.Query
 
-  alias Qlarius.Accounts.User
-  alias Qlarius.AdEvent
-  # alias Qlarius.Repo
-  # alias Qlarius.Wallets.LedgerEntry
   alias Qlarius.LegacyRepo
-  alias Qlarius.Legacy.{LedgerHeader, LedgerEntry, MeFile}
+  alias Qlarius.Legacy.{LedgerHeader, LedgerEntry, MeFile, Campaign, Marketer, MediaPiecePhase}
 
-  def get_user_current_balance(%User{} = user) do
-    case get_user_ledger_header(user.id) do
+  def get_me_file_ledger_header_balance(%MeFile{} = me_file) do
+    case LegacyRepo.get_by(LedgerHeader, me_file_id: me_file.id) do
       nil -> Decimal.new("0.00")
       header -> header.balance || Decimal.new("0.00")
     end
   end
 
   @doc """
-  Gets a user's ledger header from the legacy database.
+  Gets a me_file's ledger header from the legacy database.
   """
-  def get_user_ledger_header(user_id) when is_integer(user_id) do
-    LegacyRepo.one(
-      from h in LedgerHeader,
-        join: m in MeFile,
-        on: h.me_file_id == m.id,
-        where: m.user_id == ^user_id
-    )
+  def get_me_file_ledger_header(%MeFile{} = me_file) do
+    LegacyRepo.get_by(LedgerHeader, me_file_id: me_file.id)
   end
 
-  def get_ledger_entry!(ledger_entry_id, %User{} = user) do
+  def get_ledger_entry!(ledger_entry_id, %MeFile{} = me_file) do
     LegacyRepo.one!(
       from e in LedgerEntry,
         join: h in assoc(e, :ledger_header),
-        join: m in MeFile,
-        on: h.me_file_id == m.id,
-        where: e.id == ^ledger_entry_id and m.user_id == ^user.id,
+        where: e.id == ^ledger_entry_id and h.me_file_id == ^me_file.id,
         select: e,
         preload: :ad_event
     )
@@ -69,86 +58,51 @@ defmodule Qlarius.Wallets do
     }
   end
 
-  def create_ad_event_and_update_ledger(offer, user, ip_address) do
+  def update_ledgers_from_ad_event(ad_event) do
     LegacyRepo.transaction(fn ->
-      me_file = get_user_me_file(user.id)
-      ledger_header = get_user_ledger_header(user.id)
+      # MeFile Ledger Entry first
+      # Check if a me_file ledger entry already exists for this ad_event
+      existing_me_file_ledger_entry = LegacyRepo.one(
+        from e in LedgerEntry,
+        join: h in assoc(e, :ledger_header),
+        join: m in MeFile,
+        on: h.me_file_id == m.id,
+        where: e.ad_event_id == ^ad_event.id and m.id == ^ad_event.me_file_id
+      )
 
-      # Create the AdEvent
-      ad_event =
-        %AdEvent{
-          offer_id: offer.id,
-          offer_amount: offer.offer_amt,
-          demo: offer.demo,
-          throttled: offer.throttled,
-          ip_address: ip_address
-        }
+      if existing_me_file_ledger_entry do
+        {:error, :ledger_entry_exists}
+      else
+        me_file = LegacyRepo.get!(MeFile, ad_event.me_file_id)
+        campaign = LegacyRepo.get!(Campaign, ad_event.campaign_id)
+        marketer = LegacyRepo.get!(Marketer, campaign.marketer_id)
+        phase = LegacyRepo.get!(MediaPiecePhase, ad_event.media_piece_phase_id)
+        ledger_header = LegacyRepo.get_by!(LedgerHeader, me_file_id: me_file.id)
+        new_balance = Decimal.add(ledger_header.balance || Decimal.new("0.00"), ad_event.event_me_file_collect_amt)
+        new_balance_payable = if ad_event.is_payable do
+          Decimal.add(ledger_header.balance || Decimal.new("0.00"), ad_event.event_me_file_collect_amt)
+        else
+          ledger_header.balance || Decimal.new("0.00")
+        end
+
+        # Create a new ledger entry for the ad event
+        %LedgerEntry{}
+        |> LedgerEntry.changeset(%{
+          ledger_header_id: ledger_header.id,
+          amt: ad_event.event_me_file_collect_amt,
+          running_balance: new_balance,
+          description: "#{phase.desc} - #{String.upcase(marketer.business_name)}",
+          ad_event_id: ad_event.id,
+          running_balance_payable: new_balance_payable
+        })
         |> LegacyRepo.insert!()
 
-      # Update the ledger header
-      new_balance = Decimal.add(ledger_header.balance || Decimal.new("0.00"), Decimal.new("0.05"))
-
-      ledger_header
-      |> Ecto.Changeset.change(balance: new_balance)
-      |> LegacyRepo.update!()
-
-      # Create the ledger entry
-      %LedgerEntry{}
-      |> LedgerEntry.changeset(%{
-        ledger_header_id: ledger_header.id,
-        amt: Decimal.new("0.05"),
-        running_balance: new_balance,
-        description: "Ad view payment",
-        ad_event_id: ad_event.id
-      })
-      |> LegacyRepo.insert!()
-    end)
-
-    :ok
-  end
-
-  def create_ad_jump_event_and_update_ledger(offer, user, ip_address) do
-    LegacyRepo.transaction(fn ->
-      me_file = get_user_me_file(user.id)
-      ledger_header = get_user_ledger_header(user.id)
-
-      # Create AdEvent
-      ad_event =
-        %AdEvent{
-          offer_id: offer.id,
-          offer_amount: offer.offer_amt,
-          demo: offer.demo,
-          throttled: offer.throttled,
-          ip_address: ip_address,
-          offer_complete: true
-        }
-        |> LegacyRepo.insert!()
-
-      # Calculate jump payment (full offer amount minus initial view payment)
-      amount = Decimal.sub(offer.offer_amt, Decimal.new("0.05"))
-      new_balance = Decimal.add(ledger_header.balance || Decimal.new("0.00"), amount)
-
-      # Update ledger header balance
-      ledger_header
-      |> Ecto.Changeset.change(balance: new_balance)
-      |> LegacyRepo.update!()
-
-      # Create ledger entry
-      %LedgerEntry{}
-      |> LedgerEntry.changeset(%{
-        ledger_header_id: ledger_header.id,
-        amt: amount,
-        running_balance: new_balance,
-        description: "Ad jump payment",
-        ad_event_id: ad_event.id
-      })
-      |> LegacyRepo.insert!()
-
-      :ok
+        # Update the ledger header
+        ledger_header
+        |> Ecto.Changeset.change(balance: new_balance, balance_payable: new_balance_payable)
+        |> LegacyRepo.update!()
+      end
     end)
   end
 
-  defp get_user_me_file(user_id) do
-    LegacyRepo.one!(from m in MeFile, where: m.user_id == ^user_id)
-  end
 end

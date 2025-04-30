@@ -9,7 +9,7 @@ defmodule QlariusWeb.MeFileLive do
   def render(assigns) do
     ~H"""
     <Layouts.sponster {assigns}>
-      <h1 class="text-2xl font-semibold mb-4">MeFile</h1>
+      <h1 class="text-3xl font-bold mb-4">MeFile</h1>
 
       <.tag_and_trait_count_badges trait_count={@current_scope.trait_count} tag_count={@current_scope.tag_count} />
 

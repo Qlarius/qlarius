@@ -8,7 +8,8 @@ defmodule QlariusWeb.WalletLive do
   alias Qlarius.Legacy
   alias Qlarius.Legacy.{MeFile, Offer, User, LedgerHeader, AdEvent, LedgerEntry}
   alias Qlarius.LegacyRepo
-  @debug true
+
+  @debug false
 
   @impl true
   def mount(_params, _session, socket) do
@@ -168,8 +169,7 @@ defmodule QlariusWeb.WalletLive do
             phx-value-entry_id={entry.id}
           >
             <div>
-              <div class="font-medium">Some ad</div>
-              <div class="text-gray-500">{entry.description}</div>
+              <div class="font-medium">{entry.description}</div>
               <div class="text-gray-500">{format_date(entry.created_at)}</div>
             </div>
             <div class="flex items-center">

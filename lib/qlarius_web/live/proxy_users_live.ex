@@ -6,7 +6,7 @@ defmodule QlariusWeb.ProxyUsersLive do
   alias Qlarius.Accounts.Scope
   alias QlariusWeb.Layouts
 
-  @debug true
+  @debug false
 
   import Layouts, only: [
     toggle_sponster_sidebar: 1,
