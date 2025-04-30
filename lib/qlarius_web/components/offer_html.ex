@@ -35,8 +35,23 @@ defmodule QlariusWeb.OfferHTML do
       </.offer_container>
 
       <.offer_container offer={@offer} class={"phase-1 #{if @phase > 1, do: "slide-up"}"}>
-        <div class="flex justify-center items-center">
-          <img src={"/images/banner_#{rem(@offer.id, 4)}.png"} alt="Ad image" class="w-full h-auto" />
+        <div class="flex justify-center items-center bg-white">
+          <%= if @offer.media_piece.banner_image do %>
+            <img
+              src={
+                QlariusWeb.Uploaders.ThreeTapBanner.url(
+                  {@offer.media_piece.banner_image, @offer.media_piece},
+                  :original
+                )
+              }
+              alt="Ad image"
+              class="w-full h-auto"
+            />
+          <% else %>
+            <div class="w-full h-40 bg-gray-200 flex items-center justify-center">
+              <span class="text-gray-400">No banner</span>
+            </div>
+          <% end %>
         </div>
         <.click_jump_actions phase_2_amount={@phase_2_amount} />
       </.offer_container>

@@ -28,6 +28,9 @@ if config_env() == :prod do
       For example: ecto://USER:PASS@HOST/DATABASE
       """
 
+  bucket = System.get_env("AWS_BUCKET_NAME")
+  region = System.get_env("AWS_REGION")
+
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
   config :qlarius, Qlarius.Repo,
@@ -35,6 +38,23 @@ if config_env() == :prod do
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
     socket_options: maybe_ipv6
+
+  config :waffle,
+    storage: Waffle.Storage.S3,
+    bucket: bucket,
+    asset_host: "https://#{bucket}.s3.#{region}.amazonaws.com"
+
+  config :ex_aws,
+    json_codec: Jason,
+    access_key_id: System.get_env("AWS_ACCESS_KEY_ID"),
+    secret_access_key: System.get_env("AWS_SECRET_ACCESS_KEY"),
+    region: region,
+    s3: [
+      scheme: "https://",
+      host: "s3.#{region}.amazonaws.com",
+      region: region,
+      bucket: bucket
+    ]
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you

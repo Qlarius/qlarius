@@ -40,3 +40,4 @@ repomix-output.xml
 .DS_Store
 
 config/dev.secret.exs
+priv/static/uploads

@@ -70,6 +70,12 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
+# In prod this is overridden to store on S3
+config :waffle,
+  storage: Waffle.Storage.Local,
+  storage_dir_prefix: "priv/static",
+  asset_host: "http://localhost:4000"
+
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 

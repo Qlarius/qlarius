@@ -1,5 +1,7 @@
 defmodule Qlarius.Marketing.MediaPiece do
   use Ecto.Schema
+  use Waffle.Ecto.Schema
+
   import Ecto.Changeset
 
   schema "media_pieces" do
@@ -18,7 +20,8 @@ defmodule Qlarius.Marketing.MediaPiece do
     field :duration, :integer
     field :jump_url, :string
     field :active, :boolean
-    field :banner_image, :string
+    field :marketer_id, :integer
+    field :banner_image, QlariusWeb.Uploaders.ThreeTapBanner.Type
 
     belongs_to :ad_category, Qlarius.Campaigns.AdCategory
 
@@ -28,9 +31,10 @@ defmodule Qlarius.Marketing.MediaPiece do
   @doc false
   def changeset(media_piece, attrs) do
     media_piece
-    |> cast(attrs, [:title, :body_copy, :display_url, :jump_url, :ad_category_id])
+    |> cast(attrs, [:title, :body_copy, :display_url, :jump_url, :ad_category_id, :banner_image])
     |> validate_required([:title, :body_copy, :display_url, :jump_url, :ad_category_id])
     |> validate_format(:display_url, ~r/^http(s)?:\/\/[\w.-]+(?:\/[\w.-]*)*$/)
     |> validate_format(:jump_url, ~r/^http(s)?:\/\/[\w.-]+(?:\/[\w.-]*)*$/)
+    |> cast_attachments(attrs, [:banner_image])
   end
 end

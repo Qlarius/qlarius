@@ -13,7 +13,7 @@ defmodule Qlarius.Marketing do
   Returns the list of media_pieces.
   """
   def list_media_pieces do
-    Repo.all(MediaPiece) |> Repo.preload(:ad_category)
+    Repo.all(from mp in MediaPiece, order_by: [asc: mp.id], preload: :ad_category)
   end
 
   @doc """
