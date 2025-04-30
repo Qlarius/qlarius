@@ -12,7 +12,9 @@ defmodule Qlarius.Legacy.MediaPiece do
     field :body_copy, :string
     field :display_url, :string
     field :jump_url, :string
-    field :active, :boolean, default: true
+    field :active, :boolean
+    field :marketer_id, :integer
+    field :duration, :integer
 
     belongs_to :media_piece_type, MediaPieceType
     belongs_to :ad_category, AdCategory
@@ -31,18 +33,22 @@ defmodule Qlarius.Legacy.MediaPiece do
       :display_url,
       :jump_url,
       :active,
+      :marketer_id,
       :media_piece_type_id,
-      :ad_category_id
+      :ad_category_id,
+      :duration
     ])
     |> validate_required([
       :title,
       :display_url,
       :jump_url,
       :media_piece_type_id,
-      :ad_category_id
+      :ad_category_id,
+      :marketer_id,
+      :active
     ])
     |> foreign_key_constraint(:media_piece_type_id)
-    |> foreign_key_constraint(:campaign_id)
     |> foreign_key_constraint(:ad_category_id)
+    |> foreign_key_constraint(:marketer_id)
   end
 end

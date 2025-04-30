@@ -4,23 +4,23 @@ defmodule Qlarius.Marketing do
   """
 
   import Ecto.Query, warn: false
-  alias Qlarius.Repo
+  alias Qlarius.LegacyRepo
 
-  alias Qlarius.Marketing.MediaPiece
-  alias Qlarius.Campaigns.AdCategory
+  alias Qlarius.Legacy.{MediaPiece, AdCategory}
+
 
   @doc """
   Returns the list of media_pieces.
   """
   def list_media_pieces do
-    Repo.all(MediaPiece) |> Repo.preload(:ad_category)
+    LegacyRepo.all(MediaPiece) |> LegacyRepo.preload(:ad_category)
   end
 
   @doc """
   Gets a single media_piece.
   Raises `Ecto.NoResultsError` if the Media piece does not exist.
   """
-  def get_media_piece!(id), do: Repo.get!(MediaPiece, id)
+  def get_media_piece!(id), do: LegacyRepo.get!(MediaPiece, id)
 
   @doc """
   Creates a media_piece.
@@ -28,7 +28,7 @@ defmodule Qlarius.Marketing do
   def create_media_piece(attrs \\ %{}) do
     %MediaPiece{}
     |> MediaPiece.changeset(attrs)
-    |> Repo.insert()
+    |> LegacyRepo.insert()
   end
 
   @doc """
@@ -37,14 +37,14 @@ defmodule Qlarius.Marketing do
   def update_media_piece(%MediaPiece{} = media_piece, attrs) do
     media_piece
     |> MediaPiece.changeset(attrs)
-    |> Repo.update()
+    |> LegacyRepo.update()
   end
 
   @doc """
   Deletes a media_piece.
   """
   def delete_media_piece(%MediaPiece{} = media_piece) do
-    Repo.delete(media_piece)
+    LegacyRepo.delete(media_piece)
   end
 
   @doc """
@@ -58,6 +58,6 @@ defmodule Qlarius.Marketing do
   Returns the list of ad categories for dropdown selection.
   """
   def list_ad_categories do
-    Repo.all(AdCategory)
+    LegacyRepo.all(AdCategory)
   end
 end
