@@ -144,10 +144,10 @@ defmodule QlariusWeb.Layouts do
           {@current_scope.user.email}
         </li>
         <%= if @current_scope do %>
-          <li><.layouts_navbar_link text="Log out" href={~p"/users/log_out"} method="delete" /></li>
+          <li><.layouts_navbar_link text="Log out" href="#" method="delete" /></li>
         <% else %>
-          <li><.layouts_navbar_link text="Log in" href={~p"/users/log_in"} /></li>
-          <li><.layouts_navbar_link text="Sign up" href={~p"/users/register"} /></li>
+          <li><.layouts_navbar_link text="Log in" href="#" /></li>
+          <li><.layouts_navbar_link text="Sign up" href="#" /></li>
         <% end %>
       </ul>
 
