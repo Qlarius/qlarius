@@ -105,7 +105,7 @@ defmodule QlariusWeb.Router do
 
     get "/content/:id", ContentController, :show
 
-    live_session :widgets, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope_unsafe_dont_use}] do
+    live_session :widgets, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
       live "/arcade/group/:group_id", ArcadeLive
       live "/wallet", WalletLive
     end

@@ -1,19 +1,16 @@
-defmodule Qlarius.Arcade.TiqitType do
+defmodule Qlarius.Arcade.TiqitClass do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Arcade.ContentPiece
-  alias Qlarius.Arcade.Tiqit
-
-  schema "tiqit_types" do
+  schema "tiqit_classes" do
     field :name, :string
-    # if duration_hours is null then tiqit doesn't expire
-    field :duration_hours, :integer
     field :price, :decimal
     field :active, :boolean, default: true
+    field :duration_hours, :integer
 
-    belongs_to :content_piece, ContentPiece
-    has_many :tiqits, Tiqit
+    belongs_to :catalog, Qlarius.Arcade.Catalog
+    belongs_to :content_group, Qlarius.Arcade.ContentGroup
+    belongs_to :content_piece, Qlarius.Arcade.ContentPiece
 
     timestamps()
   end

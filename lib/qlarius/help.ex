@@ -8,10 +8,10 @@ defmodule Qlarius.Help do
       alias Qlarius.Campaigns
       alias Qlarius.Offers
       alias Qlarius.Arcade.Catalog
-      alias Qlarius.Arcade.TiqitType
       alias Qlarius.Arcade.Creator
       alias Qlarius.Arcade.Tiqit
       alias Qlarius.Arcade.ContentPiece
+      alias Qlarius.Arcade.TiqitClass
       alias Qlarius.Arcade.ContentGroup
       alias Qlarius.Traits.Trait
       alias Qlarius.Traits.TraitCategory
@@ -25,10 +25,10 @@ defmodule Qlarius.Help do
       alias Qlarius.Accounts
       alias Qlarius.AdEvent
       alias Qlarius.Accounts.User
-      alias Qlarius.Accounts.User
       alias Qlarius.Accounts.Scope
       alias Qlarius.Accounts.UserNotifier
       alias Qlarius.Accounts.UserToken
+      alias Qlarius.Accounts.MeFile
       alias Qlarius.Mailer
       alias Qlarius.Surveys.SurveyCategory
       alias Qlarius.Surveys.Survey
@@ -36,16 +36,15 @@ defmodule Qlarius.Help do
       alias Qlarius.Marketing.MediaRun
       alias Qlarius.Marketing.MediaPiece
       alias Qlarius.Wallets.LedgerEntry
+      alias Qlarius.Wallets.LedgerHeader
       alias Qlarius.Campaigns.AdCategory
       alias Qlarius.Campaigns.TargetBand
       alias Qlarius.Campaigns.TraitGroup
       alias Qlarius.Campaigns.Campaign
       alias Qlarius.Campaigns.Target
       alias Qlarius.Application
-      alias Qlarius.Wallets.LedgerHeader
       alias Qlarius.Creators
       alias Qlarius.Repo
-      alias Qlarius.Accounts.MeFile
       alias Qlarius.Traits
     end
   end

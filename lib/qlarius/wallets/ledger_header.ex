@@ -22,7 +22,15 @@ defmodule Qlarius.Wallets.LedgerHeader do
 
   def changeset(ledger_header, attrs) do
     ledger_header
-    |> cast(attrs, [:description, :balance, :balance_payable, :me_file_id, :campaign_id, :recipient_id, :marketer_id])
+    |> cast(attrs, [
+      :description,
+      :balance,
+      :balance_payable,
+      :me_file_id,
+      :campaign_id,
+      :recipient_id,
+      :marketer_id
+    ])
     |> validate_required([:description])
   end
 end

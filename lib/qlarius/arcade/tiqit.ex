@@ -3,16 +3,15 @@ defmodule Qlarius.Arcade.Tiqit do
   import Ecto.Changeset
 
   alias Qlarius.Accounts.User
-  alias Qlarius.Arcade.TiqitType
 
   schema "tiqits" do
     field :purchased_at, :utc_datetime
     field :expires_at, :utc_datetime
 
     belongs_to :user, User
-    belongs_to :tiqit_type, TiqitType
+    belongs_to :tiqit_class, Qlarius.Arcade.TiqitClass
 
-    has_one :content_piece, through: [:tiqit_type, :content_piece]
+    # has_one :content_piece, through: [:tiqit_type, :content_piece]
 
     timestamps()
   end

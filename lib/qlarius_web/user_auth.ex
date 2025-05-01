@@ -7,6 +7,8 @@ defmodule QlariusWeb.UserAuth do
   alias Qlarius.Accounts
   alias Qlarius.Accounts.Scope
 
+  @hardcoded_user_id 508
+
   # Make the remember me cookie valid for 60 days.
   # If you want bump or reduce this value, also change
   # the token expiry itself in UserToken.
@@ -94,7 +96,7 @@ defmodule QlariusWeb.UserAuth do
   def fetch_current_scope_for_user(conn, _opts) do
     # {user_token, conn} = ensure_user_token(conn)
     # user = user_token && Accounts.get_user_by_session_token(user_token)
-    user = Qlarius.Repo.get!(Qlarius.Accounts.User, 508)
+    user = Qlarius.Repo.get!(Qlarius.Accounts.User, @hardcoded_user_id)
     assign(conn, :current_scope, Scope.for_user(user))
   end
 
@@ -148,18 +150,6 @@ defmodule QlariusWeb.UserAuth do
     {:cont, mount_current_scope(socket, session)}
   end
 
-  # Awful hack to get the demo working.
-  def on_mount(:mount_current_scope_unsafe_dont_use, params, _session, socket) do
-    socket =
-      Phoenix.Component.assign_new(socket, :current_scope, fn ->
-        user = Accounts.get_user_by_email(Map.fetch!(params, "user"))
-
-        Scope.for_user(user)
-      end)
-
-    {:cont, socket}
-  end
-
   def on_mount(:require_authenticated, _params, session, socket) do
     socket = mount_current_scope(socket, session)
 
@@ -185,13 +175,14 @@ defmodule QlariusWeb.UserAuth do
     end
   end
 
-  defp mount_current_scope(socket, session) do
+  defp mount_current_scope(socket, _session) do
     Phoenix.Component.assign_new(socket, :current_scope, fn ->
-      user =
-        if user_token = session["user_token"] do
-          Accounts.get_user_by_session_token(user_token)
-        end
+      # user =
+      #   if user_token = session["user_token"] do
+      #     Accounts.get_user_by_session_token(user_token)
+      #   end
 
+      user = Qlarius.Repo.get!(Qlarius.Accounts.User, @hardcoded_user_id)
       Scope.for_user(user)
     end)
   end
@@ -240,13 +231,4 @@ defmodule QlariusWeb.UserAuth do
   defp maybe_store_return_to(conn), do: conn
 
   defp signed_in_path(_conn), do: ~p"/"
-
-  # NB this is LAUGHABLY insecure but I'm running out of
-  # time before the demo and I'm out of ideas.
-  def fetch_hardcoded_scope_from_param(conn, _opts) do
-    email = Map.fetch!(conn.query_params, "user")
-    user = Accounts.get_user_by_email(email)
-
-    assign(conn, :current_scope, Scope.for_user(user))
-  end
 end

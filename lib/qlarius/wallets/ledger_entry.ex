@@ -3,7 +3,6 @@ defmodule Qlarius.Wallets.LedgerEntry do
   import Ecto.Changeset
 
   schema "ledger_entries" do
-
     belongs_to :ledger_header, Qlarius.Wallets.LedgerHeader
     # TODO
     # belongs_to :ad_event, AdEvent
@@ -19,7 +18,6 @@ defmodule Qlarius.Wallets.LedgerEntry do
     # belongs_to :payout_event, Qlarius.Accounts.PayoutEvent
 
     timestamps(type: :utc_datetime, inserted_at_source: :created_at)
-
   end
 
   def changeset(ledger_entry, attrs) do
