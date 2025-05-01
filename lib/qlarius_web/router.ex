@@ -20,7 +20,7 @@ defmodule QlariusWeb.Router do
     plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-    plug :fetch_hardcoded_scope_from_param
+    plug :fetch_current_scope_for_user
     plug :allow_iframe
   end
 

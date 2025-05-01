@@ -33,18 +33,20 @@
     <p><em>{@content_group.description}</em></p>
 
     <div class="flex items-center">
-      <p class="mr-2">&lt;iframe&gt; link:</p>
-      <div
-        class="relative flex items-center bg-zinc-200 text-zinc-800 rounded-md px-3 py-2 font-mono text-xs cursor-pointer hover:bg-zinc-300 transition-colors flex-grow"
-        onclick="copyCode(this)"
-      >
-        <code>{@conn.scheme}://{@conn.host}/widgets/arcade/group/{@content_group.id}</code>
+      <%= if Enum.any?(@content_group.content_pieces) do %>
+        <p class="mr-2">&lt;iframe&gt; link:</p>
+        <div
+          class="relative flex items-center bg-zinc-200 text-zinc-800 rounded-md px-3 py-2 font-mono text-xs cursor-pointer hover:bg-zinc-300 transition-colors flex-grow"
+          onclick="copyCode(this)"
+        >
+          <code>{@conn.scheme}://{@conn.host}/widgets/arcade/group/{@content_group.id}</code>
 
-        <.icon name="hero-document-duplicate" class="ml-2 h-4 w-4 text-zinc-800" />
-        <span class="popup hidden absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-xs text-white px-2 py-1 rounded">
-          Copied to clipboard!
-        </span>
-      </div>
+          <.icon name="hero-document-duplicate" class="ml-2 h-4 w-4 text-zinc-800" />
+          <span class="popup hidden absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-xs text-white px-2 py-1 rounded">
+            Copied to clipboard!
+          </span>
+        </div>
+      <% end %>
     </div>
   </div>
 
