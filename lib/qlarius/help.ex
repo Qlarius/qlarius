@@ -24,7 +24,7 @@ defmodule Qlarius.Help do
       alias Qlarius.MeFile
       alias Qlarius.Accounts
       alias Qlarius.AdEvent
-      alias Qlarius.Accounts.UserUnused
+      alias Qlarius.Accounts.User
       alias Qlarius.Accounts.User
       alias Qlarius.Accounts.Scope
       alias Qlarius.Accounts.UserNotifier
@@ -36,8 +36,6 @@ defmodule Qlarius.Help do
       alias Qlarius.Marketing.MediaRun
       alias Qlarius.Marketing.MediaPiece
       alias Qlarius.Wallets.LedgerEntry
-      alias Qlarius.Wallets.LedgerHeaderOld
-      alias Qlarius.Wallets.LedgerEntryOld
       alias Qlarius.Campaigns.AdCategory
       alias Qlarius.Campaigns.TargetBand
       alias Qlarius.Campaigns.TraitGroup

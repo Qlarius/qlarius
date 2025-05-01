@@ -1,22 +1,25 @@
 defmodule Qlarius.Wallets do
   import Ecto.Query
 
-  alias Qlarius.Accounts.UserUnused, as: User
+  alias Qlarius.Accounts.User
   alias Qlarius.AdEvent
   alias Qlarius.Repo
-  alias Qlarius.Wallets.LedgerEntryOld, as: LedgerEntry
-  alias Qlarius.Wallets.LedgerHeaderOld, as: LedgerHeader
+  alias Qlarius.Wallets.LedgerEntry
+  alias Qlarius.Wallets.LedgerHeader
 
   def get_user_current_balance(%User{} = user) do
     get_user_ledger_header(user.id).balance
   end
 
-  @doc """
-  Gets a user's ledger header.
-  """
-  def get_user_ledger_header(user_id) do
-    Repo.get_by(LedgerHeader, user_id: user_id)
+  def get_user_ledger_header(%User{} = user) do
+    Repo.get_by(LedgerHeader, me_file_id: user.me_file.id)
     |> Repo.preload(:user)
+  end
+
+  def get_user_ledger_header(user_id) do
+    Repo.get(User, user_id)
+    |> Repo.preload(:me_file)
+    |> get_user_ledger_header()
   end
 
   def get_ledger_entry!(ledger_entry_id, %User{} = user) do

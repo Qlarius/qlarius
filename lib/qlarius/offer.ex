@@ -1,7 +1,7 @@
 defmodule Qlarius.Offer do
   use Ecto.Schema
 
-  alias Qlarius.Accounts.UserUnused, as: User
+  alias Qlarius.Accounts.User
   alias Qlarius.Marketing.MediaRun
 
   schema "offers" do

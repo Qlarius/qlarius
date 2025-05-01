@@ -2,7 +2,7 @@ defmodule QlariusWeb.UserRegistrationLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Accounts
-  alias Qlarius.Accounts.UserUnused, as: User
+  alias Qlarius.Accounts.User
 
   def render(assigns) do
     ~H"""

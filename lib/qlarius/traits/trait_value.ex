@@ -2,7 +2,7 @@ defmodule Qlarius.Traits.TraitValue do
   use Ecto.Schema
   import Ecto.Changeset, warn: false
 
-  alias Qlarius.Accounts.UserUnused, as: User
+  alias Qlarius.Accounts.User
   alias Qlarius.Traits.Trait
   alias Qlarius.Traits.UserTag
 

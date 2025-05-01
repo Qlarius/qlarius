@@ -12,7 +12,7 @@ defmodule Qlarius.Campaigns.TraitGroup do
     many_to_many :target_bands, TargetBand, join_through: "target_bands_trait_groups"
     many_to_many :traits, Trait, join_through: "traits_trait_groups"
 
-    timestamps(type: :utc_datetime)
+    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
   end
 
   @doc false

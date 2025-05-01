@@ -12,7 +12,7 @@ defmodule Qlarius.Marketing.MediaPiece do
 
     belongs_to :ad_category, AdCategory
 
-    timestamps()
+    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
   end
 
   @doc false

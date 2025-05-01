@@ -6,8 +6,8 @@ defmodule Qlarius.Arcade do
   alias Qlarius.Arcade.ContentPiece
   alias Qlarius.Arcade.Tiqit
   alias Qlarius.Arcade.TiqitType
-  alias Qlarius.Wallets.LedgerEntryOld, as: LedgerEntry
-  alias Qlarius.Wallets.LedgerHeaderOld, as: LedgerHeader
+  alias Qlarius.Wallets.LedgerEntry
+  alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
 
   def has_valid_tiqit?(%Scope{} = scope, %ContentPiece{} = content) do

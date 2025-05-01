@@ -8,7 +8,7 @@ defmodule Qlarius.Marketing.MediaSequence do
     # I don't see a place in the Rails app that sets it anywhere:
     field :description, :string, default: ""
 
-    timestamps()
+    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
   end
 
   @doc false

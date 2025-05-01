@@ -3,6 +3,8 @@ defmodule Qlarius.Accounts.User do
   import Ecto.Changeset, warn: false
 
   schema "users" do
+    has_one :me_file, Qlarius.Accounts.MeFile
+
     field :username, :string
     field :email, :string, default: ""
     field :encrypted_password, :string, default: ""
