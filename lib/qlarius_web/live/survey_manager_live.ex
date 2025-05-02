@@ -26,7 +26,7 @@ defmodule QlariusWeb.SurveyManagerLive do
         :new ->
           category_id = params["category_id"]
           category = Surveys.get_survey_category!(category_id)
-          survey = %Survey{category_id: category.id, display_order: 1}
+          survey = %Survey{category: category, display_order: 1}
           changeset = Surveys.change_survey(survey)
 
           socket

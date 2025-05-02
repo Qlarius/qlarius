@@ -13,6 +13,7 @@ defmodule Qlarius.Help do
       alias Qlarius.Arcade.ContentPiece
       alias Qlarius.Arcade.TiqitClass
       alias Qlarius.Arcade.ContentGroup
+      alias Qlarius.Traits.MeFileTag
       alias Qlarius.Traits.Trait
       alias Qlarius.Traits.TraitCategory
       alias Qlarius.Traits.UserTag

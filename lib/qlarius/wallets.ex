@@ -71,8 +71,8 @@ defmodule Qlarius.Wallets do
         %AdEvent{
           offer_id: offer.id,
           offer_amount: offer.amount,
-          demo: offer.demo,
-          throttled: offer.throttled,
+          is_demo: offer.is_demo,
+          is_throttled: offer.is_throttled,
           ip_address: ip_address
         }
         |> Repo.insert!()
@@ -107,10 +107,10 @@ defmodule Qlarius.Wallets do
         %AdEvent{
           offer_id: offer.id,
           offer_amount: offer.amount,
-          demo: offer.demo,
-          throttled: offer.throttled,
+          is_demo: offer.is_demo,
+          is_throttled: offer.is_throttled,
           ip_address: ip_address,
-          offer_complete: true
+          is_offer_complete: true
         }
         |> Repo.insert!()
 

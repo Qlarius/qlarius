@@ -2,19 +2,21 @@ defmodule Qlarius.Marketing.MediaRun do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Marketing.MediaPiece
-  alias Qlarius.Marketing.MediaSequence
-
   schema "media_runs" do
-    field :frequency, :integer, default: 3
-    field :frequency_buffer_hours, :integer, default: 24
-    field :maximum_banner_count, :integer, default: 3
-    field :banner_retry_buffer_hours, :integer, default: 10
+    # belongs_to :marketer_id
 
-    belongs_to :media_piece, MediaPiece
-    belongs_to :media_sequence, MediaSequence
+    field :sequence_start_phase, :integer
+    field :sequence_end_phase, :integer
+    field :frequency, :integer
+    field :frequency_buffer_hours, :integer
+    field :maximum_banner_count, :integer
+    field :banner_retry_buffer_hours, :integer
+    field :is_active, :boolean
 
-    timestamps()
+    belongs_to :media_piece, Qlarius.Marketing.MediaPiece
+    belongs_to :media_sequence, Qlarius.Marketing.MediaSequence
+
+    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
   end
 
   @doc false

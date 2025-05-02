@@ -2,20 +2,30 @@ defmodule Qlarius.Traits.TraitValue do
   use Ecto.Schema
   import Ecto.Changeset, warn: false
 
-  alias Qlarius.Accounts.User
-  alias Qlarius.Traits.Trait
-  alias Qlarius.Traits.UserTag
-
   schema "trait_values" do
-    belongs_to :trait, Trait
+    belongs_to :trait, Trait, source: :parent_trait_id
 
-    field :name, :string
+    field :name, :string, source: :trait_name
+    field :active, :integer
+    field :is_taggable, :boolean, default: false
+    field :input_type, :string
     field :display_order, :integer
-    field :answer, :string
 
-    many_to_many :users, User, join_through: UserTag
+    field :is_campaign_only, :boolean, default: false
+    field :is_numeric, :boolean, default: true
+    belongs_to :updated_by, Qlarius.Accounts.User, foreign_key: :modified_by
+    belongs_to :inserted_by, Qlarius.Accounts.User, foreign_key: :added_by
+    field :immutable, :boolean, default: false
+    field :max_length, :integer
+    field :max_selected, :integer
+    field :is_date, :boolean, default: false
 
-    timestamps(type: :utc_datetime)
+    many_to_many :me_files, Qlarius.Accounts.MeFile, join_through: Qlarius.Traits.MeFileTag
+
+    timestamps(type: :utc_datetime,
+      inserted_at_source: :added_date,
+      updated_at_source: :modified_date
+    )
   end
 
   @doc """

@@ -11,6 +11,8 @@ defmodule Qlarius.Accounts.MeFile do
 
     belongs_to :user, Qlarius.Accounts.User
 
+    has_many :offers, Qlarius.Offer
+
     # TODO
     # belongs_to :referral, Qlarius.Accounts.Referral
 

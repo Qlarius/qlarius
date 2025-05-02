@@ -9,6 +9,11 @@ defmodule Qlarius.Campaigns.TraitGroup do
     field :description, :string
     field :title, :string
 
+    belongs_to :trait, Qlarius.Traits.TraitValue, foreign_key: :parent_trait_id
+
+    belongs_to :created_by, Qlarius.Accounts.User, foreign_key: :user_created_by
+    field :deactivated_at, :utc_datetime
+
     many_to_many :target_bands, TargetBand, join_through: "target_bands_trait_groups"
     many_to_many :traits, Trait, join_through: "traits_trait_groups"
 

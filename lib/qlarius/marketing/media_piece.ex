@@ -2,15 +2,25 @@ defmodule Qlarius.Marketing.MediaPiece do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Campaigns.AdCategory
-
   schema "media_pieces" do
-    field :title, :string
-    field :body_copy, :string
-    field :display_url, :string
-    field :jump_url, :string
+    # belongs_to :marketer
+    # belongs_to :media_piece_type
 
-    belongs_to :ad_category, AdCategory
+    field :title, :string
+    field :display_url, :string
+    field :body_copy, :string
+    field :resource_url_old, :string
+    field :resource_url, :string
+    field :resource_file_name, :string
+    field :resource_content_type, :string
+    field :resource_file_size, :integer
+    field :resource_updated_at, :utc_datetime
+    field :duration, :integer
+    field :jump_url, :string
+    field :active, :boolean
+    field :banner_image, :string
+
+    belongs_to :ad_category, Qlarius.Campaigns.AdCategory
 
     timestamps(type: :utc_datetime, inserted_at_source: :created_at)
   end

@@ -5,25 +5,27 @@ defmodule Qlarius.Offer do
   alias Qlarius.Marketing.MediaRun
 
   schema "offers" do
-    # In the Rails app these two fields come from associated records,
-    # but I'm putting them in here for now:
-    field :phase_1_amount, :decimal
-    field :phase_2_amount, :decimal
+    field :amount, :decimal, source: :offer_amt
+    field :marketer_cost_amt, :decimal
+    field :pending_until, :naive_datetime
+    field :is_payable, :boolean, default: false
+    field :is_throttled, :boolean, default: false
+    field :is_demo, :boolean, default: false
+    field :is_current, :boolean, default: false
+    field :is_jobbed, :boolean, default: false
+    field :matching_tags_snapshot, :string
+    field :ad_phase_count_to_complete, :integer
 
-    # TODO do I need this?
-    field :amount, :decimal
+    belongs_to :campaign, Qlarius.Campaigns.Campaign
+    belongs_to :me_file, Qlarius.Accounts.MeFile
+    belongs_to :media_run, Qlarius.Marketing.MediaRun
+    belongs_to :media_piece, Qlarius.Marketing.MediaPiece
+    belongs_to :target_band, Qlarius.Legacy.TargetBand
 
-    belongs_to :user, User
-    belongs_to :media_run, MediaRun
+    has_one :ad_category, through: [:media_piece, :ad_category]
 
-    has_one :media_piece, through: [:media_run, :media_piece]
-    has_one :ad_category, through: [:media_run, :media_piece, :ad_category]
+    has_many :ad_events, Qlarius.AdEvent
 
-    field :throttled, :boolean, default: false
-    field :demo, :boolean, default: false
-    field :current, :boolean, default: false
-    field :jobbed, :boolean, default: false
-
-    timestamps()
+    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
   end
 end

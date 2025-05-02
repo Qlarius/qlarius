@@ -5,6 +5,8 @@ defmodule Qlarius.Accounts.User do
   schema "users" do
     has_one :me_file, Qlarius.Accounts.MeFile
 
+    has_many :offers, through: [:me_file, :offers]
+
     field :username, :string
     field :email, :string, default: ""
     field :encrypted_password, :string, default: ""

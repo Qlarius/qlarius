@@ -2,31 +2,36 @@ defmodule Qlarius.Traits.Trait do
   use Ecto.Schema
   import Ecto.Changeset, warn: false
 
-  alias Qlarius.Campaigns.TraitGroup
-  alias Qlarius.Surveys.Survey
-  alias Qlarius.Traits.TraitCategory
-  alias Qlarius.Traits.TraitValue
-
   schema "traits" do
-    field :name, :string
-    field :campaign_only, :boolean
-    field :numeric, :boolean
-    field :immutable, :boolean
-    field :taggable, :boolean
-    field :is_date, :boolean
-    field :active, :boolean
-    field :display_order, :integer, default: 1
-    field :input_type, Ecto.Enum, values: ~w[radios checkboxes text select]a
-    field :question, :string
+    field :name, :string, source: :trait_name
+    field :active, :integer
+    # It's an integer in the DB we may need to cast to bool:
+    field :is_taggable, :integer
+    field :input_type, :string
+    field :display_order, :integer
 
-    belongs_to :category, TraitCategory
+    field :parent_trait_id, :integer
 
-    has_many :values, TraitValue
+    field :is_campaign_only, :boolean, default: false
+    field :is_numeric, :boolean, default: true
+    belongs_to :updated_by, Qlarius.Accounts.User, foreign_key: :modified_by
+    belongs_to :inserted_by, Qlarius.Accounts.User, foreign_key: :added_by
+    field :immutable, :boolean, default: false
+    field :max_length, :integer
+    field :max_selected, :integer
+    field :is_date, :boolean, default: false
 
-    many_to_many :surveys, Survey, join_through: "traits_surveys"
-    many_to_many :trait_groups, TraitGroup, join_through: "traits_trait_groups"
+    belongs_to :trait_category, Qlarius.Traits.TraitCategory
 
-    timestamps(type: :utc_datetime)
+    # has_many :values, Qlarius.Traits.TraitValue
+
+    # many_to_many :surveys, Qlarius.Surveys.Survey, join_through: "traits_surveys"
+    # many_to_many :trait_groups, Qlarius.Campaigns.TraitGroup, join_through: "traits_trait_groups"
+
+    timestamps(type: :utc_datetime,
+      inserted_at_source: :added_date,
+      updated_at_source: :modified_date
+    )
   end
 
   @doc """
