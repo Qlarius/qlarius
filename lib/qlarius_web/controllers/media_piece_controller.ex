@@ -1,18 +1,21 @@
 defmodule QlariusWeb.MediaPieceController do
   use QlariusWeb, :controller
+  require Logger
 
   alias Qlarius.Marketing
   alias Qlarius.Legacy.MediaPiece
 
+  @debug true
+
   def index(conn, _params) do
     media_pieces = Marketing.list_media_pieces()
-    render(conn, :index, media_pieces: media_pieces)
+    render(conn, :index, media_pieces: media_pieces, debug: @debug)
   end
 
   def new(conn, _params) do
     changeset = Marketing.change_media_piece(%MediaPiece{})
     ad_categories = Marketing.list_ad_categories()
-    render(conn, :new, changeset: changeset, ad_categories: ad_categories)
+    render(conn, :new, changeset: changeset, ad_categories: ad_categories, debug: @debug)
   end
 
   def create(conn, %{"media_piece" => media_piece_params}) do
@@ -24,7 +27,7 @@ defmodule QlariusWeb.MediaPieceController do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         ad_categories = Marketing.list_ad_categories()
-        render(conn, :new, changeset: changeset, ad_categories: ad_categories)
+        render(conn, :new, changeset: changeset, ad_categories: ad_categories, debug: @debug)
     end
   end
 
@@ -32,30 +35,34 @@ defmodule QlariusWeb.MediaPieceController do
     media_piece = Marketing.get_media_piece!(id)
     changeset = Marketing.change_media_piece(media_piece)
     ad_categories = Marketing.list_ad_categories()
-
     render(conn, :edit,
       media_piece: media_piece,
       changeset: changeset,
-      ad_categories: ad_categories
+      ad_categories: ad_categories,
+      debug: true
     )
   end
 
   def update(conn, %{"id" => id, "media_piece" => media_piece_params}) do
     media_piece = Marketing.get_media_piece!(id)
+    Logger.info("Updating media piece #{id} with params: #{inspect(media_piece_params)}")
 
     case Marketing.update_media_piece(media_piece, media_piece_params) do
-      {:ok, _media_piece} ->
+      {:ok, media_piece} ->
+        Logger.info("Successfully updated media piece #{id}. Banner image: #{inspect(media_piece.banner_image)}")
         conn
         |> put_flash(:info, "Media piece updated successfully.")
         |> redirect(to: ~p"/media_pieces")
 
       {:error, %Ecto.Changeset{} = changeset} ->
+        Logger.error("Failed to update media piece #{id}. Errors: #{inspect(changeset.errors)}")
         ad_categories = Marketing.list_ad_categories()
 
         render(conn, :edit,
           media_piece: media_piece,
           changeset: changeset,
-          ad_categories: ad_categories
+          ad_categories: ad_categories,
+          debug: @debug
         )
     end
   end

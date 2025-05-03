@@ -2,6 +2,7 @@ defmodule QlariusWeb.OfferHTML do
   use QlariusWeb, :html
 
   alias Qlarius.Legacy.Offer
+  alias QlariusWeb.ThreeTapBanner
 
   import QlariusWeb.Money
 
@@ -38,8 +39,14 @@ defmodule QlariusWeb.OfferHTML do
       <div class="absolute inset-0 overflow-hidden">
         <div class={"offer-phase phase-1 #{if @phase > 1, do: "slide-up"}"}>
           <.offer_container offer={@offer}>
-            <div class="flex justify-center items-center">
-              <img src={"/images/banner_#{rem(@offer.id, 4)}.png"} alt="Ad image" class="w-full h-auto" />
+            <div class="flex justify-center items-center bg-white">
+              <%= if @offer.media_piece.banner_image do %>
+                <img src={QlariusWeb.ThreeTapBanner.url({@offer.media_piece.banner_image, @offer.media_piece}, :original)} alt="Ad image" class="w-full h-auto" />
+              <% else %>
+                <div class="w-full h-40 bg-gray-200 flex items-center justify-center">
+                  <span class="text-gray-400">No banner</span>
+                </div>
+              <% end %>
             </div>
             <.click_jump_actions phase_2_amount={@phase_2_amount} />
           </.offer_container>
@@ -74,10 +81,10 @@ defmodule QlariusWeb.OfferHTML do
             <div class="text-green-500 -mt-3">
               <.icon name="hero-check" class="w-6 h-6" />
             </div>
-            <div class="font-semibold text-sm uppercase text-neutral-400">
+            <div class="font-semibold text-sm uppercase text-gray-400">
               ATTENTION PAID™
             </div>
-            <div class="text-sm text-neutral-400">
+            <div class="text-sm text-gray-400">
               Collected: <span class="font-semibold">{format_usd(@offer.offer_amt)}</span>
             </div>
           </.offer_container>
@@ -92,23 +99,24 @@ defmodule QlariusWeb.OfferHTML do
 
   def click_jump_actions(assigns) do
     ~H"""
-    <div class="flex text-white text-center text-xs font-light absolute bottom-0 left-0 w-full">
+    <div class="flex text-center text-xs font-light absolute bottom-0 left-0 right-0">
       <div class={[
-        "py-2 flex-1",
-        (@phase_1_complete? && "bg-neutral-200") || "bg-neutral-600"
+        "py-2 flex-1 flex items-center justify-center",
+        if(@phase_1_complete?, do: "bg-gray-200", else: "bg-gray-600 text-white")
       ]}>
         <%= if @phase_1_complete? do %>
-          <.icon name="hero-check" class="text-green-500 w-5 h-5" />
+          <.icon name="hero-check" class="text-green-500 w-4 h-4" />
         <% else %>
           <span>TAP FOR </span>
-          <span class="font-bold">$0.05</span>
+          <span class="font-bold ml-1">$0.05</span>
         <% end %>
       </div>
       <div class={[
-        "bg-neutral-500 py-2 flex-1 border-l border-neutral-400",
-        if(@phase_1_complete?, do: "text-white", else: "text-neutral-400")
+        "py-2 flex-1 flex items-center justify-center border-l border-gray-400",
+        if(@phase_1_complete?, do: "bg-gray-500 text-white", else: "bg-gray-500 text-gray-400")
       ]}>
-        JUMP FOR <span class="font-bold">{format_usd(@phase_2_amount)}</span>
+        <span>JUMP FOR </span>
+        <span class="font-bold ml-1">{format_usd(@phase_2_amount)}</span>
       </div>
     </div>
     """

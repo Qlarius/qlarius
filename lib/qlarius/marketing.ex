@@ -4,6 +4,7 @@ defmodule Qlarius.Marketing do
   """
 
   import Ecto.Query, warn: false
+  require Logger
   alias Qlarius.LegacyRepo
 
   alias Qlarius.Legacy.{MediaPiece, AdCategory}
@@ -13,31 +14,58 @@ defmodule Qlarius.Marketing do
   Returns the list of media_pieces.
   """
   def list_media_pieces do
-    LegacyRepo.all(MediaPiece) |> LegacyRepo.preload(:ad_category)
+    MediaPiece
+    |> order_by([m], asc: m.id)
+    |> LegacyRepo.all()
+    |> LegacyRepo.preload(:ad_category)
   end
 
   @doc """
   Gets a single media_piece.
   Raises `Ecto.NoResultsError` if the Media piece does not exist.
   """
-  def get_media_piece!(id), do: LegacyRepo.get!(MediaPiece, id)
+  def get_media_piece!(id) do
+    MediaPiece
+    |> LegacyRepo.get!(id)
+    |> LegacyRepo.preload([:ad_category])
+  end
 
   @doc """
   Creates a media_piece.
   """
   def create_media_piece(attrs \\ %{}) do
+    Logger.info("Creating media piece with attrs: #{inspect(attrs)}")
+
     %MediaPiece{}
     |> MediaPiece.changeset(attrs)
     |> LegacyRepo.insert()
+    |> case do
+      {:ok, media_piece} = result ->
+        Logger.info("Successfully created media piece. Banner image: #{inspect(media_piece.banner_image)}")
+        result
+      {:error, changeset} = error ->
+        Logger.error("Failed to create media piece. Errors: #{inspect(changeset.errors)}")
+        error
+    end
   end
 
   @doc """
   Updates a media_piece.
   """
   def update_media_piece(%MediaPiece{} = media_piece, attrs) do
+    Logger.info("Updating media piece #{media_piece.id} with attrs: #{inspect(attrs)}")
+
     media_piece
     |> MediaPiece.changeset(attrs)
     |> LegacyRepo.update()
+    |> case do
+      {:ok, media_piece} = result ->
+        Logger.info("Successfully updated media piece. Banner image: #{inspect(media_piece.banner_image)}")
+        result
+      {:error, changeset} = error ->
+        Logger.error("Failed to update media piece. Errors: #{inspect(changeset.errors)}")
+        error
+    end
   end
 
   @doc """

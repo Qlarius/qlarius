@@ -7,6 +7,7 @@
 # General application configuration
 import Config
 
+# Load environment variables first, before any other configuration
 config :qlarius, :scopes,
   user: [
     default: true,
@@ -85,6 +86,53 @@ config :logger, :console,
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
+
+# # Configure Waffle for file uploads
+# config :waffle,
+#   storage: Waffle.Storage.Local,
+#   storage_dir_prefix: "priv/static",
+#   asset_host: "http://localhost:4000"
+
+# # Configure ExAws base settings
+# config :ex_aws,
+#   json_codec: Jason
+
+# # Configure env loading for development
+# if Mix.env() == :dev do
+#   config :qlarius, Qlarius.Runtime.EnvLoader, env_file: ".env"
+# end
+
+# # Waffle storage switching
+# if System.get_env("USE_S3_STORAGE") == "true" do
+#   bucket = System.get_env("AWS_BUCKET_NAME")
+#   region = System.get_env("AWS_REGION")
+
+#   config :waffle,
+#     storage: Waffle.Storage.S3,
+#     bucket: bucket,
+#     asset_host: "https://#{bucket}.s3.#{region}.amazonaws.com"
+
+#   config :ex_aws,
+#     json_codec: Jason,
+#     access_key_id: System.get_env("AWS_ACCESS_KEY_ID"),
+#     secret_access_key: System.get_env("AWS_SECRET_ACCESS_KEY"),
+#     region: region,
+#     s3: [
+#       scheme: "https://",
+#       host: "s3.#{region}.amazonaws.com",
+#       region: region,
+#       bucket: bucket
+#     ]
+# end
+
+# Database URLs always from env
+if System.get_env("DATABASE_URL") do
+  config :qlarius, Qlarius.Repo, url: System.get_env("DATABASE_URL")
+end
+
+if System.get_env("LEGACY_DATABASE_URL") do
+  config :qlarius, Qlarius.LegacyRepo, url: System.get_env("LEGACY_DATABASE_URL")
+end
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

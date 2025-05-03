@@ -43,3 +43,10 @@ repomix-output.xml
 
 # Environment variables
 .env
+.env.local
+.env.remote
+.env.backup
+
+# Ignore uploaded files
+/priv/static/uploads/
+/uploads/

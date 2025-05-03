@@ -7,7 +7,7 @@ defmodule QlariusWeb.Endpoint do
   @session_options [
     store: :cookie,
     key: "_qlarius_key",
-    signing_salt: "Tvun6ICt",
+    signing_salt: "Hs+Hs+Hs",
     same_site: "Lax"
   ]
 
@@ -24,6 +24,12 @@ defmodule QlariusWeb.Endpoint do
     from: :qlarius,
     gzip: false,
     only: QlariusWeb.static_paths()
+
+  # Serve uploaded files from "priv/static/uploads"
+  plug Plug.Static,
+    at: "/uploads",
+    from: Path.expand("./priv/static/uploads"),
+    gzip: false
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.

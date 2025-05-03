@@ -8,12 +8,20 @@ defmodule Qlarius.Application do
 
   @impl true
   def start(_type, _args) do
-    # Load environment variables from .env file
-    load_env_file()
+    # Load environment variables first
+    Qlarius.Runtime.EnvLoader.load()
 
     # Debug log to check environment variables and config
-    Logger.debug("REMOTE_DATABASE_URL env: #{inspect(System.get_env("REMOTE_DATABASE_URL"))}")
-    Logger.debug("Remote database config: #{inspect(Application.get_env(:qlarius, :remote_database_url))}")
+    Logger.debug("Environment variables loaded:")
+    Logger.debug("LEGACY_DATABASE_URL: #{inspect(System.get_env("LEGACY_DATABASE_URL"))}")
+    Logger.debug("DATABASE_URL: #{inspect(System.get_env("DATABASE_URL"))}")
+
+    # Debug log full repo configurations
+    Logger.debug("Full Qlarius.Repo config:")
+    Logger.debug(inspect(Application.get_env(:qlarius, Qlarius.Repo), pretty: true))
+
+    Logger.debug("Full Qlarius.LegacyRepo config:")
+    Logger.debug(inspect(Application.get_env(:qlarius, Qlarius.LegacyRepo), pretty: true))
 
     children = [
       # Start Telemetry supervisor
@@ -22,9 +30,6 @@ defmodule Qlarius.Application do
       # Start the Ecto repositories
       {Qlarius.Repo, []},
       {Qlarius.LegacyRepo, []},
-
-      # Start the database config manager after repos
-      {Qlarius.DatabaseConfig, []},
 
       # Start the remaining services
       {DNSCluster, query: Application.get_env(:qlarius, :dns_cluster_query) || :ignore},
@@ -45,30 +50,5 @@ defmodule Qlarius.Application do
   def config_change(changed, _new, removed) do
     QlariusWeb.Endpoint.config_change(changed, removed)
     :ok
-  end
-
-  defp load_env_file do
-    case File.read(".env") do
-      {:ok, content} ->
-        content
-        |> String.split("\n")
-        |> Enum.each(fn line ->
-          case String.split(String.trim(line), "=") do
-            [key, value] when byte_size(key) > 0 ->
-              System.put_env(String.trim(key), String.trim(value))
-            _ -> :ok
-          end
-        end)
-        Logger.debug("Loaded environment variables from .env file")
-
-        # Set application config after loading environment variables
-        if remote_url = System.get_env("REMOTE_DATABASE_URL") do
-          Application.put_env(:qlarius, :remote_database_url, remote_url)
-          Logger.debug("Set remote database URL in application config")
-        end
-
-      {:error, _} ->
-        Logger.warning("No .env file found")
-    end
   end
 end

@@ -1,15 +1,63 @@
 <div class="card bg-base-100 shadow-xl">
   <div class="card-body">
-    <.simple_form :let={f} for={@changeset} action={@action}>
+    <.simple_form :let={f} for={@changeset} action={@action} multipart={true}>
       <.error :if={@changeset.action} class="alert alert-error">
         Oops, something went wrong! Please check the errors below.
       </.error>
 
       <div class="space-y-6">
-        <.input field={f[:title]} type="text" label="Title" required class="input input-bordered w-full" />
-        <.input field={f[:body_copy]} type="textarea" label="Body Copy" required class="textarea textarea-bordered w-full h-32" />
-        <.input field={f[:display_url]} type="text" label="Display URL" required class="input input-bordered w-full" />
-        <.input field={f[:jump_url]} type="text" label="Jump URL" required class="input input-bordered w-full" />
+        <div class="space-y-2">
+          <.input
+            field={f[:banner_image]}
+            type="file"
+            label="Banner Image"
+            accept=".jpg,.jpeg,.gif,.png"
+            class="file-input file-input-bordered w-full"
+            value={nil}
+          />
+          <%= if banner_value = Phoenix.HTML.Form.input_value(f, :banner_image) do %>
+            <div class="mt-2">
+              <img
+                src={
+                  QlariusWeb.ThreeTapBanner.url(
+                    {@changeset.data.banner_image, @changeset.data},
+                    :original
+                  )
+                }
+                alt="Banner"
+                class="w-32 h-auto object-cover rounded"
+              />
+            </div>
+          <% end %>
+        </div>
+        <.input
+          field={f[:title]}
+          type="text"
+          label="Title"
+          required
+          class="input input-bordered w-full"
+        />
+        <.input
+          field={f[:body_copy]}
+          type="textarea"
+          label="Body Copy"
+          required
+          class="textarea textarea-bordered w-full h-32"
+        />
+        <.input
+          field={f[:display_url]}
+          type="text"
+          label="Display URL"
+          required
+          class="input input-bordered w-full"
+        />
+        <.input
+          field={f[:jump_url]}
+          type="text"
+          label="Jump URL"
+          required
+          class="input input-bordered w-full"
+        />
         <.input
           field={f[:ad_category_id]}
           type="select"
@@ -18,11 +66,9 @@
           required
           class="select select-bordered w-full"
         />
-        <.input
-          field={f[:media_piece_type_id]}
-          type="hidden"
-          value="1"
-        />
+        <.input field={f[:media_piece_type_id]} type="hidden" value="1" />
+        <.input field={f[:marketer_id]} type="hidden" value={f.data.marketer_id || 88} />
+        <.input field={f[:active]} type="hidden" value="true" />
       </div>
 
       <:actions>

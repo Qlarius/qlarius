@@ -17,6 +17,7 @@
         <table class="table table-zebra w-full">
           <thead>
             <tr>
+              <th class="bg-base-200">Banner</th>
               <th class="bg-base-200">Title</th>
               <th class="bg-base-200">Body Copy</th>
               <th class="bg-base-200">Display URL</th>
@@ -28,12 +29,21 @@
           <tbody>
             <%= for media_piece <- @media_pieces do %>
               <tr class="hover">
+                <td class="align-top">
+                  <%= if media_piece.banner_image do %>
+                    <img src={QlariusWeb.ThreeTapBanner.url({media_piece.banner_image, media_piece}, :original)} alt="Banner" class="w-32 h-auto object-cover rounded" /> 
+                  <% else %>
+                    <div class="w-32 h-24 bg-gray-200 rounded flex items-center justify-center">
+                      <span class="text-gray-400">No banner</span>
+                    </div>
+                  <% end %>
+                </td>
                 <td class="align-top"><%= media_piece.title %></td>
                 <td class="whitespace-normal max-w-md align-top"><%= media_piece.body_copy %></td>
                 <td class="text-emerald-600 align-top"><%= media_piece.display_url %></td>
                 <td class="text-emerald-600 truncate max-w-xs align-top"><%= media_piece.jump_url %></td>
                 <td class="align-top">
-                  <span class="badge badge-info whitespace-nowrap inline-flex items-center">
+                  <span class="badge bg-gray-200 whitespace-nowrap inline-flex items-center">
                     <%= media_piece.ad_category.ad_category_name %>
                   </span>
                 </td>
@@ -46,13 +56,14 @@
                         </svg>
                       </button>
                     </.link>
-                    <.link href={~p"/media_pieces/#{media_piece}"} method="delete" data-confirm="Are you sure?">
+                    <%!-- no delete for now until we figure cascading --%>
+                    <%!-- <.link href={~p"/media_pieces/#{media_piece}"} method="delete" data-confirm="Are you sure?">
                       <button class="btn btn-sm btn-ghost btn-square text-error">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
-                    </.link>
+                    </.link> --%>
                   </div>
                 </td>
               </tr>
@@ -63,3 +74,8 @@
     </div>
   </div>
 </div>
+
+<!-- Debug section -->
+<pre :if={@debug} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
+  <%= inspect(assigns, pretty: true) %>
+</pre>

@@ -1,28 +1,30 @@
 import Config
 
-# Configure your database
-config :qlarius, Qlarius.Repo,
-  url: System.get_env("DATABASE_URL"),
-  # Fallback configuration if DATABASE_URL is not set
-  username: System.get_env("DB_USER") || "postgres",
-  password: System.get_env("DB_PASS") || "postgres",
-  hostname: System.get_env("DB_HOST") || "localhost",
-  database: System.get_env("DB_NAME") || "qlarius_dev",
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
+# Configure your database - only used if DATABASE_URL is not set
+if !System.get_env("DATABASE_URL") do
+  config :qlarius, Qlarius.Repo,
+    username: System.get_env("DB_USER") || "postgres",
+    password: System.get_env("DB_PASS") || "postgres",
+    hostname: System.get_env("DB_HOST") || "localhost",
+    database: System.get_env("DB_NAME") || "qlarius_dev",
+    stacktrace: true,
+    show_sensitive_data_on_connection_error: true,
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
+end
 
-# Configure your legacy Rails database
-config :qlarius, Qlarius.LegacyRepo,
-  username: System.get_env("LOCAL_DB_USER") || "postgres",
-  password: System.get_env("LOCAL_DB_PASS") || "postgres",
-  hostname: System.get_env("LOCAL_DB_HOST") || "localhost",
-  database: System.get_env("LOCAL_DB_NAME") || "qlarius_dev_rails",
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10,
-  migration_timestamps: [type: :naive_datetime],
-  migration_primary_key: [type: :bigserial]
+# Configure your legacy Rails database - only used if LEGACY_DATABASE_URL is not set
+if !System.get_env("LEGACY_DATABASE_URL") do
+  config :qlarius, Qlarius.LegacyRepo,
+    username: System.get_env("LOCAL_DB_USER") || "postgres",
+    password: System.get_env("LOCAL_DB_PASS") || "postgres",
+    hostname: System.get_env("LOCAL_DB_HOST") || "localhost",
+    database: System.get_env("LOCAL_DB_NAME") || "qlarius_dev_rails",
+    stacktrace: true,
+    show_sensitive_data_on_connection_error: true,
+    pool_size: 10,
+    migration_timestamps: [type: :naive_datetime],
+    migration_primary_key: [type: :bigserial]
+end
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
