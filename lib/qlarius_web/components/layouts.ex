@@ -35,11 +35,19 @@ defmodule QlariusWeb.Layouts do
     """
   end
 
+  @sidebar_classes_on "translate-x-0"
+  @sidebar_classes_off "-translate-x-full"
+  @sidebar_bg_classes_off "opacity-0 pointer-events-none"
+
   def toggle_sponster_sidebar(on) when on in [:on, :off] do
     if on == :on do
-      JS.show(to: "#sponster-sidebar") |> JS.show(to: "#sponster-sidebar-bg")
+      JS.add_class(@sidebar_classes_on, to: "#sponster-sidebar")
+      |> JS.remove_class(@sidebar_classes_off, to: "#sponster-sidebar")
+      |> JS.remove_class(@sidebar_bg_classes_off, to: "#sponster-sidebar-bg")
     else
-      JS.hide(to: "#sponster-sidebar") |> JS.hide(to: "#sponster-sidebar-bg")
+      JS.remove_class(@sidebar_classes_on, to: "#sponster-sidebar")
+      |> JS.add_class(@sidebar_classes_off, to: "#sponster-sidebar")
+      |> JS.add_class(@sidebar_bg_classes_off, to: "#sponster-sidebar-bg")
     end
   end
 
@@ -90,7 +98,7 @@ defmodule QlariusWeb.Layouts do
 
     <div class="container mx-auto px-4 py-8">
       <div class="w-full mb-6">
-        <button phx-click={toggle_sponster_sidebar(:on)} class="cursor-pointer">
+        <button class="cursor-pointer" phx-click={toggle_sponster_sidebar(:on)}>
           <.icon name="hero-bars-3" class="h-8 w-8 text-gray-500" />
         </button>
       </div>
@@ -118,6 +126,7 @@ defmodule QlariusWeb.Layouts do
       <button
         id="more"
         class="flex-1 flex flex-col items-center justify-center text-gray-600 h-full cursor-pointer"
+        phx-click={toggle_sponster_sidebar(:on)}
       >
         <.icon name="hero-bars-3" class="h-6 w-6" />
         <span class="text-xs font-semibold mt-1">More</span>
