@@ -4,9 +4,8 @@ defmodule Qlarius.Traits.Trait do
 
   schema "traits" do
     field :name, :string, source: :trait_name
-    field :active, :integer
-    # It's an integer in the DB we may need to cast to bool:
-    field :is_taggable, :integer
+    field :active, :boolean
+    field :is_taggable, :boolean
     field :input_type, :string
     field :display_order, :integer
 

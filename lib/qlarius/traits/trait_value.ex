@@ -6,7 +6,7 @@ defmodule Qlarius.Traits.TraitValue do
     belongs_to :trait, Trait, source: :parent_trait_id
 
     field :name, :string, source: :trait_name
-    field :active, :integer
+    field :active, :boolean
     field :is_taggable, :boolean, default: false
     field :input_type, :string
     field :display_order, :integer
