@@ -10,7 +10,10 @@
       <div class="mb-4">
         <p><span class="font-medium">Mobile #:</span></p>
         <p><span class="font-medium">Home zip:</span> {@current_scope.home_zip}</p>
-        <p><span class="font-medium">Active since:</span> {@current_scope.user.inserted_at |> Calendar.strftime("%Y-%m-%d")}</p>
+        <p>
+          <span class="font-medium">Active since:</span> {@current_scope.user.inserted_at
+          |> Calendar.strftime("%Y-%m-%d")}
+        </p>
       </div>
 
       <hr class="my-4 border-gray-200" />

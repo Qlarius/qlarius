@@ -20,7 +20,9 @@ defmodule Qlarius.Traits.TraitValue do
     field :max_selected, :integer
     field :is_date, :boolean, default: false
 
-    many_to_many :me_files, Qlarius.Accounts.MeFile, join_through: Qlarius.Traits.MeFileTag, join_keys: [trait_id: :id, me_file_id: :id]
+    many_to_many :me_files, Qlarius.Accounts.MeFile,
+      join_through: Qlarius.Traits.MeFileTag,
+      join_keys: [trait_id: :id, me_file_id: :id]
 
     timestamps(
       type: :utc_datetime,

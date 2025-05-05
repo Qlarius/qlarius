@@ -90,7 +90,7 @@ defmodule QlariusWeb.Layouts do
 
     <div class="container mx-auto px-4 py-8">
       <div class="w-full mb-6">
-        <button phx-click={toggle_sponster_sidebar(:on)}>
+        <button phx-click={toggle_sponster_sidebar(:on)} class="cursor-pointer">
           <.icon name="hero-bars-3" class="h-8 w-8 text-gray-500" />
         </button>
       </div>

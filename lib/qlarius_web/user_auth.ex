@@ -20,6 +20,21 @@ defmodule QlariusWeb.UserAuth do
     {:cont, mount_current_scope(socket, session)}
   end
 
+  # Redirect unless current user is either an admin or a proxy user
+  def on_mount(:require_admin_or_proxy, _params, _session, socket) do
+    scope = socket.assigns.current_scope
+
+    # 'true_user' is non-nil iff 'user' is a proxy
+    if scope.user.role == "admin" || scope.true_user do
+      {:cont, socket}
+    else
+      {:halt,
+       socket
+       |> Phoenix.LiveView.put_flash(:error, "Unauthorized access")
+       |> Phoenix.LiveView.push_navigate(to: ~p"/")}
+    end
+  end
+
   defp mount_current_scope(socket, _session) do
     Phoenix.Component.assign_new(socket, :current_scope, fn ->
       # user =

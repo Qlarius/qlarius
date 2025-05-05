@@ -102,9 +102,11 @@ defmodule QlariusWeb.Router do
 
     live_session :current_scope, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
       get "/", PageController, :home
+      live "/users/settings", UserSettingsLive, :edit
       live "/wallet", WalletLive, :index
       live "/ads", AdsLive, :index
       live "/me_file", MeFileLive, :index
+      live "/proxy_users", ProxyUsersLive, :index
       get "/me_file/surveys", MeFileController, :surveys
       live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
       live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show

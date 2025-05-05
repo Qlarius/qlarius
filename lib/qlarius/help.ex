@@ -16,18 +16,18 @@ defmodule Qlarius.Help do
       alias Qlarius.Traits.MeFileTag
       alias Qlarius.Traits.Trait
       alias Qlarius.Traits.TraitCategory
-      alias Qlarius.Traits.UserTag
       alias Qlarius.Traits.TraitValue
       alias Qlarius.Media
       alias Qlarius.Marketing
       alias Qlarius.Release
       alias Qlarius.Offer
-      alias Qlarius.MeFile
       alias Qlarius.Accounts
       alias Qlarius.AdEvent
       alias Qlarius.Accounts.User
+      alias Qlarius.Accounts.Proxying
       alias Qlarius.Accounts.Scope
       alias Qlarius.Accounts.UserNotifier
+      alias Qlarius.Accounts.UserProxy
       alias Qlarius.Accounts.UserToken
       alias Qlarius.Accounts.MeFile
       alias Qlarius.Mailer
