@@ -22,6 +22,12 @@ defmodule QlariusWeb.AdsLive do
     current_scope = Scope.for_user(user)
     me_file = Legacy.get_user_me_file(current_scope.user.id)
 
+    host_uri =
+      case Phoenix.LiveView.get_connect_info(socket, :uri) do
+        nil -> URI.parse("http://localhost")
+        uri -> uri
+      end
+
     socket =
       socket
       |> assign(:user, user)
@@ -30,6 +36,7 @@ defmodule QlariusWeb.AdsLive do
       |> assign(:active_offers, [])
       |> assign(:loading, true)
       |> assign(:debug, @debug)
+      |> assign(:host_uri, host_uri)
 
     if connected?(socket) do
       send(self(), :load_offers)
@@ -144,6 +151,14 @@ defmodule QlariusWeb.AdsLive do
             </div>
           <% end %>
         </div>
+
+        <.live_component module={QlariusWeb.ThreeTapStackComponent} id="three-tap-stack"
+          active_offers={@active_offers}
+          me_file={@me_file}
+          user_ip={@user_ip}
+          current_scope={@current_scope}
+          host_uri={@host_uri}
+        />
       </div>
 
       <!-- Debug section -->

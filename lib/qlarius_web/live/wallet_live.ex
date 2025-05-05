@@ -159,7 +159,7 @@ defmodule QlariusWeb.WalletLive do
           </button>
         </div>
 
-        <h2 class="text-xl font-semibold mb-4">Ledger History</h2>
+        <h2 class="text-xl font-semibold mb-4">Transactions</h2>
 
         <div class="divide-y divide-gray-200">
           <div

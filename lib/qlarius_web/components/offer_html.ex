@@ -14,12 +14,13 @@ defmodule QlariusWeb.OfferHTML do
   def clickable_offer(assigns) do
     phase_2_amount = Decimal.sub(assigns.offer.offer_amt, @phase_1_amount)
     assigns = assign(assigns, :phase_2_amount, phase_2_amount)
+    assigns = assign_new(assigns, :target, fn -> nil end)
 
     ~H"""
     <div class="offer-container">
       <div class="absolute inset-0 overflow-hidden">
         <div class={"offer-phase phase-0 #{if @phase > 0, do: "slide-left"}"}>
-          <.offer_container offer={@offer} class="p-5 text-neutral-800 bg-white">
+          <.offer_container offer={@offer} class="p-5 text-neutral-800 bg-white" target={@target}>
             <div class="text-2xl font-bold mb-4">{format_usd(@offer.offer_amt)}</div>
             <div class="mb-4">
               {@offer.media_piece.ad_category.ad_category_name}
@@ -38,7 +39,7 @@ defmodule QlariusWeb.OfferHTML do
 
       <div class="absolute inset-0 overflow-hidden">
         <div class={"offer-phase phase-1 #{if @phase > 1, do: "slide-up"}"}>
-          <.offer_container offer={@offer}>
+          <.offer_container offer={@offer} target={@target}>
             <div class="flex justify-center items-center bg-white">
               <%= if @offer.media_piece.banner_image do %>
                 <img src={QlariusWeb.ThreeTapBanner.url({@offer.media_piece.banner_image, @offer.media_piece}, :original)} alt="Ad image" class="w-full h-auto" />
@@ -55,7 +56,7 @@ defmodule QlariusWeb.OfferHTML do
 
       <div class="absolute inset-0 overflow-hidden">
         <div class={"offer-phase phase-2 #{if @phase > 2, do: "fade-out"}"}>
-          <.offer_container offer={@offer} class="px-3 py-2">
+          <.offer_container offer={@offer} class="px-3 py-2" target={@target}>
             <a class="block w-full h-full" href={~p"/jump/#{@offer}"} target="_blank">
               <div class="text-blue-800 font-bold text-lg underline">
                 {@offer.media_piece.title}
@@ -77,6 +78,7 @@ defmodule QlariusWeb.OfferHTML do
           <.offer_container
             offer={@offer}
             class="p-3 bg-neutral-100 flex flex-col justify-center text-center text-neutral-600 select-none"
+            target={@target}
           >
             <div class="text-green-500 -mt-3">
               <.icon name="hero-check" class="w-6 h-6" />
@@ -128,10 +130,12 @@ defmodule QlariusWeb.OfferHTML do
   slot :inner_block, required: true
 
   defp offer_container(assigns) do
+    assigns = assign_new(assigns, :target, fn -> nil end)
     ~H"""
     <div
       phx-click="click-offer"
       phx-value-offer-id={@offer.id}
+      phx-target={@target}
       class={[
         "relative w-96 h-40 rounded-md border border-neutral-400 overflow-hidden cursor-pointer",
         @class
