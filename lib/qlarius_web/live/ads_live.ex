@@ -13,7 +13,7 @@ defmodule QlariusWeb.AdsLive do
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
-  @debug true
+  @debug false
 
   @impl true
   def mount(_params, session, socket) do
