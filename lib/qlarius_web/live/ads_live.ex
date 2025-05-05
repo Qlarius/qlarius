@@ -22,6 +22,7 @@ defmodule QlariusWeb.AdsLive do
     socket
     |> assign(:page_title, "Ads")
     |> assign(:offers, offers)
+    |> assign(:debug, true)
     |> ok()
   end
 

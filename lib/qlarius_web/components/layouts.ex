@@ -123,6 +123,8 @@ defmodule QlariusWeb.Layouts do
         <span class="text-xs font-semibold mt-1">More</span>
       </button>
     </div>
+
+    <.debug_panel {assigns} />
     """
   end
 
@@ -242,6 +244,14 @@ defmodule QlariusWeb.Layouts do
         <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
       </button>
     </div>
+    """
+  end
+  
+  defp debug_panel(assigns) do
+    ~H"""
+    <pre :if={assigns[:debug]} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
+      <%= inspect(assigns, pretty: true) %>
+    </pre>
     """
   end
 end
