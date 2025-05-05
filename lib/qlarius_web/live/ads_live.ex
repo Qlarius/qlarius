@@ -1,6 +1,8 @@
 defmodule QlariusWeb.AdsLive do
   use QlariusWeb, :live_view
 
+  alias Qlarius.Accounts
+  alias Qlarius.Accounts.Scope
   alias Qlarius.Offer
   alias Qlarius.Offers
   alias Qlarius.Wallets
@@ -54,7 +56,7 @@ defmodule QlariusWeb.AdsLive do
 
     socket
     |> increment_phase(offer.id)
-    |> assign(:wallet_balance, balance)
+    |> update_scope()
   end
 
   defp handle_phase(socket, offer, 2) do
@@ -69,8 +71,7 @@ defmodule QlariusWeb.AdsLive do
 
     socket
     |> increment_phase(offer.id)
-    |> update_ads_count()
-    |> assign(:wallet_balance, balance)
+    |> update_scope()
   end
 
   defp handle_phase(socket, _offer, _), do: socket
@@ -87,13 +88,10 @@ defmodule QlariusWeb.AdsLive do
     end)
   end
 
-  # Update the badge in the bottom bar
-  defp update_ads_count(socket) do
-    assign(
-      socket,
-      :ads_count,
-      Offers.count_user_offers(socket.assigns.current_scope.user.id)
-    )
+  # Refresh scope so the badges in the bottom bar get updated
+  defp update_scope(socket) do
+    user = Accounts.get_user!(socket.assigns.current_scope.true_user.id)
+    assign(socket, :current_scope, Scope.for_user(user))
   end
 
   @impl true

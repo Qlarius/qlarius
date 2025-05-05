@@ -34,7 +34,7 @@ defmodule QlariusWeb.OfferHTML do
           <div class="flex justify-center items-center">
             <img src={"/images/banner_#{rem(@offer.id, 4)}.png"} alt="Ad image" class="w-full h-auto" />
           </div>
-          <.click_jump_actions phase_2_amount={@offer.phase_2_amount} />
+          <.click_jump_actions phase_2_amount={@offer.amount} />
         </.offer_container>
         """
 
@@ -54,7 +54,7 @@ defmodule QlariusWeb.OfferHTML do
             <div class="text-gray-500 text-xs">
               {@offer.media_piece.display_url}
             </div>
-            <.click_jump_actions phase_1_complete? phase_2_amount={@offer.phase_2_amount} />
+            <.click_jump_actions phase_1_complete? phase_2_amount={@offer.amount} />
           </a>
         </.offer_container>
         """

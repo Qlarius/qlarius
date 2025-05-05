@@ -1,8 +1,10 @@
 defmodule Qlarius.Wallets do
   import Ecto.Query
 
+  alias Qlarius.Accounts.MeFile
   alias Qlarius.Accounts.User
   alias Qlarius.AdEvent
+  alias Qlarius.Offer
   alias Qlarius.Repo
   alias Qlarius.Wallets.LedgerEntry
   alias Qlarius.Wallets.LedgerHeader
@@ -64,34 +66,34 @@ defmodule Qlarius.Wallets do
     }
   end
 
-  def create_ad_event_and_update_ledger(offer, user, ip_address) do
+  @click_amount Decimal.new("0.05")
+
+  def create_ad_event_and_update_ledger(%Offer{} = offer, %User{} = user, ip_address) do
     Repo.transaction(fn ->
-      # Create the AdEvent
+      me_file = %MeFile{} = user.me_file
+      ledger_header = me_file.ledger_header
+
       ad_event =
         %AdEvent{
-          offer_id: offer.id,
-          offer_amount: offer.amount,
-          is_demo: offer.is_demo,
+          offer: offer,
+          offer_bid_amount: offer.amount,
           is_throttled: offer.is_throttled,
+          is_offer_complete: false,
           ip_address: ip_address
         }
         |> Repo.insert!()
 
-      # Get and update the ledger header
-      ledger_header = get_user_ledger_header(user.id)
-      new_balance = Decimal.add(ledger_header.balance, Decimal.new("0.05"))
+      new_balance = Decimal.add(ledger_header.balance || Decimal.new(0), @click_amount)
 
       ledger_header
       |> Ecto.Changeset.change(balance: new_balance)
       |> Repo.update!()
 
-      # Create the ledger entry
-      # TODO - we need to get the description from the media_piece_phase
       %LedgerEntry{
         ledger_header_id: ledger_header.id,
-        amount: Decimal.new("0.05"),
+        amount: @click_amount,
         running_balance: new_balance,
-        description: "TODO placeholder",
+        description: "Ad view payment",
         ad_event_id: ad_event.id
       }
       |> Repo.insert!()
@@ -102,40 +104,36 @@ defmodule Qlarius.Wallets do
 
   def create_ad_jump_event_and_update_ledger(offer, user, ip_address) do
     Repo.transaction(fn ->
-      # Create AdEvent
+      ledger_header = user.me_file.ledger_header
+
       ad_event =
         %AdEvent{
-          offer_id: offer.id,
-          offer_amount: offer.amount,
-          is_demo: offer.is_demo,
+          offer: offer,
+          offer_bid_amount: offer.amount,
           is_throttled: offer.is_throttled,
+          is_offer_complete: true,
           ip_address: ip_address,
-          is_offer_complete: true
+          url: offer.media_piece.jump_url
         }
         |> Repo.insert!()
 
-      # Get user's ledger header
-      ledger_header = Repo.get_by!(LedgerHeader, user_id: user.id)
-      amount = Decimal.sub(offer.amount, Decimal.new("0.05"))
-      new_balance = Decimal.add(ledger_header.balance, amount)
+      jump_amount = Decimal.sub(offer.amount, @click_amount)
+      new_balance = Decimal.add(ledger_header.balance || Decimal.new(0), @click_amount)
 
-      # Update ledger header balance
       ledger_header
       |> Ecto.Changeset.change(balance: new_balance)
       |> Repo.update!()
 
-      # Create ledger entry
       %LedgerEntry{
         ledger_header_id: ledger_header.id,
-        amount: amount,
+        amount: jump_amount,
         running_balance: new_balance,
-        # TODO - we need to get this from the media_piece_phase
-        description: "TODO placeholder",
+        description: "Ad jump payment",
         ad_event_id: ad_event.id
       }
       |> Repo.insert!()
-
-      :ok
     end)
+
+    :ok
   end
 end

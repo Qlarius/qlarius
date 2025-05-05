@@ -10,14 +10,7 @@ defmodule QlariusWeb.ProxyUsersLive do
 
   def mount(_params, _session, socket) do
     scope = socket.assigns.current_scope
-
-    true_user =
-      if scope.true_user do
-        scope.true_user
-      else
-        scope.user
-      end
-
+    true_user = scope.true_user
     proxy_users = Proxying.list_proxy_users(true_user)
 
     socket
@@ -62,7 +55,7 @@ defmodule QlariusWeb.ProxyUsersLive do
     # Update socket assigns with new proxy user and scope, but keep admin user for the proxy list
     socket
     |> assign(:proxy_users, Proxying.list_proxy_users(true_user))
-    |> assign(:current_scope, Scope.for_user(proxy_user))
+    |> assign(:current_scope, Scope.for_user(true_user))
     |> put_flash(:info, "Successfully switched to proxy user #{proxy_user.username}")
     |> noreply()
   end

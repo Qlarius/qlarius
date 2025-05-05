@@ -12,7 +12,13 @@ defmodule QlariusWeb.UserAuth do
   and remember me token.
   """
   def fetch_current_scope_for_user(conn, _opts) do
-    user = Qlarius.Repo.get!(Qlarius.Accounts.User, @hardcoded_user_id)
+    alias Qlarius.Repo
+
+    user =
+      Qlarius.Accounts.User
+      |> Repo.get!(@hardcoded_user_id)
+      |> Repo.preload(:me_file)
+
     assign(conn, :current_scope, Scope.for_user(user))
   end
 
@@ -24,8 +30,7 @@ defmodule QlariusWeb.UserAuth do
   def on_mount(:require_admin_or_proxy, _params, _session, socket) do
     scope = socket.assigns.current_scope
 
-    # 'true_user' is non-nil iff 'user' is a proxy
-    if scope.user.role == "admin" || scope.true_user do
+    if scope.user.role == "admin" || scope.proxy? do
       {:cont, socket}
     else
       {:halt,

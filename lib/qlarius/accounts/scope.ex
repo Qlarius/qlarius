@@ -16,6 +16,7 @@ defmodule Qlarius.Accounts.Scope do
   growing application requirements.
   """
 
+  alias Qlarius.Accounts
   alias Qlarius.Accounts.Proxying
   alias Qlarius.Accounts.User
   alias Qlarius.Offers
@@ -26,29 +27,35 @@ defmodule Qlarius.Accounts.Scope do
             wallet_balance: Decimal.new("0.0"),
             ads_count: 0,
             home_zip: nil,
-            true_user: nil
+            true_user: nil,
+            proxy?: false
 
   @doc """
   Creates a scope for the given user.
 
+  Note: this must always take the true user, even if we're proxying.
+
+  'user' will be set to the user who appears logged in, i.e. the 'true user'
+  in normal usage and the proxy user if we're proxying.
+
   Returns nil if no user is given.
   """
-  def for_user(%User{} = user) do
-    proxy = Proxying.get_active_proxy_user(user)
+  def for_user(%User{} = true_user) do
+    proxy = Proxying.get_active_proxy_user(true_user)
 
-    # 'true_user' is non-nil iff 'user' is a proxy
-    {user, true_user} =
+    {user, proxy?} =
       if proxy do
-        {proxy.proxy_user, user}
+        {proxy.proxy_user, true}
       else
-        {user, nil}
+        {true_user, false}
       end
 
     %__MODULE__{
       ads_count: Offers.count_user_offers(user.id),
       home_zip: Traits.get_user_home_zip(user),
+      proxy?: proxy,
       true_user: true_user,
-      user: user,
+      user: Accounts.preload_me_file(user),
       wallet_balance: Wallets.get_user_current_balance(user)
     }
   end

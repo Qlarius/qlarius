@@ -2,11 +2,12 @@ defmodule Qlarius.AdEvent do
   use Ecto.Schema
 
   schema "ad_events" do
-    field :offer_amount, :decimal
-    field :is_throttled, :boolean, default: false
+    field :offer_bid_amount, :decimal, source: :offer_bid_amt
+    field :is_payable, :boolean
+    field :is_throttled, :boolean
+    field :is_demo, :boolean
     field :is_offer_complete, :boolean, default: false
     field :ip_address, :string
-    field :is_demo, :boolean
     field :url, :string
 
     belongs_to :offer, Qlarius.Offer

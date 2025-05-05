@@ -13,6 +13,10 @@ defmodule Qlarius.Accounts do
 
   def get_user!(id), do: Repo.get!(User, id)
 
+  def preload_me_file(%User{} = user) do
+    Repo.preload(user, me_file: :ledger_header)
+  end
+
   @doc """
   Generates a session token.
   """
