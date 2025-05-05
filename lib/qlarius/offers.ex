@@ -20,9 +20,7 @@ defmodule Qlarius.Offers do
   end
 
   def count_user_offers(user_id) do
-    Offer
-    |> where([o], o.user_id == ^user_id)
-    |> preload([:media_piece, :ad_category])
+    from(o in Offer, join: u in assoc(o, :user), where: u.id == ^user_id)
     |> Repo.count()
   end
 end

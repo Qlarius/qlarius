@@ -22,6 +22,8 @@ defmodule Qlarius.Offer do
     belongs_to :media_piece, Qlarius.Marketing.MediaPiece
     belongs_to :target_band, Qlarius.Legacy.TargetBand
 
+    has_one :user, through: [:me_file, :user]
+
     has_one :ad_category, through: [:media_piece, :ad_category]
 
     has_many :ad_events, Qlarius.AdEvent
