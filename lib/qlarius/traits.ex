@@ -339,7 +339,10 @@ defmodule Qlarius.Traits do
         ^{from(t in Trait,
            join: ut in UserTag,
            on:
-             ut.trait_value_id in fragment("SELECT id FROM trait_values WHERE parent_trait_id = ?", t.id),
+             ut.trait_value_id in fragment(
+               "SELECT id FROM trait_values WHERE parent_trait_id = ?",
+               t.id
+             ),
            where: ut.user_id == ^user_id,
            distinct: true,
            order_by: [asc: t.display_order]
@@ -355,12 +358,16 @@ defmodule Qlarius.Traits do
   def count_traits_with_values(user_id) do
     query =
       from u in Qlarius.Accounts.User,
-      join: mf in Qlarius.Accounts.MeFile, on: mf.user_id == u.id,
-      join: mft in Qlarius.Traits.MeFileTag, on: mft.me_file_id == mf.id,
-      join: tv in Qlarius.Traits.TraitValue, on: tv.id == mft.trait_id,
-      join: t in Qlarius.Traits.Trait, on: t.id == tv.trait_id,
-      where: u.id == ^user_id,
-      select: count(t.id, :distinct)
+        join: mf in Qlarius.Accounts.MeFile,
+        on: mf.user_id == u.id,
+        join: mft in Qlarius.Traits.MeFileTag,
+        on: mft.me_file_id == mf.id,
+        join: tv in Qlarius.Traits.TraitValue,
+        on: tv.id == mft.trait_id,
+        join: t in Qlarius.Traits.Trait,
+        on: t.id == tv.trait_id,
+        where: u.id == ^user_id,
+        select: count(t.id, :distinct)
 
     Qlarius.Repo.one(query)
   end

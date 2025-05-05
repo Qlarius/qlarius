@@ -246,7 +246,7 @@ defmodule QlariusWeb.Layouts do
     </div>
     """
   end
-  
+
   defp debug_panel(assigns) do
     ~H"""
     <pre :if={assigns[:debug]} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">

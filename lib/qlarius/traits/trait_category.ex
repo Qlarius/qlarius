@@ -13,7 +13,8 @@ defmodule Qlarius.Traits.TraitCategory do
 
     has_many :traits, Trait
 
-    timestamps(type: :utc_datetime,
+    timestamps(
+      type: :utc_datetime,
       inserted_at_source: :added_date,
       updated_at_source: :modified_date
     )

@@ -2,7 +2,6 @@ defmodule Qlarius.Traits.MeFileTag do
   use Ecto.Schema
   import Ecto.Changeset, warn: false
 
-
   schema "me_file_tags" do
     belongs_to :me_file, Qlarius.Accounts.MeFile
     belongs_to :trait_value, TraitValue, foreign_key: :trait_id
@@ -14,7 +13,8 @@ defmodule Qlarius.Traits.MeFileTag do
     belongs_to :updated_by, Qlarius.Accounts.User, foreign_key: :modified_by
     belongs_to :inserted_by, Qlarius.Accounts.User, foreign_key: :added_by
 
-    timestamps(type: :utc_datetime,
+    timestamps(
+      type: :utc_datetime,
       inserted_at_source: :added_date,
       updated_at_source: :modified_date
     )

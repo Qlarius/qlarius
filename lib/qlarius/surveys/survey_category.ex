@@ -13,7 +13,11 @@ defmodule Qlarius.Surveys.SurveyCategory do
     belongs_to :added_by, Qlarius.Accounts.User
     belongs_to :modified_by, Qlarius.Accounts.User
 
-    timestamps(type: :utc_datetime, inserted_at_source: :created_at, updated_at_source: :modified_date)
+    timestamps(
+      type: :utc_datetime,
+      inserted_at_source: :created_at,
+      updated_at_source: :modified_date
+    )
   end
 
   def changeset(survey_category, attrs) do

@@ -27,7 +27,8 @@ defmodule Qlarius.Traits.Trait do
     # many_to_many :surveys, Qlarius.Surveys.Survey, join_through: "traits_surveys"
     # many_to_many :trait_groups, Qlarius.Campaigns.TraitGroup, join_through: "traits_trait_groups"
 
-    timestamps(type: :utc_datetime,
+    timestamps(
+      type: :utc_datetime,
       inserted_at_source: :added_date,
       updated_at_source: :modified_date
     )
