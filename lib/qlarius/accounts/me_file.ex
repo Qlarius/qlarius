@@ -13,6 +13,10 @@ defmodule Qlarius.Accounts.MeFile do
 
     has_many :offers, Qlarius.Offer
 
+    many_to_many :trait_values, Qlarius.Traits.TraitValue, join_through: Qlarius.Traits.MeFileTag, join_keys: [me_file_id: :id, trait_id: :id]
+
+    has_many :traits, through: [:trait_values, :trait]
+
     # TODO
     # belongs_to :referral, Qlarius.Accounts.Referral
 
