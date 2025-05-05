@@ -456,4 +456,20 @@ defmodule Qlarius.Traits do
     )
     |> Repo.one() || 0
   end
+
+  @zip_code_trait_name "Home Zip Code"
+
+  def get_user_home_zip(%User{} = user) do
+    query =
+      from(tv in TraitValue,
+        join: mf in assoc(tv, :me_files),
+        join: trait in assoc(tv, :trait),
+        where: mf.user_id == ^user.id,
+        where: trait.name == @zip_code_trait_name,
+        limit: 1,
+        select: tv.name
+      )
+
+    Repo.one(query) || "NO ZIP"
+  end
 end

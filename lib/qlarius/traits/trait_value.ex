@@ -3,7 +3,7 @@ defmodule Qlarius.Traits.TraitValue do
   import Ecto.Changeset, warn: false
 
   schema "trait_values" do
-    belongs_to :trait, Trait, source: :parent_trait_id
+    belongs_to :trait, Qlarius.Traits.Trait, foreign_key: :parent_trait_id
 
     field :name, :string, source: :trait_name
     field :active, :boolean
@@ -20,7 +20,7 @@ defmodule Qlarius.Traits.TraitValue do
     field :max_selected, :integer
     field :is_date, :boolean, default: false
 
-    many_to_many :me_files, Qlarius.Accounts.MeFile, join_through: Qlarius.Traits.MeFileTag
+    many_to_many :me_files, Qlarius.Accounts.MeFile, join_through: Qlarius.Traits.MeFileTag, join_keys: [trait_id: :id, me_file_id: :id]
 
     timestamps(
       type: :utc_datetime,

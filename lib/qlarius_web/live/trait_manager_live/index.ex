@@ -55,7 +55,7 @@ defmodule QlariusWeb.TraitManagerLive.Index do
      |> assign(:editing_value_id, nil)
      |> assign(
        :new_trait_value_form,
-       to_form(Traits.change_trait_value(%TraitValue{trait_id: trait.id}))
+       to_form(Traits.change_trait_value(%TraitValue{trait: trait}))
      )}
   end
 
@@ -93,7 +93,7 @@ defmodule QlariusWeb.TraitManagerLive.Index do
            |> assign(:editing_value_id, nil)
            |> assign(
              :new_trait_value_form,
-             to_form(Traits.change_trait_value(%TraitValue{trait_id: trait.id}))
+             to_form(Traits.change_trait_value(%TraitValue{trait: trait}))
            )}
 
         {:error, %Ecto.Changeset{} = changeset} ->
@@ -111,7 +111,7 @@ defmodule QlariusWeb.TraitManagerLive.Index do
            |> assign(:trait_values, trait.values)
            |> assign(
              :new_trait_value_form,
-             to_form(Traits.change_trait_value(%TraitValue{trait_id: trait.id}))
+             to_form(Traits.change_trait_value(%TraitValue{trait: trait}))
            )}
 
         {:error, %Ecto.Changeset{} = changeset} ->
@@ -157,7 +157,7 @@ defmodule QlariusWeb.TraitManagerLive.Index do
      |> assign(:editing_value_id, nil)
      |> assign(
        :new_trait_value_form,
-       to_form(Traits.change_trait_value(%TraitValue{trait_id: socket.assigns.selected_trait.id}))
+       to_form(Traits.change_trait_value(%TraitValue{trait: socket.assigns.selected_trait}))
      )}
   end
 
@@ -168,7 +168,7 @@ defmodule QlariusWeb.TraitManagerLive.Index do
      |> assign(:editing_value_id, nil)
      |> assign(
        :new_trait_value_form,
-       to_form(Traits.change_trait_value(%TraitValue{trait_id: socket.assigns.selected_trait.id}))
+       to_form(Traits.change_trait_value(%TraitValue{trait: socket.assigns.selected_trait}))
      )}
   end
 end

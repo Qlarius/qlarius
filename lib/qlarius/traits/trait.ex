@@ -9,8 +9,6 @@ defmodule Qlarius.Traits.Trait do
     field :input_type, :string
     field :display_order, :integer
 
-    field :parent_trait_id, :integer
-
     field :is_campaign_only, :boolean, default: false
     field :is_numeric, :boolean, default: true
     belongs_to :updated_by, Qlarius.Accounts.User, foreign_key: :modified_by
@@ -22,7 +20,7 @@ defmodule Qlarius.Traits.Trait do
 
     belongs_to :trait_category, Qlarius.Traits.TraitCategory
 
-    # has_many :values, Qlarius.Traits.TraitValue
+    has_many :values, Qlarius.Traits.TraitValue, foreign_key: :parent_trait_id
 
     # many_to_many :surveys, Qlarius.Surveys.Survey, join_through: "traits_surveys"
     # many_to_many :trait_groups, Qlarius.Campaigns.TraitGroup, join_through: "traits_trait_groups"
