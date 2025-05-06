@@ -20,7 +20,7 @@ defmodule Qlarius.Offer do
     belongs_to :me_file, Qlarius.Accounts.MeFile
     belongs_to :media_run, Qlarius.Marketing.MediaRun
     belongs_to :media_piece, Qlarius.Marketing.MediaPiece
-    belongs_to :target_band, Qlarius.Legacy.TargetBand
+    belongs_to :target_band, Qlarius.Campaigns.TargetBand
 
     has_one :user, through: [:me_file, :user]
 

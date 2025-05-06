@@ -11,9 +11,9 @@ defmodule Qlarius.Wallets.LedgerHeader do
 
     belongs_to :me_file, Qlarius.Accounts.MeFile
     has_one :user, through: [:me_file, :user]
-    # belongs_to :campaign, Qlarius.Legacy.Campaign
-    # belongs_to :recipient, Qlarius.Legacy.Recipient
-    # belongs_to :marketer, Qlarius.Legacy.Marketer
+    # belongs_to :campaign, Qlarius.Campaigns.Campaign
+    # belongs_to :recipient, Qlarius.Campaigns.Recipient
+    # belongs_to :marketer, Qlarius.Accounts.Marketer
 
     has_many :ledger_entries, Qlarius.Wallets.LedgerEntry
 
