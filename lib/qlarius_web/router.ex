@@ -31,13 +31,13 @@ defmodule QlariusWeb.Router do
     plug :accepts, ["json"]
   end
 
-   # ------ MARKETER ROUTES ------
+  # ------ MARKETER ROUTES ------
 
-   pipeline :marketer do
-      plug :put_root_layout, html: {QlariusWeb.Layouts, :marketer}
-    end
+  pipeline :marketer do
+    plug :put_root_layout, html: {QlariusWeb.Layouts, :marketer}
+  end
 
-   scope "/", QlariusWeb do
+  scope "/", QlariusWeb do
     pipe_through [:browser, :marketer]
 
     # resources "/targets", TargetController

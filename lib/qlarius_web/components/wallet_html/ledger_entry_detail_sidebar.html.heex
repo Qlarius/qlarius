@@ -14,26 +14,28 @@
 
     <div class="space-y-4">
       <div>
-        <p class="mb-0"><strong>Description:</strong> <%= @entry.description %></p>
+        <p class="mb-0"><strong>Description:</strong> {@entry.description}</p>
       </div>
 
       <div>
-        <p class="mb-0"><strong>Amount:</strong> <%= format_amount(@entry.amt) %></p>
-        <p class="mb-0"><strong>Balance:</strong> <%= format_amount(@entry.running_balance) %></p>
+        <p class="mb-0"><strong>Amount:</strong> {format_amount(@entry.amt)}</p>
+        <p class="mb-0"><strong>Balance:</strong> {format_amount(@entry.running_balance)}</p>
       </div>
 
       <div>
-        <p class="mb-0"><strong>Date:</strong> <%= format_datetime(@entry.created_at) %></p>
+        <p class="mb-0"><strong>Date:</strong> {format_datetime(@entry.created_at)}</p>
       </div>
 
       <% if @entry.ad_event do %>
         <div class="border-t pt-4 mt-4">
           <h3 class="text-lg font-semibold mb-2">Ad Event Details</h3>
-          <p class="mb-0"><strong>Offer ID:</strong> <%= @entry.ad_event.offer_id %></p>
-          <p class="mb-0"><strong>Offer Amount:</strong> <%= format_amount(@entry.ad_event.offer_amount) %></p>
-          <p class="mb-0"><strong>Demo:</strong> <%= @entry.ad_event.demo %></p>
-          <p class="mb-0"><strong>Throttled:</strong> <%= @entry.ad_event.throttled %></p>
-          <p class="mb-0"><strong>IP Address:</strong> <%= @entry.ad_event.ip_address %></p>
+          <p class="mb-0"><strong>Offer ID:</strong> {@entry.ad_event.offer_id}</p>
+          <p class="mb-0">
+            <strong>Offer Amount:</strong> {format_amount(@entry.ad_event.offer_amount)}
+          </p>
+          <p class="mb-0"><strong>Demo:</strong> {@entry.ad_event.demo}</p>
+          <p class="mb-0"><strong>Throttled:</strong> {@entry.ad_event.throttled}</p>
+          <p class="mb-0"><strong>IP Address:</strong> {@entry.ad_event.ip_address}</p>
         </div>
       <% end %>
     </div>

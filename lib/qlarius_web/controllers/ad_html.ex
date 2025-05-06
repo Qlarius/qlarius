@@ -2,6 +2,7 @@ defmodule QlariusWeb.AdHTML do
   use QlariusWeb, :html
 
   attr :offer, :any, required: true
+
   def jump(assigns) do
     ~H"""
     <div class="max-w-md mx-auto bg-white p-8 flex flex-col items-center justify-center text-center space-y-6">

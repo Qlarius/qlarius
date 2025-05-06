@@ -151,7 +151,9 @@ defmodule QlariusWeb.UserAuth do
   """
   def on_mount(:mount_current_user, _params, _session, socket) do
     user = Legacy.get_user!(508)
-    {:cont, Phoenix.Component.assign(socket, current_user: user, current_scope: Scope.for_user(user))}
+
+    {:cont,
+     Phoenix.Component.assign(socket, current_user: user, current_scope: Scope.for_user(user))}
   end
 
   def on_mount(:ensure_authenticated, _params, _session, socket) do
@@ -160,7 +162,9 @@ defmodule QlariusWeb.UserAuth do
 
   def on_mount(:require_authenticated, _params, _session, socket) do
     user = Legacy.get_user!(508)
-    {:cont, Phoenix.Component.assign(socket, current_user: user, current_scope: Scope.for_user(user))}
+
+    {:cont,
+     Phoenix.Component.assign(socket, current_user: user, current_scope: Scope.for_user(user))}
   end
 
   defp put_token_in_session(conn, token) do

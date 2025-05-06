@@ -35,6 +35,7 @@ defmodule QlariusWeb.MediaPieceController do
     media_piece = Marketing.get_media_piece!(id)
     changeset = Marketing.change_media_piece(media_piece)
     ad_categories = Marketing.list_ad_categories()
+
     render(conn, :edit,
       media_piece: media_piece,
       changeset: changeset,
@@ -49,7 +50,10 @@ defmodule QlariusWeb.MediaPieceController do
 
     case Marketing.update_media_piece(media_piece, media_piece_params) do
       {:ok, media_piece} ->
-        Logger.info("Successfully updated media piece #{id}. Banner image: #{inspect(media_piece.banner_image)}")
+        Logger.info(
+          "Successfully updated media piece #{id}. Banner image: #{inspect(media_piece.banner_image)}"
+        )
+
         conn
         |> put_flash(:info, "Media piece updated successfully.")
         |> redirect(to: ~p"/media_pieces")

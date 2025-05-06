@@ -20,7 +20,12 @@ defmodule Qlarius.Accounts.Scope do
   alias Qlarius.{LegacyRepo, Wallets}
   alias Decimal
 
-  defstruct user: nil, wallet_balance: nil, ads_count: nil, home_zip: nil, tag_count: nil, trait_count: nil
+  defstruct user: nil,
+            wallet_balance: nil,
+            ads_count: nil,
+            home_zip: nil,
+            tag_count: nil,
+            trait_count: nil
 
   @doc """
   Creates a scope for the given user.

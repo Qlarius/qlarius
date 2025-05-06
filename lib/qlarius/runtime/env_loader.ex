@@ -12,12 +12,14 @@ defmodule Qlarius.Runtime.EnvLoader do
 
       if Code.ensure_loaded?(Dotenvy) do
         Logger.debug("Dotenvy is loaded")
+
         case Dotenvy.source([env_file]) do
           {:ok, envs} when is_map(envs) ->
             Logger.debug("Successfully loaded environment variables: #{inspect(Map.keys(envs))}")
             # Apply environment variables and log them
             for {key, value} <- envs do
               System.put_env(key, value)
+
               if key in ["DATABASE_URL", "LEGACY_DATABASE_URL"] do
                 Logger.info("Loaded #{key}: #{String.slice(value, 0, 10)}...")
               end

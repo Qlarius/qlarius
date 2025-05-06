@@ -28,7 +28,14 @@ defmodule Qlarius.Legacy.MeFile do
 
   def changeset(me_file, attrs) do
     me_file
-    |> cast(attrs, [:display_name, :date_of_birth, :sponster_token, :split_amount, :referral_code, :user_id])
+    |> cast(attrs, [
+      :display_name,
+      :date_of_birth,
+      :sponster_token,
+      :split_amount,
+      :referral_code,
+      :user_id
+    ])
     |> validate_required([:user_id])
     |> validate_number(:split_amount, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
     |> foreign_key_constraint(:user_id)
@@ -56,12 +63,15 @@ defmodule Qlarius.Legacy.MeFile do
   # end
 
   def home_zip(me_file) do
-    query = from(t in Trait,
-      join: mt in MeFileTag,
-      on: mt.trait_id == t.id,
-      where: mt.me_file_id == ^me_file.id and t.parent_trait_id == 4,
-      limit: 1,
-      select: t.trait_name)
+    query =
+      from(t in Trait,
+        join: mt in MeFileTag,
+        on: mt.trait_id == t.id,
+        where: mt.me_file_id == ^me_file.id and t.parent_trait_id == 4,
+        limit: 1,
+        select: t.trait_name
+      )
+
     case LegacyRepo.one(query) do
       nil -> "NO ZIP"
       zip -> zip
@@ -70,21 +80,27 @@ defmodule Qlarius.Legacy.MeFile do
 
   def tag_count(me_file) do
     # add 1 for birthdate
-    query = from(mt in MeFileTag,
-      where: mt.me_file_id == ^me_file.id,
-      select: count(mt.id))
+    query =
+      from(mt in MeFileTag,
+        where: mt.me_file_id == ^me_file.id,
+        select: count(mt.id)
+      )
+
     LegacyRepo.one(query) + 1
   end
 
   def trait_tag_count(me_file) do
-    count = from(t in Trait,
-      join: mt in MeFileTag,
-      on: mt.trait_id == t.id,
-      where: mt.me_file_id == ^me_file.id,
-      select: count(fragment("DISTINCT ?", t.parent_trait_id)))
-    |> LegacyRepo.one()
+    count =
+      from(t in Trait,
+        join: mt in MeFileTag,
+        on: mt.trait_id == t.id,
+        where: mt.me_file_id == ^me_file.id,
+        select: count(fragment("DISTINCT ?", t.parent_trait_id))
+      )
+      |> LegacyRepo.one()
 
-    if count > 0, do: count + 1, else: count # add one for birthdate if me_file has traits
+    # add one for birthdate if me_file has traits
+    if count > 0, do: count + 1, else: count
   end
 
   def ad_offer_count(me_file) do
@@ -117,5 +133,4 @@ defmodule Qlarius.Legacy.MeFile do
   #     order_by: [desc: o.offer_amt])
   #   |> LegacyRepo.all()
   # end
-
 end

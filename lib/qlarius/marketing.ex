@@ -9,7 +9,6 @@ defmodule Qlarius.Marketing do
 
   alias Qlarius.Legacy.{MediaPiece, AdCategory}
 
-
   @doc """
   Returns the list of media_pieces.
   """
@@ -41,8 +40,12 @@ defmodule Qlarius.Marketing do
     |> LegacyRepo.insert()
     |> case do
       {:ok, media_piece} = result ->
-        Logger.info("Successfully created media piece. Banner image: #{inspect(media_piece.banner_image)}")
+        Logger.info(
+          "Successfully created media piece. Banner image: #{inspect(media_piece.banner_image)}"
+        )
+
         result
+
       {:error, changeset} = error ->
         Logger.error("Failed to create media piece. Errors: #{inspect(changeset.errors)}")
         error
@@ -60,8 +63,12 @@ defmodule Qlarius.Marketing do
     |> LegacyRepo.update()
     |> case do
       {:ok, media_piece} = result ->
-        Logger.info("Successfully updated media piece. Banner image: #{inspect(media_piece.banner_image)}")
+        Logger.info(
+          "Successfully updated media piece. Banner image: #{inspect(media_piece.banner_image)}"
+        )
+
         result
+
       {:error, changeset} = error ->
         Logger.error("Failed to update media piece. Errors: #{inspect(changeset.errors)}")
         error

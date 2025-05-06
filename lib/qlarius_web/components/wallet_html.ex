@@ -4,6 +4,7 @@ defmodule QlariusWeb.WalletHTML do
   embed_templates "wallet_html/*"
 
   def format_amount(amount) when is_nil(amount), do: "0.00"
+
   def format_amount(amount) do
     amount
     |> Decimal.round(2)

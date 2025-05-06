@@ -62,13 +62,14 @@ defmodule Qlarius.Wallets do
     LegacyRepo.transaction(fn ->
       # MeFile Ledger Entry first
       # Check if a me_file ledger entry already exists for this ad_event
-      existing_me_file_ledger_entry = LegacyRepo.one(
-        from e in LedgerEntry,
-        join: h in assoc(e, :ledger_header),
-        join: m in MeFile,
-        on: h.me_file_id == m.id,
-        where: e.ad_event_id == ^ad_event.id and m.id == ^ad_event.me_file_id
-      )
+      existing_me_file_ledger_entry =
+        LegacyRepo.one(
+          from e in LedgerEntry,
+            join: h in assoc(e, :ledger_header),
+            join: m in MeFile,
+            on: h.me_file_id == m.id,
+            where: e.ad_event_id == ^ad_event.id and m.id == ^ad_event.me_file_id
+        )
 
       if existing_me_file_ledger_entry do
         {:error, :ledger_entry_exists}
@@ -78,12 +79,22 @@ defmodule Qlarius.Wallets do
         marketer = LegacyRepo.get!(Marketer, campaign.marketer_id)
         phase = LegacyRepo.get!(MediaPiecePhase, ad_event.media_piece_phase_id)
         ledger_header = LegacyRepo.get_by!(LedgerHeader, me_file_id: me_file.id)
-        new_balance = Decimal.add(ledger_header.balance || Decimal.new("0.00"), ad_event.event_me_file_collect_amt)
-        new_balance_payable = if ad_event.is_payable do
-          Decimal.add(ledger_header.balance || Decimal.new("0.00"), ad_event.event_me_file_collect_amt)
-        else
-          ledger_header.balance || Decimal.new("0.00")
-        end
+
+        new_balance =
+          Decimal.add(
+            ledger_header.balance || Decimal.new("0.00"),
+            ad_event.event_me_file_collect_amt
+          )
+
+        new_balance_payable =
+          if ad_event.is_payable do
+            Decimal.add(
+              ledger_header.balance || Decimal.new("0.00"),
+              ad_event.event_me_file_collect_amt
+            )
+          else
+            ledger_header.balance || Decimal.new("0.00")
+          end
 
         # Create a new ledger entry for the ad event
         %LedgerEntry{}
@@ -104,5 +115,4 @@ defmodule Qlarius.Wallets do
       end
     end)
   end
-
 end

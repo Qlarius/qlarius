@@ -67,7 +67,6 @@ defmodule Qlarius.MixProject do
       {:nimble_csv, "~> 1.2"},
       {:cors_plug, "~> 3.0"},
       {:dotenvy, "~> 1.0"},
-
       {:waffle_ecto, "~> 0.0.12"},
       {:waffle, "~> 1.1"},
       # If using S3:

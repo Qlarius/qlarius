@@ -42,7 +42,16 @@ defmodule QlariusWeb.OfferHTML do
           <.offer_container offer={@offer} target={@target}>
             <div class="flex justify-center items-center bg-white">
               <%= if @offer.media_piece.banner_image do %>
-                <img src={QlariusWeb.ThreeTapBanner.url({@offer.media_piece.banner_image, @offer.media_piece}, :original)} alt="Ad image" class="w-full h-auto" />
+                <img
+                  src={
+                    QlariusWeb.ThreeTapBanner.url(
+                      {@offer.media_piece.banner_image, @offer.media_piece},
+                      :original
+                    )
+                  }
+                  alt="Ad image"
+                  class="w-full h-auto"
+                />
               <% else %>
                 <div class="w-full h-40 bg-gray-200 flex items-center justify-center">
                   <span class="text-gray-400">No banner</span>
@@ -131,6 +140,7 @@ defmodule QlariusWeb.OfferHTML do
 
   defp offer_container(assigns) do
     assigns = assign_new(assigns, :target, fn -> nil end)
+
     ~H"""
     <div
       phx-click="click-offer"

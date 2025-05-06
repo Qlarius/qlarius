@@ -8,11 +8,12 @@ defmodule QlariusWeb.ProxyUsersLive do
 
   @debug false
 
-  import Layouts, only: [
-    toggle_sponster_sidebar: 1,
-    sponster_sidebar: 1,
-    sponster_bottom_bar_link: 1
-  ]
+  import Layouts,
+    only: [
+      toggle_sponster_sidebar: 1,
+      sponster_sidebar: 1,
+      sponster_bottom_bar_link: 1
+    ]
 
   def mount(_params, _session, socket) do
     if socket.assigns.current_user.role == "admin" do
@@ -22,7 +23,8 @@ defmodule QlariusWeb.ProxyUsersLive do
 
       {:ok,
        socket
-       |> assign(:original_user, admin_user)  # Store the admin user
+       # Store the admin user
+       |> assign(:original_user, admin_user)
        |> assign(:proxy_users, proxy_users)
        |> assign(:active_proxy, active_proxy)}
     else
@@ -43,15 +45,19 @@ defmodule QlariusWeb.ProxyUsersLive do
         </.header>
 
         <.table id="proxy_users" rows={@proxy_users}>
-          <:col :let={proxy} label="Username"><%= proxy.proxy_user.username %></:col>
-          <:col :let={proxy} label="Alias"><%= proxy.proxy_user.email %></:col>
+          <:col :let={proxy} label="Username">{proxy.proxy_user.username}</:col>
+          <:col :let={proxy} label="Alias">{proxy.proxy_user.email}</:col>
           <:col :let={proxy} label="Status">
             <.button
               phx-click="toggle_proxy"
               phx-value-id={proxy.id}
-              class={["transition-colors", proxy.active && "!bg-green-500 hover:!bg-green-600" || "!bg-gray-500 hover:!bg-gray-600"]}
+              class={[
+                "transition-colors",
+                (proxy.active && "!bg-green-500 hover:!bg-green-600") ||
+                  "!bg-gray-500 hover:!bg-gray-600"
+              ]}
             >
-              <%= if proxy.active, do: "Active", else: "Inactive" %>
+              {if proxy.active, do: "Active", else: "Inactive"}
             </.button>
           </:col>
         </.table>
@@ -92,7 +98,10 @@ defmodule QlariusWeb.ProxyUsersLive do
      |> assign(:active_proxy, updated_proxy)
      |> assign(:current_user, updated_proxy.proxy_user)
      |> assign(:current_scope, Scope.for_user(updated_proxy.proxy_user))
-     |> put_flash(:info, "Successfully switched to proxy user #{updated_proxy.proxy_user.username}")}
+     |> put_flash(
+       :info,
+       "Successfully switched to proxy user #{updated_proxy.proxy_user.username}"
+     )}
   end
 
   # Private functions

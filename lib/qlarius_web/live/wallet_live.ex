@@ -13,13 +13,11 @@ defmodule QlariusWeb.WalletLive do
 
   @impl true
   def mount(_params, _session, socket) do
-
     # Load initial data during first mount
     true_user = Legacy.get_user(508)
     user = User.active_proxy_user_or_self(true_user)
     current_scope = Scope.for_user(user)
     me_file = Legacy.get_user_me_file(user.id)
-
 
     # me_file = LegacyRepo.get_by(MeFile, user_id: user.id)
     ledger_header = LegacyRepo.get_by(LedgerHeader, me_file_id: me_file.id)
@@ -31,16 +29,16 @@ defmodule QlariusWeb.WalletLive do
     paginated_entries = Wallets.list_ledger_entries(ledger_header.id, page, per_page)
 
     socket
-      |> assign(:true_user, true_user)
-      |> assign(:current_scope, current_scope)
-      |> assign(:me_file, me_file)
-      |> assign(:loading, true)
-      |> assign(:debug, @debug)
-      |> assign(:ledger_header, ledger_header)
-      |> assign(:sidebar_entry, nil)
-      |> assign(:page, page)
-      |> assign(:paginated_entries, paginated_entries)
-      |> ok()
+    |> assign(:true_user, true_user)
+    |> assign(:current_scope, current_scope)
+    |> assign(:me_file, me_file)
+    |> assign(:loading, true)
+    |> assign(:debug, @debug)
+    |> assign(:ledger_header, ledger_header)
+    |> assign(:sidebar_entry, nil)
+    |> assign(:page, page)
+    |> assign(:paginated_entries, paginated_entries)
+    |> ok()
   end
 
   @impl true
@@ -188,8 +186,8 @@ defmodule QlariusWeb.WalletLive do
           </div>
         </div>
       <% end %>
-
-      <!-- Debug section -->
+      
+    <!-- Debug section -->
       <pre :if={@debug} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
         <%= inspect(assigns, pretty: true) %>
       </pre>

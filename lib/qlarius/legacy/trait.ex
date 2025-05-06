@@ -67,7 +67,9 @@ defmodule Qlarius.Legacy.Trait do
 
   def is_geo?(trait) do
     trait = Qlarius.LegacyRepo.preload(trait, :parent_trait)
+
     String.contains?(String.downcase(trait.trait_name), "zip code") ||
-      (trait.parent_trait && String.contains?(String.downcase(trait.parent_trait.trait_name), "zip code"))
+      (trait.parent_trait &&
+         String.contains?(String.downcase(trait.parent_trait.trait_name), "zip code"))
   end
 end

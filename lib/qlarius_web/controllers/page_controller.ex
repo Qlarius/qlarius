@@ -6,7 +6,6 @@ defmodule QlariusWeb.PageController do
   @debug true
 
   def home(conn, _params) do
-
     render(conn, :home, debug: @debug)
   end
 end

@@ -11,7 +11,10 @@ defmodule QlariusWeb.MeFileLive do
     <Layouts.sponster {assigns}>
       <h1 class="text-3xl font-bold mb-4">MeFile</h1>
 
-      <.tag_and_trait_count_badges trait_count={@current_scope.trait_count} tag_count={@current_scope.tag_count} />
+      <.tag_and_trait_count_badges
+        trait_count={@current_scope.trait_count}
+        tag_count={@current_scope.tag_count}
+      />
 
       <div class="space-y-8">
         <div :for={category <- @categories}>

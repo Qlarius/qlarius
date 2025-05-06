@@ -11,7 +11,6 @@ defmodule Qlarius.Legacy.AdCategory do
     field :ad_category_name, :string
 
     has_many :media_pieces, MediaPiece
-
   end
 
   def changeset(ad_category, attrs) do
