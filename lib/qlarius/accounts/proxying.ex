@@ -22,6 +22,15 @@ defmodule Qlarius.Accounts.Proxying do
     |> Repo.one()
   end
 
+  def cancel_active_proxy(true_user) do
+    UserProxy
+    |> where([p], p.true_user_id == ^true_user.id and p.active == true)
+    |> Repo.all()
+    |> Enum.each(&Repo.delete/1)
+
+    :ok
+  end
+
   def update_user_proxy(%UserProxy{} = proxy, attrs) do
     proxy
     |> UserProxy.changeset(attrs)

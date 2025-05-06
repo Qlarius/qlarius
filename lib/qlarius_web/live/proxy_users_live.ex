@@ -27,6 +27,17 @@ defmodule QlariusWeb.ProxyUsersLive do
           Proxy Users
           <:subtitle>Manage and switch between proxy users</:subtitle>
         </.header>
+
+        <div class="my-5">
+          <.button
+            :if={Enum.any?(@proxy_users, & &1.active)}
+            phx-click="cancel_proxy"
+            variant="primary"
+          >
+            Stop proxying
+          </.button>
+        </div>
+
         <.table id="proxy_users" rows={@proxy_users}>
           <:col :let={proxy} label="Username">{proxy.proxy_user.username}</:col>
           <:col :let={proxy} label="Email">{proxy.proxy_user.email}</:col>
@@ -43,6 +54,17 @@ defmodule QlariusWeb.ProxyUsersLive do
       </div>
     </Layouts.sponster>
     """
+  end
+
+  def handle_event("cancel_proxy", _params, socket) do
+    true_user = socket.assigns.true_user
+    :ok = Proxying.cancel_active_proxy(true_user)
+
+    socket
+    |> assign(:proxy_users, Proxying.list_proxy_users(true_user))
+    |> assign(:current_scope, Scope.for_user(true_user))
+    |> put_flash(:info, "Cancelled proxy. Switched back to #{true_user.username}")
+    |> noreply()
   end
 
   def handle_event("toggle_proxy", %{"id" => proxy_id}, socket) do
