@@ -51,7 +51,7 @@ defmodule QlariusWeb.OfferHTML do
             <div class="text-gray-700 text-sm mb-1">
               {@offer.media_piece.body_copy}
             </div>
-            <div class="text-gray-500 text-xs">
+            <div class="text-green-500 text-xs">
               {@offer.media_piece.display_url}
             </div>
             <.click_jump_actions phase_1_complete? phase_2_amount={@offer.amount} />
