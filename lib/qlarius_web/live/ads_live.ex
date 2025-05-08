@@ -52,8 +52,6 @@ defmodule QlariusWeb.AdsLive do
         socket.assigns.user_ip
       )
 
-    balance = Wallets.get_user_current_balance(socket.assigns.current_scope.user)
-
     socket
     |> increment_phase(offer.id)
     |> update_scope()
@@ -66,8 +64,6 @@ defmodule QlariusWeb.AdsLive do
         socket.assigns.current_scope.user,
         socket.assigns.user_ip
       )
-
-    balance = Wallets.get_user_current_balance(socket.assigns.current_scope.user)
 
     socket
     |> increment_phase(offer.id)

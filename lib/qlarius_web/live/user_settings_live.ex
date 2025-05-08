@@ -1,8 +1,6 @@
 defmodule QlariusWeb.UserSettingsLive do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Accounts
-
   def render(assigns) do
     ~H"""
     <Layouts.sponster {assigns}>

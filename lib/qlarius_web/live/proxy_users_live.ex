@@ -2,8 +2,6 @@ defmodule QlariusWeb.ProxyUsersLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Accounts.Scope
-  alias Qlarius.Accounts.User
-  alias Qlarius.Accounts.UserProxy
   alias Qlarius.Accounts.Proxying
 
   on_mount {QlariusWeb.UserAuth, :require_admin_or_proxy}

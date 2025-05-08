@@ -53,7 +53,7 @@ defmodule Qlarius.Accounts.Scope do
     %__MODULE__{
       ads_count: Offers.count_user_offers(user.id),
       home_zip: Traits.get_user_home_zip(user),
-      proxy?: proxy,
+      proxy?: proxy?,
       true_user: true_user,
       user: Accounts.preload_me_file(user),
       wallet_balance: Wallets.get_user_current_balance(user)

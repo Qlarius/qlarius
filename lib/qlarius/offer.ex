@@ -1,9 +1,6 @@
 defmodule Qlarius.Offer do
   use Ecto.Schema
 
-  alias Qlarius.Accounts.User
-  alias Qlarius.Marketing.MediaRun
-
   schema "offers" do
     field :amount, :decimal, source: :offer_amt
     field :marketer_cost_amt, :decimal
