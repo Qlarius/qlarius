@@ -13,7 +13,7 @@ defmodule Qlarius.Surveys.SurveyCategory do
 
     timestamps(
       type: :utc_datetime,
-      inserted_at_source: :created_at,
+      inserted_at_source: :added_date,
       updated_at_source: :modified_date
     )
   end

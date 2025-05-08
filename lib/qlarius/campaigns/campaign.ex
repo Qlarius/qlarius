@@ -15,6 +15,8 @@ defmodule Qlarius.Campaigns.Campaign do
     field :is_demo, :boolean, default: false
     field :deactivated_at, :utc_datetime
 
+    belongs_to :marketer, Qlarius.Accounts.Marketer
+
     # belongs_to :marketer
     belongs_to :media_sequence, MediaSequence
     belongs_to :target, Target

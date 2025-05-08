@@ -1,8 +1,8 @@
 defmodule QlariusWeb.MeFileSurveyLive do
   use QlariusWeb, :live_view
 
-  alias Qlarius.MeFile
   alias Qlarius.Surveys
+  alias Qlarius.Traits
   alias Qlarius.Traits.Trait
 
   import QlariusWeb.TraitPanelComponent
@@ -27,10 +27,10 @@ defmodule QlariusWeb.MeFileSurveyLive do
     current_trait = %Trait{} = Enum.at(traits, index)
 
     selected_values =
-      MeFile.get_user_trait_values(current_trait.id, socket.assigns.current_scope.user.id)
+      Traits.get_user_trait_values(current_trait.id, socket.assigns.current_scope.user.id)
 
     completed_count =
-      MeFile.count_completed_questions([survey], socket.assigns.current_scope.user.id)
+      Surveys.count_completed_questions([survey], socket.assigns.current_scope.user.id)
 
     socket
     |> assign(
@@ -65,7 +65,7 @@ defmodule QlariusWeb.MeFileSurveyLive do
 
     current_trait = Enum.at(traits, index)
 
-    case MeFile.create_user_trait_values(user.id, current_trait.id, value_ids) do
+    case Traits.create_user_trait_values(user.id, current_trait.id, value_ids) do
       {:ok, _} ->
         if index + 1 >= length(traits) do
           push_navigate(socket, to: ~p"/me_file/surveys")
