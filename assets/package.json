@@ -4,6 +4,7 @@
   "description": "",
   "main": "tailwind.config.js",
   "dependencies": {
+    "alpinejs": "^3.14.9",
     "daisyui": "^5.0.32"
   },
   "devDependencies": {},
