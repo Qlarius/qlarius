@@ -1,4 +1,4 @@
-defmodule QlariusWeb.AdsLive do
+defmodule QlariusWeb.AdsExtLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Legacy
@@ -10,13 +10,14 @@ defmodule QlariusWeb.AdsLive do
   alias Qlarius.Wallets
   import QlariusWeb.OfferHTML
   import Ecto.Query, except: [update: 2, update: 3]
+  import QlariusWeb.Layouts
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
   @debug false
 
   @impl true
-  def mount(_params, session, socket) do
+  def mount(params, session, socket) do
     # Load initial data during first mount
     user = Legacy.get_user(508)
     current_scope = Scope.for_user(user)
@@ -28,6 +29,8 @@ defmodule QlariusWeb.AdsLive do
         uri -> uri
       end
 
+    split_code = Map.get(params, "split_code")
+
     socket =
       socket
       |> assign(:user, user)
@@ -37,6 +40,10 @@ defmodule QlariusWeb.AdsLive do
       |> assign(:loading, true)
       |> assign(:debug, @debug)
       |> assign(:host_uri, host_uri)
+      |> assign(:split_code, split_code)
+      |> assign_new(:recipient_name, fn -> nil end)
+      |> assign_new(:recipient_image, fn -> nil end)
+      |> assign_new(:recipient_message, fn -> nil end)
 
     if connected?(socket) do
       send(self(), :load_offers)
@@ -76,21 +83,9 @@ defmodule QlariusWeb.AdsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.sponster {assigns}>
-      <h1 class="text-3xl font-bold mb-4">Ads</h1>
-      <div class="container mx-auto px-4 py-8 max-w-3xl">
-        <%!-- <div class="w-fit mx-auto">
-          <%= if Enum.any?(@active_offers) do %>
-            <div class="space-y-4">
-              <.clickable_offer :for={{offer, phase} <- @active_offers} offer={offer} phase={phase} />
-            </div>
-          <% else %>
-            <div class="text-center py-8">
-              <p class="text-gray-500">You don't have any ads yet.</p>
-            </div>
-          <% end %>
-        </div> --%>
+    <Layouts.tipjar_container {assigns}>
 
+      <div class="container mx-auto px-0 py-8 max-w-3xl my-[60px]">
         <.live_component
           module={QlariusWeb.ThreeTapStackComponent}
           id="three-tap-stack"
@@ -101,17 +96,15 @@ defmodule QlariusWeb.AdsLive do
           host_uri={@host_uri}
         />
       </div>
-
-    <!-- Debug section -->
       <pre :if={@debug} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
         <%= inspect(assigns, pretty: true) %>
       </pre>
-    </Layouts.sponster>
+    </Layouts.tipjar_container>
     """
   end
 
   @impl true
-  def terminate(reason, socket) do
+  def terminate(_reason, _socket) do
     :ok
   end
 end

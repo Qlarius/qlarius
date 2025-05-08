@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" class="[scrollbar-gutter:stable]" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <.live_title default="Qlarius" suffix=" · Me is mine.">
+      {assigns[:page_title]}
+    </.live_title>
+    <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
+    </script>
+  </head>
+  <body class="bg-white">
+
+    <div x-data="{
+      drawerOpen: false,
+      toggleDrawer() {
+        this.drawerOpen = !this.drawerOpen;
+        document.body.classList.toggle('tip-drawer-open', this.drawerOpen);
+      }
+    }" x-init="document.body.classList.remove('tip-drawer-open')">
+      <.tipjar_header wallet_balance={@current_scope.wallet_balance} user_alias={@current_scope.user.email} />
+      <%= if @split_code do %>
+        <.tipjar_drawer 
+          me_file={@me_file} 
+          recipient_name={@recipient_name} 
+          recipient_image={@recipient_image} 
+          recipient_message={@recipient_message}
+          x-bind:drawer-open="drawerOpen"
+          x-bind:toggle-drawer="toggleDrawer"
+        />
+      <% end %>
+      <%= render_slot(@inner_block) %>
+      <div style="position:fixed; bottom:0; width:100%; background-color: #6F7479; color:white; padding:10px 10px; text-align:center; font-size: 10px; line-height: 11px; height: 40px; display: flex; align-items: center; justify-content: center; z-index: 50;">
+        <%= if @me_file do %>
+          <span>These ads are matched directly to your MeFile and are in no way linked to any site you visit or content you consume.</span>
+        <% else %>
+          <%= if @split_code == "sponster_show_me" do %>
+            <p></p>
+          <% else %>
+            <.link navigate={~p"/referral_directs?sent_from=sponster&send_to=sign_up&referral_code=#{@recipient.split_code}"} id="sponster_info_button" class="btn btn-sm btn-default" target="_blank">Sign up</.link>
+            <.link navigate={~p"/referral_directs?sent_from=sponster&send_to=info&referral_code=#{@recipient.split_code}"} id="sponster_info_button" class="btn btn-sm btn-default" target="_blank">More info</.link>
+            <span class="yd-show-unless-phone">&nbsp;&nbsp;&nbsp;| &nbsp;&nbsp;&nbsp;Already a Sponster user? &nbsp;</span>
+            <.link navigate={~p"/sponster_settings"} id="sponster_enable_button" class="btn btn-sm btn-default" target="_blank">Enable this device</.link>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </body>
+</html> 

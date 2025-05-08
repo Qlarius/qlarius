@@ -9,7 +9,6 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   alias Qlarius.Wallets
   alias Phoenix.Component
   import Ecto.Query, except: [update: 2, update: 3]
-  import Logger
 
   @impl true
   def render(assigns) do
@@ -26,7 +25,7 @@ defmodule QlariusWeb.ThreeTapStackComponent do
         </div>
       <% else %>
         <div class="text-center py-8">
-          <p class="text-gray-500">You don't have any ads yet.</p>
+          <p class="text-gray-500"></p>
         </div>
       <% end %>
     </div>
@@ -68,24 +67,13 @@ defmodule QlariusWeb.ThreeTapStackComponent do
       socket.assigns.user_ip,
       socket.assigns.host_uri.host
     )
-
     send(self(), {:refresh_wallet_balance, socket.assigns.me_file.id})
-
-    Logger.info(
-      "ThreeTapStackComponent: Sent :refresh_wallet_balance after phase 1 for offer #{offer.id}"
-    )
-
     increment_phase(socket, offer.id)
   end
 
   defp handle_phase(socket, offer, 2) do
     ThreeTap.create_jump_ad_event(offer.id, socket.assigns.user_ip, socket.assigns.host_uri.host)
     send(self(), {:refresh_wallet_balance, socket.assigns.me_file.id})
-
-    Logger.info(
-      "ThreeTapStackComponent: Sent :refresh_wallet_balance after phase 2 for offer #{offer.id}"
-    )
-
     increment_phase(socket, offer.id)
   end
 
