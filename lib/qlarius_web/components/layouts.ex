@@ -16,25 +16,6 @@ defmodule QlariusWeb.Layouts do
 
   embed_templates "layouts/*"
 
-  attr :current_path, :string, required: true
-  attr :path, :string, required: true
-
-  slot :inner_block
-
-  def marketer_navbar_link(assigns) do
-    ~H"""
-    <.link
-      class={[
-        "flex items-center px-4 py-2 border-r border-green-400",
-        @current_path == @path && "bg-green-600"
-      ]}
-      navigate={@path}
-    >
-      {render_slot(@inner_block)}
-    </.link>
-    """
-  end
-
   @sidebar_classes_on "translate-x-0"
   @sidebar_classes_off "-translate-x-full"
   @sidebar_bg_classes_off "opacity-0 pointer-events-none"
@@ -141,6 +122,77 @@ defmodule QlariusWeb.Layouts do
 
   def sponster_sidebar(assigns)
 
+  # Call this plug in the layout to set the @current_path assign,
+  # which must be present for the 'marketers' layout to work.
+  def set_current_path(conn, _opts) do
+    Plug.Conn.assign(conn, :current_path, conn.request_path)
+  end
+
+  attr :flash, :map, required: true
+  attr :current_scope, Scope, default: nil
+
+  slot :inner_block
+
+  def marketers(assigns) do
+    ~H"""
+    <div class="bg-white shadow-md">
+      <div class="px-4 py-2">
+        <span class="text-gray-700 font-semibold text-xl">qlarius</span>
+      </div>
+
+      <div class="flex bg-green-500 text-white">
+        <.marketer_navbar_link current_path={@current_path} path={~p"/trait_groups"}>
+          <.icon name="hero-tag" class="mr-2" />
+          <span>Traits</span>
+        </.marketer_navbar_link>
+
+        <.marketer_navbar_link current_path={@current_path} path={~p"/targets"}>
+          <.icon name="hero-users" class="mr-2" />
+          <span>Targets</span>
+        </.marketer_navbar_link>
+
+        <.marketer_navbar_link current_path={@current_path} path={~p"/"}>
+          <.icon name="hero-speaker-wave" class="mr-2" />
+          <span>Campaigns</span>
+        </.marketer_navbar_link>
+
+        <.marketer_navbar_link current_path={@current_path} path={~p"/media_sequences"}>
+          <.icon name="hero-numbered-list" class="mr-2" />
+          <span>Sequences</span>
+        </.marketer_navbar_link>
+
+        <.marketer_navbar_link current_path={@current_path} path={~p"/media_pieces"}>
+          <.icon name="hero-photo" class="mr-2" />
+          <span>Media</span>
+        </.marketer_navbar_link>
+      </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
+  attr :current_path, :string, required: true
+  attr :path, :string, required: true
+
+  slot :inner_block
+
+  defp marketer_navbar_link(assigns) do
+    ~H"""
+    <.link
+      class={[
+        "flex items-center px-4 py-2 border-r border-green-400",
+        @current_path == @path && "bg-green-600"
+      ]}
+      navigate={@path}
+    >
+      {render_slot(@inner_block)}
+    </.link>
+    """
+  end
+
   attr :flash, :map, required: true
   attr :current_scope, Scope, default: nil
   attr :breadcrumbs, :list, default: []
@@ -155,10 +207,10 @@ defmodule QlariusWeb.Layouts do
           {@current_scope.user.email}
         </li>
         <%= if @current_scope do %>
-          <li><.layouts_navbar_link text="Log out" href="#" method="delete" /></li>
+          <li><.creators_navbar_link text="Log out" href="#" method="delete" /></li>
         <% else %>
-          <li><.layouts_navbar_link text="Log in" href="#" /></li>
-          <li><.layouts_navbar_link text="Sign up" href="#" /></li>
+          <li><.creators_navbar_link text="Log in" href="#" /></li>
+          <li><.creators_navbar_link text="Sign up" href="#" /></li>
         <% end %>
       </ul>
 
@@ -176,7 +228,7 @@ defmodule QlariusWeb.Layouts do
   attr :href, :string, required: true
   attr :method, :string, default: nil
 
-  defp layouts_navbar_link(assigns) do
+  defp creators_navbar_link(assigns) do
     ~H"""
     <.link
       href={@href}

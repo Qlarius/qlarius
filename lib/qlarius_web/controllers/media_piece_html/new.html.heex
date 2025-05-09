@@ -1,12 +1,14 @@
-<.header>
-  New Media Piece
-  <:subtitle>Create a new media piece.</:subtitle>
-</.header>
+<Layouts.marketers {assigns}>
+  <.header>
+    New Media Piece
+    <:subtitle>Create a new media piece.</:subtitle>
+  </.header>
 
-<.media_piece_form
-  changeset={@changeset}
-  action={~p"/media_pieces"}
-  ad_categories={@ad_categories}
-/>
+  <.media_piece_form
+    changeset={@changeset}
+    action={~p"/media_pieces"}
+    ad_categories={@ad_categories}
+  />
 
-<.back navigate={~p"/media_pieces"}>Back to media pieces</.back>
+  <.back navigate={~p"/media_pieces"}>Back to media pieces</.back>
+</Layouts.marketers>

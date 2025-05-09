@@ -1,99 +1,101 @@
-<div class="flex flex-row gap-4">
-  <div class="w-1/2">
-    <div class="mb-4">
-      <h2 class="text-2xl font-semibold mb-4">Trait Groups</h2>
-      <div class="overflow-x-auto">
-        <table class="min-w-full bg-white rounded-lg overflow-hidden">
-          <thead class="bg-gray-100">
-            <tr class="text-left text-gray-600 text-sm">
-              <th class="py-2 px-4 font-semibold">Trait Group Name</th>
-              <th class="py-2 px-4 font-semibold">Traits</th>
-              <th class="py-2 px-4 font-semibold">Desc</th>
-            </tr>
-          </thead>
-          <tbody>
-            <%= for trait_group <- @trait_groups do %>
-              <tr class="border-t border-gray-200 hover:bg-gray-50">
-                <td class="py-2 px-4">{trait_group.title}</td>
-                <td class="py-2 px-4">
-                  {trait_group.traits |> Enum.map(& &1.name) |> Enum.join(", ")}
-                </td>
-                <td class="py-2 px-4">{trait_group.description}</td>
+<Layouts.marketers {assigns}>
+  <div class="flex flex-row gap-4">
+    <div class="w-1/2">
+      <div class="mb-4">
+        <h2 class="text-2xl font-semibold mb-4">Trait Groups</h2>
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white rounded-lg overflow-hidden">
+            <thead class="bg-gray-100">
+              <tr class="text-left text-gray-600 text-sm">
+                <th class="py-2 px-4 font-semibold">Trait Group Name</th>
+                <th class="py-2 px-4 font-semibold">Traits</th>
+                <th class="py-2 px-4 font-semibold">Desc</th>
               </tr>
-            <% end %>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <%= for trait_group <- @trait_groups do %>
+                <tr class="border-t border-gray-200 hover:bg-gray-50">
+                  <td class="py-2 px-4">{trait_group.title}</td>
+                  <td class="py-2 px-4">
+                    {trait_group.traits |> Enum.map(& &1.name) |> Enum.join(", ")}
+                  </td>
+                  <td class="py-2 px-4">{trait_group.description}</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="w-1/2">
+      <div class="mb-4">
+        <h2 class="text-2xl font-semibold mb-4">
+          Trait Categories and Traits
+        </h2>
+
+        <div class="overflow-y-auto max-h-screen">
+          <ul class="pl-0">
+            <li :for={category <- @categories_with_traits} class="mb-2">
+              <div class="font-bold text-lg">{category.name}</div>
+              <ul class="pl-6">
+                <li :for={trait <- category.traits} class="flex items-center py-1">
+                  <span>{trait.name}</span>
+                  <.link
+                    type="button"
+                    class="ml-2 text-gray-500 hover:text-gray-800 text-xl"
+                    patch={~p"/trait_groups?trait_id=#{trait.id}"}
+                  >
+                    +
+                  </.link>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="w-1/2">
-    <div class="mb-4">
-      <h2 class="text-2xl font-semibold mb-4">
-        Trait Categories and Traits
-      </h2>
-
-      <div class="overflow-y-auto max-h-screen">
-        <ul class="pl-0">
-          <li :for={category <- @categories_with_traits} class="mb-2">
-            <div class="font-bold text-lg">{category.name}</div>
-            <ul class="pl-6">
-              <li :for={trait <- category.traits} class="flex items-center py-1">
-                <span>{trait.name}</span>
-                <.link
-                  type="button"
-                  class="ml-2 text-gray-500 hover:text-gray-800 text-xl"
-                  patch={~p"/trait_groups?trait_id=#{trait.id}"}
-                >
-                  +
-                </.link>
-              </li>
-            </ul>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</div>
-
-<.modal
-  :if={assigns[:trait_group_form]}
-  show={!!assigns[:trait_group_form]}
-  id="trait-group-form-modal"
-  on_cancel={JS.patch(~p"/trait_groups")}
->
-  <h3 class="text-2xl">Create Trait Group</h3>
-
-  <.simple_form
-    id="trait-group-form"
-    for={@trait_group_form}
-    phx-change="validate-trait-group"
-    phx-submit="submit-trait-group"
+  <.modal
+    :if={assigns[:trait_group_form]}
+    show={!!assigns[:trait_group_form]}
+    id="trait-group-form-modal"
+    on_cancel={JS.patch(~p"/trait_groups")}
   >
-    <.input
-      description="Name your Trait Group something descriptive, so that you may easily select it when building Targets"
-      field={@trait_group_form[:name]}
-      label="Name"
-    />
+    <h3 class="text-2xl">Create Trait Group</h3>
 
-    <.input field={@trait_group_form[:description]} label="Description (optional)" />
+    <.simple_form
+      id="trait-group-form"
+      for={@trait_group_form}
+      phx-change="validate-trait-group"
+      phx-submit="submit-trait-group"
+    >
+      <.input
+        description="Name your Trait Group something descriptive, so that you may easily select it when building Targets"
+        field={@trait_group_form[:name]}
+        label="Name"
+      />
 
-    <div><strong>Trait Type:</strong> {@selected_trait.name}</div>
-    <div>
-      <strong>Survey Question:</strong>
-      {@selected_trait.question || "Not found"}
-    </div>
+      <.input field={@trait_group_form[:description]} label="Description (optional)" />
 
-    <div>
-      <label :for={value <- @selected_trait.values}>
-        <.value_checkbox trait={value} />
-      </label>
-    </div>
+      <div><strong>Trait Type:</strong> {@selected_trait.name}</div>
+      <div>
+        <strong>Survey Question:</strong>
+        {@selected_trait.question || "Not found"}
+      </div>
 
-    <:actions>
-      <.button phx-disable-with="Sending..." class="w-full">
-        Create
-      </.button>
-    </:actions>
-  </.simple_form>
-</.modal>
+      <div>
+        <label :for={value <- @selected_trait.values}>
+          <.value_checkbox trait={value} />
+        </label>
+      </div>
+
+      <:actions>
+        <.button phx-disable-with="Sending..." class="w-full">
+          Create
+        </.button>
+      </:actions>
+    </.simple_form>
+  </.modal>
+</Layouts.marketers>

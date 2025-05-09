@@ -1,12 +1,13 @@
-<.header>
-  Edit Media Piece "{@media_piece.title}"
-  <:subtitle>Edit media piece information.</:subtitle>
-</.header>
+<Layouts.marketers {assigns}>
+  <.header>
+    Edit Media Piece “{@media_piece.title}”
+  </.header>
 
-<.media_piece_form
-  changeset={@changeset}
-  action={~p"/media_pieces/#{@media_piece}"}
-  ad_categories={@ad_categories}
-/>
+  <.media_piece_form
+    changeset={@changeset}
+    action={~p"/media_pieces/#{@media_piece}"}
+    ad_categories={@ad_categories}
+  />
 
-<.back navigate={~p"/media_pieces"}>Back to media pieces</.back>
+  <.back navigate={~p"/media_pieces"}>Back to media pieces</.back>
+</Layouts.marketers>

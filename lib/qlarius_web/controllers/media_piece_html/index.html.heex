@@ -1,24 +1,80 @@
-<.header>
-  Media Pieces
-  <:actions>
+<Layouts.marketers {assigns}>
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-bold">Media Pieces</h1>
     <.link href={~p"/media_pieces/new"}>
-      <.button>New Media Piece</.button>
+      <button class="btn btn-primary gap-2">
+        <.icon name="hero-plus" class="h-5 w-5" /> New Media Piece
+      </button>
     </.link>
-  </:actions>
-</.header>
+  </div>
 
-<.table id="media_pieces" rows={@media_pieces}>
-  <:col :let={media_piece} label="Category">{media_piece.ad_category.name}</:col>
-  <:col :let={media_piece} label="Headline">{media_piece.title}</:col>
-  <:col :let={media_piece} label="Copy">{media_piece.body_copy}</:col>
-  <:col :let={media_piece} label="Display URL">{media_piece.display_url}</:col>
-  <:col :let={media_piece} label="Jump URL">{media_piece.jump_url}</:col>
-  <:action :let={media_piece}>
-    <div class="sr-only">
-      <.link navigate={~p"/media_pieces/#{media_piece}/edit"}>Edit</.link>
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body p-0">
+      <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+          <thead>
+            <tr>
+              <th class="bg-base-200">Banner</th>
+              <th class="bg-base-200">Title</th>
+              <th class="bg-base-200">Body Copy</th>
+              <th class="bg-base-200">Display URL</th>
+              <th class="bg-base-200">Jump URL</th>
+              <th class="bg-base-200">Ad Category</th>
+              <th class="bg-base-200">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for media_piece <- @media_pieces do %>
+              <tr class="hover">
+                <td class="align-top">
+                  <%= if media_piece.banner_image do %>
+                    <img
+                      src={
+                        QlariusWeb.ThreeTapBanner.url(
+                          {media_piece.banner_image, media_piece},
+                          :original
+                        )
+                      }
+                      alt="Banner"
+                      class="w-32 h-auto object-cover rounded"
+                    />
+                  <% else %>
+                    <div class="w-32 h-24 bg-gray-200 rounded flex items-center justify-center">
+                      <span class="text-gray-400">No banner</span>
+                    </div>
+                  <% end %>
+                </td>
+                <td class="align-top">{media_piece.title}</td>
+                <td class="whitespace-normal max-w-md align-top">{media_piece.body_copy}</td>
+                <td class="text-emerald-600 align-top">{media_piece.display_url}</td>
+                <td class="text-emerald-600 truncate max-w-xs align-top">
+                  {media_piece.jump_url}
+                </td>
+                <td class="align-top">
+                  <span class="badge bg-gray-200 whitespace-nowrap inline-flex items-center">
+                    {media_piece.ad_category.name}
+                  </span>
+                </td>
+                <td class="align-top">
+                  <div class="flex gap-2">
+                    <.link href={~p"/media_pieces/#{media_piece}/edit"}>
+                      <button class="btn btn-sm btn-ghost btn-square">
+                        <.icon name="hero-pencil-square" class="h-5 w-5" />
+                      </button>
+                    </.link>
+                    <%!-- no delete for now until we figure cascading --%>
+                    <%!-- <.link href={~p"/media_pieces/#{media_piece}"} method="delete" data-confirm="Are you sure?">
+                      <button class="btn btn-sm btn-ghost btn-square text-error">
+                        <.icon name="hero-trash" class="h-5 w-5" />
+                      </button>
+                    </.link> --%>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
     </div>
-    <.link href={~p"/media_pieces/#{media_piece}"} method="delete" data-confirm="Are you sure?">
-      Delete
-    </.link>
-  </:action>
-</.table>
+  </div>
+</Layouts.marketers>

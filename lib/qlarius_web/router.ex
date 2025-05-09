@@ -37,7 +37,8 @@ defmodule QlariusWeb.Router do
   end
 
   pipeline :marketer do
-    plug :put_root_layout, html: {QlariusWeb.Layouts, :marketer}
+    import QlariusWeb.Layouts, only: [set_current_path: 2]
+    plug :set_current_path
   end
 
   pipeline :api do
