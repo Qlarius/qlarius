@@ -133,4 +133,10 @@ defmodule Qlarius.Legacy.MeFile do
   #     order_by: [desc: o.offer_amt])
   #   |> LegacyRepo.all()
   # end
+
+  def update_me_file_split_amount(%__MODULE__{} = me_file, split_amount) when is_integer(split_amount) do
+    me_file
+    |> Ecto.Changeset.change(split_amount: split_amount)
+    |> LegacyRepo.update()
+  end
 end

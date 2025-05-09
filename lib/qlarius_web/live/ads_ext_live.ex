@@ -81,6 +81,19 @@ defmodule QlariusWeb.AdsExtLive do
   end
 
   @impl true
+  def handle_event("set_split", %{"split" => split}, socket) do
+    split_amount = String.to_integer(split)
+    me_file = socket.assigns.me_file
+
+    case MeFile.update_me_file_split_amount(me_file, split_amount) do
+      {:ok, updated_me_file} ->
+        {:noreply, socket |> assign(me_file: updated_me_file) |> assign(split_amount: split_amount)}
+      {:error, _changeset} ->
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <Layouts.tipjar_container {assigns}>

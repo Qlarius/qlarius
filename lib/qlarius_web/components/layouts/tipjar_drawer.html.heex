@@ -1,7 +1,12 @@
+<%!-- 
+  We use Alpine.js state for splitAmount because phx-update="ignore" prevents LiveView from updating the DOM for this drawer.
+  This ensures the UI updates immediately when a split button is clicked, even though the assign changes in the socket are not patched in.
+--%>
 <div 
   x-ref="drawer"
-  x-data="{
+  x-data={"{
     drawerOpen: false,
+    splitAmount: #{@me_file.split_amount || 50},
     setDrawerPosition() {
       console.log('setDrawerPosition');
       this.$nextTick(() => {
@@ -30,7 +35,7 @@
       document.body.classList.toggle('tip-drawer-open', this.drawerOpen);
       this.setDrawerPosition();
     }
-  }"
+  }"}
   x-init="$nextTick(() => setDrawerPosition())"
   @resize.window="setDrawerPosition()"
   @load.window="setDrawerPosition()"
@@ -45,7 +50,14 @@
     @click="toggleDrawer"
     style="position: absolute; top: -36px; right: 0;"
   >
-    <span class="uppercase text-xs tracking-wider font-semibold ms-2">TIP SPLIT: <%= @me_file.split_amount || "XX" %>%</span>
+    <!--
+      We use Alpine's splitAmount state here instead of @me_file.split_amount because phx-update="ignore"
+      prevents LiveView from patching the DOM for this drawer. This ensures the displayed value updates
+      immediately when the user selects a new split amount.
+    -->
+    <span class="uppercase text-xs tracking-wider font-semibold ms-2">
+      TIP SPLIT: <span x-text="splitAmount"></span>%
+    </span>
     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
       <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -53,7 +65,7 @@
   </div>
 
   <!-- Drawer header and content -->
-  <div class="w-full bg-gray-50 max-w-full shadow-2xl border-t border-gray-200 pt-0 py-8 px-0" style="min-height: 350px;">
+  <div class="w-full bg-gray-50 max-width-full shadow-2xl border-t border-gray-200 pt-0 py-8 px-0" style="min-height: 350px;">
     <!-- Header -->
     <div class="w-full bg-white border-b border-gray-300 p-5 flex justify-between items-center shadow-[0_4px_6px_-1px_rgba(0,0,0,0.5)]">
       <div class="text-gray-800 font-bold text-base uppercase tracking-wider">TIP TO SUPPORT WHAT YOU LOVE</div>
@@ -75,16 +87,8 @@
               type="button"
               phx-click="set_split"
               phx-value-split={percentage}
-              class={
-                Enum.join([
-                  "btn btn-sm rounded px-4 py-2 border",
-                  if @me_file.split_amount == percentage do
-                    "bg-gray-700 text-white font-bold border-gray-800"
-                  else
-                    "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
-                  end
-                ], " ")
-              }
+              @click={"splitAmount = #{percentage}"}
+              x-bind:class={"splitAmount == #{percentage} ? 'btn btn-sm rounded px-4 py-2 border bg-gray-700 text-white font-bold border-gray-800' : 'btn btn-sm rounded px-4 py-2 border bg-white border-gray-300 text-gray-700 hover:bg-gray-100'"}
             >
               <%= percentage %>%
             </button>
@@ -98,7 +102,7 @@
           <img src={@recipient_image || "/images/tipjar_love_default.png"} alt="Recipient" class="object-contain w-full h-full" />
         </div>
         <div class="text-gray-600 text-sm text-center max-w-xs">
-          <%= @recipient_message || "Thank you for supporting my blog. I love sharing my content with you. Your Sponster tips are greatly appreciated!" %>
+          <%= @recipient_message || "Thank you for supporting this content. Your Sponster tips are greatly appreciated!" %>
         </div>
       </div>
     </div>
