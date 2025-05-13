@@ -98,7 +98,16 @@ defmodule Qlarius.Creators do
     %ContentGroup{catalog: catalog}
     |> ContentGroup.changeset(attrs)
     |> Repo.insert()
+    |> maybe_update_image(attrs["image"])
   end
+
+  defp maybe_update_image({:ok, group}, image) when not is_nil(image) do
+    group
+    |> ContentGroup.image_changeset(image)
+    |> Repo.update()
+  end
+
+  defp maybe_update_image(result, _image), do: result
 
   def get_content_group!(id) do
     Repo.one!(from ContentGroup, where: [id: ^id])
@@ -111,6 +120,7 @@ defmodule Qlarius.Creators do
     group
     |> ContentGroup.changeset(attrs)
     |> Repo.update()
+    |> maybe_update_image(attrs["image"])
   end
 
   def delete_content_group(%ContentGroup{} = group) do

@@ -1,5 +1,7 @@
 defmodule Qlarius.Arcade.ContentGroup do
   use Ecto.Schema
+  use Waffle.Ecto.Schema
+
   import Ecto.Changeset
 
   alias Qlarius.Arcade.Catalog
@@ -11,6 +13,7 @@ defmodule Qlarius.Arcade.ContentGroup do
     field :description, :string
     field :title, :string
     field :type, Ecto.Enum, values: ~w[show season album book class]a
+    field :image, QlariusWeb.Uploaders.ContentGroupImage.Type
 
     has_many :content_pieces, ContentPiece
 
@@ -22,5 +25,11 @@ defmodule Qlarius.Arcade.ContentGroup do
     content_group
     |> cast(attrs, [:title, :description])
     |> validate_required([:title])
+  end
+
+  def image_changeset(content_group, image) do
+    content_group
+    |> change(%{})
+    |> cast_attachments(%{image: image}, [:image])
   end
 end

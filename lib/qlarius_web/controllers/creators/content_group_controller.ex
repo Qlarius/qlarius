@@ -11,6 +11,8 @@ defmodule QlariusWeb.Creators.ContentGroupController do
   end
 
   def create(conn, %{"catalog_id" => catalog_id, "content_group" => content_group_params}) do
+    IO.inspect(content_group_params)
+
     catalog = Creators.get_catalog!(catalog_id)
 
     case Creators.create_content_group(catalog, content_group_params) do
@@ -46,6 +48,7 @@ defmodule QlariusWeb.Creators.ContentGroupController do
   end
 
   def update(conn, %{"id" => id, "content_group" => content_group_params}) do
+    IO.inspect(content_group_params)
     content_group = Creators.get_content_group!(id)
 
     case Creators.update_content_group(content_group, content_group_params) do

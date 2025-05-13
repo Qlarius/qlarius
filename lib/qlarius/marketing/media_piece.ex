@@ -42,7 +42,6 @@ defmodule Qlarius.Marketing.MediaPiece do
   def update_changeset(media_piece, attrs) do
     media_piece
     |> create_changeset(attrs)
-    |> put_change(:banner_image, attrs[:banner_image])
     |> cast_attachments(attrs, [:banner_image])
   end
 end
