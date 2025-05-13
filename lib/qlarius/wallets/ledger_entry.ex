@@ -4,6 +4,8 @@ defmodule Qlarius.Wallets.LedgerEntry do
 
   schema "ledger_entries" do
     belongs_to :ledger_header, Qlarius.Wallets.LedgerHeader
+
+    has_one :user, through: [:ledger_header, :me_file, :user]
     # TODO
     # belongs_to :ad_event, AdEvent
 

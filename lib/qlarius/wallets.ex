@@ -28,8 +28,8 @@ defmodule Qlarius.Wallets do
     Repo.one!(
       from(
         e in LedgerEntry,
-        join: h in assoc(e, :ledger_header),
-        where: e.id == ^ledger_entry_id and h.user_id == ^user.id,
+        join: u in assoc(e, :user),
+        where: e.id == ^ledger_entry_id and u.id == ^user.id,
         select: e,
         preload: :ad_event
       )
