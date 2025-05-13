@@ -1,4 +1,4 @@
-<.simple_form :let={f} for={@changeset} action={@action}>
+<.form :let={f} for={@changeset} action={@action}>
   <.error :if={@changeset.action}>
     Oops, something went wrong! Please check the errors below.
   </.error>
@@ -6,7 +6,5 @@
   <.input field={f[:name]} type="text" label="Name" required />
   <.input field={f[:description]} type="textarea" label="Description" />
 
-  <:actions>
-    <.button>Save Target</.button>
-  </:actions>
-</.simple_form>
+  <.button variant="primary">Save Target</.button>
+</.form>

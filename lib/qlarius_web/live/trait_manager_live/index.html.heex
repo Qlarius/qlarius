@@ -76,7 +76,7 @@
           {if @editing_value_id, do: "Edit value", else: "Add value"}
         </h2>
 
-        <.simple_form
+        <.form
           for={@new_trait_value_form}
           id="trait-value-form"
           phx-submit="save_trait_value"
@@ -99,25 +99,23 @@
             />
           <% end %>
 
-          <:actions>
-            <%= if @editing_value_id do %>
-              <button
-                type="button"
-                phx-click="cancel_edit"
-                class="bg-gray-300 text-gray-800 px-4 py-2 rounded mr-2"
-              >
-                Cancel
-              </button>
-              <.button class="bg-blue-500 text-white px-4 py-2 rounded">
-                Update
-              </.button>
-            <% else %>
-              <.button class="bg-blue-500 text-white px-4 py-2 rounded">
-                Add Value
-              </.button>
-            <% end %>
-          </:actions>
-        </.simple_form>
+          <%= if @editing_value_id do %>
+            <button
+              type="button"
+              phx-click="cancel_edit"
+              class="bg-gray-300 text-gray-800 px-4 py-2 rounded mr-2"
+            >
+              Cancel
+            </button>
+            <.button class="bg-blue-500 text-white px-4 py-2 rounded">
+              Update
+            </.button>
+          <% else %>
+            <.button class="bg-blue-500 text-white px-4 py-2 rounded">
+              Add Value
+            </.button>
+          <% end %>
+        </.form>
       <% end %>
     </div>
   </div>
@@ -133,7 +131,7 @@
           </button>
         </div>
 
-        <.simple_form
+        <.form
           for={@new_trait_form}
           id="trait-form"
           phx-submit="save_trait"
@@ -165,19 +163,17 @@
             placeholder="Optional question for this trait"
           />
 
-          <:actions>
-            <button
-              type="button"
-              phx-click="close_trait_modal"
-              class="bg-gray-300 text-gray-800 px-4 py-2 rounded mr-2"
-            >
-              Cancel
-            </button>
-            <.button class="bg-blue-500 text-white px-4 py-2 rounded">
-              Create Trait
-            </.button>
-          </:actions>
-        </.simple_form>
+          <button
+            type="button"
+            phx-click="close_trait_modal"
+            class="bg-gray-300 text-gray-800 px-4 py-2 rounded mr-2"
+          >
+            Cancel
+          </button>
+          <.button class="bg-blue-500 text-white px-4 py-2 rounded">
+            Create Trait
+          </.button>
+        </.form>
       </div>
     </div>
   <% end %>

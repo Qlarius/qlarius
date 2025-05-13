@@ -130,12 +130,7 @@
         {if @live_action == :new, do: "New Survey", else: "Edit Survey"}
       </.header>
 
-      <.simple_form
-        for={@form}
-        id="survey-form"
-        phx-submit="save_survey"
-        phx-change="validate_survey"
-      >
+      <.form for={@form} id="survey-form" phx-submit="save_survey" phx-change="validate_survey">
         <.input field={@form[:name]} type="text" label="Name" required />
 
         <.input
@@ -156,10 +151,8 @@
           required
         />
 
-        <:actions>
-          <.button type="submit" phx-disable-with="Saving...">Save</.button>
-        </:actions>
-      </.simple_form>
+        <.button type="submit" phx-disable-with="Saving..." variant="primary">Save</.button>
+      </.form>
     </.modal>
   <% end %>
 </Layouts.marketers>

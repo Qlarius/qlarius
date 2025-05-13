@@ -1,4 +1,4 @@
-<.simple_form :let={f} for={@changeset} action={@action}>
+<.form :let={f} for={@changeset} action={@action}>
   <.error :if={@changeset.action}>
     Oops, something went wrong! Please check the errors below.
   </.error>
@@ -42,7 +42,5 @@
     min="0"
   />
 
-  <:actions>
-    <.button>Create</.button>
-  </:actions>
-</.simple_form>
+  <.button variant="primary">Create</.button>
+</.form>
