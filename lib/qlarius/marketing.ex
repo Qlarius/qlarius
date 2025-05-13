@@ -30,6 +30,7 @@ defmodule Qlarius.Marketing do
   """
   def create_media_piece(attrs \\ %{}) do
     %MediaPiece{
+      active: true,
       marketer_id: @default_marketer_id,
       media_piece_type_id: @default_media_piece_type_id
     }

@@ -5,7 +5,6 @@ defmodule Qlarius.Offers do
 
   import Ecto.Query
 
-  alias Qlarius.Accounts.User
   alias Qlarius.Repo
   alias Qlarius.Offer
 

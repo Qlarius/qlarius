@@ -11,7 +11,7 @@
             class="file-input file-input-bordered w-full"
             value={nil}
           />
-          <%= if banner_value = Phoenix.HTML.Form.input_value(f, :banner_image) do %>
+          <%= if Phoenix.HTML.Form.input_value(f, :banner_image) do %>
             <div class="mt-2">
               <img
                 src={
@@ -62,8 +62,6 @@
           required
           class="select select-bordered w-full"
         />
-        <.input field={f[:media_piece_type_id]} type="hidden" value="1" />
-        <.input field={f[:active]} type="hidden" value="true" />
       </div>
 
       <.button variant="primary">Save Media Piece</.button>
