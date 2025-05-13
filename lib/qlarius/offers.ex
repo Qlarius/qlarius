@@ -23,4 +23,8 @@ defmodule Qlarius.Offers do
     from(o in Offer, join: u in assoc(o, :user), where: u.id == ^user_id)
     |> Repo.count()
   end
+
+  def get_offer_with_media_piece!(id) do
+    Repo.get!(Offer, id) |> Repo.preload(:media_piece)
+  end
 end
