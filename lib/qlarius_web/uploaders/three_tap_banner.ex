@@ -4,11 +4,8 @@ defmodule QlariusWeb.Uploaders.ThreeTapBanner do
 
   @versions [:original]
 
-  def storage_dir(_version, {_file, scope}) do
-    case scope do
-      %{id: id} when not is_nil(id) -> "uploads/media_pieces/banners/#{id}"
-      _ -> "uploads/media_pieces/banners/temp"
-    end
+  def storage_dir(_version, {_file, %{id: id} = _scope}) do
+    "uploads/media_pieces/banners/#{id}"
   end
 
   def validate({file, _}) do

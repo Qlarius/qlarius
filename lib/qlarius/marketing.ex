@@ -3,6 +3,9 @@ defmodule Qlarius.Marketing do
   The Marketing context.
   """
 
+  @default_marketer_id 88
+  @default_media_piece_type_id 1
+
   import Ecto.Query, warn: false
   alias Qlarius.Repo
 
@@ -26,17 +29,27 @@ defmodule Qlarius.Marketing do
   Creates a media_piece.
   """
   def create_media_piece(attrs \\ %{}) do
-    %MediaPiece{}
-    |> MediaPiece.changeset(attrs)
+    %MediaPiece{
+      marketer_id: @default_marketer_id,
+      media_piece_type_id: @default_media_piece_type_id
+    }
+    |> MediaPiece.create_changeset(attrs)
     |> Repo.insert()
+    |> maybe_update_banner_image(attrs["banner_image"])
   end
+
+  defp maybe_update_banner_image({:ok, piece}, image) when not is_nil(image) do
+    update_media_piece(piece, %{banner_image: image})
+  end
+
+  defp maybe_update_banner_image(result, _image), do: result
 
   @doc """
   Updates a media_piece.
   """
   def update_media_piece(%MediaPiece{} = media_piece, attrs) do
     media_piece
-    |> MediaPiece.changeset(attrs)
+    |> MediaPiece.update_changeset(attrs)
     |> Repo.update()
   end
 
@@ -51,7 +64,7 @@ defmodule Qlarius.Marketing do
   Returns an `%Ecto.Changeset{}` for tracking media_piece changes.
   """
   def change_media_piece(%MediaPiece{} = media_piece, attrs \\ %{}) do
-    MediaPiece.changeset(media_piece, attrs)
+    MediaPiece.update_changeset(media_piece, attrs)
   end
 
   @doc """
