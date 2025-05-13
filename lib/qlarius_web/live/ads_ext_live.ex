@@ -2,7 +2,7 @@ defmodule QlariusWeb.AdsExtLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Legacy
-  alias Qlarius.Legacy.{MeFile, Offer, User, LedgerHeader, AdEvent, LedgerEntry}
+  alias Qlarius.Legacy.{MeFile, Offer, User, LedgerHeader, AdEvent, LedgerEntry, Recipient}
   alias Qlarius.LegacyRepo
   alias Qlarius.Accounts.Scope
   alias Qlarius.Ads.ThreeTap
@@ -14,7 +14,7 @@ defmodule QlariusWeb.AdsExtLive do
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
-  @debug false
+  @debug true
 
   @impl true
   def mount(params, session, socket) do
@@ -30,6 +30,7 @@ defmodule QlariusWeb.AdsExtLive do
       end
 
     split_code = Map.get(params, "split_code")
+    recipient = Legacy.get_recipient_by_split_code(split_code)
 
     socket =
       socket
@@ -41,9 +42,7 @@ defmodule QlariusWeb.AdsExtLive do
       |> assign(:debug, @debug)
       |> assign(:host_uri, host_uri)
       |> assign(:split_code, split_code)
-      |> assign_new(:recipient_name, fn -> nil end)
-      |> assign_new(:recipient_image, fn -> nil end)
-      |> assign_new(:recipient_message, fn -> nil end)
+      |> assign(:recipient, recipient)
 
     if connected?(socket) do
       send(self(), :load_offers)
@@ -107,6 +106,7 @@ defmodule QlariusWeb.AdsExtLive do
           user_ip={@user_ip}
           current_scope={@current_scope}
           host_uri={@host_uri}
+          recipient={@recipient}
         />
       </div>
       <pre :if={@debug} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">

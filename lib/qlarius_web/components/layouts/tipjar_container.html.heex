@@ -21,12 +21,10 @@
       }
     }" x-init="document.body.classList.remove('tip-drawer-open')">
       <.tipjar_header wallet_balance={@current_scope.wallet_balance} user_alias={@current_scope.user.email} />
-      <%= if @split_code do %>
+      <%= if @recipient do %>
         <.tipjar_drawer 
-          me_file={@me_file} 
-          recipient_name={@recipient_name} 
-          recipient_image={@recipient_image} 
-          recipient_message={@recipient_message}
+          me_file={@me_file}
+          recipient={@recipient}
           x-bind:drawer-open="drawerOpen"
           x-bind:toggle-drawer="toggleDrawer"
         />

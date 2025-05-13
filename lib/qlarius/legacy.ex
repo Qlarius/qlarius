@@ -6,7 +6,7 @@ defmodule Qlarius.Legacy do
   import Ecto.Query
 
   alias Qlarius.LegacyRepo
-  alias Qlarius.Legacy.{User, MeFile, UserProxy}
+  alias Qlarius.Legacy.{User, MeFile, UserProxy, Recipient}
 
   def get_user(id) do
     LegacyRepo.get(User, id)
@@ -66,5 +66,19 @@ defmodule Qlarius.Legacy do
     proxy
     |> UserProxy.changeset(attrs)
     |> LegacyRepo.update()
+  end
+
+  @doc """
+  Retrieves a recipient by its split_code.
+  """
+  def get_recipient_by_split_code(split_code) do
+    LegacyRepo.get_by(Recipient, split_code: split_code)
+  end
+
+  @doc """
+  Retrieves a recipient by its ID.
+  """
+  def get_recipient_by_id(id) do
+    LegacyRepo.get(Recipient, id)
   end
 end

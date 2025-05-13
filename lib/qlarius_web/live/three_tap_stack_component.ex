@@ -9,6 +9,7 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   alias Qlarius.Wallets
   alias Phoenix.Component
   import Ecto.Query, except: [update: 2, update: 3]
+  alias Qlarius.Legacy
 
   @impl true
   def render(assigns) do
@@ -21,6 +22,8 @@ defmodule QlariusWeb.ThreeTapStackComponent do
             offer={offer}
             phase={phase}
             target={@myself}
+            recipient={@recipient}
+            me_file={@me_file}
           />
         </div>
       <% else %>
@@ -51,19 +54,29 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   end
 
   @impl true
-  def handle_event("click-offer", %{"offer-id" => offer_id}, socket) do
+  def handle_event("click-offer", %{"offer-id" => offer_id} = params, socket) do
     offer_id = String.to_integer(offer_id)
+
+    # Use recipient directly from socket.assigns
+    recipient = socket.assigns.recipient
+
     {offer, phase} = Enum.find(socket.assigns.active_offers, fn {o, _p} -> o.id == offer_id end)
-    handle_phase(socket, offer, phase)
+
+    # Get split_amount from socket if available, or default to 0
+    split_amount = (socket.assigns.me_file && socket.assigns.me_file.split_amount) || 0
+
+    handle_phase(socket, offer, phase, recipient, split_amount)
   end
 
-  defp handle_phase(socket, offer, 0) do
+  defp handle_phase(socket, offer, 0, _recipient, _split_amount) do
     increment_phase(socket, offer.id)
   end
 
-  defp handle_phase(socket, offer, 1) do
+  defp handle_phase(socket, offer, 1, recipient, split_amount) do
     ThreeTap.create_banner_ad_event(
-      offer.id,
+      offer,
+      recipient,
+      split_amount,
       socket.assigns.user_ip,
       socket.assigns.host_uri.host
     )
@@ -71,13 +84,19 @@ defmodule QlariusWeb.ThreeTapStackComponent do
     increment_phase(socket, offer.id)
   end
 
-  defp handle_phase(socket, offer, 2) do
-    ThreeTap.create_jump_ad_event(offer.id, socket.assigns.user_ip, socket.assigns.host_uri.host)
+  defp handle_phase(socket, offer, 2, recipient, split_amount) do
+    ThreeTap.create_jump_ad_event(
+      offer,
+      recipient,
+      split_amount,
+      socket.assigns.user_ip,
+      socket.assigns.host_uri.host
+    )
     send(self(), {:refresh_wallet_balance, socket.assigns.me_file.id})
     increment_phase(socket, offer.id)
   end
 
-  defp handle_phase(socket, _offer, _), do: {:noreply, socket}
+  defp handle_phase(socket, _offer, _, _recipient, _split_amount), do: {:noreply, socket}
 
   defp increment_phase(socket, offer_id) do
     new_offers =

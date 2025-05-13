@@ -1,8 +1,10 @@
 defmodule QlariusWeb.OfferHTML do
   use QlariusWeb, :html
 
-  alias Qlarius.Legacy.Offer
+  alias Qlarius.Legacy.{Offer, Recipient, MeFile}
   alias QlariusWeb.ThreeTapBanner
+  alias Qlarius.Ads.ThreeTap
+  import Ecto.Query, except: [update: 2, update: 3]
 
   import QlariusWeb.Money
 
@@ -10,17 +12,23 @@ defmodule QlariusWeb.OfferHTML do
 
   attr :phase, :integer, default: 0
   attr :offer, Offer, required: true
+  attr :recipient, :any, default: nil
+  attr :me_file, MeFile, required: true
+  attr :split_amount, :integer, default: 0
 
   def clickable_offer(assigns) do
+    # recipient = assigns.r`ecipient
+    split_amount = assigns.me_file.split_amount
     phase_2_amount = Decimal.sub(assigns.offer.offer_amt, @phase_1_amount)
     assigns = assign(assigns, :phase_2_amount, phase_2_amount)
     assigns = assign_new(assigns, :target, fn -> nil end)
 
     ~H"""
     <div class="offer-container">
+
       <div class="absolute inset-0 overflow-hidden">
         <div class={"offer-phase phase-0 #{if @phase > 0, do: "slide-left"}"}>
-          <.offer_container offer={@offer} class="p-5 text-neutral-800 bg-white" target={@target}>
+          <.offer_container offer={@offer} class="p-5 text-neutral-800 bg-white" target={@target} recipient={@recipient}>
             <div class="text-2xl font-bold mb-4">{format_usd(@offer.offer_amt)}</div>
             <div class="mb-4">
               {@offer.media_piece.ad_category.ad_category_name}
@@ -39,7 +47,7 @@ defmodule QlariusWeb.OfferHTML do
 
       <div class="absolute inset-0 overflow-hidden">
         <div class={"offer-phase phase-1 #{if @phase > 1, do: "slide-up"}"}>
-          <.offer_container offer={@offer} target={@target}>
+          <.offer_container offer={@offer} target={@target} recipient={@recipient}>
             <div class="flex justify-center items-center bg-white">
               <%= if @offer.media_piece.banner_image do %>
                 <img
@@ -65,7 +73,7 @@ defmodule QlariusWeb.OfferHTML do
 
       <div class="absolute inset-0 overflow-hidden">
         <div class={"offer-phase phase-2 #{if @phase > 2, do: "fade-out"}"}>
-          <.offer_container offer={@offer} class="px-3 py-2" target={@target}>
+          <.offer_container offer={@offer} class="px-3 py-2" target={@target} recipient={@recipient}>
             <a class="block w-full h-full" href={~p"/jump/#{@offer}"} target="_blank">
               <div class="text-blue-800 font-bold text-lg underline">
                 {@offer.media_piece.title}
@@ -86,8 +94,9 @@ defmodule QlariusWeb.OfferHTML do
         <div class={"offer-phase phase-3 #{if @phase < 3, do: "hidden"}"}>
           <.offer_container
             offer={@offer}
-            class="p-3 bg-neutral-100 flex flex-col justify-center text-center text-neutral-600 select-none"
+            class="p-3 bg-gray-100 flex flex-col justify-center text-center text-neutral-600 select-none"
             target={@target}
+            recipient={@recipient}
           >
             <div class="text-green-500 -mt-3">
               <.icon name="hero-check" class="w-6 h-6" />
@@ -95,9 +104,19 @@ defmodule QlariusWeb.OfferHTML do
             <div class="font-semibold text-sm uppercase text-gray-400">
               ATTENTION PAID™
             </div>
+            <%
+              # Get totals from ThreeTap context
+              {me_file_collect_total, recipient_collect_total} =
+                ThreeTap.calculate_offer_totals(@offer.id, @recipient)
+            %>
             <div class="text-sm text-gray-400">
-              Collected: <span class="font-semibold">{format_usd(@offer.offer_amt)}</span>
+              Collected: <span class="font-semibold">{format_usd(me_file_collect_total)}</span>
             </div>
+            <%= if @recipient do %>
+              <div class="text-sm text-gray-400 -mt-1">
+                Given: <span class="font-semibold">{format_usd(recipient_collect_total)}</span>
+              </div>
+            <% end %>
           </.offer_container>
         </div>
       </div>
@@ -118,7 +137,7 @@ defmodule QlariusWeb.OfferHTML do
         <%= if @phase_1_complete? do %>
           <.icon name="hero-check" class="text-green-500 w-4 h-4" />
         <% else %>
-          <span>TAP FOR </span>
+          <span>TAP: </span>
           <span class="font-bold ml-1">$0.05</span>
         <% end %>
       </div>
@@ -126,7 +145,7 @@ defmodule QlariusWeb.OfferHTML do
         "py-2 flex-1 flex items-center justify-center border-l border-gray-400",
         if(@phase_1_complete?, do: "bg-gray-500 text-white", else: "bg-gray-500 text-gray-400")
       ]}>
-        <span>JUMP FOR </span>
+        <span>JUMP: </span>
         <span class="font-bold ml-1">{format_usd(@phase_2_amount)}</span>
       </div>
     </div>
@@ -134,8 +153,8 @@ defmodule QlariusWeb.OfferHTML do
   end
 
   attr :class, :string, default: nil
-  attr :neutral_bg, :boolean, default: false
   attr :offer, Offer, required: true
+  attr :recipient, :any, default: nil
   slot :inner_block, required: true
 
   defp offer_container(assigns) do
@@ -145,6 +164,7 @@ defmodule QlariusWeb.OfferHTML do
     <div
       phx-click="click-offer"
       phx-value-offer-id={@offer.id}
+      phx-value-recipient-id={@recipient && @recipient.id}
       phx-target={@target}
       class={[
         "relative w-96 h-40 rounded-md border border-neutral-400 overflow-hidden cursor-pointer",

@@ -67,7 +67,7 @@
   <!-- Drawer header and content -->
   <div class="w-full bg-gray-50 max-width-full shadow-2xl border-t border-gray-200 pt-0 py-8 px-0" style="min-height: 350px;">
     <!-- Header -->
-    <div class="w-full bg-white border-b border-gray-300 p-5 flex justify-between items-center shadow-[0_4px_6px_-1px_rgba(0,0,0,0.5)]">
+    <div class="w-full bg-white border-b border-gray-300 p-5 flex justify-between items-center shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)] relative z-10">
       <div class="text-gray-800 font-bold text-base uppercase tracking-wider">TIP TO SUPPORT WHAT YOU LOVE</div>
       <button @click="toggleDrawer" class="flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 bg-white shadow hover:bg-gray-100">
         <svg class="w-6 h-6 text-gray-700 rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -76,7 +76,7 @@
       </button>
     </div>
     <!-- Content -->
-    <div class="flex flex-col md:flex-row gap-8 px-8 pt-6 bg-gray-50 overflow-y-auto shadow-[inset_0_4px_6px_-1px_rgba(0,0,0,0.1)]" style="max-height: 60vh;">
+    <div class="flex flex-col md:flex-row gap-8 px-8 pt-6 bg-gray-50 overflow-y-auto max-w-[800px] mx-auto" style="max-height: 60vh;">
       <!-- Left: Autosplit -->
       <div class="flex-1 flex flex-col items-center md:items-start">
         <div class="text-lg font-bold text-gray-800 mb-1">AutoSplit</div>
@@ -97,12 +97,12 @@
       </div>
       <!-- Right: Recipient -->
       <div class="flex-1 flex flex-col items-center">
-        <div class="text-2xl font-bold text-gray-800 mb-2 text-center md:text-left"><%= @recipient_name || "This Blog's Name" %></div>
+        <div class="text-2xl font-bold text-gray-800 mb-2 text-center md:text-left"><%= @recipient.name || "This Blog's Name" %></div>
         <div class="w-56 h-56 bg-gray-100 shadow-md flex items-center justify-center mb-4 overflow-hidden">
-          <img src={@recipient_image || "/images/tipjar_love_default.png"} alt="Recipient" class="object-contain w-full h-full" />
+          <img src={@recipient.graphic_url || "/images/tipjar_love_default.png"} alt="Recipient" class="object-contain w-full h-full" />
         </div>
         <div class="text-gray-600 text-sm text-center max-w-xs">
-          <%= @recipient_message || "Thank you for supporting this content. Your Sponster tips are greatly appreciated!" %>
+          <%= @recipient.message || "Thank you for supporting this content. Your Sponster tips are greatly appreciated!" %>
         </div>
       </div>
     </div>
