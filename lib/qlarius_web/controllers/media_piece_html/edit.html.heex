@@ -4,9 +4,10 @@
   </.header>
 
   <.media_piece_form
-    changeset={@changeset}
     action={~p"/media_pieces/#{@media_piece}"}
     ad_categories={@ad_categories}
+    changeset={@changeset}
+    marketers={@marketers}
   />
 
   <.back navigate={~p"/media_pieces"}>Back to media pieces</.back>
