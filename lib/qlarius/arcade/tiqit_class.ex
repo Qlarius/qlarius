@@ -15,8 +15,8 @@ defmodule Qlarius.Arcade.TiqitClass do
     timestamps()
   end
 
-  def changeset(tt, params) do
-    tt
+  def changeset(tc, params) do
+    tc
     |> cast(params, ~w[name duration_hours price]a)
     |> validate_required([:name, :price])
     |> validate_number(:duration_hours, greater_than: 0)

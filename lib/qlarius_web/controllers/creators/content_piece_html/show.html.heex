@@ -16,7 +16,7 @@
   Tiqits
 </h2>
 
-<div :for={tt <- @content.tiqit_types} class="flex flex-col gap-4 divider-y">
+<div :for={tt <- @content.tiqit_classes} class="flex flex-col gap-4 divider-y">
   <.list>
     <:item title="Name">{tt.name}</:item>
     <:item title="Duration">{tt.duration_seconds}</:item>

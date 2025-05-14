@@ -111,9 +111,7 @@ defmodule Qlarius.Creators do
 
   def get_content_group!(id) do
     Repo.one!(from ContentGroup, where: [id: ^id])
-    |> Repo.preload([:content_pieces, catalog: :creator])
-    # FIXME preload the real tiqit types
-    |> Map.put(:tiqit_types, [])
+    |> Repo.preload([:content_pieces, :tiqit_classes, catalog: :creator])
   end
 
   def update_content_group(%ContentGroup{} = group, attrs) do
@@ -134,7 +132,7 @@ defmodule Qlarius.Creators do
   def get_content_piece!(id) do
     ContentPiece
     |> Repo.get!(id)
-    |> Repo.preload([:tiqit_types, content_group: [catalog: :creator]])
+    |> Repo.preload([:tiqit_classes, content_group: [catalog: :creator]])
   end
 
   def change_content_piece(%ContentPiece{} = piece, attrs \\ %{}) do

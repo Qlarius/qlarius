@@ -16,6 +16,7 @@ defmodule Qlarius.Arcade.ContentGroup do
     field :image, QlariusWeb.Uploaders.ContentGroupImage.Type
 
     has_many :content_pieces, ContentPiece
+    has_many :tiqit_classes, through: [:content_pieces, :tiqit_classes]
 
     timestamps(type: :utc_datetime)
   end

@@ -62,6 +62,14 @@
           required
           class="select select-bordered w-full"
         />
+        <.input
+          field={f[:marketer_id]}
+          type="select"
+          label="Marketer"
+          options={Enum.map(@marketers, &{&1.business_name, &1.id})}
+          required
+          class="select select-bordered w-full"
+        />
       </div>
 
       <.button variant="primary">Save Media Piece</.button>

@@ -32,8 +32,8 @@
       Tiqits
     </h2>
 
-    <.inputs_for :let={ttf} field={@form[:tiqit_types]}>
-      <input type="hidden" name="content_piece[tiqit_type_sort][]" value={ttf.index} />
+    <.inputs_for :let={ttf} field={@form[:tiqit_classes]}>
+      <input type="hidden" name="content_piece[tiqit_class_sort][]" value={ttf.index} />
 
       <div class="flex align-start gap-4">
         <.input field={ttf[:name]} type="text" label="Name" />
@@ -42,7 +42,7 @@
 
         <button
           type="button"
-          name="content_piece[tiqit_type_drop][]"
+          name="content_piece[tiqit_class_drop][]"
           value={ttf.index}
           phx-click={JS.dispatch("change")}
           class="relative top-4"
@@ -54,7 +54,7 @@
 
     <button
       class="my-4 text-zinc-700"
-      name="content_piece[tiqit_type_sort][]"
+      name="content_piece[tiqit_class_sort][]"
       phx-click={JS.dispatch("change")}
       type="button"
       value="new"

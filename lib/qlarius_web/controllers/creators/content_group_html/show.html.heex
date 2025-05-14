@@ -29,7 +29,7 @@
     </:actions>
   </.header>
 
-  <image :if={@content_group.image} src={content_group_image_url(@content_group)} class="h-64"/>
+  <image :if={@content_group.image} src={content_group_image_url(@content_group)} class="h-64" />
 
   <div class="leading-6 text-zinc-600 text-sm space-y-4 mt-6 mb-8">
     <p><em>{@content_group.description}</em></p>
@@ -62,7 +62,7 @@
 
       <%!-- TODO show price and tiqit type count?
       <div class="text-sm font-light mt-1">
-        {length(piece.tiqit_types)} tiqit type{if length(piece.tiqit_types) == 1,
+        {length(piece.tiqit_classes)} tiqit type{if length(piece.tiqit_classes) == 1,
           do: "",
           else: "s"}
       </div>

@@ -30,7 +30,7 @@ defmodule Qlarius.Marketing.MediaPiece do
   # When we create a new media piece, we don't know the ID yet, so we save it
   # first then cast the banner_image in a separate update (using update_changeset)
   def create_changeset(media_piece, attrs) do
-    whitelist = ~w[title body_copy display_url jump_url ad_category_id]a
+    whitelist = ~w[title body_copy display_url jump_url ad_category_id marketer_id]a
 
     media_piece
     |> cast(attrs, whitelist)

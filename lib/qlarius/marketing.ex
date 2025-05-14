@@ -3,14 +3,19 @@ defmodule Qlarius.Marketing do
   The Marketing context.
   """
 
-  @default_marketer_id 88
   @default_media_piece_type_id 1
 
-  import Ecto.Query, warn: false
+  import Ecto.Query
+
   alias Qlarius.Repo
 
-  alias Qlarius.Marketing.MediaPiece
+  alias Qlarius.Accounts.Marketer
   alias Qlarius.Campaigns.AdCategory
+  alias Qlarius.Marketing.MediaPiece
+
+  def list_marketers do
+    Repo.all(from m in Marketer, order_by: [asc: m.business_name])
+  end
 
   @doc """
   Returns the list of media_pieces.
@@ -29,11 +34,7 @@ defmodule Qlarius.Marketing do
   Creates a media_piece.
   """
   def create_media_piece(attrs \\ %{}) do
-    %MediaPiece{
-      active: true,
-      marketer_id: @default_marketer_id,
-      media_piece_type_id: @default_media_piece_type_id
-    }
+    %MediaPiece{active: true, media_piece_type_id: @default_media_piece_type_id}
     |> MediaPiece.create_changeset(attrs)
     |> Repo.insert()
     |> maybe_update_banner_image(attrs["banner_image"])

@@ -3,6 +3,7 @@ defmodule Qlarius.Arcade.ContentPiece do
   import Ecto.Changeset
 
   alias Qlarius.Arcade.ContentGroup
+  alias Qlarius.Arcade.TiqitClass
 
   schema "content_pieces" do
     field :title, :string
@@ -16,7 +17,7 @@ defmodule Qlarius.Arcade.ContentPiece do
     field :price_default, :decimal, default: Decimal.new("0.00")
     field :type, Ecto.Enum, values: ~w[episode chapter song piece lesson]a
 
-    has_many :tiqit_classes, Qlarius.Arcade.TiqitClass, on_replace: :delete
+    has_many :tiqit_classes, TiqitClass, on_replace: :delete
     belongs_to :content_group, ContentGroup
 
     timestamps()
@@ -42,10 +43,10 @@ defmodule Qlarius.Arcade.ContentPiece do
     ])
     |> validate_length(:title, max: 200)
     |> cast_assoc(
-      :tiqit_types,
-      drop_param: :tiqit_type_drop,
-      sort_param: :tiqit_type_sort
-      # with: &TiqitType.changeset/2
+      :tiqit_classes,
+      drop_param: :tiqit_class_drop,
+      sort_param: :tiqit_class_sort,
+      with: &TiqitClass.changeset/2
     )
   end
 end
