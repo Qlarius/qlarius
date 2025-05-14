@@ -14,7 +14,7 @@ defmodule QlariusWeb.AdsExtLive do
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
-  @debug true
+  @debug Mix.env() != :prod
 
   @impl true
   def mount(params, session, socket) do

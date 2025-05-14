@@ -22,8 +22,8 @@ defmodule QlariusWeb.ThreeTapStackComponent do
             offer={offer}
             phase={phase}
             target={@myself}
-            recipient={@recipient}
             me_file={@me_file}
+            {Map.take(assigns, [:recipient])}
           />
         </div>
       <% else %>
@@ -57,8 +57,8 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   def handle_event("click-offer", %{"offer-id" => offer_id} = params, socket) do
     offer_id = String.to_integer(offer_id)
 
-    # Use recipient directly from socket.assigns
-    recipient = socket.assigns.recipient
+    # Get recipient from socket.assigns if it exists
+    recipient = Map.get(socket.assigns, :recipient)
 
     {offer, phase} = Enum.find(socket.assigns.active_offers, fn {o, _p} -> o.id == offer_id end)
 

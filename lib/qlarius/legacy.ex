@@ -71,6 +71,7 @@ defmodule Qlarius.Legacy do
   @doc """
   Retrieves a recipient by its split_code.
   """
+  def get_recipient_by_split_code(nil), do: nil
   def get_recipient_by_split_code(split_code) do
     LegacyRepo.get_by(Recipient, split_code: split_code)
   end

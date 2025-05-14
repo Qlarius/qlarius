@@ -16,7 +16,7 @@ defmodule Qlarius.Ads.ThreeTap do
 
   alias Qlarius.Wallets
 
-  def create_banner_ad_event(offer, recipient, split_amount, ip \\ "0.0.0.0", url \\ "https://here.com") do
+  def create_banner_ad_event(offer, recipient \\ nil, split_amount \\ 0, ip \\ "0.0.0.0", url \\ "https://here.com") do
     # type = LegacyRepo.get!(MediaPieceType, 1)
     phase = LegacyRepo.get_by!(MediaPiecePhase, media_piece_type_id: 1, phase: 1)
 
@@ -44,7 +44,7 @@ defmodule Qlarius.Ads.ThreeTap do
     }
 
     # if recipient is provided, calculate the revshare to the recipient
-    ad_event_attrs = if recipient do
+    ad_event_attrs = if recipient && split_amount > 0 do
       split_percentage = Decimal.div(Decimal.new(split_amount), Decimal.new(100))
       IO.inspect(split_percentage, label: "Split percentage")
 
@@ -97,7 +97,7 @@ defmodule Qlarius.Ads.ThreeTap do
     end
   end
 
-  def create_jump_ad_event(offer, recipient, split_amount, ip \\ "0.0.0.0", url \\ "https://here.com") do
+  def create_jump_ad_event(offer, recipient \\ nil, split_amount \\ 0, ip \\ "0.0.0.0", url \\ "https://here.com") do
     type = LegacyRepo.get!(MediaPieceType, 1)
     phase = LegacyRepo.get_by!(MediaPiecePhase, media_piece_type_id: type.id, phase: 2)
     previous_phase = LegacyRepo.get_by!(MediaPiecePhase, media_piece_type_id: type.id, phase: 1)
@@ -138,8 +138,7 @@ defmodule Qlarius.Ads.ThreeTap do
     IO.inspect(ad_event_attrs, label: "Initial Ad Event Attributes")
 
     # if recipient is provided, calculate the revshare to the recipient
-    ad_event_attrs = if recipient do
-
+    ad_event_attrs = if recipient && split_amount > 0 do
       split_percentage = Decimal.div(Decimal.new(split_amount), Decimal.new(100))
       IO.inspect(split_percentage, label: "Split percentage")
 
