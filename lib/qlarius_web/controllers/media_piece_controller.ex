@@ -66,15 +66,12 @@ defmodule QlariusWeb.MediaPieceController do
   end
 
   defp assign_form_dropdowns(conn) do
-    IO.inspect(Map.keys(conn.assigns))
-
     conn =
       merge_assigns(conn,
         ad_categories: Marketing.list_ad_categories(),
         marketers: Marketing.list_marketers()
       )
 
-    IO.inspect(Map.keys(conn.assigns))
     conn
   end
 end
