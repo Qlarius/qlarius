@@ -31,6 +31,12 @@ defmodule QlariusWeb.Creators.ContentGroupController do
     render(conn, :show, catalog: catalog, creator: creator, content_group: content_group)
   end
 
+  # Renders a simple HTML template with the group in an arcade iframe
+  def preview(conn, %{"content_group_id" => id}) do
+    group = Creators.get_content_group!(id)
+    render(conn, :preview, group: group, layout: false)
+  end
+
   def edit(conn, %{"id" => id}) do
     content_group = Creators.get_content_group!(id)
     changeset = Creators.change_content_group(content_group)

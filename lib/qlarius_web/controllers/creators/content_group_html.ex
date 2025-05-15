@@ -17,4 +17,15 @@ defmodule QlariusWeb.Creators.ContentGroupHTML do
   def content_group_image_url(%ContentGroup{} = group) do
     QlariusWeb.Uploaders.ContentGroupImage.url({group.image, group}, :original)
   end
+
+  def content_group_iframe_url(conn, %ContentGroup{} = group) do
+    origin =
+      if conn.host == "localhost" do
+        "localhost:4000"
+      else
+        conn.host
+      end
+
+    "#{conn.scheme}://#{origin}/widgets/arcade/group/#{group.id}"
+  end
 end

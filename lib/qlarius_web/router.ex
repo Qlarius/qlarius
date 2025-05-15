@@ -125,6 +125,7 @@ defmodule QlariusWeb.Router do
 
       resources "/content_groups", ContentGroupController,
         only: [:show, :edit, :update, :delete] do
+        get "/preview", ContentGroupController, :preview
         live "/content_pieces/new", ContentPieceLive.Form, :new
       end
 

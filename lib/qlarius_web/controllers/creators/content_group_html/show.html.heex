@@ -41,13 +41,20 @@
           class="relative flex items-center bg-zinc-200 text-zinc-800 rounded-md px-3 py-2 font-mono text-xs cursor-pointer hover:bg-zinc-300 transition-colors flex-grow"
           onclick="copyCode(this)"
         >
-          <code>{@conn.scheme}://{@conn.host}/widgets/arcade/group/{@content_group.id}</code>
+          <code>{content_group_iframe_url(@conn, @content_group)}</code>
 
           <.icon name="hero-document-duplicate" class="ml-2 h-4 w-4 text-zinc-800" />
           <span class="popup hidden absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-xs text-white px-2 py-1 rounded">
             Copied to clipboard!
           </span>
         </div>
+
+        <.link
+          class="ml-3 text-orange-500 hover:text-orange-700"
+          navigate={~p"/creators/content_groups/#{@content_group}/preview"}
+        >
+          Preview
+        </.link>
       <% end %>
     </div>
   </div>
