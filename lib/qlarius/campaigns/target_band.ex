@@ -10,11 +10,13 @@ defmodule Qlarius.Campaigns.TargetBand do
 
     field :title, :string
     field :description, :string
-    field :bullseye, :boolean, default: false
+    field :is_bullseye, :boolean, default: false
 
     many_to_many :trait_groups, TraitGroup, join_through: "traits_trait_groups"
 
-    timestamps(type: :utc_datetime)
+    belongs_to :created_by, Qlarius.Accounts.User, foreign_key: :user_created_by
+
+    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
   end
 
   def changeset(target_band, attrs) do

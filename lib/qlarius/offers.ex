@@ -3,24 +3,30 @@ defmodule Qlarius.Offers do
   The Offers context.
   """
 
-  import Ecto.Query, warn: false
+  import Ecto.Query
+
   alias Qlarius.Repo
   alias Qlarius.Offer
 
   @doc """
-  Returns the list of offers for a user.
+  Returns the list of offers for a user, in descending order of their amount
   """
   def list_user_offers(user_id) do
-    Offer
-    |> where([o], o.user_id == ^user_id)
-    |> preload([:media_piece, :ad_category])
+    from(o in Offer,
+      join: u in assoc(o, :user),
+      where: u.id == ^user_id and o.is_current == true,
+      order_by: [desc: o.amount],
+      preload: [:ad_category, :media_piece]
+    )
     |> Repo.all()
   end
 
   def count_user_offers(user_id) do
-    Offer
-    |> where([o], o.user_id == ^user_id)
-    |> preload([:media_piece, :ad_category])
+    from(o in Offer, join: u in assoc(o, :user), where: u.id == ^user_id)
     |> Repo.count()
+  end
+
+  def get_offer_with_media_piece!(id) do
+    Repo.get!(Offer, id) |> Repo.preload(:media_piece)
   end
 end

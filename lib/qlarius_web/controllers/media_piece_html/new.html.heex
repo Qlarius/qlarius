@@ -13,6 +13,11 @@
     action={~p"/media_pieces"}
     ad_categories={@ad_categories}
   />
+  <.media_piece_form
+    changeset={@changeset}
+    action={~p"/media_pieces"}
+    ad_categories={@ad_categories}
+  />
 
   <div class="mt-8">
     <.back navigate={~p"/media_pieces"} class="btn btn-outline">Back to media pieces</.back>

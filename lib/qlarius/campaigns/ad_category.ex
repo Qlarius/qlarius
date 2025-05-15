@@ -3,8 +3,6 @@ defmodule Qlarius.Campaigns.AdCategory do
   import Ecto.Changeset, warn: false
 
   schema "ad_categories" do
-    field :name, :string
-
-    timestamps(type: :utc_datetime)
+    field :name, :string, source: :ad_category_name
   end
 end

@@ -30,6 +30,11 @@ defmodule Qlarius.Accounts.Scope do
   @doc """
   Creates a scope for the given user.
 
+  Note: this must always take the true user, even if we're proxying.
+
+  'user' will be set to the user who appears logged in, i.e. the 'true user'
+  in normal usage and the proxy user if we're proxying.
+
   Returns nil if no user is given.
   """
   def for_user(user) do

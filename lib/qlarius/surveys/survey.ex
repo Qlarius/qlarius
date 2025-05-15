@@ -10,10 +10,13 @@ defmodule Qlarius.Surveys.Survey do
     field :display_order, :integer, default: 1
     field :active, :boolean, default: false
 
-    belongs_to :category, SurveyCategory
+    belongs_to :category, SurveyCategory, foreign_key: :survey_category_id
     many_to_many :traits, Trait, join_through: "traits_surveys"
 
-    timestamps(type: :utc_datetime)
+    belongs_to :created_by, Qlarius.Accounts.User
+    belongs_to :updated_by, Qlarius.Accounts.User
+
+    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
   end
 
   def changeset(survey, attrs) do

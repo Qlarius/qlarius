@@ -1,163 +1,158 @@
-<div class="container mx-auto">
-  <h1 class="text-2xl font-bold mb-6">Survey Manager</h1>
+<Layouts.marketers {assigns}>
+  <div class="container mx-auto">
+    <h1 class="text-2xl font-bold mb-6">Survey Manager</h1>
 
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <!-- Left Column: Categories and Surveys List -->
-    <div class="bg-white rounded-lg shadow p-4">
-      <%= for category <- @categories_with_surveys do %>
-        <div class="mb-4">
-          <div class="flex justify-between items-center mb-2">
-            <h2 class="text-lg font-semibold">{category.name}</h2>
-            <.link
-              patch={~p"/survey_manager/new/#{category.id}"}
-              class="text-blue-500 hover:text-blue-700"
-            >
-              <.icon name="hero-plus" class="h-5 w-5" />
-            </.link>
-          </div>
-          <ul class="pl-4">
-            <%= for survey <- category.surveys do %>
-              <li class="py-1">
-                <.link
-                  patch={~p"/survey_manager/#{survey.id}"}
-                  class={"text-left w-full hover:text-blue-700 #{if @selected_survey && @selected_survey.id == survey.id, do: "font-semibold text-blue-600", else: ""}"}
-                >
-                  {survey.name}
-                </.link>
-              </li>
-            <% end %>
-          </ul>
-        </div>
-      <% end %>
-    </div>
-    
-<!-- Right Column: Selected Survey Details -->
-    <div class="bg-white rounded-lg shadow p-4">
-      <%= if @selected_survey do %>
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-semibold">{@selected_survey.name}</h2>
-          <.link
-            patch={~p"/survey_manager/edit/#{@selected_survey.id}"}
-            class="text-blue-500 hover:text-blue-700"
-          >
-            <.icon name="hero-pencil" class="h-5 w-5" />
-          </.link>
-        </div>
-
-        <div class="space-y-4">
-          <%= for trait <- @selected_survey.traits do %>
-            <div class="bg-gray-50 rounded-lg p-4 shadow-sm">
-              <div class="flex justify-between items-center mb-2">
-                <h3 class="text-lg font-medium">{trait.name}</h3>
-                <button
-                  type="button"
-                  phx-click="remove_trait"
-                  phx-value-survey-id={@selected_survey.id}
-                  phx-value-trait-id={trait.id}
-                  class="text-gray-400 hover:text-gray-600"
-                >
-                  <.icon name="hero-x-mark" class="h-5 w-5" />
-                </button>
-              </div>
-
-              <%= if trait.question do %>
-                <p class="text-gray-600 mb-3">{trait.question}</p>
-              <% end %>
-
-              <div class="space-y-2">
-                <%= for value <- trait.values do %>
-                  <div class="flex items-center gap-2">
-                    <%= if trait.input_type == :checkboxes do %>
-                      <input type="checkbox" disabled class="rounded border-gray-300" />
-                    <% else %>
-                      <input type="radio" disabled class="rounded-full border-gray-300" />
-                    <% end %>
-                    <span class="text-gray-700">
-                      {value.answer || value.name}
-                    </span>
-                  </div>
-                <% end %>
-              </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Left Column: Categories and Surveys List -->
+      <div class="bg-white rounded-lg shadow p-4">
+        <%= for category <- @categories_with_surveys do %>
+          <div class="mb-4">
+            <div class="flex justify-between items-center mb-2">
+              <h2 class="text-lg font-semibold">{category.name}</h2>
+              <.link
+                patch={~p"/survey_manager/new/#{category.id}"}
+                class="text-blue-500 hover:text-blue-700"
+              >
+                <.icon name="hero-plus" class="h-5 w-5" />
+              </.link>
             </div>
-          <% end %>
-        </div>
-      <% else %>
-        <div class="text-gray-500 italic text-center py-10">
-          Select a survey from the left panel to view details
-        </div>
-      <% end %>
-    </div>
-    
-<!-- Right Column: Available Traits -->
-    <div class="bg-white rounded-lg shadow p-4">
-      <%= if @selected_survey do %>
-        <h2 class="text-xl font-semibold mb-4">Available Traits</h2>
-        <%= for {category, traits} <- @available_traits do %>
-          <div class="mb-6">
-            <h3 class="text-lg font-medium mb-2">{category.name}</h3>
-            <table class="w-full">
-              <tbody>
-                <%= for trait <- traits do %>
-                  <tr class="border-t border-gray-100">
-                    <td class="py-2 w-8">
-                      <button
-                        type="button"
-                        phx-click="add_trait"
-                        phx-value-survey-id={@selected_survey.id}
-                        phx-value-trait-id={trait.id}
-                        class="text-blue-500 hover:text-blue-700"
-                      >
-                        <.icon name="hero-chevron-left" class="h-5 w-5" />
-                      </button>
-                    </td>
-                    <td class="py-2">{trait.name}</td>
-                    <td class="py-2 text-gray-500">{trait.question}</td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
+            <ul class="pl-4">
+              <%= for survey <- category.surveys do %>
+                <li class="py-1">
+                  <.link
+                    patch={~p"/survey_manager/#{survey.id}"}
+                    class={"text-left w-full hover:text-blue-700 #{if @selected_survey && @selected_survey.id == survey.id, do: "font-semibold text-blue-600", else: ""}"}
+                  >
+                    {survey.name}
+                  </.link>
+                </li>
+              <% end %>
+            </ul>
           </div>
         <% end %>
-      <% end %>
+      </div>
+      
+<!-- Right Column: Selected Survey Details -->
+      <div class="bg-white rounded-lg shadow p-4">
+        <%= if @selected_survey do %>
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">{@selected_survey.name}</h2>
+            <.link
+              patch={~p"/survey_manager/edit/#{@selected_survey.id}"}
+              class="text-blue-500 hover:text-blue-700"
+            >
+              <.icon name="hero-pencil" class="h-5 w-5" />
+            </.link>
+          </div>
+
+          <div class="space-y-4">
+            <%= for trait <- @selected_survey.traits do %>
+              <div class="bg-gray-50 rounded-lg p-4 shadow-sm">
+                <div class="flex justify-between items-center mb-2">
+                  <h3 class="text-lg font-medium">{trait.name}</h3>
+                  <button
+                    type="button"
+                    phx-click="remove_trait"
+                    phx-value-survey-id={@selected_survey.id}
+                    phx-value-trait-id={trait.id}
+                    class="text-gray-400 hover:text-gray-600"
+                  >
+                    <.icon name="hero-x-mark" class="h-5 w-5" />
+                  </button>
+                </div>
+
+                <%= if trait.question do %>
+                  <p class="text-gray-600 mb-3">{trait.question}</p>
+                <% end %>
+
+                <div class="space-y-2">
+                  <%= for value <- trait.values do %>
+                    <div class="flex items-center gap-2">
+                      <%= if trait.input_type == :checkboxes do %>
+                        <input type="checkbox" disabled class="rounded border-gray-300" />
+                      <% else %>
+                        <input type="radio" disabled class="rounded-full border-gray-300" />
+                      <% end %>
+                      <span class="text-gray-700">
+                        {value.answer || value.name}
+                      </span>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-gray-500 italic text-center py-10">
+            Select a survey from the left panel to view details
+          </div>
+        <% end %>
+      </div>
+      
+<!-- Right Column: Available Traits -->
+      <div class="bg-white rounded-lg shadow p-4">
+        <%= if @selected_survey do %>
+          <h2 class="text-xl font-semibold mb-4">Available Traits</h2>
+          <%= for {category, traits} <- @available_traits do %>
+            <div class="mb-6">
+              <h3 class="text-lg font-medium mb-2">{category.name}</h3>
+              <table class="w-full">
+                <tbody>
+                  <%= for trait <- traits do %>
+                    <tr class="border-t border-gray-100">
+                      <td class="py-2 w-8">
+                        <button
+                          type="button"
+                          phx-click="add_trait"
+                          phx-value-survey-id={@selected_survey.id}
+                          phx-value-trait-id={trait.id}
+                          class="text-blue-500 hover:text-blue-700"
+                        >
+                          <.icon name="hero-chevron-left" class="h-5 w-5" />
+                        </button>
+                      </td>
+                      <td class="py-2">{trait.name}</td>
+                      <td class="py-2 text-gray-500">{trait.question}</td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
     </div>
   </div>
-</div>
 
-<%= if @live_action in [:new, :edit] do %>
-  <.modal id="survey-modal" show on_cancel={JS.patch(~p"/survey_manager")}>
-    <.header>
-      {if @live_action == :new, do: "New Survey", else: "Edit Survey"}
-    </.header>
+  <%= if @live_action in [:new, :edit] do %>
+    <.modal id="survey-modal" show on_cancel={JS.patch(~p"/survey_manager")}>
+      <.header>
+        {if @live_action == :new, do: "New Survey", else: "Edit Survey"}
+      </.header>
 
-    <.simple_form
-      for={@form}
-      id="survey-form"
-      phx-submit="save_survey"
-      phx-change="validate_survey"
-    >
-      <.input field={@form[:name]} type="text" label="Name" required />
+      <.form for={@form} id="survey-form" phx-submit="save_survey" phx-change="validate_survey">
+        <.input field={@form[:name]} type="text" label="Name" required />
 
-      <.input
-        field={@form[:category_id]}
-        type="select"
-        label="Category"
-        options={Enum.map(@categories_with_surveys, &{&1.name, &1.id})}
-        phx-debounce
-        required
-      />
+        <.input
+          field={@form[:category_id]}
+          type="select"
+          label="Category"
+          options={Enum.map(@categories_with_surveys, &{&1.name, &1.id})}
+          phx-debounce
+          required
+        />
 
-      <.input
-        field={@form[:display_order]}
-        type="number"
-        label="Display Order"
-        min="1"
-        phx-debounce
-        required
-      />
+        <.input
+          field={@form[:display_order]}
+          type="number"
+          label="Display Order"
+          min="1"
+          phx-debounce
+          required
+        />
 
-      <:actions>
-        <.button type="submit" phx-disable-with="Saving...">Save</.button>
-      </:actions>
-    </.simple_form>
-  </.modal>
-<% end %>
+        <.button type="submit" phx-disable-with="Saving..." variant="primary">Save</.button>
+      </.form>
+    </.modal>
+  <% end %>
+</Layouts.marketers>

@@ -5,12 +5,19 @@ defmodule Qlarius.Traits.TraitCategory do
   alias Qlarius.Traits.Trait
 
   schema "trait_categories" do
-    field :name, :string
+    field :name, :string, source: :trait_category_name
     field :display_order, :integer
 
-    has_many :traits, Trait, foreign_key: :category_id
+    belongs_to :updated_by, Qlarius.Accounts.User, foreign_key: :modified_by
+    belongs_to :inserted_by, Qlarius.Accounts.User, foreign_key: :added_by
 
-    timestamps(type: :utc_datetime)
+    has_many :traits, Trait
+
+    timestamps(
+      type: :utc_datetime,
+      inserted_at_source: :added_date,
+      updated_at_source: :modified_date
+    )
   end
 
   @doc """

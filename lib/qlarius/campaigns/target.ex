@@ -8,10 +8,14 @@ defmodule Qlarius.Campaigns.Target do
     has_many :campaigns, Campaign
     has_many :target_bands, TargetBand, on_delete: :delete_all
 
-    field :name, :string
+    # belongs_to :marketer
+
+    field :name, :string, source: :title
     field :description, :string
 
-    timestamps(type: :utc_datetime)
+    belongs_to :created_by, Qlarius.Accounts.User, foreign_key: :user_created_by
+
+    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
   end
 
   def changeset(target, attrs) do

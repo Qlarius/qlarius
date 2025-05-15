@@ -2,15 +2,20 @@ defmodule Qlarius.Surveys.SurveyCategory do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Surveys.Survey
-
   schema "survey_categories" do
-    field :name, :string
+    field :name, :string, source: :survey_category_name
     field :display_order, :integer
 
-    has_many :surveys, Survey, foreign_key: :category_id
+    has_many :surveys, Qlarius.Surveys.Survey
 
-    timestamps(type: :utc_datetime)
+    belongs_to :added_by, Qlarius.Accounts.User
+    belongs_to :modified_by, Qlarius.Accounts.User
+
+    timestamps(
+      type: :utc_datetime,
+      inserted_at_source: :added_date,
+      updated_at_source: :modified_date
+    )
   end
 
   def changeset(survey_category, attrs) do

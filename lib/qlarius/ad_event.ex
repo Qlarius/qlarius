@@ -1,20 +1,20 @@
 defmodule Qlarius.AdEvent do
   use Ecto.Schema
 
-  alias Qlarius.Offer
-
   schema "ad_events" do
-    belongs_to :offer, Offer
-    has_one :media_piece, through: [:offer, :media_piece]
-    has_one :media_run, through: [:offer, :media_run]
-
-    field :offer_amount, :decimal
-    field :throttled, :boolean, default: false
-    field :demo, :boolean, default: false
-    field :offer_complete, :boolean, default: false
+    field :offer_bid_amount, :decimal, source: :offer_bid_amt
+    field :is_payable, :boolean
+    field :is_throttled, :boolean
+    field :is_demo, :boolean
+    field :is_offer_complete, :boolean, default: false
     field :ip_address, :string
     field :url, :string
 
-    timestamps()
+    belongs_to :offer, Qlarius.Offer
+    belongs_to :me_file, Qlarius.Accounts.MeFile
+    belongs_to :campaign, Qlarius.Campaigns.Campaign
+    belongs_to :media_run, Qlarius.Marketing.MediaRun
+
+    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
   end
 end

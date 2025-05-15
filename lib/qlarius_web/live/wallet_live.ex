@@ -99,40 +99,35 @@ defmodule QlariusWeb.WalletLive do
     <Layouts.sponster {assigns}>
       <h1 class="text-3xl font-bold mb-4">Wallet</h1>
 
-      <%= if assigns[:error] do %>
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {@error}
+      <div class="mb-6">
+        <div class="text-lg">Current Balance:</div>
+        <div class="text-2xl text-green-500 font-bold">
+          {format_currency(@ledger_header.balance)}
         </div>
-      <% else %>
-        <div class="mb-6">
-          <div class="text-lg">Current Balance:</div>
-          <div class="text-2xl text-green-500 font-bold">
-            {format_currency(@ledger_header.balance)}
-          </div>
+      </div>
+
+      <div class="flex justify-center mb-6 space-x-2">
+        <%= if @page > 1 do %>
+          <button
+            phx-click="paginate"
+            phx-value-page="1"
+            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+          >
+            Newest
+          </button>
+
+          <button
+            phx-click="paginate"
+            phx-value-page={@page - 1}
+            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+          >
+            <.icon name="hero-chevron-left" class="h-4 w-4" />
+          </button>
+        <% end %>
+
+        <div class="flex items-center px-4 py-2 bg-green-500 text-white rounded-md">
+          {@page}
         </div>
-
-        <div class="flex justify-center mb-6 space-x-2">
-          <%= if @page > 1 do %>
-            <button
-              phx-click="paginate"
-              phx-value-page="1"
-              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-            >
-              Newest
-            </button>
-
-            <button
-              phx-click="paginate"
-              phx-value-page={@page - 1}
-              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-            >
-              &lt;
-            </button>
-          <% end %>
-
-          <div class="flex items-center px-4 py-2 bg-green-500 text-white rounded-md">
-            {@page}
-          </div>
 
           <%= if @page < @paginated_entries.total_pages do %>
             <button
@@ -148,14 +143,14 @@ defmodule QlariusWeb.WalletLive do
             </div>
           <% end %>
 
-          <button
-            phx-click="paginate"
-            phx-value-page="oldest"
-            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-          >
-            Oldest
-          </button>
-        </div>
+        <button
+          phx-click="paginate"
+          phx-value-page="oldest"
+          class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+        >
+          Oldest
+        </button>
+      </div>
 
         <h2 class="text-xl font-semibold mb-4">Transactions</h2>
 
@@ -186,7 +181,7 @@ defmodule QlariusWeb.WalletLive do
           </div>
         </div>
       <% end %>
-      
+
     <!-- Debug section -->
       <pre :if={@debug} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
         <%= inspect(assigns, pretty: true) %>

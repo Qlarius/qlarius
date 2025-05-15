@@ -12,7 +12,7 @@ defmodule QlariusWeb.TraitCategoryLive.FormComponent do
         <:subtitle>Use this form to manage trait category records in your database.</:subtitle>
       </.header>
 
-      <.simple_form
+      <.form
         for={@form}
         id="trait_category-form"
         phx-target={@myself}
@@ -21,10 +21,8 @@ defmodule QlariusWeb.TraitCategoryLive.FormComponent do
       >
         <.input field={@form[:name]} type="text" label="Name" />
         <.input field={@form[:display_order]} type="number" label="Display order" />
-        <:actions>
-          <.button phx-disable-with="Saving...">Save Trait Category</.button>
-        </:actions>
-      </.simple_form>
+        <.button phx-disable-with="Saving..." variant="primary">Save Trait Category</.button>
+      </.form>
     </div>
     """
   end

@@ -7,24 +7,29 @@ defmodule Qlarius.Help do
       alias Qlarius.Arcade
       alias Qlarius.Campaigns
       alias Qlarius.Offers
-      alias Qlarius.Arcade.TiqitType
+      alias Qlarius.Arcade.Catalog
+      alias Qlarius.Arcade.Creator
       alias Qlarius.Arcade.Tiqit
       alias Qlarius.Arcade.ContentPiece
+      alias Qlarius.Arcade.TiqitClass
       alias Qlarius.Arcade.ContentGroup
+      alias Qlarius.Traits.MeFileTag
       alias Qlarius.Traits.Trait
       alias Qlarius.Traits.TraitCategory
-      alias Qlarius.Traits.UserTag
       alias Qlarius.Traits.TraitValue
       alias Qlarius.Media
       alias Qlarius.Marketing
+      alias Qlarius.Release
       alias Qlarius.Offer
-      alias Qlarius.MeFile
       alias Qlarius.Accounts
       alias Qlarius.AdEvent
       alias Qlarius.Accounts.User
+      alias Qlarius.Accounts.Proxying
       alias Qlarius.Accounts.Scope
       alias Qlarius.Accounts.UserNotifier
+      alias Qlarius.Accounts.UserProxy
       alias Qlarius.Accounts.UserToken
+      alias Qlarius.Accounts.MeFile
       alias Qlarius.Mailer
       alias Qlarius.Surveys.SurveyCategory
       alias Qlarius.Surveys.Survey
@@ -39,6 +44,7 @@ defmodule Qlarius.Help do
       alias Qlarius.Campaigns.Campaign
       alias Qlarius.Campaigns.Target
       alias Qlarius.Application
+      alias Qlarius.Creators
       alias Qlarius.Repo
       alias Qlarius.Traits
     end

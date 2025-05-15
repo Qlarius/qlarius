@@ -3,15 +3,16 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
 
   alias Qlarius.Arcade
   alias Qlarius.Arcade.ContentPiece
-  alias Qlarius.Arcade.TiqitType
-  alias Qlarius.Wallets
+  alias Qlarius.Arcade.TiqitClass
 
   def mount(_params, _session, socket) do
-    user = socket.assigns.current_scope.user
-    balance = Wallets.get_user_current_balance(user)
+    scope = socket.assigns.current_scope
 
     socket
-    |> assign(balance: balance, selected_tiqit_type: nil)
+    |> assign(
+      balance: scope && scope.wallet_balance,
+      selected_tiqit_class: nil
+    )
     |> ok()
   end
 
@@ -47,25 +48,26 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
         </p>
 
         <div class="mt-4">
-          <%= if Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>
+          <%= if @current_scope && Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>
+            <%!-- TODO remove hardcoded user --%>
             <.link
-              navigate={~p"/widgets/content/#{@selected_piece.id}"}
+              navigate={~p"/widgets/content/#{@selected_piece.id}?user=#{@current_scope.user.email}"}
               class="inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
             >
               Go to content
             </.link>
           <% else %>
             <div
-              :for={tiqit_type <- @selected_piece.tiqit_types}
+              :for={tiqit_class <- @selected_piece.tiqit_classes}
               class="flex justify-between items-center bg-white p-1 rounded-lg"
             >
-              <span class="text-sm">{tiqit_type.name}</span>
+              <span class="text-sm">{tiqit_class.name}</span>
               <button
                 phx-click="select-tiqit-type"
-                phx-value-tiqit-type-id={tiqit_type.id}
+                phx-value-tiqit-type-id={tiqit_class.id}
                 class="bg-gray-300 px-3 py-1 rounded text-sm font-medium hover:bg-gray-400"
               >
-                ${Decimal.round(tiqit_type.price, 2)}
+                ${Decimal.round(tiqit_class.price, 2)}
               </button>
             </div>
           <% end %>
@@ -75,7 +77,9 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
       <div class="w-full md:w-1/2 space-y-3">
         <.link
           :for={piece <- @group.content_pieces}
-          patch={~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}"}
+          patch={
+            ~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}&user=#{@current_scope.user.email}"
+          }
           class={"flex flex-col bg-gray-100 p-3 rounded-lg cursor-pointer #{if piece.id == @selected_piece.id, do: "ring-2 ring-black"}"}
         >
           <div class="flex gap-2 mb-1">
@@ -95,7 +99,7 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
     </div>
 
     <.modal
-      :if={@selected_tiqit_type}
+      :if={@selected_tiqit_class}
       id="confirm-purchase-modal"
       on_cancel={JS.push("close-confirm-purchase-modal")}
       show
@@ -109,7 +113,7 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
         {@selected_piece.title}
       </h2>
       <p class="mt-2 text-gray-600">
-        {tiqit_type_duration(@selected_tiqit_type)}
+        {tiqit_class_duration(@selected_tiqit_class)}
       </p>
       <div class="mt-4 flex items-center justify-between bg-gray-100 p-3 rounded-md">
         <div class="flex items-center">
@@ -119,9 +123,9 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
         <button
           class="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 focus:ring-2 focus:ring-orange-800 focus:outline-none"
           phx-click="purchase-tiqit"
-          phx-value-tiqit-type-id={@selected_tiqit_type.id}
+          phx-value-tiqit-type-id={@selected_tiqit_class.id}
         >
-          Confirm purchase (${Decimal.round(@selected_tiqit_type.price, 2)})
+          Confirm purchase (${Decimal.round(@selected_tiqit_class.price, 2)})
         </button>
       </div>
       <div class="mt-4 flex items-center justify-between">
@@ -136,7 +140,7 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
 
   # TODO I think I can delete Layouts.arcade/1
 
-  defp tiqit_type_duration(%TiqitType{} = tt) do
+  defp tiqit_class_duration(%TiqitClass{} = tt) do
     # Returns duration as:
     # - "X weeks" if evenly divisible by 7 days (168 hours)
     # - "X days" if evenly divisible by 24 hours (exception: "24 hours" not "1 day")
@@ -161,34 +165,33 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
     end
   end
 
-  defp format_duration(seconds) do
-    minutes = div(seconds, 60)
-    remaining_seconds = rem(seconds, 60)
-    :io_lib.format("~2..0B:~2..0B", [minutes, remaining_seconds])
-  end
-
   def handle_event("close-confirm-purchase-modal", _params, socket) do
-    socket |> assign(selected_tiqit_type: nil) |> noreply()
+    socket |> assign(selected_tiqit_class: nil) |> noreply()
   end
 
   def handle_event("select-tiqit-type", %{"tiqit-type-id" => tt_id}, socket) do
     id = String.to_integer(tt_id)
-    tt = %TiqitType{} = Enum.find(socket.assigns.selected_piece.tiqit_types, &(&1.id == id))
-    socket |> assign(selected_tiqit_type: tt) |> noreply()
+    tt = %TiqitClass{} = Enum.find(socket.assigns.selected_piece.tiqit_classes, &(&1.id == id))
+    socket |> assign(selected_tiqit_class: tt) |> noreply()
   end
 
-  def handle_event("purchase-tiqit", %{"tiqit-type-id" => tiqit_type_id}, socket) do
-    tiqit_type_id = String.to_integer(tiqit_type_id)
-    tiqit_type = Enum.find(socket.assigns.selected_piece.tiqit_types, &(&1.id == tiqit_type_id))
+  def handle_event("purchase-tiqit", %{"tiqit-type-id" => tiqit_class_id}, socket) do
+    tiqit_class_id = String.to_integer(tiqit_class_id)
 
-    :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_type)
+    tiqit_class =
+      Enum.find(socket.assigns.selected_piece.tiqit_classes, &(&1.id == tiqit_class_id))
+
+    :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class)
 
     user = socket.assigns.current_scope.user
 
     Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
 
     socket
-    |> redirect(to: ~p"/widgets/content/#{socket.assigns.selected_piece.id}")
+    |> redirect(
+      to:
+        ~p"/widgets/content/#{socket.assigns.selected_piece.id}?user=#{socket.assigns.current_scope.user.email}"
+    )
     |> noreply()
   end
 end

@@ -1,12 +1,7 @@
 defmodule QlariusWeb.Router do
   use QlariusWeb, :router
 
-  import QlariusWeb.UserAuth,
-    only: [
-      fetch_current_scope_for_user: 2,
-      redirect_if_user_is_authenticated: 2,
-      require_authenticated_user: 2
-    ]
+  import QlariusWeb.UserAuth
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -24,7 +19,26 @@ defmodule QlariusWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
     plug :protect_from_forgery
+    plug :put_secure_browser_headers
     plug :fetch_current_scope_for_user
+    plug :allow_iframe
+  end
+
+  # Based on https://elixirforum.com/t/how-to-embed-a-liveview-via-iframe/65066
+  defp allow_iframe(conn, _opts) do
+    conn
+    # This header is set to SAMEORIGIN by put_secure_browser_headers, which
+    # prevents embedding in an iframe.
+    |> delete_resp_header("x-frame-options")
+    # Not sure where it's set but the default CSP header appears to be
+    # "base-uri 'self'; frame-ancestors 'self';" Override it here to remove
+    # frame-ancestors as that also blocks iframes
+    |> put_resp_header("content-security-policy", "base-url 'self'")
+  end
+
+  pipeline :marketer do
+    import QlariusWeb.Layouts, only: [set_current_path: 2]
+    plug :set_current_path
   end
 
   pipeline :api do
@@ -101,28 +115,23 @@ defmodule QlariusWeb.Router do
 
   ## Authentication routes
 
-  scope "/", QlariusWeb do
-    pipe_through [:browser, :redirect_if_user_is_authenticated, :auth_layout]
+  scope "/widgets", QlariusWeb.Widgets do
+    pipe_through [:widgets]
 
-    live_session :redirect_if_user_is_authenticated,
-      on_mount: [{QlariusWeb.UserAuth, :redirect_if_user_is_authenticated}] do
-      live "/users/register", UserRegistrationLive, :new
-      live "/users/log_in", UserLoginLive, :new
-      live "/users/reset_password", UserForgotPasswordLive, :new
-      live "/users/reset_password/:token", UserResetPasswordLive, :edit
+    get "/content/:id", ContentController, :show
+
+    live_session :widgets, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
+      live "/arcade/group/:group_id", ArcadeLive
+      live "/wallet", WalletLive
     end
-
-    post "/users/log_in", UserSessionController, :create
   end
 
   scope "/", QlariusWeb do
-    pipe_through [:browser, :require_authenticated_user]
+    pipe_through [:browser]
 
-    live_session :require_authenticated_user,
-      on_mount: [{QlariusWeb.UserAuth, :require_authenticated}] do
+    live_session :current_scope, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
       get "/", PageController, :home
       live "/users/settings", UserSettingsLive, :edit
-      live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
       live "/wallet", WalletLive, :index
       live "/ads", AdsLive, :index
       live "/me_file", MeFileLive, :index
@@ -130,24 +139,30 @@ defmodule QlariusWeb.Router do
       get "/me_file/surveys", MeFileController, :surveys
       live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
       live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show
-      get "/arcade", ContentController, :groups
-      live "/admin/content/new", Marketers.ContentLive.Form, :new
-      live "/admin/content/:id/edit", Marketers.ContentLive.Form, :edit
-      resources "/admin/content", Marketers.ContentController, only: [:show, :index, :delete]
     end
 
     get "/jump/:id", AdController, :jump
   end
 
-  scope "/", QlariusWeb do
-    pipe_through [:browser, :auth_layout]
+  scope "/creators", QlariusWeb.Creators do
+    pipe_through [:browser]
 
-    delete "/users/log_out", UserSessionController, :delete
+    live_session :creators, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
+      resources "/content_pieces", ContentPieceController, only: [:delete]
+      live "/content_pieces/:id/edit", ContentPieceLive.Form, :edit
 
-    live_session :current_user,
-      on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
-      live "/users/confirm/:token", UserConfirmationLive, :edit
-      live "/users/confirm", UserConfirmationInstructionsLive, :new
+      resources "/content_groups", ContentGroupController,
+        only: [:show, :edit, :update, :delete] do
+        live "/content_pieces/new", ContentPieceLive.Form, :new
+      end
+
+      resources "/catalogs", CatalogController, only: [:show, :edit, :update, :delete] do
+        resources "/content_groups", ContentGroupController, only: [:new, :create]
+      end
+
+      resources "/", CreatorController do
+        resources "/catalogs", CatalogController, only: [:new, :create]
+      end
     end
   end
 

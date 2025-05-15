@@ -48,7 +48,7 @@ defmodule QlariusWeb.UserSettingsLive do
           </div>
         </div>
       </div>
-    </div>
+    </Layouts.sponster>
     """
   end
 end

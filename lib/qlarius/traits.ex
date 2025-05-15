@@ -1,15 +1,14 @@
 defmodule Qlarius.Traits do
-  @moduledoc """
-  The Traits context.
-  """
+  import Ecto.Query
 
-  import Ecto.Query, warn: false
+  alias Qlarius.Accounts.MeFile
+  alias Qlarius.Accounts.User
+  alias Qlarius.Campaigns.TraitGroup
   alias Qlarius.Repo
-
+  alias Qlarius.Traits.MeFileTag
   alias Qlarius.Traits.Trait
   alias Qlarius.Traits.TraitCategory
   alias Qlarius.Traits.TraitValue
-  alias Qlarius.Campaigns.TraitGroup
 
   # TraitCategory functions
 
@@ -276,5 +275,131 @@ defmodule Qlarius.Traits do
     ])
 
     {:ok, survey_id}
+  end
+
+  def create_user_trait_values(user_id, trait_id, value_ids) when is_list(value_ids) do
+    user = Repo.get!(User, user_id) |> Repo.preload(:me_file)
+
+    # Start a transaction
+    Repo.transaction(fn ->
+      # Delete existing tags for this trait
+      delete_trait_tags(trait_id, user_id)
+
+      # Create new tags
+      value_ids
+      |> Enum.map(fn value_id ->
+        %MeFileTag{}
+        |> MeFileTag.changeset(%{me_file_id: user.me_file.id, trait_id: value_id})
+        |> Repo.insert!()
+      end)
+    end)
+  end
+
+  @doc """
+  Deletes all MeFileTags for a given trait and user.
+  """
+  def delete_trait_tags(trait_id, user_id) do
+    from(tag in MeFileTag,
+      join: traitval in TraitValue,
+      on: tag.trait_value_id == traitval.id,
+      join: mefile in MeFile,
+      on: mefile.id == tag.me_file_id,
+      where: traitval.trait_id == ^trait_id and mefile.user_id == ^user_id
+    )
+    |> Repo.delete_all()
+  end
+
+  @doc """
+  Gets all trait values that a user has selected for a given trait.
+  """
+  def get_user_trait_values(trait_id, user_id) do
+    from(tag in MeFileTag,
+      join: traitval in TraitValue,
+      on: tag.trait_value_id == traitval.id,
+      join: mefile in MeFile,
+      on: mefile.id == tag.me_file_id,
+      where: traitval.trait_id == ^trait_id and mefile.user_id == ^user_id,
+      select: traitval.id
+    )
+    |> Repo.all()
+  end
+
+  @doc """
+  Gets all trait categories with their traits and values for a given user.
+  Categories and traits are ordered by display_order.
+  Only returns traits that have at least one value for the user.
+
+  TODO this query is very slow, improve it
+  """
+  def list_categories_with_traits(user_id) do
+    user = Repo.get!(User, user_id) |> Repo.preload(:me_file)
+
+    TraitCategory
+    |> order_by([c], asc: c.display_order)
+    |> preload(
+      traits:
+        ^{from(t in Trait,
+           join: mft in MeFileTag,
+           on:
+             mft.trait_id in fragment(
+               "SELECT id FROM trait_values WHERE parent_trait_id = ?",
+               t.id
+             ),
+           where: mft.me_file_id == ^user.me_file.id,
+           distinct: true,
+           order_by: [asc: t.display_order]
+         ), [values: values_for_user_query(user)]}
+    )
+    |> Repo.all()
+    |> Enum.map(&filter_empty_traits/1)
+  end
+
+  defp values_for_user_query(user) do
+    from(tv in TraitValue,
+      join: mft in MeFileTag,
+      on: mft.trait_id == tv.id and mft.me_file_id == ^user.me_file.id,
+      order_by: [asc: tv.display_order]
+    )
+  end
+
+  @doc """
+  Gets the total number of traits for which the user has at least one value.
+  """
+  def count_traits_with_values(user_id) do
+    query =
+      from u in Qlarius.Accounts.User,
+        where: u.id == ^user_id,
+        join: mf in assoc(u, :me_file),
+        join: traits in assoc(mf, :traits),
+        select: count(traits.id, :distinct)
+
+    Qlarius.Repo.one(query)
+  end
+
+  def count_me_file_tags(me_file_id) do
+    MeFileTag
+    |> where([mft], mft.me_file_id == ^me_file_id)
+    |> select([mft], count(mft.id))
+    |> Repo.one()
+  end
+
+  defp filter_empty_traits(category) do
+    %{category | traits: Enum.filter(category.traits, &(length(&1.values) > 0))}
+  end
+
+  @zip_code_trait_name "Home Zip Code"
+
+  def get_user_home_zip(%User{} = user) do
+    query =
+      from(tv in TraitValue,
+        join: mf in assoc(tv, :me_files),
+        join: trait in assoc(tv, :trait),
+        where: mf.user_id == ^user.id,
+        where: trait.name == @zip_code_trait_name,
+        limit: 1,
+        select: tv.name
+      )
+
+    Repo.one(query) || "NO ZIP"
   end
 end

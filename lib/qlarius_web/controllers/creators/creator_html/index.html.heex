@@ -1,0 +1,39 @@
+<Layouts.creators {assigns}>
+  <.header>
+    Creators
+    <:actions>
+      <.link href={~p"/creators/new"}>
+        <.button>New Creator</.button>
+      </.link>
+    </:actions>
+  </.header>
+
+  <%= if Enum.any?(@creators) do %>
+    <.table
+      id="creators"
+      rows={@creators}
+      row_click={&JS.navigate(~p"/creators/#{&1}")}
+      zebra={false}
+    >
+      <:col :let={creator} label="Name">{creator.name}</:col>
+      <:action :let={creator}>
+        <div class="sr-only">
+          <.link navigate={~p"/creators/#{creator}"}>Show</.link>
+        </div>
+        <.link navigate={~p"/creators/#{creator}/edit"}>Edit</.link>
+      </:action>
+      <:action :let={creator}>
+        <.link href={~p"/creators/#{creator}"} method="delete" data-confirm="Are you sure?">
+          Delete
+        </.link>
+      </:action>
+    </.table>
+  <% else %>
+    <div class="mt-10 text-sm">
+      No creators yet!
+      <.a href={~p"/creators/new"}>
+        Click here to add the first.
+      </.a>
+    </div>
+  <% end %>
+</Layouts.creators>

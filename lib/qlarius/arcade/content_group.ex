@@ -1,14 +1,21 @@
 defmodule Qlarius.Arcade.ContentGroup do
   use Ecto.Schema
+  use Waffle.Ecto.Schema
+
   import Ecto.Changeset
 
+  alias Qlarius.Arcade.Catalog
   alias Qlarius.Arcade.ContentPiece
 
   schema "content_groups" do
+    belongs_to :catalog, Catalog
+
     field :description, :string
     field :title, :string
+    field :type, Ecto.Enum, values: ~w[show season album book class]a
+    field :image, QlariusWeb.Uploaders.ContentGroupImage.Type
 
-    many_to_many :content_pieces, ContentPiece, join_through: "content_groups_content_pieces"
+    has_many :content_pieces, ContentPiece
 
     timestamps(type: :utc_datetime)
   end
@@ -16,7 +23,13 @@ defmodule Qlarius.Arcade.ContentGroup do
   @doc false
   def changeset(content_group, attrs) do
     content_group
-    |> cast(attrs, [:title, :description, :type])
-    |> validate_required([:title, :description, :type])
+    |> cast(attrs, [:title, :description])
+    |> validate_required([:title])
+  end
+
+  def image_changeset(content_group, image) do
+    content_group
+    |> change(%{})
+    |> cast_attachments(%{image: image}, [:image])
   end
 end

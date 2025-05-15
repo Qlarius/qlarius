@@ -1,23 +1,28 @@
+# TODO this script is totally out of date
+alias Qlarius.Accounts
+alias Qlarius.Accounts.User
 alias Qlarius.Arcade.ContentGroup
 alias Qlarius.Arcade.ContentPiece
+alias Qlarius.Arcade.Tiqit
 alias Qlarius.Arcade.TiqitType
-alias Qlarius.Creators, warn: false
 alias Qlarius.Repo
 
+Repo.delete_all(Tiqit)
+Repo.delete_all(TiqitType)
 Repo.delete_all(ContentGroup)
 Repo.delete_all(ContentPiece)
-Repo.delete_all(TiqitType)
 
-# creator = Creators.get_creator_by_email!("creator@qlarius.com")
+creator = %User{} = Accounts.get_user_by_email("test@qlarius.com")
 
 group = %ContentGroup{
   title: "Learn Elixir",
   description: "Elixir is a functional programming language created by José Valim",
-  # creator_id: creator.id
+  creator_id: creator.id
 }
 |> Repo.insert!()
 
 video = %ContentPiece{
+  creator: creator,
   title: "Introduction to Elixir",
   description: "Learn the fundamentals of Elixir programming in this comprehensive introduction.",
   content_type: :video,
@@ -57,6 +62,7 @@ Repo.insert_all("content_groups_content_pieces", [%{
 
 # Example ContentPiece 2: Podcast
 podcast = %ContentPiece{
+  creator: creator,
   title: "Tech Talk: AI Innovations",
   description: "Join us as we dive into the latest advancements in artificial intelligence. We'll explore the latest trends in AI, including natural language processing, machine learning, and more. Perfect for tech enthusiasts who want to stay ahead of the curve.",
   content_type: :podcast,
@@ -98,6 +104,7 @@ Repo.insert_all("content_groups_content_pieces", [%{
 
 # Example ContentPiece 3: Blog Post
 blog = %ContentPiece{
+  creator: creator,
   title: "The Future of Content Creation",
   description: "In this blog post, we'll explore the latest trends in content creation, including the rise of AI-powered tools and the importance of user engagement. We'll also discuss the future of content creation and how it will continue to evolve in the coming years.",
   content_type: :blog,
@@ -139,7 +146,7 @@ Repo.insert_all("content_groups_content_pieces", [%{
 group = %ContentGroup{
   title: "Rick Astley",
   description: "The Greatest Hits",
-  # creator_id: creator.id
+  creator_id: creator.id
 }
 |> Repo.insert!()
 
@@ -151,6 +158,7 @@ group = %ContentGroup{
 "Never gonna say goodbye"
 ] |> Enum.each(fn title ->
   song = %ContentPiece{
+    creator: creator,
     title: title,
     content_type: :song,
     date_published: Date.utc_today(),

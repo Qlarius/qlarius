@@ -1,0 +1,101 @@
+<Layouts.creators
+  breadcrumbs={[
+    {@creator.name, ~p"/creators/#{@creator}"},
+    {@catalog.name, ~p"/creators/catalogs/#{@catalog}"},
+    {@content_group.title, ~p"/creators/content_groups/#{@content_group}"}
+  ]}
+  {assigns}
+>
+  <.header>
+    {@content_group.title}
+    <:subtitle>Content Group</:subtitle>
+
+    <:actions>
+      <div class="space-x-3">
+        <.a href={~p"/creators/content_groups/#{@content_group}/edit"}>
+          Edit
+        </.a>
+        <.a
+          href={~p"/creators/content_groups/#{@content_group}"}
+          method="delete"
+          data-confirm="Are you sure?"
+        >
+          Delete
+        </.a>
+        <.a href={~p"/creators/content_groups/#{@content_group}/content_pieces/new"}>
+          New Content Piece
+        </.a>
+      </div>
+    </:actions>
+  </.header>
+
+  <image src={content_group_image_url(@content_group)} class="h-64"/>
+
+  <div class="leading-6 text-zinc-600 text-sm space-y-4 mt-6 mb-8">
+    <p><em>{@content_group.description}</em></p>
+
+    <div class="flex items-center">
+      <%= if Enum.any?(@content_group.content_pieces) do %>
+        <p class="mr-2">&lt;iframe&gt; link:</p>
+        <div
+          class="relative flex items-center bg-zinc-200 text-zinc-800 rounded-md px-3 py-2 font-mono text-xs cursor-pointer hover:bg-zinc-300 transition-colors flex-grow"
+          onclick="copyCode(this)"
+        >
+          <code>{@conn.scheme}://{@conn.host}/widgets/arcade/group/{@content_group.id}</code>
+
+          <.icon name="hero-document-duplicate" class="ml-2 h-4 w-4 text-zinc-800" />
+          <span class="popup hidden absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-xs text-white px-2 py-1 rounded">
+            Copied to clipboard!
+          </span>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%= if Enum.any?(@content_group.content_pieces) do %>
+    <h2 class="text-sm text-zinc-600 font-semibold mb-5">Content pieces</h2>
+
+    <.table id="catalogs" rows={@content_group.content_pieces} zebra={false}>
+      <:col :let={piece} label="Title">{piece.title}</:col>
+      <:col :let={piece} label="Added">{Calendar.strftime(piece.inserted_at, "%d/%m/%y")}</:col>
+      <:col :let={piece} label="Length">{format_duration(piece.length)}</:col>
+
+      <%!-- TODO show price and tiqit type count?
+      <div class="text-sm font-light mt-1">
+        {length(piece.tiqit_types)} tiqit type{if length(piece.tiqit_types) == 1,
+          do: "",
+          else: "s"}
+      </div>
+      --%>
+
+      <:action :let={piece}>
+        <.link navigate={~p"/creators/content_pieces/#{piece}/edit"}>Edit</.link>
+      </:action>
+      <:action :let={piece}>
+        <.link
+          data-confirm="Are you sure?"
+          method="delete"
+          href={~p"/creators/content_pieces/#{piece}"}
+        >
+          Delete
+        </.link>
+      </:action>
+    </.table>
+  <% else %>
+    <div class="text-sm text-zinc-600">
+      No content pieces yet!
+      <.a href={~p"/creators/content_groups/#{@content_group}/content_pieces/new"}>
+        Click here to add the first.
+      </.a>
+    </div>
+  <% end %>
+</Layouts.creators>
+
+<script type="text/javascript">
+  function copyCode(element) {
+    navigator.clipboard.writeText(element.querySelector('code').textContent);
+    const popup = element.querySelector('.popup');
+    popup.classList.remove('hidden');
+    setTimeout(() => popup.classList.add('hidden'), 1000);
+  }
+</script>

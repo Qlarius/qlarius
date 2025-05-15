@@ -25,19 +25,34 @@ Repo.delete_all(User)
     password_confirmation: "password1234"
   })
 
+balance = Decimal.new("0.00")
+
 ledger_header =
   %LedgerHeader{
     user_id: user.id,
     description: "Example Ledger",
-    balance: Decimal.new("1000.00")
+    balance: balance
   }
   |> Repo.insert!()
 
-for _ <- 1..20 do
-  %LedgerEntry{
-    amount: Decimal.new("#{Enum.random(1..100)}.#{Enum.random(0..99)}"),
-    description: Faker.Lorem.sentence(2..3),
-    ledger_header_id: ledger_header.id
-  }
-  |> Repo.insert!()
-end
+cents = [0, 19, 29, 39, 49, 59, 69, 79, 99]
+
+balance =
+  Enum.reduce(1..100, balance, fn _, balance ->
+    amount = Decimal.new("#{Enum.random(0..2)}.#{Enum.random(cents)}")
+    balance = Decimal.add(balance, amount)
+
+    %LedgerEntry{
+      amount: amount,
+      description: Faker.Lorem.sentence(2..3),
+      running_balance: balance,
+      ledger_header_id: ledger_header.id
+    }
+    |> Repo.insert!()
+
+    balance
+  end)
+
+ledger_header
+|> Ecto.Changeset.change(%{balance: balance})
+|> Repo.update!()

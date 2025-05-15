@@ -3,6 +3,9 @@ defmodule Qlarius.Marketing do
   The Marketing context.
   """
 
+  @default_marketer_id 88
+  @default_media_piece_type_id 1
+
   import Ecto.Query, warn: false
   require Logger
   alias Qlarius.LegacyRepo
@@ -52,6 +55,8 @@ defmodule Qlarius.Marketing do
     end
   end
 
+  defp maybe_update_banner_image(result, _image), do: result
+
   @doc """
   Updates a media_piece.
   """
@@ -86,7 +91,7 @@ defmodule Qlarius.Marketing do
   Returns an `%Ecto.Changeset{}` for tracking media_piece changes.
   """
   def change_media_piece(%MediaPiece{} = media_piece, attrs \\ %{}) do
-    MediaPiece.changeset(media_piece, attrs)
+    MediaPiece.update_changeset(media_piece, attrs)
   end
 
   @doc """

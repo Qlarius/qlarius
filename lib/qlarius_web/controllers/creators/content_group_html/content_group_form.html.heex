@@ -1,0 +1,16 @@
+<.form :let={f} for={@changeset} action={@action} multipart={true}>
+  <.input
+    field={f[:image]}
+    type="file"
+    label="Image"
+    accept=".jpg,.jpeg,.gif,.png,.webp"
+    class="file-input file-input-bordered w-full"
+    value={nil}
+  />
+  <.input field={f[:title]} type="text" label="Name" required />
+  <.input field={f[:description]} type="textarea" label="Description" />
+  <footer>
+    <.button variant="primary">Save Creator</.button>
+    <.button :if={@return_to} href={@return_to}>Cancel</.button>
+  </footer>
+</.form>

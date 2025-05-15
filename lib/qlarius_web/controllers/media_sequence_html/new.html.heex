@@ -1,13 +1,15 @@
-<div class="mx-auto max-w-2xl">
-  <.header>
-    New Media Sequence
-  </.header>
+<Layouts.marketers {assigns}>
+  <div class="mx-auto max-w-2xl">
+    <.header>
+      New Media Sequence
+    </.header>
 
-  <.media_run_form
-    changeset={@changeset}
-    action={~p"/media_sequences"}
-    media_pieces={@media_pieces}
-  />
+    <.media_run_form
+      changeset={@changeset}
+      action={~p"/media_sequences"}
+      media_pieces={@media_pieces}
+    />
 
-  <.back navigate={~p"/media_sequences"}>Back to media sequences</.back>
-</div>
+    <.back navigate={~p"/media_sequences"}>Back to media sequences</.back>
+  </div>
+</Layouts.marketers>

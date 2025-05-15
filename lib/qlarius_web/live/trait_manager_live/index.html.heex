@@ -1,104 +1,104 @@
-<h1 class="text-2xl font-bold mb-4">Trait Manager</h1>
+<Layouts.marketers {assigns}>
+  <h1 class="text-2xl font-bold mb-4">Trait Manager</h1>
 
-<div class="grid grid-cols-3 gap-4">
-  <!-- Left Column - Trait List -->
-  <div class="bg-white p-4 rounded shadow">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-semibold">Traits</h2>
-      <button phx-click="open_trait_modal" class="text-2xl font-bold">+</button>
-    </div>
+  <div class="grid grid-cols-3 gap-4">
+    <!-- Left Column - Trait List -->
+    <div class="bg-white p-4 rounded shadow">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold">Traits</h2>
+        <button phx-click="open_trait_modal" class="text-2xl font-bold">+</button>
+      </div>
 
-    <ul class="divide-y">
-      <%= for trait <- @traits do %>
-        <li
-          class={
+      <ul class="divide-y">
+        <%= for trait <- @traits do %>
+          <li
+            class={
           "flex justify-between items-center py-2 px-1 cursor-pointer " <>
           if @selected_trait && @selected_trait.id == trait.id, do: "bg-blue-100", else: ""
         }
-          phx-click="select_trait"
-          phx-value-id={trait.id}
-        >
-          <span>{trait.name}</span>
-          <span>→</span>
-        </li>
-      <% end %>
-    </ul>
-  </div>
-  
-<!-- Middle Column - Trait Values -->
-  <div class="bg-white p-4 rounded shadow">
-    <%= if @selected_trait do %>
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold">{@selected_trait.name}</h2>
-        <button phx-click="add_mode" class="text-2xl font-bold">+</button>
-      </div>
-
-      <%= if Enum.empty?(@trait_values) do %>
-        <p class="text-gray-500 italic">No values defined.</p>
-      <% else %>
-        <table class="w-full">
-          <thead>
-            <tr>
-              <th class="w-16"></th>
-              <th class="text-left py-2">Name</th>
-              <th class="text-left py-2">Survey answer</th>
-              <th class="w-8"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <%= for value <- @trait_values do %>
-              <tr>
-                <td class="py-2 text-gray-500">{value.display_order}</td>
-                <td class="py-2">{value.name}</td>
-                <td class="py-2">{value.answer || "--"}</td>
-                <td class="py-2">
-                  <button
-                    phx-click="edit_value"
-                    phx-value-id={value.id}
-                    class="text-blue-500 hover:text-blue-700"
-                  >
-                    ✎
-                  </button>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      <% end %>
-    <% end %>
-  </div>
-  
-<!-- Right Column - Add Value Form -->
-  <div class="bg-white p-4 rounded shadow">
-    <%= if @selected_trait do %>
-      <h2 class="text-xl font-semibold mb-4">
-        {if @editing_value_id, do: "Edit value", else: "Add value"}
-      </h2>
-
-      <.simple_form
-        for={@new_trait_value_form}
-        id="trait-value-form"
-        phx-submit="save_trait_value"
-        phx-change="validate_trait_value"
-      >
-        <input type="hidden" name="trait_value[trait_id]" value={@selected_trait.id} />
-
-        <.input field={@new_trait_value_form[:name]} label="Name" required />
-        <.input
-          field={@new_trait_value_form[:display_order]}
-          type="number"
-          label="Display Order"
-          required
-        />
-        <%= if @selected_trait.question do %>
-          <.input
-            field={@new_trait_value_form[:answer]}
-            label="Answer"
-            placeholder="Optional answer to trait question"
-          />
+            phx-click="select_trait"
+            phx-value-id={trait.id}
+          >
+            <span>{trait.name}</span>
+            <span>→</span>
+          </li>
         <% end %>
+      </ul>
+    </div>
+    
+<!-- Middle Column - Trait Values -->
+    <div class="bg-white p-4 rounded shadow">
+      <%= if @selected_trait do %>
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold">{@selected_trait.name}</h2>
+          <button phx-click="add_mode" class="text-2xl font-bold">+</button>
+        </div>
 
-        <:actions>
+        <%= if Enum.empty?(@trait_values) do %>
+          <p class="text-gray-500 italic">No values defined.</p>
+        <% else %>
+          <table class="w-full">
+            <thead>
+              <tr>
+                <th class="w-16"></th>
+                <th class="text-left py-2">Name</th>
+                <th class="text-left py-2">Survey answer</th>
+                <th class="w-8"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for value <- @trait_values do %>
+                <tr>
+                  <td class="py-2 text-gray-500">{value.display_order}</td>
+                  <td class="py-2">{value.name}</td>
+                  <td class="py-2">{value.answer || "--"}</td>
+                  <td class="py-2">
+                    <button
+                      phx-click="edit_value"
+                      phx-value-id={value.id}
+                      class="text-blue-500 hover:text-blue-700"
+                    >
+                      ✎
+                    </button>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% end %>
+      <% end %>
+    </div>
+    
+<!-- Right Column - Add Value Form -->
+    <div class="bg-white p-4 rounded shadow">
+      <%= if @selected_trait do %>
+        <h2 class="text-xl font-semibold mb-4">
+          {if @editing_value_id, do: "Edit value", else: "Add value"}
+        </h2>
+
+        <.form
+          for={@new_trait_value_form}
+          id="trait-value-form"
+          phx-submit="save_trait_value"
+          phx-change="validate_trait_value"
+        >
+          <input type="hidden" name="trait_value[trait_id]" value={@selected_trait.id} />
+
+          <.input field={@new_trait_value_form[:name]} label="Name" required />
+          <.input
+            field={@new_trait_value_form[:display_order]}
+            type="number"
+            label="Display Order"
+            required
+          />
+          <%= if @selected_trait.question do %>
+            <.input
+              field={@new_trait_value_form[:answer]}
+              label="Answer"
+              placeholder="Optional answer to trait question"
+            />
+          <% end %>
+
           <%= if @editing_value_id do %>
             <button
               type="button"
@@ -115,56 +115,54 @@
               Add Value
             </.button>
           <% end %>
-        </:actions>
-      </.simple_form>
-    <% end %>
+        </.form>
+      <% end %>
+    </div>
   </div>
-</div>
-
+  
 <!-- Trait Creation Modal -->
-<%= if @trait_modal_open do %>
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white p-6 rounded-lg max-w-md w-full">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold">Add New Trait</h2>
-        <button phx-click="close_trait_modal" class="text-gray-500 hover:text-gray-700">
-          &times;
-        </button>
-      </div>
+  <%= if @trait_modal_open do %>
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white p-6 rounded-lg max-w-md w-full">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold">Add New Trait</h2>
+          <button phx-click="close_trait_modal" class="text-gray-500 hover:text-gray-700">
+            &times;
+          </button>
+        </div>
 
-      <.simple_form
-        for={@new_trait_form}
-        id="trait-form"
-        phx-submit="save_trait"
-        phx-change="validate_trait"
-      >
-        <.input field={@new_trait_form[:name]} label="Name" required />
+        <.form
+          for={@new_trait_form}
+          id="trait-form"
+          phx-submit="save_trait"
+          phx-change="validate_trait"
+        >
+          <.input field={@new_trait_form[:name]} label="Name" required />
 
-        <.input
-          field={@new_trait_form[:input_type]}
-          type="select"
-          label="Input Type"
-          options={[{"Single", "Single"}, {"Multi", "Multi"}]}
-          prompt="Select input type"
-          required
-        />
+          <.input
+            field={@new_trait_form[:input_type]}
+            type="select"
+            label="Input Type"
+            options={[{"Single", "Single"}, {"Multi", "Multi"}]}
+            prompt="Select input type"
+            required
+          />
 
-        <.input
-          field={@new_trait_form[:category_id]}
-          type="select"
-          label="Trait Category"
-          options={Enum.map(@trait_categories, fn c -> {c.name, c.id} end)}
-          prompt="Select category"
-          required
-        />
+          <.input
+            field={@new_trait_form[:category_id]}
+            type="select"
+            label="Trait Category"
+            options={Enum.map(@trait_categories, fn c -> {c.name, c.id} end)}
+            prompt="Select category"
+            required
+          />
 
-        <.input
-          field={@new_trait_form[:question]}
-          label="Question"
-          placeholder="Optional question for this trait"
-        />
+          <.input
+            field={@new_trait_form[:question]}
+            label="Question"
+            placeholder="Optional question for this trait"
+          />
 
-        <:actions>
           <button
             type="button"
             phx-click="close_trait_modal"
@@ -175,8 +173,8 @@
           <.button class="bg-blue-500 text-white px-4 py-2 rounded">
             Create Trait
           </.button>
-        </:actions>
-      </.simple_form>
+        </.form>
+      </div>
     </div>
-  </div>
-<% end %>
+  <% end %>
+</Layouts.marketers>

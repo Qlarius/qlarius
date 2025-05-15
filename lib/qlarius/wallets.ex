@@ -18,6 +18,12 @@ defmodule Qlarius.Wallets do
     LegacyRepo.get_by(LedgerHeader, me_file_id: me_file.id)
   end
 
+  def get_user_ledger_header(user_id) do
+    Repo.get(User, user_id)
+    |> Repo.preload(:me_file)
+    |> get_user_ledger_header()
+  end
+
   def get_ledger_entry!(ledger_entry_id, %MeFile{} = me_file) do
     LegacyRepo.one!(
       from e in LedgerEntry,
@@ -225,6 +231,8 @@ defmodule Qlarius.Wallets do
         |> LegacyRepo.update!()
       end
     end)
+
+    :ok
   end
 
 

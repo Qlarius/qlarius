@@ -10,6 +10,8 @@ defmodule QlariusWeb.OfferHTML do
 
   @phase_1_amount Decimal.new("0.05")
 
+  @phase_1_amount Decimal.new("0.05")
+
   attr :phase, :integer, default: 0
   attr :offer, Offer, required: true
   attr :recipient, :any, default: nil
@@ -167,7 +169,7 @@ defmodule QlariusWeb.OfferHTML do
       phx-value-recipient-id={@recipient && @recipient.id}
       phx-target={@target}
       class={[
-        "relative w-96 h-40 rounded-md border border-neutral-400 overflow-hidden cursor-pointer",
+        "offer-phase relative w-96 h-40 rounded-md border border-neutral-400 overflow-hidden cursor-pointer",
         @class
       ]}
     >

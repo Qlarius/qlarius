@@ -1,8 +1,10 @@
-<.header>
-  New Target
-  <:subtitle>Create a new targeting option for your campaigns.</:subtitle>
-</.header>
+<Layouts.marketers {assigns}>
+  <.header>
+    New Target
+    <:subtitle>Create a new targeting option for your campaigns.</:subtitle>
+  </.header>
 
-<.target_form changeset={@changeset} action={~p"/targets"} />
+  <.target_form changeset={@changeset} action={~p"/targets"} />
 
-<.back navigate={~p"/targets"}>Back to targets</.back>
+  <.back navigate={~p"/targets"}>Back to targets</.back>
+</Layouts.marketers>
