@@ -38,7 +38,6 @@ defmodule Qlarius.Arcade.ContentPiece do
     ])
     |> validate_required([
       :title,
-      :description,
       :date_published
     ])
     |> validate_length(:title, max: 200)

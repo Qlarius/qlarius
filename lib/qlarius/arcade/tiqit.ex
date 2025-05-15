@@ -2,16 +2,15 @@ defmodule Qlarius.Arcade.Tiqit do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Accounts.User
-
   schema "tiqits" do
     field :purchased_at, :utc_datetime
     field :expires_at, :utc_datetime
 
-    belongs_to :user, User
+    belongs_to :me_file, Qlarius.Accounts.MeFile
     belongs_to :tiqit_class, Qlarius.Arcade.TiqitClass
 
-    # has_one :content_piece, through: [:tiqit_type, :content_piece]
+    has_one :user, through: [:me_file, :user]
+    has_one :content_piece, through: [:tiqit_class, :content_piece]
 
     timestamps()
   end
@@ -20,7 +19,5 @@ defmodule Qlarius.Arcade.Tiqit do
     tiqit
     |> cast(attrs, ~w[purchased_at expires_at]a)
     |> validate_required(~w[purchased_at]a)
-
-    # TODO validate expires_at must be in future if present
   end
 end

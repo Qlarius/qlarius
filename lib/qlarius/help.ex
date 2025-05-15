@@ -23,7 +23,9 @@ defmodule Qlarius.Help do
       alias Qlarius.Offer
       alias Qlarius.Accounts
       alias Qlarius.AdEvent
+      alias Qlarius.Accounts.Marketer
       alias Qlarius.Accounts.User
+      alias Qlarius.Accounts.MarketerUser
       alias Qlarius.Accounts.Proxying
       alias Qlarius.Accounts.Scope
       alias Qlarius.Accounts.UserNotifier
@@ -36,15 +38,20 @@ defmodule Qlarius.Help do
       alias Qlarius.Marketing.MediaSequence
       alias Qlarius.Marketing.MediaRun
       alias Qlarius.Marketing.MediaPiece
+      alias Qlarius.Marketing.MediaPieceType
+      alias Qlarius.Marketing.MediaPiecePhase
       alias Qlarius.Wallets.LedgerEntry
       alias Qlarius.Wallets.LedgerHeader
       alias Qlarius.Campaigns.AdCategory
+      alias Qlarius.Campaigns.Recipient
       alias Qlarius.Campaigns.TargetBand
+      alias Qlarius.Campaigns.RecipientType
       alias Qlarius.Campaigns.TraitGroup
       alias Qlarius.Campaigns.Campaign
       alias Qlarius.Campaigns.Target
       alias Qlarius.Application
       alias Qlarius.Creators
+      alias Qlarius.Tiqits
       alias Qlarius.Repo
       alias Qlarius.Traits
     end

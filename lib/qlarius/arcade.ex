@@ -1,29 +1,29 @@
 defmodule Qlarius.Arcade do
   import Ecto.Query
 
+  alias Qlarius.Accounts.MeFile
   alias Qlarius.Accounts.Scope
   alias Qlarius.Arcade.ContentGroup
   alias Qlarius.Arcade.ContentPiece
   alias Qlarius.Arcade.Tiqit
   alias Qlarius.Arcade.TiqitClass
+  alias Qlarius.Wallets
   alias Qlarius.Wallets.LedgerEntry
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
 
-  def has_valid_tiqit?(%Scope{} = _scope, %ContentPiece{} = _content) do
-    # TODO make this work with the new data model
-    false
-    # now = DateTime.utc_now()
+  def has_valid_tiqit?(%Scope{} = scope, %ContentPiece{} = content) do
+    now = DateTime.utc_now()
 
-    # query =
-    #   from t in Tiqit,
-    #     join: tt in TiqitClass,
-    #     on: t.tiqit_type_id == tt.id,
-    #     where: tt.content_piece_id == ^content.id,
-    #     where: t.user_id == ^scope.user.id,
-    #     where: is_nil(t.expires_at) or t.expires_at > ^now
+    query =
+      from t in Tiqit,
+        join: tc in assoc(t, :tiqit_class),
+        join: u in assoc(t, :user),
+        where: tc.content_piece_id == ^content.id,
+        where: u.id == ^scope.user.id,
+        where: is_nil(t.expires_at) or t.expires_at > ^now
 
-    # Repo.exists?(query)
+    Repo.exists?(query)
   end
 
   def list_content_groups do
@@ -46,7 +46,7 @@ defmodule Qlarius.Arcade do
 
   # TODO use Creators.get_content_piece! instead? ... maybe
   def get_content_piece!(id) do
-    ContentPiece |> Repo.get!(id) |> Repo.preload(:tiqit_classes)
+    ContentPiece |> Repo.get!(id) |> Repo.preload([:content_group, :tiqit_classes])
   end
 
   def create_content(attrs \\ %{}) do
@@ -74,7 +74,8 @@ defmodule Qlarius.Arcade do
       end
 
     Repo.transaction(fn ->
-      ledger_header = Repo.get_by!(LedgerHeader, user_id: user.id)
+      ledger_header = %LedgerHeader{} = Wallets.get_user_ledger_header(user)
+      me_file = %MeFile{} = user.me_file
 
       amount = tiqit_class.price
       new_balance = Decimal.sub(ledger_header.balance, amount)
@@ -92,7 +93,7 @@ defmodule Qlarius.Arcade do
       |> Repo.update!()
 
       {:ok, _tiqit} =
-        %Tiqit{user: scope.user, tiqit_class: tiqit_class}
+        %Tiqit{me_file: me_file, tiqit_class: tiqit_class}
         |> Tiqit.changeset(%{purchased_at: purchased_at, expires_at: expires_at})
         |> Repo.insert()
     end)

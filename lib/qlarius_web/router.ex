@@ -37,6 +37,7 @@ defmodule QlariusWeb.Router do
   end
 
   pipeline :marketer do
+    # This is used to highlight which tab we're on at the top
     import QlariusWeb.Layouts, only: [set_current_path: 2]
     plug :set_current_path
   end
@@ -112,6 +113,8 @@ defmodule QlariusWeb.Router do
       live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
       live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show
     end
+
+    resources "/tiqits", TiqitControllerp
 
     get "/jump/:id", AdController, :jump
   end

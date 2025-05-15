@@ -2,7 +2,6 @@ defmodule QlariusWeb.Widgets.ContentHTML do
   use QlariusWeb, :html
 
   def show(assigns) do
-    # TODO 'back' should go to the right group for the content
     ~H"""
     <div class="flex flex-col gap-4">
       <.header>View content</.header>
@@ -18,6 +17,8 @@ defmodule QlariusWeb.Widgets.ContentHTML do
         allowfullscreen
       >
       </iframe>
+
+      <.back navigate={~p"/widgets/arcade/group/#{@content.content_group.id}"}>Back to arcade</.back>
     </div>
     """
   end

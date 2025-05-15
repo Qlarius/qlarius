@@ -49,9 +49,8 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
 
         <div class="mt-4">
           <%= if @current_scope && Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>
-            <%!-- TODO remove hardcoded user --%>
             <.link
-              navigate={~p"/widgets/content/#{@selected_piece.id}?user=#{@current_scope.user.email}"}
+              navigate={~p"/widgets/content/#{@selected_piece.id}"}
               class="inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
             >
               Go to content
@@ -62,24 +61,30 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
               class="flex justify-between items-center bg-white p-1 rounded-lg"
             >
               <span class="text-sm">{tiqit_class.name}</span>
-              <button
-                phx-click="select-tiqit-type"
-                phx-value-tiqit-type-id={tiqit_class.id}
-                class="bg-gray-300 px-3 py-1 rounded text-sm font-medium hover:bg-gray-400"
-              >
-                ${Decimal.round(tiqit_class.price, 2)}
-              </button>
+              <%= if Decimal.compare(@balance, tiqit_class.price) != :lt do %>
+                <button
+                  phx-click="select-tiqit-type"
+                  phx-value-tiqit-type-id={tiqit_class.id}
+                  class="bg-gray-300 px-3 py-1 rounded text-sm font-medium hover:bg-gray-400 cursor-pointer"
+                >
+                  ${Decimal.round(tiqit_class.price, 2)}
+                </button>
+              <% else %>
+                <div class="bg-gray-100 px-3 py-1 rounded text-sm font-medium text-gray-800 line-through">
+                  ${Decimal.round(tiqit_class.price, 2)}
+                </div>
+              <% end %>
             </div>
           <% end %>
         </div>
       </div>
 
+      <% pieces = Enum.filter(@group.content_pieces, fn p -> Enum.any?(p.tiqit_classes) end) %>
+
       <div class="w-full md:w-1/2 space-y-3">
         <.link
-          :for={piece <- @group.content_pieces}
-          patch={
-            ~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}&user=#{@current_scope.user.email}"
-          }
+          :for={piece <- pieces}
+          patch={~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}"}
           class={"flex flex-col bg-gray-100 p-3 rounded-lg cursor-pointer #{if piece.id == @selected_piece.id, do: "ring-2 ring-black"}"}
         >
           <div class="flex gap-2 mb-1">
@@ -89,9 +94,11 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
             <div class="bg-gray-200 text-gray-700 text-xs font-semibold px-2 py-1 rounded-full">
               {format_duration(piece.length)}
             </div>
-            <div class="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">
-              $0.05
-            </div>
+            <%= if Arcade.has_valid_tiqit?(@current_scope, piece) do %>
+              <div class="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">
+                Purchased
+              </div>
+            <% end %>
           </div>
           <div class="font-semibold text-sm">{piece.title}</div>
         </.link>
@@ -137,8 +144,6 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
     </.modal>
     """
   end
-
-  # TODO I think I can delete Layouts.arcade/1
 
   defp tiqit_class_duration(%TiqitClass{} = tt) do
     # Returns duration as:
@@ -188,10 +193,7 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
     Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
 
     socket
-    |> redirect(
-      to:
-        ~p"/widgets/content/#{socket.assigns.selected_piece.id}?user=#{socket.assigns.current_scope.user.email}"
-    )
+    |> redirect(to: ~p"/widgets/content/#{socket.assigns.selected_piece.id}")
     |> noreply()
   end
 end
