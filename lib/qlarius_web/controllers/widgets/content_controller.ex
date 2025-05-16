@@ -6,8 +6,8 @@ defmodule QlariusWeb.Widgets.ContentController do
   def show(conn, %{"id" => id}) do
     piece = Arcade.get_content_piece!(id)
 
-    if Arcade.has_valid_tiqit?(conn.assigns.current_scope, piece) do
-      render(conn, "show.html", content: piece)
+    if tiqit = Arcade.get_valid_tiqit(conn.assigns.current_scope, piece) do
+      render(conn, "show.html", content: piece, tiqit: tiqit)
     else
       conn
       |> put_flash(:error, "You don't have access to this content")

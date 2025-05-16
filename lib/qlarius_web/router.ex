@@ -117,7 +117,7 @@ defmodule QlariusWeb.Router do
       live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show
     end
 
-    resources "/tiqits", TiqitControllerp
+    resources "/tiqits", TiqitController
 
     get "/jump/:id", AdController, :jump
   end

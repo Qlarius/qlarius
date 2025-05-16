@@ -1,0 +1,161 @@
+<%= if Enum.any?(@pieces) do %>
+  <div class="w-full border-t-2 border-gray-950 px-5 overflow-hidden">
+    <div class="inline-block bg-gray-950 text-white py-1 px-2">
+      <h1 class="font-bold">{@group.title}</h1>
+    </div>
+
+    <%!-- Selected content piece --%>
+    <div class="flex flex-row gap-6">
+      <div class="p-4 w-1/2">
+        <div class="bg-gray-50 rounded-lg p-4 mb-4">
+          <div>
+            <img
+              :if={@group.image}
+              src={QlariusWeb.Creators.ContentGroupHTML.content_group_image_url(@group)}
+              class="max-h-20 rounded mx-auto"
+            />
+          </div>
+          <div class="mt-4">
+            <h2 class="text-lg font-semibold">{@selected_piece.title}</h2>
+            <p class="text-sm text-gray-600">
+              {@selected_piece.description}
+            </p>
+          </div>
+
+          <div class="flex flex-col justify-between my-4 gap-4">
+            <%= if Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>
+              <.button navigate={~p"/widgets/content/#{@selected_piece.id}"} variant="primary">
+                Go to content
+              </.button>
+            <% else %>
+              <% default_tc = ContentPiece.default_tiqit_class(@selected_piece) %>
+
+              <.button phx-click="select-tiqit-class" phx-value-tiqit-class-id={default_tc.id}>
+                Get Tiqit ({format_usd(default_tc.price)})
+              </.button>
+              <.wallet_buttons balance={@balance} />
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <%!-- Pieces --%>
+      <div class="w-1/2 space-y-3 pt-4">
+        <.link
+          :for={piece <- @pieces}
+          patch={~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}"}
+          class={"rounded p-4 flex justify-between items-center #{if piece.id == @selected_piece.id, do: "bg-sky-100", else: "bg-gray-50"}"}
+        >
+          <div>
+            <h3 class="text-md font-semibold">
+              {piece.title}
+            </h3>
+            <div class="flex space-x-2 mt-1">
+              <span class="badge badge-soft badge-neutral">
+                {Calendar.strftime(piece.inserted_at, "%d/%m/%y")}
+              </span>
+              <span class="badge badge-soft badge-primary">
+                <%= if Arcade.has_valid_tiqit?(@current_scope, piece) do %>
+                  <.icon name="hero-check" class="h-4 w-4" />
+                <% else %>
+                  {ContentPiece.default_tiqit_class(piece).price |> format_usd()}
+                <% end %>
+              </span>
+            </div>
+          </div>
+        </.link>
+      </div>
+    </div>
+  </div>
+
+  <.modal
+    :if={@selected_tiqit_class}
+    id="confirm-purchase-modal"
+    on_cancel={JS.push("close-confirm-purchase-modal")}
+    show
+  >
+    <div class="flex flex-col space-y-4">
+      <div class="relative">
+        <img
+          :if={@group.image}
+          src={QlariusWeb.Creators.ContentGroupHTML.content_group_image_url(@group)}
+          class="max-h-20 rounded mx-auto"
+        />
+      </div>
+      <h2 class="text-xl font-bold text-gray-800">
+        {@selected_piece.title}
+      </h2>
+      <%= if assigns[:options_modal] do %>
+        <div
+          :for={tiqit_class <- @selected_piece.tiqit_classes}
+          class="flex justify-between items-center bg-white p-1 rounded-lg"
+        >
+          <span class="text-sm">{tiqit_class.name}</span>
+          <%= if Decimal.compare(@balance, tiqit_class.price) != :lt do %>
+            <button
+              phx-click="select-tiqit-class"
+              phx-value-tiqit-class-id={tiqit_class.id}
+              class="bg-gray-300 px-3 py-1 rounded text-sm font-medium hover:bg-gray-400 cursor-pointer"
+            >
+              ${Decimal.round(tiqit_class.price, 2)}
+            </button>
+          <% else %>
+            <div class="bg-gray-100 px-3 py-1 rounded text-sm font-medium text-gray-800 line-through">
+              ${Decimal.round(tiqit_class.price, 2)}
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-gray-600">
+          {tiqit_class_duration(@selected_tiqit_class)}
+        </p>
+        <.button
+          variant="primary"
+          class="w-full"
+          phx-click="purchase-tiqit"
+          phx-value-tiqit-class-id={@selected_tiqit_class.id}
+        >
+          Purchase Tiqit ({format_usd(@selected_tiqit_class.price)})
+        </.button>
+      <% end %>
+      <div class="flex gap-4">
+        <%= if assigns[:options_modal] do %>
+          <.button phx-click="hide-options" variant="outline" class="flex-1">
+            Back
+          </.button>
+        <% else %>
+          <.button phx-click="show-options" variant="outline" class="flex-1">
+            Options
+          </.button>
+        <% end %>
+        <.wallet_buttons balance={@balance} />
+      </div>
+    </div>
+  </.modal>
+
+  <.modal
+    id="topup-modal"
+    on_cancel={JS.push("close-topup-modal")}
+    show={assigns[:show_topup_modal]}
+  >
+    <div class="flex flex-col items-center p-4">
+      <h2 class="text-lg font-handwritten mb-4">Top up your wallet...</h2>
+      <div class="flex space-x-4">
+        <button
+          class="flex items-center justify-center bg-white border border-gray-300 rounded-lg py-2 px-4 hover:bg-gray-100 cursor-pointer"
+          phx-click="topup"
+        >
+          <span class="text-2xl mr-2">🍎</span> Pay
+        </button>
+        <button
+          class="flex items-center justify-center bg-white border border-gray-300 rounded-lg py-2 px-4 hover:bg-gray-100 cursor-pointer"
+          phx-click="topup"
+        >
+          <span class="text-2xl mr-2">🇬</span> Pay
+        </button>
+      </div>
+    </div>
+  </.modal>
+<% else %>
+  Unable to render this content group as it has no valid Tiqit classes
+<% end %>

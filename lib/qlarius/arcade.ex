@@ -12,7 +12,7 @@ defmodule Qlarius.Arcade do
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
 
-  def has_valid_tiqit?(%Scope{} = scope, %ContentPiece{} = content) do
+  def get_valid_tiqit(%Scope{} = scope, %ContentPiece{} = content) do
     now = DateTime.utc_now()
 
     query =
@@ -23,7 +23,11 @@ defmodule Qlarius.Arcade do
         where: u.id == ^scope.user.id,
         where: is_nil(t.expires_at) or t.expires_at > ^now
 
-    Repo.exists?(query)
+    Repo.one(query)
+  end
+
+  def has_valid_tiqit?(%Scope{} = scope, %ContentPiece{} = content) do
+    !!get_valid_tiqit(scope, content)
   end
 
   def list_content_groups do

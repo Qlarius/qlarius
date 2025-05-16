@@ -48,4 +48,8 @@ defmodule Qlarius.Arcade.ContentPiece do
       with: &TiqitClass.changeset/2
     )
   end
+
+  def default_tiqit_class(%__MODULE__{} = piece) do
+    Enum.min_by(piece.tiqit_classes, & &1.duration_hours)
+  end
 end
