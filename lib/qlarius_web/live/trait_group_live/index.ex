@@ -6,6 +6,16 @@ defmodule QlariusWeb.TraitGroupLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
+    socket =
+      attach_hook(socket, :set_current_path, :handle_params, fn _params, uri, socket ->
+        socket =
+          assign_new(socket, :current_path, fn ->
+            uri |> URI.parse() |> Map.get(:path) || "/"
+          end)
+
+        {:cont, socket}
+      end)
+
     trait_groups = Traits.list_trait_groups()
     categories_with_traits = Traits.list_categories_with_traits()
 
