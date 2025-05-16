@@ -128,6 +128,22 @@ defmodule QlariusWeb.Layouts do
     Plug.Conn.assign(conn, :current_path, conn.request_path)
   end
 
+  def on_mount(:set_current_path, _params, _session, socket) do
+    socket =
+      Phoenix.LiveView.attach_hook(socket, :set_current_path, :handle_params, fn _params,
+                                                                                 uri,
+                                                                                 socket ->
+        socket =
+          assign_new(socket, :current_path, fn ->
+            uri |> URI.parse() |> Map.get(:path) || "/"
+          end)
+
+        {:cont, socket}
+      end)
+
+    {:cont, socket}
+  end
+
   attr :flash, :map, required: true
   attr :current_scope, Scope, default: nil
 
@@ -151,7 +167,7 @@ defmodule QlariusWeb.Layouts do
           <span>Targets</span>
         </.marketer_navbar_link>
 
-        <.marketer_navbar_link current_path={@current_path} path={~p"/"}>
+        <.marketer_navbar_link current_path={@current_path} path={~p"/campaigns"}>
           <.icon name="hero-speaker-wave" class="mr-2" />
           <span>Campaigns</span>
         </.marketer_navbar_link>
@@ -184,7 +200,7 @@ defmodule QlariusWeb.Layouts do
     <.link
       class={[
         "flex items-center px-4 py-2 border-r border-green-400",
-        @current_path == @path && "bg-green-600"
+        String.starts_with?(@current_path, @path) && "bg-green-600"
       ]}
       navigate={@path}
     >

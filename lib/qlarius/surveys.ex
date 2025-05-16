@@ -2,8 +2,10 @@ defmodule Qlarius.Surveys do
   import Ecto.Query, warn: false
   alias Qlarius.Repo
 
+  alias Qlarius.Accounts.User
   alias Qlarius.Surveys.SurveyCategory
   alias Qlarius.Surveys.Survey
+  alias Qlarius.Traits.MeFileTag
   alias Qlarius.Traits.Trait
   alias Qlarius.Traits.TraitValue
 
@@ -63,16 +65,12 @@ defmodule Qlarius.Surveys do
   Returns 0 if no questions are completed.
   """
   def count_completed_questions(surveys, user_id) do
-    user = Repo.get!(User, user_id) |> Repo.preload(:me_file)
-
     trait_ids = surveys |> Enum.flat_map(& &1.traits) |> Enum.map(& &1.id)
 
     from(t in Trait,
-      join: tv in TraitValue,
-      on: tv.trait_id == t.id,
-      join: mft in MeFileTag,
-      on: mft.trait_id == tv.id,
-      where: t.id in ^trait_ids and mft.me_file_id == ^user.me_file.id,
+      join: tv in assoc(t, :values),
+      join: mft in assoc(tv, :me_files),
+      where: t.id in ^trait_ids and mft.user_id == ^user_id,
       select: count(fragment("DISTINCT ?", t.id))
     )
     |> Repo.one() || 0

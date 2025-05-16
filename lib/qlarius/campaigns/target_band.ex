@@ -12,7 +12,7 @@ defmodule Qlarius.Campaigns.TargetBand do
     field :description, :string
     field :is_bullseye, :boolean, default: false
 
-    many_to_many :trait_groups, TraitGroup, join_through: "traits_trait_groups"
+    many_to_many :trait_groups, TraitGroup, join_through: "trait_group_traits"
 
     belongs_to :created_by, Qlarius.Accounts.User, foreign_key: :user_created_by
 

@@ -20,6 +20,8 @@ defmodule Qlarius.Traits.TraitValue do
     field :max_selected, :integer
     field :is_date, :boolean, default: false
 
+    field :answer, :string
+
     many_to_many :me_files, Qlarius.Accounts.MeFile,
       join_through: Qlarius.Traits.MeFileTag,
       join_keys: [trait_id: :id, me_file_id: :id]
@@ -36,7 +38,7 @@ defmodule Qlarius.Traits.TraitValue do
   """
   def changeset(trait_value, attrs) do
     trait_value
-    |> cast(attrs, [:name, :display_order, :trait_id, :answer])
-    |> validate_required([:name, :display_order, :trait_id])
+    |> cast(attrs, [:name, :display_order, :parent_trait_id, :answer])
+    |> validate_required([:name, :display_order, :parent_trait_id])
   end
 end

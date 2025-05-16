@@ -216,6 +216,36 @@ defmodule Qlarius.Traits do
   end
 
   @doc """
+  Gets all trait categories with their traits and values for a given user.
+  Categories and traits are ordered by display_order.
+  Only returns traits that have at least one value for the user.
+
+  TODO this query is very slow, improve it
+  """
+  def list_categories_with_user_traits(user_id) do
+    user = Repo.get!(User, user_id) |> Repo.preload(:me_file)
+
+    TraitCategory
+    |> order_by([c], asc: c.display_order)
+    |> preload(
+      traits:
+        ^{from(t in Trait,
+           join: mft in MeFileTag,
+           on:
+             mft.trait_id in fragment(
+               "SELECT id FROM trait_values WHERE parent_trait_id = ?",
+               t.id
+             ),
+           where: mft.me_file_id == ^user.me_file.id,
+           distinct: true,
+           order_by: [asc: t.display_order]
+         ), [values: values_for_user_query(user)]}
+    )
+    |> Repo.all()
+    |> Enum.map(&filter_empty_traits/1)
+  end
+
+  @doc """
   Removes a trait from a survey.
   """
   def remove_trait_from_survey(survey, trait) do
@@ -315,43 +345,13 @@ defmodule Qlarius.Traits do
   def get_user_trait_values(trait_id, user_id) do
     from(tag in MeFileTag,
       join: traitval in TraitValue,
-      on: tag.trait_value_id == traitval.id,
+      on: tag.trait_id == traitval.id,
       join: mefile in MeFile,
       on: mefile.id == tag.me_file_id,
-      where: traitval.trait_id == ^trait_id and mefile.user_id == ^user_id,
+      where: traitval.parent_trait_id == ^trait_id and mefile.user_id == ^user_id,
       select: traitval.id
     )
     |> Repo.all()
-  end
-
-  @doc """
-  Gets all trait categories with their traits and values for a given user.
-  Categories and traits are ordered by display_order.
-  Only returns traits that have at least one value for the user.
-
-  TODO this query is very slow, improve it
-  """
-  def list_categories_with_traits(user_id) do
-    user = Repo.get!(User, user_id) |> Repo.preload(:me_file)
-
-    TraitCategory
-    |> order_by([c], asc: c.display_order)
-    |> preload(
-      traits:
-        ^{from(t in Trait,
-           join: mft in MeFileTag,
-           on:
-             mft.trait_id in fragment(
-               "SELECT id FROM trait_values WHERE parent_trait_id = ?",
-               t.id
-             ),
-           where: mft.me_file_id == ^user.me_file.id,
-           distinct: true,
-           order_by: [asc: t.display_order]
-         ), [values: values_for_user_query(user)]}
-    )
-    |> Repo.all()
-    |> Enum.map(&filter_empty_traits/1)
   end
 
   defp values_for_user_query(user) do

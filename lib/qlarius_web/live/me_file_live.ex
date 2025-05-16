@@ -90,7 +90,7 @@ defmodule QlariusWeb.MeFileLive do
 
   defp assign_categories(socket) do
     user_id = socket.assigns.current_scope.user.id
-    categories = Traits.list_categories_with_traits(user_id)
+    categories = Traits.list_categories_with_user_traits(user_id)
     assign(socket, :categories, categories)
   end
 end
