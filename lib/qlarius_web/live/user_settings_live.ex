@@ -12,10 +12,7 @@ defmodule QlariusWeb.UserSettingsLive do
 
         <div class="space-y-12 divide-y">
           <div class="pt-6">
-            <.button
-              navigate={~p"/proxy_users"}
-              class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
-            >
+            <.button navigate={~p"/proxy_users"}>
               Manage Proxy Users →
             </.button>
           </div>

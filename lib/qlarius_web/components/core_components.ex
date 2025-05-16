@@ -91,12 +91,19 @@ defmodule QlariusWeb.CoreComponents do
       <.button navigate={~p"/"}>Home</.button>
   """
   attr :rest, :global, include: ~w(href navigate patch)
-  attr :variant, :string, values: ~w(primary)
+  attr :variant, :string, values: ~w(primary outline)
   slot :inner_block, required: true
 
   def button(%{rest: rest} = assigns) do
-    variants = %{"primary" => "btn-primary", nil => "btn-primary btn-soft"}
-    assigns = assign(assigns, :class, Map.fetch!(variants, assigns[:variant]))
+    variants = %{
+      "primary" => "btn-primary",
+      "outline" => "btn-outline",
+      nil => "btn-primary btn-soft"
+    }
+
+    class = Map.fetch!(variants, assigns[:variant]) <> " " <> (assigns[:rest][:class] || "")
+
+    assigns = assign(assigns, :class, class)
 
     if rest[:href] || rest[:navigate] || rest[:patch] do
       ~H"""
