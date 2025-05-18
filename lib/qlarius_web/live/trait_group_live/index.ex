@@ -18,7 +18,7 @@ defmodule QlariusWeb.TraitGroupLive.Index do
   end
 
   @impl true
-  def handle_params(%{"trait_id" => trait_id}, uri, socket) do
+  def handle_params(%{"trait_id" => trait_id}, _uri, socket) do
     trait = Traits.get_trait_with_values!(trait_id)
 
     form =
@@ -31,7 +31,7 @@ defmodule QlariusWeb.TraitGroupLive.Index do
     |> noreply()
   end
 
-  def handle_params(_params, uri, socket) do
+  def handle_params(_params, _uri, socket) do
     {:noreply, assign(socket, trait_group_form: nil)}
   end
 

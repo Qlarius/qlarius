@@ -3,7 +3,7 @@ defmodule QlariusWeb.TiqitController do
 
   alias Qlarius.Tiqits
 
-  def index(conn, params) do
+  def index(conn, _params) do
     render(conn, :index, tiqits: Tiqits.list_user_tiqits(conn.assigns.current_scope.user))
   end
 end

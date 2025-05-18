@@ -2,10 +2,8 @@ defmodule Qlarius.Surveys do
   import Ecto.Query, warn: false
   alias Qlarius.Repo
 
-  alias Qlarius.Accounts.User
   alias Qlarius.Surveys.SurveyCategory
   alias Qlarius.Surveys.Survey
-  alias Qlarius.Traits.MeFileTag
   alias Qlarius.Traits.Trait
   alias Qlarius.Traits.TraitValue
 
@@ -105,8 +103,8 @@ defmodule Qlarius.Surveys do
   end
 
   def list_surveys_by_category do
-    values_query = from v in Qlarius.Traits.TraitValue, order_by: v.display_order
-    traits_query = from t in Qlarius.Traits.Trait, preload: [values: ^values_query]
+    values_query = from v in TraitValue, order_by: v.display_order
+    traits_query = from t in Trait, preload: [values: ^values_query]
     surveys_query = from s in Survey, order_by: s.display_order, preload: [traits: ^traits_query]
 
     query =
@@ -121,7 +119,7 @@ defmodule Qlarius.Surveys do
     Repo.get!(Survey, id)
     |> Repo.preload([
       :category,
-      traits: [values: from(v in Qlarius.Traits.TraitValue, order_by: v.display_order)]
+      traits: [values: from(v in TraitValue, order_by: v.display_order)]
     ])
   end
 

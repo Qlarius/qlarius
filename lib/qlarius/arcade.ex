@@ -69,7 +69,7 @@ defmodule Qlarius.Arcade do
     ContentPiece.changeset(content, attrs)
   end
 
-  def purchase_tiqit(%Scope{user: user} = scope, %TiqitClass{} = tiqit_class) do
+  def purchase_tiqit(%Scope{user: user} = _scope, %TiqitClass{} = tiqit_class) do
     purchased_at = DateTime.utc_now()
 
     expires_at =
