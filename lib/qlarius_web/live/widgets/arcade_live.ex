@@ -59,7 +59,10 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
   def wallet_buttons(assigns) do
     ~H"""
     <div class="flex items-center space-x-2 flex-1">
-      <span class="bg-green-100 text-green-800 border border-green-800 py-1 px-2 rounded flex items-center text-sm hover:bg-green-200 cursor-pointer">
+      <span
+        class="bg-green-100 text-green-800 border border-green-800 py-1 px-2 rounded flex items-center text-sm hover:bg-green-200 cursor-pointer"
+        phx-click="show-topup-modal"
+      >
         <.icon name="hero-wallet" class="w-4 h-4 mr-1" /> Balance: {format_usd(@balance)}
       </span>
       <button

@@ -151,9 +151,7 @@ defmodule QlariusWeb.WalletLive do
             <div class="text-right mr-4">
               <div>{format_currency(entry.amount)}</div>
               <div class="text-gray-500">
-                {format_currency(
-                  calculate_balance_at_entry(@ledger_header, entry, @paginated_entries.entries)
-                )}
+                {format_currency(entry.running_balance)}
               </div>
             </div>
             <div class="text-gray-400">
@@ -179,24 +177,4 @@ defmodule QlariusWeb.WalletLive do
 
   defp pad_zero(number) when number < 10, do: "0#{number}"
   defp pad_zero(number), do: "#{number}"
-
-  # Calculate the balance at a specific entry point
-  # This is a simplified approach - in a real app, you might want to store running balances
-  defp calculate_balance_at_entry(ledger_header, current_entry, entries) do
-    # Find entries that came after the current entry (newer entries)
-    newer_entries =
-      entries
-      |> Enum.filter(fn entry ->
-        NaiveDateTime.compare(entry.inserted_at, current_entry.inserted_at) == :gt
-      end)
-
-    # Subtract the sum of newer entries from the current balance
-    newer_entries_sum =
-      newer_entries
-      |> Enum.reduce(Decimal.new(0), fn entry, acc ->
-        Decimal.add(acc, entry.amount)
-      end)
-
-    Decimal.sub(ledger_header.balance, newer_entries_sum)
-  end
 end

@@ -134,9 +134,10 @@
   </.modal>
 
   <.modal
+    :if={assigns[:show_topup_modal]}
     id="topup-modal"
+    show
     on_cancel={JS.push("close-topup-modal")}
-    show={assigns[:show_topup_modal]}
   >
     <div class="flex flex-col items-center p-4">
       <h2 class="text-lg font-handwritten mb-4">Top up your wallet...</h2>
