@@ -1,4 +1,5 @@
 import Config
+require Logger
 
 IO.puts("Current working directory: #{File.cwd!()}")
 IO.puts("Looking for .env at: #{Path.expand(".env")}")
@@ -10,7 +11,6 @@ IO.inspect(System.get_env("DATABASE_URL"), label: "DATABASE_URL before Dotenvy")
 vars = Dotenvy.source!(".env")
 
 Enum.each(vars, fn {k, v} ->
-  require Logger
   Logger.debug("Setting env var #{k} to #{v}")
   System.put_env(k, v)
 end)
@@ -20,15 +20,19 @@ IO.inspect(System.get_env("DATABASE_URL"), label: "DATABASE_URL after Dotenvy")
 System.put_env("FOO", "bar")
 IO.inspect(System.get_env("FOO"), label: "FOO after System.put_env")
 
-# Print debug info for all relevant environment variables
+# Output environment variables for debugging at startup
+Logger.debug("Runtime config - environment state:")
+Logger.debug("DATABASE_URL=#{inspect(System.get_env("DATABASE_URL"))}")
+
+# for var <-
+#       ~w(DATABASE_URL LEGACY_DATABASE_URL SECRET_KEY_BASE PHX_HOST PORT USE_S3_STORAGE AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_BUCKET_NAME MIX_ENV) do
 for var <-
-      ~w(DATABASE_URL LEGACY_DATABASE_URL SECRET_KEY_BASE PHX_HOST PORT USE_S3_STORAGE AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_BUCKET_NAME MIX_ENV) do
+      ~w(DATABASE_URL SECRET_KEY_BASE PHX_HOST PORT USE_S3_STORAGE AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_BUCKET_NAME MIX_ENV) do
   IO.puts("#{var}=#{inspect(System.get_env(var))}")
 end
 
 # Load environment variables first if in dev environment
 if config_env() == :dev do
-  require Logger
   Logger.debug("Loading environment in runtime.exs")
 
   # Load environment variables
@@ -38,10 +42,8 @@ if config_env() == :dev do
 end
 
 # Log current environment state
-require Logger
 Logger.debug("Runtime config - environment state:")
 Logger.debug("DATABASE_URL=#{inspect(System.get_env("DATABASE_URL"))}")
-Logger.debug("LEGACY_DATABASE_URL=#{inspect(System.get_env("LEGACY_DATABASE_URL"))}")
 
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
@@ -70,23 +72,8 @@ if System.get_env("PHX_SERVER") do
   config :qlarius, QlariusWeb.Endpoint, server: true
 end
 
-# Configure database URLs
-legacy_database_url = System.get_env("LEGACY_DATABASE_URL")
+# Configure database URL
 database_url = System.get_env("DATABASE_URL")
-
-if legacy_database_url do
-  Logger.debug("Configuring LegacyRepo with URL")
-
-  config :qlarius, Qlarius.LegacyRepo,
-    url: legacy_database_url,
-    ssl:
-      String.contains?(legacy_database_url, "amazonaws.com") or
-        String.contains?(legacy_database_url, "render.com"),
-    ssl_opts: [verify: :verify_none],
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
-    migration_timestamps: [type: :naive_datetime],
-    migration_primary_key: [type: :bigserial]
-end
 
 if database_url do
   Logger.debug("Configuring Repo with URL")

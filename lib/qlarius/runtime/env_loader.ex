@@ -20,7 +20,7 @@ defmodule Qlarius.Runtime.EnvLoader do
             for {key, value} <- envs do
               System.put_env(key, value)
 
-              if key in ["DATABASE_URL", "LEGACY_DATABASE_URL"] do
+              if key == "DATABASE_URL" do
                 Logger.info("Loaded #{key}: #{String.slice(value, 0, 10)}...")
               end
             end
@@ -28,14 +28,13 @@ defmodule Qlarius.Runtime.EnvLoader do
             # Log all current environment variables related to the database
             Logger.debug("Current environment state:")
             Logger.debug("DATABASE_URL=#{inspect(System.get_env("DATABASE_URL"))}")
-            Logger.debug("LEGACY_DATABASE_URL=#{inspect(System.get_env("LEGACY_DATABASE_URL"))}")
             Logger.debug("DB_USER=#{inspect(System.get_env("DB_USER"))}")
             Logger.debug("DB_HOST=#{inspect(System.get_env("DB_HOST"))}")
 
             # Verify critical environment variables
-            unless System.get_env("DATABASE_URL") || System.get_env("LEGACY_DATABASE_URL") do
+            unless System.get_env("DATABASE_URL") do
               Logger.warning("""
-              Neither DATABASE_URL nor LEGACY_DATABASE_URL is set in #{env_file}.
+              DATABASE_URL is not set in #{env_file}.
               This may cause the application to fall back to local database configuration.
               """)
             end

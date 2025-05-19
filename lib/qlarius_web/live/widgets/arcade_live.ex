@@ -1,10 +1,10 @@
 defmodule QlariusWeb.Widgets.ArcadeLive do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Arcade
-  alias Qlarius.Arcade.ContentPiece
-  alias Qlarius.Arcade.TiqitType
-  alias Qlarius.Wallets
+  alias Qlarius.Tiqit.Arcade
+  alias Qlarius.Tiqit.Arcade.ContentPiece
+  alias Qlarius.Tiqit.Arcade.TiqitType
+  alias Qlarius.Wallets.Wallets
 
   def mount(_params, _session, socket) do
     user = socket.assigns.current_scope.user

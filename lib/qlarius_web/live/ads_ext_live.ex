@@ -1,13 +1,19 @@
 defmodule QlariusWeb.AdsExtLive do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Legacy
-  alias Qlarius.Legacy.{MeFile, Offer, User, LedgerHeader, AdEvent, LedgerEntry, Recipient}
-  alias Qlarius.LegacyRepo
+  alias Qlarius.Accounts.Users
+  alias Qlarius.Sponster
+  alias Qlarius.YouData.MeFiles.MeFile
+  alias Qlarius.Sponster.Offer
+  alias Qlarius.Accounts.User
+  alias Qlarius.Wallets.{LedgerHeader, LedgerEntry}
+  alias Qlarius.Sponster.AdEvent
+  alias Qlarius.Sponster.Recipient
+  alias Qlarius.Repo
   alias Qlarius.Accounts.Scope
-  alias Qlarius.Ads.ThreeTap
+  alias Qlarius.Sponster.Ads.ThreeTap
   alias Phoenix.Component
-  alias Qlarius.Wallets
+  alias Qlarius.Wallets.Wallets
   import QlariusWeb.OfferHTML
   import Ecto.Query, except: [update: 2, update: 3]
   import QlariusWeb.Layouts
@@ -19,9 +25,9 @@ defmodule QlariusWeb.AdsExtLive do
   @impl true
   def mount(params, session, socket) do
     # Load initial data during first mount
-    user = Legacy.get_user(508)
+    user = Users.get_user(508)
     current_scope = Scope.for_user(user)
-    me_file = Legacy.get_user_me_file(current_scope.user.id)
+    me_file = Users.get_user_me_file(current_scope.user.id)
 
     host_uri =
       case Phoenix.LiveView.get_connect_info(socket, :uri) do
@@ -30,7 +36,7 @@ defmodule QlariusWeb.AdsExtLive do
       end
 
     split_code = Map.get(params, "split_code")
-    recipient = Legacy.get_recipient_by_split_code(split_code)
+    recipient = Users.get_recipient_by_split_code(split_code)
 
     socket =
       socket
@@ -63,7 +69,7 @@ defmodule QlariusWeb.AdsExtLive do
 
     active_offers =
       query
-      |> LegacyRepo.all()
+      |> Repo.all()
       |> Enum.map(fn offer -> {offer, 0} end)
 
     {:noreply,

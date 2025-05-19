@@ -13,23 +13,18 @@ defmodule Qlarius.Application do
 
     # Debug log to check environment variables and config
     Logger.debug("Environment variables loaded:")
-    Logger.debug("LEGACY_DATABASE_URL: #{inspect(System.get_env("LEGACY_DATABASE_URL"))}")
     Logger.debug("DATABASE_URL: #{inspect(System.get_env("DATABASE_URL"))}")
 
-    # Debug log full repo configurations
+    # Debug log full repo configuration
     Logger.debug("Full Qlarius.Repo config:")
     Logger.debug(inspect(Application.get_env(:qlarius, Qlarius.Repo), pretty: true))
-
-    Logger.debug("Full Qlarius.LegacyRepo config:")
-    Logger.debug(inspect(Application.get_env(:qlarius, Qlarius.LegacyRepo), pretty: true))
 
     children = [
       # Start Telemetry supervisor
       QlariusWeb.Telemetry,
 
-      # Start the Ecto repositories
+      # Start the Ecto repository
       {Qlarius.Repo, []},
-      {Qlarius.LegacyRepo, []},
 
       # Start the remaining services
       {DNSCluster, query: Application.get_env(:qlarius, :dns_cluster_query) || :ignore},

@@ -2,8 +2,8 @@ defmodule QlariusWeb.MediaPieceController do
   use QlariusWeb, :controller
   require Logger
 
-  alias Qlarius.Marketing
-  alias Qlarius.Legacy.MediaPiece
+  alias Qlarius.Sponster.Marketing
+  alias Qlarius.Sponster.Ads.MediaPiece
 
   @debug true
 

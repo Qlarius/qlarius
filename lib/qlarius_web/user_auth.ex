@@ -6,7 +6,7 @@ defmodule QlariusWeb.UserAuth do
 
   alias Qlarius.Accounts
   alias Qlarius.Accounts.Scope
-  alias Qlarius.Legacy
+  alias Qlarius.Accounts.Users
 
   # Make the remember me cookie valid for 60 days.
   # If you want bump or reduce this value, also change
@@ -39,7 +39,7 @@ defmodule QlariusWeb.UserAuth do
   Logs the user in.
   """
   def log_in_user(conn, _user, params \\ %{}) do
-    user = Legacy.get_user!(508)
+    user = Users.get_user!(508)
     token = Accounts.generate_user_session_token(user)
     user_return_to = get_session(conn, :user_return_to)
 
@@ -88,7 +88,7 @@ defmodule QlariusWeb.UserAuth do
   and remember me token.
   """
   def fetch_current_scope_for_user(conn, _opts) do
-    user = Legacy.get_user!(508)
+    user = Users.get_user!(508)
     scope = Scope.for_user(user)
 
     conn
@@ -97,7 +97,7 @@ defmodule QlariusWeb.UserAuth do
   end
 
   def fetch_current_user(conn, _opts) do
-    user = Legacy.get_user!(508)
+    user = Users.get_user!(508)
     assign(conn, :current_user, user)
   end
 
@@ -150,7 +150,7 @@ defmodule QlariusWeb.UserAuth do
       end
   """
   def on_mount(:mount_current_user, _params, _session, socket) do
-    user = Legacy.get_user!(508)
+    user = Users.get_user!(508)
 
     {:cont,
      Phoenix.Component.assign(socket, current_user: user, current_scope: Scope.for_user(user))}
@@ -161,7 +161,7 @@ defmodule QlariusWeb.UserAuth do
   end
 
   def on_mount(:require_authenticated, _params, _session, socket) do
-    user = Legacy.get_user!(508)
+    user = Users.get_user!(508)
 
     {:cont,
      Phoenix.Component.assign(socket, current_user: user, current_scope: Scope.for_user(user))}

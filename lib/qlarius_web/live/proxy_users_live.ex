@@ -1,8 +1,8 @@
 defmodule QlariusWeb.ProxyUsersLive do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Legacy
-  alias Qlarius.Legacy.{User, UserProxy}
+  alias Qlarius.Accounts.Users
+  alias Qlarius.Accounts.UserProxy
   alias Qlarius.Accounts.Scope
   alias QlariusWeb.Layouts
 
@@ -81,12 +81,12 @@ defmodule QlariusWeb.ProxyUsersLive do
 
     # Deactivate current proxy if exists
     if socket.assigns.active_proxy do
-      {:ok, _} = Legacy.update_user_proxy(socket.assigns.active_proxy, %{active: false})
+      {:ok, _} = Users.update_user_proxy(socket.assigns.active_proxy, %{active: false})
     end
 
     # Activate new proxy
     proxy = Enum.find(socket.assigns.proxy_users, &(&1.id == proxy_id))
-    {:ok, updated_proxy} = Legacy.update_user_proxy(proxy, %{active: true})
+    {:ok, updated_proxy} = Users.update_user_proxy(proxy, %{active: true})
 
     # Refresh proxy users list using the admin user
     proxy_users = list_proxy_users(admin_user)
@@ -108,12 +108,12 @@ defmodule QlariusWeb.ProxyUsersLive do
 
   defp list_proxy_users(user) do
     user
-    |> Legacy.list_proxy_users()
-    |> Legacy.preload_proxy_users()
+    |> Users.list_proxy_users()
+    |> Users.preload_proxy_users()
   end
 
   defp get_active_proxy(user) do
     user
-    |> Legacy.get_active_proxy_user()
+    |> Users.get_active_proxy_user()
   end
 end

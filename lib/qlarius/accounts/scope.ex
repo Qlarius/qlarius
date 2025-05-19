@@ -16,8 +16,10 @@ defmodule Qlarius.Accounts.Scope do
   growing application requirements.
   """
 
-  alias Qlarius.Legacy.{User, MeFile, LedgerHeader}
-  alias Qlarius.{LegacyRepo, Wallets}
+  alias Qlarius.Accounts.User
+  alias Qlarius.YouData.MeFiles.MeFile
+  alias Qlarius.Wallets.LedgerHeader
+  alias Qlarius.Repo
   alias Decimal
 
   defstruct user: nil,
@@ -34,8 +36,8 @@ defmodule Qlarius.Accounts.Scope do
   """
   def for_user(user) do
     user = User.active_proxy_user_or_self(user)
-    me_file = LegacyRepo.get_by(MeFile, user_id: user.id)
-    ledger_header = LegacyRepo.get_by(LedgerHeader, me_file_id: me_file.id)
+    me_file = Repo.get_by(MeFile, user_id: user.id)
+    ledger_header = Repo.get_by(LedgerHeader, me_file_id: me_file.id)
 
     %__MODULE__{
       user: user,

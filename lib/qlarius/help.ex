@@ -2,45 +2,43 @@
 defmodule Qlarius.Help do
   defmacro __using__(_) do
     quote do
-      alias Qlarius.Wallets
-      alias Qlarius.Surveys
-      alias Qlarius.Arcade
-      alias Qlarius.Campaigns
-      alias Qlarius.Offers
-      alias Qlarius.Arcade.TiqitType
-      alias Qlarius.Arcade.Tiqit
-      alias Qlarius.Arcade.ContentPiece
-      alias Qlarius.Arcade.ContentGroup
-      alias Qlarius.Traits.Trait
-      alias Qlarius.Traits.TraitCategory
-      alias Qlarius.Traits.UserTag
-      alias Qlarius.Traits.TraitValue
-      alias Qlarius.Media
-      alias Qlarius.Marketing
-      alias Qlarius.Offer
-      alias Qlarius.MeFile
-      alias Qlarius.Accounts
-      alias Qlarius.AdEvent
+      alias Qlarius.Sponster.Ads.AdCategory
+      alias Qlarius.Sponster.Ads.MediaPiece
+      alias Qlarius.Sponster.Ads.MediaPieceType
+      alias Qlarius.Sponster.Ads.MediaPiecePhase
+      alias Qlarius.Sponster.Ads.ThreeTap
+      alias Qlarius.Sponster.Recipient
+      alias Qlarius.Sponster.Marketing
+      alias Qlarius.Sponster.Offer
+      alias Qlarius.Sponster.AdEvent
+      alias Qlarius.Sponster.Campaigns.TraitGroupTrait
+      alias Qlarius.Sponster.Campaigns.MediaSequence
+      alias Qlarius.Sponster.Campaigns.MediaRun
+      alias Qlarius.Sponster.Campaigns.TargetBand
+      alias Qlarius.Sponster.Campaigns.TraitGroup
+      alias Qlarius.Sponster.Campaigns.Campaign
+      alias Qlarius.Runtime.EnvLoader
+      alias Qlarius.YouData.Traits.Trait
+      alias Qlarius.YouData.MeFiles.MeFileTag
+      alias Qlarius.YouData.MeFiles.MeFile
+      alias Qlarius.YouData.Surveys.Surveys
+      alias Qlarius.YouData.Surveys.SurveyCategory
+      alias Qlarius.YouData.Surveys.Survey
+      alias Qlarius.Accounts.Marketer
       alias Qlarius.Accounts.User
+      alias Qlarius.Accounts.Users
       alias Qlarius.Accounts.Scope
-      alias Qlarius.Accounts.UserNotifier
-      alias Qlarius.Accounts.UserToken
-      alias Qlarius.Mailer
-      alias Qlarius.Surveys.SurveyCategory
-      alias Qlarius.Surveys.Survey
-      alias Qlarius.Marketing.MediaSequence
-      alias Qlarius.Marketing.MediaRun
-      alias Qlarius.Marketing.MediaPiece
+      alias Qlarius.Accounts.UserProxy
+      alias Qlarius.Wallets.Wallets
       alias Qlarius.Wallets.LedgerEntry
       alias Qlarius.Wallets.LedgerHeader
-      alias Qlarius.Campaigns.AdCategory
-      alias Qlarius.Campaigns.TargetBand
-      alias Qlarius.Campaigns.TraitGroup
-      alias Qlarius.Campaigns.Campaign
-      alias Qlarius.Campaigns.Target
       alias Qlarius.Application
+      alias Qlarius.Tiqit.Arcade.Arcade
+      alias Qlarius.Tiqit.Arcade.TiqitType
+      alias Qlarius.Tiqit.Arcade.Tiqit
+      alias Qlarius.Tiqit.Arcade.ContentPiece
+      alias Qlarius.Tiqit.Arcade.ContentGroup
       alias Qlarius.Repo
-      alias Qlarius.Traits
     end
   end
 end

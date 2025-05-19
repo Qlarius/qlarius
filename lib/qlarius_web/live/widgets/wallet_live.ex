@@ -1,7 +1,7 @@
 defmodule QlariusWeb.Widgets.WalletLive do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Wallets
+  alias Qlarius.Wallets.Wallets
 
   def mount(_params, _session, socket) do
     user = socket.assigns.current_scope.user

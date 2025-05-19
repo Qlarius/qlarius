@@ -1,8 +1,8 @@
 defmodule QlariusWeb.Marketers.ContentLive.Form do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Arcade
-  alias Qlarius.Arcade.ContentPiece
+  alias Qlarius.Tiqit.Arcade
+  alias Qlarius.Tiqit.Arcade.ContentPiece
 
   @impl true
   def mount(_params, _session, socket) do

@@ -4,8 +4,8 @@
 defmodule QlariusWeb.Marketers.ContentController do
   use QlariusWeb, :controller
 
-  alias Qlarius.Arcade
-  alias Qlarius.Arcade.ContentPiece
+  alias Qlarius.Tiqit.Arcade
+  alias Qlarius.Tiqit.Arcade.ContentPiece
 
   plug :put_new_layout, {QlariusWeb.Layouts, :arcade}
 

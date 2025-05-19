@@ -1,7 +1,7 @@
 defmodule QlariusWeb.UserSessionController do
   use QlariusWeb, :controller
 
-  alias Qlarius.Legacy
+  alias Qlarius.Accounts.Users
   alias QlariusWeb.UserAuth
 
   def create(conn, %{"_action" => "registered"} = params) do
@@ -21,7 +21,7 @@ defmodule QlariusWeb.UserSessionController do
   defp create(conn, %{"user" => user_params}, info) do
     conn
     |> put_flash(:info, info)
-    |> UserAuth.log_in_user(Legacy.get_user!(508), user_params)
+    |> UserAuth.log_in_user(Users.get_user!(508), user_params)
   end
 
   def delete(conn, _params) do

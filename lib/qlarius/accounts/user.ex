@@ -1,135 +1,69 @@
 defmodule Qlarius.Accounts.User do
   use Ecto.Schema
   import Ecto.Changeset
+  import Ecto.Query
 
-  alias Qlarius.LedgerHeader
-  alias Qlarius.Traits.TraitValue
-  alias Qlarius.Traits.UserTag
   alias Qlarius.Accounts.UserProxy
+  alias Qlarius.YouData.MeFiles.MeFile
+
+  @primary_key {:id, :id, autogenerate: true}
+  @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
 
   schema "users" do
+    field :username, :string
     field :email, :string
-    field :password, :string, virtual: true, redact: true
-    field :hashed_password, :string, redact: true
-    field :current_password, :string, virtual: true, redact: true
-    field :confirmed_at, :utc_datetime
+    # field :encrypted_password, :string
+    # field :reset_password_token, :string
+    # field :reset_password_sent_at, :naive_datetime
+    # field :remember_created_at, :naive_datetime
+    # field :sign_in_count, :integer, default: 0
+    # field :current_sign_in_at, :naive_datetime
+    # field :last_sign_in_at, :naive_datetime
+    # field :current_sign_in_ip, :string
+    # field :last_sign_in_ip, :string
+    # field :confirmation_token, :string
+    # field :confirmed_at, :naive_datetime
+    # field :confirmation_sent_at, :naive_datetime
+    # field :unconfirmed_email, :string
+    # field :failed_attempts, :integer, default: 0
+    # field :unlock_token, :string
+    # field :locked_at, :naive_datetime
+    # field :authentication_token, :string
+    field :referrer_code, :string
+    field :role, :string
+    field :passage_id, :string
+    field :mobile_number, :string
 
-    has_one :ledger_header, LedgerHeader
+    has_one :me_file, MeFile
 
-    many_to_many :trait_values, TraitValue, join_through: UserTag
-
-    # Proxy user associations
+    # Proxy associations matching Rails model
     has_many :proxy_users, UserProxy, foreign_key: :true_user_id
     has_many :proxied_by, UserProxy, foreign_key: :proxy_user_id
 
-    timestamps(type: :utc_datetime)
+    timestamps()
+  end
+
+  def changeset(user, attrs) do
+    user
+    |> cast(attrs, [:username])
+    |> validate_required([:username])
+    |> unique_constraint(:username)
   end
 
   @doc """
-  A user changeset for registration.
-
-  It is important to validate the length of both email and password.
-  Otherwise databases may truncate the email without warnings, which
-  could lead to unpredictable or insecure behaviour. Long passwords may
-  also be very expensive to hash for certain algorithms.
-
-  ## Options
-
-    * `:hash_password` - Hashes the password so it can be stored securely
-      in the database and ensures the password field is cleared to prevent
-      leaks in the logs. If password hashing is not needed and clearing the
-      password field is not desired (like when using this changeset for
-      validations on a LiveView form), this option can be set to `false`.
-      Defaults to `true`.
-
-    * `:validate_email` - Validates the uniqueness of the email, in case
-      you don't want to validate the uniqueness of the email (like when
-      using this changeset for validations on a LiveView form before
-      submitting the form), this option can be set to `false`.
-      Defaults to `true`.
+  Returns either the active proxy user for this user, or the user themselves if no active proxy exists.
   """
-  def registration_changeset(user, attrs, opts \\ []) do
-    user
-    |> cast(attrs, [:email, :password])
-    |> validate_email(opts)
-    |> validate_password(opts)
-  end
+  def active_proxy_user_or_self(%__MODULE__{} = user) do
+    query =
+      from up in UserProxy,
+        where: up.true_user_id == ^user.id and up.active == true,
+        join: proxy in assoc(up, :proxy_user),
+        limit: 1,
+        select: proxy
 
-  defp validate_email(changeset, opts) do
-    changeset
-    |> validate_required([:email])
-    |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
-    |> validate_length(:email, max: 160)
-    |> maybe_validate_unique_email(opts)
-  end
-
-  defp validate_password(changeset, opts) do
-    changeset
-    |> validate_required([:password])
-    |> validate_length(:password, min: 12, max: 72)
-    # Examples of additional password validation:
-    # |> validate_format(:password, ~r/[a-z]/, message: "at least one lower case character")
-    # |> validate_format(:password, ~r/[A-Z]/, message: "at least one upper case character")
-    # |> validate_format(:password, ~r/[!?@#$%^&*_0-9]/, message: "at least one digit or punctuation character")
-    |> maybe_hash_password(opts)
-  end
-
-  defp maybe_hash_password(changeset, opts) do
-    hash_password? = Keyword.get(opts, :hash_password, true)
-    password = get_change(changeset, :password)
-
-    if hash_password? && password && changeset.valid? do
-      changeset
-      # If using Bcrypt, then further validate it is at most 72 bytes long
-      |> validate_length(:password, max: 72, count: :bytes)
-      # Hashing could be done with `Ecto.Changeset.prepare_changes/2`, but that
-      # would keep the database transaction open longer and hurt performance.
-      |> put_change(:hashed_password, Bcrypt.hash_pwd_salt(password))
-      |> delete_change(:password)
-    else
-      changeset
+    case Qlarius.Repo.one(query) do
+      nil -> user
+      proxy_user -> proxy_user
     end
-  end
-
-  defp maybe_validate_unique_email(changeset, opts) do
-    if Keyword.get(opts, :validate_email, true) do
-      changeset
-      |> unsafe_validate_unique(:email, Qlarius.Repo)
-      |> unique_constraint(:email)
-    else
-      changeset
-    end
-  end
-
-  @doc """
-  A user changeset for changing the email.
-
-  It requires the email to change otherwise an error is added.
-  """
-  def email_changeset(user, attrs, opts \\ []) do
-    user
-    |> cast(attrs, [:email])
-    |> validate_email(opts)
-  end
-
-  defp validate_email(changeset, opts) do
-    changeset
-    |> validate_required([:email])
-    |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
-    |> validate_length(:email, max: 160)
-    |> maybe_validate_unique_email(opts)
-  end
-
-  @doc """
-  A user changeset for changing the password.
-
-  ## Options
-
-    * `:hash_password` - Hashes the password. Defaults to true.
-  """
-  def password_changeset(user, attrs, opts \\ []) do
-    user
-    |> cast(attrs, [:password])
-    |> validate_password(opts)
   end
 end

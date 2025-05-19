@@ -1,7 +1,7 @@
 defmodule QlariusWeb.ContentController do
   use QlariusWeb, :controller
 
-  alias Qlarius.Arcade
+  alias Qlarius.Tiqit.Arcade.Arcade
 
   def groups(conn, _params) do
     groups = Arcade.list_content_groups()

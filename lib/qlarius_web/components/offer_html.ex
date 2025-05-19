@@ -1,9 +1,10 @@
 defmodule QlariusWeb.OfferHTML do
   use QlariusWeb, :html
 
-  alias Qlarius.Legacy.{Offer, Recipient, MeFile}
+  alias Qlarius.Sponster.{Offer, Recipient}
+  alias Qlarius.YouData.MeFiles.MeFile
   alias QlariusWeb.ThreeTapBanner
-  alias Qlarius.Ads.ThreeTap
+  alias Qlarius.Sponster.Ads.ThreeTap
   import Ecto.Query, except: [update: 2, update: 3]
 
   import QlariusWeb.Money

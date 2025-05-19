@@ -3,24 +3,29 @@ defmodule QlariusWeb.WalletLive do
 
   import QlariusWeb.WalletHTML
 
+  alias Qlarius.Accounts.Users
   alias Qlarius.Accounts.Scope
-  alias Qlarius.Wallets
-  alias Qlarius.Legacy
-  alias Qlarius.Legacy.{MeFile, Offer, User, LedgerHeader, AdEvent, LedgerEntry}
-  alias Qlarius.LegacyRepo
+  alias Qlarius.Wallets.Wallets
+  alias Qlarius.YouData.MeFiles.MeFile
+  alias Qlarius.Sponster.Offer
+  alias Qlarius.Sponster.AdEvent
+  alias Qlarius.Accounts.User
+  alias Qlarius.Wallets.LedgerHeader
+  alias Qlarius.Wallets.LedgerEntry
+  alias Qlarius.Repo
 
   @debug false
 
   @impl true
   def mount(_params, _session, socket) do
     # Load initial data during first mount
-    true_user = Legacy.get_user(508)
+    true_user = Users.get_user(508)
     user = User.active_proxy_user_or_self(true_user)
     current_scope = Scope.for_user(user)
-    me_file = Legacy.get_user_me_file(user.id)
+    me_file = Users.get_user_me_file(user.id)
 
-    # me_file = LegacyRepo.get_by(MeFile, user_id: user.id)
-    ledger_header = LegacyRepo.get_by(LedgerHeader, me_file_id: me_file.id)
+    # me_file = Repo.get_by(MeFile, user_id: user.id)
+    ledger_header = Repo.get_by(LedgerHeader, me_file_id: me_file.id)
 
     # ledger_header = Wallets.get_user_ledger_header(user.id)
 
@@ -186,7 +191,7 @@ defmodule QlariusWeb.WalletLive do
           </div>
         </div>
       <% end %>
-      
+
     <!-- Debug section -->
       <pre :if={@debug} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
         <%= inspect(assigns, pretty: true) %>

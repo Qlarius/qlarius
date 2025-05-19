@@ -22,16 +22,11 @@ config :qlarius, :scopes,
   ]
 
 config :qlarius,
-  ecto_repos: [Qlarius.Repo, Qlarius.LegacyRepo],
+  ecto_repos: [Qlarius.Repo],
   generators: [timestamp_type: :utc_datetime]
 
-# Primary database configuration
+# Database configuration
 config :qlarius, Qlarius.Repo,
-  migration_primary_key: [type: :binary_id],
-  migration_timestamps: [type: :utc_datetime]
-
-# Legacy Rails database configuration
-config :qlarius, Qlarius.LegacyRepo,
   migration_primary_key: [type: :bigserial],
   migration_timestamps: [type: :naive_datetime],
   migration_foreign_key: [type: :bigint],
@@ -125,13 +120,9 @@ config :phoenix, :json_library, Jason
 #     ]
 # end
 
-# Database URLs always from env
+# Database URL from env
 if System.get_env("DATABASE_URL") do
   config :qlarius, Qlarius.Repo, url: System.get_env("DATABASE_URL")
-end
-
-if System.get_env("LEGACY_DATABASE_URL") do
-  config :qlarius, Qlarius.LegacyRepo, url: System.get_env("LEGACY_DATABASE_URL")
 end
 
 # Import environment specific config. This must remain at the bottom

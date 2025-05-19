@@ -101,19 +101,19 @@ defmodule QlariusWeb.Router do
 
   ## Authentication routes
 
-  scope "/", QlariusWeb do
-    pipe_through [:browser, :redirect_if_user_is_authenticated, :auth_layout]
+  # scope "/", QlariusWeb do
+  #   pipe_through [:browser, :redirect_if_user_is_authenticated, :auth_layout]
 
-    live_session :redirect_if_user_is_authenticated,
-      on_mount: [{QlariusWeb.UserAuth, :redirect_if_user_is_authenticated}] do
-      live "/users/register", UserRegistrationLive, :new
-      live "/users/log_in", UserLoginLive, :new
-      live "/users/reset_password", UserForgotPasswordLive, :new
-      live "/users/reset_password/:token", UserResetPasswordLive, :edit
-    end
+  #   live_session :redirect_if_user_is_authenticated,
+  #     on_mount: [{QlariusWeb.UserAuth, :redirect_if_user_is_authenticated}] do
+  #     live "/users/register", UserRegistrationLive, :new
+  #     live "/users/log_in", UserLoginLive, :new
+  #     live "/users/reset_password", UserForgotPasswordLive, :new
+  #     live "/users/reset_password/:token", UserResetPasswordLive, :edit
+  #   end
 
-    post "/users/log_in", UserSessionController, :create
-  end
+  #   post "/users/log_in", UserSessionController, :create
+  # end
 
   scope "/", QlariusWeb do
     pipe_through [:browser, :require_authenticated_user]
@@ -139,16 +139,16 @@ defmodule QlariusWeb.Router do
     get "/jump/:id", AdController, :jump
   end
 
-  scope "/", QlariusWeb do
-    pipe_through [:browser, :auth_layout]
+  # scope "/", QlariusWeb do
+  #   pipe_through [:browser, :auth_layout]
 
-    delete "/users/log_out", UserSessionController, :delete
+  #   delete "/users/log_out", UserSessionController, :delete
 
-    live_session :current_user,
-      on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
-      live "/users/confirm/:token", UserConfirmationLive, :edit
-      live "/users/confirm", UserConfirmationInstructionsLive, :new
-    end
-  end
+  #   live_session :current_user,
+  #     on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
+  #     live "/users/confirm/:token", UserConfirmationLive, :edit
+  #     live "/users/confirm", UserConfirmationInstructionsLive, :new
+  #   end
+  # end
 
 end

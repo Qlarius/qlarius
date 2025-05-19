@@ -3,13 +3,13 @@ defmodule QlariusWeb.ThreeTapStackComponent do
 
   import QlariusWeb.OfferHTML
 
-  alias Qlarius.Ads.ThreeTap
-  alias Qlarius.Legacy.Offer
-  alias Qlarius.LegacyRepo
-  alias Qlarius.Wallets
+  alias Qlarius.Sponster.Ads.ThreeTap
+  alias Qlarius.Sponster.Offer
+  alias Qlarius.Repo
+  alias Qlarius.Wallets.Wallets
   alias Phoenix.Component
   import Ecto.Query, except: [update: 2, update: 3]
-  alias Qlarius.Legacy
+
 
   @impl true
   def render(assigns) do
@@ -112,7 +112,7 @@ defmodule QlariusWeb.ThreeTapStackComponent do
       from(o in Offer,
         where: o.me_file_id == ^socket.assigns.me_file.id and o.is_current == true
       )
-      |> LegacyRepo.aggregate(:count)
+      |> Repo.aggregate(:count)
 
     current_scope = Map.put(socket.assigns.current_scope, :ads_count, ads_count)
     assign(socket, :current_scope, current_scope)
