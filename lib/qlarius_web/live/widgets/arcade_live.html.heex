@@ -109,14 +109,17 @@
         <p class="text-gray-600">
           {tiqit_class_duration(@selected_tiqit_class)}
         </p>
-        <.button
-          variant="primary"
-          class="w-full"
-          phx-click="purchase-tiqit"
-          phx-value-tiqit-class-id={@selected_tiqit_class.id}
-        >
-          Purchase Tiqit ({format_usd(@selected_tiqit_class.price)})
-        </.button>
+        <div class="flex items-center">
+          <.button
+            variant="primary"
+            class="grow"
+            phx-click="purchase-tiqit"
+            phx-value-tiqit-class-id={@selected_tiqit_class.id}
+          >
+            Confirm Purchase ({format_usd(@selected_tiqit_class.price)})
+          </.button>
+          <img src={~p"/images/TIQIT_logo_color_square.svg"} class="h-8 ml-4" />
+        </div>
       <% end %>
       <div class="flex gap-4">
         <%= if assigns[:options_modal] do %>
