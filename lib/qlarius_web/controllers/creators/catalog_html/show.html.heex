@@ -43,17 +43,11 @@
       rows={@catalog.tiqit_classes}
       zebra={false}
     >
-      <:col :let={tc} label="Name">{tc.name}</:col>
       <:col :let={tc} label="Duration">{tiqit_class_duration(tc)}</:col>
       <:col :let={tc} label="Price">{format_usd(tc.price)}</:col>
     </.table>
   <% else %>
-    <div class="text-sm text-zinc-600">
-      No content groups yet!
-      <.a href={~p"/creators/catalogs/#{@catalog}/content_groups/new"}>
-        Click here to add the first.
-      </.a>
-    </div>
+    No Tiqit classes yet. Edit to catalog to add one.
   <% end %>
 
   <header class="flex items-center justify-between gap-6 pb-2 mt-8">

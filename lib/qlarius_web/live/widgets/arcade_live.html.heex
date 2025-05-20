@@ -90,7 +90,7 @@
           :for={tiqit_class <- @selected_piece.tiqit_classes}
           class="flex justify-between items-center bg-white p-1 rounded-lg"
         >
-          <span class="text-sm">{tiqit_class.name}</span>
+          <span class="text-sm">{tiqit_class_duration(tiqit_class)}</span>
           <%= if Decimal.compare(@balance, tiqit_class.price) != :lt do %>
             <button
               phx-click="select-tiqit-class"
@@ -107,7 +107,7 @@
         </div>
       <% else %>
         <p class="text-gray-600">
-          <%= if @tc.duration_hours do %>
+          <%= if @selected_tiqit_class.duration_hours do %>
             You are purchasing access for {tiqit_class_duration(@selected_tiqit_class)}
           <% else %>
             You are purchasing lifetime access

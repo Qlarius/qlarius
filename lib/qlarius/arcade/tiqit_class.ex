@@ -3,7 +3,6 @@ defmodule Qlarius.Arcade.TiqitClass do
   import Ecto.Changeset
 
   schema "tiqit_classes" do
-    field :name, :string
     field :price, :decimal
     field :active, :boolean, default: true
     field :duration_hours, :integer
@@ -17,8 +16,8 @@ defmodule Qlarius.Arcade.TiqitClass do
 
   def changeset(tc, params) do
     tc
-    |> cast(params, ~w[name duration_hours price]a)
-    |> validate_required([:name, :price])
+    |> cast(params, ~w[duration_hours price]a)
+    |> validate_required([:price])
     |> validate_number(:duration_hours, greater_than: 0)
     |> validate_number(:price, greater_than: 0)
   end

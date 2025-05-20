@@ -3,6 +3,8 @@ defmodule QlariusWeb.TiqitClassHTML do
 
   alias Qlarius.Arcade.TiqitClass
 
+  import QlariusWeb.Money, only: [format_usd: 1]
+
   attr :form, Phoenix.HTML.Form, required: true
 
   def inputs_for_tiqit_classes(assigns) do
@@ -11,7 +13,6 @@ defmodule QlariusWeb.TiqitClassHTML do
       <input type="hidden" name={"#{@form.name}[tiqit_class_sort][]"} value={tcf.index} />
 
       <div class="flex align-start gap-4">
-        <.input field={tcf[:name]} type="text" label="Name" />
         <.input field={tcf[:duration_hours]} type="number" label="Duration (hours)" />
         <.input field={tcf[:price]} type="text" label="Price ($)" />
 
@@ -59,5 +60,21 @@ defmodule QlariusWeb.TiqitClassHTML do
     else
       "Lifetime"
     end
+  end
+
+  # record is a Catalog, ContentGroup or ContentPiece with preloaded tiqit_classes
+  attr :record, :any, required: true
+
+  def tiqit_classes_table(assigns) do
+    ~H"""
+    <.table
+      id="catalog_tiqit_classes"
+      rows={@catalog.tiqit_classes}
+      zebra={false}
+    >
+      <:col :let={tc} label="Duration">{tiqit_class_duration(tc)}</:col>
+      <:col :let={tc} label="Price">{format_usd(tc.price)}</:col>
+    </.table>
+    """
   end
 end
