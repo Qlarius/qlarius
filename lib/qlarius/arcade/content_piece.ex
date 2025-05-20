@@ -13,6 +13,7 @@ defmodule Qlarius.Arcade.ContentPiece do
     field :length, :integer, default: 0
     field :preview_length, :integer, default: 0
     field :file_url, :string, default: ""
+    field :youtube_id, :string
     field :preview_url, :string, default: "http://example.com"
     field :price_default, :decimal, default: Decimal.new("0.00")
     field :type, Ecto.Enum, values: ~w[episode chapter song piece lesson]a
