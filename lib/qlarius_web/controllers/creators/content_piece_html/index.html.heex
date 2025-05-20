@@ -1,0 +1,29 @@
+<.header>
+  Manage Content
+  <:actions>
+    <.link href={~p"/admin/content/new"}>
+      <.button>New Content</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table id="content" rows={@content_collection} row_click={&JS.navigate(~p"/admin/content/#{&1}")}>
+  <:col :let={content} label="Title">{content.title}</:col>
+  <:col :let={content} label="Description">
+    {if String.length(content.description) > 50 do
+      String.slice(content.description, 0..49) <> "…"
+    else
+      content.description
+    end}
+  </:col>
+  <:action :let={content}>
+    <.link navigate={~p"/admin/content/#{content}/edit"}>
+      <.icon name="hero-pencil" class="h-4 w-4 text-gray-500 hover:text-gray-700" />
+    </.link>
+  </:action>
+  <:action :let={content}>
+    <.link href={~p"/admin/content/#{content}"} method="delete" data-confirm="Are you sure?">
+      <.icon name="hero-trash" class="h-4 w-4 text-gray-500 hover:text-gray-700" />
+    </.link>
+  </:action>
+</.table>

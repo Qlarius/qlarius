@@ -1,12 +1,7 @@
 defmodule QlariusWeb.Router do
   use QlariusWeb, :router
 
-  import QlariusWeb.UserAuth,
-    only: [
-      fetch_current_scope_for_user: 2,
-      redirect_if_user_is_authenticated: 2,
-      require_authenticated_user: 2
-    ]
+  import QlariusWeb.UserAuth
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -24,8 +19,24 @@ defmodule QlariusWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
     plug :protect_from_forgery
+    plug :put_secure_browser_headers
     plug :fetch_current_scope_for_user
+    plug :allow_iframe
   end
+
+  # Based on https://elixirforum.com/t/how-to-embed-a-liveview-via-iframe/65066
+  defp allow_iframe(conn, _opts) do
+    conn
+    # This header is set to SAMEORIGIN by put_secure_browser_headers, which
+    # prevents embedding in an iframe.
+    |> delete_resp_header("x-frame-options")
+    # Not sure where it's set but the default CSP header appears to be
+    # "base-uri 'self'; frame-ancestors 'self';" Override it here to remove
+    # frame-ancestors as that also blocks iframes
+    |> put_resp_header("content-security-policy", "base-url 'self'")
+  end
+
+
 
   pipeline :api do
     plug :accepts, ["json"]
@@ -34,6 +45,9 @@ defmodule QlariusWeb.Router do
   # ------ MARKETER ROUTES ------
 
   pipeline :marketer do
+    # This is used to highlight which tab we're on at the top
+    import QlariusWeb.Layouts, only: [set_current_path: 2]
+    plug :set_current_path
     plug :put_root_layout, html: {QlariusWeb.Layouts, :marketer}
   end
 
@@ -79,12 +93,22 @@ defmodule QlariusWeb.Router do
   end
 
   # Widget routes
+  # scope "/widgets", QlariusWeb.Widgets do
+  #   pipe_through [:widgets]
+
+  #   get "/content/:id", ContentController, :show
+  #   live "/arcade/group/:group_id", ArcadeLive
+  #   live "/wallet", WalletLive
+  # end
   scope "/widgets", QlariusWeb.Widgets do
     pipe_through [:widgets]
 
     get "/content/:id", ContentController, :show
-    live "/arcade/group/:group_id", ArcadeLive
-    live "/wallet", WalletLive
+
+    live_session :widgets, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
+      live "/arcade/group/:group_id", ArcadeLive
+      live "/wallet", WalletLive
+    end
   end
 
   # Enable LiveDashboard in development
@@ -136,7 +160,32 @@ defmodule QlariusWeb.Router do
       resources "/admin/content", Marketers.ContentController, only: [:show, :index, :delete]
     end
 
+    resources "/tiqits", TiqitController
+
     get "/jump/:id", AdController, :jump
+  end
+
+  scope "/creators", QlariusWeb.Creators do
+    pipe_through [:browser]
+
+    live_session :creators, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
+      resources "/content_pieces", ContentPieceController, only: [:delete]
+      live "/content_pieces/:id/edit", ContentPieceLive.Form, :edit
+
+      resources "/content_groups", ContentGroupController,
+        only: [:show, :edit, :update, :delete] do
+        get "/preview", ContentGroupController, :preview
+        live "/content_pieces/new", ContentPieceLive.Form, :new
+      end
+
+      resources "/catalogs", CatalogController, only: [:show, :edit, :update, :delete] do
+        resources "/content_groups", ContentGroupController, only: [:new, :create]
+      end
+
+      resources "/", CreatorController do
+        resources "/catalogs", CatalogController, only: [:new, :create]
+      end
+    end
   end
 
   # scope "/", QlariusWeb do

@@ -1,0 +1,18 @@
+<Layouts.creators
+  breadcrumbs={[
+    {@creator.name, ~p"/creators/#{@creator}"},
+    {"New catalog", ~p"/creators/#{@creator}/catalogs/new"}
+  ]}
+  {assigns}
+>
+  <.header>
+    New Catalog
+    <:subtitle>For {@creator.name}</:subtitle>
+  </.header>
+
+  <.catalog_form
+    changeset={@changeset}
+    action={~p"/creators/#{@creator}/catalogs"}
+    return_to={~p"/creators/#{@creator}"}
+  />
+</Layouts.creators>

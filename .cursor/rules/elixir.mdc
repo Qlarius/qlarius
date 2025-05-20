@@ -6,3 +6,4 @@ alwaysApply: false
 - After changing Elixir files, run `mix format`.
 - Never add documentation (i.e. `@doc` or `@moduledoc`) unless I explicitly tell you to.
 - always add module aliases instead of using their fully-qualified names
+- Use qlarius/help.ex when autocompleting aliases

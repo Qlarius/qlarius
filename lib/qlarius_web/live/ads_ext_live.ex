@@ -49,6 +49,7 @@ defmodule QlariusWeb.AdsExtLive do
       |> assign(:host_uri, host_uri)
       |> assign(:split_code, split_code)
       |> assign(:recipient, recipient)
+      |> assign(:page_title, "Sponster")
 
     if connected?(socket) do
       send(self(), :load_offers)

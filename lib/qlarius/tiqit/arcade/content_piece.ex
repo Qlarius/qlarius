@@ -3,7 +3,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
   import Ecto.Changeset
 
   alias Qlarius.Tiqit.Arcade.ContentGroup
-  alias Qlarius.Tiqit.Arcade.TiqitType
+  alias Qlarius.Tiqit.Arcade.TiqitClass
 
   schema "content_pieces" do
     field :title, :string
@@ -15,9 +15,10 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
     field :file_url, :string, default: ""
     field :preview_url, :string, default: "http://example.com"
     field :price_default, :decimal, default: Decimal.new("0.00")
+    field :type, Ecto.Enum, values: ~w[episode chapter song piece lesson]a
 
-    has_many :tiqit_types, TiqitType, on_replace: :delete
-    many_to_many :content_groups, ContentGroup, join_through: "content_groups_content_pieces"
+    has_many :tiqit_classes, TiqitClass, on_replace: :delete
+    belongs_to :content_group, ContentGroup
 
     timestamps()
   end
@@ -37,23 +38,18 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
     ])
     |> validate_required([
       :title,
-      :description,
       :date_published
     ])
     |> validate_length(:title, max: 200)
     |> cast_assoc(
-      :tiqit_types,
-      drop_param: :tiqit_type_drop,
-      sort_param: :tiqit_type_sort,
-      with: &tiqit_type_changeset/2
+      :tiqit_classes,
+      drop_param: :tiqit_class_drop,
+      sort_param: :tiqit_class_sort,
+      with: &TiqitClass.changeset/2
     )
   end
 
-  defp tiqit_type_changeset(tt, params) do
-    tt
-    |> cast(params, ~w[name duration_seconds price]a)
-    |> validate_required([:name, :price])
-    |> validate_number(:duration_seconds, greater_than: 0)
-    |> validate_number(:price, greater_than: 0)
+  def default_tiqit_class(%__MODULE__{} = piece) do
+    Enum.min_by(piece.tiqit_classes, & &1.duration_hours)
   end
 end

@@ -1,0 +1,22 @@
+<.form :let={f} for={@changeset} action={@action}>
+  <.input field={f[:name]} type="text" label="Name" required />
+  <.input field={f[:url]} type="url" label="URL" required />
+  <.input
+    field={f[:type]}
+    type="select"
+    label="Type"
+    options={[
+      {"Site", :site},
+      {"Catalog", :catalog},
+      {"Collection", :collection},
+      {"Show", :show},
+      {"Curriculum", :curriculum},
+      {"Semester", :semester}
+    ]}
+    required
+  />
+  <footer>
+    <.button variant="primary">Save Catalog</.button>
+    <.button :if={@return_to} href={@return_to}>Cancel</.button>
+  </footer>
+</.form>

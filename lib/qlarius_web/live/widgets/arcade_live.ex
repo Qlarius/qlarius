@@ -3,140 +3,79 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
 
   alias Qlarius.Tiqit.Arcade
   alias Qlarius.Tiqit.Arcade.ContentPiece
-  alias Qlarius.Tiqit.Arcade.TiqitType
+  alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.Wallets.Wallets
 
-  def mount(_params, _session, socket) do
-    user = socket.assigns.current_scope.user
-    balance = Wallets.get_user_current_balance(user)
+  def mount(%{"group_id" => group_id}, _session, socket) do
+    scope = socket.assigns.current_scope
+
+    group = Arcade.get_content_group!(group_id)
+    pieces = Enum.filter(group.content_pieces, &Enum.any?(&1.tiqit_classes))
+
+    Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{scope.user.id}")
 
     socket
-    |> assign(balance: balance, selected_tiqit_type: nil)
+    |> assign(
+      balance: scope && scope.wallet_balance,
+      group: group,
+      pieces: pieces,
+      selected_tiqit_class: nil
+    )
     |> ok()
   end
 
-  def handle_params(%{"group_id" => group_id} = params, _uri, socket) do
-    group = Arcade.get_content_group!(group_id)
+  def handle_params(params, _uri, socket) do
+    pieces = socket.assigns.pieces
 
     selected_piece =
       with {:ok, content_id} <- Map.fetch(params, "content_id"),
            content_id = String.to_integer(content_id),
-           content = %ContentPiece{} <- Enum.find(group.content_pieces, &(&1.id == content_id)) do
+           content = %ContentPiece{} <- Enum.find(pieces, &(&1.id == content_id)) do
         content
       else
         _ ->
-          List.first(group.content_pieces)
+          List.first(pieces)
+      end
+
+    default_tiqit_class =
+      if selected_piece do
+        ContentPiece.default_tiqit_class(selected_piece)
+      else
+        nil
       end
 
     socket
-    |> assign(group: group, selected_piece: selected_piece)
+    |> assign(selected_piece: selected_piece)
+    |> assign(default_tiqit_class: default_tiqit_class)
     |> noreply()
   end
 
-  def render(assigns) do
+  defp format_usd(decimal) do
+    "$#{Decimal.round(decimal, 2)}"
+  end
+
+  attr :balance, Decimal
+
+  def wallet_buttons(assigns) do
     ~H"""
-    <div class="flex flex-row gap-6 p-4">
-      <!-- Video Section -->
-      <div class="w-full md:w-1/2">
-        <div class="aspect-video bg-gray-200 rounded-lg flex items-center justify-center">
-          <.icon name="hero-play" class="w-12 h-12 text-gray-500" />
-        </div>
-        <h2 class="text-xl font-bold mt-4">{@selected_piece.title}</h2>
-        <p class="text-sm text-gray-600 mt-2">
-          {@selected_piece.description}
-        </p>
-
-        <div class="mt-4">
-          <%= if Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>
-            <.link
-              navigate={~p"/widgets/content/#{@selected_piece.id}"}
-              class="inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-            >
-              Go to content
-            </.link>
-          <% else %>
-            <div
-              :for={tiqit_type <- @selected_piece.tiqit_types}
-              class="flex justify-between items-center bg-white p-1 rounded-lg"
-            >
-              <span class="text-sm">{tiqit_type.name}</span>
-              <button
-                phx-click="select-tiqit-type"
-                phx-value-tiqit-type-id={tiqit_type.id}
-                class="bg-gray-300 px-3 py-1 rounded text-sm font-medium hover:bg-gray-400"
-              >
-                ${Decimal.round(tiqit_type.price, 2)}
-              </button>
-            </div>
-          <% end %>
-        </div>
-      </div>
-
-      <div class="w-full md:w-1/2 space-y-3">
-        <.link
-          :for={piece <- @group.content_pieces}
-          patch={~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}"}
-          class={"flex flex-col bg-gray-100 p-3 rounded-lg cursor-pointer #{if piece.id == @selected_piece.id, do: "ring-2 ring-black"}"}
-        >
-          <div class="flex gap-2 mb-1">
-            <div class="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full">
-              {Calendar.strftime(piece.inserted_at, "%d/%m/%y")}
-            </div>
-            <div class="bg-gray-200 text-gray-700 text-xs font-semibold px-2 py-1 rounded-full">
-              {format_duration(piece.length)}
-            </div>
-            <div class="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">
-              $0.05
-            </div>
-          </div>
-          <div class="font-semibold text-sm">{piece.title}</div>
-        </.link>
-      </div>
+    <div class="flex items-center space-x-2 flex-1">
+      <span
+        class="bg-green-100 text-green-800 border border-green-800 py-1 px-2 rounded flex items-center text-sm hover:bg-green-200 cursor-pointer"
+        phx-click="show-topup-modal"
+      >
+        <.icon name="hero-wallet" class="w-4 h-4 mr-1" /> Balance: {format_usd(@balance)}
+      </span>
+      <button
+        class="cursor-pointer bg-green-100 h-7 w-7 rounded-full hover:bg-green-200 text-green-800 border border-green-800"
+        phx-click="show-topup-modal"
+      >
+        <.icon name="hero-plus" class="w-4 h-4 relative bottom-px" />
+      </button>
     </div>
-
-    <.modal
-      :if={@selected_tiqit_type}
-      id="confirm-purchase-modal"
-      on_cancel={JS.push("close-confirm-purchase-modal")}
-      show
-    >
-      <div class="relative">
-        <div class="bg-black h-40 flex items-center justify-center">
-          <.icon name="hero-play-solid" class="w-12 h-12 text-white" />
-        </div>
-      </div>
-      <h2 class="mt-4 text-xl font-bold text-gray-800">
-        {@selected_piece.title}
-      </h2>
-      <p class="mt-2 text-gray-600">
-        {tiqit_type_duration(@selected_tiqit_type)}
-      </p>
-      <div class="mt-4 flex items-center justify-between bg-gray-100 p-3 rounded-md">
-        <div class="flex items-center">
-          <.icon class="w-5 h-5 text-green-500 mr-2" name="hero-check-circle-solid" />
-          <span class="text-gray-700">Balance: ${Decimal.round(@balance, 2)}</span>
-        </div>
-        <button
-          class="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 focus:ring-2 focus:ring-orange-800 focus:outline-none"
-          phx-click="purchase-tiqit"
-          phx-value-tiqit-type-id={@selected_tiqit_type.id}
-        >
-          Confirm purchase (${Decimal.round(@selected_tiqit_type.price, 2)})
-        </button>
-      </div>
-      <div class="mt-4 flex items-center justify-between">
-        <div class="flex items-center">
-          <.icon name="hero-ticket" class="w-5 h-5 text-orange-500 mr-1" />
-          <span class="text-orange-500 font-semibold">TIQIT</span>
-        </div>
-      </div>
-    </.modal>
     """
   end
 
-  # TODO I think I can delete Layouts.arcade/1
-
-  defp tiqit_type_duration(%TiqitType{} = tt) do
+  defp tiqit_class_duration(%TiqitClass{} = tt) do
     # Returns duration as:
     # - "X weeks" if evenly divisible by 7 days (168 hours)
     # - "X days" if evenly divisible by 24 hours (exception: "24 hours" not "1 day")
@@ -161,27 +100,49 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
     end
   end
 
-  defp format_duration(seconds) do
-    minutes = div(seconds, 60)
-    remaining_seconds = rem(seconds, 60)
-    :io_lib.format("~2..0B:~2..0B", [minutes, remaining_seconds])
-  end
-
   def handle_event("close-confirm-purchase-modal", _params, socket) do
-    socket |> assign(selected_tiqit_type: nil) |> noreply()
+    socket |> assign(selected_tiqit_class: nil) |> noreply()
   end
 
-  def handle_event("select-tiqit-type", %{"tiqit-type-id" => tt_id}, socket) do
+  def handle_event("close-topup-modal", _params, socket) do
+    socket |> assign(:show_topup_modal, false) |> noreply()
+  end
+
+  def handle_event("hide-options", _params, socket) do
+    socket |> assign(:options_modal, false) |> noreply()
+  end
+
+  def handle_event("select-tiqit-class", %{"tiqit-class-id" => tt_id}, socket) do
     id = String.to_integer(tt_id)
-    tt = %TiqitType{} = Enum.find(socket.assigns.selected_piece.tiqit_types, &(&1.id == id))
-    socket |> assign(selected_tiqit_type: tt) |> noreply()
+    tt = %TiqitClass{} = Enum.find(socket.assigns.selected_piece.tiqit_classes, &(&1.id == id))
+    socket |> assign(selected_tiqit_class: tt, options_modal: false) |> noreply()
   end
 
-  def handle_event("purchase-tiqit", %{"tiqit-type-id" => tiqit_type_id}, socket) do
-    tiqit_type_id = String.to_integer(tiqit_type_id)
-    tiqit_type = Enum.find(socket.assigns.selected_piece.tiqit_types, &(&1.id == tiqit_type_id))
+  def handle_event("show-topup-modal", _params, socket) do
+    socket |> assign(:show_topup_modal, true) |> noreply()
+  end
 
-    :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_type)
+  def handle_event("show-options", _params, socket) do
+    socket |> assign(:options_modal, true) |> noreply()
+  end
+
+  def handle_event("topup", _params, socket) do
+    user = socket.assigns.current_scope.user
+
+    Wallets.fake_topup(user)
+
+    Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
+
+    socket |> assign(:show_topup_modal, false) |> noreply()
+  end
+
+  def handle_event("purchase-tiqit", %{"tiqit-class-id" => tiqit_class_id}, socket) do
+    tiqit_class_id = String.to_integer(tiqit_class_id)
+
+    tiqit_class =
+      Enum.find(socket.assigns.selected_piece.tiqit_classes, &(&1.id == tiqit_class_id))
+
+    :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class)
 
     user = socket.assigns.current_scope.user
 
@@ -190,5 +151,11 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
     socket
     |> redirect(to: ~p"/widgets/content/#{socket.assigns.selected_piece.id}")
     |> noreply()
+  end
+
+  def handle_info(:update_balance, socket) do
+    user = socket.assigns.current_scope.user
+    balance = Wallets.get_user_current_balance(user)
+    {:noreply, assign(socket, balance: balance)}
   end
 end
