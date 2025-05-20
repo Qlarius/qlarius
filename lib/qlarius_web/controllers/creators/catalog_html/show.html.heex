@@ -38,16 +38,9 @@
   </header>
 
   <%= if Enum.any?(@catalog.tiqit_classes) do %>
-    <.table
-      id="catalog_tiqit_classes"
-      rows={@catalog.tiqit_classes}
-      zebra={false}
-    >
-      <:col :let={tc} label="Duration">{tiqit_class_duration(tc)}</:col>
-      <:col :let={tc} label="Price">{format_usd(tc.price)}</:col>
-    </.table>
+    <TiqitClass.tiqit_classes_table record={@catalog} />
   <% else %>
-    No Tiqit classes yet. Edit to catalog to add one.
+    No Tiqit classes yet. Edit the catalog to add one.
   <% end %>
 
   <header class="flex items-center justify-between gap-6 pb-2 mt-8">

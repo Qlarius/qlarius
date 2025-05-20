@@ -1,14 +1,14 @@
 <Layouts.creators {assigns}>
-    <%= if @live_action == :edit do %>
-  <.header>
+  <%= if @live_action == :edit do %>
+    <.header>
       Edit Catalog
-  </.header>
-    <% else %>
-  <.header>
+    </.header>
+  <% else %>
+    <.header>
       New Catalog
       <:subtitle>For {@creator.name}</:subtitle>
-  </.header>
-    <% end %>
+    </.header>
+  <% end %>
 
   <.form for={@form} phx-change="validate" phx-submit="save">
     <.input field={@form[:name]} type="text" label="Name" required />
@@ -18,7 +18,7 @@
       type="select"
       label="Type"
       options={
-        Enum.map(Catalog.types, fn type ->
+        Enum.map(Catalog.types(), fn type ->
           {String.capitalize(to_string(type)), type}
         end)
       }

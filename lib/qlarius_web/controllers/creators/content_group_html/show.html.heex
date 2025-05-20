@@ -59,9 +59,25 @@
     </div>
   </div>
 
-  <%= if Enum.any?(@content_group.content_pieces) do %>
-    <h2 class="text-sm text-zinc-600 font-semibold mb-5">Content pieces</h2>
+  <header class="flex items-center justify-between gap-6 pb-2 mt-8">
+    <h2 class="font-semibold text-gray-500 leading-8">
+      Tiqit Classes
+    </h2>
+  </header>
 
+  <%= if Enum.any?(@content_group.tiqit_classes) do %>
+    <TiqitClassHTML.tiqit_classes_table record={@content_group} />
+  <% else %>
+    No Tiqit classes yet. Edit the group to add one.
+  <% end %>
+
+  <header class="flex items-center justify-between gap-6 pb-2 mt-8">
+    <h2 class="font-semibold text-gray-500 leading-8">
+      Content Pieces
+    </h2>
+  </header>
+
+  <%= if Enum.any?(@content_group.content_pieces) do %>
     <.table id="catalogs" rows={@content_group.content_pieces} zebra={false}>
       <:col :let={piece} label="Title">{piece.title}</:col>
       <:col :let={piece} label="Added">{Calendar.strftime(piece.inserted_at, "%d/%m/%y")}</:col>

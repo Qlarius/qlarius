@@ -127,18 +127,18 @@ defmodule QlariusWeb.Router do
 
     live_session :creators, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
       resources "/content_pieces", ContentPieceController, only: [:delete]
-      live "/content_pieces/:id/edit", ContentPieceLive.Form, :edit
 
-      resources "/content_groups", ContentGroupController,
-        only: [:show, :edit, :update, :delete] do
+      live "/content_pieces/:id/edit", ContentPieceLive.Form, :edit
+      live "/catalogs/:id/edit", CatalogLive.Form, :edit
+      live "/content_groups/:id/edit", ContentGroupLive.Form, :edit
+
+      resources "/content_groups", ContentGroupController, only: [:show, :delete] do
         get "/preview", ContentGroupController, :preview
         live "/content_pieces/new", ContentPieceLive.Form, :new
       end
 
-      live "/catalogs/:id/edit", CatalogLive.Form, :edit
-
       resources "/catalogs", CatalogController, only: [:show, :delete] do
-        resources "/content_groups", ContentGroupController, only: [:new, :create]
+        live "/content_groups/new", ContentGroupLive.Form, :new
       end
 
       resources "/", CreatorController do

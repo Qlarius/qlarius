@@ -1,0 +1,40 @@
+<Layouts.creators {assigns}>
+  <%= if @live_action == :edit do %>
+    <.header>
+      Edit Content Group
+    </.header>
+  <% else %>
+    <.header>
+      New Content Group
+      <:subtitle>For {@catalog.name}</:subtitle>
+    </.header>
+  <% end %>
+
+  <.form for={@form} multipart={true} phx-change="validate" phx-submit="save">
+    <.input
+      field={@form[:image]}
+      type="file"
+      label="Image"
+      accept=".jpg,.jpeg,.gif,.png,.webp"
+      class="file-input file-input-bordered w-full"
+      value={nil}
+    />
+    <.input field={@form[:title]} type="text" label="Name" required />
+    <.input field={@form[:description]} type="textarea" label="Description" />
+
+    <TiqitClassHTML.inputs_for_tiqit_classes form={@form} />
+
+    <footer>
+      <.button variant="primary">Save Creator</.button>
+      <.button navigate={
+        if @live_action == :edit do
+          ~p"/creators/content_groups/#{@group}"
+        else
+          ~p"/creators/catalogs/#{@catalog}"
+        end
+      }>
+        Cancel
+      </.button>
+    </footer>
+  </.form>
+</Layouts.creators>

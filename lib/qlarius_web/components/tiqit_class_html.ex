@@ -35,7 +35,7 @@ defmodule QlariusWeb.TiqitClassHTML do
       type="button"
       value="new"
     >
-      <.icon name="hero-plus-circle" class="h-5 w-5 relative top-[-1px]" /> Add Tiqit type
+      <.icon name="hero-plus-circle" class="h-5 w-5 relative top-[-1px]" /> Add Tiqit class
     </button>
     """
   end
@@ -67,11 +67,7 @@ defmodule QlariusWeb.TiqitClassHTML do
 
   def tiqit_classes_table(assigns) do
     ~H"""
-    <.table
-      id="catalog_tiqit_classes"
-      rows={@catalog.tiqit_classes}
-      zebra={false}
-    >
+    <.table id="catalog_tiqit_classes" rows={@record.tiqit_classes} zebra={false}>
       <:col :let={tc} label="Duration">{tiqit_class_duration(tc)}</:col>
       <:col :let={tc} label="Price">{format_usd(tc.price)}</:col>
     </.table>
