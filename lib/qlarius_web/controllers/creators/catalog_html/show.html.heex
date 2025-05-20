@@ -7,7 +7,9 @@
 >
   <.header>
     {@catalog.name}
-    <:subtitle>Catalog for {@creator.name}</:subtitle>
+    <:subtitle>
+      {@catalog.type |> to_string() |> String.capitalize()} for {@creator.name}
+    </:subtitle>
     <:actions>
       <div class="space-x-3">
         <.a href={~p"/creators/catalogs/#{@catalog}/edit"}>
@@ -25,11 +27,40 @@
 
   <div class="mb-8 text-sm leading-8 text-zinc-600">
     <div>
-      <span>URL:</span>
       <.a href={@catalog.url}>{@catalog.url}</.a>
     </div>
-    <div><span>Type:</span> {@catalog.type |> to_string |> String.capitalize()}</div>
   </div>
+
+  <header class="flex items-center justify-between gap-6 pb-2 mt-8">
+    <h2 class="font-semibold text-gray-500 leading-8">
+      Tiqit Classes
+    </h2>
+  </header>
+
+  <%= if Enum.any?(@catalog.tiqit_classes) do %>
+    <.table
+      id="catalog_tiqit_classes"
+      rows={@catalog.tiqit_classes}
+      zebra={false}
+    >
+      <:col :let={tc} label="Name">{tc.name}</:col>
+      <:col :let={tc} label="Duration">{tiqit_class_duration(tc)}</:col>
+      <:col :let={tc} label="Price">{format_usd(tc.price)}</:col>
+    </.table>
+  <% else %>
+    <div class="text-sm text-zinc-600">
+      No content groups yet!
+      <.a href={~p"/creators/catalogs/#{@catalog}/content_groups/new"}>
+        Click here to add the first.
+      </.a>
+    </div>
+  <% end %>
+
+  <header class="flex items-center justify-between gap-6 pb-2 mt-8">
+    <h2 class="font-semibold text-gray-500 leading-8">
+      Content Groups
+    </h2>
+  </header>
 
   <%= if Enum.any?(@catalog.content_groups) do %>
     <.table
@@ -38,9 +69,9 @@
       row_click={&JS.navigate(~p"/creators/content_groups/#{&1}")}
       zebra={false}
     >
-      <:col :let={group} label="Content Groups">{group.title}</:col>
-      <:col :let={group}>{group.description}</:col>
-      <:col :let={group}>{group.type}</:col>
+      <:col :let={group} label="Name">{group.title}</:col>
+      <:col :let={group} label="Description">{group.description}</:col>
+      <:col :let={group} label="Type">{group.type}</:col>
       <:action :let={group}>
         <.link navigate={~p"/creators/content_groups/#{group}/edit"}>Edit</.link>
       </:action>

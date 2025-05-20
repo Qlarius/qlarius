@@ -54,7 +54,7 @@ defmodule Qlarius.Creators do
 
   def get_catalog!(id) do
     Repo.get!(Catalog, id)
-    |> Repo.preload([:content_groups, :creator])
+    |> Repo.preload([:content_groups, :creator, :tiqit_classes])
   end
 
   def create_catalog(%Creator{} = creator, attrs \\ %{}) do

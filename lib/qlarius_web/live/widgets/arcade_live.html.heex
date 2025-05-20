@@ -107,7 +107,11 @@
         </div>
       <% else %>
         <p class="text-gray-600">
-          {tiqit_class_duration(@selected_tiqit_class)}
+          <%= if @tc.duration_hours do %>
+            You are purchasing access for {tiqit_class_duration(@selected_tiqit_class)}
+          <% else %>
+            You are purchasing lifetime access
+          <% end %>
         </p>
         <div class="flex items-center">
           <.button

@@ -6,6 +6,8 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
   alias Qlarius.Arcade.TiqitClass
   alias Qlarius.Wallets
 
+  import QlariusWeb.TiqitClassHTML, only: [tiqit_class_duration: 1]
+
   def mount(%{"group_id" => group_id}, _session, socket) do
     scope = socket.assigns.current_scope
 
@@ -73,31 +75,6 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
       </button>
     </div>
     """
-  end
-
-  defp tiqit_class_duration(%TiqitClass{} = tt) do
-    # Returns duration as:
-    # - "X weeks" if evenly divisible by 7 days (168 hours)
-    # - "X days" if evenly divisible by 24 hours (exception: "24 hours" not "1 day")
-    # - "X hours" otherwise
-    # Examples: "2 weeks", "3 days", "26 hours"
-    if tt.duration_hours do
-      duration =
-        cond do
-          rem(tt.duration_hours, 24 * 7) == 0 ->
-            "#{div(tt.duration_hours, 24 * 7)} week#{if div(tt.duration_hours, 24 * 7) > 1, do: "s"}"
-
-          rem(tt.duration_hours, 24) == 0 and tt.duration_hours != 24 ->
-            "#{div(tt.duration_hours, 24)} day#{if div(tt.duration_hours, 24) > 1, do: "s"}"
-
-          true ->
-            "#{tt.duration_hours} hour#{if tt.duration_hours > 1, do: "s"}"
-        end
-
-      "You are purchasing access for #{duration}"
-    else
-      "You are purchasing lifetime access"
-    end
   end
 
   def handle_event("close-confirm-purchase-modal", _params, socket) do

@@ -1,0 +1,43 @@
+<Layouts.creators {assigns}>
+    <%= if @live_action == :edit do %>
+  <.header>
+      Edit Catalog
+  </.header>
+    <% else %>
+  <.header>
+      New Catalog
+      <:subtitle>For {@creator.name}</:subtitle>
+  </.header>
+    <% end %>
+
+  <.form for={@form} phx-change="validate" phx-submit="save">
+    <.input field={@form[:name]} type="text" label="Name" required />
+    <.input field={@form[:url]} type="url" label="URL" required />
+    <.input
+      field={@form[:type]}
+      type="select"
+      label="Type"
+      options={
+        Enum.map(Catalog.types, fn type ->
+          {String.capitalize(to_string(type)), type}
+        end)
+      }
+      required
+    />
+
+    <TiqitClassHTML.inputs_for_tiqit_classes form={@form} />
+
+    <footer>
+      <.button variant="primary">Save Catalog</.button>
+      <.button navigate={
+        if @live_action == :edit do
+          ~p"/creators/catalogs/#{@catalog}"
+        else
+          ~p"/creators/#{@creator}"
+        end
+      }>
+        Cancel
+      </.button>
+    </footer>
+  </.form>
+</Layouts.creators>

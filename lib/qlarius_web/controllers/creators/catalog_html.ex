@@ -2,15 +2,8 @@ defmodule QlariusWeb.Creators.CatalogHTML do
   use QlariusWeb, :html
 
   import QlariusWeb.CoreComponents
+  import QlariusWeb.TiqitClassHTML, only: [tiqit_class_duration: 1]
+  import QlariusWeb.Money, only: [format_usd: 1]
 
   embed_templates "catalog_html/*"
-
-  @doc """
-  Renders a catalog form.
-  """
-  attr :changeset, Ecto.Changeset, required: true
-  attr :action, :string, required: true
-  attr :return_to, :string, default: nil
-
-  def catalog_form(assigns)
 end

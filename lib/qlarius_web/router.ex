@@ -135,12 +135,14 @@ defmodule QlariusWeb.Router do
         live "/content_pieces/new", ContentPieceLive.Form, :new
       end
 
-      resources "/catalogs", CatalogController, only: [:show, :edit, :update, :delete] do
+      live "/catalogs/:id/edit", CatalogLive.Form, :edit
+
+      resources "/catalogs", CatalogController, only: [:show, :delete] do
         resources "/content_groups", ContentGroupController, only: [:new, :create]
       end
 
       resources "/", CreatorController do
-        resources "/catalogs", CatalogController, only: [:new, :create]
+        live "/catalogs/new", CatalogLive.Form, :new
       end
     end
   end

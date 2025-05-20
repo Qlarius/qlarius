@@ -4,6 +4,8 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
   alias Qlarius.Arcade.ContentPiece
   alias Qlarius.Creators
 
+  alias QlariusWeb.TiqitClassHTML
+
   # EDIT
   @impl true
   def handle_params(%{"id" => id}, _uri, socket) do
