@@ -41,3 +41,5 @@ repomix-output.xml
 
 config/dev.secret.exs
 priv/static/uploads
+
+priv/repo/structure
