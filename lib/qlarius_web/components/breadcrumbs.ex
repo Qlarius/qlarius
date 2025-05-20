@@ -1,7 +1,10 @@
 defmodule QlariusWeb.Components.Breadcrumbs do
-  use QlariusWeb, :html
+  use Phoenix.Component
+  use Phoenix.VerifiedRoutes,
+    endpoint: QlariusWeb.Endpoint,
+    router: QlariusWeb.Router,
+    statics: QlariusWeb.static_paths()
 
-  alias Phoenix.LiveView.JS
   import QlariusWeb.CoreComponents
 
   attr :crumbs, :list, required: true, doc: "List of {text, href} tuples for breadcrumb items"

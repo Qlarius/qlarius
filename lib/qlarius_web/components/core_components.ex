@@ -1,5 +1,12 @@
 defmodule QlariusWeb.CoreComponents do
-  use QlariusWeb, :verified_routes
+  use Phoenix.Component
+  use Gettext, backend: QlariusWeb.Gettext
+
+  import Phoenix.HTML
+  import Phoenix.HTML.Form
+  import QlariusWeb.Money
+
+  alias Phoenix.LiveView.JS
 
   @moduledoc """
   Provides core UI components.
@@ -28,10 +35,6 @@ defmodule QlariusWeb.CoreComponents do
       and `<.form>`, are defined there.
 
   """
-  use Phoenix.Component
-  use Gettext, backend: QlariusWeb.Gettext
-
-  alias Phoenix.LiveView.JS
 
   @doc """
   Renders flash notices.
@@ -633,32 +636,33 @@ defmodule QlariusWeb.CoreComponents do
     """
   end
 
-  # Based on https://flowbite.com/docs/components/breadcrumb/
-  def breadcrumbs(assigns) do
+  @doc """
+  Renders a simple form.
+
+  ## Examples
+
+      <.simple_form for={@form} phx-change="validate" phx-submit="save">
+        <.input field={@form[:email]} type="email" />
+        <.button>Save</.button>
+      </.simple_form>
+  """
+  attr :for, :any, required: true, doc: "the datastructure for the form"
+  attr :as, :any, default: nil, doc: "the server side parameter to collect all input under"
+  attr :rest, :global, include: ~w(autocomplete name rel action enctype method novalidate target)
+
+  slot :inner_block, required: true
+  slot :actions, doc: "the slot for form actions"
+
+  def simple_form(assigns) do
     ~H"""
-    <nav class="flex" aria-label="Breadcrumb">
-      <ol class="inline-flex flex-wrap items-center space-x-1 md:space-x-2 gap-y-2">
-        <li class="inline-flex items-center">
-          <.link
-            navigate={~p"/creators"}
-            class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-orange-600"
-          >
-            <.icon name="hero-home-mini" class="w-3 h-3 me-2.5" /> Creators
-          </.link>
-        </li>
-        <li :for={{text, href} <- @crumbs}>
-          <div class="flex items-center">
-            <.icon name="hero-chevron-right-mini" class="h-3 w-3 text-gray-400 mx-1" />
-            <.link
-              navigate={href}
-              class="ms-1 text-sm font-medium text-gray-700 hover:text-orange-600 md:ms-2 whitespace-nowrap utility"
-            >
-              {text}
-            </.link>
-          </div>
-        </li>
-      </ol>
-    </nav>
+    <.form :let={f} for={@for} as={@as} {@rest}>
+      <div class="mt-10 space-y-8">
+        {render_slot(@inner_block, f)}
+        <div :for={action <- @actions} class="mt-2 flex items-center justify-between gap-6">
+          {render_slot(action, f)}
+        </div>
+      </div>
+    </.form>
     """
   end
 end

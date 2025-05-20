@@ -11,48 +11,42 @@ defmodule QlariusWeb.Layouts do
   use QlariusWeb, :html
 
   alias Qlarius.Accounts.Scope
-
   import QlariusWeb.Money
+  import QlariusWeb.Components.Breadcrumbs
 
   embed_templates "layouts/*"
 
+  # Common attributes
+  attr :flash, :map, required: true
+  attr :current_scope, Scope, default: nil
+  slot :inner_block, required: true
+
+  # Specific attributes
   attr :current_path, :string, required: true
   attr :path, :string, required: true
-
-  slot :inner_block
-
-  def marketer_navbar_link(assigns) do
-    ~H"""
-    <.link
-      class={[
-        "flex items-center px-4 py-2 border-r border-green-400",
-        @current_path == @path && "bg-green-600"
-      ]}
-      navigate={@path}
-    >
-      {render_slot(@inner_block)}
-    </.link>
-    """
-  end
-
-  def toggle_sponster_sidebar(on) when on in [:on, :off] do
-    if on == :on do
-      JS.add_class("translate-x-0", to: "#sponster-sidebar")
-      |> JS.remove_class("-translate-x-full", to: "#sponster-sidebar")
-      |> JS.remove_class("opacity-0", to: "#sponster-sidebar-bg")
-      |> JS.remove_class("pointer-events-none", to: "#sponster-sidebar-bg")
-    else
-      JS.remove_class("translate-x-0", to: "#sponster-sidebar")
-      |> JS.add_class("-translate-x-full", to: "#sponster-sidebar")
-      |> JS.add_class("opacity-0", to: "#sponster-sidebar-bg")
-      |> JS.add_class("pointer-events-none", to: "#sponster-sidebar-bg")
-    end
-  end
-
   attr :text, :string, required: true
   attr :href, :string, required: true
   attr :icon_name, :string, required: true
   attr :badge, :string, default: nil
+  attr :breadcrumbs, :list, default: []
+  attr :method, :string, default: nil
+  attr :id, :string, default: "flash-group"
+
+  @sidebar_classes_on "translate-x-0"
+  @sidebar_classes_off "-translate-x-full"
+  @sidebar_bg_classes_off "opacity-0 pointer-events-none"
+
+  def toggle_sponster_sidebar(on) when on in [:on, :off] do
+    if on == :on do
+      JS.add_class(@sidebar_classes_on, to: "#sponster-sidebar")
+      |> JS.remove_class(@sidebar_classes_off, to: "#sponster-sidebar")
+      |> JS.remove_class(@sidebar_bg_classes_off, to: "#sponster-sidebar-bg")
+    else
+      JS.remove_class(@sidebar_classes_on, to: "#sponster-sidebar")
+      |> JS.add_class(@sidebar_classes_off, to: "#sponster-sidebar")
+      |> JS.add_class(@sidebar_bg_classes_off, to: "#sponster-sidebar-bg")
+    end
+  end
 
   def sponster_bottom_bar_link(assigns) do
     ~H"""
@@ -83,20 +77,13 @@ defmodule QlariusWeb.Layouts do
     """
   end
 
-  # attr :ads_count, :integer, required: true
-  # attr :flash, :map, required: true
-  # attr :current_scope, Scope, required: true
-  # attr :wallet_balance, Decimal, required: true
-
-  slot :inner_block, required: true
-
   def sponster(assigns) do
     ~H"""
     <.flash_group flash={@flash} />
 
     <div class="container mx-auto px-4 py-8">
       <div class="w-full mb-6">
-        <button phx-click={toggle_sponster_sidebar(:on)}>
+        <button class="cursor-pointer" phx-click={toggle_sponster_sidebar(:on)}>
           <.icon name="hero-bars-3" class="h-8 w-8 text-gray-500" />
         </button>
       </div>
@@ -136,54 +123,169 @@ defmodule QlariusWeb.Layouts do
         <span class="text-xs font-semibold mt-1">More</span>
       </button>
     </div>
+
+    <.debug_panel {assigns} />
     """
   end
 
-  attr :current_scope, Scope, required: true
-
   def sponster_sidebar(assigns)
 
-  attr :flash, :map, required: true
-  attr :current_scope, Scope, required: true
+  # Call this plug in the layout to set the @current_path assign,
+  # which must be present for the 'marketers' layout to work.
+  def set_current_path(conn, _opts) do
+    Plug.Conn.assign(conn, :current_path, conn.request_path)
+  end
 
-  slot :inner_block, required: true
+  def marketers(assigns) do
+    ~H"""
+    <div class="bg-white shadow-md">
+      <div class="px-4 py-2">
+        <span class="text-gray-700 font-semibold text-xl">qlarius</span>
+      </div>
 
-  def arcade(assigns) do
+      <div class="flex bg-green-500 text-white">
+        <.marketer_navbar_link current_path={@current_path} path={~p"/trait_groups"}>
+          <.icon name="hero-tag" class="mr-2" />
+          <span>Traits</span>
+        </.marketer_navbar_link>
+
+        <.marketer_navbar_link current_path={@current_path} path={~p"/targets"}>
+          <.icon name="hero-users" class="mr-2" />
+          <span>Targets</span>
+        </.marketer_navbar_link>
+
+        <.marketer_navbar_link current_path={@current_path} path={~p"/"}>
+          <.icon name="hero-speaker-wave" class="mr-2" />
+          <span>Campaigns</span>
+        </.marketer_navbar_link>
+
+        <.marketer_navbar_link current_path={@current_path} path={~p"/media_sequences"}>
+          <.icon name="hero-numbered-list" class="mr-2" />
+          <span>Sequences</span>
+        </.marketer_navbar_link>
+
+        <.marketer_navbar_link current_path={@current_path} path={~p"/media_pieces"}>
+          <.icon name="hero-photo" class="mr-2" />
+          <span>Media</span>
+        </.marketer_navbar_link>
+      </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
+  defp marketer_navbar_link(assigns) do
+    ~H"""
+    <.link
+      class={[
+        "flex items-center px-4 py-2 border-r border-green-400",
+        @current_path == @path && "bg-green-600"
+      ]}
+      navigate={@path}
+    >
+      {render_slot(@inner_block)}
+    </.link>
+    """
+  end
+
+  def creators(assigns) do
     ~H"""
     <main class="p-4 sm:px-6 lg:px-8 max-w-2xl mx-auto">
-      <ul class="relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
-        <li class="text-[0.8125rem] leading-6 text-zinc-900">
+      <ul class="relative z-10 flex items-center gap-4 justify-end mb-5">
+        <li :if={@current_scope} class="text-[0.8125rem] leading-6 text-zinc-900">
           {@current_scope.user.email}
         </li>
-        <%= for {text, href} <- [
-          {"Admin", ~p"/admin/content"},
-          {"Arcade", ~p"/arcade"}
-        ] do %>
-          <li>
-            <.link
-              href={href}
-              class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
-            >
-              {text}
-            </.link>
-          </li>
+        <%= if @current_scope do %>
+          <li><.creators_navbar_link text="Log out" href="#" method="delete" /></li>
+        <% else %>
+          <li><.creators_navbar_link text="Log in" href="#" /></li>
+          <li><.creators_navbar_link text="Sign up" href="#" /></li>
         <% end %>
-        <li>
-          <.link
-            href={~p"/users/log_out"}
-            class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
-            method="delete"
-          >
-            Log out
-          </.link>
-        </li>
       </ul>
 
-      <div class="p-6 py-20">
+      <.breadcrumbs crumbs={@breadcrumbs} />
+
+      <div class="py-20">
         <.flash_group flash={@flash} />
         {render_slot(@inner_block)}
       </div>
     </main>
+    """
+  end
+
+  defp creators_navbar_link(assigns) do
+    ~H"""
+    <.link
+      href={@href}
+      class="text-[0.8125rem] leading-6 text-zinc-700 font-semibold hover:text-zinc-900"
+      method={@method}
+    >
+      {@text}
+    </.link>
+    """
+  end
+
+  def flash_group(assigns) do
+    ~H"""
+    <div id={@id} aria-live="polite">
+      <.flash kind={:info} flash={@flash} />
+      <.flash kind={:error} flash={@flash} />
+
+      <.flash
+        id="client-error"
+        kind={:error}
+        title={gettext("We can't find the internet")}
+        phx-disconnected={show(".phx-client-error #client-error") |> JS.remove_attribute("hidden")}
+        phx-connected={hide("#client-error") |> JS.set_attribute({"hidden", ""})}
+        hidden
+      >
+        {gettext("Attempting to reconnect")}
+        <.icon name="hero-arrow-path" class="ml-1 h-3 w-3 motion-safe:animate-spin" />
+      </.flash>
+
+      <.flash
+        id="server-error"
+        kind={:error}
+        title={gettext("Something went wrong!")}
+        phx-disconnected={show(".phx-client-error #client-error") |> JS.remove_attribute("hidden")}
+        phx-connected={hide("#client-error") |> JS.set_attribute({"hidden", ""})}
+        hidden
+      >
+        {gettext("Hang in there while we get back on track")}
+        <.icon name="hero-arrow-path" class="ml-1 h-3 w-3 motion-safe:animate-spin" />
+      </.flash>
+    </div>
+    """
+  end
+
+  def theme_toggle(assigns) do
+    ~H"""
+    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
+      <div class="absolute w-[33%] h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-[33%] [[data-theme=dark]_&]:left-[66%] transition-[left]" />
+
+      <button phx-click={JS.dispatch("phx:set-theme", detail: %{theme: "system"})} class="flex p-2">
+        <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
+      </button>
+
+      <button phx-click={JS.dispatch("phx:set-theme", detail: %{theme: "light"})} class="flex p-2">
+        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
+      </button>
+
+      <button phx-click={JS.dispatch("phx:set-theme", detail: %{theme: "dark"})} class="flex p-2">
+        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
+      </button>
+    </div>
+    """
+  end
+
+  defp debug_panel(assigns) do
+    ~H"""
+    <pre :if={assigns[:debug]} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
+      <%= inspect(assigns, pretty: true) %>
+    </pre>
     """
   end
 end
