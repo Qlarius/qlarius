@@ -11,6 +11,7 @@ defmodule QlariusWeb.Layouts do
   use QlariusWeb, :html
 
   alias Qlarius.Accounts.Scope
+
   import QlariusWeb.Money
   import QlariusWeb.Components.Breadcrumbs
 
@@ -38,11 +39,13 @@ defmodule QlariusWeb.Layouts do
 
   def toggle_sponster_sidebar(on) when on in [:on, :off] do
     if on == :on do
-      JS.add_class(@sidebar_classes_on, to: "#sponster-sidebar")
+      %JS{}
+      |> JS.add_class(@sidebar_classes_on, to: "#sponster-sidebar")
       |> JS.remove_class(@sidebar_classes_off, to: "#sponster-sidebar")
       |> JS.remove_class(@sidebar_bg_classes_off, to: "#sponster-sidebar-bg")
     else
-      JS.remove_class(@sidebar_classes_on, to: "#sponster-sidebar")
+      %JS{}
+      |> JS.remove_class(@sidebar_classes_on, to: "#sponster-sidebar")
       |> JS.add_class(@sidebar_classes_off, to: "#sponster-sidebar")
       |> JS.add_class(@sidebar_bg_classes_off, to: "#sponster-sidebar-bg")
     end
@@ -118,6 +121,7 @@ defmodule QlariusWeb.Layouts do
         id="more"
         phx-click={toggle_sponster_sidebar(:on)}
         class="flex-1 flex flex-col items-center justify-center text-gray-600 h-full cursor-pointer"
+        phx-click={toggle_sponster_sidebar(:on)}
       >
         <.icon name="hero-bars-3" class="h-6 w-6" />
         <span class="text-xs font-semibold mt-1">More</span>
@@ -128,7 +132,20 @@ defmodule QlariusWeb.Layouts do
     """
   end
 
-  def sponster_sidebar(assigns)
+  def sponster_sidebar(assigns) do
+    ~H"""
+    <div id="sponster-sidebar" class="fixed inset-y-0 right-0 z-50 w-64 bg-white shadow-lg transform -translate-x-full transition-transform duration-300 ease-in-out">
+      <div id="sponster-sidebar-bg" class="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300 ease-in-out opacity-0 pointer-events-none" />
+      <div class="p-4">
+        <h2 class="text-lg font-semibold mb-4">Menu</h2>
+        <nav class="space-y-2">
+          <.link navigate={~p"/settings"} class="block py-2 text-gray-600 hover:text-gray-900">Settings</.link>
+          <.link navigate={~p"/help"} class="block py-2 text-gray-600 hover:text-gray-900">Help</.link>
+        </nav>
+      </div>
+    </div>
+    """
+  end
 
   # Call this plug in the layout to set the @current_path assign,
   # which must be present for the 'marketers' layout to work.
@@ -228,6 +245,15 @@ defmodule QlariusWeb.Layouts do
     """
   end
 
+  @doc """
+  Shows the flash group with standard titles and content.
+
+  ## Examples
+
+      <.flash_group flash={@flash} />
+  """
+
+
   def flash_group(assigns) do
     ~H"""
     <div id={@id} aria-live="polite">
@@ -261,6 +287,11 @@ defmodule QlariusWeb.Layouts do
     """
   end
 
+  @doc """
+  Provides dark vs light theme toggle based on themes defined in app.css.
+
+  See <head> in root.html.heex which applies the theme before page load.
+  """
   def theme_toggle(assigns) do
     ~H"""
     <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">

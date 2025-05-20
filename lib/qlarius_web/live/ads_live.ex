@@ -80,7 +80,7 @@ defmodule QlariusWeb.AdsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.sponster {assigns}>
+    <.sponster flash={@flash} current_scope={@current_scope}>
       <h1 class="text-3xl font-bold mb-4">Ads</h1>
       <div class="container mx-auto px-4 py-8 max-w-3xl">
         <%!-- <div class="w-fit mx-auto">
@@ -110,7 +110,7 @@ defmodule QlariusWeb.AdsLive do
       <pre :if={@debug} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
         <%= inspect(assigns, pretty: true) %>
       </pre>
-    </Layouts.sponster>
+    </.sponster>
     """
   end
 
