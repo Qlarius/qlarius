@@ -28,7 +28,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
 
   # NEW
   def handle_params(%{"content_group_id" => group_id}, _uri, socket) do
-    changeset = Creators.change_content_piece(%ContentPiece{})
+    changeset = Creators.change_content_piece(%ContentPiece{date_published: Date.utc_today()})
 
     group = Creators.get_content_group!(group_id)
     catalog = group.catalog
