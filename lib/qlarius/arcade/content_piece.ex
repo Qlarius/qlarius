@@ -8,7 +8,6 @@ defmodule Qlarius.Arcade.ContentPiece do
   schema "content_pieces" do
     field :title, :string
     field :description, :string
-    field :content_type, Ecto.Enum, values: ~w[video podcast blog song]a, default: :video
     field :date_published, :date
     field :length, :integer, default: 0
     field :preview_length, :integer, default: 0
@@ -16,7 +15,6 @@ defmodule Qlarius.Arcade.ContentPiece do
     field :youtube_id, :string
     field :preview_url, :string, default: "http://example.com"
     field :price_default, :decimal, default: Decimal.new("0.00")
-    field :type, Ecto.Enum, values: ~w[episode chapter song piece lesson]a
 
     has_many :tiqit_classes, TiqitClass, on_replace: :delete
     belongs_to :content_group, ContentGroup
@@ -29,7 +27,6 @@ defmodule Qlarius.Arcade.ContentPiece do
     |> cast(attrs, [
       :title,
       :description,
-      :content_type,
       :date_published,
       :length,
       :preview_length,

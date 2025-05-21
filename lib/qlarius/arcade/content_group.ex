@@ -13,7 +13,6 @@ defmodule Qlarius.Arcade.ContentGroup do
 
     field :description, :string
     field :title, :string
-    field :type, Ecto.Enum, values: ~w[show season album book class]a
     field :image, QlariusWeb.Uploaders.ContentGroupImage.Type
 
     has_many :content_pieces, ContentPiece

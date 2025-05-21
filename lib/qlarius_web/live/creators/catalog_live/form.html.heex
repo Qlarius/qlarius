@@ -25,6 +25,30 @@
       required
     />
 
+    <.input
+      field={@form[:group_type]}
+      type="select"
+      label="Group type"
+      options={
+        Enum.map(Catalog.group_types(), fn type ->
+          {String.capitalize(to_string(type)), type}
+        end)
+      }
+      required
+    />
+
+    <.input
+      field={@form[:piece_type]}
+      type="select"
+      label="Piece type"
+      options={
+        Enum.map(Catalog.piece_types(), fn type ->
+          {String.capitalize(to_string(type)), type}
+        end)
+      }
+      required
+    />
+
     <TiqitClassHTML.inputs_for_tiqit_classes form={@form} />
 
     <footer>

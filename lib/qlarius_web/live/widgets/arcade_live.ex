@@ -2,11 +2,13 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Arcade
+  alias Qlarius.Arcade.ContentGroup
   alias Qlarius.Arcade.ContentPiece
   alias Qlarius.Arcade.TiqitClass
   alias Qlarius.Wallets
 
-  import QlariusWeb.TiqitClassHTML, only: [tiqit_class_duration: 1]
+  import QlariusWeb.Money
+  import QlariusWeb.TiqitClassHTML
 
   def mount(%{"group_id" => group_id}, _session, socket) do
     scope = socket.assigns.current_scope
@@ -52,13 +54,81 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
     |> noreply()
   end
 
-  defp format_usd(decimal) do
-    "$#{Decimal.round(decimal, 2)}"
+  attr :balance, Decimal, required: true
+  attr :piece, ContentPiece, required: true
+  attr :group, ContentGroup, required: true
+
+  defp tiqit_class_grid(assigns) do
+    piece = assigns.piece
+    group = assigns.group
+    catalog = group.catalog
+
+    durations =
+      [piece, group, catalog]
+      |> Enum.flat_map(&for tc <- &1.tiqit_classes, do: tc.duration_hours)
+      |> Enum.uniq()
+      |> Enum.sort()
+
+    assigns =
+      assign(assigns,
+        catalog: catalog,
+        durations: durations,
+        group: group,
+        piece: piece,
+        show_group?: Enum.any?(group.tiqit_classes),
+        show_catalog?: Enum.any?(catalog.tiqit_classes)
+      )
+
+    ~H"""
+    <table class="w-full text-sm text-center border-separate border-spacing-y-4">
+      <thead>
+        <tr>
+          <th></th>
+          <th>{@catalog.piece_type |> to_string() |> String.capitalize()}</th>
+          <th :if={@show_group?}>{@catalog.group_type |> to_string() |> String.capitalize()}</th>
+          <th :if={@show_catalog?}>{@catalog.type |> to_string() |> String.capitalize()}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr :for={duration <- @durations}>
+          <td>{format_tiqit_class_duration(duration)}</td>
+          <%= for {col, true} <- [{@piece, true}, {@group, @show_group?}, {@catalog, @show_catalog?}] do %>
+            <td>
+              <%= if class = Enum.find(col.tiqit_classes, & &1.duration_hours == duration) do %>
+                <.tiqit_class_grid_price balance={@balance} tiqit_class={class} />
+              <% end %>
+            </td>
+          <% end %>
+        </tr>
+      </tbody>
+    </table>
+    """
+  end
+
+  attr :tiqit_class, TiqitClass, required: true
+  attr :balance, Decimal, required: true
+
+  defp tiqit_class_grid_price(assigns) do
+    ~H"""
+    <%= if Decimal.compare(@balance, @tiqit_class.price) != :lt do %>
+      <button
+        phx-click="select-tiqit-class"
+        phx-value-tiqit-class-id={@tiqit_class.id}
+        class="bg-gray-300 px-3 py-1 rounded text-sm font-medium hover:bg-gray-400 cursor-pointer"
+      >
+        {format_usd(@tiqit_class.price)}
+      </button>
+    <% else %>
+      <div class="bg-gray-100 px-3 py-1 rounded text-sm font-medium text-gray-800 line-through">
+        {format_usd(@tiqit_class.price)}
+      </div>
+    <% end %>
+    """
   end
 
   attr :balance, Decimal
 
-  def wallet_buttons(assigns) do
+  defp wallet_buttons(assigns) do
     ~H"""
     <div class="flex items-center space-x-2 flex-1">
       <span
@@ -89,10 +159,16 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
     socket |> assign(:options_modal, false) |> noreply()
   end
 
-  def handle_event("select-tiqit-class", %{"tiqit-class-id" => tt_id}, socket) do
-    id = String.to_integer(tt_id)
-    tt = %TiqitClass{} = Enum.find(socket.assigns.selected_piece.tiqit_classes, &(&1.id == id))
-    socket |> assign(selected_tiqit_class: tt, options_modal: false) |> noreply()
+  def handle_event("select-tiqit-class", %{"tiqit-class-id" => tc_id}, socket) do
+    tc =
+      %TiqitClass{} =
+      Arcade.get_tiqit_class_for_piece!(
+        tc_id,
+        socket.assigns.selected_piece,
+        socket.assigns.group
+      )
+
+    socket |> assign(selected_tiqit_class: tc, options_modal: false) |> noreply()
   end
 
   def handle_event("show-topup-modal", _params, socket) do
@@ -114,10 +190,12 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
   end
 
   def handle_event("purchase-tiqit", %{"tiqit-class-id" => tiqit_class_id}, socket) do
-    tiqit_class_id = String.to_integer(tiqit_class_id)
-
     tiqit_class =
-      Enum.find(socket.assigns.selected_piece.tiqit_classes, &(&1.id == tiqit_class_id))
+      Arcade.get_tiqit_class_for_piece!(
+        tiqit_class_id,
+        socket.assigns.selected_piece,
+        socket.assigns.group
+      )
 
     :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class)
 
@@ -134,5 +212,13 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
     user = socket.assigns.current_scope.user
     balance = Wallets.get_user_current_balance(user)
     {:noreply, assign(socket, balance: balance)}
+  end
+
+  defp class_type(tiqit_class, catalog) do
+    cond do
+      tiqit_class.content_piece_id -> catalog.piece_type
+      tiqit_class.content_group_id -> catalog.group_type
+      tiqit_class.catalog.id -> catalog.type
+    end
   end
 end

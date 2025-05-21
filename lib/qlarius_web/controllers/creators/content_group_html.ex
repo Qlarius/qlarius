@@ -4,6 +4,8 @@ defmodule QlariusWeb.Creators.ContentGroupHTML do
   alias Qlarius.Arcade.ContentGroup
   alias QlariusWeb.TiqitClassHTML
 
+  import QlariusWeb.Money
+
   embed_templates "content_group_html/*"
 
   def content_group_image_url(%ContentGroup{} = group) do

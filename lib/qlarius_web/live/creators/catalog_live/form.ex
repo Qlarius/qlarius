@@ -9,12 +9,10 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
   # EDIT
   @impl true
   def handle_params(%{"id" => id}, _uri, socket) do
-    piece = Creators.get_content_piece!(id)
-    group = piece.content_group
-    catalog = group.catalog
+    catalog = Creators.get_catalog!(id)
     creator = catalog.creator
 
-    changeset = Creators.change_content_piece(piece)
+    changeset = Creators.change_catalog(catalog)
 
     breadcrumbs = [
       {creator.name, ~p"/creators/#{creator}"},
@@ -23,12 +21,11 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
     ]
 
     socket
-    |> assign(catalog: catalog, creator: creator, group: group)
+    |> assign(catalog: catalog, creator: creator)
     |> assign(
       breadcrumbs: breadcrumbs,
       form: to_form(changeset),
-      page_title: "Edit Catalog",
-      piece: piece
+      page_title: "Edit Catalog"
     )
     |> noreply()
   end

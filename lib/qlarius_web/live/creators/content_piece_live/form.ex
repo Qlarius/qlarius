@@ -44,6 +44,14 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
 
   @impl true
   def handle_event("validate", %{"content_piece" => piece_params}, socket) do
+    # If you remove all tiqit classes while editing, then change another input
+    # triggering the "validate" handler, then `piece_params` contains no
+    # 'tiqit_classes' key … and this resets the tiqit classes to what they
+    # originally were in the unedited content piece. We can fix this be
+    # ensuring a "tiqit_classes" key is always present although I'm not sure if
+    # this is the "correct" idiomatic way to do it in Phoenix :shrug:
+    piece_params = Map.put_new(piece_params, "tiqit_classes", %{})
+
     form =
       socket.assigns.piece
       |> Creators.change_content_piece(piece_params)

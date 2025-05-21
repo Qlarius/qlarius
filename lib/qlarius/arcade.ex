@@ -12,22 +12,27 @@ defmodule Qlarius.Arcade do
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
 
-  def get_valid_tiqit(%Scope{} = scope, %ContentPiece{} = content) do
+  def get_valid_tiqit(%Scope{} = scope, %ContentPiece{} = piece) do
     now = DateTime.utc_now()
+
+    piece = Repo.preload(piece, :content_group)
 
     query =
       from t in Tiqit,
         join: tc in assoc(t, :tiqit_class),
         join: u in assoc(t, :user),
-        where: tc.content_piece_id == ^content.id,
+        where:
+          tc.content_piece_id == ^piece.id or
+            tc.content_group_id == ^piece.content_group_id or
+            tc.catalog_id == ^piece.content_group.catalog_id,
         where: u.id == ^scope.user.id,
         where: is_nil(t.expires_at) or t.expires_at > ^now
 
     Repo.one(query)
   end
 
-  def has_valid_tiqit?(%Scope{} = scope, %ContentPiece{} = content) do
-    !!get_valid_tiqit(scope, content)
+  def has_valid_tiqit?(%Scope{} = scope, %ContentPiece{} = piece) do
+    !!get_valid_tiqit(scope, piece)
   end
 
   def list_content_groups do
@@ -35,7 +40,13 @@ defmodule Qlarius.Arcade do
   end
 
   def get_content_group!(id) do
-    Repo.get!(ContentGroup, id) |> Repo.preload(content_pieces: :tiqit_classes)
+    ContentGroup
+    |> Repo.get!(id)
+    |> Repo.preload([
+      :tiqit_classes,
+      catalog: :tiqit_classes,
+      content_pieces: :tiqit_classes
+    ])
   end
 
   def list_pieces_in_content_group(%ContentGroup{} = group) do
@@ -46,6 +57,22 @@ defmodule Qlarius.Arcade do
         limit: 5,
         preload: [tiqit_classes: ^from(t in TiqitClass, order_by: t.price)]
     )
+  end
+
+  def get_tiqit_class_for_piece!(class_id, %ContentPiece{} = piece, %ContentGroup{} = group) do
+    class = TiqitClass |> Repo.get!(class_id)
+
+    # for security, validate the tiqit belongs to a piece/group/catalog
+    # in the current arcade
+    classes = piece.tiqit_classes ++ group.tiqit_classes ++ group.catalog.tiqit_classes
+
+    id = String.to_integer(class_id)
+
+    if Enum.find(classes, &(&1.id == id)) do
+      class
+    else
+      raise "invalid tiqit class"
+    end
   end
 
   # TODO use Creators.get_content_piece! instead? ... maybe

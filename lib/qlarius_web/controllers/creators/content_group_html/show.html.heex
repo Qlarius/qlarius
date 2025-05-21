@@ -8,7 +8,9 @@
 >
   <.header>
     {@content_group.title}
-    <:subtitle>Content Group</:subtitle>
+    <:subtitle>
+      Content Group ({@catalog.group_type |> to_string |> String.capitalize()})
+    </:subtitle>
 
     <:actions>
       <div class="space-x-3">

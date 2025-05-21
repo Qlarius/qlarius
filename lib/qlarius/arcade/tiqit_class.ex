@@ -17,7 +17,7 @@ defmodule Qlarius.Arcade.TiqitClass do
   def changeset(tc, params) do
     tc
     |> cast(params, ~w[duration_hours price]a)
-    |> validate_required([:price])
+    |> validate_required([:price, :duration_hours])
     |> validate_number(:duration_hours, greater_than: 0)
     |> unsafe_validate_unique([:duration_hours, :catalog_id], Qlarius.Repo)
     |> unique_constraint([:duration_hours, :catalog_id])

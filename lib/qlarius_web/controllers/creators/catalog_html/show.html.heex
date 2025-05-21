@@ -38,14 +38,14 @@
   </header>
 
   <%= if Enum.any?(@catalog.tiqit_classes) do %>
-    <TiqitClass.tiqit_classes_table record={@catalog} />
+    <.tiqit_classes_table record={@catalog} />
   <% else %>
     No Tiqit classes yet. Edit the catalog to add one.
   <% end %>
 
   <header class="flex items-center justify-between gap-6 pb-2 mt-8">
     <h2 class="font-semibold text-gray-500 leading-8">
-      Content Groups
+      Content Groups ({@catalog.group_type |> to_string() |> String.capitalize()})
     </h2>
   </header>
 
@@ -58,7 +58,6 @@
     >
       <:col :let={group} label="Name">{group.title}</:col>
       <:col :let={group} label="Description">{group.description}</:col>
-      <:col :let={group} label="Type">{group.type}</:col>
       <:action :let={group}>
         <.link navigate={~p"/creators/content_groups/#{group}/edit"}>Edit</.link>
       </:action>

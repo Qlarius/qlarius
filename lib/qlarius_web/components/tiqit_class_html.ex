@@ -47,18 +47,22 @@ defmodule QlariusWeb.TiqitClassHTML do
   # Examples: "2 weeks", "3 days", "26 hours"
   def tiqit_class_duration(%TiqitClass{} = tc) do
     if tc.duration_hours do
-      cond do
-        rem(tc.duration_hours, 24 * 7) == 0 ->
-          "#{div(tc.duration_hours, 24 * 7)} week#{if div(tc.duration_hours, 24 * 7) > 1, do: "s"}"
-
-        rem(tc.duration_hours, 24) == 0 and tc.duration_hours != 24 ->
-          "#{div(tc.duration_hours, 24)} day#{if div(tc.duration_hours, 24) > 1, do: "s"}"
-
-        true ->
-          "#{tc.duration_hours} hour#{if tc.duration_hours > 1, do: "s"}"
-      end
+      format_tiqit_class_duration(tc.duration_hours)
     else
       "Lifetime"
+    end
+  end
+
+  def format_tiqit_class_duration(hours) do
+    cond do
+      rem(hours, 24 * 7) == 0 ->
+        "#{div(hours, 24 * 7)} week#{if div(hours, 24 * 7) > 1, do: "s"}"
+
+      rem(hours, 24) == 0 and hours != 24 ->
+        "#{div(hours, 24)} day#{if div(hours, 24) > 1, do: "s"}"
+
+      true ->
+        "#{hours} hour#{if hours > 1, do: "s"}"
     end
   end
 
