@@ -26,7 +26,8 @@ defmodule Qlarius.Arcade do
             tc.content_group_id == ^piece.content_group_id or
             tc.catalog_id == ^piece.content_group.catalog_id,
         where: u.id == ^scope.user.id,
-        where: is_nil(t.expires_at) or t.expires_at > ^now
+        where: is_nil(t.expires_at) or t.expires_at > ^now,
+        limit: 1
 
     Repo.one(query)
   end
