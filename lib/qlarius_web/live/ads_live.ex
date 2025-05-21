@@ -78,9 +78,35 @@ defmodule QlariusWeb.AdsLive do
   end
 
   @impl true
+  def handle_event("toggle_sidebar", %{"state" => state}, socket) do
+    js = if state == "on" do
+      %JS{}
+      |> JS.add_class("translate-x-0", to: "#sponster-sidebar")
+      |> JS.remove_class("-translate-x-full", to: "#sponster-sidebar")
+      |> JS.remove_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
+    else
+      %JS{}
+      |> JS.remove_class("translate-x-0", to: "#sponster-sidebar")
+      |> JS.add_class("-translate-x-full", to: "#sponster-sidebar")
+      |> JS.add_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
+    end
+    {:noreply, push_event(socket, "js", js)}
+  end
+
+  @impl true
+  def handle_event("toggle_sidebar", _params, socket) do
+    # Handle click-away event
+    js = %JS{}
+    |> JS.remove_class("translate-x-0", to: "#sponster-sidebar")
+    |> JS.add_class("-translate-x-full", to: "#sponster-sidebar")
+    |> JS.add_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
+    {:noreply, push_event(socket, "js", js)}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
-    <.sponster flash={@flash} current_scope={@current_scope}>
+    <Layouts.sponster flash={@flash} current_scope={@current_scope}>
       <h1 class="text-3xl font-bold mb-4">Ads</h1>
       <div class="container mx-auto px-4 py-8 max-w-3xl">
         <%!-- <div class="w-fit mx-auto">
@@ -110,7 +136,7 @@ defmodule QlariusWeb.AdsLive do
       <pre :if={@debug} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
         <%= inspect(assigns, pretty: true) %>
       </pre>
-    </.sponster>
+    </Layouts.sponster>
     """
   end
 

@@ -2,12 +2,13 @@
   id="sponster-sidebar-bg"
   class="bg-black/50 fixed inset-0 transition-opacity opacity-0 pointer-events-none z-50"
   aria-hidden="true"
+  phx-click="toggle_sidebar"
+  phx-value-state="off"
 />
 <div
   id="sponster-sidebar"
   class="fixed inset-y-0 left-0 z-50 w-80 transform -translate-x-full transition-transform duration-300 ease-in-out bg-gray-900"
   tabindex="1"
-  phx-click-away={toggle_sponster_sidebar(:off)}
 >
   <div class="flex flex-col h-full overflow-y-auto py-4 px-3">
     <!-- profile box -->
@@ -26,7 +27,7 @@
           </div>
         </div>
       </div>
-      <button phx-click={toggle_sponster_sidebar(:off)} class="text-gray-400 hover:text-white">
+      <button phx-click="toggle_sidebar" phx-value-state="off" class="text-gray-400 hover:text-white">
         <.icon name="hero-x-mark" class="h-5 w-5" />
       </button>
     </div>

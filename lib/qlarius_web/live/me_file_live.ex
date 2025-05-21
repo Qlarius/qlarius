@@ -1,7 +1,7 @@
 defmodule QlariusWeb.MeFileLive do
   use QlariusWeb, :live_view
 
-  alias Qlarius.MeFile
+  alias Qlarius.YouData.MeFiles.MeFile
 
   import QlariusWeb.MeFileHTML
 

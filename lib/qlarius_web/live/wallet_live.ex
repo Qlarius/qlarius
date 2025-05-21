@@ -99,6 +99,32 @@ defmodule QlariusWeb.WalletLive do
   end
 
   @impl true
+  def handle_event("toggle_sidebar", %{"state" => state}, socket) do
+    js = if state == "on" do
+      %JS{}
+      |> JS.add_class("translate-x-0", to: "#sponster-sidebar")
+      |> JS.remove_class("-translate-x-full", to: "#sponster-sidebar")
+      |> JS.remove_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
+    else
+      %JS{}
+      |> JS.remove_class("translate-x-0", to: "#sponster-sidebar")
+      |> JS.add_class("-translate-x-full", to: "#sponster-sidebar")
+      |> JS.add_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
+    end
+    {:noreply, push_event(socket, "js", js)}
+  end
+
+  @impl true
+  def handle_event("toggle_sidebar", _params, socket) do
+    # Handle click-away event
+    js = %JS{}
+    |> JS.remove_class("translate-x-0", to: "#sponster-sidebar")
+    |> JS.add_class("-translate-x-full", to: "#sponster-sidebar")
+    |> JS.add_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
+    {:noreply, push_event(socket, "js", js)}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <Layouts.sponster {assigns}>

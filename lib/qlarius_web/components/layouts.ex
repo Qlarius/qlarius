@@ -31,7 +31,7 @@ defmodule QlariusWeb.Layouts do
   attr :badge, :string, default: nil
   attr :breadcrumbs, :list, default: []
   attr :method, :string, default: nil
-  attr :id, :string, default: "flash-group"
+  attr :id, :string, required: true
 
   @sidebar_classes_on "translate-x-0"
   @sidebar_classes_off "-translate-x-full"
@@ -52,6 +52,7 @@ defmodule QlariusWeb.Layouts do
   end
 
   def sponster_bottom_bar_link(assigns) do
+    assigns = assign_new(assigns, :badge, fn -> nil end)
     ~H"""
     <.link navigate={@href} class="flex-1 text-gray-600 flex justify-around">
       <div class="flex flex-col items-center justify-center relative h-full w-fit">
@@ -73,7 +74,7 @@ defmodule QlariusWeb.Layouts do
     ~H"""
     <main class="px-4 py-20 sm:px-6 lg:px-8">
       <div class="mx-auto">
-        <.flash_group flash={@flash} />
+        <.flash_group id="flash-group" flash={@flash} />
         {render_slot(@inner_block)}
       </div>
     </main>
@@ -82,11 +83,11 @@ defmodule QlariusWeb.Layouts do
 
   def sponster(assigns) do
     ~H"""
-    <.flash_group flash={@flash} />
+    <.flash_group id="flash-group" flash={@flash} />
 
     <div class="container mx-auto px-4 py-8">
       <div class="w-full mb-6">
-        <button class="cursor-pointer" phx-click={toggle_sponster_sidebar(:on)}>
+        <button class="cursor-pointer" phx-click="toggle_sidebar" phx-value-state="on">
           <.icon name="hero-bars-3" class="h-8 w-8 text-gray-500" />
         </button>
       </div>
@@ -119,9 +120,9 @@ defmodule QlariusWeb.Layouts do
 
       <button
         id="more"
-        phx-click={toggle_sponster_sidebar(:on)}
+        phx-click="toggle_sidebar"
+        phx-value-state="on"
         class="flex-1 flex flex-col items-center justify-center text-gray-600 h-full cursor-pointer"
-        phx-click={toggle_sponster_sidebar(:on)}
       >
         <.icon name="hero-bars-3" class="h-6 w-6" />
         <span class="text-xs font-semibold mt-1">More</span>
@@ -132,20 +133,20 @@ defmodule QlariusWeb.Layouts do
     """
   end
 
-  def sponster_sidebar(assigns) do
-    ~H"""
-    <div id="sponster-sidebar" class="fixed inset-y-0 right-0 z-50 w-64 bg-white shadow-lg transform -translate-x-full transition-transform duration-300 ease-in-out">
-      <div id="sponster-sidebar-bg" class="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300 ease-in-out opacity-0 pointer-events-none" />
-      <div class="p-4">
-        <h2 class="text-lg font-semibold mb-4">Menu</h2>
-        <nav class="space-y-2">
-          <.link navigate={~p"/settings"} class="block py-2 text-gray-600 hover:text-gray-900">Settings</.link>
-          <.link navigate={~p"/help"} class="block py-2 text-gray-600 hover:text-gray-900">Help</.link>
-        </nav>
-      </div>
-    </div>
-    """
-  end
+  # def sponster_sidebar(assigns) do
+  #   ~H"""
+  #   <div id="sponster-sidebar" class="fixed inset-y-0 right-0 z-50 w-64 bg-white shadow-lg transform -translate-x-full transition-transform duration-300 ease-in-out">
+  #     <div id="sponster-sidebar-bg" class="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300 ease-in-out opacity-0 pointer-events-none" />
+  #     <div class="p-4">
+  #       <h2 class="text-lg font-semibold mb-4">Menu</h2>
+  #       <nav class="space-y-2">
+  #         <.link navigate={~p"/settings"} class="block py-2 text-gray-600 hover:text-gray-900">Settings</.link>
+  #         <.link navigate={~p"/help"} class="block py-2 text-gray-600 hover:text-gray-900">Help</.link>
+  #       </nav>
+  #     </div>
+  #   </div>
+  #   """
+  # end
 
   # Call this plug in the layout to set the @current_path assign,
   # which must be present for the 'marketers' layout to work.
@@ -226,7 +227,7 @@ defmodule QlariusWeb.Layouts do
       <.breadcrumbs crumbs={@breadcrumbs} />
 
       <div class="py-20">
-        <.flash_group flash={@flash} />
+        <.flash_group id="flash-group" flash={@flash} />
         {render_slot(@inner_block)}
       </div>
     </main>
@@ -254,7 +255,7 @@ defmodule QlariusWeb.Layouts do
   """
 
 
-  def flash_group(assigns) do
+  def flash_group(assigns) when is_map_key(assigns, :id) do
     ~H"""
     <div id={@id} aria-live="polite">
       <.flash kind={:info} flash={@flash} />
