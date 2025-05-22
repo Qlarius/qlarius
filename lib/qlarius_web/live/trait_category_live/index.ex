@@ -1,8 +1,8 @@
 defmodule QlariusWeb.TraitCategoryLive.Index do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Traits
-  alias Qlarius.Traits.TraitCategory
+  alias Qlarius.YouData.Traits
+  alias Qlarius.YouData.Traits.TraitCategory
 
   @impl true
   def mount(_params, _session, socket) do

@@ -1,8 +1,8 @@
 defmodule QlariusWeb.MeFileController do
   use QlariusWeb, :controller
 
-  alias Qlarius.Surveys
-  alias Qlarius.Traits
+  alias Qlarius.YouData.Surveys
+  alias Qlarius.YouData.Traits
 
   def surveys(conn, _params) do
     user = conn.assigns.current_scope.user

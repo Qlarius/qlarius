@@ -1,9 +1,9 @@
 defmodule QlariusWeb.SurveyManagerLive do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Surveys
-  alias Qlarius.Surveys.Survey
-  alias Qlarius.Traits
+  alias Qlarius.YouData.Surveys
+  alias Qlarius.YouData.Surveys.Survey
+  alias Qlarius.YouData.Traits
 
   @impl true
   def mount(_params, _session, socket) do

@@ -3,7 +3,7 @@ defmodule Qlarius.Help do
   defmacro __using__(_) do
     quote do
       alias Qlarius.Wallets
-      alias Qlarius.Surveys
+      alias Qlarius.YouData.Surveys
       alias Qlarius.Arcade
       alias Qlarius.Campaigns
       alias Qlarius.Offers
@@ -13,10 +13,10 @@ defmodule Qlarius.Help do
       alias Qlarius.Arcade.ContentPiece
       alias Qlarius.Arcade.TiqitClass
       alias Qlarius.Arcade.ContentGroup
-      alias Qlarius.Traits.MeFileTag
-      alias Qlarius.Traits.Trait
-      alias Qlarius.Traits.TraitCategory
-      alias Qlarius.Traits.TraitValue
+      alias Qlarius.YouData.MeFileTag
+      alias Qlarius.YouData.Traits.Trait
+      alias Qlarius.YouData.Traits.TraitCategory
+      alias Qlarius.YouData.Traits.TraitValue
       alias Qlarius.Media
       alias Qlarius.Sponster.Marketing
       alias Qlarius.Release
@@ -31,10 +31,10 @@ defmodule Qlarius.Help do
       alias Qlarius.Accounts.UserNotifier
       alias Qlarius.Accounts.UserProxy
       alias Qlarius.Accounts.UserToken
-      alias Qlarius.Accounts.MeFile
+      alias Qlarius.YouData.MeFile
       alias Qlarius.Mailer
-      alias Qlarius.Surveys.SurveyCategory
-      alias Qlarius.Surveys.Survey
+      alias Qlarius.YouData.Surveys.SurveyCategory
+      alias Qlarius.YouData.Surveys.Survey
       alias Qlarius.Sponster.Campaigns.MediaSequence
       alias Qlarius.Sponster.Campaigns.MediaRun
       alias Qlarius.Sponster.Marketing.MediaPiece
@@ -53,7 +53,7 @@ defmodule Qlarius.Help do
       alias Qlarius.Creators
       alias Qlarius.Tiqits
       alias Qlarius.Repo
-      alias Qlarius.Traits
+      alias Qlarius.YouData.Traits
     end
   end
 end

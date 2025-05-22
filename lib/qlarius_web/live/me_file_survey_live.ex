@@ -1,9 +1,9 @@
 defmodule QlariusWeb.MeFileSurveyLive do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Surveys
-  alias Qlarius.Traits
-  alias Qlarius.Traits.Trait
+  alias Qlarius.YouData.Surveys
+  alias Qlarius.YouData.Traits
+  alias Qlarius.YouData.Traits.Trait
 
   import QlariusWeb.TraitPanelComponent
 

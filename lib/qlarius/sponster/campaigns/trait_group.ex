@@ -3,13 +3,13 @@ defmodule Qlarius.Sponster.Campaigns.TraitGroup do
   import Ecto.Changeset
 
   alias Qlarius.Sponster.Campaigns.TargetBand
-  alias Qlarius.Traits.Trait
+  alias Qlarius.YouData.Traits.Trait
 
   schema "trait_groups" do
     field :description, :string
     field :title, :string
 
-    belongs_to :trait, Qlarius.Traits.TraitValue, foreign_key: :parent_trait_id
+    belongs_to :trait, Qlarius.YouData.Traits.TraitValue, foreign_key: :parent_trait_id
 
     belongs_to :created_by, Qlarius.Accounts.User, foreign_key: :user_created_by
     field :deactivated_at, :utc_datetime

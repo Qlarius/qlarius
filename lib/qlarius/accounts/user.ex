@@ -5,7 +5,7 @@ defmodule Qlarius.Accounts.User do
   alias Qlarius.Accounts.UserProxy
 
   schema "users" do
-    has_one :me_file, Qlarius.Accounts.MeFile
+    has_one :me_file, Qlarius.YouData.MeFile
 
     has_many :offers, through: [:me_file, :offers]
 

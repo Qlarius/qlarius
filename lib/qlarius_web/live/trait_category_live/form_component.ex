@@ -1,7 +1,7 @@
 defmodule QlariusWeb.TraitCategoryLive.FormComponent do
   use QlariusWeb, :live_component
 
-  alias Qlarius.Traits
+  alias Qlarius.YouData.Traits
 
   @impl true
   def render(assigns) do

@@ -11,7 +11,7 @@ defmodule Qlarius.Sponster.AdEvent do
     field :url, :string
 
     belongs_to :offer, Qlarius.Sponster.Offer
-    belongs_to :me_file, Qlarius.Accounts.MeFile
+    belongs_to :me_file, Qlarius.YouData.MeFile
     belongs_to :campaign, Qlarius.Sponster.Campaigns.Campaign
     belongs_to :media_run, Qlarius.Sponster.Campaigns.MediaRun
 

@@ -9,7 +9,7 @@ defmodule Qlarius.Wallets.LedgerHeader do
     field :balance, :decimal
     field :balance_payable, :decimal
 
-    belongs_to :me_file, Qlarius.Accounts.MeFile
+    belongs_to :me_file, Qlarius.YouData.MeFile
     has_one :user, through: [:me_file, :user]
     # belongs_to :campaign, Qlarius.Sponster.Campaigns.Campaign
     # belongs_to :recipient, Qlarius.Sponster.Recipient

@@ -1,4 +1,4 @@
-defmodule Qlarius.Accounts.MeFile do
+defmodule Qlarius.YouData.MeFile do
   use Ecto.Schema
   import Ecto.Changeset, warn: false
 
@@ -14,8 +14,8 @@ defmodule Qlarius.Accounts.MeFile do
     has_many :offers, Qlarius.Sponster.Offer
     has_one :ledger_header, Qlarius.Wallets.LedgerHeader
 
-    many_to_many :trait_values, Qlarius.Traits.TraitValue,
-      join_through: Qlarius.Traits.MeFileTag,
+    many_to_many :trait_values, Qlarius.YouData.Traits.TraitValue,
+      join_through: Qlarius.YouData.MeFileTag,
       join_keys: [me_file_id: :id, trait_id: :id]
 
     has_many :traits, through: [:trait_values, :trait]

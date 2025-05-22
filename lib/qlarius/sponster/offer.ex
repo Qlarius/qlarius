@@ -14,7 +14,7 @@ defmodule Qlarius.Sponster.Offer do
     field :ad_phase_count_to_complete, :integer
 
     belongs_to :campaign, Qlarius.Sponster.Campaigns.Campaign
-    belongs_to :me_file, Qlarius.Accounts.MeFile
+    belongs_to :me_file, Qlarius.YouData.MeFile
     belongs_to :media_run, Qlarius.Sponster.Campaigns.MediaRun
     belongs_to :media_piece, Qlarius.Sponster.Ads.MediaPiece
     belongs_to :target_band, Qlarius.Sponster.Campaigns.TargetBand

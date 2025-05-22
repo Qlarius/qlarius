@@ -1,14 +1,14 @@
-defmodule Qlarius.Traits do
+defmodule Qlarius.YouData.Traits do
   import Ecto.Query
 
-  alias Qlarius.Accounts.MeFile
+  alias Qlarius.YouData.MeFile
   alias Qlarius.Accounts.User
   alias Qlarius.Sponster.Campaigns.TraitGroup
   alias Qlarius.Repo
-  alias Qlarius.Traits.MeFileTag
-  alias Qlarius.Traits.Trait
-  alias Qlarius.Traits.TraitCategory
-  alias Qlarius.Traits.TraitValue
+  alias Qlarius.YouData.MeFileTag
+  alias Qlarius.YouData.Traits.Trait
+  alias Qlarius.YouData.Traits.TraitCategory
+  alias Qlarius.YouData.Traits.TraitValue
 
   # TraitCategory functions
 

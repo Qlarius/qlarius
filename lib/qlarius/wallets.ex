@@ -1,7 +1,7 @@
 defmodule Qlarius.Wallets do
   import Ecto.Query
 
-  alias Qlarius.Accounts.MeFile
+  alias Qlarius.YouData.MeFile
   alias Qlarius.Accounts.User
   alias Qlarius.Sponster.AdEvent
   alias Qlarius.Sponster.Offer

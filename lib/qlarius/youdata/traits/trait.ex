@@ -1,4 +1,4 @@
-defmodule Qlarius.Traits.Trait do
+defmodule Qlarius.YouData.Traits.Trait do
   use Ecto.Schema
   import Ecto.Changeset, warn: false
 
@@ -20,11 +20,11 @@ defmodule Qlarius.Traits.Trait do
 
     field :question, :string
 
-    belongs_to :trait_category, Qlarius.Traits.TraitCategory
+    belongs_to :trait_category, Qlarius.YouData.Traits.TraitCategory
 
-    has_many :values, Qlarius.Traits.TraitValue, foreign_key: :parent_trait_id
+    has_many :values, Qlarius.YouData.Traits.TraitValue, foreign_key: :parent_trait_id
 
-    many_to_many :surveys, Qlarius.Surveys.Survey, join_through: "traits_surveys"
+    many_to_many :surveys, Qlarius.YouData.Surveys.Survey, join_through: "traits_surveys"
 
     many_to_many :trait_groups, Qlarius.Sponster.Campaigns.TraitGroup,
       join_through: "trait_group_traits"

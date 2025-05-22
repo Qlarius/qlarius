@@ -6,7 +6,7 @@ defmodule Qlarius.Arcade.Tiqit do
     field :purchased_at, :utc_datetime
     field :expires_at, :utc_datetime
 
-    belongs_to :me_file, Qlarius.Accounts.MeFile
+    belongs_to :me_file, Qlarius.YouData.MeFile
     belongs_to :tiqit_class, Qlarius.Arcade.TiqitClass
 
     has_one :user, through: [:me_file, :user]

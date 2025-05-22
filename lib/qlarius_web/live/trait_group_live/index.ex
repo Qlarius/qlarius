@@ -1,7 +1,7 @@
 defmodule QlariusWeb.TraitGroupLive.Index do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Traits
+  alias Qlarius.YouData.Traits
   alias Qlarius.Sponster.Campaigns.TraitGroup
 
   @impl true

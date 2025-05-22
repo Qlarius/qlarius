@@ -1,4 +1,4 @@
-defmodule Qlarius.Surveys.SurveyCategory do
+defmodule Qlarius.YouData.Surveys.SurveyCategory do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -6,7 +6,7 @@ defmodule Qlarius.Surveys.SurveyCategory do
     field :name, :string, source: :survey_category_name
     field :display_order, :integer
 
-    has_many :surveys, Qlarius.Surveys.Survey
+    has_many :surveys, Qlarius.YouData.Surveys.Survey
 
     belongs_to :added_by, Qlarius.Accounts.User
     belongs_to :modified_by, Qlarius.Accounts.User

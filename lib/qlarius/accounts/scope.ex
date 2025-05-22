@@ -20,7 +20,7 @@ defmodule Qlarius.Accounts.Scope do
   alias Qlarius.Accounts.Proxying
   alias Qlarius.Accounts.User
   alias Qlarius.Offers
-  alias Qlarius.Traits
+  alias Qlarius.YouData.Traits
   alias Qlarius.Wallets
 
   defstruct user: nil,

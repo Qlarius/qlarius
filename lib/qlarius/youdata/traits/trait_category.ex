@@ -1,8 +1,8 @@
-defmodule Qlarius.Traits.TraitCategory do
+defmodule Qlarius.YouData.Traits.TraitCategory do
   use Ecto.Schema
   import Ecto.Changeset, warn: false
 
-  alias Qlarius.Traits.Trait
+  alias Qlarius.YouData.Traits.Trait
 
   schema "trait_categories" do
     field :name, :string, source: :trait_category_name

@@ -1,9 +1,9 @@
-defmodule Qlarius.Traits.TraitValue do
+defmodule Qlarius.YouData.Traits.TraitValue do
   use Ecto.Schema
   import Ecto.Changeset, warn: false
 
   schema "trait_values" do
-    belongs_to :trait, Qlarius.Traits.Trait, foreign_key: :parent_trait_id
+    belongs_to :trait, Qlarius.YouData.Traits.Trait, foreign_key: :parent_trait_id
 
     field :name, :string, source: :trait_name
     field :active, :boolean
@@ -22,8 +22,8 @@ defmodule Qlarius.Traits.TraitValue do
 
     field :answer, :string
 
-    many_to_many :me_files, Qlarius.Accounts.MeFile,
-      join_through: Qlarius.Traits.MeFileTag,
+    many_to_many :me_files, Qlarius.YouData.MeFile,
+      join_through: Qlarius.YouData.MeFileTag,
       join_keys: [trait_id: :id, me_file_id: :id]
 
     timestamps(

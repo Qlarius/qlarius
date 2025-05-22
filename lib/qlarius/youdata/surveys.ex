@@ -1,11 +1,11 @@
-defmodule Qlarius.Surveys do
+defmodule Qlarius.YouData.Surveys do
   import Ecto.Query, warn: false
   alias Qlarius.Repo
 
-  alias Qlarius.Surveys.SurveyCategory
-  alias Qlarius.Surveys.Survey
-  alias Qlarius.Traits.Trait
-  alias Qlarius.Traits.TraitValue
+  alias Qlarius.YouData.Surveys.SurveyCategory
+  alias Qlarius.YouData.Surveys.Survey
+  alias Qlarius.YouData.Traits.Trait
+  alias Qlarius.YouData.Traits.TraitValue
 
   # Survey Category functions
 

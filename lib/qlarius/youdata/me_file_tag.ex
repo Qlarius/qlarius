@@ -1,9 +1,9 @@
-defmodule Qlarius.Traits.MeFileTag do
+defmodule Qlarius.YouData.MeFileTag do
   use Ecto.Schema
   import Ecto.Changeset, warn: false
 
   schema "me_file_tags" do
-    belongs_to :me_file, Qlarius.Accounts.MeFile
+    belongs_to :me_file, Qlarius.YouData.MeFile
     belongs_to :trait_value, TraitValue, foreign_key: :trait_id
 
     field :tag_value, :string

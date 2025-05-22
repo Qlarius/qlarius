@@ -1,7 +1,7 @@
 defmodule Qlarius.Arcade do
   import Ecto.Query
 
-  alias Qlarius.Accounts.MeFile
+  alias Qlarius.YouData.MeFile
   alias Qlarius.Accounts.Scope
   alias Qlarius.Arcade.ContentGroup
   alias Qlarius.Arcade.ContentPiece
