@@ -1,4 +1,4 @@
-defmodule Qlarius.Marketing.MediaSequence do
+defmodule Qlarius.Sponster.Campaigns.MediaSequence do
   use Ecto.Schema
   import Ecto.Changeset
 

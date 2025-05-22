@@ -1,6 +1,6 @@
 now = DateTime.utc_now(:second)
 
-alias Qlarius.Campaigns.AdCategory
+alias Qlarius.Sponster.Ads.AdCategory
 alias Qlarius.Repo
 
 data = [

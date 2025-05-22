@@ -1,8 +1,8 @@
 defmodule QlariusWeb.TargetController do
   use QlariusWeb, :controller
 
-  alias Qlarius.Campaigns
-  alias Qlarius.Campaigns.Target
+  alias Qlarius.Sponster.Campaigns
+  alias Qlarius.Sponster.Campaigns.Target
 
   def index(conn, _params) do
     targets = Campaigns.list_targets()

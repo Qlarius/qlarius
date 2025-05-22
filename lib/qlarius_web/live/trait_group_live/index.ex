@@ -2,7 +2,7 @@ defmodule QlariusWeb.TraitGroupLive.Index do
   use QlariusWeb, :live_view
 
   alias Qlarius.Traits
-  alias Qlarius.Campaigns.TraitGroup
+  alias Qlarius.Sponster.Campaigns.TraitGroup
 
   @impl true
   def mount(_params, _session, socket) do

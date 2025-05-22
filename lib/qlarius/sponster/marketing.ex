@@ -1,4 +1,4 @@
-defmodule Qlarius.Marketing do
+defmodule Qlarius.Sponster.Marketing do
   @moduledoc """
   The Marketing context.
   """
@@ -10,8 +10,8 @@ defmodule Qlarius.Marketing do
   alias Qlarius.Repo
 
   alias Qlarius.Accounts.Marketer
-  alias Qlarius.Campaigns.AdCategory
-  alias Qlarius.Marketing.MediaPiece
+  alias Qlarius.Sponster.Ads.AdCategory
+  alias Qlarius.Sponster.Ads.MediaPiece
 
   def list_marketers do
     Repo.all(from m in Marketer, order_by: [asc: m.business_name])

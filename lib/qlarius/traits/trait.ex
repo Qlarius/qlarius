@@ -25,7 +25,9 @@ defmodule Qlarius.Traits.Trait do
     has_many :values, Qlarius.Traits.TraitValue, foreign_key: :parent_trait_id
 
     many_to_many :surveys, Qlarius.Surveys.Survey, join_through: "traits_surveys"
-    many_to_many :trait_groups, Qlarius.Campaigns.TraitGroup, join_through: "trait_group_traits"
+
+    many_to_many :trait_groups, Qlarius.Sponster.Campaigns.TraitGroup,
+      join_through: "trait_group_traits"
 
     timestamps(
       type: :utc_datetime,

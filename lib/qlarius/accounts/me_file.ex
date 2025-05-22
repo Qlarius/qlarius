@@ -11,7 +11,7 @@ defmodule Qlarius.Accounts.MeFile do
 
     belongs_to :user, Qlarius.Accounts.User
 
-    has_many :offers, Qlarius.Offer
+    has_many :offers, Qlarius.Sponster.Offer
     has_one :ledger_header, Qlarius.Wallets.LedgerHeader
 
     many_to_many :trait_values, Qlarius.Traits.TraitValue,

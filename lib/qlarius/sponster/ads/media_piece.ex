@@ -1,4 +1,4 @@
-defmodule Qlarius.Marketing.MediaPiece do
+defmodule Qlarius.Sponster.Ads.MediaPiece do
   use Ecto.Schema
   use Waffle.Ecto.Schema
 
@@ -6,7 +6,7 @@ defmodule Qlarius.Marketing.MediaPiece do
 
   schema "media_pieces" do
     belongs_to :marketer, Qlarius.Accounts.Marketer
-    belongs_to :media_piece_type, Qlarius.Marketing.MediaPieceType
+    belongs_to :media_piece_type, Qlarius.Sponster.Ads.MediaPieceType
 
     field :title, :string
     field :display_url, :string
@@ -22,7 +22,7 @@ defmodule Qlarius.Marketing.MediaPiece do
     field :active, :boolean, default: true
     field :banner_image, QlariusWeb.Uploaders.ThreeTapBanner.Type
 
-    belongs_to :ad_category, Qlarius.Campaigns.AdCategory
+    belongs_to :ad_category, Qlarius.Sponster.Ads.AdCategory
 
     timestamps(type: :utc_datetime, inserted_at_source: :created_at)
   end

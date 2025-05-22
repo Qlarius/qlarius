@@ -6,9 +6,9 @@ defmodule Qlarius.Media do
   import Ecto.Query, warn: false
   alias Qlarius.Repo
 
-  alias Qlarius.Marketing.MediaSequence
-  alias Qlarius.Marketing.MediaRun
-  alias Qlarius.Marketing.MediaPiece
+  alias Qlarius.Sponster.Campaigns.MediaSequence
+  alias Qlarius.Sponster.Campaigns.MediaRun
+  alias Qlarius.Sponster.Ads.MediaPiece
 
   @doc """
   Returns the list of media_sequences.

@@ -1,9 +1,9 @@
-defmodule Qlarius.Campaigns.Campaign do
+defmodule Qlarius.Sponster.Campaigns.Campaign do
   use Ecto.Schema
   import Ecto.Changeset, warn: false
 
-  alias Qlarius.Campaigns.Target
-  alias Qlarius.Marketing.MediaSequence
+  alias Qlarius.Sponster.Campaigns.Target
+  alias Qlarius.Sponster.Campaigns.MediaSequence
 
   schema "campaigns" do
     field :description, :string

@@ -1,4 +1,4 @@
-defmodule Qlarius.Marketing.MediaRun do
+defmodule Qlarius.Sponster.Campaigns.MediaRun do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -13,8 +13,8 @@ defmodule Qlarius.Marketing.MediaRun do
     field :banner_retry_buffer_hours, :integer
     field :is_active, :boolean
 
-    belongs_to :media_piece, Qlarius.Marketing.MediaPiece
-    belongs_to :media_sequence, Qlarius.Marketing.MediaSequence
+    belongs_to :media_piece, Qlarius.Sponster.Ads.MediaPiece
+    belongs_to :media_sequence, Qlarius.Sponster.Campaigns.MediaSequence
 
     timestamps(type: :utc_datetime, inserted_at_source: :created_at)
   end

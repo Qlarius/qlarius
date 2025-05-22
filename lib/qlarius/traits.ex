@@ -3,7 +3,7 @@ defmodule Qlarius.Traits do
 
   alias Qlarius.Accounts.MeFile
   alias Qlarius.Accounts.User
-  alias Qlarius.Campaigns.TraitGroup
+  alias Qlarius.Sponster.Campaigns.TraitGroup
   alias Qlarius.Repo
   alias Qlarius.Traits.MeFileTag
   alias Qlarius.Traits.Trait

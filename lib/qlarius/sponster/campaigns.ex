@@ -1,4 +1,4 @@
-defmodule Qlarius.Campaigns do
+defmodule Qlarius.Sponster.Campaigns do
   @moduledoc """
   The Campaigns context.
   """
@@ -6,7 +6,8 @@ defmodule Qlarius.Campaigns do
   import Ecto.Query, warn: false
   alias Qlarius.Repo
 
-  alias Qlarius.Campaigns.{Target, TargetBand}
+  alias Qlarius.Sponster.Campaigns.Target
+  alias Qlarius.Sponster.Campaigns.TargetBand
 
   #
   # Targets

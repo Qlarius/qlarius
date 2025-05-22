@@ -1,6 +1,6 @@
 alias Qlarius.Accounts.User
-alias Qlarius.Campaigns.AdCategory
-alias Qlarius.Marketing.MediaPiece
+alias Qlarius.Sponster.Ads.AdCategory
+alias Qlarius.Sponster.Ads.MediaPiece
 alias Qlarius.Marketing.MediaRun
 alias Qlarius.Marketing.MediaSequence
 alias Qlarius.Offer

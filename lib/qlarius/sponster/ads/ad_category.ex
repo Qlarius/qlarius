@@ -1,4 +1,4 @@
-defmodule Qlarius.Campaigns.AdCategory do
+defmodule Qlarius.Sponster.Ads.AdCategory do
   use Ecto.Schema
   import Ecto.Changeset, warn: false
 

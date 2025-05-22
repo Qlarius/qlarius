@@ -2,7 +2,7 @@ defmodule QlariusWeb.MediaSequenceController do
   use QlariusWeb, :controller
 
   alias Qlarius.Media
-  alias Qlarius.Marketing.MediaRun
+  alias Qlarius.Sponster.Campaigns.MediaRun
 
   def index(conn, _params) do
     media_sequences = Media.list_media_sequences()

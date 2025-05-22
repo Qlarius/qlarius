@@ -3,8 +3,8 @@ defmodule Qlarius.Wallets do
 
   alias Qlarius.Accounts.MeFile
   alias Qlarius.Accounts.User
-  alias Qlarius.AdEvent
-  alias Qlarius.Offer
+  alias Qlarius.Sponster.AdEvent
+  alias Qlarius.Sponster.Offer
   alias Qlarius.Repo
   alias Qlarius.Wallets.LedgerEntry
   alias Qlarius.Wallets.LedgerHeader

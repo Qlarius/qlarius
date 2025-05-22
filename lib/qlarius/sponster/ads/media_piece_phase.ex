@@ -1,4 +1,4 @@
-defmodule Qlarius.Marketing.MediaPiecePhase do
+defmodule Qlarius.Sponster.Ads.MediaPiecePhase do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -16,7 +16,7 @@ defmodule Qlarius.Marketing.MediaPiecePhase do
     field :pay_to_recipient_from_me_file_fixed, :decimal
     field :pay_to_recipient_from_me_file_percent, :decimal
 
-    belongs_to :media_piece_type, Qlarius.Marketing.MediaPieceType
+    belongs_to :media_piece_type, Qlarius.Sponster.Ads.MediaPieceType
 
     timestamps(type: :utc_datetime, inserted_at_source: :created_at)
   end

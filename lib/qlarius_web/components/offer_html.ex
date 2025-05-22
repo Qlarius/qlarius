@@ -1,7 +1,7 @@
 defmodule QlariusWeb.OfferHTML do
   use QlariusWeb, :html
 
-  alias Qlarius.Offer
+  alias Qlarius.Sponster.Offer
 
   import QlariusWeb.Money
 

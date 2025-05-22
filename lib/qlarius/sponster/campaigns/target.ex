@@ -1,8 +1,9 @@
-defmodule Qlarius.Campaigns.Target do
+defmodule Qlarius.Sponster.Campaigns.Target do
   use Ecto.Schema
   import Ecto.Changeset, warn: false
 
-  alias Qlarius.Campaigns.{Campaign, TargetBand}
+  alias Qlarius.Sponster.Campaigns.Campaign
+  alias Qlarius.Sponster.Campaigns.TargetBand
 
   schema "targets" do
     has_many :campaigns, Campaign

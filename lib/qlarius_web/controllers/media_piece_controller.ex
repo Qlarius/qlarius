@@ -1,8 +1,8 @@
 defmodule QlariusWeb.MediaPieceController do
   use QlariusWeb, :controller
 
-  alias Qlarius.Marketing
-  alias Qlarius.Marketing.MediaPiece
+  alias Qlarius.Sponster.Marketing
+  alias Qlarius.Sponster.Ads.MediaPiece
 
   def index(conn, _params) do
     media_pieces = Marketing.list_media_pieces()

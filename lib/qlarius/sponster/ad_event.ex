@@ -1,4 +1,4 @@
-defmodule Qlarius.AdEvent do
+defmodule Qlarius.Sponster.AdEvent do
   use Ecto.Schema
 
   schema "ad_events" do
@@ -10,10 +10,10 @@ defmodule Qlarius.AdEvent do
     field :ip_address, :string
     field :url, :string
 
-    belongs_to :offer, Qlarius.Offer
+    belongs_to :offer, Qlarius.Sponster.Offer
     belongs_to :me_file, Qlarius.Accounts.MeFile
-    belongs_to :campaign, Qlarius.Campaigns.Campaign
-    belongs_to :media_run, Qlarius.Marketing.MediaRun
+    belongs_to :campaign, Qlarius.Sponster.Campaigns.Campaign
+    belongs_to :media_run, Qlarius.Sponster.Campaigns.MediaRun
 
     timestamps(type: :utc_datetime, inserted_at_source: :created_at)
   end

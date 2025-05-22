@@ -1,8 +1,8 @@
-defmodule Qlarius.Campaigns.TraitGroup do
+defmodule Qlarius.Sponster.Campaigns.TraitGroup do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Campaigns.TargetBand
+  alias Qlarius.Sponster.Campaigns.TargetBand
   alias Qlarius.Traits.Trait
 
   schema "trait_groups" do

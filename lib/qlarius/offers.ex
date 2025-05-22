@@ -6,7 +6,7 @@ defmodule Qlarius.Offers do
   import Ecto.Query
 
   alias Qlarius.Repo
-  alias Qlarius.Offer
+  alias Qlarius.Sponster.Offer
 
   @doc """
   Returns the list of offers for a user, in descending order of their amount

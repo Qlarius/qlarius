@@ -1,4 +1,4 @@
-defmodule Qlarius.Marketing.MediaPieceType do
+defmodule Qlarius.Sponster.Ads.MediaPieceType do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -7,7 +7,7 @@ defmodule Qlarius.Marketing.MediaPieceType do
     field :desc, :string
     field :ad_phase_count_to_complete, :integer
 
-    has_many :media_piece_phases, Qlarius.Marketing.MediaPiecePhase
+    has_many :media_piece_phases, Qlarius.Sponster.Ads.MediaPiecePhase
 
     timestamps(type: :utc_datetime, inserted_at_source: :created_at)
   end

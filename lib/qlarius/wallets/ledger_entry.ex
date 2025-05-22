@@ -6,8 +6,6 @@ defmodule Qlarius.Wallets.LedgerEntry do
     belongs_to :ledger_header, Qlarius.Wallets.LedgerHeader
 
     has_one :user, through: [:ledger_header, :me_file, :user]
-    # TODO
-    # belongs_to :ad_event, AdEvent
 
     field :amount, :decimal, source: :amt
     field :description, :string
@@ -15,7 +13,7 @@ defmodule Qlarius.Wallets.LedgerEntry do
     field :running_balance, :decimal
     field :running_balance_payable, :decimal
 
-    belongs_to :ad_event, Qlarius.AdEvent
+    belongs_to :ad_event, Qlarius.Sponster.AdEvent
     # belongs_to :transfer_event, Qlarius.Accounts.TransferEvent
     # belongs_to :payout_event, Qlarius.Accounts.PayoutEvent
 

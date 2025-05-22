@@ -3,7 +3,7 @@ defmodule QlariusWeb.AdsLive do
 
   alias Qlarius.Accounts
   alias Qlarius.Accounts.Scope
-  alias Qlarius.Offer
+  alias Qlarius.Sponster.Offer
   alias Qlarius.Offers
   alias Qlarius.Wallets
 

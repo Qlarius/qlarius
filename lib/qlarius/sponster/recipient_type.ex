@@ -1,4 +1,4 @@
-defmodule Qlarius.Campaigns.RecipientType do
+defmodule Qlarius.Sponster.RecipientType do
   use Ecto.Schema
 
   schema "recipient_types" do
