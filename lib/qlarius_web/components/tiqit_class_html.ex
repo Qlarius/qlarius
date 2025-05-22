@@ -1,8 +1,6 @@
 defmodule QlariusWeb.TiqitClassHTML do
   use QlariusWeb, :html
 
-  alias Qlarius.Arcade.TiqitClass
-
   import QlariusWeb.Money, only: [format_usd: 1]
 
   attr :form, Phoenix.HTML.Form, required: true

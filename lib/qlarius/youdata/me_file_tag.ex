@@ -4,7 +4,7 @@ defmodule Qlarius.YouData.MeFileTag do
 
   schema "me_file_tags" do
     belongs_to :me_file, Qlarius.YouData.MeFile
-    belongs_to :trait_value, TraitValue, foreign_key: :trait_id
+    belongs_to :trait_value, Qlarius.YouData.Traits.TraitValue, foreign_key: :trait_id
 
     field :tag_value, :string
     field :expiration_date, :date
