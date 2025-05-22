@@ -24,6 +24,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
 
     socket
     |> assign(
+      breadcrumbs: breadcrumbs,
       catalog: catalog,
       creator: creator,
       group: group,

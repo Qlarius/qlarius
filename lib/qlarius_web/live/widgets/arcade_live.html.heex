@@ -90,8 +90,8 @@
       <% else %>
         <p class="text-gray-600">
           <%= if @selected_tiqit_class.duration_hours do %>
-            You are purchasing access to this {class_type(@selected_tiqit_class, @group.catalog)} for {tiqit_class_duration(
-              @selected_tiqit_class
+            You are purchasing access to this {class_type(@selected_tiqit_class, @group.catalog)} for {format_tiqit_class_duration(
+              @selected_tiqit_class.duration_hours
             )}
           <% else %>
             You are purchasing lifetime acces to this {class_type(

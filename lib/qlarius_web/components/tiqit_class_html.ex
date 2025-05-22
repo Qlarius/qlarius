@@ -41,20 +41,16 @@ defmodule QlariusWeb.TiqitClassHTML do
   end
 
   # Returns duration as:
+  # - "Lifetime" is duration is nil
   # - "X weeks" if evenly divisible by 7 days (168 hours)
   # - "X days" if evenly divisible by 24 hours (exception: "24 hours" not "1 day")
   # - "X hours" otherwise
   # Examples: "2 weeks", "3 days", "26 hours"
-  def tiqit_class_duration(%TiqitClass{} = tc) do
-    if tc.duration_hours do
-      format_tiqit_class_duration(tc.duration_hours)
-    else
-      "Lifetime"
-    end
-  end
-
   def format_tiqit_class_duration(hours) do
     cond do
+      is_nil(hours) ->
+        "Lifetime"
+
       rem(hours, 24 * 7) == 0 ->
         "#{div(hours, 24 * 7)} week#{if div(hours, 24 * 7) > 1, do: "s"}"
 
@@ -72,7 +68,7 @@ defmodule QlariusWeb.TiqitClassHTML do
   def tiqit_classes_table(assigns) do
     ~H"""
     <.table id="catalog_tiqit_classes" rows={@record.tiqit_classes} zebra={false}>
-      <:col :let={tc} label="Duration">{tiqit_class_duration(tc)}</:col>
+      <:col :let={tc} label="Duration">{format_tiqit_class_duration(tc.duration_hours)}</:col>
       <:col :let={tc} label="Price">{format_usd(tc.price)}</:col>
     </.table>
     """

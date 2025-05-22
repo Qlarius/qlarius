@@ -5,6 +5,8 @@ defmodule Qlarius.Arcade.TiqitClass do
   schema "tiqit_classes" do
     field :price, :decimal
     field :active, :boolean, default: true
+
+    # nil duration = lifetime access
     field :duration_hours, :integer
 
     belongs_to :catalog, Qlarius.Arcade.Catalog
@@ -17,7 +19,7 @@ defmodule Qlarius.Arcade.TiqitClass do
   def changeset(tc, params) do
     tc
     |> cast(params, ~w[duration_hours price]a)
-    |> validate_required([:price, :duration_hours])
+    |> validate_required([:price])
     |> validate_number(:duration_hours, greater_than: 0)
     |> unsafe_validate_unique([:duration_hours, :catalog_id], Qlarius.Repo)
     |> unique_constraint([:duration_hours, :catalog_id])
