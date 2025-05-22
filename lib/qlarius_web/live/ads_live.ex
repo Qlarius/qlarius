@@ -7,8 +7,6 @@ defmodule QlariusWeb.AdsLive do
   alias Qlarius.Offers
   alias Qlarius.Wallets
 
-  import QlariusWeb.OfferHTML
-
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
   @impl true
@@ -29,65 +27,8 @@ defmodule QlariusWeb.AdsLive do
   end
 
   @impl true
-  def handle_event("click-offer", %{"offer-id" => offer_id}, socket) do
-    offer_id = String.to_integer(offer_id)
-
-    {offer = %Offer{}, phase} =
-      Enum.find(socket.assigns.offers, &(elem(&1, 0).id == offer_id))
-
-    socket
-    |> handle_phase(offer, phase)
-    |> noreply()
-  end
-
-  defp handle_phase(socket, offer, 0) do
-    increment_phase(socket, offer.id)
-  end
-
-  defp handle_phase(socket, offer, 1) do
-    :ok =
-      Wallets.create_ad_event_and_update_ledger(
-        offer,
-        socket.assigns.current_scope.user,
-        socket.assigns.user_ip
-      )
-
-    socket
-    |> increment_phase(offer.id)
-    |> update_scope()
-  end
-
-  defp handle_phase(socket, offer, 2) do
-    :ok =
-      Wallets.create_ad_jump_event_and_update_ledger(
-        offer,
-        socket.assigns.current_scope.user,
-        socket.assigns.user_ip
-      )
-
-    socket
-    |> increment_phase(offer.id)
-    |> update_scope()
-  end
-
-  defp handle_phase(socket, _offer, _), do: socket
-
-  defp increment_phase(socket, offer_id) do
-    update(socket, :offers, fn offers ->
-      Enum.map(offers, fn {offer, phase} ->
-        if offer.id == offer_id do
-          {offer, phase + 1}
-        else
-          {offer, phase}
-        end
-      end)
-    end)
-  end
-
-  # Refresh scope so the badges in the bottom bar get updated
-  defp update_scope(socket) do
-    user = Accounts.get_user!(socket.assigns.current_scope.true_user.id)
-    assign(socket, :current_scope, Scope.for_user(user))
+  def handle_params(_params, uri, socket) do
+    {:noreply, assign(socket, :host_uri, URI.parse(uri))}
   end
 
   @impl true
@@ -98,15 +39,15 @@ defmodule QlariusWeb.AdsLive do
         <h1 class="text-3xl font-bold mb-8 text-center">Ads</h1>
 
         <div class="w-fit mx-auto">
-          <%= if Enum.any?(@offers) do %>
-            <div class="space-y-4">
-              <.clickable_offer :for={{offer, phase} <- @offers} offer={offer} phase={phase} />
-            </div>
-          <% else %>
-            <div class="text-center py-8">
-              <p class="text-gray-500">You don't have any ads yet.</p>
-            </div>
-          <% end %>
+          <.live_component
+            module={QlariusWeb.ThreeTapStackComponent}
+            id="three-tap-stack"
+            active_offers={@offers}
+            me_file={@current_scope.user.me_file}
+            user_ip={@user_ip}
+            current_scope={@current_scope}
+            host_uri={@host_uri}
+          />
         </div>
       </div>
     </Layouts.sponster>

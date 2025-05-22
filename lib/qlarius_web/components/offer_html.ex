@@ -8,6 +8,7 @@ defmodule QlariusWeb.OfferHTML do
   @phase_1_amount Decimal.new("0.05")
 
   attr :phase, :integer, default: 0
+  attr :target, :any
   attr :offer, Offer, required: true
 
   def clickable_offer(assigns) do
@@ -19,6 +20,7 @@ defmodule QlariusWeb.OfferHTML do
       <.offer_container
         offer={@offer}
         class={"p-5 text-neutral-800 phase-0 bg-white #{if @phase > 0, do: "slide-left"}"}
+        target={@target}
       >
         <div class="text-2xl font-bold mb-4">{format_usd(@offer.amount)}</div>
         <div class="mb-4">
@@ -34,7 +36,7 @@ defmodule QlariusWeb.OfferHTML do
         </div>
       </.offer_container>
 
-      <.offer_container offer={@offer} class={"phase-1 #{if @phase > 1, do: "slide-up"}"}>
+      <.offer_container offer={@offer} class={"phase-1 #{if @phase > 1, do: "slide-up"}"} target={@target}>
         <div class="flex justify-center items-center bg-white">
           <%= if @offer.media_piece.banner_image do %>
             <img
@@ -56,7 +58,7 @@ defmodule QlariusWeb.OfferHTML do
         <.click_jump_actions phase_2_amount={@phase_2_amount} />
       </.offer_container>
 
-      <.offer_container offer={@offer} class={"px-3 py-2 phase-2 #{if @phase > 2, do: "hidden"}"}>
+      <.offer_container offer={@offer} class={"px-3 py-2 phase-2 #{if @phase > 2, do: "hidden"}"} target={@target}>
         <%!-- clicking this link opens the 'jump' link in a new tab, and also
           triggers the phx-click="click-offer" handler on the wrapping
           <.offer_container> --%>
@@ -77,6 +79,7 @@ defmodule QlariusWeb.OfferHTML do
       <.offer_container
         offer={@offer}
         class={"p-3 bg-neutral-100 flex flex-col justify-center text-center text-neutral-600 select-none phase-3 #{if @phase < 3, do: "hidden"}"}
+        target={@target}
       >
         <div class="text-green-500 mb-1">
           <.icon name="hero-check" class="w-6 h-6" />
@@ -120,12 +123,15 @@ defmodule QlariusWeb.OfferHTML do
   attr :class, :string, default: nil
   attr :neutral_bg, :boolean, default: false
   attr :offer, Offer, required: true
+  attr :target, :any
+
   slot :inner_block, required: true
 
   defp offer_container(assigns) do
     ~H"""
     <div
       phx-click="click-offer"
+      phx-target={@target}
       phx-value-offer-id={@offer.id}
       class={[
         "offer-phase relative w-96 h-40 rounded-md border border-neutral-400 overflow-hidden cursor-pointer",
