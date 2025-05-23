@@ -18,7 +18,7 @@ defmodule QlariusWeb.ThreeTapStackComponent do
       <%= if Enum.any?(@active_offers) do %>
         <div class="space-y-4">
           <.clickable_offer
-            :for={{offer, phase} <- Enum.take(@active_offers, 1)}
+            :for={{offer, phase} <- @active_offers}
             offer={offer}
             phase={phase}
             target={@myself}
