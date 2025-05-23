@@ -36,7 +36,11 @@ defmodule QlariusWeb.OfferHTML do
         </div>
       </.offer_container>
 
-      <.offer_container offer={@offer} class={"phase-1 #{if @phase > 1, do: "slide-up"}"} target={@target}>
+      <.offer_container
+        offer={@offer}
+        class={"phase-1 #{if @phase > 1, do: "slide-up"}"}
+        target={@target}
+      >
         <div class="flex justify-center items-center bg-white">
           <%= if @offer.media_piece.banner_image do %>
             <img
@@ -58,7 +62,11 @@ defmodule QlariusWeb.OfferHTML do
         <.click_jump_actions phase_2_amount={@phase_2_amount} />
       </.offer_container>
 
-      <.offer_container offer={@offer} class={"px-3 py-2 phase-2 #{if @phase > 2, do: "hidden"}"} target={@target}>
+      <.offer_container
+        offer={@offer}
+        class={"px-3 py-2 phase-2 #{if @phase > 2, do: "hidden"}"}
+        target={@target}
+      >
         <%!-- clicking this link opens the 'jump' link in a new tab, and also
           triggers the phx-click="click-offer" handler on the wrapping
           <.offer_container> --%>
@@ -134,7 +142,7 @@ defmodule QlariusWeb.OfferHTML do
       phx-target={@target}
       phx-value-offer-id={@offer.id}
       class={[
-        "offer-phase relative w-96 h-40 rounded-md border border-neutral-400 overflow-hidden cursor-pointer",
+        "absolute top-0 left-0 w-full h-full transition-transform duration-300 ease-in-out rounded-md border border-neutral-400 overflow-hidden cursor-pointer",
         @class
       ]}
     >

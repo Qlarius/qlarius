@@ -1,0 +1,140 @@
+<%!-- 
+  We use Alpine.js state for splitAmount because phx-update="ignore" prevents LiveView from updating the DOM for this drawer.
+  This ensures the UI updates immediately when a split button is clicked, even though the assign changes in the socket are not patched in.
+--%>
+<div
+  x-ref="drawer"
+  x-data={"{
+    drawerOpen: false,
+    splitAmount: #{@current_scope.user.me_file.split_amount || 50},
+    setDrawerPosition() {
+      console.log('setDrawerPosition');
+      this.$nextTick(() => {
+        const drawer = this.$refs.drawer;
+        console.log('drawer', drawer);
+        const drawerHeight = drawer.offsetHeight;
+        const viewportHeight = window.innerHeight;
+        console.log('drawerHeight', drawerHeight);
+        console.log('viewportHeight', viewportHeight);
+        const close_bottom = (drawerHeight * -1) + 40;
+        console.log('close_bottom', close_bottom);
+        const open_bottom = 40;
+        console.log('open_bottom', open_bottom);
+        if (this.drawerOpen) {
+          console.log('open');  
+          drawer.style.bottom = open_bottom + 'px';
+        } else {
+          console.log('close');
+          drawer.style.bottom = close_bottom + 'px';
+        }
+      });
+    },
+    toggleDrawer() {
+      console.log('toggleDrawer', this.$refs.drawer);
+      this.drawerOpen = !this.drawerOpen;
+      document.body.classList.toggle('tip-drawer-open', this.drawerOpen);
+      this.setDrawerPosition();
+    }
+  }"}
+  x-init="$nextTick(() => setDrawerPosition())"
+  @resize.window="setDrawerPosition()"
+  @load.window="setDrawerPosition()"
+  x-bind:class="drawerOpen ? 'open' : ''"
+  style="position:fixed; left:0; right:0; width:100%; transition:bottom 0.3s; min-height: 350px; z-index: 50;"
+  phx-update="ignore"
+  id="tipjar-drawer"
+>
+  <!-- Tab (toggle trigger) - sibling to content, not inside -->
+  <div
+    class="flex items-center gap-2 bg-gray-700 text-white px-5 py-2 rounded-tl-3xl cursor-pointer select-none"
+    @click="toggleDrawer"
+    style="position: absolute; top: -36px; right: 0;"
+  >
+    <!--
+      We use Alpine's splitAmount state here instead of @current_scope.user.me_file.split_amount because phx-update="ignore"
+      prevents LiveView from patching the DOM for this drawer. This ensures the displayed value updates
+      immediately when the user selects a new split amount.
+    -->
+    <span class="uppercase text-xs tracking-wider font-semibold ms-2">
+      TIP SPLIT: <span x-text="splitAmount"></span>%
+    </span>
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+      />
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  </div>
+  
+<!-- Drawer header and content -->
+  <div
+    class="w-full bg-gray-50 max-width-full shadow-2xl border-t border-gray-200 pt-0 py-8 px-0"
+    style="min-height: 350px;"
+  >
+    <!-- Header -->
+    <div class="w-full bg-white border-b border-gray-300 p-5 flex justify-between items-center shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)] relative z-10">
+      <div class="text-gray-800 font-bold text-base uppercase tracking-wider">
+        TIP TO SUPPORT WHAT YOU LOVE
+      </div>
+      <button
+        @click="toggleDrawer"
+        class="flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 bg-white shadow hover:bg-gray-100"
+      >
+        <svg
+          class="w-6 h-6 text-gray-700 rotate-180"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 15l-7-7-7 7" />
+        </svg>
+      </button>
+    </div>
+    <!-- Content -->
+    <div
+      class="flex flex-col md:flex-row gap-8 px-8 pt-6 bg-gray-50 overflow-y-auto max-w-[800px] mx-auto"
+      style="max-height: 60vh;"
+    >
+      <!-- Left: Autosplit -->
+      <div class="flex-1 flex flex-col items-center md:items-start">
+        <div class="text-lg font-bold text-gray-800 mb-1">AutoSplit</div>
+        <div class="text-gray-500 text-sm mb-4">
+          Automatically tip a share of your revenues from ads engaged on this site.
+        </div>
+        <div class="flex gap-2 w-full justify-center md:justify-start">
+          <%= for percentage <- [0, 25, 50, 75, 100] do %>
+            <button
+              type="button"
+              phx-click="set_split"
+              phx-value-split={percentage}
+              @click={"splitAmount = #{percentage}"}
+              x-bind:class={"splitAmount == #{percentage} ? 'btn btn-sm rounded px-4 py-2 border bg-gray-700 text-white font-bold border-gray-800' : 'btn btn-sm rounded px-4 py-2 border bg-white border-gray-300 text-gray-700 hover:bg-gray-100'"}
+            >
+              {percentage}%
+            </button>
+          <% end %>
+        </div>
+      </div>
+      <!-- Right: Recipient -->
+      <div class="flex-1 flex flex-col items-center">
+        <div class="text-2xl font-bold text-gray-800 mb-2 text-center md:text-left">
+          {@recipient.name || "This Blog's Name"}
+        </div>
+        <div class="w-56 h-56 bg-gray-100 shadow-md flex items-center justify-center mb-4 overflow-hidden">
+          <img
+            src={@recipient.graphic_url || "/images/tipjar_love_default.png"}
+            alt="Recipient"
+            class="object-contain w-full h-full"
+          />
+        </div>
+        <div class="text-gray-600 text-sm text-center max-w-xs">
+          {@recipient.message ||
+            "Thank you for supporting this content. Your Sponster tips are greatly appreciated!"}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

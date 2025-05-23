@@ -21,6 +21,7 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
+import Alpine from "alpinejs"
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
 let socketUrl = window.location.pathname.startsWith("/widgets/") ? "/widgets/live" : "/live"
@@ -44,3 +45,5 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
+window.Alpine = Alpine
+Alpine.start()

@@ -2,18 +2,12 @@ defmodule QlariusWeb.AdsExtLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Accounts.Users
-  alias Qlarius.Sponster
-  alias Qlarius.YouData.MeFiles.MeFile
-  alias Qlarius.Sponster.Offer
-  alias Qlarius.Accounts.User
-  alias Qlarius.Wallets.{LedgerHeader, LedgerEntry}
-  alias Qlarius.Sponster.AdEvent
-  alias Qlarius.Sponster.Recipient
+  alias Qlarius.Offers
   alias Qlarius.Repo
-  alias Qlarius.Accounts.Scope
-  alias Qlarius.Sponster.Ads.ThreeTap
-  alias Phoenix.Component
-  alias Qlarius.Wallets.Wallets
+  alias Qlarius.Sponster.Offer
+  alias Qlarius.YouData
+  alias Qlarius.Wallets
+
   import QlariusWeb.OfferHTML
   import Ecto.Query, except: [update: 2, update: 3]
   import QlariusWeb.Layouts
@@ -24,31 +18,19 @@ defmodule QlariusWeb.AdsExtLive do
 
   @impl true
   def mount(params, session, socket) do
-    # Load initial data during first mount
-    user = Users.get_user(508)
-    current_scope = Scope.for_user(user)
-    me_file = Users.get_user_me_file(current_scope.user.id)
-
-    host_uri =
-      case Phoenix.LiveView.get_connect_info(socket, :uri) do
-        nil -> URI.parse("http://localhost")
-        uri -> uri
-      end
-
-    split_code = Map.get(params, "split_code")
-    recipient = Users.get_recipient_by_split_code(split_code)
+    offers =
+      socket.assigns.current_scope.user.id
+      |> Offers.list_user_offers()
+      |> Enum.map(fn offer ->
+        # {offer, phase}. Phase is an integer between 0 and 3
+        {offer, 0}
+      end)
 
     socket =
       socket
-      |> assign(:user, user)
-      |> assign(:current_scope, current_scope)
-      |> assign(:me_file, me_file)
-      |> assign(:active_offers, [])
+      |> assign(:active_offers, offers)
       |> assign(:loading, true)
       |> assign(:debug, @debug)
-      |> assign(:host_uri, host_uri)
-      |> assign(:split_code, split_code)
-      |> assign(:recipient, recipient)
       |> assign(:page_title, "Sponster")
 
     if connected?(socket) do
@@ -60,10 +42,24 @@ defmodule QlariusWeb.AdsExtLive do
   end
 
   @impl true
+  def handle_params(params, uri, socket) do
+    split_code = Map.get(params, "split_code")
+    recipient = Users.get_recipient_by_split_code(split_code)
+
+    socket
+    |> assign(:split_code, split_code)
+    |> assign(:recipient, recipient)
+    |> assign(:host_uri, URI.parse(uri))
+    |> noreply()
+  end
+
+  @impl true
   def handle_info(:load_offers, socket) do
+    me_file = socket.assigns.current_scope.user.me_file
+
     query =
       from(o in Offer,
-        where: o.me_file_id == ^socket.assigns.me_file.id and o.is_current == true,
+        where: o.me_file_id == ^me_file.id and o.is_current == true,
         order_by: [desc: o.amount],
         preload: [media_piece: :ad_category]
       )
@@ -81,7 +77,7 @@ defmodule QlariusWeb.AdsExtLive do
 
   @impl true
   def handle_info({:refresh_wallet_balance, me_file_id}, socket) do
-    new_balance = Wallets.get_me_file_ledger_header_balance(socket.assigns.me_file)
+    new_balance = Wallets.get_user_current_balance(socket.assigns.current_scope.user)
     current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
     {:noreply, assign(socket, :current_scope, current_scope)}
   end
@@ -89,9 +85,9 @@ defmodule QlariusWeb.AdsExtLive do
   @impl true
   def handle_event("set_split", %{"split" => split}, socket) do
     split_amount = String.to_integer(split)
-    me_file = socket.assigns.me_file
+    me_file = socket.assigns.current_scope.user.me_file
 
-    case MeFile.update_me_file_split_amount(me_file, split_amount) do
+    case YouData.update_me_file_split_amount(me_file, split_amount) do
       {:ok, updated_me_file} ->
         {:noreply,
          socket |> assign(me_file: updated_me_file) |> assign(split_amount: split_amount)}
@@ -110,7 +106,7 @@ defmodule QlariusWeb.AdsExtLive do
           module={QlariusWeb.ThreeTapStackComponent}
           id="three-tap-stack"
           active_offers={@active_offers}
-          me_file={@me_file}
+          me_file={@current_scope.user.me_file}
           user_ip={@user_ip}
           current_scope={@current_scope}
           host_uri={@host_uri}

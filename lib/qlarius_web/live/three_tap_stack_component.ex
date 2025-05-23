@@ -6,8 +6,9 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   alias Qlarius.Sponster.Ads.ThreeTap
   alias Qlarius.Sponster.Offer
   alias Qlarius.Repo
-  alias Qlarius.Wallets.Wallets
+  alias Qlarius.Wallets
   alias Phoenix.Component
+
   import Ecto.Query, except: [update: 2, update: 3]
 
   @impl true
@@ -17,7 +18,7 @@ defmodule QlariusWeb.ThreeTapStackComponent do
       <%= if Enum.any?(@active_offers) do %>
         <div class="space-y-4">
           <.clickable_offer
-            :for={{offer, phase} <- @active_offers}
+            :for={{offer, phase} <- Enum.take(@active_offers, 1)}
             offer={offer}
             phase={phase}
             target={@myself}
