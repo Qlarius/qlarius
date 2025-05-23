@@ -28,7 +28,14 @@ let socketUrl = window.location.pathname.startsWith("/widgets/") ? "/widgets/liv
 
 let liveSocket = new LiveSocket(socketUrl, Socket, {
   longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken}
+  params: {_csrf_token: csrfToken},
+  dom: {
+    onBeforeElUpdated(from, to) {
+      if (from._x_dataStack) {
+        window.Alpine.clone(from, to)
+      }
+    }
+  }
 })
 
 // Show progress bar on live navigation and form submits

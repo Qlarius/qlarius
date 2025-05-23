@@ -9,6 +9,8 @@ defmodule Qlarius.Accounts.User do
 
     has_many :offers, through: [:me_file, :offers]
 
+    has_many :recipients, Qlarius.Sponster.Recipient
+
     field :username, :string
     field :email, :string, default: ""
     field :encrypted_password, :string, default: ""
