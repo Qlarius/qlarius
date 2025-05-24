@@ -1,8 +1,8 @@
 defmodule QlariusWeb.Creators.CatalogLive.Form do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Arcade.Catalog
-  alias Qlarius.Creators
+  alias Qlarius.Tiqit.Arcade.Catalog
+  alias Qlarius.Tiqit.Creators
 
   alias QlariusWeb.TiqitClassHTML
 

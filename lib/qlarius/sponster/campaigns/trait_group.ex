@@ -2,29 +2,28 @@ defmodule Qlarius.Sponster.Campaigns.TraitGroup do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Sponster.Campaigns.TargetBand
+  alias Qlarius.Sponster.Campaigns.TraitGroupTrait
   alias Qlarius.YouData.Traits.Trait
 
+  @primary_key {:id, :id, autogenerate: true}
+  @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
   schema "trait_groups" do
+    field :name, :string
     field :description, :string
-    field :title, :string
+    field :active, :boolean
+    field :display_order, :integer
+    field :marketer_id, :integer
+    field :deactivated_at, :naive_datetime
 
-    belongs_to :trait, Qlarius.YouData.Traits.TraitValue, foreign_key: :parent_trait_id
+    has_many :trait_group_traits, TraitGroupTrait
+    has_many :traits, through: [:trait_group_traits, :trait]
 
-    belongs_to :created_by, Qlarius.Accounts.User, foreign_key: :user_created_by
-    field :deactivated_at, :utc_datetime
-
-    many_to_many :target_bands, TargetBand, join_through: "target_bands_trait_groups"
-    many_to_many :traits, Trait, join_through: "trait_group_traits"
-
-    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
+    timestamps()
   end
 
-  @doc false
   def changeset(trait_group, attrs) do
     trait_group
-    |> cast(attrs, [:title, :description])
-    |> validate_required([:title])
-    |> put_assoc(:traits, Map.get(attrs, :traits, []))
+    |> cast(attrs, [:name, :description, :active, :display_order, :marketer_id, :deactivated_at])
+    |> validate_required([:name, :active, :marketer_id])
   end
 end

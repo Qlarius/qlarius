@@ -2,35 +2,34 @@ defmodule Qlarius.Wallets.LedgerEntry do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Qlarius.Wallets.LedgerHeader
+  alias Qlarius.Sponster.AdEvent
+
+  @primary_key {:id, :id, autogenerate: true}
+  @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
+
   schema "ledger_entries" do
-    belongs_to :ledger_header, Qlarius.Wallets.LedgerHeader
-
-    has_one :user, through: [:ledger_header, :me_file, :user]
-
-    field :amount, :decimal, source: :amt
-    field :description, :string
-    field :payable, :boolean, source: :is_payable
+    field :amt, :decimal
     field :running_balance, :decimal
-    field :running_balance_payable, :decimal
+    field :description, :string
 
-    belongs_to :ad_event, Qlarius.Sponster.AdEvent
-    # belongs_to :transfer_event, Qlarius.Accounts.TransferEvent
-    # belongs_to :payout_event, Qlarius.Accounts.PayoutEvent
+    belongs_to :ledger_header, LedgerHeader
+    belongs_to :ad_event, AdEvent
 
-    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
+    timestamps()
   end
 
   def changeset(ledger_entry, attrs) do
     ledger_entry
     |> cast(attrs, [
-      :amount,
+      :amt,
       :running_balance,
       :description,
       :ledger_header_id,
       :ad_event_id
     ])
     |> validate_required([
-      :amount,
+      :amt,
       :running_balance,
       :description,
       :ledger_header_id

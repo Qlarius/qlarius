@@ -2,61 +2,42 @@
 defmodule Qlarius.Help do
   defmacro __using__(_) do
     quote do
-      alias Qlarius.Wallets
-      alias Qlarius.Arcade
-      alias Qlarius.Offers
-      alias Qlarius.Arcade.Catalog
-      alias Qlarius.Arcade.Creator
-      alias Qlarius.Arcade.Tiqit
-      alias Qlarius.Arcade.ContentPiece
-      alias Qlarius.Arcade.TiqitClass
-      alias Qlarius.Arcade.ContentGroup
       alias Qlarius.Sponster.Ads.AdCategory
       alias Qlarius.Sponster.Ads.MediaPiece
       alias Qlarius.Sponster.Ads.MediaPieceType
       alias Qlarius.Sponster.Ads.MediaPiecePhase
       alias Qlarius.Sponster.Ads.ThreeTap
       alias Qlarius.Sponster.Recipient
-      alias Qlarius.Sponster.Campaigns
       alias Qlarius.Sponster.Marketing
       alias Qlarius.Sponster.Offer
-      alias Qlarius.Sponster.RecipientType
       alias Qlarius.Sponster.AdEvent
+      alias Qlarius.Sponster.Campaigns.TraitGroupTrait
       alias Qlarius.Sponster.Campaigns.MediaSequence
       alias Qlarius.Sponster.Campaigns.MediaRun
       alias Qlarius.Sponster.Campaigns.TargetBand
       alias Qlarius.Sponster.Campaigns.TraitGroup
       alias Qlarius.Sponster.Campaigns.Campaign
-      alias Qlarius.Sponster.Campaigns.Target
-      alias Qlarius.Media
-      alias Qlarius.Release
-      alias Qlarius.Accounts
-      alias Qlarius.YouData.MeFileTag
-      alias Qlarius.YouData.Surveys
+      alias Qlarius.Runtime.EnvLoader
       alias Qlarius.YouData.Traits.Trait
-      alias Qlarius.YouData.Traits.TraitCategory
-      alias Qlarius.YouData.Traits.TraitValue
+      alias Qlarius.YouData.MeFiles.MeFileTag
+      alias Qlarius.YouData.MeFiles.MeFile
+      alias Qlarius.YouData.Surveys.Surveys
       alias Qlarius.YouData.Surveys.SurveyCategory
       alias Qlarius.YouData.Surveys.Survey
-      alias Qlarius.YouData.MeFile
-      alias Qlarius.YouData.Traits
       alias Qlarius.Accounts.Marketer
       alias Qlarius.Accounts.User
-      alias Qlarius.Accounts.MarketerUser
       alias Qlarius.Accounts.Users
-      alias Qlarius.Accounts.Proxying
       alias Qlarius.Accounts.Scope
-      alias Qlarius.Accounts.UserNotifier
       alias Qlarius.Accounts.UserProxy
-      alias Qlarius.Accounts.UserToken
-      alias Qlarius.Mailer
-      alias Qlarius.YouData
       alias Qlarius.Wallets.Wallets
       alias Qlarius.Wallets.LedgerEntry
       alias Qlarius.Wallets.LedgerHeader
       alias Qlarius.Application
-      alias Qlarius.Creators
-      alias Qlarius.Tiqits
+      alias Qlarius.Tiqit.Arcade.Arcade
+      alias Qlarius.Tiqit.Arcade.TiqitType
+      alias Qlarius.Tiqit.Arcade.Tiqit
+      alias Qlarius.Tiqit.Arcade.ContentPiece
+      alias Qlarius.Tiqit.Arcade.ContentGroup
       alias Qlarius.Repo
     end
   end

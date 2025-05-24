@@ -1,9 +1,9 @@
-defmodule Qlarius.Arcade.ContentPiece do
+defmodule Qlarius.Tiqit.Arcade.ContentPiece do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Arcade.ContentGroup
-  alias Qlarius.Arcade.TiqitClass
+  alias Qlarius.Tiqit.Arcade.ContentGroup
+  alias Qlarius.Tiqit.Arcade.TiqitClass
 
   schema "content_pieces" do
     field :title, :string

@@ -2,6 +2,9 @@ defmodule Qlarius.Sponster.Ads.MediaPieceType do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @primary_key {:id, :id, autogenerate: true}
+  @timestamps_opts [type: :naive_datetime, inserted_at: :created_at]
+
   schema "media_piece_types" do
     field :name, :string
     field :desc, :string
@@ -9,7 +12,7 @@ defmodule Qlarius.Sponster.Ads.MediaPieceType do
 
     has_many :media_piece_phases, Qlarius.Sponster.Ads.MediaPiecePhase
 
-    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
+    timestamps()
   end
 
   def changeset(media_piece_type, attrs) do

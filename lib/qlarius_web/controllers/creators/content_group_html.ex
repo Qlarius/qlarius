@@ -1,7 +1,7 @@
 defmodule QlariusWeb.Creators.ContentGroupHTML do
   use QlariusWeb, :html
 
-  alias Qlarius.Arcade.ContentGroup
+  alias Qlarius.Tiqit.Arcade.ContentGroup
   alias QlariusWeb.TiqitClassHTML
 
   embed_templates "content_group_html/*"

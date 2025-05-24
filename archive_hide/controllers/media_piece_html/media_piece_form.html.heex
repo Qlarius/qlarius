@@ -1,0 +1,78 @@
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <.form :let={f} for={@changeset} action={@action} multipart={true}>
+      <div class="space-y-6">
+        <div class="space-y-2">
+          <.input
+            field={f[:banner_image]}
+            type="file"
+            label="Banner Image"
+            accept=".jpg,.jpeg,.gif,.png"
+            class="file-input file-input-bordered w-full"
+            value={nil}
+          />
+          <%= if Phoenix.HTML.Form.input_value(f, :banner_image) do %>
+            <div class="mt-2">
+              <img
+                src={
+                  QlariusWeb.Uploaders.ThreeTapBanner.url(
+                    {@changeset.data.banner_image, @changeset.data},
+                    :original
+                  )
+                }
+                alt="Banner"
+                class="w-32 h-auto object-cover rounded"
+              />
+            </div>
+          <% end %>
+        </div>
+        <.input
+          field={f[:title]}
+          type="text"
+          label="Title"
+          required
+          class="input input-bordered w-full"
+        />
+        <.input
+          field={f[:body_copy]}
+          type="textarea"
+          label="Body Copy"
+          required
+          class="textarea textarea-bordered w-full h-32"
+        />
+        <.input
+          field={f[:display_url]}
+          type="text"
+          label="Display URL"
+          required
+          class="input input-bordered w-full"
+        />
+        <.input
+          field={f[:jump_url]}
+          type="text"
+          label="Jump URL"
+          required
+          class="input input-bordered w-full"
+        />
+        <.input
+          field={f[:ad_category_id]}
+          type="select"
+          label="Ad Category"
+          options={Enum.map(@ad_categories, &{&1.name, &1.id})}
+          required
+          class="select select-bordered w-full"
+        />
+        <.input
+          field={f[:marketer_id]}
+          type="select"
+          label="Marketer"
+          options={Enum.map(@marketers, &{&1.business_name, &1.id})}
+          required
+          class="select select-bordered w-full"
+        />
+      </div>
+
+      <.button variant="primary">Save Media Piece</.button>
+    </.form>
+  </div>
+</div>

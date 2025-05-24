@@ -1,8 +1,8 @@
 defmodule QlariusWeb.Creators.ContentGroupController do
   use QlariusWeb, :controller
 
-  alias Qlarius.Creators
-  alias Qlarius.Arcade.ContentGroup
+  alias Qlarius.Tiqit.Creators
+  alias Qlarius.Tiqit.Arcade.ContentGroup
 
   def new(conn, %{"catalog_id" => catalog_id}) do
     catalog = Creators.get_catalog!(catalog_id)

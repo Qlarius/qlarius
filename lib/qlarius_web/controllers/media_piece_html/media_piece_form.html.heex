@@ -1,6 +1,10 @@
 <div class="card bg-base-100 shadow-xl">
   <div class="card-body">
-    <.form :let={f} for={@changeset} action={@action} multipart={true}>
+    <.simple_form :let={f} for={@changeset} action={@action} multipart={true}>
+      <.error :if={@changeset.action} class="alert alert-error">
+        Oops, something went wrong! Please check the errors below.
+      </.error>
+
       <div class="space-y-6">
         <div class="space-y-2">
           <.input
@@ -11,11 +15,11 @@
             class="file-input file-input-bordered w-full"
             value={nil}
           />
-          <%= if Phoenix.HTML.Form.input_value(f, :banner_image) do %>
+          <%= if banner_value = Phoenix.HTML.Form.input_value(f, :banner_image) do %>
             <div class="mt-2">
               <img
                 src={
-                  QlariusWeb.Uploaders.ThreeTapBanner.url(
+                  QlariusWeb.ThreeTapBanner.url(
                     {@changeset.data.banner_image, @changeset.data},
                     :original
                   )
@@ -58,21 +62,18 @@
           field={f[:ad_category_id]}
           type="select"
           label="Ad Category"
-          options={Enum.map(@ad_categories, &{&1.name, &1.id})}
+          options={Enum.map(@ad_categories, &{&1.ad_category_name, &1.id})}
           required
           class="select select-bordered w-full"
         />
-        <.input
-          field={f[:marketer_id]}
-          type="select"
-          label="Marketer"
-          options={Enum.map(@marketers, &{&1.business_name, &1.id})}
-          required
-          class="select select-bordered w-full"
-        />
+        <.input field={f[:media_piece_type_id]} type="hidden" value="1" />
+        <.input field={f[:marketer_id]} type="hidden" value={f.data.marketer_id || 88} />
+        <.input field={f[:active]} type="hidden" value="true" />
       </div>
 
-      <.button variant="primary">Save Media Piece</.button>
-    </.form>
+      <:actions>
+        <.button class="btn btn-primary">Save Media Piece</.button>
+      </:actions>
+    </.simple_form>
   </div>
 </div>

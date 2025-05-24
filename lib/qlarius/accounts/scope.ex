@@ -16,47 +16,36 @@ defmodule Qlarius.Accounts.Scope do
   growing application requirements.
   """
 
-  alias Qlarius.Accounts
-  alias Qlarius.Accounts.Proxying
   alias Qlarius.Accounts.User
-  alias Qlarius.Offers
-  alias Qlarius.YouData.Traits
-  alias Qlarius.Wallets
+  alias Qlarius.YouData.MeFiles.MeFile
+  alias Qlarius.Wallets.LedgerHeader
+  alias Qlarius.Repo
+  alias Decimal
 
   defstruct user: nil,
-            wallet_balance: Decimal.new("0.0"),
-            ads_count: 0,
+            wallet_balance: nil,
+            ads_count: nil,
             home_zip: nil,
-            true_user: nil,
-            proxy?: false
+            tag_count: nil,
+            trait_count: nil
 
   @doc """
   Creates a scope for the given user.
 
-  Note: this must always take the true user, even if we're proxying.
-
-  'user' will be set to the user who appears logged in, i.e. the 'true user'
-  in normal usage and the proxy user if we're proxying.
-
   Returns nil if no user is given.
   """
-  def for_user(%User{} = true_user) do
-    proxy = Proxying.get_active_proxy_user(true_user)
-
-    {user, proxy?} =
-      if proxy do
-        {proxy.proxy_user, true}
-      else
-        {true_user, false}
-      end
+  def for_user(user) do
+    user = User.active_proxy_user_or_self(user)
+    me_file = Repo.get_by(MeFile, user_id: user.id)
+    ledger_header = Repo.get_by(LedgerHeader, me_file_id: me_file.id)
 
     %__MODULE__{
-      ads_count: Offers.count_user_offers(user.id),
-      home_zip: Traits.get_user_home_zip(user),
-      proxy?: proxy?,
-      true_user: true_user,
-      user: Accounts.preload_me_file(user),
-      wallet_balance: Wallets.get_user_current_balance(user)
+      user: user,
+      home_zip: MeFile.home_zip(me_file),
+      ads_count: MeFile.ad_offer_count(me_file),
+      trait_count: MeFile.trait_tag_count(me_file),
+      tag_count: MeFile.tag_count(me_file),
+      wallet_balance: ledger_header.balance
     }
   end
 
