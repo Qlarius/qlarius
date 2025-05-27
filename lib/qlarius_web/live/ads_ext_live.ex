@@ -25,9 +25,8 @@ defmodule QlariusWeb.AdsExtLive do
   @impl true
   def mount(params, session, socket) do
     # Load initial data during first mount
-    user = Users.get_user(508)
-    current_scope = Scope.for_user(user)
-    me_file = Users.get_user_me_file(current_scope.user.id)
+    user = socket.assigns.current_scope.user
+    current_scope = socket.assigns.current_scope
 
     host_uri =
       case Phoenix.LiveView.get_connect_info(socket, :uri) do
@@ -40,9 +39,6 @@ defmodule QlariusWeb.AdsExtLive do
 
     socket =
       socket
-      |> assign(:user, user)
-      |> assign(:current_scope, current_scope)
-      |> assign(:me_file, me_file)
       |> assign(:active_offers, [])
       |> assign(:loading, true)
       |> assign(:debug, @debug)
@@ -63,7 +59,7 @@ defmodule QlariusWeb.AdsExtLive do
   def handle_info(:load_offers, socket) do
     query =
       from(o in Offer,
-        where: o.me_file_id == ^socket.assigns.me_file.id and o.is_current == true,
+        where: o.me_file_id == ^socket.assigns.current_scope.user.me_file.id and o.is_current == true,
         order_by: [desc: o.offer_amt],
         preload: [media_piece: :ad_category]
       )
@@ -81,7 +77,7 @@ defmodule QlariusWeb.AdsExtLive do
 
   @impl true
   def handle_info({:refresh_wallet_balance, me_file_id}, socket) do
-    new_balance = Wallets.get_me_file_ledger_header_balance(socket.assigns.me_file)
+    new_balance = Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
     current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
     {:noreply, assign(socket, :current_scope, current_scope)}
   end
@@ -89,11 +85,12 @@ defmodule QlariusWeb.AdsExtLive do
   @impl true
   def handle_event("set_split", %{"split" => split}, socket) do
     split_amount = String.to_integer(split)
-    me_file = socket.assigns.me_file
+    me_file = socket.assigns.current_scope.user.me_file
 
     case MeFile.update_me_file_split_amount(me_file, split_amount) do
       {:ok, updated_me_file} ->
-        {:noreply, socket |> assign(me_file: updated_me_file) |> assign(split_amount: split_amount)}
+        current_scope = Map.put(socket.assigns.current_scope, :user, Map.put(socket.assigns.current_scope.user, :me_file, updated_me_file))
+        {:noreply, assign(socket, :current_scope, current_scope)}
       {:error, _changeset} ->
         {:noreply, socket}
     end
@@ -109,7 +106,6 @@ defmodule QlariusWeb.AdsExtLive do
           module={QlariusWeb.ThreeTapStackComponent}
           id="three-tap-stack"
           active_offers={@active_offers}
-          me_file={@me_file}
           user_ip={@user_ip}
           current_scope={@current_scope}
           host_uri={@host_uri}

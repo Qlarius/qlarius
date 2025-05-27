@@ -54,7 +54,7 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
 
   def get_catalog!(id) do
     Repo.get!(Catalog, id)
-    |> Repo.preload([:content_groups, :creator])
+    |> Repo.preload([:content_groups, :creator, :tiqit_classes])
   end
 
   def create_catalog(%Creator{} = creator, attrs \\ %{}) do
@@ -110,8 +110,9 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
   defp maybe_update_image(result, _image), do: result
 
   def get_content_group!(id) do
-    Repo.one!(from ContentGroup, where: [id: ^id])
-    |> Repo.preload([:content_pieces, :tiqit_classes, catalog: :creator])
+    ContentGroup
+    |> Repo.get!(id)
+    |> Repo.preload([:tiqit_classes, content_pieces: [:tiqit_classes], catalog: :creator])
   end
 
   def update_content_group(%ContentGroup{} = group, attrs) do

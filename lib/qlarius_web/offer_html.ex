@@ -3,7 +3,7 @@ defmodule QlariusWeb.OfferHTML do
 
   alias Qlarius.Sponster.{Offer, Recipient}
   alias Qlarius.YouData.MeFiles.MeFile
-  alias QlariusWeb.ThreeTapBanner
+  alias QlariusWeb.Uploaders.ThreeTapBanner
   alias Qlarius.Sponster.Ads.ThreeTap
   import Ecto.Query, except: [update: 2, update: 3]
 
@@ -14,19 +14,18 @@ defmodule QlariusWeb.OfferHTML do
   attr :phase, :integer, default: 0
   attr :offer, Offer, required: true
   attr :recipient, :any, default: nil
-  attr :me_file, MeFile, required: true
   attr :split_amount, :integer, default: 0
+  attr :target, :any, default: nil
+  attr :current_scope, :any, required: true
 
   def clickable_offer(assigns) do
-    # recipient = assigns.r`ecipient
-    split_amount = assigns.me_file.split_amount
+    split_amount = assigns.current_scope.user.me_file.split_amount
     phase_2_amount = Decimal.sub(assigns.offer.offer_amt, @phase_1_amount)
     assigns = assign(assigns, :phase_2_amount, phase_2_amount)
     assigns = assign_new(assigns, :target, fn -> nil end)
 
     ~H"""
     <div class="offer-container">
-
       <div class="absolute inset-0 overflow-hidden">
         <div class={"offer-phase phase-0 #{if @phase > 0, do: "slide-left"}"}>
           <.offer_container offer={@offer} class="p-5 text-neutral-800 bg-white" target={@target} recipient={@recipient}>
@@ -53,7 +52,7 @@ defmodule QlariusWeb.OfferHTML do
               <%= if @offer.media_piece.banner_image do %>
                 <img
                   src={
-                    QlariusWeb.ThreeTapBanner.url(
+                    ThreeTapBanner.url(
                       {@offer.media_piece.banner_image, @offer.media_piece},
                       :original
                     )

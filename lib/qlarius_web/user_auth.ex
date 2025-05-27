@@ -17,7 +17,7 @@ defmodule QlariusWeb.UserAuth do
     user =
       Qlarius.Accounts.User
       |> Repo.get!(@hardcoded_user_id)
-      |> Repo.preload(:me_file)
+      |> Repo.preload(me_file: :ledger_header)
 
     assign(conn, :current_scope, Scope.for_user(user))
   end
@@ -47,7 +47,10 @@ defmodule QlariusWeb.UserAuth do
       #     Accounts.get_user_by_session_token(user_token)
       #   end
 
-      user = Qlarius.Repo.get!(Qlarius.Accounts.User, @hardcoded_user_id)
+      user =
+        Qlarius.Repo.get!(Qlarius.Accounts.User, @hardcoded_user_id)
+        |> Qlarius.Repo.preload(me_file: :ledger_header)
+
       Scope.for_user(user)
     end)
   end

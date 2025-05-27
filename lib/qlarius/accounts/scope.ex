@@ -35,17 +35,18 @@ defmodule Qlarius.Accounts.Scope do
   Returns nil if no user is given.
   """
   def for_user(user) do
-    user = User.active_proxy_user_or_self(user)
-    me_file = Repo.get_by(MeFile, user_id: user.id)
-    ledger_header = Repo.get_by(LedgerHeader, me_file_id: me_file.id)
+    user =
+      user
+      |> User.active_proxy_user_or_self()
+      |> Repo.preload(me_file: :ledger_header)
 
     %__MODULE__{
       user: user,
-      home_zip: MeFile.home_zip(me_file),
-      ads_count: MeFile.ad_offer_count(me_file),
-      trait_count: MeFile.trait_tag_count(me_file),
-      tag_count: MeFile.tag_count(me_file),
-      wallet_balance: ledger_header.balance
+      home_zip: MeFile.home_zip(user.me_file),
+      ads_count: MeFile.ad_offer_count(user.me_file),
+      trait_count: MeFile.trait_tag_count(user.me_file),
+      tag_count: MeFile.tag_count(user.me_file),
+      wallet_balance: user.me_file.ledger_header.balance
     }
   end
 

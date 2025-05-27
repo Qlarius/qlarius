@@ -1,7 +1,7 @@
 defmodule QlariusWeb.Widgets.ArcadeLive do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Tiqit.Arcade
+  alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass

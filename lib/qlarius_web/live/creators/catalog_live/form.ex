@@ -2,14 +2,18 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
   use QlariusWeb, :live_view
 
   alias Qlarius.Tiqit.Arcade.Catalog
-  alias Qlarius.Tiqit.Creators
+  alias Qlarius.Tiqit.Arcade.Creators
+  alias Qlarius.Repo
 
   alias QlariusWeb.TiqitClassHTML
 
   # EDIT
   @impl true
   def handle_params(%{"id" => id}, _uri, socket) do
-    catalog = Creators.get_catalog!(id)
+    catalog =
+      Creators.get_catalog!(id)
+      |> Repo.preload(:tiqit_classes)
+
     creator = catalog.creator
 
     changeset = Creators.change_catalog(catalog)
