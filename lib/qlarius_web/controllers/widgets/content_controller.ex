@@ -1,7 +1,7 @@
 defmodule QlariusWeb.Widgets.ContentController do
   use QlariusWeb, :controller
 
-  alias Qlarius.Arcade
+  alias Qlarius.Tiqit.Arcade.Arcade
 
   def show(conn, %{"id" => id}) do
     piece = Arcade.get_content_piece!(id)

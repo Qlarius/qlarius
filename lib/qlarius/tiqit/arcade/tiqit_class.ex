@@ -1,4 +1,4 @@
-defmodule Qlarius.Arcade.TiqitClass do
+defmodule Qlarius.Tiqit.Arcade.TiqitClass do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -9,9 +9,9 @@ defmodule Qlarius.Arcade.TiqitClass do
     # nil duration = lifetime access
     field :duration_hours, :integer
 
-    belongs_to :catalog, Qlarius.Arcade.Catalog
-    belongs_to :content_group, Qlarius.Arcade.ContentGroup
-    belongs_to :content_piece, Qlarius.Arcade.ContentPiece
+    belongs_to :catalog, Qlarius.Tiqit.Arcade.Catalog
+    belongs_to :content_group, Qlarius.Tiqit.Arcade.ContentGroup
+    belongs_to :content_piece, Qlarius.Tiqit.Arcade.ContentPiece
 
     timestamps()
   end

@@ -3,19 +3,42 @@ defmodule QlariusWeb.WalletLive do
 
   import QlariusWeb.WalletHTML
 
-  alias Qlarius.Wallets
+  alias Qlarius.Accounts.Users
+  alias Qlarius.Accounts.Scope
+  alias Qlarius.Wallets.Wallets
+  alias Qlarius.YouData.MeFiles.MeFile
+  alias Qlarius.Sponster.Offer
+  alias Qlarius.Sponster.AdEvent
+  alias Qlarius.Accounts.User
+  alias Qlarius.Wallets.LedgerHeader
+  alias Qlarius.Wallets.LedgerEntry
+  alias Qlarius.Repo
+
+  @debug false
 
   @impl true
   def mount(_params, _session, socket) do
-    user = socket.assigns.current_scope.user
+    # Load initial data during first mount
+    true_user = Users.get_user(508)
+    user = User.active_proxy_user_or_self(true_user)
+    current_scope = Scope.for_user(user)
+    me_file = Users.get_user_me_file(user.id)
 
-    ledger_header = Wallets.get_user_ledger_header(user.id)
+    # me_file = Repo.get_by(MeFile, user_id: user.id)
+    ledger_header = Repo.get_by(LedgerHeader, me_file_id: me_file.id)
+
+    # ledger_header = Wallets.get_user_ledger_header(user.id)
 
     page = 1
     per_page = 20
     paginated_entries = Wallets.list_ledger_entries(ledger_header.id, page, per_page)
 
     socket
+    |> assign(:true_user, true_user)
+    |> assign(:current_scope, current_scope)
+    |> assign(:me_file, me_file)
+    |> assign(:loading, true)
+    |> assign(:debug, @debug)
     |> assign(:ledger_header, ledger_header)
     |> assign(:sidebar_entry, nil)
     |> assign(:page, page)
@@ -76,90 +99,129 @@ defmodule QlariusWeb.WalletLive do
   end
 
   @impl true
+  def handle_event("toggle_sidebar", %{"state" => state}, socket) do
+    js = if state == "on" do
+      %JS{}
+      |> JS.add_class("translate-x-0", to: "#sponster-sidebar")
+      |> JS.remove_class("-translate-x-full", to: "#sponster-sidebar")
+      |> JS.remove_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
+    else
+      %JS{}
+      |> JS.remove_class("translate-x-0", to: "#sponster-sidebar")
+      |> JS.add_class("-translate-x-full", to: "#sponster-sidebar")
+      |> JS.add_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
+    end
+    {:noreply, push_event(socket, "js", js)}
+  end
+
+  @impl true
+  def handle_event("toggle_sidebar", _params, socket) do
+    # Handle click-away event
+    js = %JS{}
+    |> JS.remove_class("translate-x-0", to: "#sponster-sidebar")
+    |> JS.add_class("-translate-x-full", to: "#sponster-sidebar")
+    |> JS.add_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
+    {:noreply, push_event(socket, "js", js)}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <Layouts.sponster {assigns}>
       <h1 class="text-3xl font-bold mb-4">Wallet</h1>
 
-      <div class="mb-6">
-        <div class="text-lg">Current Balance:</div>
-        <div class="text-2xl text-green-500 font-bold">
-          {format_currency(@ledger_header.balance)}
+      <%= if assigns[:error] do %>
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {@error}
         </div>
-      </div>
-
-      <div class="flex justify-center mb-6 space-x-2">
-        <%= if @page > 1 do %>
-          <button
-            phx-click="paginate"
-            phx-value-page="1"
-            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-          >
-            Newest
-          </button>
-
-          <button
-            phx-click="paginate"
-            phx-value-page={@page - 1}
-            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-          >
-            <.icon name="hero-chevron-left" class="h-4 w-4" />
-          </button>
-        <% end %>
-
-        <div class="flex items-center px-4 py-2 bg-green-500 text-white rounded-md">
-          {@page}
+      <% else %>
+        <div class="mb-6">
+          <div class="text-lg">Current Balance:</div>
+          <div class="text-2xl text-green-500 font-bold">
+            {format_currency(@ledger_header.balance)}
+          </div>
         </div>
 
-        <%= if @page < @paginated_entries.total_pages do %>
-          <button
-            phx-click="paginate"
-            phx-value-page={@page + 1}
-            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-          >
-            <.icon name="hero-chevron-right" class="h-4 w-4" />
-          </button>
-        <% else %>
-          <div class="px-2 py-2 flex items-center text-gray-400">
-            <.icon name="hero-chevron-right" class="h-4 w-4" />
+        <div class="flex justify-center mb-6 space-x-2">
+          <%= if @page > 1 do %>
+            <button
+              phx-click="paginate"
+              phx-value-page="1"
+              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+            >
+              Newest
+            </button>
+
+            <button
+              phx-click="paginate"
+              phx-value-page={@page - 1}
+              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+            >
+              &lt;
+            </button>
+          <% end %>
+
+          <div class="flex items-center px-4 py-2 bg-green-500 text-white rounded-md">
+            {@page}
           </div>
-        <% end %>
 
-        <button
-          phx-click="paginate"
-          phx-value-page="oldest"
-          class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-        >
-          Oldest
-        </button>
-      </div>
-
-      <h2 class="text-xl font-semibold mb-4">Ledger History</h2>
-
-      <div class="divide-y divide-gray-200">
-        <div
-          :for={entry <- @paginated_entries.entries}
-          class="py-4 flex justify-between items-center cursor-pointer"
-          phx-click="open-ledger-entry-sidebar"
-          phx-value-entry_id={entry.id}
-        >
-          <div>
-            <div class="font-medium">{entry.description}</div>
-            <div class="text-gray-500">{format_date(entry.inserted_at)}</div>
-          </div>
-          <div class="flex items-center">
-            <div class="text-right mr-4">
-              <div>{format_currency(entry.amount)}</div>
-              <div class="text-gray-500">
-                {format_currency(entry.running_balance)}
-              </div>
-            </div>
-            <div class="text-gray-400">
+          <%= if @page < @paginated_entries.total_pages do %>
+            <button
+              phx-click="paginate"
+              phx-value-page={@page + 1}
+              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+            >
+              &gt;
+            </button>
+          <% else %>
+            <div class="px-2 py-2 flex items-center text-gray-400">
               <.icon name="hero-chevron-right" class="h-6 w-6" />
             </div>
+          <% end %>
+
+          <button
+            phx-click="paginate"
+            phx-value-page="oldest"
+            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+          >
+            Oldest
+          </button>
+        </div>
+
+        <h2 class="text-xl font-semibold mb-4">Transactions</h2>
+
+        <div class="divide-y divide-gray-200">
+          <div
+            :for={entry <- @paginated_entries.entries}
+            class="py-4 flex justify-between items-center cursor-pointer"
+            phx-click="open-ledger-entry-sidebar"
+            phx-value-entry_id={entry.id}
+          >
+            <div>
+              <div class="font-medium">{entry.description}</div>
+              <div class="text-gray-500">{format_date(entry.created_at)}</div>
+            </div>
+            <div class="flex items-center">
+              <div class="text-right mr-4">
+                <div>{format_currency(entry.amt)}</div>
+                <div class="text-gray-500">
+                  {format_currency(
+                    calculate_balance_at_entry(@ledger_header, entry, @paginated_entries.entries)
+                  )}
+                </div>
+              </div>
+              <div class="text-gray-400">
+                <.icon name="hero-chevron-right" class="h-6 w-6" />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      <% end %>
+
+    <!-- Debug section -->
+      <pre :if={@debug} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
+        <%= inspect(assigns, pretty: true) %>
+      </pre>
 
       <.ledger_entry_detail_sidebar :if={@sidebar_entry} entry={@sidebar_entry} />
     </Layouts.sponster>
@@ -177,4 +239,24 @@ defmodule QlariusWeb.WalletLive do
 
   defp pad_zero(number) when number < 10, do: "0#{number}"
   defp pad_zero(number), do: "#{number}"
+
+  # Calculate the balance at a specific entry point
+  # This is a simplified approach - in a real app, you might want to store running balances
+  defp calculate_balance_at_entry(ledger_header, current_entry, entries) do
+    # Find entries that came after the current entry (newer entries)
+    newer_entries =
+      entries
+      |> Enum.filter(fn entry ->
+        NaiveDateTime.compare(entry.created_at, current_entry.created_at) == :gt
+      end)
+
+    # Subtract the sum of newer entries from the current balance
+    newer_entries_sum =
+      newer_entries
+      |> Enum.reduce(Decimal.new(0), fn entry, acc ->
+        Decimal.add(acc, entry.amt)
+      end)
+
+    Decimal.sub(ledger_header.balance, newer_entries_sum)
+  end
 end

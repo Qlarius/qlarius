@@ -83,7 +83,7 @@
             class="bg-green-600 text-white text-xs font-medium px-2.5 py-0.5 rounded"
             data-app-target="offerCount"
           >
-            ...
+            {@current_scope.ads_count}
           </span>
         </.link>
       </li>
@@ -102,7 +102,7 @@
             class="bg-green-600 text-white text-xs font-medium px-2.5 py-0.5 rounded"
             data-app-target="balance"
           >
-            ...
+            ${@current_scope.user.me_file.ledger_header.balance}
           </span>
         </.link>
       </li>
@@ -127,7 +127,7 @@
             class="bg-purple-600 text-white text-xs font-medium px-2.5 py-0.5 rounded"
             data-app-target="tagCount"
           >
-            ...
+            {@current_scope.tag_count}
           </span>
         </.link>
       </li>

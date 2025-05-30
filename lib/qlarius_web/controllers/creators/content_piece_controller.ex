@@ -1,7 +1,7 @@
 defmodule QlariusWeb.Creators.ContentPieceController do
   use QlariusWeb, :controller
 
-  alias Qlarius.Creators
+  alias Qlarius.Tiqit.Arcade.Creators
 
   plug :put_new_layout, {QlariusWeb.Layouts, :arcade}
 

@@ -1,9 +1,21 @@
-<Layouts.marketers {assigns}>
+<div class="container mx-auto px-4 py-8">
   <div class="flex justify-between items-center mb-8">
     <h1 class="text-3xl font-bold">Media Pieces</h1>
     <.link href={~p"/media_pieces/new"}>
       <button class="btn btn-primary gap-2">
-        <.icon name="hero-plus" class="h-5 w-5" /> New Media Piece
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        New Media Piece
       </button>
     </.link>
   </div>
@@ -30,7 +42,7 @@
                   <%= if media_piece.banner_image do %>
                     <img
                       src={
-                        QlariusWeb.Uploaders.ThreeTapBanner.url(
+                        QlariusWeb.ThreeTapBanner.url(
                           {media_piece.banner_image, media_piece},
                           :original
                         )
@@ -52,20 +64,35 @@
                 </td>
                 <td class="align-top">
                   <span class="badge bg-gray-200 whitespace-nowrap inline-flex items-center">
-                    {media_piece.ad_category.name}
+                    {media_piece.ad_category.ad_category_name}
                   </span>
                 </td>
                 <td class="align-top">
                   <div class="flex gap-2">
                     <.link href={~p"/media_pieces/#{media_piece}/edit"}>
                       <button class="btn btn-sm btn-ghost btn-square">
-                        <.icon name="hero-pencil-square" class="h-5 w-5" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
                       </button>
                     </.link>
                     <%!-- no delete for now until we figure cascading --%>
                     <%!-- <.link href={~p"/media_pieces/#{media_piece}"} method="delete" data-confirm="Are you sure?">
                       <button class="btn btn-sm btn-ghost btn-square text-error">
-                        <.icon name="hero-trash" class="h-5 w-5" />
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                       </button>
                     </.link> --%>
                   </div>
@@ -77,4 +104,9 @@
       </div>
     </div>
   </div>
-</Layouts.marketers>
+</div>
+
+<!-- Debug section -->
+<pre :if={@debug} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
+  <%= inspect(assigns, pretty: true) %>
+</pre>

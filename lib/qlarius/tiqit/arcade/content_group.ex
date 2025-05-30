@@ -1,12 +1,12 @@
-defmodule Qlarius.Arcade.ContentGroup do
+defmodule Qlarius.Tiqit.Arcade.ContentGroup do
   use Ecto.Schema
   use Waffle.Ecto.Schema
 
   import Ecto.Changeset
 
-  alias Qlarius.Arcade.Catalog
-  alias Qlarius.Arcade.ContentPiece
-  alias Qlarius.Arcade.TiqitClass
+  alias Qlarius.Tiqit.Arcade.Catalog
+  alias Qlarius.Tiqit.Arcade.ContentPiece
+  alias Qlarius.Tiqit.Arcade.TiqitClass
 
   schema "content_groups" do
     belongs_to :catalog, Catalog

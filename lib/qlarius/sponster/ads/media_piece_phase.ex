@@ -2,6 +2,9 @@ defmodule Qlarius.Sponster.Ads.MediaPiecePhase do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @primary_key {:id, :id, autogenerate: true}
+  @timestamps_opts [type: :naive_datetime, inserted_at: :created_at]
+
   schema "media_piece_phases" do
     field :phase, :integer
     field :name, :string
@@ -16,9 +19,9 @@ defmodule Qlarius.Sponster.Ads.MediaPiecePhase do
     field :pay_to_recipient_from_me_file_fixed, :decimal
     field :pay_to_recipient_from_me_file_percent, :decimal
 
-    belongs_to :media_piece_type, Qlarius.Sponster.Ads.MediaPieceType
+    belongs_to :media_piece_type, Qlarius.Ads.MediaPieceType
 
-    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
+    timestamps()
   end
 
   def changeset(media_piece_phase, attrs) do

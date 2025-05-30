@@ -1,11 +1,11 @@
 defmodule QlariusWeb.Widgets.ArcadeLive do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Arcade
-  alias Qlarius.Arcade.ContentGroup
-  alias Qlarius.Arcade.ContentPiece
-  alias Qlarius.Arcade.TiqitClass
-  alias Qlarius.Wallets
+  alias Qlarius.Tiqit.Arcade.Arcade
+  alias Qlarius.Tiqit.Arcade.ContentGroup
+  alias Qlarius.Tiqit.Arcade.ContentPiece
+  alias Qlarius.Tiqit.Arcade.TiqitClass
+  alias Qlarius.Wallets.Wallets
 
   import QlariusWeb.Money
   import QlariusWeb.TiqitClassHTML

@@ -2,6 +2,9 @@ defmodule Qlarius.Accounts.Marketer do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @primary_key {:id, :id, autogenerate: true}
+  @timestamps_opts [type: :naive_datetime, inserted_at: :created_at]
+
   schema "marketers" do
     field :business_name, :string
     field :business_url, :string
@@ -12,9 +15,10 @@ defmodule Qlarius.Accounts.Marketer do
     field :sic_code, :string
 
     has_many :campaigns, Qlarius.Sponster.Campaigns.Campaign
-    many_to_many :users, Qlarius.Accounts.User, join_through: Qlarius.Accounts.MarketerUser
+    has_many :marketer_users, Qlarius.Accounts.MarketerUser
+    has_many :users, through: [:marketer_users, :user]
 
-    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
+    timestamps()
   end
 
   def changeset(marketer, attrs) do

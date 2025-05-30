@@ -1,8 +1,8 @@
 defmodule QlariusWeb.Creators.CreatorController do
   use QlariusWeb, :controller
 
-  alias Qlarius.Creators
-  alias Qlarius.Arcade.Creator
+  alias Qlarius.Tiqit.Arcade.Creators
+  alias Qlarius.Tiqit.Arcade.Creator
 
   def index(conn, _params) do
     creators = Creators.list_creators()

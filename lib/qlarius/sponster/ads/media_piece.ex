@@ -1,47 +1,58 @@
 defmodule Qlarius.Sponster.Ads.MediaPiece do
   use Ecto.Schema
+  import Ecto.Changeset
   use Waffle.Ecto.Schema
 
-  import Ecto.Changeset
+  alias Qlarius.Sponster.Ads.{MediaPieceType, AdCategory}
+
+  @primary_key {:id, :id, autogenerate: true}
+  @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
 
   schema "media_pieces" do
-    belongs_to :marketer, Qlarius.Accounts.Marketer
-    belongs_to :media_piece_type, Qlarius.Sponster.Ads.MediaPieceType
-
     field :title, :string
-    field :display_url, :string
     field :body_copy, :string
-    field :resource_url_old, :string
-    field :resource_url, :string
-    field :resource_file_name, :string
-    field :resource_content_type, :string
-    field :resource_file_size, :integer
-    field :resource_updated_at, :utc_datetime
-    field :duration, :integer
+    field :display_url, :string
     field :jump_url, :string
-    field :active, :boolean, default: true
-    field :banner_image, QlariusWeb.Uploaders.ThreeTapBanner.Type
+    field :active, :boolean
+    field :marketer_id, :integer
+    field :duration, :integer
+    field :banner_image, :string
 
-    belongs_to :ad_category, Qlarius.Sponster.Ads.AdCategory
+    belongs_to :media_piece_type, MediaPieceType
+    belongs_to :ad_category, AdCategory
 
-    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
+    has_many :media_runs, Qlarius.Campaigns.MediaRun
+    has_many :offers, through: [:media_runs, :offers]
+
+    timestamps()
   end
 
-  # When we create a new media piece, we don't know the ID yet, so we save it
-  # first then cast the banner_image in a separate update (using update_changeset)
-  def create_changeset(media_piece, attrs) do
-    whitelist = ~w[title body_copy display_url jump_url ad_category_id marketer_id]a
-
+  def changeset(media_piece, attrs) do
     media_piece
-    |> cast(attrs, whitelist)
-    |> validate_required(whitelist)
-    |> validate_format(:display_url, ~r/^http(s)?:\/\/[\w.-]+(?:\/[\w.-]*)*$/)
-    |> validate_format(:jump_url, ~r/^http(s)?:\/\/[\w.-]+(?:\/[\w.-]*)*$/)
-  end
-
-  def update_changeset(media_piece, attrs) do
-    media_piece
-    |> create_changeset(attrs)
+    |> cast(attrs, [
+      :title,
+      :body_copy,
+      :display_url,
+      :jump_url,
+      :active,
+      :marketer_id,
+      :media_piece_type_id,
+      :ad_category_id,
+      :duration,
+      :banner_image
+    ])
+    |> validate_required([
+      :title,
+      :display_url,
+      :jump_url,
+      :media_piece_type_id,
+      :ad_category_id,
+      :marketer_id,
+      :active
+    ])
+    |> foreign_key_constraint(:media_piece_type_id)
+    |> foreign_key_constraint(:ad_category_id)
+    |> foreign_key_constraint(:marketer_id)
     |> cast_attachments(attrs, [:banner_image])
   end
 end

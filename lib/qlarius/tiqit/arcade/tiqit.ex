@@ -1,4 +1,4 @@
-defmodule Qlarius.Arcade.Tiqit do
+defmodule Qlarius.Tiqit.Arcade.Tiqit do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -6,8 +6,8 @@ defmodule Qlarius.Arcade.Tiqit do
     field :purchased_at, :utc_datetime
     field :expires_at, :utc_datetime
 
-    belongs_to :me_file, Qlarius.YouData.MeFile
-    belongs_to :tiqit_class, Qlarius.Arcade.TiqitClass
+    belongs_to :me_file, Qlarius.YouData.MeFiles.MeFile
+    belongs_to :tiqit_class, Qlarius.Tiqit.Arcade.TiqitClass
 
     has_one :user, through: [:me_file, :user]
     has_one :content_piece, through: [:tiqit_class, :content_piece]

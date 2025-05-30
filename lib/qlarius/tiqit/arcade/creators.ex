@@ -1,10 +1,10 @@
-defmodule Qlarius.Creators do
+defmodule Qlarius.Tiqit.Arcade.Creators do
   import Ecto.Query
 
-  alias Qlarius.Arcade.Catalog
-  alias Qlarius.Arcade.ContentGroup
-  alias Qlarius.Arcade.ContentPiece
-  alias Qlarius.Arcade.Creator
+  alias Qlarius.Tiqit.Arcade.Catalog
+  alias Qlarius.Tiqit.Arcade.ContentGroup
+  alias Qlarius.Tiqit.Arcade.ContentPiece
+  alias Qlarius.Tiqit.Arcade.Creator
   alias Qlarius.Repo
 
   # ---------------------------------------
@@ -110,8 +110,9 @@ defmodule Qlarius.Creators do
   defp maybe_update_image(result, _image), do: result
 
   def get_content_group!(id) do
-    Repo.one!(from ContentGroup, where: [id: ^id])
-    |> Repo.preload([:tiqit_classes, catalog: :creator, content_pieces: :tiqit_classes])
+    ContentGroup
+    |> Repo.get!(id)
+    |> Repo.preload([:tiqit_classes, content_pieces: [:tiqit_classes], catalog: :creator])
   end
 
   def update_content_group(%ContentGroup{} = group, attrs) do
@@ -132,10 +133,7 @@ defmodule Qlarius.Creators do
   def get_content_piece!(id) do
     ContentPiece
     |> Repo.get!(id)
-    |> Repo.preload([
-      :tiqit_classes,
-      content_group: [:tiqit_classes, catalog: [:creator, :tiqit_classes]]
-    ])
+    |> Repo.preload([:tiqit_classes, content_group: [catalog: :creator]])
   end
 
   def change_content_piece(%ContentPiece{} = piece, attrs \\ %{}) do

@@ -1,10 +1,10 @@
-defmodule Qlarius.Arcade.Catalog do
+defmodule Qlarius.Tiqit.Arcade.Catalog do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Arcade.Creator
-  alias Qlarius.Arcade.ContentGroup
-  alias Qlarius.Arcade.TiqitClass
+  alias Qlarius.Tiqit.Arcade.Creator
+  alias Qlarius.Tiqit.Arcade.ContentGroup
+  alias Qlarius.Tiqit.Arcade.TiqitClass
 
   @types ~w[site catalog collection show curriculum semester]a
   @group_types ~w[show season album book class]a

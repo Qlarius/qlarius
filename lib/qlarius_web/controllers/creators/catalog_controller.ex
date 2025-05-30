@@ -1,8 +1,8 @@
 defmodule QlariusWeb.Creators.CatalogController do
   use QlariusWeb, :controller
 
-  alias Qlarius.Creators
-  alias Qlarius.Arcade.Catalog
+  alias Qlarius.Tiqit.Arcade.Creators
+  alias Qlarius.Tiqit.Arcade.Catalog
 
   def show(conn, %{"id" => id}) do
     catalog = Creators.get_catalog!(id)

@@ -1,5 +1,22 @@
 {
+  "name": "assets",
+  "version": "1.0.0",
+  "description": "",
+  "main": "tailwind.config.js",
   "dependencies": {
-    "alpinejs": "^3.14.9"
+    "alpinejs": "^3.14.9",
+    "phoenix": "^1.7.0",
+    "phoenix_html": "^3.3.0",
+    "phoenix_live_view": "^0.20.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.2",
+    "tailwindcss": "^4.1.4",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0"
+  },
+  "scripts": {
+    "deploy": "esbuild js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js",
+    "watch": "esbuild js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --watch"
   }
 }

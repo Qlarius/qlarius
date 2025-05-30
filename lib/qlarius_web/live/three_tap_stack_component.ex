@@ -6,10 +6,10 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   alias Qlarius.Sponster.Ads.ThreeTap
   alias Qlarius.Sponster.Offer
   alias Qlarius.Repo
-  alias Qlarius.Wallets
+  alias Qlarius.Wallets.Wallets
   alias Phoenix.Component
-
   import Ecto.Query, except: [update: 2, update: 3]
+
 
   @impl true
   def render(assigns) do
@@ -22,6 +22,8 @@ defmodule QlariusWeb.ThreeTapStackComponent do
             offer={offer}
             phase={phase}
             target={@myself}
+            current_scope={@current_scope}
+            recipient={Map.get(assigns, :recipient)}
           />
         </div>
       <% else %>
@@ -55,13 +57,13 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   def handle_event("click-offer", %{"offer-id" => offer_id} = params, socket) do
     offer_id = String.to_integer(offer_id)
 
-    # Get recipient from socket.assigns if it exists
+    # Get recipient from socket.assigns if it exists, default to nil
     recipient = Map.get(socket.assigns, :recipient)
 
     {offer, phase} = Enum.find(socket.assigns.active_offers, fn {o, _p} -> o.id == offer_id end)
 
-    # Get split_amount from socket if available, or default to 0
-    split_amount = (socket.assigns.me_file && socket.assigns.me_file.split_amount) || 0
+    # Get split_amount from current_scope if available, or default to 0
+    split_amount = (socket.assigns.current_scope.user.me_file && socket.assigns.current_scope.user.me_file.split_amount) || 0
 
     handle_phase(socket, offer, phase, recipient, split_amount)
   end
@@ -78,8 +80,7 @@ defmodule QlariusWeb.ThreeTapStackComponent do
       socket.assigns.user_ip,
       socket.assigns.host_uri.host
     )
-
-    send(self(), {:refresh_wallet_balance, socket.assigns.me_file.id})
+    send(self(), {:refresh_wallet_balance, socket.assigns.current_scope.user.me_file.id})
     increment_phase(socket, offer.id)
   end
 
@@ -91,8 +92,7 @@ defmodule QlariusWeb.ThreeTapStackComponent do
       socket.assigns.user_ip,
       socket.assigns.host_uri.host
     )
-
-    send(self(), {:refresh_wallet_balance, socket.assigns.me_file.id})
+    send(self(), {:refresh_wallet_balance, socket.assigns.current_scope.user.me_file.id})
     increment_phase(socket, offer.id)
   end
 
@@ -110,7 +110,7 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   defp update_ads_count(socket) do
     ads_count =
       from(o in Offer,
-        where: o.me_file_id == ^socket.assigns.me_file.id and o.is_current == true
+        where: o.me_file_id == ^socket.assigns.current_scope.user.me_file.id and o.is_current == true
       )
       |> Repo.aggregate(:count)
 

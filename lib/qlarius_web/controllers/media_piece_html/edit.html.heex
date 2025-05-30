@@ -1,14 +1,22 @@
-<Layouts.marketers {assigns}>
-  <.header>
-    Edit Media Piece “{@media_piece.title}”
-  </.header>
+<div class="container mx-auto px-4 py-8">
+  <div class="mb-8">
+    <.header>
+      <div class="flex items-center">
+        <h1 class="text-2xl font-bold">
+          Edit Media Piece "<span class="text-primary"><%= @media_piece.title %></span>"
+        </h1>
+      </div>
+      <:subtitle class="mt-2 text-base-content/70">Edit media piece information.</:subtitle>
+    </.header>
+  </div>
 
   <.media_piece_form
+    changeset={@changeset}
     action={~p"/media_pieces/#{@media_piece}"}
     ad_categories={@ad_categories}
-    changeset={@changeset}
-    marketers={@marketers}
   />
 
-  <.back navigate={~p"/media_pieces"}>Back to media pieces</.back>
-</Layouts.marketers>
+  <div class="mt-8">
+    <.back navigate={~p"/media_pieces"} class="btn btn-outline">Back to media pieces</.back>
+  </div>
+</div>

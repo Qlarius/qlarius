@@ -1,13 +1,13 @@
-defmodule Qlarius.Arcade do
+defmodule Qlarius.Tiqit.Arcade.Arcade do
   import Ecto.Query
 
-  alias Qlarius.YouData.MeFile
+  alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Accounts.Scope
-  alias Qlarius.Arcade.ContentGroup
-  alias Qlarius.Arcade.ContentPiece
-  alias Qlarius.Arcade.Tiqit
-  alias Qlarius.Arcade.TiqitClass
-  alias Qlarius.Wallets
+  alias Qlarius.Tiqit.Arcade.ContentGroup
+  alias Qlarius.Tiqit.Arcade.ContentPiece
+  alias Qlarius.Tiqit.Arcade.Tiqit
+  alias Qlarius.Tiqit.Arcade.TiqitClass
+  alias Qlarius.Wallets.Wallets
   alias Qlarius.Wallets.LedgerEntry
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
@@ -106,7 +106,7 @@ defmodule Qlarius.Arcade do
       end
 
     Repo.transaction(fn ->
-      ledger_header = %LedgerHeader{} = Wallets.get_user_ledger_header(user)
+      ledger_header = %LedgerHeader{} = Wallets.get_me_file_ledger_header(user.me_file)
       me_file = %MeFile{} = user.me_file
 
       amount = tiqit_class.price
@@ -114,7 +114,7 @@ defmodule Qlarius.Arcade do
 
       %LedgerEntry{
         ledger_header_id: ledger_header.id,
-        amount: amount,
+        amt: amount,
         running_balance: new_balance,
         description: "Purchased Tiqit"
       }

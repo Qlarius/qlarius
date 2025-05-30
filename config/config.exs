@@ -46,7 +46,9 @@ config :qlarius, Qlarius.Mailer, adapter: Swoosh.Adapters.Local
 
 # Configure esbuild (the version is required)
 config :esbuild,
-  version: "0.17.11",
+  version: "0.20.2",
+  path: "/opt/homebrew/bin/esbuild",
+  version_check: false,
   qlarius: [
     args:
       ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/*),

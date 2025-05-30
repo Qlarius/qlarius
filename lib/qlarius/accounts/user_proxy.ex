@@ -4,12 +4,15 @@ defmodule Qlarius.Accounts.UserProxy do
 
   alias Qlarius.Accounts.User
 
+  @primary_key {:id, :id, autogenerate: true}
+  @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
+
   schema "user_proxies" do
     field :active, :boolean, default: false
     belongs_to :true_user, User
     belongs_to :proxy_user, User
 
-    timestamps(type: :utc_datetime_usec, inserted_at_source: :created_at)
+    timestamps()
   end
 
   def changeset(user_proxy, attrs) do

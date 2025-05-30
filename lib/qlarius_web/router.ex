@@ -55,19 +55,19 @@ defmodule QlariusWeb.Router do
     resources "/media_pieces", MediaPieceController
     resources "/media_sequences", MediaSequenceController, only: [:index, :new, :create]
 
-    live_session :marketer, on_mount: [{QlariusWeb.Layouts, :set_current_path}] do
-      live "/trait_groups", TraitGroupLive.Index, :index
-      live "/trait_manager", TraitManagerLive.Index, :index
+    # live_session :marketer, on_mount: [{QlariusWeb.Layouts, :set_current_path}] do
+    #   live "/trait_groups", TraitGroupLive.Index, :index
+    #   live "/trait_manager", TraitManagerLive.Index, :index
 
-      live "/trait_categories", TraitCategoryLive.Index, :index
-      live "/trait_categories/new", TraitCategoryLive.Index, :new
-      live "/trait_categories/:id/edit", TraitCategoryLive.Index, :edit
+    #   live "/trait_categories", TraitCategoryLive.Index, :index
+    #   live "/trait_categories/new", TraitCategoryLive.Index, :new
+    #   live "/trait_categories/:id/edit", TraitCategoryLive.Index, :edit
 
-      live "/survey_manager/new/:category_id", SurveyManagerLive, :new
-      live "/survey_manager/edit/:id", SurveyManagerLive, :edit
-      live "/survey_manager/:id", SurveyManagerLive, :show
-      live "/survey_manager", SurveyManagerLive, :index
-    end
+    #   live "/survey_manager/new/:category_id", SurveyManagerLive, :new
+    #   live "/survey_manager/edit/:id", SurveyManagerLive, :edit
+    #   live "/survey_manager/:id", SurveyManagerLive, :show
+    #   live "/survey_manager", SurveyManagerLive, :index
+    # end
   end
 
   # ------ /MARKETER ROUTES ------
@@ -110,11 +110,11 @@ defmodule QlariusWeb.Router do
       live "/users/settings", UserSettingsLive, :edit
       live "/wallet", WalletLive, :index
       live "/ads", AdsLive, :index
-      live "/me_file", MeFileLive, :index
+      # live "/me_file", MeFileLive, :index
       live "/proxy_users", ProxyUsersLive, :index
-      get "/me_file/surveys", MeFileController, :surveys
-      live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
-      live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show
+      # get "/me_file/surveys", MeFileController, :surveys
+      # live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
+      # live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show
       live "/ads_ext/", AdsExtLive
       live "/ads_ext/:split_code", AdsExtLive
     end

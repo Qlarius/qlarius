@@ -1,8 +1,8 @@
-defmodule Qlarius.Arcade.Creator do
+defmodule Qlarius.Tiqit.Arcade.Creator do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Arcade.Catalog
+  alias Qlarius.Tiqit.Arcade.Catalog
 
   schema "creators" do
     field :name, :string

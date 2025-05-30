@@ -1,8 +1,8 @@
 defmodule QlariusWeb.Creators.ContentPieceLive.Form do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Arcade.ContentPiece
-  alias Qlarius.Creators
+  alias Qlarius.Tiqit.Arcade.ContentPiece
+  alias Qlarius.Tiqit.Arcade.Creators
 
   alias QlariusWeb.TiqitClassHTML
 

@@ -2,6 +2,9 @@ defmodule Qlarius.Sponster.Recipient do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @primary_key {:id, :id, autogenerate: true}
+  @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
+
   schema "recipients" do
     field :split_code, :string, autogenerate: {Ecto.UUID, :generate, []}
     field :name, :string
@@ -18,7 +21,7 @@ defmodule Qlarius.Sponster.Recipient do
     belongs_to :recipient_type, Qlarius.Sponster.RecipientType
     belongs_to :approved_by_user, Qlarius.Accounts.User, foreign_key: :approved_by_user_id
 
-    timestamps(type: :utc_datetime, inserted_at_source: :created_at)
+    timestamps()
   end
 
   def changeset(recipient, attrs) do
