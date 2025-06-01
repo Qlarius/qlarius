@@ -8,7 +8,7 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
 
   @types ~w[site catalog collection show curriculum semester]a
   @group_types ~w[show season album book class]a
-  @piece_types ~w[episode chapter song piece lesson]a
+  @piece_types ~w[episode chapter song piece lesson segment]a
 
   schema "catalogs" do
     belongs_to :creator, Creator

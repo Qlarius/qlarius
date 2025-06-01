@@ -43,3 +43,9 @@ config/dev.secret.exs
 priv/static/uploads
 
 priv/repo/structure.sql
+
+# Environment files (contain sensitive data)
+.env
+.env.backup
+.env.local
+.env.remote
