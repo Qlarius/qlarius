@@ -22,7 +22,8 @@ defmodule Qlarius.Accounts.Scope do
   alias Qlarius.Repo
   alias Decimal
 
-  defstruct user: nil,
+  defstruct true_user: nil,
+            user: nil,
             wallet_balance: nil,
             ads_count: nil,
             home_zip: nil,
@@ -35,20 +36,20 @@ defmodule Qlarius.Accounts.Scope do
   Returns nil if no user is given.
   """
   def for_user(user) do
-    user =
+    proxy_user =
       user
       |> User.active_proxy_user_or_self()
       |> Repo.preload(me_file: :ledger_header)
 
     %__MODULE__{
-      user: user,
-      home_zip: MeFile.home_zip(user.me_file),
-      ads_count: MeFile.ad_offer_count(user.me_file),
-      trait_count: MeFile.trait_tag_count(user.me_file),
-      tag_count: MeFile.tag_count(user.me_file),
-      wallet_balance: user.me_file.ledger_header.balance
+      true_user: user,
+      user: proxy_user,
+      home_zip: MeFile.home_zip(proxy_user.me_file),
+      ads_count: MeFile.ad_offer_count(proxy_user.me_file),
+      trait_count: MeFile.trait_tag_count(proxy_user.me_file),
+      tag_count: MeFile.tag_count(proxy_user.me_file),
+      wallet_balance: proxy_user.me_file.ledger_header.balance
     }
   end
 
-  def for_user(nil), do: nil
 end

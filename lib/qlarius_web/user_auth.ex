@@ -30,7 +30,7 @@ defmodule QlariusWeb.UserAuth do
   def on_mount(:require_admin_or_proxy, _params, _session, socket) do
     scope = socket.assigns.current_scope
 
-    if scope.user.role == "admin" || scope.proxy? do
+    if scope.true_user.role == "admin" || scope.proxy? do
       {:cont, socket}
     else
       {:halt,
