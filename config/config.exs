@@ -63,6 +63,7 @@ config :tailwind,
     args: ~w(
       --input=assets/css/app.css
       --output=priv/static/assets/css/app.css
+      --minify
     ),
     cd: Path.expand("..", __DIR__)
   ]
