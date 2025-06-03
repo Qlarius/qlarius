@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "tidewave": {
+      "command": "/path/to/mcp-proxy",
+      "args": [
+        "http://localhost:$PORT/tidewave/mcp"
+      ]
+    }
+  }
+}
