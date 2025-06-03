@@ -12,11 +12,18 @@
   "devDependencies": {
     "esbuild": "^0.20.2",
     "tailwindcss": "^4.1.4",
+    "@tailwindcss/cli": "^4.1.4",
     "autoprefixer": "^10.4.0",
-    "postcss": "^8.4.0"
+    "postcss": "^8.4.0",
+    "concurrently": "^9.0.1"
   },
   "scripts": {
-    "deploy": "esbuild js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js",
-    "watch": "esbuild js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --watch"
+    "build.js": "npx esbuild js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js",
+    "build.css": "npx @tailwindcss/cli -i css/app.css -o ../priv/static/assets/css/app.css",
+    "build": "npm run build.css && npm run build.js",
+    "deploy": "npm run build.css -- --minify && npm run build.js -- --minify",
+    "watch.js": "npx esbuild js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --watch",
+    "watch.css": "npx @tailwindcss/cli -i css/app.css -o ../priv/static/assets/css/app.css --watch",
+    "watch": "npx concurrently \"npm run watch.css\" \"npm run watch.js\""
   }
 }
