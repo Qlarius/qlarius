@@ -16,7 +16,7 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
     field :active, :boolean
     field :marketer_id, :integer
     field :duration, :integer
-    field :banner_image, :string
+    field :banner_image, QlariusWeb.Uploaders.ThreeTapBanner.Type
 
     belongs_to :media_piece_type, MediaPieceType
     belongs_to :ad_category, AdCategory
