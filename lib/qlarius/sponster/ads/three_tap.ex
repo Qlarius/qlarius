@@ -2,10 +2,8 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
   alias Qlarius.Repo
   import Ecto.Query, except: [update: 2, update: 3]
 
-  alias Qlarius.Sponster.{AdEvent, Offer, Recipient}
+  alias Qlarius.Sponster.AdEvent
   alias Qlarius.Sponster.Ads.{MediaPiecePhase, MediaPieceType}
-  alias Qlarius.YouData.MeFiles.MeFile
-  alias Qlarius.Sponster.Campaigns.{Campaign, MediaRun, TargetBand}
   alias Qlarius.Wallets.Wallets
 
   def create_banner_ad_event(offer, recipient \\ nil, split_amount \\ 0, ip \\ "0.0.0.0", url \\ "https://here.com") do

@@ -59,7 +59,7 @@ defmodule Qlarius.Sponster.Marketing do
     Logger.info("Updating media piece #{media_piece.id} with attrs: #{inspect(attrs)}")
 
     media_piece
-    |> MediaPiece.changeset(attrs)
+    |> MediaPiece.update_changeset(attrs)
     |> Repo.update()
     |> case do
       {:ok, media_piece} = result ->

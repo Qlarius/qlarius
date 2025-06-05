@@ -38,8 +38,7 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
       :marketer_id,
       :media_piece_type_id,
       :ad_category_id,
-      :duration,
-      :banner_image
+      :duration
     ])
     |> validate_required([
       :title,
@@ -53,6 +52,11 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
     |> foreign_key_constraint(:media_piece_type_id)
     |> foreign_key_constraint(:ad_category_id)
     |> foreign_key_constraint(:marketer_id)
+  end
+
+  def update_changeset(media_piece, attrs) do
+    media_piece
+    |> changeset(attrs)
     |> cast_attachments(attrs, [:banner_image])
   end
 end

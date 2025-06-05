@@ -2,7 +2,7 @@ defmodule QlariusWeb.AdsExtLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Accounts.Users
-  alias Qlarius.Offers
+  alias Qlarius.Sponster.Offers
   alias Qlarius.Repo
   alias Qlarius.Sponster.Offer
   alias Qlarius.YouData
