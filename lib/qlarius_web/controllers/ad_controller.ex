@@ -1,7 +1,7 @@
 defmodule QlariusWeb.AdController do
   use QlariusWeb, :controller
 
-  alias Qlarius.Offers
+  alias Qlarius.Sponster.Offers
 
   def jump(conn, %{"id" => offer_id}) do
     offer = Offers.get_offer_with_media_piece!(offer_id)

@@ -42,7 +42,7 @@
                   <%= if media_piece.banner_image do %>
                     <img
                       src={
-                        QlariusWeb.ThreeTapBanner.url(
+                        QlariusWeb.Uploaders.ThreeTapBanner.url(
                           {media_piece.banner_image, media_piece},
                           :original
                         )

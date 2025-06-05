@@ -1,14 +1,27 @@
 import Config
 
 # Configure your database
-config :qlarius, Qlarius.Repo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "qlarius_dev",
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10
+# Use DATABASE_URL if set, otherwise fall back to individual settings
+database_config =
+  if database_url = System.get_env("DATABASE_URL") do
+    [
+      url: database_url,
+      ssl: String.contains?(database_url, "sslmode=require") or String.contains?(database_url, "amazonaws.com"),
+      pool_size: 10
+    ]
+  else
+    [
+      username: "postgres",
+      password: "postgres",
+      hostname: "localhost",
+      database: "qlarius_dev",
+      stacktrace: true,
+      show_sensitive_data_on_connection_error: true,
+      pool_size: 10
+    ]
+  end
+
+config :qlarius, Qlarius.Repo, database_config
 
 # For development, we disable any cache and enable
 # debugging and code reloading.

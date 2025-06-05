@@ -5,7 +5,6 @@ defmodule Qlarius.Wallets.Wallets do
   alias Qlarius.Wallets.{LedgerHeader, LedgerEntry}
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Sponster.Campaigns.Campaign
-  alias Qlarius.Accounts.Marketer
   alias Qlarius.Sponster.Ads.MediaPiecePhase
 
   def get_me_file_ledger_header_balance(%MeFile{} = me_file) do
