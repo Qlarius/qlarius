@@ -4,9 +4,9 @@ defmodule QlariusWeb.Uploaders.ThreeTapBanner do
 
   @versions [:original]
 
-  def storage_dir(_version, {_file, %{id: id} = _scope}) do
-    "uploads/media_pieces/banners/#{id}"
-  end
+  # def storage_dir(_version, {_file, %{id: id} = _scope}) do
+  #   "uploads/media_pieces/banners/#{id}"
+  # end
 
   def validate({file, _}) do
     ~w(.jpg .jpeg .gif .png)
