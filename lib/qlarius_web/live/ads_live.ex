@@ -100,7 +100,7 @@ defmodule QlariusWeb.AdsLive do
     ~H"""
     <Layouts.sponster flash={@flash} current_scope={@current_scope}>
       <h1 class="text-3xl font-bold mb-4">Ads</h1>
-      <div class="container mx-auto px-4 py-8 max-w-3xl">
+      <div class="container mx-auto px-0 py-8 max-w-3xl">
         <.live_component
           module={QlariusWeb.ThreeTapStackComponent}
           id="three-tap-stack"

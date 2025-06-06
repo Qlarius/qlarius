@@ -25,17 +25,17 @@ defmodule QlariusWeb.OfferHTML do
     assigns = assign_new(assigns, :target, fn -> nil end)
 
     ~H"""
-    <div class="offer-container">
+    <div class="offer-container rounded-md border border-neutral-400 overflow-hidden cursor-pointer" style="width: 347px; height: 152px;">
       <div class="absolute inset-0 overflow-hidden">
         <div class={"offer-phase phase-0 #{if @phase > 0, do: "slide-left"}"}>
-          <.offer_container offer={@offer} class="p-5 text-neutral-800 bg-white" target={@target} recipient={@recipient}>
-            <div class="text-2xl font-bold mb-4">{format_usd(@offer.offer_amt)}</div>
+          <.offer_container offer={@offer} class="p-5 text-neutral-600 bg-white" target={@target} recipient={@recipient}>
+            <div class="text-2xl font-bold mb-2 text-neutral-600">{format_usd(@offer.offer_amt)}</div>
             <div class="mb-4">
               {@offer.media_piece.ad_category.ad_category_name}
             </div>
             <div class="flex justify-between w-full">
               <div class="text-blue-400">
-                <.icon name="hero-map-pin" class="w-6 h-6" />
+                <.icon name="hero-map-pin-solid" class="w-5 h-5" />
               </div>
               <div class="text-green-600">
                 <.icon name="hero-chevron-double-right" class="w-6 h-6" />
@@ -58,7 +58,7 @@ defmodule QlariusWeb.OfferHTML do
                     )
                   }
                   alt="Ad image"
-                  class="w-full h-auto"
+                  style="width: 345px; height: 115px;"
                 />
               <% else %>
                 <div class="w-full h-40 bg-gray-200 flex items-center justify-center">
@@ -71,7 +71,7 @@ defmodule QlariusWeb.OfferHTML do
         </div>
       </div>
 
-      <div class="absolute inset-0 overflow-hidden">
+      <div class="absolute inset-0 overflow-hidden" style="height: 150px;">
         <div class={"offer-phase phase-2 #{if @phase > 2, do: "fade-out"}"}>
           <.offer_container offer={@offer} class="px-3 py-2" target={@target} recipient={@recipient}>
             <a class="block w-full h-full" href={~p"/jump/#{@offer}"} target="_blank">
@@ -129,11 +129,13 @@ defmodule QlariusWeb.OfferHTML do
 
   def click_jump_actions(assigns) do
     ~H"""
-    <div class="flex text-center text-xs font-light absolute bottom-0 left-0 right-0">
+    <div class="flex items-center justify-center text-center text-xs font-light absolute bottom-0 left-0 right-0" style="height: 35px;">
       <div class={[
-        "py-2 flex-1 flex items-center justify-center",
+        "flex-1 flex items-center justify-center",
         if(@phase_1_complete?, do: "bg-gray-200", else: "bg-gray-600 text-white")
-      ]}>
+      ]}
+      style="height: 35px;"
+      >
         <%= if @phase_1_complete? do %>
           <.icon name="hero-check" class="text-green-500 w-4 h-4" />
         <% else %>
@@ -142,9 +144,11 @@ defmodule QlariusWeb.OfferHTML do
         <% end %>
       </div>
       <div class={[
-        "py-2 flex-1 flex items-center justify-center border-l border-gray-400",
+        "flex-1 flex items-center justify-center border-l border-gray-400",
         if(@phase_1_complete?, do: "bg-gray-500 text-white", else: "bg-gray-500 text-gray-400")
-      ]}>
+      ]}
+      style="height: 35px;"
+      >
         <span>JUMP: </span>
         <span class="font-bold ml-1">{format_usd(@phase_2_amount)}</span>
       </div>
@@ -167,9 +171,10 @@ defmodule QlariusWeb.OfferHTML do
       phx-value-recipient-id={@recipient && @recipient.id}
       phx-target={@target}
       class={[
-        "relative w-96 h-40 rounded-md border border-neutral-400 overflow-hidden cursor-pointer",
+        "relative overflow-hidden cursor-pointer",
         @class
       ]}
+      style="height: 150px;"
     >
       {render_slot(@inner_block)}
     </div>

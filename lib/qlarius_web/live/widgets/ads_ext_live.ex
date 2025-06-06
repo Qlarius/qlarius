@@ -1,4 +1,4 @@
-defmodule QlariusWeb.AdsExtLive do
+defmodule QlariusWeb.Widgets.AdsExtLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Accounts.Users

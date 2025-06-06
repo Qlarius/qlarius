@@ -99,6 +99,8 @@ defmodule QlariusWeb.Router do
     live_session :widgets, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
       live "/arcade/group/:group_id", ArcadeLive
       live "/wallet", WalletLive
+      live "/ads_ext/", AdsExtLive
+      live "/ads_ext/:split_code", AdsExtLive
     end
   end
 
@@ -115,8 +117,6 @@ defmodule QlariusWeb.Router do
       # get "/me_file/surveys", MeFileController, :surveys
       # live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
       # live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show
-      live "/ads_ext/", AdsExtLive
-      live "/ads_ext/:split_code", AdsExtLive
     end
 
     resources "/tiqits", TiqitController
