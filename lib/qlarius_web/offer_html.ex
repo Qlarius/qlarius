@@ -35,7 +35,9 @@ defmodule QlariusWeb.OfferHTML do
             </div>
             <div class="flex justify-between w-full">
               <div class="text-blue-400">
-                <.icon name="hero-map-pin-solid" class="w-5 h-5" />
+                <%= if @offer.matching_tags_snapshot && Enum.any?(String.split(@offer.matching_tags_snapshot, ","), fn key -> String.contains?(String.downcase(key), "zip code") end) do %>
+                  <.icon name="hero-map-pin-solid" class="w-5 h-5" />
+                <% end %>
               </div>
               <div class="text-green-600">
                 <.icon name="hero-chevron-double-right" class="w-6 h-6" />
