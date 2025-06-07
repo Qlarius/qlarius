@@ -20,6 +20,9 @@ defmodule QlariusWeb.Layouts do
   @sidebar_classes_off "-translate-x-full"
   @sidebar_bg_classes_off "opacity-0 pointer-events-none"
 
+  # Set this at compile time based on the actual config
+  @debug_enabled Application.compile_env(:qlarius, :debug_enabled, false)
+
   def toggle_sponster_sidebar(on) when on in [:on, :off] do
     if on == :on do
       JS.add_class(@sidebar_classes_on, to: "#sponster-sidebar")
@@ -62,6 +65,8 @@ defmodule QlariusWeb.Layouts do
         <.flash_group flash={@flash} />
         {render_slot(@inner_block)}
       </div>
+      <!-- Simple test -->
+      <div class="fixed top-0 left-0 bg-blue-500 text-white p-2 z-50">TEST</div>
     </main>
     """
   end
@@ -326,7 +331,7 @@ defmodule QlariusWeb.Layouts do
   end
 
   def debug_assigns(assigns) do
-    if Mix.env() == :dev and System.get_env("DEBUG") == "true" do
+    if @debug_enabled and System.get_env("DEBUG") == "true" do
       ~H"""
         <pre class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
           <%= inspect(assigns, pretty: true) %>
@@ -336,4 +341,5 @@ defmodule QlariusWeb.Layouts do
       ~H""
     end
   end
+
 end
