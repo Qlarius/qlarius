@@ -80,7 +80,6 @@ var widgetMarkup =
             style='height:90vh;border-top-right-radius: 8px;border-top-left-radius: 8px;' 
             frameBorder='0' 
             src='http://localhost:4000/widgets/ads_ext/${splitCode}?&in_frame=true&host_url=${hostURL}'
-            allow='microphone *; camera *'
         />
     </div>
 `

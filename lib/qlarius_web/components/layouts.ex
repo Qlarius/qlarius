@@ -114,7 +114,8 @@ defmodule QlariusWeb.Layouts do
       </button>
     </div>
 
-    <.debug_panel {assigns} />
+    <.debug_assigns {assigns} />
+
     """
   end
 
@@ -324,12 +325,15 @@ defmodule QlariusWeb.Layouts do
     """
   end
 
-  defp debug_panel(assigns) do
-    ~H"""
-    <!-- Debug section -->
-    <pre class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
-      <%= inspect(assigns, pretty: true) %>
-    </pre>
-    """
+  def debug_assigns(assigns) do
+    if Mix.env() == :dev and System.get_env("DEBUG") == "true" do
+      ~H"""
+        <pre class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
+          <%= inspect(assigns, pretty: true) %>
+        </pre>
+      """
+    else
+      ~H""
+    end
   end
 end

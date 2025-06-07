@@ -20,8 +20,6 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
-  @debug Mix.env() != :prod
-
   @impl true
   def mount(params, session, socket) do
     # Load initial data during first mount
@@ -41,7 +39,6 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
       socket
       |> assign(:active_offers, [])
       |> assign(:loading, true)
-      |> assign(:debug, @debug)
       |> assign(:host_uri, host_uri)
       |> assign(:split_code, split_code)
       |> assign(:recipient, recipient)
@@ -112,10 +109,9 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
           recipient={@recipient}
         />
       </div>
-      <pre :if={@debug} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
-        <%= inspect(assigns, pretty: true) %>
-      </pre>
+
     </Layouts.tipjar_container>
+    <Layouts.debug_assigns {assigns} />
     """
   end
 

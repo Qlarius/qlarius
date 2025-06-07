@@ -111,10 +111,6 @@ defmodule QlariusWeb.AdsLive do
         />
       </div>
 
-    <!-- Debug section -->
-      <pre :if={@debug} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
-        <%= inspect(assigns, pretty: true) %>
-      </pre>
     </Layouts.sponster>
     """
   end
