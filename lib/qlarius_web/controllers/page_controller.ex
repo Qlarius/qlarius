@@ -3,8 +3,6 @@ defmodule QlariusWeb.PageController do
 
   alias Qlarius.MeFile
 
-  @debug true
-
   def home(conn, _params) do
     render(conn, :home, debug: @debug)
   end

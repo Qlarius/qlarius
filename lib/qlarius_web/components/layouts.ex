@@ -114,11 +114,11 @@ defmodule QlariusWeb.Layouts do
         ]}
         phx-click={JS.navigate(~p"/ads")}
       >
+        <.icon name="hero-eye" class="size-[1.2em]" />
+        <span class="dock-label">Ads</span>
         <span :if={@current_scope.ads_count > 0} class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white" style="background-color: #43B375;">
           {@current_scope.ads_count}
         </span>
-        <.icon name="hero-eye" class="size-[1.2em]" />
-        <span class="dock-label">Ads</span>
       </button>
 
       <button
@@ -128,11 +128,11 @@ defmodule QlariusWeb.Layouts do
         ]}
         phx-click={JS.navigate(~p"/wallet")}
       >
+        <.icon name="hero-banknotes" class="size-[1.2em]" />
+        <span class="dock-label">Wallet</span>
         <span class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white" style="background-color: #43B375;">
           {format_usd(@current_scope.wallet_balance)}
         </span>
-        <.icon name="hero-banknotes" class="size-[1.2em]" />
-        <span class="dock-label">Wallet</span>
       </button>
 
       <button
@@ -141,6 +141,9 @@ defmodule QlariusWeb.Layouts do
       >
         <.icon name="hero-identification" class="size-[1.2em]" />
         <span class="dock-label">MeFile</span>
+        <span :if={@current_scope.ads_count > 0} class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white" style="background-color: #8585AD;">
+          {@current_scope.tag_count}
+        </span>
       </button>
 
       <button phx-click={toggle_sponster_sidebar(:on)}>

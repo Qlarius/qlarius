@@ -14,8 +14,6 @@ defmodule QlariusWeb.WalletLive do
   alias Qlarius.Wallets.LedgerEntry
   alias Qlarius.Repo
 
-  @debug false
-
   @impl true
   def mount(_params, _session, socket) do
     socket = assign(socket, :current_path, "/wallet")
@@ -39,7 +37,6 @@ defmodule QlariusWeb.WalletLive do
     |> assign(:current_scope, current_scope)
     |> assign(:me_file, me_file)
     |> assign(:loading, true)
-    |> assign(:debug, @debug)
     |> assign(:ledger_header, ledger_header)
     |> assign(:sidebar_entry, nil)
     |> assign(:page, page)
@@ -218,11 +215,6 @@ defmodule QlariusWeb.WalletLive do
           </div>
         </div>
       <% end %>
-
-    <!-- Debug section -->
-      <pre :if={@debug} class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
-        <%= inspect(assigns, pretty: true) %>
-      </pre>
 
       <.ledger_entry_detail_sidebar :if={@sidebar_entry} entry={@sidebar_entry} />
     </Layouts.sponster>

@@ -17,8 +17,6 @@ defmodule QlariusWeb.AdsLive do
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
-  @debug true
-
   @impl true
   def mount(_params, _session, socket) do
     socket = assign(socket, :current_path, "/ads")
@@ -32,7 +30,6 @@ defmodule QlariusWeb.AdsLive do
       socket
       |> assign(:active_offers, [])
       |> assign(:loading, true)
-      |> assign(:debug, @debug)
       |> assign(:host_uri, host_uri)
 
     if connected?(socket) do
