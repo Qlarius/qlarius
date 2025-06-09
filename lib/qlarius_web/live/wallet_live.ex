@@ -18,6 +18,7 @@ defmodule QlariusWeb.WalletLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    socket = assign(socket, :current_path, "/wallet")
     # Load initial data during first mount
     true_user = Users.get_user(508)
     user = User.active_proxy_user_or_self(true_user)

@@ -2,6 +2,7 @@ defmodule QlariusWeb.Router do
   use QlariusWeb, :router
 
   import QlariusWeb.UserAuth
+  import QlariusWeb.Layouts, only: [set_current_path: 2]
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -11,6 +12,7 @@ defmodule QlariusWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug :fetch_current_scope_for_user
+    plug :set_current_path
   end
 
   pipeline :widgets do
@@ -22,6 +24,7 @@ defmodule QlariusWeb.Router do
     plug :put_secure_browser_headers
     plug :fetch_current_scope_for_user
     plug :allow_iframe
+    plug :set_current_path
   end
 
   # Based on https://elixirforum.com/t/how-to-embed-a-liveview-via-iframe/65066
@@ -96,7 +99,10 @@ defmodule QlariusWeb.Router do
 
     get "/content/:id", ContentController, :show
 
-    live_session :widgets, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
+    live_session :widgets, on_mount: [
+      {QlariusWeb.UserAuth, :mount_current_scope},
+      {QlariusWeb.Layouts, :set_current_path}
+    ] do
       live "/arcade/group/:group_id", ArcadeLive
       live "/wallet", WalletLive
       live "/ads_ext/", AdsExtLive
@@ -107,16 +113,14 @@ defmodule QlariusWeb.Router do
   scope "/", QlariusWeb do
     pipe_through [:browser]
 
-    live_session :current_scope, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
+    live_session :current_scope, on_mount: [
+      {QlariusWeb.UserAuth, :mount_current_scope}
+    ] do
       get "/", PageController, :home
       live "/users/settings", UserSettingsLive, :edit
       live "/wallet", WalletLive, :index
       live "/ads", AdsLive, :index
-      # live "/me_file", MeFileLive, :index
       live "/proxy_users", ProxyUsersLive, :index
-      # get "/me_file/surveys", MeFileController, :surveys
-      # live "/me_file/surveys/:survey_id", MeFileSurveyLive, :show
-      # live "/me_file/surveys/:survey_id/:index", MeFileSurveyLive, :show
     end
 
     resources "/tiqits", TiqitController
@@ -127,7 +131,10 @@ defmodule QlariusWeb.Router do
   scope "/creators", QlariusWeb.Creators do
     pipe_through [:browser]
 
-    live_session :creators, on_mount: [{QlariusWeb.UserAuth, :mount_current_scope}] do
+    live_session :creators, on_mount: [
+      {QlariusWeb.UserAuth, :mount_current_scope},
+      {QlariusWeb.Layouts, :set_current_path}
+    ] do
       resources "/content_pieces", ContentPieceController, only: [:delete]
 
       live "/content_pieces/:id/edit", ContentPieceLive.Form, :edit

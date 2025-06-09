@@ -45,11 +45,11 @@ defmodule QlariusWeb.Layouts do
     <.link navigate={@href} class="flex-1 text-gray-600 flex justify-around">
       <div class="flex flex-col items-center justify-center relative h-full w-fit">
         <.icon name={@icon_name} class="h-6 w-6" />
-        <span class="text-xs font-semibold mt-1">{@text}</span>
+        <span class="mt-1 text-[10px]">{@text}</span>
 
         <span
           :if={@badge}
-          class="absolute -top-1 left-3/4 flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-green-600 text-white text-xs"
+          class="absolute -top-1 left-3/4 flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-green-600 text-white text-[11px]"
         >
           {@badge}
         </span>
@@ -78,6 +78,10 @@ defmodule QlariusWeb.Layouts do
 
   slot :inner_block, required: true
 
+  attr :flash, :map, required: true
+  attr :current_scope, Scope, required: true
+  attr :current_path, :string, default: nil
+
   def sponster(assigns) do
     ~H"""
     <.flash_group flash={@flash} />
@@ -93,29 +97,55 @@ defmodule QlariusWeb.Layouts do
 
     <.sponster_sidebar {assigns} />
 
-    <%!-- bottom bar --%>
-    <div class="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between bg-white border-t border-gray-200 h-16 px-2">
-      <.sponster_bottom_bar_link text="Home" href={~p"/"} icon_name="hero-home" />
-      <.sponster_bottom_bar_link
-        badge={@current_scope.ads_count}
-        href={~p"/ads"}
-        icon_name="hero-eye"
-        text="Ads"
-      />
-      <.sponster_bottom_bar_link
-        badge={format_usd(@current_scope.wallet_balance)}
-        href={~p"/wallet"}
-        icon_name="hero-banknotes"
-        text="Wallet"
-      />
-      <.sponster_bottom_bar_link text="MeFile" href={~p"/me_file"} icon_name="hero-identification" />
+    <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
+    <div class="dock z-40">
       <button
-        id="more"
-        class="flex-1 flex flex-col items-center justify-center text-gray-600 h-full cursor-pointer"
-        phx-click={toggle_sponster_sidebar(:on)}
+        class={[assigns[:current_path] == "/" && "dock-active"]}
+        phx-click={JS.navigate(~p"/")}
       >
-        <.icon name="hero-bars-3" class="h-6 w-6" />
-        <span class="text-xs font-semibold mt-1">More</span>
+        <.icon name="hero-home" class="size-[1.2em]" />
+        <span class="dock-label">Home</span>
+      </button>
+
+      <button
+        class={[
+          "indicator relative",
+          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/ads") && "dock-active"
+        ]}
+        phx-click={JS.navigate(~p"/ads")}
+      >
+        <span :if={@current_scope.ads_count > 0} class="absolute left-1/2 ml-[15px] top-0 badge badge-sm rounded-full px-1 text-white" style="background-color: #43B375;">
+          {@current_scope.ads_count}
+        </span>
+        <.icon name="hero-eye" class="size-[1.2em]" />
+        <span class="dock-label">Ads</span>
+      </button>
+
+      <button
+        class={[
+          "indicator relative",
+          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/wallet") && "dock-active"
+        ]}
+        phx-click={JS.navigate(~p"/wallet")}
+      >
+        <span class="absolute left-1/2 ml-[15px] top-0 badge badge-sm rounded-full px-1 text-white" style="background-color: #43B375;">
+          {format_usd(@current_scope.wallet_balance)}
+        </span>
+        <.icon name="hero-banknotes" class="size-[1.2em]" />
+        <span class="dock-label">Wallet</span>
+      </button>
+
+      <button
+        class={[assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") && "dock-active"]}
+        phx-click={JS.navigate(~p"/me_file")}
+      >
+        <.icon name="hero-identification" class="size-[1.2em]" />
+        <span class="dock-label">MeFile</span>
+      </button>
+
+      <button phx-click={toggle_sponster_sidebar(:on)}>
+        <.icon name="hero-bars-3" class="size-[1.2em]" />
+        <span class="dock-label">More</span>
       </button>
     </div>
 
@@ -135,17 +165,23 @@ defmodule QlariusWeb.Layouts do
   end
 
   def on_mount(:set_current_path, _params, _session, socket) do
-    socket =
-      Phoenix.LiveView.attach_hook(socket, :set_current_path, :handle_params, fn _params,
-                                                                                 uri,
-                                                                                 socket ->
-        socket =
-          assign_new(socket, :current_path, fn ->
-            uri |> URI.parse() |> Map.get(:path) || "/"
-          end)
+    # Only set current_path if it's not already set
+    socket = if Map.has_key?(socket.assigns, :current_path) do
+      socket
+    else
+      assign(socket, :current_path, "/")
+    end
 
-        {:cont, socket}
-      end)
+    # Set up hook that preserves manually set paths
+    socket = Phoenix.LiveView.attach_hook(socket, :set_current_path, :handle_params, fn _params, uri, socket ->
+      # Only update current_path if it wasn't manually set in mount
+      current_path = if socket.assigns[:current_path] in ["/", nil] do
+        URI.parse(uri).path || "/"
+      else
+        socket.assigns.current_path
+      end
+      {:cont, assign(socket, :current_path, current_path)}
+    end)
 
     {:cont, socket}
   end

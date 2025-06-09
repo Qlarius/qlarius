@@ -21,6 +21,7 @@ defmodule QlariusWeb.AdsLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    socket = assign(socket, :current_path, "/ads")
     host_uri =
       case Phoenix.LiveView.get_connect_info(socket, :uri) do
         nil -> URI.parse("http://localhost")
@@ -98,7 +99,7 @@ defmodule QlariusWeb.AdsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.sponster flash={@flash} current_scope={@current_scope}>
+    <Layouts.sponster {assigns}>
       <h1 class="text-3xl font-bold mb-4">Ads</h1>
       <div class="container mx-auto px-0 py-8 max-w-3xl">
         <.live_component
@@ -110,7 +111,6 @@ defmodule QlariusWeb.AdsLive do
           host_uri={@host_uri}
         />
       </div>
-
     </Layouts.sponster>
     """
   end
