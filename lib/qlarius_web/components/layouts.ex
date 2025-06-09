@@ -114,7 +114,7 @@ defmodule QlariusWeb.Layouts do
         ]}
         phx-click={JS.navigate(~p"/ads")}
       >
-        <span :if={@current_scope.ads_count > 0} class="absolute left-1/2 ml-[15px] top-0 badge badge-sm rounded-full px-1 text-white" style="background-color: #43B375;">
+        <span :if={@current_scope.ads_count > 0} class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white" style="background-color: #43B375;">
           {@current_scope.ads_count}
         </span>
         <.icon name="hero-eye" class="size-[1.2em]" />
@@ -128,7 +128,7 @@ defmodule QlariusWeb.Layouts do
         ]}
         phx-click={JS.navigate(~p"/wallet")}
       >
-        <span class="absolute left-1/2 ml-[15px] top-0 badge badge-sm rounded-full px-1 text-white" style="background-color: #43B375;">
+        <span class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white" style="background-color: #43B375;">
           {format_usd(@current_scope.wallet_balance)}
         </span>
         <.icon name="hero-banknotes" class="size-[1.2em]" />
