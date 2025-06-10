@@ -18,13 +18,13 @@ defmodule Qlarius.Accounts.Scope do
 
   alias Qlarius.Accounts.User
   alias Qlarius.YouData.MeFiles.MeFile
-  alias Qlarius.Wallets.LedgerHeader
+  alias Qlarius.Sponster.Offers
   alias Qlarius.Repo
-  alias Decimal
 
   defstruct true_user: nil,
             user: nil,
             wallet_balance: nil,
+            offered_amount: nil,
             ads_count: nil,
             home_zip: nil,
             tag_count: nil,
@@ -48,7 +48,8 @@ defmodule Qlarius.Accounts.Scope do
       ads_count: MeFile.ad_offer_count(proxy_user.me_file),
       trait_count: MeFile.trait_tag_count(proxy_user.me_file),
       tag_count: MeFile.tag_count(proxy_user.me_file),
-      wallet_balance: proxy_user.me_file.ledger_header.balance
+      wallet_balance: proxy_user.me_file.ledger_header.balance,
+      offered_amount: Offers.total_active_offer_amount(proxy_user.me_file)
     }
   end
 

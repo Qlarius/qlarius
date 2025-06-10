@@ -105,6 +105,7 @@ defmodule QlariusWeb.Router do
     ] do
       live "/arcade/group/:group_id", ArcadeLive
       live "/wallet", WalletLive
+      live "/ads_ext_announcer", AdsExtAnnouncerLive
       live "/ads_ext/", AdsExtLive
       live "/ads_ext/:split_code", AdsExtLive
     end

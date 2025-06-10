@@ -4,7 +4,7 @@ var splitCode = widgetDiv.getAttribute("sponster-split-code");
 var hostURL = parent.document.URL
 
 announcerDiv.setAttribute("style", "width:100%;position:fixed;bottom:0px;right:0;z-index:999999;height:80px;border-top-right-radius: 8px;border-top-left-radius: 8px;")
-announcerDiv.innerHTML = `<iframe id='ydadget_sponster_announcer_iframe' src='https://qlarius-app-staging-old-e240d7e2bcf7.herokuapp.com/ad_viewer_ext_announcer?split_code=${splitCode}&host_url=${hostURL}' width='100%' height='80' frameBorder='0' />`;
+announcerDiv.innerHTML = `<iframe id='ydadget_sponster_announcer_iframe' src='http://localhost:4000/widgets/ads_ext_announcer?split_code=${splitCode}&host_url=${hostURL}' width='100%' height='80' frameBorder='0' />`;
 
 var sponsterWidgetCss = 
 `<style>
