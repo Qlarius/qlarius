@@ -6,6 +6,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Accounts.User
   alias Qlarius.Wallets.LedgerHeader
+  alias Qlarius.Wallets.MeFileBalanceBroadcaster
   alias Qlarius.Repo
   alias Qlarius.Accounts.Scope
   alias Phoenix.Component
@@ -30,6 +31,12 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
       socket
       |> assign(:page_title, "Sponster Announcer")
 
+    if connected?(socket) do
+      MeFileBalanceBroadcaster.subscribe_to_me_file_balance(socket.assigns.current_scope.user.me_file.id)
+      {:ok, socket}
+    else
+      {:ok, socket}
+    end
     {:ok, socket}
   end
 
@@ -38,6 +45,12 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
     new_balance =
       Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
 
+    current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
+    {:noreply, assign(socket, :current_scope, current_scope)}
+  end
+
+  @impl true
+  def handle_info({:me_file_balance_updated, new_balance}, socket) do
     current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
     {:noreply, assign(socket, :current_scope, current_scope)}
   end

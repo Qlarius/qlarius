@@ -6,12 +6,8 @@ defmodule QlariusWeb.WalletLive do
   alias Qlarius.Accounts.Users
   alias Qlarius.Accounts.Scope
   alias Qlarius.Wallets.Wallets
-  alias Qlarius.YouData.MeFiles.MeFile
-  alias Qlarius.Sponster.Offer
-  alias Qlarius.Sponster.AdEvent
   alias Qlarius.Accounts.User
   alias Qlarius.Wallets.LedgerHeader
-  alias Qlarius.Wallets.LedgerEntry
   alias Qlarius.Repo
 
   @impl true
@@ -135,7 +131,7 @@ defmodule QlariusWeb.WalletLive do
       <% else %>
         <div class="mb-6">
           <div class="text-lg">Current Balance:</div>
-          <div class="text-2xl text-green-500 font-bold">
+          <div class="text-2xl text-sponster font-bold">
             {format_currency(@ledger_header.balance)}
           </div>
         </div>
@@ -145,7 +141,7 @@ defmodule QlariusWeb.WalletLive do
             <button
               phx-click="paginate"
               phx-value-page="1"
-              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 cursor-pointer"
             >
               Newest
             </button>
@@ -153,13 +149,13 @@ defmodule QlariusWeb.WalletLive do
             <button
               phx-click="paginate"
               phx-value-page={@page - 1}
-              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 cursor-pointer"
             >
               &lt;
             </button>
           <% end %>
 
-          <div class="flex items-center px-4 py-2 bg-green-500 text-white rounded-md">
+          <div class="flex items-center px-4 py-2 bg-sponster text-white rounded-md">
             {@page}
           </div>
 
@@ -167,7 +163,7 @@ defmodule QlariusWeb.WalletLive do
             <button
               phx-click="paginate"
               phx-value-page={@page + 1}
-              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 cursor-pointer"
             >
               &gt;
             </button>
@@ -180,7 +176,7 @@ defmodule QlariusWeb.WalletLive do
           <button
             phx-click="paginate"
             phx-value-page="oldest"
-            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 cursor-pointer"
           >
             Oldest
           </button>
@@ -196,16 +192,14 @@ defmodule QlariusWeb.WalletLive do
             phx-value-entry_id={entry.id}
           >
             <div>
-              <div class="font-medium">{entry.description}</div>
-              <div class="text-gray-500">{format_date(entry.created_at)}</div>
+              <div class="text-small">{entry.description}</div>
+              <div class="text-gray-500 text-xs">{format_date(entry.created_at)}</div>
             </div>
             <div class="flex items-center">
               <div class="text-right mr-4">
-                <div>{format_currency(entry.amt)}</div>
-                <div class="text-gray-500">
-                  {format_currency(
-                    calculate_balance_at_entry(@ledger_header, entry, @paginated_entries.entries)
-                  )}
+                <div class="text-sm font-bold">{format_currency(entry.amt)}</div>
+                <div class="text-gray-500 text-xs">
+                  {format_currency(entry.running_balance)}
                 </div>
               </div>
               <div class="text-gray-400">

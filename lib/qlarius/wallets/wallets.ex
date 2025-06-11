@@ -6,6 +6,7 @@ defmodule Qlarius.Wallets.Wallets do
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Sponster.Campaigns.Campaign
   alias Qlarius.Sponster.Ads.MediaPiecePhase
+  alias Qlarius.Wallets.MeFileBalanceBroadcaster
 
   def get_me_file_ledger_header_balance(%MeFile{} = me_file) do
     case Repo.get_by(LedgerHeader, me_file_id: me_file.id) do
@@ -112,6 +113,8 @@ defmodule Qlarius.Wallets.Wallets do
         ledger_header
         |> Ecto.Changeset.change(balance: new_balance, balance_payable: new_balance_payable)
         |> Repo.update!()
+
+        MeFileBalanceBroadcaster.broadcast_me_file_balance_update(ad_event.me_file_id, new_balance)
       end
     end)
   end

@@ -54,9 +54,9 @@ defmodule QlariusWeb.Router do
   scope "/", QlariusWeb do
     pipe_through [:browser, :marketer]
 
-    resources "/targets", TargetController
-    resources "/media_pieces", MediaPieceController
-    resources "/media_sequences", MediaSequenceController, only: [:index, :new, :create]
+    # resources "/targets", TargetController
+    # resources "/media_pieces", MediaPieceController
+    # resources "/media_sequences", MediaSequenceController, only: [:index, :new, :create]
 
     # live_session :marketer, on_mount: [{QlariusWeb.Layouts, :set_current_path}] do
     #   live "/trait_groups", TraitGroupLive.Index, :index

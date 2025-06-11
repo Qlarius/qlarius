@@ -14,6 +14,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   alias Qlarius.Sponster.Ads.ThreeTap
   alias Phoenix.Component
   alias Qlarius.Wallets.Wallets
+  alias Qlarius.Wallets.MeFileBalanceBroadcaster
   import QlariusWeb.OfferHTML
   import Ecto.Query, except: [update: 2, update: 3]
   import QlariusWeb.Layouts
@@ -46,6 +47,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
 
     if connected?(socket) do
       send(self(), :load_offers)
+      MeFileBalanceBroadcaster.subscribe_to_me_file_balance(socket.assigns.current_scope.user.me_file.id)
       {:ok, socket}
     else
       {:ok, socket}
@@ -75,6 +77,12 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   @impl true
   def handle_info({:refresh_wallet_balance, me_file_id}, socket) do
     new_balance = Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
+    current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
+    {:noreply, assign(socket, :current_scope, current_scope)}
+  end
+
+  @impl true
+  def handle_info({:me_file_balance_updated, new_balance}, socket) do
     current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
     {:noreply, assign(socket, :current_scope, current_scope)}
   end

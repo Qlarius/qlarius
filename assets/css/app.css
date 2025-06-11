@@ -47,6 +47,10 @@
   --color-warning-content: oklch(0% 0 0);
   --color-error: oklch(71.76% 0.221 22.18);
   --color-error-content: oklch(0% 0 0);
+  
+  /* Custom colors for Qlarius */
+  --color-sponster: #43B375;
+  --color-youdata: #8585AD;
   --radius-selector: 0.25rem;
   --radius-field: 0.25rem;
   --radius-box: 0.5rem;
@@ -149,10 +153,7 @@
   }
 }
 
-
-// Place all the styles related to the SponsterAnnouncerBottomFloatFrame controller here.
-// They will automatically be included in application.css.scss.
-// You can use Sass (SCSS) here: http://sass-lang.com/
+/* Legacy styles from SponsterAnnouncerBottomFloatFrame controller */
 
 .all-animate {
   -webkit-transition: all .5s ease-in-out;

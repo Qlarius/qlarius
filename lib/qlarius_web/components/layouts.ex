@@ -98,7 +98,7 @@ defmodule QlariusWeb.Layouts do
     <.sponster_sidebar {assigns} />
 
     <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
-    <div class="dock z-40">
+    <div class="dock z-40 border-t border-gray-200">
       <button
         class={[assigns[:current_path] == "/" && "dock-active"]}
         phx-click={JS.navigate(~p"/")}
@@ -116,7 +116,7 @@ defmodule QlariusWeb.Layouts do
       >
         <.icon name="hero-eye" class="size-[1.2em]" />
         <span class="dock-label">Ads</span>
-        <span :if={@current_scope.ads_count > 0} class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white" style="background-color: #43B375;">
+        <span :if={@current_scope.ads_count > 0} class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white bg-sponster">
           {@current_scope.ads_count}
         </span>
       </button>
@@ -130,7 +130,7 @@ defmodule QlariusWeb.Layouts do
       >
         <.icon name="hero-banknotes" class="size-[1.2em]" />
         <span class="dock-label">Wallet</span>
-        <span class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white" style="background-color: #43B375;">
+        <span class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white bg-sponster">
           {format_usd(@current_scope.wallet_balance)}
         </span>
       </button>
@@ -141,7 +141,7 @@ defmodule QlariusWeb.Layouts do
       >
         <.icon name="hero-identification" class="size-[1.2em]" />
         <span class="dock-label">MeFile</span>
-        <span :if={@current_scope.ads_count > 0} class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white" style="background-color: #8585AD;">
+        <span :if={@current_scope.ads_count > 0} class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white bg-youdata">
           {@current_scope.tag_count}
         </span>
       </button>

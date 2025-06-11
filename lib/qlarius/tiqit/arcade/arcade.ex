@@ -109,14 +109,14 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
       ledger_header = %LedgerHeader{} = Wallets.get_me_file_ledger_header(user.me_file)
       me_file = %MeFile{} = user.me_file
 
-      amount = tiqit_class.price
-      new_balance = Decimal.sub(ledger_header.balance, amount)
+      amount = Decimal.negate(tiqit_class.price)
+      new_balance = Decimal.add(ledger_header.balance, amount)
 
       %LedgerEntry{
         ledger_header_id: ledger_header.id,
         amt: amount,
         running_balance: new_balance,
-        description: "Purchased Tiqit"
+        description: "Tiqit purchase"
       }
       |> Repo.insert!()
 

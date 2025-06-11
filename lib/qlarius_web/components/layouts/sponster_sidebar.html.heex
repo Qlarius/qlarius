@@ -74,13 +74,13 @@
           class="flex items-center justify-between p-2 rounded-lg text-white hover:bg-gray-700 group"
         >
           <div class="flex items-center">
-            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-green-600">
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-sponster">
               <.icon name="hero-eye" class="h-5 w-5 text-white" />
             </div>
             <span class="ml-3">Ads</span>
           </div>
           <span
-            class="bg-green-600 text-white text-xs font-medium px-2.5 py-0.5 rounded"
+            class="bg-sponster text-white text-xs font-medium px-2.5 py-0.5 rounded"
             data-app-target="offerCount"
           >
             {@current_scope.ads_count}
@@ -93,13 +93,13 @@
           class="flex items-center justify-between p-2 rounded-lg text-white hover:bg-gray-700 group"
         >
           <div class="flex items-center">
-            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-green-600">
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-sponster">
               <.icon name="hero-banknotes" class="h-5 w-5 text-white" />
             </div>
             <span class="ml-3">Wallet</span>
           </div>
           <span
-            class="bg-green-600 text-white text-xs font-medium px-2.5 py-0.5 rounded"
+            class="bg-sponster text-white text-xs font-medium px-2.5 py-0.5 rounded"
             data-app-target="balance"
           >
             ${@current_scope.user.me_file.ledger_header.balance}
@@ -118,13 +118,13 @@
           class="flex items-center justify-between p-2 rounded-lg text-white hover:bg-gray-700 group"
         >
           <div class="flex items-center">
-            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-purple-600">
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata">
               <.icon name="hero-identification" class="h-5 w-5 text-white" />
             </div>
             <span class="ml-3">Your MeFile</span>
           </div>
           <span
-            class="bg-purple-600 text-white text-xs font-medium px-2.5 py-0.5 rounded"
+            class="bg-youdata text-white text-xs font-medium px-2.5 py-0.5 rounded"
             data-app-target="tagCount"
           >
             {@current_scope.tag_count}
@@ -136,7 +136,7 @@
           navigate={~p"/me_file/surveys"}
           class="flex items-center p-2 rounded-lg text-white hover:bg-gray-700 group"
         >
-          <div class="flex items-center justify-center h-8 w-8 rounded-full bg-purple-600">
+          <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata">
             <.icon name="hero-wrench" class="h-5 w-5 text-white" />
           </div>
           <span class="ml-3">MeFile Builder</span>
