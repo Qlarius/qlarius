@@ -63,8 +63,8 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
       class="sponster-announcer-bottom-float-content-container"
       style="height:50px; padding: 0 10px; display:flex; flex-direction:row; justify-content:space-between; align-items:center; background: #fff;"
     >
-      <div class="flex items-center gap-3 min-w-0 ml-4">
-        <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster logo" class="h-8 w-auto" />
+      <div class="sponster-announcer-logo-container">
+        <%!-- <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster logo" class="h-8 w-auto" /> --%>
       </div>
 
       <div style="width: 240px; position:relative;display:flex; flex-direction:row; justify-content:space-between; align-items:center; background: #F0F2F4; border-radius: 8px;">
@@ -106,20 +106,21 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
       </div>
 
       <div
-        style="width:88px; position:relative; display:flex; flex-direction:row; justify-content:space-between; align-items:center; border-radius: 9999px; border: 1.50px #252529 solid; padding: 4px 12px; cursor: pointer;"
+        style="width:96px; position:relative; display:flex; flex-direction:row; justify-content:space-between; align-items:center; border-radius: 9999px; border: 1.50px #252529 solid; padding: 4px 12px; cursor: pointer;"
         onclick="parent.postMessage('open_widget','*');self.toggleAnnouncerElements();"
       >
         <div
           id="ydadget_announcer_toggle_button_text"
-          style="text-align: center; margin-right: 10px; color: #252529; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.32px; word-wrap: break-word"
+          style="margin-right: 6px; color: #252529; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.32px; word-wrap: break-word"
         >
           SHOW
         </div>
-        <.icon
-          id="ydadget_announcer_toggle_icon"
-          name="hero-chevron-double-up"
-          class="all-animate text-green-600"
-        />
+          <%!-- <.icon
+            id="ydadget_announcer_toggle_icon"
+            name="hero-chevron-double-up"
+            class="all-animate text-green-600"
+          /> --%>
+          <span id="ydadget_announcer_toggle_icon" class="hero-chevron-double-up all-animate" style="color:#0A8F65;"></span>
       </div>
     </div>
 

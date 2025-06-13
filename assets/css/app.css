@@ -215,14 +215,14 @@ body {
 .sponster-announcer-logo-container {
   height:44px;
   width:32px;
-  background: url(sponster_logo_full_width.svg) no-repeat right center;
+  background: url(/images/Sponster_logo_color_horiz.svg) no-repeat right center;
   background-size: 140px;
 }
 
 .sponster-announcer-logo-container-top-bar {
   height:44px;
   width: 120px;
-  background: url(sponster_logo_full_width.svg) no-repeat right center;
+  background: url(/images/Sponster_logo_color_horiz.svg) no-repeat right center;
   background-size: 120px;
   margin-right: 10px;
 }
@@ -351,10 +351,10 @@ body {
   }
 
   .sponster-announcer-logo-container {
-    width:106px;
-    height:44px;
-    background: url(sponster_logo_full_width.svg) no-repeat center center;
-    background-size: 100px;
+    width:126px;
+    height:54px;
+    background: url(/images/Sponster_logo_color_horiz.svg) no-repeat center center;
+    background-size: 120px;
   }
 
   #ydadget_announcer_float_bottom_background_layer {
