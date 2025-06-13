@@ -172,9 +172,9 @@ body {
   width: 80px;
   height: 80px;
   margin:-40px 0 0 -40px;
-  -webkit-animation: spin 5s linear infinite, slide 15s linear alternate infinite, bounce 8s ease-in-out infinite;
-  -moz-animation: spin 5s linear infinite, slide 15s linear alternate infinite, bounce 8s ease-in-out infinite;
-  animation: spin 5s linear infinite, slide 15s linear alternate infinite, bounce 8s ease-in-out infinite;
+  -webkit-animation: spin 5s linear infinite, slide 5s linear alternate infinite, bounce 3s ease-in-out infinite;
+  -moz-animation: spin 5s linear infinite, slide 5s linear alternate infinite, bounce 3s ease-in-out infinite;
+  animation: spin 5s linear infinite, slide 5s linear alternate infinite, bounce 3s ease-in-out infinite;
 }
 
 @-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }

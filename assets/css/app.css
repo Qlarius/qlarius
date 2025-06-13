@@ -310,38 +310,53 @@ body {
 
 #ydadget_announcer_float_bottom_background_layer {
   width: 400px;
+  height: 120px;
   margin-left: -200px;
-  height: 100%;
   background-color: transparent;
   position: absolute;
-  bottom: 0;
+  bottom: -40px;
   left: 50%;
   overflow: hidden;
 }
 
 .spin-bounce-background-item {
   position: absolute;
-  top: 40px;
   width: 80px;
   height: 80px;
-  margin:-40px 0 0 -40px;
-  -webkit-animation: spin 5s linear infinite, slide 15s linear alternate infinite, bounce 8s ease-in-out infinite;
-  -moz-animation: spin 5s linear infinite, slide 15s linear alternate infinite, bounce 8s ease-in-out infinite;
-  animation: spin 5s linear infinite, slide 15s linear alternate infinite, bounce 8s ease-in-out infinite;
+  margin: -40px 0 0 -40px;
+  animation: 
+    slide 8s linear alternate infinite,
+    bouncy 3s ease-in-out infinite;
 }
 
-@-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }
-@-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
-@keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }
+.spin-bounce-background-item .spinner {
+  width: 100%;
+  height: 100%;
+  animation: spin 5s linear infinite;
+}
 
-@-moz-keyframes slide { 0% { left: 20%; } 100% { left: 80%; } }
-@-webkit-keyframes slide { 0% { left: 20%; } 100% { left: 80%; } }
-@keyframes slide { 0% { left: 20%; } 100% { left: 80%; } }
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
-@-moz-keyframes bounce { 0% { top: 200px; } 80% { top: 200px; } 90% { top: 40px; } 100% { top: 100px; } }
-@-webkit-keyframes bounce { 0% { top: 200px; } 80% { top: 200px; } 90% { top: 40px; } 100% { top: 100px; } }
-@keyframes bounce { 0% { top: 200px; } 80% { top: 200px; } 90% { top: 40px; } 100% { top: 100px; } }
+@keyframes slide {
+  0% { left: 10%; }
+  100% { left: 90%; }
+}
 
+@keyframes bouncy {
+  0% { 
+    top: 100%;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  50% { 
+    top: 40px;
+  }
+  100% { 
+    top: 100%;
+  }
+}
 
 @media(min-width: 800px){
   .sponster-announcer-bottom-float-content-container {

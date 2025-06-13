@@ -58,6 +58,16 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   @impl true
   def render(assigns) do
     ~H"""
+
+    <div id="ydadget_announcer_float_bottom_background_layer">
+      <div class="spin-bounce-background-item">
+        <div class="spinner">
+          <img src={~p"/images/sponster_us_quarter.png"} />
+        </div>
+      </div>
+    </div>
+
+
     <div class="sponster-announcer-bottom-float-strip"></div>
     <div
       class="sponster-announcer-bottom-float-content-container"
@@ -115,11 +125,6 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
         >
           SHOW
         </div>
-          <%!-- <.icon
-            id="ydadget_announcer_toggle_icon"
-            name="hero-chevron-double-up"
-            class="all-animate text-green-600"
-          /> --%>
           <span id="ydadget_announcer_toggle_icon" class="hero-chevron-double-up all-animate" style="color:#0A8F65;"></span>
       </div>
     </div>
