@@ -36,7 +36,7 @@ defmodule QlariusWeb.Router do
     # Not sure where it's set but the default CSP header appears to be
     # "base-uri 'self'; frame-ancestors 'self';" Override it here to remove
     # frame-ancestors as that also blocks iframes
-    |> put_resp_header("content-security-policy", "base-url 'self'")
+    |> put_resp_header("content-security-policy", "base-uri 'self'")
   end
 
   pipeline :marketer do
@@ -55,7 +55,7 @@ defmodule QlariusWeb.Router do
     pipe_through [:browser, :marketer]
 
     # resources "/targets", TargetController
-    # resources "/media_pieces", MediaPieceController
+    resources "/media_pieces", MediaPieceController
     # resources "/media_sequences", MediaSequenceController, only: [:index, :new, :create]
 
     # live_session :marketer, on_mount: [{QlariusWeb.Layouts, :set_current_path}] do

@@ -8,29 +8,20 @@
     drawerOpen: false,
     splitAmount: #{@current_scope.user.me_file.split_amount || 50},
     setDrawerPosition() {
-      console.log('setDrawerPosition');
       this.$nextTick(() => {
         const drawer = this.$refs.drawer;
-        console.log('drawer', drawer);
         const drawerHeight = drawer.offsetHeight;
         const viewportHeight = window.innerHeight;
-        console.log('drawerHeight', drawerHeight);
-        console.log('viewportHeight', viewportHeight);
         const close_bottom = (drawerHeight * -1) + 40;
-        console.log('close_bottom', close_bottom);
         const open_bottom = 40;
-        console.log('open_bottom', open_bottom);
         if (this.drawerOpen) {
-          console.log('open');  
           drawer.style.bottom = open_bottom + 'px';
         } else {
-          console.log('close');
           drawer.style.bottom = close_bottom + 'px';
         }
       });
     },
     toggleDrawer() {
-      console.log('toggleDrawer', this.$refs.drawer);
       this.drawerOpen = !this.drawerOpen;
       document.body.classList.toggle('tip-drawer-open', this.drawerOpen);
       this.setDrawerPosition();

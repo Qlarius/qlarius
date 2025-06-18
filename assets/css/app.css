@@ -168,7 +168,7 @@ body {
 }
 
 .sponster-announcer-bottom-float-strip {
-  position: absolute;
+  position: fixed;
   left: 0px;
   bottom: 0px;
   height: 50px;
@@ -180,23 +180,28 @@ body {
 }
 
 .sponster-announcer-bottom-float-content-container {
-  position: absolute;
+  position: fixed;
   bottom: 0px;
-  height: 70px;
   width: 100%;
   text-align: center;
+  height:70px; 
+  padding: 0 10px; 
+  display:flex; 
+  flex-direction:row; 
+  align-items:center; 
+  justify-content: space-between;
 }
 
 .sponster-announcer-slider-container-float-bottom-lg {
   display: none;
-  width: 720px;
-  height: 100%;
+  width: 640px;
+  height: 70px;
 }
 
 .sponster-announcer-slider-container-float-bottom-sm {
   display: inline-block;
-  width: 350px;
-  height: 100%;
+  width: 300px;
+  height: 70px;
 }
 
 .sponster-announcer-toggle-button-container {
@@ -252,7 +257,7 @@ body {
 }
 
 .sponster-announcer-bottom-float-content-container {
-  height: 100%;
+  height: 50px;
   width: 400px;
   margin: 0 -200px;
   position: fixed;
@@ -264,9 +269,10 @@ body {
 
 #sponster_recruiter_slider_lg {
   position: relative;
-  display: inline-block;
-  width: 720px;
-  height: 100%;
+  display: none;
+  width: 640px;
+  height: 70px;
+  bottom: 10px;
 }
 
 #sponster_recruiter_slider_lg IMG {
@@ -288,8 +294,9 @@ body {
 #sponster_recruiter_slider_sm {
   position: relative;
   display: inline-block;
-  width: 340px;
-  height: 100%;
+  width: 280px;
+  height: 70px;
+  bottom: 10px;
 }
 
 #sponster_recruiter_slider_sm IMG {
@@ -310,11 +317,11 @@ body {
 
 #ydadget_announcer_float_bottom_background_layer {
   width: 400px;
-  height: 120px;
+  height: 70px;
   margin-left: -200px;
   background-color: transparent;
-  position: absolute;
-  bottom: -40px;
+  position: fixed;
+  bottom: 0px;
   left: 50%;
   overflow: hidden;
 }
@@ -377,11 +384,13 @@ body {
     margin-left: -400px;
   }
 
-  .sponster-announcer-slider-container-float-bottom-lg {
+  #sponster_recruiter_slider_lg {
     display: inline-block;
   }
 
-  .sponster-announcer-slider-container-float-bottom-sm {
+  #sponster_recruiter_slider_sm {
     display: none;
   }
 }
+
+[x-cloak] { display: none !important; }
