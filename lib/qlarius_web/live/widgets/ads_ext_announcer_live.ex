@@ -31,9 +31,9 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
       end
 
     lg_slides = [
-      %{imgSrc: ~p"/images/lg_1.png"},
-      %{imgSrc: ~p"/images/lg_2.png"},
-      %{imgSrc: ~p"/images/lg_3.png"}
+      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/DontReadThis_640.png"},
+      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/LifeSponsored_640.png"},
+      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/SellYourAttention_640.png"}
     ]
 
     sm_slides = [
