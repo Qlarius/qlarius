@@ -89,24 +89,18 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
       autoplayInterval: null,
       isTransitioning: false,
       previous() {
-        if (this.isTransitioning) return;
-        this.isTransitioning = true;
         if (this.currentSlideIndex > 1) {
           this.currentSlideIndex = this.currentSlideIndex - 1
         } else {
           this.currentSlideIndex = this.slides.length
         }
-        setTimeout(() => { this.isTransitioning = false; }, 1000);
       },
       next() {
-        if (this.isTransitioning) return;
-        this.isTransitioning = true;
         if (this.currentSlideIndex < this.slides.length) {
           this.currentSlideIndex = this.currentSlideIndex + 1
         } else {
           this.currentSlideIndex = 1
         }
-        setTimeout(() => { this.isTransitioning = false; }, 1000);
       },
       autoplay() {
         this.autoplayInterval = setInterval(() => {
