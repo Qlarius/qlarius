@@ -37,11 +37,11 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
     ]
 
     sm_slides = [
-      %{imgSrc: ~p"/images/sm_1.png"},
-      %{imgSrc: ~p"/images/sm_2.png"},
-      %{imgSrc: ~p"/images/sm_3.png"},
-      %{imgSrc: ~p"/images/sm_4.png"},
-      %{imgSrc: ~p"/images/sm_5.png"}
+      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/DontReadThisA_280.png"},
+      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/DontReadThisB_280.png"},
+      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/SellYourAttention_280.png"},
+      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/LifeSponsoredA_280.png"},
+      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/LifeSponsoredB_280.png"}
     ]
 
     socket =
@@ -243,7 +243,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
           id="ydadget_announcer_toggle_button_text"
           style="margin-right: 6px; color: #252529; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.32px; word-wrap: break-word"
         >
-          SHOW
+          <%= if @recruiter_mode, do: "INFO", else: "SHOW" %>
         </div>
         <span
           id="ydadget_announcer_toggle_icon"
@@ -261,6 +261,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
         var announcerAdCount = document.getElementById("announcer-ad-count");
         var announcerOfferedAmount = document.getElementById("announcer-offered-amount");
         var currentMode = "open";
+        var originalButtonText = announcerToggleButtonText ? announcerToggleButtonText.textContent : "SHOW";
 
         function toggleAnnouncerElements() {
           if (currentMode == "open") {
@@ -269,7 +270,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
             currentMode = "closed";
           } else {
             if (announcerToggleIcon) { announcerToggleIcon.style.transform = "rotate(0deg)"; }
-            if (announcerToggleButtonText) { announcerToggleButtonText.textContent = "SHOW"; }
+            if (announcerToggleButtonText) { announcerToggleButtonText.textContent = originalButtonText; }
             currentMode = "open";
           }
         }

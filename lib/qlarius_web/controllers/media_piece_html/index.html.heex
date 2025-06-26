@@ -1,7 +1,7 @@
 <div class="container mx-auto px-4 py-8">
   <div class="flex justify-between items-center mb-8">
     <h1 class="text-3xl font-bold">Media Pieces</h1>
-    <.link href={~p"/media_pieces/new"}>
+    <.link href={~p"/marketer/media_pieces/new"}>
       <button class="btn btn-primary gap-2">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -28,9 +28,7 @@
             <tr>
               <th class="bg-base-200">Banner</th>
               <th class="bg-base-200">Title</th>
-              <th class="bg-base-200">Body Copy</th>
               <th class="bg-base-200">Display URL</th>
-              <th class="bg-base-200">Jump URL</th>
               <th class="bg-base-200">Ad Category</th>
               <th class="bg-base-200">Actions</th>
             </tr>
@@ -57,11 +55,7 @@
                   <% end %>
                 </td>
                 <td class="align-top">{media_piece.title}</td>
-                <td class="whitespace-normal max-w-md align-top">{media_piece.body_copy}</td>
                 <td class="text-emerald-600 align-top">{media_piece.display_url}</td>
-                <td class="text-emerald-600 truncate max-w-xs align-top">
-                  {media_piece.jump_url}
-                </td>
                 <td class="align-top">
                   <span class="badge bg-gray-200 whitespace-nowrap inline-flex items-center">
                     {media_piece.ad_category.ad_category_name}
@@ -69,7 +63,7 @@
                 </td>
                 <td class="align-top">
                   <div class="flex gap-2">
-                    <.link href={~p"/media_pieces/#{media_piece}/edit"}>
+                    <.link href={~p"/marketer/media_pieces/#{media_piece}/edit"}>
                       <button class="btn btn-sm btn-ghost btn-square">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"

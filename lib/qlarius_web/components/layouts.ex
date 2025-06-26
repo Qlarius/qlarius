@@ -301,6 +301,21 @@ defmodule QlariusWeb.Layouts do
     """
   end
 
+  def admin(assigns) do
+    ~H"""
+    <!DOCTYPE html>
+    <html lang="en" class="h-full bg-gray-100">
+      <head>
+        ...
+      </head>
+      <body class="h-full">
+        <.flash_group flash={@flash} />
+        <%= @inner_content %>
+      </body>
+    </html>
+    """
+  end
+
   @doc """
   Shows the flash group with standard titles and content.
 

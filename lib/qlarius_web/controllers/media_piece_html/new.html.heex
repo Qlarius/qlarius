@@ -1,5 +1,5 @@
-<div class="container mx-auto px-4 py-8">
-  <div class="mb-8">
+<div class="container mx-auto px-4">
+  <div>
     <.header>
       <div class="flex items-center">
         <h1 class="text-2xl font-bold">New Media Piece</h1>
@@ -10,11 +10,11 @@
 
   <.media_piece_form
     changeset={@changeset}
-    action={~p"/media_pieces"}
+    action={~p"/marketer/media_pieces"}
     ad_categories={@ad_categories}
   />
 
-  <div class="mt-8">
-    <.back navigate={~p"/media_pieces"} class="btn btn-outline">Back to media pieces</.back>
+  <div class="mt-4">
+    <.back navigate={~p"/marketer/media_pieces"} class="btn btn-outline">Back to media pieces</.back>
   </div>
 </div>

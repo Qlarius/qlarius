@@ -27,6 +27,19 @@ defmodule QlariusWeb.Router do
     plug :set_current_path
   end
 
+  pipeline :marketer do
+    plug :put_layout, {QlariusWeb.Layouts, :admin}
+  end
+
+  pipeline :admin do
+    plug :put_layout, {QlariusWeb.Layouts, :admin}
+    # plug QlariusWeb.UserAuth, :require_admin_user # TODO: Add a plug to ensure user is an admin
+  end
+
+  pipeline :api do
+    plug :accepts, ["json"]
+  end
+
   # Based on https://elixirforum.com/t/how-to-embed-a-liveview-via-iframe/65066
   defp allow_iframe(conn, _opts) do
     conn
@@ -39,19 +52,10 @@ defmodule QlariusWeb.Router do
     |> put_resp_header("content-security-policy", "base-uri 'self'")
   end
 
-  pipeline :marketer do
-    # This is used to highlight which tab we're on at the top
-    import QlariusWeb.Layouts, only: [set_current_path: 2]
-    plug :set_current_path
-  end
-
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
 
   # ------ MARKETER ROUTES ------
 
-  scope "/", QlariusWeb do
+  scope "/marketer", QlariusWeb do
     pipe_through [:browser, :marketer]
 
     # resources "/targets", TargetController
@@ -155,5 +159,12 @@ defmodule QlariusWeb.Router do
         live "/catalogs/new", CatalogLive.Form, :new
       end
     end
+  end
+
+  # ------ ADMIN ROUTES ------
+  scope "/admin", QlariusWeb.Admin do
+    pipe_through [:browser, :admin]
+
+    live "/", DashboardLive, :index
   end
 end

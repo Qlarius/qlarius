@@ -23,7 +23,7 @@ defmodule QlariusWeb.MediaPieceController do
       {:ok, _media_piece} ->
         conn
         |> put_flash(:info, "Media piece created successfully.")
-        |> redirect(to: ~p"/media_pieces")
+        |> redirect(to: ~p"/marketer/media_pieces")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         ad_categories = Marketing.list_ad_categories()
@@ -56,7 +56,7 @@ defmodule QlariusWeb.MediaPieceController do
 
         conn
         |> put_flash(:info, "Media piece updated successfully.")
-        |> redirect(to: ~p"/media_pieces")
+        |> redirect(to: ~p"/marketer/media_pieces")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         Logger.error("Failed to update media piece #{id}. Errors: #{inspect(changeset.errors)}")
@@ -77,6 +77,6 @@ defmodule QlariusWeb.MediaPieceController do
 
     conn
     |> put_flash(:info, "Media piece deleted successfully.")
-    |> redirect(to: ~p"/media_pieces")
+    |> redirect(to: ~p"/marketer/media_pieces")
   end
 end
