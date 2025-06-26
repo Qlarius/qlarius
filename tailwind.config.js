@@ -10,6 +10,9 @@ module.exports = {
         // Example: additional custom colors if needed
         'qlarius-blue': '#3B82F6',
         'qlarius-green': '#10B981',
+      },
+      transitionTimingFunction: {
+        'ease-in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
       }
     },
   },
