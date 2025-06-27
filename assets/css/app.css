@@ -79,11 +79,13 @@
 @layer components {
   /* Ads page styles */
   .ad-card {
-    @apply transition-all duration-300 ease-in-out;
+    @apply transition-all duration-300;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .ad-card:hover {
-    @apply transform scale-105 shadow-lg;
+    @apply transform scale-105;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   }
 
   .ad-amount {
