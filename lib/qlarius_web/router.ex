@@ -12,6 +12,7 @@ defmodule QlariusWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug :fetch_current_scope_for_user
+    plug :allow_iframe
     plug :set_current_path
   end
 
@@ -49,7 +50,7 @@ defmodule QlariusWeb.Router do
     # Not sure where it's set but the default CSP header appears to be
     # "base-uri 'self'; frame-ancestors 'self';" Override it here to remove
     # frame-ancestors as that also blocks iframes
-    |> put_resp_header("content-security-policy", "base-uri 'self'")
+    |> put_resp_header("content-security-policy", "base-uri 'self' chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen")
   end
 
 
