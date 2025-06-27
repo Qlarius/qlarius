@@ -4655,7 +4655,7 @@ body {
     padding-inline: calc(.25rem*3 - var(--border));
     background-size: auto, calc(var(--noise)*100%);
     background-image: none, var(--fx-noise);
-    background-color: var(--badge-color, var(--color-base-100));
+    /* background-color: var(--badge-color, var(--color-base-100)); */
     --size: calc(var(--size-selector, .25rem)*6);
     height: var(--size);
     justify-content: center;

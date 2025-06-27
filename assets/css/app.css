@@ -1,8 +1,9 @@
 /* See the Tailwind configuration guide for advanced usage
    https://tailwindcss.com/docs/configuration */
 
+
+@import "tailwindcss";
 @import "../vendor/nexus.css";
-/* @import "tailwindcss"; */
 @source "../css";
 @source "../js";
 @source "../../lib/qlarius_web";
