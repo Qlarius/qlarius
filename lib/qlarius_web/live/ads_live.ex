@@ -19,8 +19,15 @@ defmodule QlariusWeb.AdsLive do
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(%{"extension" => "true"} = params, _session, socket) do
+    IO.puts("=== LIVEVIEW MOUNTING IN EXTENSION CONTEXT ===")
+    IO.puts("Params: #{inspect(params)}")
+
+    # Add a visual indicator in the page
+    socket = assign(socket, :extension_mode, true)
+
     socket = assign(socket, :current_path, "/ads")
+
     host_uri =
       case Phoenix.LiveView.get_connect_info(socket, :uri) do
         nil -> URI.parse("http://localhost")
@@ -35,7 +42,41 @@ defmodule QlariusWeb.AdsLive do
 
     if connected?(socket) do
       send(self(), :load_offers)
-      MeFileBalanceBroadcaster.subscribe_to_me_file_balance(socket.assigns.current_scope.user.me_file.id)
+
+      MeFileBalanceBroadcaster.subscribe_to_me_file_balance(
+        socket.assigns.current_scope.user.me_file.id
+      )
+
+      {:ok, socket}
+    else
+      {:ok, socket}
+    end
+  end
+
+  @impl true
+  def mount(_params, _session, socket) do
+    IO.puts("=== LIVEVIEW MOUNTING IN NORMAL CONTEXT ===")
+    socket = assign(socket, :current_path, "/ads")
+
+    host_uri =
+      case Phoenix.LiveView.get_connect_info(socket, :uri) do
+        nil -> URI.parse("http://localhost")
+        uri -> uri
+      end
+
+    socket =
+      socket
+      |> assign(:active_offers, [])
+      |> assign(:loading, true)
+      |> assign(:host_uri, host_uri)
+
+    if connected?(socket) do
+      send(self(), :load_offers)
+
+      MeFileBalanceBroadcaster.subscribe_to_me_file_balance(
+        socket.assigns.current_scope.user.me_file.id
+      )
+
       {:ok, socket}
     else
       {:ok, socket}
@@ -46,7 +87,8 @@ defmodule QlariusWeb.AdsLive do
   def handle_info(:load_offers, socket) do
     query =
       from(o in Offer,
-        where: o.me_file_id == ^socket.assigns.current_scope.user.me_file.id and o.is_current == true,
+        where:
+          o.me_file_id == ^socket.assigns.current_scope.user.me_file.id and o.is_current == true,
         order_by: [desc: o.offer_amt],
         preload: [media_piece: :ad_category]
       )
@@ -64,7 +106,9 @@ defmodule QlariusWeb.AdsLive do
 
   @impl true
   def handle_info({:refresh_wallet_balance, me_file_id}, socket) do
-    new_balance = Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
+    new_balance =
+      Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
+
     current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
     {:noreply, assign(socket, :current_scope, current_scope)}
   end
@@ -77,27 +121,31 @@ defmodule QlariusWeb.AdsLive do
 
   @impl true
   def handle_event("toggle_sidebar", %{"state" => state}, socket) do
-    js = if state == "on" do
-      %JS{}
-      |> JS.add_class("translate-x-0", to: "#sponster-sidebar")
-      |> JS.remove_class("-translate-x-full", to: "#sponster-sidebar")
-      |> JS.remove_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
-    else
-      %JS{}
-      |> JS.remove_class("translate-x-0", to: "#sponster-sidebar")
-      |> JS.add_class("-translate-x-full", to: "#sponster-sidebar")
-      |> JS.add_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
-    end
+    js =
+      if state == "on" do
+        %JS{}
+        |> JS.add_class("translate-x-0", to: "#sponster-sidebar")
+        |> JS.remove_class("-translate-x-full", to: "#sponster-sidebar")
+        |> JS.remove_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
+      else
+        %JS{}
+        |> JS.remove_class("translate-x-0", to: "#sponster-sidebar")
+        |> JS.add_class("-translate-x-full", to: "#sponster-sidebar")
+        |> JS.add_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
+      end
+
     {:noreply, push_event(socket, "js", js)}
   end
 
   @impl true
   def handle_event("toggle_sidebar", _params, socket) do
     # Handle click-away event
-    js = %JS{}
-    |> JS.remove_class("translate-x-0", to: "#sponster-sidebar")
-    |> JS.add_class("-translate-x-full", to: "#sponster-sidebar")
-    |> JS.add_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
+    js =
+      %JS{}
+      |> JS.remove_class("translate-x-0", to: "#sponster-sidebar")
+      |> JS.add_class("-translate-x-full", to: "#sponster-sidebar")
+      |> JS.add_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
+
     {:noreply, push_event(socket, "js", js)}
   end
 
