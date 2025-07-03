@@ -14,7 +14,6 @@ defmodule QlariusWeb.Uploaders.RecipientBrandImage do
   end
 
   def default_url(_version, _scope) do
-    "uploads/recipients/recipient_brand_images/tipjar_love_default.png"
+    "/uploads/recipients/recipient_brand_images/tipjar_love_default.png"
   end
-
 end
