@@ -14,7 +14,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   import QlariusWeb.Layouts
   import Jason
 
-  @recruiter_mode true
+  @recruiter_mode false
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
