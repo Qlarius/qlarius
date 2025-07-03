@@ -47,12 +47,7 @@ defmodule QlariusWeb.Router do
     # This header is set to SAMEORIGIN by put_secure_browser_headers, which
     # prevents embedding in an iframe.
     |> delete_resp_header("x-frame-options")
-    # Not sure where it's set but the default CSP header appears to be
-    # "base-uri 'self'; frame-ancestors 'self';" Override it here to remove
-    # frame-ancestors as that also blocks iframes
-    # |> put_resp_header("content-security-policy", "base-uri 'self' chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen")
-    # |> put_resp_header("content-security-policy", "default-src 'self'; connect-src 'self' wss://qlarius.gigalixirapp.com; frame-ancestors 'self' chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen")
-    |> put_resp_header("content-security-policy", "base-uri 'self'; connect-src 'self' wss://qlarius.gigalixirapp.com; frame-ancestors 'self' chrome-extension://*")
+    |> put_resp_header("content-security-policy", "base-uri 'self'; connect-src 'self' wss://qlarius.gigalixirapp.com; frame-ancestors * chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen")
   end
 
 
