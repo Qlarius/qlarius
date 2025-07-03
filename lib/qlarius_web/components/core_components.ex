@@ -248,6 +248,8 @@ defmodule QlariusWeb.CoreComponents do
 
   # All other inputs text, datetime-local, url, password, etc. are handled here...
   def input(assigns) do
+    assigns = assign(assigns, :class, ["", assigns.rest[:class] || ""])
+
     ~H"""
     <fieldset class="fieldset mb-2">
       <label>
@@ -257,7 +259,7 @@ defmodule QlariusWeb.CoreComponents do
           name={@name}
           id={@id}
           value={Phoenix.HTML.Form.normalize_value(@type, @value)}
-          class={["w-full input", @errors != [] && "input-error"]}
+          class={@class}
           {@rest}
         />
       </label>

@@ -1,0 +1,24 @@
+<div class="container mx-auto px-4">
+  <div class="mb-4">
+    <.back navigate={~p"/admin/recipients"} class="btn btn-outline">Back to recipients</.back>
+  </div>
+
+  <div>
+    <.header>
+      <div class="flex items-center">
+        <h1 class="text-2xl font-bold">
+          Edit Recipient "<span class="text-primary"><%= @recipient.name %></span>"
+        </h1>
+      </div>
+      <:subtitle class="mt-2 text-base-content/70">Edit recipient information.</:subtitle>
+    </.header>
+  </div>
+
+  <.recipient_form
+    changeset={@changeset}
+    action={~p"/admin/recipients/#{@recipient}"}
+    method="put"
+    submit_label="Update Recipient"
+  />
+
+</div> 

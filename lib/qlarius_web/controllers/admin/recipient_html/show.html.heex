@@ -1,0 +1,16 @@
+<div class="p-6 max-w-xl mx-auto">
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title text-2xl mb-2"><%= @recipient.name %></h2>
+      <ul class="mb-4">
+        <li><strong>Split Code:</strong> <%= @recipient.split_code %></li>
+        <li><strong>Type:</strong> <%= @recipient.recipient_type_id %></li>
+        <li><strong>Contact Email:</strong> <%= @recipient.contact_email %></li>
+      </ul>
+      <div class="flex gap-2">
+        <.link href={~p"/admin/recipients/#{@recipient}/edit"} class="btn btn-warning">Edit</.link>
+        <.link href={~p"/admin/recipients"} class="btn">Back</.link>
+      </div>
+    </div>
+  </div>
+</div> 

@@ -1,0 +1,55 @@
+<div class="p-6">
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-bold">Recipients</h1>
+    <.link navigate={~p"/admin/recipients/new"} class="btn btn-primary">New Recipient</.link>
+  </div>
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body p-0">
+      <div class="overflow-x-auto">
+        <.table id="recipients-table" rows={@recipients} class="table-zebra">
+          <:col :let={recipient} label="Name">{recipient.name}</:col>
+          <:col :let={recipient} label="Brand Graphic">
+            <%= if recipient.graphic_url do %>
+                    <img
+                      src={
+                        QlariusWeb.Uploaders.RecipientBrandImage.url(
+                          {recipient.graphic_url, recipient},
+                          :original
+                        )
+                      }
+                      alt="Brand Graphic"
+                      class="w-20 h-auto object-cover rounded"
+                    />
+                  <% else %>
+                    <div class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center">
+                      <span class="text-gray-400 text-xs">No banner</span>
+                    </div>
+                  <% end %>
+          </:col>
+          <:col :let={recipient} label="Site URL">{recipient.site_url}</:col>
+          <:col :let={recipient} label="Actions">
+            <div class="flex gap-2">
+              <.link navigate={~p"/admin/recipients/#{recipient}"} class="btn btn-xs btn-info">
+                Show
+              </.link>
+              <.link
+                navigate={~p"/admin/recipients/#{recipient}/edit"}
+                class="btn btn-xs btn-warning"
+              >
+                Edit
+              </.link>
+              <.link
+                navigate={~p"/admin/recipients/#{recipient}"}
+                method="delete"
+                data-confirm="Are you sure?"
+                class="btn btn-xs btn-error"
+              >
+                Delete
+              </.link>
+            </div>
+          </:col>
+        </.table>
+      </div>
+    </div>
+  </div>
+</div>

@@ -49,10 +49,7 @@ defmodule QlariusWeb.MediaPieceController do
     Logger.info("Updating media piece #{id} with params: #{inspect(media_piece_params)}")
 
     case Marketing.update_media_piece(media_piece, media_piece_params) do
-      {:ok, media_piece} ->
-        Logger.info(
-          "Successfully updated media piece #{id}. Banner image: #{inspect(media_piece.banner_image)}"
-        )
+      {:ok, _media_piece} ->
 
         conn
         |> put_flash(:info, "Media piece updated successfully.")

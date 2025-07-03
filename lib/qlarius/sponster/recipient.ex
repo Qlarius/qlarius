@@ -1,6 +1,7 @@
 defmodule Qlarius.Sponster.Recipient do
   use Ecto.Schema
   import Ecto.Changeset
+  use Waffle.Ecto.Schema
 
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
@@ -12,7 +13,7 @@ defmodule Qlarius.Sponster.Recipient do
     field :message, :string
     field :target_amount, :decimal
     field :site_url, :string
-    field :graphic_url, :string
+    field :graphic_url, QlariusWeb.Uploaders.RecipientBrandImage.Type
     field :contact_email, :string
     field :approval_date, :naive_datetime
     field :referral_code, :string
@@ -34,13 +35,13 @@ defmodule Qlarius.Sponster.Recipient do
       :message,
       :target_amount,
       :site_url,
-      :graphic_url,
       :recipient_type_id,
       :contact_email,
       :approval_date,
       :approved_by_user_id,
       :referral_code
     ])
+    |> cast_attachments(attrs, [:graphic_url])
     |> validate_required([
       :user_id,
       :name,

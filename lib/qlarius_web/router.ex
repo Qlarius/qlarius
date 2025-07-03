@@ -137,10 +137,10 @@ defmodule QlariusWeb.Router do
   end
 
   scope "/creators", QlariusWeb.Creators do
-    pipe_through [:browser]
+    pipe_through [:browser, :admin]
 
     live_session :creators, on_mount: [
-      {QlariusWeb.UserAuth, :mount_current_scope},
+      # {QlariusWeb.UserAuth, :mount_current_scope},
       {QlariusWeb.Layouts, :set_current_path}
     ] do
       resources "/content_pieces", ContentPieceController, only: [:delete]
@@ -169,5 +169,6 @@ defmodule QlariusWeb.Router do
     pipe_through [:browser, :admin]
 
     live "/", DashboardLive, :index
+    resources "/recipients", RecipientController
   end
 end
