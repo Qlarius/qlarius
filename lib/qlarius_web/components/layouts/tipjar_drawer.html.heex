@@ -116,7 +116,7 @@
         </div>
         <div class="w-56 h-56 bg-gray-100 shadow-md flex items-center justify-center mb-4 overflow-hidden">
           <img
-            src={@recipient.graphic_url || ~p"/images/tipjar_love_default.png"}
+            src={QlariusWeb.Uploaders.RecipientBrandImage.url({@recipient.graphic_url, @recipient} || ~p"/images/tipjar_love_default.png")}
             alt="Recipient"
             class="object-contain w-full h-full"
           />
