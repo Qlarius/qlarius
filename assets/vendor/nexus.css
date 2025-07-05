@@ -5410,9 +5410,10 @@ body {
     grid-template-columns: repeat(12, minmax(0, 1fr))
   }
 
-  .flex-col {
+  /* commenting out flex-col to avoid conflicts with daisyui */
+  /* .flex-col {
     flex-direction: column
-  }
+  } */
 
   .flex-wrap {
     flex-wrap: wrap
