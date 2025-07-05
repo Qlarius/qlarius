@@ -100,3 +100,5 @@ config :phoenix_live_view,
 config :swoosh, :api_client, false
 
 config :qlarius, debug_enabled: true
+
+config :logger, level: :debug

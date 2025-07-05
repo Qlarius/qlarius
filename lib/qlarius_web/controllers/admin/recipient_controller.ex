@@ -9,9 +9,22 @@ defmodule QlariusWeb.Admin.RecipientController do
     render(conn, "index.html", recipients: recipients)
   end
 
-  def show(conn, %{"id" => id}) do
+  def show(conn, %{"id" => id, "page" => page_param}) do
     recipient = Recipients.get_recipient!(id)
-    render(conn, "show.html", recipient: recipient)
+    page = String.to_integer(page_param || "1")
+    # Preload the ledger header for this recipient
+    ledger_header = Qlarius.Repo.get_by(Qlarius.Wallets.LedgerHeader, recipient_id: recipient.id)
+    ledger_entries_page =
+      if ledger_header do
+        Qlarius.Wallets.Wallets.list_ledger_entries(ledger_header.id, page, 50)
+      else
+        %{entries: [], page_number: page, page_size: 50, total_entries: 0, total_pages: 1}
+      end
+    render(conn, "show.html", recipient: recipient, ledger_header: ledger_header, ledger_entries_page: ledger_entries_page)
+  end
+
+  def show(conn, %{"id" => id}) do
+    show(conn, %{"id" => id, "page" => "1"})
   end
 
   def new(conn, _params) do

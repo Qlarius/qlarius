@@ -1,5 +1,6 @@
 defmodule Qlarius.Wallets.Wallets do
   import Ecto.Query
+  require Logger
 
   alias Qlarius.Repo
   alias Qlarius.Wallets.{LedgerHeader, LedgerEntry}
@@ -129,40 +130,48 @@ defmodule Qlarius.Wallets.Wallets do
             join: h in assoc(e, :ledger_header),
             where: e.ad_event_id == ^ad_event.id and h.recipient_id == ^ad_event.recipient_id
         )
+
       if existing_ledger_entry do
         {:error, :ledger_entry_exists}
       else
-        #revshare from mefile to recipient
-        new_balance = Decimal.add(ledger_header.balance, ad_event.event_recipient_collect_amt)
+        # Log initial balance and amounts
+        Logger.debug("Initial Ledger Header Balance: #{ledger_header.balance}")
+        Logger.debug("Event Recipient Collect Amount: #{ad_event.event_recipient_collect_amt}")
+        Logger.debug("Event Sponster to Recipient Amount: #{ad_event.event_sponster_to_recipient_amt}")
+
+        # Revshare from mefile to recipient
+        new_balance_from_me_file = Decimal.add(ledger_header.balance, ad_event.event_recipient_collect_amt)
+        Logger.debug("New Balance from MeFile: #{new_balance_from_me_file}")
+
         # Create a new ledger entry for the ad event
         %LedgerEntry{}
         |> LedgerEntry.changeset(%{
           ledger_header_id: ledger_header.id,
           amt: ad_event.event_recipient_collect_amt,
-          running_balance: new_balance,
+          running_balance: new_balance_from_me_file,
           description: "RevShare - #{phase_description} - MeFile: #{ad_event.me_file_id}",
           ad_event_id: ad_event.id
         })
         |> Repo.insert!()
-        # Update the ledger header
-        ledger_header
-        |> Ecto.Changeset.change(balance: new_balance)
-        |> Repo.update!()
-        #revshare from sponster to recipient
-        new_balance = Decimal.add(ledger_header.balance, ad_event.event_sponster_to_recipient_amt)
+
+        # Revshare from sponster to recipient
+        new_balance_from_sponster = Decimal.add(new_balance_from_me_file, ad_event.event_sponster_to_recipient_amt)
+        Logger.debug("New Balance from Sponster: #{new_balance_from_sponster}")
+
         # Create a new ledger entry for the ad event
         %LedgerEntry{}
         |> LedgerEntry.changeset(%{
           ledger_header_id: ledger_header.id,
           amt: ad_event.event_sponster_to_recipient_amt,
-          running_balance: new_balance,
+          running_balance: new_balance_from_sponster,
           description: "RevShare - #{phase_description} - SPONSTER",
           ad_event_id: ad_event.id
         })
         |> Repo.insert!()
-        # Update the ledger header
+
+        # Update the ledger header with the final ledger entry running balance
         ledger_header
-        |> Ecto.Changeset.change(balance: new_balance)
+        |> Ecto.Changeset.change(balance: new_balance_from_sponster)
         |> Repo.update!()
       end
     end)

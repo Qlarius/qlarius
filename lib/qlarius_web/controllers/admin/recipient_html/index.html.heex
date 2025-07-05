@@ -1,7 +1,10 @@
 <div class="p-6">
   <div class="flex justify-between items-center mb-4">
     <h1 class="text-2xl font-bold">Recipients</h1>
-    <.link navigate={~p"/admin/recipients/new"} class="btn btn-primary">New Recipient</.link>
+    <.link navigate={~p"/admin/recipients/new"} class="btn btn-primary">
+      <.icon name="hero-plus" class="w-4 h-4 mr-1" />
+      New Recipient
+    </.link>
   </div>
   <div class="card bg-base-100 shadow-xl">
     <div class="card-body p-0">
@@ -30,13 +33,13 @@
           <:col :let={recipient} label="Actions">
             <div class="flex gap-2">
               <.link navigate={~p"/admin/recipients/#{recipient}"} class="btn btn-xs btn-info">
-                Show
+                <.icon name="hero-eye" class="w-4 h-4" />
               </.link>
               <.link
                 navigate={~p"/admin/recipients/#{recipient}/edit"}
                 class="btn btn-xs btn-warning"
               >
-                Edit
+                <.icon name="hero-pencil-square" class="w-4 h-4" />
               </.link>
               <.link
                 navigate={~p"/admin/recipients/#{recipient}"}
@@ -44,7 +47,7 @@
                 data-confirm="Are you sure?"
                 class="btn btn-xs btn-error"
               >
-                Delete
+                <.icon name="hero-trash" class="w-4 h-4" />
               </.link>
             </div>
           </:col>
