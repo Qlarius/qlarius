@@ -48,20 +48,13 @@ defmodule QlariusWeb.ProxyUsersLive do
           <:col :let={proxy} label="Username">{proxy.proxy_user.username}</:col>
           <:col :let={proxy} label="Alias">{proxy.proxy_user.email}</:col>
           <:col :let={proxy} label="Status">
-            <.button
-              phx-click="toggle_proxy"
-              phx-value-id={proxy.id}
-              class={
-                "transition-colors " <>
-                if proxy.active do
-                  "!bg-green-500 hover:!bg-green-600"
-                else
-                  "!bg-gray-500 hover:!bg-gray-600"
-                end
-              }
-            >
-              {if proxy.active, do: "Active", else: "Inactive"}
-            </.button>
+              <input
+                type="checkbox"
+                class="toggle toggle-success"
+                checked={proxy.active}
+                phx-click="toggle_proxy"
+                phx-value-id={proxy.id}
+              />
           </:col>
         </.table>
       </div>
