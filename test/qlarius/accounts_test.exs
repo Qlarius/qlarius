@@ -878,4 +878,90 @@ defmodule Qlarius.AccountsTest do
       refute inspect(%User{password: "123456"}) =~ "password: \"123456\""
     end
   end
+
+  describe "marketers" do
+    alias Qlarius.Accounts.Marketer
+
+    import Qlarius.AccountsFixtures, only: [user_scope_fixture: 0]
+    import Qlarius.AccountsFixtures
+
+    @invalid_attrs %{name: nil}
+
+    test "list_marketers/1 returns all scoped marketers" do
+      scope = user_scope_fixture()
+      other_scope = user_scope_fixture()
+      marketer = marketer_fixture(scope)
+      other_marketer = marketer_fixture(other_scope)
+      assert Accounts.list_marketers(scope) == [marketer]
+      assert Accounts.list_marketers(other_scope) == [other_marketer]
+    end
+
+    test "get_marketer!/2 returns the marketer with given id" do
+      scope = user_scope_fixture()
+      marketer = marketer_fixture(scope)
+      other_scope = user_scope_fixture()
+      assert Accounts.get_marketer!(scope, marketer.id) == marketer
+      assert_raise Ecto.NoResultsError, fn -> Accounts.get_marketer!(other_scope, marketer.id) end
+    end
+
+    test "create_marketer/2 with valid data creates a marketer" do
+      valid_attrs = %{name: "some name"}
+      scope = user_scope_fixture()
+
+      assert {:ok, %Marketer{} = marketer} = Accounts.create_marketer(scope, valid_attrs)
+      assert marketer.name == "some name"
+      assert marketer.user_id == scope.user.id
+    end
+
+    test "create_marketer/2 with invalid data returns error changeset" do
+      scope = user_scope_fixture()
+      assert {:error, %Ecto.Changeset{}} = Accounts.create_marketer(scope, @invalid_attrs)
+    end
+
+    test "update_marketer/3 with valid data updates the marketer" do
+      scope = user_scope_fixture()
+      marketer = marketer_fixture(scope)
+      update_attrs = %{name: "some updated name"}
+
+      assert {:ok, %Marketer{} = marketer} = Accounts.update_marketer(scope, marketer, update_attrs)
+      assert marketer.name == "some updated name"
+    end
+
+    test "update_marketer/3 with invalid scope raises" do
+      scope = user_scope_fixture()
+      other_scope = user_scope_fixture()
+      marketer = marketer_fixture(scope)
+
+      assert_raise MatchError, fn ->
+        Accounts.update_marketer(other_scope, marketer, %{})
+      end
+    end
+
+    test "update_marketer/3 with invalid data returns error changeset" do
+      scope = user_scope_fixture()
+      marketer = marketer_fixture(scope)
+      assert {:error, %Ecto.Changeset{}} = Accounts.update_marketer(scope, marketer, @invalid_attrs)
+      assert marketer == Accounts.get_marketer!(scope, marketer.id)
+    end
+
+    test "delete_marketer/2 deletes the marketer" do
+      scope = user_scope_fixture()
+      marketer = marketer_fixture(scope)
+      assert {:ok, %Marketer{}} = Accounts.delete_marketer(scope, marketer)
+      assert_raise Ecto.NoResultsError, fn -> Accounts.get_marketer!(scope, marketer.id) end
+    end
+
+    test "delete_marketer/2 with invalid scope raises" do
+      scope = user_scope_fixture()
+      other_scope = user_scope_fixture()
+      marketer = marketer_fixture(scope)
+      assert_raise MatchError, fn -> Accounts.delete_marketer(other_scope, marketer) end
+    end
+
+    test "change_marketer/2 returns a marketer changeset" do
+      scope = user_scope_fixture()
+      marketer = marketer_fixture(scope)
+      assert %Ecto.Changeset{} = Accounts.change_marketer(scope, marketer)
+    end
+  end
 end

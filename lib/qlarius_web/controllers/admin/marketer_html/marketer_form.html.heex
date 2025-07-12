@@ -1,0 +1,9 @@
+<.form :let={f} for={@changeset} action={@action} class="space-y-4">
+  <.input field={f[:name]} label="Name" class="input input-bordered w-full" />
+  <div>
+    <.button class="btn btn-primary">
+      {@submit_label || "Save Marketer"}
+    </.button>
+    <.link navigate={@return_to || ~p"/marketers"} class="btn ml-2">Cancel</.link>
+  </div>
+</.form>

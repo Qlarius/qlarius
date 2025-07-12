@@ -28,14 +28,16 @@ defmodule QlariusWeb.Router do
     plug :set_current_path
   end
 
-  pipeline :marketer do
-    plug :put_layout, {QlariusWeb.Layouts, :admin}
-  end
-
   pipeline :admin do
     plug :put_layout, {QlariusWeb.Layouts, :admin}
     # plug QlariusWeb.UserAuth, :require_admin_user # TODO: Add a plug to ensure user is an admin
   end
+
+  pipeline :marketer do
+    plug :put_layout, {QlariusWeb.Layouts, :marketer}
+  end
+
+
 
   pipeline :api do
     plug :accepts, ["json"]
@@ -165,5 +167,6 @@ defmodule QlariusWeb.Router do
 
     live "/", DashboardLive, :index
     resources "/recipients", RecipientController
+    resources "/marketers", MarketerController
   end
 end

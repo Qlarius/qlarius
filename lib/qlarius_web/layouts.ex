@@ -60,14 +60,10 @@ defmodule QlariusWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
       <div class="mx-auto">
         <.flash_group flash={@flash} />
         {render_slot(@inner_block)}
       </div>
-      <!-- Simple test -->
-      <div class="fixed top-0 left-0 bg-blue-500 text-white p-2 z-50">TEST</div>
-    </main>
     """
   end
 
@@ -157,9 +153,9 @@ defmodule QlariusWeb.Layouts do
     """
   end
 
-  attr :current_scope, Scope, required: true
+  # attr :current_scope, Scope, required: true
 
-  def sponster_sidebar(assigns)
+  # def sponster_sidebar(assigns)
 
   # Call this plug in the layout to set the @current_path assign,
   # which must be present for the 'marketers' layout to work.
@@ -196,10 +192,10 @@ defmodule QlariusWeb.Layouts do
 
   def marketers(assigns) do
     ~H"""
+
+
+
     <div class="bg-white shadow-md">
-      <div class="px-4 py-2">
-        <span class="text-gray-700 font-semibold text-xl">qlarius</span>
-      </div>
 
       <div class="flex bg-green-500 text-white">
         <.marketer_navbar_link current_path={@current_path} path={~p"/trait_groups"}>
@@ -232,6 +228,7 @@ defmodule QlariusWeb.Layouts do
     <div class="container mx-auto px-4 py-8">
       {render_slot(@inner_block)}
     </div>
+
     """
   end
 
@@ -301,20 +298,20 @@ defmodule QlariusWeb.Layouts do
     """
   end
 
-  def admin(assigns) do
-    ~H"""
-    <!DOCTYPE html>
-    <html lang="en" class="h-full bg-gray-100">
-      <head>
-        ...
-      </head>
-      <body class="h-full">
-        <.flash_group flash={@flash} />
-        <%= @inner_content %>
-      </body>
-    </html>
-    """
-  end
+  # def admin(assigns) do
+  #   ~H"""
+  #   <!DOCTYPE html>
+  #   <html lang="en" class="h-full bg-gray-100">
+  #     <head>
+  #       ...
+  #     </head>
+  #     <body class="h-full">
+  #       <.flash_group flash={@flash} />
+  #       <%= @inner_content %>
+  #     </body>
+  #   </html>
+  #   """
+  # end
 
   @doc """
   Shows the flash group with standard titles and content.

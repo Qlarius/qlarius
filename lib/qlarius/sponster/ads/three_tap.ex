@@ -36,16 +36,13 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
     # if recipient is provided, calculate the revshare to the recipient
     ad_event_attrs = if recipient && split_amount > 0 do
       split_percentage = Decimal.div(Decimal.new(split_amount), Decimal.new(100))
-      IO.inspect(split_percentage, label: "Split percentage")
 
       split_amount_to_recipient =
         ad_event_attrs.event_me_file_collect_amt
         |> Decimal.mult(split_percentage)
         |> Decimal.round(2, :down)
-      IO.inspect(split_amount_to_recipient, label: "Split amount to recipient")
 
       adjusted_me_file_collect_amt = Decimal.sub(ad_event_attrs.event_me_file_collect_amt, split_amount_to_recipient)
-      IO.inspect(adjusted_me_file_collect_amt, label: "Adjusted me file collect amount")
 
       updated_attrs = Map.merge(ad_event_attrs, %{
         recipient_id: recipient.id,
@@ -58,23 +55,18 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
         event_sponster_collect_amt: Decimal.sub(ad_event_attrs.event_sponster_collect_amt, Decimal.new("0.01")),
         event_sponster_to_recipient_amt: Decimal.new("0.01")
       })
-      IO.inspect(updated_attrs, label: "Updated ad event attrs with recipient")
       updated_attrs
     else
       ad_event_attrs
     end
 
-    IO.inspect(ad_event_attrs, label: "Final Ad Event Attributes")
 
     ad_event_changeset = AdEvent.changeset(%AdEvent{}, ad_event_attrs)
 
     # TODO: determine if offer is complete
-    # TODO: determine if recipient is provided
-    # TODO: calculate splits when recipient is provided
 
     case Repo.insert(ad_event_changeset) do
       {:ok, ad_event} ->
-        IO.inspect(ad_event, label: "Created Ad Event")
 
         case Wallets.update_ledgers_from_ad_event(ad_event) do
           {:ok, _} -> {:ok, ad_event}
@@ -82,7 +74,6 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
         end
 
       {:error, changeset} ->
-        IO.inspect(changeset, label: "Ad Event Creation Error")
         {:error, changeset}
     end
   end
@@ -99,10 +90,8 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
       )
 
     event_me_file_collect_amt = Decimal.sub(offer.offer_amt, previous_phase.pay_to_me_file_fixed)
-    IO.inspect(event_me_file_collect_amt, label: "Event Me File Collect Amount")
 
     event_sponster_collect_amt = Decimal.sub(event_marketer_cost_amt, event_me_file_collect_amt)
-    IO.inspect(event_sponster_collect_amt, label: "Event Sponster Collect Amount")
 
     ad_event_attrs = %{
       offer_id: offer.id,
@@ -125,21 +114,17 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
       ip_address: ip,
       url: url
     }
-    IO.inspect(ad_event_attrs, label: "Initial Ad Event Attributes")
 
     # if recipient is provided, calculate the revshare to the recipient
     ad_event_attrs = if recipient && split_amount > 0 do
       split_percentage = Decimal.div(Decimal.new(split_amount), Decimal.new(100))
-      IO.inspect(split_percentage, label: "Split percentage")
 
       split_amount_to_recipient =
         ad_event_attrs.event_me_file_collect_amt
         |> Decimal.mult(split_percentage)
         |> Decimal.round(2, :down)
-      IO.inspect(split_amount_to_recipient, label: "Split amount to recipient")
 
       adjusted_me_file_collect_amt = Decimal.sub(ad_event_attrs.event_me_file_collect_amt, split_amount_to_recipient)
-      IO.inspect(adjusted_me_file_collect_amt, label: "Adjusted me file collect amount")
 
       updated_attrs = Map.merge(ad_event_attrs, %{
         recipient_id: recipient.id,
@@ -157,17 +142,13 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
       ad_event_attrs
     end
 
-    IO.inspect(ad_event_attrs, label: "Final Ad Event Attributes")
 
     ad_event_changeset = AdEvent.changeset(%AdEvent{}, ad_event_attrs)
 
     # TODO: determine if offer is complete
-    # TODO: determine if recipient is provided
-    # TODO: calculate splits when recipient is provided
 
     case Repo.insert(ad_event_changeset) do
       {:ok, ad_event} ->
-        IO.inspect(ad_event, label: "Created Ad Event")
 
         case Wallets.update_ledgers_from_ad_event(ad_event) do
           {:ok, _} -> {:ok, ad_event}
@@ -175,7 +156,6 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
         end
 
       {:error, changeset} ->
-        IO.inspect(changeset, label: "Ad Event Creation Error")
         {:error, changeset}
     end
   end

@@ -6,8 +6,6 @@ defmodule QlariusWeb.ProxyUsersLive do
   alias Qlarius.Accounts.Scope
   alias QlariusWeb.Layouts
 
-  @debug false
-
   import Layouts,
     only: [
       toggle_sponster_sidebar: 1,
@@ -58,10 +56,6 @@ defmodule QlariusWeb.ProxyUsersLive do
           </:col>
         </.table>
       </div>
-      <!-- Debug section -->
-      <pre class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
-        <%= inspect(assigns, pretty: true) %>
-      </pre>
     </Layouts.sponster>
     """
   end

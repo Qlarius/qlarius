@@ -1,0 +1,21 @@
+<div class="container mx-auto px-4">
+  <div class="mb-4">
+    <.back navigate={~p"/marketers"} class="btn btn-outline">Back to marketers</.back>
+  </div>
+
+  <div>
+    <.header>
+      <div class="flex items-center">
+        <h1 class="text-2xl font-bold">New Marketer</h1>
+      </div>
+      <:subtitle class="mt-2 text-base-content/70">Create a new marketer.</:subtitle>
+    </.header>
+  </div>
+
+  <.marketer_form
+    changeset={@changeset}
+    action={~p"/marketers"}
+    return_to={~p"/marketers"}
+    submit_label="Create Marketer"
+  />
+</div>

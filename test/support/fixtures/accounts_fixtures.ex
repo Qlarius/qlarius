@@ -101,4 +101,17 @@ defmodule Qlarius.AccountsFixtures do
     Qlarius.Repo.insert!(user_token)
     {encoded_token, user_token.token}
   end
+
+  @doc """
+  Generate a marketer.
+  """
+  def marketer_fixture(scope, attrs \\ %{}) do
+    attrs =
+      Enum.into(attrs, %{
+        name: "some name"
+      })
+
+    {:ok, marketer} = Qlarius.Accounts.create_marketer(scope, attrs)
+    marketer
+  end
 end

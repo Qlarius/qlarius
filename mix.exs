@@ -69,6 +69,7 @@ defmodule Qlarius.MixProject do
       {:hackney, "~> 1.9"},
       {:sweet_xml, "~> 0.6"},
       {:tidewave, "~> 0.1", only: :dev},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:tzdata, "~> 1.1"}
     ]
   end
