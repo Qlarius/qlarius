@@ -6,7 +6,7 @@ defmodule Qlarius.Accounts.Marketers do
   import Ecto.Query
 
   def list_marketers(%Scope{} = scope) do
-    Repo.all(from m in Marketer)
+    Repo.all(from(m in Marketer))
   end
 
   def get_marketer!(%Scope{} = scope, id) do

@@ -11,6 +11,7 @@ defmodule Qlarius.Sponster.Offers do
   @doc """
   Returns the list of offers for a user, in descending order of their amount
   """
+
   # def list_user_offers(user_id) do
   #   from(o in Offer,
   #     join: u in assoc(o, :user),

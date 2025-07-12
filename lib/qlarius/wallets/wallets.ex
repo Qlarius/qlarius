@@ -16,7 +16,6 @@ defmodule Qlarius.Wallets.Wallets do
     end
   end
 
-
   def get_me_file_ledger_header(%MeFile{} = me_file) do
     Repo.get_by(LedgerHeader, me_file_id: me_file.id)
   end
@@ -81,24 +80,27 @@ defmodule Qlarius.Wallets.Wallets do
     Repo.transaction(fn ->
       # Check if ledger entry already exists for this ad_event
       ledger_header = Repo.get_by!(LedgerHeader, me_file_id: ad_event.me_file_id)
+
       existing_ledger_entry =
         Repo.one(
           from e in LedgerEntry,
             join: h in assoc(e, :ledger_header),
             where: e.ad_event_id == ^ad_event.id and h.me_file_id == ^ad_event.me_file_id
         )
+
       if existing_ledger_entry do
         {:error, :ledger_entry_exists}
       else
         new_balance =
           Decimal.add(ledger_header.balance, ad_event.event_me_file_collect_amt)
+
         new_balance_payable =
           if ad_event.is_payable do
-            Decimal.add(ledger_header.balance, ad_event.event_me_file_collect_amt
-            )
+            Decimal.add(ledger_header.balance, ad_event.event_me_file_collect_amt)
           else
             ledger_header.balance
           end
+
         # Create a new ledger entry for the ad event
         %LedgerEntry{}
         |> LedgerEntry.changeset(%{
@@ -110,12 +112,16 @@ defmodule Qlarius.Wallets.Wallets do
           running_balance_payable: new_balance_payable
         })
         |> Repo.insert!()
+
         # Update the ledger header
         ledger_header
         |> Ecto.Changeset.change(balance: new_balance, balance_payable: new_balance_payable)
         |> Repo.update!()
 
-        MeFileBalanceBroadcaster.broadcast_me_file_balance_update(ad_event.me_file_id, new_balance)
+        MeFileBalanceBroadcaster.broadcast_me_file_balance_update(
+          ad_event.me_file_id,
+          new_balance
+        )
       end
     end)
   end
@@ -124,6 +130,7 @@ defmodule Qlarius.Wallets.Wallets do
     Repo.transaction(fn ->
       # Check if ledger entry already exists for this ad_event
       ledger_header = Repo.get_by!(LedgerHeader, recipient_id: ad_event.recipient_id)
+
       existing_ledger_entry =
         Repo.one(
           from e in LedgerEntry,
@@ -137,10 +144,15 @@ defmodule Qlarius.Wallets.Wallets do
         # Log initial balance and amounts
         Logger.debug("Initial Ledger Header Balance: #{ledger_header.balance}")
         Logger.debug("Event Recipient Collect Amount: #{ad_event.event_recipient_collect_amt}")
-        Logger.debug("Event Sponster to Recipient Amount: #{ad_event.event_sponster_to_recipient_amt}")
+
+        Logger.debug(
+          "Event Sponster to Recipient Amount: #{ad_event.event_sponster_to_recipient_amt}"
+        )
 
         # Revshare from mefile to recipient
-        new_balance_from_me_file = Decimal.add(ledger_header.balance, ad_event.event_recipient_collect_amt)
+        new_balance_from_me_file =
+          Decimal.add(ledger_header.balance, ad_event.event_recipient_collect_amt)
+
         Logger.debug("New Balance from MeFile: #{new_balance_from_me_file}")
 
         # Create a new ledger entry for the ad event
@@ -155,7 +167,9 @@ defmodule Qlarius.Wallets.Wallets do
         |> Repo.insert!()
 
         # Revshare from sponster to recipient
-        new_balance_from_sponster = Decimal.add(new_balance_from_me_file, ad_event.event_sponster_to_recipient_amt)
+        new_balance_from_sponster =
+          Decimal.add(new_balance_from_me_file, ad_event.event_sponster_to_recipient_amt)
+
         Logger.debug("New Balance from Sponster: #{new_balance_from_sponster}")
 
         # Create a new ledger entry for the ad event
@@ -181,12 +195,14 @@ defmodule Qlarius.Wallets.Wallets do
     Repo.transaction(fn ->
       # Check if ledger entry already exists for this ad_event
       ledger_header = Repo.get_by!(LedgerHeader, campaign_id: ad_event.campaign_id)
+
       existing_ledger_entry =
         Repo.one(
           from e in LedgerEntry,
             join: h in assoc(e, :ledger_header),
             where: e.ad_event_id == ^ad_event.id and h.campaign_id == ^ad_event.campaign_id
         )
+
       if existing_ledger_entry do
         {:error, :ledger_entry_exists}
       else
@@ -201,6 +217,7 @@ defmodule Qlarius.Wallets.Wallets do
           ad_event_id: ad_event.id
         })
         |> Repo.insert!()
+
         # Update the ledger header
         ledger_header
         |> Ecto.Changeset.change(balance: new_balance)
@@ -213,11 +230,13 @@ defmodule Qlarius.Wallets.Wallets do
     Repo.transaction(fn ->
       # Get the master sponster ledger header (with id 1
       ledger_header = Repo.get!(LedgerHeader, 1)
+
       existing_ledger_entry =
         Repo.one(
           from e in LedgerEntry,
             where: e.ad_event_id == ^ad_event.id and e.ledger_header_id == 1
         )
+
       if existing_ledger_entry do
         {:error, :ledger_entry_exists}
       else
@@ -228,10 +247,12 @@ defmodule Qlarius.Wallets.Wallets do
           ledger_header_id: ledger_header.id,
           amt: ad_event.event_sponster_collect_amt,
           running_balance: new_balance,
-          description: "Ad Revenue - #{marketer_name} - #{phase_description} - MeFile: #{ad_event.me_file_id}",
+          description:
+            "Ad Revenue - #{marketer_name} - #{phase_description} - MeFile: #{ad_event.me_file_id}",
           ad_event_id: ad_event.id
         })
         |> Repo.insert!()
+
         # Update the ledger header
         ledger_header
         |> Ecto.Changeset.change(balance: new_balance)
@@ -240,29 +261,28 @@ defmodule Qlarius.Wallets.Wallets do
     end)
   end
 
- # Simulate topping up by $2. Useful when debugging.
- def fake_topup(user) do
-  Repo.transaction(fn ->
-    ledger_header = user.me_file.ledger_header
+  # Simulate topping up by $2. Useful when debugging.
+  def fake_topup(user) do
+    Repo.transaction(fn ->
+      ledger_header = user.me_file.ledger_header
 
-    amount = Decimal.new(2)
+      amount = Decimal.new(2)
 
-    new_balance = Decimal.add(ledger_header.balance || Decimal.new(0), amount)
+      new_balance = Decimal.add(ledger_header.balance || Decimal.new(0), amount)
 
-    ledger_header
-    |> Ecto.Changeset.change(balance: new_balance)
-    |> Repo.update!()
+      ledger_header
+      |> Ecto.Changeset.change(balance: new_balance)
+      |> Repo.update!()
 
-    %LedgerEntry{
-      ledger_header_id: ledger_header.id,
-      amt: amount,
-      running_balance: new_balance,
-      description: "Top up"
-    }
-    |> Repo.insert!()
-  end)
+      %LedgerEntry{
+        ledger_header_id: ledger_header.id,
+        amt: amount,
+        running_balance: new_balance,
+        description: "Top up"
+      }
+      |> Repo.insert!()
+    end)
 
-  :ok
-end
-
+    :ok
+  end
 end

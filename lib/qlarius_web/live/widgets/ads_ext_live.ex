@@ -47,7 +47,11 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
 
     if connected?(socket) do
       send(self(), :load_offers)
-      MeFileBalanceBroadcaster.subscribe_to_me_file_balance(socket.assigns.current_scope.user.me_file.id)
+
+      MeFileBalanceBroadcaster.subscribe_to_me_file_balance(
+        socket.assigns.current_scope.user.me_file.id
+      )
+
       {:ok, socket}
     else
       {:ok, socket}
@@ -58,7 +62,8 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   def handle_info(:load_offers, socket) do
     query =
       from(o in Offer,
-        where: o.me_file_id == ^socket.assigns.current_scope.user.me_file.id and o.is_current == true,
+        where:
+          o.me_file_id == ^socket.assigns.current_scope.user.me_file.id and o.is_current == true,
         order_by: [desc: o.offer_amt],
         preload: [media_piece: :ad_category]
       )
@@ -76,7 +81,9 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
 
   @impl true
   def handle_info({:refresh_wallet_balance, me_file_id}, socket) do
-    new_balance = Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
+    new_balance =
+      Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
+
     current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
     {:noreply, assign(socket, :current_scope, current_scope)}
   end
@@ -94,8 +101,15 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
 
     case MeFile.update_me_file_split_amount(me_file, split_amount) do
       {:ok, updated_me_file} ->
-        current_scope = Map.put(socket.assigns.current_scope, :user, Map.put(socket.assigns.current_scope.user, :me_file, updated_me_file))
+        current_scope =
+          Map.put(
+            socket.assigns.current_scope,
+            :user,
+            Map.put(socket.assigns.current_scope.user, :me_file, updated_me_file)
+          )
+
         {:noreply, assign(socket, :current_scope, current_scope)}
+
       {:error, _changeset} ->
         {:noreply, socket}
     end
@@ -105,7 +119,6 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   def render(assigns) do
     ~H"""
     <Layouts.tipjar_container {assigns}>
-
       <div class="container mx-auto px-0 py-8 max-w-3xl my-[60px]">
         <.live_component
           module={QlariusWeb.ThreeTapStackComponent}
@@ -117,7 +130,6 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
           recipient={@recipient}
         />
       </div>
-
     </Layouts.tipjar_container>
     <Layouts.debug_assigns {assigns} />
     """

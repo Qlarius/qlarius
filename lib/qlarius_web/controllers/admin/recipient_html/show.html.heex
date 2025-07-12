@@ -57,9 +57,9 @@
           <span class="text-green-700 font-mono">
             <%= case DateTime.shift_zone(DateTime.utc_now(), "America/Chicago") do %>
               <% {:ok, chicago_time} -> %>
-                <%= Calendar.strftime(chicago_time, "%Y-%m-%d %-I:%M %p CST") %>
+                {Calendar.strftime(chicago_time, "%Y-%m-%d %-I:%M %p CST")}
               <% {:error, _} -> %>
-                <%= Calendar.strftime(DateTime.utc_now(), "%Y-%m-%d %-I:%M %p UTC") %>
+                {Calendar.strftime(DateTime.utc_now(), "%Y-%m-%d %-I:%M %p UTC")}
             <% end %>
           </span>
         </div>

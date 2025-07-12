@@ -6,7 +6,13 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
   alias Qlarius.Sponster.Ads.{MediaPiecePhase, MediaPieceType}
   alias Qlarius.Wallets.Wallets
 
-  def create_banner_ad_event(offer, recipient \\ nil, split_amount \\ 0, ip \\ "0.0.0.0", url \\ "https://here.com") do
+  def create_banner_ad_event(
+        offer,
+        recipient \\ nil,
+        split_amount \\ 0,
+        ip \\ "0.0.0.0",
+        url \\ "https://here.com"
+      ) do
     # type = Repo.get!(MediaPieceType, 1)
     phase = Repo.get_by!(MediaPiecePhase, media_piece_type_id: 1, phase: 1)
 
@@ -34,32 +40,36 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
     }
 
     # if recipient is provided, calculate the revshare to the recipient
-    ad_event_attrs = if recipient && split_amount > 0 do
-      split_percentage = Decimal.div(Decimal.new(split_amount), Decimal.new(100))
+    ad_event_attrs =
+      if recipient && split_amount > 0 do
+        split_percentage = Decimal.div(Decimal.new(split_amount), Decimal.new(100))
 
-      split_amount_to_recipient =
-        ad_event_attrs.event_me_file_collect_amt
-        |> Decimal.mult(split_percentage)
-        |> Decimal.round(2, :down)
+        split_amount_to_recipient =
+          ad_event_attrs.event_me_file_collect_amt
+          |> Decimal.mult(split_percentage)
+          |> Decimal.round(2, :down)
 
-      adjusted_me_file_collect_amt = Decimal.sub(ad_event_attrs.event_me_file_collect_amt, split_amount_to_recipient)
+        adjusted_me_file_collect_amt =
+          Decimal.sub(ad_event_attrs.event_me_file_collect_amt, split_amount_to_recipient)
 
-      updated_attrs = Map.merge(ad_event_attrs, %{
-        recipient_id: recipient.id,
-        event_split_code: recipient.split_code,
-        event_recipient_split_pct: split_amount,
-        #update the recipient collect amt to be the event_me_file_collect_amt - minus the split_pct amount
-        event_recipient_collect_amt: split_amount_to_recipient,
-        event_me_file_collect_amt: adjusted_me_file_collect_amt,
-        #update the sponster keep to give  $0.01 to recipient
-        event_sponster_collect_amt: Decimal.sub(ad_event_attrs.event_sponster_collect_amt, Decimal.new("0.01")),
-        event_sponster_to_recipient_amt: Decimal.new("0.01")
-      })
-      updated_attrs
-    else
-      ad_event_attrs
-    end
+        updated_attrs =
+          Map.merge(ad_event_attrs, %{
+            recipient_id: recipient.id,
+            event_split_code: recipient.split_code,
+            event_recipient_split_pct: split_amount,
+            # update the recipient collect amt to be the event_me_file_collect_amt - minus the split_pct amount
+            event_recipient_collect_amt: split_amount_to_recipient,
+            event_me_file_collect_amt: adjusted_me_file_collect_amt,
+            # update the sponster keep to give  $0.01 to recipient
+            event_sponster_collect_amt:
+              Decimal.sub(ad_event_attrs.event_sponster_collect_amt, Decimal.new("0.01")),
+            event_sponster_to_recipient_amt: Decimal.new("0.01")
+          })
 
+        updated_attrs
+      else
+        ad_event_attrs
+      end
 
     ad_event_changeset = AdEvent.changeset(%AdEvent{}, ad_event_attrs)
 
@@ -67,7 +77,6 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
 
     case Repo.insert(ad_event_changeset) do
       {:ok, ad_event} ->
-
         case Wallets.update_ledgers_from_ad_event(ad_event) do
           {:ok, _} -> {:ok, ad_event}
           {:error, error} -> {:error, error}
@@ -78,7 +87,13 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
     end
   end
 
-  def create_jump_ad_event(offer, recipient \\ nil, split_amount \\ 0, ip \\ "0.0.0.0", url \\ "https://here.com") do
+  def create_jump_ad_event(
+        offer,
+        recipient \\ nil,
+        split_amount \\ 0,
+        ip \\ "0.0.0.0",
+        url \\ "https://here.com"
+      ) do
     type = Repo.get!(MediaPieceType, 1)
     phase = Repo.get_by!(MediaPiecePhase, media_piece_type_id: type.id, phase: 2)
     previous_phase = Repo.get_by!(MediaPiecePhase, media_piece_type_id: type.id, phase: 1)
@@ -116,32 +131,36 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
     }
 
     # if recipient is provided, calculate the revshare to the recipient
-    ad_event_attrs = if recipient && split_amount > 0 do
-      split_percentage = Decimal.div(Decimal.new(split_amount), Decimal.new(100))
+    ad_event_attrs =
+      if recipient && split_amount > 0 do
+        split_percentage = Decimal.div(Decimal.new(split_amount), Decimal.new(100))
 
-      split_amount_to_recipient =
-        ad_event_attrs.event_me_file_collect_amt
-        |> Decimal.mult(split_percentage)
-        |> Decimal.round(2, :down)
+        split_amount_to_recipient =
+          ad_event_attrs.event_me_file_collect_amt
+          |> Decimal.mult(split_percentage)
+          |> Decimal.round(2, :down)
 
-      adjusted_me_file_collect_amt = Decimal.sub(ad_event_attrs.event_me_file_collect_amt, split_amount_to_recipient)
+        adjusted_me_file_collect_amt =
+          Decimal.sub(ad_event_attrs.event_me_file_collect_amt, split_amount_to_recipient)
 
-      updated_attrs = Map.merge(ad_event_attrs, %{
-        recipient_id: recipient.id,
-        event_split_code: recipient.split_code,
-        event_recipient_split_pct: split_amount,
-        #update the recipient collect amt to be the event_me_file_collect_amt - minus the split_pct amount
-        event_recipient_collect_amt: split_amount_to_recipient,
-        event_me_file_collect_amt: adjusted_me_file_collect_amt,
-        #update the sponster keep to give  $0.01 to recipient
-        event_sponster_collect_amt: Decimal.sub(ad_event_attrs.event_sponster_collect_amt, Decimal.new("0.01")),
-        event_sponster_to_recipient_amt: Decimal.new("0.01")
-      })
-      updated_attrs
-    else
-      ad_event_attrs
-    end
+        updated_attrs =
+          Map.merge(ad_event_attrs, %{
+            recipient_id: recipient.id,
+            event_split_code: recipient.split_code,
+            event_recipient_split_pct: split_amount,
+            # update the recipient collect amt to be the event_me_file_collect_amt - minus the split_pct amount
+            event_recipient_collect_amt: split_amount_to_recipient,
+            event_me_file_collect_amt: adjusted_me_file_collect_amt,
+            # update the sponster keep to give  $0.01 to recipient
+            event_sponster_collect_amt:
+              Decimal.sub(ad_event_attrs.event_sponster_collect_amt, Decimal.new("0.01")),
+            event_sponster_to_recipient_amt: Decimal.new("0.01")
+          })
 
+        updated_attrs
+      else
+        ad_event_attrs
+      end
 
     ad_event_changeset = AdEvent.changeset(%AdEvent{}, ad_event_attrs)
 
@@ -149,7 +168,6 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
 
     case Repo.insert(ad_event_changeset) do
       {:ok, ad_event} ->
-
         case Wallets.update_ledgers_from_ad_event(ad_event) do
           {:ok, _} -> {:ok, ad_event}
           {:error, error} -> {:error, error}
@@ -168,23 +186,28 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
   """
   def calculate_offer_totals(offer_id, recipient \\ nil) do
     # Use a more explicit query format
-    query = from(ad_event in AdEvent,
-                where: ad_event.offer_id == ^offer_id)
+    query =
+      from(ad_event in AdEvent,
+        where: ad_event.offer_id == ^offer_id
+      )
+
     ad_events = Repo.all(query)
 
     # Calculate total collected by the user
-    me_file_collect_total = Enum.reduce(ad_events, Decimal.new("0.00"), fn event, acc ->
-      Decimal.add(acc, event.event_me_file_collect_amt || Decimal.new("0.00"))
-    end)
+    me_file_collect_total =
+      Enum.reduce(ad_events, Decimal.new("0.00"), fn event, acc ->
+        Decimal.add(acc, event.event_me_file_collect_amt || Decimal.new("0.00"))
+      end)
 
     # Calculate total given to recipient (if any)
-    recipient_collect_total = if recipient do
-      Enum.reduce(ad_events, Decimal.new("0.00"), fn event, acc ->
-        Decimal.add(acc, event.event_recipient_collect_amt || Decimal.new("0.00"))
-      end)
-    else
-      nil
-    end
+    recipient_collect_total =
+      if recipient do
+        Enum.reduce(ad_events, Decimal.new("0.00"), fn event, acc ->
+          Decimal.add(acc, event.event_recipient_collect_amt || Decimal.new("0.00"))
+        end)
+      else
+        nil
+      end
 
     {me_file_collect_total, recipient_collect_total}
   end

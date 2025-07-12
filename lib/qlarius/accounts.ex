@@ -40,7 +40,7 @@ defmodule Qlarius.Accounts do
       %Marketer{}
 
   """
-  def get_marketer!(%Scope{} = _scope, id), do: raise "TODO"
+  def get_marketer!(%Scope{} = _scope, id), do: raise("TODO")
 
   @doc """
   Creates a marketer.

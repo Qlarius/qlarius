@@ -60,10 +60,10 @@ defmodule QlariusWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-      <div class="mx-auto">
-        <.flash_group flash={@flash} />
-        {render_slot(@inner_block)}
-      </div>
+    <div class="mx-auto">
+      <.flash_group flash={@flash} />
+      {render_slot(@inner_block)}
+    </div>
     """
   end
 
@@ -95,10 +95,7 @@ defmodule QlariusWeb.Layouts do
 
     <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
     <div class="dock z-40 border-t border-gray-200">
-      <button
-        class={[assigns[:current_path] == "/" && "dock-active"]}
-        phx-click={JS.navigate(~p"/")}
-      >
+      <button class={[assigns[:current_path] == "/" && "dock-active"]} phx-click={JS.navigate(~p"/")}>
         <.icon name="hero-home" class="size-[1.2em]" />
         <span class="dock-label">Home</span>
       </button>
@@ -106,13 +103,17 @@ defmodule QlariusWeb.Layouts do
       <button
         class={[
           "indicator relative",
-          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/ads") && "dock-active"
+          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/ads") &&
+            "dock-active"
         ]}
         phx-click={JS.navigate(~p"/ads")}
       >
         <.icon name="hero-eye" class="size-[1.2em]" />
         <span class="dock-label">Ads</span>
-        <span :if={@current_scope.ads_count > 0} class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white bg-sponster">
+        <span
+          :if={@current_scope.ads_count > 0}
+          class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white bg-sponster"
+        >
           {@current_scope.ads_count}
         </span>
       </button>
@@ -120,7 +121,8 @@ defmodule QlariusWeb.Layouts do
       <button
         class={[
           "indicator relative",
-          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/wallet") && "dock-active"
+          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/wallet") &&
+            "dock-active"
         ]}
         phx-click={JS.navigate(~p"/wallet")}
       >
@@ -132,12 +134,18 @@ defmodule QlariusWeb.Layouts do
       </button>
 
       <button
-        class={[assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") && "dock-active"]}
+        class={[
+          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") &&
+            "dock-active"
+        ]}
         phx-click={JS.navigate(~p"/me_file")}
       >
         <.icon name="hero-identification" class="size-[1.2em]" />
         <span class="dock-label">MeFile</span>
-        <span :if={@current_scope.ads_count > 0} class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white bg-youdata">
+        <span
+          :if={@current_scope.ads_count > 0}
+          class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white bg-youdata"
+        >
           {@current_scope.tag_count}
         </span>
       </button>
@@ -149,7 +157,6 @@ defmodule QlariusWeb.Layouts do
     </div>
 
     <.debug_assigns {assigns} />
-
     """
   end
 
@@ -165,22 +172,28 @@ defmodule QlariusWeb.Layouts do
 
   def on_mount(:set_current_path, _params, _session, socket) do
     # Only set current_path if it's not already set
-    socket = if Map.has_key?(socket.assigns, :current_path) do
-      socket
-    else
-      assign(socket, :current_path, "/")
-    end
+    socket =
+      if Map.has_key?(socket.assigns, :current_path) do
+        socket
+      else
+        assign(socket, :current_path, "/")
+      end
 
     # Set up hook that preserves manually set paths
-    socket = Phoenix.LiveView.attach_hook(socket, :set_current_path, :handle_params, fn _params, uri, socket ->
-      # Only update current_path if it wasn't manually set in mount
-      current_path = if socket.assigns[:current_path] in ["/", nil] do
-        URI.parse(uri).path || "/"
-      else
-        socket.assigns.current_path
-      end
-      {:cont, assign(socket, :current_path, current_path)}
-    end)
+    socket =
+      Phoenix.LiveView.attach_hook(socket, :set_current_path, :handle_params, fn _params,
+                                                                                 uri,
+                                                                                 socket ->
+        # Only update current_path if it wasn't manually set in mount
+        current_path =
+          if socket.assigns[:current_path] in ["/", nil] do
+            URI.parse(uri).path || "/"
+          else
+            socket.assigns.current_path
+          end
+
+        {:cont, assign(socket, :current_path, current_path)}
+      end)
 
     {:cont, socket}
   end
@@ -192,11 +205,7 @@ defmodule QlariusWeb.Layouts do
 
   def marketers(assigns) do
     ~H"""
-
-
-
     <div class="bg-white shadow-md">
-
       <div class="flex bg-green-500 text-white">
         <.marketer_navbar_link current_path={@current_path} path={~p"/trait_groups"}>
           <.icon name="hero-tag" class="mr-2" />
@@ -228,7 +237,6 @@ defmodule QlariusWeb.Layouts do
     <div class="container mx-auto px-4 py-8">
       {render_slot(@inner_block)}
     </div>
-
     """
   end
 
@@ -384,7 +392,7 @@ defmodule QlariusWeb.Layouts do
   def debug_assigns(assigns) do
     if @debug_enabled and System.get_env("DEBUG") == "true" do
       ~H"""
-        <pre class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
+      <pre class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
           <%= inspect(assigns, pretty: true) %>
         </pre>
       """
@@ -392,5 +400,4 @@ defmodule QlariusWeb.Layouts do
       ~H""
     end
   end
-
 end

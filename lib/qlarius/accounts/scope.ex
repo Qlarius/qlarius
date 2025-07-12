@@ -52,5 +52,4 @@ defmodule Qlarius.Accounts.Scope do
       offered_amount: Offers.total_active_offer_amount(proxy_user.me_file)
     }
   end
-
 end

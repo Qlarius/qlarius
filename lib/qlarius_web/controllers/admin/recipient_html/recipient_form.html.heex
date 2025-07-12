@@ -1,4 +1,11 @@
-<.form :let={f} for={@changeset} action={@action} method={@method} multipart={true} class="space-y-4">
+<.form
+  :let={f}
+  for={@changeset}
+  action={@action}
+  method={@method}
+  multipart={true}
+  class="space-y-4"
+>
   <.input field={f[:name]} label="Name" class="input input-bordered w-full" />
   <div>
     <.input

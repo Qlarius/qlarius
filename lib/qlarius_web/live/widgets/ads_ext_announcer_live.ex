@@ -31,17 +31,41 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
       end
 
     lg_slides = [
-      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/DontReadThis_640.png"},
-      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/LifeSponsored_640.png"},
-      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/SellYourAttention_640.png"}
+      %{
+        imgSrc:
+          "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/DontReadThis_640.png"
+      },
+      %{
+        imgSrc:
+          "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/LifeSponsored_640.png"
+      },
+      %{
+        imgSrc:
+          "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/SellYourAttention_640.png"
+      }
     ]
 
     sm_slides = [
-      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/DontReadThisA_280.png"},
-      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/DontReadThisB_280.png"},
-      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/SellYourAttention_280.png"},
-      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/LifeSponsoredA_280.png"},
-      %{imgSrc: "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/LifeSponsoredB_280.png"}
+      %{
+        imgSrc:
+          "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/DontReadThisA_280.png"
+      },
+      %{
+        imgSrc:
+          "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/DontReadThisB_280.png"
+      },
+      %{
+        imgSrc:
+          "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/SellYourAttention_280.png"
+      },
+      %{
+        imgSrc:
+          "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/LifeSponsoredA_280.png"
+      },
+      %{
+        imgSrc:
+          "https://qlarius-app-shared-dev-demo.s3.us-east-1.amazonaws.com/uploads/recruiter_banners/LifeSponsoredB_280.png"
+      }
     ]
 
     socket =
@@ -135,66 +159,66 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
 
     <div class="sponster-announcer-bottom-float-content-container">
       <%= if @recruiter_mode do %>
-          <div id="sponster_recruiter_slider_lg">
-            <div
-              x-data={slider_data(@lg_slides)}
-              x-init="autoplay"
-              class="relative w-full overflow-hidden"
-            >
-
-              <!-- slides -->
-              <div class="relative min-h-[70px] w-full">
-                <template x-for="(slide, index) in slides">
-                  <div
-                    x-cloak
-                    x-show="currentSlideIndex == index + 1"
-                    class="absolute inset-0"
-                    x-transition:enter="transition ease-out duration-1000"
-                    x-transition:enter-start="opacity-0"
-                    x-transition:enter-end="opacity-100"
-                    x-transition:leave="transition ease-in duration-1000"
-                    x-transition:leave-start="opacity-100"
-                    x-transition:leave-end="opacity-0"
-                  >
-                    <img
-                      class="absolute w-full h-full inset-0 object-cover text-on-surface dark:text-on-surface-dark"
-                      x-bind:src="slide.imgSrc"
-                      x-bind:alt="slide.imgAlt"
-                    />
-                  </div>
-                </template>
-              </div>
+        <div id="sponster_recruiter_slider_lg">
+          <div
+            x-data={slider_data(@lg_slides)}
+            x-init="autoplay"
+            class="relative w-full overflow-hidden"
+          >
+            
+    <!-- slides -->
+            <div class="relative min-h-[70px] w-full">
+              <template x-for="(slide, index) in slides">
+                <div
+                  x-cloak
+                  x-show="currentSlideIndex == index + 1"
+                  class="absolute inset-0"
+                  x-transition:enter="transition ease-out duration-1000"
+                  x-transition:enter-start="opacity-0"
+                  x-transition:enter-end="opacity-100"
+                  x-transition:leave="transition ease-in duration-1000"
+                  x-transition:leave-start="opacity-100"
+                  x-transition:leave-end="opacity-0"
+                >
+                  <img
+                    class="absolute w-full h-full inset-0 object-cover text-on-surface dark:text-on-surface-dark"
+                    x-bind:src="slide.imgSrc"
+                    x-bind:alt="slide.imgAlt"
+                  />
+                </div>
+              </template>
             </div>
           </div>
-          <div id="sponster_recruiter_slider_sm">
-            <div
-              x-data={slider_data(@sm_slides)}
-              x-init="autoplay"
-              class="relative w-full overflow-hidden"
-            >
-              <div class="relative min-h-[70px] w-full">
-                <template x-for="(slide, index) in slides">
-                  <div
-                    x-cloak
-                    x-show="currentSlideIndex == index + 1"
-                    class="absolute inset-0"
-                    x-transition:enter="transition ease-out duration-1000"
-                    x-transition:enter-start="opacity-0"
-                    x-transition:enter-end="opacity-100"
-                    x-transition:leave="transition ease-in duration-1000"
-                    x-transition:leave-start="opacity-100"
-                    x-transition:leave-end="opacity-0"
-                  >
-                    <img
-                      class="absolute w-full h-full inset-0 object-cover text-on-surface dark:text-on-surface-dark"
-                      x-bind:src="slide.imgSrc"
-                      x-bind:alt="slide.imgAlt"
-                    />
-                  </div>
-                </template>
-              </div>
+        </div>
+        <div id="sponster_recruiter_slider_sm">
+          <div
+            x-data={slider_data(@sm_slides)}
+            x-init="autoplay"
+            class="relative w-full overflow-hidden"
+          >
+            <div class="relative min-h-[70px] w-full">
+              <template x-for="(slide, index) in slides">
+                <div
+                  x-cloak
+                  x-show="currentSlideIndex == index + 1"
+                  class="absolute inset-0"
+                  x-transition:enter="transition ease-out duration-1000"
+                  x-transition:enter-start="opacity-0"
+                  x-transition:enter-end="opacity-100"
+                  x-transition:leave="transition ease-in duration-1000"
+                  x-transition:leave-start="opacity-100"
+                  x-transition:leave-end="opacity-0"
+                >
+                  <img
+                    class="absolute w-full h-full inset-0 object-cover text-on-surface dark:text-on-surface-dark"
+                    x-bind:src="slide.imgSrc"
+                    x-bind:alt="slide.imgAlt"
+                  />
+                </div>
+              </template>
             </div>
           </div>
+        </div>
       <% else %>
         <div class="sponster-announcer-logo-container" />
         <div style="width: 240px; position:relative;display:flex; flex-direction:row; justify-content:space-between; align-items:center; background: #F0F2F4; border-radius: 8px;">
@@ -243,7 +267,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
           id="ydadget_announcer_toggle_button_text"
           style="margin-right: 6px; color: #252529; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.32px; word-wrap: break-word"
         >
-          <%= if @recruiter_mode, do: "INFO", else: "SHOW" %>
+          {if @recruiter_mode, do: "INFO", else: "SHOW"}
         </div>
         <span
           id="ydadget_announcer_toggle_icon"

@@ -923,7 +923,9 @@ defmodule Qlarius.AccountsTest do
       marketer = marketer_fixture(scope)
       update_attrs = %{name: "some updated name"}
 
-      assert {:ok, %Marketer{} = marketer} = Accounts.update_marketer(scope, marketer, update_attrs)
+      assert {:ok, %Marketer{} = marketer} =
+               Accounts.update_marketer(scope, marketer, update_attrs)
+
       assert marketer.name == "some updated name"
     end
 
@@ -940,7 +942,10 @@ defmodule Qlarius.AccountsTest do
     test "update_marketer/3 with invalid data returns error changeset" do
       scope = user_scope_fixture()
       marketer = marketer_fixture(scope)
-      assert {:error, %Ecto.Changeset{}} = Accounts.update_marketer(scope, marketer, @invalid_attrs)
+
+      assert {:error, %Ecto.Changeset{}} =
+               Accounts.update_marketer(scope, marketer, @invalid_attrs)
+
       assert marketer == Accounts.get_marketer!(scope, marketer.id)
     end
 

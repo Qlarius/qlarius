@@ -50,7 +50,6 @@ defmodule QlariusWeb.MediaPieceController do
 
     case Marketing.update_media_piece(media_piece, media_piece_params) do
       {:ok, _media_piece} ->
-
         conn
         |> put_flash(:info, "Media piece updated successfully.")
         |> redirect(to: ~p"/marketer/media_pieces")

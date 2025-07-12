@@ -10,7 +10,6 @@ defmodule Qlarius.Accounts.Users do
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Sponster.Recipient
 
-
   def get_user(id) do
     Repo.get(User, id)
   end
@@ -75,6 +74,7 @@ defmodule Qlarius.Accounts.Users do
   Retrieves a recipient by its split_code.
   """
   def get_recipient_by_split_code(nil), do: nil
+
   def get_recipient_by_split_code(split_code) do
     Repo.get_by(Recipient, split_code: split_code)
   end

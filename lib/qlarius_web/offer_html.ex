@@ -25,10 +25,18 @@ defmodule QlariusWeb.OfferHTML do
     assigns = assign_new(assigns, :target, fn -> nil end)
 
     ~H"""
-    <div class="offer-container rounded-md border border-neutral-400 overflow-hidden cursor-pointer" style="width: 347px; height: 152px;">
+    <div
+      class="offer-container rounded-md border border-neutral-400 overflow-hidden cursor-pointer"
+      style="width: 347px; height: 152px;"
+    >
       <div class="absolute inset-0 overflow-hidden">
         <div class={"offer-phase phase-0 #{if @phase > 0, do: "slide-left"}"}>
-          <.offer_container offer={@offer} class="p-5 text-neutral-600 bg-white" target={@target} recipient={@recipient}>
+          <.offer_container
+            offer={@offer}
+            class="p-5 text-neutral-600 bg-white"
+            target={@target}
+            recipient={@recipient}
+          >
             <div class="text-2xl font-bold mb-2 text-neutral-600">{format_usd(@offer.offer_amt)}</div>
             <div class="mb-4">
               {@offer.media_piece.ad_category.ad_category_name}
@@ -106,11 +114,9 @@ defmodule QlariusWeb.OfferHTML do
             <div class="font-semibold text-sm uppercase text-gray-400">
               ATTENTION PAID™
             </div>
-            <%
-              # Get totals from ThreeTap context
-              {me_file_collect_total, recipient_collect_total} =
-                ThreeTap.calculate_offer_totals(@offer.id, @recipient)
-            %>
+            <% # Get totals from ThreeTap context
+            {me_file_collect_total, recipient_collect_total} =
+              ThreeTap.calculate_offer_totals(@offer.id, @recipient) %>
             <div class="text-sm text-gray-400">
               Collected: <span class="font-semibold">{format_usd(me_file_collect_total)}</span>
             </div>
@@ -131,12 +137,16 @@ defmodule QlariusWeb.OfferHTML do
 
   def click_jump_actions(assigns) do
     ~H"""
-    <div class="flex items-center justify-center text-center text-xs font-light absolute bottom-0 left-0 right-0" style="height: 35px;">
-      <div class={[
-        "flex-1 flex items-center justify-center",
-        if(@phase_1_complete?, do: "bg-gray-200", else: "bg-gray-600 text-white")
-      ]}
+    <div
+      class="flex items-center justify-center text-center text-xs font-light absolute bottom-0 left-0 right-0"
       style="height: 35px;"
+    >
+      <div
+        class={[
+          "flex-1 flex items-center justify-center",
+          if(@phase_1_complete?, do: "bg-gray-200", else: "bg-gray-600 text-white")
+        ]}
+        style="height: 35px;"
       >
         <%= if @phase_1_complete? do %>
           <.icon name="hero-check" class="text-green-500 w-4 h-4" />
@@ -145,11 +155,12 @@ defmodule QlariusWeb.OfferHTML do
           <span class="font-bold ml-1">$0.05</span>
         <% end %>
       </div>
-      <div class={[
-        "flex-1 flex items-center justify-center border-l border-gray-400",
-        if(@phase_1_complete?, do: "bg-gray-500 text-white", else: "bg-gray-500 text-gray-400")
-      ]}
-      style="height: 35px;"
+      <div
+        class={[
+          "flex-1 flex items-center justify-center border-l border-gray-400",
+          if(@phase_1_complete?, do: "bg-gray-500 text-white", else: "bg-gray-500 text-gray-400")
+        ]}
+        style="height: 35px;"
       >
         <span>JUMP: </span>
         <span class="font-bold ml-1">{format_usd(@phase_2_amount)}</span>
@@ -161,6 +172,7 @@ defmodule QlariusWeb.OfferHTML do
   attr :class, :string, default: nil
   attr :offer, Offer, required: true
   attr :recipient, :any, default: nil
+  attr :target, :any, default: nil
   slot :inner_block, required: true
 
   defp offer_container(assigns) do

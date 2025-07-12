@@ -6,7 +6,9 @@ database_config =
   if database_url = System.get_env("DATABASE_URL") do
     [
       url: database_url,
-      ssl: String.contains?(database_url, "sslmode=require") or String.contains?(database_url, "amazonaws.com"),
+      ssl:
+        String.contains?(database_url, "sslmode=require") or
+          String.contains?(database_url, "amazonaws.com"),
       pool_size: 10
     ]
   else

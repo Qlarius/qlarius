@@ -17,7 +17,9 @@ defmodule QlariusWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt uploads sponster-tipjar-widget-ext-script.js)
+  def static_paths,
+    do:
+      ~w(assets fonts images favicon.ico robots.txt uploads sponster-tipjar-widget-ext-script.js)
 
   def router do
     quote do

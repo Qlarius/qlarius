@@ -25,7 +25,6 @@ defmodule Qlarius.Sponster.Offer do
 
     has_many :ad_events, Qlarius.Sponster.AdEvent
 
-
     timestamps()
   end
 

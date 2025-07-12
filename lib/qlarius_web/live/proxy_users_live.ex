@@ -46,13 +46,13 @@ defmodule QlariusWeb.ProxyUsersLive do
           <:col :let={proxy} label="Username">{proxy.proxy_user.username}</:col>
           <:col :let={proxy} label="Alias">{proxy.proxy_user.email}</:col>
           <:col :let={proxy} label="Status">
-              <input
-                type="checkbox"
-                class="toggle toggle-success"
-                checked={proxy.active}
-                phx-click="toggle_proxy"
-                phx-value-id={proxy.id}
-              />
+            <input
+              type="checkbox"
+              class="toggle toggle-success"
+              checked={proxy.active}
+              phx-click="toggle_proxy"
+              phx-value-id={proxy.id}
+            />
           </:col>
         </.table>
       </div>

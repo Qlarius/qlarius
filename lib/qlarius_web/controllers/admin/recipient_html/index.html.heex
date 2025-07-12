@@ -2,8 +2,7 @@
   <div class="flex justify-between items-center mb-4">
     <h1 class="text-2xl font-bold">Recipients</h1>
     <.link navigate={~p"/admin/recipients/new"} class="btn btn-primary">
-      <.icon name="hero-plus" class="w-4 h-4 mr-1" />
-      New Recipient
+      <.icon name="hero-plus" class="w-4 h-4 mr-1" /> New Recipient
     </.link>
   </div>
   <div class="card bg-base-100 shadow-xl">
@@ -13,21 +12,21 @@
           <:col :let={recipient} label="Name">{recipient.name}</:col>
           <:col :let={recipient} label="Brand Graphic">
             <%= if recipient.graphic_url do %>
-                    <img
-                      src={
-                        QlariusWeb.Uploaders.RecipientBrandImage.url(
-                          {recipient.graphic_url, recipient},
-                          :original
-                        )
-                      }
-                      alt="Brand Graphic"
-                      class="w-20 h-auto object-cover rounded"
-                    />
-                  <% else %>
-                    <div class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center">
-                      <span class="text-gray-400 text-xs">No banner</span>
-                    </div>
-                  <% end %>
+              <img
+                src={
+                  QlariusWeb.Uploaders.RecipientBrandImage.url(
+                    {recipient.graphic_url, recipient},
+                    :original
+                  )
+                }
+                alt="Brand Graphic"
+                class="w-20 h-auto object-cover rounded"
+              />
+            <% else %>
+              <div class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center">
+                <span class="text-gray-400 text-xs">No banner</span>
+              </div>
+            <% end %>
           </:col>
           <:col :let={recipient} label="Site URL">{recipient.site_url}</:col>
           <:col :let={recipient} label="Actions">

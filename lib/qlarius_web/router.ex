@@ -37,8 +37,6 @@ defmodule QlariusWeb.Router do
     plug :put_layout, {QlariusWeb.Layouts, :marketer}
   end
 
-
-
   pipeline :api do
     plug :accepts, ["json"]
   end
@@ -49,9 +47,11 @@ defmodule QlariusWeb.Router do
     # This header is set to SAMEORIGIN by put_secure_browser_headers, which
     # prevents embedding in an iframe.
     |> delete_resp_header("x-frame-options")
-    |> put_resp_header("content-security-policy", "base-uri 'self'; connect-src 'self' wss://qlarius.gigalixirapp.com; frame-ancestors * chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen")
+    |> put_resp_header(
+      "content-security-policy",
+      "base-uri 'self'; connect-src 'self' wss://qlarius.gigalixirapp.com; frame-ancestors * chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen"
+    )
   end
-
 
   # ------ MARKETER ROUTES ------
 
@@ -103,10 +103,11 @@ defmodule QlariusWeb.Router do
 
     get "/content/:id", ContentController, :show
 
-    live_session :widgets, on_mount: [
-      {QlariusWeb.UserAuth, :mount_current_scope},
-      {QlariusWeb.Layouts, :set_current_path}
-    ] do
+    live_session :widgets,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
       live "/arcade/group/:group_id", ArcadeLive
       live "/wallet", WalletLive
       live "/ads_ext_announcer", AdsExtAnnouncerLive
@@ -118,9 +119,10 @@ defmodule QlariusWeb.Router do
   scope "/", QlariusWeb do
     pipe_through [:browser]
 
-    live_session :current_scope, on_mount: [
-      {QlariusWeb.UserAuth, :mount_current_scope}
-    ] do
+    live_session :current_scope,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope}
+      ] do
       get "/", PageController, :home
       live "/users/settings", UserSettingsLive, :edit
       live "/wallet", WalletLive, :index
@@ -136,10 +138,11 @@ defmodule QlariusWeb.Router do
   scope "/creators", QlariusWeb.Creators do
     pipe_through [:browser, :admin]
 
-    live_session :creators, on_mount: [
-      # {QlariusWeb.UserAuth, :mount_current_scope},
-      {QlariusWeb.Layouts, :set_current_path}
-    ] do
+    live_session :creators,
+      on_mount: [
+        # {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
       resources "/content_pieces", ContentPieceController, only: [:delete]
 
       live "/content_pieces/:id/edit", ContentPieceLive.Form, :edit
