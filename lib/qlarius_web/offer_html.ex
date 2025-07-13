@@ -111,8 +111,8 @@ defmodule QlariusWeb.OfferHTML do
             <div class="text-green-500 -mt-3">
               <.icon name="hero-check" class="w-6 h-6" />
             </div>
-            <div class="font-semibold text-sm uppercase text-gray-400">
-              ATTENTION PAID™
+            <div class="font-semibold text-sm text-gray-400">
+              Attention Paid™
             </div>
             <% # Get totals from ThreeTap context
             {me_file_collect_total, recipient_collect_total} =
