@@ -165,7 +165,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
             x-init="autoplay"
             class="relative w-full overflow-hidden"
           >
-            
+
     <!-- slides -->
             <div class="relative min-h-[70px] w-full">
               <template x-for="(slide, index) in slides">

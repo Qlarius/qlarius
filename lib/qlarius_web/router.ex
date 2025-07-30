@@ -34,7 +34,7 @@ defmodule QlariusWeb.Router do
   end
 
   pipeline :marketer do
-    plug :put_layout, {QlariusWeb.Layouts, :marketer}
+    plug :put_layout, {QlariusWeb.Layouts, :admin}
   end
 
   pipeline :api do
@@ -166,7 +166,7 @@ defmodule QlariusWeb.Router do
 
   # ------ ADMIN ROUTES ------
   scope "/admin", QlariusWeb.Admin do
-    pipe_through [:browser, :admin]
+    pipe_through [:browser, :marketer]
 
     live "/", DashboardLive, :index
     resources "/recipients", RecipientController
