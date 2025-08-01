@@ -170,6 +170,16 @@ defmodule QlariusWeb.Router do
 
     live "/", DashboardLive, :index
     resources "/recipients", RecipientController
-    resources "/marketers", MarketerController
+
+    live_session :admin_marketers,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
+      live "/marketers", QlariusWeb.Marketers.MarketerManagerLive, :index
+      live "/marketers/new", QlariusWeb.Marketers.MarketerManagerLive, :new
+      live "/marketers/:id", QlariusWeb.Marketers.MarketerManagerLive, :show
+      live "/marketers/:id/edit", QlariusWeb.Marketers.MarketerManagerLive, :edit
+    end
   end
 end

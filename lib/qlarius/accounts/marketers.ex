@@ -9,12 +9,12 @@ defmodule Qlarius.Accounts.Marketers do
     Repo.all(from(m in Marketer))
   end
 
-  def get_marketer!(%Scope{} = scope, id) do
-    Repo.get_by!(Marketer, id: id, user_id: scope.user.id)
+  def get_marketer!(%Scope{} = _scope, id) do
+    Repo.get!(Marketer, id)
   end
 
-  def change_marketer(_scope, marketer \\ %Marketer{}) do
-    Marketer.changeset(marketer, %{})
+  def change_marketer(_scope, marketer \\ %Marketer{}, attrs \\ %{}) do
+    Marketer.changeset(marketer, attrs)
   end
 
   def create_marketer(_scope, attrs) do
