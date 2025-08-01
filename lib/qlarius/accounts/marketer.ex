@@ -33,8 +33,7 @@ defmodule Qlarius.Accounts.Marketer do
       :sic_code
     ])
     |> validate_required([
-      :business_name,
-      :contact_email
+      :business_name
     ])
   end
 end

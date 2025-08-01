@@ -1,4 +1,4 @@
-defmodule QlariusWeb.Marketers.MarketerManagerLive do
+defmodule QlariusWeb.Admin.MarketerManagerLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Accounts.Marketers
@@ -20,7 +20,7 @@ defmodule QlariusWeb.Marketers.MarketerManagerLive do
               <div class="card-body p-0">
                 <div class="overflow-x-auto">
                   <.table id="marketers-table" rows={@marketers}>
-                    <:col :let={marketer} label="Business Name">{marketer.business_name}</:col>
+                    <:col :let={marketer} label="Business Name">{marketer.business_name} <span class="text-gray-400">({marketer.id})</span></:col>
                     <:col :let={marketer} label="Actions">
                       <div class="flex gap-2">
                         <.link patch={~p"/admin/marketers/#{marketer}"} class="btn btn-xs btn-info">
@@ -119,45 +119,51 @@ defmodule QlariusWeb.Marketers.MarketerManagerLive do
   defp render_form(assigns) do
     ~H"""
     <.form
-      for={@changeset}
+      :let={f}
+      for={@form}
       id="marketer-form"
       phx-change="validate"
       phx-submit="save"
       class="space-y-4"
     >
       <.input
-        field={{@changeset, :business_name}}
+        field={f[:business_name]}
+        type="text"
         label="Business Name"
         class="input input-bordered w-full"
         required
       />
       <.input
-        field={{@changeset, :business_url}}
+        field={f[:business_url]}
+        type="url"
         label="Business URL"
         class="input input-bordered w-full"
       />
       <.input
-        field={{@changeset, :contact_first_name}}
+        field={f[:contact_first_name]}
+        type="text"
         label="Contact First Name"
         class="input input-bordered w-full"
       />
       <.input
-        field={{@changeset, :contact_last_name}}
+        field={f[:contact_last_name]}
+        type="text"
         label="Contact Last Name"
         class="input input-bordered w-full"
       />
       <.input
-        field={{@changeset, :contact_number}}
+        field={f[:contact_number]}
+        type="tel"
         label="Contact Number"
         class="input input-bordered w-full"
       />
       <.input
-        field={{@changeset, :contact_email}}
+        field={f[:contact_email]}
+        type="email"
         label="Contact Email"
         class="input input-bordered w-full"
-        required
       />
-      <.input field={{@changeset, :sic_code}} label="SIC Code" class="input input-bordered w-full" />
+      <.input field={f[:sic_code]} type="text" label="SIC Code" class="input input-bordered w-full" />
       <div>
         <.button phx-disable-with="Saving..." class="btn btn-primary">Save Marketer</.button>
         <.link patch={~p"/admin/marketers"} class="btn ml-2">Cancel</.link>
@@ -191,6 +197,7 @@ defmodule QlariusWeb.Marketers.MarketerManagerLive do
     |> assign(:page_title, "New Marketer")
     |> assign(:marketer, marketer)
     |> assign(:changeset, changeset)
+    |> assign(:form, to_form(changeset))
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
@@ -202,6 +209,7 @@ defmodule QlariusWeb.Marketers.MarketerManagerLive do
     |> assign(:page_title, "Edit Marketer")
     |> assign(:marketer, marketer)
     |> assign(:changeset, changeset)
+    |> assign(:form, to_form(changeset))
   end
 
   defp apply_action(socket, :show, %{"id" => id}) do
@@ -220,7 +228,10 @@ defmodule QlariusWeb.Marketers.MarketerManagerLive do
       Marketers.change_marketer(scope, socket.assigns.marketer, attrs)
       |> Map.put(:action, :validate)
 
-    {:noreply, assign(socket, :changeset, changeset)}
+    {:noreply,
+     socket
+     |> assign(:changeset, changeset)
+     |> assign(:form, to_form(changeset))}
   end
 
   def handle_event("save", %{"marketer" => attrs}, socket) do
@@ -249,7 +260,10 @@ defmodule QlariusWeb.Marketers.MarketerManagerLive do
          |> push_navigate(to: ~p"/admin/marketers/#{marketer}")}
 
       {:error, changeset} ->
-        {:noreply, assign(socket, :changeset, changeset)}
+        {:noreply,
+         socket
+         |> assign(:changeset, changeset)
+         |> assign(:form, to_form(changeset))}
     end
   end
 
@@ -264,7 +278,10 @@ defmodule QlariusWeb.Marketers.MarketerManagerLive do
          |> push_navigate(to: ~p"/admin/marketers/#{marketer}")}
 
       {:error, changeset} ->
-        {:noreply, assign(socket, :changeset, changeset)}
+        {:noreply,
+         socket
+         |> assign(:changeset, changeset)
+         |> assign(:form, to_form(changeset))}
     end
   end
 end

@@ -176,10 +176,10 @@ defmodule QlariusWeb.Router do
         {QlariusWeb.UserAuth, :mount_current_scope},
         {QlariusWeb.Layouts, :set_current_path}
       ] do
-      live "/marketers", QlariusWeb.Marketers.MarketerManagerLive, :index
-      live "/marketers/new", QlariusWeb.Marketers.MarketerManagerLive, :new
-      live "/marketers/:id", QlariusWeb.Marketers.MarketerManagerLive, :show
-      live "/marketers/:id/edit", QlariusWeb.Marketers.MarketerManagerLive, :edit
+      live "/marketers", MarketerManagerLive, :index
+      live "/marketers/new", MarketerManagerLive, :new
+      live "/marketers/:id", MarketerManagerLive, :show
+      live "/marketers/:id/edit", MarketerManagerLive, :edit
     end
   end
 end
