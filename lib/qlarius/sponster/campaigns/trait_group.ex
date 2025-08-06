@@ -3,7 +3,7 @@ defmodule Qlarius.Sponster.Campaigns.TraitGroup do
   import Ecto.Changeset
 
   alias Qlarius.Sponster.Campaigns.TraitGroupTrait
-  alias Qlarius.YouData.Traits.Trait
+  # alias Qlarius.YouData.Traits.Trait
 
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]

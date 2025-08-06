@@ -11,7 +11,11 @@ config :qlarius, Oban,
   engine: Oban.Engines.Basic,
   notifier: Oban.Notifiers.Postgres,
   queues: [default: 10],
-  repo: Qlarius.Repo
+  repo: Qlarius.Repo,
+  plugins: [
+    {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
+    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)}
+  ]
 
 config :qlarius, :scopes,
   user: [
