@@ -14,7 +14,11 @@ config :qlarius, Oban,
   repo: Qlarius.Repo,
   plugins: [
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
-    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)}
+    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)},
+    {Oban.Plugins.Cron,
+     crontab: [
+      {"*/5 * * * *", Qlarius.Jobs.ActivatePendingOffersToCurrent}
+     ]}
   ]
 
 config :qlarius, :scopes,
