@@ -308,16 +308,11 @@ defmodule QlariusWeb.Layouts do
 
   # def admin(assigns) do
   #   ~H"""
-  #   <!DOCTYPE html>
-  #   <html lang="en" class="h-full bg-gray-100">
-  #     <head>
-  #       ...
-  #     </head>
-  #     <body class="h-full">
-  #       <.flash_group flash={@flash} />
-  #       <%= @inner_content %>
-  #     </body>
-  #   </html>
+  #   <%= if Map.has_key?(assigns, :inner_content) do %>  # For controllers
+  #     <%= @inner_content %>
+  #   <% else %>  # For LiveViews
+  #     <%= render_slot(@inner_block) %>
+  #   <% end %>
   #   """
   # end
 

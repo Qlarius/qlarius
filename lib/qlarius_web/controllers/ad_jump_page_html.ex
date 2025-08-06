@@ -1,4 +1,4 @@
-defmodule QlariusWeb.AdHTML do
+defmodule QlariusWeb.AdJumpPageHTML do
   use QlariusWeb, :html
 
   attr :offer, :any, required: true

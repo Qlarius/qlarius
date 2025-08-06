@@ -26,7 +26,7 @@
               />
               <div class="collapse-title">
                 <span class="iconify lucide--user size-4"></span>
-                <span class="grow font-bold">YOU</span>
+                <span class="grow font-bold">{@current_scope.user.email}</span>
                 <span class="iconify lucide--chevron-right arrow-icon size-3.5"></span>
               </div>
               <div class="collapse-content">
@@ -456,7 +456,13 @@
           <!--  Start: Layout - Content -->
 
       <div id="layout-content">
-        {@inner_content}
+        <%= if Map.has_key?(assigns, :inner_content) do %> 
+          <!-- For controllers -->
+          {@inner_content}
+        <% else %> 
+          <!-- For LiveViews -->
+          {render_slot(@inner_block)}
+        <% end %>
       </div>
       
 <!--  End: Layout - Content -->

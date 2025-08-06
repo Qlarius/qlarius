@@ -6,7 +6,7 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
 
   def render(assigns) do
     ~H"""
-    <Layouts.app {assigns}>
+    <Layouts.admin {assigns}>
       <%= case @live_action do %>
         <% :index -> %>
           <div class="p-6">
@@ -112,7 +112,7 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
             </div>
           </div>
       <% end %>
-    </Layouts.app>
+    </Layouts.admin>
     """
   end
 

@@ -1,4 +1,4 @@
-defmodule QlariusWeb.AdController do
+defmodule QlariusWeb.AdJumpPageController do
   use QlariusWeb, :controller
 
   alias Qlarius.Sponster.Offers

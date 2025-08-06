@@ -132,7 +132,7 @@ defmodule QlariusWeb.Router do
 
     resources "/tiqits", TiqitController
 
-    get "/jump/:id", AdController, :jump
+    get "/jump/:id", AdJumpPageController, :jump
   end
 
   scope "/creators", QlariusWeb.Creators do
@@ -166,7 +166,7 @@ defmodule QlariusWeb.Router do
 
   # ------ ADMIN ROUTES ------
   scope "/admin", QlariusWeb.Admin do
-    pipe_through [:browser, :marketer]
+    pipe_through [:browser, :admin]
 
     live "/", DashboardLive, :index
     resources "/recipients", RecipientController

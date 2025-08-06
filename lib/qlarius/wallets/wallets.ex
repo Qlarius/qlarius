@@ -60,6 +60,8 @@ defmodule Qlarius.Wallets.Wallets do
     }
   end
 
+  # TODO: update these ledger updates into a Ecto.Multi so that all pass or all fail.
+
   def update_ledgers_from_ad_event(ad_event) do
     phase = Repo.get!(MediaPiecePhase, ad_event.media_piece_phase_id)
     phase_description = phase.desc
