@@ -4,10 +4,11 @@ defmodule Qlarius.Sponster.Offers do
   """
 
   import Ecto.Query
-  import Ecto.Multi
+
 
   alias Qlarius.Repo
   alias Qlarius.Sponster.Offer
+  alias Ecto.Multi
 
   @doc """
   Returns the list of offers for a user, in descending order of their amount
