@@ -7,6 +7,12 @@
 # General application configuration
 import Config
 
+config :qlarius, Oban,
+  engine: Oban.Engines.Basic,
+  notifier: Oban.Notifiers.Postgres,
+  queues: [default: 10],
+  repo: Qlarius.Repo
+
 config :qlarius, :scopes,
   user: [
     default: true,

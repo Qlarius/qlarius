@@ -11,6 +11,7 @@ defmodule Qlarius.Application do
       QlariusWeb.Telemetry,
       Qlarius.Repo,
       {DNSCluster, query: Application.get_env(:qlarius, :dns_cluster_query) || :ignore},
+      {Oban, Application.fetch_env!(:qlarius, Oban)},
       {Phoenix.PubSub, name: Qlarius.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: Qlarius.Finch},
