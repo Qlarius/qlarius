@@ -82,7 +82,7 @@ defmodule QlariusWeb.OfferHTML do
       </div>
 
       <div class="absolute inset-0 overflow-hidden" style="height: 150px;">
-        <div class={"offer-phase phase-2 #{if @phase > 2, do: "fade-out"}"}>
+        <div class={"offer-phase phase-2 #{if @phase > 2, do: "hidden"}"}>
           <.offer_container offer={@offer} class="px-3 py-2" target={@target} recipient={@recipient}>
             <a class="block w-full h-full" href={~p"/jump/#{@offer}"} target="_blank">
               <div class="text-blue-800 font-bold text-lg underline">

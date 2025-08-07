@@ -7,8 +7,17 @@ defmodule Qlarius.Application do
 
   @impl true
   def start(_type, _args) do
+    # Oban.Telemetry.attach_default_logger()
 
-    Oban.Telemetry.attach_default_logger()
+    # Attach a telemetry handler to filter out Oban plugin info logs
+    # This ignores events like [:oban, :plugin, :stop] without affecting other logs
+    :telemetry.attach(
+      "ignore-oban-plugin-logs",
+      [:oban, :plugin, :stop],
+      # Drop the event (no logging)
+      fn _event, _measurements, _metadata, _config -> :ok end,
+      nil
+    )
 
     children = [
       QlariusWeb.Telemetry,
