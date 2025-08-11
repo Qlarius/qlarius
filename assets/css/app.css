@@ -3,11 +3,15 @@
 
 
 @import "tailwindcss";
-@import "../vendor/nexus.css";
 @source "../css";
 @source "../js";
 @source "../../lib/qlarius_web";
-@plugin "daisyui";
+
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark;
+}
+
+@import "../vendor/nexus.css";
 
 @font-face {
   font-family: 'Inter';

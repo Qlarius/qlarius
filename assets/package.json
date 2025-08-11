@@ -13,8 +13,8 @@
     "@tailwindcss/cli": "^4.1.4",
     "autoprefixer": "^10.4.0",
     "concurrently": "^9.0.1",
-    "daisyui": "^5.0.43",
-    "esbuild": "^0.20.2",
+    "daisyui": "^5.0.50",
+    "esbuild": "^0.25.8",
     "postcss": "^8.4.0",
     "tailwindcss": "^4.1.4"
   },
