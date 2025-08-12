@@ -33,6 +33,9 @@
         <.icon name="hero-x-mark" class="h-5 w-5" />
       </button>
     </div>
+    <div class="flex justify-center">
+      <Layouts.theme_toggle />
+    </div>
     <!-- * profile box -->
 
     <ul class="space-y-1 mt-2">
@@ -47,21 +50,7 @@
           <span class="ml-3">Home</span>
         </.link>
       </li>
-      <li>
-        <div class="flex items-center justify-between p-2 rounded-lg text-white hover:bg-gray-700 group">
-          <div class="flex items-center">
-            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-600">
-              <.icon name="hero-moon" class="h-5 w-5 text-white" />
-            </div>
-            <span class="ml-3">Dark Mode</span>
-          </div>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" class="sr-only peer" />
-            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
-            </div>
-          </label>
-        </div>
-      </li>
+      
     </ul>
 
     <div class="mt-4 mb-1 px-2 text-gray-400 text-sm font-medium">

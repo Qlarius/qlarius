@@ -1,2 +1,0 @@
-#!/bin/sh
-npx repomix@latest --style xml --ignore "priv/repo/seeds.exs,priv/repo/add_*,**/*.csv,.cursor*,.cursor/,priv/static/**,docs/generate_schema_diagram.rb,repomix,README.md,.formatter.exs,priv/gettext/**,assets/vendor/**"

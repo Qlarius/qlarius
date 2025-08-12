@@ -40,8 +40,8 @@ config :qlarius, QlariusWeb.Endpoint,
   debug_errors: true,
   secret_key_base: "I0TNoNVsAUb60KoJZG27GA8uKP29XGc9Sifl6xY/RfCkULLRYLyl67A6PjHiYgoF",
   watchers: [
-    # esbuild: {Esbuild, :install_and_run, [:qlarius, ~w(--sourcemap=inline --watch)]},
-    npm: ["run", "watch", cd: Path.expand("../assets", __DIR__)]
+    esbuild: {Esbuild, :install_and_run, [:qlarius, ~w(--sourcemap=inline --watch)]},
+    tailwind: {Tailwind, :install_and_run, [:qlarius, ~w(--watch)]}
   ]
 
 # ## SSL Support

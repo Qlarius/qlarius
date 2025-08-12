@@ -33,7 +33,7 @@ defmodule QlariusWeb.OfferHTML do
         <div class={"offer-phase phase-0 #{if @phase > 0, do: "slide-left"}"}>
           <.offer_container
             offer={@offer}
-            class="p-5 text-neutral-600 bg-white"
+            class="p-5 text-base-content bg-base-100"
             target={@target}
             recipient={@recipient}
           >
@@ -58,7 +58,7 @@ defmodule QlariusWeb.OfferHTML do
       <div class="absolute inset-0 overflow-hidden">
         <div class={"offer-phase phase-1 #{if @phase > 1, do: "slide-up"}"}>
           <.offer_container offer={@offer} target={@target} recipient={@recipient}>
-            <div class="flex justify-center items-center bg-white">
+            <div class="flex justify-center items-center bg-base-100">
               <%= if @offer.media_piece.banner_image do %>
                 <img
                   src={
@@ -104,7 +104,7 @@ defmodule QlariusWeb.OfferHTML do
         <div class={"offer-phase phase-3 #{if @phase < 3, do: "hidden"}"}>
           <.offer_container
             offer={@offer}
-            class="p-3 bg-gray-100 flex flex-col justify-center text-center text-neutral-600 select-none"
+            class="p-3 bg-base-200 flex flex-col justify-center text-center text-base-content select-none"
             target={@target}
             recipient={@recipient}
           >
@@ -144,7 +144,7 @@ defmodule QlariusWeb.OfferHTML do
       <div
         class={[
           "flex-1 flex items-center justify-center",
-          if(@phase_1_complete?, do: "bg-gray-200", else: "bg-gray-600 text-white")
+          if(@phase_1_complete?, do: "bg-base-200", else: "bg-neutral text-base-content")
         ]}
         style="height: 35px;"
       >
@@ -158,7 +158,7 @@ defmodule QlariusWeb.OfferHTML do
       <div
         class={[
           "flex-1 flex items-center justify-center border-l border-gray-400",
-          if(@phase_1_complete?, do: "bg-gray-500 text-white", else: "bg-gray-500 text-gray-400")
+          if(@phase_1_complete?, do: "bg-neutral text-base-content", else: "bg-neutral text-base-content/50")
         ]}
         style="height: 35px;"
       >

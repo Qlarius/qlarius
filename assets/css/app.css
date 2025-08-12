@@ -7,11 +7,106 @@
 @source "../js";
 @source "../../lib/qlarius_web";
 
-@plugin "daisyui" {
-  themes: light --default, dark --prefersdark;
-}
+/* A Tailwind plugin that makes "hero-#{ICON}" classes available.
+   The heroicons installation itself is managed by your mix.exs */
+@plugin "../vendor/heroicons";
+
+/* daisyUI Tailwind Plugin. You can update this file by fetching the latest version with:
+      curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui.js
+      Make sure to look at the daisyUI changelog: https://daisyui.com/docs/changelog/ */
+@plugin "../vendor/daisyui" {
+     themes: light --default, dark --prefersdark;
+   }
 
 @import "../vendor/nexus.css";
+
+/* daisyUI theme plugin. You can update this file by fetching the latest version with:
+     curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui-theme.js
+     We ship with two themes, a light one inspired on Phoenix colors and a dark one inspired
+     on Elixir colors. Build your own at: https://daisyui.com/theme-generator/ */
+@plugin "../vendor/daisyui-theme" {
+  name: "dark";
+  default: false;
+  prefersdark: true;
+  color-scheme: "dark";
+  --color-base-100: oklch(30.33% 0.016 252.42);
+  --color-base-200: oklch(25.26% 0.014 253.1);
+  --color-base-300: oklch(20.15% 0.012 254.09);
+  --color-base-content: oklch(97.807% 0.029 256.847);
+  --color-primary: oklch(58% 0.233 277.117);
+  --color-primary-content: oklch(96% 0.018 272.314);
+  --color-secondary: oklch(58% 0.233 277.117);
+  --color-secondary-content: oklch(96% 0.018 272.314);
+  --color-accent: oklch(60% 0.25 292.717);
+  --color-accent-content: oklch(96% 0.016 293.756);
+  --color-neutral: oklch(37% 0.044 257.287);
+  --color-neutral-content: oklch(98% 0.003 247.858);
+  --color-info: oklch(58% 0.158 241.966);
+  --color-info-content: oklch(97% 0.013 236.62);
+  --color-success: oklch(60% 0.118 184.704);
+  --color-success-content: oklch(98% 0.014 180.72);
+  --color-warning: oklch(66% 0.179 58.318);
+  --color-warning-content: oklch(98% 0.022 95.277);
+  --color-error: oklch(58% 0.253 17.585);
+  --color-error-content: oklch(96% 0.015 12.422);
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.21875rem;
+  --size-field: 0.21875rem;
+  --border: 1.5px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@plugin "../vendor/daisyui-theme" {
+  name: "light";
+  default: true;
+  prefersdark: false;
+  color-scheme: "light";
+  --color-base-100: oklch(98% 0 0);
+  --color-base-200: oklch(96% 0.001 286.375);
+  --color-base-300: oklch(92% 0.004 286.32);
+  --color-base-content: oklch(21% 0.006 285.885);
+  --color-primary: oklch(70% 0.213 47.604);
+  --color-primary-content: oklch(98% 0.016 73.684);
+  --color-secondary: oklch(55% 0.027 264.364);
+  --color-secondary-content: oklch(98% 0.002 247.839);
+  --color-accent: oklch(0% 0 0);
+  --color-accent-content: oklch(100% 0 0);
+  --color-neutral: oklch(44% 0.017 285.786);
+  --color-neutral-content: oklch(98% 0 0);
+  --color-info: oklch(62% 0.214 259.815);
+  --color-info-content: oklch(97% 0.014 254.604);
+  --color-success: oklch(70% 0.14 182.503);
+  --color-success-content: oklch(98% 0.014 180.72);
+  --color-warning: oklch(66% 0.179 58.318);
+  --color-warning-content: oklch(98% 0.022 95.277);
+  --color-error: oklch(58% 0.253 17.585);
+  --color-error-content: oklch(96% 0.015 12.422);
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.21875rem;
+  --size-field: 0.21875rem;
+  --border: 1.5px;
+  --depth: 1;
+  --noise: 0;
+}
+
+
+/* Add variants based on LiveView classes */
+@custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
+@custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
+@custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
+
+/* Use the data attribute for dark mode  */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* Make LiveView wrapper divs transparent for layout */
+[data-phx-session], [data-phx-teleported-src] {
+  display: contents
+}
 
 @font-face {
   font-family: 'Inter';
@@ -21,67 +116,9 @@
   src: url("/fonts/InterVariable.ttf") format("truetype");
 }
 
-@font-face {
-  font-family: 'Inter';
-  font-style: italic;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url("/fonts/InterVariable-Italic.ttf") format("truetype");
-}
-
-@theme {
-  --font-sans: "Inter", system-ui, sans-serif;
-  
-  /* DaisyUI 5 standard theme colors */
-  --color-base-100: oklch(100% 0 0);
-  --color-base-200: oklch(96.115% 0 0);
-  --color-base-300: oklch(92.416% 0.001 197.137);
-  --color-base-content: oklch(27.807% 0.029 256.847);
-  --color-primary: oklch(49.12% 0.309 275.75);
-  --color-primary-content: oklch(89.824% 0.061 275.75);
-  --color-secondary: oklch(69.71% 0.329 342.55);
-  --color-secondary-content: oklch(98.71% 0.01 342.55);
-  --color-accent: oklch(76.76% 0.184 183.61);
-  --color-accent-content: oklch(15.352% 0.036 183.61);
-  --color-neutral: oklch(20% 0.024 255.701);
-  --color-neutral-content: oklch(89.499% 0.011 252.096);
-  --color-info: oklch(72.06% 0.191 231.6);
-  --color-info-content: oklch(0% 0 0);
-  --color-success: oklch(64.8% 0.15 160);
-  --color-success-content: oklch(0% 0 0);
-  --color-warning: oklch(84.71% 0.199 83.87);
-  --color-warning-content: oklch(0% 0 0);
-  --color-error: oklch(71.76% 0.221 22.18);
-  --color-error-content: oklch(0% 0 0);
-  
-  /* Custom colors for Qlarius */
-  --color-sponster: #43B375;
-  --color-youdata: #8585AD;
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
-  --root-bg: white;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
-  --border: 1.5px;
-  --depth: 1;
-  --noise: 0;
-}
-
-/* A Tailwind plugin that makes "hero-#{ICON}" classes available.
-   The heroicons installation itself is managed by your mix.exs */
-@plugin "../vendor/heroicons";
-
-/* Add variants based on LiveView classes */
-@variant phx-click-loading ([".phx-click-loading&", ".phx-click-loading &"]);
-@variant phx-submit-loading ([".phx-submit-loading&", ".phx-submit-loading &"]);
-@variant phx-change-loading ([".phx-change-loading&", ".phx-change-loading &"]);
-
-/* Make LiveView wrapper divs transparent for layout */
-[data-phx-root-id] { display: contents }
-
 /* Application styles - using @layer components for Tailwind v4 */
 @layer components {
+
   /* Ads page styles */
   .ad-card {
     @apply transition-all duration-300;
@@ -108,7 +145,7 @@
   /* Offer phase transitions */
   .offer-container {
     position: relative;
-    width: 345px; 
+    width: 345px;
     height: 145px;
     margin-bottom: 1rem;
   }
@@ -186,7 +223,7 @@ body {
   background-color: #ffffff;
   text-align: center;
   font-weight: 200;
-  box-shadow: 0px 0px 2px rgba(0,0,0,.3)
+  box-shadow: 0px 0px 2px rgba(0, 0, 0, .3)
 }
 
 .sponster-announcer-bottom-float-content-container {
@@ -194,11 +231,11 @@ body {
   bottom: 0px;
   width: 100%;
   text-align: center;
-  height:70px; 
-  padding: 0 10px; 
-  display:flex; 
-  flex-direction:row; 
-  align-items:center; 
+  height: 70px;
+  padding: 0 10px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   justify-content: space-between;
 }
 
@@ -228,14 +265,14 @@ body {
 }
 
 .sponster-announcer-logo-container {
-  height:44px;
-  width:32px;
+  height: 44px;
+  width: 32px;
   background: url(/images/Sponster_logo_color_horiz.svg) no-repeat right center;
   background-size: 140px;
 }
 
 .sponster-announcer-logo-container-top-bar {
-  height:44px;
+  height: 44px;
   width: 120px;
   background: url(/images/Sponster_logo_color_horiz.svg) no-repeat right center;
   background-size: 120px;
@@ -341,7 +378,7 @@ body {
   width: 80px;
   height: 80px;
   margin: -40px 0 0 -40px;
-  animation: 
+  animation:
     slide 8s linear alternate infinite,
     bouncy 3s ease-in-out infinite;
 }
@@ -353,38 +390,50 @@ body {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes slide {
-  0% { left: 10%; }
-  100% { left: 90%; }
+  0% {
+    left: 10%;
+  }
+
+  100% {
+    left: 90%;
+  }
 }
 
 @keyframes bouncy {
-  0% { 
+  0% {
     top: 100%;
     animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
-  50% { 
+
+  50% {
     top: 40px;
   }
-  100% { 
+
+  100% {
     top: 100%;
   }
 }
 
-@media(min-width: 800px){
+@media(min-width: 800px) {
   .sponster-announcer-bottom-float-content-container {
-      width: 800px;
-      margin: 0 -400px;
-      padding: 0 20px;
+    width: 800px;
+    margin: 0 -400px;
+    padding: 0 20px;
   }
 
   .sponster-announcer-logo-container {
-    width:126px;
-    height:54px;
+    width: 126px;
+    height: 54px;
     background: url(/images/Sponster_logo_color_horiz.svg) no-repeat center center;
     background-size: 120px;
   }
@@ -403,7 +452,9 @@ body {
   }
 }
 
-[x-cloak] { display: none !important; }
+[x-cloak] {
+  display: none !important;
+}
 
 
 
