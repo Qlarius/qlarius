@@ -26,7 +26,7 @@ defmodule QlariusWeb.OfferHTML do
 
     ~H"""
     <div
-      class="offer-container rounded-md border border-neutral-400 overflow-hidden cursor-pointer"
+      class="offer-container rounded-md border border-base-500/50 overflow-hidden cursor-pointer"
       style="width: 347px; height: 152px;"
     >
       <div class="absolute inset-0 overflow-hidden">
@@ -37,8 +37,8 @@ defmodule QlariusWeb.OfferHTML do
             target={@target}
             recipient={@recipient}
           >
-            <div class="text-2xl font-bold mb-2 text-neutral-600">{format_usd(@offer.offer_amt)}</div>
-            <div class="mb-4">
+            <div class="text-2xl font-bold mb-2">{format_usd(@offer.offer_amt)}</div>
+            <div class="mb-4 text-base-content/50">
               {@offer.media_piece.ad_category.ad_category_name}
             </div>
             <div class="flex justify-between w-full">
@@ -85,10 +85,10 @@ defmodule QlariusWeb.OfferHTML do
         <div class={"offer-phase phase-2 #{if @phase > 2, do: "hidden"}"}>
           <.offer_container offer={@offer} class="px-3 py-2" target={@target} recipient={@recipient}>
             <a class="block w-full h-full" href={~p"/jump/#{@offer}"} target="_blank">
-              <div class="text-blue-800 font-bold text-lg underline">
+              <div class="text-blue-500 font-bold text-lg underline">
                 {@offer.media_piece.title}
               </div>
-              <div class="text-gray-700 text-sm mb-1" style="line-height: 1.15rem">
+              <div class="text-base-700 text-sm mb-1" style="line-height: 1.15rem">
                 {@offer.media_piece.body_copy}
               </div>
               <div class="text-green-500 text-xs">
@@ -144,7 +144,7 @@ defmodule QlariusWeb.OfferHTML do
       <div
         class={[
           "flex-1 flex items-center justify-center",
-          if(@phase_1_complete?, do: "bg-base-200", else: "bg-neutral text-base-content")
+          if(@phase_1_complete?, do: "bg-base-200", else: "text-base-content")
         ]}
         style="height: 35px;"
       >
@@ -158,7 +158,7 @@ defmodule QlariusWeb.OfferHTML do
       <div
         class={[
           "flex-1 flex items-center justify-center border-l border-gray-400",
-          if(@phase_1_complete?, do: "bg-neutral text-base-content", else: "bg-neutral text-base-content/50")
+          if(@phase_1_complete?, do: "bg-base-200 text-base-content", else: "bg-base-300 text-base-content/20")
         ]}
         style="height: 35px;"
       >
