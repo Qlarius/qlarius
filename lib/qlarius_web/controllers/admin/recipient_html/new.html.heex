@@ -1,6 +1,7 @@
 <div class="container mx-auto px-4">
   <div class="mb-4">
-    <.back navigate={~p"/admin/recipients"} class="btn btn-outline">Back to recipients</.back>
+    <%!-- Removed class="btn btn-outline" - back component doesn't support class attribute --%>
+    <.back navigate={~p"/admin/recipients"}>Back to recipients</.back>
   </div>
 
   <div>
@@ -8,7 +9,8 @@
       <div class="flex items-center">
         <h1 class="text-2xl font-bold">New Recipient</h1>
       </div>
-      <:subtitle class="mt-2 text-base-content/70">Create a new recipient.</:subtitle>
+      <%!-- Removed class="mt-2 text-base-content/70" - subtitle slot doesn't support custom classes --%>
+      <:subtitle>Create a new recipient.</:subtitle>
     </.header>
   </div>
 

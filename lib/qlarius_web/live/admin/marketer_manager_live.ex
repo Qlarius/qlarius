@@ -52,14 +52,16 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
         <% :new -> %>
           <div class="container mx-auto px-4">
             <div class="mb-4">
-              <.back navigate={~p"/admin/marketers"} class="btn btn-outline">Back to marketers</.back>
+              <%!-- Removed class="btn btn-outline" - back component doesn't support class attribute --%>
+              <.back navigate={~p"/admin/marketers"}>Back to marketers</.back>
             </div>
             <div>
               <.header>
                 <div class="flex items-center">
                   <h1 class="text-2xl font-bold">New Marketer</h1>
                 </div>
-                <:subtitle class="mt-2 text-base-content/70">Create a new marketer.</:subtitle>
+                <%!-- Removed class="mt-2 text-base-content/70" - subtitle slot doesn't support custom classes --%>
+                <:subtitle>Create a new marketer.</:subtitle>
               </.header>
             </div>
             {render_form(assigns)}
@@ -67,7 +69,8 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
         <% :edit -> %>
           <div class="container mx-auto px-4">
             <div class="mb-4">
-              <.back navigate={~p"/admin/marketers"} class="btn btn-outline">Back to marketers</.back>
+              <%!-- Removed class="btn btn-outline" - back component doesn't support class attribute --%>
+              <.back navigate={~p"/admin/marketers"}>Back to marketers</.back>
             </div>
             <div>
               <.header>
@@ -76,7 +79,8 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
                     Edit Marketer "<span class="text-primary"><%= @marketer.business_name %></span>"
                   </h1>
                 </div>
-                <:subtitle class="mt-2 text-base-content/70">Edit marketer information.</:subtitle>
+                <%!-- Removed class="mt-2 text-base-content/70" - subtitle slot doesn't support custom classes --%>
+                <:subtitle>Edit marketer information.</:subtitle>
               </.header>
             </div>
             {render_form(assigns)}

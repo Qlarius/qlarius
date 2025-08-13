@@ -1,6 +1,7 @@
 <div class="container mx-auto px-4">
   <div class="mb-4">
-    <.back navigate={~p"/marketers"} class="btn btn-outline">Back to marketers</.back>
+    <%!-- Removed class="btn btn-outline" - back component doesn't support class attribute --%>
+    <.back navigate={~p"/marketers"}>Back to marketers</.back>
   </div>
 
   <div>
@@ -10,7 +11,8 @@
           Edit Marketer "<span class="text-primary"><%= @marketer.name %></span>"
         </h1>
       </div>
-      <:subtitle class="mt-2 text-base-content/70">Edit marketer information.</:subtitle>
+      <%!-- Removed class="mt-2 text-base-content/70" - subtitle slot doesn't support custom classes --%>
+      <:subtitle>Edit marketer information.</:subtitle>
     </.header>
   </div>
 

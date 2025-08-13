@@ -6,7 +6,8 @@
           Edit Media Piece "<span class="text-primary"><%= @media_piece.title %></span>"
         </h1>
       </div>
-      <:subtitle class="mt-2 text-base-content/70">Edit media piece information.</:subtitle>
+      <%!-- Removed class="mt-2 text-base-content/70" - subtitle slot doesn't support custom classes --%>
+      <:subtitle>Edit media piece information.</:subtitle>
     </.header>
   </div>
 
@@ -17,7 +18,8 @@
   />
 
   <div class="mt-4">
-    <.back navigate={~p"/marketer/media_pieces"} class="btn btn-outline">
+    <%!-- Removed class="btn btn-outline" - back component doesn't support class attribute --%>
+    <.back navigate={~p"/marketer/media_pieces"}>
       Back to media pieces
     </.back>
   </div>
