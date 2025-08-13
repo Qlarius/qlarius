@@ -98,7 +98,7 @@ config :phoenix, :json_library, Jason
 import_config "#{config_env()}.exs"
 
 # In config/config.exs or wherever CSP is set
-config :qlarius_web, :content_security_policy,
+config :qlarius, :content_security_policy,
   frame_ancestors: ["'self'", "chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen"]
 
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
