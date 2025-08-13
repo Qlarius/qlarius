@@ -12,6 +12,7 @@ defmodule QlariusWeb.Admin.MarketerHTML do
   attr :changeset, Ecto.Changeset, required: true
   attr :action, :string, required: true
   attr :return_to, :string, default: nil
+  attr :submit_label, :string, default: "Save Marketer"
 
   def marketer_form(assigns)
 end

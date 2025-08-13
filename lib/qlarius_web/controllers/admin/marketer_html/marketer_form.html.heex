@@ -2,7 +2,7 @@
   <.input field={f[:name]} label="Name" class="input input-bordered w-full" />
   <div>
     <.button class="btn btn-primary">
-      {@submit_label || "Save Marketer"}
+      {@submit_label}
     </.button>
     <.link navigate={@return_to || ~p"/marketers"} class="btn ml-2">Cancel</.link>
   </div>
