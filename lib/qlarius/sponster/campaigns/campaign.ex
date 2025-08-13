@@ -16,7 +16,8 @@ defmodule Qlarius.Sponster.Campaigns.Campaign do
     field :deactivated_at, :naive_datetime
 
     belongs_to :marketer, Qlarius.Accounts.Marketer
-    belongs_to :target, Qlarius.Sponster.Target
+    # Target association commented - schema only in archive_hide
+    # belongs_to :target, Qlarius.Sponster.Target
     belongs_to :media_sequence, Qlarius.Sponster.Campaigns.MediaSequence
 
     timestamps()

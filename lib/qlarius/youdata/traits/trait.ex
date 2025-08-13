@@ -4,7 +4,9 @@ defmodule Qlarius.YouData.Traits.Trait do
 
   alias Qlarius.Repo
   alias Qlarius.YouData.MeFiles.{MeFile, MeFileTag}
-  alias Qlarius.YouData.Traits.{TraitGroup, TraitGroupTrait, TraitCategory}
+  alias Qlarius.Sponster.Campaigns.{TraitGroup, TraitGroupTrait}
+  # TraitCategory commented - schema only in archive_hide
+  # alias Qlarius.YouData.Traits.TraitCategory
 
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :added_date, updated_at: :modified_date]
@@ -24,7 +26,8 @@ defmodule Qlarius.YouData.Traits.Trait do
     field :is_date, :boolean, default: false
 
     belongs_to :parent_trait, __MODULE__, foreign_key: :parent_trait_id
-    belongs_to :trait_category, TraitCategory
+    # TraitCategory association commented - schema only in archive_hide
+    # belongs_to :trait_category, TraitCategory
 
     has_many :child_traits, __MODULE__, foreign_key: :parent_trait_id
     has_many :me_file_tags, MeFileTag

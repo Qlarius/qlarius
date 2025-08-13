@@ -19,7 +19,8 @@ defmodule Qlarius.Sponster.Recipient do
     field :referral_code, :string
 
     belongs_to :user, Qlarius.Accounts.User
-    belongs_to :recipient_type, Qlarius.Sponster.RecipientType
+    # RecipientType association commented - schema only in archive_hide
+    # belongs_to :recipient_type, Qlarius.Sponster.RecipientType
     belongs_to :approved_by_user, Qlarius.Accounts.User, foreign_key: :approved_by_user_id
 
     timestamps()
