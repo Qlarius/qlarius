@@ -4,7 +4,8 @@ defmodule Qlarius.Accounts do
   """
 
   import Ecto.Query, warn: false
-  alias Qlarius.Repo
+  # Commented out unused alias - Repo not directly referenced
+  # alias Qlarius.Repo
 
   alias Qlarius.Accounts.Marketer
   alias Qlarius.Accounts.Scope

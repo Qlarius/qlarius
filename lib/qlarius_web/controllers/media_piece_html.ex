@@ -3,7 +3,8 @@ defmodule QlariusWeb.MediaPieceHTML do
 
   embed_templates "media_piece_html/*"
 
-  alias QlariusWeb.ThreeTapBanner
+  # Commented out unused alias - ThreeTapBanner not directly referenced
+  # alias QlariusWeb.ThreeTapBanner
 
   @debug true
 

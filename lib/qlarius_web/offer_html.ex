@@ -1,8 +1,11 @@
 defmodule QlariusWeb.OfferHTML do
   use QlariusWeb, :html
 
-  alias Qlarius.Sponster.{Offer, Recipient}
-  alias Qlarius.YouData.MeFiles.MeFile
+  # Commented out unused alias - Recipient module not directly referenced (only @recipient assigns used)
+  # alias Qlarius.Sponster.{Offer, Recipient}
+  alias Qlarius.Sponster.Offer
+  # Commented out unused alias - MeFile module not directly referenced (only me_file field access)
+  # alias Qlarius.YouData.MeFiles.MeFile
   alias QlariusWeb.Uploaders.ThreeTapBanner
   alias Qlarius.Sponster.Ads.ThreeTap
   import Ecto.Query, except: [update: 2, update: 3]

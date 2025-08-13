@@ -3,10 +3,12 @@ defmodule Qlarius.Sponster.Campaigns.TargetBand do
   import Ecto.Changeset
 
   alias Qlarius.Sponster.{Offer, AdEvent}
-  alias Qlarius.Sponster.Campaigns.TraitGroup
+  # Commented out unused alias - TraitGroup not directly referenced
+  # alias Qlarius.Sponster.Campaigns.TraitGroup
   # Bid schema commented - does not exist
   # alias Qlarius.Sponster.Campaigns.Bid
-  alias Qlarius.YouData.MeFiles.MeFile
+  # Commented out unused alias - MeFile not directly referenced (association commented out)
+  # alias Qlarius.YouData.MeFiles.MeFile
 
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]

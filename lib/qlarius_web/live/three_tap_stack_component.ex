@@ -6,8 +6,10 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   alias Qlarius.Sponster.Ads.ThreeTap
   alias Qlarius.Sponster.Offer
   alias Qlarius.Repo
-  alias Qlarius.Wallets.Wallets
-  alias Phoenix.Component
+  # Commented out unused alias - Wallets not directly referenced
+  # alias Qlarius.Wallets.Wallets
+  # Commented out unused alias - Component not directly referenced
+  # alias Phoenix.Component
   import Ecto.Query, except: [update: 2, update: 3]
 
   @impl true
