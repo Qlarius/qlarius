@@ -141,77 +141,43 @@ defmodule QlariusWeb.WalletLive do
         </div>
 
         <div class="flex justify-center mb-6 space-x-2">
-          <%= if @page > 1 do %>
-            <button
-              phx-click="paginate"
-              phx-value-page="1"
-              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 cursor-pointer"
-            >
-              Newest
-            </button>
-
-            <button
-              phx-click="paginate"
-              phx-value-page={@page - 1}
-              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 cursor-pointer"
-            >
-              &lt;
-            </button>
-          <% end %>
-
-          <div class="flex items-center px-4 py-2 bg-sponster text-white rounded-md">
-            {@page}
+          <div class="join">
+            <button phx-click="paginate" phx-value-page="1" class="join-item btn btn-sm">Newest</button>
+            <button phx-click="paginate" phx-value-page={if @page > 1, do: @page - 1, else: 1} class="join-item btn btn-sm"><.icon name="hero-chevron-left" class="h-4 w-4" /></button>
+            <div class="join-item btn btn-sm btn-success">Page {@page}</div>
+            <button phx-click="paginate" phx-value-page={@page + 1} class="join-item btn btn-sm"><.icon name="hero-chevron-right" class="h-4 w-4" /></button>
+            <button phx-click="paginate" phx-value-page="oldest" class="join-item btn btn-sm">Oldest</button>
           </div>
-
-          <%= if @page < @paginated_entries.total_pages do %>
-            <button
-              phx-click="paginate"
-              phx-value-page={@page + 1}
-              class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 cursor-pointer"
-            >
-              &gt;
-            </button>
-          <% else %>
-            <div class="px-2 py-2 flex items-center text-gray-400">
-              <.icon name="hero-chevron-right" class="h-6 w-6" />
-            </div>
-          <% end %>
-
-          <button
-            phx-click="paginate"
-            phx-value-page="oldest"
-            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 cursor-pointer"
-          >
-            Oldest
-          </button>
         </div>
+
+
 
         <h2 class="text-xl font-semibold mb-4">Transactions</h2>
 
-        <div class="divide-y divide-gray-200">
-          <div
+        <ul class="list bg-base-100 rounded-box shadow-md">
+          <li
             :for={entry <- @paginated_entries.entries}
-            class="py-4 flex justify-between items-center cursor-pointer"
+            class="list-row cursor-pointer"
             phx-click="open-ledger-entry-sidebar"
             phx-value-entry_id={entry.id}
           >
-            <div>
+            <div class="list-col-grow">
               <div class="text-small">{entry.description}</div>
-              <div class="text-gray-500 text-xs">{format_date(entry.created_at)}</div>
+              <div class="text-base-content/50 text-xs">{format_date(entry.created_at)}</div>
             </div>
             <div class="flex items-center">
               <div class="text-right mr-4">
                 <div class="text-sm font-bold">{format_currency(entry.amt)}</div>
-                <div class="text-gray-500 text-xs">
+                <div class="text-base-content/50 text-xs">
                   {format_currency(entry.running_balance)}
                 </div>
               </div>
-              <div class="text-gray-400">
+              <div class="text-base-content/50">
                 <.icon name="hero-chevron-right" class="h-6 w-6" />
               </div>
             </div>
-          </div>
-        </div>
+          </li>
+        </ul>
       <% end %>
 
       <.ledger_entry_detail_sidebar :if={@sidebar_entry} entry={@sidebar_entry} />

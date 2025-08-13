@@ -112,7 +112,7 @@ defmodule QlariusWeb.Layouts do
         <span class="dock-label">Ads</span>
         <span
           :if={@current_scope.ads_count > 0}
-          class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white bg-sponster"
+          class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white bg-color-sponster-500"
         >
           {@current_scope.ads_count}
         </span>
@@ -128,7 +128,7 @@ defmodule QlariusWeb.Layouts do
       >
         <.icon name="hero-banknotes" class="size-[1.2em]" />
         <span class="dock-label">Wallet</span>
-        <span class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white bg-sponster">
+        <span class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white bg-sponster-500">
           {format_usd(@current_scope.wallet_balance)}
         </span>
       </button>
@@ -360,9 +360,11 @@ defmodule QlariusWeb.Layouts do
   end
 
   @doc """
-  Provides dark vs light theme toggle based on themes defined in app.css.
+  Provides dark vs light
+   toggle based on themes defined in app.css.
 
   See <head> in root.html.heex which applies the theme before page load.
+
   """
   def theme_toggle(assigns) do
     ~H"""

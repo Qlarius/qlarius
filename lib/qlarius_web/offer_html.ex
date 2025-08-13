@@ -26,7 +26,7 @@ defmodule QlariusWeb.OfferHTML do
 
     ~H"""
     <div
-      class="offer-container rounded-md border border-base-500/50 overflow-hidden cursor-pointer"
+      class="offer-container rounded-md border border-gray-300 dark:border-gray-600 overflow-hidden cursor-pointer"
       style="width: 347px; height: 152px;"
     >
       <div class="absolute inset-0 overflow-hidden">
@@ -85,7 +85,7 @@ defmodule QlariusWeb.OfferHTML do
         <div class={"offer-phase phase-2 #{if @phase > 2, do: "hidden"}"}>
           <.offer_container offer={@offer} class="px-3 py-2" target={@target} recipient={@recipient}>
             <a class="block w-full h-full" href={~p"/jump/#{@offer}"} target="_blank">
-              <div class="text-blue-500 font-bold text-lg underline">
+              <div class="text-blue-500 dark:text-blue-300 font-bold text-lg underline">
                 {@offer.media_piece.title}
               </div>
               <div class="text-base-700 text-sm mb-1" style="line-height: 1.15rem">
