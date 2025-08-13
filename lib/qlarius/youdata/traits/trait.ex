@@ -3,8 +3,11 @@ defmodule Qlarius.YouData.Traits.Trait do
   import Ecto.Changeset
 
   alias Qlarius.Repo
-  alias Qlarius.YouData.MeFiles.{MeFile, MeFileTag}
-  alias Qlarius.Sponster.Campaigns.{TraitGroup, TraitGroupTrait}
+  # Commented out unused aliases - MeFile/TraitGroup not directly referenced (through associations use atoms, not direct module references)
+  # alias Qlarius.YouData.MeFiles.{MeFile, MeFileTag}
+  # alias Qlarius.Sponster.Campaigns.{TraitGroup, TraitGroupTrait}
+  alias Qlarius.YouData.MeFiles.MeFileTag
+  alias Qlarius.Sponster.Campaigns.TraitGroupTrait
   # TraitCategory commented - schema only in archive_hide
   # alias Qlarius.YouData.Traits.TraitCategory
 

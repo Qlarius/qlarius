@@ -2,17 +2,25 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Accounts.Users
-  alias Qlarius.Sponster
+  # Commented out unused alias - Sponster not directly referenced (only string "Sponster" used)
+  # alias Qlarius.Sponster
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Sponster.Offer
-  alias Qlarius.Accounts.User
-  alias Qlarius.Wallets.{LedgerHeader, LedgerEntry}
-  alias Qlarius.Sponster.AdEvent
-  alias Qlarius.Sponster.Recipient
+  # Commented out unused alias - User not directly referenced in this file
+  # alias Qlarius.Accounts.User
+  # Commented out unused aliases - LedgerHeader/LedgerEntry not directly referenced in this file
+  # alias Qlarius.Wallets.{LedgerHeader, LedgerEntry}
+  # Commented out unused alias - AdEvent not directly referenced in this file
+  # alias Qlarius.Sponster.AdEvent
+  # Commented out unused alias - Recipient not directly referenced in this file
+  # alias Qlarius.Sponster.Recipient
   alias Qlarius.Repo
-  alias Qlarius.Accounts.Scope
-  alias Qlarius.Sponster.Ads.ThreeTap
-  alias Phoenix.Component
+  # Commented out unused alias - Scope not directly referenced in this file
+  # alias Qlarius.Accounts.Scope
+  # Commented out unused alias - ThreeTap not directly referenced in this file
+  # alias Qlarius.Sponster.Ads.ThreeTap
+  # Commented out unused alias - Component not directly referenced in this file
+  # alias Phoenix.Component
   alias Qlarius.Wallets.Wallets
   alias Qlarius.Wallets.MeFileBalanceBroadcaster
   import QlariusWeb.OfferHTML

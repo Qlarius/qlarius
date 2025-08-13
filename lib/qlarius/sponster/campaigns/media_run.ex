@@ -2,7 +2,9 @@ defmodule Qlarius.Sponster.Campaigns.MediaRun do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Sponster.Campaigns.{Campaign, MediaSequence}
+  # Commented out unused alias - Campaign not directly referenced
+  # alias Qlarius.Sponster.Campaigns.{Campaign, MediaSequence}
+  alias Qlarius.Sponster.Campaigns.MediaSequence
   alias Qlarius.Sponster.Ads.MediaPiece
 
   @primary_key {:id, :id, autogenerate: true}

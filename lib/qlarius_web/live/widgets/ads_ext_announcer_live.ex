@@ -1,15 +1,23 @@
 defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   use QlariusWeb, :live_view
 
-  alias Qlarius.Accounts.Users
-  alias Qlarius.Sponster
-  alias Qlarius.YouData.MeFiles.MeFile
-  alias Qlarius.Accounts.User
-  alias Qlarius.Wallets.LedgerHeader
+  # Commented out unused alias - Users not directly referenced
+  # alias Qlarius.Accounts.Users
+  # Commented out unused alias - Sponster not directly referenced
+  # alias Qlarius.Sponster
+  # Commented out unused alias - MeFile not directly referenced
+  # alias Qlarius.YouData.MeFiles.MeFile
+  # Commented out unused alias - User not directly referenced
+  # alias Qlarius.Accounts.User
+  # Commented out unused alias - LedgerHeader not directly referenced
+  # alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Wallets.MeFileBalanceBroadcaster
-  alias Qlarius.Repo
-  alias Qlarius.Accounts.Scope
-  alias Phoenix.Component
+  # Commented out unused alias - Repo not directly referenced
+  # alias Qlarius.Repo
+  # Commented out unused alias - Scope not directly referenced
+  # alias Qlarius.Accounts.Scope
+  # Commented out unused alias - Component not directly referenced
+  # alias Phoenix.Component
   import Ecto.Query, except: [update: 2, update: 3]
   import QlariusWeb.Layouts
   import Jason
