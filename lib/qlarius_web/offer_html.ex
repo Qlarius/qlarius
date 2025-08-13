@@ -22,7 +22,8 @@ defmodule QlariusWeb.OfferHTML do
   attr :current_scope, :any, required: true
 
   def clickable_offer(assigns) do
-    split_amount = assigns.current_scope.user.me_file.split_amount
+    # Variable extracted for potential future use but not currently referenced in template
+    _split_amount = assigns.current_scope.user.me_file.split_amount
     phase_2_amount = Decimal.sub(assigns.offer.offer_amt, @phase_1_amount)
     assigns = assign(assigns, :phase_2_amount, phase_2_amount)
     assigns = assign_new(assigns, :target, fn -> nil end)

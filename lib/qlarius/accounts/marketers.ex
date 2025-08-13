@@ -5,7 +5,8 @@ defmodule Qlarius.Accounts.Marketers do
 
   import Ecto.Query
 
-  def list_marketers(%Scope{} = scope) do
+  # Scope parameter reserved for future multi-tenancy but not currently used
+  def list_marketers(%Scope{} = _scope) do
     Repo.all(from(m in Marketer))
   end
 
