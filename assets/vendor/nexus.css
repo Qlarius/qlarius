@@ -180,9 +180,6 @@
     --default-mono-font-family: var(--font-mono);
     --animate-bounce-slow: bounce-slow 2s infinite alternate;
     --animate-text-color: text-color 16s linear infinite;
-
-    /* added custom Qlarius colors */
-    --color-sponster-500: #43B274;
 }
 [data-font-family="default"] {
     --font-sans: "Inter", sans-serif;

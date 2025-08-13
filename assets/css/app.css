@@ -115,6 +115,13 @@
   src: url("/fonts/InterVariable.ttf") format("truetype");
 }
 
+@theme {
+  /* TODO: expand these to full scale */
+  --color-sponster-500: #43B274;
+  --color-tiqit-500: #F5A622;
+  --color-youdata-500: #8585AD;
+}
+
 /* Application styles - using @layer components for Tailwind v4 */
 @layer components {
 

@@ -65,7 +65,7 @@
     style="min-height: 350px;"
   >
     <!-- Header -->
-    <div class="w-full bg-white dark:bg-base-300 border-b border-gray-300 p-5 flex justify-between items-center shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)] relative z-10">
+    <div class="w-full bg-base-100 dark:bg-base-300 border-b border-gray-300 p-5 flex justify-between items-center shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)] relative z-10">
       <div class="text-content-base-800 font-bold uppercase tracking-wider">
         TIP TO SUPPORT WHAT MATTERS
       </div>
@@ -91,8 +91,8 @@
     >
       <!-- Left: Autosplit -->
       <div class="flex-1 flex flex-col items-center md:items-start">
-        <div class="text-lg font-bold text-gray-800 mb-1">AutoSplit</div>
-        <div class="text-gray-500 text-sm mb-4">
+        <div class="text-lg font-bold text-base-content mb-1">AutoSplit</div>
+        <div class="text-base-content/70 text-sm mb-4">
           Automatically tip a share of your revenues from ads engaged on this site.
         </div>
         <div class="flex rounded-lg overflow-hidden border border-gray-200 bg-white w-fit">
@@ -111,7 +111,7 @@
       </div>
       <!-- Right: Recipient -->
       <div class="flex-1 flex flex-col items-center">
-        <div class="text-2xl font-bold text-gray-800 mb-2 text-center md:text-left">
+        <div class="text-2xl font-bold text-base-content mb-2 text-center md:text-left">
           {@recipient.name || "This Blog's Name"}
         </div>
         <div class="w-56 h-56 bg-base-300 shadow-md flex items-center justify-center mb-4 overflow-hidden">
@@ -125,7 +125,7 @@
             class="object-contain w-full h-full rounded"
           />
         </div>
-        <div class="text-gray-500 text-sm text-center max-w-xs">
+        <div class="text-base-content/70 text-sm text-center max-w-xs">
           {@recipient.message ||
             "Thank you for supporting this content. Your Sponster tips are greatly appreciated!"}
         </div>

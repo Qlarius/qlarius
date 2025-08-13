@@ -13,7 +13,7 @@
     <!-- profile box -->
     <div class="flex items-center justify-between p-3 mb-4 border-b border-gray-700">
       <div class="flex items-center">
-        <img src="/images/qlarius_logo_squares_white.png" class="h-7 mr-2.5" alt="Logo" />
+        <img src="/images/qlarius_logo_squares.svg" class="h-7 mr-2.5" alt="Logo" />
         <div>
           <span class="font-bold text-base-content" data-app-target="mobileNumber">
             {@current_scope.user.email}
@@ -42,10 +42,10 @@
       <li>
         <.link
           navigate={~p"/"}
-          class="flex items-center p-2 rounded-lg text-white hover:bg-gray-700 group"
+          class="flex items-center p-2 rounded-lg text-base-content hover:bg-base-200 group"
         >
-          <div class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-600">
-            <.icon name="hero-home" class="h-5 w-5 text-white" />
+          <div class="flex items-center justify-center h-8 w-8 rounded-full bg-neutral">
+            <.icon name="hero-home" class="h-5 w-5 text-neutral-content" />
           </div>
           <span class="ml-3">Home</span>
         </.link>
@@ -60,16 +60,16 @@
       <li>
         <.link
           navigate={~p"/ads"}
-          class="flex items-center justify-between p-2 rounded-lg text-white hover:bg-gray-700 group"
+          class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
         >
           <div class="flex items-center">
-            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-sponster">
-              <.icon name="hero-eye" class="h-5 w-5 text-white" />
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-sponster-500">
+              <.icon name="hero-eye" class="h-5 w-5 text-primary-content" />
             </div>
             <span class="ml-3">Ads</span>
           </div>
           <span
-            class="bg-sponster text-white text-xs font-medium px-2.5 py-0.5 rounded"
+            class="bg-sponster-500 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
             data-app-target="offerCount"
           >
             {@current_scope.ads_count}
@@ -79,16 +79,16 @@
       <li>
         <.link
           navigate={~p"/wallet"}
-          class="flex items-center justify-between p-2 rounded-lg text-white hover:bg-gray-700 group"
+          class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
         >
           <div class="flex items-center">
-            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-sponster">
-              <.icon name="hero-banknotes" class="h-5 w-5 text-white" />
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-sponster-500">
+              <.icon name="hero-banknotes" class="h-5 w-5 text-primary-content" />
             </div>
             <span class="ml-3">Wallet</span>
           </div>
           <span
-            class="bg-sponster text-white text-xs font-medium px-2.5 py-0.5 rounded"
+            class="bg-sponster-500 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
             data-app-target="balance"
           >
             ${@current_scope.user.me_file.ledger_header.balance}
@@ -104,16 +104,16 @@
       <li>
         <.link
           navigate={~p"/me_file"}
-          class="flex items-center justify-between p-2 rounded-lg text-white hover:bg-gray-700 group"
+          class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
         >
           <div class="flex items-center">
-            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata">
-              <.icon name="hero-identification" class="h-5 w-5 text-white" />
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata-500">
+              <.icon name="hero-identification" class="h-5 w-5 text-primary-content" />
             </div>
             <span class="ml-3">Your MeFile</span>
           </div>
           <span
-            class="bg-youdata text-white text-xs font-medium px-2.5 py-0.5 rounded"
+            class="bg-youdata-500 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
             data-app-target="tagCount"
           >
             {@current_scope.tag_count}
@@ -123,10 +123,10 @@
       <li>
         <.link
           navigate={~p"/me_file/surveys"}
-          class="flex items-center p-2 rounded-lg text-white hover:bg-gray-700 group"
+          class="flex items-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
         >
-          <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata">
-            <.icon name="hero-wrench" class="h-5 w-5 text-white" />
+          <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata-500">
+            <.icon name="hero-wrench" class="h-5 w-5 text-primary-content" />
           </div>
           <span class="ml-3">MeFile Builder</span>
         </.link>
@@ -137,13 +137,13 @@
       <div class="grid grid-cols-2 gap-2">
         <.link
           navigate={~p"/users/settings"}
-          class="flex flex-col items-center justify-center p-2 rounded-lg text-white hover:bg-gray-700 text-sm"
+          class="flex flex-col items-center justify-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 text-sm"
         >
           <.icon name="hero-cog-6-tooth" class="h-5 w-5 mb-1" /> Settings
         </.link>
         <.link
           href="#"
-          class="flex flex-col items-center justify-center p-2 rounded-lg text-white hover:bg-gray-700 text-sm"
+          class="flex flex-col items-center justify-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 text-sm"
           method="delete"
         >
           <.icon name="hero-arrow-right-on-rectangle" class="h-5 w-5 mb-1" /> Log out

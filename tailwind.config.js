@@ -7,6 +7,9 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        sponster: {
+          500: "#43B274"
+        },
       },
       transitionTimingFunction: {
         'ease-in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
@@ -33,7 +36,7 @@ module.exports = {
         },
       },
       "light",
-      "dark",
+      "dark"
     ],
   },
 } 

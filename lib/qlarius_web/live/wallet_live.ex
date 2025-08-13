@@ -135,7 +135,7 @@ defmodule QlariusWeb.WalletLive do
       <% else %>
         <div class="mb-6">
           <div class="text-lg">Current Balance:</div>
-          <div class="text-2xl text-sponster font-bold">
+          <div class="text-2xl text-sponster-500 font-bold">
             {format_currency(@ledger_header.balance)}
           </div>
         </div>
@@ -144,7 +144,7 @@ defmodule QlariusWeb.WalletLive do
           <div class="join">
             <button phx-click="paginate" phx-value-page="1" class="join-item btn btn-sm">Newest</button>
             <button phx-click="paginate" phx-value-page={if @page > 1, do: @page - 1, else: 1} class="join-item btn btn-sm"><.icon name="hero-chevron-left" class="h-4 w-4" /></button>
-            <div class="join-item btn btn-sm btn-success">Page {@page}</div>
+            <div class="join-item btn btn-sm btn-neutral">Page {@page}</div>
             <button phx-click="paginate" phx-value-page={@page + 1} class="join-item btn btn-sm"><.icon name="hero-chevron-right" class="h-4 w-4" /></button>
             <button phx-click="paginate" phx-value-page="oldest" class="join-item btn btn-sm">Oldest</button>
           </div>
