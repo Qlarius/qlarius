@@ -2,8 +2,8 @@ defmodule Qlarius.YouData.Surveys.Survey do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Surveys.SurveyCategory
-  alias Qlarius.Traits.Trait
+  alias Qlarius.YouData.Surveys.SurveyCategory
+  alias Qlarius.YouData.Traits.Trait
 
   schema "surveys" do
     field :name, :string

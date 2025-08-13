@@ -21,7 +21,7 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
     belongs_to :media_piece_type, MediaPieceType
     belongs_to :ad_category, AdCategory
 
-    has_many :media_runs, Qlarius.Campaigns.MediaRun
+    has_many :media_runs, Qlarius.Sponster.Campaigns.MediaRun
     has_many :offers, through: [:media_runs, :offers]
 
     timestamps()

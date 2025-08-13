@@ -19,7 +19,7 @@ defmodule Qlarius.Sponster.Ads.MediaPiecePhase do
     field :pay_to_recipient_from_me_file_fixed, :decimal
     field :pay_to_recipient_from_me_file_percent, :decimal
 
-    belongs_to :media_piece_type, Qlarius.Ads.MediaPieceType
+    belongs_to :media_piece_type, Qlarius.Sponster.Ads.MediaPieceType
 
     timestamps()
   end
