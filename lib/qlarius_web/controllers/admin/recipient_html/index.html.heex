@@ -8,7 +8,8 @@
   <div class="card bg-base-100 shadow-xl">
     <div class="card-body p-0">
       <div class="overflow-x-auto">
-        <.table id="recipients-table" rows={@recipients} class="table-zebra">
+        <%!-- Removed class="table-zebra" - table component doesn't support class attribute, zebra styling is default --%>
+        <.table id="recipients-table" rows={@recipients}>
           <:col :let={recipient} label="Name">{recipient.name}</:col>
           <:col :let={recipient} label="Brand Graphic">
             <%= if recipient.graphic_url do %>
