@@ -41,7 +41,8 @@ defmodule Qlarius.Accounts do
       %Marketer{}
 
   """
-  def get_marketer!(%Scope{} = _scope, id), do: raise("TODO")
+  # id parameter not used in TODO stub function
+  def get_marketer!(%Scope{} = _scope, _id), do: raise("TODO")
 
   @doc """
   Creates a marketer.
@@ -55,7 +56,8 @@ defmodule Qlarius.Accounts do
       {:error, ...}
 
   """
-  def create_marketer(%Scope{} = _scope, attrs \\ %{}) do
+  # attrs parameter not used in TODO stub function
+  def create_marketer(%Scope{} = _scope, _attrs \\ %{}) do
     raise "TODO"
   end
 
@@ -71,7 +73,8 @@ defmodule Qlarius.Accounts do
       {:error, ...}
 
   """
-  def update_marketer(%Scope{} = _scope, %Marketer{} = marketer, attrs) do
+  # marketer and attrs parameters not used in TODO stub function
+  def update_marketer(%Scope{} = _scope, %Marketer{} = _marketer, _attrs) do
     raise "TODO"
   end
 
@@ -87,7 +90,8 @@ defmodule Qlarius.Accounts do
       {:error, ...}
 
   """
-  def delete_marketer(%Scope{} = _scope, %Marketer{} = marketer) do
+  # marketer parameter not used in TODO stub function
+  def delete_marketer(%Scope{} = _scope, %Marketer{} = _marketer) do
     raise "TODO"
   end
 
@@ -100,7 +104,8 @@ defmodule Qlarius.Accounts do
       %Todo{...}
 
   """
-  def change_marketer(%Scope{} = _scope, %Marketer{} = marketer, _attrs \\ %{}) do
+  # marketer parameter not used in TODO stub function
+  def change_marketer(%Scope{} = _scope, %Marketer{} = _marketer, _attrs \\ %{}) do
     raise "TODO"
   end
 end

@@ -113,8 +113,9 @@ defmodule QlariusWeb.AdsLive do
      |> assign(:loading, false)}
   end
 
+  # me_file_id from message not used - we get me_file from socket.assigns instead
   @impl true
-  def handle_info({:refresh_wallet_balance, me_file_id}, socket) do
+  def handle_info({:refresh_wallet_balance, _me_file_id}, socket) do
     new_balance =
       Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
 
@@ -176,8 +177,9 @@ defmodule QlariusWeb.AdsLive do
     """
   end
 
+  # Standard LiveView terminate callback - parameters not used but required by protocol
   @impl true
-  def terminate(reason, socket) do
+  def terminate(_reason, _socket) do
     :ok
   end
 end

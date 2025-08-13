@@ -54,8 +54,9 @@ defmodule QlariusWeb.ThreeTapStackComponent do
     {:ok, assign(socket, assigns) |> assign(:active_offers, active_offers)}
   end
 
+  # params map not fully used - only extracting offer-id for now
   @impl true
-  def handle_event("click-offer", %{"offer-id" => offer_id} = params, socket) do
+  def handle_event("click-offer", %{"offer-id" => offer_id} = _params, socket) do
     offer_id = String.to_integer(offer_id)
 
     # Get recipient from socket.assigns if it exists, default to nil

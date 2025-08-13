@@ -4,7 +4,8 @@ defmodule QlariusWeb.Uploaders.RecipientBrandImage do
 
   @versions [:original]
 
-  def storage_dir(_version, {_file, %{id: id} = _scope}) do
+  # id from scope not used - using static storage directory
+  def storage_dir(_version, {_file, %{id: _id} = _scope}) do
     "uploads/recipients/recipient_brand_images/"
   end
 

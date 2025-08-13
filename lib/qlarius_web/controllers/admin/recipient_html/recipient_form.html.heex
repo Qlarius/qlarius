@@ -16,7 +16,8 @@
       class="file-input"
       value={nil}
     />
-    <%= if banner_value = Phoenix.HTML.Form.input_value(f, :graphic_url) do %>
+    <%!-- banner_value assigned but not used - only checking if value exists --%>
+    <%= if _banner_value = Phoenix.HTML.Form.input_value(f, :graphic_url) do %>
       <div class="mt-2">
         <img
           src={

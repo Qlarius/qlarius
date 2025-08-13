@@ -4,7 +4,8 @@ defmodule QlariusWeb.Uploaders.ThreeTapBanner do
 
   @versions [:original]
 
-  def storage_dir(_version, {_file, %{id: id} = _scope}) do
+  # id from scope not used - using static storage directory
+  def storage_dir(_version, {_file, %{id: _id} = _scope}) do
     "uploads/media_pieces/banners/three_tap_banners/"
   end
 

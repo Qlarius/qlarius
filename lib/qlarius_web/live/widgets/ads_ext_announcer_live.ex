@@ -27,12 +27,14 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
   @impl true
-  def mount(params, session, socket) do
+  # params and session not used in this mount function
+  def mount(_params, _session, socket) do
     # Load initial data during first mount
-    user = socket.assigns.current_scope.user
-    current_scope = socket.assigns.current_scope
+    # user, current_scope, and host_uri extracted but not directly used in this function
+    _user = socket.assigns.current_scope.user
+    _current_scope = socket.assigns.current_scope
 
-    host_uri =
+    _host_uri =
       case Phoenix.LiveView.get_connect_info(socket, :uri) do
         nil -> URI.parse("http://localhost")
         uri -> uri
@@ -96,8 +98,9 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
     {:ok, socket}
   end
 
+  # me_file_id from message not used - we get me_file from socket.assigns instead
   @impl true
-  def handle_info({:refresh_wallet_balance, me_file_id}, socket) do
+  def handle_info({:refresh_wallet_balance, _me_file_id}, socket) do
     new_balance =
       Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
 
