@@ -23,8 +23,9 @@
                 >
                   <.icon name="hero-pencil-square" class="w-4 h-4" />
                 </.link>
+                <%!-- Fixed route - marketer routes are under /admin namespace --%>
                 <.link
-                  navigate={~p"/marketers/#{marketer}"}
+                  navigate={~p"/admin/marketers/#{marketer}"}
                   method="delete"
                   data-confirm="Are you sure?"
                   class="btn btn-xs btn-error"

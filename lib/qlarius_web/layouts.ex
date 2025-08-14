@@ -136,12 +136,13 @@ defmodule QlariusWeb.Layouts do
         </span>
       </button>
 
+      <%!-- TODO: Route not implemented - was ~p"/me_file" (route doesn't exist) --%>
       <button
         class={[
           assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") &&
             "dock-active"
         ]}
-        phx-click={JS.navigate(~p"/me_file")}
+        phx-click={JS.navigate("#")}
       >
         <.icon name="hero-identification" class="size-[1.5em]" />
         <span class="dock-label">MeFile</span>
@@ -212,27 +213,32 @@ defmodule QlariusWeb.Layouts do
     ~H"""
     <div class="bg-white shadow-md">
       <div class="flex bg-green-500 text-white">
-        <.marketer_navbar_link current_path={@current_path} path={~p"/trait_groups"}>
+        <%!-- TODO: Route not implemented - was ~p"/trait_groups" (commented out in router lines 66-77) --%>
+        <.marketer_navbar_link current_path={@current_path} path="#">
           <.icon name="hero-tag" class="mr-2" />
           <span>Traits</span>
         </.marketer_navbar_link>
 
-        <.marketer_navbar_link current_path={@current_path} path={~p"/targets"}>
+        <%!-- TODO: Route not implemented - was ~p"/targets" (route commented out in router line 61) --%>
+        <.marketer_navbar_link current_path={@current_path} path="#">
           <.icon name="hero-users" class="mr-2" />
           <span>Targets</span>
         </.marketer_navbar_link>
 
-        <.marketer_navbar_link current_path={@current_path} path={~p"/campaigns"}>
+        <%!-- TODO: Route not implemented - was ~p"/campaigns" (route doesn't exist in router) --%>
+        <.marketer_navbar_link current_path={@current_path} path="#">
           <.icon name="hero-speaker-wave" class="mr-2" />
           <span>Campaigns</span>
         </.marketer_navbar_link>
 
-        <.marketer_navbar_link current_path={@current_path} path={~p"/media_sequences"}>
+        <%!-- TODO: Route not implemented - was ~p"/media_sequences" (route commented out in router line 63) --%>
+        <.marketer_navbar_link current_path={@current_path} path="#">
           <.icon name="hero-numbered-list" class="mr-2" />
           <span>Sequences</span>
         </.marketer_navbar_link>
 
-        <.marketer_navbar_link current_path={@current_path} path={~p"/media_pieces"}>
+        <%!-- Fixed route - media_pieces route is under /marketer namespace --%>
+        <.marketer_navbar_link current_path={@current_path} path={~p"/marketer/media_pieces"}>
           <.icon name="hero-photo" class="mr-2" />
           <span>Media</span>
         </.marketer_navbar_link>

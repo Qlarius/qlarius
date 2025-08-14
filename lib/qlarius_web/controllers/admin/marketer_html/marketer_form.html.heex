@@ -4,6 +4,7 @@
     <.button class="btn btn-primary">
       {@submit_label}
     </.button>
-    <.link navigate={@return_to || ~p"/marketers"} class="btn ml-2">Cancel</.link>
+    <%!-- Fixed route - marketer routes are under /admin namespace --%>
+    <.link navigate={@return_to || ~p"/admin/marketers"} class="btn ml-2">Cancel</.link>
   </div>
 </.form>

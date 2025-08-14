@@ -2,10 +2,11 @@
   <div class="card bg-base-100 shadow-xl">
     <div class="card-body">
       <div class="flex gap-2 mb-4">
-        <.link href={~p"/marketers/#{@marketer}/edit"} class="btn btn-warning">
+        <%!-- Fixed route - marketer routes are under /admin namespace --%>
+        <.link href={~p"/admin/marketers/#{@marketer}/edit"} class="btn btn-warning">
           Edit
         </.link>
-        <.link href={~p"/marketers"} class="btn">Back</.link>
+        <.link href={~p"/admin/marketers"} class="btn">Back</.link>
       </div>
       <h2 class="text-2xl font-bold mb-2">{@marketer.name}</h2>
       <ul class="mb-4">

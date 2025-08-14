@@ -55,7 +55,6 @@
           </.link>
         </li>
       </ul>
-
       <div class="mt-4 mb-1 px-2 text-gray-400 text-sm font-medium">
         <span>Sponster</span>
       </div>
@@ -105,8 +104,9 @@
       </div>
       <ul class="space-y-1">
         <li>
+	  <%!-- TODO: Route not implemented - was ~p"/me_file" (route doesn't exist) --%>
           <.link
-            navigate={~p"/me_file"}
+	    navigate="#"
             class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
           >
             <div class="flex items-center">
@@ -124,8 +124,9 @@
           </.link>
         </li>
         <li>
+	  <%!-- TODO: Route not implemented - was ~p"/me_file/surveys" (route doesn't exist) --%>
           <.link
-            navigate={~p"/me_file/surveys"}
+	    navigate="#"
             class="flex items-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
           >
             <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata-500">
@@ -136,7 +137,6 @@
         </li>
       </ul>
     </div>
-
     <div class="mt-auto p-3 bg-base-300">
       <div class="grid grid-cols-2 gap-2">
         <.link

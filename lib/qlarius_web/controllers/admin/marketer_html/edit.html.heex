@@ -1,7 +1,8 @@
 <div class="container mx-auto px-4">
   <div class="mb-4">
     <%!-- Removed class="btn btn-outline" - back component doesn't support class attribute --%>
-    <.back navigate={~p"/marketers"}>Back to marketers</.back>
+    <%!-- Fixed route - marketer routes are under /admin namespace --%>
+    <.back navigate={~p"/admin/marketers"}>Back to marketers</.back>
   </div>
 
   <div>
@@ -16,10 +17,11 @@
     </.header>
   </div>
 
+  <%!-- Fixed route - marketer routes are under /admin namespace --%>
   <.marketer_form
     changeset={@changeset}
-    action={~p"/marketers/#{@marketer}"}
-    return_to={~p"/marketers"}
+    action={~p"/admin/marketers/#{@marketer}"}
+    return_to={~p"/admin/marketers"}
     submit_label="Update Marketer"
   />
 </div>
