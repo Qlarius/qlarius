@@ -7,12 +7,13 @@ defmodule QlariusWeb.ProxyUsersLive do
   alias Qlarius.Accounts.Scope
   alias QlariusWeb.Layouts
 
-  import Layouts,
-    only: [
-      toggle_sponster_sidebar: 1,
-      sponster_sidebar: 1,
-      sponster_bottom_bar_link: 1
-    ]
+  # Commented out unused import - Layouts functions not used in this LiveView
+  # import Layouts,
+  #   only: [
+  #     toggle_sponster_sidebar: 1,
+  #     sponster_sidebar: 1,
+  #     sponster_bottom_bar_link: 1
+  #   ]
 
   def mount(_params, _session, socket) do
     if socket.assigns.current_scope.true_user.role == "admin" do

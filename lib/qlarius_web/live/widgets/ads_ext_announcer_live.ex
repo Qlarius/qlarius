@@ -18,9 +18,12 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   # alias Qlarius.Accounts.Scope
   # Commented out unused alias - Component not directly referenced
   # alias Phoenix.Component
-  import Ecto.Query, except: [update: 2, update: 3]
-  import QlariusWeb.Layouts
-  import Jason
+  # Commented out unused import - Ecto.Query not used in this LiveView
+  # import Ecto.Query, except: [update: 2, update: 3]
+  # Commented out unused import - Layouts functions not used in this LiveView
+  # import QlariusWeb.Layouts
+  # Commented out unused import - Jason functions not used in this LiveView
+  # import Jason
 
   @recruiter_mode true
 

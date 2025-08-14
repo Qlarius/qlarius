@@ -23,9 +23,11 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   # alias Phoenix.Component
   alias Qlarius.Wallets.Wallets
   alias Qlarius.Wallets.MeFileBalanceBroadcaster
-  import QlariusWeb.OfferHTML
+  # Commented out unused import - OfferHTML functions not used in this LiveView  
+  # import QlariusWeb.OfferHTML
   import Ecto.Query, except: [update: 2, update: 3]
-  import QlariusWeb.Layouts
+  # Commented out unused import - Layouts functions not used in this LiveView
+  # import QlariusWeb.Layouts
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
