@@ -6,7 +6,8 @@ defmodule QlariusWeb.MediaPieceHTML do
   # Commented out unused alias - ThreeTapBanner not directly referenced
   # alias QlariusWeb.ThreeTapBanner
 
-  @debug true
+  # Commented out unused module attribute - @debug not referenced anywhere
+  # @debug true
 
   @doc """
   Renders a media piece form.
