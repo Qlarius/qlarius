@@ -4,13 +4,15 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   import QlariusWeb.OfferHTML
 
   alias Qlarius.Sponster.Ads.ThreeTap
-  alias Qlarius.Sponster.Offer
-  alias Qlarius.Repo
+  # Commented out unused aliases - only used in commented update_ads_count function
+  # alias Qlarius.Sponster.Offer
+  # alias Qlarius.Repo
   # Commented out unused alias - Wallets not directly referenced
   # alias Qlarius.Wallets.Wallets
   # Commented out unused alias - Component not directly referenced
   # alias Phoenix.Component
-  import Ecto.Query, except: [update: 2, update: 3]
+  # Commented out unused import - only used in commented update_ads_count function
+  # import Ecto.Query, except: [update: 2, update: 3]
 
   @impl true
   def render(assigns) do
@@ -113,15 +115,16 @@ defmodule QlariusWeb.ThreeTapStackComponent do
     {:noreply, assign(socket, :active_offers, new_offers)}
   end
 
-  defp update_ads_count(socket) do
-    ads_count =
-      from(o in Offer,
-        where:
-          o.me_file_id == ^socket.assigns.current_scope.user.me_file.id and o.is_current == true
-      )
-      |> Repo.aggregate(:count)
+  # Commented out unused function - not called anywhere in the codebase
+  # defp update_ads_count(socket) do
+  #   ads_count =
+  #     from(o in Offer,
+  #       where:
+  #         o.me_file_id == ^socket.assigns.current_scope.user.me_file.id and o.is_current == true
+  #     )
+  #     |> Repo.aggregate(:count)
 
-    current_scope = Map.put(socket.assigns.current_scope, :ads_count, ads_count)
-    assign(socket, :current_scope, current_scope)
-  end
+  #   current_scope = Map.put(socket.assigns.current_scope, :ads_count, ads_count)
+  #   assign(socket, :current_scope, current_scope)
+  # end
 end

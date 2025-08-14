@@ -8,6 +8,14 @@ defmodule Qlarius.Wallets.Wallets do
   alias Qlarius.Sponster.Campaigns.Campaign
   alias Qlarius.Sponster.Ads.MediaPiecePhase
   alias Qlarius.Wallets.MeFileBalanceBroadcaster
+  # Added User alias for get_user_current_balance function
+  alias Qlarius.Accounts.User
+
+  # Added missing function that was being called from multiple LiveView modules
+  def get_user_current_balance(%User{} = user) do
+    # Delegate to existing function using user's me_file
+    get_me_file_ledger_header_balance(user.me_file)
+  end
 
   def get_me_file_ledger_header_balance(%MeFile{} = me_file) do
     case Repo.get_by(LedgerHeader, me_file_id: me_file.id) do

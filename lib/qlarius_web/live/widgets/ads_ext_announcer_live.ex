@@ -12,6 +12,8 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   # Commented out unused alias - LedgerHeader not directly referenced
   # alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Wallets.MeFileBalanceBroadcaster
+  # Added missing Wallets alias for handle_info callback that calls get_me_file_ledger_header_balance
+  alias Qlarius.Wallets.Wallets
   # Commented out unused alias - Repo not directly referenced
   # alias Qlarius.Repo
   # Commented out unused alias - Scope not directly referenced

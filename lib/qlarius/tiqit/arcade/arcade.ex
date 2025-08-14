@@ -97,6 +97,17 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     ContentPiece.changeset(content, attrs)
   end
 
+  # Added missing function that was being called from TiqitController
+  def list_user_tiqits(user) do
+    Repo.all(
+      from t in Tiqit,
+        join: u in assoc(t, :user),
+        where: u.id == ^user.id,
+        order_by: [desc: t.purchased_at],
+        preload: [:tiqit_class]
+    )
+  end
+
   def purchase_tiqit(%Scope{user: user} = _scope, %TiqitClass{} = tiqit_class) do
     purchased_at = DateTime.utc_now()
 

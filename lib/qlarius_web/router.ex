@@ -170,7 +170,8 @@ defmodule QlariusWeb.Router do
   scope "/admin", QlariusWeb.Admin do
     pipe_through [:browser, :admin]
 
-    live "/", DashboardLive, :index
+    # Commented out unimplemented DashboardLive module - route not implemented yet
+    # live "/", DashboardLive, :index
     resources "/recipients", RecipientController
 
     live_session :admin_marketers,

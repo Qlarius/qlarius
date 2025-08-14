@@ -218,23 +218,24 @@ defmodule QlariusWeb.WalletLive do
   defp pad_zero(number) when number < 10, do: "0#{number}"
   defp pad_zero(number), do: "#{number}"
 
+  # Commented out unused function - not called anywhere in the codebase
   # Calculate the balance at a specific entry point
   # This is a simplified approach - in a real app, you might want to store running balances
-  defp calculate_balance_at_entry(ledger_header, current_entry, entries) do
-    # Find entries that came after the current entry (newer entries)
-    newer_entries =
-      entries
-      |> Enum.filter(fn entry ->
-        NaiveDateTime.compare(entry.created_at, current_entry.created_at) == :gt
-      end)
+  # defp calculate_balance_at_entry(ledger_header, current_entry, entries) do
+  #   # Find entries that came after the current entry (newer entries)
+  #   newer_entries =
+  #     entries
+  #     |> Enum.filter(fn entry ->
+  #       NaiveDateTime.compare(entry.created_at, current_entry.created_at) == :gt
+  #     end)
 
-    # Subtract the sum of newer entries from the current balance
-    newer_entries_sum =
-      newer_entries
-      |> Enum.reduce(Decimal.new(0), fn entry, acc ->
-        Decimal.add(acc, entry.amt)
-      end)
+  #   # Subtract the sum of newer entries from the current balance
+  #   newer_entries_sum =
+  #     newer_entries
+  #     |> Enum.reduce(Decimal.new(0), fn entry, acc ->
+  #       Decimal.add(acc, entry.amt)
+  #     end)
 
-    Decimal.sub(ledger_header.balance, newer_entries_sum)
-  end
+  #   Decimal.sub(ledger_header.balance, newer_entries_sum)
+  # end
 end
