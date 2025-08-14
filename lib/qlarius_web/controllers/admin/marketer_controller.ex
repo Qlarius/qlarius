@@ -18,7 +18,8 @@ defmodule QlariusWeb.Admin.MarketerController do
       {:ok, marketer} ->
         conn
         |> put_flash(:info, "Marketer created successfully.")
-        |> redirect(to: ~p"/marketers/#{marketer}")
+        # Fixed route - marketer routes are under /admin namespace
+        |> redirect(to: ~p"/admin/marketers/#{marketer}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :new, changeset: changeset)
@@ -43,7 +44,8 @@ defmodule QlariusWeb.Admin.MarketerController do
       {:ok, marketer} ->
         conn
         |> put_flash(:info, "Marketer updated successfully.")
-        |> redirect(to: ~p"/marketers/#{marketer}")
+        # Fixed route - marketer routes are under /admin namespace
+        |> redirect(to: ~p"/admin/marketers/#{marketer}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :edit, marketer: marketer, changeset: changeset)
@@ -56,6 +58,7 @@ defmodule QlariusWeb.Admin.MarketerController do
 
     conn
     |> put_flash(:info, "Marketer deleted successfully.")
-    |> redirect(to: ~p"/marketers")
+    # Fixed route - marketer routes are under /admin namespace
+    |> redirect(to: ~p"/admin/marketers")
   end
 end

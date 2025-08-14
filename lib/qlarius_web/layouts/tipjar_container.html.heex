@@ -30,20 +30,18 @@
       <%= if @split_code == "sponster_show_me" do %>
         <p></p>
       <% else %>
+        <%!-- TODO: Route not implemented - was ~p"/referral_directs?sent_from=sponster&send_to=sign_up&referral_code=..." --%>
         <.link
-          navigate={
-            ~p"/referral_directs?sent_from=sponster&send_to=sign_up&referral_code=#{@recipient.split_code}"
-          }
+          navigate="#"
           id="sponster_info_button"
           class="btn btn-sm btn-default"
           target="_blank"
         >
           Sign up
         </.link>
+        <%!-- TODO: Route not implemented - was ~p"/referral_directs?sent_from=sponster&send_to=info&referral_code=..." --%>
         <.link
-          navigate={
-            ~p"/referral_directs?sent_from=sponster&send_to=info&referral_code=#{@recipient.split_code}"
-          }
+          navigate="#"
           id="sponster_info_button"
           class="btn btn-sm btn-default"
           target="_blank"
@@ -53,8 +51,9 @@
         <span class="yd-show-unless-phone">
           &nbsp;&nbsp;&nbsp;| &nbsp;&nbsp;&nbsp;Already a Sponster user? &nbsp;
         </span>
+        <%!-- TODO: Route not implemented - was ~p"/sponster_settings" (route doesn't exist) --%>
         <.link
-          navigate={~p"/sponster_settings"}
+          navigate="#"
           id="sponster_enable_button"
           class="btn btn-sm btn-default"
           target="_blank"
