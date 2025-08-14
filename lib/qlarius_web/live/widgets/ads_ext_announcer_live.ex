@@ -14,7 +14,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   import QlariusWeb.Layouts
   import Jason
 
-  @recruiter_mode false
+  @recruiter_mode true
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
@@ -155,9 +155,9 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
       <% end %>
     </div>
 
-    <div class="sponster-announcer-bottom-float-strip"></div>
+    <div class="sponster-announcer-bottom-float-strip !bg-base-100"></div>
 
-    <div class="sponster-announcer-bottom-float-content-container">
+    <div class="sponster-announcer-bottom-float-content-container bg-base-100">
       <%= if @recruiter_mode do %>
         <div id="sponster_recruiter_slider_lg">
           <div
@@ -165,7 +165,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
             x-init="autoplay"
             class="relative w-full overflow-hidden"
           >
-            
+
     <!-- slides -->
             <div class="relative min-h-[70px] w-full">
               <template x-for="(slide, index) in slides">
@@ -221,15 +221,18 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
         </div>
       <% else %>
         <div class="sponster-announcer-logo-container" />
-        <div style="width: 240px; position:relative;display:flex; flex-direction:row; justify-content:space-between; align-items:center; background: #F0F2F4; border-radius: 8px;">
+        <div class="bg-base-200 shadow-[inset_0_0_2px_rgba(0,0,0,0.1)]" style="width: 240px; position:relative;display:flex; flex-direction:row; justify-content:space-between; align-items:center; border-radius: 8px;">
           <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; width:100%; padding: 6px 0;">
             <div
               id="announcer-wallet-amount"
-              style="color: #292929; font-size: 16px; line-height:16px; font-weight: 600; letter-spacing: 0.40px; word-wrap: break-word"
+              class="text-base-content"
+              style="font-size: 16px; line-height:16px; font-weight: 600; letter-spacing: 0.40px; word-wrap: break-word"
             >
               ${@current_scope.wallet_balance}
             </div>
-            <div style="color: #797979; font-size: 8px;  font-weight: 500; letter-spacing: 0.20px; word-wrap: break-word; line-height:10px;">
+            <div
+              class="text-base-content/40"
+              style="font-size: 8px;  font-weight: 500; letter-spacing: 0.20px; word-wrap: break-word; line-height:10px;">
               WALLET
             </div>
           </div>
@@ -237,11 +240,14 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
           <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; width:100%; padding: 6px 0;">
             <div
               id="announcer-ad-count"
-              style="color: #252529; font-size: 16px; line-height:16px; font-weight: 600; letter-spacing: 0.40px; word-wrap: break-word"
+              class="text-base-content"
+              style="font-size: 16px; line-height:16px; font-weight: 600; letter-spacing: 0.40px; word-wrap: break-word"
             >
               {@current_scope.ads_count}
             </div>
-            <div style="color: #6F7479; font-size: 8px; font-weight: 500; letter-spacing: 0.20px; word-wrap: break-word; line-height:10px;">
+            <div
+              class="text-base-content/40"
+              style="font-size: 8px; font-weight: 500; letter-spacing: 0.20px; word-wrap: break-word; line-height:10px;">
               ADS
             </div>
           </div>
@@ -249,30 +255,34 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
           <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; width:100%; padding: 6px 0;">
             <div
               id="announcer-offered-amount"
-              style="color: #252529; font-size: 16px; line-height:16px; font-weight: 600; letter-spacing: 0.40px; word-wrap: break-word"
+              class="text-base-content"
+              style="font-size: 16px; line-height:16px; font-weight: 600; letter-spacing: 0.40px; word-wrap: break-word"
             >
               ${@current_scope.offered_amount}
             </div>
-            <div style="color: #6F7479; font-size: 8px; font-weight: 500; letter-spacing: 0.20px; word-wrap: break-word; line-height:10px;">
+            <div
+              class="text-base-content/40"
+              style="font-size: 8px; font-weight: 500; letter-spacing: 0.20px; word-wrap: break-word; line-height:10px;">
               OFFERED
             </div>
           </div>
         </div>
       <% end %>
       <div
-        style="width:96px; position:relative; display:flex; flex-direction:row; justify-content:space-between; align-items:center; border-radius: 9999px; border: 1.50px #252529 solid; padding: 4px 12px; cursor: pointer;"
+        style="width:96px; position:relative; display:flex; flex-direction:row; justify-content:space-between; align-items:center; border-radius: 9999px; padding: 4px 12px; cursor: pointer;"
+        class="border-[1.5px] border-base-content/80"
         onclick="parent.postMessage('open_widget','*');self.toggleAnnouncerElements();"
       >
         <div
           id="ydadget_announcer_toggle_button_text"
-          style="margin-right: 6px; color: #252529; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.32px; word-wrap: break-word"
+          class="text-base-content"
+          style="margin-right: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.32px; word-wrap: break-word"
         >
           {if @recruiter_mode, do: "INFO", else: "SHOW"}
         </div>
         <span
           id="ydadget_announcer_toggle_icon"
-          class="hero-chevron-double-up all-animate"
-          style="color:#0A8F65;"
+          class="hero-chevron-double-up all-animate bg-sponster-500"
         >
         </span>
       </div>

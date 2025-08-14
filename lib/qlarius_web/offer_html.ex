@@ -58,7 +58,7 @@ defmodule QlariusWeb.OfferHTML do
       <div class="absolute inset-0 overflow-hidden">
         <div class={"offer-phase phase-1 #{if @phase > 1, do: "slide-up"}"}>
           <.offer_container offer={@offer} target={@target} recipient={@recipient}>
-            <div class="flex justify-center items-center bg-base-100">
+            <div class="flex justify-center items-center bg-white">
               <%= if @offer.media_piece.banner_image do %>
                 <img
                   src={
