@@ -79,9 +79,9 @@
                 <tr>
                   <td>{entry.created_at |> Calendar.strftime("%Y-%m-%d %H:%M:%S")}</td>
                   <td>{entry.description}</td>
+                  <%!-- Changed from deprecated Decimal.cmp to Decimal.compare --%>
                   <td class={[
                     "text-right font-mono",
-                    <%!-- Changed from deprecated Decimal.cmp to Decimal.compare --%>
                     (Decimal.compare(entry.amt, 0) == :gt && "text-green-600") || "text-red-600"
                   ]}>
                     {QlariusWeb.Money.format_usd(entry.amt)}
