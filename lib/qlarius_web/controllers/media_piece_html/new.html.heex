@@ -9,10 +9,12 @@
     </.header>
   </div>
 
+  <%!-- Added missing required conn attribute to media_piece_form component --%>
   <.media_piece_form
     changeset={@changeset}
     action={~p"/marketer/media_pieces"}
     ad_categories={@ad_categories}
+    conn={@conn}
   />
 
   <div class="mt-4">
