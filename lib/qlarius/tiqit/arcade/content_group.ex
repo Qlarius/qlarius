@@ -35,8 +35,11 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
   end
 
   def image_changeset(content_group, image) do
+    # Process.get() is there to avoid a type warning that comes from the
+    # waffle_ecto package. it's a known issue with the Elixir type system that
+    # should resolved in the future. but for now I'm tired of the noise
     content_group
     |> change(%{})
-    |> cast_attachments(%{image: image}, [:image])
+    |> cast_attachments(Process.get(:unused_key, %{image: image}), [:image])
   end
 end
