@@ -8,7 +8,8 @@ defmodule QlariusWeb.OfferHTML do
   # alias Qlarius.YouData.MeFiles.MeFile
   alias QlariusWeb.Uploaders.ThreeTapBanner
   alias Qlarius.Sponster.Ads.ThreeTap
-  import Ecto.Query, except: [update: 2, update: 3]
+  # Commented out unused import - Ecto.Query not used in this HTML module
+  # import Ecto.Query, except: [update: 2, update: 3]
 
   import QlariusWeb.Money
 
