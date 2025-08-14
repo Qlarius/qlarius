@@ -81,7 +81,8 @@
                   <td>{entry.description}</td>
                   <td class={[
                     "text-right font-mono",
-                    (Decimal.cmp(entry.amt, 0) == :gt && "text-green-600") || "text-red-600"
+                    <%!-- Changed from deprecated Decimal.cmp to Decimal.compare --%>
+                    (Decimal.compare(entry.amt, 0) == :gt && "text-green-600") || "text-red-600"
                   ]}>
                     {QlariusWeb.Money.format_usd(entry.amt)}
                   </td>
