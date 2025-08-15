@@ -11,6 +11,7 @@ defmodule QlariusWeb.Router do
     plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug QlariusWeb.Plugs.MobileDetection
     plug :fetch_current_scope_for_user
     plug :allow_iframe
     plug :set_current_path
@@ -23,6 +24,7 @@ defmodule QlariusWeb.Router do
     plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug QlariusWeb.Plugs.MobileDetection
     plug :fetch_current_scope_for_user
     plug :allow_iframe
     plug :set_current_path

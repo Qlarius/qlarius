@@ -154,7 +154,7 @@ defmodule QlariusWeb.Layouts do
       </button>
 
       <button phx-click={toggle_sponster_sidebar(:on)}>
-        <.icon name="hero-bars-3" class="size-[1.5em]" />
+        <.icon name="hero-ellipsis-horizontal" class="size-[1.5em]" />
         <span class="dock-label">More</span>
       </button>
     </div>

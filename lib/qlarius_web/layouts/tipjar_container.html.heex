@@ -8,6 +8,9 @@
 }"
   x-init="document.body.classList.remove('tip-drawer-open')"
 >
+  <%= if (assigns[:is_mobile] || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
+    <div class="h-[env(safe-area-inset-top)] bg-base-100"></div>
+  <% end %>
   <.tipjar_header
     wallet_balance={@current_scope.wallet_balance}
     user_alias={@current_scope.user.email}
@@ -21,6 +24,9 @@
     x-bind:toggle-drawer="toggleDrawer"
   />
   {render_slot(@inner_block)}
+  <%= if (assigns[:is_mobile] || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
+    <div class="h-[env(safe-area-inset-bottom)] bg-base-100"></div>
+  <% end %>
   <div style="position:fixed; bottom:0; width:100%; background-color: #6F7479; color:white; padding:10px 10px; text-align:center; font-size: 10px; line-height: 11px; height: 40px; display: flex; align-items: center; justify-content: center; z-index: 50;">
     <%= if @current_scope.user.me_file do %>
       <span>

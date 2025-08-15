@@ -10,6 +10,9 @@
   phx-click-away={toggle_sponster_sidebar(:off)}
 >
   <div class="flex flex-col h-full overflow-y-auto py-0 px-0">
+    <%= if (assigns[:is_mobile] || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
+      <div class="h-[env(safe-area-inset-top)] bg-base-100"></div>
+    <% end %>
     <!-- profile box -->
     <div class="flex items-center justify-between px-4 py-5 mb-5 bg-base-300">
       <div class="flex items-center">
@@ -153,6 +156,9 @@
         </.link>
       </div>
     </div>
+    <%= if (assigns[:is_mobile] || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
+      <div class="h-[env(safe-area-inset-bottom)] bg-base-100"></div>
+    <% end %>
     
   </div>
 </div>
