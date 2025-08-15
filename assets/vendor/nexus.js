@@ -187,4 +187,5 @@ class LayoutCustomizer {
     }
 }
 
-new LayoutCustomizer().init()
+// Keeping the Nexus theme related code for now, but not initializing it so that we can use the simple Phoenix theme toggle. May opt for Nexus handling later.
+// new LayoutCustomizer().init()
