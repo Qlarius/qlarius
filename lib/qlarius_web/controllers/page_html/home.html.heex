@@ -1,7 +1,7 @@
 <Layouts.sponster {assigns}>
 
   <div class="container mx-auto p-4">
-    <div class="border border-gray-200 rounded-lg p-6 mb-6">
+    <div class="bg-base-200 rounded-lg p-6 mb-6">
       <div class="mb-4">
         <h2 class="text-2xl font-bold">{@current_scope.user.email}</h2>
         <p class="flex items-center gap-1">
@@ -10,25 +10,25 @@
         </p>
       </div>
 
-      <hr class="my-4 border-gray-200" />
+      <hr class="my-4 border-base-300" />
 
       <div class="grid grid-cols-2 gap-4">
-        <div class="bg-base-100 text-white rounded-lg p-4 flex flex-col items-center justify-center">
+        <div class="bg-sponster-500 text-white rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer" phx-click={JS.navigate("/ads")}>
           <div class="text-3xl font-bold">{@current_scope.ads_count}</div>
           <div class="text-sm">ads</div>
         </div>
 
-        <div class="bg-sponster text-white rounded-lg p-4 flex flex-col items-center justify-center">
+        <div class="bg-sponster-500 text-white rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer" phx-click={JS.navigate("/wallet")}>
           <div class="text-3xl font-bold">{format_usd(@current_scope.wallet_balance)}</div>
           <div class="text-sm">balance</div>
         </div>
 
-        <div class="bg-youdata text-white rounded-lg p-4 flex flex-col items-center justify-center">
+        <div class="bg-youdata-500 text-white rounded-lg p-4 flex flex-col items-center justify-center"}>
           <div class="text-3xl font-bold">{@current_scope.trait_count}</div>
           <div class="text-sm">traits</div>
         </div>
 
-        <div class="bg-youdata text-white rounded-lg p-4 flex flex-col items-center justify-center">
+        <div class="bg-youdata-500 text-white rounded-lg p-4 flex flex-col items-center justify-center">
           <div class="text-3xl font-bold">{@current_scope.tag_count}</div>
           <div class="text-sm">tags</div>
         </div>
