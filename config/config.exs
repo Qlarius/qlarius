@@ -63,7 +63,7 @@ config :esbuild,
   version: "0.25.4",
   qlarius: [
     args:
-      ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/*),
+      ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]
@@ -99,6 +99,6 @@ import_config "#{config_env()}.exs"
 
 # In config/config.exs or wherever CSP is set
 config :qlarius_web, :content_security_policy,
-  frame_ancestors: ["'self'", "chrome-extension://YOUR_EXTENSION_ID"]
+  frame_ancestors: ["'self'", "chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen"]
 
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
