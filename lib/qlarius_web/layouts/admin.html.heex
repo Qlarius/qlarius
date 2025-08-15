@@ -262,7 +262,6 @@
         <Layouts.theme_toggle />
 
         <div class="inline-flex items-center gap-1.5">
-
           <label
             for="layout-rightbar-drawer"
             class="btn btn-circle btn-ghost btn-sm drawer-button"
@@ -414,10 +413,10 @@
           <!--  Start: Layout - Content -->
 
       <div id="layout-content">
-        <%= if Map.has_key?(assigns, :inner_content) do %> 
+        <%= if Map.has_key?(assigns, :inner_content) do %>
           <!-- For controllers -->
           {@inner_content}
-        <% else %> 
+        <% else %>
           <!-- For LiveViews -->
           {render_slot(@inner_block)}
         <% end %>

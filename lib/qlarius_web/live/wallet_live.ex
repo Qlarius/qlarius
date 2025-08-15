@@ -127,7 +127,6 @@ defmodule QlariusWeb.WalletLive do
   def render(assigns) do
     ~H"""
     <Layouts.sponster {assigns}>
-
       <%= if assigns[:error] do %>
         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {@error}
@@ -145,13 +144,15 @@ defmodule QlariusWeb.WalletLive do
             <button
               phx-click="paginate"
               phx-value-page="1"
-              class={"join-item btn btn-sm #{if @page < 2, do: "btn-disabled"}"}>
+              class={"join-item btn btn-sm #{if @page < 2, do: "btn-disabled"}"}
+            >
               Newest
             </button>
             <button
               phx-click="paginate"
               phx-value-page={if @page > 1, do: @page - 1, else: 1}
-              class={"join-item btn btn-sm #{if @page < 2, do: "btn-disabled"}"}>
+              class={"join-item btn btn-sm #{if @page < 2, do: "btn-disabled"}"}
+            >
               <.icon name="hero-chevron-left" class="h-4 w-4" />
             </button>
             <div class="join-item btn btn-sm btn-neutral">
@@ -160,18 +161,19 @@ defmodule QlariusWeb.WalletLive do
             <button
               phx-click="paginate"
               phx-value-page={@page + 1}
-              class={"join-item btn btn-sm #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}>
+              class={"join-item btn btn-sm #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
+            >
               <.icon name="hero-chevron-right" class="h-4 w-4" />
             </button>
             <button
               phx-click="paginate"
               phx-value-page="oldest"
-              class={"join-item btn btn-sm #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}>
+              class={"join-item btn btn-sm #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
+            >
               Oldest
             </button>
           </div>
         </div>
-
 
         <ul class="list bg-base-100 rounded-box shadow-md">
           <li
@@ -210,7 +212,7 @@ defmodule QlariusWeb.WalletLive do
   end
 
   defp format_date(datetime) do
-    "#{datetime.year}-#{pad_zero(datetime.month)}-#{pad_zero(datetime.day)} #{if datetime.hour > 12, do: datetime.hour - 12, else: (if datetime.hour == 0, do: 12, else: datetime.hour)}:#{pad_zero(datetime.minute)}#{if datetime.hour >= 12, do: "pm", else: "am"}"
+    "#{datetime.year}-#{pad_zero(datetime.month)}-#{pad_zero(datetime.day)} #{if datetime.hour > 12, do: datetime.hour - 12, else: if(datetime.hour == 0, do: 12, else: datetime.hour)}:#{pad_zero(datetime.minute)}#{if datetime.hour >= 12, do: "pm", else: "am"}"
   end
 
   defp pad_zero(number) when number < 10, do: "0#{number}"

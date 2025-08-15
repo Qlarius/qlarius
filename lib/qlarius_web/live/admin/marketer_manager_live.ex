@@ -20,7 +20,9 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
               <div class="card-body p-0">
                 <div class="overflow-x-auto">
                   <.table id="marketers-table" rows={@marketers}>
-                    <:col :let={marketer} label="Business Name">{marketer.business_name} <span class="text-gray-400">({marketer.id})</span></:col>
+                    <:col :let={marketer} label="Business Name">
+                      {marketer.business_name} <span class="text-gray-400">({marketer.id})</span>
+                    </:col>
                     <:col :let={marketer} label="Actions">
                       <div class="flex gap-2">
                         <.link patch={~p"/admin/marketers/#{marketer}"} class="btn btn-xs btn-info">

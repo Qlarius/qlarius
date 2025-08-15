@@ -41,102 +41,100 @@
     </div>
     <!-- * profile box -->
 
-  <div class="flex flex-col h-full overflow-y-auto py-4 px-3">
-    <ul class="space-y-1 mt-2">
-      <li>
-        <.link
-          navigate={~p"/"}
-          class="flex items-center p-2 rounded-lg text-base-content hover:bg-base-200 group"
-        >
-          <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-500">
-            <.icon name="hero-home" class="h-5 w-5 text-neutral-content" />
-          </div>
-          <span class="ml-3">Home</span>
-        </.link>
-      </li>
-      
-    </ul>
-
-    <div class="mt-4 mb-1 px-2 text-gray-400 text-sm font-medium">
-      <span>Sponster</span>
-    </div>
-    <ul class="space-y-1">
-      <li>
-        <.link
-          navigate={~p"/ads"}
-          class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
-        >
-          <div class="flex items-center">
-            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-sponster-500">
-              <.icon name="hero-eye" class="h-5 w-5 text-primary-content" />
-            </div>
-            <span class="ml-3">Ads</span>
-          </div>
-          <span
-            class="bg-sponster-500 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
-            data-app-target="offerCount"
+    <div class="flex flex-col h-full overflow-y-auto py-4 px-3">
+      <ul class="space-y-1 mt-2">
+        <li>
+          <.link
+            navigate={~p"/"}
+            class="flex items-center p-2 rounded-lg text-base-content hover:bg-base-200 group"
           >
-            {@current_scope.ads_count}
-          </span>
-        </.link>
-      </li>
-      <li>
-        <.link
-          navigate={~p"/wallet"}
-          class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
-        >
-          <div class="flex items-center">
-            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-sponster-500">
-              <.icon name="hero-banknotes" class="h-5 w-5 text-primary-content" />
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-500">
+              <.icon name="hero-home" class="h-5 w-5 text-neutral-content" />
             </div>
-            <span class="ml-3">Wallet</span>
-          </div>
-          <span
-            class="bg-sponster-500 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
-            data-app-target="balance"
-          >
-            ${@current_scope.user.me_file.ledger_header.balance}
-          </span>
-        </.link>
-      </li>
-    </ul>
+            <span class="ml-3">Home</span>
+          </.link>
+        </li>
+      </ul>
 
-    <div class="mt-4 mb-1 px-2 text-gray-400 text-sm font-medium">
-      <span>YouData</span>
-    </div>
-    <ul class="space-y-1">
-      <li>
-        <.link
-          navigate={~p"/me_file"}
-          class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
-        >
-          <div class="flex items-center">
+      <div class="mt-4 mb-1 px-2 text-gray-400 text-sm font-medium">
+        <span>Sponster</span>
+      </div>
+      <ul class="space-y-1">
+        <li>
+          <.link
+            navigate={~p"/ads"}
+            class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
+          >
+            <div class="flex items-center">
+              <div class="flex items-center justify-center h-8 w-8 rounded-full bg-sponster-500">
+                <.icon name="hero-eye" class="h-5 w-5 text-primary-content" />
+              </div>
+              <span class="ml-3">Ads</span>
+            </div>
+            <span
+              class="bg-sponster-500 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
+              data-app-target="offerCount"
+            >
+              {@current_scope.ads_count}
+            </span>
+          </.link>
+        </li>
+        <li>
+          <.link
+            navigate={~p"/wallet"}
+            class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
+          >
+            <div class="flex items-center">
+              <div class="flex items-center justify-center h-8 w-8 rounded-full bg-sponster-500">
+                <.icon name="hero-banknotes" class="h-5 w-5 text-primary-content" />
+              </div>
+              <span class="ml-3">Wallet</span>
+            </div>
+            <span
+              class="bg-sponster-500 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
+              data-app-target="balance"
+            >
+              ${@current_scope.user.me_file.ledger_header.balance}
+            </span>
+          </.link>
+        </li>
+      </ul>
+
+      <div class="mt-4 mb-1 px-2 text-gray-400 text-sm font-medium">
+        <span>YouData</span>
+      </div>
+      <ul class="space-y-1">
+        <li>
+          <.link
+            navigate={~p"/me_file"}
+            class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
+          >
+            <div class="flex items-center">
+              <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata-500">
+                <.icon name="hero-identification" class="h-5 w-5 text-primary-content" />
+              </div>
+              <span class="ml-3">Your MeFile</span>
+            </div>
+            <span
+              class="bg-youdata-500 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
+              data-app-target="tagCount"
+            >
+              {@current_scope.tag_count}
+            </span>
+          </.link>
+        </li>
+        <li>
+          <.link
+            navigate={~p"/me_file/surveys"}
+            class="flex items-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
+          >
             <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata-500">
-              <.icon name="hero-identification" class="h-5 w-5 text-primary-content" />
+              <.icon name="hero-wrench" class="h-5 w-5 text-primary-content" />
             </div>
-            <span class="ml-3">Your MeFile</span>
-          </div>
-          <span
-            class="bg-youdata-500 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
-            data-app-target="tagCount"
-          >
-            {@current_scope.tag_count}
-          </span>
-        </.link>
-      </li>
-      <li>
-        <.link
-          navigate={~p"/me_file/surveys"}
-          class="flex items-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
-        >
-          <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata-500">
-            <.icon name="hero-wrench" class="h-5 w-5 text-primary-content" />
-          </div>
-          <span class="ml-3">MeFile Builder</span>
-        </.link>
-      </li>
-    </ul>
-
+            <span class="ml-3">MeFile Builder</span>
+          </.link>
+        </li>
+      </ul>
     </div>
 
     <div class="mt-auto p-3 bg-base-300">
@@ -159,6 +157,5 @@
     <%= if (assigns[:is_mobile] || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
       <div class="h-[env(safe-area-inset-bottom)] bg-base-100"></div>
     <% end %>
-    
   </div>
 </div>

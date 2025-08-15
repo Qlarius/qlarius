@@ -17,7 +17,7 @@ config :qlarius, Oban,
     {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)},
     {Oban.Plugins.Cron,
      crontab: [
-      {"*/5 * * * *", Qlarius.Jobs.ActivatePendingOffersToCurrent}
+       {"*/5 * * * *", Qlarius.Jobs.ActivatePendingOffersToCurrent}
      ]}
   ]
 

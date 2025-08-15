@@ -165,7 +165,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
             x-init="autoplay"
             class="relative w-full overflow-hidden"
           >
-
+            
     <!-- slides -->
             <div class="relative min-h-[70px] w-full">
               <template x-for="(slide, index) in slides">
@@ -221,7 +221,10 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
         </div>
       <% else %>
         <div class="sponster-announcer-logo-container" />
-        <div class="bg-base-200 shadow-[inset_0_0_2px_rgba(0,0,0,0.1)]" style="width: 240px; position:relative;display:flex; flex-direction:row; justify-content:space-between; align-items:center; border-radius: 8px;">
+        <div
+          class="bg-base-200 shadow-[inset_0_0_2px_rgba(0,0,0,0.1)]"
+          style="width: 240px; position:relative;display:flex; flex-direction:row; justify-content:space-between; align-items:center; border-radius: 8px;"
+        >
           <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; width:100%; padding: 6px 0;">
             <div
               id="announcer-wallet-amount"
@@ -232,7 +235,8 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
             </div>
             <div
               class="text-base-content/40"
-              style="font-size: 8px;  font-weight: 500; letter-spacing: 0.20px; word-wrap: break-word; line-height:10px;">
+              style="font-size: 8px;  font-weight: 500; letter-spacing: 0.20px; word-wrap: break-word; line-height:10px;"
+            >
               WALLET
             </div>
           </div>
@@ -247,7 +251,8 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
             </div>
             <div
               class="text-base-content/40"
-              style="font-size: 8px; font-weight: 500; letter-spacing: 0.20px; word-wrap: break-word; line-height:10px;">
+              style="font-size: 8px; font-weight: 500; letter-spacing: 0.20px; word-wrap: break-word; line-height:10px;"
+            >
               ADS
             </div>
           </div>
@@ -262,7 +267,8 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
             </div>
             <div
               class="text-base-content/40"
-              style="font-size: 8px; font-weight: 500; letter-spacing: 0.20px; word-wrap: break-word; line-height:10px;">
+              style="font-size: 8px; font-weight: 500; letter-spacing: 0.20px; word-wrap: break-word; line-height:10px;"
+            >
               OFFERED
             </div>
           </div>

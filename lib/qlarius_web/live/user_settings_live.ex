@@ -25,5 +25,4 @@ defmodule QlariusWeb.UserSettingsLive do
   def mount(_params, _session, socket) do
     {:ok, assign(socket, title: "Settings")}
   end
-
 end

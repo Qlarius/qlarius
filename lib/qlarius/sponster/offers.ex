@@ -5,7 +5,6 @@ defmodule Qlarius.Sponster.Offers do
 
   import Ecto.Query
 
-
   alias Qlarius.Repo
   alias Qlarius.Sponster.Offer
   alias Ecto.Multi
@@ -47,13 +46,10 @@ defmodule Qlarius.Sponster.Offers do
   def create_pending_copy_and_delete_original(offer, hours) do
     pending_until = DateTime.add(DateTime.utc_now(), hours, :hour)
 
-    offer_copy = %{offer |
-      id: nil,
-      is_current: false,
-      pending_until: pending_until
-    }
-    |> Map.from_struct()
-    |> Map.drop([:created_at, :updated_at])
+    offer_copy =
+      %{offer | id: nil, is_current: false, pending_until: pending_until}
+      |> Map.from_struct()
+      |> Map.drop([:created_at, :updated_at])
 
     Multi.new()
     |> Multi.insert(:new_offer, Offer.changeset(%Offer{}, offer_copy))

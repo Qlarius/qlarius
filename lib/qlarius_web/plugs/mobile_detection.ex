@@ -1,7 +1,7 @@
 defmodule QlariusWeb.Plugs.MobileDetection do
   import Plug.Conn
 
-  @mobile_ua_regex ~r/(Mobile|Android|iPhone|iPad|iPod|BlackBerry|Opera Mini|IEMobile)/i
+  @mobile_ua_regex ~r/(Mobile|Android|iPhone|iPad)/i
 
   def init(opts), do: opts
 

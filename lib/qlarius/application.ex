@@ -7,7 +7,6 @@ defmodule Qlarius.Application do
 
   @impl true
   def start(_type, _args) do
-
     Oban.Telemetry.attach_default_logger()
 
     # Attach a telemetry handler to filter out Oban plugin info logs
