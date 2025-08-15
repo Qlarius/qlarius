@@ -145,7 +145,7 @@ defmodule QlariusWeb.WalletLive do
         >
           <div>
             <div class="font-medium">{entry.description}</div>
-            <div class="text-gray-500">{format_date(entry.inserted_at)}</div>
+            <div class="text-content-base/50">{format_date(entry.inserted_at)}</div>
           </div>
           <div class="flex items-center">
             <div class="text-right mr-4">
@@ -172,7 +172,7 @@ defmodule QlariusWeb.WalletLive do
   end
 
   defp format_date(datetime) do
-    "#{datetime.year}-#{pad_zero(datetime.month)}-#{pad_zero(datetime.day)}"
+    "#{datetime.year}-#{pad_zero(datetime.month)}-#{pad_zero(datetime.day)} #{datetime.hour}:#{datetime.minute} sdfds"
   end
 
   defp pad_zero(number) when number < 10, do: "0#{number}"

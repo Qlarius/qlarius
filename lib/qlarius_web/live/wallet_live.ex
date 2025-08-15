@@ -31,6 +31,7 @@ defmodule QlariusWeb.WalletLive do
     socket
     |> assign(:true_user, true_user)
     |> assign(:current_scope, current_scope)
+    |> assign(:title, "Wallet")
     |> assign(:me_file, me_file)
     |> assign(:loading, true)
     |> assign(:ledger_header, ledger_header)
@@ -126,21 +127,20 @@ defmodule QlariusWeb.WalletLive do
   def render(assigns) do
     ~H"""
     <Layouts.sponster {assigns}>
-      <h1 class="text-3xl font-bold mb-4">Wallet</h1>
 
       <%= if assigns[:error] do %>
         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {@error}
         </div>
       <% else %>
-        <div class="mb-6">
-          <div class="text-lg">Current Balance:</div>
-          <div class="text-2xl text-sponster-500 font-bold">
+        <div class="mb-6 flex justify-between items-center">
+          <div class="text-lg">Balance:</div>
+          <div class="text-lg font-bold bg-sponster-500 text-white px-3 py-1 rounded-full">
             {format_currency(@ledger_header.balance)}
           </div>
         </div>
 
-        <div class="flex justify-center mb-6 space-x-2">
+        <div class="flex justify-center mt-10 mb-6 space-x-2">
           <div class="join">
             <button
               phx-click="paginate"
@@ -172,9 +172,6 @@ defmodule QlariusWeb.WalletLive do
           </div>
         </div>
 
-
-
-        <h2 class="text-xl font-semibold mb-4">Transactions</h2>
 
         <ul class="list bg-base-100 rounded-box shadow-md">
           <li
@@ -213,7 +210,7 @@ defmodule QlariusWeb.WalletLive do
   end
 
   defp format_date(datetime) do
-    "#{datetime.year}-#{pad_zero(datetime.month)}-#{pad_zero(datetime.day)}"
+    "#{datetime.year}-#{pad_zero(datetime.month)}-#{pad_zero(datetime.day)} #{if datetime.hour > 12, do: datetime.hour - 12, else: (if datetime.hour == 0, do: 12, else: datetime.hour)}:#{pad_zero(datetime.minute)}#{if datetime.hour >= 12, do: "pm", else: "am"}"
   end
 
   defp pad_zero(number) when number < 10, do: "0#{number}"

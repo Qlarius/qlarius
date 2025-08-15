@@ -82,11 +82,13 @@ defmodule QlariusWeb.Layouts do
     ~H"""
     <.flash_group flash={@flash} />
 
-    <div class="container mx-auto px-4 py-8">
-      <div class="w-full mb-6">
+    <div class="container mx-auto px-4 py-6">
+      <div class="w-full mb-6 flex justify-between items-center">
         <button class="cursor-pointer" phx-click={toggle_sponster_sidebar(:on)}>
-          <.icon name="hero-bars-3" class="h-8 w-8 text-gray-500" />
+          <.icon name="hero-bars-3" class="h-8 w-8 text-content-base" />
         </button>
+        <h1 class="text-3xl font-bold text-center flex-1">{@title}</h1>
+        <div class="w-8"></div>
       </div>
       {render_slot(@inner_block)}
     </div>
@@ -94,7 +96,7 @@ defmodule QlariusWeb.Layouts do
     <.sponster_sidebar {assigns} />
 
     <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
-    <div class="dock z-40 border-t border-gray-200">
+    <div class="dock z-40">
       <button class={[assigns[:current_path] == "/" && "dock-active"]} phx-click={JS.navigate(~p"/")}>
         <.icon name="hero-home" class="size-[1.2em]" />
         <span class="dock-label">Home</span>

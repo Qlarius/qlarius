@@ -69,6 +69,7 @@ defmodule QlariusWeb.AdsLive do
       |> assign(:active_offers, [])
       |> assign(:loading, true)
       |> assign(:host_uri, host_uri)
+      |> assign(:title, "Ads")
 
     if connected?(socket) do
       send(self(), :load_offers)
@@ -153,8 +154,7 @@ defmodule QlariusWeb.AdsLive do
   def render(assigns) do
     ~H"""
     <Layouts.sponster {assigns}>
-      <h1 class="text-3xl font-bold mb-4">Ads</h1>
-      <div class="container mx-auto px-0 py-8 max-w-3xl">
+      <div class="container mx-auto px-0 max-w-3xl">
         <.live_component
           module={QlariusWeb.ThreeTapStackComponent}
           id="three-tap-stack"
