@@ -99,7 +99,7 @@ defmodule QlariusWeb.Layouts do
     <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
     <div class="dock z-40">
       <button class={[assigns[:current_path] == "/" && "dock-active"]} phx-click={JS.navigate(~p"/")}>
-        <.icon name="hero-home" class="size-[1.2em]" />
+        <.icon name="hero-home" class="size-[1.5em]" />
         <span class="dock-label">Home</span>
       </button>
 
@@ -111,7 +111,7 @@ defmodule QlariusWeb.Layouts do
         ]}
         phx-click={JS.navigate(~p"/ads")}
       >
-        <.icon name="hero-eye" class="size-[1.2em]" />
+        <.icon name="hero-eye" class="size-[1.5em]" />
         <span class="dock-label">Ads</span>
         <span
           :if={@current_scope.ads_count > 0}
@@ -129,7 +129,7 @@ defmodule QlariusWeb.Layouts do
         ]}
         phx-click={JS.navigate(~p"/wallet")}
       >
-        <.icon name="hero-banknotes" class="size-[1.2em]" />
+        <.icon name="hero-banknotes" class="size-[1.5em]" />
         <span class="dock-label">Wallet</span>
         <span class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-500">
           {format_usd(@current_scope.wallet_balance)}
@@ -143,7 +143,7 @@ defmodule QlariusWeb.Layouts do
         ]}
         phx-click={JS.navigate(~p"/me_file")}
       >
-        <.icon name="hero-identification" class="size-[1.2em]" />
+        <.icon name="hero-identification" class="size-[1.5em]" />
         <span class="dock-label">MeFile</span>
         <span
           :if={@current_scope.ads_count > 0}
@@ -154,7 +154,7 @@ defmodule QlariusWeb.Layouts do
       </button>
 
       <button phx-click={toggle_sponster_sidebar(:on)}>
-        <.icon name="hero-bars-3" class="size-[1.2em]" />
+        <.icon name="hero-bars-3" class="size-[1.5em]" />
         <span class="dock-label">More</span>
       </button>
     </div>
