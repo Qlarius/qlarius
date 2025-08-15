@@ -5,15 +5,15 @@
 />
 <div
   id="sponster-sidebar"
-  class="fixed inset-y-0 left-0 z-50 w-80 transform -translate-x-full transition-transform duration-300 ease-in-out bg-base-100 dark:bg-base-900"
+  class="fixed inset-y-0 left-0 z-50 w-80 transform -translate-x-full transition-transform duration-300 ease-in-out bg-base-100 border-r border-base-100"
   tabindex="1"
   phx-click-away={toggle_sponster_sidebar(:off)}
 >
-  <div class="flex flex-col h-full overflow-y-auto py-4 px-3">
+  <div class="flex flex-col h-full overflow-y-auto py-0 px-0">
     <!-- profile box -->
-    <div class="flex items-center justify-between p-3 mb-4 border-b border-gray-700">
+    <div class="flex items-center justify-between px-4 py-5 mb-5 bg-base-300">
       <div class="flex items-center">
-        <img src="/images/qlarius_logo_squares.svg" class="h-7 mr-2.5" alt="Logo" />
+        <img src="/images/qlarius_logo_squares.svg" class="h-5 mr-3" alt="Logo" />
         <div>
           <span class="font-bold text-base-content" data-app-target="mobileNumber">
             {@current_scope.user.email}
@@ -28,9 +28,9 @@
       </div>
       <button
         phx-click={toggle_sponster_sidebar(:off)}
-        class="text-gray-400 hover:text-white cursor-pointer"
+        class="text-base-content/50 hover:text-base-content cursor-pointer"
       >
-        <.icon name="hero-x-mark" class="h-5 w-5" />
+        <.icon name="hero-x-mark" class="h-7 w-7" />
       </button>
     </div>
     <div class="flex justify-center">
@@ -38,13 +38,14 @@
     </div>
     <!-- * profile box -->
 
+  <div class="flex flex-col h-full overflow-y-auto py-4 px-3">
     <ul class="space-y-1 mt-2">
       <li>
         <.link
           navigate={~p"/"}
           class="flex items-center p-2 rounded-lg text-base-content hover:bg-base-200 group"
         >
-          <div class="flex items-center justify-center h-8 w-8 rounded-full bg-neutral">
+          <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-500">
             <.icon name="hero-home" class="h-5 w-5 text-neutral-content" />
           </div>
           <span class="ml-3">Home</span>
@@ -133,7 +134,9 @@
       </li>
     </ul>
 
-    <div class="mt-auto p-3 border-t border-gray-700">
+    </div>
+
+    <div class="mt-auto p-3 bg-base-300">
       <div class="grid grid-cols-2 gap-2">
         <.link
           navigate={~p"/users/settings"}
@@ -150,5 +153,6 @@
         </.link>
       </div>
     </div>
+    
   </div>
 </div>

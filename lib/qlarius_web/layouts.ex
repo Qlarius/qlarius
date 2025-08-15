@@ -114,7 +114,7 @@ defmodule QlariusWeb.Layouts do
         <span class="dock-label">Ads</span>
         <span
           :if={@current_scope.ads_count > 0}
-          class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white !bg-sponster-500"
+          class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-500"
         >
           {@current_scope.ads_count}
         </span>
@@ -130,7 +130,7 @@ defmodule QlariusWeb.Layouts do
       >
         <.icon name="hero-banknotes" class="size-[1.2em]" />
         <span class="dock-label">Wallet</span>
-        <span class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white !bg-sponster-500">
+        <span class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-500">
           {format_usd(@current_scope.wallet_balance)}
         </span>
       </button>
@@ -146,7 +146,7 @@ defmodule QlariusWeb.Layouts do
         <span class="dock-label">MeFile</span>
         <span
           :if={@current_scope.ads_count > 0}
-          class="absolute left-1/2 ml-[4px] top-0 badge badge-sm rounded-full px-1 text-white !bg-youdata-500"
+          class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-youdata-500"
         >
           {@current_scope.tag_count}
         </span>

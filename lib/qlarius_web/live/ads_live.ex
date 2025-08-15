@@ -154,7 +154,7 @@ defmodule QlariusWeb.AdsLive do
   def render(assigns) do
     ~H"""
     <Layouts.sponster {assigns}>
-      <div class="container mx-auto px-0 max-w-3xl">
+      <div class="container mx-auto px-0 py-6 max-w-3xl">
         <.live_component
           module={QlariusWeb.ThreeTapStackComponent}
           id="three-tap-stack"
