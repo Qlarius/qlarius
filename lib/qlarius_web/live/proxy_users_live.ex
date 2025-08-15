@@ -24,7 +24,8 @@ defmodule QlariusWeb.ProxyUsersLive do
        # Store the admin user
        |> assign(:original_user, admin_user)
        |> assign(:proxy_users, proxy_users)
-       |> assign(:active_proxy, active_proxy)}
+       |> assign(:active_proxy, active_proxy)
+       |> assign(:title, "Proxy Users")}
     else
       {:ok,
        socket

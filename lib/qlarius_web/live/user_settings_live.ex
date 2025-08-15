@@ -21,4 +21,9 @@ defmodule QlariusWeb.UserSettingsLive do
     </Layouts.sponster>
     """
   end
+
+  def mount(_params, _session, socket) do
+    {:ok, assign(socket, title: "Settings")}
+  end
+
 end

@@ -74,6 +74,7 @@ defmodule QlariusWeb.Layouts do
 
   slot :inner_block, required: true
 
+  attr :title, :string, required: true
   attr :flash, :map, required: true
   attr :current_scope, Scope, required: true
   attr :current_path, :string, default: nil
