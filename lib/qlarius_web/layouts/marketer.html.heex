@@ -1,14 +1,8 @@
 <.admin>
-  <%= if (assigns[:is_mobile] || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
-    <div class="h-[env(safe-area-inset-top)] bg-base-100"></div>
-  <% end %>
   <div class="relative w-full bg-gray-800 text-white py-3 px-4">
     <div class="container mx-auto">
       <h1 class="text-lg font-semibold">ABC Holdings</h1>
     </div>
   </div>
   {@inner_block}
-  <%= if (assigns[:is_mobile] || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
-    <div class="h-[env(safe-area-inset-bottom)] bg-base-100"></div>
-  <% end %>
 </.admin>

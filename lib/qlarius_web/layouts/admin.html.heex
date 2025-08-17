@@ -1,7 +1,4 @@
 <div class="size-full" id="layout-main">
-  <%= if (assigns[:is_mobile] || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
-    <div class="h-[env(safe-area-inset-top)] bg-base-100"></div>
-  <% end %>
   <div class="flex">
     <!--  Start: Layout - Sidebar -->
 
@@ -624,10 +621,7 @@
   </div>
   
 <!--  Start: Layout - Rightbar -->
-  <%= if (assigns[:is_mobile] || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
-    <div class="h-[env(safe-area-inset-bottom)] bg-base-100"></div>
-  <% end %>
-</div>
+
 
 <!--  End: Layout - Main -->
 
