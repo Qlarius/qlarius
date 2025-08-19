@@ -17,10 +17,12 @@ defmodule Qlarius.Sponster.Recipient do
     field :contact_email, :string
     field :approval_date, :naive_datetime
     field :referral_code, :string
+    field :recipient_type_id, :integer, default: 1
 
     belongs_to :user, Qlarius.Accounts.User
     # RecipientType association commented - schema only in archive_hide
     # belongs_to :recipient_type, Qlarius.Sponster.RecipientType
+    # allowing for recipient_type_id to be null for now and save as integer for now (1 = publisher default, 2 = charity, etc.)
     belongs_to :approved_by_user, Qlarius.Accounts.User, foreign_key: :approved_by_user_id
 
     timestamps()
