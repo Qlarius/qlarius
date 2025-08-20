@@ -8,7 +8,8 @@ defmodule QlariusWeb.Endpoint do
     store: :cookie,
     key: "_qlarius_key",
     signing_salt: "Tvun6ICt",
-    same_site: "Lax"
+    same_site: "None",
+    secure: true
   ]
 
   socket "/live", Phoenix.LiveView.Socket,
@@ -18,8 +19,8 @@ defmodule QlariusWeb.Endpoint do
   # Based on https://elixirforum.com/t/how-to-embed-a-liveview-via-iframe/65066
   # This isn't a good long-term solution; I just need to get the demo working.
   socket "/widgets/live", Phoenix.LiveView.Socket,
-    websocket: true,
-    longpoll: true
+    websocket: [connect_info: [:x_headers, session: @session_options]],
+    longpoll: [connect_info: [:x_headers, session: @session_options]]
 
   # Serve at "/" the static files from "priv/static" directory.
   #

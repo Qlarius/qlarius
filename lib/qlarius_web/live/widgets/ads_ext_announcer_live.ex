@@ -13,7 +13,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   # alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Wallets.MeFileBalanceBroadcaster
   # Added missing Wallets alias for handle_info callback that calls get_me_file_ledger_header_balance
-  alias Qlarius.Wallets.Wallets
+  alias Qlarius.Wallets
   # Commented out unused alias - Repo not directly referenced
   # alias Qlarius.Repo
   # Commented out unused alias - Scope not directly referenced
@@ -181,7 +181,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
             x-init="autoplay"
             class="relative w-full overflow-hidden"
           >
-            
+
     <!-- slides -->
             <div class="relative min-h-[70px] w-full">
               <template x-for="(slide, index) in slides">

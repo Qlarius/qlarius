@@ -21,9 +21,9 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   # alias Qlarius.Sponster.Ads.ThreeTap
   # Commented out unused alias - Component not directly referenced in this file
   # alias Phoenix.Component
-  alias Qlarius.Wallets.Wallets
+  alias Qlarius.Wallets
   alias Qlarius.Wallets.MeFileBalanceBroadcaster
-  # Commented out unused import - OfferHTML functions not used in this LiveView  
+  # Commented out unused import - OfferHTML functions not used in this LiveView
   # import QlariusWeb.OfferHTML
   import Ecto.Query, except: [update: 2, update: 3]
   # Commented out unused import - Layouts functions not used in this LiveView

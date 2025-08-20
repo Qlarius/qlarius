@@ -5,7 +5,7 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass
-  alias Qlarius.Wallets.Wallets
+  alias Qlarius.Wallets
 
   import QlariusWeb.Money
   import QlariusWeb.TiqitClassHTML

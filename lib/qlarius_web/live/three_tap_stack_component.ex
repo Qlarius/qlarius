@@ -7,8 +7,6 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   # Commented out unused aliases - only used in commented update_ads_count function
   # alias Qlarius.Sponster.Offer
   # alias Qlarius.Repo
-  # Commented out unused alias - Wallets not directly referenced
-  # alias Qlarius.Wallets.Wallets
   # Commented out unused alias - Component not directly referenced
   # alias Phoenix.Component
   # Commented out unused import - only used in commented update_ads_count function

@@ -17,7 +17,7 @@ defmodule QlariusWeb.Admin.RecipientController do
 
     ledger_entries_page =
       if ledger_header do
-        Qlarius.Wallets.Wallets.list_ledger_entries(ledger_header.id, page, 50)
+        Qlarius.Wallets.list_ledger_entries(ledger_header.id, page, 50)
       else
         %{entries: [], page_number: page, page_size: 50, total_entries: 0, total_pages: 1}
       end

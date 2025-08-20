@@ -19,7 +19,7 @@ defmodule QlariusWeb.AdsLive do
   # alias Qlarius.Sponster.Ads.{ThreeTap, MediaPiece, AdCategory}
   # Commented out unused alias - Component not directly referenced
   # alias Phoenix.Component
-  alias Qlarius.Wallets.Wallets
+  alias Qlarius.Wallets
   alias Qlarius.Wallets.MeFileBalanceBroadcaster
   # Commented out unused import - OfferHTML functions not used in this LiveView
   # import QlariusWeb.OfferHTML

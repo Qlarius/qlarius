@@ -4,7 +4,7 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
 
   alias Qlarius.Sponster.AdEvent
   alias Qlarius.Sponster.Ads.{MediaPiecePhase, MediaPieceType}
-  alias Qlarius.Wallets.Wallets
+  alias Qlarius.Wallets
 
   def create_banner_ad_event(
         offer,

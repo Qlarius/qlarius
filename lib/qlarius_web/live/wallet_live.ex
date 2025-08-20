@@ -5,7 +5,7 @@ defmodule QlariusWeb.WalletLive do
 
   alias Qlarius.Accounts.Users
   alias Qlarius.Accounts.Scope
-  alias Qlarius.Wallets.Wallets
+  alias Qlarius.Wallets
   alias Qlarius.Accounts.User
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo

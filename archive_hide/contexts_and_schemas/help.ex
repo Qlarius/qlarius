@@ -51,7 +51,7 @@ defmodule Qlarius.Help do
       alias Qlarius.Accounts.UserToken
       alias Qlarius.Mailer
       alias Qlarius.YouData
-      alias Qlarius.Wallets.Wallets
+      alias Qlarius.Wallets
       alias Qlarius.Wallets.LedgerEntry
       alias Qlarius.Wallets.LedgerHeader
       alias Qlarius.Application

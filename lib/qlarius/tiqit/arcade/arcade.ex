@@ -7,7 +7,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.Tiqit
   alias Qlarius.Tiqit.Arcade.TiqitClass
-  alias Qlarius.Wallets.Wallets
+  alias Qlarius.Wallets
   alias Qlarius.Wallets.LedgerEntry
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo

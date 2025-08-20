@@ -1,4 +1,4 @@
-defmodule Qlarius.Wallets.Wallets do
+defmodule Qlarius.Wallets do
   import Ecto.Query
   require Logger
 
