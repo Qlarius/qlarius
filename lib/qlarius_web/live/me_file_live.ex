@@ -11,6 +11,8 @@ defmodule QlariusWeb.MeFileLive do
     ~H"""
     <Layouts.sponster {assigns}>
 
+      <.main_modal />
+
       <%!-- <.tag_and_trait_count_badges trait_count={@trait_count} tag_count={@tag_count} /> --%>
       <.tag_and_trait_count_badges trait_count={@current_scope.trait_count} tag_count={@current_scope.tag_count} />
 
@@ -33,6 +35,7 @@ defmodule QlariusWeb.MeFileLive do
                 <div class="ms-4 flex gap-3">
                   <button
                     class="text-base-content/20 hover:text-base-content/80 cursor-pointer"
+                    onclick="main_modal.showModal()"
                     phx-value-id={parent_trait_id}
                   >
                     <.icon name="hero-pencil" class="h-4 w-4" />
@@ -40,6 +43,7 @@ defmodule QlariusWeb.MeFileLive do
                   <button
                     class="text-base-content/20 hover:text-base-content/80 cursor-pointer"
                     phx-click="delete_trait"
+                    onclick={"main_modal.showModal()"}
                     phx-value-id={parent_trait_id}
                     data-confirm="Are you sure you want to remove all values for this trait?"
                   >
@@ -65,6 +69,7 @@ defmodule QlariusWeb.MeFileLive do
       >
         <.icon name="hero-plus" class="h-5 w-5" /> Builder
       </.link>
+
     </Layouts.sponster>
     """
   end

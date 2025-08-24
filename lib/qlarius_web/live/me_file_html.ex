@@ -1,7 +1,7 @@
 defmodule QlariusWeb.MeFileHTML do
   use QlariusWeb, :html
 
-  # embed_templates "me_file_html/*"
+  embed_templates "me_file_html/*"
 
   def progress_bar_color(percentage) do
     cond do
