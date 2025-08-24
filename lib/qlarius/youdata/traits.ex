@@ -15,7 +15,17 @@ defmodule Qlarius.YouData.Traits do
   Returns the list of trait categories sorted by display_order.
   """
   def list_trait_categories do
-    Repo.all(from c in TraitCategory, order_by: c.display_order)
+    Repo.all(from c in TraitCategory, select: %{id: c.id, name: c.name, display_order: c.display_order}, order_by: [c.display_order, c.name])
+  end
+
+    def list_trait_categories_with_traits do
+    trait_query = from t in Trait, where: is_nil(t.parent_trait_id) and t.active == 1, order_by: t.display_order
+
+    Repo.all(
+      from c in TraitCategory,
+      order_by: [c.display_order, c.name],
+      preload: [traits: ^trait_query]
+    )
   end
 
   @doc """

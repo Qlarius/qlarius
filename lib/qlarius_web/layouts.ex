@@ -92,6 +92,7 @@ defmodule QlariusWeb.Layouts do
         <div class="w-8"></div>
       </div>
       {render_slot(@inner_block)}
+      <.debug_assigns {assigns} />
     </div>
 
     <.sponster_sidebar {assigns} />
@@ -159,8 +160,6 @@ defmodule QlariusWeb.Layouts do
         <span class="dock-label">More</span>
       </button>
     </div>
-
-    <.debug_assigns {assigns} />
 
     <div class="h-[60px]" />
     """
@@ -409,7 +408,7 @@ defmodule QlariusWeb.Layouts do
   def debug_assigns(assigns) do
     if @debug_enabled and System.get_env("DEBUG") == "true" do
       ~H"""
-      <pre class="mt-8 p-4 bg-gray-100 rounded overflow-auto text-sm">
+      <pre class="mt-8 p-4 bg-base-100 text-base-content rounded overflow-auto text-sm">
           <%= inspect(assigns, pretty: true) %>
         </pre>
       """
