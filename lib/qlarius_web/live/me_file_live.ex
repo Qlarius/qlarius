@@ -75,7 +75,7 @@ defmodule QlariusWeb.MeFileLive do
 
   def handle_event("edit_tags", %{"id" => trait_id}, socket) do
     {trait_id, _} = Integer.parse(trait_id)
-    trait = Traits.get_trait!(trait_id)
+    {:ok, trait} = Traits.get_trait_with_full_survey_data!(trait_id)
     socket = socket
       |> assign(:trait_in_edit, trait)
       |> push_event("show_modal", %{id: "tag_edit_modal"})

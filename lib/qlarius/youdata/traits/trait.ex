@@ -31,6 +31,8 @@ defmodule Qlarius.YouData.Traits.Trait do
     belongs_to :parent_trait, __MODULE__, foreign_key: :parent_trait_id
     # TraitCategory association commented - schema only in archive_hide
     belongs_to :trait_category, TraitCategory
+    has_one :survey_question, Qlarius.YouData.Surveys.SurveyQuestion, foreign_key: :trait_id
+    has_one :survey_answer, Qlarius.YouData.Surveys.SurveyAnswer, foreign_key: :trait_id
 
     has_many :child_traits, __MODULE__, foreign_key: :parent_trait_id
     has_many :me_file_tags, MeFileTag

@@ -83,6 +83,20 @@ defmodule Qlarius.YouData.Traits do
   """
   def get_trait!(id), do: Repo.get!(Trait, id)
 
+  def get_trait_with_full_survey_data!(id) do
+    trait = Repo.get!(Trait, id)
+
+    case trait.parent_trait_id do
+      nil ->
+        {:ok, trait |> Repo.preload([
+          :survey_question,
+          child_traits: :survey_answer
+        ])}
+      _ ->
+        {:error, :not_parent_trait}
+    end
+  end
+
 
   # def get_trait_with_values!(id) do
   #   Repo.get!(Trait, id)
