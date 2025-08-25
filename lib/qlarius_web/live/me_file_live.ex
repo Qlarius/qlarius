@@ -11,7 +11,7 @@ defmodule QlariusWeb.MeFileLive do
     ~H"""
     <Layouts.sponster {assigns}>
 
-      <.main_modal />
+      <.tag_edit_modal trait_in_edit={@trait_in_edit} />
 
       <%!-- <.tag_and_trait_count_badges trait_count={@trait_count} tag_count={@tag_count} /> --%>
       <.tag_and_trait_count_badges trait_count={@current_scope.trait_count} tag_count={@current_scope.tag_count} />
@@ -35,7 +35,7 @@ defmodule QlariusWeb.MeFileLive do
                 <div class="ms-4 flex gap-3">
                   <button
                     class="text-base-content/20 hover:text-base-content/80 cursor-pointer"
-                    onclick="main_modal.showModal()"
+                    phx-click="edit_tags"
                     phx-value-id={parent_trait_id}
                   >
                     <.icon name="hero-pencil" class="h-4 w-4" />
@@ -43,9 +43,8 @@ defmodule QlariusWeb.MeFileLive do
                   <button
                     class="text-base-content/20 hover:text-base-content/80 cursor-pointer"
                     phx-click="delete_trait"
-                    onclick={"main_modal.showModal()"}
+                    onclick={"tag_edit_modal.showModal()"}
                     phx-value-id={parent_trait_id}
-                    data-confirm="Are you sure you want to remove all values for this trait?"
                   >
                     <.icon name="hero-trash" class="h-4 w-4" />
                   </button>
@@ -74,6 +73,15 @@ defmodule QlariusWeb.MeFileLive do
     """
   end
 
+  def handle_event("edit_tags", %{"id" => trait_id}, socket) do
+    {trait_id, _} = Integer.parse(trait_id)
+    trait = Traits.get_trait!(trait_id)
+    socket = socket
+      |> assign(:trait_in_edit, trait)
+      |> push_event("show_modal", %{id: "tag_edit_modal"})
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_event("delete_trait", %{"id" => trait_id}, socket) do
     {trait_id, _} = Integer.parse(trait_id)
@@ -92,24 +100,11 @@ defmodule QlariusWeb.MeFileLive do
   def mount(_params, _session, socket) do
     socket
     |> assign(:title, "MeFile")
-    # |> assign_stats()
     |> assign_me_file_tags()
+    |> assign(:trait_in_edit, nil)
     |> ok()
   end
 
-  # defp assign_stats(socket) do
-  #   user = socket.assigns.current_scope.user
-
-  #   socket
-  #   |> assign(:trait_count, Traits.count_traits_with_values(user.id))
-  #   |> assign(:tag_count, Traits.count_me_file_tags(user.me_file.id))
-  # end
-
-  defp assign_categories(socket) do
-    # user_id = socket.assigns.current_scope.user.id
-    # categories = Traits.list_categories_with_user_traits(user_id)
-    assign(socket, :categories, Traits.list_trait_categories_with_traits())
-  end
 
   defp assign_me_file_tags(socket) do
     me_file_id = socket.assigns.current_scope.user.me_file.id

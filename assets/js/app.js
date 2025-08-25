@@ -27,10 +27,21 @@ import Alpine from "alpinejs"
 import {hooks as colocatedHooks} from "phoenix-colocated/qlarius"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+let Hooks = {}
+
+Hooks.Modal = {
+  mounted() {
+    this.handleEvent("show_modal", ({id}) => {
+      document.getElementById(id)?.showModal()
+    })
+  }
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
   colocatedHooks: colocatedHooks,
+  hooks: Hooks
 })
 
 // Show progress bar on live navigation and form submits
