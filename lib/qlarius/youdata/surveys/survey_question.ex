@@ -19,7 +19,7 @@ defmodule Qlarius.YouData.Surveys.SurveyQuestion do
   def changeset(survey_question, attrs) do
     survey_question
     |> cast(attrs, [:text, :survey_id, :display_order, :modified_by, :added_by, :trait_id])
-    |> validate_required( [:text, :survey_id, :display_order, :modified_by, :added_by, :trait_id])
+    |> validate_required([:text, :survey_id, :display_order, :modified_by, :added_by, :trait_id])
     |> foreign_key_constraint(:survey_id)
   end
 end

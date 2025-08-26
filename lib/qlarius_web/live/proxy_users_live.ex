@@ -2,6 +2,7 @@ defmodule QlariusWeb.ProxyUsersLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Accounts.Users
+
   # Commented out unused alias - UserProxy not directly referenced (all proxy operations use Users module functions)
   # alias Qlarius.Accounts.UserProxy
   alias Qlarius.Accounts.Scope

@@ -15,16 +15,23 @@ defmodule Qlarius.YouData.Traits do
   Returns the list of trait categories sorted by display_order.
   """
   def list_trait_categories do
-    Repo.all(from c in TraitCategory, select: %{id: c.id, name: c.name, display_order: c.display_order}, order_by: [c.display_order, c.name])
+    Repo.all(
+      from c in TraitCategory,
+        select: %{id: c.id, name: c.name, display_order: c.display_order},
+        order_by: [c.display_order, c.name]
+    )
   end
 
-    def list_trait_categories_with_traits do
-    trait_query = from t in Trait, where: is_nil(t.parent_trait_id) and t.active == 1, order_by: t.display_order
+  def list_trait_categories_with_traits do
+    trait_query =
+      from t in Trait,
+        where: is_nil(t.parent_trait_id) and t.active == 1,
+        order_by: t.display_order
 
     Repo.all(
       from c in TraitCategory,
-      order_by: [c.display_order, c.name],
-      preload: [traits: ^trait_query]
+        order_by: [c.display_order, c.name],
+        preload: [traits: ^trait_query]
     )
   end
 
@@ -88,15 +95,17 @@ defmodule Qlarius.YouData.Traits do
 
     case trait.parent_trait_id do
       nil ->
-        {:ok, trait |> Repo.preload([
-          :survey_question,
-          child_traits: :survey_answer
-        ])}
+        {:ok,
+         trait
+         |> Repo.preload([
+           :survey_question,
+           child_traits: :survey_answer
+         ])}
+
       _ ->
         {:error, :not_parent_trait}
     end
   end
-
 
   # def get_trait_with_values!(id) do
   #   Repo.get!(Trait, id)
@@ -134,8 +143,6 @@ defmodule Qlarius.YouData.Traits do
   def change_trait(%Trait{} = trait, attrs \\ %{}) do
     Trait.changeset(trait, attrs)
   end
-
-
 
   # TraitGroup functions
 
@@ -204,6 +211,7 @@ defmodule Qlarius.YouData.Traits do
 
   TODO this query is very slow, improve it
   """
+
   # def list_categories_with_user_traits(user_id) do
   #   user = Repo.get!(User, user_id) |> Repo.preload(:me_file)
 
@@ -226,7 +234,6 @@ defmodule Qlarius.YouData.Traits do
   #   |> Repo.all()
   #   |> Enum.map(&filter_empty_traits/1)
   # end
-
 
   def remove_trait_from_survey(survey, trait) do
     Repo.delete_all(
@@ -318,10 +325,6 @@ defmodule Qlarius.YouData.Traits do
     )
     |> Repo.delete_all()
   end
-
-
-
-
 
   @doc """
   Gets the total number of traits for which the user has at least one value.

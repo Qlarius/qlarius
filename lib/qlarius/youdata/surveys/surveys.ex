@@ -43,11 +43,12 @@ defmodule Qlarius.YouData.Surveys.Surveys do
   def list_surveys_by_category do
     # Using child_traits instead of non-existent TraitValue module
     # Traits with parent_trait_id are the "values" for traits without parent_trait_id
-    traits_query = from t in Trait, 
-      where: is_nil(t.parent_trait_id),
-      order_by: t.display_order,
-      preload: [child_traits: ^from(ct in Trait, order_by: ct.display_order)]
-    
+    traits_query =
+      from t in Trait,
+        where: is_nil(t.parent_trait_id),
+        order_by: t.display_order,
+        preload: [child_traits: ^from(ct in Trait, order_by: ct.display_order)]
+
     surveys_query = from s in Survey, order_by: s.display_order, preload: [traits: ^traits_query]
 
     query =
@@ -61,11 +62,13 @@ defmodule Qlarius.YouData.Surveys.Surveys do
   def get_survey!(id) do
     # Using child_traits instead of non-existent TraitValue module
     child_traits_query = from ct in Trait, order_by: ct.display_order
-    traits_query = from t in Trait, 
-      where: is_nil(t.parent_trait_id),
-      order_by: t.display_order,
-      preload: [child_traits: ^child_traits_query]
-    
+
+    traits_query =
+      from t in Trait,
+        where: is_nil(t.parent_trait_id),
+        order_by: t.display_order,
+        preload: [child_traits: ^child_traits_query]
+
     Repo.get!(Survey, id)
     |> Repo.preload([
       :category,

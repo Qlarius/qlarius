@@ -11,10 +11,12 @@ defmodule Qlarius.YouData.MeFiles do
   def me_file_tags_with_parent_traits_and_categories(me_file_id) do
     Repo.all(
       from mt in MeFileTag,
-      join: t in Trait, on: mt.trait_id == t.id,
-      left_join: parent_t in Trait, on: t.parent_trait_id == parent_t.id,
-      where: mt.me_file_id == ^me_file_id,
-      preload: [trait: [:trait_category, :parent_trait]]
+        join: t in Trait,
+        on: mt.trait_id == t.id,
+        left_join: parent_t in Trait,
+        on: t.parent_trait_id == parent_t.id,
+        where: mt.me_file_id == ^me_file_id,
+        preload: [trait: [:trait_category, :parent_trait]]
     )
   end
 
@@ -31,12 +33,11 @@ defmodule Qlarius.YouData.MeFiles do
     me_file_tags
     |> Enum.reduce(%{}, fn me_file_tag, acc ->
       category = me_file_tag.trait.trait_category
-      Map.put(acc, category.id, category)
+      Map.put(acc, category.id, {category.id, category.name, category.display_order})
     end)
     |> Map.values()
-    |> Enum.sort_by(&[&1.display_order, &1.name])
+    |> Enum.sort_by(fn {_id, name, display_order} -> [display_order, name] end)
   end
-
 
   defp add_parent_traits_to_categories(new_tag_map, raw_tag_map) do
     new_tag_map
@@ -45,14 +46,19 @@ defmodule Qlarius.YouData.MeFiles do
       parent_traits =
         raw_tag_map
         |> Enum.filter(fn me_file_tag ->
-          me_file_tag.trait.trait_category.id == category.id
+          {id, _, _} = category
+          me_file_tag.trait.trait_category.id == id
         end)
         |> Enum.map(fn me_file_tag ->
           trait = me_file_tag.trait
-          trait.parent_trait || trait  # Use parent trait if exists, otherwise the trait itself
+          # Use parent trait if exists, otherwise the trait itself
+          trait = trait.parent_trait || nil
+          {trait.id, trait.trait_name, trait.display_order}
         end)
-        |> Enum.uniq_by(& &1.id)  # Remove duplicates
-        |> Enum.sort_by(&[&1.display_order, &1.trait_name])  # Sort by display_order then name
+        # Remove duplicates
+        |> Enum.uniq_by(fn {id, _, _} -> id end)
+        # Sort by display_order
+        |> Enum.sort_by(fn {_, _, display_order} -> display_order end)
 
       {category, parent_traits}
     end)
@@ -62,30 +68,33 @@ defmodule Qlarius.YouData.MeFiles do
   defp add_tags_to_parent_traits(new_tag_map, raw_tag_map) do
     new_tag_map
     |> Enum.map(fn {category, parent_traits} ->
-      parent_traits_with_tags = Enum.map(parent_traits, fn parent_trait ->
-        tags = raw_tag_map
-          |> Enum.filter(fn me_file_tag ->
-            trait = me_file_tag.trait
-            parent = trait.parent_trait || trait
-            parent.id == parent_trait.id
-          end)
-          |> Enum.map(fn me_file_tag ->
-            if me_file_tag.trait.parent_trait do
-              me_file_tag.trait.trait_name
-            else
-              me_file_tag.tag_value
-            end
-          end)
-          |> Enum.sort()
+      parent_traits_with_tags =
+        Enum.map(parent_traits, fn {id, name, display_order} ->
+          tags =
+            raw_tag_map
+            |> Enum.filter(fn me_file_tag ->
+              trait = me_file_tag.trait
+              parent = trait.parent_trait || nil
+              parent && parent.id == id
+            end)
+            |> Enum.map(fn me_file_tag ->
+              if me_file_tag.trait.parent_trait do
+                {me_file_tag.trait.id, me_file_tag.trait.trait_name,
+                 me_file_tag.trait.display_order}
+              else
+                {me_file_tag.trait.id, me_file_tag.tag_value, me_file_tag.trait.display_order}
+              end
+            end)
+            |> Enum.sort_by(fn {_id, name, display_order} -> [display_order, name] end)
 
-        {parent_trait.id, parent_trait.trait_name, tags}
-      end)
-      |> Enum.sort_by(fn {_id, name, _tags} -> name end)
+          {id, name, display_order, tags}
+        end)
+        |> Enum.sort_by(fn {_id, name, display_order, _tags} -> [display_order, name] end)
 
       {category, parent_traits_with_tags}
     end)
-    |> Enum.sort_by(fn {category, _parent_traits} -> [category.display_order, category.name] end)
+    |> Enum.sort_by(fn {{_id, _name, display_order}, _parent_traits} ->
+      [display_order, _name]
+    end)
   end
-
-
 end
