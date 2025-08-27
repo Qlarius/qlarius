@@ -29,6 +29,10 @@ defmodule Qlarius.YouData.MeFiles do
     |> add_tags_to_parent_traits(raw_tag_map)
   end
 
+  def existing_tags_per_parent_trait(me_file_id, trait_id) do
+    Repo.all(from mt in MeFileTag, where: mt.me_file_id == ^me_file_id and mt.trait_id == ^trait_id)
+  end
+
   defp unique_categories_in_display_order(me_file_tags) do
     me_file_tags
     |> Enum.reduce(%{}, fn me_file_tag, acc ->

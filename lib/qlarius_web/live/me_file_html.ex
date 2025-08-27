@@ -37,11 +37,12 @@ defmodule QlariusWeb.MeFileHTML do
 
   attr :trait_in_edit, :any, default: nil
   attr :me_file_id, :integer, required: true
+  attr :selected_ids, :list, default: []
 
   def tag_edit_modal(assigns) do
     ~H"""
     <dialog id="tag_edit_modal" phx-hook="Modal" class="modal modal-bottom sm:modal-middle">
-      <div class="flex flex-col modal-box border border-youdata-500 dark:border-youdata-700 bg-base-100 p-0 max-h-[80vh]">
+      <div class="flex flex-col modal-box border border-youdata-500 dark:border-youdata-700 bg-base-100 p-0 max-h-[90vh]">
         <%!-- Fixed header --%>
         <div class="p-4 flex flex-row justify-between items-baseline bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content shrink-0">
           <h3 class="text-lg font-bold">
@@ -75,6 +76,7 @@ defmodule QlariusWeb.MeFileHTML do
                   name="child_trait_ids[]"
                   value={child_trait.id}
                   id={"trait-#{child_trait.id}"}
+                  checked={child_trait.id in @selected_ids}
                   class="radio w-7 h-7"
                 />
                 <input
@@ -83,7 +85,8 @@ defmodule QlariusWeb.MeFileHTML do
                   name="child_trait_ids[]"
                   value={child_trait.id}
                   id={"trait-#{child_trait.id}"}
-                  class="checkbox w-7 h-7"
+                  checked={child_trait.id in @selected_ids}
+                  class="checkbox w-7 h-7 checkbox-neutral"
                 />
                 <div :if={child_trait.survey_answer} class="text-md text-base-content">
                   {child_trait.survey_answer.text}

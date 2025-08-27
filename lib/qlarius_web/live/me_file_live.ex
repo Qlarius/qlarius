@@ -10,7 +10,11 @@ defmodule QlariusWeb.MeFileLive do
   def render(assigns) do
     ~H"""
     <Layouts.sponster {assigns}>
-      <.tag_edit_modal trait_in_edit={@trait_in_edit} me_file_id={@current_scope.user.me_file.id} />
+      <.tag_edit_modal
+        trait_in_edit={@trait_in_edit}
+        me_file_id={@current_scope.user.me_file.id}
+        selected_ids={@selected_child_trait_ids || []}
+      />
 
       <%!-- <.tag_and_trait_count_badges trait_count={@trait_count} tag_count={@tag_count} /> --%>
       <.tag_and_trait_count_badges
@@ -77,7 +81,7 @@ defmodule QlariusWeb.MeFileLive do
 
       <.link
         navigate={~p"/me_file"}
-        class="fixed bottom-20 right-6 px-6 py-3 bg-blue-500 text-white rounded-full shadow-xl hover:bg-blue-600 font-medium flex items-center gap-1 z-10"
+        class="fixed bottom-20 right-6 px-4 py-2 bg-blue-500 text-white rounded-full shadow-xl hover:bg-blue-600 font-medium flex items-center gap-1 z-10"
       >
         <.icon name="hero-plus" class="h-5 w-5" /> Builder
       </.link>
@@ -89,9 +93,16 @@ defmodule QlariusWeb.MeFileLive do
     {trait_id, _} = Integer.parse(trait_id)
     {:ok, trait} = Traits.get_trait_with_full_survey_data!(trait_id)
 
+    selected_ids =
+      selected_child_trait_ids_from_map(
+        socket.assigns.me_file_tag_map_by_category_trait_tag,
+        trait.id
+      )
+
     socket =
       socket
       |> assign(:trait_in_edit, trait)
+      |> assign(:selected_child_trait_ids, selected_ids)
       |> push_event("show_modal", %{id: "tag_edit_modal"})
 
     {:noreply, socket}
@@ -143,6 +154,7 @@ defmodule QlariusWeb.MeFileLive do
     |> assign(:title, "MeFile")
     |> assign_me_file_tags()
     |> assign(:trait_in_edit, nil)
+    |> assign(:selected_child_trait_ids, [])
     |> ok()
   end
 
@@ -153,6 +165,29 @@ defmodule QlariusWeb.MeFileLive do
       socket,
       :me_file_tag_map_by_category_trait_tag,
       MeFiles.me_file_tag_map_by_category_trait_tag(me_file_id)
+    )
+  end
+
+  defp selected_child_trait_ids_from_map(me_file_tag_map_by_category_trait_tag, parent_trait_id) do
+    me_file_tag_map_by_category_trait_tag
+    |> Enum.find_value(fn {_category, parent_traits} ->
+      Enum.find_value(parent_traits, fn
+        {id, _name, _display_order, tags} when id == parent_trait_id ->
+          Enum.map(tags, fn {child_id, _label, _order} -> child_id end)
+        _ ->
+          nil
+      end)
+    end) || []
+  end
+
+  defp assign_existing_tags_per_trait_in_edit(socket) do
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+    trait_id = socket.assigns.trait_in_edit.id
+
+    assign(
+      socket,
+      :existing_tags_per_trait_in_edit,
+      MeFiles.existing_tags_per_parent_trait(me_file_id)
     )
   end
 end
