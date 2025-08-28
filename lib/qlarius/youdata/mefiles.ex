@@ -193,8 +193,8 @@ defmodule Qlarius.YouData.MeFiles do
 
       {category, parent_traits_with_tags}
     end)
-    |> Enum.sort_by(fn {{_id, _name, display_order}, _parent_traits} ->
-      [display_order, _name]
+    |> Enum.sort_by(fn {{_id, name, display_order}, _parent_traits} ->
+      [display_order, name]
     end)
   end
 end

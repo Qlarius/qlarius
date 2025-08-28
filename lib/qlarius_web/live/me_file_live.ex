@@ -3,7 +3,7 @@ defmodule QlariusWeb.MeFileLive do
 
   alias Qlarius.YouData.Traits
   alias Qlarius.YouData.MeFiles
-  alias Phoenix.LiveView.JS
+
 
   import QlariusWeb.MeFileHTML
 
@@ -134,7 +134,7 @@ defmodule QlariusWeb.MeFileLive do
   def handle_event(
         "save_tags",
         %{
-          "me_file_id" => me_file_id,
+          "me_file_id" => _me_file_id,
           "trait_id" => trait_id,
           "child_trait_ids" => child_trait_ids
         },
@@ -214,14 +214,5 @@ defmodule QlariusWeb.MeFileLive do
     end) || []
   end
 
-  defp assign_existing_tags_per_trait_in_edit(socket) do
-    me_file_id = socket.assigns.current_scope.user.me_file.id
-    trait_id = socket.assigns.trait_in_edit.id
 
-    assign(
-      socket,
-      :existing_tags_per_trait_in_edit,
-      MeFiles.existing_tags_per_parent_trait(me_file_id)
-    )
-  end
 end
