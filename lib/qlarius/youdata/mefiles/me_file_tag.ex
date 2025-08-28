@@ -10,7 +10,6 @@ defmodule Qlarius.YouData.MeFiles.MeFileTag do
   @timestamps_opts [type: :naive_datetime, inserted_at: :added_date, updated_at: :modified_date]
   schema "me_file_tags" do
     field :tag_value, :string
-    field :expiration_date, :naive_datetime
     field :modified_by, :integer
     field :added_by, :integer
     field :customized_hash, :string
@@ -27,17 +26,13 @@ defmodule Qlarius.YouData.MeFiles.MeFileTag do
       :me_file_id,
       :trait_id,
       :tag_value,
-      :expiration_date,
       :modified_by,
       :added_by,
       :customized_hash
     ])
     |> validate_required([
       :me_file_id,
-      :trait_id,
-      :expiration_date,
-      :modified_by,
-      :added_by
+      :trait_id
     ])
     |> foreign_key_constraint(:me_file_id)
     |> foreign_key_constraint(:trait_id)

@@ -29,10 +29,39 @@ import {hooks as colocatedHooks} from "phoenix-colocated/qlarius"
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let Hooks = {}
 
-Hooks.Modal = {
+
+
+
+
+Hooks.TraitPulse = {
   mounted() {
-    this.handleEvent("show_modal", ({id}) => {
-      document.getElementById(id)?.showModal()
+    this.handleEvent("pulse_trait", ({trait_id, delay_ms}) => {
+      const delay = typeof delay_ms === "number" ? delay_ms : 250
+      setTimeout(() => {
+        const el = document.getElementById(`trait-card-${trait_id}`)
+        if (!el) return
+        // ensure pointer events are re-enabled globally in case a lingering backdrop exists
+        document.documentElement.style.pointerEvents = ""
+        document.body.style.pointerEvents = ""
+        
+        // Clear any existing animations
+        el.classList.remove("ring", "ring-primary", "ring-success", "scale-105", "bg-success", "text-success-content")
+        void el.offsetWidth // Force reflow
+        
+        // Add success colors, ring and scale up effect
+        el.classList.add("ring", "ring-success", "bg-success", "text-success-content", "scale-105", "transition-all", "duration-300")
+        
+        setTimeout(() => {
+          // Scale back down and remove all success styling
+          el.classList.remove("ring", "ring-success", "bg-success", "text-success-content", "scale-105")
+          el.classList.add("scale-100")
+          
+          // Clean up transition classes after animation
+          setTimeout(() => {
+            el.classList.remove("transition-all", "duration-300", "scale-100")
+          }, 300)
+        }, 800)
+      }, delay)
     })
   }
 }

@@ -30,7 +30,103 @@ defmodule Qlarius.YouData.MeFiles do
   end
 
   def existing_tags_per_parent_trait(me_file_id, trait_id) do
-    Repo.all(from mt in MeFileTag, where: mt.me_file_id == ^me_file_id and mt.trait_id == ^trait_id)
+    Repo.all(
+      from mt in MeFileTag, where: mt.me_file_id == ^me_file_id and mt.trait_id == ^trait_id
+    )
+  end
+
+  def create_replace_mefile_tags(me_file_id, parent_trait_id, child_trait_ids, user_id)
+      when is_list(child_trait_ids) do
+    Repo.transaction(fn ->
+      from(mt in MeFileTag,
+        join: t in Trait,
+        on: mt.trait_id == t.id,
+        where: mt.me_file_id == ^me_file_id and t.parent_trait_id == ^parent_trait_id
+      )
+      |> Repo.delete_all()
+
+      child_trait_ids =
+        Enum.map(child_trait_ids, fn
+          id when is_binary(id) -> String.to_integer(id)
+          id -> id
+        end)
+
+      trait_names =
+        Repo.all(
+          from t in Trait,
+            where: t.id in ^child_trait_ids,
+            select: {t.id, t.trait_name}
+        )
+        |> Map.new()
+
+      Enum.each(child_trait_ids, fn child_id ->
+        %MeFileTag{}
+        |> MeFileTag.changeset(%{
+          me_file_id: me_file_id,
+          trait_id: child_id,
+          tag_value: Map.get(trait_names, child_id),
+          added_by: user_id,
+          modified_by: user_id
+        })
+        |> Repo.insert!()
+      end)
+    end)
+
+    :ok
+  end
+
+  def create_replace_mefile_tags(
+        me_file_id,
+        parent_trait_id,
+        child_trait_ids,
+        user_id,
+        id_to_name_map
+      )
+      when is_list(child_trait_ids) and is_map(id_to_name_map) do
+    Repo.transaction(fn ->
+      from(mt in MeFileTag,
+        join: t in Trait,
+        on: mt.trait_id == t.id,
+        where: mt.me_file_id == ^me_file_id and t.parent_trait_id == ^parent_trait_id
+      )
+      |> Repo.delete_all()
+
+      child_trait_ids =
+        Enum.map(child_trait_ids, fn
+          id when is_binary(id) -> String.to_integer(id)
+          id -> id
+        end)
+
+      Enum.each(child_trait_ids, fn child_id ->
+        %MeFileTag{}
+        |> MeFileTag.changeset(%{
+          me_file_id: me_file_id,
+          trait_id: child_id,
+          tag_value: Map.get(id_to_name_map, child_id),
+          added_by: user_id,
+          modified_by: user_id
+        })
+        |> Repo.insert!()
+      end)
+    end)
+
+    :ok
+  end
+
+  def parent_trait_with_tags_for_mefile(me_file_id, parent_trait_id) do
+    parent = Repo.get!(Trait, parent_trait_id)
+
+    tags =
+      Repo.all(
+        from mt in MeFileTag,
+          join: t in Trait,
+          on: mt.trait_id == t.id,
+          where: mt.me_file_id == ^me_file_id and t.parent_trait_id == ^parent_trait_id,
+          order_by: [asc: t.display_order, asc: t.trait_name],
+          select: {t.id, t.trait_name, t.display_order}
+      )
+
+    {parent.id, parent.trait_name, parent.display_order, tags}
   end
 
   defp unique_categories_in_display_order(me_file_tags) do

@@ -3,6 +3,7 @@ defmodule QlariusWeb.MeFileLive do
 
   alias Qlarius.YouData.Traits
   alias Qlarius.YouData.MeFiles
+  alias Phoenix.LiveView.JS
 
   import QlariusWeb.MeFileHTML
 
@@ -14,6 +15,7 @@ defmodule QlariusWeb.MeFileLive do
         trait_in_edit={@trait_in_edit}
         me_file_id={@current_scope.user.me_file.id}
         selected_ids={@selected_child_trait_ids || []}
+        show_modal={@show_modal}
       />
 
       <%!-- <.tag_and_trait_count_badges trait_count={@trait_count} tag_count={@tag_count} /> --%>
@@ -39,6 +41,8 @@ defmodule QlariusWeb.MeFileLive do
                 {parent_trait_id, parent_trait_name, parent_trait_display_order, tags_traits} <-
                   parent_traits
               }
+              id={"trait-card-#{parent_trait_id}"}
+              phx-hook="TraitPulse"
               class="h-full border rounded-lg overflow-hidden border-youdata-500 dark:border-youdata-700 bg-base-100"
             >
               <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-4 py-2 font-medium flex justify-between items-center">
@@ -103,9 +107,14 @@ defmodule QlariusWeb.MeFileLive do
       socket
       |> assign(:trait_in_edit, trait)
       |> assign(:selected_child_trait_ids, selected_ids)
-      |> push_event("show_modal", %{id: "tag_edit_modal"})
+      |> assign(:show_modal, true)
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("close_modal", _params, socket) do
+    {:noreply, assign(socket, :show_modal, false)}
   end
 
   @impl true
@@ -134,16 +143,39 @@ defmodule QlariusWeb.MeFileLive do
     {trait_id, _} = Integer.parse(trait_id)
     child_trait_ids = List.wrap(child_trait_ids)
 
-    Traits.create_user_trait_values(
-      socket.assigns.current_scope.user.id,
-      trait_id,
-      child_trait_ids
-    )
+    # to capture the tag_value snapshot for me_file_tag
+    id_to_name_map =
+      (socket.assigns.trait_in_edit.child_traits || [])
+      |> Enum.reduce(%{}, fn ct, acc ->
+        Map.put(acc, ct.id, (ct.survey_answer && ct.survey_answer.text) || ct.trait_name)
+      end)
+
+    :ok =
+      MeFiles.create_replace_mefile_tags(
+        socket.assigns.current_scope.user.me_file.id,
+        trait_id,
+        child_trait_ids,
+        socket.assigns.current_scope.user.id,
+        id_to_name_map
+      )
+
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+    updated_parent_tuple = MeFiles.parent_trait_with_tags_for_mefile(me_file_id, trait_id)
 
     socket =
       socket
-      |> assign_me_file_tags()
-      |> push_event("hide_modal", %{id: "tag_edit_modal"})
+      |> update(:me_file_tag_map_by_category_trait_tag, fn cat_map ->
+        Enum.map(cat_map, fn {category, parent_traits} ->
+          {category,
+           Enum.map(parent_traits, fn
+             {id, _name, _order, _tags} when id == trait_id -> updated_parent_tuple
+             other -> other
+           end)}
+        end)
+      end)
+      |> assign(:selected_child_trait_ids, Enum.map(elem(updated_parent_tuple, 3), &elem(&1, 0)))
+      |> assign(:show_modal, false)
+      |> push_event("pulse_trait", %{trait_id: trait_id, delay_ms: 250})
 
     {:noreply, socket}
   end
@@ -155,6 +187,7 @@ defmodule QlariusWeb.MeFileLive do
     |> assign_me_file_tags()
     |> assign(:trait_in_edit, nil)
     |> assign(:selected_child_trait_ids, [])
+    |> assign(:show_modal, false)
     |> ok()
   end
 
@@ -174,6 +207,7 @@ defmodule QlariusWeb.MeFileLive do
       Enum.find_value(parent_traits, fn
         {id, _name, _display_order, tags} when id == parent_trait_id ->
           Enum.map(tags, fn {child_id, _label, _order} -> child_id end)
+
         _ ->
           nil
       end)
