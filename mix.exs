@@ -69,7 +69,7 @@ defmodule Qlarius.MixProject do
       {:ex_aws_s3, "~> 2.0"},
       {:hackney, "~> 1.9"},
       {:sweet_xml, "~> 0.6"},
-      {:tidewave, "~> 0.1", only: :dev},
+      {:tidewave, "~> 0.4", only: [:dev]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:tzdata, "~> 1.1"},
       {:oban, "~> 2.19"},

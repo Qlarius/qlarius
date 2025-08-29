@@ -48,17 +48,17 @@ Hooks.TraitPulse = {
         el.classList.remove("ring", "ring-primary", "ring-success", "scale-105", "bg-success", "text-success-content")
         void el.offsetWidth // Force reflow
         
-        // Add success colors, ring and scale up effect
-        el.classList.add("ring", "ring-success", "bg-success", "text-success-content", "scale-105", "transition-all", "duration-300")
+        // Add success colors, ring and scale up effect with smooth easing
+        el.classList.add("ring", "ring-success", "bg-success", "text-success-content", "scale-105", "transition-all", "duration-300", "ease-in-out")
         
         setTimeout(() => {
-          // Scale back down and remove all success styling
+          // Scale back down and remove all success styling with smooth easing
           el.classList.remove("ring", "ring-success", "bg-success", "text-success-content", "scale-105")
-          el.classList.add("scale-100")
+          el.classList.add("scale-100", "ease-out")
           
           // Clean up transition classes after animation
           setTimeout(() => {
-            el.classList.remove("transition-all", "duration-300", "scale-100")
+            el.classList.remove("transition-all", "duration-300", "scale-100", "ease-in-out", "ease-out")
           }, 300)
         }, 800)
       }, delay)
