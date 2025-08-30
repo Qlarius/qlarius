@@ -22,11 +22,15 @@ defmodule Qlarius.YouData.MeFiles do
 
   def me_file_tag_map_by_category_trait_tag(me_file_id) do
     raw_tag_map = me_file_tags_with_parent_traits_and_categories(me_file_id)
+    me_file = Repo.get!(MeFile, me_file_id)
 
-    raw_tag_map
-    |> unique_categories_in_display_order()
-    |> add_parent_traits_to_categories(raw_tag_map)
-    |> add_tags_to_parent_traits(raw_tag_map)
+    result =
+      raw_tag_map
+      |> unique_categories_in_display_order()
+      |> add_parent_traits_to_categories(raw_tag_map)
+      |> add_tags_to_parent_traits(raw_tag_map)
+
+    add_birthdate_tag_to_result(result, me_file)
   end
 
   def existing_tags_per_parent_trait(me_file_id, trait_id) do
@@ -196,5 +200,42 @@ defmodule Qlarius.YouData.MeFiles do
     |> Enum.sort_by(fn {{_id, name, display_order}, _parent_traits} ->
       [display_order, name]
     end)
+  end
+
+  defp add_birthdate_tag_to_result(result, me_file) do
+    case me_file.date_of_birth do
+      nil ->
+        result
+
+      date_of_birth ->
+        formatted_date = Calendar.strftime(date_of_birth, "%b %d, %Y")
+
+        birthdate_parent = {-1, "Birthdate", 0, [{-1, formatted_date, 0}]}
+
+        category_1_found = Enum.any?(result, fn {{category_id, _, _}, _} -> category_id == 1 end)
+
+        updated_result =
+          if category_1_found do
+            Enum.map(result, fn {{category_id, category_name, category_display_order},
+                                 parent_traits} ->
+              if category_id == 1 do
+                updated_parent_traits =
+                  [birthdate_parent | parent_traits]
+                  |> Enum.sort_by(fn {_id, _name, display_order, _tags} -> display_order end)
+
+                {{category_id, category_name, category_display_order}, updated_parent_traits}
+              else
+                {{category_id, category_name, category_display_order}, parent_traits}
+              end
+            end)
+          else
+            general_category = {{1, "General", 0}, [birthdate_parent]}
+
+            [general_category | result]
+            |> Enum.sort_by(fn {{_id, _name, display_order}, _parent_traits} -> display_order end)
+          end
+
+        updated_result
+    end
   end
 end

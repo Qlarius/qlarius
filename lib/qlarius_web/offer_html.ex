@@ -90,10 +90,10 @@ defmodule QlariusWeb.OfferHTML do
         <div class={"offer-phase phase-2 #{if @phase > 2, do: "hidden"}"}>
           <.offer_container offer={@offer} class="px-3 py-2" target={@target} recipient={@recipient}>
             <a class="block w-full h-full" href={~p"/jump/#{@offer}"} target="_blank">
-              <div class="text-blue-500 dark:text-blue-300 font-bold text-lg underline">
+              <div class="text-blue-600 dark:text-blue-300 font-bold text-lg underline">
                 {@offer.media_piece.title}
               </div>
-              <div class="text-base-700 text-sm mb-1" style="line-height: 1.15rem">
+              <div class="text-base-700 text-sm mb-1" style="line-height: 1.05rem">
                 {@offer.media_piece.body_copy}
               </div>
               <div class="text-green-500 text-xs">
