@@ -117,6 +117,43 @@ defmodule Qlarius.YouData.MeFiles do
     :ok
   end
 
+  def delete_mefile_tags(me_file_id, parent_trait_id, child_trait_ids, _user_id) do
+    # Ensure child_trait_ids is a list
+    child_trait_ids = List.wrap(child_trait_ids)
+
+    Repo.transaction(fn ->
+      child_trait_ids =
+        Enum.map(child_trait_ids, fn
+          id when is_binary(id) -> String.to_integer(id)
+          id -> id
+        end)
+
+      # Convert parent_trait_id if it's a string
+      parent_trait_id =
+        case parent_trait_id do
+          id when is_binary(id) -> String.to_integer(id)
+          id -> id
+        end
+
+      # Delete the parent trait tag for this me_file
+      from(mt in MeFileTag,
+        where: mt.me_file_id == ^me_file_id and mt.trait_id == ^parent_trait_id
+      )
+      |> Repo.delete_all()
+
+      # Delete the specified child trait tags for this me_file
+      {child_deleted_count, _} =
+        from(mt in MeFileTag,
+          where: mt.me_file_id == ^me_file_id and mt.trait_id in ^child_trait_ids
+        )
+        |> Repo.delete_all()
+
+      child_deleted_count
+    end)
+
+    :ok
+  end
+
   def parent_trait_with_tags_for_mefile(me_file_id, parent_trait_id) do
     parent = Repo.get!(Trait, parent_trait_id)
 

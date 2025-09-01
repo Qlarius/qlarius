@@ -39,6 +39,7 @@ defmodule QlariusWeb.MeFileHTML do
   attr :me_file_id, :integer, required: true
   attr :selected_ids, :list, default: []
   attr :show_modal, :boolean, default: false
+  attr :tag_edit_mode, :string, default: "update"
 
   def tag_edit_modal(assigns) do
     ~H"""
@@ -49,64 +50,142 @@ defmodule QlariusWeb.MeFileHTML do
           <h3 class="text-lg font-bold">
             {if @trait_in_edit, do: @trait_in_edit.trait_name, else: "Edit Trait"}
           </h3>
-          <button type="button" phx-click="close_modal" class="btn btn-md btn-circle btn-ghost">✕</button>
-        </div>
-
-        <%!-- Fixed question section --%>
-        <div class="p-4 bg-base-200 text-base-content/70 shrink-0">
-          <p :if={@trait_in_edit && @trait_in_edit.survey_question}>
-            {Phoenix.HTML.raw(@trait_in_edit.survey_question.text)}
-          </p>
+          <button type="button" phx-click="close_modal" class="btn btn-md btn-circle btn-ghost">
+            ✕
+          </button>
         </div>
 
         <%!-- Expandable content area --%>
-        <.form
-          :if={@trait_in_edit}
-          for={%{}}
-          phx-submit="save_tags"
-          class="flex flex-col flex-1 min-h-0"
-        >
-          <div class="flex-1 overflow-y-auto p-4">
-            <input type="hidden" name="me_file_id" value={@me_file_id} />
-            <input type="hidden" name="trait_id" value={@trait_in_edit.id} />
-            <div :if={@trait_in_edit.child_traits} class="py-0">
-              <label
-                :for={child_trait <- Enum.sort_by(@trait_in_edit.child_traits, & &1.display_order)}
-                class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-3 px-2 hover:bg-base-200 cursor-pointer"
-              >
-                <input
-                  :if={@trait_in_edit.input_type == "SingleSelect"}
-                  type="radio"
-                  name="child_trait_ids[]"
-                  value={child_trait.id}
-                  id={"trait-#{child_trait.id}"}
-                  checked={child_trait.id in @selected_ids}
-                  class="radio w-7 h-7"
-                />
-                <input
-                  :if={@trait_in_edit.input_type == "MultiSelect"}
-                  type="checkbox"
-                  name="child_trait_ids[]"
-                  value={child_trait.id}
-                  id={"trait-#{child_trait.id}"}
-                  checked={child_trait.id in @selected_ids}
-                  class="checkbox w-7 h-7"
-                />
-                <div class="text-md text-base-content">
-                  {if child_trait.survey_answer && child_trait.survey_answer.text not in [nil, ""],
-                     do: child_trait.survey_answer.text,
-                     else: child_trait.trait_name}
-                </div>
-              </label>
+        <%= cond do %>
+          <% @tag_edit_mode == "update" -> %>
+            <%!-- Fixed question section --%>
+            <div class="p-4 bg-base-200 text-base-content/70 shrink-0">
+              <p :if={@trait_in_edit && @trait_in_edit.survey_question}>
+                {Phoenix.HTML.raw(@trait_in_edit.survey_question.text)}
+              </p>
             </div>
-          </div>
+            <.form
+              :if={@trait_in_edit}
+              for={%{}}
+              phx-submit="save_tags"
+              class="flex flex-col flex-1 min-h-0"
+            >
+              <div class="flex-1 overflow-y-auto p-4">
+                <input type="hidden" name="me_file_id" value={@me_file_id} />
+                <input type="hidden" name="trait_id" value={@trait_in_edit.id} />
+                <div :if={@trait_in_edit.child_traits} class="py-0">
+                  <label
+                    :for={
+                      child_trait <- Enum.sort_by(@trait_in_edit.child_traits, & &1.display_order)
+                    }
+                    class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-3 px-2 hover:bg-base-200 cursor-pointer"
+                  >
+                    <input
+                      :if={@trait_in_edit.input_type == "SingleSelect"}
+                      type="radio"
+                      name="child_trait_ids[]"
+                      value={child_trait.id}
+                      id={"trait-#{child_trait.id}"}
+                      checked={child_trait.id in @selected_ids}
+                      class="radio w-7 h-7"
+                    />
+                    <input
+                      :if={@trait_in_edit.input_type == "MultiSelect"}
+                      type="checkbox"
+                      name="child_trait_ids[]"
+                      value={child_trait.id}
+                      id={"trait-#{child_trait.id}"}
+                      checked={child_trait.id in @selected_ids}
+                      class="checkbox w-7 h-7"
+                    />
+                    <div class="text-md text-base-content">
+                      {if child_trait.survey_answer &&
+                            child_trait.survey_answer.text not in [nil, ""],
+                          do: child_trait.survey_answer.text,
+                          else: child_trait.trait_name}
+                    </div>
+                  </label>
+                </div>
+              </div>
 
-          <%!-- Fixed footer --%>
-          <div class="p-4 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
-            <button type="button" phx-click="close_modal" class="btn btn-md btn-ghost">Cancel</button>
-            <button type="submit" class="btn btn-md btn-primary">Save/Update Tags</button>
-          </div>
-        </.form>
+              <%!-- Fixed footer --%>
+              <div class="p-4 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
+                <button type="button" phx-click="close_modal" class="btn btn-md btn-ghost">
+                  Cancel
+                </button>
+                <button type="submit" class="btn btn-md btn-primary">Save/Update Tags</button>
+              </div>
+            </.form>
+          <% @tag_edit_mode == "delete" -> %>
+            <%!-- Fixed question section --%>
+            <div class="p-4 bg-error shrink-0">
+              <div class="flex items-center">
+                <div class="flex-shrink-0">
+                  <.icon name="hero-exclamation-triangle" class="h-7 w-7 text-white" />
+                </div>
+                <div class="ml-3">
+                  <p class="text-sm font-medium text-white">
+                    {if @trait_in_edit && @trait_in_edit.survey_question do
+                      "Confirm that you want to delete this tag?"
+                    else
+                      "Confirm deletion"
+                    end}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <.form
+              :if={@trait_in_edit}
+              for={%{}}
+              phx-submit="delete_tags"
+              class="flex flex-col flex-1 min-h-0"
+            >
+              <div class="flex-1 overflow-y-auto p-4">
+                <input type="hidden" name="me_file_id" value={@me_file_id} />
+                <input type="hidden" name="trait_id" value={@trait_in_edit.id} />
+                <%= for child_trait_id <- @selected_ids do %>
+                  <input type="hidden" name="child_trait_ids[]" value={child_trait_id} />
+                <% end %>
+                <div class="space-y-4">
+                  <div :if={@trait_in_edit.child_traits} class="py-0">
+                    <%= for child_trait <- Enum.sort_by(@trait_in_edit.child_traits, & &1.display_order) do %>
+                      <%= if child_trait.id in @selected_ids do %>
+                        <div class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-3 px-2">
+                          <div class="text-md text-base-content">
+                            {if child_trait.survey_answer &&
+                                  child_trait.survey_answer.text not in [nil, ""],
+                                do: child_trait.survey_answer.text,
+                                else: child_trait.trait_name}
+                          </div>
+                        </div>
+                      <% end %>
+                    <% end %>
+                  </div>
+                  <div :if={Enum.empty?(@selected_ids)} class="text-center py-8 text-base-content/50">
+                    No tags selected for deletion
+                  </div>
+                </div>
+              </div>
+
+              <%!-- Fixed footer --%>
+              <div class="p-4 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
+                <button type="button" phx-click="close_modal" class="btn btn-md btn-ghost">
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  class="btn btn-md btn-error"
+                  disabled={Enum.empty?(@selected_ids)}
+                >
+                  Delete Tag
+                </button>
+              </div>
+            </.form>
+          <% true -> %>
+            <div class="flex-1 flex items-center justify-center p-8">
+              <div class="text-base-content/50">Invalid edit mode</div>
+            </div>
+        <% end %>
       </div>
       <%!-- <pre :if={@trait_in_edit} class="py-4 overflow-auto max-h-96 whitespace-pre-wrap bg-base-200 rounded-lg p-4">{inspect(@trait_in_edit, pretty: true, width: 60)}</pre> --%>
     </div>

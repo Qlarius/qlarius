@@ -4,7 +4,6 @@ defmodule QlariusWeb.MeFileLive do
   alias Qlarius.YouData.Traits
   alias Qlarius.YouData.MeFiles
 
-
   import QlariusWeb.MeFileHTML
 
   @impl true
@@ -16,6 +15,7 @@ defmodule QlariusWeb.MeFileLive do
         me_file_id={@current_scope.user.me_file.id}
         selected_ids={@selected_child_trait_ids || []}
         show_modal={@show_modal}
+        tag_edit_mode={@tag_edit_mode || "update"}
       />
 
       <%!-- <.tag_and_trait_count_badges trait_count={@trait_count} tag_count={@tag_count} /> --%>
@@ -42,7 +42,7 @@ defmodule QlariusWeb.MeFileLive do
                   parent_traits
               }
               id={"trait-card-#{parent_trait_id}"}
-              phx-hook="TraitPulse"
+              phx-hook="AnimateTrait"
               class="h-full border rounded-lg overflow-hidden border-youdata-500 dark:border-youdata-700 bg-base-100"
             >
               <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-4 py-2 font-medium flex justify-between items-center">
@@ -60,8 +60,7 @@ defmodule QlariusWeb.MeFileLive do
                   </button>
                   <button
                     class="text-base-content/20 hover:text-base-content/80 cursor-pointer"
-                    phx-click="delete_trait"
-                    onclick="tag_edit_modal.showModal()"
+                    phx-click="delete_tags"
                     phx-value-id={parent_trait_id}
                   >
                     <.icon name="hero-trash" class="h-4 w-4" />
@@ -108,6 +107,27 @@ defmodule QlariusWeb.MeFileLive do
       |> assign(:trait_in_edit, trait)
       |> assign(:selected_child_trait_ids, selected_ids)
       |> assign(:show_modal, true)
+      |> assign(:tag_edit_mode, "update")
+
+    {:noreply, socket}
+  end
+
+  def handle_event("delete_tags", %{"id" => trait_id}, socket) do
+    {trait_id, _} = Integer.parse(trait_id)
+    {:ok, trait} = Traits.get_trait_with_full_survey_data!(trait_id)
+
+    selected_ids =
+      selected_child_trait_ids_from_map(
+        socket.assigns.me_file_tag_map_by_category_trait_tag,
+        trait.id
+      )
+
+    socket =
+      socket
+      |> assign(:trait_in_edit, trait)
+      |> assign(:selected_child_trait_ids, selected_ids)
+      |> assign(:show_modal, true)
+      |> assign(:tag_edit_mode, "delete")
 
     {:noreply, socket}
   end
@@ -175,7 +195,66 @@ defmodule QlariusWeb.MeFileLive do
       end)
       |> assign(:selected_child_trait_ids, Enum.map(elem(updated_parent_tuple, 3), &elem(&1, 0)))
       |> assign(:show_modal, false)
-      |> push_event("pulse_trait", %{trait_id: trait_id, delay_ms: 250})
+      |> push_event("animate_trait", %{trait_id: trait_id, delay_ms: 250, value: "update_pulse"})
+
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "delete_tags",
+        %{
+          "me_file_id" => _me_file_id,
+          "trait_id" => trait_id,
+          "child_trait_ids" => child_trait_ids
+        },
+        socket
+      ) do
+    {trait_id, _} = Integer.parse(trait_id)
+    child_trait_ids = List.wrap(child_trait_ids)
+
+    # Start the delete animation immediately
+    socket =
+      push_event(socket, "animate_trait", %{trait_id: trait_id, delay_ms: 0, value: "delete_fade"})
+
+    # Close modal immediately for better UX
+    socket = assign(socket, :show_modal, false)
+
+    # Delay the actual deletion and UI updates to allow animation to complete
+    Process.send_after(
+      self(),
+      {:perform_tag_deletion, trait_id, child_trait_ids, socket.assigns.current_scope},
+      1000
+    )
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:perform_tag_deletion, trait_id, child_trait_ids, current_scope}, socket) do
+    # Remove the selected tags from the me_file
+    :ok =
+      MeFiles.delete_mefile_tags(
+        current_scope.user.me_file.id,
+        trait_id,
+        child_trait_ids,
+        current_scope.user.id
+      )
+
+    me_file_id = current_scope.user.me_file.id
+    updated_parent_tuple = MeFiles.parent_trait_with_tags_for_mefile(me_file_id, trait_id)
+
+    socket =
+      socket
+      |> update(:me_file_tag_map_by_category_trait_tag, fn cat_map ->
+        Enum.map(cat_map, fn {category, parent_traits} ->
+          {category,
+           Enum.map(parent_traits, fn
+             {id, _name, _order, _tags} when id == trait_id -> updated_parent_tuple
+             other -> other
+           end)}
+        end)
+      end)
+      |> assign(:selected_child_trait_ids, Enum.map(elem(updated_parent_tuple, 3), &elem(&1, 0)))
 
     {:noreply, socket}
   end
@@ -188,6 +267,7 @@ defmodule QlariusWeb.MeFileLive do
     |> assign(:trait_in_edit, nil)
     |> assign(:selected_child_trait_ids, [])
     |> assign(:show_modal, false)
+    |> assign(:tag_edit_mode, "update")
     |> ok()
   end
 
@@ -213,6 +293,4 @@ defmodule QlariusWeb.MeFileLive do
       end)
     end) || []
   end
-
-
 end
