@@ -25,12 +25,12 @@ defmodule QlariusWeb.MeFileHTML do
   def tag_and_trait_count_badges(assigns) do
     ~H"""
     <div class="flex gap-4 mb-6">
-      <div class="bg-youdata-300 dark:bg-youdata-800 text-base-content px-3 py-1 rounded-full text-sm border border-youdata-500">
-        {@trait_count} traits
-      </div>
-      <div class="bg-base-100 text-base-content px-3 py-1 rounded-full text-sm border border-neutral-300 dark:border-neutral-500">
+      <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-4 py-2 font-medium rounded-full text-sm border border-youdata-500">
         {@tag_count} tags
       </div>
+      <%!-- <div class="bg-base-100 text-base-content px-3 py-1 rounded-full text-sm border border-neutral-300 dark:border-neutral-500">
+        {@tag_count} tags
+      </div> --%>
     </div>
     """
   end

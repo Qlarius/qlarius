@@ -31,7 +31,7 @@ defmodule QlariusWeb.MeFileLive do
           <div class="flex flex-row justify-between items-baseline mb-4">
             <h2 class="text-xl font-medium">{name}</h2>
             <span class="text-sm text-gray-500">
-              {length(parent_traits)} traits
+              {length(parent_traits)} tags
             </span>
           </div>
 
