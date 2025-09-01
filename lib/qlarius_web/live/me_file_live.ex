@@ -10,7 +10,7 @@ defmodule QlariusWeb.MeFileLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.sponster {assigns}>
+    <Layouts.mobile {assigns}>
       <.tag_edit_modal
         trait_in_edit={@trait_in_edit}
         me_file_id={@current_scope.user.me_file.id}
@@ -89,7 +89,7 @@ defmodule QlariusWeb.MeFileLive do
       >
         <.icon name="hero-plus" class="h-5 w-5" /> Builder
       </.link>
-    </Layouts.sponster>
+    </Layouts.mobile>
     """
   end
 

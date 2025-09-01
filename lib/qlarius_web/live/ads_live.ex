@@ -163,7 +163,7 @@ defmodule QlariusWeb.AdsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.sponster {assigns}>
+    <Layouts.mobile {assigns}>
       <div class="container mx-auto px-0 py-6 max-w-3xl">
         <.live_component
           module={QlariusWeb.ThreeTapStackComponent}
@@ -174,7 +174,7 @@ defmodule QlariusWeb.AdsLive do
           host_uri={@host_uri}
         />
       </div>
-    </Layouts.sponster>
+    </Layouts.mobile>
     """
   end
 

@@ -79,7 +79,7 @@ defmodule QlariusWeb.Layouts do
   attr :current_scope, Scope, required: true
   attr :current_path, :string, default: nil
 
-  def sponster(assigns) do
+  def mobile(assigns) do
     ~H"""
     <.flash_group flash={@flash} />
 
@@ -95,7 +95,7 @@ defmodule QlariusWeb.Layouts do
       <.debug_assigns {assigns} />
     </div>
 
-    <.sponster_sidebar {assigns} />
+    <.mobile_sidebar {assigns} />
 
     <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
     <div class="dock z-40">

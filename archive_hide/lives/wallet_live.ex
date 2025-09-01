@@ -78,7 +78,7 @@ defmodule QlariusWeb.WalletLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.sponster {assigns}>
+    <Layouts.mobile {assigns}>
       <h1 class="text-3xl font-bold mb-4">Wallet</h1>
 
       <div class="mb-6">
@@ -162,7 +162,7 @@ defmodule QlariusWeb.WalletLive do
       </div>
 
       <.ledger_entry_detail_sidebar :if={@sidebar_entry} entry={@sidebar_entry} />
-    </Layouts.sponster>
+    </Layouts.mobile>
     """
   end
 

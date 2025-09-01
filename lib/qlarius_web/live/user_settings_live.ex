@@ -3,7 +3,7 @@ defmodule QlariusWeb.UserSettingsLive do
 
   def render(assigns) do
     ~H"""
-    <Layouts.sponster {assigns}>
+    <Layouts.mobile {assigns}>
       <div class="mx-auto max-w-sm">
         <.header class="text-center">
           Account Settings
@@ -18,7 +18,7 @@ defmodule QlariusWeb.UserSettingsLive do
           </div>
         </div>
       </div>
-    </Layouts.sponster>
+    </Layouts.mobile>
     """
   end
 

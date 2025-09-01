@@ -39,7 +39,7 @@ defmodule QlariusWeb.ProxyUsersLive do
 
   def render(assigns) do
     ~H"""
-    <Layouts.sponster {assigns}>
+    <Layouts.mobile {assigns}>
       <div class="mx-auto max-w-2xl">
         <.header>
           Proxy Users
@@ -60,7 +60,7 @@ defmodule QlariusWeb.ProxyUsersLive do
           </:col>
         </.table>
       </div>
-    </Layouts.sponster>
+    </Layouts.mobile>
     """
   end
 

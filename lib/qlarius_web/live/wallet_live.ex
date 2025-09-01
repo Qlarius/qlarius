@@ -126,7 +126,7 @@ defmodule QlariusWeb.WalletLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.sponster {assigns}>
+    <Layouts.mobile {assigns}>
       <%= if assigns[:error] do %>
         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {@error}
@@ -201,7 +201,7 @@ defmodule QlariusWeb.WalletLive do
       <% end %>
 
       <.ledger_entry_detail_sidebar :if={@sidebar_entry} entry={@sidebar_entry} />
-    </Layouts.sponster>
+    </Layouts.mobile>
     """
   end
 
