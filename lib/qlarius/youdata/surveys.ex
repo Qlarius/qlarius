@@ -1,4 +1,4 @@
-defmodule Qlarius.YouData.Surveys.Surveys do
+defmodule Qlarius.YouData.Surveys do
   import Ecto.Query, warn: false
   alias Qlarius.Repo
 

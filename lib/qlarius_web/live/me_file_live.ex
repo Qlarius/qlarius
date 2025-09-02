@@ -18,11 +18,11 @@ defmodule QlariusWeb.MeFileLive do
         tag_edit_mode={@tag_edit_mode || "update"}
       />
 
-      <%!-- <.tag_and_trait_count_badges trait_count={@trait_count} tag_count={@tag_count} /> --%>
-      <.tag_and_trait_count_badges
-        trait_count={@current_scope.trait_count}
-        tag_count={@current_scope.tag_count}
-      />
+      <div class="mb-6 flex gap-2 justify-end items-center">
+          <div class="text-lg font-bold bg-youdata-500 dark:bg-youdata-700 text-white px-3 py-1 rounded-full">
+            {@current_scope.tag_count} tags
+          </div>
+        </div>
 
       <div class="space-y-8 py-6">
         <div :for={
