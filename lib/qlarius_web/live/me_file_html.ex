@@ -117,23 +117,6 @@ defmodule QlariusWeb.MeFileHTML do
               </div>
             </.form>
           <% @tag_edit_mode == "delete" -> %>
-            <%!-- Fixed question section --%>
-            <div class="p-4 bg-error shrink-0">
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <.icon name="hero-exclamation-triangle" class="h-7 w-7 text-white" />
-                </div>
-                <div class="ml-3">
-                  <p class="text-sm font-medium text-white">
-                    {if @trait_in_edit && @trait_in_edit.survey_question do
-                      "Confirm that you want to delete this tag?"
-                    else
-                      "Confirm deletion"
-                    end}
-                  </p>
-                </div>
-              </div>
-            </div>
             <.form
               :if={@trait_in_edit}
               for={%{}}
@@ -152,10 +135,7 @@ defmodule QlariusWeb.MeFileHTML do
                       <%= if child_trait.id in @selected_ids do %>
                         <div class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-3 px-2">
                           <div class="text-md text-base-content">
-                            {if child_trait.survey_answer &&
-                                  child_trait.survey_answer.text not in [nil, ""],
-                                do: child_trait.survey_answer.text,
-                                else: child_trait.trait_name}
+                            {child_trait.trait_name}
                           </div>
                         </div>
                       <% end %>
@@ -166,6 +146,24 @@ defmodule QlariusWeb.MeFileHTML do
                   </div>
                 </div>
               </div>
+
+              <%!-- Fixed question section --%>
+            <div class="p-4 bg-error shrink-0">
+              <div class="flex items-center">
+                <div class="flex-shrink-0">
+                  <.icon name="hero-exclamation-triangle" class="h-7 w-7 text-white" />
+                </div>
+                <div class="ml-3">
+                  <p class="text-sm font-medium text-white">
+                    {if @trait_in_edit && @trait_in_edit.survey_question do
+                      "Confirm that you want to delete this tag?"
+                    else
+                      "Confirm deletion"
+                    end}
+                  </p>
+                </div>
+              </div>
+            </div>
 
               <%!-- Fixed footer --%>
               <div class="p-4 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">

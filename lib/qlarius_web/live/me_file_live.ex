@@ -236,25 +236,25 @@ defmodule QlariusWeb.MeFileLive do
       MeFiles.delete_mefile_tags(
         current_scope.user.me_file.id,
         trait_id,
-        child_trait_ids,
-        current_scope.user.id
+        child_trait_ids
       )
 
-    me_file_id = current_scope.user.me_file.id
-    updated_parent_tuple = MeFiles.parent_trait_with_tags_for_mefile(me_file_id, trait_id)
-
+    # Remove the parent trait entirely from the assigns since deletion was successful
     socket =
       socket
       |> update(:me_file_tag_map_by_category_trait_tag, fn cat_map ->
         Enum.map(cat_map, fn {category, parent_traits} ->
           {category,
-           Enum.map(parent_traits, fn
-             {id, _name, _order, _tags} when id == trait_id -> updated_parent_tuple
-             other -> other
+           Enum.reject(parent_traits, fn {id, _name, _order, _tags} ->
+             id == trait_id
            end)}
         end)
+        |> Enum.reject(fn {_category, parent_traits} ->
+          parent_traits == []
+        end)
+        |> Map.new()
       end)
-      |> assign(:selected_child_trait_ids, Enum.map(elem(updated_parent_tuple, 3), &elem(&1, 0)))
+      |> assign(:selected_child_trait_ids, [])
 
     {:noreply, socket}
   end

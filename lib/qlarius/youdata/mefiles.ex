@@ -117,7 +117,7 @@ defmodule Qlarius.YouData.MeFiles do
     :ok
   end
 
-  def delete_mefile_tags(me_file_id, parent_trait_id, child_trait_ids, _user_id) do
+  def delete_mefile_tags(me_file_id, parent_trait_id, child_trait_ids) do
     # Ensure child_trait_ids is a list
     child_trait_ids = List.wrap(child_trait_ids)
 

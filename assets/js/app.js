@@ -68,7 +68,7 @@ Hooks.AnimateTrait = {
           void el.offsetWidth // Force reflow
 
           // Add error colors, ring and scale down effect with fade
-          el.classList.add("ring", "ring-error", "bg-error", "text-error-content", "scale-95", "opacity-50", "transition-all", "duration-500", "ease-in-out")
+          el.classList.add("ring", "ring-error", "bg-error", "text-error-content", "scale-75", "opacity-30", "transition-all", "duration-700", "ease-in-out")
 
           // Keep the error styling longer for delete feedback
           setTimeout(() => {
