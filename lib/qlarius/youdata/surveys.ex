@@ -4,6 +4,8 @@ defmodule Qlarius.YouData.Surveys do
 
   alias Qlarius.YouData.Surveys.SurveyCategory
   alias Qlarius.YouData.Surveys.Survey
+  alias Qlarius.YouData.Surveys.SurveyQuestion
+  alias Qlarius.YouData.Surveys.SurveyAnswer
   alias Qlarius.YouData.Traits.Trait
 
   # Survey Category functions
