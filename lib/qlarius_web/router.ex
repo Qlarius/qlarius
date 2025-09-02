@@ -131,6 +131,7 @@ defmodule QlariusWeb.Router do
       live "/ads", AdsLive, :index
       live "/proxy_users", ProxyUsersLive, :index
       live "/me_file", MeFileLive, :index
+      live "/me_file_builder", MeFileBuilderLive, :index
     end
 
     resources "/tiqits", TiqitController
