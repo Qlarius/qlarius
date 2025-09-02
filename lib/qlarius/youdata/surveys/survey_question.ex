@@ -10,7 +10,7 @@ defmodule Qlarius.YouData.Surveys.SurveyQuestion do
 
   schema "survey_questions" do
     field :text, :string
-    field :active, :boolean
+    field :active, :binary
     field :display_order, :integer
     field :added_by, :integer
     field :modified_by, :integer
@@ -33,5 +33,17 @@ defmodule Qlarius.YouData.Surveys.SurveyQuestion do
     ])
     |> validate_length(:text, max: 4096)
     |> foreign_key_constraint(:trait_id)
+  end
+
+  # Helper function to convert binary active field to boolean
+  #TODO: Remove this once we have a proper boolean field
+  def active?(survey_question) do
+    case survey_question.active do
+      "1" -> true
+      "0" -> false
+      <<49>> -> true  # binary "1"
+      <<48>> -> false # binary "0"
+      _ -> false
+    end
   end
 end

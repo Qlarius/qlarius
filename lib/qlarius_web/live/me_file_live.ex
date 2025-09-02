@@ -83,7 +83,7 @@ defmodule QlariusWeb.MeFileLive do
       </div>
 
       <.link
-        navigate={~p"/me_file"}
+        navigate={~p"/me_file_builder"}
         class="fixed bottom-20 right-6 px-4 py-2 bg-blue-500 text-white rounded-full shadow-xl hover:bg-blue-600 font-medium flex items-center gap-1 z-10"
       >
         <.icon name="hero-plus" class="h-5 w-5" /> Builder

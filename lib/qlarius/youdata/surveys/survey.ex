@@ -5,6 +5,7 @@ defmodule Qlarius.YouData.Surveys.Survey do
   alias Qlarius.YouData.Surveys.{SurveyCategory, SurveyQuestion}
 
   @primary_key {:id, :id, autogenerate: true}
+  @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
 
   schema "surveys" do
     field :name, :string
