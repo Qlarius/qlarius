@@ -4,7 +4,6 @@ defmodule Qlarius.YouData.Surveys do
 
   alias Qlarius.YouData.Surveys.SurveyCategory
   alias Qlarius.YouData.Surveys.Survey
-  alias Qlarius.YouData.Surveys.SurveyQuestion
   alias Qlarius.YouData.Surveys.SurveyAnswer
   alias Qlarius.YouData.Traits.Trait
 
@@ -12,6 +11,15 @@ defmodule Qlarius.YouData.Surveys do
 
   def list_survey_categories do
     Repo.all(from c in SurveyCategory, order_by: c.display_order)
+  end
+
+  def list_survey_categories_with_surveys do
+    surveys_query = from(s in Survey, order_by: s.display_order)
+    Repo.all(from c in SurveyCategory, order_by: c.display_order, preload: [surveys: ^surveys_query])
+  end
+
+  def list_survey_answers do
+    Repo.all(from a in SurveyAnswer, order_by: a.display_order)
   end
 
   def get_survey_category!(id), do: Repo.get!(SurveyCategory, id)
