@@ -24,7 +24,7 @@ defmodule Qlarius.YouData.MeFiles do
 
   def me_file_tag_map_by_category_trait_tag(me_file_id) do
     raw_tag_map = me_file_tags_with_parent_traits_and_categories(me_file_id)
-    me_file = Repo.get!(MeFile, me_file_id)
+    # me_file = Repo.get!(MeFile, me_file_id)
 
     result =
       raw_tag_map
@@ -32,12 +32,18 @@ defmodule Qlarius.YouData.MeFiles do
       |> add_parent_traits_to_categories(raw_tag_map)
       |> add_tags_to_parent_traits(raw_tag_map)
 
-    add_birthdate_tag_to_result(result, me_file)
+    add_birthdate_tag_to_result(result, me_file_id)
   end
 
-  def existing_tags_per_parent_trait(me_file_id, trait_id) do
+  def existing_tags_per_parent_trait(me_file_id, parent_trait_id) do
     Repo.all(
-      from mt in MeFileTag, where: mt.me_file_id == ^me_file_id and mt.trait_id == ^trait_id
+      from mt in MeFileTag,
+        join: t in Trait,
+        on: mt.trait_id == t.id,
+        left_join: parent_t in Trait,
+        on: t.parent_trait_id == parent_t.id,
+        where: mt.me_file_id == ^me_file_id and parent_t.id == ^parent_trait_id,
+        preload: [trait: [:trait_category, :parent_trait]]
     )
   end
 
@@ -255,7 +261,8 @@ defmodule Qlarius.YouData.MeFiles do
     end)
   end
 
-  defp add_birthdate_tag_to_result(result, me_file) do
+  defp add_birthdate_tag_to_result(result, me_file_id) do
+    me_file = Repo.get!(MeFile, me_file_id)
     case me_file.date_of_birth do
       nil ->
         result

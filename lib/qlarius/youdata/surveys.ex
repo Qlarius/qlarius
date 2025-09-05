@@ -6,6 +6,7 @@ defmodule Qlarius.YouData.Surveys do
   alias Qlarius.YouData.Surveys.Survey
   alias Qlarius.YouData.Surveys.SurveyQuestion
   alias Qlarius.YouData.Surveys.SurveyAnswer
+  alias Qlarius.YouData.Traits.Trait
 
   # Survey Category functions
 
@@ -45,6 +46,8 @@ defmodule Qlarius.YouData.Surveys do
     |> Enum.map(&add_survey_question_ids(&1))
     |> Enum.map(&add_survey_stats(&1, answered_survey_question_ids))
   end
+
+
 
   defp add_survey_question_ids(category) do
     surveys_with_ids =
@@ -158,19 +161,10 @@ defmodule Qlarius.YouData.Surveys do
   end
 
   def get_survey!(id) do
-    # Using child_traits instead of non-existent TraitValue module
-    child_traits_query = from ct in Trait, order_by: ct.display_order
-
-    traits_query =
-      from t in Trait,
-        where: is_nil(t.parent_trait_id),
-        order_by: t.display_order,
-        preload: [child_traits: ^child_traits_query]
-
     Repo.get!(Survey, id)
     |> Repo.preload([
-      :category,
-      traits: traits_query
+      :survey_category,
+      survey_questions: [:trait]
     ])
   end
 
@@ -192,5 +186,44 @@ defmodule Qlarius.YouData.Surveys do
 
   def change_survey(%Survey{} = survey, attrs \\ %{}) do
     Survey.changeset(survey, attrs)
+  end
+
+  def parent_traits_for_survey_ordered(survey_id) do
+    from(sqs in "survey_question_surveys",
+      join: sq in SurveyQuestion,
+      on: sq.id == sqs.survey_question_id,
+      join: t in Trait,
+      on: t.id == sq.trait_id,
+      where: sqs.survey_id == ^survey_id,
+      select: {t.id, t.trait_name, t.display_order, sq.display_order},
+      order_by: sq.display_order
+    )
+    |> Repo.all()
+    |> Enum.uniq_by(fn {id, _name, _t_order, _sq_order} -> id end)
+    |> Enum.map(fn {id, name, trait_display_order, _sq_order} ->
+      {id, name, trait_display_order}
+    end)
+  end
+
+  def parent_traits_for_survey_with_tags(survey_id, me_file_id) do
+    alias Qlarius.YouData.MeFiles
+
+    parent_traits_for_survey_ordered(survey_id)
+    |> Enum.map(fn {id, name, display_order} ->
+      tags =
+        MeFiles.existing_tags_per_parent_trait(me_file_id, id)
+        |> Enum.map(fn mt ->
+          # Match the pattern from add_tags_to_parent_traits
+          if mt.trait.parent_trait do
+            {mt.trait.id, mt.trait.trait_name, mt.trait.display_order}
+          else
+            {mt.trait.id, mt.tag_value, mt.trait.display_order}
+          end
+        end)
+        |> Enum.sort_by(fn {_id, name, display_order} -> [display_order, name] end)
+
+      {id, name, display_order, tags}
+    end)
+    |> Enum.sort_by(fn {_id, name, display_order, _tags} -> [display_order, name] end)
   end
 end
