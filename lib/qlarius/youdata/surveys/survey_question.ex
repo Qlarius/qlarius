@@ -36,13 +36,15 @@ defmodule Qlarius.YouData.Surveys.SurveyQuestion do
   end
 
   # Helper function to convert binary active field to boolean
-  #TODO: Remove this once we have a proper boolean field
+  # TODO: Remove this once we have a proper boolean field
   def active?(survey_question) do
     case survey_question.active do
       "1" -> true
       "0" -> false
-      <<49>> -> true  # binary "1"
-      <<48>> -> false # binary "0"
+      # binary "1"
+      <<49>> -> true
+      # binary "0"
+      <<48>> -> false
       _ -> false
     end
   end

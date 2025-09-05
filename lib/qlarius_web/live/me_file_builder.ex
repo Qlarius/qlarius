@@ -7,25 +7,28 @@ defmodule QlariusWeb.MeFileBuilderLive do
   def render(assigns) do
     ~H"""
     <Layouts.mobile {assigns} title="MeFile Builder">
-      <h1>Tag yourself to build up your MeFile.</h1>
 
       <style phx-no-curly-interpolation>
-        .survey-panels { position: relative; width: 100%; overflow: hidden; }
-        .survey-panels .track { display: flex; width: 200%; transform: translateX(0); transition: transform 300ms ease-in-out; }
+        .survey-panels { position: relative; width: 100%; overflow: hidden; height: calc(100vh - 146px);}
+        .survey-panels .track { display: flex; width: 200%; height: 100%; transform: translateX(0); transition: transform 300ms ease-in-out; }
         .survey-panels.editing .track { transform: translateX(-50%); }
         .survey-panels .survey-panel { width: 50%; flex: 0 0 50%; }
       </style>
 
       <div class={[
-        "survey-panels",
+        "survey-panels ",
         @editing && "editing"
       ]}>
         <div class="track">
-          <div class="survey-panel survey-index-panel">
+          <div class="survey-panel survey-index-panel w-full h-full overflow-y-auto">
+            <div class="h-full overflow-y-auto pb-24">
+            <h1>Tag yourself to build up your MeFile.</h1>
             <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               <%= for category <- @categories do %>
-                <% {answered_total, question_total, percent_complete} =
-                  Map.get(category, :category_stats, {0, 0, 0}) %>
+                <%
+                  {answered_total, question_total, percent_complete} =
+                    Map.get(category, :category_stats, {0, 0, 0})
+                %>
                 <div class="bg-base-100 overflow-hidden shadow rounded-lg">
                   <div class="px-4 py-5 sm:p-6">
                     <div class="flex items-center justify-between mb-2">
@@ -39,25 +42,18 @@ defmodule QlariusWeb.MeFileBuilderLive do
                           percent_complete == 100 -> "badge-success"
                           true -> "badge-warning"
                         end
-                      ]}>
-                        {answered_total}/{question_total}
-                      </div>
+                      ]}>{answered_total}/{question_total}</div>
                     </div>
                     <div class="mb-5">
                       <div class="relative">
-                        <progress
-                          class={[
-                            "progress w-full h-6",
-                            cond do
-                              percent_complete == 0 -> "progress-error"
-                              percent_complete == 100 -> "progress-success"
-                              true -> "progress-warning"
-                            end
-                          ]}
-                          value={max(10, percent_complete)}
-                          max="100"
-                        >
-                        </progress>
+                        <progress class={[
+                          "progress w-full h-6",
+                          cond do
+                            percent_complete == 0 -> "progress-error"
+                            percent_complete == 100 -> "progress-success"
+                            true -> "progress-warning"
+                          end
+                        ]} value={max(10, percent_complete)} max="100"></progress>
                         <div
                           class="absolute top-0 left-0 h-6 flex items-center justify-center text-xs font-bold text-white pointer-events-none"
                           style={"width: #{max(10, percent_complete)}%"}
@@ -68,12 +64,10 @@ defmodule QlariusWeb.MeFileBuilderLive do
                     </div>
 
                     <%= for survey <- category.surveys do %>
-                      <% {answered_question_count, question_count} = survey.survey_stats || {0, 0} %>
-                      <div
-                        class="mb-3 p-3 bg-base-200 rounded-lg cursor-pointer"
-                        phx-click="open_edit"
-                        phx-value-id={survey.id}
-                      >
+                      <%
+                        {answered_question_count, question_count} = survey.survey_stats || {0, 0}
+                      %>
+                      <div class="mb-3 p-3 bg-base-200 rounded-lg cursor-pointer" phx-click="open_edit" phx-value-id={survey.id}>
                         <div class="flex justify-between items-center">
                           <span class="text-sm font-medium text-base-content">{survey.name}</span>
                           <div class="flex items-center space-x-2">
@@ -84,9 +78,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                                 answered_question_count == question_count -> "badge-success"
                                 true -> "badge-warning"
                               end
-                            ]}>
-                              {answered_question_count}/{question_count}
-                            </span>
+                            ]}>{answered_question_count}/{question_count}</span>
                             <.icon name="hero-chevron-right" class="w-5 h-5 text-base-content/60" />
                           </div>
                         </div>
@@ -96,22 +88,19 @@ defmodule QlariusWeb.MeFileBuilderLive do
                 </div>
               <% end %>
             </div>
+            </div>
           </div>
 
-          <div class="survey-panel survey-edit-panel">
-            <div class="p-4">
+          <div class="survey-panel survey-edit-panel fixed top-0 right-0">
+            <div class="h-full overflow-y-auto pb-24">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-medium text-base-content">Edit Survey</h3>
-                <button type="button" phx-click="close_edit" class="btn btn-sm btn-primary">
-                  Done
-                </button>
+                <button type="button" phx-click="close_edit" class="btn btn-sm btn-primary">Done</button>
               </div>
               <div :if={@active_survey_id} class="text-base-content/70 text-sm">
                 Survey ID: {@active_survey_id}
               </div>
-              <div :if={!@active_survey_id} class="text-base-content/50 text-sm">
-                No survey selected
-              </div>
+              <div :if={!@active_survey_id} class="text-base-content/50 text-sm">No survey selected</div>
             </div>
           </div>
         </div>
@@ -123,17 +112,13 @@ defmodule QlariusWeb.MeFileBuilderLive do
   def mount(_params, _session, socket) do
     me_file_id = socket.assigns.current_scope.user.me_file.id
     answered_ids = MeFiles.get_answered_survey_question_ids(me_file_id)
+    categories_with_stats = Surveys.list_survey_categories_with_surveys_and_stats(me_file_id, answered_ids)
 
-    categories_with_stats =
-      Surveys.list_survey_categories_with_surveys_and_stats(me_file_id, answered_ids)
-
-    socket =
-      socket
-      |> assign(:categories, categories_with_stats)
-      |> assign(:answered_survey_question_ids, answered_ids)
-      |> assign(:editing, false)
-      |> assign(:active_survey_id, nil)
-
+    socket = socket
+    |> assign(:categories, categories_with_stats)
+    |> assign(:answered_survey_question_ids, answered_ids)
+    |> assign(:editing, false)
+    |> assign(:active_survey_id, nil)
     {:ok, socket}
   end
 

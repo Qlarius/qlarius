@@ -25,6 +25,8 @@ defmodule Qlarius.YouData.Surveys.SurveyQuestionSurvey do
     |> validate_required([:survey_question_id, :survey_id])
     |> foreign_key_constraint(:survey_question_id)
     |> foreign_key_constraint(:survey_id)
-    |> unique_constraint([:survey_question_id, :survey_id], name: "survey_question_surveys_survey_question_id_survey_id_index")
+    |> unique_constraint([:survey_question_id, :survey_id],
+      name: "survey_question_surveys_survey_question_id_survey_id_index"
+    )
   end
 end

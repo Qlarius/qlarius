@@ -148,22 +148,22 @@ defmodule QlariusWeb.MeFileHTML do
               </div>
 
               <%!-- Fixed question section --%>
-            <div class="p-4 bg-error shrink-0">
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <.icon name="hero-exclamation-triangle" class="h-7 w-7 text-white" />
-                </div>
-                <div class="ml-3">
-                  <p class="text-sm font-medium text-white">
-                    {if @trait_in_edit && @trait_in_edit.survey_question do
-                      "Confirm that you want to delete this tag?"
-                    else
-                      "Confirm deletion"
-                    end}
-                  </p>
+              <div class="p-4 bg-error shrink-0">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <.icon name="hero-exclamation-triangle" class="h-7 w-7 text-white" />
+                  </div>
+                  <div class="ml-3">
+                    <p class="text-sm font-medium text-white">
+                      {if @trait_in_edit && @trait_in_edit.survey_question do
+                        "Confirm that you want to delete this tag?"
+                      else
+                        "Confirm deletion"
+                      end}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
 
               <%!-- Fixed footer --%>
               <div class="p-4 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">

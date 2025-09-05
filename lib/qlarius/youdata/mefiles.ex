@@ -174,11 +174,14 @@ defmodule Qlarius.YouData.MeFiles do
 
   def get_answered_survey_question_ids(me_file_id) do
     # Get unique survey question IDs that have been answered
-    query = from sq in SurveyQuestion,
-      join: sa in SurveyAnswer, on: sa.survey_question_id == sq.id,
-      join: mft in MeFileTag, on: mft.trait_id == sa.trait_id and mft.me_file_id == ^me_file_id,
-      select: sq.id,
-      distinct: true
+    query =
+      from sq in SurveyQuestion,
+        join: sa in SurveyAnswer,
+        on: sa.survey_question_id == sq.id,
+        join: mft in MeFileTag,
+        on: mft.trait_id == sa.trait_id and mft.me_file_id == ^me_file_id,
+        select: sq.id,
+        distinct: true
 
     Repo.all(query)
   end
