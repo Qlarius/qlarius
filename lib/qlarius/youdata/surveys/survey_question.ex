@@ -41,10 +41,6 @@ defmodule Qlarius.YouData.Surveys.SurveyQuestion do
     case survey_question.active do
       "1" -> true
       "0" -> false
-      # binary "1"
-      <<49>> -> true
-      # binary "0"
-      <<48>> -> false
       _ -> false
     end
   end

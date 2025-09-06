@@ -22,7 +22,7 @@ defmodule Qlarius.YouData.Surveys do
     )
   end
 
-  def list_survey_categories_with_surveys_and_stats(me_file_id) do
+  def list_survey_categories_with_surveys_and_stats(_me_file_id) do
     surveys_query = from(s in Survey, order_by: s.display_order)
 
     Repo.all(
@@ -35,7 +35,7 @@ defmodule Qlarius.YouData.Surveys do
   end
 
   # Preferred variant: pass in precomputed answered_survey_question_ids to avoid DB trips
-  def list_survey_categories_with_surveys_and_stats(me_file_id, answered_survey_question_ids) do
+  def list_survey_categories_with_surveys_and_stats(_me_file_id, answered_survey_question_ids) do
     surveys_query = from(s in Survey, order_by: s.display_order)
 
     Repo.all(
