@@ -47,8 +47,6 @@ defmodule Qlarius.YouData.Surveys do
     |> Enum.map(&add_survey_stats(&1, answered_survey_question_ids))
   end
 
-
-
   defp add_survey_question_ids(category) do
     surveys_with_ids =
       category

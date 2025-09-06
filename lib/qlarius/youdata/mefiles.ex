@@ -263,6 +263,7 @@ defmodule Qlarius.YouData.MeFiles do
 
   defp add_birthdate_tag_to_result(result, me_file_id) do
     me_file = Repo.get!(MeFile, me_file_id)
+
     case me_file.date_of_birth do
       nil ->
         result
