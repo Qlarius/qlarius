@@ -20,7 +20,7 @@ defmodule QlariusWeb.MeFileLive do
 
       <div class="mb-6 flex gap-2 justify-end items-center">
         <div class="text-lg font-bold bg-youdata-500 dark:bg-youdata-700 text-white px-3 py-1 rounded-full">
-          {@current_scope.tag_count} tags
+          {@current_scope.trait_count} tags
         </div>
       </div>
 

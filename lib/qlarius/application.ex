@@ -27,6 +27,8 @@ defmodule Qlarius.Application do
       {Phoenix.PubSub, name: Qlarius.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: Qlarius.Finch},
+      # Tag tease agent for managing non-repeating messages
+      Qlarius.YouData.TagTeaseAgent,
       # Start a worker by calling: Qlarius.Worker.start_link(arg)
       # {Qlarius.Worker, arg},
       # Start to serve requests, typically the last entry

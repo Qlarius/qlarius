@@ -201,6 +201,7 @@ defmodule Qlarius.YouData.Surveys do
     |> Enum.map(fn {id, name, trait_display_order, _sq_order} ->
       {id, name, trait_display_order}
     end)
+    |> Enum.sort_by(fn {_id, _name, display_order} -> display_order end)
   end
 
   def parent_traits_for_survey_with_tags(survey_id, me_file_id) do

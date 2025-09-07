@@ -4,6 +4,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
   alias Qlarius.YouData.Surveys
   alias Qlarius.YouData.MeFiles
   alias Qlarius.YouData.Traits
+  alias Qlarius.YouData.TagTeaseAgent
 
   import QlariusWeb.MeFileHTML
 
@@ -152,7 +153,9 @@ defmodule QlariusWeb.MeFileBuilderLive do
                   {completed_traits}/{total_traits}
                   </div>
                 </div>
+                <h1 class="text-base-content mt-2">Fill empty tags below.</h1>
               </div>
+
             </div>
 
             <div class="overflow-y-auto pb-32 max-h-full">
@@ -168,7 +171,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                   class="h-full border rounded-lg overflow-hidden border-youdata-500 dark:border-youdata-700 bg-base-100"
                 >
                   <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-4 py-2 font-medium flex justify-between items-center">
-                    <span>{parent_trait_name}</span>
+                    <span>{parent_trait_name} {parent_trait_display_order}</span>
                     <div
                       :if={parent_trait_name not in ["Birthdate", "Age", "Sex"]}
                       class="ms-4 flex gap-3"
@@ -200,7 +203,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                       <div class="px-4 py-1">{tag_value}</div>
                     </div>
                     <div :if={tags_traits == []} class="mx-0 my-2 text-sm">
-                      <div class="px-4 py-1 opacity-60 italic">Tags go here.</div>
+                      <div class="px-4 py-1 opacity-60 italic">{TagTeaseAgent.next_message()}</div>
                     </div>
                   </div>
                 </div>
@@ -374,6 +377,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
             value: "update_pulse"
           })
 
+
         {:noreply, socket}
     end
   end
@@ -427,4 +431,5 @@ defmodule QlariusWeb.MeFileBuilderLive do
         {:noreply, socket}
     end
   end
+
 end
