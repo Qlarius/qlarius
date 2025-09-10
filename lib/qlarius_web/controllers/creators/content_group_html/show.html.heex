@@ -1,120 +1,260 @@
-<Layouts.creators
-  breadcrumbs={[
-    {@creator.name, ~p"/creators/#{@creator}"},
-    {@catalog.name, ~p"/creators/catalogs/#{@catalog}"},
-    {@content_group.title, ~p"/creators/content_groups/#{@content_group}"}
-  ]}
-  {assigns}
->
-  <.header>
-    {@content_group.title}
-    <:subtitle>
-      Content Group ({@catalog.group_type |> to_string |> String.capitalize()})
-    </:subtitle>
-
-    <:actions>
-      <div class="space-x-3">
-        <.a href={~p"/creators/content_groups/#{@content_group}/edit"}>
+<Layouts.creators {assigns}>
+  <div class="space-y-6">
+    <!-- Header Section -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div class="flex items-center gap-4">
+        <.link navigate={~p"/creators/#{@creator}"} class="btn btn-ghost btn-sm">
+          <.icon name="hero-arrow-left" class="w-4 h-4" />
+          Back to Creator
+        </.link>
+        <div>
+          <h1 class="text-2xl font-bold text-base-content">{@content_group.title}</h1>
+          <p class="text-base-content/60 mt-1">
+            {@catalog.group_type |> to_string() |> String.capitalize()} • {@creator.name}
+          </p>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <.link navigate={~p"/creators/content_groups/#{@content_group}/content_pieces/new"} class="btn btn-primary">
+          <.icon name="hero-plus" class="w-4 h-4 mr-2" />
+          New Content Piece
+        </.link>
+        <.link navigate={~p"/creators/content_groups/#{@content_group}/edit"} class="btn btn-outline">
+          <.icon name="hero-pencil" class="w-4 h-4 mr-2" />
           Edit
-        </.a>
-        <.a
+        </.link>
+        <.link
           href={~p"/creators/content_groups/#{@content_group}"}
           method="delete"
-          data-confirm="Are you sure?"
+          data-confirm="Are you sure you want to delete this content group?"
+          class="btn btn-outline btn-error"
         >
+          <.icon name="hero-trash" class="w-4 h-4 mr-2" />
           Delete
-        </.a>
-        <.a href={~p"/creators/content_groups/#{@content_group}/content_pieces/new"}>
-          New Content Piece
-        </.a>
-      </div>
-    </:actions>
-  </.header>
-
-  <img :if={@content_group.image} src={content_group_image_url(@content_group)} class="h-64" />
-
-  <div class="leading-6 text-zinc-600 text-sm space-y-4 mt-6 mb-8">
-    <p><em>{@content_group.description}</em></p>
-
-    <div class="flex items-center">
-      <%= if Enum.any?(@content_group.content_pieces) do %>
-        <p class="mr-2">&lt;iframe&gt; link:</p>
-        <div
-          class="relative flex items-center bg-zinc-200 text-zinc-800 rounded-md px-3 py-2 font-mono text-xs cursor-pointer hover:bg-zinc-300 transition-colors flex-grow"
-          onclick="copyCode(this)"
-        >
-          <code>{content_group_iframe_url(@conn, @content_group)}</code>
-
-          <.icon name="hero-document-duplicate" class="ml-2 h-4 w-4 text-zinc-800" />
-          <span class="popup hidden absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-xs text-white px-2 py-1 rounded">
-            Copied to clipboard!
-          </span>
-        </div>
-
-        <.link
-          class="ml-3 text-orange-500 hover:text-orange-700"
-          navigate={~p"/creators/content_groups/#{@content_group}/preview"}
-        >
-          Preview
         </.link>
+      </div>
+    </div>
+
+    <!-- Image Section -->
+    <div :if={@content_group.image} class="card bg-base-100 shadow-lg overflow-hidden">
+      <figure class="px-0 pt-0">
+        <img
+          src={content_group_image_url(@content_group)}
+          alt={@content_group.title}
+          class="w-full h-64 object-cover"
+        />
+      </figure>
+    </div>
+
+    <!-- Description and Embed Section -->
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <div class="space-y-6">
+          <!-- Description -->
+          <div>
+            <h3 class="text-lg font-semibold text-base-content mb-3">Description</h3>
+            <div class="prose prose-sm max-w-none">
+              <p class="text-base-content/80 italic">{@content_group.description}</p>
+            </div>
+          </div>
+
+          <!-- Embed Link -->
+          <%= if Enum.any?(@content_group.content_pieces) do %>
+            <div class="border-t border-base-300 pt-6">
+              <h4 class="text-md font-semibold text-base-content mb-3 flex items-center">
+                <.icon name="hero-code-bracket" class="w-5 h-5 mr-2" />
+                Embed Code
+              </h4>
+
+              <div class="flex items-center gap-4">
+                <div class="flex-1">
+                  <div
+                    class="relative bg-base-200 hover:bg-base-300 rounded-lg p-4 cursor-pointer transition-colors group"
+                    onclick="copyCode(this)"
+                  >
+                    <div class="flex items-center justify-between">
+                      <code class="text-sm font-mono text-base-content break-all">
+                        {content_group_iframe_url(@conn, @content_group)}
+                      </code>
+                      <div class="flex items-center gap-2 ml-4">
+                        <.icon name="hero-document-duplicate" class="w-5 h-5 text-base-content/60 group-hover:text-base-content" />
+                      </div>
+                    </div>
+
+                    <!-- Copy notification -->
+                    <div class="copy-notification hidden absolute -top-2 -right-2 bg-success text-success-content text-xs px-2 py-1 rounded shadow-lg">
+                      Copied!
+                    </div>
+                  </div>
+                </div>
+
+                <.link
+                  navigate={~p"/creators/content_groups/#{@content_group}/preview"}
+                  class="btn btn-outline btn-sm whitespace-nowrap"
+                >
+                  <.icon name="hero-eye" class="w-4 h-4 mr-2" />
+                  Preview
+                </.link>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tiqit Classes Section -->
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-semibold text-base-content flex items-center">
+          <.icon name="hero-tag" class="w-6 h-6 mr-3 text-primary" />
+          Tiqit Classes
+        </h2>
+      </div>
+
+      <%= if Enum.any?(@content_group.tiqit_classes) do %>
+        <div class="card bg-base-100 shadow-lg">
+          <div class="card-body p-0">
+            <TiqitClassHTML.tiqit_classes_table record={@content_group} />
+          </div>
+        </div>
+      <% else %>
+        <!-- Empty State for Tiqit Classes -->
+        <div class="hero min-h-32 bg-base-200 rounded-lg">
+          <div class="hero-content text-center">
+            <div class="max-w-md">
+              <div class="avatar placeholder mb-4">
+                <div class="bg-neutral-focus text-neutral-content rounded-full w-12 h-12">
+                  <span class="text-lg">🏷️</span>
+                </div>
+              </div>
+              <h3 class="text-lg font-bold text-base-content mb-2">No Tiqit Classes Yet</h3>
+              <.form :let={_f} for={} action={~p"/creators/content_groups/#{@content_group}/add_default_tiqit_classes"} method="post">
+                <input type="hidden" name="content_group_id" value={@content_group.id} />
+                <.button type="submit" class="btn btn-primary btn-sm">
+                  <.icon name="hero-plus" class="w-4 h-4 mr-2" />
+                  Add Tiqit Class Defaults
+                </.button>
+              </.form>
+              
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Content Pieces Section -->
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-semibold text-base-content flex items-center">
+          <.icon name="hero-queue-list" class="w-6 h-6 mr-3 text-secondary" />
+          Content Pieces
+        </h2>
+        <div class="flex gap-2">
+          <div class="stat">
+            <div class="stat-value text-lg">{length(@content_group.content_pieces)}</div>
+            <div class="stat-desc">Total Pieces</div>
+          </div>
+        </div>
+      </div>
+
+      <%= if Enum.any?(@content_group.content_pieces) do %>
+        <div class="card bg-base-100 shadow-lg">
+          <div class="card-body p-0">
+            <div class="overflow-x-auto">
+              <table class="table table-zebra w-full">
+                <thead class="bg-base-200">
+                  <tr>
+                    <th class="font-semibold text-base-content">Title</th>
+                    <th class="font-semibold text-base-content">Added</th>
+                    <th class="font-semibold text-base-content">Length</th>
+                    <th class="font-semibold text-base-content">Tiqit Classes</th>
+                    <th class="font-semibold text-base-content text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-base-300">
+                  <%= for piece <- @content_group.content_pieces do %>
+                    <tr class="hover:bg-base-200 cursor-pointer transition-colors" phx-click={JS.navigate(~p"/creators/content_pieces/#{piece}")}>
+                      <td class="font-medium text-base-content">
+                        <div class="flex items-center gap-3">
+                          <div class="avatar placeholder">
+                            <div class="bg-neutral-focus text-neutral-content rounded-full w-8 h-8">
+                              <span class="text-xs">{String.at(piece.title, 0)}</span>
+                            </div>
+                          </div>
+                          <div>
+                            <div class="font-medium">{piece.title}</div>
+                            <div class="text-sm text-base-content/60">{piece.description}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="text-base-content">
+                        <span class="badge badge-outline badge-sm">
+                          {Calendar.strftime(piece.inserted_at, "%b %d, %Y")}
+                        </span>
+                      </td>
+                      <td class="text-base-content">
+                        <span class="badge badge-primary badge-sm">
+                          {format_duration(piece.length)}
+                        </span>
+                      </td>
+                      <td class="text-base-content">
+                        <span class="badge badge-secondary badge-sm">
+                          {length(piece.tiqit_classes)}
+                        </span>
+                      </td>
+                      <td class="text-right">
+                        <div class="flex gap-2 justify-end">
+                          <.link navigate={~p"/creators/content_pieces/#{piece}/edit"} class="btn btn-ghost btn-sm">
+                            <.icon name="hero-pencil" class="w-4 h-4" />
+                          </.link>
+                          <.link
+                            href={~p"/creators/content_pieces/#{piece}"}
+                            method="delete"
+                            data-confirm="Are you sure you want to delete this content piece?"
+                            class="btn btn-ghost btn-sm text-error hover:bg-error hover:text-error-content"
+                          >
+                            <.icon name="hero-trash" class="w-4 h-4" />
+                          </.link>
+                        </div>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <!-- Empty State for Content Pieces -->
+        <div class="hero min-h-48 bg-base-200 rounded-lg">
+          <div class="hero-content text-center">
+            <div class="max-w-md">
+              <div class="avatar placeholder mb-4">
+                <div class="bg-neutral-focus text-neutral-content rounded-full w-16 h-16">
+                  <span class="text-xl">📄</span>
+                </div>
+              </div>
+              <h3 class="text-lg font-bold text-base-content mb-2">No Content Pieces Yet</h3>
+              <p class="text-base-content/60 mb-6">
+                Start building your content collection by adding your first {@catalog.piece_type}.
+              </p>
+              <.link navigate={~p"/creators/content_groups/#{@content_group}/content_pieces/new"} class="btn btn-primary btn-lg">
+                <.icon name="hero-plus" class="w-5 h-5 mr-2" />
+                Add First Content Piece
+              </.link>
+            </div>
+          </div>
+        </div>
       <% end %>
     </div>
   </div>
-
-  <header class="flex items-center justify-between gap-6 pb-2 mt-8">
-    <h2 class="font-semibold text-gray-500 leading-8">
-      Tiqit Classes
-    </h2>
-  </header>
-
-  <%= if Enum.any?(@content_group.tiqit_classes) do %>
-    <TiqitClassHTML.tiqit_classes_table record={@content_group} />
-  <% else %>
-    No Tiqit classes yet. Edit the group to add one.
-  <% end %>
-
-  <header class="flex items-center justify-between gap-6 pb-2 mt-8">
-    <h2 class="font-semibold text-gray-500 leading-8">
-      Content Pieces
-    </h2>
-  </header>
-
-  <%= if Enum.any?(@content_group.content_pieces) do %>
-    <.table id="catalogs" rows={@content_group.content_pieces} zebra={false}>
-      <:col :let={piece} label="Title">{piece.title}</:col>
-      <:col :let={piece} label="Added">{Calendar.strftime(piece.inserted_at, "%d/%m/%y")}</:col>
-      <:col :let={piece} label="Length">{format_duration(piece.length)}</:col>
-      <:col :let={piece} label="Tiqits">
-        {length(piece.tiqit_classes)}
-      </:col>
-      <:action :let={piece}>
-        <.link navigate={~p"/creators/content_pieces/#{piece}/edit"}>Edit</.link>
-      </:action>
-      <:action :let={piece}>
-        <.link
-          data-confirm="Are you sure?"
-          method="delete"
-          href={~p"/creators/content_pieces/#{piece}"}
-        >
-          Delete
-        </.link>
-      </:action>
-    </.table>
-  <% else %>
-    <div class="text-sm text-zinc-600">
-      No content pieces yet!
-      <.a href={~p"/creators/content_groups/#{@content_group}/content_pieces/new"}>
-        Click here to add the first.
-      </.a>
-    </div>
-  <% end %>
 </Layouts.creators>
 
 <script type="text/javascript">
   function copyCode(element) {
     navigator.clipboard.writeText(element.querySelector('code').textContent);
-    const popup = element.querySelector('.popup');
-    popup.classList.remove('hidden');
-    setTimeout(() => popup.classList.add('hidden'), 1000);
+    const notification = element.querySelector('.copy-notification');
+    notification.classList.remove('hidden');
+    setTimeout(() => notification.classList.add('hidden'), 2000);
   }
 </script>

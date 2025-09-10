@@ -70,6 +70,16 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
     save_catalog(socket, socket.assigns.live_action, catalog_params)
   end
 
+  def handle_event("write_default_tiqit_classes", _params, socket) do
+    # Call the arcade context function to write default tiqit classes for this catalog
+    Qlarius.Tiqit.Arcade.Arcade.write_default_catalog_tiqit_classes(socket.assigns.catalog)
+
+    # Reload the catalog to get updated tiqit classes
+    catalog = Qlarius.Tiqit.Arcade.Creators.get_catalog!(socket.assigns.catalog.id)
+
+    {:noreply, assign(socket, :catalog, catalog)}
+  end
+
   defp save_catalog(socket, :edit, catalog_params) do
     case Creators.update_catalog(socket.assigns.catalog, catalog_params) do
       {:ok, catalog} ->

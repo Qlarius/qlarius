@@ -1,29 +1,112 @@
-<.header>
-  Manage Content
-  <:actions>
-    <.link href={~p"/admin/content/new"}>
-      <.button>New Content</.button>
-    </.link>
-  </:actions>
-</.header>
+<Layouts.creators {assigns}>
+  <div class="space-y-6">
+    <!-- Header Section -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-base-content">Content Pieces</h1>
+        <p class="text-base-content/60 mt-1">Manage your content pieces</p>
+      </div>
+      <div class="flex gap-2">
+        <.link navigate={~p"/creators/content_pieces/new"} class="btn btn-primary">
+          <.icon name="hero-plus" class="w-4 h-4 mr-2" />
+          New Content Piece
+        </.link>
+      </div>
+    </div>
 
-<.table id="content" rows={@content_collection} row_click={&JS.navigate(~p"/admin/content/#{&1}")}>
-  <:col :let={content} label="Title">{content.title}</:col>
-  <:col :let={content} label="Description">
-    {if String.length(content.description) > 50 do
-      String.slice(content.description, 0..49) <> "…"
-    else
-      content.description
-    end}
-  </:col>
-  <:action :let={content}>
-    <.link navigate={~p"/admin/content/#{content}/edit"}>
-      <.icon name="hero-pencil" class="h-4 w-4 text-gray-500 hover:text-gray-700" />
-    </.link>
-  </:action>
-  <:action :let={content}>
-    <.link href={~p"/admin/content/#{content}"} method="delete" data-confirm="Are you sure?">
-      <.icon name="hero-trash" class="h-4 w-4 text-gray-500 hover:text-gray-700" />
-    </.link>
-  </:action>
-</.table>
+    <%= if Enum.any?(@content_collection) do %>
+      <!-- Content Pieces Table -->
+      <div class="card bg-base-100 shadow-lg">
+        <div class="card-body p-0">
+          <div class="overflow-x-auto">
+            <table class="table table-zebra w-full">
+              <thead class="bg-base-200">
+                <tr>
+                  <th class="font-semibold text-base-content">Title</th>
+                  <th class="font-semibold text-base-content">Description</th>
+                  <th class="font-semibold text-base-content">Length</th>
+                  <th class="font-semibold text-base-content">Tiqits</th>
+                  <th class="font-semibold text-base-content text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-base-300">
+                <%= for content <- @content_collection do %>
+                  <tr class="hover:bg-base-200 cursor-pointer transition-colors" phx-click={JS.navigate(~p"/creators/content_pieces/#{content}")}>
+                    <td class="font-medium text-base-content">
+                      <div class="flex items-center gap-3">
+                        <div class="avatar placeholder">
+                          <div class="bg-neutral-focus text-neutral-content rounded-full w-8 h-8">
+                            <span class="text-xs">{String.at(content.title, 0)}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div class="font-medium">{content.title}</div>
+                          <div class="text-sm text-base-content/60">ID: {content.id}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="text-base-content max-w-xs">
+                      <div class="truncate" title={content.description}>
+                        {if String.length(content.description) > 80 do
+                          String.slice(content.description, 0..79) <> "…"
+                        else
+                          content.description
+                        end}
+                      </div>
+                    </td>
+                    <td class="text-base-content">
+                      <span class="badge badge-primary badge-sm">
+                        {format_duration(content.length)}
+                      </span>
+                    </td>
+                    <td class="text-base-content">
+                      <span class="badge badge-secondary badge-sm">
+                        {length(content.tiqit_classes)} classes
+                      </span>
+                    </td>
+                    <td class="text-right">
+                      <div class="flex gap-2 justify-end">
+                        <.link navigate={~p"/creators/content_pieces/#{content}/edit"} class="btn btn-ghost btn-sm">
+                          <.icon name="hero-pencil" class="w-4 h-4" />
+                        </.link>
+                        <.link
+                          href={~p"/creators/content_pieces/#{content}"}
+                          method="delete"
+                          data-confirm="Are you sure you want to delete this content piece?"
+                          class="btn btn-ghost btn-sm text-error hover:bg-error hover:text-error-content"
+                        >
+                          <.icon name="hero-trash" class="w-4 h-4" />
+                        </.link>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% else %>
+      <!-- Empty State -->
+      <div class="hero min-h-64 bg-base-200 rounded-lg">
+        <div class="hero-content text-center">
+          <div class="max-w-md">
+            <div class="avatar placeholder mb-4">
+              <div class="bg-neutral-focus text-neutral-content rounded-full w-16 h-16">
+                <span class="text-xl">📄</span>
+              </div>
+            </div>
+            <h2 class="text-lg font-bold text-base-content mb-2">No Content Pieces Yet</h2>
+            <p class="text-base-content/60 mb-6">
+              Start building your content library by adding your first content piece.
+            </p>
+            <.link navigate={~p"/creators/content_pieces/new"} class="btn btn-primary btn-lg">
+              <.icon name="hero-plus" class="w-5 h-5 mr-2" />
+              Add First Content Piece
+            </.link>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</Layouts.creators>

@@ -72,6 +72,16 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
     save_group(socket, socket.assigns.live_action, group_params)
   end
 
+  def handle_event("write_default_tiqit_classes", _params, socket) do
+    # Call the arcade context function to write default tiqit classes for this group
+    Qlarius.Tiqit.Arcade.Arcade.write_default_group_tiqit_classes(socket.assigns.group)
+
+    # Reload the group to get updated tiqit classes
+    group = Qlarius.Tiqit.Arcade.Creators.get_content_group!(socket.assigns.group.id)
+
+    {:noreply, assign(socket, :group, group)}
+  end
+
   defp save_group(socket, :edit, group_params) do
     case Creators.update_content_group(socket.assigns.group, group_params) do
       {:ok, group} ->

@@ -277,18 +277,7 @@ defmodule QlariusWeb.Layouts do
 
   def creators(assigns) do
     ~H"""
-    <main class="p-4 sm:px-6 lg:px-8 max-w-2xl mx-auto">
-      <ul class="relative z-10 flex items-center gap-4 justify-end mb-5">
-        <li :if={@current_scope} class="text-[0.8125rem] leading-6 text-zinc-900">
-          {@current_scope.user.email}
-        </li>
-        <%= if @current_scope do %>
-          <li><.creators_navbar_link text="Log out" href="#" method="delete" /></li>
-        <% else %>
-          <li><.creators_navbar_link text="Log in" href="#" /></li>
-          <li><.creators_navbar_link text="Sign up" href="#" /></li>
-        <% end %>
-      </ul>
+    <main class="p-4 sm:px-6 lg:px-8 mx-auto">
 
       <.breadcrumbs crumbs={@breadcrumbs} />
 

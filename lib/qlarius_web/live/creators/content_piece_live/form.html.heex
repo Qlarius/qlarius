@@ -1,44 +1,89 @@
-<Layouts.creators
-  breadcrumbs={
-    [
-      {@creator.name, ~p"/creators/#{@creator}"},
-      {@catalog.name, ~p"/creators/catalogs/#{@catalog}"},
-      {@group.title, ~p"/creators/content_groups/#{@group}"}
-    ] ++
-      [
-        if @live_action == :new do
-          {"New Content Piece", ~p"/creators/content_groups/#{@group}/content_pieces/new"}
-        else
-          {"Edit Content Piece", ~p"/creators/content_pieces/#{@piece}/edit"}
-        end
-      ]
-  }
-  {assigns}
->
-  <.header>
-    {@page_title}
+<Layouts.creators {assigns}>
+  <div class="space-y-6">
+    <!-- Header Section -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div class="flex items-center gap-4">
+        <.link navigate={~p"/creators/content_groups/#{@group}"} class="btn btn-ghost btn-sm">
+          <.icon name="hero-arrow-left" class="w-4 h-4" />
+          Back to Content Group
+        </.link>
+        <div>
+          <h1 class="text-2xl font-bold text-base-content">{@page_title}</h1>
+          <p class="text-base-content/60 mt-1">
+            Group: {@group.title}
+          </p>
+        </div>
+      </div>
+    </div>
 
-    <:subtitle>
-      Group: {@group.title}
-    </:subtitle>
-  </.header>
+    <!-- Main Form Card -->
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <.form for={@form} phx-change="validate" phx-submit="save" class="space-y-6">
+          <!-- Basic Information Section -->
+          <div>
+            <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+              <.icon name="hero-information-circle" class="w-5 h-5 mr-3 text-info" />
+              Basic Information
+            </h3>
 
-  <.form for={@form} phx-change="validate" phx-submit="save">
-    <.input field={@form[:title]} type="text" label="Title" />
-    <.input field={@form[:date_published]} type="date" label="Published Date" />
-    <.input field={@form[:description]} type="textarea" label="Description" />
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text font-medium">Title *</span>
+                </label>
+                <.input field={@form[:title]} type="text" class="input input-bordered w-full" placeholder="Enter content piece title" />
+              </div>
 
-    <h2 class="font-semibold leading-8 text-zinc-800">
-      Tiqits
-    </h2>
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text font-medium">Published Date</span>
+                </label>
+                <.input field={@form[:date_published]} type="date" class="input input-bordered w-full" />
+              </div>
+            </div>
 
-    <TiqitClassHTML.inputs_for_tiqit_classes form={@form} />
+            <div class="form-control mt-4">
+              <label class="label">
+                <span class="label-text font-medium">Description</span>
+              </label>
+              <.input field={@form[:description]} type="textarea" class="textarea textarea-bordered w-full" placeholder="Enter content description" rows="4" />
+            </div>
+          </div>
 
-    <footer>
-      <.button variant="primary">Save Content</.button>
-      <.button navigate={~p"/creators/content_groups/#{@group}"}>
-        Cancel
-      </.button>
-    </footer>
-  </.form>
+          <!-- Tiqit Classes Section -->
+          <div class="border-t border-base-300 pt-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-base-content flex items-center">
+                <.icon name="hero-tag" class="w-5 h-5 mr-3 text-primary" />
+                Tiqit Classes
+              </h3>
+
+              <.button type="button" phx-click="write_default_tiqit_classes" class="btn btn-outline btn-sm">
+                <.icon name="hero-plus" class="w-4 h-4 mr-2" />
+                Add Default Classes
+              </.button>
+            </div>
+
+            <div class="bg-base-200 rounded-lg p-4">
+              <TiqitClassHTML.inputs_for_tiqit_classes form={@form} />
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-base-300">
+            <.button class="btn btn-primary flex-1 sm:flex-none">
+              <.icon name="hero-check" class="w-4 h-4 mr-2" />
+              Save Content Piece
+            </.button>
+
+            <.link navigate={~p"/creators/content_groups/#{@group}"} class="btn btn-ghost">
+              <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" />
+              Cancel
+            </.link>
+          </div>
+        </.form>
+      </div>
+    </div>
+  </div>
 </Layouts.creators>

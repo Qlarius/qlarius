@@ -80,28 +80,46 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
       )
 
     ~H"""
-    <table class="w-full text-sm text-center border-separate border-spacing-y-4">
-      <thead>
-        <tr>
-          <th></th>
-          <th>{@catalog.piece_type |> to_string() |> String.capitalize()}</th>
-          <th :if={@show_group?}>{@catalog.group_type |> to_string() |> String.capitalize()}</th>
-          <th :if={@show_catalog?}>{@catalog.type |> to_string() |> String.capitalize()}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr :for={duration <- @durations}>
-          <td>{format_tiqit_class_duration(duration)}</td>
-          <%= for {col, true} <- [{@piece, true}, {@group, @show_group?}, {@catalog, @show_catalog?}] do %>
-            <td>
-              <%= if class = Enum.find(col.tiqit_classes, & &1.duration_hours == duration) do %>
-                <.tiqit_class_grid_price balance={@balance} tiqit_class={class} />
-              <% end %>
+    <div class="overflow-x-auto">
+      <table class="table table-zebra w-full">
+        <thead class="bg-base-200">
+          <tr>
+            <th class="font-semibold text-base-content text-left">
+              Duration
+            </th>
+            <th class="font-semibold text-base-content text-center">
+              Single {@catalog.piece_type |> to_string() |> String.capitalize()}
+            </th>
+            <th :if={@show_group?} class="font-semibold text-base-content text-center">
+              Whole{@catalog.group_type |> to_string() |> String.capitalize()}
+            </th>
+            <th :if={@show_catalog?} class="font-semibold text-base-content text-center">
+              Whole {@catalog.type |> to_string() |> String.capitalize()}
+            </th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-base-300">
+          <tr :for={duration <- @durations} class="hover:bg-base-200 transition-colors">
+            <td class="font-medium text-base-content">
+              <div class="badge badge-outline badge-sm">
+                {format_tiqit_class_duration(duration)}
+              </div>
             </td>
-          <% end %>
-        </tr>
-      </tbody>
-    </table>
+            <%= for {col, true} <- [{@piece, true}, {@group, @show_group?}, {@catalog, @show_catalog?}] do %>
+              <td class="text-center">
+                <%= if class = Enum.find(col.tiqit_classes, & &1.duration_hours == duration) do %>
+                  <div class="flex justify-center">
+                    <.tiqit_class_grid_price balance={@balance} tiqit_class={class} />
+                  </div>
+                <% else %>
+                  <div class="text-base-content/40 text-sm">-</div>
+                <% end %>
+              </td>
+            <% end %>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     """
   end
 

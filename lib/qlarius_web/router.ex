@@ -147,7 +147,7 @@ defmodule QlariusWeb.Router do
         # {QlariusWeb.UserAuth, :mount_current_scope},
         {QlariusWeb.Layouts, :set_current_path}
       ] do
-      resources "/content_pieces", ContentPieceController, only: [:delete]
+      resources "/content_pieces", ContentPieceController, only: [:show, :delete]
 
       live "/content_pieces/:id/edit", ContentPieceLive.Form, :edit
       live "/catalogs/:id/edit", CatalogLive.Form, :edit
@@ -156,10 +156,12 @@ defmodule QlariusWeb.Router do
       resources "/content_groups", ContentGroupController, only: [:show, :delete] do
         get "/preview", ContentGroupController, :preview
         live "/content_pieces/new", ContentPieceLive.Form, :new
+        post "/add_default_tiqit_classes", ContentGroupController, :add_default_tiqit_classes
       end
 
       resources "/catalogs", CatalogController, only: [:show, :delete] do
         live "/content_groups/new", ContentGroupLive.Form, :new
+        post "/add_default_tiqit_classes", CatalogController, :add_default_tiqit_classes
       end
 
       resources "/", CreatorController do

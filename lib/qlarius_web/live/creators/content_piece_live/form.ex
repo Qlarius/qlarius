@@ -64,6 +64,16 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
     save_content(socket, socket.assigns.live_action, piece_params)
   end
 
+  def handle_event("write_default_tiqit_classes", _params, socket) do
+    # Call the arcade context function to write default tiqit classes for this piece
+    Qlarius.Tiqit.Arcade.Arcade.write_default_piece_tiqit_classes(socket.assigns.piece)
+
+    # Reload the piece to get updated tiqit classes
+    piece = Qlarius.Tiqit.Arcade.Creators.get_content_piece!(socket.assigns.piece.id)
+
+    {:noreply, assign(socket, :piece, piece)}
+  end
+
   defp save_content(socket, :edit, piece_params) do
     case Creators.update_content_piece(socket.assigns.piece, piece_params) do
       {:ok, _piece} ->

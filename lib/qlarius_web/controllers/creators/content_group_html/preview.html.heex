@@ -1,22 +1,48 @@
-<div class="bg-gray-50 min-h-screen flex flex-col items-center justify-center">
-  <header class="w-full py-6 bg-white shadow">
-    <div class="max-w-4xl mx-auto text-center">
-      <h1 class="text-3xl font-bold text-gray-800">Arcade Preview</h1>
-      <p class="text-gray-500 mt-2">Content group <b>{@group.title}</b></p>
+<div class="min-h-screen bg-base-100">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <!-- Header -->
+    <div class="card bg-base-100 shadow-xl mb-8">
+      <div class="card-body">
+        <div class="flex flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 class="text-3xl font-bold text-base-content">Arcade Preview</h1>
+            <p class="text-base-content/60 mt-2">
+              Content Group: <span class="font-semibold text-primary">{@group.title}</span>
+            </p>
+          </div>
+          <div class="flex gap-2">
+            <.link navigate={~p"/creators/content_groups/#{@group}"} class="btn btn-outline">
+              <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" />
+              Back to Content Group
+            </.link>
+          </div>
+        </div>
+      </div>
     </div>
-  </header>
 
-  <main class="flex-grow flex items-center justify-center">
-    <iframe
-      src={content_group_iframe_url(@conn, @group)}
-      style="width: 640px; height: 480px; margin-top: 20px; background-color: white;"
-    >
-    </iframe>
-  </main>
 
-  <footer class="w-full py-4 bg-white shadow mt-4">
-    <div class="max-w-4xl mx-auto text-center text-sm text-gray-400">
-      <.link navigate={~p"/creators/content_groups/#{@group}"}>Go back</.link>
+    <!-- Preview Frame -->
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+
+        <div class="bg-base-200 rounded-lg p-4 border border-base-300">
+          <div class="flex items-center justify-center min-h-[600px]">
+            <iframe
+              src={content_group_iframe_url(@conn, @group)}
+              class="w-full h-[600px] rounded border border-base-300 bg-white"
+              title="Content Group Preview"
+            >
+            </iframe>
+          </div>
+        </div>
+
+        <div class="mt-4 p-4 bg-base-200 rounded-lg">
+          <div class="flex items-center gap-2 text-sm text-base-content/60">
+            <.icon name="hero-information-circle" class="w-4 h-4" />
+            <span>This is how your content group will appear to visitors. The iframe displays the actual arcade interface.</span>
+          </div>
+        </div>
+      </div>
     </div>
-  </footer>
+  </div>
 </div>

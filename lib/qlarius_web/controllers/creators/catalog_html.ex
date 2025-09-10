@@ -2,7 +2,7 @@ defmodule QlariusWeb.Creators.CatalogHTML do
   use QlariusWeb, :html
 
   import QlariusWeb.CoreComponents
-  import QlariusWeb.TiqitClassHTML, only: [tiqit_classes_table: 1]
+  alias QlariusWeb.TiqitClassHTML
 
   embed_templates "catalog_html/*"
 end

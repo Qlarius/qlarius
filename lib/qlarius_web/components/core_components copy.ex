@@ -1,4 +1,4 @@
-defmodule QlariusWeb.CoreComponents do
+defmodule QlariusWeb.CoreComponentsCopy do
   use QlariusWeb, :verified_routes
 
   @moduledoc """

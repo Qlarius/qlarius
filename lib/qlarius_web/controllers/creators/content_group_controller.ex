@@ -65,6 +65,17 @@ defmodule QlariusWeb.Creators.ContentGroupController do
     end
   end
 
+  def add_default_tiqit_classes(conn, %{"content_group_id" => content_group_id}) do
+    content_group = Creators.get_content_group!(content_group_id)
+
+    # Call the arcade context function
+    Qlarius.Tiqit.Arcade.Arcade.write_default_group_tiqit_classes(content_group)
+
+    conn
+    |> put_flash(:info, "Default Tiqit classes added successfully.")
+    |> redirect(to: ~p"/creators/content_groups/#{content_group_id}")
+  end
+
   def delete(conn, %{"id" => id}) do
     content_group = Creators.get_content_group!(id)
     catalog = content_group.catalog

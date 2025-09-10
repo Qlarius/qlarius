@@ -171,7 +171,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                   class="h-full border rounded-lg overflow-hidden border-youdata-500 dark:border-youdata-700 bg-base-100"
                 >
                   <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-4 py-2 font-medium flex justify-between items-center">
-                    <span>{parent_trait_name} {parent_trait_display_order}</span>
+                    <span>{parent_trait_name}</span>
                     <div
                       :if={parent_trait_name not in ["Birthdate", "Age", "Sex"]}
                       class="ms-4 flex gap-3"

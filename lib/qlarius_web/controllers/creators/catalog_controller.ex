@@ -10,6 +10,17 @@ defmodule QlariusWeb.Creators.CatalogController do
     render(conn, :show, catalog: catalog, creator: creator)
   end
 
+  def add_default_tiqit_classes(conn, %{"catalog_id" => catalog_id}) do
+    catalog = Creators.get_catalog!(catalog_id)
+
+    # Call the arcade context function
+    Qlarius.Tiqit.Arcade.Arcade.write_default_catalog_tiqit_classes(catalog)
+
+    conn
+    |> put_flash(:info, "Default Tiqit classes added successfully.")
+    |> redirect(to: ~p"/creators/catalogs/#{catalog}")
+  end
+
   def new(conn, %{"creator_id" => creator_id}) do
     creator = Creators.get_creator!(creator_id)
     changeset = Creators.change_catalog(%Catalog{})

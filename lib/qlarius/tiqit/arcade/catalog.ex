@@ -7,7 +7,7 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
   alias Qlarius.Tiqit.Arcade.TiqitClass
 
   @types ~w[site catalog collection show curriculum semester]a
-  @group_types ~w[show season album book class]a
+  @group_types ~w[show season series album book class]a
   @piece_types ~w[episode chapter song piece lesson segment]a
 
   schema "catalogs" do
@@ -34,7 +34,7 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
     catalog
     |> cast(attrs, [:name, :url, :type, :group_type, :piece_type])
     |> validate_required([:name, :url, :type, :group_type, :piece_type])
-    |> validate_length(:name, max: 20)
+    |> validate_length(:name, max: 30)
     |> cast_assoc(
       :tiqit_classes,
       drop_param: :tiqit_class_drop,

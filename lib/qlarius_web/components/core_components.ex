@@ -1,4 +1,4 @@
-defmodule DaisyTest2Web.CoreComponents do
+defmodule QlariusWeb.CoreComponents do
   @moduledoc """
   Provides core UI components.
 
@@ -26,8 +26,9 @@ defmodule DaisyTest2Web.CoreComponents do
       and `<.form>`, are defined there.
 
   """
+  use QlariusWeb, :verified_routes
   use Phoenix.Component
-  use Gettext, backend: DaisyTest2Web.Gettext
+  use Gettext, backend: QlariusWeb.Gettext
 
   alias Phoenix.LiveView.JS
 
@@ -56,7 +57,7 @@ defmodule DaisyTest2Web.CoreComponents do
       id={@id}
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
-      class="toast toast-top toast-end z-50"
+      class="toast toast-top toast-end"
       {@rest}
     >
       <div class={[
@@ -90,30 +91,67 @@ defmodule DaisyTest2Web.CoreComponents do
   """
   attr :rest, :global, include: ~w(href navigate patch method download name value disabled)
   attr :class, :string
-  attr :variant, :string, values: ~w(primary)
+  attr :variant, :string, values: ~w(primary outline)
   slot :inner_block, required: true
 
   def button(%{rest: rest} = assigns) do
-    variants = %{"primary" => "btn-primary", nil => "btn-primary btn-soft"}
+    variants = %{
+      "primary" => "btn-primary",
+      "outline" => "btn-outline",
+      nil => "btn-primary btn-soft"
+    }
 
-    assigns =
-      assign_new(assigns, :class, fn ->
-        ["btn", Map.fetch!(variants, assigns[:variant])]
-      end)
+    class = Map.fetch!(variants, assigns[:variant]) <> " " <> (assigns[:rest][:class] || "")
+    assigns = assign(assigns, :class, class)
 
     if rest[:href] || rest[:navigate] || rest[:patch] do
       ~H"""
-      <.link class={@class} {@rest}>
+      <.link class={["btn", @class]} {@rest}>
         {render_slot(@inner_block)}
       </.link>
       """
     else
       ~H"""
-      <button class={@class} {@rest}>
+      <button class={["btn", @class]} {@rest}>
         {render_slot(@inner_block)}
       </button>
       """
     end
+  end
+
+  @doc """
+  Renders a simple form.
+
+  ## Examples
+
+      <.simple_form for={@form} phx-change="validate" phx-submit="save">
+        <.input field={@form[:email]} type="email" />
+        <.button>Save</.button>
+      </.simple_form>
+  """
+  attr :for, :any, required: true, doc: "the datastructure for the form"
+  attr :as, :any, default: nil, doc: "the server side parameter to collect all input under"
+
+  attr :multipart, :boolean,
+    default: false,
+    doc: "sets enctype to multipart/form-data for file uploads"
+
+  attr :rest, :global, include: ~w(autocomplete name rel action enctype method novalidate target)
+
+  slot :inner_block, required: true
+  slot :actions, doc: "the slot for form actions"
+
+  def simple_form(assigns) do
+    ~H"""
+    <.form :let={f} for={@for} as={@as} enctype={(@multipart && "multipart/form-data") || nil} {@rest}>
+      <div class="space-y-2">
+        {render_slot(@inner_block, f)}
+        <div :for={action <- @actions} class="mt-2 flex items-center justify-between gap-6">
+          {render_slot(action, f)}
+        </div>
+      </div>
+    </.form>
+    """
   end
 
   @doc """
@@ -158,6 +196,7 @@ defmodule DaisyTest2Web.CoreComponents do
   attr :errors, :list, default: []
   attr :checked, :boolean, doc: "the checked flag for checkbox inputs"
   attr :prompt, :string, default: nil, doc: "the prompt for select inputs"
+  attr :description, :string, default: nil
   attr :options, :list, doc: "the options to pass to Phoenix.HTML.Form.options_for_select/2"
   attr :multiple, :boolean, default: false, doc: "the multiple flag for select inputs"
   attr :class, :string, default: nil, doc: "the input class to use over defaults"
@@ -185,35 +224,35 @@ defmodule DaisyTest2Web.CoreComponents do
       end)
 
     ~H"""
-    <div class="fieldset mb-2">
+    <fieldset class="fieldset mb-2">
       <label>
         <input type="hidden" name={@name} value="false" disabled={@rest[:disabled]} />
-        <span class="label">
+        <span class="fieldset-label">
           <input
             type="checkbox"
             id={@id}
             name={@name}
             value="true"
             checked={@checked}
-            class={@class || "checkbox checkbox-sm"}
+            class="checkbox checkbox-sm"
             {@rest}
           />{@label}
         </span>
       </label>
       <.error :for={msg <- @errors}>{msg}</.error>
-    </div>
+    </fieldset>
     """
   end
 
   def input(%{type: "select"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <fieldset class="fieldset mb-2">
       <label>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <span :if={@label} class="fieldset-label mb-1">{@label}</span>
         <select
           id={@id}
           name={@name}
-          class={[@class || "w-full select", @errors != [] && (@error_class || "select-error")]}
+          class={["w-full select", @errors != [] && (@error_class || "select-error")]}
           multiple={@multiple}
           {@rest}
         >
@@ -222,55 +261,57 @@ defmodule DaisyTest2Web.CoreComponents do
         </select>
       </label>
       <.error :for={msg <- @errors}>{msg}</.error>
-    </div>
+    </fieldset>
     """
   end
 
   def input(%{type: "textarea"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <fieldset class="fieldset mb-2">
       <label>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <span :if={@label} class="fieldset-label mb-1">{@label}</span>
         <textarea
           id={@id}
           name={@name}
           class={[
-            @class || "w-full textarea",
+            "w-full textarea",
             @errors != [] && (@error_class || "textarea-error")
           ]}
           {@rest}
         >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
       </label>
       <.error :for={msg <- @errors}>{msg}</.error>
-    </div>
+    </fieldset>
     """
   end
 
   # All other inputs text, datetime-local, url, password, etc. are handled here...
   def input(assigns) do
+    assigns = assign(assigns, :class, ["w-full input input-bordered", assigns.rest[:class] || ""])
+
     ~H"""
-    <div class="fieldset mb-2">
+    <fieldset class="fieldset mb-2">
       <label>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <span :if={@label} class="fieldset-label mb-1">{@label}</span>
         <input
           type={@type}
           name={@name}
           id={@id}
           value={Phoenix.HTML.Form.normalize_value(@type, @value)}
-          class={[
-            @class || "w-full input",
-            @errors != [] && (@error_class || "input-error")
-          ]}
+          class={@class}
           {@rest}
         />
       </label>
+      <p :if={@description} class="fieldset-description mt-1">{@description}</p>
       <.error :for={msg <- @errors}>{msg}</.error>
-    </div>
+    </fieldset>
     """
   end
 
   # Helper used by inputs to generate form errors
-  defp error(assigns) do
+  # made public so it can be used in the existing (pre-1.8)
+  # auth pages
+  def error(assigns) do
     ~H"""
     <p class="mt-1.5 flex gap-2 items-center text-sm text-error">
       <.icon name="hero-exclamation-circle" class="size-5" />
@@ -282,18 +323,20 @@ defmodule DaisyTest2Web.CoreComponents do
   @doc """
   Renders a header with title.
   """
+  attr :class, :string, default: nil
+
   slot :inner_block, required: true
   slot :subtitle
   slot :actions
 
   def header(assigns) do
     ~H"""
-    <header class={[@actions != [] && "flex items-center justify-between gap-6", "pb-4"]}>
+    <header class={[@actions != [] && "flex items-center justify-between gap-6", "pb-6", @class]}>
       <div>
-        <h1 class="text-lg font-semibold leading-8">
+        <h1 class="text-xl font-bold text-base-content leading-8">
           {render_slot(@inner_block)}
         </h1>
-        <p :if={@subtitle != []} class="text-sm text-base-content/70">
+        <p :if={@subtitle != []} class="text-sm text-base-content/60 mt-1">
           {render_slot(@subtitle)}
         </p>
       </div>
@@ -316,6 +359,7 @@ defmodule DaisyTest2Web.CoreComponents do
   attr :rows, :list, required: true
   attr :row_id, :any, default: nil, doc: "the function for generating the row id"
   attr :row_click, :any, default: nil, doc: "the function for handling phx-click on each row"
+  attr :zebra, :boolean, default: true
 
   attr :row_item, :any,
     default: &Function.identity/1,
@@ -334,7 +378,7 @@ defmodule DaisyTest2Web.CoreComponents do
       end
 
     ~H"""
-    <table class="table table-zebra">
+    <table class={["table", @zebra && "table-zebra"]}>
       <thead>
         <tr>
           <th :for={col <- @col}>{col[:label]}</th>
@@ -457,9 +501,9 @@ defmodule DaisyTest2Web.CoreComponents do
     # with our gettext backend as first argument. Translations are
     # available in the errors.po file (as we use the "errors" domain).
     if count = opts[:count] do
-      Gettext.dngettext(DaisyTest2Web.Gettext, "errors", msg, msg, count, opts)
+      Gettext.dngettext(QlariusWeb.Gettext, "errors", msg, msg, count, opts)
     else
-      Gettext.dgettext(DaisyTest2Web.Gettext, "errors", msg, opts)
+      Gettext.dgettext(QlariusWeb.Gettext, "errors", msg, opts)
     end
   end
 
@@ -469,4 +513,202 @@ defmodule DaisyTest2Web.CoreComponents do
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
+
+  @doc """
+  Renders a back navigation link.
+
+  ## Examples
+
+      <.back navigate={~p"/posts"}>Back to posts</.back>
+  """
+  attr :navigate, :any, required: true
+  slot :inner_block, required: true
+
+  def back(assigns) do
+    ~H"""
+    <div class="mt-2">
+      <.link
+        navigate={@navigate}
+        class="text-sm font-semibold leading-6 text-base-content hover:text-primary inline-flex items-center gap-2"
+      >
+        <.icon name="hero-arrow-left" class="h-4 w-4" />
+        {render_slot(@inner_block)}
+      </.link>
+    </div>
+    """
+  end
+
+  attr :class, :string, default: nil
+  attr :href, :string, required: true
+  attr :method, :string, default: nil
+  attr :rest, :global
+
+  slot :inner_block, required: true
+
+  def a(assigns) do
+    ~H"""
+    <.link
+      class={["text-sm text-primary hover:text-primary-focus", @class]}
+      href={@href}
+      method={@method}
+      {@rest}
+    >
+      {render_slot(@inner_block)}
+    </.link>
+    """
+  end
+
+  # Based on https://daisyui.com/components/breadcrumb/
+  def breadcrumbs(assigns) do
+    ~H"""
+    <div class="text-sm breadcrumbs">
+      <ul>
+        <li>
+          <.link
+            navigate={~p"/creators"}
+            class="text-base-content hover:text-primary"
+          >
+            <.icon name="hero-home" class="w-4 h-4 mr-2" />
+            Creators
+          </.link>
+        </li>
+        <li :for={{text, href} <- @crumbs}>
+          <.link
+            navigate={href}
+            class="text-base-content hover:text-primary"
+          >
+            {text}
+          </.link>
+        </li>
+      </ul>
+    </div>
+    """
+  end
+
+
+  def format_duration(seconds) do
+    minutes = div(seconds, 60)
+    remaining_seconds = rem(seconds, 60)
+    :io_lib.format("~2..0B:~2..0B", [minutes, remaining_seconds])
+  end
+
+  ## --------------------------
+  ##      Pre-1.8 components
+  ## -------------------------
+
+  # The below components were generated when we first created the app with
+  # Phoenix 1.7. New Phoenix 1.8 apps don't have them. We might want to
+  # 'upgrade' them to use DaisyUI classes, if we want to keep them at all, but
+  # that's non-urgent.
+
+  @doc """
+  Renders a modal.
+
+  ## Examples
+
+      <.modal id="confirm-modal">
+        This is a modal.
+      </.modal>
+
+  JS commands may be passed to the `:on_cancel` to configure
+  the closing/cancel event, for example:
+
+      <.modal id="confirm" on_cancel={JS.navigate(~p"/posts")}>
+        This is another modal.
+      </.modal>
+
+  """
+  attr :id, :string, required: true
+  attr :show, :boolean, default: false
+  attr :on_cancel, JS, default: %JS{}
+  slot :inner_block, required: true
+
+  def modal(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      phx-mounted={@show && show_modal(@id)}
+      phx-remove={hide_modal(@id)}
+      data-cancel={JS.exec(@on_cancel, "phx-remove")}
+      class="relative z-50 hidden"
+    >
+      <!-- Modal Backdrop -->
+      <div
+        id={"#{@id}-bg"}
+        class="bg-base-100/80 backdrop-blur-sm fixed inset-0 transition-opacity"
+        aria-hidden="true"
+      />
+
+      <!-- Modal Container -->
+      <div
+        class="fixed inset-0 overflow-y-auto"
+        aria-labelledby={"#{@id}-title"}
+        aria-describedby={"#{@id}-description"}
+        role="dialog"
+        aria-modal="true"
+        tabindex="0"
+      >
+        <div class="flex min-h-full items-center justify-center p-4">
+          <div class="w-full max-w-4xl">
+            <!-- Modal Card -->
+            <.focus_wrap
+              id={"#{@id}-container"}
+              phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
+              phx-key="escape"
+              phx-click-away={JS.exec("data-cancel", to: "##{@id}")}
+              class="relative hidden bg-base-100 rounded-box shadow-2xl border border-base-300 transition-all duration-200"
+            >
+              <!-- Close Button -->
+              <div class="absolute top-4 right-4 z-10">
+                <button
+                  phx-click={JS.exec("data-cancel", to: "##{@id}")}
+                  type="button"
+                  class="btn btn-circle btn-ghost btn-sm hover:bg-base-200"
+                  aria-label={gettext("close")}
+                >
+                  <.icon name="hero-x-mark" class="w-5 h-5" />
+                </button>
+              </div>
+
+              <!-- Modal Content -->
+              <div id={"#{@id}-content"} class="p-6 sm:p-8">
+                {render_slot(@inner_block)}
+              </div>
+            </.focus_wrap>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  def show_modal(js \\ %JS{}, id) when is_binary(id) do
+    js
+    |> JS.show(to: "##{id}")
+    |> JS.show(
+      to: "##{id}-bg",
+      time: 200,
+      transition: {"transition-opacity ease-out duration-200", "opacity-0", "opacity-100"}
+    )
+    |> show("##{id}-container")
+    |> JS.add_class("overflow-hidden", to: "body")
+    |> JS.focus_first(to: "##{id}-content")
+  end
+
+  def hide_modal(js \\ %JS{}, id) do
+    js
+    |> JS.hide(
+      to: "##{id}-bg",
+      transition: {"transition-opacity ease-in duration-150", "opacity-100", "opacity-0"}
+    )
+    |> hide("##{id}-container")
+    |> JS.hide(to: "##{id}", transition: {"block", "block", "hidden"})
+    |> JS.remove_class("overflow-hidden", to: "body")
+    |> JS.pop_focus()
+  end
+
+  ## --------------------
+  ##      CUSTOM
+  ## --------------------
+
 end

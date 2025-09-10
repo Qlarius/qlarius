@@ -17,7 +17,13 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
 
   def get_creator!(id) do
     Repo.get!(Creator, id)
-    |> Repo.preload([:catalogs])
+    |> Repo.preload([
+      catalogs: [
+        :content_groups,
+        :tiqit_classes,
+        content_groups: [:content_pieces, :tiqit_classes]
+      ]
+    ])
   end
 
   def create_creator(attrs \\ %{}) do
@@ -54,7 +60,12 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
 
   def get_catalog!(id) do
     Repo.get!(Catalog, id)
-    |> Repo.preload([:content_groups, :creator, :tiqit_classes])
+    |> Repo.preload([
+      :content_groups,
+      :creator,
+      :tiqit_classes,
+      content_groups: [:content_pieces, :tiqit_classes]
+    ])
   end
 
   def create_catalog(%Creator{} = creator, attrs \\ %{}) do

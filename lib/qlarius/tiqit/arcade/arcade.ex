@@ -3,6 +3,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Accounts.Scope
+  alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.Tiqit
@@ -142,5 +143,53 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     end)
 
     :ok
+  end
+
+  def write_default_catalog_tiqit_classes(%Catalog{} = catalog) do
+    default_tiqit_class_grid()
+    |> Enum.each(fn duration_map ->
+      [{duration, prices}] = Map.to_list(duration_map)
+      upsert_tiqit_class(duration, prices.catalog, catalog_id: catalog.id)
+    end)
+  end
+
+  def write_default_group_tiqit_classes(%ContentGroup{} = group) do
+    default_tiqit_class_grid()
+    |> Enum.each(fn duration_map ->
+      [{duration, prices}] = Map.to_list(duration_map)
+      upsert_tiqit_class(duration, prices.group, content_group_id: group.id)
+    end)
+  end
+
+  def write_default_piece_tiqit_classes(%ContentPiece{} = piece) do
+    default_tiqit_class_grid()
+    |> Enum.each(fn duration_map ->
+      [{duration, prices}] = Map.to_list(duration_map)
+      upsert_tiqit_class(duration, prices.piece, content_piece_id: piece.id)
+    end)
+  end
+
+  # Helper function to upsert (insert or update) tiqit classes
+  defp upsert_tiqit_class(duration_hours, price, query_params) do
+    case Repo.get_by(TiqitClass, [duration_hours: duration_hours] ++ query_params) do
+      nil ->
+        # Create new tiqit class
+        struct(TiqitClass, [duration_hours: duration_hours, price: price] ++ query_params)
+        |> Repo.insert!()
+      existing_class ->
+        # Update existing tiqit class price
+        existing_class
+        |> TiqitClass.changeset(%{price: price})
+        |> Repo.update!()
+    end
+  end
+
+  defp default_tiqit_class_grid() do
+    [
+      %{3 => %{catalog: 0.50, group: 0.25, piece: 0.10}},
+      %{24 => %{catalog: 0.75, group: 0.50, piece: 0.25}},
+      %{168 => %{catalog: 1.50, group: 0.75, piece: 0.50}},
+      %{720 => %{catalog: 3.00, group: 1.00, piece: 0.75}}
+    ]
   end
 end

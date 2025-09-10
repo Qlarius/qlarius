@@ -9907,7 +9907,7 @@ strong {
         --tw-ease: cubic-bezier(0.51, -0.69, 0.3, 2.01);
         transition-timing-function: cubic-bezier(0.51, -0.69, 0.3, 2.01);
     }
-    .btn-outline:not(
+    /* .btn-outline:not(
         .btn-active,
         :hover,
         :active:focus,
@@ -9939,7 +9939,7 @@ strong {
             --btn-border: var(--btn-color);
             --btn-noise: none;
         }
-    }
+    } */
     .btn-soft:not(
         .btn-active,
         :hover,

@@ -1,5 +1,7 @@
-defmodule QlariusWeb.Marketers.ContentHTML do
+defmodule QlariusWeb.Creators.ContentPieceHTML do
   use QlariusWeb, :html
 
-  embed_templates "content_html/*"
+  import QlariusWeb.CoreComponents
+
+  embed_templates "content_piece_html/*"
 end

@@ -1,38 +1,45 @@
 <%= if Enum.any?(@pieces) do %>
-  <div class="w-full border-t-2 border-gray-950 px-5 overflow-hidden">
-    <div class="inline-block bg-gray-950 text-white py-1 px-2">
+  <div class="w-full bg-base-100 border-t-2 border-base-300 px-5 overflow-hidden">
+    <div class="inline-block bg-base-100 text-base-content py-1 px-2 rounded-t-lg border-x border-t border-base-300">
       <h1 class="font-bold">{@group.title}</h1>
     </div>
 
     <%!-- Selected content piece --%>
     <div class="flex flex-row gap-6">
-      <div class="p-4 w-1/2">
-        <div class="bg-gray-50 rounded-lg p-4 mb-4">
+      <div class="p-1 w-1/2">
+        <div class="bg-base-100 rounded-lg p-4 mb-4">
           <div>
-            <img
-              :if={@group.image}
-              src={QlariusWeb.Creators.ContentGroupHTML.content_group_image_url(@group)}
-              class="max-h-20 rounded mx-auto"
-            />
+            <%= if @group.image do %>
+              <img
+                src={QlariusWeb.Creators.ContentGroupHTML.content_group_image_url(@group)}
+                class="max-h-20 rounded mx-auto"
+              />
+            <% else %>
+              <div class="h-20 w-full bg-base-200 rounded flex items-center justify-center">
+                <.icon name="hero-photo" class="h-8 w-8 text-base-content/40" />
+              </div>
+            <% end %>
           </div>
           <div class="mt-4">
-            <h2 class="text-lg font-semibold">{@selected_piece.title}</h2>
-            <p class="text-sm text-gray-600">
+            <p class="text-md font-semibold mb-2 leading-tight">{@selected_piece.title}</p>
+            <p class="text-xs text-base-content/50">
               {@selected_piece.description}
             </p>
           </div>
 
           <div class="flex flex-col justify-between my-4 gap-4">
             <%= if Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>
-              <.button navigate={~p"/widgets/content/#{@selected_piece.id}"} variant="primary">
-                Go to content
-              </.button>
+              <.link navigate={~p"/widgets/content/#{@selected_piece.id}"} class="btn btn-primary btn-block rounded-full">
+                <.icon name="hero-play" class="h-4 w-4 mr-2" />
+                Open/Play
+              </.link>
             <% else %>
               <% default_tc = ContentPiece.default_tiqit_class(@selected_piece) %>
 
-              <.button phx-click="select-tiqit-class" phx-value-tiqit-class-id={default_tc.id}>
-                Get Tiqit ({format_usd(default_tc.price)})
-              </.button>
+              <button phx-click="select-tiqit-class" phx-value-tiqit-class-id={default_tc.id} class="btn btn-primary btn-block rounded-full">
+                <.icon name="hero-shopping-bag" class="h-4 w-4 mr-2" />
+                Buy Tiqit • <span class="font-bold">{format_usd(default_tc.price)}</span>
+              </button>
               <.wallet_buttons balance={@balance} />
             <% end %>
           </div>
@@ -44,25 +51,33 @@
         <.link
           :for={piece <- @pieces}
           patch={~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}"}
-          class={"rounded p-4 flex justify-between items-center #{if piece.id == @selected_piece.id, do: "bg-sky-100", else: "bg-gray-50"}"}
+          class={"rounded-lg p-3 flex justify-between items-center border transition-all hover:shadow-md
+          #{if piece.id == @selected_piece.id, do: "bg-primary/10 border-primary text-primary", else: "bg-base-100 border-base-300 hover:bg-base-200"}"}
         >
-          <div>
-            <h3 class="text-md font-semibold">
+          <div class="flex-1">
+            <p class="text-sm font-semibold mb-2 leading-tight text-base-content">
               {piece.title}
-            </h3>
-            <div class="flex space-x-2 mt-1">
-              <span class="badge badge-soft badge-neutral">
-                {Calendar.strftime(piece.inserted_at, "%d/%m/%y")}
+            </p>
+            <div class="flex items-center gap-2">
+              <span class="badge badge-xs badge-ghost text-base-content/60">
+                {Calendar.strftime(piece.inserted_at, "%b %d, %Y")}
               </span>
-              <span class="badge badge-soft badge-primary">
+              <span class={"badge badge-xs #{if Arcade.has_valid_tiqit?(@current_scope, piece), do: "badge-success", else: "badge-primary"}"}>
                 <%= if Arcade.has_valid_tiqit?(@current_scope, piece) do %>
-                  <.icon name="hero-check" class="h-4 w-4" />
+                  <.icon name="hero-check" class="h-3 w-3 mr-1" />
+                  Owned
                 <% else %>
+                  <.icon name="hero-currency-dollar" class="h-3 w-3 mr-1" />
                   {ContentPiece.default_tiqit_class(piece).price |> format_usd()}
                 <% end %>
               </span>
             </div>
           </div>
+          <%= if piece.id == @selected_piece.id do %>
+            <div class="ml-2">
+              <.icon name="hero-check-circle" class="h-5 w-5 text-primary" />
+            </div>
+          <% end %>
         </.link>
       </div>
     </div>
@@ -82,13 +97,13 @@
           class="max-h-20 rounded mx-auto"
         />
       </div>
-      <h2 class="text-xl font-bold text-gray-800">
+      <h2 class="text-xl font-bold text-base-content">
         {@selected_piece.title}
       </h2>
       <%= if assigns[:options_modal] do %>
         <.tiqit_class_grid piece={@selected_piece} group={@group} balance={@balance} />
       <% else %>
-        <p class="text-gray-600">
+        <p class="text-base-content/60">
           <%= if @selected_tiqit_class.duration_hours do %>
             You are purchasing access to this {class_type(@selected_tiqit_class, @group.catalog)} for {format_tiqit_class_duration(
               @selected_tiqit_class.duration_hours
@@ -100,13 +115,13 @@
             )}
           <% end %>
         </p>
-        <div class="flex items-center">
+        <div class="flex items-center gap-4">
           <.button
-            variant="primary"
-            class="grow"
             phx-click="purchase-tiqit"
             phx-value-tiqit-class-id={@selected_tiqit_class.id}
+            class="btn btn-primary btn-block"
           >
+            <.icon name="hero-shopping-bag" class="h-4 w-4 mr-2" />
             Confirm Purchase ({format_usd(@selected_tiqit_class.price)})
           </.button>
           <img src={~p"/images/TIQIT_logo_color_square.svg"} class="h-8 ml-4" />
@@ -114,11 +129,13 @@
       <% end %>
       <div class="flex gap-4">
         <%= if assigns[:options_modal] do %>
-          <.button phx-click="hide-options" variant="outline" class="flex-1">
+          <.button phx-click="hide-options" class="btn btn-outline btn-block">
+            <.icon name="hero-arrow-left" class="h-4 w-4 mr-2" />
             Back
           </.button>
         <% else %>
-          <.button phx-click="show-options" variant="outline" class="flex-1">
+          <.button phx-click="show-options" class="btn btn-outline btn-block">
+            <.icon name="hero-adjustments-horizontal" class="h-4 w-4 mr-2" />
             Options
           </.button>
         <% end %>
@@ -133,21 +150,29 @@
     show
     on_cancel={JS.push("close-topup-modal")}
   >
-    <div class="flex flex-col items-center p-4">
-      <h2 class="text-lg font-handwritten mb-4">Top up your wallet...</h2>
-      <div class="flex space-x-4">
+    <div class="text-center space-y-6">
+      <div class="space-y-4">
+        <div class="avatar placeholder">
+          <div class="bg-primary text-primary-content rounded-full w-16 h-16">
+            <span class="text-2xl">💰</span>
+          </div>
+        </div>
+        <h2 class="text-xl font-bold text-base-content">Top up your wallet</h2>
+        <p class="text-base-content/60">Add funds to purchase content</p>
+      </div>
+
+      <div class="flex justify-center gap-4">
         <button
-          class="flex items-center justify-center bg-white border border-gray-300 rounded-lg py-2 px-4 hover:bg-gray-100 cursor-pointer"
+          class="btn btn-primary btn-lg"
           phx-click="topup"
         >
-          <span class="text-2xl mr-2">🍎</span> Pay
+          <.icon name="hero-credit-card" class="h-5 w-5 mr-2" />
+          Add Funds
         </button>
-        <button
-          class="flex items-center justify-center bg-white border border-gray-300 rounded-lg py-2 px-4 hover:bg-gray-100 cursor-pointer"
-          phx-click="topup"
-        >
-          <span class="text-2xl mr-2">🇬</span> Pay
-        </button>
+        <.button class="btn btn-outline btn-lg" phx-click="topup">
+          <.icon name="hero-banknotes" class="h-5 w-5 mr-2" />
+          Other Methods
+        </.button>
       </div>
     </div>
   </.modal>
