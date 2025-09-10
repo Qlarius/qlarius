@@ -91,7 +91,7 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
               Single {@catalog.piece_type |> to_string() |> String.capitalize()}
             </th>
             <th :if={@show_group?} class="font-semibold text-base-content text-center">
-              Whole{@catalog.group_type |> to_string() |> String.capitalize()}
+              Whole {@catalog.group_type |> to_string() |> String.capitalize()}
             </th>
             <th :if={@show_catalog?} class="font-semibold text-base-content text-center">
               Whole {@catalog.type |> to_string() |> String.capitalize()}

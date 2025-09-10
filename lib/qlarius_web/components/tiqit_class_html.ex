@@ -10,31 +10,48 @@ defmodule QlariusWeb.TiqitClassHTML do
     <.inputs_for :let={tcf} field={@form[:tiqit_classes]}>
       <input type="hidden" name={"#{@form.name}[tiqit_class_sort][]"} value={tcf.index} />
 
-      <div class="flex align-start gap-4">
-        <.input field={tcf[:duration_hours]} type="number" label="Duration (hours)" />
-        <.input field={tcf[:price]} type="text" label="Price ($)" />
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-medium">Duration (hours)</span>
+          </label>
+          <.input field={tcf[:duration_hours]} type="number" class="input input-bordered w-full" placeholder="Enter duration in hours" />
+        </div>
 
-        <button
-          type="button"
-          name={"#{@form.name}[tiqit_class_drop][]"}
-          value={tcf.index}
-          phx-click={JS.dispatch("change")}
-          class="relative top-4"
-        >
-          <.icon name="hero-x-mark" class="w-6 h-6" />
-        </button>
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-medium">Price ($)</span>
+          </label>
+          <.input field={tcf[:price]} type="text" class="input input-bordered w-full" placeholder="Enter price" />
+        </div>
+
+        <div class="form-control">
+          <button
+            type="button"
+            name={"#{@form.name}[tiqit_class_drop][]"}
+            value={tcf.index}
+            phx-click={JS.dispatch("change")}
+            class="btn btn-outline btn-error btn-sm"
+            aria-label="Remove tiqit class"
+          >
+            <.icon name="hero-x-mark" class="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </.inputs_for>
 
-    <button
-      class="my-4 text-zinc-700"
-      name={"#{@form.name}[tiqit_class_sort][]"}
-      phx-click={JS.dispatch("change")}
-      type="button"
-      value="new"
-    >
-      <.icon name="hero-plus-circle" class="h-5 w-5 relative top-[-1px]" /> Add Tiqit class
-    </button>
+    <div class="mt-6 pt-4 border-t border-base-300">
+      <button
+        class="btn btn-outline btn-sm"
+        name={"#{@form.name}[tiqit_class_sort][]"}
+        phx-click={JS.dispatch("change")}
+        type="button"
+        value="new"
+      >
+        <.icon name="hero-plus" class="h-4 w-4 mr-2" />
+        Add Tiqit Class
+      </button>
+    </div>
     """
   end
 
@@ -65,10 +82,33 @@ defmodule QlariusWeb.TiqitClassHTML do
 
   def tiqit_classes_table(assigns) do
     ~H"""
-    <.table id="catalog_tiqit_classes" rows={@record.tiqit_classes} zebra={false}>
-      <:col :let={tc} label="Duration">{format_tiqit_class_duration(tc.duration_hours)}</:col>
-      <:col :let={tc} label="Price">{format_usd(tc.price)}</:col>
-    </.table>
+    <div class="overflow-x-auto">
+      <table class="table table-zebra w-full">
+        <thead class="bg-base-200">
+          <tr>
+            <th class="font-semibold text-base-content text-left">Duration</th>
+            <th class="font-semibold text-base-content text-left">Price</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-base-300">
+          <%= for tc <- @record.tiqit_classes do %>
+            <tr class="hover:bg-base-200 transition-colors">
+              <td class="font-medium text-base-content">
+                <div class="badge badge-outline badge-sm">
+                  {format_tiqit_class_duration(tc.duration_hours)}
+                </div>
+              </td>
+              <td class="text-base-content">
+                <span class="badge badge-primary badge-sm">
+                  <.icon name="hero-currency-dollar" class="w-3 h-3 mr-1" />
+                  {format_usd(tc.price)}
+                </span>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
     """
   end
 end

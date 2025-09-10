@@ -113,20 +113,8 @@
             </h3>
 
             <%= if Enum.any?(@piece.tiqit_classes) do %>
-              <div class="space-y-3">
-                <%= for tiqit_class <- @piece.tiqit_classes do %>
-                  <div class="border border-base-300 rounded-lg p-3 hover:bg-base-200 transition-colors">
-                    <div class="flex items-center justify-between mb-2">
-                      <span class="font-medium text-base-content">{tiqit_class.name}</span>
-                      <span class="badge badge-primary badge-sm">
-                        ${tiqit_class.price}
-                      </span>
-                    </div>
-                    <div class="text-sm text-base-content/60">
-                      Duration: {format_duration(tiqit_class.duration_seconds)}
-                    </div>
-                  </div>
-                <% end %>
+              <div class="overflow-x-auto">
+                <TiqitClassHTML.tiqit_classes_table record={@piece} />
               </div>
             <% else %>
               <div class="text-center py-8">

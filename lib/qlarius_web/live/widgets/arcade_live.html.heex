@@ -47,7 +47,8 @@
       </div>
 
       <%!-- Pieces --%>
-      <div class="w-1/2 space-y-3 pt-4">
+      <div class="w-1/2 space-y-3 pt-4 ">
+        <h2 class="text-lg font-semibold text-base-content">{String.capitalize(to_string(@group.catalog.piece_type))}s</h2>
         <.link
           :for={piece <- @pieces}
           patch={~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}"}

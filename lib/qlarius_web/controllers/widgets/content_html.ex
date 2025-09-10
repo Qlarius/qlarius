@@ -3,36 +3,67 @@ defmodule QlariusWeb.Widgets.ContentHTML do
 
   def show(assigns) do
     ~H"""
-    <div class="w-screen h-screen bg-white">
-      <div class="flex flex-col gap-2 w-[640px] px-8 mx-auto">
-        <.header>
-          {@content.title}
-          <:subtitle>{@content.content_group.title}</:subtitle>
-        </.header>
+    <div class="min-h-screen bg-base-100">
+      <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <div class="card bg-base-100 shadow-xl border border-base-300">
+          <div class="card-body">
+            <.header class="mb-6">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <h1 class="text-2xl font-bold text-base-content mb-2">
+                    {@content.title}
+                  </h1>
+                  <p class="text-base-content/70">
+                    {@content.content_group.title}
+                  </p>
+                </div>
+                <div class="badge badge-primary badge-lg">
+                  <.icon name="hero-play" class="w-4 h-4 mr-1" />
+                  Now Playing
+                </div>
+              </div>
+            </.header>
 
-        <div class="rounded-lg p-2 mx-auto bg-gray-300">
-          <iframe
-            class="mx-auto"
-            width="560"
-            height="315"
-            src={"https://www.youtube.com/embed/#{@content.youtube_id}"}
-            title="YouTube video player"
-            frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerpolicy="strict-origin-when-cross-origin"
-            allowfullscreen
-          >
-          </iframe>
+            <div class="aspect-video bg-base-200 rounded-box overflow-hidden mb-6 border border-base-300">
+              <iframe
+                class="w-full h-full"
+                src={"https://www.youtube.com/embed/#{@content.youtube_id}"}
+                title="YouTube video player"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+              >
+              </iframe>
+            </div>
+
+            <div class="stats stats-vertical lg:stats-horizontal shadow mb-6 bg-base-200">
+              <div class="stat">
+                <div class="stat-figure text-primary">
+                  <.icon name="hero-clock" class="w-6 h-6" />
+                </div>
+                <div class="stat-title text-base-content/70">Expires In</div>
+                <div class="stat-value text-primary text-lg" id="expiration-timer" data-expires-at={@tiqit.expires_at}>
+                  {@tiqit.expires_at}
+                </div>
+                <div class="stat-desc text-base-content/50">
+                  Keep watching before it expires
+                </div>
+              </div>
+            </div>
+
+            <div class="card-actions justify-between items-center">
+              <div class="flex items-center text-sm text-base-content/60">
+                <.icon name="hero-eye" class="w-4 h-4 mr-2" />
+                Enjoy your Tiqit access
+              </div>
+              <.back navigate={~p"/widgets/arcade/group/#{@content.content_group.id}"}>
+                <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" />
+                Back to Content
+              </.back>
+            </div>
+          </div>
         </div>
-
-        <div class="text-sm text-gray-700 text-center mt-3">
-          Your Tiqit expires in:
-          <span id="expiration-timer" data-expires-at={@tiqit.expires_at}>
-            {@tiqit.expires_at}
-          </span>
-        </div>
-
-        <.back navigate={~p"/widgets/arcade/group/#{@content.content_group.id}"}>Back</.back>
       </div>
     </div>
 
