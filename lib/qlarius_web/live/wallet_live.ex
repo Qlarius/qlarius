@@ -133,7 +133,7 @@ defmodule QlariusWeb.WalletLive do
         </div>
       <% else %>
         <div class="mb-6 flex gap-2 justify-end items-center">
-          <div class="text-lg font-bold bg-sponster-400 text-white px-3 py-1 rounded-full">
+          <div class="text-lg font-bold bg-sponster-500 text-white px-3 py-1 rounded-full">
             {format_currency(@ledger_header.balance)}
           </div>
         </div>
@@ -177,7 +177,7 @@ defmodule QlariusWeb.WalletLive do
         <ul class="list bg-base-100 rounded-box shadow-md">
           <li
             :for={entry <- @paginated_entries.entries}
-            class="list-row cursor-pointer"
+            class={"list-row cursor-pointer transition-all duration-200 hover:shadow-sm #{if Decimal.compare(entry.amt, Decimal.new(0)) == :gt, do: "bg-sponster-100 hover:bg-sponster-100/50 dark:bg-sponster-900/50 hover:bg-sponster-50/50 hover:dark:bg-sponster-900/30", else: "bg-tiqit-100 hover:bg-tiqit-100/50 dark:bg-tiqit-900/50 hover:bg-tiqit-50/50 hover:dark:bg-tiqit-900/30"}"}
             phx-click="open-ledger-entry-sidebar"
             phx-value-entry_id={entry.id}
           >
