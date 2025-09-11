@@ -568,8 +568,7 @@ defmodule QlariusWeb.CoreComponents do
             navigate={~p"/creators"}
             class="text-base-content hover:text-primary"
           >
-            <.icon name="hero-home" class="w-4 h-4 mr-2" />
-            Creators
+            <.icon name="hero-home" class="w-4 h-4 mr-2" /> Creators
           </.link>
         </li>
         <li :for={{text, href} <- @crumbs}>
@@ -584,7 +583,6 @@ defmodule QlariusWeb.CoreComponents do
     </div>
     """
   end
-
 
   def format_duration(seconds) do
     minutes = div(seconds, 60)
@@ -638,8 +636,8 @@ defmodule QlariusWeb.CoreComponents do
         class="bg-base-100/80 backdrop-blur-sm fixed inset-0 transition-opacity"
         aria-hidden="true"
       />
-
-      <!-- Modal Container -->
+      
+    <!-- Modal Container -->
       <div
         class="fixed inset-0 overflow-y-auto"
         aria-labelledby={"#{@id}-title"}
@@ -669,9 +667,9 @@ defmodule QlariusWeb.CoreComponents do
                   <.icon name="hero-x-mark" class="w-5 h-5" />
                 </button>
               </div>
-
-              <!-- Modal Content -->
-              <div id={"#{@id}-content"} class="p-6 sm:p-8">
+              
+    <!-- Modal Content -->
+              <div id={"#{@id}-content"} class="p-0">
                 {render_slot(@inner_block)}
               </div>
             </.focus_wrap>
@@ -710,5 +708,4 @@ defmodule QlariusWeb.CoreComponents do
   ## --------------------
   ##      CUSTOM
   ## --------------------
-
 end

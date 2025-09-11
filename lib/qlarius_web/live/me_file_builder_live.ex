@@ -150,16 +150,14 @@ defmodule QlariusWeb.MeFileBuilderLive do
                     class="absolute top-0 left-0 h-6 flex items-center justify-center text-xs font-bold text-white pointer-events-none"
                     style={"width: #{max(10, percent_complete)}%"}
                   >
-                  {completed_traits}/{total_traits}
+                    {completed_traits}/{total_traits}
                   </div>
                 </div>
                 <h1 class="text-base-content mt-2">Fill empty tags below.</h1>
               </div>
-
             </div>
 
             <div class="overflow-y-auto pb-32 max-h-full">
-
               <div class="flex flex-row flex-wrap gap-4 pb-32">
                 <div
                   :for={
@@ -377,7 +375,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
             value: "update_pulse"
           })
 
-
         {:noreply, socket}
     end
   end
@@ -431,5 +428,4 @@ defmodule QlariusWeb.MeFileBuilderLive do
         {:noreply, socket}
     end
   end
-
 end

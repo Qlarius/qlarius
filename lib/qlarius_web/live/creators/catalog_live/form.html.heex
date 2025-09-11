@@ -3,15 +3,17 @@
     <!-- Header Section -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div class="flex items-center gap-4">
-        <.link navigate={
-          if @live_action == :edit do
-            ~p"/creators/catalogs/#{@catalog}"
-          else
-            ~p"/creators/#{@creator}"
-          end
-        } class="btn btn-ghost btn-sm">
-          <.icon name="hero-arrow-left" class="w-4 h-4" />
-          Back
+        <.link
+          navigate={
+            if @live_action == :edit do
+              ~p"/creators/catalogs/#{@catalog}"
+            else
+              ~p"/creators/#{@creator}"
+            end
+          }
+          class="btn btn-ghost btn-sm"
+        >
+          <.icon name="hero-arrow-left" class="w-4 h-4" /> Back
         </.link>
         <div>
           <h1 class="text-2xl font-bold text-base-content">
@@ -23,8 +25,8 @@
         </div>
       </div>
     </div>
-
-    <!-- Main Form Card -->
+    
+<!-- Main Form Card -->
     <div class="card bg-base-100 shadow-lg">
       <div class="card-body">
         <.form for={@form} phx-change="validate" phx-submit="save" class="space-y-6">
@@ -40,23 +42,34 @@
                 <label class="label">
                   <span class="label-text font-medium">Name *</span>
                 </label>
-                <.input field={@form[:name]} type="text" class="input input-bordered w-full" placeholder="Enter catalog name" required />
+                <.input
+                  field={@form[:name]}
+                  type="text"
+                  class="input input-bordered w-full"
+                  placeholder="Enter catalog name"
+                  required
+                />
               </div>
 
               <div class="form-control">
                 <label class="label">
                   <span class="label-text font-medium">URL *</span>
                 </label>
-                <.input field={@form[:url]} type="url" class="input input-bordered w-full" placeholder="https://example.com" required />
+                <.input
+                  field={@form[:url]}
+                  type="url"
+                  class="input input-bordered w-full"
+                  placeholder="https://example.com"
+                  required
+                />
               </div>
             </div>
           </div>
-
-          <!-- Configuration Section -->
+          
+<!-- Configuration Section -->
           <div class="border-t border-base-300 pt-6">
             <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-              <.icon name="hero-cog-6-tooth" class="w-5 h-5 mr-3 text-warning" />
-              Configuration
+              <.icon name="hero-cog-6-tooth" class="w-5 h-5 mr-3 text-warning" /> Configuration
             </h3>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -112,18 +125,20 @@
               </div>
             </div>
           </div>
-
-          <!-- Tiqit Classes Section -->
+          
+<!-- Tiqit Classes Section -->
           <div class="border-t border-base-300 pt-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-semibold text-base-content flex items-center">
-                <.icon name="hero-tag" class="w-5 h-5 mr-3 text-primary" />
-                Tiqit Classes
+                <.icon name="hero-tag" class="w-5 h-5 mr-3 text-primary" /> Tiqit Classes
               </h3>
 
-              <.button type="button" phx-click="write_default_tiqit_classes" class="btn btn-outline btn-sm">
-                <.icon name="hero-plus" class="w-4 h-4 mr-2" />
-                Add Default Classes
+              <.button
+                type="button"
+                phx-click="write_default_tiqit_classes"
+                class="btn btn-outline btn-sm"
+              >
+                <.icon name="hero-plus" class="w-4 h-4 mr-2" /> Add Default Classes
               </.button>
             </div>
 
@@ -131,23 +146,24 @@
               <TiqitClassHTML.inputs_for_tiqit_classes form={@form} />
             </div>
           </div>
-
-          <!-- Form Actions -->
+          
+<!-- Form Actions -->
           <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-base-300">
             <.button class="btn btn-primary flex-1 sm:flex-none">
-              <.icon name="hero-check" class="w-4 h-4 mr-2" />
-              Save Catalog
+              <.icon name="hero-check" class="w-4 h-4 mr-2" /> Save Catalog
             </.button>
 
-            <.link navigate={
-              if @live_action == :edit do
-                ~p"/creators/catalogs/#{@catalog}"
-              else
-                ~p"/creators/#{@creator}"
-              end
-            } class="btn btn-ghost">
-              <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" />
-              Cancel
+            <.link
+              navigate={
+                if @live_action == :edit do
+                  ~p"/creators/catalogs/#{@catalog}"
+                else
+                  ~p"/creators/#{@creator}"
+                end
+              }
+              class="btn btn-ghost"
+            >
+              <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Cancel
             </.link>
           </div>
         </.form>

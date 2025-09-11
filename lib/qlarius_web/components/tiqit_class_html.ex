@@ -15,14 +15,24 @@ defmodule QlariusWeb.TiqitClassHTML do
           <label class="label">
             <span class="label-text font-medium">Duration (hours)</span>
           </label>
-          <.input field={tcf[:duration_hours]} type="number" class="input input-bordered w-full" placeholder="Enter duration in hours" />
+          <.input
+            field={tcf[:duration_hours]}
+            type="number"
+            class="input input-bordered w-full"
+            placeholder="Enter duration in hours"
+          />
         </div>
 
         <div class="form-control">
           <label class="label">
             <span class="label-text font-medium">Price ($)</span>
           </label>
-          <.input field={tcf[:price]} type="text" class="input input-bordered w-full" placeholder="Enter price" />
+          <.input
+            field={tcf[:price]}
+            type="text"
+            class="input input-bordered w-full"
+            placeholder="Enter price"
+          />
         </div>
 
         <div class="form-control">
@@ -48,8 +58,7 @@ defmodule QlariusWeb.TiqitClassHTML do
         type="button"
         value="new"
       >
-        <.icon name="hero-plus" class="h-4 w-4 mr-2" />
-        Add Tiqit Class
+        <.icon name="hero-plus" class="h-4 w-4 mr-2" /> Add Tiqit Class
       </button>
     </div>
     """

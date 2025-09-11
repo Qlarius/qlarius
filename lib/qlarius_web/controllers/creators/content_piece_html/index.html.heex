@@ -8,8 +8,7 @@
       </div>
       <div class="flex gap-2">
         <.link navigate={~p"/creators/content_pieces/new"} class="btn btn-primary">
-          <.icon name="hero-plus" class="w-4 h-4 mr-2" />
-          New Content Piece
+          <.icon name="hero-plus" class="w-4 h-4 mr-2" /> New Content Piece
         </.link>
       </div>
     </div>
@@ -31,7 +30,10 @@
               </thead>
               <tbody class="divide-y divide-base-300">
                 <%= for content <- @content_collection do %>
-                  <tr class="hover:bg-base-200 cursor-pointer transition-colors" phx-click={JS.navigate(~p"/creators/content_pieces/#{content}")}>
+                  <tr
+                    class="hover:bg-base-200 cursor-pointer transition-colors"
+                    phx-click={JS.navigate(~p"/creators/content_pieces/#{content}")}
+                  >
                     <td class="font-medium text-base-content">
                       <div class="flex items-center gap-3">
                         <div class="avatar placeholder">
@@ -66,7 +68,10 @@
                     </td>
                     <td class="text-right">
                       <div class="flex gap-2 justify-end">
-                        <.link navigate={~p"/creators/content_pieces/#{content}/edit"} class="btn btn-ghost btn-sm">
+                        <.link
+                          navigate={~p"/creators/content_pieces/#{content}/edit"}
+                          class="btn btn-ghost btn-sm"
+                        >
                           <.icon name="hero-pencil" class="w-4 h-4" />
                         </.link>
                         <.link
@@ -101,8 +106,7 @@
               Start building your content library by adding your first content piece.
             </p>
             <.link navigate={~p"/creators/content_pieces/new"} class="btn btn-primary btn-lg">
-              <.icon name="hero-plus" class="w-5 h-5 mr-2" />
-              Add First Content Piece
+              <.icon name="hero-plus" class="w-5 h-5 mr-2" /> Add First Content Piece
             </.link>
           </div>
         </div>

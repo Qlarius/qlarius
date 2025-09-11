@@ -4,8 +4,7 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div class="flex items-center gap-4">
         <.link navigate={~p"/creators/content_groups/#{@group}"} class="btn btn-ghost btn-sm">
-          <.icon name="hero-arrow-left" class="w-4 h-4" />
-          Back to Content Group
+          <.icon name="hero-arrow-left" class="w-4 h-4" /> Back to Content Group
         </.link>
         <div>
           <h1 class="text-2xl font-bold text-base-content">{@page_title}</h1>
@@ -15,8 +14,8 @@
         </div>
       </div>
     </div>
-
-    <!-- Main Form Card -->
+    
+<!-- Main Form Card -->
     <div class="card bg-base-100 shadow-lg">
       <div class="card-body">
         <.form for={@form} phx-change="validate" phx-submit="save" class="space-y-6">
@@ -32,14 +31,23 @@
                 <label class="label">
                   <span class="label-text font-medium">Title *</span>
                 </label>
-                <.input field={@form[:title]} type="text" class="input input-bordered w-full" placeholder="Enter content piece title" />
+                <.input
+                  field={@form[:title]}
+                  type="text"
+                  class="input input-bordered w-full"
+                  placeholder="Enter content piece title"
+                />
               </div>
 
               <div class="form-control">
                 <label class="label">
                   <span class="label-text font-medium">Published Date</span>
                 </label>
-                <.input field={@form[:date_published]} type="date" class="input input-bordered w-full" />
+                <.input
+                  field={@form[:date_published]}
+                  type="date"
+                  class="input input-bordered w-full"
+                />
               </div>
             </div>
 
@@ -47,21 +55,29 @@
               <label class="label">
                 <span class="label-text font-medium">Description</span>
               </label>
-              <.input field={@form[:description]} type="textarea" class="textarea textarea-bordered w-full" placeholder="Enter content description" rows="4" />
+              <.input
+                field={@form[:description]}
+                type="textarea"
+                class="textarea textarea-bordered w-full"
+                placeholder="Enter content description"
+                rows="4"
+              />
             </div>
           </div>
-
-          <!-- Tiqit Classes Section -->
+          
+<!-- Tiqit Classes Section -->
           <div class="border-t border-base-300 pt-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-semibold text-base-content flex items-center">
-                <.icon name="hero-tag" class="w-5 h-5 mr-3 text-primary" />
-                Tiqit Classes
+                <.icon name="hero-tag" class="w-5 h-5 mr-3 text-primary" /> Tiqit Classes
               </h3>
 
-              <.button type="button" phx-click="write_default_tiqit_classes" class="btn btn-outline btn-sm">
-                <.icon name="hero-plus" class="w-4 h-4 mr-2" />
-                Add Default Classes
+              <.button
+                type="button"
+                phx-click="write_default_tiqit_classes"
+                class="btn btn-outline btn-sm"
+              >
+                <.icon name="hero-plus" class="w-4 h-4 mr-2" /> Add Default Classes
               </.button>
             </div>
 
@@ -69,17 +85,15 @@
               <TiqitClassHTML.inputs_for_tiqit_classes form={@form} />
             </div>
           </div>
-
-          <!-- Form Actions -->
+          
+<!-- Form Actions -->
           <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-base-300">
             <.button class="btn btn-primary flex-1 sm:flex-none">
-              <.icon name="hero-check" class="w-4 h-4 mr-2" />
-              Save Content Piece
+              <.icon name="hero-check" class="w-4 h-4 mr-2" /> Save Content Piece
             </.button>
 
             <.link navigate={~p"/creators/content_groups/#{@group}"} class="btn btn-ghost">
-              <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" />
-              Cancel
+              <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Cancel
             </.link>
           </div>
         </.form>

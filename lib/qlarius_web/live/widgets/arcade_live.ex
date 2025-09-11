@@ -11,21 +11,52 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
   import QlariusWeb.TiqitClassHTML
 
   def mount(%{"group_id" => group_id}, _session, socket) do
-    scope = socket.assigns.current_scope
+    # Prevent double mounting - only initialize if not already mounted
+    if connected?(socket) and socket.assigns[:mounted] do
+      # Already mounted, just update balance and return
+      scope = socket.assigns.current_scope
 
-    group = Arcade.get_content_group!(group_id)
-    pieces = Enum.filter(group.content_pieces, &Enum.any?(&1.tiqit_classes))
+      {:ok,
+       socket
+       |> assign(
+         balance: scope && scope.wallet_balance,
+         offered_amount: scope && scope.offered_amount
+       )}
+    else
+      # First mount - do full initialization
+      scope = socket.assigns.current_scope
 
-    Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{scope.user.id}")
+      # Load data once
+      group = Arcade.get_content_group!(group_id)
+      pieces = Enum.filter(group.content_pieces, &Enum.any?(&1.tiqit_classes))
 
-    socket
-    |> assign(
-      balance: scope && scope.wallet_balance,
-      group: group,
-      pieces: pieces,
-      selected_tiqit_class: nil
-    )
-    |> ok()
+      # Generate random durations only once per piece (cache them)
+      pieces =
+        Enum.map(pieces, fn piece ->
+          # Use piece ID as seed for consistent but random durations
+          :rand.seed(:exsplus, {piece.id, piece.id, piece.id})
+          # 19..32 range
+          hours = :rand.uniform(14) + 18
+          # 1..59 range
+          minutes = :rand.uniform(59) + 1
+          duration = :io_lib.format("~2..0B:~2..0B", [hours, minutes])
+          Map.put(piece, :duration, duration)
+        end)
+
+      # Subscribe to wallet updates only once
+      Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{scope.user.id}")
+
+      {:ok,
+       socket
+       |> assign(
+         mounted: true,
+         balance: scope && scope.wallet_balance,
+         offered_amount: scope && scope.offered_amount,
+         group: group,
+         pieces: pieces,
+         selected_tiqit_class: nil
+       )}
+    end
   end
 
   def handle_params(params, _uri, socket) do
@@ -80,45 +111,62 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
       )
 
     ~H"""
-    <div class="overflow-x-auto">
-      <table class="table table-zebra w-full">
-        <thead class="bg-base-200">
-          <tr>
-            <th class="font-semibold text-base-content text-left">
-              Duration
-            </th>
-            <th class="font-semibold text-base-content text-center">
-              Single {@catalog.piece_type |> to_string() |> String.capitalize()}
-            </th>
-            <th :if={@show_group?} class="font-semibold text-base-content text-center">
-              Whole {@catalog.group_type |> to_string() |> String.capitalize()}
-            </th>
-            <th :if={@show_catalog?} class="font-semibold text-base-content text-center">
-              Whole {@catalog.type |> to_string() |> String.capitalize()}
-            </th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-base-300">
-          <tr :for={duration <- @durations} class="hover:bg-base-200 transition-colors">
-            <td class="font-medium text-base-content">
-              <div class="badge badge-outline badge-sm">
+    <div class="flex justify-center">
+      <div class="overflow-x-auto w-full max-w-4xl">
+        <table class="table table-compact !w-auto inline-table mx-auto table-fixed">
+          <colgroup>
+            <col class="w-40" />
+            <col class="w-40" />
+            <col :if={@show_group?} class="w-40" />
+            <col :if={@show_catalog?} class="w-40" />
+          </colgroup>
+          <thead class="bg-base-200">
+            <tr>
+              <th class="w-40 font-semibold text-base-content text-right py-2 px-3 whitespace-nowrap">
+                Duration
+              </th>
+              <th class="w-40 font-semibold text-base-content text-center py-2 px-3 leading-none">
+                Single<br />{@catalog.piece_type |> to_string() |> String.capitalize()}
+              </th>
+              <th
+                :if={@show_group?}
+                class="w-40 font-semibold text-base-content text-center py-2 px-3 leading-none"
+              >
+                Entire {@catalog.group_type |> to_string() |> String.capitalize()}<br /><span class="text-base-content/40 text-xs mt-0">
+                  ({length(@group.content_pieces)} episodes)
+                </span>
+              </th>
+              <th
+                :if={@show_catalog?}
+                class="w-40 font-semibold text-base-content text-center py-2 px-3 leading-none"
+              >
+                Entire {@catalog.type |> to_string() |> String.capitalize()}<br /><span class="text-base-content/40 text-xs mt-0">
+                  (9 series)
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-base-300">
+            <tr :for={duration <- @durations}>
+              <td class="font-bold text-base-content text-right p-3 whitespace-nowrap">
                 {format_tiqit_class_duration(duration)}
-              </div>
-            </td>
-            <%= for {col, true} <- [{@piece, true}, {@group, @show_group?}, {@catalog, @show_catalog?}] do %>
-              <td class="text-center">
-                <%= if class = Enum.find(col.tiqit_classes, & &1.duration_hours == duration) do %>
-                  <div class="flex justify-center">
-                    <.tiqit_class_grid_price balance={@balance} tiqit_class={class} />
-                  </div>
-                <% else %>
-                  <div class="text-base-content/40 text-sm">-</div>
-                <% end %>
+                <.icon name="hero-arrow-right" class="w-4 h-4 ml-1 text-base-content/60" />
               </td>
-            <% end %>
-          </tr>
-        </tbody>
-      </table>
+              <%= for {col, true} <- [{@piece, true}, {@group, @show_group?}, {@catalog, @show_catalog?}] do %>
+                <td class="w-40 text-center py-1 px-3">
+                  <%= if class = Enum.find(col.tiqit_classes, & &1.duration_hours == duration) do %>
+                    <div class="flex justify-center">
+                      <.tiqit_class_grid_price balance={@balance} tiqit_class={class} />
+                    </div>
+                  <% else %>
+                    <span class="text-base-content/40 text-sm">-</span>
+                  <% end %>
+                </td>
+              <% end %>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
     """
   end
@@ -132,35 +180,41 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
       <button
         phx-click="select-tiqit-class"
         phx-value-tiqit-class-id={@tiqit_class.id}
-        class="bg-gray-300 px-3 py-1 rounded text-sm font-medium hover:bg-gray-400 cursor-pointer"
+        class="btn btn-sm rounded-full btn-primary px-3 py-1 cursor-pointer"
       >
         {format_usd(@tiqit_class.price)}
       </button>
     <% else %>
-      <div class="bg-gray-100 px-3 py-1 rounded text-sm font-medium text-gray-800 line-through">
+      <div class="btn btn-xs btn-primary px-3 py-1 rounded disabled line-through">
         {format_usd(@tiqit_class.price)}
       </div>
     <% end %>
     """
   end
 
-  attr :balance, Decimal
+  attr :balance, Decimal, required: true
+  attr :offered_amount, Decimal, required: true
 
-  defp wallet_buttons(assigns) do
+  defp wallet_strip(assigns) do
     ~H"""
-    <div class="flex items-center space-x-2 flex-1">
-      <span
-        class="bg-green-100 text-green-800 border border-green-800 py-1 px-2 rounded flex items-center text-sm hover:bg-green-200 cursor-pointer"
-        phx-click="show-topup-modal"
-      >
-        <.icon name="hero-wallet" class="w-4 h-4 mr-1" /> Balance: {format_usd(@balance)}
-      </span>
-      <button
-        class="cursor-pointer bg-green-100 h-7 w-7 rounded-full hover:bg-green-200 text-green-800 border border-green-800"
-        phx-click="show-topup-modal"
-      >
-        <.icon name="hero-plus" class="w-4 h-4 relative bottom-px" />
-      </button>
+    <div class="w-full text-base-content bg-base-200 border-t border-base-300 px-5 py-2">
+      <div class="flex flex-row flex-wrap justify-between items-center space-x-4">
+        <span class="text-lg leading-none">
+          You have
+          <span class="text-sponster-500 dark:text-sponster-400 font-bold text-lg">
+            {format_usd(@balance)}
+          </span>
+          to spend.
+        </span>
+
+        <button
+          class="btn btn-md rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 leading-none"
+          phx-click="show-topup-modal"
+        >
+          <.icon name="hero-plus" class="w-4 h-4 mr-1" />Collect
+          <span class="font-bold">{format_usd(@offered_amount)}</span>
+        </button>
+      </div>
     </div>
     """
   end
@@ -227,9 +281,22 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
   end
 
   def handle_info(:update_balance, socket) do
-    user = socket.assigns.current_scope.user
-    balance = Wallets.get_user_current_balance(user)
-    {:noreply, assign(socket, balance: balance)}
+    # Only update if mounted to prevent race conditions
+    if socket.assigns[:mounted] do
+      user = socket.assigns.current_scope.user
+      scope = socket.assigns.current_scope
+
+      # Only fetch balance if user exists
+      balance = if user, do: Wallets.get_user_current_balance(user), else: socket.assigns.balance
+
+      {:noreply,
+       assign(socket,
+         balance: balance,
+         offered_amount: scope && scope.offered_amount
+       )}
+    else
+      {:noreply, socket}
+    end
   end
 
   defp class_type(tiqit_class, catalog) do

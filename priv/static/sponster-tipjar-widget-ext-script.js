@@ -109,12 +109,12 @@ function toggleSponster() {
         popoverFrameDiv.style.bottom = "calc(-100vh - 10px)";
         
         // Add delay to allow animation to complete before refreshing iframes
-        setTimeout(() => {
-            document.getElementById('ydadget_sponster_adget_iframe').src = document.getElementById('ydadget_sponster_adget_iframe').src;
-            document.getElementById('ydadget_sponster_announcer_iframe').src = document.getElementById('ydadget_sponster_announcer_iframe').src;
-            if (splitCode == 'youdata_main_app') {
-                $.post('https://qlarius-app-staging-old-e240d7e2bcf7.herokuapp.com/sponster_ads/update_sponster_amounts');  
-            }
-        }, 350);
+        // setTimeout(() => {
+        //     document.getElementById('ydadget_sponster_adget_iframe').src = document.getElementById('ydadget_sponster_adget_iframe').src;
+        //     document.getElementById('ydadget_sponster_announcer_iframe').src = document.getElementById('ydadget_sponster_announcer_iframe').src;
+        //     if (splitCode == 'youdata_main_app') {
+        //         $.post('https://qlarius-app-staging-old-e240d7e2bcf7.herokuapp.com/sponster_ads/update_sponster_amounts');  
+        //     }
+        // }, 350);
     }
 }

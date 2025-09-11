@@ -9,8 +9,7 @@
       <div class="flex gap-2">
         <.link navigate={~p"/creators/new"}>
           <.button class="btn btn-primary">
-            <.icon name="hero-plus" class="w-4 h-4 mr-2" />
-            New Creator
+            <.icon name="hero-plus" class="w-4 h-4 mr-2" /> New Creator
           </.button>
         </.link>
       </div>
@@ -30,7 +29,10 @@
               </thead>
               <tbody class="divide-y divide-base-300">
                 <%= for creator <- @creators do %>
-                  <tr class="hover:bg-base-200 cursor-pointer transition-colors" phx-click={JS.navigate(~p"/creators/#{creator}")}>
+                  <tr
+                    class="hover:bg-base-200 cursor-pointer transition-colors"
+                    phx-click={JS.navigate(~p"/creators/#{creator}")}
+                  >
                     <td class="font-medium text-base-content">
                       <div class="flex items-center gap-3">
                         <div class="avatar placeholder">
@@ -48,7 +50,10 @@
                             <.icon name="hero-eye" class="w-4 h-4" />
                           </.link>
                         </div>
-                        <.link navigate={~p"/creators/#{creator}/edit"} class="btn btn-ghost btn-sm">
+                        <.link
+                          navigate={~p"/creators/#{creator}/edit"}
+                          class="btn btn-ghost btn-sm"
+                        >
                           <.icon name="hero-pencil" class="w-4 h-4" />
                         </.link>
                         <.link
@@ -84,8 +89,7 @@
             </p>
             <.link navigate={~p"/creators/new"}>
               <.button class="btn btn-primary btn-lg">
-                <.icon name="hero-plus" class="w-5 h-5 mr-2" />
-                Add First Creator
+                <.icon name="hero-plus" class="w-5 h-5 mr-2" /> Add First Creator
               </.button>
             </.link>
           </div>

@@ -176,6 +176,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         # Create new tiqit class
         struct(TiqitClass, [duration_hours: duration_hours, price: price] ++ query_params)
         |> Repo.insert!()
+
       existing_class ->
         # Update existing tiqit class price
         existing_class

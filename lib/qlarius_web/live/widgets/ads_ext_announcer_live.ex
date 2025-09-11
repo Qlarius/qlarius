@@ -28,7 +28,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   # Commented out unused import - Jason functions not used in this LiveView
   # import Jason
 
-  @recruiter_mode true
+  @recruiter_mode false
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
@@ -299,9 +299,9 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
         <div
           id="ydadget_announcer_toggle_button_text"
           class="text-base-content"
-          style="margin-right: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.32px; word-wrap: break-word"
+          style="margin-right: 4px; font-size: 13px; font-weight: 600; word-wrap: break-word"
         >
-          {if @recruiter_mode, do: "INFO", else: "SHOW"}
+          {if @recruiter_mode, do: "Info", else: "Show"}
         </div>
         <span
           id="ydadget_announcer_toggle_icon"
@@ -318,12 +318,12 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
         var announcerAdCount = document.getElementById("announcer-ad-count");
         var announcerOfferedAmount = document.getElementById("announcer-offered-amount");
         var currentMode = "open";
-        var originalButtonText = announcerToggleButtonText ? announcerToggleButtonText.textContent : "SHOW";
+        var originalButtonText = announcerToggleButtonText ? announcerToggleButtonText.textContent : "Show";
 
         function toggleAnnouncerElements() {
           if (currentMode == "open") {
             if (announcerToggleIcon) { announcerToggleIcon.style.transform = "rotate(180deg)"; }
-            if (announcerToggleButtonText) { announcerToggleButtonText.textContent = "HIDE"; }
+            if (announcerToggleButtonText) { announcerToggleButtonText.textContent = "Hide"; }
             currentMode = "closed";
           } else {
             if (announcerToggleIcon) { announcerToggleIcon.style.transform = "rotate(0deg)"; }

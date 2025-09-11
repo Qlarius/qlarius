@@ -1,114 +1,134 @@
 <%= if Enum.any?(@pieces) do %>
-  <div class="w-full bg-base-100 border-t-2 border-base-300 px-5 overflow-hidden">
-    <div class="inline-block bg-base-100 text-base-content py-1 px-2 rounded-t-lg border-x border-t border-base-300">
-      <h1 class="font-bold">{@group.title}</h1>
+  <div class="w-full h-[600px] flex flex-col min-h-0">
+    <div class="grow-0 bg-base-200 text-base-content p-3 border-b border-base-300">
+      <h1 class="font-bold text-xl">{@group.title}</h1>
     </div>
 
-    <%!-- Selected content piece --%>
-    <div class="flex flex-row gap-6">
-      <div class="p-1 w-1/2">
-        <div class="bg-base-100 rounded-lg p-4 mb-4">
+    <div class="flex-1 bg-base-100 text-base-content min-h-0 flex">
+      <%!-- Selected content piece - STATIONARY --%>
+      <div class="w-1/2 p-5 flex flex-col">
+        <div class="bg-base-100 rounded-lg p-4 mb-4 flex-shrink-0">
           <div>
-            <%= if @group.image do %>
+            <img
+              src="/images/darkness-cover-art-garza-season-5-square-526x351.jpg"
+              class="max-h-50 rounded-lg mx-auto"
+            />
+            <%!-- <%= if @group.image do %>
               <img
                 src={QlariusWeb.Creators.ContentGroupHTML.content_group_image_url(@group)}
-                class="max-h-20 rounded mx-auto"
+                class="max-h-32 rounded mx-auto"
               />
             <% else %>
-              <div class="h-20 w-full bg-base-200 rounded flex items-center justify-center">
+              <div class="h-32 w-full bg-base-200 rounded flex items-center justify-center">
                 <.icon name="hero-photo" class="h-8 w-8 text-base-content/40" />
               </div>
-            <% end %>
+            <% end %> --%>
           </div>
           <div class="mt-4">
-            <p class="text-md font-semibold mb-2 leading-tight">{@selected_piece.title}</p>
-            <p class="text-xs text-base-content/50">
+            <p class="text-lg font-semibold mb-2 leading-tight">{@selected_piece.title}</p>
+            <p class="text-sm text-base-content/70">
               {@selected_piece.description}
             </p>
           </div>
 
-          <div class="flex flex-col justify-between my-4 gap-4">
+          <div class="flex flex-col justify-between mt-6 gap-4">
             <%= if Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>
-              <.link navigate={~p"/widgets/content/#{@selected_piece.id}"} class="btn btn-primary btn-block rounded-full">
-                <.icon name="hero-play" class="h-4 w-4 mr-2" />
-                Open/Play
+              <.link
+                navigate={~p"/widgets/content/#{@selected_piece.id}"}
+                class="btn btn-primary btn-lg btn-block rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600"
+              >
+                <.icon name="hero-play" class="h-4 w-4 mr-2" /> Open/Play
               </.link>
             <% else %>
               <% default_tc = ContentPiece.default_tiqit_class(@selected_piece) %>
-
-              <button phx-click="select-tiqit-class" phx-value-tiqit-class-id={default_tc.id} class="btn btn-primary btn-block rounded-full">
-                <.icon name="hero-shopping-bag" class="h-4 w-4 mr-2" />
+              <button
+                phx-click="select-tiqit-class"
+                phx-value-tiqit-class-id={default_tc.id}
+                class="btn btn-primary btn-lg btn-block rounded-full"
+              >
                 Buy Tiqit • <span class="font-bold">{format_usd(default_tc.price)}</span>
               </button>
-              <.wallet_buttons balance={@balance} />
             <% end %>
           </div>
         </div>
       </div>
 
-      <%!-- Pieces --%>
-      <div class="w-1/2 space-y-3 pt-4 ">
-        <h2 class="text-lg font-semibold text-base-content">{String.capitalize(to_string(@group.catalog.piece_type))}s</h2>
-        <.link
-          :for={piece <- @pieces}
-          patch={~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}"}
-          class={"rounded-lg p-3 flex justify-between items-center border transition-all hover:shadow-md
-          #{if piece.id == @selected_piece.id, do: "bg-primary/10 border-primary text-primary", else: "bg-base-100 border-base-300 hover:bg-base-200"}"}
-        >
-          <div class="flex-1">
-            <p class="text-sm font-semibold mb-2 leading-tight text-base-content">
-              {piece.title}
-            </p>
-            <div class="flex items-center gap-2">
-              <span class="badge badge-xs badge-ghost text-base-content/60">
-                {Calendar.strftime(piece.inserted_at, "%b %d, %Y")}
-              </span>
-              <span class={"badge badge-xs #{if Arcade.has_valid_tiqit?(@current_scope, piece), do: "badge-success", else: "badge-primary"}"}>
+      <%!-- Episodes list - SCROLLABLE --%>
+      <div class="w-1/2 p-5 flex flex-col min-h-0">
+        <h2 class="text-lg font-semibold text-base-content mb-4 flex-shrink-0">
+          {String.capitalize(to_string(@group.catalog.piece_type))}s
+        </h2>
+        <div class="flex-1 overflow-y-auto min-h-0 space-y-2">
+          <.link
+            :for={piece <- @pieces}
+            patch={~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}"}
+            class={"rounded-lg p-3 flex justify-between items-center border transition-all hover:shadow-sm block
+            #{if piece.id == @selected_piece.id, do: "bg-primary/10 border-primary text-primary", else: "bg-base-100 border-base-300 hover:bg-base-200"}"}
+          >
+            <div class="flex-1">
+              <p class="text-sm font-semibold mb-2 leading-tight text-base-content">
+                {piece.title}
+              </p>
+              <div class="flex items-center gap-2">
+                <span class="badge badge-xs badge-ghost text-base-content/60">
+                  {Calendar.strftime(piece.inserted_at, "%b %d, %Y")}
+                </span>
+                <span class="badge badge-xs badge-ghost text-base-content/60">
+                  {piece.duration}
+                </span>
+              </div>
+            </div>
+            <div class="ml-2">
+              <span class={"badge badge-xl h-7 rounded-full #{if Arcade.has_valid_tiqit?(@current_scope, piece), do: "!bg-sponster-400", else: "badge-primary"}"}>
                 <%= if Arcade.has_valid_tiqit?(@current_scope, piece) do %>
-                  <.icon name="hero-check" class="h-3 w-3 mr-1" />
-                  Owned
+                  <.icon name="hero-check" class="h-4 w-4 font-bold text-white" />
                 <% else %>
-                  <.icon name="hero-currency-dollar" class="h-3 w-3 mr-1" />
                   {ContentPiece.default_tiqit_class(piece).price |> format_usd()}
                 <% end %>
               </span>
             </div>
-          </div>
-          <%= if piece.id == @selected_piece.id do %>
-            <div class="ml-2">
-              <.icon name="hero-check-circle" class="h-5 w-5 text-primary" />
-            </div>
-          <% end %>
-        </.link>
+          </.link>
+        </div>
       </div>
+    </div>
+    <div class="w-full grow-0">
+      <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
     </div>
   </div>
 
   <.modal
     :if={@selected_tiqit_class}
     id="confirm-purchase-modal"
+    title="Confirm Purchase"
     on_cancel={JS.push("close-confirm-purchase-modal")}
     show
   >
-    <div class="flex flex-col space-y-4">
+    <div class="flex flex-col space-y-4 p-8">
       <div class="relative">
         <img
-          :if={@group.image}
-          src={QlariusWeb.Creators.ContentGroupHTML.content_group_image_url(@group)}
-          class="max-h-20 rounded mx-auto"
+          :if={true}
+          src="/images/darkness-cover-art-garza-season-5-square-526x351.jpg"
+          class="max-h-30 rounded mx-auto"
         />
       </div>
-      <h2 class="text-xl font-bold text-base-content">
+      <h3 class="text-base-content/60 text-center mb-0">
+        {@group.title}
+      </h3>
+      <h2 class="text-xl font-bold text-base-content text-center">
         {@selected_piece.title}
       </h2>
       <%= if assigns[:options_modal] do %>
         <.tiqit_class_grid piece={@selected_piece} group={@group} balance={@balance} />
       <% else %>
-        <p class="text-base-content/60">
+        <p class="text-base-content/60 text-center">
           <%= if @selected_tiqit_class.duration_hours do %>
-            You are purchasing access to this {class_type(@selected_tiqit_class, @group.catalog)} for {format_tiqit_class_duration(
+            You are purchasing access to this
+            <span class="text-base-content font-bold">
+              single {class_type(@selected_tiqit_class, @group.catalog)}
+            </span>
+            for <span class="text-base-content font-bold">{format_tiqit_class_duration(
               @selected_tiqit_class.duration_hours
-            )}
+            )}</span>.
           <% else %>
             You are purchasing lifetime acces to this {class_type(
               @selected_tiqit_class,
@@ -116,33 +136,30 @@
             )}
           <% end %>
         </p>
-        <div class="flex items-center gap-4">
-          <.button
+        <div class="flex items-center">
+          <button
             phx-click="purchase-tiqit"
             phx-value-tiqit-class-id={@selected_tiqit_class.id}
-            class="btn btn-primary btn-block"
+            class="btn btn-primary btn-lg btn-block rounded-full"
           >
-            <.icon name="hero-shopping-bag" class="h-4 w-4 mr-2" />
-            Confirm Purchase ({format_usd(@selected_tiqit_class.price)})
-          </.button>
-          <img src={~p"/images/TIQIT_logo_color_square.svg"} class="h-8 ml-4" />
+            <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm Purchase •
+            <span class="font-bold">{format_usd(@selected_tiqit_class.price)}</span>
+          </button>
         </div>
       <% end %>
-      <div class="flex gap-4">
-        <%= if assigns[:options_modal] do %>
-          <.button phx-click="hide-options" class="btn btn-outline btn-block">
-            <.icon name="hero-arrow-left" class="h-4 w-4 mr-2" />
-            Back
-          </.button>
-        <% else %>
-          <.button phx-click="show-options" class="btn btn-outline btn-block">
-            <.icon name="hero-adjustments-horizontal" class="h-4 w-4 mr-2" />
-            Options
-          </.button>
+      <div class="flex flex-col gap-1">
+        <%= if !assigns[:options_modal] do %>
+          <div class="divider m-1"></div>
+          <div class="flex flex-row gap-1 justify-center align-middle">
+            <p class="text-base-content/60">Want the full series? Or full catalog access?</p>
+            <button phx-click="show-options" class="btn btn-outline btn-md rounded-full ml-3">
+              All Tiqit Options
+            </button>
+          </div>
         <% end %>
-        <.wallet_buttons balance={@balance} />
       </div>
     </div>
+    <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
   </.modal>
 
   <.modal
@@ -167,12 +184,10 @@
           class="btn btn-primary btn-lg"
           phx-click="topup"
         >
-          <.icon name="hero-credit-card" class="h-5 w-5 mr-2" />
-          Add Funds
+          <.icon name="hero-credit-card" class="h-5 w-5 mr-2" /> Add Funds
         </button>
         <.button class="btn btn-outline btn-lg" phx-click="topup">
-          <.icon name="hero-banknotes" class="h-5 w-5 mr-2" />
-          Other Methods
+          <.icon name="hero-banknotes" class="h-5 w-5 mr-2" /> Other Methods
         </.button>
       </div>
     </div>

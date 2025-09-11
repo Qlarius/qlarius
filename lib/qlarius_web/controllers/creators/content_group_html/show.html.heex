@@ -4,8 +4,7 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div class="flex items-center gap-4">
         <.link navigate={~p"/creators/#{@creator}"} class="btn btn-ghost btn-sm">
-          <.icon name="hero-arrow-left" class="w-4 h-4" />
-          Back to Creator
+          <.icon name="hero-arrow-left" class="w-4 h-4" /> Back to Creator
         </.link>
         <div>
           <h1 class="text-2xl font-bold text-base-content">{@content_group.title}</h1>
@@ -15,13 +14,17 @@
         </div>
       </div>
       <div class="flex gap-2">
-        <.link navigate={~p"/creators/content_groups/#{@content_group}/content_pieces/new"} class="btn btn-primary">
-          <.icon name="hero-plus" class="w-4 h-4 mr-2" />
-          New Content Piece
+        <.link
+          navigate={~p"/creators/content_groups/#{@content_group}/content_pieces/new"}
+          class="btn btn-primary"
+        >
+          <.icon name="hero-plus" class="w-4 h-4 mr-2" /> New Content Piece
         </.link>
-        <.link navigate={~p"/creators/content_groups/#{@content_group}/edit"} class="btn btn-outline">
-          <.icon name="hero-pencil" class="w-4 h-4 mr-2" />
-          Edit
+        <.link
+          navigate={~p"/creators/content_groups/#{@content_group}/edit"}
+          class="btn btn-outline"
+        >
+          <.icon name="hero-pencil" class="w-4 h-4 mr-2" /> Edit
         </.link>
         <.link
           href={~p"/creators/content_groups/#{@content_group}"}
@@ -29,13 +32,12 @@
           data-confirm="Are you sure you want to delete this content group?"
           class="btn btn-outline btn-error"
         >
-          <.icon name="hero-trash" class="w-4 h-4 mr-2" />
-          Delete
+          <.icon name="hero-trash" class="w-4 h-4 mr-2" /> Delete
         </.link>
       </div>
     </div>
-
-    <!-- Image Section -->
+    
+<!-- Image Section -->
     <div :if={@content_group.image} class="card bg-base-100 shadow-lg overflow-hidden">
       <figure class="px-0 pt-0">
         <img
@@ -45,8 +47,8 @@
         />
       </figure>
     </div>
-
-    <!-- Description and Embed Section -->
+    
+<!-- Description and Embed Section -->
     <div class="card bg-base-100 shadow-lg">
       <div class="card-body">
         <div class="space-y-6">
@@ -57,13 +59,12 @@
               <p class="text-base-content/80 italic">{@content_group.description}</p>
             </div>
           </div>
-
-          <!-- Embed Link -->
+          
+<!-- Embed Link -->
           <%= if Enum.any?(@content_group.content_pieces) do %>
             <div class="border-t border-base-300 pt-6">
               <h4 class="text-md font-semibold text-base-content mb-3 flex items-center">
-                <.icon name="hero-code-bracket" class="w-5 h-5 mr-2" />
-                Embed Code
+                <.icon name="hero-code-bracket" class="w-5 h-5 mr-2" /> Embed Code
               </h4>
 
               <div class="flex items-center gap-4">
@@ -77,11 +78,14 @@
                         {content_group_iframe_url(@conn, @content_group)}
                       </code>
                       <div class="flex items-center gap-2 ml-4">
-                        <.icon name="hero-document-duplicate" class="w-5 h-5 text-base-content/60 group-hover:text-base-content" />
+                        <.icon
+                          name="hero-document-duplicate"
+                          class="w-5 h-5 text-base-content/60 group-hover:text-base-content"
+                        />
                       </div>
                     </div>
-
-                    <!-- Copy notification -->
+                    
+<!-- Copy notification -->
                     <div class="copy-notification hidden absolute -top-2 -right-2 bg-success text-success-content text-xs px-2 py-1 rounded shadow-lg">
                       Copied!
                     </div>
@@ -92,8 +96,7 @@
                   navigate={~p"/creators/content_groups/#{@content_group}/preview"}
                   class="btn btn-outline btn-sm whitespace-nowrap"
                 >
-                  <.icon name="hero-eye" class="w-4 h-4 mr-2" />
-                  Preview
+                  <.icon name="hero-eye" class="w-4 h-4 mr-2" /> Preview
                 </.link>
               </div>
             </div>
@@ -101,13 +104,12 @@
         </div>
       </div>
     </div>
-
-    <!-- Tiqit Classes Section -->
+    
+<!-- Tiqit Classes Section -->
     <div class="space-y-4">
       <div class="flex items-center justify-between">
         <h2 class="text-xl font-semibold text-base-content flex items-center">
-          <.icon name="hero-tag" class="w-6 h-6 mr-3 text-primary" />
-          Tiqit Classes
+          <.icon name="hero-tag" class="w-6 h-6 mr-3 text-primary" /> Tiqit Classes
         </h2>
       </div>
 
@@ -128,26 +130,28 @@
                 </div>
               </div>
               <h3 class="text-lg font-bold text-base-content mb-2">No Tiqit Classes Yet</h3>
-              <.form :let={_f} for={} action={~p"/creators/content_groups/#{@content_group}/add_default_tiqit_classes"} method="post">
+              <.form
+                :let={_f}
+                for={}
+                action={~p"/creators/content_groups/#{@content_group}/add_default_tiqit_classes"}
+                method="post"
+              >
                 <input type="hidden" name="content_group_id" value={@content_group.id} />
                 <.button type="submit" class="btn btn-primary btn-sm">
-                  <.icon name="hero-plus" class="w-4 h-4 mr-2" />
-                  Add Tiqit Class Defaults
+                  <.icon name="hero-plus" class="w-4 h-4 mr-2" /> Add Tiqit Class Defaults
                 </.button>
               </.form>
-              
             </div>
           </div>
         </div>
       <% end %>
     </div>
-
-    <!-- Content Pieces Section -->
+    
+<!-- Content Pieces Section -->
     <div class="space-y-4">
       <div class="flex items-center justify-between">
         <h2 class="text-xl font-semibold text-base-content flex items-center">
-          <.icon name="hero-queue-list" class="w-6 h-6 mr-3 text-secondary" />
-          Content Pieces
+          <.icon name="hero-queue-list" class="w-6 h-6 mr-3 text-secondary" /> Content Pieces
         </h2>
         <div class="flex gap-2">
           <div class="stat">
@@ -173,7 +177,10 @@
                 </thead>
                 <tbody class="divide-y divide-base-300">
                   <%= for piece <- @content_group.content_pieces do %>
-                    <tr class="hover:bg-base-200 cursor-pointer transition-colors" phx-click={JS.navigate(~p"/creators/content_pieces/#{piece}")}>
+                    <tr
+                      class="hover:bg-base-200 cursor-pointer transition-colors"
+                      phx-click={JS.navigate(~p"/creators/content_pieces/#{piece}")}
+                    >
                       <td class="font-medium text-base-content">
                         <div class="flex items-center gap-3">
                           <div class="avatar placeholder">
@@ -204,7 +211,10 @@
                       </td>
                       <td class="text-right">
                         <div class="flex gap-2 justify-end">
-                          <.link navigate={~p"/creators/content_pieces/#{piece}/edit"} class="btn btn-ghost btn-sm">
+                          <.link
+                            navigate={~p"/creators/content_pieces/#{piece}/edit"}
+                            class="btn btn-ghost btn-sm"
+                          >
                             <.icon name="hero-pencil" class="w-4 h-4" />
                           </.link>
                           <.link
@@ -238,9 +248,11 @@
               <p class="text-base-content/60 mb-6">
                 Start building your content collection by adding your first {@catalog.piece_type}.
               </p>
-              <.link navigate={~p"/creators/content_groups/#{@content_group}/content_pieces/new"} class="btn btn-primary btn-lg">
-                <.icon name="hero-plus" class="w-5 h-5 mr-2" />
-                Add First Content Piece
+              <.link
+                navigate={~p"/creators/content_groups/#{@content_group}/content_pieces/new"}
+                class="btn btn-primary btn-lg"
+              >
+                <.icon name="hero-plus" class="w-5 h-5 mr-2" /> Add First Content Piece
               </.link>
             </div>
           </div>

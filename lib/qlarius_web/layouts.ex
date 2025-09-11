@@ -278,7 +278,6 @@ defmodule QlariusWeb.Layouts do
   def creators(assigns) do
     ~H"""
     <main class="p-4 sm:px-6 lg:px-8 mx-auto">
-
       <.breadcrumbs crumbs={@breadcrumbs} />
 
       <div class="py-20">

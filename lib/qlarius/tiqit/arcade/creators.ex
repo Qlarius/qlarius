@@ -17,13 +17,13 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
 
   def get_creator!(id) do
     Repo.get!(Creator, id)
-    |> Repo.preload([
+    |> Repo.preload(
       catalogs: [
         :content_groups,
         :tiqit_classes,
         content_groups: [:content_pieces, :tiqit_classes]
       ]
-    ])
+    )
   end
 
   def create_creator(attrs \\ %{}) do

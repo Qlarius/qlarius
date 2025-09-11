@@ -12,24 +12,21 @@
           </div>
           <div class="flex gap-2">
             <.link navigate={~p"/creators/content_groups/#{@group}"} class="btn btn-outline">
-              <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" />
-              Back to Content Group
+              <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Back to Content Group
             </.link>
           </div>
         </div>
       </div>
     </div>
-
-
-    <!-- Preview Frame -->
+    
+<!-- Preview Frame -->
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body">
-
-        <div class="bg-base-200 rounded-lg p-4 border border-base-300">
-          <div class="flex items-center justify-center min-h-[600px]">
+        <div class="bg-base-200 h-full rounded-lg p-4 border border-base-300">
+          <div class="flex items-center justify-center h-full">
             <iframe
               src={content_group_iframe_url(@conn, @group)}
-              class="w-full h-[600px] rounded border border-base-300 bg-white"
+              class="w-full h-[600px] border border-base-300"
               title="Content Group Preview"
             >
             </iframe>
@@ -39,7 +36,9 @@
         <div class="mt-4 p-4 bg-base-200 rounded-lg">
           <div class="flex items-center gap-2 text-sm text-base-content/60">
             <.icon name="hero-information-circle" class="w-4 h-4" />
-            <span>This is how your content group will appear to visitors. The iframe displays the actual arcade interface.</span>
+            <span>
+              This is how your content group will appear to visitors. The iframe displays the actual arcade interface.
+            </span>
           </div>
         </div>
       </div>

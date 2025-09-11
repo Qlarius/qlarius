@@ -18,8 +18,7 @@ defmodule QlariusWeb.Widgets.ContentHTML do
                   </p>
                 </div>
                 <div class="badge badge-primary badge-lg">
-                  <.icon name="hero-play" class="w-4 h-4 mr-1" />
-                  Now Playing
+                  <.icon name="hero-play" class="w-4 h-4 mr-1" /> Now Playing
                 </div>
               </div>
             </.header>
@@ -43,7 +42,11 @@ defmodule QlariusWeb.Widgets.ContentHTML do
                   <.icon name="hero-clock" class="w-6 h-6" />
                 </div>
                 <div class="stat-title text-base-content/70">Expires In</div>
-                <div class="stat-value text-primary text-lg" id="expiration-timer" data-expires-at={@tiqit.expires_at}>
+                <div
+                  class="stat-value text-primary text-lg"
+                  id="expiration-timer"
+                  data-expires-at={@tiqit.expires_at}
+                >
                   {@tiqit.expires_at}
                 </div>
                 <div class="stat-desc text-base-content/50">
@@ -54,12 +57,10 @@ defmodule QlariusWeb.Widgets.ContentHTML do
 
             <div class="card-actions justify-between items-center">
               <div class="flex items-center text-sm text-base-content/60">
-                <.icon name="hero-eye" class="w-4 h-4 mr-2" />
-                Enjoy your Tiqit access
+                <.icon name="hero-eye" class="w-4 h-4 mr-2" /> Enjoy your Tiqit access
               </div>
               <.back navigate={~p"/widgets/arcade/group/#{@content.content_group.id}"}>
-                <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" />
-                Back to Content
+                <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Back to Content
               </.back>
             </div>
           </div>
