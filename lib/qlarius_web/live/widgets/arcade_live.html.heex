@@ -168,27 +168,67 @@
     show
     on_cancel={JS.push("close-topup-modal")}
   >
-    <div class="text-center space-y-6">
+    <div class="text-center space-y-6 p-8">
       <div class="space-y-4">
-        <div class="avatar placeholder">
-          <div class="bg-primary text-primary-content rounded-full w-16 h-16">
-            <span class="text-2xl">💰</span>
+        <h2 class="text-xl font-bold text-base-content">Top up your wallet.</h2>
+        <div class="mb-6 flex gap-2 justify-center items-center">
+          <div class="text-lg bg-sponster-500 text-white px-3 py-1 rounded-md mb-3">
+            Balance: <span class="font-bold">{format_usd(@balance)}</span>
           </div>
         </div>
-        <h2 class="text-xl font-bold text-base-content">Top up your wallet</h2>
-        <p class="text-base-content/60">Add funds to purchase content</p>
+      </div>
+
+      <div class="flex flex-row w-full min-h-[300px] divide-x divide-base-300">
+        <div class="flex-1">
+          <h3 class="text-base-content/60 mb-3">Visit your sponsors.</h3>
+          <div class="flex flex-col items-center">
+            <div class="flex flex-col items-center gap-1 mb-2">
+              <div class="px-4 py-2">
+                <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-auto w-full" />
+              </div>
+              <div class="flex flex-col items-center">
+                <div class="text-base-content/60 text-md">
+                  {@current_scope.ads_count} 
+                  ads for
+                  <span class="font-bold text-sponster-500">
+                    {format_usd(@offered_amount)}
+                  </span>
+                </div>
+                
+              </div>
+            </div>
+            <button
+            class="btn btn-primary rounded-full !bg-sponster-500 !hover:bg-sponster-600 text-white btn-lg"
+            onclick="parent.postMessage('open_widget','*');self.toggleAnnouncerElements();"
+            >
+              Show my ads
+            </button>
+          </div>
+        </div>
+        <div class="flex-1">
+          <h3 class="text-base-content/60 mb-3">Accept our gift.</h3>
+          <.icon name="hero-gift" class="h-25 w-25 mb-3 text-base-content/50" />
+          <button
+          class="btn btn-primary rounded-full btn-lg"
+          phx-click="topup"
+          >
+            <.icon name="hero-plus" class="h-5 w-5 mr-2" /> $0.50 for the day
+          </button>
+        </div>
+        <div class="flex-1 flex flex-col items-center">
+          <h3 class="text-base-content/60 mb-3">Add funds of your own.</h3>
+          <img src="/images/credit_debit_card_payments.png" alt="Credit/Debit Card Payments" class="h-25 w-25 mb-3" />
+          <button
+          class="btn btn-primary rounded-full btn-lg"
+          phx-click="topup"
+          >
+            <.icon name="hero-plus" class="h-5 w-5 mr-2" /> Via Credit/Debit
+          </button>
+        </div>
       </div>
 
       <div class="flex justify-center gap-4">
-        <button
-          class="btn btn-primary btn-lg"
-          phx-click="topup"
-        >
-          <.icon name="hero-credit-card" class="h-5 w-5 mr-2" /> Add Funds
-        </button>
-        <.button class="btn btn-outline btn-lg" phx-click="topup">
-          <.icon name="hero-banknotes" class="h-5 w-5 mr-2" /> Other Methods
-        </.button>
+        
       </div>
     </div>
   </.modal>

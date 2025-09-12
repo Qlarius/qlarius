@@ -140,7 +140,8 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
                 :if={@show_catalog?}
                 class="w-40 font-semibold text-base-content text-center py-2 px-3 leading-none"
               >
-                Entire {@catalog.type |> to_string() |> String.capitalize()}<br /><span class="text-base-content/40 text-xs mt-0">
+                <%!-- Entire {@catalog.type |> to_string() |> String.capitalize()}<br /><span class="text-base-content/40 text-xs mt-0"> --%>
+                Entire Site<br /><span class="text-base-content/40 text-xs mt-0">
                   (9 series)
                 </span>
               </th>
@@ -258,7 +259,8 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
 
     Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
 
-    socket |> assign(:show_topup_modal, false) |> noreply()
+    # socket |> assign(:show_topup_modal, false) |> noreply()
+    socket |> noreply()
   end
 
   def handle_event("purchase-tiqit", %{"tiqit-class-id" => tiqit_class_id}, socket) do

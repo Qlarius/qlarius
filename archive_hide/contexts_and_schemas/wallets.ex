@@ -137,12 +137,12 @@ defmodule Qlarius.Wallets do
     :ok
   end
 
-  # Simulate topping up by $2. Useful when debugging.
+  # Simulate topping up by $0.50. Useful when debugging.
   def fake_topup(user) do
     Repo.transaction(fn ->
       ledger_header = user.me_file.ledger_header
 
-      amount = Decimal.new(2)
+      amount = Decimal.new(0.50)
 
       new_balance = Decimal.add(ledger_header.balance || Decimal.new(0), amount)
 
@@ -154,7 +154,7 @@ defmodule Qlarius.Wallets do
         ledger_header_id: ledger_header.id,
         amount: amount,
         running_balance: new_balance,
-        description: "Top up"
+        description: "Top up - GIFT"
       }
       |> Repo.insert!()
     end)
