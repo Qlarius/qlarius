@@ -241,6 +241,48 @@
   .phase-3 {
     z-index: 10;
   }
+
+  /* Empty trait strobe (YouData theme) */
+  @keyframes qlarius-youdata-strobe {
+    0%, 100% {
+      box-shadow:
+        0 0 2px 3px var(--empty-trait-strobe-color-25);
+    }
+    50% {
+      box-shadow:
+        0 0 6px 6px var(--empty-trait-strobe-color-50);
+    }
+  }
+
+  .empty-trait-strobe {
+    /* Light mode (default): YouData brand color with alpha (fallback-safe) */
+    /* Using 8-digit hex derived from --color-youdata-hex (#8585AD) */
+    --empty-trait-strobe-color-25: #8585AD40; /* 25% alpha */
+    --empty-trait-strobe-color-50: #8585AD80; /* 50% alpha */
+    color: var(--color-youdata-500);
+    position: relative;
+    will-change: transform;
+    border-color: var(--color-youdata-500) !important;
+    outline: 1px solid var(--color-youdata-500);
+    border-radius: inherit;
+  }
+
+  /* Render strobe on a separate layer to avoid conflicts with Tailwind ring (box-shadow) */
+  .empty-trait-strobe::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    animation: qlarius-youdata-strobe 2.2s ease-in-out infinite;
+    will-change: box-shadow;
+  }
+
+  /* Dark mode: white strobe */
+  [data-theme=dark] .empty-trait-strobe {
+    --empty-trait-strobe-color-25: rgba(255, 255, 255, 0.25);
+    --empty-trait-strobe-color-50: rgba(255, 255, 255, 0.5);
+  }
 }
 
 @layer base {

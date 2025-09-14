@@ -158,53 +158,17 @@ defmodule QlariusWeb.MeFileBuilderLive do
             </div>
 
             <div class="overflow-y-auto pb-32 max-h-full">
-              <div class="flex flex-row flex-wrap gap-4 pb-32">
-                <div
+              <div class="flex flex-row flex-wrap gap-4 pl-4 pt-4 pb-32">
+                <.trait_card
                   :for={
                     {parent_trait_id, parent_trait_name, parent_trait_display_order, tags_traits} <-
                       (@survey_in_edit && @survey_in_edit.parent_traits) || []
                   }
-                  id={"trait-card-#{parent_trait_id}"}
-                  phx-hook="AnimateTrait"
-                  class="h-full border rounded-lg overflow-hidden border-youdata-500 dark:border-youdata-700 bg-base-100"
-                >
-                  <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-4 py-2 font-medium flex justify-between items-center">
-                    <span>{parent_trait_name}</span>
-                    <div
-                      :if={parent_trait_name not in ["Birthdate", "Age", "Sex"]}
-                      class="ms-4 flex gap-3"
-                    >
-                      <button
-                        class="text-base-content/20 hover:text-base-content/80 cursor-pointer"
-                        phx-click="edit_tags"
-                        phx-value-id={parent_trait_id}
-                      >
-                        <.icon name="hero-pencil" class="h-4 w-4" />
-                      </button>
-                      <button
-                        class="text-base-content/20 hover:text-base-content/80 cursor-pointer"
-                        phx-click="delete_tags"
-                        phx-value-id={parent_trait_id}
-                      >
-                        <.icon name="hero-trash" class="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <div class={[
-                    "p-0 space-y-1 max-h-[245px] overflow-y-auto",
-                    tags_traits == [] && "bg-warning/10"
-                  ]}>
-                    <div
-                      :for={{tag_id, tag_value, _display_order} <- tags_traits}
-                      class="mx-0 my-2 text-sm [&:not(:last-child)]:border-b border-dashed border-base-content/20"
-                    >
-                      <div class="px-4 py-1">{tag_value}</div>
-                    </div>
-                    <div :if={tags_traits == []} class="mx-0 my-2 text-sm">
-                      <div class="px-4 py-1 opacity-60 italic">{TagTeaseAgent.next_message()}</div>
-                    </div>
-                  </div>
-                </div>
+                  parent_trait_id={parent_trait_id}
+                  parent_trait_name={parent_trait_name}
+                  tags_traits={tags_traits}
+                  clickable={true}
+                />
               </div>
 
               <div :if={!@active_survey_id} class="text-base-content/50 text-sm">
@@ -424,6 +388,11 @@ defmodule QlariusWeb.MeFileBuilderLive do
           |> assign(:answered_survey_question_ids, answered_ids)
           |> assign(:survey_in_edit, survey_in_edit)
           |> assign(:show_modal, false)
+          |> push_event("animate_trait", %{
+            trait_id: trait_id,
+            delay_ms: 250,
+            value: "delete_fade"
+          })
 
         {:noreply, socket}
     end

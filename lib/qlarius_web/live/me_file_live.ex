@@ -36,46 +36,16 @@ defmodule QlariusWeb.MeFileLive do
           </div>
 
           <div class="flex flex-row flex-wrap gap-4">
-            <div
+            <.trait_card
               :for={
                 {parent_trait_id, parent_trait_name, parent_trait_display_order, tags_traits} <-
                   parent_traits
               }
-              id={"trait-card-#{parent_trait_id}"}
-              phx-hook="AnimateTrait"
-              class="h-full border rounded-lg overflow-hidden border-youdata-500 dark:border-youdata-700 bg-base-100"
-            >
-              <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-4 py-2 font-medium flex justify-between items-center">
-                <span>{parent_trait_name}</span>
-                <div
-                  :if={parent_trait_name not in ["Birthdate", "Age", "Sex"]}
-                  class="ms-4 flex gap-3"
-                >
-                  <button
-                    class="text-base-content/20 hover:text-base-content/80 cursor-pointer"
-                    phx-click="edit_tags"
-                    phx-value-id={parent_trait_id}
-                  >
-                    <.icon name="hero-pencil" class="h-4 w-4" />
-                  </button>
-                  <button
-                    class="text-base-content/20 hover:text-base-content/80 cursor-pointer"
-                    phx-click="delete_tags"
-                    phx-value-id={parent_trait_id}
-                  >
-                    <.icon name="hero-trash" class="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-              <div class="p-0 space-y-1 max-h-[245px] overflow-y-auto">
-                <div
-                  :for={{tag_id, tag_value, _display_order} <- tags_traits}
-                  class="mx-0 my-2 text-sm [&:not(:last-child)]:border-b border-dashed border-base-content/10"
-                >
-                  <div class="px-4 py-1">{tag_value}</div>
-                </div>
-              </div>
-            </div>
+              parent_trait_id={parent_trait_id}
+              parent_trait_name={parent_trait_name}
+              tags_traits={tags_traits}
+              clickable={false}
+            />
           </div>
 
           <div class="mt-8 border-b border-neutral-300 dark:border-neutral-500"></div>

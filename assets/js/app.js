@@ -49,38 +49,26 @@ Hooks.AnimateTrait = {
           el.classList.remove("ring", "ring-primary", "ring-success", "bg-success", "text-success-content", "ring-error", "bg-error", "text-error-content", "opacity-50")
           void el.offsetWidth // Force reflow
 
-          // Add success colors, ring and scale up effect with smooth easing
-          el.classList.add("ring", "ring-success", "bg-success", "text-success-content", "transition-all", "duration-200", "ease-in-out")
+          // Add success colors (transition is preset on element)
+          el.classList.add("ring", "ring-success", "bg-success", "text-success-content")
 
           setTimeout(() => {
-            // Scale back down and remove all success styling with smooth easing
+            // Remove success styling smoothly
             el.classList.remove("ring", "ring-success", "bg-success", "text-success-content")
-            // el.classList.add("ease-out")
-
-            // Clean up transition classes after animation
-            setTimeout(() => {
-              el.classList.remove("transition-all", "duration-300", "scale-100", "ease-in-out", "ease-out")
-            }, 200)
-          }, 600)
+          }, 800)
         } else if (value === "delete_fade") {
           // Clear any existing animations
-          el.classList.remove("ring", "ring-primary", "ring-success", "bg-success", "text-success-content", "ring-error", "bg-error", "text-error-content", "opacity-50", "scale-100")
+          el.classList.remove("ring", "ring-primary", "ring-success", "bg-success", "text-success-content", "ring-error", "bg-error", "text-error-content", "opacity-50")
           void el.offsetWidth // Force reflow
 
-          // Add error colors, ring and scale down effect with fade
-          el.classList.add("ring", "ring-error", "bg-error", "text-error-content", "scale-75", "opacity-30", "transition-all", "duration-700", "ease-in-out")
+          // Add error colors (transition is preset on element)
+          el.classList.add("ring", "ring-error", "bg-error", "text-error-content")
 
           // Keep the error styling longer for delete feedback
           setTimeout(() => {
-            // Fade back to normal but keep the error styling briefly
-            el.classList.remove("scale-95", "opacity-50")
-            el.classList.add("scale-100", "opacity-100")
-
-            // Clean up transition classes after animation
-            setTimeout(() => {
-              el.classList.remove("transition-all", "duration-500", "scale-100", "opacity-100", "ease-in-out")
-            }, 500)
-          }, 1000)
+            // Remove error styling smoothly
+            el.classList.remove("ring", "ring-error", "bg-error", "text-error-content")
+          }, 1200)
         }
       }, delay)
     })

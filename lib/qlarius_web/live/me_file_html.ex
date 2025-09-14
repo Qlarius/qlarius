@@ -120,7 +120,7 @@ defmodule QlariusWeb.MeFileHTML do
             <.form
               :if={@trait_in_edit}
               for={%{}}
-              phx-submit="delete_tags"
+              phx-submit="perform_delete_tags"
               class="flex flex-col flex-1 min-h-0"
             >
               <div class="flex-1 overflow-y-auto p-4">
@@ -186,6 +186,86 @@ defmodule QlariusWeb.MeFileHTML do
         <% end %>
       </div>
       <%!-- <pre :if={@trait_in_edit} class="py-4 overflow-auto max-h-96 whitespace-pre-wrap bg-base-200 rounded-lg p-4">{inspect(@trait_in_edit, pretty: true, width: 60)}</pre> --%>
+    </div>
+    """
+  end
+
+  @doc """
+  Shared trait card component for consistent styling and behavior across MeFile views
+  """
+  attr :parent_trait_id, :integer, required: true
+  attr :parent_trait_name, :string, required: true
+  attr :tags_traits, :list, required: true
+  attr :extra_classes, :string, default: ""
+  attr :clickable, :boolean, default: false
+
+  def trait_card(assigns) do
+    ~H"""
+    <div
+      id={"trait-card-#{@parent_trait_id}"}
+      phx-hook="AnimateTrait"
+      class={[
+        "h-full border rounded-lg bg-base-100 transition-all duration-300 ease-in-out",
+        @tags_traits == [] &&
+          "border-2 empty-trait-strobe border-youdata-500 dark:border-base-content",
+        @tags_traits != [] && "border-youdata-500 dark:border-youdata-700",
+        @clickable && @tags_traits == [] && @parent_trait_name not in ["Birthdate", "Age", "Sex"] &&
+          "cursor-pointer",
+        @extra_classes
+      ]}
+      phx-click={
+        @clickable && @tags_traits == [] && @parent_trait_name not in ["Birthdate", "Age", "Sex"] &&
+          "edit_tags"
+      }
+      phx-value-id={
+        @clickable && @tags_traits == [] && @parent_trait_name not in ["Birthdate", "Age", "Sex"] &&
+          @parent_trait_id
+      }
+    >
+      <div class="overflow-hidden rounded-lg">
+        <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-4 py-2 font-medium flex justify-between items-center">
+          <span>{@parent_trait_name}</span>
+          <div
+            :if={@parent_trait_name not in ["Birthdate", "Age", "Sex"]}
+            class="ms-4 flex gap-3"
+          >
+            <button
+              class="text-base-content/20 hover:text-base-content/80 cursor-pointer"
+              phx-click="edit_tags"
+              phx-value-id={@parent_trait_id}
+            >
+              <.icon name="hero-pencil" class="h-4 w-4" />
+            </button>
+            <button
+              class="text-base-content/20 hover:text-base-content/80 cursor-pointer"
+              phx-click="delete_tags"
+              phx-value-id={@parent_trait_id}
+            >
+              <.icon name="hero-trash" class="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        <div class={[
+          "p-0 space-y-1 max-h-[245px] overflow-y-auto",
+          @tags_traits == [] && "bg-warning/10"
+        ]}>
+          <div
+            :for={{tag_id, tag_value, _display_order} <- @tags_traits}
+            class="mx-0 my-2 text-sm [&:not(:last-child)]:border-b border-dashed border-base-content/20"
+          >
+            <div class="px-4 py-1">{tag_value}</div>
+          </div>
+          <div :if={@tags_traits == []} class="mx-0 my-2 text-sm">
+            <div class="px-4 py-1 opacity-60 italic">
+              <%= if function_exported?(Qlarius.YouData.TagTeaseAgent, :next_message, 0) do %>
+                {Qlarius.YouData.TagTeaseAgent.next_message()}
+              <% else %>
+                Click to add tags
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     """
   end

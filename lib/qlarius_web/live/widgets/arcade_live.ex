@@ -132,7 +132,8 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
                 :if={@show_group?}
                 class="w-40 font-semibold text-base-content text-center py-2 px-3 leading-none"
               >
-                Entire {@catalog.group_type |> to_string() |> String.capitalize()}<br /><span class="text-base-content/40 text-xs mt-0">
+                Entire {@catalog.group_type |> to_string() |> String.capitalize()}<br />
+                <span class="text-base-content/40 text-xs mt-0">
                   ({length(@group.content_pieces)} episodes)
                 </span>
               </th>
@@ -141,7 +142,8 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
                 class="w-40 font-semibold text-base-content text-center py-2 px-3 leading-none"
               >
                 <%!-- Entire {@catalog.type |> to_string() |> String.capitalize()}<br /><span class="text-base-content/40 text-xs mt-0"> --%>
-                Entire Site<br /><span class="text-base-content/40 text-xs mt-0">
+                Entire Site<br />
+                <span class="text-base-content/40 text-xs mt-0">
                   (9 series)
                 </span>
               </th>
