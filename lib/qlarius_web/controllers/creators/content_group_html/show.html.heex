@@ -36,21 +36,16 @@
         </.link>
       </div>
     </div>
-    
-<!-- Image Section -->
-    <div :if={@content_group.image} class="card bg-base-100 shadow-md mb-4">
-      <figure class="px-0 pt-0">
-        <img
-          src={content_group_image_url(@content_group)}
-          alt={@content_group.title}
-          class="w-64 h-64"
-        />
-      </figure>
-    </div>
+
     
 <!-- Description and Embed Section -->
     <div class="card bg-base-100 shadow-lg">
       <div class="card-body">
+        <img
+          src={content_group_image_url(@content_group)}
+          alt={@content_group.title}
+          class="w-50 h-50 object-cover rounded-lg mb-2"
+        />
         <div class="space-y-6">
           <!-- Description -->
           <div>
@@ -109,7 +104,7 @@
     <div class="space-y-4">
       <div class="flex items-center justify-between">
         <h2 class="text-xl font-semibold text-base-content flex items-center">
-          <.icon name="hero-tag" class="w-6 h-6 mr-3 text-primary" /> Tiqit Classes
+          <.icon name="hero-tag" class="w-6 h-6 mr-3 text-primary" /> {@content_group.catalog.group_type |> to_string() |> String.capitalize()} Tiqit Classes
         </h2>
       </div>
 
