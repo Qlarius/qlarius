@@ -38,12 +38,12 @@
     </div>
     
 <!-- Image Section -->
-    <div :if={@content_group.image} class="card bg-base-100 shadow-lg overflow-hidden">
+    <div :if={@content_group.image} class="card bg-base-100 shadow-md mb-4">
       <figure class="px-0 pt-0">
         <img
           src={content_group_image_url(@content_group)}
           alt={@content_group.title}
-          class="w-full h-64 object-cover"
+          class="w-64 h-64"
         />
       </figure>
     </div>

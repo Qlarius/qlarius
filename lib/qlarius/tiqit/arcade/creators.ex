@@ -106,19 +106,11 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
   end
 
   def create_content_group(%Catalog{} = catalog, attrs \\ %{}) do
+    changeset_fn = if Map.has_key?(attrs, "image"), do: &ContentGroup.changeset_with_image/2, else: &ContentGroup.changeset/2
     %ContentGroup{catalog: catalog}
-    |> ContentGroup.changeset(attrs)
+    |> changeset_fn.(attrs)
     |> Repo.insert()
-    |> maybe_update_image(attrs["image"])
   end
-
-  defp maybe_update_image({:ok, group}, image) when not is_nil(image) do
-    group
-    |> ContentGroup.image_changeset(image)
-    |> Repo.update()
-  end
-
-  defp maybe_update_image(result, _image), do: result
 
   def get_content_group!(id) do
     ContentGroup
@@ -127,10 +119,10 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
   end
 
   def update_content_group(%ContentGroup{} = group, attrs) do
+    changeset_fn = if Map.has_key?(attrs, "image"), do: &ContentGroup.changeset_with_image/2, else: &ContentGroup.changeset/2
     group
-    |> ContentGroup.changeset(attrs)
+    |> changeset_fn.(attrs)
     |> Repo.update()
-    |> maybe_update_image(attrs["image"])
   end
 
   def delete_content_group(%ContentGroup{} = group) do

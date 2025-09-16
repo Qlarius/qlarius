@@ -13,7 +13,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
 
     field :description, :string
     field :title, :string
-    field :image, QlariusWeb.Uploaders.ContentGroupImage.Type
+    field :image, :string
 
     has_many :content_pieces, ContentPiece
     has_many :tiqit_classes, TiqitClass, on_replace: :delete
@@ -34,12 +34,10 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
     )
   end
 
-  def image_changeset(content_group, image) do
-    # Process.get() is there to avoid a type warning that comes from the
-    # waffle_ecto package. it's a known issue with the Elixir type system that
-    # should resolved in the future. but for now I'm tired of the noise
+  @doc false
+  def changeset_with_image(content_group, attrs) do
     content_group
-    |> change(%{})
-    |> cast_attachments(Process.get(:unused_key, %{image: image}), [:image])
+    |> changeset(attrs)
+    |> put_change(:image, attrs["image"])
   end
 end

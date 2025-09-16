@@ -31,7 +31,6 @@
       <div class="card-body">
         <.form
           for={@form}
-          multipart={true}
           phx-change="validate"
           phx-submit="save"
           class="space-y-6"
@@ -47,18 +46,44 @@
               <label class="label">
                 <span class="label-text font-medium">Image</span>
               </label>
-              <.input
-                field={@form[:image]}
-                type="file"
-                accept=".jpg,.jpeg,.gif,.png,.webp"
-                class="file-input file-input-bordered w-full"
-                value={nil}
-              />
-              <div class="label">
-                <span class="label-text-alt text-base-content/60">
-                  Optional image upload (JPG, PNG, GIF, WebP)
-                </span>
+              <div class="file-input file-input-bordered w-full flex items-center justify-center border-dashed" phx-drop-target={@uploads.image.ref}>
+                <.live_file_input upload={@uploads.image} class="hidden" />
+                <label for={@uploads.image.ref} class="cursor-pointer p-6 text-center w-full">
+                  <.icon name="hero-cloud-arrow-up" class="w-8 h-8 mx-auto text-base-content/60 mb-2" />
+                  <p class="text-sm text-base-content/60">Click to upload or drag and drop</p>
+                  <p class="text-xs text-base-content/40">JPG, PNG, GIF, WebP (max 10MB)</p>
+                </label>
               </div>
+              
+              <%= if @group.image do %>
+                <div class="mt-2">
+                  <img
+                    src={QlariusWeb.Uploaders.CreatorImage.url({@group.image, @group}, :original)}
+                    class="w-32 h-auto object-cover rounded"
+                    alt="Content group image preview"
+                  />
+                </div>
+              <% end %>
+
+              <!-- Show upload preview -->
+              <%= for entry <- @uploads.image.entries do %>
+                <div class="mt-2">
+                  <div class="flex items-center gap-2 p-2 bg-base-200 rounded">
+                    <.icon name="hero-document" class="w-4 h-4" />
+                    <span class="text-sm flex-1"><%= entry.client_name %></span>
+                    <button type="button" phx-click="cancel-upload" phx-value-ref={entry.ref} class="btn btn-xs btn-ghost">
+                      <.icon name="hero-x-mark" class="w-3 h-3" />
+                    </button>
+                  </div>
+                  <%= for err <- upload_errors(@uploads.image, entry) do %>
+                    <div class="text-error text-xs mt-1"><%= error_to_string(err) %></div>
+                  <% end %>
+                </div>
+              <% end %>
+
+              <%= for err <- upload_errors(@uploads.image) do %>
+                <div class="text-error text-xs mt-1"><%= error_to_string(err) %></div>
+              <% end %>
             </div>
 
             <div class="form-control mb-4">

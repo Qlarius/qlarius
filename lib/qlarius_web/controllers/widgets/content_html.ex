@@ -7,18 +7,18 @@ defmodule QlariusWeb.Widgets.ContentHTML do
       <div class="container mx-auto px-4 py-8 max-w-4xl">
         <div class="card bg-base-100 shadow-xl border border-base-300">
           <div class="card-body">
-            <.header class="mb-6">
-              <div class="flex items-start justify-between">
+            <.header class="mb-0">
+              <.back navigate={~p"/widgets/arcade/group/#{@content.content_group.id}"}>
+                Back to Arcade
+              </.back>
+              <div class="flex items-start justify-between mt-3">
                 <div class="flex-1">
-                  <h1 class="text-2xl font-bold text-base-content mb-2">
-                    {@content.title}
-                  </h1>
                   <p class="text-base-content/70">
                     {@content.content_group.title}
                   </p>
-                </div>
-                <div class="badge badge-primary badge-lg">
-                  <.icon name="hero-play" class="w-4 h-4 mr-1" /> Now Playing
+                  <h1 class="text-2xl font-bold text-base-content mb-2">
+                    {@content.title}
+                  </h1>
                 </div>
               </div>
             </.header>
@@ -36,12 +36,12 @@ defmodule QlariusWeb.Widgets.ContentHTML do
               </iframe>
             </div>
 
-            <div class="stats stats-vertical lg:stats-horizontal shadow mb-6 bg-base-200">
+            <div class="stats stats-vertical lg:stats-horizontal shadow bg-base-200">
               <div class="stat">
                 <div class="stat-figure text-primary">
                   <.icon name="hero-clock" class="w-6 h-6" />
                 </div>
-                <div class="stat-title text-base-content/70">Expires In</div>
+                <div class="stat-title text-base-content/70">Time Remaining:</div>
                 <div
                   class="stat-value text-primary text-lg"
                   id="expiration-timer"
@@ -49,19 +49,7 @@ defmodule QlariusWeb.Widgets.ContentHTML do
                 >
                   {@tiqit.expires_at}
                 </div>
-                <div class="stat-desc text-base-content/50">
-                  Keep watching before it expires
-                </div>
               </div>
-            </div>
-
-            <div class="card-actions justify-between items-center">
-              <div class="flex items-center text-sm text-base-content/60">
-                <.icon name="hero-eye" class="w-4 h-4 mr-2" /> Enjoy your Tiqit access
-              </div>
-              <.back navigate={~p"/widgets/arcade/group/#{@content.content_group.id}"}>
-                <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Back to Content
-              </.back>
             </div>
           </div>
         </div>
@@ -93,9 +81,9 @@ defmodule QlariusWeb.Widgets.ContentHTML do
           if (days > 0) parts.push(`${days} ${days === 1 ? 'day' : 'days'}`);
           if (hours > 0 || days > 0) parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
           if (minutes > 0 || hours > 0 || days > 0) parts.push(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`);
-          parts.push(`${seconds} ${seconds === 1 ? 'second' : 'seconds'}`);
+          if (days < 1 && hours < 1) parts.push(`${seconds} ${seconds === 1 ? 'second' : 'seconds'}`);
 
-          timerElement.textContent = parts.join(', ');
+          timerElement.textContent = parts.join(' : ');
 
           setTimeout(updateTimer, 1000);
       }

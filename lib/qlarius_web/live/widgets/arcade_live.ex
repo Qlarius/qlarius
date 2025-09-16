@@ -211,7 +211,7 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
         </span>
 
         <button
-          class="btn btn-md rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 leading-none"
+          class="btn btn-lg rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 leading-none"
           phx-click="show-topup-modal"
         >
           <.icon name="hero-plus" class="w-4 h-4 mr-1" />Collect

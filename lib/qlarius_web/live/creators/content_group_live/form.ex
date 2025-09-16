@@ -31,6 +31,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
       form: to_form(changeset),
       page_title: "Edit Content Group"
     )
+    |> allow_upload(:image, accept: ~w(.jpg .jpeg .png .gif .webp), max_entries: 1, max_file_size: 10_000_000)
     |> noreply()
   end
 
@@ -55,6 +56,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
       group: %ContentGroup{},
       page_title: "New Content Group"
     )
+    |> allow_upload(:image, accept: ~w(.jpg .jpeg .png .gif .webp), max_entries: 1, max_file_size: 10_000_000)
     |> noreply()
   end
 
@@ -72,6 +74,10 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
     save_group(socket, socket.assigns.live_action, group_params)
   end
 
+  def handle_event("cancel-upload", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :image, ref)}
+  end
+
   def handle_event("write_default_tiqit_classes", _params, socket) do
     # Call the arcade context function to write default tiqit classes for this group
     Qlarius.Tiqit.Arcade.Arcade.write_default_group_tiqit_classes(socket.assigns.group)
@@ -82,14 +88,35 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
     {:noreply, assign(socket, :group, group)}
   end
 
+  defp error_to_string(:too_large), do: "File too large (max 10MB)"
+  defp error_to_string(:too_many_files), do: "Too many files selected"
+  defp error_to_string(:not_accepted), do: "File type not supported"
+  defp error_to_string(error), do: "Upload error: #{inspect(error)}"
+
   defp save_group(socket, :edit, group_params) do
-    case Creators.update_content_group(socket.assigns.group, group_params) do
+    # Handle file upload for LiveView - store with Waffle directly
+    group_params_with_image =
+      case consume_uploaded_entries(socket, :image, fn %{path: path}, entry ->
+        # Build a Plug.Upload for Waffle
+        upload = %Plug.Upload{path: path, filename: entry.client_name, content_type: entry.client_type}
+        case QlariusWeb.Uploaders.CreatorImage.store({upload, socket.assigns.group}) do
+          {:ok, filename} -> {:ok, filename}
+          error -> error
+        end
+      end) do
+        [filename | _] -> Map.put(group_params, "image", filename)
+        [] -> group_params  # Don't include image key at all if no file uploaded
+      end
+
+    case Creators.update_content_group(socket.assigns.group, group_params_with_image) do
       {:ok, group} ->
         socket
         |> put_flash(:info, "Group updated successfully")
         |> push_navigate(to: ~p"/creators/content_groups/#{group}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
+        require Logger
+        Logger.error("ContentGroup update failed: #{inspect(changeset.errors)}")
         assign(socket, :form, to_form(changeset, action: :validate))
     end
     |> noreply()
@@ -98,13 +125,31 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
   defp save_group(socket, :new, group_params) do
     catalog = socket.assigns.catalog
 
-    case Creators.create_content_group(catalog, group_params) do
+    # Create a temporary content group for Waffle store function
+    temp_group = %Qlarius.Tiqit.Arcade.ContentGroup{catalog: catalog}
+
+    # Handle file upload for LiveView - store with Waffle directly
+    group_params_with_image =
+      case consume_uploaded_entries(socket, :image, fn %{path: path}, entry ->
+        upload = %Plug.Upload{path: path, filename: entry.client_name, content_type: entry.client_type}
+        case QlariusWeb.Uploaders.CreatorImage.store({upload, temp_group}) do
+          {:ok, filename} -> {:ok, filename}
+          error -> error
+        end
+      end) do
+        [filename | _] -> Map.put(group_params, "image", filename)
+        [] -> group_params  # Don't include image key at all if no file uploaded
+      end
+
+    case Creators.create_content_group(catalog, group_params_with_image) do
       {:ok, group} ->
         socket
         |> put_flash(:info, "Group created successfully")
         |> push_navigate(to: ~p"/creators/content_groups/#{group}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
+        require Logger
+        Logger.error("ContentGroup create failed: #{inspect(changeset.errors)}")
         assign(socket, :form, to_form(changeset, action: :validate))
     end
     |> noreply()

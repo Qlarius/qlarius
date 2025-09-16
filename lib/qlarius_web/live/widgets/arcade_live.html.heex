@@ -1,12 +1,12 @@
 <%= if Enum.any?(@pieces) do %>
-  <div class="w-full h-[600px] flex flex-col min-h-0">
+  <div class="w-full flex flex-col h-screen">
     <div class="grow-0 bg-base-200 text-base-content p-3 border-b border-base-300">
       <h1 class="font-bold text-xl">{@group.title}</h1>
     </div>
 
-    <div class="flex-1 bg-base-100 text-base-content min-h-0 flex">
+    <div class="flex-1 bg-base-100 text-base-content min-h-0 flex flex-col md:!flex-row">
       <%!-- Selected content piece - STATIONARY --%>
-      <div class="w-1/2 p-5 flex flex-col">
+      <div class="w-full md:w-1/2 p-5 flex flex-col overflow-y-auto">
         <div class="bg-base-100 rounded-lg p-4 mb-4 flex-shrink-0">
           <div>
             <img
@@ -54,7 +54,7 @@
       </div>
 
       <%!-- Episodes list - SCROLLABLE --%>
-      <div class="w-1/2 p-5 flex flex-col min-h-0">
+      <div class="w-full md:w-1/2 p-5 flex flex-col min-h-0 border-t md:!border-t-0 md:border-l border-base-300">
         <h2 class="text-lg font-semibold text-base-content mb-4 flex-shrink-0">
           {String.capitalize(to_string(@group.catalog.piece_type))}s
         </h2>

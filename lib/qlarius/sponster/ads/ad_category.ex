@@ -19,3 +19,5 @@ defmodule Qlarius.Sponster.Ads.AdCategory do
     |> validate_required([:ad_category_name])
   end
 end
+
+# TODO: Some form of integration with Shopify product taxonomies. Note that the Shopify product taxonomies are not exhaustive, so need to account for adding in our own taxonomy as well.

@@ -133,7 +133,7 @@ defmodule QlariusWeb.WalletLive do
         </div>
       <% else %>
         <div class="mb-6 flex gap-2 justify-end items-center">
-          <div class="text-lg bg-sponster-500 text-white px-3 py-1 rounded-full">
+          <div class="text-lg bg-sponster-500 text-white px-3 py-1 rounded-lg">
             Balance: <span class="font-bold">{format_currency(@ledger_header.balance)}</span>
           </div>
         </div>

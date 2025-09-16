@@ -7,7 +7,7 @@ defmodule QlariusWeb.Creators.ContentGroupHTML do
   embed_templates "content_group_html/*"
 
   def content_group_image_url(%ContentGroup{} = group) do
-    QlariusWeb.Uploaders.ContentGroupImage.url({group.image, group}, :original)
+    QlariusWeb.Uploaders.CreatorImage.url({group.image, group}, :original)
   end
 
   def content_group_iframe_url(conn, %ContentGroup{} = group) do
