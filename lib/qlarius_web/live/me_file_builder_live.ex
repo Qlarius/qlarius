@@ -4,7 +4,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
   alias Qlarius.YouData.Surveys
   alias Qlarius.YouData.MeFiles
   alias Qlarius.YouData.Traits
-  alias Qlarius.YouData.TagTeaseAgent
 
   import QlariusWeb.MeFileHTML
 

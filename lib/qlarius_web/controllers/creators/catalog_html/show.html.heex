@@ -14,12 +14,6 @@
         </div>
       </div>
       <div class="flex gap-2">
-        <.link
-          navigate={~p"/creators/catalogs/#{@catalog}/content_groups/new"}
-          class="btn btn-primary"
-        >
-          <.icon name="hero-plus" class="w-4 h-4 mr-2" /> New Content Group
-        </.link>
         <.link navigate={~p"/creators/catalogs/#{@catalog}/edit"} class="btn btn-outline">
           <.icon name="hero-pencil" class="w-4 h-4 mr-2" /> Edit
         </.link>
@@ -31,6 +25,46 @@
         >
           <.icon name="hero-trash" class="w-4 h-4 mr-2" /> Delete
         </.link>
+      </div>
+    </div>
+    
+<!-- Overview Section -->
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+          <div>
+            <h3 class="text-sm font-medium text-base-content mb-2">Catalog Image</h3>
+            <%= if @catalog.image do %>
+              <img
+                src={QlariusWeb.Uploaders.CreatorImage.url({@catalog.image, @catalog}, :original)}
+                class="w-50 h-50 object-cover rounded border border-base-300"
+                alt={"#{@catalog.name} image"}
+              />
+            <% else %>
+              <div class="w-48 h-32 rounded bg-base-200 flex items-center justify-center text-base-content/40">
+                No image
+              </div>
+            <% end %>
+          </div>
+
+          <div class="md:col-span-1">
+            <h3 class="text-sm font-medium text-base-content mb-2">Type Hierarchy</h3>
+            <div class="flex flex-col flex-wrap gap-2">
+              <span class="badge badge-primary p-4">
+                <.icon name="hero-rectangle-group" class="w-4 h-4 mr-1" />
+                Catalog: {@catalog.type |> to_string() |> String.capitalize()}
+              </span>
+              <span class="badge badge-secondary p-4">
+                <.icon name="hero-queue-list" class="w-4 h-4 mr-1" />
+                Group: {@catalog.group_type |> to_string() |> String.capitalize()}
+              </span>
+              <span class="badge badge-info p-4">
+                <.icon name="hero-document-text" class="w-4 h-4 mr-1" />
+                Piece: {@catalog.piece_type |> to_string() |> String.capitalize()}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     
@@ -64,7 +98,9 @@
     <div class="space-y-4">
       <div class="flex items-center justify-between">
         <h2 class="text-xl font-semibold text-base-content flex items-center">
-          <.icon name="hero-tag" class="w-6 h-6 mr-3 text-primary" /> Tiqit Classes
+          <.icon name="hero-tag" class="w-6 h-6 mr-3 text-primary" /> {@catalog.type
+          |> to_string()
+          |> String.capitalize()}-Level Tiqit Classes
         </h2>
       </div>
 
@@ -115,13 +151,15 @@
       <div class="flex items-center justify-between">
         <h2 class="text-xl font-semibold text-base-content flex items-center">
           <.icon name="hero-folder" class="w-6 h-6 mr-3 text-secondary" />
-          Content Groups ({@catalog.group_type |> to_string() |> String.capitalize()})
+          {@catalog.group_type |> to_string() |> String.capitalize()}
         </h2>
         <div class="flex gap-2">
-          <div class="stat">
-            <div class="stat-value text-lg">{length(@catalog.content_groups)}</div>
-            <div class="stat-desc">Total Groups</div>
-          </div>
+          <.link
+            navigate={~p"/creators/catalogs/#{@catalog}/content_groups/new"}
+            class="btn btn-primary"
+          >
+            <.icon name="hero-plus" class="w-4 h-4 mr-2" /> New {@catalog.group_type |> to_string() |> String.capitalize()}
+          </.link>
         </div>
       </div>
 
@@ -133,8 +171,9 @@
                 <thead class="bg-base-200">
                   <tr>
                     <th class="font-semibold text-base-content">Name</th>
-                    <th class="font-semibold text-base-content">Description</th>
-                    <th class="font-semibold text-base-content">Pieces</th>
+                    <th class="font-semibold text-base-content">
+                      {@catalog.piece_type |> to_string() |> String.capitalize()} count
+                    </th>
                     <th class="font-semibold text-base-content text-right">Actions</th>
                   </tr>
                 </thead>
@@ -146,25 +185,58 @@
                     >
                       <td class="font-medium text-base-content">
                         <div class="flex items-center gap-3">
-                          <div class="avatar placeholder">
-                            <div class="bg-neutral-focus text-neutral-content rounded-full w-8 h-8">
-                              <span class="text-xs">{String.at(group.title, 0)}</span>
-                            </div>
+                          <div class="w-10 h-10">
+                            <%= if group.image do %>
+                              <img
+                                src={
+                                  QlariusWeb.Uploaders.CreatorImage.url(
+                                    {group.image, @catalog},
+                                    :original
+                                  )
+                                }
+                                class="w-10 h-10 object-cover rounded"
+                                alt={"#{group.title} image"}
+                              />
+                            <% else %>
+                              <%= if @catalog.image do %>
+                                <img
+                                  src={
+                                    QlariusWeb.Uploaders.CreatorImage.url(
+                                      {@catalog.image, @catalog},
+                                      :original
+                                    )
+                                  }
+                                  class="w-10 h-10 object-cover rounded"
+                                  alt={"#{@catalog.name} image"}
+                                />
+                              <% else %>
+                                <%= if @creator.image do %>
+                                  <img
+                                    src={
+                                      QlariusWeb.Uploaders.CreatorImage.url(
+                                        {@creator.image, @creator},
+                                        :original
+                                      )
+                                    }
+                                    class="w-10 h-10 object-cover rounded"
+                                    alt={@creator.name}
+                                  />
+                                <% else %>
+                                  <div class="avatar placeholder">
+                                    <div class="bg-neutral-focus text-neutral-content rounded w-10 h-10">
+                                      <span class="text-sm">{String.at(group.title, 0)}</span>
+                                    </div>
+                                  </div>
+                                <% end %>
+                              <% end %>
+                            <% end %>
                           </div>
-                          <div>
-                            <div class="font-medium">{group.title}</div>
-                            <div class="text-sm text-base-content/60">{group.description}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td class="text-base-content max-w-xs">
-                        <div class="truncate" title={group.description}>
-                          {group.description}
+                          <div class="font-medium">{group.title}</div>
                         </div>
                       </td>
                       <td class="text-base-content">
-                        <span class="badge badge-secondary badge-sm">
-                          {length(group.content_pieces)} pieces
+                        <span class="badge badge-secondary badge-sm p-2">
+                          {length(group.content_pieces)}
                         </span>
                       </td>
                       <td class="text-right">

@@ -1,4 +1,4 @@
-<.form :let={f} for={@changeset} action={@action} class="space-y-6">
+<.form :let={f} for={@changeset} action={@action} class="space-y-6" multipart>
   <div class="space-y-4">
     <.input
       field={f[:name]}
@@ -7,6 +7,16 @@
       class="input input-bordered w-full"
       placeholder="Enter creator name"
       required
+    />
+  </div>
+
+  <div class="space-y-2">
+    <.input
+      field={f[:image]}
+      type="file"
+      accept=".jpg,.jpeg,.png,.gif,.webp"
+      label="Creator Image"
+      class="file-input file-input-bordered w-full"
     />
   </div>
 

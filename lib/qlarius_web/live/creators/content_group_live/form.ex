@@ -31,7 +31,11 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
       form: to_form(changeset),
       page_title: "Edit Content Group"
     )
-    |> allow_upload(:image, accept: ~w(.jpg .jpeg .png .gif .webp), max_entries: 1, max_file_size: 10_000_000)
+    |> allow_upload(:image,
+      accept: ~w(.jpg .jpeg .png .gif .webp),
+      max_entries: 1,
+      max_file_size: 10_000_000
+    )
     |> noreply()
   end
 
@@ -56,7 +60,11 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
       group: %ContentGroup{},
       page_title: "New Content Group"
     )
-    |> allow_upload(:image, accept: ~w(.jpg .jpeg .png .gif .webp), max_entries: 1, max_file_size: 10_000_000)
+    |> allow_upload(:image,
+      accept: ~w(.jpg .jpeg .png .gif .webp),
+      max_entries: 1,
+      max_file_size: 10_000_000
+    )
     |> noreply()
   end
 
@@ -97,15 +105,21 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
     # Handle file upload for LiveView - store with Waffle directly
     group_params_with_image =
       case consume_uploaded_entries(socket, :image, fn %{path: path}, entry ->
-        # Build a Plug.Upload for Waffle
-        upload = %Plug.Upload{path: path, filename: entry.client_name, content_type: entry.client_type}
-        case QlariusWeb.Uploaders.CreatorImage.store({upload, socket.assigns.group}) do
-          {:ok, filename} -> {:ok, filename}
-          error -> error
-        end
-      end) do
+             # Build a Plug.Upload for Waffle
+             upload = %Plug.Upload{
+               path: path,
+               filename: entry.client_name,
+               content_type: entry.client_type
+             }
+
+             case QlariusWeb.Uploaders.CreatorImage.store({upload, socket.assigns.group}) do
+               {:ok, filename} -> {:ok, filename}
+               error -> error
+             end
+           end) do
         [filename | _] -> Map.put(group_params, "image", filename)
-        [] -> group_params  # Don't include image key at all if no file uploaded
+        # Don't include image key at all if no file uploaded
+        [] -> group_params
       end
 
     case Creators.update_content_group(socket.assigns.group, group_params_with_image) do
@@ -131,14 +145,20 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
     # Handle file upload for LiveView - store with Waffle directly
     group_params_with_image =
       case consume_uploaded_entries(socket, :image, fn %{path: path}, entry ->
-        upload = %Plug.Upload{path: path, filename: entry.client_name, content_type: entry.client_type}
-        case QlariusWeb.Uploaders.CreatorImage.store({upload, temp_group}) do
-          {:ok, filename} -> {:ok, filename}
-          error -> error
-        end
-      end) do
+             upload = %Plug.Upload{
+               path: path,
+               filename: entry.client_name,
+               content_type: entry.client_type
+             }
+
+             case QlariusWeb.Uploaders.CreatorImage.store({upload, temp_group}) do
+               {:ok, filename} -> {:ok, filename}
+               error -> error
+             end
+           end) do
         [filename | _] -> Map.put(group_params, "image", filename)
-        [] -> group_params  # Don't include image key at all if no file uploaded
+        # Don't include image key at all if no file uploaded
+        [] -> group_params
       end
 
     case Creators.create_content_group(catalog, group_params_with_image) do

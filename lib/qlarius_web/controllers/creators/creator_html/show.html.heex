@@ -7,6 +7,13 @@
           <.icon name="hero-arrow-left" class="w-4 h-4" /> Back to Creators
         </.link>
         <div>
+          <%= if @creator.image do %>
+            <img
+              src={QlariusWeb.Uploaders.CreatorImage.url({@creator.image, @creator}, :original)}
+              alt={@creator.name}
+              class="w-[200px] h-[200px] object-cover rounded-lg"
+            />
+          <% end %>
           <h1 class="text-2xl font-bold text-base-content">{@creator.name}</h1>
           <p class="text-base-content/60 mt-1">Content Creator</p>
         </div>
@@ -29,18 +36,6 @@
       </div>
     </div>
     
-<!-- Stats Card -->
-    <div class="stats stats-vertical lg:stats-horizontal shadow">
-      <div class="stat">
-        <div class="stat-figure text-primary">
-          <.icon name="hero-photo" class="w-8 h-8" />
-        </div>
-        <div class="stat-title">Total Catalogs</div>
-        <div class="stat-value">{length(@creator.catalogs)}</div>
-        <div class="stat-desc">Content collections</div>
-      </div>
-    </div>
-    
 <!-- Catalogs Section -->
     <div class="space-y-4">
       <div class="flex items-center justify-between">
@@ -54,8 +49,8 @@
               <table class="table table-zebra w-full">
                 <thead class="bg-base-200">
                   <tr>
+                    <th class="font-semibold text-base-content">Image</th>
                     <th class="font-semibold text-base-content">Name</th>
-                    <th class="font-semibold text-base-content">Type</th>
                     <th class="font-semibold text-base-content text-right">Actions</th>
                   </tr>
                 </thead>
@@ -65,6 +60,39 @@
                       class="hover:bg-base-200 cursor-pointer transition-colors"
                       phx-click={JS.navigate(~p"/creators/catalogs/#{catalog}")}
                     >
+                      <td class="align-middle">
+                        <%= if catalog.image do %>
+                          <img
+                            src={
+                              QlariusWeb.Uploaders.CreatorImage.url(
+                                {catalog.image, catalog},
+                                :original
+                              )
+                            }
+                            alt={"#{catalog.name} image"}
+                            class="w-10 h-10 object-cover rounded"
+                          />
+                        <% else %>
+                          <%= if @creator.image do %>
+                            <img
+                              src={
+                                QlariusWeb.Uploaders.CreatorImage.url(
+                                  {@creator.image, @creator},
+                                  :original
+                                )
+                              }
+                              alt={@creator.name}
+                              class="w-10 h-10 object-cover rounded"
+                            />
+                          <% else %>
+                            <div class="avatar placeholder">
+                              <div class="bg-neutral-focus text-neutral-content rounded w-10 h-10">
+                                <span class="text-sm">{String.at(catalog.name, 0)}</span>
+                              </div>
+                            </div>
+                          <% end %>
+                        <% end %>
+                      </td>
                       <td class="font-medium text-base-content">
                         <div class="flex items-center gap-3">
                           <div class="avatar placeholder">
@@ -74,11 +102,6 @@
                           </div>
                           <span>{catalog.name}</span>
                         </div>
-                      </td>
-                      <td class="text-base-content">
-                        <span class="badge badge-outline">
-                          {catalog.type |> to_string |> String.capitalize()}
-                        </span>
                       </td>
                       <td class="text-right">
                         <div class="flex gap-2 justify-end">

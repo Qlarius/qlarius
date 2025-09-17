@@ -19,6 +19,7 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
     field :type, Ecto.Enum, values: @types
     field :group_type, Ecto.Enum, values: @group_types
     field :piece_type, Ecto.Enum, values: @piece_types
+    field :image, :string
 
     has_many :tiqit_classes, TiqitClass, on_replace: :delete
 
@@ -41,5 +42,12 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
       sort_param: :tiqit_class_sort,
       with: &TiqitClass.changeset/2
     )
+  end
+
+  @doc false
+  def changeset_with_image(catalog, attrs) do
+    catalog
+    |> changeset(attrs)
+    |> put_change(:image, attrs["image"])
   end
 end

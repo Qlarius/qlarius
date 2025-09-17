@@ -15,12 +15,6 @@
       </div>
       <div class="flex gap-2">
         <.link
-          navigate={~p"/creators/content_groups/#{@content_group}/content_pieces/new"}
-          class="btn btn-primary"
-        >
-          <.icon name="hero-plus" class="w-4 h-4 mr-2" /> New Content Piece
-        </.link>
-        <.link
           navigate={~p"/creators/content_groups/#{@content_group}/edit"}
           class="btn btn-outline"
         >
@@ -36,7 +30,6 @@
         </.link>
       </div>
     </div>
-
     
 <!-- Description and Embed Section -->
     <div class="card bg-base-100 shadow-lg">
@@ -104,7 +97,9 @@
     <div class="space-y-4">
       <div class="flex items-center justify-between">
         <h2 class="text-xl font-semibold text-base-content flex items-center">
-          <.icon name="hero-tag" class="w-6 h-6 mr-3 text-primary" /> {@content_group.catalog.group_type |> to_string() |> String.capitalize()} Tiqit Classes
+          <.icon name="hero-tag" class="w-6 h-6 mr-3 text-primary" /> {@content_group.catalog.group_type
+          |> to_string()
+          |> String.capitalize()} Tiqit Classes
         </h2>
       </div>
 
@@ -149,10 +144,12 @@
           <.icon name="hero-queue-list" class="w-6 h-6 mr-3 text-secondary" /> Content Pieces
         </h2>
         <div class="flex gap-2">
-          <div class="stat">
-            <div class="stat-value text-lg">{length(@content_group.content_pieces)}</div>
-            <div class="stat-desc">Total Pieces</div>
-          </div>
+          <.link
+          navigate={~p"/creators/content_groups/#{@content_group}/content_pieces/new"}
+          class="btn btn-primary"
+        >
+          <.icon name="hero-plus" class="w-4 h-4 mr-2" /> New Content Piece
+        </.link>
         </div>
       </div>
 

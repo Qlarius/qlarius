@@ -69,14 +69,24 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
   end
 
   def create_catalog(%Creator{} = creator, attrs \\ %{}) do
+    changeset_fn =
+      if Map.has_key?(attrs, "image"),
+        do: &Catalog.changeset_with_image/2,
+        else: &Catalog.changeset/2
+
     %Catalog{creator_id: creator.id}
-    |> Catalog.changeset(attrs)
+    |> changeset_fn.(attrs)
     |> Repo.insert()
   end
 
   def update_catalog(%Catalog{} = catalog, attrs) do
+    changeset_fn =
+      if Map.has_key?(attrs, "image"),
+        do: &Catalog.changeset_with_image/2,
+        else: &Catalog.changeset/2
+
     catalog
-    |> Catalog.changeset(attrs)
+    |> changeset_fn.(attrs)
     |> Repo.update()
   end
 
@@ -106,7 +116,11 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
   end
 
   def create_content_group(%Catalog{} = catalog, attrs \\ %{}) do
-    changeset_fn = if Map.has_key?(attrs, "image"), do: &ContentGroup.changeset_with_image/2, else: &ContentGroup.changeset/2
+    changeset_fn =
+      if Map.has_key?(attrs, "image"),
+        do: &ContentGroup.changeset_with_image/2,
+        else: &ContentGroup.changeset/2
+
     %ContentGroup{catalog: catalog}
     |> changeset_fn.(attrs)
     |> Repo.insert()
@@ -119,7 +133,11 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
   end
 
   def update_content_group(%ContentGroup{} = group, attrs) do
-    changeset_fn = if Map.has_key?(attrs, "image"), do: &ContentGroup.changeset_with_image/2, else: &ContentGroup.changeset/2
+    changeset_fn =
+      if Map.has_key?(attrs, "image"),
+        do: &ContentGroup.changeset_with_image/2,
+        else: &ContentGroup.changeset/2
+
     group
     |> changeset_fn.(attrs)
     |> Repo.update()

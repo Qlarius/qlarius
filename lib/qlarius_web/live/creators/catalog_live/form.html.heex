@@ -37,6 +37,65 @@
               Basic Information
             </h3>
 
+            <div class="form-control mb-4">
+              <label class="label">
+                <span class="label-text font-medium">Image</span>
+              </label>
+              <div
+                class="w-full border-2 border-dashed border-base-300 rounded-lg flex items-center justify-center overflow-hidden"
+                phx-drop-target={@uploads.image.ref}
+              >
+                <.live_file_input upload={@uploads.image} class="hidden" />
+                <label
+                  for={@uploads.image.ref}
+                  class="cursor-pointer p-6 text-center w-full block"
+                >
+                  <.icon
+                    name="hero-cloud-arrow-up"
+                    class="w-8 h-8 mx-auto text-base-content/60 mb-2"
+                  />
+                  <p class="text-sm text-base-content/60">Click to upload or drag and drop</p>
+                  <p class="text-xs text-base-content/40">JPG, PNG, GIF, WebP (max 10MB)</p>
+                </label>
+              </div>
+
+              <%= if @catalog.image do %>
+                <div class="mt-2">
+                  <img
+                    src={
+                      QlariusWeb.Uploaders.CreatorImage.url({@catalog.image, @catalog}, :original)
+                    }
+                    class="w-32 h-auto object-cover rounded"
+                    alt="Catalog image preview"
+                  />
+                </div>
+              <% end %>
+
+              <%= for entry <- @uploads.image.entries do %>
+                <div class="mt-2">
+                  <div class="flex items-center gap-2 p-2 bg-base-200 rounded">
+                    <.icon name="hero-document" class="w-4 h-4" />
+                    <span class="text-sm flex-1">{entry.client_name}</span>
+                    <button
+                      type="button"
+                      phx-click="cancel-upload"
+                      phx-value-ref={entry.ref}
+                      class="btn btn-xs btn-ghost"
+                    >
+                      <.icon name="hero-x-mark" class="w-3 h-3" />
+                    </button>
+                  </div>
+                  <%= for err <- upload_errors(@uploads.image, entry) do %>
+                    <div class="text-error text-xs mt-1">{error_to_string(err)}</div>
+                  <% end %>
+                </div>
+              <% end %>
+
+              <%= for err <- upload_errors(@uploads.image) do %>
+                <div class="text-error text-xs mt-1">{error_to_string(err)}</div>
+              <% end %>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="form-control">
                 <label class="label">
