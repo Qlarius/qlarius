@@ -75,6 +75,53 @@ Hooks.AnimateTrait = {
   }
 }
 
+function setupCountdown(el){
+  if (!el || el.dataset.countdownInitialized === '1') return
+  const display = el.querySelector('[data-countdown-display]') || el
+  const expiresRaw = el.dataset.expiresAt
+  const expiresAt = expiresRaw ? Date.parse(expiresRaw) : NaN
+  if (!display || isNaN(expiresAt)) return
+
+  function update(){
+    const now = Date.now()
+    const distance = expiresAt - now
+    if (distance <= 0){
+      display.textContent = 'expired'
+      return
+    }
+    const d = Math.floor(distance / (1000*60*60*24))
+    const h = Math.floor((distance % (1000*60*60*24)) / (1000*60*60))
+    const m = Math.floor((distance % (1000*60*60)) / (1000*60))
+    const s = Math.floor((distance % (1000*60)) / 1000)
+    const parts = []
+    if (d > 0) parts.push(`${d} ${d===1?'day':'days'}`)
+    if (h > 0 || d > 0) parts.push(`${h} ${h===1?'hr':'hrs'}`)
+    if (m > 0 || h > 0 || d > 0) parts.push(`${m} ${m===1?'min':'mins'}`)
+    if (d < 1 && h < 1) parts.push(`${s} ${s===1?'sec':'secs'}`)
+    display.textContent = parts.join(', ')
+    el._countdownTimeout = setTimeout(update, 1000)
+  }
+
+  el.dataset.countdownInitialized = '1'
+  update()
+}
+
+function initCountdownTimers(){
+  document.querySelectorAll('[data-countdown-root]').forEach(setupCountdown)
+}
+
+document.addEventListener('DOMContentLoaded', initCountdownTimers)
+window.addEventListener('phx:page-loading-stop', initCountdownTimers)
+
+Hooks.TiqitExpirationCountdown = {
+  mounted(){
+    setupCountdown(this.el)
+  },
+  destroyed(){
+    if (this.el && this.el._countdownTimeout) clearTimeout(this.el._countdownTimeout)
+  }
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},

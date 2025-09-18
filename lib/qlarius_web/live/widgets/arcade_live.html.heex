@@ -6,32 +6,24 @@
 
     <div class="flex-1 bg-base-100 text-base-content min-h-0 flex flex-col md:!flex-row">
       <%!-- Selected content piece - STATIONARY --%>
-      <div class="w-full md:w-1/2 p-5 flex flex-col overflow-y-auto">
+      <div class="w-full md:!w-1/2 p-5 flex flex-col flex-none overflow-visible md:overflow-y-auto">
         <div class="bg-base-100 rounded-lg p-4 mb-4 flex-shrink-0">
-          <div>
-            <img
-              src="/images/darkness-cover-art-garza-season-5-square-526x351.jpg"
-              class="max-h-50 rounded-lg mx-auto"
-            />
-            <%!-- <%= if @group.image do %>
+          <div class="flex flex-row md:!flex-col">
+            <div class="mr-4 md:mr-0">
               <img
-                src={QlariusWeb.Creators.ContentGroupHTML.content_group_image_url(@group)}
-                class="max-h-32 rounded mx-auto"
+                src="/images/darkness-cover-art-garza-season-5-square-526x351.jpg"
+                class="max-h-50 rounded-lg mx-auto"
               />
-            <% else %>
-              <div class="h-32 w-full bg-base-200 rounded flex items-center justify-center">
-                <.icon name="hero-photo" class="h-8 w-8 text-base-content/40" />
-              </div>
-            <% end %> --%>
-          </div>
-          <div class="mt-4">
-            <p class="text-lg font-semibold mb-2 leading-tight">{@selected_piece.title}</p>
-            <p class="text-sm text-base-content/70">
-              {@selected_piece.description}
-            </p>
+            </div>
+            <div class="mt-0 md:mt-4">
+              <p class="text-lg font-semibold mb-2 leading-tight">{@selected_piece.title}</p>
+              <p class="text-sm text-base-content/70">
+                {@selected_piece.description}
+              </p>
+            </div>
           </div>
 
-          <div class="flex flex-col justify-between mt-6 gap-4">
+          <div class="flex flex-col justify-between mt-6 gap-4 align-middle text-center">
             <%= if Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>
               <.link
                 navigate={~p"/widgets/content/#{@selected_piece.id}"}
@@ -39,6 +31,10 @@
               >
                 <.icon name="hero-play" class="h-4 w-4 mr-2" /> Open/Play
               </.link>
+              <QlariusWeb.Components.TiqitExpirationCountdown.badge
+                expires_at={@tiqit.expires_at}
+                class="badge-outline mx-auto badge-xs px-2 py-3 rounded-lg"
+              />
             <% else %>
               <% default_tc = ContentPiece.default_tiqit_class(@selected_piece) %>
               <button
@@ -54,7 +50,7 @@
       </div>
 
       <%!-- Episodes list - SCROLLABLE --%>
-      <div class="w-full md:w-1/2 p-5 flex flex-col min-h-0 border-t md:!border-t-0 md:border-l border-base-300">
+      <div class="w-full md:!w-1/2 p-5 flex flex-col flex-1 md:flex-none min-h-0 border-t md:!border-t-0 md:border-l border-base-300">
         <h2 class="text-lg font-semibold text-base-content mb-4 flex-shrink-0">
           {String.capitalize(to_string(@group.catalog.piece_type))}s
         </h2>
@@ -177,7 +173,7 @@
         </div>
       </div>
 
-      <div class="flex flex-row w-full min-h-[300px] divide-x divide-base-300">
+      <div class="flex flex-row w-full divide-x divide-base-300 py-4">
         <div class="flex-1">
           <h3 class="text-base-content/60 mb-3">Visit your sponsors.</h3>
           <div class="flex flex-col items-center">
@@ -199,7 +195,7 @@
               </div>
             </div>
             <button
-              class="btn btn-primary rounded-full !bg-sponster-500 !hover:bg-sponster-600 text-white btn-lg"
+              class="btn btn-primary border-none rounded-full !bg-sponster-500 hover:!bg-sponster-600 text-white btn-lg"
               onclick="parent.postMessage('open_widget','*');self.toggleAnnouncerElements();"
             >
               Show my ads

@@ -85,11 +85,6 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
     {:noreply, cancel_upload(socket, :image, ref)}
   end
 
-  defp error_to_string(:too_large), do: "File too large (max 10MB)"
-  defp error_to_string(:too_many_files), do: "Too many files selected"
-  defp error_to_string(:not_accepted), do: "File type not supported"
-  defp error_to_string(error), do: "Upload error: #{inspect(error)}"
-
   def handle_event("write_default_tiqit_classes", _params, socket) do
     # Call the arcade context function to write default tiqit classes for this catalog
     Qlarius.Tiqit.Arcade.Arcade.write_default_catalog_tiqit_classes(socket.assigns.catalog)
@@ -99,6 +94,12 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
 
     {:noreply, assign(socket, :catalog, catalog)}
   end
+
+  # error helpers grouped after all handle_event clauses to avoid compiler warnings
+  defp error_to_string(:too_large), do: "File too large (max 10MB)"
+  defp error_to_string(:too_many_files), do: "Too many files selected"
+  defp error_to_string(:not_accepted), do: "File type not supported"
+  defp error_to_string(error), do: "Upload error: #{inspect(error)}"
 
   defp save_catalog(socket, :edit, catalog_params) do
     # Handle file upload for LiveView - store with Waffle directly

@@ -7,10 +7,12 @@ defmodule QlariusWeb.Creators.CatalogController do
   def show(conn, %{"id" => id}) do
     catalog = Creators.get_catalog!(id)
     creator = catalog.creator
+
     breadcrumbs = [
       {creator.name, ~p"/creators/#{creator}"},
       {catalog.name, ~p"/creators/#{catalog}"}
     ]
+
     render(conn, :show, catalog: catalog, creator: creator, breadcrumbs: breadcrumbs)
   end
 

@@ -79,9 +79,17 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
         nil
       end
 
+    tiqit =
+      if selected_piece do
+        Arcade.get_valid_tiqit(socket.assigns.current_scope, selected_piece)
+      else
+        nil
+      end
+
     socket
     |> assign(selected_piece: selected_piece)
     |> assign(default_tiqit_class: default_tiqit_class)
+    |> assign(tiqit: tiqit)
     |> noreply()
   end
 
