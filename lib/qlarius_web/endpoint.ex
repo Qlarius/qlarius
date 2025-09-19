@@ -8,18 +8,37 @@ defmodule QlariusWeb.Endpoint do
     store: :cookie,
     key: "_qlarius_key",
     signing_salt: "Tvun6ICt",
-    same_site: if(Mix.env() == :prod, do: "None", else: "Lax"),
-    secure: Mix.env() == :prod
+    same_site: "None",
+    secure: true
   ]
 
   socket "/live", Phoenix.LiveView.Socket,
-    websocket: [connect_info: [:x_headers, session: @session_options]],
+    websocket: [
+      connect_info: [:x_headers, session: @session_options],
+      check_origin: [
+        "https://qlarius.gigalixirapp.com",
+        "https://www.qlarius.com",
+        "https://qlarius.com",
+        "http://localhost:4000",
+        "https://localhost:4000",
+        "http://localhost:4001",
+        "https://localhost:4001",
+        "http://127.0.0.1:4000",
+        "https://127.0.0.1:4000",
+        "http://127.0.0.1:4001",
+        "https://127.0.0.1:4001",
+        "chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen"
+      ]
+    ],
     longpoll: [connect_info: [:x_headers, session: @session_options]]
 
   # Based on https://elixirforum.com/t/how-to-embed-a-liveview-via-iframe/65066
   # This isn't a good long-term solution; I just need to get the demo working.
   socket "/widgets/live", Phoenix.LiveView.Socket,
-    websocket: [connect_info: [:x_headers, session: @session_options]],
+    websocket: [
+      connect_info: [:x_headers, session: @session_options],
+      check_origin: false
+    ],
     longpoll: [connect_info: [:x_headers, session: @session_options]]
 
   # Serve at "/" the static files from "priv/static" directory.
@@ -60,12 +79,26 @@ defmodule QlariusWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
+  plug :set_csp
 
-  # Add CORS support
+  # Add CORS support - allow chrome extension and localhost
   plug CORSPlug,
-    origin: ["*"],
+    origin: [
+      "http://localhost:4000",
+      "https://localhost:4000",
+      "http://localhost:4001",
+      "https://localhost:4001",
+      "https://qlarius.gigalixirapp.com",
+      "chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen"
+    ],
     headers: ["*"],
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST"],
+    credentials: true
 
   plug QlariusWeb.Router
+
+  defp set_csp(conn, _) do
+    csp = "base-uri 'self'; default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://localhost:* chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen; frame-ancestors * chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen;"
+    Plug.Conn.put_resp_header(conn, "content-security-policy", csp)
+  end
 end

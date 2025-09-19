@@ -31,18 +31,42 @@ config :qlarius, Qlarius.Repo, database_config
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
-config :qlarius, QlariusWeb.Endpoint,
-  # Binding to loopback ipv4 address prevents access from other machines.
-  # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
-  http: [ip: {127, 0, 0, 1}, port: 4000],
-  check_origin: false,
-  code_reloader: true,
-  debug_errors: true,
-  secret_key_base: "I0TNoNVsAUb60KoJZG27GA8uKP29XGc9Sifl6xY/RfCkULLRYLyl67A6PjHiYgoF",
-  watchers: [
-    esbuild: {Esbuild, :install_and_run, [:qlarius, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:qlarius, ~w(--watch)]}
+# Optional HTTPS for dev to allow embedding from secure contexts (extensions)
+dev_certfile = Path.expand("../priv/cert/selfsigned.pem", __DIR__)
+dev_keyfile = Path.expand("../priv/cert/selfsigned_key.pem", __DIR__)
+
+ssl_opts = [
+  https: [
+    port: 4001,
+    cipher_suite: :compatible,
+    keyfile: dev_keyfile,
+    certfile: dev_certfile
   ]
+]
+
+endpoint_config =
+  [
+    # Binding to loopback ipv4 address prevents access from other machines.
+    # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
+    http: [ip: {127, 0, 0, 1}, port: 4000],
+    check_origin: [
+      "http://localhost:4000",
+      "https://localhost:4000",
+      "http://localhost:4001",
+      "https://localhost:4001",
+      "chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen"
+    ],
+    url: [host: "localhost", port: 4001, scheme: "https"],
+    code_reloader: true,
+    debug_errors: true,
+    secret_key_base: "I0TNoNVsAUb60KoJZG27GA8uKP29XGc9Sifl6xY/RfCkULLRYLyl67A6PjHiYgoF",
+    watchers: [
+      esbuild: {Esbuild, :install_and_run, [:qlarius, ~w(--sourcemap=inline --watch)]},
+      tailwind: {Tailwind, :install_and_run, [:qlarius, ~w(--watch)]}
+    ]
+  ] ++ ssl_opts
+
+config :qlarius, QlariusWeb.Endpoint, endpoint_config
 
 # ## SSL Support
 #
