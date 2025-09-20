@@ -51,7 +51,7 @@ defmodule QlariusWeb.Router do
     |> delete_resp_header("x-frame-options")
     |> put_resp_header(
       "content-security-policy",
-      "base-uri 'self'; default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:4000 ws://localhost:4000 https://localhost:4000 wss://localhost:4000 http://127.0.0.1:4000 ws://127.0.0.1:4000 https://127.0.0.1:4000 wss://127.0.0.1:4000 http://localhost:4001 https://localhost:4001 ws://localhost:4001 wss://localhost:4001 http://127.0.0.1:4001 https://127.0.0.1:4001 ws://127.0.0.1:4001 wss://127.0.0.1:4001 https://qlarius.gigalixirapp.com wss://qlarius.gigalixirapp.com; frame-ancestors * chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen;"
+      "base-uri 'self'; default-src 'self'; img-src 'self' data: http: https: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://localhost:* chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen; frame-ancestors * chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen; upgrade-insecure-requests;"
     )
   end
 

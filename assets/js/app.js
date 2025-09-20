@@ -75,11 +75,22 @@ Hooks.AnimateTrait = {
   }
 }
 
-function setupCountdown(el){
-  if (!el || el.dataset.countdownInitialized === '1') return
+function setupCountdown(el, forceReset = false){
+  // Always clear existing timer first
+  if (el._countdownTimeout) {
+    clearTimeout(el._countdownTimeout)
+    el._countdownTimeout = null
+  }
+  
+  if (!el) return
+  
+  // Skip if already initialized and not forcing reset
+  if (!forceReset && el.dataset.countdownInitialized === '1') return
+  
   const display = el.querySelector('[data-countdown-display]') || el
   const expiresRaw = el.dataset.expiresAt
   const expiresAt = expiresRaw ? Date.parse(expiresRaw) : NaN
+  
   if (!display || isNaN(expiresAt)) return
 
   function update(){
@@ -117,8 +128,16 @@ Hooks.TiqitExpirationCountdown = {
   mounted(){
     setupCountdown(this.el)
   },
+  updated(){
+    // Force a complete reset with new data
+    this.el.dataset.countdownInitialized = '0'
+    setupCountdown(this.el, true)
+  },
   destroyed(){
-    if (this.el && this.el._countdownTimeout) clearTimeout(this.el._countdownTimeout)
+    if (this.el && this.el._countdownTimeout) {
+      clearTimeout(this.el._countdownTimeout)
+      this.el._countdownTimeout = null
+    }
   }
 }
 
