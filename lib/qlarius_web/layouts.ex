@@ -11,6 +11,7 @@ defmodule QlariusWeb.Layouts do
   use QlariusWeb, :html
 
   alias Qlarius.Accounts.Scope
+  import QlariusWeb.Components.CustomComponentsMobile
 
   import QlariusWeb.Money
 
@@ -85,11 +86,17 @@ defmodule QlariusWeb.Layouts do
 
     <div class="container mx-auto px-4 py-6">
       <div class="w-full mb-6 flex justify-between items-center">
-        <button class="cursor-pointer" phx-click={toggle_sponster_sidebar(:on)}>
-          <.icon name="hero-bars-3" class="h-8 w-8 text-content-base" />
-        </button>
-        <h1 class="text-3xl font-bold text-center flex-1">{@title}</h1>
-        <div class="w-8"></div>
+        <div class="w-8">
+          <button class="cursor-pointer" phx-click={toggle_sponster_sidebar(:on)}>
+            <.icon name="hero-bars-3" class="h-8 w-8 text-content-base" />
+          </button>
+        </div>
+        <div class="flex-1">
+          <h1 class="text-3xl font-bold text-center flex-1">{@title}</h1>
+        </div>
+        <div class="w-8 flex justify-end overflow-x-visible">
+          <.wallet_balance :if={assigns[:current_scope]} balance={@current_scope.wallet_balance} />
+        </div>
       </div>
       {render_slot(@inner_block)}
       <.debug_assigns {assigns} />
@@ -132,9 +139,9 @@ defmodule QlariusWeb.Layouts do
       >
         <.icon name="hero-banknotes" class="size-[1.5em]" />
         <span class="dock-label">Wallet</span>
-        <span class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-400">
+        <%!-- <span class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-400">
           {format_usd(@current_scope.wallet_balance)}
-        </span>
+        </span> --%>
       </button>
 
       <%!-- TODO: Route not implemented - was ~p"/me_file" (route doesn't exist) --%>
