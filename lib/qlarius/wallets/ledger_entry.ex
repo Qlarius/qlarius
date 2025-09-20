@@ -4,6 +4,7 @@ defmodule Qlarius.Wallets.LedgerEntry do
 
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Sponster.AdEvent
+  alias Qlarius.Tiqit.Arcade.Tiqit
 
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
@@ -15,6 +16,7 @@ defmodule Qlarius.Wallets.LedgerEntry do
 
     belongs_to :ledger_header, LedgerHeader
     belongs_to :ad_event, AdEvent
+    belongs_to :tiqit, Tiqit
 
     timestamps()
   end
@@ -26,7 +28,8 @@ defmodule Qlarius.Wallets.LedgerEntry do
       :running_balance,
       :description,
       :ledger_header_id,
-      :ad_event_id
+      :ad_event_id,
+      :tiqit_id
     ])
     |> validate_required([
       :amt,
@@ -36,5 +39,6 @@ defmodule Qlarius.Wallets.LedgerEntry do
     ])
     |> foreign_key_constraint(:ledger_header_id)
     |> foreign_key_constraint(:ad_event_id)
+    |> foreign_key_constraint(:tiqit_id)
   end
 end

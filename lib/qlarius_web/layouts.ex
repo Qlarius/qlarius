@@ -13,7 +13,7 @@ defmodule QlariusWeb.Layouts do
   alias Qlarius.Accounts.Scope
   import QlariusWeb.Components.CustomComponentsMobile
 
-  import QlariusWeb.Money
+  # import QlariusWeb.Money
 
   embed_templates "layouts/*"
 
@@ -34,6 +34,24 @@ defmodule QlariusWeb.Layouts do
       |> JS.add_class(@sidebar_classes_off, to: "#sponster-sidebar")
       |> JS.add_class(@sidebar_bg_classes_off, to: "#sponster-sidebar-bg")
     end
+  end
+
+  def toggle_right_sidebar(:on) do
+    %JS{}
+    |> JS.add_class("translate-x-0", to: "#right-sidebar")
+    |> JS.remove_class("translate-x-full", to: "#right-sidebar")
+    |> JS.remove_class("opacity-0 pointer-events-none", to: "#right-sidebar-bg")
+    |> JS.add_class("sidebar-scroll-lock", to: "body")
+    |> JS.add_class("sidebar-scroll-lock", to: "html")
+  end
+
+  def toggle_right_sidebar(:off) do
+    %JS{}
+    |> JS.remove_class("translate-x-0", to: "#right-sidebar")
+    |> JS.add_class("translate-x-full", to: "#right-sidebar")
+    |> JS.add_class("opacity-0 pointer-events-none", to: "#right-sidebar-bg")
+    |> JS.remove_class("sidebar-scroll-lock", to: "body")
+    |> JS.remove_class("sidebar-scroll-lock", to: "html")
   end
 
   attr :text, :string, required: true
@@ -103,6 +121,7 @@ defmodule QlariusWeb.Layouts do
     </div>
 
     <.mobile_sidebar {assigns} />
+    <.right_sidebar_drawer {assigns} />
 
     <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
     <div class="dock z-40">

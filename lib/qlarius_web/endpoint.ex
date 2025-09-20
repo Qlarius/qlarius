@@ -98,7 +98,9 @@ defmodule QlariusWeb.Endpoint do
   plug QlariusWeb.Router
 
   defp set_csp(conn, _) do
-    csp = "base-uri 'self'; default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://localhost:* chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen; frame-ancestors * chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen;"
+    csp =
+      "base-uri 'self'; default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://localhost:* chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen; frame-ancestors * chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen;"
+
     Plug.Conn.put_resp_header(conn, "content-security-policy", csp)
   end
 end

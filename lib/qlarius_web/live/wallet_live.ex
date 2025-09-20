@@ -2,6 +2,7 @@ defmodule QlariusWeb.WalletLive do
   use QlariusWeb, :live_view
 
   import QlariusWeb.WalletHTML
+  alias QlariusWeb.Layouts
 
   alias Qlarius.Accounts.Users
   alias Qlarius.Accounts.Scope
@@ -36,6 +37,8 @@ defmodule QlariusWeb.WalletLive do
     |> assign(:loading, true)
     |> assign(:ledger_header, ledger_header)
     |> assign(:sidebar_entry, nil)
+    |> assign(:selected_entry, nil)
+    |> assign(:entry_details, nil)
     |> assign(:page, page)
     |> assign(:paginated_entries, paginated_entries)
     |> ok()
@@ -80,12 +83,21 @@ defmodule QlariusWeb.WalletLive do
   end
 
   @impl true
-  def handle_event("open-ledger-entry-sidebar", %{"entry_id" => entry_id}, socket) do
-    entry = Wallets.get_ledger_entry!(entry_id, socket.assigns.current_scope.user)
+  def handle_event("select_ledger_entry", %{"entry_id" => entry_id}, socket) do
+    entry_id = String.to_integer(entry_id)
 
-    socket
-    |> assign(:sidebar_entry, entry)
-    |> noreply()
+    # Get the detailed entry with associations
+    entry = Wallets.get_ledger_entry!(entry_id, socket.assigns.me_file)
+
+    # Load transaction details based on entry type
+    entry_details = get_entry_details(entry)
+
+    socket =
+      socket
+      |> assign(:selected_entry, entry)
+      |> assign(:entry_details, entry_details)
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -132,7 +144,6 @@ defmodule QlariusWeb.WalletLive do
           {@error}
         </div>
       <% else %>
-
         <div class="flex justify-center mt-10 mb-6 space-x-2">
           <div class="join">
             <button
@@ -173,7 +184,15 @@ defmodule QlariusWeb.WalletLive do
           <li
             :for={entry <- @paginated_entries.entries}
             class={"list-row cursor-pointer transition-all duration-200 !rounded-none hover:shadow-sm #{if Decimal.compare(entry.amt, Decimal.new(0)) == :gt, do: "bg-sponster-100 hover:bg-sponster-100/50 dark:bg-sponster-900/50 hover:bg-sponster-50/50 hover:dark:bg-sponster-900/30", else: "bg-tiqit-100 hover:bg-tiqit-100/50 dark:bg-tiqit-900/50 hover:bg-tiqit-50/50 hover:dark:bg-tiqit-900/30"}"}
-            phx-click="open-ledger-entry-sidebar"
+            phx-click={
+              %JS{}
+              |> JS.push("select_ledger_entry", loading: "#right-sidebar-container")
+              |> JS.add_class("translate-x-0", to: "#right-sidebar")
+              |> JS.remove_class("translate-x-full", to: "#right-sidebar")
+              |> JS.remove_class("opacity-0 pointer-events-none", to: "#right-sidebar-bg")
+              |> JS.add_class("sidebar-scroll-lock", to: "body")
+              |> JS.add_class("sidebar-scroll-lock", to: "html")
+            }
             phx-value-entry_id={entry.id}
           >
             <div class="list-col-grow">
@@ -232,4 +251,103 @@ defmodule QlariusWeb.WalletLive do
 
   #   Decimal.sub(ledger_header.balance, newer_entries_sum)
   # end
+
+  defp get_entry_details(entry) do
+    cond do
+      # Ad event entry
+      entry.ad_event_id != nil ->
+        get_ad_event_details(entry.ad_event)
+
+      # Tiqit purchase (identified by description)
+      String.contains?(entry.description, "Tiqit purchase") ->
+        get_tiqit_purchase_details(entry)
+
+      # Other transaction types
+      true ->
+        %{type: :other, description: entry.description}
+    end
+  end
+
+  defp get_ad_event_details(ad_event) do
+    # Preload the media piece directly through the association
+    ad_event =
+      ad_event
+      |> Repo.preload([
+        :media_piece,
+        :campaign,
+        campaign: [:marketer]
+      ])
+
+    %{
+      type: :ad_event,
+      ad_event: ad_event,
+      media_piece: ad_event.media_piece,
+      matching_tags: parse_matching_tags(ad_event.matching_tags_snapshot),
+      campaign_title: ad_event.campaign && ad_event.campaign.title,
+      marketer_name: get_marketer_name(ad_event.campaign)
+    }
+  end
+
+  defp get_tiqit_purchase_details(entry) do
+    if entry.tiqit_id do
+      case Wallets.get_tiqit_purchase_details(entry.tiqit_id) do
+        %{
+          tiqit: tiqit,
+          creator: creator,
+          content_group: content_group,
+          content_piece: content_piece
+        } ->
+          %{
+            type: :tiqit_purchase,
+            tiqit: tiqit,
+            creator: creator,
+            content_group: content_group,
+            content_piece: content_piece,
+            purchase_time: entry.created_at,
+            amount: entry.amt
+          }
+
+        nil ->
+          # Fallback if tiqit not found
+          %{
+            type: :tiqit_purchase,
+            tiqit: nil,
+            creator: nil,
+            content_group: nil,
+            content_piece: nil,
+            description: entry.description,
+            amount: entry.amt,
+            purchase_time: entry.created_at
+          }
+      end
+    else
+      # Fallback for entries without tiqit association
+      %{
+        type: :tiqit_purchase,
+        tiqit: nil,
+        creator: nil,
+        content_group: nil,
+        content_piece: nil,
+        description: entry.description,
+        amount: entry.amt,
+        purchase_time: entry.created_at
+      }
+    end
+  end
+
+  defp parse_matching_tags(tags_snapshot) when is_binary(tags_snapshot) do
+    case Jason.decode(tags_snapshot) do
+      {:ok, tags} -> tags
+      _ -> []
+    end
+  end
+
+  defp parse_matching_tags(_), do: []
+
+  defp get_marketer_name(campaign) when campaign != nil do
+    campaign = Repo.preload(campaign, :marketer)
+    campaign.marketer.business_name
+  end
+
+  defp get_marketer_name(_), do: "Unknown"
 end

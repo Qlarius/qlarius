@@ -10,6 +10,7 @@ defmodule Qlarius.Wallets do
   alias Qlarius.Wallets.MeFileBalanceBroadcaster
   # Added User alias for get_user_current_balance function
   alias Qlarius.Accounts.User
+  alias Qlarius.Tiqit.Arcade.Tiqit
 
   # Added missing function that was being called from multiple LiveView modules
   def get_user_current_balance(%User{} = user) do
@@ -294,5 +295,60 @@ defmodule Qlarius.Wallets do
     end)
 
     :ok
+  end
+
+  def get_tiqit_purchase_details(tiqit_id) do
+    tiqit =
+      Repo.get(Tiqit, tiqit_id)
+      |> Repo.preload(
+        tiqit_class: [
+          :content_piece,
+          :content_group,
+          content_piece: [
+            content_group: [
+              catalog: [:creator]
+            ]
+          ],
+          content_group: [
+            catalog: [:creator]
+          ]
+        ]
+      )
+
+    if tiqit do
+      # Handle different tiqit class types (content_piece vs content_group)
+      creator =
+        cond do
+          tiqit.tiqit_class.content_group && tiqit.tiqit_class.content_group.catalog ->
+            tiqit.tiqit_class.content_group.catalog.creator
+
+          tiqit.tiqit_class.content_piece && tiqit.tiqit_class.content_piece.content_group ->
+            tiqit.tiqit_class.content_piece.content_group.catalog.creator
+
+          true ->
+            nil
+        end
+
+      content_group =
+        cond do
+          tiqit.tiqit_class.content_group ->
+            tiqit.tiqit_class.content_group
+
+          tiqit.tiqit_class.content_piece && tiqit.tiqit_class.content_piece.content_group ->
+            tiqit.tiqit_class.content_piece.content_group
+
+          true ->
+            nil
+        end
+
+      %{
+        tiqit: tiqit,
+        creator: creator,
+        content_group: content_group,
+        content_piece: tiqit.tiqit_class.content_piece
+      }
+    else
+      nil
+    end
   end
 end

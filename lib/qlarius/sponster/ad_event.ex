@@ -6,6 +6,7 @@ defmodule Qlarius.Sponster.AdEvent do
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Sponster.Campaigns.Campaign
   alias Qlarius.Sponster.Campaigns.MediaRun
+  alias Qlarius.Sponster.Ads.MediaPiece
 
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
@@ -16,7 +17,6 @@ defmodule Qlarius.Sponster.AdEvent do
     field :is_offer_complete, :boolean, default: false
     field :ip_address, :string
     field :url, :string
-    field :media_piece_id, :integer
     field :media_piece_phase_id, :integer
     field :target_id, :integer
     field :target_band_id, :integer
@@ -40,6 +40,7 @@ defmodule Qlarius.Sponster.AdEvent do
     belongs_to :me_file, MeFile
     belongs_to :campaign, Campaign
     belongs_to :media_run, MediaRun
+    belongs_to :media_piece, MediaPiece
 
     timestamps()
   end
@@ -99,5 +100,6 @@ defmodule Qlarius.Sponster.AdEvent do
     |> foreign_key_constraint(:me_file_id)
     |> foreign_key_constraint(:campaign_id)
     |> foreign_key_constraint(:media_run_id)
+    |> foreign_key_constraint(:media_piece_id)
   end
 end

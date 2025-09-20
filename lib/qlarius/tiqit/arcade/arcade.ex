@@ -124,22 +124,28 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
       amount = Decimal.negate(tiqit_class.price)
       new_balance = Decimal.add(ledger_header.balance, amount)
 
+      # First create the tiqit
+      {:ok, tiqit} =
+        %Tiqit{me_file: me_file, tiqit_class: tiqit_class}
+        |> Tiqit.changeset(%{purchased_at: purchased_at, expires_at: expires_at})
+        |> Repo.insert()
+
+      # Then create the ledger entry with the tiqit reference
       %LedgerEntry{
         ledger_header_id: ledger_header.id,
         amt: amount,
         running_balance: new_balance,
-        description: "Tiqit purchase"
+        description: "Tiqit purchase",
+        tiqit_id: tiqit.id
       }
       |> Repo.insert!()
 
+      # Update the ledger header balance
       ledger_header
       |> Ecto.Changeset.change(balance: new_balance)
       |> Repo.update!()
 
-      {:ok, _tiqit} =
-        %Tiqit{me_file: me_file, tiqit_class: tiqit_class}
-        |> Tiqit.changeset(%{purchased_at: purchased_at, expires_at: expires_at})
-        |> Repo.insert()
+      tiqit
     end)
 
     :ok
