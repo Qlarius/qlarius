@@ -159,7 +159,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                     {completed_traits}/{total_traits}
                   </div>
                 </div>
-                <h1 class="text-base-content mt-2">Fill empty tags below.</h1>
+                <h1 class="text-base-content mt-2">Fill & edit tags below.</h1>
               </div>
             </div>
 
@@ -197,6 +197,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
     socket =
       socket
+      |> assign(:current_path, "/me_file")
       |> assign(:categories, categories_with_stats)
       |> assign(:answered_survey_question_ids, answered_ids)
       |> assign(:editing, false)

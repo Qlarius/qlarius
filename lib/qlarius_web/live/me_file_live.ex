@@ -238,6 +238,7 @@ defmodule QlariusWeb.MeFileLive do
   def mount(_params, _session, socket) do
     socket
     |> assign(:title, "MeFile")
+    |> assign(:current_path, "/me_file")
     |> assign_me_file_tags()
     |> assign(:trait_in_edit, nil)
     |> assign(:selected_child_trait_ids, [])
