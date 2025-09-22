@@ -28,7 +28,10 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
 
       # Load data once
       group = Arcade.get_content_group!(group_id)
-      pieces = Enum.filter(group.content_pieces, &Enum.any?(&1.tiqit_classes))
+      pieces =
+        group.content_pieces
+        |> Enum.filter(&Enum.any?(&1.tiqit_classes))
+        |> Enum.sort_by(& &1.id) # Sort by ID to ensure consistent order; change to proper display order later
 
       # Generate random durations only once per piece (cache them)
       pieces =

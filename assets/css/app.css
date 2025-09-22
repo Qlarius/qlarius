@@ -564,13 +564,6 @@ body.sidebar-scroll-lock * {
   overflow: hidden !important;
 }
 
-body.sidebar-scroll-lock #right-sidebar,
-body.sidebar-scroll-lock #right-sidebar *,
-body.sidebar-scroll-lock #right-sidebar-container,
-body.sidebar-scroll-lock #right-sidebar-container * {
-  overflow: visible !important;
-}
-
 body.sidebar-scroll-lock #right-sidebar-container > div:last-child {
   overflow-y: auto !important;
 }

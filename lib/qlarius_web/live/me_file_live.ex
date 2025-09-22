@@ -18,10 +18,15 @@ defmodule QlariusWeb.MeFileLive do
         tag_edit_mode={@tag_edit_mode || "update"}
       />
 
-      <div class="mb-6 flex gap-2 justify-end items-center">
-        <div class="text-lg font-bold bg-youdata-500 dark:bg-youdata-700 text-white px-3 py-1 rounded-lg">
+      <div class="mb-6 flex gap-2 justify-start items-center">
+        <div class="text-lg font-bold bg-youdata-500 dark:bg-youdata-700 text-white px-3 py-1 rounded-lg mr-2">
           {@current_scope.trait_count} tags
         </div>
+        <div>Edit them below.</div>
+        <.link
+          navigate={~p"/me_file_builder"}
+          class="btn-link"
+        >Add more here.</.link>
       </div>
 
       <div class="space-y-8 py-6">

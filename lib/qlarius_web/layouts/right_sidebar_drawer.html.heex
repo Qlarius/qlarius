@@ -63,9 +63,9 @@
         <%= case @entry_details.type do %>
           <% :ad_event -> %>
             <div class="space-y-4">
-              <h4 class="font-medium text-base-content">Ad Viewing Details</h4>
+              <h4 class="font-medium text-base-content">Ad Content</h4>
 
-              <div class="bg-sponster-50 dark:bg-sponster-900/20 rounded-lg overflow-hidden shadow-sm">
+              <div class="bg-base-200 dark:bg-base-900/20 rounded-lg overflow-hidden shadow-sm">
                 <%= if @entry_details.media_piece do %>
                   <!-- Banner Image -->
                   <%= if @entry_details.media_piece.banner_image do %>
@@ -146,7 +146,7 @@
 
               <%= if assigns[:entry_details] && @entry_details.tiqit do %>
                 <!-- Content Group with Image -->
-                <div class="bg-tiqit-50 dark:bg-tiqit-900/20 rounded-lg overflow-hidden shadow-sm">
+                <div class="bg-base-200 dark:bg-base-900/20 rounded-lg overflow-hidden shadow-sm">
                   <%= if @entry_details.content_group && @entry_details.content_group.image do %>
                     <div class="flex justify-center items-center bg-white">
                       <img

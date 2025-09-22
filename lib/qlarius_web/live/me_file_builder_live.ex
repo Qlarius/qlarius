@@ -32,7 +32,14 @@ defmodule QlariusWeb.MeFileBuilderLive do
         <div class="track">
           <div class="survey-panel survey-index-panel w-full h-full overflow-y-auto">
             <div class="h-full overflow-y-auto pb-32">
-              <h1>Choose a subject. Start tagging.</h1>
+
+            <div class="mb-6 flex gap-2 justify-start items-center">
+              <div class="text-lg font-bold bg-youdata-500 dark:bg-youdata-700 text-white px-3 py-1 rounded-lg mr-2">
+                {@current_scope.trait_count} tags
+              </div>
+              <span>Choose a category. Fill empty tags.</span>
+            </div>
+
               <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 <%= for category <- @categories do %>
                   <% {answered_total, question_total, percent_complete} =

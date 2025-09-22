@@ -6,7 +6,7 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.TiqitClass
 
-  @types ~w[site catalog collection show curriculum semester]a
+  @types ~w[site catalog studio collection show curriculum semester]a
   @group_types ~w[show season series album book class]a
   @piece_types ~w[episode chapter song piece lesson segment]a
 

@@ -10,7 +10,7 @@ defmodule QlariusWeb.Creators.CatalogController do
 
     breadcrumbs = [
       {creator.name, ~p"/creators/#{creator}"},
-      {catalog.name, ~p"/creators/#{catalog}"}
+      {catalog.name, nil}
     ]
 
     render(conn, :show, catalog: catalog, creator: creator, breadcrumbs: breadcrumbs)
