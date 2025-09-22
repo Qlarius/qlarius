@@ -86,6 +86,19 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
     {:noreply, cancel_upload(socket, :image, ref)}
   end
 
+  def handle_event("delete_image", _params, socket) do
+    case Creators.delete_content_group_image(socket.assigns.group) do
+      {:ok, group} ->
+        socket
+        |> assign(group: group)
+        |> put_flash(:info, "Image deleted successfully")
+
+      {:error, _changeset} ->
+        put_flash(socket, :error, "Failed to delete image")
+    end
+    |> noreply()
+  end
+
   def handle_event("write_default_tiqit_classes", _params, socket) do
     # Call the arcade context function to write default tiqit classes for this group
     Qlarius.Tiqit.Arcade.Arcade.write_default_group_tiqit_classes(socket.assigns.group)

@@ -165,6 +165,7 @@ defmodule QlariusWeb.Router do
       end
 
       resources "/", CreatorController do
+        delete "/delete_image", CreatorController, :delete_image
         live "/catalogs/new", CatalogLive.Form, :new
       end
     end

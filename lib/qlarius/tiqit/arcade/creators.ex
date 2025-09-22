@@ -42,6 +42,12 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
     Repo.delete(creator)
   end
 
+  def delete_creator_image(%Creator{} = creator) do
+    creator
+    |> Ecto.Changeset.change(%{image: nil})
+    |> Repo.update()
+  end
+
   def change_creator(%Creator{} = creator, attrs \\ %{}) do
     Creator.changeset(creator, attrs)
   end
@@ -92,6 +98,12 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
 
   def delete_catalog(%Catalog{} = catalog) do
     Repo.delete(catalog)
+  end
+
+  def delete_catalog_image(%Catalog{} = catalog) do
+    catalog
+    |> Ecto.Changeset.change(%{image: nil})
+    |> Repo.update()
   end
 
   def change_catalog(%Catalog{} = catalog, attrs \\ %{}) do
@@ -147,6 +159,12 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
     Repo.delete(group)
   end
 
+  def delete_content_group_image(%ContentGroup{} = group) do
+    group
+    |> Ecto.Changeset.change(%{image: nil})
+    |> Repo.update()
+  end
+
   # ---------------------------------------
   #             CONTENT PIECES
   # ---------------------------------------
@@ -162,18 +180,34 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
   end
 
   def create_content_piece(%ContentGroup{} = group, attrs \\ %{}) do
+    changeset_fn =
+      if Map.has_key?(attrs, "image"),
+        do: &ContentPiece.changeset_with_image/2,
+        else: &ContentPiece.changeset/2
+
     %ContentPiece{content_group: group}
-    |> ContentPiece.changeset(attrs)
+    |> changeset_fn.(attrs)
     |> Repo.insert()
   end
 
   def update_content_piece(%ContentPiece{} = piece, attrs) do
+    changeset_fn =
+      if Map.has_key?(attrs, "image"),
+        do: &ContentPiece.changeset_with_image/2,
+        else: &ContentPiece.changeset/2
+
     piece
-    |> ContentPiece.changeset(attrs)
+    |> changeset_fn.(attrs)
     |> Repo.update()
   end
 
   def delete_content_piece(%ContentPiece{} = piece) do
     Repo.delete(piece)
+  end
+
+  def delete_content_piece_image(%ContentPiece{} = piece) do
+    piece
+    |> Ecto.Changeset.change(%{image: nil})
+    |> Repo.update()
   end
 end

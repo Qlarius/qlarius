@@ -59,4 +59,13 @@ defmodule QlariusWeb.Creators.CreatorController do
     |> put_flash(:info, "Creator deleted successfully.")
     |> redirect(to: ~p"/creators")
   end
+
+  def delete_image(conn, %{"id" => id}) do
+    creator = Creators.get_creator!(id)
+    {:ok, _creator} = Creators.delete_creator_image(creator)
+
+    conn
+    |> put_flash(:info, "Creator image deleted successfully.")
+    |> redirect(to: ~p"/creators/#{creator}/edit")
+  end
 end

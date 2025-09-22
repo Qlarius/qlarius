@@ -85,6 +85,19 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
     {:noreply, cancel_upload(socket, :image, ref)}
   end
 
+  def handle_event("delete_image", _params, socket) do
+    case Creators.delete_catalog_image(socket.assigns.catalog) do
+      {:ok, catalog} ->
+        socket
+        |> assign(catalog: catalog)
+        |> put_flash(:info, "Image deleted successfully")
+
+      {:error, _changeset} ->
+        put_flash(socket, :error, "Failed to delete image")
+    end
+    |> noreply()
+  end
+
   def handle_event("write_default_tiqit_classes", _params, socket) do
     # Call the arcade context function to write default tiqit classes for this catalog
     Qlarius.Tiqit.Arcade.Arcade.write_default_catalog_tiqit_classes(socket.assigns.catalog)

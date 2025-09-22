@@ -6,12 +6,13 @@
 
     <div class="flex-1 bg-base-100 text-base-content min-h-0 flex flex-col md:!flex-row">
       <%!-- Selected content piece - STATIONARY --%>
-      <div class="w-full md:!w-1/2 p-5 flex flex-col flex-none overflow-visible md:overflow-y-auto">
-        <div class="bg-base-100 rounded-lg p-4 mb-4 flex-shrink-0">
+      <div class="w-full md:!w-1/2 md:p-5 flex flex-col flex-none overflow-visible md:overflow-y-auto">
+        <div class="bg-base-100 rounded-lg p-4 flex-shrink-0">
           <div class="flex flex-row md:!flex-col">
             <div class="mr-4 md:mr-0">
               <img
-                src="/images/darkness-cover-art-garza-season-5-square-526x351.jpg"
+                src={content_image_url(@selected_piece, @group)}
+                alt={@selected_piece.title}
                 class="max-h-50 rounded-lg mx-auto"
               />
             </div>
@@ -44,6 +45,7 @@
               >
                 Buy Tiqit • <span class="font-bold">{format_usd(default_tc.price)}</span>
               </button>
+              <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
             <% end %>
           </div>
         </div>
@@ -61,17 +63,28 @@
             class={"rounded-lg p-3 flex justify-between items-center border transition-all hover:shadow-sm block
             #{if piece.id == @selected_piece.id, do: "bg-primary/10 border-primary text-primary", else: "bg-base-100 border-base-300 hover:bg-base-200"}"}
           >
-            <div class="flex-1">
-              <p class="text-sm font-semibold mb-2 leading-tight text-base-content">
-                {piece.title}
-              </p>
-              <div class="flex items-center gap-2">
-                <span class="badge badge-xs badge-ghost text-base-content/60">
-                  {Calendar.strftime(piece.inserted_at, "%b %d, %Y")}
-                </span>
-                <span class="badge badge-xs badge-ghost text-base-content/60">
-                  {piece.duration}
-                </span>
+            <div class="flex items-center gap-3 flex-1">
+              <%= if @group.show_piece_thumbnails do %>
+                <div class="flex-shrink-0">
+                  <img
+                    src={content_image_url(piece, @group)}
+                    alt={piece.title}
+                    class="w-10 h-10 object-cover rounded-lg"
+                  />
+                </div>
+              <% end %>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold mb-2 leading-tight text-base-content">
+                  {piece.title}
+                </p>
+                <div class="flex items-center gap-2">
+                  <span class="badge badge-xs badge-ghost text-base-content/60">
+                    {Calendar.strftime(piece.inserted_at, "%b %d, %Y")}
+                  </span>
+                  <span class="badge badge-xs badge-ghost text-base-content/60">
+                    {piece.duration}
+                  </span>
+                </div>
               </div>
             </div>
             <div class="ml-2">
@@ -87,9 +100,6 @@
         </div>
       </div>
     </div>
-    <div class="w-full grow-0">
-      <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
-    </div>
   </div>
 
   <.modal
@@ -101,9 +111,9 @@
     <div class="flex flex-col space-y-4 p-8">
       <div class="relative">
         <img
-          :if={true}
-          src="/images/darkness-cover-art-garza-season-5-square-526x351.jpg"
-          class="max-h-30 rounded mx-auto"
+          src={content_image_url(@selected_piece, @group)}
+          alt={@selected_piece.title}
+          class="max-h-30 rounded-lg mx-auto"
         />
       </div>
       <h3 class="text-base-content/60 text-center mb-0">
@@ -141,6 +151,7 @@
             <span class="font-bold">{format_usd(@selected_tiqit_class.price)}</span>
           </button>
         </div>
+        <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
       <% end %>
       <div class="flex flex-col gap-1">
         <%= if !assigns[:options_modal] do %>
@@ -154,7 +165,6 @@
         <% end %>
       </div>
     </div>
-    <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
   </.modal>
 
   <.modal

@@ -208,21 +208,19 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
 
   defp wallet_strip(assigns) do
     ~H"""
-    <div class="w-full text-base-content bg-base-200 border-t border-base-300 px-5 py-2">
+    <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-3 py-2 rounded-lg border-1 border-base-300">
       <div class="flex flex-row flex-wrap justify-between items-center space-x-4">
-        <span class="text-lg leading-none">
-          You have
-          <span class="text-sponster-500 dark:text-sponster-400 font-bold text-lg">
-            {format_usd(@balance)}
-          </span>
-          to spend.
+        <span class="font-bold text-lg text-sponster-600 dark:text-sponster-300">
+          {format_usd(@balance)}
+        <span class="font-normal text-base-content/60 ml-1 mr-3">to spend</span>
         </span>
 
         <button
-          class="btn btn-lg rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 leading-none"
+          class="btn btn-md rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 leading-none"
           phx-click="show-topup-modal"
         >
-          <.icon name="hero-plus" class="w-4 h-4 mr-1" />Collect
+          <.icon name="hero-arrow-left" class="w-4 h-4 mr-0" />
+          Top up •
           <span class="font-bold">{format_usd(@offered_amount)}</span>
         </button>
       </div>

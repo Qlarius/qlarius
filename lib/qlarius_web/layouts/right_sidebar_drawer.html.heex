@@ -18,225 +18,224 @@
       <div class="h-[env(safe-area-inset-top)] bg-base-300 flex-shrink-0"></div>
     <% end %>
     
-    <!-- Header - Fixed -->
+<!-- Header - Fixed -->
     <div class="flex items-center justify-between px-4 py-4 bg-base-300 flex-shrink-0">
-        <h3 class="text-lg font-semibold">Transaction Details</h3>
+      <h3 class="text-lg font-semibold">Transaction Details</h3>
 
-        <button
-          phx-click={toggle_right_sidebar(:off)}
-          class="text-base-content/50 hover:text-base-content cursor-pointer"
-        >
-          <.icon name="hero-x-mark" class="h-7 w-7" />
-        </button>
-      </div>
-      
-    <!-- Content -->
+      <button
+        phx-click={toggle_right_sidebar(:off)}
+        class="text-base-content/50 hover:text-base-content cursor-pointer"
+      >
+        <.icon name="hero-x-mark" class="h-7 w-7" />
+      </button>
+    </div>
+    
+<!-- Content -->
     <div class="overflow-y-auto px-4 py-4" style="height: calc(100vh - 120px);">
-        <%= if assigns[:selected_entry] && assigns[:entry_details] do %>
-          <!-- Entry Amount and Date -->
-          <div class="bg-base-200 rounded-lg p-4 mb-4">
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-sm text-base-content/70">Amount</span>
-              <span class={[
-                "text-lg font-bold",
-                if(Decimal.compare(@selected_entry.amt, Decimal.new(0)) == :gt,
-                  do: "text-sponster-500",
-                  else: "text-tiqit-500"
-                )
-              ]}>
-                <%= if Decimal.compare(@selected_entry.amt, Decimal.new(0)) == :gt do %>
-                  +{QlariusWeb.Money.format_usd(@selected_entry.amt)}
-                <% else %>
-                  {QlariusWeb.Money.format_usd(@selected_entry.amt)}
-                <% end %>
-              </span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-sm text-base-content/70">Date</span>
-              <span class="text-sm">
-                {Calendar.strftime(@selected_entry.created_at, "%b %d, %Y")}
-              </span>
-            </div>
+      <%= if assigns[:selected_entry] && assigns[:entry_details] do %>
+        <!-- Entry Amount and Date -->
+        <div class="bg-base-200 rounded-lg p-4 mb-4">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-sm text-base-content/70">Amount</span>
+            <span class={[
+              "text-lg font-bold",
+              if(Decimal.compare(@selected_entry.amt, Decimal.new(0)) == :gt,
+                do: "text-sponster-500",
+                else: "text-tiqit-500"
+              )
+            ]}>
+              <%= if Decimal.compare(@selected_entry.amt, Decimal.new(0)) == :gt do %>
+                +{QlariusWeb.Money.format_usd(@selected_entry.amt)}
+              <% else %>
+                {QlariusWeb.Money.format_usd(@selected_entry.amt)}
+              <% end %>
+            </span>
           </div>
-          
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-base-content/70">Date</span>
+            <span class="text-sm">
+              {Calendar.strftime(@selected_entry.created_at, "%b %d, %Y")}
+            </span>
+          </div>
+        </div>
+        
 <!-- Transaction Type Details -->
-          <%= case @entry_details.type do %>
-            <% :ad_event -> %>
-              <div class="space-y-4">
-                <h4 class="font-medium text-base-content">Ad Viewing Details</h4>
+        <%= case @entry_details.type do %>
+          <% :ad_event -> %>
+            <div class="space-y-4">
+              <h4 class="font-medium text-base-content">Ad Viewing Details</h4>
 
-                <div class="bg-sponster-50 dark:bg-sponster-900/20 rounded-lg overflow-hidden shadow-sm">
-                  <%= if @entry_details.media_piece do %>
-                    <!-- Banner Image -->
-                    <%= if @entry_details.media_piece.banner_image do %>
-                      <div class="flex justify-center items-center bg-white">
-                        <img
-                          src={
-                            QlariusWeb.Uploaders.ThreeTapBanner.url(
-                              {@entry_details.media_piece.banner_image,
-                               @entry_details.media_piece},
-                              :original
-                            )
-                          }
-                          alt="Ad banner"
-                          class="w-full h-auto object-cover"
-                        />
+              <div class="bg-sponster-50 dark:bg-sponster-900/20 rounded-lg overflow-hidden shadow-sm">
+                <%= if @entry_details.media_piece do %>
+                  <!-- Banner Image -->
+                  <%= if @entry_details.media_piece.banner_image do %>
+                    <div class="flex justify-center items-center bg-white">
+                      <img
+                        src={
+                          QlariusWeb.Uploaders.ThreeTapBanner.url(
+                            {@entry_details.media_piece.banner_image, @entry_details.media_piece},
+                            :original
+                          )
+                        }
+                        alt="Ad banner"
+                        class="w-full h-auto object-cover"
+                      />
+                    </div>
+                  <% end %>
+                  
+<!-- Ad Content -->
+                  <div class="p-4">
+                    <div class="text-blue-600 dark:text-blue-300 mb-1 font-bold text-lg leading-tight">
+                      {@entry_details.media_piece.title}
+                    </div>
+                    <div class="text-base-700 text-sm mb-1" style="line-height: 1.1rem">
+                      {@entry_details.media_piece.body_copy}
+                    </div>
+                    <%= if @entry_details.media_piece.display_url do %>
+                      <div class="text-green-500 text-xs mb-1">
+                        {@entry_details.media_piece.display_url}
+                      </div>
+                      <div class="border-t border-base-300/30 mt-2 pt-2">
+                        <div class="text-xs text-base-content/50 truncate">
+                          <a
+                            href={@entry_details.media_piece.jump_url}
+                            target="_blank"
+                            class="hover:underline"
+                          >
+                            {@entry_details.media_piece.jump_url}
+                          </a>
+                        </div>
                       </div>
                     <% end %>
-                    
-<!-- Ad Content -->
-                    <div class="p-4">
-                      <div class="text-blue-600 dark:text-blue-300 mb-1 font-bold text-lg leading-tight">
-                        {@entry_details.media_piece.title}
+                  </div>
+                <% else %>
+                  <div class="p-4">
+                    <h5 class="font-medium mb-2">Ad Content</h5>
+                    <p class="text-sm text-base-content/70 mb-3">
+                      Media piece details not available
+                    </p>
+                  </div>
+                <% end %>
+              </div>
+              
+<!-- Campaign and Marketer Info -->
+              <div class="space-y-2 text-sm bg-base-200 rounded-lg p-3">
+                <div class="flex justify-between">
+                  <span class="text-base-content/70">Marketer:</span>
+                  <span>{@entry_details.marketer_name}</span>
+                </div>
+              </div>
+
+              <%= if @entry_details.matching_tags && length(@entry_details.matching_tags) > 0 do %>
+                <div>
+                  <h5 class="font-medium mb-2">Matching Tags</h5>
+                  <div class="flex flex-wrap gap-2">
+                    <span
+                      :for={tag <- @entry_details.matching_tags}
+                      class="badge badge-primary badge-sm"
+                    >
+                      {tag}
+                    </span>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% :tiqit_purchase -> %>
+            <div class="space-y-4">
+              <h4 class="font-medium text-base-content">Tiqit Purchase</h4>
+
+              <%= if assigns[:entry_details] && @entry_details.tiqit do %>
+                <!-- Content Group with Image -->
+                <div class="bg-tiqit-50 dark:bg-tiqit-900/20 rounded-lg overflow-hidden shadow-sm">
+                  <%= if @entry_details.content_group && @entry_details.content_group.image do %>
+                    <div class="flex justify-center items-center bg-white">
+                      <img
+                        src={
+                          QlariusWeb.Uploaders.CreatorImage.url(
+                            {@entry_details.content_group.image, @entry_details.content_group},
+                            :original
+                          )
+                        }
+                        alt="Content group image"
+                        class="w-full h-auto object-cover"
+                      />
+                    </div>
+                  <% end %>
+                  
+<!-- Content Details -->
+                  <div class="p-4">
+                    <%= if @entry_details.content_piece do %>
+                      <div class="text-base-content mb-1 font-bold text-lg leading-tight">
+                        {@entry_details.content_piece.title}
                       </div>
-                      <div class="text-base-700 text-sm mb-1" style="line-height: 1.1rem">
-                        {@entry_details.media_piece.body_copy}
-                      </div>
-                      <%= if @entry_details.media_piece.display_url do %>
-                        <div class="text-green-500 text-xs mb-1">
-                          {@entry_details.media_piece.display_url}
-                        </div>
-                        <div class="border-t border-base-300/30 mt-2 pt-2">
-                          <div class="text-xs text-base-content/50 truncate">
-                            <a
-                              href={@entry_details.media_piece.jump_url}
-                              target="_blank"
-                              class="hover:underline"
-                            >
-                              {@entry_details.media_piece.jump_url}
-                            </a>
-                          </div>
+                      <%= if @entry_details.content_piece.description do %>
+                        <div
+                          class="text-base-content/60 text-sm mb-1"
+                          style="line-height: 1.1rem"
+                        >
+                          {@entry_details.content_piece.description}
                         </div>
                       <% end %>
+                    <% end %>
+
+                    <%= if @entry_details.content_group do %>
+                      <div class="text-base-content text-xs mb-1 font-medium">
+                        {@entry_details.content_group.title}
+                      </div>
+                    <% end %>
+
+                    <div class="border-t border-base-300/30 mt-2 pt-2">
+                      <div class="text-xs text-base-content/50">
+                        Duration:
+                        <%= if @entry_details.tiqit.tiqit_class.duration_hours do %>
+                          {@entry_details.tiqit.tiqit_class.duration_hours} hours
+                        <% else %>
+                          Lifetime access
+                        <% end %>
+                      </div>
                     </div>
-                  <% else %>
-                    <div class="p-4">
-                      <h5 class="font-medium mb-2">Ad Content</h5>
-                      <p class="text-sm text-base-content/70 mb-3">
-                        Media piece details not available
+                  </div>
+                </div>
+                
+<!-- Creator and Purchase Info -->
+                <div class="space-y-2 text-sm bg-base-200 rounded-lg p-3">
+                  <%= if @entry_details.creator do %>
+                    <div class="flex justify-between">
+                      <span class="text-base-content/70">Creator:</span>
+                      <span>{@entry_details.creator.name}</span>
+                    </div>
+                  <% end %>
+                </div>
+              <% else %>
+                <!-- Fallback for entries without tiqit data -->
+                <div class="bg-tiqit-50 dark:bg-tiqit-900/20 rounded-lg p-4">
+                  <%= if @entry_details.description do %>
+                    <div class="mb-3">
+                      <p class="text-sm font-medium">{@entry_details.description}</p>
+                      <p class="text-xs text-base-content/50">
+                        Legacy tiqit purchase - detailed information not available
                       </p>
                     </div>
                   <% end %>
                 </div>
-                
-<!-- Campaign and Marketer Info -->
-                <div class="space-y-2 text-sm bg-base-200 rounded-lg p-3">
-                  <div class="flex justify-between">
-                    <span class="text-base-content/70">Marketer:</span>
-                    <span>{@entry_details.marketer_name}</span>
-                  </div>
-                </div>
+              <% end %>
+            </div>
+          <% :other -> %>
+            <div class="space-y-4">
+              <h4 class="font-medium text-base-content">Transaction</h4>
 
-                <%= if @entry_details.matching_tags && length(@entry_details.matching_tags) > 0 do %>
-                  <div>
-                    <h5 class="font-medium mb-2">Matching Tags</h5>
-                    <div class="flex flex-wrap gap-2">
-                      <span
-                        :for={tag <- @entry_details.matching_tags}
-                        class="badge badge-primary badge-sm"
-                      >
-                        {tag}
-                      </span>
-                    </div>
-                  </div>
-                <% end %>
+              <div class="bg-base-200 rounded-lg p-4">
+                <p class="text-sm">{@entry_details.description}</p>
               </div>
-            <% :tiqit_purchase -> %>
-              <div class="space-y-4">
-                <h4 class="font-medium text-base-content">Tiqit Purchase</h4>
-
-                <%= if assigns[:entry_details] && @entry_details.tiqit do %>
-                  <!-- Content Group with Image -->
-                  <div class="bg-tiqit-50 dark:bg-tiqit-900/20 rounded-lg overflow-hidden shadow-sm">
-                    <%= if @entry_details.content_group && @entry_details.content_group.image do %>
-                      <div class="flex justify-center items-center bg-white">
-                        <img
-                          src={
-                            QlariusWeb.Uploaders.CreatorImage.url(
-                              {@entry_details.content_group.image, @entry_details.content_group},
-                              :original
-                            )
-                          }
-                          alt="Content group image"
-                          class="w-full h-auto object-cover"
-                        />
-                      </div>
-                    <% end %>
-                    
-<!-- Content Details -->
-                    <div class="p-4">
-                      <%= if @entry_details.content_piece do %>
-                        <div class="text-base-content mb-1 font-bold text-lg leading-tight">
-                          {@entry_details.content_piece.title}
-                        </div>
-                        <%= if @entry_details.content_piece.description do %>
-                          <div
-                            class="text-base-content/60 text-sm mb-1"
-                            style="line-height: 1.1rem"
-                          >
-                            {@entry_details.content_piece.description}
-                          </div>
-                        <% end %>
-                      <% end %>
-
-                      <%= if @entry_details.content_group do %>
-                        <div class="text-base-content text-xs mb-1 font-medium">
-                          {@entry_details.content_group.title}
-                        </div>
-                      <% end %>
-
-                      <div class="border-t border-base-300/30 mt-2 pt-2">
-                        <div class="text-xs text-base-content/50">
-                          Duration:
-                          <%= if @entry_details.tiqit.tiqit_class.duration_hours do %>
-                            {@entry_details.tiqit.tiqit_class.duration_hours} hours
-                          <% else %>
-                            Lifetime access
-                          <% end %>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-<!-- Creator and Purchase Info -->
-                  <div class="space-y-2 text-sm bg-base-200 rounded-lg p-3">
-                    <%= if @entry_details.creator do %>
-                      <div class="flex justify-between">
-                        <span class="text-base-content/70">Creator:</span>
-                        <span>{@entry_details.creator.name}</span>
-                      </div>
-                    <% end %>
-                  </div>
-                <% else %>
-                  <!-- Fallback for entries without tiqit data -->
-                  <div class="bg-tiqit-50 dark:bg-tiqit-900/20 rounded-lg p-4">
-                    <%= if @entry_details.description do %>
-                      <div class="mb-3">
-                        <p class="text-sm font-medium">{@entry_details.description}</p>
-                        <p class="text-xs text-base-content/50">
-                          Legacy tiqit purchase - detailed information not available
-                        </p>
-                      </div>
-                    <% end %>
-                  </div>
-                <% end %>
-              </div>
-                     <% :other -> %>
-                       <div class="space-y-4">
-                         <h4 class="font-medium text-base-content">Transaction</h4>
-
-                         <div class="bg-base-200 rounded-lg p-4">
-                           <p class="text-sm">{@entry_details.description}</p>
-                         </div>
-                       </div>
-                   <% end %>
-        <% else %>
-          <div class="flex items-center justify-center h-full text-base-content/50">
-            <p>Select a transaction to view details</p>
-          </div>
+            </div>
         <% end %>
-      </div>
-    
+      <% else %>
+        <div class="flex items-center justify-center h-full text-base-content/50">
+          <p>Select a transaction to view details</p>
+        </div>
+      <% end %>
+    </div>
+
     <%= if assigns[:is_mobile] || (assigns[:conn] && assigns.conn.assigns[:is_mobile]) do %>
       <div class="h-[env(safe-area-inset-bottom)] bg-base-300 flex-shrink-0"></div>
     <% end %>

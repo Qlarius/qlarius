@@ -41,6 +41,15 @@ defmodule QlariusWeb.Uploaders.CreatorImage do
     "uploads/creators/#{creator_id}/"
   end
 
+  # ContentPiece with loaded content_group but no deeper nesting
+  def storage_dir(
+        _version,
+        {_file, %ContentPiece{content_group: %ContentGroup{catalog: %{creator_id: creator_id}}}}
+      )
+      when is_integer(creator_id) do
+    "uploads/creators/#{creator_id}/"
+  end
+
   # Fallback
   def storage_dir(_version, {_file, _scope}) do
     "uploads/creators/unknown/content_images/"

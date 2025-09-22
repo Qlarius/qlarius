@@ -14,6 +14,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
     field :description, :string
     field :title, :string
     field :image, :string
+    field :show_piece_thumbnails, :boolean, default: false
 
     has_many :content_pieces, ContentPiece
     has_many :tiqit_classes, TiqitClass, on_replace: :delete
@@ -24,7 +25,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
   @doc false
   def changeset(content_group, attrs) do
     content_group
-    |> cast(attrs, [:title, :description])
+    |> cast(attrs, [:title, :description, :show_piece_thumbnails])
     |> validate_required([:title])
     |> cast_assoc(
       :tiqit_classes,

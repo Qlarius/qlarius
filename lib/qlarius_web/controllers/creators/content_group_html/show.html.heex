@@ -175,11 +175,23 @@
                     >
                       <td class="font-medium text-base-content">
                         <div class="flex items-center gap-3">
-                          <div class="avatar placeholder">
-                            <div class="bg-neutral-focus text-neutral-content rounded-full w-8 h-8">
-                              <span class="text-xs">{String.at(piece.title, 0)}</span>
+                          <%= if @content_group.show_piece_thumbnails do %>
+                            <div class="avatar">
+                              <div class="w-12 h-12 rounded-lg">
+                                <img
+                                  src={content_image_url(piece, @content_group)}
+                                  alt={piece.title}
+                                  class="w-full h-full object-cover rounded-lg"
+                                />
+                              </div>
                             </div>
-                          </div>
+                          <% else %>
+                            <div class="avatar placeholder">
+                              <div class="bg-neutral-focus text-neutral-content rounded-full w-8 h-8">
+                                <span class="text-xs">{String.at(piece.title, 0)}</span>
+                              </div>
+                            </div>
+                          <% end %>
                           <div>
                             <div class="font-medium">{piece.title}</div>
                             <div class="text-sm text-base-content/60">{piece.description}</div>

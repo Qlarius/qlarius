@@ -93,6 +93,9 @@ defmodule QlariusWeb do
       # Core UI components
       import QlariusWeb.CoreComponents
 
+      # Image helpers
+      import QlariusWeb.Helpers.ImageHelpers
+
       # Common modules used in templates
       alias Phoenix.LiveView.JS
       alias QlariusWeb.Layouts

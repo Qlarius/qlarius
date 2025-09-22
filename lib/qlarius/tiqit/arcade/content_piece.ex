@@ -15,6 +15,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
     field :youtube_id, :string
     field :preview_url, :string, default: "http://example.com"
     field :price_default, :decimal, default: Decimal.new("0.00")
+    field :image, :string
 
     has_many :tiqit_classes, TiqitClass, on_replace: :delete
     belongs_to :content_group, ContentGroup
@@ -45,6 +46,12 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
       sort_param: :tiqit_class_sort,
       with: &TiqitClass.changeset/2
     )
+  end
+
+  def changeset_with_image(content, attrs) do
+    content
+    |> changeset(attrs)
+    |> put_change(:image, attrs["image"])
   end
 
   def default_tiqit_class(%__MODULE__{} = piece) do

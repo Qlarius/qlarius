@@ -65,12 +65,25 @@
               </div>
 
               <%= if @group.image do %>
-                <div class="mt-2">
-                  <img
-                    src={QlariusWeb.Uploaders.CreatorImage.url({@group.image, @group}, :original)}
-                    class="w-32 h-auto object-cover rounded"
-                    alt="Content group image preview"
-                  />
+                <div class="mt-2 p-3 bg-base-200 rounded-lg">
+                  <p class="text-sm font-medium text-base-content mb-2">Current Image:</p>
+                  <div class="flex items-center gap-3">
+                    <img
+                      src={
+                        QlariusWeb.Uploaders.CreatorImage.url({@group.image, @group}, :original)
+                      }
+                      class="w-16 h-16 object-cover rounded-lg"
+                      alt="Content group image preview"
+                    />
+                    <button
+                      type="button"
+                      phx-click="delete_image"
+                      data-confirm="Are you sure you want to delete this image?"
+                      class="btn btn-outline btn-error btn-sm"
+                    >
+                      <.icon name="hero-trash" class="w-4 h-4 mr-1" /> Delete Image
+                    </button>
+                  </div>
                 </div>
               <% end %>
               
@@ -124,6 +137,20 @@
                 placeholder="Enter content group description"
                 rows="4"
               />
+            </div>
+
+            <div class="form-control mt-4">
+              <label class="label cursor-pointer">
+                <span class="label-text font-medium">Display Piece Thumbnails</span>
+                <.input
+                  field={@form[:show_piece_thumbnails]}
+                  type="checkbox"
+                  class="checkbox checkbox-primary"
+                />
+              </label>
+              <div class="text-xs text-base-content/60 mt-1">
+                Show thumbnail images in content piece lists
+              </div>
             </div>
           </div>
           

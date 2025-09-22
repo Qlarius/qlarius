@@ -5,6 +5,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
   alias Qlarius.Tiqit.Arcade.Creators
 
   alias QlariusWeb.TiqitClassHTML
+  alias QlariusWeb.Uploaders.CreatorImage
 
   # EDIT
   @impl true
@@ -23,6 +24,11 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
       page_title: "Edit Content Piece",
       piece: piece
     )
+    |> allow_upload(:image,
+      accept: ~w(.jpg .jpeg .png .gif .webp),
+      max_entries: 1,
+      max_file_size: 10_000_000
+    )
     |> noreply()
   end
 
@@ -39,6 +45,11 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
     |> assign(:page_title, "New Content Piece")
     |> assign(:piece, %ContentPiece{})
     |> assign(:form, to_form(changeset))
+    |> allow_upload(:image,
+      accept: ~w(.jpg .jpeg .png .gif .webp),
+      max_entries: 1,
+      max_file_size: 10_000_000
+    )
     |> noreply()
   end
 
@@ -74,8 +85,44 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
     {:noreply, assign(socket, :piece, piece)}
   end
 
+  def handle_event("delete_image", _params, socket) do
+    case Creators.delete_content_piece_image(socket.assigns.piece) do
+      {:ok, piece} ->
+        socket
+        |> assign(piece: piece)
+        |> put_flash(:info, "Image deleted successfully")
+
+      {:error, _changeset} ->
+        put_flash(socket, :error, "Failed to delete image")
+    end
+    |> noreply()
+  end
+
+  defp error_to_string(:too_large), do: "Too large"
+  defp error_to_string(:not_accepted), do: "You have selected an unacceptable file type"
+  defp error_to_string(:too_many_files), do: "You have selected too many files"
+  defp error_to_string(error), do: "Upload error: #{inspect(error)}"
+
   defp save_content(socket, :edit, piece_params) do
-    case Creators.update_content_piece(socket.assigns.piece, piece_params) do
+    # Handle file upload for LiveView - store with Waffle directly
+    piece_params_with_image =
+      case consume_uploaded_entries(socket, :image, fn %{path: path}, entry ->
+             upload = %Plug.Upload{
+               path: path,
+               filename: entry.client_name,
+               content_type: entry.client_type
+             }
+
+             case CreatorImage.store({upload, socket.assigns.piece}) do
+               {:ok, filename} -> {:ok, filename}
+               error -> error
+             end
+           end) do
+        [filename | _] -> Map.put(piece_params, "image", filename)
+        [] -> piece_params
+      end
+
+    case Creators.update_content_piece(socket.assigns.piece, piece_params_with_image) do
       {:ok, _piece} ->
         socket
         |> put_flash(:info, "Content updated successfully")
@@ -90,7 +137,28 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
   defp save_content(socket, :new, piece_params) do
     group = socket.assigns.group
 
-    case Creators.create_content_piece(group, piece_params) do
+    # Create a temporary content piece for Waffle store function
+    temp_piece = %ContentPiece{content_group: group}
+
+    # Handle file upload for LiveView - store with Waffle directly
+    piece_params_with_image =
+      case consume_uploaded_entries(socket, :image, fn %{path: path}, entry ->
+             upload = %Plug.Upload{
+               path: path,
+               filename: entry.client_name,
+               content_type: entry.client_type
+             }
+
+             case CreatorImage.store({upload, temp_piece}) do
+               {:ok, filename} -> {:ok, filename}
+               error -> error
+             end
+           end) do
+        [filename | _] -> Map.put(piece_params, "image", filename)
+        [] -> piece_params
+      end
+
+    case Creators.create_content_piece(group, piece_params_with_image) do
       {:ok, _content} ->
         socket
         |> put_flash(:info, "Content created successfully")
