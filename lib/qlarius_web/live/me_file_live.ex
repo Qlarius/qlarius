@@ -19,14 +19,14 @@ defmodule QlariusWeb.MeFileLive do
       />
 
       <div class="mb-6 flex gap-2 justify-start items-center">
-        <div class="text-lg font-bold bg-youdata-500 dark:bg-youdata-700 text-white px-3 py-1 rounded-lg mr-2">
+        <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-3 py-1 font-medium border border-youdata-300 dark:border-youdata-500 px-3 py-1 rounded-lg mr-1">
           {@current_scope.trait_count} tags
         </div>
         <div>Edit them below.</div>
         <.link
           navigate={~p"/me_file_builder"}
           class="btn-link"
-        >Add more here.</.link>
+        >Add more.</.link>
       </div>
 
       <div class="space-y-8 py-6">
@@ -59,7 +59,7 @@ defmodule QlariusWeb.MeFileLive do
 
       <.link
         navigate={~p"/me_file_builder"}
-        class="fixed bottom-20 right-6 px-4 py-2 bg-blue-500 text-white rounded-full shadow-xl hover:bg-blue-600 font-medium flex items-center gap-1 z-10"
+        class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-6 px-4 py-2 bg-blue-500 text-white rounded-full shadow-xl hover:bg-blue-600 font-medium flex items-center gap-1 z-10"
       >
         <.icon name="hero-plus" class="h-5 w-5" /> Builder
       </.link>

@@ -173,12 +173,12 @@ defmodule QlariusWeb.Layouts do
       >
         <.icon name="hero-identification" class="size-[1.5em]" />
         <span class="dock-label">MeFile</span>
-        <span
+        <%!-- <span
           :if={@current_scope.ads_count > 0}
           class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-youdata-600"
         >
           {@current_scope.trait_count}
-        </span>
+        </span> --%>
       </button>
 
       <button phx-click={toggle_sponster_sidebar(:on)}>
@@ -186,8 +186,6 @@ defmodule QlariusWeb.Layouts do
         <span class="dock-label">More</span>
       </button>
     </div>
-
-    <div class="h-[60px]" />
     """
   end
 

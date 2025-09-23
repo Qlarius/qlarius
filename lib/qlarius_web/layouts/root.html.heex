@@ -42,9 +42,6 @@
     </script>
   </head>
   <body>
-    <%= if (assigns[:is_mobile] || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
-      <div class="h-[env(safe-area-inset-top)] bg-base-50"></div>
-    <% end %>
     {@inner_content}
   </body>
 </html>

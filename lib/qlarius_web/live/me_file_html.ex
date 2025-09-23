@@ -25,7 +25,7 @@ defmodule QlariusWeb.MeFileHTML do
   def tag_and_trait_count_badges(assigns) do
     ~H"""
     <div class="flex gap-4 mb-6">
-      <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-4 py-2 font-medium rounded-lg text-sm border border-youdata-500">
+      <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-4 py-2 font-medium rounded-lg text-sm border border-youdata-300 dark:border-youdata-500">
         {@tag_count} tags
       </div>
       <%!-- <div class="bg-base-100 text-base-content px-3 py-1 rounded-full text-sm border border-neutral-300 dark:border-neutral-500">
@@ -208,7 +208,7 @@ defmodule QlariusWeb.MeFileHTML do
         "h-full border rounded-lg bg-base-100 transition-all duration-300 ease-in-out",
         @tags_traits == [] &&
           "border-2 empty-trait-strobe border-youdata-500 dark:border-base-content",
-        @tags_traits != [] && "border-youdata-500 dark:border-youdata-700",
+        @tags_traits != [] && "border-youdata-300 dark:border-youdata-500",
         @clickable && @tags_traits == [] && @parent_trait_name not in ["Birthdate", "Age", "Sex"] &&
           "cursor-pointer",
         @extra_classes
