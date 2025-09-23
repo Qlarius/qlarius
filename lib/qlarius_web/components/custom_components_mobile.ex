@@ -7,7 +7,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
 
   def wallet_balance(assigns) do
     ~H"""
-    <div class="text-md bg-sponster-500 text-white px-3 py-1 rounded-lg">
+    <div class="text-md bg-sponster-200 dark:bg-sponster-800 text-base-content px-3 py-1 rounded-lg">
       <span class="font-bold">{format_usd(@balance)}</span>
     </div>
     """

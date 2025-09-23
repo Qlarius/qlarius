@@ -183,7 +183,7 @@ defmodule QlariusWeb.WalletLive do
         <ul class="list bg-base-100 rounded-box shadow-md overflow-hidden">
           <li
             :for={entry <- @paginated_entries.entries}
-            class={"list-row cursor-pointer transition-all duration-200 !rounded-none hover:shadow-sm #{if Decimal.compare(entry.amt, Decimal.new(0)) == :gt, do: "bg-sponster-100 hover:bg-sponster-100/50 dark:bg-sponster-900/50 hover:bg-sponster-50/50 hover:dark:bg-sponster-900/30", else: "bg-tiqit-100 hover:bg-tiqit-100/50 dark:bg-tiqit-900/50 hover:bg-tiqit-50/50 hover:dark:bg-tiqit-900/30"}"}
+            class={"list-row cursor-pointer transition-all duration-200 !rounded-none hover:shadow-sm"}
             phx-click={
               %JS{}
               |> JS.push("select_ledger_entry", loading: "#right-sidebar-container")
@@ -201,7 +201,15 @@ defmodule QlariusWeb.WalletLive do
             </div>
             <div class="flex items-center">
               <div class="text-right mr-4">
-                <div class="text-sm font-bold">{format_currency(entry.amt)}</div>
+                <div class="flex items-center gap-1">
+                  <span :if={Decimal.compare(entry.amt, 0) != 0} class={[
+                    "badge badge-md p-1 mr-1",
+                    if(Decimal.compare(entry.amt, 0) == :gt, do: "!bg-sponster-200 dark:!bg-sponster-800", else: "!bg-tiqit-200 dark:!bg-tiqit-800")
+                  ]}>
+                    <.icon name={if(Decimal.compare(entry.amt, 0) == :gt, do: "hero-plus", else: "hero-minus")} class="h-3 w-3 text-base-content" />
+                  </span>
+                  <span class={["text-sm font-bold", if(Decimal.compare(entry.amt, 0) == :gt, do: "text-sponster-500 dark:text-sponster-300", else: "text-tiqit-500")]}>{format_currency(entry.amt)}</span>
+                </div>
                 <div class="text-base-content/50 text-xs">
                   {format_currency(entry.running_balance)}
                 </div>
