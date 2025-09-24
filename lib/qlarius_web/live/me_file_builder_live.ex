@@ -32,13 +32,12 @@ defmodule QlariusWeb.MeFileBuilderLive do
         <div class="track">
           <div class="survey-panel survey-index-panel w-full h-full overflow-y-auto">
             <div class="h-full overflow-y-auto pb-32">
-
-            <div class="mb-6 flex gap-2 justify-start items-center">
-            <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-3 py-1 font-medium border border-youdata-300 dark:border-youdata-500 px-3 py-1 rounded-lg mr-1">
-            {@current_scope.trait_count} tags
+              <div class="mb-6 flex gap-2 justify-start items-center">
+                <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-3 py-1 font-medium border border-youdata-300 dark:border-youdata-500 px-3 py-1 rounded-lg mr-1">
+                  {@current_scope.trait_count} tags
+                </div>
+                <span>Choose a category. Fill empty tags.</span>
               </div>
-              <span>Choose a category. Fill empty tags.</span>
-            </div>
 
               <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 <%= for category <- @categories do %>

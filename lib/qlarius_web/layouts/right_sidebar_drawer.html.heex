@@ -16,21 +16,21 @@
   >
     
 <!-- Header - Fixed -->
-  <div class="bg-base-300 flex-shrink-0">
-    <%= if assigns[:is_mobile] || (assigns[:conn] && assigns.conn.assigns[:is_mobile]) do %>
-      <div class="h-[env(safe-area-inset-top)] bg-base-300 flex-shrink-0"></div>
-    <% end %>
+    <div class="bg-base-300 flex-shrink-0">
+      <%= if assigns[:is_mobile] || (assigns[:conn] && assigns.conn.assigns[:is_mobile]) do %>
+        <div class="h-[env(safe-area-inset-top)] bg-base-300 flex-shrink-0"></div>
+      <% end %>
 
-    <div class="flex items-center justify-between px-4 py-4 bg-base-300 flex-shrink-0">
-      <h3 class="text-lg font-semibold">Transaction Details</h3>
+      <div class="flex items-center justify-between px-4 py-4 bg-base-300 flex-shrink-0">
+        <h3 class="text-lg font-semibold">Transaction Details</h3>
 
-      <button
-        phx-click={toggle_right_sidebar(:off)}
-        class="text-base-content/50 hover:text-base-content cursor-pointer"
-      >
-        <.icon name="hero-x-mark" class="h-7 w-7" />
-      </button>
-    </div>
+        <button
+          phx-click={toggle_right_sidebar(:off)}
+          class="text-base-content/50 hover:text-base-content cursor-pointer"
+        >
+          <.icon name="hero-x-mark" class="h-7 w-7" />
+        </button>
+      </div>
     </div>
     
 <!-- Content -->

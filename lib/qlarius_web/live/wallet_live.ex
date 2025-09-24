@@ -183,7 +183,7 @@ defmodule QlariusWeb.WalletLive do
         <ul class="list bg-base-100 dark:!bg-base-200 rounded-box shadow-md overflow-hidden">
           <li
             :for={entry <- @paginated_entries.entries}
-            class={"list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-200 dark:hover:!bg-base-100"}
+            class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-200 dark:hover:!bg-base-100"
             phx-click={
               %JS{}
               |> JS.push("select_ledger_entry", loading: "#right-sidebar-container")
@@ -202,13 +202,32 @@ defmodule QlariusWeb.WalletLive do
             <div class="flex items-center">
               <div class="text-right mr-4">
                 <div class="flex items-center gap-1">
-                  <span :if={Decimal.compare(entry.amt, 0) != 0} class={[
-                    "badge badge-md p-1 mr-1",
-                    if(Decimal.compare(entry.amt, 0) == :gt, do: "!bg-sponster-200 dark:!bg-sponster-800", else: "!bg-tiqit-200 dark:!bg-tiqit-800")
-                  ]}>
-                    <.icon name={if(Decimal.compare(entry.amt, 0) == :gt, do: "hero-plus", else: "hero-minus")} class="h-3 w-3 text-base-content" />
+                  <span
+                    :if={Decimal.compare(entry.amt, 0) != 0}
+                    class={[
+                      "badge badge-md p-1 mr-1",
+                      if(Decimal.compare(entry.amt, 0) == :gt,
+                        do: "!bg-sponster-200 dark:!bg-sponster-800",
+                        else: "!bg-tiqit-200 dark:!bg-tiqit-800"
+                      )
+                    ]}
+                  >
+                    <.icon
+                      name={
+                        if(Decimal.compare(entry.amt, 0) == :gt, do: "hero-plus", else: "hero-minus")
+                      }
+                      class="h-3 w-3 text-base-content"
+                    />
                   </span>
-                  <span class={["text-sm font-bold", if(Decimal.compare(entry.amt, 0) == :gt, do: "text-sponster-500 dark:text-sponster-300", else: "text-tiqit-500")]}>{format_currency(entry.amt)}</span>
+                  <span class={[
+                    "text-sm font-bold",
+                    if(Decimal.compare(entry.amt, 0) == :gt,
+                      do: "text-sponster-500 dark:text-sponster-300",
+                      else: "text-tiqit-500"
+                    )
+                  ]}>
+                    {format_currency(entry.amt)}
+                  </span>
                 </div>
                 <div class="text-base-content/50 text-xs">
                   {format_currency(entry.running_balance)}

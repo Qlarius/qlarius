@@ -102,6 +102,10 @@ defmodule QlariusWeb.Layouts do
     ~H"""
     <.flash_group flash={@flash} />
 
+    <%= if (@is_mobile || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
+      <div class="h-[env(safe-area-inset-top)] min-h-10 bg-base-50"></div>
+    <% end %>
+
     <div class="container mx-auto px-4 py-6">
       <div class="w-full mb-6 flex justify-between items-center">
         <div class="w-8">

@@ -11,6 +11,7 @@ defmodule QlariusWeb.Plugs.MobileDetection do
 
     conn
     |> assign(:is_mobile, is_mobile)
+    |> assign(:user_agent, user_agent)
     |> put_session(:is_mobile, is_mobile)
   end
 end

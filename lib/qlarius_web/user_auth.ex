@@ -40,8 +40,9 @@ defmodule QlariusWeb.UserAuth do
     end
   end
 
-  defp mount_current_scope(socket, _session) do
-    Phoenix.Component.assign_new(socket, :current_scope, fn ->
+  defp mount_current_scope(socket, session) do
+    socket
+    |> Phoenix.Component.assign_new(:current_scope, fn ->
       # user =
       #   if user_token = session["user_token"] do
       #     Accounts.get_user_by_session_token(user_token)
@@ -52,6 +53,9 @@ defmodule QlariusWeb.UserAuth do
         |> Qlarius.Repo.preload(me_file: :ledger_header)
 
       Scope.for_user(user)
+    end)
+    |> Phoenix.Component.assign_new(:is_mobile, fn ->
+      Map.get(session, "is_mobile", false)
     end)
   end
 end

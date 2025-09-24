@@ -26,7 +26,9 @@ defmodule QlariusWeb.MeFileLive do
         <.link
           navigate={~p"/me_file_builder"}
           class="btn-link"
-        >Add more.</.link>
+        >
+          Add more.
+        </.link>
       </div>
 
       <div class="space-y-8 py-6">

@@ -141,14 +141,17 @@
     <div class="space-y-4">
       <div class="flex items-center justify-between">
         <h2 class="text-xl font-semibold text-base-content flex items-center">
-          <.icon name="hero-queue-list" class="w-6 h-6 mr-3 text-secondary" /> {@content_group.catalog.piece_type |> to_string() |> String.capitalize()}(s)
+          <.icon name="hero-queue-list" class="w-6 h-6 mr-3 text-secondary" /> {@content_group.catalog.piece_type
+          |> to_string()
+          |> String.capitalize()}(s)
         </h2>
         <div class="flex gap-2">
           <.link
             navigate={~p"/creators/content_groups/#{@content_group}/content_pieces/new"}
             class="btn btn-primary"
           >
-            <.icon name="hero-plus" class="w-4 h-4 mr-2" /> New {@content_group.catalog.piece_type |> to_string() |> String.capitalize()}
+            <.icon name="hero-plus" class="w-4 h-4 mr-2" />
+            New {@content_group.catalog.piece_type |> to_string() |> String.capitalize()}
           </.link>
         </div>
       </div>

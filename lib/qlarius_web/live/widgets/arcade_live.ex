@@ -28,10 +28,12 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
 
       # Load data once
       group = Arcade.get_content_group!(group_id)
+
       pieces =
         group.content_pieces
         |> Enum.filter(&Enum.any?(&1.tiqit_classes))
-        |> Enum.sort_by(& &1.id) # Sort by ID to ensure consistent order; change to proper display order later
+        # Sort by ID to ensure consistent order; change to proper display order later
+        |> Enum.sort_by(& &1.id)
 
       # Generate random durations only once per piece (cache them)
       pieces =
@@ -215,15 +217,14 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
       <div class="flex flex-row flex-wrap justify-between items-center space-x-4">
         <span class="font-bold text-lg text-sponster-600 dark:text-sponster-300">
           {format_usd(@balance)}
-        <span class="font-normal text-base-content/60 ml-1 mr-3">to spend</span>
+          <span class="font-normal text-base-content/60 ml-1 mr-3">to spend</span>
         </span>
 
         <button
           class="btn btn-md rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 leading-none"
           phx-click="show-topup-modal"
         >
-          <.icon name="hero-arrow-left" class="w-4 h-4 mr-0" />
-          Top up •
+          <.icon name="hero-arrow-left" class="w-4 h-4 mr-0" /> Top up •
           <span class="font-bold">{format_usd(@offered_amount)}</span>
         </button>
       </div>
