@@ -259,7 +259,6 @@
     /* Using 8-digit hex derived from --color-youdata-hex (#8585AD) */
     --empty-trait-strobe-color-25: #8585AD40; /* 25% alpha */
     --empty-trait-strobe-color-50: #8585AD80; /* 50% alpha */
-    color: var(--color-youdata-500);
     position: relative;
     will-change: transform;
     border-color: var(--color-youdata-500) !important;

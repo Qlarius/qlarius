@@ -158,7 +158,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                     {completed_traits}/{total_traits}
                   </div>
                 </div>
-                <h1 class="text-base-content mt-2">Fill & edit tags below.</h1>
+                <h1 class="text-base-content mt-2">Fill/edit/delete tags below.</h1>
               </div>
             </div>
 

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="1045px" height="250px" viewBox="0 0 1045 250" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <title>Slice Copy</title>
+    <title>Group 14</title>
     <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
         <g id="Group-14">
-            <g id="Group-3" transform="translate(42, 37)" fill="#F5A622">
+            <g id="Group-3" transform="translate(42, 37)" fill="#7A4E06">
                 <g id="Group-2">
                     <path d="M132.056822,50.387612 L91.3690441,50.387612 L91.3690441,178 L40.8662326,178 L40.8662326,50.387612 L0,50.387612 L0,0.0189846416 L132.056822,0.0189846416 L132.056822,50.387612 Z M194.694584,0.0189846416 L194.694584,178 L144.013318,178 L144.013318,0.0189846416 L194.694584,0.0189846416 Z M458.986682,0.0189846416 L458.986682,178 L408.305416,178 L408.305416,0.0189846416 L458.986682,0.0189846416 Z M603,50.387612 L562.312223,50.387612 L562.312223,178 L511.809411,178 L511.809411,50.387612 L470.943178,50.387612 L470.943178,0.0189846416 L603,0.0189846416 L603,50.387612 Z" id="tiqit-copy-2"></path>
                     <g id="Group" transform="translate(212.3878, 0)" fill-rule="nonzero">
@@ -19,7 +19,7 @@
                 <rect id="Rectangle-7" fill="#F5A622" x="263" y="0" width="21" height="21"></rect>
                 <rect id="Rectangle-7" fill="#F5A622" x="233" y="2" width="21" height="21"></rect>
                 <rect id="Rectangle-7" fill="#F5A622" x="207" y="7" width="21" height="21"></rect>
-                <polygon id="Triangle" fill="#000000" fill-rule="nonzero" opacity="0.495047433" transform="translate(135, 104) rotate(-270) translate(-135, -104)" points="135 69 170 139 100 139"></polygon>
+                <polygon id="Triangle" fill="#7A4E06" fill-rule="nonzero" opacity="0.495047433" transform="translate(135, 104) rotate(-270) translate(-135, -104)" points="135 69 170 139 100 139 115.401414 108.197172"></polygon>
             </g>
         </g>
     </g>

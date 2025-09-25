@@ -247,7 +247,7 @@ defmodule QlariusWeb.MeFileHTML do
         </div>
         <div class={[
           "p-0 space-y-1 max-h-[245px] overflow-y-auto",
-          @tags_traits == [] && "bg-warning/10"
+          @tags_traits == [] && "bg-warning/30"
         ]}>
           <div
             :for={{tag_id, tag_value, _display_order} <- @tags_traits}
@@ -256,7 +256,7 @@ defmodule QlariusWeb.MeFileHTML do
             <div class="px-4 py-1">{tag_value}</div>
           </div>
           <div :if={@tags_traits == []} class="mx-0 my-2 text-sm">
-            <div class="px-4 py-1 opacity-60 italic">
+            <div class="px-4 py-1 italic test-base-content">
               <%= if function_exported?(Qlarius.YouData.TagTeaseAgent, :next_message, 0) do %>
                 {Qlarius.YouData.TagTeaseAgent.next_message()}
               <% else %>

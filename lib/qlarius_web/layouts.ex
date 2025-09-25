@@ -79,9 +79,11 @@ defmodule QlariusWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <div class="mx-auto">
+    <div class="min-h-screen mx-auto flex flex-col">
       <.flash_group flash={@flash} />
-      {render_slot(@inner_block)}
+      <div class="flex-1">
+        {render_slot(@inner_block)}
+      </div>
     </div>
     """
   end
@@ -102,26 +104,30 @@ defmodule QlariusWeb.Layouts do
     ~H"""
     <.flash_group flash={@flash} />
 
-    <%= if (@is_mobile || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
-      <div class="h-[env(safe-area-inset-top)] min-h-10 bg-base-50"></div>
-    <% end %>
+    <div class="min-h-screen flex flex-col">
+      <%= if (@is_mobile || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
+        <div class="h-[env(safe-area-inset-top)] min-h-10 bg-base-50 flex-shrink-0"></div>
+      <% end %>
 
-    <div class="container mx-auto px-4 py-6">
-      <div class="w-full mb-6 flex justify-between items-center">
-        <div class="w-8">
-          <button class="cursor-pointer" phx-click={toggle_sponster_sidebar(:on)}>
-            <.icon name="hero-bars-3" class="h-8 w-8 text-content-base" />
-          </button>
+      <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
+        <div class="w-full mb-6 flex justify-between items-center flex-shrink-0">
+          <div class="w-8">
+            <button class="cursor-pointer" phx-click={toggle_sponster_sidebar(:on)}>
+              <.icon name="hero-bars-3" class="h-8 w-8 text-content-base" />
+            </button>
+          </div>
+          <div class="flex-1">
+            <h1 class="text-3xl font-bold text-center flex-1">{@title}</h1>
+          </div>
+          <div class="w-8 flex justify-end overflow-x-visible">
+            <.wallet_balance :if={assigns[:current_scope]} balance={@current_scope.wallet_balance} />
+          </div>
         </div>
         <div class="flex-1">
-          <h1 class="text-3xl font-bold text-center flex-1">{@title}</h1>
+          {render_slot(@inner_block)}
         </div>
-        <div class="w-8 flex justify-end overflow-x-visible">
-          <.wallet_balance :if={assigns[:current_scope]} balance={@current_scope.wallet_balance} />
-        </div>
+        <.debug_assigns {assigns} />
       </div>
-      {render_slot(@inner_block)}
-      <.debug_assigns {assigns} />
     </div>
 
     <.mobile_sidebar {assigns} />
@@ -272,7 +278,7 @@ defmodule QlariusWeb.Layouts do
       </div>
     </div>
 
-    <div class="container mx-auto px-4 py-8">
+    <div class="container mx-auto px-4 py-8 flex-1">
       {render_slot(@inner_block)}
     </div>
     """
