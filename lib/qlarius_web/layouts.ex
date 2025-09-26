@@ -119,11 +119,11 @@ defmodule QlariusWeb.Layouts do
           <div class="flex-1">
             <h1 class="text-3xl font-bold text-center flex-1">{@title}</h1>
           </div>
-          <div class="w-8 flex justify-end overflow-x-visible">
+          <div class="min-w-8 overflow-x-visible">
             <.wallet_balance :if={assigns[:current_scope]} balance={@current_scope.wallet_balance} />
           </div>
         </div>
-        <div class="flex-1">
+        <div class="flex-1 pb-15">
           {render_slot(@inner_block)}
         </div>
         <.debug_assigns {assigns} />
@@ -401,7 +401,7 @@ defmodule QlariusWeb.Layouts do
   def theme_toggle(assigns) do
     ~H"""
     <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full cursor-pointer">
-      <div class="absolute w-[33%] h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-[33%] [[data-theme=dark]_&]:left-[66%] transition-[left]" />
+      <div class="absolute w-[33%] h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme-mode=light]_&]:left-[33%] [[data-theme-mode=dark]_&]:left-[66%] transition-[left]" />
 
       <button
         phx-click={JS.dispatch("phx:set-theme", detail: %{theme: "system"})}

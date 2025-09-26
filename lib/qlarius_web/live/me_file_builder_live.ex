@@ -9,7 +9,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
   def render(assigns) do
     ~H"""
-    <Layouts.mobile {assigns} title="MeFile Builder">
+    <Layouts.mobile {assigns} title="Tagger">
       <.tag_edit_modal
         trait_in_edit={@trait_in_edit}
         me_file_id={@current_scope.user.me_file.id}
@@ -32,10 +32,12 @@ defmodule QlariusWeb.MeFileBuilderLive do
         <div class="track">
           <div class="survey-panel survey-index-panel w-full h-full overflow-y-auto">
             <div class="h-full overflow-y-auto pb-32">
-              <div class="mb-6 flex gap-2 justify-start items-center">
+              <div class="mb-2 flex gap-2 justify-start items-center">
                 <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-3 py-1 font-medium border border-youdata-300 dark:border-youdata-500 px-3 py-1 rounded-lg mr-1">
                   {@current_scope.trait_count} tags
                 </div>
+              </div>
+              <div class="mb-1 flex gap-2 justify-start items-center">
                 <span>Choose a category. Fill empty tags.</span>
               </div>
 

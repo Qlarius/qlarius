@@ -55,9 +55,9 @@
           </.link>
         </li>
       </ul>
-      <div class="divider"></div>
-      <div class="mt-4 mb-1 px-2">
-        <img src="/images/Sponster_logo_color_horiz.svg" class="h-5" alt="Sponster" />
+      <div class="divider my-2"></div>
+      <div class="mt-4 mb-1 px-2 mb-3">
+        <img src="/images/Sponster_logo_color_horiz.svg" class="h-7" alt="Sponster" />
       </div>
       <ul class="space-y-1">
         <li>
@@ -100,9 +100,9 @@
         </li>
       </ul>
 
-      <div class="divider"></div>
-      <div class="mt-4 mb-1 px-2">
-        <img src="/images/YouData_logo_color_horiz.svg" class="h-5" alt="YouData" />
+      <div class="divider my-2"></div>
+      <div class="mt-4 mb-1 px-2 mb-3">
+        <img src="/images/YouData_logo_color_horiz.svg" class="h-7" alt="YouData" />
       </div>
       <ul class="space-y-1">
         <li>
@@ -132,13 +132,53 @@
             class="flex items-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
           >
             <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata-500">
-              <.icon name="hero-wrench" class="h-5 w-5 text-primary-content" />
+              <.icon name="hero-wrench-screwdriver" class="h-5 w-5 text-primary-content" />
             </div>
-            <span class="ml-3">MeFile Builder</span>
+            <span class="ml-3">Tagger</span>
+          </.link>
+        </li>
+      </ul>
+
+      <div class="divider my-2"></div>
+      <div class="mt-4 mb-1 px-2 mb-3">
+        <img src="/images/Tiqit_logo_color_horiz.svg" class="h-7" alt="Tiqit" />
+      </div>
+      <ul class="space-y-1">
+        <li>
+          <%!-- TODO: Route not implemented - was ~p"/me_file" (route doesn't exist) --%>
+          <.link
+            navigate="#"
+            class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
+          >
+            <div class="flex items-center">
+              <div class="flex items-center justify-center h-8 w-8 rounded-full bg-tiqit-600">
+                <.icon name="hero-ticket" class="h-5 w-5 text-primary-content" />
+              </div>
+              <span class="ml-3">Stash</span>
+            </div>
+            <span
+              class="bg-tiqit-600 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
+              data-app-target="tagCount"
+            >
+              3
+            </span>
+          </.link>
+        </li>
+        <li>
+          <%!-- TODO: Route not implemented - was ~p"/me_file/surveys" (route doesn't exist) --%>
+          <.link
+            navigate="#"
+            class="flex items-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
+          >
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-tiqit-600">
+              <img src="/images/coin_slot.svg" class="h-5 w-5 text-primary-content" />
+            </div>
+            <span class="ml-3">Arcade</span>
           </.link>
         </li>
       </ul>
     </div>
+
     <div class="mt-auto p-3 bg-base-300">
       <div class="grid grid-cols-2 gap-2">
         <.link
@@ -156,8 +196,8 @@
         </.link>
       </div>
       <%= if (@is_mobile || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
-      <div class="h-[env(safe-area-inset-bottom)] min-h-10 bg-base-300"></div>
-    <% end %>
+        <div class="h-[env(safe-area-inset-bottom)] min-h-10 bg-base-300"></div>
+      <% end %>
     </div>
   </div>
 </div>
