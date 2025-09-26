@@ -44,7 +44,7 @@ defmodule QlariusWeb.Widgets.ArcadeLive do
           hours = :rand.uniform(14) + 18
           # 1..59 range
           minutes = :rand.uniform(59) + 1
-          duration = :io_lib.format("~2..0B:~2..0B", [hours, minutes])
+          duration = :io_lib.format("~2..0B min ~2..0B sec", [hours, minutes])
           Map.put(piece, :duration, duration)
         end)
 

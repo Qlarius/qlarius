@@ -28,7 +28,7 @@
             <%= if Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>
               <.link
                 navigate={~p"/widgets/content/#{@selected_piece.id}"}
-                class="btn btn-primary btn-lg btn-block rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600"
+                class="btn btn-neutral btn-lg btn-block rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600"
               >
                 <.icon name="hero-play" class="h-4 w-4 mr-2" /> Open/Play
               </.link>
@@ -48,9 +48,9 @@
               <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
             <% end %>
           </div>
-          <div class="flex justify-center mt-4 mb-1">
-            <span class="text-base-content/30 text-sm mr-2">Powered by</span>
-            <img src="/images/TIQIT_logo_color_square.svg" alt="Tiqit" class="h-8 w-auto" />
+          <div class="flex flex-row justify-center items-center mt-4 mb-1">
+            <div class="text-base-content/40 text-xs mr-1">Powered by</div>
+            <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
           </div>
         </div>
       </div>
@@ -83,10 +83,10 @@
                 </p>
                 <div class="flex items-center gap-2">
                   <span class="badge badge-xs badge-ghost text-base-content/60">
-                    {Calendar.strftime(piece.inserted_at, "%b %d, %Y")}
+                    {piece.duration}
                   </span>
                   <span class="badge badge-xs badge-ghost text-base-content/60">
-                    {piece.duration}
+                    {Calendar.strftime(piece.inserted_at, "%b %d, %Y")}
                   </span>
                 </div>
               </div>
@@ -190,8 +190,8 @@
         </div>
       </div>
 
-      <div class="flex flex-row w-full divide-x divide-base-300 py-4">
-        <div class="flex-1">
+      <div class="grid grid-cols-1 md:grid-cols-3 w-full divide-y md:divide-y-0 md:divide-x divide-base-300 p-4">
+        <div class="flex-1 md:py-8">
           <h3 class="text-base-content/60 mb-3">Visit your sponsors.</h3>
           <div class="flex flex-col items-center">
             <div class="flex flex-col items-center gap-1 mb-2">
