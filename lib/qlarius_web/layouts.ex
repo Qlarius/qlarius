@@ -110,16 +110,16 @@ defmodule QlariusWeb.Layouts do
       <% end %>
 
       <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
-        <div class="w-full mb-6 flex justify-between items-center flex-shrink-0">
-          <div class="w-8">
+        <div class="w-full mb-6 flex items-center flex-shrink-0">
+          <div class="w-8 flex justify-start">
             <button class="cursor-pointer" phx-click={toggle_sponster_sidebar(:on)}>
               <.icon name="hero-bars-3" class="h-8 w-8 text-content-base" />
             </button>
           </div>
           <div class="flex-1">
-            <h1 class="text-3xl font-bold text-center flex-1">{@title}</h1>
+            <h1 class="text-3xl font-bold text-center">{@title}</h1>
           </div>
-          <div class="min-w-8 overflow-x-visible">
+          <div class="w-8 flex justify-end overflow-x-visible">
             <.wallet_balance :if={assigns[:current_scope]} balance={@current_scope.wallet_balance} />
           </div>
         </div>
