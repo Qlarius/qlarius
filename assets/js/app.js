@@ -141,6 +141,17 @@ Hooks.TiqitExpirationCountdown = {
   }
 }
 
+Hooks.InstaTipHook = {
+  mounted() {
+    // Listen for Alpine.js events from the InstaTip modal
+    this.el.addEventListener('initiate-insta-tip', (event) => {
+      const amount = event.detail.amount
+      // Send the event to the LiveView to show confirmation modal
+      this.pushEvent('initiate_insta_tip', { amount: amount })
+    })
+  }
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},

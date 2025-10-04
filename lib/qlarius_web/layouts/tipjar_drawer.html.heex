@@ -7,6 +7,7 @@
   x-data={"{
     drawerOpen: false,
     splitAmount: #{@current_scope.user.me_file.split_amount || 50},
+    currentBalance: #{@current_scope.wallet_balance || Decimal.new("0.00")},
     setDrawerPosition() {
       this.$nextTick(() => {
         const drawer = this.$refs.drawer;
@@ -25,6 +26,22 @@
       this.drawerOpen = !this.drawerOpen;
       document.body.classList.toggle('tip-drawer-open', this.drawerOpen);
       this.setDrawerPosition();
+    },
+    initiateInstaTip(amount) {
+      // Send the tip request to the LiveView to show confirmation modal
+      this.$dispatch('initiate-insta-tip', { amount: amount.toString() });
+    },
+    formatAmount(amount) {
+      if (amount === 1.00) return '$1';
+      if (amount === 0.50) return '50¢';
+      if (amount === 0.25) return '25¢';
+      return '$' + amount;
+    },
+    formatBalance(balance) {
+      return balance.toString();
+    },
+    hasSufficientFunds(amount) {
+      return this.currentBalance >= amount;
     }
   }"}
   x-init="$nextTick(() => setDrawerPosition())"
@@ -33,6 +50,7 @@
   x-bind:class="drawerOpen ? 'open' : ''"
   style="position:fixed; left:0; right:0; width:100%; transition:bottom 0.3s; min-height: 350px; z-index: 50;"
   phx-update="ignore"
+  phx-hook="InstaTipHook"
   id="tipjar-drawer"
 >
   <!-- Tab (toggle trigger) - sibling to content, not inside -->
@@ -86,50 +104,73 @@
     </div>
     <!-- Content -->
     <div
-      class="flex flex-col md:flex-row gap-8 px-8 pt-6 overflow-y-auto max-w-[800px] mx-auto"
+      class="flex flex-col md:!flex-row gap-8 px-8 pt-6 overflow-y-auto max-w-[800px] mx-auto"
       style="max-height: 60vh;"
     >
-      <!-- Left: Autosplit -->
+      <!-- AutoTip Section -->
       <div class="flex-1 flex flex-col items-center md:items-start">
-        <div class="text-lg font-bold text-base-content mb-1">AutoSplit</div>
+        <div class="text-lg font-bold text-base-content mb-1">AutoTip</div>
         <div class="text-base-content/70 text-sm mb-4">
-          Automatically tip a share of your revenues from ads engaged on this site.
+          Automatically share a percentage from each ad.
         </div>
-        <div class="flex rounded-lg overflow-hidden border border-gray-200 bg-white w-fit">
+        <div class="inline-flex rounded-lg overflow-hidden border border-base-content-200 bg-base-100 divide-x divide-base-content-200 w-fit">
           <%= for percentage <- [0, 25, 50, 75, 100] do %>
             <button
               type="button"
               phx-click="set_split"
               phx-value-split={percentage}
               @click={"splitAmount = #{percentage}"}
-              x-bind:class={"splitAmount == #{percentage} ? 'flex-1 px-4 py-2 text-sm font-medium text-white bg-gray-800 focus:outline-none cursor-pointer' : 'flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-200 focus:outline-none border-l border-gray-200 cursor-pointer'"}
+              x-bind:class={"splitAmount == #{percentage} ? 'flex-1 px-4 py-2 text-sm font-medium text-white bg-primary focus:outline-none cursor-pointer' : 'flex-1 px-4 py-2 text-sm font-medium text-base-content/70 bg-base-100 hover:bg-base-200 focus:outline-none cursor-pointer'"}
             >
               {percentage}%
             </button>
           <% end %>
         </div>
+        
+<!-- InstaTip Section -->
+        <div class="flex-1 flex flex-col items-center md:items-start mt-6 pt-4 border-t border-neutral-500">
+          <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
+          <div class="text-base-content/70 text-sm mb-4">
+            Instantly tip from your wallet (<span class="font-semibold">${@current_scope.wallet_balance}</span>).
+          </div>
+          <div class="flex gap-3 justify-center">
+            <%= for tip_amount <- [0.25, 0.50, 1.00, 2.00] do %>
+              <button
+                type="button"
+                @click={"initiateInstaTip(#{tip_amount})"}
+                x-bind:disabled={"!hasSufficientFunds(#{tip_amount})"}
+                x-bind:class={"hasSufficientFunds(#{tip_amount}) ? 'btn btn-circle btn-primary btn-lg font-bold hover:btn-primary-focus p-8' : 'btn btn-circle btn-primary text-sm font-medium btn-disabled p-8'"}
+              >
+                <span x-text={"formatAmount(#{tip_amount})"}></span>
+              </button>
+            <% end %>
+          </div>
+        </div>
       </div>
       <!-- Right: Recipient -->
-      <div class="flex-1 flex flex-col items-center">
+      <div class="flex-1 flex flex-col items-center border-t border-gray-200 pt-4 md:pt-0">
         <div class="text-2xl font-bold text-base-content mb-2 text-center md:text-left">
           {@recipient.name || "This Blog's Name"}
         </div>
-        <div class="w-56 h-56 bg-base-300 shadow-md flex items-center justify-center mb-4 overflow-hidden">
-          <img
-            src={
-              QlariusWeb.Uploaders.RecipientBrandImage.url(
-                {@recipient.graphic_url, @recipient} || ~p"/images/tipjar_love_default.png"
-              )
-            }
-            alt="Recipient"
-            class="object-contain w-full h-full rounded"
-          />
-        </div>
-        <div class="text-base-content/70 text-sm text-center max-w-xs">
-          {@recipient.message ||
-            "Thank you for supporting this content. Your Sponster tips are greatly appreciated!"}
+        <div class="flex flex-row md:!flex-col items-center gap-4">
+          <div class="w-40 h-auto md:w-56 md:h-56 bg-base-300 shadow-md flex items-center justify-center mb-0 md:mb-4 overflow-hidden">
+            <img
+              src={
+                QlariusWeb.Uploaders.RecipientBrandImage.url(
+                  {@recipient.graphic_url, @recipient} || ~p"/images/tipjar_love_default.png"
+                )
+              }
+              alt="Recipient"
+              class="object-contain w-full h-full rounded"
+            />
+          </div>
+          <div class="text-base-content/70 text-sm text-left md:text-center max-w-xs">
+            {@recipient.message ||
+              "Thank you for supporting this content. Your Sponster tips are greatly appreciated!"}
+          </div>
         </div>
       </div>
     </div>
   </div>
+  
 </div>

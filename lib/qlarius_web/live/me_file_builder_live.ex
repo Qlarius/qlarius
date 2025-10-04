@@ -38,7 +38,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                 </div>
               </div>
               <div class="mb-1 flex gap-2 justify-start items-center">
-                <span>Choose a category. Fill empty tags.</span>
+                <span>Choose a theme. Fill empty tags.</span>
               </div>
 
               <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">

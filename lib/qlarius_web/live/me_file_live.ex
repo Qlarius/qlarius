@@ -28,7 +28,7 @@ defmodule QlariusWeb.MeFileLive do
           navigate={~p"/me_file_builder"}
           class="btn btn-primary btn-soft btn-sm rounded-full"
         >
-          <.icon name="hero-plus" class="h-4 w-4" /> Add more here
+          <.icon name="hero-plus" class="h-4 w-4" /> More tags
         </.link>
       </div>
 

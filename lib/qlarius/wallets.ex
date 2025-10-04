@@ -3,7 +3,7 @@ defmodule Qlarius.Wallets do
   require Logger
 
   alias Qlarius.Repo
-  alias Qlarius.Wallets.{LedgerHeader, LedgerEntry}
+  alias Qlarius.Wallets.{LedgerHeader, LedgerEntry, LedgerEvent}
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Sponster.Campaigns.Campaign
   alias Qlarius.Sponster.Ads.MediaPiecePhase
@@ -11,6 +11,7 @@ defmodule Qlarius.Wallets do
   # Added User alias for get_user_current_balance function
   alias Qlarius.Accounts.User
   alias Qlarius.Tiqit.Arcade.Tiqit
+  alias Qlarius.Sponster.Recipient
 
   # Added missing function that was being called from multiple LiveView modules
   def get_user_current_balance(%User{} = user) do
@@ -350,5 +351,156 @@ defmodule Qlarius.Wallets do
     else
       nil
     end
+  end
+
+  # InstaTip functions
+
+  @doc """
+  Validates if a user has sufficient funds for a tip amount.
+  """
+  def validate_sufficient_funds(%User{} = user, amount) do
+    current_balance = get_user_current_balance(user)
+    Decimal.compare(current_balance, amount) != :lt
+  end
+
+  @doc """
+  Gets or creates a ledger header for a recipient.
+  """
+  def get_or_create_recipient_ledger_header(%Recipient{} = recipient) do
+    case Repo.get_by(LedgerHeader, recipient_id: recipient.id) do
+      nil ->
+        # Create a new ledger header for the recipient
+        %LedgerHeader{}
+        |> LedgerHeader.changeset(%{
+          description: "Ledger for #{recipient.name}",
+          balance: Decimal.new("0.00"),
+          balance_payable: Decimal.new("0.00"),
+          recipient_id: recipient.id
+        })
+        |> Repo.insert!()
+
+      ledger_header ->
+        ledger_header
+    end
+  end
+
+  @doc """
+  Creates an InstaTip request and enqueues the processing job.
+  """
+  def create_insta_tip_request(
+        %User{} = from_user,
+        %Recipient{} = to_recipient,
+        amount,
+        %User{} = requested_by_user
+      ) do
+    Repo.transaction(fn ->
+      # Get or create ledger headers
+      from_ledger = get_me_file_ledger_header(from_user.me_file)
+      to_ledger = get_or_create_recipient_ledger_header(to_recipient)
+
+      # Create the ledger event
+      ledger_event =
+        %LedgerEvent{}
+        |> LedgerEvent.changeset(%{
+          from_ledger_id: from_ledger.id,
+          to_ledger_id: to_ledger.id,
+          amount: amount,
+          status: "pending",
+          description: "InstaTip to #{to_recipient.name}",
+          requested_by_user_id: requested_by_user.id
+        })
+        |> Repo.insert!()
+
+      # Enqueue the processing job
+      %{ledger_event_id: ledger_event.id}
+      |> Qlarius.Jobs.ProcessInstaTip.new()
+      |> Oban.insert()
+
+      ledger_event
+    end)
+  end
+
+  @doc """
+  Processes a pending InstaTip ledger event.
+  """
+  def process_insta_tip(%LedgerEvent{} = ledger_event) do
+    Repo.transaction(fn ->
+      # Reload with required nested associations
+      ledger_event =
+        Repo.preload(ledger_event,
+          from_ledger: [:me_file],
+          to_ledger: [:recipient],
+          requested_by_user: []
+        )
+
+      # Check if user still has sufficient funds
+      current_balance = ledger_event.from_ledger.balance
+
+      if Decimal.compare(current_balance, ledger_event.amount) == :lt do
+        # Update status to failed
+        ledger_event
+        |> Ecto.Changeset.change(status: "failed")
+        |> Repo.update!()
+
+        {:error, :insufficient_funds}
+      else
+        # Update status to processing
+        ledger_event
+        |> Ecto.Changeset.change(status: "processing")
+        |> Repo.update!()
+
+        # Process the transfer
+        process_ledger_transfer(ledger_event)
+
+        # Update status to completed
+        ledger_event
+        |> Ecto.Changeset.change(status: "completed")
+        |> Repo.update!()
+
+        {:ok, ledger_event}
+      end
+    end)
+  end
+
+  defp process_ledger_transfer(%LedgerEvent{} = ledger_event) do
+    # Deduct from sender's ledger
+    new_from_balance = Decimal.sub(ledger_event.from_ledger.balance, ledger_event.amount)
+
+    ledger_event.from_ledger
+    |> Ecto.Changeset.change(balance: new_from_balance)
+    |> Repo.update!()
+
+    # Create debit entry for sender
+    %LedgerEntry{}
+    |> LedgerEntry.changeset(%{
+      ledger_header_id: ledger_event.from_ledger_id,
+      amt: Decimal.negate(ledger_event.amount),
+      running_balance: new_from_balance,
+      description: "InstaTip to #{ledger_event.to_ledger.recipient.name}"
+    })
+    |> Repo.insert!()
+
+    # Add to recipient's ledger
+    new_to_balance = Decimal.add(ledger_event.to_ledger.balance, ledger_event.amount)
+
+    ledger_event.to_ledger
+    |> Ecto.Changeset.change(balance: new_to_balance)
+    |> Repo.update!()
+
+    # Create credit entry for recipient
+    %LedgerEntry{}
+    |> LedgerEntry.changeset(%{
+      ledger_header_id: ledger_event.to_ledger_id,
+      amt: ledger_event.amount,
+      running_balance: new_to_balance,
+      description: "InstaTip from #{ledger_event.requested_by_user.email}"
+    })
+    |> Repo.insert!()
+
+    # Broadcast balance update
+    MeFileBalanceBroadcaster.broadcast_me_file_balance_update(
+      ledger_event.from_ledger.me_file_id,
+      new_from_balance
+    )
   end
 end

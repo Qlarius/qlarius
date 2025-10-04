@@ -17,6 +17,24 @@ defmodule QlariusWeb.Layouts do
 
   embed_templates "layouts/*"
 
+  # Helper functions for InstaTip
+  def format_amount(amount) do
+    one_dollar = Decimal.new("1.00")
+    fifty_cents = Decimal.new("0.50")
+    twenty_five_cents = Decimal.new("0.25")
+
+    cond do
+      Decimal.compare(amount, one_dollar) == :eq -> "$1"
+      Decimal.compare(amount, fifty_cents) == :eq -> "50¢"
+      Decimal.compare(amount, twenty_five_cents) == :eq -> "25¢"
+      true -> "$#{amount}"
+    end
+  end
+
+  def format_balance(balance) do
+    Decimal.to_string(balance, :normal)
+  end
+
   @sidebar_classes_on "translate-x-0"
   @sidebar_classes_off "-translate-x-full"
   @sidebar_bg_classes_off "opacity-0 pointer-events-none"
@@ -106,7 +124,7 @@ defmodule QlariusWeb.Layouts do
 
     <div class="min-h-screen flex flex-col">
       <%= if (@is_mobile || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
-        <div class="h-[env(safe-area-inset-top)] min-h-10 bg-base-50 flex-shrink-0"></div>
+        <div class="h-[env(safe-area-inset-top)] min-h-8 bg-base-50 flex-shrink-0"></div>
       <% end %>
 
       <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">

@@ -26,6 +26,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   # Commented out unused import - OfferHTML functions not used in this LiveView
   # import QlariusWeb.OfferHTML
   import Ecto.Query, except: [update: 2, update: 3]
+  import QlariusWeb.Money, only: [format_usd: 1]
   # Commented out unused import - Layouts functions not used in this LiveView
   # import QlariusWeb.Layouts
 
@@ -55,6 +56,12 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
       |> assign(:split_code, split_code)
       |> assign(:recipient, recipient)
       |> assign(:page_title, "Sponster")
+      |> assign(:show_insta_tip_modal, false)
+      |> assign(:insta_tip_amount, nil)
+      |> assign(
+        :current_balance,
+        Wallets.get_user_current_balance(socket.assigns.current_scope.user)
+      )
 
     if connected?(socket) do
       send(self(), :load_offers)
@@ -62,6 +69,9 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
       MeFileBalanceBroadcaster.subscribe_to_me_file_balance(
         socket.assigns.current_scope.user.me_file.id
       )
+
+      # Subscribe to InstaTip notifications
+      Phoenix.PubSub.subscribe(Qlarius.PubSub, "user:#{socket.assigns.current_scope.user.id}")
 
       {:ok, socket}
     else
@@ -107,6 +117,16 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   end
 
   @impl true
+  def handle_info("insta_tip_success", socket) do
+    {:noreply, put_flash(socket, :info, "InstaTip sent successfully!")}
+  end
+
+  @impl true
+  def handle_info("insta_tip_failure", socket) do
+    {:noreply, put_flash(socket, :error, "InstaTip failed. Please try again.")}
+  end
+
+  @impl true
   def handle_event("set_split", %{"split" => split}, socket) do
     split_amount = String.to_integer(split)
     me_file = socket.assigns.current_scope.user.me_file
@@ -128,6 +148,69 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   end
 
   @impl true
+  def handle_event("initiate_insta_tip", %{"amount" => amount_str}, socket) do
+    amount = Decimal.new(to_string(amount_str))
+
+    socket =
+      socket
+      |> assign(:insta_tip_amount, amount)
+      |> assign(:show_insta_tip_modal, true)
+      |> assign(
+        :current_balance,
+        Wallets.get_user_current_balance(socket.assigns.current_scope.user)
+      )
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("confirm_insta_tip", %{"amount" => amount_str}, socket) do
+    amount = Decimal.new(amount_str)
+    user = socket.assigns.current_scope.user
+    recipient = socket.assigns.recipient
+
+    case Wallets.create_insta_tip_request(user, recipient, amount, user) do
+      {:ok, _ledger_event} ->
+        socket =
+          socket
+          |> assign(:show_insta_tip_modal, false)
+          |> assign(:insta_tip_amount, nil)
+          |> put_flash(:info, "InstaTip of #{format_amount(amount)} sent! Processing...")
+
+        {:noreply, socket}
+
+      {:error, _changeset} ->
+        socket =
+          socket
+          |> assign(:show_insta_tip_modal, false)
+          |> assign(:insta_tip_amount, nil)
+          |> put_flash(:error, "Failed to send InstaTip. Please try again.")
+
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("cancel_insta_tip", _params, socket) do
+    socket =
+      socket
+      |> assign(:show_insta_tip_modal, false)
+      |> assign(:insta_tip_amount, nil)
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("close-insta-tip-modal", _params, socket) do
+    socket =
+      socket
+      |> assign(:show_insta_tip_modal, false)
+      |> assign(:insta_tip_amount, nil)
+
+    {:noreply, socket}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <Layouts.tipjar_container {assigns}>
@@ -143,6 +226,59 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
         />
       </div>
     </Layouts.tipjar_container>
+
+    <!-- InstaTip Confirmation Modal -->
+    <.modal
+      :if={assigns[:show_insta_tip_modal]}
+      id="insta-tip-modal"
+      show
+      on_cancel={JS.push("close-insta-tip-modal")}
+    >
+      <div class="text-center space-y-6 p-8">
+        <div class="space-y-4">
+          <h2 class="text-xl font-bold text-base-content">Confirm InstaTip</h2>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-primary mb-2">
+              {format_usd(@insta_tip_amount)}
+            </div>
+            <div class="text-base-content/70">
+              to <span class="font-semibold">{@recipient.name}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-base-200 rounded-lg p-4 space-y-2">
+          <div class="flex justify-between">
+            <span class="text-sm text-base-content/70">Current Balance:</span>
+            <span class="font-medium">{format_usd(@current_scope.wallet_balance)}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-sm text-base-content/70">After Tip:</span>
+            <span class="font-medium">
+              {format_usd(Decimal.sub(@current_scope.wallet_balance, @insta_tip_amount))}
+            </span>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            type="button"
+            phx-click="confirm_insta_tip"
+            phx-value-amount={@insta_tip_amount}
+            class="btn btn-primary flex-1"
+          >
+            Send Tip
+          </button>
+          <button
+            type="button"
+            phx-click="close-insta-tip-modal"
+            class="btn btn-ghost flex-1"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </.modal>
     <Layouts.debug_assigns {assigns} />
     """
   end
@@ -150,5 +286,19 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   @impl true
   def terminate(_reason, _socket) do
     :ok
+  end
+
+  # Helper functions for InstaTip
+  defp format_amount(amount) do
+    one_dollar = Decimal.new("1.00")
+    fifty_cents = Decimal.new("0.50")
+    twenty_five_cents = Decimal.new("0.25")
+
+    cond do
+      Decimal.compare(amount, one_dollar) == :eq -> "$1"
+      Decimal.compare(amount, fifty_cents) == :eq -> "50¢"
+      Decimal.compare(amount, twenty_five_cents) == :eq -> "25¢"
+      true -> "$#{amount}"
+    end
   end
 end

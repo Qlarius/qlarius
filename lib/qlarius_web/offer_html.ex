@@ -162,7 +162,7 @@ defmodule QlariusWeb.OfferHTML do
       </div>
       <div
         class={[
-          "flex-1 flex items-center justify-center border-l border-gray-400",
+          "flex-1 flex items-center justify-center border-l border-gray-300 dark:border-gray-600",
           if(@phase_1_complete?,
             do: "bg-base-200 text-base-content",
             else: "bg-base-300 text-base-content/20"
