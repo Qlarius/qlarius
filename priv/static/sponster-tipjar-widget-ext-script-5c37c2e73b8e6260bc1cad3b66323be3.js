@@ -3,23 +3,8 @@ var widgetDiv = document.getElementById("sponster-tipjar-widget");
 var splitCode = widgetDiv.getAttribute("sponster-split-code");
 var hostURL = parent.document.URL
 
-// Detect parent page theme based on common patterns
-var getParentTheme = function() {
-  var html = document.documentElement;
-  // Check for dark mode indicators
-  if (html.classList.contains('dark') || 
-      html.getAttribute('data-theme') === 'dark' ||
-      html.getAttribute('data-bs-theme') === 'dark' ||
-      window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    return 'dark';
-  }
-  return 'light';
-};
-
-var theme = getParentTheme();
-
 announcerDiv.setAttribute("style", "width:100%;position:fixed;bottom:0px;right:0;z-index:999999;height:80px;border-top-right-radius: 8px;border-top-left-radius: 8px;")
-announcerDiv.innerHTML = `<iframe id='ydadget_sponster_announcer_iframe' src='http://localhost:4001/widgets/ads_ext_announcer?split_code=${splitCode}&host_url=${hostURL}&theme=${theme}' width='100%' height='80' frameBorder='0' allowtransparency='true' style='background: transparent !important;' />`;
+announcerDiv.innerHTML = `<iframe id='ydadget_sponster_announcer_iframe' src='http://localhost:4000/widgets/ads_ext_announcer?split_code=${splitCode}&host_url=${hostURL}' width='100%' height='80' frameBorder='0' allowtransparency='true' style='background: transparent !important;' />`;
 
 var sponsterWidgetCss = 
 `<style>
@@ -95,7 +80,7 @@ var widgetMarkup =
             style='height:90vh;border-top-right-radius: 8px;border-top-left-radius: 8px;background: transparent !important;' 
             frameBorder='0' 
             allowtransparency='true'
-            src='http://localhost:4001/widgets/ads_ext/${splitCode}?&in_frame=true&host_url=${hostURL}&theme=${theme}'
+            src='http://localhost:4000/widgets/ads_ext/${splitCode}?&in_frame=true&host_url=${hostURL}'
         />
     </div>
 `

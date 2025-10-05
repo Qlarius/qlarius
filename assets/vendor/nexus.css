@@ -637,7 +637,8 @@ strong {
             --border: 1px;
             --depth: 0;
             --noise: 0;
-            --root-bg: #121416;
+            /* --root-bg: #121416; */
+            --root-bg: transparent;
             --layout-sidebar-background: #181c20;
             --layout-topbar-background: #181b1f;
             --rounded-box: 0.25rem;
@@ -676,7 +677,8 @@ strong {
         --border: 1px;
         --depth: 0;
         --noise: 0;
-        --root-bg: #121416;
+        /* --root-bg: #121416; */
+        --root-bg: transparent;
         --layout-sidebar-background: #181c20;
         --layout-topbar-background: #181b1f;
         --rounded-box: 0.25rem;

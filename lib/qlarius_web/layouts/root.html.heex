@@ -1,5 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" class="[scrollbar-gutter:stable] bg-transparent">
+<html
+  lang="en"
+  class="[scrollbar-gutter:stable]"
+  style="background: none !important;"
+>
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -10,7 +14,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="light dark">
     <meta name="application-name" content="Qlarius" />
     <meta name="apple-mobile-web-app-title" content="Qlarius" />
     <meta name="csrf-token" content={get_csrf_token()} />
@@ -38,7 +42,12 @@
             document.documentElement.setAttribute("data-theme-mode", theme);
           }
         };
-        setTheme(localStorage.getItem("phx:theme") || "system");
+        // Check URL params for theme (for iframes)
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTheme = urlParams.get('theme');
+        const initialTheme = urlTheme || localStorage.getItem("phx:theme") || "system";
+        
+        setTheme(initialTheme);
         window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
         window.addEventListener("phx:set-theme", ({ detail: { theme } }) => setTheme(theme));
         
@@ -49,11 +58,11 @@
             setTheme("system");
           }
         });
-
       })();
     </script>
+    
   </head>
-  <body>
+  <body style="background: none;">
     {@inner_content}
   </body>
 </html>

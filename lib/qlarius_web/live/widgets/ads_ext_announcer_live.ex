@@ -172,7 +172,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
       <% end %>
     </div>
 
-    <div class="sponster-announcer-bottom-float-strip !bg-base-100"></div>
+    <div class="sponster-announcer-bottom-float-strip bg-base-100"></div>
 
     <div class="sponster-announcer-bottom-float-content-container bg-base-100">
       <%= if @recruiter_mode do %>
@@ -182,7 +182,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
             x-init="autoplay"
             class="relative w-full overflow-hidden"
           >
-            
+
     <!-- slides -->
             <div class="relative min-h-[70px] w-full">
               <template x-for="(slide, index) in slides">

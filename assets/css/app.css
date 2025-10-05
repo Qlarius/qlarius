@@ -192,6 +192,8 @@
     @apply text-green-600 font-bold;
   }
 
+  /* moved to end of file to ensure cascade wins */
+
   /* Offer phase transitions */
   .offer-container {
     position: relative;
@@ -287,6 +289,8 @@
   html {
     font-family: "Inter", system-ui, sans-serif;
   }
+
+
 }
 
 
@@ -311,7 +315,6 @@ body {
   bottom: 0px;
   height: 50px;
   width: 100%;
-  background-color: #ffffff;
   text-align: center;
   font-weight: 200;
   box-shadow: 0px 0px 2px rgba(0, 0, 0, .3)
@@ -457,7 +460,7 @@ body {
   width: 400px;
   height: 70px;
   margin-left: -200px;
-  background-color: transparent;
+  background-color: transparent !important;
   position: fixed;
   bottom: 0px;
   left: 50%;
@@ -532,6 +535,7 @@ body {
   #ydadget_announcer_float_bottom_background_layer {
     width: 800px;
     margin-left: -400px;
+    background-color: transparent !important;
   }
 
   #sponster_recruiter_slider_lg {
