@@ -47,14 +47,7 @@ ssl_opts = [
 endpoint_config =
   [
     http: [ip: {127, 0, 0, 1}, port: 4000],
-    check_origin: [
-      "http://localhost:4000",
-      "https://localhost:4000",
-      "http://localhost:4001",
-      "https://localhost:4001",
-      "http://localhost:8001",
-      "chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen"
-    ],
+    check_origin: false,
     url: [host: "localhost", port: 4001, scheme: "https"],
     static_url: [host: "localhost", port: 4001, scheme: "https"],
     code_reloader: true,
