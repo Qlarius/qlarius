@@ -56,6 +56,7 @@ endpoint_config =
       "chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen"
     ],
     url: [host: "localhost", port: 4001, scheme: "https"],
+    static_url: [host: "localhost", port: 4001, scheme: "https"],
     code_reloader: true,
     debug_errors: true,
     secret_key_base: "I0TNoNVsAUb60KoJZG27GA8uKP29XGc9Sifl6xY/RfCkULLRYLyl67A6PjHiYgoF",
