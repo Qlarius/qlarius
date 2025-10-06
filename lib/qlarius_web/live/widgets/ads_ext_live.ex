@@ -214,16 +214,18 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   def render(assigns) do
     ~H"""
     <Layouts.tipjar_container {assigns}>
-      <div class="container mx-auto px-0 py-8 max-w-3xl my-[60px]">
-        <.live_component
-          module={QlariusWeb.ThreeTapStackComponent}
-          id="three-tap-stack"
-          active_offers={@active_offers}
-          user_ip={@user_ip}
-          current_scope={@current_scope}
-          host_uri={@host_uri}
-          recipient={@recipient}
-        />
+      <div class="bg-base-100 dark:!bg-base-300">
+        <div class="container mx-auto px-0 py-8 max-w-3xl mt-[60px]">
+          <.live_component
+            module={QlariusWeb.ThreeTapStackComponent}
+            id="three-tap-stack"
+            active_offers={@active_offers}
+            user_ip={@user_ip}
+            current_scope={@current_scope}
+            host_uri={@host_uri}
+            recipient={@recipient}
+          />
+        </div>
       </div>
     </Layouts.tipjar_container>
 

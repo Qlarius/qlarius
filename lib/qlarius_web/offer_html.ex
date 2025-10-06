@@ -38,7 +38,7 @@ defmodule QlariusWeb.OfferHTML do
         <div class={"offer-phase phase-0 #{if @phase > 0, do: "slide-left"}"}>
           <.offer_container
             offer={@offer}
-            class="p-5 text-base-content bg-base-100"
+            class="p-5 text-base-content bg-base-200"
             target={@target}
             recipient={@recipient}
           >
@@ -109,7 +109,7 @@ defmodule QlariusWeb.OfferHTML do
         <div class={"offer-phase phase-3 #{if @phase < 3, do: "hidden"}"}>
           <.offer_container
             offer={@offer}
-            class="p-3 bg-base-200 flex flex-col justify-center text-center text-base-content select-none"
+            class="p-3 bg-base-300 flex flex-col justify-center text-center text-base-content select-none"
             target={@target}
             recipient={@recipient}
           >

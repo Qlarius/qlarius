@@ -34,10 +34,10 @@
 
       <div
         class="bg-sponster-200 dark:bg-sponster-800 text-base-content/80 rounded-lg border border-sponster-300 dark:border-sponster-500 p-3 flex flex-col items-center justify-center cursor-pointer"
-        phx-click={JS.navigate("/ads")}
+        phx-click={JS.navigate("/wallet")}
       >
         <div class="text-xl sm:text-3xl font-bold leading-none">
-          {format_usd(@current_scope.offered_amount)}
+          {format_usd(@current_scope.wallet_balance)}
         </div>
         <div class="text-sm">wallet</div>
       </div>

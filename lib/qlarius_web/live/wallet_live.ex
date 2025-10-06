@@ -180,10 +180,10 @@ defmodule QlariusWeb.WalletLive do
           </div>
         </div>
 
-        <ul class="list bg-base-100 dark:!bg-base-200 rounded-box shadow-md overflow-hidden">
+        <ul class="list bg-base-200 dark:!bg-base-200 rounded-box shadow-md overflow-hidden">
           <li
             :for={entry <- @paginated_entries.entries}
-            class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-200 dark:hover:!bg-base-100"
+            class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100"
             phx-click={
               %JS{}
               |> JS.push("select_ledger_entry", loading: "#right-sidebar-container")

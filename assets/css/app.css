@@ -305,8 +305,12 @@
   transition: all .5s ease-in-out;
 }
 
+html, #app {
+  background-color: transparent !important;
+}
+
 body {
-  background-color: transparent;
+  color-scheme: light dark;
 }
 
 .sponster-announcer-bottom-float-strip {

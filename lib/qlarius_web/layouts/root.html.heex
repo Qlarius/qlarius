@@ -2,7 +2,6 @@
 <html
   lang="en"
   class="[scrollbar-gutter:stable]"
-  style="background: none !important;"
 >
   <head>
     <meta charset="utf-8" />
@@ -32,7 +31,6 @@
         const setTheme = (theme) => {
           if (theme === "system") {
             localStorage.setItem("phx:theme", "system");
-            // Use custom themes even for system mode
             const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             document.documentElement.setAttribute("data-theme", systemPrefersDark ? "dark" : "light");
             document.documentElement.setAttribute("data-theme-mode", "system");
@@ -42,27 +40,33 @@
             document.documentElement.setAttribute("data-theme-mode", theme);
           }
         };
-        // Check URL params for theme (for iframes)
+        
         const urlParams = new URLSearchParams(window.location.search);
+        const forceTheme = urlParams.get('force_theme');
         const urlTheme = urlParams.get('theme');
-        const initialTheme = urlTheme || localStorage.getItem("phx:theme") || "system";
         
-        setTheme(initialTheme);
-        window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
-        window.addEventListener("phx:set-theme", ({ detail: { theme } }) => setTheme(theme));
-        
-        // Listen for system theme changes and update if in system mode
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-          const currentTheme = localStorage.getItem("phx:theme");
-          if (!currentTheme || currentTheme === "system") {
-            setTheme("system");
-          }
-        });
+        if (forceTheme) {
+          document.documentElement.setAttribute("data-theme", forceTheme);
+          document.documentElement.setAttribute("data-theme-mode", "forced");
+        } else {
+          const initialTheme = urlTheme || localStorage.getItem("phx:theme") || "system";
+          setTheme(initialTheme);
+          
+          window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
+          window.addEventListener("phx:set-theme", ({ detail: { theme } }) => setTheme(theme));
+          
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            const currentTheme = localStorage.getItem("phx:theme");
+            if (!currentTheme || currentTheme === "system") {
+              setTheme("system");
+            }
+          });
+        }
       })();
     </script>
     
   </head>
-  <body style="background: none;">
+  <body>
     {@inner_content}
   </body>
 </html>
