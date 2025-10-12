@@ -43,7 +43,7 @@
                 phx-value-tiqit-class-id={default_tc.id}
                 class="btn btn-primary btn-lg btn-block rounded-full"
               >
-                Buy Tiqit • <span class="font-bold">{format_usd(default_tc.price)}</span>
+                {if Decimal.eq?(default_tc.price, 0), do: "Get", else: "Buy"} Tiqit • <span class="font-bold">{format_usd(default_tc.price)}</span>
               </button>
               <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
             <% end %>
@@ -92,7 +92,7 @@
               </div>
             </div>
             <div class="ml-2">
-              <span class={"badge badge-xl h-7 rounded-full #{if Arcade.has_valid_tiqit?(@current_scope, piece), do: "!bg-sponster-400", else: "badge-primary"}"}>
+              <span class={"badge badge-xl h-7 rounded-full #{if Arcade.has_valid_tiqit?(@current_scope, piece), do: "!bg-sponster-400", else: "badge-primary"} #{if Decimal.eq?(ContentPiece.default_tiqit_class(piece).price, 0), do: "font-bold"}"}>
                 <%= if Arcade.has_valid_tiqit?(@current_scope, piece) do %>
                   <.icon name="hero-check" class="h-4 w-4 font-bold text-white" />
                 <% else %>
@@ -184,9 +184,9 @@
       <div class="space-y-4">
         <h2 class="text-xl font-bold text-base-content">Top up your wallet.</h2>
         <div class="mb-6 flex gap-2 justify-center items-center">
-          <div class="text-lg bg-sponster-500 text-white px-3 py-1 rounded-md mb-3">
-            Balance: <span class="font-bold">{format_usd(@balance)}</span>
-          </div>
+
+            Balance: <.wallet_balance :if={assigns[:current_scope]} balance={@current_scope.wallet_balance} />
+
         </div>
       </div>
 

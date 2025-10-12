@@ -27,6 +27,6 @@ defmodule Qlarius.Tiqit.Arcade.TiqitClass do
     |> unique_constraint([:duration_hours, :content_group_id])
     |> unsafe_validate_unique([:duration_hours, :content_piece_id], Qlarius.Repo)
     |> unique_constraint([:duration_hours, :content_piece_id])
-    |> validate_number(:price, greater_than: 0)
+    |> validate_number(:price, greater_than_or_equal_to: 0)
   end
 end
