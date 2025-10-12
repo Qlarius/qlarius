@@ -28,9 +28,7 @@ defmodule QlariusWeb.ThreeTapStackComponent do
           />
         </div>
       <% else %>
-        <div class="text-center py-8">
-          <p class="text-gray-500"></p>
-        </div>
+        <.offer_skeleton :for={_ <- 1..6} />
       <% end %>
     </div>
     """

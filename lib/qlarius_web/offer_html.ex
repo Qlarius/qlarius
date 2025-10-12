@@ -15,6 +15,19 @@ defmodule QlariusWeb.OfferHTML do
 
   @phase_1_amount Decimal.new("0.05")
 
+  def offer_skeleton(assigns) do
+    ~H"""
+    <div
+      class="rounded-md border border-gray-300 dark:border-gray-600 overflow-hidden mb-4"
+      style="width: 347px; height: 152px;"
+    >
+      <div class="h-full w-full bg-base-200">
+        <div class="h-full w-full bg-base-300/50 dark:bg-base-300/30 rounded animate-pulse"></div>
+      </div>
+    </div>
+    """
+  end
+
   attr :phase, :integer, default: 0
   attr :offer, Offer, required: true
   attr :recipient, :any, default: nil
