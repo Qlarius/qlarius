@@ -160,20 +160,19 @@ defmodule QlariusWeb.Layouts do
 
       <button
         class={[
-          "indicator relative",
-          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/ads") &&
+          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") &&
             "dock-active"
         ]}
-        phx-click={JS.navigate(~p"/ads")}
+        phx-click={JS.navigate(~p"/me_file")}
       >
-        <.icon name="hero-eye" class="size-[1.5em]" />
-        <span class="dock-label">Ads</span>
-        <span
+        <.icon name="hero-identification" class="size-[1.5em]" />
+        <span class="dock-label">MeFile</span>
+        <%!-- <span
           :if={@current_scope.ads_count > 0}
-          class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-400"
+          class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-youdata-600"
         >
-          {@current_scope.ads_count}
-        </span>
+          {@current_scope.trait_count}
+        </span> --%>
       </button>
 
       <button
@@ -191,23 +190,24 @@ defmodule QlariusWeb.Layouts do
         </span> --%>
       </button>
 
-      <%!-- TODO: Route not implemented - was ~p"/me_file" (route doesn't exist) --%>
       <button
         class={[
-          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") &&
+          "indicator relative",
+          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/ads") &&
             "dock-active"
         ]}
-        phx-click={JS.navigate(~p"/me_file")}
+        phx-click={JS.navigate(~p"/ads")}
       >
-        <.icon name="hero-identification" class="size-[1.5em]" />
-        <span class="dock-label">MeFile</span>
-        <%!-- <span
+        <.icon name="hero-eye" class="size-[1.5em]" />
+        <span class="dock-label">Ads</span>
+        <span
           :if={@current_scope.ads_count > 0}
-          class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-youdata-600"
+          class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-400"
         >
-          {@current_scope.trait_count}
-        </span> --%>
+          {@current_scope.ads_count}
+        </span>
       </button>
+
 
       <button phx-click={toggle_sponster_sidebar(:on)}>
         <.icon name="hero-ellipsis-horizontal" class="size-[1.5em]" />
