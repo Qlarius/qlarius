@@ -152,6 +152,47 @@ Hooks.InstaTipHook = {
   }
 }
 
+Hooks.TapFeedback = {
+  mounted() {
+    this.minTimeElapsed = true
+    this.lastPhase = parseInt(this.el.dataset.phase || '0')
+    
+    this.handleClick = () => {
+      const currentPhase = parseInt(this.el.dataset.phase || '0')
+      if (currentPhase < 3) {
+        this.el.classList.add('ring-4', 'ring-primary')
+        this.minTimeElapsed = false
+        setTimeout(() => {
+          this.minTimeElapsed = true
+          this.checkAndRemoveRing()
+        }, 300)
+      }
+    }
+    
+    this.el.addEventListener('click', this.handleClick)
+  },
+  
+  updated() {
+    const newPhase = parseInt(this.el.dataset.phase || '0')
+    if (newPhase !== this.lastPhase) {
+      this.lastPhase = newPhase
+      this.checkAndRemoveRing()
+    }
+  },
+  
+  checkAndRemoveRing() {
+    if (this.minTimeElapsed) {
+      this.el.classList.remove('ring-4', 'ring-primary')
+    }
+  },
+  
+  destroyed() {
+    if (this.handleClick) {
+      this.el.removeEventListener('click', this.handleClick)
+    }
+  }
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},

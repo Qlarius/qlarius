@@ -44,7 +44,10 @@ defmodule QlariusWeb.OfferHTML do
 
     ~H"""
     <div
-      class="offer-container rounded-md border border-gray-300 dark:border-gray-600 overflow-hidden cursor-pointer"
+      phx-hook="TapFeedback"
+      data-phase={@phase}
+      id={"offer-#{@offer.id}"}
+      class="offer-container rounded-md border border-gray-300 dark:border-gray-600 overflow-hidden cursor-pointer transition-all duration-300"
       style="width: 347px; height: 152px;"
     >
       <div class="absolute inset-0 overflow-hidden">
