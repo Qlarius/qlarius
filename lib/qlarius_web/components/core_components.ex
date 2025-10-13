@@ -600,6 +600,33 @@ defmodule QlariusWeb.CoreComponents do
   # that's non-urgent.
 
   @doc """
+  Renders a backdrop overlay for modals and popovers.
+
+  ## Examples
+
+      <.backdrop id="my-modal-bg" />
+      <.backdrop id="my-popover-bg" class="bg-black/50" />
+
+  """
+  attr :id, :string, required: true
+  attr :class, :string, default: nil
+  attr :rest, :global
+
+  def backdrop(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      class={[
+        "bg-base-300/80 backdrop-blur-sm fixed inset-0 transition-opacity",
+        @class
+      ]}
+      aria-hidden="true"
+      {@rest}
+    />
+    """
+  end
+
+  @doc """
   Renders a modal.
 
   ## Examples
@@ -630,16 +657,11 @@ defmodule QlariusWeb.CoreComponents do
       data-cancel={JS.exec(@on_cancel, "phx-remove")}
       class="relative z-50 hidden"
     >
-      <!-- Modal Backdrop -->
-      <div
-        id={"#{@id}-bg"}
-        class="bg-base-300/80 backdrop-blur-sm fixed inset-0 transition-opacity"
-        aria-hidden="true"
-      />
+      <.backdrop id={"#{@id}-bg"} />
 
     <!-- Modal Container -->
       <div
-        class="fixed inset-0 overflow-y-auto"
+        class="fixed inset-0 overflow-y-auto max-w-[500px] mx-auto"
         aria-labelledby={"#{@id}-title"}
         aria-describedby={"#{@id}-description"}
         role="dialog"

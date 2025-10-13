@@ -2,9 +2,7 @@
   We use Alpine.js state for splitAmount because phx-update="ignore" prevents LiveView from updating the DOM for this drawer.
   This ensures the UI updates immediately when a split button is clicked, even though the assign changes in the socket are not patched in.
 --%>
-<div
-  x-ref="drawer"
-  x-data={"{
+<div x-data={"{
     drawerOpen: false,
     splitAmount: #{@current_scope.user.me_file.split_amount || 50},
     currentBalance: #{@current_scope.wallet_balance || Decimal.new("0.00")},
@@ -44,129 +42,148 @@
       return this.currentBalance >= amount;
     }
   }"}
-  x-init="$nextTick(() => setDrawerPosition())"
-  @resize.window="setDrawerPosition()"
-  @load.window="setDrawerPosition()"
-  x-bind:class="drawerOpen ? 'open' : ''"
-  style="position:fixed; left:0; right:0; width:100%; transition:bottom 0.3s; min-height: 350px; z-index: 50;"
-  phx-update="ignore"
-  phx-hook="InstaTipHook"
-  id="tipjar-drawer"
 >
-  <!-- Tab (toggle trigger) - sibling to content, not inside -->
+  <.backdrop 
+    id="tipjar-backdrop"
+    style="z-index: 49; display: none;"
+    {%{
+      "x-show" => "drawerOpen",
+      "@click" => "toggleDrawer",
+      "x-transition:enter" => "transition-opacity duration-300",
+      "x-transition:enter-start" => "opacity-0",
+      "x-transition:enter-end" => "opacity-100",
+      "x-transition:leave" => "transition-opacity duration-300",
+      "x-transition:leave-start" => "opacity-100",
+      "x-transition:leave-end" => "opacity-0"
+    }}
+  />
+
   <div
-    class="flex items-center gap-2 bg-gray-700 text-white px-5 py-2 rounded-tl-3xl cursor-pointer select-none"
-    @click="toggleDrawer"
-    style="position: absolute; top: -36px; right: 0;"
+    x-ref="drawer"
+    x-init="$nextTick(() => setDrawerPosition())"
+    @resize.window="setDrawerPosition()"
+    @load.window="setDrawerPosition()"
+    x-bind:class="drawerOpen ? 'open' : ''"
+    style="position:fixed; left:0; right:0; width:100%; transition:bottom 0.3s; min-height: 350px; z-index: 50;"
+    phx-update="ignore"
+    phx-hook="InstaTipHook"
+    id="tipjar-drawer"
   >
-    <!--
+    <!-- Tab (toggle trigger) - sibling to content, not inside -->
+    <div
+      class="flex items-center gap-2 bg-gray-700 text-white px-5 py-2 rounded-tl-3xl cursor-pointer select-none"
+      @click="toggleDrawer"
+      style="position: absolute; top: -36px; right: 0;"
+    >
+      <!--
       We use Alpine's splitAmount state here instead of @current_scope.user.me_file.split_amount because phx-update="ignore"
       prevents LiveView from patching the DOM for this drawer. This ensures the displayed value updates
       immediately when the user selects a new split amount.
     -->
-    <span class="uppercase text-xs tracking-wider font-semibold ms-2">
-      SPLIT: <span x-text="splitAmount"></span>%
-    </span>
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-      />
-      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  </div>
-  
-<!-- Drawer header and content -->
-  <div
-    class="w-full bg-base-200 max-width-full shadow-2xl border-t border-gray-200 pt-0 py-8 px-0"
-    style="min-height: 350px;"
-  >
-    <!-- Header -->
-    <div class="w-full bg-base-100 dark:bg-base-300 border-b border-gray-300 p-5 flex justify-between items-center shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)] relative z-10">
-      <div class="text-content-base-800 font-bold uppercase tracking-wider">
-        TIP TO SUPPORT WHAT MATTERS
-      </div>
-      <button
-        @click="toggleDrawer"
-        class="flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 bg-white shadow hover:bg-gray-100 cursor-pointer"
-      >
-        <svg
-          class="w-6 h-6 text-gray-700 rotate-180"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          viewBox="0 0 24 24"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M19 15l-7-7-7 7" />
-        </svg>
-      </button>
+      <span class="uppercase text-xs tracking-wider font-semibold ms-2">
+        SPLIT: <span x-text="splitAmount"></span>%
+      </span>
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+        />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
     </div>
-    <!-- Content -->
+    
+<!-- Drawer header and content -->
     <div
-      class="flex flex-col md:!flex-row gap-8 px-8 pt-6 overflow-y-auto max-w-[800px] mx-auto"
-      style="max-height: 60vh;"
+      class="w-full bg-base-200 max-width-full shadow-2xl border-t border-gray-200 pt-0 py-8 px-0"
+      style="min-height: 350px;"
     >
-      <!-- AutoTip Section -->
-      <div class="flex-1 flex flex-col items-center md:items-start">
-        <div class="text-lg font-bold text-base-content mb-1">AutoTip</div>
-        <div class="text-base-content/70 text-sm mb-4">
-          Automatically share a percentage from each ad.
+      <!-- Header -->
+      <div class="w-full bg-base-100 dark:bg-base-300 border-b border-gray-300 p-5 flex justify-between items-center shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)] relative z-10">
+        <div class="text-content-base-800 font-bold uppercase tracking-wider">
+          TIP TO SUPPORT WHAT MATTERS
         </div>
-        <div class="inline-flex rounded-lg overflow-hidden border border-base-content-200 bg-base-100 divide-x divide-base-content-200 w-fit">
-          <%= for percentage <- [0, 25, 50, 75, 100] do %>
-            <button
-              type="button"
-              phx-click="set_split"
-              phx-value-split={percentage}
-              @click={"splitAmount = #{percentage}"}
-              x-bind:class={"splitAmount == #{percentage} ? 'flex-1 px-4 py-2 text-sm font-medium text-white bg-primary focus:outline-none cursor-pointer' : 'flex-1 px-4 py-2 text-sm font-medium text-base-content/70 bg-base-100 hover:bg-base-200 focus:outline-none cursor-pointer'"}
-            >
-              {percentage}%
-            </button>
-          <% end %>
-        </div>
-        
-<!-- InstaTip Section -->
-        <div class="flex-1 flex flex-col items-center md:items-start mt-6 pt-4 border-t border-neutral-500">
-          <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
+        <button
+          @click="toggleDrawer"
+          class="flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 bg-white shadow hover:bg-gray-100 cursor-pointer"
+        >
+          <svg
+            class="w-6 h-6 text-gray-700 rotate-180"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 15l-7-7-7 7" />
+          </svg>
+        </button>
+      </div>
+      <!-- Content -->
+      <div
+        class="flex flex-col md:!flex-row gap-8 px-8 pt-6 overflow-y-auto max-w-[800px] mx-auto"
+        style="max-height: 60vh;"
+      >
+        <!-- AutoTip Section -->
+        <div class="flex-1 flex flex-col items-center md:items-start">
+          <div class="text-lg font-bold text-base-content mb-1">AutoTip</div>
           <div class="text-base-content/70 text-sm mb-4">
-            Instantly tip from your wallet (<span class="font-semibold">${@current_scope.wallet_balance}</span>).
+            Automatically share a percentage from each ad.
           </div>
-          <div class="flex gap-3 justify-center">
-            <%= for tip_amount <- [0.25, 0.50, 1.00, 2.00] do %>
+          <div class="inline-flex rounded-lg overflow-hidden border border-base-content-200 bg-base-100 divide-x divide-base-content-200 w-fit">
+            <%= for percentage <- [0, 25, 50, 75, 100] do %>
               <button
                 type="button"
-                @click={"initiateInstaTip(#{tip_amount})"}
-                x-bind:disabled={"!hasSufficientFunds(#{tip_amount})"}
-                x-bind:class={"hasSufficientFunds(#{tip_amount}) ? 'btn btn-circle btn-primary btn-lg font-bold hover:btn-primary-focus p-8' : 'btn btn-circle btn-primary text-sm font-medium btn-disabled p-8'"}
+                phx-click="set_split"
+                phx-value-split={percentage}
+                @click={"splitAmount = #{percentage}"}
+                x-bind:class={"splitAmount == #{percentage} ? 'flex-1 px-4 py-2 text-sm font-medium text-white bg-primary focus:outline-none cursor-pointer' : 'flex-1 px-4 py-2 text-sm font-medium text-base-content/70 bg-base-100 hover:bg-base-200 focus:outline-none cursor-pointer'"}
               >
-                <span x-text={"formatAmount(#{tip_amount})"}></span>
+                {percentage}%
               </button>
             <% end %>
           </div>
-        </div>
-      </div>
-      <!-- Right: Recipient -->
-      <div class="flex-1 flex flex-col items-center border-t border-gray-200 pt-4 md:pt-0">
-        <div class="text-2xl font-bold text-base-content mb-2 text-center md:text-left">
-          {@recipient.name || "This Blog's Name"}
-        </div>
-        <div class="flex flex-row md:!flex-col items-center gap-4">
-          <div class="w-40 h-auto md:w-56 md:h-56 bg-base-300 shadow-md flex items-center justify-center mb-0 md:mb-4 overflow-hidden">
-            <img
-              src={
-                QlariusWeb.Uploaders.RecipientBrandImage.url(
-                  {@recipient.graphic_url, @recipient} || ~p"/images/tipjar_love_default.png"
-                )
-              }
-              alt="Recipient"
-              class="object-contain w-full h-full rounded"
-            />
+          
+<!-- InstaTip Section -->
+          <div class="flex-1 flex flex-col items-center md:items-start mt-6 pt-4 border-t border-neutral-500">
+            <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
+            <div class="text-base-content/70 text-sm mb-4">
+              Instantly tip from your wallet (<span class="font-semibold">${@current_scope.wallet_balance}</span>).
+            </div>
+            <div class="flex gap-3 justify-center">
+              <%= for tip_amount <- [0.25, 0.50, 1.00, 2.00] do %>
+                <button
+                  type="button"
+                  @click={"initiateInstaTip(#{tip_amount})"}
+                  x-bind:disabled={"!hasSufficientFunds(#{tip_amount})"}
+                  x-bind:class={"hasSufficientFunds(#{tip_amount}) ? 'btn btn-circle btn-primary btn-lg font-bold hover:btn-primary-focus p-8' : 'btn btn-circle btn-primary text-sm font-medium btn-disabled p-8'"}
+                >
+                  <span x-text={"formatAmount(#{tip_amount})"}></span>
+                </button>
+              <% end %>
+            </div>
           </div>
-          <div class="text-base-content/70 text-sm text-left md:text-center max-w-xs">
-            {@recipient.message ||
-              "Thank you for supporting this content. Your Sponster tips are greatly appreciated!"}
+        </div>
+        <!-- Right: Recipient -->
+        <div class="flex-1 flex flex-col items-center border-t border-gray-200 pt-4 md:pt-0">
+          <div class="text-2xl font-bold text-base-content mb-2 text-center md:text-left">
+            {@recipient.name || "This Blog's Name"}
+          </div>
+          <div class="flex flex-row md:!flex-col items-center gap-4">
+            <div class="w-40 h-auto md:w-56 md:h-56 bg-base-300 shadow-md flex items-center justify-center mb-0 md:mb-4 overflow-hidden">
+              <img
+                src={
+                  QlariusWeb.Uploaders.RecipientBrandImage.url(
+                    {@recipient.graphic_url, @recipient} || ~p"/images/tipjar_love_default.png"
+                  )
+                }
+                alt="Recipient"
+                class="object-contain w-full h-full rounded"
+              />
+            </div>
+            <div class="text-base-content/70 text-sm text-left md:text-center max-w-xs">
+              {@recipient.message ||
+                "Thank you for supporting this content. Your Sponster tips are greatly appreciated!"}
+            </div>
           </div>
         </div>
       </div>
