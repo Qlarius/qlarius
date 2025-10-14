@@ -154,17 +154,28 @@ Hooks.InstaTipHook = {
 
 Hooks.TapFeedback = {
   mounted() {
-    this.minTimeElapsed = true
     this.lastPhase = parseInt(this.el.dataset.phase || '0')
+    this.phaseChanged = false
+    this.minTimeElapsed = true
+    this.timer = null
     
     this.handleClick = () => {
       const currentPhase = parseInt(this.el.dataset.phase || '0')
       if (currentPhase < 3) {
+        if (this.timer) {
+          clearTimeout(this.timer)
+        }
+        
         this.el.classList.add('ring-4', 'ring-primary')
+        this.phaseChanged = false
         this.minTimeElapsed = false
-        setTimeout(() => {
+        
+        this.timer = setTimeout(() => {
           this.minTimeElapsed = true
-          this.checkAndRemoveRing()
+          if (this.phaseChanged) {
+            this.el.classList.remove('ring-4', 'ring-primary')
+          }
+          this.timer = null
         }, 300)
       }
     }
@@ -174,19 +185,21 @@ Hooks.TapFeedback = {
   
   updated() {
     const newPhase = parseInt(this.el.dataset.phase || '0')
+    
     if (newPhase !== this.lastPhase) {
       this.lastPhase = newPhase
-      this.checkAndRemoveRing()
+      this.phaseChanged = true
     }
-  },
-  
-  checkAndRemoveRing() {
-    if (this.minTimeElapsed) {
-      this.el.classList.remove('ring-4', 'ring-primary')
+    
+    if (!this.minTimeElapsed) {
+      this.el.classList.add('ring-4', 'ring-primary')
     }
   },
   
   destroyed() {
+    if (this.timer) {
+      clearTimeout(this.timer)
+    }
     if (this.handleClick) {
       this.el.removeEventListener('click', this.handleClick)
     }

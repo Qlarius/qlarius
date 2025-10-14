@@ -4,6 +4,10 @@ module.exports = {
     "./assets/js/**/*.js",
     "./priv/static/**/*.html"
   ],
+  safelist: [
+    'ring-4',
+    'ring-primary'
+  ],
   theme: {
     extend: {
       colors: {
