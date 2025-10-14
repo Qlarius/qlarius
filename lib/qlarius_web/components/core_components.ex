@@ -661,7 +661,7 @@ defmodule QlariusWeb.CoreComponents do
 
     <!-- Modal Container -->
       <div
-        class="fixed inset-0 overflow-y-auto max-w-[500px] mx-auto"
+        class="fixed inset-0 overflow-y-auto max-w-[700px] mx-auto"
         aria-labelledby={"#{@id}-title"}
         aria-describedby={"#{@id}-description"}
         role="dialog"

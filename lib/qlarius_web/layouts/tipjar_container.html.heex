@@ -1,13 +1,4 @@
-<div
-  x-data="{
-  drawerOpen: false,
-  toggleDrawer() {
-    this.drawerOpen = !this.drawerOpen;
-    document.body.classList.toggle('tip-drawer-open', this.drawerOpen);
-  }
-}"
-  x-init="document.body.classList.remove('tip-drawer-open')"
->
+<div>
   <.tipjar_header
     wallet_balance={@current_scope.wallet_balance}
     user_alias={@current_scope.user.email}
@@ -17,8 +8,6 @@
     me_file={@current_scope.user.me_file}
     recipient={@recipient}
     current_scope={@current_scope}
-    x-bind:drawer-open="drawerOpen"
-    x-bind:toggle-drawer="toggleDrawer"
   />
   {render_slot(@inner_block)}
   <div style="position:fixed; bottom:0; width:100%; background-color: #6F7479; color:white; padding:10px 10px; text-align:center; font-size: 10px; line-height: 11px; height: 40px; display: flex; align-items: center; justify-content: center; z-index: 50;">

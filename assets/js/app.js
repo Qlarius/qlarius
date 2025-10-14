@@ -206,6 +206,123 @@ Hooks.TapFeedback = {
   }
 }
 
+Hooks.TipDrawerHook = {
+  mounted() {
+    this.drawerOpen = false
+    this.splitAmount = parseInt(this.el.dataset.initialSplit || '50')
+    this.currentBalance = parseFloat(this.el.dataset.initialBalance || '0')
+
+    this.drawerEl = document.getElementById('tipjar-drawer')
+    this.backdropEl = document.getElementById('tipjar-backdrop')
+    this.splitDisplayEl = this.el.querySelector('[data-split-display]')
+    this.toggleEls = this.el.querySelectorAll('[data-toggle-drawer]')
+    this.splitButtons = this.el.querySelectorAll('[data-split]')
+    this.instaButtons = this.el.querySelectorAll('[data-instatip]')
+
+    this.toggleDrawer = this.toggleDrawer.bind(this)
+    this.recalculatePositions = this.recalculatePositions.bind(this)
+    this.applyBottomPosition = this.applyBottomPosition.bind(this)
+
+    document.body.classList.remove('tip-drawer-open')
+
+    this.toggleEls.forEach((el) => el.addEventListener('click', this.toggleDrawer))
+    if (this.backdropEl) this.backdropEl.addEventListener('click', this.toggleDrawer)
+    this.splitButtons.forEach((btn) => {
+      btn.addEventListener('click', () => this.handleSplitClick(parseInt(btn.dataset.split)))
+    })
+    this.instaButtons.forEach((btn) => {
+      btn.addEventListener('click', () => this.handleInstaTipClick(parseFloat(btn.dataset.instatip)))
+    })
+
+    window.addEventListener('resize', this.recalculatePositions)
+    if (window.ResizeObserver) {
+      this.resizeObserver = new ResizeObserver(() => this.recalculatePositions())
+      if (this.drawerEl) this.resizeObserver.observe(this.drawerEl)
+    }
+
+    this.updateSplitDisplay()
+    this.updateSplitClasses()
+    this.updateInstaButtons()
+    this.recalculatePositions()
+  },
+
+  toggleDrawer() {
+    this.drawerOpen = !this.drawerOpen
+    document.body.classList.toggle('tip-drawer-open', this.drawerOpen)
+    this.applyBottomPosition()
+    if (this.backdropEl) {
+      if (this.drawerOpen) {
+        this.backdropEl.style.display = 'block'
+        this.backdropEl.classList.remove('opacity-0')
+        this.backdropEl.classList.add('opacity-100')
+      } else {
+        this.backdropEl.classList.remove('opacity-100')
+        this.backdropEl.classList.add('opacity-0')
+        setTimeout(() => { if (!this.drawerOpen) this.backdropEl.style.display = 'none' }, 300)
+      }
+    }
+  },
+
+  recalculatePositions() {
+    if (!this.drawerEl) return
+    const drawerHeight = this.drawerEl.offsetHeight
+    this.openBottom = 40
+    this.closeBottom = (drawerHeight * -1) + 40
+    this.applyBottomPosition()
+  },
+
+  applyBottomPosition() {
+    if (!this.drawerEl) return
+    const bottom = this.drawerOpen ? this.openBottom : this.closeBottom
+    this.drawerEl.style.bottom = `${bottom}px`
+  },
+
+  updateSplitDisplay() {
+    if (this.splitDisplayEl) this.splitDisplayEl.textContent = this.splitAmount
+  },
+
+  updateSplitClasses() {
+    this.splitButtons.forEach((btn) => {
+      const pct = parseInt(btn.dataset.split)
+      const active = pct === this.splitAmount
+      btn.className = active
+        ? 'flex-1 px-4 py-2 text-sm font-medium text-white bg-primary focus:outline-none cursor-pointer'
+        : 'flex-1 px-4 py-2 text-sm font-medium text-base-content/70 bg-base-100 hover:bg-base-200 focus:outline-none cursor-pointer'
+    })
+  },
+
+  updateInstaButtons() {
+    this.instaButtons.forEach((btn) => {
+      const amt = parseFloat(btn.dataset.instatip)
+      const enabled = this.currentBalance >= amt
+      btn.disabled = !enabled
+      btn.className = enabled
+        ? 'btn btn-circle btn-primary btn-lg font-bold hover:btn-primary-focus p-8'
+        : 'btn btn-circle btn-primary text-sm font-medium btn-disabled p-8'
+    })
+  },
+
+  handleSplitClick(percentage) {
+    this.splitAmount = percentage
+    this.updateSplitDisplay()
+    this.updateSplitClasses()
+    this.pushEvent('set_split', { split: String(percentage) })
+  },
+
+  handleInstaTipClick(amount) {
+    this.pushEvent('initiate_insta_tip', { amount: amount.toString() })
+  },
+
+  destroyed() {
+    window.removeEventListener('resize', this.recalculatePositions)
+    if (this.resizeObserver) this.resizeObserver.disconnect()
+    this.toggleEls && this.toggleEls.forEach((el) => el.removeEventListener('click', this.toggleDrawer))
+    if (this.backdropEl) this.backdropEl.removeEventListener('click', this.toggleDrawer)
+    this.splitButtons && this.splitButtons.forEach((btn) => btn.replaceWith(btn.cloneNode(true)))
+    this.instaButtons && this.instaButtons.forEach((btn) => btn.replaceWith(btn.cloneNode(true)))
+  }
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},

@@ -2,68 +2,18 @@
   We use Alpine.js state for splitAmount because phx-update="ignore" prevents LiveView from updating the DOM for this drawer.
   This ensures the UI updates immediately when a split button is clicked, even though the assign changes in the socket are not patched in.
 --%>
-<div x-data={"{
-    drawerOpen: false,
-    splitAmount: #{@current_scope.user.me_file.split_amount || 50},
-    currentBalance: #{@current_scope.wallet_balance || Decimal.new("0.00")},
-    setDrawerPosition() {
-      this.$nextTick(() => {
-        const drawer = this.$refs.drawer;
-        const drawerHeight = drawer.offsetHeight;
-        const viewportHeight = window.innerHeight;
-        const close_bottom = (drawerHeight * -1) + 40;
-        const open_bottom = 40;
-        if (this.drawerOpen) {
-          drawer.style.bottom = open_bottom + 'px';
-        } else {
-          drawer.style.bottom = close_bottom + 'px';
-        }
-      });
-    },
-    toggleDrawer() {
-      this.drawerOpen = !this.drawerOpen;
-      document.body.classList.toggle('tip-drawer-open', this.drawerOpen);
-      this.setDrawerPosition();
-    },
-    initiateInstaTip(amount) {
-      // Send the tip request to the LiveView to show confirmation modal
-      this.$dispatch('initiate-insta-tip', { amount: amount.toString() });
-    },
-    formatAmount(amount) {
-      if (amount === 1.00) return '$1';
-      if (amount === 0.50) return '50¢';
-      if (amount === 0.25) return '25¢';
-      return '$' + amount;
-    },
-    formatBalance(balance) {
-      return balance.toString();
-    },
-    hasSufficientFunds(amount) {
-      return this.currentBalance >= amount;
-    }
-  }"}
+<div
+  id="tipjar-root"
+  phx-hook="TipDrawerHook"
+  data-initial-split={@current_scope.user.me_file.split_amount || 50}
+  data-initial-balance={Decimal.to_string(@current_scope.wallet_balance || Decimal.new("0.00"))}
 >
   <.backdrop 
     id="tipjar-backdrop"
     style="z-index: 49; display: none;"
-    {%{
-      "x-show" => "drawerOpen",
-      "@click" => "toggleDrawer",
-      "x-transition:enter" => "transition-opacity duration-300",
-      "x-transition:enter-start" => "opacity-0",
-      "x-transition:enter-end" => "opacity-100",
-      "x-transition:leave" => "transition-opacity duration-300",
-      "x-transition:leave-start" => "opacity-100",
-      "x-transition:leave-end" => "opacity-0"
-    }}
   />
 
   <div
-    x-ref="drawer"
-    x-init="$nextTick(() => setDrawerPosition())"
-    @resize.window="setDrawerPosition()"
-    @load.window="setDrawerPosition()"
-    x-bind:class="drawerOpen ? 'open' : ''"
     style="position:fixed; left:0; right:0; width:100%; transition:bottom 0.3s; min-height: 350px; z-index: 50;"
     phx-update="ignore"
     phx-hook="InstaTipHook"
@@ -72,7 +22,7 @@
     <!-- Tab (toggle trigger) - sibling to content, not inside -->
     <div
       class="flex items-center gap-2 bg-gray-700 text-white px-5 py-2 rounded-tl-3xl cursor-pointer select-none"
-      @click="toggleDrawer"
+      data-toggle-drawer
       style="position: absolute; top: -36px; right: 0;"
     >
       <!--
@@ -81,7 +31,7 @@
       immediately when the user selects a new split amount.
     -->
       <span class="uppercase text-xs tracking-wider font-semibold ms-2">
-        SPLIT: <span x-text="splitAmount"></span>%
+        SPLIT: <span data-split-display></span>%
       </span>
       <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path
@@ -104,7 +54,7 @@
           TIP TO SUPPORT WHAT MATTERS
         </div>
         <button
-          @click="toggleDrawer"
+          data-toggle-drawer
           class="flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 bg-white shadow hover:bg-gray-100 cursor-pointer"
         >
           <svg
@@ -134,9 +84,8 @@
               <button
                 type="button"
                 phx-click="set_split"
-                phx-value-split={percentage}
-                @click={"splitAmount = #{percentage}"}
-                x-bind:class={"splitAmount == #{percentage} ? 'flex-1 px-4 py-2 text-sm font-medium text-white bg-primary focus:outline-none cursor-pointer' : 'flex-1 px-4 py-2 text-sm font-medium text-base-content/70 bg-base-100 hover:bg-base-200 focus:outline-none cursor-pointer'"}
+                phx-value-split={to_string(percentage)}
+                data-split={percentage}
               >
                 {percentage}%
               </button>
@@ -153,23 +102,32 @@
               <%= for tip_amount <- [0.25, 0.50, 1.00, 2.00] do %>
                 <button
                   type="button"
-                  @click={"initiateInstaTip(#{tip_amount})"}
-                  x-bind:disabled={"!hasSufficientFunds(#{tip_amount})"}
-                  x-bind:class={"hasSufficientFunds(#{tip_amount}) ? 'btn btn-circle btn-primary btn-lg font-bold hover:btn-primary-focus p-8' : 'btn btn-circle btn-primary text-sm font-medium btn-disabled p-8'"}
+                  data-instatip={tip_amount}
                 >
-                  <span x-text={"formatAmount(#{tip_amount})"}></span>
+                  <span>
+                    <%= case tip_amount do %>
+                      <% 1.00 -> %>
+                        $1
+                      <% 0.50 -> %>
+                        50¢
+                      <% 0.25 -> %>
+                        25¢
+                      <% _ -> %>
+                        $<%= tip_amount %>
+                    <% end %>
+                  </span>
                 </button>
               <% end %>
             </div>
           </div>
         </div>
         <!-- Right: Recipient -->
-        <div class="flex-1 flex flex-col items-center border-t border-gray-200 pt-4 md:pt-0">
+        <div class="flex-1 flex flex-col items-center border-t border-gray-200 pt-4 md:pt-0 md:border-none">
           <div class="text-2xl font-bold text-base-content mb-2 text-center md:text-left">
             {@recipient.name || "This Blog's Name"}
           </div>
           <div class="flex flex-row md:!flex-col items-center gap-4">
-            <div class="w-40 h-auto md:w-56 md:h-56 bg-base-300 shadow-md flex items-center justify-center mb-0 md:mb-4 overflow-hidden">
+            <div class="w-60 h-auto md:w-50 bg-base-300 shadow-md flex items-center justify-center mb-0 md:mb-4 overflow-hidden">
               <img
                 src={
                   QlariusWeb.Uploaders.RecipientBrandImage.url(
