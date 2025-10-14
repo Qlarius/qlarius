@@ -3,13 +3,13 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
 
   import QlariusWeb.Money
 
-  attr :balance, :float, required: true
+  attr :balance, :any, required: true
 
   def wallet_balance(assigns) do
     ~H"""
-    <div class="w-auto text-md bg-sponster-200 dark:bg-sponster-800 text-base-content px-3 py-1 rounded-lg border border-sponster-300 dark:border-sponster-500">
+    <span class="inline-flex items-center w-auto text-md bg-sponster-200 dark:bg-sponster-800 text-base-content px-3 py-1 rounded-lg border border-sponster-300 dark:border-sponster-500">
       <span class="font-bold">{format_usd(@balance)}</span>
-    </div>
+    </span>
     """
   end
 end

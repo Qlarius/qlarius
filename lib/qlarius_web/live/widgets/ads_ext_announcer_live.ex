@@ -28,7 +28,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   # Commented out unused import - Jason functions not used in this LiveView
   # import Jason
 
-  @recruiter_mode false
+  @recruiter_mode true
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
@@ -178,61 +178,49 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
       <%= if @recruiter_mode do %>
         <div id="sponster_recruiter_slider_lg">
           <div
-            x-data={slider_data(@lg_slides)}
-            x-init="autoplay"
+            phx-hook="Carousel"
+            phx-update="ignore"
+            data-autoplay-interval="4000"
+            id="carousel-lg"
             class="relative w-full overflow-hidden"
           >
-
-    <!-- slides -->
             <div class="relative min-h-[70px] w-full">
-              <template x-for="(slide, index) in slides">
+              <%= for {slide, index} <- Enum.with_index(@lg_slides, 1) do %>
                 <div
-                  x-cloak
-                  x-show="currentSlideIndex == index + 1"
-                  class="absolute inset-0"
-                  x-transition:enter="transition ease-out duration-1000"
-                  x-transition:enter-start="opacity-0"
-                  x-transition:enter-end="opacity-100"
-                  x-transition:leave="transition ease-in duration-1000"
-                  x-transition:leave-start="opacity-100"
-                  x-transition:leave-end="opacity-0"
+                  class="absolute inset-0 transition-opacity duration-1000 opacity-0"
+                  data-slide
                 >
                   <img
                     class="absolute w-full h-full inset-0 object-cover text-on-surface dark:text-on-surface-dark"
-                    x-bind:src="slide.imgSrc"
-                    x-bind:alt="slide.imgAlt"
+                    src={slide.imgSrc}
+                    alt={slide[:imgAlt] || "slide"}
                   />
                 </div>
-              </template>
+              <% end %>
             </div>
           </div>
         </div>
         <div id="sponster_recruiter_slider_sm">
           <div
-            x-data={slider_data(@sm_slides)}
-            x-init="autoplay"
+            phx-hook="Carousel"
+            phx-update="ignore"
+            data-autoplay-interval="4000"
+            id="carousel-sm"
             class="relative w-full overflow-hidden"
           >
             <div class="relative min-h-[70px] w-full">
-              <template x-for="(slide, index) in slides">
+              <%= for {slide, index} <- Enum.with_index(@sm_slides, 1) do %>
                 <div
-                  x-cloak
-                  x-show="currentSlideIndex == index + 1"
-                  class="absolute inset-0"
-                  x-transition:enter="transition ease-out duration-1000"
-                  x-transition:enter-start="opacity-0"
-                  x-transition:enter-end="opacity-100"
-                  x-transition:leave="transition ease-in duration-1000"
-                  x-transition:leave-start="opacity-100"
-                  x-transition:leave-end="opacity-0"
+                  class="absolute inset-0 transition-opacity duration-1000 opacity-0"
+                  data-slide
                 >
                   <img
                     class="absolute w-full h-full inset-0 object-cover text-on-surface dark:text-on-surface-dark"
-                    x-bind:src="slide.imgSrc"
-                    x-bind:alt="slide.imgAlt"
+                    src={slide.imgSrc}
+                    alt={slide[:imgAlt] || "slide"}
                   />
                 </div>
-              </template>
+              <% end %>
             </div>
           </div>
         </div>
@@ -331,56 +319,6 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
             currentMode = "open";
           }
         }
-
-        document.addEventListener('alpine:init', () => {
-          Alpine.data('carousel', (carouselData = {
-              slides: [],
-              intervalTime: 0,
-          },) => ({
-              slides: carouselData.slides,
-              autoplayIntervalTime: carouselData.intervalTime,
-              currentSlideIndex: 1,
-              isPaused: false,
-              autoplayInterval: null,
-              isTransitioning: false,
-              previous() {
-                  if (this.isTransitioning) return;
-                  this.isTransitioning = true;
-                  if (this.currentSlideIndex > 1) {
-                      this.currentSlideIndex = this.currentSlideIndex - 1
-                  } else {
-                      // If it's the first slide, go to the last slide
-                      this.currentSlideIndex = this.slides.length
-                  }
-                  setTimeout(() => { this.isTransitioning = false; }, 1000);
-              },
-              next() {
-                  if (this.isTransitioning) return;
-                  this.isTransitioning = true;
-                  if (this.currentSlideIndex < this.slides.length) {
-                      this.currentSlideIndex = this.currentSlideIndex + 1
-                  } else {
-                      // If it's the last slide, go to the first slide
-                      this.currentSlideIndex = 1
-                  }
-                  setTimeout(() => { this.isTransitioning = false; }, 1000);
-              },
-              autoplay() {
-                  this.autoplayInterval = setInterval(() => {
-                    console.log("autoplay")
-                      if (! this.isPaused && !this.isTransitioning) {
-                          this.next()
-                      }
-                  }, this.autoplayIntervalTime)
-              },
-              // Updates interval time
-              setAutoplayIntervalTime(newIntervalTime) {
-                  clearInterval(this.autoplayInterval)
-                  this.autoplayIntervalTime = newIntervalTime
-                  this.autoplay()
-              },
-          }))
-      })
     </script>
 
     <Layouts.debug_assigns {assigns} />

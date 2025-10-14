@@ -323,6 +323,60 @@ Hooks.TipDrawerHook = {
   }
 }
 
+Hooks.Carousel = {
+  mounted() {
+    this.intervalMs = parseInt(this.el.dataset.autoplayInterval || '4000')
+    this.currentIndex = 1
+    this.timer = null
+    this.slides = Array.from(this.el.querySelectorAll('[data-slide]'))
+
+    this.showOnly(this.currentIndex)
+    this.start()
+  },
+
+  updated() {
+    this.slides = Array.from(this.el.querySelectorAll('[data-slide]'))
+    if (this.currentIndex > this.slides.length) this.currentIndex = 1
+    this.showOnly(this.currentIndex)
+  },
+
+  destroyed() {
+    if (this.timer) clearInterval(this.timer)
+  },
+
+  start() {
+    if (this.timer) clearInterval(this.timer)
+    this.timer = setInterval(() => this.next(), this.intervalMs)
+  },
+
+  next() {
+    if (this.slides.length === 0) return
+    const nextIndex = this.currentIndex < this.slides.length ? this.currentIndex + 1 : 1
+    this.fadeTo(nextIndex)
+  },
+
+  fadeTo(targetIndex) {
+    if (targetIndex === this.currentIndex) return
+    const currentEl = this.slides[this.currentIndex - 1]
+    const nextEl = this.slides[targetIndex - 1]
+    if (!currentEl || !nextEl) return
+
+    currentEl.classList.remove('opacity-100')
+    currentEl.classList.add('opacity-0')
+    nextEl.classList.remove('opacity-0')
+    nextEl.classList.add('opacity-100')
+    this.currentIndex = targetIndex
+  },
+
+  showOnly(index) {
+    this.slides.forEach((el, i) => {
+      const active = i === (index - 1)
+      el.classList.toggle('opacity-100', active)
+      el.classList.toggle('opacity-0', !active)
+    })
+  }
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
