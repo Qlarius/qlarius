@@ -115,6 +115,7 @@ defmodule QlariusWeb.Router do
       live "/ads_ext_announcer", AdsExtAnnouncerLive
       live "/ads_ext/", AdsExtLive
       live "/ads_ext/:split_code", AdsExtLive
+      live "/insta_tip", InstaTipWidgetLive
     end
   end
 
