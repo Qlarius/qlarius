@@ -32,13 +32,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
         <div class="track">
           <div class="survey-panel survey-index-panel w-full h-full overflow-y-auto">
             <div class="h-full overflow-y-auto pb-32">
-              <div class="mb-2 flex gap-2 justify-start items-center">
-                <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-3 py-1 font-medium border border-youdata-300 dark:border-youdata-500 px-3 py-1 rounded-lg mr-1">
-                  {@current_scope.trait_count} tags
-                </div>
-              </div>
               <div class="mb-1 flex gap-2 justify-start items-center">
-                <span>Choose a theme. Fill empty tags.</span>
+                <span class="text-lg">Choose a topic. Fill empty tags.</span>
               </div>
 
               <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -48,11 +43,11 @@ defmodule QlariusWeb.MeFileBuilderLive do
                   <div class="bg-base-100 overflow-hidden shadow rounded-lg">
                     <div class="px-4 py-5 sm:p-6">
                       <div class="flex items-center justify-between mb-2">
-                        <h3 class="text-lg font-medium leading-6 text-base-content">
+                        <h3 class="text-lg font-lg leading-6 text-base-content">
                           {category.survey_category_name}
                         </h3>
                         <div class={[
-                          "badge text-sm rounded-full px-2 py-1 font-bold",
+                          "badge text-md rounded-full px-3 py-1 font-bold",
                           cond do
                             percent_complete == 0 -> "badge-error"
                             percent_complete == 100 -> "badge-success"
@@ -78,7 +73,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                           >
                           </progress>
                           <div
-                            class="absolute top-0 left-0 h-6 flex items-center justify-center text-xs font-bold text-white pointer-events-none"
+                            class="absolute top-0 left-0 h-6 flex items-center justify-center text-sm font-bold text-white pointer-events-none"
                             style={"width: #{max(10, percent_complete)}%"}
                           >
                             {percent_complete}%
@@ -94,10 +89,10 @@ defmodule QlariusWeb.MeFileBuilderLive do
                           phx-value-id={survey.id}
                         >
                           <div class="flex justify-between items-center">
-                            <span class="text-sm font-medium text-base-content">{survey.name}</span>
+                            <span class="text-md font-lg text-base-content">{survey.name}</span>
                             <div class="flex items-center space-x-2">
                               <span class={[
-                                "badge badge-sm rounded-full text-xs px-1 py-1",
+                                "badge badge-lg rounded-full text-md px-2 py-1",
                                 cond do
                                   answered_question_count == 0 -> "badge-error"
                                   answered_question_count == question_count -> "badge-success"

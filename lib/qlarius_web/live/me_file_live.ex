@@ -17,18 +17,13 @@ defmodule QlariusWeb.MeFileLive do
         show_modal={@show_modal}
         tag_edit_mode={@tag_edit_mode || "update"}
       />
-      <div class="mb-2 flex gap-2 justify-start items-center">
-        <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-3 py-1 font-medium border border-youdata-300 dark:border-youdata-500 px-3 py-1 rounded-lg mr-1">
-          {@current_scope.trait_count} tags
-        </div>
-      </div>
       <div class="mb-1 flex gap-2 justify-start items-center">
-        <div class="text-sm">Edit tags below.</div>
+        <div class="text-lg">Edit tags below.</div>
         <.link
           navigate={~p"/me_file_builder"}
-          class="btn btn-primary btn-soft btn-sm rounded-full"
+          class="btn btn-primary btn-soft btn-lg rounded-full"
         >
-          <.icon name="hero-plus" class="h-4 w-4" /> More tags
+          <.icon name="hero-plus" class="h-4 w-4" /> Add tags
         </.link>
       </div>
 
@@ -38,7 +33,7 @@ defmodule QlariusWeb.MeFileLive do
         }>
           <div class="flex flex-row justify-between items-baseline mb-4">
             <h2 class="text-xl font-medium">{name}</h2>
-            <span class="text-sm text-gray-500">
+            <span class="text-lg text-gray-500">
               {length(parent_traits)} tags
             </span>
           </div>

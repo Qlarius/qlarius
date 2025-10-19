@@ -59,7 +59,7 @@ defmodule QlariusWeb.MeFileHTML do
         <%= cond do %>
           <% @tag_edit_mode == "update" -> %>
             <%!-- Fixed question section --%>
-            <div class="p-4 bg-base-200 text-base-content/70 shrink-0">
+            <div class="p-4 bg-base-200 text-base-content/70 shrink-0 text-lg">
               <p :if={@trait_in_edit && @trait_in_edit.survey_question}>
                 {Phoenix.HTML.raw(@trait_in_edit.survey_question.text)}
               </p>
@@ -78,7 +78,7 @@ defmodule QlariusWeb.MeFileHTML do
                     :for={
                       child_trait <- Enum.sort_by(@trait_in_edit.child_traits, & &1.display_order)
                     }
-                    class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-3 px-2 hover:bg-base-200 cursor-pointer"
+                    class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-4 px-2 hover:bg-base-200 cursor-pointer"
                   >
                     <input
                       :if={@trait_in_edit.input_type == "SingleSelect"}
@@ -98,7 +98,7 @@ defmodule QlariusWeb.MeFileHTML do
                       checked={child_trait.id in @selected_ids}
                       class="checkbox w-7 h-7"
                     />
-                    <div class="text-md text-base-content">
+                    <div class="text-lg text-base-content">
                       {if child_trait.survey_answer &&
                             child_trait.survey_answer.text not in [nil, ""],
                           do: child_trait.survey_answer.text,
@@ -110,10 +110,10 @@ defmodule QlariusWeb.MeFileHTML do
 
               <%!-- Fixed footer --%>
               <div class="p-4 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
-                <button type="button" phx-click="close_modal" class="btn btn-md btn-ghost">
+                <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost">
                   Cancel
                 </button>
-                <button type="submit" class="btn btn-md btn-primary">Save/Update Tags</button>
+                <button type="submit" class="btn btn-lg btn-primary">Save/Update Tags</button>
               </div>
             </.form>
           <% @tag_edit_mode == "delete" -> %>
@@ -134,7 +134,7 @@ defmodule QlariusWeb.MeFileHTML do
                     <%= for child_trait <- Enum.sort_by(@trait_in_edit.child_traits, & &1.display_order) do %>
                       <%= if child_trait.id in @selected_ids do %>
                         <div class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-3 px-2">
-                          <div class="text-md text-base-content">
+                          <div class="text-lg text-base-content">
                             {child_trait.trait_name}
                           </div>
                         </div>
@@ -167,12 +167,12 @@ defmodule QlariusWeb.MeFileHTML do
 
               <%!-- Fixed footer --%>
               <div class="p-4 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
-                <button type="button" phx-click="close_modal" class="btn btn-md btn-ghost">
+                <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost">
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  class="btn btn-md btn-error"
+                  class="btn btn-lg btn-error"
                   disabled={Enum.empty?(@selected_ids)}
                 >
                   Delete Tag
@@ -223,7 +223,7 @@ defmodule QlariusWeb.MeFileHTML do
       }
     >
       <div class="overflow-hidden rounded-lg">
-        <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-4 py-2 font-medium flex justify-between items-center">
+        <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-4 py-2 text-lg font-bold flex justify-between items-center">
           <span>{@parent_trait_name}</span>
           <div
             :if={@parent_trait_name not in ["Birthdate", "Age", "Sex"]}
@@ -234,14 +234,14 @@ defmodule QlariusWeb.MeFileHTML do
               phx-click="edit_tags"
               phx-value-id={@parent_trait_id}
             >
-              <.icon name="hero-pencil" class="h-4 w-4" />
+              <.icon name="hero-pencil" class="h-5 w-5" />
             </button>
             <button
               class="text-base-content/20 hover:text-base-content/80 cursor-pointer"
               phx-click="delete_tags"
               phx-value-id={@parent_trait_id}
             >
-              <.icon name="hero-trash" class="h-4 w-4" />
+              <.icon name="hero-trash" class="h-5 w-5" />
             </button>
           </div>
         </div>
@@ -251,11 +251,11 @@ defmodule QlariusWeb.MeFileHTML do
         ]}>
           <div
             :for={{tag_id, tag_value, _display_order} <- @tags_traits}
-            class="mx-0 my-2 text-sm [&:not(:last-child)]:border-b border-dashed border-base-content/20"
+            class="mx-0 my-2 text-lg [&:not(:last-child)]:border-b border-dashed border-base-content/20"
           >
             <div class="px-4 py-1">{tag_value}</div>
           </div>
-          <div :if={@tags_traits == []} class="mx-0 my-2 text-sm">
+          <div :if={@tags_traits == []} class="mx-0 my-2 text-lg">
             <div class="px-4 py-1 italic test-base-content">
               <%= if function_exported?(Qlarius.YouData.TagTeaseAgent, :next_message, 0) do %>
                 {Qlarius.YouData.TagTeaseAgent.next_message()}

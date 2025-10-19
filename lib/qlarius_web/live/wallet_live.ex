@@ -149,31 +149,31 @@ defmodule QlariusWeb.WalletLive do
             <button
               phx-click="paginate"
               phx-value-page="1"
-              class={"join-item btn btn-sm #{if @page < 2, do: "btn-disabled"}"}
+              class={"join-item btn btn-md #{if @page < 2, do: "btn-disabled"}"}
             >
               Newest
             </button>
             <button
               phx-click="paginate"
               phx-value-page={if @page > 1, do: @page - 1, else: 1}
-              class={"join-item btn btn-sm #{if @page < 2, do: "btn-disabled"}"}
+              class={"join-item btn btn-md #{if @page < 2, do: "btn-disabled"}"}
             >
               <.icon name="hero-chevron-left" class="h-4 w-4" />
             </button>
-            <div class="join-item btn btn-sm btn-neutral">
+            <div class="join-item btn btn-md btn-neutral">
               Page {@page}
             </div>
             <button
               phx-click="paginate"
               phx-value-page={@page + 1}
-              class={"join-item btn btn-sm #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
+              class={"join-item btn btn-md #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
             >
               <.icon name="hero-chevron-right" class="h-4 w-4" />
             </button>
             <button
               phx-click="paginate"
               phx-value-page="oldest"
-              class={"join-item btn btn-sm #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
+              class={"join-item btn btn-md #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
             >
               Oldest
             </button>

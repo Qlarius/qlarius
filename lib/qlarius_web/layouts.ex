@@ -138,7 +138,13 @@ defmodule QlariusWeb.Layouts do
             <h1 class="text-3xl font-bold text-center">{@title}</h1>
           </div>
           <div class="w-8 flex justify-end overflow-x-visible">
-            <.wallet_balance :if={assigns[:current_scope]} balance={@current_scope.wallet_balance} />
+            <%= if assigns[:current_scope] do %>
+              <%= if assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") do %>
+                <.tag_count count={@current_scope.trait_count} />
+              <% else %>
+                <.wallet_balance balance={@current_scope.wallet_balance} />
+              <% end %>
+            <% end %>
           </div>
         </div>
         <div class="flex-1 pb-15">
@@ -207,7 +213,6 @@ defmodule QlariusWeb.Layouts do
           {@current_scope.ads_count}
         </span>
       </button>
-
 
       <button phx-click={toggle_sponster_sidebar(:on)}>
         <.icon name="hero-ellipsis-horizontal" class="size-[1.5em]" />
