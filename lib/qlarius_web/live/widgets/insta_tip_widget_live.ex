@@ -148,11 +148,33 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div data-theme="light" class="bg-base-100">
-      <div class="container mx-auto px-4 py-6">
+    <div data-theme="light" class="bg-base-100 h-screen flex items-center justify-center mt-2">
+      <div class="container mx-auto px-4">
         <div class="flex flex-col items-center">
+          <div :if={@recipient} class="flex flex-col md:flex-row items-center gap-4">
+            <div class="w-40 h-auto md:w-50 bg-base-300 shadow-md flex items-center justify-center mb-0 md:mb-4 overflow-hidden">
+              <img
+                src={
+                  if @recipient && @recipient.graphic_url do
+                    QlariusWeb.Uploaders.RecipientBrandImage.url({@recipient.graphic_url, @recipient})
+                  else
+                    ~p"/images/tipjar_love_default.png"
+                  end
+                }
+                alt="Recipient"
+                class="object-contain w-full h-full rounded"
+              />
+            </div>
+            <div class="text-base-content/70 text-sm text-left md:text-center max-w-xs p-2 text-center">
+              {(@recipient && @recipient.message) ||
+                "Thank you for supporting this content. Your Sponster tips are greatly appreciated!"}
+            </div>
+          </div>
+          <div class="divider" />
+          <div class="text-md mb-5 font-bold text-base-content text-center md:text-left"> Select an amount to InstaTip</div>
+
+          <.insta_tip_button_group amounts={Enum.map(@amounts, &Decimal.to_string/1)} add_class="mb-4" />
           <.insta_tip_header wallet_balance={@current_scope.wallet_balance} />
-          <.insta_tip_button_group amounts={Enum.map(@amounts, &Decimal.to_string/1)} />
         </div>
       </div>
     </div>

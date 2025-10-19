@@ -180,7 +180,7 @@ defmodule QlariusWeb.WalletLive do
           </div>
         </div>
 
-        <ul class="list bg-base-200 dark:!bg-base-200 rounded-box shadow-md overflow-hidden">
+        <ul class="-mx-4 sm:mx-0 list bg-base-200 dark:!bg-base-200 sm:rounded-box shadow-md overflow-hidden">
           <li
             :for={entry <- @paginated_entries.entries}
             class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100"
@@ -196,8 +196,8 @@ defmodule QlariusWeb.WalletLive do
             phx-value-entry_id={entry.id}
           >
             <div class="list-col-grow">
-              <div class="text-small">{entry.description}</div>
-              <div class="text-base-content/50 text-xs">{format_date(entry.created_at)}</div>
+              <div class="text-lg">{entry.description}</div>
+              <div class="text-base-content/50 text-sm">{format_date(entry.created_at)}</div>
             </div>
             <div class="flex items-center">
               <div class="text-right mr-4">
@@ -220,16 +220,16 @@ defmodule QlariusWeb.WalletLive do
                     />
                   </span>
                   <span class={[
-                    "text-sm font-bold",
+                    "text-lg font-bold",
                     if(Decimal.compare(entry.amt, 0) == :gt,
                       do: "text-sponster-500 dark:text-sponster-300",
                       else: "text-tiqit-500"
                     )
                   ]}>
-                    {format_currency(entry.amt)}
+                    {format_currency(Decimal.abs(entry.amt))}
                   </span>
                 </div>
-                <div class="text-base-content/50 text-xs">
+                <div class="text-base-content/50 text-sm">
                   {format_currency(entry.running_balance)}
                 </div>
               </div>

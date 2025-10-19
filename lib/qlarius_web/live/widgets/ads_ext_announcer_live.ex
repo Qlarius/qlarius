@@ -28,7 +28,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   # Commented out unused import - Jason functions not used in this LiveView
   # import Jason
 
-  @recruiter_mode true
+  @recruiter_mode false
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 

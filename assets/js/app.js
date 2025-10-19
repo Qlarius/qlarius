@@ -253,8 +253,12 @@ Hooks.TipDrawerHook = {
     if (this.backdropEl) {
       if (this.drawerOpen) {
         this.backdropEl.style.display = 'block'
-        this.backdropEl.classList.remove('opacity-0')
-        this.backdropEl.classList.add('opacity-100')
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            this.backdropEl.classList.remove('opacity-0')
+            this.backdropEl.classList.add('opacity-100')
+          })
+        })
       } else {
         this.backdropEl.classList.remove('opacity-100')
         this.backdropEl.classList.add('opacity-0')
