@@ -1,0 +1,251 @@
+/*hourly display styles*/
+.sno-weather-hourly-button-on {
+    background: #f7f7f7;
+    color: #282828;
+    cursor: pointer; /*18*/
+    font-size: 1.2em;
+    border: 1px solid #959595;
+    border-radius: 2px;
+    padding: 5px 5px 5px 5px;
+    margin: 0px 5px 5px 5px;
+}
+.sno-weather-hourly-button-off {
+    background: #ccc;
+    color: #282828;
+    cursor: pointer; /*18*/
+    font-size: 1.2em;
+    border: 1px solid #959595;
+    border-radius: 2px;
+    padding: 5px 5px 5px 5px;
+    margin: 0px 5px 5px 5px;
+}
+
+.sno-weather-hourly-items {
+    display: block;
+    float: left;
+    text-align: center;
+    background: #f7f7f7;
+    overflow: hidden;
+    width: 100%;
+}
+
+.sno-weather-hourly-time {
+    background-color: #ccc;
+    font-size: 1.2em;
+    padding: 2px 0 2px 0;
+    color: #282828;
+}
+
+.sno-weather-hourly-temp {
+    font-size: 1.8em;
+    padding: 10px 0px 10px 0px;
+}
+
+.sno-weather-hourly-image {
+    display: block;
+    padding-top: 10px;
+}
+
+.sno-weather-hourly-condition {
+    padding-left: 5px;
+    padding-right: 5px;
+    display: block;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-size: 1.1em;
+}
+.sno-weather-hourly-icon {
+    font-size: 28px;
+    text-align: center;
+    vertical-align: middle;
+    color: #282828;
+}
+
+.sno-weather-hourly-slider {
+    align-items: flex-start;
+    display: flex;
+    flex-wrap: nowrap;
+    list-style: none;
+    margin: 0px;
+    overflow-x: scroll;
+    cursor: ew-resize;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+}
+.sno-weather-hourly-slider::-webkit-scrollbar {
+    display: none;
+}
+.sno-weather-slides {
+    scroll-snap-align: start; /* or: center */
+    scroll-snap-stop: always;
+    background-image: none !important;
+    padding: 0 0 0 0 !important;
+    margin: 0 0 0 0 !important;
+}
+.sno-weather-hourly-container {
+    margin-top: 5px;
+}
+
+/*navigation styles*/
+.sno-weather-daily-button-on {
+    margin-left: 3px;
+    background: #f7f7f7;
+    color: #282828;
+    cursor: pointer; /*18*/
+    font-size: 1.2em;
+    border: 1px solid #959595;
+    border-radius: 2px;
+    padding: 5px 5px 5px 5px;
+    margin: 0px 5px 5px 5px;
+}
+.sno-weather-daily-button-off {
+    margin-left: 3px;
+    background: #ccc;
+    color: #282828;
+    cursor: pointer; /*18*/
+    font-size: 1.2em;
+    border: 1px solid #959595;
+    border-radius: 2px;
+    padding: 5px 5px 5px 5px;
+    margin: 0px 5px 5px 5px;
+}
+
+.sno-weather-forecast-actions button:hover {
+    background-color: #f7f7f7;
+}
+.sno-weather-forecast-actions {
+    text-align: center;
+    margin-top: -35px !important;
+}
+
+/*daily display styles*/
+.sno-weather-daily-aqi {
+    padding: 2px 7px 2px 7px;
+    border-radius: 3px;
+    margin-left: 10px;
+}
+.sno-weather-daily-items-3 {
+    display: block;
+    float: left;
+    text-align: center;
+    border: 1px solid #ccc;
+    overflow: hidden;
+    width: calc(33.33% - 8.7px);
+    margin-left: 0px;
+    margin-right: 10px;
+    margin-top: 10px;
+    background: #f7f7f7;
+}
+
+.sno-weather-daily-items-3:nth-child(3n) {
+    margin-right: 0;
+}
+
+.sno-weather-daily-items-2-block {
+    display: block;
+    float: left;
+    text-align: center;
+    border: 1px solid #ccc;
+    overflow: hidden;
+    width: calc(50% - 8px);
+    margin-left: 5px;
+    margin-right: 0px;
+    margin-top: 5px;
+    background: #f7f7f7;
+}
+
+.sno-weather-daily-items-2-flex {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    border: 1px solid #ccc;
+    overflow: hidden;
+    width: calc(50% - 8px);
+    margin-right: 0px;
+    margin-left: 10px;
+    margin-top: 5px;
+    background: #f7f7f7;
+}
+.sno-weather-daily-items-1 {
+    display: block;
+    float: left;
+    text-align: center;
+    border: 1px solid #ccc;
+    overflow: hidden;
+    margin-left: 5px;
+    margin-right: 0px;
+    margin-top: 5px;
+    width: calc(100% - 8px);
+}
+
+.sno-weather-daily-items-1-split {
+    display: block;
+    float: left;
+    text-align: center;
+    border: 1px solid #ccc;
+    overflow: hidden;
+    margin-left: 5px;
+    margin-right: 0px;
+    margin-top: 5px;
+    width: calc(50% - 8px);
+}
+
+.sno-weather-daily-date {
+    background-color: #ccc;
+    font-size: 1.3em;
+    padding: 3px 0 3px 0;
+}
+.sno-weather-daily-icon {
+    font-size: 32px;
+    text-align: center;
+    line-height: 20px;
+    color: #282828;
+    vertical-align: middle;
+    margin-left: 5px;
+}
+.sno-weather-extended-forecast-display-flex {
+    display: flex;
+    flex-direction: row;
+    text-align: center;
+}
+
+.sno-weather-extended-forecast-display-block {
+    display: block;
+    text-align: center;
+}
+
+.sno-weather-daily-primary-3 {
+    font-size: 2em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    padding: 20px 0 20px 0;
+}
+
+.sno-weather-daily-primary {
+    font-size: 1.6em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    padding: 20px 0px 20px 0px;
+}
+
+.sno-weather-daily-condition-text {
+    font-size: 20px;
+}
+
+.sno-weather-daily-condition-text-small {
+    font-size: 15px;
+}
+
+.sno-weather-full-width-daily-condition-text {
+    font-size: 22px;
+}
+
+.sno-weather-daily-details {
+    font-size: 15px;
+    text-align: center;
+    padding: 0px 5px 5px 5px;
+}

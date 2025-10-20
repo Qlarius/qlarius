@@ -120,44 +120,44 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
     {:noreply, assign(socket, :current_scope, current_scope)}
   end
 
-  defp slider_data(slides) do
-    """
-    {
-      autoplayIntervalTime: 4000,
-      slides: #{Jason.encode!(slides)},
-      currentSlideIndex: 1,
-      isPaused: false,
-      autoplayInterval: null,
-      isTransitioning: false,
-      previous() {
-        if (this.currentSlideIndex > 1) {
-          this.currentSlideIndex = this.currentSlideIndex - 1
-        } else {
-          this.currentSlideIndex = this.slides.length
-        }
-      },
-      next() {
-        if (this.currentSlideIndex < this.slides.length) {
-          this.currentSlideIndex = this.currentSlideIndex + 1
-        } else {
-          this.currentSlideIndex = 1
-        }
-      },
-      autoplay() {
-        this.autoplayInterval = setInterval(() => {
-          if (!this.isPaused && !this.isTransitioning) {
-            this.next()
-          }
-        }, this.autoplayIntervalTime)
-      },
-      setAutoplayInterval(newIntervalTime) {
-        clearInterval(this.autoplayInterval)
-        this.autoplayIntervalTime = newIntervalTime
-        this.autoplay()
-      }
-    }
-    """
-  end
+  # defp slider_data(slides) do
+  #   """
+  #   {
+  #     autoplayIntervalTime: 4000,
+  #     slides: #{Jason.encode!(slides)},
+  #     currentSlideIndex: 1,
+  #     isPaused: false,
+  #     autoplayInterval: null,
+  #     isTransitioning: false,
+  #     previous() {
+  #       if (this.currentSlideIndex > 1) {
+  #         this.currentSlideIndex = this.currentSlideIndex - 1
+  #       } else {
+  #         this.currentSlideIndex = this.slides.length
+  #       }
+  #     },
+  #     next() {
+  #       if (this.currentSlideIndex < this.slides.length) {
+  #         this.currentSlideIndex = this.currentSlideIndex + 1
+  #       } else {
+  #         this.currentSlideIndex = 1
+  #       }
+  #     },
+  #     autoplay() {
+  #       this.autoplayInterval = setInterval(() => {
+  #         if (!this.isPaused && !this.isTransitioning) {
+  #           this.next()
+  #         }
+  #       }, this.autoplayIntervalTime)
+  #     },
+  #     setAutoplayInterval(newIntervalTime) {
+  #       clearInterval(this.autoplayInterval)
+  #       this.autoplayIntervalTime = newIntervalTime
+  #       this.autoplay()
+  #     }
+  #   }
+  #   """
+  # end
 
   @impl true
   def render(assigns) do

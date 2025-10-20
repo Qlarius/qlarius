@@ -13,8 +13,6 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
     """
   end
 
-  attr :trait_count, :integer, required: true
-
   attr :count, :integer, required: true
 
   def tag_count(assigns) do
