@@ -300,25 +300,25 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
     </div>
 
     <script>
-        var announcerToggleIcon = document.getElementById("ydadget_announcer_toggle_icon");
-        var announcerToggleButtonText = document.getElementById("ydadget_announcer_toggle_button_text");
-        var announcerWalletAmount = document.getElementById("announcer-wallet-amount");
-        var announcerAdCount = document.getElementById("announcer-ad-count");
-        var announcerOfferedAmount = document.getElementById("announcer-offered-amount");
-        var currentMode = "open";
-        var originalButtonText = announcerToggleButtonText ? announcerToggleButtonText.textContent : "Show";
+      var announcerToggleIcon = document.getElementById("ydadget_announcer_toggle_icon");
+      var announcerToggleButtonText = document.getElementById("ydadget_announcer_toggle_button_text");
+      var announcerWalletAmount = document.getElementById("announcer-wallet-amount");
+      var announcerAdCount = document.getElementById("announcer-ad-count");
+      var announcerOfferedAmount = document.getElementById("announcer-offered-amount");
+      var currentMode = "open";
+      var originalButtonText = announcerToggleButtonText ? announcerToggleButtonText.textContent : "Show";
 
-        function toggleAnnouncerElements() {
-          if (currentMode == "open") {
-            if (announcerToggleIcon) { announcerToggleIcon.style.transform = "rotate(180deg)"; }
-            if (announcerToggleButtonText) { announcerToggleButtonText.textContent = "Hide"; }
-            currentMode = "closed";
-          } else {
-            if (announcerToggleIcon) { announcerToggleIcon.style.transform = "rotate(0deg)"; }
-            if (announcerToggleButtonText) { announcerToggleButtonText.textContent = originalButtonText; }
-            currentMode = "open";
-          }
+      function toggleAnnouncerElements() {
+        if (currentMode == "open") {
+          if (announcerToggleIcon) { announcerToggleIcon.style.transform = "rotate(180deg)"; }
+          if (announcerToggleButtonText) { announcerToggleButtonText.textContent = "Hide"; }
+          currentMode = "closed";
+        } else {
+          if (announcerToggleIcon) { announcerToggleIcon.style.transform = "rotate(0deg)"; }
+          if (announcerToggleButtonText) { announcerToggleButtonText.textContent = originalButtonText; }
+          currentMode = "open";
         }
+      }
     </script>
 
     <Layouts.debug_assigns {assigns} />

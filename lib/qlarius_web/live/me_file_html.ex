@@ -43,7 +43,10 @@ defmodule QlariusWeb.MeFileHTML do
 
   def tag_edit_modal(assigns) do
     ~H"""
-    <div class={["modal modal-bottom sm:modal-middle", @show_modal && "modal-open bg-base-300/80 backdrop-blur-sm"]}>
+    <div class={[
+      "modal modal-bottom sm:modal-middle",
+      @show_modal && "modal-open bg-base-300/80 backdrop-blur-sm"
+    ]}>
       <div class="flex flex-col modal-box border border-youdata-500 dark:border-youdata-700 bg-base-100 p-0 max-h-[90vh]">
         <%!-- Fixed header --%>
         <div class="p-4 flex flex-row justify-between items-baseline bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content shrink-0">

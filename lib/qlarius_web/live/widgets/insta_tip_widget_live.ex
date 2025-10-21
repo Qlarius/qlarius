@@ -171,9 +171,14 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
             </div>
           </div>
           <div class="divider" />
-          <div class="text-md mb-5 font-bold text-base-content text-center md:text-left"> Select an amount to InstaTip</div>
+          <div class="text-md mb-5 font-bold text-base-content text-center md:text-left">
+            Select an amount to InstaTip
+          </div>
 
-          <.insta_tip_button_group amounts={Enum.map(@amounts, &Decimal.to_string/1)} add_class="mb-4" />
+          <.insta_tip_button_group
+            amounts={Enum.map(@amounts, &Decimal.to_string/1)}
+            add_class="mb-4"
+          />
           <.insta_tip_header wallet_balance={@current_scope.wallet_balance} />
         </div>
       </div>

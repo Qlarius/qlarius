@@ -381,6 +381,16 @@ Hooks.Carousel = {
   }
 }
 
+Hooks.PostMessage = {
+  mounted() {
+    this.handleEvent("send-post-message", (payload) => {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(payload, '*')
+      }
+    })
+  }
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},

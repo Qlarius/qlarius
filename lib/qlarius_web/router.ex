@@ -110,7 +110,8 @@ defmodule QlariusWeb.Router do
         {QlariusWeb.UserAuth, :mount_current_scope},
         {QlariusWeb.Layouts, :set_current_path}
       ] do
-      live "/arcade/group/:group_id", ArcadeLive
+      live "/arcade/group/:group_id", Arcade.ArcadeLive
+      live "/arqade/:piece_id", Arcade.ArcadeSingleLive
       live "/wallet", WalletLive
       live "/ads_ext_announcer", AdsExtAnnouncerLive
       live "/ads_ext/", AdsExtLive

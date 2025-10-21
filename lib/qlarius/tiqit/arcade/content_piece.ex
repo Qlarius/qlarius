@@ -54,6 +54,8 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
     |> put_change(:image, attrs["image"])
   end
 
+  def default_tiqit_class(%__MODULE__{tiqit_classes: []} = _piece), do: nil
+
   def default_tiqit_class(%__MODULE__{} = piece) do
     Enum.min_by(piece.tiqit_classes, & &1.duration_hours)
   end

@@ -1,0 +1,218 @@
+<div id="arqade-root" phx-hook="PostMessage">
+  <%= if @has_tiqit? do %>
+    <%!-- Timer bar mode - shown when user has valid tiqit --%>
+    <div class="w-full bg-base-100" data-theme={@force_theme}>
+      <div class="bg-base-200 border-t border-base-300 px-4 py-3">
+        <div class="flex flex-row items-center justify-between max-w-4xl mx-auto">
+          <div class="flex items-center gap-2">
+            <span class="text-md text-base-content/60">Access powered by</span>
+            <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-8 w-auto" />
+          </div>
+          <QlariusWeb.Components.TiqitExpirationCountdown.badge
+            expires_at={@tiqit.expires_at}
+            class="badge-outline badge-md px-2 py-3 rounded-lg"
+          />
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <%!-- Purchase mode - shown when user needs to buy tiqit --%>
+    <div class="w-full flex flex-col min-h-[500px]" data-theme={@force_theme}>
+      <div class="flex-1 bg-base-100 text-base-content p-6">
+        <div class="max-w-2xl mx-auto">
+          <div class="flex flex-col md:!flex-row gap-6 items-start">
+            <div class="flex-shrink-0">
+              <img
+                src={content_image_url(@piece, @group)}
+                alt={@piece.title}
+                class="max-h-40 rounded-lg mx-auto"
+              />
+            </div>
+
+            <div class="flex-1">
+              <h2 class="text-2xl font-bold text-base-content mb-2">
+                {@piece.title}
+              </h2>
+              <p class="text-sm text-base-content/70 mb-4">
+                {@piece.description}
+              </p>
+
+              <div class="flex flex-col gap-4">
+                <%= if @default_tiqit_class do %>
+                  <button
+                    phx-click="select-tiqit-class"
+                    phx-value-tiqit-class-id={@default_tiqit_class.id}
+                    class="btn btn-primary btn-lg rounded-full"
+                  >
+                    {if Decimal.eq?(@default_tiqit_class.price, 0), do: "Get", else: "Buy"} Tiqit •
+                    <span class="font-bold">{format_usd(@default_tiqit_class.price)}</span>
+                  </button>
+                  <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
+                <% else %>
+                  <div class="alert alert-warning">
+                    <.icon name="hero-exclamation-triangle" class="w-6 h-6" />
+                    <span>This content piece has no tiqit classes configured yet.</span>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-row justify-center items-center mt-6">
+            <div class="text-base-content/40 text-xs mr-1">Powered by</div>
+            <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <.modal
+      :if={@selected_tiqit_class}
+      id="confirm-purchase-modal"
+      on_cancel={JS.push("close-confirm-purchase-modal")}
+      show
+    >
+      <div class="flex flex-col space-y-4 p-8">
+        <div class="relative">
+          <img
+            src={content_image_url(@piece, @group)}
+            alt={@piece.title}
+            class="max-h-30 rounded-lg mx-auto"
+          />
+        </div>
+        <h3 class="text-base-content/60 text-center mb-0">
+          {@group.title}
+        </h3>
+        <h2 class="text-xl font-bold text-base-content text-center">
+          {@piece.title}
+        </h2>
+        <%= if assigns[:options_modal] do %>
+          <.tiqit_class_grid piece={@piece} group={@group} balance={@balance} />
+        <% else %>
+          <p class="text-base-content/60 text-center">
+            <%= if @selected_tiqit_class.duration_hours do %>
+              You are purchasing access to this
+              <span class="text-base-content font-bold">
+                single {class_type(@selected_tiqit_class, @catalog)}
+              </span>
+              for <span class="text-base-content font-bold">{format_tiqit_class_duration(
+              @selected_tiqit_class.duration_hours
+            )}</span>.
+            <% else %>
+              You are purchasing lifetime access to this {class_type(
+                @selected_tiqit_class,
+                @catalog
+              )}
+            <% end %>
+          </p>
+          <div class="flex items-center">
+            <button
+              phx-click="purchase-tiqit"
+              phx-value-tiqit-class-id={@selected_tiqit_class.id}
+              class="btn btn-primary btn-lg btn-block rounded-full"
+            >
+              <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm Purchase •
+              <span class="font-bold">{format_usd(@selected_tiqit_class.price)}</span>
+            </button>
+          </div>
+          <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
+        <% end %>
+        <div class="flex flex-col gap-1">
+          <%= if !assigns[:options_modal] do %>
+            <div class="divider m-1"></div>
+            <div class="flex flex-row gap-1 justify-center align-middle">
+              <p class="text-base-content/60">Want the full series? Or full catalog access?</p>
+              <button phx-click="show-options" class="btn btn-outline btn-md rounded-full ml-3">
+                All Tiqit Options
+              </button>
+            </div>
+          <% end %>
+        </div>
+        <div class="flex justify-center mt-2">
+          <img
+            src="/images/TIQIT_logo_color_square.svg"
+            alt="Tiqit"
+            class="h-8 w-auto opacity-60"
+          />
+        </div>
+      </div>
+    </.modal>
+
+    <.modal
+      :if={assigns[:show_topup_modal]}
+      id="topup-modal"
+      show
+      on_cancel={JS.push("close-topup-modal")}
+    >
+      <div class="text-center space-y-6 p-8">
+        <div class="space-y-4">
+          <h2 class="text-xl font-bold text-base-content">Top up your wallet.</h2>
+          <div class="mb-6 flex gap-2 justify-center items-center">
+            Balance:
+            <.wallet_balance
+              :if={assigns[:current_scope]}
+              balance={@current_scope.wallet_balance}
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 w-full divide-y md:divide-y-0 md:divide-x divide-base-300 p-4">
+          <div class="flex-1 md:py-8">
+            <h3 class="text-base-content/60 mb-3">Visit your sponsors.</h3>
+            <div class="flex flex-col items-center">
+              <div class="flex flex-col items-center gap-1 mb-2">
+                <div class="px-4 py-2">
+                  <img
+                    src="/images/Sponster_logo_color_horiz.svg"
+                    alt="Sponster"
+                    class="h-auto w-full"
+                  />
+                </div>
+                <div class="flex flex-col items-center">
+                  <div class="text-base-content/60 text-md">
+                    {@current_scope.ads_count} ads for
+                    <span class="font-bold text-sponster-500">
+                      {format_usd(@offered_amount)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary border-none rounded-full !bg-sponster-500 hover:!bg-sponster-600 text-white btn-lg"
+                onclick="parent.postMessage('open_widget','*');self.toggleAnnouncerElements();"
+              >
+                Show my ads
+              </button>
+            </div>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-base-content/60 mb-3">Accept our gift.</h3>
+            <.icon name="hero-gift" class="h-25 w-25 mb-3 text-base-content/50" />
+            <button
+              class="btn btn-primary rounded-full btn-lg"
+              phx-click="topup"
+            >
+              <.icon name="hero-plus" class="h-5 w-5 mr-2" /> $0.50 for the day
+            </button>
+          </div>
+          <div class="flex-1 flex flex-col items-center">
+            <h3 class="text-base-content/60 mb-3">Add funds of your own.</h3>
+            <img
+              src="/images/credit_debit_card_payments.png"
+              alt="Credit/Debit Card Payments"
+              class="h-25 w-25 mb-3"
+            />
+            <button
+              class="btn btn-primary rounded-full btn-lg"
+              phx-click="topup"
+            >
+              <.icon name="hero-plus" class="h-5 w-5 mr-2" /> Via Credit/Debit
+            </button>
+          </div>
+        </div>
+
+        <div class="flex justify-center gap-4"></div>
+      </div>
+    </.modal>
+  <% end %>
+</div>

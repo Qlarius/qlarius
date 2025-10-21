@@ -3,11 +3,14 @@ defmodule QlariusWeb.Widgets.ContentHTML do
 
   def show(assigns) do
     ~H"""
-    <div class="min-h-screen bg-base-100">
+    <div class="min-h-screen bg-base-100" data-theme={@force_theme}>
       <div class="container mx-auto px-4 py-4 max-w-4xl">
         <div class="mb-3">
           <.back navigate={
-            ~p"/widgets/arcade/group/#{@content.content_group}?content_id=#{@content.id}"
+            if @force_theme,
+              do:
+                ~p"/widgets/arcade/group/#{@content.content_group}?content_id=#{@content.id}&force_theme=#{@force_theme}",
+              else: ~p"/widgets/arcade/group/#{@content.content_group}?content_id=#{@content.id}"
           }>
             Back to Arcade
           </.back>
@@ -39,7 +42,7 @@ defmodule QlariusWeb.Widgets.ContentHTML do
 
           <QlariusWeb.Components.TiqitExpirationCountdown.badge
             expires_at={@tiqit.expires_at}
-            class="badge-outline badge-xs px-2 py-3 rounded-lg"
+            class="badge-outline badge-md px-2 py-3 rounded-lg"
           />
         </div>
       </div>

@@ -27,7 +27,11 @@
           <div class="flex flex-col justify-between mt-6 gap-4 align-middle text-center">
             <%= if Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>
               <.link
-                navigate={~p"/widgets/content/#{@selected_piece.id}"}
+                navigate={
+                  if @force_theme,
+                    do: ~p"/widgets/content/#{@selected_piece.id}?force_theme=#{@force_theme}",
+                    else: ~p"/widgets/content/#{@selected_piece.id}"
+                }
                 class="btn btn-neutral btn-lg btn-block rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600"
               >
                 <.icon name="hero-play" class="h-4 w-4 mr-2" /> Open/Play
@@ -43,7 +47,8 @@
                 phx-value-tiqit-class-id={default_tc.id}
                 class="btn btn-primary btn-lg btn-block rounded-full"
               >
-                {if Decimal.eq?(default_tc.price, 0), do: "Get", else: "Buy"} Tiqit • <span class="font-bold">{format_usd(default_tc.price)}</span>
+                {if Decimal.eq?(default_tc.price, 0), do: "Get", else: "Buy"} Tiqit •
+                <span class="font-bold">{format_usd(default_tc.price)}</span>
               </button>
               <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
             <% end %>
@@ -184,9 +189,8 @@
       <div class="space-y-4">
         <h2 class="text-xl font-bold text-base-content">Top up your wallet.</h2>
         <div class="mb-6 flex gap-2 justify-center items-center">
-
-            Balance: <.wallet_balance :if={assigns[:current_scope]} balance={@current_scope.wallet_balance} />
-
+          Balance:
+          <.wallet_balance :if={assigns[:current_scope]} balance={@current_scope.wallet_balance} />
         </div>
       </div>
 
