@@ -215,6 +215,7 @@ Hooks.TipDrawerHook = {
     this.drawerEl = document.getElementById('tipjar-drawer')
     this.backdropEl = document.getElementById('tipjar-backdrop')
     this.splitDisplayEl = this.el.querySelector('[data-split-display]')
+    this.balanceDisplayEl = this.el.querySelector('[data-balance-display]')
     this.toggleEls = this.el.querySelectorAll('[data-toggle-drawer]')
     this.splitButtons = this.el.querySelectorAll('[data-split]')
     this.instaButtons = this.el.querySelectorAll('[data-instatip]')
@@ -239,6 +240,10 @@ Hooks.TipDrawerHook = {
       this.resizeObserver = new ResizeObserver(() => this.recalculatePositions())
       if (this.drawerEl) this.resizeObserver.observe(this.drawerEl)
     }
+
+    this.handleEvent('update-balance', ({ balance }) => {
+      this.updateBalance(balance)
+    })
 
     this.updateSplitDisplay()
     this.updateSplitClasses()
@@ -304,6 +309,25 @@ Hooks.TipDrawerHook = {
         ? 'btn btn-circle btn-primary btn-lg font-bold hover:btn-primary-focus p-8'
         : 'btn btn-circle btn-primary text-sm font-medium btn-disabled p-8'
     })
+  },
+
+  updateBalance(newBalance) {
+    this.currentBalance = parseFloat(newBalance)
+    
+    if (this.balanceDisplayEl) {
+      this.balanceDisplayEl.textContent = this.formatCurrency(this.currentBalance)
+    }
+    
+    this.updateInstaButtons()
+  },
+
+  formatCurrency(amount) {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount)
   },
 
   handleSplitClick(percentage) {

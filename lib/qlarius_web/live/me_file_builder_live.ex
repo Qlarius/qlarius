@@ -32,8 +32,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
         <div class="track">
           <div class="survey-panel survey-index-panel w-full h-full overflow-y-auto">
             <div class="h-full overflow-y-auto pb-32">
-              <div class="mb-1 flex gap-2 justify-start items-center">
-                <span class="text-lg">Choose a topic. Fill empty tags.</span>
+              <div class="mb-8 flex gap-2 justify-start items-center">
+                <span class="text-xl">Choose a topic. Tag yourself.</span>
               </div>
 
               <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">

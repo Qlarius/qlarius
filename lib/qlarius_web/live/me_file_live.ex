@@ -17,13 +17,13 @@ defmodule QlariusWeb.MeFileLive do
         show_modal={@show_modal}
         tag_edit_mode={@tag_edit_mode || "update"}
       />
-      <div class="mb-1 flex gap-2 justify-start items-center">
-        <div class="text-lg">Edit tags below.</div>
+      <div class="mb-8 flex gap-2 justify-start items-center">
+        <div class="text-xl">Edit existing tags below.</div>
         <.link
           navigate={~p"/me_file_builder"}
-          class="btn btn-primary btn-soft btn-lg rounded-full"
+          class="btn btn-primary btn-soft btn-md rounded-full"
         >
-          <.icon name="hero-plus" class="h-4 w-4" /> Add tags
+          <.icon name="hero-plus" class="h-4 w-4" /> Add more
         </.link>
       </div>
 
@@ -174,7 +174,7 @@ defmodule QlariusWeb.MeFileLive do
   end
 
   def handle_event(
-        "delete_tags",
+        "perform_delete_tags",
         %{
           "me_file_id" => _me_file_id,
           "trait_id" => trait_id,
