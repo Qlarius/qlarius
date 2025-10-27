@@ -73,25 +73,40 @@ defmodule Qlarius.Wallets do
   # TODO: update these ledger updates into a Ecto.Multi so that all pass or all fail.
 
   def update_ledgers_from_ad_event(ad_event) do
+    require Logger
+    Logger.info("=== Starting update_ledgers_from_ad_event for ad_event #{ad_event.id} ===")
+    
     phase = Repo.get!(MediaPiecePhase, ad_event.media_piece_phase_id)
     phase_description = phase.desc
     campaign = Repo.get!(Campaign, ad_event.campaign_id) |> Repo.preload(:marketer)
     marketer_name = campaign.marketer.business_name
-    update_me_file_ledger_from_ad_event(ad_event, phase_description, marketer_name)
+    
+    result = update_me_file_ledger_from_ad_event(ad_event, phase_description, marketer_name)
+    Logger.info("MeFile ledger update result: #{inspect(result)}")
 
     # Only update recipient ledger if there is a recipient_id
     if ad_event.recipient_id do
-      update_recipient_ledger_from_ad_event(ad_event, phase_description)
+      recipient_result = update_recipient_ledger_from_ad_event(ad_event, phase_description)
+      Logger.info("Recipient ledger update result: #{inspect(recipient_result)}")
     end
 
-    update_campaign_ledger_from_ad_event(ad_event, phase_description)
-    update_sponster_ledger_from_ad_event(ad_event, phase_description, marketer_name)
+    campaign_result = update_campaign_ledger_from_ad_event(ad_event, phase_description)
+    Logger.info("Campaign ledger update result: #{inspect(campaign_result)}")
+    
+    sponster_result = update_sponster_ledger_from_ad_event(ad_event, phase_description, marketer_name)
+    Logger.info("Sponster ledger update result: #{inspect(sponster_result)}")
+    
+    Logger.info("=== Completed update_ledgers_from_ad_event ===")
+    {:ok, :ledgers_updated}
   end
 
   def update_me_file_ledger_from_ad_event(ad_event, phase_description, marketer_name) do
+    require Logger
+    
     Repo.transaction(fn ->
       # Check if ledger entry already exists for this ad_event
       ledger_header = Repo.get_by!(LedgerHeader, me_file_id: ad_event.me_file_id)
+      Logger.info("Found ledger_header #{ledger_header.id} for me_file #{ad_event.me_file_id}, current balance: #{ledger_header.balance}")
 
       existing_ledger_entry =
         Repo.one(
@@ -101,7 +116,8 @@ defmodule Qlarius.Wallets do
         )
 
       if existing_ledger_entry do
-        {:error, :ledger_entry_exists}
+        Logger.warn("Ledger entry already exists for ad_event #{ad_event.id}")
+        Repo.rollback({:error, :ledger_entry_exists})
       else
         new_balance =
           Decimal.add(ledger_header.balance, ad_event.event_me_file_collect_amt)
@@ -113,8 +129,10 @@ defmodule Qlarius.Wallets do
             ledger_header.balance
           end
 
+        Logger.info("Creating ledger entry: amt=#{ad_event.event_me_file_collect_amt}, new_balance=#{new_balance}")
+
         # Create a new ledger entry for the ad event
-        %LedgerEntry{}
+        ledger_entry = %LedgerEntry{}
         |> LedgerEntry.changeset(%{
           ledger_header_id: ledger_header.id,
           amt: ad_event.event_me_file_collect_amt,
@@ -125,15 +143,23 @@ defmodule Qlarius.Wallets do
         })
         |> Repo.insert!()
 
+        Logger.info("Created ledger_entry #{ledger_entry.id}")
+
         # Update the ledger header
-        ledger_header
+        updated_header = ledger_header
         |> Ecto.Changeset.change(balance: new_balance, balance_payable: new_balance_payable)
         |> Repo.update!()
 
-        MeFileBalanceBroadcaster.broadcast_me_file_balance_update(
+        Logger.info("Updated ledger_header balance to #{updated_header.balance}")
+
+        broadcast_result = MeFileBalanceBroadcaster.broadcast_me_file_balance_update(
           ad_event.me_file_id,
           new_balance
         )
+        
+        Logger.info("Broadcast result: #{inspect(broadcast_result)}")
+        
+        {:ok, :ledger_updated}
       end
     end)
   end
