@@ -9,42 +9,106 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
     <Layouts.admin {assigns}>
       <%= case @live_action do %>
         <% :index -> %>
-          <div class="p-6">
-            <div class="flex justify-between items-center mb-4">
-              <h1 class="text-2xl font-bold">Marketers</h1>
-              <.link patch={~p"/admin/marketers/new"} class="btn btn-primary">
-                <.icon name="hero-plus" class="w-4 h-4 mr-1" /> New Marketer
-              </.link>
-            </div>
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body p-0">
-                <div class="overflow-x-auto">
-                  <.table id="marketers-table" rows={@marketers}>
-                    <:col :let={marketer} label="Business Name">
-                      {marketer.business_name} <span class="text-gray-400">({marketer.id})</span>
-                    </:col>
-                    <:col :let={marketer} label="Actions">
-                      <div class="flex gap-2">
-                        <.link patch={~p"/admin/marketers/#{marketer}"} class="btn btn-xs btn-info">
-                          <.icon name="hero-eye" class="w-4 h-4" />
-                        </.link>
-                        <.link
-                          patch={~p"/admin/marketers/#{marketer}/edit"}
-                          class="btn btn-xs btn-warning"
-                        >
-                          <.icon name="hero-pencil-square" class="w-4 h-4" />
-                        </.link>
-                        <.link
-                          phx-click="delete"
-                          phx-value-id={marketer.id}
-                          data-confirm="Are you sure?"
-                          class="btn btn-xs btn-error"
-                        >
-                          <.icon name="hero-trash" class="w-4 h-4" />
-                        </.link>
-                      </div>
-                    </:col>
-                  </.table>
+          <div phx-hook="CurrentMarketer" id="marketer-manager-hook">
+            <.current_marketer_bar current_marketer={@current_marketer} />
+            <div class="p-6">
+              <h1 class="text-2xl font-bold mb-4">Marketers List</h1>
+              <%!-- Search and New Button Row --%>
+              <div class="flex justify-between items-center gap-4 mb-4">
+                <form phx-change="search" class="flex-1">
+                  <label class="input input-bordered flex items-center gap-2 w-2/5 min-w-[400px]">
+                    <.icon name="hero-magnifying-glass" class="w-5 h-5 opacity-70" />
+                    <input
+                      type="text"
+                      phx-debounce="300"
+                      name="query"
+                      value={@search_query}
+                      class="grow"
+                      autocomplete="off"
+                    />
+                    <button
+                      :if={@search_query != ""}
+                      type="button"
+                      phx-click="clear_search"
+                      class="btn btn-ghost btn-xs btn-circle"
+                    >
+                      <.icon name="hero-x-mark" class="w-4 h-4" />
+                    </button>
+                  </label>
+                </form>
+                <.link patch={~p"/admin/marketers/new"} class="btn btn-primary">
+                  <.icon name="hero-plus" class="w-4 h-4 mr-1" /> New Marketer
+                </.link>
+              </div>
+              <div class="mb-4 text-sm text-base-content/60">
+                Showing {length(@marketers)} of {@total_marketers_count} marketers
+              </div>
+              <div class="card bg-base-100 shadow-xl">
+                <div class="card-body p-0">
+                  <%= if @marketers == [] do %>
+                    <div class="p-8 text-center text-base-content/60">
+                      <.icon name="hero-magnifying-glass" class="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p>No marketers found matching "{@search_query}"</p>
+                      <button phx-click="clear_search" class="btn btn-sm btn-ghost mt-2">
+                        Clear search
+                      </button>
+                    </div>
+                  <% else %>
+                    <div class="overflow-x-auto">
+                      <.table
+                        id="marketers-table"
+                        rows={@marketers}
+                        row_class={
+                          fn marketer ->
+                            if @current_marketer_id == marketer.id,
+                              do: "bg-success/10 ring-2 ring-success ring-inset",
+                              else: ""
+                          end
+                        }
+                      >
+                        <:col :let={marketer} label="Business Name">
+                          {marketer.business_name} <span class="text-gray-400">({marketer.id})</span>
+                        </:col>
+                        <:col :let={marketer} label="Actions">
+                          <div class="flex gap-2">
+                            <button
+                              phx-click="set_current_marketer"
+                              phx-value-id={marketer.id}
+                              class={[
+                                "btn btn-xs",
+                                if(@current_marketer_id == marketer.id,
+                                  do: "btn-success ring-2 ring-success ring-offset-2",
+                                  else: "btn-outline btn-success"
+                                )
+                              ]}
+                            >
+                              <.icon name="hero-check" class="w-4 h-4" />
+                            </button>
+                            <.link
+                              patch={~p"/admin/marketers/#{marketer}"}
+                              class="btn btn-xs btn-info"
+                            >
+                              <.icon name="hero-eye" class="w-4 h-4" />
+                            </.link>
+                            <.link
+                              patch={~p"/admin/marketers/#{marketer}/edit"}
+                              class="btn btn-xs btn-warning"
+                            >
+                              <.icon name="hero-pencil-square" class="w-4 h-4" />
+                            </.link>
+                            <.link
+                              phx-click="delete"
+                              phx-value-id={marketer.id}
+                              data-confirm="Are you sure?"
+                              class="btn btn-xs btn-error"
+                            >
+                              <.icon name="hero-trash" class="w-4 h-4" />
+                            </.link>
+                          </div>
+                        </:col>
+                      </.table>
+                    </div>
+                  <% end %>
                 </div>
               </div>
             </div>
@@ -179,6 +243,15 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
   end
 
   def mount(_params, _session, socket) do
+    socket =
+      socket
+      |> assign(:current_marketer_id, nil)
+      |> assign(:current_marketer, nil)
+      |> assign(:search_query, "")
+      |> assign(:all_marketers, [])
+      |> assign(:marketers, [])
+      |> assign(:total_marketers_count, 0)
+
     {:ok, socket}
   end
 
@@ -188,10 +261,24 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
 
   defp apply_action(socket, :index, _params) do
     scope = socket.assigns.current_scope
+    all_marketers = Marketers.list_marketers(scope)
+    search_query = socket.assigns.search_query
+
+    filtered_marketers = filter_marketers(all_marketers, search_query)
+
+    current_marketer =
+      if socket.assigns.current_marketer_id do
+        Enum.find(all_marketers, fn m -> m.id == socket.assigns.current_marketer_id end)
+      else
+        nil
+      end
 
     socket
     |> assign(:page_title, "Listing Marketers")
-    |> assign(:marketers, Marketers.list_marketers(scope))
+    |> assign(:all_marketers, all_marketers)
+    |> assign(:marketers, filtered_marketers)
+    |> assign(:current_marketer, current_marketer)
+    |> assign(:total_marketers_count, length(all_marketers))
   end
 
   defp apply_action(socket, :new, _params) do
@@ -253,6 +340,90 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
      socket
      |> put_flash(:info, "Marketer deleted successfully.")
      |> push_navigate(to: ~p"/admin/marketers")}
+  end
+
+  def handle_event("load_current_marketer", %{"marketer_id" => marketer_id}, socket) do
+    marketer_id_int = String.to_integer(marketer_id)
+    scope = socket.assigns.current_scope
+
+    all_marketers =
+      if socket.assigns.all_marketers == [] do
+        Marketers.list_marketers(scope)
+      else
+        socket.assigns.all_marketers
+      end
+
+    current_marketer = Enum.find(all_marketers, fn m -> m.id == marketer_id_int end)
+
+    {:noreply,
+     socket
+     |> assign(:current_marketer_id, marketer_id_int)
+     |> assign(:current_marketer, current_marketer)
+     |> assign(:all_marketers, all_marketers)}
+  end
+
+  def handle_event("set_current_marketer", %{"id" => id}, socket) do
+    marketer_id = String.to_integer(id)
+    current_marketer = Enum.find(socket.assigns.all_marketers, fn m -> m.id == marketer_id end)
+
+    {:noreply,
+     socket
+     |> assign(:current_marketer_id, marketer_id)
+     |> assign(:current_marketer, current_marketer)
+     |> push_event("store_current_marketer", %{marketer_id: id})
+     |> put_flash(:info, "Current marketer set successfully.")}
+  end
+
+  def handle_event("search", %{"query" => query}, socket) do
+    search_query = String.trim(query)
+    scope = socket.assigns.current_scope
+    all_marketers = Marketers.list_marketers(scope)
+    filtered_marketers = filter_marketers(all_marketers, search_query)
+
+    current_marketer =
+      if socket.assigns.current_marketer_id do
+        Enum.find(all_marketers, fn m -> m.id == socket.assigns.current_marketer_id end)
+      else
+        nil
+      end
+
+    {:noreply,
+     socket
+     |> assign(:search_query, search_query)
+     |> assign(:all_marketers, all_marketers)
+     |> assign(:marketers, filtered_marketers)
+     |> assign(:current_marketer, current_marketer)
+     |> assign(:total_marketers_count, length(all_marketers))}
+  end
+
+  def handle_event("clear_search", _params, socket) do
+    scope = socket.assigns.current_scope
+    all_marketers = Marketers.list_marketers(scope)
+
+    current_marketer =
+      if socket.assigns.current_marketer_id do
+        Enum.find(all_marketers, fn m -> m.id == socket.assigns.current_marketer_id end)
+      else
+        nil
+      end
+
+    {:noreply,
+     socket
+     |> assign(:search_query, "")
+     |> assign(:all_marketers, all_marketers)
+     |> assign(:marketers, all_marketers)
+     |> assign(:current_marketer, current_marketer)
+     |> assign(:total_marketers_count, length(all_marketers))}
+  end
+
+  defp filter_marketers(marketers, ""), do: marketers
+
+  defp filter_marketers(marketers, query) do
+    query_lower = String.downcase(query)
+
+    Enum.filter(marketers, fn marketer ->
+      String.contains?(String.downcase(marketer.business_name), query_lower)
+    end)
   end
 
   defp save_marketer(socket, :new, attrs) do

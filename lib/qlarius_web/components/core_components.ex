@@ -359,6 +359,7 @@ defmodule QlariusWeb.CoreComponents do
   attr :rows, :list, required: true
   attr :row_id, :any, default: nil, doc: "the function for generating the row id"
   attr :row_click, :any, default: nil, doc: "the function for handling phx-click on each row"
+  attr :row_class, :any, default: nil, doc: "the function for generating additional row classes"
   attr :zebra, :boolean, default: true
 
   attr :row_item, :any,
@@ -388,7 +389,7 @@ defmodule QlariusWeb.CoreComponents do
         </tr>
       </thead>
       <tbody id={@id} phx-update={is_struct(@rows, Phoenix.LiveView.LiveStream) && "stream"}>
-        <tr :for={row <- @rows} id={@row_id && @row_id.(row)}>
+        <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class={@row_class && @row_class.(row)}>
           <td
             :for={col <- @col}
             phx-click={@row_click && @row_click.(row)}
@@ -658,7 +659,7 @@ defmodule QlariusWeb.CoreComponents do
       class="relative z-50 hidden"
     >
       <.backdrop id={"#{@id}-bg"} />
-      
+
     <!-- Modal Container -->
       <div
         class="fixed inset-0 overflow-y-auto w-fit mx-auto"
@@ -689,7 +690,7 @@ defmodule QlariusWeb.CoreComponents do
                   <.icon name="hero-x-mark" class="w-5 h-5" />
                 </button>
               </div>
-              
+
     <!-- Modal Content -->
               <div id={"#{@id}-content"} class="p-0">
                 {render_slot(@inner_block)}

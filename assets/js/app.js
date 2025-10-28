@@ -415,6 +415,19 @@ Hooks.PostMessage = {
   }
 }
 
+Hooks.CurrentMarketer = {
+  mounted() {
+    const currentMarketerId = localStorage.getItem('current_marketer_id')
+    if (currentMarketerId) {
+      this.pushEvent('load_current_marketer', { marketer_id: currentMarketerId })
+    }
+
+    this.handleEvent('store_current_marketer', ({ marketer_id }) => {
+      localStorage.setItem('current_marketer_id', marketer_id)
+    })
+  }
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},

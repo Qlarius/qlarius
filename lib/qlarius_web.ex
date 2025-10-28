@@ -92,6 +92,7 @@ defmodule QlariusWeb do
       import Phoenix.HTML
       # Core UI components
       import QlariusWeb.CoreComponents
+      import QlariusWeb.Components.CurrentMarketerBar
 
       # Image helpers
       import QlariusWeb.Helpers.ImageHelpers
