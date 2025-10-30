@@ -1,7 +1,11 @@
+<.current_marketer_bar
+  current_marketer={@current_marketer}
+  current_path={~p"/marketer/media_old"}
+/>
 <div class="container mx-auto px-4 py-8">
   <div class="flex justify-between items-center mb-8">
     <h1 class="text-3xl font-bold">Media Pieces</h1>
-    <.link href={~p"/marketer/media_pieces/new"}>
+    <.link href={~p"/marketer/media_old/new"}>
       <button class="btn btn-primary gap-2">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -63,7 +67,7 @@
                 </td>
                 <td class="align-top">
                   <div class="flex gap-2">
-                    <.link href={~p"/marketer/media_pieces/#{media_piece}/edit"}>
+                    <.link href={~p"/marketer/media_old/#{media_piece}/edit"}>
                       <button class="btn btn-sm btn-ghost btn-square">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"

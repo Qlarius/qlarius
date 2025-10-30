@@ -4,8 +4,29 @@ defmodule QlariusWeb.MediaPieceController do
 
   alias Qlarius.Sponster.Marketing
   alias Qlarius.Sponster.Ads.MediaPiece
+  alias Qlarius.Accounts.Marketers
 
   @debug true
+
+  plug :load_current_marketer
+
+  defp load_current_marketer(conn, _opts) do
+    current_marketer_id = get_session(conn, :current_marketer_id)
+    scope = conn.assigns.current_scope
+
+    current_marketer =
+      if current_marketer_id do
+        try do
+          Marketers.get_marketer!(scope, current_marketer_id)
+        rescue
+          Ecto.NoResultsError -> nil
+        end
+      else
+        nil
+      end
+
+    assign(conn, :current_marketer, current_marketer)
+  end
 
   def index(conn, _params) do
     media_pieces = Marketing.list_media_pieces()
@@ -23,7 +44,7 @@ defmodule QlariusWeb.MediaPieceController do
       {:ok, _media_piece} ->
         conn
         |> put_flash(:info, "Media piece created successfully.")
-        |> redirect(to: ~p"/marketer/media_pieces")
+        |> redirect(to: ~p"/marketer/media_old")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         ad_categories = Marketing.list_ad_categories()
@@ -52,7 +73,7 @@ defmodule QlariusWeb.MediaPieceController do
       {:ok, _media_piece} ->
         conn
         |> put_flash(:info, "Media piece updated successfully.")
-        |> redirect(to: ~p"/marketer/media_pieces")
+        |> redirect(to: ~p"/marketer/media_old")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         Logger.error("Failed to update media piece #{id}. Errors: #{inspect(changeset.errors)}")
@@ -73,6 +94,6 @@ defmodule QlariusWeb.MediaPieceController do
 
     conn
     |> put_flash(:info, "Media piece deleted successfully.")
-    |> redirect(to: ~p"/marketer/media_pieces")
+    |> redirect(to: ~p"/marketer/media")
   end
 end

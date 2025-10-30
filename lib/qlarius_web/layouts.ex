@@ -293,8 +293,7 @@ defmodule QlariusWeb.Layouts do
           <span>Sequences</span>
         </.marketer_navbar_link>
 
-        <%!-- Fixed route - media_pieces route is under /marketer namespace --%>
-        <.marketer_navbar_link current_path={@current_path} path={~p"/marketer/media_pieces"}>
+        <.marketer_navbar_link current_path={@current_path} path={~p"/marketer/media"}>
           <.icon name="hero-photo" class="mr-2" />
           <span>Media</span>
         </.marketer_navbar_link>

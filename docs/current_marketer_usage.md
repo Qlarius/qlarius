@@ -18,7 +18,7 @@ The current marketer selection feature allows admin users to set a "working cont
    - Handles setting and displaying current marketer
    - Uses `Phoenix.LiveView.put_session/3` to persist selection
 
-2. **Helper Module** (`lib/qlarius_web/live/current_marketer.ex`)
+2. **Helper Module** (`lib/qlarius_web/live/marketers/current_marketer.ex`)
    - Utility functions for accessing current marketer in other LiveViews
    - Provides `on_mount` hook for easy integration
 
@@ -42,7 +42,7 @@ The current marketer selection feature allows admin users to set a "working cont
 defmodule QlariusWeb.Admin.CampaignManagerLive do
   use QlariusWeb, :live_view
   
-  alias QlariusWeb.Live.CurrentMarketer
+  alias QlariusWeb.Live.Marketers.CurrentMarketer
   alias Qlarius.Campaigns
   
   def mount(_params, session, socket) do
@@ -94,7 +94,7 @@ end
 defmodule QlariusWeb.Admin.CampaignManagerLive do
   use QlariusWeb, :live_view
   
-  alias QlariusWeb.Live.CurrentMarketer
+  alias QlariusWeb.Live.Marketers.CurrentMarketer
   
   # Automatically load current_marketer_id from session
   on_mount {CurrentMarketer, :init_current_marketer}

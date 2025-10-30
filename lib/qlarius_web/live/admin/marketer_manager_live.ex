@@ -10,7 +10,10 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
       <%= case @live_action do %>
         <% :index -> %>
           <div phx-hook="CurrentMarketer" id="marketer-manager-hook">
-            <.current_marketer_bar current_marketer={@current_marketer} />
+            <.current_marketer_bar
+              current_marketer={@current_marketer}
+              current_path={~p"/admin/marketers"}
+            />
             <div class="p-6">
               <h1 class="text-2xl font-bold mb-4">Marketers List</h1>
               <%!-- Search and New Button Row --%>
@@ -243,10 +246,32 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
   end
 
   def mount(_params, _session, socket) do
+    scope = socket.assigns.current_scope
+
+    current_marketer_id =
+      case Phoenix.LiveView.get_connect_params(socket) do
+        %{"current_marketer_id" => id_string} when is_binary(id_string) and id_string != "" ->
+          String.to_integer(id_string)
+
+        _ ->
+          nil
+      end
+
+    current_marketer =
+      if current_marketer_id do
+        try do
+          Marketers.get_marketer!(scope, current_marketer_id)
+        rescue
+          Ecto.NoResultsError -> nil
+        end
+      else
+        nil
+      end
+
     socket =
       socket
-      |> assign(:current_marketer_id, nil)
-      |> assign(:current_marketer, nil)
+      |> assign(:current_marketer_id, current_marketer_id)
+      |> assign(:current_marketer, current_marketer)
       |> assign(:search_query, "")
       |> assign(:all_marketers, [])
       |> assign(:marketers, [])
@@ -342,34 +367,9 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
      |> push_navigate(to: ~p"/admin/marketers")}
   end
 
-  def handle_event("load_current_marketer", %{"marketer_id" => marketer_id}, socket) do
-    marketer_id_int = String.to_integer(marketer_id)
-    scope = socket.assigns.current_scope
-
-    all_marketers =
-      if socket.assigns.all_marketers == [] do
-        Marketers.list_marketers(scope)
-      else
-        socket.assigns.all_marketers
-      end
-
-    current_marketer = Enum.find(all_marketers, fn m -> m.id == marketer_id_int end)
-
-    {:noreply,
-     socket
-     |> assign(:current_marketer_id, marketer_id_int)
-     |> assign(:current_marketer, current_marketer)
-     |> assign(:all_marketers, all_marketers)}
-  end
-
   def handle_event("set_current_marketer", %{"id" => id}, socket) do
-    marketer_id = String.to_integer(id)
-    current_marketer = Enum.find(socket.assigns.all_marketers, fn m -> m.id == marketer_id end)
-
     {:noreply,
      socket
-     |> assign(:current_marketer_id, marketer_id)
-     |> assign(:current_marketer, current_marketer)
      |> push_event("store_current_marketer", %{marketer_id: id})
      |> put_flash(:info, "Current marketer set successfully.")}
   end

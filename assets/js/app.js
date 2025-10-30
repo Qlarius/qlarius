@@ -417,20 +417,31 @@ Hooks.PostMessage = {
 
 Hooks.CurrentMarketer = {
   mounted() {
-    const currentMarketerId = localStorage.getItem('current_marketer_id')
-    if (currentMarketerId) {
-      this.pushEvent('load_current_marketer', { marketer_id: currentMarketerId })
-    }
-
-    this.handleEvent('store_current_marketer', ({ marketer_id }) => {
+    this.handleEvent('store_current_marketer', async ({ marketer_id }) => {
       localStorage.setItem('current_marketer_id', marketer_id)
+      
+      // Also store in Phoenix session for controller access
+      const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+      await fetch('/marketer/set_current_marketer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
+        },
+        body: JSON.stringify({ marketer_id })
+      })
+      
+      window.location.reload()
     })
   }
 }
 
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken},
+  params: () => ({
+    _csrf_token: csrfToken,
+    current_marketer_id: localStorage.getItem('current_marketer_id')
+  }),
   colocatedHooks: colocatedHooks,
   hooks: Hooks
 })
