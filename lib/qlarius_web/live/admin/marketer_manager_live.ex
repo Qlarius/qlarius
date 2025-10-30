@@ -368,8 +368,20 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
   end
 
   def handle_event("set_current_marketer", %{"id" => id}, socket) do
+    scope = socket.assigns.current_scope
+    marketer_id = String.to_integer(id)
+
+    marketer =
+      try do
+        Marketers.get_marketer!(scope, marketer_id)
+      rescue
+        Ecto.NoResultsError -> nil
+      end
+
     {:noreply,
      socket
+     |> assign(:current_marketer_id, marketer_id)
+     |> assign(:current_marketer, marketer)
      |> push_event("store_current_marketer", %{marketer_id: id})
      |> put_flash(:info, "Current marketer set successfully.")}
   end

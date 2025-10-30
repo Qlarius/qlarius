@@ -419,7 +419,7 @@ Hooks.CurrentMarketer = {
   mounted() {
     this.handleEvent('store_current_marketer', async ({ marketer_id }) => {
       localStorage.setItem('current_marketer_id', marketer_id)
-      
+
       // Also store in Phoenix session for controller access
       const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
       await fetch('/marketer/set_current_marketer', {
@@ -430,8 +430,6 @@ Hooks.CurrentMarketer = {
         },
         body: JSON.stringify({ marketer_id })
       })
-      
-      window.location.reload()
     })
   }
 }

@@ -18,7 +18,12 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   end
 
   defp apply_action(socket, :index, _params) do
-    media_pieces = Marketing.list_media_pieces()
+    media_pieces =
+      if socket.assigns.current_marketer_id do
+        Marketing.list_media_pieces_for_marketer(socket.assigns.current_marketer_id)
+      else
+        []
+      end
 
     socket
     |> assign(:page_title, "Media Pieces")
@@ -36,7 +41,11 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
     |> assign(:changeset, changeset)
     |> assign(:form, to_form(changeset))
     |> assign(:ad_categories, ad_categories)
-    |> allow_upload(:banner_image, accept: ~w(.jpg .jpeg .png), max_entries: 1)
+    |> allow_upload(:banner_image,
+      accept: ~w(.jpg .jpeg .png .gif),
+      max_entries: 1,
+      max_file_size: 10_000_000
+    )
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
@@ -50,7 +59,11 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
     |> assign(:changeset, changeset)
     |> assign(:form, to_form(changeset))
     |> assign(:ad_categories, ad_categories)
-    |> allow_upload(:banner_image, accept: ~w(.jpg .jpeg .png), max_entries: 1)
+    |> allow_upload(:banner_image,
+      accept: ~w(.jpg .jpeg .png .gif),
+      max_entries: 1,
+      max_file_size: 10_000_000
+    )
   end
 
   @impl true
@@ -90,7 +103,13 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   defp save_media_piece(socket, :new, attrs) do
     attrs_with_upload = maybe_add_banner_upload(socket, attrs)
 
-    case Marketing.create_media_piece(attrs_with_upload) do
+    attrs_with_defaults =
+      attrs_with_upload
+      |> Map.put("marketer_id", socket.assigns.current_marketer_id)
+      |> Map.put("media_piece_type_id", 1)
+      |> Map.put("active", true)
+
+    case Marketing.create_media_piece(attrs_with_defaults) do
       {:ok, _media_piece} ->
         {:noreply,
          socket
@@ -125,20 +144,61 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
 
   defp maybe_add_banner_upload(socket, attrs) do
     uploaded_files =
-      consume_uploaded_entries(socket, :banner_image, fn %{path: path}, _entry ->
-        # Use Waffle to store the file in S3/local
-        dest = Path.join([:code.priv_dir(:qlarius), "static", "uploads", Path.basename(path)])
-        File.cp!(path, dest)
-        {:ok, %{filename: Path.basename(path), path: dest}}
+      consume_uploaded_entries(socket, :banner_image, fn %{path: path}, entry ->
+        {:ok, upload_and_get_filename(path, entry.client_name)}
       end)
 
     case uploaded_files do
-      [%{filename: filename} | _] ->
+      [filename | _] ->
         Map.put(attrs, "banner_image", filename)
 
       [] ->
         attrs
     end
+  end
+
+  defp upload_and_get_filename(source_path, original_filename) do
+    ext = Path.extname(original_filename)
+    filename = "#{System.unique_integer([:positive])}#{ext}"
+
+    storage = Application.get_env(:waffle, :storage, Waffle.Storage.Local)
+
+    case storage do
+      Waffle.Storage.S3 ->
+        upload_to_s3(source_path, filename)
+
+      _ ->
+        upload_to_local(source_path, filename)
+    end
+
+    filename
+  end
+
+  defp upload_to_local(source_path, filename) do
+    dest_dir =
+      Path.join([
+        :code.priv_dir(:qlarius),
+        "static",
+        "uploads",
+        "media_pieces",
+        "banners",
+        "three_tap_banners"
+      ])
+
+    File.mkdir_p!(dest_dir)
+    dest_path = Path.join(dest_dir, filename)
+    File.cp!(source_path, dest_path)
+  end
+
+  defp upload_to_s3(source_path, filename) do
+    bucket = Application.get_env(:waffle, :bucket)
+
+    s3_path = "uploads/media_pieces/banners/three_tap_banners/#{filename}"
+
+    {:ok, file_binary} = File.read(source_path)
+
+    ExAws.S3.put_object(bucket, s3_path, file_binary)
+    |> ExAws.request!()
   end
 
   @impl true
@@ -297,7 +357,8 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
     >
       <.input field={f[:title]} type="text" label="Title" required />
       <.input field={f[:body_copy]} type="textarea" label="Body Copy" />
-      <.input field={f[:display_url]} type="text" label="Display URL" />
+      <.input field={f[:display_url]} type="text" label="Display URL" required />
+      <.input field={f[:jump_url]} type="text" label="Jump URL" required />
       <.input
         field={f[:ad_category_id]}
         type="select"
@@ -333,16 +394,18 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
         <% end %>
 
         <div
-          class="border-2 border-dashed border-base-300 rounded-lg p-6 text-center"
+          class="border-2 border-dashed border-base-300 rounded-lg p-6"
           phx-drop-target={@uploads.banner_image.ref}
         >
-          <.live_file_input
-            upload={@uploads.banner_image}
-            class="file-input file-input-bordered w-full"
-          />
-          <p class="mt-2 text-sm text-base-content/60">
-            PNG, JPG up to 10MB
-          </p>
+          <div class="flex flex-col items-center gap-2">
+            <.live_file_input
+              upload={@uploads.banner_image}
+              class="file-input file-input-bordered w-full max-w-md"
+            />
+            <p class="text-sm text-base-content/60">
+              PNG, JPG, GIF up to 10MB
+            </p>
+          </div>
         </div>
 
         <%= for entry <- @uploads.banner_image.entries do %>

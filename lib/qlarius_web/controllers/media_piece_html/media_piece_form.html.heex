@@ -67,11 +67,8 @@
           required
           class="select select-bordered w-full"
         />
-        <%!-- Replaced .input with type="hidden" - using native hidden input instead --%>
         <input type="hidden" name={f[:media_piece_type_id].name} value="1" />
-        <%!-- Replaced .input with type="hidden" - using native hidden input instead --%>
-        <input type="hidden" name={f[:marketer_id].name} value={f.data.marketer_id || 88} />
-        <%!-- Replaced .input with type="hidden" - using native hidden input instead --%>
+        <input type="hidden" name={f[:marketer_id].name} value={f.data.marketer_id} />
         <input type="hidden" name={f[:active].name} value="true" />
       </div>
 

@@ -29,7 +29,13 @@ defmodule QlariusWeb.MediaPieceController do
   end
 
   def index(conn, _params) do
-    media_pieces = Marketing.list_media_pieces()
+    media_pieces =
+      if conn.assigns.current_marketer do
+        Marketing.list_media_pieces_for_marketer(conn.assigns.current_marketer.id)
+      else
+        []
+      end
+
     render(conn, :index, media_pieces: media_pieces, debug: @debug)
   end
 
@@ -40,7 +46,14 @@ defmodule QlariusWeb.MediaPieceController do
   end
 
   def create(conn, %{"media_piece" => media_piece_params}) do
-    case Marketing.create_media_piece(media_piece_params) do
+    params_with_marketer =
+      if conn.assigns.current_marketer do
+        Map.put(media_piece_params, "marketer_id", conn.assigns.current_marketer.id)
+      else
+        media_piece_params
+      end
+
+    case Marketing.create_media_piece(params_with_marketer) do
       {:ok, _media_piece} ->
         conn
         |> put_flash(:info, "Media piece created successfully.")

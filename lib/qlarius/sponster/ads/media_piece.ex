@@ -1,7 +1,6 @@
 defmodule Qlarius.Sponster.Ads.MediaPiece do
   use Ecto.Schema
   import Ecto.Changeset
-  use Waffle.Ecto.Schema
 
   alias Qlarius.Sponster.Ads.{MediaPieceType, AdCategory}
 
@@ -16,7 +15,7 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
     field :active, :boolean
     field :marketer_id, :integer
     field :duration, :integer
-    field :banner_image, QlariusWeb.Uploaders.ThreeTapBanner.Type
+    field :banner_image, :string
 
     belongs_to :media_piece_type, MediaPieceType
     belongs_to :ad_category, AdCategory
@@ -38,7 +37,8 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
       :marketer_id,
       :media_piece_type_id,
       :ad_category_id,
-      :duration
+      :duration,
+      :banner_image
     ])
     |> validate_required([
       :title,
@@ -52,11 +52,5 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
     |> foreign_key_constraint(:media_piece_type_id)
     |> foreign_key_constraint(:ad_category_id)
     |> foreign_key_constraint(:marketer_id)
-  end
-
-  def update_changeset(media_piece, attrs) do
-    media_piece
-    |> changeset(attrs)
-    |> cast_attachments(attrs, [:banner_image])
   end
 end

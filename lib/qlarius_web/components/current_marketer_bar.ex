@@ -67,16 +67,22 @@ defmodule QlariusWeb.Components.CurrentMarketerBar do
 
         <div class="flex items-center gap-2 shrink-0">
           <%= if @current_marketer do %>
-            <.icon name="hero-check-circle" class="w-5 h-5 text-success" />
-            <span class="font-medium">Current Marketer:</span>
-            <span class="text-lg">{@current_marketer.business_name}</span>
+            <%= if @current_path != "/admin/marketers" do %>
+              <.link navigate={~p"/admin/marketers"} class="btn btn-sm btn-ghost">
+                <.icon name="hero-arrows-right-left" class="w-4 h-4" />
+              </.link>
+            <% end %>
+            <span class="badge badge-outline badge-primary badge-xl text-lg text-base-content py-4 px-4">
+              {@current_marketer.business_name}
+            </span>
+
           <% else %>
             <.icon name="hero-exclamation-circle" class="w-5 h-5 text-warning" />
             <span class="text-base-content/70">No marketer selected</span>
             <span class="text-base-content/50">—</span>
-            <a href="/admin/marketers" class="link link-primary text-sm">
+            <.link navigate={~p"/admin/marketers"} class="link link-primary text-sm">
               Select a marketer
-            </a>
+            </.link>
           <% end %>
         </div>
       </div>
