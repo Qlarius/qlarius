@@ -70,6 +70,7 @@ defmodule QlariusWeb.Router do
       ] do
       live "/campaigns", Live.Marketers.CampaignsManagerLive, :index
       live "/traits", Live.Marketers.TraitsManagerLive, :index
+      live "/traits/new", Live.Marketers.TraitsManagerLive, :new_trait_group
       live "/targets", Live.Marketers.TargetsManagerLive, :index
       live "/sequences", Live.Marketers.SequencesManagerLive, :index
 

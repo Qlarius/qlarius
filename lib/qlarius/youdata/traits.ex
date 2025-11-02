@@ -155,6 +155,62 @@ defmodule Qlarius.YouData.Traits do
   end
 
   @doc """
+  Returns active trait groups for a specific marketer with stats.
+  """
+  def list_trait_groups_for_marketer(marketer_id) do
+    from(tg in TraitGroup,
+      where: tg.marketer_id == ^marketer_id and is_nil(tg.deactivated_at),
+      order_by: [desc: tg.id]
+    )
+    |> Repo.all()
+    |> Repo.preload(:traits)
+    |> Enum.map(&add_trait_group_stats/1)
+  end
+
+  @doc """
+  Returns archived trait groups for a specific marketer.
+  """
+  def list_archived_trait_groups_for_marketer(marketer_id) do
+    from(tg in TraitGroup,
+      where: tg.marketer_id == ^marketer_id and not is_nil(tg.deactivated_at),
+      order_by: [desc: tg.deactivated_at]
+    )
+    |> Repo.all()
+    |> Repo.preload(:traits)
+    |> Enum.map(&add_trait_group_stats/1)
+  end
+
+  defp add_trait_group_stats(trait_group) do
+    trait_ids = Enum.map(trait_group.traits, & &1.id)
+
+    me_file_count =
+      if trait_ids == [] do
+        0
+      else
+        from(mf in MeFile,
+          join: mft in MeFileTag,
+          on: mft.me_file_id == mf.id,
+          where: mft.trait_id in ^trait_ids,
+          select: count(mf.id, :distinct)
+        )
+        |> Repo.one()
+      end
+
+    target_band_count =
+      from(tbtg in Qlarius.Sponster.Campaigns.TargetBandTraitGroup,
+        where: tbtg.trait_group_id == ^trait_group.id,
+        select: count(tbtg.id)
+      )
+      |> Repo.one()
+
+    Map.merge(trait_group, %{
+      me_file_count: me_file_count,
+      target_band_count: target_band_count,
+      trait_count: length(trait_group.traits)
+    })
+  end
+
+  @doc """
   Gets a single trait_group.
   """
   def get_trait_group!(id) do
@@ -163,12 +219,35 @@ defmodule Qlarius.YouData.Traits do
   end
 
   @doc """
-  Creates a trait_group.
+  Gets a trait_group for a specific marketer.
+  """
+  def get_trait_group_for_marketer!(id, marketer_id) do
+    from(tg in TraitGroup,
+      where: tg.id == ^id and tg.marketer_id == ^marketer_id
+    )
+    |> Repo.one!()
+    |> Repo.preload(:traits)
+    |> add_trait_group_stats()
+  end
+
+  @doc """
+  Creates a trait_group with associated traits.
   """
   def create_trait_group(attrs \\ %{}) do
+    trait_ids = Map.get(attrs, "trait_ids", []) |> Enum.map(&String.to_integer/1)
+    attrs = Map.delete(attrs, "trait_ids")
+
     %TraitGroup{}
     |> TraitGroup.changeset(attrs)
     |> Repo.insert()
+    |> case do
+      {:ok, trait_group} ->
+        add_traits_to_group(trait_group, trait_ids)
+        {:ok, Repo.preload(trait_group, :traits)}
+
+      error ->
+        error
+    end
   end
 
   @doc """
@@ -181,6 +260,24 @@ defmodule Qlarius.YouData.Traits do
   end
 
   @doc """
+  Deactivates a trait_group instead of deleting it.
+  """
+  def deactivate_trait_group(%TraitGroup{} = trait_group) do
+    update_trait_group(trait_group, %{
+      deactivated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+    })
+  end
+
+  @doc """
+  Reactivates an archived trait_group.
+  """
+  def reactivate_trait_group(%TraitGroup{} = trait_group) do
+    update_trait_group(trait_group, %{
+      deactivated_at: nil
+    })
+  end
+
+  @doc """
   Deletes a trait_group.
   """
   def delete_trait_group(%TraitGroup{} = trait_group) do
@@ -189,6 +286,20 @@ defmodule Qlarius.YouData.Traits do
 
   def change_trait_group(%TraitGroup{} = trait_group, attrs \\ %{}) do
     TraitGroup.changeset(trait_group, attrs)
+  end
+
+  defp add_traits_to_group(trait_group, trait_ids) do
+    trait_group_traits =
+      Enum.map(trait_ids, fn trait_id ->
+        %{
+          trait_group_id: trait_group.id,
+          trait_id: trait_id,
+          created_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
+          updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+        }
+      end)
+
+    Repo.insert_all(Qlarius.Sponster.Campaigns.TraitGroupTrait, trait_group_traits)
   end
 
   @doc """

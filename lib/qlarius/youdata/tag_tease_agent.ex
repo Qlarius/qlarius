@@ -7,7 +7,7 @@ defmodule Qlarius.YouData.TagTeaseAgent do
   """
 
   @tag_tease_list [
-    "Tags would look great here.",
+    "Tags would go great here.",
     "Show me the tags!",
     "Tags wanted.",
     "Add your tags.",
@@ -20,17 +20,12 @@ defmodule Qlarius.YouData.TagTeaseAgent do
     "Express yourself here.",
     "What defines you?",
     "Fill in the blanks.",
-    "Tell your story.",
-    "Share who you are.",
-    "Paint your picture.",
-    "Complete the puzzle.",
-    "Add your flavor.",
-    "Make your mark.",
-    "What's your vibe?",
-    "Show your colors.",
-    "Speak your truth.",
-    "Own this space.",
-    "Be authentically you."
+    "To tag or not to tag...",
+    "Tag yourself here.",
+    "You are what you tag.",
+    "Tags go here.",
+    "I can haz tags?",
+    "Room for tags here."
   ]
 
   use Agent

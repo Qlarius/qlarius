@@ -394,10 +394,10 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
         <% end %>
 
         <div
-          class="border-2 border-dashed border-base-300 rounded-lg p-6"
+          class="border-2 border-dashed border-base-content/30 rounded-lg p-6"
           phx-drop-target={@uploads.banner_image.ref}
         >
-          <div class="flex flex-col items-center gap-2">
+          <div class="flex flex-col items-start gap-2">
             <.live_file_input
               upload={@uploads.banner_image}
               class="file-input file-input-bordered w-full max-w-md"
