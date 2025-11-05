@@ -437,6 +437,7 @@
           <!--  Start: Layout - Content -->
 
       <div id="layout-content">
+        <.flash_group flash={@flash} />
         <%= if Map.has_key?(assigns, :inner_content) do %>
           <!-- For controllers -->
           {@inner_content}

@@ -259,7 +259,7 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
   def handle_event("refresh_population", _params, socket) do
     require Logger
     Logger.info("🔄 User clicked Refresh Population for target #{socket.assigns.target.id}")
-    
+
     Targets.trigger_population(socket.assigns.target)
 
     {:noreply,
@@ -353,7 +353,7 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
   defp reload_inspect_data(socket) do
     require Logger
     Logger.info("🔄 reload_inspect_data called")
-    
+
     target =
       Targets.get_target_for_marketer!(
         socket.assigns.target.id,
@@ -362,7 +362,7 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
 
     bands = Targets.get_bands_for_target(target.id)
     band_population_counts = Targets.get_band_population_counts(target.id)
-    
+
     Logger.info("🔄 Reloaded counts: #{inspect(band_population_counts)}")
 
     socket
@@ -391,7 +391,7 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.admin flash={@flash} {assigns}>
+    <Layouts.admin {assigns}>
       <.current_marketer_bar
         current_marketer={@current_marketer}
         current_path={~p"/marketer/targets"}
