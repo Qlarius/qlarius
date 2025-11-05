@@ -265,6 +265,8 @@
 <!--  End: Layout - Sidebar -->
 
     <div class="flex h-screen min-w-0 grow flex-col overflow-auto">
+      <.flash_group flash={@flash} />
+      
       <!--  Start: Layout - Topbar -->
 
       <div
@@ -437,7 +439,6 @@
           <!--  Start: Layout - Content -->
 
       <div id="layout-content">
-        <.flash_group flash={@flash} />
         <%= if Map.has_key?(assigns, :inner_content) do %>
           <!-- For controllers -->
           {@inner_content}
