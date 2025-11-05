@@ -1,4 +1,10 @@
 <div class="size-full">
+  <div class="fixed top-0 left-0 right-0 z-50 pointer-events-none">
+    <div class="pointer-events-auto">
+      <.flash_group flash={@flash} />
+    </div>
+  </div>
+  
   <div class="flex">
     <!--  Start: Layout - Sidebar -->
 
@@ -265,8 +271,6 @@
 <!--  End: Layout - Sidebar -->
 
     <div class="flex h-screen min-w-0 grow flex-col overflow-auto">
-      <.flash_group flash={@flash} />
-      
       <!--  Start: Layout - Topbar -->
 
       <div
