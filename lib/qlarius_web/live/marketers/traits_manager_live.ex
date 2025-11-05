@@ -285,9 +285,9 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
                   <tr>
                     <th>Trait Group Name</th>
                     <th>Traits</th>
-                    <th class="text-center">MeFile Matches</th>
-                    <th class="text-center">Band Usage</th>
-                    <th class="text-center">Desc</th>
+                    <th class="text-center">MeFiles</th>
+                    <th class="text-center">Active Targets</th>
+                    <th class="text-center"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -343,7 +343,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
                     <tr>
                       <th>Trait Group Name</th>
                       <th>Traits</th>
-                      <th class="text-center">MeFile Matches</th>
+                      <th class="text-center">MeFiles</th>
                       <th class="text-center">Band Usage</th>
                       <th class="text-center">Actions</th>
                     </tr>

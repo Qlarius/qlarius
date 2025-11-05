@@ -259,7 +259,7 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
   def handle_event("refresh_population", _params, socket) do
     require Logger
     Logger.info("🔄 User clicked Refresh Population for target #{socket.assigns.target.id}")
-    
+
     Targets.trigger_population(socket.assigns.target)
 
     {:noreply,
@@ -488,9 +488,6 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
                       >
                         Inspect
                       </.link>
-                      <button class="btn btn-sm btn-primary btn-outline btn-disabled">
-                        Build/Edit
-                      </button>
                     <% else %>
                       <.link
                         navigate={~p"/marketer/targets/#{target.id}/edit"}
@@ -747,7 +744,7 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
               </h2>
 
               <%= if length(@bands) > 1 do %>
-                <div class="alert alert-info mb-4">
+                <div class="alert alert-neutral mb-4">
                   <.icon name="hero-lock-closed" class="w-5 h-5" />
                   <div class="text-sm">
                     <p class="font-semibold">Bullseye Locked</p>
