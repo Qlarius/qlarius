@@ -288,17 +288,26 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
 
   @impl true
   def handle_info({:target_populated, target_id}, socket) do
-    if socket.assigns.live_action == :index do
-      {:noreply, assign_targets(socket)}
-    else
-      if socket.assigns.target && socket.assigns.target.id == target_id do
+    cond do
+      socket.assigns.live_action == :index ->
+        {:noreply, assign_targets(socket)}
+
+      socket.assigns.live_action == :inspect && socket.assigns.target &&
+          socket.assigns.target.id == target_id ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Target population complete")
+         |> reload_inspect_data()}
+
+      socket.assigns.live_action == :edit && socket.assigns.target &&
+          socket.assigns.target.id == target_id ->
         {:noreply,
          socket
          |> put_flash(:info, "Target population complete")
          |> reload_target_data()}
-      else
+
+      true ->
         {:noreply, socket}
-      end
     end
   end
 
@@ -325,6 +334,22 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
     |> assign(:available_trait_groups, available_trait_groups)
     |> assign(:editing_target_info, false)
     |> assign(:expanding_target, false)
+  end
+
+  defp reload_inspect_data(socket) do
+    target =
+      Targets.get_target_for_marketer!(
+        socket.assigns.target.id,
+        socket.assigns.current_marketer.id
+      )
+
+    bands = Targets.get_bands_for_target(target.id)
+    band_population_counts = Targets.get_band_population_counts(target.id)
+
+    socket
+    |> assign(:target, target)
+    |> assign(:bands, bands)
+    |> assign(:band_population_counts, band_population_counts)
   end
 
   defp excluded_trait_group_id(band, bands) do
@@ -886,7 +911,6 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
               <p class="text-xs">Depopulate this target below to edit its structure.</p>
             </div>
           </div>
-
         </div>
       </div>
     </div>
