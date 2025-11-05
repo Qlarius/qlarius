@@ -252,19 +252,19 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
 
     {:noreply,
      socket
-     |> put_flash(:info, "Population started. You will be notified when complete.")
+     |> put_flash(:info, "Populating target \"#{socket.assigns.target.title}\"...")
      |> push_navigate(to: ~p"/marketer/targets/#{socket.assigns.target.id}/inspect")}
   end
 
   def handle_event("refresh_population", _params, socket) do
     require Logger
     Logger.info("🔄 User clicked Refresh Population for target #{socket.assigns.target.id}")
-
+    
     Targets.trigger_population(socket.assigns.target)
 
     {:noreply,
      socket
-     |> put_flash(:info, "🔄 Population refresh started at #{NaiveDateTime.utc_now() |> NaiveDateTime.to_time() |> Time.to_string()}")
+     |> put_flash(:info, "Refreshing population for \"#{socket.assigns.target.title}\"...")
      |> assign(:refreshing, true)}
   end
 
@@ -300,14 +300,13 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
           socket.assigns.live_action == :index ->
             {:noreply, assign_targets(socket)}
 
-          socket.assigns.live_action == :inspect && socket.assigns.target &&
-              socket.assigns.target.id == target_id ->
-            time = String.slice(timestamp, 11, 8)
-            Logger.info("Updating inspect view with flash message")
-            {:noreply,
-             socket
-             |> put_flash(:info, "✅ Population refreshed at #{time}")
-             |> reload_inspect_data()}
+              socket.assigns.live_action == :inspect && socket.assigns.target &&
+                  socket.assigns.target.id == target_id ->
+                Logger.info("Updating inspect view with flash message")
+                {:noreply,
+                 socket
+                 |> put_flash(:info, "Population refreshed for \"#{socket.assigns.target.title}\"")
+                 |> reload_inspect_data()}
 
           socket.assigns.live_action == :edit && socket.assigns.target &&
               socket.assigns.target.id == target_id ->
