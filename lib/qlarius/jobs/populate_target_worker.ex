@@ -98,12 +98,13 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
       last_populated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
     })
 
-    Logger.info("PopulateTargetWorker: Complete for target_id=#{target_id}")
+    timestamp = NaiveDateTime.utc_now() |> NaiveDateTime.to_string()
+    Logger.info("PopulateTargetWorker: ✅ COMPLETE for target_id=#{target_id} at #{timestamp}")
 
     Phoenix.PubSub.broadcast(
       Qlarius.PubSub,
       "targets",
-      {:target_populated, target_id}
+      {:target_populated, target_id, timestamp}
     )
 
     :ok

@@ -286,26 +286,37 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
   end
 
   @impl true
-  def handle_info({:target_populated, target_id}, socket) do
-    cond do
-      socket.assigns.live_action == :index ->
-        {:noreply, assign_targets(socket)}
+  def handle_info(msg, socket) do
+    case msg do
+      {:target_populated, target_id, timestamp} ->
+        require Logger
+        Logger.info("LiveView received: target_populated for #{target_id} at #{timestamp}")
+        
+        cond do
+          socket.assigns.live_action == :index ->
+            {:noreply, assign_targets(socket)}
 
-      socket.assigns.live_action == :inspect && socket.assigns.target &&
-          socket.assigns.target.id == target_id ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Population refresh complete!")
-         |> reload_inspect_data()}
+          socket.assigns.live_action == :inspect && socket.assigns.target &&
+              socket.assigns.target.id == target_id ->
+            time = String.slice(timestamp, 11, 8)
+            Logger.info("Updating inspect view with flash message")
+            {:noreply,
+             socket
+             |> put_flash(:info, "✅ Population refreshed at #{time}")
+             |> reload_inspect_data()}
 
-      socket.assigns.live_action == :edit && socket.assigns.target &&
-          socket.assigns.target.id == target_id ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Target population complete")
-         |> reload_target_data()}
+          socket.assigns.live_action == :edit && socket.assigns.target &&
+              socket.assigns.target.id == target_id ->
+            {:noreply,
+             socket
+             |> put_flash(:info, "Target population complete")
+             |> reload_target_data()}
 
-      true ->
+          true ->
+            {:noreply, socket}
+        end
+
+      _ ->
         {:noreply, socket}
     end
   end
@@ -370,7 +381,7 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.admin {assigns}>
+    <Layouts.admin flash={@flash} {assigns}>
       <.current_marketer_bar
         current_marketer={@current_marketer}
         current_path={~p"/marketer/targets"}
