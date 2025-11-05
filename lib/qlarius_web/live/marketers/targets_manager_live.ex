@@ -253,7 +253,7 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
     {:noreply,
      socket
      |> put_flash(:info, "Population started. You will be notified when complete.")
-     |> push_navigate(to: ~p"/marketer/targets")}
+     |> push_navigate(to: ~p"/marketer/targets/#{socket.assigns.target.id}/inspect")}
   end
 
   def handle_event("refresh_population", _params, socket) do
@@ -817,14 +817,6 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
             <p class="text-base-content/70">{@target.description}</p>
           </div>
 
-          <div class="alert alert-info mb-6">
-            <.icon name="hero-lock-closed" class="w-5 h-5" />
-            <div class="text-sm">
-              <p class="font-semibold">This target structure is frozen</p>
-              <p class="text-xs">Depopulate this target below to edit its structure.</p>
-            </div>
-          </div>
-
           <div class="mb-6 flex gap-2">
             <button phx-click="done" class="btn btn-primary">
               Done
@@ -886,6 +878,15 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
               </tbody>
             </table>
           </div>
+
+          <div class="alert alert-neutral mt-6">
+            <.icon name="hero-lock-closed" class="w-5 h-5" />
+            <div class="text-sm">
+              <p class="font-semibold">This target structure is frozen</p>
+              <p class="text-xs">Depopulate this target below to edit its structure.</p>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
