@@ -261,8 +261,7 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
 
     {:noreply,
      socket
-     |> put_flash(:info, "Population refresh started. You will be notified when complete.")
-     |> push_navigate(to: ~p"/marketer/targets")}
+     |> put_flash(:info, "Population refresh started. Updating counts...")}
   end
 
   def handle_event("depopulate_target", _params, socket) do
