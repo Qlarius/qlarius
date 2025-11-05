@@ -295,7 +295,7 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
           socket.assigns.target.id == target_id ->
         {:noreply,
          socket
-         |> put_flash(:info, "Target population complete")
+         |> put_flash(:info, "Population refresh complete!")
          |> reload_inspect_data()}
 
       socket.assigns.live_action == :edit && socket.assigns.target &&
