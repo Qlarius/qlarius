@@ -49,11 +49,11 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
       {populations_to_insert, populations_to_delete} =
         calculate_population_changes(new_populations, existing_populations)
 
-      Logger.info(
-        "PopulateTargetWorker: #{length(populations_to_insert)} to insert, #{length(populations_to_delete)} to delete"
-      )
+    Logger.info(
+      "PopulateTargetWorker: #{length(populations_to_insert)} to insert, #{length(populations_to_delete)} to delete"
+    )
 
-      if populations_to_delete != [] do
+    if populations_to_delete != [] do
         delete_conditions =
           Enum.map(populations_to_delete, fn {mf_id, band_id} ->
             dynamic([tp], tp.me_file_id == ^mf_id and tp.target_band_id == ^band_id)
@@ -93,20 +93,20 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
         Logger.info("PopulateTargetWorker: Inserted #{inserted_count} populations")
       end
 
-      Targets.update_target(target, %{
-        population_status: "populated",
-        last_populated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-      })
+    Targets.update_target(target, %{
+      population_status: "populated",
+      last_populated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+    })
 
-      Logger.info("PopulateTargetWorker: Complete for target_id=#{target_id}")
+    Logger.info("PopulateTargetWorker: Complete for target_id=#{target_id}")
 
-      Phoenix.PubSub.broadcast(
-        Qlarius.PubSub,
-        "targets",
-        {:target_populated, target_id}
-      )
+    Phoenix.PubSub.broadcast(
+      Qlarius.PubSub,
+      "targets",
+      {:target_populated, target_id}
+    )
 
-      :ok
+    :ok
     end
   end
 
