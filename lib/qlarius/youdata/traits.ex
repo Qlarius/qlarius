@@ -163,7 +163,7 @@ defmodule Qlarius.YouData.Traits do
       order_by: [desc: tg.id]
     )
     |> Repo.all()
-    |> Repo.preload(:traits)
+    |> Repo.preload(traits: :parent_trait)
     |> Enum.map(&add_trait_group_stats/1)
   end
 
@@ -176,7 +176,7 @@ defmodule Qlarius.YouData.Traits do
       order_by: [desc: tg.deactivated_at]
     )
     |> Repo.all()
-    |> Repo.preload(:traits)
+    |> Repo.preload(traits: :parent_trait)
     |> Enum.map(&add_trait_group_stats/1)
   end
 

@@ -75,7 +75,6 @@ defmodule QlariusWeb.Components.CurrentMarketerBar do
             <span class="badge badge-outline badge-primary badge-xl text-lg text-base-content py-4 px-4">
               {@current_marketer.business_name}
             </span>
-
           <% else %>
             <.icon name="hero-exclamation-circle" class="w-5 h-5 text-warning" />
             <span class="text-base-content/70">No marketer selected</span>

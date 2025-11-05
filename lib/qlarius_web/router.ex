@@ -72,6 +72,8 @@ defmodule QlariusWeb.Router do
       live "/traits", Live.Marketers.TraitsManagerLive, :index
       live "/traits/new", Live.Marketers.TraitsManagerLive, :new_trait_group
       live "/targets", Live.Marketers.TargetsManagerLive, :index
+      live "/targets/:id/edit", Live.Marketers.TargetsManagerLive, :edit
+      live "/targets/:id/inspect", Live.Marketers.TargetsManagerLive, :inspect
       live "/sequences", Live.Marketers.SequencesManagerLive, :index
 
       live "/media", Live.Marketers.MediaPieceLive, :index

@@ -292,13 +292,13 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
                 </thead>
                 <tbody>
                   <tr :for={group <- @trait_groups}>
-                    <td class="font-medium">{group.title}</td>
-                    <td class="text-sm">
+                    <td class="font-medium !align-top">{group.title}</td>
+                    <td class="text-sm !align-top">
                       <.trait_badges traits={group.traits} />
                     </td>
-                    <td class="text-center">{group.me_file_count}</td>
-                    <td class="text-center">{group.target_band_count}</td>
-                    <td class="text-center">
+                    <td class="text-center !align-top">{group.me_file_count}</td>
+                    <td class="text-center !align-top">{group.target_band_count}</td>
+                    <td class="text-center !align-top">
                       <button
                         :if={group.target_band_count == 0}
                         phx-click="delete_trait_group"
@@ -350,13 +350,13 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
                   </thead>
                   <tbody>
                     <tr :for={group <- @archived_trait_groups} class="opacity-60">
-                      <td class="font-medium">{group.title}</td>
-                      <td class="text-sm">
+                      <td class="font-medium !align-top">{group.title}</td>
+                      <td class="text-sm !align-top">
                         <.trait_badges traits={group.traits} />
                       </td>
-                      <td class="text-center">{group.me_file_count}</td>
-                      <td class="text-center">{group.target_band_count}</td>
-                      <td class="text-center">
+                      <td class="text-center !align-top">{group.me_file_count}</td>
+                      <td class="text-center !align-top">{group.target_band_count}</td>
+                      <td class="text-center !align-top">
                         <button
                           phx-click="reactivate_trait_group"
                           phx-value-id={group.id}
@@ -457,14 +457,30 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
   attr :traits, :list, required: true
 
   defp trait_badges(assigns) do
+    traits_by_parent =
+      assigns.traits
+      |> Enum.group_by(fn trait ->
+        if trait.parent_trait, do: trait.parent_trait.trait_name, else: nil
+      end)
+      |> Enum.sort_by(fn {parent_name, _} -> parent_name || "" end)
+
+    assigns = assign(assigns, :traits_by_parent, traits_by_parent)
+
     ~H"""
-    <div class="flex flex-wrap gap-1">
-      <span
-        :for={trait <- @traits}
-        class="badge badge-outline badge-xs py-2 border border-base-content/30"
-      >
-        {trait.trait_name}
-      </span>
+    <div class="space-y-2">
+      <div :for={{parent_name, traits} <- @traits_by_parent} class="space-y-1">
+        <div :if={parent_name} class="text-xs font-semibold text-base-content/70">
+          {parent_name}
+        </div>
+        <div class="flex flex-wrap gap-1">
+          <span
+            :for={trait <- traits}
+            class="badge badge-outline badge-xs py-2 border border-base-content/30"
+          >
+            {trait.trait_name}
+          </span>
+        </div>
+      </div>
     </div>
     """
   end

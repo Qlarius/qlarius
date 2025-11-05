@@ -3,23 +3,21 @@ defmodule Qlarius.Sponster.Campaigns.TargetBand do
   import Ecto.Changeset
 
   alias Qlarius.Sponster.{Offer, AdEvent}
-  alias Qlarius.Sponster.Campaigns.TargetBandTraitGroup
+  alias Qlarius.Sponster.Campaigns.{Target, TargetBandTraitGroup, TargetPopulation}
 
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
 
   schema "target_bands" do
-    # Target association commented - schema only in archive_hide
-    # belongs_to :target, Target
+    belongs_to :target, Target
+
+    field :is_bullseye, :string
+    field :user_created_by, :integer
 
     has_many :target_band_trait_groups, TargetBandTraitGroup
     has_many :trait_groups, through: [:target_band_trait_groups, :trait_group]
-
-    # TargetPopulation association commented - schema does not exist
-    # has_many :target_populations, Qlarius.Sponster.Campaigns.TargetPopulation
-    # has_many :me_files, through: [:target_populations, :me_file]
-    # Bid association commented - schema does not exist
-    # has_many :bids, Bid
+    has_many :target_populations, TargetPopulation
+    has_many :me_files, through: [:target_populations, :me_file]
     has_many :offers, Offer
     has_many :ad_events, AdEvent
 
@@ -28,8 +26,17 @@ defmodule Qlarius.Sponster.Campaigns.TargetBand do
 
   def changeset(target_band, attrs) do
     target_band
-    |> cast(attrs, [])
-    |> validate_required([])
+    |> cast(attrs, [:target_id, :is_bullseye, :user_created_by])
+    |> validate_required([:target_id])
+    |> validate_inclusion(:is_bullseye, ["0", "1"])
     |> foreign_key_constraint(:target_id)
+  end
+
+  def is_bullseye?(target_band) do
+    target_band.is_bullseye == "1"
+  end
+
+  def set_bullseye(_target_band, is_bullseye) when is_boolean(is_bullseye) do
+    if is_bullseye, do: "1", else: "0"
   end
 end
