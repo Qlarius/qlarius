@@ -257,11 +257,15 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
   end
 
   def handle_event("refresh_population", _params, socket) do
+    require Logger
+    Logger.info("🔄 User clicked Refresh Population for target #{socket.assigns.target.id}")
+    
     Targets.trigger_population(socket.assigns.target)
 
     {:noreply,
      socket
-     |> put_flash(:info, "Population refresh started. Updating counts...")}
+     |> put_flash(:info, "🔄 Population refresh started at #{NaiveDateTime.utc_now() |> NaiveDateTime.to_time() |> Time.to_string()}")
+     |> assign(:refreshing, true)}
   end
 
   def handle_event("depopulate_target", _params, socket) do
@@ -291,7 +295,7 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
       {:target_populated, target_id, timestamp} ->
         require Logger
         Logger.info("LiveView received: target_populated for #{target_id} at #{timestamp}")
-        
+
         cond do
           socket.assigns.live_action == :index ->
             {:noreply, assign_targets(socket)}
@@ -347,6 +351,9 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
   end
 
   defp reload_inspect_data(socket) do
+    require Logger
+    Logger.info("🔄 reload_inspect_data called")
+    
     target =
       Targets.get_target_for_marketer!(
         socket.assigns.target.id,
@@ -355,11 +362,14 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
 
     bands = Targets.get_bands_for_target(target.id)
     band_population_counts = Targets.get_band_population_counts(target.id)
+    
+    Logger.info("🔄 Reloaded counts: #{inspect(band_population_counts)}")
 
     socket
     |> assign(:target, target)
     |> assign(:bands, bands)
     |> assign(:band_population_counts, band_population_counts)
+    |> assign(:refreshing, false)
   end
 
   defp excluded_trait_group_id(band, bands) do
