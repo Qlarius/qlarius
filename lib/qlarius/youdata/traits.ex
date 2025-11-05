@@ -198,8 +198,12 @@ defmodule Qlarius.YouData.Traits do
 
     target_band_count =
       from(tbtg in Qlarius.Sponster.Campaigns.TargetBandTraitGroup,
-        where: tbtg.trait_group_id == ^trait_group.id,
-        select: count(tbtg.id)
+        join: tb in Qlarius.Sponster.Campaigns.TargetBand,
+        on: tbtg.target_band_id == tb.id,
+        join: t in Qlarius.Sponster.Campaigns.Target,
+        on: tb.target_id == t.id,
+        where: tbtg.trait_group_id == ^trait_group.id and t.active == "1",
+        select: count(t.id, :distinct)
       )
       |> Repo.one()
 
