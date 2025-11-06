@@ -215,8 +215,8 @@ defmodule Qlarius.YouData.MeFiles do
         |> Enum.map(fn me_file_tag ->
           trait = me_file_tag.trait
           # Use parent trait if exists, otherwise the trait itself
-          trait = trait.parent_trait || nil
-          {trait.id, trait.trait_name, trait.display_order}
+          parent_trait = trait.parent_trait || trait
+          {parent_trait.id, parent_trait.trait_name, parent_trait.display_order}
         end)
         # Remove duplicates
         |> Enum.uniq_by(fn {id, _, _} -> id end)
