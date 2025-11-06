@@ -2,20 +2,23 @@ defmodule Qlarius.Sponster.Campaigns.MediaRun do
   use Ecto.Schema
   import Ecto.Changeset
 
-  # Commented out unused alias - Campaign not directly referenced
-  # alias Qlarius.Sponster.Campaigns.{Campaign, MediaSequence}
   alias Qlarius.Sponster.Campaigns.MediaSequence
   alias Qlarius.Sponster.Ads.MediaPiece
+  alias Qlarius.Sponster.Marketer
 
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
 
   schema "media_runs" do
-    # field :started_at, :naive_datetime
-    # field :ended_at, :naive_datetime
-    field :is_active, :boolean, default: true
-    # field :paused, :boolean, default: false
+    field :sequence_start_phase, :integer
+    field :sequence_end_phase, :integer
+    field :frequency, :integer
+    field :frequency_buffer_hours, :integer
+    field :maximum_banner_count, :integer
+    field :banner_retry_buffer_hours, :integer
+    field :is_active, :boolean
 
+    belongs_to :marketer, Marketer
     belongs_to :media_piece, MediaPiece
     belongs_to :media_sequence, MediaSequence
 
@@ -28,19 +31,24 @@ defmodule Qlarius.Sponster.Campaigns.MediaRun do
   def changeset(media_run, attrs) do
     media_run
     |> cast(attrs, [
-      # :started_at,
-      # :ended_at,
+      :sequence_start_phase,
+      :sequence_end_phase,
+      :frequency,
+      :frequency_buffer_hours,
+      :maximum_banner_count,
+      :banner_retry_buffer_hours,
       :is_active,
-      :paused,
+      :marketer_id,
       :media_piece_id,
       :media_sequence_id
     ])
     |> validate_required([
       :media_piece_id,
-      :media_sequence_id
+      :media_sequence_id,
+      :marketer_id
     ])
+    |> foreign_key_constraint(:marketer_id)
     |> foreign_key_constraint(:media_piece_id)
     |> foreign_key_constraint(:media_sequence_id)
-    |> foreign_key_constraint(:campaign_id)
   end
 end
