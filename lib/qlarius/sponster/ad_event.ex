@@ -34,7 +34,7 @@ defmodule Qlarius.Sponster.AdEvent do
     field :event_split_code, :string
     field :adget_id_string, :string
     field :session_id_string, :string
-    field :matching_tags_snapshot, :string
+    field :matching_tags_snapshot, :map
 
     belongs_to :offer, Offer
     belongs_to :me_file, MeFile

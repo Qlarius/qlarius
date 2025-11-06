@@ -14,7 +14,7 @@ defmodule Qlarius.Sponster.Offer do
     field :is_demo, :boolean, default: false
     field :is_current, :boolean, default: false
     field :is_jobbed, :boolean, default: false
-    field :matching_tags_snapshot, :string
+    field :matching_tags_snapshot, :map
     field :ad_phase_count_to_complete, :integer
 
     belongs_to :campaign, Qlarius.Sponster.Campaigns.Campaign

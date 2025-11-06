@@ -10,6 +10,7 @@ defmodule QlariusWeb.WalletLive do
   alias Qlarius.Accounts.User
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
+  alias Qlarius.Sponster.Campaigns.Targets
 
   @impl true
   def mount(_params, _session, socket) do
@@ -296,7 +297,6 @@ defmodule QlariusWeb.WalletLive do
   end
 
   defp get_ad_event_details(ad_event) do
-    # Preload the media piece directly through the association
     ad_event =
       ad_event
       |> Repo.preload([
@@ -305,11 +305,17 @@ defmodule QlariusWeb.WalletLive do
         campaign: [:marketer]
       ])
 
+    matching_tags =
+      case ad_event.matching_tags_snapshot do
+        nil -> []
+        snapshot -> Targets.snapshot_to_tuples(snapshot)
+      end
+
     %{
       type: :ad_event,
       ad_event: ad_event,
       media_piece: ad_event.media_piece,
-      matching_tags: parse_matching_tags(ad_event.matching_tags_snapshot),
+      matching_tags: matching_tags,
       campaign_title: ad_event.campaign && ad_event.campaign.title,
       marketer_name: get_marketer_name(ad_event.campaign)
     }
@@ -361,15 +367,6 @@ defmodule QlariusWeb.WalletLive do
       }
     end
   end
-
-  defp parse_matching_tags(tags_snapshot) when is_binary(tags_snapshot) do
-    case Jason.decode(tags_snapshot) do
-      {:ok, tags} -> tags
-      _ -> []
-    end
-  end
-
-  defp parse_matching_tags(_), do: []
 
   defp get_marketer_name(campaign) when campaign != nil do
     campaign = Repo.preload(campaign, :marketer)

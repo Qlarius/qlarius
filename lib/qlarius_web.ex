@@ -93,6 +93,7 @@ defmodule QlariusWeb do
       # Core UI components
       import QlariusWeb.CoreComponents
       import QlariusWeb.Components.CurrentMarketerBar
+      import QlariusWeb.Components.TraitComponents
 
       # Image helpers
       import QlariusWeb.Helpers.ImageHelpers

@@ -300,4 +300,31 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
     |> Repo.all()
     |> Map.new()
   end
+
+  @doc """
+  Converts matching_tags_snapshot from list format to tuple format for display.
+
+  The snapshot is stored as nested lists in JSONB, but display functions like
+  `trait_card` expect tuples. This converts:
+
+  `[[parent_id, name, order, [[child_id, value, order]]]]`
+
+  to:
+
+  `[{parent_id, name, order, [{child_id, value, order}]}]`
+  """
+  def snapshot_to_tuples(%{matching_tags_snapshot: %{"tags" => tags}})
+      when is_list(tags) do
+    Enum.map(tags, fn [parent_id, name, order, children] ->
+      {parent_id, name, order, Enum.map(children, &List.to_tuple/1)}
+    end)
+  end
+
+  def snapshot_to_tuples(%{"tags" => tags}) when is_list(tags) do
+    Enum.map(tags, fn [parent_id, name, order, children] ->
+      {parent_id, name, order, Enum.map(children, &List.to_tuple/1)}
+    end)
+  end
+
+  def snapshot_to_tuples(_), do: []
 end

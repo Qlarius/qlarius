@@ -131,15 +131,21 @@
 
               <%= if @entry_details.matching_tags && length(@entry_details.matching_tags) > 0 do %>
                 <div>
-                  <h5 class="font-medium mb-2">Matching Tags</h5>
-                  <div class="flex flex-wrap gap-2">
-                    <span
-                      :for={tag <- @entry_details.matching_tags}
-                      class="badge badge-primary badge-sm"
-                    >
-                      {tag}
-                    </span>
+                  <h5 class="font-medium mb-2">Matching Tags (Why you?)</h5>
+                  <div class="space-y-2">
+                    <.trait_card
+                      :for={{parent_id, parent_name, _parent_order, child_tags} <- @entry_details.matching_tags}
+                      parent_trait_id={parent_id}
+                      parent_trait_name={parent_name}
+                      tags_traits={child_tags}
+                      editable={false}
+                    />
                   </div>
+                </div>
+              <% else %>
+                <div>
+                  <h5 class="font-medium mb-2">Matching Tags (Why you?)</h5>
+                  <p class="text-sm text-base-content/60">No matching info found.</p>
                 </div>
               <% end %>
             </div>
