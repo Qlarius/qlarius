@@ -383,7 +383,7 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
      |> assign(:current_marketer_id, marketer_id)
      |> assign(:current_marketer, marketer)
      |> push_event("store_current_marketer", %{marketer_id: id})
-     |> put_flash(:info, "Current marketer set successfully.")}
+     |> put_flash(:info, "Current marketer set to #{marketer.business_name}.")}
   end
 
   def handle_event("search", %{"query" => query}, socket) do

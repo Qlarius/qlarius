@@ -12,6 +12,8 @@ defmodule Qlarius.Sponster.Campaigns.TargetPopulation do
     belongs_to :target_band, TargetBand
     belongs_to :me_file, MeFile
 
+    field :matching_tags_snapshot, :map
+
     timestamps()
   end
 

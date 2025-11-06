@@ -202,7 +202,9 @@ defmodule Qlarius.YouData.Traits do
         on: tbtg.target_band_id == tb.id,
         join: t in Qlarius.Sponster.Campaigns.Target,
         on: tb.target_id == t.id,
-        where: tbtg.trait_group_id == ^trait_group.id and t.active == "1",
+        join: c in Qlarius.Sponster.Campaigns.Campaign,
+        on: c.target_id == t.id,
+        where: tbtg.trait_group_id == ^trait_group.id and is_nil(c.deactivated_at),
         select: count(t.id, :distinct)
       )
       |> Repo.one()

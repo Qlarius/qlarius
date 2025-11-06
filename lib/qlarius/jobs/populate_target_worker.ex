@@ -49,11 +49,11 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
       {populations_to_insert, populations_to_delete} =
         calculate_population_changes(new_populations, existing_populations)
 
-    Logger.info(
-      "PopulateTargetWorker: #{length(populations_to_insert)} to insert, #{length(populations_to_delete)} to delete"
-    )
+      Logger.info(
+        "PopulateTargetWorker: #{length(populations_to_insert)} to insert, #{length(populations_to_delete)} to delete"
+      )
 
-    if populations_to_delete != [] do
+      if populations_to_delete != [] do
         delete_conditions =
           Enum.map(populations_to_delete, fn {mf_id, band_id} ->
             dynamic([tp], tp.me_file_id == ^mf_id and tp.target_band_id == ^band_id)
@@ -93,22 +93,34 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
         Logger.info("PopulateTargetWorker: Inserted #{inserted_count} populations")
       end
 
-    Targets.update_target(target, %{
-      population_status: "populated",
-      last_populated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-    })
+      Targets.update_target(target, %{
+        population_status: "populated",
+        last_populated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+      })
 
-    timestamp = NaiveDateTime.utc_now() |> NaiveDateTime.to_string()
-    Logger.info("PopulateTargetWorker: ✅ COMPLETE for target_id=#{target_id} at #{timestamp}")
+      timestamp = NaiveDateTime.utc_now() |> NaiveDateTime.to_string()
+      Logger.info("PopulateTargetWorker: ✅ COMPLETE for target_id=#{target_id} at #{timestamp}")
 
-    Phoenix.PubSub.broadcast(
-      Qlarius.PubSub,
-      "targets",
-      {:target_populated, target_id, timestamp}
-    )
+      enqueue_snapshot_jobs(target_id, bands)
 
-    :ok
+      Phoenix.PubSub.broadcast(
+        Qlarius.PubSub,
+        "targets",
+        {:target_populated, target_id, timestamp}
+      )
+
+      :ok
     end
+  end
+
+  defp enqueue_snapshot_jobs(_target_id, bands) do
+    require Logger
+    Logger.info("PopulateTargetWorker: Enqueuing snapshot jobs for #{length(bands)} bands")
+
+    Enum.each(bands, fn band ->
+      Qlarius.Jobs.SnapshotBandPopulationsWorker.new(%{band_id: band.id})
+      |> Oban.insert()
+    end)
   end
 
   defp populate_bands_bottom_up(sorted_bands) do

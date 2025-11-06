@@ -444,8 +444,8 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
                 <tr>
                   <th>Target Name</th>
                   <th>Bullseye</th>
-                  <th class="text-center">Outer Rings</th>
-                  <th class="text-center">Total Population</th>
+                  <th class="text-center">Rings</th>
+                  <th class="text-center">Population</th>
                   <th class="text-center"></th>
                 </tr>
               </thead>
