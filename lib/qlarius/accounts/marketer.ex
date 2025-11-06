@@ -15,6 +15,8 @@ defmodule Qlarius.Accounts.Marketer do
     field :sic_code, :string
 
     has_many :campaigns, Qlarius.Sponster.Campaigns.Campaign
+    has_many :media_sequences, Qlarius.Sponster.Campaigns.MediaSequence
+    has_many :media_runs, Qlarius.Sponster.Campaigns.MediaRun
     has_many :marketer_users, Qlarius.Accounts.MarketerUser
     has_many :users, through: [:marketer_users, :user]
 

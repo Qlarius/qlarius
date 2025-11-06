@@ -2,9 +2,9 @@ defmodule Qlarius.Sponster.Campaigns.MediaRun do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Sponster.Campaigns.MediaSequence
+  alias Qlarius.Accounts.Marketer
   alias Qlarius.Sponster.Ads.MediaPiece
-  alias Qlarius.Sponster.Marketer
+  alias Qlarius.Sponster.Campaigns.MediaSequence
 
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
