@@ -411,8 +411,6 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
         :desc
       )
 
-    errors = []
-
     # Check minimum value and collect errors
     min_errors =
       Enum.reduce(bids_with_values, [], fn {bid, _band, value}, acc ->
