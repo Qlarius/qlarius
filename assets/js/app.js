@@ -449,6 +449,17 @@ topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
+// Focus bid input on validation error
+window.addEventListener("phx:focus-bid-input", (e) => {
+  const {campaign_id, bid_id} = e.detail
+  // Find the input with matching campaign_id and bid_id
+  const input = document.querySelector(`input[phx-value-campaign_id="${campaign_id}"][phx-value-bid_id="${bid_id}"]`)
+  if (input) {
+    input.focus()
+    input.select()
+  }
+})
+
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 

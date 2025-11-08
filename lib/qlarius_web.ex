@@ -94,6 +94,7 @@ defmodule QlariusWeb do
       import QlariusWeb.CoreComponents
       import QlariusWeb.Components.CurrentMarketerBar
       import QlariusWeb.Components.TraitComponents
+      import QlariusWeb.Components.AdsComponents
 
       # Image helpers
       import QlariusWeb.Helpers.ImageHelpers

@@ -369,7 +369,6 @@ defmodule Qlarius.Wallets do
   def get_or_create_recipient_ledger_header(%Recipient{} = recipient) do
     case Repo.get_by(LedgerHeader, recipient_id: recipient.id) do
       nil ->
-        # Create a new ledger header for the recipient
         %LedgerHeader{}
         |> LedgerHeader.changeset(%{
           description: "Ledger for #{recipient.name}",
@@ -382,6 +381,21 @@ defmodule Qlarius.Wallets do
       ledger_header ->
         ledger_header
     end
+  end
+
+  @doc """
+  Creates a ledger header for a campaign.
+  """
+  def create_campaign_ledger_header(%Campaign{} = campaign, marketer_id) do
+    %LedgerHeader{}
+    |> LedgerHeader.changeset(%{
+      description: "Campaign: #{campaign.title}",
+      balance: Decimal.new("0.00"),
+      balance_payable: Decimal.new("0.00"),
+      campaign_id: campaign.id,
+      marketer_id: marketer_id
+    })
+    |> Repo.insert!()
   end
 
   @doc """

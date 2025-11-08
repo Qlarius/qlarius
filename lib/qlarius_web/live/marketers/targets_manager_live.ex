@@ -300,13 +300,14 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
           socket.assigns.live_action == :index ->
             {:noreply, assign_targets(socket)}
 
-              socket.assigns.live_action == :inspect && socket.assigns.target &&
-                  socket.assigns.target.id == target_id ->
-                Logger.info("Updating inspect view with flash message")
-                {:noreply,
-                 socket
-                 |> put_flash(:info, "Population refreshed for \"#{socket.assigns.target.title}\"")
-                 |> reload_inspect_data()}
+          socket.assigns.live_action == :inspect && socket.assigns.target &&
+              socket.assigns.target.id == target_id ->
+            Logger.info("Updating inspect view with flash message")
+
+            {:noreply,
+             socket
+             |> put_flash(:info, "Population refreshed for \"#{socket.assigns.target.title}\"")
+             |> reload_inspect_data()}
 
           socket.assigns.live_action == :edit && socket.assigns.target &&
               socket.assigns.target.id == target_id ->

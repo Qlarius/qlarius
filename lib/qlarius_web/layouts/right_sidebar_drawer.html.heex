@@ -68,58 +68,16 @@
             <div class="space-y-4">
               <h4 class="font-medium text-base-content">Ad Content</h4>
 
-              <div class="bg-base-200 dark:bg-base-900/20 rounded-lg overflow-hidden shadow-sm">
-                <%= if @entry_details.media_piece do %>
-                  <!-- Banner Image -->
-                  <%= if @entry_details.media_piece.banner_image do %>
-                    <div class="flex justify-center items-center bg-white">
-                      <img
-                        src={
-                          QlariusWeb.Uploaders.ThreeTapBanner.url(
-                            {@entry_details.media_piece.banner_image, @entry_details.media_piece},
-                            :original
-                          )
-                        }
-                        alt="Ad banner"
-                        class="w-full h-auto object-cover"
-                      />
-                    </div>
-                  <% end %>
-                  
-<!-- Ad Content -->
-                  <div class="p-4">
-                    <div class="text-blue-600 dark:text-blue-300 mb-1 font-bold text-lg leading-tight">
-                      {@entry_details.media_piece.title}
-                    </div>
-                    <div class="text-base-700 text-sm mb-1" style="line-height: 1.1rem">
-                      {@entry_details.media_piece.body_copy}
-                    </div>
-                    <%= if @entry_details.media_piece.display_url do %>
-                      <div class="text-green-500 text-xs mb-1">
-                        {@entry_details.media_piece.display_url}
-                      </div>
-                      <div class="border-t border-base-300/30 mt-2 pt-2">
-                        <div class="text-xs text-base-content/50 truncate">
-                          <a
-                            href={@entry_details.media_piece.jump_url}
-                            target="_blank"
-                            class="hover:underline"
-                          >
-                            {@entry_details.media_piece.jump_url}
-                          </a>
-                        </div>
-                      </div>
-                    <% end %>
-                  </div>
-                <% else %>
-                  <div class="p-4">
-                    <h5 class="font-medium mb-2">Ad Content</h5>
-                    <p class="text-sm text-base-content/70 mb-3">
-                      Media piece details not available
-                    </p>
-                  </div>
-                <% end %>
-              </div>
+              <%= if @entry_details.media_piece do %>
+                <.three_tap_ad media_piece={@entry_details.media_piece} show_banner={true} />
+              <% else %>
+                <div class="bg-base-200 dark:bg-base-900/20 rounded-lg overflow-hidden shadow-sm p-4">
+                  <h5 class="font-medium mb-2">Ad Content</h5>
+                  <p class="text-sm text-base-content/70 mb-3">
+                    Media piece details not available
+                  </p>
+                </div>
+              <% end %>
               
 <!-- Campaign and Marketer Info -->
               <div class="space-y-2 text-sm bg-base-200 rounded-lg p-3">
@@ -134,7 +92,10 @@
                   <h5 class="font-medium mb-2">Matching Tags (Why you?)</h5>
                   <div class="space-y-2">
                     <.trait_card
-                      :for={{parent_id, parent_name, _parent_order, child_tags} <- @entry_details.matching_tags}
+                      :for={
+                        {parent_id, parent_name, _parent_order, child_tags} <-
+                          @entry_details.matching_tags
+                      }
                       parent_trait_id={parent_id}
                       parent_trait_name={parent_name}
                       tags_traits={child_tags}
