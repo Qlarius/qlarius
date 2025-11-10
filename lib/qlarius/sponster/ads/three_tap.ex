@@ -4,6 +4,7 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
 
   alias Qlarius.Sponster.AdEvent
   alias Qlarius.Sponster.Ads.{MediaPiecePhase, MediaPieceType}
+  alias Qlarius.Sponster.Campaigns.CampaignPubSub
   alias Qlarius.Wallets
 
   def create_banner_ad_event(
@@ -13,7 +14,7 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
         ip \\ "0.0.0.0",
         url \\ "https://here.com"
       ) do
-    # type = Repo.get!(MediaPieceType, 1)
+    offer = Repo.preload(offer, campaign: [])
     phase = Repo.get_by!(MediaPiecePhase, media_piece_type_id: 1, phase: 1)
 
     ad_event_attrs = %{
@@ -73,13 +74,21 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
 
     ad_event_changeset = AdEvent.changeset(%AdEvent{}, ad_event_attrs)
 
-    # TODO: determine if offer is complete
-
     case Repo.insert(ad_event_changeset) do
       {:ok, ad_event} ->
         case Wallets.update_ledgers_from_ad_event(ad_event) do
-          {:ok, _} -> {:ok, ad_event}
-          {:error, error} -> {:error, error}
+          {:ok, _} ->
+            CampaignPubSub.broadcast_campaign_updated(offer.campaign_id)
+
+            CampaignPubSub.broadcast_marketer_campaign_updated(
+              offer.campaign.marketer_id,
+              offer.campaign_id
+            )
+
+            {:ok, ad_event}
+
+          {:error, error} ->
+            {:error, error}
         end
 
       {:error, changeset} ->
@@ -94,6 +103,7 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
         ip \\ "0.0.0.0",
         url \\ "https://here.com"
       ) do
+    offer = Repo.preload(offer, campaign: [])
     type = Repo.get!(MediaPieceType, 1)
     phase = Repo.get_by!(MediaPiecePhase, media_piece_type_id: type.id, phase: 2)
     previous_phase = Repo.get_by!(MediaPiecePhase, media_piece_type_id: type.id, phase: 1)
@@ -164,13 +174,21 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
 
     ad_event_changeset = AdEvent.changeset(%AdEvent{}, ad_event_attrs)
 
-    # TODO: determine if offer is complete
-
     case Repo.insert(ad_event_changeset) do
       {:ok, ad_event} ->
         case Wallets.update_ledgers_from_ad_event(ad_event) do
-          {:ok, _} -> {:ok, ad_event}
-          {:error, error} -> {:error, error}
+          {:ok, _} ->
+            CampaignPubSub.broadcast_campaign_updated(offer.campaign_id)
+
+            CampaignPubSub.broadcast_marketer_campaign_updated(
+              offer.campaign.marketer_id,
+              offer.campaign_id
+            )
+
+            {:ok, ad_event}
+
+          {:error, error} ->
+            {:error, error}
         end
 
       {:error, changeset} ->

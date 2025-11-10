@@ -3,7 +3,7 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
 
   import Ecto.Query
   alias Qlarius.Repo
-  alias Qlarius.Sponster.Campaigns.{Target, TargetBand, TargetPopulation, Targets}
+  alias Qlarius.Sponster.Campaigns.{Target, TargetBand, TargetPopulation, Targets, CampaignPubSub}
   alias Qlarius.YouData.MeFiles.MeFileTag
 
   @impl true
@@ -109,6 +109,8 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
         {:target_populated, target_id, timestamp}
       )
 
+      broadcast_to_campaigns_using_target(target_id)
+
       :ok
     end
   end
@@ -120,6 +122,27 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
     Enum.each(bands, fn band ->
       Qlarius.Jobs.SnapshotBandPopulationsWorker.new(%{band_id: band.id})
       |> Oban.insert()
+    end)
+  end
+
+  defp broadcast_to_campaigns_using_target(target_id) do
+    alias Qlarius.Sponster.Campaigns.Campaign
+    require Logger
+
+    campaigns =
+      from(c in Campaign,
+        where: c.target_id == ^target_id and is_nil(c.deactivated_at),
+        select: {c.id, c.marketer_id}
+      )
+      |> Repo.all()
+
+    Logger.info(
+      "PopulateTargetWorker: Broadcasting target_populated to #{length(campaigns)} campaigns"
+    )
+
+    Enum.each(campaigns, fn {campaign_id, marketer_id} ->
+      CampaignPubSub.broadcast_target_populated(campaign_id)
+      CampaignPubSub.broadcast_marketer_campaign_updated(marketer_id, campaign_id)
     end)
   end
 

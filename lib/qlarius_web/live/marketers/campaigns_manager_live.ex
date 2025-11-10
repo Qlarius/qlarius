@@ -1,15 +1,21 @@
 defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
   use QlariusWeb, :live_view
   import Ecto.Query
+  require Decimal
 
+  alias Qlarius.Repo
   alias Qlarius.Sponster.Campaigns
-  alias Qlarius.Sponster.Campaigns.{Targets, MediaSequences}
+  alias Qlarius.Sponster.Campaigns.{Targets, MediaSequences, CampaignPubSub}
   alias QlariusWeb.Live.Marketers.CurrentMarketer
 
   on_mount {CurrentMarketer, :load_current_marketer}
 
   @impl true
   def mount(_params, _session, socket) do
+    if connected?(socket) && socket.assigns[:current_marketer] do
+      CampaignPubSub.subscribe_to_marketer_campaigns(socket.assigns.current_marketer.id)
+    end
+
     {:ok, socket}
   end
 
@@ -68,22 +74,30 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
 
   defp add_population_counts_to_campaigns(campaigns) do
     Enum.map(campaigns, fn campaign ->
-      population_counts = Targets.get_band_population_counts(campaign.target.id)
-      unique_reach = get_campaign_unique_reach(campaign.id)
-      banner_impressions = get_campaign_banner_impressions(campaign.id)
-      text_jumps = get_campaign_text_jumps(campaign.id)
-      spend_to_date = get_campaign_spend_to_date(campaign.id)
+      Campaigns.create_missing_bids(campaign)
+
+      refreshed_campaign = Repo.preload(campaign, [bids: []], force: true)
+
+      population_counts = Targets.get_band_population_counts(refreshed_campaign.target.id)
+      unique_reach = get_campaign_unique_reach(refreshed_campaign.id)
+      banner_impressions = get_campaign_banner_impressions(refreshed_campaign.id)
+      text_jumps = get_campaign_text_jumps(refreshed_campaign.id)
+      spend_to_date = get_campaign_spend_to_date(refreshed_campaign.id)
+      pending_offers = get_campaign_pending_offers(refreshed_campaign.id)
+      projected_spend = get_campaign_projected_spend(refreshed_campaign.id)
 
       updated_bands =
-        Enum.map(campaign.target.target_bands, fn band ->
+        Enum.map(refreshed_campaign.target.target_bands, fn band ->
           Map.put(band, :population_count, Map.get(population_counts, band.id, 0))
         end)
 
-      campaign
+      refreshed_campaign
       |> Map.put(:unique_reach, unique_reach)
       |> Map.put(:banner_impressions, banner_impressions)
       |> Map.put(:text_jumps, text_jumps)
       |> Map.put(:spend_to_date, spend_to_date)
+      |> Map.put(:pending_offers, pending_offers)
+      |> Map.put(:projected_spend, projected_spend)
       |> then(&put_in(&1.target.target_bands, updated_bands))
     end)
   end
@@ -144,6 +158,29 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
     Decimal.add(old_format_spend, new_format_spend)
   end
 
+  defp get_campaign_pending_offers(campaign_id) do
+    alias Qlarius.Sponster.Offer
+
+    Qlarius.Repo.one(
+      from o in Offer,
+        where: o.campaign_id == ^campaign_id and o.is_current == true,
+        select: count(o.id)
+    ) || 0
+  end
+
+  defp get_campaign_projected_spend(campaign_id) do
+    alias Qlarius.Sponster.Offer
+
+    total =
+      Qlarius.Repo.one(
+        from o in Offer,
+          where: o.campaign_id == ^campaign_id and o.is_current == true,
+          select: sum(o.marketer_cost_amt)
+      )
+
+    total || Decimal.new("0.00")
+  end
+
   defp assign_default_form(socket) do
     assign(
       socket,
@@ -170,12 +207,6 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
      socket
      |> assign(:show_create_modal, false)
      |> assign_default_form()}
-  end
-
-  @impl true
-  def handle_event("update_form", %{"campaign" => params}, socket) do
-    form = to_form(params)
-    {:noreply, assign(socket, :campaign_form, form)}
   end
 
   @impl true
@@ -261,6 +292,64 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
 
         {:error, _} ->
           {:noreply, put_flash(socket, :error, "Failed to reactivate campaign")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "No marketer selected")}
+    end
+  end
+
+  @impl true
+  def handle_event("launch_campaign", %{"id" => id}, socket) do
+    if socket.assigns.current_marketer do
+      campaign = Campaigns.get_campaign_for_marketer!(id, socket.assigns.current_marketer.id)
+
+      flash_message =
+        if campaign.target.population_status == "not_populated" do
+          "Campaign launched! Populating target and building offers in background..."
+        else
+          "Campaign launched! Building offers in background..."
+        end
+
+      case Campaigns.launch_campaign(campaign) do
+        {:ok, _} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, flash_message)
+           |> assign_campaigns_data()}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to launch campaign")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "No marketer selected")}
+    end
+  end
+
+  @impl true
+  def handle_event("refresh_offers", %{"id" => id}, socket) do
+    if socket.assigns.current_marketer do
+      campaign = Campaigns.get_campaign_for_marketer!(id, socket.assigns.current_marketer.id)
+
+      if campaign.launched_at do
+        flash_message =
+          if campaign.target.population_status == "not_populated" do
+            "Populating target and refreshing offers for \"#{campaign.title}\"..."
+          else
+            "Refreshing offers for \"#{campaign.title}\"..."
+          end
+
+        case Campaigns.refresh_campaign_offers(campaign) do
+          {:ok, _} ->
+            {:noreply,
+             socket
+             |> put_flash(:info, flash_message)
+             |> assign_campaigns_data()}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to refresh offers")}
+        end
+      else
+        {:noreply, put_flash(socket, :error, "Campaign must be launched first")}
       end
     else
       {:noreply, put_flash(socket, :error, "No marketer selected")}
@@ -359,25 +448,79 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
         |> assign(:editing_bids, Map.put(socket.assigns.editing_bids, campaign_id, updated_bids))
         |> assign(:bid_errors, bid_errors)
 
-      # Find first bid with error (excluding :general key)
-      first_error_bid_id =
-        errors
-        |> Enum.reject(fn {key, _} -> key == :general end)
-        |> Enum.find(fn {_bid_id, _error} -> true end)
-        |> case do
-          {bid_id, _} -> bid_id
-          nil -> nil
-        end
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("update_bid_amounts", %{"campaign_id" => campaign_id}, socket) do
+    campaign_id = String.to_integer(campaign_id)
+    campaign = Enum.find(socket.assigns.campaigns, fn c -> c.id == campaign_id end)
+
+    if campaign do
+      editing_bids = Map.get(socket.assigns.editing_bids, campaign_id, %{})
+
+      bid_changes =
+        Enum.reduce(campaign.bids, [], fn bid, acc ->
+          edited_offer_amt = get_in(editing_bids, [bid.id, :offer_amt])
+
+          if edited_offer_amt do
+            case Decimal.parse(edited_offer_amt) do
+              {new_offer_amt, _} ->
+                if not Decimal.eq?(new_offer_amt, bid.offer_amt) do
+                  new_marketer_cost_amt =
+                    new_offer_amt
+                    |> Decimal.mult(Decimal.new("1.5"))
+                    |> Decimal.add(Decimal.new("0.10"))
+                    |> Decimal.round(2)
+
+                  Qlarius.Repo.get!(Qlarius.Sponster.Campaigns.Bid, bid.id)
+                  |> Qlarius.Sponster.Campaigns.Bid.changeset(%{
+                    offer_amt: new_offer_amt,
+                    marketer_cost_amt: new_marketer_cost_amt
+                  })
+                  |> Qlarius.Repo.update!()
+
+                  [
+                    %{
+                      target_band_id: bid.target_band_id,
+                      offer_amt: Decimal.to_string(new_offer_amt),
+                      marketer_cost_amt: Decimal.to_string(new_marketer_cost_amt)
+                    }
+                    | acc
+                  ]
+                else
+                  acc
+                end
+
+              :error ->
+                acc
+            end
+          else
+            acc
+          end
+        end)
+
+      if length(bid_changes) > 0 do
+        %{
+          "campaign_id" => campaign_id,
+          "bid_changes" => bid_changes
+        }
+        |> Qlarius.Jobs.UpdateCampaignOffersWorker.new(priority: 0)
+        |> Oban.insert()
+      end
+
+      editing_bids = Map.delete(socket.assigns.editing_bids, campaign_id)
+      bid_errors = Map.delete(socket.assigns.bid_errors, campaign_id)
 
       socket =
-        if first_error_bid_id do
-          push_event(socket, "focus-bid-input", %{
-            campaign_id: campaign_id,
-            bid_id: first_error_bid_id
-          })
-        else
-          socket
-        end
+        socket
+        |> assign(:editing_bids, editing_bids)
+        |> assign(:bid_errors, bid_errors)
+        |> assign_campaigns_data()
+        |> put_flash(:info, "Bids updated. Updating existing offers in background...")
 
       {:noreply, socket}
     else
@@ -404,6 +547,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
 
         {bid, band, parsed_value}
       end)
+      |> Enum.reject(fn {_bid, band, _value} -> is_nil(band) end)
       |> Enum.sort_by(
         fn {_bid, band, _value} ->
           length(band.trait_groups)
@@ -457,6 +601,27 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
     else
       errors_map
     end
+  end
+
+  @impl true
+  def handle_info({:campaign_updated, _campaign_id}, socket) do
+    {:noreply, assign_campaigns_data(socket)}
+  end
+
+  @impl true
+  def handle_info({:target_populated, _campaign_id}, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:info, "Target populated! Creating offers...")
+     |> assign_campaigns_data()}
+  end
+
+  @impl true
+  def handle_info({:offers_created, _campaign_id, count}, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:info, "#{count} offers created successfully")
+     |> assign_campaigns_data()}
   end
 
   @impl true
@@ -527,13 +692,12 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
         show
         on_cancel={JS.push("close_create_modal")}
       >
-        <div class="space-y-6">
+        <div class="space-y-6 p-8">
           <h2 class="text-2xl font-bold">Create New Campaign</h2>
 
           <.form
             for={@campaign_form}
             phx-submit="create_campaign"
-            phx-change="update_form"
             class="space-y-4"
           >
             <div class="form-control w-full">
@@ -681,48 +845,74 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
           <div class="flex justify-between items-center px-6 py-4 border-b border-base-300">
             <div class="flex items-center gap-3">
               <.icon name="hero-megaphone" class="w-6 h-6" />
-              <h3 class="text-xl font-bold">{campaign.title}</h3>
-              <%= if campaign.is_demo do %>
-                <span class="badge badge-sm py-3">Demo</span>
-              <% end %>
-              <%= if campaign.is_payable do %>
-                <span class="badge badge-sm badge-success py-3">Payable</span>
-              <% end %>
-            </div>
-            <div class="flex items-center gap-2">
-              <%= if @archived do %>
-                <span class="badge badge-ghost py-3">Archived</span>
-              <% else %>
-                <%= if campaign.launched_at do %>
-                  <span class="badge badge-success py-3">Active</span>
-                <% else %>
-                  <span class="badge badge-warning py-3">Not Launched</span>
-                <% end %>
-              <% end %>
+              <h3 class="text-xl font-bold">
+                {campaign.title} <span class="text-base-content/50">({campaign.id})</span>
+              </h3>
               <button class="btn btn-ghost btn-sm btn-square">
                 <.icon name="hero-pencil" class="w-4 h-4" />
               </button>
+            </div>
+            <div class="flex items-center gap-4">
+              <div class="flex flex-col text-sm">
+                <span class="text-xs text-base-content/60">Start Date</span>
+                <span class="font-semibold">
+                  {if campaign.launched_at do
+                    Calendar.strftime(campaign.launched_at, "%m/%d/%Y")
+                  else
+                    "Pending"
+                  end}
+                </span>
+              </div>
+              <div class="flex flex-col text-sm">
+                <span class="text-xs text-base-content/60">End Date</span>
+                <span class="font-semibold">
+                  {(campaign.end_date && Calendar.strftime(campaign.end_date, "%m/%d/%Y")) ||
+                    "Ongoing"}
+                </span>
+              </div>
+              <div class="divider divider-horizontal mx-0"></div>
+              <div class="flex items-center gap-2">
+                <span :if={campaign.is_demo} class="badge badge-sm py-3">Demo</span>
+                <span :if={campaign.is_payable} class="badge badge-sm badge-success py-3">
+                  Payable
+                </span>
+                <%= if @archived do %>
+                  <span class="badge badge-sm badge-ghost py-3">Archived</span>
+                <% else %>
+                  <%= if campaign.launched_at do %>
+                    <span class="badge badge-sm badge-success py-3">Active</span>
+                  <% else %>
+                    <span class="badge badge-sm badge-warning py-3">Not Launched</span>
+                  <% end %>
+                <% end %>
+              </div>
             </div>
           </div>
 
           <div class="px-6 py-4">
             <div class="stats stats-vertical lg:stats-horizontal shadow-sm bg-base-200 w-full border border-base-300">
               <div class="stat">
-                <div class="stat-title text-xs opacity-60">Start Date</div>
-                <div class="stat-value text-xl">
-                  {(campaign.start_date && Calendar.strftime(campaign.start_date, "%m/%d/%Y")) ||
-                    "Not Set"}
+                <div class="stat-figure text-warning">
+                  <.icon name="hero-queue-list" class="w-8 h-8" />
                 </div>
-                <div class="stat-desc">Campaign launch</div>
+                <div class="stat-title text-xs opacity-60">Pending Offers</div>
+                <div class="stat-value text-xl text-warning">
+                  {Map.get(campaign, :pending_offers, 0)}
+                </div>
+                <div class="stat-desc">Awaiting engagement</div>
               </div>
 
               <div class="stat">
-                <div class="stat-title text-xs opacity-60">End Date</div>
-                <div class="stat-value text-xl">
-                  {(campaign.end_date && Calendar.strftime(campaign.end_date, "%m/%d/%Y")) ||
-                    "Ongoing"}
+                <div class="stat-figure text-info">
+                  <.icon name="hero-calculator" class="w-8 h-8" />
                 </div>
-                <div class="stat-desc">Target end</div>
+                <div class="stat-title text-xs opacity-60">Pending Spend</div>
+                <div class="stat-value text-xl text-info">
+                  {QlariusWeb.Money.format_usd(
+                    Map.get(campaign, :projected_spend, Decimal.new("0.00"))
+                  )}
+                </div>
+                <div class="stat-desc">Pending offers cost</div>
               </div>
 
               <div class="stat">
@@ -860,7 +1050,9 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
                             </div>
                           <% end %>
                         </td>
-                        <td class="text-center !align-top">{Map.get(band, :population_count, 0)}</td>
+                        <td class="text-center !align-top">
+                          {Map.get(band, :population_count, 0)}
+                        </td>
                         <td class="!align-top">
                           <%= if bid do %>
                             <% is_editing = Map.has_key?(@editing_bids, campaign.id) %>
@@ -918,6 +1110,10 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
                                 </div>
                               </div>
                             <% end %>
+                          <% else %>
+                            <div class="text-center text-xs text-base-content/50">
+                              No bid
+                            </div>
                           <% end %>
                         </td>
                       </tr>
@@ -946,7 +1142,12 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
                               </div>
                             <% end %>
                             <div class="flex gap-1 justify-center">
-                              <button class="btn btn-primary btn-xs" disabled={has_errors}>
+                              <button
+                                phx-click="update_bid_amounts"
+                                phx-value-campaign_id={campaign.id}
+                                class="btn btn-primary btn-xs"
+                                disabled={has_errors}
+                              >
                                 Update bid amounts
                               </button>
                               <button
@@ -1035,8 +1236,20 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
               </button>
             <% else %>
               <%= if !campaign.launched_at do %>
-                <button class="btn btn-sm btn-primary" disabled>
+                <button
+                  phx-click="launch_campaign"
+                  phx-value-id={campaign.id}
+                  class="btn btn-sm btn-primary"
+                >
                   Launch Campaign
+                </button>
+              <% else %>
+                <button
+                  phx-click="refresh_offers"
+                  phx-value-id={campaign.id}
+                  class="btn btn-sm btn-info btn-outline"
+                >
+                  <.icon name="hero-arrow-path" class="w-4 h-4" /> Refresh Offers
                 </button>
               <% end %>
               <button
