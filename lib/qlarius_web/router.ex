@@ -194,5 +194,35 @@ defmodule QlariusWeb.Router do
       live "/marketers/:id", MarketerManagerLive, :show
       live "/marketers/:id/edit", MarketerManagerLive, :edit
     end
+
+    live_session :admin_trait_categories,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
+      live "/trait_categories", TraitCategoryManagerLive, :index
+      live "/trait_categories/new", TraitCategoryManagerLive, :new
+      live "/trait_categories/:id/edit", TraitCategoryManagerLive, :edit
+    end
+
+    live_session :admin_ad_categories,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
+      live "/ad_categories", AdCategoryManagerLive, :index
+      live "/ad_categories/new", AdCategoryManagerLive, :new
+      live "/ad_categories/:id/edit", AdCategoryManagerLive, :edit
+    end
+
+    live_session :admin_survey_categories,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
+      live "/survey_categories", SurveyCategoryManagerLive, :index
+      live "/survey_categories/new", SurveyCategoryManagerLive, :new
+      live "/survey_categories/:id/edit", SurveyCategoryManagerLive, :edit
+    end
   end
 end

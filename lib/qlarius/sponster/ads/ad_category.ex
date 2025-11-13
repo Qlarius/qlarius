@@ -17,6 +17,7 @@ defmodule Qlarius.Sponster.Ads.AdCategory do
     ad_category
     |> cast(attrs, [:ad_category_name])
     |> validate_required([:ad_category_name])
+    |> unique_constraint(:ad_category_name)
   end
 end
 

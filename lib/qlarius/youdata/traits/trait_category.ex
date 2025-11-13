@@ -20,12 +20,10 @@ defmodule Qlarius.YouData.Traits.TraitCategory do
     )
   end
 
-  @doc """
-  Changeset for trait_category.
-  """
   def changeset(trait_category, attrs) do
     trait_category
     |> cast(attrs, [:name, :display_order])
     |> validate_required([:name, :display_order])
+    |> unique_constraint(:name)
   end
 end
