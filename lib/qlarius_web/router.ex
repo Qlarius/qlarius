@@ -224,5 +224,13 @@ defmodule QlariusWeb.Router do
       live "/survey_categories/new", SurveyCategoryManagerLive, :new
       live "/survey_categories/:id/edit", SurveyCategoryManagerLive, :edit
     end
+
+    live_session :admin_traits,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
+      live "/traits", TraitManagerLive, :index
+    end
   end
 end
