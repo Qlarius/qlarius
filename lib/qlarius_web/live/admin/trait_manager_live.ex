@@ -364,7 +364,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
 
         <div class="grid grid-cols-12 gap-6">
           <%!-- Column 1: Selector --%>
-          <div class="col-span-3">
+          <div class="col-span-2">
             <div class="card bg-base-100 shadow-xl">
               <div class="card-body p-4">
                 <div class="flex items-center justify-between mb-4">
@@ -415,7 +415,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
           </div>
 
           <%!-- Column 2: Details --%>
-          <div class="col-span-5">
+          <div class="col-span-7">
             <%= if @selected_parent_trait do %>
               <div class="card bg-base-100 shadow-xl">
                 <div class="card-body p-4">
@@ -563,7 +563,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
           </div>
 
           <%!-- Column 3: Editor --%>
-          <div class="col-span-4">
+          <div class="col-span-3">
             <%= case @editor_mode do %>
               <% :new_parent -> %>
                 <.parent_trait_form
