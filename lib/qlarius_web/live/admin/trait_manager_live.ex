@@ -18,7 +18,8 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
      |> assign(:editor_mode, nil)
      |> assign(:editing_item, nil)
      |> assign(:form, nil)
-     |> assign(:batch_traits_text, "")}
+     |> assign(:batch_traits_text, "")
+     |> assign(:can_delete_parent, false)}
   end
 
   def handle_event("search", %{"search" => search_query}, socket) do
@@ -28,6 +29,15 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
      socket
      |> assign(:search_query, search_query)
      |> assign(:parent_traits, TraitManager.list_parent_traits(scope, search_query))}
+  end
+
+  def handle_event("clear_search", _params, socket) do
+    scope = socket.assigns.current_scope
+
+    {:noreply,
+     socket
+     |> assign(:search_query, "")
+     |> assign(:parent_traits, TraitManager.list_parent_traits(scope, ""))}
   end
 
   def handle_event("select_parent", %{"id" => id}, socket) do
@@ -56,10 +66,13 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
     parent_trait = socket.assigns.selected_parent_trait
     changeset = Trait.changeset(parent_trait, %{})
 
+    can_delete = TraitManager.can_delete_trait?(parent_trait)
+
     {:noreply,
      socket
      |> assign(:editor_mode, :edit_parent)
      |> assign(:editing_item, parent_trait)
+     |> assign(:can_delete_parent, can_delete)
      |> assign(:form, to_form(changeset))}
   end
 
@@ -381,33 +394,41 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                 </div>
 
                 <div class="form-control mb-4">
-                  <form phx-change="search">
+                  <form phx-change="search" class="relative">
                     <input
                       type="text"
-                      placeholder="Search by name..."
-                      class="input input-bordered input-sm w-full"
+                      placeholder="Search..."
+                      class="input input-bordered input-sm w-full pr-8"
                       value={@search_query}
                       phx-debounce="300"
                       name="search"
                     />
+                    <button
+                      type="button"
+                      phx-click="clear_search"
+                      class={[
+                        "absolute right-2 top-1/2 -translate-y-1/2",
+                        @search_query == "" && "invisible pointer-events-none"
+                      ]}
+                    >
+                      <.icon name="hero-x-circle" class="w-4 h-4 opacity-50 hover:opacity-100" />
+                    </button>
                   </form>
                 </div>
 
                 <div class="overflow-y-auto max-h-[600px] space-y-1">
                   <%= for trait <- @parent_traits do %>
-                    <div class={[
-                      "flex items-center justify-between p-2 rounded hover:bg-base-200 cursor-pointer",
-                      @selected_parent_trait && @selected_parent_trait.id == trait.id &&
-                        "bg-primary/10"
-                    ]}>
+                    <div
+                      phx-click="select_parent"
+                      phx-value-id={trait.id}
+                      class={[
+                        "flex items-center justify-between p-2 rounded hover:bg-base-200 cursor-pointer",
+                        @selected_parent_trait && @selected_parent_trait.id == trait.id &&
+                          "bg-primary/10"
+                      ]}
+                    >
                       <span class="text-sm truncate flex-1">{trait.trait_name}</span>
-                      <button
-                        phx-click="select_parent"
-                        phx-value-id={trait.id}
-                        class="link link-primary text-xs"
-                      >
-                        Select
-                      </button>
+                      <.icon name="hero-chevron-right" class="w-4 h-4 text-base-content/40" />
                     </div>
                   <% end %>
                 </div>
@@ -476,12 +497,14 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                               </p>
                             </div>
                           </td>
-                          <td colspan="2" class="bg-secondary/10 border-l-4 border-base-300">
-                            <p class="text-sm">
-                              {if @selected_parent_trait.survey_question,
-                                do: @selected_parent_trait.survey_question.text,
-                                else: "--"}
-                            </p>
+                          <td colspan="2" class="bg-secondary/10 border-l-4 border-base-300 align-top">
+                            <div class="text-sm whitespace-normal break-words">
+                              <%= if @selected_parent_trait.survey_question do %>
+                                {raw(@selected_parent_trait.survey_question.text)}
+                              <% else %>
+                                --
+                              <% end %>
+                            </div>
                           </td>
                         </tr>
                         <%!-- Child Traits and Survey Answer headers --%>
@@ -580,6 +603,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                   trait_categories={@trait_categories}
                   parent_trait={@editing_item}
                   mode="edit"
+                  can_delete={@can_delete_parent}
                   on_save="save_parent_trait"
                   on_cancel="cancel_edit"
                   on_delete="delete_parent_trait"
@@ -735,14 +759,32 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
             </div>
 
             <%= if @mode == "edit" && assigns[:on_delete] do %>
+              <div class="divider"></div>
               <button
                 type="button"
-                phx-click={@on_delete}
-                data-confirm="Delete this parent trait and all children? This cannot be undone."
-                class="btn btn-error w-full"
+                phx-click={assigns[:can_delete] != false && @on_delete}
+                data-confirm={
+                  assigns[:can_delete] != false &&
+                    "Delete this parent trait and all children? This cannot be undone."
+                }
+                disabled={assigns[:can_delete] == false}
+                class={[
+                  "btn w-full",
+                  assigns[:can_delete] == false && "btn-disabled",
+                  assigns[:can_delete] != false && "btn-error"
+                ]}
+                title={
+                  assigns[:can_delete] == false &&
+                    "Cannot delete: trait or children have active tags or groups"
+                }
               >
                 Delete Parent Trait (and Children)
               </button>
+              <%= if assigns[:can_delete] == false do %>
+                <p class="text-xs text-error text-center mt-1">
+                  Cannot delete: trait or children have active tags or groups
+                </p>
+              <% end %>
             <% end %>
           </div>
         </.form>
