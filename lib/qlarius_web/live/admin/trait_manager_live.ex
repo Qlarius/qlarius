@@ -381,15 +381,16 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                 </div>
 
                 <div class="form-control mb-4">
-                  <input
-                    type="text"
-                    placeholder="Search by name..."
-                    class="input input-bordered input-sm"
-                    value={@search_query}
-                    phx-change="search"
-                    phx-debounce="300"
-                    name="search"
-                  />
+                  <form phx-change="search">
+                    <input
+                      type="text"
+                      placeholder="Search by name..."
+                      class="input input-bordered input-sm w-full"
+                      value={@search_query}
+                      phx-debounce="300"
+                      name="search"
+                    />
+                  </form>
                 </div>
 
                 <div class="overflow-y-auto max-h-[600px] space-y-1">
