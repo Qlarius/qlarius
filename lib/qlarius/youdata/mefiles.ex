@@ -194,6 +194,9 @@ defmodule Qlarius.YouData.MeFiles do
 
   defp unique_categories_in_display_order(me_file_tags) do
     me_file_tags
+    |> Enum.reject(fn me_file_tag ->
+      is_nil(me_file_tag.trait) || is_nil(me_file_tag.trait.trait_category)
+    end)
     |> Enum.reduce(%{}, fn me_file_tag, acc ->
       category = me_file_tag.trait.trait_category
       Map.put(acc, category.id, {category.id, category.name, category.display_order})

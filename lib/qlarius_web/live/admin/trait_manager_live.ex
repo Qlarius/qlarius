@@ -674,20 +674,20 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
               >
                 <option value="">Select input type...</option>
                 <option
-                  value="single_select"
-                  selected={Phoenix.HTML.Form.input_value(@form, :input_type) == "single_select"}
+                  value="SingleSelect"
+                  selected={Phoenix.HTML.Form.input_value(@form, :input_type) == "SingleSelect"}
                 >
                   Single Select
                 </option>
                 <option
-                  value="multi_select"
-                  selected={Phoenix.HTML.Form.input_value(@form, :input_type) == "multi_select"}
+                  value="MultiSelect"
+                  selected={Phoenix.HTML.Form.input_value(@form, :input_type) == "MultiSelect"}
                 >
                   Multi Select
                 </option>
                 <option
-                  value="zip_select"
-                  selected={Phoenix.HTML.Form.input_value(@form, :input_type) == "zip_select"}
+                  value="single_select_zip"
+                  selected={Phoenix.HTML.Form.input_value(@form, :input_type) == "single_select_zip"}
                 >
                   Zip Select
                 </option>
