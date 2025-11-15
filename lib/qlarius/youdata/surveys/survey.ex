@@ -2,7 +2,7 @@ defmodule Qlarius.YouData.Surveys.Survey do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.YouData.Surveys.{SurveyCategory, SurveyQuestion}
+  alias Qlarius.YouData.Surveys.{SurveyCategory, SurveyQuestion, SurveyQuestionSurvey}
 
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
@@ -16,6 +16,7 @@ defmodule Qlarius.YouData.Surveys.Survey do
 
     belongs_to :survey_category, SurveyCategory
     many_to_many :survey_questions, SurveyQuestion, join_through: "survey_question_surveys"
+    has_many :survey_question_surveys, SurveyQuestionSurvey
 
     timestamps()
   end

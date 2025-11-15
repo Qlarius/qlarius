@@ -232,5 +232,13 @@ defmodule QlariusWeb.Router do
       ] do
       live "/traits", TraitManagerLive, :index
     end
+
+    live_session :admin_surveys,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
+      live "/surveys", SurveyManagerLive, :index
+    end
   end
 end
