@@ -1,44 +1,103 @@
 # Maintenance Scripts
 
-This directory contains SQL scripts and utilities for database maintenance tasks that may need to be run in production or during migrations.
+This directory contains one-off maintenance and data migration scripts for the Qlarius application.
 
-## Scripts
+## Available Scripts
 
-### `remove_duplicate_target_populations.sql`
+### import_zip_metadata.exs
 
-**Purpose:** Removes duplicate target population records while preserving the oldest entry for each unique (target_band_id, me_file_id) combination.
+Imports zip code metadata from CSV into the `traits` table.
 
-**When to use:**
-- Before adding unique constraints to the target_populations table
-- When duplicate populations have been created
-- During production database cleanup
+**Purpose**: Populates the `meta_1`, `meta_2`, and `meta_3` fields for zip code traits with display information from a zip code database. Also creates new trait records for any zip codes in the CSV that don't exist in the database yet.
 
-**Usage:**
+**Data Source**: `priv/data/zip_code_database_small_business.csv`
+
+**Target Traits**: All traits that are children of:
+- Trait ID 4: "Home Zip Code"
+- Trait ID 5: "Work Zip Code"
+
+**Metadata Mapping**:
+- `meta_1` = "City, State" (e.g., "Austin, TX")
+- `meta_2` = Acceptable cities/alternate names (optional, from CSV column E)
+- `meta_3` = Type (e.g., "STANDARD", "UNIQUE")
+
+**Usage**:
 ```bash
-# Local development
-psql -d qlarius_dev < priv/maintenance_scripts/remove_duplicate_target_populations.sql
-
-# Production (via Fly.io console or similar)
-fly postgres connect -a <app-name>
-\i priv/maintenance_scripts/remove_duplicate_target_populations.sql
+# From the project root directory
+mix run priv/maintenance_scripts/import_zip_metadata.exs
 ```
 
-**Related Migration:** `20251105013343_add_unique_index_to_target_populations.exs`
+**Expected Output**:
+```
+========================================
+Zip Code Metadata Import Script
+========================================
 
-## Best Practices
+📂 Reading CSV file: /path/to/priv/data/zip_code_database_small_business.csv
+⏳ This may take a moment...
 
-1. **Always backup** before running maintenance scripts in production
-2. **Test locally** or in staging environment first
-3. **Run in a transaction** (BEGIN/COMMIT) so you can ROLLBACK if needed
-4. **Monitor execution time** for large tables
-5. **Check results** before committing the transaction
+✅ Parsed 42,735 zip codes from CSV
 
-## Adding New Scripts
+🔍 Fetching zip code traits from database...
+✅ Found 1,234 zip code traits in database
 
-When adding new maintenance scripts:
-1. Use descriptive filenames
-2. Include comprehensive comments explaining purpose and usage
-3. Add entry to this README
-4. Include backup recommendations
-5. Show before/after verification queries
+🔄 Updating existing trait metadata...
 
+  Progress: 1000/1234 traits processed...
+
+🆕 Creating missing zip code traits...
+
+  Found 41,501 zip codes to create
+
+  Progress: 1000/41501 new traits processed...
+  Progress: 2000/41501 new traits processed...
+  ...
+
+========================================
+Import Complete!
+========================================
+
+✅ Successfully updated: 1,200 traits
+🆕 Successfully created: 41,501 new traits
+⚠️  Zip codes not found in CSV: 34 traits
+❌ Errors: 0
+
+✨ Done!
+```
+
+**Notes**:
+- The script will overwrite any existing metadata in the `meta_1`, `meta_2`, and `meta_3` fields
+- New traits are created for any zip codes in the CSV that don't exist in the database
+- New traits are created as children of "Home Zip Code" (trait_id 4)
+- New traits default to: `is_active: true`, `input_type: single_select`, `trait_category_id: 1`
+- The script processes all matching traits and creates all missing ones in a single run
+- Progress is logged every 1,000 traits for long-running imports
+
+**Safety**:
+- Read-only on the CSV file
+- Only updates traits with `parent_trait_id` of 4 or 5
+- Uses Ecto changesets for safe database updates
+- Provides detailed logging of results
+
+**Troubleshooting**:
+- If CSV file not found: Ensure `priv/data/zip_code_database_small_business.csv` exists
+- If no traits found: Verify that zip code traits have been created with parent_trait_id 4 or 5
+- If errors occur: Check the error details in the output for specific trait/data issues
+
+## Running Scripts in Production
+
+To run these scripts on Gigalixir or other production environments:
+
+```bash
+# SSH into your Gigalixir console
+gigalixir ps:remote_console
+
+# Then run the script
+{:ok, _} = :file.set_cwd("/app")
+Code.eval_file("priv/maintenance_scripts/import_zip_metadata.exs")
+```
+
+Or use the one-liner approach:
+```bash
+gigalixir run "mix run priv/maintenance_scripts/import_zip_metadata.exs"
+```

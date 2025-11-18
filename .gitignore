@@ -48,4 +48,4 @@ priv/repo/structure.sql
 .env
 .env.backup
 .env.local
-.env.remote
+.env.remotepriv/data/*.csv
