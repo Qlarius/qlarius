@@ -84,7 +84,7 @@ defmodule QlariusWeb.MeFileHTML do
                     class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-4 px-2 hover:bg-base-200 cursor-pointer"
                   >
                     <input
-                      :if={@trait_in_edit.input_type == "SingleSelect"}
+                      :if={@trait_in_edit.input_type == "single_select"}
                       type="radio"
                       name="child_trait_ids[]"
                       value={child_trait.id}
@@ -93,7 +93,7 @@ defmodule QlariusWeb.MeFileHTML do
                       class="radio w-7 h-7"
                     />
                     <input
-                      :if={@trait_in_edit.input_type == "MultiSelect"}
+                      :if={@trait_in_edit.input_type == "multi_select"}
                       type="checkbox"
                       name="child_trait_ids[]"
                       value={child_trait.id}
