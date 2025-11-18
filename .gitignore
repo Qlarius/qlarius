@@ -48,4 +48,8 @@ priv/repo/structure.sql
 .env
 .env.backup
 .env.local
-.env.remotepriv/data/*.csv
+.env.remote
+
+# Large data files
+priv/data/zip_code_database_small_business.csv
+priv/data/zip_codes_minimal.csv

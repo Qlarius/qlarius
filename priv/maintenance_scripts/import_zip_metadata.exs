@@ -8,7 +8,7 @@
 #   mix run priv/maintenance_scripts/import_zip_metadata.exs
 #
 # The script will:
-# - Read from priv/data/zip_code_database_small_business.csv
+# - Read from priv/data/zip_codes_minimal.csv.gz (compressed)
 # - Match zip codes to trait_name values
 # - Update existing traits with metadata
 # - Create new traits for any zip codes missing from the database
@@ -27,18 +27,18 @@ defmodule ZipMetadataImporter do
     IO.puts("Zip Code Metadata Import Script")
     IO.puts("========================================\n")
 
-    csv_path = Path.join(:code.priv_dir(:qlarius), "data/zip_code_database_small_business.csv")
+    csv_path = Path.join(:code.priv_dir(:qlarius), "data/zip_codes_minimal.csv.gz")
 
     unless File.exists?(csv_path) do
       IO.puts("❌ Error: CSV file not found at #{csv_path}")
       System.halt(1)
     end
 
-    IO.puts("📂 Reading CSV file: #{csv_path}")
+    IO.puts("📂 Reading gzipped CSV file: #{csv_path}")
     IO.puts("⏳ This may take a moment...\n")
 
     # Read CSV and build zip code map
-    zip_data = parse_csv(csv_path)
+    zip_data = parse_csv_gz(csv_path)
     IO.puts("✅ Parsed #{map_size(zip_data)} zip codes from CSV\n")
 
     # Get all zip code traits (children of trait 4 or 5)
@@ -74,9 +74,9 @@ defmodule ZipMetadataImporter do
     display_results(results)
   end
 
-  defp parse_csv(csv_path) do
+  defp parse_csv_gz(csv_path) do
     csv_path
-    |> File.stream!()
+    |> File.stream!([:compressed])
     |> Stream.drop(1)
     |> Stream.map(&String.trim/1)
     |> Stream.reject(&(&1 == ""))

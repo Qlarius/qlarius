@@ -10,7 +10,7 @@ Imports zip code metadata from CSV into the `traits` table.
 
 **Purpose**: Populates the `meta_1`, `meta_2`, and `meta_3` fields for zip code traits with display information from a zip code database. Also creates new trait records for any zip codes in the CSV that don't exist in the database yet.
 
-**Data Source**: `priv/data/zip_code_database_small_business.csv`
+**Data Source**: `priv/data/zip_codes_minimal.csv.gz` (gzipped minimal CSV, 351KB - only required columns: zip, type, primary_city, acceptable_cities, state)
 
 **Target Traits**: All traits that are children of:
 - Trait ID 4: "Home Zip Code"
@@ -33,7 +33,7 @@ mix run priv/maintenance_scripts/import_zip_metadata.exs
 Zip Code Metadata Import Script
 ========================================
 
-📂 Reading CSV file: /path/to/priv/data/zip_code_database_small_business.csv
+📂 Reading gzipped CSV file: /path/to/priv/data/zip_codes_minimal.csv.gz
 ⏳ This may take a moment...
 
 ✅ Parsed 42,735 zip codes from CSV
