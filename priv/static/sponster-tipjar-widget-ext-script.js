@@ -19,7 +19,7 @@ var hostURL = parent.document.URL
 // var theme = getParentTheme();
 
 announcerDiv.setAttribute("style", "width:100%;position:fixed;bottom:0px;right:0;z-index:999999;height:80px;border-top-right-radius: 8px;border-top-left-radius: 8px;background: transparent;")
-announcerDiv.innerHTML = `<iframe id='ydadget_sponster_announcer_iframe' src='https://localhost:4001/widgets/ads_ext_announcer?split_code=${splitCode}&host_url=${hostURL}&force_theme=light' width='100%' height='80' frameBorder='0' allowtransparency='true' style='background: transparent !important;' />`;
+announcerDiv.innerHTML = `<iframe id='ydadget_sponster_announcer_iframe' src='../../widgets/ads_ext_announcer?split_code=${splitCode}&host_url=${hostURL}&force_theme=light' width='100%' height='80' frameBorder='0' allowtransparency='true' style='background: transparent !important;' />`;
 
 var sponsterWidgetCss = 
 `<style>
@@ -95,7 +95,7 @@ var widgetMarkup =
             style='height:90vh;border-top-right-radius: 8px;border-top-left-radius: 8px;background: transparent !important;' 
             frameBorder='0' 
             allowtransparency='true'
-            src='https://localhost:4001/widgets/ads_ext/${splitCode}?&in_frame=true&host_url=${hostURL}&force_theme=light'
+            src='../../widgets/ads_ext/${splitCode}?&in_frame=true&host_url=${hostURL}&force_theme=light'
         />
     </div>
 `

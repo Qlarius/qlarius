@@ -9,7 +9,7 @@ defmodule Qlarius.YouData.TraitManager do
     query =
       from t in Trait,
         where: is_nil(t.parent_trait_id),
-        where: t.active == 1,
+        where: t.is_active == true,
         order_by: [asc: t.display_order, asc: t.trait_name],
         preload: [:trait_category]
 
@@ -84,10 +84,7 @@ defmodule Qlarius.YouData.TraitManager do
     attrs =
       attrs
       |> Map.put("display_order", max_display_order + 1)
-      |> Map.put("active", 1)
-      |> Map.put("is_taggable", 1)
-      |> Map.put("is_campaign_only", false)
-      |> Map.put("is_numeric", false)
+      |> Map.put("is_active", true)
       |> Map.put("added_by", scope.true_user.id)
       |> Map.put("modified_by", scope.true_user.id)
 
@@ -190,10 +187,7 @@ defmodule Qlarius.YouData.TraitManager do
           "parent_trait_id" => parent_trait.id,
           "trait_category_id" => parent_trait.trait_category_id,
           "input_type" => parent_trait.input_type,
-          "is_taggable" => parent_trait.is_taggable,
-          "active" => 1,
-          "is_campaign_only" => false,
-          "is_numeric" => false,
+          "is_active" => true,
           "display_order" => max_display_order + index,
           "added_by" => scope.true_user.id,
           "modified_by" => scope.true_user.id
@@ -321,6 +315,27 @@ defmodule Qlarius.YouData.TraitManager do
     sorted_children =
       parent_trait.child_traits
       |> Enum.sort_by(&{&1.display_order, &1.trait_name})
+
+    Repo.transaction(fn ->
+      sorted_children
+      |> Enum.with_index(1)
+      |> Enum.each(fn {child, new_order} ->
+        child
+        |> Ecto.Changeset.change(%{
+          display_order: new_order,
+          modified_by: scope.true_user.id
+        })
+        |> Repo.update!()
+      end)
+    end)
+  end
+
+  def restripe_child_display_order_alphabetically(scope, %Trait{} = parent_trait) do
+    parent_trait = Repo.preload(parent_trait, :child_traits)
+
+    sorted_children =
+      parent_trait.child_traits
+      |> Enum.sort_by(&String.downcase(&1.trait_name))
 
     Repo.transaction(fn ->
       sorted_children

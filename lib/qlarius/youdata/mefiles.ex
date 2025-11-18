@@ -213,7 +213,9 @@ defmodule Qlarius.YouData.MeFiles do
         raw_tag_map
         |> Enum.filter(fn me_file_tag ->
           {id, _, _} = category
-          me_file_tag.trait.trait_category.id == id
+
+          !is_nil(me_file_tag.trait) && !is_nil(me_file_tag.trait.trait_category) &&
+            me_file_tag.trait.trait_category.id == id
         end)
         |> Enum.map(fn me_file_tag ->
           trait = me_file_tag.trait

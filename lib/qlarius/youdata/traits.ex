@@ -25,7 +25,7 @@ defmodule Qlarius.YouData.Traits do
   def list_trait_categories_with_traits do
     trait_query =
       from t in Trait,
-        where: is_nil(t.parent_trait_id) and t.active == 1,
+        where: is_nil(t.parent_trait_id) and t.is_active == true,
         order_by: t.display_order
 
     Repo.all(

@@ -143,28 +143,25 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
     scope = socket.assigns.current_scope
     parent_trait = socket.assigns.selected_parent_trait
 
-    case TraitManager.batch_create_child_traits(scope, parent_trait, traits_text) do
-      {:ok, %{created: created, failed: failed}} ->
-        message =
-          if failed > 0 do
-            "#{created} child traits created, #{failed} failed."
-          else
-            "#{created} child traits created successfully."
-          end
+    {:ok, %{created: created, failed: failed}} =
+      TraitManager.batch_create_child_traits(scope, parent_trait, traits_text)
 
-        {:noreply,
-         socket
-         |> put_flash(:info, message)
-         |> assign(
-           :selected_parent_trait,
-           TraitManager.get_parent_trait_with_details(scope, parent_trait.id)
-         )
-         |> assign(:editor_mode, nil)
-         |> assign(:batch_traits_text, "")}
+    message =
+      if failed > 0 do
+        "#{created} child traits created, #{failed} failed."
+      else
+        "#{created} child traits created successfully."
+      end
 
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Failed to create child traits.")}
-    end
+    {:noreply,
+     socket
+     |> put_flash(:info, message)
+     |> assign(
+       :selected_parent_trait,
+       TraitManager.get_parent_trait_with_details(scope, parent_trait.id)
+     )
+     |> assign(:editor_mode, nil)
+     |> assign(:batch_traits_text, "")}
   end
 
   def handle_event("edit_child_trait", %{"id" => id}, socket) do
@@ -361,6 +358,25 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
     end
   end
 
+  def handle_event("restripe_display_order_alphabetically", _params, socket) do
+    scope = socket.assigns.current_scope
+    parent_trait = socket.assigns.selected_parent_trait
+
+    case TraitManager.restripe_child_display_order_alphabetically(scope, parent_trait) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Display order restriped alphabetically.")
+         |> assign(
+           :selected_parent_trait,
+           TraitManager.get_parent_trait_with_details(scope, parent_trait.id)
+         )}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to restripe display order.")}
+    end
+  end
+
   def handle_event("cancel_edit", _params, socket) do
     {:noreply,
      socket
@@ -377,7 +393,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
 
         <div class="grid grid-cols-12 gap-6">
           <%!-- Column 1: Selector --%>
-          <div class="col-span-2">
+          <div class="col-span-3">
             <div class="card bg-base-100 shadow-xl">
               <div class="card-body p-4">
                 <div class="flex items-center justify-between mb-4">
@@ -437,7 +453,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
           </div>
 
           <%!-- Column 2: Details --%>
-          <div class="col-span-7">
+          <div class="col-span-6">
             <%= if @selected_parent_trait do %>
               <div class="card bg-base-100 shadow-xl">
                 <div class="card-body p-4">
@@ -570,9 +586,15 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                     </table>
                   </div>
 
-                  <div class="mt-2">
+                  <div class="mt-2 flex gap-2">
                     <button phx-click="restripe_display_order" class="btn btn-sm btn-warning">
                       Restripe Display Order as Current
+                    </button>
+                    <button
+                      phx-click="restripe_display_order_alphabetically"
+                      class="btn btn-sm btn-info"
+                    >
+                      Restripe Alphabetically
                     </button>
                   </div>
                 </div>

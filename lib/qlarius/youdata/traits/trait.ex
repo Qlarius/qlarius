@@ -16,18 +16,12 @@ defmodule Qlarius.YouData.Traits.Trait do
   @timestamps_opts [type: :naive_datetime, inserted_at: :added_date, updated_at: :modified_date]
   schema "traits" do
     field :trait_name, :string
-    field :active, :integer
-    field :is_taggable, :integer
+    field :is_active, :boolean, default: true
     field :input_type, :string
     field :display_order, :integer
-    field :is_campaign_only, :boolean, default: false
-    field :is_numeric, :boolean, default: false
     field :modified_by, :integer
     field :added_by, :integer
-    field :immutable, :boolean, default: false
     field :max_length, :integer
-    field :max_selected, :integer
-    field :is_date, :boolean, default: false
 
     belongs_to :parent_trait, __MODULE__, foreign_key: :parent_trait_id
     # TraitCategory association commented - schema only in archive_hide
@@ -48,25 +42,18 @@ defmodule Qlarius.YouData.Traits.Trait do
     trait
     |> cast(attrs, [
       :trait_name,
-      :active,
-      :is_taggable,
+      :is_active,
       :input_type,
       :display_order,
       :parent_trait_id,
-      :is_campaign_only,
-      :is_numeric,
       :modified_by,
       :added_by,
       :trait_category_id,
-      :immutable,
-      :max_length,
-      :max_selected,
-      :is_date
+      :max_length
     ])
     |> validate_required([
       :trait_name,
-      :active,
-      :is_taggable,
+      :is_active,
       :input_type,
       :display_order,
       :modified_by,

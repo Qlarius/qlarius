@@ -539,6 +539,14 @@ defmodule QlariusWeb.Admin.SurveyManagerLive do
                               </div>
                               <%= for trait <- traits do %>
                                 <div class="flex items-start gap-2 p-2 rounded hover:bg-base-200">
+                                  <button
+                                    phx-click="add_question"
+                                    phx-value-question_id={trait.survey_question.id}
+                                    class="btn btn-xs btn-circle btn-primary"
+                                    title="Add to survey"
+                                  >
+                                    <.icon name="hero-arrow-left" class="w-3 h-3" />
+                                  </button>
                                   <div class="flex-1">
                                     <div class="text-xs font-semibold text-base-content/70">
                                       {trait.trait_name}
@@ -547,14 +555,6 @@ defmodule QlariusWeb.Admin.SurveyManagerLive do
                                       {trait.survey_question.text}
                                     </div>
                                   </div>
-                                  <button
-                                    phx-click="add_question"
-                                    phx-value-question_id={trait.survey_question.id}
-                                    class="btn btn-xs btn-circle btn-primary"
-                                    title="Add to survey"
-                                  >
-                                    <.icon name="hero-plus" class="w-3 h-3" />
-                                  </button>
                                 </div>
                               <% end %>
                             </div>
@@ -628,18 +628,6 @@ defmodule QlariusWeb.Admin.SurveyManagerLive do
                 required
               />
             <% end %>
-
-            <div class="form-control">
-              <label class="label cursor-pointer">
-                <span class="label-text">Active</span>
-                <input
-                  type="checkbox"
-                  name="survey[active]"
-                  class="checkbox"
-                  checked={Phoenix.HTML.Form.input_value(@form, :active)}
-                />
-              </label>
-            </div>
 
             <div class="flex gap-2">
               <button type="submit" class="btn btn-primary flex-1">

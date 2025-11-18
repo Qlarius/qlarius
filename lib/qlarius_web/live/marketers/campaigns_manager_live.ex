@@ -239,25 +239,6 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
     end
   end
 
-  defp normalize_campaign_params(params) do
-    params
-    |> Map.update("is_throttled", false, fn
-      "on" -> true
-      "" -> false
-      val -> val
-    end)
-    |> Map.update("is_payable", false, fn
-      "on" -> true
-      "" -> false
-      val -> val
-    end)
-    |> Map.update("is_demo", false, fn
-      "on" -> true
-      "" -> false
-      val -> val
-    end)
-  end
-
   @impl true
   def handle_event("deactivate_campaign", %{"id" => id}, socket) do
     if socket.assigns.current_marketer do
@@ -526,6 +507,25 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
     else
       {:noreply, socket}
     end
+  end
+
+  defp normalize_campaign_params(params) do
+    params
+    |> Map.update("is_throttled", false, fn
+      "on" -> true
+      "" -> false
+      val -> val
+    end)
+    |> Map.update("is_payable", false, fn
+      "on" -> true
+      "" -> false
+      val -> val
+    end)
+    |> Map.update("is_demo", false, fn
+      "on" -> true
+      "" -> false
+      val -> val
+    end)
   end
 
   defp validate_campaign_bids(campaign, bid_edits) do

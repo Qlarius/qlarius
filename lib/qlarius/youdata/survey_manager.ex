@@ -85,7 +85,7 @@ defmodule Qlarius.YouData.SurveyManager do
     Repo.all(
       from t in Trait,
         where: is_nil(t.parent_trait_id),
-        where: t.active == 1,
+        where: t.is_active == true,
         where: not is_nil(t.trait_category_id),
         join: sq in assoc(t, :survey_question),
         join: tc in assoc(t, :trait_category),
@@ -109,7 +109,7 @@ defmodule Qlarius.YouData.SurveyManager do
     Repo.all(
       from t in Trait,
         where: is_nil(t.parent_trait_id),
-        where: t.active == 1,
+        where: t.is_active == true,
         where: not is_nil(t.trait_category_id),
         join: sq in assoc(t, :survey_question),
         join: tc in assoc(t, :trait_category),
@@ -128,6 +128,7 @@ defmodule Qlarius.YouData.SurveyManager do
     attrs =
       attrs
       |> Map.put("display_order", max_display_order + 1)
+      |> Map.put("active", true)
       |> Map.put("created_by", scope.true_user.id)
       |> Map.put("updated_by", scope.true_user.id)
 
