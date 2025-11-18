@@ -22,6 +22,9 @@ defmodule Qlarius.YouData.Traits.Trait do
     field :modified_by, :integer
     field :added_by, :integer
     field :max_length, :integer
+    field :meta_1, :string
+    field :meta_2, :string
+    field :meta_3, :string
 
     belongs_to :parent_trait, __MODULE__, foreign_key: :parent_trait_id
     # TraitCategory association commented - schema only in archive_hide
