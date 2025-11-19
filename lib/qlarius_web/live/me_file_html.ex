@@ -125,7 +125,9 @@ defmodule QlariusWeb.MeFileHTML do
                 </div>
                 <div
                   :if={
-                    @trait_in_edit.child_traits && @trait_in_edit.input_type != "single_select_zip"
+                    @trait_in_edit.input_type != "single_select_zip" &&
+                      Ecto.assoc_loaded?(@trait_in_edit.child_traits) &&
+                      @trait_in_edit.child_traits != []
                   }
                   class="py-0"
                 >
@@ -191,7 +193,13 @@ defmodule QlariusWeb.MeFileHTML do
                   <input type="hidden" name="child_trait_ids[]" value={child_trait_id} />
                 <% end %>
                 <div class="space-y-4">
-                  <div :if={@trait_in_edit.child_traits} class="py-0">
+                  <div
+                    :if={
+                      Ecto.assoc_loaded?(@trait_in_edit.child_traits) &&
+                        @trait_in_edit.child_traits != []
+                    }
+                    class="py-0"
+                  >
                     <%= for child_trait <- Enum.sort_by(@trait_in_edit.child_traits, & &1.display_order) do %>
                       <%= if child_trait.id in @selected_ids do %>
                         <div class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-3 px-2">

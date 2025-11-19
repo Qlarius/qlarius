@@ -95,12 +95,14 @@ defmodule Qlarius.YouData.Traits do
 
     case trait.parent_trait_id do
       nil ->
-        {:ok,
-         trait
-         |> Repo.preload([
-           :survey_question,
-           child_traits: :survey_answer
-         ])}
+        preloads =
+          if trait.input_type == "single_select_zip" do
+            [:survey_question]
+          else
+            [:survey_question, child_traits: :survey_answer]
+          end
+
+        {:ok, trait |> Repo.preload(preloads)}
 
       _ ->
         {:error, :not_parent_trait}
