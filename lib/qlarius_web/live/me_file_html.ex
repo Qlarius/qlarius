@@ -40,6 +40,10 @@ defmodule QlariusWeb.MeFileHTML do
   attr :selected_ids, :list, default: []
   attr :show_modal, :boolean, default: false
   attr :tag_edit_mode, :string, default: "update"
+  attr :zip_lookup_input, :string, default: ""
+  attr :zip_lookup_trait, :any, default: nil
+  attr :zip_lookup_valid, :boolean, default: false
+  attr :zip_lookup_error, :string, default: nil
 
   def tag_edit_modal(assigns) do
     ~H"""
@@ -76,7 +80,55 @@ defmodule QlariusWeb.MeFileHTML do
               <div class="flex-1 overflow-y-auto p-4">
                 <input type="hidden" name="me_file_id" value={@me_file_id} />
                 <input type="hidden" name="trait_id" value={@trait_in_edit.id} />
-                <div :if={@trait_in_edit.child_traits} class="py-0">
+                <div
+                  :if={@trait_in_edit.input_type == "single_select_zip"}
+                  class="space-y-4"
+                >
+                  <div class="form-control">
+                    <label class="label">
+                      <span class="label-text text-lg">Enter 5-digit zip code:</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="zip_code_input"
+                      value={@zip_lookup_input}
+                      phx-change="lookup_zip_code"
+                      maxlength="5"
+                      pattern="\d{5}"
+                      inputmode="numeric"
+                      autocomplete="postal-code"
+                      data-1p-ignore="true"
+                      data-lpignore="true"
+                      data-form-type="other"
+                      class="input input-bordered input-lg w-full text-lg"
+                    />
+                  </div>
+
+                  <div class="min-h-[4rem]">
+                    <div :if={@zip_lookup_trait && @zip_lookup_valid} class="space-y-2">
+                      <div class="badge badge-primary badge-lg p-4">
+                        <.icon name="hero-map-pin" class="w-5 h-5" />
+                        {@zip_lookup_trait.meta_1}
+                      </div>
+                      <input
+                        type="hidden"
+                        name="child_trait_ids[]"
+                        value={@zip_lookup_trait.id}
+                      />
+                    </div>
+
+                    <div :if={@zip_lookup_error} class="alert alert-error">
+                      <.icon name="hero-exclamation-triangle" class="w-6 h-6" />
+                      <span>{@zip_lookup_error}</span>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  :if={
+                    @trait_in_edit.child_traits && @trait_in_edit.input_type != "single_select_zip"
+                  }
+                  class="py-0"
+                >
                   <label
                     :for={
                       child_trait <- Enum.sort_by(@trait_in_edit.child_traits, & &1.display_order)
@@ -116,7 +168,13 @@ defmodule QlariusWeb.MeFileHTML do
                 <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost">
                   Cancel
                 </button>
-                <button type="submit" class="btn btn-lg btn-primary">Save/Update Tags</button>
+                <button
+                  type="submit"
+                  class="btn btn-lg btn-primary"
+                  disabled={@trait_in_edit.input_type == "single_select_zip" && !@zip_lookup_valid}
+                >
+                  Save/Update Tags
+                </button>
               </div>
             </.form>
           <% @tag_edit_mode == "delete" -> %>

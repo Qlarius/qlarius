@@ -10,7 +10,14 @@ Imports zip code metadata from CSV into the `traits` table.
 
 **Purpose**: Populates the `meta_1`, `meta_2`, and `meta_3` fields for zip code traits with display information from a zip code database. Also creates new trait records for any zip codes in the CSV that don't exist in the database yet.
 
-**Data Source**: `priv/data/zip_codes_minimal.csv.gz` (gzipped minimal CSV, 351KB - only required columns: zip, type, primary_city, acceptable_cities, state)
+**Data Source**: `priv/data/zip_code_database_small_business.csv`
+
+**CSV Format**:
+The CSV has 4 columns:
+- Column 1: `zip` - 5-digit zip code
+- Column 2: `city` - City name
+- Column 3: `state` - State abbreviation (2 letters)
+- Column 4: `type` - Zip code type (STANDARD, UNIQUE, PO BOX, etc.)
 
 **Target Traits**: All traits that are children of:
 - Trait ID 4: "Home Zip Code"
@@ -18,8 +25,8 @@ Imports zip code metadata from CSV into the `traits` table.
 
 **Metadata Mapping**:
 - `meta_1` = "City, State" (e.g., "Austin, TX")
-- `meta_2` = Acceptable cities/alternate names (optional, from CSV column E)
-- `meta_3` = Type (e.g., "STANDARD", "UNIQUE")
+- `meta_2` = Type (e.g., "STANDARD", "UNIQUE") - used for validation
+- `meta_3` = nil (not used)
 
 **Usage**:
 ```bash
@@ -33,7 +40,7 @@ mix run priv/maintenance_scripts/import_zip_metadata.exs
 Zip Code Metadata Import Script
 ========================================
 
-📂 Reading gzipped CSV file: /path/to/priv/data/zip_codes_minimal.csv.gz
+📂 Reading CSV file: /path/to/priv/data/zip_code_database_small_business.csv
 ⏳ This may take a moment...
 
 ✅ Parsed 42,735 zip codes from CSV
@@ -72,6 +79,7 @@ Import Complete!
 - New traits default to: `is_active: true`, `input_type: single_select`, `trait_category_id: 1`
 - The script processes all matching traits and creates all missing ones in a single run
 - Progress is logged every 1,000 traits for long-running imports
+- Only zip codes with `type = "STANDARD"` are accepted for tagging in the UI
 
 **Safety**:
 - Read-only on the CSV file
@@ -101,3 +109,5 @@ Or use the one-liner approach:
 ```bash
 gigalixir run "mix run priv/maintenance_scripts/import_zip_metadata.exs"
 ```
+
+**Note**: The CSV file (`priv/data/zip_code_database_small_business.csv`) is not tracked in Git due to its size (~1.3MB). You'll need to upload it to production separately or include it in your deployment process.

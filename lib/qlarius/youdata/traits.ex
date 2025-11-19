@@ -464,6 +464,20 @@ defmodule Qlarius.YouData.Traits do
     |> Repo.one()
   end
 
+  @doc """
+  Gets a zip code trait by parent trait ID and zip code value.
+  Returns the child trait matching the zip code with its metadata.
+  """
+  def get_zip_code_trait(parent_trait_id, zip_code) do
+    Repo.one(
+      from t in Trait,
+        where: t.parent_trait_id == ^parent_trait_id,
+        where: t.trait_name == ^zip_code,
+        where: t.is_active == true,
+        select: t
+    )
+  end
+
   # defp filter_empty_traits(category) do
   #   %{category | traits: Enum.filter(category.traits, &(length(&1.values) > 0))}
   # end

@@ -50,6 +50,7 @@ priv/repo/structure.sql
 .env.local
 .env.remote
 
-# Large data files
+# Large data files (exclude from version control)
 priv/data/zip_code_database_small_business.csv
 priv/data/zip_codes_minimal.csv
+priv/data/zip_codes_minimal.csv.gz

@@ -8,13 +8,13 @@
 #   mix run priv/maintenance_scripts/import_zip_metadata.exs
 #
 # The script will:
-# - Read from priv/data/zip_codes_minimal.csv.gz (compressed)
+# - Read from priv/data/zip_code_database_small_business.csv
 # - Match zip codes to trait_name values
 # - Update existing traits with metadata
 # - Create new traits for any zip codes missing from the database
 # - Set meta_1 = "City, State" (e.g., "Austin, TX")
-# - Set meta_2 = acceptable_cities (optional)
-# - Set meta_3 = type (e.g., "STANDARD", "UNIQUE")
+# - Set meta_2 = type (e.g., "STANDARD", "UNIQUE")
+# - Set meta_3 = nil (not used)
 # - Log progress and results
 
 alias Qlarius.Repo
@@ -27,21 +27,19 @@ defmodule ZipMetadataImporter do
     IO.puts("Zip Code Metadata Import Script")
     IO.puts("========================================\n")
 
-    csv_path = Path.join(:code.priv_dir(:qlarius), "data/zip_codes_minimal.csv.gz")
+    csv_path = Path.join(:code.priv_dir(:qlarius), "data/zip_code_database_small_business.csv")
 
     unless File.exists?(csv_path) do
       IO.puts("❌ Error: CSV file not found at #{csv_path}")
       System.halt(1)
     end
 
-    IO.puts("📂 Reading gzipped CSV file: #{csv_path}")
+    IO.puts("📂 Reading CSV file: #{csv_path}")
     IO.puts("⏳ This may take a moment...\n")
 
-    # Read CSV and build zip code map
-    zip_data = parse_csv_gz(csv_path)
+    zip_data = parse_csv(csv_path)
     IO.puts("✅ Parsed #{map_size(zip_data)} zip codes from CSV\n")
 
-    # Get all zip code traits (children of trait 4 or 5)
     IO.puts("🔍 Fetching zip code traits from database...")
 
     zip_traits =
@@ -53,16 +51,13 @@ defmodule ZipMetadataImporter do
 
     IO.puts("✅ Found #{length(zip_traits)} zip code traits in database\n")
 
-    # Process updates
     IO.puts("🔄 Updating existing trait metadata...\n")
     update_results = update_traits(zip_traits, zip_data)
 
-    # Create missing traits
     IO.puts("\n🆕 Creating missing zip code traits...\n")
     existing_zips = MapSet.new(zip_traits, & &1.trait_name)
     create_results = create_missing_traits(zip_data, existing_zips)
 
-    # Combine results
     results = %{
       updated: update_results.updated,
       not_found: update_results.not_found,
@@ -70,13 +65,12 @@ defmodule ZipMetadataImporter do
       errors: update_results.errors ++ create_results.errors
     }
 
-    # Display results
     display_results(results)
   end
 
-  defp parse_csv_gz(csv_path) do
+  defp parse_csv(csv_path) do
     csv_path
-    |> File.stream!([:compressed])
+    |> File.stream!()
     |> Stream.drop(1)
     |> Stream.map(&String.trim/1)
     |> Stream.reject(&(&1 == ""))
@@ -88,24 +82,16 @@ defmodule ZipMetadataImporter do
   end
 
   defp parse_csv_line(line) do
-    parts = String.split(line, ",", parts: 10)
-
-    case parts do
-      [zip, type, _decom, primary_city, acceptable, _unacceptable, state | _rest] ->
+    case String.split(line, ",") do
+      [zip, city, state, type] ->
         zip = String.trim(zip)
-        type = String.trim(type)
-        primary_city = String.trim(primary_city)
-        acceptable = String.trim(acceptable)
+        city = String.trim(city)
         state = String.trim(state)
+        type = String.trim(type)
 
-        # Build meta_1: "City, State"
-        meta_1 = "#{primary_city}, #{state}"
-
-        # meta_2: acceptable_cities, nil if empty
-        meta_2 = if acceptable == "", do: nil, else: acceptable
-
-        # meta_3: type
-        meta_3 = type
+        meta_1 = "#{city}, #{state}"
+        meta_2 = type
+        meta_3 = nil
 
         {zip, %{meta_1: meta_1, meta_2: meta_2, meta_3: meta_3}}
 
@@ -165,7 +151,6 @@ defmodule ZipMetadataImporter do
     if length(missing_zips) == 0 do
       %{created: 0, errors: []}
     else
-      # Get max display_order for zip code traits
       max_display_order =
         Repo.one(
           from t in Trait,
@@ -236,5 +221,4 @@ defmodule ZipMetadataImporter do
   end
 end
 
-# Run the importer
 ZipMetadataImporter.run()
