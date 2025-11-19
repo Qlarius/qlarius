@@ -29,22 +29,42 @@ defmodule Qlarius.YouData.TraitManager do
       Repo.get!(Trait, id)
       |> Repo.preload([
         :trait_category,
-        :survey_question,
-        child_traits: from(t in Trait, order_by: [asc: t.display_order, asc: t.trait_name])
+        :survey_question
       ])
 
-    children_with_stats =
-      Enum.map(parent.child_traits, fn child ->
-        stats = get_trait_stats(child.id)
+    # For single_select_zip traits, only fetch the count to avoid loading 42K+ records
+    if parent.input_type == "single_select_zip" do
+      child_count =
+        Repo.one(
+          from t in Trait,
+            where: t.parent_trait_id == ^parent.id,
+            select: count(t.id)
+        ) || 0
 
-        Map.merge(child, %{
-          tags_count: stats.tags_count,
-          grps_count: stats.grps_count,
-          survey_answer: get_survey_answer_for_trait(child.id)
-        })
-      end)
+      Map.merge(parent, %{
+        child_traits: [],
+        child_traits_count: child_count
+      })
+    else
+      parent =
+        parent
+        |> Repo.preload(
+          child_traits: from(t in Trait, order_by: [asc: t.display_order, asc: t.trait_name])
+        )
 
-    Map.put(parent, :child_traits, children_with_stats)
+      children_with_stats =
+        Enum.map(parent.child_traits, fn child ->
+          stats = get_trait_stats(child.id)
+
+          Map.merge(child, %{
+            tags_count: stats.tags_count,
+            grps_count: stats.grps_count,
+            survey_answer: get_survey_answer_for_trait(child.id)
+          })
+        end)
+
+      Map.put(parent, :child_traits, children_with_stats)
+    end
   end
 
   defp get_survey_answer_for_trait(trait_id) do

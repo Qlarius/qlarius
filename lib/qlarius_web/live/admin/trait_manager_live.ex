@@ -523,80 +523,101 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                             </div>
                           </td>
                         </tr>
-                        <%!-- Child Traits and Survey Answer headers --%>
-                        <tr>
-                          <th class="bg-primary/20">Child Traits</th>
-                          <th class="bg-primary/20 text-center">Ordr</th>
-                          <th class="bg-primary/20 text-center">Tags</th>
-                          <th class="bg-primary/20 text-center">Grps</th>
-                          <th class="bg-primary/20 text-center">
-                            <button
-                              phx-click="new_child_traits"
-                              class="btn btn-xs btn-circle btn-primary"
-                              title="Add Child Traits"
-                            >
-                              <.icon name="hero-plus" class="w-3 h-3" />
-                            </button>
-                          </th>
-                          <th class="bg-secondary/20 border-l-4 border-base-300">Survey Answer</th>
-                          <th class="bg-secondary/20 text-center">
-                            <button
-                              phx-click="new_survey_answers"
-                              class="btn btn-xs btn-circle btn-primary"
-                              title="Add Survey Answers"
-                            >
-                              <.icon name="hero-plus" class="w-3 h-3" />
-                            </button>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <%= for child <- @selected_parent_trait.child_traits do %>
-                          <tr class="hover">
-                            <td>{child.trait_name}</td>
-                            <td class="text-center">{child.display_order}</td>
-                            <td class="text-center">{child.tags_count}</td>
-                            <td class="text-center">{child.grps_count}</td>
-                            <td class="text-center">
+                        <%= if @selected_parent_trait.input_type == "single_select_zip" do %>
+                          <%!-- Special handling for zip code traits --%>
+                          <tr>
+                            <td colspan="7" class="bg-info/10 text-center py-8">
+                              <div class="space-y-2">
+                                <.icon name="hero-map-pin" class="w-12 h-12 mx-auto text-info" />
+                                <p class="text-base font-semibold">
+                                  Zip Code Data: {@selected_parent_trait.child_traits_count} entries
+                                </p>
+                                <p class="text-sm text-base-content/70">
+                                  Zip code data is managed automatically and cannot be edited individually.
+                                </p>
+                              </div>
+                            </td>
+                          </tr>
+                        <% else %>
+                          <%!-- Child Traits and Survey Answer headers --%>
+                          <tr>
+                            <th class="bg-primary/20">Child Traits</th>
+                            <th class="bg-primary/20 text-center">Ordr</th>
+                            <th class="bg-primary/20 text-center">Tags</th>
+                            <th class="bg-primary/20 text-center">Grps</th>
+                            <th class="bg-primary/20 text-center">
                               <button
-                                phx-click="edit_child_trait"
-                                phx-value-id={child.id}
-                                class="btn btn-xs btn-ghost"
+                                phx-click="new_child_traits"
+                                class="btn btn-xs btn-circle btn-primary"
+                                title="Add Child Traits"
                               >
-                                <.icon name="hero-pencil-square" class="w-3 h-3" />
+                                <.icon name="hero-plus" class="w-3 h-3" />
                               </button>
-                            </td>
-                            <td class="border-l-4 border-base-300">
-                              {if child.survey_answer, do: child.survey_answer.text, else: "--"}
-                            </td>
-                            <td class="text-center">
-                              <%= if child.survey_answer do %>
+                            </th>
+                            <th class="bg-secondary/20 border-l-4 border-base-300">Survey Answer</th>
+                            <th class="bg-secondary/20 text-center">
+                              <button
+                                phx-click="new_survey_answers"
+                                class="btn btn-xs btn-circle btn-primary"
+                                title="Add Survey Answers"
+                              >
+                                <.icon name="hero-plus" class="w-3 h-3" />
+                              </button>
+                            </th>
+                          </tr>
+                        <% end %>
+                      </thead>
+                      <%= if @selected_parent_trait.input_type != "single_select_zip" do %>
+                        <tbody>
+                          <%= for child <- @selected_parent_trait.child_traits do %>
+                            <tr class="hover">
+                              <td>{child.trait_name}</td>
+                              <td class="text-center">{child.display_order}</td>
+                              <td class="text-center">{child.tags_count}</td>
+                              <td class="text-center">{child.grps_count}</td>
+                              <td class="text-center">
                                 <button
-                                  phx-click="edit_survey_answer"
-                                  phx-value-id={child.survey_answer.id}
+                                  phx-click="edit_child_trait"
+                                  phx-value-id={child.id}
                                   class="btn btn-xs btn-ghost"
                                 >
                                   <.icon name="hero-pencil-square" class="w-3 h-3" />
                                 </button>
-                              <% end %>
-                            </td>
-                          </tr>
-                        <% end %>
-                      </tbody>
+                              </td>
+                              <td class="border-l-4 border-base-300">
+                                {if child.survey_answer, do: child.survey_answer.text, else: "--"}
+                              </td>
+                              <td class="text-center">
+                                <%= if child.survey_answer do %>
+                                  <button
+                                    phx-click="edit_survey_answer"
+                                    phx-value-id={child.survey_answer.id}
+                                    class="btn btn-xs btn-ghost"
+                                  >
+                                    <.icon name="hero-pencil-square" class="w-3 h-3" />
+                                  </button>
+                                <% end %>
+                              </td>
+                            </tr>
+                          <% end %>
+                        </tbody>
+                      <% end %>
                     </table>
                   </div>
 
-                  <div class="mt-2 flex gap-2">
-                    <button phx-click="restripe_display_order" class="btn btn-sm btn-warning">
-                      Restripe Display Order as Current
-                    </button>
-                    <button
-                      phx-click="restripe_display_order_alphabetically"
-                      class="btn btn-sm btn-info"
-                    >
-                      Restripe Alphabetically
-                    </button>
-                  </div>
+                  <%= if @selected_parent_trait.input_type != "single_select_zip" do %>
+                    <div class="mt-2 flex gap-2">
+                      <button phx-click="restripe_display_order" class="btn btn-sm btn-warning">
+                        Restripe Display Order as Current
+                      </button>
+                      <button
+                        phx-click="restripe_display_order_alphabetically"
+                        class="btn btn-sm btn-info"
+                      >
+                        Restripe Alphabetically
+                      </button>
+                    </div>
+                  <% end %>
                 </div>
               </div>
             <% else %>
