@@ -480,6 +480,52 @@ defmodule Qlarius.YouData.Traits do
     )
   end
 
+  @doc """
+  Searches for zip code child traits by zip code prefix or city/state name.
+  Only returns STANDARD type zip codes.
+  """
+  def search_zip_codes(parent_trait_id, search_term, limit \\ 1000) do
+    search_term = String.trim(search_term)
+
+    if String.length(search_term) < 2 do
+      []
+    else
+      search_pattern = "%#{search_term}%"
+      zip_prefix_pattern = "#{search_term}%"
+
+      query =
+        from t in Trait,
+          where: t.parent_trait_id == ^parent_trait_id,
+          where: t.is_active == true,
+          where: t.meta_2 == "STANDARD",
+          where:
+            ilike(t.trait_name, ^zip_prefix_pattern) or
+              ilike(t.meta_1, ^search_pattern),
+          order_by: [
+            asc:
+              fragment(
+                "CAST(CASE WHEN ? ~ '^[0-9]+$' THEN ? ELSE '99999' END AS INTEGER)",
+                t.trait_name,
+                t.trait_name
+              )
+          ],
+          select: %{
+            id: t.id,
+            zip_code: t.trait_name,
+            location: t.meta_1
+          }
+
+      query =
+        if limit == :all do
+          query
+        else
+          from t in query, limit: ^limit
+        end
+
+      Repo.all(query)
+    end
+  end
+
   # defp filter_empty_traits(category) do
   #   %{category | traits: Enum.filter(category.traits, &(length(&1.values) > 0))}
   # end

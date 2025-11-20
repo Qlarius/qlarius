@@ -1,6 +1,7 @@
 defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
   use QlariusWeb, :live_view
 
+  alias Qlarius.Repo
   alias Qlarius.YouData.Traits
   alias Qlarius.Sponster.Campaigns.TraitGroup
   alias QlariusWeb.Live.Marketers.CurrentMarketer
@@ -27,6 +28,9 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
     |> assign(:show_modal, false)
     |> assign(:selected_parent_trait, nil)
     |> assign(:trait_group_form, nil)
+    |> assign(:zip_search_term, "")
+    |> assign(:selected_zips, [])
+    |> assign(:zip_search_results, [])
     |> assign_trait_data()
   end
 
@@ -48,6 +52,10 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
           |> assign(:selected_parent_trait, trait)
           |> assign(:trait_group_form, form)
           |> assign(:selected_trait_ids, [])
+          |> assign(:zip_search_term, "")
+          |> assign(:selected_zips, [])
+          |> assign(:zip_search_results, [])
+          |> assign(:zip_search_limit, 1000)
           |> assign_trait_data()
 
         {:error, _} ->
@@ -96,6 +104,47 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
     {:noreply, push_navigate(socket, to: ~p"/marketer/traits")}
   end
 
+  def handle_event("validate_trait_group", %{"_target" => ["search"], "search" => search_term, "trait_group" => trait_group_params} = params, socket) do
+    search_term = String.trim(search_term)
+
+    if socket.assigns.selected_parent_trait.input_type == "single_select_zip" do
+      parent_trait_id = socket.assigns.selected_parent_trait.id
+
+      form =
+        %TraitGroup{}
+        |> TraitGroup.changeset(trait_group_params)
+        |> Map.put(:action, :validate)
+        |> to_form()
+
+      updated_socket =
+        if String.length(search_term) >= 2 do
+          limit = Map.get(socket.assigns, :zip_search_limit, 1000)
+          results = Traits.search_zip_codes(parent_trait_id, search_term, limit)
+
+          socket
+          |> assign(:trait_group_form, form)
+          |> assign(:zip_search_term, search_term)
+          |> assign(:zip_search_results, results)
+        else
+          socket
+          |> assign(:trait_group_form, form)
+          |> assign(:zip_search_term, search_term)
+          |> assign(:zip_search_results, [])
+        end
+
+      {:noreply, updated_socket}
+    else
+      trait_group_params = Map.get(params, "trait_group", %{})
+      form =
+        %TraitGroup{}
+        |> TraitGroup.changeset(trait_group_params)
+        |> Map.put(:action, :validate)
+        |> to_form()
+
+      {:noreply, assign(socket, :trait_group_form, form)}
+    end
+  end
+
   def handle_event("validate_trait_group", %{"trait_group" => trait_group_params}, socket) do
     form =
       %TraitGroup{}
@@ -104,6 +153,30 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
       |> to_form()
 
     {:noreply, assign(socket, :trait_group_form, form)}
+  end
+
+  def handle_event("change_zip_limit", %{"limit" => limit_value}, socket) do
+    limit =
+      case limit_value do
+        "all" -> :all
+        value -> String.to_integer(value)
+      end
+
+    socket = assign(socket, :zip_search_limit, limit)
+
+    search_term = Map.get(socket.assigns, :zip_search_term, "")
+
+    socket =
+      if socket.assigns.selected_parent_trait.input_type == "single_select_zip" &&
+           String.length(String.trim(search_term)) >= 2 do
+        parent_trait_id = socket.assigns.selected_parent_trait.id
+        results = Traits.search_zip_codes(parent_trait_id, search_term, limit)
+        assign(socket, :zip_search_results, results)
+      else
+        socket
+      end
+
+    {:noreply, socket}
   end
 
   def handle_event(
@@ -151,14 +224,48 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
     end
   end
 
-  def handle_event("save_trait_group", %{"trait_group" => _trait_group_params}, socket) do
-    {:noreply,
-     socket
-     |> put_flash(:error, "Please select at least one trait")
-     |> assign(
-       :trait_group_form,
-       to_form(socket.assigns.trait_group_form.source |> Map.put(:action, :validate))
-     )}
+  def handle_event("save_trait_group", %{"trait_group" => trait_group_params}, socket) do
+    if socket.assigns.selected_parent_trait.input_type == "single_select_zip" do
+      if socket.assigns.selected_zips == [] do
+        {:noreply,
+         socket
+         |> put_flash(:error, "Please select at least one zip code")
+         |> assign(
+           :trait_group_form,
+           to_form(
+             TraitGroup.changeset(%TraitGroup{}, trait_group_params)
+             |> Map.put(:action, :validate)
+           )
+         )}
+      else
+        trait_ids_list = Enum.map(socket.assigns.selected_zips, &Integer.to_string(&1.id))
+
+        attrs =
+          trait_group_params
+          |> Map.put("trait_ids", trait_ids_list)
+          |> Map.put("marketer_id", socket.assigns.current_marketer.id)
+          |> Map.put("parent_trait_id", socket.assigns.selected_parent_trait.id)
+
+        case Traits.create_trait_group(attrs) do
+          {:ok, _trait_group} ->
+            {:noreply,
+             socket
+             |> put_flash(:info, "Trait group created successfully")
+             |> push_navigate(to: ~p"/marketer/traits")}
+
+          {:error, %Ecto.Changeset{} = changeset} ->
+            {:noreply, assign(socket, :trait_group_form, to_form(changeset))}
+        end
+      end
+    else
+      {:noreply,
+       socket
+       |> put_flash(:error, "Please select at least one trait")
+       |> assign(
+         :trait_group_form,
+         to_form(socket.assigns.trait_group_form.source |> Map.put(:action, :validate))
+       )}
+    end
   end
 
   def handle_event("delete_trait_group", %{"id" => id}, socket) do
@@ -239,6 +346,62 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
     {:noreply, assign(socket, :search_term, "")}
   end
 
+  def handle_event("add_selected_zips", %{"selected_ids" => selected_ids}, socket) do
+    selected_ids = if is_list(selected_ids), do: selected_ids, else: [selected_ids]
+    new_zip_ids = Enum.map(selected_ids, &String.to_integer/1)
+
+    new_zips =
+      Enum.map(new_zip_ids, fn id ->
+        Repo.get!(Qlarius.YouData.Traits.Trait, id)
+        |> then(fn trait ->
+          %{id: trait.id, zip_code: trait.trait_name, location: trait.meta_1}
+        end)
+      end)
+
+    updated_zips =
+      (socket.assigns.selected_zips ++ new_zips)
+      |> Enum.uniq_by(& &1.id)
+      |> Enum.sort_by(&String.to_integer(&1.zip_code))
+
+    {:noreply, assign(socket, :selected_zips, updated_zips)}
+  end
+
+  def handle_event("add_selected_zips", _params, socket) do
+    {:noreply, socket}
+  end
+
+  def handle_event("add_all_visible_zips", _params, socket) do
+    parent_trait_id = socket.assigns.selected_parent_trait.id
+    search_term = socket.assigns.zip_search_term
+    limit = Map.get(socket.assigns, :zip_search_limit, 1000)
+
+    visible_zips = Traits.search_zip_codes(parent_trait_id, search_term, limit)
+
+    updated_zips =
+      (socket.assigns.selected_zips ++ visible_zips)
+      |> Enum.uniq_by(& &1.id)
+      |> Enum.sort_by(&String.to_integer(&1.zip_code))
+
+    {:noreply, assign(socket, :selected_zips, updated_zips)}
+  end
+
+  def handle_event("remove_selected_zips", %{"selected_ids" => selected_ids}, socket) do
+    selected_ids = if is_list(selected_ids), do: selected_ids, else: [selected_ids]
+    remove_ids = Enum.map(selected_ids, &String.to_integer/1)
+
+    updated_zips = Enum.reject(socket.assigns.selected_zips, &(&1.id in remove_ids))
+
+    {:noreply, assign(socket, :selected_zips, updated_zips)}
+  end
+
+  def handle_event("remove_selected_zips", _params, socket) do
+    {:noreply, socket}
+  end
+
+  def handle_event("clear_all_zips", _params, socket) do
+    {:noreply, assign(socket, :selected_zips, [])}
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -253,6 +416,10 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
         show_modal={@show_modal}
         parent_trait={@selected_parent_trait}
         form={@trait_group_form}
+        zip_search_term={Map.get(assigns, :zip_search_term, "")}
+        zip_search_results={Map.get(assigns, :zip_search_results, [])}
+        selected_zips={Map.get(assigns, :selected_zips, [])}
+        zip_search_limit={Map.get(assigns, :zip_search_limit, 1000)}
       />
 
       <div :if={!@current_marketer} class="p-6">
@@ -488,6 +655,10 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
   attr :show_modal, :boolean, required: true
   attr :parent_trait, :any, required: true
   attr :form, :any, required: true
+  attr :zip_search_term, :string, default: ""
+  attr :zip_search_results, :list, default: []
+  attr :selected_zips, :list, default: []
+  attr :zip_search_limit, :integer, default: 1000
 
   defp trait_group_modal(assigns) do
     ~H"""
@@ -495,7 +666,10 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
       "modal modal-bottom sm:modal-middle",
       @show_modal && "modal-open bg-base-300/80 backdrop-blur-sm"
     ]}>
-      <div class="flex flex-col modal-box border border-youdata-500 dark:border-youdata-700 bg-base-100 p-0 max-h-[90vh]">
+      <div class={[
+        "flex flex-col modal-box border border-youdata-500 dark:border-youdata-700 bg-base-100 p-0 max-h-[90vh]",
+        @parent_trait.input_type == "single_select_zip" && "!max-w-3xl"
+      ]}>
         <div class="p-4 flex flex-row justify-between items-baseline bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content shrink-0">
           <h3 class="text-lg font-bold">
             Create Trait Group: {@parent_trait.trait_name}
@@ -526,34 +700,173 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
               <.input field={@form[:description]} type="textarea" label="Description (optional)" />
             </div>
 
-            <div class="divider">Select Traits</div>
+            <%= if @parent_trait.input_type == "single_select_zip" do %>
+              <div class="divider">Select Zip Codes</div>
 
-            <div :if={@parent_trait.child_traits} class="py-0">
-              <label
-                :for={child_trait <- Enum.sort_by(@parent_trait.child_traits, & &1.display_order)}
-                class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-4 px-2 hover:bg-base-200 cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  name="trait_ids[]"
-                  value={child_trait.id}
-                  id={"trait-#{child_trait.id}"}
-                  class="checkbox w-7 h-7"
-                />
-                <div class="text-lg text-base-content">
-                  {if child_trait.survey_answer && child_trait.survey_answer.text not in [nil, ""],
-                    do: child_trait.survey_answer.text,
-                    else: child_trait.trait_name}
+              <div id="zip-selector" phx-hook="ZipSelector" class="flex gap-4 w-full">
+                <div class="flex-1 min-w-0">
+                  <%
+                  available_count = Enum.count(@zip_search_results, fn zip ->
+                    not Enum.any?(@selected_zips, &(&1.id == zip.id))
+                  end)
+                  %>
+                  <label class="label">
+                    <span class="label-text font-semibold">
+                      Available Zip Codes ({available_count})
+                    </span>
+                  </label>
+
+                  <div class="mb-2 flex gap-2">
+                    <label class="input input-bordered input-sm flex items-center gap-2 flex-1">
+                      <.icon name="hero-magnifying-glass" class="w-4 h-4 opacity-70" />
+                      <input
+                        type="text"
+                        phx-debounce="300"
+                        name="search"
+                        value={@zip_search_term}
+                        placeholder="Search (2+ chars)..."
+                        class="grow font-mono"
+                        autocomplete="off"
+                      />
+                    </label>
+                    <select
+                      name="limit"
+                      phx-change="change_zip_limit"
+                      class="select select-bordered select-sm w-28"
+                    >
+                      <option value="1000" selected={@zip_search_limit == 1000}>1,000</option>
+                      <option value="5000" selected={@zip_search_limit == 5000}>5,000</option>
+                      <option value="10000" selected={@zip_search_limit == 10000}>10,000</option>
+                      <option value="all" selected={@zip_search_limit == :all}>All</option>
+                    </select>
+                  </div>
+
+                  <select
+                    id="available-zips"
+                    multiple
+                    size="15"
+                    class="select select-bordered w-full h-80 text-sm font-mono [&::-webkit-scrollbar-button]:[display:none]"
+                  >
+                    <%= for zip <- @zip_search_results do %>
+                      <%
+                      is_selected = Enum.any?(@selected_zips, &(&1.id == zip.id))
+                      %>
+                      <option
+                        value={zip.id}
+                        disabled={is_selected}
+                        class={is_selected && "!text-base-content/40"}
+                      >
+                        {zip.zip_code} - {zip.location}
+                      </option>
+                    <% end %>
+                  </select>
+
+                  <p class="text-xs text-base-content/60 mt-2">
+                    Hold Cmd/Ctrl or Shift to select multiple
+                  </p>
                 </div>
-              </label>
-            </div>
+
+                <div class="flex flex-col items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    data-action="add-all"
+                    class="btn btn-sm btn-primary"
+                    title="Add all visible"
+                  >
+                    >>
+                  </button>
+                  <button
+                    type="button"
+                    data-action="add-selected"
+                    class="btn btn-sm btn-primary"
+                    title="Add selected"
+                  >
+                    >
+                  </button>
+                  <button
+                    type="button"
+                    data-action="remove-selected"
+                    class="btn btn-sm btn-secondary"
+                    title="Remove selected"
+                  >
+                    &lt;
+                  </button>
+                  <button
+                    type="button"
+                    data-action="clear-all"
+                    class="btn btn-sm btn-secondary"
+                    title="Clear all"
+                  >
+                    &lt;&lt;
+                  </button>
+                </div>
+
+                <div class="flex-1 min-w-0">
+                  <label class="label">
+                    <span class="label-text font-semibold">
+                      Selected Zip Codes ({length(@selected_zips)})
+                    </span>
+                  </label>
+
+                  <select
+                    id="selected-zips"
+                    multiple
+                    size="15"
+                    class="select select-bordered w-full h-80 text-sm mt-7 font-mono [&::-webkit-scrollbar-button]:[display:none]"
+                  >
+                    <%= for zip <- @selected_zips do %>
+                      <option value={zip.id}>
+                        {zip.zip_code} - {zip.location}
+                      </option>
+                    <% end %>
+                  </select>
+
+                  <p class="text-xs text-base-content/60 mt-2">
+                    Hold Cmd/Ctrl or Shift to select multiple
+                  </p>
+                </div>
+              </div>
+            <% else %>
+              <div class="divider">Select Traits</div>
+
+              <div :if={@parent_trait.child_traits} class="py-0">
+                <label
+                  :for={
+                    child_trait <- Enum.sort_by(@parent_trait.child_traits, & &1.display_order)
+                  }
+                  class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-4 px-2 hover:bg-base-200 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    name="trait_ids[]"
+                    value={child_trait.id}
+                    id={"trait-#{child_trait.id}"}
+                    class="checkbox w-7 h-7"
+                  />
+                  <div class="text-lg text-base-content">
+                    {if child_trait.survey_answer &&
+                         child_trait.survey_answer.text not in [nil, ""],
+                       do: child_trait.survey_answer.text,
+                       else: child_trait.trait_name}
+                  </div>
+                </label>
+              </div>
+            <% end %>
           </div>
 
           <div class="p-4 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
             <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost">
               Cancel
             </button>
-            <button type="submit" class="btn btn-lg btn-primary">Create Trait Group</button>
+            <button
+              type="submit"
+              class="btn btn-lg btn-primary"
+              disabled={
+                @parent_trait.input_type == "single_select_zip" && @selected_zips == []
+              }
+            >
+              Create Trait Group
+            </button>
           </div>
         </.form>
       </div>

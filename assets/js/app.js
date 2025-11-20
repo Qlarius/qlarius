@@ -434,6 +434,37 @@ Hooks.CurrentMarketer = {
   }
 }
 
+Hooks.ZipSelector = {
+  mounted() {
+    this.availableSelect = this.el.querySelector('#available-zips')
+    this.selectedSelect = this.el.querySelector('#selected-zips')
+    
+    this.el.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const action = e.target.dataset.action || e.target.closest('[data-action]')?.dataset.action
+        
+        if (action === 'add-all') {
+          this.pushEvent('add_all_visible_zips', {})
+        } else if (action === 'add-selected') {
+          const selectedIds = Array.from(this.availableSelect.selectedOptions)
+            .filter(opt => !opt.disabled)
+            .map(opt => opt.value)
+          if (selectedIds.length > 0) {
+            this.pushEvent('add_selected_zips', { selected_ids: selectedIds })
+          }
+        } else if (action === 'remove-selected') {
+          const selectedIds = Array.from(this.selectedSelect.selectedOptions).map(opt => opt.value)
+          if (selectedIds.length > 0) {
+            this.pushEvent('remove_selected_zips', { selected_ids: selectedIds })
+          }
+        } else if (action === 'clear-all') {
+          this.pushEvent('clear_all_zips', {})
+        }
+      })
+    })
+  }
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: () => ({
