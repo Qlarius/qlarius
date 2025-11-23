@@ -39,7 +39,9 @@ defmodule QlariusWeb.Admin.RecipientController do
   end
 
   def create(conn, %{"recipient" => recipient_params}) do
-    case Recipients.create_recipient(recipient_params) do
+    params_with_user_id = Map.put(recipient_params, "user_id", conn.assigns.current_scope.user.id)
+
+    case Recipients.create_recipient(params_with_user_id) do
       {:ok, _recipient} ->
         conn
         |> put_flash(:info, "Recipient created successfully.")

@@ -1,0 +1,16 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#1a1a2e"/>
+  <rect x="50" y="120" width="60" height="150" fill="#4a90e2" opacity="0.8"/>
+  <rect x="130" y="80" width="60" height="190" fill="#5aa8e8" opacity="0.8"/>
+  <rect x="210" y="100" width="60" height="170" fill="#6bb8ef" opacity="0.8"/>
+  <rect x="290" y="60" width="60" height="210" fill="#7cc8f5" opacity="0.8"/>
+  <path d="M 50 140 L 130 100 L 210 120 L 290 80" stroke="#FFD700" stroke-width="4" fill="none"/>
+  <circle cx="50" cy="140" r="8" fill="#FFD700"/>
+  <circle cx="130" cy="100" r="8" fill="#FFD700"/>
+  <circle cx="210" cy="120" r="8" fill="#FFD700"/>
+  <circle cx="290" cy="80" r="8" fill="#FFD700"/>
+  <text x="200" y="280" font-family="Georgia, serif" font-size="18" fill="white" text-anchor="middle">
+    Local Business Growth
+  </text>
+</svg>
+

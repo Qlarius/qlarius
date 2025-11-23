@@ -1,0 +1,13 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#2F4F2F"/>
+  <line x1="0" y1="50" x2="400" y2="50" stroke="white" stroke-width="3"/>
+  <line x1="0" y1="250" x2="400" y2="250" stroke="white" stroke-width="3"/>
+  <line x1="200" y1="0" x2="200" y2="300" stroke="white" stroke-width="3"/>
+  <circle cx="200" cy="150" r="40" fill="none" stroke="white" stroke-width="3"/>
+  <circle cx="200" cy="150" r="60" fill="white" opacity="0.8"/>
+  <polygon points="200,130 195,145 180,145 192,155 187,170 200,160 213,170 208,155 220,145 205,145" fill="#FFD700"/>
+  <text x="200" y="280" font-family="Georgia, serif" font-size="18" fill="white" text-anchor="middle">
+    Springfield Athletics
+  </text>
+</svg>
+
