@@ -415,6 +415,25 @@ Hooks.PostMessage = {
   }
 }
 
+Hooks.ForceRepaint = {
+  mounted() {
+    requestAnimationFrame(() => {
+      this.el.style.opacity = '0.9999'
+      requestAnimationFrame(() => {
+        this.el.style.opacity = '1'
+      })
+    })
+  },
+  updated() {
+    requestAnimationFrame(() => {
+      this.el.style.opacity = '0.9999'
+      requestAnimationFrame(() => {
+        this.el.style.opacity = '1'
+      })
+    })
+  }
+}
+
 Hooks.CurrentMarketer = {
   mounted() {
     this.handleEvent('store_current_marketer', async ({ marketer_id }) => {

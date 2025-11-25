@@ -123,9 +123,9 @@ defmodule QlariusWeb.Layouts do
     <.flash_group flash={@flash} />
 
     <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
-      <%= if (@is_mobile || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
+      <%!-- <%= if (@is_mobile || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
         <div class="h-[env(safe-area-inset-top)] min-h-8 bg-base-50 flex-shrink-0"></div>
-      <% end %>
+      <% end %> --%>
 
       <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
         <div class="w-full mb-6 flex items-center flex-shrink-0">

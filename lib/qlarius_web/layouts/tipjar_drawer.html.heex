@@ -9,7 +9,7 @@
   data-initial-balance={Decimal.to_string(@current_scope.wallet_balance || Decimal.new("0.00"))}
 >
   <div
-    style="position:fixed; left:0; right:0; width:100%; transition:bottom 0.3s; min-height: 350px; z-index: 50; bottom: -100%;"
+    style="position:fixed; left:0; right:0; width:100%; transition:bottom 0.3s; min-height: 350px; z-index: 50; bottom: -100%; transform: translateZ(0); -webkit-transform: translateZ(0); backface-visibility: hidden; will-change: transform, bottom;"
     phx-update="ignore"
     phx-hook="InstaTipHook"
     id="tipjar-drawer"
@@ -23,7 +23,7 @@
       <div
         class="flex items-center gap-2 bg-gray-700 text-white px-5 py-2 rounded-tl-3xl cursor-pointer select-none"
         data-toggle-drawer
-        style="position: absolute; top: -36px; right: 0;"
+        style="position: absolute; top: -36px; right: 0; transform: translateZ(0); -webkit-transform: translateZ(0);"
       >
         <!--
       We use Alpine's splitAmount state here instead of @current_scope.user.me_file.split_amount because phx-update="ignore"
@@ -56,7 +56,7 @@
 <!-- Drawer header and content -->
       <div
         class="w-full bg-base-200 max-width-full shadow-2xl border-t border-gray-200 pt-0 py-8 px-0"
-        style="min-height: 350px;"
+        style="min-height: 350px; transform: translateZ(0); -webkit-transform: translateZ(0);"
       >
         <!-- Header -->
         <div class="w-full bg-base-100 dark:bg-base-300 border-b border-gray-300 p-5 flex justify-between items-center shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)] relative z-10">

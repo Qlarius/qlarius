@@ -53,7 +53,7 @@
     purchaseIframe.id = 'tiqit-arqade-purchase-iframe';
     purchaseIframe.src = iframeUrl;
     purchaseIframe.style.width = '100%';
-    purchaseIframe.style.height = '100vh';
+    purchaseIframe.style.height = '400px';
     purchaseIframe.style.border = 'none';
     purchaseIframe.setAttribute('allow', 'fullscreen');
 
@@ -122,6 +122,7 @@
       while (currentElement) {
         // Skip the script tag
         if (currentElement.tagName !== 'SCRIPT') {
+          currentElement.style.display = '';  // Reset to default display
           currentElement.style.opacity = '1';
           currentElement.style.visibility = 'visible';
           currentElement.style.filter = 'none';
