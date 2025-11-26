@@ -150,10 +150,18 @@ defmodule QlariusWeb.MeFileLive do
 
     # to capture the tag_value snapshot for me_file_tag
     id_to_name_map =
-      (socket.assigns.trait_in_edit.child_traits || [])
-      |> Enum.reduce(%{}, fn ct, acc ->
-        Map.put(acc, ct.id, (ct.survey_answer && ct.survey_answer.text) || ct.trait_name)
-      end)
+      case socket.assigns.trait_in_edit.child_traits do
+        %Ecto.Association.NotLoaded{} ->
+          %{}
+
+        child_traits when is_list(child_traits) ->
+          Enum.reduce(child_traits, %{}, fn ct, acc ->
+            Map.put(acc, ct.id, (ct.survey_answer && ct.survey_answer.text) || ct.trait_name)
+          end)
+
+        _ ->
+          %{}
+      end
 
     :ok =
       MeFiles.create_replace_mefile_tags(
