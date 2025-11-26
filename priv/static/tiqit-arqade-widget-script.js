@@ -53,7 +53,7 @@
     purchaseIframe.id = 'tiqit-arqade-purchase-iframe';
     purchaseIframe.src = iframeUrl;
     purchaseIframe.style.width = '100%';
-    purchaseIframe.style.height = '400px';
+    purchaseIframe.style.height = '720px';
     purchaseIframe.style.border = 'none';
     purchaseIframe.setAttribute('allow', 'fullscreen');
 

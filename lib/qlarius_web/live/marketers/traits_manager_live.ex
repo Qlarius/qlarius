@@ -104,7 +104,12 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
     {:noreply, push_navigate(socket, to: ~p"/marketer/traits")}
   end
 
-  def handle_event("validate_trait_group", %{"_target" => ["search"], "search" => search_term, "trait_group" => trait_group_params} = params, socket) do
+  def handle_event(
+        "validate_trait_group",
+        %{"_target" => ["search"], "search" => search_term, "trait_group" => trait_group_params} =
+          params,
+        socket
+      ) do
     search_term = String.trim(search_term)
 
     if socket.assigns.selected_parent_trait.input_type == "single_select_zip" do
@@ -135,6 +140,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
       {:noreply, updated_socket}
     else
       trait_group_params = Map.get(params, "trait_group", %{})
+
       form =
         %TraitGroup{}
         |> TraitGroup.changeset(trait_group_params)
@@ -705,11 +711,10 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
 
               <div id="zip-selector" phx-hook="ZipSelector" class="flex gap-4 w-full">
                 <div class="flex-1 min-w-0">
-                  <%
-                  available_count = Enum.count(@zip_search_results, fn zip ->
-                    not Enum.any?(@selected_zips, &(&1.id == zip.id))
-                  end)
-                  %>
+                  <% available_count =
+                    Enum.count(@zip_search_results, fn zip ->
+                      not Enum.any?(@selected_zips, &(&1.id == zip.id))
+                    end) %>
                   <label class="label">
                     <span class="label-text font-semibold">
                       Available Zip Codes ({available_count})
@@ -748,9 +753,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
                     class="select select-bordered w-full h-80 text-sm font-mono [&::-webkit-scrollbar-button]:[display:none]"
                   >
                     <%= for zip <- @zip_search_results do %>
-                      <%
-                      is_selected = Enum.any?(@selected_zips, &(&1.id == zip.id))
-                      %>
+                      <% is_selected = Enum.any?(@selected_zips, &(&1.id == zip.id)) %>
                       <option
                         value={zip.id}
                         disabled={is_selected}
@@ -831,9 +834,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
 
               <div :if={@parent_trait.child_traits} class="py-0">
                 <label
-                  :for={
-                    child_trait <- Enum.sort_by(@parent_trait.child_traits, & &1.display_order)
-                  }
+                  :for={child_trait <- Enum.sort_by(@parent_trait.child_traits, & &1.display_order)}
                   class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-4 px-2 hover:bg-base-200 cursor-pointer"
                 >
                   <input
@@ -845,9 +846,9 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
                   />
                   <div class="text-lg text-base-content">
                     {if child_trait.survey_answer &&
-                         child_trait.survey_answer.text not in [nil, ""],
-                       do: child_trait.survey_answer.text,
-                       else: child_trait.trait_name}
+                          child_trait.survey_answer.text not in [nil, ""],
+                        do: child_trait.survey_answer.text,
+                        else: child_trait.trait_name}
                   </div>
                 </label>
               </div>
@@ -861,9 +862,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
             <button
               type="submit"
               class="btn btn-lg btn-primary"
-              disabled={
-                @parent_trait.input_type == "single_select_zip" && @selected_zips == []
-              }
+              disabled={@parent_trait.input_type == "single_select_zip" && @selected_zips == []}
             >
               Create Trait Group
             </button>

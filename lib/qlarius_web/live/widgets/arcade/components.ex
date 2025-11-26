@@ -4,6 +4,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass
+  alias Phoenix.LiveView.JS
 
   import QlariusWeb.CoreComponents
   import QlariusWeb.Money
@@ -140,6 +141,80 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         </button>
       </div>
     </div>
+    """
+  end
+
+  attr :show, :boolean, required: true
+  attr :balance, Decimal, required: true
+  attr :offered_amount, Decimal, required: true
+  attr :ads_count, :integer, required: true
+
+  def topup_modal(assigns) do
+    ~H"""
+    <.modal :if={@show} id="topup-modal" show on_cancel={JS.push("close-topup-modal")}>
+      <div class="text-center space-y-6 p-8">
+        <div class="space-y-4">
+          <h2 class="text-xl font-bold text-base-content">Top up your wallet.</h2>
+          <div class="mb-6 flex gap-2 justify-center items-center">
+            Balance:
+            <span class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content px-3 py-1 rounded-lg border border-sponster-300 dark:border-sponster-500">
+              <span class="font-bold">{format_usd(@balance)}</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 w-full divide-y md:divide-y-0 md:divide-x divide-base-300 p-4">
+          <div class="flex-1 py-8">
+            <h3 class="text-base-content/60 mb-3">Visit your sponsors.</h3>
+            <div class="flex flex-col items-center">
+              <div class="flex flex-col items-center gap-1">
+                <div class="px-4 py-2">
+                  <img
+                    src="/images/Sponster_logo_color_horiz.svg"
+                    alt="Sponster"
+                    class="h-auto w-full"
+                  />
+                </div>
+                <div class="flex flex-col items-center">
+                  <div class="text-base-content/60 text-md mb-4">
+                    {@ads_count} ads for
+                    <span class="font-bold text-sponster-500">
+                      {format_usd(@offered_amount)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary border-none rounded-full !bg-sponster-500 hover:!bg-sponster-600 text-white btn-lg"
+                onclick="parent.postMessage('open_widget','*');self.toggleAnnouncerElements();"
+              >
+                Show my ads
+              </button>
+            </div>
+          </div>
+          <div class="flex-1 py-8">
+            <h3 class="text-base-content/60 mb-3">Accept our daily gift.</h3>
+            <.icon name="hero-gift" class="h-25 w-25 mb-3 text-base-content/50" />
+            <button class="btn btn-primary rounded-full btn-lg" phx-click="topup">
+              <.icon name="hero-plus" class="h-5 w-5 mr-2" />$0.50
+            </button>
+          </div>
+          <div class="flex-1 flex flex-col items-center py-8">
+            <h3 class="text-base-content/60 mb-3">Add funds of your own.</h3>
+            <img
+              src="/images/credit_debit_card_payments.png"
+              alt="Credit/Debit Card Payments"
+              class="h-25 w-25 mb-3"
+            />
+            <button class="btn btn-primary rounded-full btn-lg" phx-click="topup">
+              <.icon name="hero-plus" class="h-5 w-5 mr-2" />Credit/Debit
+            </button>
+          </div>
+        </div>
+
+        <div class="flex justify-center gap-4"></div>
+      </div>
+    </.modal>
     """
   end
 end

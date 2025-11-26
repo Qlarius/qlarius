@@ -146,9 +146,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
       balance = if user, do: Wallets.get_user_current_balance(user), else: socket.assigns.balance
 
+      updated_scope = %{scope | wallet_balance: balance}
+
       {:noreply,
        assign(socket,
          balance: balance,
+         current_scope: updated_scope,
          offered_amount: scope && scope.offered_amount
        )}
     else

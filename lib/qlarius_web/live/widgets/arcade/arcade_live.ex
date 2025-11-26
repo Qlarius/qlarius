@@ -162,8 +162,15 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
     Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
 
+    redirect_path =
+      if socket.assigns.force_theme do
+        ~p"/widgets/content/#{socket.assigns.selected_piece.id}?force_theme=#{socket.assigns.force_theme}"
+      else
+        ~p"/widgets/content/#{socket.assigns.selected_piece.id}"
+      end
+
     socket
-    |> redirect(to: ~p"/widgets/content/#{socket.assigns.selected_piece.id}")
+    |> redirect(to: redirect_path)
     |> noreply()
   end
 
@@ -176,9 +183,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       # Only fetch balance if user exists
       balance = if user, do: Wallets.get_user_current_balance(user), else: socket.assigns.balance
 
+      updated_scope = %{scope | wallet_balance: balance}
+
       {:noreply,
        assign(socket,
          balance: balance,
+         current_scope: updated_scope,
          offered_amount: scope && scope.offered_amount
        )}
     else
