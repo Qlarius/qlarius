@@ -507,7 +507,7 @@ defmodule Qlarius.Wallets do
       ledger_header_id: ledger_event.to_ledger_id,
       amt: ledger_event.amount,
       running_balance: new_to_balance,
-      description: "InstaTip from #{ledger_event.requested_by_user.email}"
+      description: "InstaTip from #{ledger_event.requested_by_user.alias}"
     })
     |> Repo.insert!()
 

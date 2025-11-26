@@ -21,18 +21,18 @@ defmodule QlariusWeb.Components.TraitComponents do
           "border-2 empty-trait-strobe border-youdata-500 dark:border-base-content",
         @tags_traits != [] && "border-youdata-300 dark:border-youdata-500",
         @clickable && @editable && @tags_traits == [] &&
-          @parent_trait_name not in ["Birthdate", "Age", "Sex"] &&
+          @parent_trait_name not in ["Birthdate", "Age", "Sex (Biological)"] &&
           "cursor-pointer",
         @extra_classes
       ]}
       phx-click={
         @clickable && @editable && @tags_traits == [] &&
-          @parent_trait_name not in ["Birthdate", "Age", "Sex"] &&
+          @parent_trait_name not in ["Birthdate", "Age", "Sex (Biological)"] &&
           "edit_tags"
       }
       phx-value-id={
         @clickable && @editable && @tags_traits == [] &&
-          @parent_trait_name not in ["Birthdate", "Age", "Sex"] &&
+          @parent_trait_name not in ["Birthdate", "Age", "Sex (Biological)"] &&
           @parent_trait_id
       }
     >
@@ -40,7 +40,7 @@ defmodule QlariusWeb.Components.TraitComponents do
         <div class="bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content px-4 py-2 text-lg font-bold flex justify-between items-center">
           <span>{@parent_trait_name}</span>
           <div
-            :if={@editable && @parent_trait_name not in ["Birthdate", "Age", "Sex"]}
+            :if={@editable && @parent_trait_name not in ["Birthdate", "Age", "Sex (Biological)"]}
             class="ms-4 flex gap-3"
           >
             <button

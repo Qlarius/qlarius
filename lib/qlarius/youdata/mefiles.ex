@@ -4,7 +4,6 @@ defmodule Qlarius.YouData.MeFiles do
   alias Qlarius.YouData.Traits.Trait
   alias Qlarius.Repo
   alias Qlarius.YouData.Surveys.SurveyQuestion
-  alias Qlarius.YouData.Surveys.SurveyAnswer
 
   def me_file_for_user(user_id) do
     Repo.one(from mf in MeFile, where: mf.user_id == ^user_id)
@@ -179,13 +178,15 @@ defmodule Qlarius.YouData.MeFiles do
   end
 
   def get_answered_survey_question_ids(me_file_id) do
-    # Get unique survey question IDs that have been answered
     query =
       from sq in SurveyQuestion,
-        join: sa in SurveyAnswer,
-        on: sa.survey_question_id == sq.id,
         join: mft in MeFileTag,
-        on: mft.trait_id == sa.trait_id and mft.me_file_id == ^me_file_id,
+        on: mft.me_file_id == ^me_file_id,
+        join: t in Trait,
+        on: mft.trait_id == t.id,
+        where:
+          t.parent_trait_id == sq.trait_id or
+            t.id == sq.trait_id,
         select: sq.id,
         distinct: true
 

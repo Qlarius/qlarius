@@ -41,24 +41,34 @@ defmodule QlariusWeb.ProxyUsersLive do
     ~H"""
     <Layouts.mobile {assigns}>
       <div class="mx-auto max-w-2xl">
-        <.header>
-          Proxy Users
-          <:subtitle>Manage and switch between proxy users</:subtitle>
-        </.header>
+        <p class="text-base-content/60 mb-4">Deselect all to return to true user.</p>
 
-        <.table id="proxy_users" rows={@proxy_users}>
-          <:col :let={proxy} label="Username">{proxy.proxy_user.username}</:col>
-          <:col :let={proxy} label="Alias">{proxy.proxy_user.email}</:col>
-          <:col :let={proxy} label="Status">
-            <input
-              type="checkbox"
-              class="toggle toggle-success"
-              checked={proxy.active}
-              phx-click="toggle_proxy"
-              phx-value-id={proxy.id}
-            />
-          </:col>
-        </.table>
+        <ul class="-mx-4 sm:mx-0 list bg-base-200 dark:!bg-base-200 sm:rounded-box shadow-md overflow-hidden">
+          <li
+            :for={proxy <- @proxy_users}
+            class={[
+              "list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100",
+              proxy.active &&
+                "!bg-green-50 dark:!bg-green-900/30 border-l-4 border-green-500 dark:border-green-400 pl-4"
+            ]}
+            phx-click="toggle_proxy"
+            phx-value-id={proxy.id}
+          >
+            <div class="list-col-grow">
+              <div class="text-lg font-medium text-base-content">{proxy.proxy_user.username}</div>
+              <div class="text-base-content/50 dark:text-base-content/60 text-sm">
+                {proxy.proxy_user.alias}
+              </div>
+            </div>
+            <div class="flex items-center mr-2">
+              <%= if proxy.active do %>
+                <.icon name="hero-check-circle-solid" class="h-8 w-8 text-green-500" />
+              <% else %>
+                <div class="h-8 w-8 rounded-full border-2 border-base-content/30"></div>
+              <% end %>
+            </div>
+          </li>
+        </ul>
       </div>
     </Layouts.mobile>
     """
@@ -72,30 +82,36 @@ defmodule QlariusWeb.ProxyUsersLive do
   def handle_event("toggle_proxy", %{"id" => proxy_id}, socket) do
     proxy_id = String.to_integer(proxy_id)
     admin_user = socket.assigns.current_scope.true_user
-
-    # Deactivate current proxy if exists
-    if socket.assigns.active_proxy do
-      {:ok, _} = Users.update_user_proxy(socket.assigns.active_proxy, %{active: false})
-    end
-
-    # Activate new proxy
     proxy = Enum.find(socket.assigns.proxy_users, &(&1.id == proxy_id))
-    {:ok, updated_proxy} = Users.update_user_proxy(proxy, %{active: true})
 
-    # Refresh proxy users list using the admin user
-    proxy_users = list_proxy_users(admin_user)
+    if proxy.active do
+      {:ok, _} = Users.update_user_proxy(proxy, %{active: false})
+      proxy_users = list_proxy_users(admin_user)
 
-    # Update socket assigns with new proxy user and scope, but keep admin user for the proxy list
-    {:noreply,
-     socket
-     |> assign(:proxy_users, proxy_users)
-     |> assign(:active_proxy, updated_proxy)
-     |> assign(:true_user, admin_user)
-     |> assign(:current_scope, Scope.for_user(admin_user))
-     |> put_flash(
-       :info,
-       "Successfully switched to proxy user #{updated_proxy.proxy_user.username}"
-     )}
+      {:noreply,
+       socket
+       |> assign(:proxy_users, proxy_users)
+       |> assign(:active_proxy, nil)
+       |> assign(:current_scope, Scope.for_user(admin_user))
+       |> put_flash(:info, "Returned to admin user")}
+    else
+      if socket.assigns.active_proxy do
+        {:ok, _} = Users.update_user_proxy(socket.assigns.active_proxy, %{active: false})
+      end
+
+      {:ok, updated_proxy} = Users.update_user_proxy(proxy, %{active: true})
+      proxy_users = list_proxy_users(admin_user)
+
+      {:noreply,
+       socket
+       |> assign(:proxy_users, proxy_users)
+       |> assign(:active_proxy, updated_proxy)
+       |> assign(:current_scope, Scope.for_user(admin_user))
+       |> put_flash(
+         :info,
+         "Successfully switched to proxy user #{updated_proxy.proxy_user.username}"
+       )}
+    end
   end
 
   # Private functions
