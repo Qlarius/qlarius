@@ -101,7 +101,6 @@ defmodule QlariusWeb.ThreeTapStackComponent do
     Offers.create_pending_copy_and_delete_original(offer, 24)
 
     send(self(), {:refresh_wallet_balance, socket.assigns.current_scope.user.me_file.id})
-    send(self(), :load_offers)
     increment_phase(socket, offer.id)
   end
 
