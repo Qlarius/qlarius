@@ -4,6 +4,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
   alias Qlarius.YouData.Surveys
   alias Qlarius.YouData.MeFiles
   alias Qlarius.YouData.Traits
+  alias QlariusWeb.Live.Helpers.ZipCodeLookup
 
   import QlariusWeb.MeFileHTML
 
@@ -16,6 +17,10 @@ defmodule QlariusWeb.MeFileBuilderLive do
         selected_ids={@selected_child_trait_ids || []}
         show_modal={@show_modal}
         tag_edit_mode={@tag_edit_mode || "update"}
+        zip_lookup_input={@zip_lookup_input || ""}
+        zip_lookup_trait={@zip_lookup_trait}
+        zip_lookup_valid={@zip_lookup_valid || false}
+        zip_lookup_error={@zip_lookup_error}
       />
 
       <style phx-no-curly-interpolation>
@@ -203,6 +208,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:selected_child_trait_ids, [])
       |> assign(:show_modal, false)
       |> assign(:tag_edit_mode, "update")
+      |> ZipCodeLookup.initialize_zip_lookup_assigns()
 
     {:ok, socket}
   end
@@ -252,6 +258,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:selected_child_trait_ids, selected_ids)
       |> assign(:show_modal, true)
       |> assign(:tag_edit_mode, "update")
+      |> ZipCodeLookup.initialize_zip_lookup_assigns()
 
     {:noreply, socket}
   end
@@ -275,51 +282,13 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:selected_child_trait_ids, selected_ids)
       |> assign(:show_modal, true)
       |> assign(:tag_edit_mode, "delete")
+      |> ZipCodeLookup.initialize_zip_lookup_assigns()
 
     {:noreply, socket}
   end
 
   def handle_event("lookup_zip_code", %{"zip_code_input" => zip_code}, socket) do
-    zip_code = String.trim(zip_code)
-
-    socket =
-      if String.length(zip_code) == 5 and String.match?(zip_code, ~r/^\d{5}$/) do
-        parent_trait_id = socket.assigns.trait_in_edit.id
-
-        case Traits.get_zip_code_trait(parent_trait_id, zip_code) do
-          nil ->
-            socket
-            |> assign(:zip_lookup_input, zip_code)
-            |> assign(:zip_lookup_trait, nil)
-            |> assign(:zip_lookup_valid, false)
-            |> assign(:zip_lookup_error, "Zip code not found in database")
-
-          trait ->
-            if trait.meta_2 == "STANDARD" do
-              socket
-              |> assign(:zip_lookup_input, zip_code)
-              |> assign(:zip_lookup_trait, trait)
-              |> assign(:zip_lookup_valid, true)
-              |> assign(:zip_lookup_error, nil)
-            else
-              socket
-              |> assign(:zip_lookup_input, zip_code)
-              |> assign(:zip_lookup_trait, trait)
-              |> assign(:zip_lookup_valid, false)
-              |> assign(
-                :zip_lookup_error,
-                "Zip code type '#{trait.meta_2}' is not acceptable. Only STANDARD zip codes are allowed."
-              )
-            end
-        end
-      else
-        socket
-        |> assign(:zip_lookup_input, zip_code)
-        |> assign(:zip_lookup_trait, nil)
-        |> assign(:zip_lookup_valid, false)
-        |> assign(:zip_lookup_error, nil)
-      end
-
+    socket = ZipCodeLookup.handle_zip_lookup(socket, zip_code)
     {:noreply, socket}
   end
 

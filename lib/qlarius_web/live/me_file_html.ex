@@ -86,7 +86,7 @@ defmodule QlariusWeb.MeFileHTML do
                 >
                   <div class="form-control">
                     <label class="label">
-                      <span class="label-text text-lg">Enter 5-digit zip code:</span>
+                      <span class="label-text text-lg mb-2">Enter 5-digit zip code:</span>
                     </label>
                     <input
                       type="text"
@@ -100,7 +100,7 @@ defmodule QlariusWeb.MeFileHTML do
                       data-1p-ignore="true"
                       data-lpignore="true"
                       data-form-type="other"
-                      class="input input-bordered input-lg w-full text-lg"
+                      class="input input-bordered input-xl w-full text-xl"
                     />
                   </div>
 
