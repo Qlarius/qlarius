@@ -137,7 +137,7 @@ defmodule QlariusWeb.OfferHTML do
             </div>
             <% # Get totals from ThreeTap context
             {me_file_collect_total, recipient_collect_total} =
-              ThreeTap.calculate_offer_totals(@offer.id, @recipient) %>
+              ThreeTap.calculate_offer_totals(@offer.id, @current_scope.user.me_file.id, @recipient) %>
             <div class="text-sm text-gray-400">
               Collected: <span class="font-semibold">{format_usd(me_file_collect_total)}</span>
             </div>

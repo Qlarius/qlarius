@@ -7,17 +7,18 @@
   phx-hook="TipDrawerHook"
   data-initial-split={@current_scope.user.me_file.split_amount || 50}
   data-initial-balance={Decimal.to_string(@current_scope.wallet_balance || Decimal.new("0.00"))}
+  phx-update="ignore"
 >
+  <.backdrop
+    id="tipjar-backdrop"
+    style="z-index: 49;"
+    class="opacity-0 pointer-events-none"
+  />
   <div
     style="position:fixed; left:0; right:0; width:100%; transition:bottom 0.3s; min-height: 350px; z-index: 50; bottom: -100%; transform: translateZ(0); -webkit-transform: translateZ(0); backface-visibility: hidden; will-change: transform, bottom;"
-    phx-update="ignore"
     phx-hook="InstaTipHook"
     id="tipjar-drawer"
   >
-    <.backdrop
-      id="tipjar-backdrop"
-      style="z-index: 49; display: none;"
-    />
     <div style="position: relative; z-index: 51;">
       <!-- Tab (toggle trigger) - sibling to content, not inside -->
       <div

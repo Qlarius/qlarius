@@ -257,7 +257,7 @@ Hooks.TipDrawerHook = {
     this.applyBottomPosition()
     if (this.backdropEl) {
       if (this.drawerOpen) {
-        this.backdropEl.style.display = 'block'
+        this.backdropEl.classList.remove('pointer-events-none')
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             this.backdropEl.classList.remove('opacity-0')
@@ -267,7 +267,9 @@ Hooks.TipDrawerHook = {
       } else {
         this.backdropEl.classList.remove('opacity-100')
         this.backdropEl.classList.add('opacity-0')
-        setTimeout(() => { if (!this.drawerOpen) this.backdropEl.style.display = 'none' }, 300)
+        setTimeout(() => { 
+          if (!this.drawerOpen) this.backdropEl.classList.add('pointer-events-none')
+        }, 300)
       }
     }
   },

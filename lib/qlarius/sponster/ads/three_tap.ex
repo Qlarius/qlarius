@@ -202,22 +202,19 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
   Returns a tuple of {me_file_collect_total, recipient_collect_total} where
   recipient_collect_total is nil if no recipient is provided.
   """
-  def calculate_offer_totals(offer_id, recipient \\ nil) do
-    # Use a more explicit query format
+  def calculate_offer_totals(offer_id, me_file_id, recipient \\ nil) do
     query =
       from(ad_event in AdEvent,
-        where: ad_event.offer_id == ^offer_id
+        where: ad_event.offer_id == ^offer_id and ad_event.me_file_id == ^me_file_id
       )
 
     ad_events = Repo.all(query)
 
-    # Calculate total collected by the user
     me_file_collect_total =
       Enum.reduce(ad_events, Decimal.new("0.00"), fn event, acc ->
         Decimal.add(acc, event.event_me_file_collect_amt || Decimal.new("0.00"))
       end)
 
-    # Calculate total given to recipient (if any)
     recipient_collect_total =
       if recipient do
         Enum.reduce(ad_events, Decimal.new("0.00"), fn event, acc ->
