@@ -22,7 +22,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   # Commented out unused alias - Component not directly referenced in this file
   # alias Phoenix.Component
   alias Qlarius.Wallets
-  alias Qlarius.Wallets.MeFileBalanceBroadcaster
+  alias Qlarius.Wallets.MeFileStatsBroadcaster
   # Commented out unused import - OfferHTML functions not used in this LiveView
   # import QlariusWeb.OfferHTML
   import Ecto.Query, except: [update: 2, update: 3]
@@ -67,7 +67,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
     if connected?(socket) do
       send(self(), :load_offers)
 
-      MeFileBalanceBroadcaster.subscribe_to_me_file_balance(
+      MeFileStatsBroadcaster.subscribe_to_me_file_stats(
         socket.assigns.current_scope.user.me_file.id
       )
 
@@ -130,6 +130,13 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   @impl true
   def handle_info("insta_tip_failure", socket) do
     {:noreply, put_flash(socket, :error, "InstaTip failed. Please try again.")}
+  end
+
+  @impl true
+  def handle_info({:me_file_offers_updated, _me_file_id}, socket) do
+    # Don't reload offers here - let completed offers (phase 3) stay visible
+    # Offers will refresh on next mount/page load
+    {:noreply, socket}
   end
 
   @impl true

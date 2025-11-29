@@ -20,7 +20,7 @@ defmodule QlariusWeb.AdsLive do
   # Commented out unused alias - Component not directly referenced
   # alias Phoenix.Component
   alias Qlarius.Wallets
-  alias Qlarius.Wallets.MeFileBalanceBroadcaster
+  alias Qlarius.Wallets.MeFileStatsBroadcaster
   # Commented out unused import - OfferHTML functions not used in this LiveView
   # import QlariusWeb.OfferHTML
   import Ecto.Query, except: [update: 2, update: 3]
@@ -52,7 +52,7 @@ defmodule QlariusWeb.AdsLive do
     if connected?(socket) do
       send(self(), :load_offers)
 
-      MeFileBalanceBroadcaster.subscribe_to_me_file_balance(
+      MeFileStatsBroadcaster.subscribe_to_me_file_stats(
         socket.assigns.current_scope.user.me_file.id
       )
 
@@ -83,7 +83,7 @@ defmodule QlariusWeb.AdsLive do
     if connected?(socket) do
       send(self(), :load_offers)
 
-      MeFileBalanceBroadcaster.subscribe_to_me_file_balance(
+      MeFileStatsBroadcaster.subscribe_to_me_file_stats(
         socket.assigns.current_scope.user.me_file.id
       )
 
@@ -128,6 +128,13 @@ defmodule QlariusWeb.AdsLive do
   def handle_info({:me_file_balance_updated, new_balance}, socket) do
     current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
     {:noreply, assign(socket, :current_scope, current_scope)}
+  end
+
+  @impl true
+  def handle_info({:me_file_offers_updated, _me_file_id}, socket) do
+    # Don't reload offers here - let completed offers (phase 3) stay visible
+    # Offers will refresh on next mount/page load
+    {:noreply, socket}
   end
 
   @impl true

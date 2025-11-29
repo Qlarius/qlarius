@@ -84,71 +84,71 @@
           class="flex flex-col md:!flex-row gap-8 px-8 pt-6 overflow-y-auto max-w-[800px] mx-auto"
           style="max-height: 60vh;"
         >
-          <!-- AutoTip Section -->
+          <!-- InstaTip Section -->
           <div class="flex-1 flex flex-col items-center md:items-start">
-            <div class="text-lg font-bold text-base-content mb-1">AutoSplit</div>
-            <div class="text-base-content/70 text-sm mb-4 text-center">
-              Automatically tip a percentage from each ad engaged on this site.
+            <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
+            <div class="text-base-content/70 text-sm mb-4">
+              Instantly tip from your wallet
+              <.icon name="hero-arrow-right" class="w-4 h-4 inline-block" />
+              <span class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content px-3 py-1 rounded-lg border border-sponster-300 dark:border-sponster-500">
+                <span class="font-bold" data-balance-display>
+                  {format_usd(@current_scope.wallet_balance)}
+                </span>
+              </span>
             </div>
-            <div class="inline-flex rounded-lg overflow-hidden border border-base-content-200 bg-base-100 divide-x divide-base-content-200 w-fit">
-              <%= for percentage <- [0, 25, 50, 75, 100] do %>
+            <div class="flex gap-3 justify-center">
+              <%= for tip_amount <- [0.25, 0.50, 1.00, 2.00] do %>
                 <button
                   type="button"
-                  phx-click="set_split"
-                  phx-value-split={to_string(percentage)}
-                  data-split={percentage}
+                  data-instatip={tip_amount}
                 >
-                  {percentage}%
+                  <span>
+                    <%= case tip_amount do %>
+                      <% 2.00 -> %>
+                        $2
+                      <% 1.00 -> %>
+                        $1
+                      <% 0.50 -> %>
+                        50¢
+                      <% 0.25 -> %>
+                        25¢
+                      <% _ -> %>
+                        ${tip_amount}
+                    <% end %>
+                  </span>
                 </button>
               <% end %>
             </div>
 
             <div class="divider"></div>
             
-<!-- InstaTip Section -->
+<!-- AutoSplit Section -->
             <div class="flex-1 flex flex-col items-center md:items-start">
-              <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
-              <div class="text-base-content/70 text-sm mb-4">
-                Instantly tip from your wallet
-                <.icon name="hero-arrow-right" class="w-4 h-4 inline-block" />
-                <span class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content px-3 py-1 rounded-lg border border-sponster-300 dark:border-sponster-500">
-                  <span class="font-bold" data-balance-display>
-                    {format_usd(@current_scope.wallet_balance)}
-                  </span>
-                </span>
+              <div class="text-lg font-bold text-base-content mb-1">AutoSplit</div>
+              <div class="text-base-content/70 text-sm mb-4 text-center">
+                Automatically tip a percentage from each ad engaged on this site.
               </div>
-              <div class="flex gap-3 justify-center">
-                <%= for tip_amount <- [0.25, 0.50, 1.00, 2.00] do %>
+              <div class="inline-flex rounded-lg overflow-hidden border border-base-content-200 bg-base-100 divide-x divide-base-content-200 w-fit">
+                <%= for percentage <- [0, 25, 50, 75, 100] do %>
                   <button
                     type="button"
-                    data-instatip={tip_amount}
+                    phx-click="set_split"
+                    phx-value-split={to_string(percentage)}
+                    data-split={percentage}
                   >
-                    <span>
-                      <%= case tip_amount do %>
-                        <% 2.00 -> %>
-                          $2
-                        <% 1.00 -> %>
-                          $1
-                        <% 0.50 -> %>
-                          50¢
-                        <% 0.25 -> %>
-                          25¢
-                        <% _ -> %>
-                          ${tip_amount}
-                      <% end %>
-                    </span>
+                    {percentage}%
                   </button>
                 <% end %>
               </div>
             </div>
           </div>
           <!-- Right: Recipient -->
-          <div class="flex-1 flex flex-col items-center border-t border-gray-200 pt-4 md:pt-0 md:border-none">
+          <div class="flex-1 flex flex-col items-center border-t border-content-base-100/30 md:pt-0 md:border-none">
             <div class="text-2xl font-bold text-base-content mb-2 text-center md:text-left">
               {@recipient.name || "This Blog's Name"}
             </div>
             <div class="flex flex-row md:!flex-col items-center gap-4">
-              <div class="w-60 h-auto md:w-50 bg-base-300 shadow-md flex items-center justify-center mb-0 md:mb-4 overflow-hidden">
+              <div class="w-50 h-auto bg-base-300 shadow-md flex items-center justify-center mb-0 md:mb-4 overflow-hidden">
                 <img
                   src={
                     QlariusWeb.Uploaders.RecipientBrandImage.url(

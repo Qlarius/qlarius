@@ -52,8 +52,8 @@ defmodule Qlarius.Sponster.Offers do
       |> Map.drop([:created_at, :updated_at])
 
     Multi.new()
-    |> Multi.insert(:new_offer, Offer.changeset(%Offer{}, offer_copy))
     |> Multi.delete(:delete_original, offer)
+    |> Multi.insert(:new_offer, Offer.changeset(%Offer{}, offer_copy))
     |> Repo.transaction()
     |> case do
       {:ok, %{new_offer: new_offer}} -> {:ok, new_offer}

@@ -56,7 +56,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
 
     if connected?(socket) do
       # Subscribe to wallet balance updates for this me_file
-      Qlarius.Wallets.MeFileBalanceBroadcaster.subscribe_to_me_file_balance(
+      Qlarius.Wallets.MeFileStatsBroadcaster.subscribe_to_me_file_stats(
         socket.assigns.current_scope.user.me_file.id
       )
 

@@ -7,7 +7,7 @@ defmodule Qlarius.Wallets do
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Sponster.Campaigns.Campaign
   alias Qlarius.Sponster.Ads.MediaPiecePhase
-  alias Qlarius.Wallets.MeFileBalanceBroadcaster
+  alias Qlarius.Wallets.MeFileStatsBroadcaster
   # Added User alias for get_user_current_balance function
   alias Qlarius.Accounts.User
   alias Qlarius.Tiqit.Arcade.Tiqit
@@ -130,7 +130,7 @@ defmodule Qlarius.Wallets do
         |> Ecto.Changeset.change(balance: new_balance, balance_payable: new_balance_payable)
         |> Repo.update!()
 
-        MeFileBalanceBroadcaster.broadcast_me_file_balance_update(
+        MeFileStatsBroadcaster.broadcast_balance_updated(
           ad_event.me_file_id,
           new_balance
         )
@@ -512,7 +512,7 @@ defmodule Qlarius.Wallets do
     |> Repo.insert!()
 
     # Broadcast balance update
-    MeFileBalanceBroadcaster.broadcast_me_file_balance_update(
+    MeFileStatsBroadcaster.broadcast_balance_updated(
       ledger_event.from_ledger.me_file_id,
       new_from_balance
     )

@@ -4,11 +4,6 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   import QlariusWeb.OfferHTML
 
   alias Qlarius.Sponster.Ads.ThreeTap
-  alias Qlarius.Sponster.Offers
-  # Commented out unused alias - Offer not directly referenced
-  # alias Qlarius.Sponster.Offer
-  # Commented out unused alias - Repo not directly referenced
-  # alias Qlarius.Repo
   # Commented out unused alias - Component not directly referenced
   # alias Phoenix.Component
   # Commented out unused import - only used in commented update_ads_count function
@@ -97,8 +92,6 @@ defmodule QlariusWeb.ThreeTapStackComponent do
       socket.assigns.user_ip,
       socket.assigns.host_uri.host
     )
-
-    Offers.create_pending_copy_and_delete_original(offer, 24)
 
     send(self(), {:refresh_wallet_balance, socket.assigns.current_scope.user.me_file.id})
     increment_phase(socket, offer.id)
