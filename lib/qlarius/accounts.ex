@@ -4,11 +4,163 @@ defmodule Qlarius.Accounts do
   """
 
   import Ecto.Query, warn: false
-  # Commented out unused alias - Repo not directly referenced
-  # alias Qlarius.Repo
+  alias Qlarius.Repo
 
-  alias Qlarius.Accounts.Marketer
-  alias Qlarius.Accounts.Scope
+  alias Qlarius.Accounts.{Marketer, Scope, User, UserProxy}
+  alias Qlarius.YouData.MeFiles.MeFile
+  alias Qlarius.Wallets.LedgerHeader
+
+  def get_user(id), do: Repo.get(User, id)
+
+  def get_user!(id), do: Repo.get!(User, id)
+
+  def get_user_with_me_file(id) do
+    Repo.get(User, id)
+    |> Repo.preload(:me_file)
+  end
+
+  def alias_available?(alias_value) when is_binary(alias_value) do
+    query = from u in User, where: u.alias == ^alias_value
+
+    case Repo.one(query) do
+      nil -> true
+      _ -> false
+    end
+  end
+
+  def register_new_user(attrs) do
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:user, User.changeset(%User{}, attrs))
+    |> Ecto.Multi.insert(:me_file, fn %{user: user} ->
+      MeFile.changeset(%MeFile{}, %{
+        user_id: user.id,
+        date_of_birth: attrs[:date_of_birth],
+        display_name: attrs[:alias]
+      })
+    end)
+    |> Ecto.Multi.insert(:ledger_header, fn %{me_file: me_file} ->
+      LedgerHeader.changeset(%LedgerHeader{}, %{
+        me_file_id: me_file.id,
+        description: "Wallet for #{attrs[:alias]}",
+        balance: Decimal.new("0.00"),
+        balance_payable: Decimal.new("0.00")
+      })
+    end)
+    |> maybe_insert_proxy_user(attrs)
+    |> maybe_insert_me_file_tags(attrs)
+    |> Repo.transaction()
+  end
+
+  defp maybe_insert_proxy_user(multi, %{true_user_id: true_user_id})
+       when not is_nil(true_user_id) do
+    multi
+    |> Ecto.Multi.insert(:proxy_user, fn %{user: user} ->
+      UserProxy.changeset(%UserProxy{}, %{
+        true_user_id: true_user_id,
+        proxy_user_id: user.id,
+        active: false
+      })
+    end)
+  end
+
+  defp maybe_insert_proxy_user(multi, _attrs), do: multi
+
+  defp maybe_insert_me_file_tags(multi, attrs) do
+    multi
+    |> Ecto.Multi.run(:me_file_tags, fn _repo, %{user: user, me_file: me_file} ->
+      tags = build_me_file_tags(me_file.id, user.id, attrs)
+      {:ok, tags}
+    end)
+    |> Ecto.Multi.run(:insert_tags, fn repo, %{me_file_tags: tags} ->
+      Enum.each(tags, fn tag_changeset ->
+        repo.insert!(tag_changeset)
+      end)
+
+      {:ok, :inserted}
+    end)
+  end
+
+  defp build_me_file_tags(me_file_id, user_id, attrs) do
+    tags = []
+
+    tags =
+      if attrs[:sex_trait_id] do
+        sex_trait = Qlarius.YouData.Traits.get_trait!(attrs[:sex_trait_id])
+
+        [
+          Qlarius.YouData.MeFiles.MeFileTag.changeset(%Qlarius.YouData.MeFiles.MeFileTag{}, %{
+            me_file_id: me_file_id,
+            trait_id: attrs[:sex_trait_id],
+            tag_value: sex_trait.trait_name,
+            added_by: user_id,
+            modified_by: user_id
+          })
+          | tags
+        ]
+      else
+        tags
+      end
+
+    tags =
+      if attrs[:age_trait_id] do
+        age_trait = Qlarius.YouData.Traits.get_trait!(attrs[:age_trait_id])
+
+        [
+          Qlarius.YouData.MeFiles.MeFileTag.changeset(%Qlarius.YouData.MeFiles.MeFileTag{}, %{
+            me_file_id: me_file_id,
+            trait_id: attrs[:age_trait_id],
+            tag_value: age_trait.trait_name,
+            added_by: user_id,
+            modified_by: user_id
+          })
+          | tags
+        ]
+      else
+        tags
+      end
+
+    tags =
+      if attrs[:zip_code_trait_id] do
+        zip_trait = Qlarius.YouData.Traits.get_trait!(attrs[:zip_code_trait_id])
+
+        [
+          Qlarius.YouData.MeFiles.MeFileTag.changeset(%Qlarius.YouData.MeFiles.MeFileTag{}, %{
+            me_file_id: me_file_id,
+            trait_id: attrs[:zip_code_trait_id],
+            tag_value: zip_trait.trait_name,
+            added_by: user_id,
+            modified_by: user_id
+          })
+          | tags
+        ]
+      else
+        tags
+      end
+
+    tags
+  end
+
+  def create_proxy_user(true_user_id, proxy_user_id) do
+    %UserProxy{}
+    |> UserProxy.changeset(%{
+      true_user_id: true_user_id,
+      proxy_user_id: proxy_user_id,
+      active: false
+    })
+    |> Repo.insert()
+  end
+
+  def activate_proxy_user(true_user_id, proxy_user_id) do
+    Repo.transaction(fn ->
+      from(up in UserProxy, where: up.true_user_id == ^true_user_id)
+      |> Repo.update_all(set: [active: false])
+
+      from(up in UserProxy,
+        where: up.true_user_id == ^true_user_id and up.proxy_user_id == ^proxy_user_id
+      )
+      |> Repo.update_all(set: [active: true])
+    end)
+  end
 
   @doc """
   Subscribes to scoped notifications about any marketer changes.

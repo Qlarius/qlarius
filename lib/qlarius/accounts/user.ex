@@ -26,8 +26,9 @@ defmodule Qlarius.Accounts.User do
 
   def changeset(user, attrs) do
     user
-    |> cast(attrs, [:username])
-    |> validate_required([:username])
+    |> cast(attrs, [:username, :alias, :mobile_number, :auth_provider_id, :role])
+    |> validate_required([:alias])
+    |> unique_constraint(:alias)
     |> unique_constraint(:username)
   end
 

@@ -26,7 +26,20 @@ defmodule QlariusWeb.UserAuth do
     {:cont, mount_current_scope(socket, session)}
   end
 
-  # Redirect unless current user is either an admin or a proxy user
+  def on_mount(:require_initialized_mefile, _params, _session, socket) do
+    user = socket.assigns.current_scope.user
+    me_file = user.me_file
+
+    if is_nil(me_file) || !Qlarius.YouData.MeFiles.is_initialized?(me_file) do
+      {:halt,
+       socket
+       |> Phoenix.LiveView.put_flash(:info, "Please complete your registration")
+       |> Phoenix.LiveView.push_navigate(to: ~p"/register")}
+    else
+      {:cont, socket}
+    end
+  end
+
   def on_mount(:require_admin_or_proxy, _params, _session, socket) do
     scope = socket.assigns.current_scope
 

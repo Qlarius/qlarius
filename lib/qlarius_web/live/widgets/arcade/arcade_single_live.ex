@@ -8,7 +8,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
   import QlariusWeb.Money
   import QlariusWeb.TiqitClassHTML
-  import QlariusWeb.Components.CustomComponentsMobile
   import QlariusWeb.Widgets.Arcade.Components
 
   def mount(%{"piece_id" => piece_id} = params, _session, socket) do

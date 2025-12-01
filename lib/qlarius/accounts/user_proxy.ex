@@ -17,7 +17,7 @@ defmodule Qlarius.Accounts.UserProxy do
 
   def changeset(user_proxy, attrs) do
     user_proxy
-    |> cast(attrs, [:active])
-    |> validate_required([:active])
+    |> cast(attrs, [:active, :true_user_id, :proxy_user_id])
+    |> validate_required([:true_user_id, :proxy_user_id])
   end
 end

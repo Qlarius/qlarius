@@ -9,6 +9,99 @@ defmodule Qlarius.YouData.MeFiles do
     Repo.one(from mf in MeFile, where: mf.user_id == ^user_id)
   end
 
+  def is_initialized?(%MeFile{} = me_file) do
+    has_sex? = has_tag_with_parent_trait?(me_file.id, 1)
+    has_age? = has_tag_with_parent_trait?(me_file.id, 93)
+    has_birthdate? = not is_nil(me_file.date_of_birth)
+
+    has_sex? && has_age? && has_birthdate?
+  end
+
+  defp has_tag_with_parent_trait?(me_file_id, parent_trait_id) do
+    query =
+      from mt in MeFileTag,
+        join: t in Trait,
+        on: mt.trait_id == t.id,
+        where: mt.me_file_id == ^me_file_id and t.parent_trait_id == ^parent_trait_id,
+        limit: 1
+
+    case Repo.one(query) do
+      nil -> false
+      _ -> true
+    end
+  end
+
+  def calculate_age(date_of_birth) when is_nil(date_of_birth), do: nil
+
+  def calculate_age(%Date{} = date_of_birth) do
+    today = Date.utc_today()
+    years = today.year - date_of_birth.year
+
+    if today.month < date_of_birth.month ||
+         (today.month == date_of_birth.month && today.day < date_of_birth.day) do
+      years - 1
+    else
+      years
+    end
+  end
+
+  def get_age_trait_for_age(age) when is_integer(age) do
+    require Logger
+
+    trait_name = Integer.to_string(age)
+
+    Logger.debug("Looking for age trait with parent_trait_id=93 and trait_name=#{trait_name}")
+
+    result =
+      Repo.one(
+        from t in Trait,
+          where: t.parent_trait_id == 93 and t.trait_name == ^trait_name,
+          limit: 1
+      )
+
+    Logger.debug("Age trait result: #{inspect(result)}")
+    result
+  end
+
+  def update_age_tags_for_birthdate(date) do
+    query =
+      from mf in MeFile,
+        where: fragment("EXTRACT(MONTH FROM ?) = ?", mf.date_of_birth, ^date.month),
+        where: fragment("EXTRACT(DAY FROM ?) = ?", mf.date_of_birth, ^date.day),
+        preload: [:user]
+
+    me_files = Repo.all(query)
+
+    Enum.each(me_files, fn me_file ->
+      age = calculate_age(me_file.date_of_birth)
+
+      if age do
+        age_trait = get_age_trait_for_age(age)
+
+        if age_trait do
+          from(mt in MeFileTag,
+            join: t in Trait,
+            on: mt.trait_id == t.id,
+            where: mt.me_file_id == ^me_file.id and t.parent_trait_id == 93
+          )
+          |> Repo.delete_all()
+
+          %MeFileTag{}
+          |> MeFileTag.changeset(%{
+            me_file_id: me_file.id,
+            trait_id: age_trait.id,
+            tag_value: age_trait.trait_name,
+            added_by: me_file.user_id,
+            modified_by: me_file.user_id
+          })
+          |> Repo.insert()
+        end
+      end
+    end)
+
+    {:ok, length(me_files)}
+  end
+
   def me_file_tags_with_parent_traits_and_categories(me_file_id) do
     Repo.all(
       from mt in MeFileTag,

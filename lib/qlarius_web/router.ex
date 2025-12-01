@@ -126,9 +126,17 @@ defmodule QlariusWeb.Router do
   scope "/", QlariusWeb do
     pipe_through [:browser]
 
-    live_session :current_scope,
+    live_session :registration,
       on_mount: [
         {QlariusWeb.UserAuth, :mount_current_scope}
+      ] do
+      live "/register", RegistrationLive, :index
+    end
+
+    live_session :current_scope,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.UserAuth, :require_initialized_mefile}
       ] do
       get "/", PageController, :home
       live "/users/settings", UserSettingsLive, :edit
