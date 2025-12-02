@@ -10,15 +10,16 @@ import Config
 config :qlarius, Oban,
   engine: Oban.Engines.Basic,
   notifier: Oban.Notifiers.Postgres,
-  queues: [default: 10, targets: 5],
+  queues: [default: 10, targets: 5, offers: 10, activations: 3],
   repo: Qlarius.Repo,
   plugins: [
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
     {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)},
     {Oban.Plugins.Cron,
      crontab: [
-       {"*/5 * * * *", Qlarius.Jobs.ActivatePendingOffersToCurrent},
-       {"0 0 * * *", Qlarius.Jobs.UpdateAgeTagsWorker}
+       {"*/5 * * * *", Qlarius.Jobs.ActivatePendingOffersWorker},
+       {"0 0 * * *", Qlarius.Jobs.UpdateAgeTagsWorker},
+       {"0 2 * * *", Qlarius.Jobs.CleanupInvalidOffersWorker}
      ]}
   ]
 

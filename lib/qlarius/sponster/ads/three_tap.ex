@@ -6,6 +6,7 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
   alias Qlarius.Sponster.Ads.{MediaPiecePhase, MediaPieceType}
   alias Qlarius.Sponster.Campaigns.CampaignPubSub
   alias Qlarius.Wallets
+  alias Qlarius.Jobs.HandleOfferCompletionWorker
 
   def create_banner_ad_event(
         offer,
@@ -84,6 +85,8 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
               offer.campaign.marketer_id,
               offer.campaign_id
             )
+
+            enqueue_completion_worker_if_needed(ad_event)
 
             {:ok, ad_event}
 
@@ -185,6 +188,8 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
               offer.campaign_id
             )
 
+            enqueue_completion_worker_if_needed(ad_event)
+
             {:ok, ad_event}
 
           {:error, error} ->
@@ -194,6 +199,18 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
       {:error, changeset} ->
         {:error, changeset}
     end
+  end
+
+  defp enqueue_completion_worker_if_needed(ad_event) do
+    if ad_event.is_offer_complete do
+      HandleOfferCompletionWorker.new(%{
+        offer_id: ad_event.offer_id,
+        completed_at: NaiveDateTime.to_iso8601(ad_event.created_at)
+      })
+      |> Oban.insert()
+    end
+
+    :ok
   end
 
   @doc """

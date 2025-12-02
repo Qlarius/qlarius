@@ -64,4 +64,16 @@ defmodule Qlarius.Sponster.Campaigns.CampaignPubSub do
       {:offers_created, campaign_id, count}
     )
   end
+
+  @doc """
+  Broadcasts that pending offers have been activated.
+  General broadcast to all campaigns.
+  """
+  def broadcast_offers_activated do
+    Phoenix.PubSub.broadcast(
+      Qlarius.PubSub,
+      "campaigns:offers_activated",
+      {:offers_activated}
+    )
+  end
 end

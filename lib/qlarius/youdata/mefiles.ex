@@ -141,42 +141,52 @@ defmodule Qlarius.YouData.MeFiles do
 
   def create_replace_mefile_tags(me_file_id, parent_trait_id, child_trait_ids, user_id)
       when is_list(child_trait_ids) do
-    Repo.transaction(fn ->
-      from(mt in MeFileTag,
-        join: t in Trait,
-        on: mt.trait_id == t.id,
-        where: mt.me_file_id == ^me_file_id and t.parent_trait_id == ^parent_trait_id
-      )
-      |> Repo.delete_all()
-
-      child_trait_ids =
-        Enum.map(child_trait_ids, fn
-          id when is_binary(id) -> String.to_integer(id)
-          id -> id
-        end)
-
-      trait_names =
-        Repo.all(
-          from t in Trait,
-            where: t.id in ^child_trait_ids,
-            select: {t.id, t.trait_name}
+    result =
+      Repo.transaction(fn ->
+        from(mt in MeFileTag,
+          join: t in Trait,
+          on: mt.trait_id == t.id,
+          where: mt.me_file_id == ^me_file_id and t.parent_trait_id == ^parent_trait_id
         )
-        |> Map.new()
+        |> Repo.delete_all()
 
-      Enum.each(child_trait_ids, fn child_id ->
-        %MeFileTag{}
-        |> MeFileTag.changeset(%{
-          me_file_id: me_file_id,
-          trait_id: child_id,
-          tag_value: Map.get(trait_names, child_id),
-          added_by: user_id,
-          modified_by: user_id
-        })
-        |> Repo.insert!()
+        child_trait_ids =
+          Enum.map(child_trait_ids, fn
+            id when is_binary(id) -> String.to_integer(id)
+            id -> id
+          end)
+
+        trait_names =
+          Repo.all(
+            from t in Trait,
+              where: t.id in ^child_trait_ids,
+              select: {t.id, t.trait_name}
+          )
+          |> Map.new()
+
+        Enum.each(child_trait_ids, fn child_id ->
+          %MeFileTag{}
+          |> MeFileTag.changeset(%{
+            me_file_id: me_file_id,
+            trait_id: child_id,
+            tag_value: Map.get(trait_names, child_id),
+            added_by: user_id,
+            modified_by: user_id
+          })
+          |> Repo.insert!()
+        end)
       end)
-    end)
 
-    :ok
+    case result do
+      {:ok, _} ->
+        Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker.new(%{me_file_id: me_file_id})
+        |> Oban.insert()
+
+        :ok
+
+      {:error, _} ->
+        :ok
+    end
   end
 
   def create_replace_mefile_tags(
@@ -187,71 +197,92 @@ defmodule Qlarius.YouData.MeFiles do
         id_to_name_map
       )
       when is_list(child_trait_ids) and is_map(id_to_name_map) do
-    Repo.transaction(fn ->
-      from(mt in MeFileTag,
-        join: t in Trait,
-        on: mt.trait_id == t.id,
-        where: mt.me_file_id == ^me_file_id and t.parent_trait_id == ^parent_trait_id
-      )
-      |> Repo.delete_all()
-
-      child_trait_ids =
-        Enum.map(child_trait_ids, fn
-          id when is_binary(id) -> String.to_integer(id)
-          id -> id
-        end)
-
-      Enum.each(child_trait_ids, fn child_id ->
-        %MeFileTag{}
-        |> MeFileTag.changeset(%{
-          me_file_id: me_file_id,
-          trait_id: child_id,
-          tag_value: Map.get(id_to_name_map, child_id),
-          added_by: user_id,
-          modified_by: user_id
-        })
-        |> Repo.insert!()
-      end)
-    end)
-
-    :ok
-  end
-
-  def delete_mefile_tags(me_file_id, parent_trait_id, child_trait_ids) do
-    # Ensure child_trait_ids is a list
-    child_trait_ids = List.wrap(child_trait_ids)
-
-    Repo.transaction(fn ->
-      child_trait_ids =
-        Enum.map(child_trait_ids, fn
-          id when is_binary(id) -> String.to_integer(id)
-          id -> id
-        end)
-
-      # Convert parent_trait_id if it's a string
-      parent_trait_id =
-        case parent_trait_id do
-          id when is_binary(id) -> String.to_integer(id)
-          id -> id
-        end
-
-      # Delete the parent trait tag for this me_file
-      from(mt in MeFileTag,
-        where: mt.me_file_id == ^me_file_id and mt.trait_id == ^parent_trait_id
-      )
-      |> Repo.delete_all()
-
-      # Delete the specified child trait tags for this me_file
-      {child_deleted_count, _} =
+    result =
+      Repo.transaction(fn ->
         from(mt in MeFileTag,
-          where: mt.me_file_id == ^me_file_id and mt.trait_id in ^child_trait_ids
+          join: t in Trait,
+          on: mt.trait_id == t.id,
+          where: mt.me_file_id == ^me_file_id and t.parent_trait_id == ^parent_trait_id
         )
         |> Repo.delete_all()
 
-      child_deleted_count
-    end)
+        child_trait_ids =
+          Enum.map(child_trait_ids, fn
+            id when is_binary(id) -> String.to_integer(id)
+            id -> id
+          end)
 
-    :ok
+        Enum.each(child_trait_ids, fn child_id ->
+          %MeFileTag{}
+          |> MeFileTag.changeset(%{
+            me_file_id: me_file_id,
+            trait_id: child_id,
+            tag_value: Map.get(id_to_name_map, child_id),
+            added_by: user_id,
+            modified_by: user_id
+          })
+          |> Repo.insert!()
+        end)
+      end)
+
+    case result do
+      {:ok, _} ->
+        Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker.new(%{me_file_id: me_file_id})
+        |> Oban.insert()
+
+        :ok
+
+      {:error, _} ->
+        :ok
+    end
+  end
+
+  def delete_mefile_tags(me_file_id, parent_trait_id, child_trait_ids) do
+    child_trait_ids = List.wrap(child_trait_ids)
+
+    result =
+      Repo.transaction(fn ->
+        child_trait_ids =
+          Enum.map(child_trait_ids, fn
+            id when is_binary(id) -> String.to_integer(id)
+            id -> id
+          end)
+
+        parent_trait_id =
+          case parent_trait_id do
+            id when is_binary(id) -> String.to_integer(id)
+            id -> id
+          end
+
+        all_trait_ids_to_delete = [parent_trait_id | child_trait_ids]
+
+        from(mt in MeFileTag,
+          where: mt.me_file_id == ^me_file_id and mt.trait_id == ^parent_trait_id
+        )
+        |> Repo.delete_all()
+
+        {child_deleted_count, _} =
+          from(mt in MeFileTag,
+            where: mt.me_file_id == ^me_file_id and mt.trait_id in ^child_trait_ids
+          )
+          |> Repo.delete_all()
+
+        {child_deleted_count, all_trait_ids_to_delete}
+      end)
+
+    case result do
+      {:ok, {_count, deleted_trait_ids}} ->
+        Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker.new(%{
+          me_file_id: me_file_id,
+          deleted_trait_ids: deleted_trait_ids
+        })
+        |> Oban.insert()
+
+        :ok
+
+      {:error, _} ->
+        :ok
+    end
   end
 
   def parent_trait_with_tags_for_mefile(me_file_id, parent_trait_id) do
