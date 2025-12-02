@@ -312,19 +312,38 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
   to:
 
   `[{parent_id, name, order, [{child_id, value, order}]}]`
+
+  Handles various snapshot formats including:
+  - `%{matching_tags_snapshot: %{"tags" => [...]}}`
+  - `%{"tags" => [...]}`
+  - Old format maps (returns empty list)
   """
   def snapshot_to_tuples(%{matching_tags_snapshot: %{"tags" => tags}})
       when is_list(tags) do
-    Enum.map(tags, fn [parent_id, name, order, children] ->
-      {parent_id, name, order, Enum.map(children, &List.to_tuple/1)}
-    end)
+    convert_tags_to_tuples(tags)
   end
 
   def snapshot_to_tuples(%{"tags" => tags}) when is_list(tags) do
-    Enum.map(tags, fn [parent_id, name, order, children] ->
-      {parent_id, name, order, Enum.map(children, &List.to_tuple/1)}
-    end)
+    convert_tags_to_tuples(tags)
+  end
+
+  def snapshot_to_tuples(%{"parent_trait_id" => _, "trait_id" => _, "trait_name" => _}) do
+    []
   end
 
   def snapshot_to_tuples(_), do: []
+
+  defp convert_tags_to_tuples(tags) do
+    Enum.map(tags, fn
+      [parent_id, name, order, children] when is_list(children) ->
+        {parent_id, name, order, Enum.map(children, &List.to_tuple/1)}
+
+      %{"parent_trait_id" => _, "trait_id" => _, "trait_name" => _} ->
+        nil
+
+      _ ->
+        nil
+    end)
+    |> Enum.reject(&is_nil/1)
+  end
 end
