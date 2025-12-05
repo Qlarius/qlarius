@@ -5,6 +5,8 @@ defmodule Qlarius.Accounts.User do
 
   alias Qlarius.Accounts.UserProxy
   alias Qlarius.YouData.MeFiles.MeFile
+  alias Qlarius.Creators.Creator
+  alias Qlarius.Creators.CreatorMembership
 
   @primary_key {:id, :id, autogenerate: true}
 
@@ -20,6 +22,8 @@ defmodule Qlarius.Accounts.User do
 
     has_many :proxy_users, UserProxy, foreign_key: :true_user_id
     has_many :proxied_by, UserProxy, foreign_key: :proxy_user_id
+
+    many_to_many :creators, Creator, join_through: CreatorMembership
 
     timestamps()
   end

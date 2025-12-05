@@ -2,7 +2,7 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Tiqit.Arcade.Creator
+  alias Qlarius.Creators.Creator
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.TiqitClass
 

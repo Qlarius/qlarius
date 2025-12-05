@@ -44,7 +44,8 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
     |> allow_upload(:banner_image,
       accept: ~w(.jpg .jpeg .png .gif),
       max_entries: 1,
-      max_file_size: 10_000_000
+      max_file_size: 10_000_000,
+      auto_upload: true
     )
   end
 
@@ -62,7 +63,8 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
     |> allow_upload(:banner_image,
       accept: ~w(.jpg .jpeg .png .gif),
       max_entries: 1,
-      max_file_size: 10_000_000
+      max_file_size: 10_000_000,
+      auto_upload: true
     )
   end
 
@@ -372,68 +374,22 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
         required
       />
 
-      <div>
-        <label class="label">
-          <span class="label-text">Banner Image</span>
-        </label>
-
-        <%= if @media_piece && @media_piece.banner_image do %>
-          <div class="mb-4">
-            <p class="text-sm text-base-content/70 mb-2">Current banner:</p>
-            <img
-              src={
-                QlariusWeb.Uploaders.ThreeTapBanner.url(
-                  {@media_piece.banner_image, @media_piece},
-                  :original
-                )
-              }
-              alt="Current banner"
-              class="w-64 h-auto rounded"
-            />
-          </div>
-        <% end %>
-
-        <div
-          class="border-2 border-dashed border-base-content/30 rounded-lg p-6"
-          phx-drop-target={@uploads.banner_image.ref}
-        >
-          <div class="flex flex-col items-start gap-2">
-            <.live_file_input
-              upload={@uploads.banner_image}
-              class="file-input file-input-bordered w-full max-w-md"
-            />
-            <p class="text-sm text-base-content/60">
-              PNG, JPG, GIF up to 10MB
-            </p>
-          </div>
-        </div>
-
-        <%= for entry <- @uploads.banner_image.entries do %>
-          <div class="mt-4 flex items-center gap-2">
-            <.live_img_preview entry={entry} class="w-32 h-auto rounded" />
-            <div class="flex-1">
-              <p class="text-sm font-medium">{entry.client_name}</p>
-              <progress value={entry.progress} max="100" class="progress progress-primary w-full">
-                {entry.progress}%
-              </progress>
-            </div>
-            <button
-              type="button"
-              phx-click="cancel_upload"
-              phx-value-ref={entry.ref}
-              class="btn btn-sm btn-ghost btn-circle"
-            >
-              <.icon name="hero-x-mark" class="w-4 h-4" />
-            </button>
-          </div>
-        <% end %>
-
-        <%= for err <- upload_errors(@uploads.banner_image) do %>
-          <p class="text-error text-sm mt-2">
-            {error_to_string(err)}
-          </p>
-        <% end %>
-      </div>
+      <.image_upload_field
+        upload={@uploads.banner_image}
+        label="Banner Image"
+        current_image={if @media_piece, do: @media_piece.banner_image}
+        current_image_url={
+          if @media_piece && @media_piece.banner_image,
+            do:
+              QlariusWeb.Uploaders.ThreeTapBanner.url(
+                {@media_piece.banner_image, @media_piece},
+                :original
+              )
+        }
+        accept_text="PNG, JPG, GIF (max 10MB)"
+        preview_size="w-32 h-auto"
+        current_image_size="w-64 h-auto"
+      />
 
       <div>
         <.button phx-disable-with="Saving..." class="btn btn-primary">Save Media Piece</.button>
@@ -443,7 +399,4 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
     """
   end
 
-  defp error_to_string(:too_large), do: "File is too large"
-  defp error_to_string(:not_accepted), do: "File type not accepted"
-  defp error_to_string(:too_many_files), do: "Too many files"
 end

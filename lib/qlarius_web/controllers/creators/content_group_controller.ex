@@ -17,7 +17,7 @@ defmodule QlariusWeb.Creators.ContentGroupController do
       {:ok, content_group} ->
         conn
         |> put_flash(:info, "Group created successfully.")
-        |> redirect(to: ~p"/creators/content_groups/#{content_group}")
+        |> redirect(to: ~p"/creators_cont/content_groups/#{content_group}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :new, changeset: changeset)
@@ -58,7 +58,7 @@ defmodule QlariusWeb.Creators.ContentGroupController do
       {:ok, content_group} ->
         conn
         |> put_flash(:info, "Content group updated successfully.")
-        |> redirect(to: ~p"/creators/content_groups/#{content_group}")
+        |> redirect(to: ~p"/creators_cont/content_groups/#{content_group}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :edit, content_group: content_group, changeset: changeset)
@@ -73,7 +73,7 @@ defmodule QlariusWeb.Creators.ContentGroupController do
 
     conn
     |> put_flash(:info, "Default Tiqit classes added successfully.")
-    |> redirect(to: ~p"/creators/content_groups/#{content_group_id}")
+    |> redirect(to: ~p"/creators_cont/content_groups/#{content_group_id}")
   end
 
   def delete(conn, %{"id" => id}) do
@@ -85,6 +85,6 @@ defmodule QlariusWeb.Creators.ContentGroupController do
 
     conn
     |> put_flash(:info, "Delete content group")
-    |> redirect(to: ~p"/creators/catalogs/#{catalog}")
+    |> redirect(to: ~p"/creators_cont/catalogs/#{catalog}")
   end
 end

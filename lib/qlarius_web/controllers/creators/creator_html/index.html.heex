@@ -1,4 +1,4 @@
-<Layouts.creators {assigns}>
+<div class="p-6">
   <div class="space-y-6">
     <!-- Header Section -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -7,7 +7,7 @@
         <p class="text-base-content/60 mt-1">Manage your content creators</p>
       </div>
       <div class="flex gap-2">
-        <.link navigate={~p"/creators/new"}>
+        <.link navigate={~p"/creators_cont/new"}>
           <.button class="btn btn-primary">
             <.icon name="hero-plus" class="w-4 h-4 mr-2" /> New Creator
           </.button>
@@ -31,7 +31,7 @@
                 <%= for creator <- @creators do %>
                   <tr
                     class="hover:bg-base-200 cursor-pointer transition-colors"
-                    phx-click={JS.navigate(~p"/creators/#{creator}")}
+                    phx-click={JS.navigate(~p"/creators_cont/#{creator}")}
                   >
                     <td class="font-medium text-base-content">
                       <div class="flex items-center gap-3">
@@ -46,18 +46,18 @@
                     <td class="text-right">
                       <div class="flex gap-2 justify-end">
                         <div class="sr-only">
-                          <.link navigate={~p"/creators/#{creator}"} class="btn btn-ghost btn-sm">
+                          <.link navigate={~p"/creators_cont/#{creator}"} class="btn btn-ghost btn-sm">
                             <.icon name="hero-eye" class="w-4 h-4" />
                           </.link>
                         </div>
                         <.link
-                          navigate={~p"/creators/#{creator}/edit"}
+                          navigate={~p"/creators_cont/#{creator}/edit"}
                           class="btn btn-ghost btn-sm"
                         >
                           <.icon name="hero-pencil" class="w-4 h-4" />
                         </.link>
                         <.link
-                          href={~p"/creators/#{creator}"}
+                          href={~p"/creators_cont/#{creator}"}
                           method="delete"
                           data-confirm="Are you sure you want to delete this creator?"
                           class="btn btn-ghost btn-sm text-error hover:bg-error hover:text-error-content"
@@ -87,7 +87,7 @@
             <p class="text-base-content/60 mb-6">
               Get started by adding your first creator to showcase their work and content.
             </p>
-            <.link navigate={~p"/creators/new"}>
+            <.link navigate={~p"/creators_cont/new"}>
               <.button class="btn btn-primary btn-lg">
                 <.icon name="hero-plus" class="w-5 h-5 mr-2" /> Add First Creator
               </.button>
@@ -97,4 +97,4 @@
       </div>
     <% end %>
   </div>
-</Layouts.creators>
+</div>

@@ -1,0 +1,150 @@
+<div class="container mx-auto px-4 py-8">
+  <div class="mb-6">
+    <.link navigate={~p"/creators"} class="btn btn-ghost btn-sm">
+      ← Back to Creators
+    </.link>
+  </div>
+
+  <div class="card bg-base-100 shadow-xl mb-8">
+    <div class="card-body">
+      <div class="flex items-center gap-6">
+        <%= if @creator.image do %>
+          <img
+            src={@creator.image}
+            alt={@creator.name}
+            class="rounded-full w-24 h-24 object-cover"
+          />
+        <% else %>
+          <div class="avatar placeholder">
+            <div class="bg-neutral text-neutral-content rounded-full w-24">
+              <span class="text-3xl">{String.first(@creator.name)}</span>
+            </div>
+          </div>
+        <% end %>
+
+        <div class="flex-1">
+          <h1 class="text-3xl font-bold">{@creator.name}</h1>
+          <%= if @creator.bio do %>
+            <p class="text-base-content/70 mt-2">{@creator.bio}</p>
+          <% end %>
+        </div>
+
+        <div class="card-actions">
+          <.link navigate={~p"/creators_cont/#{@creator.id}/edit"} class="btn btn-primary">
+            Edit Profile
+          </.link>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <!-- Qlink Pages Section -->
+    <div>
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold">Qlink Pages</h2>
+        <%!-- TODO: Add New Page button when editor is implemented --%>
+        <%!-- <.link navigate={~p"/creators/#{@creator.id}/qlink/new"} class="btn btn-primary btn-sm">New Page</.link> --%>
+      </div>
+
+      <%= if @creator.qlink_pages == [] do %>
+        <div class="card bg-base-200 shadow">
+          <div class="card-body">
+            <p class="text-center">No Qlink pages yet. Use IEx to create test pages.</p>
+            <%!-- TODO: Add create button when editor is implemented --%>
+          </div>
+        </div>
+      <% else %>
+        <div class="space-y-4">
+          <%= for page <- @creator.qlink_pages do %>
+            <div class="card bg-base-100 shadow">
+              <div class="card-body">
+                <h3 class="card-title">{page.title}</h3>
+                <p class="text-sm text-base-content/70">@{page.alias}</p>
+
+                <div class="stats stats-horizontal shadow-sm mt-2">
+                  <div class="stat py-2 px-4">
+                    <div class="stat-title text-xs">Views</div>
+                    <div class="stat-value text-lg">{page.view_count}</div>
+                  </div>
+                  <div class="stat py-2 px-4">
+                    <div class="stat-title text-xs">Clicks</div>
+                    <div class="stat-value text-lg">{page.total_clicks}</div>
+                  </div>
+                </div>
+
+                <div class="card-actions justify-end mt-2">
+                  <.link
+                    navigate={~p"/@#{page.alias}"}
+                    class="btn btn-ghost btn-sm"
+                    target="_blank"
+                  >
+                    View
+                  </.link>
+                  <%!-- TODO: Add Edit button when editor is implemented --%>
+                  <%!-- <.link navigate={~p"/creators/#{@creator.id}/qlink/#{page.id}/edit"} class="btn btn-ghost btn-sm">Edit</.link> --%>
+                  <button
+                    phx-click="delete_qlink_page"
+                    phx-value-id={page.id}
+                    data-confirm="Are you sure?"
+                    class="btn btn-ghost btn-sm text-error"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+    
+<!-- Tiqit Catalogs Section -->
+    <div>
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold">Tiqit Catalogs</h2>
+        <.link
+          navigate={~p"/creators_cont/#{@creator.id}/catalogs/new"}
+          class="btn btn-primary btn-sm"
+        >
+          New Catalog
+        </.link>
+      </div>
+
+      <%= if @creator.catalogs == [] do %>
+        <div class="card bg-base-200 shadow">
+          <div class="card-body">
+            <p class="text-center">No catalogs yet</p>
+            <div class="card-actions justify-center">
+              <.link
+                navigate={~p"/creators_cont/#{@creator.id}/catalogs/new"}
+                class="btn btn-sm btn-primary"
+              >
+                Create First Catalog
+              </.link>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="space-y-4">
+          <%= for catalog <- @creator.catalogs do %>
+            <div class="card bg-base-100 shadow">
+              <div class="card-body">
+                <h3 class="card-title">{catalog.name}</h3>
+                <p class="text-sm text-base-content/70">{catalog.type}</p>
+                <div class="card-actions justify-end mt-2">
+                  <.link
+                    navigate={~p"/creators_cont/catalogs/#{catalog.id}"}
+                    class="btn btn-ghost btn-sm"
+                  >
+                    Manage
+                  </.link>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

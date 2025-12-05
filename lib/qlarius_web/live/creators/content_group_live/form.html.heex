@@ -1,4 +1,4 @@
-<Layouts.creators {assigns}>
+<Layouts.admin {assigns}>
   <div class="space-y-6">
     <!-- Header Section -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -6,9 +6,9 @@
         <.link
           navigate={
             if @live_action == :edit do
-              ~p"/creators/content_groups/#{@group}"
+              ~p"/creators/content_groups/#{@group.id}"
             else
-              ~p"/creators/catalogs/#{@catalog}"
+              ~p"/creators/catalogs/#{@catalog.id}"
             end
           }
           class="btn btn-ghost btn-sm"
@@ -42,76 +42,16 @@
               Basic Information
             </h3>
 
-            <div class="form-control mb-4">
-              <label class="label">
-                <span class="label-text font-medium">Image</span>
-              </label>
-              <div
-                class="w-full border-2 border-dashed border-base-300 rounded-lg flex items-center justify-center overflow-hidden"
-                phx-drop-target={@uploads.image.ref}
-              >
-                <.live_file_input upload={@uploads.image} class="hidden" />
-                <label
-                  for={@uploads.image.ref}
-                  class="cursor-pointer p-6 text-center w-full block"
-                >
-                  <.icon
-                    name="hero-cloud-arrow-up"
-                    class="w-8 h-8 mx-auto text-base-content/60 mb-2"
-                  />
-                  <p class="text-sm text-base-content/60">Click to upload or drag and drop</p>
-                  <p class="text-xs text-base-content/40">JPG, PNG, GIF, WebP (max 10MB)</p>
-                </label>
-              </div>
-
-              <%= if @group.image do %>
-                <div class="mt-2 p-3 bg-base-200 rounded-lg">
-                  <p class="text-sm font-medium text-base-content mb-2">Current Image:</p>
-                  <div class="flex items-center gap-3">
-                    <img
-                      src={
-                        QlariusWeb.Uploaders.CreatorImage.url({@group.image, @group}, :original)
-                      }
-                      class="w-16 h-16 object-cover rounded-lg"
-                      alt="Content group image preview"
-                    />
-                    <button
-                      type="button"
-                      phx-click="delete_image"
-                      data-confirm="Are you sure you want to delete this image?"
-                      class="btn btn-outline btn-error btn-sm"
-                    >
-                      <.icon name="hero-trash" class="w-4 h-4 mr-1" /> Delete Image
-                    </button>
-                  </div>
-                </div>
-              <% end %>
-              
-<!-- Show upload preview -->
-              <%= for entry <- @uploads.image.entries do %>
-                <div class="mt-2">
-                  <div class="flex items-center gap-2 p-2 bg-base-200 rounded">
-                    <.icon name="hero-document" class="w-4 h-4" />
-                    <span class="text-sm flex-1">{entry.client_name}</span>
-                    <button
-                      type="button"
-                      phx-click="cancel-upload"
-                      phx-value-ref={entry.ref}
-                      class="btn btn-xs btn-ghost"
-                    >
-                      <.icon name="hero-x-mark" class="w-3 h-3" />
-                    </button>
-                  </div>
-                  <%= for err <- upload_errors(@uploads.image, entry) do %>
-                    <div class="text-error text-xs mt-1">{error_to_string(err)}</div>
-                  <% end %>
-                </div>
-              <% end %>
-
-              <%= for err <- upload_errors(@uploads.image) do %>
-                <div class="text-error text-xs mt-1">{error_to_string(err)}</div>
-              <% end %>
-            </div>
+            <.image_upload_field
+              upload={@uploads.image}
+              label="Image"
+              current_image={@group.image}
+              current_image_url={
+                if @group.image,
+                  do: QlariusWeb.Uploaders.CreatorImage.url({@group.image, @group}, :original)
+              }
+              on_delete="delete_image"
+            />
 
             <div class="form-control mb-4">
               <label class="label">
@@ -182,13 +122,13 @@
             </.button>
 
             <.link
-              navigate={
-                if @live_action == :edit do
-                  ~p"/creators/content_groups/#{@group}"
-                else
-                  ~p"/creators/catalogs/#{@catalog}"
-                end
-              }
+                navigate={
+                  if @live_action == :edit do
+                    ~p"/creators/content_groups/#{@group.id}"
+                  else
+                    ~p"/creators/catalogs/#{@catalog.id}"
+                  end
+                }
               class="btn btn-ghost"
             >
               <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Cancel
@@ -198,4 +138,4 @@
       </div>
     </div>
   </div>
-</Layouts.creators>
+</Layouts.admin>

@@ -1,8 +1,8 @@
 defmodule QlariusWeb.Creators.CreatorController do
   use QlariusWeb, :controller
 
-  alias Qlarius.Tiqit.Arcade.Creators
-  alias Qlarius.Tiqit.Arcade.Creator
+  alias Qlarius.Creators
+  alias Qlarius.Creators.Creator
 
   def index(conn, _params) do
     creators = Creators.list_creators()
@@ -19,7 +19,7 @@ defmodule QlariusWeb.Creators.CreatorController do
       {:ok, creator} ->
         conn
         |> put_flash(:info, "Creator created successfully.")
-        |> redirect(to: ~p"/creators/#{creator}")
+        |> redirect(to: ~p"/creators_cont/#{creator}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :new, changeset: changeset)
@@ -44,7 +44,7 @@ defmodule QlariusWeb.Creators.CreatorController do
       {:ok, creator} ->
         conn
         |> put_flash(:info, "Creator updated successfully.")
-        |> redirect(to: ~p"/creators/#{creator}")
+        |> redirect(to: ~p"/creators_cont/#{creator}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :edit, creator: creator, changeset: changeset)
@@ -57,7 +57,7 @@ defmodule QlariusWeb.Creators.CreatorController do
 
     conn
     |> put_flash(:info, "Creator deleted successfully.")
-    |> redirect(to: ~p"/creators")
+    |> redirect(to: ~p"/creators_cont")
   end
 
   def delete_image(conn, %{"id" => id}) do
@@ -66,6 +66,6 @@ defmodule QlariusWeb.Creators.CreatorController do
 
     conn
     |> put_flash(:info, "Creator image deleted successfully.")
-    |> redirect(to: ~p"/creators/#{creator}/edit")
+    |> redirect(to: ~p"/creators_cont/#{creator}/edit")
   end
 end

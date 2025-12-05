@@ -9,7 +9,7 @@ defmodule QlariusWeb.Creators.CatalogController do
     creator = catalog.creator
 
     breadcrumbs = [
-      {creator.name, ~p"/creators/#{creator}"},
+      {creator.name, ~p"/creators_cont/#{creator}"},
       {catalog.name, nil}
     ]
 
@@ -24,7 +24,7 @@ defmodule QlariusWeb.Creators.CatalogController do
 
     conn
     |> put_flash(:info, "Default Tiqit classes added successfully.")
-    |> redirect(to: ~p"/creators/catalogs/#{catalog}")
+    |> redirect(to: ~p"/creators_cont/catalogs/#{catalog}")
   end
 
   def new(conn, %{"creator_id" => creator_id}) do
@@ -40,7 +40,7 @@ defmodule QlariusWeb.Creators.CatalogController do
       {:ok, catalog} ->
         conn
         |> put_flash(:info, "Catalog created successfully.")
-        |> redirect(to: ~p"/creators/catalogs/#{catalog}")
+        |> redirect(to: ~p"/creators_cont/catalogs/#{catalog}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :new, changeset: changeset, creator: creator)
@@ -62,7 +62,7 @@ defmodule QlariusWeb.Creators.CatalogController do
       {:ok, catalog} ->
         conn
         |> put_flash(:info, "Catalog updated successfully.")
-        |> redirect(to: ~p"/creators/catalogs/#{catalog}")
+        |> redirect(to: ~p"/creators_cont/catalogs/#{catalog}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :edit, catalog: catalog, changeset: changeset, creator: creator)
@@ -76,6 +76,6 @@ defmodule QlariusWeb.Creators.CatalogController do
 
     conn
     |> put_flash(:info, "Catalog deleted successfully.")
-    |> redirect(to: ~p"/creators/#{creator}")
+    |> redirect(to: ~p"/creators_cont/#{creator}")
   end
 end

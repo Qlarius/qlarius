@@ -7,6 +7,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
 
   alias QlariusWeb.TiqitClassHTML
   alias QlariusWeb.Uploaders.CreatorImage
+  alias QlariusWeb.LiveView.ImageUpload
 
   # EDIT
   @impl true
@@ -20,9 +21,9 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
     changeset = Creators.change_catalog(catalog)
 
     breadcrumbs = [
-      {creator.name, ~p"/creators/#{creator}"},
-      {catalog.name, ~p"/creators/#{catalog}"},
-      {"Edit", ~p"/creators/catalogs/#{catalog}/edit"}
+      {creator.name, ~p"/creators_cont/#{creator}"},
+      {catalog.name, ~p"/creators_cont/#{catalog}"},
+      {"Edit", ~p"/creators_cont/catalogs/#{catalog}/edit"}
     ]
 
     socket
@@ -32,11 +33,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
       form: to_form(changeset),
       page_title: "Edit Catalog"
     )
-    |> allow_upload(:image,
-      accept: ~w(.jpg .jpeg .png .gif .webp),
-      max_entries: 1,
-      max_file_size: 10_000_000
-    )
+    |> ImageUpload.setup_upload(:image)
     |> noreply()
   end
 
@@ -47,8 +44,8 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
     changeset = Creators.change_catalog(%Catalog{})
 
     breadcrumbs = [
-      {creator.name, ~p"/creators/#{creator}"},
-      {"New catalog", ~p"/creators/#{creator}/catalogs/new"}
+      {creator.name, ~p"/creators/#{creator.id}"},
+      {"New catalog", ~p"/creators/#{creator.id}/catalogs/new"}
     ]
 
     socket
@@ -59,11 +56,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
       form: to_form(changeset),
       page_title: "New Catalog"
     )
-    |> allow_upload(:image,
-      accept: ~w(.jpg .jpeg .png .gif .webp),
-      max_entries: 1,
-      max_file_size: 10_000_000
-    )
+    |> ImageUpload.setup_upload(:image)
     |> noreply()
   end
 
@@ -108,36 +101,22 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
     {:noreply, assign(socket, :catalog, catalog)}
   end
 
-  # error helpers grouped after all handle_event clauses to avoid compiler warnings
-  defp error_to_string(:too_large), do: "File too large (max 10MB)"
-  defp error_to_string(:too_many_files), do: "Too many files selected"
-  defp error_to_string(:not_accepted), do: "File type not supported"
-  defp error_to_string(error), do: "Upload error: #{inspect(error)}"
 
   defp save_catalog(socket, :edit, catalog_params) do
-    # Handle file upload for LiveView - store with Waffle directly
     catalog_params_with_image =
-      case consume_uploaded_entries(socket, :image, fn %{path: path}, entry ->
-             upload = %Plug.Upload{
-               path: path,
-               filename: entry.client_name,
-               content_type: entry.client_type
-             }
-
-             case CreatorImage.store({upload, socket.assigns.catalog}) do
-               {:ok, filename} -> {:ok, filename}
-               error -> error
-             end
-           end) do
-        [filename | _] -> Map.put(catalog_params, "image", filename)
-        [] -> catalog_params
-      end
+      ImageUpload.consume_and_add_to_params(
+        socket,
+        :image,
+        socket.assigns.catalog,
+        CreatorImage,
+        catalog_params
+      )
 
     case Creators.update_catalog(socket.assigns.catalog, catalog_params_with_image) do
       {:ok, catalog} ->
         socket
         |> put_flash(:info, "Catalog updated successfully")
-        |> push_navigate(to: ~p"/creators/catalogs/#{catalog}")
+        |> push_navigate(to: ~p"/creators/catalogs/#{catalog.id}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         assign(socket, :form, to_form(changeset, action: :validate))
@@ -147,33 +126,22 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
 
   defp save_catalog(socket, :new, catalog_params) do
     creator = socket.assigns.creator
-
-    # Create a temporary catalog for Waffle store function
     temp_catalog = %Catalog{creator_id: creator.id}
 
-    # Handle file upload for LiveView - store with Waffle directly
     catalog_params_with_image =
-      case consume_uploaded_entries(socket, :image, fn %{path: path}, entry ->
-             upload = %Plug.Upload{
-               path: path,
-               filename: entry.client_name,
-               content_type: entry.client_type
-             }
-
-             case CreatorImage.store({upload, temp_catalog}) do
-               {:ok, filename} -> {:ok, filename}
-               error -> error
-             end
-           end) do
-        [filename | _] -> Map.put(catalog_params, "image", filename)
-        [] -> catalog_params
-      end
+      ImageUpload.consume_and_add_to_params(
+        socket,
+        :image,
+        temp_catalog,
+        CreatorImage,
+        catalog_params
+      )
 
     case Creators.create_catalog(creator, catalog_params_with_image) do
       {:ok, catalog} ->
         socket
         |> put_flash(:info, "Catalog created successfully")
-        |> push_navigate(to: ~p"/creators/catalogs/#{catalog}")
+        |> push_navigate(to: ~p"/creators/catalogs/#{catalog.id}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         assign(socket, :form, to_form(changeset, action: :validate))

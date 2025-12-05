@@ -1,0 +1,204 @@
+defmodule QlariusWeb.Creators.ContentPieceLive.Show do
+  use QlariusWeb, :live_view
+
+  alias Qlarius.Tiqit.Arcade.Creators
+  alias QlariusWeb.TiqitClassHTML
+  import QlariusWeb.CoreComponents
+
+  @impl true
+  def mount(%{"id" => id}, _session, socket) do
+    piece = Creators.get_content_piece!(id)
+    group = piece.content_group
+    catalog = group.catalog
+    creator = catalog.creator
+
+    {:ok,
+     socket
+     |> assign(:piece, piece)
+     |> assign(:content_group, group)
+     |> assign(:catalog, catalog)
+     |> assign(:creator, creator)
+     |> assign(:page_title, piece.title)}
+  end
+
+  @impl true
+  def handle_params(_params, _url, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("delete", _params, socket) do
+    piece = socket.assigns.piece
+    group = piece.content_group
+    {:ok, _piece} = Creators.delete_content_piece(piece)
+
+    {:noreply,
+     socket
+     |> put_flash(:info, "Content piece deleted successfully")
+     |> push_navigate(to: ~p"/creators/content_groups/#{group.id}")}
+  end
+
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <Layouts.admin {assigns}>
+      <div class="p-6">
+        <div class="space-y-6">
+          <!-- Header Section -->
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div class="flex items-center gap-4">
+              <.link
+                navigate={~p"/creators/content_groups/#{@content_group.id}"}
+                class="btn btn-ghost btn-sm"
+              >
+                <.icon name="hero-arrow-left" class="w-4 h-4" /> Back to Content Group
+              </.link>
+              <div>
+                <h1 class="text-2xl font-bold text-base-content">{@piece.title}</h1>
+                <p class="text-base-content/60 mt-1">
+                  Content Piece • ID: {@piece.id}
+                </p>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <.link navigate={~p"/creators/content_pieces/#{@piece.id}/edit"} class="btn btn-outline">
+                <.icon name="hero-pencil" class="w-4 h-4 mr-2" /> Edit
+              </.link>
+              <button
+                phx-click="delete"
+                data-confirm="Are you sure you want to delete this content piece?"
+                class="btn btn-outline btn-error"
+              >
+                <.icon name="hero-trash" class="w-4 h-4 mr-2" /> Delete
+              </button>
+            </div>
+          </div>
+
+          <!-- Content Details -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Main Content Card -->
+            <div class="lg:col-span-2">
+              <div class="card bg-base-100 shadow-lg">
+                <div class="card-body">
+                  <div class="space-y-6">
+                    <!-- Basic Information -->
+                    <div>
+                      <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+                        <.icon name="hero-information-circle" class="w-5 h-5 mr-3 text-info" />
+                        Basic Information
+                      </h3>
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                          <label class="label">
+                            <span class="label-text font-medium">Title</span>
+                          </label>
+                          <div class="bg-base-200 rounded-lg p-3">
+                            <p class="text-base-content font-medium">{@piece.title}</p>
+                          </div>
+                        </div>
+
+                        <div class="form-control">
+                          <label class="label">
+                            <span class="label-text font-medium">Length</span>
+                          </label>
+                          <div class="bg-base-200 rounded-lg p-3">
+                            <span class="badge badge-primary badge-lg">
+                              <.icon name="hero-clock" class="w-4 h-4 mr-2" />
+                              {format_duration(@piece.length)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                      <h4 class="text-md font-medium text-base-content mb-3">Description</h4>
+                      <div class="bg-base-200 rounded-lg p-4">
+                        <p class="text-base-content leading-relaxed">{@piece.description}</p>
+                      </div>
+                    </div>
+
+                    <!-- Content Group Info -->
+                    <div>
+                      <h4 class="text-md font-medium text-base-content mb-3 flex items-center">
+                        <.icon name="hero-folder" class="w-4 h-4 mr-2 text-secondary" /> Content Group
+                      </h4>
+                      <div class="bg-base-200 rounded-lg p-3">
+                        <div class="flex items-center gap-3">
+                          <div class="avatar placeholder">
+                            <div class="bg-neutral-focus text-neutral-content rounded-full w-8 h-8">
+                              <span class="text-xs">{String.at(@content_group.title, 0)}</span>
+                            </div>
+                          </div>
+                          <div>
+                            <.link
+                              navigate={~p"/creators/content_groups/#{@content_group.id}"}
+                              class="text-primary hover:text-primary-focus font-medium"
+                            >
+                              {@content_group.title}
+                            </.link>
+                            <p class="text-sm text-base-content/60">{@content_group.description}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tiqit Classes Sidebar -->
+            <div class="lg:col-span-1">
+              <div class="card bg-base-100 shadow-lg">
+                <div class="card-body">
+                  <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+                    <.icon name="hero-tag" class="w-5 h-5 mr-3 text-primary" />
+                    Tiqit Classes ({length(@piece.tiqit_classes)})
+                  </h3>
+
+                  <%= if Enum.any?(@piece.tiqit_classes) do %>
+                    <div class="overflow-x-auto">
+                      <TiqitClassHTML.tiqit_classes_table record={@piece} />
+                    </div>
+                  <% else %>
+                    <div class="text-center py-8">
+                      <div class="avatar placeholder mb-3">
+                        <div class="bg-neutral-focus text-neutral-content rounded-full w-12 h-12">
+                          <span class="text-lg">🏷️</span>
+                        </div>
+                      </div>
+                      <p class="text-base-content/60 text-sm">No pricing tiers configured</p>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+
+              <!-- Stats Card -->
+              <div class="card bg-base-100 shadow-lg mt-4">
+                <div class="card-body">
+                  <h4 class="text-md font-medium text-base-content mb-4">Quick Stats</h4>
+                  <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                      <span class="text-sm text-base-content/60">Created</span>
+                      <span class="text-sm font-medium">
+                        {Calendar.strftime(@piece.inserted_at, "%b %d, %Y")}
+                      </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                      <span class="text-sm text-base-content/60">Last Updated</span>
+                      <span class="text-sm font-medium">
+                        {Calendar.strftime(@piece.updated_at, "%b %d, %Y")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layouts.admin>
+    """
+  end
+end

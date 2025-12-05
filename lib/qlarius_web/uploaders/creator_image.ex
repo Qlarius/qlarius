@@ -6,6 +6,8 @@ defmodule QlariusWeb.Uploaders.CreatorImage do
 
   # Save under a per-creator directory
   alias Qlarius.Tiqit.Arcade.{ContentGroup, Catalog, Creator, ContentPiece}
+  alias Qlarius.Creators.Creator, as: NewCreator
+  alias Qlarius.Qlink.QlinkPage
 
   def storage_dir(_version, {_file, %ContentGroup{catalog: %Catalog{creator_id: creator_id}}})
       when is_integer(creator_id) do
@@ -20,8 +22,13 @@ defmodule QlariusWeb.Uploaders.CreatorImage do
     "uploads/creators/#{creator_id}/"
   end
 
-  # Creator-scoped images (e.g. creator profile/brand images)
+  # Creator-scoped images (e.g. creator profile/brand images) - old schema
   def storage_dir(_version, {_file, %Creator{id: creator_id}}) when is_integer(creator_id) do
+    "uploads/creators/#{creator_id}/"
+  end
+
+  # Creator-scoped images (e.g. creator profile/brand images) - new schema
+  def storage_dir(_version, {_file, %NewCreator{id: creator_id}}) when is_integer(creator_id) do
     "uploads/creators/#{creator_id}/"
   end
 
@@ -48,6 +55,12 @@ defmodule QlariusWeb.Uploaders.CreatorImage do
       )
       when is_integer(creator_id) do
     "uploads/creators/#{creator_id}/"
+  end
+
+  # QlinkPage-scoped images (qlink page profile photos)
+  def storage_dir(_version, {_file, %QlinkPage{creator_id: creator_id}})
+      when is_integer(creator_id) do
+    "uploads/creators/#{creator_id}/qlink_pages/"
   end
 
   # Fallback

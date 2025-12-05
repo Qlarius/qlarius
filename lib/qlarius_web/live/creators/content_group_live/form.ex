@@ -5,6 +5,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
   alias Qlarius.Tiqit.Arcade.Creators
 
   alias QlariusWeb.TiqitClassHTML
+  alias QlariusWeb.LiveView.ImageUpload
 
   # EDIT
   @impl true
@@ -16,10 +17,10 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
     changeset = Creators.change_content_group(group)
 
     breadcrumbs = [
-      {creator.name, ~p"/creators/#{creator}"},
-      {catalog.name, ~p"/creators/catalogs/#{catalog}"},
-      {group.title, ~p"/creators/content_groups/#{group}"},
-      {"Edit", ~p"/creators/content_groups/#{group}/edit"}
+      {creator.name, ~p"/creators/#{creator.id}"},
+      {catalog.name, ~p"/creators/catalogs/#{catalog.id}"},
+      {group.title, ~p"/creators/content_groups/#{group.id}"},
+      {"Edit", ~p"/creators/content_groups/#{group.id}/edit"}
     ]
 
     socket
@@ -31,11 +32,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
       form: to_form(changeset),
       page_title: "Edit Content Group"
     )
-    |> allow_upload(:image,
-      accept: ~w(.jpg .jpeg .png .gif .webp),
-      max_entries: 1,
-      max_file_size: 10_000_000
-    )
+    |> ImageUpload.setup_upload(:image)
     |> noreply()
   end
 
@@ -46,9 +43,9 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
     creator = catalog.creator
 
     breadcrumbs = [
-      {creator.name, ~p"/creators/#{creator}"},
-      {catalog.name, ~p"/creators/catalogs/#{catalog}"},
-      {"New Content Group", ~p"/creators/catalogs/#{catalog}/content_groups/new"}
+      {creator.name, ~p"/creators/#{creator.id}"},
+      {catalog.name, ~p"/creators/catalogs/#{catalog.id}"},
+      {"New Content Group", ~p"/creators/catalogs/#{catalog.id}/content_groups/new"}
     ]
 
     socket
@@ -60,11 +57,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
       group: %ContentGroup{},
       page_title: "New Content Group"
     )
-    |> allow_upload(:image,
-      accept: ~w(.jpg .jpeg .png .gif .webp),
-      max_entries: 1,
-      max_file_size: 10_000_000
-    )
+    |> ImageUpload.setup_upload(:image)
     |> noreply()
   end
 
@@ -109,37 +102,22 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
     {:noreply, assign(socket, :group, group)}
   end
 
-  defp error_to_string(:too_large), do: "File too large (max 10MB)"
-  defp error_to_string(:too_many_files), do: "Too many files selected"
-  defp error_to_string(:not_accepted), do: "File type not supported"
-  defp error_to_string(error), do: "Upload error: #{inspect(error)}"
 
   defp save_group(socket, :edit, group_params) do
-    # Handle file upload for LiveView - store with Waffle directly
     group_params_with_image =
-      case consume_uploaded_entries(socket, :image, fn %{path: path}, entry ->
-             # Build a Plug.Upload for Waffle
-             upload = %Plug.Upload{
-               path: path,
-               filename: entry.client_name,
-               content_type: entry.client_type
-             }
-
-             case QlariusWeb.Uploaders.CreatorImage.store({upload, socket.assigns.group}) do
-               {:ok, filename} -> {:ok, filename}
-               error -> error
-             end
-           end) do
-        [filename | _] -> Map.put(group_params, "image", filename)
-        # Don't include image key at all if no file uploaded
-        [] -> group_params
-      end
+      ImageUpload.consume_and_add_to_params(
+        socket,
+        :image,
+        socket.assigns.group,
+        QlariusWeb.Uploaders.CreatorImage,
+        group_params
+      )
 
     case Creators.update_content_group(socket.assigns.group, group_params_with_image) do
       {:ok, group} ->
         socket
         |> put_flash(:info, "Group updated successfully")
-        |> push_navigate(to: ~p"/creators/content_groups/#{group}")
+        |> push_navigate(to: ~p"/creators/content_groups/#{group.id}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         require Logger
@@ -151,34 +129,22 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
 
   defp save_group(socket, :new, group_params) do
     catalog = socket.assigns.catalog
-
-    # Create a temporary content group for Waffle store function
     temp_group = %Qlarius.Tiqit.Arcade.ContentGroup{catalog: catalog}
 
-    # Handle file upload for LiveView - store with Waffle directly
     group_params_with_image =
-      case consume_uploaded_entries(socket, :image, fn %{path: path}, entry ->
-             upload = %Plug.Upload{
-               path: path,
-               filename: entry.client_name,
-               content_type: entry.client_type
-             }
-
-             case QlariusWeb.Uploaders.CreatorImage.store({upload, temp_group}) do
-               {:ok, filename} -> {:ok, filename}
-               error -> error
-             end
-           end) do
-        [filename | _] -> Map.put(group_params, "image", filename)
-        # Don't include image key at all if no file uploaded
-        [] -> group_params
-      end
+      ImageUpload.consume_and_add_to_params(
+        socket,
+        :image,
+        temp_group,
+        QlariusWeb.Uploaders.CreatorImage,
+        group_params
+      )
 
     case Creators.create_content_group(catalog, group_params_with_image) do
       {:ok, group} ->
         socket
         |> put_flash(:info, "Group created successfully")
-        |> push_navigate(to: ~p"/creators/content_groups/#{group}")
+        |> push_navigate(to: ~p"/creators/content_groups/#{group.id}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         require Logger

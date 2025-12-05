@@ -145,14 +145,41 @@ defmodule QlariusWeb.Router do
       live "/proxy_users", ProxyUsersLive, :index
       live "/me_file", MeFileLive, :index
       live "/me_file_builder", MeFileBuilderLive, :index
+
+      # Creator dashboard routes
+      live "/creators", CreatorDashboard.Index, :index
+      live "/creators/new", CreatorDashboard.Index, :new
+      live "/creators/:id", CreatorDashboard.Show, :show
+      live "/creators/:id/edit", CreatorDashboard.Show, :edit
+
+      # Creator catalog/content routes (migrated from controllers)
+      live "/creators/:id/catalogs/new", Creators.CatalogLive.Form, :new
+      live "/creators/catalogs/:id", Creators.CatalogLive.Show, :show
+      live "/creators/catalogs/:id/edit", Creators.CatalogLive.Form, :edit
+      live "/creators/catalogs/:id/content_groups/new", Creators.ContentGroupLive.Form, :new
+
+      live "/creators/content_groups/:id", Creators.ContentGroupLive.Show, :show
+      live "/creators/content_groups/:id/edit", Creators.ContentGroupLive.Form, :edit
+      live "/creators/content_groups/:id/preview", Creators.ContentGroupLive.Preview, :show
+      live "/creators/content_groups/:id/content_pieces/new", Creators.ContentPieceLive.Form, :new
+
+      live "/creators/content_pieces/:id", Creators.ContentPieceLive.Show, :show
+      live "/creators/content_pieces/:id/edit", Creators.ContentPieceLive.Form, :edit
+
+      # Qlink Page routes
+      live "/creators/:creator_id/qlink_pages/new", Creators.QlinkPageLive.Form, :new
+      live "/creators/qlink_pages/:id/edit", Creators.QlinkPageLive.Form, :edit
     end
+
+    # Public Qlink page route (no auth required)
+    live "/@:alias", QlinkPage.Show, :show
 
     resources "/tiqits", TiqitController
 
     get "/jump/:id", AdJumpPageController, :jump
   end
 
-  scope "/creators", QlariusWeb.Creators do
+  scope "/creators_cont", QlariusWeb.Creators do
     pipe_through [:browser, :admin]
 
     live_session :creators,
@@ -160,22 +187,18 @@ defmodule QlariusWeb.Router do
         # {QlariusWeb.UserAuth, :mount_current_scope},
         {QlariusWeb.Layouts, :set_current_path}
       ] do
-      resources "/content_pieces", ContentPieceController, only: [:show, :delete]
-
+      live "/content_pieces/:id", ContentPieceLive.Show, :show
       live "/content_pieces/:id/edit", ContentPieceLive.Form, :edit
+
+      live "/catalogs/:id", CatalogLive.Show, :show
       live "/catalogs/:id/edit", CatalogLive.Form, :edit
+
+      live "/content_groups/:id", ContentGroupLive.Show, :show
       live "/content_groups/:id/edit", ContentGroupLive.Form, :edit
+      live "/content_groups/:id/preview", ContentGroupLive.Preview, :show
+      live "/content_groups/:id/content_pieces/new", ContentPieceLive.Form, :new
 
-      resources "/content_groups", ContentGroupController, only: [:show, :delete] do
-        get "/preview", ContentGroupController, :preview
-        live "/content_pieces/new", ContentPieceLive.Form, :new
-        post "/add_default_tiqit_classes", ContentGroupController, :add_default_tiqit_classes
-      end
-
-      resources "/catalogs", CatalogController, only: [:show, :delete] do
-        live "/content_groups/new", ContentGroupLive.Form, :new
-        post "/add_default_tiqit_classes", CatalogController, :add_default_tiqit_classes
-      end
+      live "/catalogs/:id/content_groups/new", ContentGroupLive.Form, :new
 
       resources "/", CreatorController do
         delete "/delete_image", CreatorController, :delete_image

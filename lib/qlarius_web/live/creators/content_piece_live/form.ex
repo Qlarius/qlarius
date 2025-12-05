@@ -6,6 +6,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
 
   alias QlariusWeb.TiqitClassHTML
   alias QlariusWeb.Uploaders.CreatorImage
+  alias QlariusWeb.LiveView.ImageUpload
 
   # EDIT
   @impl true
@@ -24,11 +25,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
       page_title: "Edit Content Piece",
       piece: piece
     )
-    |> allow_upload(:image,
-      accept: ~w(.jpg .jpeg .png .gif .webp),
-      max_entries: 1,
-      max_file_size: 10_000_000
-    )
+    |> ImageUpload.setup_upload(:image)
     |> noreply()
   end
 
@@ -45,11 +42,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
     |> assign(:page_title, "New Content Piece")
     |> assign(:piece, %ContentPiece{})
     |> assign(:form, to_form(changeset))
-    |> allow_upload(:image,
-      accept: ~w(.jpg .jpeg .png .gif .webp),
-      max_entries: 1,
-      max_file_size: 10_000_000
-    )
+    |> ImageUpload.setup_upload(:image)
     |> noreply()
   end
 
@@ -98,10 +91,6 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
     |> noreply()
   end
 
-  defp error_to_string(:too_large), do: "Too large"
-  defp error_to_string(:not_accepted), do: "You have selected an unacceptable file type"
-  defp error_to_string(:too_many_files), do: "You have selected too many files"
-  defp error_to_string(error), do: "Upload error: #{inspect(error)}"
 
   defp save_content(socket, :edit, piece_params) do
     # Handle file upload for LiveView - store with Waffle directly
@@ -126,7 +115,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
       {:ok, _piece} ->
         socket
         |> put_flash(:info, "Content updated successfully")
-        |> push_navigate(to: ~p"/creators/content_groups/#{socket.assigns.group}")
+        |> push_navigate(to: ~p"/creators/content_groups/#{socket.assigns.group.id}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         assign(socket, :form, to_form(changeset, action: :validate))
@@ -136,33 +125,22 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
 
   defp save_content(socket, :new, piece_params) do
     group = socket.assigns.group
-
-    # Create a temporary content piece for Waffle store function
     temp_piece = %ContentPiece{content_group: group}
 
-    # Handle file upload for LiveView - store with Waffle directly
     piece_params_with_image =
-      case consume_uploaded_entries(socket, :image, fn %{path: path}, entry ->
-             upload = %Plug.Upload{
-               path: path,
-               filename: entry.client_name,
-               content_type: entry.client_type
-             }
-
-             case CreatorImage.store({upload, temp_piece}) do
-               {:ok, filename} -> {:ok, filename}
-               error -> error
-             end
-           end) do
-        [filename | _] -> Map.put(piece_params, "image", filename)
-        [] -> piece_params
-      end
+      ImageUpload.consume_and_add_to_params(
+        socket,
+        :image,
+        temp_piece,
+        CreatorImage,
+        piece_params
+      )
 
     case Creators.create_content_piece(group, piece_params_with_image) do
       {:ok, _content} ->
         socket
         |> put_flash(:info, "Content created successfully")
-        |> push_navigate(to: ~p"/creators/content_groups/#{group}")
+        |> push_navigate(to: ~p"/creators/content_groups/#{group.id}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
         assign(socket, :form, to_form(changeset, action: :validate))

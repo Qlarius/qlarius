@@ -3,8 +3,6 @@ defmodule QlariusWeb.Creators.ContentPieceController do
 
   alias Qlarius.Tiqit.Arcade.Creators
 
-  plug :put_new_layout, {QlariusWeb.Layouts, :arcade}
-
   def show(conn, %{"id" => id}) do
     piece = Creators.get_content_piece!(id)
     group = piece.content_group
@@ -20,6 +18,6 @@ defmodule QlariusWeb.Creators.ContentPieceController do
 
     conn
     |> put_flash(:info, "Deleted content piece.")
-    |> redirect(to: ~p"/creators/content_groups/#{group}")
+    |> redirect(to: ~p"/creators_cont/content_groups/#{group}")
   end
 end

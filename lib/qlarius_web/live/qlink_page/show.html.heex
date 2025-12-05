@@ -1,0 +1,74 @@
+<div
+  class="min-h-screen"
+  data-theme={get_theme(@page)}
+  style={get_background_style(@page)}
+>
+  <div class="container mx-auto px-4 py-8 max-w-2xl">
+    <!-- Profile Section -->
+    <div class="text-center mb-8">
+      <div class="avatar mb-4">
+        <div class="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+          <img src={@display_image} alt={@page.title} />
+        </div>
+      </div>
+
+      <h1 class="text-3xl font-bold mb-2">{@page.title}</h1>
+
+      <%= if @page.bio_text do %>
+        <p class="text-base-content/70 mb-4">{@page.bio_text}</p>
+      <% end %>
+
+      <%= if @page.social_links && map_size(@page.social_links) > 0 do %>
+        <div class="flex justify-center gap-4 mb-4">
+          <%= for {platform, url} <- @page.social_links do %>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn btn-circle btn-ghost"
+            >
+              <span class="text-xl">{get_social_icon(platform)}</span>
+            </a>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+    
+<!-- Links Section -->
+    <div class="space-y-4">
+      <!-- Unsectioned links first -->
+      <% unsectioned_links = Enum.filter(@links, &is_nil(&1.qlink_section_id)) %>
+      <%= if unsectioned_links != [] do %>
+        <%= for link <- unsectioned_links do %>
+          {render_link(link)}
+        <% end %>
+      <% end %>
+      
+      <!-- Sections with their links -->
+      <%= if @sections != [] do %>
+        <%= for section <- @sections do %>
+          <% section_links = Enum.filter(@links, &(&1.qlink_section_id == section.id)) %>
+          <%= if section_links != [] do %>
+            <div class="mb-6 mt-8">
+              <div class="divider">
+                <span class="text-lg font-semibold">{section.title}</span>
+              </div>
+              <%= if section.description do %>
+                <p class="text-center text-sm text-base-content/70 mb-4">{section.description}</p>
+              <% end %>
+
+              <%= for link <- section_links do %>
+                {render_link(link)}
+              <% end %>
+            </div>
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+    
+<!-- Footer -->
+    <div class="text-center mt-12 text-sm text-base-content/50">
+      <p>Powered by Qlarius Qlink</p>
+    </div>
+  </div>
+</div>
