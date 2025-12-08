@@ -9,8 +9,6 @@ defmodule QlariusWeb.Components.ImageUploadField do
 
   import QlariusWeb.CoreComponents
 
-  alias Phoenix.LiveView.JS
-
   @doc """
   Renders an image upload field with preview and progress tracking.
 

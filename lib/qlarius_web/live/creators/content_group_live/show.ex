@@ -77,9 +77,6 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
     end
   end
 
-  defp content_image_url(piece, group) do
-    ImageHelpers.content_image_url(piece, group)
-  end
 
   @impl true
   def render(assigns) do

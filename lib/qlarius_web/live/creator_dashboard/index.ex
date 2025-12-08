@@ -108,7 +108,7 @@ defmodule QlariusWeb.CreatorDashboard.Index do
       )
 
     case Creators.create_creator(creator_params_with_image) do
-      {:ok, creator} ->
+      {:ok, _creator} ->
         creators = Creators.list_creators()
 
         {:noreply,
@@ -136,7 +136,7 @@ defmodule QlariusWeb.CreatorDashboard.Index do
       )
 
     case Creators.update_creator(socket.assigns.editing_creator, creator_params_with_image) do
-      {:ok, creator} ->
+      {:ok, _creator} ->
         creators = Creators.list_creators()
 
         {:noreply,

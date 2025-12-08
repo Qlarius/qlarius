@@ -116,6 +116,12 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   end
 
   @impl true
+  def handle_event("select_social_platform", params, socket) do
+    platform = Map.get(params, "selected_social_platform", "") || ""
+    {:noreply, assign(socket, :selected_social_platform, platform)}
+  end
+
+  @impl true
   def handle_event("ignore", _params, socket) do
     {:noreply, socket}
   end
@@ -153,25 +159,6 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     else
       {:noreply, socket}
     end
-  end
-
-  defp extract_id_from_params(params) do
-    case Map.get(params, "_target") do
-      ["social_links", id | _] -> id
-      _ ->
-        social_links = Map.get(params, "social_links", %{})
-        case Map.keys(social_links) do
-          [id | _] -> id
-          _ -> nil
-        end
-    end
-  end
-
-
-  @impl true
-  def handle_event("select_social_platform", params, socket) do
-    platform = Map.get(params, "selected_social_platform", "") || ""
-    {:noreply, assign(socket, :selected_social_platform, platform)}
   end
 
   @impl true
@@ -562,16 +549,6 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     end
   end
 
-  defp prepare_social_links_stream(social_links) when is_map(social_links) do
-    social_links
-    |> Enum.map(fn {platform, url} ->
-      id = "social-#{System.unique_integer([:positive])}"
-      %{id: id, platform: platform, url: url}
-    end)
-  end
-  defp prepare_social_links_stream(_), do: []
-
-
   defp normalize_social_links_params(page_params, social_links_data) do
     social_links_map = social_links_data
     |> Enum.filter(fn {_platform, url} -> url != "" end)
@@ -588,18 +565,6 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     |> Enum.reject(&MapSet.member?(used_platforms, &1))
   end
 
-  defp extract_platforms_from_stream(stream) when is_list(stream) do
-    Enum.reduce(stream, MapSet.new(), fn {_id, %{platform: platform}}, acc ->
-      if platform != "" do
-        MapSet.put(acc, platform)
-      else
-        acc
-      end
-    end)
-  end
-
-  defp extract_platforms_from_stream(_), do: MapSet.new()
-
   def format_platform_name("twitter"), do: "Twitter/X"
   def format_platform_name("instagram"), do: "Instagram"
   def format_platform_name("facebook"), do: "Facebook"
@@ -608,6 +573,18 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   def format_platform_name("tiktok"), do: "TikTok"
   def format_platform_name("github"), do: "GitHub"
   def format_platform_name(platform), do: String.capitalize(platform || "")
+
+  defp extract_id_from_params(params) do
+    case Map.get(params, "_target") do
+      ["social_links", id | _] -> id
+      _ ->
+        social_links = Map.get(params, "social_links", %{})
+        case Map.keys(social_links) do
+          [id | _] -> id
+          _ -> nil
+        end
+    end
+  end
 
   defp normalize_link_params(link_params) do
     link_params

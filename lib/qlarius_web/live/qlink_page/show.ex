@@ -2,7 +2,6 @@ defmodule QlariusWeb.QlinkPage.Show do
   use QlariusWeb, :live_view
 
   alias Qlarius.Qlink
-  alias Qlarius.Repo
 
   @impl true
   def mount(%{"alias" => page_alias}, _session, socket) do
@@ -235,6 +234,7 @@ defmodule QlariusWeb.QlinkPage.Show do
   defp get_embed_value(_, _), do: nil
 
   defp render_youtube_embed(assigns, video_id) do
+    assigns = assign(assigns, :video_id, video_id)
     ~H"""
     <div class="mb-4">
       <%= if @link.title do %>
@@ -246,7 +246,7 @@ defmodule QlariusWeb.QlinkPage.Show do
       <div class="aspect-video bg-base-200 rounded-lg overflow-hidden border border-base-300">
         <iframe
           class="w-full h-full"
-          src={"https://www.youtube.com/embed/#{video_id}"}
+          src={"https://www.youtube.com/embed/#{@video_id}"}
           title={@link.title || "YouTube video"}
           frameborder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -260,6 +260,7 @@ defmodule QlariusWeb.QlinkPage.Show do
   end
 
   defp render_spotify_embed(assigns, content_id) do
+    assigns = assign(assigns, :content_id, content_id)
     ~H"""
     <div class="mb-4">
       <%= if @link.title do %>
@@ -271,7 +272,7 @@ defmodule QlariusWeb.QlinkPage.Show do
       <div class="bg-base-200 rounded-lg overflow-hidden border border-base-300 p-4">
         <iframe
           style="border-radius: 12px;"
-          src={"https://open.spotify.com/embed/#{content_id}"}
+          src={"https://open.spotify.com/embed/#{@content_id}"}
           width="100%"
           height="352"
           frameborder="0"
@@ -286,6 +287,7 @@ defmodule QlariusWeb.QlinkPage.Show do
   end
 
   defp render_tiktok_embed(assigns, video_id) do
+    assigns = assign(assigns, :video_id, video_id)
     ~H"""
     <div class="mb-4">
       <%= if @link.title do %>
@@ -297,14 +299,14 @@ defmodule QlariusWeb.QlinkPage.Show do
       <div class="bg-base-200 rounded-lg overflow-hidden border border-base-300 p-4">
         <blockquote
           class="tiktok-embed"
-          data-video-id={video_id}
+          data-video-id={@video_id}
           style="max-width: 605px; min-width: 325px;"
         >
           <section>
             <a
               target="_blank"
               title={@link.title || "TikTok video"}
-              href={"https://www.tiktok.com/#{video_id}"}
+              href={"https://www.tiktok.com/#{@video_id}"}
             >
               View on TikTok
             </a>

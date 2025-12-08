@@ -192,11 +192,13 @@ defmodule QlariusWeb.Router do
 
       live "/catalogs/:id", CatalogLive.Show, :show
       live "/catalogs/:id/edit", CatalogLive.Form, :edit
+      post "/catalogs/:catalog_id/add_default_tiqit_classes", CatalogController, :add_default_tiqit_classes
 
       live "/content_groups/:id", ContentGroupLive.Show, :show
       live "/content_groups/:id/edit", ContentGroupLive.Form, :edit
       live "/content_groups/:id/preview", ContentGroupLive.Preview, :show
       live "/content_groups/:id/content_pieces/new", ContentPieceLive.Form, :new
+      post "/content_groups/:content_group_id/add_default_tiqit_classes", ContentGroupController, :add_default_tiqit_classes
 
       live "/catalogs/:id/content_groups/new", ContentGroupLive.Form, :new
 
