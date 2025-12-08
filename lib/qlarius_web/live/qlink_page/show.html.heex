@@ -21,13 +21,23 @@
       <%= if @page.social_links && map_size(@page.social_links) > 0 do %>
         <div class="flex justify-center gap-4 mb-4">
           <%= for {platform, url} <- @page.social_links do %>
+            <% icon_path = get_social_icon_path(platform) %>
             <a
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              class="btn btn-circle btn-ghost"
+              class="btn btn-circle btn-ghost hover:bg-base-200"
+              title={String.capitalize(platform)}
             >
-              <span class="text-xl">{get_social_icon(platform)}</span>
+              <%= if icon_path do %>
+                <img
+                  src={icon_path}
+                  alt={String.capitalize(platform)}
+                  class="w-6 h-6 opacity-80 hover:opacity-100 transition-opacity"
+                />
+              <% else %>
+                <.icon name="hero-link" class="w-6 h-6" />
+              <% end %>
             </a>
           <% end %>
         </div>
@@ -67,8 +77,13 @@
     </div>
     
 <!-- Footer -->
-    <div class="text-center mt-12 text-sm text-base-content/50">
-      <p>Powered by Qlarius Qlink</p>
+    <div class="text-center mt-12">
+      <img
+        src="/images/qlink_logo_color_horiz.svg"
+        alt="Qlink"
+        class="h-8 mx-auto mb-2"
+      />
+      <p class="text-xs text-base-content/50">Powered by Qadabra</p>
     </div>
   </div>
 </div>

@@ -24,6 +24,17 @@
           </p>
         </div>
       </div>
+      <%= if @live_action == :edit && @page.alias do %>
+        <a
+          href={~p"/@#{@page.alias}"}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-primary btn-sm"
+        >
+          <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4 mr-2" />
+          View Page
+        </a>
+      <% end %>
     </div>
 
     <!-- Main Form Card -->
@@ -105,82 +116,94 @@
                 rows="4"
               />
             </div>
-
-            <.image_upload_field
-              upload={@uploads.image}
-              label="Profile Photo"
-              current_image={@page.profile_photo}
-              current_image_url={
-                if @page.profile_photo,
-                  do: QlariusWeb.Uploaders.CreatorImage.url({@page.profile_photo, @page}, :original)
-              }
-              on_delete="delete_image"
-            />
           </div>
 
-          <!-- Social Links Section -->
+          <!-- Profile Photo and Social Links Section -->
           <div class="border-t border-base-300 pt-6">
-            <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-              <.icon name="hero-share" class="w-5 h-5 mr-3 text-accent" />
-              Social Links
-            </h3>
-
-            <!-- Add Social Link Selector -->
-            <div class="flex items-center gap-3 mb-4">
-              <div class="form-control flex-1">
-                <select
-                  id="social-platform-select"
-                  name="selected_social_platform"
-                  class="select select-bordered w-full"
-                  phx-change="select_social_platform"
-                >
-                  <option value="">Select Platform</option>
-                  <%= for platform <- available_social_platforms(@used_social_platforms) do %>
-                    <option value={platform} selected={@selected_social_platform == platform}>
-                      <%= format_platform_name(platform) %>
-                    </option>
-                  <% end %>
-                </select>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Profile Photo -->
+              <div>
+                <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+                  <.icon name="hero-photo" class="w-5 h-5 mr-3 text-primary" />
+                  Profile Photo
+                </h3>
+                <.image_upload_field
+                  upload={@uploads.image}
+                  label=""
+                  current_image={@page.profile_photo}
+                  current_image_url={
+                    if @page.profile_photo,
+                      do: QlariusWeb.Uploaders.CreatorImage.url({@page.profile_photo, @page}, :original)
+                  }
+                  on_delete="delete_image"
+                />
               </div>
-              <button
-                type="button"
-                phx-click="add_selected_social_link"
-                class="btn btn-primary btn-sm"
-                disabled={@selected_social_platform == "" || @selected_social_platform == nil}
-              >
-                <.icon name="hero-plus" class="w-4 h-4" />
-              </button>
-            </div>
 
-            <!-- Added Social Links -->
-            <div id="social-links" class="space-y-3">
-              <%= for link <- @social_links do %>
-                <div id={link.id} class="flex items-center gap-3">
+              <!-- Social Links -->
+              <div>
+                <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+                  <.icon name="hero-share" class="w-5 h-5 mr-3 text-accent" />
+                  Social Links
+                </h3>
+
+                <!-- Add Social Link Selector -->
+                <div class="flex items-center gap-3 mb-4">
                   <div class="form-control flex-1">
-                    <div class="label">
-                      <span class="label-text font-medium"><%= format_platform_name(link.platform) %></span>
-                    </div>
-                    <input
-                      type="url"
-                      name={"social_links[#{link.id}][url]"}
-                      value={link.url}
-                      class="input input-bordered w-full"
-                      placeholder="https://..."
-                      phx-change="update_social_link"
-                      phx-value-id={link.id}
-                    />
+                    <select
+                      id="social-platform-select"
+                      name="selected_social_platform"
+                      class="select select-bordered w-full"
+                      phx-change="select_social_platform"
+                    >
+                      <option value="">Select Platform</option>
+                      <%= for platform <- available_social_platforms(@used_social_platforms) do %>
+                        <option value={platform} selected={@selected_social_platform == platform}>
+                          <%= format_platform_name(platform) %>
+                        </option>
+                      <% end %>
+                    </select>
                   </div>
                   <button
                     type="button"
-                    phx-click="remove_social_link"
-                    phx-value-id={link.id}
-                    class="btn btn-ghost btn-sm text-error mt-6"
-                    title="Remove"
+                    phx-click="add_selected_social_link"
+                    class="btn btn-primary btn-sm"
+                    disabled={@selected_social_platform == "" || @selected_social_platform == nil}
                   >
-                    <.icon name="hero-trash" class="w-4 h-4" />
+                    <.icon name="hero-plus" class="w-4 h-4" />
                   </button>
                 </div>
-              <% end %>
+
+                <!-- Added Social Links -->
+                <div id="social-links" class="space-y-3">
+                  <%= for link <- @social_links do %>
+                    <div id={link.id} class="flex items-center gap-3">
+                      <div class="form-control flex-1">
+                        <div class="label">
+                          <span class="label-text font-medium"><%= format_platform_name(link.platform) %></span>
+                        </div>
+                        <input
+                          type="url"
+                          name={"social_links[#{link.id}][url]"}
+                          value={link.url}
+                          class="input input-bordered w-full"
+                          placeholder="https://..."
+                          phx-change="update_social_link"
+                          phx-value-id={link.id}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        phx-click="remove_social_link"
+                        phx-value-id={link.id}
+                        class="btn btn-ghost btn-sm text-error mt-6"
+                        title="Remove"
+                      >
+                        <.icon name="hero-trash" class="w-4 h-4" />
+                      </button>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
             </div>
           </div>
 

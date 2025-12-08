@@ -151,16 +151,16 @@ defmodule QlariusWeb.QlinkPage.Show do
     end
   end
 
-  defp get_social_icon(platform) do
+  defp get_social_icon_path(platform) do
     case platform do
-      "twitter" -> "𝕏"
-      "instagram" -> "📷"
-      "facebook" -> "👥"
-      "linkedin" -> "💼"
-      "youtube" -> "📺"
-      "tiktok" -> "🎵"
-      "github" -> "💻"
-      _ -> "🔗"
+      "twitter" -> "/images/social-icons/x.svg"
+      "instagram" -> "/images/social-icons/instagram.svg"
+      "facebook" -> "/images/social-icons/facebook.svg"
+      "linkedin" -> "/images/social-icons/linkedin.svg"
+      "youtube" -> "/images/social-icons/youtube.svg"
+      "tiktok" -> "/images/social-icons/tiktok.svg"
+      "github" -> "/images/social-icons/github.svg"
+      _ -> nil
     end
   end
 

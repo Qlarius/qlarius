@@ -37,9 +37,11 @@ defmodule QlariusWeb.Components.ImageUploadField do
   def image_upload_field(assigns) do
     ~H"""
     <div class="space-y-2">
-      <label class="label">
-        <span class="label-text"><%= @label %></span>
-      </label>
+      <%= if @label && String.trim(@label) != "" do %>
+        <label class="label">
+          <span class="label-text"><%= @label %></span>
+        </label>
+      <% end %>
       <div
         class="w-full border-2 border-dashed border-base-300 rounded-lg flex items-center justify-center overflow-hidden"
         phx-drop-target={@upload.ref}
