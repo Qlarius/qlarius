@@ -1,0 +1,262 @@
+---
+description: Security Best Practices
+globs: **/*.ex,**/*.exs,**/*.heex
+alwaysApply: false
+---
+
+# Security Best Practices
+
+## Input Validation and Sanitization
+
+### Always Validate User Input
+- Use Ecto changesets for all user input validation
+- Never trust client-side validation alone
+- Validate data types, formats, lengths, and ranges
+- Use `Ecto.Changeset.validate_*` functions
+
+```elixir
+# ✅ Good: Comprehensive validation
+def changeset(user, attrs) do
+  user
+  |> cast(attrs, [:email, :name, :age])
+  |> validate_required([:email, :name])
+  |> validate_format(:email, ~r/@/)
+  |> validate_length(:name, min: 2, max: 100)
+  |> validate_number(:age, greater_than: 0, less_than: 150)
+  |> unique_constraint(:email)
+end
+```
+
+### SQL Injection Prevention
+- **Always** use parameterized queries (Ecto does this by default)
+- **Never** interpolate user input directly into queries
+- Use `^` pin operator for query parameters
+- Validate and whitelist any dynamic table/column names
+
+```elixir
+# ❌ Dangerous: SQL injection risk
+Repo.all("SELECT * FROM users WHERE email = '#{email}'")
+
+# ✅ Safe: Parameterized query
+Repo.all(from u in User, where: u.email == ^email)
+```
+
+## Authentication and Authorization
+
+### Password Security
+- Use `Bcrypt`, `Argon2`, or `Pbkdf2` for password hashing (never plain text or MD5/SHA1)
+- Phoenix 1.7+ uses `Bcrypt` by default via `phx.gen.auth`
+- Enforce minimum password complexity
+- Implement rate limiting on login attempts
+- Consider multi-factor authentication for sensitive applications
+
+### Session Management
+- Use Phoenix's built-in session management (signed and encrypted)
+- Set appropriate session timeout values
+- Regenerate session IDs after authentication
+- Implement proper logout (clear session completely)
+- Use `put_session_header("x-csrf-token")` for SPA protection
+
+```elixir
+# ✅ Good: Secure session config
+config :qlarius, QlariusWeb.Endpoint,
+  http: [port: 4000],
+  secret_key_base: "...", # From env var in production
+  live_view: [signing_salt: "..."],
+  session_options: [
+    secure: true,        # HTTPS only
+    http_only: true,     # No JavaScript access
+    same_site: "Lax",    # CSRF protection
+    max_age: 86400       # 24 hours
+  ]
+```
+
+### Authorization
+- Implement role-based or scope-based access control
+- Check permissions at every entry point (controllers, LiveViews, context functions)
+- Use `on_mount` hooks in LiveViews for consistent authorization
+- Never rely on client-side authorization checks alone
+- Log authorization failures for security monitoring
+
+```elixir
+# ✅ Good: Authorization in LiveView
+defmodule MyAppWeb.AdminLive do
+  use MyAppWeb, :live_view
+
+  on_mount MyAppWeb.RequireAdmin
+
+  def mount(_params, _session, socket) do
+    # Only admins reach here
+    {:ok, socket}
+  end
+end
+```
+
+## Cross-Site Scripting (XSS) Prevention
+
+### Template Safety
+- Phoenix HEEx automatically escapes output by default ✓
+- **Never** use `raw/1` or `Phoenix.HTML.raw/1` on user input
+- Validate and sanitize HTML if you must accept rich text
+- Use a library like `HtmlSanitizeEx` for sanitizing user HTML
+
+```elixir
+# ✅ Safe: Auto-escaped
+<p>{@user_input}</p>
+
+# ⚠️ Dangerous: Only if you've sanitized the input
+<p>{raw(@sanitized_html)}</p>
+```
+
+### Content Security Policy (CSP)
+- Implement CSP headers to restrict resource loading
+- Use `nonce` for inline scripts if absolutely necessary
+- Avoid `unsafe-inline` and `unsafe-eval` in production
+
+```elixir
+# ✅ Good: CSP header in endpoint
+plug :put_secure_browser_headers, %{
+  "content-security-policy" => "default-src 'self'; script-src 'self' 'nonce-{nonce}'"
+}
+```
+
+## Cross-Site Request Forgery (CSRF) Protection
+
+### CSRF Tokens
+- Phoenix includes CSRF protection by default for non-GET requests ✓
+- Ensure CSRF tokens are included in forms (automatic with `<.form>`)
+- For API endpoints, use token-based authentication instead
+- Validate CSRF tokens in JavaScript fetch requests
+
+```elixir
+# ✅ Good: CSRF token in JavaScript
+const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
+
+fetch('/api/data', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-CSRF-Token': csrfToken
+  },
+  body: JSON.stringify(data)
+});
+```
+
+## Secrets Management
+
+### Environment Variables
+- **Never** commit secrets to version control
+- Use environment variables for all secrets
+- Load secrets in `config/runtime.exs`, not `config/config.exs`
+- Use services like Vault or AWS Secrets Manager in production
+
+```elixir
+# ✅ Good: Load secrets at runtime
+config :qlarius, Qlarius.Repo,
+  username: System.get_env("DATABASE_USER"),
+  password: System.get_env("DATABASE_PASSWORD"),
+  database: System.get_env("DATABASE_NAME")
+```
+
+### API Keys and Tokens
+- Rotate API keys regularly
+- Use short-lived tokens when possible
+- Store API keys encrypted in database if needed
+- Implement API rate limiting
+
+## File Upload Security
+
+### Validation
+- Validate file types by content, not just extension
+- Set maximum file size limits
+- Use `Phoenix.LiveView.allow_upload/3` options: `accept`, `max_entries`, `max_file_size`
+- Store uploaded files outside the web root
+- Use unique, random filenames (avoid user-provided names)
+
+```elixir
+# ✅ Good: Secure upload configuration
+allow_upload(socket, :avatar, 
+  accept: ~w(.jpg .jpeg .png),
+  max_entries: 1,
+  max_file_size: 5_000_000,  # 5MB
+  auto_upload: true
+)
+```
+
+### Content Scanning
+- Scan uploads for malware in production
+- Use a CDN or separate domain for serving user content
+- Set appropriate `Content-Type` headers
+- Implement virus scanning for sensitive applications
+
+## Dependency Security
+
+### Keep Dependencies Updated
+- Regularly run `mix deps.audit` to check for vulnerabilities
+- Use `mix deps.update --all` periodically
+- Monitor GitHub security advisories
+- Consider using Dependabot or similar tools
+
+### Hex Package Verification
+- Verify package checksums
+- Review package code for critical dependencies
+- Prefer well-maintained, popular packages
+- Check package licenses
+
+## Logging and Monitoring
+
+### Secure Logging
+- **Never** log sensitive data (passwords, tokens, PII)
+- Use `Logger.metadata` for structured logging
+- Implement log aggregation and monitoring
+- Set up alerts for suspicious activities
+
+```elixir
+# ❌ Bad: Logging sensitive data
+Logger.info("User login: #{email} with password #{password}")
+
+# ✅ Good: Log without sensitive data
+Logger.info("User login attempt", user_id: user.id, ip: ip_address)
+```
+
+### Audit Trails
+- Log all authentication events (login, logout, failed attempts)
+- Track authorization failures
+- Record data modifications (who, what, when)
+- Implement tamper-proof audit logs
+
+## HTTP Security Headers
+
+### Essential Headers
+```elixir
+# ✅ Good: Secure headers in endpoint.ex
+plug :put_secure_browser_headers, %{
+  "x-frame-options" => "DENY",
+  "x-content-type-options" => "nosniff",
+  "x-xss-protection" => "1; mode=block",
+  "referrer-policy" => "strict-origin-when-cross-origin",
+  "permissions-policy" => "geolocation=(), microphone=(), camera=()"
+}
+```
+
+## Rate Limiting
+
+### Protect Endpoints
+- Implement rate limiting for authentication endpoints
+- Use libraries like `Hammer` or `PlugAttack`
+- Rate limit by IP, user, or both
+- Return appropriate HTTP 429 responses
+
+```elixir
+# ✅ Good: Rate limiting with Hammer
+plug Hammer.Plug,
+  rate_limit: {"login", 60_000, 5},  # 5 attempts per minute
+  by: {:conn, &get_ip/1}
+```
+
+## Regular Security Audits
+- Perform security reviews before major releases
+- Use tools like `Sobelow` for static security analysis
+- Consider penetration testing for production apps
+- Follow OWASP Top 10 guidelines
+- Keep informed about Elixir/Phoenix security advisories

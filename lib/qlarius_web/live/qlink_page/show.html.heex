@@ -50,7 +50,7 @@
       <% unsectioned_links = Enum.filter(@links, &is_nil(&1.qlink_section_id)) %>
       <%= if unsectioned_links != [] do %>
         <%= for link <- unsectioned_links do %>
-          {render_link(link)}
+          <.render_link link={link} />
         <% end %>
       <% end %>
       
@@ -68,7 +68,7 @@
               <% end %>
 
               <%= for link <- section_links do %>
-                {render_link(link)}
+                <.render_link link={link} />
               <% end %>
             </div>
           <% end %>

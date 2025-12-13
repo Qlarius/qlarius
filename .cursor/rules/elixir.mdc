@@ -1,8 +1,156 @@
 ---
-description: Elixir
+description: Elixir Code Style and Conventions
 globs: **/*.ex,**/*.exs
 alwaysApply: false
 ---
-- After changing Elixir files, run `mix format`.
-- Never add documentation (i.e. `@doc` or `@moduledoc`) unless I explicitly tell you to.
-- always add module aliases instead of using their fully-qualified names
+
+# Elixir Style Guide
+
+## Formatting
+- **Always** run `mix format` after changing Elixir files
+- Use 2-space indentation (enforced by formatter)
+- Keep lines under 98 characters when possible
+- Use formatter's default settings unless there's a strong reason to customize
+
+## Documentation
+- Never add `@doc` or `@moduledoc` unless explicitly requested
+- When adding docs, use proper markdown formatting
+- Include examples in documentation when helpful
+
+## Module Organization
+- **Always** use module aliases instead of fully-qualified names
+- Group aliases at the top of the module
+- Separate standard library, dependencies, and internal aliases
+
+```elixir
+# ✅ Good: Organized aliases
+defmodule Qlarius.Accounts do
+  # Standard library
+  import Ecto.Query
+  
+  # Dependencies
+  alias Ecto.Changeset
+  alias Ecto.Multi
+  
+  # Internal modules
+  alias Qlarius.Repo
+  alias Qlarius.Accounts.User
+end
+```
+
+## Function Naming
+- Use `snake_case` for function and variable names
+- Predicate functions should end with `?` (not start with `is_`)
+- Bang functions (`!`) should raise on error
+- Private functions use `defp`
+
+```elixir
+# ✅ Good: Function naming
+def valid_email?(email), do: String.contains?(email, "@")
+def create_user!(attrs), do: create_user(attrs) |> unwrap_or_raise()
+defp internal_helper(data), do: transform(data)
+
+# ❌ Bad: Incorrect naming
+def is_valid_email(email), do: String.contains?(email, "@")  # Don't use is_
+def create_user_unsafe(attrs), do: create_user(attrs) |> unwrap_or_raise()  # Use !
+def public_helper(data), do: transform(data)  # Should be private (defp)
+```
+
+## Pattern Matching
+- Use pattern matching instead of conditionals when possible
+- Match in function heads for clarity
+- Use guard clauses for simple conditions
+
+```elixir
+# ✅ Good: Pattern matching in function heads
+def process_result({:ok, data}), do: transform(data)
+def process_result({:error, _reason}), do: nil
+
+# ✅ Good: Guard clauses
+def calculate_discount(amount) when amount > 100, do: amount * 0.9
+def calculate_discount(amount), do: amount
+```
+
+## Pipe Operator
+- Use pipe operator for data transformations
+- Start pipe with data, not function call
+- Avoid pipes for single operations
+- Break long pipes into intermediate variables if unclear
+
+```elixir
+# ✅ Good: Clear pipe chain
+user
+|> Map.put(:email, email)
+|> Repo.insert()
+|> broadcast_user_created()
+
+# ❌ Bad: Unnecessary pipe for single operation
+data |> transform()  # Just use: transform(data)
+
+# ❌ Bad: Unclear long pipe
+data |> transform() |> validate() |> process() |> normalize() |> save() |> broadcast()
+
+# ✅ Good: Break up for clarity
+validated_data = 
+  data
+  |> transform()
+  |> validate()
+  |> process()
+
+validated_data
+|> normalize()
+|> save()
+|> broadcast()
+```
+
+## with Statement
+- Use `with` for sequential operations that can fail
+- Include `else` clause for error handling
+- Keep `with` blocks focused and readable
+
+```elixir
+# ✅ Good: with for happy path
+with {:ok, user} <- authenticate(credentials),
+     {:ok, post} <- create_post(user, params),
+     {:ok, _notification} <- notify_followers(user, post) do
+  {:ok, post}
+else
+  {:error, reason} -> {:error, reason}
+end
+```
+
+## Enums and Streams
+- Use `Enum` for small to medium collections
+- Use `Stream` for large collections or infinite sequences
+- Leverage `Enum.reduce` for complex transformations
+
+```elixir
+# ✅ Good: Stream for large data
+File.stream!("large_file.txt")
+|> Stream.map(&String.trim/1)
+|> Stream.filter(&(&1 != ""))
+|> Enum.take(100)
+```
+
+## Atoms and Strings
+- Use atoms for fixed sets of values (status, types)
+- Use strings for user input and dynamic data
+- **Never** convert user input to atoms (`String.to_atom/1`) - memory leak risk
+- Use `String.to_existing_atom/1` when the atom should already exist
+
+```elixir
+# ✅ Good: Atoms for known values
+def status(:pending), do: "Pending"
+def status(:approved), do: "Approved"
+
+# ❌ Dangerous: Creating atoms from user input
+def process(user_input) do
+  String.to_atom(user_input)  # Memory leak!
+end
+```
+
+## Naming Conventions
+- Modules: `PascalCase` (e.g., `Qlarius.Accounts.User`)
+- Functions/Variables: `snake_case` (e.g., `create_user`, `user_count`)
+- Atoms: `:snake_case` (e.g., `:user_created`, `:ok`)
+- Module attributes: `@snake_case` (e.g., `@callback_mode`, `@default_timeout`)

@@ -163,16 +163,18 @@ defmodule QlariusWeb.QlinkPage.Show do
     end
   end
 
-  defp render_link(link) do
-    assigns = %{link: link}
+  attr :link, :map, required: true
 
+  def render_link(assigns) do
     cond do
-      link.type == :embed && link.embed_config ->
+      assigns.link.type == :embed && assigns.link.embed_config ->
         render_embed(assigns)
       true ->
         render_standard_link(assigns)
     end
   end
+
+  attr :link, :map, required: true
 
   defp render_standard_link(assigns) do
     ~H"""
@@ -200,6 +202,8 @@ defmodule QlariusWeb.QlinkPage.Show do
     </a>
     """
   end
+
+  attr :link, :map, required: true
 
   defp render_embed(assigns) do
     embed_config = assigns.link.embed_config

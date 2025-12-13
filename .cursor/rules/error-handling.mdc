@@ -1,0 +1,515 @@
+---
+description: Error Handling and Resilience Best Practices
+globs: **/*.ex,**/*.exs
+alwaysApply: false
+---
+
+# Error Handling and Resilience
+
+## Elixir Error Handling Philosophy
+
+### "Let It Crash"
+- Don't try to prevent all errors
+- Use supervisors to recover from failures
+- Design for failure isolation
+- Keep error handling code simple
+
+```elixir
+# ❌ Bad: Over-defensive programming
+def process_data(data) do
+  try do
+    result = risky_operation(data)
+    {:ok, result}
+  rescue
+    _ -> {:error, :unknown}  # Swallows important error info
+  end
+end
+
+# ✅ Good: Let it crash (with supervision)
+def process_data(data) do
+  result = risky_operation(data)  # Crash if invalid
+  {:ok, result}
+end
+```
+
+## When to Use try/rescue
+
+### Use try/rescue For
+1. **External system interfaces** (APIs, file I/O)
+2. **Expected errors** (parsing, validation)
+3. **Resource cleanup** (file handles, connections)
+4. **Logging before crash**
+
+```elixir
+# ✅ Good: Handle external API errors
+def fetch_user_data(user_id) do
+  try do
+    {:ok, HTTPoison.get!("https://api.example.com/users/#{user_id}")}
+  rescue
+    HTTPoison.Error ->
+      {:error, :api_unavailable}
+    
+    error in [HTTPoison.HTTPError] ->
+      Logger.error("HTTP error: #{inspect(error)}")
+      {:error, :http_error}
+  end
+end
+
+# ✅ Good: Resource cleanup
+def process_file(path) do
+  {:ok, file} = File.open(path)
+  try do
+    process_content(file)
+  after
+    File.close(file)
+  end
+end
+```
+
+## Pattern Matching for Control Flow
+
+### Use {:ok, result} and {:error, reason}
+- Return tuples for functions that can fail
+- Use pattern matching to handle results
+- Avoid throwing exceptions for expected errors
+
+```elixir
+# ✅ Good: Return tuples
+def create_user(attrs) do
+  %User{}
+  |> User.changeset(attrs)
+  |> Repo.insert()
+end
+
+# ✅ Good: Pattern match results
+case create_user(attrs) do
+  {:ok, user} ->
+    send_welcome_email(user)
+    {:ok, user}
+    
+  {:error, changeset} ->
+    {:error, changeset}
+end
+```
+
+### with for Happy Path
+- Use `with` for sequential operations
+- Each step can fail
+- Clean error handling
+
+```elixir
+# ✅ Good: with for sequential operations
+def process_order(order_params, user) do
+  with {:ok, order} <- create_order(order_params, user),
+       {:ok, payment} <- process_payment(order),
+       {:ok, _email} <- send_confirmation(order, user) do
+    {:ok, order}
+  else
+    {:error, :insufficient_funds} ->
+      {:error, "Payment failed: insufficient funds"}
+      
+    {:error, %Ecto.Changeset{} = changeset} ->
+      {:error, "Invalid order: #{format_errors(changeset)}"}
+      
+    {:error, reason} ->
+      {:error, "Failed to process order: #{reason}"}
+  end
+end
+```
+
+## Error Responses in Phoenix
+
+### Controller Error Handling
+```elixir
+# ✅ Good: Consistent error responses
+def create(conn, params) do
+  case Accounts.create_user(params) do
+    {:ok, user} ->
+      conn
+      |> put_status(:created)
+      |> put_resp_header("location", ~p"/users/#{user}")
+      |> render(:show, user: user)
+
+    {:error, %Ecto.Changeset{} = changeset} ->
+      conn
+      |> put_status(:unprocessable_entity)
+      |> render(:errors, changeset: changeset)
+  end
+end
+```
+
+### LiveView Error Handling
+```elixir
+# ✅ Good: LiveView error handling
+def handle_event("save", params, socket) do
+  case Accounts.update_user(socket.assigns.user, params) do
+    {:ok, user} ->
+      {:noreply,
+       socket
+       |> put_flash(:info, "User updated successfully")
+       |> assign(:user, user)}
+
+    {:error, %Ecto.Changeset{} = changeset} ->
+      {:noreply,
+       socket
+       |> put_flash(:error, "Failed to update user")
+       |> assign(:changeset, changeset)}
+  end
+end
+```
+
+## Database Error Handling
+
+### Transaction Rollback
+```elixir
+# ✅ Good: Ecto.Multi for atomic operations
+def transfer_balance(from_user, to_user, amount) do
+  Multi.new()
+  |> Multi.update(:debit, debit_changeset(from_user, amount))
+  |> Multi.update(:credit, credit_changeset(to_user, amount))
+  |> Multi.insert(:transaction, transaction_changeset(from_user, to_user, amount))
+  |> Repo.transaction()
+  |> case do
+    {:ok, %{transaction: transaction}} ->
+      {:ok, transaction}
+      
+    {:error, :debit, changeset, _} ->
+      {:error, "Insufficient funds"}
+      
+    {:error, _operation, changeset, _} ->
+      {:error, "Transaction failed"}
+  end
+end
+```
+
+### Constraint Errors
+```elixir
+# ✅ Good: Handle unique constraint
+def create_user(attrs) do
+  %User{}
+  |> User.changeset(attrs)
+  |> unique_constraint(:email, message: "has already been taken")
+  |> Repo.insert()
+end
+
+# ✅ Good: Check constraint
+def update_balance(account, amount) do
+  account
+  |> Account.changeset(%{balance: amount})
+  |> check_constraint(:balance, name: :balance_must_be_positive, message: "must be positive")
+  |> Repo.update()
+end
+```
+
+## Logging Errors
+
+### Structured Logging
+```elixir
+# ✅ Good: Structured error logging
+def process_payment(order) do
+  case PaymentGateway.charge(order) do
+    {:ok, charge} ->
+      Logger.info("Payment processed",
+        order_id: order.id,
+        amount: order.total,
+        charge_id: charge.id
+      )
+      {:ok, charge}
+
+    {:error, reason} ->
+      Logger.error("Payment failed",
+        order_id: order.id,
+        amount: order.total,
+        reason: inspect(reason)
+      )
+      {:error, :payment_failed}
+  end
+end
+```
+
+### Log Levels
+- **debug**: Development info, temporary debugging
+- **info**: General informational messages
+- **warning**: Recoverable issues, degraded functionality
+- **error**: Errors that need attention
+- **emergency**: System is unusable
+
+```elixir
+# ✅ Good: Appropriate log levels
+Logger.debug("Cache miss for key: #{key}")
+Logger.info("User signed in", user_id: user.id)
+Logger.warning("API rate limit approaching", remaining: 10)
+Logger.error("Failed to send email", error: inspect(error))
+```
+
+## Fallbacks and Defaults
+
+### Provide Sensible Defaults
+```elixir
+# ✅ Good: Fallback to default
+def get_config(key) do
+  Application.get_env(:qlarius, key, default_config(key))
+end
+
+# ✅ Good: Pattern match with default
+def render_avatar(nil), do: "/images/default-avatar.png"
+def render_avatar(url), do: url
+```
+
+### Circuit Breaker Pattern
+```elixir
+# ✅ Good: Circuit breaker for external services
+defmodule Qlarius.ExternalAPI do
+  use GenServer
+  
+  @max_failures 5
+  @timeout :timer.minutes(1)
+
+  def call(endpoint) do
+    GenServer.call(__MODULE__, {:call, endpoint})
+  end
+
+  def handle_call({:call, endpoint}, _from, state) do
+    case state.circuit_state do
+      :open ->
+        {:reply, {:error, :circuit_open}, state}
+        
+      :closed ->
+        case make_request(endpoint) do
+          {:ok, result} ->
+            {:reply, {:ok, result}, reset_failures(state)}
+            
+          {:error, _reason} ->
+            new_state = increment_failures(state)
+            if new_state.failures >= @max_failures do
+              schedule_circuit_reset()
+              {:reply, {:error, :service_unavailable}, open_circuit(new_state)}
+            else
+              {:reply, {:error, :service_error}, new_state}
+            end
+        end
+    end
+  end
+end
+```
+
+## Error Pages and User Experience
+
+### Custom Error Pages
+```elixir
+# ✅ Good: Friendly error pages
+defmodule QlariusWeb.ErrorHTML do
+  use QlariusWeb, :html
+
+  def render("404.html", _assigns) do
+    ~H"""
+    <div class="min-h-screen flex items-center justify-center">
+      <div class="text-center">
+        <h1 class="text-6xl font-bold">404</h1>
+        <p class="text-xl mt-4">Page not found</p>
+        <.link navigate={~p"/"} class="btn btn-primary mt-4">
+          Go Home
+        </.link>
+      </div>
+    </div>
+    """
+  end
+
+  def render("500.html", _assigns) do
+    ~H"""
+    <div class="min-h-screen flex items-center justify-center">
+      <div class="text-center">
+        <h1 class="text-6xl font-bold">500</h1>
+        <p class="text-xl mt-4">Something went wrong</p>
+        <p class="mt-2">We've been notified and are working on it.</p>
+        <.link navigate={~p"/"} class="btn btn-primary mt-4">
+          Go Home
+        </.link>
+      </div>
+    </div>
+    """
+  end
+end
+```
+
+### Flash Messages
+```elixir
+# ✅ Good: Informative flash messages
+put_flash(conn, :info, "Settings saved successfully")
+put_flash(conn, :error, "Unable to save settings. Please try again.")
+put_flash(conn, :warning, "Your session will expire in 5 minutes")
+```
+
+## Validation Errors
+
+### User-Friendly Error Messages
+```elixir
+# ✅ Good: Clear validation messages
+def changeset(user, attrs) do
+  user
+  |> cast(attrs, [:email, :password])
+  |> validate_required([:email, :password], message: "can't be blank")
+  |> validate_format(:email, ~r/@/, message: "must be a valid email address")
+  |> validate_length(:password, min: 8, message: "must be at least 8 characters")
+  |> validate_confirmation(:password, message: "doesn't match password")
+end
+
+# ✅ Good: Translate errors for users
+def translate_errors(changeset) do
+  Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+    Regex.replace(~r"%{(\w+)}", msg, fn _, key ->
+      opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+    end)
+  end)
+end
+```
+
+## Error Boundaries in LiveView
+
+### Handle Crashes Gracefully
+```elixir
+# ✅ Good: LiveView error handling
+defmodule QlariusWeb.PageLive do
+  use QlariusWeb, :live_view
+
+  @impl true
+  def mount(_params, _session, socket) do
+    {:ok, socket, temporary_assigns: [posts: []]}
+  end
+
+  @impl true
+  def handle_info({:error, reason}, socket) do
+    Logger.error("LiveView error: #{inspect(reason)}")
+    
+    {:noreply,
+     socket
+     |> put_flash(:error, "Something went wrong. Please refresh the page.")
+     |> assign(:error, true)}
+  end
+end
+```
+
+## Telemetry for Error Tracking
+
+### Instrument Errors
+```elixir
+# ✅ Good: Telemetry events for errors
+defmodule Qlarius.Accounts do
+  def create_user(attrs) do
+    start_time = System.monotonic_time()
+    
+    result = 
+      %User{}
+      |> User.changeset(attrs)
+      |> Repo.insert()
+
+    duration = System.monotonic_time() - start_time
+
+    case result do
+      {:ok, user} ->
+        :telemetry.execute(
+          [:qlarius, :accounts, :create_user, :success],
+          %{duration: duration},
+          %{user_id: user.id}
+        )
+        
+      {:error, changeset} ->
+        :telemetry.execute(
+          [:qlarius, :accounts, :create_user, :error],
+          %{duration: duration},
+          %{errors: changeset.errors}
+        )
+    end
+
+    result
+  end
+end
+```
+
+## Error Recovery Strategies
+
+### Retry with Backoff
+```elixir
+# ✅ Good: Exponential backoff retry
+defmodule Qlarius.Retry do
+  def with_backoff(func, max_attempts \\ 3, base_delay \\ 100) do
+    do_retry(func, max_attempts, base_delay, 1)
+  end
+
+  defp do_retry(func, max_attempts, _base_delay, attempt) when attempt > max_attempts do
+    {:error, :max_retries_exceeded}
+  end
+
+  defp do_retry(func, max_attempts, base_delay, attempt) do
+    case func.() do
+      {:ok, result} ->
+        {:ok, result}
+
+      {:error, _reason} ->
+        delay = base_delay * :math.pow(2, attempt - 1)
+        Process.sleep(trunc(delay))
+        do_retry(func, max_attempts, base_delay, attempt + 1)
+    end
+  end
+end
+```
+
+### Graceful Degradation
+```elixir
+# ✅ Good: Fallback when service unavailable
+def get_recommendations(user) do
+  case RecommendationService.fetch(user.id) do
+    {:ok, recommendations} ->
+      recommendations
+
+    {:error, _reason} ->
+      Logger.warning("Recommendation service unavailable, using fallback")
+      get_popular_items()  # Fallback to popular items
+  end
+end
+```
+
+## Documentation and Error Messages
+
+### Document Error Cases
+```elixir
+# ✅ Good: Document possible errors
+@doc """
+Creates a new post for the given user.
+
+## Parameters
+  - user: The user creating the post
+  - attrs: Post attributes
+
+## Returns
+  - {:ok, post} on success
+  - {:error, changeset} if validation fails
+  - {:error, :unauthorized} if user cannot create posts
+  - {:error, :rate_limited} if user has exceeded rate limit
+"""
+def create_post(user, attrs) do
+  # Implementation
+end
+```
+
+### Include Context in Errors
+```elixir
+# ✅ Good: Contextual error information
+def process_webhook(payload) do
+  with {:ok, parsed} <- parse_payload(payload),
+       {:ok, validated} <- validate_webhook(parsed),
+       {:ok, result} <- process_webhook_data(validated) do
+    {:ok, result}
+  else
+    {:error, :invalid_json} ->
+      {:error, "Webhook payload is not valid JSON"}
+
+    {:error, :invalid_signature} ->
+      {:error, "Webhook signature verification failed"}
+
+    {:error, reason} ->
+      Logger.error("Webhook processing failed", reason: inspect(reason), payload: payload)
+      {:error, "Failed to process webhook"}
+  end
+end
+```

@@ -1,4 +1,268 @@
 ---
-description: Ecto
+description: Ecto Database Patterns
+globs: **/*.ex,**/*.exs
+alwaysApply: false
 ---
-- Always use Postgres 'text' type for textual columns.
+
+# Ecto Best Practices
+
+## Schema Design
+
+### Column Types
+- **Always** use Postgres `text` type for textual columns (avoid `varchar`)
+- Use `:string` in Ecto schemas for text columns
+- Use `:binary_id` for UUID primary keys
+- Use `:utc_datetime_usec` for timestamps
+
+```elixir
+# ✅ Good: Schema with proper types
+schema "users" do
+  field :name, :string          # Maps to text in Postgres
+  field :email, :string         # Maps to text in Postgres
+  field :age, :integer
+  field :balance, :decimal
+  field :metadata, :map         # JSONB in Postgres
+  
+  timestamps(type: :utc_datetime_usec)
+end
+```
+
+### Associations
+- Use `belongs_to`, `has_many`, `has_one`, `many_to_many`
+- Specify `on_replace` for embedded schemas
+- Use `foreign_key` option when column name differs from convention
+
+```elixir
+# ✅ Good: Well-defined associations
+schema "posts" do
+  field :title, :string
+  field :content, :string
+  
+  belongs_to :author, User
+  belongs_to :creator, User, foreign_key: :creator_id
+  has_many :comments, Comment
+  many_to_many :tags, Tag, join_through: "posts_tags"
+end
+```
+
+## Changesets
+
+### Validation Order
+1. Cast fields
+2. Validate required fields
+3. Validate formats/types
+4. Validate lengths
+5. Validate numbers/ranges
+6. Custom validations
+7. Constraints
+
+```elixir
+# ✅ Good: Proper changeset order
+def changeset(user, attrs) do
+  user
+  |> cast(attrs, [:email, :name, :age])
+  |> validate_required([:email, :name])
+  |> validate_format(:email, ~r/@/)
+  |> validate_length(:name, min: 2, max: 100)
+  |> validate_number(:age, greater_than: 0, less_than: 150)
+  |> validate_confirmation(:password)
+  |> unique_constraint(:email)
+end
+```
+
+### Casting vs Direct Assignment
+- Use `cast/3` for user-provided data
+- **Never** cast security-sensitive fields (like `user_id`)
+- Assign those fields directly using `put_change/3` or `change/2`
+
+```elixir
+# ✅ Good: Security-conscious changeset
+def create_changeset(post, attrs, user) do
+  post
+  |> cast(attrs, [:title, :content])  # Only allow these from user
+  |> validate_required([:title])
+  |> put_change(:user_id, user.id)    # Set programmatically
+  |> unique_constraint(:title)
+end
+```
+
+## Queries
+
+### Import Ecto.Query
+- **Always** `import Ecto.Query` in modules that build queries
+- Use the `from` macro for complex queries
+- Use `Repo.all`, `Repo.get`, etc. for simple lookups
+
+```elixir
+# ✅ Good: Query building
+import Ecto.Query
+
+def list_active_users do
+  from u in User,
+    where: u.active == true,
+    order_by: [desc: u.inserted_at],
+    preload: [:profile]
+end
+```
+
+### Preloading Associations
+- **Always** preload associations that will be accessed
+- Use `preload:` in queries or `Repo.preload/2`
+- Avoid N+1 queries
+
+```elixir
+# ❌ Bad: N+1 query
+users = Repo.all(User)
+Enum.map(users, fn user -> user.profile.bio end)  # N+1!
+
+# ✅ Good: Preload to avoid N+1
+users = Repo.all(from u in User, preload: [:profile])
+Enum.map(users, fn user -> user.profile.bio end)
+
+# ✅ Good: Preload after fetch
+users = Repo.all(User) |> Repo.preload(:profile)
+```
+
+### Dynamic Queries
+- Use `dynamic/2` for building conditional queries
+- Build query fragments incrementally
+- Keep queries composable
+
+```elixir
+# ✅ Good: Dynamic query building
+def list_posts(filters) do
+  query = from p in Post
+  
+  query = 
+    if filters[:author_id] do
+      from p in query, where: p.author_id == ^filters[:author_id]
+    else
+      query
+    end
+  
+  query =
+    if filters[:published] do
+      from p in query, where: p.published == true
+    else
+      query
+    end
+  
+  Repo.all(query)
+end
+```
+
+## Transactions
+
+### Use Ecto.Multi
+- Use `Ecto.Multi` for multi-step database operations
+- Operations are rolled back atomically on error
+- Named operations for clear error handling
+
+```elixir
+# ✅ Good: Atomic operations with Multi
+def transfer_credits(from_user, to_user, amount) do
+  Multi.new()
+  |> Multi.run(:validate, fn _repo, _changes ->
+    if from_user.credits >= amount do
+      {:ok, :valid}
+    else
+      {:error, :insufficient_credits}
+    end
+  end)
+  |> Multi.update(:debit, debit_changeset(from_user, amount))
+  |> Multi.update(:credit, credit_changeset(to_user, amount))
+  |> Multi.insert(:transaction, transaction_changeset(from_user, to_user, amount))
+  |> Repo.transaction()
+end
+```
+
+## Constraints
+
+### Database vs Application Constraints
+- Use database constraints for data integrity
+- Handle constraint errors in changesets
+
+```elixir
+# Migration
+create unique_index(:users, [:email])
+
+# Schema changeset
+def changeset(user, attrs) do
+  user
+  |> cast(attrs, [:email])
+  |> unique_constraint(:email, message: "has already been taken")
+end
+```
+
+## Performance
+
+### Pagination
+- Use `limit` and `offset` for simple pagination
+- Use cursor-based pagination for better performance
+- Consider using Scrivener or similar libraries
+
+```elixir
+# ✅ Good: Limit and offset
+def list_posts(page \\ 1, per_page \\ 20) do
+  offset = (page - 1) * per_page
+  
+  from(p in Post,
+    order_by: [desc: p.inserted_at],
+    limit: ^per_page,
+    offset: ^offset
+  )
+  |> Repo.all()
+end
+
+# ✅ Better: Cursor-based pagination
+def list_posts_after(cursor, limit \\ 20) do
+  from(p in Post,
+    where: p.id > ^cursor,
+    order_by: [asc: p.id],
+    limit: ^limit
+  )
+  |> Repo.all()
+end
+```
+
+### Select Specific Fields
+- Use `select` to load only needed fields
+- Reduces memory usage and query time
+- Especially important for large records
+
+```elixir
+# ✅ Good: Select only needed fields
+def list_user_names do
+  from(u in User, select: {u.id, u.name})
+  |> Repo.all()
+end
+```
+
+## Embedded Schemas
+
+### When to Use
+- For nested JSON data
+- For value objects (non-entities)
+- When data doesn't need its own table
+
+```elixir
+# ✅ Good: Embedded schema for address
+defmodule Address do
+  use Ecto.Schema
+  
+  embedded_schema do
+    field :street, :string
+    field :city, :string
+    field :zip, :string
+  end
+end
+
+defmodule User do
+  use Ecto.Schema
+  
+  schema "users" do
+    field :name, :string
+    embeds_one :address, Address
+  end
+end
+```

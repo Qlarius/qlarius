@@ -1,6 +1,48 @@
-This is a web application written using the Phoenix web framework.
+# Qlarius - Phoenix Application Guidelines for AI Agents
 
-## Project guidelines
+This document provides comprehensive guidelines for AI agents and developers working on the Qlarius Phoenix application. These guidelines follow the latest recommendations from Chris McCord, José Valim, and the Elixir/Phoenix community (2024-2025).
+
+## About This Project
+
+This is a web application built with:
+- **Phoenix Framework 1.8+** - Modern web framework for Elixir
+- **Phoenix LiveView 1.1+** - Real-time, server-rendered interactivity
+- **Ecto 3.x** - Database wrapper and query generator
+- **PostgreSQL** - Primary database
+- **DaisyUI + Tailwind CSS** - UI styling framework
+- **Oban** - Background job processing
+
+## AI-First Development (Phoenix 1.8+)
+
+Phoenix 1.8 introduced AI-powered development capabilities. This application is designed to work seamlessly with AI coding assistants.
+
+### Key Principles for AI Agents
+
+1. **Consistency**: Follow the established patterns in this codebase
+2. **Conventions**: Use Phoenix conventions (contexts, schemas, migrations)
+3. **Completeness**: Never leave TODOs, placeholders, or unimplemented functions
+4. **Testing**: Write tests for new features (contexts, LiveViews, controllers)
+5. **Security**: Validate all user input, use parameterized queries
+6. **Performance**: Preload associations, use streams for large data
+7. **Accessibility**: Follow WCAG guidelines for all UI components
+
+### Additional Context Files
+
+This repository includes additional rule files in `.cursor/rules/`:
+- `elixir.mdc` - Elixir language conventions
+- `ecto.mdc` - Database patterns
+- `heex.mdc` - Template syntax and components
+- `scopes.mdc` - Multi-tenancy patterns
+- `otp.mdc` - Concurrency and supervision
+- `performance.mdc` - Optimization strategies
+- `security.mdc` - Security best practices
+- `testing.mdc` - Testing patterns
+- `accessibility.mdc` - WCAG compliance
+- `error-handling.mdc` - Resilience patterns
+
+Refer to these files for detailed guidance on specific topics.
+
+## Project Guidelines
 
 - Use `mix precommit` alias when you are done with all changes and fix any pending issues
 - Use the already included and available `:req` (`Req`) library for HTTP requests, **avoid** `:httpoison`, `:tesla`, and `:httpc`. Req is included by default and is the preferred HTTP client for Phoenix apps

@@ -1,0 +1,155 @@
+---
+description: Overview of Cursor Rules for Qlarius
+alwaysApply: false
+---
+
+# Qlarius Development Rules
+
+This directory contains comprehensive development rules and best practices for the Qlarius project, following the latest recommendations from Chris McCord, José Valim, and the Elixir/Phoenix community.
+
+## Rule Files
+
+### Core Language and Framework
+- **elixir.mdc** - Elixir language conventions, style guide, and idioms
+- **ecto.mdc** - Database patterns, queries, and Ecto best practices
+- **heex.mdc** - Phoenix templates, HEEx syntax, and component usage
+- **scopes.mdc** - Phoenix 1.8 scoping patterns for multi-tenancy and authorization
+
+### Architecture and Patterns
+- **otp.mdc** - OTP design patterns, GenServers, Supervisors, and concurrency
+- **performance.mdc** - Performance optimization, caching, and query optimization
+- **error-handling.mdc** - Error handling strategies, logging, and resilience
+
+### Quality and Standards
+- **testing.mdc** - Testing strategies, patterns, and best practices
+- **security.mdc** - Security best practices, authentication, and authorization
+- **accessibility.mdc** - Web accessibility (WCAG) guidelines for Phoenix applications
+
+### UI Framework
+- **daisyui.mdc** - DaisyUI component library usage and patterns
+
+## Philosophy
+
+These rules follow several key principles:
+
+### 1. "Let It Crash" (Erlang/Elixir Philosophy)
+- Design for failure recovery, not failure prevention
+- Use supervisors to handle process failures
+- Keep error handling code simple and focused
+
+### 2. Convention over Configuration
+- Follow Phoenix conventions for routing, contexts, and file structure
+- Use generated code patterns as templates
+- Leverage Phoenix defaults
+
+### 3. Explicit over Implicit
+- Make dependencies and side effects obvious
+- Use pattern matching for clear control flow
+- Prefer descriptive names over clever abbreviations
+
+### 4. Performance by Default
+- Preload associations to avoid N+1 queries
+- Use streams for large datasets
+- Leverage BEAM concurrency primitives
+
+### 5. Security First
+- Validate all user input
+- Use parameterized queries (Ecto does this by default)
+- Implement proper authorization at all levels
+- Never trust client-side validation
+
+## Quick Reference
+
+### Common Patterns
+
+#### Context Function
+```elixir
+def create_post(scope, attrs) do
+  %Post{}
+  |> Post.changeset(attrs)
+  |> put_change(:user_id, scope.user.id)
+  |> Repo.insert()
+end
+```
+
+#### LiveView with Scope
+```elixir
+def mount(_params, _session, socket) do
+  if connected?(socket) do
+    # Heavy operations only after connection
+    socket = load_data(socket)
+  end
+  
+  {:ok, socket}
+end
+```
+
+#### Error Handling with with
+```elixir
+with {:ok, user} <- authenticate(token),
+     {:ok, post} <- get_post(id),
+     :ok <- authorize(user, post) do
+  {:ok, post}
+else
+  {:error, reason} -> {:error, reason}
+end
+```
+
+## Latest Updates (2024-2025)
+
+### Phoenix 1.8+
+- AI-powered development with AGENTS.md
+- Enhanced LiveView features (streams, colocated hooks)
+- Improved component system
+- Better error messages and debugging
+
+### LiveView 1.1+
+- Keyed comprehensions
+- Colocated hooks
+- Enhanced async operations
+- Improved testing utilities
+
+### Community Tools
+- Phoenix.new - Browser-based development platform
+- Enhanced Telemetry integration
+- Better LiveDashboard features
+- Improved deployment guides
+
+## Resources
+
+### Official Documentation
+- [Phoenix Framework](https://hexdocs.pm/phoenix)
+- [Phoenix LiveView](https://hexdocs.pm/phoenix_live_view)
+- [Ecto](https://hexdocs.pm/ecto)
+- [Elixir](https://hexdocs.pm/elixir)
+
+### Community Resources
+- [Elixir Forum](https://elixirforum.com)
+- [Phoenix Blog](https://phoenixframework.org/blog)
+- [Thinking Elixir Podcast](https://thinkingelixir.com/podcast)
+- [Elixir Radar Newsletter](https://elixir-radar.com)
+
+### Learning Platforms
+- [Pragmatic Studio - Full-Stack Phoenix](https://pragmaticstudio.com/phoenix)
+- [Elixir School](https://elixirschool.com)
+- [Exercism Elixir Track](https://exercism.org/tracks/elixir)
+
+## Contributing to These Rules
+
+These rules are living documents. If you discover:
+- Outdated patterns or recommendations
+- Missing important best practices
+- Unclear or confusing guidelines
+- New patterns from the community
+
+Please update the relevant .mdc file and document the change.
+
+## AI Assistant Usage
+
+These rules are designed to work with AI coding assistants like Cursor. The rules:
+- Provide context about the project's conventions
+- Help maintain consistency across the codebase
+- Reduce boilerplate explanations
+- Encode institutional knowledge
+
+When working with AI assistants, they will automatically reference these rules to generate code that follows the project's standards.

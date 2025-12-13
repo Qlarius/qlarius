@@ -1,0 +1,391 @@
+---
+description: Accessibility (A11y) Best Practices
+globs: **/*.heex,**/*.ex
+alwaysApply: false
+---
+
+# Accessibility (A11y) Best Practices
+
+## Semantic HTML
+
+### Use Proper HTML Elements
+- Use semantic HTML5 elements (`<nav>`, `<main>`, `<article>`, `<section>`, `<aside>`, `<header>`, `<footer>`)
+- Don't use `<div>` when a semantic element exists
+- Use `<button>` for actions, `<a>` for navigation
+
+```heex
+<%!-- ❌ Bad: Non-semantic --%>
+<div class="nav">
+  <div class="link" phx-click="navigate">Home</div>
+</div>
+
+<%!-- ✅ Good: Semantic --%>
+<nav>
+  <.link navigate={~p"/"}>Home</.link>
+</nav>
+```
+
+### Heading Hierarchy
+- Use headings (`<h1>` through `<h6>`) in logical order
+- Only one `<h1>` per page
+- Don't skip heading levels
+
+```heex
+<%!-- ❌ Bad: Skips h2 --%>
+<h1>Page Title</h1>
+<h3>Subsection</h3>
+
+<%!-- ✅ Good: Logical hierarchy --%>
+<h1>Page Title</h1>
+<h2>Section</h2>
+<h3>Subsection</h3>
+```
+
+## ARIA Attributes
+
+### When to Use ARIA
+- Use ARIA only when semantic HTML isn't sufficient
+- ARIA labels, descriptions, and roles enhance accessibility
+- Follow "No ARIA is better than bad ARIA"
+
+### Common ARIA Attributes
+```heex
+<%!-- ✅ Good: ARIA for complex widgets --%>
+<button aria-expanded={@expanded} aria-controls="menu-items">
+  Menu
+</button>
+
+<div id="menu-items" aria-hidden={!@expanded}>
+  <%!-- Menu items --%>
+</div>
+
+<%!-- ✅ Good: ARIA label for icon buttons --%>
+<button aria-label="Close dialog">
+  <.icon name="hero-x-mark" />
+</button>
+
+<%!-- ✅ Good: ARIA live regions for dynamic content --%>
+<div aria-live="polite" aria-atomic="true">
+  {@status_message}
+</div>
+```
+
+### ARIA Roles
+```heex
+<%!-- ✅ Good: ARIA roles for custom components --%>
+<div role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+  <h2 id="dialog-title">Confirm Action</h2>
+  <%!-- Dialog content --%>
+</div>
+
+<div role="alert">
+  {flash_message}
+</div>
+```
+
+## Forms and Inputs
+
+### Labels for All Inputs
+- Every input must have an associated `<label>`
+- Use `for` attribute to associate label with input
+- Labels should be visible, not just for screen readers
+
+```heex
+<%!-- ❌ Bad: No label --%>
+<input type="text" name="email" placeholder="Email" />
+
+<%!-- ✅ Good: Proper label --%>
+<label for="email-input">Email</label>
+<input type="text" id="email-input" name="email" />
+
+<%!-- ✅ Good: Using Phoenix form component --%>
+<.input field={@form[:email]} type="email" label="Email" />
+```
+
+### Form Validation and Error Messages
+- Associate error messages with inputs using `aria-describedby`
+- Indicate required fields clearly
+- Provide helpful error messages
+
+```heex
+<%!-- ✅ Good: Accessible error messages --%>
+<.input
+  field={@form[:email]}
+  type="email"
+  label="Email"
+  required
+  aria-describedby={@form[:email].errors != [] && "email-error"}
+/>
+<span :if={@form[:email].errors} id="email-error" role="alert">
+  {translate_error(@form[:email].errors)}
+</span>
+```
+
+### Fieldsets and Legends
+- Group related inputs with `<fieldset>`
+- Use `<legend>` to describe the group
+
+```heex
+<%!-- ✅ Good: Grouped inputs --%>
+<fieldset>
+  <legend>Shipping Address</legend>
+  <.input field={@form[:street]} label="Street" />
+  <.input field={@form[:city]} label="City" />
+  <.input field={@form[:zip]} label="ZIP Code" />
+</fieldset>
+```
+
+## Keyboard Navigation
+
+### Focus Management
+- Ensure all interactive elements are keyboard accessible
+- Provide visible focus indicators
+- Use `tabindex` appropriately (usually 0 or -1)
+- Trap focus in modals/dialogs
+
+```heex
+<%!-- ✅ Good: Keyboard accessible custom button --%>
+<div
+  role="button"
+  tabindex="0"
+  phx-click="action"
+  phx-keydown="action"
+  phx-key="Enter"
+  class="focus:ring-2 focus:ring-blue-500"
+>
+  Click me
+</div>
+```
+
+### Skip Links
+- Provide skip navigation links for keyboard users
+- Allow users to skip repetitive content
+
+```heex
+<%!-- ✅ Good: Skip link --%>
+<a href="#main-content" class="sr-only focus:not-sr-only">
+  Skip to main content
+</a>
+
+<main id="main-content">
+  <%!-- Page content --%>
+</main>
+```
+
+### Modal Focus Trap
+```elixir
+# ✅ Good: Focus management in LiveView modal
+def handle_event("open_modal", _params, socket) do
+  {:noreply,
+   socket
+   |> assign(:modal_open, true)
+   |> push_event("trap-focus", %{id: "modal"})}
+end
+```
+
+## Images and Media
+
+### Alt Text for Images
+- Provide descriptive alt text for meaningful images
+- Use empty alt (`alt=""`) for decorative images
+- Don't use "image of" or "picture of" in alt text
+
+```heex
+<%!-- ❌ Bad: Missing or poor alt text --%>
+<img src="/logo.png" />
+<img src="/chart.png" alt="Image" />
+
+<%!-- ✅ Good: Descriptive alt text --%>
+<img src="/logo.png" alt="Qlarius Logo" />
+<img src="/chart.png" alt="Revenue growth chart showing 25% increase in Q4" />
+<img src="/decorative-pattern.png" alt="" />
+```
+
+### Video and Audio
+- Provide captions/subtitles for videos
+- Provide transcripts for audio content
+- Don't autoplay media with sound
+
+```heex
+<%!-- ✅ Good: Accessible video --%>
+<video controls>
+  <source src="video.mp4" type="video/mp4" />
+  <track kind="captions" src="captions.vtt" srclang="en" label="English" />
+</video>
+```
+
+## Color and Contrast
+
+### Color Contrast
+- Maintain WCAG AA contrast ratios (4.5:1 for normal text, 3:1 for large text)
+- Don't rely on color alone to convey information
+- Test with color blindness simulators
+
+```heex
+<%!-- ❌ Bad: Color as only indicator --%>
+<span class="text-green-500">Active</span>
+<span class="text-red-500">Inactive</span>
+
+<%!-- ✅ Good: Color plus text/icon --%>
+<span class="text-green-500">
+  <.icon name="hero-check-circle" /> Active
+</span>
+<span class="text-red-500">
+  <.icon name="hero-x-circle" /> Inactive
+</span>
+```
+
+## Dynamic Content and LiveView
+
+### Announce Dynamic Changes
+- Use ARIA live regions for dynamic updates
+- Choose appropriate politeness level (polite, assertive)
+
+```heex
+<%!-- ✅ Good: Announce new messages --%>
+<div aria-live="polite" aria-atomic="true" class="sr-only">
+  <%= if @new_message do %>
+    New message from {@new_message.sender}
+  <% end %>
+</div>
+```
+
+### Loading States
+- Indicate loading states to screen readers
+- Use `aria-busy` attribute
+
+```heex
+<%!-- ✅ Good: Accessible loading state --%>
+<div aria-busy={@loading}>
+  <%= if @loading do %>
+    <span class="sr-only">Loading...</span>
+    <.icon name="hero-arrow-path" class="animate-spin" aria-hidden="true" />
+  <% else %>
+    {@content}
+  <% end %>
+</div>
+```
+
+### Focus Management in LiveView
+- Restore focus after page updates when appropriate
+- Move focus to errors after form submission
+- Announce route changes
+
+```elixir
+# ✅ Good: Focus management
+def handle_event("save", params, socket) do
+  case save_post(params) do
+    {:ok, post} ->
+      {:noreply,
+       socket
+       |> put_flash(:info, "Post saved")
+       |> push_navigate(to: ~p"/posts/#{post}")}
+
+    {:error, changeset} ->
+      {:noreply,
+       socket
+       |> assign(:changeset, changeset)
+       |> push_event("focus", %{id: "first-error"})}
+  end
+end
+```
+
+## Tables
+
+### Accessible Data Tables
+- Use `<th>` for headers with `scope` attribute
+- Provide `<caption>` to describe table
+- Use `<thead>`, `<tbody>`, `<tfoot>` for structure
+
+```heex
+<%!-- ✅ Good: Accessible table --%>
+<table>
+  <caption>User Statistics for Q4 2024</caption>
+  <thead>
+    <tr>
+      <th scope="col">Name</th>
+      <th scope="col">Email</th>
+      <th scope="col">Role</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr :for={user <- @users}>
+      <td>{user.name}</td>
+      <td>{user.email}</td>
+      <td>{user.role}</td>
+    </tr>
+  </tbody>
+</table>
+```
+
+## DaisyUI Accessibility
+
+### Using DaisyUI with Accessibility
+- DaisyUI components have basic accessibility built-in
+- Add ARIA attributes when needed
+- Test with keyboard navigation
+
+```heex
+<%!-- ✅ Good: DaisyUI with ARIA --%>
+<button class="btn btn-primary" aria-label="Save changes">
+  <.icon name="hero-check" />
+  Save
+</button>
+
+<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-box">
+    <h3 id="modal-title" class="font-bold text-lg">Modal Title</h3>
+    <%!-- Modal content --%>
+  </div>
+</div>
+```
+
+## Screen Reader Only Content
+
+### Utility Classes
+- Use `.sr-only` for screen reader only content
+- Use `.not-sr-only` to show on focus
+
+```heex
+<%!-- ✅ Good: Screen reader only text --%>
+<button>
+  <.icon name="hero-trash" />
+  <span class="sr-only">Delete item</span>
+</button>
+
+<a href="#main" class="sr-only focus:not-sr-only">
+  Skip to main content
+</a>
+```
+
+## Testing Accessibility
+
+### Tools and Practices
+- Use browser DevTools accessibility audits
+- Test with keyboard only (no mouse)
+- Test with screen readers (NVDA, JAWS, VoiceOver)
+- Use automated tools like axe or Lighthouse
+- Include accessibility in CI/CD
+
+```bash
+# ✅ Good: Automated accessibility testing
+npm run test:a11y  # Using pa11y, axe-core, or similar
+```
+
+### Manual Testing Checklist
+- [ ] All interactive elements are keyboard accessible
+- [ ] Focus indicators are visible
+- [ ] All images have alt text
+- [ ] Forms have proper labels
+- [ ] Color contrast meets WCAG AA standards
+- [ ] Screen reader announcements are appropriate
+- [ ] Dynamic content changes are announced
+- [ ] Modal focus is trapped
+- [ ] Skip links work correctly
+- [ ] Tables are properly structured
+
+## Resources
+- [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
+- [Phoenix LiveView Accessibility](https://hexdocs.pm/phoenix_live_view/accessibility.html)
+- [MDN Accessibility](https://developer.mozilla.org/en-US/docs/Web/Accessibility)
+- [WebAIM](https://webaim.org/)

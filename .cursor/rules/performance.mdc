@@ -1,0 +1,175 @@
+---
+description: Performance and Optimization Best Practices
+globs: **/*.ex,**/*.exs
+alwaysApply: false
+---
+
+# Performance and Optimization
+
+## Ecto Query Performance
+
+### Avoid N+1 Queries
+- **Always** preload associations that will be accessed in views or templates
+- Use `preload:` in `from` queries or `Repo.preload/2` after fetching
+- For complex cases, use joins with `select` to load only needed fields
+
+```elixir
+# ❌ Bad: N+1 query
+posts = Repo.all(Post)
+Enum.map(posts, fn post -> post.author.name end)
+
+# ✅ Good: Single query with preload
+posts = Repo.all(from p in Post, preload: [:author])
+Enum.map(posts, fn post -> post.author.name end)
+
+# ✅ Good: Selective loading
+posts = Repo.all(
+  from p in Post,
+  join: a in assoc(p, :author),
+  select: {p, a.name}
+)
+```
+
+### Query Optimization
+- Use `select` to load only required fields for large datasets
+- Leverage database indexes for frequently queried fields
+- Use `limit` and `offset` for pagination, or better yet, use cursor-based pagination
+- Consider using `stream` for processing large result sets
+
+```elixir
+# ✅ Good: Stream large datasets
+Repo.transaction(fn ->
+  Repo.stream(Post)
+  |> Stream.each(&process_post/1)
+  |> Stream.run()
+end)
+```
+
+### Avoid Unnecessary Queries
+- Check if data is already loaded before querying: `Ecto.assoc_loaded?/1`
+- Use `get_field` on changesets instead of database queries when possible
+- Batch operations with `Ecto.Multi` instead of sequential queries
+
+```elixir
+# ✅ Good: Check before loading
+def get_author_name(post) do
+  if Ecto.assoc_loaded?(post.author) do
+    post.author.name
+  else
+    post |> Repo.preload(:author) |> Map.get(:author) |> Map.get(:name)
+  end
+end
+```
+
+## LiveView Performance
+
+### Minimize Template Re-renders
+- Use `phx-update="ignore"` for static content or JS-managed DOM
+- Leverage LiveView streams for large collections
+- Use temporary assigns with `assign_new` for one-time computed values
+- Consider `socket.assigns.live_action` to scope renders
+
+### Optimize Mount and Handle_params
+- Move heavy computation out of `mount/3` when possible
+- Use `connected?(socket)` to defer expensive operations until after initial render
+- Leverage `handle_continue/2` for post-mount async work
+- Cache expensive computations in assigns
+
+```elixir
+# ✅ Good: Defer heavy operations
+def mount(_params, _session, socket) do
+  socket =
+    if connected?(socket) do
+      # Heavy operations only after connection
+      socket
+      |> assign(:heavy_data, compute_heavy_data())
+      |> subscribe_to_updates()
+    else
+      # Fast initial render
+      assign(socket, :heavy_data, nil)
+    end
+
+  {:ok, socket}
+end
+```
+
+### PubSub Best Practices
+- Subscribe to specific topics, not broad broadcasts
+- Unsubscribe when leaving (handle `terminate/2`)
+- Batch updates to reduce broadcast frequency
+- Use `Phoenix.Tracker` for presence instead of manual tracking
+
+## Concurrency and Parallelism
+
+### Task.async_stream
+- Use `Task.async_stream/3` for concurrent processing with backpressure
+- Always set `timeout: :infinity` for long-running tasks
+- Use `max_concurrency` to control resource usage
+- Handle errors appropriately (`:on_timeout`, `:kill_timeout`)
+
+```elixir
+# ✅ Good: Controlled concurrent processing
+results = 
+  items
+  |> Task.async_stream(
+    &process_item/1,
+    max_concurrency: 10,
+    timeout: :infinity,
+    on_timeout: :kill_task
+  )
+  |> Enum.to_list()
+```
+
+### GenServer Performance
+- Avoid long-running operations in `handle_call/3` (blocks callers)
+- Use `handle_cast/2` or `handle_info/2` for fire-and-forget operations
+- Consider `Task.Supervisor` for async work instead of blocking GenServer
+- Use `:hibernate` for idle processes to reduce memory
+
+### Supervision Strategy
+- Use appropriate restart strategies (`:one_for_one`, `:one_for_all`, `:rest_for_one`)
+- Set reasonable `:max_restarts` and `:max_seconds` to prevent crash loops
+- Use `DynamicSupervisor` for runtime-created processes
+- Leverage `Supervisor.child_spec/2` for custom child specs
+
+## Caching Strategies
+
+### Cachex or ETS
+- Cache expensive database queries with TTL
+- Use ETS for fast, in-memory lookups
+- Invalidate cache on data changes (via PubSub)
+- Monitor cache hit rates
+
+```elixir
+# ✅ Good: Cache with TTL
+def get_expensive_data(key) do
+  case Cachex.get(:my_cache, key) do
+    {:ok, nil} ->
+      data = fetch_from_database(key)
+      Cachex.put(:my_cache, key, data, ttl: :timer.minutes(5))
+      data
+    {:ok, data} ->
+      data
+  end
+end
+```
+
+## Database Connection Pooling
+- Configure appropriate pool size in `config/runtime.exs`
+- Monitor pool checkout queue times with Telemetry
+- Use `Ecto.Repo.checkout/2` for explicit control when needed
+- Consider read replicas for read-heavy workloads
+
+## Asset Optimization
+- Enable asset minification in production
+- Use `esbuild` for JavaScript bundling (default in Phoenix 1.7+)
+- Optimize images before upload (or use CDN transforms)
+- Leverage HTTP/2 for multiplexing
+- Use `defer` or `async` for non-critical JavaScript
+
+## Monitoring and Telemetry
+- Instrument critical code paths with `:telemetry` events
+- Monitor BEAM VM metrics (memory, schedulers, queue lengths)
+- Set up APM (Application Performance Monitoring) like AppSignal or New Relic
+- Use Phoenix LiveDashboard for real-time metrics
+- Track database query times and frequencies

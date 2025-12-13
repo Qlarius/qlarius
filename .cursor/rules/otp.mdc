@@ -1,0 +1,495 @@
+---
+description: OTP Patterns and Best Practices
+globs: **/*.ex,**/*.exs
+alwaysApply: false
+---
+
+# OTP Patterns and Best Practices
+
+## GenServer Design
+
+### When to Use GenServer
+- Managing state that needs to be shared across processes
+- Implementing long-running background tasks
+- Rate limiting or throttling
+- Caching with TTL
+- Connection pooling
+- State machines
+
+### GenServer Best Practices
+
+```elixir
+# ✅ Good: Well-structured GenServer
+defmodule Qlarius.Cache do
+  use GenServer
+  require Logger
+
+  # Client API
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+  end
+
+  def get(key) do
+    GenServer.call(__MODULE__, {:get, key})
+  end
+
+  def put(key, value) do
+    GenServer.cast(__MODULE__, {:put, key, value})
+  end
+
+  # Server Callbacks
+  @impl true
+  def init(_opts) do
+    {:ok, %{}, {:continue, :load_initial_data}}
+  end
+
+  @impl true
+  def handle_continue(:load_initial_data, state) do
+    # Load data asynchronously after init
+    data = load_data()
+    {:noreply, Map.merge(state, data)}
+  end
+
+  @impl true
+  def handle_call({:get, key}, _from, state) do
+    {:reply, Map.get(state, key), state}
+  end
+
+  @impl true
+  def handle_cast({:put, key, value}, state) do
+    {:noreply, Map.put(state, key, value)}
+  end
+
+  @impl true
+  def terminate(reason, state) do
+    Logger.info("Cache shutting down: #{inspect(reason)}")
+    :ok
+  end
+end
+```
+
+### Avoid Blocking Operations
+- **Never** perform long-running operations in `handle_call/3`
+- Use `handle_cast/2` or `handle_info/2` for fire-and-forget operations
+- Spawn tasks for CPU-intensive work
+- Use `Task.Supervisor` for supervised async work
+
+```elixir
+# ❌ Bad: Blocking call
+def handle_call(:process_large_file, _from, state) do
+  result = process_large_file()  # Blocks all callers!
+  {:reply, result, state}
+end
+
+# ✅ Good: Non-blocking
+def handle_call(:process_large_file, _from, state) do
+  Task.Supervisor.start_child(MyApp.TaskSupervisor, fn ->
+    result = process_large_file()
+    GenServer.cast(self(), {:file_processed, result})
+  end)
+  {:reply, :ok, state}
+end
+```
+
+## Supervision Trees
+
+### Supervisor Strategies
+
+#### :one_for_one
+- If a child terminates, only that child is restarted
+- **Use when**: Children are independent
+
+```elixir
+# ✅ Good: Independent workers
+children = [
+  {Qlarius.Cache, []},
+  {Qlarius.RateLimiter, []},
+  {Qlarius.Scheduler, []}
+]
+
+Supervisor.start_link(children, strategy: :one_for_one)
+```
+
+#### :one_for_all
+- If a child terminates, all children are restarted
+- **Use when**: Children depend on each other
+
+```elixir
+# ✅ Good: Dependent services
+children = [
+  {Qlarius.Database, []},
+  {Qlarius.DatabaseMonitor, []},  # Depends on Database
+  {Qlarius.DatabaseReporter, []}   # Depends on Database
+]
+
+Supervisor.start_link(children, strategy: :one_for_all)
+```
+
+#### :rest_for_one
+- If a child terminates, that child and all started after it are restarted
+- **Use when**: Children have sequential dependencies
+
+```elixir
+# ✅ Good: Sequential dependencies
+children = [
+  {Qlarius.Config, []},          # Must start first
+  {Qlarius.Database, []},        # Depends on Config
+  {Qlarius.Cache, []},           # Depends on Database
+  {Qlarius.WebServer, []}        # Depends on Cache
+]
+
+Supervisor.start_link(children, strategy: :rest_for_one)
+```
+
+### Restart Strategies
+- `:permanent` - Always restart (default, use for critical processes)
+- `:temporary` - Never restart (use for one-off tasks)
+- `:transient` - Restart only on abnormal termination
+
+```elixir
+# ✅ Good: Appropriate restart strategies
+children = [
+  # Critical process, always restart
+  {Qlarius.Database, [], restart: :permanent},
+  
+  # Task process, don't restart
+  {Task, fn -> import_data() end, restart: :temporary},
+  
+  # Worker that should only restart on crashes
+  {Qlarius.Worker, [], restart: :transient}
+]
+```
+
+### Supervisor Configuration
+- Set appropriate `:max_restarts` and `:max_seconds` (default: 3 restarts in 5 seconds)
+- Too high: Masks recurring issues
+- Too low: Process crashes on transient errors
+
+```elixir
+# ✅ Good: Reasonable restart limits
+Supervisor.start_link(
+  children,
+  strategy: :one_for_one,
+  max_restarts: 10,      # Allow more restarts
+  max_seconds: 60        # Over a longer period
+)
+```
+
+## DynamicSupervisor
+
+### When to Use
+- Creating processes at runtime (e.g., per-user connections)
+- Unknown number of children
+- Children can be added/removed dynamically
+
+```elixir
+# ✅ Good: Dynamic worker management
+defmodule Qlarius.ConnectionSupervisor do
+  use DynamicSupervisor
+
+  def start_link(init_arg) do
+    DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
+  end
+
+  def start_connection(user_id) do
+    spec = {Qlarius.UserConnection, user_id}
+    DynamicSupervisor.start_child(__MODULE__, spec)
+  end
+
+  def stop_connection(pid) do
+    DynamicSupervisor.terminate_child(__MODULE__, pid)
+  end
+
+  @impl true
+  def init(_init_arg) do
+    DynamicSupervisor.init(strategy: :one_for_one)
+  end
+end
+```
+
+## Task and Task.Supervisor
+
+### Task for One-Off Async Work
+```elixir
+# ✅ Good: Fire-and-forget task
+Task.start(fn ->
+  send_notification(user)
+end)
+
+# ✅ Good: Wait for result
+task = Task.async(fn -> expensive_computation() end)
+result = Task.await(task, :timer.seconds(30))
+```
+
+### Task.Supervisor for Reliability
+```elixir
+# ✅ Good: Supervised tasks
+defmodule Qlarius.Application do
+  def start(_type, _args) do
+    children = [
+      {Task.Supervisor, name: Qlarius.TaskSupervisor},
+      # ... other children
+    ]
+
+    Supervisor.start_link(children, strategy: :one_for_one)
+  end
+end
+
+# Use supervised tasks
+Task.Supervisor.start_child(Qlarius.TaskSupervisor, fn ->
+  process_job(job)
+end)
+
+# Or with async/await
+task = Task.Supervisor.async(Qlarius.TaskSupervisor, fn ->
+  expensive_operation()
+end)
+result = Task.await(task)
+```
+
+## Registry for Process Discovery
+
+### When to Use
+- Naming processes dynamically
+- Looking up processes by key
+- Pub/Sub patterns
+- Process groups
+
+```elixir
+# ✅ Good: Registry for dynamic naming
+def start_link(user_id) do
+  GenServer.start_link(
+    __MODULE__,
+    user_id,
+    name: {:via, Registry, {Qlarius.Registry, "user:#{user_id}"}}
+  )
+end
+
+def whereis(user_id) do
+  case Registry.lookup(Qlarius.Registry, "user:#{user_id}") do
+    [{pid, _}] -> pid
+    [] -> nil
+  end
+end
+
+# In application.ex
+{Registry, keys: :unique, name: Qlarius.Registry}
+```
+
+## Agent for Simple State
+
+### When to Use Agent (vs GenServer)
+- Simple key-value storage
+- No complex logic
+- Infrequent updates
+- Don't need custom callbacks
+
+```elixir
+# ✅ Good: Agent for simple state
+defmodule Qlarius.Counter do
+  use Agent
+
+  def start_link(_opts) do
+    Agent.start_link(fn -> 0 end, name: __MODULE__)
+  end
+
+  def increment do
+    Agent.update(__MODULE__, &(&1 + 1))
+  end
+
+  def get do
+    Agent.get(__MODULE__, & &1)
+  end
+end
+```
+
+## ETS for Fast In-Memory Storage
+
+### When to Use ETS
+- Caching frequently accessed data
+- Fast lookups (constant time)
+- Shared data between processes
+- No complex state management needed
+
+```elixir
+# ✅ Good: ETS cache
+defmodule Qlarius.ETSCache do
+  def init do
+    :ets.new(:my_cache, [:set, :public, :named_table, read_concurrency: true])
+  end
+
+  def put(key, value, ttl \\ :timer.minutes(5)) do
+    expires_at = System.system_time(:millisecond) + ttl
+    :ets.insert(:my_cache, {key, value, expires_at})
+  end
+
+  def get(key) do
+    case :ets.lookup(:my_cache, key) do
+      [{^key, value, expires_at}] ->
+        if System.system_time(:millisecond) < expires_at do
+          {:ok, value}
+        else
+          :ets.delete(:my_cache, key)
+          {:error, :expired}
+        end
+      [] ->
+        {:error, :not_found}
+    end
+  end
+end
+```
+
+## Phoenix.PubSub
+
+### Efficient Broadcasting
+```elixir
+# ✅ Good: Topic-based subscriptions
+defmodule Qlarius.Notifications do
+  def subscribe_to_user(user_id) do
+    Phoenix.PubSub.subscribe(Qlarius.PubSub, "user:#{user_id}")
+  end
+
+  def notify_user(user_id, message) do
+    Phoenix.PubSub.broadcast(Qlarius.PubSub, "user:#{user_id}", message)
+  end
+
+  def subscribe_to_all_users do
+    Phoenix.PubSub.subscribe(Qlarius.PubSub, "users:*")
+  end
+end
+
+# In LiveView
+def mount(_params, _session, socket) do
+  if connected?(socket) do
+    Notifications.subscribe_to_user(socket.assigns.current_user.id)
+  end
+
+  {:ok, socket}
+end
+
+def handle_info({:new_notification, notification}, socket) do
+  {:noreply, push_event(socket, "notification", notification)}
+end
+```
+
+## Error Handling and Supervision
+
+### Let It Crash Philosophy
+- Don't defensive code everything
+- Let supervisors handle failures
+- Design for failure recovery, not failure prevention
+- Use supervisors to reset corrupted state
+
+```elixir
+# ❌ Bad: Over-defensive
+def handle_call(:process, _from, state) do
+  try do
+    result = risky_operation(state)
+    {:reply, result, state}
+  rescue
+    _ -> {:reply, {:error, :unknown}, state}  # Swallows errors
+  end
+end
+
+# ✅ Good: Let it crash
+def handle_call(:process, _from, state) do
+  result = risky_operation(state)  # Supervisor will restart if it crashes
+  {:reply, result, state}
+end
+```
+
+### When to Use try/rescue
+- Interfacing with external systems
+- Expected errors (like parsing)
+- Need to clean up resources
+- Logging before crash
+
+```elixir
+# ✅ Good: Strategic error handling
+def call_external_api(params) do
+  try do
+    HTTPoison.post!(url, params)
+  rescue
+    e in HTTPoison.Error ->
+      Logger.error("API call failed: #{inspect(e)}")
+      {:error, :api_unavailable}
+  end
+end
+```
+
+## Process Communication Patterns
+
+### Request-Response (GenServer.call)
+- Synchronous communication
+- Caller waits for response
+- Use timeouts to prevent blocking forever
+
+```elixir
+GenServer.call(pid, :get_data, :timer.seconds(5))
+```
+
+### Fire-and-Forget (GenServer.cast)
+- Asynchronous communication
+- No response expected
+- Faster but less reliable
+
+```elixir
+GenServer.cast(pid, {:update, data})
+```
+
+### Send Messages Directly
+- Most flexible
+- Use for custom protocols
+- Common in OTP patterns
+
+```elixir
+send(pid, {:notification, message})
+```
+
+## Monitoring and Linking
+
+### Process.monitor
+- Get notified when process dies
+- Non-blocking
+- Useful for cleanup
+
+```elixir
+ref = Process.monitor(pid)
+
+receive do
+  {:DOWN, ^ref, :process, ^pid, reason} ->
+    Logger.info("Process died: #{inspect(reason)}")
+end
+```
+
+### Process.link
+- Bidirectional connection
+- If one dies, both die
+- Use in supervision trees
+
+```elixir
+Process.link(pid)  # Now linked
+```
+
+## Performance Considerations
+
+### Process Hibernation
+- Reduce memory for idle processes
+- Garbage collect before hibernating
+
+```elixir
+{:noreply, state, :hibernate}
+```
+
+### Process Pooling
+- Use Poolboy or similar for connection pooling
+- Limit concurrent operations
+- Reuse expensive resources
+
+```elixir
+:poolboy.transaction(
+  :worker_pool,
+  fn pid -> GenServer.call(pid, {:work, data}) end,
+  :timer.seconds(5)
+)
+```
