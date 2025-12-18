@@ -75,7 +75,7 @@ defmodule Qlarius.Secrets do
   end
 
   defp fetch_twilio_config_from_source do
-    if Mix.env() == :prod && use_aws_ssm?() do
+    if use_aws_ssm?() do
       fetch_from_aws_ssm()
     else
       fetch_from_env_vars()
@@ -83,7 +83,7 @@ defmodule Qlarius.Secrets do
   end
 
   defp fetch_cloak_key_from_source do
-    if Mix.env() == :prod && use_aws_ssm?() do
+    if use_aws_ssm?() do
       case fetch_parameter("/qlarius/cloak-key") do
         {:ok, key} ->
           Base.decode64!(key)
@@ -99,9 +99,14 @@ defmodule Qlarius.Secrets do
   end
 
   defp use_aws_ssm? do
-    # Use AWS SSM only if we're on AWS (not Gigalixir, Heroku, etc.)
-    # Gigalixir sets GIGALIXIR_APP_NAME, Heroku sets DYNO
-    !System.get_env("GIGALIXIR_APP_NAME") && !System.get_env("DYNO")
+    # Use AWS SSM only if:
+    # 1. Not on Gigalixir (GIGALIXIR_APP_NAME not set)
+    # 2. Not on Heroku (DYNO not set)
+    # 3. AWS region is configured (AWS_REGION set)
+    # This means we're likely on AWS EKS/ECS
+    !System.get_env("GIGALIXIR_APP_NAME") && 
+      !System.get_env("DYNO") && 
+      System.get_env("AWS_REGION")
   end
 
   defp fetch_from_aws_ssm do
