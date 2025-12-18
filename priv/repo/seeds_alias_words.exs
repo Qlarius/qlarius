@@ -1,5 +1,8 @@
+require Logger
 alias Qlarius.Repo
 alias Qlarius.Accounts.AliasWord
+
+Logger.info("=== Starting alias words seeding ===")
 
 # Mix of themes: nature, space, tech, colors, emotions, etc.
 adjectives = ~w(
@@ -61,20 +64,44 @@ nouns = ~w(
 adjectives = Enum.take(adjectives, 500)
 nouns = Enum.take(nouns, 500)
 
-IO.puts("Seeding #{length(adjectives)} adjectives and #{length(nouns)} nouns...")
+Logger.info("Seeding #{length(adjectives)} adjectives and #{length(nouns)} nouns...")
 
-# Insert adjectives
-Enum.each(adjectives, fn word ->
-  %AliasWord{}
-  |> AliasWord.changeset(%{word: word, type: "adjective", active: true})
-  |> Repo.insert!(on_conflict: :nothing)
-end)
+# Insert adjectives with error handling
+adj_count = 
+  Enum.reduce(adjectives, 0, fn word, count ->
+    try do
+      %AliasWord{}
+      |> AliasWord.changeset(%{word: word, type: "adjective", active: true})
+      |> Repo.insert!(on_conflict: :nothing)
+      count + 1
+    rescue
+      e ->
+        Logger.warning("Failed to insert adjective '#{word}': #{inspect(e)}")
+        count
+    end
+  end)
 
-# Insert nouns
-Enum.each(nouns, fn word ->
-  %AliasWord{}
-  |> AliasWord.changeset(%{word: word, type: "noun", active: true})
-  |> Repo.insert!(on_conflict: :nothing)
-end)
+Logger.info("Inserted #{adj_count} adjectives")
 
-IO.puts("✓ Seeded alias words successfully!")
+# Insert nouns with error handling
+noun_count = 
+  Enum.reduce(nouns, 0, fn word, count ->
+    try do
+      %AliasWord{}
+      |> AliasWord.changeset(%{word: word, type: "noun", active: true})
+      |> Repo.insert!(on_conflict: :nothing)
+      count + 1
+    rescue
+      e ->
+        Logger.warning("Failed to insert noun '#{word}': #{inspect(e)}")
+        count
+    end
+  end)
+
+Logger.info("Inserted #{noun_count} nouns")
+
+# Verify final count
+{:ok, result} = Repo.query("SELECT COUNT(*) FROM alias_words")
+total = result.rows |> List.first() |> List.first()
+
+Logger.info("=== Alias words seeding complete! Total words in database: #{total} ===")
