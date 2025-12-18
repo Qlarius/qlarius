@@ -15,9 +15,9 @@ defmodule Qlarius.Accounts.AliasGenerator do
   @impl true
   def init(_state) do
     :ets.new(@table_name, [:named_table, :set, :public, read_concurrency: true])
-    
+
     case load_words() do
-      :ok -> 
+      :ok ->
         {:ok, %{}}
       {:error, :table_not_found} ->
         Logger.warning("alias_words table not found - using fallback words until migrations are run")
