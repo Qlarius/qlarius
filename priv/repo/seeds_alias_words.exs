@@ -67,7 +67,7 @@ nouns = Enum.take(nouns, 500)
 Logger.info("Seeding #{length(adjectives)} adjectives and #{length(nouns)} nouns...")
 
 # Insert adjectives with error handling
-adj_count = 
+adj_count =
   Enum.reduce(adjectives, 0, fn word, count ->
     try do
       %AliasWord{}
@@ -84,7 +84,7 @@ adj_count =
 Logger.info("Inserted #{adj_count} adjectives")
 
 # Insert nouns with error handling
-noun_count = 
+noun_count =
   Enum.reduce(nouns, 0, fn word, count ->
     try do
       %AliasWord{}
