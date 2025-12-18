@@ -7,7 +7,6 @@ defmodule Qlarius.Application do
 
   @impl true
   def start(_type, _args) do
-    Qlarius.Secrets.init()
     Oban.Telemetry.attach_default_logger()
 
     # Attach a telemetry handler to filter out Oban plugin info logs
@@ -24,6 +23,7 @@ defmodule Qlarius.Application do
       QlariusWeb.Telemetry,
       Qlarius.Repo,
       Qlarius.Vault,
+      Qlarius.Secrets,
       {DNSCluster, query: Application.get_env(:qlarius, :dns_cluster_query) || :ignore},
       {Oban, Application.fetch_env!(:qlarius, Oban)},
       {Phoenix.PubSub, name: Qlarius.PubSub},

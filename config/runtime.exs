@@ -135,9 +135,9 @@ if config_env() == :prod do
   #
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
 
-  # Fetch secrets from AWS Parameter Store
-  twilio_config = Qlarius.Secrets.fetch_twilio_config()
-  cloak_key = Qlarius.Secrets.fetch_cloak_key()
+  # Fetch secrets from AWS Parameter Store (no cache during boot)
+  twilio_config = Qlarius.Secrets.fetch_twilio_config_no_cache()
+  cloak_key = Qlarius.Secrets.fetch_cloak_key_no_cache()
 
   config :qlarius, Qlarius.Services.Twilio,
     account_sid: twilio_config.account_sid,
