@@ -7,6 +7,7 @@ defmodule Qlarius.Application do
 
   @impl true
   def start(_type, _args) do
+    Qlarius.Secrets.init()
     Oban.Telemetry.attach_default_logger()
 
     # Attach a telemetry handler to filter out Oban plugin info logs
@@ -22,6 +23,7 @@ defmodule Qlarius.Application do
     children = [
       QlariusWeb.Telemetry,
       Qlarius.Repo,
+      Qlarius.Vault,
       {DNSCluster, query: Application.get_env(:qlarius, :dns_cluster_query) || :ignore},
       {Oban, Application.fetch_env!(:qlarius, Oban)},
       {Phoenix.PubSub, name: Qlarius.PubSub},
@@ -29,6 +31,8 @@ defmodule Qlarius.Application do
       {Finch, name: Qlarius.Finch},
       # Tag tease agent for managing non-repeating messages
       Qlarius.YouData.TagTeaseAgent,
+      # Alias generator with word cache
+      Qlarius.Accounts.AliasGenerator,
       # Start a worker by calling: Qlarius.Worker.start_link(arg)
       # {Qlarius.Worker, arg},
       # Start to serve requests, typically the last entry

@@ -48,7 +48,7 @@ defmodule Qlarius.Accounts.Users do
     UserProxy
     |> where([p], p.true_user_id == ^user.id)
     |> join(:inner, [p], u in User, on: p.proxy_user_id == u.id)
-    |> order_by([p, u], asc: u.username)
+    |> order_by([p, u], asc: u.alias)
     |> select([p, u], p)
     |> Repo.all()
   end

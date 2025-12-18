@@ -74,7 +74,12 @@ defmodule Qlarius.MixProject do
       {:tzdata, "~> 1.1"},
       {:oban, "~> 2.19"},
       {:igniter, "~> 0.5", only: [:dev]},
-      {:bcrypt_elixir, "~> 3.0"}
+      {:bcrypt_elixir, "~> 3.0"},
+      {:cloak_ecto, "~> 1.3"},
+      {:wax, "~> 0.4"},
+      {:ex_phone_number, "~> 0.4"},
+      {:hammer, "~> 6.2"},
+      {:ex_aws_ssm, "~> 2.0"}
     ]
   end
 

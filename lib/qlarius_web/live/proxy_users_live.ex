@@ -30,10 +30,8 @@ defmodule QlariusWeb.ProxyUsersLive do
        |> assign(:title, "Proxy Users")
        |> assign(:show_add_modal, false)
        |> assign(:new_alias, "")
-       |> assign(:new_username, "")
        |> assign(:new_mobile, "")
-       |> assign(:alias_error, nil)
-       |> assign(:username_error, nil)}
+       |> assign(:alias_error, nil)}
     else
       {:ok,
        socket
@@ -65,10 +63,7 @@ defmodule QlariusWeb.ProxyUsersLive do
             phx-value-id={proxy.id}
           >
             <div class="list-col-grow">
-              <div class="text-lg font-medium text-base-content">{proxy.proxy_user.username}</div>
-              <div class="text-base-content/50 dark:text-base-content/60 text-sm">
-                {proxy.proxy_user.alias}
-              </div>
+              <div class="text-lg font-medium text-base-content">{proxy.proxy_user.alias}</div>
             </div>
             <div class="flex items-center mr-2">
               <%= if proxy.active do %>
@@ -121,27 +116,6 @@ defmodule QlariusWeb.ProxyUsersLive do
               </div>
             </.form>
 
-            <.form for={%{}} phx-change="update_new_username">
-              <div class="form-control w-full mb-4">
-                <label class="label">
-                  <span class="label-text dark:text-gray-300">Username (for admin use) *</span>
-                </label>
-                <input
-                  id="new-proxy-username"
-                  name="username"
-                  type="text"
-                  placeholder="Enter username"
-                  class={"input input-bordered w-full dark:bg-base-100 dark:text-white #{if @username_error, do: "input-error"}"}
-                  value={@new_username}
-                />
-                <%= if @username_error do %>
-                  <label class="label">
-                    <span class="label-text-alt text-error">{@username_error}</span>
-                  </label>
-                <% end %>
-              </div>
-            </.form>
-
             <.form for={%{}} phx-change="update_new_mobile">
               <div class="form-control w-full mb-4">
                 <label class="label">
@@ -178,9 +152,7 @@ defmodule QlariusWeb.ProxyUsersLive do
   defp can_submit_new_proxy?(assigns) do
     assigns.new_alias != "" &&
       String.length(assigns.new_alias) >= 10 &&
-      is_nil(assigns.alias_error) &&
-      assigns.new_username != "" &&
-      is_nil(assigns.username_error)
+      is_nil(assigns.alias_error)
   end
 
   def handle_event("toggle_dark_mode", _params, socket) do
@@ -196,10 +168,8 @@ defmodule QlariusWeb.ProxyUsersLive do
      socket
      |> assign(:show_add_modal, false)
      |> assign(:new_alias, "")
-     |> assign(:new_username, "")
      |> assign(:new_mobile, "")
-     |> assign(:alias_error, nil)
-     |> assign(:username_error, nil)}
+     |> assign(:alias_error, nil)}
   end
 
   def handle_event("stop_propagation", _params, socket) do
@@ -238,19 +208,6 @@ defmodule QlariusWeb.ProxyUsersLive do
     {:noreply, socket}
   end
 
-  def handle_event("update_new_username", %{"username" => username}, socket) do
-    username = String.trim(username)
-
-    socket =
-      if username == "" do
-        assign(socket, new_username: username, username_error: nil)
-      else
-        assign(socket, new_username: username, username_error: nil)
-      end
-
-    {:noreply, socket}
-  end
-
   def handle_event("update_new_mobile", %{"mobile" => mobile}, socket) do
     {:noreply, assign(socket, :new_mobile, String.trim(mobile))}
   end
@@ -260,7 +217,6 @@ defmodule QlariusWeb.ProxyUsersLive do
      socket
      |> put_flash(:registration_mobile, socket.assigns.new_mobile)
      |> put_flash(:registration_alias, socket.assigns.new_alias)
-     |> put_flash(:registration_username, socket.assigns.new_username)
      |> push_navigate(to: ~p"/register?mode=proxy")}
   end
 
@@ -294,7 +250,7 @@ defmodule QlariusWeb.ProxyUsersLive do
        |> assign(:current_scope, Scope.for_user(admin_user))
        |> put_flash(
          :info,
-         "Successfully switched to proxy user #{updated_proxy.proxy_user.username}"
+         "Successfully switched to proxy user #{updated_proxy.proxy_user.alias}"
        )}
     end
   end

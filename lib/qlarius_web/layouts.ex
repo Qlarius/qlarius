@@ -115,7 +115,7 @@ defmodule QlariusWeb.Layouts do
 
   attr :title, :string, required: true
   attr :flash, :map, required: true
-  attr :current_scope, Scope, required: true
+  attr :current_scope, Scope, default: nil
   attr :current_path, :string, default: nil
 
   def mobile(assigns) do
@@ -158,7 +158,7 @@ defmodule QlariusWeb.Layouts do
     <.right_sidebar_drawer {assigns} />
 
     <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
-    <div class="dock z-40">
+    <div :if={@current_scope} class="dock z-40">
       <button class={[assigns[:current_path] == "/" && "dock-active"]} phx-click={JS.navigate(~p"/")}>
         <.icon name="hero-home" class="size-[1.5em]" />
         <span class="dock-label">Home</span>

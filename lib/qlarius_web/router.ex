@@ -32,15 +32,28 @@ defmodule QlariusWeb.Router do
 
   pipeline :admin do
     plug :put_layout, {QlariusWeb.Layouts, :admin}
-    # plug QlariusWeb.UserAuth, :require_admin_user # TODO: Add a plug to ensure user is an admin
+    plug :require_authenticated_user
+    plug :require_admin_user
   end
 
   pipeline :marketer do
     plug :put_layout, {QlariusWeb.Layouts, :admin}
   end
 
+  pipeline :require_auth do
+    plug :require_authenticated_user
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
+  end
+
+  pipeline :auto_login do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
+    plug :put_secure_browser_headers
   end
 
   # Based on https://elixirforum.com/t/how-to-embed-a-liveview-via-iframe/65066
@@ -124,21 +137,39 @@ defmodule QlariusWeb.Router do
   end
 
   scope "/", QlariusWeb do
+    pipe_through [:auto_login]
+
+    get "/auto_login/:token", AutoLoginController, :create
+  end
+
+  scope "/", QlariusWeb do
     pipe_through [:browser]
 
-    live_session :registration,
+    live_session :public,
       on_mount: [
-        {QlariusWeb.UserAuth, :mount_current_scope}
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.UserAuth, :redirect_if_user_is_authenticated}
       ] do
+      live "/login", LoginLive, :index
       live "/register", RegistrationLive, :index
     end
+
+    post "/login/create_session", UserSessionCreateController, :create
+    delete "/logout", UserSessionController, :delete
+  end
+
+  # Protected routes requiring authentication
+  scope "/", QlariusWeb do
+    pipe_through [:browser, :require_auth]
+
+    get "/", PageController, :home
 
     live_session :current_scope,
       on_mount: [
         {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.UserAuth, :ensure_authenticated},
         {QlariusWeb.UserAuth, :require_initialized_mefile}
       ] do
-      get "/", PageController, :home
       live "/users/settings", UserSettingsLive, :edit
       live "/wallet", WalletLive, :index
       live "/ads", AdsLive, :index
@@ -272,6 +303,14 @@ defmodule QlariusWeb.Router do
         {QlariusWeb.Layouts, :set_current_path}
       ] do
       live "/surveys", SurveyManagerLive, :index
+    end
+
+    live_session :admin_alias_words,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
+      live "/alias_words", AliasWordsLive, :index
     end
   end
 end

@@ -4,35 +4,25 @@ defmodule QlariusWeb.WalletLive do
   import QlariusWeb.WalletHTML
   alias QlariusWeb.Layouts
 
-  alias Qlarius.Accounts.Users
-  alias Qlarius.Accounts.Scope
   alias Qlarius.Wallets
-  alias Qlarius.Accounts.User
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
   alias Qlarius.Sponster.Campaigns.Targets
 
   @impl true
   def mount(_params, _session, socket) do
-    socket = assign(socket, :current_path, "/wallet")
-    # Load initial data during first mount
-    true_user = Users.get_user(508)
-    user = User.active_proxy_user_or_self(true_user)
-    current_scope = Scope.for_user(user)
-    me_file = Users.get_user_me_file(user.id)
+    current_scope = socket.assigns.current_scope
+    user = current_scope.user
+    me_file = user.me_file
 
-    # me_file = Repo.get_by(MeFile, user_id: user.id)
     ledger_header = Repo.get_by(LedgerHeader, me_file_id: me_file.id)
-
-    # ledger_header = Wallets.get_user_ledger_header(user.id)
 
     page = 1
     per_page = 20
     paginated_entries = Wallets.list_ledger_entries(ledger_header.id, page, per_page)
 
     socket
-    |> assign(:true_user, true_user)
-    |> assign(:current_scope, current_scope)
+    |> assign(:current_path, "/wallet")
     |> assign(:title, "Wallet")
     |> assign(:me_file, me_file)
     |> assign(:loading, true)

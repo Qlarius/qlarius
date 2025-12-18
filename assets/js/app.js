@@ -467,6 +467,18 @@ Hooks.ZipSelector = {
   }
 }
 
+// Handle focus events from LiveView
+window.addEventListener("phx:focus", (e) => {
+  const el = document.getElementById(e.detail.id)
+  if (el) {
+    // Small delay to ensure DOM is updated
+    setTimeout(() => {
+      el.focus()
+      el.select()
+    }, 100)
+  }
+})
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: () => ({

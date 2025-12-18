@@ -86,4 +86,17 @@
       <p class="text-xs text-base-content/50">By Qadabra</p>
     </div>
   </div>
+
+  <%!-- Floating "Connect your wallet" button for unauthenticated users --%>
+  <%= if is_nil(@current_scope) || is_nil(@current_scope.true_user) do %>
+    <div class="fixed bottom-6 right-6 z-50">
+      <.link
+        navigate={~p"/login"}
+        class="btn btn-primary btn-lg rounded-full shadow-2xl gap-2 hover:scale-105 transition-transform"
+      >
+        <.icon name="hero-wallet" class="w-6 h-6" />
+        <span class="font-semibold">Connect your wallet</span>
+      </.link>
+    </div>
+  <% end %>
 </div>

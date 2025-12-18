@@ -134,4 +134,23 @@ if config_env() == :prod do
   #     config :swoosh, :api_client, Swoosh.ApiClient.Hackney
   #
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
+
+  # Fetch secrets from AWS Parameter Store
+  twilio_config = Qlarius.Secrets.fetch_twilio_config()
+  cloak_key = Qlarius.Secrets.fetch_cloak_key()
+
+  config :qlarius, Qlarius.Services.Twilio,
+    account_sid: twilio_config.account_sid,
+    auth_token: twilio_config.auth_token,
+    verify_service_sid: twilio_config.verify_service_sid
+
+  config :qlarius, Qlarius.Vault,
+    ciphers: [
+      default: {
+        Cloak.Ciphers.AES.GCM,
+        tag: "AES.GCM.V1",
+        key: cloak_key,
+        iv_length: 12
+      }
+    ]
 end

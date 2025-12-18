@@ -122,3 +122,11 @@ config :swoosh, :api_client, false
 config :qlarius, debug_enabled: true
 
 config :logger, level: :debug
+
+# Carrier validation is ENABLED by default
+# Set to true ONLY for temporary testing with non-whitelisted carriers
+# config :qlarius, skip_carrier_validation: true
+
+# Phone verification bypass for development (skips Twilio entirely)
+# Set to true when testing registration flow without real SMS
+# config :qlarius, bypass_phone_verification: true

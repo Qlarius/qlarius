@@ -6,7 +6,7 @@ defmodule Qlarius.Accounts do
   import Ecto.Query, warn: false
   alias Qlarius.Repo
 
-  alias Qlarius.Accounts.{Marketer, Scope, User, UserProxy}
+  alias Qlarius.Accounts.{Marketer, Scope, User, UserProxy, UserToken, UserLoginToken}
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Wallets.LedgerHeader
 
@@ -259,5 +259,82 @@ defmodule Qlarius.Accounts do
   # marketer parameter not used in TODO stub function
   def change_marketer(%Scope{} = _scope, %Marketer{} = _marketer, _attrs \\ %{}) do
     raise "TODO"
+  end
+
+  def get_user_by_phone_number(phone_number) do
+    formatted_phone = format_phone_for_lookup(phone_number)
+    hash = hash_phone_number(formatted_phone)
+    Repo.get_by(User, mobile_number_hash: hash)
+  end
+
+  defp format_phone_for_lookup(phone) when is_binary(phone) do
+    cond do
+      String.starts_with?(phone, "+1") -> phone
+      String.starts_with?(phone, "1") -> "+#{phone}"
+      true -> "+1#{phone}"
+    end
+  end
+
+  defp hash_phone_number(phone) do
+    :crypto.hash(:sha256, phone)
+  end
+
+  def generate_user_session_token(user) do
+    {token, user_token} = UserToken.build_session_token(user)
+    Repo.insert!(user_token)
+    token
+  end
+
+  def generate_user_remember_me_token(user) do
+    {token, user_token} = UserToken.build_remember_me_token(user)
+    Repo.insert!(user_token)
+    token
+  end
+
+  def get_user_by_session_token(token) do
+    {:ok, query} = UserToken.verify_session_token_query(token)
+    Repo.one(query) |> Repo.preload(me_file: :ledger_header)
+  end
+
+  def get_user_by_remember_me_token(token) do
+    {:ok, query} = UserToken.verify_remember_me_token_query(token)
+    Repo.one(query) |> Repo.preload(me_file: :ledger_header)
+  end
+
+  def delete_user_session_token(token) do
+    Repo.delete_all(UserToken.by_token_and_context_query(token, "session"))
+    :ok
+  end
+
+  def delete_all_user_tokens(user) do
+    Repo.delete_all(UserToken.by_user_and_contexts_query(user, :all))
+  end
+
+  def update_user_sign_in_tracking(user, attrs) do
+    user
+    |> Ecto.Changeset.change(attrs)
+    |> Repo.update()
+  end
+
+  def generate_user_login_token(user_id) do
+    login_token = UserLoginToken.build_login_token(user_id)
+    Repo.insert!(login_token)
+    login_token.token
+  end
+
+  def get_user_by_login_token(token) do
+    query = UserLoginToken.verify_token_query(token)
+
+    case Repo.one(query) do
+      nil ->
+        nil
+
+      login_token ->
+        login_token
+        |> Ecto.Changeset.change(%{used: true})
+        |> Repo.update!()
+
+        get_user!(login_token.user_id)
+    end
   end
 end

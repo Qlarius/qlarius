@@ -104,3 +104,21 @@ config :qlarius, :content_security_policy,
   frame_ancestors: ["'self'", "chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen"]
 
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
+
+config :qlarius, Qlarius.Vault,
+  ciphers: [
+    default: {
+      Cloak.Ciphers.AES.GCM,
+      tag: "AES.GCM.V1",
+      key: Base.decode64!("ulNA++mxH5RjtFP8zWra8/qgvCUkQ8kUO88HyygvSeo="),
+      iv_length: 12
+    }
+  ]
+
+config :qlarius, Qlarius.Services.Twilio,
+  account_sid: System.get_env("TWILIO_ACCOUNT_SID", ""),
+  auth_token: System.get_env("TWILIO_AUTH_TOKEN", ""),
+  verify_service_sid: System.get_env("TWILIO_VERIFY_SERVICE_SID", "")
+
+config :hammer,
+  backend: {Hammer.Backend.ETS, [expiry_ms: 60_000 * 60 * 4, cleanup_interval_ms: 60_000 * 10]}
