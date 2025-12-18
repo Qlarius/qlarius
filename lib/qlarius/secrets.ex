@@ -104,8 +104,8 @@ defmodule Qlarius.Secrets do
     # 2. Not on Heroku (DYNO not set)
     # 3. AWS region is configured (AWS_REGION set)
     # This means we're likely on AWS EKS/ECS
-    !System.get_env("GIGALIXIR_APP_NAME") && 
-      !System.get_env("DYNO") && 
+    !System.get_env("GIGALIXIR_APP_NAME") &&
+      !System.get_env("DYNO") &&
       System.get_env("AWS_REGION")
   end
 

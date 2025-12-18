@@ -15,8 +15,15 @@ defmodule Qlarius.Accounts.AliasGenerator do
   @impl true
   def init(_state) do
     :ets.new(@table_name, [:named_table, :set, :public, read_concurrency: true])
-    load_words()
-    {:ok, %{}}
+    
+    case load_words() do
+      :ok -> 
+        {:ok, %{}}
+      {:error, :table_not_found} ->
+        Logger.warning("alias_words table not found - using fallback words until migrations are run")
+        load_fallback_words()
+        {:ok, %{}}
+    end
   end
 
   def generate_base_names(count \\ 5) do
@@ -131,26 +138,59 @@ defmodule Qlarius.Accounts.AliasGenerator do
 
   @impl true
   def handle_call(:refresh, _from, state) do
-    load_words()
-    {:reply, :ok, state}
+    case load_words() do
+      :ok -> {:reply, :ok, state}
+      {:error, :table_not_found} -> {:reply, {:error, :table_not_found}, state}
+    end
   end
 
   defp load_words do
-    adjectives = Repo.all(
-      from w in AliasWord,
-      where: w.type == "adjective" and w.active == true,
-      select: w.word
+    try do
+      adjectives = Repo.all(
+        from w in AliasWord,
+        where: w.type == "adjective" and w.active == true,
+        select: w.word
+      )
+
+      nouns = Repo.all(
+        from w in AliasWord,
+        where: w.type == "noun" and w.active == true,
+        select: w.word
+      )
+
+      :ets.insert(@table_name, {:adjectives, adjectives})
+      :ets.insert(@table_name, {:nouns, nouns})
+
+      Logger.info("Loaded #{length(adjectives)} adjectives and #{length(nouns)} nouns into cache")
+      :ok
+    rescue
+      Postgrex.Error ->
+        Logger.warning("Failed to load alias words from database - table may not exist yet")
+        {:error, :table_not_found}
+    end
+  end
+
+  defp load_fallback_words do
+    # Hardcoded fallback words for when database table doesn't exist
+    fallback_adjectives = ~w(
+      agile ancient brave calm clever daring eager friendly gentle happy
+      jolly kind lively merry noble peaceful proud quiet radiant swift
+      tender brave vibrant wise witty young zealous bold charming delightful
+      earnest festive graceful honest inventive jubilant keen legendary mighty
+      nimble optimistic playful quick resilient smart trusty unique valiant wonderful
     )
 
-    nouns = Repo.all(
-      from w in AliasWord,
-      where: w.type == "noun" and w.active == true,
-      select: w.word
+    fallback_nouns = ~w(
+      mountain river ocean forest meadow valley lake shore harbor island
+      canyon glacier desert prairie ridge summit trail creek waterfall plateau
+      grove orchard garden grove thicket woodland glade marsh oasis stream
+      pond brook fjord inlet lagoon peninsula cliff bluff knoll mesa butte
+      coral reef cascade rapids spring basin delta estuary wetland savanna
     )
 
-    :ets.insert(@table_name, {:adjectives, adjectives})
-    :ets.insert(@table_name, {:nouns, nouns})
+    :ets.insert(@table_name, {:adjectives, fallback_adjectives})
+    :ets.insert(@table_name, {:nouns, fallback_nouns})
 
-    Logger.info("Loaded #{length(adjectives)} adjectives and #{length(nouns)} nouns into cache")
+    Logger.info("Loaded #{length(fallback_adjectives)} fallback adjectives and #{length(fallback_nouns)} fallback nouns")
   end
 end
