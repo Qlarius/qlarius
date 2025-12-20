@@ -46,13 +46,13 @@ defmodule Qlarius.Jobs.FixNullZipCodeTagValuesWorker do
   @doc """
   Diagnostic function to check what's actually in the database.
   Call this to see a sample of the data before running the fix.
-  
+
   ## Example
       Qlarius.Jobs.FixNullZipCodeTagValuesWorker.diagnose()
   """
   def diagnose do
     require Logger
-    
+
     # Check total zip code tags
     total_zip_tags =
       from(mft in MeFileTag,
@@ -62,9 +62,9 @@ defmodule Qlarius.Jobs.FixNullZipCodeTagValuesWorker do
         select: count(mft.id)
       )
       |> Repo.one()
-    
+
     Logger.info("Total Home Zip Code tags: #{total_zip_tags}")
-    
+
     # Check NULL tag_value
     null_count =
       from(mft in MeFileTag,
@@ -74,9 +74,9 @@ defmodule Qlarius.Jobs.FixNullZipCodeTagValuesWorker do
         select: count(mft.id)
       )
       |> Repo.one()
-    
+
     Logger.info("Tags with NULL tag_value: #{null_count}")
-    
+
     # Check empty string tag_value
     empty_count =
       from(mft in MeFileTag,
@@ -86,9 +86,9 @@ defmodule Qlarius.Jobs.FixNullZipCodeTagValuesWorker do
         select: count(mft.id)
       )
       |> Repo.one()
-    
+
     Logger.info("Tags with empty string tag_value: #{empty_count}")
-    
+
     # Get a sample
     sample =
       from(mft in MeFileTag,
@@ -102,7 +102,7 @@ defmodule Qlarius.Jobs.FixNullZipCodeTagValuesWorker do
         select: mft
       )
       |> Repo.all()
-    
+
     Logger.info("Sample of tags needing fix:")
     Enum.each(sample, fn tag ->
       Logger.info(
@@ -112,7 +112,7 @@ defmodule Qlarius.Jobs.FixNullZipCodeTagValuesWorker do
           "trait.meta_1: #{inspect(tag.trait.meta_1)}"
       )
     end)
-    
+
     %{
       total: total_zip_tags,
       null_count: null_count,

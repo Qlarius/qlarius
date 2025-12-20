@@ -1,0 +1,185 @@
+# Qlarius Maintenance Utilities
+
+This directory contains one-time maintenance scripts and diagnostic utilities for the Qlarius application. These are separate from regular Oban jobs and are meant to be run manually via IEx or the Gigalixir console.
+
+## Available Utilities
+
+### 1. SnapshotQueries
+
+**Module**: `Qlarius.Maintenance.SnapshotQueries`
+
+Diagnostic and query utilities for analyzing `matching_tags_snapshot` data across `target_populations`, `offers`, and `ad_events` tables.
+
+#### Common Usage
+
+```elixir
+# Quick diagnostics - count issues by type
+Qlarius.Maintenance.SnapshotQueries.count_by_issue_type()
+
+# Find all mismatches between tables
+mismatches = Qlarius.Maintenance.SnapshotQueries.find_snapshot_mismatches()
+
+# Find records with NULL zip codes in snapshots
+Qlarius.Maintenance.SnapshotQueries.with_null_tag_value(
+  Qlarius.Sponster.TargetPopulation, 
+  4  # Home Zip Code trait_id
+)
+
+# Find all offers for a specific zip code
+Qlarius.Maintenance.SnapshotQueries.with_tag_value(
+  Qlarius.Sponster.Offer,
+  4,        # Home Zip Code trait_id
+  "02140"   # zip code value
+)
+
+# Sample snapshots from each table to inspect structure
+Qlarius.Maintenance.SnapshotQueries.sample_snapshots(5)
+
+# Get detailed list of all records needing fixes
+Qlarius.Maintenance.SnapshotQueries.records_needing_snapshot_fix()
+```
+
+### 2. FixNullSnapshotZipCodes
+
+**Module**: `Qlarius.Maintenance.FixNullSnapshotZipCodes`
+
+One-time job to fix NULL or empty string zip code values **INSIDE** `matching_tags_snapshot` JSONB data.
+
+#### Important Distinction
+
+There are **TWO types** of NULL issues:
+
+1. **"null" inside snapshot JSON** (this tool fixes this)
+   - Snapshot exists but has `null` values: `[58587, null, 10028]`
+   - Fixable by looking up correct value in `me_file_tags`
+
+2. **Completely NULL snapshots** (BackfillMissingSnapshotsWorker fixes this)
+   - The entire `matching_tags_snapshot` field is NULL
+   - Needs to be generated from scratch, not fixed
+
+#### How It Works
+
+1. Finds all snapshots with `null`/`""` zip code tag values **inside the JSON**
+2. Looks up the correct zip code from `me_file_tags`
+3. Rebuilds the snapshot with the correct value
+4. Updates all three tables atomically in batches
+
+#### Usage
+
+```elixir
+# Step 1: Diagnose the issue first
+Qlarius.Maintenance.FixNullSnapshotZipCodes.diagnose()
+# Output:
+# === Diagnosing snapshot issues ===
+# 
+# 1. Records with 'null' VALUES inside snapshots (fixable by this tool):
+#   target_populations: 0
+#   offers: 0
+#   ad_events: 0
+#   SUBTOTAL: 0
+# 
+# 2. Records with COMPLETELY NULL snapshots (need BackfillMissingSnapshotsWorker):
+#   target_populations: 17955
+#   offers: 159565
+#   ad_events: 33838
+#   SUBTOTAL: 211358
+# 
+# === TOTAL ISSUES: 211358 ===
+
+# Step 2: Do a dry run to see what would be fixed (doesn't update anything)
+Qlarius.Maintenance.FixNullSnapshotZipCodes.run(dry_run: true)
+
+# Step 3: Run the actual fix
+Qlarius.Maintenance.FixNullSnapshotZipCodes.run()
+
+# Optional: Run with custom batch size
+Qlarius.Maintenance.FixNullSnapshotZipCodes.run(batch_size: 50)
+```
+
+#### When to Use
+
+Run this if you notice:
+- Literal `null` values **inside** snapshot JSON (e.g., `[58587, null, 10028]`)
+- Empty strings for zip codes **inside** snapshots
+- After data migration or bulk updates that may have corrupted snapshot values
+
+**Do NOT use this for:**
+- Completely NULL snapshots (entire field is NULL) - use `BackfillMissingSnapshotsWorker` instead
+- Missing snapshots that need to be generated from scratch
+
+## Snapshot Data Structure
+
+The `matching_tags_snapshot` field uses this JSONB structure:
+
+```json
+{
+  "tags": [
+    [4, "Home Zip Code", 1, [[58587, "02140", 10028]]],
+    [1, "Sex (Biological)", 1, [[2, "Female", 1]]],
+    [284, "Children Sex(BioGender):Age", 2, [[1290, "Boy: 18-23 mos*", 6]]]
+  ]
+}
+```
+
+Each parent trait is: `[parent_trait_id, parent_name, display_order, [child_tags]]`
+
+Each child tag is: `[child_trait_id, tag_value, display_order]`
+
+### NULL Value Issues
+
+Sometimes the `tag_value` (second element in child tag array) can be:
+- `null` - explicitly NULL in JSON
+- `""` - empty string
+
+Both are invalid and need to be fixed by looking up the correct value from `me_file_tags`.
+
+## Running in Production (Gigalixir)
+
+```bash
+# Open remote console
+gigalixir ps:remote_console
+
+# Run diagnostics
+Qlarius.Maintenance.SnapshotQueries.count_by_issue_type()
+
+# Fix NULL zip codes
+Qlarius.Maintenance.FixNullSnapshotZipCodes.run()
+```
+
+## Adding New Maintenance Utilities
+
+When creating new maintenance utilities:
+
+1. **Create in this directory**: `lib/qlarius/maintenance/`
+2. **Use clear naming**: e.g., `Fix*`, `Backfill*`, `Migrate*`
+3. **Include diagnostics**: Always provide a `diagnose/0` function
+4. **Support dry_run**: Allow testing without modifying data
+5. **Batch processing**: Process large datasets in batches
+6. **Comprehensive logging**: Log progress and issues
+7. **Document here**: Update this README with usage examples
+
+## Best Practices
+
+### Before Running Any Fix
+
+1. **Always diagnose first**: Run `diagnose()` to understand the scope
+2. **Test with dry_run**: Use `dry_run: true` to verify logic
+3. **Backup if needed**: For critical data, consider a backup first
+4. **Monitor logs**: Watch for errors or warnings during execution
+5. **Verify after**: Re-run diagnostics to confirm the fix worked
+
+### Error Handling
+
+All maintenance utilities should:
+- Log warnings for skipped records (e.g., missing source data)
+- Log errors for failed updates
+- Continue processing other records on individual failures
+- Return summary statistics of successes/failures
+
+## Related Documentation
+
+- **Snapshot Populations**: `lib/qlarius/jobs/SNAPSHOT_POPULATIONS_README.md`
+- **Oban Workers**: `lib/qlarius/jobs/`
+- **Me File Tags**: See `Qlarius.YouData.MeFiles.MeFileTag` schema
+- **Target Populations**: See `Qlarius.Sponster.TargetPopulation` schema
+
