@@ -4,8 +4,9 @@ defmodule Qlarius.Jobs.HandleOfferCompletionWorker do
   import Ecto.Query
   alias Qlarius.Repo
   alias Qlarius.Sponster.{Offer, AdEvent}
-  alias Qlarius.Sponster.Campaigns.CampaignPubSub
+  alias Qlarius.Sponster.Campaigns.{CampaignPubSub, TargetBand}
   alias Qlarius.YouData.MeFiles.MeFileTag
+  alias Qlarius.YouData.Traits.Trait
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"offer_id" => offer_id, "completed_at" => completed_at_string}}) do
@@ -111,7 +112,11 @@ defmodule Qlarius.Jobs.HandleOfferCompletionWorker do
     buffer_hours = original_offer.media_run.frequency_buffer_hours || 24
     pending_until = NaiveDateTime.add(completed_at, buffer_hours * 3600, :second)
 
-    current_tags = get_current_me_file_tags(original_offer.me_file_id)
+    current_tags_snapshot =
+      get_current_me_file_tags_snapshot(
+        original_offer.me_file_id,
+        original_offer.target_band_id
+      )
 
     new_offer_attrs = %{
       campaign_id: original_offer.campaign_id,
@@ -127,7 +132,7 @@ defmodule Qlarius.Jobs.HandleOfferCompletionWorker do
       is_demo: original_offer.is_demo,
       is_current: false,
       is_jobbed: false,
-      matching_tags_snapshot: current_tags,
+      matching_tags_snapshot: current_tags_snapshot,
       ad_phase_count_to_complete: original_offer.ad_phase_count_to_complete,
       created_at: now,
       updated_at: now
@@ -159,26 +164,92 @@ defmodule Qlarius.Jobs.HandleOfferCompletionWorker do
     end
   end
 
-  defp get_current_me_file_tags(me_file_id) do
-    tags =
+  defp get_current_me_file_tags_snapshot(me_file_id, target_band_id) do
+    band =
+      Repo.get!(TargetBand, target_band_id)
+      |> Repo.preload(trait_groups: :traits)
+
+    trait_metadata = build_trait_metadata(band.trait_groups)
+
+    me_file_tags =
       from(mft in MeFileTag,
+        join: t in Trait,
+        on: mft.trait_id == t.id,
         where: mft.me_file_id == ^me_file_id,
-        join: t in assoc(mft, :trait),
         select: %{
+          me_file_id: mft.me_file_id,
           trait_id: t.id,
           trait_name: t.trait_name,
-          parent_trait_id: t.parent_trait_id
+          display_order: t.display_order,
+          parent_trait_id: t.parent_trait_id,
+          tag_value: mft.tag_value
         }
       )
       |> Repo.all()
-      |> Enum.map(fn tag ->
-        %{
-          "trait_id" => tag.trait_id,
-          "trait_name" => tag.trait_name,
-          "parent_trait_id" => tag.parent_trait_id
-        }
-      end)
 
-    %{"tags" => tags, "snapshot_at" => NaiveDateTime.utc_now() |> NaiveDateTime.to_iso8601()}
+    build_snapshot(me_file_tags, trait_metadata)
+  end
+
+  defp build_trait_metadata(trait_groups) do
+    all_traits = Enum.flat_map(trait_groups, fn tg -> tg.traits end)
+
+    parent_ids =
+      all_traits
+      |> Enum.map(& &1.parent_trait_id)
+      |> Enum.uniq()
+      |> Enum.reject(&is_nil/1)
+
+    parents =
+      from(t in Trait,
+        where: t.id in ^parent_ids,
+        select: %{id: t.id, name: t.trait_name, display_order: t.display_order}
+      )
+      |> Repo.all()
+      |> Map.new(&{&1.id, &1})
+
+    all_traits
+    |> Enum.group_by(& &1.parent_trait_id)
+    |> Enum.map(fn {parent_id, child_traits} ->
+      parent = Map.get(parents, parent_id)
+
+      if parent do
+        {parent_id,
+         %{
+           name: parent.name,
+           display_order: parent.display_order,
+           child_ids: Enum.map(child_traits, & &1.id) |> MapSet.new()
+         }}
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
+    |> Map.new()
+  end
+
+  defp build_snapshot(me_file_tags, trait_metadata) do
+    snapshot =
+      me_file_tags
+      |> Enum.filter(fn tag ->
+        Map.has_key?(trait_metadata, tag.parent_trait_id) &&
+          MapSet.member?(trait_metadata[tag.parent_trait_id].child_ids, tag.trait_id)
+      end)
+      |> Enum.group_by(& &1.parent_trait_id)
+      |> Enum.map(fn {parent_id, tags} ->
+        meta = trait_metadata[parent_id]
+
+        child_tags =
+          tags
+          |> Enum.map(fn tag ->
+            [tag.trait_id, tag.tag_value, tag.display_order]
+          end)
+          |> Enum.sort_by(fn [_id, _val, order] -> order end)
+
+        [parent_id, meta.name, meta.display_order, child_tags]
+      end)
+      |> Enum.sort_by(fn [_id, _name, order, _children] -> order end)
+
+    case snapshot do
+      [] -> nil
+      data -> %{tags: data}
+    end
   end
 end
