@@ -313,7 +313,7 @@ defmodule QlariusWeb.CoreComponentsCopy do
 
       <.table id="users" rows={@users}>
         <:col :let={user} label="id">{user.id}</:col>
-        <:col :let={user} label="username">{user.username}</:col>
+        <:col :let={user} label="alias">{user.alias}</:col>
       </.table>
   """
   attr :id, :string, required: true

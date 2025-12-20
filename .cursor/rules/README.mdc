@@ -144,6 +144,35 @@ These rules are living documents. If you discover:
 
 Please update the relevant .mdc file and document the change.
 
+## Documentation Organization
+
+### Session Documentation
+All documentation files generated during AI-assisted development sessions (implementation guides, hotfixes, deployment guides, etc.) should be placed in:
+
+```
+docs/cursor_md_files/
+```
+
+This keeps the project root clean while maintaining a clear record of:
+- Feature implementations
+- Production hotfixes
+- Deployment procedures
+- Technical decisions
+- Troubleshooting guides
+
+**Examples:**
+- `docs/cursor_md_files/HOTFIX_*.md` - Production fixes
+- `docs/cursor_md_files/*_DEPLOYMENT.md` - Platform guides
+- `docs/cursor_md_files/*_IMPLEMENTATION.md` - Feature documentation
+
+### Standard Documentation
+Keep only these files in the project root:
+- `README.md` - Project overview and quick start
+- `CHANGELOG.md` - Version history (if used)
+- `LICENSE` - Project license
+
+All other documentation belongs in `docs/` subdirectories.
+
 ## AI Assistant Usage
 
 These rules are designed to work with AI coding assistants like Cursor. The rules:
@@ -153,3 +182,9 @@ These rules are designed to work with AI coding assistants like Cursor. The rule
 - Encode institutional knowledge
 
 When working with AI assistants, they will automatically reference these rules to generate code that follows the project's standards.
+
+**AI Documentation Guidelines:**
+- Always create documentation files in `docs/cursor_md_files/`
+- Never create new .md files in the project root (except README.md updates)
+- Use clear, descriptive filenames with prefixes (HOTFIX_, IMPLEMENTATION_, etc.)
+- Include dates and context in documentation content
