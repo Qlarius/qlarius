@@ -8,7 +8,7 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker do
   alias Qlarius.Repo
   alias Qlarius.Sponster.Campaigns.{Campaign, TargetPopulation}
   alias Qlarius.YouData.MeFiles.MeFileTag
-  alias Qlarius.Jobs.ReconcileOffersForMeFileWorker
+  alias Qlarius.Jobs.{ReconcileOffersForMeFileWorker, SnapshotBandPopulationsWorker}
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"me_file_id" => me_file_id} = args}) do
@@ -86,6 +86,7 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker do
 
     if bands_to_add != [] do
       insert_target_populations(me_file_id, bands_to_add)
+      enqueue_snapshot_jobs(bands_to_add)
     end
 
     if bands_to_remove != [] do
@@ -174,5 +175,15 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker do
     Logger.info(
       "SyncMeFileToTargetPopulationsWorker: Deleted #{count} populations for me_file #{me_file_id}"
     )
+  end
+
+  defp enqueue_snapshot_jobs(band_ids) do
+    require Logger
+    Logger.info("SyncMeFileToTargetPopulationsWorker: Enqueuing snapshot jobs for #{length(band_ids)} bands")
+
+    Enum.each(band_ids, fn band_id ->
+      SnapshotBandPopulationsWorker.new(%{band_id: band_id})
+      |> Oban.insert()
+    end)
   end
 end
