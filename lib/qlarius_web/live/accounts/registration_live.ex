@@ -491,7 +491,9 @@ defmodule QlariusWeb.RegistrationLive do
       sex_trait_id: socket.assigns.sex_trait_id,
       age_trait_id: socket.assigns.age_trait_id,
       zip_code_trait_id:
-        if(socket.assigns.zip_lookup_valid, do: socket.assigns.zip_lookup_trait.id, else: nil)
+        if(socket.assigns.zip_lookup_valid, do: socket.assigns.zip_lookup_trait.id, else: nil),
+      home_zip:
+        if(socket.assigns.zip_lookup_valid, do: socket.assigns.zip_lookup_input, else: nil)
     }
 
     attrs =

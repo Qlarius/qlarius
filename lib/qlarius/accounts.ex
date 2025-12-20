@@ -120,14 +120,12 @@ defmodule Qlarius.Accounts do
       end
 
     tags =
-      if attrs[:zip_code_trait_id] do
-        zip_trait = Qlarius.YouData.Traits.get_trait!(attrs[:zip_code_trait_id])
-
+      if attrs[:zip_code_trait_id] && attrs[:home_zip] do
         [
           Qlarius.YouData.MeFiles.MeFileTag.changeset(%Qlarius.YouData.MeFiles.MeFileTag{}, %{
             me_file_id: me_file_id,
             trait_id: attrs[:zip_code_trait_id],
-            tag_value: zip_trait.trait_name,
+            tag_value: attrs[:home_zip],
             added_by: user_id,
             modified_by: user_id
           })
