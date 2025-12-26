@@ -4,7 +4,80 @@ This directory contains one-time maintenance scripts and diagnostic utilities fo
 
 ## Available Utilities
 
-### 1. SnapshotQueries
+### 1. SwapMobileNumbers
+
+**Module**: `Qlarius.Maintenance.SwapMobileNumbers`
+
+Utility to safely swap mobile numbers between two user accounts. This is useful when you need to transfer a validated mobile number from one user to another for authentication purposes.
+
+#### What Gets Swapped
+
+- `mobile_number` (plain text phone number)
+- `mobile_number_encrypted` (encrypted version)
+- `mobile_number_hash` (hash used for unique constraint)
+- `phone_verified_at` (verification timestamp)
+
+#### Safety Features
+
+- Uses database transaction for atomicity (all-or-nothing)
+- Validates both users exist before attempting swap
+- No data is deleted until successful save
+- Detailed logging and error reporting
+
+#### Usage
+
+```elixir
+# Step 1: Diagnose first - see what would be swapped
+Qlarius.Maintenance.SwapMobileNumbers.diagnose("alice", "bob")
+
+# Output:
+# === Mobile Number Swap Diagnosis ===
+# User 1 alias: alice
+# User 2 alias: bob
+# 
+# --- User 1: alice (ID: 123) ---
+# Mobile Number: +15551234567
+# Encrypted: <24 bytes>
+# Hash: <32 bytes>
+# Verified: Yes (2024-12-26 15:30:00 UTC)
+# 
+# --- User 2: bob (ID: 456) ---
+# Mobile Number: +15559876543
+# Encrypted: <24 bytes>
+# Hash: <32 bytes>
+# Verified: No
+# 
+# --- After Swap Preview ---
+# User 1 (alice) would get: +15559876543
+# User 2 (bob) would get: +15551234567
+
+# Step 2: Perform the actual swap
+{:ok, result} = Qlarius.Maintenance.SwapMobileNumbers.swap("alice", "bob")
+
+# Step 3: Verify the swap was successful
+Qlarius.Maintenance.SwapMobileNumbers.verify_swap(
+  "alice", 
+  "bob",
+  "+15559876543",  # Expected for alice after swap
+  "+15551234567"   # Expected for bob after swap
+)
+```
+
+#### Common Use Cases
+
+1. **User merged accounts**: User has two accounts and wants to consolidate
+2. **Number ported**: User switched accounts but wants to keep the same verified number
+3. **Data correction**: Mobile number was assigned to wrong user by mistake
+
+#### Error Handling
+
+The swap will fail with clear error messages if:
+- Either user doesn't exist
+- Both aliases refer to the same user
+- Database constraint violations occur
+- Transaction fails for any reason
+
+### 2. SnapshotQueries
 
 **Module**: `Qlarius.Maintenance.SnapshotQueries`
 
@@ -39,7 +112,7 @@ Qlarius.Maintenance.SnapshotQueries.sample_snapshots(5)
 Qlarius.Maintenance.SnapshotQueries.records_needing_snapshot_fix()
 ```
 
-### 2. FixNullSnapshotZipCodes
+### 3. FixNullSnapshotZipCodes
 
 **Module**: `Qlarius.Maintenance.FixNullSnapshotZipCodes`
 
@@ -141,6 +214,10 @@ gigalixir ps:remote_console
 
 # Run diagnostics
 Qlarius.Maintenance.SnapshotQueries.count_by_issue_type()
+
+# Swap mobile numbers
+Qlarius.Maintenance.SwapMobileNumbers.diagnose("user1", "user2")
+Qlarius.Maintenance.SwapMobileNumbers.swap("user1", "user2")
 
 # Fix NULL zip codes
 Qlarius.Maintenance.FixNullSnapshotZipCodes.run()
