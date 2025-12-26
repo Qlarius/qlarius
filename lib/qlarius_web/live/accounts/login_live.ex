@@ -94,16 +94,16 @@ defmodule QlariusWeb.LoginLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex items-center justify-center px-4 py-12">
-      <div class="max-w-md w-full space-y-8">
-        <div class="flex justify-center mb-8">
-          <img
-            src="/images/qadabra_full_gray_opt.svg"
-            alt="Qadabra"
-            class="h-12 md:h-16 w-auto"
-          />
-        </div>
+    <div class="min-h-screen flex items-center justify-center px-4 relative">
+      <div class="absolute top-12 left-0 right-0 flex justify-center">
+        <img
+          src="/images/qadabra_full_gray_opt.svg"
+          alt="Qadabra"
+          class="h-12 md:h-16 w-auto"
+        />
+      </div>
 
+      <div class="max-w-md w-full space-y-8">
         <div>
           <h1 class="text-4xl md:text-5xl font-bold text-center dark:text-white">
             Sign In
@@ -115,7 +115,12 @@ defmodule QlariusWeb.LoginLive do
 
         <div class="space-y-6">
           <%= if not @code_sent do %>
-            <.form for={%{}} phx-change="update_mobile" phx-submit="send_login_code" autocomplete="off">
+            <.form
+              for={%{}}
+              phx-change="update_mobile"
+              phx-submit="send_login_code"
+              autocomplete="off"
+            >
               <div class="form-control w-full">
                 <label class="label">
                   <span class="label-text text-lg dark:text-gray-300">Mobile Number</span>
@@ -167,7 +172,12 @@ defmodule QlariusWeb.LoginLive do
               <span>Verification code sent to {@mobile_number}</span>
             </div>
 
-            <.form for={%{}} phx-change="update_verification_code" phx-submit="verify_login_code" autocomplete="off">
+            <.form
+              for={%{}}
+              phx-change="update_verification_code"
+              phx-submit="verify_login_code"
+              autocomplete="off"
+            >
               <div class="form-control w-full">
                 <label class="label">
                   <span class="label-text text-lg dark:text-gray-300">Verification Code</span>

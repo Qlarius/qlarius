@@ -1,0 +1,154 @@
+<Layouts.app {assigns}>
+  <div class="min-h-screen dark:bg-base-300 flex items-center justify-center pb-24 relative">
+    <div class="absolute top-12 left-0 right-0 flex justify-center z-10">
+      <img
+        src="/images/qadabra_full_gray_opt.svg"
+        alt="Qadabra"
+        class="h-12 md:h-16 w-auto"
+      />
+    </div>
+
+    <div class="w-full flex flex-col items-center justify-center overflow-hidden">
+      <div class="carousel carousel-center w-full max-w-7xl space-x-4 px-4">
+        <div id="card1" class="carousel-item w-[85%] md:w-[70%]">
+          <div class="card bg-base-200 shadow-xl w-full">
+            <figure class="h-64 bg-gradient-to-br from-purple-400 to-indigo-600">
+            </figure>
+            <div class="card-body">
+              <h2 class="card-title text-3xl font-bold">Claim your wallet.</h2>
+              <p class="text-base-content/70">
+                Get started with your personal media wallet. Store value, manage transactions, and take control of your digital assets with ease.
+              </p>
+              <div class="card-actions justify-center mt-4">
+                <img src="/images/qadabra_full_gray_opt.svg" alt="Qadabra" class="h-8 w-auto opacity-70" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="card2" class="carousel-item w-[85%] md:w-[70%]">
+          <div class="card bg-base-200 shadow-xl w-full">
+            <figure class="h-64 bg-gradient-to-br from-cyan-400 to-blue-600">
+            </figure>
+            <div class="card-body">
+              <h2 class="card-title text-3xl font-bold">Own your data.</h2>
+              <p class="text-base-content/70">
+                Take ownership of your personal data. Build the one true you. Let your MeFile™ pull content and sponsorships that match your interests.
+              </p>
+              <div class="card-actions justify-center mt-4">
+                <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-8 w-auto opacity-70" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="card3" class="carousel-item w-[85%] md:w-[70%]">
+          <div class="card bg-base-200 shadow-xl w-full">
+            <figure class="h-64 bg-gradient-to-br from-orange-400 to-red-600">
+            </figure>
+            <div class="card-body">
+              <h2 class="card-title text-3xl font-bold">Sell your attention.</h2>
+              <p class="text-base-content/70">
+                Your attention is a valuable product that only you should sell. Collect revenue for viewing ads. Get sponsored by brands that want to reach you.
+              </p>
+              <div class="card-actions justify-center mt-4">
+                <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-8 w-auto opacity-70" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="card4" class="carousel-item w-[85%] md:w-[70%]">
+          <div class="card bg-base-200 shadow-xl w-full">
+            <figure class="h-64 bg-gradient-to-br from-green-400 to-emerald-600">
+            </figure>
+            <div class="card-body">
+              <h2 class="card-title text-3xl font-bold">Buy your media.</h2>
+              <p class="text-base-content/70">
+                Access premium content, purchase tickets, and enjoy exclusive media experiences with your earned rewards.
+              </p>
+              <div class="card-actions justify-center mt-4">
+                <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-8 w-auto opacity-70" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-center gap-2 py-4">
+        <a
+          href="#card1"
+          data-indicator="1"
+          class="carousel-indicator w-3 h-3 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
+        >
+        </a>
+        <a
+          href="#card2"
+          data-indicator="2"
+          class="carousel-indicator w-3 h-3 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
+        >
+        </a>
+        <a
+          href="#card3"
+          data-indicator="3"
+          class="carousel-indicator w-3 h-3 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
+        >
+        </a>
+        <a
+          href="#card4"
+          data-indicator="4"
+          class="carousel-indicator w-3 h-3 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
+        >
+        </a>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const carousel = document.querySelector('.carousel');
+        const cards = document.querySelectorAll('.carousel-item');
+        const indicators = document.querySelectorAll('.carousel-indicator');
+        
+        function updateActiveIndicator() {
+          const scrollLeft = carousel.scrollLeft;
+          const carouselWidth = carousel.offsetWidth;
+          const cardWidth = cards[0].offsetWidth;
+          const gap = 16;
+          
+          const activeIndex = Math.round(scrollLeft / (cardWidth + gap));
+          
+          indicators.forEach((indicator, index) => {
+            if (index === activeIndex) {
+              indicator.classList.remove('bg-base-content/30', 'w-3', 'h-3');
+              indicator.classList.add('bg-primary', 'w-4', 'h-4');
+            } else {
+              indicator.classList.remove('bg-primary', 'w-4', 'h-4');
+              indicator.classList.add('bg-base-content/30', 'w-3', 'h-3');
+            }
+          });
+        }
+        
+        carousel.addEventListener('scroll', updateActiveIndicator);
+        updateActiveIndicator();
+      });
+    </script>
+
+    <div class="fixed bottom-0 left-0 right-0 bg-base-100 dark:bg-base-300 border-t border-base-300 dark:border-base-content/20 p-4 backdrop-blur-sm bg-opacity-95">
+      <div class="max-w-md mx-auto flex gap-3">
+        <.link
+          navigate={~p"/login"}
+          class="btn btn-outline btn-lg flex-1 rounded-full text-lg normal-case"
+        >
+          Login
+        </.link>
+        <.link
+          navigate={~p"/register"}
+          class="btn btn-primary btn-lg flex-1 rounded-full text-lg normal-case"
+        >
+          Register
+        </.link>
+      </div>
+    </div>
+  </div>
+</Layouts.app>
+

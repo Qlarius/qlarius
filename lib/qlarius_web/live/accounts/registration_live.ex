@@ -135,7 +135,10 @@ defmodule QlariusWeb.RegistrationLive do
             {:error, _reason} ->
               {:noreply,
                socket
-               |> assign(:mobile_number_error, "Failed to send verification code. Please try again.")
+               |> assign(
+                 :mobile_number_error,
+                 "Failed to send verification code. Please try again."
+               )
                |> put_flash(:error, "Failed to send SMS. Please try again.")}
           end
         end
@@ -149,7 +152,6 @@ defmodule QlariusWeb.RegistrationLive do
          |> assign(:code_sent, false)}
     end
   end
-
 
   def handle_event("update_verification_code", %{"verification_code" => code}, socket) do
     {:noreply,
@@ -510,16 +512,16 @@ defmodule QlariusWeb.RegistrationLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex flex-col pb-24">
-      <div class="flex-1 px-4 py-6 max-w-2xl mx-auto w-full">
-        <div class="flex justify-center mb-8">
-          <img
-            src="/images/qadabra_full_gray_opt.svg"
-            alt="Qadabra"
-            class="h-12 md:h-16 w-auto"
-          />
-        </div>
+    <div class="min-h-screen flex items-center justify-center px-4 pb-24 relative">
+      <div class="absolute top-12 left-0 right-0 flex justify-center">
+        <img
+          src="/images/qadabra_full_gray_opt.svg"
+          alt="Qadabra"
+          class="h-12 md:h-16 w-auto"
+        />
+      </div>
 
+      <div class="w-full max-w-2xl space-y-8">
         <h1 class="text-4xl md:text-5xl font-bold mb-8 dark:text-white">
           {if @mode == "proxy", do: "Create Proxy User", else: "Register"}
         </h1>
@@ -610,7 +612,10 @@ defmodule QlariusWeb.RegistrationLive do
                 Next →
               </button>
             <% else %>
-              <button class="btn btn-disabled btn-lg flex-1 rounded-full text-lg normal-case" disabled>
+              <button
+                class="btn btn-disabled btn-lg flex-1 rounded-full text-lg normal-case"
+                disabled
+              >
                 Next →
               </button>
             <% end %>
@@ -623,7 +628,10 @@ defmodule QlariusWeb.RegistrationLive do
                 Register
               </button>
             <% else %>
-              <button class="btn btn-disabled btn-lg flex-1 rounded-full text-lg normal-case" disabled>
+              <button
+                class="btn btn-disabled btn-lg flex-1 rounded-full text-lg normal-case"
+                disabled
+              >
                 Register
               </button>
             <% end %>
@@ -690,7 +698,12 @@ defmodule QlariusWeb.RegistrationLive do
 
       <%= if @mode != "proxy" do %>
         <%= if not @phone_verified do %>
-          <.form for={%{}} phx-change="update_mobile" phx-submit="send_verification_code" autocomplete="off">
+          <.form
+            for={%{}}
+            phx-change="update_mobile"
+            phx-submit="send_verification_code"
+            autocomplete="off"
+          >
             <div class="form-control w-full">
               <label class="label">
                 <span class="label-text text-lg dark:text-gray-300">Mobile Number *</span>
@@ -725,7 +738,10 @@ defmodule QlariusWeb.RegistrationLive do
                 <%= if @mobile_number_exists do %>
                   <div class="mt-3 p-4 bg-warning/10 border border-warning rounded-lg">
                     <div class="flex items-start gap-3">
-                      <.icon name="hero-exclamation-triangle" class="w-6 h-6 text-warning flex-shrink-0 mt-0.5" />
+                      <.icon
+                        name="hero-exclamation-triangle"
+                        class="w-6 h-6 text-warning flex-shrink-0 mt-0.5"
+                      />
                       <div class="flex-1">
                         <p class="font-medium text-base dark:text-white">
                           This mobile number is already registered
@@ -737,8 +753,7 @@ defmodule QlariusWeb.RegistrationLive do
                           navigate={~p"/login"}
                           class="btn btn-warning btn-sm mt-3"
                         >
-                          <.icon name="hero-arrow-right-on-rectangle" class="w-4 h-4" />
-                          Go to Login
+                          <.icon name="hero-arrow-right-on-rectangle" class="w-4 h-4" /> Go to Login
                         </.link>
                       </div>
                     </div>
@@ -764,7 +779,12 @@ defmodule QlariusWeb.RegistrationLive do
           </.form>
 
           <%= if @code_sent do %>
-            <.form for={%{}} phx-change="update_verification_code" phx-submit="verify_code" autocomplete="off">
+            <.form
+              for={%{}}
+              phx-change="update_verification_code"
+              phx-submit="verify_code"
+              autocomplete="off"
+            >
               <div class="form-control w-full">
                 <label class="label">
                   <span class="label-text text-lg dark:text-gray-300">Verification Code *</span>
@@ -823,7 +843,9 @@ defmodule QlariusWeb.RegistrationLive do
                 <div class="flex-1 space-y-3">
                   <div>
                     <h3 class="font-bold text-lg">Phone Number Verified</h3>
-                    <p class="text-base opacity-90 font-mono">{format_phone_number(@mobile_number)}</p>
+                    <p class="text-base opacity-90 font-mono">
+                      {format_phone_number(@mobile_number)}
+                    </p>
                   </div>
                   <%= if @carrier_info do %>
                     <div class="flex flex-wrap gap-2">
@@ -929,7 +951,8 @@ defmodule QlariusWeb.RegistrationLive do
                   "w-full p-3 rounded-lg text-left transition-all border-2",
                   if(@selected_base == base_name,
                     do: "bg-primary/20 border-primary dark:bg-primary/30 dark:border-primary",
-                    else: "bg-base-200 border-base-300 hover:bg-base-300 dark:bg-base-100 dark:border-base-200"
+                    else:
+                      "bg-base-200 border-base-300 hover:bg-base-300 dark:bg-base-100 dark:border-base-200"
                   )
                 ]}
               >
@@ -982,7 +1005,8 @@ defmodule QlariusWeb.RegistrationLive do
                     "w-full p-3 rounded-lg text-left transition-all border-2",
                     if(@selected_number == number,
                       do: "bg-primary/20 border-primary dark:bg-primary/30 dark:border-primary",
-                      else: "bg-base-200 border-base-300 hover:bg-base-300 dark:bg-base-100 dark:border-base-200"
+                      else:
+                        "bg-base-200 border-base-300 hover:bg-base-300 dark:bg-base-100 dark:border-base-200"
                     )
                   ]}
                 >
@@ -1010,8 +1034,7 @@ defmodule QlariusWeb.RegistrationLive do
               <p class="text-2xl font-bold text-primary dark:text-primary mt-1">{@alias}</p>
             </div>
             <div class="badge badge-success badge-lg gap-2">
-              <.icon name="hero-check-circle" class="w-5 h-5" />
-              Available
+              <.icon name="hero-check-circle" class="w-5 h-5" /> Available
             </div>
           </div>
         </div>
@@ -1154,7 +1177,9 @@ defmodule QlariusWeb.RegistrationLive do
             <span class="text-sm md:text-base text-base-content/70 dark:text-base-content/60">
               Mobile Number:
             </span>
-            <span class="text-sm md:text-base font-medium dark:text-white">{format_phone_number(@mobile_number)}</span>
+            <span class="text-sm md:text-base font-medium dark:text-white">
+              {format_phone_number(@mobile_number)}
+            </span>
           </div>
         <% end %>
 
@@ -1178,7 +1203,9 @@ defmodule QlariusWeb.RegistrationLive do
           <span class="text-sm md:text-base text-base-content/70 dark:text-base-content/60">
             Birthdate:
           </span>
-          <span class="text-sm md:text-base font-medium dark:text-white">{@birthdate_month}/{@birthdate_day}/{@birthdate_year}</span>
+          <span class="text-sm md:text-base font-medium dark:text-white">
+            {@birthdate_month}/{@birthdate_day}/{@birthdate_year}
+          </span>
         </div>
 
         <div class="flex justify-between items-center py-2 border-b border-base-300 dark:border-base-content/20">
@@ -1232,6 +1259,7 @@ defmodule QlariusWeb.RegistrationLive do
       10 ->
         <<area::binary-size(3), prefix::binary-size(3), line::binary-size(4)>> = digits
         "#{area}-#{prefix}-#{line}"
+
       _ ->
         phone_number
     end
