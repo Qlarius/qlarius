@@ -14,6 +14,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1f2937" media="(prefers-color-scheme: dark)" />
     <meta name="application-name" content="Qlarius" />
     <meta name="apple-mobile-web-app-title" content="Qlarius" />
     <meta name="csrf-token" content={get_csrf_token()} />
@@ -28,16 +30,29 @@
     </script>
     <script>
       (() => {
+        const updateThemeColor = (isDark) => {
+          const themeColor = isDark ? "#1f2937" : "#ffffff";
+          let metaTag = document.querySelector('meta[name="theme-color"]:not([media])');
+          if (!metaTag) {
+            metaTag = document.createElement('meta');
+            metaTag.setAttribute('name', 'theme-color');
+            document.head.appendChild(metaTag);
+          }
+          metaTag.setAttribute('content', themeColor);
+        };
+
         const setTheme = (theme) => {
           if (theme === "system") {
             localStorage.setItem("phx:theme", "system");
             const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             document.documentElement.setAttribute("data-theme", systemPrefersDark ? "dark" : "light");
             document.documentElement.setAttribute("data-theme-mode", "system");
+            updateThemeColor(systemPrefersDark);
           } else {
             localStorage.setItem("phx:theme", theme);
             document.documentElement.setAttribute("data-theme", theme);
             document.documentElement.setAttribute("data-theme-mode", theme);
+            updateThemeColor(theme === "dark");
           }
         };
         
@@ -48,6 +63,7 @@
         if (forceTheme) {
           document.documentElement.setAttribute("data-theme", forceTheme);
           document.documentElement.setAttribute("data-theme-mode", "forced");
+          updateThemeColor(forceTheme === "dark");
         } else {
           const initialTheme = urlTheme || localStorage.getItem("phx:theme") || "system";
           setTheme(initialTheme);

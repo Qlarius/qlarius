@@ -103,7 +103,7 @@ defmodule QlariusWeb.LoginLive do
         />
       </div>
 
-      <div class="max-w-md w-full space-y-8">
+      <div class="max-w-md w-full space-y-8 px-6 md:px-8">
         <div>
           <h1 class="text-4xl md:text-5xl font-bold text-center dark:text-white">
             Sign In
@@ -169,7 +169,7 @@ defmodule QlariusWeb.LoginLive do
           <% else %>
             <div class="alert alert-info">
               <.icon name="hero-information-circle" class="w-6 h-6" />
-              <span>Verification code sent to {@mobile_number}</span>
+              <span>Verification code sent to {format_phone_number(@mobile_number)}</span>
             </div>
 
             <.form
@@ -236,4 +236,19 @@ defmodule QlariusWeb.LoginLive do
     </div>
     """
   end
+
+  defp format_phone_number(phone_number) when is_binary(phone_number) do
+    digits = String.replace(phone_number, ~r/\D/, "")
+
+    case String.length(digits) do
+      10 ->
+        <<area::binary-size(3), prefix::binary-size(3), line::binary-size(4)>> = digits
+        "#{area}-#{prefix}-#{line}"
+
+      _ ->
+        phone_number
+    end
+  end
+
+  defp format_phone_number(_), do: ""
 end

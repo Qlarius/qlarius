@@ -1,0 +1,48 @@
+.widget.snoadrotate-group .ad-140x140,
+.widget.snoadrotate-group .ad-125x125,
+.snoadrotate-shortcode div {
+    float:left
+}
+.snoadrotate-shortcode div.center {
+    float: none;
+}
+.widget.snoadrotate-group .ad-140x140.column-1,
+.widget.snoadrotate-group .ad-125x125.column-1,
+.snoadrotate-shortcode .column-1,
+.snoadrotate-shortcode .column-1 { 
+    clear:both;
+    margin-right:20px
+}
+.widget.snoadrotate-group .ad-120x600 { 
+    float:left;
+    width:120px
+}
+.widget.snoadrotate-group .ad-160x600 {
+    float:right;
+    width:160px
+}
+.widget.snoadrotate-single img,
+.widget.snoadrotate-group img,
+.widget.snoadrotate-single object,
+.widget.snoadrotate-group object,
+.widget.snoadrotate-single embed,
+.widget.snoadrotate-group embed,
+.widget.snoadrotate-single iframe,
+.widget.snoadrotate-group iframe,
+.snoadrotate-shortcode .snoadrotate-single img,
+.snoadrotate-shortcode .snoadrotate-group img,
+.snoadrotate-shortcode .snoadrotate-single object,
+.snoadrotate-shortcode .snoadrotate-group object,
+.snoadrotate-shortcode .snoadrotate-single embed,
+.snoadrotate-shortcode .snoadrotate-group embed,
+.snoadrotate-shortcode .snoadrotate-single iframe,
+.snoadrotate-shortcode .snoadrotate-group iframe {
+    display:block;
+    margin-bottom:20px
+}
+.widget.snoadrotate-single,
+.widget.snoadrotate-group,
+.snoadrotate-shortcode .snoadrotate-single,
+.snoadrotate-shortcode .snoadrotate-group {
+    margin-bottom:0
+}

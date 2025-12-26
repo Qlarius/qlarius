@@ -55,9 +55,17 @@ defmodule QlariusWeb.CoreComponents do
     <div
       :if={msg = render_slot(@inner_block) || Phoenix.Flash.get(@flash, @kind)}
       id={@id}
-      phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
+      phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> JS.hide(to: "##{@id}")}
+      phx-mounted={
+        JS.show(to: "##{@id}", transition: {"ease-in duration-300", "opacity-0", "opacity-100"})
+        |> JS.hide(
+          to: "##{@id}",
+          transition: {"ease-in duration-300", "opacity-100", "opacity-0"},
+          time: 5000
+        )
+      }
       role="alert"
-      class="toast toast-top toast-end"
+      class="toast toast-top toast-end opacity-0"
       {@rest}
     >
       <div class={[
@@ -65,7 +73,7 @@ defmodule QlariusWeb.CoreComponents do
         @kind == :info && "alert-info",
         @kind == :error && "alert-error"
       ]}>
-        <.icon :if={@kind == :info} name="hero-information-circle" class="size-5 shrink-0" />
+        <.icon :if={@kind == :info} name="hero-hand-raised" class="size-5 shrink-0" />
         <.icon :if={@kind == :error} name="hero-exclamation-circle" class="size-5 shrink-0" />
         <div>
           <p :if={@title} class="font-semibold">{@title}</p>

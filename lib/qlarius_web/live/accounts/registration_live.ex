@@ -521,7 +521,7 @@ defmodule QlariusWeb.RegistrationLive do
         />
       </div>
 
-      <div class="w-full max-w-2xl space-y-8">
+      <div class="w-full max-w-2xl space-y-8 px-6 md:px-8">
         <h1 class="text-4xl md:text-5xl font-bold mb-8 dark:text-white">
           {if @mode == "proxy", do: "Create Proxy User", else: "Register"}
         </h1>
