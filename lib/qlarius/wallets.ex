@@ -113,13 +113,16 @@ defmodule Qlarius.Wallets do
             ledger_header.balance
           end
 
+        meta_1 = phase_description_to_meta_1(phase_description)
+
         # Create a new ledger entry for the ad event
         %LedgerEntry{}
         |> LedgerEntry.changeset(%{
           ledger_header_id: ledger_header.id,
           amt: ad_event.event_me_file_collect_amt,
           running_balance: new_balance,
-          description: "#{phase_description} - #{String.upcase(marketer_name)}",
+          description: String.upcase(marketer_name),
+          meta_1: meta_1,
           ad_event_id: ad_event.id,
           running_balance_payable: new_balance_payable
         })
@@ -290,7 +293,8 @@ defmodule Qlarius.Wallets do
         ledger_header_id: ledger_header.id,
         amt: amount,
         running_balance: new_balance,
-        description: "Top up - GIFT"
+        description: "Top up - GIFT",
+        meta_1: "Gift"
       }
       |> Repo.insert!()
     end)
@@ -490,7 +494,8 @@ defmodule Qlarius.Wallets do
       ledger_header_id: ledger_event.from_ledger_id,
       amt: Decimal.negate(ledger_event.amount),
       running_balance: new_from_balance,
-      description: "InstaTip to #{ledger_event.to_ledger.recipient.name}"
+      description: "InstaTip to #{ledger_event.to_ledger.recipient.name}",
+      meta_1: "Tip/Donation"
     })
     |> Repo.insert!()
 
@@ -507,7 +512,8 @@ defmodule Qlarius.Wallets do
       ledger_header_id: ledger_event.to_ledger_id,
       amt: ledger_event.amount,
       running_balance: new_to_balance,
-      description: "InstaTip from #{ledger_event.requested_by_user.alias}"
+      description: "InstaTip from #{ledger_event.requested_by_user.alias}",
+      meta_1: "Tip/Donation"
     })
     |> Repo.insert!()
 
@@ -517,4 +523,16 @@ defmodule Qlarius.Wallets do
       new_from_balance
     )
   end
+
+  defp phase_description_to_meta_1(phase_desc) when is_binary(phase_desc) do
+    cond do
+      String.starts_with?(phase_desc, "Banner") -> "Banner Tap"
+      String.starts_with?(phase_desc, "Text/Jump") -> "Text/Jump"
+      String.contains?(phase_desc, "Video") -> "Video Viewing"
+      String.contains?(phase_desc, "Referral") -> "Referral Bonus"
+      true -> nil
+    end
+  end
+
+  defp phase_description_to_meta_1(_), do: nil
 end
