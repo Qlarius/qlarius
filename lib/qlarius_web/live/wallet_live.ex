@@ -186,7 +186,7 @@ defmodule QlariusWeb.WalletLive do
             }
             phx-value-entry_id={entry.id}
           >
-            <div class="flex items-center justify-center mr-1">
+            <div class="flex flex-col items-start justify-start mr-1">
               <span class={[
                 "inline-flex items-center justify-center rounded-full w-8 h-8",
                 if(Decimal.compare(entry.amt, 0) == :gt,
@@ -198,11 +198,11 @@ defmodule QlariusWeb.WalletLive do
               </span>
             </div>
             <div class="list-col-grow">
-              <div class="text-lg">{entry.description}</div>
+              <div class="text-lg leading-snug">{entry.description}</div>
               <div class="text-base-content/50 text-sm">{entry.meta_1}</div>
               <div class="text-base-content/50 text-sm">{format_date(entry.created_at)}</div>
             </div>
-            <div class="flex items-center">
+            <div class="flex items-start">
               <div class="text-right mr-2">
                 <div class="flex items-center gap-1">
                   <span
