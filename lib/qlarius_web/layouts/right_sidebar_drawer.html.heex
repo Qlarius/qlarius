@@ -60,6 +60,26 @@
               {Calendar.strftime(@selected_entry.created_at, "%b %d, %Y")}
             </span>
           </div>
+          <%= if @selected_entry.meta_1 do %>
+            <div class="flex justify-between items-center mt-2 pt-2 border-t border-base-300">
+              <span class="text-sm text-base-content/70">Category</span>
+              <span class="flex items-center gap-2">
+                <span class={[
+                  "inline-flex items-center justify-center rounded-full w-7 h-7",
+                  if(Decimal.compare(@selected_entry.amt, 0) == :gt,
+                    do: "!bg-sponster-200 dark:!bg-sponster-800",
+                    else: "!bg-tiqit-200 dark:!bg-tiqit-800"
+                  )
+                ]}>
+                  <.icon
+                    name={QlariusWeb.WalletLive.icon_for_meta_1(@selected_entry.meta_1)}
+                    class="h-4 w-4 text-base-content"
+                  />
+                </span>
+                <span class="text-sm">{@selected_entry.meta_1}</span>
+              </span>
+            </div>
+          <% end %>
         </div>
         
 <!-- Transaction Type Details -->

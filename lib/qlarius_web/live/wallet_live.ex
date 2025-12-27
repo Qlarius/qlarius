@@ -186,12 +186,24 @@ defmodule QlariusWeb.WalletLive do
             }
             phx-value-entry_id={entry.id}
           >
+            <div class="flex items-center justify-center mr-1">
+              <span class={[
+                "inline-flex items-center justify-center rounded-full w-8 h-8",
+                if(Decimal.compare(entry.amt, 0) == :gt,
+                  do: "!bg-sponster-200 dark:!bg-sponster-800",
+                  else: "!bg-tiqit-200 dark:!bg-tiqit-800"
+                )
+              ]}>
+                <.icon name={icon_for_meta_1(entry.meta_1)} class="h-4 w-4 text-base-content" />
+              </span>
+            </div>
             <div class="list-col-grow">
               <div class="text-lg">{entry.description}</div>
+              <div class="text-base-content/50 text-sm">{entry.meta_1}</div>
               <div class="text-base-content/50 text-sm">{format_date(entry.created_at)}</div>
             </div>
             <div class="flex items-center">
-              <div class="text-right mr-4">
+              <div class="text-right mr-2">
                 <div class="flex items-center gap-1">
                   <span
                     :if={Decimal.compare(entry.amt, 0) != 0}
@@ -225,7 +237,7 @@ defmodule QlariusWeb.WalletLive do
                 </div>
               </div>
               <div class="text-base-content/50">
-                <.icon name="hero-chevron-right" class="h-6 w-6" />
+                <.icon name="hero-chevron-right" class="h-4 w-4" />
               </div>
             </div>
           </li>
@@ -364,4 +376,12 @@ defmodule QlariusWeb.WalletLive do
   end
 
   defp get_marketer_name(_), do: "Unknown"
+
+  def icon_for_meta_1("Tip/Donation"), do: "hero-gift"
+  def icon_for_meta_1("Tiqit Purchase"), do: "hero-ticket"
+  def icon_for_meta_1("Referral Bonus"), do: "hero-user-group"
+  def icon_for_meta_1("Text/Jump"), do: "hero-arrow-right-start-on-rectangle"
+  def icon_for_meta_1("Banner Tap"), do: "hero-photo"
+  def icon_for_meta_1("Video Viewing"), do: "hero-play-circle"
+  def icon_for_meta_1(_), do: "hero-cube"
 end

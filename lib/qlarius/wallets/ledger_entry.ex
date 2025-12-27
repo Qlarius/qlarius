@@ -13,6 +13,7 @@ defmodule Qlarius.Wallets.LedgerEntry do
     field :amt, :decimal
     field :running_balance, :decimal
     field :description, :string
+    field :meta_1, :string
 
     belongs_to :ledger_header, LedgerHeader
     belongs_to :ad_event, AdEvent
@@ -27,6 +28,7 @@ defmodule Qlarius.Wallets.LedgerEntry do
       :amt,
       :running_balance,
       :description,
+      :meta_1,
       :ledger_header_id,
       :ad_event_id,
       :tiqit_id

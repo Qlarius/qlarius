@@ -206,6 +206,83 @@ Sometimes the `tag_value` (second element in child tag array) can be:
 
 Both are invalid and need to be fixed by looking up the correct value from `me_file_tags`.
 
+### 4. SplitLedgerEntryDescriptions
+
+**Module**: `Qlarius.Maintenance.SplitLedgerEntryDescriptions`
+
+Utility to categorize ledger entry descriptions by pattern and populate the `meta_1` column.
+
+#### What It Does
+
+Applies specific rules based on description prefixes (case-sensitive):
+
+1. **"Banner - "** → meta_1 = "Banner Tap", removes "Banner - " from description
+2. **"Text/Jump - "** → meta_1 = "Text/Jump", removes "Text/Jump - " from description
+3. **"Tiqit purchase"** → meta_1 = "Tiqit Purchase", keeps description unchanged
+4. **All others** → meta_1 stays NULL, description unchanged
+
+Only processes entries where `meta_1` is NULL or empty.
+
+#### Usage
+
+```elixir
+# Step 1: Diagnose - see what would change
+Qlarius.Maintenance.SplitLedgerEntryDescriptions.diagnose()
+
+# Output shows:
+# === Entries to process by pattern ===
+#   "Banner - " → meta_1: "Banner Tap" (25 entries)
+#   "Text/Jump - " → meta_1: "Text/Jump" (18 entries)
+#   "Tiqit purchase" → meta_1: "Tiqit Purchase" (10 entries)
+# 
+# Total entries to process: 53
+# 
+# === Sample entries per pattern ===
+# --- Pattern: "Banner - " → "Banner Tap" ---
+# 
+# --- Entry ID: 123 ---
+# Current:
+#   description: "Banner - Ad viewed for Product X"
+#   meta_1: nil
+# After update:
+#   meta_1: "Banner Tap"
+#   description: "Ad viewed for Product X"
+
+# Step 2: Dry run - preview without updating
+Qlarius.Maintenance.SplitLedgerEntryDescriptions.run(dry_run: true)
+
+# Step 3: Run actual update
+Qlarius.Maintenance.SplitLedgerEntryDescriptions.run()
+
+# Step 4: Verify it worked
+Qlarius.Maintenance.SplitLedgerEntryDescriptions.verify()
+
+# Optional: Custom batch size
+Qlarius.Maintenance.SplitLedgerEntryDescriptions.run(batch_size: 50)
+```
+
+#### Examples
+
+| Current Description | New meta_1 | New Description |
+|---------------------|------------|-----------------|
+| `"Banner - Ad viewed"` | `"Banner Tap"` | `"Ad viewed"` |
+| `"Text/Jump - Clicked link"` | `"Text/Jump"` | `"Clicked link"` |
+| `"Tiqit purchase - Bought ticket"` | `"Tiqit Purchase"` | `"Tiqit purchase - Bought ticket"` (unchanged) |
+| `"Other description"` | NULL | `"Other description"` (unchanged) |
+
+#### Edge Cases Handled
+
+- **Case-sensitive**: Only exact matches (e.g., "Banner - " not "banner - ")
+- **Already processed**: Skips entries that already have meta_1 populated
+- **No match**: Entries not matching any pattern are left unchanged
+
+#### When to Use
+
+Run this to:
+- Categorize ledger entries by transaction type
+- Enable filtering and reporting by meta_1 category
+- Standardize description formats
+
 ## Running in Production (Gigalixir)
 
 ```bash
@@ -218,6 +295,10 @@ Qlarius.Maintenance.SnapshotQueries.count_by_issue_type()
 # Swap mobile numbers
 Qlarius.Maintenance.SwapMobileNumbers.diagnose("user1", "user2")
 Qlarius.Maintenance.SwapMobileNumbers.swap("user1", "user2")
+
+# Split ledger entry descriptions
+Qlarius.Maintenance.SplitLedgerEntryDescriptions.diagnose()
+Qlarius.Maintenance.SplitLedgerEntryDescriptions.run()
 
 # Fix NULL zip codes
 Qlarius.Maintenance.FixNullSnapshotZipCodes.run()
