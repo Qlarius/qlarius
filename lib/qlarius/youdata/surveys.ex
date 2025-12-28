@@ -193,14 +193,11 @@ defmodule Qlarius.YouData.Surveys do
       join: t in Trait,
       on: t.id == sq.trait_id,
       where: sqs.survey_id == ^survey_id,
-      select: {t.id, t.trait_name, t.display_order, sq.display_order},
-      order_by: sq.display_order
+      select: {t.id, t.trait_name, sqs.display_order},
+      order_by: sqs.display_order
     )
     |> Repo.all()
-    |> Enum.uniq_by(fn {id, _name, _t_order, _sq_order} -> id end)
-    |> Enum.map(fn {id, name, trait_display_order, _sq_order} ->
-      {id, name, trait_display_order}
-    end)
+    |> Enum.uniq_by(fn {id, _name, _sqs_order} -> id end)
     |> Enum.sort_by(fn {_id, _name, display_order} -> display_order end)
   end
 
