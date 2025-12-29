@@ -1,5 +1,5 @@
 <Layouts.app {assigns}>
-  <div class="min-h-screen dark:bg-base-300 flex items-center justify-center pb-24 relative">
+  <div class="h-screen dark:bg-base-300 flex items-center justify-center pb-24 relative overflow-y-hidden">
     <div class="absolute top-12 left-0 right-0 flex justify-center z-10">
       <img
         src="/images/qadabra_full_gray_opt.svg"
@@ -10,15 +10,24 @@
 
     <div class="w-full flex flex-col items-center justify-center overflow-hidden">
       <div class="carousel carousel-center w-full max-w-7xl space-x-4 px-4">
-
         <div id="card1" class="carousel-item w-[85%] md:w-[300px]">
           <div class="card bg-base-200 shadow-xl w-full">
-            <figure class="h-64 bg-gradient-to-br from-cyan-400 to-blue-600">
+            <figure class="h-64 bg-gradient-to-br from-cyan-400 to-blue-600 relative overflow-hidden">
+              <img
+                src="/images/hi_sequence_wallet_light.png"
+                alt=""
+                class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto dark:hidden"
+              />
+              <img
+                src="/images/hi_sequence_wallet_dark.png"
+                alt=""
+                class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto hidden dark:block"
+              />
             </figure>
             <div class="card-body">
               <h2 class="card-title text-3xl font-bold">Claim your wallet.</h2>
               <p class="text-base-content/70">
-                Get started with your personal "attention wallet" - the absolute best way to buy media. We’ll even seed you with some spending money. You’ll love it!
+                Get started with your personal "attention wallet" - the absolute best way to buy media. Feed it with your attention, and get rewarded with media.
               </p>
               <div class="card-actions justify-center mt-4">
                 <img src="/images/qlarius_logo_squares.svg" alt="Qadabra" class="h-8 w-auto" />
@@ -29,7 +38,17 @@
 
         <div id="card2" class="carousel-item w-[85%] md:w-[300px]">
           <div class="card bg-base-200 shadow-xl w-full">
-            <figure class="h-64 bg-gradient-to-br from-orange-400 to-red-600">
+            <figure class="h-64 bg-gradient-to-br from-orange-400 to-red-600 relative overflow-hidden">
+              <img
+                src="/images/hi_sequence_light.png"
+                alt=""
+                class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto dark:hidden"
+              />
+              <img
+                src="/images/hi_sequence_dark.png"
+                alt=""
+                class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto hidden dark:block"
+              />
             </figure>
             <div class="card-body">
               <h2 class="card-title text-3xl font-bold">Buy your media.</h2>
@@ -41,19 +60,33 @@
               </div>
             </div>
           </div>
-        </div>     
+        </div>
 
         <div id="card3" class="carousel-item w-[85%] md:w-[300px]">
           <div class="card bg-base-200 shadow-xl w-full">
-            <figure class="h-64 bg-gradient-to-br from-green-400 to-emerald-600">
-            </figure>            
+            <figure class="h-64 bg-gradient-to-br from-green-400 to-emerald-600 relative overflow-hidden">
+              <img
+                src="/images/hi_sequence_ads_light.png"
+                alt=""
+                class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto dark:hidden"
+              />
+              <img
+                src="/images/hi_sequence_ads_dark.png"
+                alt=""
+                class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto hidden dark:block"
+              />
+            </figure>
             <div class="card-body">
               <h2 class="card-title text-3xl font-bold">Sell your attention.</h2>
               <p class="text-base-content/70">
-                Your attention is a product that <u>only you should sell</u>. Collect revenue from ads. Personal sponsorship - from brands & businesses that matter to you.
+                Your attention is a product that only you should sell. Via "personal sponsorship" you collect ad revenue from brands & businesses that matter to you.
               </p>
               <div class="card-actions justify-center mt-4">
-                <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-8 w-auto" />
+                <img
+                  src="/images/Sponster_logo_color_horiz.svg"
+                  alt="Sponster"
+                  class="h-8 w-auto"
+                />
               </div>
             </div>
           </div>
@@ -61,7 +94,17 @@
 
         <div id="card4" class="carousel-item w-[85%] md:w-[300px]">
           <div class="card bg-base-200 shadow-xl w-full">
-            <figure class="h-64 bg-gradient-to-br from-purple-400 to-indigo-600">
+            <figure class="h-64 bg-gradient-to-br from-purple-400 to-indigo-600 relative overflow-hidden">
+              <img
+                src="/images/hi_sequence_data_light.png"
+                alt=""
+                class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto dark:hidden"
+              />
+              <img
+                src="/images/hi_sequence_data_dark.png"
+                alt=""
+                class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto hidden dark:block"
+              />
             </figure>
             <div class="card-body">
               <h2 class="card-title text-3xl font-bold">Own your data.</h2>
@@ -74,7 +117,6 @@
             </div>
           </div>
         </div>
-
       </div>
 
       <div class="flex justify-center gap-2 py-4">
@@ -135,7 +177,7 @@
       });
     </script>
 
-    <div class="fixed bottom-0 left-0 right-0 bg-base-100 dark:bg-base-300 border-t border-base-300 dark:border-base-content/20 p-4 backdrop-blur-sm bg-opacity-95">
+    <div class="fixed bottom-0 left-0 right-0 bg-base-100 dark:bg-base-300 border-t border-base-300 dark:border-base-content/20 py-4 px-8 backdrop-blur-sm bg-opacity-95">
       <div class="max-w-md mx-auto flex gap-3">
         <.link
           navigate={~p"/login"}
@@ -153,4 +195,3 @@
     </div>
   </div>
 </Layouts.app>
-
