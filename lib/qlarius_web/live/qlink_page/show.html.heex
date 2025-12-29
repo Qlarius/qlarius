@@ -54,7 +54,7 @@
         <% end %>
       <% end %>
       
-      <!-- Sections with their links -->
+<!-- Sections with their links -->
       <%= if @sections != [] do %>
         <%= for section <- @sections do %>
           <% section_links = Enum.filter(@links, &(&1.qlink_section_id == section.id)) %>

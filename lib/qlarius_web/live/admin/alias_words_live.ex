@@ -185,8 +185,7 @@ defmodule QlariusWeb.Admin.AliasWordsLive do
             </p>
           </div>
           <button phx-click="new_word" class="btn btn-primary gap-2">
-            <.icon name="hero-plus" class="w-5 h-5" />
-            Add Word
+            <.icon name="hero-plus" class="w-5 h-5" /> Add Word
           </button>
         </div>
 
@@ -242,7 +241,7 @@ defmodule QlariusWeb.Admin.AliasWordsLive do
           <div class="modal modal-open">
             <div class="modal-box">
               <h3 class="font-bold text-lg mb-4">
-                <%= if @editing_word, do: "Edit Word", else: "Add New Word" %>
+                {if @editing_word, do: "Edit Word", else: "Add New Word"}
               </h3>
 
               <.form
@@ -323,7 +322,7 @@ defmodule QlariusWeb.Admin.AliasWordsLive do
                       "badge",
                       if(word.active, do: "badge-success", else: "badge-error")
                     ]}>
-                      <%= if word.active, do: "Active", else: "Inactive" %>
+                      {if word.active, do: "Active", else: "Inactive"}
                     </div>
                   </td>
                   <td class="text-sm text-base-content/60">

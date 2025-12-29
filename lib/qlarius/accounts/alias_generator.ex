@@ -19,8 +19,12 @@ defmodule Qlarius.Accounts.AliasGenerator do
     case load_words() do
       :ok ->
         {:ok, %{}}
+
       {:error, :table_not_found} ->
-        Logger.warning("alias_words table not found - using fallback words until migrations are run")
+        Logger.warning(
+          "alias_words table not found - using fallback words until migrations are run"
+        )
+
         load_fallback_words()
         {:ok, %{}}
     end
@@ -65,27 +69,32 @@ defmodule Qlarius.Accounts.AliasGenerator do
     existing_aliases =
       Repo.all(
         from u in User,
-        where: fragment("? LIKE ?", u.alias, ^"#{base_name}-%"),
-        select: u.alias
+          where: fragment("? LIKE ?", u.alias, ^"#{base_name}-%"),
+          select: u.alias
       )
 
     existing_numbers =
       existing_aliases
       |> Enum.map(fn alias_str ->
         case String.split(alias_str, "-") |> List.last() do
-          nil -> nil
+          nil ->
+            nil
+
           num_str when byte_size(num_str) == 4 ->
             case Integer.parse(num_str) do
               {num, ""} -> num
               _ -> nil
             end
-          _ -> nil
+
+          _ ->
+            nil
         end
       end)
       |> Enum.reject(&is_nil/1)
       |> MapSet.new()
 
-    available_pool = 0..9999
+    available_pool =
+      0..9999
       |> Enum.reject(&MapSet.member?(existing_numbers, &1))
 
     if length(available_pool) < count do
@@ -146,17 +155,19 @@ defmodule Qlarius.Accounts.AliasGenerator do
 
   defp load_words do
     try do
-      adjectives = Repo.all(
-        from w in AliasWord,
-        where: w.type == "adjective" and w.active == true,
-        select: w.word
-      )
+      adjectives =
+        Repo.all(
+          from w in AliasWord,
+            where: w.type == "adjective" and w.active == true,
+            select: w.word
+        )
 
-      nouns = Repo.all(
-        from w in AliasWord,
-        where: w.type == "noun" and w.active == true,
-        select: w.word
-      )
+      nouns =
+        Repo.all(
+          from w in AliasWord,
+            where: w.type == "noun" and w.active == true,
+            select: w.word
+        )
 
       :ets.insert(@table_name, {:adjectives, adjectives})
       :ets.insert(@table_name, {:nouns, nouns})
@@ -191,6 +202,8 @@ defmodule Qlarius.Accounts.AliasGenerator do
     :ets.insert(@table_name, {:adjectives, fallback_adjectives})
     :ets.insert(@table_name, {:nouns, fallback_nouns})
 
-    Logger.info("Loaded #{length(fallback_adjectives)} fallback adjectives and #{length(fallback_nouns)} fallback nouns")
+    Logger.info(
+      "Loaded #{length(fallback_adjectives)} fallback adjectives and #{length(fallback_nouns)} fallback nouns"
+    )
   end
 end

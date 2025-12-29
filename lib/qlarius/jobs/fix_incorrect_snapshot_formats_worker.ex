@@ -116,9 +116,7 @@ defmodule Qlarius.Jobs.FixIncorrectSnapshotFormatsWorker do
           acc + count
         end)
 
-      Logger.info(
-        "FixIncorrectSnapshotFormatsWorker: Fixed #{fixed_count} offers"
-      )
+      Logger.info("FixIncorrectSnapshotFormatsWorker: Fixed #{fixed_count} offers")
 
       fixed_count
     else
@@ -211,15 +209,11 @@ defmodule Qlarius.Jobs.FixIncorrectSnapshotFormatsWorker do
           acc + count
         end)
 
-      Logger.info(
-        "FixIncorrectSnapshotFormatsWorker: Fixed #{fixed_count} ad_events"
-      )
+      Logger.info("FixIncorrectSnapshotFormatsWorker: Fixed #{fixed_count} ad_events")
 
       fixed_count
     else
-      Logger.info(
-        "FixIncorrectSnapshotFormatsWorker: No incorrectly formatted ad_events found"
-      )
+      Logger.info("FixIncorrectSnapshotFormatsWorker: No incorrectly formatted ad_events found")
 
       0
     end

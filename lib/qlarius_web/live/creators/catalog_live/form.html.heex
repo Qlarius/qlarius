@@ -165,13 +165,13 @@
             </.button>
 
             <.link
-                navigate={
-                  if @live_action == :edit do
-                    ~p"/creators/catalogs/#{@catalog.id}"
-                  else
-                    ~p"/creators/#{@creator.id}"
-                  end
-                }
+              navigate={
+                if @live_action == :edit do
+                  ~p"/creators/catalogs/#{@catalog.id}"
+                else
+                  ~p"/creators/#{@creator.id}"
+                end
+              }
               class="btn btn-ghost"
             >
               <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Cancel

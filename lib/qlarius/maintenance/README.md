@@ -12,8 +12,7 @@ Utility to safely swap mobile numbers between two user accounts. This is useful 
 
 #### What Gets Swapped
 
-- `mobile_number` (plain text phone number)
-- `mobile_number_encrypted` (encrypted version)
+- `mobile_number_encrypted` (encrypted phone number)
 - `mobile_number_hash` (hash used for unique constraint)
 - `phone_verified_at` (verification timestamp)
 

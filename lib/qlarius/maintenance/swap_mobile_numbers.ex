@@ -127,12 +127,13 @@ defmodule Qlarius.Maintenance.SwapMobileNumbers do
 
   defp perform_swap(user1, user2) do
     Logger.info("Starting transaction to swap mobile numbers...")
-    Logger.info("User 1 (#{user1.alias}) current mobile: #{format_mobile(user1.mobile_number)}")
-    Logger.info("User 2 (#{user2.alias}) current mobile: #{format_mobile(user2.mobile_number)}")
+    decrypted1 = if user1.mobile_number_encrypted, do: user1.mobile_number_encrypted, else: nil
+    decrypted2 = if user2.mobile_number_encrypted, do: user2.mobile_number_encrypted, else: nil
+    Logger.info("User 1 (#{user1.alias}) current mobile: #{format_mobile(decrypted1)}")
+    Logger.info("User 2 (#{user2.alias}) current mobile: #{format_mobile(decrypted2)}")
 
     Repo.transaction(fn ->
       # Store user2's mobile data temporarily
-      temp_mobile = user2.mobile_number
       temp_encrypted = user2.mobile_number_encrypted
       temp_hash = user2.mobile_number_hash
       temp_verified_at = user2.phone_verified_at
@@ -141,7 +142,6 @@ defmodule Qlarius.Maintenance.SwapMobileNumbers do
       user2_changeset =
         user2
         |> Ecto.Changeset.change(%{
-          mobile_number: user1.mobile_number,
           mobile_number_encrypted: user1.mobile_number_encrypted,
           mobile_number_hash: user1.mobile_number_hash,
           phone_verified_at: user1.phone_verified_at
@@ -149,15 +149,17 @@ defmodule Qlarius.Maintenance.SwapMobileNumbers do
 
       case Repo.update(user2_changeset) do
         {:ok, updated_user2} ->
-          Logger.info(
-            "Updated user 2 (#{user2.alias}) mobile to: #{format_mobile(updated_user2.mobile_number)}"
-          )
+          decrypted_u2 =
+            if updated_user2.mobile_number_encrypted,
+              do: updated_user2.mobile_number_encrypted,
+              else: nil
+
+          Logger.info("Updated user 2 (#{user2.alias}) mobile to: #{format_mobile(decrypted_u2)}")
 
           # Update user1 with user2's mobile data (from temp storage)
           user1_changeset =
             user1
             |> Ecto.Changeset.change(%{
-              mobile_number: temp_mobile,
               mobile_number_encrypted: temp_encrypted,
               mobile_number_hash: temp_hash,
               phone_verified_at: temp_verified_at
@@ -165,8 +167,13 @@ defmodule Qlarius.Maintenance.SwapMobileNumbers do
 
           case Repo.update(user1_changeset) do
             {:ok, updated_user1} ->
+              decrypted_u1 =
+                if updated_user1.mobile_number_encrypted,
+                  do: updated_user1.mobile_number_encrypted,
+                  else: nil
+
               Logger.info(
-                "Updated user 1 (#{user1.alias}) mobile to: #{format_mobile(updated_user1.mobile_number)}"
+                "Updated user 1 (#{user1.alias}) mobile to: #{format_mobile(decrypted_u1)}"
               )
 
               Logger.info("Swap successful, committing transaction")
@@ -204,8 +211,8 @@ defmodule Qlarius.Maintenance.SwapMobileNumbers do
   end
 
   defp display_mobile_info(user) do
-    IO.puts("Mobile Number: #{format_mobile(user.mobile_number)}")
-    IO.puts("Encrypted: #{format_binary(user.mobile_number_encrypted)}")
+    decrypted = if user.mobile_number_encrypted, do: user.mobile_number_encrypted, else: nil
+    IO.puts("Mobile Number (encrypted): #{format_mobile(decrypted)}")
     IO.puts("Hash: #{format_binary(user.mobile_number_hash)}")
 
     IO.puts(

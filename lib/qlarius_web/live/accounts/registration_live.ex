@@ -486,8 +486,6 @@ defmodule QlariusWeb.RegistrationLive do
       alias: socket.assigns.alias,
       mobile_number:
         if(socket.assigns.mobile_number != "", do: socket.assigns.mobile_number, else: nil),
-      auth_provider_id:
-        if(socket.assigns.mobile_number != "", do: socket.assigns.mobile_number, else: nil),
       role: "user",
       date_of_birth: date,
       sex_trait_id: socket.assigns.sex_trait_id,

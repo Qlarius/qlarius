@@ -87,6 +87,7 @@ defmodule Qlarius.Secrets do
       case fetch_parameter("/qlarius/cloak-key") do
         {:ok, key} ->
           Base.decode64!(key)
+
         {:error, _} ->
           raise "CLOAK_KEY not found in AWS Parameter Store"
       end

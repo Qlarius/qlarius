@@ -14,8 +14,6 @@ defmodule Qlarius.Accounts.User do
     field :alias, :string
     field :referrer_code, :string
     field :role, :string
-    field :auth_provider_id, :string
-    field :mobile_number, :string
     field :mobile_number_encrypted, Qlarius.Encrypted.Binary
     field :mobile_number_hash, :binary
     field :phone_verified_at, :utc_datetime
@@ -35,45 +33,26 @@ defmodule Qlarius.Accounts.User do
 
   def changeset(user, attrs) do
     user
-    |> cast(attrs, [:alias, :mobile_number, :auth_provider_id, :role])
+    |> cast(attrs, [:alias, :role])
     |> validate_required([:alias])
     |> unique_constraint(:alias)
-    |> maybe_encrypt_mobile_number()
   end
 
   def registration_changeset(user, attrs) do
     user
-    |> cast(attrs, [:alias, :mobile_number, :role])
+    |> cast(attrs, [:alias, :role])
     |> validate_required([:alias])
-    |> validate_phone_number()
     |> unique_constraint(:alias)
     |> unique_constraint(:mobile_number_hash)
-    |> maybe_encrypt_mobile_number()
+    |> maybe_encrypt_mobile_number(attrs)
   end
 
-  defp validate_phone_number(changeset) do
-    case get_change(changeset, :mobile_number) do
+  defp maybe_encrypt_mobile_number(changeset, attrs) do
+    case Map.get(attrs, "mobile_number") || Map.get(attrs, :mobile_number) do
       nil ->
         changeset
 
-      phone ->
-        case ExPhoneNumber.parse(phone, "US") do
-          {:ok, parsed_number} ->
-            if ExPhoneNumber.is_valid_number?(parsed_number) do
-              changeset
-            else
-              add_error(changeset, :mobile_number, "is not a valid phone number")
-            end
-
-          {:error, _} ->
-            add_error(changeset, :mobile_number, "is not a valid phone number")
-        end
-    end
-  end
-
-  defp maybe_encrypt_mobile_number(changeset) do
-    case get_change(changeset, :mobile_number) do
-      nil ->
+      "" ->
         changeset
 
       phone when is_binary(phone) ->
@@ -82,7 +61,6 @@ defmodule Qlarius.Accounts.User do
         changeset
         |> put_change(:mobile_number_encrypted, normalized_phone)
         |> put_change(:mobile_number_hash, hash_phone(normalized_phone))
-        |> put_change(:mobile_number, normalized_phone)
 
       _ ->
         changeset
@@ -91,8 +69,15 @@ defmodule Qlarius.Accounts.User do
 
   defp normalize_phone(phone) do
     case ExPhoneNumber.parse(phone, "US") do
-      {:ok, parsed} -> ExPhoneNumber.format(parsed, :e164)
-      {:error, _} -> phone
+      {:ok, parsed_number} ->
+        if ExPhoneNumber.is_valid_number?(parsed_number) do
+          ExPhoneNumber.format(parsed_number, :e164)
+        else
+          phone
+        end
+
+      {:error, _} ->
+        phone
     end
   end
 

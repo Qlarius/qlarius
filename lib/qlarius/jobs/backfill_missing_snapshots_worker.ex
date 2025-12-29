@@ -73,9 +73,7 @@ defmodule Qlarius.Jobs.BackfillMissingSnapshotsWorker do
         process_batch(batch)
       end)
 
-      Logger.info(
-        "BackfillMissingSnapshotsWorker: ✅ COMPLETE - Fixed #{total} missing snapshots"
-      )
+      Logger.info("BackfillMissingSnapshotsWorker: ✅ COMPLETE - Fixed #{total} missing snapshots")
     else
       Logger.info("BackfillMissingSnapshotsWorker: No missing snapshots found")
     end

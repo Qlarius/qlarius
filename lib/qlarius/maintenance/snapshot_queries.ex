@@ -93,13 +93,18 @@ defmodule Qlarius.Maintenance.SnapshotQueries do
     # Look for patterns: ", null," or "[null," or ", null]"
     from(t in table,
       where: not is_nil(t.matching_tags_snapshot),
-      where: fragment(
-        "CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ?",
-        t.matching_tags_snapshot, "%, null,%",
-        t.matching_tags_snapshot, "%[null,%",
-        t.matching_tags_snapshot, "%, null]%",
-        t.matching_tags_snapshot, "%\"\",%"
-      )
+      where:
+        fragment(
+          "CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ?",
+          t.matching_tags_snapshot,
+          "%, null,%",
+          t.matching_tags_snapshot,
+          "%[null,%",
+          t.matching_tags_snapshot,
+          "%, null]%",
+          t.matching_tags_snapshot,
+          "%\"\",%"
+        )
     )
     |> Repo.all()
     |> Enum.filter(&has_null_value_for_trait?(&1, parent_trait_id))
@@ -198,6 +203,7 @@ defmodule Qlarius.Maintenance.SnapshotQueries do
       _ -> {:error, :not_found}
     end
   end
+
   def extract_trait_value(_, _), do: {:error, :invalid_snapshot}
 
   @doc """
@@ -316,21 +322,22 @@ defmodule Qlarius.Maintenance.SnapshotQueries do
           where: not is_nil(tp.matching_tags_snapshot),
           limit: ^limit,
           select: %{id: tp.id, me_file_id: tp.me_file_id, snapshot: tp.matching_tags_snapshot}
-        ) |> Repo.all(),
-
+        )
+        |> Repo.all(),
       offers:
         from(o in Offer,
           where: not is_nil(o.matching_tags_snapshot),
           limit: ^limit,
           select: %{id: o.id, me_file_id: o.me_file_id, snapshot: o.matching_tags_snapshot}
-        ) |> Repo.all(),
-
+        )
+        |> Repo.all(),
       ad_events:
         from(ae in AdEvent,
           where: not is_nil(ae.matching_tags_snapshot),
           limit: ^limit,
           select: %{id: ae.id, me_file_id: ae.me_file_id, snapshot: ae.matching_tags_snapshot}
-        ) |> Repo.all()
+        )
+        |> Repo.all()
     }
   end
 
@@ -341,6 +348,7 @@ defmodule Qlarius.Maintenance.SnapshotQueries do
       _ -> false
     end)
   end
+
   defp has_trait?(_, _), do: false
 
   # Private helper to check if a record has a specific tag value for a trait
@@ -351,9 +359,12 @@ defmodule Qlarius.Maintenance.SnapshotQueries do
           [_id, ^tag_value, _order] -> true
           _ -> false
         end)
-      _ -> false
+
+      _ ->
+        false
     end)
   end
+
   defp has_tag_value?(_, _, _), do: false
 
   # Private helper to check if a record has a null value for a specific trait
@@ -365,8 +376,11 @@ defmodule Qlarius.Maintenance.SnapshotQueries do
           [_id, "", _order] -> true
           _ -> false
         end)
-      _ -> false
+
+      _ ->
+        false
     end)
   end
+
   defp has_null_value_for_trait?(_, _), do: false
 end

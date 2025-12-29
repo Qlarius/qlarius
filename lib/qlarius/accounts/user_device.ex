@@ -20,7 +20,16 @@ defmodule Qlarius.Accounts.UserDevice do
 
   def changeset(device, attrs) do
     device
-    |> cast(attrs, [:user_id, :credential_id, :public_key, :sign_count, :device_name, :device_type, :last_used_at, :trusted])
+    |> cast(attrs, [
+      :user_id,
+      :credential_id,
+      :public_key,
+      :sign_count,
+      :device_name,
+      :device_type,
+      :last_used_at,
+      :trusted
+    ])
     |> validate_required([:user_id, :credential_id, :public_key])
     |> unique_constraint(:credential_id)
     |> foreign_key_constraint(:user_id)

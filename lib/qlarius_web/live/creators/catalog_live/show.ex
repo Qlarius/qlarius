@@ -79,8 +79,8 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
               </button>
             </div>
           </div>
-
-          <!-- Overview Section -->
+          
+    <!-- Overview Section -->
           <div class="card bg-base-100 shadow-lg">
             <div class="card-body">
               <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
@@ -119,8 +119,8 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
               </div>
             </div>
           </div>
-
-          <!-- URL Section -->
+          
+    <!-- URL Section -->
           <%= if @catalog.url do %>
             <div class="card bg-base-100 shadow-lg">
               <div class="card-body">
@@ -145,8 +145,8 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
               </div>
             </div>
           <% end %>
-
-          <!-- Tiqit Classes Section -->
+          
+    <!-- Tiqit Classes Section -->
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <h2 class="text-xl font-semibold text-base-content flex items-center">
@@ -180,7 +180,10 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                       <button phx-click="add_default_tiqit_classes" class="btn btn-primary">
                         <.icon name="hero-plus" class="w-4 h-4 mr-2" /> Add Tiqit Class Defaults
                       </button>
-                      <.link navigate={~p"/creators/catalogs/#{@catalog.id}/edit"} class="btn btn-outline">
+                      <.link
+                        navigate={~p"/creators/catalogs/#{@catalog.id}/edit"}
+                        class="btn btn-outline"
+                      >
                         <.icon name="hero-pencil" class="w-4 h-4 mr-2" /> Edit Manually
                       </.link>
                     </div>
@@ -189,8 +192,8 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
               </div>
             <% end %>
           </div>
-
-          <!-- Content Groups Section -->
+          
+    <!-- Content Groups Section -->
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <h2 class="text-xl font-semibold text-base-content flex items-center">

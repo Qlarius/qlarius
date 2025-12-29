@@ -23,7 +23,7 @@ defmodule QlariusWeb.Helpers.ImageHelpers do
         CreatorImage.url({content_group.catalog.image, content_group.catalog}, :original)
 
       Ecto.assoc_loaded?(content_group.catalog) &&
-          Ecto.assoc_loaded?(content_group.catalog.creator) &&
+        Ecto.assoc_loaded?(content_group.catalog.creator) &&
           content_group.catalog.creator.image ->
         CreatorImage.url(
           {content_group.catalog.creator.image, content_group.catalog.creator},
@@ -57,7 +57,7 @@ defmodule QlariusWeb.Helpers.ImageHelpers do
         CreatorImage.url({content_group.catalog.image, content_group.catalog}, :original)
 
       Ecto.assoc_loaded?(content_group.catalog) &&
-          Ecto.assoc_loaded?(content_group.catalog.creator) &&
+        Ecto.assoc_loaded?(content_group.catalog.creator) &&
           content_group.catalog.creator.image ->
         CreatorImage.url(
           {content_group.catalog.creator.image, content_group.catalog.creator},

@@ -58,6 +58,7 @@ defmodule QlariusWeb.CreatorDashboard.Index do
   @impl true
   def handle_event("validate", %{"creator" => creator_params}, socket) do
     creator = socket.assigns.editing_creator || %Creator{}
+
     form =
       creator
       |> Creators.change_creator(creator_params)
@@ -153,7 +154,6 @@ defmodule QlariusWeb.CreatorDashboard.Index do
     end
   end
 
-
   @impl true
   def render(assigns) do
     ~H"""
@@ -173,7 +173,7 @@ defmodule QlariusWeb.CreatorDashboard.Index do
             <div class="card-body">
               <div class="flex items-center justify-between mb-4">
                 <h2 class="text-2xl font-bold">
-                  <%= if @editing_creator, do: "Edit Creator", else: "New Creator" %>
+                  {if @editing_creator, do: "Edit Creator", else: "New Creator"}
                 </h2>
                 <button phx-click="cancel" class="btn btn-ghost btn-sm">
                   <.icon name="hero-x-mark" class="w-4 h-4" />

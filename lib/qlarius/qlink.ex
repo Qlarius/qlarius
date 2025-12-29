@@ -59,7 +59,10 @@ defmodule Qlarius.Qlink do
   def update_page(%QlinkPage{} = page, attrs) do
     require Logger
     Logger.debug("Qlink.update_page - attrs: #{inspect(attrs)}")
-    Logger.debug("Qlink.update_page - social_links in attrs: #{inspect(Map.get(attrs, "social_links"))}")
+
+    Logger.debug(
+      "Qlink.update_page - social_links in attrs: #{inspect(Map.get(attrs, "social_links"))}"
+    )
 
     changeset = QlinkPage.changeset(page, attrs)
     Logger.debug("Qlink.update_page - changeset changes: #{inspect(changeset.changes)}")
@@ -69,8 +72,12 @@ defmodule Qlarius.Qlink do
 
     case result do
       {:ok, updated_page} ->
-        Logger.debug("Qlink.update_page - success, social_links: #{inspect(updated_page.social_links)}")
+        Logger.debug(
+          "Qlink.update_page - success, social_links: #{inspect(updated_page.social_links)}"
+        )
+
         result
+
       {:error, changeset} ->
         Logger.debug("Qlink.update_page - error, changeset errors: #{inspect(changeset.errors)}")
         result

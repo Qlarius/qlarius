@@ -91,7 +91,6 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
     |> noreply()
   end
 
-
   defp save_content(socket, :edit, piece_params) do
     # Handle file upload for LiveView - store with Waffle directly
     piece_params_with_image =

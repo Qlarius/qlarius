@@ -126,7 +126,6 @@ defmodule QlariusWeb.CreatorDashboard.Show do
     {:noreply, cancel_upload(socket, :image, ref)}
   end
 
-
   @impl true
   def render(assigns) do
     ~H"""
@@ -328,8 +327,8 @@ defmodule QlariusWeb.CreatorDashboard.Show do
               </div>
             <% end %>
           </div>
-
-          <!-- Tiqit Catalogs Section -->
+          
+    <!-- Tiqit Catalogs Section -->
           <div>
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-2xl font-bold">Tiqit Catalogs</h2>
@@ -378,7 +377,9 @@ defmodule QlariusWeb.CreatorDashboard.Show do
                         </div>
                         <div class="flex-1">
                           <h3 class="card-title">{catalog.name}</h3>
-                          <p class="text-sm text-base-content/70">{catalog.type |> to_string() |> String.capitalize()}</p>
+                          <p class="text-sm text-base-content/70">
+                            {catalog.type |> to_string() |> String.capitalize()}
+                          </p>
                         </div>
                         <div class="card-actions">
                           <.link

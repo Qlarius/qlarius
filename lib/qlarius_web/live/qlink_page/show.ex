@@ -86,16 +86,21 @@ defmodule QlariusWeb.QlinkPage.Show do
       case get_connect_info(socket, :peer_data) do
         %{address: address} when is_tuple(address) ->
           :inet.ntoa(address) |> to_string()
+
         _ ->
           case get_connect_info(socket, :x_headers) do
             headers when is_list(headers) ->
               # Try to get IP from X-Forwarded-For or X-Real-IP headers
-              forwarded_for = Enum.find_value(headers, fn {k, v} ->
-                if String.downcase(to_string(k)) == "x-forwarded-for", do: v
-              end) || Enum.find_value(headers, fn {k, v} ->
-                if String.downcase(to_string(k)) == "x-real-ip", do: v
-              end)
+              forwarded_for =
+                Enum.find_value(headers, fn {k, v} ->
+                  if String.downcase(to_string(k)) == "x-forwarded-for", do: v
+                end) ||
+                  Enum.find_value(headers, fn {k, v} ->
+                    if String.downcase(to_string(k)) == "x-real-ip", do: v
+                  end)
+
               forwarded_for || "unknown"
+
             _ ->
               "unknown"
           end
@@ -169,6 +174,7 @@ defmodule QlariusWeb.QlinkPage.Show do
     cond do
       assigns.link.type == :embed && assigns.link.embed_config ->
         render_embed(assigns)
+
       true ->
         render_standard_link(assigns)
     end
@@ -209,8 +215,12 @@ defmodule QlariusWeb.QlinkPage.Show do
     embed_config = assigns.link.embed_config
 
     platform = get_embed_platform(embed_config)
-    video_id = get_embed_value(embed_config, "video_id") || get_embed_value(embed_config, :video_id)
-    content_id = get_embed_value(embed_config, "content_id") || get_embed_value(embed_config, :content_id)
+
+    video_id =
+      get_embed_value(embed_config, "video_id") || get_embed_value(embed_config, :video_id)
+
+    content_id =
+      get_embed_value(embed_config, "content_id") || get_embed_value(embed_config, :content_id)
 
     case platform do
       "youtube" when not is_nil(video_id) ->
@@ -230,15 +240,18 @@ defmodule QlariusWeb.QlinkPage.Show do
   defp get_embed_platform(embed_config) when is_map(embed_config) do
     Map.get(embed_config, "platform") || Map.get(embed_config, :platform)
   end
+
   defp get_embed_platform(_), do: nil
 
   defp get_embed_value(embed_config, key) when is_map(embed_config) do
     Map.get(embed_config, key)
   end
+
   defp get_embed_value(_, _), do: nil
 
   defp render_youtube_embed(assigns, video_id) do
     assigns = assign(assigns, :video_id, video_id)
+
     ~H"""
     <div class="mb-4">
       <%= if @link.title do %>
@@ -265,6 +278,7 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   defp render_spotify_embed(assigns, content_id) do
     assigns = assign(assigns, :content_id, content_id)
+
     ~H"""
     <div class="mb-4">
       <%= if @link.title do %>
@@ -292,6 +306,7 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   defp render_tiktok_embed(assigns, video_id) do
     assigns = assign(assigns, :video_id, video_id)
+
     ~H"""
     <div class="mb-4">
       <%= if @link.title do %>
@@ -316,7 +331,8 @@ defmodule QlariusWeb.QlinkPage.Show do
             </a>
           </section>
         </blockquote>
-        <script async src="https://www.tiktok.com/embed.js"></script>
+        <script async src="https://www.tiktok.com/embed.js">
+        </script>
       </div>
     </div>
     """

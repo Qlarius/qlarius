@@ -23,21 +23,34 @@ defmodule QlariusWeb.Components.ImageUploadField do
       />
 
   """
-  attr :upload, Phoenix.LiveView.UploadConfig, required: true, doc: "The upload config from allow_upload"
+  attr :upload, Phoenix.LiveView.UploadConfig,
+    required: true,
+    doc: "The upload config from allow_upload"
+
   attr :label, :string, default: "Image", doc: "Label text for the upload field"
   attr :current_image, :string, default: nil, doc: "Current image filename (if editing)"
   attr :current_image_url, :string, default: nil, doc: "URL for current image preview"
-  attr :on_delete, :string, default: nil, doc: "Event name for delete action (e.g., 'delete_image')"
-  attr :accept_text, :string, default: "JPG, PNG, GIF, WebP (max 10MB)", doc: "Acceptable file types text"
+
+  attr :on_delete, :string,
+    default: nil,
+    doc: "Event name for delete action (e.g., 'delete_image')"
+
+  attr :accept_text, :string,
+    default: "JPG, PNG, GIF, WebP (max 10MB)",
+    doc: "Acceptable file types text"
+
   attr :preview_size, :string, default: "w-20 h-20", doc: "Preview image size classes"
-  attr :current_image_size, :string, default: "w-16 h-16", doc: "Current image preview size classes"
+
+  attr :current_image_size, :string,
+    default: "w-16 h-16",
+    doc: "Current image preview size classes"
 
   def image_upload_field(assigns) do
     ~H"""
     <div class="space-y-2">
       <%= if @label && String.trim(@label) != "" do %>
         <label class="label">
-          <span class="label-text"><%= @label %></span>
+          <span class="label-text">{@label}</span>
         </label>
       <% end %>
       <div
@@ -54,7 +67,7 @@ defmodule QlariusWeb.Components.ImageUploadField do
             class="w-8 h-8 mx-auto text-base-content/60 mb-2"
           />
           <p class="text-sm text-base-content/60">Click to upload or drag and drop</p>
-          <p class="text-xs text-base-content/40"><%= @accept_text %></p>
+          <p class="text-xs text-base-content/40">{@accept_text}</p>
         </label>
       </div>
 
@@ -67,7 +80,7 @@ defmodule QlariusWeb.Components.ImageUploadField do
               <.icon name="hero-document" class="w-8 h-8" />
             <% end %>
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium truncate"><%= entry.client_name %></p>
+              <p class="text-sm font-medium truncate">{entry.client_name}</p>
               <div class="w-full bg-base-300 rounded-full h-2 mt-1">
                 <div
                   class="bg-primary h-2 rounded-full transition-all duration-300"
@@ -75,7 +88,7 @@ defmodule QlariusWeb.Components.ImageUploadField do
                 >
                 </div>
               </div>
-              <p class="text-xs text-base-content/60 mt-1"><%= entry.progress %>%</p>
+              <p class="text-xs text-base-content/60 mt-1">{entry.progress}%</p>
             </div>
             <button
               type="button"
@@ -88,13 +101,13 @@ defmodule QlariusWeb.Components.ImageUploadField do
             </button>
           </div>
           <%= for err <- upload_errors(@upload, entry) do %>
-            <div class="text-error text-xs mt-1"><%= error_to_string(err) %></div>
+            <div class="text-error text-xs mt-1">{error_to_string(err)}</div>
           <% end %>
         </div>
       <% end %>
 
       <%= for err <- upload_errors(@upload) do %>
-        <div class="text-error text-xs mt-1"><%= error_to_string(err) %></div>
+        <div class="text-error text-xs mt-1">{error_to_string(err)}</div>
       <% end %>
 
       <%= if @current_image && @current_image_url do %>

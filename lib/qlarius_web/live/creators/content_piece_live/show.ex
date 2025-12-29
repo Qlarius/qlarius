@@ -73,8 +73,8 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
               </button>
             </div>
           </div>
-
-          <!-- Content Details -->
+          
+    <!-- Content Details -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Main Content Card -->
             <div class="lg:col-span-2">
@@ -110,16 +110,16 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
                         </div>
                       </div>
                     </div>
-
-                    <!-- Description -->
+                    
+    <!-- Description -->
                     <div>
                       <h4 class="text-md font-medium text-base-content mb-3">Description</h4>
                       <div class="bg-base-200 rounded-lg p-4">
                         <p class="text-base-content leading-relaxed">{@piece.description}</p>
                       </div>
                     </div>
-
-                    <!-- Content Group Info -->
+                    
+    <!-- Content Group Info -->
                     <div>
                       <h4 class="text-md font-medium text-base-content mb-3 flex items-center">
                         <.icon name="hero-folder" class="w-4 h-4 mr-2 text-secondary" /> Content Group
@@ -147,8 +147,8 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
                 </div>
               </div>
             </div>
-
-            <!-- Tiqit Classes Sidebar -->
+            
+    <!-- Tiqit Classes Sidebar -->
             <div class="lg:col-span-1">
               <div class="card bg-base-100 shadow-lg">
                 <div class="card-body">
@@ -173,8 +173,8 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
                   <% end %>
                 </div>
               </div>
-
-              <!-- Stats Card -->
+              
+    <!-- Stats Card -->
               <div class="card bg-base-100 shadow-lg mt-4">
                 <div class="card-body">
                   <h4 class="text-md font-medium text-base-content mb-4">Quick Stats</h4>

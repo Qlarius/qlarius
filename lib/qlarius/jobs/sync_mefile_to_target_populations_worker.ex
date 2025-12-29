@@ -179,7 +179,10 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker do
 
   defp enqueue_snapshot_jobs(band_ids) do
     require Logger
-    Logger.info("SyncMeFileToTargetPopulationsWorker: Enqueuing snapshot jobs for #{length(band_ids)} bands")
+
+    Logger.info(
+      "SyncMeFileToTargetPopulationsWorker: Enqueuing snapshot jobs for #{length(band_ids)} bands"
+    )
 
     Enum.each(band_ids, fn band_id ->
       SnapshotBandPopulationsWorker.new(%{band_id: band_id})

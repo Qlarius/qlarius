@@ -25,9 +25,12 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
     changeset = Qlink.change_page(page)
     social_links_map = if(is_map(page.social_links), do: page.social_links, else: %{})
-    social_links_list = Enum.map(social_links_map, fn {platform, url} ->
-      %{id: "social-#{System.unique_integer([:positive])}", platform: platform, url: url}
-    end)
+
+    social_links_list =
+      Enum.map(social_links_map, fn {platform, url} ->
+        %{id: "social-#{System.unique_integer([:positive])}", platform: platform, url: url}
+      end)
+
     used_platforms = MapSet.new(Map.keys(social_links_map))
 
     socket
@@ -92,6 +95,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     changeset =
       if socket.assigns.live_action == :new do
         alias = get_in(page_params, ["alias"])
+
         if alias && String.length(alias) >= 3 do
           if Qlink.alias_available?(alias) do
             changeset
@@ -139,13 +143,15 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
       if updated_link do
         platform = updated_link.platform
-        social_links = Enum.map(socket.assigns.social_links, fn link ->
-          if link.id == id do
-            %{link | url: url}
-          else
-            link
-          end
-        end)
+
+        social_links =
+          Enum.map(socket.assigns.social_links, fn link ->
+            if link.id == id do
+              %{link | url: url}
+            else
+              link
+            end
+          end)
 
         social_links_data = Map.put(socket.assigns.social_links_data, platform, url)
 
@@ -190,13 +196,15 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     {used_platforms, social_links, social_links_data} =
       if entry do
         platform = entry.platform
+
         {
           MapSet.delete(socket.assigns.used_social_platforms, platform),
           Enum.reject(socket.assigns.social_links, &(&1.id == id)),
           Map.delete(socket.assigns.social_links_data, platform)
         }
       else
-        {socket.assigns.used_social_platforms, socket.assigns.social_links, socket.assigns.social_links_data}
+        {socket.assigns.used_social_platforms, socket.assigns.social_links,
+         socket.assigns.social_links_data}
       end
 
     socket
@@ -221,6 +229,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     case delete_qlink_page_image(socket.assigns.page) do
       {:ok, page} ->
         changeset = Qlink.change_page(page)
+
         socket
         |> assign(page: page)
         |> assign(form: to_form(changeset))
@@ -236,12 +245,14 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   def handle_event("show_add_link_modal", _params, socket) do
     if socket.assigns.page.id do
       max_order = get_max_display_order(socket.assigns.links)
-      changeset = Qlink.change_link(%QlinkLink{}, %{
-        qlink_page_id: socket.assigns.page.id,
-        type: :standard,
-        display_order: max_order + 1,
-        is_visible: true
-      })
+
+      changeset =
+        Qlink.change_link(%QlinkLink{}, %{
+          qlink_page_id: socket.assigns.page.id,
+          type: :standard,
+          display_order: max_order + 1,
+          is_visible: true
+        })
 
       socket
       |> assign(show_link_modal: true, editing_link: nil, link_form: to_form(changeset))
@@ -293,6 +304,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
         Qlink.update_link(socket.assigns.editing_link, link_params)
       else
         max_order = get_max_display_order(socket.assigns.links)
+
         final_params =
           link_params
           |> Map.put("qlink_page_id", socket.assigns.page.id)
@@ -351,11 +363,13 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   def handle_event("show_add_section_modal", _params, socket) do
     if socket.assigns.page.id do
       max_order = get_max_section_order(socket.assigns.sections)
-      changeset = Qlink.change_section(%QlinkSection{}, %{
-        qlink_page_id: socket.assigns.page.id,
-        display_order: max_order + 1,
-        is_collapsed: false
-      })
+
+      changeset =
+        Qlink.change_section(%QlinkSection{}, %{
+          qlink_page_id: socket.assigns.page.id,
+          display_order: max_order + 1,
+          is_collapsed: false
+        })
 
       socket
       |> assign(show_section_modal: true, editing_section: nil, section_form: to_form(changeset))
@@ -371,7 +385,11 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     changeset = Qlink.change_section(section, %{})
 
     socket
-    |> assign(show_section_modal: true, editing_section: section, section_form: to_form(changeset))
+    |> assign(
+      show_section_modal: true,
+      editing_section: section,
+      section_form: to_form(changeset)
+    )
     |> noreply()
   end
 
@@ -384,7 +402,8 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
   @impl true
   def handle_event("validate_section", %{"qlink_section" => section_params}, socket) do
-    section = socket.assigns.editing_section || %QlinkSection{qlink_page_id: socket.assigns.page.id}
+    section =
+      socket.assigns.editing_section || %QlinkSection{qlink_page_id: socket.assigns.page.id}
 
     changeset = Qlink.change_section(section, section_params)
 
@@ -400,6 +419,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
         Qlink.update_section(socket.assigns.editing_section, section_params)
       else
         max_order = get_max_section_order(socket.assigns.sections)
+
         section_params
         |> Map.put("qlink_page_id", socket.assigns.page.id)
         |> Map.put("display_order", max_order + 1)
@@ -411,7 +431,12 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
         sections = Qlink.list_page_sections(socket.assigns.page.id)
 
         socket
-        |> assign(sections: sections, show_section_modal: false, editing_section: nil, section_form: nil)
+        |> assign(
+          sections: sections,
+          show_section_modal: false,
+          editing_section: nil,
+          section_form: nil
+        )
         |> put_flash(:info, "Section saved successfully")
         |> noreply()
 
@@ -492,14 +517,20 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
   defp save_page(socket, :edit, page_params, _all_params) do
     filename = ImageUpload.consume_upload(socket, :image, socket.assigns.page, CreatorImage)
-    page_params_with_image = if filename, do: Map.put(page_params, "profile_photo", filename), else: page_params
+
+    page_params_with_image =
+      if filename, do: Map.put(page_params, "profile_photo", filename), else: page_params
 
     require Logger
-    Logger.debug("save_page :edit - social_links_data assign: #{inspect(socket.assigns.social_links_data)}")
 
-    social_links_map = socket.assigns.social_links_data
-    |> Enum.filter(fn {_platform, url} -> url != "" end)
-    |> Enum.into(%{})
+    Logger.debug(
+      "save_page :edit - social_links_data assign: #{inspect(socket.assigns.social_links_data)}"
+    )
+
+    social_links_map =
+      socket.assigns.social_links_data
+      |> Enum.filter(fn {_platform, url} -> url != "" end)
+      |> Enum.into(%{})
 
     Logger.debug("save_page :edit - filtered social_links_map: #{inspect(social_links_map)}")
 
@@ -523,11 +554,14 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     temp_page = %QlinkPage{creator_id: creator.id}
 
     filename = ImageUpload.consume_upload(socket, :image, temp_page, CreatorImage)
-    page_params_with_image = if filename, do: Map.put(page_params, "profile_photo", filename), else: page_params
 
-    social_links_map = socket.assigns.social_links_data
-    |> Enum.filter(fn {_platform, url} -> url != "" end)
-    |> Enum.into(%{})
+    page_params_with_image =
+      if filename, do: Map.put(page_params, "profile_photo", filename), else: page_params
+
+    social_links_map =
+      socket.assigns.social_links_data
+      |> Enum.filter(fn {_platform, url} -> url != "" end)
+      |> Enum.into(%{})
 
     page_params_with_image = Map.put(page_params_with_image, "social_links", social_links_map)
 
@@ -550,16 +584,24 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   end
 
   defp normalize_social_links_params(page_params, social_links_data) do
-    social_links_map = social_links_data
-    |> Enum.filter(fn {_platform, url} -> url != "" end)
-    |> Enum.into(%{})
+    social_links_map =
+      social_links_data
+      |> Enum.filter(fn {_platform, url} -> url != "" end)
+      |> Enum.into(%{})
 
     Map.put(page_params, "social_links", social_links_map)
   end
 
-
   def available_social_platforms(used_platforms) do
-    all_platforms = ["twitter", "instagram", "facebook", "linkedin", "youtube", "tiktok", "github"]
+    all_platforms = [
+      "twitter",
+      "instagram",
+      "facebook",
+      "linkedin",
+      "youtube",
+      "tiktok",
+      "github"
+    ]
 
     all_platforms
     |> Enum.reject(&MapSet.member?(used_platforms, &1))
@@ -576,9 +618,12 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
   defp extract_id_from_params(params) do
     case Map.get(params, "_target") do
-      ["social_links", id | _] -> id
+      ["social_links", id | _] ->
+        id
+
       _ ->
         social_links = Map.get(params, "social_links", %{})
+
         case Map.keys(social_links) do
           [id | _] -> id
           _ -> nil
@@ -620,14 +665,17 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
   defp get_max_section_order(sections) do
     case sections do
-      [] -> 0
-      sections -> Enum.max_by(sections, & &1.display_order, fn -> %{display_order: 0} end).display_order
+      [] ->
+        0
+
+      sections ->
+        Enum.max_by(sections, & &1.display_order, fn -> %{display_order: 0} end).display_order
     end
   end
 
   defp calculate_section_order(section, sections, direction) do
     sorted_sections = Enum.sort_by(sections, & &1.display_order)
-    current_index = Enum.find_index(sorted_sections, & &1.id == section.id)
+    current_index = Enum.find_index(sorted_sections, &(&1.id == section.id))
 
     case {direction, current_index} do
       {"up", index} when not is_nil(index) and index > 0 ->
@@ -652,8 +700,11 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
           {:ok, _} ->
             updated_sections = Qlink.list_page_sections(section1.qlink_page_id)
             {:ok, updated_sections}
-          {:error, reason} -> {:error, reason}
+
+          {:error, reason} ->
+            {:error, reason}
         end
+
       {:error, reason} ->
         {:error, reason}
     end
@@ -665,7 +716,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
       |> Enum.filter(fn l -> l.qlink_section_id == link.qlink_section_id end)
       |> Enum.sort_by(& &1.display_order)
 
-    current_index = Enum.find_index(same_section_links, & &1.id == link.id)
+    current_index = Enum.find_index(same_section_links, &(&1.id == link.id))
 
     case {direction, current_index} do
       {"up", index} when not is_nil(index) and index > 0 ->
@@ -688,10 +739,15 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
       {:ok, _} ->
         case Qlink.update_link(link2, %{display_order: temp_order}) do
           {:ok, _} ->
-            updated_links = Qlink.list_page_links(link1.qlink_page_id) |> Repo.preload(:qlink_section)
+            updated_links =
+              Qlink.list_page_links(link1.qlink_page_id) |> Repo.preload(:qlink_section)
+
             {:ok, updated_links}
-          {:error, reason} -> {:error, reason}
+
+          {:error, reason} ->
+            {:error, reason}
         end
+
       {:error, reason} ->
         {:error, reason}
     end
@@ -823,5 +879,4 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     </div>
     """
   end
-
 end

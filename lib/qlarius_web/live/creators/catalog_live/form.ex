@@ -101,7 +101,6 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
     {:noreply, assign(socket, :catalog, catalog)}
   end
 
-
   defp save_catalog(socket, :edit, catalog_params) do
     catalog_params_with_image =
       ImageUpload.consume_and_add_to_params(

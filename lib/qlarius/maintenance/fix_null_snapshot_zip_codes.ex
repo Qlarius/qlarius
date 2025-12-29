@@ -59,17 +59,25 @@ defmodule Qlarius.Maintenance.FixNullSnapshotZipCodes do
     offer_completely_null = count_completely_null_snapshots(Offer)
     ae_completely_null = count_completely_null_snapshots(AdEvent)
 
-    Logger.info("\n2. Records with COMPLETELY NULL snapshots (need BackfillMissingSnapshotsWorker):")
+    Logger.info(
+      "\n2. Records with COMPLETELY NULL snapshots (need BackfillMissingSnapshotsWorker):"
+    )
+
     Logger.info("  target_populations: #{tp_completely_null}")
     Logger.info("  offers: #{offer_completely_null}")
     Logger.info("  ad_events: #{ae_completely_null}")
     Logger.info("  SUBTOTAL: #{tp_completely_null + offer_completely_null + ae_completely_null}")
 
-    Logger.info("\n=== TOTAL ISSUES: #{tp_null_inside + offer_null_inside + ae_null_inside + tp_completely_null + offer_completely_null + ae_completely_null} ===")
+    Logger.info(
+      "\n=== TOTAL ISSUES: #{tp_null_inside + offer_null_inside + ae_null_inside + tp_completely_null + offer_completely_null + ae_completely_null} ==="
+    )
 
     if tp_null_inside + offer_null_inside + ae_null_inside > 0 do
       Logger.info("\nSample records with 'null' inside snapshots:")
-      sample_broken_records() |> Enum.take(5) |> Enum.each(fn record ->
+
+      sample_broken_records()
+      |> Enum.take(5)
+      |> Enum.each(fn record ->
         Logger.info("  me_file_id: #{record.me_file_id}, table: #{record.table}")
       end)
     end
@@ -87,7 +95,9 @@ defmodule Qlarius.Maintenance.FixNullSnapshotZipCodes do
         ad_events: ae_completely_null,
         subtotal: tp_completely_null + offer_completely_null + ae_completely_null
       },
-      total: tp_null_inside + offer_null_inside + ae_null_inside + tp_completely_null + offer_completely_null + ae_completely_null
+      total:
+        tp_null_inside + offer_null_inside + ae_null_inside + tp_completely_null +
+          offer_completely_null + ae_completely_null
     }
   end
 
@@ -132,13 +142,18 @@ defmodule Qlarius.Maintenance.FixNullSnapshotZipCodes do
     # Cast JSONB to text first, then search
     from(t in table,
       where: not is_nil(t.matching_tags_snapshot),
-      where: fragment(
-        "CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ?",
-        t.matching_tags_snapshot, "%, null,%",
-        t.matching_tags_snapshot, "%[null,%",
-        t.matching_tags_snapshot, "%, null]%",
-        t.matching_tags_snapshot, "%\"\",%"
-      )
+      where:
+        fragment(
+          "CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ?",
+          t.matching_tags_snapshot,
+          "%, null,%",
+          t.matching_tags_snapshot,
+          "%[null,%",
+          t.matching_tags_snapshot,
+          "%, null]%",
+          t.matching_tags_snapshot,
+          "%\"\",%"
+        )
     )
     |> Repo.all()
     |> Enum.filter(&has_null_zip_code?/1)
@@ -218,13 +233,18 @@ defmodule Qlarius.Maintenance.FixNullSnapshotZipCodes do
     # Cast JSONB to text first, then search
     from(t in table,
       where: not is_nil(t.matching_tags_snapshot),
-      where: fragment(
-        "CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ?",
-        t.matching_tags_snapshot, "%, null,%",
-        t.matching_tags_snapshot, "%[null,%",
-        t.matching_tags_snapshot, "%, null]%",
-        t.matching_tags_snapshot, "%\"\",%"
-      ),
+      where:
+        fragment(
+          "CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ? OR CAST(? AS text) LIKE ?",
+          t.matching_tags_snapshot,
+          "%, null,%",
+          t.matching_tags_snapshot,
+          "%[null,%",
+          t.matching_tags_snapshot,
+          "%, null]%",
+          t.matching_tags_snapshot,
+          "%\"\",%"
+        ),
       select: %{id: t.id, me_file_id: t.me_file_id, snapshot: t.matching_tags_snapshot}
     )
     |> Repo.all()
@@ -241,9 +261,12 @@ defmodule Qlarius.Maintenance.FixNullSnapshotZipCodes do
           [_id, "", _order] -> true
           _ -> false
         end)
-      _ -> false
+
+      _ ->
+        false
     end)
   end
+
   defp has_null_zip_code?(_), do: false
 
   defp process_batch(table, records, batch_num) do
@@ -256,7 +279,10 @@ defmodule Qlarius.Maintenance.FixNullSnapshotZipCodes do
     Enum.reduce(records, 0, fn record, count ->
       case Map.get(zip_codes, record.me_file_id) do
         nil ->
-          Logger.warning("  Batch #{batch_num}: No zip code found for me_file_id #{record.me_file_id}")
+          Logger.warning(
+            "  Batch #{batch_num}: No zip code found for me_file_id #{record.me_file_id}"
+          )
+
           count
 
         zip_code ->
@@ -266,7 +292,10 @@ defmodule Qlarius.Maintenance.FixNullSnapshotZipCodes do
               count + 1
 
             {:error, reason} ->
-              Logger.error("  Batch #{batch_num}: Failed to fix snapshot for #{table.__schema__(:source)} id=#{record.id}: #{inspect(reason)}")
+              Logger.error(
+                "  Batch #{batch_num}: Failed to fix snapshot for #{table.__schema__(:source)} id=#{record.id}: #{inspect(reason)}"
+              )
+
               count
           end
       end
@@ -289,41 +318,46 @@ defmodule Qlarius.Maintenance.FixNullSnapshotZipCodes do
   end
 
   defp fix_snapshot(%{"tags" => tags}, zip_code) when is_list(tags) do
-    fixed_tags = Enum.map(tags, fn tag ->
-      case tag do
-        # Match the Home Zip Code parent trait
-        [@home_zip_code_trait_id, parent_name, parent_order, child_tags] ->
-          fixed_child_tags = Enum.map(child_tags, fn child_tag ->
-            case child_tag do
-              # Fix NULL or empty string tag values
-              [child_id, tag_value, child_order] when is_nil(tag_value) or tag_value == "" ->
-                [child_id, zip_code, child_order]
+    fixed_tags =
+      Enum.map(tags, fn tag ->
+        case tag do
+          # Match the Home Zip Code parent trait
+          [@home_zip_code_trait_id, parent_name, parent_order, child_tags] ->
+            fixed_child_tags =
+              Enum.map(child_tags, fn child_tag ->
+                case child_tag do
+                  # Fix NULL or empty string tag values
+                  [child_id, tag_value, child_order] when is_nil(tag_value) or tag_value == "" ->
+                    [child_id, zip_code, child_order]
 
-              # Keep valid tag values as-is
-              child_tag ->
-                child_tag
-            end
-          end)
+                  # Keep valid tag values as-is
+                  child_tag ->
+                    child_tag
+                end
+              end)
 
-          [@home_zip_code_trait_id, parent_name, parent_order, fixed_child_tags]
+            [@home_zip_code_trait_id, parent_name, parent_order, fixed_child_tags]
 
-        # Keep other traits unchanged
-        other_tag ->
-          other_tag
-      end
-    end)
+          # Keep other traits unchanged
+          other_tag ->
+            other_tag
+        end
+      end)
 
     {:ok, %{"tags" => fixed_tags}}
   end
+
   defp fix_snapshot(snapshot, _zip_code) do
     {:error, "Invalid snapshot structure: #{inspect(snapshot)}"}
   end
 
   defp update_record(table, id, new_snapshot) do
     from(t in table, where: t.id == ^id)
-    |> Repo.update_all(set: [
-      matching_tags_snapshot: new_snapshot,
-      updated_at: DateTime.utc_now() |> DateTime.truncate(:second)
-    ])
+    |> Repo.update_all(
+      set: [
+        matching_tags_snapshot: new_snapshot,
+        updated_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      ]
+    )
   end
 end

@@ -20,4 +20,3 @@ defmodule Qlarius.Accounts.AliasWord do
     |> unique_constraint([:word, :type])
   end
 end
-

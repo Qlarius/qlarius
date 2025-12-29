@@ -104,6 +104,7 @@ defmodule Qlarius.Jobs.FixNullZipCodeTagValuesWorker do
       |> Repo.all()
 
     Logger.info("Sample of tags needing fix:")
+
     Enum.each(sample, fn tag ->
       Logger.info(
         "  MeFileTag ID: #{tag.id}, trait_id: #{tag.trait_id}, " <>
@@ -186,9 +187,7 @@ defmodule Qlarius.Jobs.FixNullZipCodeTagValuesWorker do
           :ok
 
         {:error, reason} ->
-          Logger.error(
-            "FixNullZipCodeTagValuesWorker: ❌ Transaction failed: #{inspect(reason)}"
-          )
+          Logger.error("FixNullZipCodeTagValuesWorker: ❌ Transaction failed: #{inspect(reason)}")
 
           {:error, reason}
       end

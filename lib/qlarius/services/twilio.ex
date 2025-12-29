@@ -125,8 +125,10 @@ defmodule Qlarius.Services.Twilio do
         carrier_info = %{
           type: get_in(response, ["line_type_intelligence", "type"]),
           carrier_name: get_in(response, ["line_type_intelligence", "carrier_name"]),
-          mobile_country_code: get_in(response, ["line_type_intelligence", "mobile_country_code"]),
-          mobile_network_code: get_in(response, ["line_type_intelligence", "mobile_network_code"]),
+          mobile_country_code:
+            get_in(response, ["line_type_intelligence", "mobile_country_code"]),
+          mobile_network_code:
+            get_in(response, ["line_type_intelligence", "mobile_network_code"]),
           country_code: response["country_code"],
           national_format: response["national_format"],
           valid: response["valid"],
@@ -151,16 +153,18 @@ defmodule Qlarius.Services.Twilio do
   def validate_carrier(phone_number) do
     if skip_carrier_validation?() do
       Logger.warning("Carrier validation SKIPPED (dev mode)", phone_number: phone_number)
-      {:ok, %{
-        type: "mobile",
-        carrier_name: "DEV MODE - Validation Skipped",
-        country_code: "US",
-        valid: true,
-        mobile_country_code: nil,
-        mobile_network_code: nil,
-        national_format: phone_number,
-        error_code: nil
-      }}
+
+      {:ok,
+       %{
+         type: "mobile",
+         carrier_name: "DEV MODE - Validation Skipped",
+         country_code: "US",
+         valid: true,
+         mobile_country_code: nil,
+         mobile_network_code: nil,
+         national_format: phone_number,
+         error_code: nil
+       }}
     else
       do_validate_carrier(phone_number)
     end
@@ -175,13 +179,16 @@ defmodule Qlarius.Services.Twilio do
         {:error, :non_us_number, "We currently only support US phone numbers"}
 
       {:ok, %{type: "voip"}} ->
-        {:error, :voip_not_allowed, "VOIP numbers are not supported. Please use a mobile number from a major carrier"}
+        {:error, :voip_not_allowed,
+         "VOIP numbers are not supported. Please use a mobile number from a major carrier"}
 
       {:ok, %{type: "landline"}} ->
-        {:error, :landline_not_allowed, "Landline numbers are not supported. Please use a mobile number"}
+        {:error, :landline_not_allowed,
+         "Landline numbers are not supported. Please use a mobile number"}
 
       {:ok, %{type: "mobile", carrier_name: nil}} ->
-        {:error, :unknown_carrier, "Unable to verify carrier. Please ensure you're using a major US carrier"}
+        {:error, :unknown_carrier,
+         "Unable to verify carrier. Please ensure you're using a major US carrier"}
 
       {:ok, %{type: "mobile", carrier_name: carrier} = info} ->
         if carrier_allowed?(carrier) do
@@ -192,7 +199,9 @@ defmodule Qlarius.Services.Twilio do
             phone_number: phone_number,
             full_info: inspect(info)
           )
-          {:error, :carrier_not_allowed, "We currently only support major US carriers. Your carrier: #{carrier}"}
+
+          {:error, :carrier_not_allowed,
+           "We currently only support major US carriers. Your carrier: #{carrier}"}
         end
 
       {:ok, %{type: type}} ->
@@ -217,8 +226,9 @@ defmodule Qlarius.Services.Twilio do
 
     Enum.any?(@allowed_carriers, fn allowed ->
       normalized_allowed = String.downcase(allowed)
+
       String.contains?(normalized_carrier, normalized_allowed) or
-      String.contains?(normalized_allowed, normalized_carrier)
+        String.contains?(normalized_allowed, normalized_carrier)
     end)
   end
 

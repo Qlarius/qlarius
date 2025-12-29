@@ -123,7 +123,9 @@
               <.form
                 :let={_f}
                 for={}
-                action={~p"/creators_cont/content_groups/#{@content_group}/add_default_tiqit_classes"}
+                action={
+                  ~p"/creators_cont/content_groups/#{@content_group}/add_default_tiqit_classes"
+                }
                 method="post"
               >
                 <input type="hidden" name="content_group_id" value={@content_group.id} />

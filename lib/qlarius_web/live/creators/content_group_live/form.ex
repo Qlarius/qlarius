@@ -102,7 +102,6 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Form do
     {:noreply, assign(socket, :group, group)}
   end
 
-
   defp save_group(socket, :edit, group_params) do
     group_params_with_image =
       ImageUpload.consume_and_add_to_params(
