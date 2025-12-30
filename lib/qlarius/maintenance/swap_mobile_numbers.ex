@@ -91,8 +91,10 @@ defmodule Qlarius.Maintenance.SwapMobileNumbers do
       display_mobile_info(user2)
 
       IO.puts("\n--- After Swap Preview ---")
-      IO.puts("User 1 (#{user1.alias}) would get: #{format_mobile(user2.mobile_number)}")
-      IO.puts("User 2 (#{user2.alias}) would get: #{format_mobile(user1.mobile_number)}")
+      decrypted2 = if user2.mobile_number_encrypted, do: user2.mobile_number_encrypted, else: nil
+      decrypted1 = if user1.mobile_number_encrypted, do: user1.mobile_number_encrypted, else: nil
+      IO.puts("User 1 (#{user1.alias}) would get: #{format_mobile(decrypted2)}")
+      IO.puts("User 2 (#{user2.alias}) would get: #{format_mobile(decrypted1)}")
 
       :ok
     else
@@ -183,10 +185,10 @@ defmodule Qlarius.Maintenance.SwapMobileNumbers do
                 user2: updated_user2,
                 summary: %{
                   user1_alias: updated_user1.alias,
-                  user1_new_mobile: format_mobile(updated_user1.mobile_number),
+                  user1_new_mobile: format_mobile(decrypted_u1),
                   user1_verified: !is_nil(updated_user1.phone_verified_at),
                   user2_alias: updated_user2.alias,
-                  user2_new_mobile: format_mobile(updated_user2.mobile_number),
+                  user2_new_mobile: format_mobile(decrypted_u2),
                   user2_verified: !is_nil(updated_user2.phone_verified_at)
                 }
               }
@@ -250,9 +252,12 @@ defmodule Qlarius.Maintenance.SwapMobileNumbers do
              is_binary(expected_mobile2) do
     with {:ok, user1} <- find_user_by_alias(alias1),
          {:ok, user2} <- find_user_by_alias(alias2) do
+      decrypted1 = if user1.mobile_number_encrypted, do: user1.mobile_number_encrypted, else: nil
+      decrypted2 = if user2.mobile_number_encrypted, do: user2.mobile_number_encrypted, else: nil
+
       results = [
-        {user1.alias, user1.mobile_number, expected_mobile1},
-        {user2.alias, user2.mobile_number, expected_mobile2}
+        {user1.alias, decrypted1, expected_mobile1},
+        {user2.alias, decrypted2, expected_mobile2}
       ]
 
       IO.puts("\n=== Verification Results ===")

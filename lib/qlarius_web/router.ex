@@ -165,14 +165,14 @@ defmodule QlariusWeb.Router do
   scope "/", QlariusWeb do
     pipe_through [:browser, :require_auth]
 
-    get "/home", PageController, :home
-
     live_session :current_scope,
       on_mount: [
         {QlariusWeb.UserAuth, :mount_current_scope},
         {QlariusWeb.UserAuth, :ensure_authenticated},
-        {QlariusWeb.UserAuth, :require_initialized_mefile}
+        {QlariusWeb.UserAuth, :require_initialized_mefile},
+        {QlariusWeb.Layouts, :set_current_path}
       ] do
+      live "/home", HomeLive, :index
       live "/users/settings", UserSettingsLive, :edit
       live "/wallet", WalletLive, :index
       live "/ads", AdsLive, :index

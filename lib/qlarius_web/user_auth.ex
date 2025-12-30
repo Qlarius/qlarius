@@ -101,7 +101,9 @@ defmodule QlariusWeb.UserAuth do
   end
 
   def redirect_if_user_is_authenticated(conn, _opts) do
-    if conn.assigns[:current_scope] do
+    mode = conn.params["mode"]
+
+    if conn.assigns[:current_scope] && mode != "proxy" do
       conn
       |> redirect(to: signed_in_path(conn))
       |> halt()
@@ -178,10 +180,11 @@ defmodule QlariusWeb.UserAuth do
     end
   end
 
-  def on_mount(:redirect_if_user_is_authenticated, _params, session, socket) do
+  def on_mount(:redirect_if_user_is_authenticated, params, session, socket) do
     socket = mount_current_scope(socket, session)
+    mode = Map.get(params, "mode")
 
-    if socket.assigns.current_scope && socket.assigns.current_scope.true_user do
+    if socket.assigns.current_scope && socket.assigns.current_scope.true_user && mode != "proxy" do
       {:halt, Phoenix.LiveView.redirect(socket, to: signed_in_path(socket))}
     else
       {:cont, socket}

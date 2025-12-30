@@ -157,9 +157,15 @@ defmodule QlariusWeb.Layouts do
     <.mobile_sidebar {assigns} />
     <.right_sidebar_drawer {assigns} />
 
+    <%!-- Onboarding tip (shown based on conditions) --%>
+    <.onboarding_tip :if={@current_scope} current_path={@current_path} current_scope={@current_scope} />
+
     <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
     <div :if={@current_scope} class="dock z-40">
-      <button class={[assigns[:current_path] == "/" && "dock-active"]} phx-click={JS.navigate(~p"/")}>
+      <button
+        class={[assigns[:current_path] == "/home" && "dock-active"]}
+        phx-click={JS.navigate(~p"/home")}
+      >
         <.icon name="hero-home" class="size-[1.5em]" />
         <span class="dock-label">Home</span>
       </button>

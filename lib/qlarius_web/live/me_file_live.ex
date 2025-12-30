@@ -23,13 +23,7 @@ defmodule QlariusWeb.MeFileLive do
         zip_lookup_error={@zip_lookup_error}
       />
       <div class="mb-8 flex gap-2 justify-start items-center">
-        <div class="text-xl">Edit existing tags below.</div>
-        <.link
-          navigate={~p"/me_file_builder"}
-          class="btn btn-primary btn-soft btn-md rounded-full"
-        >
-          <.icon name="hero-plus" class="h-4 w-4" /> Add more
-        </.link>
+        <div class="text-xl">Tap to edit or delete a tag below. Select "Tagger" below to add more tags.</div>
       </div>
 
       <div class="space-y-8 py-6">
@@ -62,7 +56,7 @@ defmodule QlariusWeb.MeFileLive do
 
       <.link
         navigate={~p"/me_file_builder"}
-        class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-6 btn btn-primary btn-lg rounded-full flex items-center gap-1 z-10 px-4 py-5 shadow-lg"
+        class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-6 btn btn-primary btn-lg rounded-full flex items-center gap-1 z-100 px-4 py-5 shadow-lg"
       >
         <.icon name="hero-plus" class="h-5 w-5" /> Tagger
       </.link>
