@@ -38,7 +38,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
           <div class="survey-panel survey-index-panel w-full h-full overflow-y-auto">
             <div class="h-full overflow-y-auto pb-32">
               <div class="mb-8 flex gap-2 justify-start items-center">
-                <span class="text-xl">You are what you tag. Choose a topic. Tag away.</span>
+                <span class="text-xl">Open a tag bucket below. Tag away.</span>
               </div>
 
               <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -198,7 +198,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
     socket =
       socket
-      |> assign(:current_path, "/me_file")
+      |> assign(:current_path, "/me_file_builder")
       |> assign(:categories, categories_with_stats)
       |> assign(:answered_survey_question_ids, answered_ids)
       |> assign(:editing, false)
