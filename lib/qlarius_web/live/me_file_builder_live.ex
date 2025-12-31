@@ -259,6 +259,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:show_modal, true)
       |> assign(:tag_edit_mode, "update")
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
+      |> push_event("scroll-tag-list-to-top", %{})
 
     {:noreply, socket}
   end

@@ -71,17 +71,11 @@ defmodule QlariusWeb.HomeLive do
             <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-6 w-auto" />
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+
             <div class="bg-youdata-200 dark:bg-youdata-900 text-base-content/80 rounded-lg border border-youdata-300 dark:border-youdata-500 p-3 flex flex-col items-center justify-center">
               <div class="text-3xl font-bold leading-none">{@current_scope.trait_count}</div>
               <div class="text-md font-medium text-base-content/60">tags</div>
             </div>
-
-            <div class="bg-youdata-200 dark:bg-youdata-900 text-base-content/80 rounded-lg border border-youdata-300 dark:border-youdata-500 p-3 flex flex-col items-center justify-center">
-              <div class="text-3xl font-bold leading-none">{@current_scope.tag_count}</div>
-              <div class="text-md font-medium text-base-content/60">data points</div>
-            </div>
-          </div>
         </div>
 
         <div class="bg-base-200 rounded-lg p-4">

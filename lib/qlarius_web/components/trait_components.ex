@@ -11,6 +11,8 @@ defmodule QlariusWeb.Components.TraitComponents do
   attr :editable, :boolean, default: true
 
   def trait_card(assigns) do
+    assigns = assign(assigns, :random_delay, :rand.uniform(2000))
+
     ~H"""
     <div
       id={"trait-card-#{@parent_trait_id}"}
@@ -25,6 +27,7 @@ defmodule QlariusWeb.Components.TraitComponents do
           "cursor-pointer",
         @extra_classes
       ]}
+      style={@tags_traits == [] && "--animation-delay: #{@random_delay}ms"}
       phx-click={
         @clickable && @editable && @tags_traits == [] &&
           @parent_trait_name not in ["Birthdate", "Age", "Sex (Bio)"] &&

@@ -77,7 +77,10 @@ defmodule QlariusWeb.MeFileHTML do
               phx-submit="save_tags"
               class="flex flex-col flex-1 min-h-0"
             >
-              <div class="flex-1 overflow-y-auto p-4">
+              <div
+                id="tag-list-scroll-container"
+                class="flex-1 overflow-y-auto p-4"
+              >
                 <input type="hidden" name="me_file_id" value={@me_file_id} />
                 <input type="hidden" name="trait_id" value={@trait_in_edit.id} />
                 <div

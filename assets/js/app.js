@@ -513,6 +513,14 @@ window.addEventListener("phx:focus", (e) => {
   }
 })
 
+// Handle scroll-to-top for tag list modal
+window.addEventListener("phx:scroll-tag-list-to-top", () => {
+  const container = document.getElementById("tag-list-scroll-container")
+  if (container) {
+    container.scrollTop = 0
+  }
+})
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: () => ({

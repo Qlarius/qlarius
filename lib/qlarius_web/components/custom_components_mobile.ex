@@ -70,9 +70,9 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
                 <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
                   <span class="block font-bold text-2xl">You're in!</span>
                   <span class="block mt-2">Welcome to the Home screen - a great overview of all your Qadabra activities.</span>
-                  <span class="block mt-2">Have a look around by visiting the pages in the menu dock below.</span>
+                  <span class="block mt-2">Have a quick look around by exploring the screens in the menu dock below.</span>
                   <span class="block w-full flex justify-center mt-2">
-                    <.icon name="hero-chevron-down" class="h-10 w-10 text-primary animate-bounce" />
+                    <.icon name="hero-chevron-down" class="h-10 w-10 mt-5 text-primary animate-bounce" />
                   </span>
                 </p>
               </div>
@@ -92,8 +92,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
               <div>
                 <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
                   <span class="block">Build and manage your MeFile tags here.</span>
-                  <span class="block mt-2">You've already got {@current_scope.trait_count} starter tags.</span>
-                  <span class="block mt-2">Add more tags to your MeFile to optimize sponsorships and fuel your wallet.</span>
+                  <span class="block mt-2">You've got {@current_scope.trait_count} starter tags. Add more tags to your MeFile to optimize sponsorships and fuel your wallet.</span>
                 </p>
               </div>
             <% end %>
@@ -101,9 +100,9 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
             <%= if @tip_data.screen == :tagger do %>
               <div>
                 <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
-                  <span class="block">Add new tags to your MeFile here.</span>
-                  <span class="block mt-2">Start above with the "ESSENTIALS" - a few basic tags to get you off to a great start.</span>
-                  <span class="block mt-2">Over time, build out your MeFile to optimize anonymous sponsorships for fuel your wallet.</span>
+                  <span class="block">The Tagger is where you will add new tags to your MeFile here.</span>
+                  <span class="block mt-2">Start above with the "ESSENTIALS" - a bucket of high-value tags to make a great first step.</span>
+                  <span class="block mt-2">Over time, build out your MeFile to optimize sponsorships and fuel your wallet.</span>
                 </p>
               </div>
             <% end %>

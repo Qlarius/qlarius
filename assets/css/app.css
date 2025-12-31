@@ -275,6 +275,7 @@
     border-radius: inherit;
     pointer-events: none;
     animation: qlarius-youdata-strobe 2.2s ease-in-out infinite;
+    animation-delay: var(--animation-delay, 0ms);
     will-change: box-shadow;
   }
 
