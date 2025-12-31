@@ -100,6 +100,8 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
       )
       |> Repo.all()
 
+    is_new_user = Enum.empty?(existing_offers)
+
     existing_keys =
       Enum.map(existing_offers, fn o ->
         {o.campaign_id, o.media_run_id, o.target_band_id}
@@ -115,13 +117,13 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
     keys_to_add = MapSet.difference(eligible_keys, existing_keys) |> MapSet.to_list()
     keys_to_remove = MapSet.difference(existing_keys, eligible_keys) |> MapSet.to_list()
 
-    created_count = create_missing_offers(me_file_id, eligible_bids, keys_to_add)
+    created_count = create_missing_offers(me_file_id, eligible_bids, keys_to_add, is_new_user)
     deleted_count = delete_invalid_offers(me_file_id, existing_offers, keys_to_remove)
 
     {created_count, deleted_count}
   end
 
-  defp create_missing_offers(me_file_id, eligible_bids, keys_to_add) do
+  defp create_missing_offers(me_file_id, eligible_bids, keys_to_add, is_new_user) do
     if keys_to_add == [] do
       0
     else
@@ -165,6 +167,8 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
           }
         end)
 
+      offers_to_create = apply_new_user_activation(offers_to_create, is_new_user)
+
       {count, _} =
         Repo.insert_all(Offer, offers_to_create,
           on_conflict: :nothing,
@@ -178,6 +182,29 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
       end
 
       count
+    end
+  end
+
+  defp apply_new_user_activation(offers, false), do: offers
+
+  defp apply_new_user_activation(offers, true) do
+    throttle_limit = get_throttle_ad_count()
+
+    {unthrottled, throttled} = Enum.split_with(offers, fn offer -> !offer.is_throttled end)
+
+    activated_unthrottled = Enum.map(unthrottled, &Map.put(&1, :is_current, true))
+
+    {activated_throttled, pending_throttled} = Enum.split(throttled, throttle_limit)
+
+    activated_throttled = Enum.map(activated_throttled, &Map.put(&1, :is_current, true))
+
+    activated_unthrottled ++ activated_throttled ++ pending_throttled
+  end
+
+  defp get_throttle_ad_count do
+    case Qlarius.Sponster.GlobalVariable.get_value("THROTTLE_AD_COUNT") do
+      {:ok, value} when is_integer(value) -> value
+      _ -> 3
     end
   end
 

@@ -48,6 +48,12 @@ defmodule Qlarius.Accounts do
     end)
     |> maybe_insert_proxy_user(attrs)
     |> maybe_insert_me_file_tags(attrs)
+    |> Ecto.Multi.run(:enqueue_sync_job, fn _repo, %{me_file: me_file} ->
+      Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker.new(%{me_file_id: me_file.id})
+      |> Oban.insert()
+
+      {:ok, :enqueued}
+    end)
     |> Repo.transaction()
   end
 

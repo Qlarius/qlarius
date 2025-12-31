@@ -242,7 +242,7 @@ defmodule QlariusWeb.WalletLive do
                 </div>
               </div>
               <div class="text-base-content/50">
-                <.icon name="hero-chevron-right" class="h-4 w-4" />
+                <.icon name="hero-chevron-right" class="h-6 w-6" />
               </div>
             </div>
           </li>
