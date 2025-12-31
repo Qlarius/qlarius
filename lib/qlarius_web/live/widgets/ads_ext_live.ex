@@ -230,17 +230,25 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
     ~H"""
     <Layouts.tipjar_container {assigns}>
       <div class="bg-base-100 dark:!bg-base-300">
-        <div class="container min-h-screen h-fit mx-auto px-0 py-8 max-w-3xl mt-[60px]">
-          <.live_component
-            module={QlariusWeb.ThreeTapStackComponent}
-            id="three-tap-stack"
-            active_offers={@active_offers}
-            user_ip={@user_ip}
-            current_scope={@current_scope}
-            host_uri={@host_uri}
-            recipient={@recipient}
-          />
-        </div>
+        <%= if Enum.empty?(@active_offers) do %>
+          <div class="flex items-center justify-center min-h-screen px-4">
+            <p class="text-xl text-base-content/70 text-center">
+              You current have no ad offers. For optimal results, make sure your MeFile is rich and accurate.
+            </p>
+          </div>
+        <% else %>
+          <div class="container min-h-screen h-fit mx-auto px-0 py-8 max-w-3xl mt-[60px]">
+            <.live_component
+              module={QlariusWeb.ThreeTapStackComponent}
+              id="three-tap-stack"
+              active_offers={@active_offers}
+              user_ip={@user_ip}
+              current_scope={@current_scope}
+              host_uri={@host_uri}
+              recipient={@recipient}
+            />
+          </div>
+        <% end %>
       </div>
     </Layouts.tipjar_container>
 

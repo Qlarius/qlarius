@@ -44,33 +44,33 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
           )
         }
       >
-        <div class="shadow-xl bg-base-100 dark:bg-base-200 !border-2 !border-primary rounded-xl p-6 relative">
-          <button
-            phx-click={
-              JS.hide(
-                to: "#onboarding-tip",
-                transition:
-                  {"ease-in duration-200", "translate-y-0 opacity-100", "translate-y-full opacity-0"}
-              )
-            }
-            class="absolute top-4 right-4 btn btn-outline btn-xs btn-circle"
-            aria-label="Close"
-          >
-            <.icon name="hero-x-mark" class="w-4 h-4" />
-          </button>
+        <div class="shadow-xl bg-base-100 dark:bg-base-200 !border-2 !border-primary rounded-xl overflow-hidden">
+          <%!-- Header banner with logo and close button --%>
+          <div class="bg-base-200 dark:bg-base-300 px-4 py-3 flex items-center justify-center relative">
+            <img src={@tip_data.logo} alt="" class="h-8 w-auto" />
+            <button
+              phx-click={
+                JS.hide(
+                  to: "#onboarding-tip",
+                  transition:
+                    {"ease-in duration-200", "translate-y-0 opacity-100", "translate-y-full opacity-0"}
+                )
+              }
+              class="absolute right-4 btn btn-default btn-xs btn-circle"
+              aria-label="Close"
+            >
+              <.icon name="hero-x-mark" class="w-5 h-5 text-base-content" />
+            </button>
+          </div>
 
-          <div class="flex flex-col gap-3">
-            <div class="flex justify-center">
-              <img src={@tip_data.logo} alt="" class="h-8 w-auto mb-3" />
-            </div>
-
+          <%!-- Content area --%>
+          <div class="p-6">
             <%= if @tip_data.screen == :home do %>
               <div>
                 <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
                   <span class="block font-bold text-2xl">You're in!</span>
                   <span class="block mt-2">Welcome to the Home screen - a great overview of all your Qadabra activities.</span>
-                  <span class="block mt-2">Have a look around.</span>
-                  <span class="block mt-2">Visit the pages in the menu dock below.</span>
+                  <span class="block mt-2">Have a look around by visiting the pages in the menu dock below.</span>
                   <span class="block w-full flex justify-center mt-2">
                     <.icon name="hero-chevron-down" class="h-10 w-10 text-primary animate-bounce" />
                   </span>
@@ -92,8 +92,8 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
               <div>
                 <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
                   <span class="block">Build and manage your MeFile tags here.</span>
-                  <span class="block mt-2">You've already got {@current_scope.trait_count} tags.</span>
-                  <span class="block mt-2">Visit the Tagger to add more.</span>
+                  <span class="block mt-2">You've already got {@current_scope.trait_count} starter tags.</span>
+                  <span class="block mt-2">Add more tags to your MeFile to optimize sponsorships and fuel your wallet.</span>
                 </p>
               </div>
             <% end %>
@@ -111,13 +111,14 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
             <%= if @tip_data.screen == :ads do %>
               <div>
                 <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
-                  <span class="block">Engage your ads here. Sell your attention to fuel your wallet.</span>
-                  <span class="block mt-2">Here are some intro ads to get you started.</span>
+                  <span class="block">Engage your ads and sell your attention.</span>
+                  <span class="block mt-2">These starter ads will seed your wallet.</span>
                   <span class="block mt-2">Build your MeFile to pull the right ads for you.</span>
                 </p>
               </div>
             <% end %>
           </div>
+          <%!-- End content area --%>
         </div>
       </div>
     <% end %>

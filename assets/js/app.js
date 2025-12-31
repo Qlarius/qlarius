@@ -467,6 +467,40 @@ Hooks.ZipSelector = {
   }
 }
 
+Hooks.TaggerButtonObserver = {
+  mounted() {
+    this.floatingBtn = document.getElementById('floating-tagger-btn')
+    
+    if (!this.floatingBtn) return
+    
+    const options = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0
+    }
+    
+    this.observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          // Inline button is visible, hide floating button
+          this.floatingBtn.classList.add('opacity-0', 'pointer-events-none')
+        } else {
+          // Inline button is out of view, show floating button
+          this.floatingBtn.classList.remove('opacity-0', 'pointer-events-none')
+        }
+      })
+    }, options)
+    
+    this.observer.observe(this.el)
+  },
+  
+  destroyed() {
+    if (this.observer) {
+      this.observer.disconnect()
+    }
+  }
+}
+
 // Handle focus events from LiveView
 window.addEventListener("phx:focus", (e) => {
   const el = document.getElementById(e.detail.id)

@@ -135,45 +135,50 @@ defmodule QlariusWeb.WalletLive do
           {@error}
         </div>
       <% else %>
-        <div class="flex justify-center mt-10 mb-6 space-x-2">
-          <div class="join">
-            <button
-              phx-click="paginate"
-              phx-value-page="1"
-              class={"join-item btn btn-md #{if @page < 2, do: "btn-disabled"}"}
-            >
-              Newest
-            </button>
-            <button
-              phx-click="paginate"
-              phx-value-page={if @page > 1, do: @page - 1, else: 1}
-              class={"join-item btn btn-md #{if @page < 2, do: "btn-disabled"}"}
-            >
-              <.icon name="hero-chevron-left" class="h-4 w-4" />
-            </button>
-            <div class="join-item btn btn-md btn-neutral">
-              Page {@page}
-            </div>
-            <button
-              phx-click="paginate"
-              phx-value-page={@page + 1}
-              class={"join-item btn btn-md #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
-            >
-              <.icon name="hero-chevron-right" class="h-4 w-4" />
-            </button>
-            <button
-              phx-click="paginate"
-              phx-value-page="oldest"
-              class={"join-item btn btn-md #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
-            >
-              Oldest
-            </button>
+        <%= if Enum.empty?(@paginated_entries.entries) do %>
+          <div class="flex items-center justify-center min-h-[50vh]">
+            <p class="text-xl text-base-content/70">No ledger activity to display.</p>
           </div>
-        </div>
+        <% else %>
+          <div class="flex justify-center mt-10 mb-6 space-x-2">
+            <div class="join">
+              <button
+                phx-click="paginate"
+                phx-value-page="1"
+                class={"join-item btn btn-md #{if @page < 2, do: "btn-disabled"}"}
+              >
+                Newest
+              </button>
+              <button
+                phx-click="paginate"
+                phx-value-page={if @page > 1, do: @page - 1, else: 1}
+                class={"join-item btn btn-md #{if @page < 2, do: "btn-disabled"}"}
+              >
+                <.icon name="hero-chevron-left" class="h-4 w-4" />
+              </button>
+              <div class="join-item btn btn-md btn-neutral">
+                Page {@page}
+              </div>
+              <button
+                phx-click="paginate"
+                phx-value-page={@page + 1}
+                class={"join-item btn btn-md #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
+              >
+                <.icon name="hero-chevron-right" class="h-4 w-4" />
+              </button>
+              <button
+                phx-click="paginate"
+                phx-value-page="oldest"
+                class={"join-item btn btn-md #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
+              >
+                Oldest
+              </button>
+            </div>
+          </div>
 
-        <ul class="-mx-4 sm:mx-0 list bg-base-200 dark:!bg-base-200 sm:rounded-box shadow-md overflow-hidden">
-          <li
-            :for={entry <- @paginated_entries.entries}
+          <ul class="-mx-4 sm:mx-0 list bg-base-200 dark:!bg-base-200 sm:rounded-box shadow-md overflow-hidden">
+            <li
+              :for={entry <- @paginated_entries.entries}
             class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100"
             phx-click={
               %JS{}
@@ -242,6 +247,7 @@ defmodule QlariusWeb.WalletLive do
             </div>
           </li>
         </ul>
+        <% end %>
       <% end %>
 
       <.ledger_entry_detail_sidebar :if={@sidebar_entry} entry={@sidebar_entry} />

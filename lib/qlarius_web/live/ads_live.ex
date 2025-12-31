@@ -171,16 +171,24 @@ defmodule QlariusWeb.AdsLive do
   def render(assigns) do
     ~H"""
     <Layouts.mobile {assigns}>
-      <div class="container mx-auto px-0 py-6 max-w-3xl">
-        <.live_component
-          module={QlariusWeb.ThreeTapStackComponent}
-          id="three-tap-stack"
-          active_offers={@active_offers}
-          user_ip={@user_ip}
-          current_scope={@current_scope}
-          host_uri={@host_uri}
-        />
-      </div>
+      <%= if Enum.empty?(@active_offers) do %>
+        <div class="flex items-center justify-center min-h-[50vh] px-4">
+          <p class="text-xl text-base-content/70 text-center">
+            You current have no ad offers. For optimal results, make sure your MeFile is rich and accurate.
+          </p>
+        </div>
+      <% else %>
+        <div class="container mx-auto px-0 py-6 max-w-3xl">
+          <.live_component
+            module={QlariusWeb.ThreeTapStackComponent}
+            id="three-tap-stack"
+            active_offers={@active_offers}
+            user_ip={@user_ip}
+            current_scope={@current_scope}
+            host_uri={@host_uri}
+          />
+        </div>
+      <% end %>
     </Layouts.mobile>
     """
   end

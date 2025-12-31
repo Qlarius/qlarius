@@ -23,10 +23,10 @@ defmodule QlariusWeb.MeFileLive do
         zip_lookup_error={@zip_lookup_error}
       />
       <div class="mb-8 flex gap-2 justify-start items-center">
-        <div class="text-xl">Tap to edit or delete a tag below. Select "Tagger" below to add more tags.</div>
+        <div class="text-xl">Tap to edit or delete existing tags below. Add more tags to optimize your MeFile.</div>
       </div>
 
-      <div class="space-y-8 py-6">
+      <div class="space-y-8 py-6 pb-24">
         <div :for={
           {{_id, name, _display_order}, parent_traits} <- @me_file_tag_map_by_category_trait_tag
         }>
@@ -52,11 +52,27 @@ defmodule QlariusWeb.MeFileLive do
 
           <div class="mt-8 border-b border-neutral-300 dark:border-neutral-500"></div>
         </div>
+
+        <%!-- Inline Tagger button at bottom of list --%>
+        <div
+          id="inline-tagger-btn"
+          class="flex justify-center mt-8"
+          phx-hook="TaggerButtonObserver"
+        >
+          <.link
+            navigate={~p"/me_file_builder"}
+            class="btn btn-primary btn-lg rounded-full flex items-center gap-2 px-6 py-5 shadow-lg"
+          >
+            <.icon name="hero-plus" class="h-5 w-5" /> Add more tags
+          </.link>
+        </div>
       </div>
 
+      <%!-- Floating Tagger button (hidden by default, shows when inline scrolls out) --%>
       <.link
+        id="floating-tagger-btn"
         navigate={~p"/me_file_builder"}
-        class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-6 btn btn-primary btn-lg rounded-full flex items-center gap-1 z-100 px-4 py-5 shadow-lg"
+        class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-6 btn btn-primary btn-lg rounded-full flex items-center gap-1 z-100 px-4 py-5 shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"
       >
         <.icon name="hero-plus" class="h-5 w-5" /> Tagger
       </.link>
