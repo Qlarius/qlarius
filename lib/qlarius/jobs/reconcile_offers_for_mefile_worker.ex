@@ -202,10 +202,7 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
   end
 
   defp get_throttle_ad_count do
-    case Qlarius.Sponster.GlobalVariable.get_value("THROTTLE_AD_COUNT") do
-      {:ok, value} when is_integer(value) -> value
-      _ -> 3
-    end
+    Qlarius.System.get_global_variable_int("THROTTLE_AD_COUNT", 3)
   end
 
   defp delete_invalid_offers(_me_file_id, existing_offers, keys_to_remove) do
