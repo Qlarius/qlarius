@@ -171,7 +171,7 @@ defmodule QlariusWeb.AdsLive do
   def render(assigns) do
     ~H"""
     <Layouts.mobile {assigns}>
-      <%= if Enum.empty?(@active_offers) do %>
+      <%= if !@loading && Enum.empty?(@active_offers) do %>
         <div class="flex items-center justify-center min-h-[50vh] px-4">
           <p class="text-xl text-base-content/70 text-center">
             You current have no ad offers. For optimal results, make sure your MeFile is rich and accurate.

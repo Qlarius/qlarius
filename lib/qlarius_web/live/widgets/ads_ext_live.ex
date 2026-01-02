@@ -230,7 +230,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
     ~H"""
     <Layouts.tipjar_container {assigns}>
       <div class="bg-base-100 dark:!bg-base-300">
-        <%= if Enum.empty?(@active_offers) do %>
+        <%= if !@loading && Enum.empty?(@active_offers) do %>
           <div class="flex items-center justify-center min-h-screen px-4">
             <p class="text-xl text-base-content/70 text-center">
               You current have no ad offers. For optimal results, make sure your MeFile is rich and accurate.
