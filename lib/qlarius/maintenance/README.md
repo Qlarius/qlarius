@@ -205,7 +205,65 @@ Sometimes the `tag_value` (second element in child tag array) can be:
 
 Both are invalid and need to be fixed by looking up the correct value from `me_file_tags`.
 
-### 4. SplitLedgerEntryDescriptions
+### 4. FixMissingMobileNumbers
+
+**Module**: `Qlarius.Maintenance.FixMissingMobileNumbers`
+
+Utility to fix users who registered but had their mobile numbers not saved due to a bug in the registration flow.
+
+#### The Bug
+
+Prior to the fix, `Accounts.register_new_user/1` was calling `User.changeset/2` instead of `User.registration_changeset/2`. The regular changeset doesn't handle mobile number encryption, so even though users entered their phone numbers during registration, they were never encrypted and saved to the database. This prevented users from logging back in.
+
+#### What It Does
+
+- Encrypts and saves the mobile number for affected users
+- Sets both `mobile_number_encrypted` and `mobile_number_hash` fields
+- Uses the same encryption logic as a proper registration
+
+#### Usage
+
+```elixir
+# Step 1: Find all users without mobile numbers
+Qlarius.Maintenance.FixMissingMobileNumbers.find_users_without_mobile()
+
+# Output:
+# === Users without mobile numbers ===
+# Found 1 users
+# ID: 200393, Alias: happy-slough-8114, Registered: 2026-01-03 09:44:44, Last login: 2026-01-03 09:44:44
+
+# Step 2: Dry run to preview the fix (doesn't update anything)
+Qlarius.Maintenance.FixMissingMobileNumbers.fix_user_dry_run(200393, "+15551234567")
+
+# Step 3: Actually fix the user
+Qlarius.Maintenance.FixMissingMobileNumbers.fix_user(200393, "+15551234567")
+
+# Output:
+# === Fixing user 200393 (happy-slough-8114) ===
+# Current mobile_number_encrypted: nil
+# Current mobile_number_hash: nil
+# New mobile number: +15551234567
+# 
+# ✅ SUCCESS!
+# Updated mobile_number_encrypted: "+15551234567"
+# Updated mobile_number_hash: "A1B2C3..."
+```
+
+#### When to Use
+
+Run this when:
+- Users report they can't log in with their phone number
+- New registrations show users with `nil` mobile numbers
+- You need to manually add/update a user's mobile number
+
+#### Safety
+
+- Uses the same `User.registration_changeset/2` as registration
+- Validates and normalizes phone numbers (converts to E.164 format)
+- Checks for unique constraint violations
+- Can be tested with dry run mode
+
+### 5. SplitLedgerEntryDescriptions
 
 **Module**: `Qlarius.Maintenance.SplitLedgerEntryDescriptions`
 

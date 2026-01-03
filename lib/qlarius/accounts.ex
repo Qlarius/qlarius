@@ -30,7 +30,7 @@ defmodule Qlarius.Accounts do
 
   def register_new_user(attrs) do
     Ecto.Multi.new()
-    |> Ecto.Multi.insert(:user, User.changeset(%User{}, attrs))
+    |> Ecto.Multi.insert(:user, User.registration_changeset(%User{}, attrs))
     |> Ecto.Multi.insert(:me_file, fn %{user: user} ->
       MeFile.changeset(%MeFile{}, %{
         user_id: user.id,

@@ -108,7 +108,7 @@
         <li>
           <%!-- TODO: Route not implemented - was ~p"/me_file" (route doesn't exist) --%>
           <.link
-            navigate="#"
+            navigate={~p"/me_file"}
             class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
           >
             <div class="flex items-center">
@@ -128,7 +128,7 @@
         <li>
           <%!-- TODO: Route not implemented - was ~p"/me_file/surveys" (route doesn't exist) --%>
           <.link
-            navigate="#"
+            navigate={~p"/me_file_builder"}
             class="flex items-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
           >
             <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata-500">
@@ -156,12 +156,12 @@
               </div>
               <span class="ml-3">Stash</span>
             </div>
-            <span
+            <%!-- <span
               class="bg-tiqit-600 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
               data-app-target="tagCount"
             >
               3
-            </span>
+            </span> --%>
           </.link>
         </li>
         <li>

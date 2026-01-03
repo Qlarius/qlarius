@@ -36,7 +36,7 @@ defmodule QlariusWeb.HomeLive do
 
           <div class="grid grid-cols-2 gap-4 mb-4">
             <div
-              class="bg-sponster-200 dark:bg-sponster-800 text-base-content/80 rounded-lg border border-sponster-300 dark:border-sponster-500 p-3 flex flex-col items-center justify-center cursor-pointer"
+              class="bg-sponster-200 dark:bg-sponster-800 text-base-content/80 rounded-lg border border-sponster-300 dark:border-sponster-500 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-sponster-300 dark:hover:bg-sponster-700 hover:border-sponster-400 dark:hover:border-sponster-400"
               phx-click={JS.navigate("/ads")}
             >
               <div class="text-3xl font-bold leading-none">{@current_scope.ads_count}</div>
@@ -44,7 +44,7 @@ defmodule QlariusWeb.HomeLive do
             </div>
 
             <div
-              class="bg-sponster-200 dark:bg-sponster-800 text-base-content/80 rounded-lg border border-sponster-300 dark:border-sponster-500 p-3 flex flex-col items-center justify-center cursor-pointer"
+              class="bg-sponster-200 dark:bg-sponster-800 text-base-content/80 rounded-lg border border-sponster-300 dark:border-sponster-500 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-sponster-300 dark:hover:bg-sponster-700 hover:border-sponster-400 dark:hover:border-sponster-400"
               phx-click={JS.navigate("/ads")}
             >
               <div class="text-3xl font-bold leading-none">
@@ -55,7 +55,7 @@ defmodule QlariusWeb.HomeLive do
           </div>
 
           <div
-            class="bg-sponster-200 dark:bg-sponster-800 text-base-content/80 rounded-lg border border-sponster-300 dark:border-sponster-500 p-3 flex flex-col items-center justify-center cursor-pointer"
+            class="bg-sponster-200 dark:bg-sponster-800 text-base-content/80 rounded-lg border border-sponster-300 dark:border-sponster-500 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-sponster-300 dark:hover:bg-sponster-700 hover:border-sponster-400 dark:hover:border-sponster-400"
             phx-click={JS.navigate("/wallet")}
           >
             <div class="text-3xl font-bold leading-none">
@@ -71,11 +71,14 @@ defmodule QlariusWeb.HomeLive do
             <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-6 w-auto" />
           </div>
 
-
-            <div class="bg-youdata-200 dark:bg-youdata-900 text-base-content/80 rounded-lg border border-youdata-300 dark:border-youdata-500 p-3 flex flex-col items-center justify-center">
-              <div class="text-3xl font-bold leading-none">{@current_scope.trait_count}</div>
+          <.link navigate={~p"/me_file"}>
+            <div class="bg-youdata-200 dark:bg-youdata-900 text-base-content/80 rounded-lg border border-youdata-300 dark:border-youdata-500 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-youdata-300 dark:hover:bg-youdata-800 hover:border-youdata-400 dark:hover:border-youdata-400">
+              <div class="text-3xl font-bold leading-none">
+                <%= Qlarius.YouData.MeFiles.MeFile.tag_count(@current_scope.user.me_file) %>
+              </div>
               <div class="text-md font-medium text-base-content/60">tags</div>
             </div>
+          </.link>
         </div>
 
         <div class="bg-base-200 rounded-lg p-4">
