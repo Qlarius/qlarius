@@ -321,5 +321,14 @@ defmodule QlariusWeb.Router do
       ] do
       live "/alias_words", AliasWordsLive, :index
     end
+
+    live_session :admin_mefile_inspector,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
+      live "/mefile_inspector", MeFileInspectorLive, :index
+      live "/mefile_inspector/:id", MeFileInspectorLive.Show, :show
+    end
   end
 end
