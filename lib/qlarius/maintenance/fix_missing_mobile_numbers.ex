@@ -2,10 +2,10 @@ defmodule Qlarius.Maintenance.FixMissingMobileNumbers do
   @moduledoc """
   Fixes users who registered but had their mobile numbers not saved due to the
   registration_changeset bug.
-  
+
   Usage in IEx:
       Qlarius.Maintenance.FixMissingMobileNumbers.fix_user(200393, "+15551234567")
-      
+
   Or to check which users are affected:
       Qlarius.Maintenance.FixMissingMobileNumbers.find_users_without_mobile()
   """
@@ -99,4 +99,3 @@ defmodule Qlarius.Maintenance.FixMissingMobileNumbers do
     end
   end
 end
-
