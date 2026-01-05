@@ -179,74 +179,77 @@ defmodule QlariusWeb.WalletLive do
           <ul class="-mx-4 sm:mx-0 list bg-base-200 dark:!bg-base-200 sm:rounded-box shadow-md overflow-hidden">
             <li
               :for={entry <- @paginated_entries.entries}
-            class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100"
-            phx-click={
-              %JS{}
-              |> JS.push("select_ledger_entry", loading: "#right-sidebar-container")
-              |> JS.add_class("translate-x-0", to: "#right-sidebar")
-              |> JS.remove_class("translate-x-full", to: "#right-sidebar")
-              |> JS.remove_class("opacity-0 pointer-events-none", to: "#right-sidebar-bg")
-              |> JS.add_class("sidebar-scroll-lock", to: "body")
-              |> JS.add_class("sidebar-scroll-lock", to: "html")
-            }
-            phx-value-entry_id={entry.id}
-          >
-            <div class="flex flex-col items-start justify-start mr-1">
-              <span class={[
-                "inline-flex items-center justify-center rounded-full w-8 h-8",
-                if(Decimal.compare(entry.amt, 0) == :gt,
-                  do: "!bg-sponster-200 dark:!bg-sponster-800",
-                  else: "!bg-tiqit-200 dark:!bg-tiqit-800"
-                )
-              ]}>
-                <.icon name={icon_for_meta_1(entry.meta_1)} class="h-4 w-4 text-base-content" />
-              </span>
-            </div>
-            <div class="list-col-grow">
-              <div class="text-lg leading-snug">{entry.description}</div>
-              <div class="text-base-content/50 text-sm">{entry.meta_1}</div>
-              <div class="text-base-content/50 text-sm">{format_date(entry.created_at)}</div>
-            </div>
-            <div class="flex items-start">
-              <div class="text-right mr-2">
-                <div class="flex items-center gap-1">
-                  <span
-                    :if={Decimal.compare(entry.amt, 0) != 0}
-                    class={[
-                      "badge badge-md p-1 mr-1",
+              class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100"
+              phx-click={
+                %JS{}
+                |> JS.push("select_ledger_entry", loading: "#right-sidebar-container")
+                |> JS.add_class("translate-x-0", to: "#right-sidebar")
+                |> JS.remove_class("translate-x-full", to: "#right-sidebar")
+                |> JS.remove_class("opacity-0 pointer-events-none", to: "#right-sidebar-bg")
+                |> JS.add_class("sidebar-scroll-lock", to: "body")
+                |> JS.add_class("sidebar-scroll-lock", to: "html")
+              }
+              phx-value-entry_id={entry.id}
+            >
+              <div class="flex flex-col items-start justify-start mr-1">
+                <span class={[
+                  "inline-flex items-center justify-center rounded-full w-8 h-8",
+                  if(Decimal.compare(entry.amt, 0) == :gt,
+                    do: "!bg-sponster-200 dark:!bg-sponster-800",
+                    else: "!bg-tiqit-200 dark:!bg-tiqit-800"
+                  )
+                ]}>
+                  <.icon name={icon_for_meta_1(entry.meta_1)} class="h-4 w-4 text-base-content" />
+                </span>
+              </div>
+              <div class="list-col-grow">
+                <div class="text-lg leading-snug">{entry.description}</div>
+                <div class="text-base-content/50 text-sm">{entry.meta_1}</div>
+                <div class="text-base-content/50 text-sm">{format_date(entry.created_at)}</div>
+              </div>
+              <div class="flex items-start">
+                <div class="text-right mr-2">
+                  <div class="flex items-center gap-1">
+                    <span
+                      :if={Decimal.compare(entry.amt, 0) != 0}
+                      class={[
+                        "badge badge-md p-1 mr-1",
+                        if(Decimal.compare(entry.amt, 0) == :gt,
+                          do: "!bg-sponster-200 dark:!bg-sponster-800",
+                          else: "!bg-tiqit-200 dark:!bg-tiqit-800"
+                        )
+                      ]}
+                    >
+                      <.icon
+                        name={
+                          if(Decimal.compare(entry.amt, 0) == :gt,
+                            do: "hero-plus",
+                            else: "hero-minus"
+                          )
+                        }
+                        class="h-3 w-3 text-base-content"
+                      />
+                    </span>
+                    <span class={[
+                      "text-lg font-bold",
                       if(Decimal.compare(entry.amt, 0) == :gt,
-                        do: "!bg-sponster-200 dark:!bg-sponster-800",
-                        else: "!bg-tiqit-200 dark:!bg-tiqit-800"
+                        do: "text-sponster-500 dark:text-sponster-300",
+                        else: "text-tiqit-500"
                       )
-                    ]}
-                  >
-                    <.icon
-                      name={
-                        if(Decimal.compare(entry.amt, 0) == :gt, do: "hero-plus", else: "hero-minus")
-                      }
-                      class="h-3 w-3 text-base-content"
-                    />
-                  </span>
-                  <span class={[
-                    "text-lg font-bold",
-                    if(Decimal.compare(entry.amt, 0) == :gt,
-                      do: "text-sponster-500 dark:text-sponster-300",
-                      else: "text-tiqit-500"
-                    )
-                  ]}>
-                    {format_currency(Decimal.abs(entry.amt))}
-                  </span>
+                    ]}>
+                      {format_currency(Decimal.abs(entry.amt))}
+                    </span>
+                  </div>
+                  <div class="text-base-content/50 text-sm">
+                    {format_currency(entry.running_balance)}
+                  </div>
                 </div>
-                <div class="text-base-content/50 text-sm">
-                  {format_currency(entry.running_balance)}
+                <div class="text-base-content/50">
+                  <.icon name="hero-chevron-right" class="h-6 w-6" />
                 </div>
               </div>
-              <div class="text-base-content/50">
-                <.icon name="hero-chevron-right" class="h-6 w-6" />
-              </div>
-            </div>
-          </li>
-        </ul>
+            </li>
+          </ul>
         <% end %>
       <% end %>
 

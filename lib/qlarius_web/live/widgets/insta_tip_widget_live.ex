@@ -93,6 +93,14 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
   end
 
   @impl true
+  def handle_info({:me_file_pending_referral_clicks_updated, pending_clicks_count}, socket) do
+    current_scope =
+      Map.put(socket.assigns.current_scope, :pending_referral_clicks_count, pending_clicks_count)
+
+    {:noreply, assign(socket, :current_scope, current_scope)}
+  end
+
+  @impl true
   def handle_event("initiate_insta_tip", %{"amount" => amount_str}, socket) do
     amount = Decimal.new(to_string(amount_str))
 

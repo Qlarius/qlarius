@@ -203,6 +203,8 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
 
   defp enqueue_completion_worker_if_needed(ad_event) do
     if ad_event.is_offer_complete do
+      create_referral_click_if_applicable(ad_event)
+
       HandleOfferCompletionWorker.new(%{
         offer_id: ad_event.offer_id,
         completed_at: NaiveDateTime.to_iso8601(ad_event.created_at)
@@ -211,6 +213,21 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
     end
 
     :ok
+  end
+
+  defp create_referral_click_if_applicable(ad_event) do
+    case Qlarius.Referrals.get_referral_by_me_file(ad_event.me_file_id) do
+      nil ->
+        :no_referral
+
+      referral ->
+        if DateTime.compare(referral.expires_at, DateTime.utc_now()) == :gt &&
+             referral.status == "active" do
+          Qlarius.Referrals.create_referral_click(referral.id, ad_event.id)
+        else
+          :expired_or_inactive
+        end
+    end
   end
 
   @doc """

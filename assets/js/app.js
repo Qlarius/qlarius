@@ -29,6 +29,46 @@ import {hooks as colocatedHooks} from "phoenix-colocated/qlarius"
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let Hooks = {}
 
+Hooks.CopyToClipboard = {
+  mounted() {
+    this.el.addEventListener("click", (e) => {
+      const targetId = this.el.dataset.target
+      const targetEl = document.getElementById(targetId)
+      
+      if (targetEl) {
+        targetEl.select()
+        targetEl.setSelectionRange(0, 99999)
+        
+        try {
+          const successful = document.execCommand('copy')
+          if (successful) {
+            this.pushEvent("copy_success", {})
+          }
+        } catch (err) {
+          console.error('Failed to copy: ', err)
+        }
+      }
+    })
+  }
+}
+
+Hooks.FlashAutoHide = {
+  mounted() {
+    this.timeout = setTimeout(() => {
+      this.el.style.transition = "opacity 300ms ease-in"
+      this.el.style.opacity = "0"
+      setTimeout(() => {
+        this.pushEvent("lv:clear-flash", { key: this.el.dataset.kind })
+      }, 300)
+    }, 3000)
+  },
+  destroyed() {
+    if (this.timeout) {
+      clearTimeout(this.timeout)
+    }
+  }
+}
+
 
 
 
@@ -535,6 +575,16 @@ const liveSocket = new LiveSocket("/live", Socket, {
 topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
+
+// Handle modal close events from server
+window.addEventListener("phx:close-modal", (e) => {
+  const modalId = e.detail.id
+  const modal = document.getElementById(modalId)
+  if (modal) {
+    const event = new Event("phx-remove", { bubbles: true })
+    modal.dispatchEvent(event)
+  }
+})
 
 // connect if there are any LiveViews on the page
 liveSocket.connect()

@@ -28,7 +28,8 @@ defmodule Qlarius.Accounts.Scope do
             ads_count: nil,
             home_zip: nil,
             tag_count: nil,
-            trait_count: nil
+            trait_count: nil,
+            pending_referral_clicks_count: nil
 
   @doc """
   Creates a scope for the given user.
@@ -49,7 +50,9 @@ defmodule Qlarius.Accounts.Scope do
       trait_count: MeFile.trait_tag_count(proxy_user.me_file),
       tag_count: MeFile.tag_count(proxy_user.me_file),
       wallet_balance: proxy_user.me_file.ledger_header.balance,
-      offered_amount: Offers.total_active_offer_amount(proxy_user.me_file)
+      offered_amount: Offers.total_active_offer_amount(proxy_user.me_file),
+      pending_referral_clicks_count:
+        Qlarius.Referrals.get_pending_clicks_for_me_file(proxy_user.me_file)
     }
   end
 end

@@ -23,7 +23,9 @@ defmodule QlariusWeb.MeFileLive do
         zip_lookup_error={@zip_lookup_error}
       />
       <div class="mb-8 flex gap-2 justify-start items-center">
-        <div class="text-xl">Tap to edit or delete existing tags below. Add more tags to optimize your MeFile.</div>
+        <div class="text-xl">
+          Tap to edit or delete existing tags below. Add more tags to optimize your MeFile.
+        </div>
       </div>
 
       <div class="space-y-8 py-6 pb-24">

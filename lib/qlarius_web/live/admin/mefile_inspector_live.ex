@@ -288,7 +288,10 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
               </table>
 
               <div :if={@mefiles == []} class="text-center py-12">
-                <.icon name="hero-magnifying-glass" class="w-16 h-16 mx-auto text-base-content/30 mb-4" />
+                <.icon
+                  name="hero-magnifying-glass"
+                  class="w-16 h-16 mx-auto text-base-content/30 mb-4"
+                />
                 <p class="text-lg font-medium text-base-content/70">No MeFiles found</p>
                 <p :if={@search_query != ""} class="text-sm text-base-content/50 mt-2">
                   Try a different search term

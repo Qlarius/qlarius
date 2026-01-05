@@ -136,6 +136,14 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
     {:noreply, assign(socket, :current_scope, current_scope)}
   end
 
+  @impl true
+  def handle_info({:me_file_pending_referral_clicks_updated, pending_clicks_count}, socket) do
+    current_scope =
+      Map.put(socket.assigns.current_scope, :pending_referral_clicks_count, pending_clicks_count)
+
+    {:noreply, assign(socket, :current_scope, current_scope)}
+  end
+
   # defp slider_data(slides) do
   #   """
   #   {

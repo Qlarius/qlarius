@@ -40,4 +40,12 @@ defmodule Qlarius.Wallets.MeFileStatsBroadcaster do
       {:me_file_stats_updated, me_file_id}
     )
   end
+
+  def broadcast_pending_referral_clicks_updated(me_file_id, pending_clicks_count) do
+    PubSub.broadcast(
+      Qlarius.PubSub,
+      "#{@topic_prefix}#{me_file_id}",
+      {:me_file_pending_referral_clicks_updated, pending_clicks_count}
+    )
+  end
 end

@@ -176,6 +176,7 @@ defmodule QlariusWeb.Router do
       live "/users/settings", UserSettingsLive, :edit
       live "/wallet", WalletLive, :index
       live "/ads", AdsLive, :index
+      live "/referrals", ReferralsLive, :index
       live "/proxy_users", ProxyUsersLive, :index
       live "/me_file", MeFileLive, :index
       live "/me_file_builder", MeFileBuilderLive, :index
@@ -185,6 +186,7 @@ defmodule QlariusWeb.Router do
       live "/creators/new", CreatorDashboard.Index, :new
       live "/creators/:id", CreatorDashboard.Show, :show
       live "/creators/:id/edit", CreatorDashboard.Show, :edit
+      live "/creators/:id/referrals", CreatorDashboard.Referrals, :index
 
       # Creator catalog/content routes (migrated from controllers)
       live "/creators/:id/catalogs/new", Creators.CatalogLive.Form, :new
@@ -256,6 +258,14 @@ defmodule QlariusWeb.Router do
     # Commented out unimplemented DashboardLive module - route not implemented yet
     # live "/", DashboardLive, :index
     resources "/recipients", RecipientController
+
+    live_session :admin_recipients,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
+      live "/recipients/:id/referrals", RecipientReferralsLive, :index
+    end
 
     live_session :admin_marketers,
       on_mount: [

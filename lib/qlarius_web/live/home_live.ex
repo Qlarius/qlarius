@@ -74,7 +74,7 @@ defmodule QlariusWeb.HomeLive do
           <.link navigate={~p"/me_file"}>
             <div class="bg-youdata-200 dark:bg-youdata-900 text-base-content/80 rounded-lg border border-youdata-300 dark:border-youdata-500 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-youdata-300 dark:hover:bg-youdata-800 hover:border-youdata-400 dark:hover:border-youdata-400">
               <div class="text-3xl font-bold leading-none">
-                <%= Qlarius.YouData.MeFiles.MeFile.tag_count(@current_scope.user.me_file) %>
+                {Qlarius.YouData.MeFiles.MeFile.tag_count(@current_scope.user.me_file)}
               </div>
               <div class="text-md font-medium text-base-content/60">tags</div>
             </div>

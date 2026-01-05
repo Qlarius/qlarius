@@ -5,6 +5,7 @@ defmodule Qlarius.Wallets.LedgerEntry do
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Sponster.AdEvent
   alias Qlarius.Tiqit.Arcade.Tiqit
+  alias Qlarius.Referrals.ReferralCredit
 
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
@@ -18,6 +19,7 @@ defmodule Qlarius.Wallets.LedgerEntry do
     belongs_to :ledger_header, LedgerHeader
     belongs_to :ad_event, AdEvent
     belongs_to :tiqit, Tiqit
+    has_many :referral_credits, ReferralCredit
 
     timestamps()
   end

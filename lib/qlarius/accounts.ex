@@ -28,14 +28,17 @@ defmodule Qlarius.Accounts do
     end
   end
 
-  def register_new_user(attrs) do
+  def register_new_user(attrs, referral_code \\ nil) do
     Ecto.Multi.new()
     |> Ecto.Multi.insert(:user, User.registration_changeset(%User{}, attrs))
     |> Ecto.Multi.insert(:me_file, fn %{user: user} ->
+      referral_code = Qlarius.Referrals.generate_referral_code("mefile")
+
       MeFile.changeset(%MeFile{}, %{
         user_id: user.id,
         date_of_birth: attrs[:date_of_birth],
-        display_name: attrs[:alias]
+        display_name: attrs[:alias],
+        referral_code: referral_code
       })
     end)
     |> Ecto.Multi.insert(:ledger_header, fn %{me_file: me_file} ->
@@ -48,6 +51,7 @@ defmodule Qlarius.Accounts do
     end)
     |> maybe_insert_proxy_user(attrs)
     |> maybe_insert_me_file_tags(attrs)
+    |> maybe_create_referral(referral_code)
     |> Ecto.Multi.run(:enqueue_sync_job, fn _repo, %{me_file: me_file} ->
       Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker.new(%{me_file_id: me_file.id})
       |> Oban.insert()
@@ -83,6 +87,21 @@ defmodule Qlarius.Accounts do
       end)
 
       {:ok, :inserted}
+    end)
+  end
+
+  defp maybe_create_referral(multi, nil), do: multi
+
+  defp maybe_create_referral(multi, referral_code) when is_binary(referral_code) do
+    multi
+    |> Ecto.Multi.run(:referral, fn _repo, %{me_file: me_file} ->
+      case Qlarius.Referrals.lookup_referrer_by_code(referral_code) do
+        {:ok, referrer_type, referrer_id} ->
+          Qlarius.Referrals.create_referral(referrer_type, referrer_id, me_file.id)
+
+        {:error, :not_found} ->
+          {:ok, :no_referral}
+      end
     end)
   end
 

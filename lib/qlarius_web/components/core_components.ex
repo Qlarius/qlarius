@@ -55,17 +55,11 @@ defmodule QlariusWeb.CoreComponents do
     <div
       :if={msg = render_slot(@inner_block) || Phoenix.Flash.get(@flash, @kind)}
       id={@id}
+      phx-hook="FlashAutoHide"
+      data-kind={@kind}
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> JS.hide(to: "##{@id}")}
-      phx-mounted={
-        JS.show(to: "##{@id}", transition: {"ease-in duration-300", "opacity-0", "opacity-100"})
-        |> JS.hide(
-          to: "##{@id}",
-          transition: {"ease-in duration-300", "opacity-100", "opacity-0"},
-          time: 5000
-        )
-      }
       role="alert"
-      class="toast toast-top toast-end opacity-0"
+      class="toast toast-top toast-end"
       {@rest}
     >
       <div class={[
@@ -667,7 +661,7 @@ defmodule QlariusWeb.CoreComponents do
       class="relative z-50 hidden"
     >
       <.backdrop id={"#{@id}-bg"} />
-      
+
     <!-- Modal Container -->
       <div
         class="fixed inset-0 overflow-y-auto w-fit mx-auto"
@@ -698,7 +692,7 @@ defmodule QlariusWeb.CoreComponents do
                   <.icon name="hero-x-mark" class="w-5 h-5" />
                 </button>
               </div>
-              
+
     <!-- Modal Content -->
               <div id={"#{@id}-content"} class="p-0">
                 {render_slot(@inner_block)}

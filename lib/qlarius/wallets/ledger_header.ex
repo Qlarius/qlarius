@@ -14,6 +14,7 @@ defmodule Qlarius.Wallets.LedgerHeader do
     belongs_to :campaign, Qlarius.Sponster.Campaigns.Campaign
     belongs_to :recipient, Qlarius.Sponster.Recipient
     belongs_to :marketer, Qlarius.Accounts.Marketer
+    belongs_to :creator, Qlarius.Creators.Creator
 
     has_many :ledger_entries, Qlarius.Wallets.LedgerEntry
 
@@ -29,7 +30,8 @@ defmodule Qlarius.Wallets.LedgerHeader do
       :me_file_id,
       :campaign_id,
       :recipient_id,
-      :marketer_id
+      :marketer_id,
+      :creator_id
     ])
     |> validate_required([:description])
   end

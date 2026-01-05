@@ -291,8 +291,7 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
           <div class="card bg-base-100 border border-base-300">
             <div class="card-body">
               <h3 class="card-title flex items-center gap-2">
-                <.icon name="hero-tag" class="w-5 h-5" />
-                Tags ({@tag_count})
+                <.icon name="hero-tag" class="w-5 h-5" /> Tags ({@tag_count})
               </h3>
 
               <div :if={@tag_count == 0} class="text-center py-12">
@@ -301,9 +300,7 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
               </div>
 
               <div :if={@tag_count > 0} class="space-y-6">
-                <div :for={
-                  {{_id, name, _display_order}, parent_traits} <- @tag_map
-                }>
+                <div :for={{{_id, name, _display_order}, parent_traits} <- @tag_map}>
                   <div class="flex flex-row justify-between items-baseline mb-3">
                     <h4 class="text-lg font-medium">{name}</h4>
                     <span class="text-sm text-gray-500">
@@ -314,8 +311,8 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
                   <div class="flex flex-row flex-wrap gap-3">
                     <QlariusWeb.Components.TraitComponents.trait_card
                       :for={
-                        {parent_trait_id, parent_trait_name, _parent_trait_display_order,
-                         tags_traits} <- parent_traits
+                        {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
+                          parent_traits
                       }
                       parent_trait_id={parent_trait_id}
                       parent_trait_name={parent_trait_name}
@@ -334,8 +331,7 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
           <div class="card bg-base-100 border border-base-300">
             <div class="card-body">
               <h3 class="card-title flex items-center gap-2">
-                <.icon name="hero-megaphone" class="w-5 h-5" />
-                Active Offers ({length(@offers)})
+                <.icon name="hero-megaphone" class="w-5 h-5" /> Active Offers ({length(@offers)})
               </h3>
 
               <div :if={@offers == []} class="text-center py-12">
@@ -362,8 +358,7 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
         <div class="card bg-base-100 border border-base-300">
           <div class="card-body">
             <h3 class="card-title flex items-center gap-2">
-              <.icon name="hero-banknotes" class="w-5 h-5" />
-              Recent Transactions (Last 50)
+              <.icon name="hero-banknotes" class="w-5 h-5" /> Recent Transactions (Last 50)
             </h3>
 
             <div :if={@ledger_entries == []} class="text-center py-12">

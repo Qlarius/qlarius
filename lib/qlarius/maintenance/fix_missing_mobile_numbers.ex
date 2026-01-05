@@ -53,7 +53,10 @@ defmodule Qlarius.Maintenance.FixMissingMobileNumbers do
     case Repo.update(changeset) do
       {:ok, updated_user} ->
         IO.puts("\n✅ SUCCESS!")
-        IO.puts("Updated mobile_number_encrypted: #{inspect(updated_user.mobile_number_encrypted)}")
+
+        IO.puts(
+          "Updated mobile_number_encrypted: #{inspect(updated_user.mobile_number_encrypted)}"
+        )
 
         IO.puts(
           "Updated mobile_number_hash: #{inspect(updated_user.mobile_number_hash |> Base.encode16())}"

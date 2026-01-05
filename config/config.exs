@@ -20,7 +20,8 @@ config :qlarius, Oban,
        {"*/5 * * * *", Qlarius.Jobs.ActivatePendingOffersWorker},
        {"0 0 * * *", Qlarius.Jobs.UpdateAgeTagsWorker},
        {"0 2 * * *", Qlarius.Jobs.CleanupInvalidOffersWorker},
-       {"0 * * * *", Qlarius.Jobs.BackfillMissingSnapshotsWorker}
+       {"0 * * * *", Qlarius.Jobs.BackfillMissingSnapshotsWorker},
+       {"0 0 * * 5", Qlarius.Jobs.ProcessReferralPayoutsWorker}
      ]}
   ]
 

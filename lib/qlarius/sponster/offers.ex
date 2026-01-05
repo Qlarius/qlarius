@@ -37,6 +37,13 @@ defmodule Qlarius.Sponster.Offers do
     Repo.get!(Offer, id) |> Repo.preload(:media_piece)
   end
 
+  def get_offer_with_media_piece(id) do
+    case Repo.get(Offer, id) do
+      nil -> nil
+      offer -> Repo.preload(offer, :media_piece)
+    end
+  end
+
   @doc """
   Creates a pending copy of an offer with a future pending_until timestamp and deletes the original.
   Returns {:ok, new_offer} if successful, {:error, changeset} if creation fails.

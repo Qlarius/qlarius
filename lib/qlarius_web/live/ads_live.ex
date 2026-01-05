@@ -138,6 +138,14 @@ defmodule QlariusWeb.AdsLive do
   end
 
   @impl true
+  def handle_info({:me_file_pending_referral_clicks_updated, pending_clicks_count}, socket) do
+    current_scope =
+      Map.put(socket.assigns.current_scope, :pending_referral_clicks_count, pending_clicks_count)
+
+    {:noreply, assign(socket, :current_scope, current_scope)}
+  end
+
+  @impl true
   def handle_event("toggle_sidebar", %{"state" => state}, socket) do
     js =
       if state == "on" do

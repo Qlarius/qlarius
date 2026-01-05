@@ -8,6 +8,7 @@ defmodule QlariusWeb.RegistrationLive do
   def mount(params, _session, socket) do
     mode = Map.get(params, "mode", "regular")
     proxy_user_id = Map.get(params, "proxy_user_id")
+    referral_code = Map.get(params, "ref")
 
     mobile = Phoenix.Flash.get(socket.assigns.flash, :registration_mobile)
     alias_value = Phoenix.Flash.get(socket.assigns.flash, :registration_alias)
@@ -17,6 +18,7 @@ defmodule QlariusWeb.RegistrationLive do
       |> assign(:page_title, "Register")
       |> assign(:mode, mode)
       |> assign(:proxy_user_id, proxy_user_id)
+      |> assign(:referral_code, referral_code)
       |> assign(:current_step, determine_starting_step(mode, mobile, alias_value))
       |> assign(:mobile_number, mobile || "")
       |> assign(:mobile_number_error, nil)
@@ -505,7 +507,7 @@ defmodule QlariusWeb.RegistrationLive do
           attrs
       end
 
-    Accounts.register_new_user(attrs)
+    Accounts.register_new_user(attrs, socket.assigns.referral_code)
   end
 
   def render(assigns) do

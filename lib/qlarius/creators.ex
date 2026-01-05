@@ -66,6 +66,8 @@ defmodule Qlarius.Creators do
   Creates a creator (without user association - for admin/legacy use).
   """
   def create_creator(attrs \\ %{}) do
+    attrs = Map.put_new(attrs, :referral_code, Qlarius.Referrals.generate_referral_code("creator"))
+
     changeset_fn =
       if Map.has_key?(attrs, "image"),
         do: &Creator.changeset_with_image/2,
