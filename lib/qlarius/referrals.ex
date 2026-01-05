@@ -323,7 +323,7 @@ defmodule Qlarius.Referrals do
   end
 
   def process_referrer_payout(referrer_type, referrer_id) do
-    alias Qlarius.Wallets.{LedgerHeader, LedgerEntry, MeFileStatsBroadcaster}
+    alias Qlarius.Wallets.{LedgerEntry, MeFileStatsBroadcaster}
     alias Ecto.Multi
 
     pending_referrals =

@@ -24,7 +24,7 @@ defmodule QlariusWeb.MeFileLive do
       />
       <div class="mb-8 flex gap-2 justify-start items-center">
         <div class="text-xl">
-          Tap to edit or delete existing tags below. Add more tags to optimize your MeFile.
+          Edit/delete existing tags below. Add more tags via the Tagger.
         </div>
       </div>
 

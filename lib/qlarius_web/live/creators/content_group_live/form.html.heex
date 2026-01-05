@@ -1,140 +1,151 @@
 <Layouts.admin {assigns}>
-  <div class="space-y-6">
-    <!-- Header Section -->
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <div class="flex items-center gap-4">
-        <.link
-          navigate={
-            if @live_action == :edit do
-              ~p"/creators/content_groups/#{@group.id}"
-            else
-              ~p"/creators/catalogs/#{@catalog.id}"
-            end
-          }
-          class="btn btn-ghost btn-sm"
-        >
-          <.icon name="hero-arrow-left" class="w-4 h-4" /> Back
-        </.link>
-        <div>
-          <h1 class="text-2xl font-bold text-base-content">
-            {if @live_action == :edit, do: "Edit Content Group", else: "New Content Group"}
-          </h1>
-          <p class="text-base-content/60 mt-1">
-            {if @live_action == :new, do: "For #{@catalog.name}"}
-          </p>
-        </div>
-      </div>
-    </div>
-    
-<!-- Main Form Card -->
-    <div class="card bg-base-100 shadow-lg">
-      <div class="card-body">
-        <.form
-          for={@form}
-          phx-change="validate"
-          phx-submit="save"
-          class="space-y-6"
-        >
-          <!-- Basic Information Section -->
-          <div>
-            <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-              <.icon name="hero-information-circle" class="w-5 h-5 mr-3 text-info" />
-              Basic Information
-            </h3>
+  <div class="flex h-screen">
+    <AdminSidebar.sidebar current_user={@current_scope.user} />
 
-            <.image_upload_field
-              upload={@uploads.image}
-              label="Image"
-              current_image={@group.image}
-              current_image_url={
-                if @group.image,
-                  do: QlariusWeb.Uploaders.CreatorImage.url({@group.image, @group}, :original)
-              }
-              on_delete="delete_image"
-            />
+    <div class="flex min-w-0 grow flex-col">
+      <AdminTopbar.topbar current_user={@current_scope.user} />
 
-            <div class="form-control mb-4">
-              <label class="label">
-                <span class="label-text font-medium">Name *</span>
-              </label>
-              <.input
-                field={@form[:title]}
-                type="text"
-                class="input input-bordered w-full"
-                placeholder="Enter content group name"
-                required
-              />
-            </div>
-
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text font-medium">Description</span>
-              </label>
-              <.input
-                field={@form[:description]}
-                type="textarea"
-                class="textarea textarea-bordered w-full"
-                placeholder="Enter content group description"
-                rows="4"
-              />
-            </div>
-
-            <div class="form-control mt-4">
-              <label class="label cursor-pointer">
-                <span class="label-text font-medium">Display Piece Thumbnails</span>
-                <.input
-                  field={@form[:show_piece_thumbnails]}
-                  type="checkbox"
-                  class="checkbox checkbox-primary"
-                />
-              </label>
-              <div class="text-xs text-base-content/60 mt-1">
-                Show thumbnail images in content piece lists
+      <div class="overflow-auto">
+        <div class="space-y-6">
+          <!-- Header Section -->
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div class="flex items-center gap-4">
+              <.link
+                navigate={
+                  if @live_action == :edit do
+                    ~p"/creators/content_groups/#{@group.id}"
+                  else
+                    ~p"/creators/catalogs/#{@catalog.id}"
+                  end
+                }
+                class="btn btn-ghost btn-sm"
+              >
+                <.icon name="hero-arrow-left" class="w-4 h-4" /> Back
+              </.link>
+              <div>
+                <h1 class="text-2xl font-bold text-base-content">
+                  {if @live_action == :edit, do: "Edit Content Group", else: "New Content Group"}
+                </h1>
+                <p class="text-base-content/60 mt-1">
+                  {if @live_action == :new, do: "For #{@catalog.name}"}
+                </p>
               </div>
             </div>
           </div>
           
-<!-- Tiqit Classes Section -->
-          <div class="border-t border-base-300 pt-6">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-semibold text-base-content flex items-center">
-                <.icon name="hero-tag" class="w-5 h-5 mr-3 text-primary" /> Tiqit Classes
-              </h3>
-
-              <.button
-                type="button"
-                phx-click="write_default_tiqit_classes"
-                class="btn btn-outline btn-sm"
+<!-- Main Form Card -->
+          <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+              <.form
+                for={@form}
+                phx-change="validate"
+                phx-submit="save"
+                class="space-y-6"
               >
-                <.icon name="hero-plus" class="w-4 h-4 mr-2" /> Add Default Classes
-              </.button>
-            </div>
+                <!-- Basic Information Section -->
+                <div>
+                  <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+                    <.icon name="hero-information-circle" class="w-5 h-5 mr-3 text-info" />
+                    Basic Information
+                  </h3>
 
-            <div class="bg-base-200 rounded-lg p-4">
-              <TiqitClassHTML.inputs_for_tiqit_classes form={@form} />
-            </div>
-          </div>
-          
+                  <.image_upload_field
+                    upload={@uploads.image}
+                    label="Image"
+                    current_image={@group.image}
+                    current_image_url={
+                      if @group.image,
+                        do:
+                          QlariusWeb.Uploaders.CreatorImage.url({@group.image, @group}, :original)
+                    }
+                    on_delete="delete_image"
+                  />
+
+                  <div class="form-control mb-4">
+                    <label class="label">
+                      <span class="label-text font-medium">Name *</span>
+                    </label>
+                    <.input
+                      field={@form[:title]}
+                      type="text"
+                      class="input input-bordered w-full"
+                      placeholder="Enter content group name"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-control">
+                    <label class="label">
+                      <span class="label-text font-medium">Description</span>
+                    </label>
+                    <.input
+                      field={@form[:description]}
+                      type="textarea"
+                      class="textarea textarea-bordered w-full"
+                      placeholder="Enter content group description"
+                      rows="4"
+                    />
+                  </div>
+
+                  <div class="form-control mt-4">
+                    <label class="label cursor-pointer">
+                      <span class="label-text font-medium">Display Piece Thumbnails</span>
+                      <.input
+                        field={@form[:show_piece_thumbnails]}
+                        type="checkbox"
+                        class="checkbox checkbox-primary"
+                      />
+                    </label>
+                    <div class="text-xs text-base-content/60 mt-1">
+                      Show thumbnail images in content piece lists
+                    </div>
+                  </div>
+                </div>
+                
+<!-- Tiqit Classes Section -->
+                <div class="border-t border-base-300 pt-6">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-base-content flex items-center">
+                      <.icon name="hero-tag" class="w-5 h-5 mr-3 text-primary" /> Tiqit Classes
+                    </h3>
+
+                    <.button
+                      type="button"
+                      phx-click="write_default_tiqit_classes"
+                      class="btn btn-outline btn-sm"
+                    >
+                      <.icon name="hero-plus" class="w-4 h-4 mr-2" /> Add Default Classes
+                    </.button>
+                  </div>
+
+                  <div class="bg-base-200 rounded-lg p-4">
+                    <TiqitClassHTML.inputs_for_tiqit_classes form={@form} />
+                  </div>
+                </div>
+                
 <!-- Form Actions -->
-          <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-base-300">
-            <.button class="btn btn-primary flex-1 sm:flex-none">
-              <.icon name="hero-check" class="w-4 h-4 mr-2" /> Save Content Group
-            </.button>
+                <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-base-300">
+                  <.button class="btn btn-primary flex-1 sm:flex-none">
+                    <.icon name="hero-check" class="w-4 h-4 mr-2" /> Save Content Group
+                  </.button>
 
-            <.link
-              navigate={
-                if @live_action == :edit do
-                  ~p"/creators/content_groups/#{@group.id}"
-                else
-                  ~p"/creators/catalogs/#{@catalog.id}"
-                end
-              }
-              class="btn btn-ghost"
-            >
-              <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Cancel
-            </.link>
+                  <.link
+                    navigate={
+                      if @live_action == :edit do
+                        ~p"/creators/content_groups/#{@group.id}"
+                      else
+                        ~p"/creators/catalogs/#{@catalog.id}"
+                      end
+                    }
+                    class="btn btn-ghost"
+                  >
+                    <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Cancel
+                  </.link>
+                </div>
+              </.form>
+            </div>
           </div>
-        </.form>
+        </div>
       </div>
     </div>
   </div>

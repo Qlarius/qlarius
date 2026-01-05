@@ -1,42 +1,48 @@
-<Layouts.app flash={@flash} current_scope={@current_scope}>
-  <div class="p-6">
-    <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold">Marketers</h1>
-      <.link navigate={~p"/admin/marketers/new"} class="btn btn-primary">
-        <.icon name="hero-plus" class="w-4 h-4 mr-1" /> New Marketer
-      </.link>
-    </div>
-    <div class="card bg-base-100 shadow-xl">
-      <div class="card-body p-0">
-        <div class="overflow-x-auto">
-          <%!-- Removed class="table-zebra" - table component doesn't support class attribute, zebra styling is default --%>
-          <.table id="marketers-table" rows={@marketers}>
-            <:col :let={marketer} label="Name">{marketer.business_name}</:col>
-            <:col :let={marketer} label="Actions">
-              <div class="flex gap-2">
-                <.link navigate={~p"/admin/marketers/#{marketer}"} class="btn btn-xs btn-info">
-                  <.icon name="hero-eye" class="w-4 h-4" />
-                </.link>
-                <.link
-                  navigate={~p"/admin/marketers/#{marketer}/edit"}
-                  class="btn btn-xs btn-warning"
-                >
-                  <.icon name="hero-pencil-square" class="w-4 h-4" />
-                </.link>
-                <%!-- Fixed route - marketer routes are under /admin namespace --%>
-                <.link
-                  navigate={~p"/admin/marketers/#{marketer}"}
-                  method="delete"
-                  data-confirm="Are you sure?"
-                  class="btn btn-xs btn-error"
-                >
-                  <.icon name="hero-trash" class="w-4 h-4" />
-                </.link>
+<Layouts.admin flash={@flash} current_scope={@current_scope}>
+  <div class="flex h-screen">
+    <AdminSidebar.sidebar current_user={@current_scope.user} />
+    <div class="flex min-w-0 grow flex-col">
+      <AdminTopbar.topbar current_user={@current_scope.user} />
+      <div class="overflow-auto">
+        <div class="p-6">
+          <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-bold">Marketers</h1>
+            <.link navigate={~p"/admin/marketers/new"} class="btn btn-primary">
+              <.icon name="hero-plus" class="w-4 h-4 mr-1" /> New Marketer
+            </.link>
+          </div>
+          <div class="card bg-base-100 shadow-xl">
+            <div class="card-body p-0">
+              <div class="overflow-x-auto">
+                <.table id="marketers-table" rows={@marketers}>
+                  <:col :let={marketer} label="Name">{marketer.business_name}</:col>
+                  <:col :let={marketer} label="Actions">
+                    <div class="flex gap-2">
+                      <.link navigate={~p"/admin/marketers/#{marketer}"} class="btn btn-xs btn-info">
+                        <.icon name="hero-eye" class="w-4 h-4" />
+                      </.link>
+                      <.link
+                        navigate={~p"/admin/marketers/#{marketer}/edit"}
+                        class="btn btn-xs btn-warning"
+                      >
+                        <.icon name="hero-pencil-square" class="w-4 h-4" />
+                      </.link>
+                      <.link
+                        navigate={~p"/admin/marketers/#{marketer}"}
+                        method="delete"
+                        data-confirm="Are you sure?"
+                        class="btn btn-xs btn-error"
+                      >
+                        <.icon name="hero-trash" class="w-4 h-4" />
+                      </.link>
+                    </div>
+                  </:col>
+                </.table>
               </div>
-            </:col>
-          </.table>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</Layouts.app>
+</Layouts.admin>

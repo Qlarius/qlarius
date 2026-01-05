@@ -2,6 +2,7 @@ defmodule QlariusWeb.Creators.CreatorHTML do
   use QlariusWeb, :html
 
   import QlariusWeb.CoreComponents
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
 
   embed_templates "creator_html/*"
 

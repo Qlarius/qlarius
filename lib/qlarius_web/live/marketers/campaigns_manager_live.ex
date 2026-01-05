@@ -3,6 +3,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
   import Ecto.Query
   require Decimal
 
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Repo
   alias Qlarius.Sponster.Campaigns
   alias Qlarius.Sponster.Campaigns.{Targets, MediaSequences, CampaignPubSub}
@@ -628,199 +629,213 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
   def render(assigns) do
     ~H"""
     <Layouts.admin {assigns}>
-      <.current_marketer_bar
-        current_marketer={@current_marketer}
-        current_path={~p"/marketer/campaigns"}
-      />
+      <div class="flex h-screen">
+        <AdminSidebar.sidebar current_user={@current_scope.user} />
 
-      <div :if={!@current_marketer} class="p-6">
-        <div class="alert alert-warning">
-          <.icon name="hero-exclamation-circle" class="w-6 h-6" />
-          <span>Please select a marketer to manage campaigns.</span>
-        </div>
-      </div>
+        <div class="flex min-w-0 grow flex-col">
+          <AdminTopbar.topbar current_user={@current_scope.user} />
 
-      <div :if={@current_marketer} class="p-6">
-        <div class="flex justify-between items-center mb-6">
-          <h1 class="text-2xl font-bold">Campaigns Manager</h1>
-          <button phx-click="open_create_modal" class="btn btn-primary">
-            <.icon name="hero-plus" class="w-5 h-5" /> New Campaign
-          </button>
-        </div>
+          <div class="overflow-auto">
+            <.current_marketer_bar
+              current_marketer={@current_marketer}
+              current_path={~p"/marketer/campaigns"}
+            />
 
-        <div :if={@campaigns == []} class="card bg-base-100 border border-base-300">
-          <div class="card-body text-center py-12">
-            <.icon name="hero-megaphone" class="w-16 h-16 mx-auto text-base-content/30 mb-4" />
-            <p class="text-lg font-medium text-base-content/70">No campaigns yet</p>
-            <p class="text-sm text-base-content/50 mt-2">
-              Create your first campaign to start reaching your audience
-            </p>
+            <div :if={!@current_marketer} class="p-6">
+              <div class="alert alert-warning">
+                <.icon name="hero-exclamation-circle" class="w-6 h-6" />
+                <span>Please select a marketer to manage campaigns.</span>
+              </div>
+            </div>
+
+            <div :if={@current_marketer} class="p-6">
+              <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold">Campaigns Manager</h1>
+                <button phx-click="open_create_modal" class="btn btn-primary">
+                  <.icon name="hero-plus" class="w-5 h-5" /> New Campaign
+                </button>
+              </div>
+
+              <div :if={@campaigns == []} class="card bg-base-100 border border-base-300">
+                <div class="card-body text-center py-12">
+                  <.icon name="hero-megaphone" class="w-16 h-16 mx-auto text-base-content/30 mb-4" />
+                  <p class="text-lg font-medium text-base-content/70">No campaigns yet</p>
+                  <p class="text-sm text-base-content/50 mt-2">
+                    Create your first campaign to start reaching your audience
+                  </p>
+                </div>
+              </div>
+
+              <.campaigns_list
+                :if={@campaigns != []}
+                campaigns={@campaigns}
+                archived={false}
+                editing_bids={@editing_bids}
+                bid_errors={@bid_errors}
+                show_traits={@show_traits}
+              />
+
+              <div :if={@archived_campaigns != []} class="mt-8 border-t border-base-300 pt-6">
+                <button phx-click="toggle_archived" class="btn btn-ghost btn-sm mb-4">
+                  <.icon
+                    name={if @show_archived, do: "hero-chevron-down", else: "hero-chevron-right"}
+                    class="w-4 h-4"
+                  /> Archived Campaigns ({length(@archived_campaigns)})
+                </button>
+
+                <.campaigns_list
+                  :if={@show_archived}
+                  campaigns={@archived_campaigns}
+                  archived={true}
+                  editing_bids={@editing_bids}
+                  bid_errors={@bid_errors}
+                  show_traits={@show_traits}
+                />
+              </div>
+            </div>
+
+            <.modal
+              :if={@show_create_modal}
+              id="create-campaign-modal"
+              show
+              on_cancel={JS.push("close_create_modal")}
+            >
+              <div class="space-y-6 p-8">
+                <h2 class="text-2xl font-bold">Create New Campaign</h2>
+
+                <.form
+                  for={@campaign_form}
+                  phx-submit="create_campaign"
+                  class="space-y-4"
+                >
+                  <div class="form-control w-full">
+                    <label class="label">
+                      <span class="label-text font-semibold">Campaign Name</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="campaign[title]"
+                      value={@campaign_form.params["title"]}
+                      placeholder="Enter campaign name"
+                      class="input input-bordered w-full"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-control w-full">
+                    <label class="label">
+                      <span class="label-text font-semibold">Target</span>
+                    </label>
+                    <%= if @targets == [] do %>
+                      <div class="alert alert-warning">
+                        <.icon name="hero-exclamation-circle" class="w-5 h-5" />
+                        <span class="text-sm">No targets available. Create a target first.</span>
+                      </div>
+                    <% else %>
+                      <select
+                        name="campaign[target_id]"
+                        class="select select-bordered w-full"
+                        required
+                      >
+                        <option value="">Choose a target...</option>
+                        <option
+                          :for={target <- @targets}
+                          value={target.id}
+                          selected={to_string(target.id) == @campaign_form.params["target_id"]}
+                        >
+                          {target.title} ({target.id})
+                        </option>
+                      </select>
+                    <% end %>
+                  </div>
+
+                  <div class="form-control w-full">
+                    <label class="label">
+                      <span class="label-text font-semibold">Media Sequence</span>
+                    </label>
+                    <%= if @media_sequences == [] do %>
+                      <div class="alert alert-warning">
+                        <.icon name="hero-exclamation-circle" class="w-5 h-5" />
+                        <span class="text-sm">
+                          No media sequences available. Create a sequence first.
+                        </span>
+                      </div>
+                    <% else %>
+                      <select
+                        name="campaign[media_sequence_id]"
+                        class="select select-bordered w-full"
+                        required
+                      >
+                        <option value="">Choose a media sequence...</option>
+                        <option
+                          :for={sequence <- @media_sequences}
+                          value={sequence.id}
+                          selected={
+                            to_string(sequence.id) == @campaign_form.params["media_sequence_id"]
+                          }
+                        >
+                          {sequence.title}
+                        </option>
+                      </select>
+                    <% end %>
+                  </div>
+
+                  <div class="divider">Options</div>
+
+                  <div class="form-control">
+                    <label class="label cursor-pointer justify-start gap-4">
+                      <input
+                        type="checkbox"
+                        name="campaign[is_payable]"
+                        checked={@campaign_form.params["is_payable"] == "true"}
+                        class="checkbox checkbox-primary"
+                      />
+                      <span class="label-text">Payable</span>
+                    </label>
+                  </div>
+
+                  <div class="form-control">
+                    <label class="label cursor-pointer justify-start gap-4">
+                      <input
+                        type="checkbox"
+                        name="campaign[is_throttled]"
+                        checked={@campaign_form.params["is_throttled"] == "true"}
+                        class="checkbox checkbox-primary"
+                      />
+                      <span class="label-text">Throttled</span>
+                    </label>
+                  </div>
+
+                  <div class="form-control">
+                    <label class="label cursor-pointer justify-start gap-4">
+                      <input
+                        type="checkbox"
+                        name="campaign[is_demo]"
+                        checked={@campaign_form.params["is_demo"] == "true"}
+                        class="checkbox checkbox-primary"
+                      />
+                      <span class="label-text">Demo Mode</span>
+                    </label>
+                  </div>
+
+                  <div class="flex gap-3 pt-4">
+                    <button
+                      type="submit"
+                      class="btn btn-primary flex-1"
+                      disabled={@targets == [] || @media_sequences == []}
+                    >
+                      Create Campaign
+                    </button>
+                    <button type="button" phx-click="close_create_modal" class="btn btn-ghost flex-1">
+                      Cancel
+                    </button>
+                  </div>
+                </.form>
+              </div>
+            </.modal>
           </div>
         </div>
-
-        <.campaigns_list
-          :if={@campaigns != []}
-          campaigns={@campaigns}
-          archived={false}
-          editing_bids={@editing_bids}
-          bid_errors={@bid_errors}
-          show_traits={@show_traits}
-        />
-
-        <div :if={@archived_campaigns != []} class="mt-8 border-t border-base-300 pt-6">
-          <button phx-click="toggle_archived" class="btn btn-ghost btn-sm mb-4">
-            <.icon
-              name={if @show_archived, do: "hero-chevron-down", else: "hero-chevron-right"}
-              class="w-4 h-4"
-            /> Archived Campaigns ({length(@archived_campaigns)})
-          </button>
-
-          <.campaigns_list
-            :if={@show_archived}
-            campaigns={@archived_campaigns}
-            archived={true}
-            editing_bids={@editing_bids}
-            bid_errors={@bid_errors}
-            show_traits={@show_traits}
-          />
-        </div>
       </div>
-
-      <.modal
-        :if={@show_create_modal}
-        id="create-campaign-modal"
-        show
-        on_cancel={JS.push("close_create_modal")}
-      >
-        <div class="space-y-6 p-8">
-          <h2 class="text-2xl font-bold">Create New Campaign</h2>
-
-          <.form
-            for={@campaign_form}
-            phx-submit="create_campaign"
-            class="space-y-4"
-          >
-            <div class="form-control w-full">
-              <label class="label">
-                <span class="label-text font-semibold">Campaign Name</span>
-              </label>
-              <input
-                type="text"
-                name="campaign[title]"
-                value={@campaign_form.params["title"]}
-                placeholder="Enter campaign name"
-                class="input input-bordered w-full"
-                required
-              />
-            </div>
-
-            <div class="form-control w-full">
-              <label class="label">
-                <span class="label-text font-semibold">Target</span>
-              </label>
-              <%= if @targets == [] do %>
-                <div class="alert alert-warning">
-                  <.icon name="hero-exclamation-circle" class="w-5 h-5" />
-                  <span class="text-sm">No targets available. Create a target first.</span>
-                </div>
-              <% else %>
-                <select
-                  name="campaign[target_id]"
-                  class="select select-bordered w-full"
-                  required
-                >
-                  <option value="">Choose a target...</option>
-                  <option
-                    :for={target <- @targets}
-                    value={target.id}
-                    selected={to_string(target.id) == @campaign_form.params["target_id"]}
-                  >
-                    {target.title} ({target.id})
-                  </option>
-                </select>
-              <% end %>
-            </div>
-
-            <div class="form-control w-full">
-              <label class="label">
-                <span class="label-text font-semibold">Media Sequence</span>
-              </label>
-              <%= if @media_sequences == [] do %>
-                <div class="alert alert-warning">
-                  <.icon name="hero-exclamation-circle" class="w-5 h-5" />
-                  <span class="text-sm">No media sequences available. Create a sequence first.</span>
-                </div>
-              <% else %>
-                <select
-                  name="campaign[media_sequence_id]"
-                  class="select select-bordered w-full"
-                  required
-                >
-                  <option value="">Choose a media sequence...</option>
-                  <option
-                    :for={sequence <- @media_sequences}
-                    value={sequence.id}
-                    selected={to_string(sequence.id) == @campaign_form.params["media_sequence_id"]}
-                  >
-                    {sequence.title}
-                  </option>
-                </select>
-              <% end %>
-            </div>
-
-            <div class="divider">Options</div>
-
-            <div class="form-control">
-              <label class="label cursor-pointer justify-start gap-4">
-                <input
-                  type="checkbox"
-                  name="campaign[is_payable]"
-                  checked={@campaign_form.params["is_payable"] == "true"}
-                  class="checkbox checkbox-primary"
-                />
-                <span class="label-text">Payable</span>
-              </label>
-            </div>
-
-            <div class="form-control">
-              <label class="label cursor-pointer justify-start gap-4">
-                <input
-                  type="checkbox"
-                  name="campaign[is_throttled]"
-                  checked={@campaign_form.params["is_throttled"] == "true"}
-                  class="checkbox checkbox-primary"
-                />
-                <span class="label-text">Throttled</span>
-              </label>
-            </div>
-
-            <div class="form-control">
-              <label class="label cursor-pointer justify-start gap-4">
-                <input
-                  type="checkbox"
-                  name="campaign[is_demo]"
-                  checked={@campaign_form.params["is_demo"] == "true"}
-                  class="checkbox checkbox-primary"
-                />
-                <span class="label-text">Demo Mode</span>
-              </label>
-            </div>
-
-            <div class="flex gap-3 pt-4">
-              <button
-                type="submit"
-                class="btn btn-primary flex-1"
-                disabled={@targets == [] || @media_sequences == []}
-              >
-                Create Campaign
-              </button>
-              <button type="button" phx-click="close_create_modal" class="btn btn-ghost flex-1">
-                Cancel
-              </button>
-            </div>
-          </.form>
-        </div>
-      </.modal>
     </Layouts.admin>
     """
   end

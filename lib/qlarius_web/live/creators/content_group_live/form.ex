@@ -1,6 +1,7 @@
 defmodule QlariusWeb.Creators.ContentGroupLive.Form do
   use QlariusWeb, :live_view
 
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.Creators
 

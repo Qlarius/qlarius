@@ -1,109 +1,123 @@
 defmodule QlariusWeb.Admin.TraitCategoryManagerLive do
   use QlariusWeb, :live_view
 
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.YouData.TraitCategories
   alias Qlarius.YouData.Traits.TraitCategory
 
   def render(assigns) do
     ~H"""
     <Layouts.admin {assigns}>
-      <%= case @live_action do %>
-        <% :index -> %>
-          <div class="p-6">
-            <h1 class="text-2xl font-bold mb-4">Trait Categories</h1>
-            <div class="flex justify-end items-center mb-4">
-              <.link patch={~p"/admin/trait_categories/new"} class="btn btn-primary">
-                <.icon name="hero-plus" class="w-4 h-4 mr-1" /> New Trait Category
-              </.link>
-            </div>
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body p-0">
-                <%= if @trait_categories == [] do %>
-                  <div class="p-8 text-center text-base-content/60">
-                    <.icon name="hero-tag" class="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No trait categories found</p>
+      <div class="flex h-screen">
+        <AdminSidebar.sidebar current_user={@current_scope.user} />
+
+        <div class="flex min-w-0 grow flex-col">
+          <AdminTopbar.topbar current_user={@current_scope.user} />
+
+          <div class="overflow-auto">
+            <%= case @live_action do %>
+              <% :index -> %>
+                <div class="p-6">
+                  <h1 class="text-2xl font-bold mb-4">Trait Categories</h1>
+                  <div class="flex justify-end items-center mb-4">
+                    <.link patch={~p"/admin/trait_categories/new"} class="btn btn-primary">
+                      <.icon name="hero-plus" class="w-4 h-4 mr-1" /> New Trait Category
+                    </.link>
                   </div>
-                <% else %>
-                  <div class="overflow-x-auto">
-                    <.table id="trait-categories-table" rows={@trait_categories}>
-                      <:col :let={category} label="Display Order">
-                        <span class="badge badge-ghost">{category.display_order}</span>
-                      </:col>
-                      <:col :let={category} label="Category Name">{category.name}</:col>
-                      <:col :let={category} label="Trait Count">
-                        <span class="badge badge-info">{Map.get(category, :trait_count, 0)}</span>
-                      </:col>
-                      <:col :let={category} label="Actions">
-                        <div class="flex gap-2">
-                          <.link
-                            patch={~p"/admin/trait_categories/#{category}/edit"}
-                            class="btn btn-xs btn-warning"
-                          >
-                            <.icon name="hero-pencil-square" class="w-4 h-4" />
-                          </.link>
-                          <%= if Map.get(category, :trait_count, 0) == 0 do %>
-                            <.link
-                              phx-click="delete"
-                              phx-value-id={category.id}
-                              data-confirm="Are you sure you want to delete this trait category?"
-                              class="btn btn-xs btn-error"
-                            >
-                              <.icon name="hero-trash" class="w-4 h-4" />
-                            </.link>
-                          <% else %>
-                            <button
-                              class="btn btn-xs btn-disabled"
-                              disabled
-                              title="Cannot delete category with associated traits"
-                            >
-                              <.icon name="hero-trash" class="w-4 h-4" />
-                            </button>
-                          <% end %>
+                  <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body p-0">
+                      <%= if @trait_categories == [] do %>
+                        <div class="p-8 text-center text-base-content/60">
+                          <.icon name="hero-tag" class="w-12 h-12 mx-auto mb-2 opacity-50" />
+                          <p>No trait categories found</p>
                         </div>
-                      </:col>
-                    </.table>
+                      <% else %>
+                        <div class="overflow-x-auto">
+                          <.table id="trait-categories-table" rows={@trait_categories}>
+                            <:col :let={category} label="Display Order">
+                              <span class="badge badge-ghost">{category.display_order}</span>
+                            </:col>
+                            <:col :let={category} label="Category Name">{category.name}</:col>
+                            <:col :let={category} label="Trait Count">
+                              <span class="badge badge-info">
+                                {Map.get(category, :trait_count, 0)}
+                              </span>
+                            </:col>
+                            <:col :let={category} label="Actions">
+                              <div class="flex gap-2">
+                                <.link
+                                  patch={~p"/admin/trait_categories/#{category}/edit"}
+                                  class="btn btn-xs btn-warning"
+                                >
+                                  <.icon name="hero-pencil-square" class="w-4 h-4" />
+                                </.link>
+                                <%= if Map.get(category, :trait_count, 0) == 0 do %>
+                                  <.link
+                                    phx-click="delete"
+                                    phx-value-id={category.id}
+                                    data-confirm="Are you sure you want to delete this trait category?"
+                                    class="btn btn-xs btn-error"
+                                  >
+                                    <.icon name="hero-trash" class="w-4 h-4" />
+                                  </.link>
+                                <% else %>
+                                  <button
+                                    class="btn btn-xs btn-disabled"
+                                    disabled
+                                    title="Cannot delete category with associated traits"
+                                  >
+                                    <.icon name="hero-trash" class="w-4 h-4" />
+                                  </button>
+                                <% end %>
+                              </div>
+                            </:col>
+                          </.table>
+                        </div>
+                      <% end %>
+                    </div>
                   </div>
-                <% end %>
-              </div>
-            </div>
+                </div>
+              <% :new -> %>
+                <div class="p-6 max-w-3xl mx-auto">
+                  <div class="mb-6">
+                    <.back navigate={~p"/admin/trait_categories"}>
+                      <.icon name="hero-arrow-left" class="w-4 h-4 mr-1" /> Back to trait categories
+                    </.back>
+                  </div>
+                  <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                      <h2 class="card-title text-2xl mb-2">
+                        <.icon name="hero-plus-circle" class="w-6 h-6" /> New Trait Category
+                      </h2>
+                      <p class="text-base-content/70 mb-6">Create a new trait category.</p>
+                      {render_form(assigns)}
+                    </div>
+                  </div>
+                </div>
+              <% :edit -> %>
+                <div class="p-6 max-w-3xl mx-auto">
+                  <div class="mb-6">
+                    <.back navigate={~p"/admin/trait_categories"}>
+                      <.icon name="hero-arrow-left" class="w-4 h-4 mr-1" /> Back to trait categories
+                    </.back>
+                  </div>
+                  <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                      <h2 class="card-title text-2xl mb-2">
+                        <.icon name="hero-pencil-square" class="w-6 h-6" /> Edit Trait Category
+                      </h2>
+                      <p class="text-base-content/70 mb-2">
+                        Editing:
+                        <span class="font-semibold text-primary">{@trait_category.name}</span>
+                      </p>
+                      {render_form(assigns)}
+                    </div>
+                  </div>
+                </div>
+            <% end %>
           </div>
-        <% :new -> %>
-          <div class="p-6 max-w-3xl mx-auto">
-            <div class="mb-6">
-              <.back navigate={~p"/admin/trait_categories"}>
-                <.icon name="hero-arrow-left" class="w-4 h-4 mr-1" /> Back to trait categories
-              </.back>
-            </div>
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title text-2xl mb-2">
-                  <.icon name="hero-plus-circle" class="w-6 h-6" /> New Trait Category
-                </h2>
-                <p class="text-base-content/70 mb-6">Create a new trait category.</p>
-                {render_form(assigns)}
-              </div>
-            </div>
-          </div>
-        <% :edit -> %>
-          <div class="p-6 max-w-3xl mx-auto">
-            <div class="mb-6">
-              <.back navigate={~p"/admin/trait_categories"}>
-                <.icon name="hero-arrow-left" class="w-4 h-4 mr-1" /> Back to trait categories
-              </.back>
-            </div>
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title text-2xl mb-2">
-                  <.icon name="hero-pencil-square" class="w-6 h-6" /> Edit Trait Category
-                </h2>
-                <p class="text-base-content/70 mb-2">
-                  Editing: <span class="font-semibold text-primary">{@trait_category.name}</span>
-                </p>
-                {render_form(assigns)}
-              </div>
-            </div>
-          </div>
-      <% end %>
+        </div>
+      </div>
     </Layouts.admin>
     """
   end

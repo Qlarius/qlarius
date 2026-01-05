@@ -2,6 +2,8 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
   use QlariusWeb, :live_view
   import Ecto.Query
 
+  alias QlariusWeb.Components.AdminSidebar
+  alias QlariusWeb.Components.AdminTopbar
   alias Qlarius.Repo
   alias Qlarius.Accounts.User
   alias Qlarius.YouData.MeFiles.MeFile
@@ -161,141 +163,151 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
   def render(assigns) do
     ~H"""
     <Layouts.admin {assigns}>
-      <div class="p-6">
-        <div class="flex justify-between items-center mb-6">
-          <h1 class="text-2xl font-bold">MeFile Inspector</h1>
-        </div>
+      <div class="flex h-screen">
+        <AdminSidebar.sidebar current_user={@current_scope.user} />
 
-        <div class="stats stats-vertical lg:stats-horizontal shadow-sm bg-base-200 w-full border border-base-300 mb-6">
-          <div class="stat">
-            <div class="stat-figure text-primary">
-              <.icon name="hero-user-group" class="w-8 h-8" />
-            </div>
-            <div class="stat-title text-xs opacity-60">Total Users</div>
-            <div class="stat-value text-xl text-primary">{@total_users}</div>
-            <div class="stat-desc">All registered users</div>
-          </div>
+        <div class="flex min-w-0 grow flex-col">
+          <AdminTopbar.topbar current_user={@current_scope.user} />
 
-          <div class="stat">
-            <div class="stat-figure text-success">
-              <.icon name="hero-star" class="w-8 h-8" />
-            </div>
-            <div class="stat-title text-xs opacity-60">Rich MeFiles</div>
-            <div class="stat-value text-xl text-success">{@users_with_rich_mefiles}</div>
-            <div class="stat-desc">&gt;4 tags</div>
-          </div>
+          <div class="overflow-auto">
+            <div class="p-6">
+              <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold">MeFile Inspector</h1>
+              </div>
 
-          <div class="stat">
-            <div class="stat-figure text-info">
-              <.icon name="hero-tag" class="w-8 h-8" />
-            </div>
-            <div class="stat-title text-xs opacity-60">Avg Tags/User</div>
-            <div class="stat-value text-xl text-info">{@avg_tags_per_user}</div>
-            <div class="stat-desc">Per user average</div>
-          </div>
+              <div class="stats stats-vertical lg:stats-horizontal shadow-sm bg-base-200 w-full border border-base-300 mb-6">
+                <div class="stat">
+                  <div class="stat-figure text-primary">
+                    <.icon name="hero-user-group" class="w-8 h-8" />
+                  </div>
+                  <div class="stat-title text-xs opacity-60">Total Users</div>
+                  <div class="stat-value text-xl text-primary">{@total_users}</div>
+                  <div class="stat-desc">All registered users</div>
+                </div>
 
-          <div class="stat">
-            <div class="stat-figure text-warning">
-              <.icon name="hero-megaphone" class="w-8 h-8" />
-            </div>
-            <div class="stat-title text-xs opacity-60">Active Offers</div>
-            <div class="stat-value text-xl text-warning">{@users_with_active_offers}</div>
-            <div class="stat-desc">Users with offers</div>
-          </div>
+                <div class="stat">
+                  <div class="stat-figure text-success">
+                    <.icon name="hero-star" class="w-8 h-8" />
+                  </div>
+                  <div class="stat-title text-xs opacity-60">Rich MeFiles</div>
+                  <div class="stat-value text-xl text-success">{@users_with_rich_mefiles}</div>
+                  <div class="stat-desc">&gt;4 tags</div>
+                </div>
 
-          <div class="stat">
-            <div class="stat-figure text-success">
-              <.icon name="hero-currency-dollar" class="w-8 h-8" />
-            </div>
-            <div class="stat-title text-xs opacity-60">Avg Balance</div>
-            <div class="stat-value text-xl text-success">
-              {QlariusWeb.Money.format_usd(@avg_wallet_balance)}
-            </div>
-            <div class="stat-desc">
-              ${@users_with_positive_balance} &gt; $0 | ${@users_with_zero_balance} = $0
-            </div>
-          </div>
+                <div class="stat">
+                  <div class="stat-figure text-info">
+                    <.icon name="hero-tag" class="w-8 h-8" />
+                  </div>
+                  <div class="stat-title text-xs opacity-60">Avg Tags/User</div>
+                  <div class="stat-value text-xl text-info">{@avg_tags_per_user}</div>
+                  <div class="stat-desc">Per user average</div>
+                </div>
 
-          <div class="stat">
-            <div class="stat-figure text-secondary">
-              <.icon name="hero-user-plus" class="w-8 h-8" />
-            </div>
-            <div class="stat-title text-xs opacity-60">Recent</div>
-            <div class="stat-value text-xl text-secondary">{@recent_registrations}</div>
-            <div class="stat-desc">Last 7 days</div>
-          </div>
-        </div>
+                <div class="stat">
+                  <div class="stat-figure text-warning">
+                    <.icon name="hero-megaphone" class="w-8 h-8" />
+                  </div>
+                  <div class="stat-title text-xs opacity-60">Active Offers</div>
+                  <div class="stat-value text-xl text-warning">{@users_with_active_offers}</div>
+                  <div class="stat-desc">Users with offers</div>
+                </div>
 
-        <div class="card bg-base-100 border border-base-300">
-          <div class="card-body">
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="card-title">Top 25 MeFiles by Wallet Balance</h2>
-              <.form for={%{}} phx-submit="search" class="flex gap-2">
-                <input
-                  type="text"
-                  name="search"
-                  value={@search_query}
-                  placeholder="Search by alias..."
-                  class="input input-bordered input-sm"
-                />
-                <button type="submit" class="btn btn-sm btn-primary">
-                  <.icon name="hero-magnifying-glass" class="w-4 h-4" />
-                </button>
-                <button
-                  :if={@search_query != ""}
-                  type="button"
-                  phx-click="clear_search"
-                  class="btn btn-sm btn-ghost"
-                >
-                  Clear
-                </button>
-              </.form>
-            </div>
+                <div class="stat">
+                  <div class="stat-figure text-success">
+                    <.icon name="hero-currency-dollar" class="w-8 h-8" />
+                  </div>
+                  <div class="stat-title text-xs opacity-60">Avg Balance</div>
+                  <div class="stat-value text-xl text-success">
+                    {QlariusWeb.Money.format_usd(@avg_wallet_balance)}
+                  </div>
+                  <div class="stat-desc">
+                    ${@users_with_positive_balance} &gt; $0 | ${@users_with_zero_balance} = $0
+                  </div>
+                </div>
 
-            <div class="overflow-x-auto">
-              <table class="table table-zebra">
-                <thead>
-                  <tr>
-                    <th>Alias</th>
-                    <th class="text-right">Wallet Balance</th>
-                    <th class="text-center">Tags</th>
-                    <th class="text-center">Active Offers</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr :for={mf <- @mefiles}>
-                    <td class="font-medium">{mf.alias}</td>
-                    <td class="text-right font-mono">
-                      {QlariusWeb.Money.format_usd(mf.wallet_balance)}
-                    </td>
-                    <td class="text-center">
-                      <span class="badge badge-ghost">{mf.tag_count}</span>
-                    </td>
-                    <td class="text-center">
-                      <span class="badge badge-warning">{mf.offer_count}</span>
-                    </td>
-                    <td class="text-right">
-                      <.link
-                        navigate={~p"/admin/mefile_inspector/#{mf.me_file_id}"}
+                <div class="stat">
+                  <div class="stat-figure text-secondary">
+                    <.icon name="hero-user-plus" class="w-8 h-8" />
+                  </div>
+                  <div class="stat-title text-xs opacity-60">Recent</div>
+                  <div class="stat-value text-xl text-secondary">{@recent_registrations}</div>
+                  <div class="stat-desc">Last 7 days</div>
+                </div>
+              </div>
+
+              <div class="card bg-base-100 border border-base-300">
+                <div class="card-body">
+                  <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title">Top 25 MeFiles by Wallet Balance</h2>
+                    <.form for={%{}} phx-submit="search" class="flex gap-2">
+                      <input
+                        type="text"
+                        name="search"
+                        value={@search_query}
+                        placeholder="Search by alias..."
+                        class="input input-bordered input-sm"
+                      />
+                      <button type="submit" class="btn btn-sm btn-primary">
+                        <.icon name="hero-magnifying-glass" class="w-4 h-4" />
+                      </button>
+                      <button
+                        :if={@search_query != ""}
+                        type="button"
+                        phx-click="clear_search"
                         class="btn btn-sm btn-ghost"
                       >
-                        View <.icon name="hero-arrow-right" class="w-4 h-4" />
-                      </.link>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                        Clear
+                      </button>
+                    </.form>
+                  </div>
 
-              <div :if={@mefiles == []} class="text-center py-12">
-                <.icon
-                  name="hero-magnifying-glass"
-                  class="w-16 h-16 mx-auto text-base-content/30 mb-4"
-                />
-                <p class="text-lg font-medium text-base-content/70">No MeFiles found</p>
-                <p :if={@search_query != ""} class="text-sm text-base-content/50 mt-2">
-                  Try a different search term
-                </p>
+                  <div class="overflow-x-auto">
+                    <table class="table table-zebra">
+                      <thead>
+                        <tr>
+                          <th>Alias</th>
+                          <th class="text-right">Wallet Balance</th>
+                          <th class="text-center">Tags</th>
+                          <th class="text-center">Active Offers</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr :for={mf <- @mefiles}>
+                          <td class="font-medium">{mf.alias}</td>
+                          <td class="text-right font-mono">
+                            {QlariusWeb.Money.format_usd(mf.wallet_balance)}
+                          </td>
+                          <td class="text-center">
+                            <span class="badge badge-ghost">{mf.tag_count}</span>
+                          </td>
+                          <td class="text-center">
+                            <span class="badge badge-warning">{mf.offer_count}</span>
+                          </td>
+                          <td class="text-right">
+                            <.link
+                              navigate={~p"/admin/mefile_inspector/#{mf.me_file_id}"}
+                              class="btn btn-sm btn-ghost"
+                            >
+                              View <.icon name="hero-arrow-right" class="w-4 h-4" />
+                            </.link>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <div :if={@mefiles == []} class="text-center py-12">
+                      <.icon
+                        name="hero-magnifying-glass"
+                        class="w-16 h-16 mx-auto text-base-content/30 mb-4"
+                      />
+                      <p class="text-lg font-medium text-base-content/70">No MeFiles found</p>
+                      <p :if={@search_query != ""} class="text-sm text-base-content/50 mt-2">
+                        Try a different search term
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

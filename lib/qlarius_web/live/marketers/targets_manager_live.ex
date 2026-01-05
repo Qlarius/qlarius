@@ -1,6 +1,7 @@
 defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
   use QlariusWeb, :live_view
 
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Sponster.Campaigns.{Target, TargetBand, Targets}
   alias QlariusWeb.Live.Marketers.CurrentMarketer
 
@@ -392,19 +393,29 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
   def render(assigns) do
     ~H"""
     <Layouts.admin {assigns}>
-      <.current_marketer_bar
-        current_marketer={@current_marketer}
-        current_path={~p"/marketer/targets"}
-      />
+      <div class="flex h-screen">
+        <AdminSidebar.sidebar current_user={@current_scope.user} />
 
-      <%= cond do %>
-        <% @live_action == :index -> %>
-          <.index_view {assigns} />
-        <% @live_action == :edit -> %>
-          <.edit_view {assigns} />
-        <% @live_action == :inspect -> %>
-          <.inspect_view {assigns} />
-      <% end %>
+        <div class="flex min-w-0 grow flex-col">
+          <AdminTopbar.topbar current_user={@current_scope.user} />
+
+          <div class="overflow-auto">
+            <.current_marketer_bar
+              current_marketer={@current_marketer}
+              current_path={~p"/marketer/targets"}
+            />
+
+            <%= cond do %>
+              <% @live_action == :index -> %>
+                <.index_view {assigns} />
+              <% @live_action == :edit -> %>
+                <.edit_view {assigns} />
+              <% @live_action == :inspect -> %>
+                <.inspect_view {assigns} />
+            <% end %>
+          </div>
+        </div>
+      </div>
     </Layouts.admin>
     """
   end

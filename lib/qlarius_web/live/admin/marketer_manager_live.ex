@@ -1,190 +1,206 @@
 defmodule QlariusWeb.Admin.MarketerManagerLive do
   use QlariusWeb, :live_view
 
+  alias QlariusWeb.Components.AdminSidebar
+  alias QlariusWeb.Components.AdminTopbar
   alias Qlarius.Accounts.Marketers
   alias Qlarius.Accounts.Marketer
 
   def render(assigns) do
     ~H"""
     <Layouts.admin {assigns}>
-      <%= case @live_action do %>
-        <% :index -> %>
-          <div phx-hook="CurrentMarketer" id="marketer-manager-hook">
-            <.current_marketer_bar
-              current_marketer={@current_marketer}
-              current_path={~p"/admin/marketers"}
-            />
-            <div class="p-6">
-              <h1 class="text-2xl font-bold mb-4">Marketers List</h1>
-              <%!-- Search and New Button Row --%>
-              <div class="flex justify-between items-center gap-4 mb-4">
-                <form phx-change="search" class="flex-1">
-                  <label class="input input-bordered flex items-center gap-2 w-2/5 min-w-[400px]">
-                    <.icon name="hero-magnifying-glass" class="w-5 h-5 opacity-70" />
-                    <input
-                      type="text"
-                      phx-debounce="300"
-                      name="query"
-                      value={@search_query}
-                      class="grow"
-                      autocomplete="off"
-                    />
-                    <button
-                      :if={@search_query != ""}
-                      type="button"
-                      phx-click="clear_search"
-                      class="btn btn-ghost btn-xs btn-circle"
-                    >
-                      <.icon name="hero-x-mark" class="w-4 h-4" />
-                    </button>
-                  </label>
-                </form>
-                <.link patch={~p"/admin/marketers/new"} class="btn btn-primary">
-                  <.icon name="hero-plus" class="w-4 h-4 mr-1" /> New Marketer
-                </.link>
-              </div>
-              <div class="mb-4 text-sm text-base-content/60">
-                Showing {length(@marketers)} of {@total_marketers_count} marketers
-              </div>
-              <div class="card bg-base-100 shadow-xl">
-                <div class="card-body p-0">
-                  <%= if @marketers == [] do %>
-                    <div class="p-8 text-center text-base-content/60">
-                      <.icon name="hero-magnifying-glass" class="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p>No marketers found matching "{@search_query}"</p>
-                      <button phx-click="clear_search" class="btn btn-sm btn-ghost mt-2">
-                        Clear search
-                      </button>
+      <div class="flex h-screen">
+        <AdminSidebar.sidebar current_user={@current_scope.user} />
+
+        <div class="flex min-w-0 grow flex-col">
+          <AdminTopbar.topbar current_user={@current_scope.user} />
+
+          <div class="overflow-auto">
+            <%= case @live_action do %>
+              <% :index -> %>
+                <div phx-hook="CurrentMarketer" id="marketer-manager-hook">
+                  <.current_marketer_bar
+                    current_marketer={@current_marketer}
+                    current_path={~p"/admin/marketers"}
+                  />
+                  <div class="p-6">
+                    <h1 class="text-2xl font-bold mb-4">Marketers List</h1>
+                    <%!-- Search and New Button Row --%>
+                    <div class="flex justify-between items-center gap-4 mb-4">
+                      <form phx-change="search" class="flex-1">
+                        <label class="input input-bordered flex items-center gap-2 w-2/5 min-w-[400px]">
+                          <.icon name="hero-magnifying-glass" class="w-5 h-5 opacity-70" />
+                          <input
+                            type="text"
+                            phx-debounce="300"
+                            name="query"
+                            value={@search_query}
+                            class="grow"
+                            autocomplete="off"
+                          />
+                          <button
+                            :if={@search_query != ""}
+                            type="button"
+                            phx-click="clear_search"
+                            class="btn btn-ghost btn-xs btn-circle"
+                          >
+                            <.icon name="hero-x-mark" class="w-4 h-4" />
+                          </button>
+                        </label>
+                      </form>
+                      <.link patch={~p"/admin/marketers/new"} class="btn btn-primary">
+                        <.icon name="hero-plus" class="w-4 h-4 mr-1" /> New Marketer
+                      </.link>
                     </div>
-                  <% else %>
-                    <div class="overflow-x-auto">
-                      <.table
-                        id="marketers-table"
-                        rows={@marketers}
-                        row_class={
-                          fn marketer ->
-                            if @current_marketer_id == marketer.id,
-                              do: "bg-success/10 ring-2 ring-success ring-inset",
-                              else: ""
-                          end
-                        }
-                      >
-                        <:col :let={marketer} label="Business Name">
-                          {marketer.business_name} <span class="text-gray-400">({marketer.id})</span>
-                        </:col>
-                        <:col :let={marketer} label="Actions">
-                          <div class="flex gap-2">
-                            <button
-                              phx-click="set_current_marketer"
-                              phx-value-id={marketer.id}
-                              class={[
-                                "btn btn-xs",
-                                if(@current_marketer_id == marketer.id,
-                                  do: "btn-success ring-2 ring-success ring-offset-2",
-                                  else: "btn-outline btn-success"
-                                )
-                              ]}
-                            >
-                              <.icon name="hero-check" class="w-4 h-4" />
+                    <div class="mb-4 text-sm text-base-content/60">
+                      Showing {length(@marketers)} of {@total_marketers_count} marketers
+                    </div>
+                    <div class="card bg-base-100 shadow-xl">
+                      <div class="card-body p-0">
+                        <%= if @marketers == [] do %>
+                          <div class="p-8 text-center text-base-content/60">
+                            <.icon
+                              name="hero-magnifying-glass"
+                              class="w-12 h-12 mx-auto mb-2 opacity-50"
+                            />
+                            <p>No marketers found matching "{@search_query}"</p>
+                            <button phx-click="clear_search" class="btn btn-sm btn-ghost mt-2">
+                              Clear search
                             </button>
-                            <.link
-                              patch={~p"/admin/marketers/#{marketer}"}
-                              class="btn btn-xs btn-info"
-                            >
-                              <.icon name="hero-eye" class="w-4 h-4" />
-                            </.link>
-                            <.link
-                              patch={~p"/admin/marketers/#{marketer}/edit"}
-                              class="btn btn-xs btn-warning"
-                            >
-                              <.icon name="hero-pencil-square" class="w-4 h-4" />
-                            </.link>
-                            <.link
-                              phx-click="delete"
-                              phx-value-id={marketer.id}
-                              data-confirm="Are you sure?"
-                              class="btn btn-xs btn-error"
-                            >
-                              <.icon name="hero-trash" class="w-4 h-4" />
-                            </.link>
                           </div>
-                        </:col>
-                      </.table>
+                        <% else %>
+                          <div class="overflow-x-auto">
+                            <.table
+                              id="marketers-table"
+                              rows={@marketers}
+                              row_class={
+                                fn marketer ->
+                                  if @current_marketer_id == marketer.id,
+                                    do: "bg-success/10 ring-2 ring-success ring-inset",
+                                    else: ""
+                                end
+                              }
+                            >
+                              <:col :let={marketer} label="Business Name">
+                                {marketer.business_name}
+                                <span class="text-gray-400">({marketer.id})</span>
+                              </:col>
+                              <:col :let={marketer} label="Actions">
+                                <div class="flex gap-2">
+                                  <button
+                                    phx-click="set_current_marketer"
+                                    phx-value-id={marketer.id}
+                                    class={[
+                                      "btn btn-xs",
+                                      if(@current_marketer_id == marketer.id,
+                                        do: "btn-success ring-2 ring-success ring-offset-2",
+                                        else: "btn-outline btn-success"
+                                      )
+                                    ]}
+                                  >
+                                    <.icon name="hero-check" class="w-4 h-4" />
+                                  </button>
+                                  <.link
+                                    patch={~p"/admin/marketers/#{marketer}"}
+                                    class="btn btn-xs btn-info"
+                                  >
+                                    <.icon name="hero-eye" class="w-4 h-4" />
+                                  </.link>
+                                  <.link
+                                    patch={~p"/admin/marketers/#{marketer}/edit"}
+                                    class="btn btn-xs btn-warning"
+                                  >
+                                    <.icon name="hero-pencil-square" class="w-4 h-4" />
+                                  </.link>
+                                  <.link
+                                    phx-click="delete"
+                                    phx-value-id={marketer.id}
+                                    data-confirm="Are you sure?"
+                                    class="btn btn-xs btn-error"
+                                  >
+                                    <.icon name="hero-trash" class="w-4 h-4" />
+                                  </.link>
+                                </div>
+                              </:col>
+                            </.table>
+                          </div>
+                        <% end %>
+                      </div>
                     </div>
-                  <% end %>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        <% :new -> %>
-          <div class="container mx-auto px-4">
-            <div class="mb-4">
-              <%!-- Removed class="btn btn-outline" - back component doesn't support class attribute --%>
-              <.back navigate={~p"/admin/marketers"}>Back to marketers</.back>
-            </div>
-            <div>
-              <.header>
-                <div class="flex items-center">
-                  <h1 class="text-2xl font-bold">New Marketer</h1>
+              <% :new -> %>
+                <div class="container mx-auto px-4">
+                  <div class="mb-4">
+                    <%!-- Removed class="btn btn-outline" - back component doesn't support class attribute --%>
+                    <.back navigate={~p"/admin/marketers"}>Back to marketers</.back>
+                  </div>
+                  <div>
+                    <.header>
+                      <div class="flex items-center">
+                        <h1 class="text-2xl font-bold">New Marketer</h1>
+                      </div>
+                      <%!-- Removed class="mt-2 text-base-content/70" - subtitle slot doesn't support custom classes --%>
+                      <:subtitle>Create a new marketer.</:subtitle>
+                    </.header>
+                  </div>
+                  {render_form(assigns)}
                 </div>
-                <%!-- Removed class="mt-2 text-base-content/70" - subtitle slot doesn't support custom classes --%>
-                <:subtitle>Create a new marketer.</:subtitle>
-              </.header>
-            </div>
-            {render_form(assigns)}
-          </div>
-        <% :edit -> %>
-          <div class="container mx-auto px-4">
-            <div class="mb-4">
-              <%!-- Removed class="btn btn-outline" - back component doesn't support class attribute --%>
-              <.back navigate={~p"/admin/marketers"}>Back to marketers</.back>
-            </div>
-            <div>
-              <.header>
-                <div class="flex items-center">
-                  <h1 class="text-2xl font-bold">
-                    Edit Marketer "<span class="text-primary"><%= @marketer.business_name %></span>"
-                  </h1>
+              <% :edit -> %>
+                <div class="container mx-auto px-4">
+                  <div class="mb-4">
+                    <%!-- Removed class="btn btn-outline" - back component doesn't support class attribute --%>
+                    <.back navigate={~p"/admin/marketers"}>Back to marketers</.back>
+                  </div>
+                  <div>
+                    <.header>
+                      <div class="flex items-center">
+                        <h1 class="text-2xl font-bold">
+                          Edit Marketer "<span class="text-primary"><%= @marketer.business_name %></span>"
+                        </h1>
+                      </div>
+                      <%!-- Removed class="mt-2 text-base-content/70" - subtitle slot doesn't support custom classes --%>
+                      <:subtitle>Edit marketer information.</:subtitle>
+                    </.header>
+                  </div>
+                  {render_form(assigns)}
                 </div>
-                <%!-- Removed class="mt-2 text-base-content/70" - subtitle slot doesn't support custom classes --%>
-                <:subtitle>Edit marketer information.</:subtitle>
-              </.header>
-            </div>
-            {render_form(assigns)}
-          </div>
-        <% :show -> %>
-          <div class="p-6">
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body">
-                <div class="flex gap-2 mb-4">
-                  <.link patch={~p"/admin/marketers/#{@marketer}/edit"} class="btn btn-warning">
-                    Edit
-                  </.link>
-                  <.link
-                    phx-click="delete"
-                    phx-value-id={@marketer.id}
-                    data-confirm="Are you sure?"
-                    class="btn btn-error"
-                  >
-                    Delete
-                  </.link>
-                  <.link patch={~p"/admin/marketers"} class="btn">Back</.link>
+              <% :show -> %>
+                <div class="p-6">
+                  <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                      <div class="flex gap-2 mb-4">
+                        <.link patch={~p"/admin/marketers/#{@marketer}/edit"} class="btn btn-warning">
+                          Edit
+                        </.link>
+                        <.link
+                          phx-click="delete"
+                          phx-value-id={@marketer.id}
+                          data-confirm="Are you sure?"
+                          class="btn btn-error"
+                        >
+                          Delete
+                        </.link>
+                        <.link patch={~p"/admin/marketers"} class="btn">Back</.link>
+                      </div>
+                      <h2 class="text-2xl font-bold mb-2">{@marketer.business_name}</h2>
+                      <ul class="mb-4">
+                        <li><strong>ID:</strong> {@marketer.id}</li>
+                        <li><strong>Business Name:</strong> {@marketer.business_name}</li>
+                        <li><strong>Business URL:</strong> {@marketer.business_url}</li>
+                        <li><strong>Contact First Name:</strong> {@marketer.contact_first_name}</li>
+                        <li><strong>Contact Last Name:</strong> {@marketer.contact_last_name}</li>
+                        <li><strong>Contact Number:</strong> {@marketer.contact_number}</li>
+                        <li><strong>Contact Email:</strong> {@marketer.contact_email}</li>
+                        <li><strong>SIC Code:</strong> {@marketer.sic_code}</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
-                <h2 class="text-2xl font-bold mb-2">{@marketer.business_name}</h2>
-                <ul class="mb-4">
-                  <li><strong>ID:</strong> {@marketer.id}</li>
-                  <li><strong>Business Name:</strong> {@marketer.business_name}</li>
-                  <li><strong>Business URL:</strong> {@marketer.business_url}</li>
-                  <li><strong>Contact First Name:</strong> {@marketer.contact_first_name}</li>
-                  <li><strong>Contact Last Name:</strong> {@marketer.contact_last_name}</li>
-                  <li><strong>Contact Number:</strong> {@marketer.contact_number}</li>
-                  <li><strong>Contact Email:</strong> {@marketer.contact_email}</li>
-                  <li><strong>SIC Code:</strong> {@marketer.sic_code}</li>
-                </ul>
-              </div>
-            </div>
+            <% end %>
           </div>
-      <% end %>
+        </div>
+      </div>
     </Layouts.admin>
     """
   end

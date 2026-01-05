@@ -1,607 +1,626 @@
 <Layouts.admin {assigns}>
-  <div class="space-y-6">
-    <!-- Header Section -->
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <div class="flex items-center gap-4">
-        <.link
-          navigate={
-            if @live_action == :edit do
-              ~p"/creators/#{@creator.id}"
-            else
-              ~p"/creators/#{@creator.id}"
-            end
-          }
-          class="btn btn-ghost btn-sm"
-        >
-          <.icon name="hero-arrow-left" class="w-4 h-4" /> Back
-        </.link>
-        <div>
-          <h1 class="text-2xl font-bold text-base-content">
-            {if @live_action == :edit, do: "Edit Qlink Page", else: "New Qlink Page"}
-          </h1>
-          <p class="text-base-content/60 mt-1">
-            {if @live_action == :new, do: "For #{@creator.name}"}
-          </p>
-        </div>
-      </div>
-      <%= if @live_action == :edit && @page.alias do %>
-        <a
-          href={~p"/@#{@page.alias}"}
-          target="_blank"
-          rel="noopener noreferrer"
-          class="btn btn-primary btn-sm"
-        >
-          <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4 mr-2" /> View Page
-        </a>
-      <% end %>
-    </div>
-    
-<!-- Main Form Card -->
-    <div class="card bg-base-100 shadow-lg">
-      <div class="card-body">
-        <.form
-          for={@form}
-          phx-change="validate"
-          phx-submit="save"
-          multipart
-          class="space-y-6"
-          id="qlink-page-form"
-        >
-          <!-- Basic Information Section -->
-          <div>
-            <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-              <.icon name="hero-information-circle" class="w-5 h-5 mr-3 text-info" />
-              Basic Information
-            </h3>
+  <div class="flex h-screen">
+    <AdminSidebar.sidebar current_user={@current_scope.user} />
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <%= if @live_action == :new do %>
+    <div class="flex min-w-0 grow flex-col">
+      <AdminTopbar.topbar current_user={@current_scope.user} />
+
+      <div class="overflow-auto">
+        <div class="space-y-6">
+          <!-- Header Section -->
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div class="flex items-center gap-4">
+              <.link
+                navigate={
+                  if @live_action == :edit do
+                    ~p"/creators/#{@creator.id}"
+                  else
+                    ~p"/creators/#{@creator.id}"
+                  end
+                }
+                class="btn btn-ghost btn-sm"
+              >
+                <.icon name="hero-arrow-left" class="w-4 h-4" /> Back
+              </.link>
+              <div>
+                <h1 class="text-2xl font-bold text-base-content">
+                  {if @live_action == :edit, do: "Edit Qlink Page", else: "New Qlink Page"}
+                </h1>
+                <p class="text-base-content/60 mt-1">
+                  {if @live_action == :new, do: "For #{@creator.name}"}
+                </p>
+              </div>
+            </div>
+            <%= if @live_action == :edit && @page.alias do %>
+              <a
+                href={~p"/@#{@page.alias}"}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-primary btn-sm"
+              >
+                <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4 mr-2" /> View Page
+              </a>
+            <% end %>
+          </div>
+          
+<!-- Main Form Card -->
+          <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+              <.form
+                for={@form}
+                phx-change="validate"
+                phx-submit="save"
+                multipart
+                class="space-y-6"
+                id="qlink-page-form"
+              >
+                <!-- Basic Information Section -->
+                <div>
+                  <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+                    <.icon name="hero-information-circle" class="w-5 h-5 mr-3 text-info" />
+                    Basic Information
+                  </h3>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <%= if @live_action == :new do %>
+                      <div class="form-control">
+                        <label class="label">
+                          <span class="label-text font-medium">Alias *</span>
+                        </label>
+                        <.input
+                          field={@form[:alias]}
+                          type="text"
+                          class="input input-bordered w-full"
+                          placeholder="my-page"
+                          required
+                        />
+                        <label class="label">
+                          <span class="label-text-alt text-base-content/60">
+                            URL: /@{@form[:alias].value || "alias"}
+                          </span>
+                        </label>
+                        <%= if @form[:alias].errors != [] do %>
+                          <%= for {error, _} <- @form[:alias].errors do %>
+                            <label class="label">
+                              <span class="label-text-alt text-error">{error}</span>
+                            </label>
+                          <% end %>
+                        <% end %>
+                      </div>
+                    <% else %>
+                      <div class="form-control">
+                        <label class="label">
+                          <span class="label-text font-medium">Alias</span>
+                        </label>
+                        <div class="input input-bordered w-full bg-base-200">
+                          @{@page.alias}
+                        </div>
+                        <label class="label">
+                          <span class="label-text-alt text-base-content/60">
+                            URL: /@{@page.alias}
+                          </span>
+                        </label>
+                      </div>
+                    <% end %>
+
+                    <div class="form-control">
+                      <label class="label">
+                        <span class="label-text font-medium">Title *</span>
+                      </label>
+                      <.input
+                        field={@form[:title]}
+                        type="text"
+                        class="input input-bordered w-full"
+                        placeholder="My Link Page"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div class="form-control mt-4">
+                    <label class="label">
+                      <span class="label-text font-medium">Bio</span>
+                    </label>
+                    <.input
+                      field={@form[:bio_text]}
+                      type="textarea"
+                      class="textarea textarea-bordered w-full"
+                      placeholder="Tell visitors about your page..."
+                      rows="4"
+                    />
+                  </div>
+                </div>
+                
+<!-- Profile Photo and Social Links Section -->
+                <div class="border-t border-base-300 pt-6">
+                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Profile Photo -->
+                    <div>
+                      <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+                        <.icon name="hero-photo" class="w-5 h-5 mr-3 text-primary" />
+                        Profile Photo
+                      </h3>
+                      <.image_upload_field
+                        upload={@uploads.image}
+                        label=""
+                        current_image={@page.profile_photo}
+                        current_image_url={
+                          if @page.profile_photo,
+                            do:
+                              QlariusWeb.Uploaders.CreatorImage.url(
+                                {@page.profile_photo, @page},
+                                :original
+                              )
+                        }
+                        on_delete="delete_image"
+                      />
+                    </div>
+                    
+<!-- Social Links -->
+                    <div>
+                      <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+                        <.icon name="hero-share" class="w-5 h-5 mr-3 text-accent" /> Social Links
+                      </h3>
+                      
+<!-- Add Social Link Selector -->
+                      <div class="flex items-center gap-3 mb-4">
+                        <div class="form-control flex-1">
+                          <select
+                            id="social-platform-select"
+                            name="selected_social_platform"
+                            class="select select-bordered w-full"
+                            phx-change="select_social_platform"
+                          >
+                            <option value="">Select Platform</option>
+                            <%= for platform <- available_social_platforms(@used_social_platforms) do %>
+                              <option
+                                value={platform}
+                                selected={@selected_social_platform == platform}
+                              >
+                                {format_platform_name(platform)}
+                              </option>
+                            <% end %>
+                          </select>
+                        </div>
+                        <button
+                          type="button"
+                          phx-click="add_selected_social_link"
+                          class="btn btn-primary btn-sm"
+                          disabled={
+                            @selected_social_platform == "" || @selected_social_platform == nil
+                          }
+                        >
+                          <.icon name="hero-plus" class="w-4 h-4" />
+                        </button>
+                      </div>
+                      
+<!-- Added Social Links -->
+                      <div id="social-links" class="space-y-3">
+                        <%= for link <- @social_links do %>
+                          <div id={link.id} class="flex items-center gap-3">
+                            <div class="form-control flex-1">
+                              <div class="label">
+                                <span class="label-text font-medium">
+                                  {format_platform_name(link.platform)}
+                                </span>
+                              </div>
+                              <input
+                                type="url"
+                                name={"social_links[#{link.id}][url]"}
+                                value={link.url}
+                                class="input input-bordered w-full"
+                                placeholder="https://..."
+                                phx-change="update_social_link"
+                                phx-value-id={link.id}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              phx-click="remove_social_link"
+                              phx-value-id={link.id}
+                              class="btn btn-ghost btn-sm text-error mt-6"
+                              title="Remove"
+                            >
+                              <.icon name="hero-trash" class="w-4 h-4" />
+                            </button>
+                          </div>
+                        <% end %>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+<!-- Sections Management Section -->
+                <%= if @live_action == :edit && @page.id do %>
+                  <div class="border-t border-base-300 pt-6">
+                    <div class="flex items-center justify-between mb-4">
+                      <h3 class="text-lg font-semibold text-base-content flex items-center">
+                        <.icon name="hero-folder" class="w-5 h-5 mr-3 text-secondary" /> Sections
+                      </h3>
+                      <button
+                        type="button"
+                        phx-click="show_add_section_modal"
+                        class="btn btn-secondary btn-sm"
+                      >
+                        <.icon name="hero-plus" class="w-4 h-4 mr-1" /> Add Section
+                      </button>
+                    </div>
+
+                    <%= if @sections == [] do %>
+                      <div class="alert alert-info">
+                        <span>
+                          No sections yet. Sections help organize your links into groups.
+                        </span>
+                      </div>
+                    <% else %>
+                      <div class="space-y-2">
+                        <%= for section <- @sections do %>
+                          <.render_section_item section={section} />
+                        <% end %>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+                
+<!-- Links Management Section -->
+                <%= if @live_action == :edit && @page.id do %>
+                  <div class="border-t border-base-300 pt-6">
+                    <div class="flex items-center justify-between mb-4">
+                      <h3 class="text-lg font-semibold text-base-content flex items-center">
+                        <.icon name="hero-link" class="w-5 h-5 mr-3 text-primary" /> Links
+                      </h3>
+                      <button
+                        type="button"
+                        phx-click="show_add_link_modal"
+                        class="btn btn-primary btn-sm"
+                      >
+                        <.icon name="hero-plus" class="w-4 h-4 mr-1" /> Add Link
+                      </button>
+                    </div>
+
+                    <%= if @links == [] do %>
+                      <div class="alert alert-info">
+                        <span>No links yet. Click "Add Link" to get started.</span>
+                      </div>
+                    <% else %>
+                      <div class="space-y-4">
+                        <%= for section <- @sections do %>
+                          <% section_links =
+                            Enum.filter(@links, &(&1.qlink_section_id == section.id))
+                            |> Enum.sort_by(& &1.display_order) %>
+                          <%= if section_links != [] do %>
+                            <div class="collapse collapse-arrow bg-base-200">
+                              <input type="checkbox" checked />
+                              <div class="collapse-title text-lg font-medium">
+                                {section.title}
+                              </div>
+                              <div class="collapse-content">
+                                <div class="space-y-2">
+                                  <%= for link <- section_links do %>
+                                    <.render_link_item link={link} sections={@sections} />
+                                  <% end %>
+                                </div>
+                              </div>
+                            </div>
+                          <% end %>
+                        <% end %>
+
+                        <% unsectioned_links =
+                          Enum.filter(@links, &is_nil(&1.qlink_section_id))
+                          |> Enum.sort_by(& &1.display_order) %>
+                        <%= if unsectioned_links != [] do %>
+                          <div class="collapse collapse-arrow bg-base-200">
+                            <input type="checkbox" checked />
+                            <div class="collapse-title text-lg font-medium">
+                              Links
+                            </div>
+                            <div class="collapse-content">
+                              <div class="space-y-2">
+                                <%= for link <- unsectioned_links do %>
+                                  <.render_link_item link={link} sections={@sections} />
+                                <% end %>
+                              </div>
+                            </div>
+                          </div>
+                        <% end %>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+                
+<!-- Publishing Section -->
+                <div class="border-t border-base-300 pt-6">
+                  <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+                    <.icon name="hero-globe-alt" class="w-5 h-5 mr-3 text-success" /> Publishing
+                  </h3>
+
+                  <div class="form-control">
+                    <label class="label cursor-pointer">
+                      <span class="label-text font-medium">Published</span>
+                      <.input
+                        field={@form[:is_published]}
+                        type="checkbox"
+                        class="toggle toggle-primary"
+                      />
+                    </label>
+                    <label class="label">
+                      <span class="label-text-alt text-base-content/60">
+                        Published pages are visible at /@{@form[:alias].value || @page.alias ||
+                          "alias"}
+                      </span>
+                    </label>
+                  </div>
+                </div>
+                
+<!-- Form Actions -->
+                <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-base-300">
+                  <.button class="btn btn-primary flex-1 sm:flex-none">
+                    <.icon name="hero-check" class="w-4 h-4 mr-2" />
+                    {if @live_action == :edit, do: "Update", else: "Create"} Page
+                  </.button>
+
+                  <.link
+                    navigate={~p"/creators/#{@creator.id}"}
+                    class="btn btn-ghost"
+                  >
+                    <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Cancel
+                  </.link>
+                </div>
+              </.form>
+            </div>
+          </div>
+        </div>
+        
+<!-- Link Modal -->
+        <%= if @show_link_modal do %>
+          <div class="modal modal-open">
+            <div class="modal-box max-w-2xl">
+              <h3 class="text-lg font-bold mb-4">
+                {if @editing_link, do: "Edit Link", else: "Add Link"}
+              </h3>
+
+              <%= if @link_form && @link_form.source.action == :validate && @link_form.errors != [] do %>
+                <div class="alert alert-error mb-4">
+                  <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
+                  <div>
+                    <%= for {field, {error, _}} <- @link_form.errors do %>
+                      <div>{Phoenix.Naming.humanize(field)}: {error}</div>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+
+              <.form
+                for={@link_form}
+                phx-change="validate_link"
+                phx-submit="save_link"
+                id="link-form"
+                class="space-y-4"
+              >
+                <%= if @live_action == :edit do %>
+                  <input type="hidden" name="qlink_link[qlink_page_id]" value={@page.id} />
+                <% end %>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="form-control">
+                    <label class="label">
+                      <span class="label-text font-medium">Type *</span>
+                    </label>
+                    <.input
+                      field={@link_form[:type]}
+                      type="select"
+                      options={[
+                        {"Standard", "standard"},
+                        {"Embed", "embed"},
+                        {"Social Feed", "social_feed"}
+                      ]}
+                      class="select select-bordered w-full"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-control">
+                    <label class="label">
+                      <span class="label-text font-medium">Section</span>
+                    </label>
+                    <.input
+                      field={@link_form[:qlink_section_id]}
+                      type="select"
+                      options={
+                        [
+                          {"No Section", nil}
+                        ] ++ Enum.map(@sections, &{&1.title, &1.id})
+                      }
+                      class="select select-bordered w-full"
+                    />
+                  </div>
+                </div>
+
                 <div class="form-control">
                   <label class="label">
-                    <span class="label-text font-medium">Alias *</span>
+                    <span class="label-text font-medium">Title *</span>
                   </label>
                   <.input
-                    field={@form[:alias]}
+                    field={@link_form[:title]}
                     type="text"
                     class="input input-bordered w-full"
-                    placeholder="my-page"
+                    placeholder="Link Title"
+                    required
+                  />
+                </div>
+
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text font-medium">URL *</span>
+                  </label>
+                  <.input
+                    field={@link_form[:url]}
+                    type="url"
+                    class="input input-bordered w-full"
+                    placeholder="https://example.com"
                     required
                   />
                   <label class="label">
                     <span class="label-text-alt text-base-content/60">
-                      URL: /@{@form[:alias].value || "alias"}
+                      Embed types (YouTube, Spotify, TikTok) will be auto-detected
                     </span>
                   </label>
-                  <%= if @form[:alias].errors != [] do %>
-                    <%= for {error, _} <- @form[:alias].errors do %>
-                      <label class="label">
-                        <span class="label-text-alt text-error">{error}</span>
-                      </label>
-                    <% end %>
-                  <% end %>
                 </div>
-              <% else %>
+
                 <div class="form-control">
                   <label class="label">
-                    <span class="label-text font-medium">Alias</span>
+                    <span class="label-text font-medium">Description</span>
                   </label>
-                  <div class="input input-bordered w-full bg-base-200">
-                    @{@page.alias}
+                  <.input
+                    field={@link_form[:description]}
+                    type="textarea"
+                    class="textarea textarea-bordered w-full"
+                    placeholder="Optional description"
+                    rows="2"
+                  />
+                </div>
+
+                <%= if @link_form[:type].value == "embed" do %>
+                  <div class="alert alert-info">
+                    <.icon name="hero-information-circle" class="w-5 h-5" />
+                    <span>Embed configuration will be auto-detected from the URL</span>
                   </div>
-                  <label class="label">
-                    <span class="label-text-alt text-base-content/60">
-                      URL: /@{@page.alias}
-                    </span>
+                <% end %>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="form-control">
+                    <label class="label">
+                      <span class="label-text font-medium">Icon</span>
+                    </label>
+                    <.input
+                      field={@link_form[:icon]}
+                      type="text"
+                      class="input input-bordered w-full"
+                      placeholder="🔗 or emoji"
+                    />
+                  </div>
+
+                  <div class="form-control">
+                    <label class="label">
+                      <span class="label-text font-medium">Thumbnail URL</span>
+                    </label>
+                    <.input
+                      field={@link_form[:thumbnail]}
+                      type="url"
+                      class="input input-bordered w-full"
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </div>
+                </div>
+
+                <div class="form-control">
+                  <label class="label cursor-pointer">
+                    <span class="label-text font-medium">Visible</span>
+                    <.input
+                      field={@link_form[:is_visible]}
+                      type="checkbox"
+                      class="toggle toggle-primary"
+                    />
                   </label>
                 </div>
-              <% end %>
 
-              <div class="form-control">
-                <label class="label">
-                  <span class="label-text font-medium">Title *</span>
-                </label>
-                <.input
-                  field={@form[:title]}
-                  type="text"
-                  class="input input-bordered w-full"
-                  placeholder="My Link Page"
-                  required
-                />
-              </div>
-            </div>
-
-            <div class="form-control mt-4">
-              <label class="label">
-                <span class="label-text font-medium">Bio</span>
-              </label>
-              <.input
-                field={@form[:bio_text]}
-                type="textarea"
-                class="textarea textarea-bordered w-full"
-                placeholder="Tell visitors about your page..."
-                rows="4"
-              />
-            </div>
-          </div>
-          
-<!-- Profile Photo and Social Links Section -->
-          <div class="border-t border-base-300 pt-6">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <!-- Profile Photo -->
-              <div>
-                <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                  <.icon name="hero-photo" class="w-5 h-5 mr-3 text-primary" /> Profile Photo
-                </h3>
-                <.image_upload_field
-                  upload={@uploads.image}
-                  label=""
-                  current_image={@page.profile_photo}
-                  current_image_url={
-                    if @page.profile_photo,
-                      do:
-                        QlariusWeb.Uploaders.CreatorImage.url(
-                          {@page.profile_photo, @page},
-                          :original
-                        )
-                  }
-                  on_delete="delete_image"
-                />
-              </div>
-              
-<!-- Social Links -->
-              <div>
-                <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                  <.icon name="hero-share" class="w-5 h-5 mr-3 text-accent" /> Social Links
-                </h3>
-                
-<!-- Add Social Link Selector -->
-                <div class="flex items-center gap-3 mb-4">
-                  <div class="form-control flex-1">
-                    <select
-                      id="social-platform-select"
-                      name="selected_social_platform"
-                      class="select select-bordered w-full"
-                      phx-change="select_social_platform"
-                    >
-                      <option value="">Select Platform</option>
-                      <%= for platform <- available_social_platforms(@used_social_platforms) do %>
-                        <option value={platform} selected={@selected_social_platform == platform}>
-                          {format_platform_name(platform)}
-                        </option>
-                      <% end %>
-                    </select>
-                  </div>
+                <div class="modal-action">
+                  <.button class="btn btn-primary">
+                    <.icon name="hero-check" class="w-4 h-4 mr-2" />
+                    {if @editing_link, do: "Update", else: "Create"} Link
+                  </.button>
                   <button
                     type="button"
-                    phx-click="add_selected_social_link"
-                    class="btn btn-primary btn-sm"
-                    disabled={@selected_social_platform == "" || @selected_social_platform == nil}
+                    phx-click="close_link_modal"
+                    class="btn btn-ghost"
                   >
-                    <.icon name="hero-plus" class="w-4 h-4" />
+                    Cancel
                   </button>
                 </div>
-                
-<!-- Added Social Links -->
-                <div id="social-links" class="space-y-3">
-                  <%= for link <- @social_links do %>
-                    <div id={link.id} class="flex items-center gap-3">
-                      <div class="form-control flex-1">
-                        <div class="label">
-                          <span class="label-text font-medium">
-                            {format_platform_name(link.platform)}
-                          </span>
-                        </div>
-                        <input
-                          type="url"
-                          name={"social_links[#{link.id}][url]"}
-                          value={link.url}
-                          class="input input-bordered w-full"
-                          placeholder="https://..."
-                          phx-change="update_social_link"
-                          phx-value-id={link.id}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        phx-click="remove_social_link"
-                        phx-value-id={link.id}
-                        class="btn btn-ghost btn-sm text-error mt-6"
-                        title="Remove"
-                      >
-                        <.icon name="hero-trash" class="w-4 h-4" />
-                      </button>
-                    </div>
-                  <% end %>
-                </div>
-              </div>
+              </.form>
             </div>
+            <form method="dialog" class="modal-backdrop">
+              <button phx-click="close_link_modal">close</button>
+            </form>
           </div>
-          
-<!-- Sections Management Section -->
-          <%= if @live_action == :edit && @page.id do %>
-            <div class="border-t border-base-300 pt-6">
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-base-content flex items-center">
-                  <.icon name="hero-folder" class="w-5 h-5 mr-3 text-secondary" /> Sections
-                </h3>
-                <button
-                  type="button"
-                  phx-click="show_add_section_modal"
-                  class="btn btn-secondary btn-sm"
-                >
-                  <.icon name="hero-plus" class="w-4 h-4 mr-1" /> Add Section
-                </button>
-              </div>
+        <% end %>
+        
+<!-- Section Modal -->
+        <%= if @show_section_modal do %>
+          <div class="modal modal-open">
+            <div class="modal-box max-w-2xl">
+              <h3 class="text-lg font-bold mb-4">
+                {if @editing_section, do: "Edit Section", else: "Add Section"}
+              </h3>
 
-              <%= if @sections == [] do %>
-                <div class="alert alert-info">
-                  <span>No sections yet. Sections help organize your links into groups.</span>
-                </div>
-              <% else %>
-                <div class="space-y-2">
-                  <%= for section <- @sections do %>
-                    <.render_section_item section={section} />
-                  <% end %>
-                </div>
-              <% end %>
-            </div>
-          <% end %>
-          
-<!-- Links Management Section -->
-          <%= if @live_action == :edit && @page.id do %>
-            <div class="border-t border-base-300 pt-6">
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-base-content flex items-center">
-                  <.icon name="hero-link" class="w-5 h-5 mr-3 text-primary" /> Links
-                </h3>
-                <button
-                  type="button"
-                  phx-click="show_add_link_modal"
-                  class="btn btn-primary btn-sm"
-                >
-                  <.icon name="hero-plus" class="w-4 h-4 mr-1" /> Add Link
-                </button>
-              </div>
-
-              <%= if @links == [] do %>
-                <div class="alert alert-info">
-                  <span>No links yet. Click "Add Link" to get started.</span>
-                </div>
-              <% else %>
-                <div class="space-y-4">
-                  <%= for section <- @sections do %>
-                    <% section_links =
-                      Enum.filter(@links, &(&1.qlink_section_id == section.id))
-                      |> Enum.sort_by(& &1.display_order) %>
-                    <%= if section_links != [] do %>
-                      <div class="collapse collapse-arrow bg-base-200">
-                        <input type="checkbox" checked />
-                        <div class="collapse-title text-lg font-medium">
-                          {section.title}
-                        </div>
-                        <div class="collapse-content">
-                          <div class="space-y-2">
-                            <%= for link <- section_links do %>
-                              <.render_link_item link={link} sections={@sections} />
-                            <% end %>
-                          </div>
-                        </div>
-                      </div>
+              <%= if @section_form && @section_form.source.action == :validate && @section_form.errors != [] do %>
+                <div class="alert alert-error mb-4">
+                  <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
+                  <div>
+                    <%= for {field, {error, _}} <- @section_form.errors do %>
+                      <div>{Phoenix.Naming.humanize(field)}: {error}</div>
                     <% end %>
-                  <% end %>
-
-                  <% unsectioned_links =
-                    Enum.filter(@links, &is_nil(&1.qlink_section_id))
-                    |> Enum.sort_by(& &1.display_order) %>
-                  <%= if unsectioned_links != [] do %>
-                    <div class="collapse collapse-arrow bg-base-200">
-                      <input type="checkbox" checked />
-                      <div class="collapse-title text-lg font-medium">
-                        Links
-                      </div>
-                      <div class="collapse-content">
-                        <div class="space-y-2">
-                          <%= for link <- unsectioned_links do %>
-                            <.render_link_item link={link} sections={@sections} />
-                          <% end %>
-                        </div>
-                      </div>
-                    </div>
-                  <% end %>
+                  </div>
                 </div>
               <% end %>
-            </div>
-          <% end %>
-          
-<!-- Publishing Section -->
-          <div class="border-t border-base-300 pt-6">
-            <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-              <.icon name="hero-globe-alt" class="w-5 h-5 mr-3 text-success" /> Publishing
-            </h3>
 
-            <div class="form-control">
-              <label class="label cursor-pointer">
-                <span class="label-text font-medium">Published</span>
-                <.input
-                  field={@form[:is_published]}
-                  type="checkbox"
-                  class="toggle toggle-primary"
-                />
-              </label>
-              <label class="label">
-                <span class="label-text-alt text-base-content/60">
-                  Published pages are visible at /@{@form[:alias].value || @page.alias || "alias"}
-                </span>
-              </label>
-            </div>
-          </div>
-          
-<!-- Form Actions -->
-          <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-base-300">
-            <.button class="btn btn-primary flex-1 sm:flex-none">
-              <.icon name="hero-check" class="w-4 h-4 mr-2" />
-              {if @live_action == :edit, do: "Update", else: "Create"} Page
-            </.button>
+              <.form
+                for={@section_form}
+                phx-change="validate_section"
+                phx-submit="save_section"
+                id="section-form"
+                class="space-y-4"
+              >
+                <%= if @live_action == :edit do %>
+                  <input type="hidden" name="qlink_section[qlink_page_id]" value={@page.id} />
+                <% end %>
 
-            <.link
-              navigate={~p"/creators/#{@creator.id}"}
-              class="btn btn-ghost"
-            >
-              <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Cancel
-            </.link>
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text font-medium">Title *</span>
+                  </label>
+                  <.input
+                    field={@section_form[:title]}
+                    type="text"
+                    class="input input-bordered w-full"
+                    placeholder="Section Title"
+                    required
+                  />
+                </div>
+
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text font-medium">Description</span>
+                  </label>
+                  <.input
+                    field={@section_form[:description]}
+                    type="textarea"
+                    class="textarea textarea-bordered w-full"
+                    placeholder="Optional description"
+                    rows="2"
+                  />
+                </div>
+
+                <div class="modal-action">
+                  <.button class="btn btn-primary">
+                    <.icon name="hero-check" class="w-4 h-4 mr-2" />
+                    {if @editing_section, do: "Update", else: "Create"} Section
+                  </.button>
+                  <button
+                    type="button"
+                    phx-click="close_section_modal"
+                    class="btn btn-ghost"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </.form>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+              <button phx-click="close_section_modal">close</button>
+            </form>
           </div>
-        </.form>
+        <% end %>
       </div>
     </div>
   </div>
-  
-<!-- Link Modal -->
-  <%= if @show_link_modal do %>
-    <div class="modal modal-open">
-      <div class="modal-box max-w-2xl">
-        <h3 class="text-lg font-bold mb-4">
-          {if @editing_link, do: "Edit Link", else: "Add Link"}
-        </h3>
-
-        <%= if @link_form && @link_form.source.action == :validate && @link_form.errors != [] do %>
-          <div class="alert alert-error mb-4">
-            <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-            <div>
-              <%= for {field, {error, _}} <- @link_form.errors do %>
-                <div>{Phoenix.Naming.humanize(field)}: {error}</div>
-              <% end %>
-            </div>
-          </div>
-        <% end %>
-
-        <.form
-          for={@link_form}
-          phx-change="validate_link"
-          phx-submit="save_link"
-          id="link-form"
-          class="space-y-4"
-        >
-          <%= if @live_action == :edit do %>
-            <input type="hidden" name="qlink_link[qlink_page_id]" value={@page.id} />
-          <% end %>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text font-medium">Type *</span>
-              </label>
-              <.input
-                field={@link_form[:type]}
-                type="select"
-                options={[
-                  {"Standard", "standard"},
-                  {"Embed", "embed"},
-                  {"Social Feed", "social_feed"}
-                ]}
-                class="select select-bordered w-full"
-                required
-              />
-            </div>
-
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text font-medium">Section</span>
-              </label>
-              <.input
-                field={@link_form[:qlink_section_id]}
-                type="select"
-                options={
-                  [
-                    {"No Section", nil}
-                  ] ++ Enum.map(@sections, &{&1.title, &1.id})
-                }
-                class="select select-bordered w-full"
-              />
-            </div>
-          </div>
-
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Title *</span>
-            </label>
-            <.input
-              field={@link_form[:title]}
-              type="text"
-              class="input input-bordered w-full"
-              placeholder="Link Title"
-              required
-            />
-          </div>
-
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">URL *</span>
-            </label>
-            <.input
-              field={@link_form[:url]}
-              type="url"
-              class="input input-bordered w-full"
-              placeholder="https://example.com"
-              required
-            />
-            <label class="label">
-              <span class="label-text-alt text-base-content/60">
-                Embed types (YouTube, Spotify, TikTok) will be auto-detected
-              </span>
-            </label>
-          </div>
-
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Description</span>
-            </label>
-            <.input
-              field={@link_form[:description]}
-              type="textarea"
-              class="textarea textarea-bordered w-full"
-              placeholder="Optional description"
-              rows="2"
-            />
-          </div>
-
-          <%= if @link_form[:type].value == "embed" do %>
-            <div class="alert alert-info">
-              <.icon name="hero-information-circle" class="w-5 h-5" />
-              <span>Embed configuration will be auto-detected from the URL</span>
-            </div>
-          <% end %>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text font-medium">Icon</span>
-              </label>
-              <.input
-                field={@link_form[:icon]}
-                type="text"
-                class="input input-bordered w-full"
-                placeholder="🔗 or emoji"
-              />
-            </div>
-
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text font-medium">Thumbnail URL</span>
-              </label>
-              <.input
-                field={@link_form[:thumbnail]}
-                type="url"
-                class="input input-bordered w-full"
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
-          </div>
-
-          <div class="form-control">
-            <label class="label cursor-pointer">
-              <span class="label-text font-medium">Visible</span>
-              <.input
-                field={@link_form[:is_visible]}
-                type="checkbox"
-                class="toggle toggle-primary"
-              />
-            </label>
-          </div>
-
-          <div class="modal-action">
-            <.button class="btn btn-primary">
-              <.icon name="hero-check" class="w-4 h-4 mr-2" />
-              {if @editing_link, do: "Update", else: "Create"} Link
-            </.button>
-            <button
-              type="button"
-              phx-click="close_link_modal"
-              class="btn btn-ghost"
-            >
-              Cancel
-            </button>
-          </div>
-        </.form>
-      </div>
-      <form method="dialog" class="modal-backdrop">
-        <button phx-click="close_link_modal">close</button>
-      </form>
-    </div>
-  <% end %>
-  
-<!-- Section Modal -->
-  <%= if @show_section_modal do %>
-    <div class="modal modal-open">
-      <div class="modal-box max-w-2xl">
-        <h3 class="text-lg font-bold mb-4">
-          {if @editing_section, do: "Edit Section", else: "Add Section"}
-        </h3>
-
-        <%= if @section_form && @section_form.source.action == :validate && @section_form.errors != [] do %>
-          <div class="alert alert-error mb-4">
-            <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-            <div>
-              <%= for {field, {error, _}} <- @section_form.errors do %>
-                <div>{Phoenix.Naming.humanize(field)}: {error}</div>
-              <% end %>
-            </div>
-          </div>
-        <% end %>
-
-        <.form
-          for={@section_form}
-          phx-change="validate_section"
-          phx-submit="save_section"
-          id="section-form"
-          class="space-y-4"
-        >
-          <%= if @live_action == :edit do %>
-            <input type="hidden" name="qlink_section[qlink_page_id]" value={@page.id} />
-          <% end %>
-
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Title *</span>
-            </label>
-            <.input
-              field={@section_form[:title]}
-              type="text"
-              class="input input-bordered w-full"
-              placeholder="Section Title"
-              required
-            />
-          </div>
-
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-medium">Description</span>
-            </label>
-            <.input
-              field={@section_form[:description]}
-              type="textarea"
-              class="textarea textarea-bordered w-full"
-              placeholder="Optional description"
-              rows="2"
-            />
-          </div>
-
-          <div class="modal-action">
-            <.button class="btn btn-primary">
-              <.icon name="hero-check" class="w-4 h-4 mr-2" />
-              {if @editing_section, do: "Update", else: "Create"} Section
-            </.button>
-            <button
-              type="button"
-              phx-click="close_section_modal"
-              class="btn btn-ghost"
-            >
-              Cancel
-            </button>
-          </div>
-        </.form>
-      </div>
-      <form method="dialog" class="modal-backdrop">
-        <button phx-click="close_section_modal">close</button>
-      </form>
-    </div>
-  <% end %>
 </Layouts.admin>

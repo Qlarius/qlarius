@@ -6,6 +6,7 @@ defmodule QlariusWeb.CreatorDashboard.Show do
   alias QlariusWeb.Uploaders.CreatorImage
   alias QlariusWeb.LiveView.ImageUpload
   alias QlariusWeb.Helpers.ImageHelpers
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -130,7 +131,12 @@ defmodule QlariusWeb.CreatorDashboard.Show do
   def render(assigns) do
     ~H"""
     <Layouts.admin {assigns}>
-      <div class="container mx-auto px-4 py-8">
+      <div class="flex h-screen">
+        <AdminSidebar.sidebar current_user={@current_scope.user} />
+        <div class="flex min-w-0 grow flex-col">
+          <AdminTopbar.topbar current_user={@current_scope.user} />
+          <div class="overflow-auto">
+            <div class="container mx-auto px-4 py-8">
         <div class="mb-6">
           <.link navigate={~p"/creators"} class="btn btn-ghost btn-sm">
             ← Back to Creators
@@ -327,7 +333,7 @@ defmodule QlariusWeb.CreatorDashboard.Show do
               </div>
             <% end %>
           </div>
-          
+
     <!-- Tiqit Catalogs Section -->
           <div>
             <div class="flex justify-between items-center mb-4">
@@ -395,6 +401,9 @@ defmodule QlariusWeb.CreatorDashboard.Show do
                 <% end %>
               </div>
             <% end %>
+          </div>
+        </div>
+            </div>
           </div>
         </div>
       </div>

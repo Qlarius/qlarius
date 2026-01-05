@@ -5,6 +5,7 @@ defmodule QlariusWeb.CreatorDashboard.Index do
   alias Qlarius.Creators.Creator
   alias QlariusWeb.Uploaders.CreatorImage
   alias QlariusWeb.LiveView.ImageUpload
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -158,7 +159,12 @@ defmodule QlariusWeb.CreatorDashboard.Index do
   def render(assigns) do
     ~H"""
     <Layouts.admin {assigns}>
-      <div class="container mx-auto px-4 py-8">
+      <div class="flex h-screen">
+        <AdminSidebar.sidebar current_user={@current_scope.user} />
+        <div class="flex min-w-0 grow flex-col">
+          <AdminTopbar.topbar current_user={@current_scope.user} />
+          <div class="overflow-auto">
+            <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-8">
           <h1 class="text-3xl font-bold">My Creators</h1>
           <%= if not @show_form do %>
@@ -302,6 +308,9 @@ defmodule QlariusWeb.CreatorDashboard.Index do
             <% end %>
           </div>
         <% end %>
+            </div>
+          </div>
+        </div>
       </div>
     </Layouts.admin>
     """

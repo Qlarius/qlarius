@@ -1,4 +1,9 @@
-<div class="container mx-auto px-4">
+<div class="flex h-screen">
+  <AdminSidebar.sidebar current_user={@current_scope.user} />
+  <div class="flex min-w-0 grow flex-col">
+    <AdminTopbar.topbar current_user={@current_scope.user} />
+    <div class="overflow-auto">
+      <div class="container mx-auto px-4 py-6">
   <div class="mb-4">
     <%!-- Removed class="btn btn-outline" - back component doesn't support class attribute --%>
     <.back navigate={~p"/admin/recipients"}>Back to recipients</.back>
@@ -20,4 +25,7 @@
     method="post"
     submit_label="Create Recipient"
   />
+      </div>
+    </div>
+  </div>
 </div>

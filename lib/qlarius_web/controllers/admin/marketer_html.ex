@@ -1,6 +1,8 @@
 defmodule QlariusWeb.Admin.MarketerHTML do
   use QlariusWeb, :html
 
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
+
   embed_templates "marketer_html/*"
 
   @doc """

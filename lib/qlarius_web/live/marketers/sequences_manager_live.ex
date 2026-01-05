@@ -1,6 +1,7 @@
 defmodule QlariusWeb.Live.Marketers.SequencesManagerLive do
   use QlariusWeb, :live_view
 
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Sponster.Campaigns.MediaSequences
   alias Qlarius.Sponster.Ads
   alias QlariusWeb.Live.Marketers.CurrentMarketer
@@ -215,202 +216,217 @@ defmodule QlariusWeb.Live.Marketers.SequencesManagerLive do
   def render(assigns) do
     ~H"""
     <Layouts.admin {assigns}>
-      <.current_marketer_bar
-        current_marketer={@current_marketer}
-        current_path={~p"/marketer/sequences"}
-      />
+      <div class="flex h-screen">
+        <AdminSidebar.sidebar current_user={@current_scope.user} />
 
-      <div :if={!@current_marketer} class="p-6">
-        <div class="alert alert-warning">
-          <.icon name="hero-exclamation-circle" class="w-6 h-6" />
-          <span>Please select a marketer to manage media sequences.</span>
-        </div>
-      </div>
+        <div class="flex min-w-0 grow flex-col">
+          <AdminTopbar.topbar current_user={@current_scope.user} />
 
-      <div :if={@current_marketer} class="p-6">
-        <div class="flex justify-between items-center mb-6">
-          <h1 class="text-2xl font-bold">Media Sequencer</h1>
-        </div>
+          <div class="overflow-auto">
+            <.current_marketer_bar
+              current_marketer={@current_marketer}
+              current_path={~p"/marketer/sequences"}
+            />
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div class="lg:col-span-2">
-            <div :if={@media_sequences == []} class="card bg-base-100 border border-base-300">
-              <div class="card-body text-center py-12">
-                <.icon name="hero-document-plus" class="w-16 h-16 mx-auto text-base-content/30 mb-4" />
-                <p class="text-lg font-medium text-base-content/70">No media sequences yet</p>
-                <p class="text-sm text-base-content/50 mt-2">
-                  Create your first sequence on the right to get started
-                </p>
+            <div :if={!@current_marketer} class="p-6">
+              <div class="alert alert-warning">
+                <.icon name="hero-exclamation-circle" class="w-6 h-6" />
+                <span>Please select a marketer to manage media sequences.</span>
               </div>
             </div>
 
-            <.sequences_table
-              :if={@media_sequences != []}
-              sequences={@media_sequences}
-              archived={false}
-            />
+            <div :if={@current_marketer} class="p-6">
+              <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold">Media Sequencer</h1>
+              </div>
 
-            <div
-              :if={@archived_media_sequences != []}
-              class="mt-8 border-t border-base-300 pt-6"
-            >
-              <button phx-click="toggle_archived" class="btn btn-ghost btn-sm mb-4">
-                <.icon
-                  name={if @show_archived, do: "hero-chevron-down", else: "hero-chevron-right"}
-                  class="w-4 h-4"
-                /> Archived Sequences ({length(@archived_media_sequences)})
-              </button>
-
-              <.sequences_table
-                :if={@show_archived}
-                sequences={@archived_media_sequences}
-                archived={true}
-              />
-            </div>
-          </div>
-
-          <div class="lg:col-span-1">
-            <div class="card bg-base-100 border border-base-300">
-              <div class="card-body">
-                <h2 class="card-title mb-4">Create New Sequence</h2>
-
-                <%= if @media_pieces == [] do %>
-                  <div class="alert alert-warning">
-                    <.icon name="hero-exclamation-circle" class="w-5 h-5" />
-                    <span class="text-sm">No active media pieces. Create media pieces first.</span>
+              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                  <div :if={@media_sequences == []} class="card bg-base-100 border border-base-300">
+                    <div class="card-body text-center py-12">
+                      <.icon
+                        name="hero-document-plus"
+                        class="w-16 h-16 mx-auto text-base-content/30 mb-4"
+                      />
+                      <p class="text-lg font-medium text-base-content/70">No media sequences yet</p>
+                      <p class="text-sm text-base-content/50 mt-2">
+                        Create your first sequence on the right to get started
+                      </p>
+                    </div>
                   </div>
-                <% else %>
-                  <.form
-                    for={@sequence_form}
-                    phx-submit="create_sequence"
-                    phx-change="update_form"
-                    class="space-y-4"
+
+                  <.sequences_table
+                    :if={@media_sequences != []}
+                    sequences={@media_sequences}
+                    archived={false}
+                  />
+
+                  <div
+                    :if={@archived_media_sequences != []}
+                    class="mt-8 border-t border-base-300 pt-6"
                   >
-                    <div class="form-control w-full">
-                      <label class="label">
-                        <span class="label-text font-semibold">1. Select Media Piece</span>
-                      </label>
-                      <select
-                        name="sequence[media_piece_id]"
-                        class="select select-bordered w-full"
-                        required
-                      >
-                        <option value="">Choose a media piece...</option>
-                        <option
-                          :for={piece <- @media_pieces}
-                          value={piece.id}
-                          selected={piece.id == @selected_media_piece_id}
-                        >
-                          {piece.title}
-                        </option>
-                      </select>
-                    </div>
-
-                    <div class="divider text-sm">2. Frequency Rules</div>
-
-                    <div class="form-control w-full">
-                      <label class="label">
-                        <span class="label-text">Frequency</span>
-                      </label>
-                      <input
-                        type="number"
-                        name="sequence[frequency]"
-                        value={@sequence_form.params["frequency"]}
-                        class="input input-bordered w-full"
-                        min="1"
-                        required
-                      />
-                      <label class="label">
-                        <span class="label-text-alt text-base-content/60 text-xs">
-                          Desired completions
-                        </span>
-                      </label>
-                    </div>
-
-                    <div class="form-control w-full">
-                      <label class="label">
-                        <span class="label-text">Frequency Buffer (hours)</span>
-                      </label>
-                      <input
-                        type="number"
-                        name="sequence[frequency_buffer_hours]"
-                        value={@sequence_form.params["frequency_buffer_hours"]}
-                        class="input input-bordered w-full"
-                        min="1"
-                        required
-                      />
-                      <label class="label">
-                        <span class="label-text-alt text-base-content/60 text-xs">
-                          Hours between completions
-                        </span>
-                      </label>
-                    </div>
-
-                    <div class="form-control w-full">
-                      <label class="label">
-                        <span class="label-text">Maximum Banner Attempts</span>
-                      </label>
-                      <input
-                        type="number"
-                        name="sequence[maximum_banner_count]"
-                        value={@sequence_form.params["maximum_banner_count"]}
-                        class="input input-bordered w-full"
-                        min="1"
-                        required
-                      />
-                      <label class="label">
-                        <span class="label-text-alt text-base-content/60 text-xs">
-                          Max banners without completion
-                        </span>
-                      </label>
-                    </div>
-
-                    <div class="form-control w-full">
-                      <label class="label">
-                        <span class="label-text">Banner Retry Buffer (hours)</span>
-                      </label>
-                      <input
-                        type="number"
-                        name="sequence[banner_retry_buffer_hours]"
-                        value={@sequence_form.params["banner_retry_buffer_hours"]}
-                        class="input input-bordered w-full"
-                        min="1"
-                        required
-                      />
-                      <label class="label">
-                        <span class="label-text-alt text-base-content/60 text-xs">
-                          Hours between banner retries
-                        </span>
-                      </label>
-                    </div>
-
-                    <div class="divider text-sm">3. Name</div>
-
-                    <div class="form-control w-full">
-                      <input
-                        type="text"
-                        name="sequence[title]"
-                        value={@sequence_form.params["title"]}
-                        placeholder="Sequence name"
-                        class="input input-bordered w-full"
-                        required
-                      />
-                      <label class="label">
-                        <span class="label-text-alt text-base-content/60 text-xs">
-                          Auto-generated, but you can customize it
-                        </span>
-                      </label>
-                    </div>
-
-                    <button
-                      type="submit"
-                      class="btn btn-primary w-full"
-                      disabled={!@selected_media_piece_id}
-                    >
-                      <.icon name="hero-plus" class="w-5 h-5" /> Create Sequence
+                    <button phx-click="toggle_archived" class="btn btn-ghost btn-sm mb-4">
+                      <.icon
+                        name={if @show_archived, do: "hero-chevron-down", else: "hero-chevron-right"}
+                        class="w-4 h-4"
+                      /> Archived Sequences ({length(@archived_media_sequences)})
                     </button>
-                  </.form>
-                <% end %>
+
+                    <.sequences_table
+                      :if={@show_archived}
+                      sequences={@archived_media_sequences}
+                      archived={true}
+                    />
+                  </div>
+                </div>
+
+                <div class="lg:col-span-1">
+                  <div class="card bg-base-100 border border-base-300">
+                    <div class="card-body">
+                      <h2 class="card-title mb-4">Create New Sequence</h2>
+
+                      <%= if @media_pieces == [] do %>
+                        <div class="alert alert-warning">
+                          <.icon name="hero-exclamation-circle" class="w-5 h-5" />
+                          <span class="text-sm">
+                            No active media pieces. Create media pieces first.
+                          </span>
+                        </div>
+                      <% else %>
+                        <.form
+                          for={@sequence_form}
+                          phx-submit="create_sequence"
+                          phx-change="update_form"
+                          class="space-y-4"
+                        >
+                          <div class="form-control w-full">
+                            <label class="label">
+                              <span class="label-text font-semibold">1. Select Media Piece</span>
+                            </label>
+                            <select
+                              name="sequence[media_piece_id]"
+                              class="select select-bordered w-full"
+                              required
+                            >
+                              <option value="">Choose a media piece...</option>
+                              <option
+                                :for={piece <- @media_pieces}
+                                value={piece.id}
+                                selected={piece.id == @selected_media_piece_id}
+                              >
+                                {piece.title}
+                              </option>
+                            </select>
+                          </div>
+
+                          <div class="divider text-sm">2. Frequency Rules</div>
+
+                          <div class="form-control w-full">
+                            <label class="label">
+                              <span class="label-text">Frequency</span>
+                            </label>
+                            <input
+                              type="number"
+                              name="sequence[frequency]"
+                              value={@sequence_form.params["frequency"]}
+                              class="input input-bordered w-full"
+                              min="1"
+                              required
+                            />
+                            <label class="label">
+                              <span class="label-text-alt text-base-content/60 text-xs">
+                                Desired completions
+                              </span>
+                            </label>
+                          </div>
+
+                          <div class="form-control w-full">
+                            <label class="label">
+                              <span class="label-text">Frequency Buffer (hours)</span>
+                            </label>
+                            <input
+                              type="number"
+                              name="sequence[frequency_buffer_hours]"
+                              value={@sequence_form.params["frequency_buffer_hours"]}
+                              class="input input-bordered w-full"
+                              min="1"
+                              required
+                            />
+                            <label class="label">
+                              <span class="label-text-alt text-base-content/60 text-xs">
+                                Hours between completions
+                              </span>
+                            </label>
+                          </div>
+
+                          <div class="form-control w-full">
+                            <label class="label">
+                              <span class="label-text">Maximum Banner Attempts</span>
+                            </label>
+                            <input
+                              type="number"
+                              name="sequence[maximum_banner_count]"
+                              value={@sequence_form.params["maximum_banner_count"]}
+                              class="input input-bordered w-full"
+                              min="1"
+                              required
+                            />
+                            <label class="label">
+                              <span class="label-text-alt text-base-content/60 text-xs">
+                                Max banners without completion
+                              </span>
+                            </label>
+                          </div>
+
+                          <div class="form-control w-full">
+                            <label class="label">
+                              <span class="label-text">Banner Retry Buffer (hours)</span>
+                            </label>
+                            <input
+                              type="number"
+                              name="sequence[banner_retry_buffer_hours]"
+                              value={@sequence_form.params["banner_retry_buffer_hours"]}
+                              class="input input-bordered w-full"
+                              min="1"
+                              required
+                            />
+                            <label class="label">
+                              <span class="label-text-alt text-base-content/60 text-xs">
+                                Hours between banner retries
+                              </span>
+                            </label>
+                          </div>
+
+                          <div class="divider text-sm">3. Name</div>
+
+                          <div class="form-control w-full">
+                            <input
+                              type="text"
+                              name="sequence[title]"
+                              value={@sequence_form.params["title"]}
+                              placeholder="Sequence name"
+                              class="input input-bordered w-full"
+                              required
+                            />
+                            <label class="label">
+                              <span class="label-text-alt text-base-content/60 text-xs">
+                                Auto-generated, but you can customize it
+                              </span>
+                            </label>
+                          </div>
+
+                          <button
+                            type="submit"
+                            class="btn btn-primary w-full"
+                            disabled={!@selected_media_piece_id}
+                          >
+                            <.icon name="hero-plus" class="w-5 h-5" /> Create Sequence
+                          </button>
+                        </.form>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

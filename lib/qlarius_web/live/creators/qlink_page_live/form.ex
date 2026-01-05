@@ -1,6 +1,7 @@
 defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   use QlariusWeb, :live_view
 
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Qlink
   alias Qlarius.Qlink.QlinkPage
   alias Qlarius.Qlink.QlinkLink

@@ -7,12 +7,12 @@ defmodule QlariusWeb.AdJumpPageHTML do
     ~H"""
     <div class="max-w-md mx-auto bg-base-50 p-8 flex flex-col items-center justify-center text-center space-y-6">
       <h2 class="text-2xl font-semibold text-base-content/70">
-        Leaving the no-tracking safety of Qlarius.
+        Be careful out there!
       </h2>
 
       <img src={~p"/images/qlarius_app_icon_180.png"} width="100" height="71" />
 
-      <p class="text-base-content/50">Be careful out there.</p>
+      <p class="text-base-content/50">Leaving the no-tracking safety of Qadabra.</p>
 
       <div class="w-full">
         <p class="text-sm text-base-content/60 mb-2">

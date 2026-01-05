@@ -1,119 +1,130 @@
 defmodule QlariusWeb.Admin.SurveyCategoryManagerLive do
   use QlariusWeb, :live_view
 
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.YouData.Surveys.SurveyCategories
   alias Qlarius.YouData.Surveys.SurveyCategory
 
   def render(assigns) do
     ~H"""
     <Layouts.admin {assigns}>
-      <%= case @live_action do %>
-        <% :index -> %>
-          <div class="p-6">
-            <h1 class="text-2xl font-bold mb-4">Survey Categories</h1>
-            <div class="flex justify-end items-center mb-4">
-              <.link patch={~p"/admin/survey_categories/new"} class="btn btn-primary">
-                <.icon name="hero-plus" class="w-4 h-4 mr-1" /> New Survey Category
-              </.link>
-            </div>
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body p-0">
-                <%= if @survey_categories == [] do %>
-                  <div class="p-8 text-center text-base-content/60">
-                    <.icon
-                      name="hero-clipboard-document-list"
-                      class="w-12 h-12 mx-auto mb-2 opacity-50"
-                    />
-                    <p>No survey categories found</p>
+      <div class="flex h-screen">
+        <AdminSidebar.sidebar current_user={@current_scope.user} />
+
+        <div class="flex min-w-0 grow flex-col">
+          <AdminTopbar.topbar current_user={@current_scope.user} />
+
+          <div class="overflow-auto">
+            <%= case @live_action do %>
+              <% :index -> %>
+                <div class="p-6">
+                  <h1 class="text-2xl font-bold mb-4">Survey Categories</h1>
+                  <div class="flex justify-end items-center mb-4">
+                    <.link patch={~p"/admin/survey_categories/new"} class="btn btn-primary">
+                      <.icon name="hero-plus" class="w-4 h-4 mr-1" /> New Survey Category
+                    </.link>
                   </div>
-                <% else %>
-                  <div class="overflow-x-auto">
-                    <.table id="survey-categories-table" rows={@survey_categories}>
-                      <:col :let={category} label="Display Order">
-                        <span class="badge badge-ghost">{category.display_order}</span>
-                      </:col>
-                      <:col :let={category} label="Category Name">
-                        {category.survey_category_name}
-                      </:col>
-                      <:col :let={category} label="Active Surveys">
-                        <span class="badge badge-info">
-                          {Map.get(category, :active_survey_count, 0)}
-                        </span>
-                      </:col>
-                      <:col :let={category} label="Actions">
-                        <div class="flex gap-2">
-                          <.link
-                            patch={~p"/admin/survey_categories/#{category}/edit"}
-                            class="btn btn-xs btn-warning"
-                          >
-                            <.icon name="hero-pencil-square" class="w-4 h-4" />
-                          </.link>
-                          <%= if can_delete?(category) do %>
-                            <.link
-                              phx-click="delete"
-                              phx-value-id={category.id}
-                              data-confirm="Are you sure you want to delete this survey category?"
-                              class="btn btn-xs btn-error"
-                            >
-                              <.icon name="hero-trash" class="w-4 h-4" />
-                            </.link>
-                          <% else %>
-                            <button
-                              class="btn btn-xs btn-disabled"
-                              disabled
-                              title="Cannot delete category with associated surveys"
-                            >
-                              <.icon name="hero-trash" class="w-4 h-4" />
-                            </button>
-                          <% end %>
+                  <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body p-0">
+                      <%= if @survey_categories == [] do %>
+                        <div class="p-8 text-center text-base-content/60">
+                          <.icon
+                            name="hero-clipboard-document-list"
+                            class="w-12 h-12 mx-auto mb-2 opacity-50"
+                          />
+                          <p>No survey categories found</p>
                         </div>
-                      </:col>
-                    </.table>
+                      <% else %>
+                        <div class="overflow-x-auto">
+                          <.table id="survey-categories-table" rows={@survey_categories}>
+                            <:col :let={category} label="Display Order">
+                              <span class="badge badge-ghost">{category.display_order}</span>
+                            </:col>
+                            <:col :let={category} label="Category Name">
+                              {category.survey_category_name}
+                            </:col>
+                            <:col :let={category} label="Active Surveys">
+                              <span class="badge badge-info">
+                                {Map.get(category, :active_survey_count, 0)}
+                              </span>
+                            </:col>
+                            <:col :let={category} label="Actions">
+                              <div class="flex gap-2">
+                                <.link
+                                  patch={~p"/admin/survey_categories/#{category}/edit"}
+                                  class="btn btn-xs btn-warning"
+                                >
+                                  <.icon name="hero-pencil-square" class="w-4 h-4" />
+                                </.link>
+                                <%= if can_delete?(category) do %>
+                                  <.link
+                                    phx-click="delete"
+                                    phx-value-id={category.id}
+                                    data-confirm="Are you sure you want to delete this survey category?"
+                                    class="btn btn-xs btn-error"
+                                  >
+                                    <.icon name="hero-trash" class="w-4 h-4" />
+                                  </.link>
+                                <% else %>
+                                  <button
+                                    class="btn btn-xs btn-disabled"
+                                    disabled
+                                    title="Cannot delete category with associated surveys"
+                                  >
+                                    <.icon name="hero-trash" class="w-4 h-4" />
+                                  </button>
+                                <% end %>
+                              </div>
+                            </:col>
+                          </.table>
+                        </div>
+                      <% end %>
+                    </div>
                   </div>
-                <% end %>
-              </div>
-            </div>
+                </div>
+              <% :new -> %>
+                <div class="p-6 max-w-3xl mx-auto">
+                  <div class="mb-6">
+                    <.back navigate={~p"/admin/survey_categories"}>
+                      <.icon name="hero-arrow-left" class="w-4 h-4 mr-1" /> Back to survey categories
+                    </.back>
+                  </div>
+                  <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                      <h2 class="card-title text-2xl mb-2">
+                        <.icon name="hero-plus-circle" class="w-6 h-6" /> New Survey Category
+                      </h2>
+                      <p class="text-base-content/70 mb-6">Create a new survey category.</p>
+                      {render_form(assigns)}
+                    </div>
+                  </div>
+                </div>
+              <% :edit -> %>
+                <div class="p-6 max-w-3xl mx-auto">
+                  <div class="mb-6">
+                    <.back navigate={~p"/admin/survey_categories"}>
+                      <.icon name="hero-arrow-left" class="w-4 h-4 mr-1" /> Back to survey categories
+                    </.back>
+                  </div>
+                  <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                      <h2 class="card-title text-2xl mb-2">
+                        <.icon name="hero-pencil-square" class="w-6 h-6" /> Edit Survey Category
+                      </h2>
+                      <p class="text-base-content/70 mb-2">
+                        Editing:
+                        <span class="font-semibold text-primary">
+                          {Map.get(@survey_category, :survey_category_name, "")}
+                        </span>
+                      </p>
+                      {render_form(assigns)}
+                    </div>
+                  </div>
+                </div>
+            <% end %>
           </div>
-        <% :new -> %>
-          <div class="p-6 max-w-3xl mx-auto">
-            <div class="mb-6">
-              <.back navigate={~p"/admin/survey_categories"}>
-                <.icon name="hero-arrow-left" class="w-4 h-4 mr-1" /> Back to survey categories
-              </.back>
-            </div>
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title text-2xl mb-2">
-                  <.icon name="hero-plus-circle" class="w-6 h-6" /> New Survey Category
-                </h2>
-                <p class="text-base-content/70 mb-6">Create a new survey category.</p>
-                {render_form(assigns)}
-              </div>
-            </div>
-          </div>
-        <% :edit -> %>
-          <div class="p-6 max-w-3xl mx-auto">
-            <div class="mb-6">
-              <.back navigate={~p"/admin/survey_categories"}>
-                <.icon name="hero-arrow-left" class="w-4 h-4 mr-1" /> Back to survey categories
-              </.back>
-            </div>
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title text-2xl mb-2">
-                  <.icon name="hero-pencil-square" class="w-6 h-6" /> Edit Survey Category
-                </h2>
-                <p class="text-base-content/70 mb-2">
-                  Editing:
-                  <span class="font-semibold text-primary">
-                    {Map.get(@survey_category, :survey_category_name, "")}
-                  </span>
-                </p>
-                {render_form(assigns)}
-              </div>
-            </div>
-          </div>
-      <% end %>
+        </div>
+      </div>
     </Layouts.admin>
     """
   end

@@ -1,6 +1,7 @@
 defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   use QlariusWeb, :live_view
 
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias QlariusWeb.Live.Marketers.CurrentMarketer
   alias Qlarius.Sponster.Marketing
   alias Qlarius.Sponster.Ads.MediaPiece
@@ -207,136 +208,146 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   def render(assigns) do
     ~H"""
     <Layouts.admin {assigns}>
-      <%= case @live_action do %>
-        <% :index -> %>
-          <.current_marketer_bar
-            current_marketer={@current_marketer}
-            current_path={~p"/marketer/media"}
-          />
-          <div class="container mx-auto px-4 py-8">
-            <div class="flex justify-between items-center mb-8">
-              <h1 class="text-3xl font-bold">Media Pieces</h1>
-              <.link patch={~p"/marketer/media/new"}>
-                <button class="btn btn-primary gap-2">
-                  <.icon name="hero-plus" class="w-5 h-5" /> New Media Piece
-                </button>
-              </.link>
-            </div>
+      <div class="flex h-screen">
+        <AdminSidebar.sidebar current_user={@current_scope.user} />
 
-            <div class="card bg-base-100 shadow-xl">
-              <div class="card-body p-0">
-                <div class="overflow-x-auto">
-                  <table class="table table-zebra w-full">
-                    <thead>
-                      <tr>
-                        <th class="bg-base-200">Banner</th>
-                        <th class="bg-base-200">Title</th>
-                        <th class="bg-base-200">Display URL</th>
-                        <th class="bg-base-200">Ad Category</th>
-                        <th class="bg-base-200">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <%= for media_piece <- @media_pieces do %>
-                        <tr class="hover">
-                          <td class="align-top">
-                            <%= if media_piece.banner_image do %>
-                              <img
-                                src={
-                                  QlariusWeb.Uploaders.ThreeTapBanner.url(
-                                    {media_piece.banner_image, media_piece},
-                                    :original
-                                  )
-                                }
-                                alt="Banner"
-                                class="w-32 h-auto object-cover rounded"
-                              />
-                            <% else %>
-                              <div class="w-32 h-24 bg-gray-200 rounded flex items-center justify-center">
-                                <span class="text-gray-400">No banner</span>
-                              </div>
+        <div class="flex min-w-0 grow flex-col">
+          <AdminTopbar.topbar current_user={@current_scope.user} />
+
+          <div class="overflow-auto">
+            <%= case @live_action do %>
+              <% :index -> %>
+                <.current_marketer_bar
+                  current_marketer={@current_marketer}
+                  current_path={~p"/marketer/media"}
+                />
+                <div class="container mx-auto px-4 py-8">
+                  <div class="flex justify-between items-center mb-8">
+                    <h1 class="text-3xl font-bold">Media Pieces</h1>
+                    <.link patch={~p"/marketer/media/new"}>
+                      <button class="btn btn-primary gap-2">
+                        <.icon name="hero-plus" class="w-5 h-5" /> New Media Piece
+                      </button>
+                    </.link>
+                  </div>
+
+                  <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body p-0">
+                      <div class="overflow-x-auto">
+                        <table class="table table-zebra w-full">
+                          <thead>
+                            <tr>
+                              <th class="bg-base-200">Banner</th>
+                              <th class="bg-base-200">Title</th>
+                              <th class="bg-base-200">Display URL</th>
+                              <th class="bg-base-200">Ad Category</th>
+                              <th class="bg-base-200">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <%= for media_piece <- @media_pieces do %>
+                              <tr class="hover">
+                                <td class="align-top">
+                                  <%= if media_piece.banner_image do %>
+                                    <img
+                                      src={
+                                        QlariusWeb.Uploaders.ThreeTapBanner.url(
+                                          {media_piece.banner_image, media_piece},
+                                          :original
+                                        )
+                                      }
+                                      alt="Banner"
+                                      class="w-32 h-auto object-cover rounded"
+                                    />
+                                  <% else %>
+                                    <div class="w-32 h-24 bg-gray-200 rounded flex items-center justify-center">
+                                      <span class="text-gray-400">No banner</span>
+                                    </div>
+                                  <% end %>
+                                </td>
+                                <td class="align-top">{media_piece.title}</td>
+                                <td class="text-emerald-600 align-top">{media_piece.display_url}</td>
+                                <td class="align-top">
+                                  <span class="badge whitespace-nowrap inline-flex items-center">
+                                    {media_piece.ad_category.ad_category_name}
+                                  </span>
+                                </td>
+                                <td class="align-top">
+                                  <div class="flex gap-2">
+                                    <.link patch={~p"/marketer/media/#{media_piece}/edit"}>
+                                      <button class="btn btn-sm btn-ghost btn-square">
+                                        <.icon name="hero-pencil-square" class="w-5 h-5" />
+                                      </button>
+                                    </.link>
+                                    <button
+                                      phx-click="delete"
+                                      phx-value-id={media_piece.id}
+                                      data-confirm="Are you sure you want to delete this media piece?"
+                                      class="btn btn-sm btn-ghost btn-square text-error"
+                                    >
+                                      <.icon name="hero-trash" class="w-5 h-5" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
                             <% end %>
-                          </td>
-                          <td class="align-top">{media_piece.title}</td>
-                          <td class="text-emerald-600 align-top">{media_piece.display_url}</td>
-                          <td class="align-top">
-                            <span class="badge whitespace-nowrap inline-flex items-center">
-                              {media_piece.ad_category.ad_category_name}
-                            </span>
-                          </td>
-                          <td class="align-top">
-                            <div class="flex gap-2">
-                              <.link patch={~p"/marketer/media/#{media_piece}/edit"}>
-                                <button class="btn btn-sm btn-ghost btn-square">
-                                  <.icon name="hero-pencil-square" class="w-5 h-5" />
-                                </button>
-                              </.link>
-                              <button
-                                phx-click="delete"
-                                phx-value-id={media_piece.id}
-                                data-confirm="Are you sure you want to delete this media piece?"
-                                class="btn btn-sm btn-ghost btn-square text-error"
-                              >
-                                <.icon name="hero-trash" class="w-5 h-5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      <% end %>
-                    </tbody>
-                  </table>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              <% :new -> %>
+                <.current_marketer_bar
+                  current_marketer={@current_marketer}
+                  current_path={~p"/marketer/media"}
+                />
+                <div class="container mx-auto px-4">
+                  <div class="mb-4">
+                    <.back navigate={~p"/marketer/media"}>Back to media pieces</.back>
+                  </div>
+                  <div>
+                    <.header>
+                      <h1 class="text-2xl font-bold">New Media Piece</h1>
+                      <:subtitle>Create a new media piece.</:subtitle>
+                    </.header>
+                  </div>
+                  <.media_piece_form
+                    form={@form}
+                    action={~p"/marketer/media/new"}
+                    ad_categories={@ad_categories}
+                    uploads={@uploads}
+                  />
+                </div>
+              <% :edit -> %>
+                <.current_marketer_bar
+                  current_marketer={@current_marketer}
+                  current_path={~p"/marketer/media"}
+                />
+                <div class="container mx-auto px-4">
+                  <div class="mb-4">
+                    <.back navigate={~p"/marketer/media"}>Back to media pieces</.back>
+                  </div>
+                  <div>
+                    <.header>
+                      <h1 class="text-2xl font-bold">
+                        Edit Media Piece "<span class="text-primary"><%= @media_piece.title %></span>"
+                      </h1>
+                      <:subtitle>Edit media piece information.</:subtitle>
+                    </.header>
+                  </div>
+                  <.media_piece_form
+                    form={@form}
+                    action={~p"/marketer/media/#{@media_piece}/edit"}
+                    ad_categories={@ad_categories}
+                    uploads={@uploads}
+                    media_piece={@media_piece}
+                  />
+                </div>
+            <% end %>
           </div>
-        <% :new -> %>
-          <.current_marketer_bar
-            current_marketer={@current_marketer}
-            current_path={~p"/marketer/media"}
-          />
-          <div class="container mx-auto px-4">
-            <div class="mb-4">
-              <.back navigate={~p"/marketer/media"}>Back to media pieces</.back>
-            </div>
-            <div>
-              <.header>
-                <h1 class="text-2xl font-bold">New Media Piece</h1>
-                <:subtitle>Create a new media piece.</:subtitle>
-              </.header>
-            </div>
-            <.media_piece_form
-              form={@form}
-              action={~p"/marketer/media/new"}
-              ad_categories={@ad_categories}
-              uploads={@uploads}
-            />
-          </div>
-        <% :edit -> %>
-          <.current_marketer_bar
-            current_marketer={@current_marketer}
-            current_path={~p"/marketer/media"}
-          />
-          <div class="container mx-auto px-4">
-            <div class="mb-4">
-              <.back navigate={~p"/marketer/media"}>Back to media pieces</.back>
-            </div>
-            <div>
-              <.header>
-                <h1 class="text-2xl font-bold">
-                  Edit Media Piece "<span class="text-primary"><%= @media_piece.title %></span>"
-                </h1>
-                <:subtitle>Edit media piece information.</:subtitle>
-              </.header>
-            </div>
-            <.media_piece_form
-              form={@form}
-              action={~p"/marketer/media/#{@media_piece}/edit"}
-              ad_categories={@ad_categories}
-              uploads={@uploads}
-              media_piece={@media_piece}
-            />
-          </div>
-      <% end %>
+        </div>
+      </div>
     </Layouts.admin>
     """
   end

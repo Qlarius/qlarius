@@ -1,4 +1,9 @@
-<div class="p-6">
+<div class="flex h-screen">
+  <AdminSidebar.sidebar current_user={@current_scope.user} />
+  <div class="flex min-w-0 grow flex-col">
+    <AdminTopbar.topbar current_user={@current_scope.user} />
+    <div class="overflow-auto">
+      <div class="p-6">
   <div class="card bg-base-100 shadow-xl">
     <div class="card-body">
       <div class="flex gap-2 mb-4">
@@ -128,6 +133,9 @@
             <span></span>
           <% end %>
         </div>
+      </div>
+    </div>
+  </div>
       </div>
     </div>
   </div>

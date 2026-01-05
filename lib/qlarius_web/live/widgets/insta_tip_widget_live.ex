@@ -185,6 +185,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
 
           <.insta_tip_button_group
             amounts={Enum.map(@amounts, &Decimal.to_string/1)}
+            wallet_balance={@current_scope.wallet_balance}
             add_class="mb-4"
           />
           <.insta_tip_header wallet_balance={@current_scope.wallet_balance} />

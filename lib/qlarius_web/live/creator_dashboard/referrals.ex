@@ -3,6 +3,7 @@ defmodule QlariusWeb.CreatorDashboard.Referrals do
 
   alias Qlarius.Referrals
   alias Qlarius.Creators
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
 
   def mount(%{"id" => creator_id}, _session, socket) do
     creator = Creators.get_creator!(creator_id)
@@ -39,7 +40,13 @@ defmodule QlariusWeb.CreatorDashboard.Referrals do
 
   def render(assigns) do
     ~H"""
-    <div class="container mx-auto px-4 py-6">
+    <Layouts.admin {assigns}>
+      <div class="flex h-screen">
+        <AdminSidebar.sidebar current_user={@current_scope.user} />
+        <div class="flex min-w-0 grow flex-col">
+          <AdminTopbar.topbar current_user={@current_scope.user} />
+          <div class="overflow-auto">
+            <div class="container mx-auto px-4 py-6">
       <div class="flex items-center justify-between mb-6">
         <h1 class="text-3xl font-bold dark:text-white">
           Referrals - {@creator.name}
@@ -142,7 +149,11 @@ defmodule QlariusWeb.CreatorDashboard.Referrals do
           <span>No referrals yet. Share your referral code to start earning!</span>
         </div>
       <% end %>
-    </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layouts.admin>
     """
   end
 end

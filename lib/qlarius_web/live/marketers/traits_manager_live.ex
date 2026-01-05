@@ -1,6 +1,7 @@
 defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
   use QlariusWeb, :live_view
 
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Repo
   alias Qlarius.YouData.Traits
   alias Qlarius.Sponster.Campaigns.TraitGroup
@@ -412,189 +413,202 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
   def render(assigns) do
     ~H"""
     <Layouts.admin {assigns}>
-      <.current_marketer_bar
-        current_marketer={@current_marketer}
-        current_path={~p"/marketer/traits"}
-      />
+      <div class="flex h-screen">
+        <AdminSidebar.sidebar current_user={@current_scope.user} />
 
-      <.trait_group_modal
-        :if={@show_modal}
-        show_modal={@show_modal}
-        parent_trait={@selected_parent_trait}
-        form={@trait_group_form}
-        zip_search_term={Map.get(assigns, :zip_search_term, "")}
-        zip_search_results={Map.get(assigns, :zip_search_results, [])}
-        selected_zips={Map.get(assigns, :selected_zips, [])}
-        zip_search_limit={Map.get(assigns, :zip_search_limit, 1000)}
-      />
+        <div class="flex min-w-0 grow flex-col">
+          <AdminTopbar.topbar current_user={@current_scope.user} />
 
-      <div :if={!@current_marketer} class="p-6">
-        <div class="alert alert-warning">
-          <.icon name="hero-exclamation-circle" class="w-6 h-6" />
-          <span>Please select a marketer to manage trait groups.</span>
-        </div>
-      </div>
+          <div class="overflow-auto">
+            <.current_marketer_bar
+              current_marketer={@current_marketer}
+              current_path={~p"/marketer/traits"}
+            />
 
-      <div :if={@current_marketer} class="p-6">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div class="lg:col-span-2">
-            <div class="flex justify-between items-center mb-4">
-              <h1 class="text-2xl font-bold">Trait Groups</h1>
-            </div>
+            <.trait_group_modal
+              :if={@show_modal}
+              show_modal={@show_modal}
+              parent_trait={@selected_parent_trait}
+              form={@trait_group_form}
+              zip_search_term={Map.get(assigns, :zip_search_term, "")}
+              zip_search_results={Map.get(assigns, :zip_search_results, [])}
+              selected_zips={Map.get(assigns, :selected_zips, [])}
+              zip_search_limit={Map.get(assigns, :zip_search_limit, 1000)}
+            />
 
-            <div :if={@trait_groups == []} class="card bg-base-100 border border-base-300">
-              <div class="card-body text-center py-12">
-                <.icon name="hero-document-plus" class="w-16 h-16 mx-auto text-base-content/30 mb-4" />
-                <p class="text-lg font-medium text-base-content/70">No trait groups yet</p>
-                <p class="text-sm text-base-content/50 mt-2">
-                  Select a trait from the browser on the right to create your first trait group
-                </p>
+            <div :if={!@current_marketer} class="p-6">
+              <div class="alert alert-warning">
+                <.icon name="hero-exclamation-circle" class="w-6 h-6" />
+                <span>Please select a marketer to manage trait groups.</span>
               </div>
             </div>
 
-            <div :if={@trait_groups != []} class="overflow-x-auto">
-              <table class="table table-zebra">
-                <thead>
-                  <tr>
-                    <th>Trait Group Name</th>
-                    <th>Traits</th>
-                    <th class="text-center">MeFiles</th>
-                    <th class="text-center">Active Targets</th>
-                    <th class="text-center"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr :for={group <- @trait_groups}>
-                    <td class="font-medium !align-top">{group.title}</td>
-                    <td class="text-sm !align-top">
-                      <.trait_badges traits={group.traits} />
-                    </td>
-                    <td class="text-center !align-top">{group.me_file_count}</td>
-                    <td class="text-center !align-top">{group.target_band_count}</td>
-                    <td class="text-center !align-top">
-                      <button
-                        :if={group.target_band_count == 0}
-                        phx-click="delete_trait_group"
-                        phx-value-id={group.id}
-                        class="btn btn-sm btn-error btn-outline"
-                        data-confirm="Delete this trait group? This cannot be undone."
-                      >
-                        Delete
-                      </button>
-                      <button
-                        :if={group.target_band_count > 0}
-                        phx-click="deactivate_trait_group"
-                        phx-value-id={group.id}
-                        class="btn btn-sm btn-warning btn-outline"
-                        data-confirm="Deactivate this trait group? It is currently in use."
-                      >
-                        Deactivate
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <div :if={@current_marketer} class="p-6">
+              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                  <div class="flex justify-between items-center mb-4">
+                    <h1 class="text-2xl font-bold">Trait Groups</h1>
+                  </div>
 
-            <div
-              :if={@archived_trait_groups != []}
-              class="mt-8 border-t border-base-300 pt-6"
-            >
-              <button
-                phx-click="toggle_archived"
-                class="btn btn-ghost btn-sm mb-4"
-              >
-                <.icon
-                  name={if @show_archived, do: "hero-chevron-down", else: "hero-chevron-right"}
-                  class="w-4 h-4"
-                /> Archived Trait Groups ({length(@archived_trait_groups)})
-              </button>
-
-              <div :if={@show_archived} class="overflow-x-auto">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>Trait Group Name</th>
-                      <th>Traits</th>
-                      <th class="text-center">MeFiles</th>
-                      <th class="text-center">Band Usage</th>
-                      <th class="text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr :for={group <- @archived_trait_groups} class="opacity-60">
-                      <td class="font-medium !align-top">{group.title}</td>
-                      <td class="text-sm !align-top">
-                        <.trait_badges traits={group.traits} />
-                      </td>
-                      <td class="text-center !align-top">{group.me_file_count}</td>
-                      <td class="text-center !align-top">{group.target_band_count}</td>
-                      <td class="text-center !align-top">
-                        <button
-                          phx-click="reactivate_trait_group"
-                          phx-value-id={group.id}
-                          class="btn btn-sm btn-success btn-outline"
-                        >
-                          Reactivate
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <div class="lg:col-span-1">
-            <div class="sticky top-6">
-              <h2 class="text-xl font-bold mb-4">Trait Browser</h2>
-
-              <form phx-change="search_traits" class="mb-4">
-                <label class="input input-bordered flex items-center gap-2">
-                  <.icon name="hero-magnifying-glass" class="w-5 h-5 opacity-70" />
-                  <input
-                    type="text"
-                    phx-debounce="300"
-                    name="search"
-                    value={@search_term}
-                    placeholder="Search traits..."
-                    class="grow"
-                    autocomplete="off"
-                  />
-                  <button
-                    :if={@search_term != ""}
-                    type="button"
-                    phx-click="clear_search"
-                    class="btn btn-ghost btn-xs btn-circle"
-                  >
-                    <.icon name="hero-x-mark" class="w-4 h-4" />
-                  </button>
-                </label>
-              </form>
-
-              <div class="space-y-4 max-h-[calc(100vh-16rem)] overflow-y-auto">
-                <div :for={category <- filter_categories(@categories_with_traits, @search_term)}>
-                  <div class="collapse collapse-arrow bg-base-200 border border-base-300">
-                    <input type="checkbox" checked />
-                    <div class="collapse-title font-medium">
-                      {category.name}
-                      <span class="text-sm text-base-content/50 ml-2">
-                        ({length(category.traits)})
-                      </span>
+                  <div :if={@trait_groups == []} class="card bg-base-100 border border-base-300">
+                    <div class="card-body text-center py-12">
+                      <.icon
+                        name="hero-document-plus"
+                        class="w-16 h-16 mx-auto text-base-content/30 mb-4"
+                      />
+                      <p class="text-lg font-medium text-base-content/70">No trait groups yet</p>
+                      <p class="text-sm text-base-content/50 mt-2">
+                        Select a trait from the browser on the right to create your first trait group
+                      </p>
                     </div>
-                    <div class="collapse-content">
-                      <div class="space-y-2">
-                        <.link
-                          :for={trait <- category.traits}
-                          navigate={~p"/marketer/traits/new?parent_trait_id=#{trait.id}"}
-                          class="flex items-center justify-between p-2 hover:bg-base-100 rounded cursor-pointer group"
+                  </div>
+
+                  <div :if={@trait_groups != []} class="overflow-x-auto">
+                    <table class="table table-zebra">
+                      <thead>
+                        <tr>
+                          <th>Trait Group Name</th>
+                          <th>Traits</th>
+                          <th class="text-center">MeFiles</th>
+                          <th class="text-center">Active Targets</th>
+                          <th class="text-center"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr :for={group <- @trait_groups}>
+                          <td class="font-medium !align-top">{group.title}</td>
+                          <td class="text-sm !align-top">
+                            <.trait_badges traits={group.traits} />
+                          </td>
+                          <td class="text-center !align-top">{group.me_file_count}</td>
+                          <td class="text-center !align-top">{group.target_band_count}</td>
+                          <td class="text-center !align-top">
+                            <button
+                              :if={group.target_band_count == 0}
+                              phx-click="delete_trait_group"
+                              phx-value-id={group.id}
+                              class="btn btn-sm btn-error btn-outline"
+                              data-confirm="Delete this trait group? This cannot be undone."
+                            >
+                              Delete
+                            </button>
+                            <button
+                              :if={group.target_band_count > 0}
+                              phx-click="deactivate_trait_group"
+                              phx-value-id={group.id}
+                              class="btn btn-sm btn-warning btn-outline"
+                              data-confirm="Deactivate this trait group? It is currently in use."
+                            >
+                              Deactivate
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div
+                    :if={@archived_trait_groups != []}
+                    class="mt-8 border-t border-base-300 pt-6"
+                  >
+                    <button
+                      phx-click="toggle_archived"
+                      class="btn btn-ghost btn-sm mb-4"
+                    >
+                      <.icon
+                        name={if @show_archived, do: "hero-chevron-down", else: "hero-chevron-right"}
+                        class="w-4 h-4"
+                      /> Archived Trait Groups ({length(@archived_trait_groups)})
+                    </button>
+
+                    <div :if={@show_archived} class="overflow-x-auto">
+                      <table class="table">
+                        <thead>
+                          <tr>
+                            <th>Trait Group Name</th>
+                            <th>Traits</th>
+                            <th class="text-center">MeFiles</th>
+                            <th class="text-center">Band Usage</th>
+                            <th class="text-center">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr :for={group <- @archived_trait_groups} class="opacity-60">
+                            <td class="font-medium !align-top">{group.title}</td>
+                            <td class="text-sm !align-top">
+                              <.trait_badges traits={group.traits} />
+                            </td>
+                            <td class="text-center !align-top">{group.me_file_count}</td>
+                            <td class="text-center !align-top">{group.target_band_count}</td>
+                            <td class="text-center !align-top">
+                              <button
+                                phx-click="reactivate_trait_group"
+                                phx-value-id={group.id}
+                                class="btn btn-sm btn-success btn-outline"
+                              >
+                                Reactivate
+                              </button>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="lg:col-span-1">
+                  <div class="sticky top-6">
+                    <h2 class="text-xl font-bold mb-4">Trait Browser</h2>
+
+                    <form phx-change="search_traits" class="mb-4">
+                      <label class="input input-bordered flex items-center gap-2">
+                        <.icon name="hero-magnifying-glass" class="w-5 h-5 opacity-70" />
+                        <input
+                          type="text"
+                          phx-debounce="300"
+                          name="search"
+                          value={@search_term}
+                          placeholder="Search traits..."
+                          class="grow"
+                          autocomplete="off"
+                        />
+                        <button
+                          :if={@search_term != ""}
+                          type="button"
+                          phx-click="clear_search"
+                          class="btn btn-ghost btn-xs btn-circle"
                         >
-                          <span class="text-sm">{trait.trait_name}</span>
-                          <.icon
-                            name="hero-plus-circle"
-                            class="w-5 h-5 text-primary opacity-0 group-hover:opacity-100 transition-opacity"
-                          />
-                        </.link>
+                          <.icon name="hero-x-mark" class="w-4 h-4" />
+                        </button>
+                      </label>
+                    </form>
+
+                    <div class="space-y-4 max-h-[calc(100vh-16rem)] overflow-y-auto">
+                      <div :for={category <- filter_categories(@categories_with_traits, @search_term)}>
+                        <div class="collapse collapse-arrow bg-base-200 border border-base-300">
+                          <input type="checkbox" checked />
+                          <div class="collapse-title font-medium">
+                            {category.name}
+                            <span class="text-sm text-base-content/50 ml-2">
+                              ({length(category.traits)})
+                            </span>
+                          </div>
+                          <div class="collapse-content">
+                            <div class="space-y-2">
+                              <.link
+                                :for={trait <- category.traits}
+                                navigate={~p"/marketer/traits/new?parent_trait_id=#{trait.id}"}
+                                class="flex items-center justify-between p-2 hover:bg-base-100 rounded cursor-pointer group"
+                              >
+                                <span class="text-sm">{trait.trait_name}</span>
+                                <.icon
+                                  name="hero-plus-circle"
+                                  class="w-5 h-5 text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                                />
+                              </.link>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
