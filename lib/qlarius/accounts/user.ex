@@ -20,6 +20,9 @@ defmodule Qlarius.Accounts.User do
     field :last_sign_in_at, :utc_datetime
     field :last_sign_in_ip, :string
     field :last_sign_in_user_agent, :string
+    field :pwa_installed, :boolean, default: false
+    field :pwa_installed_at, :utc_datetime
+    field :pwa_install_dismissed_at, :utc_datetime
 
     has_one :me_file, MeFile
 

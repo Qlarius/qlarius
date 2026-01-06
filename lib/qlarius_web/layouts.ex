@@ -160,6 +160,21 @@ defmodule QlariusWeb.Layouts do
     <%!-- Onboarding tip (shown based on conditions) --%>
     <.onboarding_tip :if={@current_scope} current_path={@current_path} current_scope={@current_scope} />
 
+    <%!-- PWA Install Prompts --%>
+    <div :if={@current_scope} phx-hook="PWAInstall" id="pwa-install-hook">
+      <QlariusWeb.Components.PWAInstallPrompt.install_banner
+        show_banner={assigns[:show_install_banner] || false}
+        is_ios={assigns[:is_ios] || false}
+        is_android={assigns[:is_android] || false}
+      />
+      <QlariusWeb.Components.PWAInstallPrompt.ios_install_guide
+        show={assigns[:show_ios_guide] || false}
+      />
+      <QlariusWeb.Components.PWAInstallPrompt.android_install_guide
+        show={assigns[:show_android_guide] || false}
+      />
+    </div>
+
     <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
     <div :if={@current_scope} class="dock z-40">
       <button

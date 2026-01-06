@@ -54,6 +54,8 @@ defmodule QlariusWeb do
     quote do
       use Phoenix.LiveView
 
+      on_mount QlariusWeb.PWAInstallHooks
+
       unquote(html_helpers())
       unquote(socket_helpers())
     end

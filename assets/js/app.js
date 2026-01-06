@@ -69,6 +69,78 @@ Hooks.FlashAutoHide = {
   }
 }
 
+Hooks.PWAInstall = {
+  deferredPrompt: null,
+
+  mounted() {
+    this.detectPWAState()
+    this.setupInstallPrompt()
+    
+    setTimeout(() => {
+      this.setupInstallButton()
+    }, 500)
+  },
+
+  detectPWAState() {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
+    const isAndroid = /Android/.test(navigator.userAgent)
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                  window.navigator.standalone === true
+
+    this.pushEvent("check_pwa_state", {
+      is_ios: isIOS,
+      is_android: isAndroid,
+      is_pwa: isPWA
+    })
+
+    if (isPWA) {
+      this.pushEvent("pwa_installed", {})
+    }
+  },
+
+  setupInstallPrompt() {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault()
+      this.deferredPrompt = e
+      console.log('PWA install prompt available')
+    })
+
+    window.addEventListener('appinstalled', () => {
+      console.log('PWA installed')
+      this.deferredPrompt = null
+      this.pushEvent("pwa_installed", {})
+    })
+  },
+
+  setupInstallButton() {
+    const self = this
+    
+    document.addEventListener('click', function(e) {
+      const button = e.target.closest('#trigger-android-install') || 
+                     e.target.closest('#android-install-button')
+      
+      if (button && self.deferredPrompt) {
+        e.preventDefault()
+        self.deferredPrompt.prompt()
+        
+        self.deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the install prompt')
+            self.pushEvent("pwa_installed", {})
+          } else {
+            console.log('User dismissed the install prompt')
+          }
+          self.deferredPrompt = null
+        })
+      }
+    })
+  },
+
+  updated() {
+    this.setupInstallButton()
+  }
+}
+
 Hooks.AdminSidebar = {
   mounted() {
     const sectionIds = ['sidebar-consumer', 'sidebar-marketer', 'sidebar-creator', 'sidebar-admin']
