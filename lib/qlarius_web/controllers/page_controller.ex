@@ -9,7 +9,7 @@ defmodule QlariusWeb.PageController do
     if conn.assigns[:current_scope] do
       redirect(conn, to: ~p"/home")
     else
-      render(conn, :hi, title: "Welcome to Qlarius")
+      render(conn, :hi, title: "Welcome to Qadabra")
     end
   end
 end

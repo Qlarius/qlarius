@@ -815,7 +815,7 @@ defmodule QlariusWeb.RegistrationLive do
     ~H"""
     <div class="space-y-6">
       <div class="text-center mb-8">
-        <h3 class="text-xl md:text-2xl font-bold mb-4 dark:text-white">
+        <h3 class="text-xl md:text-2xl font-bold mb-4 text-primary">
           Join our BETA!
         </h3>
         <p class="text-lg md:text-xl text-base-content/70 dark:text-base-content/60">
@@ -875,7 +875,7 @@ defmodule QlariusWeb.RegistrationLive do
         <img
           src="/images/4_product_logo_strip.png"
           alt="YouData, Sponster, TIQIT, qlink"
-          class="h-12 md:h-16 w-auto"
+          class="h-16 md:h-18 w-auto"
         />
       </div>
     </div>

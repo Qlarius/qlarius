@@ -204,26 +204,39 @@ defmodule QlariusWeb.ReferralsLive do
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="card bg-base-200 shadow-xl">
               <div class="card-body">
-                <h2 class="card-title">Your Referral Code</h2>
+                <h2 class="card-title">Your Referral Link</h2>
                 <p class="text-sm text-base-content/70">
-                  Share this code with friends. You'll earn $0.01 for each ad they complete for the first year!
+                  Share this link with friends. You'll earn $0.01 for each ad they complete for the first year!
                 </p>
-                <div class="flex gap-2 mt-4">
-                  <input
-                    id="referral-code-input"
-                    type="text"
-                    value={@my_referral_code}
-                    readonly
-                    class="input input-bordered flex-1 font-mono"
-                  />
-                  <button
-                    phx-hook="CopyToClipboard"
-                    id="copy-referral-code-btn"
-                    data-target="referral-code-input"
-                    class="btn btn-primary"
-                  >
-                    Copy
-                  </button>
+                <div class="space-y-3 mt-4">
+                  <div class="flex gap-2">
+                    <input
+                      id="referral-link-input"
+                      type="text"
+                      value={"#{QlariusWeb.Endpoint.url()}/register?ref=#{@my_referral_code}"}
+                      readonly
+                      class="input input-bordered flex-1 font-mono text-sm"
+                    />
+                    <button
+                      phx-hook="CopyToClipboard"
+                      id="copy-referral-link-btn"
+                      data-target="referral-link-input"
+                      class="btn btn-primary"
+                    >
+                      Copy Link
+                    </button>
+                  </div>
+                  <div class="collapse collapse-arrow bg-base-100">
+                    <input type="checkbox" />
+                    <div class="collapse-title text-xs font-medium">
+                      Just the code: {@my_referral_code}
+                    </div>
+                    <div class="collapse-content">
+                      <p class="text-xs text-base-content/60">
+                        Use this code if someone needs to enter it manually.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
