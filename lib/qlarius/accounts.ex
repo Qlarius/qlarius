@@ -19,6 +19,11 @@ defmodule Qlarius.Accounts do
     |> Repo.preload(:me_file)
   end
 
+  def get_me_file_by_user_id(user_id) do
+    from(m in MeFile, where: m.user_id == ^user_id)
+    |> Repo.one()
+  end
+
   def alias_available?(alias_value) when is_binary(alias_value) do
     query = from u in User, where: u.alias == ^alias_value
 

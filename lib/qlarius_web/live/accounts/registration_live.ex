@@ -5,28 +5,40 @@ defmodule QlariusWeb.RegistrationLive do
   alias Qlarius.YouData.{MeFiles, Traits}
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
 
-  def mount(params, _session, socket) do
+  def mount(params, session, socket) do
     mode = Map.get(params, "mode", "regular")
     proxy_user_id = Map.get(params, "proxy_user_id")
-    referral_code = Map.get(params, "ref")
+    referral_code = Map.get(params, "ref") || Map.get(params, "invite")
+
+    invitation_from_cookie = Map.get(session, "invitation_code")
+    invitation_code = referral_code || invitation_from_cookie || ""
 
     mobile = Phoenix.Flash.get(socket.assigns.flash, :registration_mobile)
     alias_value = Phoenix.Flash.get(socket.assigns.flash, :registration_alias)
+
+    invitation_verified = mode == "proxy" && referral_code != nil
+    true_user_id = if mode == "proxy", do: get_true_user_id_from_scope(socket), else: nil
 
     socket =
       socket
       |> assign(:page_title, "Register")
       |> assign(:mode, mode)
       |> assign(:proxy_user_id, proxy_user_id)
+      |> assign(:true_user_id, true_user_id)
       |> assign(:referral_code, referral_code)
+      |> assign(:invitation_code, invitation_code)
+      |> assign(:invitation_error, nil)
+      |> assign(:invitation_attempts, 0)
+      |> assign(:invitation_verified, invitation_verified)
+      |> assign(:invitation_can_skip, false)
       |> assign(:current_step, determine_starting_step(mode, mobile, alias_value))
-      |> assign(:mobile_number, mobile || "")
+      |> assign(:mobile_number, "")
       |> assign(:mobile_number_error, nil)
       |> assign(:mobile_number_exists, false)
       |> assign(:verification_code, "")
       |> assign(:verification_code_error, nil)
       |> assign(:code_sent, false)
-      |> assign(:phone_verified, mobile != nil && mobile != "")
+      |> assign(:phone_verified, mode == "proxy")
       |> assign(:carrier_info, nil)
       |> assign(:alias, alias_value || "")
       |> assign(:alias_error, nil)
@@ -50,11 +62,17 @@ defmodule QlariusWeb.RegistrationLive do
     {:ok, socket}
   end
 
-  defp determine_starting_step("proxy", mobile, alias_value)
-       when not is_nil(mobile) and not is_nil(alias_value),
-       do: 3
+  defp get_true_user_id_from_scope(socket) do
+    case socket.assigns do
+      %{current_scope: %{true_user: %{id: id}}} -> id
+      %{current_scope: %{user: %{id: id}}} -> id
+      _ -> nil
+    end
+  end
 
-  defp determine_starting_step(_mode, _mobile, _alias_value), do: 1
+  defp determine_starting_step("proxy", _mobile, _alias_value), do: 2
+
+  defp determine_starting_step(_mode, _mobile, _alias_value), do: 0
 
   defp load_sex_options do
     case Traits.get_trait_with_full_survey_data!(1) do
@@ -71,6 +89,9 @@ defmodule QlariusWeb.RegistrationLive do
 
   def handle_event("next_step", _params, socket) do
     case socket.assigns.current_step do
+      0 ->
+        {:noreply, assign(socket, :current_step, 1)}
+
       1 ->
         {:noreply, assign(socket, :current_step, 2)}
 
@@ -81,18 +102,84 @@ defmodule QlariusWeb.RegistrationLive do
         {:noreply, assign(socket, :current_step, 4)}
 
       4 ->
+        {:noreply, assign(socket, :current_step, 5)}
+
+      5 ->
         {:noreply, socket}
     end
   end
 
   def handle_event("prev_step", _params, socket) do
     case socket.assigns.current_step do
+      0 ->
+        {:noreply, socket}
+
       1 ->
         {:noreply, socket}
 
       step ->
         {:noreply, assign(socket, :current_step, step - 1)}
     end
+  end
+
+  def handle_event("update_invitation_code", %{"invitation_code" => code}, socket) do
+    {:noreply,
+     socket
+     |> assign(:invitation_code, String.trim(code))
+     |> assign(:invitation_error, nil)}
+  end
+
+  def handle_event("validate_invitation", _params, socket) do
+    code = String.trim(socket.assigns.invitation_code)
+    attempts = socket.assigns.invitation_attempts + 1
+
+    cond do
+      code == "" ->
+        {:noreply,
+         socket
+         |> assign(:invitation_attempts, attempts)
+         |> assign(:invitation_can_skip, attempts >= 3)
+         |> assign(:invitation_verified, true)
+         |> assign(:current_step, 1)
+         |> put_flash(:info, "Welcome! Feel free to register without an invitation.")}
+
+      true ->
+        case Qlarius.Referrals.lookup_referrer_by_code(code) do
+          {:ok, _referrer_type, _referrer_id} ->
+            {:noreply,
+             socket
+             |> assign(:invitation_verified, true)
+             |> assign(:referral_code, code)
+             |> assign(:current_step, 1)
+             |> put_invitation_cookie(code)
+             |> put_flash(:info, "✨ Invitation accepted! Let's get started.")}
+
+          {:error, :not_found} ->
+            if attempts >= 3 do
+              {:noreply,
+               socket
+               |> assign(:invitation_attempts, attempts)
+               |> assign(:invitation_can_skip, true)
+               |> assign(
+                 :invitation_error,
+                 "Invalid invitation code. You can leave the field blank and try registering anyway."
+               )}
+            else
+              {:noreply,
+               socket
+               |> assign(:invitation_attempts, attempts)
+               |> assign(:invitation_error, "Invalid invitation code. Please try again.")}
+            end
+        end
+    end
+  end
+
+  def handle_event("skip_invitation", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:invitation_verified, true)
+     |> assign(:current_step, 1)
+     |> put_flash(:info, "Welcome! Feel free to explore.")}
   end
 
   def handle_event("update_mobile", %{"mobile_number" => mobile}, socket) do
@@ -476,6 +563,10 @@ defmodule QlariusWeb.RegistrationLive do
       assigns.confirmation_checked
   end
 
+  defp put_invitation_cookie(socket, _code) do
+    socket
+  end
+
   defp create_user(socket) do
     date =
       Date.new!(
@@ -499,12 +590,10 @@ defmodule QlariusWeb.RegistrationLive do
     }
 
     attrs =
-      case socket.assigns do
-        %{current_scope: %{true_user: %{id: true_user_id}}} when socket.assigns.mode == "proxy" ->
-          Map.put(attrs, :true_user_id, true_user_id)
-
-        _ ->
-          attrs
+      if socket.assigns.mode == "proxy" && socket.assigns.true_user_id do
+        Map.put(attrs, :true_user_id, socket.assigns.true_user_id)
+      else
+        attrs
       end
 
     Accounts.register_new_user(attrs, socket.assigns.referral_code)
@@ -522,16 +611,36 @@ defmodule QlariusWeb.RegistrationLive do
       </div>
 
       <div class="w-full max-w-2xl space-y-8 px-6 md:px-8">
-        <h1 class="text-4xl md:text-5xl font-bold mb-8 dark:text-white">
-          {if @mode == "proxy", do: "Create Proxy User", else: "Register"}
-        </h1>
 
-        <ul class="steps w-full mb-8 text-xs md:text-sm">
-          <li class={"step #{if @current_step >= 1, do: "step-primary"}"}>Mobile</li>
-          <li class={"step #{if @current_step >= 2, do: "step-primary"}"}>Alias</li>
-          <li class={"step #{if @current_step >= 3, do: "step-primary"}"}>Data</li>
-          <li class={"step #{if @current_step >= 4, do: "step-primary"}"}>Confirm</li>
-        </ul>
+
+        <%= if @current_step > 0 do %>
+          <h1 class="text-4xl md:text-5xl font-bold mb-8 dark:text-white">
+            Registration
+          </h1>
+          <%= if @mode == "proxy" do %>
+            <ul class="steps w-full mb-8 text-xs md:text-sm">
+              <li class={"step #{if @current_step >= 2, do: "step-primary"}"}>Alias</li>
+              <li class={"step #{if @current_step >= 3, do: "step-primary"}"}>Data</li>
+              <li class={"step #{if @current_step >= 4, do: "step-primary"}"}>Confirm</li>
+            </ul>
+          <% else %>
+            <ul class="steps w-full mb-8 text-xs md:text-sm">
+              <li class={"step #{if @current_step >= 1, do: "step-primary"}"}>Mobile</li>
+              <li class={"step #{if @current_step >= 2, do: "step-primary"}"}>Alias</li>
+              <li class={"step #{if @current_step >= 3, do: "step-primary"}"}>Data</li>
+              <li class={"step #{if @current_step >= 4, do: "step-primary"}"}>Confirm</li>
+            </ul>
+          <% end %>
+        <% end %>
+
+        <%= if @current_step == 0 do %>
+          <.step_zero
+            invitation_code={@invitation_code}
+            invitation_error={@invitation_error}
+            invitation_attempts={@invitation_attempts}
+            invitation_can_skip={@invitation_can_skip}
+          />
+        <% end %>
 
         <%= if @current_step == 1 do %>
           <.step_one
@@ -590,6 +699,12 @@ defmodule QlariusWeb.RegistrationLive do
             can_complete={can_complete?(assigns)}
           />
         <% end %>
+
+        <%= if @mode == "proxy" && @current_step > 0 do %>
+          <div class="mt-12 text-center">
+            <span class="badge badge-sm badge-outline badge-primary">PROXY USER MODE</span>
+          </div>
+        <% end %>
       </div>
 
       <div class="fixed bottom-0 left-0 right-0 bg-base-100 dark:bg-base-300 border-t border-base-300 dark:border-base-content/20 p-4 safe-area-inset-bottom">
@@ -603,7 +718,24 @@ defmodule QlariusWeb.RegistrationLive do
             </button>
           <% end %>
 
-          <%= if @current_step < 4 do %>
+          <%= if @current_step == 0 do %>
+            <%= if @invitation_can_skip do %>
+              <button
+                phx-click="skip_invitation"
+                class="btn btn-outline btn-lg flex-1 rounded-full text-lg normal-case"
+              >
+                Skip & Register
+              </button>
+            <% end %>
+            <button
+              phx-click="validate_invitation"
+              class="btn btn-primary btn-lg flex-1 rounded-full text-lg normal-case"
+            >
+              Continue
+            </button>
+          <% end %>
+
+          <%= if @current_step > 0 && @current_step < 4 do %>
             <%= if can_proceed_to_next_step?(assigns) do %>
               <button
                 phx-click="next_step"
@@ -619,7 +751,9 @@ defmodule QlariusWeb.RegistrationLive do
                 Next →
               </button>
             <% end %>
-          <% else %>
+          <% end %>
+
+          <%= if @current_step == 4 do %>
             <%= if can_complete?(assigns) do %>
               <button
                 phx-click="complete_registration"
@@ -670,6 +804,82 @@ defmodule QlariusWeb.RegistrationLive do
       4 ->
         false
     end
+  end
+
+  attr :invitation_code, :string, required: true
+  attr :invitation_error, :string, default: nil
+  attr :invitation_attempts, :integer, default: 0
+  attr :invitation_can_skip, :boolean, default: false
+
+  defp step_zero(assigns) do
+    ~H"""
+    <div class="space-y-6">
+      <div class="text-center mb-8">
+        <h3 class="text-xl md:text-2xl font-bold mb-4 dark:text-white">
+          Join our BETA!
+        </h3>
+        <p class="text-lg md:text-xl text-base-content/70 dark:text-base-content/60">
+          You've been invited to early access to Qadabra.<br />
+          Enter your invitation code to get started.
+        </p>
+      </div>
+
+      <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+          <.form for={%{}} phx-change="update_invitation_code">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-lg">Invitation Code</span>
+              </label>
+              <input
+                type="text"
+                name="invitation_code"
+                value={@invitation_code}
+                placeholder="Enter your invitation code"
+                class="input input-bordered input-lg w-full font-mono"
+                autocomplete="off"
+              />
+              <%= if @invitation_error do %>
+                <label class="label">
+                  <span class="label-text-alt text-error text-base">{@invitation_error}</span>
+                </label>
+              <% end %>
+              <%= if @invitation_attempts > 0 && !@invitation_error do %>
+                <label class="label">
+                  <span class="label-text-alt text-base-content/60">
+                    Attempt {@invitation_attempts} of 3
+                  </span>
+                </label>
+              <% end %>
+            </div>
+          </.form>
+
+          <%= if @invitation_can_skip do %>
+            <div class="alert alert-info mt-4">
+              <.icon name="hero-information-circle" class="h-6 w-6" />
+              <span>
+                Having trouble? You can skip and register without an invitation.
+              </span>
+            </div>
+          <% end %>
+
+          <div class="mt-4">
+            <p class="text-sm text-base-content/60 text-center">
+              Don't have a code? Contact us for an invitation or ask a friend to share their referral link.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 flex justify-center">
+        <img
+          src="/images/4_product_logo_strip.png"
+          alt="YouData, Sponster, TIQIT, qlink"
+          class="h-12 md:h-16 w-auto"
+        />
+      </div>
+    </div>
+    """
   end
 
   attr :mobile_number, :string, required: true
@@ -1237,7 +1447,7 @@ defmodule QlariusWeb.RegistrationLive do
             phx-value-checked={to_string(!@confirmation_checked)}
           />
           <span class="text-sm md:text-base dark:text-gray-300">
-            I confirm my birthdate and sex are correct and understand they cannot be changed.
+            I confirm my birthdate and sex are correct and understand the data values cannot be changed later.
           </span>
         </label>
       </div>
