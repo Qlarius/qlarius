@@ -141,6 +141,77 @@ Hooks.PWAInstall = {
   }
 }
 
+Hooks.HiPagePWADetect = {
+  mounted() {
+    setTimeout(() => {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
+      const isAndroid = /Android/.test(navigator.userAgent)
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                    window.navigator.standalone === true
+      const inIframe = window.self !== window.top
+
+      let deviceType = 'mobile_phone'
+      if (isIOS) {
+        deviceType = 'ios_phone'
+      } else if (isAndroid) {
+        deviceType = 'android_phone'
+      } else if (!isIOS && !isAndroid) {
+        deviceType = 'desktop'
+      }
+
+      const isMobile = isIOS || isAndroid
+
+      this.pushEvent("pwa_detected", {
+        is_pwa: isPWA,
+        in_iframe: inIframe,
+        is_mobile: isMobile,
+        device_type: deviceType
+      })
+    }, 100)
+  }
+}
+
+Hooks.HiPageSplash = {
+  mounted() {
+    setTimeout(() => {
+      this.pushEvent("splash_complete", {})
+    }, 2000)
+  }
+}
+
+Hooks.CarouselIndicators = {
+  mounted() {
+    const carousel = this.el.querySelector('.carousel')
+    const indicators = this.el.querySelectorAll('.carousel-indicator')
+    
+    if (!carousel || indicators.length === 0) return
+
+    const updateIndicators = () => {
+      const scrollLeft = carousel.scrollLeft
+      const cardWidth = carousel.querySelector('.carousel-item')?.offsetWidth || 0
+      const gap = 16
+      const currentIndex = Math.round(scrollLeft / (cardWidth + gap))
+      
+      indicators.forEach((indicator, index) => {
+        if (index === currentIndex) {
+          indicator.classList.remove('bg-base-content/30')
+          indicator.classList.add('bg-primary', 'w-6')
+        } else {
+          indicator.classList.remove('bg-primary', 'w-6')
+          indicator.classList.add('bg-base-content/30')
+        }
+      })
+    }
+
+    carousel.addEventListener('scroll', updateIndicators)
+    updateIndicators()
+    
+    this.handleEvent = () => {
+      updateIndicators()
+    }
+  }
+}
+
 Hooks.AdminSidebar = {
   mounted() {
     const sectionIds = ['sidebar-consumer', 'sidebar-marketer', 'sidebar-creator', 'sidebar-admin']
