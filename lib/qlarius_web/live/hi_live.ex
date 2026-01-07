@@ -132,7 +132,7 @@ defmodule QlariusWeb.HiLive do
               <div class="mt-8 p-4 bg-base-200/50 dark:bg-base-200/50 rounded-xl text-center">
                 <p class="text-sm text-base-content/60">
                   <.icon name="hero-information-circle" class="inline w-4 h-4" />
-                  Installation takes less space than a photo and can be uninstalled anytime
+                  Installation takes less space than a photo and can be uninstalled anytime.
                 </p>
               </div>
             </div>
@@ -199,17 +199,17 @@ defmodule QlariusWeb.HiLive do
         <.icon name="hero-device-phone-mobile" class="w-12 h-12 text-primary" />
       </div>
 
-      <h1 class="text-4xl font-bold mb-4">Install Qadabra</h1>
+      <h1 class="text-4xl font-bold mb-4">3-Step Easy Install</h1>
 
       <p class="text-xl text-base-content/70 mb-4">
-        Get the full mobile experience in 30 seconds
+        Get the full mobile experience in the latest, lightest installation possible. No app store, no downloads, no waiting. Just a few clicks and you're ready to go.
       </p>
 
-      <div class="flex flex-wrap justify-center gap-4 text-sm text-base-content/60">
-        <div class="flex items-center gap-2">
-          <.icon name="hero-bolt" class="w-4 h-4 text-primary" />
-          <span>Full screen</span>
-        </div>
+        <div class="flex flex-wrap justify-center gap-4 text-sm text-base-content/60">
+          <div class="flex items-center gap-2">
+            <.icon name="hero-lock-closed" class="w-4 h-4 text-primary" />
+            <span>Full privacy</span>
+          </div>
         <div class="flex items-center gap-2">
           <.icon name="hero-bell" class="w-4 h-4 text-primary" />
           <span>Push notifications</span>
@@ -230,11 +230,13 @@ defmodule QlariusWeb.HiLive do
           <div class="flex-1">
             <h3 class="font-bold text-lg mb-2">Tap the Share button</h3>
             <p class="text-sm text-base-content/70 mb-3">
-              Look for it at the bottom center of Safari
+              Look for it at the bottom of this browser window
             </p>
             <div class="bg-base-300 dark:bg-base-300 rounded-lg p-3 flex items-center gap-2">
-              <.icon name="hero-arrow-up-on-square" class="w-6 h-6 text-base-content" />
-              <span class="font-medium">Share</span>
+              <span class="text-base-content/50"><.icon name="hero-ellipsis-horizontal-circle" class="w-6 h-6 text-base-content/50" /> +</span> <span class="text-base-content/70"><.icon name="hero-arrow-up-on-square" class="w-6 h-6 text-base-content" /></span>
+              <span class="font-medium">
+                Share
+              </span>
             </div>
           </div>
         </div>
@@ -251,7 +253,10 @@ defmodule QlariusWeb.HiLive do
               Scroll down in the share menu if you don't see it
             </p>
             <div class="bg-base-300 dark:bg-base-300 rounded-lg p-3 flex items-center gap-2">
-              <.icon name="hero-plus-circle" class="w-6 h-6 text-base-content" />
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
               <span class="font-medium">Add to Home Screen</span>
             </div>
           </div>
@@ -266,7 +271,24 @@ defmodule QlariusWeb.HiLive do
           <div class="flex-1">
             <h3 class="font-bold text-lg mb-2">Tap "Add"</h3>
             <p class="text-sm text-base-content/70 mb-3">
-              The app will be added to your home screen. Tap the icon to launch!
+              The app will be added to your home screen.
+            </p>
+            <div class="bg-base-300 dark:bg-base-300 rounded-lg p-3 flex items-center justify-start">
+              <svg class="h-7" viewBox="0 0 52 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1" y="1" width="50" height="26" rx="13" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+                <text x="26" y="18.5" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="currentColor" text-anchor="middle">Add</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-base-200 dark:bg-base-200 rounded-xl p-6">
+        <div class="flex gap-4">
+          <div class="flex-1">
+            <h3 class="font-bold text-lg mb-2">That's it.</h3>
+            <p class="text-sm text-base-content/70 mb-3">
+               Tap the new app icon to launch!
             </p>
             <div class="bg-base-300 dark:bg-base-300 rounded-lg p-3 flex items-center gap-3">
               <img src="/images/qadabra_logo_squares_color.svg" class="w-12 h-12 rounded-xl" />
@@ -278,6 +300,9 @@ defmodule QlariusWeb.HiLive do
           </div>
         </div>
       </div>
+
+
+
     </div>
     """
   end
