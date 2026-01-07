@@ -5,7 +5,7 @@ defmodule QlariusWeb.PageController do
     if conn.assigns[:current_scope] do
       render(conn, :home, title: "Home")
     else
-      redirect(conn, to: ~p"/accounts/register")
+      redirect(conn, to: ~p"/register")
     end
   end
 end
