@@ -48,8 +48,7 @@ defmodule QlariusWeb.Components.PWAInstallPrompt do
                   phx-click="show_ios_guide"
                   class="btn btn-primary rounded-full btn-block font-semibold cursor-pointer"
                 >
-                  <.icon name="hero-arrow-down-tray" class="w-4 h-4" />
-                  Install App
+                  <.icon name="hero-arrow-down-tray" class="w-4 h-4" /> Install App
                 </button>
               <% end %>
 
@@ -59,8 +58,7 @@ defmodule QlariusWeb.Components.PWAInstallPrompt do
                   phx-click="show_android_guide"
                   class="btn btn-primary btn-block font-semibold"
                 >
-                  <.icon name="hero-arrow-down-tray" class="w-4 h-4" />
-                  Install App
+                  <.icon name="hero-arrow-down-tray" class="w-4 h-4" /> Install App
                 </button>
               <% end %>
 
@@ -111,73 +109,73 @@ defmodule QlariusWeb.Components.PWAInstallPrompt do
             </p>
 
             <ol class="space-y-3">
-            <li class="flex gap-3">
-              <span class="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-base">
-                1
-              </span>
-              <div class="flex-1">
-                <p class="font-semibold text-base mb-0.5">Tap the Share button</p>
-                <p class="text-xs text-base-content/70 mb-1.5">
-                  Look for it at the bottom center of Safari
-                </p>
-                <div class="bg-base-200 rounded-lg p-2">
-                  <div class="flex items-center gap-1 text-xs">
-                    <.icon name="hero-arrow-up-on-square" class="w-4 h-4 text-base-content" />
-                    <span class="font-medium">Share</span>
-                    <span class="font-medium">(might need to click ... first))</span>
+              <li class="flex gap-3">
+                <span class="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-base">
+                  1
+                </span>
+                <div class="flex-1">
+                  <p class="font-semibold text-base mb-0.5">Tap the Share button</p>
+                  <p class="text-xs text-base-content/70 mb-1.5">
+                    Look for it at the bottom center of Safari
+                  </p>
+                  <div class="bg-base-200 rounded-lg p-2">
+                    <div class="flex items-center gap-1 text-xs">
+                      <.icon name="hero-arrow-up-on-square" class="w-4 h-4 text-base-content" />
+                      <span class="font-medium">Share</span>
+                      <span class="font-medium">(might need to click ... first))</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </li>
+              </li>
 
-            <li class="flex gap-3">
-              <span class="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-base">
-                2
-              </span>
-              <div class="flex-1">
-                <p class="font-semibold text-base mb-0.5">Select "Add to Home Screen"</p>
-                <p class="text-xs text-base-content/70 mb-1.5">
-                  Scroll down in the menu if you don't see it immediately
-                </p>
-                <div class="bg-base-200 rounded-lg p-2">
-                  <div class="flex items-center gap-1 text-xs">
-                    <.icon name="hero-plus-circle" class="w-4 h-4 text-base-content" />
-                    <span class="font-medium">Add to Home Screen</span>
+              <li class="flex gap-3">
+                <span class="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-base">
+                  2
+                </span>
+                <div class="flex-1">
+                  <p class="font-semibold text-base mb-0.5">Select "Add to Home Screen"</p>
+                  <p class="text-xs text-base-content/70 mb-1.5">
+                    Scroll down in the menu if you don't see it immediately
+                  </p>
+                  <div class="bg-base-200 rounded-lg p-2">
+                    <div class="flex items-center gap-1 text-xs">
+                      <.icon name="hero-plus-circle" class="w-4 h-4 text-base-content" />
+                      <span class="font-medium">Add to Home Screen</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </li>
+              </li>
 
-            <li class="flex gap-3">
-              <span class="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-base">
-                3
-              </span>
-              <div class="flex-1">
-                <p class="font-semibold text-base mb-0.5">Tap "Add"</p>
-                <p class="text-xs text-base-content/70 mb-1.5">
-                  Qadabra will appear on your home screen with a custom icon
-                </p>
-                <div class="bg-base-200 rounded-lg p-2 flex items-center gap-2">
-                  <img src="/images/qadabra_logo_squares_color.svg" class="w-10 h-10 rounded-xl" />
-                  <div>
-                    <p class="font-medium text-sm">Qadabra</p>
-                    <p class="text-xs text-base-content/60">Tap to launch</p>
+              <li class="flex gap-3">
+                <span class="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-base">
+                  3
+                </span>
+                <div class="flex-1">
+                  <p class="font-semibold text-base mb-0.5">Tap "Add"</p>
+                  <p class="text-xs text-base-content/70 mb-1.5">
+                    Qadabra will appear on your home screen with a custom icon
+                  </p>
+                  <div class="bg-base-200 rounded-lg p-2 flex items-center gap-2">
+                    <img src="/images/qadabra_logo_squares_color.svg" class="w-10 h-10 rounded-xl" />
+                    <div>
+                      <p class="font-medium text-sm">Qadabra</p>
+                      <p class="text-xs text-base-content/60">Tap to launch</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </li>
-          </ol>
+              </li>
+            </ol>
 
-          <button
-            phx-click="hide_ios_guide"
-            class="btn btn-primary rounded-full btn-block mt-4 cursor-pointer"
-          >
-            Got It! Let's Install
-          </button>
+            <button
+              phx-click="hide_ios_guide"
+              class="btn btn-primary rounded-full btn-block mt-4 cursor-pointer"
+            >
+              Got It! Let's Install
+            </button>
+          </div>
+          <%!-- End content area --%>
         </div>
-        <%!-- End content area --%>
       </div>
-    </div>
     <% end %>
     """
   end
@@ -230,58 +228,59 @@ defmodule QlariusWeb.Components.PWAInstallPrompt do
                 Your browser will show an install prompt. Just tap "Install" or "Add" when it appears.
               </p>
               <button id="trigger-android-install" class="btn btn-primary">
-                <.icon name="hero-arrow-down-tray" class="w-4 h-4" />
-                Install Now
+                <.icon name="hero-arrow-down-tray" class="w-4 h-4" /> Install Now
               </button>
             </div>
 
             <div class="divider text-xs text-base-content/60 my-3">OR INSTALL MANUALLY</div>
 
             <ol class="space-y-3">
-            <li class="flex gap-3">
-              <span class="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-base">
-                1
-              </span>
-              <div class="flex-1">
-                <p class="font-semibold text-base mb-0.5">Tap the menu (⋮)</p>
-                <p class="text-xs text-base-content/70">
-                  Usually in the top-right corner of Chrome or your browser
-                </p>
-              </div>
-            </li>
+              <li class="flex gap-3">
+                <span class="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-base">
+                  1
+                </span>
+                <div class="flex-1">
+                  <p class="font-semibold text-base mb-0.5">Tap the menu (⋮)</p>
+                  <p class="text-xs text-base-content/70">
+                    Usually in the top-right corner of Chrome or your browser
+                  </p>
+                </div>
+              </li>
 
-            <li class="flex gap-3">
-              <span class="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-base">
-                2
-              </span>
-              <div class="flex-1">
-                <p class="font-semibold text-base mb-0.5">Select "Install app" or "Add to Home screen"</p>
-                <p class="text-xs text-base-content/70">
-                  The wording may vary by browser
-                </p>
-              </div>
-            </li>
+              <li class="flex gap-3">
+                <span class="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-base">
+                  2
+                </span>
+                <div class="flex-1">
+                  <p class="font-semibold text-base mb-0.5">
+                    Select "Install app" or "Add to Home screen"
+                  </p>
+                  <p class="text-xs text-base-content/70">
+                    The wording may vary by browser
+                  </p>
+                </div>
+              </li>
 
-            <li class="flex gap-3">
-              <span class="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-base">
-                3
-              </span>
-              <div class="flex-1">
-                <p class="font-semibold text-base mb-0.5">Confirm installation</p>
-                <p class="text-xs text-base-content/70">
-                  Qadabra will be added to your home screen and app drawer
-                </p>
-              </div>
-            </li>
-          </ol>
+              <li class="flex gap-3">
+                <span class="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-base">
+                  3
+                </span>
+                <div class="flex-1">
+                  <p class="font-semibold text-base mb-0.5">Confirm installation</p>
+                  <p class="text-xs text-base-content/70">
+                    Qadabra will be added to your home screen and app drawer
+                  </p>
+                </div>
+              </li>
+            </ol>
 
-          <button phx-click="hide_android_guide" class="btn btn-ghost btn-block mt-4">
-            Maybe Later
-          </button>
+            <button phx-click="hide_android_guide" class="btn btn-ghost btn-block mt-4">
+              Maybe Later
+            </button>
+          </div>
+          <%!-- End content area --%>
         </div>
-        <%!-- End content area --%>
       </div>
-    </div>
     <% end %>
     """
   end

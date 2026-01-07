@@ -4,138 +4,141 @@
     <AdminTopbar.topbar current_user={@current_scope.user} />
     <div class="overflow-auto">
       <div class="p-6">
-  <div class="card bg-base-100 shadow-xl">
-    <div class="card-body">
-      <div class="flex gap-2 mb-4">
-        <.link href={~p"/admin/recipients/#{@recipient}/edit"} class="btn btn-warning">
-          Edit
-        </.link>
-        <.link href={~p"/admin/recipients"} class="btn">Back</.link>
-      </div>
-      <h2 class="text-2xl font-bold mb-2">{@recipient.name}</h2>
-      <ul class="mb-4">
-        <li>
-          <strong>Brand Image:</strong>
-          <div class="mt-2">
-            <img
-              src={
-                QlariusWeb.Uploaders.RecipientBrandImage.url(
-                  {@recipient.graphic_url, @recipient},
-                  :original
-                )
-              }
-              class="w-32 h-auto object-cover rounded pb-3"
-            />
-          </div>
-        </li>
-        <li><strong>Message:</strong> {@recipient.message}</li>
-        <li><strong>Split Code:</strong> {@recipient.split_code}</li>
-        <li><strong>Type:</strong> {@recipient.recipient_type_id}</li>
-        <li><strong>Contact Email:</strong> {@recipient.contact_email}</li>
-      </ul>
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <div class="flex gap-2 mb-4">
+              <.link href={~p"/admin/recipients/#{@recipient}/edit"} class="btn btn-warning">
+                Edit
+              </.link>
+              <.link href={~p"/admin/recipients"} class="btn">Back</.link>
+            </div>
+            <h2 class="text-2xl font-bold mb-2">{@recipient.name}</h2>
+            <ul class="mb-4">
+              <li>
+                <strong>Brand Image:</strong>
+                <div class="mt-2">
+                  <img
+                    src={
+                      QlariusWeb.Uploaders.RecipientBrandImage.url(
+                        {@recipient.graphic_url, @recipient},
+                        :original
+                      )
+                    }
+                    class="w-32 h-auto object-cover rounded pb-3"
+                  />
+                </div>
+              </li>
+              <li><strong>Message:</strong> {@recipient.message}</li>
+              <li><strong>Split Code:</strong> {@recipient.split_code}</li>
+              <li><strong>Type:</strong> {@recipient.recipient_type_id}</li>
+              <li><strong>Contact Email:</strong> {@recipient.contact_email}</li>
+            </ul>
 
-      <div class="mt-8">
-        <h3 class="text-xl font-semibold mb-2 flex items-center">
-          <.icon name="hero-banknotes" class="w-5 h-5 mr-2 text-green-600" /> Tipjar Ledger
-        </h3>
-        <div>
-          <span class="font-bold">Ledger ID:</span>
-          <span class="text-green-700 font-mono">
-            <%= if @ledger_header do %>
-              {@ledger_header.id}
-            <% else %>
-              No ledger found.
-            <% end %>
-          </span>
+            <div class="mt-8">
+              <h3 class="text-xl font-semibold mb-2 flex items-center">
+                <.icon name="hero-banknotes" class="w-5 h-5 mr-2 text-green-600" /> Tipjar Ledger
+              </h3>
+              <div>
+                <span class="font-bold">Ledger ID:</span>
+                <span class="text-green-700 font-mono">
+                  <%= if @ledger_header do %>
+                    {@ledger_header.id}
+                  <% else %>
+                    No ledger found.
+                  <% end %>
+                </span>
+              </div>
+              <div>
+                <span class="font-bold">Current Balance:</span>
+                <span class="text-green-700 font-mono">
+                  <%= if @ledger_header do %>
+                    {QlariusWeb.Money.format_usd(@ledger_header.balance)}
+                  <% else %>
+                    $0.00
+                  <% end %>
+                </span>
+              </div>
+              <div class="mb-2">
+                <span class="font-bold">As of:</span>
+                <span class="text-green-700 font-mono">
+                  <%= case DateTime.shift_zone(DateTime.utc_now(), "America/Chicago") do %>
+                    <% {:ok, chicago_time} -> %>
+                      {Calendar.strftime(chicago_time, "%Y-%m-%d %-I:%M %p CST")}
+                    <% {:error, _} -> %>
+                      {Calendar.strftime(DateTime.utc_now(), "%Y-%m-%d %-I:%M %p UTC")}
+                  <% end %>
+                </span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="table table-zebra w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th>Created At</th>
+                      <th>Description</th>
+                      <th class="text-right">Amount</th>
+                      <th class="text-right">Running Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <%= for entry <- @ledger_entries_page.entries do %>
+                      <tr>
+                        <td>{entry.created_at |> Calendar.strftime("%Y-%m-%d %H:%M:%S")}</td>
+                        <td>{entry.description}</td>
+                        <%!-- Changed from deprecated Decimal.cmp to Decimal.compare --%>
+                        <td class={[
+                          "text-right font-mono",
+                          (Decimal.compare(entry.amt, 0) == :gt && "text-green-600") ||
+                            "text-red-600"
+                        ]}>
+                          {QlariusWeb.Money.format_usd(entry.amt)}
+                        </td>
+                        <td class="text-right font-mono">
+                          {QlariusWeb.Money.format_usd(entry.running_balance)}
+                        </td>
+                      </tr>
+                    <% end %>
+                    <%= if Enum.empty?(@ledger_entries_page.entries) do %>
+                      <tr>
+                        <td colspan="5" class="text-center text-gray-400">
+                          No ledger entries found.
+                        </td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+              <div class="flex justify-between items-center mt-2">
+                <%= if @ledger_entries_page.page_number > 1 do %>
+                  <.link
+                    navigate={
+                      ~p"/admin/recipients/#{@recipient.id}?page=#{@ledger_entries_page.page_number - 1}"
+                    }
+                    class="btn btn-xs"
+                  >
+                    Previous
+                  </.link>
+                <% else %>
+                  <span></span>
+                <% end %>
+                <span>
+                  Page {@ledger_entries_page.page_number} of {@ledger_entries_page.total_pages}
+                </span>
+                <%= if @ledger_entries_page.page_number < @ledger_entries_page.total_pages do %>
+                  <.link
+                    navigate={
+                      ~p"/admin/recipients/#{@recipient.id}?page=#{@ledger_entries_page.page_number + 1}"
+                    }
+                    class="btn btn-xs"
+                  >
+                    Next
+                  </.link>
+                <% else %>
+                  <span></span>
+                <% end %>
+              </div>
+            </div>
+          </div>
         </div>
-        <div>
-          <span class="font-bold">Current Balance:</span>
-          <span class="text-green-700 font-mono">
-            <%= if @ledger_header do %>
-              {QlariusWeb.Money.format_usd(@ledger_header.balance)}
-            <% else %>
-              $0.00
-            <% end %>
-          </span>
-        </div>
-        <div class="mb-2">
-          <span class="font-bold">As of:</span>
-          <span class="text-green-700 font-mono">
-            <%= case DateTime.shift_zone(DateTime.utc_now(), "America/Chicago") do %>
-              <% {:ok, chicago_time} -> %>
-                {Calendar.strftime(chicago_time, "%Y-%m-%d %-I:%M %p CST")}
-              <% {:error, _} -> %>
-                {Calendar.strftime(DateTime.utc_now(), "%Y-%m-%d %-I:%M %p UTC")}
-            <% end %>
-          </span>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="table table-zebra w-full text-sm">
-            <thead>
-              <tr>
-                <th>Created At</th>
-                <th>Description</th>
-                <th class="text-right">Amount</th>
-                <th class="text-right">Running Balance</th>
-              </tr>
-            </thead>
-            <tbody>
-              <%= for entry <- @ledger_entries_page.entries do %>
-                <tr>
-                  <td>{entry.created_at |> Calendar.strftime("%Y-%m-%d %H:%M:%S")}</td>
-                  <td>{entry.description}</td>
-                  <%!-- Changed from deprecated Decimal.cmp to Decimal.compare --%>
-                  <td class={[
-                    "text-right font-mono",
-                    (Decimal.compare(entry.amt, 0) == :gt && "text-green-600") || "text-red-600"
-                  ]}>
-                    {QlariusWeb.Money.format_usd(entry.amt)}
-                  </td>
-                  <td class="text-right font-mono">
-                    {QlariusWeb.Money.format_usd(entry.running_balance)}
-                  </td>
-                </tr>
-              <% end %>
-              <%= if Enum.empty?(@ledger_entries_page.entries) do %>
-                <tr>
-                  <td colspan="5" class="text-center text-gray-400">No ledger entries found.</td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-        <div class="flex justify-between items-center mt-2">
-          <%= if @ledger_entries_page.page_number > 1 do %>
-            <.link
-              navigate={
-                ~p"/admin/recipients/#{@recipient.id}?page=#{@ledger_entries_page.page_number - 1}"
-              }
-              class="btn btn-xs"
-            >
-              Previous
-            </.link>
-          <% else %>
-            <span></span>
-          <% end %>
-          <span>
-            Page {@ledger_entries_page.page_number} of {@ledger_entries_page.total_pages}
-          </span>
-          <%= if @ledger_entries_page.page_number < @ledger_entries_page.total_pages do %>
-            <.link
-              navigate={
-                ~p"/admin/recipients/#{@recipient.id}?page=#{@ledger_entries_page.page_number + 1}"
-              }
-              class="btn btn-xs"
-            >
-              Next
-            </.link>
-          <% else %>
-            <span></span>
-          <% end %>
-        </div>
-      </div>
-    </div>
-  </div>
       </div>
     </div>
   </div>

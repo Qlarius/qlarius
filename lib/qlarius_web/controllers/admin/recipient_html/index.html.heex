@@ -36,7 +36,10 @@
                 <:col :let={recipient} label="Site URL">{recipient.site_url}</:col>
                 <:col :let={recipient} label="Actions">
                   <div class="flex gap-2">
-                    <.link navigate={~p"/admin/recipients/#{recipient}"} class="btn btn-xs btn-info">
+                    <.link
+                      navigate={~p"/admin/recipients/#{recipient}"}
+                      class="btn btn-xs btn-info"
+                    >
                       <.icon name="hero-eye" class="w-4 h-4" />
                     </.link>
                     <.link

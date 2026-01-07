@@ -27,10 +27,8 @@ defmodule QlariusWeb.InstaTipComponents do
     ~H"""
     <div class={["grid grid-cols-2 sm:grid-cols-4 gap-3 justify-items-center", @add_class]}>
       <%= for amount <- @amounts do %>
-        <%
-          amount_decimal = Decimal.new(amount)
-          enabled = Decimal.compare(@wallet_balance, amount_decimal) != :lt
-        %>
+        <% amount_decimal = Decimal.new(amount)
+        enabled = Decimal.compare(@wallet_balance, amount_decimal) != :lt %>
         <button
           type="button"
           phx-click="initiate_insta_tip"

@@ -20,7 +20,11 @@ defmodule QlariusWeb.PWAInstallLive do
      |> assign(:user_id, user_id)}
   end
 
-  def handle_event("check_pwa_state", %{"is_ios" => is_ios, "is_android" => is_android, "is_pwa" => is_pwa}, socket) do
+  def handle_event(
+        "check_pwa_state",
+        %{"is_ios" => is_ios, "is_android" => is_android, "is_pwa" => is_pwa},
+        socket
+      ) do
     should_show = should_show_install_banner?(socket.assigns.user_id, is_ios, is_android, is_pwa)
 
     {:noreply,
@@ -72,12 +76,17 @@ defmodule QlariusWeb.PWAInstallLive do
   end
 
   defp recently_dismissed?(nil), do: false
+
   defp recently_dismissed?(user_id) do
     case Qlarius.Repo.get(Qlarius.Accounts.User, user_id) do
-      nil -> false
+      nil ->
+        false
+
       user ->
         case user.pwa_install_dismissed_at do
-          nil -> false
+          nil ->
+            false
+
           dismissed_at ->
             days_ago = DateTime.diff(DateTime.utc_now(), dismissed_at, :day)
             days_ago < 7
@@ -87,7 +96,9 @@ defmodule QlariusWeb.PWAInstallLive do
 
   defp store_dismissal(user_id) do
     case Qlarius.Repo.get(Qlarius.Accounts.User, user_id) do
-      nil -> :ok
+      nil ->
+        :ok
+
       user ->
         user
         |> Ecto.Changeset.change(%{pwa_install_dismissed_at: DateTime.utc_now()})
@@ -97,7 +108,9 @@ defmodule QlariusWeb.PWAInstallLive do
 
   defp mark_pwa_installed(user_id) do
     case Qlarius.Repo.get(Qlarius.Accounts.User, user_id) do
-      nil -> :ok
+      nil ->
+        :ok
+
       user ->
         user
         |> Ecto.Changeset.change(%{

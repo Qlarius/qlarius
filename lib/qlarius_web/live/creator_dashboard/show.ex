@@ -137,272 +137,272 @@ defmodule QlariusWeb.CreatorDashboard.Show do
           <AdminTopbar.topbar current_user={@current_scope.user} />
           <div class="overflow-auto">
             <div class="container mx-auto px-4 py-8">
-        <div class="mb-6">
-          <.link navigate={~p"/creators"} class="btn btn-ghost btn-sm">
-            ← Back to Creators
-          </.link>
-        </div>
+              <div class="mb-6">
+                <.link navigate={~p"/creators"} class="btn btn-ghost btn-sm">
+                  ← Back to Creators
+                </.link>
+              </div>
 
-        <%= if @show_edit_form do %>
-          <div class="card bg-base-100 shadow-lg max-w-2xl mb-8">
-            <div class="card-body">
-              <h2 class="text-2xl font-bold mb-4">Edit Creator</h2>
+              <%= if @show_edit_form do %>
+                <div class="card bg-base-100 shadow-lg max-w-2xl mb-8">
+                  <div class="card-body">
+                    <h2 class="text-2xl font-bold mb-4">Edit Creator</h2>
 
-              <.form
-                for={@form}
-                id="creator-edit-form"
-                phx-change="validate"
-                phx-submit="save"
-                multipart
-                autocomplete="off"
-                class="space-y-6"
-              >
-                <div class="space-y-4">
-                  <.input
-                    field={@form[:name]}
-                    type="text"
-                    label="Creator Name"
-                    class="input input-bordered w-full"
-                    placeholder="Enter creator name"
-                    autocomplete="off"
-                    required
-                  />
+                    <.form
+                      for={@form}
+                      id="creator-edit-form"
+                      phx-change="validate"
+                      phx-submit="save"
+                      multipart
+                      autocomplete="off"
+                      class="space-y-6"
+                    >
+                      <div class="space-y-4">
+                        <.input
+                          field={@form[:name]}
+                          type="text"
+                          label="Creator Name"
+                          class="input input-bordered w-full"
+                          placeholder="Enter creator name"
+                          autocomplete="off"
+                          required
+                        />
 
-                  <.input
-                    field={@form[:bio]}
-                    type="textarea"
-                    label="Bio"
-                    class="textarea textarea-bordered w-full"
-                    placeholder="Enter creator bio"
-                    autocomplete="off"
-                  />
+                        <.input
+                          field={@form[:bio]}
+                          type="textarea"
+                          label="Bio"
+                          class="textarea textarea-bordered w-full"
+                          placeholder="Enter creator bio"
+                          autocomplete="off"
+                        />
+                      </div>
+
+                      <.image_upload_field
+                        upload={@uploads.image}
+                        label="Creator Image"
+                        current_image={@creator.image}
+                        current_image_url={CreatorImage.url({@creator.image, @creator}, :original)}
+                        on_delete="delete_image"
+                      />
+
+                      <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-base-300">
+                        <.button class="btn btn-primary btn-wide sm:btn-auto">
+                          <.icon name="hero-check" class="w-4 h-4 mr-2" /> Save Creator
+                        </.button>
+
+                        <button type="button" phx-click="cancel_edit" class="btn btn-ghost">
+                          <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Cancel
+                        </button>
+                      </div>
+                    </.form>
+                  </div>
                 </div>
+              <% else %>
+                <div class="card bg-base-100 shadow-xl mb-8">
+                  <div class="card-body">
+                    <div class="flex items-center gap-6">
+                      <%= if @creator.image do %>
+                        <img
+                          src={CreatorImage.url({@creator.image, @creator}, :original)}
+                          alt={@creator.name}
+                          class="rounded-full w-24 h-24 object-cover"
+                        />
+                      <% else %>
+                        <div class="avatar placeholder">
+                          <div class="bg-neutral text-neutral-content rounded-full w-24">
+                            <span class="text-3xl">{String.first(@creator.name)}</span>
+                          </div>
+                        </div>
+                      <% end %>
 
-                <.image_upload_field
-                  upload={@uploads.image}
-                  label="Creator Image"
-                  current_image={@creator.image}
-                  current_image_url={CreatorImage.url({@creator.image, @creator}, :original)}
-                  on_delete="delete_image"
-                />
+                      <div class="flex-1">
+                        <h1 class="text-3xl font-bold">{@creator.name}</h1>
+                        <%= if @creator.bio do %>
+                          <p class="text-base-content/70 mt-2">{@creator.bio}</p>
+                        <% end %>
+                      </div>
 
-                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-base-300">
-                  <.button class="btn btn-primary btn-wide sm:btn-auto">
-                    <.icon name="hero-check" class="w-4 h-4 mr-2" /> Save Creator
-                  </.button>
-
-                  <button type="button" phx-click="cancel_edit" class="btn btn-ghost">
-                    <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Cancel
-                  </button>
-                </div>
-              </.form>
-            </div>
-          </div>
-        <% else %>
-          <div class="card bg-base-100 shadow-xl mb-8">
-            <div class="card-body">
-              <div class="flex items-center gap-6">
-                <%= if @creator.image do %>
-                  <img
-                    src={CreatorImage.url({@creator.image, @creator}, :original)}
-                    alt={@creator.name}
-                    class="rounded-full w-24 h-24 object-cover"
-                  />
-                <% else %>
-                  <div class="avatar placeholder">
-                    <div class="bg-neutral text-neutral-content rounded-full w-24">
-                      <span class="text-3xl">{String.first(@creator.name)}</span>
+                      <div class="card-actions gap-2">
+                        <.link patch={~p"/creators/#{@creator.id}/edit"} class="btn btn-primary">
+                          Edit Profile
+                        </.link>
+                        <button
+                          phx-click="delete_creator"
+                          data-confirm="Are you sure you want to delete this creator? This action cannot be undone."
+                          class="btn btn-error"
+                        >
+                          <.icon name="hero-trash" class="w-4 h-4 mr-2" /> Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
-                <% end %>
-
-                <div class="flex-1">
-                  <h1 class="text-3xl font-bold">{@creator.name}</h1>
-                  <%= if @creator.bio do %>
-                    <p class="text-base-content/70 mt-2">{@creator.bio}</p>
-                  <% end %>
                 </div>
+              <% end %>
 
-                <div class="card-actions gap-2">
-                  <.link patch={~p"/creators/#{@creator.id}/edit"} class="btn btn-primary">
-                    Edit Profile
-                  </.link>
-                  <button
-                    phx-click="delete_creator"
-                    data-confirm="Are you sure you want to delete this creator? This action cannot be undone."
-                    class="btn btn-error"
-                  >
-                    <.icon name="hero-trash" class="w-4 h-4 mr-2" /> Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        <% end %>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <!-- Qlink Pages Section -->
-          <div>
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="text-2xl font-bold">Qlink Pages</h2>
-              <.link
-                navigate={~p"/creators/#{@creator.id}/qlink_pages/new"}
-                class="btn btn-primary btn-sm"
-              >
-                New Page
-              </.link>
-            </div>
-
-            <%= if @creator.qlink_pages == [] do %>
-              <div class="card bg-base-200 shadow">
-                <div class="card-body">
-                  <p class="text-center">No Qlink pages yet.</p>
-                  <div class="card-actions justify-center">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Qlink Pages Section -->
+                <div>
+                  <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">Qlink Pages</h2>
                     <.link
                       navigate={~p"/creators/#{@creator.id}/qlink_pages/new"}
-                      class="btn btn-sm btn-primary"
+                      class="btn btn-primary btn-sm"
                     >
-                      Create First Page
+                      New Page
                     </.link>
                   </div>
-                </div>
-              </div>
-            <% else %>
-              <div class="space-y-4">
-                <%= for page <- @creator.qlink_pages do %>
-                  <div class="card bg-base-100 shadow">
-                    <div class="card-body">
-                      <div class="flex items-center gap-4">
-                        <div class="flex-shrink-0">
-                          <%= if Qlink.get_display_image(page) != "/images/default_avatar.png" do %>
-                            <img
-                              src={Qlink.get_display_image(page)}
-                              alt={page.title}
-                              class="w-16 h-16 object-cover rounded-full"
-                            />
-                          <% else %>
-                            <div class="avatar placeholder">
-                              <div class="bg-neutral text-neutral-content rounded-full w-16 h-16">
-                                <span class="text-xl">{String.first(page.title)}</span>
-                              </div>
-                            </div>
-                          <% end %>
-                        </div>
-                        <div class="flex-1">
-                          <h3 class="card-title">{page.title}</h3>
-                          <p class="text-sm text-base-content/70">@{page.alias}</p>
 
-                          <div class="stats stats-horizontal shadow-sm mt-2">
-                            <div class="stat py-2 px-4">
-                              <div class="stat-title text-xs">Views</div>
-                              <div class="stat-value text-lg">{page.view_count}</div>
-                            </div>
-                            <div class="stat py-2 px-4">
-                              <div class="stat-title text-xs">Clicks</div>
-                              <div class="stat-value text-lg">{page.total_clicks}</div>
+                  <%= if @creator.qlink_pages == [] do %>
+                    <div class="card bg-base-200 shadow">
+                      <div class="card-body">
+                        <p class="text-center">No Qlink pages yet.</p>
+                        <div class="card-actions justify-center">
+                          <.link
+                            navigate={~p"/creators/#{@creator.id}/qlink_pages/new"}
+                            class="btn btn-sm btn-primary"
+                          >
+                            Create First Page
+                          </.link>
+                        </div>
+                      </div>
+                    </div>
+                  <% else %>
+                    <div class="space-y-4">
+                      <%= for page <- @creator.qlink_pages do %>
+                        <div class="card bg-base-100 shadow">
+                          <div class="card-body">
+                            <div class="flex items-center gap-4">
+                              <div class="flex-shrink-0">
+                                <%= if Qlink.get_display_image(page) != "/images/default_avatar.png" do %>
+                                  <img
+                                    src={Qlink.get_display_image(page)}
+                                    alt={page.title}
+                                    class="w-16 h-16 object-cover rounded-full"
+                                  />
+                                <% else %>
+                                  <div class="avatar placeholder">
+                                    <div class="bg-neutral text-neutral-content rounded-full w-16 h-16">
+                                      <span class="text-xl">{String.first(page.title)}</span>
+                                    </div>
+                                  </div>
+                                <% end %>
+                              </div>
+                              <div class="flex-1">
+                                <h3 class="card-title">{page.title}</h3>
+                                <p class="text-sm text-base-content/70">@{page.alias}</p>
+
+                                <div class="stats stats-horizontal shadow-sm mt-2">
+                                  <div class="stat py-2 px-4">
+                                    <div class="stat-title text-xs">Views</div>
+                                    <div class="stat-value text-lg">{page.view_count}</div>
+                                  </div>
+                                  <div class="stat py-2 px-4">
+                                    <div class="stat-title text-xs">Clicks</div>
+                                    <div class="stat-value text-lg">{page.total_clicks}</div>
+                                  </div>
+                                </div>
+                              </div>
+                              <div class="card-actions">
+                                <.link
+                                  navigate={~p"/@#{page.alias}"}
+                                  class="btn btn-ghost btn-sm"
+                                  target="_blank"
+                                >
+                                  View
+                                </.link>
+                                <.link
+                                  navigate={~p"/creators/qlink_pages/#{page.id}/edit"}
+                                  class="btn btn-ghost btn-sm"
+                                >
+                                  Edit
+                                </.link>
+                                <button
+                                  phx-click="delete_qlink_page"
+                                  phx-value-id={page.id}
+                                  data-confirm="Are you sure?"
+                                  class="btn btn-ghost btn-sm text-error"
+                                >
+                                  Delete
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                        <div class="card-actions">
-                          <.link
-                            navigate={~p"/@#{page.alias}"}
-                            class="btn btn-ghost btn-sm"
-                            target="_blank"
-                          >
-                            View
-                          </.link>
-                          <.link
-                            navigate={~p"/creators/qlink_pages/#{page.id}/edit"}
-                            class="btn btn-ghost btn-sm"
-                          >
-                            Edit
-                          </.link>
-                          <button
-                            phx-click="delete_qlink_page"
-                            phx-value-id={page.id}
-                            data-confirm="Are you sure?"
-                            class="btn btn-ghost btn-sm text-error"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
+                      <% end %>
                     </div>
-                  </div>
-                <% end %>
-              </div>
-            <% end %>
-          </div>
-
+                  <% end %>
+                </div>
+                
     <!-- Tiqit Catalogs Section -->
-          <div>
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="text-2xl font-bold">Tiqit Catalogs</h2>
-              <.link
-                navigate={~p"/creators/catalogs/#{@creator.id}/content_groups/new"}
-                class="btn btn-primary btn-sm"
-              >
-                New Catalog
-              </.link>
-            </div>
-
-            <%= if @creator.catalogs == [] do %>
-              <div class="card bg-base-200 shadow">
-                <div class="card-body">
-                  <p class="text-center">No catalogs yet</p>
-                  <div class="card-actions justify-center">
+                <div>
+                  <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">Tiqit Catalogs</h2>
                     <.link
-                      navigate={~p"/creators/#{@creator.id}/catalogs/new"}
-                      class="btn btn-sm btn-primary"
+                      navigate={~p"/creators/catalogs/#{@creator.id}/content_groups/new"}
+                      class="btn btn-primary btn-sm"
                     >
-                      Create First Catalog
+                      New Catalog
                     </.link>
                   </div>
-                </div>
-              </div>
-            <% else %>
-              <div class="space-y-4">
-                <%= for catalog <- @creator.catalogs do %>
-                  <div class="card bg-base-100 shadow">
-                    <div class="card-body">
-                      <div class="flex items-center gap-4">
-                        <div class="flex-shrink-0">
-                          <%= if ImageHelpers.catalog_image_url(catalog) != ImageHelpers.placeholder_image_url() do %>
-                            <img
-                              src={ImageHelpers.catalog_image_url(catalog)}
-                              alt={catalog.name}
-                              class="w-16 h-16 object-cover rounded-lg"
-                            />
-                          <% else %>
-                            <div class="avatar placeholder">
-                              <div class="bg-neutral text-neutral-content rounded-lg w-16 h-16">
-                                <span class="text-xl">{String.first(catalog.name)}</span>
-                              </div>
-                            </div>
-                          <% end %>
-                        </div>
-                        <div class="flex-1">
-                          <h3 class="card-title">{catalog.name}</h3>
-                          <p class="text-sm text-base-content/70">
-                            {catalog.type |> to_string() |> String.capitalize()}
-                          </p>
-                        </div>
-                        <div class="card-actions">
+
+                  <%= if @creator.catalogs == [] do %>
+                    <div class="card bg-base-200 shadow">
+                      <div class="card-body">
+                        <p class="text-center">No catalogs yet</p>
+                        <div class="card-actions justify-center">
                           <.link
-                            navigate={~p"/creators/catalogs/#{catalog.id}"}
-                            class="btn btn-ghost btn-sm"
+                            navigate={~p"/creators/#{@creator.id}/catalogs/new"}
+                            class="btn btn-sm btn-primary"
                           >
-                            Manage
+                            Create First Catalog
                           </.link>
                         </div>
                       </div>
                     </div>
-                  </div>
-                <% end %>
+                  <% else %>
+                    <div class="space-y-4">
+                      <%= for catalog <- @creator.catalogs do %>
+                        <div class="card bg-base-100 shadow">
+                          <div class="card-body">
+                            <div class="flex items-center gap-4">
+                              <div class="flex-shrink-0">
+                                <%= if ImageHelpers.catalog_image_url(catalog) != ImageHelpers.placeholder_image_url() do %>
+                                  <img
+                                    src={ImageHelpers.catalog_image_url(catalog)}
+                                    alt={catalog.name}
+                                    class="w-16 h-16 object-cover rounded-lg"
+                                  />
+                                <% else %>
+                                  <div class="avatar placeholder">
+                                    <div class="bg-neutral text-neutral-content rounded-lg w-16 h-16">
+                                      <span class="text-xl">{String.first(catalog.name)}</span>
+                                    </div>
+                                  </div>
+                                <% end %>
+                              </div>
+                              <div class="flex-1">
+                                <h3 class="card-title">{catalog.name}</h3>
+                                <p class="text-sm text-base-content/70">
+                                  {catalog.type |> to_string() |> String.capitalize()}
+                                </p>
+                              </div>
+                              <div class="card-actions">
+                                <.link
+                                  navigate={~p"/creators/catalogs/#{catalog.id}"}
+                                  class="btn btn-ghost btn-sm"
+                                >
+                                  Manage
+                                </.link>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
               </div>
-            <% end %>
-          </div>
-        </div>
             </div>
           </div>
         </div>

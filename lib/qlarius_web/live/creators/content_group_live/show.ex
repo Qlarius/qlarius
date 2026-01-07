@@ -120,7 +120,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                     </button>
                   </div>
                 </div>
-
+                
     <!-- Description and Embed Section -->
                 <div class="card bg-base-100 shadow-lg">
                   <div class="card-body">
@@ -137,7 +137,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                           <p class="text-base-content/80 italic">{@content_group.description}</p>
                         </div>
                       </div>
-
+                      
     <!-- Embed Link -->
                       <%= if Enum.any?(@content_group.content_pieces) do %>
                         <div class="border-t border-base-300 pt-6">
@@ -162,7 +162,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                                     />
                                   </div>
                                 </div>
-
+                                
     <!-- Copy notification -->
                                 <div class="copy-notification hidden absolute -top-2 -right-2 bg-success text-success-content text-xs px-2 py-1 rounded shadow-lg">
                                   Copied!
@@ -182,7 +182,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                     </div>
                   </div>
                 </div>
-
+                
     <!-- Tiqit Classes Section -->
                 <div class="space-y-4">
                   <div class="flex items-center justify-between">
@@ -220,7 +220,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                     </div>
                   <% end %>
                 </div>
-
+                
     <!-- Content Pieces Section -->
                 <div class="space-y-4">
                   <div class="flex items-center justify-between">

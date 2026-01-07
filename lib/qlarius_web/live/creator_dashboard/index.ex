@@ -165,149 +165,150 @@ defmodule QlariusWeb.CreatorDashboard.Index do
           <AdminTopbar.topbar current_user={@current_scope.user} />
           <div class="overflow-auto">
             <div class="container mx-auto px-4 py-8">
-        <div class="flex justify-between items-center mb-8">
-          <h1 class="text-3xl font-bold">My Creators</h1>
-          <%= if not @show_form do %>
-            <.link patch={~p"/creators/new"} class="btn btn-primary">
-              <.icon name="hero-plus" class="w-4 h-4 mr-2" /> New Creator
-            </.link>
-          <% end %>
-        </div>
-
-        <%= if @show_form do %>
-          <div class="card bg-base-100 shadow-lg max-w-2xl mb-8">
-            <div class="card-body">
-              <div class="flex items-center justify-between mb-4">
-                <h2 class="text-2xl font-bold">
-                  {if @editing_creator, do: "Edit Creator", else: "New Creator"}
-                </h2>
-                <button phx-click="cancel" class="btn btn-ghost btn-sm">
-                  <.icon name="hero-x-mark" class="w-4 h-4" />
-                </button>
+              <div class="flex justify-between items-center mb-8">
+                <h1 class="text-3xl font-bold">My Creators</h1>
+                <%= if not @show_form do %>
+                  <.link patch={~p"/creators/new"} class="btn btn-primary">
+                    <.icon name="hero-plus" class="w-4 h-4 mr-2" /> New Creator
+                  </.link>
+                <% end %>
               </div>
 
-              <.form
-                for={@form}
-                phx-change="validate"
-                phx-submit="save"
-                multipart
-                autocomplete="off"
-                class="space-y-6"
-              >
-                <div class="space-y-4">
-                  <.input
-                    field={@form[:name]}
-                    type="text"
-                    label="Creator Name"
-                    class="input input-bordered w-full"
-                    placeholder="Enter creator name"
-                    autocomplete="off"
-                    required
-                  />
+              <%= if @show_form do %>
+                <div class="card bg-base-100 shadow-lg max-w-2xl mb-8">
+                  <div class="card-body">
+                    <div class="flex items-center justify-between mb-4">
+                      <h2 class="text-2xl font-bold">
+                        {if @editing_creator, do: "Edit Creator", else: "New Creator"}
+                      </h2>
+                      <button phx-click="cancel" class="btn btn-ghost btn-sm">
+                        <.icon name="hero-x-mark" class="w-4 h-4" />
+                      </button>
+                    </div>
 
-                  <.input
-                    field={@form[:bio]}
-                    type="textarea"
-                    label="Bio"
-                    class="textarea textarea-bordered w-full"
-                    placeholder="Enter creator bio"
-                    autocomplete="off"
-                  />
+                    <.form
+                      for={@form}
+                      phx-change="validate"
+                      phx-submit="save"
+                      multipart
+                      autocomplete="off"
+                      class="space-y-6"
+                    >
+                      <div class="space-y-4">
+                        <.input
+                          field={@form[:name]}
+                          type="text"
+                          label="Creator Name"
+                          class="input input-bordered w-full"
+                          placeholder="Enter creator name"
+                          autocomplete="off"
+                          required
+                        />
+
+                        <.input
+                          field={@form[:bio]}
+                          type="textarea"
+                          label="Bio"
+                          class="textarea textarea-bordered w-full"
+                          placeholder="Enter creator bio"
+                          autocomplete="off"
+                        />
+                      </div>
+
+                      <.image_upload_field
+                        upload={@uploads.image}
+                        label="Creator Image"
+                        current_image={if @editing_creator, do: @editing_creator.image}
+                        current_image_url={
+                          if @editing_creator && @editing_creator.image,
+                            do:
+                              CreatorImage.url({@editing_creator.image, @editing_creator}, :original)
+                        }
+                      />
+
+                      <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-base-300">
+                        <.button class="btn btn-primary btn-wide sm:btn-auto">
+                          <.icon name="hero-check" class="w-4 h-4 mr-2" /> Save Creator
+                        </.button>
+
+                        <button type="button" phx-click="cancel" class="btn btn-ghost">
+                          <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Cancel
+                        </button>
+                      </div>
+                    </.form>
+                  </div>
                 </div>
+              <% end %>
 
-                <.image_upload_field
-                  upload={@uploads.image}
-                  label="Creator Image"
-                  current_image={if @editing_creator, do: @editing_creator.image}
-                  current_image_url={
-                    if @editing_creator && @editing_creator.image,
-                      do: CreatorImage.url({@editing_creator.image, @editing_creator}, :original)
-                  }
-                />
-
-                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-base-300">
-                  <.button class="btn btn-primary btn-wide sm:btn-auto">
-                    <.icon name="hero-check" class="w-4 h-4 mr-2" /> Save Creator
-                  </.button>
-
-                  <button type="button" phx-click="cancel" class="btn btn-ghost">
-                    <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Cancel
-                  </button>
+              <%= if @creators == [] && not @show_form do %>
+                <div class="card bg-base-200 shadow-xl">
+                  <div class="card-body items-center text-center">
+                    <h2 class="card-title">No creators yet</h2>
+                    <p>Create your first creator profile to get started.</p>
+                    <.link patch={~p"/creators/new"} class="btn btn-primary mt-4">
+                      <.icon name="hero-plus" class="w-4 h-4 mr-2" /> Create First Creator
+                    </.link>
+                  </div>
                 </div>
-              </.form>
-            </div>
-          </div>
-        <% end %>
+              <% else %>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <%= for creator <- @creators do %>
+                    <div class="card bg-base-100 shadow-xl">
+                      <figure class="px-10 pt-10">
+                        <%= if creator.image do %>
+                          <img
+                            src={CreatorImage.url({creator.image, creator}, :original)}
+                            alt={creator.name}
+                            class="rounded-full w-24 h-24 object-cover"
+                          />
+                        <% else %>
+                          <div class="avatar placeholder">
+                            <div class="bg-neutral text-neutral-content rounded-full w-24">
+                              <span class="text-3xl">{String.first(creator.name)}</span>
+                            </div>
+                          </div>
+                        <% end %>
+                      </figure>
 
-        <%= if @creators == [] && not @show_form do %>
-          <div class="card bg-base-200 shadow-xl">
-            <div class="card-body items-center text-center">
-              <h2 class="card-title">No creators yet</h2>
-              <p>Create your first creator profile to get started.</p>
-              <.link patch={~p"/creators/new"} class="btn btn-primary mt-4">
-                <.icon name="hero-plus" class="w-4 h-4 mr-2" /> Create First Creator
-              </.link>
-            </div>
-          </div>
-        <% else %>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <%= for creator <- @creators do %>
-              <div class="card bg-base-100 shadow-xl">
-                <figure class="px-10 pt-10">
-                  <%= if creator.image do %>
-                    <img
-                      src={CreatorImage.url({creator.image, creator}, :original)}
-                      alt={creator.name}
-                      class="rounded-full w-24 h-24 object-cover"
-                    />
-                  <% else %>
-                    <div class="avatar placeholder">
-                      <div class="bg-neutral text-neutral-content rounded-full w-24">
-                        <span class="text-3xl">{String.first(creator.name)}</span>
+                      <div class="card-body items-center text-center">
+                        <h2 class="card-title">{creator.name}</h2>
+
+                        <%= if creator.bio do %>
+                          <p class="text-sm">{creator.bio}</p>
+                        <% end %>
+
+                        <div class="stats stats-horizontal shadow mt-4">
+                          <div class="stat place-items-center">
+                            <div class="stat-title">Qlink Pages</div>
+                            <div class="stat-value text-sm">{length(creator.qlink_pages)}</div>
+                          </div>
+                          <div class="stat place-items-center">
+                            <div class="stat-title">Catalogs</div>
+                            <div class="stat-value text-sm">{length(creator.catalogs)}</div>
+                          </div>
+                        </div>
+
+                        <div class="card-actions justify-end w-full mt-4 gap-2">
+                          <.link
+                            navigate={~p"/creators/#{creator.id}"}
+                            class="btn btn-primary btn-sm"
+                          >
+                            Manage
+                          </.link>
+                          <button
+                            phx-click="delete"
+                            phx-value-id={creator.id}
+                            data-confirm="Are you sure you want to delete this creator?"
+                            class="btn btn-error btn-sm"
+                          >
+                            <.icon name="hero-trash" class="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   <% end %>
-                </figure>
-
-                <div class="card-body items-center text-center">
-                  <h2 class="card-title">{creator.name}</h2>
-
-                  <%= if creator.bio do %>
-                    <p class="text-sm">{creator.bio}</p>
-                  <% end %>
-
-                  <div class="stats stats-horizontal shadow mt-4">
-                    <div class="stat place-items-center">
-                      <div class="stat-title">Qlink Pages</div>
-                      <div class="stat-value text-sm">{length(creator.qlink_pages)}</div>
-                    </div>
-                    <div class="stat place-items-center">
-                      <div class="stat-title">Catalogs</div>
-                      <div class="stat-value text-sm">{length(creator.catalogs)}</div>
-                    </div>
-                  </div>
-
-                  <div class="card-actions justify-end w-full mt-4 gap-2">
-                    <.link
-                      navigate={~p"/creators/#{creator.id}"}
-                      class="btn btn-primary btn-sm"
-                    >
-                      Manage
-                    </.link>
-                    <button
-                      phx-click="delete"
-                      phx-value-id={creator.id}
-                      data-confirm="Are you sure you want to delete this creator?"
-                      class="btn btn-error btn-sm"
-                    >
-                      <.icon name="hero-trash" class="w-4 h-4" />
-                    </button>
-                  </div>
                 </div>
-              </div>
-            <% end %>
-          </div>
-        <% end %>
+              <% end %>
             </div>
           </div>
         </div>

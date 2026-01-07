@@ -661,7 +661,7 @@ defmodule QlariusWeb.CoreComponents do
       class="relative z-50 hidden"
     >
       <.backdrop id={"#{@id}-bg"} />
-
+      
     <!-- Modal Container -->
       <div
         class="fixed inset-0 overflow-y-auto w-fit mx-auto"
@@ -692,7 +692,7 @@ defmodule QlariusWeb.CoreComponents do
                   <.icon name="hero-x-mark" class="w-5 h-5" />
                 </button>
               </div>
-
+              
     <!-- Modal Content -->
               <div id={"#{@id}-content"} class="p-0">
                 {render_slot(@inner_block)}

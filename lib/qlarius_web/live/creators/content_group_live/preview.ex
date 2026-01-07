@@ -62,7 +62,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Preview do
             </div>
           </div>
         </div>
-
+        
     <!-- Preview Frame -->
         <div class="card bg-base-100 shadow-xl">
           <div class="card-body">

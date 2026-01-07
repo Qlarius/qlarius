@@ -90,7 +90,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                     </button>
                   </div>
                 </div>
-
+                
     <!-- Overview Section -->
                 <div class="card bg-base-100 shadow-lg">
                   <div class="card-body">
@@ -130,7 +130,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                     </div>
                   </div>
                 </div>
-
+                
     <!-- URL Section -->
                 <%= if @catalog.url do %>
                   <div class="card bg-base-100 shadow-lg">
@@ -156,7 +156,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                     </div>
                   </div>
                 <% end %>
-
+                
     <!-- Tiqit Classes Section -->
                 <div class="space-y-4">
                   <div class="flex items-center justify-between">
@@ -205,7 +205,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                     </div>
                   <% end %>
                 </div>
-
+                
     <!-- Content Groups Section -->
                 <div class="space-y-4">
                   <div class="flex items-center justify-between">

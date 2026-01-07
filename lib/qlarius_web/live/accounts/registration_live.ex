@@ -611,8 +611,6 @@ defmodule QlariusWeb.RegistrationLive do
       </div>
 
       <div class="w-full max-w-2xl space-y-8 px-6 md:px-8">
-
-
         <%= if @current_step > 0 do %>
           <h1 class="text-4xl md:text-5xl font-bold mb-8 dark:text-white">
             Registration
@@ -815,12 +813,11 @@ defmodule QlariusWeb.RegistrationLive do
     ~H"""
     <div class="space-y-6">
       <div class="text-center mb-8">
-        <h3 class="text-xl md:text-2xl font-bold mb-4 text-primary">
+        <h3 class="text-2xl md:text-3xl font-bold mb-4 text-primary">
           Join our BETA!
         </h3>
         <p class="text-lg md:text-xl text-base-content/70 dark:text-base-content/60">
-          You've been invited to early access to Qadabra.<br />
-          Enter your invitation code to get started.
+          You've been invited to early access to Qadabra. Enter your invitation code.
         </p>
       </div>
 
