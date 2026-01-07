@@ -73,12 +73,12 @@ Hooks.PWAInstall = {
   deferredPrompt: null,
 
   mounted() {
-    this.detectPWAState()
     this.setupInstallPrompt()
     
     setTimeout(() => {
+      this.detectPWAState()
       this.setupInstallButton()
-    }, 500)
+    }, 100)
   },
 
   detectPWAState() {

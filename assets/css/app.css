@@ -284,22 +284,6 @@
     --empty-trait-strobe-color-25: rgba(255, 255, 255, 0.25);
     --empty-trait-strobe-color-50: rgba(255, 255, 255, 0.5);
   }
-
-  /* PWA Install Banner Animation */
-  @keyframes slide-up {
-    from {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-
-  .animate-slide-up {
-    animation: slide-up 0.3s ease-out;
-  }
 }
 
 @layer base {
