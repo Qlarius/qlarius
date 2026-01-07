@@ -145,7 +145,7 @@ defmodule QlariusWeb.Router do
   scope "/", QlariusWeb do
     pipe_through [:browser]
 
-    get "/", PageController, :hi
+    get "/", PageController, :home
     get "/hi", PageController, :hi
 
     live_session :public,
