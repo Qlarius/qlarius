@@ -3,25 +3,19 @@ defmodule QlariusWeb.HiLive do
 
   def mount(_params, session, socket) do
     is_authenticated = !!socket.assigns[:current_scope]
+    has_session_token = Map.get(session, "user_token") != nil
 
-    # Authenticated users should go straight to /home
-    if is_authenticated do
-      {:ok, push_navigate(socket, to: ~p"/home")}
-    else
-      has_session_token = Map.get(session, "user_token") != nil
+    socket =
+      socket
+      |> assign(:page_title, "Welcome to Qadabra")
+      |> assign(:mode, :loading)
+      |> assign(:is_mobile, false)
+      |> assign(:is_authenticated, is_authenticated)
+      |> assign(:has_session_token, has_session_token)
+      |> assign(:device_type, :desktop)
+      |> assign(:is_pwa, false)
 
-      socket =
-        socket
-        |> assign(:page_title, "Welcome to Qadabra")
-        |> assign(:mode, :loading)
-        |> assign(:is_mobile, false)
-        |> assign(:is_authenticated, is_authenticated)
-        |> assign(:has_session_token, has_session_token)
-        |> assign(:device_type, :desktop)
-        |> assign(:is_pwa, false)
-
-      {:ok, socket}
-    end
+    {:ok, socket}
   end
 
   def handle_event(
@@ -39,7 +33,7 @@ defmodule QlariusWeb.HiLive do
         _ -> :mobile_phone
       end
 
-    mode = determine_mode(is_mobile, is_pwa, in_iframe)
+    mode = determine_mode(is_mobile, is_pwa, in_iframe, socket.assigns.is_authenticated)
 
     socket =
       socket
@@ -58,8 +52,8 @@ defmodule QlariusWeb.HiLive do
 
   def handle_event("splash_complete", _params, socket) do
     cond do
-      # PWA users (authenticated): go to home
-      socket.assigns.is_pwa && socket.assigns.is_authenticated ->
+      # Authenticated users: always go to home
+      socket.assigns.is_authenticated ->
         {:noreply, push_navigate(socket, to: ~p"/home")}
 
       # PWA users (not authenticated): go to login or register
@@ -77,13 +71,17 @@ defmodule QlariusWeb.HiLive do
     end
   end
 
-  defp determine_mode(is_mobile, _is_pwa, _in_iframe) do
+  defp determine_mode(is_mobile, _is_pwa, _in_iframe, is_authenticated) do
     cond do
-      # Both mobile PWA and mobile browser start with splash
+      # Authenticated users always see splash before redirect
+      is_authenticated ->
+        :splash
+
+      # Mobile users (not authenticated) start with splash
       is_mobile ->
         :splash
 
-      # Desktop goes straight to welcome
+      # Desktop (not authenticated) goes straight to welcome
       true ->
         :welcome
     end
