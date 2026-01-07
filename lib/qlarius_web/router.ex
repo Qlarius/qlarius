@@ -145,8 +145,13 @@ defmodule QlariusWeb.Router do
   scope "/", QlariusWeb do
     pipe_through [:browser]
 
-    live "/", HiLive, :index
-    live "/hi", HiLive, :index
+    live_session :hi,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope}
+      ] do
+      live "/", HiLive, :index
+      live "/hi", HiLive, :index
+    end
 
     live_session :public,
       on_mount: [
