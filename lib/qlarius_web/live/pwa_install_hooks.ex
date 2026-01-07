@@ -18,7 +18,11 @@ defmodule QlariusWeb.PWAInstallHooks do
      |> attach_hook(:pwa_install_events, :handle_event, &handle_pwa_events/3)}
   end
 
-  defp handle_pwa_events("check_pwa_state", %{"is_ios" => is_ios, "is_android" => is_android, "is_pwa" => is_pwa}, socket) do
+  defp handle_pwa_events(
+         "check_pwa_state",
+         %{"is_ios" => is_ios, "is_android" => is_android, "is_pwa" => is_pwa},
+         socket
+       ) do
     user_id = get_user_id(socket)
     should_show = should_show_install_banner?(user_id, is_ios, is_android, is_pwa)
 
@@ -55,22 +59,33 @@ defmodule QlariusWeb.PWAInstallHooks do
 
     {:halt,
      socket
-     |> assign(:show_install_banner, false)
-     |> put_flash(:info, "You can install the app later from your browser menu")}
+     |> assign(:show_install_banner, false)}
   end
 
   defp handle_pwa_events("pwa_installed", _params, socket) do
     user_id = get_user_id(socket)
 
-    if user_id do
-      mark_pwa_installed(user_id)
-    end
+    socket =
+      if user_id do
+        case mark_pwa_installed(user_id) do
+          {:ok, :newly_installed} ->
+            socket
+            |> assign(:show_install_banner, false)
+            |> assign(:is_pwa, true)
+            |> put_flash(:info, "🎉 Welcome to the Qlarius app!")
 
-    {:halt,
-     socket
-     |> assign(:show_install_banner, false)
-     |> assign(:is_pwa, true)
-     |> put_flash(:info, "🎉 Welcome to the Qlarius app!")}
+          {:ok, :already_installed} ->
+            socket
+            |> assign(:show_install_banner, false)
+            |> assign(:is_pwa, true)
+        end
+      else
+        socket
+        |> assign(:show_install_banner, false)
+        |> assign(:is_pwa, true)
+      end
+
+    {:halt, socket}
   end
 
   defp handle_pwa_events(_event, _params, socket) do
@@ -94,12 +109,17 @@ defmodule QlariusWeb.PWAInstallHooks do
   end
 
   defp recently_dismissed?(nil), do: false
+
   defp recently_dismissed?(user_id) do
     case Qlarius.Repo.get(Qlarius.Accounts.User, user_id) do
-      nil -> false
+      nil ->
+        false
+
       user ->
         case user.pwa_install_dismissed_at do
-          nil -> false
+          nil ->
+            false
+
           dismissed_at ->
             days_ago = DateTime.diff(DateTime.utc_now(), dismissed_at, :day)
             days_ago < 7
@@ -109,24 +129,36 @@ defmodule QlariusWeb.PWAInstallHooks do
 
   defp store_dismissal(user_id) do
     case Qlarius.Repo.get(Qlarius.Accounts.User, user_id) do
-      nil -> :ok
+      nil ->
+        :ok
+
       user ->
         user
-        |> Ecto.Changeset.change(%{pwa_install_dismissed_at: DateTime.utc_now()})
+        |> Ecto.Changeset.change(%{pwa_install_dismissed_at: DateTime.utc_now() |> DateTime.truncate(:second)})
         |> Qlarius.Repo.update()
     end
   end
 
   defp mark_pwa_installed(user_id) do
     case Qlarius.Repo.get(Qlarius.Accounts.User, user_id) do
-      nil -> :ok
+      nil ->
+        {:ok, :already_installed}
+
       user ->
-        user
-        |> Ecto.Changeset.change(%{
-          pwa_installed: true,
-          pwa_installed_at: DateTime.utc_now()
-        })
-        |> Qlarius.Repo.update()
+        if user.pwa_installed do
+          {:ok, :already_installed}
+        else
+          user
+          |> Ecto.Changeset.change(%{
+            pwa_installed: true,
+            pwa_installed_at: DateTime.utc_now() |> DateTime.truncate(:second)
+          })
+          |> Qlarius.Repo.update()
+          |> case do
+            {:ok, _user} -> {:ok, :newly_installed}
+            {:error, _changeset} -> {:ok, :already_installed}
+          end
+        end
     end
   end
 end
