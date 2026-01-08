@@ -221,7 +221,7 @@ defmodule QlariusWeb.ReferralsLive do
                     <input
                       id="referral-link-input"
                       type="text"
-                      value={"#{QlariusWeb.Endpoint.url()}/register?ref=#{@my_referral_code}"}
+                      value={"#{QlariusWeb.Endpoint.url()}/?ref=#{@my_referral_code}"}
                       readonly
                       class="input input-bordered flex-1 font-mono text-sm"
                     />

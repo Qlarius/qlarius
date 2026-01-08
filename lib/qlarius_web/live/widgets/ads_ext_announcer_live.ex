@@ -38,16 +38,6 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   # params and session not used in this mount function
   def mount(_params, _session, socket) do
     # Load initial data during first mount
-    # user, current_scope, and host_uri extracted but not directly used in this function
-    _user = socket.assigns.current_scope.user
-    _current_scope = socket.assigns.current_scope
-
-    _host_uri =
-      case Phoenix.LiveView.get_connect_info(socket, :uri) do
-        nil -> URI.parse("http://localhost")
-        uri -> uri
-      end
-
     lg_slides = [
       %{
         imgSrc:
@@ -93,7 +83,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
       |> assign(:lg_slides, lg_slides)
       |> assign(:sm_slides, sm_slides)
 
-    if connected?(socket) do
+    if connected?(socket) && socket.assigns[:current_scope] do
       MeFileStatsBroadcaster.subscribe_to_me_file_stats(
         socket.assigns.current_scope.user.me_file.id
       )
@@ -102,46 +92,60 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
     else
       {:ok, socket}
     end
-
-    {:ok, socket}
   end
 
   # me_file_id from message not used - we get me_file from socket.assigns instead
   @impl true
   def handle_info({:refresh_wallet_balance, _me_file_id}, socket) do
-    new_balance =
-      Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
+    if socket.assigns[:current_scope] do
+      new_balance =
+        Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
 
-    current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-    {:noreply, assign(socket, :current_scope, current_scope)}
+      current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
+      {:noreply, assign(socket, :current_scope, current_scope)}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
   def handle_info({:me_file_balance_updated, new_balance}, socket) do
-    current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-    {:noreply, assign(socket, :current_scope, current_scope)}
+    if socket.assigns[:current_scope] do
+      current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
+      {:noreply, assign(socket, :current_scope, current_scope)}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
   def handle_info({:me_file_offers_updated, _me_file_id}, socket) do
-    me_file = socket.assigns.current_scope.user.me_file
-    ads_count = MeFile.ad_offer_count(me_file)
-    offered_amount = Offers.total_active_offer_amount(me_file)
+    if socket.assigns[:current_scope] do
+      me_file = socket.assigns.current_scope.user.me_file
+      ads_count = MeFile.ad_offer_count(me_file)
+      offered_amount = Offers.total_active_offer_amount(me_file)
 
-    current_scope =
-      socket.assigns.current_scope
-      |> Map.put(:ads_count, ads_count)
-      |> Map.put(:offered_amount, offered_amount)
+      current_scope =
+        socket.assigns.current_scope
+        |> Map.put(:ads_count, ads_count)
+        |> Map.put(:offered_amount, offered_amount)
 
-    {:noreply, assign(socket, :current_scope, current_scope)}
+      {:noreply, assign(socket, :current_scope, current_scope)}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
   def handle_info({:me_file_pending_referral_clicks_updated, pending_clicks_count}, socket) do
-    current_scope =
-      Map.put(socket.assigns.current_scope, :pending_referral_clicks_count, pending_clicks_count)
+    if socket.assigns[:current_scope] do
+      current_scope =
+        Map.put(socket.assigns.current_scope, :pending_referral_clicks_count, pending_clicks_count)
 
-    {:noreply, assign(socket, :current_scope, current_scope)}
+      {:noreply, assign(socket, :current_scope, current_scope)}
+    else
+      {:noreply, socket}
+    end
   end
 
   # defp slider_data(slides) do
