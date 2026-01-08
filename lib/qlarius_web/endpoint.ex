@@ -8,8 +8,8 @@ defmodule QlariusWeb.Endpoint do
     store: :cookie,
     key: "_qlarius_key",
     signing_salt: "Tvun6ICt",
-    same_site: if(Mix.env() == :prod, do: "None", else: "Lax"),
-    secure: Mix.env() == :prod
+    same_site: "Lax",
+    secure: false
   ]
 
   socket "/live", Phoenix.LiveView.Socket,

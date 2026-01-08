@@ -7,12 +7,11 @@ defmodule QlariusWeb.DebugHelpers do
   require Logger
 
   def debug_enabled? do
-    env = Mix.env()
     debug_var = System.get_env("DEBUG")
-    result = env == :dev and debug_var == "true"
+    result = debug_var == "true"
 
     Logger.info(
-      "Debug check - Mix.env: #{env}, DEBUG env var: #{inspect(debug_var)}, enabled: #{result}"
+      "Debug check - DEBUG env var: #{inspect(debug_var)}, enabled: #{result}"
     )
 
     result
