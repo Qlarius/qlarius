@@ -44,47 +44,6 @@ defmodule QlariusWeb.ProxyUsersLive do
     handle_pwa_detection(socket, params)
   end
 
-  def render(assigns) do
-    ~H"""
-    <div id="proxyusers-pwa-detect" phx-hook="HiPagePWADetect">
-      <Layouts.mobile {assigns}>
-        <div class="mx-auto max-w-2xl">
-        <div class="flex justify-between items-center mb-4">
-          <p class="text-base-content/60">Deselect all to return to true user.</p>
-          <button class="btn btn-primary btn-sm" phx-click="add_proxy">
-            <.icon name="hero-plus" class="w-4 h-4" /> Add Proxy User
-          </button>
-        </div>
-
-        <ul class="-mx-4 sm:mx-0 list bg-base-200 dark:!bg-base-200 sm:rounded-box shadow-md overflow-hidden">
-          <li
-            :for={proxy <- @proxy_users}
-            class={[
-              "list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100",
-              proxy.active &&
-                "!bg-green-50 dark:!bg-green-900/30 border-l-4 border-green-500 dark:border-green-400 pl-4"
-            ]}
-            phx-click="toggle_proxy"
-            phx-value-id={proxy.id}
-          >
-            <div class="list-col-grow">
-              <div class="text-lg font-medium text-base-content">{proxy.proxy_user.alias}</div>
-            </div>
-            <div class="flex items-center mr-2">
-              <%= if proxy.active do %>
-                <.icon name="hero-check-circle-solid" class="h-8 w-8 text-green-500" />
-              <% else %>
-                <div class="h-8 w-8 rounded-full border-2 border-base-content/30"></div>
-              <% end %>
-            </div>
-          </li>
-        </ul>
-      </div>
-      </Layouts.mobile>
-    </div>
-    """
-  end
-
   def handle_event("toggle_dark_mode", _params, socket) do
     {:noreply, socket}
   end
@@ -132,6 +91,47 @@ defmodule QlariusWeb.ProxyUsersLive do
          "Successfully switched to proxy user #{updated_proxy.proxy_user.alias}"
        )}
     end
+  end
+
+  def render(assigns) do
+    ~H"""
+    <div id="proxyusers-pwa-detect" phx-hook="HiPagePWADetect">
+      <Layouts.mobile {assigns}>
+        <div class="mx-auto max-w-2xl">
+          <div class="flex justify-between items-center mb-4">
+            <p class="text-base-content/60">Deselect all to return to true user.</p>
+            <button class="btn btn-primary btn-sm" phx-click="add_proxy">
+              <.icon name="hero-plus" class="w-4 h-4" /> Add Proxy User
+            </button>
+          </div>
+
+          <ul class="-mx-4 sm:mx-0 list bg-base-200 dark:!bg-base-200 sm:rounded-box shadow-md overflow-hidden">
+            <li
+              :for={proxy <- @proxy_users}
+              class={[
+                "list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100",
+                proxy.active &&
+                  "!bg-green-50 dark:!bg-green-900/30 border-l-4 border-green-500 dark:border-green-400 pl-4"
+              ]}
+              phx-click="toggle_proxy"
+              phx-value-id={proxy.id}
+            >
+              <div class="list-col-grow">
+                <div class="text-lg font-medium text-base-content">{proxy.proxy_user.alias}</div>
+              </div>
+              <div class="flex items-center mr-2">
+                <%= if proxy.active do %>
+                  <.icon name="hero-check-circle-solid" class="h-8 w-8 text-green-500" />
+                <% else %>
+                  <div class="h-8 w-8 rounded-full border-2 border-base-content/30"></div>
+                <% end %>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </Layouts.mobile>
+    </div>
+    """
   end
 
   # Private functions

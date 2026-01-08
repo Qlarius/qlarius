@@ -69,31 +69,6 @@ defmodule QlariusWeb.RegistrationLive do
     handle_pwa_detection(socket, params)
   end
 
-  defp get_true_user_id_from_scope(socket) do
-    case socket.assigns do
-      %{current_scope: %{true_user: %{id: id}}} -> id
-      %{current_scope: %{user: %{id: id}}} -> id
-      _ -> nil
-    end
-  end
-
-  defp determine_starting_step("proxy", _mobile, _alias_value), do: 2
-
-  defp determine_starting_step(_mode, _mobile, _alias_value), do: 0
-
-  defp load_sex_options do
-    case Traits.get_trait_with_full_survey_data!(1) do
-      {:ok, trait} ->
-        trait.child_traits
-        |> Enum.map(fn child ->
-          %{id: child.id, name: child.trait_name}
-        end)
-
-      {:error, _} ->
-        []
-    end
-  end
-
   def handle_event("next_step", _params, socket) do
     case socket.assigns.current_step do
       0 ->
@@ -517,6 +492,31 @@ defmodule QlariusWeb.RegistrationLive do
       end
     else
       {:noreply, put_flash(socket, :error, "Please complete all required fields")}
+    end
+  end
+
+  defp get_true_user_id_from_scope(socket) do
+    case socket.assigns do
+      %{current_scope: %{true_user: %{id: id}}} -> id
+      %{current_scope: %{user: %{id: id}}} -> id
+      _ -> nil
+    end
+  end
+
+  defp determine_starting_step("proxy", _mobile, _alias_value), do: 2
+
+  defp determine_starting_step(_mode, _mobile, _alias_value), do: 0
+
+  defp load_sex_options do
+    case Traits.get_trait_with_full_survey_data!(1) do
+      {:ok, trait} ->
+        trait.child_traits
+        |> Enum.map(fn child ->
+          %{id: child.id, name: child.trait_name}
+        end)
+
+      {:error, _} ->
+        []
     end
   end
 

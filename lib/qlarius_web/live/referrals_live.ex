@@ -74,17 +74,6 @@ defmodule QlariusWeb.ReferralsLive do
     handle_pwa_detection(socket, params)
   end
 
-  defp calculate_next_friday_midnight do
-    now = DateTime.utc_now()
-    days_until_friday = rem(7 - Date.day_of_week(DateTime.to_date(now)) + 5, 7)
-    days_until_friday = if days_until_friday == 0, do: 7, else: days_until_friday
-
-    now
-    |> DateTime.add(days_until_friday, :day)
-    |> DateTime.to_date()
-    |> DateTime.new!(~T[00:00:00], "Etc/UTC")
-  end
-
   def handle_event("save_referral_code", %{"code" => code}, socket) do
     code = String.trim(code)
 
@@ -142,38 +131,28 @@ defmodule QlariusWeb.ReferralsLive do
         {:noreply,
          socket
          |> put_flash(:info, "No pending clicks to process.")
-         |> push_navigate(to: ~p"/referrals")}
+         |> assign(:trigger_fetch_payout_amount, System.monotonic_time(:millisecond))}
 
-      {:ok, %{clicks: clicks, amount: amount}} ->
+      {:ok, _transaction} ->
         {:noreply,
          socket
-         |> put_flash(
-           :info,
-           "Successfully processed #{clicks} clicks for $#{Decimal.to_string(amount, :normal)}!"
-         )
-         |> push_navigate(to: ~p"/referrals")}
+         |> put_flash(:info, "Payout processed successfully!")
+         |> assign(:trigger_fetch_payout_amount, System.monotonic_time(:millisecond))}
 
-      {:error, :no_ledger} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "Wallet not found. Please contact support.")
-         |> push_navigate(to: ~p"/referrals")}
-
-      {:error, {step, changeset}} ->
-        require Logger
-        Logger.error("Referral payout failed at step #{step}: #{inspect(changeset.errors)}")
-
-        {:noreply,
-         socket
-         |> put_flash(:error, "Failed to process payout. Please try again.")
-         |> push_navigate(to: ~p"/referrals")}
-
-      {:error, _reason} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "Failed to process payout. Please try again.")
-         |> push_navigate(to: ~p"/referrals")}
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to process payout")}
     end
+  end
+
+  defp calculate_next_friday_midnight do
+    now = DateTime.utc_now()
+    days_until_friday = rem(7 - Date.day_of_week(DateTime.to_date(now)) + 5, 7)
+    days_until_friday = if days_until_friday == 0, do: 7, else: days_until_friday
+
+    now
+    |> DateTime.add(days_until_friday, :day)
+    |> DateTime.to_date()
+    |> DateTime.new!(~T[00:00:00], "Etc/UTC")
   end
 
   def handle_info({:me_file_balance_updated, new_balance}, socket) do
@@ -193,226 +172,226 @@ defmodule QlariusWeb.ReferralsLive do
     <div id="referrals-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile {assigns}>
         <div class="container mx-auto px-4 py-6 max-w-3xl">
-        <div class="space-y-6">
-          <div class="stats shadow-xl bg-primary text-primary-content w-full">
-            <div class="stat">
-              <div class="stat-figure text-primary-content">
-                <.icon name="hero-user-group" class="w-10 h-10" />
-              </div>
-              <div class="stat-title text-primary-content/70">Lifetime Referral Earnings</div>
-              <div class="stat-value text-3xl">
-                ${Decimal.to_string(@total_paid, :normal)}
-              </div>
-              <div class="stat-desc text-primary-content/60">
-                Total paid from all referrals
-              </div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="card bg-base-200 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title">Your Referral Link</h2>
-                <p class="text-sm text-base-content/70">
-                  Share this link with friends. You'll earn $0.01 for each ad they complete for the first year!
-                </p>
-                <div class="space-y-3 mt-4">
-                  <div class="flex gap-2">
-                    <input
-                      id="referral-link-input"
-                      type="text"
-                      value={"#{QlariusWeb.Endpoint.url()}/?ref=#{@my_referral_code}"}
-                      readonly
-                      class="input input-bordered flex-1 font-mono text-sm"
-                    />
-                    <button
-                      phx-hook="CopyToClipboard"
-                      id="copy-referral-link-btn"
-                      data-target="referral-link-input"
-                      class="btn btn-primary"
-                    >
-                      Copy Link
-                    </button>
-                  </div>
-                  <div class="collapse collapse-arrow bg-base-100">
-                    <input type="checkbox" />
-                    <div class="collapse-title text-xs font-medium">
-                      Just the code: {@my_referral_code}
-                    </div>
-                    <div class="collapse-content">
-                      <p class="text-xs text-base-content/60">
-                        Use this code if someone needs to enter it manually.
-                      </p>
-                    </div>
-                  </div>
+          <div class="space-y-6">
+            <div class="stats shadow-xl bg-primary text-primary-content w-full">
+              <div class="stat">
+                <div class="stat-figure text-primary-content">
+                  <.icon name="hero-user-group" class="w-10 h-10" />
+                </div>
+                <div class="stat-title text-primary-content/70">Lifetime Referral Earnings</div>
+                <div class="stat-value text-3xl">
+                  ${Decimal.to_string(@total_paid, :normal)}
+                </div>
+                <div class="stat-desc text-primary-content/60">
+                  Total paid from all referrals
                 </div>
               </div>
             </div>
 
-            <%= if @show_referral_form do %>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="card bg-base-200 shadow-xl">
                 <div class="card-body">
-                  <h2 class="card-title">Add Your Referrer</h2>
+                  <h2 class="card-title">Your Referral Link</h2>
                   <p class="text-sm text-base-content/70">
-                    If someone referred you, enter their code here within 10 days of registration.
+                    Share this link with friends. You'll earn $0.01 for each ad they complete for the first year!
                   </p>
-                  <%= if @referral_error do %>
-                    <div class="alert alert-error mt-2">
-                      <span>{@referral_error}</span>
-                    </div>
-                  <% end %>
-                  <form phx-submit="save_referral_code">
-                    <div class="form-control mt-4">
+                  <div class="space-y-3 mt-4">
+                    <div class="flex gap-2">
                       <input
+                        id="referral-link-input"
                         type="text"
-                        name="code"
-                        placeholder="Enter referral code"
-                        value={@referral_code_input}
-                        class="input input-bordered"
-                        required
+                        value={"#{QlariusWeb.Endpoint.url()}/?ref=#{@my_referral_code}"}
+                        readonly
+                        class="input input-bordered flex-1 font-mono text-sm"
                       />
-                    </div>
-                    <div class="card-actions justify-end mt-4">
-                      <button type="submit" class="btn btn-primary">
-                        Save Referral Code
+                      <button
+                        phx-hook="CopyToClipboard"
+                        id="copy-referral-link-btn"
+                        data-target="referral-link-input"
+                        class="btn btn-primary"
+                      >
+                        Copy Link
                       </button>
                     </div>
-                  </form>
-                </div>
-              </div>
-            <% end %>
-
-            <%= if @referral do %>
-              <div class="card bg-base-200 shadow-xl">
-                <div class="card-body">
-                  <h2 class="card-title">Your Referrer</h2>
-                  <p class="text-base-content/80">
-                    You were referred by:
-                    <span class="font-semibold">
-                      <%= if referrer_alias = Map.get(@referral, :referrer_alias) do %>
-                        {referrer_alias}
-                      <% else %>
-                        {String.capitalize(@referral.referrer_type)}
-                      <% end %>
-                    </span>
-                  </p>
-                  <p class="text-sm text-base-content/60">
-                    Expires: {Calendar.strftime(@referral.expires_at, "%B %d, %Y")}
-                  </p>
-                </div>
-              </div>
-            <% end %>
-
-            <%= if !@can_add_referral && @referral == nil do %>
-              <div class="card bg-base-200 shadow-xl">
-                <div class="card-body">
-                  <h2 class="card-title">Add Your Referrer</h2>
-                  <p class="text-sm text-base-content/70">
-                    10-day grace period has expired. You cannot add a referrer at this time.
-                  </p>
-                  <form>
-                    <div class="flex gap-2 mt-4">
-                      <input
-                        type="text"
-                        placeholder="Enter referral code"
-                        class="input input-bordered flex-1 !border !border-base-content/30"
-                        disabled
-                      />
-                      <button type="submit" class="btn btn-primary" disabled>
-                        Save Referral Code
-                      </button>
+                    <div class="collapse collapse-arrow bg-base-100">
+                      <input type="checkbox" />
+                      <div class="collapse-title text-xs font-medium">
+                        Just the code: {@my_referral_code}
+                      </div>
+                      <div class="collapse-content">
+                        <p class="text-xs text-base-content/60">
+                          Use this code if someone needs to enter it manually.
+                        </p>
+                      </div>
                     </div>
-                  </form>
+                  </div>
                 </div>
               </div>
-            <% end %>
-          </div>
 
-          <%= if @pending_clicks_count > 0 do %>
-            <div class="card bg-base-100 shadow-xl border border-primary">
-              <div class="card-body">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <h3 class="text-lg font-semibold">Pending Referral Payout</h3>
-                    <p class="text-sm text-base-content/70 mt-1">
-                      You have <span class="font-bold text-primary">{@pending_clicks_count}</span>
-                      pending clicks ready for payout
-                      (<span class="font-bold">${Decimal.to_string(Decimal.mult(Decimal.new("0.01"), @pending_clicks_count), :normal)}</span>)
+              <%= if @show_referral_form do %>
+                <div class="card bg-base-200 shadow-xl">
+                  <div class="card-body">
+                    <h2 class="card-title">Add Your Referrer</h2>
+                    <p class="text-sm text-base-content/70">
+                      If someone referred you, enter their code here within 10 days of registration.
                     </p>
-                    <p class="text-xs text-base-content/60 mt-2">
-                      Next automatic payout:
+                    <%= if @referral_error do %>
+                      <div class="alert alert-error mt-2">
+                        <span>{@referral_error}</span>
+                      </div>
+                    <% end %>
+                    <form phx-submit="save_referral_code">
+                      <div class="form-control mt-4">
+                        <input
+                          type="text"
+                          name="code"
+                          placeholder="Enter referral code"
+                          value={@referral_code_input}
+                          class="input input-bordered"
+                          required
+                        />
+                      </div>
+                      <div class="card-actions justify-end mt-4">
+                        <button type="submit" class="btn btn-primary">
+                          Save Referral Code
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              <% end %>
+
+              <%= if @referral do %>
+                <div class="card bg-base-200 shadow-xl">
+                  <div class="card-body">
+                    <h2 class="card-title">Your Referrer</h2>
+                    <p class="text-base-content/80">
+                      You were referred by:
                       <span class="font-semibold">
-                        {Calendar.strftime(@next_payout_date, "%B %d, %Y at %I:%M %p UTC")}
+                        <%= if referrer_alias = Map.get(@referral, :referrer_alias) do %>
+                          {referrer_alias}
+                        <% else %>
+                          {String.capitalize(@referral.referrer_type)}
+                        <% end %>
                       </span>
                     </p>
+                    <p class="text-sm text-base-content/60">
+                      Expires: {Calendar.strftime(@referral.expires_at, "%B %d, %Y")}
+                    </p>
                   </div>
-                  <button phx-click={show_modal("payout-modal")} class="btn btn-primary">
-                    Process Now
-                  </button>
+                </div>
+              <% end %>
+
+              <%= if !@can_add_referral && @referral == nil do %>
+                <div class="card bg-base-200 shadow-xl">
+                  <div class="card-body">
+                    <h2 class="card-title">Add Your Referrer</h2>
+                    <p class="text-sm text-base-content/70">
+                      10-day grace period has expired. You cannot add a referrer at this time.
+                    </p>
+                    <form>
+                      <div class="flex gap-2 mt-4">
+                        <input
+                          type="text"
+                          placeholder="Enter referral code"
+                          class="input input-bordered flex-1 !border !border-base-content/30"
+                          disabled
+                        />
+                        <button type="submit" class="btn btn-primary" disabled>
+                          Save Referral Code
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+
+            <%= if @pending_clicks_count > 0 do %>
+              <div class="card bg-base-100 shadow-xl border border-primary">
+                <div class="card-body">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h3 class="text-lg font-semibold">Pending Referral Payout</h3>
+                      <p class="text-sm text-base-content/70 mt-1">
+                        You have <span class="font-bold text-primary">{@pending_clicks_count}</span>
+                        pending clicks ready for payout
+                        (<span class="font-bold">${Decimal.to_string(Decimal.mult(Decimal.new("0.01"), @pending_clicks_count), :normal)}</span>)
+                      </p>
+                      <p class="text-xs text-base-content/60 mt-2">
+                        Next automatic payout:
+                        <span class="font-semibold">
+                          {Calendar.strftime(@next_payout_date, "%B %d, %Y at %I:%M %p UTC")}
+                        </span>
+                      </p>
+                    </div>
+                    <button phx-click={show_modal("payout-modal")} class="btn btn-primary">
+                      Process Now
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          <% end %>
+            <% end %>
 
-          <%= if Enum.any?(@referred_users) do %>
-            <div class="card bg-base-200 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title">Users You've Referred</h2>
-                <div class="overflow-x-auto mt-4">
-                  <table class="table table-zebra w-full">
-                    <thead>
-                      <tr>
-                        <th>Alias</th>
-                        <th>Total Paid</th>
-                        <th>Pending Clicks</th>
-                        <th>Days Left</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <%= for user <- @referred_users do %>
+            <%= if Enum.any?(@referred_users) do %>
+              <div class="card bg-base-200 shadow-xl">
+                <div class="card-body">
+                  <h2 class="card-title">Users You've Referred</h2>
+                  <div class="overflow-x-auto mt-4">
+                    <table class="table table-zebra w-full">
+                      <thead>
                         <tr>
-                          <td class="font-mono text-sm">{user.alias}</td>
-                          <td>${Decimal.to_string(user.total_paid, :normal)}</td>
-                          <td>{user.pending_clicks}</td>
-                          <td>
-                            <%= if user.is_expired do %>
-                              <span class="badge badge-ghost">Fulfilled</span>
-                            <% else %>
-                              <span class="badge badge-success">{user.days_remaining}</span>
-                            <% end %>
-                          </td>
+                          <th>Alias</th>
+                          <th>Total Paid</th>
+                          <th>Pending Clicks</th>
+                          <th>Days Left</th>
                         </tr>
-                      <% end %>
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        <%= for user <- @referred_users do %>
+                          <tr>
+                            <td class="font-mono text-sm">{user.alias}</td>
+                            <td>${Decimal.to_string(user.total_paid, :normal)}</td>
+                            <td>{user.pending_clicks}</td>
+                            <td>
+                              <%= if user.is_expired do %>
+                                <span class="badge badge-ghost">Fulfilled</span>
+                              <% else %>
+                                <span class="badge badge-success">{user.days_remaining}</span>
+                              <% end %>
+                            </td>
+                          </tr>
+                        <% end %>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            </div>
-          <% end %>
-        </div>
-      </div>
-
-      <.modal id="payout-modal" show={false}>
-        <div class="p-6">
-          <h3 class="font-bold text-2xl mb-4">Confirm Referral Payout</h3>
-          <p class="text-base mb-4">
-            Are you sure you want to process
-            <span class="font-bold text-primary">{@pending_clicks_count}</span>
-            pending clicks for a total of <span class="font-bold text-success">${Decimal.to_string(Decimal.mult(Decimal.new("0.01"), @pending_clicks_count), :normal)}</span>?
-          </p>
-          <p class="text-sm text-base-content/70 mb-6">
-            This amount will be added to your wallet immediately.
-          </p>
-          <div class="flex justify-end gap-3">
-            <button type="button" phx-click={hide_modal("payout-modal")} class="btn btn-ghost">
-              Cancel
-            </button>
-            <button type="button" phx-click="confirm_payout" class="btn btn-primary">
-              Confirm Payout
-            </button>
+            <% end %>
           </div>
         </div>
-      </.modal>
+
+        <.modal id="payout-modal" show={false}>
+          <div class="p-6">
+            <h3 class="font-bold text-2xl mb-4">Confirm Referral Payout</h3>
+            <p class="text-base mb-4">
+              Are you sure you want to process
+              <span class="font-bold text-primary">{@pending_clicks_count}</span>
+              pending clicks for a total of <span class="font-bold text-success">${Decimal.to_string(Decimal.mult(Decimal.new("0.01"), @pending_clicks_count), :normal)}</span>?
+            </p>
+            <p class="text-sm text-base-content/70 mb-6">
+              This amount will be added to your wallet immediately.
+            </p>
+            <div class="flex justify-end gap-3">
+              <button type="button" phx-click={hide_modal("payout-modal")} class="btn btn-ghost">
+                Cancel
+              </button>
+              <button type="button" phx-click="confirm_payout" class="btn btn-primary">
+                Confirm Payout
+              </button>
+            </div>
+          </div>
+        </.modal>
       </Layouts.mobile>
     </div>
     """

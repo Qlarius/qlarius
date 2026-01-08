@@ -14,72 +14,72 @@ defmodule QlariusWeb.MeFileLive do
     <div id="mefile-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile {assigns}>
         <.tag_edit_modal
-        trait_in_edit={@trait_in_edit}
-        me_file_id={@current_scope.user.me_file.id}
-        selected_ids={@selected_child_trait_ids || []}
-        show_modal={@show_modal}
-        tag_edit_mode={@tag_edit_mode || "update"}
-        zip_lookup_input={@zip_lookup_input}
-        zip_lookup_trait={@zip_lookup_trait}
-        zip_lookup_valid={@zip_lookup_valid}
-        zip_lookup_error={@zip_lookup_error}
-      />
-      <div class="mb-8 flex gap-2 justify-start items-center">
-        <div class="text-xl">
-          Edit/delete existing tags below. Add more tags via the Tagger.
-        </div>
-      </div>
-
-      <div class="space-y-8 py-6 pb-24">
-        <div :for={
-          {{_id, name, _display_order}, parent_traits} <- @me_file_tag_map_by_category_trait_tag
-        }>
-          <div class="flex flex-row justify-between items-baseline mb-4">
-            <h2 class="text-xl font-medium">{name}</h2>
-            <span class="text-lg text-gray-500">
-              {length(parent_traits)} tags
-            </span>
+          trait_in_edit={@trait_in_edit}
+          me_file_id={@current_scope.user.me_file.id}
+          selected_ids={@selected_child_trait_ids || []}
+          show_modal={@show_modal}
+          tag_edit_mode={@tag_edit_mode || "update"}
+          zip_lookup_input={@zip_lookup_input}
+          zip_lookup_trait={@zip_lookup_trait}
+          zip_lookup_valid={@zip_lookup_valid}
+          zip_lookup_error={@zip_lookup_error}
+        />
+        <div class="mb-8 flex gap-2 justify-start items-center">
+          <div class="text-xl">
+            Edit/delete existing tags below. Add more tags via the Tagger.
           </div>
-
-          <div class="flex flex-row flex-wrap gap-4">
-            <.trait_card
-              :for={
-                {parent_trait_id, parent_trait_name, parent_trait_display_order, tags_traits} <-
-                  parent_traits
-              }
-              parent_trait_id={parent_trait_id}
-              parent_trait_name={parent_trait_name}
-              tags_traits={tags_traits}
-              clickable={false}
-            />
-          </div>
-
-          <div class="mt-8 border-b border-neutral-300 dark:border-neutral-500"></div>
         </div>
 
-        <%!-- Inline Tagger button at bottom of list --%>
-        <div
-          id="inline-tagger-btn"
-          class="flex justify-center mt-8"
-          phx-hook="TaggerButtonObserver"
-        >
-          <.link
-            navigate={~p"/me_file_builder"}
-            class="btn btn-primary btn-lg rounded-full flex items-center gap-2 px-6 py-5 shadow-lg"
+        <div class="space-y-8 py-6 pb-24">
+          <div :for={
+            {{_id, name, _display_order}, parent_traits} <- @me_file_tag_map_by_category_trait_tag
+          }>
+            <div class="flex flex-row justify-between items-baseline mb-4">
+              <h2 class="text-xl font-medium">{name}</h2>
+              <span class="text-lg text-gray-500">
+                {length(parent_traits)} tags
+              </span>
+            </div>
+
+            <div class="flex flex-row flex-wrap gap-4">
+              <.trait_card
+                :for={
+                  {parent_trait_id, parent_trait_name, parent_trait_display_order, tags_traits} <-
+                    parent_traits
+                }
+                parent_trait_id={parent_trait_id}
+                parent_trait_name={parent_trait_name}
+                tags_traits={tags_traits}
+                clickable={false}
+              />
+            </div>
+
+            <div class="mt-8 border-b border-neutral-300 dark:border-neutral-500"></div>
+          </div>
+
+          <%!-- Inline Tagger button at bottom of list --%>
+          <div
+            id="inline-tagger-btn"
+            class="flex justify-center mt-8"
+            phx-hook="TaggerButtonObserver"
           >
-            <.icon name="hero-plus" class="h-5 w-5" /> Add more tags
-          </.link>
+            <.link
+              navigate={~p"/me_file_builder"}
+              class="btn btn-primary btn-lg rounded-full flex items-center gap-2 px-6 py-5 shadow-lg"
+            >
+              <.icon name="hero-plus" class="h-5 w-5" /> Add more tags
+            </.link>
+          </div>
         </div>
-      </div>
 
-      <%!-- Floating Tagger button (hidden by default, shows when inline scrolls out) --%>
-      <.link
-        id="floating-tagger-btn"
-        navigate={~p"/me_file_builder"}
-        class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-6 btn btn-primary btn-lg rounded-full flex items-center gap-1 z-100 px-4 py-5 shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"
-      >
-        <.icon name="hero-plus" class="h-5 w-5" /> Tagger
-      </.link>
+        <%!-- Floating Tagger button (hidden by default, shows when inline scrolls out) --%>
+        <.link
+          id="floating-tagger-btn"
+          navigate={~p"/me_file_builder"}
+          class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-6 btn btn-primary btn-lg rounded-full flex items-center gap-1 z-100 px-4 py-5 shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"
+        >
+          <.icon name="hero-plus" class="h-5 w-5" /> Tagger
+        </.link>
       </Layouts.mobile>
     </div>
     """
@@ -238,6 +238,10 @@ defmodule QlariusWeb.MeFileLive do
     {:noreply, socket}
   end
 
+  def handle_event("pwa_detected", params, socket) do
+    handle_pwa_detection(socket, params)
+  end
+
   @impl true
   def handle_info({:perform_tag_deletion, trait_id, child_trait_ids, current_scope}, socket) do
     # Remove the selected tags from the me_file
@@ -285,11 +289,6 @@ defmodule QlariusWeb.MeFileLive do
     |> assign(:is_pwa, false)
     |> assign(:device_type, :desktop)
     |> ok()
-  end
-
-  @impl true
-  def handle_event("pwa_detected", params, socket) do
-    handle_pwa_detection(socket, params)
   end
 
   defp assign_me_file_tags(socket) do
