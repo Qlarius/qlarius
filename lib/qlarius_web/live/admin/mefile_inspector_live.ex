@@ -16,6 +16,9 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
      socket
      |> assign(:page_title, "MeFile Inspector")
      |> assign(:search_query, "")
+     |> assign(:page, 1)
+     |> assign(:sort_by, :inserted_at)
+     |> assign(:sort_dir, :desc)
      |> assign_mefiles()
      |> assign_metrics()}
   end
@@ -30,6 +33,7 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
     {:noreply,
      socket
      |> assign(:search_query, query)
+     |> assign(:page, 1)
      |> assign_mefiles()}
   end
 
@@ -38,13 +42,49 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
     {:noreply,
      socket
      |> assign(:search_query, "")
+     |> assign(:page, 1)
+     |> assign_mefiles()}
+  end
+
+  @impl true
+  def handle_event("sort", %{"column" => column}, socket) do
+    column_atom = String.to_existing_atom(column)
+    current_sort_by = socket.assigns.sort_by
+    current_sort_dir = socket.assigns.sort_dir
+
+    sort_dir =
+      if current_sort_by == column_atom do
+        if current_sort_dir == :asc, do: :desc, else: :asc
+      else
+        :desc
+      end
+
+    {:noreply,
+     socket
+     |> assign(:sort_by, column_atom)
+     |> assign(:sort_dir, sort_dir)
+     |> assign(:page, 1)
+     |> assign_mefiles()}
+  end
+
+  @impl true
+  def handle_event("paginate", %{"page" => page}, socket) do
+    {:noreply,
+     socket
+     |> assign(:page, String.to_integer(page))
      |> assign_mefiles()}
   end
 
   defp assign_mefiles(socket) do
     query = socket.assigns[:search_query] || ""
+    page = socket.assigns[:page] || 1
+    sort_by = socket.assigns[:sort_by] || :inserted_at
+    sort_dir = socket.assigns[:sort_dir] || :desc
+    per_page = 50
 
-    mefiles =
+    offset = (page - 1) * per_page
+
+    base_query =
       from(mf in MeFile,
         join: u in User,
         on: u.id == mf.user_id,
@@ -52,33 +92,80 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
         on: lh.me_file_id == mf.id,
         left_join: o in Offer,
         on: o.me_file_id == mf.id and o.is_current == true,
+        left_join: mft in Qlarius.YouData.MeFiles.MeFileTag,
+        on: mft.me_file_id == mf.id,
         where: ilike(u.alias, ^"%#{query}%"),
-        group_by: [mf.id, u.alias, lh.balance],
+        group_by: [mf.id, u.alias, u.inserted_at, lh.balance]
+      )
+
+    total_count =
+      from(mf in MeFile,
+        join: u in User,
+        on: u.id == mf.user_id,
+        where: ilike(u.alias, ^"%#{query}%"),
+        select: count(mf.id, :distinct)
+      )
+      |> Repo.one()
+
+    base_query =
+      case {sort_by, sort_dir} do
+        {:alias, :asc} ->
+          from q in base_query, order_by: [asc: q.alias]
+
+        {:alias, :desc} ->
+          from q in base_query, order_by: [desc: q.alias]
+
+        {:wallet_balance, :asc} ->
+          from [mf, u, lh, o, mft] in base_query, order_by: [asc: lh.balance]
+
+        {:wallet_balance, :desc} ->
+          from [mf, u, lh, o, mft] in base_query, order_by: [desc: lh.balance]
+
+        {:tag_count, :asc} ->
+          from [mf, u, lh, o, mft] in base_query,
+            order_by: [asc: count(mft.id, :distinct)]
+
+        {:tag_count, :desc} ->
+          from [mf, u, lh, o, mft] in base_query,
+            order_by: [desc: count(mft.id, :distinct)]
+
+        {:offer_count, :asc} ->
+          from [mf, u, lh, o, mft] in base_query, order_by: [asc: count(o.id, :distinct)]
+
+        {:offer_count, :desc} ->
+          from [mf, u, lh, o, mft] in base_query, order_by: [desc: count(o.id, :distinct)]
+
+        {:inserted_at, :asc} ->
+          from [mf, u, lh, o, mft] in base_query, order_by: [asc: u.inserted_at]
+
+        {:inserted_at, :desc} ->
+          from [mf, u, lh, o, mft] in base_query, order_by: [desc: u.inserted_at]
+
+        _ ->
+          from [mf, u, lh, o, mft] in base_query, order_by: [desc: u.inserted_at]
+      end
+
+    mefiles =
+      from([mf, u, lh, o, mft] in base_query,
         select: %{
           me_file_id: mf.id,
           alias: u.alias,
           wallet_balance: lh.balance,
-          tag_count: fragment("COUNT(DISTINCT ?)", mf.id),
+          inserted_at: u.inserted_at,
+          tag_count: count(mft.id, :distinct),
           offer_count: count(o.id, :distinct)
         },
-        order_by: [desc: lh.balance],
-        limit: 25
+        offset: ^offset,
+        limit: ^per_page
       )
       |> Repo.all()
 
-    mefiles_with_tags =
-      Enum.map(mefiles, fn mf ->
-        tag_count =
-          from(mft in Qlarius.YouData.MeFiles.MeFileTag,
-            where: mft.me_file_id == ^mf.me_file_id,
-            select: count(mft.id)
-          )
-          |> Repo.one()
+    total_pages = ceil(total_count / per_page)
 
-        Map.put(mf, :tag_count, tag_count)
-      end)
-
-    assign(socket, :mefiles, mefiles_with_tags)
+    socket
+    |> assign(:mefiles, mefiles)
+    |> assign(:total_count, total_count)
+    |> assign(:total_pages, total_pages)
   end
 
   defp assign_metrics(socket) do
@@ -157,6 +244,27 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
     |> assign(:users_with_zero_balance, users_with_zero_balance)
     |> assign(:users_with_positive_balance, users_with_positive_balance)
     |> assign(:recent_registrations, recent_registrations)
+  end
+
+  defp format_date(datetime) do
+    Calendar.strftime(datetime, "%b %-d, %Y")
+  end
+
+  defp pagination_range(current_page, total_pages) do
+    cond do
+      total_pages <= 7 ->
+        Enum.to_list(1..total_pages)
+
+      current_page <= 4 ->
+        Enum.to_list(1..5) ++ [:ellipsis, total_pages]
+
+      current_page >= total_pages - 3 ->
+        [1, :ellipsis] ++ Enum.to_list((total_pages - 4)..total_pages)
+
+      true ->
+        [1, :ellipsis] ++
+          Enum.to_list((current_page - 1)..(current_page + 1)) ++ [:ellipsis, total_pages]
+    end
   end
 
   @impl true
@@ -265,10 +373,101 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
                     <table class="table table-zebra">
                       <thead>
                         <tr>
-                          <th>Alias</th>
-                          <th class="text-right">Wallet Balance</th>
-                          <th class="text-center">Tags</th>
-                          <th class="text-center">Active Offers</th>
+                          <th>
+                            <button
+                              phx-click="sort"
+                              phx-value-column="alias"
+                              class="flex items-center gap-1 hover:text-primary"
+                            >
+                              Alias
+                              <%= if @sort_by == :alias do %>
+                                <.icon
+                                  name={
+                                    if @sort_dir == :asc,
+                                      do: "hero-arrow-up",
+                                      else: "hero-arrow-down"
+                                  }
+                                  class="w-4 h-4"
+                                />
+                              <% end %>
+                            </button>
+                          </th>
+                          <th class="text-right">
+                            <button
+                              phx-click="sort"
+                              phx-value-column="wallet_balance"
+                              class="flex items-center gap-1 hover:text-primary ml-auto"
+                            >
+                              Wallet Balance
+                              <%= if @sort_by == :wallet_balance do %>
+                                <.icon
+                                  name={
+                                    if @sort_dir == :asc,
+                                      do: "hero-arrow-up",
+                                      else: "hero-arrow-down"
+                                  }
+                                  class="w-4 h-4"
+                                />
+                              <% end %>
+                            </button>
+                          </th>
+                          <th class="text-center">
+                            <button
+                              phx-click="sort"
+                              phx-value-column="tag_count"
+                              class="flex items-center gap-1 hover:text-primary mx-auto"
+                            >
+                              Tags
+                              <%= if @sort_by == :tag_count do %>
+                                <.icon
+                                  name={
+                                    if @sort_dir == :asc,
+                                      do: "hero-arrow-up",
+                                      else: "hero-arrow-down"
+                                  }
+                                  class="w-4 h-4"
+                                />
+                              <% end %>
+                            </button>
+                          </th>
+                          <th class="text-center">
+                            <button
+                              phx-click="sort"
+                              phx-value-column="offer_count"
+                              class="flex items-center gap-1 hover:text-primary mx-auto"
+                            >
+                              Active Offers
+                              <%= if @sort_by == :offer_count do %>
+                                <.icon
+                                  name={
+                                    if @sort_dir == :asc,
+                                      do: "hero-arrow-up",
+                                      else: "hero-arrow-down"
+                                  }
+                                  class="w-4 h-4"
+                                />
+                              <% end %>
+                            </button>
+                          </th>
+                          <th class="text-center">
+                            <button
+                              phx-click="sort"
+                              phx-value-column="inserted_at"
+                              class="flex items-center gap-1 hover:text-primary mx-auto"
+                            >
+                              Created
+                              <%= if @sort_by == :inserted_at do %>
+                                <.icon
+                                  name={
+                                    if @sort_dir == :asc,
+                                      do: "hero-arrow-up",
+                                      else: "hero-arrow-down"
+                                  }
+                                  class="w-4 h-4"
+                                />
+                              <% end %>
+                            </button>
+                          </th>
                           <th></th>
                         </tr>
                       </thead>
@@ -283,6 +482,9 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
                           </td>
                           <td class="text-center">
                             <span class="badge badge-warning">{mf.offer_count}</span>
+                          </td>
+                          <td class="text-center">
+                            {format_date(mf.inserted_at)}
                           </td>
                           <td class="text-right">
                             <.link
@@ -305,6 +507,62 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
                       <p :if={@search_query != ""} class="text-sm text-base-content/50 mt-2">
                         Try a different search term
                       </p>
+                    </div>
+                  </div>
+
+                  <div :if={@total_pages > 1} class="flex justify-between items-center mt-4">
+                    <div class="text-sm text-base-content/60">
+                      Showing {(@page - 1) * 50 + 1}-{min(@page * 50, @total_count)} of {@total_count}
+                    </div>
+
+                    <div class="join">
+                      <button
+                        phx-click="paginate"
+                        phx-value-page="1"
+                        class="join-item btn btn-sm"
+                        disabled={@page == 1}
+                      >
+                        «
+                      </button>
+                      <button
+                        phx-click="paginate"
+                        phx-value-page={@page - 1}
+                        class="join-item btn btn-sm"
+                        disabled={@page == 1}
+                      >
+                        ‹
+                      </button>
+
+                      <%= for page_num <- pagination_range(@page, @total_pages) do %>
+                        <%= if page_num == :ellipsis do %>
+                          <button class="join-item btn btn-sm btn-disabled">...</button>
+                        <% else %>
+                          <button
+                            phx-click="paginate"
+                            phx-value-page={page_num}
+                            class={"join-item btn btn-sm #{if page_num == @page, do: "btn-active"}"}
+                          >
+                            {page_num}
+                          </button>
+                        <% end %>
+                      <% end %>
+
+                      <button
+                        phx-click="paginate"
+                        phx-value-page={@page + 1}
+                        class="join-item btn btn-sm"
+                        disabled={@page == @total_pages}
+                      >
+                        ›
+                      </button>
+                      <button
+                        phx-click="paginate"
+                        phx-value-page={@total_pages}
+                        class="join-item btn btn-sm"
+                        disabled={@page == @total_pages}
+                      >
+                        »
+                      </button>
                     </div>
                   </div>
                 </div>
