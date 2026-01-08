@@ -96,15 +96,8 @@ defmodule QlariusWeb.Endpoint do
   plug QlariusWeb.Router
 
   defp set_csp(conn, _) do
-    base_csp =
-      "base-uri 'self'; default-src 'self'; img-src 'self' data: http: https: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws: wss: http: https: chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen; frame-src 'self' https://www.youtube.com https://youtube.com; frame-ancestors * chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen;"
-
     csp =
-      if Mix.env() == :prod do
-        base_csp <> " upgrade-insecure-requests;"
-      else
-        base_csp
-      end
+      "base-uri 'self'; default-src 'self'; img-src 'self' data: http: https: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws: wss: http: https: chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen; frame-src 'self' https://www.youtube.com https://youtube.com; frame-ancestors * chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen;"
 
     Plug.Conn.put_resp_header(conn, "content-security-policy", csp)
   end
