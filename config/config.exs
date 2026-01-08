@@ -51,7 +51,14 @@ config :qlarius, QlariusWeb.Endpoint,
     layout: false
   ],
   pubsub_server: Qlarius.PubSub,
-  live_view: [signing_salt: "kK/+rxZ2"]
+  live_view: [signing_salt: "kK/+rxZ2"],
+  session_options: [
+    store: :cookie,
+    key: "_qlarius_key",
+    signing_salt: "Tvun6ICt",
+    same_site: "Lax",
+    secure: false
+  ]
 
 # Configures the mailer
 #

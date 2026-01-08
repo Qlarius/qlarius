@@ -4,13 +4,7 @@ defmodule QlariusWeb.Endpoint do
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
   # Set :encryption_salt if you would also like to encrypt it.
-  @session_options [
-    store: :cookie,
-    key: "_qlarius_key",
-    signing_salt: "Tvun6ICt",
-    same_site: "Lax",
-    secure: false
-  ]
+  @session_options Application.compile_env!(:qlarius, [QlariusWeb.Endpoint, :session_options])
 
   socket "/live", Phoenix.LiveView.Socket,
     websocket: [
