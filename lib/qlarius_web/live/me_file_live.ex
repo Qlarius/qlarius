@@ -6,12 +6,14 @@ defmodule QlariusWeb.MeFileLive do
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
 
   import QlariusWeb.MeFileHTML
+  import QlariusWeb.PWAHelpers
 
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.mobile {assigns}>
-      <.tag_edit_modal
+    <div id="mefile-pwa-detect" phx-hook="HiPagePWADetect">
+      <Layouts.mobile {assigns}>
+        <.tag_edit_modal
         trait_in_edit={@trait_in_edit}
         me_file_id={@current_scope.user.me_file.id}
         selected_ids={@selected_child_trait_ids || []}
@@ -78,7 +80,8 @@ defmodule QlariusWeb.MeFileLive do
       >
         <.icon name="hero-plus" class="h-5 w-5" /> Tagger
       </.link>
-    </Layouts.mobile>
+      </Layouts.mobile>
+    </div>
     """
   end
 
@@ -279,7 +282,14 @@ defmodule QlariusWeb.MeFileLive do
     |> assign(:zip_lookup_trait, nil)
     |> assign(:zip_lookup_valid, false)
     |> assign(:zip_lookup_error, nil)
+    |> assign(:is_pwa, false)
+    |> assign(:device_type, :desktop)
     |> ok()
+  end
+
+  @impl true
+  def handle_event("pwa_detected", params, socket) do
+    handle_pwa_detection(socket, params)
   end
 
   defp assign_me_file_tags(socket) do

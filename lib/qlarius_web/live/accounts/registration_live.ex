@@ -4,6 +4,7 @@ defmodule QlariusWeb.RegistrationLive do
   alias Qlarius.Accounts
   alias Qlarius.YouData.{MeFiles, Traits}
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
+  import QlariusWeb.PWAHelpers
 
   def mount(params, session, socket) do
     mode = Map.get(params, "mode", "regular")
@@ -58,8 +59,14 @@ defmodule QlariusWeb.RegistrationLive do
       |> assign(:confirmation_checked, false)
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
       |> assign(:trait_in_edit, %{id: 4})
+      |> assign(:is_pwa, false)
+      |> assign(:device_type, :desktop)
 
     {:ok, socket}
+  end
+
+  def handle_event("pwa_detected", params, socket) do
+    handle_pwa_detection(socket, params)
   end
 
   defp get_true_user_id_from_scope(socket) do
@@ -601,7 +608,11 @@ defmodule QlariusWeb.RegistrationLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex items-center justify-center px-4 pb-24 relative">
+    <div
+      id="registration-pwa-detect"
+      phx-hook="HiPagePWADetect"
+      class="min-h-screen flex items-center justify-center px-4 pb-24 relative"
+    >
       <div class="absolute top-12 left-0 right-0 flex justify-center">
         <img
           src="/images/qadabra_full_gray_opt.svg"

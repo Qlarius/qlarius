@@ -192,7 +192,7 @@ defmodule QlariusWeb.HiLive do
     """
   end
 
-  defp ios_install_guide(assigns) do
+  defp install_guide_header(assigns) do
     ~H"""
     <div class="text-center mb-8">
       <div class="inline-flex items-center justify-center w-20 h-20 bg-primary/10 rounded-full mb-6">
@@ -205,21 +205,27 @@ defmodule QlariusWeb.HiLive do
         Get the full mobile experience in the latest, lightest installation possible. No app store, no downloads, no waiting. Just a few clicks and you're ready to go.
       </p>
 
-        <div class="flex flex-wrap justify-center gap-4 text-sm text-base-content/60">
-          <div class="flex items-center gap-2">
-            <.icon name="hero-lock-closed" class="w-4 h-4 text-primary" />
-            <span>Full privacy</span>
-          </div>
+      <div class="flex flex-wrap justify-center gap-4 text-sm text-base-content/60">
+        <div class="flex items-center gap-2">
+          <.icon name="hero-lock-closed" class="w-4 h-4 text-primary" />
+          <span>Full privacy & control</span>
+        </div>
         <div class="flex items-center gap-2">
           <.icon name="hero-bell" class="w-4 h-4 text-primary" />
           <span>Push notifications</span>
         </div>
         <div class="flex items-center gap-2">
           <.icon name="hero-rocket-launch" class="w-4 h-4 text-primary" />
-          <span>Instant launch</span>
+          <span>Instant updates</span>
         </div>
       </div>
     </div>
+    """
+  end
+
+  defp ios_install_guide(assigns) do
+    ~H"""
+    <.install_guide_header />
 
     <div class="space-y-6">
       <div class="bg-base-200 dark:bg-base-200 rounded-xl p-6">
@@ -288,7 +294,7 @@ defmodule QlariusWeb.HiLive do
           <div class="flex-1">
             <h3 class="font-bold text-lg mb-2">That's it.</h3>
             <p class="text-sm text-base-content/70 mb-3">
-               Tap the new app icon to launch!
+               Find the new app icon on your home screen. Tap to launch!
             </p>
             <div class="bg-base-300 dark:bg-base-300 rounded-lg p-3 flex items-center gap-3">
               <img src="/images/qadabra_logo_squares_color.svg" class="w-12 h-12 rounded-xl" />
@@ -309,32 +315,7 @@ defmodule QlariusWeb.HiLive do
 
   defp android_install_guide(assigns) do
     ~H"""
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-20 h-20 bg-primary/10 rounded-full mb-6">
-        <.icon name="hero-device-phone-mobile" class="w-12 h-12 text-primary" />
-      </div>
-
-      <h1 class="text-4xl font-bold mb-4">Install Qadabra</h1>
-
-      <p class="text-xl text-base-content/70 mb-4">
-        Get the full mobile experience in 30 seconds
-      </p>
-
-      <div class="flex flex-wrap justify-center gap-4 text-sm text-base-content/60">
-        <div class="flex items-center gap-2">
-          <.icon name="hero-bolt" class="w-4 h-4 text-primary" />
-          <span>Full screen</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <.icon name="hero-bell" class="w-4 h-4 text-primary" />
-          <span>Push notifications</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <.icon name="hero-rocket-launch" class="w-4 h-4 text-primary" />
-          <span>Instant launch</span>
-        </div>
-      </div>
-    </div>
+    <.install_guide_header />
 
     <div class="space-y-6">
       <div class="bg-base-200 dark:bg-base-200 rounded-xl p-6">
@@ -415,7 +396,7 @@ defmodule QlariusWeb.HiLive do
           <div class="card-body">
             <h2 class="card-title text-3xl font-bold">Claim your wallet.</h2>
             <p class="text-base-content/70">
-              Turn attention into capital. Set up your wallet in seconds and start building revenue from sponsorships. Your attention generates income - literally.
+              Your pre-funded wallet is ready for you. Set it up in seconds and use it to access the content and support the creators that matter to you. Media micropayments done right.
             </p>
             <div class="card-actions justify-center mt-4">
               <img src="/images/qadabra_logo_squares_color.svg" alt="Qadabra" class="h-8 w-auto" />

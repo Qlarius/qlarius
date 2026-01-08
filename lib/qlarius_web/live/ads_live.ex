@@ -24,6 +24,7 @@ defmodule QlariusWeb.AdsLive do
   # Commented out unused import - OfferHTML functions not used in this LiveView
   # import QlariusWeb.OfferHTML
   import Ecto.Query, except: [update: 2, update: 3]
+  import QlariusWeb.PWAHelpers
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
@@ -79,6 +80,8 @@ defmodule QlariusWeb.AdsLive do
       |> assign(:loading, true)
       |> assign(:host_uri, host_uri)
       |> assign(:title, "Ads")
+      |> assign(:is_pwa, false)
+      |> assign(:device_type, :desktop)
 
     if connected?(socket) do
       send(self(), :load_offers)
@@ -91,6 +94,11 @@ defmodule QlariusWeb.AdsLive do
     else
       {:ok, socket}
     end
+  end
+
+  @impl true
+  def handle_event("pwa_detected", params, socket) do
+    handle_pwa_detection(socket, params)
   end
 
   @impl true
@@ -178,8 +186,9 @@ defmodule QlariusWeb.AdsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.mobile {assigns}>
-      <%= if !@loading && Enum.empty?(@active_offers) do %>
+    <div id="ads-pwa-detect" phx-hook="HiPagePWADetect">
+      <Layouts.mobile {assigns}>
+        <%= if !@loading && Enum.empty?(@active_offers) do %>
         <div class="flex items-center justify-center min-h-[50vh] px-4">
           <p class="text-xl text-base-content/70 text-center">
             You current have no ad offers. For optimal results, make sure your MeFile is rich and accurate.
@@ -197,7 +206,8 @@ defmodule QlariusWeb.AdsLive do
           />
         </div>
       <% end %>
-    </Layouts.mobile>
+      </Layouts.mobile>
+    </div>
     """
   end
 

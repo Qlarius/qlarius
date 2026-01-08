@@ -2,6 +2,7 @@ defmodule QlariusWeb.LoginLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.{Auth, Accounts}
+  import QlariusWeb.PWAHelpers
 
   def mount(_params, _session, socket) do
     socket =
@@ -13,8 +14,14 @@ defmodule QlariusWeb.LoginLive do
       |> assign(:verification_code_error, nil)
       |> assign(:code_sent, false)
       |> assign(:show_biometric, false)
+      |> assign(:is_pwa, false)
+      |> assign(:device_type, :desktop)
 
     {:ok, socket}
+  end
+
+  def handle_event("pwa_detected", params, socket) do
+    handle_pwa_detection(socket, params)
   end
 
   def handle_event("update_mobile", %{"value" => mobile}, socket) do
@@ -94,7 +101,11 @@ defmodule QlariusWeb.LoginLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex items-center justify-center px-4 relative">
+    <div
+      id="login-pwa-detect"
+      phx-hook="HiPagePWADetect"
+      class="min-h-screen flex items-center justify-center px-4 relative"
+    >
       <div class="absolute top-12 left-0 right-0 flex justify-center">
         <img
           src="/images/qadabra_full_gray_opt.svg"

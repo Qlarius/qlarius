@@ -2,6 +2,7 @@ defmodule QlariusWeb.ReferralsLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Referrals
+  import QlariusWeb.PWAHelpers
 
   def mount(_params, _session, socket) do
     me_file = socket.assigns.current_scope.user.me_file
@@ -63,8 +64,14 @@ defmodule QlariusWeb.ReferralsLive do
       |> assign(:pending_clicks_count, pending_clicks_count)
       |> assign(:total_paid, total_paid)
       |> assign(:next_payout_date, next_payout_date)
+      |> assign(:is_pwa, false)
+      |> assign(:device_type, :desktop)
 
     {:ok, socket}
+  end
+
+  def handle_event("pwa_detected", params, socket) do
+    handle_pwa_detection(socket, params)
   end
 
   defp calculate_next_friday_midnight do
@@ -183,8 +190,9 @@ defmodule QlariusWeb.ReferralsLive do
 
   def render(assigns) do
     ~H"""
-    <Layouts.mobile {assigns}>
-      <div class="container mx-auto px-4 py-6 max-w-3xl">
+    <div id="referrals-pwa-detect" phx-hook="HiPagePWADetect">
+      <Layouts.mobile {assigns}>
+        <div class="container mx-auto px-4 py-6 max-w-3xl">
         <div class="space-y-6">
           <div class="stats shadow-xl bg-primary text-primary-content w-full">
             <div class="stat">
@@ -405,7 +413,8 @@ defmodule QlariusWeb.ReferralsLive do
           </div>
         </div>
       </.modal>
-    </Layouts.mobile>
+      </Layouts.mobile>
+    </div>
     """
   end
 end

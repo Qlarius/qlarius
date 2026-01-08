@@ -1,10 +1,13 @@
 defmodule QlariusWeb.UserSettingsLive do
   use QlariusWeb, :live_view
 
+  import QlariusWeb.PWAHelpers
+
   def render(assigns) do
     ~H"""
-    <Layouts.mobile {assigns}>
-      <div class="mx-auto max-w-sm">
+    <div id="settings-pwa-detect" phx-hook="HiPagePWADetect">
+      <Layouts.mobile {assigns}>
+        <div class="mx-auto max-w-sm">
         <.header class="text-center">
           Account Settings
           <:subtitle>Manage your account settings</:subtitle>
@@ -18,11 +21,20 @@ defmodule QlariusWeb.UserSettingsLive do
           </div>
         </div>
       </div>
-    </Layouts.mobile>
+      </Layouts.mobile>
+    </div>
     """
   end
 
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, title: "Settings")}
+    {:ok,
+     socket
+     |> assign(:title, "Settings")
+     |> assign(:is_pwa, false)
+     |> assign(:device_type, :desktop)}
+  end
+
+  def handle_event("pwa_detected", params, socket) do
+    handle_pwa_detection(socket, params)
   end
 end

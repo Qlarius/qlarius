@@ -2,6 +2,7 @@ defmodule QlariusWeb.HomeLive do
   use QlariusWeb, :live_view
 
   import QlariusWeb.Money
+  import QlariusWeb.PWAHelpers
 
   alias QlariusWeb.Layouts
 
@@ -10,14 +11,21 @@ defmodule QlariusWeb.HomeLive do
       socket
       |> assign(:current_path, "/home")
       |> assign(:title, "Home")
+      |> assign(:is_pwa, false)
+      |> assign(:device_type, :desktop)
 
     {:ok, socket}
   end
 
+  def handle_event("pwa_detected", params, socket) do
+    handle_pwa_detection(socket, params)
+  end
+
   def render(assigns) do
     ~H"""
-    <Layouts.mobile {assigns}>
-      <div class="flex flex-row flex-wrap justify-between items-center px-4 py-3 mb-6">
+    <div id="home-pwa-detect" phx-hook="HiPagePWADetect">
+      <Layouts.mobile {assigns}>
+        <div class="flex flex-row flex-wrap justify-between items-center px-4 py-3 mb-6">
         <h2 class="text-lg font-bold">{@current_scope.user.alias}</h2>
         <p class="flex items-center gap-1">
           <.icon name="hero-map-pin-solid" class="h-5 w-5 text-gray-500" />
@@ -100,7 +108,8 @@ defmodule QlariusWeb.HomeLive do
           </div>
         </div>
       </div>
-    </Layouts.mobile>
+      </Layouts.mobile>
+    </div>
     """
   end
 end

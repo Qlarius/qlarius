@@ -2,6 +2,7 @@ defmodule QlariusWeb.WalletLive do
   use QlariusWeb, :live_view
 
   import QlariusWeb.WalletHTML
+  import QlariusWeb.PWAHelpers
   alias QlariusWeb.Layouts
 
   alias Qlarius.Wallets
@@ -32,7 +33,14 @@ defmodule QlariusWeb.WalletLive do
     |> assign(:entry_details, nil)
     |> assign(:page, page)
     |> assign(:paginated_entries, paginated_entries)
+    |> assign(:is_pwa, false)
+    |> assign(:device_type, :desktop)
     |> ok()
+  end
+
+  @impl true
+  def handle_event("pwa_detected", params, socket) do
+    handle_pwa_detection(socket, params)
   end
 
   @impl true
@@ -129,8 +137,9 @@ defmodule QlariusWeb.WalletLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.mobile {assigns}>
-      <%= if assigns[:error] do %>
+    <div id="wallet-pwa-detect" phx-hook="HiPagePWADetect">
+      <Layouts.mobile {assigns}>
+        <%= if assigns[:error] do %>
         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {@error}
         </div>
@@ -254,7 +263,8 @@ defmodule QlariusWeb.WalletLive do
       <% end %>
 
       <.ledger_entry_detail_sidebar :if={@sidebar_entry} entry={@sidebar_entry} />
-    </Layouts.mobile>
+      </Layouts.mobile>
+    </div>
     """
   end
 

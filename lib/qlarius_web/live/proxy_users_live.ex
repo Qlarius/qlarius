@@ -7,6 +7,7 @@ defmodule QlariusWeb.ProxyUsersLive do
   # alias Qlarius.Accounts.UserProxy
   alias Qlarius.Accounts.Scope
   alias QlariusWeb.Layouts
+  import QlariusWeb.PWAHelpers
 
   # Commented out unused import - Layouts functions not used in this LiveView
   # import Layouts,
@@ -28,7 +29,9 @@ defmodule QlariusWeb.ProxyUsersLive do
        |> assign(:proxy_users, proxy_users)
        |> assign(:active_proxy, active_proxy)
        |> assign(:title, "Proxy Users")
-       |> assign(:show_add_modal, false)}
+       |> assign(:show_add_modal, false)
+       |> assign(:is_pwa, false)
+       |> assign(:device_type, :desktop)}
     else
       {:ok,
        socket
@@ -37,10 +40,15 @@ defmodule QlariusWeb.ProxyUsersLive do
     end
   end
 
+  def handle_event("pwa_detected", params, socket) do
+    handle_pwa_detection(socket, params)
+  end
+
   def render(assigns) do
     ~H"""
-    <Layouts.mobile {assigns}>
-      <div class="mx-auto max-w-2xl">
+    <div id="proxyusers-pwa-detect" phx-hook="HiPagePWADetect">
+      <Layouts.mobile {assigns}>
+        <div class="mx-auto max-w-2xl">
         <div class="flex justify-between items-center mb-4">
           <p class="text-base-content/60">Deselect all to return to true user.</p>
           <button class="btn btn-primary btn-sm" phx-click="add_proxy">
@@ -72,7 +80,8 @@ defmodule QlariusWeb.ProxyUsersLive do
           </li>
         </ul>
       </div>
-    </Layouts.mobile>
+      </Layouts.mobile>
+    </div>
     """
   end
 
