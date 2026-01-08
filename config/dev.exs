@@ -31,22 +31,19 @@ config :qlarius, Qlarius.Repo, database_config
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
-# Optional HTTPS for dev to allow embedding from secure contexts (extensions)
-dev_certfile = Path.expand("../priv/cert/selfsigned.pem", __DIR__)
-dev_keyfile = Path.expand("../priv/cert/selfsigned_key.pem", __DIR__)
-
-ssl_opts = [
-  https: [
-    port: 4001,
-    cipher_suite: :compatible,
-    keyfile: dev_keyfile,
-    certfile: dev_certfile
-  ]
-]
+dev_certfile = Path.expand("../priv/cert/10.0.2.2+2.pem", __DIR__)
+dev_keyfile = Path.expand("../priv/cert/10.0.2.2+2-key.pem", __DIR__)
 
 endpoint_config =
   [
-    http: [ip: {127, 0, 0, 1}, port: 4000],
+    http: [ip: {0, 0, 0, 0}, port: 4000],
+    https: [
+      ip: {0, 0, 0, 0},
+      port: 4001,
+      cipher_suite: :compatible,
+      keyfile: dev_keyfile,
+      certfile: dev_certfile
+    ],
     check_origin: false,
     url: [host: "localhost", port: 4001, scheme: "https"],
     static_url: [host: "localhost", port: 4001, scheme: "https"],
@@ -57,7 +54,7 @@ endpoint_config =
       esbuild: {Esbuild, :install_and_run, [:qlarius, ~w(--sourcemap=inline --watch)]},
       tailwind: {Tailwind, :install_and_run, [:qlarius, ~w(--watch)]}
     ]
-  ] ++ ssl_opts
+  ]
 
 config :qlarius, QlariusWeb.Endpoint, endpoint_config
 

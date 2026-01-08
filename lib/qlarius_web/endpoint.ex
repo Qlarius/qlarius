@@ -8,8 +8,8 @@ defmodule QlariusWeb.Endpoint do
     store: :cookie,
     key: "_qlarius_key",
     signing_salt: "Tvun6ICt",
-    same_site: "None",
-    secure: true
+    same_site: if(Mix.env() == :prod, do: "None", else: "Lax"),
+    secure: Mix.env() == :prod
   ]
 
   socket "/live", Phoenix.LiveView.Socket,
@@ -21,12 +21,9 @@ defmodule QlariusWeb.Endpoint do
         "https://qlarius.com",
         "http://localhost:4000",
         "https://localhost:4000",
-        "http://localhost:4001",
-        "https://localhost:4001",
         "http://127.0.0.1:4000",
         "https://127.0.0.1:4000",
-        "http://127.0.0.1:4001",
-        "https://127.0.0.1:4001",
+        "http://10.0.2.2:4000",
         "chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen"
       ]
     ],
@@ -86,8 +83,9 @@ defmodule QlariusWeb.Endpoint do
     origin: [
       "http://localhost:4000",
       "https://localhost:4000",
-      "http://localhost:4001",
-      "https://localhost:4001",
+      "http://127.0.0.1:4000",
+      "https://127.0.0.1:4000",
+      "http://10.0.2.2:4000",
       "https://qlarius.gigalixirapp.com",
       "chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen"
     ],
@@ -98,8 +96,15 @@ defmodule QlariusWeb.Endpoint do
   plug QlariusWeb.Router
 
   defp set_csp(conn, _) do
+    base_csp =
+      "base-uri 'self'; default-src 'self'; img-src 'self' data: http: https: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws: wss: http: https: chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen; frame-src 'self' https://www.youtube.com https://youtube.com; frame-ancestors * chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen;"
+
     csp =
-      "base-uri 'self'; default-src 'self'; img-src 'self' data: http: https: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://localhost:* chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen; frame-src 'self' https://www.youtube.com https://youtube.com; frame-ancestors * chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen; upgrade-insecure-requests;"
+      if Mix.env() == :prod do
+        base_csp <> " upgrade-insecure-requests;"
+      else
+        base_csp
+      end
 
     Plug.Conn.put_resp_header(conn, "content-security-policy", csp)
   end
