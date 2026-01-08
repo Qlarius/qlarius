@@ -886,6 +886,13 @@ defmodule QlariusWeb.RegistrationLive do
           class="h-16 md:h-18 w-auto"
         />
       </div>
+
+      <div class="text-center mt-6">
+        <p class="text-base">
+          Already have an account?
+          <.link navigate={~p"/login"} class="link link-primary">Sign In</.link>
+        </p>
+      </div>
     </div>
     """
   end
