@@ -215,7 +215,26 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:is_pwa, false)
       |> assign(:device_type, :desktop)
 
-    {:ok, socket}
+    {:ok, socket, temporary_assigns: [survey_to_open: nil]}
+  end
+
+  def handle_params(params, _url, socket) do
+    socket =
+      case Map.get(params, "survey_id") do
+        nil ->
+          socket
+
+        survey_id_str ->
+          case Integer.parse(survey_id_str) do
+            {survey_id, _} ->
+              open_survey(socket, survey_id)
+
+            :error ->
+              socket
+          end
+      end
+
+    {:noreply, socket}
   end
 
   def handle_event("pwa_detected", params, socket) do
@@ -224,6 +243,10 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
   def handle_event("open_edit", %{"id" => id}, socket) do
     {survey_id, _} = Integer.parse(to_string(id))
+    {:noreply, open_survey(socket, survey_id)}
+  end
+
+  defp open_survey(socket, survey_id) do
     me_file_id = socket.assigns.current_scope.user.me_file.id
 
     survey = Surveys.get_survey!(survey_id)
@@ -235,10 +258,9 @@ defmodule QlariusWeb.MeFileBuilderLive do
       parent_traits: parent_traits_with_tags
     }
 
-    {:noreply,
-     socket
-     |> assign(editing: true, active_survey_id: survey_id)
-     |> assign(:survey_in_edit, survey_in_edit)}
+    socket
+    |> assign(editing: true, active_survey_id: survey_id)
+    |> assign(:survey_in_edit, survey_in_edit)
   end
 
   def handle_event("close_edit", _params, socket) do

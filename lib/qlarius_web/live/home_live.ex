@@ -5,20 +5,100 @@ defmodule QlariusWeb.HomeLive do
   import QlariusWeb.PWAHelpers
 
   alias QlariusWeb.Layouts
+  alias QlariusWeb.Components.StrongStartComponent
+  alias Qlarius.YouData.StrongStart
 
   def mount(_params, _session, socket) do
+    me_file = socket.assigns.current_scope.user.me_file
+
     socket =
       socket
       |> assign(:current_path, "/home")
       |> assign(:title, "Home")
       |> assign(:is_pwa, false)
       |> assign(:device_type, :desktop)
+      |> assign_strong_start(me_file)
 
     {:ok, socket}
   end
 
   def handle_event("pwa_detected", params, socket) do
     handle_pwa_detection(socket, params)
+  end
+
+  def handle_event("skip_strong_start", _params, socket) do
+    me_file = socket.assigns.current_scope.user.me_file
+
+    case StrongStart.skip_forever(me_file) do
+      {:ok, _updated_me_file} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Strong Start checklist hidden")
+         |> assign(:show_strong_start, false)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update preferences")}
+    end
+  end
+
+  def handle_event("remind_later", _params, socket) do
+    me_file = socket.assigns.current_scope.user.me_file
+
+    case StrongStart.remind_later(me_file) do
+      {:ok, _updated_me_file} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "We'll remind you later")
+         |> assign(:show_strong_start, false)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update preferences")}
+    end
+  end
+
+  def handle_event("mark_notifications_done", _params, socket) do
+    me_file = socket.assigns.current_scope.user.me_file
+
+    case StrongStart.mark_step_complete(me_file, "notifications_configured") do
+      {:ok, updated_me_file} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Notifications step marked complete")
+         |> assign_strong_start(updated_me_file)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update progress")}
+    end
+  end
+
+  def handle_event("mark_referral_done", _params, socket) do
+    me_file = socket.assigns.current_scope.user.me_file
+
+    case StrongStart.mark_step_complete(me_file, "referral_viewed") do
+      {:ok, updated_me_file} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Referral step marked complete")
+         |> assign_strong_start(updated_me_file)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update progress")}
+    end
+  end
+
+  defp assign_strong_start(socket, me_file) do
+    if StrongStart.should_show?(me_file) do
+      trait_count = socket.assigns.current_scope.trait_count
+      progress = StrongStart.get_progress(me_file, trait_count)
+      starter_survey_id = Qlarius.System.get_global_variable_int("STRONG_START_SURVEY_ID", nil)
+
+      socket
+      |> assign(:show_strong_start, true)
+      |> assign(:strong_start_progress, progress)
+      |> assign(:starter_survey_id, starter_survey_id)
+    else
+      assign(socket, :show_strong_start, false)
+    end
   end
 
   def render(assigns) do
@@ -32,6 +112,11 @@ defmodule QlariusWeb.HomeLive do
           {@current_scope.home_zip}
         </p>
       </div>
+
+      <%!-- Strong Start Component --%>
+      <%= if @show_strong_start do %>
+        <StrongStartComponent.strong_start progress={@strong_start_progress} starter_survey_id={@starter_survey_id} />
+      <% end %>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="bg-base-200 rounded-lg p-4">
@@ -82,7 +167,7 @@ defmodule QlariusWeb.HomeLive do
           <.link navigate={~p"/me_file"}>
             <div class="bg-youdata-200 dark:bg-youdata-900 text-base-content/80 rounded-lg border border-youdata-300 dark:border-youdata-500 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-youdata-300 dark:hover:bg-youdata-800 hover:border-youdata-400 dark:hover:border-youdata-400">
               <div class="text-3xl font-bold leading-none">
-                {Qlarius.YouData.MeFiles.MeFile.tag_count(@current_scope.user.me_file)}
+                {@current_scope.trait_count}
               </div>
               <div class="text-md font-medium text-base-content/60">tags</div>
             </div>

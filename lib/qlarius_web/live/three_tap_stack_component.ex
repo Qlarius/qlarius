@@ -4,6 +4,7 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   import QlariusWeb.OfferHTML
 
   alias Qlarius.Sponster.Ads.ThreeTap
+  alias Qlarius.YouData.StrongStart
   # Commented out unused alias - Component not directly referenced
   # alias Phoenix.Component
   # Commented out unused import - only used in commented update_ads_count function
@@ -79,6 +80,9 @@ defmodule QlariusWeb.ThreeTapStackComponent do
       socket.assigns.user_ip,
       socket.assigns.host_uri.host
     )
+
+    me_file = socket.assigns.current_scope.user.me_file
+    StrongStart.mark_step_complete(me_file, "first_ad_interacted")
 
     send(self(), {:refresh_wallet_balance, socket.assigns.current_scope.user.me_file.id})
     increment_phase(socket, offer.id)

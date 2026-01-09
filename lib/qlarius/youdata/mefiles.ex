@@ -4,6 +4,8 @@ defmodule Qlarius.YouData.MeFiles do
   alias Qlarius.YouData.Traits.Trait
   alias Qlarius.Repo
   alias Qlarius.YouData.Surveys.SurveyQuestion
+  alias Qlarius.YouData.StrongStart
+  alias Qlarius.System
 
   def me_file_for_user(user_id) do
     Repo.one(from mf in MeFile, where: mf.user_id == ^user_id)
@@ -182,6 +184,15 @@ defmodule Qlarius.YouData.MeFiles do
         Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker.new(%{me_file_id: me_file_id})
         |> Oban.insert()
 
+        me_file = Repo.get(MeFile, me_file_id)
+        tag_goal = System.get_global_variable_int("STRONG_START_TAG_GOAL", 25)
+
+        if MeFile.trait_tag_count(me_file) >= tag_goal do
+          StrongStart.mark_step_complete(me_file, "tags_25_reached")
+        end
+
+        check_and_mark_survey_complete(me_file, parent_trait_id)
+
         :ok
 
       {:error, _} ->
@@ -229,6 +240,15 @@ defmodule Qlarius.YouData.MeFiles do
       {:ok, _} ->
         Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker.new(%{me_file_id: me_file_id})
         |> Oban.insert()
+
+        me_file = Repo.get(MeFile, me_file_id)
+        tag_goal = System.get_global_variable_int("STRONG_START_TAG_GOAL", 25)
+
+        if MeFile.trait_tag_count(me_file) >= tag_goal do
+          StrongStart.mark_step_complete(me_file, "tags_25_reached")
+        end
+
+        check_and_mark_survey_complete(me_file, parent_trait_id)
 
         :ok
 
@@ -428,5 +448,32 @@ defmodule Qlarius.YouData.MeFiles do
 
         updated_result
     end
+  end
+
+  defp check_and_mark_survey_complete(me_file, parent_trait_id) do
+    starter_survey_id = System.get_global_variable_int("STRONG_START_SURVEY_ID", nil)
+
+    if starter_survey_id do
+      parent_traits = Qlarius.YouData.Surveys.parent_traits_for_survey_ordered(starter_survey_id)
+      parent_trait_ids = Enum.map(parent_traits, fn {id, _name, _order} -> id end)
+
+      if parent_trait_id in parent_trait_ids do
+        if survey_fully_complete?(me_file.id, parent_traits) do
+          StrongStart.mark_step_complete(me_file, "essentials_survey_completed")
+        end
+      end
+    end
+  end
+
+  defp survey_fully_complete?(me_file_id, parent_traits) do
+    Enum.all?(parent_traits, fn {parent_trait_id, _name, _order} ->
+      query =
+        from mft in MeFileTag,
+          join: t in Trait,
+          on: mft.trait_id == t.id,
+          where: mft.me_file_id == ^me_file_id and t.parent_trait_id == ^parent_trait_id
+
+      Repo.exists?(query)
+    end)
   end
 end

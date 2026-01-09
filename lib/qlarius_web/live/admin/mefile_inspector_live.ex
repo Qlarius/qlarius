@@ -329,7 +329,7 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
                     {QlariusWeb.Money.format_usd(@avg_wallet_balance)}
                   </div>
                   <div class="stat-desc">
-                    ${@users_with_positive_balance} &gt; $0 | ${@users_with_zero_balance} = $0
+                    {@users_with_positive_balance} &gt; $0 | {@users_with_zero_balance} = $0
                   </div>
                 </div>
 
@@ -346,7 +346,7 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
               <div class="card bg-base-100 border border-base-300">
                 <div class="card-body">
                   <div class="flex justify-between items-center mb-4">
-                    <h2 class="card-title">Top 25 MeFiles by Wallet Balance</h2>
+                    <h2 class="card-title">MeFiles</h2>
                     <.form for={%{}} phx-submit="search" class="flex gap-2">
                       <input
                         type="text"

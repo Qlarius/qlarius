@@ -19,6 +19,9 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
     field :sponster_token, :string
     field :split_amount, :integer, default: 50
     field :referral_code, :string
+    field :strong_start_status, :string, default: "active"
+    field :strong_start_completed_at, :naive_datetime
+    field :strong_start_data, :map, default: %{}
 
     belongs_to :user, User
     has_one :ledger_header, LedgerHeader
@@ -38,10 +41,14 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
       :sponster_token,
       :split_amount,
       :referral_code,
-      :user_id
+      :user_id,
+      :strong_start_status,
+      :strong_start_completed_at,
+      :strong_start_data
     ])
     |> validate_required([:user_id])
     |> validate_number(:split_amount, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
+    |> validate_inclusion(:strong_start_status, ["active", "completed", "skipped", "dismissed"])
     |> foreign_key_constraint(:user_id)
   end
 

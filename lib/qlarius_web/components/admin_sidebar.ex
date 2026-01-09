@@ -200,7 +200,7 @@ defmodule QlariusWeb.Components.AdminSidebar do
                   <a class="menu-item false" href={~p"/admin/alias_words"}>
                     <span class="grow">Alias Words</span>
                   </a>
-                  <a class="menu-item false" href="#">
+                  <a class="menu-item false" href={~p"/admin/global_variables"}>
                     <span class="grow">Global Variables</span>
                   </a>
                   <a class="menu-item false" href="#">

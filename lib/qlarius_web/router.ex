@@ -336,6 +336,14 @@ defmodule QlariusWeb.Router do
       live "/alias_words", AliasWordsLive, :index
     end
 
+    live_session :admin_global_variables,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
+      live "/global_variables", GlobalVariablesLive, :index
+    end
+
     live_session :admin_mefile_inspector,
       on_mount: [
         {QlariusWeb.UserAuth, :mount_current_scope},
