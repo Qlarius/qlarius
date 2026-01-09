@@ -141,7 +141,7 @@ Hooks.PWAInstall = {
   }
 }
 
-Hooks.HiPagePWADetect = {
+Hooks.PWADetect = {
   mounted() {
     setTimeout(() => {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
@@ -170,6 +170,8 @@ Hooks.HiPagePWADetect = {
     }, 100)
   }
 }
+
+Hooks.HiPagePWADetect = Hooks.PWADetect
 
 Hooks.HiPageSplash = {
   mounted() {

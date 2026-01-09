@@ -7,7 +7,7 @@ defmodule QlariusWeb.Router do
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
-    plug QlariusWeb.Plugs.StoreInvitationCode
+    plug QlariusWeb.Plugs.StoreReferralCode
     plug :fetch_live_flash
     plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
     plug :protect_from_forgery

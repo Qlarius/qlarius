@@ -9,15 +9,15 @@ defmodule QlariusWeb.RegistrationLive do
   def mount(params, session, socket) do
     mode = Map.get(params, "mode", "regular")
     proxy_user_id = Map.get(params, "proxy_user_id")
-    referral_code = Map.get(params, "ref") || Map.get(params, "invite")
+    referral_code_from_params = Map.get(params, "ref") || Map.get(params, "invite")
 
-    invitation_from_cookie = Map.get(session, "invitation_code")
-    invitation_code = referral_code || invitation_from_cookie || ""
+    referral_code_from_session = Map.get(session, "referral_code") || Map.get(session, "invitation_code")
+    referral_code = referral_code_from_params || referral_code_from_session || ""
 
     mobile = Phoenix.Flash.get(socket.assigns.flash, :registration_mobile)
     alias_value = Phoenix.Flash.get(socket.assigns.flash, :registration_alias)
 
-    invitation_verified = mode == "proxy" && referral_code != nil
+    referral_code_verified = mode == "proxy" && referral_code != nil && referral_code != ""
     true_user_id = if mode == "proxy", do: get_true_user_id_from_scope(socket), else: nil
 
     socket =
@@ -27,11 +27,11 @@ defmodule QlariusWeb.RegistrationLive do
       |> assign(:proxy_user_id, proxy_user_id)
       |> assign(:true_user_id, true_user_id)
       |> assign(:referral_code, referral_code)
-      |> assign(:invitation_code, invitation_code)
-      |> assign(:invitation_error, nil)
-      |> assign(:invitation_attempts, 0)
-      |> assign(:invitation_verified, invitation_verified)
-      |> assign(:invitation_can_skip, false)
+      |> assign(:referral_code_input, referral_code)
+      |> assign(:referral_code_error, nil)
+      |> assign(:referral_code_attempts, 0)
+      |> assign(:referral_code_verified, referral_code_verified)
+      |> assign(:referral_code_can_skip, false)
       |> assign(:current_step, determine_starting_step(mode, mobile, alias_value))
       |> assign(:mobile_number, "")
       |> assign(:mobile_number_error, nil)
@@ -104,62 +104,62 @@ defmodule QlariusWeb.RegistrationLive do
     end
   end
 
-  def handle_event("update_invitation_code", %{"invitation_code" => code}, socket) do
+  def handle_event("update_referral_code", %{"referral_code" => code}, socket) do
     {:noreply,
      socket
-     |> assign(:invitation_code, String.trim(code))
-     |> assign(:invitation_error, nil)}
+     |> assign(:referral_code_input, String.trim(code))
+     |> assign(:referral_code_error, nil)}
   end
 
-  def handle_event("validate_invitation", _params, socket) do
-    code = String.trim(socket.assigns.invitation_code)
-    attempts = socket.assigns.invitation_attempts + 1
+  def handle_event("validate_referral_code", _params, socket) do
+    code = String.trim(socket.assigns.referral_code_input)
+    attempts = socket.assigns.referral_code_attempts + 1
 
     cond do
       code == "" ->
         {:noreply,
          socket
-         |> assign(:invitation_attempts, attempts)
-         |> assign(:invitation_can_skip, attempts >= 3)
-         |> assign(:invitation_verified, true)
+         |> assign(:referral_code_attempts, attempts)
+         |> assign(:referral_code_can_skip, attempts >= 3)
+         |> assign(:referral_code_verified, true)
          |> assign(:current_step, 1)
-         |> put_flash(:info, "Welcome! Feel free to register without an invitation.")}
+         |> put_flash(:info, "Welcome! Feel free to register without a referral code.")}
 
       true ->
         case Qlarius.Referrals.lookup_referrer_by_code(code) do
           {:ok, _referrer_type, _referrer_id} ->
             {:noreply,
              socket
-             |> assign(:invitation_verified, true)
+             |> assign(:referral_code_verified, true)
              |> assign(:referral_code, code)
              |> assign(:current_step, 1)
-             |> put_invitation_cookie(code)
-             |> put_flash(:info, "✨ Invitation accepted! Let's get started.")}
+             |> put_referral_code_cookie(code)
+             |> put_flash(:info, "✨ Referral code accepted! Let's get started.")}
 
           {:error, :not_found} ->
             if attempts >= 3 do
               {:noreply,
                socket
-               |> assign(:invitation_attempts, attempts)
-               |> assign(:invitation_can_skip, true)
+               |> assign(:referral_code_attempts, attempts)
+               |> assign(:referral_code_can_skip, true)
                |> assign(
-                 :invitation_error,
-                 "Invalid invitation code. You can leave the field blank and try registering anyway."
+                 :referral_code_error,
+                 "Invalid referral code. You can leave the field blank and try registering anyway."
                )}
             else
               {:noreply,
                socket
-               |> assign(:invitation_attempts, attempts)
-               |> assign(:invitation_error, "Invalid invitation code. Please try again.")}
+               |> assign(:referral_code_attempts, attempts)
+               |> assign(:referral_code_error, "Invalid referral code. Please try again.")}
             end
         end
     end
   end
 
-  def handle_event("skip_invitation", _params, socket) do
+  def handle_event("skip_referral_code", _params, socket) do
     {:noreply,
      socket
-     |> assign(:invitation_verified, true)
+     |> assign(:referral_code_verified, true)
      |> assign(:current_step, 1)
      |> put_flash(:info, "Welcome! Feel free to explore.")}
   end
@@ -570,7 +570,7 @@ defmodule QlariusWeb.RegistrationLive do
       assigns.confirmation_checked
   end
 
-  defp put_invitation_cookie(socket, _code) do
+  defp put_referral_code_cookie(socket, _code) do
     socket
   end
 
@@ -644,10 +644,10 @@ defmodule QlariusWeb.RegistrationLive do
 
         <%= if @current_step == 0 do %>
           <.step_zero
-            invitation_code={@invitation_code}
-            invitation_error={@invitation_error}
-            invitation_attempts={@invitation_attempts}
-            invitation_can_skip={@invitation_can_skip}
+            referral_code={@referral_code_input}
+            referral_code_error={@referral_code_error}
+            referral_code_attempts={@referral_code_attempts}
+            referral_code_can_skip={@referral_code_can_skip}
           />
         <% end %>
 
@@ -728,16 +728,16 @@ defmodule QlariusWeb.RegistrationLive do
           <% end %>
 
           <%= if @current_step == 0 do %>
-            <%= if @invitation_can_skip do %>
+            <%= if @referral_code_can_skip do %>
               <button
-                phx-click="skip_invitation"
+                phx-click="skip_referral_code"
                 class="btn btn-outline btn-lg flex-1 rounded-full text-lg normal-case"
               >
                 Skip & Register
               </button>
             <% end %>
             <button
-              phx-click="validate_invitation"
+              phx-click="validate_referral_code"
               class="btn btn-primary btn-lg flex-1 rounded-full text-lg normal-case"
             >
               Continue
@@ -815,10 +815,10 @@ defmodule QlariusWeb.RegistrationLive do
     end
   end
 
-  attr :invitation_code, :string, required: true
-  attr :invitation_error, :string, default: nil
-  attr :invitation_attempts, :integer, default: 0
-  attr :invitation_can_skip, :boolean, default: false
+  attr :referral_code, :string, required: true
+  attr :referral_code_error, :string, default: nil
+  attr :referral_code_attempts, :integer, default: 0
+  attr :referral_code_can_skip, :boolean, default: false
 
   defp step_zero(assigns) do
     ~H"""
@@ -828,52 +828,52 @@ defmodule QlariusWeb.RegistrationLive do
           Join our BETA!
         </h3>
         <p class="text-lg md:text-xl text-base-content/70 dark:text-base-content/60">
-          You've been invited to early access to Qadabra. Enter your invitation code.
+          You've been invited to early access to Qadabra. Enter your referral code.
         </p>
       </div>
 
       <div class="card bg-base-200 shadow-xl">
         <div class="card-body">
-          <.form for={%{}} phx-change="update_invitation_code">
+          <.form for={%{}} phx-change="update_referral_code">
             <div class="form-control">
               <label class="label">
-                <span class="label-text text-lg">Invitation Code</span>
+                <span class="label-text text-lg">Referral Code</span>
               </label>
               <input
                 type="text"
-                name="invitation_code"
-                value={@invitation_code}
-                placeholder="Enter your invitation code"
+                name="referral_code"
+                value={@referral_code}
+                placeholder="Enter your referral code"
                 class="input input-bordered input-lg w-full font-mono"
                 autocomplete="off"
               />
-              <%= if @invitation_error do %>
+              <%= if @referral_code_error do %>
                 <label class="label">
-                  <span class="label-text-alt text-error text-base">{@invitation_error}</span>
+                  <span class="label-text-alt text-error text-base">{@referral_code_error}</span>
                 </label>
               <% end %>
-              <%= if @invitation_attempts > 0 && !@invitation_error do %>
+              <%= if @referral_code_attempts > 0 && !@referral_code_error do %>
                 <label class="label">
                   <span class="label-text-alt text-base-content/60">
-                    Attempt {@invitation_attempts} of 3
+                    Attempt {@referral_code_attempts} of 3
                   </span>
                 </label>
               <% end %>
             </div>
           </.form>
 
-          <%= if @invitation_can_skip do %>
+          <%= if @referral_code_can_skip do %>
             <div class="alert alert-info mt-4">
               <.icon name="hero-information-circle" class="h-6 w-6" />
               <span>
-                Having trouble? You can skip and register without an invitation.
+                Having trouble? You can skip and register without a referral code.
               </span>
             </div>
           <% end %>
 
           <div class="mt-4">
             <p class="text-sm text-base-content/60 text-center">
-              Don't have a code? Contact us for an invitation or ask a friend to share their referral link.
+              Don't have a code? Ask a friend to share their referral link.
             </p>
           </div>
         </div>
