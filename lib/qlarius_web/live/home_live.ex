@@ -124,7 +124,7 @@ defmodule QlariusWeb.HomeLive do
             <h2 class="text-2xl font-bold tracking-tight text-base-content/50">
               Sell your attention.
             </h2>
-            <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-8 w-auto" />
+            <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-7 w-auto" />
           </div>
 
           <div class="grid grid-cols-2 gap-4 mb-4">
@@ -161,7 +161,7 @@ defmodule QlariusWeb.HomeLive do
         <div class="bg-base-200 rounded-lg p-4">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-2xl font-bold tracking-tight text-base-content/50">Own your data.</h2>
-            <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-8 w-auto" />
+            <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-7 w-auto" />
           </div>
 
           <.link navigate={~p"/me_file"}>
@@ -177,7 +177,7 @@ defmodule QlariusWeb.HomeLive do
         <div class="bg-base-200 rounded-lg p-4">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-2xl font-bold tracking-tight text-base-content/50">Buy your media.</h2>
-            <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-8 w-auto" />
+            <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-7 w-auto" />
           </div>
 
           <div class="grid grid-cols-2 gap-4">
