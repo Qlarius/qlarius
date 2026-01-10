@@ -49,7 +49,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
             "flex flex-col gap-3 p-4 rounded-lg transition-all border w-full",
             if(@progress.steps.essentials_survey_completed,
               do: "bg-success/5 border-success/20",
-              else: "bg-base-100 border-base-300"
+              else: "bg-base-100 border-primary"
             )
           ]}>
             <div class="flex items-center gap-3">
@@ -94,7 +94,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
             "flex flex-col gap-3 p-4 rounded-lg transition-all border w-full",
             if(@progress.steps.first_ad_interacted,
               do: "bg-success/5 border-success/20",
-              else: "bg-base-100 border-base-300"
+              else: "bg-base-100 border-primary"
             )
           ]}>
             <div class="flex items-center gap-3">
@@ -126,7 +126,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
             "flex flex-col gap-3 p-4 rounded-lg transition-all border w-full",
             if(@progress.steps.notifications_configured,
               do: "bg-success/5 border-success/20",
-              else: "bg-base-100 border-base-300"
+              else: "bg-base-100 border-primary"
             )
           ]}>
             <div class="flex items-center gap-3">
@@ -158,7 +158,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
             "flex flex-col gap-3 p-4 rounded-lg transition-all border w-full",
             if(@progress.steps.tags_25_reached,
               do: "bg-success/5 border-success/20",
-              else: "bg-base-100 border-base-300"
+              else: "bg-base-100 border-primary"
             )
           ]}>
             <div class="flex items-center gap-3">
@@ -190,7 +190,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
             "flex flex-col gap-3 p-4 rounded-lg transition-all border w-full",
             if(@progress.steps.referral_viewed,
               do: "bg-success/5 border-success/20",
-              else: "bg-base-100 border-base-300"
+              else: "bg-base-100 border-primary"
             )
           ]}>
             <div class="flex items-center gap-3">
