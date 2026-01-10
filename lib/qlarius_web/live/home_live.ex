@@ -105,8 +105,8 @@ defmodule QlariusWeb.HomeLive do
     ~H"""
     <div id="home-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile {assigns}>
-        <div class="flex flex-row flex-wrap justify-between items-center px-4 py-3 mb-6">
-        <h2 class="text-2xl md:text-3xl font-bold">{@current_scope.user.alias}</h2>
+        <div class="flex flex-row flex-wrap justify-between items-center py-3 mb-6">
+        <h2 class="text-2xl font-bold">{@current_scope.user.alias}</h2>
         <p class="text-xl md:text-2xl flex items-center gap-1">
           <.icon name="hero-map-pin-solid" class="h-5 w-5 text-gray-500" />
           {@current_scope.home_zip}
@@ -121,7 +121,7 @@ defmodule QlariusWeb.HomeLive do
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="bg-base-200 rounded-lg p-4">
           <div class="flex justify-between items-center mb-4">
-            <h2 class="text-3xl font-bold tracking-tight text-base-content/50">
+            <h2 class="text-2xl font-bold tracking-tight text-base-content/50">
               Sell your attention.
             </h2>
             <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-8 w-auto" />
@@ -160,7 +160,7 @@ defmodule QlariusWeb.HomeLive do
 
         <div class="bg-base-200 rounded-lg p-4">
           <div class="flex justify-between items-center mb-4">
-            <h2 class="text-3xl font-bold tracking-tight text-base-content/50">Own your data.</h2>
+            <h2 class="text-2xl font-bold tracking-tight text-base-content/50">Own your data.</h2>
             <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-8 w-auto" />
           </div>
 
@@ -176,7 +176,7 @@ defmodule QlariusWeb.HomeLive do
 
         <div class="bg-base-200 rounded-lg p-4">
           <div class="flex justify-between items-center mb-4">
-            <h2 class="text-3xl font-bold tracking-tight text-base-content/50">Buy your media.</h2>
+            <h2 class="text-2xl font-bold tracking-tight text-base-content/50">Buy your media.</h2>
             <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-8 w-auto" />
           </div>
 

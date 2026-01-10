@@ -16,16 +16,16 @@ defmodule QlariusWeb.Components.StrongStartComponent do
       <div class="flex justify-between items-center mb-3">
         <div class="flex items-center gap-3">
           <img src="/images/qadabra_logo_squares_color.svg" alt="Qadabra" class="w-8 h-8" />
-          <h2 class="text-3xl font-bold tracking-tight text-base-content/50">
-            Do these first.
+          <h2 class="text-2xl font-bold tracking-tight text-base-content/50">
+            Do this first.
           </h2>
         </div>
         <div class="text-right">
-          <div class="text-2xl md:text-3xl font-bold tracking-tight text-base-content/50">{@progress.completed_count}/{@progress.total_count}</div>
+          <div class="text-xl md:text-3xl font-bold tracking-tight text-base-content/50">{@progress.completed_count}/{@progress.total_count}</div>
         </div>
       </div>
       <p class="text-base md:text-lg text-base-content/60 mb-4">
-        Complete the following steps for a great start.
+        Complete these tasks for a great start.
       </p>
 
       <%!-- Progress Bar --%>
