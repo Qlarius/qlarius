@@ -246,23 +246,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
     {:noreply, open_survey(socket, survey_id)}
   end
 
-  defp open_survey(socket, survey_id) do
-    me_file_id = socket.assigns.current_scope.user.me_file.id
-
-    survey = Surveys.get_survey!(survey_id)
-    parent_traits_with_tags = Surveys.parent_traits_for_survey_with_tags(survey_id, me_file_id)
-
-    survey_in_edit = %{
-      id: survey_id,
-      name: survey.name,
-      parent_traits: parent_traits_with_tags
-    }
-
-    socket
-    |> assign(editing: true, active_survey_id: survey_id)
-    |> assign(:survey_in_edit, survey_in_edit)
-  end
-
   def handle_event("close_edit", _params, socket) do
     {:noreply,
      socket
@@ -452,5 +435,22 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
         {:noreply, socket}
     end
+  end
+
+  defp open_survey(socket, survey_id) do
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+
+    survey = Surveys.get_survey!(survey_id)
+    parent_traits_with_tags = Surveys.parent_traits_for_survey_with_tags(survey_id, me_file_id)
+
+    survey_in_edit = %{
+      id: survey_id,
+      name: survey.name,
+      parent_traits: parent_traits_with_tags
+    }
+
+    socket
+    |> assign(editing: true, active_survey_id: survey_id)
+    |> assign(:survey_in_edit, survey_in_edit)
   end
 end

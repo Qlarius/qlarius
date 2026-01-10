@@ -188,25 +188,72 @@ Hooks.CarouselIndicators = {
     
     if (!carousel || indicators.length === 0) return
 
-    const updateIndicators = () => {
-      const scrollLeft = carousel.scrollLeft
-      const cardWidth = carousel.querySelector('.carousel-item')?.offsetWidth || 0
-      const gap = 16
-      const currentIndex = Math.round(scrollLeft / (cardWidth + gap))
+    const calculatePagination = () => {
+      const carouselWidth = carousel.offsetWidth
+      const firstCard = carousel.querySelector('.carousel-item')
+      if (!firstCard) return { pages: 1, cardsPerPage: 1 }
       
-      indicators.forEach((indicator, index) => {
-        if (index === currentIndex) {
-          indicator.classList.remove('bg-base-content/30')
-          indicator.classList.add('bg-primary', 'w-6')
+      const cardWidth = firstCard.offsetWidth
+      const gap = 16
+      const cardsPerPage = Math.max(1, Math.floor(carouselWidth / (cardWidth + gap)))
+      const totalCards = carousel.querySelectorAll('.carousel-item').length
+      const pages = Math.ceil(totalCards / cardsPerPage)
+      
+      return { pages, cardsPerPage, cardWidth, gap, totalCards }
+    }
+
+    const updateIndicators = () => {
+      const { pages, cardsPerPage, cardWidth, gap, totalCards } = calculatePagination()
+      const scrollLeft = carousel.scrollLeft
+      const maxScroll = carousel.scrollWidth - carousel.offsetWidth
+      
+      // Calculate current page based on scroll position
+      let currentPage = 0
+      if (maxScroll > 0) {
+        const scrollProgress = scrollLeft / maxScroll
+        currentPage = Math.min(pages - 1, Math.floor(scrollProgress * pages))
+      }
+      
+      // Hide entire indicator container if only one page
+      const indicatorContainer = indicators[0]?.parentElement
+      if (indicatorContainer) {
+        if (pages <= 1) {
+          indicatorContainer.style.display = 'none'
         } else {
-          indicator.classList.remove('bg-primary', 'w-6')
-          indicator.classList.add('bg-base-content/30')
+          indicatorContainer.style.display = 'flex'
+        }
+      }
+      
+      // Show/hide individual indicators based on number of pages
+      indicators.forEach((indicator, index) => {
+        if (index < pages) {
+          indicator.style.display = 'block'
+          
+          if (index === currentPage) {
+            indicator.classList.remove('bg-base-content/30')
+            indicator.classList.add('bg-primary', 'w-6')
+          } else {
+            indicator.classList.remove('bg-primary', 'w-6')
+            indicator.classList.add('bg-base-content/30')
+          }
+        } else {
+          indicator.style.display = 'none'
         }
       })
     }
 
+    // Update on scroll
     carousel.addEventListener('scroll', updateIndicators)
-    updateIndicators()
+    
+    // Update on window resize
+    let resizeTimeout
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout)
+      resizeTimeout = setTimeout(updateIndicators, 100)
+    })
+    
+    // Initial update
+    setTimeout(updateIndicators, 100)
     
     this.handleEvent = () => {
       updateIndicators()

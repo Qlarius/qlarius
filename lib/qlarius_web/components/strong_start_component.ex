@@ -13,24 +13,24 @@ defmodule QlariusWeb.Components.StrongStartComponent do
     ~H"""
     <div class="bg-base-200 rounded-lg p-4 mb-4">
       <%!-- Header --%>
-      <div class="flex justify-between items-center mb-2">
-        <div class="flex items-center gap-2">
-          <img src="/images/qadabra_logo_squares_color.svg" alt="Qadabra" class="w-5 h-5" />
-          <h2 class="text-xl font-bold tracking-tight text-base-content/50">
+      <div class="flex justify-between items-center mb-3">
+        <div class="flex items-center gap-3">
+          <img src="/images/qadabra_logo_squares_color.svg" alt="Qadabra" class="w-8 h-8" />
+          <h2 class="text-3xl font-bold tracking-tight text-base-content/50">
             Do these first.
           </h2>
         </div>
         <div class="text-right">
-          <div class="text-xl font-bold tracking-tight text-base-content/50">{@progress.completed_count}/{@progress.total_count}</div>
+          <div class="text-2xl md:text-3xl font-bold tracking-tight text-base-content/50">{@progress.completed_count}/{@progress.total_count}</div>
         </div>
       </div>
-      <p class="text-sm text-base-content/60 mb-4">
+      <p class="text-base md:text-lg text-base-content/60 mb-4">
         Complete the following steps for a great start.
       </p>
 
       <%!-- Progress Bar --%>
       <progress
-        class="progress progress-primary w-full mb-4"
+        class="progress progress-primary w-full mb-4 h-3"
         value={@progress.percentage}
         max="100"
       >
@@ -55,16 +55,16 @@ defmodule QlariusWeb.Components.StrongStartComponent do
             <div class="flex items-center gap-3">
               <div class="flex-shrink-0">
                 <%= if @progress.steps.essentials_survey_completed do %>
-                  <.icon name="hero-check-circle-solid" class="w-8 h-8 text-success" />
+                  <.icon name="hero-check-circle-solid" class="w-10 h-10 text-success" />
                 <% else %>
-                  <.icon name="hero-check-circle" class="w-8 h-8 text-base-content/30" />
+                  <.icon name="hero-check-circle" class="w-10 h-10 text-base-content/30" />
                 <% end %>
               </div>
               <div class="flex-grow">
-                <div class="font-bold text-lg">Complete starter tags</div>
+                <div class="font-bold text-xl">Complete starter tags</div>
               </div>
             </div>
-            <div class="text-sm text-base-content/60 min-h-[2.5rem]">
+            <div class="text-base text-base-content/60 min-h-[3rem]">
               <%= if @progress.steps.essentials_survey_completed do %>
                 All essential information added
               <% else %>
@@ -80,7 +80,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
                     "/me_file"
                   end
                 }
-                class="btn btn-sm btn-primary rounded-full w-full"
+                class="btn btn-md btn-primary rounded-full w-full text-base"
               >
                 <%= if @progress.survey_answered == 0, do: "Start", else: "Continue" %>
               </.link>
@@ -100,20 +100,20 @@ defmodule QlariusWeb.Components.StrongStartComponent do
             <div class="flex items-center gap-3">
               <div class="flex-shrink-0">
                 <%= if @progress.steps.first_ad_interacted do %>
-                  <.icon name="hero-check-circle-solid" class="w-8 h-8 text-success" />
+                  <.icon name="hero-check-circle-solid" class="w-10 h-10 text-success" />
                 <% else %>
-                  <.icon name="hero-check-circle" class="w-8 h-8 text-base-content/30" />
+                  <.icon name="hero-check-circle" class="w-10 h-10 text-base-content/30" />
                 <% end %>
               </div>
               <div class="flex-grow">
-                <div class="font-bold text-lg">Check your first ads</div>
+                <div class="font-bold text-xl">Check your first ads</div>
               </div>
             </div>
-            <div class="text-sm text-base-content/60 min-h-[2.5rem]">
+            <div class="text-base text-base-content/60 min-h-[3rem]">
               View available advertising offers
             </div>
             <%= if !@progress.steps.first_ad_interacted do %>
-              <.link navigate="/ads" class="btn btn-sm btn-primary rounded-full w-full">
+              <.link navigate="/ads" class="btn btn-md btn-primary rounded-full w-full text-base">
                 View Ads
               </.link>
             <% end %>
@@ -132,20 +132,20 @@ defmodule QlariusWeb.Components.StrongStartComponent do
             <div class="flex items-center gap-3">
               <div class="flex-shrink-0">
                 <%= if @progress.steps.notifications_configured do %>
-                  <.icon name="hero-check-circle-solid" class="w-8 h-8 text-success" />
+                  <.icon name="hero-check-circle-solid" class="w-10 h-10 text-success" />
                 <% else %>
-                  <.icon name="hero-check-circle" class="w-8 h-8 text-base-content/30" />
+                  <.icon name="hero-check-circle" class="w-10 h-10 text-base-content/30" />
                 <% end %>
               </div>
               <div class="flex-grow">
-                <div class="font-bold text-lg">Set up notifications</div>
+                <div class="font-bold text-xl">Set up notifications</div>
               </div>
             </div>
-            <div class="text-sm text-base-content/60 min-h-[2.5rem]">
+            <div class="text-base text-base-content/60 min-h-[3rem]">
               Receive helpful alerts and notifications
             </div>
             <%= if !@progress.steps.notifications_configured do %>
-              <button phx-click={@on_mark_notifications} class="btn btn-sm btn-outline rounded-full w-full">
+              <button phx-click={@on_mark_notifications} class="btn btn-md btn-outline rounded-full w-full text-base">
                 Mark Done
               </button>
             <% end %>
@@ -164,20 +164,20 @@ defmodule QlariusWeb.Components.StrongStartComponent do
             <div class="flex items-center gap-3">
               <div class="flex-shrink-0">
                 <%= if @progress.steps.tags_25_reached do %>
-                  <.icon name="hero-check-circle-solid" class="w-8 h-8 text-success" />
+                  <.icon name="hero-check-circle-solid" class="w-10 h-10 text-success" />
                 <% else %>
-                  <.icon name="hero-check-circle" class="w-8 h-8 text-base-content/30" />
+                  <.icon name="hero-check-circle" class="w-10 h-10 text-base-content/30" />
                 <% end %>
               </div>
               <div class="flex-grow">
-                <div class="font-bold text-lg">Create {@progress.tag_goal} tags</div>
+                <div class="font-bold text-xl">Get to {@progress.tag_goal} tags</div>
               </div>
             </div>
-            <div class="text-sm text-base-content/60 min-h-[2.5rem]">
+            <div class="text-base text-base-content/60 min-h-[3rem]">
               Current: {@progress.tag_count}/{@progress.tag_goal} tags
             </div>
             <%= if !@progress.steps.tags_25_reached do %>
-              <.link navigate="/me_file_builder" class="btn btn-sm btn-primary rounded-full w-full">
+              <.link navigate="/me_file_builder" class="btn btn-md btn-primary rounded-full w-full text-base">
                 Add Tags
               </.link>
             <% end %>
@@ -196,24 +196,24 @@ defmodule QlariusWeb.Components.StrongStartComponent do
             <div class="flex items-center gap-3">
               <div class="flex-shrink-0">
                 <%= if @progress.steps.referral_viewed do %>
-                  <.icon name="hero-check-circle-solid" class="w-8 h-8 text-success" />
+                  <.icon name="hero-check-circle-solid" class="w-10 h-10 text-success" />
                 <% else %>
-                  <.icon name="hero-check-circle" class="w-8 h-8 text-base-content/30" />
+                  <.icon name="hero-check-circle" class="w-10 h-10 text-base-content/30" />
                 <% end %>
               </div>
               <div class="flex-grow">
-                <div class="font-bold text-lg">Referral program</div>
+                <div class="font-bold text-xl">Referral program</div>
               </div>
             </div>
-            <div class="text-sm text-base-content/60 min-h-[2.5rem]">
+            <div class="text-base text-base-content/60 min-h-[3rem]">
               Earn rewards by inviting friends
             </div>
             <%= if !@progress.steps.referral_viewed do %>
               <div class="flex gap-2">
-                <.link navigate="/referrals" class="btn btn-sm btn-primary rounded-full flex-1">
+                <.link navigate="/referrals" class="btn btn-md btn-primary rounded-full flex-1 text-base">
                   View
                 </.link>
-                <button phx-click={@on_mark_referral} class="btn btn-sm btn-ghost rounded-full flex-1">
+                <button phx-click={@on_mark_referral} class="btn btn-md btn-ghost rounded-full flex-1 text-base">
                   Skip
                 </button>
               </div>
@@ -259,18 +259,18 @@ defmodule QlariusWeb.Components.StrongStartComponent do
 
       <%!-- Footer Actions --%>
       <div class="flex justify-between items-center mt-4 pt-4 border-t border-base-300">
-        <button phx-click={@on_remind} class="btn btn-sm btn-ghost rounded-full">
-          Remind me later
+        <button phx-click={@on_skip} class="btn btn-md btn-ghost !text-base-content/20 hover:!text-error rounded-full text-base">
+          Dismiss forever
         </button>
-        <button phx-click={@on_skip} class="btn btn-sm btn-ghost text-error rounded-full">
-          Skip forever
+        <button phx-click={@on_remind} class="btn btn-md btn-ghost rounded-full text-base">
+          Remind me later
         </button>
       </div>
 
       <%!-- Completion Message --%>
       <%= if @progress.completed_count == @progress.total_count do %>
-        <div class="alert alert-success mt-4">
-          <.icon name="hero-check-badge-solid" class="w-6 h-6" />
+        <div class="alert alert-success mt-4 text-base md:text-lg">
+          <.icon name="hero-check-badge-solid" class="w-8 h-8" />
           <span>
             🎉 Congratulations! You've completed your Strong Start setup.
           </span>

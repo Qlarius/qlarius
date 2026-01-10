@@ -70,11 +70,19 @@ defmodule Qlarius.YouData.StrongStart do
   end
 
   @doc """
-  Dismisses the strong start reminder temporarily (until next login).
+  Dismisses the strong start reminder temporarily (until configured hours pass).
   """
   def remind_later(me_file) do
+    current_data = me_file.strong_start_data || %{}
+    timestamp = DateTime.utc_now() |> DateTime.to_iso8601()
+
+    updated_data = Map.put(current_data, "dismissed_at", timestamp)
+
     me_file
-    |> MeFile.changeset(%{strong_start_status: "dismissed"})
+    |> MeFile.changeset(%{
+      strong_start_status: "dismissed",
+      strong_start_data: updated_data
+    })
     |> Repo.update()
   end
 
@@ -87,7 +95,29 @@ defmodule Qlarius.YouData.StrongStart do
         false
 
       "dismissed" ->
-        false
+        display_hours = System.get_global_variable_int("STRONG_START_DISPLAY_HOURS", 24)
+        data = me_file.strong_start_data || %{}
+
+        case Map.get(data, "dismissed_at") do
+          nil ->
+            false
+
+          dismissed_at_str ->
+            case DateTime.from_iso8601(dismissed_at_str) do
+              {:ok, dismissed_at, _} ->
+                hours_since_dismissal = DateTime.diff(DateTime.utc_now(), dismissed_at, :hour)
+
+                if hours_since_dismissal >= display_hours do
+                  reset_from_dismissed(me_file)
+                  true
+                else
+                  false
+                end
+
+              _ ->
+                false
+            end
+        end
 
       "completed" ->
         display_hours = System.get_global_variable_int("STRONG_START_DISPLAY_HOURS", 24)
@@ -214,5 +244,17 @@ defmodule Qlarius.YouData.StrongStart do
     else
       changeset
     end
+  end
+
+  defp reset_from_dismissed(me_file) do
+    current_data = me_file.strong_start_data || %{}
+    updated_data = Map.delete(current_data, "dismissed_at")
+
+    me_file
+    |> MeFile.changeset(%{
+      strong_start_status: "active",
+      strong_start_data: updated_data
+    })
+    |> Repo.update()
   end
 end

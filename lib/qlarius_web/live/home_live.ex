@@ -106,8 +106,8 @@ defmodule QlariusWeb.HomeLive do
     <div id="home-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile {assigns}>
         <div class="flex flex-row flex-wrap justify-between items-center px-4 py-3 mb-6">
-        <h2 class="text-lg font-bold">{@current_scope.user.alias}</h2>
-        <p class="flex items-center gap-1">
+        <h2 class="text-2xl md:text-3xl font-bold">{@current_scope.user.alias}</h2>
+        <p class="text-xl md:text-2xl flex items-center gap-1">
           <.icon name="hero-map-pin-solid" class="h-5 w-5 text-gray-500" />
           {@current_scope.home_zip}
         </p>
@@ -121,10 +121,10 @@ defmodule QlariusWeb.HomeLive do
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="bg-base-200 rounded-lg p-4">
           <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold tracking-tight text-base-content/50">
+            <h2 class="text-3xl font-bold tracking-tight text-base-content/50">
               Sell your attention.
             </h2>
-            <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-6 w-auto" />
+            <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-8 w-auto" />
           </div>
 
           <div class="grid grid-cols-2 gap-4 mb-4">
@@ -160,8 +160,8 @@ defmodule QlariusWeb.HomeLive do
 
         <div class="bg-base-200 rounded-lg p-4">
           <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold tracking-tight text-base-content/50">Own your data.</h2>
-            <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-6 w-auto" />
+            <h2 class="text-3xl font-bold tracking-tight text-base-content/50">Own your data.</h2>
+            <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-8 w-auto" />
           </div>
 
           <.link navigate={~p"/me_file"}>
@@ -176,8 +176,8 @@ defmodule QlariusWeb.HomeLive do
 
         <div class="bg-base-200 rounded-lg p-4">
           <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold tracking-tight text-base-content/50">Buy your media.</h2>
-            <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
+            <h2 class="text-3xl font-bold tracking-tight text-base-content/50">Buy your media.</h2>
+            <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-8 w-auto" />
           </div>
 
           <div class="grid grid-cols-2 gap-4">
