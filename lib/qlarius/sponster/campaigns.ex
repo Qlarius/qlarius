@@ -1,7 +1,9 @@
 defmodule Qlarius.Sponster.Campaigns do
   import Ecto.Query
+  alias Ecto.Multi
   alias Qlarius.Repo
   alias Qlarius.Sponster.Campaigns.{Campaign, Bid, Target, MediaSequence, Targets}
+  alias Qlarius.Sponster.Offer
   alias Qlarius.Wallets
 
   @doc """
@@ -125,14 +127,22 @@ defmodule Qlarius.Sponster.Campaigns do
   end
 
   @doc """
-  Deactivates a campaign by setting deactivated_at.
+  Deactivates a campaign by setting deactivated_at and deleting all associated offers.
   """
   def deactivate_campaign(campaign) do
-    campaign
-    |> Ecto.Changeset.change(%{
-      deactivated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-    })
-    |> Repo.update()
+    Multi.new()
+    |> Multi.delete_all(:delete_offers, from(o in Offer, where: o.campaign_id == ^campaign.id))
+    |> Multi.update(
+      :deactivate_campaign,
+      Ecto.Changeset.change(campaign, %{
+        deactivated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+      })
+    )
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{deactivate_campaign: updated_campaign}} -> {:ok, updated_campaign}
+      {:error, _failed_operation, changeset, _changes} -> {:error, changeset}
+    end
   end
 
   @doc """
