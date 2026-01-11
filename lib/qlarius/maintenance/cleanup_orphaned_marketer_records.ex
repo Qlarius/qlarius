@@ -33,7 +33,7 @@ defmodule Qlarius.Maintenance.CleanupOrphanedMarketerRecords do
   require Logger
   alias Qlarius.Repo
   alias Qlarius.Accounts.Marketer
-  alias Qlarius.Sponster.{Offer, AdEvent}
+  alias Qlarius.Sponster.Offer
 
   alias Qlarius.Sponster.Campaigns.{
     Campaign,
