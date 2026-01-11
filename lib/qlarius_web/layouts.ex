@@ -363,7 +363,7 @@ defmodule QlariusWeb.Layouts do
                     <% end %>
                   </div>
                 </div>
-                <div class="flex-1 pb-15">
+                <div class="flex-1" style="padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));">
                   {render_slot(@inner_block)}
                 </div>
                 <.debug_assigns {assigns} />
@@ -376,7 +376,7 @@ defmodule QlariusWeb.Layouts do
         <div class="panel">
           <div class="panel-scroll">
             <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
-              <div class="container mx-auto px-4 py-6 flex-1">
+              <div class="container mx-auto px-4 py-6 flex-1" style="padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));">
                 <button phx-click="close_slide_over" class="btn btn-ghost mb-4">
                   <.icon name="hero-chevron-left" class="w-4 h-4 me-1" /> Back
                 </button>
