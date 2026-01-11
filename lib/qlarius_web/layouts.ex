@@ -118,7 +118,7 @@ defmodule QlariusWeb.Layouts do
   attr :current_scope, Scope, default: nil
   attr :current_path, :string, default: nil
 
-  def mobile(assigns) do
+  def mobile_backup(assigns) do
     ~H"""
     <.flash_group flash={@flash} />
 
@@ -215,6 +215,241 @@ defmodule QlariusWeb.Layouts do
         <%!-- <span class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-400">
           {format_usd(@current_scope.wallet_balance)}
         </span> --%>
+      </button>
+
+      <button
+        class={[
+          "indicator relative",
+          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/ads") &&
+            "dock-active"
+        ]}
+        phx-click={JS.navigate(~p"/ads")}
+      >
+        <.icon name="hero-eye" class="size-[1.5em]" />
+        <span class="dock-label">Ads</span>
+        <span
+          :if={@current_scope.ads_count > 0}
+          class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-400"
+        >
+          {@current_scope.ads_count}
+        </span>
+      </button>
+
+      <button phx-click={toggle_sponster_sidebar(:on)}>
+        <.icon name="hero-ellipsis-horizontal" class="size-[1.5em]" />
+        <span class="dock-label">More</span>
+      </button>
+    </div>
+    """
+  end
+
+  slot :inner_block, required: true
+  slot :slide_over_content
+  slot :modals
+  slot :floating_actions
+
+  attr :title, :string, required: true
+  attr :flash, :map, required: true
+  attr :current_scope, Scope, default: nil
+  attr :current_path, :string, default: nil
+  attr :slide_over_active, :boolean, default: false
+  attr :slide_over_title, :string, default: "Details"
+
+  def mobile(assigns) do
+    ~H"""
+    <.flash_group flash={@flash} />
+
+    <style phx-no-curly-interpolation>
+      .slide-panels {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        z-index: 10;
+      }
+
+      .slide-panels .track {
+        display: flex;
+        width: 200%;
+        height: 100vh;
+        transform: translateX(0);
+        transition: transform 300ms ease-in-out;
+      }
+      .slide-panels.active .track {
+        transform: translateX(-50%);
+      }
+      .slide-panels .panel {
+        position: relative;
+        width: 50%;
+        flex: 0 0 50%;
+        height: 100vh;
+        overflow: hidden;
+      }
+      .slide-panels .panel-scroll {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      /* Custom modal class for dual-pane layouts */
+      /* Scoped to .slide-panels to ensure proper context */
+      .slide-panels .modal-dual-pane.modal-open {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 60 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 !important;
+        transform: none !important;
+      }
+
+      /* Raise panel z-index when modal is open */
+      .slide-panels:has(.modal-dual-pane.modal-open) {
+        z-index: 60;
+      }
+
+      /* Mobile: Bottom drawer style */
+      @media (max-width: 639px) {
+        .slide-panels .modal-dual-pane.modal-open {
+          align-items: flex-end !important;
+        }
+      }
+
+      /* Desktop: Remove default margin from modal-box */
+      @media (min-width: 640px) {
+        .slide-panels .modal-dual-pane .modal-box {
+          margin: 0 !important;
+        }
+      }
+    </style>
+
+    <div class={[
+      "slide-panels",
+      assigns[:slide_over_active] && "active"
+    ]}>
+      <div class="track">
+        <%!-- Main screen panel --%>
+        <div class="panel">
+          <div class="panel-scroll">
+            <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
+              <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
+                <div class="w-full mb-6 flex items-center flex-shrink-0">
+                  <div class="w-8 flex justify-start">
+                    <button class="cursor-pointer" phx-click={toggle_sponster_sidebar(:on)}>
+                      <.icon name="hero-bars-3" class="h-8 w-8 text-content-base" />
+                    </button>
+                  </div>
+                  <div class="flex-1">
+                    <h1 class="text-3xl font-bold text-center">{@title}</h1>
+                  </div>
+                  <div class="w-8 flex justify-end overflow-x-visible">
+                    <%= if assigns[:current_scope] do %>
+                      <%= if assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") do %>
+                        <.tag_count count={@current_scope.trait_count} />
+                      <% else %>
+                        <.wallet_balance balance={@current_scope.wallet_balance} />
+                      <% end %>
+                    <% end %>
+                  </div>
+                </div>
+                <div class="flex-1 pb-15">
+                  {render_slot(@inner_block)}
+                </div>
+                <.debug_assigns {assigns} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <%!-- Slide-over screen panel --%>
+        <div class="panel">
+          <div class="panel-scroll">
+            <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
+              <div class="container mx-auto px-4 py-6 flex-1">
+                <button phx-click="close_slide_over" class="btn btn-ghost mb-4">
+                  <.icon name="hero-chevron-left" class="w-4 h-4 me-1" /> Back
+                </button>
+                <h1 class="text-2xl font-bold mb-6">{assigns[:slide_over_title] || "Details"}</h1>
+
+                <div>
+                  {render_slot(assigns[:slide_over_content] || [])}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%!-- Modals render outside panel system to overlay both panels --%>
+    {render_slot(assigns[:modals] || [])}
+
+    <%!-- Floating actions (like floating buttons) render outside panels --%>
+    {render_slot(assigns[:floating_actions] || [])}
+
+    <.mobile_sidebar {assigns} />
+    <.right_sidebar_drawer {assigns} />
+
+    <%!-- Onboarding tip (shown based on conditions) --%>
+    <.onboarding_tip :if={@current_scope} current_path={@current_path} current_scope={@current_scope} />
+
+    <%!-- PWA Install Prompts --%>
+    <div :if={@current_scope} phx-hook="PWAInstall" id="pwa-install-hook">
+      <QlariusWeb.Components.PWAInstallPrompt.install_banner
+        show_banner={assigns[:show_install_banner] || false}
+        is_ios={assigns[:is_ios] || false}
+        is_android={assigns[:is_android] || false}
+      />
+      <QlariusWeb.Components.PWAInstallPrompt.ios_install_guide
+        show={assigns[:show_ios_guide] || false}
+      />
+      <QlariusWeb.Components.PWAInstallPrompt.android_install_guide
+        show={assigns[:show_android_guide] || false}
+      />
+    </div>
+
+    <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
+    <div :if={@current_scope} class="dock z-40">
+      <button
+        class={[assigns[:current_path] == "/home" && "dock-active"]}
+        phx-click={JS.navigate(~p"/home")}
+      >
+        <.icon name="hero-home" class="size-[1.5em]" />
+        <span class="dock-label">Home</span>
+      </button>
+
+      <button
+        class={[
+          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") &&
+            "dock-active"
+        ]}
+        phx-click={JS.navigate(~p"/me_file")}
+      >
+        <.icon name="hero-identification" class="size-[1.5em]" />
+        <span class="dock-label">MeFile</span>
+      </button>
+
+      <button
+        class={[
+          "indicator relative",
+          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/wallet") &&
+            "dock-active"
+        ]}
+        phx-click={JS.navigate(~p"/wallet")}
+      >
+        <.icon name="hero-wallet" class="size-[1.5em]" />
+        <span class="dock-label">Wallet</span>
       </button>
 
       <button

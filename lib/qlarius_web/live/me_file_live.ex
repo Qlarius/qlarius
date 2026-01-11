@@ -13,17 +13,21 @@ defmodule QlariusWeb.MeFileLive do
     ~H"""
     <div id="mefile-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile {assigns}>
-        <.tag_edit_modal
-          trait_in_edit={@trait_in_edit}
-          me_file_id={@current_scope.user.me_file.id}
-          selected_ids={@selected_child_trait_ids || []}
-          show_modal={@show_modal}
-          tag_edit_mode={@tag_edit_mode || "update"}
-          zip_lookup_input={@zip_lookup_input}
-          zip_lookup_trait={@zip_lookup_trait}
-          zip_lookup_valid={@zip_lookup_valid}
-          zip_lookup_error={@zip_lookup_error}
-        />
+        <:modals>
+          <.tag_edit_modal
+            trait_in_edit={@trait_in_edit}
+            me_file_id={@current_scope.user.me_file.id}
+            selected_ids={@selected_child_trait_ids || []}
+            show_modal={@show_modal}
+            tag_edit_mode={@tag_edit_mode || "update"}
+            zip_lookup_input={@zip_lookup_input}
+            zip_lookup_trait={@zip_lookup_trait}
+            zip_lookup_valid={@zip_lookup_valid}
+            zip_lookup_error={@zip_lookup_error}
+            dual_pane={true}
+          />
+        </:modals>
+
         <div class="mb-8 flex gap-2 justify-start items-center">
           <div class="text-xl">
             Edit/delete existing tags below. Add more tags via the Tagger.
@@ -72,14 +76,17 @@ defmodule QlariusWeb.MeFileLive do
           </div>
         </div>
 
-        <%!-- Floating Tagger button (hidden by default, shows when inline scrolls out) --%>
-        <.link
-          id="floating-tagger-btn"
-          navigate={~p"/me_file_builder"}
-          class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-6 btn btn-primary btn-lg rounded-full flex items-center gap-1 z-100 px-4 py-5 shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"
-        >
-          <.icon name="hero-plus" class="h-5 w-5" /> Tagger
-        </.link>
+        <:floating_actions>
+          <%!-- Floating Tagger button (hidden by default, shows when inline scrolls out) --%>
+          <.link
+            id="floating-tagger-btn"
+            navigate={~p"/me_file_builder"}
+            class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-6 btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"
+            style="z-index: 100;"
+          >
+            <.icon name="hero-plus" class="h-5 w-5" /> Tagger
+          </.link>
+        </:floating_actions>
       </Layouts.mobile>
     </div>
     """

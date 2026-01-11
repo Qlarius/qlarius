@@ -12,181 +12,180 @@ defmodule QlariusWeb.MeFileBuilderLive do
   def render(assigns) do
     ~H"""
     <div id="mefilebuilder-pwa-detect" phx-hook="HiPagePWADetect">
-      <Layouts.mobile {assigns} title="Tagger">
-        <.tag_edit_modal
-        trait_in_edit={@trait_in_edit}
-        me_file_id={@current_scope.user.me_file.id}
-        selected_ids={@selected_child_trait_ids || []}
-        show_modal={@show_modal}
-        tag_edit_mode={@tag_edit_mode || "update"}
-        zip_lookup_input={@zip_lookup_input || ""}
-        zip_lookup_trait={@zip_lookup_trait}
-        zip_lookup_valid={@zip_lookup_valid || false}
-        zip_lookup_error={@zip_lookup_error}
-      />
+      <Layouts.mobile {assigns}
+        title="Tagger"
+        slide_over_active={@editing}
+        slide_over_title={(@survey_in_edit && @survey_in_edit.name) || "Survey"}
+      >
+        <:modals>
+          <.tag_edit_modal
+            trait_in_edit={@trait_in_edit}
+            me_file_id={@current_scope.user.me_file.id}
+            selected_ids={@selected_child_trait_ids || []}
+            show_modal={@show_modal}
+            tag_edit_mode={@tag_edit_mode || "update"}
+            zip_lookup_input={@zip_lookup_input || ""}
+            zip_lookup_trait={@zip_lookup_trait}
+            zip_lookup_valid={@zip_lookup_valid || false}
+            zip_lookup_error={@zip_lookup_error}
+            dual_pane={true}
+          />
+        </:modals>
 
-      <style phx-no-curly-interpolation>
-        .survey-panels { position: relative; width: 100%; overflow: hidden; height: calc(100vh - 146px);}
-        .survey-panels .track { display: flex; width: 200%; height: 100%; transform: translateX(0); transition: transform 300ms ease-in-out; }
-        .survey-panels.editing .track { transform: translateX(-50%); }
-        .survey-panels .survey-panel { width: 50%; flex: 0 0 50%; }
-      </style>
+        <:slide_over_content>
+          <div :if={@survey_in_edit} class="mb-6">
+            <% total_traits = length(@survey_in_edit.parent_traits)
 
-      <div class={[
-        "survey-panels ",
-        @editing && "editing"
-      ]}>
-        <div class="track">
-          <div class="survey-panel survey-index-panel w-full h-full overflow-y-auto">
-            <div class="h-full overflow-y-auto pb-32">
-              <div class="mb-8 flex gap-2 justify-start items-center">
-                <span class="text-xl">Select a tag bucket below and tag away.</span>
+            completed_traits =
+              Enum.count(@survey_in_edit.parent_traits, fn {_id, _name, _order, tags} ->
+                tags != []
+              end)
+
+            percent_complete =
+              if total_traits == 0, do: 0, else: trunc(completed_traits / total_traits * 100) %>
+            <div class="relative">
+              <progress
+                class={[
+                  "progress w-full h-6",
+                  cond do
+                    percent_complete == 0 -> "progress-error"
+                    percent_complete == 100 -> "progress-success"
+                    true -> "progress-warning"
+                  end
+                ]}
+                value={max(10, percent_complete)}
+                max="100"
+              >
+              </progress>
+              <div
+                class="absolute top-0 left-0 h-6 flex items-center justify-center text-xs font-bold text-white pointer-events-none"
+                style={"width: #{max(10, percent_complete)}%"}
+              >
+                {completed_traits}/{total_traits}
               </div>
+            </div>
+            <h1 class="text-base-content mt-2 text-xl">Fill/edit/delete tags below.</h1>
+          </div>
 
-              <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                <%= for category <- @categories do %>
-                  <% {answered_total, question_total, percent_complete} =
-                    Map.get(category, :category_stats, {0, 0, 0}) %>
-                  <div class="bg-base-100 overflow-hidden shadow rounded-lg">
-                    <div class="px-4 py-5 sm:p-6">
-                      <div class="flex items-center justify-between mb-2">
-                        <h3 class="text-lg font-lg leading-6 text-base-content">
-                          {category.survey_category_name}
-                        </h3>
-                        <div class={[
-                          "badge text-md rounded-full px-3 py-1 font-bold",
+          <div class="flex flex-row flex-wrap gap-4 pt-4 pb-32">
+            <.trait_card
+              :for={
+                {parent_trait_id, parent_trait_name, parent_trait_display_order, tags_traits} <-
+                  (@survey_in_edit && @survey_in_edit.parent_traits) || []
+              }
+              parent_trait_id={parent_trait_id}
+              parent_trait_name={parent_trait_name}
+              tags_traits={tags_traits}
+              clickable={true}
+            />
+          </div>
+
+          <div :if={!@active_survey_id} class="text-base-content/50 text-sm">
+            No survey selected
+          </div>
+        </:slide_over_content>
+
+        <%!-- Main content: Survey category index --%>
+        <div class="mb-8 flex gap-2 justify-start items-center">
+          <span class="text-xl">Select a tag bucket below and tag away.</span>
+        </div>
+
+        <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          <%= for category <- @categories do %>
+            <% {answered_total, question_total, percent_complete} =
+              Map.get(category, :category_stats, {0, 0, 0}) %>
+            <div class="bg-base-100 overflow-hidden shadow rounded-lg">
+              <div class="px-4 py-5 sm:p-6">
+                <div class="flex items-center justify-between mb-2">
+                  <h3 class="text-lg font-lg leading-6 text-base-content">
+                    {category.survey_category_name}
+                  </h3>
+                  <div class={[
+                    "badge text-md rounded-full px-3 py-1 font-bold",
+                    cond do
+                      percent_complete == 0 -> "badge-error"
+                      percent_complete == 100 -> "badge-success"
+                      true -> "badge-warning"
+                    end
+                  ]}>
+                    {answered_total}/{question_total}
+                  </div>
+                </div>
+                <div class="mb-5">
+                  <div class="relative">
+                    <progress
+                      class={[
+                        "progress w-full h-6",
+                        cond do
+                          percent_complete == 0 -> "progress-error"
+                          percent_complete == 100 -> "progress-success"
+                          true -> "progress-warning"
+                        end
+                      ]}
+                      value={max(10, percent_complete)}
+                      max="100"
+                    >
+                    </progress>
+                    <div
+                      class="absolute top-0 left-0 h-6 flex items-center justify-center text-sm font-bold text-white pointer-events-none"
+                      style={"width: #{max(10, percent_complete)}%"}
+                    >
+                      {percent_complete}%
+                    </div>
+                  </div>
+                </div>
+
+                <%= for survey <- category.surveys do %>
+                  <% {answered_question_count, question_count} = survey.survey_stats || {0, 0} %>
+                  <div
+                    class="mb-3 p-3 bg-base-200 rounded-lg cursor-pointer"
+                    phx-click="open_edit"
+                    phx-value-id={survey.id}
+                  >
+                    <div class="flex justify-between items-center">
+                      <span class="text-md font-lg text-base-content">{survey.name}</span>
+                      <div class="flex items-center space-x-2">
+                        <span class={[
+                          "badge badge-lg rounded-full text-md px-2 py-1",
                           cond do
-                            percent_complete == 0 -> "badge-error"
-                            percent_complete == 100 -> "badge-success"
+                            answered_question_count == 0 -> "badge-error"
+                            answered_question_count == question_count -> "badge-success"
                             true -> "badge-warning"
                           end
                         ]}>
-                          {answered_total}/{question_total}
-                        </div>
+                          {answered_question_count}/{question_count}
+                        </span>
+                        <.icon name="hero-chevron-right" class="w-5 h-5 text-base-content/60" />
                       </div>
-                      <div class="mb-5">
-                        <div class="relative">
-                          <progress
-                            class={[
-                              "progress w-full h-6",
-                              cond do
-                                percent_complete == 0 -> "progress-error"
-                                percent_complete == 100 -> "progress-success"
-                                true -> "progress-warning"
-                              end
-                            ]}
-                            value={max(10, percent_complete)}
-                            max="100"
-                          >
-                          </progress>
-                          <div
-                            class="absolute top-0 left-0 h-6 flex items-center justify-center text-sm font-bold text-white pointer-events-none"
-                            style={"width: #{max(10, percent_complete)}%"}
-                          >
-                            {percent_complete}%
-                          </div>
-                        </div>
-                      </div>
-
-                      <%= for survey <- category.surveys do %>
-                        <% {answered_question_count, question_count} = survey.survey_stats || {0, 0} %>
-                        <div
-                          class="mb-3 p-3 bg-base-200 rounded-lg cursor-pointer"
-                          phx-click="open_edit"
-                          phx-value-id={survey.id}
-                        >
-                          <div class="flex justify-between items-center">
-                            <span class="text-md font-lg text-base-content">{survey.name}</span>
-                            <div class="flex items-center space-x-2">
-                              <span class={[
-                                "badge badge-lg rounded-full text-md px-2 py-1",
-                                cond do
-                                  answered_question_count == 0 -> "badge-error"
-                                  answered_question_count == question_count -> "badge-success"
-                                  true -> "badge-warning"
-                                end
-                              ]}>
-                                {answered_question_count}/{question_count}
-                              </span>
-                              <.icon name="hero-chevron-right" class="w-5 h-5 text-base-content/60" />
-                            </div>
-                          </div>
-                        </div>
-                      <% end %>
                     </div>
                   </div>
                 <% end %>
               </div>
             </div>
-          </div>
+          <% end %>
+        </div>
 
-          <div class="survey-panel survey-edit-panel fixed top-0 right-0 w-full h-full">
-            <div>
-              <button type="button" phx-click="close_edit" class="btn btn-md mb-4">
-                <.icon name="hero-chevron-left" class="w-4 h-4 me-1" /> Back
-              </button>
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-base-content">
-                  {(@survey_in_edit && @survey_in_edit.name) || "Select a Survey"}
-                </h3>
-              </div>
-
-              <div :if={@survey_in_edit} class="mb-6">
-                <% total_traits = length(@survey_in_edit.parent_traits)
-
-                completed_traits =
-                  Enum.count(@survey_in_edit.parent_traits, fn {_id, _name, _order, tags} ->
-                    tags != []
-                  end)
-
-                percent_complete =
-                  if total_traits == 0, do: 0, else: trunc(completed_traits / total_traits * 100) %>
-                <div class="relative">
-                  <progress
-                    class={[
-                      "progress w-full h-6",
-                      cond do
-                        percent_complete == 0 -> "progress-error"
-                        percent_complete == 100 -> "progress-success"
-                        true -> "progress-warning"
-                      end
-                    ]}
-                    value={max(10, percent_complete)}
-                    max="100"
-                  >
-                  </progress>
-                  <div
-                    class="absolute top-0 left-0 h-6 flex items-center justify-center text-xs font-bold text-white pointer-events-none"
-                    style={"width: #{max(10, percent_complete)}%"}
-                  >
-                    {completed_traits}/{total_traits}
-                  </div>
-                </div>
-                <h1 class="text-base-content mt-2 text-xl">Fill/edit/delete tags below.</h1>
-              </div>
-            </div>
-
-            <div class="overflow-y-auto pb-32 max-h-full">
-              <div class="flex flex-row flex-wrap gap-4 pl-4 pt-4 pb-32">
-                <.trait_card
-                  :for={
-                    {parent_trait_id, parent_trait_name, parent_trait_display_order, tags_traits} <-
-                      (@survey_in_edit && @survey_in_edit.parent_traits) || []
-                  }
-                  parent_trait_id={parent_trait_id}
-                  parent_trait_name={parent_trait_name}
-                  tags_traits={tags_traits}
-                  clickable={true}
-                />
-              </div>
-
-              <div :if={!@active_survey_id} class="text-base-content/50 text-sm">
-                No survey selected
-              </div>
-            </div>
+        <%!-- Inline button at bottom of survey list --%>
+        <div
+          id="inline-tagger-btn"
+          class="flex justify-center mt-8"
+          phx-hook="TaggerButtonObserver"
+        >
+          <div class="btn btn-primary btn-lg rounded-full flex items-center gap-2 px-6 py-5 shadow-lg">
+            <.icon name="hero-plus" class="h-5 w-5" /> Add more tags
           </div>
         </div>
-      </div>
+
+        <:floating_actions>
+          <%!-- Floating button (hidden by default, shows when inline scrolls below dock) --%>
+          <div
+            id="floating-tagger-btn"
+            class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-6 btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"
+            style="z-index: 100;"
+          >
+            <.icon name="hero-plus" class="h-5 w-5" /> Tagger
+          </div>
+        </:floating_actions>
       </Layouts.mobile>
     </div>
     """
@@ -246,7 +245,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
     {:noreply, open_survey(socket, survey_id)}
   end
 
-  def handle_event("close_edit", _params, socket) do
+  def handle_event("close_slide_over", _params, socket) do
     {:noreply,
      socket
      |> assign(editing: false, active_survey_id: nil)

@@ -44,11 +44,13 @@ defmodule QlariusWeb.MeFileHTML do
   attr :zip_lookup_trait, :any, default: nil
   attr :zip_lookup_valid, :boolean, default: false
   attr :zip_lookup_error, :string, default: nil
+  attr :dual_pane, :boolean, default: false
 
   def tag_edit_modal(assigns) do
     ~H"""
     <div class={[
       "modal modal-bottom sm:modal-middle",
+      @dual_pane && "modal-dual-pane",
       @show_modal && "modal-open bg-base-300/80 backdrop-blur-sm"
     ]}>
       <div class="flex flex-col modal-box border border-youdata-500 dark:border-youdata-700 bg-base-100 p-0 max-h-[90vh]">

@@ -784,9 +784,12 @@ Hooks.TaggerButtonObserver = {
     
     if (!this.floatingBtn) return
     
+    // Find the scroll container (either .panel-scroll for dual-pane or viewport for single-pane)
+    const scrollContainer = this.el.closest('.panel-scroll')
+    
     const options = {
-      root: null,
-      rootMargin: '0px 0px -150px 0px',
+      root: scrollContainer,
+      rootMargin: '0px 0px -80px 0px', // Account for dock height (5rem ≈ 80px)
       threshold: 0
     }
     
@@ -796,7 +799,7 @@ Hooks.TaggerButtonObserver = {
           // Inline button is visible, hide floating button
           this.floatingBtn.classList.add('opacity-0', 'pointer-events-none')
         } else {
-          // Inline button is out of view, show floating button
+          // Inline button is out of view (below dock), show floating button
           this.floatingBtn.classList.remove('opacity-0', 'pointer-events-none')
         }
       })
