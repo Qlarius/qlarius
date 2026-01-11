@@ -106,8 +106,8 @@ defmodule QlariusWeb.HomeLive do
     <div id="home-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile {assigns}>
         <div class="flex flex-row flex-wrap justify-between items-center py-3 mb-6">
-        <h2 class="text-2xl font-bold">{@current_scope.user.alias}</h2>
-        <p class="text-xl md:text-2xl flex items-center gap-1">
+        <h2 class="text-xl font-bold">{@current_scope.user.alias}</h2>
+        <p class="text-xl flex items-center gap-1">
           <.icon name="hero-map-pin-solid" class="h-5 w-5 text-gray-500" />
           {@current_scope.home_zip}
         </p>

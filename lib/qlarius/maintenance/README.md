@@ -263,7 +263,164 @@ Run this when:
 - Checks for unique constraint violations
 - Can be tested with dry run mode
 
-### 5. SplitLedgerEntryDescriptions
+### 5. CleanupOrphanedMarketerRecords
+
+**Module**: `Qlarius.Maintenance.CleanupOrphanedMarketerRecords`
+
+Utility to clean up orphaned records where `marketer_id` references a non-existent marketer. This happens when a marketer is deleted but the deletion doesn't properly cascade.
+
+#### What Gets Deleted
+
+Deletes records in proper cascade order:
+1. **Offers** (child of campaigns/media_runs)
+2. **Bids** (child of campaigns)
+3. **Campaigns** (has marketer_id)
+4. **MediaRuns** (has marketer_id)
+5. **TargetBands** (child of targets)
+6. **Targets** (has marketer_id)
+7. **TraitGroups** (has marketer_id)
+8. **MediaPieces** (has marketer_id)
+9. **MediaSequences** (has marketer_id)
+
+#### What Is NOT Deleted
+
+- **Ledger entries** (financial records preserved)
+- **AdEvents** (historical event data preserved)
+- Any other financial or audit trail records
+
+#### Safety Features
+
+- Finds ALL orphaned references across all tables (not just one marketer)
+- Dry-run mode to preview deletions
+- Requires explicit `execute: true` flag to actually delete
+- 5-second countdown before deletion starts
+- Batch processing to handle large datasets
+- Detailed logging at each step
+- Verification function to confirm cleanup
+
+#### Usage
+
+```elixir
+# Step 1: Diagnose - see what will be deleted
+Qlarius.Maintenance.CleanupOrphanedMarketerRecords.diagnose()
+
+# Output:
+# === Diagnosing Orphaned Marketer Records ===
+# 
+# Found references to 1 non-existent marketer(s):
+#   - Marketer ID: 42
+# 
+# === Records to be deleted ===
+# 
+# Offers:        150
+# Bids:          45
+# Campaigns:     12
+# MediaRuns:     8
+# TargetBands:   20
+# Targets:       5
+# TraitGroups:   3
+# MediaPieces:   10
+# MediaSequences: 4
+# ────────────────────────────────────────
+# TOTAL:         257
+# 
+# === Sample Records (showing up to 3 per table) ===
+# --- Campaigns ---
+#   ID: 123, Title: "Summer Campaign", Marketer ID: 42
+#   ID: 124, Title: "Fall Promo", Marketer ID: 42
+
+# Step 2: Dry run - preview without deleting
+Qlarius.Maintenance.CleanupOrphanedMarketerRecords.run(dry_run: true)
+
+# Output:
+# === Cleanup Orphaned Records (DRY RUN) ===
+# 
+# Processing records for 1 orphaned marketer(s)
+# 
+# Would delete:
+# Offers:        150
+# Bids:          45
+# Campaigns:     12
+# ...
+
+# Step 3: Execute the actual deletion (requires explicit flag)
+Qlarius.Maintenance.CleanupOrphanedMarketerRecords.run(execute: true)
+
+# Output:
+# === Cleanup Orphaned Records (EXECUTION) ===
+# 
+# Processing records for 1 orphaned marketer(s)
+# 
+# ⚠️  WARNING: This will permanently delete records!
+# Press Ctrl+C within 5 seconds to cancel...
+# 
+# Offers: Deleting 150 records...
+# Offers: ✅ Deleted 150 records
+# Bids: Deleting 45 records...
+# ...
+# 
+# === Cleanup Complete ===
+# ...
+
+# Step 4: Verify the cleanup worked
+Qlarius.Maintenance.CleanupOrphanedMarketerRecords.verify()
+
+# Output:
+# === Verifying Cleanup ===
+# 
+# ✅ Verification successful!
+# No orphaned marketer references found.
+
+# Optional: Quick boolean check if orphans exist (no output)
+if Qlarius.Maintenance.CleanupOrphanedMarketerRecords.verify?() do
+  IO.puts("Orphaned records found!")
+end
+
+# Optional: Custom batch size for large deletions
+Qlarius.Maintenance.CleanupOrphanedMarketerRecords.run(execute: true, batch_size: 50)
+```
+
+#### When to Use
+
+Run this when:
+- A marketer was deleted and left orphaned records
+- You see foreign key errors related to missing marketers
+- Database integrity checks reveal broken marketer references
+- After manually deleting marketers from the database
+
+#### Common Scenarios
+
+**Scenario 1: Single deleted marketer**
+```elixir
+# Marketer ID 42 was deleted, now clean up their records
+Qlarius.Maintenance.CleanupOrphanedMarketerRecords.diagnose()
+# Shows all records for marketer 42
+Qlarius.Maintenance.CleanupOrphanedMarketerRecords.run(execute: true)
+```
+
+**Scenario 2: Multiple orphaned marketers**
+```elixir
+# After bulk deletion or data migration
+Qlarius.Maintenance.CleanupOrphanedMarketerRecords.diagnose()
+# Finds ALL orphaned references across all tables
+# Output might show:
+# Found references to 5 non-existent marketer(s):
+#   - Marketer ID: 10
+#   - Marketer ID: 25
+#   - Marketer ID: 42
+#   - Marketer ID: 99
+#   - Marketer ID: 150
+```
+
+#### Error Handling
+
+- Deletes in proper order to avoid foreign key violations
+- Processes in batches to avoid memory issues
+- Logs all operations for audit trail
+- Continues on individual failures within a batch
+- Returns detailed summary of what was deleted
+
+### 6. SplitLedgerEntryDescriptions
 
 **Module**: `Qlarius.Maintenance.SplitLedgerEntryDescriptions`
 
@@ -352,6 +509,10 @@ Qlarius.Maintenance.SnapshotQueries.count_by_issue_type()
 # Swap mobile numbers
 Qlarius.Maintenance.SwapMobileNumbers.diagnose("user1", "user2")
 Qlarius.Maintenance.SwapMobileNumbers.swap("user1", "user2")
+
+# Clean up orphaned marketer records
+Qlarius.Maintenance.CleanupOrphanedMarketerRecords.diagnose()
+Qlarius.Maintenance.CleanupOrphanedMarketerRecords.run(execute: true)
 
 # Split ledger entry descriptions
 Qlarius.Maintenance.SplitLedgerEntryDescriptions.diagnose()
