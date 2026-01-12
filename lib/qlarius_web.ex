@@ -55,6 +55,7 @@ defmodule QlariusWeb do
       use Phoenix.LiveView
 
       on_mount QlariusWeb.PWAInstallHooks
+      on_mount QlariusWeb.LogoutModalHooks
 
       unquote(html_helpers())
       unquote(socket_helpers())

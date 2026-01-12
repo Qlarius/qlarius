@@ -29,6 +29,7 @@ defmodule QlariusWeb.ProxyUsersLive do
        |> assign(:proxy_users, proxy_users)
        |> assign(:active_proxy, active_proxy)
        |> assign(:title, "Proxy Users")
+       |> assign(:current_path, "/proxy_users")
        |> assign(:show_add_modal, false)
        |> assign(:is_pwa, false)
        |> assign(:device_type, :desktop)}
@@ -46,6 +47,10 @@ defmodule QlariusWeb.ProxyUsersLive do
 
   def handle_event("toggle_dark_mode", _params, socket) do
     {:noreply, socket}
+  end
+
+  def handle_event("navigate_to_settings", _params, socket) do
+    {:noreply, push_navigate(socket, to: ~p"/settings")}
   end
 
   def handle_event("add_proxy", _params, socket) do
@@ -98,6 +103,10 @@ defmodule QlariusWeb.ProxyUsersLive do
     <div id="proxyusers-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile {assigns}>
         <div class="mx-auto max-w-2xl">
+          <button phx-click="navigate_to_settings" class="btn btn-outline rounded-full text-lg mb-4 !border-base-content/30 !px-3 !py-1">
+            <.icon name="hero-chevron-left" class="w-5 h-5" /> Back
+          </button>
+
           <div class="flex justify-between items-center mb-4">
             <p class="text-base-content/60">Deselect all to return to true user.</p>
             <button class="btn btn-primary btn-sm" phx-click="add_proxy">

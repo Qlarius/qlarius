@@ -45,8 +45,8 @@ endpoint_config =
       certfile: dev_certfile
     ],
     check_origin: false,
-    url: [host: "localhost", port: 4001, scheme: "https"],
-    static_url: [host: "localhost", port: 4001, scheme: "https"],
+    url: [host: "localhost", port: 4000, scheme: "http"],
+    static_url: [host: "localhost", port: 4000, scheme: "http"],
     code_reloader: true,
     debug_errors: true,
     secret_key_base: "I0TNoNVsAUb60KoJZG27GA8uKP29XGc9Sifl6xY/RfCkULLRYLyl67A6PjHiYgoF",

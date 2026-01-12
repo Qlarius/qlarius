@@ -11,6 +11,7 @@ defmodule QlariusWeb.Layouts do
   use QlariusWeb, :html
 
   alias Qlarius.Accounts.Scope
+  alias Phoenix.LiveView.JS
   import QlariusWeb.Components.CustomComponentsMobile
 
   # import QlariusWeb.Money
@@ -256,6 +257,8 @@ defmodule QlariusWeb.Layouts do
   attr :slide_over_title, :string, default: "Details"
 
   def mobile(assigns) do
+    assigns = Map.put_new(assigns, :show_logout_modal, false)
+
     ~H"""
     <.flash_group flash={@flash} />
 
@@ -332,6 +335,15 @@ defmodule QlariusWeb.Layouts do
           margin: 0 !important;
         }
       }
+
+      /* Logout modal should appear above sidebar (z-50) */
+      #logout-modal {
+        z-index: 60 !important;
+      }
+      /* Hide default close button - we have one in the header */
+      #logout-modal-container > div.absolute {
+        display: none !important;
+      }
     </style>
 
     <div class={[
@@ -397,6 +409,42 @@ defmodule QlariusWeb.Layouts do
 
     <%!-- Floating actions (like floating buttons) render outside panels --%>
     {render_slot(assigns[:floating_actions] || [])}
+
+    <%!-- Logout confirmation modal (mobile layout only) --%>
+    <%= if assigns[:current_scope] && assigns[:show_logout_modal] do %>
+      <.modal
+        id="logout-modal"
+        show={true}
+        on_cancel={JS.push("cancel_logout")}
+      >
+        <div class="border-2 border-primary rounded-box">
+          <%!-- Header bar --%>
+          <div class="bg-base-200 dark:bg-base-300 px-6 py-4 flex items-center justify-between rounded-t-box">
+            <h3 class="font-bold text-lg">Confirm Logout</h3>
+            <button
+              phx-click={JS.push("cancel_logout")}
+              type="button"
+              class="btn btn-circle btn-ghost btn-sm hover:bg-base-300"
+              aria-label={gettext("close")}
+            >
+              <.icon name="hero-x-mark" class="w-5 h-5" />
+            </button>
+          </div>
+          <%!-- Content --%>
+          <div class="p-6">
+            <p class="py-4">Are you sure you want to log out?</p>
+            <div class="modal-action">
+              <button class="btn btn-ghost" phx-click="cancel_logout">Cancel</button>
+              <form action={~p"/logout"} method="post">
+                <input type="hidden" name="_method" value="delete" />
+                <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+                <button type="submit" class="btn btn-error">Log Out</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </.modal>
+    <% end %>
 
     <.mobile_sidebar {assigns} />
     <.right_sidebar_drawer {assigns} />

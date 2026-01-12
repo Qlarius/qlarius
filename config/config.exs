@@ -99,7 +99,7 @@ config :logger, :console,
 config :waffle,
   storage: Waffle.Storage.Local,
   storage_dir_prefix: "priv/static",
-  asset_host: "https://localhost:4001"
+  asset_host: "http://localhost:4000"
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason

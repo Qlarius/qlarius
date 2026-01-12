@@ -177,7 +177,9 @@ defmodule QlariusWeb.Router do
         {QlariusWeb.Layouts, :set_current_path}
       ] do
       live "/home", HomeLive, :index
-      live "/users/settings", UserSettingsLive, :edit
+      live "/settings", UserSettingsLive, :index
+      live "/settings/notifications", Settings.NotificationsLive, :index
+      live "/settings/time_zone", Settings.TimeZoneLive, :index
       live "/wallet", WalletLive, :index
       live "/ads", AdsLive, :index
       live "/referrals", ReferralsLive, :index

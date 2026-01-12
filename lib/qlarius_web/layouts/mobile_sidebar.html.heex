@@ -202,18 +202,17 @@
     <div class="mt-auto p-3 bg-base-300">
       <div class="grid grid-cols-2 gap-2">
         <.link
-          navigate={~p"/users/settings"}
+          navigate={~p"/settings"}
           class="flex flex-col items-center justify-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 text-sm"
         >
           <.icon name="hero-cog-6-tooth" class="h-5 w-5 mb-1" /> Settings
         </.link>
-        <.link
-          href={~p"/logout"}
-          class="flex flex-col items-center justify-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 text-sm"
-          method="delete"
+        <button
+          phx-click="show_logout_modal"
+          class="flex flex-col items-center justify-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 text-sm w-full cursor-pointer"
         >
           <.icon name="hero-arrow-right-on-rectangle" class="h-5 w-5 mb-1" /> Log out
-        </.link>
+        </button>
       </div>
       <%!-- <%= if (@is_mobile || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
         <div class="h-[env(safe-area-inset-bottom)] min-h-8 bg-base-300"></div>

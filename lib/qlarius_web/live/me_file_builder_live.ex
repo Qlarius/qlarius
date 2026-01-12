@@ -165,27 +165,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
           <% end %>
         </div>
 
-        <%!-- Inline button at bottom of survey list --%>
-        <div
-          id="inline-tagger-btn"
-          class="flex justify-center mt-8"
-          phx-hook="TaggerButtonObserver"
-        >
-          <div class="btn btn-primary btn-lg rounded-full flex items-center gap-2 px-6 py-5 shadow-lg">
-            <.icon name="hero-plus" class="h-5 w-5" /> Add more tags
-          </div>
-        </div>
-
-        <:floating_actions>
-          <%!-- Floating button (hidden by default, shows when inline scrolls below dock) --%>
-          <div
-            id="floating-tagger-btn"
-            class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-6 btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"
-            style="z-index: 100;"
-          >
-            <.icon name="hero-plus" class="h-5 w-5" /> Tagger
-          </div>
-        </:floating_actions>
       </Layouts.mobile>
     </div>
     """
