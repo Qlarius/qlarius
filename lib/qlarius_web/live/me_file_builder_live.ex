@@ -97,11 +97,11 @@ defmodule QlariusWeb.MeFileBuilderLive do
             <div class="bg-base-100 overflow-hidden shadow rounded-lg">
               <div class="px-4 py-5 sm:p-6">
                 <div class="flex items-center justify-between mb-2">
-                  <h3 class="text-lg font-lg leading-6 text-base-content">
+                  <h3 class="text-xl leading-6 text-base-content font-bold">
                     {category.survey_category_name}
                   </h3>
                   <div class={[
-                    "badge text-md rounded-full px-3 py-1 font-bold",
+                    "badge badge-lg rounded-full px-3 py-3 font-bold",
                     cond do
                       percent_complete == 0 -> "badge-error"
                       percent_complete == 100 -> "badge-success"
@@ -143,10 +143,10 @@ defmodule QlariusWeb.MeFileBuilderLive do
                     phx-value-id={survey.id}
                   >
                     <div class="flex justify-between items-center">
-                      <span class="text-md font-lg text-base-content">{survey.name}</span>
+                      <span class="text-xl text-base-content">{survey.name}</span>
                       <div class="flex items-center space-x-2">
                         <span class={[
-                          "badge badge-lg rounded-full text-md px-2 py-1",
+                          "badge badge-lg rounded-full px-3 py-3",
                           cond do
                             answered_question_count == 0 -> "badge-error"
                             answered_question_count == question_count -> "badge-success"

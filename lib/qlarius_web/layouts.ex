@@ -377,8 +377,8 @@ defmodule QlariusWeb.Layouts do
           <div class="panel-scroll">
             <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
               <div class="container mx-auto px-4 py-6 flex-1" style="padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));">
-                <button phx-click="close_slide_over" class="btn btn-ghost mb-4">
-                  <.icon name="hero-chevron-left" class="w-4 h-4 me-1" /> Back
+                <button phx-click="close_slide_over" class="btn btn-outline rounded-full text-lg mb-4 !border-base-content/30 !px-3 !py-1">
+                  <.icon name="hero-chevron-left" class="w-5 h-5" /> Back
                 </button>
                 <h1 class="text-2xl font-bold mb-6">{assigns[:slide_over_title] || "Details"}</h1>
 

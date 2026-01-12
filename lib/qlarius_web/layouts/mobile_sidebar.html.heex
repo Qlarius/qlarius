@@ -72,7 +72,7 @@
               <span class="ml-3">Ads</span>
             </div>
             <span
-              class="bg-sponster-500 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
+              class="badge badge-lg rounded px-3 py-3 !bg-sponster-500 !text-primary-content"
               data-app-target="offerCount"
             >
               {@current_scope.ads_count}
@@ -91,7 +91,7 @@
               <span class="ml-3">Wallet</span>
             </div>
             <span
-              class="bg-sponster-500 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
+              class="badge badge-lg rounded px-3 py-3 !bg-sponster-500 !text-primary-content"
               data-app-target="balance"
             >
               ${@current_scope.user.me_file.ledger_header.balance}
@@ -111,7 +111,7 @@
             </div>
             <span
               :if={@current_scope.pending_referral_clicks_count > 0}
-              class="bg-sponster-500 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
+              class="badge badge-lg rounded px-3 py-3 !bg-sponster-500 !text-primary-content"
               data-app-target="pendingReferralClicks"
             >
               {@current_scope.pending_referral_clicks_count}
@@ -135,11 +135,11 @@
               <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata-500">
                 <.icon name="hero-identification" class="h-5 w-5 text-primary-content" />
               </div>
-              <span class="ml-3">Your MeFile</span>
+              <span class="ml-3">MeFile</span>
             </div>
             <span
-              class="bg-youdata-500 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
-              data-app-target="tagCount"
+              class="badge badge-lg rounded px-3 py-3 !bg-youdata-500 !text-primary-content"
+              data-app-target="traitCount"
             >
               {@current_scope.trait_count}
             </span>

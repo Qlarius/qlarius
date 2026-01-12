@@ -182,14 +182,18 @@ defmodule QlariusWeb.HomeLive do
 
           <div class="grid grid-cols-2 gap-4">
             <div class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center">
-              <div class="text-3xl font-bold leading-none">2</div>
+              <div class="text-3xl font-bold leading-none">0</div>
               <div class="text-md font-medium text-base-content/60">active tiqits</div>
             </div>
 
             <div class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center">
-              <div class="text-3xl font-bold leading-none">7</div>
+              <div class="text-3xl font-bold leading-none">0</div>
               <div class="text-md font-medium text-base-content/60">expiring tiqits</div>
             </div>
+          </div>
+
+          <div class="mt-3 text-center text-sm text-base-content/30">
+            Coming soon. Build up your wallet to be ready.
           </div>
         </div>
       </div>
