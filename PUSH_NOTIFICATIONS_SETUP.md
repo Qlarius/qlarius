@@ -120,7 +120,7 @@ The seed has been run and populated 10 default call-to-action phrases:
 - "Your personalized ads are ready to view!"
 
 **To Edit CTAs:**
-Visit `/admin/global_variables` and find `notification_ctas` - one CTA per line!
+Visit `/admin/global_variables` and find `PUSH_NOTIFICATION_SPONSTER_ADS_CTAS` - one CTA per line!
 
 ### 5. Test the Flow
 

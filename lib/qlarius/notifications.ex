@@ -168,7 +168,7 @@ defmodule Qlarius.Notifications do
     cta = get_random_cta()
 
     %{
-      title: "Sponser here",
+      title: "Spontser here",
       body: "You have #{ad_count} sponsor ads totaling $#{formatted_value} currently. #{cta}",
       icon: "/images/qadabra_app_icon_192.png",
       badge: "/images/qadabra_app_icon_192.png",
@@ -180,7 +180,7 @@ defmodule Qlarius.Notifications do
   end
 
   defp get_random_cta() do
-    case System.get_global_variable("notification_ctas") do
+    case System.get_global_variable("PUSH_NOTIFICATION_SPONSTER_ADS_CTAS") do
       nil ->
         @default_cta
 

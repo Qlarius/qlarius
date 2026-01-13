@@ -1,6 +1,6 @@
 alias Qlarius.System
 
-# Default notification CTAs - one per line for easy admin editing
+# Default push notification CTAs for sponsor ads - one per line for easy admin editing
 default_ctas = """
 Tap to access and sell your attention now.
 Tap now and let's grab that revenue!
@@ -14,6 +14,6 @@ Let's make some quick cash together!
 Your personalized ads are ready to view!
 """
 
-System.set_global_variable("notification_ctas", String.trim(default_ctas))
+System.set_global_variable("PUSH_NOTIFICATION_SPONSTER_ADS_CTAS", String.trim(default_ctas))
 
-IO.puts("✅ Notification CTAs seeded (editable at /admin/global_variables)")
+IO.puts("✅ Push notification CTAs seeded (editable at /admin/global_variables)")
