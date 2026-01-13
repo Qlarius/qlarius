@@ -8,7 +8,12 @@ defmodule QlariusWeb.UserAuth do
   alias Qlarius.Accounts.Scope
 
   @remember_me_cookie "_qlarius_web_user_remember_me"
-  @remember_me_options [sign: true, max_age: 60 * 60 * 24 * 60, same_site: "Lax"]
+  @remember_me_options [
+    sign: true,
+    max_age: 60 * 60 * 24 * 60,
+    same_site: "Lax",
+    http_only: true
+  ]
 
   def log_in_user(conn, user, params \\ %{}) do
     token = Accounts.generate_user_session_token(user)

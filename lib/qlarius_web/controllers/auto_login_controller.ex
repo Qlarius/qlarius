@@ -15,7 +15,7 @@ defmodule QlariusWeb.AutoLoginController do
         |> redirect(to: ~p"/login")
 
       user ->
-        UserAuth.log_in_user(conn, user)
+        UserAuth.log_in_user(conn, user, %{"remember_me" => "true"})
     end
   end
 end
