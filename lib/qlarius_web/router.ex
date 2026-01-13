@@ -141,6 +141,15 @@ defmodule QlariusWeb.Router do
     get "/auto_login/:token", AutoLoginController, :create
   end
 
+  scope "/api", QlariusWeb do
+    pipe_through [:api, :fetch_session, :fetch_current_scope_for_user, :require_authenticated_user]
+
+    get "/push/vapid-public-key", PushController, :vapid_public_key
+    post "/push/subscribe", PushController, :subscribe
+    post "/push/unsubscribe", PushController, :unsubscribe
+    post "/push/track-click", PushController, :track_click
+  end
+
   scope "/", QlariusWeb do
     pipe_through [:browser]
 
@@ -178,8 +187,6 @@ defmodule QlariusWeb.Router do
       ] do
       live "/home", HomeLive, :index
       live "/settings", UserSettingsLive, :index
-      live "/settings/notifications", Settings.NotificationsLive, :index
-      live "/settings/time_zone", Settings.TimeZoneLive, :index
       live "/wallet", WalletLive, :index
       live "/ads", AdsLive, :index
       live "/referrals", ReferralsLive, :index

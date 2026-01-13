@@ -151,4 +151,21 @@ if config_env() == :prod do
         tag: "AES.GCM.V1", key: cloak_key, iv_length: 12
       }
     ]
+
+  config :qlarius,
+    vapid_public_key: System.get_env("VAPID_PUBLIC_KEY"),
+    vapid_private_key: System.get_env("VAPID_PRIVATE_KEY"),
+    vapid_subject: "mailto:support@qlarius.com"
 end
+
+# VAPID keys for push notifications (all environments)
+config :qlarius,
+  vapid_public_key: System.get_env("VAPID_PUBLIC_KEY"),
+  vapid_private_key: System.get_env("VAPID_PRIVATE_KEY"),
+  vapid_subject: System.get_env("VAPID_SUBJECT", "mailto:support@qlarius.com")
+
+# Configure web_push_encryption library
+config :web_push_encryption, :vapid_details,
+  subject: System.get_env("VAPID_SUBJECT", "mailto:support@qlarius.com"),
+  public_key: System.get_env("VAPID_PUBLIC_KEY"),
+  private_key: System.get_env("VAPID_PRIVATE_KEY")

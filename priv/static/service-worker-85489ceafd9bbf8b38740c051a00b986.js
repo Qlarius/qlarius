@@ -25,23 +25,13 @@ self.addEventListener("fetch", (event) => {
 
 self.addEventListener("push", (event) => {
   console.log("Push notification received:", event)
-  console.log("Push event.data:", event.data)
   
-  let data = {}
-  try {
-    if (event.data) {
-      console.log("Raw data text:", event.data.text())
-      data = event.data.json()
-      console.log("Parsed notification data:", data)
-    }
-  } catch (error) {
-    console.error("Error parsing push data:", error)
-  }
+  const data = event.data ? event.data.json() : {}
   
   const options = {
     body: data.body || "You have new ads available",
-    icon: data.icon || "/images/qadabra_app_icon_192.png",
-    badge: data.badge || "/images/qadabra_app_icon_192.png",
+    icon: data.icon || "/images/qadabra_icon.png",
+    badge: data.badge || "/images/badge-icon.png",
     data: data.data || {},
     tag: "ad-notification",
     requireInteraction: false,
@@ -50,21 +40,10 @@ self.addEventListener("push", (event) => {
       { action: "close", title: "Dismiss" }
     ]
   }
-  
-  console.log("Showing notification with title:", data.title || "Sponser here")
-  console.log("Notification options:", options)
 
   event.waitUntil(
     Promise.all([
-      self.registration.showNotification(data.title || "Sponser here", options)
-        .then(() => {
-          console.log("✅ Notification shown successfully!")
-        })
-        .catch((error) => {
-          console.error("❌ Error showing notification:", error)
-          console.error("Error name:", error.name)
-          console.error("Error message:", error.message)
-        }),
+      self.registration.showNotification(data.title || "Sponser here", options),
       updateBadge(data.data?.unread_count)
     ])
   )

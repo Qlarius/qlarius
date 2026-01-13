@@ -1,5 +1,5 @@
 <%!-- 
-  We use Alpine.js state for splitAmount because phx-update="ignore" prevents LiveView from updating the DOM for this drawer.
+  We use vanilla JS state in TipDrawerHook for splitAmount because phx-update="ignore" prevents LiveView from updating the DOM for this drawer.
   This ensures the UI updates immediately when a split button is clicked, even though the assign changes in the socket are not patched in.
 --%>
 <div
@@ -27,7 +27,7 @@
         style="position: absolute; top: -36px; right: 0; transform: translateZ(0); -webkit-transform: translateZ(0);"
       >
         <!--
-      We use Alpine's splitAmount state here instead of @current_scope.user.me_file.split_amount because phx-update="ignore"
+      We use the TipDrawerHook's splitAmount state here instead of @current_scope.user.me_file.split_amount because phx-update="ignore"
       prevents LiveView from patching the DOM for this drawer. This ensures the displayed value updates
       immediately when the user selects a new split amount.
     -->

@@ -79,7 +79,8 @@ defmodule Qlarius.MixProject do
       {:wax, "~> 0.4"},
       {:ex_phone_number, "~> 0.4"},
       {:hammer, "~> 6.2"},
-      {:ex_aws_ssm, "~> 2.0"}
+      {:ex_aws_ssm, "~> 2.0"},
+      {:web_push_encryption, "~> 0.3"}
     ]
   end
 

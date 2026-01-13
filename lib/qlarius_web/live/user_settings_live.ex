@@ -2,6 +2,7 @@ defmodule QlariusWeb.UserSettingsLive do
   use QlariusWeb, :live_view
 
   import QlariusWeb.PWAHelpers
+  alias Qlarius.Notifications
 
   def render(assigns) do
     ~H"""
@@ -87,13 +88,20 @@ defmodule QlariusWeb.UserSettingsLive do
   end
 
   def mount(_params, _session, socket) do
+    user_id = socket.assigns.current_scope.user.id
+    Notifications.ensure_default_preferences(user_id)
+
     {:ok,
      socket
      |> assign(:title, "Settings")
      |> assign(:current_path, "/settings")
      |> assign(:selected_setting, nil)
      |> assign(:is_pwa, false)
-     |> assign(:device_type, :desktop)}
+     |> assign(:device_type, :desktop)
+     |> assign(:notification_preference, nil)
+     |> assign(:current_device_subscribed, false)
+     |> assign(:device_subscription_supported, true)
+     |> assign(:total_devices_subscribed, 0)}
   end
 
   def handle_event("pwa_detected", params, socket) do
@@ -105,12 +113,168 @@ defmodule QlariusWeb.UserSettingsLive do
     {:noreply, push_navigate(socket, to: ~p"/proxy_users")}
   end
 
+  def handle_event("open_setting", %{"setting" => "notifications"}, socket) do
+    user_id = socket.assigns.current_scope.user.id
+    preference = Notifications.get_preference(user_id, "web_push", "ad_count")
+    subscriptions = Notifications.get_active_subscriptions(user_id)
+
+    {:noreply,
+     socket
+     |> assign(:selected_setting, "notifications")
+     |> assign(:notification_preference, preference)
+     |> assign(:total_devices_subscribed, length(subscriptions))}
+  end
+
   def handle_event("open_setting", %{"setting" => setting}, socket) do
     {:noreply, assign(socket, :selected_setting, setting)}
   end
 
   def handle_event("close_slide_over", _params, socket) do
-    {:noreply, assign(socket, :selected_setting, nil)}
+    {:noreply,
+     socket
+     |> assign(:selected_setting, nil)
+     |> assign(:notification_preference, nil)}
+  end
+
+  def handle_event("toggle_enabled", _params, socket) do
+    currently_subscribed = socket.assigns.current_device_subscribed
+
+    socket = if !currently_subscribed do
+      # Request permission and subscribe this device
+      push_event(socket, "request-push-permission", %{})
+    else
+      # TODO: Unsubscribe this device (would need to track device subscription ID)
+      put_flash(socket, :info, "To disable, please turn off notifications in your browser settings for this site")
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("device_subscribed", _params, socket) do
+    user_id = socket.assigns.current_scope.user.id
+    subscriptions = Notifications.get_active_subscriptions(user_id)
+
+    {:noreply,
+     socket
+     |> assign(:current_device_subscribed, true)
+     |> assign(:total_devices_subscribed, length(subscriptions))
+     |> put_flash(:info, "✅ This device is subscribed to push notifications")}
+  end
+
+  def handle_event("device_not_subscribed", %{"supported" => false}, socket) do
+    user_id = socket.assigns.current_scope.user.id
+    subscriptions = Notifications.get_active_subscriptions(user_id)
+
+    {:noreply,
+     socket
+     |> assign(:current_device_subscribed, false)
+     |> assign(:device_subscription_supported, false)
+     |> assign(:total_devices_subscribed, length(subscriptions))}
+  end
+
+  def handle_event("device_not_subscribed", _params, socket) do
+    user_id = socket.assigns.current_scope.user.id
+    subscriptions = Notifications.get_active_subscriptions(user_id)
+
+    {:noreply,
+     socket
+     |> assign(:current_device_subscribed, false)
+     |> assign(:total_devices_subscribed, length(subscriptions))}
+  end
+
+  def handle_event("permission_granted", _params, socket) do
+    user_id = socket.assigns.current_scope.user.id
+    subscriptions = Notifications.get_active_subscriptions(user_id)
+
+    {:noreply,
+     socket
+     |> assign(:current_device_subscribed, true)
+     |> assign(:total_devices_subscribed, length(subscriptions))
+     |> put_flash(:info, "✅ Push notifications enabled on this device!")}
+  end
+
+  def handle_event("permission_denied", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:current_device_subscribed, false)
+     |> put_flash(:error, "❌ Push notifications were denied. Please enable them in your browser settings.")}
+  end
+
+  def handle_event("subscription_failed", %{"error" => error}, socket) do
+    {:noreply,
+     socket
+     |> assign(:current_device_subscribed, false)
+     |> put_flash(:error, "❌ Failed to subscribe: #{error}")}
+  end
+
+  def handle_event("toggle_hour", %{"hour" => hour_str}, socket) do
+    hour = String.to_integer(hour_str)
+    user_id = socket.assigns.current_scope.user.id
+    current_hours = socket.assigns.notification_preference.preferred_hours
+
+    new_hours =
+      if hour in current_hours do
+        List.delete(current_hours, hour)
+      else
+        [hour | current_hours] |> Enum.sort()
+      end
+
+    {:ok, updated_pref} = Notifications.update_preference(
+      user_id,
+      "web_push",
+      "ad_count",
+      %{preferred_hours: new_hours}
+    )
+
+    {:noreply, assign(socket, :notification_preference, updated_pref)}
+  end
+
+  def handle_event("preset", %{"preset" => preset}, socket) do
+    user_id = socket.assigns.current_scope.user.id
+
+    new_hours = case preset do
+      "morning" -> [6, 7, 8, 9, 10]
+      "evening" -> [20, 21, 22, 23]
+      "worker" -> [9, 12, 18]
+      "clear" -> []
+    end
+
+    {:ok, updated_pref} = Notifications.update_preference(
+      user_id,
+      "web_push",
+      "ad_count",
+      %{preferred_hours: new_hours}
+    )
+
+    {:noreply, assign(socket, :notification_preference, updated_pref)}
+  end
+
+  def handle_event("update_quiet_start", %{"value" => hour_str}, socket) do
+    hour = String.to_integer(hour_str)
+    user_id = socket.assigns.current_scope.user.id
+
+    {:ok, updated_pref} = Notifications.update_preference(
+      user_id,
+      "web_push",
+      "ad_count",
+      %{quiet_hours_start: Time.new!(hour, 0, 0)}
+    )
+
+    {:noreply, assign(socket, :notification_preference, updated_pref)}
+  end
+
+  def handle_event("update_quiet_end", %{"value" => hour_str}, socket) do
+    hour = String.to_integer(hour_str)
+    user_id = socket.assigns.current_scope.user.id
+
+    {:ok, updated_pref} = Notifications.update_preference(
+      user_id,
+      "web_push",
+      "ad_count",
+      %{quiet_hours_end: Time.new!(hour, 0, 0)}
+    )
+
+    {:noreply, assign(socket, :notification_preference, updated_pref)}
   end
 
   defp get_setting_title("notifications"), do: "Notifications"
@@ -118,12 +282,149 @@ defmodule QlariusWeb.UserSettingsLive do
   defp get_setting_title("proxy_users"), do: "Manage Proxy Users"
   defp get_setting_title(_), do: "Settings"
 
-  defp render_setting_content(%{selected_setting: "notifications"} = assigns) do
+  defp render_setting_content(%{selected_setting: "notifications", notification_preference: pref} = assigns) when not is_nil(pref) do
     ~H"""
-    <div class="flex items-center justify-center min-h-[50vh]">
-      <div class="text-center">
-        <p class="text-xl text-base-content/70 mb-2">Coming soon</p>
-        <p class="text-base-content/50">Notification settings will be available here.</p>
+    <div class="pb-8" id="push-notifications-container" phx-hook="PushNotifications">
+      <%!-- Ad Count Notifications Section --%>
+      <div class="card bg-base-200 shadow-md">
+        <div class="card-body">
+          <h2 class="card-title text-xl mb-4">
+            <.icon name="hero-megaphone" class="w-5 h-5" /> Ad Count Notifications
+          </h2>
+
+          <div class="form-control mb-4">
+            <label class="label cursor-pointer">
+              <span class="label-text text-lg">Enable notifications on this device</span>
+              <input
+                id="push-notification-toggle"
+                type="checkbox"
+                class="toggle toggle-primary"
+                checked={@current_device_subscribed}
+                phx-click="toggle_enabled"
+                disabled={!@device_subscription_supported}
+              />
+            </label>
+
+            <%!-- Device Status Messages --%>
+            <div class="mt-2 space-y-1">
+              <p :if={!@device_subscription_supported} class="text-sm text-error">
+                ❌ Push notifications not supported on this browser/device
+              </p>
+
+              <p :if={@device_subscription_supported and @current_device_subscribed} class="text-sm text-success">
+                ✅ This device is subscribed to notifications
+              </p>
+
+              <p :if={@device_subscription_supported and !@current_device_subscribed and @notification_preference.enabled} class="text-sm text-warning">
+                ⚠️ This device is not subscribed. Toggle on to enable.
+              </p>
+
+              <p :if={@total_devices_subscribed > 0} class="text-sm text-base-content/60">
+                📱 Total devices with notifications: {@total_devices_subscribed}
+              </p>
+            </div>
+          </div>
+
+          <%= if @notification_preference.enabled do %>
+            <%!-- Preferred Hours Grid --%>
+            <div class="mb-6">
+              <h3 class="text-lg font-semibold mb-3">When do you want to receive notifications?</h3>
+              <p class="text-sm text-base-content/60 mb-4">Select the hours you'd like to be notified about available ads</p>
+
+              <div class="grid grid-cols-2 gap-4">
+                <%!-- AM Column --%>
+                <div>
+                  <h4 class="font-medium text-center mb-2 text-base-content/70">AM</h4>
+                  <div class="space-y-1">
+                    <%= for hour <- 0..11 do %>
+                      <label class="flex items-center p-2 hover:bg-base-300 rounded cursor-pointer">
+                        <input
+                          type="checkbox"
+                          class="checkbox checkbox-primary checkbox-sm mr-3"
+                          checked={hour in @notification_preference.preferred_hours}
+                          phx-click="toggle_hour"
+                          phx-value-hour={hour}
+                        />
+                        <span class="text-base">{format_hour(hour)}</span>
+                      </label>
+                    <% end %>
+                  </div>
+                </div>
+
+                <%!-- PM Column --%>
+                <div>
+                  <h4 class="font-medium text-center mb-2 text-base-content/70">PM</h4>
+                  <div class="space-y-1">
+                    <%= for hour <- 12..23 do %>
+                      <label class="flex items-center p-2 hover:bg-base-300 rounded cursor-pointer">
+                        <input
+                          type="checkbox"
+                          class="checkbox checkbox-primary checkbox-sm mr-3"
+                          checked={hour in @notification_preference.preferred_hours}
+                          phx-click="toggle_hour"
+                          phx-value-hour={hour}
+                        />
+                        <span class="text-base">{format_hour(hour)}</span>
+                      </label>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+
+              <%!-- Quick Presets --%>
+              <div class="mt-4 flex flex-wrap gap-2">
+                <p class="w-full text-sm font-medium text-base-content/70 mb-1">Quick presets:</p>
+                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="morning">Morning Person</button>
+                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="evening">Night Owl</button>
+                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="worker">9-to-5 Worker</button>
+                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="clear">Clear All</button>
+              </div>
+            </div>
+
+            <%!-- Quiet Hours --%>
+            <div class="divider"></div>
+            <div>
+              <h3 class="text-lg font-semibold mb-3">
+                <.icon name="hero-moon" class="w-4 h-4 inline" /> Quiet Hours
+              </h3>
+              <p class="text-sm text-base-content/60 mb-4">Block all notifications during these hours</p>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text">From</span>
+                  </label>
+                  <select
+                    class="select select-bordered w-full"
+                    phx-change="update_quiet_start"
+                  >
+                    <%= for hour <- 0..23 do %>
+                      <option value={hour} selected={hour == time_to_hour(@notification_preference.quiet_hours_start)}>
+                        {format_hour(hour)}
+                      </option>
+                    <% end %>
+                  </select>
+                </div>
+
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text">Until</span>
+                  </label>
+                  <select
+                    class="select select-bordered w-full"
+                    phx-change="update_quiet_end"
+                  >
+                    <%= for hour <- 0..23 do %>
+                      <option value={hour} selected={hour == time_to_hour(@notification_preference.quiet_hours_end)}>
+                        {format_hour(hour)}
+                      </option>
+                    <% end %>
+                  </select>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
       </div>
     </div>
     """
@@ -141,4 +442,16 @@ defmodule QlariusWeb.UserSettingsLive do
   end
 
   defp render_setting_content(_assigns), do: nil
+
+  defp format_hour(hour) do
+    case hour do
+      0 -> "12:00 AM"
+      h when h < 12 -> "#{h}:00 AM"
+      12 -> "12:00 PM"
+      h -> "#{h - 12}:00 PM"
+    end
+  end
+
+  defp time_to_hour(nil), do: 0
+  defp time_to_hour(time), do: time.hour
 end

@@ -8,7 +8,8 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
   alias Qlarius.YouData.MeFiles
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Wallets.{LedgerHeader, LedgerEntry}
-  alias Qlarius.Sponster.Offer
+  alias Qlarius.Sponster.{Offer, Offers}
+  alias Qlarius.Notifications
 
   @impl true
   def mount(%{"id" => me_file_id}, _session, socket) do
@@ -49,6 +50,39 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
       {:noreply, push_navigate(socket, to: ~p"/admin/mefile_inspector/#{next_me_file.id}")}
     else
       {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("send_test_notification", _params, socket) do
+    me_file = socket.assigns.me_file
+    user = socket.assigns.user
+    offers = socket.assigns.offers
+    ad_count = length(offers)
+
+    if ad_count == 0 do
+      {:noreply, put_flash(socket, :warning, "⚠️ No active ads for this user")}
+    else
+      total_value = Offers.total_active_offer_amount(me_file) || Decimal.new(0)
+      total_value_float = Decimal.to_float(total_value)
+
+      case Notifications.send_ad_count_notification(user, ad_count, total_value_float) do
+        {:ok, :sent} ->
+          {:noreply,
+           put_flash(
+             socket,
+             :info,
+             "✅ Sent notification: #{ad_count} ads, $#{:erlang.float_to_binary(total_value_float, decimals: 2)}"
+           )}
+
+        {:ok, :no_subscriptions} ->
+          {:noreply,
+           put_flash(socket, :warning, "⚠️ User has no active push subscriptions")}
+
+        {:error, reason} ->
+          {:noreply,
+           put_flash(socket, :error, "❌ Failed to send notification: #{inspect(reason)}")}
+      end
     end
   end
 
@@ -233,6 +267,15 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
                 </div>
 
                 <div class="flex gap-2">
+                  <button
+                    phx-click="send_test_notification"
+                    data-confirm="Send a test ad count notification to this user right now?"
+                    class="btn btn-sm btn-info"
+                    title="Send test ad count notification"
+                  >
+                    <.icon name="hero-bell-alert" class="w-5 h-5" />
+                    Send Test Notification
+                  </button>
                   <button
                     phx-click="navigate_prev"
                     disabled={is_nil(@prev_user_id)}

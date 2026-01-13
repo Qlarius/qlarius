@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <title>PWA Debug</title>
+  <style>
+    body { font-family: system-ui; padding: 20px; }
+    pre { background: #f5f5f5; padding: 10px; overflow: auto; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>PWA Debug Info</h1>
+  <div id="results">Loading...</div>
+  
+  <script>
+    // Register service worker first
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/service-worker.js").catch(e => {
+        console.error("Service worker registration failed:", e);
+      });
+    }
+  </script>
+  
+  <script>
+    const results = document.getElementById('results');
+    
+    async function checkPWA() {
+      let html = '<h2>Checks:</h2>';
+      
+      // Check service worker
+      if ('serviceWorker' in navigator) {
+        html += '<p>✅ Service Worker API available</p>';
+        try {
+          const reg = await navigator.serviceWorker.getRegistration();
+          if (reg) {
+            html += `<p>✅ Service Worker registered: ${reg.active ? 'active' : 'installing'}</p>`;
+          } else {
+            html += '<p>❌ Service Worker NOT registered</p>';
+          }
+        } catch (e) {
+          html += `<p>❌ Service Worker error: ${e.message}</p>`;
+        }
+      } else {
+        html += '<p>❌ Service Worker NOT supported</p>';
+      }
+      
+      // Check manifest
+      const manifestLink = document.querySelector('link[rel="manifest"]');
+      if (manifestLink) {
+        html += `<p>✅ Manifest link found: ${manifestLink.href}</p>`;
+        try {
+          const response = await fetch(manifestLink.href);
+          const manifest = await response.json();
+          html += `<p>✅ Manifest loaded:</p><pre>${JSON.stringify(manifest, null, 2)}</pre>`;
+        } catch (e) {
+          html += `<p>❌ Manifest error: ${e.message}</p>`;
+        }
+      } else {
+        html += '<p>❌ Manifest link NOT found</p>';
+      }
+      
+      // Check display mode
+      html += `<h2>Current Display Mode:</h2>`;
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        html += '<p>✅ Running in STANDALONE mode</p>';
+      } else if (window.matchMedia('(display-mode: fullscreen)').matches) {
+        html += '<p>✅ Running in FULLSCREEN mode</p>';
+      } else if (window.matchMedia('(display-mode: minimal-ui)').matches) {
+        html += '<p>⚠️ Running in MINIMAL-UI mode</p>';
+      } else {
+        html += '<p>❌ Running in BROWSER mode (not installed as PWA)</p>';
+      }
+      
+      // Check if installed
+      if (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) {
+        html += '<p>✅ App is installed</p>';
+      } else {
+        html += '<p>❌ App is NOT installed</p>';
+      }
+      
+      results.innerHTML = html;
+    }
+    
+    checkPWA();
+  </script>
+</body>
+</html>
+

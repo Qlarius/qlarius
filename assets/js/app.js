@@ -23,7 +23,6 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
-import Alpine from "alpinejs"
 import {hooks as colocatedHooks} from "phoenix-colocated/qlarius"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
@@ -906,8 +905,153 @@ if (process.env.NODE_ENV === "development") {
 
 import "../vendor/nexus.js"
 
-window.Alpine = Alpine
-Alpine.start()
+Hooks.PushNotifications = {
+  mounted() {
+    this.checkCurrentDeviceSubscription()
+    
+    this.handleEvent("request-push-permission", async () => {
+      console.log("📢 Request push permission event received")
+      await this.requestPermission()
+    })
+  },
+
+  async checkCurrentDeviceSubscription() {
+    if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+      console.log("Push notifications not supported on this device")
+      this.pushEvent("device_not_subscribed", { supported: false })
+      return
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.ready
+      const subscription = await registration.pushManager.getSubscription()
+      
+      const permission = Notification.permission
+      console.log("Current notification permission:", permission)
+      console.log("Current device subscription:", subscription ? "EXISTS" : "NONE")
+      
+      if (subscription && permission === "granted") {
+        console.log("✅ This device is subscribed to push notifications")
+        this.pushEvent("device_subscribed", { 
+          endpoint: subscription.endpoint,
+          subscribed: true 
+        })
+      } else {
+        console.log("❌ This device is NOT subscribed to push notifications")
+        this.pushEvent("device_not_subscribed", { 
+          supported: true,
+          permission: permission 
+        })
+      }
+    } catch (error) {
+      console.error("Error checking subscription:", error)
+      this.pushEvent("device_not_subscribed", { supported: true })
+    }
+  },
+
+  async requestPermission() {
+    console.log("🔔 Requesting notification permission...")
+    const permission = await Notification.requestPermission()
+    console.log("📢 Permission result:", permission)
+    
+    if (permission === "granted") {
+      console.log("✅ Permission granted, subscribing to push...")
+      await this.subscribeToPush()
+      this.pushEvent("permission_granted", {})
+    } else {
+      console.log("❌ Permission denied")
+      this.pushEvent("permission_denied", {})
+    }
+  },
+
+  async subscribeToPush() {
+    try {
+      console.log("🔄 Starting push subscription...")
+      const registration = await navigator.serviceWorker.ready
+      console.log("✅ Service worker ready")
+      
+      console.log("🔑 Fetching VAPID public key...")
+      const response = await fetch("/api/push/vapid-public-key", {
+        headers: {
+          "x-csrf-token": document.querySelector("meta[name='csrf-token']").content
+        }
+      })
+      const { publicKey } = await response.json()
+      console.log("✅ Got VAPID public key:", publicKey.substring(0, 20) + "...")
+      
+      console.log("📝 Subscribing to push manager...")
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: this.urlBase64ToUint8Array(publicKey)
+      })
+      console.log("✅ Push manager subscription successful!")
+
+      const saveResponse = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": document.querySelector("meta[name='csrf-token']").content
+        },
+        body: JSON.stringify({
+          subscription: subscription.toJSON(),
+          device_type: this.detectBrowser(),
+          user_agent: navigator.userAgent
+        })
+      })
+
+      console.log("💾 Subscription object:", subscription)
+
+      if (saveResponse.ok) {
+        console.log("✅ Subscribed to push notifications")
+        this.pushEvent("device_subscribed", { 
+          endpoint: subscription.endpoint,
+          subscribed: true 
+        })
+      } else {
+        const errorText = await saveResponse.text()
+        console.error("❌ Failed to save subscription to server:", errorText)
+        this.pushEvent("subscription_failed", { error: `Server error: ${errorText}` })
+      }
+    } catch (error) {
+      console.error("❌ Failed to subscribe to push:", error)
+      console.error("Error name:", error.name)
+      console.error("Error message:", error.message)
+      console.error("Error stack:", error.stack)
+      this.pushEvent("subscription_failed", { error: error.message || error.toString() })
+    }
+  },
+
+  urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - base64String.length % 4) % 4)
+    const base64 = (base64String + padding)
+      .replace(/\-/g, "+")
+      .replace(/_/g, "/")
+
+    const rawData = window.atob(base64)
+    const outputArray = new Uint8Array(rawData.length)
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i)
+    }
+    return outputArray
+  },
+
+  detectBrowser() {
+    const userAgent = navigator.userAgent
+    if (userAgent.includes("Firefox")) return "firefox"
+    if (userAgent.includes("Chrome")) return "chrome"
+    if (userAgent.includes("Safari")) return "safari"
+    if (userAgent.includes("Edge")) return "edge"
+    return "other"
+  }
+}
+
+window.addEventListener("push-request-permission", () => {
+  const hook = Hooks.PushNotifications
+  if (hook && hook.requestPermission) {
+    hook.requestPermission()
+  }
+})
 
 // Register service worker for PWA
 if ("serviceWorker" in navigator) {
