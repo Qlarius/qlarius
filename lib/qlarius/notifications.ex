@@ -168,8 +168,8 @@ defmodule Qlarius.Notifications do
     cta = get_random_cta()
 
     %{
-      title: "Spontser here",
-      body: "You have #{ad_count} sponsor ads totaling $#{formatted_value} currently. #{cta}",
+      title: "Sponster",
+      body: "You have #{ad_count} sponsor ads totaling $#{formatted_value}. #{cta}",
       icon: "/images/qadabra_app_icon_192.png",
       badge: "/images/qadabra_app_icon_192.png",
       data: %{
