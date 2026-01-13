@@ -1053,6 +1053,14 @@ window.addEventListener("push-request-permission", () => {
   }
 })
 
+Hooks.TimezoneDetector = {
+  mounted() {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    console.log("🌍 Detected timezone:", timezone)
+    this.pushEvent("timezone_detected", { timezone })
+  }
+}
+
 // Register service worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

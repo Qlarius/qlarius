@@ -23,6 +23,7 @@ defmodule Qlarius.Accounts.User do
     field :pwa_installed, :boolean, default: false
     field :pwa_installed_at, :utc_datetime
     field :pwa_install_dismissed_at, :utc_datetime
+    field :timezone, :string, default: "America/New_York"
 
     has_one :me_file, MeFile
 
@@ -36,8 +37,9 @@ defmodule Qlarius.Accounts.User do
 
   def changeset(user, attrs) do
     user
-    |> cast(attrs, [:alias, :role])
+    |> cast(attrs, [:alias, :role, :timezone])
     |> validate_required([:alias])
+    |> validate_inclusion(:timezone, Qlarius.Timezones.list() |> Enum.map(fn {_label, iana} -> iana end))
     |> unique_constraint(:alias)
   end
 

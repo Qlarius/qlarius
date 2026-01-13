@@ -19,6 +19,12 @@ defmodule Qlarius.Accounts do
     |> Repo.preload(:me_file)
   end
 
+  def update_user(%User{} = user, attrs) do
+    user
+    |> User.changeset(attrs)
+    |> Repo.update()
+  end
+
   def get_me_file_by_user_id(user_id) do
     from(m in MeFile, where: m.user_id == ^user_id)
     |> Repo.one()

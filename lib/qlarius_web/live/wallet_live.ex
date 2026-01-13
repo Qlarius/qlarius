@@ -8,6 +8,7 @@ defmodule QlariusWeb.WalletLive do
   alias Qlarius.Wallets
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
+  alias Qlarius.DateTime, as: QlariusDateTime
   alias Qlarius.Sponster.Campaigns.Targets
 
   @impl true
@@ -209,7 +210,7 @@ defmodule QlariusWeb.WalletLive do
                 <div class="list-col-grow">
                   <div class="text-lg leading-snug">{entry.description}</div>
                   <div class="text-base-content/50 text-sm">{entry.meta_1}</div>
-                  <div class="text-base-content/50 text-sm">{format_date(entry.created_at)}</div>
+                  <div class="text-base-content/50 text-sm">{format_date(entry.created_at, assigns)}</div>
                 </div>
                 <div class="flex items-start">
                   <div class="text-right mr-2">
@@ -268,12 +269,9 @@ defmodule QlariusWeb.WalletLive do
     "$#{:erlang.float_to_binary(Decimal.to_float(amount), decimals: 2)}"
   end
 
-  defp format_date(datetime) do
-    "#{datetime.year}-#{pad_zero(datetime.month)}-#{pad_zero(datetime.day)} #{if datetime.hour > 12, do: datetime.hour - 12, else: if(datetime.hour == 0, do: 12, else: datetime.hour)}:#{pad_zero(datetime.minute)}#{if datetime.hour >= 12, do: "pm", else: "am"}"
+  defp format_date(datetime, assigns) do
+    QlariusDateTime.format_for_user(datetime, assigns.current_scope.user, :short)
   end
-
-  defp pad_zero(number) when number < 10, do: "0#{number}"
-  defp pad_zero(number), do: "#{number}"
 
   # Commented out unused function - not called anywhere in the codebase
   # Calculate the balance at a specific entry point

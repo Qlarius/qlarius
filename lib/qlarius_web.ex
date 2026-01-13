@@ -56,6 +56,7 @@ defmodule QlariusWeb do
 
       on_mount QlariusWeb.PWAInstallHooks
       on_mount QlariusWeb.LogoutModalHooks
+      on_mount {QlariusWeb.TimezoneHooks, :assign_timezone}
 
       unquote(html_helpers())
       unquote(socket_helpers())

@@ -6,19 +6,36 @@ defmodule Qlarius.Jobs.SendHourlyAdNotificationsWorker do
   alias Qlarius.Sponster.Offers
   alias Qlarius.Sponster.Offer
   alias Qlarius.Repo
+  alias Qlarius.DateTime, as: QlariusDateTime
   import Ecto.Query
 
   @impl Oban.Worker
   def perform(_job) do
-    current_hour = DateTime.utc_now() |> Map.get(:hour)
-    Logger.info("[AdNotifications] Starting hourly ad count notifications for hour #{current_hour}")
+    current_utc_time = DateTime.utc_now()
+    Logger.info("[AdNotifications] Starting hourly ad count notifications at #{current_utc_time}")
 
-    users = Notifications.get_users_for_hourly_notification(current_hour)
+    users = Notifications.get_users_with_notification_preferences()
 
-    Logger.info("[AdNotifications] Found #{length(users)} users to notify at hour #{current_hour}")
+    users_to_notify =
+      Enum.filter(users, fn user ->
+        user_local_hour = QlariusDateTime.current_hour_in_timezone(user.timezone || "America/New_York")
+
+        pref = Notifications.get_preference(user.id, "web_push", "ad_count")
+        should_notify = pref && pref.enabled && user_local_hour in (pref.preferred_hours || [])
+
+        if should_notify do
+          Logger.debug(
+            "[AdNotifications] User #{user.id} matches: local_hour=#{user_local_hour}, tz=#{user.timezone}"
+          )
+        end
+
+        should_notify
+      end)
+
+    Logger.info("[AdNotifications] Found #{length(users_to_notify)} users to notify")
 
     results =
-      Enum.map(users, fn user ->
+      Enum.map(users_to_notify, fn user ->
         case send_notification_for_user(user) do
           {:ok, :sent} ->
             Logger.info("[AdNotifications] Sent notification to user #{user.id}")

@@ -9,6 +9,7 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Sponster.Offer
+  alias Qlarius.DateTime, as: QlariusDateTime
 
   @impl true
   def mount(_params, _session, socket) do
@@ -246,8 +247,12 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
     |> assign(:recent_registrations, recent_registrations)
   end
 
-  defp format_date(datetime) do
-    Calendar.strftime(datetime, "%b %-d, %Y")
+  defp format_date(datetime, assigns) do
+    user = assigns.current_scope.user
+    formatted = QlariusDateTime.format_for_user(datetime, user, :date_only)
+    utc = QlariusDateTime.format_utc(datetime)
+
+    "#{formatted} (#{utc})"
   end
 
   defp pagination_range(current_page, total_pages) do
@@ -484,7 +489,7 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
                             <span class="badge badge-warning">{mf.offer_count}</span>
                           </td>
                           <td class="text-center">
-                            {format_date(mf.inserted_at)}
+                            {format_date(mf.inserted_at, assigns)}
                           </td>
                           <td class="text-right">
                             <.link

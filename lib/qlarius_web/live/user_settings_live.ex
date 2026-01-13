@@ -3,6 +3,8 @@ defmodule QlariusWeb.UserSettingsLive do
 
   import QlariusWeb.PWAHelpers
   alias Qlarius.Notifications
+  alias Qlarius.Accounts
+  alias Qlarius.Timezones
 
   def render(assigns) do
     ~H"""
@@ -32,7 +34,6 @@ defmodule QlariusWeb.UserSettingsLive do
                 </div>
                 <div class="list-col-grow">
                   <div class="text-xl font-medium text-base-content">Notifications</div>
-                  <div class="text-base text-base-content/60">Manage notification preferences</div>
                 </div>
                 <div class="flex items-center">
                   <.icon name="hero-chevron-right" class="h-5 w-5 text-base-content/40" />
@@ -49,7 +50,6 @@ defmodule QlariusWeb.UserSettingsLive do
                 </div>
                 <div class="list-col-grow">
                   <div class="text-xl font-medium text-base-content">Time Zone</div>
-                  <div class="text-base text-base-content/60">Set your time zone</div>
                 </div>
                 <div class="flex items-center">
                   <.icon name="hero-chevron-right" class="h-5 w-5 text-base-content/40" />
@@ -71,8 +71,7 @@ defmodule QlariusWeb.UserSettingsLive do
                     <.icon name="hero-user-group" class="h-6 w-6 text-base-content/70" />
                   </div>
                   <div class="list-col-grow">
-                    <div class="text-xl font-medium text-base-content">Manage Proxy Users</div>
-                    <div class="text-base text-base-content/60">Add and switch between users</div>
+                    <div class="text-xl font-medium text-base-content">Proxy Users</div>
                   </div>
                   <div class="flex items-center">
                     <.icon name="hero-chevron-right" class="h-5 w-5 text-base-content/40" />
@@ -277,6 +276,39 @@ defmodule QlariusWeb.UserSettingsLive do
     {:noreply, assign(socket, :notification_preference, updated_pref)}
   end
 
+  def handle_event("update_timezone", %{"value" => timezone}, socket) do
+    user = socket.assigns.current_scope.user
+
+    case Accounts.update_user(user, %{timezone: timezone}) do
+      {:ok, updated_user} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "✅ Time zone updated successfully")
+         |> assign(:current_scope, %{socket.assigns.current_scope | user: updated_user})}
+
+      {:error, _changeset} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "❌ Failed to update time zone")}
+    end
+  end
+
+  def handle_event("timezone_detected", %{"timezone" => detected_tz}, socket) do
+    user = socket.assigns.current_scope.user
+
+    # Only auto-set if user doesn't have a timezone set yet
+    if is_nil(user.timezone) || user.timezone == Timezones.default() do
+      mapped_tz = Timezones.detect_from_browser(detected_tz)
+      Accounts.update_user(user, %{timezone: mapped_tz})
+
+      {:noreply,
+       socket
+       |> assign(:current_scope, %{socket.assigns.current_scope | user: %{user | timezone: mapped_tz}})}
+    else
+      {:noreply, socket}
+    end
+  end
+
   defp get_setting_title("notifications"), do: "Notifications"
   defp get_setting_title("time_zone"), do: "Time Zone"
   defp get_setting_title("proxy_users"), do: "Manage Proxy Users"
@@ -431,11 +463,55 @@ defmodule QlariusWeb.UserSettingsLive do
   end
 
   defp render_setting_content(%{selected_setting: "time_zone"} = assigns) do
+    timezones = Timezones.list()
+    current_timezone = assigns.current_scope.user.timezone || Timezones.default()
+    current_time = Qlarius.DateTime.current_time_in_timezone(current_timezone)
+
+    assigns = assign(assigns, :timezones, timezones)
+    assigns = assign(assigns, :current_timezone, current_timezone)
+    assigns = assign(assigns, :current_time, current_time)
+
     ~H"""
-    <div class="flex items-center justify-center min-h-[50vh]">
-      <div class="text-center">
-        <p class="text-xl text-base-content/70 mb-2">Coming soon</p>
-        <p class="text-base-content/50">Time zone settings will be available here.</p>
+    <div class="pb-8" id="timezone-settings" phx-hook="TimezoneDetector">
+      <div class="card bg-base-200 shadow-md">
+        <div class="card-body">
+          <h2 class="card-title text-xl mb-4">
+            <.icon name="hero-globe-alt" class="w-5 h-5" /> Time Zone
+          </h2>
+
+          <p class="text-sm text-base-content/60 mb-4">
+            Your time zone affects when you receive notifications and how dates are displayed throughout the app.
+            All notification hours are in your local time.
+          </p>
+
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text text-lg">Select your time zone</span>
+            </label>
+            <select
+              class="select select-bordered w-full text-lg"
+              phx-change="update_timezone"
+            >
+              <%= for {label, iana} <- @timezones do %>
+                <option value={iana} selected={iana == @current_timezone}>
+                  {label}
+                </option>
+              <% end %>
+            </select>
+          </div>
+
+          <div class="mt-4 p-4 bg-base-300 rounded-lg">
+            <p class="text-sm text-base-content/70 mb-1">Current time in your timezone:</p>
+            <p class="text-2xl font-semibold text-primary">{@current_time}</p>
+          </div>
+
+          <div class="alert alert-info mt-4">
+            <.icon name="hero-information-circle" class="w-5 h-5" />
+            <span class="text-sm">
+              Changing your timezone will update when notifications are sent and how all dates are displayed.
+            </span>
+          </div>
+        </div>
       </div>
     </div>
     """

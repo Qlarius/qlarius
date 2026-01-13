@@ -89,6 +89,18 @@ defmodule Qlarius.Notifications do
     end
   end
 
+  def get_users_with_notification_preferences do
+    from(p in Preference,
+      where:
+        p.channel == "web_push" and
+          p.category == "ad_count" and
+          p.enabled == true,
+      preload: [:user]
+    )
+    |> Repo.all()
+    |> Enum.map(& &1.user)
+  end
+
   def get_users_for_hourly_notification(hour) do
     from(p in Preference,
       where:
