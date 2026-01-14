@@ -9,19 +9,20 @@ defmodule QlariusWeb.PWAHelpers do
   import Phoenix.Component, only: [assign: 3]
   import Phoenix.LiveView, only: [push_navigate: 2]
 
-  def should_redirect_to_pwa_install?(is_pwa, device_type) do
-    device_type_atom = if is_binary(device_type), do: String.to_atom(device_type), else: device_type
-
-    !is_pwa && device_type_atom in [:ios_phone, :android_phone]
-  end
-
   def handle_pwa_detection(socket, %{"is_pwa" => is_pwa, "device_type" => device_type}) do
-    socket = socket |> assign(:is_pwa, is_pwa) |> assign(:device_type, String.to_atom(device_type))
+    device_type_atom =
+      case device_type do
+        "ios_phone" -> :ios_phone
+        "android_phone" -> :android_phone
+        "desktop" -> :desktop
+        _ -> :mobile_phone
+      end
 
-    if should_redirect_to_pwa_install?(is_pwa, device_type) do
-      {:noreply, push_navigate(socket, to: ~p"/hi")}
-    else
-      {:noreply, socket}
-    end
+    socket =
+      socket
+      |> assign(:is_pwa, is_pwa)
+      |> assign(:device_type, device_type_atom)
+
+    {:noreply, socket}
   end
 end
