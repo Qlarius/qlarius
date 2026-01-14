@@ -244,7 +244,9 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
 
       []
     else
-      base_query = from(mft in MeFileTag, where: mft.me_file_id in ^prev_candidates, as: :base)
+      base_query = 
+        from(mft in MeFileTag, as: :base)
+        |> where([mft], mft.me_file_id in ^prev_candidates)
 
       query_with_conditions =
         Enum.reduce(new_trait_group_ids, base_query, fn tg_id, query ->
