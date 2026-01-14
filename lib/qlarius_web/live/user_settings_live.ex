@@ -330,7 +330,7 @@ defmodule QlariusWeb.UserSettingsLive do
               <input
                 id="push-notification-toggle"
                 type="checkbox"
-                class="toggle toggle-primary"
+                class="toggle toggle-primary toggle-xl"
                 checked={@current_device_subscribed}
                 phx-click="toggle_enabled"
                 disabled={!@device_subscription_supported}
@@ -369,15 +369,15 @@ defmodule QlariusWeb.UserSettingsLive do
                   <h4 class="font-medium text-center mb-2 text-base-content/70">AM</h4>
                   <div class="space-y-1">
                     <%= for hour <- 0..11 do %>
-                      <label class="flex items-center p-2 hover:bg-base-300 rounded cursor-pointer">
+                      <label class="flex items-center p-3 hover:bg-base-300 rounded cursor-pointer">
                         <input
                           type="checkbox"
-                          class="checkbox checkbox-primary checkbox-sm mr-3"
+                          class="checkbox checkbox-primary w-7 h-7 mr-4"
                           checked={hour in @notification_preference.preferred_hours}
                           phx-click="toggle_hour"
                           phx-value-hour={hour}
                         />
-                        <span class="text-base">{format_hour(hour)}</span>
+                        <span class="text-lg">{format_hour(hour)}</span>
                       </label>
                     <% end %>
                   </div>
@@ -388,15 +388,15 @@ defmodule QlariusWeb.UserSettingsLive do
                   <h4 class="font-medium text-center mb-2 text-base-content/70">PM</h4>
                   <div class="space-y-1">
                     <%= for hour <- 12..23 do %>
-                      <label class="flex items-center p-2 hover:bg-base-300 rounded cursor-pointer">
+                      <label class="flex items-center p-3 hover:bg-base-300 rounded cursor-pointer">
                         <input
                           type="checkbox"
-                          class="checkbox checkbox-primary checkbox-sm mr-3"
+                          class="checkbox checkbox-primary w-7 h-7 mr-4"
                           checked={hour in @notification_preference.preferred_hours}
                           phx-click="toggle_hour"
                           phx-value-hour={hour}
                         />
-                        <span class="text-base">{format_hour(hour)}</span>
+                        <span class="text-lg">{format_hour(hour)}</span>
                       </label>
                     <% end %>
                   </div>
