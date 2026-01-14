@@ -13,7 +13,6 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
   alias Qlarius.Sponster.{Offer, AdEvent}
   alias Qlarius.Sponster.Campaigns.{Campaign, Bid, TargetPopulation}
   alias Qlarius.Sponster.Campaigns.CampaignPubSub
-  alias Qlarius.YouData.MeFiles.MeFileTag
   alias Qlarius.Wallets.MeFileStatsBroadcaster
 
   @impl Oban.Worker
@@ -33,7 +32,8 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
       "ReconcileOffersForMeFileWorker: Found #{length(eligible_bids)} eligible bids for me_file #{me_file_id}"
     )
 
-    {created_count, deleted_count} = reconcile_offers(me_file_id, eligible_bids)
+    {created_count, deleted_count} =
+      reconcile_offers(me_file_id, eligible_bids, current_populations)
 
     Logger.info(
       "ReconcileOffersForMeFileWorker: Created #{created_count}, deleted #{deleted_count} offers for me_file #{me_file_id}"
@@ -49,12 +49,17 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
   defp get_target_bands_for_me_file(me_file_id) do
     from(tp in TargetPopulation,
       where: tp.me_file_id == ^me_file_id,
-      select: tp.target_band_id
+      select: %{
+        target_band_id: tp.target_band_id,
+        matching_tags_snapshot: tp.matching_tags_snapshot
+      }
     )
     |> Repo.all()
   end
 
-  defp get_eligible_bids(target_band_ids, me_file_id) do
+  defp get_eligible_bids(populations, me_file_id) do
+    target_band_ids = Enum.map(populations, & &1.target_band_id)
+
     if target_band_ids == [] do
       []
     else
@@ -87,7 +92,7 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
     completed_count >= frequency
   end
 
-  defp reconcile_offers(me_file_id, eligible_bids) do
+  defp reconcile_offers(me_file_id, eligible_bids, populations) do
     existing_offers =
       from(o in Offer,
         where: o.me_file_id == ^me_file_id,
@@ -117,25 +122,43 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
     keys_to_add = MapSet.difference(eligible_keys, existing_keys) |> MapSet.to_list()
     keys_to_remove = MapSet.difference(existing_keys, eligible_keys) |> MapSet.to_list()
 
-    created_count = create_missing_offers(me_file_id, eligible_bids, keys_to_add, is_new_user)
+    snapshots_by_band =
+      Map.new(populations, fn p -> {p.target_band_id, p.matching_tags_snapshot} end)
+
+    created_count =
+      create_missing_offers(
+        me_file_id,
+        eligible_bids,
+        keys_to_add,
+        is_new_user,
+        snapshots_by_band
+      )
+
     deleted_count = delete_invalid_offers(me_file_id, existing_offers, keys_to_remove)
 
     {created_count, deleted_count}
   end
 
-  defp create_missing_offers(me_file_id, eligible_bids, keys_to_add, is_new_user) do
+  defp create_missing_offers(
+         me_file_id,
+         eligible_bids,
+         keys_to_add,
+         is_new_user,
+         snapshots_by_band
+       ) do
     if keys_to_add == [] do
       0
     else
       now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-      current_tags = get_current_me_file_tags(me_file_id)
 
-      offers_to_create =
+      bids_to_create =
         Enum.filter(eligible_bids, fn bid ->
           key = {bid.campaign_id, bid.media_run_id, bid.target_band_id}
           key in keys_to_add
         end)
-        |> Enum.map(fn bid ->
+
+      offers_to_create =
+        Enum.map(bids_to_create, fn bid ->
           media_piece_type =
             get_in(bid, [
               Access.key(:media_run),
@@ -145,6 +168,8 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
 
           ad_phase_count =
             if media_piece_type, do: media_piece_type.ad_phase_count_to_complete, else: 1
+
+          matching_tags_snapshot = Map.get(snapshots_by_band, bid.target_band_id)
 
           %{
             campaign_id: bid.campaign_id,
@@ -160,7 +185,7 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
             is_demo: bid.campaign.is_demo,
             is_current: false,
             is_jobbed: false,
-            matching_tags_snapshot: current_tags,
+            matching_tags_snapshot: matching_tags_snapshot,
             ad_phase_count_to_complete: ad_phase_count,
             created_at: now,
             updated_at: now
@@ -224,28 +249,5 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
 
       count
     end
-  end
-
-  defp get_current_me_file_tags(me_file_id) do
-    tags =
-      from(mft in MeFileTag,
-        where: mft.me_file_id == ^me_file_id,
-        join: t in assoc(mft, :trait),
-        select: %{
-          trait_id: t.id,
-          trait_name: t.trait_name,
-          parent_trait_id: t.parent_trait_id
-        }
-      )
-      |> Repo.all()
-      |> Enum.map(fn tag ->
-        %{
-          "trait_id" => tag.trait_id,
-          "trait_name" => tag.trait_name,
-          "parent_trait_id" => tag.parent_trait_id
-        }
-      end)
-
-    %{"tags" => tags, "snapshot_at" => NaiveDateTime.utc_now() |> NaiveDateTime.to_iso8601()}
   end
 end
