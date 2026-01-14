@@ -235,20 +235,38 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
       |> Repo.all()
       |> Enum.group_by(fn {tg_id, _trait_id} -> tg_id end, fn {_tg_id, trait_id} -> trait_id end)
 
-    from(mft in MeFileTag,
-      where: mft.me_file_id in ^prev_candidates,
-      group_by: mft.me_file_id,
-      having:
-        fragment(
-          "COUNT(DISTINCT CASE WHEN ? = ANY(?) THEN ? END) = ?",
-          mft.trait_id,
-          type(^Enum.flat_map(Map.values(trait_ids_by_group), & &1), {:array, :integer}),
-          field(mft, :trait_id),
-          ^length(new_trait_group_ids)
-        ),
-      select: mft.me_file_id
-    )
-    |> Repo.all()
+    if map_size(trait_ids_by_group) != length(new_trait_group_ids) do
+      require Logger
+
+      Logger.warning(
+        "PopulateTargetWorker: Some trait_groups have no traits in filter, expected #{length(new_trait_group_ids)}, got #{map_size(trait_ids_by_group)}"
+      )
+
+      []
+    else
+      base_query = from(mft in MeFileTag, where: mft.me_file_id in ^prev_candidates, as: :base)
+
+      query_with_conditions =
+        Enum.reduce(new_trait_group_ids, base_query, fn tg_id, query ->
+          trait_ids = Map.get(trait_ids_by_group, tg_id, [])
+
+          where(
+            query,
+            [base: mft],
+            exists(
+              from(mft2 in MeFileTag,
+                where:
+                  mft2.me_file_id == parent_as(:base).me_file_id and mft2.trait_id in ^trait_ids
+              )
+            )
+          )
+        end)
+
+      query_with_conditions
+      |> select([base: mft], mft.me_file_id)
+      |> distinct(true)
+      |> Repo.all()
+    end
   end
 
   defp calculate_population_changes(new_populations, existing_populations) do
