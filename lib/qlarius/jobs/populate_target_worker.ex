@@ -244,7 +244,7 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
 
       []
     else
-      base_query = 
+      base_query =
         from(mft in MeFileTag, as: :base)
         |> where([mft], mft.me_file_id in ^prev_candidates)
 
