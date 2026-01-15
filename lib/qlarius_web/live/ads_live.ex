@@ -80,8 +80,7 @@ defmodule QlariusWeb.AdsLive do
       |> assign(:loading, true)
       |> assign(:host_uri, host_uri)
       |> assign(:title, "Ads")
-      |> assign(:is_pwa, false)
-      |> assign(:device_type, :desktop)
+      |> init_pwa_assigns()
 
     if connected?(socket) do
       send(self(), :load_offers)

@@ -34,8 +34,7 @@ defmodule QlariusWeb.WalletLive do
     |> assign(:entry_details, nil)
     |> assign(:page, page)
     |> assign(:paginated_entries, paginated_entries)
-    |> assign(:is_pwa, false)
-    |> assign(:device_type, :desktop)
+    |> init_pwa_assigns()
     |> ok()
   end
 
@@ -210,7 +209,9 @@ defmodule QlariusWeb.WalletLive do
                 <div class="list-col-grow">
                   <div class="text-lg leading-snug">{entry.description}</div>
                   <div class="text-base-content/50 text-sm">{entry.meta_1}</div>
-                  <div class="text-base-content/50 text-sm">{format_date(entry.created_at, assigns)}</div>
+                  <div class="text-base-content/50 text-sm">
+                    {format_date(entry.created_at, assigns)}
+                  </div>
                 </div>
                 <div class="flex items-start">
                   <div class="text-right mr-2">

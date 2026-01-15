@@ -14,7 +14,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#1f2937" media="(prefers-color-scheme: dark)" />
     <meta name="application-name" content="Qadabra" />
     <meta name="apple-mobile-web-app-title" content="Qadabra" />
@@ -31,7 +31,7 @@
     <script>
       (() => {
         const updateThemeColor = (isDark) => {
-          const themeColor = isDark ? "#1f2937" : "#ffffff";
+          const themeColor = isDark ? "#1f2937" : "#f3f4f6";
           let metaTag = document.querySelector('meta[name="theme-color"]:not([media])');
           if (!metaTag) {
             metaTag = document.createElement('meta');

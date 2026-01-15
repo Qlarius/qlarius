@@ -819,7 +819,7 @@ Hooks.TaggerButtonObserver = {
     
     const options = {
       root: scrollContainer,
-      rootMargin: '0px 0px -80px 0px', // Account for dock height (5rem ≈ 80px)
+      rootMargin: '0px 0px -120px 0px', // Trigger 20px sooner (was -80px, now -100px)
       threshold: 0
     }
     

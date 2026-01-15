@@ -9,18 +9,18 @@ defmodule QlariusWeb.UserSettingsLive do
   def render(assigns) do
     ~H"""
     <div id="settings-pwa-detect" phx-hook="HiPagePWADetect">
-      <Layouts.mobile {assigns}
+      <Layouts.mobile
+        {assigns}
         title="Settings"
         slide_over_active={@selected_setting != nil}
         slide_over_title={get_setting_title(@selected_setting)}
       >
         <:slide_over_content>
-          <%= render_setting_content(assigns) %>
+          {render_setting_content(assigns)}
         </:slide_over_content>
 
         <%!-- Main content: Settings list --%>
         <div class="mx-auto max-w-2xl">
-
           <div class="mb-6">
             <h2 class="text-xl font-semibold text-base-content/70 mb-3">General</h2>
             <ul class="-mx-4 sm:mx-0 list bg-base-200 dark:!bg-base-200 sm:rounded-box shadow-md overflow-hidden">
@@ -95,8 +95,7 @@ defmodule QlariusWeb.UserSettingsLive do
      |> assign(:title, "Settings")
      |> assign(:current_path, "/settings")
      |> assign(:selected_setting, nil)
-     |> assign(:is_pwa, false)
-     |> assign(:device_type, :desktop)
+     |> init_pwa_assigns()
      |> assign(:notification_preference, nil)
      |> assign(:current_device_subscribed, false)
      |> assign(:device_subscription_supported, true)
@@ -138,13 +137,18 @@ defmodule QlariusWeb.UserSettingsLive do
   def handle_event("toggle_enabled", _params, socket) do
     currently_subscribed = socket.assigns.current_device_subscribed
 
-    socket = if !currently_subscribed do
-      # Request permission and subscribe this device
-      push_event(socket, "request-push-permission", %{})
-    else
-      # TODO: Unsubscribe this device (would need to track device subscription ID)
-      put_flash(socket, :info, "To disable, please turn off notifications in your browser settings for this site")
-    end
+    socket =
+      if !currently_subscribed do
+        # Request permission and subscribe this device
+        push_event(socket, "request-push-permission", %{})
+      else
+        # TODO: Unsubscribe this device (would need to track device subscription ID)
+        put_flash(
+          socket,
+          :info,
+          "To disable, please turn off notifications in your browser settings for this site"
+        )
+      end
 
     {:noreply, socket}
   end
@@ -196,7 +200,10 @@ defmodule QlariusWeb.UserSettingsLive do
     {:noreply,
      socket
      |> assign(:current_device_subscribed, false)
-     |> put_flash(:error, "❌ Push notifications were denied. Please enable them in your browser settings.")}
+     |> put_flash(
+       :error,
+       "❌ Push notifications were denied. Please enable them in your browser settings."
+     )}
   end
 
   def handle_event("subscription_failed", %{"error" => error}, socket) do
@@ -218,12 +225,13 @@ defmodule QlariusWeb.UserSettingsLive do
         [hour | current_hours] |> Enum.sort()
       end
 
-    {:ok, updated_pref} = Notifications.update_preference(
-      user_id,
-      "web_push",
-      "ad_count",
-      %{preferred_hours: new_hours}
-    )
+    {:ok, updated_pref} =
+      Notifications.update_preference(
+        user_id,
+        "web_push",
+        "ad_count",
+        %{preferred_hours: new_hours}
+      )
 
     {:noreply, assign(socket, :notification_preference, updated_pref)}
   end
@@ -231,19 +239,21 @@ defmodule QlariusWeb.UserSettingsLive do
   def handle_event("preset", %{"preset" => preset}, socket) do
     user_id = socket.assigns.current_scope.user.id
 
-    new_hours = case preset do
-      "morning" -> [6, 7, 8, 9, 10]
-      "evening" -> [20, 21, 22, 23]
-      "worker" -> [9, 12, 18]
-      "clear" -> []
-    end
+    new_hours =
+      case preset do
+        "morning" -> [6, 7, 8, 9, 10]
+        "evening" -> [20, 21, 22, 23]
+        "worker" -> [9, 12, 18]
+        "clear" -> []
+      end
 
-    {:ok, updated_pref} = Notifications.update_preference(
-      user_id,
-      "web_push",
-      "ad_count",
-      %{preferred_hours: new_hours}
-    )
+    {:ok, updated_pref} =
+      Notifications.update_preference(
+        user_id,
+        "web_push",
+        "ad_count",
+        %{preferred_hours: new_hours}
+      )
 
     {:noreply, assign(socket, :notification_preference, updated_pref)}
   end
@@ -252,12 +262,13 @@ defmodule QlariusWeb.UserSettingsLive do
     hour = String.to_integer(hour_str)
     user_id = socket.assigns.current_scope.user.id
 
-    {:ok, updated_pref} = Notifications.update_preference(
-      user_id,
-      "web_push",
-      "ad_count",
-      %{quiet_hours_start: Time.new!(hour, 0, 0)}
-    )
+    {:ok, updated_pref} =
+      Notifications.update_preference(
+        user_id,
+        "web_push",
+        "ad_count",
+        %{quiet_hours_start: Time.new!(hour, 0, 0)}
+      )
 
     {:noreply, assign(socket, :notification_preference, updated_pref)}
   end
@@ -266,12 +277,13 @@ defmodule QlariusWeb.UserSettingsLive do
     hour = String.to_integer(hour_str)
     user_id = socket.assigns.current_scope.user.id
 
-    {:ok, updated_pref} = Notifications.update_preference(
-      user_id,
-      "web_push",
-      "ad_count",
-      %{quiet_hours_end: Time.new!(hour, 0, 0)}
-    )
+    {:ok, updated_pref} =
+      Notifications.update_preference(
+        user_id,
+        "web_push",
+        "ad_count",
+        %{quiet_hours_end: Time.new!(hour, 0, 0)}
+      )
 
     {:noreply, assign(socket, :notification_preference, updated_pref)}
   end
@@ -303,7 +315,10 @@ defmodule QlariusWeb.UserSettingsLive do
 
       {:noreply,
        socket
-       |> assign(:current_scope, %{socket.assigns.current_scope | user: %{user | timezone: mapped_tz}})}
+       |> assign(:current_scope, %{
+         socket.assigns.current_scope
+         | user: %{user | timezone: mapped_tz}
+       })}
     else
       {:noreply, socket}
     end
@@ -314,7 +329,10 @@ defmodule QlariusWeb.UserSettingsLive do
   defp get_setting_title("proxy_users"), do: "Manage Proxy Users"
   defp get_setting_title(_), do: "Settings"
 
-  defp render_setting_content(%{selected_setting: "notifications", notification_preference: pref} = assigns) when not is_nil(pref) do
+  defp render_setting_content(
+         %{selected_setting: "notifications", notification_preference: pref} = assigns
+       )
+       when not is_nil(pref) do
     ~H"""
     <div class="pb-8" id="push-notifications-container" phx-hook="PushNotifications">
       <%!-- Ad Count Notifications Section --%>
@@ -343,11 +361,20 @@ defmodule QlariusWeb.UserSettingsLive do
                 ❌ Push notifications not supported on this browser/device
               </p>
 
-              <p :if={@device_subscription_supported and @current_device_subscribed} class="text-sm text-success">
+              <p
+                :if={@device_subscription_supported and @current_device_subscribed}
+                class="text-sm text-success"
+              >
                 ✅ This device is subscribed to notifications
               </p>
 
-              <p :if={@device_subscription_supported and !@current_device_subscribed and @notification_preference.enabled} class="text-sm text-warning">
+              <p
+                :if={
+                  @device_subscription_supported and !@current_device_subscribed and
+                    @notification_preference.enabled
+                }
+                class="text-sm text-warning"
+              >
                 ⚠️ This device is not subscribed. Toggle on to enable.
               </p>
 
@@ -361,7 +388,9 @@ defmodule QlariusWeb.UserSettingsLive do
             <%!-- Preferred Hours Grid --%>
             <div class="mb-6">
               <h3 class="text-lg font-semibold mb-3">When do you want to receive notifications?</h3>
-              <p class="text-sm text-base-content/60 mb-4">Select the hours you'd like to be notified about available ads</p>
+              <p class="text-sm text-base-content/60 mb-4">
+                Select the hours you'd like to be notified about available ads
+              </p>
 
               <div class="grid grid-cols-2 gap-4">
                 <%!-- AM Column --%>
@@ -406,10 +435,18 @@ defmodule QlariusWeb.UserSettingsLive do
               <%!-- Quick Presets --%>
               <div class="mt-4 flex flex-wrap gap-2">
                 <p class="w-full text-sm font-medium text-base-content/70 mb-1">Quick presets:</p>
-                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="morning">Morning Person</button>
-                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="evening">Night Owl</button>
-                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="worker">9-to-5 Worker</button>
-                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="clear">Clear All</button>
+                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="morning">
+                  Morning Person
+                </button>
+                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="evening">
+                  Night Owl
+                </button>
+                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="worker">
+                  9-to-5 Worker
+                </button>
+                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="clear">
+                  Clear All
+                </button>
               </div>
             </div>
 
@@ -419,7 +456,9 @@ defmodule QlariusWeb.UserSettingsLive do
               <h3 class="text-lg font-semibold mb-3">
                 <.icon name="hero-moon" class="w-4 h-4 inline" /> Quiet Hours
               </h3>
-              <p class="text-sm text-base-content/60 mb-4">Block all notifications during these hours</p>
+              <p class="text-sm text-base-content/60 mb-4">
+                Block all notifications during these hours
+              </p>
 
               <div class="grid grid-cols-2 gap-4">
                 <div class="form-control">
@@ -431,7 +470,10 @@ defmodule QlariusWeb.UserSettingsLive do
                     phx-change="update_quiet_start"
                   >
                     <%= for hour <- 0..23 do %>
-                      <option value={hour} selected={hour == time_to_hour(@notification_preference.quiet_hours_start)}>
+                      <option
+                        value={hour}
+                        selected={hour == time_to_hour(@notification_preference.quiet_hours_start)}
+                      >
                         {format_hour(hour)}
                       </option>
                     <% end %>
@@ -447,7 +489,10 @@ defmodule QlariusWeb.UserSettingsLive do
                     phx-change="update_quiet_end"
                   >
                     <%= for hour <- 0..23 do %>
-                      <option value={hour} selected={hour == time_to_hour(@notification_preference.quiet_hours_end)}>
+                      <option
+                        value={hour}
+                        selected={hour == time_to_hour(@notification_preference.quiet_hours_end)}
+                      >
                         {format_hour(hour)}
                       </option>
                     <% end %>

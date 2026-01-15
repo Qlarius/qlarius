@@ -15,8 +15,7 @@ defmodule QlariusWeb.HomeLive do
       socket
       |> assign(:current_path, "/home")
       |> assign(:title, "Home")
-      |> assign(:is_pwa, false)
-      |> assign(:device_type, :desktop)
+      |> init_pwa_assigns()
       |> assign_strong_start(me_file)
 
     {:ok, socket}

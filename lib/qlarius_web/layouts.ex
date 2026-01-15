@@ -349,12 +349,8 @@ defmodule QlariusWeb.Layouts do
       }
 
       .mobile-shell .panel-content {
-        padding-bottom: 6rem;
-      }
-
-      .mobile-shell.pwa-safe .panel-content {
-        /* Dock (4rem = 64px) + Safe area (34px) = 98px total */
-        padding-bottom: calc(4rem + 34px);
+        /* Dock height + buffer for comfortable spacing */
+        padding-bottom: 8rem;
       }
 
       .mobile-shell.pwa-safe .panel-scroll {
@@ -370,11 +366,12 @@ defmodule QlariusWeb.Layouts do
         right: 0;
       }
 
-      .mobile-shell.pwa-safe .dock {
-        /* Keep at iOS's boundary - don't try to move into safe area */
-        bottom: 0;
-        height: 4rem;
-        padding-bottom: 0;
+      /* Floating action buttons - consistent position */
+      .mobile-shell .floating-action-btn {
+        position: fixed;
+        right: 1.5rem;
+        bottom: 5rem;
+        z-index: 100;
       }
     </style>
 

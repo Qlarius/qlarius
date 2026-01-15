@@ -81,8 +81,7 @@ defmodule QlariusWeb.MeFileLive do
           <.link
             id="floating-tagger-btn"
             navigate={~p"/me_file_builder"}
-            class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-6 btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"
-            style="z-index: 100;"
+            class="floating-action-btn btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"
           >
             <.icon name="hero-plus" class="h-5 w-5" /> Tagger
           </.link>
@@ -293,8 +292,7 @@ defmodule QlariusWeb.MeFileLive do
     |> assign(:zip_lookup_trait, nil)
     |> assign(:zip_lookup_valid, false)
     |> assign(:zip_lookup_error, nil)
-    |> assign(:is_pwa, false)
-    |> assign(:device_type, :desktop)
+    |> init_pwa_assigns()
     |> ok()
   end
 
