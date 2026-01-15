@@ -11,7 +11,9 @@ defmodule QlariusWeb.RegistrationLive do
     proxy_user_id = Map.get(params, "proxy_user_id")
     referral_code_from_params = Map.get(params, "ref") || Map.get(params, "invite")
 
-    referral_code_from_session = Map.get(session, "referral_code") || Map.get(session, "invitation_code")
+    referral_code_from_session =
+      Map.get(session, "referral_code") || Map.get(session, "invitation_code")
+
     referral_code = referral_code_from_params || referral_code_from_session || ""
 
     mobile = Phoenix.Flash.get(socket.assigns.flash, :registration_mobile)
@@ -59,8 +61,7 @@ defmodule QlariusWeb.RegistrationLive do
       |> assign(:confirmation_checked, false)
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
       |> assign(:trait_in_edit, %{id: 4})
-      |> assign(:is_pwa, false)
-      |> assign(:device_type, :desktop)
+      |> init_pwa_assigns()
 
     {:ok, socket}
   end

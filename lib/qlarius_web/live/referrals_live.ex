@@ -64,8 +64,7 @@ defmodule QlariusWeb.ReferralsLive do
       |> assign(:pending_clicks_count, pending_clicks_count)
       |> assign(:total_paid, total_paid)
       |> assign(:next_payout_date, next_payout_date)
-      |> assign(:is_pwa, false)
-      |> assign(:device_type, :desktop)
+      |> init_pwa_assigns()
 
     {:ok, socket}
   end

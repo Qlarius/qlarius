@@ -12,8 +12,7 @@ defmodule QlariusWeb.HiLive do
       |> assign(:is_mobile, false)
       |> assign(:is_authenticated, is_authenticated)
       |> assign(:has_session_token, has_session_token)
-      |> assign(:device_type, :desktop)
-      |> assign(:is_pwa, false)
+      |> init_pwa_assigns()
 
     {:ok, socket}
   end

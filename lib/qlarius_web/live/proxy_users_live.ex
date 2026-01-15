@@ -31,8 +31,7 @@ defmodule QlariusWeb.ProxyUsersLive do
        |> assign(:title, "Proxy Users")
        |> assign(:current_path, "/proxy_users")
        |> assign(:show_add_modal, false)
-       |> assign(:is_pwa, false)
-       |> assign(:device_type, :desktop)}
+       |> init_pwa_assigns()}
     else
       {:ok,
        socket
@@ -103,7 +102,10 @@ defmodule QlariusWeb.ProxyUsersLive do
     <div id="proxyusers-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile {assigns}>
         <div class="mx-auto max-w-2xl">
-          <button phx-click="navigate_to_settings" class="btn btn-outline rounded-full text-lg mb-4 !border-base-content/30 !px-3 !py-1">
+          <button
+            phx-click="navigate_to_settings"
+            class="btn btn-outline rounded-full text-lg mb-4 !border-base-content/30 !px-3 !py-1"
+          >
             <.icon name="hero-chevron-left" class="w-5 h-5" /> Back
           </button>
 

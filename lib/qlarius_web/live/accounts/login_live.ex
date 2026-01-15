@@ -14,8 +14,7 @@ defmodule QlariusWeb.LoginLive do
       |> assign(:verification_code_error, nil)
       |> assign(:code_sent, false)
       |> assign(:show_biometric, false)
-      |> assign(:is_pwa, false)
-      |> assign(:device_type, :desktop)
+      |> init_pwa_assigns()
 
     {:ok, socket}
   end

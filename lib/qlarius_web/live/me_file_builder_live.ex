@@ -12,7 +12,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
   def render(assigns) do
     ~H"""
     <div id="mefilebuilder-pwa-detect" phx-hook="HiPagePWADetect">
-      <Layouts.mobile {assigns}
+      <Layouts.mobile
+        {assigns}
         title="Tagger"
         slide_over_active={@editing}
         slide_over_title={(@survey_in_edit && @survey_in_edit.name) || "Survey"}
@@ -164,7 +165,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
             </div>
           <% end %>
         </div>
-
       </Layouts.mobile>
     </div>
     """
@@ -190,8 +190,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:show_modal, false)
       |> assign(:tag_edit_mode, "update")
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
-      |> assign(:is_pwa, false)
-      |> assign(:device_type, :desktop)
+      |> init_pwa_assigns()
 
     {:ok, socket, temporary_assigns: [survey_to_open: nil]}
   end
