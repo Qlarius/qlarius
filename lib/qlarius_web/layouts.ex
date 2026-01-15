@@ -168,12 +168,12 @@ defmodule QlariusWeb.Layouts do
         is_ios={assigns[:is_ios] || false}
         is_android={assigns[:is_android] || false}
       />
-      <QlariusWeb.Components.PWAInstallPrompt.ios_install_guide
-        show={assigns[:show_ios_guide] || false}
-      />
-      <QlariusWeb.Components.PWAInstallPrompt.android_install_guide
-        show={assigns[:show_android_guide] || false}
-      />
+      <QlariusWeb.Components.PWAInstallPrompt.ios_install_guide show={
+        assigns[:show_ios_guide] || false
+      } />
+      <QlariusWeb.Components.PWAInstallPrompt.android_install_guide show={
+        assigns[:show_android_guide] || false
+      } />
     </div>
 
     <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
@@ -257,7 +257,10 @@ defmodule QlariusWeb.Layouts do
   attr :slide_over_title, :string, default: "Details"
 
   def mobile(assigns) do
-    assigns = Map.put_new(assigns, :show_logout_modal, false)
+    assigns =
+      assigns
+      |> Map.put_new(:show_logout_modal, false)
+      |> Map.put_new(:is_pwa, false)
 
     ~H"""
     <.flash_group flash={@flash} />
@@ -344,184 +347,222 @@ defmodule QlariusWeb.Layouts do
       #logout-modal-container > div.absolute {
         display: none !important;
       }
+
+      .mobile-shell .panel-content {
+        padding-bottom: 6rem;
+      }
+
+      .mobile-shell.pwa-safe .panel-content {
+        /* Dock (4rem = 64px) + Safe area (34px) = 98px total */
+        padding-bottom: calc(4rem + 34px);
+      }
+
+      .mobile-shell.pwa-safe .panel-scroll {
+        padding-top: env(safe-area-inset-top, 0px);
+      }
+
+      .mobile-shell .dock {
+        padding-bottom: 0;
+        height: 4rem;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+      }
+
+      .mobile-shell.pwa-safe .dock {
+        /* Keep at iOS's boundary - don't try to move into safe area */
+        bottom: 0;
+        height: 4rem;
+        padding-bottom: 0;
+      }
     </style>
 
-    <div class={[
-      "slide-panels",
-      assigns[:slide_over_active] && "active"
-    ]}>
-      <div class="track">
-        <%!-- Main screen panel --%>
-        <div class="panel">
-          <div class="panel-scroll">
-            <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
-              <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
-                <div class="w-full mb-6 flex items-center flex-shrink-0">
-                  <div class="w-8 flex justify-start">
-                    <button class="cursor-pointer" phx-click={toggle_sponster_sidebar(:on)}>
-                      <.icon name="hero-bars-3" class="h-8 w-8 text-content-base" />
-                    </button>
-                  </div>
-                  <div class="flex-1">
-                    <h1 class="text-3xl font-bold text-center">{@title}</h1>
-                  </div>
-                  <div class="w-8 flex justify-end overflow-x-visible">
-                    <%= if assigns[:current_scope] do %>
-                      <%= if assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") do %>
-                        <.tag_count count={@current_scope.trait_count} />
-                      <% else %>
-                        <.wallet_balance balance={@current_scope.wallet_balance} />
+    <div class={["mobile-shell", assigns[:is_pwa] && "pwa-safe"]}>
+      <div class={[
+        "slide-panels",
+        assigns[:slide_over_active] && "active"
+      ]}>
+        <div class="track">
+          <%!-- Main screen panel --%>
+          <div class="panel">
+            <div class="panel-scroll">
+              <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
+                <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
+                  <div class="w-full mb-6 flex items-center flex-shrink-0">
+                    <div class="w-8 flex justify-start">
+                      <button class="cursor-pointer" phx-click={toggle_sponster_sidebar(:on)}>
+                        <.icon name="hero-bars-3" class="h-8 w-8 text-content-base" />
+                      </button>
+                    </div>
+                    <div class="flex-1">
+                      <h1 class="text-3xl font-bold text-center">{@title}</h1>
+                    </div>
+                    <div class="w-8 flex justify-end overflow-x-visible">
+                      <%= if assigns[:current_scope] do %>
+                        <%= if assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") do %>
+                          <.tag_count count={@current_scope.trait_count} />
+                        <% else %>
+                          <.wallet_balance balance={@current_scope.wallet_balance} />
+                        <% end %>
                       <% end %>
-                    <% end %>
+                    </div>
                   </div>
+                  <div class="flex-1 panel-content">
+                    {render_slot(@inner_block)}
+                  </div>
+                  <.debug_assigns {assigns} />
                 </div>
-                <div class="flex-1" style="padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));">
-                  {render_slot(@inner_block)}
-                </div>
-                <.debug_assigns {assigns} />
               </div>
             </div>
           </div>
-        </div>
 
-        <%!-- Slide-over screen panel --%>
-        <div class="panel">
-          <div class="panel-scroll">
-            <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
-              <div class="container mx-auto px-4 py-6 flex-1" style="padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));">
-                <button phx-click="close_slide_over" class="btn btn-outline rounded-full text-lg mb-4 !border-base-content/30 !px-3 !py-1">
-                  <.icon name="hero-chevron-left" class="w-5 h-5" /> Back
-                </button>
-                <h1 class="text-2xl font-bold mb-6">{assigns[:slide_over_title] || "Details"}</h1>
+          <%!-- Slide-over screen panel --%>
+          <div class="panel">
+            <div class="panel-scroll">
+              <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
+                <div class="container mx-auto px-4 py-6 flex-1 panel-content">
+                  <button
+                    phx-click="close_slide_over"
+                    class="btn btn-outline rounded-full text-lg mb-4 !border-base-content/30 !px-3 !py-1"
+                  >
+                    <.icon name="hero-chevron-left" class="w-5 h-5" /> Back
+                  </button>
+                  <h1 class="text-2xl font-bold mb-6">{assigns[:slide_over_title] || "Details"}</h1>
 
-                <div>
-                  {render_slot(assigns[:slide_over_content] || [])}
+                  <div>
+                    {render_slot(assigns[:slide_over_content] || [])}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <%!-- Modals render outside panel system to overlay both panels --%>
-    {render_slot(assigns[:modals] || [])}
+      <%!-- Modals render outside panel system to overlay both panels --%>
+      {render_slot(assigns[:modals] || [])}
 
-    <%!-- Floating actions (like floating buttons) render outside panels --%>
-    {render_slot(assigns[:floating_actions] || [])}
+      <%!-- Floating actions (like floating buttons) render outside panels --%>
+      {render_slot(assigns[:floating_actions] || [])}
 
-    <%!-- Logout confirmation modal (mobile layout only) --%>
-    <%= if assigns[:current_scope] && assigns[:show_logout_modal] do %>
-      <.modal
-        id="logout-modal"
-        show={true}
-        on_cancel={JS.push("cancel_logout")}
-      >
-        <div class="border-2 border-primary rounded-box">
-          <%!-- Header bar --%>
-          <div class="bg-base-200 dark:bg-base-300 px-6 py-4 flex items-center justify-between rounded-t-box">
-            <h3 class="font-bold text-lg">Confirm Logout</h3>
-            <button
-              phx-click={JS.push("cancel_logout")}
-              type="button"
-              class="btn btn-circle btn-ghost btn-sm hover:bg-base-300"
-              aria-label={gettext("close")}
-            >
-              <.icon name="hero-x-mark" class="w-5 h-5" />
-            </button>
-          </div>
-          <%!-- Content --%>
-          <div class="p-6">
-            <p class="py-4">Are you sure you want to log out?</p>
-            <div class="modal-action">
-              <button class="btn btn-ghost" phx-click="cancel_logout">Cancel</button>
-              <form action={~p"/logout"} method="post">
-                <input type="hidden" name="_method" value="delete" />
-                <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-                <button type="submit" class="btn btn-error">Log Out</button>
-              </form>
+      <%!-- Logout confirmation modal (mobile layout only) --%>
+      <%= if assigns[:current_scope] && assigns[:show_logout_modal] do %>
+        <.modal
+          id="logout-modal"
+          show={true}
+          on_cancel={JS.push("cancel_logout")}
+        >
+          <div class="border-2 border-primary rounded-box">
+            <%!-- Header bar --%>
+            <div class="bg-base-200 dark:bg-base-300 px-6 py-4 flex items-center justify-between rounded-t-box">
+              <h3 class="font-bold text-lg">Confirm Logout</h3>
+              <button
+                phx-click={JS.push("cancel_logout")}
+                type="button"
+                class="btn btn-circle btn-ghost btn-sm hover:bg-base-300"
+                aria-label={gettext("close")}
+              >
+                <.icon name="hero-x-mark" class="w-5 h-5" />
+              </button>
+            </div>
+            <%!-- Content --%>
+            <div class="p-6">
+              <p class="py-4">Are you sure you want to log out?</p>
+              <div class="modal-action">
+                <button class="btn btn-ghost" phx-click="cancel_logout">Cancel</button>
+                <form action={~p"/logout"} method="post">
+                  <input type="hidden" name="_method" value="delete" />
+                  <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+                  <button type="submit" class="btn btn-error">Log Out</button>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
-      </.modal>
-    <% end %>
+        </.modal>
+      <% end %>
 
-    <.mobile_sidebar {assigns} />
-    <.right_sidebar_drawer {assigns} />
+      <.mobile_sidebar {assigns} />
+      <.right_sidebar_drawer {assigns} />
 
-    <%!-- Onboarding tip (shown based on conditions) --%>
-    <.onboarding_tip :if={@current_scope} current_path={@current_path} current_scope={@current_scope} />
-
-    <%!-- PWA Install Prompts --%>
-    <div :if={@current_scope} phx-hook="PWAInstall" id="pwa-install-hook">
-      <QlariusWeb.Components.PWAInstallPrompt.install_banner
-        show_banner={assigns[:show_install_banner] || false}
-        is_ios={assigns[:is_ios] || false}
-        is_android={assigns[:is_android] || false}
+      <%!-- Onboarding tip (shown based on conditions) --%>
+      <.onboarding_tip
+        :if={@current_scope}
+        current_path={@current_path}
+        current_scope={@current_scope}
       />
-      <QlariusWeb.Components.PWAInstallPrompt.ios_install_guide
-        show={assigns[:show_ios_guide] || false}
-      />
-      <QlariusWeb.Components.PWAInstallPrompt.android_install_guide
-        show={assigns[:show_android_guide] || false}
-      />
-    </div>
 
-    <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
-    <div :if={@current_scope} class="dock z-40">
-      <button
-        class={[assigns[:current_path] == "/home" && "dock-active"]}
-        phx-click={JS.navigate(~p"/home")}
-      >
-        <.icon name="hero-home" class="size-[1.5em]" />
-        <span class="dock-label">Home</span>
-      </button>
+      <%!-- PWA Install Prompts --%>
+      <div :if={@current_scope} phx-hook="PWAInstall" id="pwa-install-hook">
+        <QlariusWeb.Components.PWAInstallPrompt.install_banner
+          show_banner={assigns[:show_install_banner] || false}
+          is_ios={assigns[:is_ios] || false}
+          is_android={assigns[:is_android] || false}
+        />
+        <QlariusWeb.Components.PWAInstallPrompt.ios_install_guide show={
+          assigns[:show_ios_guide] || false
+        } />
+        <QlariusWeb.Components.PWAInstallPrompt.android_install_guide show={
+          assigns[:show_android_guide] || false
+        } />
+      </div>
 
-      <button
-        class={[
-          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") &&
-            "dock-active"
-        ]}
-        phx-click={JS.navigate(~p"/me_file")}
-      >
-        <.icon name="hero-identification" class="size-[1.5em]" />
-        <span class="dock-label">MeFile</span>
-      </button>
-
-      <button
-        class={[
-          "indicator relative",
-          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/wallet") &&
-            "dock-active"
-        ]}
-        phx-click={JS.navigate(~p"/wallet")}
-      >
-        <.icon name="hero-wallet" class="size-[1.5em]" />
-        <span class="dock-label">Wallet</span>
-      </button>
-
-      <button
-        class={[
-          "indicator relative",
-          assigns[:current_path] && String.starts_with?(assigns[:current_path], "/ads") &&
-            "dock-active"
-        ]}
-        phx-click={JS.navigate(~p"/ads")}
-      >
-        <.icon name="hero-eye" class="size-[1.5em]" />
-        <span class="dock-label">Ads</span>
-        <span
-          :if={@current_scope.ads_count > 0}
-          class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-400"
+      <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
+      <div :if={@current_scope} class="dock z-40">
+        <button
+          class={[assigns[:current_path] == "/home" && "dock-active"]}
+          phx-click={JS.navigate(~p"/home")}
         >
-          {@current_scope.ads_count}
-        </span>
-      </button>
+          <.icon name="hero-home" class="size-[1.5em]" />
+          <span class="dock-label">Home</span>
+        </button>
 
-      <button phx-click={toggle_sponster_sidebar(:on)}>
-        <.icon name="hero-ellipsis-horizontal" class="size-[1.5em]" />
-        <span class="dock-label">More</span>
-      </button>
+        <button
+          class={[
+            assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") &&
+              "dock-active"
+          ]}
+          phx-click={JS.navigate(~p"/me_file")}
+        >
+          <.icon name="hero-identification" class="size-[1.5em]" />
+          <span class="dock-label">MeFile</span>
+        </button>
+
+        <button
+          class={[
+            "indicator relative",
+            assigns[:current_path] && String.starts_with?(assigns[:current_path], "/wallet") &&
+              "dock-active"
+          ]}
+          phx-click={JS.navigate(~p"/wallet")}
+        >
+          <.icon name="hero-wallet" class="size-[1.5em]" />
+          <span class="dock-label">Wallet</span>
+        </button>
+
+        <button
+          class={[
+            "indicator relative",
+            assigns[:current_path] && String.starts_with?(assigns[:current_path], "/ads") &&
+              "dock-active"
+          ]}
+          phx-click={JS.navigate(~p"/ads")}
+        >
+          <.icon name="hero-eye" class="size-[1.5em]" />
+          <span class="dock-label">Ads</span>
+          <span
+            :if={@current_scope.ads_count > 0}
+            class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-400"
+          >
+            {@current_scope.ads_count}
+          </span>
+        </button>
+
+        <button phx-click={toggle_sponster_sidebar(:on)}>
+          <.icon name="hero-ellipsis-horizontal" class="size-[1.5em]" />
+          <span class="dock-label">More</span>
+        </button>
+      </div>
     </div>
     """
   end

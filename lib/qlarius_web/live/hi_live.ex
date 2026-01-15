@@ -56,13 +56,16 @@ defmodule QlariusWeb.HiLive do
       socket.assigns.is_authenticated ->
         {:noreply, push_navigate(socket, to: ~p"/home")}
 
-      # PWA users (not authenticated): go to login or register
-      socket.assigns.is_pwa && !socket.assigns.is_authenticated ->
-        path = if socket.assigns.has_session_token, do: ~p"/login", else: ~p"/register"
-        {:noreply, push_navigate(socket, to: path)}
+      # Saved credentials: allow full access even in mobile browser
+      socket.assigns.has_session_token ->
+        {:noreply, push_navigate(socket, to: ~p"/login")}
+
+      # PWA users (not authenticated): go to register
+      socket.assigns.is_pwa ->
+        {:noreply, push_navigate(socket, to: ~p"/register")}
 
       # Mobile browser (not PWA): show welcome carousel with Install button
-      socket.assigns.is_mobile && !socket.assigns.is_pwa ->
+      socket.assigns.is_mobile ->
         {:noreply, assign(socket, :mode, :welcome)}
 
       # Desktop: show welcome carousel with Login/Register buttons
@@ -239,7 +242,13 @@ defmodule QlariusWeb.HiLive do
               Look for it at the bottom of this browser window
             </p>
             <div class="bg-base-300 dark:bg-base-300 rounded-lg p-3 flex items-center gap-2">
-              <span class="text-base-content/50"><.icon name="hero-ellipsis-horizontal-circle" class="w-6 h-6 text-base-content/50" /> +</span> <span class="text-base-content/70"><.icon name="hero-arrow-up-on-square" class="w-6 h-6 text-base-content" /></span>
+              <span class="text-base-content/50">
+                <.icon name="hero-ellipsis-horizontal-circle" class="w-6 h-6 text-base-content/50" />
+                +
+              </span>
+              <span class="text-base-content/70">
+                <.icon name="hero-arrow-up-on-square" class="w-6 h-6 text-base-content" />
+              </span>
               <span class="font-medium">
                 Share
               </span>
@@ -260,8 +269,21 @@ defmodule QlariusWeb.HiLive do
             </p>
             <div class="bg-base-300 dark:bg-base-300 rounded-lg p-3 flex items-center gap-2">
               <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" stroke-width="2"/>
-                <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <rect
+                  x="3"
+                  y="3"
+                  width="18"
+                  height="18"
+                  rx="4"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <path
+                  d="M12 8v8M8 12h8"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
               </svg>
               <span class="font-medium">Add to Home Screen</span>
             </div>
@@ -281,8 +303,28 @@ defmodule QlariusWeb.HiLive do
             </p>
             <div class="bg-base-300 dark:bg-base-300 rounded-lg p-3 flex items-center justify-start">
               <svg class="h-7" viewBox="0 0 52 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="1" y="1" width="50" height="26" rx="13" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
-                <text x="26" y="18.5" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="currentColor" text-anchor="middle">Add</text>
+                <rect
+                  x="1"
+                  y="1"
+                  width="50"
+                  height="26"
+                  rx="13"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  opacity="0.3"
+                />
+                <text
+                  x="26"
+                  y="18.5"
+                  font-family="system-ui, -apple-system, sans-serif"
+                  font-size="13"
+                  font-weight="600"
+                  fill="currentColor"
+                  text-anchor="middle"
+                >
+                  Add
+                </text>
               </svg>
             </div>
           </div>
@@ -294,7 +336,7 @@ defmodule QlariusWeb.HiLive do
           <div class="flex-1">
             <h3 class="font-bold text-lg mb-2">That's it.</h3>
             <p class="text-sm text-base-content/70 mb-3">
-               Find the new app icon on your home screen. Tap to launch!
+              Find the new app icon on your home screen. Tap to launch!
             </p>
             <div class="bg-base-300 dark:bg-base-300 rounded-lg p-3 flex items-center gap-3">
               <img src="/images/qadabra_logo_squares_color.svg" class="w-12 h-12 rounded-xl" />
@@ -306,9 +348,6 @@ defmodule QlariusWeb.HiLive do
           </div>
         </div>
       </div>
-
-
-
     </div>
     """
   end

@@ -160,6 +160,23 @@ Hooks.PWADetect = {
 
       const isMobile = isIOS || isAndroid
 
+      console.log('[PWA Detection]', {
+        isPWA,
+        isIOS,
+        isAndroid,
+        deviceType,
+        matchMedia: window.matchMedia('(display-mode: standalone)').matches,
+        standalone: window.navigator.standalone,
+        safeAreaTop: getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-top)'),
+        safeAreaBottom: getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)')
+      })
+
+      // iOS 18+ fix: env() safe area insets don't work properly in PWAs
+      // Use JavaScript to apply safe area padding dynamically
+      if (isPWA && isIOS) {
+        this.applySafeAreaFix()
+      }
+
       this.pushEvent("pwa_detected", {
         is_pwa: isPWA,
         in_iframe: inIframe,
@@ -167,6 +184,20 @@ Hooks.PWADetect = {
         device_type: deviceType
       })
     }, 100)
+  },
+  
+  applySafeAreaFix() {
+    // iOS 18+ PWAs automatically handle safe area spacing
+    // Set to 0 to let iOS handle it natively
+    let bottomInset = 0
+    
+    console.log('[Safe Area Fix]', {
+      bottomInset: bottomInset,
+      message: 'Disabled - letting iOS handle safe area natively'
+    })
+    
+    // Apply custom CSS variable (set to 0)
+    document.documentElement.style.setProperty('--safe-area-inset-bottom-js', `${bottomInset}px`)
   }
 }
 
