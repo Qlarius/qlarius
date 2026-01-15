@@ -1,6 +1,8 @@
 defmodule QlariusWeb.HiLive do
   use QlariusWeb, :live_view
 
+  import QlariusWeb.PWAHelpers
+
   def mount(_params, session, socket) do
     is_authenticated = !!socket.assigns[:current_scope]
     has_session_token = Map.get(session, "user_token") != nil
@@ -115,7 +117,8 @@ defmodule QlariusWeb.HiLive do
       <%= if @mode == :install do %>
         <%!-- INSTALL MODE: Installation instructions --%>
         <div class="min-h-screen dark:bg-base-300 flex flex-col overflow-y-auto">
-          <div class="flex-shrink-0 py-12 flex justify-center">
+          <%!-- Logo spacer --%>
+          <div class="flex-shrink-0 py-8 md:py-12 flex justify-center">
             <img
               src="/images/qadabra_full_gray_opt.svg"
               alt="Qadabra"
@@ -144,8 +147,9 @@ defmodule QlariusWeb.HiLive do
 
       <%= if @mode == :welcome do %>
         <%!-- WELCOME MODE: Default carousel view --%>
-        <div class="h-screen dark:bg-base-300 flex items-center justify-center pb-24 relative overflow-y-hidden">
-          <div class="absolute top-12 left-0 right-0 flex justify-center z-10">
+        <div class="h-screen dark:bg-base-300 flex flex-col relative overflow-y-hidden">
+          <%!-- Logo spacer - ensures carousel doesn't overlap --%>
+          <div class="flex-shrink-0 py-8 md:py-12 flex justify-center">
             <img
               src="/images/qadabra_full_gray_opt.svg"
               alt="Qadabra"
@@ -153,10 +157,11 @@ defmodule QlariusWeb.HiLive do
             />
           </div>
 
+          <%!-- Carousel container - can shrink if needed --%>
           <div
             phx-hook="CarouselIndicators"
             id="carousel-container"
-            class="w-full flex flex-col items-center justify-center overflow-hidden"
+            class="flex-1 min-h-0 w-full flex flex-col items-center justify-center overflow-hidden pb-24"
           >
             <.carousel />
           </div>
@@ -419,7 +424,7 @@ defmodule QlariusWeb.HiLive do
     <div class="carousel carousel-center w-full max-w-7xl space-x-4 px-4">
       <div id="card1" class="carousel-item w-[85%] md:w-[300px]">
         <div class="card bg-base-200 shadow-xl w-full">
-          <figure class="h-64 bg-gradient-to-br from-cyan-400 to-blue-600 relative overflow-hidden">
+          <figure class="h-48 sm:h-56 md:h-64 bg-gradient-to-br from-cyan-400 to-blue-600 relative overflow-hidden">
             <img
               src="/images/hi_sequence_wallet_light.png"
               alt=""
@@ -434,7 +439,7 @@ defmodule QlariusWeb.HiLive do
           <div class="card-body">
             <h2 class="card-title text-3xl font-bold">Claim your wallet.</h2>
             <p class="text-base-content/70">
-              Your pre-funded wallet is ready for you. Set it up in seconds and use it to access the content and support the creators that matter to you. Media micropayments done right.
+              Your pre-funded Qadabra media wallet is ready for you! Set it up in seconds and use it to access the content and support the creators that matter to you.
             </p>
             <div class="card-actions justify-center mt-4">
               <img src="/images/qadabra_logo_squares_color.svg" alt="Qadabra" class="h-8 w-auto" />
@@ -445,7 +450,7 @@ defmodule QlariusWeb.HiLive do
 
       <div id="card2" class="carousel-item w-[85%] md:w-[300px]">
         <div class="card bg-base-200 shadow-xl w-full">
-          <figure class="h-64 bg-gradient-to-br from-orange-400 to-red-600 relative overflow-hidden">
+          <figure class="h-48 sm:h-56 md:h-64 bg-gradient-to-br from-orange-400 to-red-600 relative overflow-hidden">
             <img
               src="/images/hi_sequence_media_light.png"
               alt=""
@@ -460,7 +465,7 @@ defmodule QlariusWeb.HiLive do
           <div class="card-body">
             <h2 class="card-title text-3xl font-bold">Buy your media.</h2>
             <p class="text-base-content/70">
-              Pay pennies, not subscriptions. Instant access to only the content you actually want through simple micro-purchases. No commitments, just content.
+              Pay nickels and dimes, not subscriptions. Get instant access to the content you want through simple micro-purchases. No commitments, just content.
             </p>
             <div class="card-actions justify-center mt-4">
               <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-8 w-auto" />
@@ -471,7 +476,7 @@ defmodule QlariusWeb.HiLive do
 
       <div id="card3" class="carousel-item w-[85%] md:w-[300px]">
         <div class="card bg-base-200 shadow-xl w-full">
-          <figure class="h-64 bg-gradient-to-br from-green-400 to-emerald-600 relative overflow-hidden">
+          <figure class="h-48 sm:h-56 md:h-64 bg-gradient-to-br from-green-400 to-emerald-600 relative overflow-hidden">
             <img
               src="/images/hi_sequence_ads_light.png"
               alt=""
@@ -486,7 +491,7 @@ defmodule QlariusWeb.HiLive do
           <div class="card-body">
             <h2 class="card-title text-3xl font-bold">Sell your attention.</h2>
             <p class="text-base-content/70">
-              You control your sponsorships. Choose which brands reach you. Capture revenue from ads to fuel your wallet. Your supply, your terms, your profit.
+              Fuel up your wallet with payments from your personal sponsors. For decades, others have sold your attention. Now it's your turn. Paid media can still feel free!
             </p>
             <div class="card-actions justify-center mt-4">
               <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-8 w-auto" />
@@ -497,7 +502,7 @@ defmodule QlariusWeb.HiLive do
 
       <div id="card4" class="carousel-item w-[85%] md:w-[300px]">
         <div class="card bg-base-200 shadow-xl w-full">
-          <figure class="h-64 bg-gradient-to-br from-purple-400 to-indigo-600 relative overflow-hidden">
+          <figure class="h-48 sm:h-56 md:h-64 bg-gradient-to-br from-purple-400 to-indigo-600 relative overflow-hidden">
             <img
               src="/images/hi_sequence_data_light.png"
               alt=""

@@ -612,9 +612,10 @@ defmodule QlariusWeb.RegistrationLive do
     <div
       id="registration-pwa-detect"
       phx-hook="HiPagePWADetect"
-      class="min-h-screen flex items-center justify-center px-4 pb-24 relative"
+      class="min-h-screen flex flex-col px-4 pb-24"
     >
-      <div class="absolute top-12 left-0 right-0 flex justify-center">
+      <%!-- Logo spacer --%>
+      <div class="flex-shrink-0 py-8 md:py-12 flex justify-center">
         <img
           src="/images/qadabra_full_gray_opt.svg"
           alt="Qadabra"
@@ -622,7 +623,8 @@ defmodule QlariusWeb.RegistrationLive do
         />
       </div>
 
-      <div class="w-full max-w-2xl space-y-8 px-6 md:px-8">
+      <div class="flex-1 flex items-center justify-center pb-16">
+        <div class="w-full max-w-2xl space-y-8 px-6 md:px-8">
         <%= if @current_step > 0 do %>
           <h1 class="text-4xl md:text-5xl font-bold mb-8 dark:text-white">
             Registration
@@ -715,6 +717,7 @@ defmodule QlariusWeb.RegistrationLive do
             <span class="badge badge-sm badge-outline badge-primary">PROXY USER MODE</span>
           </div>
         <% end %>
+        </div>
       </div>
 
       <div class="fixed bottom-0 left-0 right-0 bg-base-100 dark:bg-base-300 border-t border-base-300 dark:border-base-content/20 p-4 safe-area-inset-bottom">

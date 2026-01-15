@@ -103,9 +103,10 @@ defmodule QlariusWeb.LoginLive do
     <div
       id="login-pwa-detect"
       phx-hook="HiPagePWADetect"
-      class="min-h-screen flex items-center justify-center px-4 relative"
+      class="min-h-screen flex flex-col px-4"
     >
-      <div class="absolute top-12 left-0 right-0 flex justify-center">
+      <%!-- Logo spacer --%>
+      <div class="flex-shrink-0 py-8 md:py-12 flex justify-center">
         <img
           src="/images/qadabra_full_gray_opt.svg"
           alt="Qadabra"
@@ -113,7 +114,8 @@ defmodule QlariusWeb.LoginLive do
         />
       </div>
 
-      <div class="max-w-md w-full space-y-8 px-6 md:px-8">
+      <div class="flex-1 flex items-center justify-center pb-32">
+        <div class="max-w-md w-full space-y-8 px-6 md:px-8">
         <div>
           <h1 class="text-4xl md:text-5xl font-bold text-center dark:text-white">
             Sign In
@@ -241,6 +243,7 @@ defmodule QlariusWeb.LoginLive do
               <.link navigate={~p"/register"} class="link link-primary">Register</.link>
             </p>
           </div>
+        </div>
         </div>
       </div>
     </div>
