@@ -45,6 +45,7 @@ defmodule QlariusWeb.MeFileHTML do
   attr :zip_lookup_valid, :boolean, default: false
   attr :zip_lookup_error, :string, default: nil
   attr :dual_pane, :boolean, default: false
+  attr :show_expanded_tags, :boolean, default: false
 
   def tag_edit_modal(assigns) do
     ~H"""
@@ -68,10 +69,48 @@ defmodule QlariusWeb.MeFileHTML do
         <%= cond do %>
           <% @tag_edit_mode == "update" -> %>
             <%!-- Fixed question section --%>
-            <div class="p-4 bg-base-200 text-base-content/70 shrink-0 text-lg">
-              <p :if={@trait_in_edit && @trait_in_edit.survey_question}>
+            <div class="p-4 bg-base-200 text-base-content/70 shrink-0">
+              <p :if={@trait_in_edit && @trait_in_edit.survey_question} class="text-lg mb-3">
                 {Phoenix.HTML.raw(@trait_in_edit.survey_question.text)}
               </p>
+
+              <%!-- Toggle for expanded/simple view - only show if there are meaningful expanded answers --%>
+              <div
+                :if={
+                  @trait_in_edit &&
+                  @trait_in_edit.input_type != "single_select_zip" &&
+                  Ecto.assoc_loaded?(@trait_in_edit.child_traits) &&
+                  Enum.any?(@trait_in_edit.child_traits, fn child ->
+                    child.survey_answer &&
+                    child.survey_answer.text not in [nil, ""] &&
+                    child.survey_answer.text != child.trait_name
+                  end)
+                }
+                class="flex gap-2 mt-2"
+              >
+                <button
+                  type="button"
+                  phx-click="toggle_tag_view"
+                  class={[
+                    "btn btn-sm rounded-full",
+                    !@show_expanded_tags && "btn-primary",
+                    @show_expanded_tags && "btn-ghost"
+                  ]}
+                >
+                  Simple tags
+                </button>
+                <button
+                  type="button"
+                  phx-click="toggle_tag_view"
+                  class={[
+                    "btn btn-sm rounded-full",
+                    @show_expanded_tags && "btn-primary",
+                    !@show_expanded_tags && "btn-ghost"
+                  ]}
+                >
+                  Expanded tags
+                </button>
+              </div>
             </div>
             <.form
               :if={@trait_in_edit}
@@ -160,11 +199,21 @@ defmodule QlariusWeb.MeFileHTML do
                       checked={child_trait.id in @selected_ids}
                       class="checkbox w-7 h-7"
                     />
-                    <div class="text-lg text-base-content">
-                      {if child_trait.survey_answer &&
-                            child_trait.survey_answer.text not in [nil, ""],
-                          do: child_trait.survey_answer.text,
-                          else: child_trait.trait_name}
+                    <div class="flex-1">
+                      <div class="text-lg text-base-content font-medium">
+                        {child_trait.trait_name}
+                      </div>
+                      <div
+                        :if={
+                          @show_expanded_tags &&
+                          child_trait.survey_answer &&
+                          child_trait.survey_answer.text not in [nil, ""] &&
+                          child_trait.survey_answer.text != child_trait.trait_name
+                        }
+                        class="text-sm text-base-content/60 mt-1"
+                      >
+                        {child_trait.survey_answer.text}
+                      </div>
                     </div>
                   </label>
                 </div>

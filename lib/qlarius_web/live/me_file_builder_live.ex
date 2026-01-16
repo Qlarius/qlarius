@@ -30,6 +30,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
             zip_lookup_valid={@zip_lookup_valid || false}
             zip_lookup_error={@zip_lookup_error}
             dual_pane={true}
+            show_expanded_tags={@show_expanded_tags}
           />
         </:modals>
 
@@ -189,6 +190,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:selected_child_trait_ids, [])
       |> assign(:show_modal, false)
       |> assign(:tag_edit_mode, "update")
+      |> assign(:show_expanded_tags, false)
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
       |> init_pwa_assigns()
 
@@ -216,6 +218,10 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
   def handle_event("pwa_detected", params, socket) do
     handle_pwa_detection(socket, params)
+  end
+
+  def handle_event("toggle_tag_view", _params, socket) do
+    {:noreply, assign(socket, :show_expanded_tags, !socket.assigns.show_expanded_tags)}
   end
 
   def handle_event("open_edit", %{"id" => id}, socket) do

@@ -25,6 +25,7 @@ defmodule QlariusWeb.MeFileLive do
             zip_lookup_valid={@zip_lookup_valid}
             zip_lookup_error={@zip_lookup_error}
             dual_pane={true}
+            show_expanded_tags={@show_expanded_tags}
           />
         </:modals>
 
@@ -248,6 +249,10 @@ defmodule QlariusWeb.MeFileLive do
     handle_pwa_detection(socket, params)
   end
 
+  def handle_event("toggle_tag_view", _params, socket) do
+    {:noreply, assign(socket, :show_expanded_tags, !socket.assigns.show_expanded_tags)}
+  end
+
   @impl true
   def handle_info({:perform_tag_deletion, trait_id, child_trait_ids, current_scope}, socket) do
     # Remove the selected tags from the me_file
@@ -292,6 +297,7 @@ defmodule QlariusWeb.MeFileLive do
     |> assign(:zip_lookup_trait, nil)
     |> assign(:zip_lookup_valid, false)
     |> assign(:zip_lookup_error, nil)
+    |> assign(:show_expanded_tags, false)
     |> init_pwa_assigns()
     |> ok()
   end
