@@ -220,7 +220,7 @@ defmodule QlariusWeb.MeFileHTML do
               </div>
 
               <%!-- Fixed footer --%>
-              <div class="py-4 px-12 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
+              <div class="py-4 px-6 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
                 <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost rounded-full">
                   Cancel
                 </button>
@@ -289,7 +289,7 @@ defmodule QlariusWeb.MeFileHTML do
               </div>
 
               <%!-- Fixed footer --%>
-              <div class="py-4 px-12 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
+              <div class="py-4 px-6 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
                 <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost rounded-full">
                   Cancel
                 </button>

@@ -212,7 +212,7 @@ defmodule QlariusWeb.Layouts do
         phx-click={JS.navigate(~p"/wallet")}
       >
         <.icon name="hero-wallet" class="size-[1.5em]" />
-        <span class="dock-label">Walletx</span>
+        <span class="dock-label">Wallet</span>
         <span class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-400">
           {format_usd(@current_scope.wallet_balance)}
         </span>
@@ -353,9 +353,6 @@ defmodule QlariusWeb.Layouts do
         padding-bottom: 8rem;
       }
 
-      .mobile-shell.pwa-safe .panel-scroll {
-        padding-top: env(safe-area-inset-top, 0px);
-      }
 
       .mobile-shell .dock {
         padding-bottom: 0;
@@ -384,6 +381,9 @@ defmodule QlariusWeb.Layouts do
           <%!-- Main screen panel --%>
           <div class="panel">
             <div class="panel-scroll">
+              <%= if assigns[:is_pwa] do %>
+                <div class="bg-base-100 dark:!bg-base-300 flex-shrink-0" style="height: max(12px, calc(env(safe-area-inset-top) - 20px));"></div>
+              <% end %>
               <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
                 <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
                   <div class="w-full mb-6 flex items-center flex-shrink-0">
@@ -417,6 +417,9 @@ defmodule QlariusWeb.Layouts do
           <%!-- Slide-over screen panel --%>
           <div class="panel">
             <div class="panel-scroll">
+              <%= if assigns[:is_pwa] do %>
+                <div class="bg-base-100 dark:!bg-base-300 flex-shrink-0" style="height: max(12px, calc(env(safe-area-inset-top) - 20px));"></div>
+              <% end %>
               <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
                 <div class="container mx-auto px-4 py-6 flex-1 panel-content">
                   <button

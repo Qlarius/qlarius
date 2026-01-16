@@ -2,8 +2,9 @@ self.addEventListener("install", () => self.skipWaiting())
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()))
 
 self.addEventListener("fetch", (event) => {
-  // In development, convert HTTPS localhost requests to HTTP
   const url = new URL(event.request.url)
+  
+  // In development, convert HTTPS localhost requests to HTTP
   if (url.hostname === 'localhost' && url.protocol === 'https:') {
     url.protocol = 'http:'
     const newRequest = new Request(url.toString(), {
@@ -18,7 +19,11 @@ self.addEventListener("fetch", (event) => {
       integrity: event.request.integrity
     })
     event.respondWith(fetch(newRequest))
+  } else if (url.hostname === '10.0.2.2') {
+    // Handle Android emulator requests - pass through to avoid opening browser
+    event.respondWith(fetch(event.request))
   } else {
+    // For all other requests, pass through
     event.respondWith(fetch(event.request))
   }
 })

@@ -40,7 +40,10 @@ defmodule QlariusWeb.Endpoint do
     at: "/",
     from: :qlarius,
     gzip: false,
-    only: QlariusWeb.static_paths()
+    only: QlariusWeb.static_paths(),
+    content_types: %{
+      "webmanifest" => "application/manifest+json"
+    }
 
   if Code.ensure_loaded?(Tidewave) do
     plug Tidewave
