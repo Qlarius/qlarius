@@ -7,7 +7,6 @@ defmodule QlariusWeb.PWAHelpers do
     statics: QlariusWeb.static_paths()
 
   import Phoenix.Component, only: [assign: 3]
-  import Phoenix.LiveView, only: [push_navigate: 2]
 
   @doc """
   Initialize PWA-related assigns with smart defaults to prevent layout flash.

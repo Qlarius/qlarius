@@ -26,6 +26,7 @@ defmodule QlariusWeb.MeFileLive do
             zip_lookup_error={@zip_lookup_error}
             dual_pane={true}
             show_expanded_tags={@show_expanded_tags}
+            is_pwa={@is_pwa}
           />
         </:modals>
 

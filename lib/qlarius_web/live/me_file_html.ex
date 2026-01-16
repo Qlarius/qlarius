@@ -46,6 +46,7 @@ defmodule QlariusWeb.MeFileHTML do
   attr :zip_lookup_error, :string, default: nil
   attr :dual_pane, :boolean, default: false
   attr :show_expanded_tags, :boolean, default: false
+  attr :is_pwa, :boolean, default: false
 
   def tag_edit_modal(assigns) do
     ~H"""
@@ -54,7 +55,11 @@ defmodule QlariusWeb.MeFileHTML do
       @dual_pane && "modal-dual-pane",
       @show_modal && "modal-open bg-base-300/80 backdrop-blur-sm"
     ]}>
-      <div class="flex flex-col modal-box border border-youdata-500 dark:border-youdata-700 bg-base-100 p-0 max-h-[90vh]">
+      <div class={[
+        "flex flex-col modal-box border border-youdata-500 dark:border-youdata-700 bg-base-100 p-0",
+        @is_pwa && "max-h-[calc(90vh-env(safe-area-inset-top))]",
+        !@is_pwa && "max-h-[90vh]"
+      ]}>
         <%!-- Fixed header --%>
         <div class="p-4 flex flex-row justify-between items-baseline bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content shrink-0">
           <h3 class="text-lg font-bold">
