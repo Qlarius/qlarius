@@ -171,13 +171,13 @@ defmodule QlariusWeb.MeFileHTML do
               </div>
 
               <%!-- Fixed footer --%>
-              <div class="p-4 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
-                <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost">
+              <div class="py-4 px-12 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
+                <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost rounded-full">
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  class="btn btn-lg btn-primary"
+                  class="btn btn-lg btn-primary rounded-full"
                   disabled={@trait_in_edit.input_type == "single_select_zip" && !@zip_lookup_valid}
                 >
                   Save/Update Tags
@@ -240,13 +240,13 @@ defmodule QlariusWeb.MeFileHTML do
               </div>
 
               <%!-- Fixed footer --%>
-              <div class="p-4 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
-                <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost">
+              <div class="py-4 px-12 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
+                <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost rounded-full">
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  class="btn btn-lg btn-error"
+                  class="btn btn-lg btn-error rounded-full"
                   disabled={Enum.empty?(@selected_ids)}
                 >
                   Delete Tag

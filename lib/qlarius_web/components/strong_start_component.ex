@@ -61,14 +61,14 @@ defmodule QlariusWeb.Components.StrongStartComponent do
                 <% end %>
               </div>
               <div class="flex-grow">
-                <div class="font-bold text-xl">Complete starter tags</div>
+                <div class="font-bold text-xl">Tag the Essentials</div>
               </div>
             </div>
             <div class="text-base text-base-content/60 min-h-[3rem]">
               <%= if @progress.steps.essentials_survey_completed do %>
-                All essential information added
+                All essential tags added
               <% else %>
-                {@progress.survey_answered}/{@progress.survey_total} tags filled
+                {@progress.survey_answered}/{@progress.survey_total} Essential tags filled
               <% end %>
             </div>
             <%= if !@progress.steps.essentials_survey_completed do %>
