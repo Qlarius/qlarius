@@ -6,7 +6,7 @@ defmodule Qlarius.Repo.Migrations.RecalculateVideoCampaignBids do
     # Formula: (offer_amt × markup_multiplier) + base_fee
     # Video (id=2): (offer_amt × 1.5) + 0.15 = 0.30 for $0.10 bid
     # 3-Tap (id=1): (offer_amt × 1.5) + 0.10 = 0.25 for $0.10 bid (unchanged)
-    
+
     execute """
     UPDATE bids
     SET marketer_cost_amt = ROUND((bids.offer_amt * mpt.markup_multiplier) + mpt.base_fee, 2)

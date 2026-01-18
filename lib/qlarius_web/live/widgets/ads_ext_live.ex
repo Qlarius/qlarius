@@ -503,7 +503,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
                         Slide to collect in <span id="slide-to-collect-countdown">7</span>s
                       </div>
                     </div>
-                    
+
                     <div
                       id="slide-to-collect-slider"
                       class="relative h-20 bg-base-200 rounded-full overflow-hidden"
@@ -514,7 +514,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
                         style="width: 0%"
                       >
                       </div>
-                      
+
                       <div
                         id="slide-to-collect-handle"
                         class="absolute left-1 top-1/2 -translate-y-1/2 h-16 w-16 bg-primary rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing shadow-lg transition-transform duration-300 ease-out"
@@ -535,7 +535,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
                           />
                         </svg>
                       </div>
-                      
+
                       <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <span class="text-base-content/40 font-semibold">Slide to collect</span>
                       </div>
