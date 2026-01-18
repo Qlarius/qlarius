@@ -287,7 +287,7 @@ defmodule QlariusWeb.MeFileLive do
   end
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     socket
     |> assign(:title, "MeFile")
     |> assign(:current_path, "/me_file")
@@ -301,7 +301,7 @@ defmodule QlariusWeb.MeFileLive do
     |> assign(:zip_lookup_valid, false)
     |> assign(:zip_lookup_error, nil)
     |> assign(:show_expanded_tags, false)
-    |> init_pwa_assigns()
+    |> init_pwa_assigns(session)
     |> ok()
   end
 

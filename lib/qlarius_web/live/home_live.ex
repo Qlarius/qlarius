@@ -10,14 +10,14 @@ defmodule QlariusWeb.HomeLive do
   alias QlariusWeb.Components.StrongStartComponent
   alias Qlarius.YouData.StrongStart
 
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     me_file = socket.assigns.current_scope.user.me_file
 
     socket =
       socket
       |> assign(:current_path, "/home")
       |> assign(:title, "Home")
-      |> init_pwa_assigns()
+      |> init_pwa_assigns(session)
       |> assign_strong_start(me_file)
 
     {:ok, socket}

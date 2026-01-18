@@ -63,7 +63,7 @@ defmodule QlariusWeb.RegistrationLive do
       |> assign(:confirmation_checked, false)
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
       |> assign(:trait_in_edit, %{id: 4})
-      |> init_pwa_assigns()
+      |> init_pwa_assigns(session)
 
     {:ok, socket}
   end

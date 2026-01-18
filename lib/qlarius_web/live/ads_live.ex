@@ -73,7 +73,7 @@ defmodule QlariusWeb.AdsLive do
   end
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     IO.puts("=== LIVEVIEW MOUNTING IN NORMAL CONTEXT ===")
     socket = assign(socket, :current_path, "/ads")
 
@@ -97,7 +97,7 @@ defmodule QlariusWeb.AdsLive do
       |> assign(:show_replay_button, false)
       |> assign(:video_payment_collected, false)
       |> assign(:completed_video_offers, [])
-      |> init_pwa_assigns()
+      |> init_pwa_assigns(session)
 
     if connected?(socket) do
       send(self(), :load_offers)
@@ -370,11 +370,11 @@ defmodule QlariusWeb.AdsLive do
                 <style>
                   @keyframes subtle-wiggle {
                     0%, 100% { transform: translateX(0px) translateY(-50%); }
-                    25% { transform: translateX(3px) translateY(-50%); }
-                    75% { transform: translateX(-3px) translateY(-50%); }
+                    25% { transform: translateX(2px) translateY(-50%); }
+                    75% { transform: translateX(-2px) translateY(-50%); }
                   }
                   #slide-to-collect-handle.wiggle {
-                    animation: subtle-wiggle 1.2s ease-in-out infinite;
+                    animation: subtle-wiggle 0.8s ease-in-out infinite;
                   }
                 </style>
                 <div class="mt-6 px-4">
@@ -557,11 +557,8 @@ defmodule QlariusWeb.AdsLive do
                         </span>
                       </div>
                       <div class="list-col-grow">
-                        <div class="text-sm font-semibold text-base-content/70 mb-1">
+                        <div class="text-sm font-semibold text-base-content/70 mb-2">
                           Attention Paid™
-                        </div>
-                        <div class="mb-2 text-base-content/50 text-base">
-                          {offer.media_run.media_piece.ad_category.ad_category_name}
                         </div>
                         <div class="text-xs text-base-content/50">
                           Collected: <span class="font-semibold">${Decimal.round(offer.offer_amt || Decimal.new("0"), 2)}</span>

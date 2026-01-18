@@ -19,7 +19,7 @@ defmodule QlariusWeb.ProxyUsersLive do
   #     sponster_bottom_bar_link: 1
   #   ]
 
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     if socket.assigns.current_scope.true_user.role == "admin" do
       admin_user = socket.assigns.current_scope.true_user
       proxy_users = list_proxy_users(admin_user)
@@ -33,7 +33,7 @@ defmodule QlariusWeb.ProxyUsersLive do
        |> assign(:title, "Proxy Users")
        |> assign(:current_path, "/proxy_users")
        |> assign(:show_add_modal, false)
-       |> init_pwa_assigns()}
+       |> init_pwa_assigns(session)}
     else
       {:ok,
        socket

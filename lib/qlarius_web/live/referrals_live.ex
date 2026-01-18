@@ -6,7 +6,7 @@ defmodule QlariusWeb.ReferralsLive do
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     me_file = socket.assigns.current_scope.user.me_file
 
     me_file =
@@ -66,7 +66,7 @@ defmodule QlariusWeb.ReferralsLive do
       |> assign(:pending_clicks_count, pending_clicks_count)
       |> assign(:total_paid, total_paid)
       |> assign(:next_payout_date, next_payout_date)
-      |> init_pwa_assigns()
+      |> init_pwa_assigns(session)
 
     {:ok, socket}
   end

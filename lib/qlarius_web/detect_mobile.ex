@@ -6,12 +6,20 @@ defmodule QlariusWeb.DetectMobile do
 
   import Phoenix.Component, only: [assign: 3]
 
-  def on_mount(:detect_mobile, _params, _session, socket) do
+  def on_mount(:detect_mobile, _params, session, socket) do
+    # First try to read from session (set by MobileDetection plug)
     is_mobile =
-      case Phoenix.LiveView.get_connect_info(socket, :user_agent) do
-        nil -> false
-        user_agent -> mobile?(user_agent)
+      case Map.get(session, "is_mobile") do
+        nil ->
+          # Fallback: detect from user agent
+          case Phoenix.LiveView.get_connect_info(socket, :user_agent) do
+            nil -> false
+            user_agent -> mobile?(user_agent)
+          end
+        val -> val
       end
+
+    IO.puts("📱 [DetectMobile] is_mobile=#{inspect(is_mobile)} from session=#{inspect(Map.get(session, "is_mobile"))}")
 
     {:cont, assign(socket, :is_mobile, is_mobile)}
   end

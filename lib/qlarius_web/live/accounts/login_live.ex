@@ -6,7 +6,7 @@ defmodule QlariusWeb.LoginLive do
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     socket =
       socket
       |> assign(:page_title, "Sign In")
@@ -16,7 +16,7 @@ defmodule QlariusWeb.LoginLive do
       |> assign(:verification_code_error, nil)
       |> assign(:code_sent, false)
       |> assign(:show_biometric, false)
-      |> init_pwa_assigns()
+      |> init_pwa_assigns(session)
 
     {:ok, socket}
   end

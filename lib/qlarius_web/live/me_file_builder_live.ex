@@ -174,7 +174,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
     """
   end
 
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     me_file_id = socket.assigns.current_scope.user.me_file.id
     answered_ids = MeFiles.get_answered_survey_question_ids(me_file_id)
 
@@ -195,7 +195,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:tag_edit_mode, "update")
       |> assign(:show_expanded_tags, false)
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
-      |> init_pwa_assigns()
+      |> init_pwa_assigns(session)
 
     {:ok, socket, temporary_assigns: [survey_to_open: nil]}
   end

@@ -88,7 +88,7 @@ defmodule QlariusWeb.UserSettingsLive do
     """
   end
 
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     user_id = socket.assigns.current_scope.user.id
     Notifications.ensure_default_preferences(user_id)
 
@@ -97,7 +97,7 @@ defmodule QlariusWeb.UserSettingsLive do
      |> assign(:title, "Settings")
      |> assign(:current_path, "/settings")
      |> assign(:selected_setting, nil)
-     |> init_pwa_assigns()
+     |> init_pwa_assigns(session)
      |> assign(:notification_preference, nil)
      |> assign(:current_device_subscribed, false)
      |> assign(:device_subscription_supported, true)

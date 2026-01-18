@@ -389,8 +389,8 @@ defmodule QlariusWeb.Layouts do
           <%!-- Main screen panel --%>
           <div class="panel">
             <div class="panel-scroll">
-              <%= if assigns[:is_pwa] do %>
-                <div class="bg-base-100 dark:!bg-base-300 flex-shrink-0" style="height: max(12px, calc(env(safe-area-inset-top) - 20px));"></div>
+              <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
+                <div class="bg-base-100 dark:!bg-base-300 flex-shrink-0" style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"></div>
               <% end %>
               <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
                 <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
@@ -425,8 +425,8 @@ defmodule QlariusWeb.Layouts do
           <%!-- Slide-over screen panel --%>
           <div class="panel">
             <div class="panel-scroll">
-              <%= if assigns[:is_pwa] do %>
-                <div class="bg-base-100 dark:!bg-base-300 flex-shrink-0" style="height: max(12px, calc(env(safe-area-inset-top) - 20px));"></div>
+              <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
+                <div class="bg-base-100 dark:!bg-base-300 flex-shrink-0" style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"></div>
               <% end %>
               <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
                 <div class="container mx-auto px-4 py-6 flex-1 panel-content">

@@ -171,6 +171,15 @@ Hooks.PWADetect = {
         safeAreaBottom: getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)')
       })
 
+      // Store PWA status in cookie for server-side access on first render
+      // This prevents layout flash by allowing server to read PWA status before mount
+      try {
+        document.cookie = `is_pwa=${isPWA}; path=/; max-age=31536000; SameSite=Lax`
+        console.log('[PWA Detection] Stored in cookie:', { isPWA, deviceType })
+      } catch (e) {
+        console.warn('[PWA Detection] Could not store in cookie:', e)
+      }
+
       // iOS 18+ fix: env() safe area insets don't work properly in PWAs
       // Use JavaScript to apply safe area padding dynamically
       if (isPWA && isIOS) {

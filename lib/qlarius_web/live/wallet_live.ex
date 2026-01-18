@@ -14,7 +14,7 @@ defmodule QlariusWeb.WalletLive do
   alias Qlarius.Sponster.Campaigns.Targets
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     current_scope = socket.assigns.current_scope
     user = current_scope.user
     me_file = user.me_file
@@ -36,7 +36,7 @@ defmodule QlariusWeb.WalletLive do
     |> assign(:entry_details, nil)
     |> assign(:page, page)
     |> assign(:paginated_entries, paginated_entries)
-    |> init_pwa_assigns()
+    |> init_pwa_assigns(session)
     |> ok()
   end
 
