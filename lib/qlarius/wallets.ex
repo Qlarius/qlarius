@@ -528,7 +528,7 @@ defmodule Qlarius.Wallets do
     cond do
       String.starts_with?(phase_desc, "Banner") -> "Banner Tap"
       String.starts_with?(phase_desc, "Text/Jump") -> "Text/Jump"
-      String.contains?(phase_desc, "Video") -> "Video Viewing"
+      String.contains?(phase_desc, "Video") -> "Video Ad"
       String.contains?(phase_desc, "Referral") -> "Referral Bonus"
       true -> nil
     end

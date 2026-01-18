@@ -17,8 +17,8 @@
     
 <!-- Header - Fixed -->
     <div class="bg-base-300 flex-shrink-0">
-      <%= if assigns[:is_pwa] do %>
-        <div class="bg-base-300 flex-shrink-0" style="height: max(12px, calc(env(safe-area-inset-top) - 20px));"></div>
+      <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
+        <div class="bg-base-300 flex-shrink-0" style="height: max(12px, env(safe-area-inset-top));"></div>
       <% end %>
 
       <div class="flex items-center justify-between px-4 py-4 bg-base-300 flex-shrink-0">
