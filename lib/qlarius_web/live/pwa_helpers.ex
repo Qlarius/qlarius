@@ -16,14 +16,14 @@ defmodule QlariusWeb.PWAHelpers do
   """
   def init_pwa_assigns(socket, _session \\ %{}) do
     is_mobile = socket.assigns[:is_mobile] || false
-    
+
     # Default: assume mobile devices are PWAs
     # JS detection will correct this once on connected mount
     is_pwa = is_mobile
-    
+
     # Debug logging
     IO.puts("🔍 [PWA Helpers] is_mobile=#{inspect(is_mobile)} defaulting is_pwa=#{inspect(is_pwa)}")
-    
+
     socket
     |> assign(:is_pwa, is_pwa)
     |> assign(:device_type, if(is_mobile, do: :mobile_phone, else: :desktop))

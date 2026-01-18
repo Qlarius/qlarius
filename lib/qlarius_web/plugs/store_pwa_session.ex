@@ -10,9 +10,9 @@ defmodule QlariusWeb.Plugs.StorePWASession do
   def call(conn, _opts) do
     # Fetch cookies if not already fetched
     conn = fetch_cookies(conn)
-    
+
     # Read PWA status from cookie (set by JavaScript)
-    is_pwa = 
+    is_pwa =
       case conn.cookies["is_pwa"] do
         "true" -> true
         _ -> false
