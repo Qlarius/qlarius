@@ -6,7 +6,16 @@ module.exports = {
   ],
   safelist: [
     'ring-4',
-    'ring-primary'
+    'ring-primary',
+    'tabs',
+    'tabs-boxed',
+    'tab',
+    'tab-active',
+    'badge',
+    'badge-primary',
+    'badge-sm',
+    'bg-sponster-500',
+    'rounded-full'
   ],
   theme: {
     extend: {

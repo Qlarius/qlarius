@@ -16,6 +16,7 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
     field :marketer_id, :integer
     field :duration, :integer
     field :banner_image, :string
+    field :video_file, :string
 
     belongs_to :media_piece_type, MediaPieceType
     belongs_to :ad_category, AdCategory
@@ -38,19 +39,36 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
       :media_piece_type_id,
       :ad_category_id,
       :duration,
-      :banner_image
+      :banner_image,
+      :video_file
     ])
     |> validate_required([
       :title,
-      :display_url,
-      :jump_url,
       :media_piece_type_id,
       :ad_category_id,
       :marketer_id,
       :active
     ])
+    |> validate_media_type_fields()
     |> foreign_key_constraint(:media_piece_type_id)
     |> foreign_key_constraint(:ad_category_id)
     |> foreign_key_constraint(:marketer_id)
+  end
+
+  defp validate_media_type_fields(changeset) do
+    media_type_id = get_field(changeset, :media_piece_type_id)
+
+    case media_type_id do
+      1 ->
+        changeset
+        |> validate_required([:banner_image, :display_url, :jump_url])
+
+      2 ->
+        changeset
+        |> validate_required([:video_file, :duration])
+
+      _ ->
+        changeset
+    end
   end
 end

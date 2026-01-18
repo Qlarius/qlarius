@@ -9,6 +9,8 @@ defmodule QlariusWeb.ProxyUsersLive do
   alias QlariusWeb.Layouts
   import QlariusWeb.PWAHelpers
 
+  on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+
   # Commented out unused import - Layouts functions not used in this LiveView
   # import Layouts,
   #   only: [

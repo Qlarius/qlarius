@@ -87,7 +87,7 @@ defmodule Qlarius.Jobs.HandleOfferCompletionWorker do
     phase_1_id =
       from(mpp in Qlarius.Sponster.Ads.MediaPiecePhase,
         where: mpp.media_piece_type_id == ^media_piece_type_id,
-        where: mpp.phase_number == 1,
+        where: mpp.phase == 1,
         select: mpp.id,
         limit: 1
       )

@@ -55,9 +55,9 @@
             </span>
           </div>
           <div class="flex justify-between items-center">
-            <span class="text-sm text-base-content/70">Date</span>
-            <span class="text-sm">
-              {Calendar.strftime(@selected_entry.created_at, "%b %d, %Y")}
+            <span class="text-sm text-base-content/70">Date & Time</span>
+            <span class="text-sm text-right">
+              {Qlarius.DateTime.format_for_user(@selected_entry.created_at, @current_scope.user, :standard)}
             </span>
           </div>
           <%= if @selected_entry.meta_1 do %>
@@ -89,7 +89,40 @@
               <h4 class="font-medium text-base-content">Ad Content</h4>
 
               <%= if @entry_details.media_piece do %>
-                <.three_tap_ad media_piece={@entry_details.media_piece} show_banner={true} />
+                <%= if @entry_details.media_piece.media_piece_type_id == 2 do %>
+                  <!-- Video Ad -->
+                  <div class="bg-base-200 dark:bg-base-900/20 rounded-lg overflow-hidden shadow-sm">
+                    <%= if @entry_details.media_piece.video_file do %>
+                      <video
+                        class="w-full"
+                        controls
+                        src={
+                          QlariusWeb.Uploaders.AdVideo.url(
+                            {@entry_details.media_piece.video_file, @entry_details.media_piece},
+                            :original
+                          )
+                        }
+                      >
+                      </video>
+                    <% else %>
+                      <div class="p-4">
+                        <p class="text-sm text-base-content/70">Video not available</p>
+                      </div>
+                    <% end %>
+                    
+                    <%= if @entry_details.media_piece.ad_category do %>
+                      <div class="p-3 border-t border-base-300">
+                        <p class="text-sm font-medium">{@entry_details.media_piece.ad_category.ad_category_name}</p>
+                        <%= if @entry_details.media_piece.duration do %>
+                          <p class="text-xs text-base-content/60">Duration: {@entry_details.media_piece.duration}s</p>
+                        <% end %>
+                      </div>
+                    <% end %>
+                  </div>
+                <% else %>
+                  <!-- 3-Tap Ad -->
+                  <.three_tap_ad media_piece={@entry_details.media_piece} show_banner={true} />
+                <% end %>
               <% else %>
                 <div class="bg-base-200 dark:bg-base-900/20 rounded-lg overflow-hidden shadow-sm p-4">
                   <h5 class="font-medium mb-2">Ad Content</h5>

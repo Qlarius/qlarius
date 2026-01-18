@@ -845,6 +845,212 @@ Hooks.TaggerButtonObserver = {
   }
 }
 
+Hooks.VideoPlayer = {
+  mounted() {
+    this.video = this.el
+    this.watched = false
+    this.paymentCollected = this.el.dataset.paymentCollected === 'true'
+    this.lastValidTime = 0
+    
+    // Prevent seeking forward on paid viewing (before collection)
+    if (!this.paymentCollected) {
+      this.video.addEventListener('timeupdate', () => {
+        // Allow some tolerance for buffering (0.5 seconds)
+        if (!this.watched && this.video.currentTime > this.lastValidTime + 0.5) {
+          // User tried to skip forward - reset to last valid position
+          this.video.currentTime = this.lastValidTime
+        } else if (this.video.currentTime <= this.lastValidTime + 0.5) {
+          // Update last valid time (user is watching normally or seeking backward)
+          this.lastValidTime = this.video.currentTime
+        }
+      })
+      
+      // Prevent seeking via keyboard or other methods
+      this.video.addEventListener('seeking', () => {
+        if (!this.watched && this.video.currentTime > this.lastValidTime + 0.5) {
+          this.video.currentTime = this.lastValidTime
+        }
+      })
+    }
+    
+    this.video.play().catch(err => {
+      console.log('Autoplay prevented:', err)
+    })
+    
+    this.video.addEventListener('ended', () => {
+      if (!this.watched) {
+        this.watched = true
+        this.pushEvent('video_watched_complete', {})
+      }
+    })
+    
+    this.handleEvent('replay-video', () => {
+      this.video.currentTime = 0
+      this.watched = false
+      this.video.play()
+    })
+  },
+  
+  updated() {
+    // Update payment status when component re-renders
+    this.paymentCollected = this.el.dataset.paymentCollected === 'true'
+  }
+}
+
+Hooks.SlideToCollect = {
+  mounted() {
+    console.log('=== SLIDE TO COLLECT MOUNTED ===')
+    this.offerId = this.el.dataset.offerId
+    this.amount = this.el.dataset.amount
+    console.log('Offer ID:', this.offerId)
+    console.log('Amount:', this.amount)
+    
+    this.countdown = 7
+    this.countdownTimer = null
+    this.isDragging = false
+    this.startX = 0
+    this.currentX = 0
+    this.completed = false
+    
+    this.handle = document.getElementById(`${this.el.id}-handle`)
+    this.slider = document.getElementById(`${this.el.id}-slider`)
+    this.countdownEl = document.getElementById(`${this.el.id}-countdown`)
+    this.progressBar = document.getElementById(`${this.el.id}-progress`)
+    
+    console.log('Elements found:', {
+      handle: !!this.handle,
+      slider: !!this.slider,
+      countdownEl: !!this.countdownEl,
+      progressBar: !!this.progressBar
+    })
+    
+    if (!this.handle || !this.slider) {
+      console.error('Missing required elements!')
+      return
+    }
+    
+    this.sliderWidth = this.slider.offsetWidth
+    this.handleWidth = this.handle.offsetWidth
+    this.maxDistance = this.sliderWidth - this.handleWidth - 8
+    
+    console.log('Slider dimensions:', {
+      sliderWidth: this.sliderWidth,
+      handleWidth: this.handleWidth,
+      maxDistance: this.maxDistance
+    })
+    
+    this.startCountdown()
+    this.setupDrag()
+  },
+  
+  startCountdown() {
+    this.countdownTimer = setInterval(() => {
+      if (this.completed) {
+        clearInterval(this.countdownTimer)
+        return
+      }
+      
+      this.countdown--
+      if (this.countdownEl) {
+        this.countdownEl.textContent = this.countdown
+      }
+      
+      const progressPercent = ((7 - this.countdown) / 7) * 100
+      if (this.progressBar) {
+        this.progressBar.style.width = `${progressPercent}%`
+      }
+      
+      if (this.countdown <= 0) {
+        clearInterval(this.countdownTimer)
+        this.pushEvent('video_collect_timeout', {})
+      }
+    }, 1000)
+  },
+  
+  setupDrag() {
+    const handleMouseDown = (e) => {
+      this.isDragging = true
+      this.startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX
+      this.handle.style.transition = 'none'
+      this.handle.classList.remove('wiggle')
+      e.preventDefault()
+    }
+    
+    const handleMouseMove = (e) => {
+      if (!this.isDragging || this.completed) return
+      
+      const clientX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX
+      const deltaX = clientX - this.startX
+      this.currentX = Math.max(0, Math.min(deltaX, this.maxDistance))
+      
+      this.handle.style.transform = `translateX(${this.currentX}px) translateY(-50%)`
+      
+      if (this.currentX >= this.maxDistance * 0.9) {
+        this.completeSlide()
+      }
+    }
+    
+    const handleMouseUp = () => {
+      if (!this.isDragging) return
+      
+      this.isDragging = false
+      this.handle.style.transition = 'transform 0.3s ease'
+      this.handle.style.transform = 'translateX(0) translateY(-50%)'
+      
+      if (!this.completed) {
+        this.handle.classList.add('wiggle')
+      }
+      
+      this.currentX = 0
+    }
+    
+    this.handle.addEventListener('mousedown', handleMouseDown)
+    this.handle.addEventListener('touchstart', handleMouseDown, { passive: false })
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('touchmove', handleMouseMove, { passive: false })
+    document.addEventListener('mouseup', handleMouseUp)
+    document.addEventListener('touchend', handleMouseUp)
+    
+    this.cleanupListeners = () => {
+      this.handle.removeEventListener('mousedown', handleMouseDown)
+      this.handle.removeEventListener('touchstart', handleMouseDown)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('touchmove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.removeEventListener('touchend', handleMouseUp)
+    }
+  },
+  
+  completeSlide() {
+    if (this.completed) {
+      console.log('Already completed, skipping...')
+      return
+    }
+    
+    console.log('=== SLIDE COMPLETED ===')
+    console.log('Offer ID:', this.offerId)
+    
+    this.completed = true
+    this.handle.classList.remove('wiggle')
+    
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer)
+    }
+    
+    console.log('Pushing collect_video_payment event...')
+    this.pushEvent('collect_video_payment', { offer_id: this.offerId })
+  },
+  
+  destroyed() {
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer)
+    }
+    if (this.cleanupListeners) {
+      this.cleanupListeners()
+    }
+  }
+}
+
 // Handle focus events from LiveView
 window.addEventListener("phx:focus", (e) => {
   const el = document.getElementById(e.detail.id)

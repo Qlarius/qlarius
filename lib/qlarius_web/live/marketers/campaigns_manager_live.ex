@@ -3,7 +3,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
   import Ecto.Query
   require Decimal
 
-  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar, AdsComponents}
   alias Qlarius.Repo
   alias Qlarius.Sponster.Campaigns
   alias Qlarius.Sponster.Campaigns.{Targets, MediaSequences, CampaignPubSub}
@@ -443,6 +443,8 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
 
     if campaign do
       editing_bids = Map.get(socket.assigns.editing_bids, campaign_id, %{})
+      media_run = List.first(campaign.media_sequence.media_runs)
+      media_piece_type = media_run && media_run.media_piece.media_piece_type
 
       bid_changes =
         Enum.reduce(campaign.bids, [], fn bid, acc ->
@@ -452,11 +454,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
             case Decimal.parse(edited_offer_amt) do
               {new_offer_amt, _} ->
                 if not Decimal.eq?(new_offer_amt, bid.offer_amt) do
-                  new_marketer_cost_amt =
-                    new_offer_amt
-                    |> Decimal.mult(Decimal.new("1.5"))
-                    |> Decimal.add(Decimal.new("0.10"))
-                    |> Decimal.round(2)
+                  new_marketer_cost_amt = Campaigns.calculate_marketer_cost(new_offer_amt, media_piece_type)
 
                   Qlarius.Repo.get!(Qlarius.Sponster.Campaigns.Bid, bid.id)
                   |> Qlarius.Sponster.Campaigns.Bid.changeset(%{
@@ -1075,14 +1073,20 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
                               <% edit_value =
                                 get_in(@editing_bids, [campaign.id, bid.id, :offer_amt]) ||
                                   Decimal.to_string(bid.offer_amt) %>
+                              <% media_run = List.first(campaign.media_sequence.media_runs) %>
+                              <% media_piece_type = media_run && media_run.media_piece.media_piece_type %>
                               <% calculated_cost =
                                 case Decimal.parse(edit_value) do
                                   {decimal_val, _} ->
-                                    decimal_val
-                                    |> Decimal.mult(Decimal.new("1.5"))
-                                    |> Decimal.add(Decimal.new("0.10"))
-                                    |> Decimal.round(2)
-                                    |> Decimal.to_string()
+                                    if media_piece_type do
+                                      decimal_val
+                                      |> Decimal.mult(media_piece_type.markup_multiplier)
+                                      |> Decimal.add(media_piece_type.base_fee)
+                                      |> Decimal.round(2)
+                                      |> Decimal.to_string()
+                                    else
+                                      "0.00"
+                                    end
 
                                   :error ->
                                     "0.00"
@@ -1198,14 +1202,47 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
 
               <%= if campaign.media_sequence.media_runs != [] do %>
                 <% media_run = List.first(campaign.media_sequence.media_runs) %>
+                <% is_video = media_run.media_piece.media_piece_type_id == 2 %>
                 <table class="w-full">
                   <tr>
                     <td class="align-top pr-6">
                       <div class="flex items-start gap-2 mb-3">
                         <span class="font-semibold text-sm">Ad</span>
-                        <.icon name="hero-photo" class="w-4 h-4 mt-0.5" />
+                        <.icon
+                          name={if is_video, do: "hero-play-circle", else: "hero-photo"}
+                          class="w-4 h-4 mt-0.5"
+                        />
                       </div>
-                      <.three_tap_ad media_piece={media_run.media_piece} show_banner={true} />
+                      <%= if is_video do %>
+                        <div class="max-w-xs">
+                          <div class="text-blue-600 dark:text-blue-300 mb-2 font-bold text-lg leading-tight">
+                            {media_run.media_piece.title}
+                          </div>
+                          <%= if media_run.media_piece.video_file do %>
+                            <video
+                              src={
+                                QlariusWeb.Uploaders.AdVideo.url(
+                                  {media_run.media_piece.video_file, media_run.media_piece},
+                                  :original
+                                )
+                              }
+                              class="w-full rounded-lg shadow-sm border border-base-300"
+                              controls
+                            >
+                              Your browser does not support the video tag.
+                            </video>
+                          <% else %>
+                            <div class="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">
+                              <span class="text-gray-400">No video available</span>
+                            </div>
+                          <% end %>
+                        </div>
+                      <% else %>
+                        <AdsComponents.three_tap_ad
+                          media_piece={media_run.media_piece}
+                          show_banner={true}
+                        />
+                      <% end %>
                     </td>
                     <td class="align-top">
                       <div class="font-semibold text-sm mb-3">Rules</div>
@@ -1220,18 +1257,20 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
                             {media_run.frequency_buffer_hours}
                           </td>
                         </tr>
-                        <tr>
-                          <td class="font-semibold py-1">Attempts</td>
-                          <td class="text-base-content/70 py-1 pl-4">
-                            {media_run.maximum_banner_count}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td class="font-semibold py-1">Retry Buffer Hrs</td>
-                          <td class="text-base-content/70 py-1 pl-4">
-                            {media_run.banner_retry_buffer_hours}
-                          </td>
-                        </tr>
+                        <%= if !is_video do %>
+                          <tr>
+                            <td class="font-semibold py-1">Attempts</td>
+                            <td class="text-base-content/70 py-1 pl-4">
+                              {media_run.maximum_banner_count}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td class="font-semibold py-1">Retry Buffer Hrs</td>
+                            <td class="text-base-content/70 py-1 pl-4">
+                              {media_run.banner_retry_buffer_hours}
+                            </td>
+                          </tr>
+                        <% end %>
                       </table>
                     </td>
                   </tr>

@@ -4,6 +4,8 @@ defmodule QlariusWeb.LoginLive do
   alias Qlarius.{Auth, Accounts}
   import QlariusWeb.PWAHelpers
 
+  on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+
   def mount(_params, _session, socket) do
     socket =
       socket

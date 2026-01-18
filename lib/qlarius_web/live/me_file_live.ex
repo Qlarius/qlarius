@@ -8,6 +8,8 @@ defmodule QlariusWeb.MeFileLive do
   import QlariusWeb.MeFileHTML
   import QlariusWeb.PWAHelpers
 
+  on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+
   @impl true
   def render(assigns) do
     ~H"""

@@ -5,6 +5,8 @@ defmodule QlariusWeb.WalletLive do
   import QlariusWeb.PWAHelpers
   alias QlariusWeb.Layouts
 
+  on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+
   alias Qlarius.Wallets
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
@@ -203,7 +205,7 @@ defmodule QlariusWeb.WalletLive do
                       else: "!bg-tiqit-200 dark:!bg-tiqit-800"
                     )
                   ]}>
-                    <.icon name={icon_for_meta_1(entry.meta_1)} class="h-4 w-4 text-base-content" />
+                    <.icon name={icon_for_meta_1(entry.meta_1)} class="h-5 w-5 text-base-content" />
                   </span>
                 </div>
                 <div class="list-col-grow">
@@ -315,9 +317,9 @@ defmodule QlariusWeb.WalletLive do
     ad_event =
       ad_event
       |> Repo.preload([
-        :media_piece,
         :campaign,
-        campaign: [:marketer]
+        campaign: [:marketer],
+        media_piece: [:media_piece_type, :ad_category]
       ])
 
     matching_tags =
@@ -395,6 +397,6 @@ defmodule QlariusWeb.WalletLive do
   def icon_for_meta_1("Referral Bonus"), do: "hero-user-group"
   def icon_for_meta_1("Text/Jump"), do: "hero-arrow-right-start-on-rectangle"
   def icon_for_meta_1("Banner Tap"), do: "hero-photo"
-  def icon_for_meta_1("Video Viewing"), do: "hero-play-circle"
+  def icon_for_meta_1("Video Viewing"), do: "hero-play"
   def icon_for_meta_1(_), do: "hero-cube"
 end

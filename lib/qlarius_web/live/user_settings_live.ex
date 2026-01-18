@@ -6,6 +6,8 @@ defmodule QlariusWeb.UserSettingsLive do
   alias Qlarius.Accounts
   alias Qlarius.Timezones
 
+  on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+
   def render(assigns) do
     ~H"""
     <div id="settings-pwa-detect" phx-hook="HiPagePWADetect">

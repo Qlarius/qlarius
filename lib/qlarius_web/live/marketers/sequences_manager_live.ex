@@ -40,6 +40,7 @@ defmodule QlariusWeb.Live.Marketers.SequencesManagerLive do
       |> assign(:archived_media_sequences, archived_media_sequences)
       |> assign(:media_pieces, media_pieces)
       |> assign(:selected_media_piece_id, nil)
+      |> assign(:is_video_type, false)
       |> assign(:show_archived, false)
       |> assign_default_form()
     else
@@ -48,6 +49,7 @@ defmodule QlariusWeb.Live.Marketers.SequencesManagerLive do
       |> assign(:archived_media_sequences, [])
       |> assign(:media_pieces, [])
       |> assign(:selected_media_piece_id, nil)
+      |> assign(:is_video_type, false)
       |> assign(:show_archived, false)
       |> assign_default_form()
     end
@@ -73,6 +75,7 @@ defmodule QlariusWeb.Live.Marketers.SequencesManagerLive do
 
     if media_piece_id && media_piece_id != "" do
       media_piece = Ads.get_media_piece!(media_piece_id)
+      is_video = media_piece.media_piece_type_id == 2
 
       updated_title =
         MediaSequences.generate_sequence_name(
@@ -88,6 +91,7 @@ defmodule QlariusWeb.Live.Marketers.SequencesManagerLive do
       {:noreply,
        socket
        |> assign(:selected_media_piece_id, String.to_integer(media_piece_id))
+       |> assign(:is_video_type, is_video)
        |> assign(:sequence_form, form)}
     else
       form = to_form(params)
@@ -95,6 +99,7 @@ defmodule QlariusWeb.Live.Marketers.SequencesManagerLive do
       {:noreply,
        socket
        |> assign(:selected_media_piece_id, nil)
+       |> assign(:is_video_type, false)
        |> assign(:sequence_form, form)}
     end
   end
@@ -359,43 +364,45 @@ defmodule QlariusWeb.Live.Marketers.SequencesManagerLive do
                             </label>
                           </div>
 
-                          <div class="form-control w-full">
-                            <label class="label">
-                              <span class="label-text">Maximum Banner Attempts</span>
-                            </label>
-                            <input
-                              type="number"
-                              name="sequence[maximum_banner_count]"
-                              value={@sequence_form.params["maximum_banner_count"]}
-                              class="input input-bordered w-full"
-                              min="1"
-                              required
-                            />
-                            <label class="label">
-                              <span class="label-text-alt text-base-content/60 text-xs">
-                                Max banners without completion
-                              </span>
-                            </label>
-                          </div>
+                          <%= if !@is_video_type do %>
+                            <div class="form-control w-full">
+                              <label class="label">
+                                <span class="label-text">Maximum Banner Attempts</span>
+                              </label>
+                              <input
+                                type="number"
+                                name="sequence[maximum_banner_count]"
+                                value={@sequence_form.params["maximum_banner_count"]}
+                                class="input input-bordered w-full"
+                                min="1"
+                                required
+                              />
+                              <label class="label">
+                                <span class="label-text-alt text-base-content/60 text-xs">
+                                  Max banners without completion
+                                </span>
+                              </label>
+                            </div>
 
-                          <div class="form-control w-full">
-                            <label class="label">
-                              <span class="label-text">Banner Retry Buffer (hours)</span>
-                            </label>
-                            <input
-                              type="number"
-                              name="sequence[banner_retry_buffer_hours]"
-                              value={@sequence_form.params["banner_retry_buffer_hours"]}
-                              class="input input-bordered w-full"
-                              min="1"
-                              required
-                            />
-                            <label class="label">
-                              <span class="label-text-alt text-base-content/60 text-xs">
-                                Hours between banner retries
-                              </span>
-                            </label>
-                          </div>
+                            <div class="form-control w-full">
+                              <label class="label">
+                                <span class="label-text">Banner Retry Buffer (hours)</span>
+                              </label>
+                              <input
+                                type="number"
+                                name="sequence[banner_retry_buffer_hours]"
+                                value={@sequence_form.params["banner_retry_buffer_hours"]}
+                                class="input input-bordered w-full"
+                                min="1"
+                                required
+                              />
+                              <label class="label">
+                                <span class="label-text-alt text-base-content/60 text-xs">
+                                  Hours between banner retries
+                                </span>
+                              </label>
+                            </div>
+                          <% end %>
 
                           <div class="divider text-sm">3. Name</div>
 
@@ -483,11 +490,14 @@ defmodule QlariusWeb.Live.Marketers.SequencesManagerLive do
             <td class="text-sm !align-top">
               <%= if sequence.media_runs != [] do %>
                 <% media_run = List.first(sequence.media_runs) %>
+                <% is_video = media_run.media_piece.media_piece_type_id == 2 %>
                 <div class="space-y-1">
                   <div>Frequency: {media_run.frequency}/{media_run.frequency_buffer_hours}h</div>
-                  <div>
-                    Banner: {media_run.maximum_banner_count}/{media_run.banner_retry_buffer_hours}h
-                  </div>
+                  <%= if !is_video do %>
+                    <div>
+                      Banner: {media_run.maximum_banner_count}/{media_run.banner_retry_buffer_hours}h
+                    </div>
+                  <% end %>
                 </div>
               <% end %>
             </td>

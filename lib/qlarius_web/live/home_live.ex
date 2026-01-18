@@ -4,6 +4,8 @@ defmodule QlariusWeb.HomeLive do
   import QlariusWeb.Money
   import QlariusWeb.PWAHelpers
 
+  on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+
   alias QlariusWeb.Layouts
   alias QlariusWeb.Components.StrongStartComponent
   alias Qlarius.YouData.StrongStart

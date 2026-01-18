@@ -42,10 +42,17 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
     |> assign(:changeset, changeset)
     |> assign(:form, to_form(changeset))
     |> assign(:ad_categories, ad_categories)
+    |> assign(:selected_media_type, "three_tap")
     |> allow_upload(:banner_image,
       accept: ~w(.jpg .jpeg .png .gif),
       max_entries: 1,
       max_file_size: 10_000_000,
+      auto_upload: true
+    )
+    |> allow_upload(:video_file,
+      accept: ~w(.mp4),
+      max_entries: 1,
+      max_file_size: 100_000_000,
       auto_upload: true
     )
   end
@@ -55,18 +62,36 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
     changeset = Marketing.change_media_piece(media_piece)
     ad_categories = Marketing.list_ad_categories()
 
+    selected_media_type =
+      case media_piece.media_piece_type_id do
+        2 -> "video"
+        _ -> "three_tap"
+      end
+
     socket
     |> assign(:page_title, "Edit Media Piece")
     |> assign(:media_piece, media_piece)
     |> assign(:changeset, changeset)
     |> assign(:form, to_form(changeset))
     |> assign(:ad_categories, ad_categories)
+    |> assign(:selected_media_type, selected_media_type)
     |> allow_upload(:banner_image,
       accept: ~w(.jpg .jpeg .png .gif),
       max_entries: 1,
       max_file_size: 10_000_000,
       auto_upload: true
     )
+    |> allow_upload(:video_file,
+      accept: ~w(.mp4),
+      max_entries: 1,
+      max_file_size: 100_000_000,
+      auto_upload: true
+    )
+  end
+
+  @impl true
+  def handle_event("select_media_type", %{"type" => media_type}, socket) do
+    {:noreply, assign(socket, :selected_media_type, media_type)}
   end
 
   @impl true
@@ -99,17 +124,32 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   end
 
   @impl true
+  def handle_event("cancel_upload", %{"ref" => ref, "upload" => upload_name}, socket) do
+    upload_atom = String.to_existing_atom(upload_name)
+    {:noreply, cancel_upload(socket, upload_atom, ref)}
+  end
+
+  @impl true
   def handle_event("cancel_upload", %{"ref" => ref}, socket) do
     {:noreply, cancel_upload(socket, :banner_image, ref)}
   end
 
   defp save_media_piece(socket, :new, attrs) do
-    attrs_with_upload = maybe_add_banner_upload(socket, attrs)
+    media_piece_type_id =
+      case socket.assigns.selected_media_type do
+        "video" -> 2
+        _ -> 1
+      end
+
+    attrs_with_upload =
+      attrs
+      |> maybe_add_banner_upload(socket)
+      |> maybe_add_video_upload(socket)
 
     attrs_with_defaults =
       attrs_with_upload
       |> Map.put("marketer_id", socket.assigns.current_marketer_id)
-      |> Map.put("media_piece_type_id", 1)
+      |> Map.put("media_piece_type_id", media_piece_type_id)
       |> Map.put("active", true)
 
     case Marketing.create_media_piece(attrs_with_defaults) do
@@ -128,7 +168,10 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   end
 
   defp save_media_piece(socket, :edit, attrs) do
-    attrs_with_upload = maybe_add_banner_upload(socket, attrs)
+    attrs_with_upload =
+      attrs
+      |> maybe_add_banner_upload(socket)
+      |> maybe_add_video_upload(socket)
 
     case Marketing.update_media_piece(socket.assigns.media_piece, attrs_with_upload) do
       {:ok, _media_piece} ->
@@ -145,10 +188,10 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
     end
   end
 
-  defp maybe_add_banner_upload(socket, attrs) do
+  defp maybe_add_banner_upload(attrs, socket) do
     uploaded_files =
       consume_uploaded_entries(socket, :banner_image, fn %{path: path}, entry ->
-        {:ok, upload_and_get_filename(path, entry.client_name)}
+        {:ok, upload_banner_and_get_filename(path, entry.client_name)}
       end)
 
     case uploaded_files do
@@ -160,7 +203,22 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
     end
   end
 
-  defp upload_and_get_filename(source_path, original_filename) do
+  defp maybe_add_video_upload(attrs, socket) do
+    uploaded_files =
+      consume_uploaded_entries(socket, :video_file, fn %{path: path}, entry ->
+        {:ok, upload_video_and_get_filename(path, entry.client_name)}
+      end)
+
+    case uploaded_files do
+      [filename | _] ->
+        Map.put(attrs, "video_file", filename)
+
+      [] ->
+        attrs
+    end
+  end
+
+  defp upload_banner_and_get_filename(source_path, original_filename) do
     ext = Path.extname(original_filename)
     filename = "#{System.unique_integer([:positive])}#{ext}"
 
@@ -168,16 +226,33 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
 
     case storage do
       Waffle.Storage.S3 ->
-        upload_to_s3(source_path, filename)
+        upload_banner_to_s3(source_path, filename)
 
       _ ->
-        upload_to_local(source_path, filename)
+        upload_banner_to_local(source_path, filename)
     end
 
     filename
   end
 
-  defp upload_to_local(source_path, filename) do
+  defp upload_video_and_get_filename(source_path, original_filename) do
+    ext = Path.extname(original_filename)
+    filename = "#{System.unique_integer([:positive])}#{ext}"
+
+    storage = Application.get_env(:waffle, :storage, Waffle.Storage.Local)
+
+    case storage do
+      Waffle.Storage.S3 ->
+        upload_video_to_s3(source_path, filename)
+
+      _ ->
+        upload_video_to_local(source_path, filename)
+    end
+
+    filename
+  end
+
+  defp upload_banner_to_local(source_path, filename) do
     dest_dir =
       Path.join([
         :code.priv_dir(:qlarius),
@@ -193,11 +268,33 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
     File.cp!(source_path, dest_path)
   end
 
-  defp upload_to_s3(source_path, filename) do
+  defp upload_banner_to_s3(source_path, filename) do
     bucket = Application.get_env(:waffle, :bucket)
-
     s3_path = "uploads/media_pieces/banners/three_tap_banners/#{filename}"
+    {:ok, file_binary} = File.read(source_path)
 
+    ExAws.S3.put_object(bucket, s3_path, file_binary)
+    |> ExAws.request!()
+  end
+
+  defp upload_video_to_local(source_path, filename) do
+    dest_dir =
+      Path.join([
+        :code.priv_dir(:qlarius),
+        "static",
+        "uploads",
+        "media_pieces",
+        "videos"
+      ])
+
+    File.mkdir_p!(dest_dir)
+    dest_path = Path.join(dest_dir, filename)
+    File.cp!(source_path, dest_path)
+  end
+
+  defp upload_video_to_s3(source_path, filename) do
+    bucket = Application.get_env(:waffle, :bucket)
+    s3_path = "uploads/media_pieces/videos/#{filename}"
     {:ok, file_binary} = File.read(source_path)
 
     ExAws.S3.put_object(bucket, s3_path, file_binary)
@@ -317,6 +414,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
                     action={~p"/marketer/media/new"}
                     ad_categories={@ad_categories}
                     uploads={@uploads}
+                    selected_media_type={@selected_media_type}
                   />
                 </div>
               <% :edit -> %>
@@ -342,6 +440,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
                     ad_categories={@ad_categories}
                     uploads={@uploads}
                     media_piece={@media_piece}
+                    selected_media_type={@selected_media_type}
                   />
                 </div>
             <% end %>
@@ -357,6 +456,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   attr :ad_categories, :list, required: true
   attr :uploads, :map, required: true
   attr :media_piece, :map, default: nil
+  attr :selected_media_type, :string, required: true
 
   defp media_piece_form(assigns) do
     ~H"""
@@ -368,10 +468,46 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
       phx-submit="save"
       class="space-y-4"
     >
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-semibold">Ad Type</span>
+        </label>
+        <div class="flex gap-4">
+          <label class="label cursor-pointer gap-2">
+            <input
+              type="radio"
+              name="media_type"
+              value="three_tap"
+              class="radio radio-primary"
+              checked={@selected_media_type == "three_tap"}
+              phx-click="select_media_type"
+              phx-value-type="three_tap"
+            />
+            <span class="label-text">3-Tap Banner</span>
+          </label>
+          <label class="label cursor-pointer gap-2">
+            <input
+              type="radio"
+              name="media_type"
+              value="video"
+              class="radio radio-primary"
+              checked={@selected_media_type == "video"}
+              phx-click="select_media_type"
+              phx-value-type="video"
+            />
+            <span class="label-text">Video Ad</span>
+          </label>
+        </div>
+      </div>
+
       <.input field={f[:title]} type="text" label="Title" required />
-      <.input field={f[:body_copy]} type="textarea" label="Body Copy" />
-      <.input field={f[:display_url]} type="text" label="Display URL" required />
-      <.input field={f[:jump_url]} type="text" label="Jump URL" required />
+
+      <%= if @selected_media_type == "three_tap" do %>
+        <.input field={f[:body_copy]} type="textarea" label="Body Copy" />
+        <.input field={f[:display_url]} type="text" label="Display URL" required />
+        <.input field={f[:jump_url]} type="text" label="Jump URL" required />
+      <% end %>
+
       <.input
         field={f[:ad_category_id]}
         type="select"
@@ -385,22 +521,88 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
         required
       />
 
-      <.image_upload_field
-        upload={@uploads.banner_image}
-        label="Banner Image"
-        current_image={if @media_piece, do: @media_piece.banner_image}
-        current_image_url={
-          if @media_piece && @media_piece.banner_image,
-            do:
-              QlariusWeb.Uploaders.ThreeTapBanner.url(
-                {@media_piece.banner_image, @media_piece},
-                :original
-              )
-        }
-        accept_text="PNG, JPG, GIF (max 10MB)"
-        preview_size="w-32 h-auto"
-        current_image_size="w-64 h-auto"
-      />
+      <%= if @selected_media_type == "three_tap" do %>
+        <.image_upload_field
+          upload={@uploads.banner_image}
+          label="Banner Image"
+          current_image={if @media_piece, do: @media_piece.banner_image}
+          current_image_url={
+            if @media_piece && @media_piece.banner_image,
+              do:
+                QlariusWeb.Uploaders.ThreeTapBanner.url(
+                  {@media_piece.banner_image, @media_piece},
+                  :original
+                )
+          }
+          accept_text="PNG, JPG, GIF (max 10MB)"
+          preview_size="w-32 h-auto"
+          current_image_size="w-64 h-auto"
+        />
+      <% else %>
+        <.input
+          field={f[:duration]}
+          type="number"
+          label="Video Duration (seconds)"
+          required
+          min="1"
+          step="1"
+        />
+
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-semibold">Video File</span>
+          </label>
+
+          <%= if @media_piece && @media_piece.video_file do %>
+            <div class="mb-4">
+              <p class="text-sm text-base-content/70 mb-2">Current video:</p>
+              <video
+                src={QlariusWeb.Uploaders.AdVideo.url({@media_piece.video_file, @media_piece})}
+                controls
+                class="w-full max-w-md rounded-lg"
+              >
+              </video>
+            </div>
+          <% end %>
+
+          <div
+            class="border-2 border-dashed border-base-300 rounded-lg p-6 hover:border-primary transition"
+            phx-drop-target={@uploads.video_file.ref}
+          >
+            <.live_file_input upload={@uploads.video_file} class="hidden" />
+            <label for={@uploads.video_file.ref} class="cursor-pointer block text-center">
+              <.icon name="hero-arrow-up-tray" class="w-12 h-12 mx-auto mb-2 text-base-content/50" />
+              <p class="text-sm text-base-content/70">
+                Click to upload or drag and drop
+              </p>
+              <p class="text-xs text-base-content/50 mt-1">
+                MP4 (max 100MB)
+              </p>
+            </label>
+          </div>
+
+          <%= for entry <- @uploads.video_file.entries do %>
+            <div class="flex items-center gap-2 mt-2 p-2 bg-base-200 rounded">
+              <span class="flex-1 text-sm">{entry.client_name}</span>
+              <progress class="progress progress-primary w-32" value={entry.progress} max="100">
+              </progress>
+              <button
+                type="button"
+                phx-click="cancel_upload"
+                phx-value-ref={entry.ref}
+                phx-value-upload="video_file"
+                class="btn btn-sm btn-ghost btn-square"
+              >
+                ✕
+              </button>
+            </div>
+          <% end %>
+
+          <%= for err <- upload_errors(@uploads.video_file) do %>
+            <p class="text-error text-sm mt-2">{error_to_string(err)}</p>
+          <% end %>
+        </div>
+      <% end %>
 
       <div>
         <.button phx-disable-with="Saving..." class="btn btn-primary">Save Media Piece</.button>
@@ -409,4 +611,9 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
     </.form>
     """
   end
+
+  defp error_to_string(:too_large), do: "File is too large"
+  defp error_to_string(:not_accepted), do: "File type not accepted"
+  defp error_to_string(:too_many_files), do: "Too many files"
+  defp error_to_string(_), do: "Unknown error"
 end

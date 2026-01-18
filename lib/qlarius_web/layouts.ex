@@ -255,6 +255,7 @@ defmodule QlariusWeb.Layouts do
   attr :current_path, :string, default: nil
   attr :slide_over_active, :boolean, default: false
   attr :slide_over_title, :string, default: "Details"
+  attr :slide_over_show_wallet, :boolean, default: false
 
   def mobile(assigns) do
     assigns =
@@ -361,6 +362,13 @@ defmodule QlariusWeb.Layouts do
         bottom: 0;
         left: 0;
         right: 0;
+        box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.04);
+        border-top: 1px solid rgba(0, 0, 0, 0.04);
+      }
+
+      .dark .mobile-shell .dock {
+        box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.2);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
       }
 
       /* Floating action buttons - consistent position */
@@ -422,12 +430,19 @@ defmodule QlariusWeb.Layouts do
               <% end %>
               <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
                 <div class="container mx-auto px-4 py-6 flex-1 panel-content">
-                  <button
-                    phx-click="close_slide_over"
-                    class="btn btn-outline rounded-full text-lg mb-4 !border-base-content/30 !px-3 !py-1"
-                  >
-                    <.icon name="hero-chevron-left" class="w-5 h-5" /> Back
-                  </button>
+                  <div class="flex items-center justify-between mb-4">
+                    <button
+                      phx-click="close_slide_over"
+                      class="btn btn-outline rounded-full text-lg !border-base-content/30 !px-3 !py-1"
+                    >
+                      <.icon name="hero-chevron-left" class="w-5 h-5" /> Back
+                    </button>
+                    <%= if assigns[:slide_over_show_wallet] && assigns[:current_scope] do %>
+                      <div class="flex-shrink-0">
+                        <.wallet_balance balance={@current_scope.wallet_balance} />
+                      </div>
+                    <% end %>
+                  </div>
                   <h1 class="text-2xl font-bold mb-6">{assigns[:slide_over_title] || "Details"}</h1>
 
                   <div>

@@ -3,6 +3,8 @@ defmodule QlariusWeb.HiLive do
 
   import QlariusWeb.PWAHelpers
 
+  on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+
   def mount(_params, session, socket) do
     is_authenticated = !!socket.assigns[:current_scope]
     has_session_token = Map.get(session, "user_token") != nil

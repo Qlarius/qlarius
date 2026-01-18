@@ -9,6 +9,8 @@ defmodule Qlarius.Sponster.Ads.MediaPieceType do
     field :name, :string
     field :desc, :string
     field :ad_phase_count_to_complete, :integer
+    field :base_fee, :decimal
+    field :markup_multiplier, :decimal
 
     has_many :media_piece_phases, Qlarius.Sponster.Ads.MediaPiecePhase
 
@@ -20,11 +22,17 @@ defmodule Qlarius.Sponster.Ads.MediaPieceType do
     |> cast(attrs, [
       :name,
       :desc,
-      :ad_phase_count_to_complete
+      :ad_phase_count_to_complete,
+      :base_fee,
+      :markup_multiplier
     ])
     |> validate_required([
       :name,
-      :ad_phase_count_to_complete
+      :ad_phase_count_to_complete,
+      :base_fee,
+      :markup_multiplier
     ])
+    |> validate_number(:base_fee, greater_than_or_equal_to: 0)
+    |> validate_number(:markup_multiplier, greater_than: 0)
   end
 end

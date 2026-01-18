@@ -9,6 +9,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
   import QlariusWeb.MeFileHTML
   import QlariusWeb.PWAHelpers
 
+  on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+
   def render(assigns) do
     ~H"""
     <div id="mefilebuilder-pwa-detect" phx-hook="HiPagePWADetect">

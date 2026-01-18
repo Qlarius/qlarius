@@ -6,6 +6,8 @@ defmodule QlariusWeb.RegistrationLive do
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
   import QlariusWeb.PWAHelpers
 
+  on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+
   def mount(params, session, socket) do
     mode = Map.get(params, "mode", "regular")
     proxy_user_id = Map.get(params, "proxy_user_id")

@@ -4,6 +4,8 @@ defmodule QlariusWeb.ReferralsLive do
   alias Qlarius.Referrals
   import QlariusWeb.PWAHelpers
 
+  on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+
   def mount(_params, _session, socket) do
     me_file = socket.assigns.current_scope.user.me_file
 

@@ -36,8 +36,8 @@ defmodule Qlarius.Sponster.Campaigns.MediaSequences do
       - media_piece_id
       - frequency
       - frequency_buffer_hours
-      - maximum_banner_count
-      - banner_retry_buffer_hours
+      - maximum_banner_count (optional - defaults to 1 for video types)
+      - banner_retry_buffer_hours (optional - defaults to 1 for video types)
       - title (optional - will auto-generate if not provided)
   """
   def create_media_sequence_with_run(marketer_id, attrs) do
@@ -59,9 +59,10 @@ defmodule Qlarius.Sponster.Campaigns.MediaSequences do
             frequency: attrs["frequency"] || attrs[:frequency],
             frequency_buffer_hours:
               attrs["frequency_buffer_hours"] || attrs[:frequency_buffer_hours],
-            maximum_banner_count: attrs["maximum_banner_count"] || attrs[:maximum_banner_count],
+            maximum_banner_count:
+              attrs["maximum_banner_count"] || attrs[:maximum_banner_count] || 1,
             banner_retry_buffer_hours:
-              attrs["banner_retry_buffer_hours"] || attrs[:banner_retry_buffer_hours],
+              attrs["banner_retry_buffer_hours"] || attrs[:banner_retry_buffer_hours] || 1,
             is_active: true
           }
 
@@ -118,8 +119,10 @@ defmodule Qlarius.Sponster.Campaigns.MediaSequences do
   @doc """
   Generates a default name for a media sequence.
 
-  Format: {media_piece_type} :: {media_piece_title} :: {frequency}/{buffer} :: {banner_count}/{retry_buffer}
+  Format for 3-tap: {media_piece_type} :: {media_piece_title} :: {frequency}/{buffer} :: {banner_count}/{retry_buffer}
+  Format for video: {media_piece_type} :: {media_piece_title} :: {frequency}/{buffer}
   Example: "3-Tap :: Modern Furniture :: 3/24 :: 3/10"
+  Example: "Video :: Product Demo :: 3/24"
   """
   def generate_sequence_name(media_piece, frequency, buffer, banner_count, retry_buffer) do
     media_type =
@@ -130,8 +133,13 @@ defmodule Qlarius.Sponster.Campaigns.MediaSequences do
       end
 
     media_title = media_piece.title || "Untitled"
+    is_video = media_piece.media_piece_type_id == 2
 
-    "#{media_type} :: #{media_title} :: #{frequency}/#{buffer} :: #{banner_count}/#{retry_buffer}"
+    if is_video do
+      "#{media_type} :: #{media_title} :: #{frequency}/#{buffer}"
+    else
+      "#{media_type} :: #{media_title} :: #{frequency}/#{buffer} :: #{banner_count}/#{retry_buffer}"
+    end
   end
 
   @doc """
