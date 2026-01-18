@@ -146,7 +146,7 @@ defmodule QlariusWeb.WalletLive do
               <p class="text-xl text-base-content/70">No ledger activity to display.</p>
             </div>
           <% else %>
-            <div class="flex justify-center mt-10 mb-6 space-x-2">
+            <div class="flex justify-center mt-2 mb-6 space-x-2">
               <div class="join">
                 <button
                   phx-click="paginate"
@@ -397,6 +397,7 @@ defmodule QlariusWeb.WalletLive do
   def icon_for_meta_1("Referral Bonus"), do: "hero-user-group"
   def icon_for_meta_1("Text/Jump"), do: "hero-arrow-right-start-on-rectangle"
   def icon_for_meta_1("Banner Tap"), do: "hero-photo"
+  def icon_for_meta_1("Video Ad"), do: "hero-play"
   def icon_for_meta_1("Video Viewing"), do: "hero-play"
   def icon_for_meta_1(_), do: "hero-cube"
 end

@@ -474,44 +474,46 @@ defmodule QlariusWeb.AdsLive do
           <% end %>
         </:slide_over_content>
 
-        <div class="flex justify-center mt-2 mb-6">
-          <div role="tablist" class="tabs tabs-boxed bg-base-200 p-1 rounded-lg gap-1">
-            <a
-              role="tab"
-              class={
-                if @selected_ad_type == "three_tap",
-                  do: "tab tab-active bg-base-100 rounded-md !border-1 !border-primary",
-                  else: "tab"
-              }
-              phx-click="switch_ad_type"
-              phx-value-type="three_tap"
-            >
-              3-Tap
-              <%= if @current_scope.three_tap_ad_count && @current_scope.three_tap_ad_count > 0 do %>
-                <span class="badge badge-sm ml-2 !bg-sponster-500 !text-white rounded-full !border-0">
-                  {@current_scope.three_tap_ad_count}
-                </span>
-              <% end %>
-            </a>
-            <a
-              role="tab"
-              class={
-                if @selected_ad_type == "video",
-                  do: "tab tab-active bg-base-100 rounded-md !border-1 !border-primary",
-                  else: "tab"
-              }
-              phx-click="switch_ad_type"
-              phx-value-type="video"
-            >
-              Video
-              <%= if @current_scope.video_ad_count && @current_scope.video_ad_count > 0 do %>
-                <span class="badge badge-sm ml-2 !bg-sponster-500 !text-white rounded-full !border-0">
-                  {@current_scope.video_ad_count}
-                </span>
-              <% end %>
-            </a>
+        <%= if @current_scope.three_tap_ad_count > 0 && @current_scope.video_ad_count > 0 do %>
+          <div class="flex justify-center mt-2 mb-6">
+            <div role="tablist" class="tabs tabs-boxed bg-base-200 p-1 rounded-lg gap-1">
+              <a
+                role="tab"
+                class={
+                  if @selected_ad_type == "three_tap",
+                    do: "tab tab-active bg-base-100 rounded-md !border-1 !border-primary",
+                    else: "tab !border-1 !border-transparent"
+                }
+                phx-click="switch_ad_type"
+                phx-value-type="three_tap"
+              >
+                3-Tap
+                <%= if @current_scope.three_tap_ad_count && @current_scope.three_tap_ad_count > 0 do %>
+                  <span class="badge badge-sm ml-2 !bg-sponster-500 !text-white rounded-full !border-0">
+                    {@current_scope.three_tap_ad_count}
+                  </span>
+                <% end %>
+              </a>
+              <a
+                role="tab"
+                class={
+                  if @selected_ad_type == "video",
+                    do: "tab tab-active bg-base-100 rounded-md !border-1 !border-primary",
+                    else: "tab !border-1 !border-transparent"
+                }
+                phx-click="switch_ad_type"
+                phx-value-type="video"
+              >
+                Video
+                <%= if @current_scope.video_ad_count && @current_scope.video_ad_count > 0 do %>
+                  <span class="badge badge-sm ml-2 !bg-sponster-500 !text-white rounded-full !border-0">
+                    {@current_scope.video_ad_count}
+                  </span>
+                <% end %>
+              </a>
+            </div>
           </div>
-        </div>
+        <% end %>
 
         <%= if @selected_ad_type == "three_tap" do %>
           <%= if !@loading && Enum.empty?(@active_offers) do %>

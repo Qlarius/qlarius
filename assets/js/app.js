@@ -861,6 +861,12 @@ Hooks.VideoPlayer = {
     this.paymentCollected = this.el.dataset.paymentCollected === 'true'
     this.lastValidTime = 0
     
+    // Detect if running in PWA mode and device type
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                  window.navigator.standalone === true
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
+    const isAndroid = /Android/.test(navigator.userAgent)
+    
     // Prevent seeking forward on paid viewing (before collection)
     if (!this.paymentCollected) {
       this.video.addEventListener('timeupdate', () => {
@@ -882,6 +888,22 @@ Hooks.VideoPlayer = {
       })
     }
     
+    // Request fullscreen on play for Android PWAs
+    // iOS Safari automatically goes fullscreen by default without playsinline attribute
+    if (isPWA && isAndroid) {
+      this.video.addEventListener('play', () => {
+        if (this.video.requestFullscreen) {
+          this.video.requestFullscreen().catch(err => {
+            console.log('Fullscreen request failed:', err)
+          })
+        } else if (this.video.webkitRequestFullscreen) {
+          this.video.webkitRequestFullscreen().catch(err => {
+            console.log('Webkit fullscreen request failed:', err)
+          })
+        }
+      }, { once: true })
+    }
+    
     this.video.play().catch(err => {
       console.log('Autoplay prevented:', err)
     })
@@ -890,6 +912,16 @@ Hooks.VideoPlayer = {
       if (!this.watched) {
         this.watched = true
         this.pushEvent('video_watched_complete', {})
+      }
+      
+      // Exit fullscreen when video completes
+      // iOS uses webkitExitFullscreen on the video element itself
+      if (this.video.webkitDisplayingFullscreen) {
+        this.video.webkitExitFullscreen()
+      } else if (document.fullscreenElement) {
+        document.exitFullscreen()
+      } else if (document.webkitFullscreenElement) {
+        document.webkitExitFullscreen()
       }
     })
     
