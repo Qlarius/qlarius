@@ -125,6 +125,17 @@ defmodule QlariusWeb.UserSettingsLive do
      |> assign(:total_devices_subscribed, length(subscriptions))}
   end
 
+  def handle_event("open_setting", %{"setting" => "time_zone"}, socket) do
+    timezone = socket.assigns.current_scope.user.timezone || Timezones.default()
+    current_time = Qlarius.DateTime.current_time_in_timezone(timezone)
+
+    {:noreply,
+     socket
+     |> assign(:selected_setting, "time_zone")
+     |> assign(:current_timezone, timezone)
+     |> assign(:current_time, current_time)}
+  end
+
   def handle_event("open_setting", %{"setting" => setting}, socket) do
     {:noreply, assign(socket, :selected_setting, setting)}
   end
@@ -274,7 +285,7 @@ defmodule QlariusWeb.UserSettingsLive do
     {:noreply, assign(socket, :notification_preference, updated_pref)}
   end
 
-  def handle_event("update_quiet_start", %{"value" => hour_str}, socket) do
+  def handle_event("update_quiet_start", %{"hour" => hour_str}, socket) do
     hour = String.to_integer(hour_str)
     user_id = socket.assigns.current_scope.user.id
 
@@ -289,7 +300,7 @@ defmodule QlariusWeb.UserSettingsLive do
     {:noreply, assign(socket, :notification_preference, updated_pref)}
   end
 
-  def handle_event("update_quiet_end", %{"value" => hour_str}, socket) do
+  def handle_event("update_quiet_end", %{"hour" => hour_str}, socket) do
     hour = String.to_integer(hour_str)
     user_id = socket.assigns.current_scope.user.id
 
@@ -304,20 +315,29 @@ defmodule QlariusWeb.UserSettingsLive do
     {:noreply, assign(socket, :notification_preference, updated_pref)}
   end
 
-  def handle_event("update_timezone", %{"value" => timezone}, socket) do
+  def handle_event("update_timezone", %{"timezone" => timezone}, socket) do
+    require Logger
+    Logger.info("🕐 Timezone update requested: #{timezone}")
+    
     user = socket.assigns.current_scope.user
 
     case Accounts.update_user(user, %{timezone: timezone}) do
       {:ok, updated_user} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "✅ Time zone updated successfully")
-         |> assign(:current_scope, %{socket.assigns.current_scope | user: updated_user})}
+        current_time = Qlarius.DateTime.current_time_in_timezone(timezone)
+        Logger.info("✅ Timezone updated to #{timezone}, current time: #{current_time}")
 
-      {:error, _changeset} ->
         {:noreply,
          socket
-         |> put_flash(:error, "❌ Failed to update time zone")}
+         |> put_flash(:info, "Time zone updated successfully")
+         |> assign(:current_scope, %{socket.assigns.current_scope | user: updated_user})
+         |> assign(:current_timezone, timezone)
+         |> assign(:current_time, current_time)}
+
+      {:error, changeset} ->
+        Logger.error("❌ Failed to update timezone: #{inspect(changeset)}")
+        {:noreply,
+         socket
+         |> put_flash(:error, "Failed to update time zone")}
     end
   end
 
@@ -481,37 +501,41 @@ defmodule QlariusWeb.UserSettingsLive do
             </p>
 
             <div class="grid grid-cols-2 gap-4">
-              <div class="form-control">
-                <label class="label">
-                  <span class="label-text">From</span>
-                </label>
-                <select class="select select-bordered w-full" phx-change="update_quiet_start">
-                  <%= for hour <- 0..23 do %>
-                    <option
-                      value={hour}
-                      selected={hour == time_to_hour(@notification_preference.quiet_hours_start)}
-                    >
-                      {format_hour(hour)}
-                    </option>
-                  <% end %>
-                </select>
-              </div>
+              <form phx-change="update_quiet_start">
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text">From</span>
+                  </label>
+                  <select name="hour" class="select select-bordered w-full">
+                    <%= for hour <- 0..23 do %>
+                      <option
+                        value={hour}
+                        selected={hour == time_to_hour(@notification_preference.quiet_hours_start)}
+                      >
+                        {format_hour(hour)}
+                      </option>
+                    <% end %>
+                  </select>
+                </div>
+              </form>
 
-              <div class="form-control">
-                <label class="label">
-                  <span class="label-text">Until</span>
-                </label>
-                <select class="select select-bordered w-full" phx-change="update_quiet_end">
-                  <%= for hour <- 0..23 do %>
-                    <option
-                      value={hour}
-                      selected={hour == time_to_hour(@notification_preference.quiet_hours_end)}
-                    >
-                      {format_hour(hour)}
-                    </option>
-                  <% end %>
-                </select>
-              </div>
+              <form phx-change="update_quiet_end">
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text">Until</span>
+                  </label>
+                  <select name="hour" class="select select-bordered w-full">
+                    <%= for hour <- 0..23 do %>
+                      <option
+                        value={hour}
+                        selected={hour == time_to_hour(@notification_preference.quiet_hours_end)}
+                      >
+                        {format_hour(hour)}
+                      </option>
+                    <% end %>
+                  </select>
+                </div>
+              </form>
             </div>
           </div>
         </div>
@@ -522,8 +546,10 @@ defmodule QlariusWeb.UserSettingsLive do
 
   defp render_setting_content(%{selected_setting: "time_zone"} = assigns) do
     timezones = Timezones.list()
-    current_timezone = assigns.current_scope.user.timezone || Timezones.default()
-    current_time = Qlarius.DateTime.current_time_in_timezone(current_timezone)
+    
+    # Use assigns if already set, otherwise calculate from user
+    current_timezone = Map.get(assigns, :current_timezone) || assigns.current_scope.user.timezone || Timezones.default()
+    current_time = Map.get(assigns, :current_time) || Qlarius.DateTime.current_time_in_timezone(current_timezone)
 
     assigns = assign(assigns, :timezones, timezones)
     assigns = assign(assigns, :current_timezone, current_timezone)
@@ -542,21 +568,23 @@ defmodule QlariusWeb.UserSettingsLive do
             All notification hours are in your local time.
           </p>
 
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text text-lg">Select your time zone</span>
-            </label>
-            <select
-              class="select select-bordered w-full text-lg"
-              phx-change="update_timezone"
-            >
-              <%= for {label, iana} <- @timezones do %>
-                <option value={iana} selected={iana == @current_timezone}>
-                  {label}
-                </option>
-              <% end %>
-            </select>
-          </div>
+          <form phx-change="update_timezone">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-lg">Select your time zone</span>
+              </label>
+              <select
+                name="timezone"
+                class="select select-bordered w-full text-lg"
+              >
+                <%= for {label, iana} <- @timezones do %>
+                  <option value={iana} selected={iana == @current_timezone}>
+                    {label}
+                  </option>
+                <% end %>
+              </select>
+            </div>
+          </form>
 
           <div class="mt-4 p-4 bg-base-300 rounded-lg">
             <p class="text-sm text-base-content/70 mb-1">Current time in your timezone:</p>

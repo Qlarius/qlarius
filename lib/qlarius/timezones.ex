@@ -17,9 +17,17 @@ defmodule Qlarius.Timezones do
   @default_timezone "America/New_York"
 
   def list do
-    @us_timezones
-    |> Enum.map(fn {label, iana} -> {label, iana} end)
-    |> Enum.sort_by(fn {label, _iana} -> label end)
+    # Return in chronological order (east to west across US)
+    [
+      {"Puerto Rico", "America/Puerto_Rico"},
+      {"Eastern", "America/New_York"},
+      {"Central", "America/Chicago"},
+      {"Mountain", "America/Denver"},
+      {"Mountain (Arizona)", "America/Phoenix"},
+      {"Pacific", "America/Los_Angeles"},
+      {"Alaska", "America/Anchorage"},
+      {"Hawaii", "America/Honolulu"}
+    ]
   end
 
   def get_label(iana_timezone) do
