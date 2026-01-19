@@ -7,7 +7,6 @@ defmodule QlariusWeb.PWAHelpers do
     statics: QlariusWeb.static_paths()
 
   import Phoenix.Component, only: [assign: 3]
-  import Phoenix.LiveView, only: [get_connect_params: 1]
 
   @doc """
   Initialize PWA-related assigns.

@@ -100,12 +100,8 @@ defmodule Qlarius.Jobs.BackfillMissingSnapshotsWorker do
         if band do
           trait_metadata = build_trait_metadata(band.trait_groups)
           snapshot = generate_snapshot(pop.me_file_id, trait_metadata)
-
-          if snapshot do
-            {pop, snapshot}
-          else
-            nil
-          end
+          # Snapshot is always a map now (even if empty), so no need to check for nil
+          {pop, snapshot}
         else
           nil
         end
@@ -195,10 +191,9 @@ defmodule Qlarius.Jobs.BackfillMissingSnapshotsWorker do
       end)
       |> Enum.sort_by(fn [_id, _name, order, _children] -> order end)
 
-    case snapshot do
-      [] -> nil
-      data -> %{tags: data}
-    end
+    # Always return a map structure, even for empty snapshots
+    # This distinguishes "checked with no matches" from "never checked" (NULL)
+    %{tags: snapshot}
   end
 
   defp batch_update_populations(population_updates) do

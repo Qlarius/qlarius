@@ -170,9 +170,8 @@ defmodule Qlarius.Jobs.SnapshotBandPopulationsWorker do
       end)
       |> Enum.sort_by(fn [_id, _name, order, _children] -> order end)
 
-    case snapshot do
-      [] -> nil
-      data -> %{tags: data}
-    end
+    # Always return a map structure, even for empty snapshots
+    # This distinguishes "checked with no matches" from "never checked" (NULL)
+    %{tags: snapshot}
   end
 end
