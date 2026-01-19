@@ -2,9 +2,11 @@ defmodule Qlarius.Jobs.HandleOfferCompletionWorker do
   use Oban.Worker, queue: :offers, max_attempts: 3
 
   import Ecto.Query
+  alias Ecto.Multi
   alias Qlarius.Repo
   alias Qlarius.Sponster.{Offer, AdEvent}
   alias Qlarius.Sponster.Campaigns.{CampaignPubSub, TargetPopulation}
+  alias Qlarius.Wallets.MeFileStatsBroadcaster
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"offer_id" => offer_id, "completed_at" => completed_at_string}}) do
@@ -25,15 +27,22 @@ defmodule Qlarius.Jobs.HandleOfferCompletionWorker do
         offer = Repo.preload(offer, [:campaign, media_run: [media_piece: :media_piece_type]])
 
         if should_create_next_offer?(offer) do
-          create_next_offer(offer, completed_at)
-
-          Logger.info(
-            "HandleOfferCompletionWorker: Created next offer for me_file #{offer.me_file_id}"
-          )
+          case create_next_offer_and_delete_original(offer, completed_at) do
+            {:ok, _result} ->
+              Logger.info(
+                "HandleOfferCompletionWorker: Deleted original and created next offer for me_file #{offer.me_file_id}"
+              )
+            {:error, reason} ->
+              Logger.error(
+                "HandleOfferCompletionWorker: Failed to create next offer for me_file #{offer.me_file_id}: #{inspect(reason)}"
+              )
+          end
         else
           Logger.info(
-            "HandleOfferCompletionWorker: Media run complete for me_file #{offer.me_file_id}, no next offer created"
+            "HandleOfferCompletionWorker: Media run complete for me_file #{offer.me_file_id}, deleting final offer"
           )
+          Repo.delete(offer)
+          MeFileStatsBroadcaster.broadcast_offers_updated(offer.me_file_id)
         end
 
         :ok
@@ -105,7 +114,7 @@ defmodule Qlarius.Jobs.HandleOfferCompletionWorker do
     end
   end
 
-  defp create_next_offer(original_offer, completed_at) do
+  defp create_next_offer_and_delete_original(original_offer, completed_at) do
     now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
     buffer_hours = original_offer.media_run.frequency_buffer_hours || 24
     pending_until = NaiveDateTime.add(completed_at, buffer_hours * 3600, :second)
@@ -136,29 +145,28 @@ defmodule Qlarius.Jobs.HandleOfferCompletionWorker do
       updated_at: now
     }
 
-    case Repo.insert_all(Offer, [new_offer_attrs],
-           on_conflict: :nothing,
-           conflict_target: [:campaign_id, :me_file_id, :media_run_id],
-           returning: true
-         ) do
-      {1, [inserted_offer]} ->
-        CampaignPubSub.broadcast_offers_created(original_offer.campaign_id, 1)
+    Multi.new()
+    |> Multi.delete(:delete_original, original_offer)
+    |> Multi.insert(:create_next, Offer.changeset(%Offer{}, new_offer_attrs))
+    |> Multi.run(:broadcast, fn _repo, %{create_next: new_offer} ->
+      CampaignPubSub.broadcast_offers_created(original_offer.campaign_id, 1)
 
-        CampaignPubSub.broadcast_marketer_campaign_updated(
-          original_offer.campaign.marketer_id,
-          original_offer.campaign_id
-        )
+      CampaignPubSub.broadcast_marketer_campaign_updated(
+        original_offer.campaign.marketer_id,
+        original_offer.campaign_id
+      )
 
-        {:ok, inserted_offer}
+      MeFileStatsBroadcaster.broadcast_offers_updated(original_offer.me_file_id)
 
-      {0, _} ->
-        require Logger
+      {:ok, new_offer}
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{create_next: new_offer}} ->
+        {:ok, new_offer}
 
-        Logger.warning(
-          "HandleOfferCompletionWorker: Offer already exists for campaign #{original_offer.campaign_id}, me_file #{original_offer.me_file_id}, media_run #{original_offer.media_run_id}"
-        )
-
-        {:ok, :already_exists}
+      {:error, _failed_operation, reason, _changes} ->
+        {:error, reason}
     end
   end
 

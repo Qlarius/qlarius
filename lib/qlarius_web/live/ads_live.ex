@@ -45,6 +45,10 @@ defmodule QlariusWeb.AdsLive do
         uri -> uri
       end
 
+    show_ad_type_tabs =
+      socket.assigns.current_scope.three_tap_ad_count > 0 &&
+        socket.assigns.current_scope.video_ad_count > 0
+
     socket =
       socket
       |> assign(:active_offers, [])
@@ -58,6 +62,7 @@ defmodule QlariusWeb.AdsLive do
       |> assign(:show_replay_button, false)
       |> assign(:video_payment_collected, false)
       |> assign(:completed_video_offers, [])
+      |> assign(:show_ad_type_tabs, show_ad_type_tabs)
 
     if connected?(socket) do
       send(self(), :load_offers)
@@ -83,6 +88,10 @@ defmodule QlariusWeb.AdsLive do
         uri -> uri
       end
 
+    show_ad_type_tabs =
+      socket.assigns.current_scope.three_tap_ad_count > 0 &&
+        socket.assigns.current_scope.video_ad_count > 0
+
     socket =
       socket
       |> assign(:active_offers, [])
@@ -97,6 +106,7 @@ defmodule QlariusWeb.AdsLive do
       |> assign(:show_replay_button, false)
       |> assign(:video_payment_collected, false)
       |> assign(:completed_video_offers, [])
+      |> assign(:show_ad_type_tabs, show_ad_type_tabs)
       |> init_pwa_assigns(session)
 
     if connected?(socket) do
@@ -304,9 +314,20 @@ defmodule QlariusWeb.AdsLive do
 
   @impl true
   def handle_info({:me_file_offers_updated, _me_file_id}, socket) do
-    # Don't reload offers here - let completed offers (phase 3) stay visible
-    # Offers will refresh on next mount/page load
-    {:noreply, socket}
+    me_file = socket.assigns.current_scope.user.me_file
+    ads_count = Qlarius.YouData.MeFiles.MeFile.ad_offer_count(me_file)
+    three_tap_ad_count = Qlarius.YouData.MeFiles.MeFile.three_tap_ad_offer_count(me_file)
+    video_ad_count = Qlarius.YouData.MeFiles.MeFile.video_ad_offer_count(me_file)
+    offered_amount = Qlarius.Sponster.Offers.total_active_offer_amount(me_file)
+
+    current_scope =
+      socket.assigns.current_scope
+      |> Map.put(:ads_count, ads_count)
+      |> Map.put(:three_tap_ad_count, three_tap_ad_count)
+      |> Map.put(:video_ad_count, video_ad_count)
+      |> Map.put(:offered_amount, offered_amount)
+
+    {:noreply, assign(socket, :current_scope, current_scope)}
   end
 
   @impl true
@@ -474,7 +495,7 @@ defmodule QlariusWeb.AdsLive do
           <% end %>
         </:slide_over_content>
 
-        <%= if @current_scope.three_tap_ad_count > 0 && @current_scope.video_ad_count > 0 do %>
+        <%= if @show_ad_type_tabs do %>
           <div class="flex justify-center mt-2 mb-6">
             <div role="tablist" class="tabs tabs-boxed bg-base-200 p-1 rounded-lg gap-1">
               <a

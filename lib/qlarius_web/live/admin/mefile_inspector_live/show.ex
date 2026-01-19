@@ -242,7 +242,7 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
   defp icon_for_meta_1("Referral Bonus"), do: "hero-user-group"
   defp icon_for_meta_1("Text/Jump"), do: "hero-arrow-right-start-on-rectangle"
   defp icon_for_meta_1("Banner Tap"), do: "hero-photo"
-  defp icon_for_meta_1("Video Ad"), do: "hero-play-circle"
+  defp icon_for_meta_1("Video Ad"), do: "hero-play"
   defp icon_for_meta_1("Gift"), do: "hero-gift"
   defp icon_for_meta_1(_), do: "hero-cube"
 
