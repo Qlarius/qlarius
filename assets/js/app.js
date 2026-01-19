@@ -1191,6 +1191,11 @@ Hooks.PushNotifications = {
       console.log("📢 Request push permission event received")
       await this.requestPermission()
     })
+    
+    this.handleEvent("request-push-unsubscribe", async () => {
+      console.log("📢 Request push unsubscribe event received")
+      await this.unsubscribeFromPush()
+    })
   },
 
   async checkCurrentDeviceSubscription() {
@@ -1321,6 +1326,43 @@ Hooks.PushNotifications = {
     if (userAgent.includes("Safari")) return "safari"
     if (userAgent.includes("Edge")) return "edge"
     return "other"
+  },
+
+  async unsubscribeFromPush() {
+    try {
+      console.log("🔄 Starting push unsubscription...")
+      const registration = await navigator.serviceWorker.ready
+      console.log("Service worker ready")
+      const subscription = await registration.pushManager.getSubscription()
+      console.log("Current subscription:", subscription)
+      
+      if (!subscription) {
+        console.log("❌ No subscription found to unsubscribe")
+        this.pushEvent("unsubscribe_failed", { error: "No active subscription" })
+        return
+      }
+      
+      const endpoint = subscription.endpoint
+      console.log("📝 Full endpoint:", endpoint)
+      console.log("📝 Unsubscribing from endpoint:", endpoint.substring(0, 50) + "...")
+      
+      // Unsubscribe from the push service
+      const result = await subscription.unsubscribe()
+      console.log("Unsubscribe result:", result)
+      
+      if (result) {
+        console.log("✅ Successfully unsubscribed from push service")
+        console.log("✅ Sending device_unsubscribed event with endpoint:", endpoint)
+        // Notify server to mark subscription as inactive
+        this.pushEvent("device_unsubscribed", { endpoint: endpoint })
+      } else {
+        console.log("❌ Failed to unsubscribe from push service")
+        this.pushEvent("unsubscribe_failed", { error: "Unsubscribe returned false" })
+      }
+    } catch (error) {
+      console.error("❌ Failed to unsubscribe from push:", error)
+      this.pushEvent("unsubscribe_failed", { error: error.message || error.toString() })
+    }
   }
 }
 

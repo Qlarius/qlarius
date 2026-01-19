@@ -38,6 +38,35 @@ defmodule Qlarius.Notifications do
     end
   end
 
+  def unsubscribe_by_endpoint(user_id, endpoint) do
+    require Logger
+    Logger.info("Attempting to unsubscribe user_id=#{user_id}, endpoint=#{String.slice(endpoint, 0..50)}...")
+    
+    # Query by JSON fragment to find the subscription
+    query =
+      from(s in PushSubscription,
+        where:
+          s.user_id == ^user_id and
+            s.active == true and
+            fragment("?->>'endpoint' = ?", s.subscription_data, ^endpoint)
+      )
+
+    case Repo.one(query) do
+      nil ->
+        Logger.warning("No active subscription found for endpoint")
+        {:error, :not_found}
+
+      sub ->
+        Logger.info("Found subscription id=#{sub.id}, marking as inactive")
+        result = sub
+        |> PushSubscription.changeset(%{active: false})
+        |> Repo.update()
+        
+        Logger.info("Unsubscribe result: #{inspect(result)}")
+        result
+    end
+  end
+
   def get_active_subscriptions(user_id) do
     from(s in PushSubscription,
       where: s.user_id == ^user_id and s.active == true

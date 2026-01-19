@@ -139,20 +139,13 @@ defmodule QlariusWeb.UserSettingsLive do
   def handle_event("toggle_enabled", _params, socket) do
     currently_subscribed = socket.assigns.current_device_subscribed
 
-    socket =
-      if !currently_subscribed do
-        # Request permission and subscribe this device
-        push_event(socket, "request-push-permission", %{})
-      else
-        # TODO: Unsubscribe this device (would need to track device subscription ID)
-        put_flash(
-          socket,
-          :info,
-          "To disable, please turn off notifications in your browser settings for this site"
-        )
-      end
-
-    {:noreply, socket}
+    if !currently_subscribed do
+      # Toggling ON - request subscription
+      {:noreply, push_event(socket, "request-push-permission", %{})}
+    else
+      # Toggling OFF - request unsubscription
+      {:noreply, push_event(socket, "request-push-unsubscribe", %{})}
+    end
   end
 
   def handle_event("device_subscribed", _params, socket) do
@@ -163,7 +156,7 @@ defmodule QlariusWeb.UserSettingsLive do
      socket
      |> assign(:current_device_subscribed, true)
      |> assign(:total_devices_subscribed, length(subscriptions))
-     |> put_flash(:info, "✅ This device is subscribed to push notifications")}
+     |> put_flash(:info, "This device is subscribed to push notifications")}
   end
 
   def handle_event("device_not_subscribed", %{"supported" => false}, socket) do
@@ -188,14 +181,9 @@ defmodule QlariusWeb.UserSettingsLive do
   end
 
   def handle_event("permission_granted", _params, socket) do
-    user_id = socket.assigns.current_scope.user.id
-    subscriptions = Notifications.get_active_subscriptions(user_id)
-
-    {:noreply,
-     socket
-     |> assign(:current_device_subscribed, true)
-     |> assign(:total_devices_subscribed, length(subscriptions))
-     |> put_flash(:info, "✅ Push notifications enabled on this device!")}
+    # Don't mark as subscribed yet - wait for actual device_subscribed event
+    # after the subscription is successfully saved to server
+    {:noreply, socket}
   end
 
   def handle_event("permission_denied", _params, socket) do
@@ -206,6 +194,32 @@ defmodule QlariusWeb.UserSettingsLive do
        :error,
        "❌ Push notifications were denied. Please enable them in your browser settings."
      )}
+  end
+
+  def handle_event("device_unsubscribed", %{"endpoint" => endpoint}, socket) do
+    require Logger
+    Logger.info("🔔 device_unsubscribed event received with endpoint: #{String.slice(endpoint, 0..50)}...")
+    user_id = socket.assigns.current_scope.user.id
+
+    case Notifications.unsubscribe_by_endpoint(user_id, endpoint) do
+      {:ok, _} ->
+        subscriptions = Notifications.get_active_subscriptions(user_id)
+        Logger.info("✅ Successfully unsubscribed. Active subscriptions: #{length(subscriptions)}")
+
+        {:noreply,
+         socket
+         |> assign(:current_device_subscribed, false)
+         |> assign(:total_devices_subscribed, length(subscriptions))
+         |> put_flash(:info, "This device has been unsubscribed from push notifications")}
+
+      {:error, reason} ->
+        Logger.error("❌ Failed to unsubscribe: #{inspect(reason)}")
+        {:noreply, put_flash(socket, :error, "Failed to unsubscribe device")}
+    end
+  end
+
+  def handle_event("unsubscribe_failed", %{"error" => error}, socket) do
+    {:noreply, put_flash(socket, :error, "❌ Failed to unsubscribe: #{error}")}
   end
 
   def handle_event("subscription_failed", %{"error" => error}, socket) do
@@ -336,175 +350,172 @@ defmodule QlariusWeb.UserSettingsLive do
        )
        when not is_nil(pref) do
     ~H"""
-    <div class="pb-8" id="push-notifications-container" phx-hook="PushNotifications">
-      <%!-- Ad Count Notifications Section --%>
+    <div class="pb-8 space-y-4" id="push-notifications-container" phx-hook="PushNotifications">
+      <%!-- Card 1: Enable/Disable Toggle --%>
       <div class="card bg-base-200 shadow-md">
         <div class="card-body">
           <h2 class="card-title text-xl mb-4">
-            <.icon name="hero-megaphone" class="w-5 h-5" /> Ad Count Notifications
+            <.icon name="hero-megaphone" class="w-5 h-5" /> Push Notifications
           </h2>
 
-          <div class="form-control mb-4">
-            <label class="label cursor-pointer">
-              <span class="label-text text-lg">Enable notifications on this device</span>
+          <div class="form-control">
+            <div class="flex items-start justify-start gap-5 my-3">
+              <span class="text-lg font-semibold text-base-content/70">OFF</span>
               <input
                 id="push-notification-toggle"
                 type="checkbox"
-                class="toggle toggle-primary toggle-xl"
+                class="toggle toggle-xl toggle-success checked:bg-success checked:border-success"
                 checked={@current_device_subscribed}
                 phx-click="toggle_enabled"
                 disabled={!@device_subscription_supported}
               />
-            </label>
+              <span class="text-lg font-semibold text-base-content/70">ON</span>
+            </div>
 
             <%!-- Device Status Messages --%>
-            <div class="mt-2 space-y-1">
+            <div class="mt-5 space-y-1">
               <p :if={!@device_subscription_supported} class="text-sm text-error">
-                ❌ Push notifications not supported on this browser/device
+                Push notifications not supported on this browser/device
               </p>
 
               <p
                 :if={@device_subscription_supported and @current_device_subscribed}
                 class="text-sm text-success"
               >
-                ✅ This device is subscribed to notifications
+                This device is subscribed to notifications. Adjust your preferences below to customize your notifications.
               </p>
 
               <p
-                :if={
-                  @device_subscription_supported and !@current_device_subscribed and
-                    @notification_preference.enabled
-                }
+                :if={@device_subscription_supported and !@current_device_subscribed}
                 class="text-sm text-warning"
               >
-                ⚠️ This device is not subscribed. Toggle on to enable.
+                Turn on notifications to receive alerts and optimize your experience (and revenue).
               </p>
 
-              <p :if={@total_devices_subscribed > 0} class="text-sm text-base-content/60">
+              <%!-- <p :if={@device_subscription_supported} class="text-sm text-base-content/60">
                 📱 Total devices with notifications: {@total_devices_subscribed}
-              </p>
+              </p> --%>
             </div>
           </div>
-
-          <%= if @notification_preference.enabled do %>
-            <%!-- Preferred Hours Grid --%>
-            <div class="mb-6">
-              <h3 class="text-lg font-semibold mb-3">When do you want to receive notifications?</h3>
-              <p class="text-sm text-base-content/60 mb-4">
-                Select the hours you'd like to be notified about available ads
-              </p>
-
-              <div class="grid grid-cols-2 gap-4">
-                <%!-- AM Column --%>
-                <div>
-                  <h4 class="font-medium text-center mb-2 text-base-content/70">AM</h4>
-                  <div class="space-y-1">
-                    <%= for hour <- 0..11 do %>
-                      <label class="flex items-center p-3 hover:bg-base-300 rounded cursor-pointer">
-                        <input
-                          type="checkbox"
-                          class="checkbox checkbox-primary w-7 h-7 mr-4"
-                          checked={hour in @notification_preference.preferred_hours}
-                          phx-click="toggle_hour"
-                          phx-value-hour={hour}
-                        />
-                        <span class="text-lg">{format_hour(hour)}</span>
-                      </label>
-                    <% end %>
-                  </div>
-                </div>
-
-                <%!-- PM Column --%>
-                <div>
-                  <h4 class="font-medium text-center mb-2 text-base-content/70">PM</h4>
-                  <div class="space-y-1">
-                    <%= for hour <- 12..23 do %>
-                      <label class="flex items-center p-3 hover:bg-base-300 rounded cursor-pointer">
-                        <input
-                          type="checkbox"
-                          class="checkbox checkbox-primary w-7 h-7 mr-4"
-                          checked={hour in @notification_preference.preferred_hours}
-                          phx-click="toggle_hour"
-                          phx-value-hour={hour}
-                        />
-                        <span class="text-lg">{format_hour(hour)}</span>
-                      </label>
-                    <% end %>
-                  </div>
-                </div>
-              </div>
-
-              <%!-- Quick Presets --%>
-              <div class="mt-4 flex flex-wrap gap-2">
-                <p class="w-full text-sm font-medium text-base-content/70 mb-1">Quick presets:</p>
-                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="morning">
-                  Morning Person
-                </button>
-                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="evening">
-                  Night Owl
-                </button>
-                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="worker">
-                  9-to-5 Worker
-                </button>
-                <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="clear">
-                  Clear All
-                </button>
-              </div>
-            </div>
-
-            <%!-- Quiet Hours --%>
-            <div class="divider"></div>
-            <div>
-              <h3 class="text-lg font-semibold mb-3">
-                <.icon name="hero-moon" class="w-4 h-4 inline" /> Quiet Hours
-              </h3>
-              <p class="text-sm text-base-content/60 mb-4">
-                Block all notifications during these hours
-              </p>
-
-              <div class="grid grid-cols-2 gap-4">
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text">From</span>
-                  </label>
-                  <select
-                    class="select select-bordered w-full"
-                    phx-change="update_quiet_start"
-                  >
-                    <%= for hour <- 0..23 do %>
-                      <option
-                        value={hour}
-                        selected={hour == time_to_hour(@notification_preference.quiet_hours_start)}
-                      >
-                        {format_hour(hour)}
-                      </option>
-                    <% end %>
-                  </select>
-                </div>
-
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text">Until</span>
-                  </label>
-                  <select
-                    class="select select-bordered w-full"
-                    phx-change="update_quiet_end"
-                  >
-                    <%= for hour <- 0..23 do %>
-                      <option
-                        value={hour}
-                        selected={hour == time_to_hour(@notification_preference.quiet_hours_end)}
-                      >
-                        {format_hour(hour)}
-                      </option>
-                    <% end %>
-                  </select>
-                </div>
-              </div>
-            </div>
-          <% end %>
         </div>
       </div>
+
+      <%= if @notification_preference.enabled do %>
+        <%!-- Card 2: Ad Offer Notification Times --%>
+        <div class="card bg-base-200 shadow-md">
+          <div class="card-body">
+            <h2 class="card-title text-xl mb-4">
+              <.icon name="hero-clock" class="w-5 h-5" /> Ad Offer Notification Times
+            </h2>
+            <p class="text-sm text-base-content/60 mb-4">
+              Select the hours you'd like to be notified about available ads. Think about when your attention is available and alerts won't be annoying.
+            </p>
+
+            <div class="grid grid-cols-2 gap-4">
+              <%!-- AM Column --%>
+              <div>
+                <h4 class="font-medium text-center mb-2 text-base-content/70">AM</h4>
+                <div class="space-y-1">
+                  <%= for hour <- 0..11 do %>
+                    <label class="flex items-center p-3 hover:bg-base-300 rounded cursor-pointer">
+                      <input
+                        type="checkbox"
+                        class="checkbox checkbox-primary w-7 h-7 mr-4"
+                        checked={hour in @notification_preference.preferred_hours}
+                        phx-click="toggle_hour"
+                        phx-value-hour={hour}
+                      />
+                      <span class="text-lg">{format_hour(hour)}</span>
+                    </label>
+                  <% end %>
+                </div>
+              </div>
+
+              <%!-- PM Column --%>
+              <div>
+                <h4 class="font-medium text-center mb-2 text-base-content/70">PM</h4>
+                <div class="space-y-1">
+                  <%= for hour <- 12..23 do %>
+                    <label class="flex items-center p-3 hover:bg-base-300 rounded cursor-pointer">
+                      <input
+                        type="checkbox"
+                        class="checkbox checkbox-primary w-7 h-7 mr-4"
+                        checked={hour in @notification_preference.preferred_hours}
+                        phx-click="toggle_hour"
+                        phx-value-hour={hour}
+                      />
+                      <span class="text-lg">{format_hour(hour)}</span>
+                    </label>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+
+            <%!-- Quick Presets --%>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <p class="w-full text-sm font-medium text-base-content/70 mb-1">Quick presets:</p>
+              <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="morning">
+                Morning Person
+              </button>
+              <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="evening">
+                Night Owl
+              </button>
+              <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="worker">
+                9-to-5 Worker
+              </button>
+              <button class="btn btn-sm btn-outline" phx-click="preset" phx-value-preset="clear">
+                Clear All
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <%!-- Card 3: Quiet Hours --%>
+        <div class="card bg-base-200 shadow-md">
+          <div class="card-body">
+            <h2 class="card-title text-xl mb-4">
+              <.icon name="hero-moon" class="w-5 h-5" /> Quiet Hours
+            </h2>
+            <p class="text-sm text-base-content/60 mb-4">
+              Block all notifications during these hours
+            </p>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text">From</span>
+                </label>
+                <select class="select select-bordered w-full" phx-change="update_quiet_start">
+                  <%= for hour <- 0..23 do %>
+                    <option
+                      value={hour}
+                      selected={hour == time_to_hour(@notification_preference.quiet_hours_start)}
+                    >
+                      {format_hour(hour)}
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text">Until</span>
+                </label>
+                <select class="select select-bordered w-full" phx-change="update_quiet_end">
+                  <%= for hour <- 0..23 do %>
+                    <option
+                      value={hour}
+                      selected={hour == time_to_hour(@notification_preference.quiet_hours_end)}
+                    >
+                      {format_hour(hour)}
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
     </div>
     """
   end
