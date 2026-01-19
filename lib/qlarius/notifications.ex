@@ -41,7 +41,7 @@ defmodule Qlarius.Notifications do
   def unsubscribe_by_endpoint(user_id, endpoint) do
     require Logger
     Logger.info("Attempting to unsubscribe user_id=#{user_id}, endpoint=#{String.slice(endpoint, 0..50)}...")
-    
+
     # Query by JSON fragment to find the subscription
     query =
       from(s in PushSubscription,
@@ -61,7 +61,7 @@ defmodule Qlarius.Notifications do
         result = sub
         |> PushSubscription.changeset(%{active: false})
         |> Repo.update()
-        
+
         Logger.info("Unsubscribe result: #{inspect(result)}")
         result
     end
