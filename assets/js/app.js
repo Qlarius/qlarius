@@ -1053,14 +1053,14 @@ Hooks.SlideToCollect = {
       if (!this.isDragging) return
       
       this.isDragging = false
-      this.handle.style.transition = 'transform 0.3s ease'
-      this.handle.style.transform = 'translateX(0) translateY(-50%)'
       
+      // Don't reset position if slide was completed successfully
       if (!this.completed) {
+        this.handle.style.transition = 'transform 0.3s ease'
+        this.handle.style.transform = 'translateX(0) translateY(-50%)'
         this.handle.classList.add('wiggle')
+        this.currentX = 0
       }
-      
-      this.currentX = 0
     }
     
     this.handle.addEventListener('mousedown', handleMouseDown)

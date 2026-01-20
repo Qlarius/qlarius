@@ -399,9 +399,9 @@ defmodule QlariusWeb.AdsLive do
 
               <%= if @video_payment_collected do %>
                 <div class="text-center mt-6 px-4">
-                  <button class="btn btn-outline btn-lg" phx-click="replay_video">
+                  <button class="btn btn-outline btn-lg rounded-full" phx-click="replay_video">
                     <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" />
-                    Replay Video (Unpaid)
+                    Watch Again (Unpaid)
                   </button>
                 </div>
               <% end %>
