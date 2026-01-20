@@ -80,7 +80,7 @@ defmodule Qlarius.Sponster.Ads.Video do
           {:ok, _} ->
             require Logger
             Logger.info("📹 Video ad_event created, enqueueing HandleOfferCompletionWorker for offer #{ad_event.offer_id}")
-            
+
             case HandleOfferCompletionWorker.new(%{
               offer_id: ad_event.offer_id,
               completed_at: NaiveDateTime.to_iso8601(ad_event.created_at)
@@ -89,7 +89,7 @@ defmodule Qlarius.Sponster.Ads.Video do
               {:ok, job} ->
                 Logger.info("✅ HandleOfferCompletionWorker job enqueued successfully: #{job.id}")
                 {:ok, ad_event}
-                
+
               {:error, changeset} ->
                 Logger.error("❌ Failed to enqueue HandleOfferCompletionWorker: #{inspect(changeset)}")
                 {:ok, ad_event}  # Still return success for the ad_event itself
