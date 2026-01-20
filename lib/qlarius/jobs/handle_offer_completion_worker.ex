@@ -59,7 +59,20 @@ defmodule Qlarius.Jobs.HandleOfferCompletionWorker do
       if completed_count >= frequency do
         false
       else
-        not maximum_banner_count_exceeded?(offer)
+        # Skip banner count check for video ads (media_piece_type_id = 2)
+        is_video_ad =
+          get_in(offer, [
+            Access.key(:media_run),
+            Access.key(:media_piece),
+            Access.key(:media_piece_type),
+            Access.key(:id)
+          ]) == 2
+
+        if is_video_ad do
+          true
+        else
+          not maximum_banner_count_exceeded?(offer)
+        end
       end
     end
   end

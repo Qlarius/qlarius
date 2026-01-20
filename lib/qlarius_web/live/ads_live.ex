@@ -25,6 +25,7 @@ defmodule QlariusWeb.AdsLive do
   # import QlariusWeb.OfferHTML
   import Ecto.Query, except: [update: 2, update: 3]
   import QlariusWeb.PWAHelpers
+  import QlariusWeb.Components.AdsComponents
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
@@ -387,94 +388,21 @@ defmodule QlariusWeb.AdsLive do
                 </style>
               <% end %>
 
-              <%= if @video_watched_complete && !@show_replay_button do %>
-                <style>
-                  @keyframes subtle-wiggle {
-                    0%, 100% { transform: translateX(0px) translateY(-50%); }
-                    25% { transform: translateX(2px) translateY(-50%); }
-                    75% { transform: translateX(-2px) translateY(-50%); }
-                  }
-                  #slide-to-collect-handle.wiggle {
-                    animation: subtle-wiggle 0.8s ease-in-out infinite;
-                  }
-                </style>
-                <div class="mt-6 px-4">
-                  <div
-                    id="slide-to-collect"
-                    phx-hook="SlideToCollect"
-                    data-offer-id={@current_video_offer.id}
-                    data-amount={@current_video_offer.offer_amt}
-                    class="relative max-w-xs mx-auto"
-                  >
-                    <div class="text-center mb-4">
-                      <div class="text-2xl font-bold text-primary">
-                        Collect ${Decimal.round(@current_video_offer.offer_amt, 2)}
-                      </div>
-                      <div class="text-sm text-base-content/60 mt-1">
-                        Slide to collect in <span id="slide-to-collect-countdown">7</span>s
-                      </div>
-                    </div>
-
-                    <div
-                      id="slide-to-collect-slider"
-                      class="relative h-20 bg-base-200 rounded-full overflow-hidden"
-                    >
-                      <div
-                        id="slide-to-collect-progress"
-                        class="absolute left-0 top-0 h-full bg-error/20 transition-all duration-1000 ease-linear"
-                        style="width: 0%"
-                      >
-                      </div>
-
-                      <div
-                        id="slide-to-collect-handle"
-                        class="wiggle absolute left-1 top-1/2 h-16 w-16 bg-primary rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing shadow-lg"
-                        style="transform: translateX(0px) translateY(-50%)"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          class="h-7 w-7 text-primary-content"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </div>
-
-                      <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span class="text-base-content/40 font-semibold">Slide to collect</span>
-                      </div>
-                    </div>
-                  </div>
+              <%= if @video_watched_complete || @video_payment_collected do %>
+                <div phx-update="ignore" id="video-slider-container">
+                  <.slide_to_collect
+                    offer_id={@current_video_offer.id}
+                    amount={@current_video_offer.offer_amt}
+                  />
                 </div>
               <% end %>
 
               <%= if @video_payment_collected do %>
-                <div class="mt-6 px-4">
-                  <div class="bg-sponster-100 dark:bg-sponster-900/20 border border-sponster-300 rounded-lg p-6 text-center">
-                    <div class="text-green-600 dark:text-green-400 mb-3">
-                      <.icon name="hero-check-circle" class="w-12 h-12 mx-auto" />
-                    </div>
-                    <div class="text-xl font-bold text-sponster-600 dark:text-sponster-300 mb-2">
-                      ${Decimal.round(@current_video_offer.offer_amt, 2)} Added to Wallet!
-                    </div>
-                    <div class="text-sm text-base-content/70">
-                      Your payment has been collected
-                    </div>
-                  </div>
-
-                  <div class="text-center mt-4">
-                    <button class="btn btn-outline btn-lg" phx-click="replay_video">
-                      <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" />
-                      Replay Video (Unpaid)
-                    </button>
-                  </div>
+                <div class="text-center mt-6 px-4">
+                  <button class="btn btn-outline btn-lg" phx-click="replay_video">
+                    <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" />
+                    Replay Video (Unpaid)
+                  </button>
                 </div>
               <% end %>
 

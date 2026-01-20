@@ -318,7 +318,7 @@ defmodule QlariusWeb.UserSettingsLive do
   def handle_event("update_timezone", %{"timezone" => timezone}, socket) do
     require Logger
     Logger.info("🕐 Timezone update requested: #{timezone}")
-    
+
     user = socket.assigns.current_scope.user
 
     case Accounts.update_user(user, %{timezone: timezone}) do
@@ -546,7 +546,7 @@ defmodule QlariusWeb.UserSettingsLive do
 
   defp render_setting_content(%{selected_setting: "time_zone"} = assigns) do
     timezones = Timezones.list()
-    
+
     # Use assigns if already set, otherwise calculate from user
     current_timezone = Map.get(assigns, :current_timezone) || assigns.current_scope.user.timezone || Timezones.default()
     current_time = Map.get(assigns, :current_time) || Qlarius.DateTime.current_time_in_timezone(current_timezone)

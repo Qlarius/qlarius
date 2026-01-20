@@ -957,12 +957,22 @@ Hooks.SlideToCollect = {
     this.slider = document.getElementById(`${this.el.id}-slider`)
     this.countdownEl = document.getElementById(`${this.el.id}-countdown`)
     this.progressBar = document.getElementById(`${this.el.id}-progress`)
+    this.checkmark = document.getElementById(`${this.el.id}-checkmark`)
+    this.handleArrow = document.getElementById(`${this.el.id}-handle-arrow`)
+    this.handleAmount = document.getElementById(`${this.el.id}-handle-amount`)
+    this.destination = document.getElementById(`${this.el.id}-destination`)
+    this.message = document.getElementById(`${this.el.id}-message`)
     
     console.log('Elements found:', {
       handle: !!this.handle,
       slider: !!this.slider,
       countdownEl: !!this.countdownEl,
-      progressBar: !!this.progressBar
+      progressBar: !!this.progressBar,
+      checkmark: !!this.checkmark,
+      handleArrow: !!this.handleArrow,
+      handleAmount: !!this.handleAmount,
+      destination: !!this.destination,
+      message: !!this.message
     })
     
     if (!this.handle || !this.slider) {
@@ -972,7 +982,7 @@ Hooks.SlideToCollect = {
     
     this.sliderWidth = this.slider.offsetWidth
     this.handleWidth = this.handle.offsetWidth
-    this.maxDistance = this.sliderWidth - this.handleWidth - 8
+    this.maxDistance = this.sliderWidth - this.handleWidth - 16
     
     console.log('Slider dimensions:', {
       sliderWidth: this.sliderWidth,
@@ -993,16 +1003,22 @@ Hooks.SlideToCollect = {
       
       this.countdown--
       if (this.countdownEl) {
-        this.countdownEl.textContent = this.countdown
+        // Format as :XX (e.g., :07, :06, :05)
+        const formatted = this.countdown < 10 ? `:0${this.countdown}` : `:${this.countdown}`
+        this.countdownEl.textContent = formatted
       }
       
-      const progressPercent = ((7 - this.countdown) / 7) * 100
+      // Vertical progress bar decreases from 100% to 0%
+      const progressPercent = (this.countdown / 7) * 100
       if (this.progressBar) {
-        this.progressBar.style.width = `${progressPercent}%`
+        this.progressBar.style.height = `${progressPercent}%`
       }
       
       if (this.countdown <= 0) {
         clearInterval(this.countdownTimer)
+        this.handle.classList.remove('wiggle')
+        this.handle.classList.add('disabled')
+        this.completed = true // Prevent further dragging
         this.pushEvent('video_collect_timeout', {})
       }
     }, 1000)
@@ -1010,6 +1026,8 @@ Hooks.SlideToCollect = {
   
   setupDrag() {
     const handleMouseDown = (e) => {
+      if (this.completed) return // Don't allow dragging if completed/disabled
+      
       this.isDragging = true
       this.startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX
       this.handle.style.transition = 'none'
@@ -1078,6 +1096,38 @@ Hooks.SlideToCollect = {
       clearInterval(this.countdownTimer)
     }
     
+    // Add success styling - keep handle in final position, turn green, pulse
+    this.handle.classList.add('success')
+    this.slider.classList.add('success')
+    if (this.progressBar) {
+      this.progressBar.classList.add('success')
+    }
+    if (this.countdownEl) {
+      this.countdownEl.classList.add('success')
+    }
+    if (this.checkmark) {
+      this.checkmark.classList.add('success')
+    }
+    if (this.handleArrow) {
+      this.handleArrow.classList.add('success')
+    }
+    if (this.handleAmount) {
+      this.handleAmount.classList.add('success')
+    }
+    if (this.destination) {
+      this.destination.classList.add('success')
+    }
+    if (this.message) {
+      this.message.textContent = 'Amount collected to wallet.'
+      this.message.classList.remove('text-base-content/60')
+      this.message.classList.add('text-success')
+    }
+    
+    // Lock the handle in final position (disable dragging)
+    this.handle.style.transition = 'none'
+    this.handle.style.transform = `translateX(${this.maxDistance}px) translateY(-50%)`
+    
+    // Send event immediately (no delay)
     console.log('Pushing collect_video_payment event...')
     this.pushEvent('collect_video_payment', { offer_id: this.offerId })
   },

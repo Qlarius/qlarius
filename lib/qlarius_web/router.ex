@@ -195,6 +195,9 @@ defmodule QlariusWeb.Router do
       live "/me_file", MeFileLive, :index
       live "/me_file_builder", MeFileBuilderLive, :index
 
+      # Test/Design routes
+      live "/test/slide-to-collect", SlideToCollectTestLive, :index
+
       # Creator dashboard routes
       live "/creators", CreatorDashboard.Index, :index
       live "/creators/new", CreatorDashboard.Index, :new

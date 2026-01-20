@@ -61,7 +61,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
                 <% end %>
               </div>
               <div class="flex-grow">
-                <div class="font-bold text-xl">Tag the Essentials</div>
+                <div class="font-bold text-xl">Tag your "Essentials"</div>
               </div>
             </div>
             <div class="text-base text-base-content/60 min-h-[3rem]">
