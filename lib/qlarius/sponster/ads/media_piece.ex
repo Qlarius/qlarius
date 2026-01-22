@@ -17,6 +17,7 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
     field :duration, :integer
     field :banner_image, :string
     field :video_file, :string
+    field :video_poster_image, :string
 
     belongs_to :media_piece_type, MediaPieceType
     belongs_to :ad_category, AdCategory
@@ -40,7 +41,8 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
       :ad_category_id,
       :duration,
       :banner_image,
-      :video_file
+      :video_file,
+      :video_poster_image
     ])
     |> validate_required([
       :title,

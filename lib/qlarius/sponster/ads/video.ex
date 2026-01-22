@@ -53,7 +53,7 @@ defmodule Qlarius.Sponster.Ads.Video do
         split_amount_to_recipient =
           ad_event_attrs.event_me_file_collect_amt
           |> Decimal.mult(split_percentage)
-          |> Decimal.round(2, :down)
+          |> Decimal.round(2, :half_up)
 
         adjusted_me_file_collect_amt =
           Decimal.sub(ad_event_attrs.event_me_file_collect_amt, split_amount_to_recipient)

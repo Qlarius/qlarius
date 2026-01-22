@@ -1,5 +1,53 @@
 defmodule QlariusWeb.Components.AdsComponents do
   use Phoenix.Component
+  import QlariusWeb.CoreComponents
+
+  attr :selected_ad_type, :string, required: true
+  attr :three_tap_ad_count, :integer, default: 0
+  attr :video_ad_count, :integer, default: 0
+
+  def ad_type_tabs(assigns) do
+    ~H"""
+    <div class="flex justify-center mt-2 mb-6">
+      <div role="tablist" class="tabs tabs-boxed bg-base-200 p-1 rounded-lg gap-1">
+        <a
+          role="tab"
+          class={
+            if @selected_ad_type == "three_tap",
+              do: "tab tab-active bg-base-100 rounded-md !border-1 !border-primary",
+              else: "tab !border-1 !border-transparent"
+          }
+          phx-click="switch_ad_type"
+          phx-value-type="three_tap"
+        >
+          3-Tap
+          <%= if @three_tap_ad_count > 0 do %>
+            <span class="badge badge-sm ml-2 !bg-sponster-500 !text-white rounded-full !border-0">
+              {@three_tap_ad_count}
+            </span>
+          <% end %>
+        </a>
+        <a
+          role="tab"
+          class={
+            if @selected_ad_type == "video",
+              do: "tab tab-active bg-base-100 rounded-md !border-1 !border-primary",
+              else: "tab !border-1 !border-transparent"
+          }
+          phx-click="switch_ad_type"
+          phx-value-type="video"
+        >
+          Video
+          <%= if @video_ad_count > 0 do %>
+            <span class="badge badge-sm ml-2 !bg-sponster-500 !text-white rounded-full !border-0">
+              {@video_ad_count}
+            </span>
+          <% end %>
+        </a>
+      </div>
+    </div>
+    """
+  end
 
   attr :offer_id, :integer, required: true
   attr :amount, :any, required: true
@@ -152,9 +200,6 @@ defmodule QlariusWeb.Components.AdsComponents do
           </div>
         </div>
 
-        <div class="text-center text-sm text-base-content/60 mt-3" id={"#{@id}-message"}>
-          Slide to collect
-        </div>
       </div>
     </div>
     """
@@ -212,6 +257,192 @@ defmodule QlariusWeb.Components.AdsComponents do
         <% end %>
       </div>
     </div>
+    """
+  end
+
+  attr :current_video_offer, :map, required: true
+  attr :video_payment_collected, :boolean, required: true
+
+  def video_player(assigns) do
+    ~H"""
+    <div class="mb-4">
+      <video
+        id="video-player"
+        phx-hook="VideoPlayer"
+        data-payment-collected={@video_payment_collected}
+        class="w-full rounded-lg"
+        controls
+        poster={
+          if @current_video_offer.media_run.media_piece.video_poster_image do
+            QlariusWeb.Uploaders.VideoPoster.url(
+              {@current_video_offer.media_run.media_piece.video_poster_image,
+               @current_video_offer.media_run.media_piece},
+              :original
+            )
+          end
+        }
+        src={
+          QlariusWeb.Uploaders.AdVideo.url(
+            {@current_video_offer.media_run.media_piece.video_file,
+             @current_video_offer.media_run.media_piece},
+            :original
+          )
+        }
+      >
+      </video>
+    </div>
+
+    <%= if !@video_payment_collected do %>
+      <style>
+        /* Hide video timeline/scrubber before payment collection */
+        #video-player::-webkit-media-controls-timeline {
+          display: none !important;
+        }
+        #video-player::-webkit-media-controls-current-time-display {
+          display: none !important;
+        }
+        #video-player::-webkit-media-controls-time-remaining-display {
+          display: none !important;
+        }
+      </style>
+    <% end %>
+    """
+  end
+
+  attr :current_video_offer, :map, required: true
+  attr :show_collection_drawer, :boolean, required: true
+  attr :video_payment_collected, :boolean, required: true
+  attr :show_replay_button, :boolean, required: true
+  attr :closing, :boolean, default: false
+
+  def video_collection_drawer(assigns) do
+    ~H"""
+    <%= if @show_collection_drawer || @closing do %>
+      <div class={[
+        "fixed inset-x-0 bottom-0 z-30 flex justify-center",
+        if(@closing, do: "animate-slide-down", else: "animate-slide-up")
+      ]}>
+        <div class="w-full max-w-md h-[320px] bg-base-100 dark:bg-base-200 rounded-t-2xl shadow-2xl border-t-4 border-primary px-6 pt-6 pb-28 pointer-events-auto overflow-hidden">
+          <%= if @show_replay_button do %>
+            <div class="text-center">
+              <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-error/20 mb-4">
+                <.icon name="hero-clock" class="w-10 h-10 text-error" />
+              </div>
+              <h3 class="text-xl font-bold mb-2">Time Expired</h3>
+              <p class="text-base-content/70 text-sm mb-4">
+                Watch the video again to collect your payment
+              </p>
+              <button class="btn btn-primary btn-lg w-full rounded-full" phx-click="replay_video">
+                <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" />
+                Replay Video
+              </button>
+            </div>
+          <% else %>
+            <%= if @video_payment_collected do %>
+              <div class="text-center mb-6">
+                <p class="text-sm text-success font-semibold">
+                  Collected to wallet
+                </p>
+              </div>
+            <% else %>
+              <div class="text-center mb-6">
+                <p class="text-base font-semibold text-base-content">
+                  Slide to Collect
+                </p>
+              </div>
+            <% end %>
+
+            <div phx-update="ignore" id="video-slider-container">
+              <.slide_to_collect
+                offer_id={@current_video_offer.id}
+                amount={@current_video_offer.offer_amt}
+              />
+            </div>
+
+            <%= if @video_payment_collected do %>
+              <div class="mt-4">
+                <button class="btn btn-outline btn-lg w-full rounded-full" phx-click="replay_video">
+                  <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" />
+                  Watch Again (Unpaid)
+                </button>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+    """
+  end
+
+  attr :offer, :map, required: true
+  attr :rate, :any, required: true
+  attr :completed, :boolean, required: true
+
+  def video_offer_list_item(assigns) do
+    ~H"""
+    <li
+      class={[
+        "list-row transition-all duration-200 !rounded-none",
+        if(@completed,
+          do: "bg-base-300 cursor-default select-none",
+          else: "cursor-pointer hover:bg-base-300 dark:hover:!bg-base-100"
+        )
+      ]}
+      phx-click={if !@completed, do: "open_video_ad"}
+      phx-value-offer_id={@offer.id}
+    >
+      <%= if @completed do %>
+        <%!-- Completed state --%>
+        <div class="flex flex-col items-start justify-start mr-1">
+          <span class="inline-flex items-center justify-center rounded-full w-8 h-8 !bg-green-200 dark:!bg-green-800">
+            <.icon name="hero-check" class="h-5 w-5 text-green-600 dark:text-green-300" />
+          </span>
+        </div>
+        <div class="list-col-grow">
+          <div class="text-sm font-semibold text-base-content/70 mb-2">
+            Attention Paid™
+          </div>
+          <div class="text-xs text-base-content/50">
+            Collected: <span class="font-semibold">${Decimal.round(@offer.offer_amt || Decimal.new("0"), 2)}</span>
+          </div>
+        </div>
+        <div class="flex items-center">
+          <div class="text-base-content/30">
+            <.icon name="hero-check-circle" class="w-6 h-6" />
+          </div>
+        </div>
+      <% else %>
+        <%!-- Available state --%>
+        <div class="flex flex-col items-start justify-start mr-1">
+          <span class="inline-flex items-center justify-center rounded-full w-8 h-8 !bg-sponster-200 dark:!bg-sponster-800">
+            <.icon name="hero-play" class="h-5 w-5 text-base-content" />
+          </span>
+        </div>
+        <div class="list-col-grow">
+          <div class="text-2xl font-bold mb-2">
+            ${Decimal.round(@offer.offer_amt || Decimal.new("0"), 2)}
+          </div>
+          <div class="mb-2 text-base-content/50 text-base">
+            {@offer.media_run.media_piece.ad_category.ad_category_name}
+          </div>
+          <div class="flex items-center gap-2">
+            <%= if @offer.matching_tags_snapshot && String.contains?(String.downcase(inspect(@offer.matching_tags_snapshot)), "zip code") do %>
+              <div class="text-blue-400">
+                <.icon name="hero-map-pin-solid" class="w-4 h-4" />
+              </div>
+            <% end %>
+            <div class="text-base-content/50 text-sm">
+              {@offer.media_run.media_piece.duration}s · ${Decimal.round(@rate, 3)}/sec
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center">
+          <div class="text-green-600">
+            <.icon name="hero-chevron-double-right" class="w-6 h-6" />
+          </div>
+        </div>
+      <% end %>
+    </li>
     """
   end
 end

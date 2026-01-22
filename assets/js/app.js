@@ -904,13 +904,22 @@ Hooks.VideoPlayer = {
       }, { once: true })
     }
     
-    this.video.play().catch(err => {
-      console.log('Autoplay prevented:', err)
-    })
+    // Wait for slide panel animation (300ms) + 500ms before autoplaying
+    setTimeout(() => {
+      this.video.play().catch(err => {
+        console.log('Autoplay prevented:', err)
+      })
+    }, 800)
     
     this.video.addEventListener('ended', () => {
+      console.log('=== VIDEO ENDED EVENT ===')
+      console.log('Current time:', this.video.currentTime)
+      console.log('Duration:', this.video.duration)
+      console.log('Watched flag:', this.watched)
+      
       if (!this.watched) {
         this.watched = true
+        console.log('Pushing video_watched_complete event')
         this.pushEvent('video_watched_complete', {})
       }
       

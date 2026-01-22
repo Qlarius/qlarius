@@ -49,7 +49,7 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
         split_amount_to_recipient =
           ad_event_attrs.event_me_file_collect_amt
           |> Decimal.mult(split_percentage)
-          |> Decimal.round(2, :down)
+          |> Decimal.round(2, :half_up)
 
         adjusted_me_file_collect_amt =
           Decimal.sub(ad_event_attrs.event_me_file_collect_amt, split_amount_to_recipient)
@@ -144,14 +144,30 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
     }
 
     # if recipient is provided, calculate the revshare to the recipient
+    # For Phase 2 (final), ensure exact split by calculating remainder after Phase 1
     ad_event_attrs =
       if recipient && split_amount > 0 do
         split_percentage = Decimal.div(Decimal.new(split_amount), Decimal.new(100))
 
-        split_amount_to_recipient =
-          ad_event_attrs.event_me_file_collect_amt
+        # Calculate total recipient should get from entire offer
+        total_recipient_amount =
+          offer.offer_amt
           |> Decimal.mult(split_percentage)
-          |> Decimal.round(2, :down)
+          |> Decimal.round(2, :half_up)
+
+        # Get Phase 1 recipient amount to calculate exact remainder
+        phase1_recipient_amount =
+          case Repo.get_by(AdEvent,
+                 offer_id: offer.id,
+                 me_file_id: offer.me_file_id,
+                 media_piece_phase_id: 1
+               ) do
+            nil -> Decimal.new("0.00")
+            phase1_event -> phase1_event.event_recipient_collect_amt || Decimal.new("0.00")
+          end
+
+        # Phase 2 recipient gets exactly what's left to reach the target split
+        split_amount_to_recipient = Decimal.sub(total_recipient_amount, phase1_recipient_amount)
 
         adjusted_me_file_collect_amt =
           Decimal.sub(ad_event_attrs.event_me_file_collect_amt, split_amount_to_recipient)
@@ -161,10 +177,8 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
             recipient_id: recipient.id,
             event_split_code: recipient.split_code,
             event_recipient_split_pct: split_amount,
-            # update the recipient collect amt to be the event_me_file_collect_amt - minus the split_pct amount
             event_recipient_collect_amt: split_amount_to_recipient,
             event_me_file_collect_amt: adjusted_me_file_collect_amt,
-            # update the sponster keep to give  $0.01 to recipient
             event_sponster_collect_amt:
               Decimal.sub(ad_event_attrs.event_sponster_collect_amt, Decimal.new("0.01")),
             event_sponster_to_recipient_amt: Decimal.new("0.01")

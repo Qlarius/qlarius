@@ -55,6 +55,12 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
       max_file_size: 100_000_000,
       auto_upload: true
     )
+    |> allow_upload(:video_poster_image,
+      accept: ~w(.jpg .jpeg .png .gif .webp),
+      max_entries: 1,
+      max_file_size: 10_000_000,
+      auto_upload: true
+    )
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
@@ -85,6 +91,12 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
       accept: ~w(.mp4),
       max_entries: 1,
       max_file_size: 100_000_000,
+      auto_upload: true
+    )
+    |> allow_upload(:video_poster_image,
+      accept: ~w(.jpg .jpeg .png .gif .webp),
+      max_entries: 1,
+      max_file_size: 10_000_000,
       auto_upload: true
     )
   end
@@ -145,6 +157,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
       attrs
       |> maybe_add_banner_upload(socket)
       |> maybe_add_video_upload(socket)
+      |> maybe_add_video_poster_upload(socket)
 
     attrs_with_defaults =
       attrs_with_upload
@@ -172,6 +185,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
       attrs
       |> maybe_add_banner_upload(socket)
       |> maybe_add_video_upload(socket)
+      |> maybe_add_video_poster_upload(socket)
 
     case Marketing.update_media_piece(socket.assigns.media_piece, attrs_with_upload) do
       {:ok, _media_piece} ->
@@ -212,6 +226,21 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
     case uploaded_files do
       [filename | _] ->
         Map.put(attrs, "video_file", filename)
+
+      [] ->
+        attrs
+    end
+  end
+
+  defp maybe_add_video_poster_upload(attrs, socket) do
+    uploaded_files =
+      consume_uploaded_entries(socket, :video_poster_image, fn %{path: path}, entry ->
+        {:ok, upload_video_poster_and_get_filename(path, entry.client_name)}
+      end)
+
+    case uploaded_files do
+      [filename | _] ->
+        Map.put(attrs, "video_poster_image", filename)
 
       [] ->
         attrs
@@ -295,6 +324,48 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   defp upload_video_to_s3(source_path, filename) do
     bucket = Application.get_env(:waffle, :bucket)
     s3_path = "uploads/media_pieces/videos/#{filename}"
+    {:ok, file_binary} = File.read(source_path)
+
+    ExAws.S3.put_object(bucket, s3_path, file_binary)
+    |> ExAws.request!()
+  end
+
+  defp upload_video_poster_and_get_filename(source_path, original_filename) do
+    ext = Path.extname(original_filename)
+    filename = "#{System.unique_integer([:positive])}#{ext}"
+
+    storage = Application.get_env(:waffle, :storage, Waffle.Storage.Local)
+
+    case storage do
+      Waffle.Storage.S3 ->
+        upload_video_poster_to_s3(source_path, filename)
+
+      _ ->
+        upload_video_poster_to_local(source_path, filename)
+    end
+
+    filename
+  end
+
+  defp upload_video_poster_to_local(source_path, filename) do
+    dest_dir =
+      Path.join([
+        :code.priv_dir(:qlarius),
+        "static",
+        "uploads",
+        "media_pieces",
+        "videos",
+        "posters"
+      ])
+
+    File.mkdir_p!(dest_dir)
+    dest_path = Path.join(dest_dir, filename)
+    File.cp!(source_path, dest_path)
+  end
+
+  defp upload_video_poster_to_s3(source_path, filename) do
+    bucket = Application.get_env(:waffle, :bucket)
+    s3_path = "uploads/media_pieces/videos/posters/#{filename}"
     {:ok, file_binary} = File.read(source_path)
 
     ExAws.S3.put_object(bucket, s3_path, file_binary)
@@ -602,6 +673,23 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
             <p class="text-error text-sm mt-2">{error_to_string(err)}</p>
           <% end %>
         </div>
+
+        <.image_upload_field
+          upload={@uploads.video_poster_image}
+          label="Video Poster Image (Optional)"
+          current_image={if @media_piece, do: @media_piece.video_poster_image}
+          current_image_url={
+            if @media_piece && @media_piece.video_poster_image,
+              do:
+                QlariusWeb.Uploaders.VideoPoster.url(
+                  {@media_piece.video_poster_image, @media_piece},
+                  :original
+                )
+          }
+          accept_text="PNG, JPG, GIF, WEBP (max 10MB)"
+          preview_size="w-64 h-auto"
+          current_image_size="w-96 h-auto"
+        />
       <% end %>
 
       <div>

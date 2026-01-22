@@ -108,6 +108,8 @@ defmodule QlariusWeb.AdsLive do
       |> assign(:video_payment_collected, false)
       |> assign(:completed_video_offers, [])
       |> assign(:show_ad_type_tabs, show_ad_type_tabs)
+      |> assign(:show_collection_drawer, false)
+      |> assign(:drawer_closing, false)
       |> init_pwa_assigns(session)
 
     if connected?(socket) do
@@ -171,7 +173,8 @@ defmodule QlariusWeb.AdsLive do
      |> assign(:current_video_offer, offer)
      |> assign(:show_video_player, true)
      |> assign(:video_watched_complete, false)
-     |> assign(:show_replay_button, false)}
+     |> assign(:show_replay_button, false)
+     |> assign(:show_collection_drawer, false)}
   end
 
   def handle_event("close_video_player", _params, socket) do
@@ -180,7 +183,8 @@ defmodule QlariusWeb.AdsLive do
      |> assign(:show_video_player, false)
      |> assign(:current_video_offer, nil)
      |> assign(:video_watched_complete, false)
-     |> assign(:show_replay_button, false)}
+     |> assign(:show_replay_button, false)
+     |> assign(:show_collection_drawer, false)}
   end
 
   def handle_event("close_slide_over", _params, socket) do
@@ -190,18 +194,34 @@ defmodule QlariusWeb.AdsLive do
      |> assign(:current_video_offer, nil)
      |> assign(:video_watched_complete, false)
      |> assign(:show_replay_button, false)
-     |> assign(:video_payment_collected, false)}
+     |> assign(:video_payment_collected, false)
+     |> assign(:show_collection_drawer, false)}
   end
 
   def handle_event("video_watched_complete", _params, socket) do
-    if socket.assigns.video_payment_collected do
+    IO.puts("\n\n=== VIDEO WATCHED COMPLETE EVENT RECEIVED ===")
+    IO.inspect(System.system_time(:millisecond), label: "Timestamp")
+    IO.inspect(socket.assigns.video_payment_collected, label: "Payment Collected")
+    IO.inspect(socket.assigns.video_watched_complete, label: "Video Watched Complete (before)")
+    IO.inspect(socket.assigns.show_collection_drawer, label: "Show Collection Drawer (before)")
+
+    # Check if this video has already been collected (don't show drawer for replay)
+    already_collected = socket.assigns.current_video_offer.id in socket.assigns.completed_video_offers
+
+    if already_collected do
       {:noreply, socket}
     else
-      {:noreply,
-       socket
-       |> assign(:video_watched_complete, true)
-       |> assign(:show_replay_button, false)}
+      socket = assign(socket, :video_watched_complete, true)
+      Process.send_after(self(), :show_collection_drawer, 100)
+      {:noreply, socket}
     end
+  end
+
+  @impl true
+  def handle_info(:show_collection_drawer, socket) do
+    IO.puts("\n=== SHOWING COLLECTION DRAWER ===")
+    IO.inspect(System.system_time(:millisecond), label: "Timestamp")
+    {:noreply, assign(socket, :show_collection_drawer, true)}
   end
 
   def handle_event("collect_video_payment", %{"offer_id" => offer_id}, socket) do
@@ -226,7 +246,7 @@ defmodule QlariusWeb.AdsLive do
             {:noreply,
              socket
              |> assign(:video_watched_complete, false)
-             |> assign(:show_replay_button, true)
+             |> assign(:show_replay_button, false)
              |> assign(:video_payment_collected, true)
              |> assign(:completed_video_offers, completed_ids)
              |> put_flash(:info, "Payment collected!")}
@@ -243,14 +263,25 @@ defmodule QlariusWeb.AdsLive do
     {:noreply,
      socket
      |> assign(:video_watched_complete, false)
-     |> assign(:show_replay_button, true)}
+     |> assign(:show_replay_button, true)
+     |> assign(:show_collection_drawer, true)}
   end
 
   def handle_event("replay_video", _params, socket) do
+    socket = assign(socket, :drawer_closing, true)
+    Process.send_after(self(), :finish_closing_drawer, 300)
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info(:finish_closing_drawer, socket) do
     {:noreply,
      socket
      |> assign(:video_watched_complete, false)
      |> assign(:show_replay_button, false)
+     |> assign(:video_payment_collected, false)
+     |> assign(:show_collection_drawer, false)
+     |> assign(:drawer_closing, false)
      |> push_event("replay-video", %{})}
   end
 
@@ -355,113 +386,20 @@ defmodule QlariusWeb.AdsLive do
         <:slide_over_content>
           <%= if @current_video_offer do %>
             <div class="p-4">
-              <div class="mb-4">
-                <video
-                  id="video-player"
-                  phx-hook="VideoPlayer"
-                  data-payment-collected={@video_payment_collected}
-                  class="w-full rounded-lg"
-                  controls
-                  src={
-                    QlariusWeb.Uploaders.AdVideo.url(
-                      {@current_video_offer.media_run.media_piece.video_file,
-                       @current_video_offer.media_run.media_piece},
-                      :original
-                    )
-                  }
-                >
-                </video>
-              </div>
-
-              <%= if !@video_payment_collected do %>
-                <style>
-                  /* Hide video timeline/scrubber before payment collection */
-                  #video-player::-webkit-media-controls-timeline {
-                    display: none !important;
-                  }
-                  #video-player::-webkit-media-controls-current-time-display {
-                    display: none !important;
-                  }
-                  #video-player::-webkit-media-controls-time-remaining-display {
-                    display: none !important;
-                  }
-                </style>
-              <% end %>
-
-              <%= if @video_watched_complete || @video_payment_collected do %>
-                <div phx-update="ignore" id="video-slider-container">
-                  <.slide_to_collect
-                    offer_id={@current_video_offer.id}
-                    amount={@current_video_offer.offer_amt}
-                  />
-                </div>
-              <% end %>
-
-              <%= if @video_payment_collected do %>
-                <div class="text-center mt-6 px-4">
-                  <button class="btn btn-outline btn-lg rounded-full" phx-click="replay_video">
-                    <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" />
-                    Watch Again (Unpaid)
-                  </button>
-                </div>
-              <% end %>
-
-              <%= if @show_replay_button && !@video_payment_collected do %>
-                <div class="text-center mt-6 px-4">
-                  <div class="bg-error/10 border border-error/30 rounded-lg p-4 mb-4">
-                    <div class="text-sm text-base-content/70">
-                      Time expired - watch again to collect
-                    </div>
-                  </div>
-                  <button class="btn btn-primary btn-lg" phx-click="replay_video">
-                    <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" />
-                    Replay Video
-                  </button>
-                </div>
-              <% end %>
+              <.video_player
+                current_video_offer={@current_video_offer}
+                video_payment_collected={@video_payment_collected}
+              />
             </div>
           <% end %>
         </:slide_over_content>
 
         <%= if @show_ad_type_tabs do %>
-          <div class="flex justify-center mt-2 mb-6">
-            <div role="tablist" class="tabs tabs-boxed bg-base-200 p-1 rounded-lg gap-1">
-              <a
-                role="tab"
-                class={
-                  if @selected_ad_type == "three_tap",
-                    do: "tab tab-active bg-base-100 rounded-md !border-1 !border-primary",
-                    else: "tab !border-1 !border-transparent"
-                }
-                phx-click="switch_ad_type"
-                phx-value-type="three_tap"
-              >
-                3-Tap
-                <%= if @current_scope.three_tap_ad_count && @current_scope.three_tap_ad_count > 0 do %>
-                  <span class="badge badge-sm ml-2 !bg-sponster-500 !text-white rounded-full !border-0">
-                    {@current_scope.three_tap_ad_count}
-                  </span>
-                <% end %>
-              </a>
-              <a
-                role="tab"
-                class={
-                  if @selected_ad_type == "video",
-                    do: "tab tab-active bg-base-100 rounded-md !border-1 !border-primary",
-                    else: "tab !border-1 !border-transparent"
-                }
-                phx-click="switch_ad_type"
-                phx-value-type="video"
-              >
-                Video
-                <%= if @current_scope.video_ad_count && @current_scope.video_ad_count > 0 do %>
-                  <span class="badge badge-sm ml-2 !bg-sponster-500 !text-white rounded-full !border-0">
-                    {@current_scope.video_ad_count}
-                  </span>
-                <% end %>
-              </a>
-            </div>
-          </div>
+          <.ad_type_tabs
+            selected_ad_type={@selected_ad_type}
+            three_tap_ad_count={@current_scope.three_tap_ad_count || 0}
+            video_ad_count={@current_scope.video_ad_count || 0}
+          />
         <% end %>
 
         <%= if @selected_ad_type == "three_tap" do %>
@@ -488,74 +426,26 @@ defmodule QlariusWeb.AdsLive do
             </div>
           <% else %>
             <ul class="-mx-4 sm:mx-0 list bg-base-200 dark:!bg-base-200 sm:rounded-box shadow-md overflow-hidden">
-                  <li
-                    :for={{offer, rate} <- @video_offers}
-                    class={[
-                      "list-row transition-all duration-200 !rounded-none",
-                      if(offer.id in @completed_video_offers,
-                        do: "bg-base-300 cursor-default select-none",
-                        else: "cursor-pointer hover:bg-base-300 dark:hover:!bg-base-100"
-                      )
-                    ]}
-                    phx-click={if offer.id not in @completed_video_offers, do: "open_video_ad"}
-                    phx-value-offer_id={offer.id}
-                  >
-                    <%= if offer.id in @completed_video_offers do %>
-                      <%!-- Completed state --%>
-                      <div class="flex flex-col items-start justify-start mr-1">
-                        <span class="inline-flex items-center justify-center rounded-full w-8 h-8 !bg-green-200 dark:!bg-green-800">
-                          <.icon name="hero-check" class="h-5 w-5 text-green-600 dark:text-green-300" />
-                        </span>
-                      </div>
-                      <div class="list-col-grow">
-                        <div class="text-sm font-semibold text-base-content/70 mb-2">
-                          Attention Paid™
-                        </div>
-                        <div class="text-xs text-base-content/50">
-                          Collected: <span class="font-semibold">${Decimal.round(offer.offer_amt || Decimal.new("0"), 2)}</span>
-                        </div>
-                      </div>
-                      <div class="flex items-center">
-                        <div class="text-base-content/30">
-                          <.icon name="hero-check-circle" class="w-6 h-6" />
-                        </div>
-                      </div>
-                    <% else %>
-                      <%!-- Available state --%>
-                      <div class="flex flex-col items-start justify-start mr-1">
-                        <span class="inline-flex items-center justify-center rounded-full w-8 h-8 !bg-sponster-200 dark:!bg-sponster-800">
-                          <.icon name="hero-play" class="h-5 w-5 text-base-content" />
-                        </span>
-                      </div>
-                      <div class="list-col-grow">
-                        <div class="text-2xl font-bold mb-2">
-                          ${Decimal.round(offer.offer_amt || Decimal.new("0"), 2)}
-                        </div>
-                        <div class="mb-2 text-base-content/50 text-base">
-                          {offer.media_run.media_piece.ad_category.ad_category_name}
-                        </div>
-                        <div class="flex items-center gap-2">
-                          <%= if offer.matching_tags_snapshot && String.contains?(String.downcase(inspect(offer.matching_tags_snapshot)), "zip code") do %>
-                            <div class="text-blue-400">
-                              <.icon name="hero-map-pin-solid" class="w-4 h-4" />
-                            </div>
-                          <% end %>
-                          <div class="text-base-content/50 text-sm">
-                            {offer.media_run.media_piece.duration}s · ${Decimal.round(rate, 3)}/sec
-                          </div>
-                        </div>
-                      </div>
-                      <div class="flex items-center">
-                        <div class="text-green-600">
-                          <.icon name="hero-chevron-double-right" class="w-6 h-6" />
-                        </div>
-                      </div>
-                    <% end %>
-                  </li>
-                </ul>
-            <% end %>
+              <.video_offer_list_item
+                :for={{offer, rate} <- @video_offers}
+                offer={offer}
+                rate={rate}
+                completed={offer.id in @completed_video_offers}
+              />
+            </ul>
           <% end %>
+        <% end %>
       </Layouts.mobile>
+
+      <%= if @current_video_offer && @show_video_player do %>
+        <.video_collection_drawer
+          current_video_offer={@current_video_offer}
+          show_collection_drawer={@show_collection_drawer && (@video_watched_complete || @video_payment_collected || @show_replay_button)}
+          video_payment_collected={@video_payment_collected}
+          show_replay_button={@show_replay_button}
+          closing={@drawer_closing}
+        />
+      <% end %>
     </div>
     """
   end

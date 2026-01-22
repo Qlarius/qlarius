@@ -30,6 +30,18 @@ defmodule QlariusWeb.SlideToCollectTestLive do
     {:noreply, put_flash(socket, :error, "Time expired - try again")}
   end
 
+  def handle_event("update_amount", %{"amount" => amount_str}, socket) do
+    amount = Decimal.new(amount_str)
+    {:noreply, assign(socket, :test_amount, amount)}
+  end
+
+  def handle_event("reset", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:test_offer_id, socket.assigns.test_offer_id + 1)
+     |> clear_flash()}
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -91,18 +103,5 @@ defmodule QlariusWeb.SlideToCollectTestLive do
       </div>
     </div>
     """
-  end
-
-  @impl true
-  def handle_event("update_amount", %{"amount" => amount_str}, socket) do
-    amount = Decimal.new(amount_str)
-    {:noreply, assign(socket, :test_amount, amount)}
-  end
-
-  def handle_event("reset", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:test_offer_id, socket.assigns.test_offer_id + 1)
-     |> clear_flash()}
   end
 end
