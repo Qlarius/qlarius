@@ -10,18 +10,18 @@ defmodule QlariusWeb.PWAHelpers do
 
   @doc """
   Initialize PWA-related assigns.
-  On first mount (no existing is_pwa assign), assume mobile = PWA.
-  JS will detect actual PWA status and update assigns once.
+  Reads is_pwa from session (set by StorePWASession plug from cookie).
+  Falls back to false if not found - JS will detect and update if needed.
   """
-  def init_pwa_assigns(socket, _session \\ %{}) do
+  def init_pwa_assigns(socket, session \\ %{}) do
     is_mobile = socket.assigns[:is_mobile] || false
 
-    # Default: assume mobile devices are PWAs
-    # JS detection will correct this once on connected mount
-    is_pwa = is_mobile
+    # Read from session (which was set from cookie by StorePWASession plug)
+    # This ensures the initial render has the correct PWA status
+    is_pwa = session["is_pwa"] || false
 
     # Debug logging
-    IO.puts("🔍 [PWA Helpers] is_mobile=#{inspect(is_mobile)} defaulting is_pwa=#{inspect(is_pwa)}")
+    IO.puts("🔍 [PWA Helpers] is_mobile=#{inspect(is_mobile)} is_pwa from session=#{inspect(is_pwa)}")
 
     socket
     |> assign(:is_pwa, is_pwa)

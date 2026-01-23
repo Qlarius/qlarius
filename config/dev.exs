@@ -31,9 +31,6 @@ config :qlarius, Qlarius.Repo, database_config
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
-dev_certfile = Path.expand("../priv/cert/10.0.2.2+2.pem", __DIR__)
-dev_keyfile = Path.expand("../priv/cert/10.0.2.2+2-key.pem", __DIR__)
-
 endpoint_config =
   [
     http: [ip: {0, 0, 0, 0}, port: 4000],
@@ -41,12 +38,12 @@ endpoint_config =
       ip: {0, 0, 0, 0},
       port: 4001,
       cipher_suite: :compatible,
-      keyfile: dev_keyfile,
-      certfile: dev_certfile
+      keyfile: Path.expand("../priv/cert/localhost+2-key.pem", __DIR__),
+      certfile: Path.expand("../priv/cert/localhost+2.pem", __DIR__)
     ],
     check_origin: false,
-    url: [host: "localhost", port: 4000, scheme: "http"],
-    static_url: [host: "localhost", port: 4000, scheme: "http"],
+    url: [host: "localhost", port: 4001, scheme: "https"],
+    static_url: [host: "localhost", port: 4001, scheme: "https"],
     code_reloader: true,
     debug_errors: true,
     secret_key_base: "I0TNoNVsAUb60KoJZG27GA8uKP29XGc9Sifl6xY/RfCkULLRYLyl67A6PjHiYgoF",
@@ -57,6 +54,20 @@ endpoint_config =
   ]
 
 config :qlarius, QlariusWeb.Endpoint, endpoint_config
+
+# Override session for iframe support (requires HTTPS)
+config :qlarius, QlariusWeb.Endpoint,
+  session_options: [
+    store: :cookie,
+    key: "_qlarius_key",
+    signing_salt: "Tvun6ICt",
+    same_site: "None",
+    secure: true
+  ]
+
+# Override Waffle to use HTTPS for asset URLs
+config :waffle,
+  asset_host: "https://localhost:4001"
 
 # ## SSL Support
 #

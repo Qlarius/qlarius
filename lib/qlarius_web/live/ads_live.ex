@@ -217,13 +217,6 @@ defmodule QlariusWeb.AdsLive do
     end
   end
 
-  @impl true
-  def handle_info(:show_collection_drawer, socket) do
-    IO.puts("\n=== SHOWING COLLECTION DRAWER ===")
-    IO.inspect(System.system_time(:millisecond), label: "Timestamp")
-    {:noreply, assign(socket, :show_collection_drawer, true)}
-  end
-
   def handle_event("collect_video_payment", %{"offer_id" => offer_id}, socket) do
     IO.puts("=== COLLECT VIDEO PAYMENT EVENT RECEIVED ===")
     IO.inspect(offer_id, label: "Offer ID")
@@ -243,6 +236,8 @@ defmodule QlariusWeb.AdsLive do
           {:ok, _ad_event} ->
             IO.puts("✅ Ad event created successfully!")
             completed_ids = [offer_id | socket.assigns.completed_video_offers]
+            Process.send_after(self(), :auto_close_drawer, 3000)
+
             {:noreply,
              socket
              |> assign(:video_watched_complete, false)
@@ -260,6 +255,8 @@ defmodule QlariusWeb.AdsLive do
   end
 
   def handle_event("video_collect_timeout", _params, socket) do
+    Process.send_after(self(), :auto_close_drawer, 3000)
+
     {:noreply,
      socket
      |> assign(:video_watched_complete, false)
@@ -268,6 +265,24 @@ defmodule QlariusWeb.AdsLive do
   end
 
   def handle_event("replay_video", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_replay_button, false)
+     |> assign(:video_payment_collected, false)
+     |> assign(:show_collection_drawer, false)
+     |> assign(:drawer_closing, false)
+     |> push_event("replay-video", %{})}
+  end
+
+  @impl true
+  def handle_info(:show_collection_drawer, socket) do
+    IO.puts("\n=== SHOWING COLLECTION DRAWER ===")
+    IO.inspect(System.system_time(:millisecond), label: "Timestamp")
+    {:noreply, assign(socket, :show_collection_drawer, true)}
+  end
+
+  @impl true
+  def handle_info(:auto_close_drawer, socket) do
     socket = assign(socket, :drawer_closing, true)
     Process.send_after(self(), :finish_closing_drawer, 300)
     {:noreply, socket}
@@ -278,11 +293,8 @@ defmodule QlariusWeb.AdsLive do
     {:noreply,
      socket
      |> assign(:video_watched_complete, false)
-     |> assign(:show_replay_button, false)
-     |> assign(:video_payment_collected, false)
      |> assign(:show_collection_drawer, false)
-     |> assign(:drawer_closing, false)
-     |> push_event("replay-video", %{})}
+     |> assign(:drawer_closing, false)}
   end
 
   @impl true
@@ -389,6 +401,7 @@ defmodule QlariusWeb.AdsLive do
               <.video_player
                 current_video_offer={@current_video_offer}
                 video_payment_collected={@video_payment_collected}
+                show_replay_button={@show_replay_button}
               />
             </div>
           <% end %>
@@ -431,6 +444,8 @@ defmodule QlariusWeb.AdsLive do
                 offer={offer}
                 rate={rate}
                 completed={offer.id in @completed_video_offers}
+                me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
+                recipient={nil}
               />
             </ul>
           <% end %>
@@ -444,6 +459,7 @@ defmodule QlariusWeb.AdsLive do
           video_payment_collected={@video_payment_collected}
           show_replay_button={@show_replay_button}
           closing={@drawer_closing}
+          has_bottom_dock={true}
         />
       <% end %>
     </div>

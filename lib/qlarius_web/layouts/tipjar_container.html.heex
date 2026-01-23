@@ -10,7 +10,7 @@
     current_scope={@current_scope}
   />
   {render_slot(@inner_block)}
-  <div style="position:fixed; bottom:0; width:100%; background-color: #6F7479; color:white; padding:10px 10px; text-align:center; font-size: 10px; line-height: 11px; height: 40px; display: flex; align-items: center; justify-content: center; z-index: 50; transform: translateZ(0); -webkit-transform: translateZ(0); backface-visibility: hidden; will-change: transform;">
+  <div style="position:fixed; bottom:0; width:100%; background-color: #6F7479; color:white; padding:10px 10px; text-align:center; font-size: 10px; line-height: 11px; height: 40px; display: flex; align-items: center; justify-content: center; z-index: 70; transform: translateZ(0); -webkit-transform: translateZ(0); backface-visibility: hidden; will-change: transform;">
     <%= if @current_scope.user.me_file do %>
       <span style="transform: translateZ(0); -webkit-transform: translateZ(0);">
         These ads are matched directly to your MeFile and are in no way linked to any site you visit or content you consume.

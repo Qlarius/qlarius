@@ -854,11 +854,24 @@ Hooks.TaggerButtonObserver = {
   }
 }
 
+Hooks.FadeIn = {
+  mounted() {
+    // Set up transition
+    this.el.style.transition = 'opacity 0.5s ease-in-out'
+    
+    // Trigger fade-in after a brief delay to ensure DOM is ready
+    setTimeout(() => {
+      this.el.style.opacity = '1'
+    }, 100)
+  }
+}
+
 Hooks.VideoPlayer = {
   mounted() {
     this.video = this.el
     this.watched = false
     this.paymentCollected = this.el.dataset.paymentCollected === 'true'
+    this.isReplay = this.el.dataset.isReplay === 'true'
     this.lastValidTime = 0
     
     // Detect if running in PWA mode and device type
@@ -904,12 +917,15 @@ Hooks.VideoPlayer = {
       }, { once: true })
     }
     
-    // Wait for slide panel animation (300ms) + 500ms before autoplaying
-    setTimeout(() => {
-      this.video.play().catch(err => {
-        console.log('Autoplay prevented:', err)
-      })
-    }, 800)
+    // Only autoplay on initial viewing (not on replay scenarios)
+    if (!this.isReplay) {
+      // Wait for slide panel animation (300ms) + 500ms before autoplaying
+      setTimeout(() => {
+        this.video.play().catch(err => {
+          console.log('Autoplay prevented:', err)
+        })
+      }, 800)
+    }
     
     this.video.addEventListener('ended', () => {
       console.log('=== VIDEO ENDED EVENT ===')
@@ -937,13 +953,16 @@ Hooks.VideoPlayer = {
     this.handleEvent('replay-video', () => {
       this.video.currentTime = 0
       this.watched = false
-      this.video.play()
+      this.video.play().catch(err => {
+        console.log('Replay prevented:', err)
+      })
     })
   },
   
   updated() {
-    // Update payment status when component re-renders
+    // Update payment and replay status when component re-renders
     this.paymentCollected = this.el.dataset.paymentCollected === 'true'
+    this.isReplay = this.el.dataset.isReplay === 'true'
   }
 }
 
@@ -999,6 +1018,11 @@ Hooks.SlideToCollect = {
       maxDistance: this.maxDistance
     })
     
+    // Initialize progress bar to 100% before countdown starts
+    if (this.progressBar) {
+      this.progressBar.style.height = '100%'
+    }
+    
     this.startCountdown()
     this.setupDrag()
   },
@@ -1017,8 +1041,9 @@ Hooks.SlideToCollect = {
         this.countdownEl.textContent = formatted
       }
       
-      // Vertical progress bar decreases from 100% to 0%
-      const progressPercent = (this.countdown / 7) * 100
+      // Progress bar goes from 100% to 0% over 6 seconds (one second faster than countdown)
+      // This ensures it reaches 0% when countdown shows :00
+      const progressPercent = Math.max(0, ((this.countdown - 1) / 6) * 100)
       if (this.progressBar) {
         this.progressBar.style.height = `${progressPercent}%`
       }
@@ -1028,7 +1053,21 @@ Hooks.SlideToCollect = {
         this.handle.classList.remove('wiggle')
         this.handle.classList.add('disabled')
         this.completed = true // Prevent further dragging
-        this.pushEvent('video_collect_timeout', {})
+        
+        // Wait 1 second before starting fade animations
+        setTimeout(() => {
+          // Fade out the entire slider section before sending timeout event
+          const sliderSection = document.getElementById('video-slider-section')
+          if (sliderSection) {
+            sliderSection.classList.remove('animate-fade-in')
+            sliderSection.classList.add('animate-fade-out')
+          }
+          
+          // Wait for fade-out animation to complete (500ms) before triggering timeout
+          setTimeout(() => {
+            this.pushEvent('video_collect_timeout', {})
+          }, 500)
+        }, 1000)
       }
     }, 1000)
   },
@@ -1170,6 +1209,17 @@ window.addEventListener("phx:scroll-tag-list-to-top", () => {
     container.scrollTop = 0
   }
 })
+
+// Extension detection for logging/debugging
+const urlParams = new URLSearchParams(window.location.search)
+const isExtension = urlParams.get('extension') === 'true'
+
+if (isExtension) {
+  console.log('🔌 Extension Context Detected:', {
+    url: window.location.href,
+    extension_param: urlParams.get('extension')
+  })
+}
 
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
@@ -1440,8 +1490,8 @@ Hooks.TimezoneDetector = {
   }
 }
 
-// Register service worker for PWA
-if ("serviceWorker" in navigator) {
+// Register service worker for PWA (but NOT in extension context to avoid caching issues)
+if ("serviceWorker" in navigator && !isExtension) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/service-worker.js")
       .then(registration => {
@@ -1451,6 +1501,17 @@ if ("serviceWorker" in navigator) {
         console.error("❌ Service Worker registration failed:", error)
       })
   })
+} else if (isExtension) {
+  console.log("🚫 Service Worker disabled in extension context")
+  // Unregister any existing service workers when in extension
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      registrations.forEach(registration => {
+        console.log("🗑️ Unregistering service worker:", registration.scope)
+        registration.unregister()
+      })
+    })
+  }
 } else {
   console.warn("❌ Service Worker not supported in this browser")
 }

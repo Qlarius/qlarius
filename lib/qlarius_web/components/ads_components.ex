@@ -1,6 +1,7 @@
 defmodule QlariusWeb.Components.AdsComponents do
   use Phoenix.Component
   import QlariusWeb.CoreComponents
+  import QlariusWeb.Money
 
   attr :selected_ad_type, :string, required: true
   attr :three_tap_ad_count, :integer, default: 0
@@ -263,6 +264,8 @@ defmodule QlariusWeb.Components.AdsComponents do
   attr :current_video_offer, :map, required: true
   attr :video_payment_collected, :boolean, required: true
 
+  attr :show_replay_button, :boolean, default: false
+
   def video_player(assigns) do
     ~H"""
     <div class="mb-4">
@@ -270,6 +273,7 @@ defmodule QlariusWeb.Components.AdsComponents do
         id="video-player"
         phx-hook="VideoPlayer"
         data-payment-collected={@video_payment_collected}
+        data-is-replay={@show_replay_button || @video_payment_collected}
         class="w-full rounded-lg"
         controls
         poster={
@@ -290,6 +294,23 @@ defmodule QlariusWeb.Components.AdsComponents do
         }
       >
       </video>
+    </div>
+
+    <%!-- Reserve space for replay buttons to prevent layout shift --%>
+    <div class="text-center mb-4 min-h-[64px]">
+      <%= if @show_replay_button do %>
+        <button id="replay-video-button" class="btn btn-primary btn-lg w-full rounded-full" style="opacity: 0;" phx-hook="FadeIn" phx-click="replay_video">
+          <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" />
+          Replay Video
+        </button>
+      <% else %>
+        <%= if @video_payment_collected do %>
+          <button id="watch-again-button" class="btn btn-outline btn-lg w-full rounded-full" style="opacity: 0;" phx-hook="FadeIn" phx-click="replay_video">
+            <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" />
+            Watch Again (Unpaid)
+          </button>
+        <% end %>
+      <% end %>
     </div>
 
     <%= if !@video_payment_collected do %>
@@ -314,60 +335,55 @@ defmodule QlariusWeb.Components.AdsComponents do
   attr :video_payment_collected, :boolean, required: true
   attr :show_replay_button, :boolean, required: true
   attr :closing, :boolean, default: false
+  attr :has_bottom_dock, :boolean, default: true
 
   def video_collection_drawer(assigns) do
     ~H"""
     <%= if @show_collection_drawer || @closing do %>
       <div class={[
-        "fixed inset-x-0 bottom-0 z-30 flex justify-center",
+        "fixed inset-x-0 bottom-0 z-[60] flex justify-center",
         if(@closing, do: "animate-slide-down", else: "animate-slide-up")
       ]}>
-        <div class="w-full max-w-md h-[320px] bg-base-100 dark:bg-base-200 rounded-t-2xl shadow-2xl border-t-4 border-primary px-6 pt-6 pb-28 pointer-events-auto overflow-hidden">
-          <%= if @show_replay_button do %>
-            <div class="text-center">
-              <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-error/20 mb-4">
-                <.icon name="hero-clock" class="w-10 h-10 text-error" />
-              </div>
-              <h3 class="text-xl font-bold mb-2">Time Expired</h3>
-              <p class="text-base-content/70 text-sm mb-4">
-                Watch the video again to collect your payment
-              </p>
-              <button class="btn btn-primary btn-lg w-full rounded-full" phx-click="replay_video">
-                <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" />
-                Replay Video
-              </button>
-            </div>
-          <% else %>
-            <%= if @video_payment_collected do %>
-              <div class="text-center mb-6">
-                <p class="text-sm text-success font-semibold">
-                  Collected to wallet
+        <div class={[
+          "w-full max-w-md h-[240px] bg-base-100 dark:bg-base-200 rounded-t-2xl shadow-2xl border-t-4 border-primary px-6 pt-6 pointer-events-auto overflow-hidden",
+          if(@has_bottom_dock, do: "pb-[50px]", else: "pb-4")
+        ]}>
+          <div class="relative">
+            <%= if @show_replay_button do %>
+              <div id="time-expired-message" class="text-center" style="opacity: 0;" phx-hook="FadeIn">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-error/20 mb-4">
+                  <.icon name="hero-clock" class="w-10 h-10 text-error" />
+                </div>
+                <h3 class="text-xl font-bold mb-2">Time Expired</h3>
+                <p class="text-base-content/70 text-sm mb-4">
+                  Watch the video again to collect your payment
                 </p>
               </div>
             <% else %>
-              <div class="text-center mb-6">
-                <p class="text-base font-semibold text-base-content">
-                  Slide to Collect
-                </p>
+              <div id="video-slider-section" class="animate-fade-in">
+                <%= if @video_payment_collected do %>
+                  <div class="text-center mb-6">
+                    <p class="text-sm text-success font-semibold">
+                      Collected to wallet
+                    </p>
+                  </div>
+                <% else %>
+                  <div class="text-center mb-6">
+                    <p class="text-base font-semibold text-base-content">
+                      Slide to Collect
+                    </p>
+                  </div>
+                <% end %>
+
+                <div phx-update="ignore" id="video-slider-container">
+                  <.slide_to_collect
+                    offer_id={@current_video_offer.id}
+                    amount={@current_video_offer.offer_amt}
+                  />
+                </div>
               </div>
             <% end %>
-
-            <div phx-update="ignore" id="video-slider-container">
-              <.slide_to_collect
-                offer_id={@current_video_offer.id}
-                amount={@current_video_offer.offer_amt}
-              />
-            </div>
-
-            <%= if @video_payment_collected do %>
-              <div class="mt-4">
-                <button class="btn btn-outline btn-lg w-full rounded-full" phx-click="replay_video">
-                  <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" />
-                  Watch Again (Unpaid)
-                </button>
-              </div>
-            <% end %>
-          <% end %>
+          </div>
         </div>
       </div>
     <% end %>
@@ -377,6 +393,8 @@ defmodule QlariusWeb.Components.AdsComponents do
   attr :offer, :map, required: true
   attr :rate, :any, required: true
   attr :completed, :boolean, required: true
+  attr :me_file_id, :integer, default: nil
+  attr :recipient, :map, default: nil
 
   def video_offer_list_item(assigns) do
     ~H"""
@@ -398,13 +416,25 @@ defmodule QlariusWeb.Components.AdsComponents do
             <.icon name="hero-check" class="h-5 w-5 text-green-600 dark:text-green-300" />
           </span>
         </div>
-        <div class="list-col-grow">
-          <div class="text-sm font-semibold text-base-content/70 mb-2">
+        <div class="list-col-grow py-2 min-h-[64px] flex flex-col justify-center">
+          <div class="text-sm font-semibold text-base-content/70 mb-0.5">
             Attention Paid™
           </div>
+          <% # Get totals from Video context
+          {me_file_collect_total, recipient_collect_total} =
+            if @me_file_id do
+              Qlarius.Sponster.Ads.Video.calculate_offer_totals(@offer.id, @me_file_id, @recipient)
+            else
+              {Decimal.new("0"), nil}
+            end %>
           <div class="text-xs text-base-content/50">
-            Collected: <span class="font-semibold">${Decimal.round(@offer.offer_amt || Decimal.new("0"), 2)}</span>
+            Collected: <span class="font-semibold">{format_usd(me_file_collect_total)}</span>
           </div>
+          <%= if @recipient && recipient_collect_total do %>
+            <div class="text-xs text-base-content/50">
+              Given: <span class="font-semibold">{format_usd(recipient_collect_total)}</span>
+            </div>
+          <% end %>
         </div>
         <div class="flex items-center">
           <div class="text-base-content/30">

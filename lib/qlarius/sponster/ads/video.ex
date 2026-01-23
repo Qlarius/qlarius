@@ -103,4 +103,36 @@ defmodule Qlarius.Sponster.Ads.Video do
         {:error, changeset}
     end
   end
+
+  @doc """
+  Calculate the total collected and given amounts for a video offer.
+  Queries all ad_events for this offer_id and me_file_id (though typically only one).
+  Returns {me_file_collect_total, recipient_collect_total}.
+  """
+  def calculate_offer_totals(offer_id, me_file_id, recipient \\ nil) do
+    import Ecto.Query
+
+    query =
+      from(ad_event in AdEvent,
+        where: ad_event.offer_id == ^offer_id and ad_event.me_file_id == ^me_file_id
+      )
+
+    ad_events = Repo.all(query)
+
+    me_file_collect_total =
+      Enum.reduce(ad_events, Decimal.new("0.00"), fn event, acc ->
+        Decimal.add(acc, event.event_me_file_collect_amt || Decimal.new("0.00"))
+      end)
+
+    recipient_collect_total =
+      if recipient do
+        Enum.reduce(ad_events, Decimal.new("0.00"), fn event, acc ->
+          Decimal.add(acc, event.event_recipient_collect_amt || Decimal.new("0.00"))
+        end)
+      else
+        nil
+      end
+
+    {me_file_collect_total, recipient_collect_total}
+  end
 end

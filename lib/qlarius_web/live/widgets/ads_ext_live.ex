@@ -186,6 +186,27 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   end
 
   @impl true
+  def handle_info(:show_collection_drawer, socket) do
+    {:noreply, assign(socket, :show_collection_drawer, true)}
+  end
+
+  @impl true
+  def handle_info(:auto_close_drawer, socket) do
+    socket = assign(socket, :drawer_closing, true)
+    Process.send_after(self(), :finish_closing_drawer, 300)
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info(:finish_closing_drawer, socket) do
+    {:noreply,
+     socket
+     |> assign(:video_watched_complete, false)
+     |> assign(:show_collection_drawer, false)
+     |> assign(:drawer_closing, false)}
+  end
+
+  @impl true
   def handle_event("set_split", %{"split" => split}, socket) do
     split_amount = String.to_integer(split)
     me_file = socket.assigns.current_scope.user.me_file
@@ -319,11 +340,6 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   end
 
   @impl true
-  def handle_info(:show_collection_drawer, socket) do
-    {:noreply, assign(socket, :show_collection_drawer, true)}
-  end
-
-  @impl true
   def handle_event("collect_video_payment", %{"offer_id" => offer_id}, socket) do
     offer_id = String.to_integer(offer_id)
 
@@ -339,6 +355,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
         case Qlarius.Sponster.Ads.Video.create_video_ad_event(offer, recipient, split_amount, user_ip) do
           {:ok, _ad_event} ->
             completed_ids = [offer_id | socket.assigns.completed_video_offers]
+            Process.send_after(self(), :auto_close_drawer, 3000)
 
             {:noreply,
              socket
@@ -356,6 +373,8 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
 
   @impl true
   def handle_event("video_collect_timeout", _params, socket) do
+    Process.send_after(self(), :auto_close_drawer, 3000)
+
     {:noreply,
      socket
      |> assign(:video_watched_complete, false)
@@ -365,16 +384,8 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
 
   @impl true
   def handle_event("replay_video", _params, socket) do
-    socket = assign(socket, :drawer_closing, true)
-    Process.send_after(self(), :finish_closing_drawer, 300)
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_info(:finish_closing_drawer, socket) do
     {:noreply,
      socket
-     |> assign(:video_watched_complete, false)
      |> assign(:show_replay_button, false)
      |> assign(:video_payment_collected, false)
      |> assign(:show_collection_drawer, false)
@@ -431,6 +442,8 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
                     offer={offer}
                     rate={rate}
                     completed={offer.id in @completed_video_offers}
+                    me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
+                    recipient={@recipient}
                   />
                 </ul>
               <% end %>
@@ -440,16 +453,16 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
 
         <%= if @show_video_player && @current_video_offer do %>
           <div
-            class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+            class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2"
             phx-click="close_video_player"
           >
             <div
               class="bg-base-100 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto"
               phx-click={JS.exec("phx-click", to: "#video-player-content")}
             >
-              <div id="video-player-content" class="p-6">
-                <div class="flex justify-between items-center mb-4">
-                  <h2 class="text-2xl font-bold">
+              <div id="video-player-content" class="p-3">
+                <div class="flex justify-between items-center mb-3">
+                  <h2 class="text-lg font-bold">
                     <%= @current_video_offer.media_run.media_piece.ad_category.ad_category_name %>
                   </h2>
                   <button
@@ -463,6 +476,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
                 <.video_player
                   current_video_offer={@current_video_offer}
                   video_payment_collected={@video_payment_collected}
+                  show_replay_button={@show_replay_button}
                 />
               </div>
             </div>
@@ -476,6 +490,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
             video_payment_collected={@video_payment_collected}
             show_replay_button={@show_replay_button}
             closing={@drawer_closing}
+            has_bottom_dock={false}
           />
         <% end %>
       </div>

@@ -111,7 +111,7 @@ import_config "#{config_env()}.exs"
 
 # In config/config.exs or wherever CSP is set
 config :qlarius, :content_security_policy,
-  frame_ancestors: ["'self'", "chrome-extension://ambaojidcamjpjbfcnefhobgljmafgen"]
+  frame_ancestors: ["'self'", "chrome-extension://mhedmgbdabpgflgijpkabcdnkpncbdgp"]
 
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 

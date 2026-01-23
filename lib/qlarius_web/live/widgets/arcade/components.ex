@@ -121,7 +121,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   end
 
   attr :balance, Decimal, required: true
-  attr :offered_amount, Decimal, required: true
+  attr :offered_amount, Decimal, default: nil
 
   def wallet_strip(assigns) do
     ~H"""
@@ -137,7 +137,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           phx-click="show-topup-modal"
         >
           <.icon name="hero-arrow-left" class="w-4 h-4 mr-0" /> Top up •
-          <span class="font-bold">{format_usd(@offered_amount)}</span>
+          <span class="font-bold">{if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}</span>
         </button>
       </div>
     </div>
@@ -146,8 +146,8 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
 
   attr :show, :boolean, required: true
   attr :balance, Decimal, required: true
-  attr :offered_amount, Decimal, required: true
-  attr :ads_count, :integer, required: true
+  attr :offered_amount, Decimal, default: nil
+  attr :ads_count, :integer, default: 0
 
   def topup_modal(assigns) do
     ~H"""
@@ -179,7 +179,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                   <div class="text-base-content/60 text-md mb-4">
                     {@ads_count} ads for
                     <span class="font-bold text-sponster-500">
-                      {format_usd(@offered_amount)}
+                      {if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}
                     </span>
                   </div>
                 </div>

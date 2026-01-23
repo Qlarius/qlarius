@@ -103,9 +103,9 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
             <%= if @tip_data.screen == :me_file do %>
               <div>
                 <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
-                  <span class="block">Build and manage your MeFile tags here.</span>
+                  <span class="block">Build/manage your MeFile here.</span>
                   <span class="block mt-2">
-                    You've got {@current_scope.trait_count} starter tags. Add more tags to your MeFile to optimize sponsorships and fuel your wallet.
+                    You've already got {@current_scope.trait_count} "tags". Add more to optimize sponsorships and fuel your wallet.
                   </span>
                 </p>
               </div>
@@ -115,13 +115,13 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
               <div>
                 <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
                   <span class="block">
-                    The Tagger is where you will add new tags to your MeFile here.
+                    Don't spend too much time on this now. Just 5 minutes or so.
                   </span>
                   <span class="block mt-2">
-                    Start above with the "ESSENTIALS" - a bucket of high-value tags to make a great first step.
+                    Start with the "ESSENTIALS" - a bucket of highest-value tags.
                   </span>
                   <span class="block mt-2">
-                    Over time, build out your MeFile to optimize sponsorships and fuel your wallet.
+                    You can always come back to add tags later and over time.
                   </span>
                 </p>
               </div>
@@ -130,12 +130,29 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
             <%= if @tip_data.screen == :ads do %>
               <div>
                 <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
-                  <span class="block">Engage your ads and sell your attention.</span>
-                  <span class="block mt-2">These starter ads will seed your wallet.</span>
-                  <span class="block mt-2">Build your MeFile to pull the right ads for you.</span>
+                  <span class="block">Engage your sponsors. Sell your attention.</span>
+                  <span class="block mt-2">Seed your wallet with these starter ads.</span>
+                  <span class="block mt-2">Build up your MeFile over time to pull more of the right ads for you.</span>
                 </p>
               </div>
             <% end %>
+
+            <%!-- Dismiss button --%>
+            <div class="mt-6 flex justify-center">
+              <button
+                phx-click={
+                  JS.hide(
+                    to: "#onboarding-tip",
+                    transition:
+                      {"ease-in duration-200", "translate-y-0 opacity-100",
+                       "translate-y-full opacity-0"}
+                  )
+                }
+                class="btn btn-primary btn-wide rounded-full"
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
           <%!-- End content area --%>
         </div>
