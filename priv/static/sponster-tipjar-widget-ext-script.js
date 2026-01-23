@@ -71,8 +71,8 @@ var sponsterWidgetCss =
 }
 @media(max-width: 800px){
     #ydadget_sponster_adget_popover_drawer {
-        width: 370px;
-        margin-left: -185px;
+        width: 384px;
+        margin-left: -192px;
     }
 }
 </style>`;

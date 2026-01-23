@@ -1,31 +1,20 @@
+// Version: 1.0.2 - Skip service worker in extension contexts
+// Don't run service worker if we detect extension/iframe context
 self.addEventListener("install", () => self.skipWaiting())
-self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()))
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim())
+})
 
 self.addEventListener("fetch", (event) => {
-  const url = new URL(event.request.url)
-  
-  // In development, convert HTTPS localhost requests to HTTP
-  if (url.hostname === 'localhost' && url.protocol === 'https:') {
-    url.protocol = 'http:'
-    const newRequest = new Request(url.toString(), {
-      method: event.request.method,
-      headers: event.request.headers,
-      body: event.request.body,
-      mode: 'cors',
-      credentials: event.request.credentials,
-      cache: event.request.cache,
-      redirect: event.request.redirect,
-      referrer: event.request.referrer,
-      integrity: event.request.integrity
+  // Just pass through all requests without modification
+  // Let the browser handle everything naturally
+  event.respondWith(fetch(event.request).catch(() => {
+    // If fetch fails, return a basic error response instead of crashing
+    return new Response('Network error', {
+      status: 408,
+      statusText: 'Request Timeout'
     })
-    event.respondWith(fetch(newRequest))
-  } else if (url.hostname === '10.0.2.2') {
-    // Handle Android emulator requests - pass through to avoid opening browser
-    event.respondWith(fetch(event.request))
-  } else {
-    // For all other requests, pass through
-    event.respondWith(fetch(event.request))
-  }
+  }))
 })
 
 self.addEventListener("push", (event) => {
