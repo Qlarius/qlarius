@@ -31,6 +31,15 @@ qlarius-*.tar
 # Ignore digested assets cache.
 /priv/static/cache_manifest.json
 
+# Ignore versioned static files (build artifacts with hashes)
+/priv/static/service-worker-*.js
+/priv/static/service-worker-*.js.gz
+/priv/static/sponster-tipjar-widget-ext-script-*.js
+/priv/static/sponster-tipjar-widget-ext-script-*.js.gz
+
+# Ignore compressed static files
+/priv/static/*.gz
+
 # In case you use Node.js/npm, you want to ignore these.
 npm-debug.log
 /assets/node_modules/
