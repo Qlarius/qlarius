@@ -864,6 +864,7 @@ Hooks.FadeIn = {
       this.el.style.opacity = '1'
     }, 100)
   }
+  // No updated() callback - fade only happens once on mount
 }
 
 Hooks.VideoPlayer = {

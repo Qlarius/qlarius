@@ -453,11 +453,11 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
 
         <%= if @show_video_player && @current_video_offer do %>
           <div
-            class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2"
+            class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 animate-fade-in"
             phx-click="close_video_player"
           >
             <div
-              class="bg-base-100 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto"
+              class="bg-base-100 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto animate-fade-in"
               phx-click={JS.exec("phx-click", to: "#video-player-content")}
             >
               <div id="video-player-content" class="p-3">

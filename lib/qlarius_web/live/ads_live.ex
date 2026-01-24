@@ -397,13 +397,11 @@ defmodule QlariusWeb.AdsLive do
       >
         <:slide_over_content>
           <%= if @current_video_offer do %>
-            <div class="p-4">
-              <.video_player
-                current_video_offer={@current_video_offer}
-                video_payment_collected={@video_payment_collected}
-                show_replay_button={@show_replay_button}
-              />
-            </div>
+            <.video_player
+              current_video_offer={@current_video_offer}
+              video_payment_collected={@video_payment_collected}
+              show_replay_button={@show_replay_button}
+            />
           <% end %>
         </:slide_over_content>
 

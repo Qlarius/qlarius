@@ -429,7 +429,7 @@ defmodule QlariusWeb.Layouts do
                 <div class="bg-base-100 dark:!bg-base-300 flex-shrink-0" style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"></div>
               <% end %>
               <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
-                <div class="container mx-auto px-4 py-6 flex-1 panel-content">
+                <div class="container mx-auto px-4 py-6 flex-1 panel-content flex flex-col">
                   <div class="flex items-center justify-between mb-4">
                     <button
                       phx-click="close_slide_over"
@@ -443,10 +443,13 @@ defmodule QlariusWeb.Layouts do
                       </div>
                     <% end %>
                   </div>
-                  <h1 class="text-2xl font-bold mb-6">{assigns[:slide_over_title] || "Details"}</h1>
+                  
+                  <div class="flex-1 flex flex-col items-center justify-center">
+                    <h1 class="text-2xl font-bold mb-2 text-center">{assigns[:slide_over_title] || "Details"}</h1>
 
-                  <div>
-                    {render_slot(assigns[:slide_over_content] || [])}
+                    <div class="w-full">
+                      {render_slot(assigns[:slide_over_content] || [])}
+                    </div>
                   </div>
                 </div>
               </div>
