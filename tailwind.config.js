@@ -36,10 +36,15 @@ module.exports = {
           '0%': { opacity: '1' },
           '100%': { opacity: '0' },
         },
+        'pulse-border': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.4' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.5s ease-in-out forwards',
         'fade-out': 'fade-out 0.5s ease-in-out forwards',
+        'pulse-border': 'pulse-border 2s ease-in-out infinite',
       },
     },
   },

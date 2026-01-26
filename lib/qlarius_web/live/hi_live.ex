@@ -16,6 +16,7 @@ defmodule QlariusWeb.HiLive do
       |> assign(:is_mobile, false)
       |> assign(:is_authenticated, is_authenticated)
       |> assign(:has_session_token, has_session_token)
+      |> assign(:show_manifesto, true)
       |> init_pwa_assigns(session)
 
     {:ok, socket}
@@ -51,6 +52,10 @@ defmodule QlariusWeb.HiLive do
 
   def handle_event("show_install_guide", _params, socket) do
     {:noreply, assign(socket, :mode, :install)}
+  end
+
+  def handle_event("dismiss_manifesto", _params, socket) do
+    {:noreply, assign(socket, :show_manifesto, false)}
   end
 
   def handle_event("splash_complete", _params, socket) do
@@ -148,6 +153,60 @@ defmodule QlariusWeb.HiLive do
       <% end %>
 
       <%= if @mode == :welcome do %>
+        <%!-- MANIFESTO OVERLAY --%>
+        <div class={[
+          "fixed inset-0 z-50 bg-base-100 dark:bg-base-300 transition-opacity duration-500",
+          if(@show_manifesto, do: "opacity-100", else: "opacity-0 pointer-events-none")
+        ]}>
+          <%!-- Outer pulsing dotted border --%>
+          <div class="absolute inset-4 border-4 border-dashed border-primary rounded-3xl animate-pulse">
+          </div>
+
+          <%!-- Close button --%>
+          <button
+            phx-click="dismiss_manifesto"
+            class="absolute top-10 right-10 z-10 btn btn-ghost btn-circle btn-sm"
+            aria-label="Close"
+          >
+            <.icon name="hero-x-mark" class="w-6 h-6 text-base-content/50" />
+          </button>
+
+          <%!-- Centered content --%>
+          <div class="absolute inset-0 flex flex-col items-center justify-center px-12 text-center">
+            <div class="max-w-sm space-y-6">
+              <img
+                src="/images/qadabra_logo_squares_color.svg"
+                alt="Qadabra"
+                class="w-20 h-auto mx-auto mb-4"
+              />
+
+              <p class="text-2xl text-content-base">
+                This screen belongs to you.
+              </p>
+
+              <p class="text-2xl">
+                You bought it. <br/>You pay the monthly bill.
+              </p>
+
+              <p class="text-2xl">
+                If anyone sells ad space here,
+                <span class="block mt-8 text-4xl font-extrabold">
+                  it should be you.
+                </span>
+              </p>
+
+              <div class="pt-8">
+                <button
+                  phx-click="dismiss_manifesto"
+                  class="btn btn-primary btn-lg rounded-full text-lg normal-case px-8"
+                >
+                  Agreed. Let's go!
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <%!-- WELCOME MODE: Default carousel view --%>
         <div class="h-screen dark:bg-base-300 flex flex-col relative overflow-y-hidden">
           <%!-- Logo spacer - ensures carousel doesn't overlap --%>
@@ -424,59 +483,8 @@ defmodule QlariusWeb.HiLive do
   defp carousel(assigns) do
     ~H"""
     <div class="carousel carousel-center w-full max-w-7xl space-x-4 px-4">
+
       <div id="card1" class="carousel-item w-[85%] md:w-[300px]">
-        <div class="card bg-base-200 shadow-xl w-full">
-          <figure class="h-48 sm:h-56 md:h-64 bg-gradient-to-br from-cyan-400 to-blue-600 relative overflow-hidden">
-            <img
-              src="/images/hi_sequence_wallet_light.png"
-              alt=""
-              class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto dark:hidden"
-            />
-            <img
-              src="/images/hi_sequence_wallet_dark.png"
-              alt=""
-              class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto hidden dark:block"
-            />
-          </figure>
-          <div class="card-body">
-            <h2 class="card-title text-3xl font-bold">Claim your wallet.</h2>
-            <p class="text-base-content/70">
-              Your pre-funded Qadabra media wallet is ready for you! Set it up in seconds and use it to access the content and support the creators that matter to you.
-            </p>
-            <div class="card-actions justify-center mt-4">
-              <img src="/images/qadabra_logo_squares_color.svg" alt="Qadabra" class="h-8 w-auto" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="card2" class="carousel-item w-[85%] md:w-[300px]">
-        <div class="card bg-base-200 shadow-xl w-full">
-          <figure class="h-48 sm:h-56 md:h-64 bg-gradient-to-br from-orange-400 to-red-600 relative overflow-hidden">
-            <img
-              src="/images/hi_sequence_media_light.png"
-              alt=""
-              class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto dark:hidden"
-            />
-            <img
-              src="/images/hi_sequence_media_dark.png"
-              alt=""
-              class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto hidden dark:block"
-            />
-          </figure>
-          <div class="card-body">
-            <h2 class="card-title text-3xl font-bold">Buy your media.</h2>
-            <p class="text-base-content/70">
-              Pay nickels and dimes, not subscriptions. Get instant access to the content you want through simple micro-purchases. No commitments, just content.
-            </p>
-            <div class="card-actions justify-center mt-4">
-              <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-8 w-auto" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="card3" class="carousel-item w-[85%] md:w-[300px]">
         <div class="card bg-base-200 shadow-xl w-full">
           <figure class="h-48 sm:h-56 md:h-64 bg-gradient-to-br from-green-400 to-emerald-600 relative overflow-hidden">
             <img
@@ -491,12 +499,64 @@ defmodule QlariusWeb.HiLive do
             />
           </figure>
           <div class="card-body">
-            <h2 class="card-title text-3xl font-bold">Sell your attention.</h2>
-            <p class="text-base-content/70">
-              Fuel up your wallet with payments from your personal sponsors. For decades, others have sold your attention. Now it's your turn. Paid media can still feel free!
+            <h2 class="card-title text-3xl font-bold mb-3">Sell your attention.</h2>
+            <p class="text-base-content/70 text-lg">
+            Let advertisers buy attention directly from the source - <span class="font-extrabold">you.</span> It's personal sponsorship.
             </p>
             <div class="card-actions justify-center mt-4">
               <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-8 w-auto" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="card2" class="carousel-item w-[85%] md:w-[300px]">
+        <div class="card bg-base-200 shadow-xl w-full">
+          <figure class="h-48 sm:h-56 md:h-64 bg-gradient-to-br from-cyan-400 to-blue-600 relative overflow-hidden">
+            <img
+              src="/images/hi_sequence_wallet_light.png"
+              alt=""
+              class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto dark:hidden"
+            />
+            <img
+              src="/images/hi_sequence_wallet_dark.png"
+              alt=""
+              class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto hidden dark:block"
+            />
+          </figure>
+          <div class="card-body">
+            <h2 class="card-title text-3xl font-bold mb-3">Fuel your wallet.</h2>
+            <p class="text-base-content/70 text-lg">
+            Each ad feeds small revenues into your wallet. Like a toll booth for your attention.
+            </p>
+            <div class="card-actions justify-center mt-4">
+              <img src="/images/qadabra_logo_squares_color.svg" alt="Qadabra" class="h-8 w-auto" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="card3" class="carousel-item w-[85%] md:w-[300px]">
+        <div class="card bg-base-200 shadow-xl w-full">
+          <figure class="h-48 sm:h-56 md:h-64 bg-gradient-to-br from-orange-400 to-red-600 relative overflow-hidden">
+            <img
+              src="/images/hi_sequence_media_light.png"
+              alt=""
+              class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto dark:hidden"
+            />
+            <img
+              src="/images/hi_sequence_media_dark.png"
+              alt=""
+              class="absolute top-5 left-1/2 -translate-x-1/2 w-[60%] h-auto hidden dark:block"
+            />
+          </figure>
+          <div class="card-body">
+            <h2 class="card-title text-3xl font-bold mb-3">Buy your media.</h2>
+            <p class="text-base-content/70 text-lg">
+            Simply buy "tiqits" to access your favorite media. Tiqits are easy, instant, and private.
+            </p>
+            <div class="card-actions justify-center mt-4">
+              <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-8 w-auto" />
             </div>
           </div>
         </div>
@@ -517,9 +577,9 @@ defmodule QlariusWeb.HiLive do
             />
           </figure>
           <div class="card-body">
-            <h2 class="card-title text-3xl font-bold">Own your data.</h2>
-            <p class="text-base-content/70">
-              Your data stays yours. Your MeFile™ matches and pulls sponsorships to you anonymously - no tracking, no reselling. Privacy that pays dividends.
+            <h2 class="card-title text-3xl font-bold mb-3">Own your data.</h2>
+            <p class="text-base-content/70 text-lg">
+              The best part?  Absolute privacy and ownership of your own data that drives it all.
             </p>
             <div class="card-actions justify-center mt-4">
               <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-8 w-auto" />
