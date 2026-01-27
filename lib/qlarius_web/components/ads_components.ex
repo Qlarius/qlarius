@@ -464,7 +464,7 @@ defmodule QlariusWeb.Components.AdsComponents do
         <%!-- Available state --%>
         <div class="flex flex-col items-start justify-start mr-1">
           <span class="inline-flex items-center justify-center rounded-full w-8 h-8 !bg-sponster-200 dark:!bg-sponster-800">
-            <.icon name="hero-play" class="h-5 w-5 text-base-content" />
+            <.icon name="hero-film" class="h-5 w-5 text-base-content" />
           </span>
         </div>
         <div class="list-col-grow">

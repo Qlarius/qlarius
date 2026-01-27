@@ -159,16 +159,16 @@ defmodule QlariusWeb.HiLive do
           if(@show_manifesto, do: "opacity-100", else: "opacity-0 pointer-events-none")
         ]}>
           <%!-- Outer pulsing dotted border --%>
-          <div class="absolute inset-4 border-4 border-dashed border-primary rounded-3xl animate-pulse">
+          <div class="absolute inset-4 border-10 border-dashed border-primary rounded-3xl animate-pulse">
           </div>
 
           <%!-- Close button --%>
           <button
             phx-click="dismiss_manifesto"
-            class="absolute top-10 right-10 z-10 btn btn-ghost btn-circle btn-sm"
+            class="absolute top-12 right-12 z-10 btn btn-ghost btn-circle btn-sm"
             aria-label="Close"
           >
-            <.icon name="hero-x-mark" class="w-6 h-6 text-base-content/50" />
+            <.icon name="hero-x-mark" class="w-9 h-9 text-base-content/50" />
           </button>
 
           <%!-- Centered content --%>
@@ -190,7 +190,7 @@ defmodule QlariusWeb.HiLive do
 
               <p class="text-2xl">
                 If anyone sells ad space here,
-                <span class="block mt-8 text-4xl font-extrabold">
+                <span class="block mt-2 text-4xl font-extrabold leading-tight">
                   it should be you.
                 </span>
               </p>
@@ -501,7 +501,7 @@ defmodule QlariusWeb.HiLive do
           <div class="card-body">
             <h2 class="card-title text-3xl font-bold mb-3">Sell your attention.</h2>
             <p class="text-base-content/70 text-lg">
-            Let advertisers buy attention directly from the source - <span class="font-extrabold">you.</span> It's personal sponsorship.
+            Let advertisers buy attention directly from the source - <span class="font-extrabold">you.</span> Sponsorship gets personal.
             </p>
             <div class="card-actions justify-center mt-4">
               <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-8 w-auto" />
@@ -553,7 +553,7 @@ defmodule QlariusWeb.HiLive do
           <div class="card-body">
             <h2 class="card-title text-3xl font-bold mb-3">Buy your media.</h2>
             <p class="text-base-content/70 text-lg">
-            Simply buy "tiqits" to access your favorite media. Tiqits are easy, instant, and private.
+            Use funds to buy "tiqits" & access your favorite media. Easy, instant, and private.
             </p>
             <div class="card-actions justify-center mt-4">
               <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-8 w-auto" />
