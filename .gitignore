@@ -61,3 +61,4 @@ priv/repo/structure.sql
 
 # Large data files (exclude from version control)
 # priv/data/zip_code_database_small_business.csv
+.cursor/mcp.json
