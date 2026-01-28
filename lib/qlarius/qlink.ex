@@ -176,6 +176,7 @@ defmodule Qlarius.Qlink do
     |> where([l], l.qlink_page_id == ^page_id and l.is_visible == true)
     |> order_by([l], l.display_order)
     |> Repo.all()
+    |> Repo.preload(:recipient)
   end
 
   @doc """

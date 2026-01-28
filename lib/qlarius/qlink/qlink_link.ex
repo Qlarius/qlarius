@@ -4,9 +4,10 @@ defmodule Qlarius.Qlink.QlinkLink do
 
   alias Qlarius.Qlink.QlinkPage
   alias Qlarius.Qlink.QlinkSection
+  alias Qlarius.Sponster.Recipient
 
   schema "qlink_links" do
-    field :type, Ecto.Enum, values: [:standard, :embed, :social_feed]
+    field :type, Ecto.Enum, values: [:standard, :embed, :social_feed, :insta_tip]
     field :title, :string
     field :description, :string
     field :url, :string
@@ -16,9 +17,11 @@ defmodule Qlarius.Qlink.QlinkLink do
     field :is_visible, :boolean, default: true
     field :icon, :string
     field :click_count, :integer, default: 0
+    field :show_tip_header, :boolean, default: true
 
     belongs_to :qlink_page, QlinkPage
     belongs_to :qlink_section, QlinkSection
+    belongs_to :recipient, Recipient
 
     timestamps()
   end
@@ -37,14 +40,28 @@ defmodule Qlarius.Qlink.QlinkLink do
       :is_visible,
       :icon,
       :qlink_page_id,
-      :qlink_section_id
+      :qlink_section_id,
+      :recipient_id,
+      :show_tip_header
     ])
-    |> validate_required([:type, :title, :url, :display_order, :qlink_page_id])
+    |> validate_required([:type, :title, :display_order, :qlink_page_id])
+    |> validate_url_unless_insta_tip()
     |> validate_length(:title, max: 200)
     |> validate_length(:description, max: 500)
     |> validate_url()
     |> foreign_key_constraint(:qlink_page_id)
     |> foreign_key_constraint(:qlink_section_id)
+    |> foreign_key_constraint(:recipient_id)
+  end
+
+  defp validate_url_unless_insta_tip(changeset) do
+    type = get_field(changeset, :type)
+
+    if type == :insta_tip do
+      changeset
+    else
+      validate_required(changeset, [:url])
+    end
   end
 
   defp validate_url(changeset) do

@@ -6,6 +6,7 @@ defmodule Qlarius.Qlink.QlinkPage do
   alias Qlarius.Qlink.QlinkLink
   alias Qlarius.Qlink.QlinkSection
   alias Qlarius.Qlink.PageView
+  alias Qlarius.Sponster.Recipient
 
   schema "qlink_pages" do
     field :alias, :string
@@ -20,8 +21,10 @@ defmodule Qlarius.Qlink.QlinkPage do
     field :is_published, :boolean, default: false
     field :view_count, :integer, default: 0
     field :total_clicks, :integer, default: 0
+    field :show_insta_tip, :boolean, default: false
 
     belongs_to :creator, Creator
+    belongs_to :recipient, Recipient
     has_many :qlink_links, QlinkLink
     has_many :qlink_sections, QlinkSection
     has_many :page_views, PageView
@@ -47,12 +50,15 @@ defmodule Qlarius.Qlink.QlinkPage do
       :theme_config,
       :background_config,
       :custom_css,
-      :is_published
+      :is_published,
+      :recipient_id,
+      :show_insta_tip
     ])
     |> validate_required([:slug, :title])
     |> validate_length(:slug, min: 3, max: 50)
     |> validate_length(:title, max: 100)
     |> validate_length(:bio_text, max: 500)
+    |> foreign_key_constraint(:recipient_id)
   end
 
   @doc false

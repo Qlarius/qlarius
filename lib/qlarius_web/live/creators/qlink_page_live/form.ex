@@ -8,6 +8,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   alias Qlarius.Qlink.QlinkSection
   alias Qlarius.Creators
   alias Qlarius.Repo
+  alias Qlarius.Sponster.Recipients
   alias QlariusWeb.Uploaders.CreatorImage
   alias QlariusWeb.LiveView.ImageUpload
 
@@ -18,11 +19,12 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
   @impl true
   def handle_params(%{"id" => id}, _uri, socket) do
-    page = Qlink.get_page!(id) |> Repo.preload(:creator)
+    page = Qlink.get_page!(id) |> Repo.preload([:creator, :recipient])
     creator = page.creator
 
     links = Qlink.list_page_links(page.id) |> Repo.preload(:qlink_section)
     sections = Qlink.list_page_sections(page.id)
+    recipients = Recipients.list_recipients()
 
     changeset = Qlink.change_page(page)
     social_links_map = if(is_map(page.social_links), do: page.social_links, else: %{})
@@ -41,6 +43,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
       page_title: "Edit Qlink Page",
       links: links,
       sections: sections,
+      recipients: recipients,
       show_link_modal: false,
       editing_link: nil,
       link_form: nil,
@@ -60,6 +63,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   def handle_params(%{"creator_id" => creator_id}, _uri, socket) do
     creator = Creators.get_creator!(creator_id)
     changeset = Qlink.change_page(%QlinkPage{})
+    recipients = Recipients.list_recipients()
 
     socket
     |> assign(
@@ -69,6 +73,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
       page_title: "New Qlink Page",
       links: [],
       sections: [],
+      recipients: recipients,
       show_link_modal: false,
       editing_link: nil,
       link_form: nil,

@@ -224,8 +224,13 @@ defmodule QlariusWeb.Router do
       live "/creators/qlink_pages/:id/edit", Creators.QlinkPageLive.Form, :edit
     end
 
-    # Public Qlink page route (no auth required)
-    live "/@:alias", QlinkPage.Show, :show
+    # Public Qlink page route (no auth required, but mounts scope if logged in)
+    live_session :public_qlink,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope}
+      ] do
+      live "/@:alias", QlinkPage.Show, :show
+    end
 
     resources "/tiqits", TiqitController
 

@@ -262,25 +262,25 @@
                   </div>
                 <% end %>
                 
-<!-- Links Management Section -->
+<!-- Blocks Management Section -->
                 <%= if @live_action == :edit && @page.id do %>
                   <div class="border-t border-base-300 pt-6">
                     <div class="flex items-center justify-between mb-4">
                       <h3 class="text-lg font-semibold text-base-content flex items-center">
-                        <.icon name="hero-link" class="w-5 h-5 mr-3 text-primary" /> Links
+                        <.icon name="hero-squares-2x2" class="w-5 h-5 mr-3 text-primary" /> Blocks
                       </h3>
                       <button
                         type="button"
                         phx-click="show_add_link_modal"
                         class="btn btn-primary btn-sm"
                       >
-                        <.icon name="hero-plus" class="w-4 h-4 mr-1" /> Add Link
+                        <.icon name="hero-plus" class="w-4 h-4 mr-1" /> Add Block
                       </button>
                     </div>
 
                     <%= if @links == [] do %>
                       <div class="alert alert-info">
-                        <span>No links yet. Click "Add Link" to get started.</span>
+                        <span>No blocks yet. Click "Add Block" to get started.</span>
                       </div>
                     <% else %>
                       <div class="space-y-4">
@@ -312,7 +312,7 @@
                           <div class="collapse collapse-arrow bg-base-200">
                             <input type="checkbox" checked />
                             <div class="collapse-title text-lg font-medium">
-                              Links
+                              Blocks
                             </div>
                             <div class="collapse-content">
                               <div class="space-y-2">
@@ -351,6 +351,38 @@
                     </label>
                   </div>
                 </div>
+
+                <!-- Sponster Settings Section -->
+                <div class="border-t border-base-300 pt-6">
+                  <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+                    <.icon name="hero-currency-dollar" class="w-5 h-5 mr-3 text-warning" /> Sponster Ads
+                  </h3>
+
+                  <div class="form-control max-w-md">
+                    <label class="label">
+                      <span class="label-text font-medium">Ad Revenue Recipient</span>
+                    </label>
+                    <select
+                      name="qlink_page[recipient_id]"
+                      class="select select-bordered w-full"
+                    >
+                      <option value="">None (ads disabled)</option>
+                      <%= for recipient <- @recipients do %>
+                        <option
+                          value={recipient.id}
+                          selected={@form[:recipient_id].value == recipient.id || @page.recipient_id == recipient.id}
+                        >
+                          {recipient.name}
+                        </option>
+                      <% end %>
+                    </select>
+                    <label class="label">
+                      <span class="label-text-alt text-base-content/60">
+                        Who receives ad revenue splits when visitors watch ads on this page
+                      </span>
+                    </label>
+                  </div>
+                </div>
                 
 <!-- Form Actions -->
                 <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-base-300">
@@ -376,7 +408,7 @@
           <div class="modal modal-open">
             <div class="modal-box max-w-2xl">
               <h3 class="text-lg font-bold mb-4">
-                {if @editing_link, do: "Edit Link", else: "Add Link"}
+                {if @editing_link, do: "Edit Block", else: "Add Block"}
               </h3>
 
               <%= if @link_form && @link_form.source.action == :validate && @link_form.errors != [] do %>
@@ -409,9 +441,9 @@
                       field={@link_form[:type]}
                       type="select"
                       options={[
-                        {"Standard", "standard"},
+                        {"Link", "standard"},
                         {"Embed", "embed"},
-                        {"Social Feed", "social_feed"}
+                        {"Tip Jar", "insta_tip"}
                       ]}
                       class="select select-bordered w-full"
                       required
@@ -448,23 +480,25 @@
                   />
                 </div>
 
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text font-medium">URL *</span>
-                  </label>
-                  <.input
-                    field={@link_form[:url]}
-                    type="url"
-                    class="input input-bordered w-full"
-                    placeholder="https://example.com"
-                    required
-                  />
-                  <label class="label">
-                    <span class="label-text-alt text-base-content/60">
-                      Embed types (YouTube, Spotify, TikTok) will be auto-detected
+                <%= if to_string(@link_form[:type].value) != "insta_tip" do %>
+                  <div class="form-control">
+                    <label class="label">
+                      <span class="label-text font-medium">URL *</span>
+                    </label>
+                    <.input
+                      field={@link_form[:url]}
+                      type="url"
+                      class="input input-bordered w-full"
+                      placeholder="https://example.com"
+                      required
+                    />
+                    <label class="label">
+                      <span class="label-text-alt text-base-content/60">
+                        Embed types (YouTube, Spotify, TikTok) will be auto-detected
                     </span>
                   </label>
-                </div>
+                  </div>
+                <% end %>
 
                 <div class="form-control">
                   <label class="label">
@@ -479,10 +513,57 @@
                   />
                 </div>
 
-                <%= if @link_form[:type].value == "embed" do %>
+                <%= if to_string(@link_form[:type].value) == "embed" do %>
                   <div class="alert alert-info">
                     <.icon name="hero-information-circle" class="w-5 h-5" />
                     <span>Embed configuration will be auto-detected from the URL</span>
+                  </div>
+                <% end %>
+
+                <%= if to_string(@link_form[:type].value) == "insta_tip" do %>
+                  <div class="form-control">
+                    <label class="label">
+                      <span class="label-text font-medium">Tip Recipient *</span>
+                    </label>
+                    <select
+                      name="qlink_link[recipient_id]"
+                      class="select select-bordered w-full"
+                      required
+                    >
+                      <option value="">Select a recipient</option>
+                      <%= for recipient <- @recipients do %>
+                        <option
+                          value={recipient.id}
+                          selected={to_string(@link_form[:recipient_id].value) == to_string(recipient.id)}
+                        >
+                          {recipient.name}
+                        </option>
+                      <% end %>
+                    </select>
+                    <label class="label">
+                      <span class="label-text-alt text-base-content/60">
+                        Who will receive the tips from this block
+                      </span>
+                    </label>
+                  </div>
+
+                  <div class="form-control">
+                    <label class="label cursor-pointer justify-start gap-3">
+                      <input type="hidden" name="qlink_link[show_tip_header]" value="false" />
+                      <input
+                        type="checkbox"
+                        name="qlink_link[show_tip_header]"
+                        value="true"
+                        class="toggle toggle-primary"
+                        checked={@link_form[:show_tip_header].value not in [false, "false"]}
+                      />
+                      <span class="label-text font-medium">Show recipient image & message</span>
+                    </label>
+                    <label class="label pt-0">
+                      <span class="label-text-alt text-base-content/60">
+                        Display the recipient's image and message above the tip buttons
+                      </span>
+                    </label>
                   </div>
                 <% end %>
 

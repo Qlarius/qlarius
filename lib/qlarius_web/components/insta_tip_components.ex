@@ -4,6 +4,84 @@ defmodule QlariusWeb.InstaTipComponents do
   import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
   import QlariusWeb.Money, only: [format_usd: 1]
 
+  @default_amounts ["0.25", "0.50", "1.00", "2.00"]
+
+  attr :recipient, :map, required: true
+  attr :wallet_balance, :any, required: true
+  attr :amounts, :list, default: @default_amounts
+  attr :show_image, :boolean, default: true
+  attr :show_message, :boolean, default: true
+  attr :compact, :boolean, default: false
+  attr :target, :any, default: nil
+  attr :add_class, :string, default: nil
+
+  def insta_tip_card(assigns) do
+    ~H"""
+    <div data-theme="light" class={["flex flex-col items-center", @add_class]}>
+      <%= if @show_image && @recipient do %>
+        <div class="w-40 h-auto md:w-50 bg-base-300 shadow-md flex items-center justify-center mt-4 mb-0 md:mb-4 overflow-hidden">
+          <img
+            src={
+              if @recipient.graphic_url do
+                QlariusWeb.Uploaders.RecipientBrandImage.url({@recipient.graphic_url, @recipient})
+              else
+                ~p"/images/tipjar_love_default.png"
+              end
+            }
+            alt={@recipient.name || "Recipient"}
+            class="object-contain w-full h-full rounded"
+          />
+        </div>
+      <% end %>
+
+      <%= if @show_message && @recipient do %>
+        <div class="text-base-content/70 text-sm text-center max-w-xs p-2">
+          {@recipient.message ||
+            "Thank you for supporting this content. Your Sponster tips are greatly appreciated!"}
+        </div>
+      <% end %>
+
+      <%= if (@show_image || @show_message) && @recipient do %>
+        <div class="divider my-2" />
+      <% end %>
+
+      <div class={[
+        "text-md mb-5 font-bold text-base-content text-center",
+        if(!@show_image && !@show_message, do: "mt-4")
+      ]}>
+        Select an amount to InstaTip
+      </div>
+
+      <.insta_tip_button_group
+        amounts={@amounts}
+        wallet_balance={@wallet_balance}
+        recipient_id={@recipient && @recipient.id}
+        target={@target}
+        add_class="mb-4"
+      />
+
+      <.insta_tip_footer wallet_balance={@wallet_balance} />
+    </div>
+    """
+  end
+
+  attr :wallet_balance, :any, required: true
+  attr :add_class, :string, default: nil
+
+  def insta_tip_footer(assigns) do
+    ~H"""
+    <div class={["flex-1 flex flex-col items-center mt-0", @add_class]}>
+      <div class="text-base-content/70 text-sm mt-3 mb-4">
+        From your wallet <.icon name="hero-arrow-right" class="w-4 h-4 inline-block" />
+        <span class="inline-flex items-center w-auto text-lg bg-sponster-200 text-base-content px-3 py-1 rounded-lg border border-sponster-300">
+          <span class="font-bold">{format_usd(@wallet_balance)}</span>
+        </span>
+      </div>
+    </div>
+    """
+  end
+
+  @doc "Deprecated: use insta_tip_footer instead"
   attr :wallet_balance, :any, required: true
   attr :add_class, :string, default: nil
 
@@ -22,6 +100,7 @@ defmodule QlariusWeb.InstaTipComponents do
   attr :wallet_balance, :any, required: true
   attr :target, :any, default: nil
   attr :add_class, :string, default: nil
+  attr :recipient_id, :integer, default: nil
 
   def insta_tip_button_group(assigns) do
     ~H"""
@@ -34,6 +113,7 @@ defmodule QlariusWeb.InstaTipComponents do
           phx-click="initiate_insta_tip"
           phx-target={@target}
           phx-value-amount={amount}
+          phx-value-recipient-id={@recipient_id}
           disabled={!enabled}
           class={[
             "btn btn-circle btn-lg font-bold p-8",
@@ -62,6 +142,7 @@ defmodule QlariusWeb.InstaTipComponents do
 
   attr :show, :boolean, default: false
   attr :recipient_name, :string, required: true
+  attr :recipient_id, :integer, default: nil
   attr :amount, :any, required: true
   attr :current_balance, :any, required: true
 
@@ -84,11 +165,13 @@ defmodule QlariusWeb.InstaTipComponents do
         <div class="bg-base-200 rounded-lg p-4 space-y-2">
           <div class="flex justify-between items-center">
             <span class="text-sm text-base-content/70">Wallet:</span>
-            <.wallet_balance balance={@current_balance} />
+            <span class="inline-flex items-center w-auto text-lg bg-sponster-200 text-base-content px-3 py-1 rounded-lg border border-sponster-300">
+              <span class="font-bold">{format_usd(@current_balance)}</span>
+            </span>
           </div>
           <div class="flex justify-between items-center">
             <span class="text-sm text-base-content/70">After Tip:</span>
-            <span class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content/60 px-3 py-1 ml-3 rounded-lg border border-dashed border-sponster-500 dark:border-sponster-500">
+            <span class="inline-flex items-center w-auto text-lg bg-sponster-200 text-base-content/60 px-3 py-1 ml-3 rounded-lg border border-dashed border-sponster-500">
               <span class="font-bold opacity-80">
                 {format_usd(Decimal.sub(@current_balance, @amount))}
               </span>
@@ -101,6 +184,7 @@ defmodule QlariusWeb.InstaTipComponents do
             type="button"
             phx-click="confirm_insta_tip"
             phx-value-amount={@amount}
+            phx-value-recipient-id={@recipient_id}
             class="btn btn-primary flex-1 font-bold rounded-full"
           >
             TIP

@@ -3,7 +3,8 @@
   data-theme={get_theme(@page)}
   style={get_background_style(@page)}
 >
-  <div class="container mx-auto px-4 py-8 max-w-2xl">
+  <div class={["container mx-auto px-4 py-8 max-w-2xl", if(@recipient, do: "pb-24", else: "")]}>
+
     <!-- Profile Section -->
     <div class="text-center mb-8">
       <div class="avatar mb-4">
@@ -50,7 +51,7 @@
       <% unsectioned_links = Enum.filter(@links, &is_nil(&1.qlink_section_id)) %>
       <%= if unsectioned_links != [] do %>
         <%= for link <- unsectioned_links do %>
-          <.render_link link={link} />
+          <.render_link link={link} recipient={@recipient} current_scope={@current_scope} />
         <% end %>
       <% end %>
       
@@ -68,7 +69,7 @@
               <% end %>
 
               <%= for link <- section_links do %>
-                <.render_link link={link} />
+                <.render_link link={link} recipient={@recipient} current_scope={@current_scope} />
               <% end %>
             </div>
           <% end %>
@@ -87,8 +88,216 @@
     </div>
   </div>
 
-  <%!-- Floating "Connect your wallet" button for unauthenticated users --%>
-  <%= if is_nil(@current_scope) || is_nil(@current_scope.true_user) do %>
+  <%!-- Sponster Announcer Bar (bottom of screen - always on top) --%>
+  <%= if @recipient do %>
+    <div class="fixed bottom-0 left-0 right-0 z-50 bg-base-100 border-t border-base-300 shadow-lg">
+      <div class="container mx-auto px-4 py-2">
+        <div class="flex items-center justify-between gap-4">
+          <%= if @current_scope && @current_scope.user do %>
+            <%!-- Authenticated user: Show stats --%>
+            <div class="flex items-center gap-4 text-sm">
+              <div class="flex flex-col items-center">
+                <span class="font-bold text-base-content">
+                  ${Decimal.round(@current_scope.wallet_balance || Decimal.new("0"), 2)}
+                </span>
+                <span class="text-[10px] text-base-content/50 uppercase">Wallet</span>
+              </div>
+              <div class="w-px h-6 bg-base-300"></div>
+              <div class="flex flex-col items-center">
+                <span class="font-bold text-base-content">
+                  {length(@video_offers) + length(@active_offers)}
+                </span>
+                <span class="text-[10px] text-base-content/50 uppercase">Ads</span>
+              </div>
+            </div>
+          <% else %>
+            <%!-- Unauthenticated: Show message --%>
+            <div class="text-sm text-base-content/70">
+              <.link navigate={~p"/login"} class="link link-primary font-medium">
+                Sign in
+              </.link>
+              to earn from watching ads
+            </div>
+          <% end %>
+
+          <button
+            phx-click="toggle_sponster_drawer"
+            class="btn btn-sm btn-outline rounded-full gap-2"
+          >
+            <span class="font-semibold">{if @show_sponster_drawer, do: "Hide", else: "Show"}</span>
+            <.icon
+              name={if @show_sponster_drawer, do: "hero-chevron-down", else: "hero-chevron-up"}
+              class="w-4 h-4"
+            />
+          </button>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <%!-- Sponster Drawer (slides up from behind the bar) --%>
+  <%= if @recipient do %>
+    <%!-- Overlay (only when drawer is open) --%>
+    <div
+      class={[
+        "fixed inset-0 z-30 bg-black/50 backdrop-blur-sm transition-opacity duration-300",
+        if(@show_sponster_drawer, do: "opacity-100", else: "opacity-0 pointer-events-none")
+      ]}
+      phx-click="close_sponster_drawer"
+    >
+    </div>
+
+    <%!-- Drawer --%>
+    <div
+      class={[
+        "fixed z-40 bg-base-100 rounded-t-2xl shadow-2xl h-[calc(90vh-48px)] overflow-hidden flex flex-col transition-all duration-300 ease-out",
+        if(@show_sponster_drawer, do: "bottom-12", else: "-bottom-[90vh]")
+      ]}
+      style="left: 50%; transform: translateX(-50%); width: min(100%, 800px);"
+    >
+      <%!-- Drawer header --%>
+      <div class="flex items-center justify-between p-4 border-b border-base-300">
+        <h2 class="text-lg font-bold">Your Sponster Ads</h2>
+        <button
+          phx-click="close_sponster_drawer"
+          class="btn btn-ghost btn-circle btn-sm"
+        >
+          <.icon name="hero-x-mark" class="w-5 h-5" />
+        </button>
+      </div>
+
+      <%!-- Drawer content --%>
+      <div class="flex-1 overflow-y-auto p-4">
+        <%= if @current_scope && @current_scope.user do %>
+          <%= if @loading_offers do %>
+            <div class="flex items-center justify-center py-12">
+              <span class="loading loading-spinner loading-lg"></span>
+            </div>
+          <% else %>
+            <%= if Enum.empty?(@video_offers) && Enum.empty?(@active_offers) do %>
+              <div class="text-center py-12 text-base-content/70">
+                <.icon name="hero-inbox" class="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No ads available right now.</p>
+                <p class="text-sm mt-2">Check back later or update your MeFile for more offers.</p>
+              </div>
+            <% else %>
+              <%!-- Ad type tabs --%>
+              <%= if @show_ad_type_tabs do %>
+                <.ad_type_tabs
+                  selected_ad_type={@selected_ad_type}
+                  three_tap_ad_count={length(@active_offers)}
+                  video_ad_count={length(@video_offers)}
+                />
+              <% end %>
+
+              <%= if @selected_ad_type == "three_tap" do %>
+                <%= if Enum.empty?(@active_offers) do %>
+                  <div class="text-center text-base-content/70 py-8">
+                    No 3-Tap ads available
+                  </div>
+                <% else %>
+                  <.live_component
+                    module={QlariusWeb.ThreeTapStackComponent}
+                    id="three-tap-stack"
+                    active_offers={@active_offers}
+                    user_ip={assigns[:user_ip] || "0.0.0.0"}
+                    current_scope={@current_scope}
+                    host_uri={nil}
+                    recipient={@recipient}
+                  />
+                <% end %>
+              <% else %>
+                <%= if Enum.empty?(@video_offers) do %>
+                  <div class="text-center text-base-content/70 py-8">
+                    No video ads available
+                  </div>
+                <% else %>
+                  <ul class="list bg-base-200 rounded-box shadow-md overflow-hidden">
+                    <.video_offer_list_item
+                      :for={{offer, rate} <- @video_offers}
+                      offer={offer}
+                      rate={rate}
+                      completed={offer.id in @completed_video_offers}
+                      me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
+                      recipient={@recipient}
+                    />
+                  </ul>
+                <% end %>
+              <% end %>
+            <% end %>
+          <% end %>
+        <% else %>
+          <%!-- Not authenticated --%>
+          <div class="text-center py-12">
+            <.icon name="hero-lock-closed" class="w-12 h-12 mx-auto mb-4 text-base-content/30" />
+            <p class="text-base-content/70 mb-4">Sign in to view and earn from ads</p>
+            <.link navigate={~p"/login"} class="btn btn-primary">
+              <.icon name="hero-wallet" class="w-5 h-5 mr-2" />
+              Connect your wallet
+            </.link>
+          </div>
+        <% end %>
+      </div>
+
+    </div>
+  <% end %>
+
+  <%!-- Video Player Modal --%>
+  <%= if @show_video_player && @current_video_offer do %>
+    <div
+      class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-2 animate-fade-in"
+      phx-click="close_video_player"
+    >
+      <div
+        class="bg-base-100 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto animate-fade-in"
+        phx-click-away="close_video_player"
+      >
+        <div id="video-player-content" class="p-3" onclick="event.stopPropagation()">
+          <div class="flex justify-between items-center mb-3">
+            <h2 class="text-lg font-bold">
+              <%= @current_video_offer.media_run.media_piece.ad_category.ad_category_name %>
+            </h2>
+            <button class="btn btn-sm btn-circle btn-ghost" phx-click="close_video_player">
+              ✕
+            </button>
+          </div>
+
+          <.video_player
+            current_video_offer={@current_video_offer}
+            video_payment_collected={@video_payment_collected}
+            show_replay_button={@show_replay_button}
+          />
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <%!-- Video Collection Drawer --%>
+  <%= if @current_video_offer && @show_video_player do %>
+    <.video_collection_drawer
+      current_video_offer={@current_video_offer}
+      show_collection_drawer={@show_collection_drawer && (@video_watched_complete || @video_payment_collected || @show_replay_button)}
+      video_payment_collected={@video_payment_collected}
+      show_replay_button={@show_replay_button}
+      closing={@drawer_closing}
+      has_bottom_dock={false}
+    />
+  <% end %>
+
+  <%!-- InstaTip Modal --%>
+  <%= if @current_scope do %>
+    <% tip_recipient = @insta_tip_recipient || @recipient %>
+    <.insta_tip_modal
+      show={@show_insta_tip_modal}
+      recipient_name={tip_recipient && tip_recipient.name || "Recipient"}
+      recipient_id={tip_recipient && tip_recipient.id}
+      amount={@insta_tip_amount || Decimal.new("0.00")}
+      current_balance={@current_scope.wallet_balance}
+    />
+  <% end %>
+
+  <%!-- Floating "Connect your wallet" button for unauthenticated users (only if no recipient) --%>
+  <%= if is_nil(@recipient) && (is_nil(@current_scope) || is_nil(@current_scope.true_user)) do %>
     <div class="fixed bottom-6 right-6 z-50">
       <.link
         navigate={~p"/login"}
