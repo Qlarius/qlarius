@@ -10,7 +10,10 @@ defmodule QlariusWeb.QlinkPage.Show do
   import Ecto.Query, except: [update: 2, update: 3]
   import QlariusWeb.Money, only: [format_usd: 1]
   import QlariusWeb.Components.AdsComponents
+  import QlariusWeb.Components.SplitComponents
   import QlariusWeb.InstaTipComponents
+
+  alias Qlarius.YouData.MeFiles.MeFile
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
@@ -66,9 +69,15 @@ defmodule QlariusWeb.QlinkPage.Show do
   end
 
   defp init_sponster_assigns(socket) do
+    host_uri =
+      case get_connect_info(socket, :uri) do
+        nil -> URI.parse("http://localhost")
+        uri -> uri
+      end
+
     socket
     |> assign(:show_sponster_drawer, false)
-    |> assign(:selected_ad_type, "video")
+    |> assign(:selected_ad_type, "three_tap")
     |> assign(:active_offers, [])
     |> assign(:video_offers, [])
     |> assign(:loading_offers, false)
@@ -85,6 +94,8 @@ defmodule QlariusWeb.QlinkPage.Show do
     |> assign(:insta_tip_recipient, nil)
     |> assign(:current_balance, get_current_balance(socket))
     |> assign(:show_ad_type_tabs, false)
+    |> assign(:show_split_drawer, false)
+    |> assign(:host_uri, host_uri)
   end
 
   defp get_current_balance(socket) do
@@ -143,7 +154,36 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   @impl true
   def handle_event("close_sponster_drawer", _params, socket) do
-    {:noreply, assign(socket, :show_sponster_drawer, false)}
+    {:noreply,
+     socket
+     |> assign(:show_sponster_drawer, false)
+     |> assign(:show_split_drawer, false)}
+  end
+
+  @impl true
+  def handle_event("toggle_split_drawer", _params, socket) do
+    {:noreply, assign(socket, :show_split_drawer, !socket.assigns.show_split_drawer)}
+  end
+
+  @impl true
+  def handle_event("set_split", %{"split" => split}, socket) do
+    split_amount = String.to_integer(split)
+    me_file = socket.assigns.current_scope.user.me_file
+
+    case MeFile.update_me_file_split_amount(me_file, split_amount) do
+      {:ok, updated_me_file} ->
+        current_scope =
+          Map.put(
+            socket.assigns.current_scope,
+            :user,
+            Map.put(socket.assigns.current_scope.user, :me_file, updated_me_file)
+          )
+
+        {:noreply, assign(socket, :current_scope, current_scope)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update split amount")}
+    end
   end
 
   @impl true
@@ -431,12 +471,26 @@ defmodule QlariusWeb.QlinkPage.Show do
           end)
           |> Enum.sort_by(fn {_offer, rate} -> Decimal.to_float(rate) end, :desc)
 
-        show_tabs = length(active_offers) > 0 && length(video_offers_with_rate) > 0
+        has_three_tap = length(active_offers) > 0
+        has_video = length(video_offers_with_rate) > 0
+        show_tabs = has_three_tap && has_video
+
+        # Auto-select ad type based on availability:
+        # - Both available: show tabs, default to three_tap
+        # - Only video available: auto-select video (no tabs)
+        # - Only three_tap available: auto-select three_tap (no tabs)
+        selected_ad_type =
+          cond do
+            has_three_tap -> "three_tap"
+            has_video -> "video"
+            true -> "three_tap"
+          end
 
         socket
         |> assign(:active_offers, active_offers)
         |> assign(:video_offers, video_offers_with_rate)
         |> assign(:show_ad_type_tabs, show_tabs)
+        |> assign(:selected_ad_type, selected_ad_type)
         |> assign(:loading_offers, false)
     end
   end

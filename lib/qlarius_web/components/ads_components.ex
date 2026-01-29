@@ -208,10 +208,15 @@ defmodule QlariusWeb.Components.AdsComponents do
 
   attr :media_piece, :map, required: true
   attr :show_banner, :boolean, default: false
+  # See docs/embedded_theming.md for force_light/pub_theme strategy
+  attr :force_light, :boolean, default: false
 
   def three_tap_ad(assigns) do
     ~H"""
-    <div class="bg-base-200 dark:bg-base-900/20 rounded-lg overflow-hidden shadow-sm max-w-[340px]">
+    <div class={[
+      "bg-base-200 rounded-lg overflow-hidden shadow-sm max-w-[340px]",
+      if(!@force_light, do: "dark:bg-base-900/20")
+    ]}>
       <%= if @show_banner && @media_piece.banner_image do %>
         <div class="flex justify-center items-center bg-white">
           <img
@@ -228,7 +233,10 @@ defmodule QlariusWeb.Components.AdsComponents do
       <% end %>
 
       <div class="p-4">
-        <div class="text-blue-600 dark:text-blue-300 mb-1 font-bold text-lg leading-tight">
+        <div class={[
+          "text-blue-600 mb-1 font-bold text-lg leading-tight",
+          if(!@force_light, do: "dark:text-blue-300")
+        ]}>
           <a href={@media_piece.jump_url} target="_blank" class="hover:underline">
             {@media_piece.title}
           </a>
@@ -347,6 +355,8 @@ defmodule QlariusWeb.Components.AdsComponents do
   attr :show_replay_button, :boolean, required: true
   attr :closing, :boolean, default: false
   attr :has_bottom_dock, :boolean, default: true
+  # See docs/embedded_theming.md for force_light/pub_theme strategy
+  attr :force_light, :boolean, default: false
 
   def video_collection_drawer(assigns) do
     ~H"""
@@ -355,10 +365,14 @@ defmodule QlariusWeb.Components.AdsComponents do
         "fixed inset-x-0 bottom-0 z-[60] flex justify-center",
         if(@closing, do: "animate-slide-down", else: "animate-slide-up")
       ]}>
-        <div class={[
-          "w-full max-w-md h-[240px] bg-base-100 dark:bg-base-200 rounded-t-2xl shadow-2xl border-t-4 border-primary px-6 pt-6 pointer-events-auto overflow-hidden",
-          if(@has_bottom_dock, do: "pb-[50px]", else: "pb-4")
-        ]}>
+        <div
+          data-theme={if @force_light, do: "light"}
+          class={[
+            "w-full max-w-md h-[240px] bg-base-100 rounded-t-2xl shadow-2xl border-t-4 border-primary px-6 pt-6 pointer-events-auto overflow-hidden",
+            if(!@force_light, do: "dark:bg-base-200"),
+            if(@has_bottom_dock, do: "pb-[50px]", else: "pb-4")
+          ]}
+        >
           <div class="relative">
             <%!-- Wrapper for drawer content with fade animation --%>
             <div class="transition-opacity duration-500 opacity-100">
@@ -414,6 +428,8 @@ defmodule QlariusWeb.Components.AdsComponents do
   attr :completed, :boolean, required: true
   attr :me_file_id, :integer, default: nil
   attr :recipient, :any, default: nil
+  # See docs/embedded_theming.md for force_light/pub_theme strategy
+  attr :force_light, :boolean, default: false
 
   def video_offer_list_item(assigns) do
     ~H"""
@@ -422,7 +438,7 @@ defmodule QlariusWeb.Components.AdsComponents do
         "list-row transition-all duration-200 !rounded-none",
         if(@completed,
           do: "bg-base-300 cursor-default select-none",
-          else: "cursor-pointer hover:bg-base-300 dark:hover:!bg-base-100"
+          else: ["cursor-pointer hover:bg-base-300", if(!@force_light, do: "dark:hover:!bg-base-100")]
         )
       ]}
       phx-click={if !@completed, do: "open_video_ad"}
@@ -431,8 +447,14 @@ defmodule QlariusWeb.Components.AdsComponents do
       <%= if @completed do %>
         <%!-- Completed state --%>
         <div class="flex flex-col items-start justify-start mr-1">
-          <span class="inline-flex items-center justify-center rounded-full w-8 h-8 !bg-green-200 dark:!bg-green-800">
-            <.icon name="hero-check" class="h-5 w-5 text-green-600 dark:text-green-300" />
+          <span class={[
+            "inline-flex items-center justify-center rounded-full w-8 h-8 !bg-green-200",
+            if(!@force_light, do: "dark:!bg-green-800")
+          ]}>
+            <.icon
+              name="hero-check"
+              class={"h-5 w-5 text-green-600 #{if(!@force_light, do: "dark:text-green-300", else: "")}"}
+            />
           </span>
         </div>
         <div class="list-col-grow py-2 min-h-[64px] flex flex-col justify-center">
@@ -463,7 +485,10 @@ defmodule QlariusWeb.Components.AdsComponents do
       <% else %>
         <%!-- Available state --%>
         <div class="flex flex-col items-start justify-start mr-1">
-          <span class="inline-flex items-center justify-center rounded-full w-8 h-8 !bg-sponster-200 dark:!bg-sponster-800">
+          <span class={[
+            "inline-flex items-center justify-center rounded-full w-8 h-8 !bg-sponster-200",
+            if(!@force_light, do: "dark:!bg-sponster-800")
+          ]}>
             <.icon name="hero-film" class="h-5 w-5 text-base-content" />
           </span>
         </div>

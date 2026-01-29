@@ -18,31 +18,41 @@ defmodule QlariusWeb.InstaTipComponents do
   def insta_tip_card(assigns) do
     ~H"""
     <div data-theme="light" class={["flex flex-col items-center", @add_class]}>
-      <%= if @show_image && @recipient do %>
-        <div class="w-40 h-auto md:w-50 bg-base-300 shadow-md flex items-center justify-center mt-4 mb-0 md:mb-4 overflow-hidden">
-          <img
-            src={
-              if @recipient.graphic_url do
-                QlariusWeb.Uploaders.RecipientBrandImage.url({@recipient.graphic_url, @recipient})
-              else
-                ~p"/images/tipjar_love_default.png"
-              end
-            }
-            alt={@recipient.name || "Recipient"}
-            class="object-contain w-full h-full rounded"
-          />
+      <%!-- Recipient title --%>
+      <%= if @recipient && (@show_image || @show_message) do %>
+        <div class="text-xl font-bold text-base-content text-center mt-4 mb-2">
+          {@recipient.name || "Recipient"}
         </div>
       <% end %>
 
-      <%= if @show_message && @recipient do %>
-        <div class="text-base-content/70 text-sm text-center max-w-xs p-2">
-          {@recipient.message ||
-            "Thank you for supporting this content. Your Sponster tips are greatly appreciated!"}
-        </div>
-      <% end %>
-
+      <%!-- Image and message - responsive layout --%>
       <%= if (@show_image || @show_message) && @recipient do %>
-        <div class="divider my-2" />
+        <div class="flex flex-col md:!flex-row md:items-start items-center gap-4 w-full max-w-md px-4">
+          <%= if @show_image do %>
+            <div class="w-28 h-auto flex-shrink-0 bg-base-300 shadow-md flex items-center justify-center overflow-hidden rounded">
+              <img
+                src={
+                  if @recipient.graphic_url do
+                    QlariusWeb.Uploaders.RecipientBrandImage.url({@recipient.graphic_url, @recipient})
+                  else
+                    ~p"/images/tipjar_love_default.png"
+                  end
+                }
+                alt={@recipient.name || "Recipient"}
+                class="object-contain w-full h-full"
+              />
+            </div>
+          <% end %>
+
+          <%= if @show_message do %>
+            <div class="text-base-content/70 text-base text-center md:!text-left flex-1">
+              {@recipient.message ||
+                "Thank you for supporting this content. Your Sponster tips are greatly appreciated!"}
+            </div>
+          <% end %>
+        </div>
+
+        <div class="divider my-4 w-full max-w-sm mx-auto" />
       <% end %>
 
       <div class={[

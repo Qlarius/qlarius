@@ -34,6 +34,8 @@ defmodule QlariusWeb.OfferHTML do
   attr :split_amount, :integer, default: 0
   attr :target, :any, default: nil
   attr :current_scope, :any, required: true
+  # See docs/embedded_theming.md for force_light/pub_theme strategy
+  attr :force_light, :boolean, default: false
 
   def clickable_offer(assigns) do
     # Variable extracted for potential future use but not currently referenced in template
@@ -46,8 +48,12 @@ defmodule QlariusWeb.OfferHTML do
     <div
       phx-hook="TapFeedback"
       data-phase={@phase}
+      data-theme={if @force_light, do: "light"}
       id={"offer-#{@offer.id}"}
-      class="offer-container rounded-md border border-gray-300 dark:border-gray-600 overflow-hidden cursor-pointer transition-all duration-300"
+      class={[
+        "offer-container rounded-md border border-gray-300 overflow-hidden cursor-pointer transition-all duration-300",
+        if(!@force_light, do: "dark:border-gray-600")
+      ]}
       style="width: 347px; height: 152px;"
     >
       <div class="absolute inset-0 overflow-hidden">
@@ -97,7 +103,7 @@ defmodule QlariusWeb.OfferHTML do
                 </div>
               <% end %>
             </div>
-            <.click_jump_actions phase_2_amount={@phase_2_amount} />
+            <.click_jump_actions phase_2_amount={@phase_2_amount} force_light={@force_light} />
           </.offer_container>
         </div>
       </div>
@@ -106,7 +112,10 @@ defmodule QlariusWeb.OfferHTML do
         <div class={"offer-phase phase-2 #{if @phase > 2, do: "hidden"}"}>
           <.offer_container offer={@offer} class="px-3 py-2" target={@target} recipient={@recipient}>
             <a class="block w-full h-full" href={~p"/jump/#{@offer}"} target="_blank">
-              <div class="text-blue-600 dark:text-blue-300 font-bold text-lg underline">
+              <div class={[
+                "text-blue-600 font-bold text-lg underline",
+                if(!@force_light, do: "dark:text-blue-300")
+              ]}>
                 {@offer.media_piece.title}
               </div>
               <div class="text-base-700 text-sm mb-1" style="line-height: 1.05rem">
@@ -115,7 +124,7 @@ defmodule QlariusWeb.OfferHTML do
               <div class="text-green-500 text-xs">
                 {@offer.media_piece.display_url}
               </div>
-              <.click_jump_actions phase_1_complete? phase_2_amount={@phase_2_amount} />
+              <.click_jump_actions phase_1_complete? phase_2_amount={@phase_2_amount} force_light={@force_light} />
             </a>
           </.offer_container>
         </div>
@@ -155,6 +164,7 @@ defmodule QlariusWeb.OfferHTML do
 
   attr :phase_1_complete?, :boolean, default: false
   attr :phase_2_amount, Decimal, required: true
+  attr :force_light, :boolean, default: false
 
   def click_jump_actions(assigns) do
     ~H"""
@@ -178,7 +188,8 @@ defmodule QlariusWeb.OfferHTML do
       </div>
       <div
         class={[
-          "flex-1 flex items-center justify-center border-l border-gray-300 dark:border-gray-600",
+          "flex-1 flex items-center justify-center border-l border-gray-300",
+          if(!@force_light, do: "dark:border-gray-600"),
           if(@phase_1_complete?,
             do: "bg-base-200 text-base-content",
             else: "bg-base-300 text-base-content/20"

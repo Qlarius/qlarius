@@ -1,4 +1,10 @@
 defmodule QlariusWeb.ThreeTapStackComponent do
+  @moduledoc """
+  LiveComponent for displaying a stack of 3-tap ad offers.
+
+  Accepts `force_light` assign and passes through to child offer components.
+  See docs/embedded_theming.md for force_light/pub_theme strategy.
+  """
   use Phoenix.LiveComponent
 
   import QlariusWeb.OfferHTML
@@ -23,6 +29,7 @@ defmodule QlariusWeb.ThreeTapStackComponent do
             target={@myself}
             current_scope={@current_scope}
             recipient={Map.get(assigns, :recipient)}
+            force_light={Map.get(assigns, :force_light, false)}
           />
         </div>
       <% else %>
