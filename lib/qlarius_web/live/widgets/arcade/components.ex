@@ -11,6 +11,21 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   import QlariusWeb.TiqitClassHTML
   import QlariusWeb.Components.CustomComponentsMobile
 
+  defp pluralize(count, word) do
+    word_str = to_string(word)
+
+    if count == 1 do
+      word_str
+    else
+      case word_str do
+        "series" -> "series"
+        "episode" -> "episodes"
+        "piece" -> "pieces"
+        w -> w <> "s"
+      end
+    end
+  end
+
   attr :balance, Decimal, required: true
   attr :piece, ContentPiece, required: true
   attr :group, ContentGroup, required: true
@@ -60,16 +75,16 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
               >
                 Entire {@catalog.group_type |> to_string() |> String.capitalize()}<br />
                 <span class="text-base-content/40 text-xs mt-0">
-                  ({length(@group.content_pieces)} episodes)
+                  ({length(@group.content_pieces)} {pluralize(length(@group.content_pieces), @catalog.piece_type)})
                 </span>
               </th>
               <th
                 :if={@show_catalog?}
                 class="w-40 font-semibold text-base-content text-center py-2 px-3 leading-none"
               >
-                Entire Site<br />
+                Entire {@catalog.type |> to_string() |> String.capitalize()}<br />
                 <span class="text-base-content/40 text-xs mt-0">
-                  (9 series)
+                  ({length(@catalog.content_groups)} {pluralize(length(@catalog.content_groups), @catalog.group_type)})
                 </span>
               </th>
             </tr>
@@ -113,7 +128,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         {format_usd(@tiqit_class.price)}
       </button>
     <% else %>
-      <div class="btn btn-xs btn-primary px-3 py-1 rounded disabled line-through">
+      <div class="btn btn-sm rounded-full btn-ghost px-3 py-1 opacity-50 cursor-not-allowed">
         {format_usd(@tiqit_class.price)}
       </div>
     <% end %>

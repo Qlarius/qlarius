@@ -56,26 +56,8 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
   end
 
   defp content_group_iframe_url(group) do
-    # For LiveView, we need to construct the URL differently
-    # Using the current URI from socket
-    origin = get_origin()
-    scheme = get_scheme()
-    "#{scheme}://#{origin}/widgets/arcade/group/#{group.id}"
-  end
-
-  defp get_scheme do
-    case System.get_env("PHX_HOST") do
-      nil -> "http"
-      _ -> "https"
-    end
-  end
-
-  defp get_origin do
-    # This is a simplified version - in production you'd want to get this from socket or config
-    case System.get_env("PHX_HOST") do
-      nil -> "localhost:4000"
-      host -> host
-    end
+    base_url = QlariusWeb.Endpoint.url()
+    "#{base_url}/widgets/arcade/group/#{group.id}"
   end
 
   @impl true
@@ -91,18 +73,19 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
           <div class="overflow-auto">
             <div class="p-6">
               <div class="space-y-6">
+                <!-- Breadcrumbs -->
+                <.breadcrumbs crumbs={[
+                  {@creator.name, ~p"/creators/#{@creator.id}"},
+                  {"#{String.capitalize(to_string(@catalog.type))}: #{@catalog.name}", ~p"/creators/catalogs/#{@catalog.id}"}
+                ]} current={"#{String.capitalize(to_string(@catalog.group_type))}: #{@content_group.title}"} />
+
                 <!-- Header Section -->
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div class="flex items-center gap-4">
-                    <.link navigate={~p"/creators/#{@creator.id}"} class="btn btn-ghost btn-sm">
-                      <.icon name="hero-arrow-left" class="w-4 h-4" /> Back to Creator
-                    </.link>
-                    <div>
-                      <h1 class="text-2xl font-bold text-base-content">{@content_group.title}</h1>
-                      <p class="text-base-content/60 mt-1">
-                        {@catalog.group_type |> to_string() |> String.capitalize()} • {@creator.name}
-                      </p>
-                    </div>
+                  <div>
+                    <h1 class="text-2xl font-bold text-base-content">{@content_group.title}</h1>
+                    <p class="text-base-content/60 mt-1">
+                      {@catalog.group_type |> to_string() |> String.capitalize()} • {@creator.name}
+                    </p>
                   </div>
                   <div class="flex gap-2">
                     <.link
@@ -120,7 +103,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                     </button>
                   </div>
                 </div>
-                
+
     <!-- Description and Embed Section -->
                 <div class="card bg-base-100 shadow-lg">
                   <div class="card-body">
@@ -137,7 +120,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                           <p class="text-base-content/80 italic">{@content_group.description}</p>
                         </div>
                       </div>
-                      
+
     <!-- Embed Link -->
                       <%= if Enum.any?(@content_group.content_pieces) do %>
                         <div class="border-t border-base-300 pt-6">
@@ -162,7 +145,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                                     />
                                   </div>
                                 </div>
-                                
+
     <!-- Copy notification -->
                                 <div class="copy-notification hidden absolute -top-2 -right-2 bg-success text-success-content text-xs px-2 py-1 rounded shadow-lg">
                                   Copied!
@@ -182,7 +165,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                     </div>
                   </div>
                 </div>
-                
+
     <!-- Tiqit Classes Section -->
                 <div class="space-y-4">
                   <div class="flex items-center justify-between">
@@ -220,7 +203,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                     </div>
                   <% end %>
                 </div>
-                
+
     <!-- Content Pieces Section -->
                 <div class="space-y-4">
                   <div class="flex items-center justify-between">

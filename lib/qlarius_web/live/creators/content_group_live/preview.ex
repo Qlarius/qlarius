@@ -19,24 +19,8 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Preview do
   end
 
   defp content_group_iframe_url(group) do
-    # For LiveView, we need to construct the URL differently
-    origin = get_origin()
-    scheme = get_scheme()
-    "#{scheme}://#{origin}/widgets/arcade/group/#{group.id}"
-  end
-
-  defp get_origin do
-    case System.get_env("PHX_HOST") do
-      nil -> "localhost:4000"
-      host -> host
-    end
-  end
-
-  defp get_scheme do
-    case System.get_env("PHX_HOST") do
-      nil -> "http"
-      _ -> "https"
-    end
+    base_url = QlariusWeb.Endpoint.url()
+    "#{base_url}/widgets/arcade/group/#{group.id}"
   end
 
   @impl true
@@ -62,7 +46,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Preview do
             </div>
           </div>
         </div>
-        
+
     <!-- Preview Frame -->
         <div class="card bg-base-100 shadow-xl">
           <div class="card-body">

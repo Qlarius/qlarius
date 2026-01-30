@@ -12,7 +12,7 @@ defmodule QlariusWeb.Widgets.ContentHTML do
                 ~p"/widgets/arcade/group/#{@content.content_group}?content_id=#{@content.id}&force_theme=#{@force_theme}",
               else: ~p"/widgets/arcade/group/#{@content.content_group}?content_id=#{@content.id}"
           }>
-            Back to Arcade
+            Back to <%= String.capitalize(to_string(@content.content_group.catalog.piece_type)) %> list
           </.back>
         </div>
         <div class="p-4">

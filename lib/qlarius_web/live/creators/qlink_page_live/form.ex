@@ -264,14 +264,39 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
       |> assign(show_link_modal: true, editing_link: nil, link_form: to_form(changeset))
       |> noreply()
     else
-      {:noreply, put_flash(socket, :error, "Please save the page first before adding links")}
+      {:noreply, put_flash(socket, :error, "Please save the page first before adding blocks")}
     end
   end
 
   @impl true
   def handle_event("show_edit_link_modal", %{"id" => id}, socket) do
     link = Qlink.get_link!(id) |> Repo.preload(:qlink_section)
-    changeset = Qlink.change_link(link, %{})
+
+    # Pre-populate embed_height and embed_show_title from embed_config if it exists
+    initial_attrs =
+      if link.embed_config do
+        height =
+          case {Map.get(link.embed_config, "height"), Map.get(link.embed_config, :height)} do
+            {nil, nil} -> nil
+            {h, _} when not is_nil(h) -> h
+            {_, h} -> h
+          end
+
+        show_title =
+          case {Map.get(link.embed_config, "show_title"), Map.get(link.embed_config, :show_title)} do
+            {nil, nil} -> nil
+            {s, _} when not is_nil(s) -> s
+            {_, s} -> s
+          end
+
+        %{}
+        |> then(fn attrs -> if height, do: Map.put(attrs, :embed_height, height), else: attrs end)
+        |> then(fn attrs -> if show_title != nil, do: Map.put(attrs, :embed_show_title, show_title), else: attrs end)
+      else
+        %{}
+      end
+
+    changeset = Qlink.change_link(link, initial_attrs)
 
     socket
     |> assign(show_link_modal: true, editing_link: link, link_form: to_form(changeset))
@@ -289,7 +314,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   def handle_event("validate_link", %{"qlink_link" => link_params}, socket) do
     link = socket.assigns.editing_link || %QlinkLink{qlink_page_id: socket.assigns.page.id}
 
-    link_params = detect_embed_type(link_params)
+    link_params = detect_embed_type(link_params, nil)
 
     changeset = Qlink.change_link(link, link_params)
 
@@ -300,10 +325,15 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
   @impl true
   def handle_event("save_link", %{"qlink_link" => link_params}, socket) do
+    existing_embed_config =
+      if socket.assigns.editing_link,
+        do: socket.assigns.editing_link.embed_config,
+        else: nil
+
     link_params =
       link_params
       |> normalize_link_params()
-      |> detect_embed_type()
+      |> detect_embed_type(existing_embed_config)
 
     result =
       if socket.assigns.editing_link do
@@ -331,7 +361,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
         socket
         |> assign(links: links, show_link_modal: false, editing_link: nil, link_form: nil)
-        |> put_flash(:info, "Link saved successfully")
+        |> put_flash(:info, "Block saved successfully")
         |> noreply()
 
       {:error, %Ecto.Changeset{} = changeset} ->
@@ -342,7 +372,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
         socket
         |> assign(show_link_modal: true, link_form: to_form(changeset, action: :validate))
-        |> put_flash(:error, "Failed to save link. Please check the form for errors.")
+        |> put_flash(:error, "Failed to save block. Please check the form for errors.")
         |> noreply()
     end
   end
@@ -357,11 +387,11 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
         socket
         |> assign(links: links)
-        |> put_flash(:info, "Link deleted successfully")
+        |> put_flash(:info, "Block deleted successfully")
         |> noreply()
 
       {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to delete link")}
+        {:noreply, put_flash(socket, :error, "Failed to delete block")}
     end
   end
 
@@ -506,7 +536,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
         {:noreply, socket}
 
       {:error, _reason} ->
-        {:noreply, put_flash(socket, :error, "Failed to reorder link")}
+        {:noreply, put_flash(socket, :error, "Failed to reorder block")}
     end
   end
 
@@ -648,12 +678,46 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
       "false" -> false
       val -> val
     end)
+    |> Map.update("embed_show_title", nil, fn
+      "true" -> true
+      "false" -> false
+      true -> true
+      false -> false
+      val -> val
+    end)
   end
 
-  defp detect_embed_type(link_params) do
+  defp detect_embed_type(link_params, existing_embed_config) do
     url = Map.get(link_params, "url", "")
 
-    if embed_config = QlinkLink.parse_embed_config(url) do
+    # Start with existing config or parse from URL
+    base_config = QlinkLink.parse_embed_config(url) || existing_embed_config
+
+    if base_config do
+      # Merge user-provided height into embed_config if present
+      embed_config =
+        case Map.get(link_params, "embed_height") do
+          nil -> base_config
+          "" -> base_config
+          height when is_integer(height) -> Map.put(base_config, "height", height)
+          height_str when is_binary(height_str) ->
+            case Integer.parse(height_str) do
+              {height, _} when height > 0 -> Map.put(base_config, "height", height)
+              _ -> base_config
+            end
+          _ -> base_config
+        end
+
+      # Merge user-provided show_title into embed_config (always set it explicitly)
+      embed_config =
+        case Map.get(link_params, "embed_show_title") do
+          true -> Map.put(embed_config, "show_title", true)
+          false -> Map.put(embed_config, "show_title", false)
+          "true" -> Map.put(embed_config, "show_title", true)
+          "false" -> Map.put(embed_config, "show_title", false)
+          _ -> embed_config
+        end
+
       link_params
       |> Map.put("type", "embed")
       |> Map.put("embed_config", embed_config)
@@ -834,8 +898,15 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
           <% end %>
           <div class="text-xs text-base-content/40 truncate">{@link.url}</div>
         </div>
-        <%= if @link.type == :embed do %>
-          <span class="badge badge-info badge-sm">Embed</span>
+        <%= case @link.type do %>
+          <% :embed -> %>
+            <span class="badge badge-info badge-sm">Embed</span>
+          <% :insta_tip -> %>
+            <span class="badge badge-success badge-sm">InstaTip</span>
+          <% :social_feed -> %>
+            <span class="badge badge-secondary badge-sm">Feed</span>
+          <% :standard -> %>
+            <span class="badge badge-ghost badge-sm">Link</span>
         <% end %>
         <%= unless @link.is_visible do %>
           <span class="badge badge-warning badge-sm">Hidden</span>

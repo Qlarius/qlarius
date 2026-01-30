@@ -138,9 +138,7 @@ defmodule QlariusWeb.CreatorDashboard.Show do
           <div class="overflow-auto">
             <div class="container mx-auto px-4 py-8">
               <div class="mb-6">
-                <.link navigate={~p"/creators"} class="btn btn-ghost btn-sm">
-                  ← Back to Creators
-                </.link>
+                <.breadcrumbs crumbs={[]} current={@creator.name} />
               </div>
 
               <%= if @show_edit_form do %>
@@ -333,13 +331,13 @@ defmodule QlariusWeb.CreatorDashboard.Show do
                     </div>
                   <% end %>
                 </div>
-                
+
     <!-- Tiqit Catalogs Section -->
                 <div>
                   <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold">Tiqit Catalogs</h2>
                     <.link
-                      navigate={~p"/creators/catalogs/#{@creator.id}/content_groups/new"}
+                      navigate={~p"/creators/#{@creator.id}/catalogs/new"}
                       class="btn btn-primary btn-sm"
                     >
                       New Catalog

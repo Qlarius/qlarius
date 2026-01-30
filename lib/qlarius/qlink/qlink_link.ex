@@ -19,6 +19,10 @@ defmodule Qlarius.Qlink.QlinkLink do
     field :click_count, :integer, default: 0
     field :show_tip_header, :boolean, default: true
 
+    # Virtual fields for form handling
+    field :embed_height, :integer, virtual: true
+    field :embed_show_title, :boolean, virtual: true, default: true
+
     belongs_to :qlink_page, QlinkPage
     belongs_to :qlink_section, QlinkSection
     belongs_to :recipient, Recipient
@@ -42,7 +46,9 @@ defmodule Qlarius.Qlink.QlinkLink do
       :qlink_page_id,
       :qlink_section_id,
       :recipient_id,
-      :show_tip_header
+      :show_tip_header,
+      :embed_height,
+      :embed_show_title
     ])
     |> validate_required([:type, :title, :display_order, :qlink_page_id])
     |> validate_url_unless_insta_tip()
@@ -94,9 +100,21 @@ defmodule Qlarius.Qlink.QlinkLink do
       tiktok_id = parse_tiktok_url(url) ->
         %{platform: "tiktok", video_id: tiktok_id}
 
+      same_domain_url?(url) ->
+        %{platform: "iframe", url: url}
+
       true ->
         nil
     end
+  end
+
+  defp same_domain_url?(url) do
+    base_url = QlariusWeb.Endpoint.url()
+    base_uri = URI.parse(base_url)
+    url_uri = URI.parse(url)
+
+    # Check if the host matches (handles localhost with different ports)
+    url_uri.host == base_uri.host
   end
 
   defp parse_youtube_url(url) do

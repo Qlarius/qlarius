@@ -53,22 +53,48 @@ defmodule QlariusWeb.Components.ImageUploadField do
           <span class="label-text">{@label}</span>
         </label>
       <% end %>
-      <div
-        class="w-full border-2 border-dashed border-base-300 rounded-lg flex items-center justify-center overflow-hidden"
-        phx-drop-target={@upload.ref}
-      >
-        <.live_file_input upload={@upload} class="hidden" />
-        <label
-          for={@upload.ref}
-          class="cursor-pointer p-6 text-center w-full block"
+
+      <div class={if @current_image && @current_image_url, do: "grid grid-cols-1 md:grid-cols-2 gap-4", else: ""}>
+        <!-- Current Image (left column when exists) -->
+        <%= if @current_image && @current_image_url do %>
+          <div class="p-3 bg-base-200 rounded-lg relative">
+            <%= if @on_delete do %>
+              <button
+                type="button"
+                phx-click={@on_delete}
+                data-confirm="Are you sure you want to delete this image?"
+                class="btn btn-xs btn-ghost text-error absolute top-2 right-2"
+                title="Delete Image"
+              >
+                <.icon name="hero-trash" class="w-5 h-5" />
+              </button>
+            <% end %>
+            <img
+              src={@current_image_url}
+              class="w-full max-w-32 h-auto object-cover rounded-lg"
+              alt="Current image preview"
+            />
+          </div>
+        <% end %>
+
+        <!-- Upload area (right column when current image exists, full width otherwise) -->
+        <div
+          class="w-full border-2 border-dashed border-base-300 rounded-lg flex items-center justify-center overflow-hidden"
+          phx-drop-target={@upload.ref}
         >
-          <.icon
-            name="hero-cloud-arrow-up"
-            class="w-8 h-8 mx-auto text-base-content/60 mb-2"
-          />
-          <p class="text-sm text-base-content/60">Click to upload or drag and drop</p>
-          <p class="text-xs text-base-content/40">{@accept_text}</p>
-        </label>
+          <.live_file_input upload={@upload} class="hidden" />
+          <label
+            for={@upload.ref}
+            class="cursor-pointer p-6 text-center w-full block"
+          >
+            <.icon
+              name="hero-cloud-arrow-up"
+              class="w-8 h-8 mx-auto text-base-content/60 mb-2"
+            />
+            <p class="text-sm text-base-content/60">Click to upload or drag and drop</p>
+            <p class="text-xs text-base-content/40">{@accept_text}</p>
+          </label>
+        </div>
       </div>
 
       <%= for entry <- @upload.entries do %>
@@ -108,29 +134,6 @@ defmodule QlariusWeb.Components.ImageUploadField do
 
       <%= for err <- upload_errors(@upload) do %>
         <div class="text-error text-xs mt-1">{error_to_string(err)}</div>
-      <% end %>
-
-      <%= if @current_image && @current_image_url do %>
-        <div class="mt-2 p-3 bg-base-200 rounded-lg">
-          <p class="text-sm font-medium text-base-content mb-2">Current Image:</p>
-          <div class="flex items-center gap-3">
-            <img
-              src={@current_image_url}
-              class={"#{@current_image_size} object-cover rounded-lg"}
-              alt="Current image preview"
-            />
-            <%= if @on_delete do %>
-              <button
-                type="button"
-                phx-click={@on_delete}
-                data-confirm="Are you sure you want to delete this image?"
-                class="btn btn-outline btn-error btn-sm"
-              >
-                <.icon name="hero-trash" class="w-4 h-4 mr-1" /> Delete Image
-              </button>
-            <% end %>
-          </div>
-        </div>
       <% end %>
     </div>
     """

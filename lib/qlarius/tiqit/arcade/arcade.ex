@@ -46,7 +46,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     |> Repo.get!(id)
     |> Repo.preload([
       :tiqit_classes,
-      catalog: :tiqit_classes,
+      catalog: [:tiqit_classes, :creator, :content_groups],
       content_pieces: :tiqit_classes
     ])
   end
@@ -79,7 +79,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
   # TODO use Creators.get_content_piece! instead? ... maybe
   def get_content_piece!(id) do
-    ContentPiece |> Repo.get!(id) |> Repo.preload([:content_group, :tiqit_classes])
+    ContentPiece |> Repo.get!(id) |> Repo.preload([content_group: :catalog, tiqit_classes: []])
   end
 
   def create_content(attrs \\ %{}) do

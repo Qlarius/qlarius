@@ -61,18 +61,18 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
           <div class="overflow-auto">
             <div class="p-6">
               <div class="space-y-6">
+                <!-- Breadcrumbs -->
+                <.breadcrumbs crumbs={[
+                  {@creator.name, ~p"/creators/#{@creator.id}"}
+                ]} current={"#{String.capitalize(to_string(@catalog.type))}: #{@catalog.name}"} />
+
                 <!-- Header Section -->
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div class="flex items-center gap-4">
-                    <.link navigate={~p"/creators/#{@creator.id}"} class="btn btn-ghost btn-sm">
-                      <.icon name="hero-arrow-left" class="w-4 h-4" /> Back to Creator
-                    </.link>
-                    <div>
-                      <h1 class="text-2xl font-bold text-base-content">{@catalog.name}</h1>
-                      <p class="text-base-content/60 mt-1">
-                        {@catalog.type |> to_string() |> String.capitalize()} • {@creator.name}
-                      </p>
-                    </div>
+                  <div>
+                    <h1 class="text-2xl font-bold text-base-content">{@catalog.name}</h1>
+                    <p class="text-base-content/60 mt-1">
+                      {@catalog.type |> to_string() |> String.capitalize()} • {@creator.name}
+                    </p>
                   </div>
                   <div class="flex gap-2">
                     <.link
@@ -90,7 +90,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                     </button>
                   </div>
                 </div>
-                
+
     <!-- Overview Section -->
                 <div class="card bg-base-100 shadow-lg">
                   <div class="card-body">
@@ -130,7 +130,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                     </div>
                   </div>
                 </div>
-                
+
     <!-- URL Section -->
                 <%= if @catalog.url do %>
                   <div class="card bg-base-100 shadow-lg">
@@ -156,7 +156,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                     </div>
                   </div>
                 <% end %>
-                
+
     <!-- Tiqit Classes Section -->
                 <div class="space-y-4">
                   <div class="flex items-center justify-between">
@@ -205,7 +205,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                     </div>
                   <% end %>
                 </div>
-                
+
     <!-- Content Groups Section -->
                 <div class="space-y-4">
                   <div class="flex items-center justify-between">

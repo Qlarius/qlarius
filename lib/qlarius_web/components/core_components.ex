@@ -562,6 +562,9 @@ defmodule QlariusWeb.CoreComponents do
   end
 
   # Based on https://daisyui.com/components/breadcrumb/
+  attr :crumbs, :list, default: []
+  attr :current, :string, default: nil
+
   def breadcrumbs(assigns) do
     ~H"""
     <div class="text-sm breadcrumbs">
@@ -581,6 +584,11 @@ defmodule QlariusWeb.CoreComponents do
           >
             {text}
           </.link>
+        </li>
+        <li :if={@current}>
+          <span class="text-base-content font-bold" style="text-decoration: none; cursor: default;">
+            {@current}
+          </span>
         </li>
       </ul>
     </div>
@@ -661,7 +669,7 @@ defmodule QlariusWeb.CoreComponents do
       class="relative z-50 hidden"
     >
       <.backdrop id={"#{@id}-bg"} />
-      
+
     <!-- Modal Container -->
       <div
         class="fixed inset-0 overflow-y-auto w-fit mx-auto"
@@ -692,7 +700,7 @@ defmodule QlariusWeb.CoreComponents do
                   <.icon name="hero-x-mark" class="w-5 h-5" />
                 </button>
               </div>
-              
+
     <!-- Modal Content -->
               <div id={"#{@id}-content"} class="p-0">
                 {render_slot(@inner_block)}

@@ -206,15 +206,15 @@ defmodule QlariusWeb.Router do
       live "/creators/:id/referrals", CreatorDashboard.Referrals, :index
 
       # Creator catalog/content routes (migrated from controllers)
-      live "/creators/:id/catalogs/new", Creators.CatalogLive.Form, :new
+      live "/creators/:creator_id/catalogs/new", Creators.CatalogLive.Form, :new
       live "/creators/catalogs/:id", Creators.CatalogLive.Show, :show
       live "/creators/catalogs/:id/edit", Creators.CatalogLive.Form, :edit
-      live "/creators/catalogs/:id/content_groups/new", Creators.ContentGroupLive.Form, :new
+      live "/creators/catalogs/:catalog_id/content_groups/new", Creators.ContentGroupLive.Form, :new
 
       live "/creators/content_groups/:id", Creators.ContentGroupLive.Show, :show
       live "/creators/content_groups/:id/edit", Creators.ContentGroupLive.Form, :edit
       live "/creators/content_groups/:id/preview", Creators.ContentGroupLive.Preview, :show
-      live "/creators/content_groups/:id/content_pieces/new", Creators.ContentPieceLive.Form, :new
+      live "/creators/content_groups/:content_group_id/content_pieces/new", Creators.ContentPieceLive.Form, :new
 
       live "/creators/content_pieces/:id", Creators.ContentPieceLive.Show, :show
       live "/creators/content_pieces/:id/edit", Creators.ContentPieceLive.Form, :edit
@@ -258,13 +258,13 @@ defmodule QlariusWeb.Router do
       live "/content_groups/:id", ContentGroupLive.Show, :show
       live "/content_groups/:id/edit", ContentGroupLive.Form, :edit
       live "/content_groups/:id/preview", ContentGroupLive.Preview, :show
-      live "/content_groups/:id/content_pieces/new", ContentPieceLive.Form, :new
+      live "/content_groups/:content_group_id/content_pieces/new", ContentPieceLive.Form, :new
 
       post "/content_groups/:content_group_id/add_default_tiqit_classes",
            ContentGroupController,
            :add_default_tiqit_classes
 
-      live "/catalogs/:id/content_groups/new", ContentGroupLive.Form, :new
+      live "/catalogs/:catalog_id/content_groups/new", ContentGroupLive.Form, :new
 
       resources "/", CreatorController do
         delete "/delete_image", CreatorController, :delete_image

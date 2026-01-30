@@ -52,6 +52,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{scope.user.id}")
 
       force_theme = Map.get(params, "force_theme")
+      show_title = Map.get(params, "show_title", "true") != "false"
 
       {:ok,
        socket
@@ -62,7 +63,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          group: group,
          pieces: pieces,
          selected_tiqit_class: nil,
-         force_theme: force_theme
+         force_theme: force_theme,
+         show_title: show_title
        )}
     end
   end

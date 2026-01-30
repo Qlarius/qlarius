@@ -74,9 +74,15 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
     Qlarius.Tiqit.Arcade.Arcade.write_default_piece_tiqit_classes(socket.assigns.piece)
 
     # Reload the piece to get updated tiqit classes
-    piece = Qlarius.Tiqit.Arcade.Creators.get_content_piece!(socket.assigns.piece.id)
+    piece = Creators.get_content_piece!(socket.assigns.piece.id)
 
-    {:noreply, assign(socket, :piece, piece)}
+    # Update both piece and form so the UI reflects the new tiqit classes
+    changeset = Creators.change_content_piece(piece)
+
+    {:noreply,
+     socket
+     |> assign(:piece, piece)
+     |> assign(:form, to_form(changeset))}
   end
 
   def handle_event("delete_image", _params, socket) do

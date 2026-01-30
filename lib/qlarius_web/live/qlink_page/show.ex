@@ -715,6 +715,9 @@ defmodule QlariusWeb.QlinkPage.Show do
     content_id =
       get_embed_value(embed_config, "content_id") || get_embed_value(embed_config, :content_id)
 
+    iframe_url =
+      get_embed_value(embed_config, "url") || get_embed_value(embed_config, :url)
+
     case platform do
       "youtube" when not is_nil(video_id) ->
         render_youtube_embed(assigns, video_id)
@@ -724,6 +727,9 @@ defmodule QlariusWeb.QlinkPage.Show do
 
       "tiktok" when not is_nil(video_id) ->
         render_tiktok_embed(assigns, video_id)
+
+      "iframe" when not is_nil(iframe_url) ->
+        render_iframe_embed(assigns, iframe_url)
 
       _ ->
         render_standard_link(assigns)
@@ -826,6 +832,49 @@ defmodule QlariusWeb.QlinkPage.Show do
         </blockquote>
         <script async src="https://www.tiktok.com/embed.js">
         </script>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_iframe_embed(assigns, iframe_url) do
+    embed_config = assigns.link.embed_config
+    height = get_embed_value(embed_config, "height") || get_embed_value(embed_config, :height) || 500
+
+    # Use case to properly handle false values (|| treats false as falsy)
+    show_title =
+      case {get_embed_value(embed_config, "show_title"), get_embed_value(embed_config, :show_title)} do
+        {nil, nil} -> nil
+        {s, _} when not is_nil(s) -> s
+        {_, s} -> s
+      end
+
+    # Append show_title param if explicitly set to false
+    iframe_url =
+      if show_title == false do
+        separator = if String.contains?(iframe_url, "?"), do: "&", else: "?"
+        "#{iframe_url}#{separator}show_title=false"
+      else
+        iframe_url
+      end
+
+    assigns =
+      assigns
+      |> assign(:iframe_url, iframe_url)
+      |> assign(:iframe_height, height)
+
+    ~H"""
+    <div class="mb-4 w-full rounded-2xl bg-base-200 border border-neutral/30 p-4">
+      <div class="rounded-xl overflow-hidden">
+        <iframe
+          src={@iframe_url}
+          class="w-full border-none"
+          style={"height: #{@iframe_height}px;"}
+          title={@link.title || "Embedded content"}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+        >
+        </iframe>
       </div>
     </div>
     """

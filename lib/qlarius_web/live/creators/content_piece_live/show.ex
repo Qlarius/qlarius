@@ -52,21 +52,20 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
           <div class="overflow-auto">
             <div class="p-6">
               <div class="space-y-6">
+                <!-- Breadcrumbs -->
+                <.breadcrumbs crumbs={[
+                  {@creator.name, ~p"/creators/#{@creator.id}"},
+                  {"#{String.capitalize(to_string(@catalog.type))}: #{@catalog.name}", ~p"/creators/catalogs/#{@catalog.id}"},
+                  {"#{String.capitalize(to_string(@catalog.group_type))}: #{@content_group.title}", ~p"/creators/content_groups/#{@content_group.id}"}
+                ]} current={"#{String.capitalize(to_string(@catalog.piece_type))}: #{@piece.title}"} />
+
                 <!-- Header Section -->
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div class="flex items-center gap-4">
-                    <.link
-                      navigate={~p"/creators/content_groups/#{@content_group.id}"}
-                      class="btn btn-ghost btn-sm"
-                    >
-                      <.icon name="hero-arrow-left" class="w-4 h-4" /> Back to Content Group
-                    </.link>
-                    <div>
-                      <h1 class="text-2xl font-bold text-base-content">{@piece.title}</h1>
-                      <p class="text-base-content/60 mt-1">
-                        Content Piece • ID: {@piece.id}
-                      </p>
-                    </div>
+                  <div>
+                    <h1 class="text-2xl font-bold text-base-content">{@piece.title}</h1>
+                    <p class="text-base-content/60 mt-1">
+                      Content Piece • ID: {@piece.id}
+                    </p>
                   </div>
                   <div class="flex gap-2">
                     <.link
@@ -84,7 +83,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
                     </button>
                   </div>
                 </div>
-                
+
     <!-- Content Details -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <!-- Main Content Card -->
@@ -121,7 +120,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
                               </div>
                             </div>
                           </div>
-                          
+
     <!-- Description -->
                           <div>
                             <h4 class="text-md font-medium text-base-content mb-3">Description</h4>
@@ -129,7 +128,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
                               <p class="text-base-content leading-relaxed">{@piece.description}</p>
                             </div>
                           </div>
-                          
+
     <!-- Content Group Info -->
                           <div>
                             <h4 class="text-md font-medium text-base-content mb-3 flex items-center">
@@ -161,7 +160,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
                       </div>
                     </div>
                   </div>
-                  
+
     <!-- Tiqit Classes Sidebar -->
                   <div class="lg:col-span-1">
                     <div class="card bg-base-100 shadow-lg">
@@ -187,7 +186,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
                         <% end %>
                       </div>
                     </div>
-                    
+
     <!-- Stats Card -->
                     <div class="card bg-base-100 shadow-lg mt-4">
                       <div class="card-body">

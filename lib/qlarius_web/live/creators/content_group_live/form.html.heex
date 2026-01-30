@@ -89,7 +89,9 @@
 
                   <div class="form-control mt-4">
                     <label class="label cursor-pointer">
-                      <span class="label-text font-medium">Display Piece Thumbnails</span>
+                      <span class="label-text font-medium">
+                        Display {String.capitalize(to_string(@catalog.piece_type))} Thumbnails
+                      </span>
                       <.input
                         field={@form[:show_piece_thumbnails]}
                         type="checkbox"
@@ -97,7 +99,23 @@
                       />
                     </label>
                     <div class="text-xs text-base-content/60 mt-1">
-                      Show thumbnail images in content piece lists
+                      Show thumbnail images in {to_string(@catalog.piece_type)} lists
+                    </div>
+                  </div>
+
+                  <div class="form-control mt-4">
+                    <label class="label cursor-pointer">
+                      <span class="label-text font-medium">
+                        Display {String.capitalize(to_string(@catalog.piece_type))} Descriptions
+                      </span>
+                      <.input
+                        field={@form[:show_piece_descriptions]}
+                        type="checkbox"
+                        class="checkbox checkbox-primary"
+                      />
+                    </label>
+                    <div class="text-xs text-base-content/60 mt-1">
+                      Show descriptions in {to_string(@catalog.piece_type)} lists
                     </div>
                   </div>
                 </div>
