@@ -28,6 +28,36 @@ import {hooks as colocatedHooks} from "phoenix-colocated/qlarius"
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let Hooks = {}
 
+// iOS Audio Priming - unlock audio playback on first user interaction
+// iOS Safari requires audio to be triggered by user gesture before programmatic playback works
+// This global listener ensures audio is unlocked regardless of where user first interacts
+function primeAudioForIOS() {
+  if (window.walletAudioUnlocked) return
+  
+  // Create the shared audio object if it doesn't exist
+  if (!window.walletCoinSound) {
+    window.walletCoinSound = new Audio('/sounds/coin-clink.wav')
+    window.walletCoinSound.volume = 0.5
+  }
+  
+  const sound = window.walletCoinSound
+  const originalVolume = sound.volume
+  sound.volume = 0
+  sound.currentTime = 0
+  sound.play().then(() => {
+    sound.pause()
+    sound.currentTime = 0
+    sound.volume = originalVolume
+    window.walletAudioUnlocked = true
+  }).catch(() => {
+    sound.volume = originalVolume
+  })
+}
+
+// Prime audio on first click or touch anywhere on the page
+document.addEventListener('click', primeAudioForIOS, { once: true })
+document.addEventListener('touchstart', primeAudioForIOS, { once: true })
+
 Hooks.CopyToClipboard = {
   mounted() {
     this.el.addEventListener("click", (e) => {
@@ -512,6 +542,10 @@ Hooks.TapFeedback = {
     this.handleClick = () => {
       const currentPhase = parseInt(this.el.dataset.phase || '0')
       if (currentPhase < 3) {
+        // Prime audio for iOS - must happen during user gesture to unlock audio playback
+        // This allows the WalletPulse hook to play sounds when balance updates via WebSocket
+        this.primeAudioForIOS()
+        
         if (this.timer) {
           clearTimeout(this.timer)
         }
@@ -531,6 +565,32 @@ Hooks.TapFeedback = {
     }
     
     this.el.addEventListener('click', this.handleClick)
+  },
+  
+  primeAudioForIOS() {
+    // iOS requires audio to be triggered by user gesture before programmatic playback works
+    // We play the sound silently to "unlock" the audio context
+    if (!window.walletCoinSound) {
+      window.walletCoinSound = new Audio('/sounds/coin-clink.wav')
+      window.walletCoinSound.volume = 0.5
+    }
+    
+    // Only prime if not already unlocked this session
+    if (!window.walletAudioUnlocked) {
+      const sound = window.walletCoinSound
+      const originalVolume = sound.volume
+      sound.volume = 0
+      sound.currentTime = 0
+      sound.play().then(() => {
+        sound.pause()
+        sound.currentTime = 0
+        sound.volume = originalVolume
+        window.walletAudioUnlocked = true
+      }).catch(() => {
+        // Ignore errors - audio may already be unlocked or not available
+        sound.volume = originalVolume
+      })
+    }
   },
   
   updated() {
