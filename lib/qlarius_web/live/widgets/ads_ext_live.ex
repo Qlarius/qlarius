@@ -50,15 +50,17 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
     split_code = Map.get(params, "split_code")
     recipient = Users.get_recipient_by_split_code(split_code)
 
-    show_ad_type_tabs =
-      socket.assigns.current_scope.three_tap_ad_count > 0 &&
-        socket.assigns.current_scope.video_ad_count > 0
+    {show_ad_type_tabs, selected_ad_type} =
+      QlariusWeb.Components.AdsComponents.determine_ad_type_display(
+        socket.assigns.current_scope.three_tap_ad_count,
+        socket.assigns.current_scope.video_ad_count
+      )
 
     socket =
       socket
       |> assign(:active_offers, [])
       |> assign(:video_offers, [])
-      |> assign(:selected_ad_type, "three_tap")
+      |> assign(:selected_ad_type, selected_ad_type)
       |> assign(:loading, true)
       |> assign(:host_uri, host_uri)
       |> assign(:split_code, split_code)

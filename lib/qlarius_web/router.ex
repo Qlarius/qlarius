@@ -235,6 +235,7 @@ defmodule QlariusWeb.Router do
     resources "/tiqits", TiqitController
 
     get "/jump/:id", AdJumpPageController, :jump
+    post "/jump/collect", AdJumpPageController, :collect
   end
 
   scope "/creators_cont", QlariusWeb.Creators do

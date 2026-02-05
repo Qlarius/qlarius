@@ -143,7 +143,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-3 py-2 rounded-lg border-1 border-base-300">
       <div class="flex flex-row flex-wrap justify-between items-center space-x-4">
         <div class="flex flex-row items-center justify-center">
-          <.wallet_balance balance={@balance} />
+          <.wallet_balance id="wallet-balance-arcade-strip" balance={@balance} />
           <span class="font-normal text-base-content/60 ml-2 mr-3">to spend</span>
         </div>
 
@@ -151,7 +151,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           class="btn btn-md rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 leading-none"
           phx-click="show-topup-modal"
         >
-          <.icon name="hero-arrow-left" class="w-4 h-4 mr-0" /> Top up •
+          <.icon name="hero-plus" class="w-4 h-4 mr-0" />
           <span class="font-bold">{if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}</span>
         </button>
       </div>

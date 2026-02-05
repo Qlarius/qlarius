@@ -17,7 +17,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
         <div class="flex items-center gap-3">
           <img src="/images/qadabra_logo_squares_color.svg" alt="Qadabra" class="w-8 h-8" />
           <h2 class="text-2xl font-bold tracking-tight text-base-content/50">
-            Do this first.
+            Do these first.
           </h2>
         </div>
         <div class="text-right">
@@ -145,9 +145,14 @@ defmodule QlariusWeb.Components.StrongStartComponent do
               Receive helpful alerts and notifications
             </div>
             <%= if !@progress.steps.notifications_configured do %>
-              <button phx-click={@on_mark_notifications} class="btn btn-md btn-outline rounded-full w-full text-base">
-                Mark Done
-              </button>
+              <div class="flex gap-2">
+                <.link navigate="/settings?setting=notifications" class="btn btn-md btn-primary rounded-full flex-1 text-base">
+                  View
+                </.link>
+                <button phx-click={@on_mark_notifications} class="btn btn-md btn-ghost rounded-full flex-1 text-base">
+                  Skip
+                </button>
+              </div>
             <% end %>
           </div>
         </div>

@@ -22,7 +22,7 @@ defmodule QlariusWeb.QlinkPage.Show do
     page =
       case Qlink.get_page_by_alias(page_alias) do
         nil -> nil
-        p -> Repo.preload(p, :recipient)
+        p -> Repo.preload(p, [:recipient, creator: :users])
       end
 
     case page do
@@ -471,20 +471,12 @@ defmodule QlariusWeb.QlinkPage.Show do
           end)
           |> Enum.sort_by(fn {_offer, rate} -> Decimal.to_float(rate) end, :desc)
 
-        has_three_tap = length(active_offers) > 0
-        has_video = length(video_offers_with_rate) > 0
-        show_tabs = has_three_tap && has_video
-
-        # Auto-select ad type based on availability:
-        # - Both available: show tabs, default to three_tap
-        # - Only video available: auto-select video (no tabs)
-        # - Only three_tap available: auto-select three_tap (no tabs)
-        selected_ad_type =
-          cond do
-            has_three_tap -> "three_tap"
-            has_video -> "video"
-            true -> "three_tap"
-          end
+        # Use shared helper to determine tab visibility and default ad type
+        {show_tabs, selected_ad_type} =
+          QlariusWeb.Components.AdsComponents.determine_ad_type_display(
+            length(active_offers),
+            length(video_offers_with_rate)
+          )
 
         socket
         |> assign(:active_offers, active_offers)
@@ -500,9 +492,14 @@ defmodule QlariusWeb.QlinkPage.Show do
       nil ->
         false
 
-      %{user: user} ->
+      scope ->
+        # Check both current user and true_user (for proxy user scenarios)
+        user_ids_to_check =
+          [scope.user.id, Map.get(scope, :true_user) && scope.true_user.id]
+          |> Enum.reject(&is_nil/1)
+
         Enum.any?(page.creator.users, fn creator_user ->
-          creator_user.id == user.id
+          creator_user.id in user_ids_to_check
         end)
     end
   end
@@ -634,7 +631,7 @@ defmodule QlariusWeb.QlinkPage.Show do
       |> assign(:show_header, show_header)
 
     ~H"""
-    <div class="w-full rounded-2xl bg-base-200 border border-neutral/30 p-4">
+    <div class="w-full rounded-2xl border border-neutral/50 overflow-hidden">
       <%= if @block_recipient && @current_scope && @current_scope.user do %>
         <.insta_tip_card
           recipient={@block_recipient}
@@ -752,14 +749,14 @@ defmodule QlariusWeb.QlinkPage.Show do
     assigns = assign(assigns, :video_id, video_id)
 
     ~H"""
-    <div class="mb-4">
+    <div class="w-full rounded-2xl bg-base-200 border border-neutral/30 p-4">
       <%= if @link.title do %>
         <h3 class="text-lg font-semibold mb-2">{@link.title}</h3>
       <% end %>
       <%= if @link.description do %>
         <p class="text-sm text-base-content/70 mb-3">{@link.description}</p>
       <% end %>
-      <div class="aspect-video bg-base-200 rounded-lg overflow-hidden border border-neutral/30">
+      <div class="aspect-video rounded-xl overflow-hidden">
         <iframe
           class="w-full h-full"
           src={"https://www.youtube.com/embed/#{@video_id}"}
@@ -779,14 +776,14 @@ defmodule QlariusWeb.QlinkPage.Show do
     assigns = assign(assigns, :content_id, content_id)
 
     ~H"""
-    <div class="mb-4">
+    <div class="w-full rounded-2xl bg-base-200 border border-neutral/30 p-4">
       <%= if @link.title do %>
         <h3 class="text-lg font-semibold mb-2">{@link.title}</h3>
       <% end %>
       <%= if @link.description do %>
         <p class="text-sm text-base-content/70 mb-3">{@link.description}</p>
       <% end %>
-      <div class="bg-base-200 rounded-lg overflow-hidden border border-neutral/30 p-4">
+      <div class="rounded-xl overflow-hidden">
         <iframe
           style="border-radius: 12px;"
           src={"https://open.spotify.com/embed/#{@content_id}"}
@@ -807,14 +804,14 @@ defmodule QlariusWeb.QlinkPage.Show do
     assigns = assign(assigns, :video_id, video_id)
 
     ~H"""
-    <div class="mb-4">
+    <div class="w-full rounded-2xl bg-base-200 border border-neutral/30 p-4">
       <%= if @link.title do %>
         <h3 class="text-lg font-semibold mb-2">{@link.title}</h3>
       <% end %>
       <%= if @link.description do %>
         <p class="text-sm text-base-content/70 mb-3">{@link.description}</p>
       <% end %>
-      <div class="bg-base-200 rounded-lg overflow-hidden border border-neutral/30 p-4">
+      <div class="rounded-xl overflow-hidden">
         <blockquote
           class="tiktok-embed"
           data-video-id={@video_id}
@@ -864,18 +861,16 @@ defmodule QlariusWeb.QlinkPage.Show do
       |> assign(:iframe_height, height)
 
     ~H"""
-    <div class="mb-4 w-full rounded-2xl bg-base-200 border border-neutral/30 p-4">
-      <div class="rounded-xl overflow-hidden">
-        <iframe
-          src={@iframe_url}
-          class="w-full border-none"
-          style={"height: #{@iframe_height}px;"}
-          title={@link.title || "Embedded content"}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen
-        >
-        </iframe>
-      </div>
+    <div class="w-full rounded-xl overflow-hidden border border-neutral/50">
+      <iframe
+        src={@iframe_url}
+        class="w-full border-none"
+        style={"height: #{@iframe_height}px;"}
+        title={@link.title || "Embedded content"}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+      >
+      </iframe>
     </div>
     """
   end

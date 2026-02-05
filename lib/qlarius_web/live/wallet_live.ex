@@ -142,8 +142,12 @@ defmodule QlariusWeb.WalletLive do
           </div>
         <% else %>
           <%= if Enum.empty?(@paginated_entries.entries) do %>
-            <div class="flex items-center justify-center min-h-[50vh]">
+            <div class="flex flex-col items-center justify-center min-h-[50vh] gap-4">
               <p class="text-xl text-base-content/70">No ledger activity to display.</p>
+              <p class="text-base text-base-content/60">Check out your first ads and seed this wallet.</p>
+              <.link navigate="/ads" class="btn btn-primary btn-lg rounded-full px-6 py-5 shadow-lg">
+                View Ads
+              </.link>
             </div>
           <% else %>
             <div class="flex justify-center mt-2 mb-6 space-x-2">

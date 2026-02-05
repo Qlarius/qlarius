@@ -100,7 +100,7 @@ defmodule QlariusWeb.InstaTipComponents do
     <div class={["flex-1 flex flex-col items-center md:items-start mt-0", @add_class]}>
       <div class="text-base-content/70 text-sm mt-3 mb-4">
         From your wallet <.icon name="hero-arrow-right" class="w-4 h-4 inline-block" />
-        <.wallet_balance balance={@wallet_balance} />
+        <.wallet_balance id="wallet-balance-instatip-header" balance={@wallet_balance} />
       </div>
     </div>
     """

@@ -137,6 +137,23 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   end
 
   @impl true
+  def handle_event("toggle_published", _params, socket) do
+    page = socket.assigns.page
+    new_status = !page.is_published
+
+    case Qlink.update_page(page, %{is_published: new_status}) do
+      {:ok, updated_page} ->
+        {:noreply,
+         socket
+         |> assign(:page, updated_page)
+         |> put_flash(:info, if(new_status, do: "Page published", else: "Page unpublished"))}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update publish status")}
+    end
+  end
+
+  @impl true
   def handle_event("update_social_link", params, socket) do
     id = Map.get(params, "id") || extract_id_from_params(params)
 

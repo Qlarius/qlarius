@@ -11,21 +11,63 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
   @impl Oban.Worker
   def perform(%Oban.Job{}) do
     require Logger
-    Logger.info("ActivatePendingOffersWorker: Starting activation cycle")
+    Logger.info("📊 ActivatePendingOffersWorker: Starting activation cycle")
 
     now = NaiveDateTime.utc_now()
     throttle_limit = System.get_global_variable_int("THROTTLE_AD_COUNT", 3)
     throttle_days = System.get_global_variable_int("THROTTLE_DAYS", 7)
 
+    # Get counts before activation for summary
+    pending_unthrottled = count_pending_unthrottled_offers(now)
+    pending_throttled = count_pending_throttled_offers(now)
+
     Logger.info(
-      "ActivatePendingOffersWorker: throttle_limit=#{throttle_limit}, throttle_days=#{throttle_days}"
+      "📊 Config: throttle_limit=#{throttle_limit}, throttle_days=#{throttle_days}"
     )
 
-    activate_unthrottled_offers(now)
-    activate_throttled_offers(now, throttle_limit, throttle_days)
+    Logger.info(
+      "📊 Pending offers: #{pending_unthrottled} unthrottled, #{pending_throttled} throttled"
+    )
 
-    Logger.info("ActivatePendingOffersWorker: Activation cycle complete")
+    unthrottled_activated = activate_unthrottled_offers(now)
+    {throttled_activated, throttled_blocked, me_files_processed} =
+      activate_throttled_offers(now, throttle_limit, throttle_days)
+
+    # Summary log
+    Logger.info("""
+    📊 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    📊 ACTIVATION CYCLE SUMMARY
+    📊 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    📊 Unthrottled offers activated: #{unthrottled_activated}
+    📊 Throttled offers activated:   #{throttled_activated}
+    📊 Total offers activated:       #{unthrottled_activated + throttled_activated}
+    📊 ─────────────────────────────────────────────────────
+    📊 MeFiles processed:            #{me_files_processed}
+    📊 MeFiles blocked (throttled):  #{throttled_blocked}
+    📊 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    """)
+
     :ok
+  end
+
+  defp count_pending_unthrottled_offers(now) do
+    from(o in Offer,
+      where: o.is_current == false,
+      where: o.is_throttled == false,
+      where: o.pending_until <= ^now,
+      select: count(o.id)
+    )
+    |> Repo.one()
+  end
+
+  defp count_pending_throttled_offers(now) do
+    from(o in Offer,
+      where: o.is_current == false,
+      where: o.is_throttled == true,
+      where: o.pending_until <= ^now,
+      select: count(o.id)
+    )
+    |> Repo.one()
   end
 
   defp activate_unthrottled_offers(now) do
@@ -67,12 +109,10 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
       |> Repo.all()
       |> Enum.group_by(& &1.me_file_id)
 
-    Logger.info(
-      "ActivatePendingOffersWorker: Processing throttled offers for #{map_size(throttled_offers_by_me_file)} me_files"
-    )
+    me_files_count = map_size(throttled_offers_by_me_file)
 
-    total_activated =
-      Enum.reduce(throttled_offers_by_me_file, 0, fn {me_file_id, offers}, acc ->
+    {total_activated, blocked_count} =
+      Enum.reduce(throttled_offers_by_me_file, {0, 0}, fn {me_file_id, offers}, {activated_acc, blocked_acc} ->
         current_count = count_current_throttled_offers(me_file_id)
         completed_count = count_completed_throttled_ads(me_file_id, seven_days_ago)
 
@@ -91,8 +131,8 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
             |> Repo.update_all(set: [is_current: true, updated_at: now])
 
           if activated > 0 do
-            Logger.info(
-              "ActivatePendingOffersWorker: MeFile #{me_file_id}: activated #{activated} throttled offers (current=#{current_count}, completed=#{completed_count}, limit=#{throttle_limit})"
+            Logger.debug(
+              "📊 MeFile #{me_file_id}: ✅ activated #{activated}/#{length(offers)} (current=#{current_count}, completed=#{completed_count}, slots=#{remaining_slots})"
             )
 
             Enum.each(campaign_ids, fn campaign_id ->
@@ -100,21 +140,18 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
             end)
           end
 
-          acc + activated
+          {activated_acc + activated, blocked_acc}
         else
           Logger.debug(
-            "ActivatePendingOffersWorker: MeFile #{me_file_id}: blocked (current=#{current_count}, completed=#{completed_count}, limit=#{throttle_limit})"
+            "📊 MeFile #{me_file_id}: ⛔ blocked #{length(offers)} offers (current=#{current_count}, completed=#{completed_count}, limit=#{throttle_limit})"
           )
 
-          acc
+          {activated_acc, blocked_acc + 1}
         end
       end)
 
-    Logger.info(
-      "ActivatePendingOffersWorker: Activated #{total_activated} throttled offers total"
-    )
-
-    total_activated
+    # Return tuple with counts for summary
+    {total_activated, blocked_count, me_files_count}
   end
 
   defp count_current_throttled_offers(me_file_id) do

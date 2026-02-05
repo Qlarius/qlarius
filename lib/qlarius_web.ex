@@ -19,7 +19,7 @@ defmodule QlariusWeb do
 
   def static_paths,
     do:
-      ~w(assets fonts images favicon.ico robots.txt manifest.webmanifest service-worker.js pwa-debug.html uploads sponster-tipjar-widget-ext-script.js tiqit-arqade-widget-script.js demosite)
+      ~w(assets fonts images sounds favicon.ico robots.txt manifest.webmanifest service-worker.js pwa-debug.html uploads sponster-tipjar-widget-ext-script.js tiqit-arqade-widget-script.js demosite)
 
   def router do
     quote do

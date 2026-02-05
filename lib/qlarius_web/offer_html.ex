@@ -15,6 +15,9 @@ defmodule QlariusWeb.OfferHTML do
 
   @phase_1_amount Decimal.new("0.05")
 
+  def jump_url(offer, nil), do: ~p"/jump/#{offer}"
+  def jump_url(offer, recipient), do: ~p"/jump/#{offer}?recipient_id=#{recipient.id}"
+
   def offer_skeleton(assigns) do
     ~H"""
     <div
@@ -111,7 +114,7 @@ defmodule QlariusWeb.OfferHTML do
       <div class="absolute inset-0 overflow-hidden" style="height: 150px;">
         <div class={"offer-phase phase-2 #{if @phase > 2, do: "hidden"}"}>
           <.offer_container offer={@offer} class="px-3 py-2" target={@target} recipient={@recipient}>
-            <a class="block w-full h-full" href={~p"/jump/#{@offer}"} target="_blank">
+            <a class="block w-full h-full" href={jump_url(@offer, @recipient)} target="_blank">
               <div class={[
                 "text-blue-600 font-bold text-lg underline",
                 if(!@force_light, do: "dark:text-blue-300")

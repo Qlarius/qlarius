@@ -6,10 +6,15 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
   alias Qlarius.Accounts.Scope
 
   attr :balance, :any, required: true
+  attr :id, :string, default: "wallet-balance"
 
   def wallet_balance(assigns) do
     ~H"""
-    <span class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content px-3 py-1 rounded-lg border border-sponster-300 dark:border-sponster-500">
+    <span
+      id={@id}
+      phx-hook="WalletPulse"
+      class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content px-3 py-1 rounded-lg border border-sponster-300 dark:border-sponster-500"
+    >
       <span class="font-bold">{format_usd(@balance)}</span>
     </span>
     """
@@ -74,13 +79,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
                     Welcome to the Home screen - a great overview of all your Qadabra activities.
                   </span>
                   <span class="block mt-2">
-                    Have a quick look around by exploring the screens in the menu dock below.
-                  </span>
-                  <span class="block w-full flex justify-center mt-2">
-                    <.icon
-                      name="hero-chevron-down"
-                      class="h-10 w-10 mt-5 text-primary animate-bounce"
-                    />
+                    Explore the app and look around.
                   </span>
                 </p>
               </div>
@@ -105,7 +104,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
                 <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
                   <span class="block">Build/manage your MeFile here.</span>
                   <span class="block mt-2">
-                    You've already got {@current_scope.trait_count} "tags". Add more to optimize sponsorships and fuel your wallet.
+                    You've already got {@current_scope.trait_count} "tags". Add more to optimize the sponsorships that fuel your wallet.
                   </span>
                 </p>
               </div>
@@ -115,13 +114,10 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
               <div>
                 <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
                   <span class="block">
-                    Don't spend too much time on this now. Just 5 minutes or so.
+                    HINT: Don't spend too much time on this now. 5 minutes or so is plenty to get started.
                   </span>
                   <span class="block mt-2">
-                    Start with the "ESSENTIALS" - a bucket of highest-value tags.
-                  </span>
-                  <span class="block mt-2">
-                    You can always come back to add tags later and over time.
+                    Start with the "ESSENTIALS" - a bucket of highest-value tags. You can always come back to add tags later and over time.
                   </span>
                 </p>
               </div>
@@ -130,9 +126,9 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
             <%= if @tip_data.screen == :ads do %>
               <div>
                 <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
-                  <span class="block">Engage your sponsors. Sell your attention.</span>
+                  <span class="block">Sell your attention. Engage your sponsors.</span>
                   <span class="block mt-2">Seed your wallet with these starter ads.</span>
-                  <span class="block mt-2">Build up your MeFile over time to pull more of the right ads for you.</span>
+                  <span class="block mt-2">Over time, build up your MeFile to pull more of the right ads for you.</span>
                 </p>
               </div>
             <% end %>

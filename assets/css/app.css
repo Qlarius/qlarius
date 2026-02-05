@@ -269,6 +269,23 @@
     z-index: 10;
   }
 
+  /* Wallet balance pulse animation */
+  @keyframes wallet-pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.08);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .wallet-pulse {
+    animation: wallet-pulse 350ms ease-in-out;
+  }
+
   /* Empty trait strobe (YouData theme) */
   @keyframes qlarius-youdata-strobe {
     0%, 100% {

@@ -40,11 +40,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
         Enum.map(pieces, fn piece ->
           # Use piece ID as seed for consistent but random durations
           :rand.seed(:exsplus, {piece.id, piece.id, piece.id})
-          # 19..32 range
-          hours = :rand.uniform(14) + 18
-          # 1..59 range
-          minutes = :rand.uniform(59) + 1
-          duration = :io_lib.format("~2..0B min ~2..0B sec", [hours, minutes])
+          # 19..32 minutes range
+          mins = :rand.uniform(14) + 18
+          # 1..59 seconds range
+          secs = :rand.uniform(59) + 1
+          # Format as MM:SS
+          duration = :io_lib.format("~B:~2..0B", [mins, secs])
           Map.put(piece, :duration, duration)
         end)
 

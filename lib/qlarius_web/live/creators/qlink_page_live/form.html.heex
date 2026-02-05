@@ -31,15 +31,36 @@
                 </p>
               </div>
             </div>
-            <%= if @live_action == :edit && @page.alias do %>
-              <a
-                href={~p"/@#{@page.alias}"}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="btn btn-primary btn-sm"
-              >
-                <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4 mr-2" /> View Page
-              </a>
+            
+            <%= if @live_action == :edit do %>
+              <div class="flex items-center gap-4">
+                <%!-- Published Toggle (saves immediately) --%>
+                <div class="flex items-center gap-3 px-4 py-2 bg-base-200 rounded-full">
+                  <input
+                    type="checkbox"
+                    checked={@page.is_published}
+                    phx-click="toggle_published"
+                    class="toggle toggle-success toggle-md"
+                  />
+                  <span class={[
+                    "font-semibold text-sm",
+                    if(@page.is_published, do: "text-success", else: "text-base-content/50")
+                  ]}>
+                    <%= if @page.is_published, do: "Published", else: "Draft" %>
+                  </span>
+                </div>
+                
+                <%= if @page.alias do %>
+                  <a
+                    href={~p"/@#{@page.alias}"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-primary btn-sm"
+                  >
+                    <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4 mr-2" /> View Page
+                  </a>
+                <% end %>
+              </div>
             <% end %>
           </div>
           
@@ -362,34 +383,6 @@
                   </div>
                 </div>
 
-                <!-- Publishing Section -->
-                <div class="border-t border-base-300 pt-6">
-                  <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                    <.icon name="hero-globe-alt" class="w-5 h-5 mr-3 text-success" /> Publishing
-                  </h3>
-
-                  <div class="form-control">
-                    <label class="label cursor-pointer justify-start gap-4">
-                      <input
-                        type="checkbox"
-                        name={@form[:is_published].name}
-                        value="true"
-                        checked={@form[:is_published].value == true || @form[:is_published].value == "true"}
-                        class="toggle toggle-success toggle-lg scale-125"
-                      />
-                      <span class="label-text font-medium text-lg">
-                        <%= if @form[:is_published].value == true || @form[:is_published].value == "true", do: "Published", else: "Not Published" %>
-                      </span>
-                    </label>
-                    <input type="hidden" name={@form[:is_published].name} value="false" />
-                    <label class="label">
-                      <span class="label-text-alt text-base-content/60">
-                        Published pages are visible at /@{@form[:alias].value || @page.alias ||
-                          "alias"}
-                      </span>
-                    </label>
-                  </div>
-                </div>
                 
 <!-- Form Actions -->
                 <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-base-300">

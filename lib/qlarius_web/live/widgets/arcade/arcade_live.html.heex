@@ -44,14 +44,24 @@
               />
             <% else %>
               <% default_tc = ContentPiece.default_tiqit_class(@selected_piece) %>
+              <% can_afford = Decimal.compare(@balance, default_tc.price) != :lt %>
               <button
-                phx-click="select-tiqit-class"
+                phx-click={if can_afford, do: "select-tiqit-class"}
                 phx-value-tiqit-class-id={default_tc.id}
-                class="btn btn-primary btn-lg btn-block rounded-full"
+                disabled={!can_afford}
+                class={"btn btn-lg btn-block rounded-full #{if can_afford, do: "btn-primary", else: "btn-disabled opacity-50 cursor-not-allowed"}"}
               >
                 {if Decimal.eq?(default_tc.price, 0), do: "Get", else: "Buy"} Tiqit •
                 <span class="font-bold">{format_usd(default_tc.price)}</span>
               </button>
+              <%= if !can_afford do %>
+                <div class="text-sm text-warning text-center">
+                  Not enough funds. 
+                  <button phx-click="show-topup-modal" class="link link-primary font-semibold">
+                    Top up your wallet
+                  </button>
+                </div>
+              <% end %>
               <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
             <% end %>
           </div>
@@ -71,46 +81,42 @@
           <.link
             :for={piece <- @pieces}
             patch={~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}"}
-            class={"rounded-lg p-3 flex justify-between items-center border transition-all hover:shadow-sm block
+            class={"rounded-lg p-3 flex flex-col gap-2 border transition-all hover:shadow-sm block
             #{if piece.id == @selected_piece.id, do: "bg-primary/10 border-primary text-primary", else: "bg-base-100 border-base-300 hover:bg-base-200"}"}
           >
-            <div class="flex items-center gap-3 flex-1">
+            <div class="flex items-start gap-3">
               <%= if @group.show_piece_thumbnails do %>
                 <div class="flex-shrink-0">
                   <img
                     src={content_image_url(piece, @group)}
                     alt={piece.title}
-                    class="w-10 h-10 object-cover rounded-lg"
+                    class="w-14 h-14 object-cover rounded-lg"
                   />
                 </div>
               <% end %>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold mb-1 leading-tight text-base-content">
+                <p class="text-sm font-semibold leading-tight text-base-content">
                   {piece.title}
                 </p>
                 <%= if @group.show_piece_descriptions && piece.description do %>
-                  <p class="text-xs text-base-content/60 mb-1 line-clamp-2">
+                  <p class="text-xs text-base-content/60 mt-1 line-clamp-2">
                     {piece.description}
                   </p>
                 <% end %>
-                <div class="flex items-center gap-2">
-                  <span class="badge badge-xs badge-ghost text-base-content/60">
-                    {piece.duration}
-                  </span>
-                  <span class="badge badge-xs badge-ghost text-base-content/60">
-                    {Calendar.strftime(piece.inserted_at, "%b %d, %Y")}
-                  </span>
-                </div>
+              </div>
+              <div class="flex-shrink-0">
+                <span class={"badge badge-xl h-7 rounded-full #{if Arcade.has_valid_tiqit?(@current_scope, piece), do: "!bg-sponster-400", else: "badge-primary"} #{if Decimal.eq?(ContentPiece.default_tiqit_class(piece).price, 0), do: "font-bold"}"}>
+                  <%= if Arcade.has_valid_tiqit?(@current_scope, piece) do %>
+                    <.icon name="hero-check" class="h-4 w-4 font-bold text-white" />
+                  <% else %>
+                    {ContentPiece.default_tiqit_class(piece).price |> format_usd()}
+                  <% end %>
+                </span>
               </div>
             </div>
-            <div class="ml-2">
-              <span class={"badge badge-xl h-7 rounded-full #{if Arcade.has_valid_tiqit?(@current_scope, piece), do: "!bg-sponster-400", else: "badge-primary"} #{if Decimal.eq?(ContentPiece.default_tiqit_class(piece).price, 0), do: "font-bold"}"}>
-                <%= if Arcade.has_valid_tiqit?(@current_scope, piece) do %>
-                  <.icon name="hero-check" class="h-4 w-4 font-bold text-white" />
-                <% else %>
-                  {ContentPiece.default_tiqit_class(piece).price |> format_usd()}
-                <% end %>
-              </span>
+            <div class="flex items-center gap-3 text-base-content/50 text-xs">
+              <span>{piece.duration}</span>
+              <span>{Calendar.strftime(piece.inserted_at, "%m/%d/%Y")}</span>
             </div>
           </.link>
         </div>

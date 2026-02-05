@@ -63,17 +63,19 @@
         <%= for section <- @sections do %>
           <% section_links = Enum.filter(@links, &(&1.qlink_section_id == section.id)) %>
           <%= if section_links != [] do %>
-            <div class="mb-10 mt-12">
-              <div class="divider">
+            <div class="mt-12 pt-4">
+              <div class="divider my-6 px-4">
                 <span class="text-2xl font-semibold">{section.title}</span>
               </div>
               <%= if section.description do %>
-                <p class="text-center text-lg text-base-content/70 mb-4">{section.description}</p>
+                <p class="text-center text-lg text-base-content/70 mb-6 px-4">{section.description}</p>
               <% end %>
 
-              <%= for link <- section_links do %>
-                <.render_link link={link} recipient={@recipient} current_scope={@current_scope} />
-              <% end %>
+              <div class="space-y-4">
+                <%= for link <- section_links do %>
+                  <.render_link link={link} recipient={@recipient} current_scope={@current_scope} />
+                <% end %>
+              </div>
             </div>
           <% end %>
         <% end %>
@@ -87,7 +89,7 @@
         alt="Qlink"
         class="h-8 mx-auto mb-2"
       />
-      <p class="text-xs text-base-content/50">By Qadabra</p>
+      <p class="text-xs text-base-content/50">Qadabra</p>
     </div>
   </div>
 

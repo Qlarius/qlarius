@@ -1,7 +1,51 @@
 defmodule QlariusWeb.Components.AdsComponents do
+  @moduledoc """
+  Components and helpers for ad display across the application.
+  """
   use Phoenix.Component
   import QlariusWeb.CoreComponents
   import QlariusWeb.Money
+
+  @doc """
+  Determines whether to show ad type tabs and which ad type to select by default.
+
+  Returns a tuple: `{show_tabs, selected_ad_type}`
+
+  Logic:
+  - Both ad types available: show tabs, default to "three_tap"
+  - Only 3-tap available: no tabs, select "three_tap"
+  - Only video available: no tabs, select "video"
+  - Neither available: no tabs, select "three_tap"
+
+  ## Examples
+
+      iex> determine_ad_type_display(5, 3)
+      {true, "three_tap"}
+
+      iex> determine_ad_type_display(0, 3)
+      {false, "video"}
+
+      iex> determine_ad_type_display(5, 0)
+      {false, "three_tap"}
+  """
+  def determine_ad_type_display(three_tap_count, video_count) do
+    three_tap_count = three_tap_count || 0
+    video_count = video_count || 0
+
+    has_three_tap = three_tap_count > 0
+    has_video = video_count > 0
+
+    show_tabs = has_three_tap && has_video
+
+    selected_ad_type =
+      cond do
+        has_three_tap -> "three_tap"
+        has_video -> "video"
+        true -> "three_tap"
+      end
+
+    {show_tabs, selected_ad_type}
+  end
 
   attr :selected_ad_type, :string, required: true
   attr :three_tap_ad_count, :integer, default: 0

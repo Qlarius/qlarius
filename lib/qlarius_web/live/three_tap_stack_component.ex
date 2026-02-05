@@ -95,16 +95,10 @@ defmodule QlariusWeb.ThreeTapStackComponent do
     increment_phase(socket, offer.id)
   end
 
-  defp handle_phase(socket, offer, 2, recipient, split_amount) do
-    ThreeTap.create_jump_ad_event(
-      offer,
-      recipient,
-      split_amount,
-      socket.assigns.user_ip,
-      socket.assigns.host_uri.host
-    )
-
-    send(self(), {:refresh_wallet_balance, socket.assigns.current_scope.user.me_file.id})
+  defp handle_phase(socket, offer, 2, _recipient, _split_amount) do
+    # Phase 2 click only increments the phase to show "Attention Paid" UI
+    # The actual payment and ad event creation happens in the jump page controller
+    # when the advertiser's page successfully loads
     increment_phase(socket, offer.id)
   end
 

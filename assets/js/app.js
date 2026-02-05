@@ -1491,6 +1491,78 @@ Hooks.TimezoneDetector = {
   }
 }
 
+Hooks.WalletPulse = {
+  mounted() {
+    this.lastBalance = this.el.innerText.trim()
+    this.lastBalanceNum = this.parseBalance(this.lastBalance)
+    
+    // Preload the coin sound (shared across all instances)
+    if (!window.walletCoinSound) {
+      window.walletCoinSound = new Audio('/sounds/coin-clink.wav')
+      window.walletCoinSound.volume = 0.5
+    }
+    this.coinSound = window.walletCoinSound
+  },
+  
+  parseBalance(text) {
+    // Strip $ and commas, convert to float
+    const cleaned = text.replace(/[$,]/g, '')
+    return parseFloat(cleaned) || 0
+  },
+  
+  isSoundEnabled() {
+    // Default to true if not set
+    const setting = localStorage.getItem('qlarius_wallet_credit_sounds')
+    return setting === null ? true : setting === 'true'
+  },
+  
+  updated() {
+    const newBalance = this.el.innerText.trim()
+    const newBalanceNum = this.parseBalance(newBalance)
+    
+    if (newBalance !== this.lastBalance) {
+      // Balance changed - trigger pulse animation
+      this.el.classList.remove('wallet-pulse')
+      // Force reflow to restart animation
+      void this.el.offsetWidth
+      this.el.classList.add('wallet-pulse')
+      
+      // Play coin sound only when balance increases, sounds enabled, and not recently played
+      // Use a global debounce to prevent multiple components from playing simultaneously
+      const now = Date.now()
+      const lastPlayed = window.walletSoundLastPlayed || 0
+      
+      if (newBalanceNum > this.lastBalanceNum && this.isSoundEnabled() && (now - lastPlayed > 500)) {
+        window.walletSoundLastPlayed = now
+        this.coinSound.currentTime = 0
+        this.coinSound.play().catch(() => {
+          // Ignore errors (sound file missing, autoplay blocked, etc.)
+        })
+      }
+      
+      this.lastBalance = newBalance
+      this.lastBalanceNum = newBalanceNum
+    }
+  }
+}
+
+Hooks.AudioAlertSettings = {
+  mounted() {
+    this.toggle = this.el.querySelector('#wallet-sounds-toggle')
+    
+    if (this.toggle) {
+      // Load current setting (default to true)
+      const currentSetting = localStorage.getItem('qlarius_wallet_credit_sounds')
+      this.toggle.checked = currentSetting === null ? true : currentSetting === 'true'
+      
+      // Save on change
+      this.toggle.addEventListener('change', () => {
+        localStorage.setItem('qlarius_wallet_credit_sounds', this.toggle.checked)
+      })
+    }
+  }
+}
+
 // Register service worker for PWA (but NOT in extension context to avoid caching issues)
 if ("serviceWorker" in navigator && !isExtension) {
   window.addEventListener("load", () => {

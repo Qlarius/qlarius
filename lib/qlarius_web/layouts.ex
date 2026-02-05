@@ -143,7 +143,7 @@ defmodule QlariusWeb.Layouts do
               <%= if assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") do %>
                 <.tag_count count={@current_scope.trait_count} />
               <% else %>
-                <.wallet_balance balance={@current_scope.wallet_balance} />
+                <.wallet_balance id="wallet-balance-mobile-header" balance={@current_scope.wallet_balance} />
               <% end %>
             <% end %>
           </div>
@@ -408,7 +408,7 @@ defmodule QlariusWeb.Layouts do
                         <%= if assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") do %>
                           <.tag_count count={@current_scope.trait_count} />
                         <% else %>
-                          <.wallet_balance balance={@current_scope.wallet_balance} />
+                          <.wallet_balance id="wallet-balance-dual-panel" balance={@current_scope.wallet_balance} />
                         <% end %>
                       <% end %>
                     </div>
@@ -439,7 +439,7 @@ defmodule QlariusWeb.Layouts do
                     </button>
                     <%= if assigns[:slide_over_show_wallet] && assigns[:current_scope] do %>
                       <div class="flex-shrink-0">
-                        <.wallet_balance balance={@current_scope.wallet_balance} />
+                        <.wallet_balance id="wallet-balance-slide-over" balance={@current_scope.wallet_balance} />
                       </div>
                     <% end %>
                   </div>

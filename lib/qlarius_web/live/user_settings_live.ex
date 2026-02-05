@@ -57,6 +57,22 @@ defmodule QlariusWeb.UserSettingsLive do
                   <.icon name="hero-chevron-right" class="h-5 w-5 text-base-content/40" />
                 </div>
               </li>
+
+              <li
+                class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100"
+                phx-click="open_setting"
+                phx-value-setting="audio_alerts"
+              >
+                <div class="flex items-center mr-3">
+                  <.icon name="hero-speaker-wave" class="h-6 w-6 text-base-content/70" />
+                </div>
+                <div class="list-col-grow">
+                  <div class="text-xl font-medium text-base-content">Audio Alerts</div>
+                </div>
+                <div class="flex items-center">
+                  <.icon name="hero-chevron-right" class="h-5 w-5 text-base-content/40" />
+                </div>
+              </li>
             </ul>
           </div>
 
@@ -88,20 +104,47 @@ defmodule QlariusWeb.UserSettingsLive do
     """
   end
 
-  def mount(_params, session, socket) do
+  def mount(params, session, socket) do
     user_id = socket.assigns.current_scope.user.id
     Notifications.ensure_default_preferences(user_id)
 
-    {:ok,
-     socket
-     |> assign(:title, "Settings")
-     |> assign(:current_path, "/settings")
-     |> assign(:selected_setting, nil)
-     |> init_pwa_assigns(session)
-     |> assign(:notification_preference, nil)
-     |> assign(:current_device_subscribed, false)
-     |> assign(:device_subscription_supported, true)
-     |> assign(:total_devices_subscribed, 0)}
+    socket =
+      socket
+      |> assign(:title, "Settings")
+      |> assign(:current_path, "/settings")
+      |> assign(:selected_setting, nil)
+      |> init_pwa_assigns(session)
+      |> assign(:notification_preference, nil)
+      |> assign(:current_device_subscribed, false)
+      |> assign(:device_subscription_supported, true)
+      |> assign(:total_devices_subscribed, 0)
+
+    # Auto-open a setting panel if specified in query params
+    socket =
+      case Map.get(params, "setting") do
+        "notifications" ->
+          preference = Notifications.get_preference(user_id, "web_push", "ad_count")
+          subscriptions = Notifications.get_active_subscriptions(user_id)
+
+          socket
+          |> assign(:selected_setting, "notifications")
+          |> assign(:notification_preference, preference)
+          |> assign(:total_devices_subscribed, length(subscriptions))
+
+        "time_zone" ->
+          timezone = socket.assigns.current_scope.user.timezone || Timezones.default()
+          current_time = Qlarius.DateTime.current_time_in_timezone(timezone)
+
+          socket
+          |> assign(:selected_setting, "time_zone")
+          |> assign(:current_timezone, timezone)
+          |> assign(:current_time, current_time)
+
+        _ ->
+          socket
+      end
+
+    {:ok, socket}
   end
 
   def handle_event("pwa_detected", params, socket) do
@@ -134,6 +177,10 @@ defmodule QlariusWeb.UserSettingsLive do
      |> assign(:selected_setting, "time_zone")
      |> assign(:current_timezone, timezone)
      |> assign(:current_time, current_time)}
+  end
+
+  def handle_event("open_setting", %{"setting" => "audio_alerts"}, socket) do
+    {:noreply, assign(socket, :selected_setting, "audio_alerts")}
   end
 
   def handle_event("open_setting", %{"setting" => setting}, socket) do
@@ -362,6 +409,7 @@ defmodule QlariusWeb.UserSettingsLive do
 
   defp get_setting_title("notifications"), do: "Notifications"
   defp get_setting_title("time_zone"), do: "Time Zone"
+  defp get_setting_title("audio_alerts"), do: "Audio Alerts"
   defp get_setting_title("proxy_users"), do: "Manage Proxy Users"
   defp get_setting_title(_), do: "Settings"
 
@@ -595,6 +643,46 @@ defmodule QlariusWeb.UserSettingsLive do
             <.icon name="hero-information-circle" class="w-5 h-5" />
             <span class="text-sm">
               Changing your timezone will update when notifications are sent and how all dates are displayed.
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_setting_content(%{selected_setting: "audio_alerts"} = assigns) do
+    ~H"""
+    <div class="pb-8" id="audio-alerts-settings" phx-hook="AudioAlertSettings">
+      <div class="card bg-base-200 shadow-md">
+        <div class="card-body">
+          <h2 class="card-title text-xl mb-4">
+            <.icon name="hero-speaker-wave" class="w-5 h-5" /> Audio Alerts
+          </h2>
+
+          <p class="text-sm text-base-content/60 mb-6">
+            Control sound effects in the app. These settings are saved per device.
+          </p>
+
+          <div class="form-control">
+            <div class="flex items-center justify-between p-4 bg-base-300 rounded-lg">
+              <div>
+                <div class="text-lg font-medium text-base-content">Wallet Credit Sounds</div>
+                <div class="text-sm text-base-content/60">Play a coin sound when your wallet balance increases</div>
+              </div>
+              <input
+                id="wallet-sounds-toggle"
+                type="checkbox"
+                class="toggle toggle-lg toggle-success"
+                data-setting="wallet_credit_sounds"
+              />
+            </div>
+          </div>
+
+          <div class="alert alert-info mt-6">
+            <.icon name="hero-information-circle" class="w-5 h-5" />
+            <span class="text-sm">
+              Audio settings are stored on this device only. You may have different settings on other devices.
             </span>
           </div>
         </div>
