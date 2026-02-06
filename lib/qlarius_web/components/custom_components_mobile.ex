@@ -6,28 +6,9 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
   alias Qlarius.Accounts.Scope
 
   @doc """
-  A styled toggle switch component with consistent styling across the app.
-
+  A styled toggle switch for Phoenix LiveView state.
   Uses primary color when OFF and success green when ON.
   Scaled up 1.25x from default for better mobile tap targets.
-
-  ## Examples
-
-      <.toggle
-        id="my-toggle"
-        checked={@some_value}
-        phx-click="toggle_something"
-      />
-
-      <.toggle
-        id="form-toggle"
-        name="settings[enabled]"
-        checked={@form[:enabled].value}
-        label="Enable feature"
-      />
-  """
-  @doc """
-  A styled toggle switch for Phoenix LiveView state.
   State is controlled by the `checked` prop and clicks trigger `phx-click`.
 
   ## Examples
@@ -262,6 +243,108 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
         </div>
       </div>
     <% end %>
+    """
+  end
+
+  @doc """
+  A 6-digit OTP verification code input using single-input pattern for reliability.
+  Uses one real input with visual slots - handles paste, autofill, and keyboard naturally.
+
+  ## Examples
+
+      <.otp_input
+        id="verification-otp"
+        value={@verification_code}
+        error={@verification_code_error}
+        verify_event="verify_code"
+        update_event="update_verification_code"
+      />
+  """
+  attr :id, :string, required: true
+  attr :value, :string, default: ""
+  attr :error, :string, default: nil
+  attr :verify_event, :string, required: true, doc: "Event name for auto-submit when 6 digits entered"
+  attr :update_event, :string, required: true, doc: "Event name for updating verification_code assign"
+  attr :resend_event, :string, default: nil, doc: "Event name for resending code (optional)"
+
+  def otp_input(assigns) do
+    # Split value into individual characters for display
+    chars = String.graphemes(assigns.value || "")
+    slots = for i <- 0..5, do: Enum.at(chars, i)
+    assigns = assign(assigns, :slots, slots)
+
+    ~H"""
+    <div class="form-control w-full">
+      <%!-- Single-input OTP with visual slots --%>
+      <div
+        id={@id}
+        phx-hook="OTPInput"
+        data-value={@value}
+        data-verify-event={@verify_event}
+        data-update-event={@update_event}
+        class="flex flex-col gap-4 w-full"
+      >
+        <%!-- Visual slots container with real input layered on top --%>
+        <div class="relative">
+          <%!-- Real input - visible to browser/autofill but text hidden via letter-spacing trick --%>
+          <input
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            name="verification-code"
+            maxlength="6"
+            pattern="[0-9]*"
+            value={@value}
+            data-form-type="other"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-bwignore="true"
+            class={"otp-input absolute inset-0 w-full h-full z-10 #{if @error, do: ""}"}
+            style="font-size: 1px; color: transparent; background: transparent; border: none; outline: none; caret-color: #3b82f6; padding: 0; margin: 0;"
+            aria-label="Enter 6-digit verification code"
+          />
+
+          <%!-- Visual slots that display the digits --%>
+          <div class="flex justify-center gap-2 sm:gap-3">
+            <%= for {char, i} <- Enum.with_index(@slots) do %>
+              <div
+                class={"otp-slot w-12 h-14 sm:w-14 sm:h-16 flex items-center justify-center text-2xl font-bold rounded-lg border-2 transition-all #{if @error, do: "border-error bg-error/10", else: if(i == 0 && is_nil(char), do: "border-primary bg-base-100 dark:bg-base-200 animate-pulse", else: "border-base-300 bg-base-100 dark:bg-base-200")}"}
+                data-index={i}
+              >
+                {char}
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <%!-- Status text --%>
+        <div class="text-center text-sm h-6">
+          <%= cond do %>
+            <% @error -> %>
+              <span class="text-error">{@error}</span>
+            <% String.length(@value) == 6 -> %>
+              <span class="text-base-content/60">
+                <span class="loading loading-spinner loading-xs mr-1"></span>
+                Verifying...
+              </span>
+            <% true -> %>
+              <span class="text-base-content/60">Enter the 6-digit code sent to your phone</span>
+          <% end %>
+        </div>
+      </div>
+
+      <%= if @resend_event do %>
+        <label class="label justify-center">
+          <button
+            type="button"
+            phx-click={@resend_event}
+            class="label-text-alt link link-primary text-base"
+          >
+            Resend code
+          </button>
+        </label>
+      <% end %>
+    </div>
     """
   end
 

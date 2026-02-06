@@ -5,6 +5,7 @@ defmodule QlariusWeb.RegistrationLive do
   alias Qlarius.YouData.{MeFiles, Traits}
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
   import QlariusWeb.PWAHelpers
+  import QlariusWeb.Components.CustomComponentsMobile, only: [otp_input: 1]
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
@@ -192,8 +193,7 @@ defmodule QlariusWeb.RegistrationLive do
            socket
            |> assign(:code_sent, true)
            |> assign(:mobile_number_error, nil)
-           |> assign(:verification_code, "000000")
-           |> push_event("focus", %{id: "verification-code-input"})
+           |> assign(:verification_code, "")
            |> put_flash(:info, "[DEV MODE] Use code: 000000")}
         else
           # Production mode: Send real SMS via Twilio
@@ -203,7 +203,7 @@ defmodule QlariusWeb.RegistrationLive do
                socket
                |> assign(:code_sent, true)
                |> assign(:mobile_number_error, nil)
-               |> push_event("focus", %{id: "verification-code-input"})
+               |> assign(:verification_code, "")
                |> put_flash(:info, "Verification code sent to #{phone}")}
 
             {:error, _reason} ->
@@ -234,11 +234,15 @@ defmodule QlariusWeb.RegistrationLive do
      |> assign(:verification_code_error, nil)}
   end
 
-  def handle_event("verify_code", _params, socket) do
+  def handle_event("verify_code", params, socket) do
     phone = socket.assigns.mobile_number
-    code = socket.assigns.verification_code
+    # Accept code from hook params or fall back to assign
+    code = Map.get(params, "code", socket.assigns.verification_code)
     formatted_phone = if String.starts_with?(phone, "+"), do: phone, else: "+1#{phone}"
     bypass_verification = Application.get_env(:qlarius, :bypass_phone_verification, false)
+    
+    # Update assign with the code being verified
+    socket = assign(socket, :verification_code, code)
 
     # Development bypass: Accept "000000" as valid code
     if bypass_verification && code == "000000" do
@@ -1014,57 +1018,19 @@ defmodule QlariusWeb.RegistrationLive do
           </.form>
 
           <%= if @code_sent do %>
-            <.form
-              for={%{}}
-              phx-change="update_verification_code"
-              phx-submit="verify_code"
-              autocomplete="off"
-            >
-              <div class="form-control w-full">
-                <label class="label">
-                  <span class="label-text text-lg dark:text-gray-300">Verification Code *</span>
-                </label>
-                <div class="flex flex-col gap-3 w-full">
-                  <input
-                    id="verification-code-input"
-                    name="verification_code"
-                    type="text"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    placeholder="Enter 6-digit code"
-                    maxlength="6"
-                    autocomplete="one-time-code"
-                    data-form-type="other"
-                    class={"input input-bordered input-lg w-full text-lg dark:bg-base-100 dark:text-white #{if @verification_code_error, do: "input-error"}"}
-                    value={@verification_code}
-                  />
-                  <button
-                    type="submit"
-                    class="btn btn-primary btn-lg rounded-full w-full"
-                    disabled={String.length(@verification_code) != 6}
-                  >
-                    Verify
-                  </button>
-                </div>
-                <%= if @verification_code_error do %>
-                  <div class="mt-3">
-                    <div class="badge badge-error badge-lg p-4 text-base">
-                      <.icon name="hero-x-circle" class="w-5 h-5 mr-2" />
-                      {@verification_code_error}
-                    </div>
-                  </div>
-                <% end %>
-                <label class="label">
-                  <button
-                    type="button"
-                    phx-click="send_verification_code"
-                    class="label-text-alt link link-primary text-base"
-                  >
-                    Resend code
-                  </button>
-                </label>
-              </div>
-            </.form>
+            <div class="space-y-2">
+              <label class="label">
+                <span class="label-text text-lg dark:text-gray-300">Verification Code *</span>
+              </label>
+              <.otp_input
+                id="registration-otp"
+                value={@verification_code}
+                error={@verification_code_error}
+                verify_event="verify_code"
+                update_event="update_verification_code"
+                resend_event="send_verification_code"
+              />
+            </div>
           <% end %>
         <% else %>
           <div class="card bg-success text-success-content shadow-lg">

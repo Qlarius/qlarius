@@ -3,6 +3,7 @@ defmodule QlariusWeb.LoginLive do
 
   alias Qlarius.{Auth, Accounts}
   import QlariusWeb.PWAHelpers
+  import QlariusWeb.Components.CustomComponentsMobile, only: [otp_input: 1]
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
@@ -36,7 +37,7 @@ defmodule QlariusWeb.LoginLive do
     phone = socket.assigns.mobile_number
     formatted_phone = if String.starts_with?(phone, "+"), do: phone, else: "+1#{phone}"
 
-    case Auth.get_user_by_phone(formatted_phone) do
+      case Auth.get_user_by_phone(formatted_phone) do
       nil ->
         {:noreply,
          socket
@@ -50,7 +51,7 @@ defmodule QlariusWeb.LoginLive do
              socket
              |> assign(:code_sent, true)
              |> assign(:mobile_number_error, nil)
-             |> push_event("focus", %{id: "verification-code-input"})
+             |> assign(:verification_code, "")
              |> put_flash(:info, "Verification code sent")}
 
           {:error, _reason} ->
@@ -62,6 +63,14 @@ defmodule QlariusWeb.LoginLive do
     end
   end
 
+  def handle_event("update_verification_code", %{"verification_code" => code}, socket) do
+    {:noreply,
+     socket
+     |> assign(:verification_code, code)
+     |> assign(:verification_code_error, nil)}
+  end
+
+  # Legacy handler for form change
   def handle_event("update_verification_code", %{"value" => code}, socket) do
     {:noreply,
      socket
@@ -69,7 +78,18 @@ defmodule QlariusWeb.LoginLive do
      |> assign(:verification_code_error, nil)}
   end
 
+  # Handle auto-submit from OTP component
+  def handle_event("verify_login_code", %{"code" => code}, socket) do
+    socket = assign(socket, :verification_code, code)
+    verify_login(socket)
+  end
+
+  # Handle form submit
   def handle_event("verify_login_code", _params, socket) do
+    verify_login(socket)
+  end
+
+  defp verify_login(socket) do
     phone = socket.assigns.mobile_number
     code = socket.assigns.verification_code
     formatted_phone = if String.starts_with?(phone, "+"), do: phone, else: "+1#{phone}"
@@ -95,6 +115,7 @@ defmodule QlariusWeb.LoginLive do
       {:error, _reason} ->
         {:noreply,
          socket
+         |> assign(:verification_code, "")
          |> assign(:verification_code_error, "Invalid code entered. Please try again.")
          |> put_flash(:error, "Invalid verification code")}
     end
@@ -188,57 +209,19 @@ defmodule QlariusWeb.LoginLive do
               <span>Verification code sent to {format_phone_number(@mobile_number)}</span>
             </div>
 
-            <.form
-              for={%{}}
-              phx-change="update_verification_code"
-              phx-submit="verify_login_code"
-              autocomplete="off"
-            >
-              <div class="form-control w-full">
-                <label class="label">
-                  <span class="label-text text-lg dark:text-gray-300">Verification Code</span>
-                </label>
-                <div class="flex flex-col gap-3 w-full">
-                  <input
-                    id="verification-code-input"
-                    name="value"
-                    type="text"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    placeholder="Enter 6-digit code"
-                    maxlength="6"
-                    autocomplete="one-time-code"
-                    data-form-type="other"
-                    class={"input input-bordered input-lg w-full text-lg dark:bg-base-100 dark:text-white #{if @verification_code_error, do: "input-error"}"}
-                    value={@verification_code}
-                  />
-                  <button
-                    type="submit"
-                    class="btn btn-primary btn-lg rounded-full w-full"
-                    disabled={String.length(@verification_code) != 6}
-                  >
-                    Verify
-                  </button>
-                </div>
-                <%= if @verification_code_error do %>
-                  <div class="mt-3">
-                    <div class="badge badge-error badge-lg p-4 text-base">
-                      <.icon name="hero-x-circle" class="w-5 h-5 mr-2" />
-                      {@verification_code_error}
-                    </div>
-                  </div>
-                <% end %>
-                <label class="label">
-                  <button
-                    type="button"
-                    phx-click="send_login_code"
-                    class="label-text-alt link link-primary text-base"
-                  >
-                    Resend code
-                  </button>
-                </label>
-              </div>
-            </.form>
+            <div class="space-y-2">
+              <label class="label">
+                <span class="label-text text-lg dark:text-gray-300">Verification Code</span>
+              </label>
+              <.otp_input
+                id="login-otp"
+                value={@verification_code}
+                error={@verification_code_error}
+                verify_event="verify_login_code"
+                update_event="update_verification_code"
+                resend_event="send_login_code"
+              />
+            </div>
           <% end %>
 
           <div class="text-center">

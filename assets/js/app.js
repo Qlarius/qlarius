@@ -1645,6 +1645,85 @@ Hooks.AudioAlertSettings = {
   }
 }
 
+// OTP Input - Single input with visual slots (inspired by input-otp library)
+// Uses one real input for reliability - handles paste, autofill, keyboard naturally
+Hooks.OTPInput = {
+  mounted() {
+    this.input = this.el.querySelector('.otp-input')
+    this.slots = this.el.querySelectorAll('.otp-slot')
+    this.length = 6
+    
+    // Get configurable event names from data attributes
+    this.verifyEvent = this.el.dataset.verifyEvent || 'verify_code'
+    this.updateEvent = this.el.dataset.updateEvent || 'update_verification_code'
+    
+    // Handle input changes
+    this.input.addEventListener('input', (e) => {
+      // Strip non-digits and limit to 6
+      let value = e.target.value.replace(/\D/g, '').slice(0, this.length)
+      e.target.value = value
+      
+      // Update visual slots
+      this.updateSlots(value)
+      
+      // Push to LiveView
+      this.pushEvent(this.updateEvent, { verification_code: value })
+      
+      // Auto-submit when complete
+      if (value.length === this.length) {
+        this.pushEvent(this.verifyEvent, { code: value })
+      }
+    })
+    
+    // Handle focus - highlight active slot
+    this.input.addEventListener('focus', () => {
+      this.updateActiveSlot()
+    })
+    
+    this.input.addEventListener('blur', () => {
+      this.slots.forEach(slot => slot.classList.remove('ring-2', 'ring-primary'))
+    })
+    
+    // Update active slot on selection change
+    this.input.addEventListener('keyup', () => this.updateActiveSlot())
+    this.input.addEventListener('click', () => this.updateActiveSlot())
+    
+    // No auto-focus - user tap triggers autofill reliably
+    // The pulsing first slot draws attention to tap
+  },
+  
+  updateSlots(value) {
+    const chars = value.split('')
+    this.slots.forEach((slot, i) => {
+      slot.textContent = chars[i] || ''
+    })
+    this.updateActiveSlot()
+  },
+  
+  updateActiveSlot() {
+    const pos = Math.min(this.input.value.length, this.length - 1)
+    this.slots.forEach((slot, i) => {
+      if (i === pos && document.activeElement === this.input) {
+        slot.classList.add('ring-2', 'ring-primary')
+      } else {
+        slot.classList.remove('ring-2', 'ring-primary')
+      }
+    })
+  },
+  
+  // Handle server-side updates (e.g., clear on error)
+  updated() {
+    const serverValue = this.el.dataset.value || ''
+    if (this.input.value !== serverValue) {
+      this.input.value = serverValue
+      this.updateSlots(serverValue)
+      if (serverValue === '') {
+        this.input.focus()
+      }
+    }
+  }
+}
+
 // Register service worker for PWA (but NOT in extension context to avoid caching issues)
 if ("serviceWorker" in navigator && !isExtension) {
   window.addEventListener("load", () => {
