@@ -724,8 +724,8 @@ defmodule QlariusWeb.RegistrationLive do
         </div>
       </div>
 
-      <div class="fixed bottom-0 left-0 right-0 bg-base-100 dark:bg-base-300 border-t border-base-300 dark:border-base-content/20 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div class="max-w-2xl mx-auto flex gap-3">
+      <div class="fixed bottom-0 left-0 right-0 bg-base-100 dark:bg-base-300 border-t border-base-300 dark:border-base-content/20">
+        <div class="p-4 max-w-2xl mx-auto flex gap-3">
           <%= if @current_step > 1 do %>
             <button
               phx-click="prev_step"
@@ -788,6 +788,8 @@ defmodule QlariusWeb.RegistrationLive do
             <% end %>
           <% end %>
         </div>
+        <%!-- Safe area bottom spacer for PWA home indicator --%>
+        <div class="h-[env(safe-area-inset-bottom)]"></div>
       </div>
     </div>
     """

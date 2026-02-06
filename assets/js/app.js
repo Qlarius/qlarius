@@ -888,7 +888,7 @@ Hooks.TaggerButtonObserver = {
     
     const options = {
       root: scrollContainer,
-      rootMargin: '0px 0px -120px 0px', // Trigger 20px sooner (was -80px, now -100px)
+      rootMargin: '0px 0px -80px 0px', // Account for nav bar height
       threshold: 0
     }
     
@@ -898,7 +898,7 @@ Hooks.TaggerButtonObserver = {
           // Inline button is visible, hide floating button
           this.floatingBtn.classList.add('opacity-0', 'pointer-events-none')
         } else {
-          // Inline button is out of view (below dock), show floating button
+          // Inline button is out of view (below nav bar), show floating button
           this.floatingBtn.classList.remove('opacity-0', 'pointer-events-none')
         }
       })

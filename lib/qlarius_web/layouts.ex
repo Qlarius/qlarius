@@ -267,14 +267,18 @@ defmodule QlariusWeb.Layouts do
     <.flash_group flash={@flash} />
 
     <style phx-no-curly-interpolation>
+      /* Mobile shell uses flex column - nav bar is part of flow, not fixed */
+      .mobile-shell {
+        display: flex;
+        flex-direction: column;
+        height: 100dvh;
+        overflow: hidden;
+      }
+
       .slide-panels {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        flex: 1;
+        position: relative;
         width: 100%;
-        height: 100vh;
         overflow: hidden;
         z-index: 10;
       }
@@ -282,7 +286,7 @@ defmodule QlariusWeb.Layouts do
       .slide-panels .track {
         display: flex;
         width: 200%;
-        height: 100vh;
+        height: 100%;
         transform: translateX(0);
         transition: transform 300ms ease-in-out;
       }
@@ -293,7 +297,7 @@ defmodule QlariusWeb.Layouts do
         position: relative;
         width: 50%;
         flex: 0 0 50%;
-        height: 100vh;
+        height: 100%;
         overflow: hidden;
       }
       .slide-panels .panel-scroll {
@@ -349,38 +353,17 @@ defmodule QlariusWeb.Layouts do
         display: none !important;
       }
 
-      .mobile-shell .panel-content {
-        /* Dock height + buffer for comfortable spacing */
-        padding-bottom: 8rem;
-      }
 
-
-      .mobile-shell .dock {
-        padding-bottom: 0;
-        height: 4rem;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.04);
-        border-top: 1px solid rgba(0, 0, 0, 0.04);
-      }
-
-      .dark .mobile-shell .dock {
-        box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.2);
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-      }
-
-      /* Floating action buttons - consistent position */
+      /* Floating action buttons - consistent position above nav bar (h-20 = 5rem) */
       .mobile-shell .floating-action-btn {
         position: fixed;
         right: 1.5rem;
-        bottom: 5rem;
+        bottom: 6.5rem;
         z-index: 100;
       }
     </style>
 
-    <div class={["mobile-shell", assigns[:is_pwa] && "pwa-safe"]}>
+    <div class="mobile-shell">
       <div class={[
         "slide-panels",
         assigns[:slide_over_active] && "active"
@@ -389,10 +372,7 @@ defmodule QlariusWeb.Layouts do
           <%!-- Main screen panel --%>
           <div class="panel">
             <div class="panel-scroll">
-              <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
-                <div class="bg-base-100 dark:!bg-base-300 flex-shrink-0" style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"></div>
-              <% end %>
-              <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
+              <div class="bg-base-100 dark:!bg-base-300 flex flex-col min-h-full">
                 <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
                   <div class="w-full mb-6 flex items-center flex-shrink-0">
                     <div class="w-8 flex justify-start">
@@ -413,7 +393,7 @@ defmodule QlariusWeb.Layouts do
                       <% end %>
                     </div>
                   </div>
-                  <div class="flex-1 panel-content">
+                  <div class="flex-1">
                     {render_slot(@inner_block)}
                   </div>
                   <.debug_assigns {assigns} />
@@ -425,11 +405,8 @@ defmodule QlariusWeb.Layouts do
           <%!-- Slide-over screen panel --%>
           <div class="panel">
             <div class="panel-scroll">
-              <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
-                <div class="bg-base-100 dark:!bg-base-300 flex-shrink-0" style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"></div>
-              <% end %>
-              <div class="min-h-screen bg-base-100 dark:!bg-base-300 flex flex-col">
-                <div class="container mx-auto px-4 py-6 flex-1 panel-content flex flex-col">
+              <div class="bg-base-100 dark:!bg-base-300 flex flex-col min-h-full">
+                <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
                   <div class="flex items-center justify-between mb-4">
                     <button
                       phx-click="close_slide_over"
@@ -525,63 +502,71 @@ defmodule QlariusWeb.Layouts do
         } />
       </div>
 
-      <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
-      <div :if={@current_scope} class="dock z-40">
-        <button
-          class={[assigns[:current_path] == "/home" && "dock-active"]}
-          phx-click={JS.navigate(~p"/home")}
-        >
-          <.icon name="hero-home" class="size-[1.5em]" />
-          <span class="dock-label">Home</span>
-        </button>
-
-        <button
-          class={[
-            assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") &&
-              "dock-active"
-          ]}
-          phx-click={JS.navigate(~p"/me_file")}
-        >
-          <.icon name="hero-identification" class="size-[1.5em]" />
-          <span class="dock-label">MeFile</span>
-        </button>
-
-        <button
-          class={[
-            "indicator relative",
-            assigns[:current_path] && String.starts_with?(assigns[:current_path], "/wallet") &&
-              "dock-active"
-          ]}
-          phx-click={JS.navigate(~p"/wallet")}
-        >
-          <.icon name="hero-wallet" class="size-[1.5em]" />
-          <span class="dock-label">Wallet</span>
-        </button>
-
-        <button
-          class={[
-            "indicator relative",
-            assigns[:current_path] && String.starts_with?(assigns[:current_path], "/ads") &&
-              "dock-active"
-          ]}
-          phx-click={JS.navigate(~p"/ads")}
-        >
-          <.icon name="hero-eye" class="size-[1.5em]" />
-          <span class="dock-label">Ads</span>
-          <span
-            :if={@current_scope.ads_count > 0}
-            class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-400"
-          >
-            {@current_scope.ads_count}
-          </span>
-        </button>
-
-        <button phx-click={toggle_sponster_sidebar(:on)}>
-          <.icon name="hero-ellipsis-horizontal" class="size-[1.5em]" />
-          <span class="dock-label">More</span>
-        </button>
-      </div>
+      <%!-- Bottom navigation bar - in document flow, not fixed --%>
+      <nav :if={@current_scope} class="flex-shrink-0 h-20 flex justify-around items-start pt-2 bg-base-100 border-t border-base-300 shadow-[0_-1px_4px_rgba(0,0,0,0.04)]">
+        <.nav_item
+          icon="hero-home"
+          label="Home"
+          path={~p"/home"}
+          active={assigns[:current_path] == "/home"}
+        />
+        <.nav_item
+          icon="hero-identification"
+          label="MeFile"
+          path={~p"/me_file"}
+          active={assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file")}
+        />
+        <.nav_item
+          icon="hero-wallet"
+          label="Wallet"
+          path={~p"/wallet"}
+          active={assigns[:current_path] && String.starts_with?(assigns[:current_path], "/wallet")}
+        />
+        <.nav_item
+          icon="hero-eye"
+          label="Ads"
+          path={~p"/ads"}
+          active={assigns[:current_path] && String.starts_with?(assigns[:current_path], "/ads")}
+          badge={@current_scope.ads_count}
+        />
+        <.nav_item
+          icon="hero-ellipsis-horizontal"
+          label="More"
+          on_click={toggle_sponster_sidebar(:on)}
+          active={false}
+        />
+      </nav>
     </div>
+    """
+  end
+
+  # Mobile navigation item component
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+  attr :path, :string, default: nil
+  attr :on_click, :any, default: nil
+  attr :active, :boolean, default: false
+  attr :badge, :integer, default: nil
+
+  defp nav_item(assigns) do
+    ~H"""
+    <button
+      class={[
+        "flex flex-col items-center gap-1 px-4 py-1 cursor-pointer transition-colors relative",
+        if(@active, do: "text-primary", else: "text-base-content/60")
+      ]}
+      phx-click={@on_click || JS.navigate(@path)}
+    >
+      <.icon name={@icon} class="size-6" />
+      <span class="text-[0.7rem] font-medium">{@label}</span>
+      <span class={["w-4 h-1 rounded-full", if(@active, do: "bg-primary", else: "bg-transparent")]}></span>
+      <span
+        :if={@badge && @badge > 0}
+        class="absolute left-1/2 ml-1 top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-400"
+      >
+        {@badge}
+      </span>
+    </button>
     """
   end
 
