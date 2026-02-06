@@ -6,7 +6,7 @@
 />
 <div
   id="right-sidebar"
-  class="fixed inset-y-0 right-0 z-50 w-80 transform translate-x-full transition-transform duration-300 ease-in-out bg-base-100 border-l border-base-300"
+  class="fixed inset-y-0 right-0 z-50 w-80 transform translate-x-full transition-transform duration-300 ease-in-out bg-base-100 border-l border-base-300 dark:!border-base-200"
   tabindex="1"
   phx-click-away={toggle_right_sidebar(:off)}
 >
@@ -33,8 +33,8 @@
       </div>
     </div>
     
-<!-- Content -->
-    <div class="overflow-y-auto px-4 py-4" style="height: calc(100vh - 120px);">
+<!-- Content - flex-1 fills remaining space instead of fixed height -->
+    <div class="flex-1 overflow-y-auto px-4 py-4">
       <%= if assigns[:selected_entry] && assigns[:entry_details] do %>
         <!-- Entry Amount and Date -->
         <div class="bg-base-200 rounded-lg p-4 mb-4">
