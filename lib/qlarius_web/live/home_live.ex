@@ -27,6 +27,10 @@ defmodule QlariusWeb.HomeLive do
     handle_pwa_detection(socket, params)
   end
 
+  def handle_event("referral_code_from_storage", _params, socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("skip_strong_start", _params, socket) do
     me_file = socket.assigns.current_scope.user.me_file
 

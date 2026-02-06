@@ -252,6 +252,10 @@ defmodule QlariusWeb.MeFileLive do
     handle_pwa_detection(socket, params)
   end
 
+  def handle_event("referral_code_from_storage", _params, socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("toggle_tag_view", _params, socket) do
     {:noreply, assign(socket, :show_expanded_tags, !socket.assigns.show_expanded_tags)}
   end

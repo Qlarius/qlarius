@@ -45,6 +45,10 @@ defmodule QlariusWeb.WalletLive do
     handle_pwa_detection(socket, params)
   end
 
+  def handle_event("referral_code_from_storage", _params, socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("close-ledger-entry-sidebar", _params, socket) do
     {:noreply, assign(socket, :sidebar_entry, nil)}
   end

@@ -138,9 +138,25 @@ defmodule QlariusWeb.RegistrationLive do
   end
 
   def handle_event("update_referral_code", %{"referral_code" => code}, socket) do
+    require Logger
+    trimmed = String.trim(code)
+
+    Logger.info(
+      "🎯 REFERRAL DEBUG - update_referral_code: incoming=#{inspect(trimmed)}, current=#{inspect(socket.assigns.referral_code_input)}"
+    )
+
+    # Don't clear the input if incoming is empty but we already have a value
+    # This prevents the form's initial change event from clearing a pre-populated value
+    new_value =
+      if trimmed == "" && socket.assigns.referral_code_input != "" do
+        socket.assigns.referral_code_input
+      else
+        trimmed
+      end
+
     {:noreply,
      socket
-     |> assign(:referral_code_input, String.trim(code))
+     |> assign(:referral_code_input, new_value)
      |> assign(:referral_code_error, nil)}
   end
 

@@ -261,8 +261,7 @@ defmodule QlariusWeb.QlinkPage.Show do
              |> assign(:video_watched_complete, false)
              |> assign(:show_replay_button, false)
              |> assign(:video_payment_collected, true)
-             |> assign(:completed_video_offers, completed_ids)
-             |> put_flash(:info, "Payment collected!")}
+             |> assign(:completed_video_offers, completed_ids)}
 
           {:error, _reason} ->
             {:noreply, put_flash(socket, :error, "Failed to collect payment")}

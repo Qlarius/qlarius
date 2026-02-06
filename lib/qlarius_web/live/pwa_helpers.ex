@@ -1,6 +1,8 @@
 defmodule QlariusWeb.PWAHelpers do
   @moduledoc false
 
+  require Logger
+
   use Phoenix.VerifiedRoutes,
     endpoint: QlariusWeb.Endpoint,
     router: QlariusWeb.Router,
@@ -20,8 +22,7 @@ defmodule QlariusWeb.PWAHelpers do
     # This ensures the initial render has the correct PWA status
     is_pwa = session["is_pwa"] || false
 
-    # Debug logging
-    IO.puts("🔍 [PWA Helpers] is_mobile=#{inspect(is_mobile)} is_pwa from session=#{inspect(is_pwa)}")
+    Logger.debug("[PWA Helpers] is_mobile=#{inspect(is_mobile)} is_pwa from session=#{inspect(is_pwa)}")
 
     socket
     |> assign(:is_pwa, is_pwa)
@@ -37,19 +38,17 @@ defmodule QlariusWeb.PWAHelpers do
         _ -> :mobile_phone
       end
 
-    IO.puts("🔄 [PWA Detection Event] is_mobile=#{inspect(is_mobile)} is_pwa=#{inspect(is_pwa)} device_type=#{inspect(device_type)}")
-    IO.puts("   Current assigns: is_mobile=#{inspect(socket.assigns[:is_mobile])} is_pwa=#{inspect(socket.assigns[:is_pwa])}")
+    Logger.debug("[PWA Detection] is_mobile=#{inspect(is_mobile)} is_pwa=#{inspect(is_pwa)} device_type=#{inspect(device_type)} | current: is_mobile=#{inspect(socket.assigns[:is_mobile])} is_pwa=#{inspect(socket.assigns[:is_pwa])}")
 
     # Only update if values actually changed to avoid unnecessary re-render
     socket =
       if socket.assigns[:is_pwa] != is_pwa || socket.assigns[:is_mobile] != is_mobile do
-        IO.puts("   ⚠️ Values changed! Updating assigns (this may cause flash)")
+        Logger.debug("[PWA Detection] Values changed, updating assigns")
         socket
         |> assign(:is_pwa, is_pwa)
         |> assign(:is_mobile, is_mobile)
         |> assign(:device_type, device_type_atom)
       else
-        IO.puts("   ✅ Values unchanged, no update needed")
         socket
         |> assign(:device_type, device_type_atom)
       end

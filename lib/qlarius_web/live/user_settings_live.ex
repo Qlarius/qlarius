@@ -152,6 +152,10 @@ defmodule QlariusWeb.UserSettingsLive do
     handle_pwa_detection(socket, params)
   end
 
+  def handle_event("referral_code_from_storage", _params, socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("open_setting", %{"setting" => "proxy_users"}, socket) do
     # Navigate to separate LiveView for proxy users (complex functionality)
     {:noreply, push_navigate(socket, to: ~p"/proxy_users")}

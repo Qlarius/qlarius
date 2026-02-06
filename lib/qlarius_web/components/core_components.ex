@@ -44,6 +44,8 @@ defmodule QlariusWeb.CoreComponents do
   attr :flash, :map, default: %{}, doc: "the map of flash messages to display"
   attr :title, :string, default: nil
   attr :kind, :atom, values: [:info, :error], doc: "used for styling and flash lookup"
+  attr :is_pwa, :boolean, default: false, doc: "whether running as PWA"
+  attr :is_mobile, :boolean, default: false, doc: "whether on mobile device"
   attr :rest, :global, doc: "the arbitrary HTML attributes to add to the flash container"
 
   slot :inner_block, doc: "the optional inner block that renders the flash message"
@@ -59,7 +61,10 @@ defmodule QlariusWeb.CoreComponents do
       data-kind={@kind}
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> JS.hide(to: "##{@id}")}
       role="alert"
-      class="toast toast-top toast-end"
+      class={[
+        "toast toast-top toast-end z-[1000]",
+        @is_pwa && "mt-10"
+      ]}
       {@rest}
     >
       <div class={[

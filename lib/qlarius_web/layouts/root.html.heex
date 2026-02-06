@@ -21,7 +21,7 @@
     <meta name="csrf-token" content={get_csrf_token()} />
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="32x32" />
     <link rel="apple-touch-icon" sizes="180x180" href="/images/qlarius_app_icon_180.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <%!-- Manifest link is added dynamically by JavaScript with referral code --%>
     <.live_title default="Qadabra">
       {assigns[:page_title]}
     </.live_title>
@@ -30,6 +30,46 @@
     </script>
     <script>
       (() => {
+        // Referral code sharing via Cache Storage (works across Safari <-> PWA on iOS)
+        const REFERRAL_ENDPOINT = '/_shared/referral-code';
+        
+        const refParams = new URLSearchParams(window.location.search);
+        const refCodeFromUrl = refParams.get('ref') || refParams.get('invite');
+        
+        // If we have a ref code from URL, store it everywhere
+        if (refCodeFromUrl) {
+          // Store in localStorage (works within same context)
+          try { localStorage.setItem('qadabra_referral_code', refCodeFromUrl); } catch (e) {}
+          
+          // Store in Cache Storage via service worker (SHARED between Safari and PWA on iOS!)
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(() => {
+              fetch(REFERRAL_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ referral_code: refCodeFromUrl })
+              }).then(() => {
+                console.log('🎯 Referral code saved to shared Cache Storage:', refCodeFromUrl);
+              }).catch(e => console.warn('Failed to save referral to cache:', e));
+            });
+          }
+        }
+        
+        // Try to read referral code from Cache Storage (for PWA opening without URL params)
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(() => {
+            fetch(REFERRAL_ENDPOINT).then(r => r.json()).then(data => {
+              if (data.referral_code) {
+                console.log('🎯 Referral code loaded from shared Cache Storage:', data.referral_code);
+                // Store to localStorage so our hooks can find it
+                try { localStorage.setItem('qadabra_referral_code', data.referral_code); } catch (e) {}
+                // Dispatch event for any listeners
+                window.dispatchEvent(new CustomEvent('referral-code-loaded', { detail: data.referral_code }));
+              }
+            }).catch(() => {});
+          });
+        }
+        
         const updateThemeColor = (isDark) => {
           const themeColor = isDark ? "#1f2937" : "#f3f4f6";
           let metaTag = document.querySelector('meta[name="theme-color"]:not([media])');

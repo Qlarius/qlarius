@@ -1,12 +1,50 @@
-// Version: 1.0.2 - Skip service worker in extension contexts
+// Version: 1.0.3 - Add shared referral code storage for iOS PWA
 // Don't run service worker if we detect extension/iframe context
 self.addEventListener("install", () => self.skipWaiting())
 self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim())
 })
 
+// Fake endpoint for sharing referral code between Safari and PWA via Cache Storage
+// Cache Storage IS shared on iOS, unlike localStorage/cookies
+const REFERRAL_CODE_ENDPOINT = '/_shared/referral-code'
+
 self.addEventListener("fetch", (event) => {
-  // Just pass through all requests without modification
+  const { request } = event
+  const url = new URL(request.url)
+  
+  // Handle our fake referral code endpoint
+  if (url.pathname === REFERRAL_CODE_ENDPOINT) {
+    if (request.method === 'POST') {
+      // Store referral code in cache
+      event.respondWith(
+        request.json().then(body => {
+          return caches.open('qadabra-shared-data').then(cache => {
+            const response = new Response(JSON.stringify(body))
+            cache.put(REFERRAL_CODE_ENDPOINT, response.clone())
+            return new Response(JSON.stringify({ success: true }))
+          })
+        }).catch(err => {
+          return new Response(JSON.stringify({ error: err.message }), { status: 500 })
+        })
+      )
+      return
+    } else if (request.method === 'GET') {
+      // Retrieve referral code from cache
+      event.respondWith(
+        caches.open('qadabra-shared-data').then(cache => {
+          return cache.match(REFERRAL_CODE_ENDPOINT).then(response => {
+            return response || new Response(JSON.stringify({}))
+          })
+        }).catch(() => {
+          return new Response(JSON.stringify({}))
+        })
+      )
+      return
+    }
+  }
+  
+  // Just pass through all other requests without modification
   // Let the browser handle everything naturally
   event.respondWith(fetch(event.request).catch(() => {
     // If fetch fails, return a basic error response instead of crashing

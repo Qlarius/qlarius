@@ -134,6 +134,10 @@ defmodule QlariusWeb.AdsLive do
     handle_pwa_detection(socket, params)
   end
 
+  def handle_event("referral_code_from_storage", _params, socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("toggle_sidebar", %{"state" => state}, socket) do
     js =
       if state == "on" do
@@ -247,8 +251,7 @@ defmodule QlariusWeb.AdsLive do
              |> assign(:video_watched_complete, false)
              |> assign(:show_replay_button, false)
              |> assign(:video_payment_collected, true)
-             |> assign(:completed_video_offers, completed_ids)
-             |> put_flash(:info, "Payment collected!")}
+             |> assign(:completed_video_offers, completed_ids)}
 
           {:error, reason} ->
             IO.puts("❌ Failed to create ad event")

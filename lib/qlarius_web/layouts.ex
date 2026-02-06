@@ -260,7 +260,7 @@ defmodule QlariusWeb.Layouts do
       |> Map.put_new(:is_pwa, false)
 
     ~H"""
-    <.flash_group flash={@flash} />
+    <.flash_group flash={@flash} is_pwa={@is_pwa} is_mobile={assigns[:is_mobile] || false} />
 
     <style phx-no-curly-interpolation>
       /* Mobile shell uses flex column - nav bar is part of flow, not fixed */
@@ -728,19 +728,24 @@ defmodule QlariusWeb.Layouts do
   ## Examples
 
       <.flash_group flash={@flash} />
+      <.flash_group flash={@flash} is_pwa={@is_pwa} is_mobile={@is_mobile} />
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
   attr :id, :string, default: "flash-group", doc: "the optional id of flash container"
+  attr :is_pwa, :boolean, default: false, doc: "whether running as PWA"
+  attr :is_mobile, :boolean, default: false, doc: "whether on mobile device"
 
   def flash_group(assigns) do
     ~H"""
     <div id={@id} aria-live="polite">
-      <.flash kind={:info} flash={@flash} />
-      <.flash kind={:error} flash={@flash} />
+      <.flash kind={:info} flash={@flash} is_pwa={@is_pwa} is_mobile={@is_mobile} />
+      <.flash kind={:error} flash={@flash} is_pwa={@is_pwa} is_mobile={@is_mobile} />
 
       <.flash
         id="client-error"
         kind={:error}
+        is_pwa={@is_pwa}
+        is_mobile={@is_mobile}
         title={gettext("We can't find the internet")}
         phx-disconnected={show(".phx-client-error #client-error") |> JS.remove_attribute("hidden")}
         phx-connected={hide("#client-error") |> JS.set_attribute({"hidden", ""})}
@@ -753,6 +758,8 @@ defmodule QlariusWeb.Layouts do
       <.flash
         id="server-error"
         kind={:error}
+        is_pwa={@is_pwa}
+        is_mobile={@is_mobile}
         title={gettext("Something went wrong!")}
         phx-disconnected={show(".phx-client-error #client-error") |> JS.remove_attribute("hidden")}
         phx-connected={hide("#client-error") |> JS.set_attribute({"hidden", ""})}

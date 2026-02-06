@@ -5,9 +5,16 @@ defmodule QlariusWeb.HiLive do
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
-  def mount(_params, session, socket) do
+  def mount(params, session, socket) do
     is_authenticated = !!socket.assigns[:current_scope]
     has_session_token = Map.get(session, "user_token") != nil
+
+    # Capture referral code from URL params or session to pass to registration
+    referral_code =
+      Map.get(params, "ref") ||
+        Map.get(params, "invite") ||
+        Map.get(session, "referral_code") ||
+        Map.get(session, "invitation_code")
 
     socket =
       socket
@@ -17,9 +24,16 @@ defmodule QlariusWeb.HiLive do
       |> assign(:is_authenticated, is_authenticated)
       |> assign(:has_session_token, has_session_token)
       |> assign(:show_manifesto, true)
+      |> assign(:referral_code, referral_code)
       |> init_pwa_assigns(session)
 
     {:ok, socket}
+  end
+
+  def handle_params(_params, _uri, socket) do
+    # Required for push_patch to work - we don't need to do anything here
+    # as the URL update is just to ensure the ref code is in the address bar for PWA install
+    {:noreply, socket}
   end
 
   def handle_event(
@@ -51,11 +65,33 @@ defmodule QlariusWeb.HiLive do
   end
 
   def handle_event("show_install_guide", _params, socket) do
-    {:noreply, assign(socket, :mode, :install)}
+    # Ensure the URL contains the referral code when user installs
+    # iOS PWAs use the URL bar content as start_url, not the manifest's start_url
+    ref_code = socket.assigns.referral_code
+
+    socket =
+      if ref_code && ref_code != "" do
+        socket
+        |> assign(:mode, :install)
+        |> push_patch(to: ~p"/?ref=#{ref_code}")
+      else
+        assign(socket, :mode, :install)
+      end
+
+    {:noreply, socket}
   end
 
   def handle_event("dismiss_manifesto", _params, socket) do
     {:noreply, assign(socket, :show_manifesto, false)}
+  end
+
+  def handle_event("referral_code_from_storage", %{"code" => code}, socket) do
+    # Only update if we don't already have a referral code from URL/session
+    if is_nil(socket.assigns.referral_code) or socket.assigns.referral_code == "" do
+      {:noreply, assign(socket, :referral_code, code)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("splash_complete", _params, socket) do
@@ -70,7 +106,7 @@ defmodule QlariusWeb.HiLive do
 
       # PWA users (not authenticated): go to register
       socket.assigns.is_pwa ->
-        {:noreply, push_navigate(socket, to: ~p"/register")}
+        {:noreply, push_navigate(socket, to: register_path(socket.assigns.referral_code))}
 
       # Mobile browser (not PWA): show welcome carousel with Install button
       socket.assigns.is_mobile ->
@@ -81,6 +117,10 @@ defmodule QlariusWeb.HiLive do
         {:noreply, assign(socket, :mode, :welcome)}
     end
   end
+
+  defp register_path(nil), do: ~p"/register"
+  defp register_path(""), do: ~p"/register"
+  defp register_path(code), do: ~p"/register?ref=#{code}"
 
   defp determine_mode(is_mobile, _is_pwa, _in_iframe, is_authenticated) do
     cond do
@@ -246,7 +286,7 @@ defmodule QlariusWeb.HiLive do
                   Login
                 </.link>
                 <.link
-                  navigate={~p"/register"}
+                  navigate={register_path(@referral_code)}
                   class="btn btn-primary btn-lg flex-1 rounded-full text-lg normal-case"
                 >
                   Register
@@ -270,7 +310,7 @@ defmodule QlariusWeb.HiLive do
       <h1 class="text-4xl font-bold mb-4">3-Step Easy Install</h1>
 
       <p class="text-xl text-base-content/70 mb-4">
-        Get the full mobile experience in the latest, lightest installation possible. No app store, no downloads, no waiting. Just a few clicks and you're ready to go.
+        Get the full mobile experience in the latest, lightest installation possible. No app store, no downloads, no waiting. Just 3 taps and you're ready to go.
       </p>
 
       <div class="flex flex-wrap justify-center gap-4 text-sm text-base-content/60">

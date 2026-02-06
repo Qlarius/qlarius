@@ -151,6 +151,13 @@ defmodule QlariusWeb.Router do
     post "/push/track-click", PushController, :track_click
   end
 
+  # Dynamic manifest for PWA - includes referral code in start_url
+  scope "/", QlariusWeb do
+    pipe_through [:browser]
+
+    get "/app-manifest.webmanifest", ManifestController, :show
+  end
+
   scope "/", QlariusWeb do
     pipe_through [:browser]
 

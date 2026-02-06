@@ -71,10 +71,6 @@ defmodule QlariusWeb.ReferralsLive do
     {:ok, socket}
   end
 
-  def handle_event("pwa_detected", params, socket) do
-    handle_pwa_detection(socket, params)
-  end
-
   def handle_event("save_referral_code", %{"code" => code}, socket) do
     code = String.trim(code)
 
@@ -116,33 +112,30 @@ defmodule QlariusWeb.ReferralsLive do
     {:noreply, put_flash(socket, :info, "Referral code copied to clipboard!")}
   end
 
-  def handle_event("show_payout_modal", _params, socket) do
-    {:noreply, socket}
-  end
-
-  def handle_event("cancel_payout", _params, socket) do
-    {:noreply, socket}
-  end
-
   def handle_event("confirm_payout", _params, socket) do
-    result = Referrals.process_referrer_payout("mefile", socket.assigns.me_file.id)
+    me_file = socket.assigns.me_file
+    Referrals.process_referrer_payout("mefile", me_file.id)
 
-    case result do
-      {:ok, :no_pending_clicks} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "No pending clicks to process.")
-         |> assign(:trigger_fetch_payout_amount, System.monotonic_time(:millisecond))}
+    referred_users =
+      if me_file.referral_code do
+        Referrals.list_referrals_for_referrer("mefile", me_file.id)
+      else
+        []
+      end
 
-      {:ok, _transaction} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Payout processed successfully!")
-         |> assign(:trigger_fetch_payout_amount, System.monotonic_time(:millisecond))}
+    pending_clicks_count =
+      Enum.reduce(referred_users, 0, fn user, acc -> acc + user.pending_clicks end)
 
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Failed to process payout")}
-    end
+    total_paid =
+      Enum.reduce(referred_users, Decimal.new("0.00"), fn user, acc ->
+        Decimal.add(acc, user.total_paid)
+      end)
+
+    {:noreply,
+     socket
+     |> assign(:referred_users, referred_users)
+     |> assign(:pending_clicks_count, pending_clicks_count)
+     |> assign(:total_paid, total_paid)}
   end
 
   defp calculate_next_friday_midnight do
@@ -170,7 +163,7 @@ defmodule QlariusWeb.ReferralsLive do
 
   def render(assigns) do
     ~H"""
-    <div id="referrals-pwa-detect" phx-hook="HiPagePWADetect">
+    <div>
       <Layouts.mobile {assigns}>
         <div class="container mx-auto px-4 py-6 max-w-3xl">
           <div class="space-y-6">
@@ -372,27 +365,30 @@ defmodule QlariusWeb.ReferralsLive do
           </div>
         </div>
 
-        <.modal id="payout-modal" show={false}>
-          <div class="p-6">
-            <h3 class="font-bold text-2xl mb-4">Confirm Referral Payout</h3>
-            <p class="text-base mb-4">
-              Are you sure you want to process
-              <span class="font-bold text-primary">{@pending_clicks_count}</span>
-              pending clicks for a total of <span class="font-bold text-success">${Decimal.to_string(Decimal.mult(Decimal.new("0.01"), @pending_clicks_count), :normal)}</span>?
-            </p>
-            <p class="text-sm text-base-content/70 mb-6">
-              This amount will be added to your wallet immediately.
-            </p>
-            <div class="flex justify-end gap-3">
-              <button type="button" phx-click={hide_modal("payout-modal")} class="btn btn-ghost">
-                Cancel
-              </button>
-              <button type="button" phx-click="confirm_payout" class="btn btn-primary">
-                Confirm Payout
-              </button>
+        <:modals>
+          <.modal id="payout-modal">
+            <div class="border-2 border-primary rounded-box">
+              <div class="bg-base-200 dark:bg-base-300 px-6 py-4 rounded-t-box">
+                <h3 class="font-bold text-lg">Confirm Referral Payout</h3>
+              </div>
+              <div class="p-6">
+                <p class="py-4">
+                  Process <span class="font-bold text-primary">{@pending_clicks_count}</span> pending clicks
+                  for <span class="font-bold text-success">${Decimal.to_string(Decimal.mult(Decimal.new("0.01"), @pending_clicks_count), :normal)}</span>?
+                </p>
+                <div class="modal-action">
+                  <button class="btn btn-ghost" phx-click={hide_modal("payout-modal")}>Cancel</button>
+                  <button
+                    class="btn btn-primary"
+                    phx-click={JS.push("confirm_payout") |> hide_modal("payout-modal")}
+                  >
+                    Confirm Payout
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </.modal>
+          </.modal>
+        </:modals>
       </Layouts.mobile>
     </div>
     """

@@ -46,6 +46,10 @@ defmodule QlariusWeb.ProxyUsersLive do
     handle_pwa_detection(socket, params)
   end
 
+  def handle_event("referral_code_from_storage", _params, socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("toggle_dark_mode", _params, socket) do
     {:noreply, socket}
   end
