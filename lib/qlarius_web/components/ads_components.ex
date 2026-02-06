@@ -479,51 +479,42 @@ defmodule QlariusWeb.Components.AdsComponents do
     ~H"""
     <li
       class={[
-        "list-row transition-all duration-200 !rounded-none",
+        "list-row transition-all duration-200 !rounded-none h-[120px]",
         if(@completed,
-          do: "bg-base-300 cursor-default select-none",
-          else: ["cursor-pointer hover:bg-base-300", if(!@force_light, do: "dark:hover:!bg-base-100")]
+          do: ["bg-base-300 cursor-default select-none", if(!@force_light, do: "dark:!bg-base-300")],
+          else: ["bg-base-200 cursor-pointer hover:bg-base-300", if(!@force_light, do: "dark:!bg-base-200 dark:hover:!bg-base-100")]
         )
       ]}
       phx-click={if !@completed, do: "open_video_ad"}
       phx-value-offer_id={@offer.id}
     >
       <%= if @completed do %>
-        <%!-- Completed state --%>
-        <div class="flex flex-col items-start justify-start mr-1">
-          <span class={[
-            "inline-flex items-center justify-center rounded-full w-8 h-8 !bg-green-200",
-            if(!@force_light, do: "dark:!bg-green-800")
-          ]}>
-            <.icon
-              name="hero-check"
-              class={"h-5 w-5 text-green-600 #{if(!@force_light, do: "dark:text-green-300", else: "")}"}
-            />
-          </span>
-        </div>
-        <div class="list-col-grow py-2 min-h-[64px] flex flex-col justify-center">
-          <div class="text-sm font-semibold text-base-content/70 mb-0.5">
-            Attention Paid™
+        <%!-- Completed state - matches 3-tap phase 3 layout --%>
+        <div class="flex items-center gap-4 w-full px-2">
+          <%!-- Checkmark on left --%>
+          <div class="flex-shrink-0 text-green-500">
+            <.icon name="hero-check" class="w-8 h-8" />
           </div>
-          <% # Get totals from Video context
-          {me_file_collect_total, recipient_collect_total} =
-            if @me_file_id do
-              Qlarius.Sponster.Ads.Video.calculate_offer_totals(@offer.id, @me_file_id, @recipient)
-            else
-              {Decimal.new("0"), nil}
-            end %>
-          <div class="text-xs text-base-content/50">
-            Collected: <span class="font-semibold">{format_usd(me_file_collect_total)}</span>
-          </div>
-          <%= if @recipient && recipient_collect_total do %>
-            <div class="text-xs text-base-content/50">
-              Given: <span class="font-semibold">{format_usd(recipient_collect_total)}</span>
+          <%!-- Text content on right with fixed width for alignment --%>
+          <div class="flex flex-col justify-center min-w-[160px]">
+            <div class="font-semibold text-sm text-gray-400">
+              Attention Paid™
             </div>
-          <% end %>
-        </div>
-        <div class="flex items-center">
-          <div class="text-base-content/30">
-            <.icon name="hero-check-circle" class="w-6 h-6" />
+            <% # Get totals from Video context
+            {me_file_collect_total, recipient_collect_total} =
+              if @me_file_id do
+                Qlarius.Sponster.Ads.Video.calculate_offer_totals(@offer.id, @me_file_id, @recipient)
+              else
+                {Decimal.new("0"), nil}
+              end %>
+            <div class="text-sm text-gray-400">
+              Collected: <span class="font-semibold">{format_usd(me_file_collect_total)}</span>
+            </div>
+            <%= if @recipient && recipient_collect_total do %>
+              <div class="text-sm text-gray-400">
+                Given: <span class="font-semibold">{format_usd(recipient_collect_total)}</span>
+              </div>
+            <% end %>
           </div>
         </div>
       <% else %>
@@ -536,11 +527,11 @@ defmodule QlariusWeb.Components.AdsComponents do
             <.icon name="hero-film" class="h-5 w-5 text-base-content" />
           </span>
         </div>
-        <div class="list-col-grow">
-          <div class="text-2xl font-bold mb-2">
+        <div class="list-col-grow flex flex-col justify-center">
+          <div class="text-2xl font-bold mb-1">
             ${Decimal.round(@offer.offer_amt || Decimal.new("0"), 2)}
           </div>
-          <div class="mb-2 text-base-content/50 text-base">
+          <div class="mb-1 text-base-content/50 text-base">
             {@offer.media_run.media_piece.ad_category.ad_category_name}
           </div>
           <div class="flex items-center gap-2">
