@@ -1606,20 +1606,42 @@ Hooks.WalletPulse = {
   }
 }
 
+// Generic localStorage toggle hook - works with <.local_toggle /> component
+Hooks.LocalStorageToggle = {
+  mounted() {
+    this.storageKey = 'qlarius_' + this.el.dataset.storageKey
+    this.defaultValue = this.el.dataset.default !== 'false'
+    this.knob = this.el.querySelector('.toggle-knob')
+    
+    // Load current setting
+    const stored = localStorage.getItem(this.storageKey)
+    const isEnabled = stored === null ? this.defaultValue : stored === 'true'
+    this.setVisualState(isEnabled)
+    
+    // Handle clicks
+    this.el.addEventListener('click', () => {
+      const newState = !this.isEnabled
+      this.setVisualState(newState)
+      localStorage.setItem(this.storageKey, newState)
+    })
+  },
+  
+  setVisualState(enabled) {
+    this.isEnabled = enabled
+    this.el.classList.toggle('bg-success', enabled)
+    this.el.classList.toggle('bg-primary', !enabled)
+    this.el.setAttribute('aria-checked', enabled)
+    if (this.knob) {
+      this.knob.classList.toggle('translate-x-6', enabled)
+    }
+  }
+}
+
+// Legacy hook - keep for backwards compatibility, now delegates to LocalStorageToggle pattern
 Hooks.AudioAlertSettings = {
   mounted() {
-    this.toggle = this.el.querySelector('#wallet-sounds-toggle')
-    
-    if (this.toggle) {
-      // Load current setting (default to true)
-      const currentSetting = localStorage.getItem('qlarius_wallet_credit_sounds')
-      this.toggle.checked = currentSetting === null ? true : currentSetting === 'true'
-      
-      // Save on change
-      this.toggle.addEventListener('change', () => {
-        localStorage.setItem('qlarius_wallet_credit_sounds', this.toggle.checked)
-      })
-    }
+    // The toggle now uses LocalStorageToggle hook directly, this is just a container
+    console.log('AudioAlertSettings mounted - toggle uses LocalStorageToggle hook')
   }
 }
 

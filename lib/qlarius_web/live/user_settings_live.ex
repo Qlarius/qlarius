@@ -2,7 +2,7 @@ defmodule QlariusWeb.UserSettingsLive do
   use QlariusWeb, :live_view
 
   import QlariusWeb.PWAHelpers
-  import QlariusWeb.Components.CustomComponentsMobile, only: [toggle: 1]
+  import QlariusWeb.Components.CustomComponentsMobile, only: [toggle: 1, local_toggle: 1]
   alias Qlarius.Notifications
   alias Qlarius.Accounts
   alias Qlarius.Timezones
@@ -438,7 +438,7 @@ defmodule QlariusWeb.UserSettingsLive do
               <.toggle
                 id="push-notification-toggle"
                 checked={@current_device_subscribed}
-                phx-click="toggle_enabled"
+                click="toggle_enabled"
                 disabled={!@device_subscription_supported}
               />
               <span class="text-lg font-semibold text-base-content/70">ON</span>
@@ -674,9 +674,9 @@ defmodule QlariusWeb.UserSettingsLive do
                 <div class="text-lg font-medium text-base-content">Wallet Credit Sounds</div>
                 <div class="text-sm text-base-content/60">Play a coin sound when your wallet balance increases</div>
               </div>
-              <.toggle
+              <.local_toggle
                 id="wallet-sounds-toggle"
-                data-setting="wallet_credit_sounds"
+                storage_key="wallet_credit_sounds"
               />
             </div>
           </div>

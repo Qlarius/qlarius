@@ -26,39 +26,90 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
         label="Enable feature"
       />
   """
+  @doc """
+  A styled toggle switch for Phoenix LiveView state.
+  State is controlled by the `checked` prop and clicks trigger `phx-click`.
+
+  ## Examples
+
+      <.toggle
+        id="my-toggle"
+        checked={@some_value}
+        click="toggle_something"
+      />
+  """
   attr :id, :string, required: true
   attr :name, :string, default: nil
-  attr :checked, :boolean, default: false
+  attr :checked, :any, default: false
   attr :disabled, :boolean, default: false
-  attr :label, :string, default: nil
-  attr :rest, :global, include: ~w(phx-click phx-change data-setting value)
+  attr :click, :string, default: nil, doc: "phx-click event name"
+  attr :rest, :global, include: ~w(phx-change value phx-value-hour)
 
   def toggle(assigns) do
+    # Normalize checked to boolean - handle nil, strings, etc.
+    is_checked = assigns.checked in [true, "true"]
+
+    assigns = assign(assigns, :is_checked, is_checked)
+
     ~H"""
-    <label class={[
-      "relative inline-flex items-center cursor-pointer",
-      @disabled && "opacity-50 cursor-not-allowed"
-    ]}>
+    <span
+      id={@id}
+      phx-click={@click}
+      class={[
+        "inline-flex items-center w-14 min-w-14 shrink-0 h-8 rounded-full cursor-pointer transition-colors duration-200 relative overflow-hidden",
+        if(@is_checked, do: "bg-success", else: "bg-primary"),
+        @disabled && "opacity-50 cursor-not-allowed"
+      ]}
+      role="switch"
+      aria-checked={@is_checked}
+    >
+      <span class={[
+        "absolute top-1 left-1 bg-white rounded-full h-6 w-6 shadow-md transition-transform duration-200",
+        @is_checked && "translate-x-6"
+      ]}>
+      </span>
       <input
         type="checkbox"
-        id={@id}
         name={@name}
-        checked={@checked}
+        checked={@is_checked}
         disabled={@disabled}
         class="sr-only"
         {@rest}
       />
-      <div class={[
-        "w-14 h-8 rounded-full transition-colors duration-200",
-        if(@checked, do: "bg-success", else: "bg-primary")
-      ]}>
-        <div class={[
-          "absolute top-1 left-1 bg-white rounded-full h-6 w-6 shadow-md transition-transform duration-200",
-          @checked && "translate-x-6"
-        ]}>
-        </div>
-      </div>
-    </label>
+    </span>
+    """
+  end
+
+  @doc """
+  A styled toggle switch for localStorage-based settings.
+  State is managed client-side via JavaScript hook.
+  Default state is ON (true) if not previously set.
+
+  ## Examples
+
+      <.local_toggle
+        id="my-local-toggle"
+        storage_key="my_setting_key"
+      />
+  """
+  attr :id, :string, required: true
+  attr :storage_key, :string, required: true, doc: "localStorage key (will be prefixed with 'qlarius_')"
+  attr :default, :boolean, default: true, doc: "Default value if not set in localStorage"
+
+  def local_toggle(assigns) do
+    ~H"""
+    <span
+      id={@id}
+      phx-hook="LocalStorageToggle"
+      data-storage-key={@storage_key}
+      data-default={@default}
+      class="toggle-track inline-flex items-center w-14 min-w-14 shrink-0 h-8 rounded-full cursor-pointer transition-colors duration-200 relative overflow-hidden bg-primary"
+      role="switch"
+      aria-checked="false"
+    >
+      <span class="toggle-knob absolute top-1 left-1 bg-white rounded-full h-6 w-6 shadow-md transition-transform duration-200">
+      </span>
+    </span>
     """
   end
 
