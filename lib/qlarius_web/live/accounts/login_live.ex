@@ -107,6 +107,8 @@ defmodule QlariusWeb.LoginLive do
       phx-hook="HiPagePWADetect"
       class="min-h-screen flex flex-col px-4"
     >
+      <%!-- Safe area top spacer for PWA notch --%>
+      <div class="h-[env(safe-area-inset-top)] flex-shrink-0"></div>
       <%!-- Logo spacer --%>
       <div class="flex-shrink-0 py-8 md:py-12 flex justify-center">
         <img

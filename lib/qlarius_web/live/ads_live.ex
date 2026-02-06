@@ -423,7 +423,7 @@ defmodule QlariusWeb.AdsLive do
               No 3-Tap ads available
             </div>
           <% else %>
-            <div class="px-4 sm:px-0 max-w-3xl mx-auto">
+            <div class="max-w-3xl mx-auto">
               <.live_component
                 module={QlariusWeb.ThreeTapStackComponent}
                 id="three-tap-stack"

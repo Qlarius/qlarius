@@ -616,6 +616,8 @@ defmodule QlariusWeb.RegistrationLive do
       phx-hook="HiPagePWADetect"
       class="min-h-screen flex flex-col px-4 pb-24"
     >
+      <%!-- Safe area top spacer for PWA notch --%>
+      <div class="h-[env(safe-area-inset-top)] flex-shrink-0"></div>
       <%!-- Logo spacer --%>
       <div class="flex-shrink-0 py-8 md:py-12 flex justify-center">
         <img
@@ -722,7 +724,7 @@ defmodule QlariusWeb.RegistrationLive do
         </div>
       </div>
 
-      <div class="fixed bottom-0 left-0 right-0 bg-base-100 dark:bg-base-300 border-t border-base-300 dark:border-base-content/20 p-4 safe-area-inset-bottom">
+      <div class="fixed bottom-0 left-0 right-0 bg-base-100 dark:bg-base-300 border-t border-base-300 dark:border-base-content/20 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div class="max-w-2xl mx-auto flex gap-3">
           <%= if @current_step > 1 do %>
             <button
