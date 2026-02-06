@@ -36,11 +36,10 @@
               <div class="flex items-center gap-4">
                 <%!-- Published Toggle (saves immediately) --%>
                 <div class="flex items-center gap-3 px-4 py-2 bg-base-200 rounded-full">
-                  <input
-                    type="checkbox"
+                  <.toggle
+                    id="published-toggle"
                     checked={@page.is_published}
                     phx-click="toggle_published"
-                    class="toggle toggle-success toggle-md"
                   />
                   <span class={[
                     "font-semibold text-sm",
@@ -588,11 +587,10 @@
                   <div class="form-control">
                     <label class="label cursor-pointer justify-start gap-3">
                       <input type="hidden" name="qlink_link[show_tip_header]" value="false" />
-                      <input
-                        type="checkbox"
+                      <.toggle
+                        id="show-tip-header-toggle"
                         name="qlink_link[show_tip_header]"
                         value="true"
-                        class="toggle toggle-primary"
                         checked={@link_form[:show_tip_header].value not in [false, "false"]}
                       />
                       <span class="label-text font-medium">Show recipient image & message</span>
@@ -634,12 +632,13 @@
                 <div class="form-control">
                   <label class="label cursor-pointer">
                     <span class="label-text font-medium">Visible</span>
-                    <.input
-                      field={@link_form[:is_visible]}
-                      type="checkbox"
-                      class="toggle toggle-primary"
+                    <.toggle
+                      id="link-visible-toggle"
+                      name={@link_form[:is_visible].name}
+                      checked={@link_form[:is_visible].value not in [false, "false", nil]}
                     />
                   </label>
+                  <input type="hidden" name={@link_form[:is_visible].name} value="false" />
                 </div>
 
                 <div class="modal-action">

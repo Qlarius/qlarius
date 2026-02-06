@@ -5,6 +5,63 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
 
   alias Qlarius.Accounts.Scope
 
+  @doc """
+  A styled toggle switch component with consistent styling across the app.
+
+  Uses primary color when OFF and success green when ON.
+  Scaled up 1.25x from default for better mobile tap targets.
+
+  ## Examples
+
+      <.toggle
+        id="my-toggle"
+        checked={@some_value}
+        phx-click="toggle_something"
+      />
+
+      <.toggle
+        id="form-toggle"
+        name="settings[enabled]"
+        checked={@form[:enabled].value}
+        label="Enable feature"
+      />
+  """
+  attr :id, :string, required: true
+  attr :name, :string, default: nil
+  attr :checked, :boolean, default: false
+  attr :disabled, :boolean, default: false
+  attr :label, :string, default: nil
+  attr :rest, :global, include: ~w(phx-click phx-change data-setting value)
+
+  def toggle(assigns) do
+    ~H"""
+    <label class={[
+      "relative inline-flex items-center cursor-pointer",
+      @disabled && "opacity-50 cursor-not-allowed"
+    ]}>
+      <input
+        type="checkbox"
+        id={@id}
+        name={@name}
+        checked={@checked}
+        disabled={@disabled}
+        class="sr-only"
+        {@rest}
+      />
+      <div class={[
+        "w-14 h-8 rounded-full transition-colors duration-200",
+        if(@checked, do: "bg-success", else: "bg-primary")
+      ]}>
+        <div class={[
+          "absolute top-1 left-1 bg-white rounded-full h-6 w-6 shadow-md transition-transform duration-200",
+          @checked && "translate-x-6"
+        ]}>
+        </div>
+      </div>
+    </label>
+    """
+  end
+
   attr :balance, :any, required: true
   attr :id, :string, default: "wallet-balance"
 

@@ -372,6 +372,10 @@ defmodule QlariusWeb.Layouts do
           <%!-- Main screen panel --%>
           <div class="panel">
             <div class="panel-scroll">
+              <%!-- Safe area top spacer for PWA notch --%>
+              <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
+                <div class="bg-base-100 dark:!bg-base-300 flex-shrink-0" style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"></div>
+              <% end %>
               <div class="bg-base-100 dark:!bg-base-300 flex flex-col min-h-full">
                 <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
                   <div class="w-full mb-6 flex items-center flex-shrink-0">
@@ -405,6 +409,10 @@ defmodule QlariusWeb.Layouts do
           <%!-- Slide-over screen panel --%>
           <div class="panel">
             <div class="panel-scroll">
+              <%!-- Safe area top spacer for PWA notch --%>
+              <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
+                <div class="bg-base-100 dark:!bg-base-300 flex-shrink-0" style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"></div>
+              <% end %>
               <div class="bg-base-100 dark:!bg-base-300 flex flex-col min-h-full">
                 <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
                   <div class="flex items-center justify-between mb-4">

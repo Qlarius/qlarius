@@ -2,6 +2,7 @@ defmodule QlariusWeb.UserSettingsLive do
   use QlariusWeb, :live_view
 
   import QlariusWeb.PWAHelpers
+  import QlariusWeb.Components.CustomComponentsMobile, only: [toggle: 1]
   alias Qlarius.Notifications
   alias Qlarius.Accounts
   alias Qlarius.Timezones
@@ -210,9 +211,14 @@ defmodule QlariusWeb.UserSettingsLive do
     user_id = socket.assigns.current_scope.user.id
     subscriptions = Notifications.get_active_subscriptions(user_id)
 
+    # Also enable notification preferences when device subscribes
+    {:ok, updated_pref} =
+      Notifications.update_preference(user_id, "web_push", "ad_count", %{enabled: true})
+
     {:noreply,
      socket
      |> assign(:current_device_subscribed, true)
+     |> assign(:notification_preference, updated_pref)
      |> assign(:total_devices_subscribed, length(subscriptions))
      |> put_flash(:info, "This device is subscribed to push notifications")}
   end
@@ -429,10 +435,8 @@ defmodule QlariusWeb.UserSettingsLive do
           <div class="form-control">
             <div class="flex items-start justify-start gap-5 my-3">
               <span class="text-lg font-semibold text-base-content/70">OFF</span>
-              <input
+              <.toggle
                 id="push-notification-toggle"
-                type="checkbox"
-                class="toggle toggle-xl toggle-success checked:bg-success checked:border-success"
                 checked={@current_device_subscribed}
                 phx-click="toggle_enabled"
                 disabled={!@device_subscription_supported}
@@ -670,10 +674,8 @@ defmodule QlariusWeb.UserSettingsLive do
                 <div class="text-lg font-medium text-base-content">Wallet Credit Sounds</div>
                 <div class="text-sm text-base-content/60">Play a coin sound when your wallet balance increases</div>
               </div>
-              <input
+              <.toggle
                 id="wallet-sounds-toggle"
-                type="checkbox"
-                class="toggle toggle-lg toggle-success"
                 data-setting="wallet_credit_sounds"
               />
             </div>
