@@ -196,8 +196,6 @@ defmodule QlariusWeb.WalletLive do
                   |> JS.add_class("translate-x-0", to: "#right-sidebar")
                   |> JS.remove_class("translate-x-full", to: "#right-sidebar")
                   |> JS.remove_class("opacity-0 pointer-events-none", to: "#right-sidebar-bg")
-                  |> JS.add_class("sidebar-scroll-lock", to: "body")
-                  |> JS.add_class("sidebar-scroll-lock", to: "html")
                 }
                 phx-value-entry_id={entry.id}
               >
