@@ -1645,6 +1645,109 @@ Hooks.AudioAlertSettings = {
   }
 }
 
+// Date Input - 3-field MM/DD/YYYY with auto-advance and validation
+Hooks.DateInput = {
+  mounted() {
+    this.fields = this.el.querySelectorAll('.date-field')
+    this.monthField = this.el.querySelector('[data-field="month"]')
+    this.dayField = this.el.querySelector('[data-field="day"]')
+    this.yearField = this.el.querySelector('[data-field="year"]')
+    this.updateEvent = this.el.dataset.updateEvent || 'update_birthdate'
+    this.minAge = parseInt(this.el.dataset.minAge) || 16
+    
+    // Field order for navigation
+    this.fieldOrder = [this.monthField, this.dayField, this.yearField]
+    this.fieldLengths = { month: 2, day: 2, year: 4 }
+    
+    this.fields.forEach((field, index) => {
+      const fieldName = field.dataset.field
+      const maxLen = this.fieldLengths[fieldName]
+      
+      // Handle input
+      field.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, '')
+        
+        // Validate first digit based on field
+        if (value.length >= 1) {
+          const firstDigit = parseInt(value[0])
+          if (fieldName === 'month' && firstDigit > 1) {
+            value = ''
+          } else if (fieldName === 'day' && firstDigit > 3) {
+            value = ''
+          } else if (fieldName === 'year' && firstDigit !== 1 && firstDigit !== 2) {
+            value = ''
+          }
+        }
+        
+        // Validate second digit for month (01-12)
+        if (fieldName === 'month' && value.length >= 2) {
+          const monthNum = parseInt(value.slice(0, 2))
+          if (monthNum < 1 || monthNum > 12) {
+            value = value[0] // Keep first digit, remove invalid second
+          }
+        }
+        
+        // Validate second digit for day (01-31)
+        if (fieldName === 'day' && value.length >= 2) {
+          const dayNum = parseInt(value.slice(0, 2))
+          if (dayNum < 1 || dayNum > 31) {
+            value = value[0]
+          }
+        }
+        
+        // Truncate to max length
+        value = value.slice(0, maxLen)
+        e.target.value = value
+        
+        // Auto-advance when field is complete
+        if (value.length === maxLen && index < this.fieldOrder.length - 1) {
+          this.fieldOrder[index + 1].focus()
+        }
+        
+        this.pushUpdate()
+      })
+      
+      // Handle backspace navigation
+      field.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
+          e.preventDefault()
+          const prevField = this.fieldOrder[index - 1]
+          prevField.focus()
+          // Select the content so next backspace clears it
+          prevField.select()
+        }
+      })
+      
+      // Select all on focus
+      field.addEventListener('focus', (e) => {
+        if (e.target.value) {
+          e.target.select()
+        }
+      })
+    })
+    
+    // Focus month field on mount
+    this.monthField.focus()
+  },
+  
+  pushUpdate() {
+    const month = this.monthField.value
+    const day = this.dayField.value
+    const year = this.yearField.value
+    
+    this.pushEvent(this.updateEvent, {
+      month: month,
+      day: day,
+      year: year
+    })
+  },
+  
+  // Sync with server state
+  updated() {
+    // Fields are already bound to server values via value attribute
+  }
+}
+
 // OTP Input - Single input with visual slots (inspired by input-otp library)
 // Uses one real input for reliability - handles paste, autofill, keyboard naturally
 Hooks.OTPInput = {

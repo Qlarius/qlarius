@@ -348,6 +348,130 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
     """
   end
 
+  @doc """
+  A 3-field date input (MM/DD/YYYY) with auto-advance, validation, and backspace navigation.
+  Validates first-digit rules and complete date validity.
+
+  ## Examples
+
+      <.date_input
+        id="birthdate"
+        month={@birthdate_month}
+        day={@birthdate_day}
+        year={@birthdate_year}
+        error={@birthdate_error}
+        valid={@birthdate_valid}
+        calculated_age={@calculated_age}
+        update_event="update_birthdate"
+        min_age={16}
+      />
+  """
+  attr :id, :string, required: true
+  attr :month, :string, default: ""
+  attr :day, :string, default: ""
+  attr :year, :string, default: ""
+  attr :error, :string, default: nil
+  attr :valid, :boolean, default: false
+  attr :calculated_age, :integer, default: nil
+  attr :update_event, :string, required: true
+  attr :min_age, :integer, default: 16
+
+  def date_input(assigns) do
+    ~H"""
+    <div class="form-control w-full">
+      <div
+        id={@id}
+        phx-hook="DateInput"
+        data-update-event={@update_event}
+        data-min-age={@min_age}
+        class="flex flex-col gap-2 w-full"
+      >
+        <%!-- Field labels --%>
+        <div class="flex gap-2">
+          <div class="flex-1">
+            <label class="label py-1">
+              <span class="label-text text-sm dark:text-gray-400">MM</span>
+            </label>
+          </div>
+          <div class="flex-1">
+            <label class="label py-1">
+              <span class="label-text text-sm dark:text-gray-400">DD</span>
+            </label>
+          </div>
+          <div class="flex-[1.5]">
+            <label class="label py-1">
+              <span class="label-text text-sm dark:text-gray-400">YYYY</span>
+            </label>
+          </div>
+        </div>
+
+        <%!-- Input fields --%>
+        <div class="flex gap-2">
+          <input
+            type="text"
+            inputmode="numeric"
+            name="month"
+            maxlength="2"
+            placeholder="##"
+            value={@month}
+            data-field="month"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-bwignore="true"
+            data-form-type="other"
+            class={"date-field input input-bordered input-lg flex-1 text-lg text-center dark:bg-base-100 dark:text-white #{if @error, do: "input-error"}"}
+          />
+          <input
+            type="text"
+            inputmode="numeric"
+            name="day"
+            maxlength="2"
+            placeholder="##"
+            value={@day}
+            data-field="day"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-bwignore="true"
+            data-form-type="other"
+            class={"date-field input input-bordered input-lg flex-1 text-lg text-center dark:bg-base-100 dark:text-white #{if @error, do: "input-error"}"}
+          />
+          <input
+            type="text"
+            inputmode="numeric"
+            name="year"
+            maxlength="4"
+            placeholder="####"
+            value={@year}
+            data-field="year"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-bwignore="true"
+            data-form-type="other"
+            class={"date-field input input-bordered input-lg flex-[1.5] text-lg text-center dark:bg-base-100 dark:text-white #{if @error, do: "input-error"}"}
+          />
+        </div>
+
+        <%!-- Status/error display --%>
+        <%= cond do %>
+          <% @error -> %>
+            <div class="text-center text-sm mt-1">
+              <span class="text-error">{@error}</span>
+            </div>
+          <% @valid && @calculated_age -> %>
+            <div class="mt-3">
+              <div class="badge badge-primary badge-lg p-4 text-base">
+                <.icon name="hero-calendar" class="w-5 h-5 mr-2" />
+                Age: {@calculated_age}
+              </div>
+            </div>
+          <% true -> %>
+            <div class="h-6"></div>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
   defp get_tip_data(current_path, current_scope) do
     balance_zero? = Decimal.compare(current_scope.wallet_balance, Decimal.new(0)) == :eq
     few_tags? = current_scope.trait_count < 5

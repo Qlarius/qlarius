@@ -5,7 +5,7 @@ defmodule QlariusWeb.RegistrationLive do
   alias Qlarius.YouData.{MeFiles, Traits}
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
   import QlariusWeb.PWAHelpers
-  import QlariusWeb.Components.CustomComponentsMobile, only: [otp_input: 1]
+  import QlariusWeb.Components.CustomComponentsMobile, only: [otp_input: 1, date_input: 1]
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
@@ -532,18 +532,22 @@ defmodule QlariusWeb.RegistrationLive do
     month = socket.assigns.birthdate_month
     day = socket.assigns.birthdate_day
 
+    # Check if all fields are complete (8 total digits: MM + DD + YYYY)
+    all_digits_entered =
+      String.length(month) == 2 and String.length(day) == 2 and String.length(year) == 4
+
     with true <- String.length(year) == 4,
          {year_int, ""} <- Integer.parse(year),
-         true <- String.length(month) >= 1 and String.length(month) <= 2,
+         true <- String.length(month) == 2,
          {month_int, ""} <- Integer.parse(month),
          true <- month_int >= 1 and month_int <= 12,
-         true <- String.length(day) >= 1 and String.length(day) <= 2,
+         true <- String.length(day) == 2,
          {day_int, ""} <- Integer.parse(day),
          true <- day_int >= 1 and day_int <= 31,
          {:ok, date} <- Date.new(year_int, month_int, day_int) do
       age = MeFiles.calculate_age(date)
 
-      if age && age >= 18 do
+      if age && age >= 16 do
         age_trait = MeFiles.get_age_trait_for_age(age)
 
         socket
@@ -554,15 +558,18 @@ defmodule QlariusWeb.RegistrationLive do
       else
         socket
         |> assign(:birthdate_valid, false)
-        |> assign(:birthdate_error, "Must be 18 or older")
+        |> assign(:birthdate_error, "Must be 16 or older")
         |> assign(:calculated_age, age)
         |> assign(:age_trait_id, nil)
       end
     else
       _ ->
+        # Only show error if all digits have been entered but date is invalid
+        error = if all_digits_entered, do: "Date entered is invalid", else: nil
+
         socket
         |> assign(:birthdate_valid, false)
-        |> assign(:birthdate_error, nil)
+        |> assign(:birthdate_error, error)
         |> assign(:calculated_age, nil)
         |> assign(:age_trait_id, nil)
     end
@@ -1258,6 +1265,23 @@ defmodule QlariusWeb.RegistrationLive do
         </div>
       </div>
 
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text text-lg dark:text-gray-300">Birthdate *</span>
+        </label>
+        <.date_input
+          id="birthdate-input"
+          month={@birthdate_month}
+          day={@birthdate_day}
+          year={@birthdate_year}
+          error={@birthdate_error}
+          valid={@birthdate_valid}
+          calculated_age={@calculated_age}
+          update_event="update_birthdate"
+          min_age={16}
+        />
+      </div>
+
       <.form for={%{}} phx-change="select_sex">
         <div class="form-control w-full">
           <label class="label">
@@ -1272,58 +1296,6 @@ defmodule QlariusWeb.RegistrationLive do
               <option value={option.id} selected={@sex_trait_id == option.id}>{option.name}</option>
             <% end %>
           </select>
-        </div>
-      </.form>
-
-      <.form for={%{}} phx-change="update_birthdate">
-        <div class="form-control w-full">
-          <label class="label">
-            <span class="label-text text-lg dark:text-gray-300">Birthdate *</span>
-          </label>
-          <div class="flex gap-2">
-            <input
-              id="birthdate-year"
-              name="year"
-              type="text"
-              placeholder="YYYY"
-              maxlength="4"
-              class={"input input-bordered input-lg flex-1 text-lg dark:bg-base-100 dark:text-white #{if @birthdate_error, do: "input-error"}"}
-              value={@birthdate_year}
-            />
-            <input
-              id="birthdate-month"
-              name="month"
-              type="text"
-              placeholder="MM"
-              maxlength="2"
-              class={"input input-bordered input-lg w-24 text-lg dark:bg-base-100 dark:text-white #{if @birthdate_error, do: "input-error"}"}
-              value={@birthdate_month}
-            />
-            <input
-              id="birthdate-day"
-              name="day"
-              type="text"
-              placeholder="DD"
-              maxlength="2"
-              class={"input input-bordered input-lg w-24 text-lg dark:bg-base-100 dark:text-white #{if @birthdate_error, do: "input-error"}"}
-              value={@birthdate_day}
-            />
-          </div>
-          <%= if @birthdate_error do %>
-            <div class="mt-3">
-              <div class="badge badge-error badge-lg p-4 text-base">
-                <.icon name="hero-x-circle" class="w-5 h-5 mr-2" />
-                {@birthdate_error}
-              </div>
-            </div>
-          <% end %>
-          <%= if @birthdate_valid and @calculated_age do %>
-            <div class="mt-3">
-              <div class="badge badge-primary badge-lg p-4 text-base">
-                <.icon name="hero-calendar" class="w-5 h-5 mr-2" /> Age: {@calculated_age}
-              </div>
-            </div>
-          <% end %>
         </div>
       </.form>
 
