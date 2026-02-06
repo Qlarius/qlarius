@@ -1287,7 +1287,7 @@ defmodule QlariusWeb.RegistrationLive do
           <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
           <span class="text-base">
             <strong>Important:</strong>
-            Birthdate and Sex cannot be changed later. Please ensure accuracy.
+            Birthdate and Sex data cannot be updated later. Please ensure accuracy.
           </span>
         </div>
       </div>
@@ -1295,7 +1295,7 @@ defmodule QlariusWeb.RegistrationLive do
       <.form for={%{}} phx-change="select_sex">
         <div class="form-control w-full">
           <label class="label">
-            <span class="label-text text-lg dark:text-gray-300">Sex (Biological) *</span>
+            <span class="label-text text-lg dark:text-gray-300">Sex (Biological/Assigned at Birth) *</span>
           </label>
           <select
             name="sex_id"
@@ -1472,7 +1472,7 @@ defmodule QlariusWeb.RegistrationLive do
             phx-value-checked={to_string(!@confirmation_checked)}
           />
           <span class="text-sm md:text-base dark:text-gray-300">
-            I confirm my birthdate and sex are correct and understand the data values cannot be changed later.
+            I confirm my birthdate and sex are correct and understand the data values cannot be updated later.
           </span>
         </label>
       </div>
