@@ -130,7 +130,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
     <%= if @tip_data do %>
       <div
         id="onboarding-tip"
-        class="fixed bottom-20 max-w-md mx-auto left-4 right-4 z-45 transform translate-y-full opacity-0"
+        class="fixed bottom-[90px] max-w-md mx-auto left-4 right-4 z-45 transform translate-y-full opacity-0"
         phx-mounted={
           JS.transition(
             {"ease-out duration-500", "translate-y-full opacity-0", "translate-y-0 opacity-100"},
@@ -215,9 +215,9 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
             <%= if @tip_data.screen == :ads do %>
               <div>
                 <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
-                  <span class="block">Sell your attention. Engage your sponsors.</span>
-                  <span class="block mt-2">Seed your wallet with these starter ads.</span>
-                  <span class="block mt-2">Over time, build up your MeFile to pull more of the right ads for you.</span>
+                  <span class="block">Sell your attention here.</span>
+                  <span class="block mt-2">Funds go straight to your wallet.</span>
+                  <span class="block mt-2">The better your MeFile, the better your ads. Optimize to pull more of the right ads for you.</span>
                 </p>
               </div>
             <% end %>

@@ -34,7 +34,7 @@ defmodule QlariusWeb.MeFileLive do
 
         <div class="mb-8 flex gap-2 justify-start items-center">
           <div class="text-xl">
-            Edit/delete existing tags below. Add more tags via the Tagger.
+            Your existing tags are below. Add more via the Tagger.
           </div>
         </div>
 

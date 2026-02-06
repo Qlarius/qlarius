@@ -10,6 +10,8 @@ defmodule QlariusWeb.RegistrationLive do
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
   def mount(params, session, socket) do
+    require Logger
+
     mode = Map.get(params, "mode", "regular")
     proxy_user_id = Map.get(params, "proxy_user_id")
     referral_code_from_params = Map.get(params, "ref") || Map.get(params, "invite")
@@ -18,6 +20,13 @@ defmodule QlariusWeb.RegistrationLive do
       Map.get(session, "referral_code") || Map.get(session, "invitation_code")
 
     referral_code = referral_code_from_params || referral_code_from_session || ""
+
+    Logger.info("""
+    🎯 REFERRAL DEBUG - Registration mount:
+      - from_params: #{inspect(referral_code_from_params)}
+      - from_session: #{inspect(referral_code_from_session)}
+      - final referral_code: #{inspect(referral_code)}
+    """)
 
     mobile = Phoenix.Flash.get(socket.assigns.flash, :registration_mobile)
     alias_value = Phoenix.Flash.get(socket.assigns.flash, :registration_alias)
@@ -105,6 +114,26 @@ defmodule QlariusWeb.RegistrationLive do
 
       step ->
         {:noreply, assign(socket, :current_step, step - 1)}
+    end
+  end
+
+  def handle_event("referral_code_from_storage", %{"code" => code}, socket) do
+    require Logger
+
+    Logger.info("🎯 REFERRAL DEBUG - Got code from localStorage: #{inspect(code)}")
+
+    # Only use stored code if we don't already have one from URL/session
+    if socket.assigns.referral_code == "" do
+      {:noreply,
+       socket
+       |> assign(:referral_code, code)
+       |> assign(:referral_code_input, code)}
+    else
+      Logger.info(
+        "🎯 REFERRAL DEBUG - Already have code from URL/session: #{socket.assigns.referral_code}"
+      )
+
+      {:noreply, socket}
     end
   end
 
@@ -589,6 +618,12 @@ defmodule QlariusWeb.RegistrationLive do
   end
 
   defp create_user(socket) do
+    require Logger
+
+    Logger.info(
+      "🎯 REFERRAL DEBUG - create_user called with referral_code: #{inspect(socket.assigns.referral_code)}"
+    )
+
     date =
       Date.new!(
         String.to_integer(socket.assigns.birthdate_year),
@@ -617,11 +652,52 @@ defmodule QlariusWeb.RegistrationLive do
         attrs
       end
 
-    Accounts.register_new_user(attrs, socket.assigns.referral_code)
+    # For proxy users, always use the admin's referral code (generate if needed)
+    referral_code =
+      if socket.assigns.mode == "proxy" && socket.assigns.true_user_id do
+        admin_me_file = Accounts.get_me_file_by_user_id(socket.assigns.true_user_id)
+
+        cond do
+          is_nil(admin_me_file) ->
+            Logger.warning("🎯 REFERRAL DEBUG - Proxy user: admin has no me_file!")
+            socket.assigns.referral_code
+
+          admin_me_file.referral_code && admin_me_file.referral_code != "" ->
+            Logger.info(
+              "🎯 REFERRAL DEBUG - Proxy user: using admin referral code: #{admin_me_file.referral_code}"
+            )
+
+            admin_me_file.referral_code
+
+          true ->
+            # Generate referral code for admin if they don't have one
+            code = Qlarius.Referrals.generate_referral_code("mefile")
+
+            case Qlarius.Referrals.set_referral_code(admin_me_file, code) do
+              {:ok, _} ->
+                Logger.info(
+                  "🎯 REFERRAL DEBUG - Proxy user: generated admin referral code: #{code}"
+                )
+
+                code
+
+              {:error, _} ->
+                Logger.warning("🎯 REFERRAL DEBUG - Proxy user: failed to generate admin code")
+                socket.assigns.referral_code
+            end
+        end
+      else
+        socket.assigns.referral_code
+      end
+
+    Accounts.register_new_user(attrs, referral_code)
   end
 
   def render(assigns) do
     ~H"""
+    <%!-- Hook to read referral code from localStorage --%>
+    <div id="registration-referral-loader" phx-hook="RegistrationReferralCode" class="hidden"></div>
+
     <div
       id="registration-pwa-detect"
       phx-hook="HiPagePWADetect"
@@ -722,6 +798,7 @@ defmodule QlariusWeb.RegistrationLive do
             birthdate_day={@birthdate_day}
             calculated_age={@calculated_age}
             zip_lookup_trait={@zip_lookup_trait}
+            referral_code={@referral_code}
             confirmation_checked={@confirmation_checked}
             can_complete={can_complete?(assigns)}
           />
@@ -1317,9 +1394,9 @@ defmodule QlariusWeb.RegistrationLive do
           />
           <%= if @zip_lookup_error do %>
             <div class="mt-3">
-              <div class="badge badge-error badge-lg p-4 text-base">
-                <.icon name="hero-x-circle" class="w-5 h-5 mr-2" />
-                {@zip_lookup_error}
+              <div class="alert alert-error text-sm">
+                <.icon name="hero-x-circle" class="w-5 h-5 shrink-0" />
+                <span>{@zip_lookup_error}</span>
               </div>
             </div>
           <% end %>
@@ -1342,6 +1419,12 @@ defmodule QlariusWeb.RegistrationLive do
     <div class="space-y-4">
       <div>
         <h2 class="text-2xl md:text-3xl font-bold mb-3 dark:text-white">Confirm Your Information</h2>
+        <%= if not @can_complete do %>
+          <div class="alert alert-warning">
+            <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
+            <span class="text-sm">Please check the confirmation box to complete registration.</span>
+          </div>
+        <% end %>
       </div>
 
       <div class="space-y-1">
@@ -1398,6 +1481,18 @@ defmodule QlariusWeb.RegistrationLive do
             </span>
           </div>
         <% end %>
+
+        <%= if @referral_code != "" do %>
+          <div class="flex justify-between items-center py-2 border-b border-base-300 dark:border-base-content/20">
+            <span class="text-sm md:text-base text-base-content/70 dark:text-base-content/60">
+              Referral Code:
+            </span>
+            <span class="text-sm md:text-base font-medium text-success dark:text-success">
+              <.icon name="hero-check-circle" class="w-4 h-4 inline mr-1" />
+              {@referral_code}
+            </span>
+          </div>
+        <% end %>
       </div>
 
       <div class="form-control mt-4">
@@ -1414,13 +1509,6 @@ defmodule QlariusWeb.RegistrationLive do
           </span>
         </label>
       </div>
-
-      <%= if not @can_complete do %>
-        <div class="alert alert-warning py-3">
-          <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-          <span class="text-sm">Please check the confirmation box to complete registration.</span>
-        </div>
-      <% end %>
     </div>
     """
   end

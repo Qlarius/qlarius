@@ -240,7 +240,22 @@ Hooks.PWADetect = {
   }
 }
 
-Hooks.HiPagePWADetect = Hooks.PWADetect
+// HiPagePWADetect - extends PWADetect to also capture referral code from URL
+Hooks.HiPagePWADetect = {
+  mounted() {
+    // Run PWA detection
+    Hooks.PWADetect.mounted.call(this)
+    
+    // Capture referral code from URL and store in localStorage
+    const urlParams = new URLSearchParams(window.location.search)
+    const refCode = urlParams.get('ref') || urlParams.get('invite')
+    
+    if (refCode) {
+      localStorage.setItem('qlarius_referral_code', refCode)
+      console.log('🎯 Referral code captured to localStorage:', refCode)
+    }
+  }
+}
 
 Hooks.HiPageSplash = {
   mounted() {
@@ -1642,6 +1657,18 @@ Hooks.AudioAlertSettings = {
   mounted() {
     // The toggle now uses LocalStorageToggle hook directly, this is just a container
     console.log('AudioAlertSettings mounted - toggle uses LocalStorageToggle hook')
+  }
+}
+
+// Registration Referral Code - reads from localStorage and pushes to LiveView
+Hooks.RegistrationReferralCode = {
+  mounted() {
+    const storedCode = localStorage.getItem('qlarius_referral_code')
+    
+    if (storedCode) {
+      console.log('🎯 Found referral code in localStorage:', storedCode)
+      this.pushEvent("referral_code_from_storage", { code: storedCode })
+    }
   }
 }
 

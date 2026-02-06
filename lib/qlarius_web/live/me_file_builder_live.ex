@@ -69,7 +69,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                 {completed_traits}/{total_traits}
               </div>
             </div>
-            <h1 class="text-base-content mt-2 text-xl">Fill/edit/delete tags below.</h1>
+            <h1 class="text-base-content mt-2 text-xl">Fill the empty tags below. Update or delete existing tags.</h1>
           </div>
 
           <div class="flex flex-row flex-wrap gap-4 pt-4 pb-32">

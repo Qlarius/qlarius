@@ -104,13 +104,28 @@ defmodule Qlarius.Accounts do
   defp maybe_create_referral(multi, nil), do: multi
 
   defp maybe_create_referral(multi, referral_code) when is_binary(referral_code) do
+    require Logger
+
+    Logger.info(
+      "🎯 REFERRAL DEBUG - maybe_create_referral called with code: #{inspect(referral_code)}"
+    )
+
     multi
     |> Ecto.Multi.run(:referral, fn _repo, %{me_file: me_file} ->
+      Logger.info(
+        "🎯 REFERRAL DEBUG - Looking up referrer for code: #{inspect(referral_code)}, me_file_id: #{me_file.id}"
+      )
+
       case Qlarius.Referrals.lookup_referrer_by_code(referral_code) do
         {:ok, referrer_type, referrer_id} ->
+          Logger.info(
+            "🎯 REFERRAL DEBUG - Found referrer: type=#{referrer_type}, id=#{referrer_id}"
+          )
+
           Qlarius.Referrals.create_referral(referrer_type, referrer_id, me_file.id)
 
         {:error, :not_found} ->
+          Logger.warning("🎯 REFERRAL DEBUG - No referrer found for code: #{inspect(referral_code)}")
           {:ok, :no_referral}
       end
     end)
