@@ -214,6 +214,7 @@ Hooks.PWADetect = {
       // Use JavaScript to apply safe area padding dynamically
       if (isPWA && isIOS) {
         this.applySafeAreaFix()
+        this.applyViewportFix()
       }
 
       this.pushEvent("pwa_detected", {
@@ -237,6 +238,26 @@ Hooks.PWADetect = {
     
     // Apply custom CSS variable (set to 0)
     document.documentElement.style.setProperty('--safe-area-inset-bottom-js', `${bottomInset}px`)
+  },
+  
+  applyViewportFix() {
+    // iOS PWA viewport bug: 100dvh isn't calculated correctly until a scroll event
+    // This causes the bottom nav to float above dead space on initial load
+    // Fix: Force a layout recalculation by triggering a minimal scroll
+    requestAnimationFrame(() => {
+      // Find a scrollable element or use window
+      const scrollContainer = document.querySelector('.panel-scroll') || window
+      
+      if (scrollContainer === window) {
+        window.scrollTo(0, 1)
+        requestAnimationFrame(() => window.scrollTo(0, 0))
+      } else {
+        scrollContainer.scrollTop = 1
+        requestAnimationFrame(() => scrollContainer.scrollTop = 0)
+      }
+      
+      console.log('[Viewport Fix] Forced layout recalculation for iOS PWA')
+    })
   }
 }
 
@@ -331,7 +352,8 @@ Hooks.HiPagePWADetect = {
     return cookies['qadabra_referral_code'] || null
   },
   
-  applySafeAreaFix: Hooks.PWADetect.applySafeAreaFix
+  applySafeAreaFix: Hooks.PWADetect.applySafeAreaFix,
+  applyViewportFix: Hooks.PWADetect.applyViewportFix
 }
 
 Hooks.HiPageSplash = {

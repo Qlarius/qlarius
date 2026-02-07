@@ -26,7 +26,8 @@ defmodule QlariusWeb.UserAuth do
       |> maybe_write_remember_me_cookie(token, params)
       |> track_sign_in(user)
 
-    if user_return_to do
+    # Don't redirect to public pages like Qlink pages after login
+    if user_return_to && !String.starts_with?(user_return_to, "/@") do
       redirect(conn, to: user_return_to)
     else
       redirect(conn, to: ~p"/")
@@ -143,7 +144,14 @@ defmodule QlariusWeb.UserAuth do
   end
 
   defp maybe_store_return_to(%{method: "GET"} = conn) do
-    put_session(conn, :user_return_to, current_path(conn))
+    path = current_path(conn)
+
+    # Don't store public pages like Qlink pages as return destinations
+    if String.starts_with?(path, "/@") do
+      conn
+    else
+      put_session(conn, :user_return_to, path)
+    end
   end
 
   defp maybe_store_return_to(conn), do: conn
