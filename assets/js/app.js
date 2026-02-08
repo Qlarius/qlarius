@@ -214,7 +214,6 @@ Hooks.PWADetect = {
       // Use JavaScript to apply safe area padding dynamically
       if (isPWA && isIOS) {
         this.applySafeAreaFix()
-        this.applyViewportFix()
       }
 
       this.pushEvent("pwa_detected", {

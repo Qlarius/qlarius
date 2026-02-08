@@ -264,12 +264,11 @@ defmodule QlariusWeb.Layouts do
 
     <style phx-no-curly-interpolation>
       /* Mobile shell uses flex column - nav bar is part of flow, not fixed */
-      /* Use --app-height (set by JS) for iOS PWA, fallback to 100dvh */
+      /* Use 100vh (not 100dvh) - dvh causes iOS PWA viewport calculation bugs */
       .mobile-shell {
         display: flex;
         flex-direction: column;
-        height: 100dvh;
-        height: var(--app-height, 100dvh);
+        height: 100vh;
         overflow: hidden;
       }
 
@@ -427,7 +426,7 @@ defmodule QlariusWeb.Layouts do
                       </div>
                     <% end %>
                   </div>
-                  
+
                   <div class="flex-1 flex flex-col items-center justify-center">
                     <h1 class="text-2xl font-bold mb-2 text-center">{assigns[:slide_over_title] || "Details"}</h1>
 
