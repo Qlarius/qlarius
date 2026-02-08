@@ -264,10 +264,12 @@ defmodule QlariusWeb.Layouts do
 
     <style phx-no-curly-interpolation>
       /* Mobile shell uses flex column - nav bar is part of flow, not fixed */
+      /* Use --app-height (set by JS) for iOS PWA, fallback to 100dvh */
       .mobile-shell {
         display: flex;
         flex-direction: column;
         height: 100dvh;
+        height: var(--app-height, 100dvh);
         overflow: hidden;
       }
 
@@ -351,11 +353,12 @@ defmodule QlariusWeb.Layouts do
 
 
       /* Floating action buttons - consistent position above nav bar (h-20 = 5rem) */
+      /* z-index 40 keeps it below sidebars (z-50) but above normal content */
       .mobile-shell .floating-action-btn {
         position: fixed;
         right: 1.5rem;
         bottom: 6.5rem;
-        z-index: 100;
+        z-index: 40;
       }
     </style>
 

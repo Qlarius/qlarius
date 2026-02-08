@@ -241,23 +241,23 @@ Hooks.PWADetect = {
   },
   
   applyViewportFix() {
-    // iOS PWA viewport bug: 100dvh isn't calculated correctly until a scroll event
-    // This causes the bottom nav to float above dead space on initial load
-    // Fix: Force a layout recalculation by triggering a minimal scroll
-    requestAnimationFrame(() => {
-      // Find a scrollable element or use window
-      const scrollContainer = document.querySelector('.panel-scroll') || window
-      
-      if (scrollContainer === window) {
-        window.scrollTo(0, 1)
-        requestAnimationFrame(() => window.scrollTo(0, 0))
-      } else {
-        scrollContainer.scrollTop = 1
-        requestAnimationFrame(() => scrollContainer.scrollTop = 0)
-      }
-      
-      console.log('[Viewport Fix] Forced layout recalculation for iOS PWA')
-    })
+    // iOS PWA viewport bug: 100dvh isn't calculated correctly on initial load
+    // Fix: Set a CSS variable with the actual viewport height from JavaScript
+    const setViewportHeight = () => {
+      const vh = window.innerHeight
+      document.documentElement.style.setProperty('--app-height', `${vh}px`)
+      console.log('[Viewport Fix] Set --app-height to', vh)
+    }
+    
+    // Set immediately
+    setViewportHeight()
+    
+    // Also set on resize (orientation change, etc)
+    window.addEventListener('resize', setViewportHeight)
+    
+    // And after a short delay to catch any late layout shifts
+    setTimeout(setViewportHeight, 100)
+    setTimeout(setViewportHeight, 500)
   }
 }
 
