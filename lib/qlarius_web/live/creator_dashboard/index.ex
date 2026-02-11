@@ -41,7 +41,7 @@ defmodule QlariusWeb.CreatorDashboard.Index do
     |> assign(:show_form, true)
     |> assign(:form, to_form(changeset))
     |> assign(:editing_creator, nil)
-    |> ImageUpload.setup_upload(:image)
+    |> ImageUpload.setup_upload(:image, auto_upload: true)
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
@@ -53,7 +53,7 @@ defmodule QlariusWeb.CreatorDashboard.Index do
     |> assign(:show_form, true)
     |> assign(:form, to_form(changeset))
     |> assign(:editing_creator, creator)
-    |> ImageUpload.setup_upload(:image)
+    |> ImageUpload.setup_upload(:image, auto_upload: true)
   end
 
   @impl true
@@ -98,19 +98,26 @@ defmodule QlariusWeb.CreatorDashboard.Index do
   end
 
   defp save_creator(socket, :new, creator_params) do
-    temp_creator = %Creator{}
+    case Creators.create_creator(creator_params) do
+      {:ok, creator} ->
+        creator_params_with_image =
+          ImageUpload.consume_and_add_to_params(
+            socket,
+            :image,
+            creator,
+            CreatorImage,
+            %{}
+          )
 
-    creator_params_with_image =
-      ImageUpload.consume_and_add_to_params(
-        socket,
-        :image,
-        temp_creator,
-        CreatorImage,
-        creator_params
-      )
+        creator =
+          if Map.has_key?(creator_params_with_image, "image") do
+            {:ok, updated} =
+              Creators.update_creator(creator, creator_params_with_image)
+            updated
+          else
+            creator
+          end
 
-    case Creators.create_creator(creator_params_with_image) do
-      {:ok, _creator} ->
         creators = Creators.list_creators()
 
         {:noreply,

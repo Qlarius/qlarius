@@ -67,7 +67,7 @@ defmodule Qlarius.Creators do
   """
   def create_creator(attrs \\ %{}) do
     attrs =
-      Map.put_new(attrs, :referral_code, Qlarius.Referrals.generate_referral_code("creator"))
+      Map.put_new(attrs, "referral_code", Qlarius.Referrals.generate_referral_code("creator"))
 
     changeset_fn =
       if Map.has_key?(attrs, "image"),
