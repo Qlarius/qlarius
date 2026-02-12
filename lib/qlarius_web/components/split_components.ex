@@ -3,7 +3,6 @@ defmodule QlariusWeb.Components.SplitComponents do
   alias Phoenix.LiveView.JS
   import QlariusWeb.CoreComponents
   import QlariusWeb.Money, only: [format_usd: 1]
-  import QlariusWeb.InstaTipComponents, only: [insta_tip_button_group: 1]
 
   @doc """
   Tip shown above the split bar for new users (first 3 split-drawer opens).

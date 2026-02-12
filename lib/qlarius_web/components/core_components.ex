@@ -745,6 +745,54 @@ defmodule QlariusWeb.CoreComponents do
     |> JS.pop_focus()
   end
 
+  @doc """
+  InstaTip amount button grid. Shared by InstaTipComponents and SplitComponents
+  to avoid circular dependencies.
+  """
+  attr :amounts, :list, required: true
+  attr :wallet_balance, :any, required: true
+  attr :target, :any, default: nil
+  attr :add_class, :string, default: nil
+  attr :recipient_id, :integer, default: nil
+
+  def insta_tip_button_group(assigns) do
+    ~H"""
+    <div class={["grid grid-cols-2 sm:grid-cols-4 gap-3 justify-items-center", @add_class]}>
+      <%= for amount <- @amounts do %>
+        <% amount_decimal = Decimal.new(amount)
+        enabled = Decimal.compare(@wallet_balance, amount_decimal) != :lt %>
+        <button
+          type="button"
+          phx-click="initiate_insta_tip"
+          phx-target={@target}
+          phx-value-amount={amount}
+          phx-value-recipient-id={@recipient_id}
+          disabled={!enabled}
+          class={[
+            "btn btn-circle btn-lg font-bold p-8",
+            if(enabled, do: "btn-primary hover:btn-primary-focus", else: "btn-disabled")
+          ]}
+        >
+          <span>
+            <%= case to_string(amount) do %>
+              <% "2.00" -> %>
+                $2
+              <% "1.00" -> %>
+                $1
+              <% "0.50" -> %>
+                50¢
+              <% "0.25" -> %>
+                25¢
+              <% _ -> %>
+                ${amount}
+            <% end %>
+          </span>
+        </button>
+      <% end %>
+    </div>
+    """
+  end
+
   ## --------------------
   ##      CUSTOM
   ## --------------------
