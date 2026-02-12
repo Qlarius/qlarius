@@ -68,11 +68,14 @@ defmodule QlariusWeb.AdJumpPageHTML do
         const redirectCompleteUI = document.getElementById('redirect-complete-ui');
         let hasRedirected = false;
 
-        // Detect macOS PWA (standalone mode on Mac)
+        // Detect PWA (standalone) and mobile for auto-close decision
         const isMacOS = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
         const isStandalone = window.navigator.standalone === true ||
                             window.matchMedia('(display-mode: standalone)').matches;
         const isMacOSPWA = isMacOS && isStandalone;
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const shouldAutoClose = isStandalone && !isMobile;
 
         // Listen for page becoming visible again (user returns from external app)
         // This handles the case where deep linking opens a native app (e.g., Yelp)
@@ -111,32 +114,35 @@ defmodule QlariusWeb.AdJumpPageHTML do
               hasRedirected = true;
               // Payment processed, now redirect to advertiser
               window.location.href = jumpUrl;
-              // Try to close this window after a short delay (helps macOS PWA)
-              setTimeout(() => {
-                window.close();
-                // If window didn't close (macOS PWA), show redirect complete UI
-                if (isMacOSPWA) {
-                  setTimeout(() => {
-                    countdownUI.classList.add('hidden');
-                    redirectCompleteUI.classList.remove('hidden');
-                  }, 300);
-                }
-              }, 500);
+              // Auto-close only on desktop PWA (mobile in-app browser handles it nicely)
+              if (shouldAutoClose) {
+                setTimeout(() => {
+                  window.close();
+                  if (isMacOSPWA) {
+                    setTimeout(() => {
+                      countdownUI.classList.add('hidden');
+                      redirectCompleteUI.classList.remove('hidden');
+                    }, 300);
+                  }
+                }, 500);
+              }
             })
             .catch(error => {
               // Still redirect even if payment fails - don't block user
               console.error('Payment error:', error);
               hasRedirected = true;
               window.location.href = jumpUrl;
-              setTimeout(() => {
-                window.close();
-                if (isMacOSPWA) {
-                  setTimeout(() => {
-                    countdownUI.classList.add('hidden');
-                    redirectCompleteUI.classList.remove('hidden');
-                  }, 300);
-                }
-              }, 500);
+              if (shouldAutoClose) {
+                setTimeout(() => {
+                  window.close();
+                  if (isMacOSPWA) {
+                    setTimeout(() => {
+                      countdownUI.classList.add('hidden');
+                      redirectCompleteUI.classList.remove('hidden');
+                    }, 300);
+                  }
+                }, 500);
+              }
             });
           }
         }, interval);
