@@ -1,6 +1,6 @@
-<%!-- 
-  We use vanilla JS state in TipDrawerHook for splitAmount because phx-update="ignore" prevents LiveView from updating the DOM for this drawer.
-  This ensures the UI updates immediately when a split button is clicked, even though the assign changes in the socket are not patched in.
+<%!--
+  Reminder is rendered in tipjar_container so it patches reliably (tipjar_root has phx-update="ignore").
+  We use vanilla JS state in TipDrawerHook for splitAmount because phx-update="ignore" prevents LiveView from updating the DOM.
 --%>
 <div
   id="tipjar-root"

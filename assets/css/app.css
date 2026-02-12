@@ -29,6 +29,36 @@
 .animate-slide-down {
   animation: slide-down 0.3s ease-in forwards;
 }
+
+@keyframes slide-up-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up-in {
+  animation: slide-up-in 0.4s ease-out forwards;
+}
+
+@keyframes slide-in-right-to-left {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right-to-left {
+  animation: slide-in-right-to-left 0.4s ease-out forwards;
+}
 @source "../css";
 @source "../js";
 @source "../../lib/qlarius_web";

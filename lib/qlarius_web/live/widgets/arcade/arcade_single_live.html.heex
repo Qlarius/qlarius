@@ -45,7 +45,7 @@
                     class="btn btn-primary btn-lg rounded-full"
                   >
                     {if Decimal.eq?(@default_tiqit_class.price, 0), do: "Get", else: "Buy"} Tiqit •
-                    <span class="font-bold">{format_usd(@default_tiqit_class.price)}</span>
+                    <span class="font-bold">{format_usd(@default_tiqit_class.price, zero_free: true)}</span>
                   </button>
                   <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
                 <% else %>
@@ -112,7 +112,7 @@
               class="btn btn-primary btn-lg btn-block rounded-full"
             >
               <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm Purchase •
-              <span class="font-bold">{format_usd(@selected_tiqit_class.price)}</span>
+              <span class="font-bold">{format_usd(@selected_tiqit_class.price, zero_free: true)}</span>
             </button>
           </div>
           <.wallet_strip balance={@balance} offered_amount={@offered_amount} />

@@ -1,8 +1,22 @@
 <div>
+  <%!-- DEBUG: split reminder - remove when done --%>
+  <div class="fixed top-2 left-2 right-2 z-[9999] bg-yellow-200 text-black text-xs p-2 rounded font-mono" style="max-height: 80px; overflow: auto;">
+    split_reminder_debug:
+    recipient=<%= !!@recipient %>,
+    show_split_reminder=<%= assigns[:show_split_reminder] %>,
+    me_file=<%= !!(@current_scope && @current_scope.user && @current_scope.user.me_file) %>,
+    should_show=<%= @current_scope && @current_scope.user && @current_scope.user.me_file && Qlarius.YouData.MeFiles.MeFile.should_show_split_reminder?(@current_scope.user.me_file) %>
+  </div>
   <.tipjar_header
     wallet_balance={@current_scope.wallet_balance}
     user_alias={@current_scope.user.alias}
   />
+  <%= if @recipient && assigns[:show_split_reminder] && @current_scope && @current_scope.user && @current_scope.user.me_file do %>
+    <.split_reminder_tip
+      id="split-reminder-tip"
+      split_amount={@current_scope.user.me_file.split_amount || 50}
+    />
+  <% end %>
   <.tipjar_drawer
     :if={@recipient}
     me_file={@current_scope.user.me_file}

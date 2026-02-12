@@ -776,6 +776,9 @@ Hooks.TipDrawerHook = {
 
   toggleDrawer() {
     this.drawerOpen = !this.drawerOpen
+    if (this.drawerOpen) {
+      this.pushEvent('split_drawer_opened', {})
+    }
     document.body.classList.toggle('tip-drawer-open', this.drawerOpen)
     this.applyBottomPosition()
     if (this.backdropEl) {

@@ -541,7 +541,7 @@ defmodule QlariusWeb.Components.AdsComponents do
               </div>
             <% end %>
             <div class="text-base-content/50 text-sm">
-              {@offer.media_run.media_piece.duration}s · ${Decimal.round(@rate, 3)}/sec
+              {format_duration(@offer.media_run.media_piece.duration || 0)} · ${Decimal.round(@rate, 3)}/sec
             </div>
           </div>
         </div>

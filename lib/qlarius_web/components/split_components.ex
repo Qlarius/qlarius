@@ -1,8 +1,66 @@
 defmodule QlariusWeb.Components.SplitComponents do
   use Phoenix.Component
+  alias Phoenix.LiveView.JS
   import QlariusWeb.CoreComponents
   import QlariusWeb.Money, only: [format_usd: 1]
   import QlariusWeb.InstaTipComponents, only: [insta_tip_button_group: 1]
+
+  @doc """
+  Tip shown above the split bar for new users (first 3 split-drawer opens).
+  Slides in on mount, auto-hides after 2 seconds, or "Dismiss forever".
+  Uses onboarding_tip style.
+  """
+  attr :split_amount, :integer, required: true
+  attr :id, :string, default: "split-reminder-tip"
+
+  def split_reminder_tip(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      class="fixed bottom-[90px] z-[75] animate-slide-in-right-to-left pl-6 pr-8"
+      style="right: -34px; max-width: min(380px, calc(100vw - 2rem));"
+      phx-remove={
+        JS.transition(
+          {"ease-out duration-400", "translate-x-0 opacity-100", "translate-x-full opacity-0"},
+          time: 400
+        )
+      }
+    >
+      <div class="shadow-xl bg-base-100 dark:bg-base-200 !border-2 !border-primary overflow-hidden rounded-tl-xl rounded-bl-xl">
+        <div class="bg-base-200 dark:bg-base-300 px-5 py-3 flex items-center justify-center relative">
+          <span class="text-sm font-semibold text-base-content">You're splitting</span>
+          <button
+            phx-click="split_reminder_dismiss"
+            class="absolute right-3 btn btn-default btn-xs btn-circle"
+            aria-label="Dismiss forever"
+          >
+            <.icon name="hero-x-mark" class="w-5 h-5 text-base-content" />
+          </button>
+        </div>
+        <div class="p-6">
+          <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
+            <span class="block">
+              You're currently splitting
+              <strong class="text-primary">{@split_amount}%</strong>
+              of ad earnings to support this creator.
+            </span>
+          </p>
+          <div class="mt-6 flex justify-center">
+            <button
+              phx-click="split_reminder_dismiss"
+              class="btn btn-primary btn-wide rounded-full"
+            >
+              Dismiss forever
+            </button>
+          </div>
+        </div>
+        <div class="flex justify-end pr-12 pb-4" aria-hidden="true">
+          <.icon name="hero-chevron-down" class="w-8 h-8 text-primary animate-bounce" />
+        </div>
+      </div>
+    </div>
+    """
+  end
 
   @doc """
   Split tab trigger button showing current split percentage.

@@ -22,6 +22,8 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
     field :strong_start_status, :string, default: "active"
     field :strong_start_completed_at, :naive_datetime
     field :strong_start_data, :map, default: %{}
+    field :split_reminder_dismissed_at, :utc_datetime
+    field :split_reminder_shown_count, :integer, default: 0
 
     belongs_to :user, User
     has_one :ledger_header, LedgerHeader
@@ -44,7 +46,9 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
       :user_id,
       :strong_start_status,
       :strong_start_completed_at,
-      :strong_start_data
+      :strong_start_data,
+      :split_reminder_dismissed_at,
+      :split_reminder_shown_count
     ])
     |> validate_required([:user_id])
     |> validate_number(:split_amount, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
@@ -169,6 +173,31 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
       when is_integer(split_amount) do
     me_file
     |> Ecto.Changeset.change(split_amount: split_amount)
+    |> Repo.update()
+  end
+
+  @doc """
+  Returns true if the split reminder should be shown (not dismissed, shown fewer than 3 times).
+  """
+  def should_show_split_reminder?(nil), do: false
+
+  def should_show_split_reminder?(me_file) do
+    is_nil(me_file.split_reminder_dismissed_at) &&
+      (me_file.split_reminder_shown_count || 0) < 3
+  end
+
+  def increment_split_reminder_shown(%__MODULE__{} = me_file) do
+    count = (me_file.split_reminder_shown_count || 0) + 1
+    me_file
+    |> Ecto.Changeset.change(split_reminder_shown_count: count)
+    |> Repo.update()
+  end
+
+  def dismiss_split_reminder_forever(%__MODULE__{} = me_file) do
+    dismissed_at = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    me_file
+    |> Ecto.Changeset.change(split_reminder_dismissed_at: dismissed_at)
     |> Repo.update()
   end
 end

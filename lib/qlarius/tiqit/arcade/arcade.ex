@@ -136,6 +136,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         amt: amount,
         running_balance: new_balance,
         description: "Tiqit purchase",
+        meta_1: "Tiqit Purchase",
         tiqit_id: tiqit.id
       }
       |> Repo.insert!()

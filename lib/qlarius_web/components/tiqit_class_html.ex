@@ -1,7 +1,7 @@
 defmodule QlariusWeb.TiqitClassHTML do
   use QlariusWeb, :html
 
-  import QlariusWeb.Money, only: [format_usd: 1]
+  import QlariusWeb.Money, only: [format_usd: 1, format_usd: 2]
 
   attr :form, Phoenix.HTML.Form, required: true
 
@@ -100,7 +100,7 @@ defmodule QlariusWeb.TiqitClassHTML do
           </tr>
         </thead>
         <tbody class="divide-y divide-base-300">
-          <%= for tc <- @record.tiqit_classes do %>
+          <%= for tc <- Enum.sort_by(@record.tiqit_classes, &(&1.duration_hours || 999_999)) do %>
             <tr class="hover:bg-base-200 transition-colors">
               <td class="font-medium text-base-content">
                 <div class="badge badge-outline badge-sm">
@@ -110,7 +110,7 @@ defmodule QlariusWeb.TiqitClassHTML do
               <td class="text-base-content">
                 <span class="badge badge-primary badge-sm">
                   <.icon name="hero-currency-dollar" class="w-3 h-3 mr-1" />
-                  {format_usd(tc.price)}
+                  {format_usd(tc.price, zero_free: true)}
                 </span>
               </td>
             </tr>

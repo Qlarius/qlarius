@@ -600,10 +600,12 @@ defmodule QlariusWeb.CoreComponents do
     """
   end
 
-  def format_duration(seconds) do
-    minutes = div(seconds, 60)
+  def format_duration(seconds) when is_integer(seconds) or is_float(seconds) do
+    seconds = round(seconds)
+    hours = div(seconds, 3600)
+    minutes = div(rem(seconds, 3600), 60)
     remaining_seconds = rem(seconds, 60)
-    :io_lib.format("~2..0B:~2..0B", [minutes, remaining_seconds])
+    :io_lib.format("~2..0B:~2..0B:~2..0B", [hours, minutes, remaining_seconds])
   end
 
   ## --------------------------

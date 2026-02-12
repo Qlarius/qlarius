@@ -3,6 +3,14 @@
   data-theme={get_theme(@page)}
   style={get_background_style(@page)}
 >
+  <%!-- DEBUG: split reminder (qlink) - remove when done --%>
+  <%= if @current_scope && @current_scope.user && @recipient do %>
+    <div class="fixed top-2 left-2 right-2 z-[9999] bg-yellow-200 text-black text-xs p-2 rounded font-mono" style="max-height: 80px; overflow: auto;">
+      split_reminder_debug: show_split_reminder=<%= @show_split_reminder %>,
+      me_file=<%= !!@current_scope.user.me_file %>,
+      should_show=<%= @current_scope.user.me_file && Qlarius.YouData.MeFiles.MeFile.should_show_split_reminder?(@current_scope.user.me_file) %>
+    </div>
+  <% end %>
   <div
   class="container mx-auto px-6 md:px-8 py-8 max-w-2xl"
   style={if @recipient, do: "padding-bottom: 100px;", else: ""}
@@ -146,8 +154,8 @@
       <%!-- Show/Hide Button --%>
       <button
         phx-click="toggle_sponster_drawer"
-        class="flex items-center justify-center gap-1 w-[88px] py-1 rounded-full border-[1.5px] border-base-content/80 bg-transparent hover:bg-base-200 transition-colors flex-shrink-0 cursor-pointer"
-      >
+          class="flex items-center justify-center gap-1 w-[88px] py-1 rounded-full border-[1.5px] border-base-content/80 bg-transparent hover:bg-base-200 transition-colors flex-shrink-0 cursor-pointer"
+        >
         <span class="text-base-content text-[13px] font-semibold">
           {if @show_sponster_drawer, do: "Hide", else: "Show"}
         </span>
@@ -329,6 +337,12 @@
 
         <%!-- Split drawer with tab (positioned at bottom, slides up/down) --%>
         <%= if @current_scope && @current_scope.user && @recipient do %>
+          <%= if @show_split_reminder do %>
+            <.split_reminder_tip
+              id="split-reminder-tip-qlink"
+              split_amount={(@current_scope.user.me_file && @current_scope.user.me_file.split_amount) || 50}
+            />
+          <% end %>
           <div
             class={[
               "absolute left-0 right-0 bottom-0 z-30 flex flex-col max-h-[95%] transition-transform duration-300 ease-out",
@@ -337,7 +351,7 @@
           >
             <%!-- Split Tab --%>
             <div class="flex justify-end flex-shrink-0">
-              <.split_tab split_amount={@current_scope.user.me_file.split_amount || 50} />
+              <.split_tab split_amount={(@current_scope.user.me_file && @current_scope.user.me_file.split_amount) || 50} />
             </div>
 
             <%!-- Drawer content --%>
@@ -378,7 +392,7 @@
 
                   <%!-- AutoSplit Section --%>
                   <.auto_split_controls
-                    split_amount={@current_scope.user.me_file.split_amount || 50}
+                    split_amount={(@current_scope.user.me_file && @current_scope.user.me_file.split_amount) || 50}
                     force_light={true}
                   />
                 </div>

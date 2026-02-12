@@ -52,7 +52,7 @@
                 class={"btn btn-lg btn-block rounded-full #{if can_afford, do: "btn-primary", else: "btn-disabled opacity-50 cursor-not-allowed"}"}
               >
                 {if Decimal.eq?(default_tc.price, 0), do: "Get", else: "Buy"} Tiqit •
-                <span class="font-bold">{format_usd(default_tc.price)}</span>
+                <span class="font-bold">{format_usd(default_tc.price, zero_free: true)}</span>
               </button>
               <%= if !can_afford do %>
                 <div class="text-sm text-warning text-center">
@@ -109,7 +109,7 @@
                   <%= if Arcade.has_valid_tiqit?(@current_scope, piece) do %>
                     <.icon name="hero-check" class="h-4 w-4 font-bold text-white" />
                   <% else %>
-                    {ContentPiece.default_tiqit_class(piece).price |> format_usd()}
+                    {ContentPiece.default_tiqit_class(piece).price |> format_usd(zero_free: true)}
                   <% end %>
                 </span>
               </div>
@@ -170,7 +170,7 @@
             class="btn btn-primary btn-lg btn-block rounded-full"
           >
             <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm Purchase •
-            <span class="font-bold">{format_usd(@selected_tiqit_class.price)}</span>
+            <span class="font-bold">{format_usd(@selected_tiqit_class.price, zero_free: true)}</span>
           </button>
         </div>
         <.wallet_strip balance={@balance} offered_amount={@offered_amount} />

@@ -211,7 +211,7 @@ defmodule QlariusWeb.WalletLive do
                       else: "!bg-tiqit-200 dark:!bg-tiqit-800"
                     )
                   ]}>
-                    <.icon name={icon_for_meta_1(entry.meta_1)} class="h-5 w-5 text-base-content" />
+                    <.icon name={icon_for_entry(entry)} class="h-5 w-5 text-base-content" />
                   </span>
                 </div>
                 <div class="list-col-grow">
@@ -397,6 +397,9 @@ defmodule QlariusWeb.WalletLive do
   end
 
   defp get_marketer_name(_), do: "Unknown"
+
+  defp icon_for_entry(%{tiqit_id: tiqit_id}) when not is_nil(tiqit_id), do: "hero-ticket"
+  defp icon_for_entry(entry), do: icon_for_meta_1(entry.meta_1)
 
   def icon_for_meta_1("Tip/Donation"), do: "hero-gift"
   def icon_for_meta_1("Tiqit Purchase"), do: "hero-ticket"

@@ -99,6 +99,7 @@ defmodule QlariusWeb do
       import QlariusWeb.Components.CurrentMarketerBar
       import QlariusWeb.Components.TraitComponents
       import QlariusWeb.Components.AdsComponents
+      import QlariusWeb.Components.SplitComponents
       import QlariusWeb.Components.ImageUploadField
 
       # Image helpers

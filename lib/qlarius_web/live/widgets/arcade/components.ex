@@ -125,11 +125,11 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         phx-value-tiqit-class-id={@tiqit_class.id}
         class="btn btn-sm rounded-full btn-primary px-3 py-1 cursor-pointer"
       >
-        {format_usd(@tiqit_class.price)}
+        {format_usd(@tiqit_class.price, zero_free: true)}
       </button>
     <% else %>
       <div class="btn btn-sm rounded-full btn-ghost px-3 py-1 opacity-50 cursor-not-allowed">
-        {format_usd(@tiqit_class.price)}
+        {format_usd(@tiqit_class.price, zero_free: true)}
       </div>
     <% end %>
     """

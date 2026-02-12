@@ -58,6 +58,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
 
     socket =
       socket
+      |> assign(:show_split_reminder, false)
       |> assign(:active_offers, [])
       |> assign(:video_offers, [])
       |> assign(:selected_ad_type, selected_ad_type)
@@ -99,6 +100,41 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   end
 
   @impl true
+  def handle_info(:show_split_reminder, socket) do
+    Process.send_after(self(), :split_reminder_auto_hide, 5000)
+    {:noreply, assign(socket, :show_split_reminder, true)}
+  end
+
+  @impl true
+  def handle_info(:split_reminder_auto_hide, socket) do
+    me_file = socket.assigns.current_scope.user.me_file
+
+    socket =
+      if me_file && socket.assigns.show_split_reminder do
+        case MeFile.increment_split_reminder_shown(me_file) do
+          {:ok, updated} ->
+            current_scope =
+              Map.put(
+                socket.assigns.current_scope,
+                :user,
+                Map.put(socket.assigns.current_scope.user, :me_file, updated)
+              )
+
+            socket
+            |> assign(:current_scope, current_scope)
+            |> assign(:show_split_reminder, false)
+
+          {:error, _} ->
+            assign(socket, :show_split_reminder, false)
+        end
+      else
+        assign(socket, :show_split_reminder, false)
+      end
+
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_info(:load_offers, socket) do
     me_file_id = socket.assigns.current_scope.user.me_file.id
 
@@ -134,11 +170,24 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
       end)
       |> Enum.sort_by(fn {_offer, rate} -> Decimal.to_float(rate) end, :desc)
 
-    {:noreply,
-     socket
-     |> assign(:active_offers, active_offers)
-     |> assign(:video_offers, video_offers_with_rate)
-     |> assign(:loading, false)}
+    socket =
+      socket
+      |> assign(:active_offers, active_offers)
+      |> assign(:video_offers, video_offers_with_rate)
+      |> assign(:loading, false)
+
+    socket =
+      if socket.assigns.recipient &&
+           socket.assigns.current_scope.user.me_file &&
+           MeFile.should_show_split_reminder?(socket.assigns.current_scope.user.me_file) &&
+           (active_offers != [] || video_offers_with_rate != []) do
+        Process.send_after(self(), :show_split_reminder, 3000)
+        socket
+      else
+        socket
+      end
+
+    {:noreply, socket}
   end
 
   # me_file_id from message not used - we get me_file from socket.assigns instead
@@ -206,6 +255,40 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
      |> assign(:video_watched_complete, false)
      |> assign(:show_collection_drawer, false)
      |> assign(:drawer_closing, false)}
+  end
+
+  @impl true
+  def handle_event("split_drawer_opened", _params, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("split_reminder_dismiss", _params, socket) do
+    me_file = socket.assigns.current_scope.user.me_file
+
+    socket =
+      if me_file do
+        case MeFile.dismiss_split_reminder_forever(me_file) do
+          {:ok, updated} ->
+            current_scope =
+              Map.put(
+                socket.assigns.current_scope,
+                :user,
+                Map.put(socket.assigns.current_scope.user, :me_file, updated)
+              )
+
+            socket
+            |> assign(:current_scope, current_scope)
+            |> assign(:show_split_reminder, false)
+
+          {:error, _} ->
+            assign(socket, :show_split_reminder, false)
+        end
+      else
+        assign(socket, :show_split_reminder, false)
+      end
+
+    {:noreply, socket}
   end
 
   @impl true

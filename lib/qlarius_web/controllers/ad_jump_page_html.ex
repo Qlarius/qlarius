@@ -20,7 +20,7 @@ defmodule QlariusWeb.AdJumpPageHTML do
           Be careful out there!
         </h2>
 
-        <img src={~p"/images/qlarius_app_icon_180.png"} width="100" height="71" class="my-6" />
+        <img src={~p"/images/qlarius_app_icon_180.png"} width="100" height="71" class="my-6 block mx-auto" />
 
         <p class="text-base-content/50">Leaving the no-tracking safety of Qadabra.</p>
 
@@ -70,7 +70,7 @@ defmodule QlariusWeb.AdJumpPageHTML do
 
         // Detect macOS PWA (standalone mode on Mac)
         const isMacOS = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-        const isStandalone = window.navigator.standalone === true || 
+        const isStandalone = window.navigator.standalone === true ||
                             window.matchMedia('(display-mode: standalone)').matches;
         const isMacOSPWA = isMacOS && isStandalone;
 
@@ -112,7 +112,7 @@ defmodule QlariusWeb.AdJumpPageHTML do
               // Payment processed, now redirect to advertiser
               window.location.href = jumpUrl;
               // Try to close this window after a short delay (helps macOS PWA)
-              setTimeout(() => { 
+              setTimeout(() => {
                 window.close();
                 // If window didn't close (macOS PWA), show redirect complete UI
                 if (isMacOSPWA) {
@@ -128,7 +128,7 @@ defmodule QlariusWeb.AdJumpPageHTML do
               console.error('Payment error:', error);
               hasRedirected = true;
               window.location.href = jumpUrl;
-              setTimeout(() => { 
+              setTimeout(() => {
                 window.close();
                 if (isMacOSPWA) {
                   setTimeout(() => {
