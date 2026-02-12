@@ -109,7 +109,7 @@ defmodule QlariusWeb.CreatorDashboard.Index do
             %{}
           )
 
-        creator =
+        _creator =
           if Map.has_key?(creator_params_with_image, "image") do
             {:ok, updated} =
               Creators.update_creator(creator, creator_params_with_image)

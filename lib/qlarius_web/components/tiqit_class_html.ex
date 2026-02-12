@@ -1,7 +1,7 @@
 defmodule QlariusWeb.TiqitClassHTML do
   use QlariusWeb, :html
 
-  import QlariusWeb.Money, only: [format_usd: 1, format_usd: 2]
+  import QlariusWeb.Money, only: [format_usd: 2]
 
   attr :form, Phoenix.HTML.Form, required: true
 
