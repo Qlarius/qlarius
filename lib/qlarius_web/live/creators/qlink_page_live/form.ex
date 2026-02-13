@@ -332,7 +332,10 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   def handle_event("validate_link", %{"qlink_link" => link_params}, socket) do
     link = socket.assigns.editing_link || %QlinkLink{qlink_page_id: socket.assigns.page.id}
 
-    link_params = detect_embed_type(link_params, nil)
+    link_params =
+      link_params
+      |> normalize_is_visible_param()
+      |> detect_embed_type(nil)
 
     changeset = Qlink.change_link(link, link_params)
 
@@ -685,14 +688,29 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     end
   end
 
+  defp normalize_is_visible_param(link_params) do
+    case Map.get(link_params, "is_visible") do
+      [_, last | _] when is_binary(last) ->
+        Map.put(link_params, "is_visible", last)
+      [single] when is_binary(single) ->
+        Map.put(link_params, "is_visible", single)
+      _ ->
+        link_params
+    end
+  end
+
   defp normalize_link_params(link_params) do
     link_params
-    |> Map.update("qlink_section_id", nil, fn
-      "" -> nil
-      id -> id
+    |> normalize_is_visible_param()
+    |> then(fn p ->
+      Map.update(p, "qlink_section_id", nil, fn
+        "" -> nil
+        id -> id
+      end)
     end)
     |> Map.update("is_visible", true, fn
       "true" -> true
+      "on" -> true
       "false" -> false
       val -> val
     end)

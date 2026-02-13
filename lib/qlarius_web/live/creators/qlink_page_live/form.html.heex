@@ -632,13 +632,14 @@
                 <div class="form-control">
                   <label class="label cursor-pointer">
                     <span class="label-text font-medium">Visible</span>
+                    <input type="hidden" name={@link_form[:is_visible].name} value="false" />
                     <.toggle
                       id="link-visible-toggle"
                       name={@link_form[:is_visible].name}
+                      value="true"
                       checked={@link_form[:is_visible].value not in [false, "false", nil]}
                     />
                   </label>
-                  <input type="hidden" name={@link_form[:is_visible].name} value="false" />
                 </div>
 
                 <div class="modal-action">
