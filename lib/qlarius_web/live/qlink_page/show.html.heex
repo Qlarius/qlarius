@@ -489,6 +489,12 @@
       amount={@insta_tip_amount || Decimal.new("0.00")}
       current_balance={@current_scope.wallet_balance}
     />
+
+    <.insta_tip_thanks_modal
+      show={@show_insta_tip_thanks_modal}
+      recipient_name={@insta_tip_thanks_recipient || "Recipient"}
+      amount={@insta_tip_thanks_amount || Decimal.new("0.00")}
+    />
   <% end %>
 
   <%!-- Floating "Connect your wallet" button for unauthenticated users (only if no recipient) --%>

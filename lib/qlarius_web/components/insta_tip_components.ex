@@ -1,6 +1,7 @@
 defmodule QlariusWeb.InstaTipComponents do
   use QlariusWeb, :html
 
+  alias Phoenix.LiveView.JS
   import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
   import QlariusWeb.Money, only: [format_usd: 1]
 
@@ -159,6 +160,38 @@ defmodule QlariusWeb.InstaTipComponents do
             Cancel
           </button>
         </div>
+      </div>
+    </.modal>
+    """
+  end
+
+  @doc """
+  Thanks/confirmation modal shown after a successful InstaTip. Auto-dismisses
+  after 3 seconds and has standard close button. Uses same styling as other modals.
+  """
+  attr :show, :boolean, default: false
+  attr :recipient_name, :string, required: true
+  attr :amount, :any, required: true
+
+  def insta_tip_thanks_modal(assigns) do
+    ~H"""
+    <.modal :if={@show} id="insta-tip-thanks-modal" show on_cancel={JS.push("close-insta-tip-thanks-modal")}>
+      <div class="text-center space-y-6 p-8">
+        <div class="space-y-4">
+          <div class="text-5xl mb-2">✓</div>
+          <h2 class="text-xl font-bold text-success">Thank you!</h2>
+          <p class="text-base-content">
+            Your tip of <span class="font-bold text-primary">{format_usd(@amount)}</span>
+            to <span class="font-semibold">{@recipient_name}</span> was sent.
+          </p>
+        </div>
+        <button
+          type="button"
+          phx-click="close-insta-tip-thanks-modal"
+          class="btn btn-primary rounded-full"
+        >
+          Done
+        </button>
       </div>
     </.modal>
     """

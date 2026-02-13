@@ -26,7 +26,6 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   # Commented out unused import - OfferHTML functions not used in this LiveView
   # import QlariusWeb.OfferHTML
   import Ecto.Query, except: [update: 2, update: 3]
-  import QlariusWeb.Money, only: [format_usd: 1]
   import QlariusWeb.InstaTipComponents
   import QlariusWeb.Components.AdsComponents
   # Commented out unused import - Layouts functions not used in this LiveView
@@ -69,6 +68,9 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
       |> assign(:page_title, "Sponster")
       |> assign(:show_insta_tip_modal, false)
       |> assign(:insta_tip_amount, nil)
+      |> assign(:show_insta_tip_thanks_modal, false)
+      |> assign(:insta_tip_thanks_amount, nil)
+      |> assign(:insta_tip_thanks_recipient, nil)
       |> assign(:show_video_player, false)
       |> assign(:current_video_offer, nil)
       |> assign(:video_watched_complete, false)
@@ -258,6 +260,15 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   end
 
   @impl true
+  def handle_info(:close_insta_tip_thanks_modal, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_insta_tip_thanks_modal, false)
+     |> assign(:insta_tip_thanks_amount, nil)
+     |> assign(:insta_tip_thanks_recipient, nil)}
+  end
+
+  @impl true
   def handle_event("split_drawer_opened", _params, socket) do
     {:noreply, socket}
   end
@@ -336,6 +347,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
 
     case Wallets.create_insta_tip_request(user, recipient, amount, user) do
       {:ok, _ledger_event} ->
+        Process.send_after(self(), :close_insta_tip_thanks_modal, 3000)
         new_balance = Decimal.sub(socket.assigns.current_scope.wallet_balance, amount)
         current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
 
@@ -345,8 +357,10 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
          |> assign(:current_balance, new_balance)
          |> assign(:show_insta_tip_modal, false)
          |> assign(:insta_tip_amount, nil)
-         |> push_event("update-balance", %{balance: Decimal.to_string(new_balance, :normal)})
-         |> put_flash(:info, "InstaTip of #{format_usd(amount)} sent! Processing...")}
+         |> assign(:show_insta_tip_thanks_modal, true)
+         |> assign(:insta_tip_thanks_amount, amount)
+         |> assign(:insta_tip_thanks_recipient, (recipient && recipient.name) || "Recipient")
+         |> push_event("update-balance", %{balance: Decimal.to_string(new_balance, :normal)})}
 
       {:error, _changeset} ->
         {:noreply,
@@ -375,6 +389,15 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
       |> assign(:insta_tip_amount, nil)
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("close-insta-tip-thanks-modal", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_insta_tip_thanks_modal, false)
+     |> assign(:insta_tip_thanks_amount, nil)
+     |> assign(:insta_tip_thanks_recipient, nil)}
   end
 
   @impl true
@@ -585,6 +608,12 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
       recipient_name={(@recipient && @recipient.name) || "Recipient"}
       amount={@insta_tip_amount || Decimal.new("0.00")}
       current_balance={@current_scope.wallet_balance}
+    />
+
+    <.insta_tip_thanks_modal
+      show={@show_insta_tip_thanks_modal}
+      recipient_name={@insta_tip_thanks_recipient || "Recipient"}
+      amount={@insta_tip_thanks_amount || Decimal.new("0.00")}
     />
     <Layouts.debug_assigns {assigns} />
     """

@@ -49,6 +49,9 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
       |> assign(:force_theme, force_theme)
       |> assign(:show_insta_tip_modal, false)
       |> assign(:insta_tip_amount, nil)
+      |> assign(:show_insta_tip_thanks_modal, false)
+      |> assign(:insta_tip_thanks_amount, nil)
+      |> assign(:insta_tip_thanks_recipient, nil)
       |> assign(
         :current_balance,
         Wallets.get_user_current_balance(socket.assigns.current_scope.user)
@@ -93,6 +96,15 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
   end
 
   @impl true
+  def handle_info(:close_insta_tip_thanks_modal, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_insta_tip_thanks_modal, false)
+     |> assign(:insta_tip_thanks_amount, nil)
+     |> assign(:insta_tip_thanks_recipient, nil)}
+  end
+
+  @impl true
   def handle_info({:me_file_pending_referral_clicks_updated, pending_clicks_count}, socket) do
     current_scope =
       Map.put(socket.assigns.current_scope, :pending_referral_clicks_count, pending_clicks_count)
@@ -124,11 +136,15 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
 
     case Wallets.create_insta_tip_request(user, recipient, amount, user) do
       {:ok, _ledger_event} ->
+        Process.send_after(self(), :close_insta_tip_thanks_modal, 3000)
+
         socket =
           socket
           |> assign(:show_insta_tip_modal, false)
           |> assign(:insta_tip_amount, nil)
-          |> put_flash(:info, "InstaTip processing…")
+          |> assign(:show_insta_tip_thanks_modal, true)
+          |> assign(:insta_tip_thanks_amount, amount)
+          |> assign(:insta_tip_thanks_recipient, (recipient && recipient.name) || "Recipient")
 
         {:noreply, socket}
 
@@ -154,6 +170,15 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
   end
 
   @impl true
+  def handle_event("close-insta-tip-thanks-modal", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_insta_tip_thanks_modal, false)
+     |> assign(:insta_tip_thanks_amount, nil)
+     |> assign(:insta_tip_thanks_recipient, nil)}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div data-theme="light" class="bg-base-100 h-screen flex items-center justify-center mt-2">
@@ -176,6 +201,12 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
       recipient_id={@recipient && @recipient.id}
       amount={@insta_tip_amount || Decimal.new("0.00")}
       current_balance={@current_scope.wallet_balance}
+    />
+
+    <.insta_tip_thanks_modal
+      show={@show_insta_tip_thanks_modal}
+      recipient_name={@insta_tip_thanks_recipient || "Recipient"}
+      amount={@insta_tip_thanks_amount || Decimal.new("0.00")}
     />
     """
   end

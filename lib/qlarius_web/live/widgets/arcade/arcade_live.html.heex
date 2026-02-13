@@ -15,7 +15,7 @@
               <img
                 src={content_image_url(@selected_piece, @group)}
                 alt={@selected_piece.title}
-                class="h-32 w-32 md:h-48 md:w-48 object-cover rounded-lg mx-auto"
+                class="h-28 w-28 md:h-48 md:w-48 object-cover rounded-lg mx-auto"
               />
             </div>
             <div class="mt-0 md:mt-4">
@@ -84,13 +84,13 @@
             class={"rounded-lg p-3 flex flex-col gap-2 border transition-all hover:shadow-sm block
             #{if piece.id == @selected_piece.id, do: "bg-primary/10 border-primary text-primary", else: "bg-base-100 border-base-300 hover:bg-base-200"}"}
           >
-            <div class="flex items-start gap-3">
+            <div class="flex items-start gap-1">
               <%= if @group.show_piece_thumbnails do %>
-                <div class="flex-shrink-0 min-w-20">
+                <div class="flex-shrink-0 min-w-16">
                   <img
                     src={content_image_url(piece, @group)}
                     alt={piece.title}
-                    class="w-20 h-20 object-cover rounded-lg"
+                    class="w-14 h-14 object-cover rounded-lg"
                   />
                 </div>
               <% end %>

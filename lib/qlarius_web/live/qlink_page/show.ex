@@ -92,6 +92,9 @@ defmodule QlariusWeb.QlinkPage.Show do
     |> assign(:show_insta_tip_modal, false)
     |> assign(:insta_tip_amount, nil)
     |> assign(:insta_tip_recipient, nil)
+    |> assign(:show_insta_tip_thanks_modal, false)
+    |> assign(:insta_tip_thanks_amount, nil)
+    |> assign(:insta_tip_thanks_recipient, nil)
     |> assign(:current_balance, get_current_balance(socket))
     |> assign(:show_ad_type_tabs, false)
     |> assign(:show_split_drawer, false)
@@ -399,6 +402,7 @@ defmodule QlariusWeb.QlinkPage.Show do
 
     case Wallets.create_insta_tip_request(user, recipient, amount, user) do
       {:ok, _ledger_event} ->
+        Process.send_after(self(), :close_insta_tip_thanks_modal, 3000)
         new_balance = Decimal.sub(socket.assigns.current_scope.wallet_balance, amount)
         current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
 
@@ -409,7 +413,9 @@ defmodule QlariusWeb.QlinkPage.Show do
          |> assign(:show_insta_tip_modal, false)
          |> assign(:insta_tip_amount, nil)
          |> assign(:insta_tip_recipient, nil)
-         |> put_flash(:info, "InstaTip of #{format_usd(amount)} sent!")}
+         |> assign(:show_insta_tip_thanks_modal, true)
+         |> assign(:insta_tip_thanks_amount, amount)
+         |> assign(:insta_tip_thanks_recipient, (recipient && recipient.name) || "Recipient")}
 
       {:error, _changeset} ->
         {:noreply,
@@ -437,7 +443,25 @@ defmodule QlariusWeb.QlinkPage.Show do
      |> assign(:insta_tip_amount, nil)}
   end
 
+  @impl true
+  def handle_event("close-insta-tip-thanks-modal", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_insta_tip_thanks_modal, false)
+     |> assign(:insta_tip_thanks_amount, nil)
+     |> assign(:insta_tip_thanks_recipient, nil)}
+  end
+
   # Handle info callbacks
+  @impl true
+  def handle_info(:close_insta_tip_thanks_modal, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_insta_tip_thanks_modal, false)
+     |> assign(:insta_tip_thanks_amount, nil)
+     |> assign(:insta_tip_thanks_recipient, nil)}
+  end
+
   @impl true
   def handle_info(:show_collection_drawer, socket) do
     {:noreply, assign(socket, :show_collection_drawer, true)}
