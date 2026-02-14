@@ -62,7 +62,7 @@
                   </button>
                 </div>
               <% end %>
-              <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
+              <.wallet_strip id="wallet-balance-arcade-main" balance={@balance} offered_amount={@offered_amount} />
             <% end %>
           </div>
           <div class="flex flex-row justify-center items-center mt-4 mb-1">
@@ -173,7 +173,7 @@
             <span class="font-bold">{format_usd(@selected_tiqit_class.price, zero_free: true)}</span>
           </button>
         </div>
-        <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
+        <.wallet_strip id="wallet-balance-arcade-modal" balance={@balance} offered_amount={@offered_amount} />
       <% end %>
       <div class="flex flex-col gap-1">
         <%= if !assigns[:options_modal] do %>
@@ -187,7 +187,7 @@
         <% end %>
       </div>
       <div class="flex justify-center mt-2">
-        <img src="/images/TIQIT_logo_color_square.svg" alt="Tiqit" class="h-8 w-auto opacity-60" />
+        <img src="/images/TIQIT_logo_color_square.svg" alt="Tiqit" class="h-8 w-auto" />
       </div>
     </div>
   </.modal>

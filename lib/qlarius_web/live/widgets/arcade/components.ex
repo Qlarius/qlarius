@@ -137,13 +137,14 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
 
   attr :balance, Decimal, required: true
   attr :offered_amount, Decimal, default: nil
+  attr :id, :string, default: "wallet-balance-arcade-strip"
 
   def wallet_strip(assigns) do
     ~H"""
     <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-3 py-2 rounded-lg border-1 border-base-300">
       <div class="flex flex-row flex-wrap justify-between items-center space-x-4">
         <div class="flex flex-row items-center justify-center">
-          <.wallet_balance id="wallet-balance-arcade-strip" balance={@balance} />
+          <.wallet_balance id={@id} balance={@balance} />
           <span class="font-normal text-base-content/60 ml-2 mr-3">to spend</span>
         </div>
 

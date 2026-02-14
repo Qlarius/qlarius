@@ -47,7 +47,7 @@
                     {if Decimal.eq?(@default_tiqit_class.price, 0), do: "Get", else: "Buy"} Tiqit •
                     <span class="font-bold">{format_usd(@default_tiqit_class.price, zero_free: true)}</span>
                   </button>
-                  <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
+                  <.wallet_strip id="wallet-balance-arcade-single-main" balance={@balance} offered_amount={@offered_amount} />
                 <% else %>
                   <div class="alert alert-warning">
                     <.icon name="hero-exclamation-triangle" class="w-6 h-6" />
@@ -115,7 +115,7 @@
               <span class="font-bold">{format_usd(@selected_tiqit_class.price, zero_free: true)}</span>
             </button>
           </div>
-          <.wallet_strip balance={@balance} offered_amount={@offered_amount} />
+          <.wallet_strip id="wallet-balance-arcade-single-modal" balance={@balance} offered_amount={@offered_amount} />
         <% end %>
         <div class="flex flex-col gap-1">
           <%= if !assigns[:options_modal] do %>
@@ -132,7 +132,7 @@
           <img
             src="/images/TIQIT_logo_color_square.svg"
             alt="Tiqit"
-            class="h-8 w-auto opacity-60"
+            class="h-8 w-auto"
           />
         </div>
       </div>
