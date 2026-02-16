@@ -39,9 +39,9 @@ defmodule QlariusWeb.Components.SplitComponents do
         <div class="p-6">
           <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
             <span class="block">
-              You're currently splitting
+              Currently splitting
               <strong class="text-primary">{@split_amount}%</strong>
-              of ad earnings to support this creator.
+              of ad earnings with this creator. Edit split amount below.
             </span>
           </p>
           <div class="mt-6 flex justify-center">
@@ -183,8 +183,13 @@ defmodule QlariusWeb.Components.SplitComponents do
 
       <%!-- Content --%>
       <div class="flex flex-col md:flex-row gap-8 px-8 pt-6 pb-8 overflow-y-auto max-w-[800px] mx-auto">
-        <%!-- Left: InstaTip + AutoSplit --%>
+        <%!-- Left: AutoSplit + InstaTip --%>
         <div class="flex-1 flex flex-col items-center md:items-start">
+          <%!-- AutoSplit Section --%>
+          <.auto_split_controls split_amount={@split_amount} force_light={@force_light} />
+
+          <div class="divider my-6"></div>
+
           <%!-- InstaTip Section --%>
           <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
           <div class="text-base-content/70 text-sm mb-4">
@@ -199,15 +204,10 @@ defmodule QlariusWeb.Components.SplitComponents do
             wallet_balance={@wallet_balance}
             recipient_id={@recipient && @recipient.id}
           />
-
-          <div class="divider my-6"></div>
-
-          <%!-- AutoSplit Section --%>
-          <.auto_split_controls split_amount={@split_amount} force_light={@force_light} />
         </div>
 
         <%!-- Right: Recipient --%>
-        <div class="flex-1 flex flex-col items-center border-t border-base-300 pt-6 md:pt-0 md:border-none">
+        <div class="flex-1 flex flex-col items-center border-divider-color pt-6 md:pt-0 md:border-none">
           <%= if @recipient do %>
             <div class="text-2xl font-bold text-base-content mb-2 text-center">
               {@recipient.name || "Recipient"}
@@ -237,6 +237,8 @@ defmodule QlariusWeb.Components.SplitComponents do
             </div>
           <% end %>
         </div>
+        <%!-- Divider and spacing above disclaimer (mobile) --%>
+        <div class="border-divider-color my-4 w-full max-w-[280px] mx-auto md:hidden flex-shrink-0"></div>
       </div>
     </div>
     """

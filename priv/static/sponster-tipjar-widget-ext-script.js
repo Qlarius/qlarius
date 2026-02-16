@@ -123,7 +123,12 @@ function toggleSponster() {
         popoverDiv.style.opacity = "0";
         popoverDiv.style.visibility = "hidden";
         popoverFrameDiv.style.bottom = "calc(-100vh - 10px)";
-        
+
+        var announcerIframe = document.getElementById('ydadget_sponster_announcer_iframe');
+        if (announcerIframe && announcerIframe.contentWindow) {
+            announcerIframe.contentWindow.postMessage('drawer_closed', '*');
+        }
+
         // Add delay to allow animation to complete before refreshing iframes
         // setTimeout(() => {
         //     document.getElementById('ydadget_sponster_adget_iframe').src = document.getElementById('ydadget_sponster_adget_iframe').src;

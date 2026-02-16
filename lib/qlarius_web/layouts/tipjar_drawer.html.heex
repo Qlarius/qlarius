@@ -56,7 +56,7 @@
       
 <!-- Drawer header and content -->
       <div
-        class="w-full bg-base-200 max-width-full shadow-2xl border-t border-gray-200 pt-0 py-8 px-0"
+        class="w-full bg-base-200 max-width-full shadow-2xl border-t border-gray-200 pt-0 py-0 px-0"
         style="min-height: 350px; transform: translateZ(0); -webkit-transform: translateZ(0);"
       >
         <!-- Header -->
@@ -81,11 +81,31 @@
         </div>
         <!-- Content -->
         <div
-          class="flex flex-col md:!flex-row gap-8 px-8 pt-6 overflow-y-auto max-w-[800px] mx-auto"
+          class="flex flex-col md:!flex-row gap-8 px-8 pt-6 pb-8 overflow-y-auto max-w-[800px] mx-auto"
           style="max-height: 60vh;"
         >
-          <!-- InstaTip Section -->
+          <!-- AutoSplit Section -->
           <div class="flex-1 flex flex-col items-center md:items-start">
+            <div class="text-lg font-bold text-base-content mb-1">AutoSplit</div>
+            <div class="text-base-content/70 text-sm mb-4 text-center">
+              Automatically tip a percentage from each ad engaged on this site.
+            </div>
+            <div class="inline-flex rounded-lg overflow-hidden border border-base-content-200 bg-base-100 divide-x divide-base-content-200 w-fit">
+              <%= for percentage <- [0, 25, 50, 75, 100] do %>
+                <button
+                  type="button"
+                  phx-click="set_split"
+                  phx-value-split={to_string(percentage)}
+                  data-split={percentage}
+                >
+                  {percentage}%
+                </button>
+              <% end %>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- InstaTip Section -->
             <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
             <div class="text-base-content/70 text-sm mb-4">
               Instantly tip from your wallet
@@ -119,31 +139,9 @@
                 </button>
               <% end %>
             </div>
-
-            <div class="divider"></div>
-            
-<!-- AutoSplit Section -->
-            <div class="flex-1 flex flex-col items-center md:items-start">
-              <div class="text-lg font-bold text-base-content mb-1">AutoSplit</div>
-              <div class="text-base-content/70 text-sm mb-4 text-center">
-                Automatically tip a percentage from each ad engaged on this site.
-              </div>
-              <div class="inline-flex rounded-lg overflow-hidden border border-base-content-200 bg-base-100 divide-x divide-base-content-200 w-fit">
-                <%= for percentage <- [0, 25, 50, 75, 100] do %>
-                  <button
-                    type="button"
-                    phx-click="set_split"
-                    phx-value-split={to_string(percentage)}
-                    data-split={percentage}
-                  >
-                    {percentage}%
-                  </button>
-                <% end %>
-              </div>
-            </div>
           </div>
           <!-- Right: Recipient -->
-          <div class="flex-1 flex flex-col items-center border-t border-content-base-100/30 md:pt-0 md:border-none">
+          <div class="flex-1 flex flex-col items-center border-divider-color pt-6 md:pt-0 md:border-none">
             <div class="text-2xl font-bold text-base-content mb-2 text-center md:text-left">
               {@recipient.name || "This Blog's Name"}
             </div>

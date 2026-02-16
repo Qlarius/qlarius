@@ -347,6 +347,12 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
           currentMode = "open";
         }
       }
+
+      window.addEventListener("message", function(e) {
+        if (e.data === "drawer_closed" && currentMode === "closed") {
+          toggleAnnouncerElements();
+        }
+      });
     </script>
 
     <Layouts.debug_assigns {assigns} />

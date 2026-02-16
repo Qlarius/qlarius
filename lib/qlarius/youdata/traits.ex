@@ -311,6 +311,103 @@ defmodule Qlarius.YouData.Traits do
   end
 
   @doc """
+  Returns traits indexed by trait category for target-building reference.
+
+  Hierarchy: Trait Categories (display_order asc) -> Parent traits (display_order asc)
+  -> Child traits (display_order asc). Each child includes me_file_tag_count
+  indicating how often the tag is used by consumers.
+  """
+  def traits_index_by_parent do
+    child_traits_query =
+      from t in Trait,
+        join: p in Trait, on: t.parent_trait_id == p.id,
+        where: not is_nil(t.parent_trait_id) and t.is_active == true,
+        where: p.input_type != "single_select_zip",
+        order_by: [asc: t.display_order],
+        select: t
+
+    parent_traits_query =
+      from t in Trait,
+        where: is_nil(t.parent_trait_id) and t.is_active == true,
+        order_by: [asc: t.display_order],
+        preload: [child_traits: ^child_traits_query]
+
+    categories_with_traits =
+      Repo.all(
+        from c in TraitCategory,
+          order_by: [asc: c.display_order, asc: c.name],
+          preload: [traits: ^parent_traits_query]
+      )
+
+    parent_trait_ids =
+      categories_with_traits
+      |> Enum.flat_map(fn c -> Enum.map(c.traits, & &1.id) end)
+      |> Enum.uniq()
+
+    child_trait_ids =
+      categories_with_traits
+      |> Enum.flat_map(fn c -> Enum.flat_map(c.traits, fn p -> Enum.map(p.child_traits, & &1.id) end) end)
+      |> Enum.uniq()
+
+    trait_group_names_by_parent =
+      if parent_trait_ids == [] do
+        %{}
+      else
+        from(tg in TraitGroup,
+          where: tg.parent_trait_id in ^parent_trait_ids and is_nil(tg.deactivated_at),
+          select: {tg.parent_trait_id, tg.title}
+        )
+        |> Repo.all()
+        |> Enum.group_by(fn {pid, _} -> pid end, fn {_, title} -> title end)
+        |> Enum.map(fn {pid, titles} -> {pid, Enum.uniq(titles) |> Enum.sort() |> Enum.join(", ")} end)
+        |> Map.new()
+      end
+
+    me_file_tag_counts =
+      if child_trait_ids == [] do
+        %{}
+      else
+        from(mft in MeFileTag,
+          where: mft.trait_id in ^child_trait_ids,
+          group_by: mft.trait_id,
+          select: {mft.trait_id, count(mft.id)}
+        )
+        |> Repo.all()
+        |> Map.new()
+      end
+
+    Enum.map(categories_with_traits, fn category ->
+      parent_traits =
+        Enum.map(category.traits, fn parent ->
+          children =
+            Enum.map(parent.child_traits, fn c ->
+              %{
+                id: c.id,
+                name: c.trait_name,
+                display_order: c.display_order,
+                me_file_tag_count: Map.get(me_file_tag_counts, c.id, 0)
+              }
+            end)
+
+          %{
+            id: parent.id,
+            name: parent.trait_name,
+            display_order: parent.display_order,
+            trait_group_names: Map.get(trait_group_names_by_parent, parent.id, ""),
+            children: children
+          }
+        end)
+
+      %{
+        id: category.id,
+        name: category.name,
+        display_order: category.display_order,
+        parent_traits: parent_traits
+      }
+    end)
+  end
+
+  @doc """
   Returns the list of trait categories with their associated traits.
   """
   def list_categories_with_traits do

@@ -225,6 +225,12 @@
 /* Application styles - using @layer components for Tailwind v4 */
 @layer components {
 
+  /* Border using DaisyUI divider color (matches .divider &:before, &:after) */
+  .border-divider-color {
+    --divider-color: color-mix(in oklab, var(--color-base-content) 10%, transparent);
+    border-top: 1px solid var(--divider-color);
+  }
+
   /* Ads page styles */
   .ad-card {
     @apply transition-all duration-300;

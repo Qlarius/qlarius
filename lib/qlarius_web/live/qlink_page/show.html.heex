@@ -363,8 +363,16 @@
 
               <%!-- Content --%>
               <div class="flex-1 flex flex-col md:!flex-row gap-8 px-8 pt-6 pb-12 overflow-y-auto max-w-[800px] mx-auto bg-base-200 mt-1">
-                <%!-- Left: InstaTip + AutoSplit --%>
+                <%!-- Left: AutoSplit + InstaTip --%>
                 <div class="flex-1 flex flex-col items-center md:items-start">
+                  <%!-- AutoSplit Section --%>
+                  <.auto_split_controls
+                    split_amount={(@current_scope.user.me_file && @current_scope.user.me_file.split_amount) || 50}
+                    force_light={true}
+                  />
+
+                  <div class="divider my-4 w-full max-w-[280px] mx-auto"></div>
+
                   <%!-- InstaTip Section --%>
                   <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
                   <div class="text-base-content/70 text-sm mb-4">
@@ -379,21 +387,13 @@
                     wallet_balance={@current_scope.wallet_balance}
                     recipient_id={@recipient && @recipient.id}
                   />
-
-                  <div class="divider my-4 w-full max-w-[280px] mx-auto"></div>
-
-                  <%!-- AutoSplit Section --%>
-                  <.auto_split_controls
-                    split_amount={(@current_scope.user.me_file && @current_scope.user.me_file.split_amount) || 50}
-                    force_light={true}
-                  />
                 </div>
 
                 <%!-- Divider above recipient (mobile only) --%>
-                <div class="divider my-4 w-full max-w-[280px] mx-auto md:hidden"></div>
+                <div class="border-divider-color my-4 w-full max-w-[280px] mx-auto md:hidden"></div>
 
                 <%!-- Right: Recipient --%>
-                <div class="flex-1 flex flex-col items-center">
+                <div class="flex-1 flex flex-col items-center pt-6 md:pt-0">
                   <%= if @recipient do %>
                     <div class="text-2xl font-bold text-base-content mb-2 text-center">
                       {@recipient.name || "Recipient"}
@@ -423,6 +423,8 @@
                     </div>
                   <% end %>
                 </div>
+                <%!-- Divider and spacing above disclaimer (mobile) --%>
+                <div class="border-divider-color my-4 w-full max-w-[280px] mx-auto md:hidden flex-shrink-0"></div>
               </div>
             </div>
           </div>
