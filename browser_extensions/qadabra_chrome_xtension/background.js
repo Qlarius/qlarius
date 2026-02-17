@@ -1,73 +1,88 @@
-
+const API_BASE = "https://qlarius.gigalixirapp.com";
+const AD_COUNT_ENDPOINT = `${API_BASE}/api/extension/ad_count`;
+const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 let notificationTimer;
+let adCountPoller;
+let cachedAdCount = 0;
+let cachedOfferedAmount = 0;
 
-// Event listener for when the extension is installed or updated
 chrome.runtime.onInstalled.addListener(() => {
   console.log("Extension installed or updated.");
 
-  // Set the badge text to "8"
-  chrome.action.setBadgeText({ text: '8' });
-  console.log("Badge text set to '8'.");
+  chrome.action.setBadgeBackgroundColor({ color: "#e36159" });
+  chrome.action.setBadgeTextColor({ color: "#fff" });
 
-  // Set the badge background color to red
-  chrome.action.setBadgeBackgroundColor({ color: '#e36159' });
-  chrome.action.setBadgeTextColor({ color: '#fff' });
-  console.log("Badge background color set to red.");
-
-  // preloadIframeContent();
-
-  // Start the notification timer immediately upon first load
+  fetchAdCount();
+  startAdCountPolling();
   startNotificationTimer();
-  console.log("Notification timer started upon extension load.");
 });
 
-// Function to start the notification timer
+chrome.runtime.onStartup.addListener(() => {
+  fetchAdCount();
+  startAdCountPolling();
+});
+
+async function fetchAdCount() {
+  try {
+    const response = await fetch(AD_COUNT_ENDPOINT, {
+      credentials: "include",
+      headers: { "Accept": "application/json" }
+    });
+
+    if (!response.ok) {
+      console.warn("Ad count fetch failed:", response.status);
+      return;
+    }
+
+    const data = await response.json();
+    cachedAdCount = data.ads_count || 0;
+    cachedOfferedAmount = data.offered_amount || 0;
+
+    const badgeText = cachedAdCount > 0 ? String(cachedAdCount) : "";
+    chrome.action.setBadgeText({ text: badgeText });
+    console.log(`Badge updated: ${cachedAdCount} ads, $${cachedOfferedAmount.toFixed(2)}`);
+  } catch (error) {
+    console.warn("Ad count fetch error:", error.message);
+  }
+}
+
+function startAdCountPolling() {
+  if (adCountPoller) clearInterval(adCountPoller);
+  adCountPoller = setInterval(fetchAdCount, POLL_INTERVAL_MS);
+}
+
 function startNotificationTimer() {
-  // Schedule the first notification after 6 seconds
   notificationTimer = setTimeout(() => {
     showNotification();
-    console.log("First notification shown after 6 seconds.");
 
-    // Schedule subsequent notifications every 30 minutes (1800 seconds)
     notificationTimer = setInterval(() => {
       showNotification();
-      console.log("Notification shown every 30 minutes.");
-    }, 1800000); // 1800000 milliseconds = 30 minutes
+    }, 1800000); // 30 minutes
   }, 6000);
 }
 
-// Function to show a notification
 function showNotification() {
-  console.log("Showing notification.");
+  fetchAdCount().then(() => {
+    if (cachedAdCount === 0) return;
 
-  // Create the notification
-  chrome.notifications.create({
-    type: 'basic',
-    iconUrl: 'icon128.png',
-    title: 'Sponster',
-    message: 'Sponster here. You have 8 ads offering $1.73 in sponsorship. Click here to review.',
-    priority: 2
-  }, () => {
-    console.log("Notification created.");
+    const amount = cachedOfferedAmount.toFixed(2);
+    chrome.notifications.create({
+      type: "basic",
+      iconUrl: "icon128.png",
+      title: "Sponster",
+      message: `You have ${cachedAdCount} ads offering $${amount} in sponsorship. Click here to review.`,
+      priority: 2
+    });
   });
 }
 
-// Event listener for when a notification is clicked
-chrome.notifications.onClicked.addListener((notificationId) => {
-  console.log("Notification clicked. Opening the extension popup.");
-
-  // Open the extension popup by focusing on the current tab and triggering the popup
+chrome.notifications.onClicked.addListener(() => {
   chrome.action.openPopup();
 });
 
-function preloadIframeContent() {
-  const iframe = document.createElement('iframe');
-  iframe.src = 'https://qlarius.gigalixirapp.com/&in_frame=true&host_url=chrome_browser_extension';
-  iframe.style.display = 'none'; // Hide the iframe
-  document.body.appendChild(iframe);
-  
-  iframe.onload = () => {
-    console.log('Iframe content preloaded.');
-  };
-}
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.action === "refresh_ad_count") {
+    fetchAdCount();
+  }
+});

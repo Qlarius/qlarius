@@ -149,6 +149,8 @@ defmodule QlariusWeb.Router do
     post "/push/subscribe", PushController, :subscribe
     post "/push/unsubscribe", PushController, :unsubscribe
     post "/push/track-click", PushController, :track_click
+
+    get "/extension/ad_count", ExtensionController, :ad_count
   end
 
   # Dynamic manifest for PWA - includes referral code in start_url

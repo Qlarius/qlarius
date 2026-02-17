@@ -19,4 +19,10 @@ window.addEventListener("message", (event) => {
   } else if (event.data?.status === "liveview-not-mounted") {
     console.warn("⚠️ LiveView not mounted in iframe");
   }
+
+  if (event.data?.type === "ads_updated") {
+    chrome.runtime.sendMessage({ action: "refresh_ad_count" });
+  }
 });
+
+chrome.runtime.sendMessage({ action: "refresh_ad_count" });
