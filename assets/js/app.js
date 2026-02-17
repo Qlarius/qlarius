@@ -1409,10 +1409,12 @@ const liveSocket = new LiveSocket("/live", Socket, {
   hooks: Hooks
 })
 
-// Show progress bar on live navigation and form submits
-topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, 0.3)"})
-window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
-window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
+// Show progress bar on live navigation and form submits (skip in extension iframe - can cause reload loop)
+if (!isExtension) {
+  topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, 0.3)"})
+  window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
+  window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
+}
 
 if (isExtension) {
   window.addEventListener("phx:page-loading-start", () => console.log('[Ext] phx:page-loading-start'))
@@ -2028,16 +2030,7 @@ if ("serviceWorker" in navigator && !isExtension) {
       })
   })
 } else if (isExtension) {
-  console.log("🚫 Service Worker disabled in extension context")
-  // Unregister any existing service workers when in extension
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.getRegistrations().then(registrations => {
-      registrations.forEach(registration => {
-        console.log("🗑️ Unregistering service worker:", registration.scope)
-        registration.unregister()
-      })
-    })
-  }
+  console.log("🚫 Service Worker disabled in extension context (skip register; do NOT unregister - unregister can trigger reload loop)")
 } else {
   console.warn("❌ Service Worker not supported in this browser")
 }
