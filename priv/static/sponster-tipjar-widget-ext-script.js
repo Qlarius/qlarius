@@ -41,61 +41,27 @@ var sponsterWidgetCss =
 #ydadget_sponster_adget_popover_drawer {
     position: fixed;
     left: 50%;
-    width: 800px;
-    margin-left: -400px;
+    transform: translateX(-50%);
+    width: min(100%, 800px);
     background-color: transparent;
-    border: 1px solid #000;
     text-align: center;
     border-top-right-radius: 8px;
     border-top-left-radius: 8px;
-    -webkit-box-shadow: 0px 0px 6px 6px rgba(0,0,0,0.3);
-    -moz-box-shadow: 0px 0px 6px 6px rgba(0,0,0,0.3);
-    box-shadow: 0px 0px 6px 6px rgba(0,0,0,0.3);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
     z-index: 999998;
-    -webkit-transition: all .5s ease-in-out;
-    -moz-transition: all .5s ease-in-out;
-    -o-transition: all .5s ease-in-out;
-    -ms-transition: all .5s ease-in-out;
-    transition: all .5s ease-in-out;
-}
-#ydadget_sponster_adget_popover a.modalCloseImg {
-    background: url('https://s3.amazonaws.com/youdata_sponster_adgets/CloseX.png') no-repeat;
-    background-size: 20px;
-    width: 20px;
-    height: 20px;
-    display: inline;
-    z-index: 999999;
-    position: absolute;
-    top: -30px;
-    cursor: pointer;
-}
-@media(max-width: 800px){
-    #ydadget_sponster_adget_popover_drawer {
-        width: 384px;
-        margin-left: -192px;
-    }
+    transition: bottom .5s ease-in-out, opacity .5s ease-in-out;
 }
 </style>`;
 
 var widgetMarkup = 
 `<div id='ydadget_sponster_adget_popover' style='opacity:0;visibility: hidden; backdrop-filter: blur(15px)' onclick='toggleSponster()'></div>
-    <div id='ydadget_sponster_adget_popover_drawer' style='bottom:calc(-100vh - 10px);border-top-right-radius: 8px;border-top-left-radius: 8px;'>
-        <div onclick='toggleSponster()' style="width: 32px; height: 32px; margin:auto; top: -15px; right: -15px; position: absolute; background: #37373C; border-radius: 9999px; border: 1px solid #fff; cursor: pointer;">
-            <div style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <g id="x 1">
-                        <path id="Vector" d="M15 5L5 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path id="Vector_2" d="M5 5L15 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </g>
-                </svg>
-            </div>
-        </div>
+    <div id='ydadget_sponster_adget_popover_drawer' style='bottom:calc(-100vh - 10px);'>
         <iframe id='ydadget_sponster_adget_iframe' 
             width='100%' 
             style='height:90vh;border-top-right-radius: 8px;border-top-left-radius: 8px;background: transparent !important;' 
             frameBorder='0' 
             allowtransparency='true'
-            src='../../widgets/ads_ext/${splitCode}?&in_frame=true&host_url=${hostURL}&force_theme=light'
+            src='../../widgets/ads_ext/${splitCode}?&in_frame=true&extension=true&host_url=${hostURL}&force_theme=light'
         />
     </div>
 `

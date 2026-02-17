@@ -140,10 +140,13 @@ defmodule QlariusWeb.Components.SplitComponents do
 
   def ads_disclaimer_bar(assigns) do
     ~H"""
-    <div class={[
-      "bg-gray-500 text-white text-xs text-center py-4 px-4",
-      @class
-    ]}>
+    <div
+      id="ads-disclaimer-bar"
+      class={[
+        "bg-gray-500 text-white text-xs text-center py-4 px-4",
+        @class
+      ]}
+    >
       These ads are matched directly to your MeFile and are in no way linked to any site you visit or content you consume.
     </div>
     """

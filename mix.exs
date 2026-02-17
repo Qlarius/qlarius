@@ -101,7 +101,7 @@ defmodule Qlarius.MixProject do
       "assets.deploy": [
         "tailwind qlarius --minify",
         "esbuild qlarius --minify",
-        "cmd rm -rf priv/static/demosite/tsm",
+        "cmd find priv/static/demosite -maxdepth 1 -mindepth 1 -type d ! -name local_news -exec rm -rf {} +",
         "phx.digest"
       ],
       precommit: ["compile --warning-as-errors", "deps.unlock --unused", "format", "test"]

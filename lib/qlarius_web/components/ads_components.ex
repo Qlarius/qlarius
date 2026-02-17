@@ -467,6 +467,72 @@ defmodule QlariusWeb.Components.AdsComponents do
     """
   end
 
+  attr :wallet_balance, :any, required: true
+  attr :user_alias, :string, default: nil
+  attr :on_close, :any, required: true
+
+  def sponster_drawer_header(assigns) do
+    ~H"""
+    <div class="flex items-center justify-between bg-base-100 border-b border-base-300 overflow-visible">
+      <div class="flex items-center gap-2 min-w-0 ml-4">
+        <div class="sponster-announcer-logo-container" />
+        <span class="bg-gray-400 text-white text-xs font-semibold rounded px-2 py-1">BETA</span>
+      </div>
+      <div class="flex items-center gap-0">
+        <div class="flex flex-col items-center justify-center bg-base-200 px-3 min-w-[80px] h-[64px]">
+          <span class="inline-flex items-center text-lg bg-sponster-200 text-base-content px-3 py-1 rounded-lg border border-sponster-300">
+            <span class="font-bold">${Decimal.round(@wallet_balance || Decimal.new("0"), 2)}</span>
+          </span>
+        </div>
+        <details class="dropdown dropdown-end">
+          <summary class="flex items-center justify-center bg-base-300 text-base-content/40 hover:bg-gray-500 h-16 w-16 cursor-pointer">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 22 22"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              class="stroke-base-content"
+            >
+              <path
+                d="M18.2725 19.1816V17.3634C18.2725 16.399 17.8894 15.4741 17.2074 14.7921C16.5255 14.1102 15.6006 13.7271 14.6361 13.7271H7.36341C6.39899 13.7271 5.47407 14.1102 4.79212 14.7921C4.11017 15.4741 3.72705 16.399 3.72705 17.3634V19.1816"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M11.0001 10.0906C13.0084 10.0906 14.6365 8.46254 14.6365 6.45423C14.6365 4.44593 13.0084 2.81787 11.0001 2.81787C8.99182 2.81787 7.36377 4.44593 7.36377 6.45423C7.36377 8.46254 8.99182 10.0906 11.0001 10.0906Z"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </summary>
+          <ul class="dropdown-content menu p-2 shadow bg-base-100 rounded-box absolute mt-1 right-0 z-50 text-right">
+            <li>
+              <span class="font-semibold text-base-content">
+                <%= if @user_alias do %>
+                  {@user_alias}
+                <% else %>
+                  <span class="text-gray-400 italic">No user</span>
+                <% end %>
+              </span>
+            </li>
+          </ul>
+        </details>
+        <button
+          phx-click={@on_close}
+          class="flex items-center justify-center bg-base-200 text-base-content/60 hover:bg-base-300 h-16 w-16 cursor-pointer transition-colors"
+        >
+          <.icon name="hero-x-mark" class="w-6 h-6" />
+        </button>
+      </div>
+    </div>
+    """
+  end
+
   attr :offer, :map, required: true
   attr :rate, :any, required: true
   attr :completed, :boolean, required: true

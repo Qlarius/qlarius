@@ -762,6 +762,8 @@ Hooks.TipDrawerHook = {
     if (window.ResizeObserver) {
       this.resizeObserver = new ResizeObserver(() => this.recalculatePositions())
       if (this.drawerEl) this.resizeObserver.observe(this.drawerEl)
+      const disclaimerEl = document.getElementById('ads-disclaimer-bar')
+      if (disclaimerEl) this.resizeObserver.observe(disclaimerEl)
     }
 
     this.handleEvent('update-balance', ({ balance }) => {
@@ -803,8 +805,10 @@ Hooks.TipDrawerHook = {
   recalculatePositions() {
     if (!this.drawerEl) return
     const drawerHeight = this.drawerEl.offsetHeight
-    this.openBottom = 40
-    this.closeBottom = (drawerHeight * -1) + 40
+    const disclaimerEl = document.getElementById('ads-disclaimer-bar')
+    const offset = disclaimerEl ? disclaimerEl.offsetHeight : 40
+    this.openBottom = offset
+    this.closeBottom = (drawerHeight * -1) + offset
     this.applyBottomPosition()
   },
 
@@ -1393,6 +1397,10 @@ const isExtension = urlParams.get('extension') === 'true'
 
 if (isExtension) {
   console.log('🔌 Extension context')
+
+  window.addEventListener("sponster:close-ext-drawer", () => {
+    window.parent.postMessage("close_widget", "*")
+  })
 }
 
 const liveSocket = new LiveSocket("/live", Socket, {

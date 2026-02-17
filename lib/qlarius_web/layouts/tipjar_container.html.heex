@@ -1,8 +1,11 @@
-<div>
-  <.tipjar_header
-    wallet_balance={@current_scope.wallet_balance}
-    user_alias={@current_scope.user.alias}
-  />
+<div class="h-screen flex flex-col">
+  <div class="flex-shrink-0 relative z-[52]">
+    <.sponster_drawer_header
+      wallet_balance={@current_scope.wallet_balance}
+      user_alias={@current_scope.user.alias}
+      on_close={@on_close}
+    />
+  </div>
   <%= if @recipient && assigns[:show_split_reminder] && @current_scope && @current_scope.user && @current_scope.user.me_file do %>
     <.split_reminder_tip
       id="split-reminder-tip"
@@ -15,47 +18,8 @@
     recipient={@recipient}
     current_scope={@current_scope}
   />
-  {render_slot(@inner_block)}
-  <div style="position:fixed; bottom:0; width:100%; background-color: #6F7479; color:white; padding:10px 10px; text-align:center; font-size: 10px; line-height: 11px; height: 40px; display: flex; align-items: center; justify-content: center; z-index: 70; transform: translateZ(0); -webkit-transform: translateZ(0); backface-visibility: hidden; will-change: transform;">
-    <%= if @current_scope.user.me_file do %>
-      <span style="transform: translateZ(0); -webkit-transform: translateZ(0);">
-        These ads are matched directly to your MeFile and are in no way linked to any site you visit or content you consume.
-      </span>
-    <% else %>
-      <%= if @split_code == "sponster_show_me" do %>
-        <p></p>
-      <% else %>
-        <%!-- TODO: Route not implemented - was ~p"/referral_directs?sent_from=sponster&send_to=sign_up&referral_code=..." --%>
-        <.link
-          navigate="#"
-          id="sponster_info_button"
-          class="btn btn-sm btn-default"
-          target="_blank"
-        >
-          Sign up
-        </.link>
-        <%!-- TODO: Route not implemented - was ~p"/referral_directs?sent_from=sponster&send_to=info&referral_code=..." --%>
-        <.link
-          navigate="#"
-          id="sponster_info_button"
-          class="btn btn-sm btn-default"
-          target="_blank"
-        >
-          More info
-        </.link>
-        <span class="yd-show-unless-phone">
-          &nbsp;&nbsp;&nbsp;| &nbsp;&nbsp;&nbsp;Already a Sponster user? &nbsp;
-        </span>
-        <%!-- TODO: Route not implemented - was ~p"/sponster_settings" (route doesn't exist) --%>
-        <.link
-          navigate="#"
-          id="sponster_enable_button"
-          class="btn btn-sm btn-default"
-          target="_blank"
-        >
-          Enable this device
-        </.link>
-      <% end %>
-    <% end %>
+  <div class="flex-1 overflow-y-auto">
+    {render_slot(@inner_block)}
   </div>
+  <.ads_disclaimer_bar class="flex-shrink-0 relative z-[52]" />
 </div>

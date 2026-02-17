@@ -80,6 +80,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
       |> assign(:show_ad_type_tabs, show_ad_type_tabs)
       |> assign(:show_collection_drawer, false)
       |> assign(:drawer_closing, false)
+      |> assign(:on_close, JS.dispatch("sponster:close-ext-drawer"))
       |> assign(
         :current_balance,
         Wallets.get_user_current_balance(socket.assigns.current_scope.user)
@@ -512,7 +513,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
             </p>
           </div>
         <% else %>
-          <div class="container min-h-screen h-fit mx-auto px-4 py-8 max-w-3xl mt-[60px]">
+          <div class="container min-h-screen h-fit mx-auto px-4 py-8 max-w-3xl">
             <%= if @show_ad_type_tabs do %>
               <.ad_type_tabs
                 selected_ad_type={@selected_ad_type}

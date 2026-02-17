@@ -13,6 +13,7 @@ defmodule QlariusWeb.Layouts do
   alias Qlarius.Accounts.Scope
   alias Phoenix.LiveView.JS
   import QlariusWeb.Components.CustomComponentsMobile
+  import QlariusWeb.Components.SplitComponents
 
   # import QlariusWeb.Money
 
