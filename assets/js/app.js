@@ -1392,10 +1392,7 @@ const urlParams = new URLSearchParams(window.location.search)
 const isExtension = urlParams.get('extension') === 'true'
 
 if (isExtension) {
-  console.log('🔌 Extension Context Detected:', {
-    url: window.location.href,
-    extension_param: urlParams.get('extension')
-  })
+  console.log('🔌 Extension context')
 }
 
 const liveSocket = new LiveSocket("/live", Socket, {
@@ -1417,12 +1414,7 @@ if (!isExtension) {
 }
 
 if (isExtension) {
-  liveSocket.enableDebug()
-  window.addEventListener("phx:page-loading-start", (e) => console.log('[Ext] phx:page-loading-start', e.detail))
-  window.addEventListener("phx:page-loading-stop", () => console.log('[Ext] phx:page-loading-stop', { connected: window.liveSocket?.isConnected?.() }))
   window.addEventListener("phx:error", (e) => console.warn('[Ext] phx:error', e.detail))
-  liveSocket.socket?.onOpen?.(() => console.log('[Ext] WebSocket opened'))
-  liveSocket.socket?.onClose?.((reason) => console.log('[Ext] WebSocket closed', reason))
 }
 
 // Handle modal close events from server

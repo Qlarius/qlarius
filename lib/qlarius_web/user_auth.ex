@@ -158,23 +158,14 @@ defmodule QlariusWeb.UserAuth do
 
   defp signed_in_path(_conn), do: ~p"/"
 
-  def on_mount(:mount_current_scope, params, session, socket) do
-    maybe_log_extension_connect("mount_current_scope", params, session, socket, nil)
+  def on_mount(:mount_current_scope, _params, session, socket) do
     {:cont, mount_current_scope(socket, session)}
   end
 
-  def on_mount(:ensure_authenticated, params, session, socket) do
+  def on_mount(:ensure_authenticated, _params, session, socket) do
     socket = mount_current_scope(socket, session)
     has_scope = !!socket.assigns.current_scope
     has_user = has_scope && !!socket.assigns.current_scope.true_user
-
-    maybe_log_extension_connect(
-      "ensure_authenticated",
-      params,
-      session,
-      socket,
-      if(has_user, do: :ok, else: :redirect_login)
-    )
 
     if has_user do
       {:cont, socket}
@@ -215,18 +206,10 @@ defmodule QlariusWeb.UserAuth do
     end
   end
 
-  def on_mount(:require_initialized_mefile, params, session, socket) do
+  def on_mount(:require_initialized_mefile, _params, _session, socket) do
     user = socket.assigns.current_scope.user
     me_file = user.me_file
     needs_redirect = is_nil(me_file) || !Qlarius.YouData.MeFiles.is_initialized?(me_file)
-
-    maybe_log_extension_connect(
-      "require_initialized_mefile",
-      params,
-      session,
-      socket,
-      if(needs_redirect, do: :redirect_register, else: :ok)
-    )
 
     if needs_redirect do
 
@@ -249,18 +232,6 @@ defmodule QlariusWeb.UserAuth do
        socket
        |> Phoenix.LiveView.put_flash(:error, "Unauthorized access")
        |> Phoenix.LiveView.push_navigate(to: ~p"/")}
-    end
-  end
-
-  defp maybe_log_extension_connect(hook, params, session, socket, outcome) do
-    if params && (params["extension"] == "true" || params[:extension] == "true") do
-      require Logger
-
-      has_token = session && Map.has_key?(session, "user_token")
-
-      Logger.info(
-        "[Ext] #{hook}: user_token=#{has_token}, scope=#{!!socket.assigns[:current_scope]}, outcome=#{inspect(outcome || :cont)}"
-      )
     end
   end
 
