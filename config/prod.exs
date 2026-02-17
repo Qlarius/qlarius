@@ -11,7 +11,7 @@ config :qlarius, QlariusWeb.Endpoint,
     store: :cookie,
     key: "_qlarius_key",
     signing_salt: "Tvun6ICt",
-    same_site: "Lax",
+    same_site: "None",
     secure: true,
     http_only: true,
     max_age: 60 * 60 * 24 * 365
