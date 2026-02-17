@@ -37,8 +37,11 @@ qlarius-*.tar
 /priv/static/sponster-tipjar-widget-ext-script-*.js
 /priv/static/sponster-tipjar-widget-ext-script-*.js.gz
 
-# Ignore compressed static files
-/priv/static/*.gz
+# Ignore compressed and digested static files (build artifacts)
+/priv/static/**/*.gz
+/priv/static/demosite/**/index-*.html
+/priv/static/sounds/*-*.wav
+/priv/static/sounds/*-*.md
 
 # In case you use Node.js/npm, you want to ignore these.
 npm-debug.log
