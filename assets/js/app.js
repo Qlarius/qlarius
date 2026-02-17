@@ -1402,7 +1402,8 @@ const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: () => ({
     _csrf_token: csrfToken,
-    current_marketer_id: localStorage.getItem('current_marketer_id')
+    current_marketer_id: localStorage.getItem('current_marketer_id'),
+    extension: isExtension ? 'true' : null
   }),
   colocatedHooks: colocatedHooks,
   hooks: Hooks
@@ -1412,6 +1413,14 @@ const liveSocket = new LiveSocket("/live", Socket, {
 topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, 0.3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
+
+if (isExtension) {
+  window.addEventListener("phx:page-loading-start", () => console.log('[Ext] phx:page-loading-start'))
+  window.addEventListener("phx:page-loading-stop", () => console.log('[Ext] phx:page-loading-stop', { connected: window.liveSocket?.isConnected?.() }))
+  window.addEventListener("phx:error", (e) => console.warn('[Ext] phx:error', e.detail))
+  liveSocket.socket?.onOpen?.(() => console.log('[Ext] WebSocket opened'))
+  liveSocket.socket?.onClose?.(() => console.log('[Ext] WebSocket closed'))
+}
 
 // Handle modal close events from server
 window.addEventListener("phx:close-modal", (e) => {

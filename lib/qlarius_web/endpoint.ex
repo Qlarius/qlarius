@@ -9,10 +9,10 @@ defmodule QlariusWeb.Endpoint do
   # Use function for check_origin: production LB/proxy can modify Origin; strict list may reject valid connections
   socket "/live", Phoenix.LiveView.Socket,
     websocket: [
-      connect_info: [:x_headers, session: @session_options],
+      connect_info: [:x_headers, :uri, session: @session_options],
       check_origin: {QlariusWeb.Endpoint, :check_ws_origin, []}
     ],
-    longpoll: [connect_info: [:x_headers, session: @session_options]]
+    longpoll: [connect_info: [:x_headers, :uri, session: @session_options]]
 
   # Based on https://elixirforum.com/t/how-to-embed-a-liveview-via-iframe/65066
   # This isn't a good long-term solution; I just need to get the demo working.
