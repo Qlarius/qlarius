@@ -18,8 +18,7 @@ defmodule QlariusWeb.Endpoint do
         "https://localhost:4001",
         "http://127.0.0.1:4000",
         "https://127.0.0.1:4000",
-        "http://10.0.2.2:4000",
-        "chrome-extension://mhedmgbdabpgflgijpkabcdnkpncbdgp"
+        "http://10.0.2.2:4000"
       ]
     ],
     longpoll: [connect_info: [:x_headers, session: @session_options]]
@@ -95,7 +94,7 @@ defmodule QlariusWeb.Endpoint do
 
   defp set_csp(conn, _) do
     csp =
-      "base-uri 'self'; default-src 'self'; img-src 'self' data: http: https: blob:; media-src 'self' http://localhost:4000 https://localhost:4001 https://*.s3.us-east-1.amazonaws.com https://*.s3.amazonaws.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws: wss: http: https: chrome-extension://mhedmgbdabpgflgijpkabcdnkpncbdgp; frame-src 'self' https://www.youtube.com https://youtube.com; frame-ancestors * chrome-extension://mhedmgbdabpgflgijpkabcdnkpncbdgp;"
+      "base-uri 'self'; default-src 'self'; img-src 'self' data: http: https: blob:; media-src 'self' http://localhost:4000 https://localhost:4001 https://*.s3.us-east-1.amazonaws.com https://*.s3.amazonaws.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws: wss: http: https:; frame-src 'self' https://www.youtube.com https://youtube.com; frame-ancestors * chrome-extension:;"
 
     Plug.Conn.put_resp_header(conn, "content-security-policy", csp)
   end

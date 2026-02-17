@@ -44,14 +44,15 @@ self.addEventListener("fetch", (event) => {
     }
   }
   
-  // Just pass through all other requests without modification
-  // Let the browser handle everything naturally
+  // Don't intercept navigation requests - let browser handle document loads
+  // (avoids 408 when fetch fails in extension iframe context)
+  if (event.request.mode === 'navigate') {
+    return
+  }
+
+  // Pass through all other requests
   event.respondWith(fetch(event.request).catch(() => {
-    // If fetch fails, return a basic error response instead of crashing
-    return new Response('Network error', {
-      status: 408,
-      statusText: 'Request Timeout'
-    })
+    return new Response('Network error', { status: 408, statusText: 'Request Timeout' })
   }))
 })
 
