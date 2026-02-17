@@ -58,6 +58,18 @@ defmodule Qlarius.YouData.StrongStart do
   end
 
   @doc """
+  Marks the strong start as fully completed so future mounts skip progress checks.
+  """
+  def mark_all_complete(me_file) do
+    me_file
+    |> MeFile.changeset(%{
+      strong_start_status: "completed",
+      strong_start_completed_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    })
+    |> Repo.update()
+  end
+
+  @doc """
   Marks the strong start as skipped forever.
   """
   def skip_forever(me_file) do
@@ -120,15 +132,7 @@ defmodule Qlarius.YouData.StrongStart do
         end
 
       "completed" ->
-        display_hours = System.get_global_variable_int("STRONG_START_DISPLAY_HOURS", 24)
-
-        if me_file.strong_start_completed_at do
-          completed_at = DateTime.from_naive!(me_file.strong_start_completed_at, "Etc/UTC")
-          hours_since_completion = DateTime.diff(DateTime.utc_now(), completed_at, :hour)
-          hours_since_completion < display_hours
-        else
-          true
-        end
+        false
 
       _ ->
         true

@@ -95,12 +95,19 @@ defmodule QlariusWeb.HomeLive do
     if StrongStart.should_show?(me_file) do
       trait_count = socket.assigns.current_scope.trait_count
       progress = StrongStart.get_progress(me_file, trait_count)
-      starter_survey_id = Qlarius.System.get_global_variable_int("STRONG_START_SURVEY_ID", nil)
 
-      socket
-      |> assign(:show_strong_start, true)
-      |> assign(:strong_start_progress, progress)
-      |> assign(:starter_survey_id, starter_survey_id)
+      if progress.completed_count == progress.total_count do
+        StrongStart.mark_all_complete(me_file)
+        assign(socket, :show_strong_start, false)
+      else
+        starter_survey_id =
+          Qlarius.System.get_global_variable_int("STRONG_START_SURVEY_ID", nil)
+
+        socket
+        |> assign(:show_strong_start, true)
+        |> assign(:strong_start_progress, progress)
+        |> assign(:starter_survey_id, starter_survey_id)
+      end
     else
       assign(socket, :show_strong_start, false)
     end
