@@ -34,7 +34,7 @@ defmodule QlariusWeb.MeFileLive do
 
         <div class="mb-8 flex gap-2 justify-start items-center">
           <div class="text-xl">
-            This is your MeFile. You are what you tag. View/edit your existing tags below.
+            You are what you tag. Manage your tags below. Add more whenever you want.
           </div>
         </div>
 
