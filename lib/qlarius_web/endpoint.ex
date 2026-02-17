@@ -6,20 +6,11 @@ defmodule QlariusWeb.Endpoint do
   # Set :encryption_salt if you would also like to encrypt it.
   @session_options Application.compile_env!(:qlarius, [QlariusWeb.Endpoint, :session_options])
 
+  # Use function for check_origin: production LB/proxy can modify Origin; strict list may reject valid connections
   socket "/live", Phoenix.LiveView.Socket,
     websocket: [
       connect_info: [:x_headers, session: @session_options],
-      check_origin: [
-        "https://qlarius.gigalixirapp.com",
-        "https://www.qlarius.com",
-        "https://qlarius.com",
-        "http://localhost:4000",
-        "https://localhost:4000",
-        "https://localhost:4001",
-        "http://127.0.0.1:4000",
-        "https://127.0.0.1:4000",
-        "http://10.0.2.2:4000"
-      ]
+      check_origin: {QlariusWeb.Endpoint, :check_ws_origin, []}
     ],
     longpoll: [connect_info: [:x_headers, session: @session_options]]
 
@@ -91,6 +82,19 @@ defmodule QlariusWeb.Endpoint do
     credentials: true
 
   plug QlariusWeb.Router
+
+  def check_ws_origin(uri) do
+    host = uri.host || ""
+
+    host in [
+      "qlarius.gigalixirapp.com",
+      "www.qlarius.com",
+      "qlarius.com",
+      "localhost",
+      "127.0.0.1",
+      "10.0.2.2"
+    ] or String.ends_with?(host, ".gigalixirapp.com") or uri.scheme == "chrome-extension"
+  end
 
   defp set_csp(conn, _) do
     csp =
