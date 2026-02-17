@@ -34,7 +34,7 @@ defmodule QlariusWeb.MeFileLive do
 
         <div class="mb-8 flex gap-2 justify-start items-center">
           <div class="text-xl">
-            Your existing tags are below. Add more via the Tagger.
+            This is your MeFile. You are what you tag. View/edit your existing tags below.
           </div>
         </div>
 
@@ -87,7 +87,7 @@ defmodule QlariusWeb.MeFileLive do
             navigate={~p"/me_file_builder"}
             class="floating-action-btn btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"
           >
-            <.icon name="hero-plus" class="h-5 w-5" /> Tagger
+            <.icon name="hero-plus" class="h-5 w-5" /> Add tags
           </.link>
         </:floating_actions>
       </Layouts.mobile>

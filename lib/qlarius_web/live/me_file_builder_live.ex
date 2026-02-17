@@ -92,7 +92,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
         <%!-- Main content: Survey category index --%>
         <div class="mb-8 flex gap-2 justify-start items-center">
-          <span class="text-xl">Select a tag bucket below and tag away.</span>
+          <span class="text-xl">Select a category below and fill empty tags.</span>
         </div>
 
         <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
