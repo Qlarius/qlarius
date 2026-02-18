@@ -1218,18 +1218,33 @@ defmodule QlariusWeb.RegistrationLive do
     ~H"""
     <div class="space-y-6">
       <div>
-        <h2 class="text-2xl md:text-3xl font-bold mb-3 dark:text-white">Choose Your Alias</h2>
+        <h2 class="text-2xl md:text-3xl font-bold mb-3 dark:text-white">No Names: Choose Your Alias</h2>
         <p class="text-base md:text-lg text-base-content/70 dark:text-base-content/60">
-          Select a unique name and number combination. This will be your username and display name.
+          We'd rather not know your name. Select a unique alias + number combo. This will be the 'username' for your account.
         </p>
       </div>
+
+      <%!-- Preview --%>
+      <%= if @alias != "" do %>
+        <div class="p-4 bg-base-200 dark:bg-base-100 rounded-lg border border-base-300">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-base-content/70 dark:text-base-content/60">Your full alias:</p>
+              <p class="text-2xl font-bold text-primary dark:text-primary mt-1">{@alias}</p>
+            </div>
+            <div class="badge badge-success badge-lg gap-2">
+              <.icon name="hero-check-circle" class="w-5 h-5" /> Available
+            </div>
+          </div>
+        </div>
+      <% end %>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <%!-- Left Column: Base Names --%>
         <div class="space-y-3">
           <div class="flex justify-between items-center">
             <label class="label-text text-lg dark:text-gray-300 font-medium">
-              Select a name:
+              Select an alias:
             </label>
             <button
               type="button"
@@ -1325,21 +1340,6 @@ defmodule QlariusWeb.RegistrationLive do
           <% end %>
         </div>
       </div>
-
-      <%!-- Preview --%>
-      <%= if @alias != "" do %>
-        <div class="mt-6 p-4 bg-base-200 dark:bg-base-100 rounded-lg border border-base-300">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-base-content/70 dark:text-base-content/60">Your alias:</p>
-              <p class="text-2xl font-bold text-primary dark:text-primary mt-1">{@alias}</p>
-            </div>
-            <div class="badge badge-success badge-lg gap-2">
-              <.icon name="hero-check-circle" class="w-5 h-5" /> Available
-            </div>
-          </div>
-        </div>
-      <% end %>
     </div>
     """
   end
