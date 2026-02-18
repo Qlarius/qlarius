@@ -37,12 +37,13 @@ defmodule Qlarius.Jobs.BackfillMissingSnapshotsWorker do
   alias Qlarius.YouData.MeFiles.MeFileTag
   alias Qlarius.YouData.Traits.Trait
 
-  @batch_size 100
+  @batch_size 500
 
   @impl true
   def perform(%Oban.Job{args: _args}) do
     require Logger
     Logger.info("BackfillMissingSnapshotsWorker: Starting snapshot backfill")
+    start_time = System.monotonic_time(:millisecond)
 
     populations_needing_snapshots =
       from(tp in TargetPopulation,
@@ -73,7 +74,10 @@ defmodule Qlarius.Jobs.BackfillMissingSnapshotsWorker do
         process_batch(batch)
       end)
 
-      Logger.info("BackfillMissingSnapshotsWorker: ✅ COMPLETE - Fixed #{total} missing snapshots")
+      elapsed = System.monotonic_time(:millisecond) - start_time
+      Logger.info(
+        "BackfillMissingSnapshotsWorker: ✅ COMPLETE - Fixed #{total} missing snapshots in #{elapsed}ms"
+      )
     else
       Logger.info("BackfillMissingSnapshotsWorker: No missing snapshots found")
     end
@@ -198,24 +202,28 @@ defmodule Qlarius.Jobs.BackfillMissingSnapshotsWorker do
 
   defp batch_update_populations(population_updates) do
     require Logger
-    population_ids = Enum.map(population_updates, fn {pop, _snapshot} -> pop.id end)
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
 
-    Repo.transaction(fn ->
-      Enum.each(population_updates, fn {pop, snapshot} ->
-        from(tp in TargetPopulation,
-          where: tp.id == ^pop.id and is_nil(tp.matching_tags_snapshot)
-        )
-        |> Repo.update_all(
-          set: [
-            matching_tags_snapshot: snapshot,
-            updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-          ]
-        )
+    {update_count, _} =
+      Repo.transaction(fn ->
+        Enum.reduce(population_updates, 0, fn {pop, snapshot}, acc ->
+          {count, _} =
+            from(tp in TargetPopulation,
+              where: tp.id == ^pop.id and is_nil(tp.matching_tags_snapshot)
+            )
+            |> Repo.update_all(
+              set: [
+                matching_tags_snapshot: snapshot,
+                updated_at: now
+              ]
+            )
+
+          acc + count
+        end)
       end)
-    end)
 
     Logger.info(
-      "BackfillMissingSnapshotsWorker: Updated #{length(population_ids)} population snapshots"
+      "BackfillMissingSnapshotsWorker: Updated #{update_count} population snapshots"
     )
   end
 
@@ -253,36 +261,56 @@ defmodule Qlarius.Jobs.BackfillMissingSnapshotsWorker do
       |> Repo.all()
 
     if offers_to_update != [] do
-      Repo.transaction(fn ->
-        Enum.each(offers_to_update, fn offer ->
-          snapshot = Map.get(snapshot_map, {offer.me_file_id, offer.target_band_id})
+      {offer_count, _} =
+        Repo.transaction(fn ->
+          Enum.reduce(offers_to_update, 0, fn offer, acc ->
+            snapshot = Map.get(snapshot_map, {offer.me_file_id, offer.target_band_id})
 
-          if snapshot do
-            from(o in Offer, where: o.id == ^offer.id)
-            |> Repo.update_all(set: [matching_tags_snapshot: snapshot])
-          end
+            if snapshot do
+              {count, _} =
+                from(o in Offer, where: o.id == ^offer.id and is_nil(o.matching_tags_snapshot))
+                |> Repo.update_all(set: [matching_tags_snapshot: snapshot])
+
+              acc + count
+            else
+              Logger.warning(
+                "BackfillMissingSnapshotsWorker: No snapshot found for offer #{offer.id} (me_file: #{offer.me_file_id}, band: #{offer.target_band_id})"
+              )
+
+              acc
+            end
+          end)
         end)
-      end)
 
       Logger.info(
-        "BackfillMissingSnapshotsWorker: Updated #{length(offers_to_update)} offers with snapshots"
+        "BackfillMissingSnapshotsWorker: Updated #{offer_count} offers with snapshots"
       )
     end
 
     if events_to_update != [] do
-      Repo.transaction(fn ->
-        Enum.each(events_to_update, fn event ->
-          snapshot = Map.get(snapshot_map, {event.me_file_id, event.target_band_id})
+      {event_count, _} =
+        Repo.transaction(fn ->
+          Enum.reduce(events_to_update, 0, fn event, acc ->
+            snapshot = Map.get(snapshot_map, {event.me_file_id, event.target_band_id})
 
-          if snapshot do
-            from(ae in AdEvent, where: ae.id == ^event.id)
-            |> Repo.update_all(set: [matching_tags_snapshot: snapshot])
-          end
+            if snapshot do
+              {count, _} =
+                from(ae in AdEvent, where: ae.id == ^event.id and is_nil(ae.matching_tags_snapshot))
+                |> Repo.update_all(set: [matching_tags_snapshot: snapshot])
+
+              acc + count
+            else
+              Logger.warning(
+                "BackfillMissingSnapshotsWorker: No snapshot found for ad_event #{event.id} (me_file: #{event.me_file_id}, band: #{event.target_band_id})"
+              )
+
+              acc
+            end
+          end)
         end)
-      end)
 
       Logger.info(
-        "BackfillMissingSnapshotsWorker: Updated #{length(events_to_update)} ad_events with snapshots"
+        "BackfillMissingSnapshotsWorker: Updated #{event_count} ad_events with snapshots"
       )
     end
   end

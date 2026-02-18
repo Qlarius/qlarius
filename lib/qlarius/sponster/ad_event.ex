@@ -94,7 +94,8 @@ defmodule Qlarius.Sponster.AdEvent do
       :offer_marketer_cost_amt,
       :event_marketer_cost_amt,
       :event_me_file_collect_amt,
-      :event_sponster_collect_amt
+      :event_sponster_collect_amt,
+      :matching_tags_snapshot
     ])
     |> foreign_key_constraint(:offer_id)
     |> foreign_key_constraint(:me_file_id)

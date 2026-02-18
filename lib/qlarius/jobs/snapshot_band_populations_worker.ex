@@ -1,12 +1,15 @@
 defmodule Qlarius.Jobs.SnapshotBandPopulationsWorker do
   @moduledoc """
-  Creates matching_tags_snapshot for all target_populations in a given target_band.
+  **DEPRECATED FOR NEW POPULATIONS** - Snapshots are now created inline during PopulateTargetWorker.
+  
+  This worker is only used for backfilling matching_tags_snapshot for legacy target_populations
+  that were created before inline snapshot creation was implemented.
 
-  This worker runs after PopulateTargetWorker to capture why each me_file was assigned
-  to its target_band. The snapshot includes all tags from the me_file that match the
-  band's trait_groups, formatted as nested arrays for JSONB storage.
+  Creates matching_tags_snapshot for all target_populations in a given target_band that have
+  NULL snapshots. The snapshot includes all tags from the me_file that match the band's
+  trait_groups, formatted as nested arrays for JSONB storage.
 
-  ## Manual Execution
+  ## Manual Execution (for backfilling legacy data)
 
   To manually snapshot all populations for a specific band:
 

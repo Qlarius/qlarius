@@ -19,8 +19,8 @@ defmodule Qlarius.Sponster.Campaigns.TargetPopulation do
 
   def changeset(target_population, attrs) do
     target_population
-    |> cast(attrs, [:target_band_id, :me_file_id])
-    |> validate_required([:target_band_id, :me_file_id])
+    |> cast(attrs, [:target_band_id, :me_file_id, :matching_tags_snapshot])
+    |> validate_required([:target_band_id, :me_file_id, :matching_tags_snapshot])
     |> unique_constraint([:target_band_id, :me_file_id],
       name: :target_populations_target_band_id_me_file_id_index
     )

@@ -2,7 +2,11 @@
 
 ## Overview
 
-The `SnapshotBandPopulationsWorker` creates a snapshot of matching tags for each `target_population` record. This snapshot captures **why** a specific `me_file` was assigned to a specific `target_band` by storing the matching tags in JSON format.
+**UPDATE: As of the latest version, snapshots are created INLINE during `PopulateTargetWorker` execution.**
+
+The `matching_tags_snapshot` field captures **why** a specific `me_file` was assigned to a specific `target_band` by storing the matching tags in JSON format. This snapshot is now created automatically during population assignment, eliminating the race condition where offers could be created before snapshots were backfilled.
+
+The `SnapshotBandPopulationsWorker` is now **DEPRECATED for new populations** and only used for backfilling legacy target_populations that have NULL snapshots.
 
 ## Data Structure
 
@@ -29,14 +33,20 @@ The `matching_tags_snapshot` field in `target_populations` stores a JSONB array 
 Each parent trait is: `[trait_id, trait_name, display_order, [child_tags]]`  
 Each child tag is: `[tag_trait_id, tag_value, display_order]`
 
-## Automatic Execution
+## Current Behavior (Inline Snapshots)
 
-Snapshot jobs run automatically after `PopulateTargetWorker` completes. One job is created per target band, allowing parallel processing.
+Snapshots are now created inline during `PopulateTargetWorker` execution.
 
 When you click "Refresh Population" on a target, the system will:
 1. Run `PopulateTargetWorker` to update me_file assignments
-2. Automatically enqueue `SnapshotBandPopulationsWorker` jobs for each band
-3. Each worker processes up to 500 me_files per batch
+2. **Build snapshots inline** for all new target_populations (500 per batch)
+3. Insert populations with snapshots already populated
+4. Mark target as "populated" only after all snapshots are complete
+
+This ensures that:
+- No race condition exists between population and snapshot creation
+- Offers are never created with NULL matching_tags_snapshot
+- The "populated" status guarantees all snapshots are ready
 
 ## Manual Execution
 
@@ -99,12 +109,18 @@ Qlarius.Repo.all(
 
 ## Performance
 
+**Inline snapshot creation (current approach):**
+- Processes 500 populations per batch within `PopulateTargetWorker`
+- Snapshots built during the same transaction as population insertion
+- For a target with 10,000 me_files across 3 bands:
+  - ~20 batches total
+  - All populations inserted with snapshots in one worker run
+  - Estimated time: 2-3 minutes for 10K records (slightly slower but atomic)
+
+**Legacy backfill approach (deprecated):**
 - Each worker processes 500 me_files per batch
 - Workers run in parallel (one per band)
-- For a target with 10,000 me_files across 3 bands:
-  - ~20 batches per band
-  - All 3 bands process simultaneously
-  - Estimated time: 1-2 minutes for 10K records
+- Estimated time: 1-2 minutes for 10K records
 
 ## Error Handling
 

@@ -55,7 +55,8 @@ defmodule Qlarius.Sponster.Offer do
       :target_band_id,
       :offer_amt,
       :marketer_cost_amt,
-      :ad_phase_count_to_complete
+      :ad_phase_count_to_complete,
+      :matching_tags_snapshot
     ])
     |> unique_constraint([:campaign_id, :me_file_id, :media_run_id],
       name: :offers_campaign_me_file_media_run_unique_index
