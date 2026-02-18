@@ -1218,23 +1218,64 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
                           <div class="text-blue-600 dark:text-blue-300 mb-2 font-bold text-lg leading-tight">
                             {media_run.media_piece.title}
                           </div>
-                          <%= if media_run.media_piece.video_file do %>
-                            <video
-                              src={
-                                QlariusWeb.Uploaders.AdVideo.url(
-                                  {media_run.media_piece.video_file, media_run.media_piece},
-                                  :original
-                                )
+                          <%= if media_run.media_piece.video_poster_image && media_run.media_piece.video_file do %>
+                            <div
+                              class="relative cursor-pointer group"
+                              phx-click={
+                                JS.toggle(to: "#campaign-#{campaign.id}-poster")
+                                |> JS.toggle(to: "#campaign-#{campaign.id}-video")
                               }
-                              class="w-full rounded-lg shadow-sm border border-base-300"
-                              controls
                             >
-                              Your browser does not support the video tag.
-                            </video>
-                          <% else %>
-                            <div class="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">
-                              <span class="text-gray-400">No video available</span>
+                              <div id={"campaign-#{campaign.id}-poster"}>
+                                <img
+                                  src={
+                                    QlariusWeb.Uploaders.VideoPoster.url(
+                                      {media_run.media_piece.video_poster_image, media_run.media_piece},
+                                      :original
+                                    )
+                                  }
+                                  alt="Video poster"
+                                  class="w-full rounded-lg shadow-sm border border-base-300"
+                                />
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                  <div class="bg-black/50 rounded-full p-3 group-hover:bg-black/70 transition-colors">
+                                    <.icon name="hero-play-solid" class="w-8 h-8 text-white" />
+                                  </div>
+                                </div>
+                              </div>
+                              <div id={"campaign-#{campaign.id}-video"} class="hidden">
+                                <video
+                                  src={
+                                    QlariusWeb.Uploaders.AdVideo.url(
+                                      {media_run.media_piece.video_file, media_run.media_piece},
+                                      :original
+                                    )
+                                  }
+                                  class="w-full rounded-lg shadow-sm border border-base-300"
+                                  controls
+                                  autoplay
+                                >
+                                </video>
+                              </div>
                             </div>
+                          <% else %>
+                            <%= if media_run.media_piece.video_file do %>
+                              <video
+                                src={
+                                  QlariusWeb.Uploaders.AdVideo.url(
+                                    {media_run.media_piece.video_file, media_run.media_piece},
+                                    :original
+                                  )
+                                }
+                                class="w-full rounded-lg shadow-sm border border-base-300"
+                                controls
+                              >
+                              </video>
+                            <% else %>
+                              <div class="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <span class="text-gray-400">No video available</span>
+                              </div>
+                            <% end %>
                           <% end %>
                         </div>
                       <% else %>
