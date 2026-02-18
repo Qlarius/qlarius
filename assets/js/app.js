@@ -1095,9 +1095,9 @@ Hooks.VideoPlayer = {
   mounted() {
     this.video = this.el
     this.watched = false
-    this.watchedOnce = false
     this.paymentCollected = this.el.dataset.paymentCollected === 'true'
     this.isReplay = this.el.dataset.isReplay === 'true'
+    this.watchedOnce = this.paymentCollected
     this.lastValidTime = 0
     this.isFirstPlay = true
     
