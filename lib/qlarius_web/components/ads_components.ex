@@ -5,6 +5,7 @@ defmodule QlariusWeb.Components.AdsComponents do
   use Phoenix.Component
   import QlariusWeb.CoreComponents
   import QlariusWeb.Money
+  alias Phoenix.LiveView.JS
 
   @doc """
   Determines whether to show ad type tabs and which ad type to select by default.
@@ -320,7 +321,40 @@ defmodule QlariusWeb.Components.AdsComponents do
 
   def video_player(assigns) do
     ~H"""
-    <div class="mb-4">
+    <div class="mb-4 relative">
+      <%!-- Custom poster overlay with countdown --%>
+      <div
+        id="video-poster-overlay"
+        class="absolute inset-0 z-10 flex items-center justify-center rounded-lg overflow-hidden cursor-pointer"
+        phx-click="replay_video"
+        phx-update="ignore"
+      >
+        <%= if @current_video_offer.media_run.media_piece.video_poster_image do %>
+          <img
+            src={
+              QlariusWeb.Uploaders.VideoPoster.url(
+                {@current_video_offer.media_run.media_piece.video_poster_image,
+                 @current_video_offer.media_run.media_piece},
+                :original
+              )
+            }
+            alt="Video poster"
+            class="absolute inset-0 w-full h-full object-cover"
+          />
+        <% end %>
+        <%!-- Dark overlay --%>
+        <div class="absolute inset-0 bg-black/30"></div>
+        <%!-- Countdown / Play button --%>
+        <div id="video-countdown-display" class="relative z-10">
+          <div class="bg-black/70 rounded-full w-24 h-24 flex items-center justify-center">
+            <span id="video-countdown-number" class="text-white text-4xl font-bold"></span>
+            <div id="video-play-icon" class="hidden">
+              <.icon name="hero-play-solid" class="w-12 h-12 text-white" />
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <video
         id="video-player"
         phx-hook="VideoPlayer"
@@ -328,15 +362,6 @@ defmodule QlariusWeb.Components.AdsComponents do
         data-is-replay={@show_replay_button || @video_payment_collected}
         class="w-full rounded-lg animate-fade-in"
         controls
-        poster={
-          if @current_video_offer.media_run.media_piece.video_poster_image do
-            QlariusWeb.Uploaders.VideoPoster.url(
-              {@current_video_offer.media_run.media_piece.video_poster_image,
-               @current_video_offer.media_run.media_piece},
-              :original
-            )
-          end
-        }
         src={
           QlariusWeb.Uploaders.AdVideo.url(
             {@current_video_offer.media_run.media_piece.video_file,
@@ -529,6 +554,137 @@ defmodule QlariusWeb.Components.AdsComponents do
           <.icon name="hero-x-mark" class="w-6 h-6" />
         </button>
       </div>
+    </div>
+    """
+  end
+
+  attr :media_piece, :map, required: true
+  attr :class, :string, default: "w-32"
+  attr :id, :string, default: nil
+
+  def video_thumbnail(assigns) do
+    ~H"""
+    <div class={@class}>
+      <%= if @media_piece.video_poster_image do %>
+        <div class="relative cursor-pointer group">
+          <div
+            id={@id && "#{@id}-poster"}
+            phx-click={
+              if @id do
+                JS.hide(to: "##{@id}-poster")
+                |> JS.show(to: "##{@id}-video")
+                |> JS.dispatch("video-thumbnail-play", to: "##{@id}-video-element")
+              end
+            }
+          >
+            <img
+              src={
+                QlariusWeb.Uploaders.VideoPoster.url(
+                  {@media_piece.video_poster_image, @media_piece},
+                  :original
+                )
+              }
+              alt="Video poster"
+              class="w-full h-auto object-cover rounded"
+            />
+            <%= if @id do %>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <div class="bg-black/50 rounded-full p-2 group-hover:bg-black/70 transition-colors">
+                  <.icon name="hero-play-solid" class="w-6 h-6 text-white" />
+                </div>
+              </div>
+            <% end %>
+          </div>
+          <%= if @id do %>
+            <div id={"#{@id}-video"} class="hidden">
+              <video
+                id={"#{@id}-video-element"}
+                phx-hook="VideoThumbnail"
+                data-thumbnail-id={@id}
+                src={
+                  QlariusWeb.Uploaders.AdVideo.url(
+                    {@media_piece.video_file, @media_piece},
+                    :original
+                  )
+                }
+                class="w-full rounded"
+                controls
+                phx-update="ignore"
+              >
+              </video>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <%= if @media_piece.video_file do %>
+          <%= if @id do %>
+            <%!-- Interactive video with first frame as thumbnail --%>
+            <div class="relative cursor-pointer group">
+              <div
+                id={"#{@id}-poster"}
+                phx-click={
+                  JS.hide(to: "##{@id}-poster")
+                  |> JS.show(to: "##{@id}-video")
+                  |> JS.dispatch("video-thumbnail-play", to: "##{@id}-video-element")
+                }
+              >
+                <video
+                  src={
+                    QlariusWeb.Uploaders.AdVideo.url(
+                      {@media_piece.video_file, @media_piece},
+                      :original
+                    )
+                  }
+                  class="w-full h-auto object-cover rounded"
+                  muted
+                  preload="metadata"
+                >
+                </video>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="bg-black/50 rounded-full p-2 group-hover:bg-black/70 transition-colors">
+                    <.icon name="hero-play-solid" class="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              </div>
+              <div id={"#{@id}-video"} class="hidden">
+                <video
+                  id={"#{@id}-video-element"}
+                  phx-hook="VideoThumbnail"
+                  data-thumbnail-id={@id}
+                  src={
+                    QlariusWeb.Uploaders.AdVideo.url(
+                      {@media_piece.video_file, @media_piece},
+                      :original
+                    )
+                  }
+                  class="w-full rounded"
+                  controls
+                  phx-update="ignore"
+                >
+                </video>
+              </div>
+            </div>
+          <% else %>
+            <%!-- Static video (no ID provided, not interactive) --%>
+            <video
+              src={
+                QlariusWeb.Uploaders.AdVideo.url(
+                  {@media_piece.video_file, @media_piece},
+                  :original
+                )
+              }
+              class="w-full rounded"
+              muted
+              preload="metadata"
+            >
+            </video>
+          <% end %>
+        <% else %>
+          <div class="w-full h-24 bg-gray-200 rounded flex items-center justify-center">
+            <span class="text-gray-400 text-xs">No video</span>
+          </div>
+        <% end %>
+      <% end %>
     </div>
     """
   end

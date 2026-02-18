@@ -28,36 +28,11 @@
               <tr class="hover">
                 <td class="align-top">
                   <%= if media_piece.media_piece_type_id == 2 do %>
-                    <%= if media_piece.video_poster_image do %>
-                      <img
-                        src={
-                          QlariusWeb.Uploaders.VideoPoster.url(
-                            {media_piece.video_poster_image, media_piece},
-                            :original
-                          )
-                        }
-                        alt="Video poster"
-                        class="w-32 h-auto object-cover rounded"
-                      />
-                    <% else %>
-                      <%= if media_piece.video_file do %>
-                        <video
-                          src={
-                            QlariusWeb.Uploaders.AdVideo.url(
-                              {media_piece.video_file, media_piece},
-                              :original
-                            )
-                          }
-                          class="w-32 h-auto rounded"
-                          muted
-                          preload="metadata"
-                        />
-                      <% else %>
-                        <div class="w-32 h-24 bg-gray-200 rounded flex items-center justify-center">
-                          <span class="text-gray-400">No video</span>
-                        </div>
-                      <% end %>
-                    <% end %>
+                    <QlariusWeb.Components.AdsComponents.video_thumbnail
+                      media_piece={media_piece}
+                      class="w-32"
+                      id={"mp-list-#{media_piece.id}"}
+                    />
                   <% else %>
                     <%= if media_piece.banner_image do %>
                       <img

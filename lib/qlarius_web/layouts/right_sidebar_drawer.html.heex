@@ -100,23 +100,11 @@
                 <%= if @entry_details.media_piece.media_piece_type_id == 2 do %>
                   <!-- Video Ad -->
                   <div class="bg-base-200 dark:bg-base-900/20 rounded-lg overflow-hidden shadow-sm">
-                    <%= if @entry_details.media_piece.video_file do %>
-                      <video
-                        class="w-full"
-                        controls
-                        src={
-                          QlariusWeb.Uploaders.AdVideo.url(
-                            {@entry_details.media_piece.video_file, @entry_details.media_piece},
-                            :original
-                          )
-                        }
-                      >
-                      </video>
-                    <% else %>
-                      <div class="p-4">
-                        <p class="text-sm text-base-content/70">Video not available</p>
-                      </div>
-                    <% end %>
+                    <QlariusWeb.Components.AdsComponents.video_thumbnail
+                      media_piece={@entry_details.media_piece}
+                      class="w-full"
+                      id={"wallet-mp-#{@entry_details.media_piece.id}"}
+                    />
                     
                     <%= if @entry_details.media_piece.ad_category do %>
                       <div class="p-3 border-t border-base-300">

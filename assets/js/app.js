@@ -1047,6 +1047,50 @@ Hooks.FadeIn = {
   // No updated() callback - fade only happens once on mount
 }
 
+Hooks.VideoThumbnail = {
+  mounted() {
+    this.video = this.el
+    this.thumbnailId = this.el.dataset.thumbnailId
+    
+    if (!this.thumbnailId) return
+    
+    this.posterEl = document.getElementById(`${this.thumbnailId}-poster`)
+    this.videoContainer = document.getElementById(`${this.thumbnailId}-video`)
+    
+    this.playHandler = () => {
+      this.video.play().catch(err => {
+        console.log('Autoplay prevented:', err)
+      })
+    }
+    
+    this.video.addEventListener('video-thumbnail-play', this.playHandler)
+    
+    this.endedHandler = () => {
+      if (this.posterEl && this.videoContainer) {
+        this.video.pause()
+        this.video.currentTime = 0
+        
+        this.videoContainer.classList.add('hidden')
+        this.videoContainer.style.display = 'none'
+        
+        this.posterEl.classList.remove('hidden')
+        this.posterEl.style.display = ''
+      }
+    }
+    
+    this.video.addEventListener('ended', this.endedHandler)
+  },
+  
+  destroyed() {
+    if (this.playHandler) {
+      this.video.removeEventListener('video-thumbnail-play', this.playHandler)
+    }
+    if (this.endedHandler) {
+      this.video.removeEventListener('ended', this.endedHandler)
+    }
+  }
+}
+
 Hooks.VideoPlayer = {
   mounted() {
     this.video = this.el
@@ -1054,8 +1098,8 @@ Hooks.VideoPlayer = {
     this.paymentCollected = this.el.dataset.paymentCollected === 'true'
     this.isReplay = this.el.dataset.isReplay === 'true'
     this.lastValidTime = 0
+    this.isFirstPlay = true
     
-    // Detect if running in PWA mode and device type
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
                   window.navigator.standalone === true
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
@@ -1064,17 +1108,13 @@ Hooks.VideoPlayer = {
     // Prevent seeking forward on paid viewing (before collection)
     if (!this.paymentCollected) {
       this.video.addEventListener('timeupdate', () => {
-        // Allow some tolerance for buffering (0.5 seconds)
         if (!this.watched && this.video.currentTime > this.lastValidTime + 0.5) {
-          // User tried to skip forward - reset to last valid position
           this.video.currentTime = this.lastValidTime
         } else if (this.video.currentTime <= this.lastValidTime + 0.5) {
-          // Update last valid time (user is watching normally or seeking backward)
           this.lastValidTime = this.video.currentTime
         }
       })
       
-      // Prevent seeking via keyboard or other methods
       this.video.addEventListener('seeking', () => {
         if (!this.watched && this.video.currentTime > this.lastValidTime + 0.5) {
           this.video.currentTime = this.lastValidTime
@@ -1083,7 +1123,6 @@ Hooks.VideoPlayer = {
     }
     
     // Request fullscreen on play for Android PWAs
-    // iOS Safari automatically goes fullscreen by default without playsinline attribute
     if (isPWA && isAndroid) {
       this.video.addEventListener('play', () => {
         if (this.video.requestFullscreen) {
@@ -1098,30 +1137,20 @@ Hooks.VideoPlayer = {
       }, { once: true })
     }
     
-    // Only autoplay on initial viewing (not on replay scenarios)
+    // Start countdown on first play (not replay)
     if (!this.isReplay) {
-      // Wait for slide panel animation (300ms) + 500ms before autoplaying
-      setTimeout(() => {
-        this.video.play().catch(err => {
-          console.log('Autoplay prevented:', err)
-        })
-      }, 800)
+      setTimeout(() => this.startCountdown(), 100)
+    } else {
+      setTimeout(() => this.showPlayIcon(), 100)
     }
     
     this.video.addEventListener('ended', () => {
-      console.log('=== VIDEO ENDED EVENT ===')
-      console.log('Current time:', this.video.currentTime)
-      console.log('Duration:', this.video.duration)
-      console.log('Watched flag:', this.watched)
-      
       if (!this.watched) {
         this.watched = true
-        console.log('Pushing video_watched_complete event')
         this.pushEvent('video_watched_complete', {})
       }
       
-      // Exit fullscreen when video completes
-      // iOS uses webkitExitFullscreen on the video element itself
+      // Exit fullscreen
       if (this.video.webkitDisplayingFullscreen) {
         this.video.webkitExitFullscreen()
       } else if (document.fullscreenElement) {
@@ -1129,21 +1158,91 @@ Hooks.VideoPlayer = {
       } else if (document.webkitFullscreenElement) {
         document.webkitExitFullscreen()
       }
+      
+      // Show poster overlay with play icon
+      this.showPosterWithPlayIcon()
     })
     
     this.handleEvent('replay-video', () => {
       this.video.currentTime = 0
       this.watched = false
-      this.video.play().catch(err => {
-        console.log('Replay prevented:', err)
-      })
+      this.hidePosterAndPlay()
     })
   },
   
+  startCountdown() {
+    const countdownNumber = document.getElementById('video-countdown-number')
+    const playIcon = document.getElementById('video-play-icon')
+    
+    if (!countdownNumber) {
+      this.hidePosterAndPlay()
+      return
+    }
+    
+    let count = 3
+    countdownNumber.textContent = count
+    countdownNumber.classList.remove('hidden')
+    if (playIcon) {
+      playIcon.classList.add('hidden')
+    }
+    
+    setTimeout(() => {
+      const countdownInterval = setInterval(() => {
+        count--
+        if (count > 0) {
+          countdownNumber.textContent = count
+        } else {
+          clearInterval(countdownInterval)
+          this.countdownInterval = null
+          this.hidePosterAndPlay()
+        }
+      }, 1000)
+      
+      this.countdownInterval = countdownInterval
+    }, 100)
+  },
+  
+  hidePosterAndPlay() {
+    const posterOverlay = document.getElementById('video-poster-overlay')
+    if (posterOverlay) {
+      posterOverlay.style.display = 'none'
+      posterOverlay.classList.add('pointer-events-none')
+    }
+    
+    this.video.play().catch(() => {})
+  },
+  
+  showPosterWithPlayIcon() {
+    const posterOverlay = document.getElementById('video-poster-overlay')
+    if (posterOverlay) {
+      posterOverlay.style.display = ''
+      posterOverlay.classList.remove('pointer-events-none')
+    }
+    this.showPlayIcon()
+  },
+  
+  showPlayIcon() {
+    const countdownNumber = document.getElementById('video-countdown-number')
+    const playIcon = document.getElementById('video-play-icon')
+    
+    if (countdownNumber) {
+      countdownNumber.classList.add('hidden')
+      countdownNumber.textContent = ''
+    }
+    if (playIcon) {
+      playIcon.classList.remove('hidden')
+    }
+  },
+  
   updated() {
-    // Update payment and replay status when component re-renders
     this.paymentCollected = this.el.dataset.paymentCollected === 'true'
     this.isReplay = this.el.dataset.isReplay === 'true'
+  },
+  
+  destroyed() {
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval)
+    }
   }
 }
 

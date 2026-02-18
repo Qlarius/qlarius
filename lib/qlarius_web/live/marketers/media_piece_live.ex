@@ -5,6 +5,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   alias QlariusWeb.Live.Marketers.CurrentMarketer
   alias Qlarius.Sponster.Marketing
   alias Qlarius.Sponster.Ads.MediaPiece
+  import QlariusWeb.Components.AdsComponents, only: [video_thumbnail: 1]
 
   on_mount {CurrentMarketer, :load_current_marketer}
 
@@ -405,7 +406,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
                         <table class="table table-zebra w-full">
                           <thead>
                             <tr>
-                              <th class="bg-base-200">Banner</th>
+                              <th class="bg-base-200">Preview</th>
                               <th class="bg-base-200">Title</th>
                               <th class="bg-base-200">Display URL</th>
                               <th class="bg-base-200">Ad Category</th>
@@ -416,21 +417,25 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
                             <%= for media_piece <- @media_pieces do %>
                               <tr class="hover">
                                 <td class="align-top">
-                                  <%= if media_piece.banner_image do %>
-                                    <img
-                                      src={
-                                        QlariusWeb.Uploaders.ThreeTapBanner.url(
-                                          {media_piece.banner_image, media_piece},
-                                          :original
-                                        )
-                                      }
-                                      alt="Banner"
-                                      class="w-32 h-auto object-cover rounded"
-                                    />
+                                  <%= if media_piece.media_piece_type_id == 2 do %>
+                                    <.video_thumbnail media_piece={media_piece} id={"mp-admin-#{media_piece.id}"} />
                                   <% else %>
-                                    <div class="w-32 h-24 bg-gray-200 rounded flex items-center justify-center">
-                                      <span class="text-gray-400">No banner</span>
-                                    </div>
+                                    <%= if media_piece.banner_image do %>
+                                      <img
+                                        src={
+                                          QlariusWeb.Uploaders.ThreeTapBanner.url(
+                                            {media_piece.banner_image, media_piece},
+                                            :original
+                                          )
+                                        }
+                                        alt="Banner"
+                                        class="w-32 h-auto object-cover rounded"
+                                      />
+                                    <% else %>
+                                      <div class="w-32 h-24 bg-gray-200 rounded flex items-center justify-center">
+                                        <span class="text-gray-400">No banner</span>
+                                      </div>
+                                    <% end %>
                                   <% end %>
                                 </td>
                                 <td class="align-top">{media_piece.title}</td>
@@ -624,54 +629,56 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
             <span class="label-text font-semibold">Video File</span>
           </label>
 
-          <%= if @media_piece && @media_piece.video_file do %>
-            <div class="mb-4">
-              <p class="text-sm text-base-content/70 mb-2">Current video:</p>
-              <video
-                src={QlariusWeb.Uploaders.AdVideo.url({@media_piece.video_file, @media_piece})}
-                controls
-                class="w-full max-w-md rounded-lg"
-              >
-              </video>
-            </div>
-          <% end %>
+          <div class={if @media_piece && @media_piece.video_file, do: "grid grid-cols-1 md:grid-cols-2 gap-4", else: ""}>
+            <%= if @media_piece && @media_piece.video_file do %>
+              <div class="p-3 bg-base-200 rounded-lg">
+                <.video_thumbnail
+                  media_piece={@media_piece}
+                  class="w-full"
+                  id={"mp-edit-#{@media_piece.id}"}
+                />
+              </div>
+            <% end %>
 
-          <div
-            class="border-2 border-dashed border-base-300 rounded-lg p-6 hover:border-primary transition"
-            phx-drop-target={@uploads.video_file.ref}
-          >
-            <.live_file_input upload={@uploads.video_file} class="hidden" />
-            <label for={@uploads.video_file.ref} class="cursor-pointer block text-center">
-              <.icon name="hero-arrow-up-tray" class="w-12 h-12 mx-auto mb-2 text-base-content/50" />
-              <p class="text-sm text-base-content/70">
-                Click to upload or drag and drop
-              </p>
-              <p class="text-xs text-base-content/50 mt-1">
-                MP4 (max 100MB)
-              </p>
-            </label>
+            <div>
+              <div
+                class="w-full border-2 border-dashed border-base-300 rounded-lg flex items-center justify-center overflow-hidden"
+                phx-drop-target={@uploads.video_file.ref}
+              >
+                <.live_file_input upload={@uploads.video_file} class="hidden" />
+                <label for={@uploads.video_file.ref} class="cursor-pointer p-6 text-center w-full block">
+                  <.icon name="hero-arrow-up-tray" class="w-12 h-12 mx-auto mb-2 text-base-content/50" />
+                  <p class="text-sm text-base-content/70">
+                    Click to upload or drag and drop
+                  </p>
+                  <p class="text-xs text-base-content/50 mt-1">
+                    MP4 (max 100MB)
+                  </p>
+                </label>
+              </div>
+
+              <%= for entry <- @uploads.video_file.entries do %>
+                <div class="flex items-center gap-2 mt-2 p-2 bg-base-200 rounded">
+                  <span class="flex-1 text-sm">{entry.client_name}</span>
+                  <progress class="progress progress-primary w-32" value={entry.progress} max="100">
+                  </progress>
+                  <button
+                    type="button"
+                    phx-click="cancel_upload"
+                    phx-value-ref={entry.ref}
+                    phx-value-upload="video_file"
+                    class="btn btn-sm btn-ghost btn-square"
+                  >
+                    ✕
+                  </button>
+                </div>
+              <% end %>
+
+              <%= for err <- upload_errors(@uploads.video_file) do %>
+                <p class="text-error text-sm mt-2">{error_to_string(err)}</p>
+              <% end %>
+            </div>
           </div>
-
-          <%= for entry <- @uploads.video_file.entries do %>
-            <div class="flex items-center gap-2 mt-2 p-2 bg-base-200 rounded">
-              <span class="flex-1 text-sm">{entry.client_name}</span>
-              <progress class="progress progress-primary w-32" value={entry.progress} max="100">
-              </progress>
-              <button
-                type="button"
-                phx-click="cancel_upload"
-                phx-value-ref={entry.ref}
-                phx-value-upload="video_file"
-                class="btn btn-sm btn-ghost btn-square"
-              >
-                ✕
-              </button>
-            </div>
-          <% end %>
-
-          <%= for err <- upload_errors(@uploads.video_file) do %>
-            <p class="text-error text-sm mt-2">{error_to_string(err)}</p>
-          <% end %>
         </div>
 
         <.image_upload_field
