@@ -1095,6 +1095,7 @@ Hooks.VideoPlayer = {
   mounted() {
     this.video = this.el
     this.watched = false
+    this.watchedOnce = false
     this.paymentCollected = this.el.dataset.paymentCollected === 'true'
     this.isReplay = this.el.dataset.isReplay === 'true'
     this.lastValidTime = 0
@@ -1105,10 +1106,10 @@ Hooks.VideoPlayer = {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
     const isAndroid = /Android/.test(navigator.userAgent)
     
-    // Prevent seeking forward on paid viewing (before collection)
+    // Prevent seeking forward only on initial unpaid viewing (before first completion)
     if (!this.paymentCollected) {
       this.video.addEventListener('timeupdate', () => {
-        if (!this.watched && this.video.currentTime > this.lastValidTime + 0.5) {
+        if (!this.watchedOnce && this.video.currentTime > this.lastValidTime + 0.5) {
           this.video.currentTime = this.lastValidTime
         } else if (this.video.currentTime <= this.lastValidTime + 0.5) {
           this.lastValidTime = this.video.currentTime
@@ -1116,7 +1117,7 @@ Hooks.VideoPlayer = {
       })
       
       this.video.addEventListener('seeking', () => {
-        if (!this.watched && this.video.currentTime > this.lastValidTime + 0.5) {
+        if (!this.watchedOnce && this.video.currentTime > this.lastValidTime + 0.5) {
           this.video.currentTime = this.lastValidTime
         }
       })
@@ -1147,6 +1148,7 @@ Hooks.VideoPlayer = {
     this.video.addEventListener('ended', () => {
       if (!this.watched) {
         this.watched = true
+        this.watchedOnce = true
         this.pushEvent('video_watched_complete', {})
       }
       
