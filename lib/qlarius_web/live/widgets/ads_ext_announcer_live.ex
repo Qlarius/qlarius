@@ -200,7 +200,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
       <% end %>
     </div>
 
-    <div class="sponster-announcer-bottom-float-strip bg-base-100"></div>
+    <div class="sponster-announcer-bottom-float-strip bg-base-100" style="box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);"></div>
 
     <div class="sponster-announcer-bottom-float-content-container bg-base-100">
       <%= if @recruiter_mode do %>
