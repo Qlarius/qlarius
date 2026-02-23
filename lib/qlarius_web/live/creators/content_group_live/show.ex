@@ -51,6 +51,17 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
      |> put_flash(:info, "Default Tiqit classes added successfully")}
   end
 
+  def handle_event("delete_tiqit_class", %{"id" => id}, socket) do
+    {:ok, _} = Creators.delete_tiqit_class(id)
+
+    content_group = Creators.get_content_group!(socket.assigns.content_group.id)
+
+    {:noreply,
+     socket
+     |> assign(:content_group, content_group)
+     |> put_flash(:info, "Tiqit class deleted successfully")}
+  end
+
   defp content_group_image_url(group) do
     ImageHelpers.group_image_url(group)
   end
@@ -177,7 +188,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                   <%= if Enum.any?(@content_group.tiqit_classes) do %>
                     <div class="card bg-base-100 shadow-lg">
                       <div class="card-body p-0">
-                        <TiqitClassHTML.tiqit_classes_table record={@content_group} />
+                        <TiqitClassHTML.tiqit_classes_table record={@content_group} on_delete="delete_tiqit_class" />
                       </div>
                     </div>
                   <% else %>

@@ -86,8 +86,8 @@ defmodule QlariusWeb.TiqitClassHTML do
     end
   end
 
-  # record is a Catalog, ContentGroup or ContentPiece with preloaded tiqit_classes
   attr :record, :any, required: true
+  attr :on_delete, :string, default: nil
 
   def tiqit_classes_table(assigns) do
     ~H"""
@@ -97,6 +97,9 @@ defmodule QlariusWeb.TiqitClassHTML do
           <tr>
             <th class="font-semibold text-base-content text-left">Duration</th>
             <th class="font-semibold text-base-content text-left">Price</th>
+            <%= if @on_delete do %>
+              <th class="font-semibold text-base-content text-right">Actions</th>
+            <% end %>
           </tr>
         </thead>
         <tbody class="divide-y divide-base-300">
@@ -113,6 +116,18 @@ defmodule QlariusWeb.TiqitClassHTML do
                   {format_usd(tc.price, zero_free: true)}
                 </span>
               </td>
+              <%= if @on_delete do %>
+                <td class="text-right">
+                  <button
+                    phx-click={@on_delete}
+                    phx-value-id={tc.id}
+                    data-confirm="Are you sure you want to delete this tiqit class?"
+                    class="btn btn-ghost btn-sm text-error hover:bg-error hover:text-error-content"
+                  >
+                    <.icon name="hero-trash" class="w-4 h-4" />
+                  </button>
+                </td>
+              <% end %>
             </tr>
           <% end %>
         </tbody>

@@ -197,12 +197,61 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     end
   end
 
-  defp class_type(tiqit_class, catalog) do
+  defp purchase_description(tiqit_class, group) do
+    catalog = group.catalog
+
     cond do
-      tiqit_class.content_piece_id -> catalog.piece_type
-      tiqit_class.content_group_id -> catalog.group_type
-      tiqit_class.catalog.id -> catalog.type
+      tiqit_class.content_piece_id ->
+        %{
+          scope: :piece,
+          label: "single #{catalog.piece_type}",
+          detail: nil
+        }
+
+      tiqit_class.content_group_id ->
+        piece_count = length(group.content_pieces)
+        piece_type = catalog.piece_type |> to_string()
+        piece_label = if piece_count == 1, do: piece_type, else: pluralize(piece_type)
+
+        %{
+          scope: :group,
+          label: "entire #{catalog.group_type}",
+          detail: "#{piece_count} #{piece_label}"
+        }
+
+      true ->
+        group_count = length(catalog.content_groups)
+        group_type = catalog.group_type |> to_string()
+        group_label = if group_count == 1, do: group_type, else: pluralize(group_type)
+
+        piece_count =
+          catalog.content_groups
+          |> Enum.map(fn g ->
+            if Ecto.assoc_loaded?(g.content_pieces),
+              do: length(g.content_pieces),
+              else: 0
+          end)
+          |> Enum.sum()
+
+        piece_type = catalog.piece_type |> to_string()
+        piece_label = if piece_count == 1, do: piece_type, else: pluralize(piece_type)
+
+        detail =
+          if piece_count > 0,
+            do: "#{group_count} #{group_label}, #{piece_count} #{piece_label}",
+            else: "#{group_count} #{group_label}"
+
+        %{
+          scope: :catalog,
+          label: "entire #{catalog.type}",
+          detail: detail
+        }
     end
+  end
+
+  defp pluralize(word) do
+    word = to_string(word)
+    if word == "series", do: "series", else: word <> "s"
   end
 
   defp sort_direction("asc"), do: :asc

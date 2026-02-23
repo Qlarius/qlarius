@@ -5,6 +5,7 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.Creator
+  alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.Repo
 
   # ---------------------------------------
@@ -209,5 +210,14 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
     piece
     |> Ecto.Changeset.change(%{image: nil})
     |> Repo.update()
+  end
+
+  # ---------------------------------------
+  #             TIQIT CLASSES
+  # ---------------------------------------
+
+  def delete_tiqit_class(id) do
+    Repo.get!(TiqitClass, id)
+    |> Repo.delete()
   end
 end

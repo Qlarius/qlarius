@@ -71,6 +71,7 @@
       show
     >
       <div class="flex flex-col space-y-4 p-8">
+        <% desc = purchase_description(@selected_tiqit_class, @group) %>
         <div class="relative">
           <img
             src={content_image_url(@piece, @group)}
@@ -78,29 +79,38 @@
             class="max-h-30 rounded-lg mx-auto"
           />
         </div>
-        <h3 class="text-base-content/60 text-center mb-0">
-          {@group.title}
-        </h3>
-        <h2 class="text-xl font-bold text-base-content text-center">
-          {@piece.title}
-        </h2>
+        <%= if desc.scope == :piece do %>
+          <h3 class="text-base-content/60 text-center mb-0">
+            {@group.title}
+          </h3>
+          <h2 class="text-xl font-bold text-base-content text-center">
+            {@piece.title}
+          </h2>
+        <% else %>
+          <h2 class="text-xl font-bold text-base-content text-center">
+            {@group.title}
+          </h2>
+        <% end %>
         <%= if assigns[:options_modal] do %>
           <.tiqit_class_grid piece={@piece} group={@group} balance={@balance} />
         <% else %>
           <p class="text-base-content/60 text-center">
             <%= if @selected_tiqit_class.duration_hours do %>
-              You are purchasing access to this
+              You are purchasing access to the
               <span class="text-base-content font-bold">
-                single {class_type(@selected_tiqit_class, @catalog)}
+                {desc.label}
               </span>
               for <span class="text-base-content font-bold">{format_tiqit_class_duration(
               @selected_tiqit_class.duration_hours
             )}</span>.
             <% else %>
-              You are purchasing lifetime access to this {class_type(
-                @selected_tiqit_class,
-                @catalog
-              )}
+              You are purchasing
+              <span class="text-base-content font-bold">lifetime</span>
+              access to the
+              <span class="text-base-content font-bold">{desc.label}</span>.
+            <% end %>
+            <%= if desc.detail do %>
+              <br /><span class="text-base-content/50 text-sm">Includes {desc.detail}.</span>
             <% end %>
           </p>
           <div class="flex items-center">

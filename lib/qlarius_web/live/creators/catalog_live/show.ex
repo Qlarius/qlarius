@@ -48,6 +48,17 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
      |> put_flash(:info, "Default Tiqit classes added successfully")}
   end
 
+  def handle_event("delete_tiqit_class", %{"id" => id}, socket) do
+    {:ok, _} = Creators.delete_tiqit_class(id)
+
+    catalog = Creators.get_catalog!(socket.assigns.catalog.id)
+
+    {:noreply,
+     socket
+     |> assign(:catalog, catalog)
+     |> put_flash(:info, "Tiqit class deleted successfully")}
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -170,7 +181,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                   <%= if Enum.any?(@catalog.tiqit_classes) do %>
                     <div class="card bg-base-100 shadow-lg">
                       <div class="card-body p-0">
-                        <TiqitClassHTML.tiqit_classes_table record={@catalog} />
+                        <TiqitClassHTML.tiqit_classes_table record={@catalog} on_delete="delete_tiqit_class" />
                       </div>
                     </div>
                   <% else %>

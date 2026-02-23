@@ -46,7 +46,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     |> Repo.get!(id)
     |> Repo.preload([
       :tiqit_classes,
-      catalog: [:tiqit_classes, :creator, :content_groups],
+      catalog: [:tiqit_classes, :creator, content_groups: :content_pieces],
       content_pieces: :tiqit_classes
     ])
   end
