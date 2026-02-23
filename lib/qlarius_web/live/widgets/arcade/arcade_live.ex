@@ -32,8 +32,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       pieces =
         group.content_pieces
         |> Enum.filter(&Enum.any?(&1.tiqit_classes))
-        # Sort by ID to ensure consistent order; change to proper display order later
-        |> Enum.sort_by(& &1.id)
+        |> Enum.sort_by(& &1.inserted_at, sort_direction(group.pieces_sort_order))
 
       # Generate random durations only once per piece (cache them)
       pieces =
@@ -205,4 +204,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       tiqit_class.catalog.id -> catalog.type
     end
   end
+
+  defp sort_direction("asc"), do: :asc
+  defp sort_direction("desc"), do: :desc
+  defp sort_direction(_), do: :desc
 end

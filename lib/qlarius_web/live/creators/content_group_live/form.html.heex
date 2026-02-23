@@ -118,6 +118,23 @@
                       Show descriptions in {to_string(@catalog.piece_type)} lists
                     </div>
                   </div>
+
+                  <div class="form-control mt-4">
+                    <label class="label">
+                      <span class="label-text font-medium">
+                        {String.capitalize(to_string(@catalog.piece_type))} Sort Order
+                      </span>
+                    </label>
+                    <.input
+                      field={@form[:pieces_sort_order]}
+                      type="select"
+                      options={[{"Newest First (Descending)", "desc"}, {"Oldest First (Ascending)", "asc"}]}
+                      class="select select-bordered w-full"
+                    />
+                    <div class="text-xs text-base-content/60 mt-1">
+                      Order to display {to_string(@catalog.piece_type)} (sorted by creation date)
+                    </div>
+                  </div>
                 </div>
                 
 <!-- Tiqit Classes Section -->

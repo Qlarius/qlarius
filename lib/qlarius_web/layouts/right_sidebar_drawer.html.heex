@@ -180,12 +180,7 @@
                         {@entry_details.content_piece.title}
                       </div>
                       <%= if @entry_details.content_piece.description do %>
-                        <div
-                          class="text-base-content/60 text-sm mb-1"
-                          style="line-height: 1.1rem"
-                        >
-                          {@entry_details.content_piece.description}
-                        </div>
+                        <p class="text-base-content/60 text-sm mb-1" style="line-height: 1.1rem; white-space: pre-line;">{String.trim(@entry_details.content_piece.description)}</p>
                       <% end %>
                     <% end %>
 

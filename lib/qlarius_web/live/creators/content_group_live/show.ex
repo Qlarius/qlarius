@@ -116,9 +116,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                       <!-- Description -->
                       <div>
                         <h3 class="text-lg font-semibold text-base-content mb-3">Description</h3>
-                        <div class="prose prose-sm max-w-none">
-                          <p class="text-base-content/80 italic">{@content_group.description}</p>
-                        </div>
+                        <p class="prose prose-sm max-w-none max-h-[7.5rem] overflow-y-auto text-base-content/80 italic" style="white-space: pre-line;">{String.trim(@content_group.description || "")}</p>
                       </div>
 
     <!-- Embed Link -->
@@ -226,91 +224,75 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                   </div>
 
                   <%= if Enum.any?(@content_group.content_pieces) do %>
-                    <div class="card bg-base-100 shadow-lg">
-                      <div class="card-body p-0">
-                        <div class="overflow-x-auto">
-                          <table class="table table-zebra w-full">
-                            <thead class="bg-base-200">
-                              <tr>
-                                <th class="font-semibold text-base-content">Title</th>
-                                <th class="font-semibold text-base-content">Added</th>
-                                <th class="font-semibold text-base-content">Length</th>
-                                <th class="font-semibold text-base-content">Tiqit Classes</th>
-                                <th class="font-semibold text-base-content text-right">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody class="divide-y divide-base-300">
-                              <%= for piece <- Enum.sort_by(@content_group.content_pieces, & &1.id) do %>
-                                <tr
-                                  class="hover:bg-base-200 cursor-pointer transition-colors"
-                                  phx-click={JS.navigate(~p"/creators/content_pieces/#{piece.id}")}
-                                >
-                                  <td class="font-medium text-base-content">
-                                    <div class="flex items-center gap-3">
-                                      <%= if @content_group.show_piece_thumbnails do %>
-                                        <div class="avatar">
-                                          <div class="w-12 h-12 rounded-lg">
-                                            <img
-                                              src={
-                                                ImageHelpers.content_image_url(piece, @content_group)
-                                              }
-                                              alt={piece.title}
-                                              class="w-full h-full object-cover rounded-lg"
-                                            />
-                                          </div>
-                                        </div>
-                                      <% else %>
-                                        <div class="avatar placeholder">
-                                          <div class="bg-neutral-focus text-neutral-content rounded-full w-8 h-8">
-                                            <span class="text-xs">{String.at(piece.title, 0)}</span>
-                                          </div>
-                                        </div>
-                                      <% end %>
-                                      <div>
-                                        <div class="font-medium">{piece.title}</div>
-                                        <div class="text-sm text-base-content/60">
-                                          {piece.description}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td class="text-base-content">
-                                    <span class="badge badge-outline badge-xs whitespace-nowrap">
-                                      {Calendar.strftime(piece.inserted_at, "%b %d, %Y")}
-                                    </span>
-                                  </td>
-                                  <td class="text-base-content">
-                                    <span class="badge badge-primary badge-xs">
-                                      {format_duration(piece.length)}
-                                    </span>
-                                  </td>
-                                  <td class="text-base-content">
-                                    <span class="badge badge-secondary badge-xs">
-                                      {length(piece.tiqit_classes)}
-                                    </span>
-                                  </td>
-                                  <td class="text-right">
-                                    <div class="flex gap-2 justify-end">
-                                      <.link
-                                        navigate={~p"/creators/content_pieces/#{piece.id}/edit"}
-                                        class="btn btn-ghost btn-sm"
-                                      >
-                                        <.icon name="hero-pencil" class="w-4 h-4" />
-                                      </.link>
-                                      <.link
-                                        navigate={~p"/creators/content_pieces/#{piece.id}"}
-                                        class="btn btn-ghost btn-sm"
-                                      >
-                                        <.icon name="hero-eye" class="w-4 h-4" />
-                                      </.link>
-                                    </div>
-                                  </td>
-                                </tr>
+                    <div class="space-y-3">
+                      <%= for piece <- Enum.sort_by(@content_group.content_pieces, & &1.inserted_at, :desc) do %>
+                        <div class="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow">
+                          <div class="card-body p-4">
+                            <div class="flex gap-4">
+                              <%= if @content_group.show_piece_thumbnails do %>
+                                <div class="flex-shrink-0 w-24 self-start">
+                                  <img
+                                    src={ImageHelpers.content_image_url(piece, @content_group)}
+                                    alt={piece.title}
+                                    class="w-full h-auto object-cover rounded-lg"
+                                  />
+                                </div>
                               <% end %>
-                            </tbody>
-                          </table>
+                              
+                              <div class="flex-1 min-w-0">
+                                <div class="flex items-start justify-between gap-4">
+                                  <div class="flex-1">
+                                    <h3 class="text-lg font-semibold text-base-content mb-1">{piece.title}</h3>
+                                    
+                                    <div class="flex items-center gap-3 text-xs text-base-content/50 mb-2">
+                                      <span class="flex items-center gap-1">
+                                        <.icon name="hero-calendar" class="w-3 h-3" />
+                                        {Calendar.strftime(piece.inserted_at, "%b %d, %Y")}
+                                      </span>
+                                      <span class="flex items-center gap-1">
+                                        <.icon name="hero-clock" class="w-3 h-3" />
+                                        {format_duration(piece.length)}
+                                      </span>
+                                      <span class="flex items-center gap-1">
+                                        <.icon name="hero-tag" class="w-3 h-3" />
+                                        {length(piece.tiqit_classes)} classes
+                                      </span>
+                                    </div>
+                                    
+                                    <%= if @content_group.show_piece_descriptions && piece.description do %>
+                                      <div class="description-container" id={"desc-#{piece.id}"}>
+                                        <p class="text-sm text-base-content/70 line-clamp-3 description-text" style="white-space: pre-line;">{String.trim(piece.description)}</p>
+                                        <button
+                                          type="button"
+                                          onclick={"toggleDescription(document.getElementById('desc-#{piece.id}'))"}
+                                          class="text-xs text-primary hover:text-primary-focus mt-1 font-medium expand-btn cursor-pointer"
+                                        >
+                                          Expand
+                                        </button>
+                                      </div>
+                                    <% end %>
+                                  </div>
+                                  
+                                  <div class="flex gap-2 flex-shrink-0">
+                                    <.link
+                                      navigate={~p"/creators/content_pieces/#{piece.id}"}
+                                      class="btn btn-ghost btn-sm"
+                                    >
+                                      <.icon name="hero-eye" class="w-4 h-4" />
+                                    </.link>
+                                    <.link
+                                      navigate={~p"/creators/content_pieces/#{piece.id}/edit"}
+                                      class="btn btn-ghost btn-sm"
+                                    >
+                                      <.icon name="hero-pencil" class="w-4 h-4" />
+                                    </.link>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      <% end %>
                     </div>
                   <% else %>
                     <!-- Empty State for Content Pieces -->
@@ -355,6 +337,19 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
         notification.classList.remove('hidden');
         setTimeout(() => notification.classList.add('hidden'), 2000);
       }
+
+      window.toggleDescription = function(container) {
+        const text = container.querySelector('.description-text');
+        const btn = container.querySelector('.expand-btn');
+        
+        if (text.classList.contains('line-clamp-3')) {
+          text.classList.remove('line-clamp-3');
+          btn.textContent = 'Collapse';
+        } else {
+          text.classList.add('line-clamp-3');
+          btn.textContent = 'Expand';
+        }
+      };
     </script>
     """
   end
