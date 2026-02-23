@@ -213,4 +213,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
     word = to_string(word)
     if word == "series", do: "series", else: word <> "s"
   end
+
+  defp purchase_image_url(scope, piece, group) do
+    case scope do
+      :piece -> content_image_url(piece, group)
+      :group -> group_image_url(group)
+      :catalog -> catalog_image_url(group.catalog)
+    end
+  end
 end

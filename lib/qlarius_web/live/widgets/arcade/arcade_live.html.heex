@@ -136,8 +136,8 @@
       <% desc = purchase_description(@selected_tiqit_class, @group) %>
       <div class="relative">
         <img
-          src={content_image_url(@selected_piece, @group)}
-          alt={@selected_piece.title}
+          src={purchase_image_url(desc.scope, @selected_piece, @group)}
+          alt={if desc.scope == :piece, do: @selected_piece.title, else: @group.title}
           class="max-h-30 rounded-lg mx-auto"
         />
       </div>
