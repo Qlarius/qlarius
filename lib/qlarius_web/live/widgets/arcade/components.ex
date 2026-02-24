@@ -180,49 +180,47 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 w-full divide-y md:divide-y-0 md:divide-x divide-base-300 p-4">
-          <div class="flex-1 py-8">
-            <h3 class="text-base-content/60 mb-3">Visit your sponsors.</h3>
-            <div class="flex flex-col items-center">
-              <div class="flex flex-col items-center gap-1">
-                <div class="px-4 py-2">
-                  <img
-                    src="/images/Sponster_logo_color_horiz.svg"
-                    alt="Sponster"
-                    class="h-auto w-full"
-                  />
-                </div>
-                <div class="flex flex-col items-center">
-                  <div class="text-base-content/60 text-md mb-4">
-                    {@ads_count} ads for
-                    <span class="font-bold text-sponster-500">
-                      {if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}
-                    </span>
-                  </div>
-                </div>
+          <div class="flex-1 flex flex-col items-center py-6 px-3">
+            <h3 class="text-base-content/60 mb-3">Engage sponsors.</h3>
+            <div class="flex-1 flex flex-col items-center justify-center">
+              <img
+                src="/images/Sponster_logo_color_horiz.svg"
+                alt="Sponster"
+                class="h-auto max-w-[140px] mb-2"
+              />
+              <div class="text-base-content/60 text-sm">
+                {@ads_count} ads for
+                <span class="font-bold text-sponster-500">
+                  {if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}
+                </span>
               </div>
-              <button
-                class="btn btn-primary border-none rounded-full !bg-sponster-500 hover:!bg-sponster-600 text-white btn-lg"
-                onclick="parent.postMessage('open_widget','*');self.toggleAnnouncerElements();"
-              >
-                Show my ads
-              </button>
             </div>
+            <button
+              class="btn btn-primary border-none rounded-full !bg-sponster-500 hover:!bg-sponster-600 text-white btn-lg mt-4"
+              onclick="parent.postMessage('open_widget','*');self.toggleAnnouncerElements();"
+            >
+              Show my ads
+            </button>
           </div>
-          <div class="flex-1 py-8">
+          <div class="flex-1 flex flex-col items-center py-6 px-3">
             <h3 class="text-base-content/60 mb-3">Accept our daily gift.</h3>
-            <.icon name="hero-gift" class="h-25 w-25 mb-3 text-base-content/50" />
-            <button class="btn btn-primary rounded-full btn-lg" phx-click="topup">
+            <div class="flex-1 flex flex-col items-center justify-center">
+              <.icon name="hero-gift" class="h-14 w-14 text-base-content/50" />
+            </div>
+            <button class="btn btn-primary rounded-full btn-lg mt-4" phx-click="topup">
               <.icon name="hero-plus" class="h-5 w-5 mr-2" />$0.50
             </button>
           </div>
-          <div class="flex-1 flex flex-col items-center py-8">
+          <div class="flex-1 flex flex-col items-center py-6 px-3">
             <h3 class="text-base-content/60 mb-3">Add funds of your own.</h3>
-            <img
-              src="/images/credit_debit_card_payments.png"
-              alt="Credit/Debit Card Payments"
-              class="h-25 w-25 mb-3"
-            />
-            <button class="btn btn-primary rounded-full btn-lg" phx-click="topup">
+            <div class="flex-1 flex flex-col items-center justify-center">
+              <img
+                src="/images/credit_debit_card_payments.png"
+                alt="Credit/Debit Card Payments"
+                class="h-16 w-16"
+              />
+            </div>
+            <button class="btn btn-primary rounded-full btn-lg mt-4" phx-click="topup">
               <.icon name="hero-plus" class="h-5 w-5 mr-2" />Credit/Debit
             </button>
           </div>
