@@ -1,5 +1,17 @@
 <%= if Enum.any?(@pieces) do %>
-  <div class="w-full flex flex-col h-screen">
+  <div class="w-full flex flex-col h-screen relative">
+    <%= if @group.show_open_in_tab do %>
+      <a
+        id="open-in-tab-btn"
+        href={~p"/widgets/arcade/group/#{@group.id}"}
+        target="_blank"
+        class="absolute top-2 right-2 z-50 btn btn-ghost btn-xs btn-circle bg-base-200/80 hover:bg-base-300 text-base-content/60 hover:text-base-content hidden"
+        title="Open in new tab"
+        phx-hook="ShowInIframe"
+      >
+        <.icon name="hero-arrow-top-right-on-square" class="w-3.5 h-3.5" />
+      </a>
+    <% end %>
     <%= if @show_title do %>
       <div class="grow-0 bg-base-200 text-base-content p-3 border-b border-base-300">
         <h1 class="font-bold text-xl">{@group.title}</h1>

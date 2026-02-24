@@ -1034,6 +1034,14 @@ Hooks.TaggerButtonObserver = {
   }
 }
 
+Hooks.ShowInIframe = {
+  mounted() {
+    if (window.self !== window.top) {
+      this.el.classList.remove('hidden')
+    }
+  }
+}
+
 Hooks.FadeIn = {
   mounted() {
     // Set up transition

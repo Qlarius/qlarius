@@ -16,6 +16,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
     field :image, :string
     field :show_piece_thumbnails, :boolean, default: false
     field :show_piece_descriptions, :boolean, default: true
+    field :show_open_in_tab, :boolean, default: true
     field :pieces_sort_order, :string, default: "desc"
 
     has_many :content_pieces, ContentPiece
@@ -27,7 +28,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
   @doc false
   def changeset(content_group, attrs) do
     content_group
-    |> cast(attrs, [:title, :description, :show_piece_thumbnails, :show_piece_descriptions, :pieces_sort_order])
+    |> cast(attrs, [:title, :description, :show_piece_thumbnails, :show_piece_descriptions, :show_open_in_tab, :pieces_sort_order])
     |> validate_required([:title])
     |> validate_inclusion(:pieces_sort_order, ["asc", "desc"])
     |> cast_assoc(
