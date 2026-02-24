@@ -1034,11 +1034,9 @@ Hooks.TaggerButtonObserver = {
   }
 }
 
-Hooks.ShowInIframe = {
+Hooks.HideIfNotIframe = {
   mounted() {
-    if (window.self !== window.top) {
-      this.el.classList.remove('hidden')
-    }
+    if (window.self === window.top) this.el.classList.add('hidden')
   }
 }
 

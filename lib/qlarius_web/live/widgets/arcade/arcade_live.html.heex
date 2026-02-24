@@ -5,9 +5,9 @@
         id="open-in-tab-btn"
         href={~p"/widgets/arcade/group/#{@group.id}"}
         target="_blank"
-        class="absolute top-2 right-2 z-50 btn btn-ghost btn-sm btn-circle bg-base-200/80 hover:bg-base-300 text-base-content/60 hover:text-base-content hidden"
+        class="absolute top-2 right-2 z-50 btn btn-ghost btn-sm btn-circle bg-base-200/80 hover:bg-base-300 text-base-content/60 hover:text-base-content"
         title="Open in new tab"
-        phx-hook="ShowInIframe"
+        phx-hook="HideIfNotIframe"
       >
         <.icon name="hero-arrow-top-right-on-square" class="w-5 h-5" />
       </a>
