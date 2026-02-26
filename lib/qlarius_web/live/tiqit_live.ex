@@ -2,6 +2,7 @@ defmodule QlariusWeb.TiqitLive do
   use QlariusWeb, :live_view
 
   import QlariusWeb.TiqitComponents
+  import QlariusWeb.PWAHelpers
 
   alias QlariusWeb.Layouts
   alias Qlarius.Tiqit.Arcade.Arcade
@@ -11,7 +12,7 @@ defmodule QlariusWeb.TiqitLive do
   @valid_statuses ~w[active expired preserved fleeted undone all]
 
   @impl true
-  def mount(params, _session, socket) do
+  def mount(params, session, socket) do
     scope = socket.assigns.current_scope
     status = parse_status(params["status"])
 
@@ -27,6 +28,7 @@ defmodule QlariusWeb.TiqitLive do
       |> assign(:undo_context, nil)
       |> assign(:fleeted_count, Arcade.count_fleeted_tiqits(scope))
       |> assign(:undone_count, Arcade.count_undone_tiqits(scope))
+      |> init_pwa_assigns(session)
 
     {:ok, socket}
   end
@@ -46,6 +48,10 @@ defmodule QlariusWeb.TiqitLive do
   @impl true
   def handle_event("filter", %{"status" => status}, socket) do
     {:noreply, push_patch(socket, to: ~p"/tiqits?status=#{status}")}
+  end
+
+  def handle_event("pwa_detected", params, socket) do
+    handle_pwa_detection(socket, params)
   end
 
   def handle_event("fleet_tiqit", %{"id" => id}, socket) do
@@ -147,6 +153,7 @@ defmodule QlariusWeb.TiqitLive do
   @impl true
   def render(assigns) do
     ~H"""
+    <div id="tiqit-pwa-detect" phx-hook="HiPagePWADetect">
     <Layouts.mobile {assigns}>
       <div class="mb-6">
         <h2 class="text-xl font-bold mb-4">Stash</h2>
@@ -210,6 +217,7 @@ defmodule QlariusWeb.TiqitLive do
     <.unpreserve_confirm_modal />
     <.undo_confirm_modal undo_context={@undo_context} />
     <div :if={@undo_context} id="undo-modal-trigger" phx-mounted={show_modal("undo-confirm-modal")} />
+    </div>
     """
   end
 end
