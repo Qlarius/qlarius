@@ -20,7 +20,7 @@ defmodule QlariusWeb.TiqitLive do
     socket =
       socket
       |> assign(:current_path, "/tiqits")
-      |> assign(:title, "Tiqits")
+      |> assign(:title, "Tiqit Stash")
       |> assign(:status_filter, status)
       |> assign(:tiqits, tiqits)
       |> assign(:fleet_after_hours, scope.user.fleet_after_hours)
@@ -149,7 +149,6 @@ defmodule QlariusWeb.TiqitLive do
     ~H"""
     <Layouts.mobile {assigns}>
       <div class="mb-6">
-        <h2 class="text-xl font-bold mb-4">Tiqit Stash</h2>
 
         <div class="flex flex-wrap gap-2 mb-4">
           <button
@@ -195,6 +194,7 @@ defmodule QlariusWeb.TiqitLive do
               <.tiqit_detail_card
                 :for={tiqit <- @tiqits}
                 tiqit={tiqit}
+                user={@current_scope.user}
                 fleet_after_hours={@fleet_after_hours}
               />
             </div>

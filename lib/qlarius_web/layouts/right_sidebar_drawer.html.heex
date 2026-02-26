@@ -6,7 +6,7 @@
 />
 <div
   id="right-sidebar"
-  class="fixed inset-y-0 right-0 z-50 w-80 transform translate-x-full transition-transform duration-300 ease-in-out bg-base-100 border-l border-base-300 dark:!border-base-200"
+  class="fixed inset-y-0 right-0 z-50 w-96 transform translate-x-full transition-transform duration-300 ease-in-out bg-base-100 border-l border-base-300 dark:!border-base-200"
   tabindex="1"
   phx-click-away={toggle_right_sidebar(:off)}
 >
@@ -153,113 +153,20 @@
             </div>
           <% :tiqit_purchase -> %>
             <div class="space-y-4">
-              <h4 class="font-medium text-base-content">
-                Tiqit Purchase
-              </h4>
-
               <%= if assigns[:entry_details] && @entry_details.tiqit do %>
-                <!-- Content Group with Image -->
-                <div class="bg-base-200 dark:bg-base-900/20 rounded-lg overflow-hidden shadow-sm">
-                  <%= if @entry_details.content_group && @entry_details.content_group.image do %>
-                    <div class="flex justify-center items-center bg-white">
-                      <img
-                        src={
-                          QlariusWeb.Uploaders.CreatorImage.url(
-                            {@entry_details.content_group.image, @entry_details.content_group},
-                            :original
-                          )
-                        }
-                        alt="Content group image"
-                        class="w-full h-auto object-cover"
-                      />
-                    </div>
-                  <% end %>
-                  
-<!-- Content Details -->
-                  <div class="p-4">
-                    <%= if @entry_details.content_piece do %>
-                      <div class="text-base-content mb-1 font-bold text-lg leading-tight">
-                        {@entry_details.content_piece.title}
-                      </div>
-                      <%= if @entry_details.content_piece.description do %>
-                        <p class="text-base-content/60 text-sm mb-1" style="line-height: 1.1rem; white-space: pre-line;">{String.trim(@entry_details.content_piece.description)}</p>
-                      <% end %>
-                    <% end %>
-
-                    <%= if @entry_details.content_group do %>
-                      <div class="text-base-content text-xs mb-1 font-medium">
-                        {@entry_details.content_group.title}
-                      </div>
-                    <% end %>
-
-                    <div class="border-t border-base-300/30 mt-2 pt-2">
-                      <div class="text-xs text-base-content/50">
-                        Duration:
-                        <%= if @entry_details.tiqit.tiqit_class.duration_hours do %>
-                          {@entry_details.tiqit.tiqit_class.duration_hours} hours
-                        <% else %>
-                          Lifetime access
-                        <% end %>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-<!-- Creator and Purchase Info -->
-                <div class="space-y-2 text-sm bg-base-200 rounded-lg p-3">
-                  <%= if @entry_details.creator do %>
-                    <div class="flex justify-between">
-                      <span class="text-base-content/70">Creator:</span>
-                      <span>{@entry_details.creator.name}</span>
-                    </div>
-                  <% end %>
-
-                  <div class="flex justify-between items-center">
-                    <span class="text-base-content/70">Status:</span>
-                    <QlariusWeb.TiqitComponents.tiqit_status_badge status={Qlarius.Tiqit.Arcade.Arcade.tiqit_status(@entry_details.tiqit)} />
-                  </div>
-
-                  <div class="flex justify-between items-center">
-                    <span class="text-base-content/70">Time Remaining:</span>
-                    <QlariusWeb.TiqitComponents.tiqit_countdown
-                      tiqit={@entry_details.tiqit}
-                      status={Qlarius.Tiqit.Arcade.Arcade.tiqit_status(@entry_details.tiqit)}
-                      fleet_after_hours={@current_scope.user.fleet_after_hours}
-                    />
-                  </div>
-
-                  <div class="flex justify-between items-center">
-                    <span class="text-base-content/70">Undo:</span>
-                    <QlariusWeb.TiqitComponents.tiqit_undo_countdown tiqit={@entry_details.tiqit} />
-                  </div>
-                </div>
-
-                <div class="mt-3">
-                  <QlariusWeb.TiqitComponents.tiqit_actions
-                    tiqit={@entry_details.tiqit}
-                    status={Qlarius.Tiqit.Arcade.Arcade.tiqit_status(@entry_details.tiqit)}
-                    fleet_modal_id="sidebar-fleet-confirm-modal"
-                    undo_modal_id="sidebar-undo-confirm-modal"
-                    preserve_modal_id="sidebar-preserve-confirm-modal"
-                  />
-                </div>
+                <QlariusWeb.TiqitComponents.tiqit_detail_card
+                  tiqit={@entry_details.tiqit}
+                  user={@current_scope.user}
+                  fleet_after_hours={@current_scope.user.fleet_after_hours}
+                  fleet_modal_id="sidebar-fleet-confirm-modal"
+                  undo_modal_id="sidebar-undo-confirm-modal"
+                  preserve_modal_id="sidebar-preserve-confirm-modal"
+                  unpreserve_modal_id="sidebar-unpreserve-confirm-modal"
+                />
               <% else %>
-                <div class="bg-tiqit-50 dark:bg-tiqit-900/20 rounded-lg p-4">
-                  <div class="mb-3">
-                    <p class="text-sm font-medium">Tiqit Status</p>
-                  </div>
-                  <div class="flex items-start gap-2 text-sm text-base-content/50">
-                    <.icon name="hero-shield-check" class="w-4 h-4 mt-0.5 shrink-0" />
-                    <span>
-                      <%= case Map.get(@entry_details, :disconnect_reason) do %>
-                        <% :undone -> %>
-                          This tiqit was undone and refunded. Details have been fleeted.
-                        <% _ -> %>
-                          This tiqit has been fleeted. Details are no longer available.
-                      <% end %>
-                    </span>
-                  </div>
-                </div>
+                <QlariusWeb.TiqitComponents.tiqit_fleeted_card
+                  disconnect_reason={Map.get(@entry_details, :disconnect_reason)}
+                />
               <% end %>
             </div>
           <% :other -> %>

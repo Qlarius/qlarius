@@ -15,7 +15,7 @@ defmodule QlariusWeb.TiqitComponents do
   def tiqit_status_badge(assigns) do
     ~H"""
     <span class={[
-      "badge badge-sm gap-1",
+      "badge badge-md gap-1 font-medium",
       case @status do
         :active -> "badge-success"
         :expired -> "badge-warning"
@@ -27,7 +27,7 @@ defmodule QlariusWeb.TiqitComponents do
       <.icon
         :if={@preserved && @status in [:active, :expired]}
         name="hero-shield-check-mini"
-        class="w-3 h-3"
+        class="w-3.5 h-3.5"
       />
       {status_display(@status)}
     </span>
@@ -47,7 +47,7 @@ defmodule QlariusWeb.TiqitComponents do
       end)
 
     ~H"""
-    <span class="text-sm text-base-content/60">
+    <span class="text-xs text-base-content/60">
       <%= case @status do %>
         <% :active -> %>
           <%= if @tiqit.expires_at do %>
@@ -96,7 +96,7 @@ defmodule QlariusWeb.TiqitComponents do
       |> assign(:undo_available, undo_available)
 
     ~H"""
-    <span class="text-sm text-base-content/60">
+    <span class="text-xs text-base-content/60">
       <%= if @undo_available do %>
         expires in
         <QlariusWeb.Components.TiqitExpirationCountdown.badge
@@ -113,26 +113,60 @@ defmodule QlariusWeb.TiqitComponents do
 
   attr :tiqit, :any, required: true
   attr :status, :atom, required: true
+  attr :fleet_after_hours, :integer, default: 24
   attr :fleet_modal_id, :string, default: "fleet-confirm-modal"
   attr :undo_modal_id, :string, default: "undo-confirm-modal"
   attr :preserve_modal_id, :string, default: "preserve-confirm-modal"
   attr :unpreserve_modal_id, :string, default: "unpreserve-confirm-modal"
 
-  def tiqit_actions(assigns) do
+  def tiqit_status_and_actions(assigns) do
     assigns = assign(assigns, :undo_available, Arcade.undo_available?(assigns.tiqit))
 
     ~H"""
-    <div class="flex flex-wrap gap-2">
-      <%= case @status do %>
-        <% s when s in [:active, :expired] -> %>
-          <button
-            :if={@undo_available}
-            class="btn btn-sm btn-warning rounded-full"
-            phx-click="prepare_undo"
-            phx-value-id={@tiqit.id}
-          >
-            <.icon name="hero-arrow-uturn-left" class="w-4 h-4" /> Undo
-          </button>
+    <div class="space-y-3">
+      <%!-- Line 1: Status badge + time remaining (if active) --%>
+      <div class="flex items-center gap-2">
+        <.tiqit_status_badge status={@status} preserved={@tiqit.preserved} />
+        <span :if={@status == :active} class="text-xs text-base-content/50 flex items-center gap-1">
+          Time remaining:
+          <.tiqit_countdown tiqit={@tiqit} status={@status} fleet_after_hours={@fleet_after_hours} />
+        </span>
+        <span :if={@status == :expired} class="text-xs text-base-content/50 flex items-center gap-1">
+          <.tiqit_countdown tiqit={@tiqit} status={@status} fleet_after_hours={@fleet_after_hours} />
+        </span>
+        <span :if={@status == :preserved} class="text-xs text-base-content/50">
+          Will not AutoFleet
+        </span>
+      </div>
+
+      <%!-- Line 2: Undo row — show if eligible, or disabled on active only --%>
+      <%= cond do %>
+        <% @undo_available -> %>
+          <div class="flex items-center gap-2">
+            <button
+              class="btn btn-sm btn-warning rounded-full"
+              phx-click="prepare_undo"
+              phx-value-id={@tiqit.id}
+            >
+              <.icon name="hero-arrow-uturn-left" class="w-4 h-4" /> Undo
+            </button>
+            <span class="text-xs text-base-content/50 flex items-center gap-1">
+              <.tiqit_undo_countdown tiqit={@tiqit} />
+            </span>
+          </div>
+        <% @status == :active -> %>
+          <div class="flex items-center gap-2">
+            <button class="btn btn-sm rounded-full btn-disabled" disabled>
+              <.icon name="hero-arrow-uturn-left" class="w-4 h-4" /> Undo
+            </button>
+            <span class="text-xs text-base-content/40">Undo option expired</span>
+          </div>
+        <% true -> %>
+      <% end %>
+
+      <%!-- Line 3: Preserve/Unpreserve + Fleet Now --%>
+      <%= if @status in [:active, :expired] do %>
+        <div class="flex flex-wrap gap-2">
           <%= if @tiqit.preserved do %>
             <button
               class="btn btn-sm btn-outline rounded-full"
@@ -169,15 +203,12 @@ defmodule QlariusWeb.TiqitComponents do
           >
             <.icon name="hero-trash" class="w-4 h-4" /> Fleet Now
           </button>
-        <% :preserved -> %>
-          <button
-            :if={@undo_available}
-            class="btn btn-sm btn-warning rounded-full"
-            phx-click="prepare_undo"
-            phx-value-id={@tiqit.id}
-          >
-            <.icon name="hero-arrow-uturn-left" class="w-4 h-4" /> Undo
-          </button>
+        </div>
+      <% end %>
+
+      <%!-- Preserved+expired: just Fleet Now --%>
+      <%= if @status == :preserved do %>
+        <div class="flex flex-wrap gap-2">
           <button
             class="btn btn-sm btn-error btn-outline rounded-full"
             phx-click={
@@ -189,13 +220,14 @@ defmodule QlariusWeb.TiqitComponents do
           >
             <.icon name="hero-trash" class="w-4 h-4" /> Fleet Now
           </button>
-        <% _ -> %>
+        </div>
       <% end %>
     </div>
     """
   end
 
   attr :tiqit, :any, required: true
+  attr :user, :any, default: nil
   attr :fleet_after_hours, :integer, default: 24
   attr :fleet_modal_id, :string, default: "fleet-confirm-modal"
   attr :undo_modal_id, :string, default: "undo-confirm-modal"
@@ -215,17 +247,17 @@ defmodule QlariusWeb.TiqitComponents do
     <div class="tiqit-grid" data-status={@status}>
       <div class="tiqit-tl"></div>
       <div class="tiqit-top">
-        <div class="float-right ml-3 mb-1 flex flex-col items-end gap-1">
-          <.tiqit_status_badge status={@status} preserved={@tiqit.preserved} />
-          <img
-            src={@image_url}
-            class="w-12 h-12 rounded object-cover shrink-0 border border-base-300/50"
-          />
-        </div>
+        <img
+          src={@image_url}
+          class="w-12 h-12 rounded object-cover shrink-0 border border-base-300/50 float-right ml-3 mb-1"
+        />
         <div class="font-semibold mb-1">{@title}</div>
         <div class="text-sm text-base-content/60">{@scope_label}</div>
         <div :if={@hierarchy != []} class="text-xs text-base-content/50 mt-1">
           {Enum.join(@hierarchy, " › ")}
+        </div>
+        <div class="text-xs text-base-content/40 mt-2 clear-right">
+          Purchased {format_purchased_at(@tiqit.purchased_at, @user)}
         </div>
       </div>
       <div class="tiqit-tr"></div>
@@ -236,29 +268,61 @@ defmodule QlariusWeb.TiqitComponents do
 
       <div class="tiqit-bl"></div>
       <div class="tiqit-bot">
-        <div class="space-y-1 mb-2">
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-base-content/50">Time Remaining:</span>
-            <.tiqit_countdown tiqit={@tiqit} status={@status} fleet_after_hours={@fleet_after_hours} />
-          </div>
-          <div :if={@status in [:active, :expired]} class="flex items-center gap-2">
-            <span class="text-xs text-base-content/50">Undo:</span>
-            <.tiqit_undo_countdown tiqit={@tiqit} />
-          </div>
-        </div>
-
-        <div class="text-xs text-base-content/40 mb-2">
-          Purchased {Calendar.strftime(@tiqit.purchased_at, "%b %d, %Y at %I:%M %p")}
-        </div>
-
-        <.tiqit_actions
+        <.tiqit_status_and_actions
           tiqit={@tiqit}
           status={@status}
+          fleet_after_hours={@fleet_after_hours}
           fleet_modal_id={@fleet_modal_id}
           undo_modal_id={@undo_modal_id}
           preserve_modal_id={@preserve_modal_id}
           unpreserve_modal_id={@unpreserve_modal_id}
         />
+      </div>
+      <div class="tiqit-br"></div>
+    </div>
+    """
+  end
+
+  attr :disconnect_reason, :atom, default: :fleeted
+
+  def tiqit_fleeted_card(assigns) do
+    status = if assigns.disconnect_reason == :undone, do: :undone, else: :fleeted
+
+    assigns = assign(assigns, :status, status)
+
+    ~H"""
+    <div class="tiqit-grid" data-status={@status}>
+      <div class="tiqit-tl"></div>
+      <div class="tiqit-top">
+        <div class="flex flex-col items-center justify-center py-4 text-center">
+          <.icon
+            name={if @status == :undone, do: "hero-arrow-uturn-left", else: "hero-shield-check"}
+            class="w-8 h-8 text-base-content/30 mb-2"
+          />
+          <p class="text-sm font-medium text-base-content/60">
+            <%= if @status == :undone do %>
+              Tiqit Undone
+            <% else %>
+              Tiqit Fleeted
+            <% end %>
+          </p>
+        </div>
+      </div>
+      <div class="tiqit-tr"></div>
+
+      <div class="tiqit-notch tiqit-notch-l"><div></div></div>
+      <div class="tiqit-perf"></div>
+      <div class="tiqit-notch tiqit-notch-r"><div></div></div>
+
+      <div class="tiqit-bl"></div>
+      <div class="tiqit-bot">
+        <p class="text-xs text-base-content/40 text-center">
+          <%= if @status == :undone do %>
+            This tiqit was undone and refunded. Purchase details have been disconnected.
+          <% else %>
+            This tiqit has been fleeted. Purchase details are no longer available.
+          <% end %>
+        </p>
       </div>
       <div class="tiqit-br"></div>
     </div>
@@ -409,6 +473,14 @@ defmodule QlariusWeb.TiqitComponents do
   end
 
   # Helpers
+
+  defp format_purchased_at(datetime, nil) do
+    Calendar.strftime(datetime, "%b %d, %Y at %I:%M %p")
+  end
+
+  defp format_purchased_at(datetime, user) do
+    Qlarius.DateTime.format_for_user(datetime, user, :standard)
+  end
 
   defp tiqit_image_url(tiqit) do
     tc = tiqit.tiqit_class
