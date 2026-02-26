@@ -347,6 +347,7 @@ defmodule QlariusWeb.WalletLive do
 
       <QlariusWeb.TiqitComponents.fleet_confirm_modal id="sidebar-fleet-confirm-modal" />
       <QlariusWeb.TiqitComponents.preserve_confirm_modal id="sidebar-preserve-confirm-modal" />
+      <QlariusWeb.TiqitComponents.unpreserve_confirm_modal id="sidebar-unpreserve-confirm-modal" />
       <QlariusWeb.TiqitComponents.undo_confirm_modal id="sidebar-undo-confirm-modal" undo_context={@undo_context} />
       <div :if={@undo_context} id="sidebar-undo-modal-trigger" phx-mounted={show_modal("sidebar-undo-confirm-modal")} />
     </div>

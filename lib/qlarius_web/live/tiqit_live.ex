@@ -206,6 +206,7 @@ defmodule QlariusWeb.TiqitLive do
 
     <.fleet_confirm_modal />
     <.preserve_confirm_modal />
+    <.unpreserve_confirm_modal />
     <.undo_confirm_modal undo_context={@undo_context} />
     <div :if={@undo_context} id="undo-modal-trigger" phx-mounted={show_modal("undo-confirm-modal")} />
     """

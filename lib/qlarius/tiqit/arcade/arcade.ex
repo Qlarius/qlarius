@@ -561,7 +561,6 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         :preserved ->
           from t in base,
             where: is_nil(t.disconnected_at) and is_nil(t.undone_at),
-            where: not is_nil(t.expires_at) and t.expires_at <= ^now,
             where: t.preserved == true
 
         :fleeted ->

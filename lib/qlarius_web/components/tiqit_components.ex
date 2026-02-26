@@ -10,11 +10,12 @@ defmodule QlariusWeb.TiqitComponents do
   alias Qlarius.Tiqit.Arcade.Arcade
 
   attr :status, :atom, required: true
+  attr :preserved, :boolean, default: false
 
   def tiqit_status_badge(assigns) do
     ~H"""
     <span class={[
-      "badge badge-sm",
+      "badge badge-sm gap-1",
       case @status do
         :active -> "badge-success"
         :expired -> "badge-warning"
@@ -23,6 +24,11 @@ defmodule QlariusWeb.TiqitComponents do
         :undone -> "badge-error"
       end
     ]}>
+      <.icon
+        :if={@preserved && @status in [:active, :expired]}
+        name="hero-shield-check-mini"
+        class="w-3 h-3"
+      />
       {status_display(@status)}
     </span>
     """
@@ -110,6 +116,7 @@ defmodule QlariusWeb.TiqitComponents do
   attr :fleet_modal_id, :string, default: "fleet-confirm-modal"
   attr :undo_modal_id, :string, default: "undo-confirm-modal"
   attr :preserve_modal_id, :string, default: "preserve-confirm-modal"
+  attr :unpreserve_modal_id, :string, default: "unpreserve-confirm-modal"
 
   def tiqit_actions(assigns) do
     assigns = assign(assigns, :undo_available, Arcade.undo_available?(assigns.tiqit))
@@ -126,17 +133,31 @@ defmodule QlariusWeb.TiqitComponents do
           >
             <.icon name="hero-arrow-uturn-left" class="w-4 h-4" /> Undo
           </button>
-          <button
-            class="btn btn-sm btn-outline rounded-full"
-            phx-click={
-              JS.set_attribute({"phx-value-id", to_string(@tiqit.id)},
-                to: "##{@preserve_modal_id}-confirm-btn"
-              )
-              |> show_modal(@preserve_modal_id)
-            }
-          >
-            <.icon name="hero-shield-check" class="w-4 h-4" /> Preserve
-          </button>
+          <%= if @tiqit.preserved do %>
+            <button
+              class="btn btn-sm btn-outline rounded-full"
+              phx-click={
+                JS.set_attribute({"phx-value-id", to_string(@tiqit.id)},
+                  to: "##{@unpreserve_modal_id}-confirm-btn"
+                )
+                |> show_modal(@unpreserve_modal_id)
+              }
+            >
+              <.icon name="hero-shield-exclamation" class="w-4 h-4" /> Unpreserve
+            </button>
+          <% else %>
+            <button
+              class="btn btn-sm btn-outline rounded-full"
+              phx-click={
+                JS.set_attribute({"phx-value-id", to_string(@tiqit.id)},
+                  to: "##{@preserve_modal_id}-confirm-btn"
+                )
+                |> show_modal(@preserve_modal_id)
+              }
+            >
+              <.icon name="hero-shield-check" class="w-4 h-4" /> Preserve
+            </button>
+          <% end %>
           <button
             class="btn btn-sm btn-error btn-outline rounded-full"
             phx-click={
@@ -156,13 +177,6 @@ defmodule QlariusWeb.TiqitComponents do
             phx-value-id={@tiqit.id}
           >
             <.icon name="hero-arrow-uturn-left" class="w-4 h-4" /> Undo
-          </button>
-          <button
-            class="btn btn-sm btn-outline rounded-full"
-            phx-click="unpreserve_tiqit"
-            phx-value-id={@tiqit.id}
-          >
-            <.icon name="hero-shield-exclamation" class="w-4 h-4" /> Unpreserve
           </button>
           <button
             class="btn btn-sm btn-error btn-outline rounded-full"
@@ -186,6 +200,7 @@ defmodule QlariusWeb.TiqitComponents do
   attr :fleet_modal_id, :string, default: "fleet-confirm-modal"
   attr :undo_modal_id, :string, default: "undo-confirm-modal"
   attr :preserve_modal_id, :string, default: "preserve-confirm-modal"
+  attr :unpreserve_modal_id, :string, default: "unpreserve-confirm-modal"
 
   def tiqit_detail_card(assigns) do
     assigns =
@@ -201,7 +216,7 @@ defmodule QlariusWeb.TiqitComponents do
       <div class="tiqit-tl"></div>
       <div class="tiqit-top">
         <div class="float-right ml-3 mb-1 flex flex-col items-end gap-1">
-          <.tiqit_status_badge status={@status} />
+          <.tiqit_status_badge status={@status} preserved={@tiqit.preserved} />
           <img
             src={@image_url}
             class="w-12 h-12 rounded object-cover shrink-0 border border-base-300/50"
@@ -242,6 +257,7 @@ defmodule QlariusWeb.TiqitComponents do
           fleet_modal_id={@fleet_modal_id}
           undo_modal_id={@undo_modal_id}
           preserve_modal_id={@preserve_modal_id}
+          unpreserve_modal_id={@unpreserve_modal_id}
         />
       </div>
       <div class="tiqit-br"></div>
@@ -299,6 +315,34 @@ defmodule QlariusWeb.TiqitComponents do
             phx-value-id=""
           >
             Preserve
+          </button>
+        </div>
+      </div>
+    </.modal>
+    """
+  end
+
+  attr :id, :string, default: "unpreserve-confirm-modal"
+
+  def unpreserve_confirm_modal(assigns) do
+    ~H"""
+    <.modal id={@id}>
+      <div class="p-6">
+        <h3 class="text-lg font-bold mb-2">Unpreserve This Tiqit?</h3>
+        <p class="text-base-content/70 mb-4">
+          If this tiqit has expired, removing preservation will make it eligible
+          for AutoFleet. It may be automatically fleeted and all purchase details
+          permanently disconnected from your account.
+        </p>
+        <div class="flex justify-end gap-2">
+          <button class="btn btn-ghost" phx-click={hide_modal(@id)}>Cancel</button>
+          <button
+            id={"#{@id}-confirm-btn"}
+            class="btn btn-warning"
+            phx-click={JS.push("unpreserve_tiqit") |> hide_modal(@id)}
+            phx-value-id=""
+          >
+            Unpreserve
           </button>
         </div>
       </div>
