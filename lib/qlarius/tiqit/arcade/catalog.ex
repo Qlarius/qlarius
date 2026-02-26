@@ -20,6 +20,8 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
     field :group_type, Ecto.Enum, values: @group_types
     field :piece_type, Ecto.Enum, values: @piece_types
     field :image, :string
+    field :tiqit_undo_limit, :integer
+    field :tiqit_up_enabled, :boolean, default: true
 
     has_many :tiqit_classes, TiqitClass, on_replace: :delete
 
@@ -33,8 +35,9 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
   @doc false
   def changeset(catalog, attrs) do
     catalog
-    |> cast(attrs, [:name, :url, :type, :group_type, :piece_type])
+    |> cast(attrs, [:name, :url, :type, :group_type, :piece_type, :tiqit_undo_limit, :tiqit_up_enabled])
     |> validate_required([:name, :url, :type, :group_type, :piece_type])
+    |> validate_number(:tiqit_undo_limit, greater_than_or_equal_to: 3)
     |> validate_length(:name, max: 30)
     |> cast_assoc(
       :tiqit_classes,

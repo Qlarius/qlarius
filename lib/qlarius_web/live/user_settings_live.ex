@@ -74,6 +74,22 @@ defmodule QlariusWeb.UserSettingsLive do
                   <.icon name="hero-chevron-right" class="h-5 w-5 text-base-content/40" />
                 </div>
               </li>
+
+              <li
+                class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100"
+                phx-click="open_setting"
+                phx-value-setting="tiqit_privacy"
+              >
+                <div class="flex items-center mr-3">
+                  <.icon name="hero-shield-check" class="h-6 w-6 text-base-content/70" />
+                </div>
+                <div class="list-col-grow">
+                  <div class="text-xl font-medium text-base-content">Tiqit Privacy</div>
+                </div>
+                <div class="flex items-center">
+                  <.icon name="hero-chevron-right" class="h-5 w-5 text-base-content/40" />
+                </div>
+              </li>
             </ul>
           </div>
 
@@ -186,6 +202,15 @@ defmodule QlariusWeb.UserSettingsLive do
 
   def handle_event("open_setting", %{"setting" => "audio_alerts"}, socket) do
     {:noreply, assign(socket, :selected_setting, "audio_alerts")}
+  end
+
+  def handle_event("open_setting", %{"setting" => "tiqit_privacy"}, socket) do
+    fleet_after_hours = socket.assigns.current_scope.user.fleet_after_hours || 24
+
+    {:noreply,
+     socket
+     |> assign(:selected_setting, "tiqit_privacy")
+     |> assign(:fleet_after_hours, fleet_after_hours)}
   end
 
   def handle_event("open_setting", %{"setting" => setting}, socket) do
@@ -398,6 +423,40 @@ defmodule QlariusWeb.UserSettingsLive do
     end
   end
 
+  def handle_event("update_fleet_after_hours", %{"fleet_after_hours" => hours_str}, socket) do
+    hours = String.to_integer(hours_str)
+    user = socket.assigns.current_scope.user
+
+    case Accounts.update_user(user, %{fleet_after_hours: hours}) do
+      {:ok, updated_user} ->
+        {:noreply,
+         socket
+         |> assign(:fleet_after_hours, hours)
+         |> assign(:current_scope, %{socket.assigns.current_scope | user: updated_user})
+         |> put_flash(:info, "AutoFleet timing updated")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update AutoFleet timing")}
+    end
+  end
+
+  def handle_event("fleet_preset", %{"hours" => hours_str}, socket) do
+    hours = String.to_integer(hours_str)
+    user = socket.assigns.current_scope.user
+
+    case Accounts.update_user(user, %{fleet_after_hours: hours}) do
+      {:ok, updated_user} ->
+        {:noreply,
+         socket
+         |> assign(:fleet_after_hours, hours)
+         |> assign(:current_scope, %{socket.assigns.current_scope | user: updated_user})
+         |> put_flash(:info, "AutoFleet timing updated")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update AutoFleet timing")}
+    end
+  end
+
   def handle_event("timezone_detected", %{"timezone" => detected_tz}, socket) do
     user = socket.assigns.current_scope.user
 
@@ -420,6 +479,7 @@ defmodule QlariusWeb.UserSettingsLive do
   defp get_setting_title("notifications"), do: "Notifications"
   defp get_setting_title("time_zone"), do: "Time Zone"
   defp get_setting_title("audio_alerts"), do: "Audio Alerts"
+  defp get_setting_title("tiqit_privacy"), do: "Tiqit Privacy"
   defp get_setting_title("proxy_users"), do: "Manage Proxy Users"
   defp get_setting_title(_), do: "Settings"
 
@@ -689,6 +749,85 @@ defmodule QlariusWeb.UserSettingsLive do
             <.icon name="hero-information-circle" class="w-5 h-5" />
             <span class="text-sm">
               Audio settings are stored on this device only. You may have different settings on other devices.
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_setting_content(%{selected_setting: "tiqit_privacy"} = assigns) do
+    ~H"""
+    <div class="pb-8 space-y-4">
+      <div class="card bg-base-200 shadow-md">
+        <div class="card-body">
+          <h2 class="card-title text-xl mb-4">
+            <.icon name="hero-shield-check" class="w-5 h-5" /> AutoFleet Timing
+          </h2>
+
+          <p class="text-sm text-base-content/60 mb-4">
+            When a tiqit expires, it will automatically "fleet" after a grace period.
+            Fleeting severs the link between you and the purchase — it becomes forgotten
+            and unretrievable, preserving your privacy. This is the core of the "fleeting"
+            philosophy in DFT.
+          </p>
+
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text text-lg">Hours after expiration before AutoFleet</span>
+            </label>
+            <form phx-change="update_fleet_after_hours">
+              <input
+                type="range"
+                name="fleet_after_hours"
+                min="0"
+                max="720"
+                step="1"
+                value={@fleet_after_hours}
+                class="range range-primary"
+              />
+            </form>
+            <div class="mt-2 text-center text-lg font-semibold">
+              <%= cond do %>
+                <% @fleet_after_hours == 0 -> %>
+                  Immediate (on expiration)
+                <% @fleet_after_hours < 24 -> %>
+                  {@fleet_after_hours} hours
+                <% @fleet_after_hours == 24 -> %>
+                  24 hours (1 day)
+                <% @fleet_after_hours < 168 -> %>
+                  {@fleet_after_hours} hours ({Float.round(@fleet_after_hours / 24, 1)} days)
+                <% @fleet_after_hours == 168 -> %>
+                  168 hours (1 week)
+                <% true -> %>
+                  {@fleet_after_hours} hours ({Float.round(@fleet_after_hours / 24, 1)} days)
+              <% end %>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <p class="w-full text-sm font-medium text-base-content/70 mb-1">Quick presets:</p>
+            <button class="btn btn-sm btn-outline" phx-click="fleet_preset" phx-value-hours="0">
+              Immediate
+            </button>
+            <button class="btn btn-sm btn-outline" phx-click="fleet_preset" phx-value-hours="24">
+              24 hours
+            </button>
+            <button class="btn btn-sm btn-outline" phx-click="fleet_preset" phx-value-hours="48">
+              48 hours
+            </button>
+            <button class="btn btn-sm btn-outline" phx-click="fleet_preset" phx-value-hours="168">
+              1 week
+            </button>
+          </div>
+
+          <div class="alert alert-info mt-6">
+            <.icon name="hero-information-circle" class="w-5 h-5" />
+            <span class="text-sm">
+              You can always manually fleet a tiqit at any time, or mark it as "preserved" to
+              prevent AutoFleet. Preserved tiqits stay linked to your account until you choose
+              to fleet them.
             </span>
           </div>
         </div>

@@ -18,6 +18,24 @@
       </div>
     <% end %>
 
+    <%= if @tiqit_up_nudge do %>
+      <div class="bg-accent/10 border-b border-accent/30 px-4 py-2 flex items-center justify-between">
+        <div class="flex items-center gap-2 text-sm">
+          <.icon name="hero-arrow-trending-up" class="w-5 h-5 text-accent" />
+          <span class="font-semibold text-accent">Tiqit Up available!</span>
+          <span class="text-base-content/70">
+            You've earned a free upgrade to the full {@group.catalog.group_type}. Select it in the tiqit grid!
+          </span>
+        </div>
+        <button
+          class="btn btn-ghost btn-xs"
+          phx-click="dismiss-tiqit-up-nudge"
+        >
+          <.icon name="hero-x-mark" class="w-4 h-4" />
+        </button>
+      </div>
+    <% end %>
+
     <div class="flex-1 bg-base-100 text-base-content min-h-0 flex flex-col md:!flex-row">
       <%!-- Selected content piece - STATIONARY --%>
       <div class="w-full md:!w-1/2 md:p-5 flex flex-col flex-none overflow-visible md:overflow-y-auto">
@@ -166,7 +184,7 @@
         </h2>
       <% end %>
       <%= if assigns[:options_modal] do %>
-        <.tiqit_class_grid piece={@selected_piece} group={@group} balance={@balance} />
+        <.tiqit_class_grid piece={@selected_piece} group={@group} balance={@balance} tiqit_up_credit={@tiqit_up_credit} />
       <% else %>
         <p class="text-base-content/60 text-center">
           <%= if @selected_tiqit_class.duration_hours do %>

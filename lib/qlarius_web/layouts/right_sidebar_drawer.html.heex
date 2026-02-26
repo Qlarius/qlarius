@@ -153,7 +153,9 @@
             </div>
           <% :tiqit_purchase -> %>
             <div class="space-y-4">
-              <h4 class="font-medium text-base-content">Tiqit Purchase</h4>
+              <h4 class="font-medium text-base-content">
+                Tiqit Purchase
+              </h4>
 
               <%= if assigns[:entry_details] && @entry_details.tiqit do %>
                 <!-- Content Group with Image -->
@@ -211,18 +213,52 @@
                       <span>{@entry_details.creator.name}</span>
                     </div>
                   <% end %>
+
+                  <div class="flex justify-between items-center">
+                    <span class="text-base-content/70">Status:</span>
+                    <QlariusWeb.TiqitComponents.tiqit_status_badge status={Qlarius.Tiqit.Arcade.Arcade.tiqit_status(@entry_details.tiqit)} />
+                  </div>
+
+                  <div class="flex justify-between items-center">
+                    <span class="text-base-content/70">Time Remaining:</span>
+                    <QlariusWeb.TiqitComponents.tiqit_countdown
+                      tiqit={@entry_details.tiqit}
+                      status={Qlarius.Tiqit.Arcade.Arcade.tiqit_status(@entry_details.tiqit)}
+                      fleet_after_hours={@current_scope.user.fleet_after_hours}
+                    />
+                  </div>
+
+                  <div class="flex justify-between items-center">
+                    <span class="text-base-content/70">Undo:</span>
+                    <QlariusWeb.TiqitComponents.tiqit_undo_countdown tiqit={@entry_details.tiqit} />
+                  </div>
+                </div>
+
+                <div class="mt-3">
+                  <QlariusWeb.TiqitComponents.tiqit_actions
+                    tiqit={@entry_details.tiqit}
+                    status={Qlarius.Tiqit.Arcade.Arcade.tiqit_status(@entry_details.tiqit)}
+                    fleet_modal_id="sidebar-fleet-confirm-modal"
+                    undo_modal_id="sidebar-undo-confirm-modal"
+                    preserve_modal_id="sidebar-preserve-confirm-modal"
+                  />
                 </div>
               <% else %>
-                <!-- Fallback for entries without tiqit data -->
                 <div class="bg-tiqit-50 dark:bg-tiqit-900/20 rounded-lg p-4">
-                  <%= if @entry_details.description do %>
-                    <div class="mb-3">
-                      <p class="text-sm font-medium">{@entry_details.description}</p>
-                      <p class="text-xs text-base-content/50">
-                        Legacy tiqit purchase - detailed information not available
-                      </p>
-                    </div>
-                  <% end %>
+                  <div class="mb-3">
+                    <p class="text-sm font-medium">Tiqit Status</p>
+                  </div>
+                  <div class="flex items-start gap-2 text-sm text-base-content/50">
+                    <.icon name="hero-shield-check" class="w-4 h-4 mt-0.5 shrink-0" />
+                    <span>
+                      <%= case Map.get(@entry_details, :disconnect_reason) do %>
+                        <% :undone -> %>
+                          This tiqit was undone and refunded. Details have been fleeted.
+                        <% _ -> %>
+                          This tiqit has been fleeted. Details are no longer available.
+                      <% end %>
+                    </span>
+                  </div>
                 </div>
               <% end %>
             </div>

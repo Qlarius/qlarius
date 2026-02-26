@@ -5,6 +5,9 @@ defmodule Qlarius.Tiqit.Arcade.Tiqit do
   schema "tiqits" do
     field :purchased_at, :utc_datetime
     field :expires_at, :utc_datetime
+    field :preserved, :boolean, default: false
+    field :disconnected_at, :utc_datetime
+    field :undone_at, :utc_datetime
 
     belongs_to :me_file, Qlarius.YouData.MeFiles.MeFile
     belongs_to :tiqit_class, Qlarius.Tiqit.Arcade.TiqitClass
@@ -17,7 +20,7 @@ defmodule Qlarius.Tiqit.Arcade.Tiqit do
 
   def changeset(tiqit, attrs) do
     tiqit
-    |> cast(attrs, ~w[purchased_at expires_at]a)
+    |> cast(attrs, ~w[purchased_at expires_at preserved disconnected_at undone_at me_file_id]a)
     |> validate_required(~w[purchased_at]a)
   end
 end

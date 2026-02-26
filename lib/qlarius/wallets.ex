@@ -367,6 +367,23 @@ defmodule Qlarius.Wallets do
     Decimal.compare(current_balance, amount) != :lt
   end
 
+  def get_or_create_creator_ledger_header(%Qlarius.Creators.Creator{} = creator) do
+    case Repo.get_by(LedgerHeader, creator_id: creator.id) do
+      nil ->
+        %LedgerHeader{}
+        |> LedgerHeader.changeset(%{
+          description: "Creator: #{creator.name}",
+          balance: Decimal.new("0.00"),
+          balance_payable: Decimal.new("0.00"),
+          creator_id: creator.id
+        })
+        |> Repo.insert!()
+
+      ledger_header ->
+        ledger_header
+    end
+  end
+
   @doc """
   Gets or creates a ledger header for a recipient.
   """

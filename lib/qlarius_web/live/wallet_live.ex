@@ -36,6 +36,7 @@ defmodule QlariusWeb.WalletLive do
     |> assign(:entry_details, nil)
     |> assign(:page, page)
     |> assign(:paginated_entries, paginated_entries)
+    |> assign(:undo_context, nil)
     |> init_pwa_assigns(session)
     |> ok()
   end
@@ -100,6 +101,80 @@ defmodule QlariusWeb.WalletLive do
       |> JS.add_class("opacity-0 pointer-events-none", to: "#sponster-sidebar-bg")
 
     {:noreply, push_event(socket, "js", js)}
+  end
+
+  def handle_event("fleet_tiqit", %{"id" => id}, socket) do
+    tiqit = Qlarius.Repo.get!(Qlarius.Tiqit.Arcade.Tiqit, id)
+
+    case Qlarius.Tiqit.Arcade.Arcade.fleet_tiqit!(tiqit) do
+      {:ok, _} -> {:noreply, reload_entry_details(socket)}
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not fleet tiqit")}
+    end
+  end
+
+  def handle_event("preserve_tiqit", %{"id" => id}, socket) do
+    tiqit = Qlarius.Repo.get!(Qlarius.Tiqit.Arcade.Tiqit, id)
+
+    case Qlarius.Tiqit.Arcade.Arcade.preserve_tiqit(tiqit, true) do
+      {:ok, _} -> {:noreply, reload_entry_details(socket)}
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not preserve tiqit")}
+    end
+  end
+
+  def handle_event("unpreserve_tiqit", %{"id" => id}, socket) do
+    tiqit = Qlarius.Repo.get!(Qlarius.Tiqit.Arcade.Tiqit, id)
+
+    case Qlarius.Tiqit.Arcade.Arcade.preserve_tiqit(tiqit, false) do
+      {:ok, _} -> {:noreply, reload_entry_details(socket)}
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not unpreserve tiqit")}
+    end
+  end
+
+  def handle_event("clear_undo_context", _params, socket) do
+    {:noreply, assign(socket, :undo_context, nil)}
+  end
+
+  def handle_event("prepare_undo", %{"id" => id}, socket) do
+    scope = socket.assigns.current_scope
+    tiqit = Qlarius.Repo.get!(Qlarius.Tiqit.Arcade.Tiqit, id)
+    undo_context = Qlarius.Tiqit.Arcade.Arcade.get_undo_context(scope, tiqit)
+
+    {:noreply, assign(socket, :undo_context, undo_context)}
+  end
+
+  def handle_event("undo_tiqit", %{"id" => id}, socket) do
+    scope = socket.assigns.current_scope
+    tiqit = Qlarius.Repo.get!(Qlarius.Tiqit.Arcade.Tiqit, id)
+
+    case Qlarius.Tiqit.Arcade.Arcade.undo_tiqit!(scope, tiqit) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> assign(:undo_context, nil)
+         |> put_flash(:info, "Tiqit undone and refunded")
+         |> reload_entry_details()}
+
+      {:error, reason} ->
+        {:noreply,
+         socket
+         |> assign(:undo_context, nil)
+         |> put_flash(:error, "Could not undo: #{reason}")}
+    end
+  end
+
+  defp reload_entry_details(socket) do
+    case socket.assigns do
+      %{selected_entry: %{} = entry} ->
+        entry = Wallets.get_ledger_entry!(entry.id, socket.assigns.me_file)
+        entry_details = get_entry_details(entry)
+
+        socket
+        |> assign(:selected_entry, entry)
+        |> assign(:entry_details, entry_details)
+
+      _ ->
+        socket
+    end
   end
 
   @impl true
@@ -269,6 +344,11 @@ defmodule QlariusWeb.WalletLive do
 
         <.ledger_entry_detail_sidebar :if={@sidebar_entry} entry={@sidebar_entry} />
       </Layouts.mobile>
+
+      <QlariusWeb.TiqitComponents.fleet_confirm_modal id="sidebar-fleet-confirm-modal" />
+      <QlariusWeb.TiqitComponents.preserve_confirm_modal id="sidebar-preserve-confirm-modal" />
+      <QlariusWeb.TiqitComponents.undo_confirm_modal id="sidebar-undo-confirm-modal" undo_context={@undo_context} />
+      <div :if={@undo_context} id="sidebar-undo-modal-trigger" phx-mounted={show_modal("sidebar-undo-confirm-modal")} />
     </div>
     """
   end
@@ -309,8 +389,8 @@ defmodule QlariusWeb.WalletLive do
       entry.ad_event_id != nil ->
         get_ad_event_details(entry.ad_event)
 
-      # Tiqit purchase (identified by description)
-      String.contains?(entry.description, "Tiqit purchase") ->
+      # Tiqit-related entry (purchase, undo, etc.)
+      entry.tiqit_id != nil or String.contains?(entry.description, "Tiqit") ->
         get_tiqit_purchase_details(entry)
 
       # Other transaction types
@@ -377,7 +457,13 @@ defmodule QlariusWeb.WalletLive do
           }
       end
     else
-      # Fallback for entries without tiqit association
+      reason =
+        cond do
+          entry.meta_1 == "Tiqit Undo" -> :undone
+          String.contains?(to_string(entry.description), "undo") -> :undone
+          true -> :fleeted
+        end
+
       %{
         type: :tiqit_purchase,
         tiqit: nil,
@@ -386,7 +472,8 @@ defmodule QlariusWeb.WalletLive do
         content_piece: nil,
         description: entry.description,
         amount: entry.amt,
-        purchase_time: entry.created_at
+        purchase_time: entry.created_at,
+        disconnect_reason: reason
       }
     end
   end

@@ -54,7 +54,20 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       force_theme = Map.get(params, "force_theme")
       show_title = Map.get(params, "show_title", "true") != "false"
 
-      {:ok,
+      tiqit_up_credit =
+        if scope, do: Arcade.calculate_tiqit_up_credit(scope, group), else: Decimal.new(0)
+
+      tiqit_up_nudge =
+        if scope do
+          case Arcade.check_tiqit_up_nudge(scope, group) do
+            {:nudge, _credit, _cheapest} -> true
+            _ -> false
+          end
+        else
+          false
+        end
+
+    {:ok,
        socket
        |> assign(
          mounted: true,
@@ -64,7 +77,9 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          pieces: pieces,
          selected_tiqit_class: nil,
          force_theme: force_theme,
-         show_title: show_title
+         show_title: show_title,
+         tiqit_up_credit: tiqit_up_credit,
+         tiqit_up_nudge: tiqit_up_nudge
        )}
     end
   end
@@ -114,6 +129,10 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     socket |> assign(:show_topup_modal, false) |> noreply()
   end
 
+  def handle_event("dismiss-tiqit-up-nudge", _params, socket) do
+    socket |> assign(:tiqit_up_nudge, false) |> noreply()
+  end
+
   def handle_event("hide-options", _params, socket) do
     socket |> assign(:options_modal, false) |> noreply()
   end
@@ -157,7 +176,14 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
         socket.assigns.group
       )
 
-    :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class)
+    opts =
+      if tiqit_class.content_piece_id do
+        []
+      else
+        [tiqit_up_credit: socket.assigns.tiqit_up_credit]
+      end
+
+    :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class, opts)
 
     user = socket.assigns.current_scope.user
 

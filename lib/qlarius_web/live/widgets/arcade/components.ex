@@ -29,11 +29,13 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   attr :balance, Decimal, required: true
   attr :piece, ContentPiece, required: true
   attr :group, ContentGroup, required: true
+  attr :tiqit_up_credit, :any, default: nil
 
   def tiqit_class_grid(assigns) do
     piece = assigns.piece
     group = assigns.group
     catalog = group.catalog
+    credit = assigns.tiqit_up_credit || Decimal.new(0)
 
     durations =
       [piece, group, catalog]
@@ -44,6 +46,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     assigns =
       assign(assigns,
         catalog: catalog,
+        credit: credit,
         durations: durations,
         group: group,
         piece: piece,
@@ -95,11 +98,39 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                 {format_tiqit_class_duration(duration)}
                 <.icon name="hero-arrow-right" class="w-4 h-4 ml-1 text-base-content/60" />
               </td>
-              <%= for {col, true} <- [{@piece, true}, {@group, @show_group?}, {@catalog, @show_catalog?}] do %>
+              <td class="w-40 text-center py-1 px-3">
+                <%= if class = Enum.find(@piece.tiqit_classes, & &1.duration_hours == duration) do %>
+                  <div class="flex justify-center">
+                    <.tiqit_class_grid_price balance={@balance} tiqit_class={class} />
+                  </div>
+                <% else %>
+                  <span class="text-base-content/40 text-sm">-</span>
+                <% end %>
+              </td>
+              <%= if @show_group? do %>
                 <td class="w-40 text-center py-1 px-3">
-                  <%= if class = Enum.find(col.tiqit_classes, & &1.duration_hours == duration) do %>
+                  <%= if class = Enum.find(@group.tiqit_classes, & &1.duration_hours == duration) do %>
                     <div class="flex justify-center">
-                      <.tiqit_class_grid_price balance={@balance} tiqit_class={class} />
+                      <.tiqit_class_grid_price_with_credit
+                        balance={@balance}
+                        tiqit_class={class}
+                        credit={@credit}
+                      />
+                    </div>
+                  <% else %>
+                    <span class="text-base-content/40 text-sm">-</span>
+                  <% end %>
+                </td>
+              <% end %>
+              <%= if @show_catalog? do %>
+                <td class="w-40 text-center py-1 px-3">
+                  <%= if class = Enum.find(@catalog.tiqit_classes, & &1.duration_hours == duration) do %>
+                    <div class="flex justify-center">
+                      <.tiqit_class_grid_price_with_credit
+                        balance={@balance}
+                        tiqit_class={class}
+                        credit={@credit}
+                      />
                     </div>
                   <% else %>
                     <span class="text-base-content/40 text-sm">-</span>
@@ -111,6 +142,59 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         </table>
       </div>
     </div>
+    """
+  end
+
+  attr :tiqit_class, TiqitClass, required: true
+  attr :balance, Decimal, required: true
+  attr :credit, :any, required: true
+
+  def tiqit_class_grid_price_with_credit(assigns) do
+    credit = assigns.credit
+    original = assigns.tiqit_class.price
+    adjusted = Decimal.max(Decimal.new(0), Decimal.sub(original, credit))
+    has_credit = Decimal.compare(credit, Decimal.new(0)) == :gt
+
+    assigns =
+      assign(assigns,
+        adjusted: adjusted,
+        has_credit: has_credit,
+        is_free: Decimal.compare(adjusted, Decimal.new(0)) != :gt,
+        original: original
+      )
+
+    ~H"""
+    <%= if @is_free and @has_credit do %>
+      <button
+        phx-click="select-tiqit-class"
+        phx-value-tiqit-class-id={@tiqit_class.id}
+        class="btn btn-sm rounded-full btn-accent px-3 py-1 cursor-pointer flex flex-col leading-tight"
+      >
+        <span class="text-xs font-bold">Tiqit Up</span>
+        <span class="text-[10px] line-through opacity-60">{format_usd(@original)}</span>
+        <span class="text-xs">Free!</span>
+      </button>
+    <% else %>
+      <%= if @has_credit do %>
+        <%= if Decimal.compare(@balance, @adjusted) != :lt do %>
+          <button
+            phx-click="select-tiqit-class"
+            phx-value-tiqit-class-id={@tiqit_class.id}
+            class="btn btn-sm rounded-full btn-accent px-3 py-1 cursor-pointer flex flex-col leading-tight"
+          >
+            <span class="text-[10px] line-through opacity-60">{format_usd(@original)}</span>
+            <span class="text-xs">{format_usd(@adjusted)}</span>
+          </button>
+        <% else %>
+          <div class="btn btn-sm rounded-full btn-ghost px-3 py-1 opacity-50 cursor-not-allowed flex flex-col leading-tight">
+            <span class="text-[10px] line-through opacity-60">{format_usd(@original)}</span>
+            <span class="text-xs">{format_usd(@adjusted)}</span>
+          </div>
+        <% end %>
+      <% else %>
+        <.tiqit_class_grid_price balance={@balance} tiqit_class={@tiqit_class} />
+      <% end %>
+    <% end %>
     """
   end
 

@@ -165,9 +165,8 @@
       </div>
       <ul class="space-y-1">
         <li>
-          <%!-- TODO: Route not implemented - was ~p"/me_file" (route doesn't exist) --%>
           <.link
-            navigate="#"
+            navigate={~p"/tiqits"}
             class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
           >
             <div class="flex items-center">
@@ -176,12 +175,12 @@
               </div>
               <span class="ml-3">Stash</span>
             </div>
-            <%!-- <span
+            <span
+              :if={@current_scope && @current_scope.active_tiqit_count > 0}
               class="bg-tiqit-600 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
-              data-app-target="tagCount"
             >
-              3
-            </span> --%>
+              {@current_scope.active_tiqit_count}
+            </span>
           </.link>
         </li>
         <li>

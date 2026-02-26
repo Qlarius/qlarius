@@ -149,7 +149,57 @@
                   </div>
                 </div>
                 
-<!-- Tiqit Classes Section -->
+<!-- Tiqit Policies Section -->
+                <div class="border-t border-base-300 pt-6">
+                  <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+                    <.icon name="hero-shield-check" class="w-5 h-5 mr-3 text-accent" />
+                    Tiqit Policies
+                  </h3>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-control">
+                      <label class="label">
+                        <span class="label-text font-medium">Undo Limit (per consumer)</span>
+                      </label>
+                      <p class="text-sm text-base-content/60 mb-2">
+                        How many times each consumer can undo (refund) a tiqit purchase with you.
+                        Leave blank for unlimited.
+                      </p>
+                      <.input
+                        field={@form[:tiqit_undo_limit]}
+                        type="number"
+                        class="input input-bordered w-full"
+                        placeholder="Unlimited"
+                        min="3"
+                      />
+                      <label class="label">
+                        <span class="label-text-alt text-base-content/50">
+                          Minimum 3 if set. Leave blank for unlimited (no tracking).
+                        </span>
+                      </label>
+                    </div>
+
+                    <div class="form-control">
+                      <label class="label cursor-pointer justify-start gap-4">
+                        <.input
+                          field={@form[:tiqit_up_enabled]}
+                          type="checkbox"
+                          class="checkbox checkbox-primary"
+                        />
+                        <div>
+                          <span class="label-text font-medium text-lg">Enable Tiqit Up</span>
+                          <p class="text-sm text-base-content/60 mt-1">
+                            When enabled, consumers who purchase individual episodes get credit
+                            toward series or catalog purchases. This reduces friction and rewards
+                            exploration.
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tiqit Classes Section -->
                 <div class="border-t border-base-300 pt-6">
                   <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-base-content flex items-center">

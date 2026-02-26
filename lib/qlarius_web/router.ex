@@ -198,6 +198,7 @@ defmodule QlariusWeb.Router do
       live "/home", HomeLive, :index
       live "/settings", UserSettingsLive, :index
       live "/wallet", WalletLive, :index
+      live "/tiqits", TiqitLive, :index
       live "/ads", AdsLive, :index
       live "/referrals", ReferralsLive, :index
       live "/proxy_users", ProxyUsersLive, :index

@@ -19,6 +19,7 @@ defmodule Qlarius.Accounts.Scope do
   alias Qlarius.Accounts.User
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Sponster.Offers
+  alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Repo
 
   defstruct true_user: nil,
@@ -31,7 +32,8 @@ defmodule Qlarius.Accounts.Scope do
             home_zip: nil,
             tag_count: nil,
             trait_count: nil,
-            pending_referral_clicks_count: nil
+            pending_referral_clicks_count: nil,
+            active_tiqit_count: 0
 
   @doc """
   Creates a scope for the given user.
@@ -56,7 +58,8 @@ defmodule Qlarius.Accounts.Scope do
       wallet_balance: proxy_user.me_file.ledger_header.balance,
       offered_amount: Offers.total_active_offer_amount(proxy_user.me_file),
       pending_referral_clicks_count:
-        Qlarius.Referrals.get_pending_clicks_for_me_file(proxy_user.me_file)
+        Qlarius.Referrals.get_pending_clicks_for_me_file(proxy_user.me_file),
+      active_tiqit_count: Arcade.count_active_tiqits(proxy_user)
     }
   end
 end

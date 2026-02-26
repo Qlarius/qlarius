@@ -666,5 +666,92 @@ body {
   display: none !important;
 }
 
+/* Tiqit ticket card — 3×3 structural grid with notch cutouts */
+.tiqit-grid {
+  --notch-r: 10px;
+  display: grid;
+  grid-template-columns: var(--notch-r) 1fr var(--notch-r);
+  grid-template-rows: auto calc(var(--notch-r) * 2) auto;
+}
+
+.tiqit-grid > * {
+  background-color: var(--ticket-bg);
+}
+
+/* ── Status themes (light) ── */
+.tiqit-grid[data-status="active"]    { --ticket-border: var(--color-tiqit-300); --ticket-bg: var(--color-tiqit-50); }
+.tiqit-grid[data-status="expired"]   { --ticket-border: var(--color-tiqit-200); --ticket-bg: oklch(98.25% 0.02 89.35 / 0.6); }
+.tiqit-grid[data-status="preserved"] { --ticket-border: oklch(70% 0.1 250);    --ticket-bg: oklch(97% 0.01 264); }
+.tiqit-grid[data-status="fleeted"],
+.tiqit-grid[data-status="undone"]    { --ticket-border: var(--color-base-300);  --ticket-bg: var(--color-base-200); }
+
+/* ── Status themes (dark) ── */
+[data-theme="dark"] .tiqit-grid[data-status="active"]    { --ticket-bg: oklch(26.72% 0.08 39.05 / 0.4); }
+[data-theme="dark"] .tiqit-grid[data-status="expired"]   { --ticket-bg: oklch(26.72% 0.08 39.05 / 0.25); }
+[data-theme="dark"] .tiqit-grid[data-status="preserved"] { --ticket-bg: oklch(21% 0.06 265 / 0.3); }
+
+/* ── Corner cells ── */
+.tiqit-tl {
+  border-left: 1px solid var(--ticket-border);
+  border-top: 1px solid var(--ticket-border);
+  border-top-left-radius: 0.5rem;
+}
+.tiqit-tr {
+  border-right: 1px solid var(--ticket-border);
+  border-top: 1px solid var(--ticket-border);
+  border-top-right-radius: 0.5rem;
+}
+.tiqit-bl {
+  border-left: 1px solid var(--ticket-border);
+  border-bottom: 1px solid var(--ticket-border);
+  border-bottom-left-radius: 0.5rem;
+}
+.tiqit-br {
+  border-right: 1px solid var(--ticket-border);
+  border-bottom: 1px solid var(--ticket-border);
+  border-bottom-right-radius: 0.5rem;
+}
+
+/* ── Content sections ── */
+.tiqit-top {
+  border-top: 1px solid var(--ticket-border);
+  padding: 1rem 1.25rem 0.75rem 0.75rem;
+}
+.tiqit-bot {
+  border-bottom: 1px solid var(--ticket-border);
+  padding: 0.75rem 1.25rem 1rem 0.75rem;
+}
+
+/* ── Notch cells — overflow-hidden with a shifted circle inside ── */
+.tiqit-notch {
+  overflow: hidden;
+  position: relative;
+}
+.tiqit-notch > div {
+  position: absolute;
+  width: calc(var(--notch-r) * 2);
+  height: calc(var(--notch-r) * 2);
+  border-radius: 50%;
+  border: 1px solid var(--ticket-border);
+  background: var(--color-base-100);
+  top: 0;
+}
+[data-theme="dark"] .tiqit-notch > div {
+  background: var(--color-base-300);
+}
+.tiqit-notch-l > div { left: calc(var(--notch-r) * -1); }
+.tiqit-notch-r > div { right: calc(var(--notch-r) * -1); }
+
+/* ── Dashed perforation ── */
+.tiqit-perf {
+  display: flex;
+  align-items: center;
+}
+.tiqit-perf::before {
+  content: '';
+  flex: 1;
+  border-top: 1px dashed color-mix(in oklch, var(--ticket-border) 50%, transparent);
+}
+
 
 /* Nexus Admin CSS */

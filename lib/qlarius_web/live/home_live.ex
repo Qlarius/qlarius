@@ -8,10 +8,12 @@ defmodule QlariusWeb.HomeLive do
 
   alias QlariusWeb.Layouts
   alias QlariusWeb.Components.StrongStartComponent
+  alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.YouData.StrongStart
 
   def mount(_params, session, socket) do
-    me_file = socket.assigns.current_scope.user.me_file
+    scope = socket.assigns.current_scope
+    me_file = scope.user.me_file
 
     socket =
       socket
@@ -19,6 +21,7 @@ defmodule QlariusWeb.HomeLive do
       |> assign(:title, "Home")
       |> init_pwa_assigns(session)
       |> assign_strong_start(me_file)
+      |> assign_tiqit_counts(scope)
 
     {:ok, socket}
   end
@@ -89,6 +92,13 @@ defmodule QlariusWeb.HomeLive do
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Failed to update progress")}
     end
+  end
+
+  defp assign_tiqit_counts(socket, scope) do
+    socket
+    |> assign(:active_tiqits_count, Arcade.count_active_tiqits(scope))
+    |> assign(:expired_tiqits_count, Arcade.count_expired_tiqits(scope))
+    |> assign(:total_tiqit_purchases, Arcade.count_total_purchases(scope))
   end
 
   defp assign_strong_start(socket, me_file) do
@@ -195,20 +205,30 @@ defmodule QlariusWeb.HomeLive do
               <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-7 w-auto" />
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-              <div class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center">
-                <div class="text-3xl font-bold leading-none">0</div>
-                <div class="text-md font-medium text-base-content/60">active tiqits</div>
+            <div class="grid grid-cols-3 gap-4 mb-4">
+              <div
+                class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-tiqit-300 dark:hover:bg-tiqit-800 hover:border-tiqit-400 dark:hover:border-tiqit-400"
+                phx-click={JS.navigate("/tiqits?status=active")}
+              >
+                <div class="text-3xl font-bold leading-none">{@active_tiqits_count}</div>
+                <div class="text-md font-medium text-base-content/60">active</div>
               </div>
 
-              <div class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center">
-                <div class="text-3xl font-bold leading-none">0</div>
-                <div class="text-md font-medium text-base-content/60">expiring tiqits</div>
+              <div
+                class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-tiqit-300 dark:hover:bg-tiqit-800 hover:border-tiqit-400 dark:hover:border-tiqit-400"
+                phx-click={JS.navigate("/tiqits?status=expired")}
+              >
+                <div class="text-3xl font-bold leading-none">{@expired_tiqits_count}</div>
+                <div class="text-md font-medium text-base-content/60">expiring</div>
               </div>
-            </div>
 
-            <div class="mt-3 text-center text-sm text-base-content/30">
-              Coming soon. Build up your wallet to be ready.
+              <div
+                class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-tiqit-300 dark:hover:bg-tiqit-800 hover:border-tiqit-400 dark:hover:border-tiqit-400"
+                phx-click={JS.navigate("/tiqits")}
+              >
+                <div class="text-3xl font-bold leading-none">{@total_tiqit_purchases}</div>
+                <div class="text-md font-medium text-base-content/60">total</div>
+              </div>
             </div>
           </div>
         </div>

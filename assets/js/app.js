@@ -600,8 +600,8 @@ function setupCountdown(el, forceReset = false){
     const parts = []
     if (d > 0) parts.push(`${d} ${d===1?'day':'days'}`)
     if (h > 0 || d > 0) parts.push(`${h} ${h===1?'hr':'hrs'}`)
-    if (m > 0 || h > 0 || d > 0) parts.push(`${m} ${m===1?'min':'mins'}`)
-    if (d < 1 && h < 1) parts.push(`${s} ${s===1?'sec':'secs'}`)
+    if (d < 1) parts.push(`${m} ${m===1?'min':'mins'}`)
+    if (d < 1 && h < 1 && m < 10) parts.push(`${s} ${s===1?'sec':'secs'}`)
     display.textContent = parts.join(', ')
     el._countdownTimeout = setTimeout(update, 1000)
   }
