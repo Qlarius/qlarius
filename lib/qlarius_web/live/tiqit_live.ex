@@ -20,7 +20,7 @@ defmodule QlariusWeb.TiqitLive do
     socket =
       socket
       |> assign(:current_path, "/tiqits")
-      |> assign(:title, "Tiqit Stash")
+      |> assign(:title, "Tiqits")
       |> assign(:status_filter, status)
       |> assign(:tiqits, tiqits)
       |> assign(:fleet_after_hours, scope.user.fleet_after_hours)
@@ -99,26 +99,26 @@ defmodule QlariusWeb.TiqitLive do
         {:noreply,
          socket
          |> assign(:undo_context, nil)
-         |> put_flash(:info, "Tiqit undone and refunded")
+         |> put_flash(:info, "Tiqit refunded successfully")
          |> reload_tiqits()}
 
       {:error, :undo_window_expired} ->
         {:noreply,
          socket
          |> assign(:undo_context, nil)
-         |> put_flash(:error, "Undo window has expired")}
+         |> put_flash(:error, "Refund window has expired")}
 
       {:error, :undo_limit_reached} ->
         {:noreply,
          socket
          |> assign(:undo_context, nil)
-         |> put_flash(:error, "Undo limit reached for this creator")}
+         |> put_flash(:error, "Refund limit reached for this creator")}
 
       {:error, reason} ->
         {:noreply,
          socket
          |> assign(:undo_context, nil)
-         |> put_flash(:error, "Could not undo: #{reason}")}
+         |> put_flash(:error, "Could not refund: #{reason}")}
     end
   end
 
@@ -142,13 +142,14 @@ defmodule QlariusWeb.TiqitLive do
   defp filter_label(:expired), do: "Expired"
   defp filter_label(:preserved), do: "Preserved"
   defp filter_label(:fleeted), do: "Fleeted"
-  defp filter_label(:undone), do: "Undone"
+  defp filter_label(:undone), do: "Refunded"
 
   @impl true
   def render(assigns) do
     ~H"""
     <Layouts.mobile {assigns}>
       <div class="mb-6">
+        <h2 class="text-xl font-bold mb-4">Stash</h2>
 
         <div class="flex flex-wrap gap-2 mb-4">
           <button
@@ -172,14 +173,14 @@ defmodule QlariusWeb.TiqitLive do
             <div class="text-base-content/60 mb-4">
               {if @status_filter == :fleeted,
                 do: "tiqits have been fleeted",
-                else: "tiqits have been undone"}
+                else: "tiqits have been refunded"}
             </div>
             <p class="text-sm text-base-content/40 max-w-sm mx-auto">
               <%= if @status_filter == :fleeted do %>
                 Fleeted tiqits have been permanently disconnected from your account.
-                No details are retrievable — that's the point.
+                No details are retrievable. <br/>(That's the point.)
               <% else %>
-                Undone tiqits were refunded and fleeted. The purchase amount was
+                Refunded tiqits were returned and fleeted. The purchase amount was
                 returned to your wallet.
               <% end %>
             </p>

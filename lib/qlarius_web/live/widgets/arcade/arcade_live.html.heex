@@ -57,7 +57,14 @@
                   <.icon name="hero-calendar" class="w-3 h-3" />{Calendar.strftime(@selected_piece.inserted_at, "%b %d, %Y")}
                 </span>
               </div>
-              <p class="text-sm text-base-content/70 max-h-[7.5rem] overflow-y-auto" style="white-space: pre-line;">{String.trim(@selected_piece.description || "")}</p>
+              <div class="relative">
+                <p class="text-xs text-base-content/70 max-h-[6rem] overflow-y-auto pr-3" style="white-space: pre-line; line-height: 1.15rem;">{String.trim(@selected_piece.description || "")}</p>
+                <div class="absolute right-0 top-0 bottom-0 w-2 flex flex-col items-center justify-center pointer-events-none opacity-40">
+                  <.icon name="hero-chevron-up-mini" class="w-3 h-3" />
+                  <div class="flex-1 border-r border-base-content/20 border-dashed"></div>
+                  <.icon name="hero-chevron-down-mini" class="w-3 h-3" />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -211,7 +218,7 @@
             phx-value-tiqit-class-id={@selected_tiqit_class.id}
             class="btn btn-primary btn-lg btn-block rounded-full"
           >
-            <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm Purchase •
+            <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm/Buy •
             <span class="font-bold">{format_usd(@selected_tiqit_class.price, zero_free: true)}</span>
           </button>
         </div>

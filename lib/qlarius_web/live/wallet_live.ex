@@ -151,14 +151,14 @@ defmodule QlariusWeb.WalletLive do
         {:noreply,
          socket
          |> assign(:undo_context, nil)
-         |> put_flash(:info, "Tiqit undone and refunded")
+         |> put_flash(:info, "Tiqit refunded successfully")
          |> reload_entry_details()}
 
       {:error, reason} ->
         {:noreply,
          socket
          |> assign(:undo_context, nil)
-         |> put_flash(:error, "Could not undo: #{reason}")}
+         |> put_flash(:error, "Could not refund: #{reason}")}
     end
   end
 

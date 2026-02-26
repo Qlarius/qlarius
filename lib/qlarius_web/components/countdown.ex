@@ -37,4 +37,34 @@ defmodule QlariusWeb.Components.TiqitExpirationCountdown do
     </span>
     """
   end
+
+  attr :expires_at, :any, required: true
+  attr :id, :string, default: nil
+  attr :class, :string, default: ""
+
+  def text(assigns) do
+    assigns =
+      assigns
+      |> assign(:id, assigns[:id] || "countdown-#{System.unique_integer([:positive])}")
+      |> assign(:expires_str,
+        case assigns.expires_at do
+          %ElixirDateTime{} = dt -> ElixirDateTime.to_iso8601(dt)
+          %ElixirNaiveDateTime{} = ndt -> ElixirNaiveDateTime.to_iso8601(ndt) <> "Z"
+          binary when is_binary(binary) -> binary
+          _ -> ""
+        end
+      )
+
+    ~H"""
+    <span
+      id={@id}
+      class={"font-semibold #{@class}"}
+      phx-hook="TiqitExpirationCountdown"
+      data-expires-at={@expires_str}
+      data-countdown-root
+    >
+      <span data-countdown-display></span>
+    </span>
+    """
+  end
 end

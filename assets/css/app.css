@@ -666,6 +666,14 @@ body {
   display: none !important;
 }
 
+/* Tiqit action buttons — keep outline visible on hover */
+.tiqit-grid .btn-outline:not(.btn-error):hover {
+  background-color: var(--color-base-content);
+  color: var(--color-base-100);
+  border-color: var(--color-base-content);
+  opacity: 0.85;
+}
+
 /* Tiqit ticket card — 3×3 structural grid with notch cutouts */
 .tiqit-grid {
   --notch-r: 10px;
@@ -681,14 +689,24 @@ body {
 /* ── Status themes (light) ── */
 .tiqit-grid[data-status="active"]    { --ticket-border: var(--color-tiqit-300); --ticket-bg: var(--color-tiqit-50); }
 .tiqit-grid[data-status="expired"]   { --ticket-border: var(--color-tiqit-200); --ticket-bg: oklch(98.25% 0.02 89.35 / 0.6); }
-.tiqit-grid[data-status="preserved"] { --ticket-border: oklch(70% 0.1 250);    --ticket-bg: oklch(97% 0.01 264); }
 .tiqit-grid[data-status="fleeted"],
 .tiqit-grid[data-status="undone"]    { --ticket-border: var(--color-base-300);  --ticket-bg: var(--color-base-200); }
+
+/* ── Preserved+expired "on ice" override (light) ── */
+.tiqit-grid[data-status="expired"][data-preserved="true"] {
+  --ticket-border: oklch(70% 0.1 250);
+  --ticket-bg: oklch(97% 0.01 264);
+}
 
 /* ── Status themes (dark) ── */
 [data-theme="dark"] .tiqit-grid[data-status="active"]    { --ticket-bg: oklch(26.72% 0.08 39.05 / 0.4); }
 [data-theme="dark"] .tiqit-grid[data-status="expired"]   { --ticket-bg: oklch(26.72% 0.08 39.05 / 0.25); }
-[data-theme="dark"] .tiqit-grid[data-status="preserved"] { --ticket-bg: oklch(21% 0.06 265 / 0.3); }
+
+/* ── Preserved+expired "on ice" override (dark) ── */
+[data-theme="dark"] .tiqit-grid[data-status="expired"][data-preserved="true"] {
+  --ticket-bg: oklch(21% 0.06 265 / 0.3);
+  --ticket-border: oklch(55% 0.1 250);
+}
 
 /* ── Corner cells ── */
 .tiqit-tl {

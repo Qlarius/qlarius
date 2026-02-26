@@ -369,7 +369,6 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     cond do
       tiqit.undone_at != nil -> :undone
       tiqit.disconnected_at != nil -> :fleeted
-      tiqit.preserved == true and expired?(tiqit, now) -> :preserved
       expired?(tiqit, now) -> :expired
       true -> :active
     end
