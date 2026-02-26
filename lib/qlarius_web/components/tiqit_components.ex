@@ -54,12 +54,17 @@ defmodule QlariusWeb.TiqitComponents do
             Lifetime access
           <% end %>
         <% :expired -> %>
-          Fleet in
-          <QlariusWeb.Components.TiqitExpirationCountdown.badge
-            expires_at={@fleet_at.()}
-            label=""
-            class="badge-ghost badge-sm"
-          />
+          <% fleet_at = @fleet_at.() %>
+          <%= if fleet_at && DateTime.compare(fleet_at, DateTime.utc_now()) == :gt do %>
+            AutoFleet in
+            <QlariusWeb.Components.TiqitExpirationCountdown.badge
+              expires_at={fleet_at}
+              label=""
+              class="badge-ghost badge-sm"
+            />
+          <% else %>
+            AutoFleet pending
+          <% end %>
         <% :preserved -> %>
           Preserved — will not AutoFleet
         <% :fleeted -> %>
@@ -380,7 +385,7 @@ defmodule QlariusWeb.TiqitComponents do
   end
 
   defp status_display(:active), do: "Active"
-  defp status_display(:expired), do: "Expiring"
+  defp status_display(:expired), do: "Expired"
   defp status_display(:preserved), do: "Preserved"
   defp status_display(:fleeted), do: "Fleeted"
   defp status_display(:undone), do: "Undone"

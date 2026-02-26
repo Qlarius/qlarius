@@ -139,7 +139,7 @@ defmodule QlariusWeb.TiqitLive do
 
   defp filter_label(:all), do: "All"
   defp filter_label(:active), do: "Active"
-  defp filter_label(:expired), do: "Expiring"
+  defp filter_label(:expired), do: "Expired"
   defp filter_label(:preserved), do: "Preserved"
   defp filter_label(:fleeted), do: "Fleeted"
   defp filter_label(:undone), do: "Undone"
