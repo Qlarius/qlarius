@@ -564,11 +564,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
         :fleeted ->
           from t in base,
-            where: not is_nil(t.disconnected_at) and is_nil(t.undone_at)
-
-        :undone ->
-          from t in base,
-            where: not is_nil(t.undone_at)
+            where: not is_nil(t.disconnected_at) or not is_nil(t.undone_at)
 
         _ ->
           base

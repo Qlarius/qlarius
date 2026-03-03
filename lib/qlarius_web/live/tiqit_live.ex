@@ -9,7 +9,7 @@ defmodule QlariusWeb.TiqitLive do
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
-  @valid_statuses ~w[active expired preserved fleeted undone all]
+  @valid_statuses ~w[active expired preserved fleeted all]
 
   @impl true
   def mount(params, session, socket) do
@@ -52,6 +52,10 @@ defmodule QlariusWeb.TiqitLive do
 
   def handle_event("pwa_detected", params, socket) do
     handle_pwa_detection(socket, params)
+  end
+
+  def handle_event("referral_code_from_storage", _params, socket) do
+    {:noreply, socket}
   end
 
   def handle_event("fleet_tiqit", %{"id" => id}, socket) do
@@ -145,10 +149,9 @@ defmodule QlariusWeb.TiqitLive do
 
   defp filter_label(:all), do: "All"
   defp filter_label(:active), do: "Active"
-  defp filter_label(:expired), do: "Expired"
-  defp filter_label(:preserved), do: "Preserved"
+  defp filter_label(:expired), do: "Fleeting"
   defp filter_label(:fleeted), do: "Fleeted"
-  defp filter_label(:undone), do: "Refunded"
+  defp filter_label(:preserved), do: "Preserved"
 
   @impl true
   def render(assigns) do
@@ -160,7 +163,7 @@ defmodule QlariusWeb.TiqitLive do
 
         <div class="flex flex-wrap gap-2 mb-4">
           <button
-            :for={status <- [:all, :active, :expired, :preserved, :fleeted, :undone]}
+            :for={status <- [:all, :active, :expired, :fleeted, :preserved]}
             phx-click="filter"
             phx-value-status={status}
             class={[
@@ -172,24 +175,27 @@ defmodule QlariusWeb.TiqitLive do
           </button>
         </div>
 
-        <%= if @status_filter in [:fleeted, :undone] do %>
+        <%= if @status_filter == :fleeted do %>
           <div class="bg-base-200 rounded-lg p-6 text-center">
             <div class="text-4xl font-bold mb-2">
-              {if @status_filter == :fleeted, do: @fleeted_count, else: @undone_count}
+              {@fleeted_count + @undone_count}
             </div>
             <div class="text-base-content/60 mb-4">
-              {if @status_filter == :fleeted,
-                do: "tiqits have been fleeted",
-                else: "tiqits have been refunded"}
+              tiqits have been fleeted
+            </div>
+            <div class="flex justify-center gap-6 mb-4">
+              <div class="text-center">
+                <div class="text-2xl font-bold">{@fleeted_count}</div>
+                <div class="text-xs text-base-content/50">fleeted</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold">{@undone_count}</div>
+                <div class="text-xs text-base-content/50">refunded</div>
+              </div>
             </div>
             <p class="text-sm text-base-content/40 max-w-sm mx-auto">
-              <%= if @status_filter == :fleeted do %>
-                Fleeted tiqits have been permanently disconnected from your account.
-                No details are retrievable. <br/>(That's the point.)
-              <% else %>
-                Refunded tiqits were returned and fleeted. The purchase amount was
-                returned to your wallet.
-              <% end %>
+              Fleeted tiqits have been permanently disconnected from your account.
+              No details are retrievable. (That's the point.)
             </p>
           </div>
         <% else %>

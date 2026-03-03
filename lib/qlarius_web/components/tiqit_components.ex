@@ -490,7 +490,7 @@ defmodule QlariusWeb.TiqitComponents do
   end
 
   defp status_display(:active), do: "Active"
-  defp status_display(:expired), do: "Expired"
+  defp status_display(:expired), do: "Fleeting"
   defp status_display(:fleeted), do: "Fleeted"
   defp status_display(:undone), do: "Refunded"
 

@@ -219,7 +219,7 @@ defmodule QlariusWeb.HomeLive do
                 phx-click={JS.navigate("/tiqits?status=expired")}
               >
                 <div class="text-3xl font-bold leading-none">{@expired_tiqits_count}</div>
-                <div class="text-md font-medium text-base-content/60">expiring</div>
+                <div class="text-md font-medium text-base-content/60">fleeting</div>
               </div>
 
               <div
