@@ -68,7 +68,8 @@ defmodule QlariusWeb.Components.StrongStartComponent do
               <%= if @progress.steps.essentials_survey_completed do %>
                 All essential tags added
               <% else %>
-                {@progress.survey_answered}/{@progress.survey_total} Essential tags filled
+                Add these <span class="font-bold text-primary">{@progress.survey_total}</span> most valuable tags to your MeFile.
+                <span class="font-bold text-primary">{@progress.survey_answered}</span> already tagged.
               <% end %>
             </div>
             <%= if !@progress.steps.essentials_survey_completed do %>
@@ -106,11 +107,11 @@ defmodule QlariusWeb.Components.StrongStartComponent do
                 <% end %>
               </div>
               <div class="flex-grow">
-                <div class="font-bold text-xl">Check your first ads</div>
+                <div class="font-bold text-xl">Check your ads</div>
               </div>
             </div>
             <div class="text-base text-base-content/60 min-h-[3rem]">
-              View available advertising offers
+              Sell your attention to your personal sponsors. Fuel your wallet.
             </div>
             <%= if !@progress.steps.first_ad_interacted do %>
               <.link navigate="/ads" class="btn btn-md btn-primary rounded-full w-full text-base">
@@ -142,7 +143,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
               </div>
             </div>
             <div class="text-base text-base-content/60 min-h-[3rem]">
-              Receive helpful alerts and notifications
+              Set up alerts for when you have ads and want to see them.
             </div>
             <%= if !@progress.steps.notifications_configured do %>
               <div class="flex gap-2">
@@ -179,7 +180,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
               </div>
             </div>
             <div class="text-base text-base-content/60 min-h-[3rem]">
-              Current: {@progress.tag_count}/{@progress.tag_goal} tags
+              Optimize your MeFile by adding more tags. Current: {@progress.tag_count}/{@progress.tag_goal} tags
             </div>
             <%= if !@progress.steps.tags_25_reached do %>
               <.link navigate="/me_file_builder" class="btn btn-md btn-primary rounded-full w-full text-base">
@@ -207,11 +208,11 @@ defmodule QlariusWeb.Components.StrongStartComponent do
                 <% end %>
               </div>
               <div class="flex-grow">
-                <div class="font-bold text-xl">Referral program</div>
+                <div class="font-bold text-xl">Invite some friends</div>
               </div>
             </div>
             <div class="text-base text-base-content/60 min-h-[3rem]">
-              Earn rewards by inviting friends
+              Spread the word via referrals and feed your wallet.
             </div>
             <%= if !@progress.steps.referral_viewed do %>
               <div class="flex gap-2">
