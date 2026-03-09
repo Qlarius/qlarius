@@ -160,7 +160,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
       if tiqit_class.content_piece_id do
         []
       else
-        [tiqit_up_credit: socket.assigns.tiqit_up_credit]
+        [tiqit_up_credit: socket.assigns.selected_tiqit_class_credit]
       end
 
     :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class, opts)

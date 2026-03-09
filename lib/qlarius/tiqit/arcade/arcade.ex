@@ -287,6 +287,11 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     credit
   end
 
+  def calculate_tiqit_up_credit(%Scope{user: user}, %Catalog{} = catalog) do
+    {credit, _count} = calculate_tiqit_up_credit_with_count(%Scope{user: user}, catalog)
+    credit
+  end
+
   def calculate_tiqit_up_credit_with_count(%Scope{user: user}, %ContentGroup{} = group) do
     group = Repo.preload(group, catalog: [])
     catalog = group.catalog
@@ -315,11 +320,6 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     else
       {Decimal.new(0), 0}
     end
-  end
-
-  def calculate_tiqit_up_credit(%Scope{user: user}, %Catalog{} = catalog) do
-    {credit, _count} = calculate_tiqit_up_credit_with_count(%Scope{user: user}, catalog)
-    credit
   end
 
   def calculate_tiqit_up_credit_with_count(%Scope{user: user}, %Catalog{} = catalog) do
