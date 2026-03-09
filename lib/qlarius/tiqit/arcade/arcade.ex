@@ -283,6 +283,11 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   # --- Tiqit Up credit ---
 
   def calculate_tiqit_up_credit(%Scope{user: user}, %ContentGroup{} = group) do
+    {credit, _count} = calculate_tiqit_up_credit_with_count(%Scope{user: user}, group)
+    credit
+  end
+
+  def calculate_tiqit_up_credit_with_count(%Scope{user: user}, %ContentGroup{} = group) do
     group = Repo.preload(group, catalog: [])
     catalog = group.catalog
 
@@ -300,19 +305,24 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
             where: cp.content_group_id == ^group.id,
             select: cp.id
         ),
-        select: sum(tc.price)
+        select: {sum(tc.price), count(t.id)}
       )
       |> Repo.one()
       |> case do
-        nil -> Decimal.new(0)
-        total -> total
+        {nil, 0} -> {Decimal.new(0), 0}
+        {total, count} -> {total, count}
       end
     else
-      Decimal.new(0)
+      {Decimal.new(0), 0}
     end
   end
 
   def calculate_tiqit_up_credit(%Scope{user: user}, %Catalog{} = catalog) do
+    {credit, _count} = calculate_tiqit_up_credit_with_count(%Scope{user: user}, catalog)
+    credit
+  end
+
+  def calculate_tiqit_up_credit_with_count(%Scope{user: user}, %Catalog{} = catalog) do
     if catalog.tiqit_up_enabled do
       now = DateTime.utc_now()
 
@@ -320,7 +330,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         from(cg in ContentGroup, where: cg.catalog_id == ^catalog.id, select: cg.id)
 
       piece_ids =
-        from(cp in ContentPiece, where: cp.group_id in subquery(group_ids), select: cp.id)
+        from(cp in ContentPiece, where: cp.content_group_id in subquery(group_ids), select: cp.id)
 
       from(t in Tiqit,
         join: tc in assoc(t, :tiqit_class),
@@ -331,15 +341,15 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         where:
           tc.content_piece_id in subquery(piece_ids) or
             tc.content_group_id in subquery(group_ids),
-        select: sum(tc.price)
+        select: {sum(tc.price), count(t.id)}
       )
       |> Repo.one()
       |> case do
-        nil -> Decimal.new(0)
-        total -> total
+        {nil, 0} -> {Decimal.new(0), 0}
+        {total, count} -> {total, count}
       end
     else
-      Decimal.new(0)
+      {Decimal.new(0), 0}
     end
   end
 

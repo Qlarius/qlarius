@@ -191,7 +191,7 @@
         </h2>
       <% end %>
       <%= if assigns[:options_modal] do %>
-        <.tiqit_class_grid piece={@selected_piece} group={@group} balance={@balance} tiqit_up_credit={@tiqit_up_credit} />
+        <.tiqit_class_grid piece={@selected_piece} group={@group} balance={@balance} tiqit_up_group_credit={@tiqit_up_group_credit} tiqit_up_catalog_credit={@tiqit_up_catalog_credit} />
       <% else %>
         <p class="text-base-content/60 text-center">
           <%= if @selected_tiqit_class.duration_hours do %>
@@ -219,9 +219,17 @@
             class="btn btn-primary btn-lg btn-block rounded-full"
           >
             <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm/Buy •
-            <span class="font-bold">{format_usd(@selected_tiqit_class.price, zero_free: true)}</span>
+            <span class="font-bold">{format_usd(assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price, zero_free: true)}</span>
           </button>
         </div>
+        <%= if assigns[:selected_tiqit_class_credit] && Decimal.gt?(assigns.selected_tiqit_class_credit, 0) do %>
+          <div class="alert bg-primary/20 border border-primary mt-2 py-2 justify-center">
+            <span class="text-sm flex items-center gap-1">
+              <.icon name="hero-sparkles-solid" class="h-4 w-4 text-primary" />
+              Price includes Tiqit Up discount of {format_usd(@selected_tiqit_class_credit)} for {@selected_tiqit_class_active_count} active {if @selected_tiqit_class_active_count == 1, do: "tiqit", else: "tiqits"}.
+            </span>
+          </div>
+        <% end %>
         <.wallet_strip id="wallet-balance-arcade-modal" balance={@balance} offered_amount={@offered_amount} />
       <% end %>
       <div class="flex flex-col gap-1">

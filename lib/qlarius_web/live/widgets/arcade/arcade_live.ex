@@ -54,8 +54,11 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       force_theme = Map.get(params, "force_theme")
       show_title = Map.get(params, "show_title", "true") != "false"
 
-      tiqit_up_credit =
-        if scope, do: Arcade.calculate_tiqit_up_credit(scope, group), else: Decimal.new(0)
+      {tiqit_up_group_credit, tiqit_up_group_count} =
+        if scope, do: Arcade.calculate_tiqit_up_credit_with_count(scope, group), else: {Decimal.new(0), 0}
+
+      {tiqit_up_catalog_credit, tiqit_up_catalog_count} =
+        if scope, do: Arcade.calculate_tiqit_up_credit_with_count(scope, group.catalog), else: {Decimal.new(0), 0}
 
       tiqit_up_nudge =
         if scope do
@@ -78,7 +81,10 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          selected_tiqit_class: nil,
          force_theme: force_theme,
          show_title: show_title,
-         tiqit_up_credit: tiqit_up_credit,
+         tiqit_up_group_credit: tiqit_up_group_credit,
+         tiqit_up_group_count: tiqit_up_group_count,
+         tiqit_up_catalog_credit: tiqit_up_catalog_credit,
+         tiqit_up_catalog_count: tiqit_up_catalog_count,
          tiqit_up_nudge: tiqit_up_nudge
        )}
     end
@@ -146,7 +152,18 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
         socket.assigns.group
       )
 
-    socket |> assign(selected_tiqit_class: tc, options_modal: false) |> noreply()
+    {credit, count} = tiqit_class_credit(tc, socket.assigns)
+    adjusted_price = Decimal.max(Decimal.new(0), Decimal.sub(tc.price, credit))
+
+    socket
+    |> assign(
+      selected_tiqit_class: tc,
+      selected_tiqit_class_adjusted_price: adjusted_price,
+      selected_tiqit_class_credit: credit,
+      selected_tiqit_class_active_count: count,
+      options_modal: false
+    )
+    |> noreply()
   end
 
   def handle_event("show-topup-modal", _params, socket) do
@@ -291,4 +308,16 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   defp sort_direction("asc"), do: :asc
   defp sort_direction("desc"), do: :desc
   defp sort_direction(_), do: :desc
+
+  # Returns {credit, active_tiqit_count} for a tiqit class based on its scope.
+  # piece-level tiqits never apply credit; group-level uses group credit;
+  # catalog-level uses the broader catalog credit.
+  defp tiqit_class_credit(%TiqitClass{content_piece_id: piece_id}, _assigns) when not is_nil(piece_id),
+    do: {Decimal.new(0), 0}
+
+  defp tiqit_class_credit(%TiqitClass{content_group_id: group_id}, assigns) when not is_nil(group_id),
+    do: {assigns.tiqit_up_group_credit, assigns.tiqit_up_group_count}
+
+  defp tiqit_class_credit(%TiqitClass{}, assigns),
+    do: {assigns.tiqit_up_catalog_credit, assigns.tiqit_up_catalog_count}
 end

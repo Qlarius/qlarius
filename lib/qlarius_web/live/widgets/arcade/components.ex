@@ -29,13 +29,16 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   attr :balance, Decimal, required: true
   attr :piece, ContentPiece, required: true
   attr :group, ContentGroup, required: true
-  attr :tiqit_up_credit, :any, default: nil
+  attr :tiqit_up_group_credit, :any, default: nil
+  attr :tiqit_up_catalog_credit, :any, default: nil
 
   def tiqit_class_grid(assigns) do
     piece = assigns.piece
     group = assigns.group
     catalog = group.catalog
-    credit = assigns.tiqit_up_credit || Decimal.new(0)
+    group_credit = assigns.tiqit_up_group_credit || Decimal.new(0)
+    catalog_credit = assigns.tiqit_up_catalog_credit || Decimal.new(0)
+    any_credit = Decimal.gt?(group_credit, 0) or Decimal.gt?(catalog_credit, 0)
 
     durations =
       [piece, group, catalog]
@@ -46,7 +49,9 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     assigns =
       assign(assigns,
         catalog: catalog,
-        credit: credit,
+        group_credit: group_credit,
+        catalog_credit: catalog_credit,
+        any_credit: any_credit,
         durations: durations,
         group: group,
         piece: piece,
@@ -114,7 +119,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                       <.tiqit_class_grid_price_with_credit
                         balance={@balance}
                         tiqit_class={class}
-                        credit={@credit}
+                        credit={@group_credit}
                       />
                     </div>
                   <% else %>
@@ -129,7 +134,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                       <.tiqit_class_grid_price_with_credit
                         balance={@balance}
                         tiqit_class={class}
-                        credit={@credit}
+                        credit={@catalog_credit}
                       />
                     </div>
                   <% else %>
@@ -140,6 +145,16 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
             </tr>
           </tbody>
         </table>
+        <%= if @any_credit do %>
+          <div class="alert bg-primary/20 border-primary/30 py-2 px-4 rounded-lg flex flex-col items-center gap-2 mt-4 justify-center text-center">
+            <div class="flex items-center justify-center gap-2 w-full">
+              <.icon name="hero-arrow-trending-up" class="w-5 h-5 text-primary shrink-0" />
+              <span class="text-sm font-medium text-base-content">
+                TiqitUp discounts applied to reflect active tiqits
+              </span>
+            </div>
+          </div>
+        <% end %>
       </div>
     </div>
     """
@@ -165,30 +180,35 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
 
     ~H"""
     <%= if @is_free and @has_credit do %>
-      <button
-        phx-click="select-tiqit-class"
-        phx-value-tiqit-class-id={@tiqit_class.id}
-        class="btn btn-sm rounded-full btn-accent px-3 py-1 cursor-pointer flex flex-col leading-tight"
-      >
-        <span class="text-xs font-bold">Tiqit Up</span>
-        <span class="text-[10px] line-through opacity-60">{format_usd(@original)}</span>
-        <span class="text-xs">Free!</span>
-      </button>
+      <div class="flex flex-col items-center gap-0.5">
+        <span class="text-xs text-base-content/40 line-through">{format_usd(@original)}</span>
+        <button
+          phx-click="select-tiqit-class"
+          phx-value-tiqit-class-id={@tiqit_class.id}
+          class="btn btn-sm rounded-full btn-primary px-4 cursor-pointer"
+        >
+          Free!
+        </button>
+      </div>
     <% else %>
       <%= if @has_credit do %>
         <%= if Decimal.compare(@balance, @adjusted) != :lt do %>
-          <button
-            phx-click="select-tiqit-class"
-            phx-value-tiqit-class-id={@tiqit_class.id}
-            class="btn btn-sm rounded-full btn-accent px-3 py-1 cursor-pointer flex flex-col leading-tight"
-          >
-            <span class="text-[10px] line-through opacity-60">{format_usd(@original)}</span>
-            <span class="text-xs">{format_usd(@adjusted)}</span>
-          </button>
+          <div class="flex flex-col items-center gap-0.5">
+            <span class="text-xs text-base-content/40 line-through">{format_usd(@original)}</span>
+            <button
+              phx-click="select-tiqit-class"
+              phx-value-tiqit-class-id={@tiqit_class.id}
+              class="btn btn-sm rounded-full btn-primary px-4 cursor-pointer"
+            >
+              {format_usd(@adjusted)}
+            </button>
+          </div>
         <% else %>
-          <div class="btn btn-sm rounded-full btn-ghost px-3 py-1 opacity-50 cursor-not-allowed flex flex-col leading-tight">
-            <span class="text-[10px] line-through opacity-60">{format_usd(@original)}</span>
-            <span class="text-xs">{format_usd(@adjusted)}</span>
+          <div class="flex flex-col items-center gap-0.5">
+            <span class="text-xs text-base-content/40 line-through">{format_usd(@original)}</span>
+            <div class="btn btn-sm rounded-full !bg-primary/50 !border-primary/50 text-white px-4 !cursor-not-allowed">
+              {format_usd(@adjusted)}
+            </div>
           </div>
         <% end %>
       <% else %>
@@ -212,7 +232,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         {format_usd(@tiqit_class.price, zero_free: true)}
       </button>
     <% else %>
-      <div class="btn btn-sm rounded-full btn-ghost px-3 py-1 opacity-50 cursor-not-allowed">
+      <div class="btn btn-sm rounded-full !bg-primary/50 !border-primary/50 text-white px-3 py-1 !cursor-not-allowed">
         {format_usd(@tiqit_class.price, zero_free: true)}
       </div>
     <% end %>
