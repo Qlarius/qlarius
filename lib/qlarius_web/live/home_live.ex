@@ -146,6 +146,22 @@ defmodule QlariusWeb.HomeLive do
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div class="bg-base-200 rounded-lg p-4">
             <div class="flex justify-between items-center mb-4">
+              <h2 class="text-2xl font-bold tracking-tight text-base-content/50">Own your data.</h2>
+              <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-7 w-auto" />
+            </div>
+
+            <.link navigate={~p"/me_file"}>
+              <div class="bg-youdata-200 dark:bg-youdata-900 text-base-content/80 rounded-lg border border-youdata-300 dark:border-youdata-500 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-youdata-300 dark:hover:bg-youdata-800 hover:border-youdata-400 dark:hover:border-youdata-400">
+                <div class="text-3xl font-bold leading-none">
+                  {@current_scope.trait_count}
+                </div>
+                <div class="text-md font-medium text-base-content/60">tags</div>
+              </div>
+            </.link>
+          </div>
+
+          <div class="bg-base-200 rounded-lg p-4">
+            <div class="flex justify-between items-center mb-4">
               <h2 class="text-2xl font-bold tracking-tight text-base-content/50">
                 Sell your attention.
               </h2>
@@ -181,22 +197,6 @@ defmodule QlariusWeb.HomeLive do
               </div>
               <div class="text-md font-medium text-base-content/60">wallet balance</div>
             </div>
-          </div>
-
-          <div class="bg-base-200 rounded-lg p-4">
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="text-2xl font-bold tracking-tight text-base-content/50">Own your data.</h2>
-              <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-7 w-auto" />
-            </div>
-
-            <.link navigate={~p"/me_file"}>
-              <div class="bg-youdata-200 dark:bg-youdata-900 text-base-content/80 rounded-lg border border-youdata-300 dark:border-youdata-500 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-youdata-300 dark:hover:bg-youdata-800 hover:border-youdata-400 dark:hover:border-youdata-400">
-                <div class="text-3xl font-bold leading-none">
-                  {@current_scope.trait_count}
-                </div>
-                <div class="text-md font-medium text-base-content/60">tags</div>
-              </div>
-            </.link>
           </div>
 
           <div class="bg-base-200 rounded-lg p-4">
