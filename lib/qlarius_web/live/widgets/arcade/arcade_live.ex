@@ -80,7 +80,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
        |> assign(
          mounted: true,
          base_path: "",
-         title: group.title,
+         title: "Arqade",
          current_path: "/arqade/group/#{group_id}",
          balance: scope && scope.wallet_balance,
          offered_amount: scope && scope.offered_amount,

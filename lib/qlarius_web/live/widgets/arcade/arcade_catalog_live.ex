@@ -31,7 +31,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
         groups: groups,
         base_path: "",
         current_path: "/arqade/catalog/#{catalog_id}",
-        title: catalog.name
+        title: "Arqade"
       )
 
     {:ok, socket}

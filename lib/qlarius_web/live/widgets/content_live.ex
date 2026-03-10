@@ -36,7 +36,7 @@ defmodule QlariusWeb.Widgets.ContentLive do
          assign(socket,
            content: piece,
            tiqit: tiqit,
-           title: piece.title,
+           title: "Arqade",
            current_path: "/content/#{id}"
          )}
     end
