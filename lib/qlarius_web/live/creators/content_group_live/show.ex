@@ -68,7 +68,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
 
   defp content_group_iframe_url(group) do
     base_url = QlariusWeb.Endpoint.url()
-    "#{base_url}/widgets/arcade/group/#{group.id}"
+    "#{base_url}/widgets/arqade/group/#{group.id}"
   end
 
   @impl true

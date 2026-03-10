@@ -9,21 +9,35 @@ defmodule QlariusWeb.TiqitComponents do
   alias Phoenix.LiveView.JS
   alias Qlarius.Tiqit.Arcade.Arcade
 
+  # Status badges use a combinable model:
+  # - Primary: Active (green) or Expired (yellow) — based on whether access has lapsed
+  # - Fleeting (orange): only if expired AND not preserved — subject to auto-fleet
+  # - Preserved (blue): if the user has preserved the tiqit
+  # Fleeted/refunded tiqits render as blank anonymous cards and don't use these badges.
   attr :status, :atom, required: true
   attr :preserved, :boolean, default: false
 
-  def tiqit_status_badge(assigns) do
+  def tiqit_status_badges(assigns) do
+    ~H"""
+    <.tiqit_primary_status_badge status={@status} />
+    <span :if={@status == :expired && !@preserved} class="badge badge-md badge-warning font-medium">
+      Fleeting
+    </span>
+    <span :if={@preserved} class="badge badge-md badge-info gap-1 font-medium">
+      <.icon name="hero-shield-check-mini" class="w-3.5 h-3.5" /> Preserved
+    </span>
+    """
+  end
+
+  attr :status, :atom, required: true
+
+  defp tiqit_primary_status_badge(assigns) do
     ~H"""
     <span class={[
       "badge badge-md font-medium",
-      case @status do
-        :active -> "badge-success"
-        :expired -> "badge-warning"
-        :fleeted -> "badge-ghost"
-        :undone -> "badge-error"
-      end
+      if(@status == :active, do: "badge-success", else: "badge-warning")
     ]}>
-      {status_display(@status)}
+      {if @status == :active, do: "Active", else: "Expired"}
     </span>
     """
   end
@@ -110,16 +124,27 @@ defmodule QlariusWeb.TiqitComponents do
   attr :unpreserve_modal_id, :string, default: "unpreserve-confirm-modal"
 
   def tiqit_status_and_actions(assigns) do
-    assigns = assign(assigns, :undo_available, Arcade.undo_available?(assigns.tiqit))
+    assigns =
+      assigns
+      |> assign(:undo_available, Arcade.undo_available?(assigns.tiqit))
+      |> assign(:content_path, tiqit_content_path(assigns.tiqit))
+      |> assign(:scope_label, tiqit_scope_label(assigns.tiqit))
 
     ~H"""
     <div class="space-y-3">
+      <%!-- View content button — shown for all linked (non-fleeted) tiqits --%>
+      <.link
+        :if={@status in [:active, :expired] && @content_path}
+        navigate={@content_path}
+        class="btn btn-sm btn-primary rounded-full"
+      >
+        <.icon name="hero-play" class="w-4 h-4" />
+        View {if @scope_label != "", do: @scope_label, else: "Content"}
+      </.link>
+
       <%!-- Line 1: Status badge(s) + time info --%>
       <div class="flex items-center gap-2 flex-wrap">
-        <.tiqit_status_badge status={@status} preserved={@tiqit.preserved} />
-        <span :if={@tiqit.preserved} class="badge badge-md badge-info gap-1 font-medium">
-          <.icon name="hero-shield-check-mini" class="w-3.5 h-3.5" /> Preserved
-        </span>
+        <.tiqit_status_badges status={@status} preserved={@tiqit.preserved} />
         <span :if={@status in [:active, :expired]} class="text-xs text-base-content/50 flex items-center gap-1">
           <%= if @status == :active do %>
             Access remaining:
@@ -489,10 +514,6 @@ defmodule QlariusWeb.TiqitComponents do
     end
   end
 
-  defp status_display(:active), do: "Active"
-  defp status_display(:expired), do: "Fleeting"
-  defp status_display(:fleeted), do: "Fleeted"
-  defp status_display(:undone), do: "Refunded"
 
   def format_time_remaining(seconds) when is_integer(seconds) and seconds <= 0, do: "Expired"
   def format_time_remaining(:never), do: "Never"
@@ -518,7 +539,7 @@ defmodule QlariusWeb.TiqitComponents do
     end
   end
 
-  defp tiqit_scope_label(tiqit) do
+  def tiqit_scope_label(tiqit) do
     tc = tiqit.tiqit_class
     catalog = tiqit_catalog(tiqit)
 
@@ -534,6 +555,21 @@ defmodule QlariusWeb.TiqitComponents do
 
       true ->
         ""
+    end
+  end
+
+  # Returns the main-app path for the content a tiqit unlocks.
+  # Piece-level: /content/:id — the content controller checks tiqit validity
+  # and serves content directly if active, or redirects to arcade if not.
+  # Group/catalog: /arqade/... pages for browsing and selecting content.
+  def tiqit_content_path(tiqit) do
+    tc = tiqit.tiqit_class
+
+    cond do
+      tc.content_piece_id -> "/content/#{tc.content_piece_id}"
+      tc.content_group_id -> "/arqade/group/#{tc.content_group_id}"
+      tc.catalog_id -> "/arqade/catalog/#{tc.catalog_id}"
+      true -> nil
     end
   end
 

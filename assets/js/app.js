@@ -1097,6 +1097,20 @@ Hooks.VideoThumbnail = {
   }
 }
 
+Hooks.YouTubePoster = {
+  mounted() {
+    const youtubeId = this.el.dataset.youtubeId
+    const iframe = this.el.parentElement.querySelector('#video-iframe')
+    if (!iframe || !youtubeId) return
+
+    this.el.addEventListener('click', () => {
+      this.el.classList.add('hidden')
+      iframe.classList.remove('hidden')
+      iframe.src = `https://www.youtube.com/embed/${youtubeId}?autoplay=1`
+    })
+  }
+}
+
 Hooks.VideoPlayer = {
   mounted() {
     this.video = this.el

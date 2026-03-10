@@ -1,24 +1,64 @@
-defmodule QlariusWeb.Widgets.ContentHTML do
-  use QlariusWeb, :html
+defmodule QlariusWeb.Widgets.ContentLive do
+  @moduledoc """
+  Displays unlocked content (e.g. video playback) for a valid tiqit.
+
+  This is the in-app equivalent of ContentController. It wraps content
+  in the mobile layout shell so users get full app chrome (nav, sidebar)
+  when accessing content from /content/:id via tiqit cards.
+
+  If the user lacks a valid tiqit, they're redirected to the arqade
+  purchase page for the content's group.
+  """
+  use QlariusWeb, :live_view
+
+  alias Qlarius.Tiqit.Arcade.Arcade
+  alias QlariusWeb.Layouts
+
   import QlariusWeb.Helpers.ImageHelpers
 
-  def show(assigns) do
+  on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+
+  def mount(%{"id" => id}, _session, socket) do
+    piece = Arcade.get_content_piece!(id)
+    scope = socket.assigns[:current_scope]
+
+    case Arcade.get_valid_tiqit(scope, piece) do
+      nil ->
+        group_id = piece.content_group_id || piece.content_group.id
+
+        {:ok,
+         socket
+         |> put_flash(:error, "You don't have access to this content")
+         |> redirect(to: "/arqade/group/#{group_id}?content_id=#{piece.id}")}
+
+      tiqit ->
+        {:ok,
+         assign(socket,
+           content: piece,
+           tiqit: tiqit,
+           title: piece.title,
+           current_path: "/content/#{id}"
+         )}
+    end
+  end
+
+  def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-base-100" data-theme={if @base_path == "/widgets", do: @force_theme}>
+    <Layouts.maybe_mobile wrap={true} {assigns}>
       <div class="container mx-auto px-4 py-4 max-w-4xl">
         <div class="mb-3">
-          <.back navigate={
-            if @force_theme && @base_path == "/widgets",
-              do: "#{@base_path}/arqade/group/#{@content.content_group.id}?content_id=#{@content.id}&force_theme=#{@force_theme}",
-              else: "#{@base_path}/arqade/group/#{@content.content_group.id}?content_id=#{@content.id}"
-          }>
+          <.back navigate={"/arqade/group/#{@content.content_group.id}?content_id=#{@content.id}"}>
             To full <%= String.capitalize(to_string(@content.content_group.catalog.piece_type)) %> arqade
           </.back>
         </div>
         <div class="p-4">
           <div class="aspect-video bg-base-200 rounded-box overflow-hidden mb-2 border border-base-300 relative">
-            <!-- Poster frame with play button -->
-            <div id="video-poster" class="absolute inset-0 cursor-pointer" onclick="playVideo()">
+            <div
+              id="video-poster"
+              class="absolute inset-0 cursor-pointer"
+              phx-hook="YouTubePoster"
+              data-youtube-id={@content.youtube_id}
+            >
               <img
                 src={content_image_url(@content, @content.content_group)}
                 alt={@content.title}
@@ -33,12 +73,10 @@ defmodule QlariusWeb.Widgets.ContentHTML do
               </div>
             </div>
 
-            <!-- YouTube iframe (hidden initially) -->
             <iframe
               id="video-iframe"
               class="w-full h-full hidden"
               src=""
-              data-src={"https://www.youtube.com/embed/#{@content.youtube_id}?autoplay=1"}
               title="YouTube video player"
               frameborder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -65,21 +103,7 @@ defmodule QlariusWeb.Widgets.ContentHTML do
           />
         </div>
       </div>
-    </div>
-
-    <script>
-      function playVideo() {
-        const poster = document.getElementById('video-poster');
-        const iframe = document.getElementById('video-iframe');
-
-        // Hide poster
-        poster.classList.add('hidden');
-
-        // Show and load iframe
-        iframe.classList.remove('hidden');
-        iframe.src = iframe.dataset.src;
-      }
-    </script>
+    </Layouts.maybe_mobile>
     """
   end
 end

@@ -476,6 +476,29 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     |> Repo.aggregate(:count)
   end
 
+  def count_fleeting_tiqits(%Scope{user: user}) do
+    now = DateTime.utc_now()
+
+    from(t in Tiqit,
+      join: u in assoc(t, :user),
+      where: u.id == ^user.id,
+      where: is_nil(t.disconnected_at) and is_nil(t.undone_at),
+      where: not is_nil(t.expires_at) and t.expires_at <= ^now,
+      where: t.preserved == false
+    )
+    |> Repo.aggregate(:count)
+  end
+
+  def count_preserved_tiqits(%Scope{user: user}) do
+    from(t in Tiqit,
+      join: u in assoc(t, :user),
+      where: u.id == ^user.id,
+      where: is_nil(t.disconnected_at) and is_nil(t.undone_at),
+      where: t.preserved == true
+    )
+    |> Repo.aggregate(:count)
+  end
+
   def count_total_purchases(%Scope{user: user}) do
     me_file = user.me_file
     ledger_header = Repo.get_by(LedgerHeader, me_file_id: me_file.id)

@@ -18,6 +18,6 @@ defmodule QlariusWeb.Creators.ContentGroupHTML do
         conn.host
       end
 
-    "#{conn.scheme}://#{origin}/widgets/arcade/group/#{group.id}"
+    "#{conn.scheme}://#{origin}/widgets/arqade/group/#{group.id}"
   end
 end

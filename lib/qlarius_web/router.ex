@@ -126,7 +126,8 @@ defmodule QlariusWeb.Router do
         {QlariusWeb.UserAuth, :mount_current_scope},
         {QlariusWeb.Layouts, :set_current_path}
       ] do
-      live "/arcade/group/:group_id", Arcade.ArcadeLive
+      live "/arqade/group/:group_id", Arcade.ArcadeLive
+      live "/arqade/catalog/:catalog_id", Arcade.ArcadeCatalogLive
       live "/arqade/:piece_id", Arcade.ArcadeSingleLive
       live "/wallet", WalletLive
       live "/ads_ext_announcer", AdsExtAnnouncerLive
@@ -199,6 +200,16 @@ defmodule QlariusWeb.Router do
       live "/settings", UserSettingsLive, :index
       live "/wallet", WalletLive, :index
       live "/tiqits", TiqitLive, :index
+
+      # Arqade content pages — main app equivalents of /widgets/arqade/...
+      # These share the same LiveView modules as the widget versions.
+      # @base_path is set at mount to control internal link generation
+      # so navigation stays within the correct context (app vs widget).
+      # More specific routes must come before the catch-all /arqade/:piece_id.
+      live "/content/:id", Widgets.ContentLive
+      live "/arqade/group/:group_id", Widgets.Arcade.ArcadeLive
+      live "/arqade/catalog/:catalog_id", Widgets.Arcade.ArcadeCatalogLive
+      live "/arqade/:piece_id", Widgets.Arcade.ArcadeSingleLive
       live "/ads", AdsLive, :index
       live "/referrals", ReferralsLive, :index
       live "/proxy_users", ProxyUsersLive, :index

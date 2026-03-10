@@ -1,9 +1,10 @@
+<Layouts.maybe_mobile wrap={@base_path == ""} {assigns}>
 <%= if Enum.any?(@pieces) do %>
-  <div class="w-full flex flex-col h-screen relative">
+  <div class={"w-full flex flex-col relative #{if @base_path == "", do: "h-full", else: "h-screen"}"}>
     <%= if @group.show_open_in_tab do %>
       <a
         id="open-in-tab-btn"
-        href={~p"/widgets/arcade/group/#{@group.id}"}
+        href={"#{@base_path}/arqade/group/#{@group.id}"}
         target="_blank"
         class="absolute top-2 right-2 z-50 btn btn-ghost btn-sm btn-circle bg-base-200/80 hover:bg-base-300 text-base-content/60 hover:text-base-content"
         title="Open in new tab"
@@ -73,8 +74,8 @@
               <.link
                 navigate={
                   if @force_theme,
-                    do: ~p"/widgets/content/#{@selected_piece.id}?force_theme=#{@force_theme}",
-                    else: ~p"/widgets/content/#{@selected_piece.id}"
+                    do: "#{@base_path}/content/#{@selected_piece.id}?force_theme=#{@force_theme}",
+                    else: "#{@base_path}/content/#{@selected_piece.id}"
                 }
                 class="btn btn-neutral btn-lg btn-block rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600"
               >
@@ -122,7 +123,7 @@
         <div class="flex-1 overflow-y-auto min-h-0 space-y-2">
           <.link
             :for={piece <- @pieces}
-            patch={~p"/widgets/arcade/group/#{@group}/?content_id=#{piece.id}"}
+            patch={"#{@base_path}/arqade/group/#{@group.id}/?content_id=#{piece.id}"}
             class={"rounded-lg p-3 flex gap-3 border transition-all hover:shadow-sm block
             #{if piece.id == @selected_piece.id, do: "bg-primary/10 border-primary text-primary", else: "bg-base-100 border-base-300 hover:bg-base-200"}"}
           >
@@ -258,3 +259,4 @@
 <% else %>
   Unable to render this content group as it has no valid Tiqit classes
 <% end %>
+</Layouts.maybe_mobile>

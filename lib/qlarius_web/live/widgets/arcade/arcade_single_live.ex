@@ -6,10 +6,18 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.Wallets
 
+  alias QlariusWeb.Layouts
+
   import QlariusWeb.Money
   import QlariusWeb.TiqitClassHTML
   import QlariusWeb.Widgets.Arcade.Components
 
+  on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+
+  # This LiveView serves two contexts via @base_path:
+  # - Embedded widgets: mounted at /widgets/arqade/:piece_id → @base_path = "/widgets"
+  # - Main app: mounted at /arqade/:piece_id → @base_path = ""
+  # All internal links use @base_path to stay within the correct context.
   def mount(%{"piece_id" => piece_id} = params, _session, socket) do
     if connected?(socket) and socket.assigns[:mounted] do
       scope = socket.assigns.current_scope
@@ -61,6 +69,9 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
         socket
         |> assign(
           mounted: true,
+          base_path: "",
+          title: piece.title,
+          current_path: "/arqade/#{piece_id}",
           balance: scope && scope.wallet_balance,
           offered_amount: scope && scope.offered_amount,
           piece: piece,
@@ -89,6 +100,11 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
       {:ok, socket}
     end
+  end
+
+  def handle_params(_params, uri, socket) do
+    base_path = if String.contains?(uri, "/widgets/"), do: "/widgets", else: ""
+    {:noreply, assign(socket, :base_path, base_path)}
   end
 
   def handle_event("close-confirm-purchase-modal", _params, socket) do

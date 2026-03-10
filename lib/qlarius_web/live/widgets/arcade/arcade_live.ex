@@ -6,14 +6,20 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.Wallets
 
+  alias QlariusWeb.Layouts
+
   import QlariusWeb.Money
   import QlariusWeb.TiqitClassHTML
   import QlariusWeb.Widgets.Arcade.Components
 
+  on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+
+  # This LiveView serves two contexts via @base_path:
+  # - Embedded widgets: mounted at /widgets/arqade/group/:group_id → @base_path = "/widgets"
+  # - Main app: mounted at /arqade/group/:group_id → @base_path = ""
+  # All internal links use @base_path to stay within the correct context.
   def mount(%{"group_id" => group_id} = params, _session, socket) do
-    # Prevent double mounting - only initialize if not already mounted
     if connected?(socket) and socket.assigns[:mounted] do
-      # Already mounted, just update balance and return
       scope = socket.assigns.current_scope
 
       {:ok,
@@ -23,7 +29,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          offered_amount: scope && scope.offered_amount
        )}
     else
-      # First mount - do full initialization
       scope = socket.assigns.current_scope
 
       # Load data once
@@ -74,6 +79,9 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
        socket
        |> assign(
          mounted: true,
+         base_path: "",
+         title: group.title,
+         current_path: "/arqade/group/#{group_id}",
          balance: scope && scope.wallet_balance,
          offered_amount: scope && scope.offered_amount,
          group: group,
@@ -90,7 +98,9 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     end
   end
 
-  def handle_params(params, _uri, socket) do
+  def handle_params(params, uri, socket) do
+    base_path = if String.contains?(uri, "/widgets/"), do: "/widgets", else: ""
+    socket = assign(socket, :base_path, base_path)
     pieces = socket.assigns.pieces
 
     selected_piece =
@@ -206,11 +216,13 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
     Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
 
+    base = socket.assigns.base_path
+
     redirect_path =
       if socket.assigns.force_theme do
-        ~p"/widgets/content/#{socket.assigns.selected_piece.id}?force_theme=#{socket.assigns.force_theme}"
+        "#{base}/content/#{socket.assigns.selected_piece.id}?force_theme=#{socket.assigns.force_theme}"
       else
-        ~p"/widgets/content/#{socket.assigns.selected_piece.id}"
+        "#{base}/content/#{socket.assigns.selected_piece.id}"
       end
 
     socket
@@ -320,4 +332,5 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
   defp tiqit_class_credit(%TiqitClass{}, assigns),
     do: {assigns.tiqit_up_catalog_credit, assigns.tiqit_up_catalog_count}
+
 end

@@ -97,8 +97,9 @@ defmodule QlariusWeb.HomeLive do
   defp assign_tiqit_counts(socket, scope) do
     socket
     |> assign(:active_tiqits_count, Arcade.count_active_tiqits(scope))
-    |> assign(:expired_tiqits_count, Arcade.count_expired_tiqits(scope))
-    |> assign(:total_tiqit_purchases, Arcade.count_total_purchases(scope))
+    |> assign(:fleeting_tiqits_count, Arcade.count_fleeting_tiqits(scope))
+    |> assign(:fleeted_tiqits_count, Arcade.count_fleeted_tiqits(scope))
+    |> assign(:preserved_tiqits_count, Arcade.count_preserved_tiqits(scope))
   end
 
   defp assign_strong_start(socket, me_file) do
@@ -205,7 +206,7 @@ defmodule QlariusWeb.HomeLive do
               <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-7 w-auto" />
             </div>
 
-            <div class="grid grid-cols-3 gap-4 mb-4">
+            <div class="grid grid-cols-2 gap-4">
               <div
                 class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-tiqit-300 dark:hover:bg-tiqit-800 hover:border-tiqit-400 dark:hover:border-tiqit-400"
                 phx-click={JS.navigate("/tiqits?status=active")}
@@ -218,16 +219,24 @@ defmodule QlariusWeb.HomeLive do
                 class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-tiqit-300 dark:hover:bg-tiqit-800 hover:border-tiqit-400 dark:hover:border-tiqit-400"
                 phx-click={JS.navigate("/tiqits?status=expired")}
               >
-                <div class="text-3xl font-bold leading-none">{@expired_tiqits_count}</div>
+                <div class="text-3xl font-bold leading-none">{@fleeting_tiqits_count}</div>
                 <div class="text-md font-medium text-base-content/60">fleeting</div>
               </div>
 
               <div
                 class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-tiqit-300 dark:hover:bg-tiqit-800 hover:border-tiqit-400 dark:hover:border-tiqit-400"
-                phx-click={JS.navigate("/tiqits")}
+                phx-click={JS.navigate("/tiqits?status=fleeted")}
               >
-                <div class="text-3xl font-bold leading-none">{@total_tiqit_purchases}</div>
-                <div class="text-md font-medium text-base-content/60">total</div>
+                <div class="text-3xl font-bold leading-none">{@fleeted_tiqits_count}</div>
+                <div class="text-md font-medium text-base-content/60">fleeted</div>
+              </div>
+
+              <div
+                class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-tiqit-300 dark:hover:bg-tiqit-800 hover:border-tiqit-400 dark:hover:border-tiqit-400"
+                phx-click={JS.navigate("/tiqits?status=preserved")}
+              >
+                <div class="text-3xl font-bold leading-none">{@preserved_tiqits_count}</div>
+                <div class="text-md font-medium text-base-content/60">preserved</div>
               </div>
             </div>
           </div>

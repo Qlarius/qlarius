@@ -254,6 +254,30 @@ defmodule QlariusWeb.Layouts do
   attr :slide_over_title, :string, default: "Details"
   attr :slide_over_show_wallet, :boolean, default: false
 
+  @doc """
+  Conditionally wraps content in the mobile layout.
+  When `wrap` is true, renders inside `mobile/1`. When false, renders content directly.
+  Used by arcade LiveViews which serve both embedded widgets (no app chrome)
+  and in-app pages (full mobile layout with nav/sidebar).
+  """
+  attr :wrap, :boolean, default: true
+
+  def maybe_mobile(assigns) do
+    mobile_assigns = Map.drop(assigns, [:wrap])
+
+    assigns = assign(assigns, :mobile_assigns, mobile_assigns)
+
+    ~H"""
+    <%= if @wrap do %>
+      <.mobile {@mobile_assigns}>
+        {render_slot(@inner_block)}
+      </.mobile>
+    <% else %>
+      {render_slot(@inner_block)}
+    <% end %>
+    """
+  end
+
   def mobile(assigns) do
     assigns =
       assigns
