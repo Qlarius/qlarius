@@ -71,3 +71,23 @@ Examples:
 ### Table component
 
 - Unless specified otherwise, <tables> should be rendered by `CoreComponents.table/1`.
+
+### Modals in the dual-pane layout
+
+The mobile layout (`Layouts.mobile`) uses a sliding dual-pane system where `.track` has
+`width: 200%` and `transition: transform`. A CSS `transform` on a parent creates a new
+containing block for `fixed`-position descendants, which means any modal using
+`position: fixed; inset: 0` inside the panel would span the full `.track` (200% width)
+instead of the viewport.
+
+**Rule**: The `.track` element must NOT have a default `transform` (e.g. `translateX(0)`)
+in its resting state. The `transform` is only applied when the slide-over panel is active
+(`translateX(-50%)`). This ensures that `fixed`-position modals inside the main panel
+correctly overlay the full viewport.
+
+If you add modals inside pages that are wrapped in `Layouts.mobile` or `Layouts.maybe_mobile`,
+they will work correctly using the standard `<.modal>` component — no special CSS class
+is needed. Just be aware:
+- Don't add a `transform` to `.track`'s default state
+- If the slide-over panel is active, modals inside it will be constrained by the transform
+  (this is acceptable since the slide-over is a secondary context)

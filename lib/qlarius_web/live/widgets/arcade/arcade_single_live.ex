@@ -9,6 +9,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   alias QlariusWeb.Layouts
 
   import QlariusWeb.Money
+  import QlariusWeb.PWAHelpers
   import QlariusWeb.TiqitClassHTML
   import QlariusWeb.Widgets.Arcade.Components
 
@@ -18,7 +19,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   # - Embedded widgets: mounted at /widgets/arqade/:piece_id → @base_path = "/widgets"
   # - Main app: mounted at /arqade/:piece_id → @base_path = ""
   # All internal links use @base_path to stay within the correct context.
-  def mount(%{"piece_id" => piece_id} = params, _session, socket) do
+  def mount(%{"piece_id" => piece_id} = params, session, socket) do
     if connected?(socket) and socket.assigns[:mounted] do
       scope = socket.assigns.current_scope
 
@@ -67,6 +68,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
       socket =
         socket
+        |> init_pwa_assigns(session)
         |> assign(
           mounted: true,
           base_path: "",
@@ -105,6 +107,14 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   def handle_params(_params, uri, socket) do
     base_path = if String.contains?(uri, "/widgets/"), do: "/widgets", else: ""
     {:noreply, assign(socket, :base_path, base_path)}
+  end
+
+  def handle_event("pwa_detected", params, socket) do
+    handle_pwa_detection(socket, params)
+  end
+
+  def handle_event("referral_code_from_storage", _params, socket) do
+    {:noreply, socket}
   end
 
   def handle_event("close-confirm-purchase-modal", _params, socket) do

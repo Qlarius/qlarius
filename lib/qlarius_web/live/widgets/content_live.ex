@@ -15,10 +15,11 @@ defmodule QlariusWeb.Widgets.ContentLive do
   alias QlariusWeb.Layouts
 
   import QlariusWeb.Helpers.ImageHelpers
+  import QlariusWeb.PWAHelpers
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
-  def mount(%{"id" => id}, _session, socket) do
+  def mount(%{"id" => id}, session, socket) do
     piece = Arcade.get_content_piece!(id)
     scope = socket.assigns[:current_scope]
 
@@ -33,7 +34,9 @@ defmodule QlariusWeb.Widgets.ContentLive do
 
       tiqit ->
         {:ok,
-         assign(socket,
+         socket
+         |> init_pwa_assigns(session)
+         |> assign(
            content: piece,
            tiqit: tiqit,
            title: "Arqade",
@@ -42,8 +45,17 @@ defmodule QlariusWeb.Widgets.ContentLive do
     end
   end
 
+  def handle_event("pwa_detected", params, socket) do
+    handle_pwa_detection(socket, params)
+  end
+
+  def handle_event("referral_code_from_storage", _params, socket) do
+    {:noreply, socket}
+  end
+
   def render(assigns) do
     ~H"""
+    <div id="content-pwa-detect" phx-hook="PWADetect">
     <Layouts.maybe_mobile wrap={true} {assigns}>
       <div class="container mx-auto px-4 py-4 max-w-4xl">
         <div class="mb-3">
@@ -104,6 +116,7 @@ defmodule QlariusWeb.Widgets.ContentLive do
         </div>
       </div>
     </Layouts.maybe_mobile>
+    </div>
     """
   end
 end

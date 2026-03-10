@@ -305,11 +305,13 @@ defmodule QlariusWeb.Layouts do
         z-index: 10;
       }
 
+      /* No default transform — an explicit transform (even identity) creates a
+         CSS containing block, which traps fixed-position modals inside the track
+         instead of letting them overlay the full viewport. */
       .slide-panels .track {
         display: flex;
         width: 200%;
         height: 100%;
-        transform: translateX(0);
         transition: transform 300ms ease-in-out;
       }
       .slide-panels.active .track {
@@ -329,8 +331,10 @@ defmodule QlariusWeb.Layouts do
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
       }
-      /* Custom modal class for dual-pane layouts */
-      /* Scoped to .slide-panels to ensure proper context */
+      /* Legacy modal class — originally needed because .track had a default
+         transform: translateX(0) which trapped fixed-position modals. Now that
+         the default transform is removed, standard <.modal> works correctly.
+         Kept for backward compatibility with me_file's tag_edit_modal. */
       .slide-panels .modal-dual-pane.modal-open {
         position: fixed !important;
         top: 0 !important;

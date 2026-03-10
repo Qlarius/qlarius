@@ -1,3 +1,4 @@
+<div id="single-pwa-detect" phx-hook="PWADetect">
 <Layouts.maybe_mobile wrap={@base_path == ""} {assigns}>
 <div id="arqade-root" phx-hook="PostMessage">
   <%= if @has_tiqit? do %>
@@ -134,7 +135,7 @@
               phx-value-tiqit-class-id={@selected_tiqit_class.id}
               class="btn btn-primary btn-lg btn-block rounded-full"
             >
-              <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm/Buy •
+              <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm •
               <span class="font-bold">{format_usd(assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price, zero_free: true)}</span>
             </button>
           </div>
@@ -142,8 +143,7 @@
             <div class="alert bg-primary/20 border border-primary mt-2 py-2 justify-center">
               <span class="text-sm flex items-center gap-1">
                 <.icon name="hero-sparkles-solid" class="h-4 w-4 text-primary" />
-                Price includes Tiqit Up discount of {format_usd(@selected_tiqit_class_credit)} for {@selected_tiqit_class_active_count} active {if @selected_tiqit_class_active_count == 1, do: "tiqit", else: "tiqits"}.
-              </span>
+                TiqitUp discount of {format_usd(@selected_tiqit_class_credit)} applied. ({@selected_tiqit_class_active_count} active {if @selected_tiqit_class_active_count == 1, do: "tiqit", else: "tiqits"})              </span>
             </div>
           <% end %>
           <.wallet_strip id="wallet-balance-arcade-single-modal" balance={@balance} offered_amount={@offered_amount} />
@@ -178,3 +178,4 @@
   <% end %>
 </div>
 </Layouts.maybe_mobile>
+</div>

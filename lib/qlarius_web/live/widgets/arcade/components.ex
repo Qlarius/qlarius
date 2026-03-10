@@ -150,7 +150,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
             <div class="flex items-center justify-center gap-2 w-full">
               <.icon name="hero-arrow-trending-up" class="w-5 h-5 text-primary shrink-0" />
               <span class="text-sm font-medium text-base-content">
-                TiqitUp discounts applied to reflect active tiqits
+                TiqitUp discounts applied to credit active tiqits
               </span>
             </div>
           </div>

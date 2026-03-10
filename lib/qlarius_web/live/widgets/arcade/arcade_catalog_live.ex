@@ -13,19 +13,22 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
   alias QlariusWeb.Layouts
 
   import QlariusWeb.Helpers.ImageHelpers
+  import QlariusWeb.PWAHelpers
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
-  def mount(%{"catalog_id" => catalog_id}, _session, socket) do
+  def mount(%{"catalog_id" => catalog_id}, session, socket) do
     catalog = Creators.get_catalog!(catalog_id)
 
     groups =
       catalog.content_groups
       |> Enum.filter(fn g -> Enum.any?(g.content_pieces) end)
       |> Enum.sort_by(& &1.inserted_at, :desc)
+      |> Enum.map(fn g -> %{g | catalog: catalog} end)
 
     socket =
       socket
+      |> init_pwa_assigns(session)
       |> assign(
         catalog: catalog,
         groups: groups,
@@ -42,8 +45,17 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
     {:noreply, assign(socket, :base_path, base_path)}
   end
 
+  def handle_event("pwa_detected", params, socket) do
+    handle_pwa_detection(socket, params)
+  end
+
+  def handle_event("referral_code_from_storage", _params, socket) do
+    {:noreply, socket}
+  end
+
   def render(assigns) do
     ~H"""
+    <div id="catalog-pwa-detect" phx-hook="PWADetect">
     <Layouts.maybe_mobile wrap={@base_path == ""} {assigns}>
       <div class="mb-6">
         <div class="flex items-center gap-4 mb-6">
@@ -91,6 +103,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
         <% end %>
       </div>
     </Layouts.maybe_mobile>
+    </div>
     """
   end
 
