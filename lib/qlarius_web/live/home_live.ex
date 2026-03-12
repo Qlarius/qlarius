@@ -147,8 +147,8 @@ defmodule QlariusWeb.HomeLive do
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div class="bg-base-200 rounded-lg p-4">
             <div class="flex justify-between items-center mb-4">
-              <h2 class="text-2xl font-bold tracking-tight text-base-content/50">Own your data.</h2>
-              <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-7 w-auto" />
+              <h2 class="text-lg font-bold tracking-tight text-base-content/50">Own your data.</h2>
+              <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-6 w-auto" />
             </div>
 
             <.link navigate={~p"/me_file"}>
@@ -156,17 +156,17 @@ defmodule QlariusWeb.HomeLive do
                 <div class="text-3xl font-bold leading-none">
                   {@current_scope.trait_count}
                 </div>
-                <div class="text-md font-medium text-base-content/60">tags</div>
+                <div class="text-sm font-light text-base-content/60">tags</div>
               </div>
             </.link>
           </div>
 
           <div class="bg-base-200 rounded-lg p-4">
             <div class="flex justify-between items-center mb-4">
-              <h2 class="text-2xl font-bold tracking-tight text-base-content/50">
+              <h2 class="text-lg font-bold tracking-tight text-base-content/50">
                 Sell your attention.
               </h2>
-              <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-7 w-auto" />
+              <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-6 w-auto" />
             </div>
 
             <div class="grid grid-cols-2 gap-4 mb-4">
@@ -175,7 +175,7 @@ defmodule QlariusWeb.HomeLive do
                 phx-click={JS.navigate("/ads")}
               >
                 <div class="text-3xl font-bold leading-none">{@current_scope.ads_count}</div>
-                <div class="text-md font-medium text-base-content/60">ads</div>
+                <div class="text-sm font-light text-base-content/60">ads</div>
               </div>
 
               <div
@@ -185,7 +185,7 @@ defmodule QlariusWeb.HomeLive do
                 <div class="text-3xl font-bold leading-none">
                   {format_usd(@current_scope.offered_amount)}
                 </div>
-                <div class="text-md font-medium text-base-content/60">offered</div>
+                <div class="text-sm font-light text-base-content/60">offered</div>
               </div>
             </div>
 
@@ -196,14 +196,14 @@ defmodule QlariusWeb.HomeLive do
               <div class="text-3xl font-bold leading-none">
                 {format_usd(@current_scope.wallet_balance)}
               </div>
-              <div class="text-md font-medium text-base-content/60">wallet balance</div>
+              <div class="text-sm font-light text-base-content/60">wallet balance</div>
             </div>
           </div>
 
           <div class="bg-base-200 rounded-lg p-4">
             <div class="flex justify-between items-center mb-4">
-              <h2 class="text-2xl font-bold tracking-tight text-base-content/50">Buy your media.</h2>
-              <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-7 w-auto" />
+              <h2 class="text-lg font-bold tracking-tight text-base-content/50">Buy your media.</h2>
+              <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -212,7 +212,7 @@ defmodule QlariusWeb.HomeLive do
                 phx-click={JS.navigate("/tiqits?status=active")}
               >
                 <div class="text-3xl font-bold leading-none">{@active_tiqits_count}</div>
-                <div class="text-md font-medium text-base-content/60">active</div>
+                <div class="text-sm font-light text-base-content/60">active</div>
               </div>
 
               <div
@@ -220,7 +220,7 @@ defmodule QlariusWeb.HomeLive do
                 phx-click={JS.navigate("/tiqits?status=expired")}
               >
                 <div class="text-3xl font-bold leading-none">{@fleeting_tiqits_count}</div>
-                <div class="text-md font-medium text-base-content/60">fleeting</div>
+                <div class="text-sm font-light text-base-content/60">fleeting</div>
               </div>
 
               <div
@@ -228,7 +228,7 @@ defmodule QlariusWeb.HomeLive do
                 phx-click={JS.navigate("/tiqits?status=fleeted")}
               >
                 <div class="text-3xl font-bold leading-none">{@fleeted_tiqits_count}</div>
-                <div class="text-md font-medium text-base-content/60">fleeted</div>
+                <div class="text-sm font-light text-base-content/60">fleeted</div>
               </div>
 
               <div
@@ -236,7 +236,7 @@ defmodule QlariusWeb.HomeLive do
                 phx-click={JS.navigate("/tiqits?status=preserved")}
               >
                 <div class="text-3xl font-bold leading-none">{@preserved_tiqits_count}</div>
-                <div class="text-md font-medium text-base-content/60">preserved</div>
+                  <div class="text-sm font-light text-base-content/60">preserved</div>
               </div>
             </div>
           </div>
