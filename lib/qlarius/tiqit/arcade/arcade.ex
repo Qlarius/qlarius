@@ -148,26 +148,16 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
       duration_label = format_duration(tiqit_class.duration_hours)
       content_title = tiqit_content_title(tiqit_class)
+      creator = tiqit_class_creator(tiqit_class)
+      creator_name_caps = if creator, do: String.upcase(creator.name), else: "UNKNOWN"
 
-      {consumer_desc, consumer_meta} =
-        if has_credit do
-          is_free = Decimal.compare(net_price, Decimal.new(0)) != :gt
-
-          desc =
-            if is_free,
-              do: "Tiqit Up: #{content_title} (#{duration_label}) -- Free (covered by credits)",
-              else: "Tiqit Up: #{content_title} (#{duration_label}) -- $#{tiqit_up_credit} credited"
-
-          {desc, "Tiqit Up"}
-        else
-          {"Tiqit purchase: #{content_title} (#{duration_label})", "Tiqit Purchase"}
-        end
+      consumer_meta = if has_credit, do: "Tiqit Up", else: "Tiqit Purchase"
 
       %LedgerEntry{
         ledger_header_id: ledger_header.id,
         amt: amount,
         running_balance: new_balance,
-        description: consumer_desc,
+        description: creator_name_caps,
         meta_1: consumer_meta,
         tiqit_id: tiqit.id
       }
@@ -176,8 +166,6 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
       ledger_header
       |> Ecto.Changeset.change(balance: new_balance)
       |> Repo.update!()
-
-      creator = tiqit_class_creator(tiqit_class)
 
       if creator do
         creator_ledger = Wallets.get_or_create_creator_ledger_header(creator)
@@ -872,7 +860,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
           where: e.tiqit_id == ^tiqit.id,
           where: e.ledger_header_id == ^consumer_ledger.id
         )
-        |> Repo.update_all(set: [description: "Tiqit purchase (fleeted)"])
+        |> Repo.update_all(set: [description: "*FLEETED*"])
       end
     end
   end

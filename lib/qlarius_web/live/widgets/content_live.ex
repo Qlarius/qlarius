@@ -21,7 +21,9 @@ defmodule QlariusWeb.Widgets.ContentLive do
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
   def mount(%{"id" => id}, session, socket) do
-    piece = Arcade.get_content_piece!(id)
+    piece =
+      Arcade.get_content_piece!(id)
+      |> Qlarius.Repo.preload(content_group: [catalog: :creator])
     scope = socket.assigns[:current_scope]
 
     case Arcade.get_valid_tiqit(scope, piece) do

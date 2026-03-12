@@ -511,7 +511,7 @@ defmodule Qlarius.Wallets do
       ledger_header_id: ledger_event.from_ledger_id,
       amt: Decimal.negate(ledger_event.amount),
       running_balance: new_from_balance,
-      description: "InstaTip to #{ledger_event.to_ledger.recipient.name}",
+      description: String.upcase(ledger_event.to_ledger.recipient.name),
       meta_1: "Tip/Donation"
     })
     |> Repo.insert!()
