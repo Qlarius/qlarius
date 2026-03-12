@@ -203,10 +203,68 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         |> Repo.update!()
       end
 
+      if has_credit do
+        lock_tiqit_up_contributors(user, tiqit_class, purchased_at)
+      end
+
       tiqit
     end)
 
     :ok
+  end
+
+  # When a TiqitUp discount is applied, the tiqits that contributed to the
+  # discount become ineligible for refund. Otherwise the consumer could
+  # double-dip: get the discount then refund the contributing tiqits.
+  defp lock_tiqit_up_contributors(user, %TiqitClass{} = tc, now) do
+    contributing_query =
+      cond do
+        tc.content_group_id ->
+          from(t in Tiqit,
+            join: tc_inner in assoc(t, :tiqit_class),
+            join: u in assoc(t, :user),
+            where: u.id == ^user.id,
+            where: is_nil(t.disconnected_at) and is_nil(t.undone_at),
+            where: is_nil(t.expires_at) or t.expires_at > ^now,
+            where: is_nil(t.refund_locked_at),
+            where:
+              tc_inner.content_piece_id in subquery(
+                from(cp in ContentPiece,
+                  where: cp.content_group_id == ^tc.content_group_id,
+                  select: cp.id
+                )
+              )
+          )
+
+        tc.catalog_id ->
+          group_ids =
+            from(cg in ContentGroup, where: cg.catalog_id == ^tc.catalog_id, select: cg.id)
+
+          piece_ids =
+            from(cp in ContentPiece,
+              where: cp.content_group_id in subquery(group_ids),
+              select: cp.id
+            )
+
+          from(t in Tiqit,
+            join: tc_inner in assoc(t, :tiqit_class),
+            join: u in assoc(t, :user),
+            where: u.id == ^user.id,
+            where: is_nil(t.disconnected_at) and is_nil(t.undone_at),
+            where: is_nil(t.expires_at) or t.expires_at > ^now,
+            where: is_nil(t.refund_locked_at),
+            where:
+              tc_inner.content_piece_id in subquery(piece_ids) or
+                tc_inner.content_group_id in subquery(group_ids)
+          )
+
+        true ->
+          nil
+      end
+
+    if contributing_query do
+      Repo.update_all(contributing_query, set: [refund_locked_at: now])
+    end
   end
 
   defp tiqit_class_creator(%TiqitClass{} = tc) do
@@ -408,6 +466,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
     is_nil(tiqit.undone_at) and
       is_nil(tiqit.disconnected_at) and
+      is_nil(tiqit.refund_locked_at) and
       not is_nil(tiqit.me_file_id) and
       DateTime.compare(DateTime.utc_now(), deadline) == :lt
   end
@@ -559,6 +618,27 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     else
       0
     end
+  end
+
+  def count_group_pieces(group_id) do
+    from(cp in ContentPiece, where: cp.content_group_id == ^group_id)
+    |> Repo.aggregate(:count)
+  end
+
+  def catalog_content_counts(catalog_id) do
+    group_count =
+      from(cg in ContentGroup, where: cg.catalog_id == ^catalog_id)
+      |> Repo.aggregate(:count)
+
+    piece_count =
+      from(cp in ContentPiece,
+        join: cg in ContentGroup,
+        on: cp.content_group_id == cg.id,
+        where: cg.catalog_id == ^catalog_id
+      )
+      |> Repo.aggregate(:count)
+
+    {group_count, piece_count}
   end
 
   def list_tiqits_by_status(%Scope{user: user}, status) do

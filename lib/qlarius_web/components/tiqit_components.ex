@@ -139,7 +139,7 @@ defmodule QlariusWeb.TiqitComponents do
         class="btn btn-sm btn-primary rounded-full"
       >
         <.icon name="hero-play" class="w-4 h-4" />
-        View {if @scope_label != "", do: @scope_label, else: "Content"}
+        Go to {if @scope_label != "", do: @scope_label, else: "Content"}
       </.link>
 
       <%!-- Line 1: Status badge(s) + time info --%>
@@ -167,6 +167,12 @@ defmodule QlariusWeb.TiqitComponents do
             </button>
               <span class="text-xs text-base-content/50 flex items-center gap-1">
                 <.tiqit_undo_countdown tiqit={@tiqit} />
+              </span>
+            </div>
+          <% not is_nil(@tiqit.refund_locked_at) -> %>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-base-content/40 flex items-center gap-1">
+                <.icon name="hero-lock-closed-mini" class="w-3.5 h-3.5" /> Discount applied to TiqitUp
               </span>
             </div>
           <% @status == :active -> %>
@@ -254,6 +260,7 @@ defmodule QlariusWeb.TiqitComponents do
       |> assign(:status, Arcade.tiqit_status(assigns.tiqit))
       |> assign(:title, tiqit_title(assigns.tiqit))
       |> assign(:scope_label, tiqit_scope_label(assigns.tiqit))
+      |> assign(:content_summary, tiqit_content_summary(assigns.tiqit))
       |> assign(:hierarchy, tiqit_hierarchy(assigns.tiqit))
       |> assign(:image_url, tiqit_image_url(assigns.tiqit))
 
@@ -267,6 +274,7 @@ defmodule QlariusWeb.TiqitComponents do
         />
         <div class="font-semibold mb-1">{@title}</div>
         <div class="text-sm text-base-content/60">{@scope_label}</div>
+        <div :if={@content_summary} class="text-xs text-base-content/50">{@content_summary}</div>
         <div :if={@hierarchy != []} class="text-xs text-base-content/50 mt-1">
           {Enum.join(@hierarchy, " › ")}
         </div>
@@ -594,6 +602,65 @@ defmodule QlariusWeb.TiqitComponents do
 
       true ->
         []
+    end
+  end
+
+  defp tiqit_content_summary(tiqit) do
+    tc = tiqit.tiqit_class
+    catalog = tiqit_catalog(tiqit)
+
+    cond do
+      tc.content_group_id && catalog ->
+        count = Arcade.count_group_pieces(tc.content_group_id)
+        "#{count} #{label(catalog.piece_type, count)}"
+
+      tc.catalog_id && catalog ->
+        {group_count, piece_count} = Arcade.catalog_content_counts(tc.catalog_id)
+
+        "#{piece_count} #{label(catalog.piece_type, piece_count)} in #{group_count} #{label(catalog.group_type, group_count)}"
+
+      true ->
+        nil
+    end
+  end
+
+  # Explicit {singular, plural} for every Catalog enum value (piece_type,
+  # group_type, and type). When a new enum value is added to
+  # Qlarius.Tiqit.Arcade.Catalog, add its entry here — English pluralization
+  # is too irregular for safe rule-based derivation ("Series" stays "Series",
+  # "Class" becomes "Classes", etc.). The label/2 helper below uses this map
+  # to render counts on tiqit cards (e.g. "8 Episodes in 2 Seasons").
+  @label_plurals %{
+    # piece_types — see Catalog @piece_types
+    article: {"Article", "Articles"},
+    episode: {"Episode", "Episodes"},
+    chapter: {"Chapter", "Chapters"},
+    song: {"Song", "Songs"},
+    piece: {"Piece", "Pieces"},
+    lesson: {"Lesson", "Lessons"},
+    segment: {"Segment", "Segments"},
+    # group_types — see Catalog @group_types
+    section: {"Section", "Sections"},
+    show: {"Show", "Shows"},
+    season: {"Season", "Seasons"},
+    series: {"Series", "Series"},
+    album: {"Album", "Albums"},
+    book: {"Book", "Books"},
+    class: {"Class", "Classes"},
+    # catalog types — see Catalog @types
+    site: {"Site", "Sites"},
+    catalog: {"Catalog", "Catalogs"},
+    studio: {"Studio", "Studios"},
+    collection: {"Collection", "Collections"},
+    curriculum: {"Curriculum", "Curriculums"},
+    semester: {"Semester", "Semesters"}
+  }
+
+  defp label(type_atom, count) do
+    case Map.get(@label_plurals, type_atom) do
+      {singular, _plural} when count == 1 -> singular
+      {_singular, plural} -> plural
+      nil -> type_atom |> to_string() |> String.capitalize()
     end
   end
 
