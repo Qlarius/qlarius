@@ -74,7 +74,7 @@
               <span class="ml-3">MeFile</span>
             </div>
             <span
-              class="badge badge-lg rounded px-3 py-3 !bg-youdata-500 !text-primary-content"
+              class="badge badge-sm rounded px-1 py-2 !bg-youdata-500 !text-primary-content"
               data-app-target="traitCount"
             >
               {@current_scope.trait_count}
@@ -113,7 +113,7 @@
               <span class="ml-3">Ads</span>
             </div>
             <span
-              class="badge badge-lg rounded px-3 py-3 !bg-sponster-500 !text-primary-content"
+              class="badge badge-sm rounded px-1 py-2 !bg-sponster-500 !text-primary-content"
               data-app-target="offerCount"
             >
               {@current_scope.ads_count}
@@ -132,7 +132,7 @@
               <span class="ml-3">Wallet</span>
             </div>
             <span
-              class="badge badge-lg rounded px-3 py-3 !bg-sponster-500 !text-primary-content"
+              class="badge badge-sm rounded px-1 py-2 !bg-sponster-500 !text-primary-content"
               data-app-target="balance"
             >
               ${@current_scope.user.me_file.ledger_header.balance}
@@ -152,7 +152,7 @@
             </div>
             <span
               :if={@current_scope.pending_referral_clicks_count > 0}
-              class="badge badge-lg rounded px-3 py-3 !bg-sponster-500 !text-primary-content"
+              class="badge badge-sm rounded px-2 py-2 !bg-sponster-500 !text-primary-content"
               data-app-target="pendingReferralClicks"
             >
               {@current_scope.pending_referral_clicks_count}
@@ -180,7 +180,7 @@
             </div>
             <span
               :if={@current_scope && @current_scope.active_tiqit_count > 0}
-              class="bg-tiqit-600 text-primary-content text-xs font-medium px-2.5 py-0.5 rounded"
+              class="badge badge-sm rounded px-1 py-2 !bg-tiqit-600 !text-primary-content"
             >
               {@current_scope.active_tiqit_count}
             </span>
