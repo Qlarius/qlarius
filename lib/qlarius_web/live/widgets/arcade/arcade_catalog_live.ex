@@ -14,6 +14,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
 
   import QlariusWeb.Helpers.ImageHelpers
   import QlariusWeb.PWAHelpers
+  import QlariusWeb.Widgets.Arcade.Components, only: [arqade_breadcrumbs: 1]
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
@@ -57,6 +58,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
     ~H"""
     <div id="catalog-pwa-detect" phx-hook="PWADetect">
     <Layouts.maybe_mobile wrap={@base_path == ""} {assigns}>
+      <.arqade_breadcrumbs base_path={@base_path} crumbs={[]} />
       <div class="mb-6">
         <div class="flex items-center gap-4 mb-6">
           <%= if @catalog.image do %>

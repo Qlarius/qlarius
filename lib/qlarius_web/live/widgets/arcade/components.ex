@@ -335,4 +335,26 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     </.modal>
     """
   end
+
+  @doc """
+  Breadcrumb trail for arqade content hierarchy.
+
+  Hidden in widget context (@base_path == "/widgets") since embedded iframes
+  don't benefit from hierarchical navigation — the host page controls that.
+  In-app, renders a compact clickable trail rooted at "Discover".
+  """
+  attr :crumbs, :list, default: []
+  attr :base_path, :string, default: ""
+
+  def arqade_breadcrumbs(assigns) do
+    ~H"""
+    <nav :if={@base_path != "/widgets"} class="text-xs text-base-content/50 flex items-center gap-1 flex-wrap pt-3 mb-3">
+      <.link navigate="/arqade" class="hover:text-primary transition-colors">Discover</.link>
+      <span :for={{label, path} <- @crumbs} class="flex items-center gap-1">
+        <span class="text-base-content/30">›</span>
+        <.link navigate={path} class="hover:text-primary transition-colors truncate max-w-[120px]">{label}</.link>
+      </span>
+    </nav>
+    """
+  end
 end

@@ -30,14 +30,12 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   # Commented out unused import - Jason functions not used in this LiveView
   # import Jason
 
-  @recruiter_mode false
-
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
   @impl true
-  # params and session not used in this mount function
   def mount(_params, _session, socket) do
-    # Load initial data during first mount
+    recruiter_mode = is_nil(socket.assigns[:current_scope])
+
     lg_slides = [
       %{
         imgSrc:
@@ -79,7 +77,7 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
     socket =
       socket
       |> assign(:page_title, "Sponster Announcer")
-      |> assign(:recruiter_mode, @recruiter_mode)
+      |> assign(:recruiter_mode, recruiter_mode)
       |> assign(:lg_slides, lg_slides)
       |> assign(:sm_slides, sm_slides)
 

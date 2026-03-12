@@ -620,6 +620,58 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     end
   end
 
+  # --- Discovery queries ---
+  # Simple "show everything purchasable" for the first iteration.
+  # Future versions will filter by user tags and creator audience targeting.
+
+  def list_discoverable_catalogs do
+    catalog_ids_from_catalog_tc =
+      from(tc in TiqitClass,
+        where: tc.active == true and not is_nil(tc.catalog_id),
+        select: tc.catalog_id
+      )
+
+    catalog_ids_from_group_tc =
+      from(tc in TiqitClass,
+        join: cg in ContentGroup,
+        on: tc.content_group_id == cg.id,
+        where: tc.active == true,
+        select: cg.catalog_id
+      )
+
+    catalog_ids_from_piece_tc =
+      from(tc in TiqitClass,
+        join: cp in ContentPiece,
+        on: tc.content_piece_id == cp.id,
+        join: cg in ContentGroup,
+        on: cp.content_group_id == cg.id,
+        where: tc.active == true,
+        select: cg.catalog_id
+      )
+
+    from(c in Catalog,
+      where:
+        c.id in subquery(catalog_ids_from_catalog_tc) or
+          c.id in subquery(catalog_ids_from_group_tc) or
+          c.id in subquery(catalog_ids_from_piece_tc),
+      order_by: c.name,
+      preload: [:creator, :tiqit_classes, content_groups: :content_pieces]
+    )
+    |> Repo.all()
+  end
+
+  def list_discoverable_groups do
+    from(cg in ContentGroup,
+      join: tc in TiqitClass,
+      on: tc.content_group_id == cg.id,
+      where: tc.active == true,
+      distinct: cg.id,
+      order_by: [desc: cg.inserted_at],
+      preload: [:content_pieces, catalog: :creator]
+    )
+    |> Repo.all()
+  end
+
   def count_group_pieces(group_id) do
     from(cp in ContentPiece, where: cp.content_group_id == ^group_id)
     |> Repo.aggregate(:count)

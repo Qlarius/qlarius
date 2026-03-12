@@ -126,6 +126,7 @@ defmodule QlariusWeb.Router do
         {QlariusWeb.UserAuth, :mount_current_scope},
         {QlariusWeb.Layouts, :set_current_path}
       ] do
+      live "/arqade", Arcade.ArqadeDiscoveryLive
       live "/arqade/group/:group_id", Arcade.ArcadeLive
       live "/arqade/catalog/:catalog_id", Arcade.ArcadeCatalogLive
       live "/arqade/:piece_id", Arcade.ArcadeSingleLive
@@ -207,6 +208,7 @@ defmodule QlariusWeb.Router do
       # so navigation stays within the correct context (app vs widget).
       # More specific routes must come before the catch-all /arqade/:piece_id.
       live "/content/:id", Widgets.ContentLive
+      live "/arqade", Widgets.Arcade.ArqadeDiscoveryLive
       live "/arqade/group/:group_id", Widgets.Arcade.ArcadeLive
       live "/arqade/catalog/:catalog_id", Widgets.Arcade.ArcadeCatalogLive
       live "/arqade/:piece_id", Widgets.Arcade.ArcadeSingleLive
@@ -252,8 +254,6 @@ defmodule QlariusWeb.Router do
       ] do
       live "/@:alias", QlinkPage.Show, :show
     end
-
-    resources "/tiqits", TiqitController
 
     get "/jump/:id", AdJumpPageController, :jump
     post "/jump/collect", AdJumpPageController, :collect

@@ -16,6 +16,7 @@ defmodule QlariusWeb.Widgets.ContentLive do
 
   import QlariusWeb.Helpers.ImageHelpers
   import QlariusWeb.PWAHelpers
+  import QlariusWeb.Widgets.Arcade.Components, only: [arqade_breadcrumbs: 1]
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
@@ -57,12 +58,15 @@ defmodule QlariusWeb.Widgets.ContentLive do
     ~H"""
     <div id="content-pwa-detect" phx-hook="PWADetect">
     <Layouts.maybe_mobile wrap={true} {assigns}>
+      <.arqade_breadcrumbs
+        base_path=""
+        crumbs={[
+          {@content.content_group.catalog.creator.name, "/arqade"},
+          {@content.content_group.catalog.name, "/arqade/catalog/#{@content.content_group.catalog.id}"},
+          {@content.content_group.title, "/arqade/group/#{@content.content_group.id}"}
+        ]}
+      />
       <div class="container mx-auto px-4 py-4 max-w-4xl">
-        <div class="mb-3">
-          <.back navigate={"/arqade/group/#{@content.content_group.id}?content_id=#{@content.id}"}>
-            To full <%= String.capitalize(to_string(@content.content_group.catalog.piece_type)) %> arqade
-          </.back>
-        </div>
         <div class="p-4">
           <div class="aspect-video bg-base-200 rounded-box overflow-hidden mb-2 border border-base-300 relative">
             <div

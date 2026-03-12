@@ -1,5 +1,12 @@
 <div id="arcade-pwa-detect" phx-hook="PWADetect">
 <Layouts.maybe_mobile wrap={@base_path == ""} {assigns}>
+<.arqade_breadcrumbs
+  base_path={@base_path}
+  crumbs={[
+    {@group.catalog.creator.name, "#{@base_path}/arqade"},
+    {@group.catalog.name, "#{@base_path}/arqade/catalog/#{@group.catalog.id}"}
+  ]}
+/>
 <%= if Enum.any?(@pieces) do %>
   <div class={"w-full flex flex-col relative #{if @base_path == "", do: "h-full", else: "h-screen"}"}>
     <%= if @group.show_open_in_tab && @base_path == "/widgets" do %>

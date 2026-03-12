@@ -1,5 +1,13 @@
 <div id="single-pwa-detect" phx-hook="PWADetect">
 <Layouts.maybe_mobile wrap={@base_path == ""} {assigns}>
+<.arqade_breadcrumbs
+  base_path={@base_path}
+  crumbs={[
+    {@group.catalog.creator.name, "#{@base_path}/arqade"},
+    {@group.catalog.name, "#{@base_path}/arqade/catalog/#{@group.catalog.id}"},
+    {@group.title, "#{@base_path}/arqade/group/#{@group.id}"}
+  ]}
+/>
 <div id="arqade-root" phx-hook="PostMessage">
   <%= if @has_tiqit? do %>
     <%!-- Timer bar mode - shown when user has valid tiqit --%>
