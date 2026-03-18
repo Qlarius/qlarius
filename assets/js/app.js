@@ -24,6 +24,7 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import {hooks as colocatedHooks} from "phoenix-colocated/qlarius"
+import {computePosition, flip, shift, offset, autoUpdate} from "@floating-ui/dom"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let Hooks = {}
@@ -1108,6 +1109,126 @@ Hooks.YouTubePoster = {
       iframe.classList.remove('hidden')
       iframe.src = `https://www.youtube.com/embed/${youtubeId}?autoplay=1`
     })
+  }
+}
+
+Hooks.Popover = {
+  mounted() {
+    this.triggerEl = this.el.querySelector("[data-popover-trigger]")
+    this.contentEl = this.el.querySelector("[data-popover-content]")
+    if (!this.triggerEl || !this.contentEl) return
+
+    this.placement = this.el.dataset.placement || "bottom"
+    this.triggerType = this.el.dataset.trigger || "click"
+    this.offsetPx = parseInt(this.el.dataset.offset || "8", 10)
+    this.isOpen = false
+    this.cleanupAutoUpdate = null
+
+    this.show = this.show.bind(this)
+    this.hide = this.hide.bind(this)
+    this.toggle = this.toggle.bind(this)
+    this.onClickOutside = this.onClickOutside.bind(this)
+    this.onKeyDown = this.onKeyDown.bind(this)
+
+    if (this.triggerType === "click") {
+      this.triggerEl.addEventListener("click", this.toggle)
+    } else if (this.triggerType === "hover") {
+      this.triggerEl.addEventListener("mouseenter", this.show)
+      this.triggerEl.addEventListener("mouseleave", this.hide)
+      this.contentEl.addEventListener("mouseenter", this.show)
+      this.contentEl.addEventListener("mouseleave", this.hide)
+      this.triggerEl.addEventListener("focus", this.show)
+      this.triggerEl.addEventListener("blur", this.hide)
+    } else if (this.triggerType === "focus") {
+      this.triggerEl.addEventListener("focus", this.show)
+      this.triggerEl.addEventListener("blur", this.hide)
+    }
+  },
+
+  show() {
+    if (this.isOpen) return
+    this.isOpen = true
+
+    this.contentEl.setAttribute("data-show", "")
+    this.triggerEl.setAttribute("aria-expanded", "true")
+
+    this.cleanupAutoUpdate = autoUpdate(this.triggerEl, this.contentEl, () => {
+      computePosition(this.triggerEl, this.contentEl, {
+        placement: this.placement,
+        middleware: [offset(this.offsetPx), flip(), shift({ padding: 8 })]
+      }).then(({ x, y }) => {
+        Object.assign(this.contentEl.style, { left: `${x}px`, top: `${y}px` })
+      })
+    })
+
+    if (this.triggerType === "click") {
+      document.addEventListener("click", this.onClickOutside, true)
+    }
+    document.addEventListener("keydown", this.onKeyDown)
+  },
+
+  hide() {
+    if (!this.isOpen) return
+    this.isOpen = false
+
+    this.contentEl.removeAttribute("data-show")
+    this.triggerEl.setAttribute("aria-expanded", "false")
+
+    if (this.cleanupAutoUpdate) {
+      this.cleanupAutoUpdate()
+      this.cleanupAutoUpdate = null
+    }
+
+    document.removeEventListener("click", this.onClickOutside, true)
+    document.removeEventListener("keydown", this.onKeyDown)
+  },
+
+  toggle() {
+    this.isOpen ? this.hide() : this.show()
+  },
+
+  onClickOutside(e) {
+    if (!this.el.contains(e.target)) {
+      this.hide()
+    }
+  },
+
+  onKeyDown(e) {
+    if (e.key === "Escape") {
+      this.hide()
+      this.triggerEl.focus()
+    }
+  },
+
+  updated() {
+    if (this.isOpen && this.cleanupAutoUpdate) {
+      this.cleanupAutoUpdate()
+      this.cleanupAutoUpdate = autoUpdate(this.triggerEl, this.contentEl, () => {
+        computePosition(this.triggerEl, this.contentEl, {
+          placement: this.placement,
+          middleware: [offset(this.offsetPx), flip(), shift({ padding: 8 })]
+        }).then(({ x, y }) => {
+          Object.assign(this.contentEl.style, { left: `${x}px`, top: `${y}px` })
+        })
+      })
+    }
+  },
+
+  destroyed() {
+    this.hide()
+    if (this.triggerType === "click") {
+      this.triggerEl.removeEventListener("click", this.toggle)
+    } else if (this.triggerType === "hover") {
+      this.triggerEl.removeEventListener("mouseenter", this.show)
+      this.triggerEl.removeEventListener("mouseleave", this.hide)
+      this.contentEl.removeEventListener("mouseenter", this.show)
+      this.contentEl.removeEventListener("mouseleave", this.hide)
+      this.triggerEl.removeEventListener("focus", this.show)
+      this.triggerEl.removeEventListener("blur", this.hide)
+    } else if (this.triggerType === "focus") {
+      this.triggerEl.removeEventListener("focus", this.show)
+      this.triggerEl.removeEventListener("blur", this.hide)
+    }
   }
 }
 

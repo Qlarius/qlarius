@@ -796,4 +796,84 @@ defmodule QlariusWeb.CoreComponents do
   ## --------------------
   ##      CUSTOM
   ## --------------------
+
+  @doc """
+  Renders a popover with configurable placement, trigger behavior, and content.
+
+  Positioning is handled client-side by Floating UI via the `Popover` JS hook.
+
+  ## Examples
+
+      <.popover id="help-tip" placement="top" trigger_type="hover">
+        <:trigger>
+          <.icon name="hero-information-circle" class="w-4 h-4 cursor-help" />
+        </:trigger>
+        <:content>
+          <p class="text-sm max-w-xs">Helpful information here.</p>
+        </:content>
+      </.popover>
+
+      <.popover id="topup-options" placement="bottom-start" trigger_type="click">
+        <:trigger>
+          <button class="btn btn-sm btn-primary">Top Up</button>
+        </:trigger>
+        <:content>
+          <ul class="menu menu-sm w-48">
+            <li><a>Watch Ads</a></li>
+            <li><a>Gift Card</a></li>
+          </ul>
+        </:content>
+      </.popover>
+  """
+  attr :id, :string, required: true, doc: "unique identifier for the popover instance"
+
+  attr :placement, :string,
+    default: "bottom",
+    doc: "Floating UI placement: top, bottom, left, right, and -start/-end variants"
+
+  attr :trigger_type, :string,
+    default: "click",
+    values: ["click", "hover", "focus"],
+    doc: "how the popover is activated"
+
+  attr :offset, :integer, default: 8, doc: "pixel distance from trigger element"
+  attr :class, :string, default: nil, doc: "additional CSS classes for the content panel"
+
+  attr :role, :string,
+    default: "dialog",
+    values: ["dialog", "tooltip"],
+    doc: "ARIA role for the content panel"
+
+  slot :trigger, required: true, doc: "the element that opens the popover"
+  slot :content, required: true, doc: "the popover content"
+
+  def popover(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      phx-hook="Popover"
+      data-placement={@placement}
+      data-trigger={@trigger_type}
+      data-offset={to_string(@offset)}
+      class="relative inline-block"
+    >
+      <div data-popover-trigger aria-haspopup="true" aria-expanded="false" aria-controls={"#{@id}-content"}>
+        {render_slot(@trigger)}
+      </div>
+      <div
+        id={"#{@id}-content"}
+        data-popover-content
+        role={@role}
+        class={[
+          "absolute z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg",
+          "transition-[opacity,visibility] duration-150 ease-in-out",
+          "invisible opacity-0 data-[show]:visible data-[show]:opacity-100",
+          @class
+        ]}
+      >
+        {render_slot(@content)}
+      </div>
+    </div>
+    """
+  end
 end
