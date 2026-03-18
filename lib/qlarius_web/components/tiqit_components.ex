@@ -20,10 +20,10 @@ defmodule QlariusWeb.TiqitComponents do
   def tiqit_status_badges(assigns) do
     ~H"""
     <.tiqit_primary_status_badge status={@status} />
-    <span :if={@status == :expired && !@preserved} class="badge badge-md badge-warning font-medium">
+    <span :if={@status == :expired && !@preserved} class="badge badge-md badge-warning text-xs">
       Fleeting
     </span>
-    <span :if={@preserved} class="badge badge-md badge-info gap-1 font-medium">
+    <span :if={@preserved} class="badge badge-md badge-info gap-1 text-xs">
       <.icon name="hero-shield-check-mini" class="w-3.5 h-3.5" /> Preserved
     </span>
     """
@@ -34,7 +34,7 @@ defmodule QlariusWeb.TiqitComponents do
   defp tiqit_primary_status_badge(assigns) do
     ~H"""
     <span class={[
-      "badge badge-md font-medium",
+      "badge badge-md text-xs",
       if(@status == :active, do: "badge-success", else: "badge-warning")
     ]}>
       {if @status == :active, do: "Active", else: "Expired"}
