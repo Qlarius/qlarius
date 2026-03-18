@@ -107,13 +107,10 @@
               </button>
               <%= if !can_afford do %>
                 <div class="text-sm text-warning text-center">
-                  Not enough funds. 
-                  <button phx-click="show-topup-modal" class="link link-primary font-semibold">
-                    Top up your wallet
-                  </button>
+                  Not enough funds — top up below.
                 </div>
               <% end %>
-              <.wallet_strip id="wallet-balance-arcade-main" balance={@balance} offered_amount={@offered_amount} />
+              <.wallet_strip id="wallet-balance-arcade-main" balance={@balance} offered_amount={@offered_amount} ads_count={@current_scope.ads_count} />
             <% end %>
           </div>
           <div class="flex flex-row justify-center items-center mt-4 mb-1">
@@ -239,7 +236,6 @@
             </span>
           </div>
         <% end %>
-        <.wallet_strip id="wallet-balance-arcade-modal" balance={@balance} offered_amount={@offered_amount} />
       <% end %>
       <div class="flex flex-col gap-1">
         <%= if !assigns[:options_modal] do %>
@@ -258,12 +254,6 @@
     </div>
   </.modal>
 
-  <.topup_modal
-    show={assigns[:show_topup_modal] || false}
-    balance={@balance}
-    offered_amount={@offered_amount}
-    ads_count={@current_scope.ads_count}
-  />
 <% else %>
   Unable to render this content group as it has no valid Tiqit classes
 <% end %>

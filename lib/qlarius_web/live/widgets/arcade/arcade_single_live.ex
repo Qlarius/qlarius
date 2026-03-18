@@ -83,7 +83,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           has_tiqit?: has_tiqit?,
           default_tiqit_class: default_tiqit_class,
           selected_tiqit_class: nil,
-          show_topup_modal: false,
           options_modal: false,
           force_theme: force_theme,
           tiqit_up_group_credit: tiqit_up_group_credit,
@@ -121,10 +120,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
     socket |> assign(selected_tiqit_class: nil) |> noreply()
   end
 
-  def handle_event("close-topup-modal", _params, socket) do
-    socket |> assign(:show_topup_modal, false) |> noreply()
-  end
-
   def handle_event("dismiss-tiqit-up-nudge", _params, socket) do
     socket |> assign(:tiqit_up_nudge, false) |> noreply()
   end
@@ -154,10 +149,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
       options_modal: false
     )
     |> noreply()
-  end
-
-  def handle_event("show-topup-modal", _params, socket) do
-    socket |> assign(:show_topup_modal, true) |> noreply()
   end
 
   def handle_event("show-options", _params, socket) do

@@ -24,7 +24,7 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import {hooks as colocatedHooks} from "phoenix-colocated/qlarius"
-import {computePosition, flip, shift, offset, autoUpdate} from "@floating-ui/dom"
+import {computePosition, flip, shift, offset, arrow, autoUpdate} from "@floating-ui/dom"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let Hooks = {}
@@ -1116,6 +1116,7 @@ Hooks.Popover = {
   mounted() {
     this.triggerEl = this.el.querySelector("[data-popover-trigger]")
     this.contentEl = this.el.querySelector("[data-popover-content]")
+    this.arrowEl = this.el.querySelector("[data-popover-arrow]")
     if (!this.triggerEl || !this.contentEl) return
 
     this.placement = this.el.dataset.placement || "bottom"
@@ -1145,6 +1146,28 @@ Hooks.Popover = {
     }
   },
 
+  _buildMiddleware() {
+    const mw = [offset(this.offsetPx), flip(), shift({ padding: 8 })]
+    if (this.arrowEl) mw.push(arrow({ element: this.arrowEl }))
+    return mw
+  },
+
+  _positionArrow(placement, middlewareData) {
+    if (!this.arrowEl) return
+    const { x: ax, y: ay } = middlewareData.arrow || {}
+    const side = placement.split("-")[0]
+    const staticSide = { top: "bottom", right: "left", bottom: "top", left: "right" }[side]
+
+    Object.assign(this.arrowEl.style, {
+      left: ax != null ? `${ax}px` : "",
+      top: ay != null ? `${ay}px` : "",
+      right: "",
+      bottom: "",
+      [staticSide]: "-4px"
+    })
+    this.arrowEl.dataset.side = staticSide
+  },
+
   show() {
     if (this.isOpen) return
     this.isOpen = true
@@ -1155,9 +1178,10 @@ Hooks.Popover = {
     this.cleanupAutoUpdate = autoUpdate(this.triggerEl, this.contentEl, () => {
       computePosition(this.triggerEl, this.contentEl, {
         placement: this.placement,
-        middleware: [offset(this.offsetPx), flip(), shift({ padding: 8 })]
-      }).then(({ x, y }) => {
+        middleware: this._buildMiddleware()
+      }).then(({ x, y, placement, middlewareData }) => {
         Object.assign(this.contentEl.style, { left: `${x}px`, top: `${y}px` })
+        this._positionArrow(placement, middlewareData)
       })
     })
 
@@ -1206,9 +1230,10 @@ Hooks.Popover = {
       this.cleanupAutoUpdate = autoUpdate(this.triggerEl, this.contentEl, () => {
         computePosition(this.triggerEl, this.contentEl, {
           placement: this.placement,
-          middleware: [offset(this.offsetPx), flip(), shift({ padding: 8 })]
-        }).then(({ x, y }) => {
+          middleware: this._buildMiddleware()
+        }).then(({ x, y, placement, middlewareData }) => {
           Object.assign(this.contentEl.style, { left: `${x}px`, top: `${y}px` })
+          this._positionArrow(placement, middlewareData)
         })
       })
     }

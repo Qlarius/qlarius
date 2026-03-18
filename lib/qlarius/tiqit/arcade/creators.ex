@@ -71,7 +71,7 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
       :content_groups,
       :creator,
       :tiqit_classes,
-      content_groups: [:content_pieces, :tiqit_classes]
+      content_groups: [:tiqit_classes, content_pieces: :tiqit_classes]
     ])
   end
 

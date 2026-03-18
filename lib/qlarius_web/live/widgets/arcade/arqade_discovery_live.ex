@@ -87,8 +87,13 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
                     <div class="text-xs text-base-content/40 mt-1">
                       {catalog_summary(catalog)}
                     </div>
-                    <div :if={starting_price(catalog.tiqit_classes)} class="text-xs text-primary font-medium mt-1">
-                      from {starting_price(catalog.tiqit_classes)}
+                    <% price_info = catalog_price_info(catalog) %>
+                    <div :if={price_info} class="text-xs font-medium mt-1">
+                      <span :if={price_info.min_price} class="text-primary">from {price_info.min_price}</span>
+                      <span :if={price_info.min_price && price_info.free_count > 0} class="text-base-content/50">·</span>
+                      <span :if={price_info.free_count > 0} class="text-base-content/50">
+                        Includes {price_info.free_count} FREE {pluralize(to_string(catalog.piece_type), price_info.free_count)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -148,13 +153,43 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
     "#{count} #{pluralize(label, count)}"
   end
 
-  defp starting_price(tiqit_classes) do
-    active = Enum.filter(tiqit_classes, & &1.active)
+  defp catalog_price_info(catalog) do
+    all_tiqit_classes =
+      Enum.concat([
+        Enum.filter(catalog.tiqit_classes, & &1.active),
+        catalog.content_groups
+        |> Enum.flat_map(& &1.content_pieces)
+        |> Enum.flat_map(& &1.tiqit_classes)
+        |> Enum.filter(& &1.active)
+      ])
 
-    case active do
-      [] -> nil
-      classes -> "$#{classes |> Enum.map(& &1.price) |> Enum.min()}"
+    case all_tiqit_classes do
+      [] ->
+        nil
+
+      classes ->
+        prices = Enum.map(classes, & &1.price)
+        paid = Enum.reject(prices, &Decimal.eq?(&1, 0))
+        free_pieces = count_free_pieces(catalog)
+
+        min_price =
+          case paid do
+            [] -> nil
+            p -> "$#{Enum.min(p)}"
+          end
+
+        %{min_price: min_price, free_count: free_pieces}
     end
+  end
+
+  defp count_free_pieces(catalog) do
+    catalog.content_groups
+    |> Enum.flat_map(& &1.content_pieces)
+    |> Enum.count(fn piece ->
+      piece.tiqit_classes
+      |> Enum.filter(& &1.active)
+      |> Enum.any?(&Decimal.eq?(&1.price, 0))
+    end)
   end
 
   defp pluralize(word, 1), do: word

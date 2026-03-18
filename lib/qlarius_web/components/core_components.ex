@@ -872,6 +872,16 @@ defmodule QlariusWeb.CoreComponents do
         ]}
       >
         {render_slot(@content)}
+        <div
+          data-popover-arrow
+          class={[
+            "absolute w-2 h-2 bg-base-100 rotate-45",
+            "data-[side=bottom]:border-b data-[side=bottom]:border-r data-[side=bottom]:border-base-300",
+            "data-[side=top]:border-t data-[side=top]:border-l data-[side=top]:border-base-300",
+            "data-[side=left]:border-b data-[side=left]:border-l data-[side=left]:border-base-300",
+            "data-[side=right]:border-t data-[side=right]:border-r data-[side=right]:border-base-300"
+          ]}
+        />
       </div>
     </div>
     """

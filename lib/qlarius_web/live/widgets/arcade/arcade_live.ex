@@ -151,10 +151,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     socket |> assign(selected_tiqit_class: nil) |> noreply()
   end
 
-  def handle_event("close-topup-modal", _params, socket) do
-    socket |> assign(:show_topup_modal, false) |> noreply()
-  end
-
   def handle_event("dismiss-tiqit-up-nudge", _params, socket) do
     socket |> assign(:tiqit_up_nudge, false) |> noreply()
   end
@@ -186,10 +182,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     |> noreply()
   end
 
-  def handle_event("show-topup-modal", _params, socket) do
-    socket |> assign(:show_topup_modal, true) |> noreply()
-  end
-
   def handle_event("show-options", _params, socket) do
     socket |> assign(:options_modal, true) |> noreply()
   end
@@ -201,7 +193,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
     Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
 
-    # socket |> assign(:show_topup_modal, false) |> noreply()
     socket |> noreply()
   end
 

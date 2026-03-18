@@ -4,8 +4,6 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass
-  alias Phoenix.LiveView.JS
-
   import QlariusWeb.CoreComponents
   import QlariusWeb.Money
   import QlariusWeb.TiqitClassHTML
@@ -241,6 +239,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
 
   attr :balance, Decimal, required: true
   attr :offered_amount, Decimal, default: nil
+  attr :ads_count, :integer, default: 0
   attr :id, :string, default: "wallet-balance-arcade-strip"
 
   def wallet_strip(assigns) do
@@ -252,87 +251,44 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           <span class="font-normal text-base-content/60 ml-2 mr-3">to spend</span>
         </div>
 
-        <button
-          class="btn btn-md rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 leading-none"
-          phx-click="show-topup-modal"
-        >
-          <.icon name="hero-plus" class="w-4 h-4 mr-0" />
-          <span class="font-bold">{if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}</span>
-        </button>
+        <.popover id={"#{@id}-topup"} placement="top" trigger_type="click" class="w-56">
+          <:trigger>
+            <button class="btn btn-md rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 leading-none">
+              <.icon name="hero-plus" class="w-4 h-4 mr-0" />
+              <span class="font-bold">{if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}</span>
+            </button>
+          </:trigger>
+          <:content>
+            <div class="p-3 space-y-2">
+              <p class="text-xs font-semibold text-base-content/60 uppercase tracking-wide">Top up wallet</p>
+              <button
+                class="btn btn-sm btn-block justify-start gap-2 !bg-sponster-500 hover:!bg-sponster-600 text-white border-none rounded-lg"
+                onclick="parent.postMessage('open_widget','*');"
+              >
+                <img src="/images/Sponster_logo_white_horiz.svg" alt="Sponster" class="h-4" onerror="this.style.display='none';this.nextElementSibling.style.display='inline';" />
+                <span style="display:none;">Sponster</span>
+                <span class="ml-auto text-xs opacity-80">{@ads_count} ads • {if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}</span>
+              </button>
+              <button
+                class="btn btn-sm btn-block justify-start gap-2 btn-primary rounded-lg"
+                phx-click="topup"
+              >
+                <.icon name="hero-gift" class="w-4 h-4" />
+                Daily gift
+                <span class="ml-auto text-xs opacity-80">$0.50</span>
+              </button>
+              <button
+                class="btn btn-sm btn-block justify-start gap-2 btn-outline rounded-lg"
+                phx-click="topup"
+              >
+                <.icon name="hero-credit-card" class="w-4 h-4" />
+                Credit / Debit
+              </button>
+            </div>
+          </:content>
+        </.popover>
       </div>
     </div>
-    """
-  end
-
-  attr :show, :boolean, required: true
-  attr :balance, Decimal, required: true
-  attr :offered_amount, Decimal, default: nil
-  attr :ads_count, :integer, default: 0
-
-  def topup_modal(assigns) do
-    ~H"""
-    <.modal :if={@show} id="topup-modal" show on_cancel={JS.push("close-topup-modal")}>
-      <div class="text-center space-y-6 p-8">
-        <div class="space-y-4">
-          <h2 class="text-xl font-bold text-base-content">Top up your wallet.</h2>
-          <div class="mb-6 flex gap-2 justify-center items-center">
-            Balance:
-            <span class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content px-3 py-1 rounded-lg border border-sponster-300 dark:border-sponster-500">
-              <span class="font-bold">{format_usd(@balance)}</span>
-            </span>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 w-full divide-y md:divide-y-0 md:divide-x divide-base-300 p-4">
-          <div class="flex-1 flex flex-col items-center py-6 px-3">
-            <h3 class="text-base-content/60 mb-3">Engage sponsors.</h3>
-            <div class="flex-1 flex flex-col items-center justify-center">
-              <img
-                src="/images/Sponster_logo_color_horiz.svg"
-                alt="Sponster"
-                class="h-auto max-w-[140px] mb-2"
-              />
-              <div class="text-base-content/60 text-sm">
-                {@ads_count} ads for
-                <span class="font-bold text-sponster-500">
-                  {if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}
-                </span>
-              </div>
-            </div>
-            <button
-              class="btn btn-primary border-none rounded-full !bg-sponster-500 hover:!bg-sponster-600 text-white btn-lg mt-4"
-              onclick="parent.postMessage('open_widget','*');self.toggleAnnouncerElements();"
-            >
-              Show my ads
-            </button>
-          </div>
-          <div class="flex-1 flex flex-col items-center py-6 px-3">
-            <h3 class="text-base-content/60 mb-3">Accept our daily gift.</h3>
-            <div class="flex-1 flex flex-col items-center justify-center">
-              <.icon name="hero-gift" class="h-14 w-14 text-base-content/50" />
-            </div>
-            <button class="btn btn-primary rounded-full btn-lg mt-4" phx-click="topup">
-              <.icon name="hero-plus" class="h-5 w-5 mr-2" />$0.50
-            </button>
-          </div>
-          <div class="flex-1 flex flex-col items-center py-6 px-3">
-            <h3 class="text-base-content/60 mb-3">Add funds of your own.</h3>
-            <div class="flex-1 flex flex-col items-center justify-center">
-              <img
-                src="/images/credit_debit_card_payments.png"
-                alt="Credit/Debit Card Payments"
-                class="h-16 w-16"
-              />
-            </div>
-            <button class="btn btn-primary rounded-full btn-lg mt-4" phx-click="topup">
-              <.icon name="hero-plus" class="h-5 w-5 mr-2" />Credit/Debit
-            </button>
-          </div>
-        </div>
-
-        <div class="flex justify-center gap-4"></div>
-      </div>
-    </.modal>
     """
   end
 

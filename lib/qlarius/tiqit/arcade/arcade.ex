@@ -643,7 +643,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
           c.id in subquery(catalog_ids_from_group_tc) or
           c.id in subquery(catalog_ids_from_piece_tc),
       order_by: c.name,
-      preload: [:creator, :tiqit_classes, content_groups: :content_pieces]
+      preload: [:creator, :tiqit_classes, content_groups: [content_pieces: :tiqit_classes]]
     )
     |> Repo.all()
   end

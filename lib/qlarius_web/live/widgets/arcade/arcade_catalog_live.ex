@@ -98,6 +98,14 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
                   <p class="text-sm text-base-content/60">
                     {length(group.content_pieces)} {if length(group.content_pieces) == 1, do: @catalog.piece_type, else: pluralize(@catalog.piece_type)}
                   </p>
+                  <% price_info = group_price_info(group) %>
+                  <p :if={price_info} class="text-xs font-medium mt-1">
+                    <span :if={price_info.min_price} class="text-primary">from {price_info.min_price}</span>
+                    <span :if={price_info.min_price && price_info.free_count > 0} class="text-base-content/50">·</span>
+                    <span :if={price_info.free_count > 0} class="text-base-content/50">
+                      Includes {price_info.free_count} FREE {if price_info.free_count == 1, do: @catalog.piece_type, else: pluralize(@catalog.piece_type)}
+                    </span>
+                  </p>
                 </div>
               </div>
             </.link>
@@ -107,6 +115,36 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
     </Layouts.maybe_mobile>
     </div>
     """
+  end
+
+  defp group_price_info(group) do
+    all_tiqit_classes =
+      Enum.concat(
+        Enum.filter(group.tiqit_classes, & &1.active),
+        group.content_pieces
+        |> Enum.flat_map(& &1.tiqit_classes)
+        |> Enum.filter(& &1.active)
+      )
+
+    case all_tiqit_classes do
+      [] ->
+        nil
+
+      classes ->
+        prices = Enum.map(classes, & &1.price)
+        paid = Enum.reject(prices, &Decimal.eq?(&1, 0))
+
+        free_count =
+          Enum.count(group.content_pieces, fn piece ->
+            piece.tiqit_classes
+            |> Enum.filter(& &1.active)
+            |> Enum.any?(&Decimal.eq?(&1.price, 0))
+          end)
+
+        min_price = if paid != [], do: "$#{Enum.min(paid)}"
+
+        %{min_price: min_price, free_count: free_count}
+    end
   end
 
   defp pluralize(word) do
