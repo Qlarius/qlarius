@@ -37,6 +37,10 @@ defmodule Qlarius.Services.Twilio do
   @verify_url "https://verify.twilio.com/v2"
   @lookup_url "https://lookups.twilio.com/v2"
 
+  # When false, any verified phone number is accepted regardless of carrier,
+  # line type, or country. Set to true to enforce US-only major carrier screening.
+  @filter_us_carriers false
+
   @allowed_carriers [
     "AT&T Wireless",
     "Verizon Wireless",
@@ -151,44 +155,73 @@ defmodule Qlarius.Services.Twilio do
   end
 
   def validate_carrier(phone_number) do
-    if skip_carrier_validation?() do
-      Logger.warning("Carrier validation SKIPPED (dev mode)", phone_number: phone_number)
+    cond do
+      skip_carrier_validation?() ->
+        Logger.warning("Carrier validation SKIPPED (dev mode)", phone_number: phone_number)
 
-      {:ok,
-       %{
-         type: "mobile",
-         carrier_name: "DEV MODE - Validation Skipped",
-         country_code: "US",
-         valid: true,
-         mobile_country_code: nil,
-         mobile_network_code: nil,
-         national_format: phone_number,
-         error_code: nil
-       }}
-    else
-      do_validate_carrier(phone_number)
+        {:ok,
+         %{
+           type: "mobile",
+           carrier_name: "DEV MODE - Validation Skipped",
+           country_code: "US",
+           valid: true,
+           mobile_country_code: nil,
+           mobile_network_code: nil,
+           national_format: phone_number,
+           error_code: nil
+         }}
+
+      not @filter_us_carriers ->
+        Logger.info("Carrier filtering disabled — accepting any verified number",
+          phone_number: phone_number
+        )
+
+        case lookup_phone_carrier(phone_number) do
+          {:ok, info} ->
+            {:ok, info}
+
+          {:error, _reason} ->
+            {:ok,
+             %{
+               type: "mobile",
+               carrier_name: "Unknown",
+               country_code: "unknown",
+               valid: true,
+               mobile_country_code: nil,
+               mobile_network_code: nil,
+               national_format: phone_number,
+               error_code: nil
+             }}
+        end
+
+      true ->
+        do_validate_carrier(phone_number)
     end
   end
+
+  @carrier_reminder "Only valid major US mobile carriers are permitted at this time."
 
   defp do_validate_carrier(phone_number) do
     case lookup_phone_carrier(phone_number) do
       {:ok, %{valid: false}} ->
-        {:error, :invalid_number, "This phone number appears to be invalid"}
+        {:error, :invalid_number,
+         "This phone number appears to be invalid. #{@carrier_reminder}"}
 
       {:ok, %{country_code: country}} when country != "US" ->
-        {:error, :non_us_number, "We currently only support US phone numbers"}
+        {:error, :non_us_number,
+         "Non-US phone numbers are not supported. #{@carrier_reminder}"}
 
       {:ok, %{type: "voip"}} ->
         {:error, :voip_not_allowed,
-         "VOIP numbers are not supported. Please use a mobile number from a major carrier"}
+         "VOIP/internet-based numbers are not supported. #{@carrier_reminder}"}
 
       {:ok, %{type: "landline"}} ->
         {:error, :landline_not_allowed,
-         "Landline numbers are not supported. Please use a mobile number"}
+         "Landline numbers are not supported. #{@carrier_reminder}"}
 
       {:ok, %{type: "mobile", carrier_name: nil}} ->
         {:error, :unknown_carrier,
-         "Unable to verify carrier. Please ensure you're using a major US carrier"}
+         "Unable to identify your carrier. #{@carrier_reminder}"}
 
       {:ok, %{type: "mobile", carrier_name: carrier} = info} ->
         if carrier_allowed?(carrier) do
@@ -201,19 +234,21 @@ defmodule Qlarius.Services.Twilio do
           )
 
           {:error, :carrier_not_allowed,
-           "We currently only support major US carriers. Your carrier: #{carrier}"}
+           "Your carrier (#{carrier}) is not currently supported. #{@carrier_reminder}"}
         end
 
       {:ok, %{type: type}} ->
         Logger.warning("Unknown carrier type: #{type}")
-        {:error, :unknown_type, "Unable to verify this phone number type"}
+        {:error, :unknown_type,
+         "Unable to verify this phone number type (#{type}). #{@carrier_reminder}"}
 
       {:error, :invalid_number} ->
-        {:error, :invalid_number, "This phone number is not valid"}
+        {:error, :invalid_number,
+         "This phone number is not valid. #{@carrier_reminder}"}
 
       {:error, reason} ->
         Logger.error("Carrier validation failed: #{inspect(reason)}")
-        {:error, :lookup_failed, "Unable to verify phone number. Please try again"}
+        {:error, :lookup_failed, "Unable to verify phone number. Please try again."}
     end
   end
 
