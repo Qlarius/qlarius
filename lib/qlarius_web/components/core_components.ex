@@ -866,8 +866,8 @@ defmodule QlariusWeb.CoreComponents do
         role={@role}
         class={[
           "absolute z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg",
-          "transition-[opacity,visibility] duration-150 ease-in-out",
-          "invisible opacity-0 data-[show]:visible data-[show]:opacity-100",
+          "transition-opacity duration-150 ease-in-out",
+          "hidden opacity-0",
           @class
         ]}
       >

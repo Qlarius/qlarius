@@ -155,47 +155,50 @@ defmodule Qlarius.Services.Twilio do
   end
 
   def validate_carrier(phone_number) do
-    cond do
-      skip_carrier_validation?() ->
-        Logger.warning("Carrier validation SKIPPED (dev mode)", phone_number: phone_number)
+    if skip_carrier_validation?() do
+      Logger.warning("Carrier validation SKIPPED (dev mode)", phone_number: phone_number)
 
-        {:ok,
-         %{
-           type: "mobile",
-           carrier_name: "DEV MODE - Validation Skipped",
-           country_code: "US",
-           valid: true,
-           mobile_country_code: nil,
-           mobile_network_code: nil,
-           national_format: phone_number,
-           error_code: nil
-         }}
+      {:ok,
+       %{
+         type: "mobile",
+         carrier_name: "DEV MODE - Validation Skipped",
+         country_code: "US",
+         valid: true,
+         mobile_country_code: nil,
+         mobile_network_code: nil,
+         national_format: phone_number,
+         error_code: nil
+       }}
+    else
+      do_validate_carrier_with_filter(phone_number)
+    end
+  end
 
-      not @filter_us_carriers ->
-        Logger.info("Carrier filtering disabled — accepting any verified number",
-          phone_number: phone_number
-        )
+  defp do_validate_carrier_with_filter(phone_number) do
+    if @filter_us_carriers do
+      do_validate_carrier(phone_number)
+    else
+      Logger.info("Carrier filtering disabled — accepting any verified number",
+        phone_number: phone_number
+      )
 
-        case lookup_phone_carrier(phone_number) do
-          {:ok, info} ->
-            {:ok, info}
+      case lookup_phone_carrier(phone_number) do
+        {:ok, info} ->
+          {:ok, info}
 
-          {:error, _reason} ->
-            {:ok,
-             %{
-               type: "mobile",
-               carrier_name: "Unknown",
-               country_code: "unknown",
-               valid: true,
-               mobile_country_code: nil,
-               mobile_network_code: nil,
-               national_format: phone_number,
-               error_code: nil
-             }}
-        end
-
-      true ->
-        do_validate_carrier(phone_number)
+        {:error, _reason} ->
+          {:ok,
+           %{
+             type: "mobile",
+             carrier_name: "Unknown",
+             country_code: "unknown",
+             valid: true,
+             mobile_country_code: nil,
+             mobile_network_code: nil,
+             national_format: phone_number,
+             error_code: nil
+           }}
+      end
     end
   end
 

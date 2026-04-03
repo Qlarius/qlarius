@@ -1172,7 +1172,10 @@ Hooks.Popover = {
     if (this.isOpen) return
     this.isOpen = true
 
-    this.contentEl.setAttribute("data-show", "")
+    this.contentEl.classList.remove("hidden")
+    requestAnimationFrame(() => {
+      this.contentEl.classList.remove("opacity-0")
+    })
     this.triggerEl.setAttribute("aria-expanded", "true")
 
     this.cleanupAutoUpdate = autoUpdate(this.triggerEl, this.contentEl, () => {
@@ -1195,8 +1198,13 @@ Hooks.Popover = {
     if (!this.isOpen) return
     this.isOpen = false
 
-    this.contentEl.removeAttribute("data-show")
+    this.contentEl.classList.add("opacity-0")
     this.triggerEl.setAttribute("aria-expanded", "false")
+
+    const duration = 150
+    setTimeout(() => {
+      if (!this.isOpen) this.contentEl.classList.add("hidden")
+    }, duration)
 
     if (this.cleanupAutoUpdate) {
       this.cleanupAutoUpdate()
