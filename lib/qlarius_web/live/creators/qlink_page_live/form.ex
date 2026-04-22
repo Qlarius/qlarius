@@ -42,6 +42,8 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     |> assign(
       form: to_form(changeset),
       page_title: "Edit Qlink Page",
+      active_tab: socket.assigns[:active_tab] || "basics",
+      dirty: false,
       links: links,
       sections: sections,
       recipients: recipients,
@@ -72,6 +74,8 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
       creator: creator,
       form: to_form(changeset),
       page_title: "New Qlink Page",
+      active_tab: "basics",
+      dirty: false,
       links: [],
       sections: [],
       recipients: recipients,
@@ -118,13 +122,22 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
     form = to_form(changeset)
 
-    {:noreply, assign(socket, :form, form)}
+    {:noreply, assign(socket, form: form, dirty: true)}
   end
 
   @impl true
   def handle_event("validate", _params, socket) do
     {:noreply, socket}
   end
+
+  @impl true
+  def handle_event("select_tab", %{"tab" => tab}, socket)
+      when tab in ["basics", "content", "style", "monetization"] do
+    {:noreply, assign(socket, :active_tab, tab)}
+  end
+
+  @impl true
+  def handle_event("select_tab", _params, socket), do: {:noreply, socket}
 
   @impl true
   def handle_event("select_social_platform", params, socket) do
@@ -182,6 +195,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
         socket
         |> assign(:social_links, social_links)
         |> assign(:social_links_data, social_links_data)
+        |> assign(:dirty, true)
         |> noreply()
       else
         {:noreply, socket}
@@ -207,6 +221,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
       |> assign(:used_social_platforms, used_platforms)
       |> assign(:social_links, social_links)
       |> assign(:social_links_data, social_links_data)
+      |> assign(:dirty, true)
       |> noreply()
     else
       {:noreply, socket}
@@ -235,6 +250,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     |> assign(:used_social_platforms, used_platforms)
     |> assign(:social_links, social_links)
     |> assign(:social_links_data, social_links_data)
+    |> assign(:dirty, true)
     |> noreply()
   end
 
@@ -572,6 +588,23 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
   defp delete_qlink_page_image(_), do: {:error, :not_found}
 
+  # Style tab helpers: read background_config from a form (preferred, reflects unsaved
+  # changes from phx-change="validate") or fall back to the persisted page struct.
+  defp bg_type(%Phoenix.HTML.Form{} = form), do: form |> bg_config() |> Map.get("type")
+  defp bg_type(%{background_config: %{"type" => t}}), do: t
+  defp bg_type(_), do: nil
+
+  defp bg_value(%Phoenix.HTML.Form{} = form), do: form |> bg_config() |> Map.get("value")
+  defp bg_value(%{background_config: %{"value" => v}}), do: v
+  defp bg_value(_), do: nil
+
+  defp bg_config(%Phoenix.HTML.Form{} = form) do
+    case form[:background_config].value do
+      %{} = m -> m
+      _ -> %{}
+    end
+  end
+
   defp save_page(socket, :edit, page_params, _all_params) do
     filename = ImageUpload.consume_upload(socket, :image, socket.assigns.page, CreatorImage)
 
@@ -595,9 +628,15 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
     case Qlink.update_page(socket.assigns.page, page_params_with_image) do
       {:ok, page} ->
+        page = Repo.preload(page, [:creator, :recipient])
+
+        # Stay on the edit screen; reset the form to the freshly-saved page so
+        # :dirty flips back to false (button becomes disabled until next change).
         socket
+        |> assign(:page, page)
+        |> assign(:form, to_form(Qlink.change_page(page)))
+        |> assign(:dirty, false)
         |> put_flash(:info, "Qlink page updated successfully")
-        |> push_navigate(to: ~p"/creators/#{page.creator_id}")
         |> noreply()
 
       {:error, %Ecto.Changeset{} = changeset} ->

@@ -74,6 +74,49 @@
                 class="space-y-6"
                 id="qlink-page-form"
               >
+                <%!-- Tab nav: server-driven via :active_tab; type="button" so clicks don't submit. --%>
+                <%= if @live_action == :edit do %>
+                  <div role="tablist" class="tabs tabs-boxed bg-base-200">
+                    <button
+                      type="button"
+                      role="tab"
+                      class={["tab", @active_tab == "basics" && "tab-active"]}
+                      phx-click="select_tab"
+                      phx-value-tab="basics"
+                    >
+                      Basics
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      class={["tab", @active_tab == "content" && "tab-active"]}
+                      phx-click="select_tab"
+                      phx-value-tab="content"
+                    >
+                      Content
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      class={["tab", @active_tab == "style" && "tab-active"]}
+                      phx-click="select_tab"
+                      phx-value-tab="style"
+                    >
+                      Style
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      class={["tab", @active_tab == "monetization" && "tab-active"]}
+                      phx-click="select_tab"
+                      phx-value-tab="monetization"
+                    >
+                      Monetization
+                    </button>
+                  </div>
+                <% end %>
+
+                <%= if @active_tab == "basics" do %>
                 <!-- Basic Information Section -->
                 <div>
                   <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
@@ -253,9 +296,10 @@
                     </div>
                   </div>
                 </div>
-                
-<!-- Sections and Blocks Management -->
-                <%= if @live_action == :edit && @page.id do %>
+                <% end %>
+
+                <%= if @active_tab == "content" && @live_action == :edit && @page.id do %>
+                <!-- Sections and Blocks Management -->
                   <div class="border-t border-base-300 pt-6">
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       <!-- Sections Column -->
@@ -349,45 +393,144 @@
                     </div>
                   </div>
                 <% end %>
-                
-<!-- Ad Revenue Recipient Section -->
-                <div class="border-t border-base-300 pt-6">
-                  <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                    <.icon name="hero-currency-dollar" class="w-5 h-5 mr-3 text-warning" /> Ad Revenue Recipient
-                  </h3>
 
-                  <div class="form-control max-w-md">
-                    <label class="label">
-                      <span class="label-text font-medium">Recipient</span>
-                    </label>
-                    <select
-                      name="qlink_page[recipient_id]"
-                      class="select select-bordered w-full"
-                    >
-                      <option value="">None (ads disabled)</option>
-                      <%= for recipient <- @recipients do %>
-                        <option
-                          value={recipient.id}
-                          selected={@form[:recipient_id].value == recipient.id || @page.recipient_id == recipient.id}
-                        >
-                          {recipient.name}
-                        </option>
-                      <% end %>
-                    </select>
-                    <label class="label">
-                      <span class="label-text-alt text-base-content/60">
-                        Who receives ad revenue splits when visitors engage ads on this page
-                      </span>
-                    </label>
+                <%= if @active_tab == "style" && @live_action == :edit && @page.id do %>
+                  <%!-- Style tab: writes background_config[type|value] (already cast on QlinkPage). --%>
+                  <div class="space-y-6">
+                    <h3 class="text-lg font-semibold text-base-content flex items-center">
+                      <.icon name="hero-paint-brush" class="w-5 h-5 mr-3 text-primary" /> Background
+                    </h3>
+
+                    <div class="form-control max-w-md">
+                      <label class="label">
+                        <span class="label-text font-medium">Type</span>
+                      </label>
+                      <select
+                        name="qlink_page[background_config][type]"
+                        class="select select-bordered w-full"
+                      >
+                        <option value="" selected={bg_type(@form) in [nil, ""]}>None (default)</option>
+                        <option value="solid" selected={bg_type(@form) == "solid"}>Solid color</option>
+                        <option value="gradient" selected={bg_type(@form) == "gradient"}>Gradient</option>
+                        <option value="image" selected={bg_type(@form) == "image"}>Image URL</option>
+                      </select>
+                      <label class="label">
+                        <span class="label-text-alt text-base-content/60">
+                          Save to apply. Inputs below match the selected type.
+                        </span>
+                      </label>
+                    </div>
+
+                    <%= case bg_type(@form) do %>
+                      <% "solid" -> %>
+                        <div class="form-control max-w-md">
+                          <label class="label">
+                            <span class="label-text font-medium">Color</span>
+                          </label>
+                          <input
+                            type="color"
+                            name="qlink_page[background_config][value]"
+                            value={bg_value(@form) || "#ffffff"}
+                            class="h-12 w-24 rounded border border-base-300"
+                          />
+                        </div>
+                      <% "gradient" -> %>
+                        <div class="form-control max-w-md">
+                          <label class="label">
+                            <span class="label-text font-medium">CSS Gradient</span>
+                          </label>
+                          <input
+                            type="text"
+                            name="qlink_page[background_config][value]"
+                            value={bg_value(@form) || ""}
+                            class="input input-bordered w-full"
+                            placeholder="linear-gradient(135deg, #f5d142 0%, #e8533f 100%)"
+                          />
+                          <label class="label">
+                            <span class="label-text-alt text-base-content/60">
+                              Any valid CSS background value (linear-gradient, radial-gradient, etc.).
+                            </span>
+                          </label>
+                        </div>
+                      <% "image" -> %>
+                        <div class="form-control max-w-md">
+                          <label class="label">
+                            <span class="label-text font-medium">Image URL</span>
+                          </label>
+                          <input
+                            type="url"
+                            name="qlink_page[background_config][value]"
+                            value={bg_value(@form) || ""}
+                            class="input input-bordered w-full"
+                            placeholder="https://..."
+                          />
+                          <label class="label">
+                            <span class="label-text-alt text-base-content/60">
+                              Rendered with cover/center.
+                            </span>
+                          </label>
+                        </div>
+                      <% _ -> %>
+                        <input type="hidden" name="qlink_page[background_config][value]" value="" />
+                    <% end %>
+
+                    <%!-- Future-proof placeholders. Add real controls here as designs land. --%>
+                    <div class="border-t border-base-300 pt-4 opacity-60">
+                      <h4 class="font-medium">Buttons (coming soon)</h4>
+                      <h4 class="font-medium mt-2">Typography (coming soon)</h4>
+                      <h4 class="font-medium mt-2">Theme presets (coming soon)</h4>
+                    </div>
                   </div>
-                </div>
+                <% end %>
+
+                <%= if @active_tab == "monetization" && @live_action == :edit && @page.id do %>
+                <!-- Ad Revenue Recipient Section -->
+                  <div>
+                    <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+                      <.icon name="hero-currency-dollar" class="w-5 h-5 mr-3 text-warning" /> Ad Revenue Recipient
+                    </h3>
+
+                    <div class="form-control max-w-md">
+                      <label class="label">
+                        <span class="label-text font-medium">Recipient</span>
+                      </label>
+                      <select
+                        name="qlink_page[recipient_id]"
+                        class="select select-bordered w-full"
+                      >
+                        <option value="">None (ads disabled)</option>
+                        <%= for recipient <- @recipients do %>
+                          <option
+                            value={recipient.id}
+                            selected={@form[:recipient_id].value == recipient.id || @page.recipient_id == recipient.id}
+                          >
+                            {recipient.name}
+                          </option>
+                        <% end %>
+                      </select>
+                      <label class="label">
+                        <span class="label-text-alt text-base-content/60">
+                          Who receives ad revenue splits when visitors engage ads on this page
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                <% end %>
 
                 
 <!-- Form Actions -->
+                <%!-- Disable Update on :edit when no pending changes; :new is always enabled --%>
                 <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-base-300">
-                  <.button class="btn btn-primary flex-1 sm:flex-none">
+                  <.button
+                    class="btn btn-primary flex-1 sm:flex-none"
+                    disabled={@live_action == :edit && !@dirty}
+                  >
                     <.icon name="hero-check" class="w-4 h-4 mr-2" />
-                    {if @live_action == :edit, do: "Update", else: "Create"} Page
+                    {cond do
+                      @live_action != :edit -> "Create Page"
+                      @dirty -> "Update Page"
+                      true -> "No Changes"
+                    end}
                   </.button>
 
                   <.link
