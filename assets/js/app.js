@@ -24,7 +24,7 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import {hooks as colocatedHooks} from "phoenix-colocated/qlarius"
-import {computePosition, flip, shift, offset, arrow, autoUpdate} from "@floating-ui/dom"
+import {computePosition, flip, shift, offset, arrow, size, autoUpdate} from "@floating-ui/dom"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let Hooks = {}
@@ -1122,8 +1122,23 @@ Hooks.Popover = {
     this.placement = this.el.dataset.placement || "bottom"
     this.triggerType = this.el.dataset.trigger || "click"
     this.offsetPx = parseInt(this.el.dataset.offset || "8", 10)
+    this.shiftPadding = parseInt(this.el.getAttribute("data-shift-padding") || "8", 10) || 8
+    this.positionStrategy = this.el.dataset.positionStrategy || "absolute"
+    this.arrowAlign = (this.el.dataset.popoverArrowAlign || "reference").toLowerCase()
+    this.flipEnabled = this.el.getAttribute("data-flip") !== "false"
     this.isOpen = false
     this.cleanupAutoUpdate = null
+
+    this._runPosition = () => {
+      return computePosition(this.triggerEl, this.contentEl, {
+        strategy: this.positionStrategy,
+        placement: this.placement,
+        middleware: this._buildMiddleware()
+      }).then(({ x, y, placement, middlewareData }) => {
+        Object.assign(this.contentEl.style, { left: `${x}px`, top: `${y}px` })
+        this._positionArrow(placement, middlewareData)
+      })
+    }
 
     this.show = this.show.bind(this)
     this.hide = this.hide.bind(this)
@@ -1146,18 +1161,68 @@ Hooks.Popover = {
     }
   },
 
+  _syncToggleLabels() {
+    if (!this.triggerEl) return
+    const a = this.triggerEl.querySelector('[data-popover-toggle-label="show"]')
+    const b = this.triggerEl.querySelector('[data-popover-toggle-label="hide"]')
+    if (!a || !b) return
+    a.classList.toggle("hidden", this.isOpen)
+    b.classList.toggle("hidden", !this.isOpen)
+  },
+
   _buildMiddleware() {
-    const mw = [offset(this.offsetPx), flip(), shift({ padding: 8 })]
-    if (this.arrowEl) mw.push(arrow({ element: this.arrowEl }))
+    const p = this.shiftPadding
+    // shared padding for shift+size: extra top (top* + fixed) keeps the panel in the viewport; size always
+    // sets maxHeight—if FUI returns 0 (first frame), a small fallback still caps height (avoids top overflow)
+    const padding = { top: p + 32, right: p, bottom: p, left: p }
+    const mw = [offset(this.offsetPx)]
+    if (this.flipEnabled) mw.push(flip())
+    mw.push(shift({ padding, rootBoundary: "viewport" }))
+    mw.push(
+      size({
+        apply: ({ availableWidth, availableHeight, elements }) => {
+          const w = Math.max(0, availableWidth)
+          let h = Math.max(0, availableHeight)
+          if (h === 0 && typeof window !== "undefined") {
+            h = Math.max(0, Math.min(240, window.innerHeight * 0.35 - 8))
+          }
+          if (w > 0) elements.floating.style.maxWidth = `${w}px`
+          else elements.floating.style.removeProperty("max-width")
+          elements.floating.style.maxHeight = `${h}px`
+        },
+        padding
+      })
+    )
+    if (this.arrowEl) {
+      const pl = this.placement || ""
+      const isTopOrBottom = /^(top|bottom)(-|$)/.test(pl)
+      if (this.arrowAlign !== "end" || !isTopOrBottom) {
+        mw.push(arrow({ element: this.arrowEl, padding: 4 }))
+      }
+    }
     return mw
   },
 
   _positionArrow(placement, middlewareData) {
     if (!this.arrowEl) return
+    const mainSide = placement.split("-")[0]
+    if (this.arrowAlign === "end" && (mainSide === "top" || mainSide === "bottom")) {
+      this.arrowEl.style.top = "auto"
+      this.arrowEl.style.left = "auto"
+      this.arrowEl.style.right = "0.75rem"
+      if (mainSide === "top") {
+        this.arrowEl.style.bottom = "-4px"
+        this.arrowEl.dataset.side = "bottom"
+      } else {
+        this.arrowEl.style.bottom = "auto"
+        this.arrowEl.style.top = "-4px"
+        this.arrowEl.dataset.side = "top"
+      }
+      return
+    }
     const { x: ax, y: ay } = middlewareData.arrow || {}
-    const side = placement.split("-")[0]
-    const staticSide = { top: "bottom", right: "left", bottom: "top", left: "right" }[side]
-
+    const staticSide = { top: "bottom", right: "left", bottom: "top", left: "right" }[mainSide]
+    if (!staticSide) return
     Object.assign(this.arrowEl.style, {
       left: ax != null ? `${ax}px` : "",
       top: ay != null ? `${ay}px` : "",
@@ -1174,19 +1239,13 @@ Hooks.Popover = {
 
     this.contentEl.classList.remove("hidden")
     requestAnimationFrame(() => {
+      if (!this.isOpen) return
       this.contentEl.classList.remove("opacity-0")
+      // next frame: unhidden panel has real size before first computePosition
+      this.cleanupAutoUpdate = autoUpdate(this.triggerEl, this.contentEl, this._runPosition)
     })
     this.triggerEl.setAttribute("aria-expanded", "true")
-
-    this.cleanupAutoUpdate = autoUpdate(this.triggerEl, this.contentEl, () => {
-      computePosition(this.triggerEl, this.contentEl, {
-        placement: this.placement,
-        middleware: this._buildMiddleware()
-      }).then(({ x, y, placement, middlewareData }) => {
-        Object.assign(this.contentEl.style, { left: `${x}px`, top: `${y}px` })
-        this._positionArrow(placement, middlewareData)
-      })
-    })
+    this._syncToggleLabels()
 
     if (this.triggerType === "click") {
       document.addEventListener("click", this.onClickOutside, true)
@@ -1200,10 +1259,17 @@ Hooks.Popover = {
 
     this.contentEl.classList.add("opacity-0")
     this.triggerEl.setAttribute("aria-expanded", "false")
+    this._syncToggleLabels()
 
     const duration = 150
     setTimeout(() => {
-      if (!this.isOpen) this.contentEl.classList.add("hidden")
+      if (!this.isOpen) {
+        this.contentEl.classList.add("hidden")
+        // Clear FUI size after display:none; clearing during opacity fade re-layouts
+        // to full intrinsic height and can flash (border/shadow) while still painted
+        this.contentEl.style.removeProperty("max-width")
+        this.contentEl.style.removeProperty("max-height")
+      }
     }, duration)
 
     if (this.cleanupAutoUpdate) {
@@ -1233,18 +1299,14 @@ Hooks.Popover = {
   },
 
   updated() {
-    if (this.isOpen && this.cleanupAutoUpdate) {
-      this.cleanupAutoUpdate()
-      this.cleanupAutoUpdate = autoUpdate(this.triggerEl, this.contentEl, () => {
-        computePosition(this.triggerEl, this.contentEl, {
-          placement: this.placement,
-          middleware: this._buildMiddleware()
-        }).then(({ x, y, placement, middlewareData }) => {
-          Object.assign(this.contentEl.style, { left: `${x}px`, top: `${y}px` })
-          this._positionArrow(placement, middlewareData)
-        })
-      })
-    }
+    if (!this.isOpen || !this.cleanupAutoUpdate) return
+    this.cleanupAutoUpdate()
+    // next frame, post-patch: same timing as show()
+    requestAnimationFrame(() => {
+      if (this.isOpen) {
+        this.cleanupAutoUpdate = autoUpdate(this.triggerEl, this.contentEl, this._runPosition)
+      }
+    })
   },
 
   destroyed() {

@@ -322,6 +322,23 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   defp sort_direction("desc"), do: :desc
   defp sort_direction(_), do: :desc
 
+  # Heuristic: matches ~3 line-clamp at text-xs without measuring DOM.
+  defp description_exceeds_preview?(nil), do: false
+
+  defp description_exceeds_preview?(description) do
+    t = String.trim(to_string(description))
+    line_blocks = String.split(t, "\n", trim: true)
+
+    t != "" and
+      (String.length(t) > 120 or length(line_blocks) > 3)
+  end
+
+  defp description_preview_text(description) do
+    (description || "")
+    |> String.trim()
+    |> String.replace("\n", " ")
+  end
+
   # Returns {credit, active_tiqit_count} for a tiqit class based on its scope.
   # piece-level tiqits never apply credit; group-level uses group credit;
   # catalog-level uses the broader catalog credit.

@@ -48,17 +48,16 @@
     <div class="flex-1 bg-base-100 text-base-content min-h-0 flex flex-col md:!flex-row">
       <%!-- Selected content piece - STATIONARY --%>
       <div class="w-full md:!w-1/2 md:p-5 flex flex-col flex-none overflow-visible md:overflow-y-auto">
-        <div class="bg-base-100 rounded-lg p-4 flex-shrink-0">
-          <div class="flex flex-col">
+        <div class="bg-base-100 rounded-lg p-4 flex-shrink-0 min-w-0">
+          <div class="flex flex-row gap-3 sm:gap-4 items-end">
             <img
               src={content_image_url(@selected_piece, @group)}
               alt={@selected_piece.title}
-              style="max-height: 200px; max-width: 100%; border-radius: 0.5rem;"
-              class="mb-4 self-center"
+              class="shrink-0 h-auto w-auto max-h-[200px] object-contain rounded-lg max-w-[min(6.5rem,42%)] sm:max-w-[12rem] md:max-w-[15rem] lg:max-w-[18rem] xl:max-w-[20rem]"
             />
-            <div>
+            <div class="min-w-0 flex-1 flex flex-col min-h-0">
               <p class="text-lg font-semibold mb-1 leading-tight">{@selected_piece.title}</p>
-              <div class="flex items-center gap-3 text-base-content/50 text-xs mb-2">
+              <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-base-content/50 text-xs">
                 <span class="flex items-center gap-1">
                   <.icon name="hero-clock" class="w-3 h-3" />{@selected_piece.duration}
                 </span>
@@ -66,16 +65,48 @@
                   <.icon name="hero-calendar" class="w-3 h-3" />{Calendar.strftime(@selected_piece.inserted_at, "%b %d, %Y")}
                 </span>
               </div>
-              <div class="relative">
-                <p class="text-xs text-base-content/70 max-h-[6rem] overflow-y-auto pr-3" style="white-space: pre-line; line-height: 1.15rem;">{String.trim(@selected_piece.description || "")}</p>
-                <div class="absolute right-0 top-0 bottom-0 w-2 flex flex-col items-center justify-center pointer-events-none opacity-40">
-                  <.icon name="hero-chevron-up-mini" class="w-3 h-3" />
-                  <div class="flex-1 border-r border-base-content/20 border-dashed"></div>
-                  <.icon name="hero-chevron-down-mini" class="w-3 h-3" />
-                </div>
-              </div>
             </div>
           </div>
+          <%= if String.trim(@selected_piece.description || "") != "" do %>
+            <div class="mt-3 relative w-full min-w-0 min-h-0">
+              <p
+                class="text-xs text-base-content/70 line-clamp-3 [overflow-wrap:anywhere] break-words w-full min-w-0"
+                style="line-height: 1.15rem;"
+              >
+                {description_preview_text(@selected_piece.description)}
+              </p>
+              <%= if description_exceeds_preview?(@selected_piece.description) do %>
+                <%!-- fixed+top, flip off; :content slot flush to first child (core_components popover :class). --%>
+                <.popover
+                  id={"arcade-selected-desc-#{@selected_piece.id}"}
+                  placement="top-end"
+                  position_strategy="fixed"
+                  arrow_align="end"
+                  trigger_type="click"
+                  offset={4}
+                  shift_padding={28}
+                  flip={false}
+                  root_class="absolute left-0 right-0 bottom-0 z-20 w-full min-w-0 block pointer-events-none"
+                  trigger_class="group w-full min-w-0 flex justify-end pointer-events-none *:pointer-events-auto"
+                  class="w-auto min-w-0 !box-border !pointer-events-auto shadow-xl flex flex-col min-h-0 overflow-hidden"
+                >
+                  <:trigger>
+                    <button
+                      type="button"
+                      class="btn btn-xs h-auto min-h-0 !bg-base-200 px-2 py-0.5 font-medium !text-primary no-underline hover:no-underline hover:!bg-base-300 !border border-base-300 rounded-md whitespace-nowrap shadow-sm"
+                    >
+                      <span data-popover-toggle-label="show">Show full</span>
+                      <span data-popover-toggle-label="hide" class="hidden">Hide full</span>
+                    </button>
+                  </:trigger>
+                  <:content><p
+                    class="p-2 sm:p-2.5 min-h-0 flex-1 overflow-y-auto text-xs sm:text-sm text-base-content/90 leading-snug whitespace-pre-line [overflow-wrap:anywhere]"
+                    style="line-height: 1.2rem;"
+                  >{String.trim(@selected_piece.description || "")}</p></:content>
+                </.popover>
+              <% end %>
+            </div>
+          <% end %>
 
           <div class="flex flex-col justify-between mt-6 gap-4 align-middle text-center">
             <%= if Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>

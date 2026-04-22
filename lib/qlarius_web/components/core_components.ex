@@ -837,7 +837,26 @@ defmodule QlariusWeb.CoreComponents do
     doc: "how the popover is activated"
 
   attr :offset, :integer, default: 8, doc: "pixel distance from trigger element"
-  attr :class, :string, default: nil, doc: "additional CSS classes for the content panel"
+
+  attr :position_strategy, :string, default: "absolute", values: ~w(absolute fixed),
+    doc:
+      "use fixed to position vs viewport/iframe and avoid clipping from overflow auto/hidden parents (per Floating UI strategy)"
+
+  attr :arrow_align, :string, default: "reference", values: ~w(reference end),
+    doc:
+      "end: keep the popover tail on the bottom-right (for top placement) / top-right (for bottom) to point at the trigger"
+
+  attr :shift_padding, :integer, default: 8,
+    doc: "per-edge min inset from the viewport; Popover hook adds extra top for top* placements (see assets/js/app.js)"
+
+  attr :flip, :boolean, default: true, doc: "if false, disable flip middleware so placement stays on the initial side (e.g. top stays top)"
+
+  attr :root_class, :string, default: "relative inline-block", doc: "class on the hook root (e.g. block w-full to size the popover content panel to a wide ancestor)"
+
+  attr :trigger_class, :string, default: "group", doc: "class on the [data-popover-trigger] element that wraps the trigger slot"
+
+  attr :class, :string, default: nil,
+    doc: "content panel; if you add flex, keep :content opening flush with the first element (whitespace = stray flex strut / extra top gap)"
 
   attr :role, :string,
     default: "dialog",
@@ -845,7 +864,7 @@ defmodule QlariusWeb.CoreComponents do
     doc: "ARIA role for the content panel"
 
   slot :trigger, required: true, doc: "the element that opens the popover"
-  slot :content, required: true, doc: "the popover content"
+  slot :content, required: true, doc: "content inside the panel (see :class for flex/whitespace)"
 
   def popover(assigns) do
     ~H"""
@@ -855,9 +874,19 @@ defmodule QlariusWeb.CoreComponents do
       data-placement={@placement}
       data-trigger={@trigger_type}
       data-offset={to_string(@offset)}
-      class="relative inline-block"
+      data-shift-padding={to_string(@shift_padding)}
+      data-flip={if @flip, do: "true", else: "false"}
+      data-position-strategy={@position_strategy}
+      data-popover-arrow-align={@arrow_align}
+      class={@root_class}
     >
-      <div data-popover-trigger aria-haspopup="true" aria-expanded="false" aria-controls={"#{@id}-content"}>
+      <div
+        class={@trigger_class}
+        data-popover-trigger
+        aria-haspopup="true"
+        aria-expanded="false"
+        aria-controls={"#{@id}-content"}
+      >
         {render_slot(@trigger)}
       </div>
       <div
@@ -865,7 +894,8 @@ defmodule QlariusWeb.CoreComponents do
         data-popover-content
         role={@role}
         class={[
-          "absolute z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg",
+          if(@position_strategy == "fixed", do: "fixed", else: "absolute"),
+          "z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg",
           "transition-opacity duration-150 ease-in-out",
           "hidden opacity-0",
           @class
