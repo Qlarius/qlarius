@@ -46,7 +46,9 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
       default_tiqit_class = ContentPiece.default_tiqit_class(piece)
 
-      Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{scope.user.id}")
+      if connected?(socket) && scope && scope.user do
+        Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{scope.user.id}")
+      end
 
       force_theme = Map.get(params, "force_theme", "light")
 

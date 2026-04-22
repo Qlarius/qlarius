@@ -6,7 +6,11 @@ defmodule QlariusWeb.Widgets.WalletLive do
   def mount(_params, _session, socket) do
     user = socket.assigns.current_scope.user
     balance = Wallets.get_user_current_balance(user)
-    Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{user.id}")
+
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{user.id}")
+    end
+
     {:ok, assign(socket, balance: balance)}
   end
 

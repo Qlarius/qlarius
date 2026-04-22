@@ -800,7 +800,7 @@ defmodule QlariusWeb.CoreComponents do
   @doc """
   Renders a popover with configurable placement, trigger behavior, and content.
 
-  Positioning is handled client-side by Floating UI via the `Popover` JS hook.
+  Positioning: Floating UI (`Popover` in `assets/js`). `floating_width_cap_frac_md` optionally caps `max-width` on wide screens (two-column + fixed).
 
   ## Examples
 
@@ -847,7 +847,7 @@ defmodule QlariusWeb.CoreComponents do
       "end: keep the popover tail on the bottom-right (for top placement) / top-right (for bottom) to point at the trigger"
 
   attr :shift_padding, :integer, default: 8,
-    doc: "per-edge min inset from the viewport; Popover hook adds extra top for top* placements (see assets/js/app.js)"
+    doc: "viewport edge inset for shift/size; hook uses extra top for top* placements"
 
   attr :flip, :boolean, default: true, doc: "if false, disable flip middleware so placement stays on the initial side (e.g. top stays top)"
 
@@ -856,15 +856,19 @@ defmodule QlariusWeb.CoreComponents do
   attr :trigger_class, :string, default: "group", doc: "class on the [data-popover-trigger] element that wraps the trigger slot"
 
   attr :class, :string, default: nil,
-    doc: "content panel; if you add flex, keep :content opening flush with the first element (whitespace = stray flex strut / extra top gap)"
+    doc: "content panel classes; with flex, open :content immediately before the first child (no leading whitespace)"
 
   attr :role, :string,
     default: "dialog",
     values: ["dialog", "tooltip"],
     doc: "ARIA role for the content panel"
 
+  attr :floating_width_cap_frac_md, :any, default: nil,
+    doc:
+      "md+ (768px+): min(available, viewport*frac - 80) for max-width, e.g. 0.5 in a 50/50 two-column row"
+
   slot :trigger, required: true, doc: "the element that opens the popover"
-  slot :content, required: true, doc: "content inside the panel (see :class for flex/whitespace)"
+  slot :content, required: true, doc: "panel body; with flex on the panel, keep :content flush to the first node"
 
   def popover(assigns) do
     ~H"""
@@ -878,6 +882,7 @@ defmodule QlariusWeb.CoreComponents do
       data-flip={if @flip, do: "true", else: "false"}
       data-position-strategy={@position_strategy}
       data-popover-arrow-align={@arrow_align}
+      data-floating-width-cap-frac-md={if @floating_width_cap_frac_md, do: to_string(@floating_width_cap_frac_md)}
       class={@root_class}
     >
       <div
@@ -905,7 +910,7 @@ defmodule QlariusWeb.CoreComponents do
         <div
           data-popover-arrow
           class={[
-            "absolute w-2 h-2 bg-base-100 rotate-45",
+            "absolute w-2 h-2 z-10 bg-base-100 rotate-45",
             "data-[side=bottom]:border-b data-[side=bottom]:border-r data-[side=bottom]:border-base-300",
             "data-[side=top]:border-t data-[side=top]:border-l data-[side=top]:border-base-300",
             "data-[side=left]:border-b data-[side=left]:border-l data-[side=left]:border-base-300",

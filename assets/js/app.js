@@ -1172,8 +1172,7 @@ Hooks.Popover = {
 
   _buildMiddleware() {
     const p = this.shiftPadding
-    // shared padding for shift+size: extra top (top* + fixed) keeps the panel in the viewport; size always
-    // sets maxHeight—if FUI returns 0 (first frame), a small fallback still caps height (avoids top overflow)
+    // shift+size share this padding; extra top for top*+fixed. size: always maxHeight; h=0 uses small fallback
     const padding = { top: p + 32, right: p, bottom: p, left: p }
     const mw = [offset(this.offsetPx)]
     if (this.flipEnabled) mw.push(flip())
@@ -1181,7 +1180,21 @@ Hooks.Popover = {
     mw.push(
       size({
         apply: ({ availableWidth, availableHeight, elements }) => {
-          const w = Math.max(0, availableWidth)
+          let w = Math.max(0, availableWidth)
+          const fr = this.el.getAttribute("data-floating-width-cap-frac-md")
+          if (
+            fr != null &&
+            fr !== "" &&
+            typeof window !== "undefined" &&
+            window.matchMedia("(min-width: 768px)").matches
+          ) {
+            const frac = parseFloat(fr, 10)
+            if (Number.isFinite(frac) && frac > 0) {
+              // half-column cap: 80px inset from column split (tune in one place)
+              const cap = Math.max(0, window.innerWidth * frac - 80)
+              w = Math.min(w, cap)
+            }
+          }
           let h = Math.max(0, availableHeight)
           if (h === 0 && typeof window !== "undefined") {
             h = Math.max(0, Math.min(240, window.innerHeight * 0.35 - 8))
@@ -1241,8 +1254,7 @@ Hooks.Popover = {
     requestAnimationFrame(() => {
       if (!this.isOpen) return
       this.contentEl.classList.remove("opacity-0")
-      // next frame: unhidden panel has real size before first computePosition
-      this.cleanupAutoUpdate = autoUpdate(this.triggerEl, this.contentEl, this._runPosition)
+      this.cleanupAutoUpdate = autoUpdate(this.triggerEl, this.contentEl, this._runPosition) // first measure after unhide
     })
     this.triggerEl.setAttribute("aria-expanded", "true")
     this._syncToggleLabels()
@@ -1265,8 +1277,7 @@ Hooks.Popover = {
     setTimeout(() => {
       if (!this.isOpen) {
         this.contentEl.classList.add("hidden")
-        // Clear FUI size after display:none; clearing during opacity fade re-layouts
-        // to full intrinsic height and can flash (border/shadow) while still painted
+        // clear only after display:none; during fade, dropped max-* reflows full height and flashes
         this.contentEl.style.removeProperty("max-width")
         this.contentEl.style.removeProperty("max-height")
       }
@@ -1301,7 +1312,6 @@ Hooks.Popover = {
   updated() {
     if (!this.isOpen || !this.cleanupAutoUpdate) return
     this.cleanupAutoUpdate()
-    // next frame, post-patch: same timing as show()
     requestAnimationFrame(() => {
       if (this.isOpen) {
         this.cleanupAutoUpdate = autoUpdate(this.triggerEl, this.contentEl, this._runPosition)

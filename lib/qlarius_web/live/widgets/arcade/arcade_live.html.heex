@@ -76,19 +76,20 @@
                 {description_preview_text(@selected_piece.description)}
               </p>
               <%= if description_exceeds_preview?(@selected_piece.description) do %>
-                <%!-- fixed+top, flip off; :content slot flush to first child (core_components popover :class). --%>
+                <%!-- top-start, full ref, end tail, 0.5 cap; :content tight to first node. --%>
                 <.popover
                   id={"arcade-selected-desc-#{@selected_piece.id}"}
-                  placement="top-end"
+                  placement="top-start"
                   position_strategy="fixed"
                   arrow_align="end"
+                  floating_width_cap_frac_md="0.5"
                   trigger_type="click"
                   offset={4}
                   shift_padding={28}
                   flip={false}
                   root_class="absolute left-0 right-0 bottom-0 z-20 w-full min-w-0 block pointer-events-none"
                   trigger_class="group w-full min-w-0 flex justify-end pointer-events-none *:pointer-events-auto"
-                  class="w-auto min-w-0 !box-border !pointer-events-auto shadow-xl flex flex-col min-h-0 overflow-hidden"
+                  class="w-auto min-w-0 !box-border !pointer-events-auto shadow-xl flex flex-col min-h-0"
                 >
                   <:trigger>
                     <button

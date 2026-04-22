@@ -54,8 +54,9 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
           Map.put(piece, :duration, duration)
         end)
 
-      # Subscribe to wallet updates only once
-      Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{scope.user.id}")
+      if connected?(socket) && scope && scope.user do
+        Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{scope.user.id}")
+      end
 
       force_theme = Map.get(params, "force_theme")
       show_title = Map.get(params, "show_title", "true") != "false"
