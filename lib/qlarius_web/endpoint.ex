@@ -20,12 +20,19 @@ defmodule QlariusWeb.Endpoint do
 
   # Based on https://elixirforum.com/t/how-to-embed-a-liveview-via-iframe/65066
   # This isn't a good long-term solution; I just need to get the demo working.
+  # Both transports must bypass the origin check: widgets embed in
+  # third-party pages whose origin is unknown at deploy time, and when
+  # the browser (or a restrictive network) falls back from WS to
+  # longpoll the request would otherwise be rejected against PHX_HOST.
   socket "/widgets/live", Phoenix.LiveView.Socket,
     websocket: [
       connect_info: [:x_headers, session: @session_options],
       check_origin: false
     ],
-    longpoll: [connect_info: [:x_headers, session: @session_options]]
+    longpoll: [
+      connect_info: [:x_headers, session: @session_options],
+      check_origin: false
+    ]
 
   # Serve at "/" the static files from "priv/static" directory.
   #
@@ -109,18 +116,24 @@ defmodule QlariusWeb.Endpoint do
     @cors_http_origins ++ Application.get_env(:qlarius, :cors_extension_ids, [])
   end
 
-  # Allowed WebSocket origins. Includes all production hosts (qadabra.app
-  # apex and subdomains, qlinkin.bio, legacy qlarius.com and
-  # qlarius.gigalixirapp.com), dev hosts (localhost, 127.0.0.1, 10.0.2.2
-  # for Android emulator), and all chrome-extension:// origins so the
-  # browser extension can open LiveView sockets from its iframe.
+  # Allowed WebSocket origins. Accepts:
+  #
+  #   * The Qadabra apex and any `*.qadabra.app` subdomain (suffix-matched
+  #     against `.qadabra.app`, so new subdomains are auto-admitted — this
+  #     mirrors the shared `.qadabra.app` session cookie domain scoped by
+  #     `QlariusWeb.Plugs.HostAwareSession`).
+  #   * The anonymous share surface `qlinkin.bio` (+ `www.`) so public
+  #     Qlink pages can hold an LV connection even though they're
+  #     session-ephemeral.
+  #   * Legacy `qlarius.com` / `www.qlarius.com` during the rebrand.
+  #   * Any `*.gigalixirapp.com` for the hosted platform.
+  #   * Dev hosts (localhost, 127.0.0.1, 10.0.2.2 for Android emulator).
+  #   * Every `chrome-extension://` origin so the browser extension can
+  #     open LiveView sockets from its iframe.
   def check_ws_origin(uri) do
     host = uri.host || ""
 
     host in [
-      "qadabra.app",
-      "www.qadabra.app",
-      "qlink.qadabra.app",
       "qlinkin.bio",
       "www.qlinkin.bio",
       "qlarius.gigalixirapp.com",
@@ -129,7 +142,8 @@ defmodule QlariusWeb.Endpoint do
       "localhost",
       "127.0.0.1",
       "10.0.2.2"
-    ] or String.ends_with?(host, ".gigalixirapp.com") or uri.scheme == "chrome-extension"
+    ] or host == "qadabra.app" or String.ends_with?(host, ".qadabra.app") or
+      String.ends_with?(host, ".gigalixirapp.com") or uri.scheme == "chrome-extension"
   end
 
   defp set_csp(conn, _) do
