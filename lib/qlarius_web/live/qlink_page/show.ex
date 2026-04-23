@@ -777,6 +777,35 @@ defmodule QlariusWeb.QlinkPage.Show do
     end
   end
 
+  @doc """
+  One column of the Sponster announcer-bar stats box (WALLET / ADS /
+  OFFERED). Kept as a component so the authed and anon branches of
+  the bar can share exact markup — only the wrapping element
+  (`<div>` vs. `<.link>`) and the values differ.
+  """
+  attr :label, :string, required: true
+  attr :value, :string, required: true
+  attr :value_class, :string, required: true
+
+  def sponster_stat_cell(assigns) do
+    ~H"""
+    <div class="flex flex-col items-center justify-center w-full" style="padding: 6px 0;">
+      <div
+        class={@value_class}
+        style="font-size: 16px; line-height: 16px; letter-spacing: 0.4px;"
+      >
+        {@value}
+      </div>
+      <div
+        class="text-base-content/40 font-medium"
+        style="font-size: 8px; line-height: 10px; letter-spacing: 0.2px;"
+      >
+        {@label}
+      </div>
+    </div>
+    """
+  end
+
   attr :link, :map, required: true
   attr :recipient, :map, default: nil
   attr :current_scope, :map, default: nil
