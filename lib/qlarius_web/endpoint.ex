@@ -85,8 +85,12 @@ defmodule QlariusWeb.Endpoint do
     "https://www.qlinkin.bio"
   ]
 
+  # CORSPlug 3.x accepts a 0-arity function for `:origin` and invokes it
+  # per request, which lets us merge runtime-configured extension IDs
+  # without recompiling. MFA tuples are NOT supported — passing one
+  # crashes on every request with a FunctionClauseError.
   plug CORSPlug,
-    origin: {__MODULE__, :cors_origins, []},
+    origin: &__MODULE__.cors_origins/0,
     headers: ["*"],
     methods: ["GET", "POST"],
     credentials: true
