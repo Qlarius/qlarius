@@ -26,8 +26,15 @@ defmodule QlariusWeb.UserAuth do
       |> maybe_write_remember_me_cookie(token, params)
       |> track_sign_in(user)
 
-    # Don't redirect to public pages like Qlink pages after login
-    if user_return_to && !String.starts_with?(user_return_to, "/@") do
+    # Honor any `:user_return_to` in session. The implicit-store path
+    # (`maybe_store_return_to/1`, below) still avoids stashing Qlink
+    # `/@alias` paths so stale sessions don't redirect creators to
+    # their own pages; but explicit return_to values — set by the
+    # `AutoLoginController` from the sanitized `?return_to=` query
+    # param — ARE trusted here, so cross-domain "Connect your wallet"
+    # handoffs from `qlinkin.bio/@alias` land back on
+    # `qlink.qadabra.app/@alias` after sign-in.
+    if user_return_to do
       redirect(conn, to: user_return_to)
     else
       redirect(conn, to: ~p"/")
@@ -111,10 +118,20 @@ defmodule QlariusWeb.UserAuth do
 
     if conn.assigns[:current_scope] && mode != "proxy" do
       conn
-      |> redirect(to: signed_in_path(conn))
+      |> redirect(to: already_signed_in_redirect_path(conn.params))
       |> halt()
     else
       conn
+    end
+  end
+
+  # Honors `?return_to=` on the login entry point so already-logged-in
+  # visitors arriving via a cross-domain CTA still land on the page
+  # they were headed for, not the generic signed-in home page.
+  defp already_signed_in_redirect_path(params) do
+    case Qlarius.Qlink.Urls.sanitize_return_to(Map.get(params, "return_to")) do
+      nil -> ~p"/"
+      path -> path
     end
   end
 
@@ -155,8 +172,6 @@ defmodule QlariusWeb.UserAuth do
   end
 
   defp maybe_store_return_to(conn), do: conn
-
-  defp signed_in_path(_conn), do: ~p"/"
 
   def on_mount(:mount_current_scope, _params, session, socket) do
     {:cont, mount_current_scope(socket, session)}
@@ -211,7 +226,7 @@ defmodule QlariusWeb.UserAuth do
     mode = Map.get(params, "mode")
 
     if socket.assigns.current_scope && socket.assigns.current_scope.true_user && mode != "proxy" do
-      {:halt, Phoenix.LiveView.redirect(socket, to: signed_in_path(socket))}
+      {:halt, Phoenix.LiveView.redirect(socket, to: already_signed_in_redirect_path(params))}
     else
       {:cont, socket}
     end

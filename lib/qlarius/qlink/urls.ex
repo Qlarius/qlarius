@@ -58,11 +58,46 @@ defmodule Qlarius.Qlink.Urls do
   Tiqit arqade iframe rendered inside a Qlink page on the anon share
   host). Intended to be used with `target="_top"` so the browser
   breaks out of the iframe and lands on the authed surface.
+
+  With a `return_to` path, the login form is pre-loaded to redirect
+  back to that path after successful sign-in (and, if the visitor is
+  already authenticated on the interact host via the shared
+  `.qadabra.app` cookie, `redirect_if_user_is_authenticated` honors
+  the same `return_to` and skips the login form entirely). The
+  `return_to` must be a local path starting with `/` — callers should
+  sanitize before passing (see `sanitize_return_to/1`).
   """
-  @spec interact_login_url() :: String.t()
-  def interact_login_url do
+  @spec interact_login_url(String.t() | nil) :: String.t()
+  def interact_login_url(return_to \\ nil)
+
+  def interact_login_url(nil) do
     "#{scheme_for(interact_host())}://#{interact_host()}/login"
   end
+
+  def interact_login_url(return_to) when is_binary(return_to) do
+    case sanitize_return_to(return_to) do
+      nil -> interact_login_url(nil)
+      safe -> interact_login_url(nil) <> "?" <> URI.encode_query(return_to: safe)
+    end
+  end
+
+  @doc """
+  Validates a `return_to` path. Accepts only local paths that begin
+  with a single `/` (not `//` — which browsers treat as
+  protocol-relative). Returns the path verbatim when valid, `nil`
+  otherwise. Used at every `return_to` boundary (URL builder, login
+  param, auto-login param) to close open-redirect attack surface.
+  """
+  @spec sanitize_return_to(term()) :: String.t() | nil
+  def sanitize_return_to(path) when is_binary(path) do
+    cond do
+      String.starts_with?(path, "//") -> nil
+      String.starts_with?(path, "/") -> path
+      true -> nil
+    end
+  end
+
+  def sanitize_return_to(_), do: nil
 
   # Localhost dev uses https://localhost:4001 (see config/dev.exs); anything
   # containing "localhost" keeps the https scheme the dev server runs on. In

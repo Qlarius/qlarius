@@ -105,11 +105,14 @@
         / "--" for anonymous viewers (same visual shape as authed so
         the bar doesn't reflow). For anon, the whole box is wrapped
         in a link that routes to the right login surface:
-          * anon share host (qlinkin.bio) -> @interact_url on the
-            interact host (qlink.qadabra.app). Uses target="_top"
-            so if the page is ever iframed the login happens on the
-            top window.
-          * interact host / localhost     -> in-app /login.
+          * anon share host (qlinkin.bio) -> @interact_login_url on
+            the interact host (qlink.qadabra.app). Includes a
+            `?return_to=/@alias` pass-through so the visitor lands
+            back on the same creator's Qlink page (on the interact
+            surface) after sign-in. Uses target="_top" so if the
+            page is ever iframed the login happens on the top window.
+          * interact host / localhost     -> in-app /login with the
+            same return_to pass-through.
         Authed renders the same box as a static div — not clickable.
       --%>
       <% is_authed = authed?(@current_scope) %>
@@ -143,7 +146,7 @@
         </div>
       <% else %>
         <.link
-          href={if @is_anon_surface, do: @interact_url, else: ~p"/login"}
+          href={if @is_anon_surface, do: @interact_login_url, else: ~p"/login?return_to=/@#{@page.alias}"}
           target={if @is_anon_surface, do: "_top"}
           class={[stats_box_class, "hover:bg-base-300 transition-colors cursor-pointer"]}
           style={stats_box_style}
@@ -273,13 +276,15 @@
               on the anon share host so iframed embeds break out of
               their frame when handing off to qlink.qadabra.app.
               On the interactive host / localhost this is a normal
-              in-app /login navigate.
+              in-app /login navigate. Both paths carry a
+              `?return_to=/@alias` pass-through so the visitor lands
+              back on this same Qlink page after sign-in.
             --%>
             <div class="text-center py-12">
               <.icon name="hero-lock-closed" class="w-12 h-12 mx-auto mb-4 text-base-content/30" />
               <p class="text-base-content/70 mb-4">Sign in to view and earn from ads</p>
               <.link
-                href={if @is_anon_surface, do: @interact_url, else: ~p"/login"}
+                href={if @is_anon_surface, do: @interact_login_url, else: ~p"/login?return_to=/@#{@page.alias}"}
                 target={if @is_anon_surface, do: "_top"}
                 class="btn btn-primary"
               >

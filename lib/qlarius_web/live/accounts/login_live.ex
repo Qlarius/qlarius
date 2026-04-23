@@ -2,12 +2,20 @@ defmodule QlariusWeb.LoginLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.{Auth, Accounts}
+  alias Qlarius.Qlink.Urls
   import QlariusWeb.PWAHelpers
   import QlariusWeb.Components.CustomComponentsMobile, only: [otp_input: 1]
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
-  def mount(_params, session, socket) do
+  def mount(params, session, socket) do
+    # `?return_to=<local-path>` pass-through. Sanitized to local-path
+    # only (see `Urls.sanitize_return_to/1`) to close open-redirect
+    # attack surface. The value is threaded through the entire login
+    # flow: Login form → auto_login token URL → session → post-login
+    # redirect in `UserAuth.log_in_user/3`.
+    return_to = Urls.sanitize_return_to(Map.get(params, "return_to"))
+
     socket =
       socket
       |> assign(:page_title, "Sign In")
@@ -17,6 +25,7 @@ defmodule QlariusWeb.LoginLive do
       |> assign(:verification_code_error, nil)
       |> assign(:code_sent, false)
       |> assign(:show_biometric, false)
+      |> assign(:return_to, return_to)
       |> init_pwa_assigns(session)
 
     {:ok, socket}
@@ -110,10 +119,20 @@ defmodule QlariusWeb.LoginLive do
           user ->
             token = Accounts.generate_user_login_token(user.id)
 
+            auto_login_path =
+              case socket.assigns.return_to do
+                nil ->
+                  ~p"/auto_login/#{token}"
+
+                return_to ->
+                  ~p"/auto_login/#{token}" <>
+                    "?" <> URI.encode_query(return_to: return_to)
+              end
+
             {:noreply,
              socket
              |> put_flash(:info, "Welcome back!")
-             |> redirect(to: ~p"/auto_login/#{token}")}
+             |> redirect(to: auto_login_path)}
         end
 
       {:error, _reason} ->

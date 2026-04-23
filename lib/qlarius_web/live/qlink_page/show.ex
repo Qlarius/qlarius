@@ -83,8 +83,18 @@ defmodule QlariusWeb.QlinkPage.Show do
   #   * qlink.qadabra.app (and localhost in dev) — authed/interactive
   #     host. CTAs here use the normal in-app `/login` flow.
   #
-  # `@is_anon_surface` tells the template which path to take; `@interact_url`
-  # is the pre-computed destination for cross-domain handoff when needed.
+  # `@is_anon_surface` tells the template which path to take. The two
+  # pre-computed URLs cover the two handoff destinations:
+  #
+  #   * `@interact_url` — the same Qlink page on the interact host,
+  #     for already-authed or "optimistic auth via shared cookie"
+  #     navigations (rarely used directly; kept for flexibility).
+  #   * `@interact_login_url` — the login page on the interact host
+  #     with `?return_to=/@alias` appended, so after sign-in the
+  #     visitor lands back on the same creator's Qlink page (on the
+  #     interact surface, where they see the full authed UI). This
+  #     is the destination of "Connect your wallet" CTAs on the anon
+  #     share surface.
   defp assign_surface_context(socket, page) do
     host =
       case get_connect_info(socket, :uri) do
@@ -97,6 +107,10 @@ defmodule QlariusWeb.QlinkPage.Show do
     socket
     |> assign(:is_anon_surface, host in anon_hosts)
     |> assign(:interact_url, Qlarius.Qlink.Urls.interact_url(page.alias))
+    |> assign(
+      :interact_login_url,
+      Qlarius.Qlink.Urls.interact_login_url("/@#{page.alias}")
+    )
   end
 
   defp init_sponster_assigns(socket) do
