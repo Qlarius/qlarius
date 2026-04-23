@@ -24,7 +24,11 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     end
   end
 
-  attr :balance, Decimal, required: true
+  # `balance` is `nil` for unauthenticated viewers — the grid still
+  # renders fully so anon users can browse all Tiqit options; the
+  # `select-tiqit-class` LV event is intercepted server-side for
+  # unauth and opens the Connect-wallet modal instead.
+  attr :balance, :any, required: true
   attr :piece, ContentPiece, required: true
   attr :group, ContentGroup, required: true
   attr :tiqit_up_group_credit, :any, default: nil
@@ -159,7 +163,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   end
 
   attr :tiqit_class, TiqitClass, required: true
-  attr :balance, Decimal, required: true
+  attr :balance, :any, required: true
   attr :credit, :any, required: true
 
   def tiqit_class_grid_price_with_credit(assigns) do
@@ -216,12 +220,16 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     """
   end
 
+  # Balance is `nil` when the viewer is anonymous (no current scope).
+  # In that case we render the grid chips as fully clickable — the
+  # LV's `select-tiqit-class` handler intercepts unauth clicks and
+  # opens the Connect-wallet modal instead of the purchase flow.
   attr :tiqit_class, TiqitClass, required: true
-  attr :balance, Decimal, required: true
+  attr :balance, :any, required: true
 
   def tiqit_class_grid_price(assigns) do
     ~H"""
-    <%= if Decimal.compare(@balance, @tiqit_class.price) != :lt do %>
+    <%= if is_nil(@balance) or Decimal.compare(@balance, @tiqit_class.price) != :lt do %>
       <button
         phx-click="select-tiqit-class"
         phx-value-tiqit-class-id={@tiqit_class.id}

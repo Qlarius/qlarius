@@ -12,6 +12,10 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   import QlariusWeb.PWAHelpers
   import QlariusWeb.TiqitClassHTML
   import QlariusWeb.Widgets.Arcade.Components
+  # Shared helpers for the "View anywhere, Act only when authed"
+  # pattern — `authed?/1`, `format_usd_or_dashes/1`,
+  # `wallet_strip_or_connect/1`, `connect_wallet_modal/1`, etc.
+  import QlariusWeb.Widgets.UnauthCTA
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
@@ -61,23 +65,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       force_theme = Map.get(params, "force_theme")
       show_title = Map.get(params, "show_title", "true") != "false"
 
-      {tiqit_up_group_credit, tiqit_up_group_count} =
-        if scope, do: Arcade.calculate_tiqit_up_credit_with_count(scope, group), else: {Decimal.new(0), 0}
-
-      {tiqit_up_catalog_credit, tiqit_up_catalog_count} =
-        if scope, do: Arcade.calculate_tiqit_up_credit_with_count(scope, group.catalog), else: {Decimal.new(0), 0}
-
-      tiqit_up_nudge =
-        if scope do
-          case Arcade.check_tiqit_up_nudge(scope, group) do
-            {:nudge, _credit, _cheapest} -> true
-            _ -> false
-          end
-        else
-          false
-        end
-
-    {:ok,
+      {:ok,
        socket
        |> init_pwa_assigns(session)
        |> assign(
@@ -85,20 +73,57 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          base_path: "",
          title: "Arqade",
          current_path: "/arqade/group/#{group_id}",
-         balance: scope && scope.wallet_balance,
-         offered_amount: scope && scope.offered_amount,
          group: group,
          pieces: pieces,
          selected_tiqit_class: nil,
+         show_connect_modal: false,
          force_theme: force_theme,
-         show_title: show_title,
-         tiqit_up_group_credit: tiqit_up_group_credit,
-         tiqit_up_group_count: tiqit_up_group_count,
-         tiqit_up_catalog_credit: tiqit_up_catalog_credit,
-         tiqit_up_catalog_count: tiqit_up_catalog_count,
-         tiqit_up_nudge: tiqit_up_nudge
-       )}
+         show_title: show_title
+       )
+       |> assign(scope_assigns(scope, group))}
     end
+  end
+
+  # Computes all scope-dependent assigns (balance, offered, tiqit-up
+  # credits, nudge) in one pure function. Returns a map suitable for
+  # `assign/2`. Handles nil scope (anonymous viewer) by returning zero
+  # credits and nil money fields, so templates can render via
+  # `format_usd_or_dashes/1` without guarding.
+  #
+  # Extracted this way so that (a) the same helper serves the LV's
+  # mount and `handle_info(:update_balance, ...)` refresh path, and
+  # (b) when ArcadeLive is later extracted to a LiveComponent this
+  # function can be called from the LC's `update/2` callback unchanged.
+  defp scope_assigns(scope, group) do
+    {group_credit, group_count} =
+      if scope,
+        do: Arcade.calculate_tiqit_up_credit_with_count(scope, group),
+        else: {Decimal.new(0), 0}
+
+    {catalog_credit, catalog_count} =
+      if scope,
+        do: Arcade.calculate_tiqit_up_credit_with_count(scope, group.catalog),
+        else: {Decimal.new(0), 0}
+
+    nudge? =
+      if scope do
+        case Arcade.check_tiqit_up_nudge(scope, group) do
+          {:nudge, _credit, _cheapest} -> true
+          _ -> false
+        end
+      else
+        false
+      end
+
+    %{
+      balance: scope && scope.wallet_balance,
+      offered_amount: scope && scope.offered_amount,
+      tiqit_up_group_credit: group_credit,
+      tiqit_up_group_count: group_count,
+      tiqit_up_catalog_credit: catalog_credit,
+      tiqit_up_catalog_count: catalog_count,
+      tiqit_up_nudge: nudge?
+    }
   end
 
   def handle_params(params, uri, socket) do
@@ -160,27 +185,51 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     socket |> assign(:options_modal, false) |> noreply()
   end
 
-  def handle_event("select-tiqit-class", %{"tiqit-class-id" => tc_id}, socket) do
-    tc =
-      %TiqitClass{} =
-      Arcade.get_tiqit_class_for_piece!(
-        tc_id,
-        socket.assigns.selected_piece,
-        socket.assigns.group
-      )
+  def handle_event("close-connect-modal", _params, socket) do
+    socket |> assign(:show_connect_modal, false) |> noreply()
+  end
 
-    {credit, count} = tiqit_class_credit(tc, socket.assigns)
-    adjusted_price = Decimal.max(Decimal.new(0), Decimal.sub(tc.price, credit))
-
+  # Browse-options entry for anonymous viewers. Mirrors the "All Tiqit
+  # Options" link that authed users reach from inside the confirm
+  # purchase modal — but reachable directly, since anon viewers can't
+  # open the confirm modal (there's no Buy action for them).
+  def handle_event("browse-tiqit-options", _params, socket) do
     socket
     |> assign(
-      selected_tiqit_class: tc,
-      selected_tiqit_class_adjusted_price: adjusted_price,
-      selected_tiqit_class_credit: credit,
-      selected_tiqit_class_active_count: count,
-      options_modal: false
+      selected_tiqit_class: ContentPiece.default_tiqit_class(socket.assigns.selected_piece),
+      options_modal: true
     )
     |> noreply()
+  end
+
+  # Any action that requires a wallet (select-tiqit-class,
+  # purchase-tiqit, topup) is intercepted for anonymous viewers via
+  # `maybe_intercept_for_unauth/1` at the top of each handler. If
+  # unauthed, the handler returns early with `show_connect_modal: true`
+  # and the real work never runs.
+  def handle_event("select-tiqit-class", %{"tiqit-class-id" => tc_id}, socket) do
+    with {:cont, socket} <- maybe_intercept_for_unauth(socket) do
+      tc =
+        %TiqitClass{} =
+        Arcade.get_tiqit_class_for_piece!(
+          tc_id,
+          socket.assigns.selected_piece,
+          socket.assigns.group
+        )
+
+      {credit, count} = tiqit_class_credit(tc, socket.assigns)
+      adjusted_price = Decimal.max(Decimal.new(0), Decimal.sub(tc.price, credit))
+
+      socket
+      |> assign(
+        selected_tiqit_class: tc,
+        selected_tiqit_class_adjusted_price: adjusted_price,
+        selected_tiqit_class_credit: credit,
+        selected_tiqit_class_active_count: count,
+        options_modal: false
+      )
+      |> noreply()
+    end
   end
 
   def handle_event("show-options", _params, socket) do
@@ -188,48 +237,68 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   end
 
   def handle_event("topup", _params, socket) do
-    user = socket.assigns.current_scope.user
+    with {:cont, socket} <- maybe_intercept_for_unauth(socket) do
+      user = socket.assigns.current_scope.user
 
-    Wallets.fake_topup(user)
+      Wallets.fake_topup(user)
 
-    Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
+      Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
 
-    socket |> noreply()
+      socket |> noreply()
+    end
   end
 
   def handle_event("purchase-tiqit", %{"tiqit-class-id" => tiqit_class_id}, socket) do
-    tiqit_class =
-      Arcade.get_tiqit_class_for_piece!(
-        tiqit_class_id,
-        socket.assigns.selected_piece,
-        socket.assigns.group
-      )
+    with {:cont, socket} <- maybe_intercept_for_unauth(socket) do
+      tiqit_class =
+        Arcade.get_tiqit_class_for_piece!(
+          tiqit_class_id,
+          socket.assigns.selected_piece,
+          socket.assigns.group
+        )
 
-    opts =
-      if tiqit_class.content_piece_id do
-        []
-      else
-        [tiqit_up_credit: socket.assigns.selected_tiqit_class_credit]
-      end
+      opts =
+        if tiqit_class.content_piece_id do
+          []
+        else
+          [tiqit_up_credit: socket.assigns.selected_tiqit_class_credit]
+        end
 
-    :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class, opts)
+      :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class, opts)
 
-    user = socket.assigns.current_scope.user
+      user = socket.assigns.current_scope.user
 
-    Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
+      Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
 
-    base = socket.assigns.base_path
+      base = socket.assigns.base_path
 
-    redirect_path =
-      if socket.assigns.force_theme do
-        "#{base}/content/#{socket.assigns.selected_piece.id}?force_theme=#{socket.assigns.force_theme}"
-      else
-        "#{base}/content/#{socket.assigns.selected_piece.id}"
-      end
+      redirect_path =
+        if socket.assigns.force_theme do
+          "#{base}/content/#{socket.assigns.selected_piece.id}?force_theme=#{socket.assigns.force_theme}"
+        else
+          "#{base}/content/#{socket.assigns.selected_piece.id}"
+        end
 
-    socket
-    |> redirect(to: redirect_path)
-    |> noreply()
+      socket
+      |> redirect(to: redirect_path)
+      |> noreply()
+    end
+  end
+
+  # Gate for wallet-required handlers. Returns:
+  #   - `{:cont, socket}` when the viewer is authed — callers unwrap
+  #     via `with {:cont, socket} <- maybe_intercept_for_unauth(socket)`
+  #     to proceed.
+  #   - `{:noreply, socket}` (matching the LV event return contract)
+  #     when unauthed — assigns `show_connect_modal: true` and the
+  #     `with` short-circuits, so the caller's real work is skipped
+  #     and the modal opens instead.
+  defp maybe_intercept_for_unauth(socket) do
+    if authed?(socket.assigns.current_scope) do
+      {:cont, socket}
+    else
+      {:noreply, socket |> assign(:show_connect_modal, true)}
+    end
   end
 
   def handle_info(:update_balance, socket) do
