@@ -466,6 +466,16 @@
   <% end %>
 
   <%!--
+    Shared Connect-wallet modal. Anonymous viewers who tap a tip
+    amount (or any other wallet-required control on this page) land
+    here instead of crashing or being silently no-op'd. The CTA
+    inside the modal links to the interact host's /login with
+    target="_top" so that even when the page is rendered inside an
+    iframe/widget surface, the login flow lands on the top window.
+  --%>
+  <.connect_wallet_modal show={@show_connect_modal} />
+
+  <%!--
     Floating "Connect your wallet" button for unauthenticated users
     (only when no recipient is configured, so there's no other CTA).
     On the anon share host, this sends the visitor to the interact host

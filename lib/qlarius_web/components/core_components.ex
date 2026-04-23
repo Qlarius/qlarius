@@ -748,6 +748,12 @@ defmodule QlariusWeb.CoreComponents do
   @doc """
   InstaTip amount button grid. Shared by InstaTipComponents and SplitComponents
   to avoid circular dependencies.
+
+  `wallet_balance` is `nil` for anonymous viewers — in that case all
+  amount buttons render as enabled (styled same as "can afford") and
+  the `initiate_insta_tip` LV handler intercepts the click to open
+  the Connect-wallet modal. This keeps the anon UI visually identical
+  to the authed version, so tipping looks reachable.
   """
   attr :amounts, :list, required: true
   attr :wallet_balance, :any, required: true
@@ -760,7 +766,8 @@ defmodule QlariusWeb.CoreComponents do
     <div class={["grid grid-cols-2 sm:grid-cols-4 gap-3 justify-items-center", @add_class]}>
       <%= for amount <- @amounts do %>
         <% amount_decimal = Decimal.new(amount)
-        enabled = Decimal.compare(@wallet_balance, amount_decimal) != :lt %>
+        enabled =
+          is_nil(@wallet_balance) or Decimal.compare(@wallet_balance, amount_decimal) != :lt %>
         <button
           type="button"
           phx-click="initiate_insta_tip"

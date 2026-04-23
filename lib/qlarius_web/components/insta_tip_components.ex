@@ -4,6 +4,7 @@ defmodule QlariusWeb.InstaTipComponents do
   alias Phoenix.LiveView.JS
   import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
   import QlariusWeb.Money, only: [format_usd: 1]
+  import QlariusWeb.Widgets.UnauthCTA, only: [format_usd_or_dashes: 1]
 
   @default_amounts ["0.25", "0.50", "1.00", "2.00"]
 
@@ -84,8 +85,14 @@ defmodule QlariusWeb.InstaTipComponents do
     <div class={["flex-1 flex flex-col items-center mt-0", @add_class]}>
       <div class="text-base-content/70 text-sm mt-3 mb-4">
         From your wallet <.icon name="hero-arrow-right" class="w-4 h-4 inline-block" />
-        <span class="inline-flex items-center w-auto text-lg bg-sponster-200 text-base-content px-3 py-1 rounded-lg border border-sponster-300">
-          <span class="font-bold">{format_usd(@wallet_balance)}</span>
+        <%!-- Renders "$--.--" (same styling, dimmed) when wallet_balance
+              is nil (anonymous viewer). Authed renders the real value
+              via format_usd/1. --%>
+        <span class={[
+          "inline-flex items-center w-auto text-lg bg-sponster-200 px-3 py-1 rounded-lg border border-sponster-300",
+          if(is_nil(@wallet_balance), do: "text-base-content/60", else: "text-base-content")
+        ]}>
+          <span class="font-bold">{format_usd_or_dashes(@wallet_balance)}</span>
         </span>
       </div>
     </div>

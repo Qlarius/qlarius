@@ -12,6 +12,11 @@ defmodule QlariusWeb.QlinkPage.Show do
   import QlariusWeb.Components.AdsComponents
   import QlariusWeb.Components.SplitComponents
   import QlariusWeb.InstaTipComponents
+  # Shared "View anywhere, Act only when authed" helpers —
+  # authed?/1, connect_wallet_modal/1, etc. Same module the arqade
+  # widget consumes; keeps the anonymous-viewer UX consistent across
+  # Qlink page + embedded widgets.
+  import QlariusWeb.Widgets.UnauthCTA
 
   alias Qlarius.YouData.MeFiles.MeFile
 
@@ -126,6 +131,7 @@ defmodule QlariusWeb.QlinkPage.Show do
     |> assign(:show_split_drawer, false)
     |> assign(:show_split_reminder, false)
     |> assign(:host_uri, host_uri)
+    |> assign(:show_connect_modal, false)
   end
 
   defp get_current_balance(socket) do
@@ -388,28 +394,44 @@ defmodule QlariusWeb.QlinkPage.Show do
      |> push_event("replay-video", %{})}
   end
 
+  # Close the shared Connect-wallet modal. Symmetric with the
+  # `phx-click` inside `connect_wallet_modal/1`'s "Keep browsing"
+  # button.
+  @impl true
+  def handle_event("close-connect-modal", _params, socket) do
+    {:noreply, assign(socket, :show_connect_modal, false)}
+  end
+
   # InstaTip events
   @impl true
   def handle_event("initiate_insta_tip", params, socket) do
-    amount = Decimal.new(to_string(params["amount"]))
-    recipient_id = params["recipient-id"] || params["recipient_id"]
+    # Anonymous viewers see the full tip-button grid so they can
+    # explore the interaction — but the tip itself requires a
+    # connected wallet. Intercept and show the Connect modal
+    # instead of opening the confirm modal.
+    if authed?(socket.assigns.current_scope) do
+      amount = Decimal.new(to_string(params["amount"]))
+      recipient_id = params["recipient-id"] || params["recipient_id"]
 
-    # Look up the recipient for the modal
-    tip_recipient =
-      if recipient_id do
-        Qlarius.Sponster.Recipients.get_recipient!(String.to_integer(recipient_id))
-      else
-        socket.assigns.recipient
-      end
+      # Look up the recipient for the modal
+      tip_recipient =
+        if recipient_id do
+          Qlarius.Sponster.Recipients.get_recipient!(String.to_integer(recipient_id))
+        else
+          socket.assigns.recipient
+        end
 
-    socket =
-      socket
-      |> assign(:insta_tip_amount, amount)
-      |> assign(:insta_tip_recipient, tip_recipient)
-      |> assign(:show_insta_tip_modal, true)
-      |> assign(:current_balance, get_current_balance(socket))
+      socket =
+        socket
+        |> assign(:insta_tip_amount, amount)
+        |> assign(:insta_tip_recipient, tip_recipient)
+        |> assign(:show_insta_tip_modal, true)
+        |> assign(:current_balance, get_current_balance(socket))
 
-    {:noreply, socket}
+      {:noreply, socket}
+    else
+      {:noreply, assign(socket, :show_connect_modal, true)}
+    end
   end
 
   @impl true
@@ -782,41 +804,27 @@ defmodule QlariusWeb.QlinkPage.Show do
       |> assign(:block_recipient, block_recipient)
       |> assign(:show_header, show_header)
 
+    # Render the full insta_tip_card (image + message + amount
+    # buttons + wallet footer) for everyone, authed or not.
+    # Anonymous viewers get the same UI with `wallet_balance: nil`;
+    # the card shows `$--.--` in the footer and the amount buttons
+    # remain clickable. The `initiate_insta_tip` LV handler
+    # intercepts unauth clicks and opens the shared Connect-wallet
+    # modal instead of proceeding to confirm.
     ~H"""
     <div class="w-full rounded-2xl border border-neutral/50 overflow-hidden">
-      <%= if @block_recipient && @current_scope && @current_scope.user do %>
-        <.insta_tip_card
-          recipient={@block_recipient}
-          wallet_balance={@current_scope.wallet_balance}
-          show_image={@show_header}
-          show_message={@show_header}
-        />
-      <% else %>
-        <div class="text-center py-8">
-          <%= if @block_recipient do %>
-            <%= if @show_header do %>
-              <div class="w-32 h-auto mx-auto mb-4 bg-base-300 shadow-md rounded overflow-hidden">
-                <img
-                  src={
-                    if @block_recipient.graphic_url do
-                      QlariusWeb.Uploaders.RecipientBrandImage.url({@block_recipient.graphic_url, @block_recipient})
-                    else
-                      ~p"/images/tipjar_love_default.png"
-                    end
-                  }
-                  alt={@block_recipient.name || "Recipient"}
-                  class="object-contain w-full h-full"
-                />
-              </div>
-            <% end %>
-            <div class="text-sm text-base-content/50">
-              <.link navigate={~p"/login"} class="link link-primary">Sign in</.link>
-              to send a tip
-            </div>
-          <% else %>
+      <%= cond do %>
+        <% is_nil(@block_recipient) -> %>
+          <div class="text-center py-8">
             <span class="text-warning">Tip recipient not configured</span>
-          <% end %>
-        </div>
+          </div>
+        <% true -> %>
+          <.insta_tip_card
+            recipient={@block_recipient}
+            wallet_balance={@current_scope && @current_scope.wallet_balance}
+            show_image={@show_header}
+            show_message={@show_header}
+          />
       <% end %>
     </div>
     """
