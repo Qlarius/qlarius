@@ -60,16 +60,53 @@
               <p class="text-sm text-base-content/70 mb-4 text-center md:text-left" style="white-space: pre-line;">{String.trim(@piece.description || "")}</p>
 
               <div class="flex flex-col gap-4">
+                <%!--
+                  Buy/options CTA (View anywhere, Act only when authed):
+                    - Authed + sufficient balance: Buy is active.
+                    - Authed + insufficient balance: disabled with hint.
+                    - Anon: Buy is clickable; the LV's
+                      `select-tiqit-class` handler short-circuits via
+                      `maybe_intercept_for_unauth/1` to open the
+                      Connect-wallet modal. Anon also gets a "See all
+                      Tiqit options" link so they can freely browse
+                      prices without authenticating first.
+                  Wallet strip: `wallet_strip_or_connect/1` renders real
+                  balance for authed, `$--.--` + Connect button for anon.
+                --%>
                 <%= if @default_tiqit_class do %>
+                  <% is_authed = authed?(@current_scope) %>
+                  <% can_afford = is_authed && Decimal.compare(@balance, @default_tiqit_class.price) != :lt %>
+                  <% btn_enabled = !is_authed || can_afford %>
                   <button
                     phx-click="select-tiqit-class"
                     phx-value-tiqit-class-id={@default_tiqit_class.id}
-                    class="btn btn-primary btn-lg rounded-full"
+                    disabled={is_authed && !can_afford}
+                    class={"btn btn-lg rounded-full #{if btn_enabled, do: "btn-primary", else: "btn-disabled opacity-50 cursor-not-allowed"}"}
                   >
                     {if Decimal.eq?(@default_tiqit_class.price, 0), do: "Get", else: "Buy"} Tiqit •
                     <span class="font-bold">{format_usd(@default_tiqit_class.price, zero_free: true)}</span>
                   </button>
-                  <.wallet_strip id="wallet-balance-arcade-single-main" balance={@balance} offered_amount={@offered_amount} ads_count={@current_scope.ads_count} />
+                  <%= if is_authed && !can_afford do %>
+                    <div class="text-sm text-warning text-center">
+                      Not enough funds — top up below.
+                    </div>
+                  <% end %>
+                  <%= if !is_authed do %>
+                    <button
+                      type="button"
+                      phx-click="browse-tiqit-options"
+                      class="text-sm text-base-content/60 underline underline-offset-2 hover:text-primary"
+                    >
+                      See all Tiqit options
+                    </button>
+                  <% end %>
+                  <.wallet_strip_or_connect
+                    id="wallet-balance-arcade-single-main"
+                    scope={@current_scope}
+                    balance={@balance}
+                    offered_amount={@offered_amount}
+                    ads_count={@current_scope && @current_scope.ads_count}
+                  />
                 <% else %>
                   <div class="alert alert-warning">
                     <.icon name="hero-exclamation-triangle" class="w-6 h-6" />
@@ -178,5 +215,7 @@
 
   <% end %>
 </div>
+
+<.connect_wallet_modal show={@show_connect_modal} />
 </Layouts.maybe_mobile>
 </div>
