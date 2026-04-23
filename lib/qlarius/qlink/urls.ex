@@ -99,6 +99,72 @@ defmodule Qlarius.Qlink.Urls do
 
   def sanitize_return_to(_), do: nil
 
+  @doc """
+  Rewrites the host/port/scheme of an arqade **widget** iframe URL to
+  match the parent page's request URI, so the shared
+  `.qadabra.app` session cookie is sent along with the iframe's
+  requests.
+
+  Creators historically embedded arqade widgets with URLs baked to
+  whichever host was canonical at save time (e.g.
+  `https://qlarius.gigalixirapp.com/widgets/arqade/group/13`). Those
+  URLs continue to work at the network level but sit on a different
+  registrable domain than the current parent page, so the browser
+  does NOT send the `Domain=.qadabra.app` session cookie on iframe
+  requests — making the widget LV inside the iframe see an anonymous
+  visitor even when the outer page is authenticated. This normalizer
+  fixes that in-place, without a data migration: each render
+  substitutes the parent's live request host (and port + scheme) into
+  the stored URL.
+
+  Only URLs whose path begins with `/widgets/arqade/` or
+  `/widgets/arcade/` are rewritten. Third-party embeds
+  (`https://example.com/something`) pass through unchanged, because
+  rewriting their host would break the embed.
+
+  `parent_uri` is expected to be the `%URI{}` returned by
+  `Phoenix.LiveView.get_connect_info(socket, :uri)`. When the LV is
+  in its "dead" HTTP render the connect info isn't yet available;
+  callers pass `nil` and the URL is returned verbatim. The iframe
+  reloads automatically once the LV connects and a proper
+  normalization takes effect.
+  """
+  @spec normalize_widget_iframe_url(String.t(), URI.t() | nil) :: String.t()
+  def normalize_widget_iframe_url(iframe_url, parent_uri)
+
+  def normalize_widget_iframe_url(iframe_url, nil) when is_binary(iframe_url) do
+    iframe_url
+  end
+
+  def normalize_widget_iframe_url(iframe_url, %URI{host: host} = parent_uri)
+      when is_binary(iframe_url) and is_binary(host) do
+    uri = URI.parse(iframe_url)
+
+    if arqade_widget_path?(uri.path) do
+      %URI{
+        uri
+        | scheme: parent_uri.scheme || uri.scheme,
+          host: parent_uri.host,
+          port: parent_uri.port,
+          # Drop userinfo/authority cruft that URI.to_string/1 would preserve
+          # from the original URL — not expected in practice, but defensive.
+          userinfo: nil
+      }
+      |> URI.to_string()
+    else
+      iframe_url
+    end
+  end
+
+  def normalize_widget_iframe_url(iframe_url, _), do: iframe_url
+
+  defp arqade_widget_path?(path) when is_binary(path) do
+    String.starts_with?(path, "/widgets/arqade/") or
+      String.starts_with?(path, "/widgets/arcade/")
+  end
+
+  defp arqade_widget_path?(_), do: false
+
   # Localhost dev uses https://localhost:4001 (see config/dev.exs); anything
   # containing "localhost" keeps the https scheme the dev server runs on. In
   # prod, public hosts are always served over https.

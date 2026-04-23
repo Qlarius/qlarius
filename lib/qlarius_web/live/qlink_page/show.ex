@@ -96,16 +96,23 @@ defmodule QlariusWeb.QlinkPage.Show do
   #     is the destination of "Connect your wallet" CTAs on the anon
   #     share surface.
   defp assign_surface_context(socket, page) do
-    host =
+    parent_uri =
       case get_connect_info(socket, :uri) do
-        %URI{host: host} when is_binary(host) -> host
+        %URI{host: host} = uri when is_binary(host) -> uri
         _ -> nil
       end
 
+    host = parent_uri && parent_uri.host
     anon_hosts = ["qlinkin.bio", "www.qlinkin.bio"]
 
     socket
     |> assign(:is_anon_surface, host in anon_hosts)
+    # `parent_request_uri` is used by `render_iframe_embed/2` to
+    # rewrite arqade widget iframe hosts to match the parent page,
+    # so the shared `.qadabra.app` cookie is sent on iframe requests.
+    # `nil` on the initial dead render; populated on connect, at
+    # which point the iframe auto-reloads with the correct host.
+    |> assign(:parent_request_uri, parent_uri)
     |> assign(:interact_url, Qlarius.Qlink.Urls.interact_url(page.alias))
     |> assign(
       :interact_login_url,
@@ -1052,6 +1059,15 @@ defmodule QlariusWeb.QlinkPage.Show do
         {s, _} when not is_nil(s) -> s
         {_, s} -> s
       end
+
+    # Rewrite arqade widget iframe host to match the parent page so
+    # the shared `.qadabra.app` session cookie is sent on iframe
+    # requests. No-op for third-party embeds and on dead renders.
+    iframe_url =
+      Qlarius.Qlink.Urls.normalize_widget_iframe_url(
+        iframe_url,
+        assigns[:parent_request_uri]
+      )
 
     # Append show_title param if explicitly set to false
     iframe_url =
