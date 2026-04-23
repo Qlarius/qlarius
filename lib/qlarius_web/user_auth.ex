@@ -6,14 +6,34 @@ defmodule QlariusWeb.UserAuth do
 
   alias Qlarius.Accounts
   alias Qlarius.Accounts.Scope
+  alias QlariusWeb.Plugs.HostAwareSession
 
   @remember_me_cookie "_qlarius_web_user_remember_me"
-  @remember_me_options [
+  @remember_me_base_options [
     sign: true,
     max_age: 60 * 60 * 24 * 60,
-    same_site: "Lax",
     http_only: true
   ]
+
+  # Remember-me cookie parity with the shared session cookie
+  # (see `QlariusWeb.Plugs.HostAwareSession`): when the request is
+  # served from a Qadabra-apex host the cookie is written with
+  # `Domain=.qadabra.app` and `SameSite=None; Secure`, so a user who
+  # checks "remember me" on `qlink.qadabra.app` stays signed in on
+  # `qadabra.app` as well. On any other host (qlinkin.bio, localhost,
+  # gigalixirapp.com, etc.) the cookie is host-scoped with
+  # `SameSite=Lax`, matching the legacy behaviour.
+  defp remember_me_options(conn) do
+    if HostAwareSession.host_under_qadabra?(conn.host) do
+      [
+        domain: HostAwareSession.cross_subdomain_host(),
+        same_site: "None",
+        secure: true
+      ] ++ @remember_me_base_options
+    else
+      [same_site: "Lax"] ++ @remember_me_base_options
+    end
+  end
 
   def log_in_user(conn, user, params \\ %{}) do
     token = Accounts.generate_user_session_token(user)
@@ -42,7 +62,7 @@ defmodule QlariusWeb.UserAuth do
   end
 
   defp maybe_write_remember_me_cookie(conn, token, %{"remember_me" => "true"}) do
-    put_resp_cookie(conn, @remember_me_cookie, token, @remember_me_options)
+    put_resp_cookie(conn, @remember_me_cookie, token, remember_me_options(conn))
   end
 
   defp maybe_write_remember_me_cookie(conn, _token, _params) do
@@ -80,8 +100,24 @@ defmodule QlariusWeb.UserAuth do
 
     conn
     |> renew_session()
-    |> delete_resp_cookie(@remember_me_cookie)
+    |> delete_resp_cookie(@remember_me_cookie, delete_remember_me_options(conn))
     |> redirect(to: ~p"/login")
+  end
+
+  # `delete_resp_cookie` only evicts a cookie whose `Domain`, `Path`,
+  # and `Secure` attributes match the original `Set-Cookie`. On a
+  # Qadabra-apex host the remember-me cookie was written with
+  # `Domain=.qadabra.app`, so the deletion header must mirror that —
+  # otherwise the browser treats the clear-cookie directive as
+  # targeting a different (host-scoped) cookie and leaves the real
+  # cross-subdomain cookie intact, silently keeping the user signed
+  # in after logout.
+  defp delete_remember_me_options(conn) do
+    if HostAwareSession.host_under_qadabra?(conn.host) do
+      [domain: HostAwareSession.cross_subdomain_host(), secure: true]
+    else
+      []
+    end
   end
 
   def fetch_current_scope_for_user(conn, _opts) do
