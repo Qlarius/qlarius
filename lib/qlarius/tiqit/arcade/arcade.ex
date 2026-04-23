@@ -15,6 +15,14 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
 
+  # Anonymous viewers (e.g. the arqade iframe rendered inside a
+  # qlinkin.bio Qlink page) can reach this path without a scope or
+  # with a scope whose user hasn't been populated. Treat both as
+  # "no valid tiqit" rather than crashing; the calling template is
+  # responsible for surfacing a sign-in CTA.
+  def get_valid_tiqit(nil, %ContentPiece{}), do: nil
+  def get_valid_tiqit(%Scope{user: nil}, %ContentPiece{}), do: nil
+
   def get_valid_tiqit(%Scope{} = scope, %ContentPiece{} = piece) do
     now = DateTime.utc_now()
 
@@ -34,6 +42,9 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
     Repo.one(query)
   end
+
+  def has_valid_tiqit?(nil, %ContentPiece{}), do: false
+  def has_valid_tiqit?(%Scope{user: nil}, %ContentPiece{}), do: false
 
   def has_valid_tiqit?(%Scope{} = scope, %ContentPiece{} = piece) do
     !!get_valid_tiqit(scope, piece)

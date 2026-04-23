@@ -52,6 +52,18 @@ defmodule Qlarius.Qlink.Urls do
   @spec interact_host() :: String.t()
   def interact_host, do: Application.fetch_env!(:qlarius, :qlink_interact_host)
 
+  @doc """
+  Login URL on the interact host. Used as the destination for
+  "Connect your wallet" CTAs from anonymous widget surfaces (e.g. the
+  Tiqit arqade iframe rendered inside a Qlink page on the anon share
+  host). Intended to be used with `target="_top"` so the browser
+  breaks out of the iframe and lands on the authed surface.
+  """
+  @spec interact_login_url() :: String.t()
+  def interact_login_url do
+    "#{scheme_for(interact_host())}://#{interact_host()}/login"
+  end
+
   # Localhost dev uses https://localhost:4001 (see config/dev.exs); anything
   # containing "localhost" keeps the https scheme the dev server runs on. In
   # prod, public hosts are always served over https.

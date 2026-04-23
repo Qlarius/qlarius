@@ -110,39 +110,60 @@
           <% end %>
 
           <div class="flex flex-col justify-between mt-6 gap-4 align-middle text-center">
-            <%= if Arcade.has_valid_tiqit?(@current_scope, @selected_piece) do %>
-              <.link
-                navigate={
-                  if @force_theme,
-                    do: "#{@base_path}/content/#{@selected_piece.id}?force_theme=#{@force_theme}",
-                    else: "#{@base_path}/content/#{@selected_piece.id}"
-                }
-                class="btn btn-neutral btn-lg btn-block rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600"
-              >
-                <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
-              </.link>
-              <QlariusWeb.Components.TiqitExpirationCountdown.badge
-                expires_at={@tiqit.expires_at}
-                class="badge-outline mx-auto badge-xs px-2 py-3 rounded-lg"
-              />
-            <% else %>
-              <% default_tc = ContentPiece.default_tiqit_class(@selected_piece) %>
-              <% can_afford = Decimal.compare(@balance, default_tc.price) != :lt %>
-              <button
-                phx-click={if can_afford, do: "select-tiqit-class"}
-                phx-value-tiqit-class-id={default_tc.id}
-                disabled={!can_afford}
-                class={"btn btn-lg btn-block rounded-full #{if can_afford, do: "btn-primary", else: "btn-disabled opacity-50 cursor-not-allowed"}"}
-              >
-                {if Decimal.eq?(default_tc.price, 0), do: "Get", else: "Buy"} Tiqit •
-                <span class="font-bold">{format_usd(default_tc.price, zero_free: true)}</span>
-              </button>
-              <%= if !can_afford do %>
-                <div class="text-sm text-warning text-center">
-                  Not enough funds — top up below.
-                </div>
-              <% end %>
-              <.wallet_strip id="wallet-balance-arcade-main" balance={@balance} offered_amount={@offered_amount} ads_count={@current_scope.ads_count} />
+            <%!--
+              Three CTA states:
+                1. Unauthed viewer (e.g. arqade iframed into a qlinkin.bio
+                   Qlink page): send them to the interact host's login
+                   page, breaking out of the iframe via target="_top".
+                2. Authed viewer with a valid tiqit: Play + countdown.
+                3. Authed viewer without a valid tiqit: Buy / topup
+                   wallet strip.
+            --%>
+            <%= cond do %>
+              <% is_nil(@current_scope) || is_nil(@current_scope.user) -> %>
+                <.link
+                  href={Qlarius.Qlink.Urls.interact_login_url()}
+                  target="_top"
+                  class="btn btn-primary btn-lg btn-block rounded-full"
+                >
+                  <.icon name="hero-wallet" class="h-5 w-5 mr-2" /> Connect your wallet
+                </.link>
+                <p class="text-xs text-base-content/60">
+                  Sign in on Qadabra to buy and play Tiqits.
+                </p>
+              <% Arcade.has_valid_tiqit?(@current_scope, @selected_piece) -> %>
+                <.link
+                  navigate={
+                    if @force_theme,
+                      do: "#{@base_path}/content/#{@selected_piece.id}?force_theme=#{@force_theme}",
+                      else: "#{@base_path}/content/#{@selected_piece.id}"
+                  }
+                  class="btn btn-neutral btn-lg btn-block rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600"
+                >
+                  <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
+                </.link>
+                <QlariusWeb.Components.TiqitExpirationCountdown.badge
+                  expires_at={@tiqit.expires_at}
+                  class="badge-outline mx-auto badge-xs px-2 py-3 rounded-lg"
+                />
+              <% true -> %>
+                <% default_tc = ContentPiece.default_tiqit_class(@selected_piece) %>
+                <% can_afford = Decimal.compare(@balance, default_tc.price) != :lt %>
+                <button
+                  phx-click={if can_afford, do: "select-tiqit-class"}
+                  phx-value-tiqit-class-id={default_tc.id}
+                  disabled={!can_afford}
+                  class={"btn btn-lg btn-block rounded-full #{if can_afford, do: "btn-primary", else: "btn-disabled opacity-50 cursor-not-allowed"}"}
+                >
+                  {if Decimal.eq?(default_tc.price, 0), do: "Get", else: "Buy"} Tiqit •
+                  <span class="font-bold">{format_usd(default_tc.price, zero_free: true)}</span>
+                </button>
+                <%= if !can_afford do %>
+                  <div class="text-sm text-warning text-center">
+                    Not enough funds — top up below.
+                  </div>
+                <% end %>
+                <.wallet_strip id="wallet-balance-arcade-main" balance={@balance} offered_amount={@offered_amount} ads_count={@current_scope.ads_count} />
             <% end %>
           </div>
           <div class="flex flex-row justify-center items-center mt-4 mb-1">
