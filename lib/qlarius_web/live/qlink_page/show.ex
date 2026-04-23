@@ -96,8 +96,15 @@ defmodule QlariusWeb.QlinkPage.Show do
   #     is the destination of "Connect your wallet" CTAs on the anon
   #     share surface.
   defp assign_surface_context(socket, page) do
+    # `socket.host_uri` is populated by Phoenix.LiveView on BOTH the
+    # dead HTTP render (from `Plug.Conn.request_url/1`) and the
+    # connected LV mount (from the live channel's join URL), so it's
+    # available uniformly across both phases — unlike
+    # `get_connect_info/2`, which only returns a URI after LV connect
+    # and would leave the dead render pointing at the stale stored
+    # iframe URL.
     parent_uri =
-      case get_connect_info(socket, :uri) do
+      case socket.host_uri do
         %URI{host: host} = uri when is_binary(host) -> uri
         _ -> nil
       end
@@ -107,11 +114,9 @@ defmodule QlariusWeb.QlinkPage.Show do
 
     socket
     |> assign(:is_anon_surface, host in anon_hosts)
-    # `parent_request_uri` is used by `render_iframe_embed/2` to
-    # rewrite arqade widget iframe hosts to match the parent page,
-    # so the shared `.qadabra.app` cookie is sent on iframe requests.
-    # `nil` on the initial dead render; populated on connect, at
-    # which point the iframe auto-reloads with the correct host.
+    # Used by `render_iframe_embed/2` to rewrite arqade widget iframe
+    # hosts to match the parent page, so the shared `.qadabra.app`
+    # cookie is sent on iframe requests.
     |> assign(:parent_request_uri, parent_uri)
     |> assign(:interact_url, Qlarius.Qlink.Urls.interact_url(page.alias))
     |> assign(
@@ -926,8 +931,18 @@ defmodule QlariusWeb.QlinkPage.Show do
     content_id =
       get_embed_value(embed_config, "content_id") || get_embed_value(embed_config, :content_id)
 
+    # For iframe embeds the admin form's `url` field is the source of
+    # truth — it's what creators see and edit. `embed_config.url` is
+    # a denormalized copy written by `QlinkLink.parse_embed_config/1`
+    # at save time, and it can drift out of sync with `link.url` when
+    # the auto-detect pathway falls back to the existing embed_config
+    # (see `QlinkLink.same_domain_url?/1`). Prefer `link.url` here so
+    # render always reflects the latest admin value, and fall back to
+    # the denormalized copy only if `link.url` is missing.
     iframe_url =
-      get_embed_value(embed_config, "url") || get_embed_value(embed_config, :url)
+      assigns.link.url ||
+        get_embed_value(embed_config, "url") ||
+        get_embed_value(embed_config, :url)
 
     case platform do
       "youtube" when not is_nil(video_id) ->

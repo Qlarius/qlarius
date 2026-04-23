@@ -108,14 +108,57 @@ defmodule Qlarius.Qlink.QlinkLink do
     end
   end
 
+  # Decides whether a URL should be treated as one of our own embedded
+  # widgets (platform: "iframe"). Historically this only matched hosts
+  # equal to the canonical `Endpoint.url()` host (i.e. `PHX_HOST`),
+  # which became a bug when creators updated URLs to a different
+  # Qadabra host: the entered URL's host no longer equalled PHX_HOST,
+  # `same_domain_url?/1` returned false, `parse_embed_config/1`
+  # returned nil, and the form's `detect_embed_type/2` fell back to
+  # the previous `embed_config` — leaving `embed_config.url` stuck on
+  # whatever host had been canonical at the original save time even
+  # though the visible `url` field updated correctly. To fix that at
+  # the root, accept any of the following as "our own widget":
+  #
+  #   1. Exact host match with `Endpoint.url()` (legacy behavior).
+  #   2. Any URL whose path begins with `/widgets/arqade/` or
+  #      `/widgets/arcade/` — an unambiguous arqade widget route that
+  #      only our app serves, regardless of host.
+  #   3. Host under any known Qadabra/Qlarius deployment family
+  #      (`qadabra.app` + subdomains, `qlinkin.bio` + subdomains,
+  #      `*.gigalixirapp.com`, `localhost`) — catches non-arqade
+  #      widget URLs (e.g. `/widgets/insta_tip`) that cross hosts.
   defp same_domain_url?(url) do
-    base_url = QlariusWeb.Endpoint.url()
-    base_uri = URI.parse(base_url)
     url_uri = URI.parse(url)
 
-    # Check if the host matches (handles localhost with different ports)
-    url_uri.host == base_uri.host
+    base_host =
+      QlariusWeb.Endpoint.url()
+      |> URI.parse()
+      |> Map.get(:host)
+
+    cond do
+      url_uri.host == base_host -> true
+      arqade_widget_path?(url_uri.path) -> true
+      known_deployment_host?(url_uri.host) -> true
+      true -> false
+    end
   end
+
+  defp arqade_widget_path?(path) when is_binary(path) do
+    String.starts_with?(path, "/widgets/arqade/") or
+      String.starts_with?(path, "/widgets/arcade/")
+  end
+
+  defp arqade_widget_path?(_), do: false
+
+  defp known_deployment_host?(host) when is_binary(host) do
+    host == "qadabra.app" or String.ends_with?(host, ".qadabra.app") or
+      host == "qlinkin.bio" or String.ends_with?(host, ".qlinkin.bio") or
+      String.ends_with?(host, ".gigalixirapp.com") or
+      host == "localhost"
+  end
+
+  defp known_deployment_host?(_), do: false
 
   defp parse_youtube_url(url) do
     cond do
