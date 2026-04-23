@@ -76,18 +76,12 @@ defmodule QlariusWeb.Router do
   end
 
   # Based on https://elixirforum.com/t/how-to-embed-a-liveview-via-iframe/65066
-  # frame-src allowlist: our own hosts (for Tiqit/arqade embeds served
-  # out of the main app into Qlink pages on qlinkin.bio) plus the
-  # third-party embed providers supported by render_embed/1
-  # (YouTube, Spotify, TikTok). Keep this in sync with
-  # QlariusWeb.Endpoint.set_csp/2.
+  # CSP lives in QlariusWeb.SecurityHeaders; this plug only adds the
+  # x-frame-options strip needed for routes that serve iframeable content.
   defp allow_iframe(conn, _opts) do
-    csp =
-      "base-uri 'self'; default-src 'self'; img-src 'self' data: http: https: blob:; media-src 'self' http://localhost:4000 https://localhost:4001 https://*.s3.us-east-1.amazonaws.com https://*.s3.amazonaws.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws: wss: http: https:; frame-src 'self' https://qadabra.app https://*.qadabra.app https://qlinkin.bio https://*.qlinkin.bio https://qlarius.gigalixirapp.com https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com https://open.spotify.com https://www.tiktok.com https://tiktok.com; frame-ancestors * chrome-extension:;"
-
     conn
     |> delete_resp_header("x-frame-options")
-    |> put_resp_header("content-security-policy", csp)
+    |> put_resp_header("content-security-policy", QlariusWeb.SecurityHeaders.content_security_policy())
   end
 
   # ------ QLINK SHARE HOST (qlinkin.bio) ------
