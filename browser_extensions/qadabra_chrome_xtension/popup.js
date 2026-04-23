@@ -4,6 +4,9 @@
 const ALLOWED_ORIGINS = [
   "https://localhost:4001",
   "http://localhost:4000",
+  "https://qadabra.app",
+  "https://www.qadabra.app",
+  "https://qlink.qadabra.app",
   "https://qlarius.gigalixirapp.com"
 ];
 

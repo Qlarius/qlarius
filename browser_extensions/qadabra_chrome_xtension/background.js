@@ -1,4 +1,11 @@
-const API_BASE = "https://qlarius.gigalixirapp.com";
+// Primary API host. Points at the Qadabra apex so the extension's
+// credentialed fetches send the shared `Domain=.qadabra.app` session
+// cookie — i.e. a user signed in on `qlink.qadabra.app` (e.g. via a
+// Qlink "Connect your wallet" flow) is recognized by the extension
+// without a second login. The legacy `qlarius.gigalixirapp.com` host
+// remains whitelisted in the manifest for transitional support but
+// is no longer the canonical target.
+const API_BASE = "https://qadabra.app";
 const AD_COUNT_ENDPOINT = `${API_BASE}/api/extension/ad_count`;
 const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
