@@ -2,20 +2,32 @@ defmodule QlariusWeb.InstaTipComponents do
   use QlariusWeb, :html
 
   alias Phoenix.LiveView.JS
-  import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
   import QlariusWeb.Money, only: [format_usd: 1]
-  import QlariusWeb.Widgets.UnauthCTA, only: [format_usd_or_dashes: 1]
+  import QlariusWeb.Widgets.UnauthCTA, only: [wallet_strip_or_connect: 1]
 
   @default_amounts ["0.25", "0.50", "1.00", "2.00"]
 
+  # `scope` is the current `%Scope{}` (or nil for anonymous viewers).
+  # Passed through to `wallet_strip_or_connect/1` so the wallet
+  # footer renders the real balance + top-up popover for authed
+  # viewers, or `$--.--` + a Connect-wallet button for anonymous
+  # viewers — same visual component the arqade widget uses.
+  #
+  # `wallet_balance` is kept as an explicit attr so the scope can be
+  # nil while still displaying a live-updated balance (e.g. after a
+  # tip). Most callers should simply pass `@current_scope.wallet_balance`.
   attr :recipient, :map, required: true
+  attr :scope, :any, default: nil
   attr :wallet_balance, :any, required: true
+  attr :offered_amount, :any, default: nil
+  attr :ads_count, :any, default: nil
   attr :amounts, :list, default: @default_amounts
   attr :show_image, :boolean, default: true
   attr :show_message, :boolean, default: true
   attr :compact, :boolean, default: false
   attr :target, :any, default: nil
   attr :add_class, :string, default: nil
+  attr :wallet_strip_id, :string, default: "wallet-balance-tipjar"
 
   def insta_tip_card(assigns) do
     ~H"""
@@ -72,43 +84,14 @@ defmodule QlariusWeb.InstaTipComponents do
         add_class="mb-4"
       />
 
-      <.insta_tip_footer wallet_balance={@wallet_balance} />
-    </div>
-    """
-  end
-
-  attr :wallet_balance, :any, required: true
-  attr :add_class, :string, default: nil
-
-  def insta_tip_footer(assigns) do
-    ~H"""
-    <div class={["flex-1 flex flex-col items-center mt-0", @add_class]}>
-      <div class="text-base-content/70 text-sm mt-3 mb-4">
-        From your wallet <.icon name="hero-arrow-right" class="w-4 h-4 inline-block" />
-        <%!-- Renders "$--.--" (same styling, dimmed) when wallet_balance
-              is nil (anonymous viewer). Authed renders the real value
-              via format_usd/1. --%>
-        <span class={[
-          "inline-flex items-center w-auto text-lg bg-sponster-200 px-3 py-1 rounded-lg border border-sponster-300",
-          if(is_nil(@wallet_balance), do: "text-base-content/60", else: "text-base-content")
-        ]}>
-          <span class="font-bold">{format_usd_or_dashes(@wallet_balance)}</span>
-        </span>
-      </div>
-    </div>
-    """
-  end
-
-  @doc "Deprecated: use insta_tip_footer instead"
-  attr :wallet_balance, :any, required: true
-  attr :add_class, :string, default: nil
-
-  def insta_tip_header(assigns) do
-    ~H"""
-    <div class={["flex-1 flex flex-col items-center md:items-start mt-0", @add_class]}>
-      <div class="text-base-content/70 text-sm mt-3 mb-4">
-        From your wallet <.icon name="hero-arrow-right" class="w-4 h-4 inline-block" />
-        <.wallet_balance id="wallet-balance-instatip-header" balance={@wallet_balance} />
+      <div class="mt-2 mb-4">
+        <.wallet_strip_or_connect
+          id={@wallet_strip_id}
+          scope={@scope}
+          balance={@wallet_balance}
+          offered_amount={@offered_amount}
+          ads_count={@ads_count}
+        />
       </div>
     </div>
     """

@@ -821,9 +821,13 @@ defmodule QlariusWeb.QlinkPage.Show do
         <% true -> %>
           <.insta_tip_card
             recipient={@block_recipient}
+            scope={@current_scope}
             wallet_balance={@current_scope && @current_scope.wallet_balance}
+            offered_amount={@current_scope && @current_scope.offered_amount}
+            ads_count={@current_scope && @current_scope.ads_count}
             show_image={@show_header}
             show_message={@show_header}
+            wallet_strip_id={"wallet-balance-tipjar-#{@link.id}"}
           />
       <% end %>
     </div>

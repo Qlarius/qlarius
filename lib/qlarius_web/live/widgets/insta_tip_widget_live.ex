@@ -186,8 +186,12 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
         <.insta_tip_card
           :if={@recipient}
           recipient={@recipient}
+          scope={@current_scope}
           wallet_balance={@current_scope.wallet_balance}
+          offered_amount={@current_scope && @current_scope.offered_amount}
+          ads_count={@current_scope && @current_scope.ads_count}
           amounts={Enum.map(@amounts, &Decimal.to_string/1)}
+          wallet_strip_id="wallet-balance-tipjar-widget"
         />
         <div :if={!@recipient} class="text-center text-base-content/50">
           Recipient not found
