@@ -11,7 +11,7 @@
     <!-- Profile Section -->
     <div class="text-center mb-8">
       <div class="avatar mb-4">
-        <div class="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+        <div class="w-40 rounded-full ring ring-neutral ring-offset-base-100 ring-offset-2">
           <img src={@display_image} alt={@page.title} />
         </div>
       </div>
@@ -134,12 +134,25 @@
           </div>
         </div>
       <% else %>
-        <%!-- Unauthenticated: Show message --%>
+        <%!--
+          Unauthenticated. On the anon share host (qlinkin.bio) we send
+          visitors across to the interact host so they can actually log
+          in; on the interact host / localhost we use the in-app /login.
+        --%>
         <div class="text-sm text-base-content/70">
-          <.link navigate={~p"/login"} class="link link-primary font-medium">
-            Sign in
-          </.link>
-          to link your wallet
+          <%= if @is_anon_surface do %>
+            <.link
+              href={@interact_url}
+              class="link link-primary font-medium"
+            >
+              Connect your wallet
+            </.link>
+          <% else %>
+            <.link navigate={~p"/login"} class="link link-primary font-medium">
+              Sign in
+            </.link>
+            to link your wallet
+          <% end %>
         </div>
       <% end %>
 
@@ -252,14 +265,21 @@
               <% end %>
             <% end %>
           <% else %>
-            <%!-- Not authenticated --%>
+            <%!-- Not authenticated: cross-domain handoff on the anon host --%>
             <div class="text-center py-12">
               <.icon name="hero-lock-closed" class="w-12 h-12 mx-auto mb-4 text-base-content/30" />
               <p class="text-base-content/70 mb-4">Sign in to view and earn from ads</p>
-              <.link navigate={~p"/login"} class="btn btn-primary">
-                <.icon name="hero-wallet" class="w-5 h-5 mr-2" />
-                Connect your wallet
-              </.link>
+              <%= if @is_anon_surface do %>
+                <.link href={@interact_url} class="btn btn-primary">
+                  <.icon name="hero-wallet" class="w-5 h-5 mr-2" />
+                  Connect your wallet
+                </.link>
+              <% else %>
+                <.link navigate={~p"/login"} class="btn btn-primary">
+                  <.icon name="hero-wallet" class="w-5 h-5 mr-2" />
+                  Connect your wallet
+                </.link>
+              <% end %>
             </div>
           <% end %>
         </div>
@@ -445,16 +465,31 @@
     />
   <% end %>
 
-  <%!-- Floating "Connect your wallet" button for unauthenticated users (only if no recipient) --%>
+  <%!--
+    Floating "Connect your wallet" button for unauthenticated users
+    (only when no recipient is configured, so there's no other CTA).
+    On the anon share host, this sends the visitor to the interact host
+    via @interact_url; otherwise it uses the in-app /login.
+  --%>
   <%= if is_nil(@recipient) && (is_nil(@current_scope) || is_nil(@current_scope.true_user)) do %>
     <div class="fixed bottom-6 right-6 z-50">
-      <.link
-        navigate={~p"/login"}
-        class="btn btn-primary btn-lg rounded-full shadow-2xl gap-2 hover:scale-105 transition-transform"
-      >
-        <.icon name="hero-wallet" class="w-6 h-6" />
-        <span class="font-semibold">Connect your wallet</span>
-      </.link>
+      <%= if @is_anon_surface do %>
+        <.link
+          href={@interact_url}
+          class="btn btn-primary btn-lg rounded-full shadow-2xl gap-2 hover:scale-105 transition-transform"
+        >
+          <.icon name="hero-wallet" class="w-6 h-6" />
+          <span class="font-semibold">Connect your wallet</span>
+        </.link>
+      <% else %>
+        <.link
+          navigate={~p"/login"}
+          class="btn btn-primary btn-lg rounded-full shadow-2xl gap-2 hover:scale-105 transition-transform"
+        >
+          <.icon name="hero-wallet" class="w-6 h-6" />
+          <span class="font-semibold">Connect your wallet</span>
+        </.link>
+      <% end %>
     </div>
   <% end %>
 </div>

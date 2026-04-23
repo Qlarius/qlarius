@@ -162,6 +162,17 @@ defmodule QlariusWeb.UserAuth do
     {:cont, mount_current_scope(socket, session)}
   end
 
+  @doc """
+  Forces `current_scope` to `nil` regardless of session contents. Used on the
+  public vanity host (qlinkin.bio) so that Qlink pages there are provably
+  anonymous — no branch of the UI can render authed state even if a stray
+  session token somehow reached the host. Pair this with the :browser_anon
+  router pipeline which omits `:fetch_current_scope_for_user`.
+  """
+  def on_mount(:mount_anonymous_scope, _params, _session, socket) do
+    {:cont, Phoenix.Component.assign(socket, :current_scope, nil)}
+  end
+
   def on_mount(:ensure_authenticated, _params, session, socket) do
     socket = mount_current_scope(socket, session)
     has_scope = !!socket.assigns.current_scope

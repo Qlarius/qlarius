@@ -44,6 +44,21 @@ config :qlarius,
   ecto_repos: [Qlarius.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+# Qlink page hosts: qlinkin.bio is the public vanity/share surface (anonymous
+# only, edge-cacheable). qlink.qadabra.app is the interactive/authed mirror
+# served by the same Phoenix app. Overridden per-env in dev.exs / test.exs.
+config :qlarius,
+  qlink_share_host: "qlinkin.bio",
+  qlink_interact_host: "qlink.qadabra.app",
+  qlink_landing_redirect_url: "https://qadabra.co/qlink"
+
+# Allowlisted browser extension IDs for CORS. Production ID only in base config;
+# dev.exs adds the pinned dev extension ID alongside.
+config :qlarius,
+  cors_extension_ids: [
+    "chrome-extension://mhedmgbdabpgflgijpkabcdnkpncbdgp"
+  ]
+
 # Configures the endpoint
 config :qlarius, QlariusWeb.Endpoint,
   url: [host: "localhost"],

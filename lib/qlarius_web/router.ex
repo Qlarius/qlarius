@@ -32,6 +32,23 @@ defmodule QlariusWeb.Router do
     plug :set_current_path
   end
 
+  # Anonymous browser pipeline for the public Qlink share surface
+  # (qlinkin.bio). Deliberately omits `:fetch_current_scope_for_user` and
+  # the PWA/referral/mobile session-mutating plugs so responses can be
+  # edge-cached by Cloudflare regardless of whether a visitor has a stale
+  # session cookie from qadabra.app. Pair this in the router with
+  # `{QlariusWeb.UserAuth, :mount_anonymous_scope}` in the live_session's
+  # `on_mount` so LiveView also starts with `current_scope: nil`.
+  pipeline :browser_anon do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+    plug :allow_iframe
+  end
+
   pipeline :admin do
     plug :put_layout, {QlariusWeb.Layouts, :admin}
     plug :require_authenticated_user
@@ -66,6 +83,78 @@ defmodule QlariusWeb.Router do
     conn
     |> delete_resp_header("x-frame-options")
     |> put_resp_header("content-security-policy", csp)
+  end
+
+  # ------ QLINK SHARE HOST (qlinkin.bio) ------
+  #
+  # Anonymous, edge-cacheable view of a creator's Qlink page. Every
+  # interactive CTA on this surface links across to the interact host
+  # (qlink.qadabra.app) rather than trying to authenticate in place,
+  # so Cloudflare can serve these HTML responses from cache with
+  # minimal origin traffic.
+  #
+  # The catch-all `match :* /*path` at the bottom ensures any non-Qlink
+  # path on qlinkin.bio (including the bare root) redirects to the
+  # Qadabra marketing site's Qlink landing page. That keeps this host
+  # single-purpose and prevents accidental exposure of app routes.
+  #
+  # IMPORTANT: Must be defined BEFORE any unrestricted (non-`host:`)
+  # scope that also claims `/` (e.g. the HiLive `/` route), because
+  # Phoenix router matches in definition order.
+  scope "/", QlariusWeb, host: ["qlinkin.bio", "www.qlinkin.bio"] do
+    pipe_through [:browser_anon]
+
+    live_session :public_qlink_anon,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_anonymous_scope}
+      ] do
+      live "/@:alias", QlinkPage.Show, :show
+    end
+
+    get "/", QlinkRedirectController, :landing
+    match :*, "/*path", QlinkRedirectController, :not_found
+  end
+
+  # ------ QLINK INTERACT HOST (qlink.qadabra.app) ------
+  #
+  # Authed/interactive mirror of the Qlink page. Uses the full `:browser`
+  # pipeline so the shared `.qadabra.app` session cookie is read and
+  # `current_scope` is populated for logged-in visitors. Anonymous
+  # visitors that reach this host still get the same page but rendered
+  # with an "Connect your wallet" CTA that routes to the standard
+  # Qadabra login flow.
+  #
+  # `localhost` and `127.0.0.1` keep the `/@alias` route reachable in
+  # local dev; `qlarius.gigalixirapp.com` keeps it working on the
+  # existing Gigalixir hostname during the DNS migration.
+  scope "/", QlariusWeb,
+    host: [
+      "qlink.qadabra.app",
+      "localhost",
+      "127.0.0.1",
+      "qlarius.gigalixirapp.com"
+    ] do
+    pipe_through [:browser]
+
+    live_session :public_qlink_authed,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope}
+      ] do
+      live "/@:alias", QlinkPage.Show, :show
+    end
+  end
+
+  # ------ APEX → QLINK INTERACT REDIRECT ------
+  #
+  # The apex host (qadabra.app) is reserved for the main authed app.
+  # Qlink pages are canonical under the qlink.qadabra.app subdomain, but
+  # visitors sometimes type or paste links against the apex. Rather than
+  # 404, send them to the canonical interact URL (which preserves
+  # session because it shares the `.qadabra.app` cookie domain).
+  scope "/", QlariusWeb, host: ["qadabra.app", "www.qadabra.app"] do
+    pipe_through [:browser_anon]
+
+    get "/@:alias", QlinkRedirectController, :to_interact
   end
 
   # ------ MARKETER ROUTES ------
@@ -247,13 +336,10 @@ defmodule QlariusWeb.Router do
       live "/creators/qlink_pages/:id/edit", Creators.QlinkPageLive.Form, :edit
     end
 
-    # Public Qlink page route (no auth required, but mounts scope if logged in)
-    live_session :public_qlink,
-      on_mount: [
-        {QlariusWeb.UserAuth, :mount_current_scope}
-      ] do
-      live "/@:alias", QlinkPage.Show, :show
-    end
+    # The public Qlink `/@:alias` route now lives in host-scoped blocks
+    # above (qlinkin.bio anon + qlink.qadabra.app authed). It was moved
+    # out of this `:require_auth` scope so anonymous visitors are no
+    # longer redirected to /login when viewing a share URL.
 
     get "/jump/:id", AdJumpPageController, :jump
     post "/jump/collect", AdJumpPageController, :collect

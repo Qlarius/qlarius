@@ -51,6 +51,7 @@ defmodule QlariusWeb.QlinkPage.Show do
             |> assign(:page_title, page.title)
             |> assign(:display_image, Qlink.get_display_image(page))
             |> assign(:recipient, page.recipient)
+            |> assign_surface_context(page)
             |> init_sponster_assigns()
 
           # Subscribe to PubSub if authenticated and connected
@@ -66,6 +67,31 @@ defmodule QlariusWeb.QlinkPage.Show do
            |> redirect(to: ~p"/")}
         end
     end
+  end
+
+  # The Qlink page has two public surfaces:
+  #
+  #   * qlinkin.bio  — anonymous, edge-cached vanity host. CTAs here must
+  #     redirect visitors to the interact host (qlink.qadabra.app) to
+  #     authenticate, because `/login` is not routed on qlinkin.bio.
+  #
+  #   * qlink.qadabra.app (and localhost in dev) — authed/interactive
+  #     host. CTAs here use the normal in-app `/login` flow.
+  #
+  # `@is_anon_surface` tells the template which path to take; `@interact_url`
+  # is the pre-computed destination for cross-domain handoff when needed.
+  defp assign_surface_context(socket, page) do
+    host =
+      case get_connect_info(socket, :uri) do
+        %URI{host: host} when is_binary(host) -> host
+        _ -> nil
+      end
+
+    anon_hosts = ["qlinkin.bio", "www.qlinkin.bio"]
+
+    socket
+    |> assign(:is_anon_surface, host in anon_hosts)
+    |> assign(:interact_url, Qlarius.Qlink.Urls.interact_url(page.alias))
   end
 
   defp init_sponster_assigns(socket) do

@@ -157,6 +157,8 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
     case Qlink.update_page(page, %{is_published: new_status}) do
       {:ok, updated_page} ->
+        purge_share_cache(updated_page)
+
         {:noreply,
          socket
          |> assign(:page, updated_page)
@@ -629,6 +631,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     case Qlink.update_page(socket.assigns.page, page_params_with_image) do
       {:ok, page} ->
         page = Repo.preload(page, [:creator, :recipient])
+        purge_share_cache(page)
 
         # Stay on the edit screen; reset the form to the freshly-saved page so
         # :dirty flips back to false (button becomes disabled until next change).
@@ -678,6 +681,19 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
         |> noreply()
     end
   end
+
+  # Fire-and-forget Cloudflare edge cache bust for the public qlinkin.bio
+  # URL of this Qlink page. Wrapped in Task.start/1 so a slow or failing
+  # Cloudflare API call never blocks the save response. The Cloudflare
+  # module is itself a no-op when config is missing (e.g. in dev), so
+  # this is safe to call unconditionally.
+  defp purge_share_cache(%QlinkPage{alias: alias_}) when is_binary(alias_) do
+    url = Qlarius.Qlink.Urls.share_url(alias_)
+    Task.start(fn -> Qlarius.Cloudflare.Cache.purge_url(url) end)
+    :ok
+  end
+
+  defp purge_share_cache(_), do: :ok
 
   defp normalize_social_links_params(page_params, social_links_data) do
     social_links_map =

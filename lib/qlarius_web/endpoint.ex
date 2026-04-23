@@ -66,27 +66,52 @@ defmodule QlariusWeb.Endpoint do
   plug Plug.Session, @session_options
   plug :set_csp
 
-  # Add CORS support - allow chrome extension and localhost
+  # Base HTTP origins allowed by CORS. The browser extension IDs are
+  # merged in dynamically at runtime from `:qlarius, :cors_extension_ids`
+  # so dev builds can whitelist a pinned dev extension ID without
+  # shipping it in the production binary. See config/dev.exs for the
+  # dev list and config/config.exs for the prod-only list.
+  @cors_http_origins [
+    "http://localhost:4000",
+    "https://localhost:4000",
+    "http://127.0.0.1:4000",
+    "https://127.0.0.1:4000",
+    "http://10.0.2.2:4000",
+    "https://qlarius.gigalixirapp.com",
+    "https://qadabra.app",
+    "https://www.qadabra.app",
+    "https://qlink.qadabra.app",
+    "https://qlinkin.bio",
+    "https://www.qlinkin.bio"
+  ]
+
   plug CORSPlug,
-    origin: [
-      "http://localhost:4000",
-      "https://localhost:4000",
-      "http://127.0.0.1:4000",
-      "https://127.0.0.1:4000",
-      "http://10.0.2.2:4000",
-      "https://qlarius.gigalixirapp.com",
-      "chrome-extension://mhedmgbdabpgflgijpkabcdnkpncbdgp"
-    ],
+    origin: {__MODULE__, :cors_origins, []},
     headers: ["*"],
     methods: ["GET", "POST"],
     credentials: true
 
   plug QlariusWeb.Router
 
+  @doc false
+  def cors_origins do
+    @cors_http_origins ++ Application.get_env(:qlarius, :cors_extension_ids, [])
+  end
+
+  # Allowed WebSocket origins. Includes all production hosts (qadabra.app
+  # apex and subdomains, qlinkin.bio, legacy qlarius.com and
+  # qlarius.gigalixirapp.com), dev hosts (localhost, 127.0.0.1, 10.0.2.2
+  # for Android emulator), and all chrome-extension:// origins so the
+  # browser extension can open LiveView sockets from its iframe.
   def check_ws_origin(uri) do
     host = uri.host || ""
 
     host in [
+      "qadabra.app",
+      "www.qadabra.app",
+      "qlink.qadabra.app",
+      "qlinkin.bio",
+      "www.qlinkin.bio",
       "qlarius.gigalixirapp.com",
       "www.qlarius.com",
       "qlarius.com",

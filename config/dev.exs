@@ -65,6 +65,23 @@ config :qlarius, QlariusWeb.Endpoint,
     secure: true
   ]
 
+# Dev overrides: both Qlink surfaces collapse to localhost so dev/@alias works.
+# The anon vs authed distinction is still enforced by the router host-scoping
+# (via the mount callback), not by the host itself.
+config :qlarius,
+  qlink_share_host: "localhost:4001",
+  qlink_interact_host: "localhost:4001",
+  qlink_landing_redirect_url: "http://localhost:4001/"
+
+# Dev CORS extension IDs: includes the pinned dev extension ID alongside the
+# legacy prod ID. Replace DEV_EXTENSION_ID_PLACEHOLDER once the extension build
+# with a committed "key" field produces its deterministic ID (Phase 2.9).
+config :qlarius,
+  cors_extension_ids: [
+    "chrome-extension://mhedmgbdabpgflgijpkabcdnkpncbdgp",
+    "chrome-extension://DEV_EXTENSION_ID_PLACEHOLDER"
+  ]
+
 # Override Waffle to use HTTPS for asset URLs
 config :waffle,
   asset_host: "https://localhost:4001"
