@@ -494,6 +494,10 @@ defmodule QlariusWeb.Components.AdsComponents do
 
   attr :wallet_balance, :any, required: true
   attr :user_alias, :string, default: nil
+  attr :authed, :boolean, default: true,
+    doc:
+      "when false, the wallet pill renders as `$--.--` and the user dropdown is hidden. " <>
+        "Defaults to true to preserve legacy call sites."
   attr :on_close, :any, required: true
 
   def sponster_drawer_header(assigns) do
@@ -505,11 +509,20 @@ defmodule QlariusWeb.Components.AdsComponents do
       </div>
       <div class="flex items-center gap-0">
         <div class="flex flex-col items-center justify-center bg-base-200 px-3 min-w-[80px] h-[64px]">
-          <span class="inline-flex items-center text-lg bg-sponster-200 text-base-content px-3 py-1 rounded-lg border border-sponster-300">
-            <span class="font-bold">${Decimal.round(@wallet_balance || Decimal.new("0"), 2)}</span>
+          <span class={[
+            "inline-flex items-center text-lg bg-sponster-200 px-3 py-1 rounded-lg border border-sponster-300",
+            if(@authed, do: "text-base-content", else: "text-base-content/60")
+          ]}>
+            <span class="font-bold">
+              <%= if @authed do %>
+                ${Decimal.round(@wallet_balance || Decimal.new("0"), 2)}
+              <% else %>
+                $--.--
+              <% end %>
+            </span>
           </span>
         </div>
-        <details class="dropdown dropdown-end">
+        <details :if={@authed} class="dropdown dropdown-end">
           <summary class="flex items-center justify-center bg-base-300 text-base-content/40 hover:bg-gray-500 h-16 w-16 cursor-pointer">
             <svg
               width="32"

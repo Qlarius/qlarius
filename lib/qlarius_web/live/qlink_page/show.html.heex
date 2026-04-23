@@ -198,6 +198,7 @@
       <.sponster_drawer_header
         wallet_balance={@current_scope && @current_scope.wallet_balance}
         user_alias={@current_scope && @current_scope.user && @current_scope.user.alias}
+        authed={authed?(@current_scope)}
         on_close={JS.push("close_sponster_drawer")}
       />
 
