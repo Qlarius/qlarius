@@ -67,7 +67,10 @@ defmodule QlariusWeb.Endpoint do
 
   plug Plug.MethodOverride
   plug Plug.Head
-  plug Plug.Session, @session_options
+  # Shared session cookie across *.qadabra.app (login on qlink.qadabra.app
+  # recognized on qadabra.app and vice versa) while staying host-scoped on
+  # qlinkin.bio / localhost / etc. See `HostAwareSession` for rationale.
+  plug QlariusWeb.Plugs.HostAwareSession, @session_options
   plug :set_csp
 
   # Base HTTP origins allowed by CORS. The browser extension IDs are
