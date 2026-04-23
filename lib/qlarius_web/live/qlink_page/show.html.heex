@@ -267,21 +267,25 @@
               <% end %>
             <% end %>
           <% else %>
-            <%!-- Not authenticated: cross-domain handoff on the anon host --%>
+            <%!--
+              Unauthed drawer body. We use the same "Connect your
+              wallet" CTA pattern everywhere — link is target="_top"
+              on the anon share host so iframed embeds break out of
+              their frame when handing off to qlink.qadabra.app.
+              On the interactive host / localhost this is a normal
+              in-app /login navigate.
+            --%>
             <div class="text-center py-12">
               <.icon name="hero-lock-closed" class="w-12 h-12 mx-auto mb-4 text-base-content/30" />
               <p class="text-base-content/70 mb-4">Sign in to view and earn from ads</p>
-              <%= if @is_anon_surface do %>
-                <.link href={@interact_url} class="btn btn-primary">
-                  <.icon name="hero-wallet" class="w-5 h-5 mr-2" />
-                  Connect your wallet
-                </.link>
-              <% else %>
-                <.link navigate={~p"/login"} class="btn btn-primary">
-                  <.icon name="hero-wallet" class="w-5 h-5 mr-2" />
-                  Connect your wallet
-                </.link>
-              <% end %>
+              <.link
+                href={if @is_anon_surface, do: @interact_url, else: ~p"/login"}
+                target={if @is_anon_surface, do: "_top"}
+                class="btn btn-primary"
+              >
+                <.icon name="hero-wallet" class="w-5 h-5 mr-2" />
+                Connect your wallet
+              </.link>
             </div>
           <% end %>
         </div>
