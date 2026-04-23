@@ -6,13 +6,17 @@ defmodule QlariusWeb.Endpoint do
   # Set :encryption_salt if you would also like to encrypt it.
   @session_options Application.compile_env!(:qlarius, [QlariusWeb.Endpoint, :session_options])
 
-  # Use function for check_origin: production LB/proxy can modify Origin; strict list may reject valid connections
+  # Use function for check_origin: production LB/proxy can modify Origin; strict list may reject valid connections.
+  # Must be applied to BOTH transports — falling back to PHX_HOST-based default on longpoll rejects qadabra.app.
   socket "/live", Phoenix.LiveView.Socket,
     websocket: [
       connect_info: [:x_headers, :uri, session: @session_options],
       check_origin: {QlariusWeb.Endpoint, :check_ws_origin, []}
     ],
-    longpoll: [connect_info: [:x_headers, :uri, session: @session_options]]
+    longpoll: [
+      connect_info: [:x_headers, :uri, session: @session_options],
+      check_origin: {QlariusWeb.Endpoint, :check_ws_origin, []}
+    ]
 
   # Based on https://elixirforum.com/t/how-to-embed-a-liveview-via-iframe/65066
   # This isn't a good long-term solution; I just need to get the demo working.
