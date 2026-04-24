@@ -615,6 +615,22 @@ defmodule QlariusWeb.Layouts do
     Plug.Conn.assign(conn, :current_path, conn.request_path)
   end
 
+  # Sets `@base_path` at mount time for LVs in a given live_session.
+  # Used by the widgets scope (`/widgets/...`) to pre-declare the
+  # `/widgets` prefix. The default main-app scope leaves `base_path`
+  # unset, which callers (e.g. `ArcadeLive`) default to `""`.
+  #
+  # This hook is a cleaner alternative to reading the request URI
+  # in `handle_params/3`, which is not allowed on child LiveViews
+  # (see `Phoenix.LiveView.Static.disconnected_nested_render/6`).
+  # Because live_session `on_mount` hooks only run for router-mounted
+  # LiveViews, `base_path` is not leaked into nested `live_render/3`
+  # mounts — which receive their own value via the `session:` option.
+  def on_mount({:set_base_path, base_path}, _params, _session, socket)
+      when is_binary(base_path) do
+    {:cont, Phoenix.Component.assign_new(socket, :base_path, fn -> base_path end)}
+  end
+
   def on_mount(:set_current_path, _params, _session, socket) do
     # Only set current_path if it's not already set
     socket =

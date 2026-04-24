@@ -212,7 +212,15 @@ defmodule QlariusWeb.Router do
     live_session :widgets,
       on_mount: [
         {QlariusWeb.UserAuth, :mount_current_scope},
-        {QlariusWeb.Layouts, :set_current_path}
+        {QlariusWeb.Layouts, :set_current_path},
+        # Seed `@base_path = "/widgets"` for every LV in this
+        # scope. Arcade LVs read it to build same-scope internal
+        # links (e.g. `#{@base_path}/content/123`). Previously we
+        # derived this from `handle_params`'s URI arg, but that
+        # callback is forbidden on child LiveViews, which now
+        # matter because `ArcadeLive` is also rendered inline via
+        # `live_render/3` from Qlink pages.
+        {QlariusWeb.Layouts, {:set_base_path, "/widgets"}}
       ] do
       live "/arqade", Arcade.ArqadeDiscoveryLive
       live "/arqade/group/:group_id", Arcade.ArcadeLive

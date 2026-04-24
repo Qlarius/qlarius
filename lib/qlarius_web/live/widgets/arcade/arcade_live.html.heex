@@ -1,6 +1,16 @@
 <div id="arcade-pwa-detect" phx-hook="PWADetect">
-<Layouts.maybe_mobile wrap={@base_path == ""} {assigns}>
+<%!--
+  When this LV is rendered inline inside another LV (e.g. a Qlink
+  page), the parent page already supplies the outer mobile layout
+  chrome. Wrapping again would nest the nav/bottom-tabs inside the
+  arqade region — visually wrong. Same reasoning for the
+  breadcrumbs: on a Qlink page the visitor isn't navigating the
+  arqade catalog, so the "Discover › Creator › Catalog" trail would
+  just lure clicks away from the page.
+--%>
+<Layouts.maybe_mobile wrap={@base_path == "" and not @inline?} {assigns}>
 <.arqade_breadcrumbs
+  :if={not @inline?}
   base_path={@base_path}
   crumbs={[
     {@group.catalog.creator.name, "#{@base_path}/arqade"},
@@ -191,9 +201,22 @@
           {String.capitalize(to_string(@group.catalog.piece_type))}s
         </h2>
         <div class="flex-1 overflow-y-auto min-h-0 space-y-2">
+          <%!--
+            Piece selection always goes through the `select-content`
+            event (not a URL `patch=`) so this template works
+            uniformly in:
+              * Standalone widget mounts (with URL)
+              * Nested `live_render/3` mounts (no URL of its own —
+                Phoenix LV disallows `handle_params/3` on child
+                LiveViews, which would otherwise back the patch).
+            Initial piece deep-linking via `?content_id=N` is still
+            honored at mount (see `maybe_init_selected_piece/4`).
+          --%>
           <.link
             :for={piece <- @pieces}
-            patch={"#{@base_path}/arqade/group/#{@group.id}/?content_id=#{piece.id}"}
+            href="#"
+            phx-click="select-content"
+            phx-value-content-id={piece.id}
             class={"rounded-lg p-3 flex gap-3 border transition-all hover:shadow-sm block
             #{if piece.id == @selected_piece.id, do: "bg-primary/10 border-primary text-primary", else: "bg-base-100 border-base-300 hover:bg-base-200"}"}
           >

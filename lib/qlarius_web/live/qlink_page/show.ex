@@ -835,6 +835,16 @@ defmodule QlariusWeb.QlinkPage.Show do
   attr :link, :map, required: true
   attr :recipient, :map, default: nil
   attr :current_scope, :map, default: nil
+  # `socket` is forwarded from the parent LV so embed renderers can
+  # call `Phoenix.LiveView.live_render/3` (required for inline arqade
+  # widgets — see `render_embed/1`). Function components don't
+  # receive `@socket` automatically; callers must pass it explicitly.
+  attr :socket, :any, default: nil
+  # `is_anon_surface` gates inline LV rendering: on the anonymous
+  # share surface (qlinkin.bio) we keep the iframe path so the page
+  # remains edge-cacheable and doesn't mount a fresh interactive LV
+  # process for every anonymous viewer.
+  attr :is_anon_surface, :boolean, default: false
 
   def render_link(assigns) do
     cond do
@@ -955,12 +965,153 @@ defmodule QlariusWeb.QlinkPage.Show do
         render_tiktok_embed(assigns, video_id)
 
       "iframe" when not is_nil(iframe_url) ->
-        render_iframe_embed(assigns, iframe_url)
+        # For arqade widgets served by this deployment on the
+        # interactive surface, render as a nested LiveView via
+        # `live_render/3`. The nested LV shares the same auth scope
+        # and wallet PubSub as the page, so balance/wallet updates
+        # flow through naturally — no iframe, no cross-origin cookie
+        # handshake, no extra network hop. Third-party embeds and
+        # the anonymous share surface (qlinkin.bio) still use the
+        # iframe path.
+        cond do
+          inline_arqade_candidate?(assigns, iframe_url) ->
+            render_inline_arqade(assigns, iframe_url)
+
+          true ->
+            render_iframe_embed(assigns, iframe_url)
+        end
 
       _ ->
         render_standard_link(assigns)
     end
   end
+
+  # Two gates must both pass for inline rendering:
+  #   1. URL parses as an arqade widget on a host in our deployment
+  #      family (see `Qlarius.Qlink.Urls.own_deployment_arqade_url?/1`).
+  #   2. The current surface is the interactive host — not the anon
+  #      share surface (qlinkin.bio). The anon surface stays on the
+  #      iframe path so its page remains edge-cacheable and doesn't
+  #      spin up a fresh LV process per anonymous pageview.
+  # The socket must also be present (it's required to call
+  # `live_render/3`); we pass `@socket` from the parent LV explicitly
+  # via `<.render_link socket={@socket} ...>`.
+  #
+  # TODO(arqade-block): today the arqade ↔ Qlink binding is a pasted
+  # URL in a generic `:embed` block; we parse it back out here. Once
+  # we add a first-class `:arqade` link type with FKs to
+  # content_catalog / content_group / content_piece (see
+  # docs/qlink_arqade_block_followup.md), this URL-parsing dance
+  # goes away and we dispatch directly on the FK.
+  defp inline_arqade_candidate?(assigns, iframe_url) do
+    not assigns[:is_anon_surface] and
+      not is_nil(assigns[:socket]) and
+      Qlarius.Qlink.Urls.own_deployment_arqade_url?(iframe_url)
+  end
+
+  # Resolves the arqade widget type + id from the stored URL, then
+  # dispatches to the appropriate LiveView via `live_render/3`. The
+  # nested LV inherits the parent page's session (so auth flows
+  # through) and is handed a `session:` map that signals inline
+  # mode + carries the `content_id` / `force_theme` / `show_title`
+  # values that would otherwise arrive as query params on the
+  # standalone widget URL.
+  defp render_inline_arqade(assigns, iframe_url) do
+    case Qlarius.Qlink.Urls.parse_arqade_widget_url(iframe_url) do
+      {:ok, {:group, group_id}} ->
+        render_inline_arqade_live(assigns, QlariusWeb.Widgets.Arcade.ArcadeLive,
+          path: build_widget_path(iframe_url, "/widgets/arqade/group/#{group_id}"),
+          session_params: %{"group_id" => group_id},
+          dom_id: "inline-arqade-group-#{group_id}-link-#{assigns.link.id}"
+        )
+
+      {:ok, {:single, piece_id}} ->
+        render_inline_arqade_live(assigns, QlariusWeb.Widgets.Arcade.ArcadeSingleLive,
+          path: build_widget_path(iframe_url, "/widgets/arqade/#{piece_id}"),
+          session_params: %{"piece_id" => piece_id},
+          dom_id: "inline-arqade-piece-#{piece_id}-link-#{assigns.link.id}"
+        )
+
+      # Catalog and discovery arqade URLs don't have a dedicated LV
+      # yet (they're rendered by the standalone widget controller).
+      # Fall through to the iframe path so creators keep a working
+      # embed until those are inlined.
+      _ ->
+        render_iframe_embed(assigns, iframe_url)
+    end
+  end
+
+  # Preserves the original URL's query string (e.g. `?force_theme=dark`)
+  # when handing a path to `render_inline_arqade_live`, so
+  # `extract_query_params/1` can recover `force_theme` / `content_id`
+  # from it. The standalone URL path itself is otherwise irrelevant
+  # inline (the nested LV is mounted via `live_render/3`, not routed).
+  defp build_widget_path(iframe_url, default_path) do
+    case URI.parse(iframe_url) do
+      %URI{query: q} when is_binary(q) and q != "" -> default_path <> "?" <> q
+      _ -> default_path
+    end
+  end
+
+  # Performs the `live_render/3` call. Kept out of render_inline_arqade
+  # so slice A.4 (catalog + single-piece) can reuse the same plumbing.
+  defp render_inline_arqade_live(assigns, module, opts) do
+    embed_config = assigns.link.embed_config
+    height = get_embed_value(embed_config, "height") || get_embed_value(embed_config, :height) || 500
+
+    show_title_raw =
+      case {get_embed_value(embed_config, "show_title"), get_embed_value(embed_config, :show_title)} do
+        {nil, nil} -> nil
+        {s, _} when not is_nil(s) -> s
+        {_, s} -> s
+      end
+
+    # Extract `force_theme` and `content_id` from the stored URL's
+    # query string — they're persisted that way because the same URL
+    # also feeds the iframe path, which passes them as query params.
+    query_params = extract_query_params(opts[:path])
+
+    session = %{
+      "inline?" => true,
+      "base_path" => "",
+      # show_title defaults to true (standalone path does the same).
+      # Only pass false when explicitly set, so the nested LV can
+      # honor the creator's "hide title" setting.
+      "show_title" => show_title_raw != false,
+      "content_id" => Map.get(query_params, "content_id"),
+      "force_theme" => Map.get(query_params, "force_theme")
+    }
+    |> Map.merge(opts[:session_params] || %{})
+
+    assigns =
+      assigns
+      |> assign(:inline_arqade_module, module)
+      |> assign(:inline_arqade_dom_id, opts[:dom_id])
+      |> assign(:inline_arqade_session, session)
+      |> assign(:inline_arqade_height, height)
+
+    ~H"""
+    <div
+      class="w-full rounded-xl overflow-hidden border border-neutral/50 bg-base-100"
+      style={"min-height: #{@inline_arqade_height}px;"}
+    >
+      {live_render(@socket, @inline_arqade_module,
+        id: @inline_arqade_dom_id,
+        session: @inline_arqade_session,
+        container: {:div, class: "h-full"}
+      )}
+    </div>
+    """
+  end
+
+  defp extract_query_params(url) when is_binary(url) do
+    case URI.parse(url) do
+      %URI{query: q} when is_binary(q) -> URI.decode_query(q)
+      _ -> %{}
+    end
+  end
+
+  defp extract_query_params(_), do: %{}
 
   defp get_embed_platform(embed_config) when is_map(embed_config) do
     Map.get(embed_config, "platform") || Map.get(embed_config, :platform)

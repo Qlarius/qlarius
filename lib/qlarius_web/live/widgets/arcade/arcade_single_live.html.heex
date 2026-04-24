@@ -1,6 +1,7 @@
 <div id="single-pwa-detect" phx-hook="PWADetect">
-<Layouts.maybe_mobile wrap={@base_path == ""} {assigns}>
+<Layouts.maybe_mobile wrap={@base_path == "" and not @inline?} {assigns}>
 <.arqade_breadcrumbs
+  :if={not @inline?}
   base_path={@base_path}
   crumbs={[
     {@group.catalog.creator.name, "#{@base_path}/arqade"},

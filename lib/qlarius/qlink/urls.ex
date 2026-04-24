@@ -165,6 +165,116 @@ defmodule Qlarius.Qlink.Urls do
 
   defp arqade_widget_path?(_), do: false
 
+  @doc """
+  Parses an embed URL to determine whether it points at an arqade
+  widget served by *this* deployment, and if so which kind.
+
+  Returns:
+    * `{:ok, {:group, group_id}}` for `/widgets/arqade/group/:id`
+    * `{:ok, {:catalog, catalog_id}}` for `/widgets/arqade/catalog/:id`
+    * `{:ok, {:single, piece_id}}` for `/widgets/arqade/:piece_id`
+    * `{:ok, :discovery}` for `/widgets/arqade` (no id)
+    * `:error` for anything else (third-party URLs, non-arqade paths,
+      unparseable URLs).
+
+  Recognizes both `arqade` and the historical `arcade` spelling.
+  IDs are returned as the raw string fragment from the URL path; the
+  caller is expected to validate / convert them.
+
+  This is the ingredient `QlinkPage.Show` uses to decide whether an
+  embed can be inlined as a nested `live_render/3` instead of served
+  through an iframe.
+  """
+  @spec parse_arqade_widget_url(term()) ::
+          {:ok, {:group, String.t()}}
+          | {:ok, {:catalog, String.t()}}
+          | {:ok, {:single, String.t()}}
+          | {:ok, :discovery}
+          | :error
+  def parse_arqade_widget_url(url) when is_binary(url) do
+    with %URI{path: path} when is_binary(path) <- URI.parse(url),
+         true <- arqade_widget_path?(path) or arqade_widget_root?(path) do
+      path
+      |> String.trim_trailing("/")
+      |> String.split("/", trim: true)
+      |> classify_arqade_path_segments()
+    else
+      _ -> :error
+    end
+  end
+
+  def parse_arqade_widget_url(_), do: :error
+
+  # Accepts the bare root path (no trailing segment) — `/widgets/arqade`
+  # and `/widgets/arcade`, with or without a trailing slash.
+  defp arqade_widget_root?(path) when is_binary(path) do
+    stripped = String.trim_trailing(path, "/")
+    stripped == "/widgets/arqade" or stripped == "/widgets/arcade"
+  end
+
+  defp arqade_widget_root?(_), do: false
+
+  # Path segments after trim: e.g. ["widgets","arqade","group","42"].
+  # Matches the router definitions in `QlariusWeb.Router`.
+  defp classify_arqade_path_segments(["widgets", kind, "group", id])
+       when kind in ["arqade", "arcade"] and id != "",
+       do: {:ok, {:group, id}}
+
+  defp classify_arqade_path_segments(["widgets", kind, "catalog", id])
+       when kind in ["arqade", "arcade"] and id != "",
+       do: {:ok, {:catalog, id}}
+
+  defp classify_arqade_path_segments(["widgets", kind, id])
+       when kind in ["arqade", "arcade"] and id not in ["", "group", "catalog"],
+       do: {:ok, {:single, id}}
+
+  defp classify_arqade_path_segments(["widgets", kind])
+       when kind in ["arqade", "arcade"],
+       do: {:ok, :discovery}
+
+  defp classify_arqade_path_segments(_), do: :error
+
+  @doc """
+  Returns `true` when the URL points at an arqade widget on a host
+  that belongs to our own deployment family (qadabra.app, qlinkin.bio,
+  gigalixirapp.com, localhost). These are the embeds that a Qlink
+  page can safely render inline via nested `live_render/3` instead of
+  through a cross-origin iframe.
+
+  Always returns `false` for third-party hosts, even when the path
+  happens to look arqade-shaped — the iframe is the correct render
+  path for those because the widget isn't running in this BEAM.
+  """
+  @spec own_deployment_arqade_url?(term()) :: boolean()
+  def own_deployment_arqade_url?(url) when is_binary(url) do
+    case {URI.parse(url), parse_arqade_widget_url(url)} do
+      {%URI{host: host}, {:ok, _}} when is_binary(host) ->
+        own_deployment_host?(host)
+
+      {%URI{host: nil}, {:ok, _}} ->
+        # Relative path — assume same deployment.
+        true
+
+      _ ->
+        false
+    end
+  end
+
+  def own_deployment_arqade_url?(_), do: false
+
+  # Kept in sync with `Qlarius.Qlink.QlinkLink.known_deployment_host?/1`.
+  # Both predicates carry the same meaning ("this host belongs to us")
+  # but live in different modules to avoid a circular dep; changes to
+  # one should be mirrored in the other.
+  defp own_deployment_host?(host) when is_binary(host) do
+    host == "qadabra.app" or String.ends_with?(host, ".qadabra.app") or
+      host == "qlinkin.bio" or String.ends_with?(host, ".qlinkin.bio") or
+      String.ends_with?(host, ".gigalixirapp.com") or
+      host == "localhost"
+  end
+
+  defp own_deployment_host?(_), do: false
+
   # Localhost dev uses https://localhost:4001 (see config/dev.exs); anything
   # containing "localhost" keeps the https scheme the dev server runs on. In
   # prod, public hosts are always served over https.

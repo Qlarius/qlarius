@@ -54,7 +54,13 @@
       <% unsectioned_links = Enum.filter(@links, &is_nil(&1.qlink_section_id)) %>
       <%= if unsectioned_links != [] do %>
         <%= for link <- unsectioned_links do %>
-          <.render_link link={link} recipient={@recipient} current_scope={@current_scope} />
+          <.render_link
+            link={link}
+            recipient={@recipient}
+            current_scope={@current_scope}
+            socket={@socket}
+            is_anon_surface={@is_anon_surface}
+          />
         <% end %>
       <% end %>
       
@@ -73,7 +79,13 @@
 
               <div class="space-y-4">
                 <%= for link <- section_links do %>
-                  <.render_link link={link} recipient={@recipient} current_scope={@current_scope} />
+                  <.render_link
+                    link={link}
+                    recipient={@recipient}
+                    current_scope={@current_scope}
+                    socket={@socket}
+                    is_anon_surface={@is_anon_surface}
+                  />
                 <% end %>
               </div>
             </div>

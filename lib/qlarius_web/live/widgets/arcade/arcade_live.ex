@@ -19,10 +19,43 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
-  # This LiveView serves two contexts via @base_path:
-  # - Embedded widgets: mounted at /widgets/arqade/group/:group_id → @base_path = "/widgets"
-  # - Main app: mounted at /arqade/group/:group_id → @base_path = ""
-  # All internal links use @base_path to stay within the correct context.
+  # Ensure `current_scope` is assigned whether this LV is reached
+  # via the router (where the `live_session` hook already ran) or
+  # via `Phoenix.LiveView.live_render/3` from another LV (where
+  # `live_session` hooks do NOT apply). `mount_current_scope` uses
+  # `assign_new`, so running it twice when routed is a no-op.
+  on_mount {QlariusWeb.UserAuth, :mount_current_scope}
+
+  # This LiveView serves three contexts via @base_path / @inline?:
+  #
+  #   1. Standalone widget — mounted at `/widgets/arqade/group/:group_id`
+  #      via the widgets scope. `@base_path = "/widgets"`. Usually
+  #      embedded through an iframe on third-party (or anon) surfaces.
+  #
+  #   2. Main app — mounted at `/arqade/group/:group_id` in the
+  #      authed scope. `@base_path = ""`.
+  #
+  #   3. Nested inline — rendered via `Phoenix.LiveView.live_render/3`
+  #      from inside another LV (e.g. a Qlink page). There is no URL
+  #      for this LV; `params` is the atom `:not_mounted_at_router`
+  #      and the parent hands us `group_id` through the `session:`
+  #      option, along with `inline? = true` (which switches
+  #      piece-selection from URL-driven `patch=` to in-process
+  #      `phx-click` events so the parent LV's URL isn't mutated by
+  #      the inline widget).
+  #
+  # All internal links continue to use `@base_path` to stay within
+  # the correct context.
+  def mount(:not_mounted_at_router, session, socket) do
+    group_id =
+      session["group_id"] ||
+        raise ArgumentError,
+              "ArcadeLive rendered via live_render/3 requires a `group_id` in session. " <>
+                "Got session: #{inspect(Map.keys(session))}"
+
+    mount(%{"group_id" => group_id}, session, socket)
+  end
+
   def mount(%{"group_id" => group_id} = params, session, socket) do
     if connected?(socket) and socket.assigns[:mounted] do
       scope = socket.assigns.current_scope
@@ -65,12 +98,33 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       force_theme = Map.get(params, "force_theme")
       show_title = Map.get(params, "show_title", "true") != "false"
 
+      # `inline?` is set by the parent LV when this module is
+      # rendered via `live_render/3` (see
+      # `QlariusWeb.QlinkPage.Show.render_inline_arqade/2`). The
+      # parent passes `%{"inline?" => true, "base_path" => "",
+      # "force_theme" => ..., "show_title" => ...}` through the
+      # `session:` option, which arrives here as string keys.
+      inline? = session["inline?"] == true or session["inline?"] == "true"
+
+      force_theme = session["force_theme"] || force_theme
+      show_title = if Map.has_key?(session, "show_title"), do: session["show_title"] != false and session["show_title"] != "false", else: show_title
+
+      # `base_path` resolution order:
+      #   1. Already assigned by a router `on_mount` hook
+      #      (`QlariusWeb.Layouts.:set_base_path`) for standalone
+      #      /widgets/... or /arqade/... mounts.
+      #   2. `session["base_path"]` passed from a parent LV via
+      #      `live_render/3`'s `:session` option (inline mounts).
+      #   3. Default to "" (main-app style).
+      base_path = socket.assigns[:base_path] || session["base_path"] || ""
+
       {:ok,
        socket
        |> init_pwa_assigns(session)
        |> assign(
          mounted: true,
-         base_path: "",
+         inline?: inline?,
+         base_path: base_path,
          title: "Arqade",
          current_path: "/arqade/group/#{group_id}",
          group: group,
@@ -80,8 +134,59 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          force_theme: force_theme,
          show_title: show_title
        )
-       |> assign(scope_assigns(scope, group))}
+       |> assign(scope_assigns(scope, group))
+       |> maybe_init_selected_piece(inline?, session, params)}
     end
+  end
+
+  # Seeds `selected_piece` + `tiqit` from the `content_id` present
+  # in either `params` (standalone HTTP mount) or `session` (inline
+  # nested mount). Unified across both contexts because nested
+  # LiveViews can't define `handle_params/3` (Phoenix LV constraint
+  # — it's only allowed on root LVs). Consequently piece selection
+  # clicks must always go through `select-content` rather than a
+  # URL patch, and the only URL-driven input is the initial
+  # `?content_id=N` deep-link consumed here at mount.
+  defp maybe_init_selected_piece(socket, _inline?, session, params) do
+    content_id =
+      (is_map(params) && params["content_id"]) ||
+        session["content_id"]
+
+    select_content_by_id(socket, content_id)
+  end
+
+  # Shared piece-selection logic. Resolves `content_id` (string or
+  # int, or nil → defaults to first) against the loaded pieces,
+  # then assigns the standard `selected_piece` / `default_tiqit_class`
+  # / `tiqit` trio. Used by both the inline init path and by the
+  # `handle_event("select-content", ...)` handler that replaces the
+  # standalone `patch=` → handle_params navigation when embedded.
+  defp select_content_by_id(socket, content_id) do
+    pieces = socket.assigns.pieces
+
+    selected_piece =
+      case content_id do
+        id when is_integer(id) -> Enum.find(pieces, &(&1.id == id)) || List.first(pieces)
+        id when is_binary(id) ->
+          case Integer.parse(id) do
+            {i, _} -> Enum.find(pieces, &(&1.id == i)) || List.first(pieces)
+            :error -> List.first(pieces)
+          end
+        _ -> List.first(pieces)
+      end
+
+    default_tiqit_class =
+      if selected_piece, do: ContentPiece.default_tiqit_class(selected_piece), else: nil
+
+    tiqit =
+      if selected_piece,
+        do: Arcade.get_valid_tiqit(socket.assigns.current_scope, selected_piece),
+        else: nil
+
+    socket
+    |> assign(:selected_piece, selected_piece)
+    |> assign(:default_tiqit_class, default_tiqit_class)
+    |> assign(:tiqit, tiqit)
   end
 
   # Computes all scope-dependent assigns (balance, offered, tiqit-up
@@ -126,43 +231,18 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     }
   end
 
-  def handle_params(params, uri, socket) do
-    base_path = if String.contains?(uri, "/widgets/"), do: "/widgets", else: ""
-    socket = assign(socket, :base_path, base_path)
-    pieces = socket.assigns.pieces
+  # NOTE: intentionally NO `handle_params/3`. Nested LiveViews
+  # (see `Phoenix.LiveView.live_render/3`) are forbidden from
+  # defining it — it is root-only. Piece selection is driven via
+  # the `select-content` event in both standalone and inline modes;
+  # URL-based deep linking is resolved once at mount via the
+  # `content_id` query param (see `maybe_init_selected_piece/4`).
 
-    selected_piece =
-      with {:ok, content_id} <- Map.fetch(params, "content_id"),
-           content_id = String.to_integer(content_id),
-           content = %ContentPiece{} <- Enum.find(pieces, &(&1.id == content_id)) do
-        content
-      else
-        _ ->
-          List.first(pieces)
-      end
-
-    default_tiqit_class =
-      if selected_piece do
-        ContentPiece.default_tiqit_class(selected_piece)
-      else
-        nil
-      end
-
-    tiqit =
-      if selected_piece do
-        Arcade.get_valid_tiqit(socket.assigns.current_scope, selected_piece)
-      else
-        nil
-      end
-
-    force_theme = Map.get(params, "force_theme")
-
-    socket
-    |> assign(selected_piece: selected_piece)
-    |> assign(default_tiqit_class: default_tiqit_class)
-    |> assign(tiqit: tiqit)
-    |> assign(force_theme: force_theme)
-    |> noreply()
+  # Piece-selection event for both standalone and inline mounts.
+  # `content-id` arrives as a string from `phx-value-content-id` —
+  # `select_content_by_id/2` parses it.
+  def handle_event("select-content", %{"content-id" => content_id}, socket) do
+    {:noreply, select_content_by_id(socket, content_id)}
   end
 
   def handle_event("pwa_detected", params, socket) do

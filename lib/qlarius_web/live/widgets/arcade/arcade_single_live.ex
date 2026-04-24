@@ -18,12 +18,37 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   import QlariusWeb.Widgets.UnauthCTA
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+  # Nested `live_render/3` mounts don't go through the router, so
+  # `mount_current_scope` isn't in the `:widgets` live_session's
+  # on_mount list for them. Re-running it here guarantees
+  # `@current_scope` is set in both contexts. `assign_new` inside
+  # makes this idempotent for router-driven mounts.
+  on_mount {QlariusWeb.UserAuth, :mount_current_scope}
 
-  # This LiveView serves two contexts via @base_path:
-  # - Embedded widgets: mounted at /widgets/arqade/:piece_id → @base_path = "/widgets"
-  # - Main app: mounted at /arqade/:piece_id → @base_path = ""
+  # This LiveView serves three contexts via @base_path / @inline?:
+  # - Embedded standalone widgets: mounted at /widgets/arqade/:piece_id
+  #   → @base_path = "/widgets", @inline? = false. Used when creators
+  #   iframe the widget on third-party sites.
+  # - Main app: mounted at /arqade/:piece_id → @base_path = "",
+  #   @inline? = false. The normal in-app single-piece detail page.
+  # - Nested inline: rendered via `live_render/3` from a Qlink page's
+  #   `render_embed` → @base_path = "", @inline? = true. Same widget
+  #   contents, but no breadcrumbs or layout chrome — the parent
+  #   Qlink page already provides that.
   # All internal links use @base_path to stay within the correct context.
+
+  # Nested/inline mount: `live_render/3` passes `:not_mounted_at_router`
+  # as `params` and hands us the widget config via `session`.
+  def mount(:not_mounted_at_router, session, socket) do
+    piece_id = Map.fetch!(session, "piece_id")
+    mount_impl(piece_id, %{}, session, socket)
+  end
+
   def mount(%{"piece_id" => piece_id} = params, session, socket) do
+    mount_impl(piece_id, params, session, socket)
+  end
+
+  defp mount_impl(piece_id, params, session, socket) do
     if connected?(socket) and socket.assigns[:mounted] do
       scope = socket.assigns.current_scope
 
@@ -54,14 +79,25 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
         Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{scope.user.id}")
       end
 
-      force_theme = Map.get(params, "force_theme", "light")
+      inline? = session["inline?"] == true
+      force_theme = session["force_theme"] || Map.get(params, "force_theme", "light")
+
+      # `base_path` resolution order mirrors `ArcadeLive`:
+      #   1. Already assigned by a router `on_mount` hook
+      #      (`QlariusWeb.Layouts.:set_base_path`) for
+      #      /widgets/... mounts.
+      #   2. `session["base_path"]` passed from a parent LV via
+      #      `live_render/3`'s `:session` option (inline mounts).
+      #   3. Default to "" (main-app style).
+      base_path = socket.assigns[:base_path] || session["base_path"] || ""
 
       socket =
         socket
         |> init_pwa_assigns(session)
         |> assign(
           mounted: true,
-          base_path: "",
+          base_path: base_path,
+          inline?: inline?,
           title: "Arqade",
           current_path: "/arqade/#{piece_id}",
           piece: piece,
@@ -128,10 +164,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
     }
   end
 
-  def handle_params(_params, uri, socket) do
-    base_path = if String.contains?(uri, "/widgets/"), do: "/widgets", else: ""
-    {:noreply, assign(socket, :base_path, base_path)}
-  end
+  # `handle_params/3` used to derive `base_path` here, but it's
+  # forbidden on child LiveViews (Phoenix raises when nested LVs
+  # define it). `base_path` is now seeded at mount time — either
+  # by the `:widgets` live_session's `:set_base_path` on_mount
+  # hook (standalone) or by the parent LV's `:session` map
+  # (inline).
 
   def handle_event("pwa_detected", params, socket) do
     handle_pwa_detection(socket, params)
