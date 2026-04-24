@@ -840,10 +840,12 @@ defmodule QlariusWeb.QlinkPage.Show do
   # widgets — see `render_embed/1`). Function components don't
   # receive `@socket` automatically; callers must pass it explicitly.
   attr :socket, :any, default: nil
-  # `is_anon_surface` gates inline LV rendering: on the anonymous
-  # share surface (qlinkin.bio) we keep the iframe path so the page
-  # remains edge-cacheable and doesn't mount a fresh interactive LV
-  # process for every anonymous viewer.
+  # `is_anon_surface` is true on qlinkin.bio and false on the
+  # interactive host. Used by the block templates for CTA target
+  # selection (e.g. `target="_top"` + interact-host login URL on
+  # the anon surface vs. same-tab `/login` on the interact host).
+  # It does NOT gate inline arqade rendering — both surfaces go
+  # inline; see `inline_arqade_candidate?/2`.
   attr :is_anon_surface, :boolean, default: false
 
   def render_link(assigns) do
@@ -986,16 +988,25 @@ defmodule QlariusWeb.QlinkPage.Show do
     end
   end
 
-  # Two gates must both pass for inline rendering:
+  # Inline rendering is the preferred path for every own-deployment
+  # arqade widget on both the interactive host (qlink.qadabra.app)
+  # AND the anonymous share surface (qlinkin.bio). The parent
+  # QlinkPage.Show LV is already mounted on qlinkin.bio (via the
+  # `:qlink_anon` live_session) and opens a WebSocket either way,
+  # so a nested LV costs nothing extra — it rides the same socket.
+  # The iframe path, by contrast, spawns a second LV process on the
+  # widget origin and forces the `normalize_widget_iframe_url/2`
+  # cross-origin cookie dance, which is pointless on qlinkin.bio
+  # (no auth to propagate) and strictly overhead on qlink.qadabra.app.
+  #
+  # Gates:
   #   1. URL parses as an arqade widget on a host in our deployment
   #      family (see `Qlarius.Qlink.Urls.own_deployment_arqade_url?/1`).
-  #   2. The current surface is the interactive host — not the anon
-  #      share surface (qlinkin.bio). The anon surface stays on the
-  #      iframe path so its page remains edge-cacheable and doesn't
-  #      spin up a fresh LV process per anonymous pageview.
-  # The socket must also be present (it's required to call
-  # `live_render/3`); we pass `@socket` from the parent LV explicitly
-  # via `<.render_link socket={@socket} ...>`.
+  #      Third-party arqade-looking URLs would still iframe.
+  #   2. `@socket` is present — required to call `live_render/3`.
+  #      Passed from the parent LV via
+  #      `<.render_link socket={@socket} ...>` since function
+  #      components don't receive `@socket` automatically.
   #
   # TODO(arqade-block): today the arqade ↔ Qlink binding is a pasted
   # URL in a generic `:embed` block; we parse it back out here. Once
@@ -1004,8 +1015,7 @@ defmodule QlariusWeb.QlinkPage.Show do
   # docs/qlink_arqade_block_followup.md), this URL-parsing dance
   # goes away and we dispatch directly on the FK.
   defp inline_arqade_candidate?(assigns, iframe_url) do
-    not assigns[:is_anon_surface] and
-      not is_nil(assigns[:socket]) and
+    not is_nil(assigns[:socket]) and
       Qlarius.Qlink.Urls.own_deployment_arqade_url?(iframe_url)
   end
 
