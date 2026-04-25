@@ -20,9 +20,18 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
       purchase modal.
 
   The `connect_wallet_modal/1` component is the single CTA surface
-  across all widgets — one visual, one link, one destination
-  (`Qlarius.Qlink.Urls.interact_login_url/0` with `target="_top"` so
-  the iframe breaks out).
+  across all widgets. It has two rendering modes:
+
+    * **In-place AuthSheet mode** (preferred) — when the caller
+      passes `on_click={JS.push("open_auth_sheet")}` (or similar),
+      the CTA fires a `phx-click` that the hosting LiveView handles
+      to open its embedded `AuthSheet` modal. No redirect, no iframe
+      break-out.
+    * **Legacy redirect mode** (fallback) — when `on_click` is `nil`,
+      the CTA renders a `<.link href={interact_login_url()} target="_top">`
+      that breaks out of iframes and lands on the main login page.
+      Used on surfaces that don't host an `AuthSheet` yet (e.g.
+      third-party iframe embeds, anon-share hosts).
 
   ## Where to use
 
@@ -35,9 +44,6 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
       is present, a Connect CTA otherwise.
     * `connect_wallet_modal/1` — single-modal component; widgets
       toggle it via their existing `show_*_modal` assign pattern.
-    * `connect_wallet_link/1` — the same CTA in inline-link form
-      (used anywhere the modal would be overkill, e.g. the center
-      buy/play column of the arqade).
 
   ## LiveComponent-readiness
 
@@ -49,6 +55,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
 
   use Phoenix.Component
 
+  alias Phoenix.LiveView.JS
   alias Qlarius.Accounts.Scope
   alias Qlarius.Qlink.Urls
 
@@ -97,6 +104,13 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
   attr :ads_count, :any, default: nil
   attr :id, :string, default: "wallet-strip"
 
+  attr :on_click, JS,
+    default: nil,
+    doc:
+      "When set, the Connect CTA becomes a phx-click button that fires this JS command " <>
+        "(typically `JS.push(\"open_auth_sheet\")` so the hosting LV opens its AuthSheet in " <>
+        "place). When nil, falls back to the legacy redirect link."
+
   def wallet_strip_or_connect(assigns) do
     ~H"""
     <%= if authed?(@scope) do %>
@@ -119,14 +133,25 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
             <span class="font-normal text-base-content/60 ml-2 mr-3">to spend</span>
           </div>
 
-          <.link
-            href={Urls.interact_login_url()}
-            target="_top"
-            class="btn btn-md rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 leading-none"
-          >
-            <.icon name="hero-wallet" class="w-4 h-4 mr-1" />
-            <span class="font-bold">Connect wallet</span>
-          </.link>
+          <%= if @on_click do %>
+            <button
+              type="button"
+              phx-click={@on_click}
+              class="btn btn-md rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 leading-none"
+            >
+              <.icon name="hero-wallet" class="w-4 h-4 mr-1" />
+              <span class="font-bold">Connect wallet</span>
+            </button>
+          <% else %>
+            <.link
+              href={Urls.interact_login_url()}
+              target="_top"
+              class="btn btn-md rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 leading-none"
+            >
+              <.icon name="hero-wallet" class="w-4 h-4 mr-1" />
+              <span class="font-bold">Connect wallet</span>
+            </.link>
+          <% end %>
         </div>
       </div>
     <% end %>
@@ -149,8 +174,13 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
     default:
       "Sign in on Qadabra to buy Tiqits, tip creators, and earn from ads. Your wallet follows you across Qadabra."
 
-  attr :on_cancel, Phoenix.LiveView.JS,
-    default: Phoenix.LiveView.JS.push("close-connect-modal")
+  attr :on_cancel, JS, default: JS.push("close-connect-modal")
+
+  attr :on_click, JS,
+    default: nil,
+    doc:
+      "When set, the primary CTA becomes a phx-click button firing this JS command (to open " <>
+        "the hosting LV's AuthSheet). When nil, falls back to the legacy redirect link."
 
   def connect_wallet_modal(assigns) do
     ~H"""
@@ -161,14 +191,25 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
         </div>
         <h2 class="text-xl font-bold text-base-content">{@title}</h2>
         <p class="text-base-content/70 max-w-sm">{@message}</p>
-        <.link
-          href={Urls.interact_login_url()}
-          target="_top"
-          class="btn btn-primary btn-lg btn-block rounded-full"
-        >
-          <.icon name="hero-arrow-right-on-rectangle" class="w-5 h-5 mr-2" />
-          Connect your wallet
-        </.link>
+        <%= if @on_click do %>
+          <button
+            type="button"
+            phx-click={@on_click}
+            class="btn btn-primary btn-lg btn-block rounded-full"
+          >
+            <.icon name="hero-arrow-right-on-rectangle" class="w-5 h-5 mr-2" />
+            Connect your wallet
+          </button>
+        <% else %>
+          <.link
+            href={Urls.interact_login_url()}
+            target="_top"
+            class="btn btn-primary btn-lg btn-block rounded-full"
+          >
+            <.icon name="hero-arrow-right-on-rectangle" class="w-5 h-5 mr-2" />
+            Connect your wallet
+          </.link>
+        <% end %>
         <button
           type="button"
           phx-click={@on_cancel}
@@ -178,26 +219,6 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
         </button>
       </div>
     </.modal>
-    """
-  end
-
-  @doc """
-  Inline Connect-wallet link. Use where a full modal is overkill
-  (e.g. the center Buy/Play column of a piece-detail layout).
-  Styled to occupy the same visual footprint as the primary action
-  button it replaces.
-  """
-  attr :class, :string, default: "btn btn-primary btn-lg btn-block rounded-full"
-  attr :label, :string, default: "Connect your wallet"
-  attr :subtext, :string, default: nil
-  attr :rest, :global
-
-  def connect_wallet_link(assigns) do
-    ~H"""
-    <.link href={Urls.interact_login_url()} target="_top" class={@class} {@rest}>
-      <.icon name="hero-wallet" class="h-5 w-5 mr-2" /> {@label}
-    </.link>
-    <p :if={@subtext} class="text-xs text-base-content/60">{@subtext}</p>
     """
   end
 end

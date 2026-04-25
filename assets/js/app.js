@@ -2018,6 +2018,101 @@ window.addEventListener("push-request-permission", () => {
   }
 })
 
+// AuthSheet: detects whether the sheet is running inside an iframe and
+// reports it to the LiveComponent so it can swap to the link-out
+// interstitial instead of attempting in-place auth (which can't set
+// top-frame cookies reliably). See docs/qlink_auth_refactor_plan.md §5.2.
+Hooks.IframeDetect = {
+  mounted() {
+    const inIframe = window.self !== window.top
+    // Round-trip through the component so server-side rendering stays
+    // authoritative — client is a hint, not a source of truth.
+    this.pushEventTo(this.el, "iframe-status", { in_iframe: inIframe })
+  }
+}
+
+// AuthSheet: orchestrates the in-place auth completion handshake.
+//
+//   1. Receives `qadabra:finalize-auth` from the server with the signed
+//      exchange token + CSRF token.
+//   2. POSTs to /auth/finalize_session; the controller sets the session
+//      cookie and returns 204.
+//   3. On success, disconnects and reconnects the LiveSocket so the
+//      re-mounted LV picks up `current_scope.user` and the modal
+//      disappears by render condition.
+//   4. 5-second watchdog: if the socket doesn't re-establish in time,
+//      fall back to a full reload — graceful degradation lands the user
+//      authed at the top of the page.
+//
+// See docs/qlink_auth_refactor_plan.md §5.9.
+Hooks.AuthFinalize = {
+  mounted() {
+    this.handleEvent("qadabra:finalize-auth", ({ token, csrf_token }) => {
+      this.finalize(token, csrf_token)
+    })
+  },
+
+  async finalize(token, csrfTokenOverride) {
+    const csrf =
+      csrfTokenOverride ||
+      document.querySelector("meta[name='csrf-token']")?.getAttribute("content") ||
+      ""
+
+    try {
+      const res = await fetch("/auth/finalize_session", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrf,
+          Accept: "application/json"
+        },
+        body: JSON.stringify({ token })
+      })
+
+      if (res.status === 204) {
+        this.reconnectSocket()
+      } else {
+        let reason = "unknown"
+        try {
+          const body = await res.json()
+          reason = body.error || reason
+        } catch (_e) {
+          // non-JSON body; ignore
+        }
+        this.pushEventTo(this.el, "auth:finalize_failed", { reason })
+      }
+    } catch (err) {
+      console.warn("[AuthFinalize] fetch failed", err)
+      this.pushEventTo(this.el, "auth:finalize_failed", { reason: "network" })
+    }
+  },
+
+  reconnectSocket() {
+    const socket = window.liveSocket
+    if (!socket) {
+      window.location.reload()
+      return
+    }
+
+    // Watchdog: if the socket doesn't come back online within 5s, do a
+    // full reload so the user still lands authed.
+    const timeout = setTimeout(() => window.location.reload(), 5000)
+
+    // phoenix's Socket exposes an onOpen listener via `.socket.onOpen/1`;
+    // liveSocket wraps it but doesn't currently expose a matching API,
+    // so probe the underlying socket directly.
+    const rawSocket = typeof socket.socket === "function" ? socket.socket() : socket.socket
+
+    if (rawSocket && typeof rawSocket.onOpen === "function") {
+      rawSocket.onOpen(() => clearTimeout(timeout))
+    }
+
+    socket.disconnect()
+    socket.connect()
+  }
+}
+
 Hooks.TimezoneDetector = {
   mounted() {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -2273,12 +2368,24 @@ Hooks.DateInput = {
     const month = this.monthField.value
     const day = this.dayField.value
     const year = this.yearField.value
-    
-    this.pushEvent(this.updateEvent, {
+
+    this.pushTargeted(this.updateEvent, {
       month: month,
       day: day,
       year: year
     })
+  },
+
+  // Route to the nearest LiveComponent if embedded in one; otherwise
+  // fall through to the root LiveView. Mirrors OTPInput so this hook
+  // can be reused from AuthSheet (component) without a parent forward.
+  pushTargeted(event, payload) {
+    const component = this.el.closest('[data-phx-component]')
+    if (component) {
+      this.pushEventTo(component, event, payload)
+    } else {
+      this.pushEvent(event, payload)
+    }
   },
   
   // Sync with server state
@@ -2308,12 +2415,14 @@ Hooks.OTPInput = {
       // Update visual slots
       this.updateSlots(value)
       
-      // Push to LiveView
-      this.pushEvent(this.updateEvent, { verification_code: value })
+      // Route to the nearest LiveComponent if embedded in one; otherwise
+      // fall through to the root LiveView. Lets this hook be reused from
+      // AuthSheet (component) without forcing the parent LV to forward.
+      this.pushTargeted(this.updateEvent, { verification_code: value })
       
       // Auto-submit when complete
       if (value.length === this.length) {
-        this.pushEvent(this.verifyEvent, { code: value })
+        this.pushTargeted(this.verifyEvent, { code: value })
       }
     })
     
@@ -2334,6 +2443,15 @@ Hooks.OTPInput = {
     // The pulsing first slot draws attention to tap
   },
   
+  pushTargeted(event, payload) {
+    const component = this.el.closest('[data-phx-component]')
+    if (component) {
+      this.pushEventTo(component, event, payload)
+    } else {
+      this.pushEvent(event, payload)
+    }
+  },
+
   updateSlots(value) {
     const chars = value.split('')
     this.slots.forEach((slot, i) => {

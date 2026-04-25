@@ -109,6 +109,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           selected_tiqit_class: nil,
           options_modal: false,
           show_connect_modal: false,
+          show_auth_sheet: false,
+          auth_referral_context: Qlarius.Referrals.Context.none(),
           force_theme: force_theme
         )
         |> assign(scope_assigns(scope, group, catalog))
@@ -193,6 +195,22 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
   def handle_event("close-connect-modal", _params, socket) do
     socket |> assign(:show_connect_modal, false) |> noreply()
+  end
+
+  # AuthSheet open/close. Gated behind `auth_sheet_enabled?/1` — when
+  # the flag is off, arcade CTAs fall back to the legacy redirect and
+  # these events never fire. Also closes the intermediate
+  # `show_connect_modal` to avoid stacking two modals when the user
+  # clicks "Connect your wallet" from inside the interstitial.
+  def handle_event("open_auth_sheet", _params, socket) do
+    socket
+    |> assign(:show_auth_sheet, true)
+    |> assign(:show_connect_modal, false)
+    |> noreply()
+  end
+
+  def handle_event("close_auth_sheet", _params, socket) do
+    socket |> assign(:show_auth_sheet, false) |> noreply()
   end
 
   # Browse-options entry for anonymous viewers. Mirrors
@@ -400,4 +418,21 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
   defp tiqit_class_credit(%TiqitClass{}, assigns),
     do: {assigns.tiqit_up_catalog_credit, assigns.tiqit_up_catalog_count}
+
+  # Whether the in-place AuthSheet should be rendered on this mount.
+  # Mirrors `ArcadeLive.auth_sheet_enabled?/1` — see that module for
+  # the flag-selection rationale (inline? → on_qlink_page, standalone
+  # → on_widget_standalone).
+  def auth_sheet_enabled?(assigns) do
+    anonymous? =
+      is_nil(assigns[:current_scope]) or is_nil(assigns[:current_scope].true_user)
+
+    flag_key = if assigns[:inline?], do: :on_qlink_page, else: :on_widget_standalone
+
+    flag_on? =
+      Application.get_env(:qlarius, :auth_sheet, [])
+      |> Keyword.get(flag_key, false)
+
+    flag_on? and anonymous?
+  end
 end

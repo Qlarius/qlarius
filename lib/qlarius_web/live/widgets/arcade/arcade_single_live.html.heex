@@ -107,6 +107,11 @@
                     balance={@balance}
                     offered_amount={@offered_amount}
                     ads_count={@current_scope && @current_scope.ads_count}
+                    on_click={
+                      if QlariusWeb.Widgets.Arcade.ArcadeSingleLive.auth_sheet_enabled?(assigns),
+                        do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+                        else: nil
+                    }
                   />
                 <% else %>
                   <div class="alert alert-warning">
@@ -217,6 +222,29 @@
   <% end %>
 </div>
 
-<.connect_wallet_modal show={@show_connect_modal} />
+<.connect_wallet_modal
+  show={@show_connect_modal}
+  on_click={
+    if QlariusWeb.Widgets.Arcade.ArcadeSingleLive.auth_sheet_enabled?(assigns),
+      do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+      else: nil
+  }
+/>
+
+<%!--
+  In-place AuthSheet for anonymous viewers. Same self-contained
+  approach as `ArcadeLive` — works standalone or nested. See
+  `ArcadeLive` template for the full rationale.
+--%>
+<%= if QlariusWeb.Widgets.Arcade.ArcadeSingleLive.auth_sheet_enabled?(assigns) do %>
+  <.live_component
+    module={QlariusWeb.Components.AuthSheet}
+    id="arcade-single-auth-sheet"
+    show={@show_auth_sheet}
+    surface={if @inline?, do: :on_qlink_page, else: :on_widget_standalone}
+    referral_context={@auth_referral_context}
+    on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
+  />
+<% end %>
 </Layouts.maybe_mobile>
 </div>

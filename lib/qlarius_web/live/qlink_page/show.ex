@@ -57,6 +57,7 @@ defmodule QlariusWeb.QlinkPage.Show do
             |> assign(:display_image, Qlink.get_display_image(page))
             |> assign(:recipient, page.recipient)
             |> assign_surface_context(page)
+            |> assign_auth_referral_context(page)
             |> init_sponster_assigns()
 
           # Subscribe to PubSub if authenticated and connected
@@ -158,6 +159,7 @@ defmodule QlariusWeb.QlinkPage.Show do
     |> assign(:show_split_reminder, false)
     |> assign(:host_uri, host_uri)
     |> assign(:show_connect_modal, false)
+    |> assign(:show_auth_sheet, false)
   end
 
   defp get_current_balance(socket) do
@@ -426,6 +428,23 @@ defmodule QlariusWeb.QlinkPage.Show do
   @impl true
   def handle_event("close-connect-modal", _params, socket) do
     {:noreply, assign(socket, :show_connect_modal, false)}
+  end
+
+  # AuthSheet open/close. Gated behind `:auth_sheet[:on_qlink_page]` —
+  # when the flag is off, the FAB falls back to the legacy `/login`
+  # redirect and these events never fire.
+  def handle_event("open_auth_sheet", _params, socket) do
+    # Also close the intermediate `connect_wallet_modal` if it was
+    # open — otherwise opening AuthSheet from inside that modal would
+    # stack the two modals on top of each other.
+    {:noreply,
+     socket
+     |> assign(:show_auth_sheet, true)
+     |> assign(:show_connect_modal, false)}
+  end
+
+  def handle_event("close_auth_sheet", _params, socket) do
+    {:noreply, assign(socket, :show_auth_sheet, false)}
   end
 
   # InstaTip events
@@ -1272,5 +1291,44 @@ defmodule QlariusWeb.QlinkPage.Show do
       </iframe>
     </div>
     """
+  end
+
+  # Whether the in-place AuthSheet should be rendered on this request.
+  # Requires the feature flag to be on, the visitor to be anonymous,
+  # and the surface to be the interactive (not the anon share) host.
+  def auth_sheet_enabled?(assigns) do
+    flag_on? =
+      Application.get_env(:qlarius, :auth_sheet, [])
+      |> Keyword.get(:on_qlink_page, false)
+
+    anonymous? =
+      is_nil(assigns[:current_scope]) or is_nil(assigns[:current_scope].true_user)
+
+    interactive_surface? = not assigns[:is_anon_surface]
+
+    flag_on? and anonymous? and interactive_surface?
+  end
+
+  # Build the referral context for the AuthSheet. On a creator's Qlink
+  # page the "referrer" is the creator: if a visitor signs up here, we
+  # want the referral row to link back to the creator's me_file (plan
+  # §5.4 — drop the referral-code text-entry step).
+  #
+  # `page.creator.users` is the preloaded many_to_many through
+  # `creator_memberships`. We pick the first user as a simple default;
+  # for creators with multiple members, refining this to prefer the
+  # `:owner` role is a follow-up (requires preloading the membership
+  # role, not just the user).
+  defp assign_auth_referral_context(socket, page) do
+    context =
+      case page.creator do
+        %{users: [owner_user | _]} ->
+          Qlarius.Referrals.Context.from_creator(owner_user)
+
+        _ ->
+          Qlarius.Referrals.Context.none()
+      end
+
+    assign(socket, :auth_referral_context, context)
   end
 end

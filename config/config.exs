@@ -52,6 +52,20 @@ config :qlarius,
   qlink_interact_host: "qlink.qadabra.app",
   qlink_landing_redirect_url: "https://qadabra.co/qlink"
 
+# AuthSheet (and ProxyUserSheet) rollout flags. Each surface is gated
+# independently so we can enable in-place auth one surface at a time.
+# See docs/qlink_auth_refactor_plan.md §5.5 for semantics. Overridden
+# per-env in dev.exs / runtime.exs.
+config :qlarius, :auth_sheet,
+  on_qlink_page: false,
+  on_qlinkin_bio: false,
+  on_landing_pages: false,
+  on_widget_standalone: false,
+  on_authed_consumer: false,
+  on_admin_proxy: false,
+  extension_token_emit: false,
+  extension_exchange_enabled: false
+
 # Allowlisted browser extension IDs for CORS. Production ID only in base config;
 # dev.exs adds the pinned dev extension ID alongside.
 config :qlarius,

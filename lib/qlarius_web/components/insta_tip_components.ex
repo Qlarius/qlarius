@@ -29,6 +29,12 @@ defmodule QlariusWeb.InstaTipComponents do
   attr :add_class, :string, default: nil
   attr :wallet_strip_id, :string, default: "wallet-balance-tipjar"
 
+  attr :on_auth_click, JS,
+    default: nil,
+    doc:
+      "Passed through to the embedded `wallet_strip_or_connect/1` Connect-wallet CTA. When " <>
+        "nil, the CTA keeps its legacy redirect behavior."
+
   def insta_tip_card(assigns) do
     ~H"""
     <div data-theme="light" class={["flex flex-col items-center", @add_class]}>
@@ -91,6 +97,7 @@ defmodule QlariusWeb.InstaTipComponents do
           balance={@wallet_balance}
           offered_amount={@offered_amount}
           ads_count={@ads_count}
+          on_click={@on_auth_click}
         />
       </div>
     </div>

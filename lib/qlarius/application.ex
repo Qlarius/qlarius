@@ -33,6 +33,9 @@ defmodule Qlarius.Application do
       Qlarius.YouData.TagTeaseAgent,
       # Alias generator with word cache
       Qlarius.Accounts.AliasGenerator,
+      # Owns the AuthSheet finalize-token jti table and sweeps expired
+      # entries. Must start before the Endpoint accepts requests.
+      QlariusWeb.Auth.FinalizeTokenSweeper,
       # Start a worker by calling: Qlarius.Worker.start_link(arg)
       # {Qlarius.Worker, arg},
       # Start to serve requests, typically the last entry

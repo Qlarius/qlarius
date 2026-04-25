@@ -240,6 +240,28 @@ defmodule QlariusWeb.Router do
     get "/auto_login/:token", AutoLoginController, :create
   end
 
+  # AuthSheet in-place auth completion endpoint. Uses a bespoke pipeline
+  # instead of `:browser` because the client is a JS `fetch()` with
+  # `Accept: application/json`, which `plug :accepts, ["html"]` would
+  # reject with a 406. The session/CSRF/cookie-host machinery from
+  # `:browser` is inlined here; layout and live-flash are skipped since
+  # the controller returns 204 (success) or a small JSON error body.
+  # See `docs/qlink_auth_refactor_plan.md` §5.9. Will be remounted on
+  # the qlinkin.bio host scope in B6.
+  pipeline :auth_finalize do
+    plug :accepts, ["json"]
+    plug :fetch_session
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+    plug :fetch_current_scope_for_user
+  end
+
+  scope "/auth", QlariusWeb.Auth do
+    pipe_through [:auth_finalize]
+
+    post "/finalize_session", FinalizeSessionController, :create
+  end
+
   scope "/api", QlariusWeb do
     pipe_through [:api, :fetch_session, :fetch_current_scope_for_user, :require_authenticated_user]
 

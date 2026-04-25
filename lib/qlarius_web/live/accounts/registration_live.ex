@@ -3,9 +3,10 @@ defmodule QlariusWeb.RegistrationLive do
 
   alias Qlarius.Accounts
   alias Qlarius.YouData.{MeFiles, Traits}
+  alias QlariusWeb.Components.AuthSteps
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
   import QlariusWeb.PWAHelpers
-  import QlariusWeb.Components.CustomComponentsMobile, only: [otp_input: 1, date_input: 1]
+  import QlariusWeb.Components.CustomComponentsMobile, only: [otp_input: 1]
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
@@ -50,6 +51,7 @@ defmodule QlariusWeb.RegistrationLive do
       |> assign(:mobile_number, "")
       |> assign(:mobile_number_error, nil)
       |> assign(:mobile_number_exists, false)
+      |> assign(:proxy_offer_user, nil)
       |> assign(:verification_code, "")
       |> assign(:verification_code_error, nil)
       |> assign(:code_sent, false)
@@ -220,55 +222,66 @@ defmodule QlariusWeb.RegistrationLive do
      socket
      |> assign(:mobile_number, cleaned_mobile)
      |> assign(:mobile_number_error, nil)
-     |> assign(:mobile_number_exists, false)}
+     |> assign(:mobile_number_exists, false)
+     |> assign(:proxy_offer_user, nil)}
   end
 
   def handle_event("send_verification_code", _params, socket) do
     phone = socket.assigns.mobile_number
     formatted_phone = if String.starts_with?(phone, "+"), do: phone, else: "+1#{phone}"
-    bypass_verification = Application.get_env(:qlarius, :bypass_phone_verification, false)
 
-    # Check if mobile number is already registered
     case Qlarius.Auth.get_user_by_phone(formatted_phone) do
       nil ->
-        # Number not registered, proceed with verification
-        if bypass_verification do
-          # Development mode: Skip Twilio, auto-approve
-          {:noreply,
-           socket
-           |> assign(:code_sent, true)
-           |> assign(:mobile_number_error, nil)
-           |> assign(:verification_code, "")
-           |> put_flash(:info, "[DEV MODE] Use code: 000000")}
-        else
-          # Production mode: Send real SMS via Twilio
-          case Qlarius.Services.Twilio.send_verification_code(formatted_phone) do
-            {:ok, _response} ->
-              {:noreply,
-               socket
-               |> assign(:code_sent, true)
-               |> assign(:mobile_number_error, nil)
-               |> assign(:verification_code, "")
-               |> put_flash(:info, "Verification code sent to #{phone}")}
+        dispatch_send_verification_code(socket)
 
-            {:error, _reason} ->
-              {:noreply,
-               socket
-               |> assign(
-                 :mobile_number_error,
-                 "Failed to send verification code. Please try again."
-               )
-               |> put_flash(:error, "Failed to send SMS. Please try again.")}
-          end
-        end
+      %{role: "admin"} = existing_user ->
+        # Admin phone: offer the proxy-under-this-account escape hatch instead
+        # of dead-ending at a "log in instead" error. Verifying the code proves
+        # the caller controls this admin's phone, which authorizes them to
+        # spawn a proxy user beneath the admin account. No code is sent until
+        # the admin explicitly accepts the offer via `accept_proxy_offer`.
+        {:noreply,
+         socket
+         |> assign(:proxy_offer_user, existing_user)
+         |> assign(:mobile_number_exists, true)
+         |> assign(:mobile_number_error, nil)
+         |> assign(:code_sent, false)}
 
       _existing_user ->
-        # Number already registered
         {:noreply,
          socket
          |> assign(:mobile_number_error, "This mobile number is already registered.")
          |> assign(:mobile_number_exists, true)
+         |> assign(:proxy_offer_user, nil)
          |> assign(:code_sent, false)}
+    end
+  end
+
+  @doc false
+  # Admin accepted the "spawn a proxy under this admin account" offer. Flip
+  # the flow into proxy mode (so `create_user/1` sets `true_user_id` and
+  # inherits the admin's referral code on completion), then actually send the
+  # verification code to the admin's phone. The verification step proves the
+  # caller controls the phone, which is what authorizes the proxy creation.
+  def handle_event("accept_proxy_offer", _params, socket) do
+    require Logger
+
+    case socket.assigns.proxy_offer_user do
+      nil ->
+        {:noreply, socket}
+
+      %{id: admin_id, alias: admin_alias} ->
+        Logger.info(
+          "🧑‍💼 PROXY-VIA-REGISTRATION: admin id=#{admin_id} alias=#{inspect(admin_alias)} accepted proxy offer"
+        )
+
+        socket =
+          socket
+          |> assign(:mode, "proxy")
+          |> assign(:true_user_id, admin_id)
+          |> assign(:mobile_number_error, nil)
+
+        dispatch_send_verification_code(socket)
     end
   end
 
@@ -508,32 +521,36 @@ defmodule QlariusWeb.RegistrationLive do
     if can_complete?(socket.assigns) do
       case create_user(socket) do
         {:ok, result} ->
-          socket =
-            if socket.assigns.mode == "proxy" do
-              case socket.assigns do
-                %{current_scope: %{true_user: %{id: true_user_id}}} ->
-                  Accounts.activate_proxy_user(true_user_id, result.user.id)
-                  socket
+          socket = maybe_activate_proxy(socket, result.user.id)
 
-                _ ->
-                  socket
-              end
-            else
-              socket
-            end
+          cond do
+            # Admin-phone-verify proxy path: the admin is NOT logged in on this
+            # socket (they arrived anonymously at /register and proved phone
+            # ownership). Auto-login as the freshly created proxy user so they
+            # land on /home instead of bouncing off /proxy_users.
+            socket.assigns.mode == "proxy" and not is_nil(socket.assigns.proxy_offer_user) ->
+              token = Accounts.generate_user_login_token(result.user.id)
 
-          if socket.assigns.mode == "proxy" do
-            {:noreply,
-             socket
-             |> put_flash(:info, "Proxy user created successfully!")
-             |> push_navigate(to: ~p"/proxy_users")}
-          else
-            token = Accounts.generate_user_login_token(result.user.id)
+              {:noreply,
+               socket
+               |> put_flash(:info, "Proxy user created! You're now signed in.")
+               |> redirect(to: ~p"/auto_login/#{token}")}
 
-            {:noreply,
-             socket
-             |> put_flash(:info, "Registration complete!")
-             |> redirect(to: ~p"/auto_login/#{token}")}
+            # Legacy admin-authed proxy path (admin already logged in, creating
+            # proxy from the proxy admin UI).
+            socket.assigns.mode == "proxy" ->
+              {:noreply,
+               socket
+               |> put_flash(:info, "Proxy user created successfully!")
+               |> push_navigate(to: ~p"/proxy_users")}
+
+            true ->
+              token = Accounts.generate_user_login_token(result.user.id)
+
+              {:noreply,
+               socket
+               |> put_flash(:info, "Registration complete!")
+               |> redirect(to: ~p"/auto_login/#{token}")}
           end
 
         {:error, _failed_operation, _failed_value, _changes_so_far} ->
@@ -545,6 +562,25 @@ defmodule QlariusWeb.RegistrationLive do
     else
       {:noreply, put_flash(socket, :error, "Please complete all required fields")}
     end
+  end
+
+  # Link the new proxy user to its true (admin) user. Works for both proxy
+  # entry paths: the legacy flow supplies `true_user` via `current_scope`, the
+  # admin-phone-verify flow supplies it via the `:true_user_id` assign set in
+  # `accept_proxy_offer`.
+  defp maybe_activate_proxy(socket, new_user_id) do
+    if socket.assigns.mode == "proxy" do
+      true_user_id =
+        case socket.assigns do
+          %{current_scope: %{true_user: %{id: id}}} -> id
+          %{true_user_id: id} when is_integer(id) -> id
+          _ -> nil
+        end
+
+      if true_user_id, do: Accounts.activate_proxy_user(true_user_id, new_user_id)
+    end
+
+    socket
   end
 
   defp get_true_user_id_from_scope(socket) do
@@ -633,6 +669,43 @@ defmodule QlariusWeb.RegistrationLive do
     socket
   end
 
+  # Actually send (or bypass) the SMS verification code for the phone number
+  # currently in `socket.assigns.mobile_number`. Extracted so the happy path
+  # and the admin proxy-offer acceptance path share the same plumbing.
+  defp dispatch_send_verification_code(socket) do
+    phone = socket.assigns.mobile_number
+    formatted_phone = if String.starts_with?(phone, "+"), do: phone, else: "+1#{phone}"
+    bypass_verification = Application.get_env(:qlarius, :bypass_phone_verification, false)
+
+    if bypass_verification do
+      {:noreply,
+       socket
+       |> assign(:code_sent, true)
+       |> assign(:mobile_number_error, nil)
+       |> assign(:verification_code, "")
+       |> put_flash(:info, "[DEV MODE] Use code: 000000")}
+    else
+      case Qlarius.Services.Twilio.send_verification_code(formatted_phone) do
+        {:ok, _response} ->
+          {:noreply,
+           socket
+           |> assign(:code_sent, true)
+           |> assign(:mobile_number_error, nil)
+           |> assign(:verification_code, "")
+           |> put_flash(:info, "Verification code sent to #{phone}")}
+
+        {:error, _reason} ->
+          {:noreply,
+           socket
+           |> assign(
+             :mobile_number_error,
+             "Failed to send verification code. Please try again."
+           )
+           |> put_flash(:error, "Failed to send SMS. Please try again.")}
+      end
+    end
+  end
+
   defp create_user(socket) do
     require Logger
 
@@ -647,10 +720,20 @@ defmodule QlariusWeb.RegistrationLive do
         String.to_integer(socket.assigns.birthdate_day)
       )
 
+    # In the admin-phone-verify proxy flow the `mobile_number` assign holds the
+    # admin's phone (used only to prove phone ownership). Persisting it on the
+    # new proxy user would collide with the admin's existing record under the
+    # `mobile_number_hash IS NOT NULL` unique index, so drop it.
+    mobile_number =
+      cond do
+        socket.assigns.mode == "proxy" and not is_nil(socket.assigns.proxy_offer_user) -> nil
+        socket.assigns.mobile_number == "" -> nil
+        true -> socket.assigns.mobile_number
+      end
+
     attrs = %{
       alias: socket.assigns.alias,
-      mobile_number:
-        if(socket.assigns.mobile_number != "", do: socket.assigns.mobile_number, else: nil),
+      mobile_number: mobile_number,
       role: "user",
       date_of_birth: date,
       sex_trait_id: socket.assigns.sex_trait_id,
@@ -767,6 +850,7 @@ defmodule QlariusWeb.RegistrationLive do
             mode={@mode}
             mobile_number_error={@mobile_number_error}
             mobile_number_exists={@mobile_number_exists}
+            proxy_offer_user={@proxy_offer_user}
             verification_code={@verification_code}
             verification_code_error={@verification_code_error}
             code_sent={@code_sent}
@@ -776,7 +860,7 @@ defmodule QlariusWeb.RegistrationLive do
         <% end %>
 
         <%= if @current_step == 2 do %>
-          <.step_two
+          <AuthSteps.alias_picker
             alias={@alias}
             alias_error={@alias_error}
             base_names={@base_names}
@@ -787,7 +871,7 @@ defmodule QlariusWeb.RegistrationLive do
         <% end %>
 
         <%= if @current_step == 3 do %>
-          <.step_three
+          <AuthSteps.data_step
             sex_trait_id={@sex_trait_id}
             sex_options={@sex_options}
             birthdate_year={@birthdate_year}
@@ -804,7 +888,7 @@ defmodule QlariusWeb.RegistrationLive do
         <% end %>
 
         <%= if @current_step == 4 do %>
-          <.step_four
+          <AuthSteps.confirm_step
             mobile_number={@mobile_number}
             alias={@alias}
             sex_trait_id={@sex_trait_id}
@@ -902,7 +986,12 @@ defmodule QlariusWeb.RegistrationLive do
   defp can_proceed_to_next_step?(assigns) do
     case assigns.current_step do
       1 ->
-        if assigns.mode == "proxy" do
+        # Phone verification is always required UNLESS we're in the legacy
+        # admin-authed proxy flow (admin already authed; phone is optional
+        # metadata). When proxy mode was entered via the admin-phone-verify
+        # escape hatch (`proxy_offer_user` is set), we still need to prove
+        # phone ownership before advancing.
+        if assigns.mode == "proxy" and is_nil(assigns.proxy_offer_user) do
           true
         else
           assigns.phone_verified
@@ -912,17 +1001,8 @@ defmodule QlariusWeb.RegistrationLive do
         assigns.selected_base != nil && assigns.selected_number != nil && assigns.alias != ""
 
       3 ->
-        has_required =
-          assigns.sex_trait_id != nil && assigns.birthdate_valid && assigns.age_trait_id != nil
-
-        zip_ok =
-          if assigns.zip_lookup_input != "" do
-            assigns.zip_lookup_valid
-          else
-            true
-          end
-
-        has_required && zip_ok
+        assigns.sex_trait_id != nil && assigns.birthdate_valid &&
+          assigns.age_trait_id != nil && assigns.zip_lookup_valid
 
       4 ->
         false
@@ -1015,6 +1095,7 @@ defmodule QlariusWeb.RegistrationLive do
   attr :mode, :string, required: true
   attr :mobile_number_error, :string, default: nil
   attr :mobile_number_exists, :boolean, default: false
+  attr :proxy_offer_user, :any, default: nil
   attr :verification_code, :string, required: true
   attr :verification_code_error, :string, default: nil
   attr :code_sent, :boolean, required: true
@@ -1027,15 +1108,18 @@ defmodule QlariusWeb.RegistrationLive do
       <div>
         <h2 class="text-2xl md:text-3xl font-bold mb-3 dark:text-white">Mobile Number</h2>
         <p class="text-base md:text-lg text-base-content/70 dark:text-base-content/60">
-          <%= if @mode == "proxy" do %>
-            Optional: Enter a mobile number for this proxy user
-          <% else %>
-            We'll send a verification code to confirm your phone number
+          <%= cond do %>
+            <% @proxy_offer_user -> %>
+              Enter the code we just texted to {@proxy_offer_user.alias}'s phone to confirm ownership.
+            <% @mode == "proxy" -> %>
+              Optional: Enter a mobile number for this proxy user
+            <% true -> %>
+              We'll send a verification code to confirm your phone number
           <% end %>
         </p>
       </div>
 
-      <%= if @mode != "proxy" do %>
+      <%= if @mode != "proxy" or @proxy_offer_user do %>
         <%= if not @phone_verified do %>
           <.form
             for={%{}}
@@ -1073,6 +1157,43 @@ defmodule QlariusWeb.RegistrationLive do
                   </button>
                 <% end %>
               </div>
+              <%= if @proxy_offer_user do %>
+                <div class="mt-3 p-4 bg-info/10 border border-info rounded-lg">
+                  <div class="flex items-start gap-3">
+                    <.icon
+                      name="hero-user-plus"
+                      class="w-6 h-6 text-info flex-shrink-0 mt-0.5"
+                    />
+                    <div class="flex-1">
+                      <p class="font-medium text-base dark:text-white">
+                        Admin account recognized:
+                        <span class="font-mono">{@proxy_offer_user.alias}</span>
+                      </p>
+                      <p class="text-sm text-base-content/70 dark:text-base-content/60 mt-1">
+                        Create a new proxy user under this account? We'll text
+                        a verification code to confirm you own this phone.
+                      </p>
+                      <div class="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          phx-click="accept_proxy_offer"
+                          class="btn btn-info btn-sm"
+                        >
+                          <.icon name="hero-user-plus" class="w-4 h-4" />
+                          Continue as proxy user
+                        </button>
+                        <.link
+                          navigate={~p"/login"}
+                          class="btn btn-ghost btn-sm"
+                        >
+                          <.icon name="hero-arrow-right-on-rectangle" class="w-4 h-4" />
+                          Log in instead
+                        </.link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
               <%= if @mobile_number_error do %>
                 <%= if @mobile_number_exists do %>
                   <div class="mt-3 p-4 bg-warning/10 border border-warning rounded-lg">
@@ -1203,328 +1324,6 @@ defmodule QlariusWeb.RegistrationLive do
           </p>
         </div>
       <% end %>
-    </div>
-    """
-  end
-
-  attr :alias, :string, required: true
-  attr :alias_error, :string, default: nil
-  attr :base_names, :list, required: true
-  attr :available_numbers, :list, required: true
-  attr :selected_base, :string, default: nil
-  attr :selected_number, :string, default: nil
-
-  defp step_two(assigns) do
-    ~H"""
-    <div class="space-y-6">
-      <div>
-        <h2 class="text-2xl md:text-3xl font-bold mb-3 dark:text-white">No Names: Choose Your Alias</h2>
-        <p class="text-base md:text-lg text-base-content/70 dark:text-base-content/60">
-          We'd rather not know your name. Select a unique alias + number combo. This will be the 'username' for your account.
-        </p>
-      </div>
-
-      <%!-- Preview --%>
-      <%= if @alias != "" do %>
-        <div class="p-4 bg-base-200 dark:bg-base-100 rounded-lg border border-base-300">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-base-content/70 dark:text-base-content/60">Your full alias:</p>
-              <p class="text-2xl font-bold text-primary dark:text-primary mt-1">{@alias}</p>
-            </div>
-            <div class="badge badge-success badge-lg gap-2">
-              <.icon name="hero-check-circle" class="w-5 h-5" /> Available
-            </div>
-          </div>
-        </div>
-      <% end %>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <%!-- Left Column: Base Names --%>
-        <div class="space-y-3">
-          <div class="flex justify-between items-center">
-            <label class="label-text text-lg dark:text-gray-300 font-medium">
-              Select an alias:
-            </label>
-            <button
-              type="button"
-              phx-click="regenerate_base_names"
-              class="btn btn-sm btn-ghost gap-1"
-              title="Generate new names"
-            >
-              <.icon name="hero-arrow-path" class="w-4 h-4" />
-              <span class="hidden sm:inline">New Names</span>
-            </button>
-          </div>
-
-          <div class="space-y-2">
-            <%= for base_name <- @base_names do %>
-              <button
-                type="button"
-                phx-click="select_base_name"
-                phx-value-base_name={base_name}
-                class={[
-                  "w-full p-3 rounded-lg text-left transition-all border-2",
-                  if(@selected_base == base_name,
-                    do: "bg-primary/20 border-primary dark:bg-primary/30 dark:border-primary",
-                    else:
-                      "bg-base-200 border-base-300 hover:bg-base-300 dark:bg-base-100 dark:border-base-200"
-                  )
-                ]}
-              >
-                <div class="flex items-center gap-2">
-                  <%= if @selected_base == base_name do %>
-                    <.icon name="hero-check-circle-solid" class="w-5 h-5 text-primary" />
-                  <% else %>
-                    <.icon name="hero-circle" class="w-5 h-5 text-base-content/30" />
-                  <% end %>
-                  <span class="font-medium text-base dark:text-white">{base_name}</span>
-                </div>
-              </button>
-            <% end %>
-          </div>
-        </div>
-
-        <%!-- Right Column: Numbers --%>
-        <div class="space-y-3">
-          <div class="flex justify-between items-center">
-            <label class="label-text text-lg dark:text-gray-300 font-medium">
-              Choose a number:
-            </label>
-            <%= if @selected_base do %>
-              <button
-                type="button"
-                phx-click="regenerate_numbers"
-                class="btn btn-sm btn-ghost gap-1"
-                title="Generate new numbers"
-              >
-                <.icon name="hero-arrow-path" class="w-4 h-4" />
-                <span class="hidden sm:inline">New Numbers</span>
-              </button>
-            <% end %>
-          </div>
-
-          <%= if is_nil(@selected_base) do %>
-            <div class="flex items-center justify-center h-full min-h-[200px] bg-base-200 dark:bg-base-100 rounded-lg border-2 border-dashed border-base-300">
-              <p class="text-base-content/50 text-center px-4">
-                Select a name first
-              </p>
-            </div>
-          <% else %>
-            <div class="space-y-2">
-              <%= for number <- @available_numbers do %>
-                <button
-                  type="button"
-                  phx-click="select_number"
-                  phx-value-number={number}
-                  class={[
-                    "w-full p-3 rounded-lg text-left transition-all border-2",
-                    if(@selected_number == number,
-                      do: "bg-primary/20 border-primary dark:bg-primary/30 dark:border-primary",
-                      else:
-                        "bg-base-200 border-base-300 hover:bg-base-300 dark:bg-base-100 dark:border-base-200"
-                    )
-                  ]}
-                >
-                  <div class="flex items-center gap-2">
-                    <%= if @selected_number == number do %>
-                      <.icon name="hero-check-circle-solid" class="w-5 h-5 text-primary" />
-                    <% else %>
-                      <.icon name="hero-circle" class="w-5 h-5 text-base-content/30" />
-                    <% end %>
-                    <span class="font-mono font-medium text-base dark:text-white">-{number}</span>
-                  </div>
-                </button>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
-      </div>
-    </div>
-    """
-  end
-
-  defp step_three(assigns) do
-    ~H"""
-    <div class="space-y-6">
-      <div>
-        <h2 class="text-2xl md:text-3xl font-bold mb-3 dark:text-white">Core MeFile Data</h2>
-        <div class="alert alert-warning">
-          <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-          <span class="text-base">
-            <strong>Important:</strong>
-            Birthdate and Sex data cannot be updated later. Please ensure accuracy.
-          </span>
-        </div>
-      </div>
-
-      <div class="form-control w-full">
-        <label class="label">
-          <span class="label-text text-lg dark:text-gray-300">Birthdate *</span>
-        </label>
-        <.date_input
-          id="birthdate-input"
-          month={@birthdate_month}
-          day={@birthdate_day}
-          year={@birthdate_year}
-          error={@birthdate_error}
-          valid={@birthdate_valid}
-          calculated_age={@calculated_age}
-          update_event="update_birthdate"
-          min_age={16}
-        />
-      </div>
-
-      <.form for={%{}} phx-change="select_sex">
-        <div class="form-control w-full">
-          <label class="label">
-            <span class="label-text text-lg dark:text-gray-300">Sex (Biological/Assigned at Birth) *</span>
-          </label>
-          <select
-            name="sex_id"
-            class="select select-bordered select-lg w-full text-lg dark:bg-base-100 dark:text-white"
-          >
-            <option value="" selected={is_nil(@sex_trait_id)}>Select...</option>
-            <%= for option <- @sex_options do %>
-              <option value={option.id} selected={@sex_trait_id == option.id}>{option.name}</option>
-            <% end %>
-          </select>
-        </div>
-      </.form>
-
-      <.form for={%{}} phx-change="lookup_zip_code" phx-debounce="500">
-        <div class="form-control w-full">
-          <label class="label">
-            <span class="label-text text-lg dark:text-gray-300">
-              Home Zip Code (optional, but encouraged)
-            </span>
-          </label>
-          <input
-            id="zip-code-input"
-            name="zip"
-            type="text"
-            placeholder="Enter 5-digit zip code"
-            maxlength="5"
-            class={"input input-bordered input-lg w-full text-lg dark:bg-base-100 dark:text-white #{if @zip_lookup_error, do: "input-error"}"}
-            value={@zip_lookup_input}
-          />
-          <%= if @zip_lookup_error do %>
-            <div class="mt-3">
-              <div class="alert alert-error text-sm">
-                <.icon name="hero-x-circle" class="w-5 h-5 shrink-0" />
-                <span>{@zip_lookup_error}</span>
-              </div>
-            </div>
-          <% end %>
-          <%= if @zip_lookup_valid and @zip_lookup_trait do %>
-            <div class="mt-3">
-              <div class="badge badge-primary badge-lg p-4 text-base">
-                <.icon name="hero-map-pin" class="w-5 h-5 mr-2" />
-                {@zip_lookup_trait.meta_1}
-              </div>
-            </div>
-          <% end %>
-        </div>
-      </.form>
-    </div>
-    """
-  end
-
-  defp step_four(assigns) do
-    ~H"""
-    <div class="space-y-4">
-      <div>
-        <h2 class="text-2xl md:text-3xl font-bold mb-3 dark:text-white">Confirm Your Information</h2>
-        <%= if not @can_complete do %>
-          <div class="alert alert-warning">
-            <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-            <span class="text-sm">Please check the confirmation box to complete registration.</span>
-          </div>
-        <% end %>
-      </div>
-
-      <div class="space-y-1">
-        <%= if @mobile_number != "" do %>
-          <div class="flex justify-between items-center py-2 border-b border-base-300 dark:border-base-content/20">
-            <span class="text-sm md:text-base text-base-content/70 dark:text-base-content/60">
-              Mobile Number:
-            </span>
-            <span class="text-sm md:text-base font-medium dark:text-white">
-              {format_phone_number(@mobile_number)}
-            </span>
-          </div>
-        <% end %>
-
-        <div class="flex justify-between items-center py-2 border-b border-base-300 dark:border-base-content/20">
-          <span class="text-sm md:text-base text-base-content/70 dark:text-base-content/60">
-            Alias:
-          </span>
-          <span class="text-sm md:text-base font-medium dark:text-white">{@alias}</span>
-        </div>
-
-        <div class="flex justify-between items-center py-2 border-b border-base-300 dark:border-base-content/20">
-          <span class="text-sm md:text-base text-base-content/70 dark:text-base-content/60">
-            Sex:
-          </span>
-          <span class="text-sm md:text-base font-medium dark:text-white">
-            {Enum.find(@sex_options, fn opt -> opt.id == @sex_trait_id end).name}
-          </span>
-        </div>
-
-        <div class="flex justify-between items-center py-2 border-b border-base-300 dark:border-base-content/20">
-          <span class="text-sm md:text-base text-base-content/70 dark:text-base-content/60">
-            Birthdate:
-          </span>
-          <span class="text-sm md:text-base font-medium dark:text-white">
-            {@birthdate_month}/{@birthdate_day}/{@birthdate_year}
-          </span>
-        </div>
-
-        <div class="flex justify-between items-center py-2 border-b border-base-300 dark:border-base-content/20">
-          <span class="text-sm md:text-base text-base-content/70 dark:text-base-content/60">
-            Age:
-          </span>
-          <span class="text-sm md:text-base font-medium dark:text-white">{@calculated_age}</span>
-        </div>
-
-        <%= if @zip_lookup_trait do %>
-          <div class="flex justify-between items-center py-2 border-b border-base-300 dark:border-base-content/20">
-            <span class="text-sm md:text-base text-base-content/70 dark:text-base-content/60">
-              Home Zip Code:
-            </span>
-            <span class="text-sm md:text-base font-medium dark:text-white">
-              {@zip_lookup_trait.trait_name} - {@zip_lookup_trait.meta_1}
-            </span>
-          </div>
-        <% end %>
-
-        <%= if @referral_code != "" do %>
-          <div class="flex justify-between items-center py-2 border-b border-base-300 dark:border-base-content/20">
-            <span class="text-sm md:text-base text-base-content/70 dark:text-base-content/60">
-              Referral Code:
-            </span>
-            <span class="text-sm md:text-base font-medium text-success dark:text-success">
-              <.icon name="hero-check-circle" class="w-4 h-4 inline mr-1" />
-              {@referral_code}
-            </span>
-          </div>
-        <% end %>
-      </div>
-
-      <div class="form-control mt-4">
-        <label class="cursor-pointer flex items-start gap-3 p-3 bg-base-200 dark:bg-base-200 rounded-lg">
-          <input
-            type="checkbox"
-            class="checkbox checkbox-primary flex-shrink-0 mt-0.5"
-            checked={@confirmation_checked}
-            phx-click="toggle_confirmation"
-            phx-value-checked={to_string(!@confirmation_checked)}
-          />
-          <span class="text-sm md:text-base dark:text-gray-300">
-            I confirm my birthdate and sex are correct and understand the data values cannot be updated later.
-          </span>
-        </label>
-      </div>
     </div>
     """
   end

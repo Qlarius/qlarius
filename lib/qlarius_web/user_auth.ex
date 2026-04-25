@@ -36,15 +36,9 @@ defmodule QlariusWeb.UserAuth do
   end
 
   def log_in_user(conn, user, params \\ %{}) do
-    token = Accounts.generate_user_session_token(user)
     user_return_to = get_session(conn, :user_return_to)
 
-    conn =
-      conn
-      |> renew_session()
-      |> put_token_in_session(token)
-      |> maybe_write_remember_me_cookie(token, params)
-      |> track_sign_in(user)
+    conn = establish_user_session(conn, user, params)
 
     # Honor any `:user_return_to` in session. The implicit-store path
     # (`maybe_store_return_to/1`, below) still avoids stashing Qlink
@@ -59,6 +53,52 @@ defmodule QlariusWeb.UserAuth do
     else
       redirect(conn, to: ~p"/")
     end
+  end
+
+  @doc """
+  Establishes an authenticated session for `user` *without* redirecting.
+
+  This is the AuthSheet in-place sign-in path (see
+  `docs/qlink_auth_refactor_plan.md` §5.9). After this call the conn has
+  a fresh session cookie attached; the client then disconnects and
+  reconnects its LiveView socket to pick up the new scope.
+
+  Supported opts:
+
+    * `:resume` — opaque resume intent string (e.g. `"tip:42"`). When
+      provided, stashed in the session under `:qadabra_resume` so the
+      post-reconnect LV mount can consume it.
+    * `:remember_me` — boolean, writes the remember-me cookie (same
+      semantics as `log_in_user/3`'s `"remember_me" => "true"` param).
+  """
+  def log_in_user_from_finalize(conn, user, opts \\ []) do
+    remember_me_params =
+      if Keyword.get(opts, :remember_me, true),
+        do: %{"remember_me" => "true"},
+        else: %{}
+
+    conn = establish_user_session(conn, user, remember_me_params)
+
+    case Keyword.get(opts, :resume) do
+      nil -> conn
+      "" -> conn
+      resume when is_binary(resume) -> put_session(conn, :qadabra_resume, resume)
+      _ -> conn
+    end
+  end
+
+  # Shared session-establishment steps used by both the classic
+  # `log_in_user/3` redirect path and the finalize/in-place path. Kept
+  # private so callers can't skip `track_sign_in/2` or the remember-me
+  # cookie wiring.
+  defp establish_user_session(conn, user, params) do
+    token = Accounts.generate_user_session_token(user)
+
+    conn
+    |> renew_session()
+    |> put_token_in_session(token)
+    |> maybe_write_remember_me_cookie(token, params)
+    |> track_sign_in(user)
   end
 
   defp maybe_write_remember_me_cookie(conn, token, %{"remember_me" => "true"}) do

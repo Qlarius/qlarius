@@ -157,19 +157,55 @@
           <.sponster_stat_cell label="OFFERED" value={offered_text} value_class={value_class} />
         </div>
       <% else %>
-        <.link
-          href={if @is_anon_surface, do: @interact_login_url, else: ~p"/login?return_to=/@#{@page.alias}"}
-          target={if @is_anon_surface, do: "_top"}
-          class={[stats_box_class, "hover:bg-base-300 transition-colors cursor-pointer"]}
-          style={stats_box_style}
-          title="Connect your wallet"
-        >
-          <.sponster_stat_cell label="WALLET" value={wallet_text} value_class={value_class} />
-          <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
-          <.sponster_stat_cell label="ADS" value={ads_text} value_class={value_class} />
-          <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
-          <.sponster_stat_cell label="OFFERED" value={offered_text} value_class={value_class} />
-        </.link>
+        <%!--
+          Unauthed wallet stats box. Three paths:
+            1. Anon share host (qlinkin.bio) → hand off to the interact host.
+            2. Interactive host + AuthSheet flag on → open the in-place sheet.
+            3. Fallback → legacy /login redirect with return_to.
+        --%>
+        <%= cond do %>
+          <% @is_anon_surface -> %>
+            <.link
+              href={@interact_login_url}
+              target="_top"
+              class={[stats_box_class, "hover:bg-base-300 transition-colors cursor-pointer"]}
+              style={stats_box_style}
+              title="Connect your wallet"
+            >
+              <.sponster_stat_cell label="WALLET" value={wallet_text} value_class={value_class} />
+              <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
+              <.sponster_stat_cell label="ADS" value={ads_text} value_class={value_class} />
+              <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
+              <.sponster_stat_cell label="OFFERED" value={offered_text} value_class={value_class} />
+            </.link>
+          <% QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns) -> %>
+            <button
+              type="button"
+              phx-click="open_auth_sheet"
+              class={[stats_box_class, "hover:bg-base-300 transition-colors cursor-pointer"]}
+              style={stats_box_style}
+              title="Connect your wallet"
+            >
+              <.sponster_stat_cell label="WALLET" value={wallet_text} value_class={value_class} />
+              <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
+              <.sponster_stat_cell label="ADS" value={ads_text} value_class={value_class} />
+              <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
+              <.sponster_stat_cell label="OFFERED" value={offered_text} value_class={value_class} />
+            </button>
+          <% true -> %>
+            <.link
+              href={~p"/login?return_to=/@#{@page.alias}"}
+              class={[stats_box_class, "hover:bg-base-300 transition-colors cursor-pointer"]}
+              style={stats_box_style}
+              title="Connect your wallet"
+            >
+              <.sponster_stat_cell label="WALLET" value={wallet_text} value_class={value_class} />
+              <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
+              <.sponster_stat_cell label="ADS" value={ads_text} value_class={value_class} />
+              <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
+              <.sponster_stat_cell label="OFFERED" value={offered_text} value_class={value_class} />
+            </.link>
+        <% end %>
       <% end %>
 
       <%!-- Show/Hide Button --%>
@@ -283,26 +319,45 @@
             <% end %>
           <% else %>
             <%!--
-              Unauthed drawer body. We use the same "Connect your
-              wallet" CTA pattern everywhere — link is target="_top"
-              on the anon share host so iframed embeds break out of
-              their frame when handing off to qlink.qadabra.app.
-              On the interactive host / localhost this is a normal
-              in-app /login navigate. Both paths carry a
-              `?return_to=/@alias` pass-through so the visitor lands
-              back on this same Qlink page after sign-in.
+              Unauthed drawer body. Three paths:
+                1. Anon share host (qlinkin.bio) → hand off to the interact
+                   host, with target="_top" so iframed embeds break out.
+                2. Interactive host + AuthSheet flag on → open the in-place
+                   sheet (closes the drawer behind the modal).
+                3. Fallback → legacy /login redirect with ?return_to=/@alias
+                   so the visitor lands back here after sign-in.
             --%>
             <div class="text-center py-12">
               <.icon name="hero-lock-closed" class="w-12 h-12 mx-auto mb-4 text-base-content/30" />
               <p class="text-base-content/70 mb-4">Sign in to view and earn from ads</p>
-              <.link
-                href={if @is_anon_surface, do: @interact_login_url, else: ~p"/login?return_to=/@#{@page.alias}"}
-                target={if @is_anon_surface, do: "_top"}
-                class="btn btn-primary"
-              >
-                <.icon name="hero-wallet" class="w-5 h-5 mr-2" />
-                Connect your wallet
-              </.link>
+              <%= cond do %>
+                <% @is_anon_surface -> %>
+                  <.link
+                    href={@interact_login_url}
+                    target="_top"
+                    class="btn btn-primary"
+                  >
+                    <.icon name="hero-wallet" class="w-5 h-5 mr-2" />
+                    Connect your wallet
+                  </.link>
+                <% QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns) -> %>
+                  <button
+                    type="button"
+                    phx-click="open_auth_sheet"
+                    class="btn btn-primary"
+                  >
+                    <.icon name="hero-wallet" class="w-5 h-5 mr-2" />
+                    Connect your wallet
+                  </button>
+                <% true -> %>
+                  <.link
+                    href={~p"/login?return_to=/@#{@page.alias}"}
+                    class="btn btn-primary"
+                  >
+                    <.icon name="hero-wallet" class="w-5 h-5 mr-2" />
+                    Connect your wallet
+                  </.link>
+              <% end %>
             </div>
           <% end %>
         </div>
@@ -491,38 +546,78 @@
   <%!--
     Shared Connect-wallet modal. Anonymous viewers who tap a tip
     amount (or any other wallet-required control on this page) land
-    here instead of crashing or being silently no-op'd. The CTA
-    inside the modal links to the interact host's /login with
-    target="_top" so that even when the page is rendered inside an
-    iframe/widget surface, the login flow lands on the top window.
+    here instead of crashing or being silently no-op'd.
+
+    When the in-place AuthSheet is enabled on this surface (B2 flag),
+    the modal's primary CTA opens the AuthSheet directly. Otherwise
+    (legacy / anon-share host), it falls back to a `target="_top"`
+    redirect to the interact host's /login so iframe embeds still
+    break out to the main app.
   --%>
-  <.connect_wallet_modal show={@show_connect_modal} />
+  <.connect_wallet_modal
+    show={@show_connect_modal}
+    on_click={
+      if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
+        do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+        else: nil
+    }
+  />
 
   <%!--
     Floating "Connect your wallet" button for unauthenticated users
     (only when no recipient is configured, so there's no other CTA).
     On the anon share host, this sends the visitor to the interact host
-    via @interact_url; otherwise it uses the in-app /login.
+    via @interact_url. On the interactive host it either opens the
+    in-place AuthSheet (B2 feature flag) or falls back to the legacy
+    /login redirect.
   --%>
   <%= if is_nil(@recipient) && (is_nil(@current_scope) || is_nil(@current_scope.true_user)) do %>
     <div class="fixed bottom-6 right-6 z-50">
-      <%= if @is_anon_surface do %>
-        <.link
-          href={@interact_url}
-          class="btn btn-primary btn-lg rounded-full shadow-2xl gap-2 hover:scale-105 transition-transform"
-        >
-          <.icon name="hero-wallet" class="w-6 h-6" />
-          <span class="font-semibold">Connect your wallet</span>
-        </.link>
-      <% else %>
-        <.link
-          navigate={~p"/login"}
-          class="btn btn-primary btn-lg rounded-full shadow-2xl gap-2 hover:scale-105 transition-transform"
-        >
-          <.icon name="hero-wallet" class="w-6 h-6" />
-          <span class="font-semibold">Connect your wallet</span>
-        </.link>
+      <%= cond do %>
+        <% @is_anon_surface -> %>
+          <.link
+            href={@interact_url}
+            class="btn btn-primary btn-lg rounded-full shadow-2xl gap-2 hover:scale-105 transition-transform"
+          >
+            <.icon name="hero-wallet" class="w-6 h-6" />
+            <span class="font-semibold">Connect your wallet</span>
+          </.link>
+        <% QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns) -> %>
+          <button
+            type="button"
+            phx-click="open_auth_sheet"
+            class="btn btn-primary btn-lg rounded-full shadow-2xl gap-2 hover:scale-105 transition-transform"
+          >
+            <.icon name="hero-wallet" class="w-6 h-6" />
+            <span class="font-semibold">Connect your wallet</span>
+          </button>
+        <% true -> %>
+          <.link
+            navigate={~p"/login"}
+            class="btn btn-primary btn-lg rounded-full shadow-2xl gap-2 hover:scale-105 transition-transform"
+          >
+            <.icon name="hero-wallet" class="w-6 h-6" />
+            <span class="font-semibold">Connect your wallet</span>
+          </.link>
       <% end %>
     </div>
+  <% end %>
+
+  <%!--
+    In-place AuthSheet (B2). Rendered only on the interactive surface,
+    only when the flag is on, and only when the visitor is anonymous.
+    On successful sign-in the LV re-mounts with `current_scope.user`
+    populated, `auth_sheet_enabled?` returns false, and the sheet
+    disappears by render condition.
+  --%>
+  <%= if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns) do %>
+    <.live_component
+      module={QlariusWeb.Components.AuthSheet}
+      id="qlink-auth-sheet"
+      show={@show_auth_sheet}
+      surface={:on_qlink_page}
+      referral_context={@auth_referral_context}
+      on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
+    />
   <% end %>
 </div>

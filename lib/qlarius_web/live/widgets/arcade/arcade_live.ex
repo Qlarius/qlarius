@@ -131,6 +131,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          pieces: pieces,
          selected_tiqit_class: nil,
          show_connect_modal: false,
+         show_auth_sheet: false,
+         auth_referral_context: Qlarius.Referrals.Context.none(),
          force_theme: force_theme,
          show_title: show_title
        )
@@ -267,6 +269,23 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
   def handle_event("close-connect-modal", _params, socket) do
     socket |> assign(:show_connect_modal, false) |> noreply()
+  end
+
+  # AuthSheet open/close. Gated behind `auth_sheet_enabled?/1` — when
+  # the flag is off, arcade CTAs fall back to the legacy
+  # `interact_login_url` redirect and these events never fire.
+  # Also closes the intermediate `show_connect_modal` so we don't
+  # stack two modals when the user clicks "Connect your wallet" from
+  # inside the interstitial.
+  def handle_event("open_auth_sheet", _params, socket) do
+    socket
+    |> assign(:show_auth_sheet, true)
+    |> assign(:show_connect_modal, false)
+    |> noreply()
+  end
+
+  def handle_event("close_auth_sheet", _params, socket) do
+    socket |> assign(:show_auth_sheet, false) |> noreply()
   end
 
   # Browse-options entry for anonymous viewers. Mirrors the "All Tiqit
@@ -501,4 +520,25 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   defp tiqit_class_credit(%TiqitClass{}, assigns),
     do: {assigns.tiqit_up_catalog_credit, assigns.tiqit_up_catalog_count}
 
+  # Whether the in-place AuthSheet should be rendered on this mount.
+  # Different flags for the two contexts this LV serves:
+  #   - `inline?: true`  → nested inside a Qlink page. Reuses the
+  #     `:auth_sheet[:on_qlink_page]` flag so the inline arcade matches
+  #     the surrounding page's auth-sheet state.
+  #   - `inline?: false` → standalone widget (iframe or direct /widgets/…).
+  #     Uses `:auth_sheet[:on_widget_standalone]`.
+  # When false, CTAs fall back to the legacy `interact_login_url`
+  # redirect and the AuthSheet LC is not mounted.
+  def auth_sheet_enabled?(assigns) do
+    anonymous? =
+      is_nil(assigns[:current_scope]) or is_nil(assigns[:current_scope].true_user)
+
+    flag_key = if assigns[:inline?], do: :on_qlink_page, else: :on_widget_standalone
+
+    flag_on? =
+      Application.get_env(:qlarius, :auth_sheet, [])
+      |> Keyword.get(flag_key, false)
+
+    flag_on? and anonymous?
+  end
 end

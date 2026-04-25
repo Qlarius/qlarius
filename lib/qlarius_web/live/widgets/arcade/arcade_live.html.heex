@@ -185,6 +185,11 @@
                   balance={@balance}
                   offered_amount={@offered_amount}
                   ads_count={@current_scope && @current_scope.ads_count}
+                  on_click={
+                    if QlariusWeb.Widgets.Arcade.ArcadeLive.auth_sheet_enabled?(assigns),
+                      do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+                      else: nil
+                  }
                 />
             <% end %>
           </div>
@@ -346,6 +351,33 @@
   Unable to render this content group as it has no valid Tiqit classes
 <% end %>
 
-<.connect_wallet_modal show={@show_connect_modal} />
+<.connect_wallet_modal
+  show={@show_connect_modal}
+  on_click={
+    if QlariusWeb.Widgets.Arcade.ArcadeLive.auth_sheet_enabled?(assigns),
+      do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+      else: nil
+  }
+/>
+
+<%!--
+  In-place AuthSheet for anonymous viewers. Self-contained inside
+  the arcade LV so the same flow works whether this LV is mounted
+  standalone (/widgets/arqade/…) or nested inside a Qlink page.
+  The AuthFinalize JS hook reconnects the liveSocket after a
+  successful sign-in, which re-mounts every LV on the page with
+  the new session — so the surrounding Qlink page (if any) picks
+  up the authed scope automatically.
+--%>
+<%= if QlariusWeb.Widgets.Arcade.ArcadeLive.auth_sheet_enabled?(assigns) do %>
+  <.live_component
+    module={QlariusWeb.Components.AuthSheet}
+    id="arcade-auth-sheet"
+    show={@show_auth_sheet}
+    surface={if @inline?, do: :on_qlink_page, else: :on_widget_standalone}
+    referral_context={@auth_referral_context}
+    on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
+  />
+<% end %>
 </Layouts.maybe_mobile>
 </div>
