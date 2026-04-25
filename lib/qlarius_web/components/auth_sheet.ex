@@ -59,6 +59,11 @@ defmodule QlariusWeb.Components.AuthSheet do
     * `:iframe_hint` — server-side best-guess of iframe context; the JS
       hook corrects this on first mount
     * `:on_cancel` — `Phoenix.LiveView.JS` command forwarded on close
+    * `:client_ip` — best-effort client IP string (from the parent LV's
+      `GetUserIP` on_mount hook); used as the per-IP bucket key for
+      `send_code` rate limiting. Defaults to `"0.0.0.0"` when the
+      parent can't resolve an IP, in which case the per-IP gate is
+      skipped (see `Qlarius.Auth.RateLimit`).
   """
 
   use QlariusWeb, :live_component
@@ -67,6 +72,7 @@ defmodule QlariusWeb.Components.AuthSheet do
   alias Qlarius.Accounts
   alias Qlarius.Accounts.AliasGenerator
   alias Qlarius.Auth, as: AuthCtx
+  alias Qlarius.Auth.RateLimit
   alias Qlarius.Referrals.Context, as: ReferralContext
   alias Qlarius.Services.Twilio
   alias Qlarius.YouData.MeFiles
@@ -103,6 +109,7 @@ defmodule QlariusWeb.Components.AuthSheet do
       |> assign(:referral_context, Map.get(assigns, :referral_context))
       |> assign(:resume, Map.get(assigns, :resume))
       |> assign(:on_cancel, Map.get(assigns, :on_cancel, %JS{}))
+      |> assign(:client_ip, Map.get(assigns, :client_ip, "0.0.0.0"))
       |> maybe_apply_iframe_hint(Map.get(assigns, :iframe_hint))
 
     {:ok, socket}
@@ -148,11 +155,30 @@ defmodule QlariusWeb.Components.AuthSheet do
         {:noreply, assign(socket, :mobile_number_error, "Enter a valid 10-digit number.")}
 
       true ->
-        # B3 change: no longer short-circuit on "unknown phone here" —
-        # we send the code regardless so we can still verify ownership
-        # before branching into sign-up. `verify_code/1` now owns the
-        # sign-in-vs-sign-up decision.
-        dispatch_send_code(socket, formatted)
+        # Order matters: check per-phone first so we don't leak IP-bucket
+        # state to users who can't even pass the phone gate, and so a
+        # single abusive IP burning through the IP bucket still trips
+        # the per-phone limit for attempted victims.
+        with :ok <- RateLimit.check_send_code_per_phone(formatted),
+             :ok <- RateLimit.check_send_code_per_ip(socket.assigns.client_ip) do
+          # B3 change: no longer short-circuit on "unknown phone here" —
+          # we send the code regardless so we can still verify ownership
+          # before branching into sign-up. `verify_code/1` now owns the
+          # sign-in-vs-sign-up decision.
+          dispatch_send_code(socket, formatted)
+        else
+          {:error, {:rate_limited, retry_after_s}} ->
+            Logger.info(
+              "[AuthSheet] send_code rate-limited phone=#{mask_phone(formatted)} surface=#{inspect(socket.assigns.surface)}"
+            )
+
+            {:noreply,
+             assign(
+               socket,
+               :mobile_number_error,
+               "Too many attempts. Try again in about #{humanize_retry_after(retry_after_s)}."
+             )}
+        end
     end
   end
 
@@ -185,10 +211,19 @@ defmodule QlariusWeb.Components.AuthSheet do
   def handle_event("auth:finalize_failed", %{"reason" => reason}, socket) do
     Logger.warning("[AuthSheet] finalize failed reason=#{inspect(reason)}")
 
+    message =
+      case reason do
+        "rate_limited" ->
+          "Too many sign-in attempts from this device. Try again in about an hour."
+
+        _ ->
+          "Something went wrong finishing sign-in. Try again."
+      end
+
     {:noreply,
      socket
      |> assign(:state, :code)
-     |> assign(:finalize_error, "Something went wrong finishing sign-in. Try again.")}
+     |> assign(:finalize_error, message)}
   end
 
   def handle_event("auth:finalize_failed", _params, socket) do
@@ -662,6 +697,25 @@ defmodule QlariusWeb.Components.AuthSheet do
   defp format_phone("+" <> _ = p), do: p
   defp format_phone(p) when is_binary(p), do: "+1" <> String.replace(p, ~r/\D/, "")
   defp format_phone(_), do: ""
+
+  # Log helper: we don't want full phone numbers in log aggregates but
+  # do want enough to correlate a rate-limit hit with a support report.
+  defp mask_phone("+" <> rest), do: "+" <> mask_phone(rest)
+
+  defp mask_phone(phone) when is_binary(phone) do
+    digits = String.replace(phone, ~r/\D/, "")
+
+    case String.length(digits) do
+      n when n >= 4 -> String.duplicate("*", n - 4) <> String.slice(digits, -4, 4)
+      _ -> String.duplicate("*", String.length(digits))
+    end
+  end
+
+  defp mask_phone(_), do: "****"
+
+  defp humanize_retry_after(seconds) when seconds <= 90, do: "a minute"
+  defp humanize_retry_after(seconds) when seconds < 60 * 60, do: "#{div(seconds, 60)} minutes"
+  defp humanize_retry_after(_), do: "an hour"
 
   defp valid_phone_shape?(nil), do: false
 

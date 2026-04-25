@@ -26,6 +26,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   # `assign_new`, so running it twice when routed is a no-op.
   on_mount {QlariusWeb.UserAuth, :mount_current_scope}
 
+  # Standalone-widget context needs `@user_ip` so the nested AuthSheet
+  # can rate-limit `send_code` per-IP. Nested embeds on Qlink pages
+  # don't host their own AuthSheet (they forward open requests to the
+  # parent), but the hook is harmless there.
+  on_mount {QlariusWeb.GetUserIP, :assign_ip}
+
   # This LiveView serves three contexts via @base_path / @inline?:
   #
   #   1. Standalone widget — mounted at `/widgets/arqade/group/:group_id`

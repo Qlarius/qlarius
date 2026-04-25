@@ -322,6 +322,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
         show={@show_auth_sheet}
         surface={:on_widget_standalone}
         referral_context={@auth_referral_context}
+        client_ip={assigns[:user_ip] || "0.0.0.0"}
         on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
       />
     <% end %>

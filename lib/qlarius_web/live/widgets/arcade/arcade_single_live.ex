@@ -25,6 +25,11 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   # makes this idempotent for router-driven mounts.
   on_mount {QlariusWeb.UserAuth, :mount_current_scope}
 
+  # Standalone-widget context needs `@user_ip` so the nested AuthSheet
+  # can rate-limit `send_code` per-IP. See `arcade_live.ex` for the
+  # same hook + rationale.
+  on_mount {QlariusWeb.GetUserIP, :assign_ip}
+
   # This LiveView serves three contexts via @base_path / @inline?:
   # - Embedded standalone widgets: mounted at /widgets/arqade/:piece_id
   #   → @base_path = "/widgets", @inline? = false. Used when creators

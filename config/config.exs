@@ -162,3 +162,9 @@ config :qlarius, Qlarius.Services.Twilio,
 
 config :hammer,
   backend: {Hammer.Backend.ETS, [expiry_ms: 60_000 * 60 * 4, cleanup_interval_ms: 60_000 * 10]}
+
+# AuthSheet + finalize-session rate-limit master switch. See
+# `Qlarius.Auth.RateLimit` and `docs/qlink_auth_refactor_plan.md` §B8.
+# Overridden to `false` in `config/test.exs` so suites don't share
+# buckets across runs.
+config :qlarius, :auth_rate_limit, enabled?: true

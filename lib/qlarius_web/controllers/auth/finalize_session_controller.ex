@@ -13,6 +13,7 @@ defmodule QlariusWeb.Auth.FinalizeSessionController do
   use QlariusWeb, :controller
 
   alias Qlarius.Accounts
+  alias Qlarius.Auth.RateLimit
   alias QlariusWeb.Auth.FinalizeToken
   alias QlariusWeb.UserAuth
 
@@ -21,6 +22,24 @@ defmodule QlariusWeb.Auth.FinalizeSessionController do
   require Logger
 
   def create(conn, %{"token" => token}) when is_binary(token) do
+    # B8: per-IP gate before cryptographic verification. Cheap check,
+    # and denies noisy probes without burning ETS bucket space on
+    # `FinalizeTokenSweeper` `jti`s.
+    ip = conn.remote_ip |> RateLimit.format_ip()
+
+    case RateLimit.check_finalize_per_ip(ip) do
+      :ok ->
+        do_create(conn, token)
+
+      {:error, {:rate_limited, _retry_after_s}} ->
+        Logger.warning("[FinalizeSession] rate-limited ip=#{ip}")
+        send_json_error(conn, 429, "rate_limited")
+    end
+  end
+
+  def create(conn, _params), do: send_json_error(conn, 422, "missing_token")
+
+  defp do_create(conn, token) do
     case FinalizeToken.verify_and_consume(token) do
       {:ok, payload} ->
         case Accounts.get_user(payload.user_id) do
@@ -51,8 +70,6 @@ defmodule QlariusWeb.Auth.FinalizeSessionController do
         send_json_error(conn, 422, "invalid_token")
     end
   end
-
-  def create(conn, _params), do: send_json_error(conn, 422, "missing_token")
 
   defp send_json_error(conn, status, code) do
     conn

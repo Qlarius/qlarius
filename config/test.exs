@@ -39,3 +39,9 @@ config :phoenix, :plug_init_mode, :runtime
 # Enable helpful, but potentially expensive runtime checks
 config :phoenix_live_view,
   enable_expensive_runtime_checks: true
+
+# AuthSheet rate limits off by default in test — individual tests
+# that exercise the rate-limiter opt back in via
+# `Application.put_env/3` + `on_exit/1`. See
+# `Qlarius.Auth.RateLimit`.
+config :qlarius, :auth_rate_limit, enabled?: false
