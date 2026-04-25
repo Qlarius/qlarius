@@ -75,27 +75,26 @@ defmodule QlariusWeb.QlinkPage.Show do
     end
   end
 
-  # The Qlink page has two public surfaces:
+  # The Qlink page has two public surfaces, both of which are now
+  # interactive and auth-capable (B6):
   #
-  #   * qlinkin.bio  — anonymous, edge-cached vanity host. CTAs here must
-  #     redirect visitors to the interact host (qlink.qadabra.app) to
-  #     authenticate, because `/login` is not routed on qlinkin.bio.
+  #   * qlinkin.bio — the public vanity host. Hosts the `AuthSheet` for
+  #     in-place sign-in behind the `:auth_sheet[:on_qlinkin_bio]`
+  #     flag. Sessions set here are host-scoped (they do NOT share
+  #     the `.qadabra.app` cookie — see `HostAwareSession`).
   #
-  #   * qlink.qadabra.app (and localhost in dev) — authed/interactive
-  #     host. CTAs here use the normal in-app `/login` flow.
+  #   * qlink.qadabra.app (and localhost in dev) — the "interact" host.
+  #     Hosts the `AuthSheet` behind `:auth_sheet[:on_qlink_page]`.
+  #     Sessions set here are shared across `*.qadabra.app`.
   #
-  # `@is_anon_surface` tells the template which path to take. The two
-  # pre-computed URLs cover the two handoff destinations:
+  # `auth_sheet_enabled?/1` picks the correct flag based on the
+  # request host.
   #
-  #   * `@interact_url` — the same Qlink page on the interact host,
-  #     for already-authed or "optimistic auth via shared cookie"
-  #     navigations (rarely used directly; kept for flexibility).
-  #   * `@interact_login_url` — the login page on the interact host
-  #     with `?return_to=/@alias` appended, so after sign-in the
-  #     visitor lands back on the same creator's Qlink page (on the
-  #     interact surface, where they see the full authed UI). This
-  #     is the destination of "Connect your wallet" CTAs on the anon
-  #     share surface.
+  # `@interact_login_url` / `@interact_url` remain assigned because
+  # they're still used as the flag-OFF fallback target in both templates
+  # and by `UnauthCTA` components rendered in iframe embeds — those
+  # surfaces continue to hand off cross-host until B8 retires the iframe
+  # path. They're NOT used on qlinkin.bio when the AuthSheet flag is on.
   defp assign_surface_context(socket, page) do
     # `socket.host_uri` is populated by Phoenix.LiveView on BOTH the
     # dead HTTP render (from `Plug.Conn.request_url/1`) and the
@@ -110,14 +109,11 @@ defmodule QlariusWeb.QlinkPage.Show do
         _ -> nil
       end
 
-    host = parent_uri && parent_uri.host
-    anon_hosts = ["qlinkin.bio", "www.qlinkin.bio"]
-
     socket
-    |> assign(:is_anon_surface, host in anon_hosts)
     # Used by `render_iframe_embed/2` to rewrite arqade widget iframe
     # hosts to match the parent page, so the shared `.qadabra.app`
-    # cookie is sent on iframe requests.
+    # cookie is sent on iframe requests. Also used by
+    # `auth_sheet_enabled?/1` to pick the right per-host feature flag.
     |> assign(:parent_request_uri, parent_uri)
     |> assign(:interact_url, Qlarius.Qlink.Urls.interact_url(page.alias))
     |> assign(
@@ -862,13 +858,6 @@ defmodule QlariusWeb.QlinkPage.Show do
   # widgets — see `render_embed/1`). Function components don't
   # receive `@socket` automatically; callers must pass it explicitly.
   attr :socket, :any, default: nil
-  # `is_anon_surface` is true on qlinkin.bio and false on the
-  # interactive host. Used by the block templates for CTA target
-  # selection (e.g. `target="_top"` + interact-host login URL on
-  # the anon surface vs. same-tab `/login` on the interact host).
-  # It does NOT gate inline arqade rendering — both surfaces go
-  # inline; see `inline_arqade_candidate?/2`.
-  attr :is_anon_surface, :boolean, default: false
 
   def render_link(assigns) do
     cond do
@@ -1111,7 +1100,13 @@ defmodule QlariusWeb.QlinkPage.Show do
       # honor the creator's "hide title" setting.
       "show_title" => show_title_raw != false,
       "content_id" => Map.get(query_params, "content_id"),
-      "force_theme" => Map.get(query_params, "force_theme")
+      "force_theme" => Map.get(query_params, "force_theme"),
+      # Parent's AuthSheet-enabled decision (per-host flag).
+      # The nested arcade LV reuses this so its CTA-gating stays in
+      # lockstep with what the parent will actually render — otherwise
+      # an `open_auth_sheet` event forwarded up to the parent could
+      # fall on deaf ears when the parent's flag is off for this host.
+      "auth_sheet_host_enabled?" => auth_sheet_enabled?(assigns)
     }
     |> Map.merge(opts[:session_params] || %{})
 
@@ -1309,19 +1304,37 @@ defmodule QlariusWeb.QlinkPage.Show do
   end
 
   # Whether the in-place AuthSheet should be rendered on this request.
-  # Requires the feature flag to be on, the visitor to be anonymous,
-  # and the surface to be the interactive (not the anon share) host.
+  # Picks the feature-flag key based on the request host — qlinkin.bio
+  # is governed by `:on_qlinkin_bio` (B6), every other host by
+  # `:on_qlink_page` (B2). Also requires the visitor to be anonymous.
   def auth_sheet_enabled?(assigns) do
     flag_on? =
       Application.get_env(:qlarius, :auth_sheet, [])
-      |> Keyword.get(:on_qlink_page, false)
+      |> Keyword.get(surface_flag_key(assigns), false)
 
     anonymous? =
       is_nil(assigns[:current_scope]) or is_nil(assigns[:current_scope].true_user)
 
-    interactive_surface? = not assigns[:is_anon_surface]
+    flag_on? and anonymous?
+  end
 
-    flag_on? and anonymous? and interactive_surface?
+  # Template helper: `true` when the current request is on qlinkin.bio
+  # (the public vanity host). Used by the flag-OFF CTA fallback
+  # branches so they redirect cross-host to `@interact_login_url`
+  # instead of to an in-app `/login` path that isn't mounted on
+  # qlinkin.bio.
+  def on_qlinkin_bio_host?(assigns) do
+    case assigns[:parent_request_uri] do
+      %URI{host: host} when is_binary(host) ->
+        host in ["qlinkin.bio", "www.qlinkin.bio"]
+
+      _ ->
+        false
+    end
+  end
+
+  defp surface_flag_key(assigns) do
+    if on_qlinkin_bio_host?(assigns), do: :on_qlinkin_bio, else: :on_qlink_page
   end
 
   # Build the referral context for the AuthSheet. On a creator's Qlink

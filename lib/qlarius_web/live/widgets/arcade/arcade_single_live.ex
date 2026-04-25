@@ -80,6 +80,20 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
       end
 
       inline? = session["inline?"] == true
+
+      # Parent LV's per-host AuthSheet decision, threaded through so
+      # our CTA gating matches. `nil` when mounted standalone (no
+      # parent), in which case `auth_sheet_enabled?/1` falls back to
+      # the `:on_widget_standalone` flag.
+      auth_sheet_host_enabled? =
+        case session["auth_sheet_host_enabled?"] do
+          true -> true
+          "true" -> true
+          false -> false
+          "false" -> false
+          _ -> nil
+        end
+
       force_theme = session["force_theme"] || Map.get(params, "force_theme", "light")
 
       # `base_path` resolution order mirrors `ArcadeLive`:
@@ -111,6 +125,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           show_connect_modal: false,
           show_auth_sheet: false,
           auth_referral_context: Qlarius.Referrals.Context.none(),
+          auth_sheet_host_enabled?: auth_sheet_host_enabled?,
           force_theme: force_theme
         )
         |> assign(scope_assigns(scope, group, catalog))
@@ -429,18 +444,25 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
     do: {assigns.tiqit_up_catalog_credit, assigns.tiqit_up_catalog_count}
 
   # Whether the in-place AuthSheet should be rendered on this mount.
-  # Mirrors `ArcadeLive.auth_sheet_enabled?/1` — see that module for
-  # the flag-selection rationale (inline? → on_qlink_page, standalone
-  # → on_widget_standalone).
+  # Mirrors `ArcadeLive.auth_sheet_enabled?/1` — when inline, reuses
+  # the parent's per-host decision (`@auth_sheet_host_enabled?`) so
+  # the CTA matches what the parent will actually render. Standalone
+  # falls back to `:on_widget_standalone`.
   def auth_sheet_enabled?(assigns) do
     anonymous? =
       is_nil(assigns[:current_scope]) or is_nil(assigns[:current_scope].true_user)
 
-    flag_key = if assigns[:inline?], do: :on_qlink_page, else: :on_widget_standalone
-
     flag_on? =
-      Application.get_env(:qlarius, :auth_sheet, [])
-      |> Keyword.get(flag_key, false)
+      cond do
+        assigns[:inline?] and is_boolean(assigns[:auth_sheet_host_enabled?]) ->
+          assigns.auth_sheet_host_enabled?
+
+        true ->
+          flag_key = if assigns[:inline?], do: :on_qlink_page, else: :on_widget_standalone
+
+          Application.get_env(:qlarius, :auth_sheet, [])
+          |> Keyword.get(flag_key, false)
+      end
 
     flag_on? and anonymous?
   end

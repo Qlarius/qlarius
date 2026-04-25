@@ -102,9 +102,23 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       # rendered via `live_render/3` (see
       # `QlariusWeb.QlinkPage.Show.render_inline_arqade/2`). The
       # parent passes `%{"inline?" => true, "base_path" => "",
-      # "force_theme" => ..., "show_title" => ...}` through the
+      # "force_theme" => ..., "show_title" => ...,
+      # "auth_sheet_host_enabled?" => boolean}` through the
       # `session:` option, which arrives here as string keys.
       inline? = session["inline?"] == true or session["inline?"] == "true"
+
+      # Parent LV's per-host AuthSheet decision, threaded through so
+      # our CTA gating matches. `nil` when mounted standalone (no
+      # parent), in which case `auth_sheet_enabled?/1` falls back to
+      # the `:on_widget_standalone` flag.
+      auth_sheet_host_enabled? =
+        case session["auth_sheet_host_enabled?"] do
+          true -> true
+          "true" -> true
+          false -> false
+          "false" -> false
+          _ -> nil
+        end
 
       force_theme = session["force_theme"] || force_theme
       show_title = if Map.has_key?(session, "show_title"), do: session["show_title"] != false and session["show_title"] != "false", else: show_title
@@ -133,6 +147,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          show_connect_modal: false,
          show_auth_sheet: false,
          auth_referral_context: Qlarius.Referrals.Context.none(),
+         auth_sheet_host_enabled?: auth_sheet_host_enabled?,
          force_theme: force_theme,
          show_title: show_title
        )
@@ -537,23 +552,34 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     do: {assigns.tiqit_up_catalog_credit, assigns.tiqit_up_catalog_count}
 
   # Whether the in-place AuthSheet should be rendered on this mount.
-  # Different flags for the two contexts this LV serves:
+  # Two contexts this LV serves:
   #   - `inline?: true`  → nested inside a Qlink page. Reuses the
-  #     `:auth_sheet[:on_qlink_page]` flag so the inline arcade matches
-  #     the surrounding page's auth-sheet state.
-  #   - `inline?: false` → standalone widget (iframe or direct /widgets/…).
-  #     Uses `:auth_sheet[:on_widget_standalone]`.
+  #     parent's per-host AuthSheet decision, threaded in via
+  #     `session["auth_sheet_host_enabled?"]` at mount and stashed
+  #     as `@auth_sheet_host_enabled?`. This keeps the arcade CTA's
+  #     `phx-click="open_auth_sheet"` in lockstep with whether the
+  #     parent will actually render the sheet — on qlinkin.bio the
+  #     parent uses `:on_qlinkin_bio`; on qlink.qadabra.app it uses
+  #     `:on_qlink_page`.
+  #   - `inline?: false` → standalone widget (iframe or direct
+  #     /widgets/…). Uses `:auth_sheet[:on_widget_standalone]`.
   # When false, CTAs fall back to the legacy `interact_login_url`
   # redirect and the AuthSheet LC is not mounted.
   def auth_sheet_enabled?(assigns) do
     anonymous? =
       is_nil(assigns[:current_scope]) or is_nil(assigns[:current_scope].true_user)
 
-    flag_key = if assigns[:inline?], do: :on_qlink_page, else: :on_widget_standalone
-
     flag_on? =
-      Application.get_env(:qlarius, :auth_sheet, [])
-      |> Keyword.get(flag_key, false)
+      cond do
+        assigns[:inline?] and is_boolean(assigns[:auth_sheet_host_enabled?]) ->
+          assigns.auth_sheet_host_enabled?
+
+        true ->
+          flag_key = if assigns[:inline?], do: :on_qlink_page, else: :on_widget_standalone
+
+          Application.get_env(:qlarius, :auth_sheet, [])
+          |> Keyword.get(flag_key, false)
+      end
 
     flag_on? and anonymous?
   end

@@ -156,11 +156,17 @@ config :logger, level: :debug
 # Set to true when testing registration flow without real SMS
 config :qlarius, bypass_phone_verification: true
 
-# AuthSheet dev rollout. Enable on qlink interact host so B2+ in-place
-# sign-in can be smoke-tested locally. `on_widget_standalone` enables
-# the self-hosted AuthSheet inside standalone widget LVs (arqade
-# /widgets/arqade/…, etc.). Production flags still default off in
-# config.exs until staging promotion.
+# AuthSheet dev rollout. Enable on all three surfaces we have wired
+# so far so B2+ in-place sign-in can be smoke-tested locally:
+#   - `on_qlink_page` — qlink.qadabra.app / localhost qlink pages (B2)
+#   - `on_qlinkin_bio` — qlinkin.bio (B6). Safe in dev because there's
+#     no Cloudflare in front of localhost; production still defaults
+#     off in config.exs until the CF cache rule is in place.
+#   - `on_widget_standalone` — standalone arqade widget LVs
+#     (/widgets/arqade/…).
+# Production flags still default off in config.exs until staging
+# promotion.
 config :qlarius, :auth_sheet,
   on_qlink_page: true,
+  on_qlinkin_bio: true,
   on_widget_standalone: true

@@ -86,11 +86,25 @@ defmodule QlariusWeb.Router do
 
   # ------ QLINK SHARE HOST (qlinkin.bio) ------
   #
-  # Anonymous, edge-cacheable view of a creator's Qlink page. Every
-  # interactive CTA on this surface links across to the interact host
-  # (qlink.qadabra.app) rather than trying to authenticate in place,
-  # so Cloudflare can serve these HTML responses from cache with
-  # minimal origin traffic.
+  # Interactive, auth-capable view of a creator's Qlink page. Uses the
+  # full `:browser` pipeline so the host-scoped session cookie (see
+  # `QlariusWeb.Plugs.HostAwareSession` — qlinkin.bio cookies stay
+  # host-scoped, they are NOT shared with `.qadabra.app`) is read and
+  # `current_scope` is populated for any visitor who has signed in on
+  # qlinkin.bio before. Anonymous visitors still get the page; the
+  # `AuthSheet` LiveComponent (gated behind
+  # `:auth_sheet[:on_qlinkin_bio]`) authenticates them in place via
+  # `POST /auth/finalize_session` below without a cross-host redirect.
+  #
+  # Prior to B6 this scope used the `:browser_anon` pipeline +
+  # `:mount_anonymous_scope` hook so all responses were cacheable at
+  # the Cloudflare edge. That changed in B6: responses on this host
+  # can now carry `Set-Cookie` headers. **Production rollout of the
+  # AuthSheet on this host (setting `on_qlinkin_bio: true`) requires
+  # a Cloudflare cache rule that bypasses cache when the
+  # `_qlarius_key` cookie is present on the request**, otherwise
+  # authed visitors may be served cached anonymous responses.
+  # See `docs/qlink_auth_refactor_plan.md` §B6.
   #
   # The catch-all `match :* /*path` at the bottom ensures any non-Qlink
   # path on qlinkin.bio (including the bare root) redirects to the
@@ -100,15 +114,32 @@ defmodule QlariusWeb.Router do
   # IMPORTANT: Must be defined BEFORE any unrestricted (non-`host:`)
   # scope that also claims `/` (e.g. the HiLive `/` route), because
   # Phoenix router matches in definition order.
-  scope "/", QlariusWeb, host: ["qlinkin.bio", "www.qlinkin.bio"] do
-    pipe_through [:browser_anon]
 
-    live_session :public_qlink_anon,
+  # AuthSheet `POST /auth/finalize_session` for qlinkin.bio. Declared
+  # BEFORE the main qlinkin.bio scope below so its `match :* /*path`
+  # catch-all doesn't shadow the path. Uses the JSON `:auth_finalize`
+  # pipeline (not `:browser`) because the client is a JS `fetch()`
+  # with `Accept: application/json`.
+  scope "/auth", QlariusWeb.Auth, host: ["qlinkin.bio", "www.qlinkin.bio"] do
+    pipe_through [:auth_finalize]
+
+    post "/finalize_session", FinalizeSessionController, :create
+  end
+
+  scope "/", QlariusWeb, host: ["qlinkin.bio", "www.qlinkin.bio"] do
+    pipe_through [:browser]
+
+    live_session :public_qlinkin_bio,
       on_mount: [
-        {QlariusWeb.UserAuth, :mount_anonymous_scope}
+        {QlariusWeb.UserAuth, :mount_current_scope}
       ] do
       live "/@:alias", QlinkPage.Show, :show
     end
+
+    # Logout explicitly mounted for qlinkin.bio because the catch-all
+    # below would otherwise shadow the non-host-scoped `/logout`
+    # declared later in the router.
+    delete "/logout", UserSessionController, :delete
 
     get "/", QlinkRedirectController, :landing
     match :*, "/*path", QlinkRedirectController, :not_found
@@ -246,8 +277,9 @@ defmodule QlariusWeb.Router do
   # reject with a 406. The session/CSRF/cookie-host machinery from
   # `:browser` is inlined here; layout and live-flash are skipped since
   # the controller returns 204 (success) or a small JSON error body.
-  # See `docs/qlink_auth_refactor_plan.md` §5.9. Will be remounted on
-  # the qlinkin.bio host scope in B6.
+  # See `docs/qlink_auth_refactor_plan.md` §5.9. Also mounted on the
+  # qlinkin.bio host scope above (B6) so the AuthSheet's `fetch` can
+  # target the same-origin URL on that host.
   pipeline :auth_finalize do
     plug :accepts, ["json"]
     plug :fetch_session
