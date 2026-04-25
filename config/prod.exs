@@ -39,9 +39,18 @@ config :qlarius, debug_enabled: false
 # (e.g. `on_qlink_page`, `on_widget_standalone`, `on_landing_pages`)
 # untouched. Those stay gated separately.
 #
-# **Requires the Cloudflare cache rule "bypass cache when
-# `_qlarius_web_user_remember_me` cookie is present on qlinkin.bio"
-# to be active before deploying with this flag on**, otherwise
-# authed visitors may be served cached anonymous HTML by the edge.
-# See `docs/qlink_auth_refactor_plan.md` §B6 / rev 9.
+# Originally this was documented as "requires a Cloudflare
+# bypass-cache-when-authed rule first" — but a `curl -I` against
+# qlinkin.bio showed Phoenix emits `cache-control: max-age=0,
+# private, must-revalidate` on every session-carrying response
+# (session-touching plugs: `:fetch_session` + `:protect_from_forgery`).
+# CF respects `private` and serves everything as
+# `cf-cache-status: DYNAMIC`. So there was never any risk of an
+# authed response leaking to anon viewers via the edge cache —
+# CF wasn't caching these responses to begin with.
+#
+# A Cloudflare bypass-on-remember-me rule is still useful as
+# defense-in-depth if anyone ever overrides that cache-control
+# header for perf reasons, but is not a prerequisite for this
+# flag. See `docs/qlink_auth_refactor_plan.md` §B6 / rev 10.
 config :qlarius, :auth_sheet, on_qlinkin_bio: true
