@@ -434,13 +434,7 @@ defmodule QlariusWeb.QlinkPage.Show do
   # when the flag is off, the FAB falls back to the legacy `/login`
   # redirect and these events never fire.
   def handle_event("open_auth_sheet", _params, socket) do
-    # Also close the intermediate `connect_wallet_modal` if it was
-    # open — otherwise opening AuthSheet from inside that modal would
-    # stack the two modals on top of each other.
-    {:noreply,
-     socket
-     |> assign(:show_auth_sheet, true)
-     |> assign(:show_connect_modal, false)}
+    {:noreply, open_auth_sheet(socket)}
   end
 
   def handle_event("close_auth_sheet", _params, socket) do
@@ -547,6 +541,15 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   # Handle info callbacks
   @impl true
+  # Forwarded from a nested arcade LV when its Connect-wallet CTA is
+  # clicked (see `ArcadeLive.handle_event("open_auth_sheet", …)`).
+  # The nested LV sends this via `send(socket.parent_pid, …)` instead
+  # of mounting its own `AuthSheet` so the page never stacks two
+  # sheet instances.
+  def handle_info(:open_auth_sheet, socket) do
+    {:noreply, open_auth_sheet(socket)}
+  end
+
   def handle_info(:close_insta_tip_thanks_modal, socket) do
     {:noreply,
      socket
@@ -1291,6 +1294,18 @@ defmodule QlariusWeb.QlinkPage.Show do
       </iframe>
     </div>
     """
+  end
+
+  # Open the in-place AuthSheet and simultaneously close the
+  # intermediate `connect_wallet_modal` if it was open — otherwise
+  # opening the sheet from inside that interstitial would stack two
+  # modals on top of each other. Shared between the `phx-click`
+  # event handler and the `:open_auth_sheet` info message forwarded
+  # by nested arcade LVs.
+  defp open_auth_sheet(socket) do
+    socket
+    |> assign(:show_auth_sheet, true)
+    |> assign(:show_connect_modal, false)
   end
 
   # Whether the in-place AuthSheet should be rendered on this request.

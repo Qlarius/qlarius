@@ -274,14 +274,30 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   # AuthSheet open/close. Gated behind `auth_sheet_enabled?/1` — when
   # the flag is off, arcade CTAs fall back to the legacy
   # `interact_login_url` redirect and these events never fire.
-  # Also closes the intermediate `show_connect_modal` so we don't
-  # stack two modals when the user clicks "Connect your wallet" from
-  # inside the interstitial.
+  #
+  # When this LV is nested inside a hosting LV (e.g. a Qlink page),
+  # we forward to the parent so there's only ever one AuthSheet on
+  # the page — the parent's. `socket.parent_pid` is automatically
+  # populated by `live_render/3` (nil for standalone mounts).
+  #
+  # Also closes the intermediate `show_connect_modal` to avoid
+  # stacking two modals when the user clicks "Connect your wallet"
+  # from inside the interstitial.
   def handle_event("open_auth_sheet", _params, socket) do
-    socket
-    |> assign(:show_auth_sheet, true)
-    |> assign(:show_connect_modal, false)
-    |> noreply()
+    case socket.parent_pid do
+      nil ->
+        socket
+        |> assign(:show_auth_sheet, true)
+        |> assign(:show_connect_modal, false)
+        |> noreply()
+
+      parent_pid ->
+        send(parent_pid, :open_auth_sheet)
+
+        socket
+        |> assign(:show_connect_modal, false)
+        |> noreply()
+    end
   end
 
   def handle_event("close_auth_sheet", _params, socket) do

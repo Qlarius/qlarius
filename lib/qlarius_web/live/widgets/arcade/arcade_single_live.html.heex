@@ -232,16 +232,16 @@
 />
 
 <%!--
-  In-place AuthSheet for anonymous viewers. Same self-contained
-  approach as `ArcadeLive` — works standalone or nested. See
-  `ArcadeLive` template for the full rationale.
+  In-place AuthSheet, mounted ONLY when this LV is standalone.
+  Nested mounts forward `open_auth_sheet` to the hosting LV's sheet.
+  See `ArcadeLive` template for the full rationale.
 --%>
-<%= if QlariusWeb.Widgets.Arcade.ArcadeSingleLive.auth_sheet_enabled?(assigns) do %>
+<%= if QlariusWeb.Widgets.Arcade.ArcadeSingleLive.auth_sheet_enabled?(assigns) and not @inline? do %>
   <.live_component
     module={QlariusWeb.Components.AuthSheet}
     id="arcade-single-auth-sheet"
     show={@show_auth_sheet}
-    surface={if @inline?, do: :on_qlink_page, else: :on_widget_standalone}
+    surface={:on_widget_standalone}
     referral_context={@auth_referral_context}
     on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
   />

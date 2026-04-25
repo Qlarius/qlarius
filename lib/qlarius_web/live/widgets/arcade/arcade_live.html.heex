@@ -361,20 +361,18 @@
 />
 
 <%!--
-  In-place AuthSheet for anonymous viewers. Self-contained inside
-  the arcade LV so the same flow works whether this LV is mounted
-  standalone (/widgets/arqade/…) or nested inside a Qlink page.
-  The AuthFinalize JS hook reconnects the liveSocket after a
-  successful sign-in, which re-mounts every LV on the page with
-  the new session — so the surrounding Qlink page (if any) picks
-  up the authed scope automatically.
+  In-place AuthSheet, mounted ONLY when this LV is standalone.
+  When nested inside a hosting LV (e.g. a Qlink page), the parent
+  hosts the single page-wide AuthSheet and our `open_auth_sheet`
+  event handler forwards to it via `socket.parent_pid` — so we don't
+  render a second instance here. Keeps exactly one sheet per page.
 --%>
-<%= if QlariusWeb.Widgets.Arcade.ArcadeLive.auth_sheet_enabled?(assigns) do %>
+<%= if QlariusWeb.Widgets.Arcade.ArcadeLive.auth_sheet_enabled?(assigns) and not @inline? do %>
   <.live_component
     module={QlariusWeb.Components.AuthSheet}
     id="arcade-auth-sheet"
     show={@show_auth_sheet}
-    surface={if @inline?, do: :on_qlink_page, else: :on_widget_standalone}
+    surface={:on_widget_standalone}
     referral_context={@auth_referral_context}
     on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
   />
