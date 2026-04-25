@@ -858,6 +858,14 @@ defmodule QlariusWeb.QlinkPage.Show do
   # widgets — see `render_embed/1`). Function components don't
   # receive `@socket` automatically; callers must pass it explicitly.
   attr :socket, :any, default: nil
+  # JS command threaded through to embedded widgets' Connect-wallet
+  # CTAs (currently just `insta_tip_card`'s wallet strip). Computed
+  # at the template call site where the full parent assigns (incl.
+  # `@parent_request_uri` for per-host flag resolution) are in scope —
+  # `nil` falls back to the legacy cross-host redirect on the
+  # embedded `wallet_strip_or_connect/1`. Mirrors the pattern used
+  # by arcade's `on_click` wiring.
+  attr :on_auth_click, Phoenix.LiveView.JS, default: nil
 
   def render_link(assigns) do
     cond do
@@ -906,6 +914,7 @@ defmodule QlariusWeb.QlinkPage.Show do
             show_image={@show_header}
             show_message={@show_header}
             wallet_strip_id={"wallet-balance-tipjar-#{@link.id}"}
+            on_auth_click={@on_auth_click}
           />
       <% end %>
     </div>

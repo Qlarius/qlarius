@@ -3,9 +3,21 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
 
   alias Qlarius.Accounts.Users
   alias Qlarius.Wallets
+
   import QlariusWeb.InstaTipComponents
+  # Shared helpers for the "View anywhere, Act only when authed"
+  # pattern — `authed?/1`, `connect_wallet_modal/1`, etc. Same imports
+  # the arcade standalone widget uses so CTA behavior stays in lockstep.
+  import QlariusWeb.Widgets.UnauthCTA
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
+
+  # `current_scope` is already assigned by the router `live_session`
+  # (see `/widgets` scope in router.ex) via `:mount_current_scope`,
+  # which uses `assign_new`. This re-assert is a no-op in that path;
+  # kept here so the LV continues to work if ever rendered outside
+  # the widgets scope (mirrors `ArcadeLive`).
+  on_mount {QlariusWeb.UserAuth, :mount_current_scope}
 
   @default_amounts [
     Decimal.new("0.25"),
@@ -41,6 +53,9 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
           end
       end
 
+    scope = socket.assigns.current_scope
+    user = scope && scope.user
+
     socket =
       socket
       |> assign(:page_title, "InstaTip")
@@ -52,19 +67,17 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
       |> assign(:show_insta_tip_thanks_modal, false)
       |> assign(:insta_tip_thanks_amount, nil)
       |> assign(:insta_tip_thanks_recipient, nil)
-      |> assign(
-        :current_balance,
-        Wallets.get_user_current_balance(socket.assigns.current_scope.user)
-      )
+      |> assign(:show_connect_modal, false)
+      |> assign(:show_auth_sheet, false)
+      |> assign(:auth_referral_context, Qlarius.Referrals.Context.none())
+      |> assign(:current_balance, user && Wallets.get_user_current_balance(user))
 
-    if connected?(socket) do
+    if connected?(socket) and user do
       # Subscribe to wallet balance updates for this me_file
-      Qlarius.Wallets.MeFileStatsBroadcaster.subscribe_to_me_file_stats(
-        socket.assigns.current_scope.user.me_file.id
-      )
+      Qlarius.Wallets.MeFileStatsBroadcaster.subscribe_to_me_file_stats(user.me_file.id)
 
       # Subscribe to InstaTip notifications
-      Phoenix.PubSub.subscribe(Qlarius.PubSub, "user:#{socket.assigns.current_scope.user.id}")
+      Phoenix.PubSub.subscribe(Qlarius.PubSub, "user:#{user.id}")
     end
 
     {:ok, socket}
@@ -114,18 +127,20 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
 
   @impl true
   def handle_event("initiate_insta_tip", %{"amount" => amount_str}, socket) do
-    amount = Decimal.new(to_string(amount_str))
+    with {:cont, socket} <- maybe_intercept_for_unauth(socket) do
+      amount = Decimal.new(to_string(amount_str))
 
-    socket =
-      socket
-      |> assign(:insta_tip_amount, amount)
-      |> assign(:show_insta_tip_modal, true)
-      |> assign(
-        :current_balance,
-        Wallets.get_user_current_balance(socket.assigns.current_scope.user)
-      )
+      socket =
+        socket
+        |> assign(:insta_tip_amount, amount)
+        |> assign(:show_insta_tip_modal, true)
+        |> assign(
+          :current_balance,
+          Wallets.get_user_current_balance(socket.assigns.current_scope.user)
+        )
 
-    {:noreply, socket}
+      {:noreply, socket}
+    end
   end
 
   @impl true
@@ -178,6 +193,65 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
      |> assign(:insta_tip_thanks_recipient, nil)}
   end
 
+  # Shared "close the Connect interstitial" handler. Fires from both
+  # the connect_wallet_modal's Cancel button and its default
+  # `on_cancel` JS command.
+  def handle_event("close-connect-modal", _params, socket) do
+    {:noreply, assign(socket, :show_connect_modal, false)}
+  end
+
+  # AuthSheet open/close. Gated behind `auth_sheet_enabled?/1` — when
+  # the flag is off, CTAs fall back to the legacy `interact_login_url`
+  # redirect (via `wallet_strip_or_connect/1` with `on_click={nil}`)
+  # and these events never fire.
+  #
+  # Unlike arcade, this LV is ONLY ever mounted standalone (it's at
+  # /widgets/insta_tip, not rendered inline from another LV), so
+  # there's no `socket.parent_pid` forwarding to consider — we always
+  # host the sheet locally. Also closes the intermediate
+  # `show_connect_modal` to avoid stacking two modals when the user
+  # clicks "Connect your wallet" from inside the interstitial.
+  def handle_event("open_auth_sheet", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_auth_sheet, true)
+     |> assign(:show_connect_modal, false)}
+  end
+
+  def handle_event("close_auth_sheet", _params, socket) do
+    {:noreply, assign(socket, :show_auth_sheet, false)}
+  end
+
+  # Gate for wallet-required handlers. Mirrors `ArcadeLive`'s helper.
+  # Returns `{:cont, socket}` when authed, `{:noreply, socket}` with
+  # `show_connect_modal: true` when unauthed — so a `with` clause at
+  # the top of each gated handler short-circuits to open the modal
+  # instead of running the real work.
+  defp maybe_intercept_for_unauth(socket) do
+    if authed?(socket.assigns.current_scope) do
+      {:cont, socket}
+    else
+      {:noreply, assign(socket, :show_connect_modal, true)}
+    end
+  end
+
+  # Whether the in-place AuthSheet should be rendered on this mount.
+  # This LV is always standalone (routed at `/widgets/insta_tip`;
+  # never rendered via `live_render/3`) so it always uses the
+  # `:on_widget_standalone` flag — no inline/parent threading needed.
+  # Also requires the visitor to be anonymous; authed users don't
+  # see the sheet.
+  def auth_sheet_enabled?(assigns) do
+    anonymous? =
+      is_nil(assigns[:current_scope]) or is_nil(assigns[:current_scope].true_user)
+
+    flag_on? =
+      Application.get_env(:qlarius, :auth_sheet, [])
+      |> Keyword.get(:on_widget_standalone, false)
+
+    flag_on? and anonymous?
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -187,11 +261,16 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
           :if={@recipient}
           recipient={@recipient}
           scope={@current_scope}
-          wallet_balance={@current_scope.wallet_balance}
+          wallet_balance={@current_scope && @current_scope.wallet_balance}
           offered_amount={@current_scope && @current_scope.offered_amount}
           ads_count={@current_scope && @current_scope.ads_count}
           amounts={Enum.map(@amounts, &Decimal.to_string/1)}
           wallet_strip_id="wallet-balance-tipjar-widget"
+          on_auth_click={
+            if auth_sheet_enabled?(assigns),
+              do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+              else: nil
+          }
         />
         <div :if={!@recipient} class="text-center text-base-content/50">
           Recipient not found
@@ -204,7 +283,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
       recipient_name={(@recipient && @recipient.name) || "Recipient"}
       recipient_id={@recipient && @recipient.id}
       amount={@insta_tip_amount || Decimal.new("0.00")}
-      current_balance={@current_scope.wallet_balance}
+      current_balance={(@current_scope && @current_scope.wallet_balance) || Decimal.new("0.00")}
     />
 
     <.insta_tip_thanks_modal
@@ -212,6 +291,40 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
       recipient_name={@insta_tip_thanks_recipient || "Recipient"}
       amount={@insta_tip_thanks_amount || Decimal.new("0.00")}
     />
+
+    <%!--
+      Connect-wallet interstitial (same component arcade uses).
+      Shown when an anonymous viewer taps an amount button. Its CTA
+      opens the in-place AuthSheet when `auth_sheet_enabled?/1` is
+      true, or falls back to the legacy cross-host redirect otherwise.
+    --%>
+    <.connect_wallet_modal
+      show={@show_connect_modal}
+      on_click={
+        if auth_sheet_enabled?(assigns),
+          do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+          else: nil
+      }
+    />
+
+    <%!--
+      In-place AuthSheet. Mounted only when the `:on_widget_standalone`
+      flag is on AND the viewer is anonymous (authed users never see
+      the sheet). Completing sign-in here triggers the `AuthFinalize`
+      JS hook's `liveSocket.disconnect/connect`, re-mounting this LV
+      with the authed session so the wallet strip + amount buttons
+      flip to their authed state without a page navigation.
+    --%>
+    <%= if auth_sheet_enabled?(assigns) do %>
+      <.live_component
+        module={QlariusWeb.Components.AuthSheet}
+        id="insta-tip-auth-sheet"
+        show={@show_auth_sheet}
+        surface={:on_widget_standalone}
+        referral_context={@auth_referral_context}
+        on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
+      />
+    <% end %>
     """
   end
 end
