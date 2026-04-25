@@ -30,3 +30,18 @@ config :logger, level: :info
 # of environment variables, is done on config/runtime.exs.
 
 config :qlarius, debug_enabled: false
+
+# AuthSheet production rollout (B6 stage 2).
+#
+# Keyword-list values on `config :app, :key, ...` are merged at the
+# key level (Mix.Config semantics), so this only flips the listed
+# keys and leaves all other `:auth_sheet` defaults from config.exs
+# (e.g. `on_qlink_page`, `on_widget_standalone`, `on_landing_pages`)
+# untouched. Those stay gated separately.
+#
+# **Requires the Cloudflare cache rule "bypass cache when
+# `_qlarius_web_user_remember_me` cookie is present on qlinkin.bio"
+# to be active before deploying with this flag on**, otherwise
+# authed visitors may be served cached anonymous HTML by the edge.
+# See `docs/qlink_auth_refactor_plan.md` §B6 / rev 9.
+config :qlarius, :auth_sheet, on_qlinkin_bio: true
