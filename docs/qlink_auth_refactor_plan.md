@@ -443,32 +443,22 @@ Each batch is individually shippable. Dependencies noted.
 
 **Ship criterion:** admin creates proxy user entirely in-modal from settings; proxy list updates without page reload; admin stays signed in throughout.
 
-### B5 — Widget surfaces use `AuthSheet`
+### B5 — Widget surfaces use `AuthSheet` [SHIPPED — see rev 8]
 
-**Deps**: B3. **Strongly prefers B9 first** (widgets as LiveComponents); otherwise requires a `parent_pid` + `send/2` bridge to route child-LV unauth clicks to the parent LV's `open_auth_sheet` handler — see B9 sequencing note.
+**Deps**: B3.
 
-**Scope (assuming B9 has shipped):**
-- Remove `interact_login_url` / `target="_top"` cross-domain CTAs from widgets
-- `UnauthCTA.wallet_strip_or_connect/1` and `connect_wallet_modal/1` emit plain `phx-click="open_auth_sheet"`; routes to the hosting LV (QlinkPage for internal; wrapper widget LV for standalone) naturally because the widget is now a `LiveComponent` sharing the socket
-- Sheet handles iframe degradation itself (per §5.2)
-- Each widget's root `<div>` gets a stable DOM id (e.g., `id="tip-jar-#{@jar_id}"`) for the post-auth mount's resume handler to anchor on
-- Clean up dead code in `UnauthCTA` module (including `connect_wallet_link/1`)
+**Scope (as shipped):**
+- `UnauthCTA.wallet_strip_or_connect/1` and `connect_wallet_modal/1` gained an `on_click` attr so callers can opt in to `phx-click="open_auth_sheet"`; the legacy `<.link href={interact_login_url()} target="_top">` stays as the fallback for third-party iframe embeds and the `qlinkin.bio` anon surface (retired in B6)
+- `InstaTipComponents.insta_tip_card/1` forwards via `on_auth_click`
+- `ArcadeLive` + `ArcadeSingleLive` gained an `open_auth_sheet` event handler. Standalone mounts host their own `AuthSheet` LC; **nested mounts** (inside `QlinkPage.Show` via `live_render/3`) forward via `send(socket.parent_pid, :open_auth_sheet)` so the page only ever hosts **one** sheet — the parent's — and the two can't stack. No `session:`-threaded `parent_pid` bridge needed: Phoenix LV exposes `socket.parent_pid` for nested mounts natively.
+- Dead code removed: `UnauthCTA.connect_wallet_link/1`
 
-**Scope (if running B5 tactically before B9):**
-- Thread `parent_pid` + `parent_surface` through the `session` map on `live_render/3` in `QlinkPage.Show`
-- Child LVs (`ArcadeLive`, `ArcadeSingleLive`) handle a new `phx-click="open_auth_sheet"` event by `send(parent_pid, :open_auth_sheet)`
-- `QlinkPage.Show` gains `handle_info(:open_auth_sheet, ...)`
-- `UnauthCTA` components gain an `on_auth_click` attr so callers can override the legacy `<.link href={interact_login_url()} target="_top">`
-- **Known technical debt**: the parent-PID bridge is removed by B9; count on ~30 lines of throwaway
+**Notably NOT done in B5 (deferred):**
+- Removal of `interact_login_url` helpers — still needed by the `qlinkin.bio` anon surface; retires in B6
+- Tip jar standalone widget LV (`InstaTipWidgetLive`) + `WalletLive` / `AdsExtLive` standalone surfaces — have pre-existing anonymous-mount issues that predate this work; picked up separately
+- Stable DOM ids on widget roots for resume-anchor use — folded into B7
 
-**Files:**
-- edit: `lib/qlarius_web/widgets/unauth_cta.ex`
-- edit: arqade templates, tip jar templates, sponster components
-- edit: `lib/qlarius/qlink/urls.ex` (remove dead `interact_login_url` helpers — only after `qlinkin.bio` anon surface retires in B6)
-
-**Risk:** visual / event regression on widget CTAs. Mitigate with widget smoke matrix (all widgets × anon × native/iframed).
-
-**Ship criterion:** every unauth CTA on every widget opens the sheet (native) or interstitial (iframed); no legacy cross-domain redirects remain in widget paths.
+**Ship criterion (met):** every unauth CTA on arcade + tip-jar native surfaces opens the sheet in place; nested arcades forward cleanly to the parent; legacy cross-domain redirects remain only on surfaces that genuinely still need them (anon-share, third-party iframe embed).
 
 ### B6 — `qlinkin.bio` fully authed surface
 
@@ -536,7 +526,9 @@ Each batch is individually shippable. Dependencies noted.
 
 **Ship criterion:** extension team (or dogfood extension instance) can exchange tokens for sessions on all three of our domains.
 
-### B9 — Widgets as `LiveComponent`s (one WebSocket per consumer surface)
+### B9 — Widgets as `LiveComponent`s (RETRACTED — see rev 8)
+
+> **Retracted** in rev 8. Rationale: the motivating premise ("each nested widget opens its own WebSocket") was wrong — nested `LiveView`s share the parent's socket already, and `socket.parent_pid` lets us route events upstream without a refactor. Kept below for historical context; do not implement.
 
 **Deps**: B1 shared primitives. Parallel-safe with B4/B6/B7/B8. Blocks B5 — see sequencing note below.
 
@@ -578,13 +570,13 @@ Each batch is individually shippable. Dependencies noted.
 ### Batch sequencing
 
 ```
-B1 → B2 → B3 → B9 → B5 → B6
-          │         └→ B7
-          ├→ B4 (parallel-safe)
-          └→ B8 (parallel-safe, but ideally after B3)
+B1 ✓ → B2 ✓ → B3 ✓ → B5 ✓ → B6
+                      └→ B7
+              ├→ B4 (parallel-safe, not yet done)
+              └→ B8 (parallel-safe, ideally after B3, not yet done)
 ```
 
-B9 inserts between B3 and B5. Doing B9 first collapses B5 into a small template pass. If schedule pressure demands shipping widget-CTA-to-AuthSheet before B9 is ready, a tactical B5 (`parent_pid` + `send/2` bridge) can run first and gets removed when B9 lands — ~30 lines of throwaway.
+B9 retracted in rev 8. Remaining: B4 (proxy user sheet, parallel), B6 (qlinkin.bio fully authed, retires legacy redirect fallback), B7 (resume-intent post-auth dispatch), B8 (rate limits + extension exchange endpoint).
 
 ## 7. Testing matrix
 
