@@ -263,7 +263,13 @@ On page load of allowlisted hosts:
 - Independent sessions per registrable domain; same user records
 - Extension token bridges the two registrable domains when installed
 
-### 5.8 Intent resume via session (not URL param)
+### 5.8 Intent resume via session (RETRACTED — see rev 11)
+
+> **Retracted in rev 11.** Kept below for historical context only; do not implement.
+>
+> Original premise: pre-AuthSheet, sign-in meant a full navigation away from the page, so preserving *what the user was trying to do* across that navigation was a hard requirement. With the in-place AuthSheet shipped (B2/B3) the page never unloads — `liveSocket.disconnect/connect` re-mounts the same LV with an authed session, scroll position intact, every widget still visible. The user's last intercepted action is one tap away. "Re-click the thing" turned out to be acceptable UX at review and eliminates an entire class of stale-session bugs the approach below would have introduced.
+>
+> If per-action resume ever becomes a real user complaint, it should come in organically as a specific response to that feedback — not be pre-designed here.
 
 Because the in-place auth flow has no URL navigation, resume intent is **stashed in the Plug.Session by the finalize controller**, not passed via URL query params:
 
@@ -282,7 +288,7 @@ Signing note: the resume string is only ever stored server-side after the signed
 
 ### 5.9 In-place auth completion — detailed
 
-**Goal:** modal closes to reveal the page beneath in the same scroll position, with wallet strip showing balance and any pending resume action auto-triggered. No page navigation.
+**Goal:** modal closes to reveal the page beneath in the same scroll position, with wallet strip showing real balance and every previously-intercepted action now functional on re-click. No page navigation, no auto-dispatch — the user resumes their own intent by re-clicking where they left off (see §5.8 retraction note).
 
 **Exchange token:**
 - Signed via `Phoenix.Token.sign/3` with key from `Qlarius.Vault`
@@ -298,8 +304,8 @@ Signing note: the resume string is only ever stored server-side after the signed
 - Checks `jti` against ETS; inserts if unseen, rejects if seen
 - Calls `UserAuth.log_in_user_from_finalize/2` — new helper that:
   - Runs the same session-setting side effects as `UserAuth.log_in_user/3`
-  - Stashes resume in session if present
   - Does NOT call `redirect/2`
+  - (B7's planned "stash resume in session" side-effect was dropped in rev 11)
 - Responds `204 No Content` on success, `422` with error body on invalid token
 - Mounted on both host scopes (qadabra-family + qlinkin.bio)
 
@@ -313,8 +319,7 @@ Signing note: the resume string is only ever stored server-side after the signed
 **Sheet state transitions:**
 - `:sign_in_finalizing` and `:sign_up_finalizing` render a friendly "Signing you in..." screen with a subtle spinner
 - `:reconnecting` renders the same visual (the socket's brief disconnect briefly freezes LV anyway)
-- Post-reconnect mount: LV sees `@current_scope.user` populated, conditional render of the sheet resolves to `nil`, sheet disappears via DOM patch
-- Resume intent dispatched in the same mount via `send_update` or direct assign
+- Post-reconnect mount: LV sees `@current_scope.user` populated, conditional render of the sheet resolves to `nil`, sheet disappears via DOM patch. All previously `maybe_intercept_for_unauth`-gated actions now run for real on re-click.
 
 **Nested LVs:**
 - The qlink page has nested LVs (arqade widget, potentially others). On socket reconnect, all nested LVs also re-mount. Each renders its authed state directly; brief loading indicators may flash for 100-300ms. Acceptable; measure in B2.
@@ -455,8 +460,7 @@ Each batch is individually shippable. Dependencies noted.
 
 **Notably NOT done in B5 (deferred):**
 - Removal of `interact_login_url` helpers — still needed by the `qlinkin.bio` anon surface; retires in B6
-- Tip jar standalone widget LV (`InstaTipWidgetLive`) + `WalletLive` / `AdsExtLive` standalone surfaces — have pre-existing anonymous-mount issues that predate this work; picked up separately
-- Stable DOM ids on widget roots for resume-anchor use — folded into B7
+- Tip jar standalone widget LV (`InstaTipWidgetLive`) — shipped separately; see rev 11 commit. `WalletLive` / `AdsExtLive` standalone surfaces still have pre-existing anonymous-mount issues; picked up when promoted.
 
 **Ship criterion (met):** every unauth CTA on arcade + tip-jar native surfaces opens the sheet in place; nested arcades forward cleanly to the parent; legacy cross-domain redirects remain only on surfaces that genuinely still need them (anon-share, third-party iframe embed).
 
@@ -494,26 +498,21 @@ Each batch is individually shippable. Dependencies noted.
 
 **Ship criterion (stage 2):** signing in on qlinkin.bio completes in place without navigation; sessions persist across page loads on the same apex; authed viewers do NOT receive cached anonymous HTML; anon viewers still hit edge cache.
 
-### B7 — Resume-intent plumbing
+### B7 — Resume-intent plumbing (RETRACTED — see rev 11)
 
-**Deps**: B3
+> **Retracted in rev 11.** The in-place AuthSheet (B2/B3) removed the original motivation: there is no page navigation to preserve intent across. Post-reconnect the same LV re-mounts, scroll is intact, every widget is still visible, and the user's previously-intercepted action is one re-click away. "Re-click the thing" proved acceptable at review, and retracting this batch deletes an entire class of bugs (stale session intent, mis-dispatch, 5-minute-window edge cases) that the design would have introduced.
+>
+> No code changes required to retract — B7 was never started. The `FinalizeSessionController`'s unused "stash resume in session" seam stays an unused seam; no need to remove it preemptively.
+>
+> If per-action resume ever becomes a real user complaint, the replacement should be an organic, feedback-driven addition — not a pre-designed dispatcher. Do not resurrect this design under a different name.
 
-**Scope:**
+**Original scope (for historical context):**
 - Define resume string vocabulary and handlers (`tip:<id>`, `buy_tiqit:<id>`, `ad_engage:<id>`, …)
 - `FinalizeSessionController` stashes resume in session (§5.8)
 - Create `QlariusWeb.Live.ResumeIntent` module: `parse/1`, `dispatch/2`
 - Wire into `QlinkPage.Show` post-reconnect mount: read from session, dispatch, clear session key
 - Wire first handlers: tip modal opener, tiqit purchase opener
 - Document vocabulary for future surfaces
-
-**Files:**
-- new: `lib/qlarius_web/live/resume_intent.ex` (parser + dispatcher)
-- edit: `lib/qlarius_web/controllers/auth/finalize_session_controller.ex` (stash to session)
-- edit: `lib/qlarius_web/live/qlink_page/show.ex` (read from session on mount)
-
-**Risk:** stale resume intent from a prior flow lingering in session. Mitigate with immediate clear-on-read and a resume-presence timestamp check (ignore if > 5 minutes old).
-
-**Ship criterion:** clicking `[Buy Tiqit]` while unauthed lands user authed with the Tiqit modal auto-open, scroll preserved.
 
 ### B8 — Rate limits, captcha, extension exchange endpoint
 
@@ -542,7 +541,7 @@ Each batch is individually shippable. Dependencies noted.
 
 > **Retracted** in rev 8. Rationale: the motivating premise ("each nested widget opens its own WebSocket") was wrong — nested `LiveView`s share the parent's socket already, and `socket.parent_pid` lets us route events upstream without a refactor. Kept below for historical context; do not implement.
 
-**Deps**: B1 shared primitives. Parallel-safe with B4/B6/B7/B8. Blocks B5 — see sequencing note below.
+**Deps**: B1 shared primitives. Parallel-safe with B4/B6/B8. (B7 retracted in rev 11; originally listed as parallel-safe.) Blocks B5 — see sequencing note below.
 
 **Motivation:** Today `QlinkPage.Show` embeds arcade/tipjar/sponster surfaces via `live_render/3`, each as a nested `LiveView` with its own WebSocket. On a creator's qlink page with an arcade embed plus the built-in tip jar and sponster, that's 3–4 sockets per visitor. It also means unauth CTAs inside nested widgets can't reach the parent LV's `open_auth_sheet` handler directly — §B5 had to contemplate a `parent_pid` + `send/2` bridge to work around this.
 
@@ -582,13 +581,12 @@ Each batch is individually shippable. Dependencies noted.
 ### Batch sequencing
 
 ```
-B1 ✓ → B2 ✓ → B3 ✓ → B5 ✓ → B6
-                      └→ B7
+B1 ✓ → B2 ✓ → B3 ✓ → B5 ✓ → B6 ✓
               ├→ B4 (parallel-safe, not yet done)
               └→ B8 (parallel-safe, ideally after B3, not yet done)
 ```
 
-B9 retracted in rev 8. Remaining: B4 (proxy user sheet, parallel), B6 (qlinkin.bio fully authed, retires legacy redirect fallback), B7 (resume-intent post-auth dispatch), B8 (rate limits + extension exchange endpoint).
+B7 retracted in rev 11. B9 retracted in rev 8. Remaining: **B4** (proxy user sheet, parallel) and **B8** (rate limits + extension exchange endpoint).
 
 ## 7. Testing matrix
 
@@ -712,7 +710,7 @@ These are kicked to the appropriate batch kickoff, not blocking the plan:
 - `lib/qlarius/referrals/context.ex`
 - `lib/qlarius_web/controllers/auth/finalize_session_controller.ex`
 - `lib/qlarius_web/controllers/auth/extension_exchange_controller.ex`
-- `lib/qlarius_web/live/resume_intent.ex`
+- ~~`lib/qlarius_web/live/resume_intent.ex`~~ (B7 retracted in rev 11)
 - `assets/js/hooks/auth_finalize.js`
 - `assets/js/hooks/iframe_detect.js`
 - `assets/js/hooks/extension_bridge.js` (B8)
@@ -759,6 +757,8 @@ These are kicked to the appropriate batch kickoff, not blocking the plan:
 - **rev 7 (2026-04-24)**: Plan updated with **B9 — Widgets as `LiveComponent`s (one WebSocket per consumer surface)**. New batch extracts arcade / tip jar / sponster from nested `LiveView`s (`ArcadeLive`, `ArcadeSingleLive`, `InstaTipWidgetLive`, `AdsExtAnnouncerLive`) into `LiveComponent`s hosted by whichever LV is appropriate (QlinkPage for internal, thin wrapper LVs for third-party iframe embeds). Collapses the qlink-page-with-embeds socket count from 3–4 down to 1, and makes §B5 a template pass rather than a cross-LV event-bridging problem. Sequencing diagram updated to insert B9 between B3 and B5; §B5 scope now documents both "after B9" and "tactical before B9" paths explicitly, with the tactical path flagged as ~30 lines of throwaway. Motivated by architectural observation (per-page single WebSocket, widgets are either directly-used components or iframe-wrapped for third parties) rather than by any auth constraint — but the auth refactor's B5 becomes cleaner as a side effect.
 - **rev 6 (2026-04-24)**: B3 shipped — `AuthSheet` sign-up mode folded into the same component as B2. State machine extended with `:alias → :data → :confirm → :creating` steps and the `:unknown_phone` link-out fallback retired on the qlink surface (iframe interstitial still owns that surface). Carrier validation (`Twilio.validate_carrier/1`) now runs inside `verify_code` after OTP success, mirroring `RegistrationLive`; on unknown phone we lazy-init the sign-up assigns (trait lookups, alias generator output, zip lookup) and auto-transition to `:alias`. Ported `select_base_name`, `select_number`, `regenerate_base_names`, `regenerate_numbers` (with Hammer rate limits per-phone), `select_sex`, `update_birthdate` (+ local `validate_birthdate/1` with age-trait lookup), `lookup_zip_code` via `ZipCodeLookup`, `toggle_confirmation`, and a `submit_signup` that calls `Accounts.register_new_user/2` and — on success — issues a `FinalizeToken` for the newly-created user to reuse the B2 in-place finalize path (no `/auto_login/:token` redirect). Referral capture wired inherently: `QlinkPage.Show` builds `Referrals.Context.from_creator/1` from `page.creator.users` and threads it into `AuthSheet`; `confirm_step` renders the inherited code and it's passed to `register_new_user/2` so the `referrals` row links the new user back to the creator. `DateInput` JS hook generalized with `pushTargeted` (same pattern as `OTPInput`) so `update_birthdate` routes to the LiveComponent. Admin-phone-verify / proxy-offer branch deliberately excluded — that stays with `ProxyUserSheet` in B4. Next: B4 (`ProxyUserSheet`) or B5 (widget surfaces adopt AuthSheet via `target="_top"` break-out); both parallel-safe.
 - **rev 8 (2026-04-24)**: B5 scope corrected + shipped (arcade + tip-jar surfaces). Recon revealed **qlink pages already use nested `LiveView`s** (not iframes) for arcade embeds, and **tip jar + sponster + wallet strip + three-tap stack are already native** (function components / `LiveComponent`s) inside `QlinkPage.Show` — so the "widgets need a WebSocket / event-bubble refactor" framing in rev 7 was based on a misread. **B9 retracted.** Nested arcade LVs share the same WebSocket as the parent qlink page (LV nesting shares the socket, just not the process). What actually needed changing was the `UnauthCTA` redirect links. Approach: rather than bridging events from the nested arcade LV to the parent's `AuthSheet`, each LV that renders `UnauthCTA` components **hosts its own `AuthSheet` LiveComponent**. Because the `AuthFinalize` JS hook does `liveSocket.disconnect/connect` on successful sign-in, every LV on the page (parent qlink page + nested arcade) re-mounts with the authed session — so there's nothing to coordinate across processes. Shipped: `UnauthCTA.wallet_strip_or_connect/1` and `UnauthCTA.connect_wallet_modal/1` gain an `on_click` attr (JS command; when set, CTA is a `phx-click` button; when nil, legacy redirect link — kept for third-party iframe embeds and the anon-share host); `InstaTipComponents.insta_tip_card/1` forwards via `on_auth_click`; `QlinkPage.Show`'s `connect_wallet_modal` wired to `open_auth_sheet` when `auth_sheet_enabled?/1` is true (and `open_auth_sheet` handler also closes `show_connect_modal` to avoid modal-stacking); `ArcadeLive` + `ArcadeSingleLive` each mount their own `AuthSheet` gated behind a context-aware `auth_sheet_enabled?/1` (inline? → reuse `:on_qlink_page`, standalone → `:on_widget_standalone`), with `show_auth_sheet`/`auth_referral_context` assigns and `open_auth_sheet`/`close_auth_sheet` handlers. Dead code removed: `UnauthCTA.connect_wallet_link/1`. Dev config: `on_widget_standalone: true` added so standalone arcade widgets pick up AuthSheet locally. Deferred: `InstaTipWidgetLive` (standalone tip-jar widget, has pre-existing issue with anonymous mount — unrelated to B5, picked up separately); `WalletLive` + `AdsExtLive` standalone widget surfaces (CTAs not yet audited; same pattern will apply). Next: smoke test; then B6 (qlinkin.bio interactive host becomes auth-capable so the current `target="_top"` redirect path can be retired on iframe surfaces too).
+- **rev 11 (2026-04-25)**: **B7 retracted.** Ancillary shipped: tipjar surfaces (`InstaTipWidgetLive` standalone + `insta_tip_card` embedded on Qlink pages) now open the in-place `AuthSheet` instead of redirecting via `interact_login_url`. Closes the B5 "deferred" note on `InstaTipWidgetLive`'s pre-existing anonymous-mount issue (guarded `current_scope.user` accesses in `mount/3` + PubSub subscribe). Uses the same `wallet_strip_or_connect/1` + `connect_wallet_modal/1` + `AuthSheet` LC trio arcade shipped in B5 — no new components; DRY via the existing `on_auth_click` passthrough on `insta_tip_card/1`. Qlink's `render_link/1` gained an `on_auth_click` attr so the two `<.render_link>` call sites in `show.html.heex` can compute `JS.push("open_auth_sheet")` where `auth_sheet_enabled?/1` has per-host flag + scope in scope. **B7 retraction rationale:** original premise (preserve user intent across a sign-in navigation) was dissolved by the in-place AuthSheet — post-reconnect, the same LV re-mounts with authed session, scroll intact, every widget visible, previously-intercepted action one re-click away. "Re-click the thing" proved acceptable at review; retracting deletes the stale-intent / mis-dispatch / window-expiry bug classes the design would have introduced. §5.8 + §5.9 edits thread this through: §5.8 marked RETRACTED with reasoning (kept as historical context); §5.9 dropped resume-stash-on-finalize + auto-dispatch-on-mount from the detailed flow description. Sequencing diagram simplified. `WalletLive` / `AdsExtLive` standalone widgets still pending — same anon-mount issue, same pattern will apply when promoted. Remaining active batches: B4 (`ProxyUserSheet`), B8 (rate limits + extension exchange). No user-facing commitment on organic follow-ups; if per-action resume becomes a real complaint, it should come in feedback-driven, not as a resurrection of the B7 design.
+
 - **rev 10 (2026-04-24)**: B6 stage 2 shipped — `config :qlarius, :auth_sheet, on_qlinkin_bio: true` added to `config/prod.exs` (keyword-list merge, flips only this one key). **Cloudflare cache rule correction:** rev 9 flagged the CF "bypass cache on `_qlarius_key` cookie" rule as a stage-2 prerequisite. Verified against live qlinkin.bio with `curl -I` and found Phoenix already emits `cache-control: max-age=0, private, must-revalidate` on every response (session-touching plugs — `:fetch_session` + `:protect_from_forgery` — set this via `Set-Cookie` side effects). Cloudflare honors `private` and every response comes back `cf-cache-status: DYNAMIC`. So authed HTML was never at risk of being served to anon viewers via the edge, and the CF rule turned out to be optional — useful as defense-in-depth if anyone ever overrides that cache-control header for perf reasons, but not a blocker. Prod flag flipped without it. `config/prod.exs` comment expanded to document this finding. B6 is now fully shipped end-to-end. Next: monitor for ~24h; then B4 (`ProxyUserSheet`) or B7 (audit remaining `interact_login_url`/`interact_url` callers and retire).
 
 - **rev 9 (2026-04-24)**: B6 stage 1 shipped — qlinkin.bio becomes an interactive, auth-capable surface at the router layer, with the `AuthSheet` rendered behind the `:auth_sheet[:on_qlinkin_bio]` flag (on in dev; OFF in production config, pending stage 2). **Router:** qlinkin.bio host scope swapped from `:browser_anon` → `:browser` and `:mount_anonymous_scope` → `:mount_current_scope`; the qlinkin.bio live_session was renamed `:public_qlink_anon` → `:public_qlinkin_bio` to match. A host-bound `scope "/auth"` with `pipe_through [:auth_finalize]` was added BEFORE the main qlinkin.bio scope so `POST /auth/finalize_session` isn't shadowed by the `match :* /*path` catch-all — this lets the `AuthFinalize` JS hook fetch same-origin from qlinkin.bio. `DELETE /logout` mounted explicitly on qlinkin.bio for the same reason. The `:browser_anon` pipeline stays in place (still used by the `qadabra.app` apex-redirect scope). **Session scope note:** `HostAwareSession` keeps qlinkin.bio cookies host-scoped (no `Domain=.qadabra.app`), so sessions are isolated per apex — a user authed on qlink.qadabra.app is NOT automatically authed on qlinkin.bio and vice versa. Intentional for B6. **QlinkPage.Show:** dropped the `@is_anon_surface` assign and `assign_surface_context/2` no longer computes it. `auth_sheet_enabled?/1` now picks the flag by host (`on_qlinkin_bio_host?(assigns)` → `:on_qlinkin_bio`, else `:on_qlink_page`). New public helper `on_qlinkin_bio_host?/1` is used by template CTA conds for the flag-OFF cross-host redirect fallback. `render_link/1` no longer accepts `is_anon_surface` (it was declared but never consumed). **Nested arcade threading:** `render_inline_arqade_live/3` now passes `"auth_sheet_host_enabled?"` into the nested LV's session map. `ArcadeLive` + `ArcadeSingleLive` read it at mount and stash it as `@auth_sheet_host_enabled?`; their `auth_sheet_enabled?/1` uses that parent decision when `inline?` is true (falling back to the `:on_qlink_page` flag for any older caller that doesn't pass it). This keeps the inline-arcade CTA gating in lockstep with whatever the parent will actually render on this host. **Template:** the three-way CTA conds (wallet stats, drawer "Connect your wallet", floating FAB) all flipped to `auth_sheet_enabled?/1` first, `on_qlinkin_bio_host?/1` second (kept as a safety-net so prod flag-off continues to redirect cross-host), `/login` in-app third. **Kept intentionally (will retire in stage 2 or B8):** `Qlarius.Qlink.Urls.interact_login_url/1` + `interact_url/1` are still used by the qlinkin.bio flag-OFF fallback and by `UnauthCTA` components in third-party iframe embeds. **Stage 2 (still TODO):** (a) add the Cloudflare cache rule "bypass cache when `_qlarius_key` cookie is present on qlinkin.bio", (b) flip prod `:on_qlinkin_bio: true`. Without (a), authed visitors may be served stale anon HTML by the edge cache.
