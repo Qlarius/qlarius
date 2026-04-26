@@ -126,7 +126,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
           <div class="flex flex-row items-center justify-center">
             <span
               id={@id}
-              class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content/60 px-3 py-1 rounded-lg border border-sponster-300 dark:border-sponster-500"
+              class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content/60 dark:text-sponster-200/90 px-3 py-1 rounded-lg border border-sponster-300 dark:border-sponster-500"
             >
               <span class="font-bold">{format_usd_or_dashes(nil)}</span>
             </span>
@@ -170,6 +170,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
   attr :show, :boolean, default: false
   attr :id, :string, default: "connect-wallet-modal"
   attr :title, :string, default: "Connect your wallet to continue"
+
   attr :message, :string,
     default:
       "Sign in on Qadabra to buy Tiqits, tip creators, and earn from ads. Your wallet follows you across Qadabra."
@@ -197,8 +198,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
             phx-click={@on_click}
             class="btn btn-primary btn-lg btn-block rounded-full"
           >
-            <.icon name="hero-arrow-right-on-rectangle" class="w-5 h-5 mr-2" />
-            Connect your wallet
+            <.icon name="hero-arrow-right-on-rectangle" class="w-5 h-5 mr-2" /> Connect your wallet
           </button>
         <% else %>
           <.link
@@ -206,8 +206,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
             target="_top"
             class="btn btn-primary btn-lg btn-block rounded-full"
           >
-            <.icon name="hero-arrow-right-on-rectangle" class="w-5 h-5 mr-2" />
-            Connect your wallet
+            <.icon name="hero-arrow-right-on-rectangle" class="w-5 h-5 mr-2" /> Connect your wallet
           </.link>
         <% end %>
         <button

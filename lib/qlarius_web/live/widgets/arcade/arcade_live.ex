@@ -101,7 +101,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
         Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{scope.user.id}")
       end
 
-      force_theme = Map.get(params, "force_theme")
       show_title = Map.get(params, "show_title", "true") != "false"
 
       # `inline?` is set by the parent LV when this module is
@@ -126,8 +125,14 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
           _ -> nil
         end
 
-      force_theme = session["force_theme"] || force_theme
-      show_title = if Map.has_key?(session, "show_title"), do: session["show_title"] != false and session["show_title"] != "false", else: show_title
+      # Default "light" (session from parent, else param, else light) so /widgets/... iframes
+      # match main-app palette without `?force_theme=light` — see ArcadeSingle/InstaTip/content_controller.
+      force_theme = session["force_theme"] || Map.get(params, "force_theme", "light")
+
+      show_title =
+        if Map.has_key?(session, "show_title"),
+          do: session["show_title"] != false and session["show_title"] != "false",
+          else: show_title
 
       # `base_path` resolution order:
       #   1. Already assigned by a router `on_mount` hook
@@ -189,13 +194,17 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
     selected_piece =
       case content_id do
-        id when is_integer(id) -> Enum.find(pieces, &(&1.id == id)) || List.first(pieces)
+        id when is_integer(id) ->
+          Enum.find(pieces, &(&1.id == id)) || List.first(pieces)
+
         id when is_binary(id) ->
           case Integer.parse(id) do
             {i, _} -> Enum.find(pieces, &(&1.id == i)) || List.first(pieces)
             :error -> List.first(pieces)
           end
-        _ -> List.first(pieces)
+
+        _ ->
+          List.first(pieces)
       end
 
     default_tiqit_class =
@@ -548,11 +557,13 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   # Returns {credit, active_tiqit_count} for a tiqit class based on its scope.
   # piece-level tiqits never apply credit; group-level uses group credit;
   # catalog-level uses the broader catalog credit.
-  defp tiqit_class_credit(%TiqitClass{content_piece_id: piece_id}, _assigns) when not is_nil(piece_id),
-    do: {Decimal.new(0), 0}
+  defp tiqit_class_credit(%TiqitClass{content_piece_id: piece_id}, _assigns)
+       when not is_nil(piece_id),
+       do: {Decimal.new(0), 0}
 
-  defp tiqit_class_credit(%TiqitClass{content_group_id: group_id}, assigns) when not is_nil(group_id),
-    do: {assigns.tiqit_up_group_credit, assigns.tiqit_up_group_count}
+  defp tiqit_class_credit(%TiqitClass{content_group_id: group_id}, assigns)
+       when not is_nil(group_id),
+       do: {assigns.tiqit_up_group_credit, assigns.tiqit_up_group_count}
 
   defp tiqit_class_credit(%TiqitClass{}, assigns),
     do: {assigns.tiqit_up_catalog_credit, assigns.tiqit_up_catalog_count}

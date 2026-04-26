@@ -81,7 +81,10 @@ defmodule QlariusWeb.Router do
   defp allow_iframe(conn, _opts) do
     conn
     |> delete_resp_header("x-frame-options")
-    |> put_resp_header("content-security-policy", QlariusWeb.SecurityHeaders.content_security_policy())
+    |> put_resp_header(
+      "content-security-policy",
+      QlariusWeb.SecurityHeaders.content_security_policy()
+    )
   end
 
   # ------ QLINK SHARE HOST (qlinkin.bio) ------
@@ -110,6 +113,14 @@ defmodule QlariusWeb.Router do
   # path on qlinkin.bio (including the bare root) redirects to the
   # Qadabra marketing site's Qlink landing page. That keeps this host
   # single-purpose and prevents accidental exposure of app routes.
+  #
+  # **Multi-domain routing:** Declarations that exist only in the
+  # unscoped `scope` (e.g. `/jump/...` next to `AdsLive`) are **not**
+  # reached for this host if the path is matched here first (including
+  # by the catch-all). Any user-facing same-origin path used on
+  # qlinkin (links, `fetch`, CSRF) must be mounted **in this `host:`
+  # block** before `match :* /*path` — or use an absolute URL to
+  # another host with a separate auth design.
   #
   # IMPORTANT: Must be defined BEFORE any unrestricted (non-`host:`)
   # scope that also claims `/` (e.g. the HiLive `/` route), because
@@ -140,6 +151,19 @@ defmodule QlariusWeb.Router do
     # below would otherwise shadow the non-host-scoped `/logout`
     # declared later in the router.
     delete "/logout", UserSessionController, :delete
+
+    # Three-tap ad jump page + `POST /jump/collect` (same as main app, lines ~405–406).
+    # `~p"/jump/…"` in OfferHTML is same-host; see **Multi-domain routing** note above —
+    # the catch-all would otherwise eat `/jump/*` on this host. AdJumpPageController.
+    scope "/" do
+      # Parent `scope` is `QlariusWeb` — unqualified controller names resolve under it.
+      # Parent already has `pipe_through :browser` — add auth only
+      # (Phoenix disallows listing :browser again in a nested scope).
+      pipe_through [:require_auth]
+
+      get "/jump/:id", AdJumpPageController, :jump
+      post "/jump/collect", AdJumpPageController, :collect
+    end
 
     get "/", QlinkRedirectController, :landing
     match :*, "/*path", QlinkRedirectController, :not_found
@@ -295,7 +319,12 @@ defmodule QlariusWeb.Router do
   end
 
   scope "/api", QlariusWeb do
-    pipe_through [:api, :fetch_session, :fetch_current_scope_for_user, :require_authenticated_user]
+    pipe_through [
+      :api,
+      :fetch_session,
+      :fetch_current_scope_for_user,
+      :require_authenticated_user
+    ]
 
     get "/push/vapid-public-key", PushController, :vapid_public_key
     post "/push/subscribe", PushController, :subscribe
@@ -382,12 +411,18 @@ defmodule QlariusWeb.Router do
       live "/creators/:creator_id/catalogs/new", Creators.CatalogLive.Form, :new
       live "/creators/catalogs/:id", Creators.CatalogLive.Show, :show
       live "/creators/catalogs/:id/edit", Creators.CatalogLive.Form, :edit
-      live "/creators/catalogs/:catalog_id/content_groups/new", Creators.ContentGroupLive.Form, :new
+
+      live "/creators/catalogs/:catalog_id/content_groups/new",
+           Creators.ContentGroupLive.Form,
+           :new
 
       live "/creators/content_groups/:id", Creators.ContentGroupLive.Show, :show
       live "/creators/content_groups/:id/edit", Creators.ContentGroupLive.Form, :edit
       live "/creators/content_groups/:id/preview", Creators.ContentGroupLive.Preview, :show
-      live "/creators/content_groups/:content_group_id/content_pieces/new", Creators.ContentPieceLive.Form, :new
+
+      live "/creators/content_groups/:content_group_id/content_pieces/new",
+           Creators.ContentPieceLive.Form,
+           :new
 
       live "/creators/content_pieces/:id", Creators.ContentPieceLive.Show, :show
       live "/creators/content_pieces/:id/edit", Creators.ContentPieceLive.Form, :edit

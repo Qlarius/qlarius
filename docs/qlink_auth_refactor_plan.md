@@ -1,8 +1,10 @@
 # Qlink / Cross-Domain Auth Refactor Plan
 
-Status: **Planning — approved decisions baked in**
+Status: **COMPLETE — in user testing (rev 15, 2026-04-26)**
 Owner: Trae
-Last updated: 2026-04-24 (rev 2: split components, in-place auth, session-based resume)
+Last updated: 2026-04-26 (rev 15: plan closed; browser-extension bridge carved out to a future plan)
+
+> **Plan closed.** All in-scope batches shipped or explicitly retracted. Browser-extension identity bridge (design sketched in §5.6 + partial server work originally scoped under B8) is **deferred to a future dedicated plan** — see §10 "Parked for a future plan" below. User testing begins now; tweaks will land as small follow-ups rather than new batches under this plan.
 
 ---
 
@@ -551,7 +553,7 @@ in throughout; referral code inherited from admin (generated if missing).
 
 **Deps**: B3
 
-**Status:** rate-limit slice **SHIPPED (see rev 12)** + audit-logging slice **SHIPPED (see rev 13)**. Remaining (unshipped) items: captcha (deferred — rev 13), extension-exchange endpoint, invalidate-token.
+**Status:** rate-limit slice **SHIPPED (see rev 12)** + audit-logging slice **SHIPPED (see rev 13)**. Captcha **deferred indefinitely** (rev 13). Extension-exchange endpoint + invalidate-token + device-id binding **carved out to a future plan** (rev 15) — see §10. B8 is considered closed within this plan.
 
 **Scope:**
 - ~~Hammer rate limits on `send_code`: per-phone (3/10min), per-IP (10/hour)~~ — shipped rev 12
@@ -573,13 +575,11 @@ in throughout; referral code inherited from admin (generated if missing).
 - edit: 4 AuthSheet call sites thread `client_ip={assigns[:user_ip] || "0.0.0.0"}` (qlink page, insta-tip widget, arcade, arcade-single)
 - edit: `config/config.exs` + `config/test.exs` — master `:auth_rate_limit, enabled?: ...` flag (on everywhere except test)
 
-**Files (remaining):**
-- new: `lib/qlarius_web/controllers/auth/extension_exchange_controller.ex`
-- edit: `lib/qlarius_web/router.ex`
+**Files (remaining — moved to the future extension plan, §10):**
+- ~~new: `lib/qlarius_web/controllers/auth/extension_exchange_controller.ex`~~
+- ~~edit: `lib/qlarius_web/router.ex`~~
 
-**Risk:** extension endpoint is a new attack surface. Mitigate with strict signature validation, origin allowlist, device binding, rate limits, audit.
-
-**Ship criterion:** extension team (or dogfood extension instance) can exchange tokens for sessions on all three of our domains.
+**Ship criterion (within this plan, met):** rate limits cap abuse on `send_code` and `finalize_session`; every auth decision is observable via `Qlarius.Auth.AuditLog`. Extension ship criterion moved to the future plan.
 
 ### B9 — Widgets as `LiveComponent`s (RETRACTED — see rev 8)
 
@@ -627,10 +627,10 @@ in throughout; referral code inherited from admin (generated if missing).
 ```
 B1 ✓ → B2 ✓ → B3 ✓ → B5 ✓ → B6 ✓
               ├→ B4 ✓
-              └→ B8 (rate-limits ✓ + audit-log ✓; extension exchange endpoint remaining)
+              └→ B8 ✓ (rate-limits + audit-log shipped; captcha deferred; extension bridge moved to future plan)
 ```
 
-B7 retracted in rev 11. B9 retracted in rev 8. Remaining: **B8-rest** — `POST /auth/extension_exchange` + `POST /auth/invalidate_token` + device-id binding (captcha deferred indefinitely per rev 13).
+B7 retracted in rev 11. B9 retracted in rev 8. **All batches now closed within this plan.** Browser-extension identity bridge parked for a future dedicated plan — see §10.
 
 ## 7. Testing matrix
 
@@ -731,15 +731,101 @@ verification.
 - **Modal open telemetry** — track conversion per surface, per CTA, per device.
 - **First-class "Arqade Block" type** on qlink pages (separate doc: `docs/qlink_arqade_block_followup.md`).
 
-## 10. Open implementation questions (address at batch start, not now)
+## 10. Parked for a future plan — browser-extension identity bridge
 
-These are kicked to the appropriate batch kickoff, not blocking the plan:
+**Status:** parked 2026-04-26 (rev 15). Not cancelled; deliberately deferred so the Chrome extension design can be thought through in its own right rather than tacked onto the auth refactor. Notes below are preserved verbatim so the future plan can pick them up as-is.
 
-- Exact `postMessage` contract for `qadabra:auth:emit-token` ↔ extension (B2 design spike)
-- Where exactly the "Add proxy user" button lives (B4 spike — `user_settings_live.ex` or a dedicated proxy-users LV)
-- Sheet transition animations for iframe-detection reversal (B2 polish)
-- Whether to use ETS or Cachex for the `jti` single-use tracking (B2 decision; default: ETS with a named table + scheduled TTL sweep)
-- Whether nested LVs need explicit "reconnecting" UI polish or the default LV loading state suffices (B2 measurement)
+### What's already shipped (stays live, safe to keep)
+
+- **Token emission from `AuthSheet` on finalize success.** Gated behind `config :qlarius, :auth_sheet, extension_token_emit: false` — default OFF, can be flipped on without any extension consumer existing. Emits a signed `Phoenix.Token` over `push_event "qadabra:auth:emit-token"` shaped as:
+
+  ```
+  {
+    user_id: integer,
+    device_id: opaque string,
+    issued_at: unix_ts,
+    expires_at: unix_ts + 7d,
+    surface: string   // emitting domain, for audit
+  }
+  ```
+
+- **Config scaffolding** in `config/runtime.exs`:
+  - `:auth_sheet[:extension_token_emit]` (emitter flag)
+  - `:auth_sheet[:extension_exchange_enabled]` (server-endpoint flag — off; no endpoint yet)
+
+- **Vault signing key** (`Qlarius.Vault`) is production-ready for signing these tokens.
+
+### What's NOT shipped (the actual future work)
+
+1. **`POST /auth/extension_exchange`** — accepts a token, validates signature + expiry, checks device binding, issues a session cookie scoped to the requesting domain via `HostAwareSession`. Rate-limited. Audit-logged via `Qlarius.Auth.AuditLog`.
+2. **`POST /auth/invalidate_token`** — logout propagation. Called on explicit logout from any domain; rejects future exchanges against the invalidated token.
+3. **Device-id generation + persistence** on the extension side (opaque random string per install, stored in `chrome.storage.local`, included in the token on first emission so exchange-time origin+device checks can bind).
+4. **`assets/js/hooks/extension_bridge.js`** — bridge from the page (which receives the `qadabra:auth:emit-token` event) to the extension's content script via `window.postMessage({ type: "qadabra:identity", token }, "*")`.
+5. **The extension itself** — manifest, background worker, content script, storage model, allowlisted-host probe, exchange call, session-probe logic.
+6. **Token rotation** — every 24h; stale tokens get renewed via a refresh path or rejected.
+
+### Design sketch to carry forward (from §5.6 of this plan)
+
+**Extension behavior on page load of allowlisted hosts:**
+1. Check for existing session cookie via a probe endpoint.
+2. If absent and extension holds a valid token → call `/auth/extension_exchange`.
+3. On success, page reloads or LV re-mounts with authed scope.
+
+**Revocation:**
+- Explicit logout on any domain calls `POST /auth/invalidate_token`.
+- Token rotation every 24h.
+
+**Security requirements (must survive the next plan):**
+- Token bound to `device_id` captured at emission (opaque random string per extension install).
+- Exchange endpoint origin-gated: allowlisted domains only.
+- Extension content script only injects into allowlisted URLs.
+- Server audit log for every exchange (user_id, origin, IP, UA) — reuse `Qlarius.Auth.AuditLog` with new event types.
+- Kill switch: `:auth_sheet[:extension_exchange_enabled]` config flag already stubbed.
+- Rate-limit the exchange endpoint — reuse `Qlarius.Auth.RateLimit` wrapper, add `check_extension_exchange_per_ip/1` + `check_extension_exchange_per_device/1` slots.
+
+### Open questions to resolve at the start of the future plan
+
+- Exact `postMessage` contract for `qadabra:auth:emit-token` ↔ extension content script (message shape, origin assertion, reply protocol).
+- Safari / Firefox extensions — Chrome first, others follow. How much shared code between the three?
+- Whether the exchange endpoint should return a session cookie directly (current design) or return a one-shot `/auto_login/:token`-style redirect (matches existing primitive). Current design is cleaner but worth revisiting.
+- Device-id lifecycle on extension uninstall/reinstall: do we want a "remember this browser" feel, or is a fresh id per install correct?
+- Extension on mobile (Safari iOS extensions, Android Firefox) — scope now or later?
+- Whether to ship a dogfood extension to the team before public release, and how that interacts with the `extension_exchange_enabled` kill switch.
+
+### Files likely touched by the future plan
+
+**New:**
+- `lib/qlarius_web/controllers/auth/extension_exchange_controller.ex`
+- `lib/qlarius_web/controllers/auth/invalidate_token_controller.ex`
+- `assets/js/hooks/extension_bridge.js`
+- Chrome extension repo (separate; manifest v3, content script, background worker, storage module)
+
+**Edited:**
+- `lib/qlarius_web/router.ex` — mount exchange + invalidate endpoints on both host scopes
+- `lib/qlarius/auth/rate_limit.ex` — add exchange-endpoint gates
+- `lib/qlarius/auth/audit_log.ex` — add extension-exchange event types
+- `assets/js/app.js` — wire `ExtensionBridge` hook
+- `config/runtime.exs` — flip `extension_exchange_enabled` on per-environment when ready
+
+### Pre-existing primitives the future plan will reuse (no changes needed)
+
+- `Phoenix.Token.sign/3` + `Phoenix.Token.verify/3` with `Qlarius.Vault` key
+- `QlariusWeb.HostAwareSession` — per-host cookie domain logic
+- `Qlarius.Auth.RateLimit` wrapper (new gates slot into existing pattern)
+- `Qlarius.Auth.AuditLog` (new event types slot into existing pattern)
+- Existing emitter path in `AuthSheet` — just flip `extension_token_emit: true` when the extension side is ready to listen
+
+---
+
+## 11. Open implementation questions (historical — resolved during batch work)
+
+These were batch-kickoff questions during active development. All have been resolved by the time each batch shipped; kept here for historical traceability:
+
+- ~~Exact `postMessage` contract for `qadabra:auth:emit-token` ↔ extension~~ — moved to future extension plan (§10)
+- ~~Where exactly the "Add proxy user" button lives~~ — resolved in B4: dedicated `ProxyUsersLive`
+- ~~Sheet transition animations for iframe-detection reversal~~ — resolved in B2 polish
+- ~~Whether to use ETS or Cachex for the `jti` single-use tracking~~ — resolved in B2: ETS with `FinalizeTokenSweeper` GenServer
+- ~~Whether nested LVs need explicit "reconnecting" UI polish~~ — resolved in B2: default LV loading state was sufficient
 
 ---
 
@@ -801,6 +887,7 @@ These are kicked to the appropriate batch kickoff, not blocking the plan:
 - **rev 7 (2026-04-24)**: Plan updated with **B9 — Widgets as `LiveComponent`s (one WebSocket per consumer surface)**. New batch extracts arcade / tip jar / sponster from nested `LiveView`s (`ArcadeLive`, `ArcadeSingleLive`, `InstaTipWidgetLive`, `AdsExtAnnouncerLive`) into `LiveComponent`s hosted by whichever LV is appropriate (QlinkPage for internal, thin wrapper LVs for third-party iframe embeds). Collapses the qlink-page-with-embeds socket count from 3–4 down to 1, and makes §B5 a template pass rather than a cross-LV event-bridging problem. Sequencing diagram updated to insert B9 between B3 and B5; §B5 scope now documents both "after B9" and "tactical before B9" paths explicitly, with the tactical path flagged as ~30 lines of throwaway. Motivated by architectural observation (per-page single WebSocket, widgets are either directly-used components or iframe-wrapped for third parties) rather than by any auth constraint — but the auth refactor's B5 becomes cleaner as a side effect.
 - **rev 6 (2026-04-24)**: B3 shipped — `AuthSheet` sign-up mode folded into the same component as B2. State machine extended with `:alias → :data → :confirm → :creating` steps and the `:unknown_phone` link-out fallback retired on the qlink surface (iframe interstitial still owns that surface). Carrier validation (`Twilio.validate_carrier/1`) now runs inside `verify_code` after OTP success, mirroring `RegistrationLive`; on unknown phone we lazy-init the sign-up assigns (trait lookups, alias generator output, zip lookup) and auto-transition to `:alias`. Ported `select_base_name`, `select_number`, `regenerate_base_names`, `regenerate_numbers` (with Hammer rate limits per-phone), `select_sex`, `update_birthdate` (+ local `validate_birthdate/1` with age-trait lookup), `lookup_zip_code` via `ZipCodeLookup`, `toggle_confirmation`, and a `submit_signup` that calls `Accounts.register_new_user/2` and — on success — issues a `FinalizeToken` for the newly-created user to reuse the B2 in-place finalize path (no `/auto_login/:token` redirect). Referral capture wired inherently: `QlinkPage.Show` builds `Referrals.Context.from_creator/1` from `page.creator.users` and threads it into `AuthSheet`; `confirm_step` renders the inherited code and it's passed to `register_new_user/2` so the `referrals` row links the new user back to the creator. `DateInput` JS hook generalized with `pushTargeted` (same pattern as `OTPInput`) so `update_birthdate` routes to the LiveComponent. Admin-phone-verify / proxy-offer branch deliberately excluded — that stays with `ProxyUserSheet` in B4. Next: B4 (`ProxyUserSheet`) or B5 (widget surfaces adopt AuthSheet via `target="_top"` break-out); both parallel-safe.
 - **rev 8 (2026-04-24)**: B5 scope corrected + shipped (arcade + tip-jar surfaces). Recon revealed **qlink pages already use nested `LiveView`s** (not iframes) for arcade embeds, and **tip jar + sponster + wallet strip + three-tap stack are already native** (function components / `LiveComponent`s) inside `QlinkPage.Show` — so the "widgets need a WebSocket / event-bubble refactor" framing in rev 7 was based on a misread. **B9 retracted.** Nested arcade LVs share the same WebSocket as the parent qlink page (LV nesting shares the socket, just not the process). What actually needed changing was the `UnauthCTA` redirect links. Approach: rather than bridging events from the nested arcade LV to the parent's `AuthSheet`, each LV that renders `UnauthCTA` components **hosts its own `AuthSheet` LiveComponent**. Because the `AuthFinalize` JS hook does `liveSocket.disconnect/connect` on successful sign-in, every LV on the page (parent qlink page + nested arcade) re-mounts with the authed session — so there's nothing to coordinate across processes. Shipped: `UnauthCTA.wallet_strip_or_connect/1` and `UnauthCTA.connect_wallet_modal/1` gain an `on_click` attr (JS command; when set, CTA is a `phx-click` button; when nil, legacy redirect link — kept for third-party iframe embeds and the anon-share host); `InstaTipComponents.insta_tip_card/1` forwards via `on_auth_click`; `QlinkPage.Show`'s `connect_wallet_modal` wired to `open_auth_sheet` when `auth_sheet_enabled?/1` is true (and `open_auth_sheet` handler also closes `show_connect_modal` to avoid modal-stacking); `ArcadeLive` + `ArcadeSingleLive` each mount their own `AuthSheet` gated behind a context-aware `auth_sheet_enabled?/1` (inline? → reuse `:on_qlink_page`, standalone → `:on_widget_standalone`), with `show_auth_sheet`/`auth_referral_context` assigns and `open_auth_sheet`/`close_auth_sheet` handlers. Dead code removed: `UnauthCTA.connect_wallet_link/1`. Dev config: `on_widget_standalone: true` added so standalone arcade widgets pick up AuthSheet locally. Deferred: `InstaTipWidgetLive` (standalone tip-jar widget, has pre-existing issue with anonymous mount — unrelated to B5, picked up separately); `WalletLive` + `AdsExtLive` standalone widget surfaces (CTAs not yet audited; same pattern will apply). Next: smoke test; then B6 (qlinkin.bio interactive host becomes auth-capable so the current `target="_top"` redirect path can be retired on iframe surfaces too).
+- **rev 15 (2026-04-26)**: **Plan closed; user testing begins.** All in-scope batches either shipped (B1, B1.5, B2, B3, B4, B5, B6, B8 rate-limit + audit-log slices) or explicitly retracted (B7, B9) or explicitly deferred (captcha per rev 13). Browser-extension identity bridge — originally the "B8-rest" remainder (`POST /auth/extension_exchange` + `POST /auth/invalidate_token` + device-id binding) — **carved out to a future dedicated plan** so the extension can be designed as a first-class effort rather than tail-end of the auth refactor. No code changes in this revision; only plan-document reshaping: header status flipped to `COMPLETE — in user testing`; new §10 "Parked for a future plan — browser-extension identity bridge" preserves the design sketch (§5.6 content, token shape, security requirements, open questions, files likely touched, primitives to reuse) so the future plan has a clean starting point; former §10 "Open implementation questions" renumbered to §11 and entries marked resolved since all were batch-kickoff items now closed; B8 heading, B8 sequencing line, and cross-references throughout updated to point at §10. What stays live in production from the extension scaffold: token emission from `AuthSheet` on finalize success (behind `:auth_sheet[:extension_token_emit]: false`), config flags `:extension_token_emit` + `:extension_exchange_enabled` in runtime.exs, `Qlarius.Vault` signing key. These can stay dormant indefinitely; flipping them on is a future-plan action, not a rollback hazard. User-testing tweaks from here will land as small focused commits on `main` rather than new batches under this plan.
 - **rev 14 (2026-04-25)**: **B4 shipped.** New `QlariusWeb.Components.ProxyUserSheet` LiveComponent gives admins an in-place, modal-driven alias → data → confirm flow for creating proxy users from the `/proxy_users` list page, with a `:creating` spinner and a `:complete` success step offering an "Add another" affordance. Visuals reuse the shared `QlariusWeb.Components.AuthSteps` sub-components (`alias_picker`, `data_step`, `confirm_step`) — the admin literally sees what a real new user sees, which was the explicit reason for picking B4 up. Flow: (1) `ProxyUsersLive.add_proxy` now does `assign(:show_add_modal, true)` instead of `push_navigate(~p"/register?mode=proxy&ref=...")`; (2) LC computes `Qlarius.Referrals.Context.from_admin(admin)` once per lifetime via `assign_new`, which auto-generates the admin's me_file `referral_code` if absent (reused ensure-code logic, not duplicated); (3) on submit, the LC calls `Accounts.register_new_user(attrs, referral_code)` with `attrs.true_user_id = admin.id` and `attrs.mobile_number = nil` (proxies have no phone — the admin's phone is the auth-bearing one, persisting it on the proxy would collide with the `mobile_number_hash IS NOT NULL` unique index; matches the legacy admin-phone-verify branch's behavior); (4) on success, LC `send(self(), {:proxy_user_created, user})` — inside a LiveComponent `self()` is the parent LV process, so the existing LV handles it via a new `handle_info/2` that refreshes `proxy_users` and flashes; (5) LC transitions to internal `:complete` state, parent modal stays open, admin chooses "Close" or "Add another" (which resets `signup_initialized = false` and re-seeds the alias candidates). **Intentional UX divergence from legacy:** new proxy starts **inactive** (no auto-call to `Accounts.activate_proxy_user/2`, unlike `RegistrationLive.maybe_activate_proxy/2`) — admin's mental model on this screen is list-management, not switching scopes, so they toggle in explicitly from the list if they want. Legacy `/register?mode=proxy` route left alive as a fallback (no admin UI link points at it anymore). Audit log integration: `register_new_user.{allowed,denied}` with `surface: :admin_proxy_sheet` + `admin_user_id:` for traceability (hooks into rev 13's `Qlarius.Auth.AuditLog`). **Duplication note (deferred DRY):** the alias/data/confirm event handlers + helpers (`advance / retreat / validate_birthdate / alias_ready? / data_step_ready? / can_complete? / init_signup_assigns / build_user_attrs / regenerate_key / load_sex_options`) are parallel to `AuthSheet`'s sign-up half. With only two consumers we kept them forked rather than extracting a `SignupStateMachine` module — flagged in the `ProxyUserSheet` moduledoc as extraction fodder if a third consumer appears. One module-level Hammer bucket key scoped by admin id (`proxy_user_sheet:regenerate_base|numbers:<admin_id>`) — regenerate limits don't cross admins. Files: new `lib/qlarius_web/components/proxy_user_sheet.ex` (~500 loc, single file, inline `render_state/1` per state — no separate heex template); edit `lib/qlarius_web/live/proxy_users_live.ex` (`JS` alias, `add_proxy` swapped, `close_add_modal` added, `handle_info({:proxy_user_created, _}, _)` added, LC mounted in render). Remaining active batches: **B8-rest** (`POST /auth/extension_exchange` + `POST /auth/invalidate_token` + device-id binding; captcha deferred indefinitely per rev 13).
 
 - **rev 13 (2026-04-25)**: **B8 audit-logging slice shipped** + **captcha deferred indefinitely.** New `Qlarius.Auth.AuditLog` module is the single structured-log entry point for AuthSheet + finalize-session decisions — `log/2` emits `Logger.info/2` with `auth_event:` + `auth_meta:` metadata fields so log aggregators can filter the auth stream as one stream. 8 event types cover both the allowed and denied branches for `send_code`, `verify_code`, `register_new_user`, and `finalize_session`. Phone numbers are masked last-4 (`****1234`) by `sanitize/1` before the metadata map lands in Logger — call sites don't need to pre-mask, they just pass `:phone` or `:mobile_number` through. OTP codes are never logged; user IDs and IPs are logged raw. Key order in the rendered line is stable (`phone_masked` → `ip` → `surface` → `reason`/`outcome` → specifics) so grep patterns stay valid across events. Atom-leak guard on the client-reported `auth:finalize_failed` reason: `classify_finalize_reason/1` whitelists the six known reasons and maps everything else to `:unknown` rather than `String.to_atom/1` on untrusted input. `AuthSheet` LC now routes every decision branch (validation failure, both rate-limit denies, Twilio send success + failure, OTP success + failure, carrier rejection, known-user signed-in, unknown-user signup branch, registration success + failure, client-reported finalize failure) through `AuditLog`; `require Logger` removed from the LC. `FinalizeSessionController` routes all five server-side decision branches (rate-limited, unknown user, token expired, token replayed, token invalid, plus the missing-token fallback) + the allowed branch through `AuditLog`; `require Logger` removed from the controller. 9 new unit tests cover event-name emission, phone masking + `:phone` / `:mobile_number` alias handling, defensive nil/short/non-binary phone behavior, IP/surface/reason/retry_after_s passthrough, stable key order, and `with_log/1` return value. Total test count (B8 slice): 19 passing. **Captcha deferred indefinitely** (was: "Turnstile after N failures in a session"): threat profile is distributed abuse under our rate-limit ceilings — real but unobserved, and the audit logs we just shipped are the signal that would tell us if it's happening. Captcha is ~1 day of engineering (Turnstile hook + LC state + siteverify wrapper + env plumbing + test bypass) with non-zero UX cost (~5% of humans Turnstile fails on disproportionately skew toward VPN / privacy-browser / extension-heavy setups, i.e. our audience). Concrete shelf design if it becomes necessary: Cloudflare Turnstile (free, already on CF, invisible-managed mode), always-on for `send_code` (simpler than tripwire; invisible UX means no friction for honest users), new `Qlarius.Auth.Captcha` wrapper doing siteverify calls, `:captcha_required` + `:captcha_token` assigns on AuthSheet, `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` env + dev always-pass test keys + test env disabled + `:bypass_phone_verification` also bypasses captcha. Remaining active batches: B4 (`ProxyUserSheet`), B8-rest (`POST /auth/extension_exchange` + `POST /auth/invalidate_token` + device-id binding).

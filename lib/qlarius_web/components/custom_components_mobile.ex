@@ -74,7 +74,11 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
       />
   """
   attr :id, :string, required: true
-  attr :storage_key, :string, required: true, doc: "localStorage key (will be prefixed with 'qlarius_')"
+
+  attr :storage_key, :string,
+    required: true,
+    doc: "localStorage key (will be prefixed with 'qlarius_')"
+
   attr :default, :boolean, default: true, doc: "Default value if not set in localStorage"
 
   def local_toggle(assigns) do
@@ -102,7 +106,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
     <span
       id={@id}
       phx-hook="WalletPulse"
-      class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content px-3 py-1 rounded-lg border border-sponster-300 dark:border-sponster-500"
+      class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content dark:text-sponster-100 px-3 py-1 rounded-lg border border-sponster-300 dark:border-sponster-500"
     >
       <span class="font-bold">{format_usd(@balance)}</span>
     </span>
@@ -217,7 +221,9 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
                 <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
                   <span class="block">Sell your attention here.</span>
                   <span class="block mt-2">Funds go straight to your wallet.</span>
-                  <span class="block mt-2">The better your MeFile, the better your ads. Optimize to pull more of the right ads for you.</span>
+                  <span class="block mt-2">
+                    The better your MeFile, the better your ads. Optimize to pull more of the right ads for you.
+                  </span>
                 </p>
               </div>
             <% end %>
@@ -263,8 +269,15 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
   attr :id, :string, required: true
   attr :value, :string, default: ""
   attr :error, :string, default: nil
-  attr :verify_event, :string, required: true, doc: "Event name for auto-submit when 6 digits entered"
-  attr :update_event, :string, required: true, doc: "Event name for updating verification_code assign"
+
+  attr :verify_event, :string,
+    required: true,
+    doc: "Event name for auto-submit when 6 digits entered"
+
+  attr :update_event, :string,
+    required: true,
+    doc: "Event name for updating verification_code assign"
+
   attr :resend_event, :string, default: nil, doc: "Event name for resending code (optional)"
 
   def otp_input(assigns) do
@@ -324,8 +337,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
               <span class="text-error">{@error}</span>
             <% String.length(@value) == 6 -> %>
               <span class="text-base-content/60">
-                <span class="loading loading-spinner loading-xs mr-1"></span>
-                Verifying...
+                <span class="loading loading-spinner loading-xs mr-1"></span> Verifying...
               </span>
             <% true -> %>
               <span class="text-base-content/60">Enter the 6-digit code sent to your phone</span>
@@ -460,8 +472,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
           <% @valid && @calculated_age -> %>
             <div class="mt-3">
               <div class="badge badge-primary badge-lg p-4 text-base">
-                <.icon name="hero-calendar" class="w-5 h-5 mr-2" />
-                Age: {@calculated_age}
+                <.icon name="hero-calendar" class="w-5 h-5 mr-2" /> Age: {@calculated_age}
               </div>
             </div>
           <% true -> %>

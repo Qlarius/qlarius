@@ -95,29 +95,54 @@
             updateThemeColor(theme === "dark");
           }
         };
-        
-        const urlParams = new URLSearchParams(window.location.search);
-        const forceTheme = urlParams.get('force_theme');
-        const urlTheme = urlParams.get('theme');
-        
-        if (forceTheme) {
-          document.documentElement.setAttribute("data-theme", forceTheme);
-          document.documentElement.setAttribute("data-theme-mode", "forced");
-          updateThemeColor(forceTheme === "dark");
-        } else {
-          const initialTheme = urlTheme || localStorage.getItem("phx:theme") || "system";
-          setTheme(initialTheme);
-          
-          window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
-          window.addEventListener("phx:set-theme", ({ detail: { theme } }) => setTheme(theme));
-          
-          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-            const currentTheme = localStorage.getItem("phx:theme");
-            if (!currentTheme || currentTheme === "system") {
-              setTheme("system");
-            }
+
+        // Public Qlink page (`/@:alias` on qlink/localhost/qlinkin, etc.): always light <html> theme,
+        // independent of `phx:theme`, system appearance, and `?force_theme=`.
+        const isQlinkPublicPath = (pathname) => pathname.startsWith("/@");
+
+        const applyThemeForCurrentPath = () => {
+          if (isQlinkPublicPath(window.location.pathname)) {
+            document.documentElement.setAttribute("data-theme", "light");
+            document.documentElement.setAttribute("data-theme-mode", "qlink");
+            updateThemeColor(false);
+            return;
+          }
+          const sp = new URLSearchParams(window.location.search);
+          const forceT = sp.get("force_theme");
+          if (forceT) {
+            document.documentElement.setAttribute("data-theme", forceT);
+            document.documentElement.setAttribute("data-theme-mode", "forced");
+            updateThemeColor(forceT === "dark");
+            return;
+          }
+          const initial =
+            sp.get("theme") || localStorage.getItem("phx:theme") || "system";
+          setTheme(initial);
+        };
+
+        applyThemeForCurrentPath();
+
+        const sp0 = new URLSearchParams(window.location.search);
+        if (!sp0.get("force_theme")) {
+          window.addEventListener("storage", (e) => {
+            if (e.key !== "phx:theme" || isQlinkPublicPath(window.location.pathname))
+              return;
+            setTheme(e.newValue || "system");
           });
+          window.addEventListener("phx:set-theme", ({ detail: { theme } }) => {
+            if (isQlinkPublicPath(window.location.pathname)) return;
+            setTheme(theme);
+          });
+          window
+            .matchMedia("(prefers-color-scheme: dark)")
+            .addEventListener("change", () => {
+              if (isQlinkPublicPath(window.location.pathname)) return;
+              const current = localStorage.getItem("phx:theme");
+              if (!current || current === "system") setTheme("system");
+            });
         }
+
+        window.addEventListener("phx:page-loading-stop", applyThemeForCurrentPath);
       })();
     </script>
   </head>

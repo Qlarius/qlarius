@@ -198,7 +198,10 @@ defmodule QlariusWeb.QlinkPage.Show do
   @impl true
   def handle_event("toggle_sponster_drawer", _params, socket) do
     will_open = !socket.assigns.show_sponster_drawer
-    me_file = socket.assigns.current_scope && socket.assigns.current_scope.user && socket.assigns.current_scope.user.me_file
+
+    me_file =
+      socket.assigns.current_scope && socket.assigns.current_scope.user &&
+        socket.assigns.current_scope.user.me_file
 
     socket =
       socket
@@ -785,11 +788,10 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   # Template helpers
 
-  defp get_theme(page) do
-    case page.theme_config do
-      %{"theme" => theme} -> theme
-      _ -> "light"
-    end
+  defp get_theme(_page) do
+    # Qlink surfaces are light-only for now (no dark page shell). Re-enable
+    # per-page `theme_config["theme"]` when Qlink dark theme is product-ready.
+    "light"
   end
 
   defp get_background_style(page) do
@@ -1087,10 +1089,13 @@ defmodule QlariusWeb.QlinkPage.Show do
   # so slice A.4 (catalog + single-piece) can reuse the same plumbing.
   defp render_inline_arqade_live(assigns, module, opts) do
     embed_config = assigns.link.embed_config
-    height = get_embed_value(embed_config, "height") || get_embed_value(embed_config, :height) || 500
+
+    height =
+      get_embed_value(embed_config, "height") || get_embed_value(embed_config, :height) || 500
 
     show_title_raw =
-      case {get_embed_value(embed_config, "show_title"), get_embed_value(embed_config, :show_title)} do
+      case {get_embed_value(embed_config, "show_title"),
+            get_embed_value(embed_config, :show_title)} do
         {nil, nil} -> nil
         {s, _} when not is_nil(s) -> s
         {_, s} -> s
@@ -1101,23 +1106,24 @@ defmodule QlariusWeb.QlinkPage.Show do
     # also feeds the iframe path, which passes them as query params.
     query_params = extract_query_params(opts[:path])
 
-    session = %{
-      "inline?" => true,
-      "base_path" => "",
-      # show_title defaults to true (standalone path does the same).
-      # Only pass false when explicitly set, so the nested LV can
-      # honor the creator's "hide title" setting.
-      "show_title" => show_title_raw != false,
-      "content_id" => Map.get(query_params, "content_id"),
-      "force_theme" => Map.get(query_params, "force_theme"),
-      # Parent's AuthSheet-enabled decision (per-host flag).
-      # The nested arcade LV reuses this so its CTA-gating stays in
-      # lockstep with what the parent will actually render — otherwise
-      # an `open_auth_sheet` event forwarded up to the parent could
-      # fall on deaf ears when the parent's flag is off for this host.
-      "auth_sheet_host_enabled?" => auth_sheet_enabled?(assigns)
-    }
-    |> Map.merge(opts[:session_params] || %{})
+    session =
+      %{
+        "inline?" => true,
+        "base_path" => "",
+        # show_title defaults to true (standalone path does the same).
+        # Only pass false when explicitly set, so the nested LV can
+        # honor the creator's "hide title" setting.
+        "show_title" => show_title_raw != false,
+        "content_id" => Map.get(query_params, "content_id"),
+        "force_theme" => Map.get(query_params, "force_theme"),
+        # Parent's AuthSheet-enabled decision (per-host flag).
+        # The nested arcade LV reuses this so its CTA-gating stays in
+        # lockstep with what the parent will actually render — otherwise
+        # an `open_auth_sheet` event forwarded up to the parent could
+        # fall on deaf ears when the parent's flag is off for this host.
+        "auth_sheet_host_enabled?" => auth_sheet_enabled?(assigns)
+      }
+      |> Map.merge(opts[:session_params] || %{})
 
     assigns =
       assigns
@@ -1252,11 +1258,14 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   defp render_iframe_embed(assigns, iframe_url) do
     embed_config = assigns.link.embed_config
-    height = get_embed_value(embed_config, "height") || get_embed_value(embed_config, :height) || 500
+
+    height =
+      get_embed_value(embed_config, "height") || get_embed_value(embed_config, :height) || 500
 
     # Use case to properly handle false values (|| treats false as falsy)
     show_title =
-      case {get_embed_value(embed_config, "show_title"), get_embed_value(embed_config, :show_title)} do
+      case {get_embed_value(embed_config, "show_title"),
+            get_embed_value(embed_config, :show_title)} do
         {nil, nil} -> nil
         {s, _} when not is_nil(s) -> s
         {_, s} -> s
