@@ -12,6 +12,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   import QlariusWeb.PWAHelpers
   import QlariusWeb.TiqitClassHTML
   import QlariusWeb.Widgets.Arcade.Components
+  import QlariusWeb.Components.TiqitUnlockedContent, only: [tiqit_unlocked_content_player: 1]
   # Shared helpers for the "View anywhere, Act only when authed"
   # pattern — `authed?/1`, `format_usd_or_dashes/1`,
   # `wallet_strip_or_connect/1`, `connect_wallet_modal/1`, etc.
@@ -131,7 +132,9 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           show_auth_sheet: false,
           auth_referral_context: Qlarius.Referrals.Context.none(),
           auth_sheet_host_enabled?: auth_sheet_host_enabled?,
-          force_theme: force_theme
+          force_theme: force_theme,
+          show_tiqit_content_modal: false,
+          embed_phx_id: session["embed_phx_id"]
         )
         |> assign(scope_assigns(scope, group, catalog))
 
@@ -207,6 +210,14 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
   def handle_event("dismiss-tiqit-up-nudge", _params, socket) do
     socket |> assign(:tiqit_up_nudge, false) |> noreply()
+  end
+
+  def handle_event("open-tiqit-content", _params, socket) do
+    socket |> assign(:show_tiqit_content_modal, true) |> noreply()
+  end
+
+  def handle_event("close-tiqit-content", _params, socket) do
+    socket |> assign(:show_tiqit_content_modal, false) |> noreply()
   end
 
   def handle_event("hide-options", _params, socket) do
@@ -326,12 +337,19 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
       Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
 
       tiqit = Arcade.get_valid_tiqit(socket.assigns.current_scope, socket.assigns.piece)
+      user = socket.assigns.current_scope.user
+      balance = Wallets.get_user_current_balance(user)
+      scope = socket.assigns.current_scope
+      updated_scope = scope && %{scope | wallet_balance: balance}
 
       socket
       |> assign(
         has_tiqit?: true,
         tiqit: tiqit,
-        selected_tiqit_class: nil
+        selected_tiqit_class: nil,
+        show_tiqit_content_modal: socket.assigns[:inline?] == true,
+        balance: balance,
+        current_scope: updated_scope
       )
       |> send_post_message("tiqit_purchased", tiqit)
       |> noreply()
@@ -439,11 +457,13 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   # Returns {credit, active_tiqit_count} for a tiqit class based on its scope.
   # piece-level tiqits never apply credit; group-level uses group credit;
   # catalog-level uses the broader catalog credit.
-  defp tiqit_class_credit(%TiqitClass{content_piece_id: piece_id}, _assigns) when not is_nil(piece_id),
-    do: {Decimal.new(0), 0}
+  defp tiqit_class_credit(%TiqitClass{content_piece_id: piece_id}, _assigns)
+       when not is_nil(piece_id),
+       do: {Decimal.new(0), 0}
 
-  defp tiqit_class_credit(%TiqitClass{content_group_id: group_id}, assigns) when not is_nil(group_id),
-    do: {assigns.tiqit_up_group_credit, assigns.tiqit_up_group_count}
+  defp tiqit_class_credit(%TiqitClass{content_group_id: group_id}, assigns)
+       when not is_nil(group_id),
+       do: {assigns.tiqit_up_group_credit, assigns.tiqit_up_group_count}
 
   defp tiqit_class_credit(%TiqitClass{}, assigns),
     do: {assigns.tiqit_up_catalog_credit, assigns.tiqit_up_catalog_count}

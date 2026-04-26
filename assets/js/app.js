@@ -1101,7 +1101,9 @@ Hooks.VideoThumbnail = {
 Hooks.YouTubePoster = {
   mounted() {
     const youtubeId = this.el.dataset.youtubeId
-    const iframe = this.el.parentElement.querySelector('#video-iframe')
+    const iframe =
+      this.el.parentElement.querySelector('iframe.tiqit-yt-embed') ||
+      this.el.parentElement.querySelector('iframe')
     if (!iframe || !youtubeId) return
 
     this.el.addEventListener('click', () => {

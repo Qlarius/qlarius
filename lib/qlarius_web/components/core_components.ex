@@ -647,6 +647,10 @@ defmodule QlariusWeb.CoreComponents do
   @doc """
   Renders a modal.
 
+  The root uses `z-[100]` (not `z-50`) so the overlay stays above fixed
+  bottom chrome (e.g. Qlink sponster strip) when the modal is rendered
+  from an earlier part of the DOM, such as a nested LiveView.
+
   ## Examples
 
       <.modal id="confirm-modal">
@@ -673,7 +677,7 @@ defmodule QlariusWeb.CoreComponents do
       phx-mounted={@show && show_modal(@id)}
       phx-remove={hide_modal(@id)}
       data-cancel={JS.exec(@on_cancel, "phx-remove")}
-      class="relative z-50 hidden"
+      class="relative z-[100] hidden"
     >
       <.backdrop id={"#{@id}-bg"} />
 

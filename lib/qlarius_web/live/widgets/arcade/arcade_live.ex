@@ -12,6 +12,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   import QlariusWeb.PWAHelpers
   import QlariusWeb.TiqitClassHTML
   import QlariusWeb.Widgets.Arcade.Components
+  import QlariusWeb.Components.TiqitUnlockedContent, only: [tiqit_unlocked_content_player: 1]
   # Shared helpers for the "View anywhere, Act only when authed"
   # pattern — `authed?/1`, `format_usd_or_dashes/1`,
   # `wallet_strip_or_connect/1`, `connect_wallet_modal/1`, etc.
@@ -160,7 +161,9 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          auth_referral_context: Qlarius.Referrals.Context.none(),
          auth_sheet_host_enabled?: auth_sheet_host_enabled?,
          force_theme: force_theme,
-         show_title: show_title
+         show_title: show_title,
+         show_tiqit_content_modal: false,
+         embed_phx_id: session["embed_phx_id"]
        )
        |> assign(scope_assigns(scope, group))
        |> maybe_init_selected_piece(inline?, session, params)}
@@ -219,6 +222,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     |> assign(:selected_piece, selected_piece)
     |> assign(:default_tiqit_class, default_tiqit_class)
     |> assign(:tiqit, tiqit)
+    |> assign(:show_tiqit_content_modal, false)
   end
 
   # Computes all scope-dependent assigns (balance, offered, tiqit-up
@@ -393,6 +397,18 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     end
   end
 
+  def handle_event("open-tiqit-content", _params, socket) do
+    socket
+    |> assign(:show_tiqit_content_modal, true)
+    |> noreply()
+  end
+
+  def handle_event("close-tiqit-content", _params, socket) do
+    socket
+    |> assign(:show_tiqit_content_modal, false)
+    |> noreply()
+  end
+
   def handle_event("purchase-tiqit", %{"tiqit-class-id" => tiqit_class_id}, socket) do
     with {:cont, socket} <- maybe_intercept_for_unauth(socket) do
       tiqit_class =
@@ -415,18 +431,37 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
       Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
 
-      base = socket.assigns.base_path
+      if socket.assigns.inline? do
+        tiqit =
+          Arcade.get_valid_tiqit(socket.assigns.current_scope, socket.assigns.selected_piece)
 
-      redirect_path =
-        if socket.assigns.force_theme do
-          "#{base}/content/#{socket.assigns.selected_piece.id}?force_theme=#{socket.assigns.force_theme}"
-        else
-          "#{base}/content/#{socket.assigns.selected_piece.id}"
-        end
+        balance = Wallets.get_user_current_balance(user)
+        scope = socket.assigns.current_scope
+        updated_scope = scope && %{scope | wallet_balance: balance}
 
-      socket
-      |> redirect(to: redirect_path)
-      |> noreply()
+        socket
+        |> assign(
+          tiqit: tiqit,
+          selected_tiqit_class: nil,
+          show_tiqit_content_modal: true,
+          balance: balance,
+          current_scope: updated_scope
+        )
+        |> noreply()
+      else
+        base = socket.assigns.base_path
+
+        redirect_path =
+          if socket.assigns.force_theme do
+            "#{base}/content/#{socket.assigns.selected_piece.id}?force_theme=#{socket.assigns.force_theme}"
+          else
+            "#{base}/content/#{socket.assigns.selected_piece.id}"
+          end
+
+        socket
+        |> redirect(to: redirect_path)
+        |> noreply()
+      end
     end
   end
 

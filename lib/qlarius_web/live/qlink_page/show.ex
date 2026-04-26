@@ -1116,6 +1116,9 @@ defmodule QlariusWeb.QlinkPage.Show do
         "show_title" => show_title_raw != false,
         "content_id" => Map.get(query_params, "content_id"),
         "force_theme" => Map.get(query_params, "force_theme"),
+        # Same as `id:` in `live_render/3` — nested LV events must
+        # `phx-target` this so they reach the child, not the Qlink parent.
+        "embed_phx_id" => opts[:dom_id],
         # Parent's AuthSheet-enabled decision (per-host flag).
         # The nested arcade LV reuses this so its CTA-gating stays in
         # lockstep with what the parent will actually render — otherwise
@@ -1132,17 +1135,18 @@ defmodule QlariusWeb.QlinkPage.Show do
       |> assign(:inline_arqade_session, session)
       |> assign(:inline_arqade_height, height)
 
-    # No overflow-hidden: nested LVs (e.g. Tiqit confirm) use `fixed` modals; clipping
-    # the embed box breaks full-screen overlay on WebKit (esp. mobile) vs parent scope.
+    # Same outer shell as `render_insta_tip_block/1` (Tip Jar) so arqade embeds read as
+    # the same class of “link card” on Qlink. `overflow-hidden` clips the nested LV
+    # chrome to `rounded-2xl`; Tiqit modals use the shared modal stack (z-100) above this.
     ~H"""
     <div
-      class="w-full rounded-xl border border-neutral/50 bg-base-100"
+      class="w-full rounded-2xl border border-neutral/50 overflow-hidden"
       style={"min-height: #{@inline_arqade_height}px;"}
     >
       {live_render(@socket, @inline_arqade_module,
         id: @inline_arqade_dom_id,
         session: @inline_arqade_session,
-        container: {:div, class: "h-full"}
+        container: {:div, class: "h-full min-h-0 bg-base-100"}
       )}
     </div>
     """

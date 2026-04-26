@@ -26,6 +26,45 @@
         </div>
       </div>
     </div>
+    <div class="bg-base-100 text-base-content p-6" data-theme={if @base_path == "/widgets", do: @force_theme}>
+      <div class="max-w-2xl mx-auto flex flex-col items-center gap-4 text-center">
+        <img
+          src={content_image_url(@piece, @group)}
+          alt={@piece.title}
+          class="max-h-48 rounded-lg border border-base-300"
+        />
+        <h2 class="text-2xl font-bold text-base-content">
+          {@piece.title}
+        </h2>
+        <p
+          :if={String.trim(@piece.description || "") != ""}
+          class="text-sm text-base-content/70 [overflow-wrap:anywhere] whitespace-pre-line"
+        >
+          {String.trim(@piece.description || "")}
+        </p>
+        <%= if @inline? do %>
+          <button
+            type="button"
+            phx-click="open-tiqit-content"
+            phx-target={@embed_phx_id && "#" <> @embed_phx_id}
+            class="btn btn-neutral btn-lg rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 w-full max-w-sm"
+          >
+            <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
+          </button>
+        <% else %>
+          <.link
+            navigate={
+              if @force_theme,
+                do: "#{@base_path}/content/#{@piece.id}?force_theme=#{@force_theme}",
+                else: "#{@base_path}/content/#{@piece.id}"
+            }
+            class="btn btn-neutral btn-lg rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 w-full max-w-sm"
+          >
+            <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
+          </.link>
+        <% end %>
+      </div>
+    </div>
   <% else %>
     <%!-- Purchase mode - shown when user needs to buy tiqit --%>
     <div class="w-full flex flex-col justify-center min-h-[720px]" data-theme={if @base_path == "/widgets", do: @force_theme}>
@@ -248,4 +287,34 @@
   />
 <% end %>
 </Layouts.maybe_mobile>
+<%= if @show_tiqit_content_modal and @inline? and not is_nil(@piece) and not is_nil(@tiqit) do %>
+  <div
+    class="fixed inset-0 z-[110] flex flex-col bg-base-100"
+    data-theme={if @base_path == "/widgets", do: @force_theme}
+    phx-window-keydown="close-tiqit-content"
+    phx-key="Escape"
+    phx-target={@embed_phx_id && "#" <> @embed_phx_id}
+  >
+    <div class="flex items-center justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] border-b border-base-300 bg-base-100 flex-shrink-0">
+      <span class="font-semibold text-base-content truncate">{@piece.title}</span>
+      <button
+        type="button"
+        phx-click="close-tiqit-content"
+        phx-target={@embed_phx_id && "#" <> @embed_phx_id}
+        class="btn btn-ghost btn-circle flex-shrink-0"
+        aria-label={gettext("close")}
+      >
+        <.icon name="hero-x-mark" class="w-6 h-6" />
+      </button>
+    </div>
+    <div class="flex-1 min-h-0 overflow-y-auto p-4 pb-8 max-w-4xl w-full mx-auto">
+      <.tiqit_unlocked_content_player
+        id_prefix={"inline-single-#{@piece.id}"}
+        piece={@piece}
+        group={@group}
+        tiqit={@tiqit}
+      />
+    </div>
+  </div>
+<% end %>
 </div>
