@@ -13,13 +13,12 @@ defmodule QlariusWeb.Auth.FinalizeSessionController do
   use QlariusWeb, :controller
 
   alias Qlarius.Accounts
+  alias Qlarius.Auth.AuditLog
   alias Qlarius.Auth.RateLimit
   alias QlariusWeb.Auth.FinalizeToken
   alias QlariusWeb.UserAuth
 
   plug :accepts, ["json"]
-
-  require Logger
 
   def create(conn, %{"token" => token}) when is_binary(token) do
     # B8: per-IP gate before cryptographic verification. Cheap check,
@@ -29,28 +28,39 @@ defmodule QlariusWeb.Auth.FinalizeSessionController do
 
     case RateLimit.check_finalize_per_ip(ip) do
       :ok ->
-        do_create(conn, token)
+        do_create(conn, token, ip)
 
       {:error, {:rate_limited, _retry_after_s}} ->
-        Logger.warning("[FinalizeSession] rate-limited ip=#{ip}")
+        AuditLog.log(:"finalize_session.denied", %{ip: ip, reason: :rate_limited})
         send_json_error(conn, 429, "rate_limited")
     end
   end
 
-  def create(conn, _params), do: send_json_error(conn, 422, "missing_token")
+  def create(conn, _params) do
+    ip = conn.remote_ip |> RateLimit.format_ip()
+    AuditLog.log(:"finalize_session.denied", %{ip: ip, reason: :missing_token})
+    send_json_error(conn, 422, "missing_token")
+  end
 
-  defp do_create(conn, token) do
+  defp do_create(conn, token, ip) do
     case FinalizeToken.verify_and_consume(token) do
       {:ok, payload} ->
         case Accounts.get_user(payload.user_id) do
           nil ->
-            Logger.warning(
-              "[FinalizeSession] token for unknown user_id=#{inspect(payload.user_id)}"
-            )
+            AuditLog.log(:"finalize_session.denied", %{
+              ip: ip,
+              reason: :unknown_user,
+              user_id: payload.user_id
+            })
 
             send_json_error(conn, 422, "invalid_token")
 
           user ->
+            AuditLog.log(:"finalize_session.allowed", %{
+              ip: ip,
+              user_id: user.id
+            })
+
             conn
             |> UserAuth.log_in_user_from_finalize(user,
               resume: Map.get(payload, :resume),
@@ -60,13 +70,15 @@ defmodule QlariusWeb.Auth.FinalizeSessionController do
         end
 
       {:error, :expired} ->
+        AuditLog.log(:"finalize_session.denied", %{ip: ip, reason: :token_expired})
         send_json_error(conn, 422, "token_expired")
 
       {:error, :replayed} ->
-        Logger.warning("[FinalizeSession] token replay rejected")
+        AuditLog.log(:"finalize_session.denied", %{ip: ip, reason: :token_replayed})
         send_json_error(conn, 422, "token_replayed")
 
       {:error, :invalid} ->
+        AuditLog.log(:"finalize_session.denied", %{ip: ip, reason: :token_invalid})
         send_json_error(conn, 422, "invalid_token")
     end
   end

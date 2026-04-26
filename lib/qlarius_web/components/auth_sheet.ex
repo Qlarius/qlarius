@@ -72,6 +72,7 @@ defmodule QlariusWeb.Components.AuthSheet do
   alias Qlarius.Accounts
   alias Qlarius.Accounts.AliasGenerator
   alias Qlarius.Auth, as: AuthCtx
+  alias Qlarius.Auth.AuditLog
   alias Qlarius.Auth.RateLimit
   alias Qlarius.Referrals.Context, as: ReferralContext
   alias Qlarius.Services.Twilio
@@ -80,8 +81,6 @@ defmodule QlariusWeb.Components.AuthSheet do
   alias QlariusWeb.Auth.FinalizeToken
   alias QlariusWeb.Components.AuthSteps
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
-
-  require Logger
 
   @impl true
   def mount(socket) do
@@ -149,9 +148,18 @@ defmodule QlariusWeb.Components.AuthSheet do
   def handle_event("send_code", _params, socket) do
     phone = socket.assigns.mobile_number
     formatted = format_phone(phone)
+    ip = socket.assigns.client_ip
+    surface = socket.assigns.surface
 
     cond do
       not valid_phone_shape?(phone) ->
+        AuditLog.log(:"send_code.denied", %{
+          phone: formatted,
+          ip: ip,
+          surface: surface,
+          reason: :invalid_phone
+        })
+
         {:noreply, assign(socket, :mobile_number_error, "Enter a valid 10-digit number.")}
 
       true ->
@@ -159,18 +167,22 @@ defmodule QlariusWeb.Components.AuthSheet do
         # state to users who can't even pass the phone gate, and so a
         # single abusive IP burning through the IP bucket still trips
         # the per-phone limit for attempted victims.
-        with :ok <- RateLimit.check_send_code_per_phone(formatted),
-             :ok <- RateLimit.check_send_code_per_ip(socket.assigns.client_ip) do
-          # B3 change: no longer short-circuit on "unknown phone here" —
-          # we send the code regardless so we can still verify ownership
-          # before branching into sign-up. `verify_code/1` now owns the
-          # sign-in-vs-sign-up decision.
-          dispatch_send_code(socket, formatted)
-        else
-          {:error, {:rate_limited, retry_after_s}} ->
-            Logger.info(
-              "[AuthSheet] send_code rate-limited phone=#{mask_phone(formatted)} surface=#{inspect(socket.assigns.surface)}"
-            )
+        case rate_check_send_code(formatted, ip) do
+          :ok ->
+            # B3 change: no longer short-circuit on "unknown phone here" —
+            # we send the code regardless so we can still verify ownership
+            # before branching into sign-up. `verify_code/1` now owns the
+            # sign-in-vs-sign-up decision.
+            dispatch_send_code(socket, formatted)
+
+          {:denied, reason, retry_after_s} ->
+            AuditLog.log(:"send_code.denied", %{
+              phone: formatted,
+              ip: ip,
+              surface: surface,
+              reason: reason,
+              retry_after_s: retry_after_s
+            })
 
             {:noreply,
              assign(
@@ -209,7 +221,16 @@ defmodule QlariusWeb.Components.AuthSheet do
   end
 
   def handle_event("auth:finalize_failed", %{"reason" => reason}, socket) do
-    Logger.warning("[AuthSheet] finalize failed reason=#{inspect(reason)}")
+    # Client-reported failure. The controller already logged the
+    # server-side decision; this line captures how the hook
+    # classified it (useful for correlating, e.g., "rate_limited"
+    # reported here vs. 429 responses in the controller log).
+    AuditLog.log(:"finalize_session.denied", %{
+      ip: socket.assigns.client_ip,
+      surface: socket.assigns.surface,
+      reason: classify_finalize_reason(reason),
+      source: :client_hook
+    })
 
     message =
       case reason do
@@ -372,6 +393,13 @@ defmodule QlariusWeb.Components.AuthSheet do
         handle_verified(socket, formatted, bypass)
 
       {:error, _reason} ->
+        AuditLog.log(:"verify_code.denied", %{
+          phone: formatted,
+          ip: socket.assigns.client_ip,
+          surface: socket.assigns.surface,
+          reason: :incorrect_code
+        })
+
         {:noreply,
          socket
          |> assign(:verification_code, "")
@@ -401,7 +429,17 @@ defmodule QlariusWeb.Components.AuthSheet do
       {:ok, carrier_info} ->
         branch_on_user(socket, formatted_phone, carrier_info)
 
-      {:error, _reason, message} ->
+      {:error, reason, message} ->
+        # Pass the Twilio carrier reason through verbatim so we can
+        # aggregate on the specific rejection kind
+        # (`:voip_not_allowed`, `:landline_not_allowed`, etc.).
+        AuditLog.log(:"verify_code.denied", %{
+          phone: formatted_phone,
+          ip: socket.assigns.client_ip,
+          surface: socket.assigns.surface,
+          reason: reason
+        })
+
         {:noreply,
          socket
          |> assign(:verification_code, "")
@@ -411,9 +449,18 @@ defmodule QlariusWeb.Components.AuthSheet do
 
   defp branch_on_user(socket, formatted_phone, carrier_info) do
     socket = assign(socket, :carrier_info, carrier_info)
+    ip = socket.assigns.client_ip
+    surface = socket.assigns.surface
 
     case AuthCtx.get_user_by_phone(formatted_phone) do
       nil ->
+        AuditLog.log(:"verify_code.allowed", %{
+          phone: formatted_phone,
+          ip: ip,
+          surface: surface,
+          outcome: :new_user_branch
+        })
+
         # Unknown phone → sign-up. Lazy-init the heavy assigns now.
         {:noreply,
          socket
@@ -423,6 +470,14 @@ defmodule QlariusWeb.Components.AuthSheet do
          |> assign(:finalize_error, nil)}
 
       user ->
+        AuditLog.log(:"verify_code.allowed", %{
+          phone: formatted_phone,
+          ip: ip,
+          surface: surface,
+          outcome: :signed_in,
+          user_id: user.id
+        })
+
         finalize_for_user(socket, user)
     end
   end
@@ -486,21 +541,31 @@ defmodule QlariusWeb.Components.AuthSheet do
 
     attrs = build_user_attrs(socket.assigns)
     referral_code = ReferralContext.code(socket.assigns.referral_context)
+    ip = socket.assigns.client_ip
+    surface = socket.assigns.surface
 
     case Accounts.register_new_user(attrs, referral_code) do
       {:ok, %{user: user}} ->
-        Logger.info(
-          "[AuthSheet] created user id=#{user.id} alias=#{user.alias} " <>
-            "referral_source=#{inspect(ReferralContext.source(socket.assigns.referral_context))}"
-        )
+        AuditLog.log(:"register_new_user.allowed", %{
+          user_id: user.id,
+          alias: user.alias,
+          ip: ip,
+          surface: surface,
+          referral_source: ReferralContext.source(socket.assigns.referral_context)
+        })
 
         finalize_for_user(socket, user)
 
-      {:error, failed_step, failed_value, _changes_so_far} ->
-        Logger.warning(
-          "[AuthSheet] registration failed step=#{inspect(failed_step)} " <>
-            "value=#{inspect(failed_value)}"
-        )
+      {:error, failed_step, _failed_value, _changes_so_far} ->
+        # Intentionally NOT logging `failed_value` — it may contain
+        # the raw changeset with the submitted phone / zip / etc.
+        # `failed_step` is enough to aggregate on.
+        AuditLog.log(:"register_new_user.denied", %{
+          phone: socket.assigns.mobile_number,
+          ip: ip,
+          surface: surface,
+          failed_step: failed_step
+        })
 
         {:noreply,
          socket
@@ -656,23 +721,44 @@ defmodule QlariusWeb.Components.AuthSheet do
 
   defp dispatch_send_code(socket, formatted_phone) do
     bypass = Application.get_env(:qlarius, :bypass_phone_verification, false)
+    ip = socket.assigns.client_ip
+    surface = socket.assigns.surface
 
-    if bypass do
+    allowed_reply =
       {:noreply,
        socket
        |> assign(:state, :code)
        |> assign(:mobile_number_error, nil)
        |> assign(:verification_code, "")}
+
+    if bypass do
+      AuditLog.log(:"send_code.allowed", %{
+        phone: formatted_phone,
+        ip: ip,
+        surface: surface,
+        bypass: true
+      })
+
+      allowed_reply
     else
       case Twilio.send_verification_code(formatted_phone) do
         {:ok, _resp} ->
-          {:noreply,
-           socket
-           |> assign(:state, :code)
-           |> assign(:mobile_number_error, nil)
-           |> assign(:verification_code, "")}
+          AuditLog.log(:"send_code.allowed", %{
+            phone: formatted_phone,
+            ip: ip,
+            surface: surface
+          })
+
+          allowed_reply
 
         {:error, _reason} ->
+          AuditLog.log(:"send_code.denied", %{
+            phone: formatted_phone,
+            ip: ip,
+            surface: surface,
+            reason: :twilio_error
+          })
+
           {:noreply,
            assign(socket, :mobile_number_error, "Couldn't send code. Try again.")}
       end
@@ -698,20 +784,31 @@ defmodule QlariusWeb.Components.AuthSheet do
   defp format_phone(p) when is_binary(p), do: "+1" <> String.replace(p, ~r/\D/, "")
   defp format_phone(_), do: ""
 
-  # Log helper: we don't want full phone numbers in log aggregates but
-  # do want enough to correlate a rate-limit hit with a support report.
-  defp mask_phone("+" <> rest), do: "+" <> mask_phone(rest)
+  # Explicit whitelist — never `String.to_atom/1` untrusted input
+  # (the reason comes through a client-pushed event).
+  defp classify_finalize_reason("rate_limited"), do: :rate_limited
+  defp classify_finalize_reason("token_expired"), do: :token_expired
+  defp classify_finalize_reason("token_replayed"), do: :token_replayed
+  defp classify_finalize_reason("invalid_token"), do: :token_invalid
+  defp classify_finalize_reason("missing_token"), do: :missing_token
+  defp classify_finalize_reason("network"), do: :client_network
+  defp classify_finalize_reason(_), do: :unknown
 
-  defp mask_phone(phone) when is_binary(phone) do
-    digits = String.replace(phone, ~r/\D/, "")
+  # Runs the two `send_code` rate-limit gates and collapses the result
+  # into `:ok` or a `{:denied, reason, retry_after_s}` tuple the
+  # handler can match on for user-messaging + audit logging.
+  defp rate_check_send_code(formatted_phone, ip) do
+    case RateLimit.check_send_code_per_phone(formatted_phone) do
+      {:error, {:rate_limited, retry_after_s}} ->
+        {:denied, :phone_limit, retry_after_s}
 
-    case String.length(digits) do
-      n when n >= 4 -> String.duplicate("*", n - 4) <> String.slice(digits, -4, 4)
-      _ -> String.duplicate("*", String.length(digits))
+      :ok ->
+        case RateLimit.check_send_code_per_ip(ip) do
+          {:error, {:rate_limited, retry_after_s}} -> {:denied, :ip_limit, retry_after_s}
+          :ok -> :ok
+        end
     end
   end
-
-  defp mask_phone(_), do: "****"
 
   defp humanize_retry_after(seconds) when seconds <= 90, do: "a minute"
   defp humanize_retry_after(seconds) when seconds < 60 * 60, do: "#{div(seconds, 60)} minutes"
