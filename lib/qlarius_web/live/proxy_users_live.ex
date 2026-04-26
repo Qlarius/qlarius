@@ -1,6 +1,7 @@
 defmodule QlariusWeb.ProxyUsersLive do
   use QlariusWeb, :live_view
 
+  alias Phoenix.LiveView.JS
   alias Qlarius.Accounts.Users
 
   # Commented out unused alias - UserProxy not directly referenced (all proxy operations use Users module functions)
@@ -58,14 +59,14 @@ defmodule QlariusWeb.ProxyUsersLive do
     {:noreply, push_navigate(socket, to: ~p"/settings")}
   end
 
+  # B4: Open the in-place ProxyUserSheet instead of push_navigating to
+  # `/register?mode=proxy`. The legacy route stays alive as a fallback.
   def handle_event("add_proxy", _params, socket) do
-    admin_user = socket.assigns.current_scope.true_user
-    me_file = Qlarius.Accounts.get_me_file_by_user_id(admin_user.id)
-    admin_referral_code = me_file.referral_code
+    {:noreply, assign(socket, :show_add_modal, true)}
+  end
 
-    {:noreply,
-     socket
-     |> push_navigate(to: ~p"/register?mode=proxy&ref=#{admin_referral_code}")}
+  def handle_event("close_add_modal", _params, socket) do
+    {:noreply, assign(socket, :show_add_modal, false)}
   end
 
   def handle_event("toggle_proxy", %{"id" => proxy_id}, socket) do
@@ -101,6 +102,19 @@ defmodule QlariusWeb.ProxyUsersLive do
          "Successfully switched to proxy user #{updated_proxy.proxy_user.alias}"
        )}
     end
+  end
+
+  # Raised by ProxyUserSheet via `send(self(), ...)` on successful
+  # creation. Refresh the list; leave the modal open so the sheet can
+  # offer its "Add another" affordance. Admin dismisses it explicitly.
+  def handle_info({:proxy_user_created, user}, socket) do
+    admin_user = socket.assigns.current_scope.true_user
+    proxy_users = list_proxy_users(admin_user)
+
+    {:noreply,
+     socket
+     |> assign(:proxy_users, proxy_users)
+     |> put_flash(:info, "Proxy user #{user.alias} created")}
   end
 
   def render(assigns) do
@@ -147,6 +161,14 @@ defmodule QlariusWeb.ProxyUsersLive do
           </ul>
         </div>
       </Layouts.mobile>
+
+      <.live_component
+        module={QlariusWeb.Components.ProxyUserSheet}
+        id="proxy-user-sheet"
+        show={@show_add_modal}
+        admin={@current_scope.true_user}
+        on_cancel={JS.push("close_add_modal")}
+      />
     </div>
     """
   end
