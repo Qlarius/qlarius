@@ -1132,9 +1132,11 @@ defmodule QlariusWeb.QlinkPage.Show do
       |> assign(:inline_arqade_session, session)
       |> assign(:inline_arqade_height, height)
 
+    # No overflow-hidden: nested LVs (e.g. Tiqit confirm) use `fixed` modals; clipping
+    # the embed box breaks full-screen overlay on WebKit (esp. mobile) vs parent scope.
     ~H"""
     <div
-      class="w-full rounded-xl overflow-hidden border border-neutral/50 bg-base-100"
+      class="w-full rounded-xl border border-neutral/50 bg-base-100"
       style={"min-height: #{@inline_arqade_height}px;"}
     >
       {live_render(@socket, @inline_arqade_module,
