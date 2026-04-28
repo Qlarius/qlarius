@@ -17,7 +17,19 @@
     {@group.catalog.name, "#{@base_path}/arqade/catalog/#{@group.catalog.id}"}
   ]}
 />
+<%!--
+  Inline embeds (rendered by QlinkPage.Show via live_render/3) paint
+  the arqade as a rounded "card". This wrapper owns the rounded clip
+  so the embed chrome reads as a card without trapping `position: fixed`
+  descendants. Tiqit's `<.modal>` below is rendered as a sibling of
+  this wrapper so iOS Safari does not clip the fixed overlay to the
+  card box.
+--%>
 <%= if Enum.any?(@pieces) do %>
+  <div class={[
+    "w-full",
+    @inline? && "rounded-2xl border border-neutral/50 overflow-hidden bg-base-100"
+  ]}>
   <div class={"w-full flex flex-col relative #{if @base_path == "", do: "h-full", else: "h-screen"}"}>
     <%= if @group.show_open_in_tab && @base_path == "/widgets" do %>
       <a
@@ -271,6 +283,7 @@
         </div>
       </div>
     </div>
+  </div>
   </div>
 
   <.modal

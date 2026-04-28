@@ -1135,27 +1135,22 @@ defmodule QlariusWeb.QlinkPage.Show do
       |> assign(:inline_arqade_session, session)
       |> assign(:inline_arqade_height, height)
 
-    # Two-tier shell:
-    #   • Outer: bounding box that reserves vertical space via min-height.
-    #     No visual styling — avoids painting a rect around whatever the
-    #     inner wrapper clips. Also keeps the modal ancestry minimal.
-    #   • Inner: `rounded-2xl border overflow-hidden` clips the nested
-    #     LiveView's chrome so its square backgrounds don't poke past the
-    #     rounded parent border. `overflow: hidden` does not establish a
-    #     containing block for `position: fixed`, so the Tiqit modal
-    #     (rendered inside the nested LV) still covers the viewport.
+    # Thin bounding box — reserves vertical space via min-height so the
+    # embed doesn't collapse while the nested LV boots. No rounded clip,
+    # border, or `overflow: hidden` here: those live inside each arqade
+    # template so that the Tiqit `<.modal>` can sit as a sibling of the
+    # clipped card, not a descendant. This matters on iOS Safari, which
+    # traps `position: fixed` elements inside `overflow: hidden`
+    # ancestors — exactly what we saw when the clip lived at this level.
     ~H"""
     <div
       class="w-full"
       style={"min-height: #{@inline_arqade_height}px;"}
     >
-      <div class="h-full min-h-full rounded-2xl border border-neutral/50 overflow-hidden bg-base-100">
-        {live_render(@socket, @inline_arqade_module,
-          id: @inline_arqade_dom_id,
-          session: @inline_arqade_session,
-          container: {:div, class: "h-full min-h-0"}
-        )}
-      </div>
+      {live_render(@socket, @inline_arqade_module,
+        id: @inline_arqade_dom_id,
+        session: @inline_arqade_session
+      )}
     </div>
     """
   end

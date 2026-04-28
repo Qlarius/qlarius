@@ -9,6 +9,17 @@
     {@group.title, "#{@base_path}/arqade/group/#{@group.id}"}
   ]}
 />
+<%!--
+  Inline embeds (rendered by QlinkPage.Show via live_render/3) paint
+  the arqade as a rounded "card". This wrapper owns the rounded clip
+  so the embed chrome reads as a card without trapping `position: fixed`
+  descendants. Tiqit's `<.modal>` below is rendered as a sibling of
+  this wrapper so iOS Safari does not clip it to the card box.
+--%>
+<div class={[
+  "w-full",
+  @inline? && "rounded-2xl border border-neutral/50 overflow-hidden bg-base-100"
+]}>
 <div id="arqade-root" phx-hook="PostMessage">
   <%= if @has_tiqit? do %>
     <%!-- Timer bar mode - shown when user has valid tiqit --%>
@@ -169,97 +180,100 @@
         </div>
       </div>
     </div>
-
-    <.modal
-      :if={@selected_tiqit_class}
-      id="confirm-purchase-modal"
-      on_cancel={JS.push("close-confirm-purchase-modal")}
-      show
-    >
-      <div class="flex flex-col space-y-4 p-8">
-        <% desc = purchase_description(@selected_tiqit_class, @group) %>
-        <div class="relative">
-          <img
-            src={purchase_image_url(desc.scope, @piece, @group)}
-            alt={if desc.scope == :piece, do: @piece.title, else: @group.title}
-            class="max-h-30 rounded-lg mx-auto"
-          />
-        </div>
-        <%= if desc.scope == :piece do %>
-          <h3 class="text-base-content/60 text-center mb-0">
-            {@group.title}
-          </h3>
-          <h2 class="text-xl font-bold text-base-content text-center">
-            {@piece.title}
-          </h2>
-        <% else %>
-          <h2 class="text-xl font-bold text-base-content text-center">
-            {@group.title}
-          </h2>
-        <% end %>
-        <%= if assigns[:options_modal] do %>
-          <.tiqit_class_grid piece={@piece} group={@group} balance={@balance} tiqit_up_group_credit={@tiqit_up_group_credit} tiqit_up_catalog_credit={@tiqit_up_catalog_credit} />
-        <% else %>
-          <p class="text-base-content/60 text-center">
-            <%= if @selected_tiqit_class.duration_hours do %>
-              You are purchasing access to the
-              <span class="text-base-content font-bold">
-                {desc.label}
-              </span>
-              for <span class="text-base-content font-bold">{format_tiqit_class_duration(
-              @selected_tiqit_class.duration_hours
-            )}</span>.
-            <% else %>
-              You are purchasing
-              <span class="text-base-content font-bold">lifetime</span>
-              access to the
-              <span class="text-base-content font-bold">{desc.label}</span>.
-            <% end %>
-            <%= if desc.detail do %>
-              <br /><span class="text-base-content/50 text-sm">Includes {desc.detail}.</span>
-            <% end %>
-          </p>
-          <div class="flex items-center">
-            <button
-              phx-click="purchase-tiqit"
-              phx-value-tiqit-class-id={@selected_tiqit_class.id}
-              class="btn btn-primary btn-lg btn-block rounded-full"
-            >
-              <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm •
-              <span class="font-bold">{format_usd(assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price, zero_free: true)}</span>
-            </button>
-          </div>
-          <%= if assigns[:selected_tiqit_class_credit] && Decimal.gt?(assigns.selected_tiqit_class_credit, 0) do %>
-            <div class="alert bg-primary/20 border border-primary mt-2 py-2 justify-center">
-              <span class="text-sm flex items-center gap-1">
-                <.icon name="hero-sparkles-solid" class="h-4 w-4 text-primary" />
-                TiqitUp discount of {format_usd(@selected_tiqit_class_credit)} applied. ({@selected_tiqit_class_active_count} active {if @selected_tiqit_class_active_count == 1, do: "tiqit", else: "tiqits"})              </span>
-            </div>
-          <% end %>
-        <% end %>
-        <div class="flex flex-col gap-1">
-          <%= if !assigns[:options_modal] do %>
-            <div class="divider m-1"></div>
-            <div class="flex flex-row gap-1 justify-center align-middle">
-              <p class="text-base-content/60">Want the full series? Or full catalog access?</p>
-              <button phx-click="show-options" class="btn btn-outline btn-md rounded-full ml-3">
-                All Tiqit Options
-              </button>
-            </div>
-          <% end %>
-        </div>
-        <div class="flex justify-center mt-2">
-          <img
-            src="/images/TIQIT_logo_color_square.svg"
-            alt="Tiqit"
-            class="h-8 w-auto"
-          />
-        </div>
-      </div>
-    </.modal>
-
   <% end %>
 </div>
+</div>
+
+<%!-- Lives as a sibling of the rounded wrapper above — keeps the
+      Tiqit purchase modal outside any overflow-hidden ancestor so
+      iOS Safari does not clip the fixed overlay to the card box. --%>
+<.modal
+  :if={@selected_tiqit_class}
+  id="confirm-purchase-modal"
+  on_cancel={JS.push("close-confirm-purchase-modal")}
+  show
+>
+  <div class="flex flex-col space-y-4 p-8">
+    <% desc = purchase_description(@selected_tiqit_class, @group) %>
+    <div class="relative">
+      <img
+        src={purchase_image_url(desc.scope, @piece, @group)}
+        alt={if desc.scope == :piece, do: @piece.title, else: @group.title}
+        class="max-h-30 rounded-lg mx-auto"
+      />
+    </div>
+    <%= if desc.scope == :piece do %>
+      <h3 class="text-base-content/60 text-center mb-0">
+        {@group.title}
+      </h3>
+      <h2 class="text-xl font-bold text-base-content text-center">
+        {@piece.title}
+      </h2>
+    <% else %>
+      <h2 class="text-xl font-bold text-base-content text-center">
+        {@group.title}
+      </h2>
+    <% end %>
+    <%= if assigns[:options_modal] do %>
+      <.tiqit_class_grid piece={@piece} group={@group} balance={@balance} tiqit_up_group_credit={@tiqit_up_group_credit} tiqit_up_catalog_credit={@tiqit_up_catalog_credit} />
+    <% else %>
+      <p class="text-base-content/60 text-center">
+        <%= if @selected_tiqit_class.duration_hours do %>
+          You are purchasing access to the
+          <span class="text-base-content font-bold">
+            {desc.label}
+          </span>
+          for <span class="text-base-content font-bold">{format_tiqit_class_duration(
+          @selected_tiqit_class.duration_hours
+        )}</span>.
+        <% else %>
+          You are purchasing
+          <span class="text-base-content font-bold">lifetime</span>
+          access to the
+          <span class="text-base-content font-bold">{desc.label}</span>.
+        <% end %>
+        <%= if desc.detail do %>
+          <br /><span class="text-base-content/50 text-sm">Includes {desc.detail}.</span>
+        <% end %>
+      </p>
+      <div class="flex items-center">
+        <button
+          phx-click="purchase-tiqit"
+          phx-value-tiqit-class-id={@selected_tiqit_class.id}
+          class="btn btn-primary btn-lg btn-block rounded-full"
+        >
+          <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm •
+          <span class="font-bold">{format_usd(assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price, zero_free: true)}</span>
+        </button>
+      </div>
+      <%= if assigns[:selected_tiqit_class_credit] && Decimal.gt?(assigns.selected_tiqit_class_credit, 0) do %>
+        <div class="alert bg-primary/20 border border-primary mt-2 py-2 justify-center">
+          <span class="text-sm flex items-center gap-1">
+            <.icon name="hero-sparkles-solid" class="h-4 w-4 text-primary" />
+            TiqitUp discount of {format_usd(@selected_tiqit_class_credit)} applied. ({@selected_tiqit_class_active_count} active {if @selected_tiqit_class_active_count == 1, do: "tiqit", else: "tiqits"})          </span>
+        </div>
+      <% end %>
+    <% end %>
+    <div class="flex flex-col gap-1">
+      <%= if !assigns[:options_modal] do %>
+        <div class="divider m-1"></div>
+        <div class="flex flex-row gap-1 justify-center align-middle">
+          <p class="text-base-content/60">Want the full series? Or full catalog access?</p>
+          <button phx-click="show-options" class="btn btn-outline btn-md rounded-full ml-3">
+            All Tiqit Options
+          </button>
+        </div>
+      <% end %>
+    </div>
+    <div class="flex justify-center mt-2">
+      <img
+        src="/images/TIQIT_logo_color_square.svg"
+        alt="Tiqit"
+        class="h-8 w-auto"
+      />
+    </div>
+  </div>
+</.modal>
 
 <.connect_wallet_modal
   show={@show_connect_modal}
