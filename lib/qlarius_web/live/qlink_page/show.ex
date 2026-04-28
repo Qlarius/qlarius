@@ -1135,22 +1135,27 @@ defmodule QlariusWeb.QlinkPage.Show do
       |> assign(:inline_arqade_session, session)
       |> assign(:inline_arqade_height, height)
 
-    # Shell matches Tip Jar (`rounded-2xl`, border) but intentionally omits
-    # `overflow-hidden`. Tip Jar keeps overflow on its wrapper because the InstaTip
-    # confirm modal is rendered on QlinkPage *outside* that card. Tiqit purchase
-    # `<.modal>` lives inside this nested LiveView; an overflow ancestor clips
-    # `position: fixed` overlays on mobile WebKit — same class of bug as z-index alone
-    # cannot fix.
+    # Two-tier shell:
+    #   • Outer: bounding box that reserves vertical space via min-height.
+    #     No visual styling — avoids painting a rect around whatever the
+    #     inner wrapper clips. Also keeps the modal ancestry minimal.
+    #   • Inner: `rounded-2xl border overflow-hidden` clips the nested
+    #     LiveView's chrome so its square backgrounds don't poke past the
+    #     rounded parent border. `overflow: hidden` does not establish a
+    #     containing block for `position: fixed`, so the Tiqit modal
+    #     (rendered inside the nested LV) still covers the viewport.
     ~H"""
     <div
-      class="w-full rounded-2xl border border-neutral/50"
+      class="w-full"
       style={"min-height: #{@inline_arqade_height}px;"}
     >
-      {live_render(@socket, @inline_arqade_module,
-        id: @inline_arqade_dom_id,
-        session: @inline_arqade_session,
-        container: {:div, class: "h-full min-h-0 bg-base-100"}
-      )}
+      <div class="h-full min-h-full rounded-2xl border border-neutral/50 overflow-hidden bg-base-100">
+        {live_render(@socket, @inline_arqade_module,
+          id: @inline_arqade_dom_id,
+          session: @inline_arqade_session,
+          container: {:div, class: "h-full min-h-0"}
+        )}
+      </div>
     </div>
     """
   end
