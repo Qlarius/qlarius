@@ -682,8 +682,15 @@ defmodule QlariusWeb.CoreComponents do
       <.backdrop id={"#{@id}-bg"} />
 
     <!-- Modal Container -->
+      <!--
+        Full-viewport scroll area. `w-fit mx-auto` here would shrink the
+        container to the card's width, and because `overflow-y:auto`
+        promotes `overflow-x` to `auto`, it would clip the card's
+        `shadow-2xl` on the sides. Centering is handled by the flex
+        child (`flex justify-center` + `max-w-4xl mx-auto`).
+      -->
       <div
-        class="fixed inset-0 overflow-y-auto w-fit mx-auto"
+        class="fixed inset-0 overflow-y-auto"
         aria-labelledby={"#{@id}-title"}
         aria-describedby={"#{@id}-description"}
         role="dialog"
@@ -691,7 +698,13 @@ defmodule QlariusWeb.CoreComponents do
         tabindex="0"
       >
         <div class="flex min-h-full items-center justify-center p-4">
-          <div class="w-full max-w-4xl">
+          <!--
+            `max-w-4xl` without `w-full` → card sizes to content with a cap
+            (≈896px). Prevents Tip/Tiqit modals from stretching full-viewport
+            on mobile/small tablets. Inner content can still add `min-w-*` if
+            a narrower natural width is undesirable for a specific modal.
+          -->
+          <div class="max-w-4xl">
             <!-- Modal Card -->
             <.focus_wrap
               id={"#{@id}-container"}
