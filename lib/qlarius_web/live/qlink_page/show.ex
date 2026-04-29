@@ -19,6 +19,7 @@ defmodule QlariusWeb.QlinkPage.Show do
   import QlariusWeb.Widgets.UnauthCTA
 
   alias Qlarius.YouData.MeFiles.MeFile
+  alias Qlarius.Browsers.InAppEscapeUrls
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
@@ -59,6 +60,8 @@ defmodule QlariusWeb.QlinkPage.Show do
             |> assign_surface_context(page)
             |> assign_auth_referral_context(page)
             |> init_sponster_assigns()
+            |> assign_in_app_escape_canonical()
+            |> maybe_fire_iab_escape_shown_telemetry()
 
           # Subscribe to PubSub if authenticated and connected
           if connected?(socket) && socket.assigns.current_scope do
@@ -122,6 +125,66 @@ defmodule QlariusWeb.QlinkPage.Show do
     )
   end
 
+  defp assign_in_app_escape_canonical(socket) do
+    assign(socket, :in_app_escape_canonical_url, build_canonical_escape_url(socket))
+  end
+
+  defp build_canonical_escape_url(socket) do
+    uri =
+      case socket.host_uri do
+        %URI{host: h} = u when is_binary(h) ->
+          u
+
+        _ ->
+          case socket.assigns[:parent_request_uri] do
+            %URI{host: h} = u when is_binary(h) -> u
+            _ -> nil
+          end
+      end
+
+    case uri do
+      nil -> nil
+      %URI{} = u -> URI.to_string(%{u | path: u.path || "/"})
+    end
+  end
+
+  defp maybe_fire_iab_escape_shown_telemetry(socket) do
+    iab = socket.assigns[:in_app_browser]
+    url = socket.assigns[:in_app_escape_canonical_url]
+    dismissed? = socket.assigns[:in_app_escape_dismissed] == true
+
+    if connected?(socket) && iab && is_binary(url) && !dismissed? do
+      :telemetry.execute(
+        [:qlarius, :in_app_browser_escape, :gate_shown],
+        %{},
+        %{family: iab.family, os: iab.os}
+      )
+    end
+
+    socket
+  end
+
+  defp iab_escape_target("ios", canonical),
+    do: {:ok, InAppEscapeUrls.ios_open_in_system_browser(canonical)}
+
+  defp iab_escape_target("android_intent", canonical) do
+    {:ok, InAppEscapeUrls.android_chrome_intent(canonical) || canonical}
+  end
+
+  defp iab_escape_target("android_https", canonical), do: {:ok, canonical}
+  defp iab_escape_target("https", canonical), do: {:ok, canonical}
+  defp iab_escape_target(_, _), do: :error
+
+  defp iab_escape_url_allowed?(url) when is_binary(url) do
+    String.starts_with?(url, "x-safari-https://") or
+      String.starts_with?(url, "x-safari-http://") or
+      String.starts_with?(url, "intent://") or
+      String.starts_with?(url, "https://") or
+      String.starts_with?(url, "http://")
+  end
+
+  defp iab_escape_url_allowed?(_), do: false
+
   defp init_sponster_assigns(socket) do
     host_uri =
       case get_connect_info(socket, :uri) do
@@ -173,6 +236,40 @@ defmodule QlariusWeb.QlinkPage.Show do
         MeFileStatsBroadcaster.subscribe_to_me_file_stats(me_file.id)
         Phoenix.PubSub.subscribe(Qlarius.PubSub, "user:#{socket.assigns.current_scope.user.id}")
       end
+    end
+  end
+
+  @impl true
+  def handle_event("iab_escape_dismiss", _params, socket) do
+    :telemetry.execute([:qlarius, :in_app_browser_escape, :dismissed], %{}, %{})
+
+    {:noreply,
+     socket
+     |> assign(:in_app_escape_dismissed, true)
+     |> push_event("iab_escape_store_dismiss", %{})}
+  end
+
+  @impl true
+  def handle_event("iab_escape_client_dismissed", _params, socket) do
+    {:noreply, assign(socket, :in_app_escape_dismissed, true)}
+  end
+
+  @impl true
+  def handle_event("iab_escape_open_external", %{"kind" => kind}, socket) do
+    canonical = socket.assigns[:in_app_escape_canonical_url]
+
+    with true <- is_binary(canonical),
+         {:ok, target} <- iab_escape_target(kind, canonical),
+         true <- iab_escape_url_allowed?(target) do
+      :telemetry.execute(
+        [:qlarius, :in_app_browser_escape, :open_external],
+        %{},
+        %{kind: kind}
+      )
+
+      {:noreply, redirect(socket, external: target)}
+    else
+      _ -> {:noreply, socket}
     end
   end
 

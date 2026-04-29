@@ -170,3 +170,5 @@ config :qlarius, :auth_sheet,
   on_qlink_page: true,
   on_qlinkin_bio: true,
   on_widget_standalone: true
+
+config :qlarius, :in_app_browser_escape, enabled: true, auto_attempt: false

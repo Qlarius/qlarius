@@ -156,6 +156,10 @@ if config_env() == :prod do
     vapid_public_key: System.get_env("VAPID_PUBLIC_KEY"),
     vapid_private_key: System.get_env("VAPID_PRIVATE_KEY"),
     vapid_subject: "mailto:support@qlarius.com"
+
+  config :qlarius, :in_app_browser_escape,
+    enabled: System.get_env("QLARIUS_IN_APP_BROWSER_ESCAPE") in ~w(true 1),
+    auto_attempt: false
 end
 
 # VAPID keys for push notifications (all environments)

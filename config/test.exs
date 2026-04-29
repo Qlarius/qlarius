@@ -45,3 +45,5 @@ config :phoenix_live_view,
 # `Application.put_env/3` + `on_exit/1`. See
 # `Qlarius.Auth.RateLimit`.
 config :qlarius, :auth_rate_limit, enabled?: false
+
+config :qlarius, :in_app_browser_escape, enabled: true, auto_attempt: false

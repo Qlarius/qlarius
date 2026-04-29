@@ -14,6 +14,7 @@ defmodule QlariusWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug QlariusWeb.Plugs.MobileDetection
+    plug QlariusWeb.Plugs.InAppBrowserDetection
     plug :fetch_current_scope_for_user
     plug :allow_iframe
     plug :set_current_path
@@ -27,6 +28,7 @@ defmodule QlariusWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug QlariusWeb.Plugs.MobileDetection
+    plug QlariusWeb.Plugs.InAppBrowserDetection
     plug :fetch_current_scope_for_user
     plug :allow_iframe
     plug :set_current_path
@@ -142,7 +144,8 @@ defmodule QlariusWeb.Router do
 
     live_session :public_qlinkin_bio,
       on_mount: [
-        {QlariusWeb.UserAuth, :mount_current_scope}
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.InAppBrowserMount, :assign_in_app_browser}
       ] do
       live "/@:alias", QlinkPage.Show, :show
     end
@@ -192,7 +195,8 @@ defmodule QlariusWeb.Router do
 
     live_session :public_qlink_authed,
       on_mount: [
-        {QlariusWeb.UserAuth, :mount_current_scope}
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.InAppBrowserMount, :assign_in_app_browser}
       ] do
       live "/@:alias", QlinkPage.Show, :show
     end

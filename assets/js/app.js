@@ -2033,6 +2033,22 @@ Hooks.IframeDetect = {
   }
 }
 
+Hooks.InAppEscapeDismissPersist = {
+  mounted() {
+    try {
+      if (localStorage.getItem("qlarius_iab_escape_dismissed") === "1") {
+        this.pushEvent("iab_escape_client_dismissed", {})
+      }
+    } catch (_e) {}
+
+    this.handleEvent("iab_escape_store_dismiss", () => {
+      try {
+        localStorage.setItem("qlarius_iab_escape_dismissed", "1")
+      } catch (_e) {}
+    })
+  }
+}
+
 // AuthSheet: orchestrates the in-place auth completion handshake.
 //
 //   1. Receives `qadabra:finalize-auth` from the server with the signed

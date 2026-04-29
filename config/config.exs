@@ -56,6 +56,8 @@ config :qlarius,
 # independently so we can enable in-place auth one surface at a time.
 # See docs/qlink_auth_refactor_plan.md §5.5 for semantics. Overridden
 # per-env in dev.exs / runtime.exs.
+config :qlarius, :in_app_browser_escape, enabled: false, auto_attempt: false
+
 config :qlarius, :auth_sheet,
   on_qlink_page: false,
   on_qlinkin_bio: false,
