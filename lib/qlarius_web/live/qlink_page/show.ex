@@ -1483,4 +1483,87 @@ defmodule QlariusWeb.QlinkPage.Show do
 
     assign(socket, :auth_referral_context, context)
   end
+
+  # === REMOVE: QLINK_PROD_DEBUG_OVERLAY — entire defp block + HEEx block (search tag) ===
+
+  @debug_overlay_max_len 4_000
+
+  defp qlink_prod_debug_lines(assigns) when is_map(assigns) do
+    socket = assigns.socket
+    page = assigns[:page]
+    scope = assigns[:current_scope]
+
+    ua = get_user_agent(socket)
+    uri = get_connect_info(socket, :uri)
+    peer = get_connect_info(socket, :peer_data)
+    x_headers = get_connect_info(socket, :x_headers)
+
+    iab = assigns[:in_app_browser]
+    iab_cfg = Application.get_env(:qlarius, :in_app_browser_escape, [])
+
+    auth_cfg = Application.get_env(:qlarius, :auth_sheet, [])
+
+    auth_assigns = %{
+      current_scope: scope,
+      parent_request_uri: assigns[:parent_request_uri]
+    }
+
+    [
+      {"runtime", runtime_env_label()},
+      {"live_connected?", inspect(connected?(socket))},
+      {"live_view_socket_id", socket.id},
+      {"user_ip", inspect(assigns[:user_ip])},
+      {"user_agent", truncate_debug(ua)},
+      {"connect_info.uri", uri_str(uri)},
+      {"connect_info.peer_data", truncate_debug(inspect(peer, limit: 50))},
+      {"connect_info.x_headers", truncate_debug(inspect(x_headers, limit: 30))},
+      {"socket.host_uri", uri_str(socket.host_uri)},
+      {"assigns.parent_request_uri", uri_str(assigns[:parent_request_uri])},
+      {"assigns.interact_url", inspect(assigns[:interact_url])},
+      {"assigns.interact_login_url", inspect(assigns[:interact_login_url])},
+      {"in_app_browser_escape.enabled", inspect(Keyword.get(iab_cfg, :enabled, false))},
+      {"in_app_browser (parsed)", truncate_debug(inspect(iab, structs: false))},
+      {"in_app_escape_canonical_url", inspect(assigns[:in_app_escape_canonical_url])},
+      {"in_app_escape_dismissed", inspect(assigns[:in_app_escape_dismissed])},
+      {"auth_sheet flags", inspect(Keyword.take(auth_cfg, [:on_qlink_page, :on_qlinkin_bio]))},
+      {"auth_sheet_enabled?", inspect(auth_sheet_enabled?(auth_assigns))},
+      {"on_qlinkin_bio_host?", inspect(on_qlinkin_bio_host?(auth_assigns))},
+      {"page.id", page && inspect(page.id)},
+      {"page.alias", page && inspect(page.alias)},
+      {"page.is_published", page && inspect(page.is_published)},
+      {"recipient.id", assigns[:recipient] && inspect(assigns.recipient.id)},
+      {"current_scope (summary)",
+       inspect(
+         %{
+           user_id: scope && scope.user && scope.user.id,
+           true_user_id: scope && Map.get(scope, :true_user) && scope.true_user.id,
+           authed: authed?(scope)
+         },
+         structs: false
+       )},
+      {"show_sponster_drawer", inspect(assigns[:show_sponster_drawer])},
+      {"show_auth_sheet", inspect(assigns[:show_auth_sheet])},
+      {"show_connect_modal", inspect(assigns[:show_connect_modal])}
+    ]
+  end
+
+  defp runtime_env_label do
+    if function_exported?(Mix, :env, 0) do
+      to_string(Mix.env())
+    else
+      "release"
+    end
+  end
+
+  defp uri_str(%URI{} = u), do: URI.to_string(u)
+  defp uri_str(nil), do: "nil"
+  defp uri_str(other), do: inspect(other)
+
+  defp truncate_debug(s) when is_binary(s) do
+    if String.length(s) <= @debug_overlay_max_len,
+      do: s,
+      else: String.slice(s, 0, @debug_overlay_max_len) <> "…(truncated)"
+  end
+
+  defp truncate_debug(other), do: truncate_debug(inspect(other))
 end
