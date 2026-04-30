@@ -14,7 +14,6 @@ defmodule QlariusWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug QlariusWeb.Plugs.MobileDetection
-    plug QlariusWeb.Plugs.InAppBrowserDetection
     plug :fetch_current_scope_for_user
     plug :allow_iframe
     plug :set_current_path
@@ -28,10 +27,22 @@ defmodule QlariusWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug QlariusWeb.Plugs.MobileDetection
-    plug QlariusWeb.Plugs.InAppBrowserDetection
     plug :fetch_current_scope_for_user
     plug :allow_iframe
     plug :set_current_path
+  end
+
+  # Surface-only pipeline for the in-app-browser escape feature. Runs
+  # `InAppBrowserDetection` and nothing else, and is attached **only**
+  # to the Qlink route scopes below — the only surface that renders
+  # the escape UI (`QlinkPage.Show`). Keeps the plug out of the shared
+  # `:browser`/`:widgets` pipelines so it can't touch the main-app
+  # session cookie on unrelated hosts, and makes the "this runs on
+  # Qlink pages" intent explicit at the router level. The plug also
+  # carries an internal host guard as a second line of defense; see
+  # `QlariusWeb.Plugs.InAppBrowserDetection` for details.
+  pipeline :iab_detection do
+    plug QlariusWeb.Plugs.InAppBrowserDetection
   end
 
   # Anonymous browser pipeline for the public Qlink share surface
@@ -140,7 +151,7 @@ defmodule QlariusWeb.Router do
   end
 
   scope "/", QlariusWeb, host: ["qlinkin.bio", "www.qlinkin.bio"] do
-    pipe_through [:browser]
+    pipe_through [:browser, :iab_detection]
 
     live_session :public_qlinkin_bio,
       on_mount: [
@@ -191,7 +202,7 @@ defmodule QlariusWeb.Router do
       "127.0.0.1",
       "qlarius.gigalixirapp.com"
     ] do
-    pipe_through [:browser]
+    pipe_through [:browser, :iab_detection]
 
     live_session :public_qlink_authed,
       on_mount: [

@@ -5,21 +5,38 @@ defmodule QlariusWeb.Plugs.InAppBrowserDetection do
   and the session for the Qlink LiveView `on_mount`
   (`QlariusWeb.InAppBrowserMount`) to read.
 
-  ## Scoping
+  ## Scoping (two layers, defense-in-depth)
 
   **This plug only does work on Qlink hosts.** The IAB-escape feature
   is only surfaced on `QlinkPage.Show` (qlinkin.bio / qlink.qadabra.app
   / dev hosts), so there is no reason to touch the session on
-  `qadabra.app` requests. Running it in the shared `:browser` pipeline
-  for every request to the main app marked the session cookie for
-  rewrite on every hit, which interacted badly with
-  `HostAwareSession`'s `Domain=.qadabra.app` attribute and produced
-  intermittent session loss on `qadabra.app` auth flows.
+  `qadabra.app` or any other main-app request.
 
-  The fix is a host guard that short-circuits the plug on every host
-  that isn't a Qlink surface. The plug stays wired in the shared
-  `:browser` pipeline (no router changes) but is effectively a no-op
-  everywhere except where the feature actually renders.
+  History: the plug originally shipped in the shared `:browser` and
+  `:widgets` pipelines. Every request to `qadabra.app` rewrote the
+  session cookie (via `delete_session("qlarius_iab")` on non-matching
+  UAs), which combined with `HostAwareSession`'s `Domain=.qadabra.app`
+  attribute caused intermittent session loss / auth-flow breakage on
+  the main app.
+
+  Current wiring (post-cleanup):
+
+    1. **Router layer.** The plug is wired *only* into the dedicated
+       `:iab_detection` pipeline, which is attached exclusively to the
+       two Qlink route scopes (qlinkin.bio and qlink.qadabra.app +
+       dev/gigalixir aliases). Every other surface — the main app,
+       widgets, admin, marketer, auth, etc. — never runs this plug.
+
+    2. **Plug layer.** A belt-and-suspenders host guard inside `call/2`
+       short-circuits to a safe no-op on any host that isn't a Qlink
+       surface. If the `:iab_detection` pipeline is ever attached to a
+       non-Qlink scope by mistake, the plug still refuses to touch the
+       session.
+
+  Router changes that touch either layer should keep both in sync —
+  update `@qlink_hosts` here when adding a new Qlink host in the
+  router, and keep the `:iab_detection` pipeline attached only to
+  Qlink scopes.
   """
 
   import Plug.Conn
