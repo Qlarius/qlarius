@@ -548,15 +548,37 @@ defmodule QlariusWeb.Components.AdsComponents do
               />
             </svg>
           </summary>
-          <ul class="dropdown-content menu p-2 shadow bg-base-100 rounded-box absolute mt-1 right-0 z-50 text-right">
+          <ul class="dropdown-content menu p-2 shadow bg-base-100 rounded-box absolute mt-1 right-0 z-50 min-w-max">
             <li>
-              <span class="font-semibold text-base-content">
+              <span class="font-semibold text-base-content flex items-center gap-2 whitespace-nowrap [word-break:keep-all]">
+                <.icon name="hero-user" class="w-4 h-4" />
                 <%= if @user_alias do %>
                   {@user_alias}
                 <% else %>
                   <span class="text-gray-400 italic">No user</span>
                 <% end %>
               </span>
+            </li>
+            <li>
+              <hr class="border-t border-base-300 m-0" />
+            </li>
+            <li>
+              <%!--
+                Fires the shared `show_logout_modal` event (handled by
+                `QlariusWeb.LogoutModalHooks`). The host LV template is
+                responsible for rendering the actual confirmation modal
+                — on Qlink pages that modal posts back to `/logout`
+                with `return_to=/@alias` so the visitor stays on the
+                same Qlink page after sign-out instead of being
+                redirected to `/login`.
+              --%>
+              <button
+                type="button"
+                phx-click="show_logout_modal"
+                class="flex items-center gap-2 whitespace-nowrap text-base-content"
+              >
+                <.icon name="hero-arrow-right-on-rectangle" class="w-4 h-4" /> Log out
+              </button>
             </li>
           </ul>
         </details>

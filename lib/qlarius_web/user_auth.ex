@@ -130,7 +130,16 @@ defmodule QlariusWeb.UserAuth do
     conn
   end
 
-  def log_out_user(conn) do
+  @doc """
+  Clears the user's session (DB token, session cookie, remember-me
+  cookie) and redirects to `/login` by default.
+
+  Pass `to: "/some/path"` to redirect somewhere else after logout —
+  used by the Qlink-page "Log out" surface to drop the visitor back on
+  the same Qlink page as an anonymous viewer rather than bouncing
+  them to the generic `/login` screen.
+  """
+  def log_out_user(conn, opts \\ []) do
     user_token = get_session(conn, :user_token)
     user_token && Accounts.delete_user_session_token(user_token)
 
@@ -138,10 +147,12 @@ defmodule QlariusWeb.UserAuth do
       QlariusWeb.Endpoint.broadcast(live_socket_id, "disconnect", %{})
     end
 
+    redirect_to = Keyword.get(opts, :to, ~p"/login")
+
     conn
     |> renew_session()
     |> delete_resp_cookie(@remember_me_cookie, delete_remember_me_options(conn))
-    |> redirect(to: ~p"/login")
+    |> redirect(to: redirect_to)
   end
 
   # `delete_resp_cookie` only evicts a cookie whose `Domain`, `Path`,

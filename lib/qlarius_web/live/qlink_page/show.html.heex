@@ -645,4 +645,39 @@
       on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
     />
   <% end %>
+
+  <%!--
+    Logout confirmation modal (Qlink-page flavor). Mirrors the main
+    app's modal in `QlariusWeb.Layouts` but posts to `/logout` with a
+    `return_to=/@alias` hidden field so the visitor lands back on the
+    same Qlink page as an anonymous viewer — the page "refreshes" into
+    its unauthed state without bouncing to `/login`. The
+    `show_logout_modal` and `cancel_logout` events are handled
+    globally by `QlariusWeb.LogoutModalHooks`.
+  --%>
+  <%= if @current_scope && assigns[:show_logout_modal] do %>
+    <.modal
+      id="qlink-logout-modal"
+      show={true}
+      on_cancel={JS.push("cancel_logout")}
+    >
+      <div class="border-2 border-primary rounded-box">
+        <div class="bg-base-200 px-6 py-4 rounded-t-box">
+          <h3 class="font-bold text-lg">Confirm Logout</h3>
+        </div>
+        <div class="p-6">
+          <p class="py-4">Are you sure you want to log out?</p>
+          <div class="modal-action">
+            <button class="btn btn-ghost" phx-click="cancel_logout">Cancel</button>
+            <form action={~p"/logout"} method="post">
+              <input type="hidden" name="_method" value="delete" />
+              <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+              <input type="hidden" name="return_to" value={"/@" <> @page.alias} />
+              <button type="submit" class="btn btn-error">Log Out</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </.modal>
+  <% end %>
 </div>
