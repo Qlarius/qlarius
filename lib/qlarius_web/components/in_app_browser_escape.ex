@@ -45,16 +45,31 @@ defmodule QlariusWeb.Components.InAppBrowserEscape do
             <.icon name="hero-x-mark" class="w-5 h-5" />
           </button>
         </div>
+
         <p class="px-4 py-3 text-sm text-base-content/80">
-          Wallet and payments work best in Safari or Chrome. Use the button below, or copy the link and paste it into your browser.
+          Should work fine here, but works better in your browser. Tap the menu
+          <kbd class="kbd kbd-sm align-middle">⋯</kbd>
+          → <span class="font-semibold">Open in Browser</span>.
         </p>
+
         <div class="px-4 pb-4 flex flex-col gap-2">
           <%= case @in_app_browser.os do %>
             <% :ios -> %>
+              <%!--
+                iOS button no longer routes through the LiveView handler
+                because Meta's webviews (IG/FB) currently block single-shot
+                `x-safari-https://` redirects on iOS 26.x+. The JS hook
+                attempts multiple schemes in quick succession, watches the
+                Page Visibility API, and falls back to the "⋯ menu" hint
+                below if nothing happened. Android keeps the server path
+                because `intent://…` to Chrome still works reliably.
+              --%>
               <button
                 type="button"
-                phx-click="iab_escape_open_external"
-                phx-value-kind="ios"
+                id="iab-escape-ios-btn"
+                phx-hook="IabEscapeIos"
+                data-canonical-url={@canonical_url}
+                data-fail-hint-id="iab-escape-fail-hint"
                 class="btn btn-primary btn-block rounded-xl"
               >
                 Open in Safari
@@ -89,24 +104,24 @@ defmodule QlariusWeb.Components.InAppBrowserEscape do
                 Open in browser
               </button>
           <% end %>
-          <div class="flex gap-2 items-stretch">
-            <input
-              id="iab-escape-url-field"
-              type="text"
-              readonly
-              class="input input-bordered input-sm flex-1 font-mono text-xs"
-              value={@canonical_url}
-            />
-            <button
-              type="button"
-              id="iab-escape-copy-btn"
-              class="btn btn-outline btn-sm shrink-0"
-              phx-hook="CopyToClipboard"
-              data-target="iab-escape-url-field"
-            >
-              Copy
-            </button>
+
+          <%!--
+            Revealed by the `IabEscapeIos` hook when the multi-scheme
+            handoff doesn't move the user out of the webview within
+            ~1.5s. We deliberately don't offer copy-link here — users
+            can reach the webview's own "Open in Browser" in fewer
+            taps than a paste round-trip.
+          --%>
+          <div
+            id="iab-escape-fail-hint"
+            class="hidden rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-base-content"
+            role="status"
+            aria-live="polite"
+          >
+            Didn't open? Tap <kbd class="kbd kbd-sm align-middle">⋯</kbd>
+            in the top right → <span class="font-semibold">Open in Browser</span>.
           </div>
+
           <button type="button" phx-click="iab_escape_dismiss" class="btn btn-ghost btn-sm">
             Continue here anyway
           </button>

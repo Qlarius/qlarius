@@ -2049,6 +2049,95 @@ Hooks.InAppEscapeDismissPersist = {
   }
 }
 
+// Multi-attempt iOS handoff to Safari. Meta's webviews on iOS 26.x+
+// block single-shot `x-safari-https://` redirects, so we fire several
+// variants in quick succession and watch the Page Visibility API. If
+// the app still hasn't backgrounded after ~1500 ms we surface an
+// inline hint that points the user at the webview's own "⋯ → Open in
+// Browser" menu — the only 100%-reliable path on current Instagram.
+//
+// Android is intentionally NOT handled here; the server-side
+// `intent://…;package=com.android.chrome;…` redirect still works
+// reliably and doesn't need the multi-try dance.
+Hooks.IabEscapeIos = {
+  mounted() {
+    this.clickHandler = (e) => {
+      e.preventDefault()
+      this.attempt()
+    }
+    this.el.addEventListener("click", this.clickHandler)
+  },
+
+  destroyed() {
+    if (this.clickHandler) {
+      this.el.removeEventListener("click", this.clickHandler)
+    }
+    this.cleanupVisibility()
+    this.clearTimers()
+  },
+
+  attempt() {
+    const url = this.el.dataset.canonicalUrl
+    if (!url) return
+
+    const stripped = url.replace(/^https?:\/\//, "")
+    const xSafari = "x-safari-https://" + stripped
+    const legacy = "com-apple-mobilesafari-tab:" + url
+
+    this.escaped = false
+    this.onVisibility = () => {
+      if (document.hidden) this.escaped = true
+    }
+    document.addEventListener("visibilitychange", this.onVisibility)
+
+    // Attempt 1 (t=0): direct href swap. Still works in older IG/FB,
+    // Messenger, Threads, LinkedIn webviews.
+    try { window.location.href = xSafari } catch (_e) {}
+
+    // Attempt 2 (t=300): `window.open` variant. This briefly worked
+    // around Meta's block around IG 418; some users on older app
+    // versions will still land in Safari via this path.
+    this.t2 = setTimeout(() => {
+      if (this.escaped) return
+      try { window.open(xSafari, "_blank") } catch (_e) {}
+    }, 300)
+
+    // Attempt 3 (t=700): legacy scheme for pre-iOS 17 devices.
+    this.t3 = setTimeout(() => {
+      if (this.escaped) return
+      try { window.location.href = legacy } catch (_e) {}
+    }, 700)
+
+    // t=1500: give up and surface the manual "⋯ menu" hint. If the
+    // app actually did background we skip this (user will come back
+    // to the Qlink page already in Safari, no hint needed).
+    this.tFail = setTimeout(() => {
+      this.cleanupVisibility()
+      if (this.escaped) return
+      this.showFailHint()
+    }, 1500)
+  },
+
+  showFailHint() {
+    const id = this.el.dataset.failHintId
+    if (!id) return
+    const hint = document.getElementById(id)
+    if (hint) hint.classList.remove("hidden")
+  },
+
+  cleanupVisibility() {
+    if (this.onVisibility) {
+      document.removeEventListener("visibilitychange", this.onVisibility)
+      this.onVisibility = null
+    }
+  },
+
+  clearTimers() {
+    [this.t2, this.t3, this.tFail].forEach((t) => { if (t) clearTimeout(t) })
+    this.t2 = this.t3 = this.tFail = null
+  }
+}
+
 // AuthSheet: orchestrates the in-place auth completion handshake.
 //
 //   1. Receives `qadabra:finalize-auth` from the server with the signed

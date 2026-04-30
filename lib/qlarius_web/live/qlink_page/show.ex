@@ -129,6 +129,10 @@ defmodule QlariusWeb.QlinkPage.Show do
     assign(socket, :in_app_escape_canonical_url, build_canonical_escape_url(socket))
   end
 
+  # `socket.host_uri` only carries scheme/host/port, so we rebuild the
+  # full Qlink URL from `page.alias` instead of trusting the URI's own
+  # path (which is usually nil on connected mount and would collapse to
+  # "/", landing the visitor on the homepage in the external browser).
   defp build_canonical_escape_url(socket) do
     uri =
       case socket.host_uri do
@@ -142,9 +146,17 @@ defmodule QlariusWeb.QlinkPage.Show do
           end
       end
 
-    case uri do
-      nil -> nil
-      %URI{} = u -> URI.to_string(%{u | path: u.path || "/"})
+    page = socket.assigns[:page]
+
+    case {uri, page} do
+      {%URI{} = u, %{alias: alias_str}} when is_binary(alias_str) and alias_str != "" ->
+        URI.to_string(%{u | path: "/@" <> alias_str})
+
+      {%URI{} = u, _} ->
+        URI.to_string(%{u | path: u.path || "/"})
+
+      _ ->
+        nil
     end
   end
 
