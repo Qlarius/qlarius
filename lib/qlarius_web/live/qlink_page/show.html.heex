@@ -645,28 +645,4 @@
       on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
     />
   <% end %>
-
-  <%!-- === REMOVE: QLINK_PROD_DEBUG_OVERLAY (start) — temporary on-page production debugging; delete this block and qlink_prod_debug_lines/1 in show.ex === --%>
-  <aside
-    id="qlink-prod-debug-overlay"
-    class="fixed bottom-0 left-0 right-0 z-[200] max-h-[45vh] overflow-hidden border-t-2 border-amber-500 bg-neutral text-left shadow-[0_-4px_24px_rgba(0,0,0,0.4)] font-mono text-[10px] leading-tight text-amber-100"
-    aria-label="Temporary debug panel"
-  >
-    <details open class="group max-h-[45vh] overflow-y-auto">
-      <summary class="cursor-pointer select-none bg-amber-600 px-2 py-1.5 text-xs font-bold text-neutral sticky top-0 z-[1]">
-        TEMP DEBUG — REMOVE (search QLINK_PROD_DEBUG_OVERLAY)
-      </summary>
-      <dl class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-x-2 gap-y-0.5 px-2 py-2 break-all">
-        <%= for {k, v} <- qlink_prod_debug_lines(assigns) do %>
-          <dt class="text-amber-400/90 shrink-0 border-b border-neutral-content/10 py-0.5 pr-1 font-semibold">
-            {k}
-          </dt>
-          <dd class="border-b border-neutral-content/10 py-0.5 text-neutral-content">
-            {v}
-          </dd>
-        <% end %>
-      </dl>
-    </details>
-  </aside>
-  <%!-- === REMOVE: QLINK_PROD_DEBUG_OVERLAY (end) === --%>
 </div>
