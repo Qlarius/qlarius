@@ -123,21 +123,12 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
     <% else %>
       <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-3 py-2 rounded-lg border-1 border-base-300">
         <div class="flex flex-row flex-wrap justify-between items-center space-x-4">
-          <div class="flex flex-row items-center justify-center">
-            <span
-              id={@id}
-              class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content/60 dark:text-sponster-200/90 px-3 py-1 rounded-lg border border-sponster-300 dark:border-sponster-500"
-            >
-              <span class="font-bold">{format_usd_or_dashes(nil)}</span>
-            </span>
-            <span class="font-normal text-base-content/60 ml-2 mr-3">to spend</span>
-          </div>
 
           <%= if @on_click do %>
             <button
               type="button"
               phx-click={@on_click}
-              class="btn btn-md rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 leading-none"
+              class="btn-widget btn-md rounded-full leading-none"
             >
               <.icon name="hero-wallet" class="w-4 h-4 mr-1" />
               <span class="font-bold">Connect wallet</span>
@@ -146,7 +137,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
             <.link
               href={Urls.interact_login_url()}
               target="_top"
-              class="btn btn-md rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 leading-none"
+              class="btn-widget btn-md rounded-full leading-none"
             >
               <.icon name="hero-wallet" class="w-4 h-4 mr-1" />
               <span class="font-bold">Connect wallet</span>
@@ -187,8 +178,8 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
     ~H"""
     <.modal :if={@show} id={@id} on_cancel={@on_cancel} show>
       <div class="flex flex-col items-center text-center space-y-4 p-8">
-        <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-          <.icon name="hero-wallet" class="w-8 h-8 text-primary" />
+        <div class="w-16 h-16 rounded-full bg-widget-100 flex items-center justify-center">
+          <.icon name="hero-wallet" class="w-8 h-8 text-widget-700" />
         </div>
         <h2 class="text-xl font-bold text-base-content">{@title}</h2>
         <p class="text-base-content/70 max-w-sm">{@message}</p>
@@ -196,7 +187,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
           <button
             type="button"
             phx-click={@on_click}
-            class="btn btn-primary btn-lg btn-block rounded-full"
+            class="btn-widget btn-lg btn-block rounded-full"
           >
             <.icon name="hero-arrow-right-on-rectangle" class="w-5 h-5 mr-2" /> Connect your wallet
           </button>
@@ -204,7 +195,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
           <.link
             href={Urls.interact_login_url()}
             target="_top"
-            class="btn btn-primary btn-lg btn-block rounded-full"
+            class="btn-widget btn-lg btn-block rounded-full"
           >
             <.icon name="hero-arrow-right-on-rectangle" class="w-5 h-5 mr-2" /> Connect your wallet
           </.link>

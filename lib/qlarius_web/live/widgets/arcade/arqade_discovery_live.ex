@@ -73,7 +73,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
               <.link
                 :for={catalog <- @catalogs}
                 navigate={"#{@base_path}/arqade/catalog/#{catalog.id}"}
-                class="bg-base-200 rounded-xl overflow-hidden border border-base-300 hover:border-primary/50 transition-all cursor-pointer block"
+                class="bg-base-200 rounded-xl overflow-hidden border border-base-300 hover:border-widget-400 transition-all cursor-pointer block"
               >
                 <div class="flex gap-4 p-4">
                   <img
@@ -89,7 +89,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
                     </div>
                     <% price_info = catalog_price_info(catalog) %>
                     <div :if={price_info} class="text-xs font-medium mt-1">
-                      <span :if={price_info.min_price} class="text-primary">from {price_info.min_price}</span>
+                      <span :if={price_info.min_price} class="text-widget-700">from {price_info.min_price}</span>
                       <span :if={price_info.min_price && price_info.free_count > 0} class="text-base-content/50">·</span>
                       <span :if={price_info.free_count > 0} class="text-base-content/50">
                         Includes {price_info.free_count} FREE {pluralize(to_string(catalog.piece_type), price_info.free_count)}
@@ -108,7 +108,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
               <.link
                 :for={group <- @groups}
                 navigate={"#{@base_path}/arqade/group/#{group.id}"}
-                class="bg-base-200 rounded-lg overflow-hidden border border-base-300 hover:border-primary/50 transition-all cursor-pointer block"
+                class="bg-base-200 rounded-lg overflow-hidden border border-base-300 hover:border-widget-400 transition-all cursor-pointer block"
               >
                 <div class="flex gap-3 p-3">
                   <img

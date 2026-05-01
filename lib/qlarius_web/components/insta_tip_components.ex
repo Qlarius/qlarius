@@ -117,7 +117,7 @@ defmodule QlariusWeb.InstaTipComponents do
         <div class="space-y-4">
           <h2 class="text-xl font-bold text-base-content">Confirm Tip</h2>
           <div class="text-center">
-            <div class="text-3xl font-bold text-primary mb-2">
+            <div class="text-3xl font-bold text-sponster-600 dark:text-sponster-300 mb-2">
               {format_usd(@amount)}
             </div>
             <div class="text-base-content/70">
@@ -129,14 +129,14 @@ defmodule QlariusWeb.InstaTipComponents do
         <div class="bg-base-200 rounded-lg p-4 space-y-2">
           <div class="flex justify-between items-center">
             <span class="text-sm text-base-content/70">Wallet:</span>
-            <span class="inline-flex items-center w-auto text-lg bg-sponster-200 text-base-content px-3 py-1 rounded-lg border border-sponster-300">
+            <span class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content dark:text-sponster-100 px-3 py-1 rounded-lg border border-sponster-300 dark:border-sponster-500">
               <span class="font-bold">{format_usd(@current_balance)}</span>
             </span>
           </div>
           <div class="flex justify-between items-center">
             <span class="text-sm text-base-content/70">After Tip:</span>
-            <span class="inline-flex items-center w-auto text-lg bg-sponster-200 text-base-content/60 px-3 py-1 ml-3 rounded-lg border border-dashed border-sponster-500">
-              <span class="font-bold opacity-80">
+            <span class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content dark:text-sponster-100 px-3 py-1 ml-3 rounded-lg border border-dashed border-sponster-500 dark:border-sponster-400">
+              <span class="font-bold text-base-content/90 dark:text-sponster-100/90">
                 {format_usd(Decimal.sub(@current_balance, @amount))}
               </span>
             </span>
@@ -149,7 +149,7 @@ defmodule QlariusWeb.InstaTipComponents do
             phx-click="confirm_insta_tip"
             phx-value-amount={@amount}
             phx-value-recipient-id={@recipient_id}
-            class="btn btn-primary flex-1 font-bold rounded-full"
+            class="btn-widget flex-1 font-bold rounded-full"
           >
             TIP
           </button>
@@ -178,14 +178,14 @@ defmodule QlariusWeb.InstaTipComponents do
           <div class="text-5xl mb-2">✓</div>
           <h2 class="text-xl font-bold text-success">Thank you!</h2>
           <p class="text-base-content">
-            Your tip of <span class="font-bold text-primary">{format_usd(@amount)}</span>
+            Your tip of <span class="font-bold text-sponster-600 dark:text-sponster-300">{format_usd(@amount)}</span>
             to <span class="font-semibold">{@recipient_name}</span> was sent.
           </p>
         </div>
         <button
           type="button"
           phx-click="close-insta-tip-thanks-modal"
-          class="btn btn-primary rounded-full"
+          class="btn-widget rounded-full"
         >
           Done
         </button>

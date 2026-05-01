@@ -58,7 +58,7 @@
             type="button"
             phx-click="open-tiqit-content"
             phx-target={@embed_phx_id && "#" <> @embed_phx_id}
-            class="btn btn-neutral btn-lg rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 w-full max-w-sm"
+            class="btn-widget btn-lg rounded-full w-full max-w-sm"
           >
             <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
           </button>
@@ -69,7 +69,7 @@
                 do: "#{@base_path}/content/#{@piece.id}?force_theme=#{@force_theme}",
                 else: "#{@base_path}/content/#{@piece.id}"
             }
-            class="btn btn-neutral btn-lg rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 w-full max-w-sm"
+            class="btn-widget btn-lg rounded-full w-full max-w-sm"
           >
             <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
           </.link>
@@ -132,7 +132,7 @@
                     phx-click="select-tiqit-class"
                     phx-value-tiqit-class-id={@default_tiqit_class.id}
                     disabled={is_authed && !can_afford}
-                    class={"btn btn-lg rounded-full #{if btn_enabled, do: "btn-primary", else: "btn-disabled opacity-50 cursor-not-allowed"}"}
+                    class={"btn-widget btn-widget-emphasis btn-lg rounded-full #{if btn_enabled, do: "", else: "btn-disabled"}"}
                   >
                     {if Decimal.eq?(@default_tiqit_class.price, 0), do: "Get", else: "Buy"} Tiqit •
                     <span class="font-bold">{format_usd(@default_tiqit_class.price, zero_free: true)}</span>
@@ -146,7 +146,7 @@
                     <button
                       type="button"
                       phx-click="browse-tiqit-options"
-                      class="text-sm text-base-content/60 underline underline-offset-2 hover:text-primary"
+                      class="btn-widget-ghost btn-sm rounded-full"
                     >
                       See all Tiqit options
                     </button>
@@ -240,16 +240,16 @@
         <button
           phx-click="purchase-tiqit"
           phx-value-tiqit-class-id={@selected_tiqit_class.id}
-          class="btn btn-primary btn-lg btn-block rounded-full"
+          class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
         >
           <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm •
           <span class="font-bold">{format_usd(assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price, zero_free: true)}</span>
         </button>
       </div>
       <%= if assigns[:selected_tiqit_class_credit] && Decimal.gt?(assigns.selected_tiqit_class_credit, 0) do %>
-        <div class="alert bg-primary/20 border border-primary mt-2 py-2 justify-center">
+        <div class="alert bg-widget-100 border border-widget-300 mt-2 py-2 justify-center">
           <span class="text-sm flex items-center gap-1">
-            <.icon name="hero-sparkles-solid" class="h-4 w-4 text-primary" />
+            <.icon name="hero-sparkles-solid" class="h-4 w-4 text-widget-700" />
             TiqitUp discount of {format_usd(@selected_tiqit_class_credit)} applied. ({@selected_tiqit_class_active_count} active {if @selected_tiqit_class_active_count == 1, do: "tiqit", else: "tiqits"})          </span>
         </div>
       <% end %>

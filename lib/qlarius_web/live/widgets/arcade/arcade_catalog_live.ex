@@ -85,7 +85,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
             <.link
               :for={group <- @groups}
               navigate={"#{@base_path}/arqade/group/#{group.id}"}
-              class="bg-base-200 rounded-lg p-4 border border-base-300 hover:border-primary/50 hover:bg-base-200/80 transition-all cursor-pointer block"
+              class="bg-base-200 rounded-lg p-4 border border-base-300 hover:border-widget-400 hover:bg-base-200/80 transition-all cursor-pointer block"
             >
               <div class="flex gap-4 items-start">
                 <img
@@ -100,7 +100,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
                   </p>
                   <% price_info = group_price_info(group) %>
                   <p :if={price_info} class="text-xs font-medium mt-1">
-                    <span :if={price_info.min_price} class="text-primary">from {price_info.min_price}</span>
+                    <span :if={price_info.min_price} class="text-widget-700">from {price_info.min_price}</span>
                     <span :if={price_info.min_price && price_info.free_count > 0} class="text-base-content/50">·</span>
                     <span :if={price_info.free_count > 0} class="text-base-content/50">
                       Includes {price_info.free_count} FREE {if price_info.free_count == 1, do: @catalog.piece_type, else: pluralize(@catalog.piece_type)}

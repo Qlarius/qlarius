@@ -793,8 +793,8 @@ defmodule QlariusWeb.CoreComponents do
           phx-value-recipient-id={@recipient_id}
           disabled={!enabled}
           class={[
-            "btn btn-circle btn-lg font-bold p-8",
-            if(enabled, do: "btn-primary hover:btn-primary-focus", else: "btn-disabled")
+            "btn-widget btn-circle btn-lg font-bold p-8",
+            if(enabled, do: "", else: "btn-disabled")
           ]}
         >
           <span>

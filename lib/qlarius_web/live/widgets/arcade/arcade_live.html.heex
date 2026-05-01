@@ -31,14 +31,21 @@
     @inline? && "rounded-2xl border border-neutral/50 overflow-hidden bg-base-100"
   ]}>
   <div class={"w-full flex flex-col relative #{if @base_path == "", do: "h-full", else: "h-screen"}"}>
-    <%= if @group.show_open_in_tab && @base_path == "/widgets" do %>
+    <%= if @group.show_open_in_tab && (@base_path == "/widgets" || @inline?) do %>
       <a
         id="open-in-tab-btn"
-        href={"#{@base_path}/arqade/group/#{@group.id}"}
+        href={
+          cond do
+            @base_path == "/widgets" -> "#{@base_path}/arqade/group/#{@group.id}"
+            authed?(@current_scope) -> ~p"/arqade/group/#{@group.id}"
+            true -> "/widgets/arqade/group/#{@group.id}"
+          end
+        }
         target="_blank"
+        rel="noopener noreferrer"
         class="absolute top-2 right-2 z-50 btn btn-ghost btn-sm btn-circle bg-base-200/80 hover:bg-base-300 text-base-content/60 hover:text-base-content"
-        title="Open in new tab"
-        phx-hook="HideIfNotIframe"
+        title="Open in new tab (full screen)"
+        phx-hook="HideOpenInTabWhenFullscreen"
       >
         <.icon name="hero-arrow-top-right-on-square" class="w-5 h-5" />
       </a>
@@ -70,16 +77,26 @@
     <div class="flex-1 bg-base-100 text-base-content min-h-0 flex flex-col md:!flex-row">
       <%!-- Selected content piece - STATIONARY --%>
       <div class="w-full md:!w-1/2 md:p-5 flex flex-col flex-none overflow-visible md:overflow-y-auto">
-        <div class="bg-base-100 rounded-lg p-4 flex-shrink-0 min-w-0">
-          <div class="flex flex-row gap-3 sm:gap-4 items-end">
-            <img
-              src={content_image_url(@selected_piece, @group)}
-              alt={@selected_piece.title}
-              class="shrink-0 h-auto w-auto max-h-[200px] object-contain rounded-lg max-w-[min(6.5rem,42%)] sm:max-w-[12rem] md:max-w-[15rem] lg:max-w-[18rem] xl:max-w-[20rem]"
-            />
-            <div class="min-w-0 flex-1 flex flex-col min-h-0">
-              <p class="text-lg font-semibold mb-1 leading-tight">{@selected_piece.title}</p>
-              <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-base-content/50 text-xs">
+        <div class="bg-base-100 rounded-lg p-4 md:!p-0 flex-shrink-0 min-w-0">
+          <%!--
+            Hero thumb width must track the *column* (embed card), not the viewport:
+            `sm:/md:/lg:` max-widths looked fine full-screen but starved title text when
+            the widget lived in a narrow host (e.g. qlink). `clamp()` ties size to % of
+            this flex row while capping absolute growth.
+          --%>
+          <div class="flex flex-row gap-3 sm:gap-4 items-stretch min-w-0">
+            <div class="shrink-0 self-start w-[clamp(5rem,34%,8.5rem)] max-w-[42%]">
+              <img
+                src={content_image_url(@selected_piece, @group)}
+                alt={@selected_piece.title}
+                class="block w-full h-auto max-h-[12rem] object-contain rounded-lg"
+              />
+            </div>
+            <div class="min-w-0 flex-1 flex flex-col gap-1.5 min-h-0">
+              <p class="text-base sm:text-lg font-semibold leading-snug text-base-content [overflow-wrap:anywhere] shrink-0">
+                {@selected_piece.title}
+              </p>
+              <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-base-content/50 text-xs shrink-0">
                 <span class="flex items-center gap-1">
                   <.icon name="hero-clock" class="w-3 h-3" />{@selected_piece.duration}
                 </span>
@@ -87,49 +104,49 @@
                   <.icon name="hero-calendar" class="w-3 h-3" />{Calendar.strftime(@selected_piece.inserted_at, "%b %d, %Y")}
                 </span>
               </div>
-            </div>
-          </div>
-          <%= if String.trim(@selected_piece.description || "") != "" do %>
-            <div class="mt-3 relative w-full min-w-0 min-h-0">
-              <p
-                class="text-xs text-base-content/70 line-clamp-3 [overflow-wrap:anywhere] break-words w-full min-w-0"
-                style="line-height: 1.15rem;"
-              >
-                {description_preview_text(@selected_piece.description)}
-              </p>
-              <%= if description_exceeds_preview?(@selected_piece.description) do %>
-                <%!-- top-start, full ref, end tail, 0.5 cap; :content tight to first node. --%>
-                <.popover
-                  id={"arcade-selected-desc-#{@selected_piece.id}"}
-                  placement="top-start"
-                  position_strategy="fixed"
-                  arrow_align="end"
-                  floating_width_cap_frac_md="0.5"
-                  trigger_type="click"
-                  offset={4}
-                  shift_padding={28}
-                  flip={false}
-                  root_class="absolute left-0 right-0 bottom-0 z-20 w-full min-w-0 block pointer-events-none"
-                  trigger_class="group w-full min-w-0 flex justify-end pointer-events-none *:pointer-events-auto"
-                  class="w-auto min-w-0 !box-border !pointer-events-auto shadow-xl flex flex-col min-h-0"
-                >
-                  <:trigger>
-                    <button
-                      type="button"
-                      class="btn btn-xs h-auto min-h-0 !bg-base-200 px-2 py-0.5 font-medium !text-primary no-underline hover:no-underline hover:!bg-base-300 !border border-base-300 rounded-md whitespace-nowrap shadow-sm"
+              <%= if String.trim(@selected_piece.description || "") != "" do %>
+                <div class="relative w-full min-w-0 flex-1 flex flex-col min-h-0">
+                  <p
+                    class="text-xs text-base-content/70 line-clamp-3 [overflow-wrap:anywhere] break-words w-full min-h-0 md:line-clamp-none md:flex-1 md:overflow-y-auto"
+                    style="line-height: 1.15rem;"
+                  >
+                    {description_preview_text(@selected_piece.description)}
+                  </p>
+                  <%= if description_exceeds_preview?(@selected_piece.description) do %>
+                    <%!-- top-start, full ref, end tail, 0.5 cap; :content tight to first node. --%>
+                    <.popover
+                      id={"arcade-selected-desc-#{@selected_piece.id}"}
+                      placement="top-start"
+                      position_strategy="fixed"
+                      arrow_align="end"
+                      floating_width_cap_frac_md="0.5"
+                      trigger_type="click"
+                      offset={4}
+                      shift_padding={28}
+                      flip={false}
+                      root_class="absolute left-0 right-0 bottom-0 z-20 w-full min-w-0 block pointer-events-none"
+                      trigger_class="group w-full min-w-0 flex justify-end pointer-events-none *:pointer-events-auto"
+                      class="w-auto min-w-0 !box-border !pointer-events-auto shadow-xl flex flex-col min-h-0"
                     >
-                      <span data-popover-toggle-label="show">Show full</span>
-                      <span data-popover-toggle-label="hide" class="hidden">Hide full</span>
-                    </button>
-                  </:trigger>
-                  <:content><p
-                    class="p-2 sm:p-2.5 min-h-0 flex-1 overflow-y-auto text-xs sm:text-sm text-base-content/90 leading-snug whitespace-pre-line [overflow-wrap:anywhere]"
-                    style="line-height: 1.2rem;"
-                  >{String.trim(@selected_piece.description || "")}</p></:content>
-                </.popover>
+                      <:trigger>
+                        <button
+                          type="button"
+                          class="btn btn-xs h-auto min-h-0 !bg-widget-100 !text-widget-800 !border-widget-300 px-2 py-0.5 font-medium no-underline hover:no-underline hover:!bg-widget-200 hover:!text-widget-900 hover:!border-widget-400 rounded-md whitespace-nowrap shadow-sm"
+                        >
+                          <span data-popover-toggle-label="show">Show full</span>
+                          <span data-popover-toggle-label="hide" class="hidden">Hide full</span>
+                        </button>
+                      </:trigger>
+                      <:content><p
+                        class="p-2 sm:p-2.5 min-h-0 flex-1 overflow-y-auto text-xs sm:text-sm text-base-content/90 leading-snug whitespace-pre-line [overflow-wrap:anywhere]"
+                        style="line-height: 1.2rem;"
+                      >{String.trim(@selected_piece.description || "")}</p></:content>
+                    </.popover>
+                  <% end %>
+                </div>
               <% end %>
             </div>
-          <% end %>
+          </div>
 
           <div class="flex flex-col justify-between mt-6 gap-4 align-middle text-center">
             <%!--
@@ -154,7 +171,7 @@
                     type="button"
                     phx-click="open-tiqit-content"
                     phx-target={@embed_phx_id && "#" <> @embed_phx_id}
-                    class="btn btn-neutral btn-lg btn-block rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600"
+                    class="btn-widget btn-lg btn-block rounded-full"
                   >
                     <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
                   </button>
@@ -165,7 +182,7 @@
                         do: "#{@base_path}/content/#{@selected_piece.id}?force_theme=#{@force_theme}",
                         else: "#{@base_path}/content/#{@selected_piece.id}"
                     }
-                    class="btn btn-neutral btn-lg btn-block rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600"
+                    class="btn-widget btn-lg btn-block rounded-full"
                   >
                     <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
                   </.link>
@@ -183,7 +200,7 @@
                   phx-click="select-tiqit-class"
                   phx-value-tiqit-class-id={default_tc.id}
                   disabled={is_authed && !can_afford}
-                  class={"btn btn-lg btn-block rounded-full #{if btn_enabled, do: "btn-primary", else: "btn-disabled opacity-50 cursor-not-allowed"}"}
+                  class={"btn-widget btn-widget-emphasis btn-lg btn-block rounded-full #{if btn_enabled, do: "", else: "btn-disabled"}"}
                 >
                   {if Decimal.eq?(default_tc.price, 0), do: "Get", else: "Buy"} Tiqit •
                   <span class="font-bold">{format_usd(default_tc.price, zero_free: true)}</span>
@@ -197,7 +214,7 @@
                   <button
                     type="button"
                     phx-click="browse-tiqit-options"
-                    class="text-sm text-base-content/60 underline underline-offset-2 hover:text-primary"
+                    class="btn-widget-ghost btn-sm rounded-full"
                   >
                     See all Tiqit options
                   </button>
@@ -217,7 +234,6 @@
             <% end %>
           </div>
           <div class="flex flex-row justify-center items-center mt-4 mb-1">
-            <div class="text-base-content/40 text-xs mr-1">Powered by</div>
             <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
           </div>
         </div>
@@ -245,39 +261,39 @@
             href="#"
             phx-click="select-content"
             phx-value-content-id={piece.id}
-            class={"rounded-lg p-3 flex gap-3 border transition-all hover:shadow-sm block
-            #{if piece.id == @selected_piece.id, do: "bg-primary/10 border-primary text-primary", else: "bg-base-100 border-base-300 hover:bg-base-200"}"}
+            class={"rounded-lg p-3 flex gap-3 items-stretch border-2 border-solid transition-colors hover:shadow-sm
+            #{if piece.id == @selected_piece.id, do: "bg-widget-100 border-widget-700 shadow-sm", else: "bg-base-100 border-base-200 hover:border-base-300 hover:bg-base-200"}"}
           >
             <%= if @group.show_piece_thumbnails do %>
-              <div class="flex-shrink-0 w-20">
-                <img
-                  src={content_image_url(piece, @group)}
-                  alt={piece.title}
-                  class="w-full h-auto object-cover rounded-lg"
-                />
-                <div class="mt-1 text-base-content/50 text-[10px]">
-                  <span class="flex items-center gap-1">
-                    <.icon name="hero-clock" class="w-2.5 h-2.5" />{piece.duration}
-                  </span>
-                </div>
-              </div>
+              <img
+                src={content_image_url(piece, @group)}
+                alt={piece.title}
+                class="shrink-0 self-start w-16 sm:w-20 aspect-square object-cover rounded-md"
+              />
             <% end %>
-            <div class="flex-1 min-w-0 flex flex-col">
-              <p class="text-sm font-semibold leading-tight text-base-content">
-                {piece.title}
-              </p>
+            <div class="min-w-0 flex-1 flex flex-col gap-0">
+              <div class="flex flex-row gap-2 items-start justify-between min-w-0">
+                <div class="min-w-0 flex-1 flex flex-col gap-0.5">
+                  <p class="text-sm font-semibold leading-snug line-clamp-2 text-base-content [overflow-wrap:anywhere]">
+                    {piece.title}
+                  </p>
+                  <div class="flex items-center gap-1 text-[11px] text-base-content/50 leading-none">
+                    <.icon name="hero-clock" class="w-3 h-3 shrink-0" />{piece.duration}
+                  </div>
+                </div>
+                <span class={"shrink-0 inline-flex items-center justify-center min-w-[3.25rem] h-6 px-2 rounded-md text-xs font-bold #{if Arcade.has_valid_tiqit?(@current_scope, piece), do: "badge-widget", else: "badge-widget-soft"}"}>
+                  <%= if Arcade.has_valid_tiqit?(@current_scope, piece) do %>
+                    <.icon name="hero-check" class="h-3.5 w-3.5 text-white" />
+                  <% else %>
+                    {ContentPiece.default_tiqit_class(piece).price |> format_usd(zero_free: true)}
+                  <% end %>
+                </span>
+              </div>
               <%= if @group.show_piece_descriptions && piece.description do %>
-                <p class="text-xs text-base-content/60 mt-1 line-clamp-3" style="white-space: pre-line;">{String.trim(piece.description)}</p>
+                <p class="text-xs text-base-content/60 line-clamp-2 mt-0 pt-0 leading-snug whitespace-normal [overflow-wrap:anywhere]">
+                  {String.trim(piece.description)}
+                </p>
               <% end %>
-            </div>
-            <div class="flex-shrink-0 self-start">
-              <span class={"badge badge-xl h-7 rounded-full #{if Arcade.has_valid_tiqit?(@current_scope, piece), do: "!bg-sponster-400", else: "badge-primary"} #{if Decimal.eq?(ContentPiece.default_tiqit_class(piece).price, 0), do: "font-bold"}"}>
-                <%= if Arcade.has_valid_tiqit?(@current_scope, piece) do %>
-                  <.icon name="hero-check" class="h-4 w-4 font-bold text-white" />
-                <% else %>
-                  {ContentPiece.default_tiqit_class(piece).price |> format_usd(zero_free: true)}
-                <% end %>
-              </span>
             </div>
           </.link>
         </div>
@@ -339,16 +355,16 @@
           <button
             phx-click="purchase-tiqit"
             phx-value-tiqit-class-id={@selected_tiqit_class.id}
-            class="btn btn-primary btn-lg btn-block rounded-full"
+            class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
           >
             <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm •
             <span class="font-bold">{format_usd(assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price, zero_free: true)}</span>
           </button>
         </div>
         <%= if assigns[:selected_tiqit_class_credit] && Decimal.gt?(assigns.selected_tiqit_class_credit, 0) do %>
-          <div class="alert bg-primary/20 border border-primary mt-2 py-2 justify-center">
+          <div class="alert bg-widget-100 border border-widget-300 mt-2 py-2 justify-center">
             <span class="text-sm flex items-center gap-1">
-              <.icon name="hero-sparkles-solid" class="h-4 w-4 text-primary" />
+              <.icon name="hero-sparkles-solid" class="h-4 w-4 text-widget-700" />
               TiqitUp discount of {format_usd(@selected_tiqit_class_credit)} applied. ({@selected_tiqit_class_active_count} active {if @selected_tiqit_class_active_count == 1, do: "tiqit", else: "tiqits"})
             </span>
           </div>

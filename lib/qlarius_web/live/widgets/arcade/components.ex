@@ -148,9 +148,9 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           </tbody>
         </table>
         <%= if @any_credit do %>
-          <div class="alert bg-primary/20 border-primary/30 py-2 px-4 rounded-lg flex flex-col items-center gap-2 mt-4 justify-center text-center">
+          <div class="alert bg-widget-100 border-widget-300 py-2 px-4 rounded-lg flex flex-col items-center gap-2 mt-4 justify-center text-center">
             <div class="flex items-center justify-center gap-2 w-full">
-              <.icon name="hero-arrow-trending-up" class="w-5 h-5 text-primary shrink-0" />
+              <.icon name="hero-arrow-trending-up" class="w-5 h-5 text-widget-700 shrink-0" />
               <span class="text-sm font-medium text-base-content">
                 TiqitUp discounts applied to credit active tiqits
               </span>
@@ -187,7 +187,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         <button
           phx-click="select-tiqit-class"
           phx-value-tiqit-class-id={@tiqit_class.id}
-          class="btn btn-sm rounded-full btn-primary px-4 cursor-pointer"
+          class="btn-widget btn-sm rounded-full px-4 cursor-pointer"
         >
           Free!
         </button>
@@ -200,7 +200,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
             <button
               phx-click="select-tiqit-class"
               phx-value-tiqit-class-id={@tiqit_class.id}
-              class="btn btn-sm rounded-full btn-primary px-4 cursor-pointer"
+              class="btn-widget btn-sm rounded-full px-4 cursor-pointer"
             >
               {format_usd(@adjusted)}
             </button>
@@ -208,7 +208,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         <% else %>
           <div class="flex flex-col items-center gap-0.5">
             <span class="text-xs text-base-content/40 line-through">{format_usd(@original)}</span>
-            <div class="btn btn-sm rounded-full !bg-primary/50 !border-primary/50 text-white px-4 !cursor-not-allowed">
+            <div class="btn-widget btn-sm btn-disabled rounded-full px-4">
               {format_usd(@adjusted)}
             </div>
           </div>
@@ -233,12 +233,12 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       <button
         phx-click="select-tiqit-class"
         phx-value-tiqit-class-id={@tiqit_class.id}
-        class="btn btn-sm rounded-full btn-primary px-3 py-1 cursor-pointer"
+        class="btn-widget btn-sm rounded-full px-3 py-1 cursor-pointer"
       >
         {format_usd(@tiqit_class.price, zero_free: true)}
       </button>
     <% else %>
-      <div class="btn btn-sm rounded-full !bg-primary/50 !border-primary/50 text-white px-3 py-1 !cursor-not-allowed">
+      <div class="btn-widget btn-sm btn-disabled rounded-full px-3 py-1">
         {format_usd(@tiqit_class.price, zero_free: true)}
       </div>
     <% end %>
@@ -254,14 +254,14 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     ~H"""
     <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-3 py-2 rounded-lg border-1 border-base-300">
       <div class="flex flex-row flex-wrap justify-between items-center space-x-4">
-        <div class="flex flex-row items-center justify-center">
+        <div class="flex flex-col items-center justify-center">
           <.wallet_balance id={@id} balance={@balance} />
-          <span class="font-normal text-base-content/60 ml-2 mr-3">to spend</span>
+          <%!-- <span class="font-normal text-base-content/60 ml-2 mr-3 text-xs">wallet</span> --%>
         </div>
 
         <.popover id={"#{@id}-topup"} placement="top" trigger_type="click" class="w-56">
           <:trigger>
-            <button class="btn btn-md rounded-full !bg-sponster-400 hover:!bg-sponster-600 text-white !border-sponster-400 hover:!border-sponster-600 leading-none">
+            <button class="btn-widget btn-md rounded-full leading-none">
               <.icon name="hero-plus" class="w-4 h-4 mr-0" />
               <span class="font-bold">{if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}</span>
             </button>
@@ -270,7 +270,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
             <div class="p-3 space-y-2">
               <p class="text-xs font-semibold text-base-content/60 uppercase tracking-wide">Top up wallet</p>
               <button
-                class="btn btn-sm btn-block justify-start gap-2 !bg-sponster-500 hover:!bg-sponster-600 text-white border-none rounded-lg"
+                class="btn-widget btn-sm btn-block justify-start gap-2 rounded-lg"
                 onclick="parent.postMessage('open_widget','*');"
               >
                 <img src="/images/Sponster_logo_white_horiz.svg" alt="Sponster" class="h-4" onerror="this.style.display='none';this.nextElementSibling.style.display='inline';" />
@@ -278,7 +278,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                 <span class="ml-auto text-xs opacity-80">{@ads_count} ads • {if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}</span>
               </button>
               <button
-                class="btn btn-sm btn-block justify-start gap-2 btn-primary rounded-lg"
+                class="btn-widget btn-sm btn-block justify-start gap-2 rounded-lg"
                 phx-click="topup"
               >
                 <.icon name="hero-gift" class="w-4 h-4" />
@@ -286,7 +286,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                 <span class="ml-auto text-xs opacity-80">$0.50</span>
               </button>
               <button
-                class="btn btn-sm btn-block justify-start gap-2 btn-outline rounded-lg"
+                class="btn-widget btn-sm btn-block justify-start gap-2 rounded-lg"
                 phx-click="topup"
               >
                 <.icon name="hero-credit-card" class="w-4 h-4" />
@@ -313,10 +313,10 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   def arqade_breadcrumbs(assigns) do
     ~H"""
     <nav :if={@base_path != "/widgets"} class="text-xs text-base-content/50 flex items-center gap-1 flex-wrap pt-3 mb-3">
-      <.link navigate="/arqade" class="hover:text-primary transition-colors">Discover</.link>
+      <.link navigate="/arqade" class="hover:text-widget-700 transition-colors">Discover</.link>
       <span :for={{label, path} <- @crumbs} class="flex items-center gap-1">
         <span class="text-base-content/30">›</span>
-        <.link navigate={path} class="hover:text-primary transition-colors truncate max-w-[120px]">{label}</.link>
+        <.link navigate={path} class="hover:text-widget-700 transition-colors truncate max-w-[120px]">{label}</.link>
       </span>
     </nav>
     """

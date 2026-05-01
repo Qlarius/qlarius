@@ -228,6 +228,62 @@
   --color-youdata-900: oklch(43.09% 0.03 282.67);   /* #38384B */
   --color-youdata-950: oklch(30.23% 0.02 285.04);   /* #1F1F28 */
 
+
+
+  /* Widget — neutral slate ramp for embedded widgets (arqade, tipjar, etc.).
+     Light end is near-neutral gray; dark end shifts to rich blue for hover/
+     active states. Used so widgets don't impose Qlarius brand colors on
+     host pages they're embedded into. Apply via .btn-widget / .badge-widget
+     component classes, or directly via bg-widget-*, text-widget-*, etc. */
+  --color-widget-50: oklch(98.00% 0.005 250);
+  --color-widget-100: oklch(96.00% 0.008 250);
+  --color-widget-200: oklch(92.00% 0.013 252);
+  --color-widget-300: oklch(86.00% 0.022 254);
+  --color-widget-400: oklch(72.00% 0.040 256);
+  --color-widget-500: oklch(58.00% 0.060 258);
+  --color-widget-600: oklch(46.00% 0.080 260);
+  --color-widget-700: oklch(38.00% 0.100 262);
+  --color-widget-800: oklch(30.00% 0.120 263);
+  --color-widget-900: oklch(23.00% 0.130 264);
+  --color-widget-950: oklch(16.00% 0.120 264);
+}
+
+/*
+ * Widget palette — theme-aware overrides (DaisyUI `data-theme`).
+ * @theme above defines the default (light) ramp. When the host is
+ * `data-theme=dark`, remap the same `--color-widget-*` variables so
+ * `bg-widget-*`, `text-widget-*`, `.btn-widget`, `.badge-widget-soft`,
+ * etc. stay readable without changing HEEx.
+ * Forced-light islands (`[data-theme=dark] [data-theme=light]`, see
+ * embedded_theming) re-seed the light ramp so widgets stay neutral in
+ * light mode even under a dark document root.
+ */
+[data-theme="dark"] {
+  --color-widget-50: oklch(17.00% 0.018 264);
+  --color-widget-100: oklch(27.00% 0.028 262);
+  --color-widget-200: oklch(33.00% 0.034 262);
+  --color-widget-300: oklch(40.00% 0.042 262);
+  --color-widget-400: oklch(52.00% 0.055 262);
+  --color-widget-500: oklch(62.00% 0.065 262);
+  --color-widget-600: oklch(72.00% 0.085 262);
+  --color-widget-700: oklch(78.00% 0.095 262);
+  --color-widget-800: oklch(84.00% 0.100 264);
+  --color-widget-900: oklch(92.00% 0.045 264);
+  --color-widget-950: oklch(97.00% 0.025 264);
+}
+
+[data-theme="dark"] [data-theme="light"] {
+  --color-widget-50: oklch(98.00% 0.005 250);
+  --color-widget-100: oklch(96.00% 0.008 250);
+  --color-widget-200: oklch(92.00% 0.013 252);
+  --color-widget-300: oklch(86.00% 0.022 254);
+  --color-widget-400: oklch(72.00% 0.040 256);
+  --color-widget-500: oklch(58.00% 0.060 258);
+  --color-widget-600: oklch(46.00% 0.080 260);
+  --color-widget-700: oklch(38.00% 0.100 262);
+  --color-widget-800: oklch(30.00% 0.120 263);
+  --color-widget-900: oklch(23.00% 0.130 264);
+  --color-widget-950: oklch(16.00% 0.120 264);
 }
 
 /* Application styles - using @layer components for Tailwind v4 */
@@ -237,6 +293,62 @@
   .border-divider-color {
     --divider-color: color-mix(in oklab, var(--color-base-content) 10%, transparent);
     border-top: 1px solid var(--divider-color);
+  }
+
+  /* Widget button — neutral gray rest, dark blue hover. Use in arqade,
+     tipjar, and other embedded widget contexts so widgets don't impose
+     Qlarius brand colors on host pages. Composes with daisyUI size and
+     shape modifiers (btn-sm, btn-lg, btn-block, btn-circle, etc.). */
+  .btn-widget {
+    @apply btn bg-widget-100 text-widget-900 border-widget-300;
+  }
+  .btn-widget:hover:not(:disabled):not(.btn-disabled) {
+    @apply bg-widget-800 text-white border-widget-800;
+  }
+  .btn-widget:disabled,
+  .btn-widget[disabled],
+  .btn-widget.btn-disabled {
+    @apply bg-widget-100 text-widget-500 border-widget-200 cursor-not-allowed;
+  }
+
+  /* Strong border — pairs visually with selected arqade list row (`border-widget-700`).
+     Use only on the primary Buy / Get Tiqit / Confirm purchase CTAs; keep default
+     `.btn-widget` for wallet top-up, Connect, Play, grid chips, etc. */
+  .btn-widget.btn-widget-emphasis {
+    @apply border-widget-700;
+  }
+  .btn-widget.btn-widget-emphasis:hover:not(:disabled):not(.btn-disabled) {
+    @apply border-widget-800;
+  }
+  .btn-widget.btn-widget-emphasis:disabled,
+  .btn-widget.btn-widget-emphasis[disabled],
+  .btn-widget.btn-widget-emphasis.btn-disabled {
+    @apply border-widget-300;
+  }
+
+  /* Widget button — ghost variant. Transparent at rest, soft widget wash
+     on hover. Use for secondary/tertiary actions (e.g. "See all options"
+     links sitting next to a primary .btn-widget CTA). */
+  .btn-widget-ghost {
+    @apply btn bg-transparent text-base-content/60 border-transparent shadow-none;
+  }
+  .btn-widget-ghost:hover:not(:disabled):not(.btn-disabled) {
+    @apply bg-widget-100 text-widget-800 border-transparent;
+  }
+  .btn-widget-ghost:disabled,
+  .btn-widget-ghost[disabled],
+  .btn-widget-ghost.btn-disabled {
+    @apply bg-transparent text-widget-400 border-transparent cursor-not-allowed;
+  }
+
+  /* Widget badge — solid (dark) variant for active/selected states. */
+  .badge-widget {
+    @apply badge bg-widget-700 text-white border-widget-700;
+  }
+
+  /* Widget badge — soft (light) variant for inactive/available states. */
+  .badge-widget-soft {
+    @apply badge bg-widget-100 text-widget-900 border-widget-300;
   }
 
   /* Ads page styles */

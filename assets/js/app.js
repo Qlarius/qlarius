@@ -1035,9 +1035,20 @@ Hooks.TaggerButtonObserver = {
   }
 }
 
-Hooks.HideIfNotIframe = {
+Hooks.HideOpenInTabWhenFullscreen = {
   mounted() {
-    if (window.self === window.top) this.el.classList.add('hidden')
+    // "Open in new tab" is for breaking out of embeds. Show whenever we're
+    // not already on a dedicated full-tab Arqade group URL in the top window.
+    // - Iframe (any URL): always show.
+    // - Top-level /widgets/arqade/group/:id or /arqade/group/:id: hide (already full-screen).
+    // - Top-level Qlink, etc.: show.
+    if (window.self !== window.top) return
+
+    const p = window.location.pathname
+    const widgetGroup = /^\/widgets\/arqade\/group\/[^/]+/.test(p)
+    const appGroup = /^\/arqade\/group\/[^/]+/.test(p)
+
+    if (widgetGroup || appGroup) this.el.classList.add('hidden')
   }
 }
 

@@ -25,7 +25,7 @@ defmodule QlariusWeb.Components.SplitComponents do
         )
       }
     >
-      <div class="shadow-xl bg-base-100 dark:bg-base-200 !border-2 !border-primary overflow-hidden rounded-tl-xl rounded-bl-xl">
+      <div class="shadow-xl bg-base-100 dark:bg-base-200 !border-2 !border-widget-700 overflow-hidden rounded-tl-xl rounded-bl-xl">
         <div class="bg-base-200 dark:bg-base-300 px-5 py-3 flex items-center justify-center relative">
           <span class="text-sm font-semibold text-base-content">You're splitting</span>
           <button
@@ -40,21 +40,21 @@ defmodule QlariusWeb.Components.SplitComponents do
           <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
             <span class="block">
               Currently splitting
-              <strong class="text-primary">{@split_amount}%</strong>
+              <strong class="text-widget-800">{@split_amount}%</strong>
               of ad earnings with this creator. Edit split amount below.
             </span>
           </p>
           <div class="mt-6 flex justify-center">
             <button
               phx-click="split_reminder_dismiss"
-              class="btn btn-primary btn-wide rounded-full"
+              class="btn-widget btn-wide rounded-full"
             >
               Dismiss forever
             </button>
           </div>
         </div>
         <div class="flex justify-end pr-12 pb-4" aria-hidden="true">
-          <.icon name="hero-chevron-down" class="w-8 h-8 text-primary animate-bounce" />
+          <.icon name="hero-chevron-down" class="w-8 h-8 text-widget-700 animate-bounce" />
         </div>
       </div>
     </div>
@@ -77,7 +77,7 @@ defmodule QlariusWeb.Components.SplitComponents do
       ]}
     >
       <span class="uppercase text-xs tracking-wider font-semibold">
-        SPLIT: {@split_amount}%
+        {@split_amount}%
       </span>
       <svg
         class="w-5 h-5"
@@ -120,7 +120,7 @@ defmodule QlariusWeb.Components.SplitComponents do
             class={[
               "px-4 py-2 text-sm font-medium transition-colors cursor-pointer",
               if(@split_amount == percentage,
-                do: "bg-primary text-primary-content",
+                do: "bg-widget-700 text-white",
                 else: "bg-base-100 text-base-content hover:bg-base-200"
               )
             ]}
@@ -198,7 +198,7 @@ defmodule QlariusWeb.Components.SplitComponents do
           <div class="text-base-content/70 text-sm mb-4">
             Instantly tip from your wallet
             <.icon name="hero-arrow-right" class="w-4 h-4 inline-block" />
-            <span class="inline-flex items-center text-lg bg-sponster-200 text-base-content px-3 py-1 rounded-lg border border-sponster-300">
+            <span class="inline-flex items-center text-lg bg-widget-100 text-widget-900 px-3 py-1 rounded-lg border border-widget-300">
               <span class="font-bold">{format_usd(@wallet_balance)}</span>
             </span>
           </div>
