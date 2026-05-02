@@ -66,6 +66,8 @@
             recipient={@recipient}
             current_scope={@current_scope}
             socket={@socket}
+            arqade_fullpane_dom_id={@arqade_fullpane_dom_id}
+            arqade_fullpane_closing?={@arqade_fullpane_closing?}
             on_auth_click={
               if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
                 do: Phoenix.LiveView.JS.push("open_auth_sheet"),
@@ -95,6 +97,8 @@
                     recipient={@recipient}
                     current_scope={@current_scope}
                     socket={@socket}
+                    arqade_fullpane_dom_id={@arqade_fullpane_dom_id}
+                    arqade_fullpane_closing?={@arqade_fullpane_closing?}
                     on_auth_click={
                       if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
                         do: Phoenix.LiveView.JS.push("open_auth_sheet"),
@@ -247,12 +251,14 @@
     </div>
   <% end %>
 
-  <%!-- Sponster Drawer (slides up from behind the bar) --%>
+  <%!-- Sponster Drawer (slides up from behind the bar).
+       z-index: arqade full-pane uses z-[45] (see QlinkPage.Show); drawer
+       stack must sit above it but below the announcer bar (z-50). --%>
   <%= if @recipient do %>
     <%!-- Overlay (only when drawer is open) --%>
     <div
       class={[
-        "fixed inset-0 z-30 bg-black/50 backdrop-blur-sm transition-opacity duration-300",
+        "fixed inset-0 z-[46] bg-black/50 backdrop-blur-sm transition-opacity duration-300",
         if(@show_sponster_drawer, do: "opacity-100", else: "opacity-0 pointer-events-none")
       ]}
       phx-click="close_sponster_drawer"
@@ -263,7 +269,7 @@
     <div
       data-theme="light"
       class={[
-        "fixed z-40 bg-base-100 rounded-t-lg h-[calc(90vh-50px)] overflow-hidden flex flex-col transition-all duration-300 ease-out",
+        "fixed z-[47] bg-base-100 rounded-t-lg h-[calc(90vh-50px)] overflow-hidden flex flex-col transition-all duration-300 ease-out",
         if(@show_sponster_drawer, do: "bottom-[50px]", else: "-bottom-[90vh]")
       ]}
       style="left: 50%; transform: translateX(-50%); width: min(100%, 800px); box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);"

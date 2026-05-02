@@ -295,6 +295,66 @@
     border-top: 1px solid var(--divider-color);
   }
 
+  /* Qlink inline arqade full-pane: parent `.arqade-fullpane-active` wraps
+     `live_render` (see QlinkPage.Show). Inline card + open-in-tab use
+     utilities on the same nodes — utilities layer beats @layer components,
+     so these rules must win over `rounded-2xl border …` and flex layout. */
+  .arqade-fullpane-active [data-arqade-inline-card="true"] {
+    @apply !rounded-none !border-0 !shadow-none;
+  }
+
+  .arqade-fullpane-active #open-in-tab-btn {
+    @apply !hidden;
+  }
+
+  @keyframes arqade-fullpane-enter {
+    from {
+      opacity: 0;
+      transform: scale(0.94);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes arqade-fullpane-leave {
+    from {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    to {
+      opacity: 0;
+      transform: scale(0.94);
+    }
+  }
+
+  .arqade-fullpane-active:not(.arqade-fullpane-leaving) {
+    animation: arqade-fullpane-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: center center;
+  }
+
+  .arqade-fullpane-active.arqade-fullpane-leaving {
+    animation: arqade-fullpane-leave 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+    transform-origin: center center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .arqade-fullpane-active:not(.arqade-fullpane-leaving) {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+
+    .arqade-fullpane-active.arqade-fullpane-leaving {
+      animation: none;
+      opacity: 0;
+      transform: none;
+    }
+  }
+
   /* Widget button — neutral gray rest, dark blue hover. Use in arqade,
      tipjar, and other embedded widget contexts so widgets don't impose
      Qlarius brand colors on host pages. Composes with daisyUI size and

@@ -121,28 +121,32 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
         ads_count={@ads_count || 0}
       />
     <% else %>
-      <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-3 py-2 rounded-lg border-1 border-base-300">
-        <div class="flex flex-row flex-wrap justify-between items-center space-x-4">
-
-          <%= if @on_click do %>
-            <button
-              type="button"
-              phx-click={@on_click}
-              class="btn-widget btn-md rounded-full leading-none"
-            >
-              <.icon name="hero-wallet" class="w-4 h-4 mr-1" />
-              <span class="font-bold">Connect wallet</span>
-            </button>
-          <% else %>
-            <.link
-              href={Urls.interact_login_url()}
-              target="_top"
-              class="btn-widget btn-md rounded-full leading-none"
-            >
-              <.icon name="hero-wallet" class="w-4 h-4 mr-1" />
-              <span class="font-bold">Connect wallet</span>
-            </.link>
-          <% end %>
+      <div class="w-full max-w-sm mx-auto text-base-content bg-base-200 border-t border-base-300 px-3 py-2 rounded-lg border-1 border-base-300">
+        <div class="flex flex-col items-stretch gap-2">
+          <div class="flex flex-row flex-wrap justify-center items-center">
+            <%= if @on_click do %>
+              <button
+                type="button"
+                phx-click={@on_click}
+                class="btn-widget btn-md rounded-full leading-none"
+              >
+                <.icon name="hero-wallet" class="w-4 h-4 mr-1" />
+                <span class="font-bold">Connect wallet</span>
+              </button>
+            <% else %>
+              <.link
+                href={Urls.interact_login_url()}
+                target="_top"
+                class="btn-widget btn-md rounded-full leading-none"
+              >
+                <.icon name="hero-wallet" class="w-4 h-4 mr-1" />
+                <span class="font-bold">Connect wallet</span>
+              </.link>
+            <% end %>
+          </div>
+          <p class="text-center text-xs text-base-content/65 leading-snug">
+            Use your mobile number to connect. New wallets prefunded with $3.00+ on us.
+          </p>
         </div>
       </div>
     <% end %>
@@ -200,6 +204,9 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
             <.icon name="hero-arrow-right-on-rectangle" class="w-5 h-5 mr-2" /> Connect your wallet
           </.link>
         <% end %>
+        <p class="text-xs text-base-content/65 leading-snug max-w-sm">
+          Use your mobile number to connect. New wallets prefunded with $3.00+ on us.
+        </p>
         <button
           type="button"
           phx-click={@on_cancel}

@@ -71,7 +71,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
        socket
        |> assign(
          balance: scope && scope.wallet_balance,
-         offered_amount: scope && scope.offered_amount
+         offered_amount: scope && scope.offered_amount,
+         arqade_expand_parent?: is_pid(socket.parent_pid)
        )}
     else
       scope = socket.assigns.current_scope
@@ -163,7 +164,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          force_theme: force_theme,
          show_title: show_title,
          show_tiqit_content_modal: false,
-         embed_phx_id: session["embed_phx_id"]
+         embed_phx_id: session["embed_phx_id"],
+         arqade_expand_parent?: is_pid(socket.parent_pid)
        )
        |> assign(scope_assigns(scope, group))
        |> maybe_init_selected_piece(inline?, session, params)}
@@ -331,6 +333,21 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
         socket
         |> assign(:show_connect_modal, false)
         |> noreply()
+    end
+  end
+
+  def handle_event("toggle-arqade-fullpane", _params, socket) do
+    if socket.assigns[:inline?] && socket.assigns[:embed_phx_id] do
+      case socket.parent_pid do
+        nil ->
+          noreply(socket)
+
+        parent_pid ->
+          send(parent_pid, {:arqade_fullpane_toggle, socket.assigns.embed_phx_id})
+          noreply(socket)
+      end
+    else
+      noreply(socket)
     end
   end
 

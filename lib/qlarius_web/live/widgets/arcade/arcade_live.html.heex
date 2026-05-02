@@ -26,29 +26,44 @@
   card box.
 --%>
 <%= if Enum.any?(@pieces) do %>
-  <div class={[
-    "w-full",
-    @inline? && "rounded-2xl border border-neutral/50 overflow-hidden bg-base-100"
-  ]}>
+  <div
+    data-arqade-inline-card={if(@inline?, do: "true")}
+    class={[
+      "w-full relative z-0 isolate",
+      @inline? && "rounded-2xl border border-neutral/50 overflow-hidden bg-base-100"
+    ]}
+  >
   <div class={"w-full flex flex-col relative #{if @base_path == "", do: "h-full", else: "h-screen"}"}>
     <%= if @group.show_open_in_tab && (@base_path == "/widgets" || @inline?) do %>
-      <a
-        id="open-in-tab-btn"
-        href={
-          cond do
-            @base_path == "/widgets" -> "#{@base_path}/arqade/group/#{@group.id}"
-            authed?(@current_scope) -> ~p"/arqade/group/#{@group.id}"
-            true -> "/widgets/arqade/group/#{@group.id}"
-          end
-        }
-        target="_blank"
-        rel="noopener noreferrer"
-        class="absolute top-2 right-2 z-50 btn btn-ghost btn-sm btn-circle bg-base-200/80 hover:bg-base-300 text-base-content/60 hover:text-base-content"
-        title="Open in new tab (full screen)"
-        phx-hook="HideOpenInTabWhenFullscreen"
-      >
-        <.icon name="hero-arrow-top-right-on-square" class="w-5 h-5" />
-      </a>
+      <%= if @inline? && @arqade_expand_parent? do %>
+        <button
+          type="button"
+          id="open-in-tab-btn"
+          phx-click="toggle-arqade-fullpane"
+          class="absolute top-2 right-2 z-10 btn btn-ghost btn-sm btn-circle bg-base-200/80 hover:bg-base-300 text-base-content/60 hover:text-base-content"
+          title="Expand on this page (Sponster bar stays visible)"
+        >
+          <.icon name="hero-arrow-top-right-on-square" class="w-5 h-5" />
+        </button>
+      <% else %>
+        <a
+          id="open-in-tab-btn"
+          href={
+            cond do
+              @base_path == "/widgets" -> "#{@base_path}/arqade/group/#{@group.id}"
+              authed?(@current_scope) -> ~p"/arqade/group/#{@group.id}"
+              true -> "/widgets/arqade/group/#{@group.id}"
+            end
+          }
+          target="_blank"
+          rel="noopener noreferrer"
+          class="absolute top-2 right-2 z-10 btn btn-ghost btn-sm btn-circle bg-base-200/80 hover:bg-base-300 text-base-content/60 hover:text-base-content"
+          title="Open in new tab (full screen)"
+          phx-hook="HideOpenInTabWhenFullscreen"
+        >
+          <.icon name="hero-arrow-top-right-on-square" class="w-5 h-5" />
+        </a>
+      <% end %>
     <% end %>
     <%= if @show_title do %>
       <div class="grow-0 bg-base-200 text-base-content p-3 border-b border-base-300">
@@ -131,7 +146,7 @@
                       <:trigger>
                         <button
                           type="button"
-                          class="btn btn-xs h-auto min-h-0 !bg-widget-100 !text-widget-800 !border-widget-300 px-2 py-0.5 font-medium no-underline hover:no-underline hover:!bg-widget-200 hover:!text-widget-900 hover:!border-widget-400 rounded-md whitespace-nowrap shadow-sm"
+                          class="btn btn-xs h-auto min-h-0 !bg-widget-100 !text-widget-800 !border-widget-300 px-2 py-0.5 font-medium no-underline hover:no-underline hover:!bg-widget-200 hover:!text-widget-900 hover:!border-widget-400 rounded-full whitespace-nowrap shadow-sm"
                         >
                           <span data-popover-toggle-label="show">Show full</span>
                           <span data-popover-toggle-label="hide" class="hidden">Hide full</span>

@@ -121,3 +121,45 @@ order of magnitude more work and orthogonal to the inline
 rendering win. The URL parser (`parse_arqade_widget_url/1`)
 that Batch A introduced is exactly the tool that'll power the
 backfill when this lands.
+
+## Target result: expand arqade on the same page (not a new tab)
+
+When the viewer uses **expand to full screen** from the inline arqade
+widget on a Qlink (or similar host) page:
+
+- **Approach (Option B):** **`QlinkPage.Show` owns the shell** — a
+  full-viewport overlay (or fixed pane) that wraps the *existing*
+  nested `ArcadeLive` / `ArcadeSingleLive` from `live_render/3`. Open
+  and close are parent-driven assigns + events; **no second**
+  `live_render` of the same catalog. The child LV keeps a single
+  socket, wallet, and auth context.
+
+- **Sponster bottom bar stays visible:** The full-screen arqade
+  **content** must occupy only the area **above** the persistent
+  Sponster dock (same bar used for wallet / ads / show–hide today).
+  The bar remains **visible and interactive**; the arqade layer must
+  not cover it (e.g. `height: calc(100dvh - bar)` or layout where the
+  pane sits in the main column and the bar stays in document flow
+  below). Z-index and stacking should be defined so the bar is never
+  obscured by the expanded arqade layer.
+
+- **Fallback:** Keep **open in new tab** where it still matters (e.g.
+  third-party iframe embeds, or when breaking out of `window.top !==
+  window.self` is required).
+
+### When implementing (pointers)
+
+**Shipped (2026-05):** Qlink `QlinkPage.Show` wraps inline `live_render` in a
+shell that becomes `fixed` full viewport width (`z-[45]`, `bottom-[50px]`) when
+`@arqade_fullpane_dom_id` matches; nested `ArcadeLive` uses
+`phx-click="toggle-arqade-fullpane"` when `@inline?` instead of a new-tab
+`<a>`. Close: bar-sized header control, Escape, or toggle again.
+
+### Possible follow-ups
+
+- **ArcadeSingleLive:** If single-piece embeds gain the same control,
+  mirror the inline `phx-click` + parent `arqade_fullpane_dom_id` pattern
+  (group arqade only today).
+- **Body scroll lock** while full-pane is open (optional polish).
+- **`HideOpenInTabWhenFullscreen`:** Still applies to the new-tab `<a>`
+  path (`/widgets` + in-app); no change required for Qlink inline button.

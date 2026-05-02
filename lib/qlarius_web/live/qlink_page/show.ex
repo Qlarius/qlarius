@@ -23,6 +23,8 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
+  @arqade_fullpane_close_ms 300
+
   @impl true
   def mount(%{"alias" => page_alias}, _session, socket) do
     page =
@@ -57,6 +59,9 @@ defmodule QlariusWeb.QlinkPage.Show do
             |> assign(:page_title, page.title)
             |> assign(:display_image, Qlink.get_display_image(page))
             |> assign(:recipient, page.recipient)
+            |> assign(:arqade_fullpane_dom_id, nil)
+            |> assign(:arqade_fullpane_closing?, false)
+            |> assign(:arqade_fullpane_close_timer_ref, nil)
             |> assign_surface_context(page)
             |> assign_auth_referral_context(page)
             |> init_sponster_assigns()
@@ -305,6 +310,10 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   # Sponster drawer toggle (ad drawer)
   @impl true
+  def handle_event("close-arqade-fullpane", _params, socket) do
+    {:noreply, begin_arqade_fullpane_close(socket)}
+  end
+
   def handle_event("toggle_sponster_drawer", _params, socket) do
     will_open = !socket.assigns.show_sponster_drawer
 
@@ -658,6 +667,36 @@ defmodule QlariusWeb.QlinkPage.Show do
     {:noreply, open_auth_sheet(socket)}
   end
 
+  @impl true
+  def handle_info({:arqade_fullpane_toggle, dom_id}, socket) when is_binary(dom_id) do
+    current = socket.assigns[:arqade_fullpane_dom_id]
+    closing? = socket.assigns[:arqade_fullpane_closing?] == true
+
+    cond do
+      closing? && current == dom_id ->
+        {:noreply, cancel_arqade_fullpane_close_timer(socket)}
+
+      current == dom_id && not closing? ->
+        {:noreply, begin_arqade_fullpane_close(socket)}
+
+      true ->
+        socket = if closing?, do: cancel_arqade_fullpane_close_timer(socket), else: socket
+        {:noreply, assign(socket, :arqade_fullpane_dom_id, dom_id)}
+    end
+  end
+
+  def handle_info(:arqade_fullpane_close_done, socket) do
+    if socket.assigns[:arqade_fullpane_closing?] == true do
+      {:noreply,
+       socket
+       |> assign(:arqade_fullpane_dom_id, nil)
+       |> assign(:arqade_fullpane_closing?, false)
+       |> assign(:arqade_fullpane_close_timer_ref, nil)}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_info(:close_insta_tip_thanks_modal, socket) do
     {:noreply,
      socket
@@ -978,6 +1017,12 @@ defmodule QlariusWeb.QlinkPage.Show do
   # by arcade's `on_click` wiring.
   attr :on_auth_click, Phoenix.LiveView.JS, default: nil
 
+  # Passed from `show.html.heex` — do not read from `socket.assigns[...]`
+  # here: during static render `socket.assigns` is `AssignsNotInSocket`
+  # and does not implement Access.
+  attr :arqade_fullpane_dom_id, :any, default: nil
+  attr :arqade_fullpane_closing?, :boolean, default: false
+
   def render_link(assigns) do
     cond do
       assigns.link.type == :insta_tip ->
@@ -1194,6 +1239,34 @@ defmodule QlariusWeb.QlinkPage.Show do
     end
   end
 
+  defp begin_arqade_fullpane_close(socket) do
+    cond do
+      is_nil(socket.assigns[:arqade_fullpane_dom_id]) ->
+        socket
+
+      socket.assigns[:arqade_fullpane_closing?] == true ->
+        socket
+
+      true ->
+        ref = Process.send_after(self(), :arqade_fullpane_close_done, @arqade_fullpane_close_ms)
+
+        socket
+        |> assign(:arqade_fullpane_closing?, true)
+        |> assign(:arqade_fullpane_close_timer_ref, ref)
+    end
+  end
+
+  defp cancel_arqade_fullpane_close_timer(socket) do
+    case socket.assigns[:arqade_fullpane_close_timer_ref] do
+      ref when is_reference(ref) -> Process.cancel_timer(ref)
+      _ -> :ok
+    end
+
+    socket
+    |> assign(:arqade_fullpane_closing?, false)
+    |> assign(:arqade_fullpane_close_timer_ref, nil)
+  end
+
   # Performs the `live_render/3` call. Kept out of render_inline_arqade
   # so slice A.4 (catalog + single-piece) can reuse the same plumbing.
   defp render_inline_arqade_live(assigns, module, opts) do
@@ -1237,29 +1310,60 @@ defmodule QlariusWeb.QlinkPage.Show do
       }
       |> Map.merge(opts[:session_params] || %{})
 
+    dom_id = opts[:dom_id]
+    fullpane? = assigns.arqade_fullpane_dom_id == dom_id
+
+    shell_leaving? =
+      fullpane? && assigns[:arqade_fullpane_closing?] == true
+
     assigns =
       assigns
       |> assign(:inline_arqade_module, module)
-      |> assign(:inline_arqade_dom_id, opts[:dom_id])
+      |> assign(:inline_arqade_dom_id, dom_id)
       |> assign(:inline_arqade_session, session)
       |> assign(:inline_arqade_height, height)
+      |> assign(:arqade_fullpane_active?, fullpane?)
+      |> assign(:arqade_fullpane_shell_leaving?, shell_leaving?)
 
-    # Thin bounding box — reserves vertical space via min-height so the
-    # embed doesn't collapse while the nested LV boots. No rounded clip,
-    # border, or `overflow: hidden` here: those live inside each arqade
-    # template so that the Tiqit `<.modal>` can sit as a sibling of the
-    # clipped card, not a descendant. This matters on iOS Safari, which
-    # traps `position: fixed` elements inside `overflow: hidden`
-    # ancestors — exactly what we saw when the clip lived at this level.
+    # Thin outer box reserves min-height in the link list while the
+    # nested LV boots. When `@arqade_fullpane_active?`, the inner shell
+    # is `fixed` full viewport width between the top and the Sponster bar
+    # (`bottom-[50px]`, `z-[45]` below the Sponster drawer at z-[46]/[47]
+    # and the bar's `z-50`) — not limited to
+    # the qlink `max-w-2xl` column. Same DOM / same `live_render`.
     ~H"""
-    <div
-      class="w-full"
-      style={"min-height: #{@inline_arqade_height}px;"}
-    >
-      {live_render(@socket, @inline_arqade_module,
-        id: @inline_arqade_dom_id,
-        session: @inline_arqade_session
-      )}
+    <div class="relative w-full" style={"min-height: #{@inline_arqade_height}px;"}>
+      <div
+        id={"arqade-embed-shell-#{@inline_arqade_dom_id}"}
+        class={[
+          "w-full",
+          @arqade_fullpane_active? &&
+            "arqade-fullpane-active fixed inset-x-0 top-0 bottom-[50px] z-[45] flex w-full flex-col overflow-hidden bg-base-100 shadow-2xl",
+          @arqade_fullpane_shell_leaving? && "arqade-fullpane-leaving"
+        ]}
+        phx-window-keydown={if(@arqade_fullpane_active?, do: "close-arqade-fullpane")}
+        phx-key={if(@arqade_fullpane_active?, do: "Escape")}
+      >
+        <%= if @arqade_fullpane_active? do %>
+          <div class="flex flex-none items-center justify-between gap-2 border-b border-base-300 bg-base-200 px-3 py-2">
+            <span class="truncate text-sm font-semibold text-base-content">Arqade</span>
+            <button
+              type="button"
+              phx-click="close-arqade-fullpane"
+              class="btn btn-ghost btn-sm btn-circle flex-shrink-0"
+              aria-label="Close full view"
+            >
+              <.icon name="hero-x-mark" class="h-5 w-5" />
+            </button>
+          </div>
+        <% end %>
+        <div class={if(@arqade_fullpane_active?, do: "min-h-0 flex-1 overflow-y-auto", else: "w-full")}>
+          {live_render(@socket, @inline_arqade_module,
+            id: @inline_arqade_dom_id,
+            session: @inline_arqade_session
+          )}
+        </div>
+      </div>
     </div>
     """
   end
