@@ -37,6 +37,100 @@ defmodule QlariusWeb.Components.AuthSteps do
   import QlariusWeb.CoreComponents, only: [icon: 1]
   import QlariusWeb.Components.CustomComponentsMobile, only: [date_input: 1]
 
+  @doc """
+  Widget-themed step indicator (`Alias` / `Data` / `Confirm`) shared by
+  `AuthSheet`, `ProxyUserSheet`, and `RegistrationLive` surfaces.
+  """
+  attr :step, :atom, required: true, values: [:alias, :data, :confirm]
+
+  def signup_progress_bar(assigns) do
+    ~H"""
+    <div
+      class="mb-2 flex w-full items-start justify-center gap-0 px-1 sm:px-2"
+      role="navigation"
+      aria-label="Registration steps"
+    >
+      <div class="flex shrink-0 flex-col items-center gap-1 text-center">
+        <.signup_progress_circle n={1} flow_step={@step} />
+        <.signup_progress_label label="Alias" n={1} flow_step={@step} />
+      </div>
+      <div class="flex h-9 min-w-[0.5rem] flex-1 items-center px-0.5 sm:min-w-[0.75rem] sm:px-1" aria-hidden="true">
+        <div class="h-0.5 w-full rounded-full bg-widget-300"></div>
+      </div>
+      <div class="flex shrink-0 flex-col items-center gap-1 text-center">
+        <.signup_progress_circle n={2} flow_step={@step} />
+        <.signup_progress_label label="Data" n={2} flow_step={@step} />
+      </div>
+      <div class="flex h-9 min-w-[0.5rem] flex-1 items-center px-0.5 sm:min-w-[0.75rem] sm:px-1" aria-hidden="true">
+        <div class="h-0.5 w-full rounded-full bg-widget-300"></div>
+      </div>
+      <div class="flex shrink-0 flex-col items-center gap-1 text-center">
+        <.signup_progress_circle n={3} flow_step={@step} />
+        <.signup_progress_label label="Confirm" n={3} flow_step={@step} />
+      </div>
+    </div>
+    """
+  end
+
+  attr :n, :integer, required: true
+  attr :flow_step, :atom, required: true
+
+  defp signup_progress_circle(assigns) do
+    status = signup_step_status(assigns.n, assigns.flow_step)
+
+    circle =
+      case status do
+        :done ->
+          "border-widget-700 bg-widget-700 text-white shadow-sm"
+
+        :current ->
+          "border-widget-700 bg-widget-100 text-widget-900 shadow-sm ring-2 ring-widget-200"
+
+        :upcoming ->
+          "border-widget-200 bg-base-200 text-base-content/40"
+      end
+
+    assigns = assign(assigns, :circle_class, circle)
+
+    ~H"""
+    <div class={"flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold transition-colors #{@circle_class}"}>
+      {@n}
+    </div>
+    """
+  end
+
+  attr :label, :string, required: true
+  attr :n, :integer, required: true
+  attr :flow_step, :atom, required: true
+
+  defp signup_progress_label(assigns) do
+    status = signup_step_status(assigns.n, assigns.flow_step)
+
+    label_class =
+      if status == :upcoming,
+        do: "text-base-content/50",
+        else: "text-widget-900"
+
+    assigns = assign(assigns, :label_class, label_class)
+
+    ~H"""
+    <span class={"text-[10px] font-semibold uppercase tracking-wide sm:text-xs #{@label_class}"}>
+      {@label}
+    </span>
+    """
+  end
+
+  defp signup_step_status(1, step) when step in [:data, :confirm], do: :done
+  defp signup_step_status(1, :alias), do: :current
+  defp signup_step_status(1, _), do: :upcoming
+
+  defp signup_step_status(2, :confirm), do: :done
+  defp signup_step_status(2, :data), do: :current
+  defp signup_step_status(2, _), do: :upcoming
+
+  defp signup_step_status(3, :confirm), do: :current
+  defp signup_step_status(3, _), do: :upcoming
+
   # --- alias_picker (was step_two) -----------------------------------------
 
   attr :alias, :string, required: true
@@ -60,31 +154,38 @@ defmodule QlariusWeb.Components.AuthSteps do
       </div>
 
       <%!-- Reserve space always so later selections don't flash/shift layout --%>
-      <div class="p-3 md:p-4 bg-base-200 dark:bg-base-100 rounded-lg border border-base-300">
+      <div class="rounded-lg border border-widget-300 bg-widget-100 p-3 md:p-4">
         <div class="flex items-center justify-between gap-2">
           <div class="min-w-0">
-            <p class="text-xs md:text-sm text-base-content/70 dark:text-base-content/60">Your full alias:</p>
+            <p class="text-xs text-widget-800/80 md:text-sm">Your full alias:</p>
             <p class={[
-              "text-lg md:text-2xl font-bold mt-0.5 md:mt-1 truncate",
-              if(@alias != "", do: "text-primary dark:text-primary", else: "text-base-content/30")
+              "mt-0.5 flex min-h-[1.75rem] items-center truncate text-lg font-bold md:mt-1 md:min-h-[2.5rem] md:text-2xl",
+              if(@alias != "", do: "text-widget-900", else: "text-widget-800/85")
             ]}>
-              <%= if @alias != "", do: @alias, else: "—" %>
+              <%= if @alias != "" do %>
+                {@alias}
+              <% else %>
+                <span class="inline-flex items-center gap-2" role="status" aria-live="polite">
+                  <span class="loading loading-dots loading-md shrink-0 text-widget-700 md:loading-lg"></span>
+                  <span class="sr-only">Your full alias will appear here as you pick a name and number.</span>
+                </span>
+              <% end %>
             </p>
           </div>
           <%= if @alias != "" do %>
-            <div class="badge badge-success badge-sm md:badge-lg gap-1 md:gap-2 flex-shrink-0">
-              <.icon name="hero-check-circle" class="w-4 h-4 md:w-5 md:h-5" /> Available
+            <div class="badge-widget inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 text-xs font-semibold leading-none md:gap-2 md:px-2.5 md:py-3 md:text-sm">
+              <.icon name="hero-check-circle" class="h-4 w-4 shrink-0 md:h-5 md:w-5" /> Available
             </div>
           <% else %>
-            <div class="badge badge-warning badge-sm md:badge-lg gap-1 md:gap-2 flex-shrink-0">
-              <.icon name="hero-ellipsis-horizontal-circle" class="w-4 h-4 md:w-5 md:h-5" /> Building
+            <div class="badge-widget-soft inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 text-xs font-semibold leading-none md:gap-2 md:px-2.5 md:py-3 md:text-sm">
+              <.icon name="hero-ellipsis-horizontal-circle" class="h-4 w-4 shrink-0 md:h-5 md:w-5" /> Building
             </div>
           <% end %>
         </div>
       </div>
 
       <div class="space-y-2 md:space-y-3">
-        <label class="label-text text-sm md:text-lg dark:text-gray-300 font-medium">
+        <label class="label-text text-sm font-medium text-widget-900 md:text-lg">
           Select an alias and number below:
         </label>
 
@@ -96,7 +197,7 @@ defmodule QlariusWeb.Components.AuthSteps do
                 type="button"
                 phx-click="regenerate_base_names"
                 phx-target={@target}
-                class="btn btn-xs md:btn-sm btn-ghost gap-1"
+                class="btn-widget-ghost btn-xs gap-1 md:btn-sm"
                 title="Generate new names"
               >
                 <.icon name="hero-arrow-path" class="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -111,21 +212,31 @@ defmodule QlariusWeb.Components.AuthSteps do
                 phx-value-base_name={base_name}
                 phx-target={@target}
                 class={[
-                  "w-full px-2 py-2 md:p-3 rounded-lg text-left transition-all border-2",
+                  "group btn btn-block flex h-auto min-h-12 w-full cursor-pointer justify-start rounded-full border-solid px-3 py-2 text-left text-sm font-medium shadow-sm transition-[color,background-color,border-color,box-shadow,transform] md:min-h-14 md:px-4 md:py-2.5 md:text-base",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-widget-400 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100 active:scale-[0.995]",
                   if(@selected_base == base_name,
-                    do: "bg-primary/20 border-primary dark:bg-primary/30 dark:border-primary",
+                    do:
+                      "border-[3px] border-widget-900 bg-widget-100 text-widget-900 shadow-md hover:border-widget-900 hover:bg-widget-100 hover:shadow-md",
                     else:
-                      "bg-base-200 border-base-300 hover:bg-base-300 dark:bg-base-100 dark:border-base-200"
+                      "border-2 border-widget-300 bg-widget-100 text-widget-900 hover:border-widget-700 hover:bg-widget-800 hover:text-white hover:shadow-md"
                   )
                 ]}
               >
-                <div class="flex items-center gap-1.5 md:gap-2 min-w-0">
+                <div class="flex min-w-0 items-center gap-1.5 md:gap-2">
                   <%= if @selected_base == base_name do %>
-                    <.icon name="hero-check-circle-solid" class="w-4 h-4 md:w-5 md:h-5 text-primary flex-shrink-0" />
+                    <.icon
+                      name="hero-check-circle-solid"
+                      class="h-4 w-4 shrink-0 text-widget-800 md:h-5 md:w-5"
+                    />
                   <% else %>
-                    <.icon name="hero-circle" class="w-4 h-4 md:w-5 md:h-5 text-base-content/30 flex-shrink-0" />
+                    <.icon
+                      name="hero-circle"
+                      class="h-4 w-4 shrink-0 text-widget-800/35 group-hover:text-white/70 md:h-5 md:w-5"
+                    />
                   <% end %>
-                  <span class="font-medium text-sm md:text-base dark:text-white truncate">{base_name}</span>
+                  <span class="truncate text-sm font-medium text-inherit md:text-base">
+                    {base_name}
+                  </span>
                 </div>
               </button>
             <% end %>
@@ -139,7 +250,7 @@ defmodule QlariusWeb.Components.AuthSteps do
                   type="button"
                   phx-click="regenerate_numbers"
                   phx-target={@target}
-                  class="btn btn-xs md:btn-sm btn-ghost gap-1"
+                  class="btn-widget-ghost btn-xs gap-1 md:btn-sm"
                   title="Generate new numbers"
                 >
                   <.icon name="hero-arrow-path" class="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -152,8 +263,8 @@ defmodule QlariusWeb.Components.AuthSteps do
             </div>
 
             <%= if is_nil(@selected_base) do %>
-              <div class="flex items-center justify-center min-h-[160px] md:min-h-[200px] bg-base-200 dark:bg-base-100 rounded-lg border-2 border-dashed border-base-300">
-                <p class="text-base-content/50 text-center px-2 text-xs md:text-sm">
+              <div class="flex min-h-[160px] items-center justify-center rounded-lg border-2 border-dashed border-widget-300 bg-base-200 md:min-h-[200px]">
+                <p class="px-2 text-center text-xs text-base-content/50 md:text-sm">
                   Pick a name first
                 </p>
               </div>
@@ -165,21 +276,29 @@ defmodule QlariusWeb.Components.AuthSteps do
                   phx-value-number={number}
                   phx-target={@target}
                   class={[
-                    "w-full px-2 py-2 md:p-3 rounded-lg text-left transition-all border-2",
+                    "group btn btn-block flex h-auto min-h-12 w-full cursor-pointer justify-start rounded-full border-solid px-3 py-2 text-left text-sm font-medium shadow-sm transition-[color,background-color,border-color,box-shadow,transform] md:min-h-14 md:px-4 md:py-2.5 md:text-base",
+                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-widget-400 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100 active:scale-[0.995]",
                     if(@selected_number == number,
-                      do: "bg-primary/20 border-primary dark:bg-primary/30 dark:border-primary",
+                      do:
+                        "border-[3px] border-widget-900 bg-widget-100 text-widget-900 shadow-md hover:border-widget-900 hover:bg-widget-100 hover:shadow-md",
                       else:
-                        "bg-base-200 border-base-300 hover:bg-base-300 dark:bg-base-100 dark:border-base-200"
+                        "border-2 border-widget-300 bg-widget-100 text-widget-900 hover:border-widget-700 hover:bg-widget-800 hover:text-white hover:shadow-md"
                     )
                   ]}
                 >
                   <div class="flex items-center gap-1.5 md:gap-2">
                     <%= if @selected_number == number do %>
-                      <.icon name="hero-check-circle-solid" class="w-4 h-4 md:w-5 md:h-5 text-primary flex-shrink-0" />
+                      <.icon
+                        name="hero-check-circle-solid"
+                        class="h-4 w-4 shrink-0 text-widget-800 md:h-5 md:w-5"
+                      />
                     <% else %>
-                      <.icon name="hero-circle" class="w-4 h-4 md:w-5 md:h-5 text-base-content/30 flex-shrink-0" />
+                      <.icon
+                        name="hero-circle"
+                        class="h-4 w-4 shrink-0 text-widget-800/35 group-hover:text-white/70 md:h-5 md:w-5"
+                      />
                     <% end %>
-                        <span class="font-medium text-sm md:text-base dark:text-white">-{number}</span>
+                    <span class="text-sm font-medium text-inherit md:text-base">-{number}</span>
                   </div>
                 </button>
               <% end %>
@@ -212,9 +331,12 @@ defmodule QlariusWeb.Components.AuthSteps do
     <div class="space-y-6">
       <div>
         <h2 class="text-2xl md:text-3xl font-bold mb-3 dark:text-white">Core MeFile Data</h2>
-        <div class="alert alert-warning">
-          <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-          <span class="text-base">
+        <div
+          role="note"
+          class="flex gap-2 rounded-lg border border-widget-300 bg-widget-100 px-3 py-3 text-base text-widget-900"
+        >
+          <.icon name="hero-exclamation-triangle" class="h-5 w-5 shrink-0 text-widget-700" />
+          <span>
             <strong>Important:</strong>
             Birthdate and Sex data cannot be updated later. Please ensure accuracy.
           </span>
@@ -234,7 +356,9 @@ defmodule QlariusWeb.Components.AuthSteps do
           valid={@birthdate_valid}
           calculated_age={@calculated_age}
           update_event="update_birthdate"
-          min_age={16}
+          min_age={QlariusWeb.BirthdateRules.min_age()}
+          max_age={QlariusWeb.BirthdateRules.max_age()}
+          widget_theme={true}
         />
       </div>
 
@@ -245,7 +369,7 @@ defmodule QlariusWeb.Components.AuthSteps do
           </label>
           <select
             name="sex_id"
-            class="select select-bordered select-lg w-full text-lg dark:bg-base-100 dark:text-white"
+            class="select select-bordered select-lg w-full border-widget-300 text-lg focus:border-widget-700 focus:outline-none focus:ring-2 focus:ring-widget-200"
           >
             <option value="" selected={is_nil(@sex_trait_id)}>Select...</option>
             <%= for option <- @sex_options do %>
@@ -268,7 +392,7 @@ defmodule QlariusWeb.Components.AuthSteps do
             type="text"
             placeholder="Enter 5-digit zip code"
             maxlength="5"
-            class={"input input-bordered input-lg w-full text-lg dark:bg-base-100 dark:text-white #{if @zip_lookup_error, do: "input-error"}"}
+            class={"input input-bordered w-full border-widget-300 text-xl font-medium tabular-nums tracking-wide focus:border-widget-700 focus:outline-none focus:ring-2 focus:ring-widget-200 md:text-2xl #{if @zip_lookup_error, do: "input-error"}"}
             value={@zip_lookup_input}
           />
           <%= if @zip_lookup_error do %>
@@ -281,8 +405,8 @@ defmodule QlariusWeb.Components.AuthSteps do
           <% end %>
           <%= if @zip_lookup_valid and @zip_lookup_trait do %>
             <div class="mt-3">
-              <div class="badge badge-primary badge-lg p-4 text-base">
-                <.icon name="hero-map-pin" class="w-5 h-5 mr-2" />
+              <div class="badge-widget-soft badge-lg px-4 py-3 text-base">
+                <.icon name="hero-map-pin" class="mr-2 h-5 w-5" />
                 {@zip_lookup_trait.meta_1}
               </div>
             </div>
@@ -316,9 +440,12 @@ defmodule QlariusWeb.Components.AuthSteps do
       <div>
         <h2 class="text-2xl md:text-3xl font-bold mb-3 dark:text-white">Confirm Your Information</h2>
         <%= if not @can_complete do %>
-          <div class="alert alert-warning">
-            <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-            <span class="text-sm">Please check the confirmation box to complete registration.</span>
+          <div
+            role="note"
+            class="flex gap-2 rounded-lg border border-widget-300 bg-widget-100 px-3 py-2 text-sm text-widget-900"
+          >
+            <.icon name="hero-exclamation-triangle" class="h-5 w-5 shrink-0 text-widget-700" />
+            <span>Please check the confirmation box to complete registration.</span>
           </div>
         <% end %>
       </div>
@@ -383,8 +510,8 @@ defmodule QlariusWeb.Components.AuthSteps do
             <span class="text-sm md:text-base text-base-content/70 dark:text-base-content/60">
               Referral Code:
             </span>
-            <span class="text-sm md:text-base font-medium text-success dark:text-success">
-              <.icon name="hero-check-circle" class="w-4 h-4 inline mr-1" />
+            <span class="text-sm font-medium text-widget-800 md:text-base">
+              <.icon name="hero-check-circle" class="mr-1 inline h-4 w-4" />
               {@referral_code}
             </span>
           </div>
@@ -392,10 +519,10 @@ defmodule QlariusWeb.Components.AuthSteps do
       </div>
 
       <div class="form-control mt-4">
-        <label class="cursor-pointer flex items-start gap-3 p-3 bg-base-200 dark:bg-base-200 rounded-lg">
+        <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-widget-200 bg-widget-100 p-3">
           <input
             type="checkbox"
-            class="checkbox checkbox-primary flex-shrink-0 mt-0.5"
+            class="checkbox mt-0.5 shrink-0 border-2 border-widget-300 checked:border-widget-700 checked:bg-widget-700 checked:text-white"
             checked={@confirmation_checked}
             phx-click="toggle_confirmation"
             phx-value-checked={to_string(!@confirmation_checked)}

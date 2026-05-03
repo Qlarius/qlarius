@@ -59,6 +59,46 @@
 .animate-slide-in-right-to-left {
   animation: slide-in-right-to-left 0.4s ease-out forwards;
 }
+
+/* AuthSheet (qlink + widgets): backdrop + panel enter — mirrors qlink
+   video modal `animate-fade-in` intent without relying on legacy
+   tailwind.config.js theme keys. */
+@keyframes auth-sheet-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes auth-sheet-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-auth-sheet-backdrop {
+  animation: auth-sheet-backdrop-in 0.28s ease-out forwards;
+}
+
+.animate-auth-sheet-panel {
+  animation: auth-sheet-panel-in 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-auth-sheet-backdrop,
+  .animate-auth-sheet-panel {
+    animation: none;
+  }
+}
 @source "../css";
 @source "../js";
 @source "../../lib/qlarius_web";

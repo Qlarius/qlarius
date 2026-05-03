@@ -280,11 +280,26 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
 
   attr :resend_event, :string, default: nil, doc: "Event name for resending code (optional)"
 
+  attr :widget_theme, :boolean,
+    default: false,
+    doc:
+      "When true, OTP slot accents use the embedded widget palette (qlink / " <>
+        "AuthSheet) instead of Daisy `primary`."
+
   def otp_input(assigns) do
     # Split value into individual characters for display
     chars = String.graphemes(assigns.value || "")
     slots = for i <- 0..5, do: Enum.at(chars, i)
-    assigns = assign(assigns, :slots, slots)
+
+    slot_active_class =
+      if assigns.widget_theme,
+        do: "border-widget-700 bg-base-100 dark:bg-base-200 animate-pulse",
+        else: "border-primary bg-base-100 dark:bg-base-200 animate-pulse"
+
+    assigns =
+      assigns
+      |> assign(:slots, slots)
+      |> assign(:slot_active_class, slot_active_class)
 
     ~H"""
     <div class="form-control w-full">
@@ -295,7 +310,8 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
         data-value={@value}
         data-verify-event={@verify_event}
         data-update-event={@update_event}
-        class="flex flex-col gap-4 w-full"
+        data-widget-theme={to_string(@widget_theme)}
+        class="flex w-full flex-col gap-4"
       >
         <%!-- Visual slots container with real input layered on top --%>
         <div class="relative">
@@ -312,8 +328,10 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
             data-1p-ignore="true"
             data-lpignore="true"
             data-bwignore="true"
-            class={"otp-input absolute inset-0 w-full h-full z-10 #{if @error, do: ""}"}
-            style="font-size: 1px; color: transparent; background: transparent; border: none; outline: none; caret-color: #3b82f6; padding: 0; margin: 0;"
+            class={
+              "otp-input absolute inset-0 w-full h-full z-10 #{if @error, do: ""} #{if @widget_theme, do: "[caret-color:var(--color-widget-700)]", else: "[caret-color:#3b82f6]"}"
+            }
+            style="font-size: 1px; color: transparent; background: transparent; border: none; outline: none; padding: 0; margin: 0;"
             aria-label="Enter 6-digit verification code"
           />
 
@@ -321,7 +339,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
           <div class="flex justify-center gap-2 sm:gap-3">
             <%= for {char, i} <- Enum.with_index(@slots) do %>
               <div
-                class={"otp-slot w-12 h-14 sm:w-14 sm:h-16 flex items-center justify-center text-2xl font-bold rounded-lg border-2 transition-all #{if @error, do: "border-error bg-error/10", else: if(i == 0 && is_nil(char), do: "border-primary bg-base-100 dark:bg-base-200 animate-pulse", else: "border-base-300 bg-base-100 dark:bg-base-200")}"}
+                class={"otp-slot w-12 h-14 sm:w-14 sm:h-16 flex items-center justify-center text-2xl font-bold rounded-lg border-2 transition-all #{if @error, do: "border-error bg-error/10", else: if(i == 0 && is_nil(char), do: @slot_active_class, else: "border-base-300 bg-base-100 dark:bg-base-200")}"}
                 data-index={i}
               >
                 {char}
@@ -350,7 +368,11 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
           <button
             type="button"
             phx-click={@resend_event}
-            class="label-text-alt link link-primary text-base"
+            class={
+              if @widget_theme,
+                do: "label-text-alt text-base font-medium text-widget-800 hover:text-widget-900 hover:underline",
+                else: "label-text-alt link link-primary text-base"
+            }
           >
             Resend code
           </button>
@@ -388,7 +410,22 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
   attr :update_event, :string, required: true
   attr :min_age, :integer, default: 16
 
+  attr :max_age, :integer,
+    default: 120,
+    doc: "Upper bound for plausible age; server validation should match."
+
+  attr :widget_theme, :boolean,
+    default: false,
+    doc: "When true, age badge uses the widget palette (AuthSheet / qlink)."
+
   def date_input(assigns) do
+    age_badge_class =
+      if assigns.widget_theme,
+        do: "badge-widget-soft badge-lg px-4 py-3 text-base",
+        else: "badge badge-primary badge-lg p-4 text-base"
+
+    assigns = assign(assigns, :age_badge_class, age_badge_class)
+
     ~H"""
     <div class="form-control w-full">
       <div
@@ -396,7 +433,8 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
         phx-hook="DateInput"
         data-update-event={@update_event}
         data-min-age={@min_age}
-        class="flex flex-col gap-2 w-full"
+        data-max-age={@max_age}
+        class="flex w-full flex-col gap-2"
       >
         <%!-- Field labels --%>
         <div class="flex gap-2">
@@ -431,7 +469,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
             data-lpignore="true"
             data-bwignore="true"
             data-form-type="other"
-            class={"date-field input input-bordered input-lg flex-1 text-lg text-center dark:bg-base-100 dark:text-white #{if @error, do: "input-error"}"}
+            class={"date-field input input-bordered flex-1 text-center text-xl font-medium tabular-nums tracking-wide dark:bg-base-100 dark:text-white md:text-2xl #{if @error, do: "input-error"}"}
           />
           <input
             type="text"
@@ -445,7 +483,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
             data-lpignore="true"
             data-bwignore="true"
             data-form-type="other"
-            class={"date-field input input-bordered input-lg flex-1 text-lg text-center dark:bg-base-100 dark:text-white #{if @error, do: "input-error"}"}
+            class={"date-field input input-bordered flex-1 text-center text-xl font-medium tabular-nums tracking-wide dark:bg-base-100 dark:text-white md:text-2xl #{if @error, do: "input-error"}"}
           />
           <input
             type="text"
@@ -459,20 +497,33 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
             data-lpignore="true"
             data-bwignore="true"
             data-form-type="other"
-            class={"date-field input input-bordered input-lg flex-[1.5] text-lg text-center dark:bg-base-100 dark:text-white #{if @error, do: "input-error"}"}
+            class={"date-field input input-bordered flex-[1.5] text-center text-xl font-medium tabular-nums tracking-wide dark:bg-base-100 dark:text-white md:text-2xl #{if @error, do: "input-error"}"}
           />
         </div>
 
         <%!-- Status/error display --%>
         <%= cond do %>
+          <% @error && @widget_theme -> %>
+            <div class="mt-3 space-y-2" role="alert">
+              <div class="flex gap-2 rounded-lg border border-error/40 bg-error/10 px-3 py-2 text-sm text-error">
+                <.icon name="hero-exclamation-triangle" class="mt-0.5 h-5 w-5 shrink-0" />
+                <span class="min-w-0 text-left leading-snug">{@error}</span>
+              </div>
+              <%= if @calculated_age do %>
+                <div class="flex items-center justify-center gap-2 rounded-lg border border-error/50 bg-base-100 px-3 py-2 text-sm font-semibold text-error">
+                  <.icon name="hero-calendar" class="h-5 w-5 shrink-0" />
+                  <span>Age from this date: {@calculated_age}</span>
+                </div>
+              <% end %>
+            </div>
           <% @error -> %>
-            <div class="text-center text-sm mt-1">
+            <div class="mt-1 text-center text-sm">
               <span class="text-error">{@error}</span>
             </div>
           <% @valid && @calculated_age -> %>
             <div class="mt-3">
-              <div class="badge badge-primary badge-lg p-4 text-base">
-                <.icon name="hero-calendar" class="w-5 h-5 mr-2" /> Age: {@calculated_age}
+              <div class={@age_badge_class}>
+                <.icon name="hero-calendar" class="mr-2 h-5 w-5" /> Age: {@calculated_age}
               </div>
             </div>
           <% true -> %>

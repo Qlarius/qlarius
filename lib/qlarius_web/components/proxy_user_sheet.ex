@@ -69,7 +69,6 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
   alias Qlarius.Accounts.AliasGenerator
   alias Qlarius.Auth.AuditLog
   alias Qlarius.Referrals.Context, as: ReferralContext
-  alias Qlarius.YouData.MeFiles
   alias Qlarius.YouData.Traits
   alias QlariusWeb.Components.AuthSteps
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
@@ -393,43 +392,19 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
     month = socket.assigns.birthdate_month
     day = socket.assigns.birthdate_day
 
-    all_digits_entered =
-      String.length(month) == 2 and String.length(day) == 2 and String.length(year) == 4
-
-    with true <- String.length(year) == 4,
-         {year_int, ""} <- Integer.parse(year),
-         true <- String.length(month) == 2,
-         {month_int, ""} <- Integer.parse(month),
-         true <- month_int in 1..12,
-         true <- String.length(day) == 2,
-         {day_int, ""} <- Integer.parse(day),
-         true <- day_int in 1..31,
-         {:ok, date} <- Date.new(year_int, month_int, day_int) do
-      age = MeFiles.calculate_age(date)
-
-      if age && age >= 16 do
-        age_trait = MeFiles.get_age_trait_for_age(age)
-
+    case QlariusWeb.BirthdateRules.evaluate(year, month, day) do
+      {:ok, age, age_trait_id} ->
         socket
         |> assign(:birthdate_valid, true)
         |> assign(:birthdate_error, nil)
         |> assign(:calculated_age, age)
-        |> assign(:age_trait_id, if(age_trait, do: age_trait.id, else: nil))
-      else
-        socket
-        |> assign(:birthdate_valid, false)
-        |> assign(:birthdate_error, "Must be 16 or older")
-        |> assign(:calculated_age, age)
-        |> assign(:age_trait_id, nil)
-      end
-    else
-      _ ->
-        error = if all_digits_entered, do: "Date entered is invalid", else: nil
+        |> assign(:age_trait_id, age_trait_id)
 
+      {:error, err, age} ->
         socket
         |> assign(:birthdate_valid, false)
-        |> assign(:birthdate_error, error)
-        |> assign(:calculated_age, nil)
+        |> assign(:birthdate_error, err)
+        |> assign(:calculated_age, age)
         |> assign(:age_trait_id, nil)
     end
   end
@@ -493,7 +468,7 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
             <button
               type="button"
               phx-click={@on_cancel}
-              class="absolute top-3 right-3 btn btn-sm btn-circle btn-ghost z-10"
+              class="absolute top-3 right-3 btn btn-sm btn-circle btn-widget-ghost z-10"
               aria-label="Close"
             >
               <.icon name="hero-x-mark" class="w-5 h-5" />
@@ -513,7 +488,7 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
     ~H"""
     <div class="space-y-5">
       <.sheet_header subtitle="Step 1 of 3 — Build the proxy's alias" />
-      <.progress step={:alias} />
+      <AuthSteps.signup_progress_bar step={:alias} />
 
       <AuthSteps.alias_picker
         alias={@alias}
@@ -539,7 +514,7 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
     ~H"""
     <div class="space-y-5">
       <.sheet_header subtitle="Step 2 of 3 — Core MeFile data" />
-      <.progress step={:data} />
+      <AuthSteps.signup_progress_bar step={:data} />
 
       <AuthSteps.data_step
         sex_trait_id={@sex_trait_id}
@@ -570,11 +545,14 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
     ~H"""
     <div class="space-y-5">
       <.sheet_header subtitle="Step 3 of 3 — Confirm" />
-      <.progress step={:confirm} />
+      <AuthSteps.signup_progress_bar step={:confirm} />
 
       <%= if @signup_error do %>
-        <div class="alert alert-error text-sm">
-          <.icon name="hero-x-circle" class="w-5 h-5" />
+        <div
+          role="alert"
+          class="flex gap-2 rounded-lg border border-error/40 bg-error/5 px-3 py-2 text-sm text-error"
+        >
+          <.icon name="hero-x-circle" class="h-5 w-5 shrink-0" />
           <span>{@signup_error}</span>
         </div>
       <% end %>
@@ -601,7 +579,7 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
           type="button"
           phx-click="signup_back"
           phx-target={@myself}
-          class="btn btn-ghost flex-1"
+          class="btn-widget-ghost btn-lg flex-1 rounded-full"
         >
           Back
         </button>
@@ -609,7 +587,7 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
           type="button"
           phx-click="submit_signup"
           phx-target={@myself}
-          class="btn btn-primary flex-1"
+          class="btn-widget btn-widget-emphasis btn-lg flex-1 rounded-full"
           disabled={not can_complete?(assigns)}
         >
           Create proxy user
@@ -623,7 +601,7 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
     ~H"""
     <div class="space-y-5 text-center py-6">
       <div class="flex justify-center">
-        <span class="loading loading-spinner loading-lg text-primary"></span>
+        <span class="loading loading-spinner loading-lg text-widget-700"></span>
       </div>
       <div>
         <h2 class="text-xl md:text-2xl font-bold dark:text-white">Creating proxy user…</h2>
@@ -645,7 +623,7 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
       <div>
         <h2 class="text-xl md:text-2xl font-bold dark:text-white">Proxy user created</h2>
         <p class="mt-2 text-base-content/70">
-          <span class="font-medium text-primary">{@created_user && @created_user.alias}</span>
+          <span class="font-medium text-widget-900">{@created_user && @created_user.alias}</span>
           is now in your proxy list.
         </p>
         <p class="mt-1 text-sm text-base-content/60">
@@ -657,7 +635,7 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
         <button
           type="button"
           phx-click={@on_cancel}
-          class="btn btn-ghost flex-1"
+          class="btn-widget-ghost btn-lg flex-1 rounded-full"
         >
           Close
         </button>
@@ -665,7 +643,7 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
           type="button"
           phx-click="add_another"
           phx-target={@myself}
-          class="btn btn-primary flex-1"
+          class="btn-widget btn-widget-emphasis btn-lg flex-1 rounded-full"
         >
           Add another
         </button>
@@ -689,18 +667,6 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
     """
   end
 
-  attr :step, :atom, required: true, values: [:alias, :data, :confirm]
-
-  defp progress(assigns) do
-    ~H"""
-    <ul class="steps w-full text-xs">
-      <li class={"step step-primary"}>Alias</li>
-      <li class={"step #{if @step in [:data, :confirm], do: "step-primary"}"}>Data</li>
-      <li class={"step #{if @step == :confirm, do: "step-primary"}"}>Confirm</li>
-    </ul>
-    """
-  end
-
   attr :target, :any, required: true
   attr :back_label, :string, default: "Back"
   attr :back_click, :any, default: nil
@@ -712,7 +678,7 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
       <button
         type="button"
         phx-click={@back_click || JS.push("signup_back", target: @target)}
-        class="btn btn-ghost flex-1"
+        class="btn-widget-ghost btn-lg flex-1 rounded-full"
       >
         {@back_label}
       </button>
@@ -720,7 +686,7 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
         type="button"
         phx-click="signup_next"
         phx-target={@target}
-        class="btn btn-primary flex-1"
+        class="btn-widget btn-widget-emphasis btn-lg flex-1 rounded-full"
         disabled={@next_disabled}
       >
         Next

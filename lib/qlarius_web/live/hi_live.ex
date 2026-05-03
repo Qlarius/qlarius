@@ -541,7 +541,7 @@ defmodule QlariusWeb.HiLive do
           <div class="card-body">
             <h2 class="card-title text-3xl font-bold mb-3">Sell your attention.</h2>
             <p class="text-base-content/70 text-lg">
-            Let advertisers buy attention directly from the source - <span class="font-extrabold">you.</span> Sponsorship gets personal.
+            Let advertisers buy attention directly from the source - <span class="font-extrabold">you.</span>
             </p>
             <div class="card-actions justify-center mt-4">
               <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-8 w-auto" />
@@ -567,7 +567,7 @@ defmodule QlariusWeb.HiLive do
           <div class="card-body">
             <h2 class="card-title text-3xl font-bold mb-3">Fuel your wallet.</h2>
             <p class="text-base-content/70 text-lg">
-            Each ad feeds small revenues into your wallet. Like a toll booth for your attention.
+            Collect ad revenues into your Qadabra wallet.
             </p>
             <div class="card-actions justify-center mt-4">
               <img src="/images/qadabra_logo_squares_color.svg" alt="Qadabra" class="h-8 w-auto" />
@@ -593,7 +593,7 @@ defmodule QlariusWeb.HiLive do
           <div class="card-body">
             <h2 class="card-title text-3xl font-bold mb-3">Buy your media.</h2>
             <p class="text-base-content/70 text-lg">
-            Use funds to buy "tiqits" & access your favorite media. Easy, instant, and private.
+            Use funds to buy access to your favorite media.
             </p>
             <div class="card-actions justify-center mt-4">
               <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-8 w-auto" />
@@ -619,7 +619,7 @@ defmodule QlariusWeb.HiLive do
           <div class="card-body">
             <h2 class="card-title text-3xl font-bold mb-3">Own your data.</h2>
             <p class="text-base-content/70 text-lg">
-              The best part?  Absolute privacy and ownership of your own data that drives it all.
+              Absolute privacy and ownership of your data.
             </p>
             <div class="card-actions justify-center mt-4">
               <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-8 w-auto" />

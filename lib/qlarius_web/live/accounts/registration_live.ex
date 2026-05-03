@@ -2,7 +2,7 @@ defmodule QlariusWeb.RegistrationLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Accounts
-  alias Qlarius.YouData.{MeFiles, Traits}
+  alias Qlarius.YouData.Traits
   alias QlariusWeb.Components.AuthSteps
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
   import QlariusWeb.PWAHelpers
@@ -613,45 +613,19 @@ defmodule QlariusWeb.RegistrationLive do
     month = socket.assigns.birthdate_month
     day = socket.assigns.birthdate_day
 
-    # Check if all fields are complete (8 total digits: MM + DD + YYYY)
-    all_digits_entered =
-      String.length(month) == 2 and String.length(day) == 2 and String.length(year) == 4
-
-    with true <- String.length(year) == 4,
-         {year_int, ""} <- Integer.parse(year),
-         true <- String.length(month) == 2,
-         {month_int, ""} <- Integer.parse(month),
-         true <- month_int >= 1 and month_int <= 12,
-         true <- String.length(day) == 2,
-         {day_int, ""} <- Integer.parse(day),
-         true <- day_int >= 1 and day_int <= 31,
-         {:ok, date} <- Date.new(year_int, month_int, day_int) do
-      age = MeFiles.calculate_age(date)
-
-      if age && age >= 16 do
-        age_trait = MeFiles.get_age_trait_for_age(age)
-
+    case QlariusWeb.BirthdateRules.evaluate(year, month, day) do
+      {:ok, age, age_trait_id} ->
         socket
         |> assign(:birthdate_valid, true)
         |> assign(:birthdate_error, nil)
         |> assign(:calculated_age, age)
-        |> assign(:age_trait_id, if(age_trait, do: age_trait.id, else: nil))
-      else
-        socket
-        |> assign(:birthdate_valid, false)
-        |> assign(:birthdate_error, "Must be 16 or older")
-        |> assign(:calculated_age, age)
-        |> assign(:age_trait_id, nil)
-      end
-    else
-      _ ->
-        # Only show error if all digits have been entered but date is invalid
-        error = if all_digits_entered, do: "Date entered is invalid", else: nil
+        |> assign(:age_trait_id, age_trait_id)
 
+      {:error, err, age} ->
         socket
         |> assign(:birthdate_valid, false)
-        |> assign(:birthdate_error, error)
-        |> assign(:calculated_age, nil)
+        |> assign(:birthdate_error, err)
+        |> assign(:calculated_age, age)
         |> assign(:age_trait_id, nil)
     end
   end

@@ -2162,6 +2162,48 @@ Hooks.IabEscapeIos = {
 //      fall back to a full reload — graceful degradation lands the user
 //      authed at the top of the page.
 //
+// US display `(###)###-####` while typing. Server also formats, but
+// LiveView will not overwrite a focused input's value on patch — this
+// hook applies the mask immediately and keeps assigns in sync via
+// `update_mobile` (same handler as before).
+function formatUsPhoneDigits(digits) {
+  const d = digits.replace(/\D/g, '').slice(0, 10)
+  const len = d.length
+  if (len === 0) return ''
+  if (len < 3) return '(' + d
+  if (len === 3) return '(' + d + ')'
+  if (len <= 6) return '(' + d.slice(0, 3) + ')' + d.slice(3)
+  return '(' + d.slice(0, 3) + ')' + d.slice(3, 6) + '-' + d.slice(6)
+}
+
+Hooks.AuthSheetPhone = {
+  mounted() {
+    this.onInput = (e) => {
+      const el = e.target
+      const formatted = formatUsPhoneDigits(el.value)
+      if (el.value !== formatted) el.value = formatted
+      const root = el.closest('[data-phx-component]')
+      if (root && typeof this.pushEventTo === 'function') {
+        this.pushEventTo(root, 'update_mobile', { value: formatted })
+      } else {
+        this.pushEvent('update_mobile', { value: formatted })
+      }
+    }
+    this.el.addEventListener('input', this.onInput)
+  },
+
+  updated() {
+    const attr = this.el.getAttribute('value')
+    if (this.el !== document.activeElement && attr != null && this.el.value !== attr) {
+      this.el.value = attr
+    }
+  },
+
+  destroyed() {
+    this.el.removeEventListener('input', this.onInput)
+  }
+}
+
 // See docs/qlink_auth_refactor_plan.md §5.9.
 Hooks.AuthFinalize = {
   mounted() {
@@ -2519,7 +2561,9 @@ Hooks.OTPInput = {
     this.input = this.el.querySelector('.otp-input')
     this.slots = this.el.querySelectorAll('.otp-slot')
     this.length = 6
-    
+    this.widgetTheme = this.el.dataset.widgetTheme === 'true'
+    this.ringActive = this.widgetTheme ? 'ring-widget-700' : 'ring-primary'
+
     // Get configurable event names from data attributes
     this.verifyEvent = this.el.dataset.verifyEvent || 'verify_code'
     this.updateEvent = this.el.dataset.updateEvent || 'update_verification_code'
@@ -2550,7 +2594,7 @@ Hooks.OTPInput = {
     })
     
     this.input.addEventListener('blur', () => {
-      this.slots.forEach(slot => slot.classList.remove('ring-2', 'ring-primary'))
+      this.clearSlotRings()
     })
     
     // Update active slot on selection change
@@ -2578,19 +2622,28 @@ Hooks.OTPInput = {
     this.updateActiveSlot()
   },
   
+  clearSlotRings() {
+    this.slots.forEach(slot =>
+      slot.classList.remove('ring-2', 'ring-primary', 'ring-widget-700')
+    )
+  },
+
   updateActiveSlot() {
     const pos = Math.min(this.input.value.length, this.length - 1)
     this.slots.forEach((slot, i) => {
       if (i === pos && document.activeElement === this.input) {
-        slot.classList.add('ring-2', 'ring-primary')
+        slot.classList.add('ring-2', this.ringActive)
       } else {
-        slot.classList.remove('ring-2', 'ring-primary')
+        slot.classList.remove('ring-2', 'ring-primary', 'ring-widget-700')
       }
     })
   },
   
   // Handle server-side updates (e.g., clear on error)
   updated() {
+    this.widgetTheme = this.el.dataset.widgetTheme === 'true'
+    this.ringActive = this.widgetTheme ? 'ring-widget-700' : 'ring-primary'
+
     const serverValue = this.el.dataset.value || ''
     if (this.input.value !== serverValue) {
       this.input.value = serverValue

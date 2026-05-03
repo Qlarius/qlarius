@@ -76,7 +76,6 @@ defmodule QlariusWeb.Components.AuthSheet do
   alias Qlarius.Auth.RateLimit
   alias Qlarius.Referrals.Context, as: ReferralContext
   alias Qlarius.Services.Twilio
-  alias Qlarius.YouData.MeFiles
   alias Qlarius.YouData.Traits
   alias QlariusWeb.Auth.FinalizeToken
   alias QlariusWeb.Components.AuthSteps
@@ -138,10 +137,13 @@ defmodule QlariusWeb.Components.AuthSheet do
     {:noreply, assign(socket, :in_iframe, !!in_iframe)}
   end
 
-  def handle_event("update_mobile", %{"value" => mobile}, socket) do
+  def handle_event("update_mobile", params, socket) do
+    raw = Map.get(params, "value", "") || ""
+    digits_only = raw |> to_string() |> String.replace(~r/\D/, "") |> String.slice(0, 10)
+
     {:noreply,
      socket
-     |> assign(:mobile_number, mobile)
+     |> assign(:mobile_number, format_us_phone_display(digits_only))
      |> assign(:mobile_number_error, nil)}
   end
 
@@ -208,9 +210,15 @@ defmodule QlariusWeb.Components.AuthSheet do
   def handle_event("verify_code", _params, socket), do: verify(socket)
 
   def handle_event("back_to_phone", _params, socket) do
+    digits =
+      (socket.assigns.mobile_number || "")
+      |> String.replace(~r/\D/, "")
+      |> String.slice(0, 10)
+
     {:noreply,
      socket
      |> assign(:state, :phone)
+     |> assign(:mobile_number, format_us_phone_display(digits))
      |> assign(:verification_code, "")
      |> assign(:verification_code_error, nil)
      |> assign(:finalize_error, nil)}
@@ -585,7 +593,7 @@ defmodule QlariusWeb.Components.AuthSheet do
     mobile_number =
       case assigns.mobile_number do
         "" -> nil
-        phone when is_binary(phone) -> phone
+        phone when is_binary(phone) -> format_phone(phone)
         _ -> nil
       end
 
@@ -661,43 +669,19 @@ defmodule QlariusWeb.Components.AuthSheet do
     month = socket.assigns.birthdate_month
     day = socket.assigns.birthdate_day
 
-    all_digits_entered =
-      String.length(month) == 2 and String.length(day) == 2 and String.length(year) == 4
-
-    with true <- String.length(year) == 4,
-         {year_int, ""} <- Integer.parse(year),
-         true <- String.length(month) == 2,
-         {month_int, ""} <- Integer.parse(month),
-         true <- month_int in 1..12,
-         true <- String.length(day) == 2,
-         {day_int, ""} <- Integer.parse(day),
-         true <- day_int in 1..31,
-         {:ok, date} <- Date.new(year_int, month_int, day_int) do
-      age = MeFiles.calculate_age(date)
-
-      if age && age >= 16 do
-        age_trait = MeFiles.get_age_trait_for_age(age)
-
+    case QlariusWeb.BirthdateRules.evaluate(year, month, day) do
+      {:ok, age, age_trait_id} ->
         socket
         |> assign(:birthdate_valid, true)
         |> assign(:birthdate_error, nil)
         |> assign(:calculated_age, age)
-        |> assign(:age_trait_id, if(age_trait, do: age_trait.id, else: nil))
-      else
-        socket
-        |> assign(:birthdate_valid, false)
-        |> assign(:birthdate_error, "Must be 16 or older")
-        |> assign(:calculated_age, age)
-        |> assign(:age_trait_id, nil)
-      end
-    else
-      _ ->
-        error = if all_digits_entered, do: "Date entered is invalid", else: nil
+        |> assign(:age_trait_id, age_trait_id)
 
+      {:error, err, age} ->
         socket
         |> assign(:birthdate_valid, false)
-        |> assign(:birthdate_error, error)
-        |> assign(:calculated_age, nil)
+        |> assign(:birthdate_error, err)
+        |> assign(:calculated_age, age)
         |> assign(:age_trait_id, nil)
     end
   end
@@ -772,8 +756,11 @@ defmodule QlariusWeb.Components.AuthSheet do
   defp regenerate_key(kind, socket) do
     phone =
       case socket.assigns[:mobile_number] do
-        phone when is_binary(phone) and phone != "" -> phone
-        _ -> socket.assigns.id
+        phone when is_binary(phone) and phone != "" ->
+          String.replace(phone, ~r/\D/, "")
+
+        _ ->
+          socket.assigns.id
       end
 
     "auth_sheet_regenerate_#{kind}:#{phone}"
@@ -814,11 +801,41 @@ defmodule QlariusWeb.Components.AuthSheet do
   defp humanize_retry_after(seconds) when seconds < 60 * 60, do: "#{div(seconds, 60)} minutes"
   defp humanize_retry_after(_), do: "an hour"
 
+  # `(###)###-####` — `assigns.mobile_number` holds this display form; OTP
+  # + Twilio paths still use `format_phone/1` / `valid_phone_shape?/1`,
+  # which strip non-digits first.
+  defp format_us_phone_display(digits) when is_binary(digits) do
+    d = String.replace(digits, ~r/\D/, "")
+    len = byte_size(d)
+
+    cond do
+      len == 0 ->
+        ""
+
+      len < 3 ->
+        "(" <> d
+
+      len == 3 ->
+        "(" <> d <> ")"
+
+      len <= 6 ->
+        "(" <> String.slice(d, 0, 3) <> ")" <> String.slice(d, 3, len - 3)
+
+      true ->
+        "(" <>
+          String.slice(d, 0, 3) <>
+          ")" <>
+          String.slice(d, 3, 3) <>
+          "-" <>
+          String.slice(d, 6, len - 6)
+    end
+  end
+
   defp valid_phone_shape?(nil), do: false
 
   defp valid_phone_shape?(phone) when is_binary(phone) do
     digits = String.replace(phone, ~r/\D/, "")
-    byte_size(digits) in 10..15
+    byte_size(digits) == 10
   end
 
   defp valid_phone_shape?(_), do: false
@@ -850,11 +867,11 @@ defmodule QlariusWeb.Components.AuthSheet do
           class="hidden"
         />
 
-        <div class="fixed inset-0 z-50 flex items-end md:items-center justify-center">
+        <div class="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4">
           <%!-- Backdrop --%>
           <div
             id={"#{@id}-backdrop"}
-            class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            class="absolute inset-0 bg-black/60 backdrop-blur-sm animate-auth-sheet-backdrop"
             phx-click={@on_cancel}
           />
 
@@ -863,16 +880,17 @@ defmodule QlariusWeb.Components.AuthSheet do
             long sign-up steps have room to scroll; centered dialog on
             md+. `max-h-[90vh]` + inner `overflow-y-auto` keeps the
             card itself bounded to the viewport while the content scrolls.
+            Enter animation matches qlink modals (fade + slight motion).
           --%>
           <div
-            class="relative w-full md:max-w-lg bg-base-100 dark:bg-base-200 rounded-t-2xl md:rounded-2xl shadow-2xl border border-base-300 overflow-hidden flex flex-col max-h-[90vh]"
+            class="relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-t-2xl border border-widget-300 bg-base-100 shadow-2xl animate-auth-sheet-panel md:max-w-lg md:rounded-2xl dark:bg-base-200"
             phx-window-keydown={@on_cancel}
             phx-key="escape"
           >
             <button
               type="button"
               phx-click={@on_cancel}
-              class="absolute top-3 right-3 btn btn-sm btn-circle btn-ghost z-10"
+              class="absolute top-3 right-3 btn btn-sm btn-circle btn-widget-ghost z-10"
               aria-label="Close"
             >
               <.icon name="hero-x-mark" class="w-5 h-5" />
@@ -905,14 +923,19 @@ defmodule QlariusWeb.Components.AuthSheet do
         href="https://qadabra.app/login"
         target="_blank"
         rel="noopener"
-        class="btn btn-primary w-full"
+        class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
       >
         <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4" /> Sign in at qadabra.app
       </a>
 
       <p class="text-xs text-base-content/60">
         New to Qadabra?
-        <a href={register_url()} target="_blank" rel="noopener" class="link link-primary">
+        <a
+          href={register_url()}
+          target="_blank"
+          rel="noopener"
+          class="font-medium text-widget-800 hover:text-widget-900 hover:underline"
+        >
           Create an account
         </a>
       </p>
@@ -933,7 +956,6 @@ defmodule QlariusWeb.Components.AuthSheet do
 
       <.form
         for={%{}}
-        phx-change="update_mobile"
         phx-submit="send_code"
         phx-target={@myself}
         autocomplete="off"
@@ -944,13 +966,16 @@ defmodule QlariusWeb.Components.AuthSheet do
             <span class="label-text text-sm font-medium dark:text-gray-300">Mobile number</span>
           </label>
           <input
-            type="tel"
+            type="text"
             name="value"
+            id={"#{@id}-phone-input"}
             value={@mobile_number}
-            inputmode="numeric"
+            phx-hook="AuthSheetPhone"
+            inputmode="tel"
             autocomplete="tel"
-            placeholder="(555) 555-5555"
-            class="input input-bordered w-full"
+            maxlength="13"
+            placeholder="(555)123-4567"
+            class="input input-bordered w-full text-xl md:text-2xl font-medium tabular-nums tracking-wide"
             aria-invalid={if @mobile_number_error, do: "true"}
           />
           <%= if @mobile_number_error do %>
@@ -960,7 +985,7 @@ defmodule QlariusWeb.Components.AuthSheet do
 
         <button
           type="submit"
-          class="btn btn-primary w-full"
+          class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
           disabled={not valid_phone_shape?(@mobile_number)}
         >
           Send code
@@ -981,8 +1006,11 @@ defmodule QlariusWeb.Components.AuthSheet do
       </div>
 
       <%= if @finalize_error do %>
-        <div class="alert alert-warning text-sm">
-          <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
+        <div
+          role="alert"
+          class="flex gap-2 rounded-lg border border-widget-300 bg-widget-100 px-3 py-2 text-sm text-widget-900"
+        >
+          <.icon name="hero-exclamation-triangle" class="w-5 h-5 shrink-0 text-widget-700" />
           <span>{@finalize_error}</span>
         </div>
       <% end %>
@@ -993,23 +1021,24 @@ defmodule QlariusWeb.Components.AuthSheet do
         error={@verification_code_error}
         verify_event="verify_code"
         update_event="update_verification_code"
+        widget_theme={true}
       />
 
-      <div class="flex items-center justify-between text-sm">
+      <div class="flex flex-col gap-2 border-t border-widget-200/40 pt-4 sm:flex-row sm:gap-3">
         <button
           type="button"
           phx-click="back_to_phone"
           phx-target={@myself}
-          class="link link-hover"
+          title="Use a different mobile number"
+          class="btn-widget-ghost btn-lg order-2 w-full rounded-full sm:order-1 sm:flex-1"
         >
-          Use a different number
+          Different number
         </button>
-
         <button
           type="button"
           phx-click="send_code"
           phx-target={@myself}
-          class="link link-hover"
+          class="btn-widget btn-widget-emphasis btn-lg order-1 w-full rounded-full sm:order-2 sm:flex-1"
         >
           Resend code
         </button>
@@ -1022,7 +1051,7 @@ defmodule QlariusWeb.Components.AuthSheet do
     ~H"""
     <div class="space-y-5 text-center py-6">
       <div class="flex justify-center">
-        <span class="loading loading-spinner loading-lg text-primary"></span>
+        <span class="loading loading-spinner loading-lg text-widget-700"></span>
       </div>
       <div>
         <h2 class="text-xl md:text-2xl font-bold dark:text-white">Signing you in…</h2>
@@ -1035,7 +1064,7 @@ defmodule QlariusWeb.Components.AuthSheet do
   defp render_state(%{state: :alias} = assigns) do
     ~H"""
     <div class="space-y-5">
-      <.signup_progress step={:alias} />
+      <AuthSteps.signup_progress_bar step={:alias} />
 
       <AuthSteps.alias_picker
         alias={@alias}
@@ -1049,7 +1078,8 @@ defmodule QlariusWeb.Components.AuthSheet do
 
       <.signup_nav
         target={@myself}
-        back_label="Use a different number"
+        back_label="Different number"
+        back_title="Use a different mobile number"
         next_disabled={not alias_ready?(assigns)}
       />
     </div>
@@ -1059,7 +1089,7 @@ defmodule QlariusWeb.Components.AuthSheet do
   defp render_state(%{state: :data} = assigns) do
     ~H"""
     <div class="space-y-5">
-      <.signup_progress step={:data} />
+      <AuthSteps.signup_progress_bar step={:data} />
 
       <AuthSteps.data_step
         sex_trait_id={@sex_trait_id}
@@ -1089,11 +1119,14 @@ defmodule QlariusWeb.Components.AuthSheet do
   defp render_state(%{state: :confirm} = assigns) do
     ~H"""
     <div class="space-y-5">
-      <.signup_progress step={:confirm} />
+      <AuthSteps.signup_progress_bar step={:confirm} />
 
       <%= if @signup_error do %>
-        <div class="alert alert-error text-sm">
-          <.icon name="hero-x-circle" class="w-5 h-5" />
+        <div
+          role="alert"
+          class="flex gap-2 rounded-lg border border-error/40 bg-error/5 px-3 py-2 text-sm text-error"
+        >
+          <.icon name="hero-x-circle" class="w-5 h-5 shrink-0" />
           <span>{@signup_error}</span>
         </div>
       <% end %>
@@ -1115,12 +1148,12 @@ defmodule QlariusWeb.Components.AuthSheet do
         target={@myself}
       />
 
-      <div class="flex gap-2 pt-2">
+      <div class="flex flex-col gap-2 pt-2 sm:flex-row sm:gap-3">
         <button
           type="button"
           phx-click="signup_back"
           phx-target={@myself}
-          class="btn btn-ghost flex-1"
+          class="btn-widget-ghost btn-lg order-2 w-full rounded-full sm:order-1 sm:flex-1"
         >
           Back
         </button>
@@ -1128,7 +1161,7 @@ defmodule QlariusWeb.Components.AuthSheet do
           type="button"
           phx-click="submit_signup"
           phx-target={@myself}
-          class="btn btn-primary flex-1"
+          class="btn-widget btn-widget-emphasis btn-lg order-1 w-full rounded-full sm:order-2 sm:flex-1"
           disabled={not can_complete?(assigns)}
         >
           Create account
@@ -1142,7 +1175,7 @@ defmodule QlariusWeb.Components.AuthSheet do
     ~H"""
     <div class="space-y-5 text-center py-6">
       <div class="flex justify-center">
-        <span class="loading loading-spinner loading-lg text-primary"></span>
+        <span class="loading loading-spinner loading-lg text-widget-700"></span>
       </div>
       <div>
         <h2 class="text-xl md:text-2xl font-bold dark:text-white">Creating your account…</h2>
@@ -1153,33 +1186,23 @@ defmodule QlariusWeb.Components.AuthSheet do
   end
 
   # --------------------------------------------------------------------
-  # Sub-components: progress bar + nav
+  # Sub-components: nav
   # --------------------------------------------------------------------
-
-  attr :step, :atom, required: true, values: [:alias, :data, :confirm]
-
-  defp signup_progress(assigns) do
-    ~H"""
-    <ul class="steps w-full text-xs">
-      <li class={"step step-primary"}>Alias</li>
-      <li class={"step #{if @step in [:data, :confirm], do: "step-primary"}"}>Data</li>
-      <li class={"step #{if @step == :confirm, do: "step-primary"}"}>Confirm</li>
-    </ul>
-    """
-  end
 
   attr :target, :any, required: true
   attr :back_label, :string, default: "Back"
+  attr :back_title, :string, default: nil
   attr :next_disabled, :boolean, default: false
 
   defp signup_nav(assigns) do
     ~H"""
-    <div class="flex gap-2 pt-2">
+    <div class="flex flex-col gap-2 pt-2 sm:flex-row sm:gap-3">
       <button
         type="button"
         phx-click="signup_back"
         phx-target={@target}
-        class="btn btn-ghost flex-1"
+        title={@back_title}
+        class="btn-widget-ghost btn-lg order-2 w-full min-w-0 rounded-full sm:order-1 sm:flex-1"
       >
         {@back_label}
       </button>
@@ -1187,7 +1210,7 @@ defmodule QlariusWeb.Components.AuthSheet do
         type="button"
         phx-click="signup_next"
         phx-target={@target}
-        class="btn btn-primary flex-1"
+        class="btn-widget btn-widget-emphasis btn-lg order-1 w-full rounded-full sm:order-2 sm:flex-1"
         disabled={@next_disabled}
       >
         Next
