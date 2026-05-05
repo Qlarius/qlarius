@@ -58,6 +58,13 @@ config :qlarius,
 # per-env in dev.exs / runtime.exs.
 config :qlarius, :in_app_browser_escape, enabled: false, auto_attempt: false
 
+# Twilio: after SMS verification, optionally enforce US mobile + carrier whitelist
+# (see Qlarius.Services.Twilio). Default false — flip to true in runtime.exs / prod when ready.
+config :qlarius, :twilio_filter_us_carriers, false
+
+# Lookup rejection rows: `blocked_until = inserted_at + N days` (default 30).
+config :qlarius, :phone_carrier_rejection_block_days, 30
+
 config :qlarius, :auth_sheet,
   on_qlink_page: false,
   on_qlinkin_bio: false,

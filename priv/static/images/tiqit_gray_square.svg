@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1000px" height="1000px" viewBox="0 0 1000 1000" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Slice 9</title>
+    <defs>
+        <filter x="-1.5%" y="-1.1%" width="103.1%" height="103.1%" filterUnits="objectBoundingBox" id="filter-1">
+            <feOffset dx="0" dy="4" in="SourceAlpha" result="shadowOffsetOuter1"></feOffset>
+            <feGaussianBlur stdDeviation="4" in="shadowOffsetOuter1" result="shadowBlurOuter1"></feGaussianBlur>
+            <feColorMatrix values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.25 0" type="matrix" in="shadowBlurOuter1" result="shadowMatrixOuter1"></feColorMatrix>
+            <feMerge>
+                <feMergeNode in="shadowMatrixOuter1"></feMergeNode>
+                <feMergeNode in="SourceGraphic"></feMergeNode>
+            </feMerge>
+        </filter>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Tiqit-Copy-3" filter="url(#filter-1)" transform="translate(66, 43)">
+            <g id="Group-3" transform="translate(-0.2801, 656)" fill="#545454">
+                <g id="Group-2">
+                    <path d="M187.543548,71.6183474 L129.846147,71.6183474 L129.846147,253 L58.2305121,253 L58.2305121,71.6183474 L0.280051715,71.6183474 L0.280051715,0.0269837884 L187.543548,0.0269837884 L187.543548,71.6183474 Z M276.36718,0.0269837884 L276.36718,253 L204.498486,253 L204.498486,0.0269837884 L276.36718,0.0269837884 Z M651.147231,0.0269837884 L651.147231,253 L579.278538,253 L579.278538,0.0269837884 L651.147231,0.0269837884 Z M855.365666,71.6183474 L797.668264,71.6183474 L797.668264,253 L726.05263,253 L726.05263,71.6183474 L668.10217,71.6183474 L668.10217,0.0269837884 L855.365666,0.0269837884 L855.365666,71.6183474 Z" id="tiqit-copy-2"></path>
+                    <g id="Group" transform="translate(301.4571, 0)" fill-rule="nonzero">
+                        <path d="M126.542886,0 C196.430592,0 253.085772,56.6359792 253.085772,126.5 C253.085772,196.364021 196.430592,253 126.542886,253 C56.6551799,253 0,196.364021 0,126.5 C0,56.6359792 56.6551799,0 126.542886,0 Z M126.974773,72.5324232 C96.9206741,72.5324232 72.5570131,96.8878272 72.5570131,126.931741 C72.5570131,156.975654 96.9206741,181.331058 126.974773,181.331058 C157.028872,181.331058 181.392533,156.975654 181.392533,126.931741 C181.392533,96.8878272 157.028872,72.5324232 126.974773,72.5324232 Z" id="Combined-Shape"></path>
+                    </g>
+                </g>
+                <polygon id="Path" transform="translate(493.0297, 192.6382) rotate(-46) translate(-493.0297, -192.6382)" points="519.852446 126.958729 519.909395 258.346894 466.206934 258.317734 466.149985 126.929569"></polygon>
+            </g>
+            <path d="M655.257748,69 L655.257748,136.244471 L722.365308,136.244471 L722.365308,203.488942 L856.580428,203.488942 L856.580694,276.964283 C856.460504,276.963787 856.340255,276.963539 856.219948,276.963539 C808.999602,276.963539 770.719948,315.243192 770.719948,362.463539 C770.719948,409.683885 808.999602,447.963539 856.219948,447.963539 L856.579948,447.96 L856.580428,648.963539 L0.719948359,648.963539 L0.719007952,447.962102 C0.88587527,447.963059 1.05285584,447.963539 1.21994836,447.963539 C48.4402945,447.963539 86.7199484,409.683885 86.7199484,362.463539 C86.7199484,315.243192 48.4402945,276.963539 1.21994836,276.963539 L0.719948285,276.967 L0.719948359,69 L655.257748,69 Z" id="Combined-Shape" fill="#F5A622"></path>
+            <rect id="Rectangle-7" fill="#F5A622" x="732.719948" y="95" width="67.1075599" height="67.244471"></rect>
+            <rect id="Rectangle-7" fill="#F5A622" x="810.719948" y="82" width="67.1075599" height="67.244471"></rect>
+            <rect id="Rectangle-7" fill="#F5A622" x="847.719948" y="0" width="67.1075599" height="67.244471"></rect>
+            <rect id="Rectangle-7" fill="#F5A622" x="753.719948" y="6" width="67.1075599" height="67.244471"></rect>
+            <rect id="Rectangle-7" fill="#F5A622" x="669.719948" y="21" width="67.1075599" height="67.244471"></rect>
+            <polygon id="Triangle" fill="#000000" fill-rule="nonzero" opacity="0.495047433" transform="translate(441.2199, 358.5) rotate(-270) translate(-441.2199, -358.5)" points="441.219948 246 553.719948 471 328.719948 471"></polygon>
+        </g>
+    </g>
+</svg>

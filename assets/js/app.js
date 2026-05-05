@@ -2162,7 +2162,7 @@ Hooks.IabEscapeIos = {
 //      fall back to a full reload — graceful degradation lands the user
 //      authed at the top of the page.
 //
-// US display `(###)###-####` while typing. Server also formats, but
+// US display `###-###-####` while typing. Server also formats, but
 // LiveView will not overwrite a focused input's value on patch — this
 // hook applies the mask immediately and keeps assigns in sync via
 // `update_mobile` (same handler as before).
@@ -2170,10 +2170,9 @@ function formatUsPhoneDigits(digits) {
   const d = digits.replace(/\D/g, '').slice(0, 10)
   const len = d.length
   if (len === 0) return ''
-  if (len < 3) return '(' + d
-  if (len === 3) return '(' + d + ')'
-  if (len <= 6) return '(' + d.slice(0, 3) + ')' + d.slice(3)
-  return '(' + d.slice(0, 3) + ')' + d.slice(3, 6) + '-' + d.slice(6)
+  if (len <= 3) return d
+  if (len <= 6) return d.slice(0, 3) + '-' + d.slice(3)
+  return d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6)
 }
 
 Hooks.AuthSheetPhone = {

@@ -100,15 +100,30 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
 
   attr :balance, :any, required: true
   attr :id, :string, default: "wallet-balance"
+  attr :footer_label, :string, default: nil
 
   def wallet_balance(assigns) do
     ~H"""
     <span
       id={@id}
       phx-hook="WalletPulse"
-      class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content dark:text-sponster-100 px-3 py-1 rounded-lg border border-sponster-300 dark:border-sponster-500"
+      class={[
+        "inline-flex w-auto bg-sponster-200 dark:bg-sponster-800 text-base-content dark:text-sponster-100 px-3 py-1.5 rounded-lg border border-sponster-300 dark:border-sponster-500",
+        if(@footer_label,
+          do: "flex-col items-center justify-center gap-0.5 text-lg",
+          else: "items-center text-lg"
+        )
+      ]}
     >
-      <span class="font-bold">{format_usd(@balance)}</span>
+      <span class="font-bold leading-tight">{format_usd(@balance)}</span>
+      <%= if @footer_label not in [nil, ""] do %>
+        <span
+          class="text-base-content/40 font-medium"
+          style="font-size: 8px; line-height: 10px; letter-spacing: 0.2px; margin-top: -4px;"
+        >
+          {@footer_label}
+        </span>
+      <% end %>
     </span>
     """
   end
@@ -370,7 +385,8 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
             phx-click={@resend_event}
             class={
               if @widget_theme,
-                do: "label-text-alt text-base font-medium text-widget-800 hover:text-widget-900 hover:underline",
+                do:
+                  "label-text-alt text-base font-medium text-widget-800 hover:text-widget-900 hover:underline",
                 else: "label-text-alt link link-primary text-base"
             }
           >

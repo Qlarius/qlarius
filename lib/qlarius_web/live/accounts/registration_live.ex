@@ -298,7 +298,7 @@ defmodule QlariusWeb.RegistrationLive do
     code = Map.get(params, "code", socket.assigns.verification_code)
     formatted_phone = if String.starts_with?(phone, "+"), do: phone, else: "+1#{phone}"
     bypass_verification = Application.get_env(:qlarius, :bypass_phone_verification, false)
-    
+
     # Update assign with the code being verified
     socket = assign(socket, :verification_code, code)
 
@@ -314,7 +314,7 @@ defmodule QlariusWeb.RegistrationLive do
          carrier_name: "[DEV MODE]",
          mobile_country_code: "310",
          mobile_network_code: "000",
-         national_format: format_phone_number(phone),
+         national_format: AuthSteps.format_phone_number(phone),
          error_code: nil
        })
        |> assign(:verification_code_error, nil)
@@ -789,100 +789,100 @@ defmodule QlariusWeb.RegistrationLive do
 
       <div class="flex-1 flex items-center justify-center pb-16">
         <div class="w-full max-w-2xl space-y-8 px-6 md:px-8">
-        <%= if @current_step > 0 do %>
-          <h1 class="text-4xl md:text-5xl font-bold mb-8 dark:text-white">
-            Registration
-          </h1>
-          <%= if @mode == "proxy" do %>
-            <ul class="steps w-full mb-8 text-xs md:text-sm">
-              <li class={"step #{if @current_step >= 2, do: "step-primary"}"}>Alias</li>
-              <li class={"step #{if @current_step >= 3, do: "step-primary"}"}>Data</li>
-              <li class={"step #{if @current_step >= 4, do: "step-primary"}"}>Confirm</li>
-            </ul>
-          <% else %>
-            <ul class="steps w-full mb-8 text-xs md:text-sm">
-              <li class={"step #{if @current_step >= 1, do: "step-primary"}"}>Mobile</li>
-              <li class={"step #{if @current_step >= 2, do: "step-primary"}"}>Alias</li>
-              <li class={"step #{if @current_step >= 3, do: "step-primary"}"}>Data</li>
-              <li class={"step #{if @current_step >= 4, do: "step-primary"}"}>Confirm</li>
-            </ul>
+          <%= if @current_step > 0 do %>
+            <h1 class="text-4xl md:text-5xl font-bold mb-8 dark:text-white">
+              Registration
+            </h1>
+            <%= if @mode == "proxy" do %>
+              <ul class="steps w-full mb-8 text-xs md:text-sm">
+                <li class={"step #{if @current_step >= 2, do: "step-primary"}"}>Alias</li>
+                <li class={"step #{if @current_step >= 3, do: "step-primary"}"}>Data</li>
+                <li class={"step #{if @current_step >= 4, do: "step-primary"}"}>Confirm</li>
+              </ul>
+            <% else %>
+              <ul class="steps w-full mb-8 text-xs md:text-sm">
+                <li class={"step #{if @current_step >= 1, do: "step-primary"}"}>Mobile</li>
+                <li class={"step #{if @current_step >= 2, do: "step-primary"}"}>Alias</li>
+                <li class={"step #{if @current_step >= 3, do: "step-primary"}"}>Data</li>
+                <li class={"step #{if @current_step >= 4, do: "step-primary"}"}>Confirm</li>
+              </ul>
+            <% end %>
           <% end %>
-        <% end %>
 
-        <%= if @current_step == 0 do %>
-          <.step_zero
-            referral_code={@referral_code_input}
-            referral_code_error={@referral_code_error}
-            referral_code_attempts={@referral_code_attempts}
-            referral_code_can_skip={@referral_code_can_skip}
-          />
-        <% end %>
+          <%= if @current_step == 0 do %>
+            <.step_zero
+              referral_code={@referral_code_input}
+              referral_code_error={@referral_code_error}
+              referral_code_attempts={@referral_code_attempts}
+              referral_code_can_skip={@referral_code_can_skip}
+            />
+          <% end %>
 
-        <%= if @current_step == 1 do %>
-          <.step_one
-            mobile_number={@mobile_number}
-            mode={@mode}
-            mobile_number_error={@mobile_number_error}
-            mobile_number_exists={@mobile_number_exists}
-            proxy_offer_user={@proxy_offer_user}
-            verification_code={@verification_code}
-            verification_code_error={@verification_code_error}
-            code_sent={@code_sent}
-            phone_verified={@phone_verified}
-            carrier_info={@carrier_info}
-          />
-        <% end %>
+          <%= if @current_step == 1 do %>
+            <.step_one
+              mobile_number={@mobile_number}
+              mode={@mode}
+              mobile_number_error={@mobile_number_error}
+              mobile_number_exists={@mobile_number_exists}
+              proxy_offer_user={@proxy_offer_user}
+              verification_code={@verification_code}
+              verification_code_error={@verification_code_error}
+              code_sent={@code_sent}
+              phone_verified={@phone_verified}
+              carrier_info={@carrier_info}
+            />
+          <% end %>
 
-        <%= if @current_step == 2 do %>
-          <AuthSteps.alias_picker
-            alias={@alias}
-            alias_error={@alias_error}
-            base_names={@base_names}
-            available_numbers={@available_numbers}
-            selected_base={@selected_base}
-            selected_number={@selected_number}
-          />
-        <% end %>
+          <%= if @current_step == 2 do %>
+            <AuthSteps.alias_picker
+              alias={@alias}
+              alias_error={@alias_error}
+              base_names={@base_names}
+              available_numbers={@available_numbers}
+              selected_base={@selected_base}
+              selected_number={@selected_number}
+            />
+          <% end %>
 
-        <%= if @current_step == 3 do %>
-          <AuthSteps.data_step
-            sex_trait_id={@sex_trait_id}
-            sex_options={@sex_options}
-            birthdate_year={@birthdate_year}
-            birthdate_month={@birthdate_month}
-            birthdate_day={@birthdate_day}
-            birthdate_valid={@birthdate_valid}
-            birthdate_error={@birthdate_error}
-            calculated_age={@calculated_age}
-            zip_lookup_input={@zip_lookup_input}
-            zip_lookup_valid={@zip_lookup_valid}
-            zip_lookup_error={@zip_lookup_error}
-            zip_lookup_trait={@zip_lookup_trait}
-          />
-        <% end %>
+          <%= if @current_step == 3 do %>
+            <AuthSteps.data_step
+              sex_trait_id={@sex_trait_id}
+              sex_options={@sex_options}
+              birthdate_year={@birthdate_year}
+              birthdate_month={@birthdate_month}
+              birthdate_day={@birthdate_day}
+              birthdate_valid={@birthdate_valid}
+              birthdate_error={@birthdate_error}
+              calculated_age={@calculated_age}
+              zip_lookup_input={@zip_lookup_input}
+              zip_lookup_valid={@zip_lookup_valid}
+              zip_lookup_error={@zip_lookup_error}
+              zip_lookup_trait={@zip_lookup_trait}
+            />
+          <% end %>
 
-        <%= if @current_step == 4 do %>
-          <AuthSteps.confirm_step
-            mobile_number={@mobile_number}
-            alias={@alias}
-            sex_trait_id={@sex_trait_id}
-            sex_options={@sex_options}
-            birthdate_year={@birthdate_year}
-            birthdate_month={@birthdate_month}
-            birthdate_day={@birthdate_day}
-            calculated_age={@calculated_age}
-            zip_lookup_trait={@zip_lookup_trait}
-            referral_code={@referral_code}
-            confirmation_checked={@confirmation_checked}
-            can_complete={can_complete?(assigns)}
-          />
-        <% end %>
+          <%= if @current_step == 4 do %>
+            <AuthSteps.confirm_step
+              mobile_number={@mobile_number}
+              alias={@alias}
+              sex_trait_id={@sex_trait_id}
+              sex_options={@sex_options}
+              birthdate_year={@birthdate_year}
+              birthdate_month={@birthdate_month}
+              birthdate_day={@birthdate_day}
+              calculated_age={@calculated_age}
+              zip_lookup_trait={@zip_lookup_trait}
+              referral_code={@referral_code}
+              confirmation_checked={@confirmation_checked}
+              can_complete={can_complete?(assigns)}
+            />
+          <% end %>
 
-        <%= if @mode == "proxy" && @current_step > 0 do %>
-          <div class="mt-12 text-center">
-            <span class="badge badge-sm badge-outline badge-primary">PROXY USER MODE</span>
-          </div>
-        <% end %>
+          <%= if @mode == "proxy" && @current_step > 0 do %>
+            <div class="mt-12 text-center">
+              <span class="badge badge-sm badge-outline badge-primary">PROXY USER MODE</span>
+            </div>
+          <% end %>
         </div>
       </div>
 
@@ -1153,8 +1153,7 @@ defmodule QlariusWeb.RegistrationLive do
                           phx-click="accept_proxy_offer"
                           class="btn btn-info btn-sm"
                         >
-                          <.icon name="hero-user-plus" class="w-4 h-4" />
-                          Continue as proxy user
+                          <.icon name="hero-user-plus" class="w-4 h-4" /> Continue as proxy user
                         </button>
                         <.link
                           navigate={~p"/login"}
@@ -1240,7 +1239,7 @@ defmodule QlariusWeb.RegistrationLive do
                   <div>
                     <h3 class="font-bold text-lg">Phone Number Verified</h3>
                     <p class="text-base opacity-90 font-mono">
-                      {format_phone_number(@mobile_number)}
+                      {AuthSteps.format_phone_number(@mobile_number)}
                     </p>
                   </div>
                   <%= if @carrier_info do %>
@@ -1301,19 +1300,4 @@ defmodule QlariusWeb.RegistrationLive do
     </div>
     """
   end
-
-  defp format_phone_number(phone_number) when is_binary(phone_number) do
-    digits = String.replace(phone_number, ~r/\D/, "")
-
-    case String.length(digits) do
-      10 ->
-        <<area::binary-size(3), prefix::binary-size(3), line::binary-size(4)>> = digits
-        "#{area}-#{prefix}-#{line}"
-
-      _ ->
-        phone_number
-    end
-  end
-
-  defp format_phone_number(_), do: ""
 end

@@ -37,9 +37,9 @@ defmodule Qlarius.Services.Twilio do
   @verify_url "https://verify.twilio.com/v2"
   @lookup_url "https://lookups.twilio.com/v2"
 
-  # When false, any verified phone number is accepted regardless of carrier,
-  # line type, or country. Set to true to enforce US-only major carrier screening.
-  @filter_us_carriers false
+  # Runtime `config :qlarius, :twilio_filter_us_carriers, true` enables US mobile +
+  # allowed-carrier screening after OTP (VoIP/landline/non-US rejected). When false
+  # (default), any verified number is accepted after successful SMS verification.
 
   @allowed_carriers [
     "AT&T Wireless",
@@ -175,7 +175,7 @@ defmodule Qlarius.Services.Twilio do
   end
 
   defp do_validate_carrier_with_filter(phone_number) do
-    if @filter_us_carriers do
+    if filter_us_carriers?() do
       do_validate_carrier(phone_number)
     else
       Logger.info("Carrier filtering disabled — accepting any verified number",
@@ -207,12 +207,10 @@ defmodule Qlarius.Services.Twilio do
   defp do_validate_carrier(phone_number) do
     case lookup_phone_carrier(phone_number) do
       {:ok, %{valid: false}} ->
-        {:error, :invalid_number,
-         "This phone number appears to be invalid. #{@carrier_reminder}"}
+        {:error, :invalid_number, "This phone number appears to be invalid. #{@carrier_reminder}"}
 
       {:ok, %{country_code: country}} when country != "US" ->
-        {:error, :non_us_number,
-         "Non-US phone numbers are not supported. #{@carrier_reminder}"}
+        {:error, :non_us_number, "Non-US phone numbers are not supported. #{@carrier_reminder}"}
 
       {:ok, %{type: "voip"}} ->
         {:error, :voip_not_allowed,
@@ -223,8 +221,7 @@ defmodule Qlarius.Services.Twilio do
          "Landline numbers are not supported. #{@carrier_reminder}"}
 
       {:ok, %{type: "mobile", carrier_name: nil}} ->
-        {:error, :unknown_carrier,
-         "Unable to identify your carrier. #{@carrier_reminder}"}
+        {:error, :unknown_carrier, "Unable to identify your carrier. #{@carrier_reminder}"}
 
       {:ok, %{type: "mobile", carrier_name: carrier} = info} ->
         if carrier_allowed?(carrier) do
@@ -242,12 +239,12 @@ defmodule Qlarius.Services.Twilio do
 
       {:ok, %{type: type}} ->
         Logger.warning("Unknown carrier type: #{type}")
+
         {:error, :unknown_type,
          "Unable to verify this phone number type (#{type}). #{@carrier_reminder}"}
 
       {:error, :invalid_number} ->
-        {:error, :invalid_number,
-         "This phone number is not valid. #{@carrier_reminder}"}
+        {:error, :invalid_number, "This phone number is not valid. #{@carrier_reminder}"}
 
       {:error, reason} ->
         Logger.error("Carrier validation failed: #{inspect(reason)}")
@@ -257,6 +254,19 @@ defmodule Qlarius.Services.Twilio do
 
   defp skip_carrier_validation? do
     Application.get_env(:qlarius, :skip_carrier_validation, false)
+  end
+
+  defp filter_us_carriers? do
+    Application.get_env(:qlarius, :twilio_filter_us_carriers, false)
+  end
+
+  @doc """
+  True when carrier filtering is active for AuthSheet pre-send gating and
+  post-OTP validation (`skip_carrier_validation` off and
+  `:twilio_filter_us_carriers` true).
+  """
+  def carrier_gate_enforced? do
+    not skip_carrier_validation?() and filter_us_carriers?()
   end
 
   defp carrier_allowed?(carrier_name) when is_binary(carrier_name) do

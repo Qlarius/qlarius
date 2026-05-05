@@ -11,6 +11,12 @@ defmodule QlariusWeb.Components.AuthSteps do
   These are function components — all state lives in the parent
   LiveView/LiveComponent. Handlers must exist in the parent for:
 
+    * `phone_carrier_blocked_panel/1`
+      - `back_to_phone`
+
+    * `signup_intro_panel/1`
+      - `signup_intro_continue`
+
     * `alias_picker/1`
       - `select_base_name` (params: `base_name`)
       - `select_number` (params: `number`)
@@ -54,14 +60,20 @@ defmodule QlariusWeb.Components.AuthSteps do
         <.signup_progress_circle n={1} flow_step={@step} />
         <.signup_progress_label label="Alias" n={1} flow_step={@step} />
       </div>
-      <div class="flex h-9 min-w-[0.5rem] flex-1 items-center px-0.5 sm:min-w-[0.75rem] sm:px-1" aria-hidden="true">
+      <div
+        class="flex h-9 min-w-[0.5rem] flex-1 items-center px-0.5 sm:min-w-[0.75rem] sm:px-1"
+        aria-hidden="true"
+      >
         <div class="h-0.5 w-full rounded-full bg-widget-300"></div>
       </div>
       <div class="flex shrink-0 flex-col items-center gap-1 text-center">
         <.signup_progress_circle n={2} flow_step={@step} />
         <.signup_progress_label label="Data" n={2} flow_step={@step} />
       </div>
-      <div class="flex h-9 min-w-[0.5rem] flex-1 items-center px-0.5 sm:min-w-[0.75rem] sm:px-1" aria-hidden="true">
+      <div
+        class="flex h-9 min-w-[0.5rem] flex-1 items-center px-0.5 sm:min-w-[0.75rem] sm:px-1"
+        aria-hidden="true"
+      >
         <div class="h-0.5 w-full rounded-full bg-widget-300"></div>
       </div>
       <div class="flex shrink-0 flex-col items-center gap-1 text-center">
@@ -131,6 +143,149 @@ defmodule QlariusWeb.Components.AuthSteps do
   defp signup_step_status(3, :confirm), do: :current
   defp signup_step_status(3, _), do: :upcoming
 
+  @doc """
+  Shown when the carrier gate rejects the number (send path or replay while blocked).
+
+  The parent must handle `back_to_phone`.
+  """
+  attr :message, :string, required: true
+  attr :mobile_number, :string, required: true
+  attr :target, :any, required: true
+
+  def phone_carrier_blocked_panel(assigns) do
+    ~H"""
+    <div class="space-y-5">
+      <div class="flex flex-col items-center gap-3 text-center">
+        <img
+          src="/images/qadabra_logo_squares_color.svg"
+          alt="Qadabra"
+          class="h-14 w-14 rounded-xl object-contain md:h-16 md:w-16"
+        />
+        <h2 class="text-2xl font-bold text-widget-900 md:text-3xl dark:text-white">
+          This number is not eligible yet
+        </h2>
+        <p class="text-sm text-base-content/70 md:text-base">
+          We could not send a verification code to{" "}
+          <span class="font-semibold text-widget-900 dark:text-white tabular-nums">
+            {format_phone_number(@mobile_number)}
+          </span>
+          .
+        </p>
+      </div>
+
+      <div
+        class="rounded-xl border border-error/30 bg-error/10 p-4 text-left text-sm leading-relaxed text-base-content/90 md:text-base"
+        role="alert"
+      >
+        {@message}
+      </div>
+
+      <button
+        type="button"
+        phx-click="back_to_phone"
+        phx-target={@target}
+        class="btn-widget btn-lg btn-block min-h-14 rounded-full border border-widget-300 bg-base-100 py-3.5 text-base text-widget-900 hover:bg-base-200 dark:border-widget-600 dark:bg-base-200 dark:hover:bg-base-300"
+      >
+        Try a different number
+      </button>
+    </div>
+    """
+  end
+
+  @doc """
+  Shown when SMS verification succeeds but the phone is not on file: sets
+  expectations for new-account + wallet creation and continued sign-in with
+  this number.
+
+  The parent must handle `signup_intro_continue`.
+  """
+  attr :mobile_number, :string, required: true
+  attr :target, :any, required: true
+
+  def signup_intro_panel(assigns) do
+    ~H"""
+    <div class="space-y-5">
+      <div class="flex flex-col items-center gap-3 text-center">
+        <img
+          src="/images/qadabra_logo_squares_color.svg"
+          alt="Qadabra"
+          class="h-14 w-14 rounded-xl object-contain md:h-16 md:w-16"
+        />
+        <h1 class="text-2xl font-bold text-widget-900 md:text-3xl dark:text-white">
+          Welcome!
+        </h1>
+      </div>
+
+      <div
+        class="flex gap-3 rounded-xl border border-widget-300 bg-widget-100 p-4 text-left"
+        role="status"
+      >
+        <div class="min-w-0 space-y-2">
+          <h2 class="text-xl font-bold leading-snug text-widget-900 md:text-2xl dark:text-white">
+          <span class="font-semibold text-widget-900 dark:text-white">
+              {format_phone_number(@mobile_number)}
+            </span>
+            is new here.
+          </h2>
+          <p class="text-sm leading-relaxed text-base-content/80 md:text-base">
+            We'll set up a new account and wallet for you and fund it with some starter money.
+          </p>
+          <p class="text-sm leading-relaxed text-base-content/80 md:text-base">
+            Going forward, your mobile number is your way in. No passwords needed.
+          </p>
+        </div>
+      </div>
+
+      <div class="pt-4">
+        <div
+          class="mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-4"
+          aria-label="Qadabra includes Sponster, Tiqit, Qlink, and YouData"
+        >
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center md:h-12 md:w-12">
+            <img
+              src="/images/sponster_gray_square.svg"
+              alt="Sponster"
+              class="max-h-full max-w-full object-contain"
+            />
+          </div>
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center md:h-12 md:w-12">
+            <img
+              src="/images/tiqit_gray_square.svg"
+              alt="Tiqit"
+              class="max-h-full max-w-full object-contain"
+            />
+          </div>
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center md:h-12 md:w-12">
+            <img
+              src="/images/qlink_gray_square.svg"
+              alt="Qlink"
+              class="max-h-full max-w-full object-contain"
+            />
+          </div>
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center md:h-12 md:w-12">
+            <img
+              src="/images/youdata_gray_square.svg"
+              alt="YouData"
+              class="max-h-full max-w-full object-contain"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-2">
+        <button
+          type="button"
+          phx-click="signup_intro_continue"
+          phx-target={@target}
+          class="btn-widget btn-widget-emphasis btn-lg btn-block min-h-14 w-full rounded-full py-3.5 text-base"
+        >
+          Let's do this...
+        </button>
+      </div>
+    </div>
+    """
+  end
+
   # --- alias_picker (was step_two) -----------------------------------------
 
   attr :alias, :string, required: true
@@ -146,10 +301,10 @@ defmodule QlariusWeb.Components.AuthSteps do
     <div class="space-y-4 md:space-y-6">
       <div>
         <h2 class="text-xl md:text-3xl font-bold mb-2 md:mb-3 dark:text-white">
-          No Name: Build Your Alias
+          Build Your Alias
         </h2>
         <p class="text-sm md:text-lg text-base-content/70 dark:text-base-content/60">
-          We'd rather not know your name. Select a unique alias + number combo. This will be the 'username' for your account.
+          No real names here. Build a unique alias to serve as the 'username' for your account.
         </p>
       </div>
 
@@ -166,8 +321,11 @@ defmodule QlariusWeb.Components.AuthSteps do
                 {@alias}
               <% else %>
                 <span class="inline-flex items-center gap-2" role="status" aria-live="polite">
-                  <span class="loading loading-dots loading-md shrink-0 text-widget-700 md:loading-lg"></span>
-                  <span class="sr-only">Your full alias will appear here as you pick a name and number.</span>
+                  <span class="loading loading-dots loading-md shrink-0 text-widget-700 md:loading-lg">
+                  </span>
+                  <span class="sr-only">
+                    Your full alias will appear here as you pick a name and number.
+                  </span>
                 </span>
               <% end %>
             </p>
@@ -178,7 +336,8 @@ defmodule QlariusWeb.Components.AuthSteps do
             </div>
           <% else %>
             <div class="badge-widget-soft inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 text-xs font-semibold leading-none md:gap-2 md:px-2.5 md:py-3 md:text-sm">
-              <.icon name="hero-ellipsis-horizontal-circle" class="h-4 w-4 shrink-0 md:h-5 md:w-5" /> Building
+              <.icon name="hero-ellipsis-horizontal-circle" class="h-4 w-4 shrink-0 md:h-5 md:w-5" />
+              Building
             </div>
           <% end %>
         </div>
@@ -186,7 +345,7 @@ defmodule QlariusWeb.Components.AuthSteps do
 
       <div class="space-y-2 md:space-y-3">
         <label class="label-text text-sm font-medium text-widget-900 md:text-lg">
-          Select an alias and number below:
+          Select an alias and then number below:
         </label>
 
         <div class="grid grid-cols-3 gap-2 md:gap-4">
@@ -263,11 +422,13 @@ defmodule QlariusWeb.Components.AuthSteps do
             </div>
 
             <%= if is_nil(@selected_base) do %>
-              <div class="flex min-h-[160px] items-center justify-center rounded-lg border-2 border-dashed border-widget-300 bg-base-200 md:min-h-[200px]">
-                <p class="px-2 text-center text-xs text-base-content/50 md:text-sm">
-                  Pick a name first
-                </p>
-              </div>
+              <%= for _ <- @base_names do %>
+                <div
+                  class="flex min-h-12 w-full shrink-0 cursor-not-allowed items-center rounded-full border-2 border-dashed border-widget-300 bg-base-200 md:min-h-14"
+                  aria-hidden="true"
+                >
+                </div>
+              <% end %>
             <% else %>
               <%= for number <- @available_numbers do %>
                 <button
@@ -276,13 +437,13 @@ defmodule QlariusWeb.Components.AuthSteps do
                   phx-value-number={number}
                   phx-target={@target}
                   class={[
-                    "group btn btn-block flex h-auto min-h-12 w-full cursor-pointer justify-start rounded-full border-solid px-3 py-2 text-left text-sm font-medium shadow-sm transition-[color,background-color,border-color,box-shadow,transform] md:min-h-14 md:px-4 md:py-2.5 md:text-base",
+                    "group btn btn-block flex h-auto min-h-12 w-full cursor-pointer justify-start rounded-full border-solid px-3 py-2 text-left text-sm font-medium transition-[color,background-color,border-color,box-shadow,transform] md:min-h-14 md:px-4 md:py-2.5 md:text-base",
                     "focus:outline-none focus-visible:ring-2 focus-visible:ring-widget-400 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100 active:scale-[0.995]",
                     if(@selected_number == number,
                       do:
                         "border-[3px] border-widget-900 bg-widget-100 text-widget-900 shadow-md hover:border-widget-900 hover:bg-widget-100 hover:shadow-md",
                       else:
-                        "border-2 border-widget-300 bg-widget-100 text-widget-900 hover:border-widget-700 hover:bg-widget-800 hover:text-white hover:shadow-md"
+                        "border-2 border-widget-300 bg-widget-100 text-widget-900 shadow-none hover:border-widget-700 hover:bg-widget-800 hover:text-white hover:shadow-none"
                     )
                   ]}
                 >
@@ -330,17 +491,7 @@ defmodule QlariusWeb.Components.AuthSteps do
     ~H"""
     <div class="space-y-6">
       <div>
-        <h2 class="text-2xl md:text-3xl font-bold mb-3 dark:text-white">Core MeFile Data</h2>
-        <div
-          role="note"
-          class="flex gap-2 rounded-lg border border-widget-300 bg-widget-100 px-3 py-3 text-base text-widget-900"
-        >
-          <.icon name="hero-exclamation-triangle" class="h-5 w-5 shrink-0 text-widget-700" />
-          <span>
-            <strong>Important:</strong>
-            Birthdate and Sex data cannot be updated later. Please ensure accuracy.
-          </span>
-        </div>
+        <h2 class="text-2xl md:text-3xl font-bold mb-3 dark:text-white">Core Data Tags</h2>
       </div>
 
       <div class="form-control w-full">
@@ -365,7 +516,7 @@ defmodule QlariusWeb.Components.AuthSteps do
       <.form for={%{}} phx-change="select_sex" phx-target={@target}>
         <div class="form-control w-full">
           <label class="label">
-            <span class="label-text text-lg dark:text-gray-300">Sex (Biological/Assigned at Birth) *</span>
+            <span class="label-text text-lg dark:text-gray-300">Sex (Genetic) *</span>
           </label>
           <select
             name="sex_id"
@@ -439,15 +590,6 @@ defmodule QlariusWeb.Components.AuthSteps do
     <div class="space-y-4">
       <div>
         <h2 class="text-2xl md:text-3xl font-bold mb-3 dark:text-white">Confirm Your Information</h2>
-        <%= if not @can_complete do %>
-          <div
-            role="note"
-            class="flex gap-2 rounded-lg border border-widget-300 bg-widget-100 px-3 py-2 text-sm text-widget-900"
-          >
-            <.icon name="hero-exclamation-triangle" class="h-5 w-5 shrink-0 text-widget-700" />
-            <span>Please check the confirmation box to complete registration.</span>
-          </div>
-        <% end %>
       </div>
 
       <div class="space-y-1">
@@ -529,7 +671,7 @@ defmodule QlariusWeb.Components.AuthSteps do
             phx-target={@target}
           />
           <span class="text-sm md:text-base dark:text-gray-300">
-            I confirm my birthdate and sex are correct and understand the data values cannot be updated later.
+            I confirm my birthdate and sex are correct as entered and understand the values cannot be updated later.
           </span>
         </label>
       </div>
@@ -547,19 +689,31 @@ defmodule QlariusWeb.Components.AuthSteps do
   end
 
   @doc """
-  Formats a 10-digit US mobile number as `XXX-XXX-XXXX`. Returns the input
-  unchanged if it isn't 10 digits after stripping non-numeric characters.
+  Formats US mobile input for display as `###-###-####`.
+
+  Strips non-digits, keeps at most 10 digits, and inserts dashes while typing
+  (partial forms such as `555`, `555-123`, `555-123-45` until complete).
   """
   def format_phone_number(phone_number) when is_binary(phone_number) do
-    digits = String.replace(phone_number, ~r/\D/, "")
+    d = phone_number |> String.replace(~r/\D/, "") |> String.slice(0, 10)
+    len = byte_size(d)
 
-    case String.length(digits) do
-      10 ->
-        <<area::binary-size(3), prefix::binary-size(3), line::binary-size(4)>> = digits
-        "#{area}-#{prefix}-#{line}"
+    cond do
+      len == 0 ->
+        ""
 
-      _ ->
-        phone_number
+      len <= 3 ->
+        d
+
+      len <= 6 ->
+        String.slice(d, 0, 3) <> "-" <> String.slice(d, 3, len - 3)
+
+      true ->
+        String.slice(d, 0, 3) <>
+          "-" <>
+          String.slice(d, 3, 3) <>
+          "-" <>
+          String.slice(d, 6, len - 6)
     end
   end
 

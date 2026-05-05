@@ -85,7 +85,10 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
               >
                 Entire {@catalog.group_type |> to_string() |> String.capitalize()}<br />
                 <span class="text-base-content/40 text-xs mt-0">
-                  ({length(@group.content_pieces)} {pluralize(length(@group.content_pieces), @catalog.piece_type)})
+                  ({length(@group.content_pieces)} {pluralize(
+                    length(@group.content_pieces),
+                    @catalog.piece_type
+                  )})
                 </span>
               </th>
               <th
@@ -94,7 +97,10 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
               >
                 Entire {@catalog.type |> to_string() |> String.capitalize()}<br />
                 <span class="text-base-content/40 text-xs mt-0">
-                  ({length(@catalog.content_groups)} {pluralize(length(@catalog.content_groups), @catalog.group_type)})
+                  ({length(@catalog.content_groups)} {pluralize(
+                    length(@catalog.content_groups),
+                    @catalog.group_type
+                  )})
                 </span>
               </th>
             </tr>
@@ -254,43 +260,51 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     ~H"""
     <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-3 py-2 rounded-lg border-1 border-base-300">
       <div class="flex flex-row flex-wrap justify-between items-center space-x-4">
-        <div class="flex flex-col items-center justify-center">
-          <.wallet_balance id={@id} balance={@balance} />
-          <%!-- <span class="font-normal text-base-content/60 ml-2 mr-3 text-xs">wallet</span> --%>
-        </div>
+        <.wallet_balance id={@id} balance={@balance} footer_label="WALLET" />
 
         <.popover id={"#{@id}-topup"} placement="top" trigger_type="click" class="w-56">
           <:trigger>
             <button class="btn-widget btn-md rounded-full leading-none">
               <.icon name="hero-plus" class="w-4 h-4 mr-0" />
-              <span class="font-bold">{if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}</span>
+              <span class="font-bold">
+                {if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}
+              </span>
             </button>
           </:trigger>
           <:content>
             <div class="p-3 space-y-2">
-              <p class="text-xs font-semibold text-base-content/60 uppercase tracking-wide">Top up wallet</p>
+              <p class="text-xs font-semibold text-base-content/60 uppercase tracking-wide">
+                Top up wallet
+              </p>
               <button
                 class="btn-widget btn-sm btn-block justify-start gap-2 rounded-lg"
                 onclick="parent.postMessage('open_widget','*');"
               >
-                <img src="/images/Sponster_logo_white_horiz.svg" alt="Sponster" class="h-4" onerror="this.style.display='none';this.nextElementSibling.style.display='inline';" />
+                <img
+                  src="/images/Sponster_logo_white_horiz.svg"
+                  alt="Sponster"
+                  class="h-4"
+                  onerror="this.style.display='none';this.nextElementSibling.style.display='inline';"
+                />
                 <span style="display:none;">Sponster</span>
-                <span class="ml-auto text-xs opacity-80">{@ads_count} ads • {if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}</span>
+                <span class="ml-auto text-xs opacity-80">
+                  {@ads_count} ads • {if @offered_amount,
+                    do: format_usd(@offered_amount),
+                    else: "$0.00"}
+                </span>
               </button>
               <button
                 class="btn-widget btn-sm btn-block justify-start gap-2 rounded-lg"
                 phx-click="topup"
               >
-                <.icon name="hero-gift" class="w-4 h-4" />
-                Daily gift
+                <.icon name="hero-gift" class="w-4 h-4" /> Daily gift
                 <span class="ml-auto text-xs opacity-80">$0.50</span>
               </button>
               <button
                 class="btn-widget btn-sm btn-block justify-start gap-2 rounded-lg"
                 phx-click="topup"
               >
-                <.icon name="hero-credit-card" class="w-4 h-4" />
-                Credit / Debit
+                <.icon name="hero-credit-card" class="w-4 h-4" /> Credit / Debit
               </button>
             </div>
           </:content>
@@ -312,11 +326,16 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
 
   def arqade_breadcrumbs(assigns) do
     ~H"""
-    <nav :if={@base_path != "/widgets"} class="text-xs text-base-content/50 flex items-center gap-1 flex-wrap pt-3 mb-3">
+    <nav
+      :if={@base_path != "/widgets"}
+      class="text-xs text-base-content/50 flex items-center gap-1 flex-wrap pt-3 mb-3"
+    >
       <.link navigate="/arqade" class="hover:text-widget-700 transition-colors">Discover</.link>
       <span :for={{label, path} <- @crumbs} class="flex items-center gap-1">
         <span class="text-base-content/30">›</span>
-        <.link navigate={path} class="hover:text-widget-700 transition-colors truncate max-w-[120px]">{label}</.link>
+        <.link navigate={path} class="hover:text-widget-700 transition-colors truncate max-w-[120px]">
+          {label}
+        </.link>
       </span>
     </nav>
     """

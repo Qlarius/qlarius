@@ -8,14 +8,16 @@ defmodule QlariusWeb.Components.AuthSheet do
   ## State machine
 
       :phone            # mobile number entry
-        ↓ send_code
+        ↓ send_code (may Twilio-gate unknown phones before SMS when filter on)
+        ├─ fails gate ─── :carrier_rejected (optional durable block replay)
+        └─ passes ───── :code
       :code             # OTP entry (also branch back on finalize error)
-        ↓ verify_code (→ carrier validation)
+        ↓ verify_code (→ carrier validation unless pre-checked at send_code)
         ↓
         ┌─── known phone ─────── :finalizing ─── (socket reconnect) → done
-        └─── unknown phone ──── :alias → :data → :confirm → :creating
-                                                              ↓
-                                                          :finalizing → done
+        └─── unknown phone ──── :signup_intro → :alias → :data → :confirm → :creating
+                                                                            ↓
+                                                                    :finalizing → done
 
   An `:iframe_hint`-driven interstitial (`render_state/1` `in_iframe:
   true`) short-circuits the whole flow and directs visitors to open
@@ -73,6 +75,8 @@ defmodule QlariusWeb.Components.AuthSheet do
   alias Qlarius.Accounts.AliasGenerator
   alias Qlarius.Auth, as: AuthCtx
   alias Qlarius.Auth.AuditLog
+  alias Qlarius.Auth.PhoneCarrierRejection
+  alias Qlarius.Auth.PhoneCarrierRejections
   alias Qlarius.Auth.RateLimit
   alias Qlarius.Referrals.Context, as: ReferralContext
   alias Qlarius.Services.Twilio
@@ -94,7 +98,9 @@ defmodule QlariusWeb.Components.AuthSheet do
      |> assign(:signup_error, nil)
      |> assign(:in_iframe, false)
      |> assign(:signup_initialized, false)
-     |> assign(:carrier_info, nil)}
+     |> assign(:carrier_info, nil)
+     |> assign(:pending_carrier_info, nil)
+     |> assign(:carrier_rejection_message, nil)}
   end
 
   @impl true
@@ -139,11 +145,10 @@ defmodule QlariusWeb.Components.AuthSheet do
 
   def handle_event("update_mobile", params, socket) do
     raw = Map.get(params, "value", "") || ""
-    digits_only = raw |> to_string() |> String.replace(~r/\D/, "") |> String.slice(0, 10)
 
     {:noreply,
      socket
-     |> assign(:mobile_number, format_us_phone_display(digits_only))
+     |> assign(:mobile_number, AuthSteps.format_phone_number(to_string(raw)))
      |> assign(:mobile_number_error, nil)}
   end
 
@@ -171,11 +176,7 @@ defmodule QlariusWeb.Components.AuthSheet do
         # the per-phone limit for attempted victims.
         case rate_check_send_code(formatted, ip) do
           :ok ->
-            # B3 change: no longer short-circuit on "unknown phone here" —
-            # we send the code regardless so we can still verify ownership
-            # before branching into sign-up. `verify_code/1` now owns the
-            # sign-in-vs-sign-up decision.
-            dispatch_send_code(socket, formatted)
+            maybe_gate_send_code(socket, formatted)
 
           {:denied, reason, retry_after_s} ->
             AuditLog.log(:"send_code.denied", %{
@@ -218,10 +219,12 @@ defmodule QlariusWeb.Components.AuthSheet do
     {:noreply,
      socket
      |> assign(:state, :phone)
-     |> assign(:mobile_number, format_us_phone_display(digits))
+     |> assign(:mobile_number, AuthSteps.format_phone_number(digits))
      |> assign(:verification_code, "")
      |> assign(:verification_code_error, nil)
-     |> assign(:finalize_error, nil)}
+     |> assign(:finalize_error, nil)
+     |> assign(:pending_carrier_info, nil)
+     |> assign(:carrier_rejection_message, nil)}
   end
 
   def handle_event("retry_finalize", _params, socket) do
@@ -261,7 +264,7 @@ defmodule QlariusWeb.Components.AuthSheet do
 
   # --------------------------------------------------------------------
   # Sign-up events (B3). These are only reachable after `verify_code/1`
-  # promotes an unknown-phone visitor into `:alias`, so the heavy sign-up
+  # promotes an unknown-phone visitor into `:signup_intro` then `:alias`, so the heavy sign-up
   # assigns (trait lookups, alias generator output) are guaranteed to be
   # present via `init_signup_assigns/1`.
   # --------------------------------------------------------------------
@@ -316,7 +319,10 @@ defmodule QlariusWeb.Components.AuthSheet do
           {:allow, _count} ->
             {:noreply,
              socket
-             |> assign(:available_numbers, AliasGenerator.generate_available_numbers(base_name, 5))
+             |> assign(
+               :available_numbers,
+               AliasGenerator.generate_available_numbers(base_name, 5)
+             )
              |> assign(:selected_number, nil)
              |> assign(:alias, "")
              |> assign(:alias_error, nil)}
@@ -369,6 +375,10 @@ defmodule QlariusWeb.Components.AuthSheet do
 
   def handle_event("signup_back", _params, socket) do
     {:noreply, retreat_signup(socket)}
+  end
+
+  def handle_event("signup_intro_continue", _params, socket) do
+    {:noreply, assign(socket, :state, :alias)}
   end
 
   def handle_event("submit_signup", _params, socket) do
@@ -433,25 +443,30 @@ defmodule QlariusWeb.Components.AuthSheet do
   end
 
   defp handle_verified(socket, formatted_phone, false = _bypass) do
-    case Twilio.validate_carrier(formatted_phone) do
-      {:ok, carrier_info} ->
-        branch_on_user(socket, formatted_phone, carrier_info)
+    case socket.assigns[:pending_carrier_info] do
+      %{} = carrier_info ->
+        socket
+        |> assign(:pending_carrier_info, nil)
+        |> branch_on_user(formatted_phone, carrier_info)
 
-      {:error, reason, message} ->
-        # Pass the Twilio carrier reason through verbatim so we can
-        # aggregate on the specific rejection kind
-        # (`:voip_not_allowed`, `:landline_not_allowed`, etc.).
-        AuditLog.log(:"verify_code.denied", %{
-          phone: formatted_phone,
-          ip: socket.assigns.client_ip,
-          surface: socket.assigns.surface,
-          reason: reason
-        })
+      _ ->
+        case Twilio.validate_carrier(formatted_phone) do
+          {:ok, carrier_info} ->
+            branch_on_user(socket, formatted_phone, carrier_info)
 
-        {:noreply,
-         socket
-         |> assign(:verification_code, "")
-         |> assign(:verification_code_error, message)}
+          {:error, reason, message} ->
+            AuditLog.log(:"verify_code.denied", %{
+              phone: formatted_phone,
+              ip: socket.assigns.client_ip,
+              surface: socket.assigns.surface,
+              reason: reason
+            })
+
+            {:noreply,
+             socket
+             |> assign(:verification_code, "")
+             |> assign(:verification_code_error, message)}
+        end
     end
   end
 
@@ -473,7 +488,7 @@ defmodule QlariusWeb.Components.AuthSheet do
         {:noreply,
          socket
          |> init_signup_assigns()
-         |> assign(:state, :alias)
+         |> assign(:state, :signup_intro)
          |> assign(:verification_code_error, nil)
          |> assign(:finalize_error, nil)}
 
@@ -538,6 +553,9 @@ defmodule QlariusWeb.Components.AuthSheet do
   defp retreat_signup(%{assigns: %{state: :alias}} = socket),
     do: assign(socket, :state, :code)
 
+  defp retreat_signup(%{assigns: %{state: :signup_intro}} = socket),
+    do: assign(socket, :state, :code)
+
   defp retreat_signup(socket), do: socket
 
   # --------------------------------------------------------------------
@@ -578,7 +596,10 @@ defmodule QlariusWeb.Components.AuthSheet do
         {:noreply,
          socket
          |> assign(:state, :confirm)
-         |> assign(:signup_error, "We couldn't complete registration. Please double-check your details and try again.")}
+         |> assign(
+           :signup_error,
+           "We couldn't complete registration. Please double-check your details and try again."
+         )}
     end
   end
 
@@ -744,9 +765,102 @@ defmodule QlariusWeb.Components.AuthSheet do
           })
 
           {:noreply,
-           assign(socket, :mobile_number_error, "Couldn't send code. Try again.")}
+           socket
+           |> assign(:mobile_number_error, "Couldn't send code. Try again.")
+           |> assign(:pending_carrier_info, nil)}
       end
     end
+  end
+
+  defp maybe_gate_send_code(socket, formatted_phone) do
+    if Twilio.carrier_gate_enforced?() do
+      gate_unknown_phone_send(socket, formatted_phone)
+    else
+      dispatch_send_code(socket, formatted_phone)
+    end
+  end
+
+  defp gate_unknown_phone_send(socket, formatted_phone) do
+    case PhoneCarrierRejections.active_block_for_phone(formatted_phone) do
+      %PhoneCarrierRejection{user_message: msg} ->
+        message =
+          if msg in [nil, ""],
+            do: default_carrier_rejection_user_message(),
+            else: msg
+
+        {:noreply,
+         socket
+         |> assign(:state, :carrier_rejected)
+         |> assign(:carrier_rejection_message, message)}
+
+      nil ->
+        case AuthCtx.get_user_by_phone(formatted_phone) do
+          nil ->
+            case Twilio.validate_carrier(formatted_phone) do
+              {:ok, carrier_info} ->
+                socket
+                |> assign(:pending_carrier_info, carrier_info)
+                |> dispatch_send_code(formatted_phone)
+
+              {:error, reason, message} ->
+                shown =
+                  if message == "",
+                    do: default_carrier_rejection_user_message(),
+                    else: message
+
+                _ = record_carrier_rejection(socket, formatted_phone, reason, shown)
+
+                {:noreply,
+                 socket
+                 |> assign(:state, :carrier_rejected)
+                 |> assign(:carrier_rejection_message, shown)}
+            end
+
+          _existing ->
+            dispatch_send_code(socket, formatted_phone)
+        end
+    end
+  end
+
+  defp default_carrier_rejection_user_message do
+    "This mobile number is not eligible for sign-in with Qadabra right now."
+  end
+
+  defp record_carrier_rejection(socket, formatted_phone, reason, message) do
+    {snapshot, line, carrier, country, mcc, mnc} =
+      case Twilio.lookup_phone_carrier(formatted_phone) do
+        {:ok, info} ->
+          snap = %{
+            "type" => info.type,
+            "carrier_name" => info.carrier_name,
+            "country_code" => info.country_code,
+            "valid" => info.valid,
+            "mobile_country_code" => info.mobile_country_code,
+            "mobile_network_code" => info.mobile_network_code,
+            "national_format" => info.national_format,
+            "error_code" => info.error_code
+          }
+
+          {snap, info.type, info.carrier_name, info.country_code, info.mobile_country_code,
+           info.mobile_network_code}
+
+        _ ->
+          {%{}, nil, nil, nil, nil, nil}
+      end
+
+    PhoneCarrierRejections.record_rejection(%{
+      phone_number: formatted_phone,
+      rejection_reason: to_string(reason),
+      user_message: message,
+      line_type: line,
+      carrier_name: carrier,
+      country_code: country,
+      mobile_country_code: mcc,
+      mobile_network_code: mnc,
+      lookup_snapshot: snapshot,
+      client_ip: socket.assigns.client_ip,
+      surface: surface_to_string(socket.assigns.surface)
+    })
   end
 
   # Hammer rate-limit key per-phone per-kind. Falls back to the
@@ -801,35 +915,9 @@ defmodule QlariusWeb.Components.AuthSheet do
   defp humanize_retry_after(seconds) when seconds < 60 * 60, do: "#{div(seconds, 60)} minutes"
   defp humanize_retry_after(_), do: "an hour"
 
-  # `(###)###-####` — `assigns.mobile_number` holds this display form; OTP
-  # + Twilio paths still use `format_phone/1` / `valid_phone_shape?/1`,
-  # which strip non-digits first.
-  defp format_us_phone_display(digits) when is_binary(digits) do
-    d = String.replace(digits, ~r/\D/, "")
-    len = byte_size(d)
-
-    cond do
-      len == 0 ->
-        ""
-
-      len < 3 ->
-        "(" <> d
-
-      len == 3 ->
-        "(" <> d <> ")"
-
-      len <= 6 ->
-        "(" <> String.slice(d, 0, 3) <> ")" <> String.slice(d, 3, len - 3)
-
-      true ->
-        "(" <>
-          String.slice(d, 0, 3) <>
-          ")" <>
-          String.slice(d, 3, 3) <>
-          "-" <>
-          String.slice(d, 6, len - 6)
-    end
-  end
+  # `assigns.mobile_number` uses `AuthSteps.format_phone_number/1` (`###-###-####`).
+  # OTP + Twilio paths use `format_phone/1` / `valid_phone_shape?/1`, which strip
+  # non-digits first.
 
   defp valid_phone_shape?(nil), do: false
 
@@ -923,7 +1011,7 @@ defmodule QlariusWeb.Components.AuthSheet do
         href="https://qadabra.app/login"
         target="_blank"
         rel="noopener"
-        class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
+        class="btn-widget btn-widget-emphasis btn-lg btn-block min-h-14 rounded-full py-3.5 text-base"
       >
         <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4" /> Sign in at qadabra.app
       </a>
@@ -943,14 +1031,35 @@ defmodule QlariusWeb.Components.AuthSheet do
     """
   end
 
+  defp render_state(%{state: :carrier_rejected} = assigns) do
+    ~H"""
+    <div class="space-y-5">
+      <AuthSteps.phone_carrier_blocked_panel
+        message={@carrier_rejection_message || ""}
+        mobile_number={@mobile_number}
+        target={@myself}
+      />
+    </div>
+    """
+  end
+
   defp render_state(%{state: :phone} = assigns) do
     ~H"""
     <div class="space-y-5">
-      <div>
-        <h2 class="text-2xl md:text-3xl font-bold dark:text-white">Sign in or sign up</h2>
-        <p class="mt-1 text-sm md:text-base text-base-content/70">
-          Enter your mobile number and we'll text you a 6-digit code. We'll
-          take you through a quick sign-up if you don't have an account yet.
+      <div class="flex flex-col items-center gap-3 text-center">
+        <img
+          src="/images/qadabra_logo_squares_color.svg"
+          alt="Qadabra"
+          class="h-14 w-14 rounded-xl object-contain md:h-16 md:w-16"
+        />
+        <h2 class="text-2xl font-bold text-widget-900 md:text-3xl dark:text-white">
+          Connect to Qadabra
+        </h2>
+        <p class="text-sm text-base-content/70 md:text-base">
+          Enter your mobile number, and we'll text you a 6-digit code.
+        </p>
+        <p class="text-sm text-base-content/70 md:text-base">
+          <strong>New here?</strong> We'll take you through a quick sign-up and fund up your new wallet.
         </p>
       </div>
 
@@ -973,8 +1082,8 @@ defmodule QlariusWeb.Components.AuthSheet do
             phx-hook="AuthSheetPhone"
             inputmode="tel"
             autocomplete="tel"
-            maxlength="13"
-            placeholder="(555)123-4567"
+            maxlength="12"
+            placeholder="555-123-4567"
             class="input input-bordered w-full text-xl md:text-2xl font-medium tabular-nums tracking-wide"
             aria-invalid={if @mobile_number_error, do: "true"}
           />
@@ -985,7 +1094,7 @@ defmodule QlariusWeb.Components.AuthSheet do
 
         <button
           type="submit"
-          class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
+          class="btn-widget btn-widget-emphasis btn-lg btn-block min-h-14 rounded-full py-3.5 text-base"
           disabled={not valid_phone_shape?(@mobile_number)}
         >
           Send code
@@ -1001,7 +1110,7 @@ defmodule QlariusWeb.Components.AuthSheet do
       <div>
         <h2 class="text-2xl md:text-3xl font-bold dark:text-white">Enter your code</h2>
         <p class="mt-1 text-sm md:text-base text-base-content/70">
-          We sent a 6-digit code to <span class="font-medium">{@mobile_number}</span>.
+          We sent a 6-digit code to <span class="font-medium">{AuthSteps.format_phone_number(@mobile_number)}</span>.
         </p>
       </div>
 
@@ -1024,13 +1133,13 @@ defmodule QlariusWeb.Components.AuthSheet do
         widget_theme={true}
       />
 
-      <div class="flex flex-col gap-2 border-t border-widget-200/40 pt-4 sm:flex-row sm:gap-3">
+      <div class="flex flex-col gap-2 border-t border-widget-200/40 pt-4 sm:flex-row sm:items-center sm:gap-3">
         <button
           type="button"
           phx-click="back_to_phone"
           phx-target={@myself}
           title="Use a different mobile number"
-          class="btn-widget-ghost btn-lg order-2 w-full rounded-full sm:order-1 sm:flex-1"
+          class="btn-widget-ghost btn-md order-2 min-h-11 w-full rounded-full text-sm sm:order-1 sm:flex-1"
         >
           Different number
         </button>
@@ -1038,7 +1147,7 @@ defmodule QlariusWeb.Components.AuthSheet do
           type="button"
           phx-click="send_code"
           phx-target={@myself}
-          class="btn-widget btn-widget-emphasis btn-lg order-1 w-full rounded-full sm:order-2 sm:flex-1"
+          class="btn-widget btn-widget-emphasis btn-lg order-1 min-h-14 w-full rounded-full py-3.5 text-base sm:order-2 sm:flex-1"
         >
           Resend code
         </button>
@@ -1061,6 +1170,14 @@ defmodule QlariusWeb.Components.AuthSheet do
     """
   end
 
+  defp render_state(%{state: :signup_intro} = assigns) do
+    ~H"""
+    <div class="space-y-5">
+      <AuthSteps.signup_intro_panel mobile_number={@mobile_number} target={@myself} />
+    </div>
+    """
+  end
+
   defp render_state(%{state: :alias} = assigns) do
     ~H"""
     <div class="space-y-5">
@@ -1078,8 +1195,7 @@ defmodule QlariusWeb.Components.AuthSheet do
 
       <.signup_nav
         target={@myself}
-        back_label="Different number"
-        back_title="Use a different mobile number"
+        show_back={false}
         next_disabled={not alias_ready?(assigns)}
       />
     </div>
@@ -1148,12 +1264,12 @@ defmodule QlariusWeb.Components.AuthSheet do
         target={@myself}
       />
 
-      <div class="flex flex-col gap-2 pt-2 sm:flex-row sm:gap-3">
+      <div class="flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:gap-3">
         <button
           type="button"
           phx-click="signup_back"
           phx-target={@myself}
-          class="btn-widget-ghost btn-lg order-2 w-full rounded-full sm:order-1 sm:flex-1"
+          class="btn-widget-ghost btn-md order-2 min-h-11 w-full rounded-full text-sm sm:order-1 sm:flex-1"
         >
           Back
         </button>
@@ -1161,7 +1277,7 @@ defmodule QlariusWeb.Components.AuthSheet do
           type="button"
           phx-click="submit_signup"
           phx-target={@myself}
-          class="btn-widget btn-widget-emphasis btn-lg order-1 w-full rounded-full sm:order-2 sm:flex-1"
+          class="btn-widget btn-widget-emphasis btn-lg order-1 min-h-14 w-full rounded-full py-3.5 text-base sm:order-2 sm:flex-1"
           disabled={not can_complete?(assigns)}
         >
           Create account
@@ -1190,19 +1306,21 @@ defmodule QlariusWeb.Components.AuthSheet do
   # --------------------------------------------------------------------
 
   attr :target, :any, required: true
+  attr :show_back, :boolean, default: true
   attr :back_label, :string, default: "Back"
   attr :back_title, :string, default: nil
   attr :next_disabled, :boolean, default: false
 
   defp signup_nav(assigns) do
     ~H"""
-    <div class="flex flex-col gap-2 pt-2 sm:flex-row sm:gap-3">
+    <div class="flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:gap-3">
       <button
+        :if={@show_back}
         type="button"
         phx-click="signup_back"
         phx-target={@target}
         title={@back_title}
-        class="btn-widget-ghost btn-lg order-2 w-full min-w-0 rounded-full sm:order-1 sm:flex-1"
+        class="btn-widget-ghost btn-md order-2 min-h-11 w-full min-w-0 rounded-full text-sm sm:order-1 sm:flex-1"
       >
         {@back_label}
       </button>
@@ -1210,7 +1328,13 @@ defmodule QlariusWeb.Components.AuthSheet do
         type="button"
         phx-click="signup_next"
         phx-target={@target}
-        class="btn-widget btn-widget-emphasis btn-lg order-1 w-full rounded-full sm:order-2 sm:flex-1"
+        class={[
+          "btn-widget btn-widget-emphasis btn-lg min-h-14 rounded-full py-3.5 text-base",
+          if(@show_back,
+            do: "order-1 w-full sm:order-2 sm:flex-1",
+            else: "w-full"
+          )
+        ]}
         disabled={@next_disabled}
       >
         Next

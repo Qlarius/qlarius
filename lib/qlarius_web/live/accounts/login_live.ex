@@ -3,6 +3,7 @@ defmodule QlariusWeb.LoginLive do
 
   alias Qlarius.{Auth, Accounts}
   alias Qlarius.Qlink.Urls
+  alias QlariusWeb.Components.AuthSteps
   import QlariusWeb.PWAHelpers
   import QlariusWeb.Components.CustomComponentsMobile, only: [otp_input: 1]
 
@@ -50,7 +51,7 @@ defmodule QlariusWeb.LoginLive do
     phone = socket.assigns.mobile_number
     formatted_phone = if String.starts_with?(phone, "+"), do: phone, else: "+1#{phone}"
 
-      case Auth.get_user_by_phone(formatted_phone) do
+    case Auth.get_user_by_phone(formatted_phone) do
       nil ->
         {:noreply,
          socket
@@ -164,114 +165,99 @@ defmodule QlariusWeb.LoginLive do
 
       <div class="flex-1 flex items-center justify-center pb-32">
         <div class="max-w-md w-full space-y-8 px-6 md:px-8">
-        <div>
-          <h1 class="text-4xl md:text-5xl font-bold text-center dark:text-white">
-            Sign In
-          </h1>
-          <p class="mt-2 text-center text-base md:text-lg text-base-content/70">
-            Enter your mobile number to continue
-          </p>
-        </div>
-
-        <div class="space-y-6">
-          <%= if not @code_sent do %>
-            <.form
-              for={%{}}
-              phx-change="update_mobile"
-              phx-submit="send_login_code"
-              autocomplete="off"
-            >
-              <div class="form-control w-full">
-                <label class="label">
-                  <span class="label-text text-lg dark:text-gray-300">Mobile Number</span>
-                </label>
-                <div class="flex flex-col gap-3 w-full">
-                  <input
-                    id="mobile-input"
-                    name="value"
-                    type="tel"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    maxlength="10"
-                    placeholder="5551234567"
-                    autocomplete="tel-national"
-                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                    data-form-type="other"
-                    class={"input input-bordered input-lg w-full text-lg dark:bg-base-100 dark:text-white #{if @mobile_number_error, do: "input-error"}"}
-                    value={@mobile_number}
-                  />
-                  <button
-                    type="submit"
-                    class="btn btn-primary btn-lg rounded-full w-full"
-                    disabled={String.length(@mobile_number) != 10}
-                  >
-                    Send Code
-                  </button>
-                </div>
-                <%= if @mobile_number_error do %>
-                  <div class="mt-3">
-                    <div class="badge badge-error badge-lg p-4 text-base">
-                      <.icon name="hero-x-circle" class="w-5 h-5 mr-2" />
-                      {@mobile_number_error}
-                    </div>
-                  </div>
-                <% else %>
-                  <%= if @mobile_number != "" && String.length(@mobile_number) < 10 do %>
-                    <label class="label">
-                      <span class="label-text-alt text-base">
-                        {String.length(@mobile_number)}/10 digits
-                      </span>
-                    </label>
-                  <% end %>
-                <% end %>
-              </div>
-            </.form>
-          <% else %>
-            <div class="alert alert-info">
-              <.icon name="hero-information-circle" class="w-6 h-6" />
-              <span>Verification code sent to {format_phone_number(@mobile_number)}</span>
-            </div>
-
-            <div class="space-y-2">
-              <label class="label">
-                <span class="label-text text-lg dark:text-gray-300">Verification Code</span>
-              </label>
-              <.otp_input
-                id="login-otp"
-                value={@verification_code}
-                error={@verification_code_error}
-                verify_event="verify_login_code"
-                update_event="update_verification_code"
-                resend_event="send_login_code"
-              />
-            </div>
-          <% end %>
-
-          <div class="text-center">
-            <p class="text-base">
-              Don't have an account?
-              <.link navigate={~p"/register"} class="link link-primary">Register</.link>
+          <div>
+            <h1 class="text-4xl md:text-5xl font-bold text-center dark:text-white">
+              Sign In
+            </h1>
+            <p class="mt-2 text-center text-base md:text-lg text-base-content/70">
+              Enter your mobile number to continue
             </p>
           </div>
-        </div>
+
+          <div class="space-y-6">
+            <%= if not @code_sent do %>
+              <.form
+                for={%{}}
+                phx-change="update_mobile"
+                phx-submit="send_login_code"
+                autocomplete="off"
+              >
+                <div class="form-control w-full">
+                  <label class="label">
+                    <span class="label-text text-lg dark:text-gray-300">Mobile Number</span>
+                  </label>
+                  <div class="flex flex-col gap-3 w-full">
+                    <input
+                      id="mobile-input"
+                      name="value"
+                      type="tel"
+                      inputmode="numeric"
+                      pattern="[0-9]*"
+                      maxlength="10"
+                      placeholder="5551234567"
+                      autocomplete="tel-national"
+                      oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                      data-form-type="other"
+                      class={"input input-bordered input-lg w-full text-lg dark:bg-base-100 dark:text-white #{if @mobile_number_error, do: "input-error"}"}
+                      value={@mobile_number}
+                    />
+                    <button
+                      type="submit"
+                      class="btn btn-primary btn-lg rounded-full w-full"
+                      disabled={String.length(@mobile_number) != 10}
+                    >
+                      Send Code
+                    </button>
+                  </div>
+                  <%= if @mobile_number_error do %>
+                    <div class="mt-3">
+                      <div class="badge badge-error badge-lg p-4 text-base">
+                        <.icon name="hero-x-circle" class="w-5 h-5 mr-2" />
+                        {@mobile_number_error}
+                      </div>
+                    </div>
+                  <% else %>
+                    <%= if @mobile_number != "" && String.length(@mobile_number) < 10 do %>
+                      <label class="label">
+                        <span class="label-text-alt text-base">
+                          {String.length(@mobile_number)}/10 digits
+                        </span>
+                      </label>
+                    <% end %>
+                  <% end %>
+                </div>
+              </.form>
+            <% else %>
+              <div class="alert alert-info">
+                <.icon name="hero-information-circle" class="w-6 h-6" />
+                <span>Verification code sent to {AuthSteps.format_phone_number(@mobile_number)}</span>
+              </div>
+
+              <div class="space-y-2">
+                <label class="label">
+                  <span class="label-text text-lg dark:text-gray-300">Verification Code</span>
+                </label>
+                <.otp_input
+                  id="login-otp"
+                  value={@verification_code}
+                  error={@verification_code_error}
+                  verify_event="verify_login_code"
+                  update_event="update_verification_code"
+                  resend_event="send_login_code"
+                />
+              </div>
+            <% end %>
+
+            <div class="text-center">
+              <p class="text-base">
+                Don't have an account?
+                <.link navigate={~p"/register"} class="link link-primary">Register</.link>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
     """
   end
-
-  defp format_phone_number(phone_number) when is_binary(phone_number) do
-    digits = String.replace(phone_number, ~r/\D/, "")
-
-    case String.length(digits) do
-      10 ->
-        <<area::binary-size(3), prefix::binary-size(3), line::binary-size(4)>> = digits
-        "#{area}-#{prefix}-#{line}"
-
-      _ ->
-        phone_number
-    end
-  end
-
-  defp format_phone_number(_), do: ""
 end

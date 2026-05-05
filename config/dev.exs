@@ -148,9 +148,13 @@ config :qlarius, debug_enabled: true
 
 config :logger, level: :debug
 
-# Carrier validation is ENABLED by default
-# Set to true ONLY for temporary testing with non-whitelisted carriers
-# config :qlarius, skip_carrier_validation: true
+# Carrier gate (AuthSheet pre-send + post-OTP): enforced when skip is off
+# and US carrier filtering is on. Uses Twilio Lookup for unknown numbers.
+config :qlarius, skip_carrier_validation: true
+config :qlarius, :twilio_filter_us_carriers, true
+
+# Set skip_carrier_validation: true ONLY to bypass Lookup while testing
+# unrelated flows (disables the gate entirely).
 
 # Phone verification bypass for development (skips Twilio entirely)
 # Set to true when testing registration flow without real SMS
