@@ -373,7 +373,6 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
                 <span class="loading loading-spinner loading-xs mr-1"></span> Verifying...
               </span>
             <% true -> %>
-              <span class="text-base-content/60">Enter the 6-digit code sent to your phone</span>
           <% end %>
         </div>
       </div>

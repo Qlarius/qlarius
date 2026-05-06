@@ -228,7 +228,7 @@ defmodule QlariusWeb.Components.AuthSteps do
             is new here!
           </h2>
           <p class="text-sm leading-relaxed text-base-content/80 md:text-base">
-            Let's set up a new account and wallet for you. We will even fund it with a little starter money.
+            Let's set you up and fund your wallet.
           </p>
           <p class="text-sm leading-relaxed text-base-content/80 md:text-base">
             Going forward, your mobile number is all you need. No passwords.
@@ -371,13 +371,13 @@ defmodule QlariusWeb.Components.AuthSteps do
                 phx-value-base_name={base_name}
                 phx-target={@target}
                 class={[
-                  "group btn btn-block flex h-auto min-h-12 w-full cursor-pointer justify-start rounded-full border-solid px-3 py-2 text-left text-sm font-medium shadow-sm transition-[color,background-color,border-color,box-shadow,transform] md:min-h-14 md:px-4 md:py-2.5 md:text-base",
+                  "group btn btn-block flex h-auto min-h-12 w-full cursor-pointer justify-start rounded-full border-solid px-3 py-2 text-left text-sm font-medium !shadow-none transition-[color,background-color,border-color,transform] md:min-h-14 md:px-4 md:py-2.5 md:text-base",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-widget-400 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100 active:scale-[0.995]",
                   if(@selected_base == base_name,
                     do:
-                      "border-[3px] border-widget-900 bg-widget-100 text-widget-900 shadow-md hover:border-widget-900 hover:bg-widget-100 hover:shadow-md",
+                      "border-[3px] border-widget-900 bg-widget-100 text-widget-900 hover:border-widget-900 hover:bg-widget-100 hover:!shadow-none",
                     else:
-                      "border-2 border-widget-300 bg-widget-100 text-widget-900 hover:border-widget-700 hover:bg-widget-800 hover:text-white hover:shadow-md"
+                      "border-2 border-widget-300 bg-widget-100 text-widget-900 hover:border-widget-700 hover:bg-widget-800 hover:text-white hover:!shadow-none"
                   )
                 ]}
               >

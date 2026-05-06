@@ -1046,7 +1046,7 @@ defmodule QlariusWeb.Components.AuthSheet do
   defp render_state(%{state: :phone} = assigns) do
     ~H"""
     <div class="space-y-5">
-      <div class="flex flex-col items-center gap-3 text-center">
+      <div class="flex flex-col items-center gap-0 text-center">
         <img
           src="/images/qadabra_logo_squares_color.svg"
           alt="Qadabra"
@@ -1058,8 +1058,11 @@ defmodule QlariusWeb.Components.AuthSheet do
         <p class="text-sm text-base-content/70 md:text-base">
           Enter your mobile number, and we'll text you a 6-digit code.
         </p>
+        <h3 class="text-md font-bold text-base-content/70 md:text-base mb-0 mt-3 tracking-tight">
+          New here?
+        </h3>
         <p class="text-sm text-base-content/70 md:text-base">
-          <strong>New here?</strong> We'll take you through a quick sign-up and fund up your new wallet.
+          We'll take you through a quick sign-up and fund up your new wallet with starter funds.
         </p>
       </div>
 
@@ -1107,33 +1110,46 @@ defmodule QlariusWeb.Components.AuthSheet do
   defp render_state(%{state: :code} = assigns) do
     ~H"""
     <div class="space-y-5">
-      <div>
-        <h2 class="text-2xl md:text-3xl font-bold dark:text-white">Enter your code</h2>
-        <p class="mt-1 text-sm md:text-base text-base-content/70">
-          We sent a 6-digit code to <span class="font-medium">{AuthSteps.format_phone_number(@mobile_number)}</span>.
+      <div class="flex flex-col items-center gap-0 text-center">
+        <img
+          src="/images/qadabra_logo_squares_color.svg"
+          alt="Qadabra"
+          class="h-14 w-14 rounded-xl object-contain md:h-16 md:w-16"
+        />
+        <h2 class="text-2xl font-bold text-widget-900 md:text-3xl dark:text-white">
+          Enter your code
+        </h2>
+        <p class="text-sm text-base-content/70 md:text-base">
+          We sent a 6-digit code to{" "}
+          <span class="font-semibold text-widget-900 dark:text-white tabular-nums">
+            {AuthSteps.format_phone_number(@mobile_number)}
+          </span>
+          .
         </p>
       </div>
 
       <%= if @finalize_error do %>
         <div
           role="alert"
-          class="flex gap-2 rounded-lg border border-widget-300 bg-widget-100 px-3 py-2 text-sm text-widget-900"
+          class="mx-auto flex w-full max-w-xl gap-2 rounded-lg border border-widget-300 bg-widget-100 px-3 py-2 text-left text-sm text-widget-900"
         >
           <.icon name="hero-exclamation-triangle" class="w-5 h-5 shrink-0 text-widget-700" />
           <span>{@finalize_error}</span>
         </div>
       <% end %>
 
-      <QlariusWeb.Components.CustomComponentsMobile.otp_input
-        id={"#{@id}-otp"}
-        value={@verification_code}
-        error={@verification_code_error}
-        verify_event="verify_code"
-        update_event="update_verification_code"
-        widget_theme={true}
-      />
+      <div class="mx-auto w-full max-w-md">
+        <QlariusWeb.Components.CustomComponentsMobile.otp_input
+          id={"#{@id}-otp"}
+          value={@verification_code}
+          error={@verification_code_error}
+          verify_event="verify_code"
+          update_event="update_verification_code"
+          widget_theme={true}
+        />
+      </div>
 
-      <div class="flex flex-col gap-2 border-t border-widget-200/40 pt-4 sm:flex-row sm:items-center sm:gap-3">
+      <div class="mx-auto flex w-full max-w-lg flex-col gap-2 border-t border-widget-200/40 pt-4 sm:flex-row sm:items-center sm:justify-center sm:gap-3">
         <button
           type="button"
           phx-click="back_to_phone"
