@@ -169,7 +169,7 @@ defmodule QlariusWeb.HomeLive do
               <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-6 w-auto" />
             </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-2 gap-4">
               <div
                 class="bg-sponster-200 dark:bg-sponster-800 text-base-content/80 rounded-lg border border-sponster-300 dark:border-sponster-500 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-sponster-300 dark:hover:bg-sponster-700 hover:border-sponster-400 dark:hover:border-sponster-400"
                 phx-click={JS.navigate("/ads")}
@@ -189,15 +189,6 @@ defmodule QlariusWeb.HomeLive do
               </div>
             </div>
 
-            <div
-              class="bg-sponster-200 dark:bg-sponster-800 text-base-content/80 rounded-lg border border-sponster-300 dark:border-sponster-500 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-sponster-300 dark:hover:bg-sponster-700 hover:border-sponster-400 dark:hover:border-sponster-400"
-              phx-click={JS.navigate("/wallet")}
-            >
-              <div class="text-3xl font-bold leading-none">
-                {format_usd(@current_scope.wallet_balance)}
-              </div>
-              <div class="text-sm font-light text-base-content/60">wallet balance</div>
-            </div>
           </div>
 
           <div class="bg-base-200 rounded-lg p-4">
@@ -206,7 +197,7 @@ defmodule QlariusWeb.HomeLive do
               <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-4 gap-4">
               <div
                 class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-tiqit-300 dark:hover:bg-tiqit-800 hover:border-tiqit-400 dark:hover:border-tiqit-400"
                 phx-click={JS.navigate("/tiqits?status=active")}

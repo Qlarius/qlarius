@@ -56,7 +56,7 @@ defmodule QlariusWeb.QlinkPage.Show do
             |> assign(:page, page)
             |> assign(:links, links)
             |> assign(:sections, sections)
-            |> assign(:page_title, page.title)
+            |> assign(:page_title, "Qlink | #{page.alias}")
             |> assign(:display_image, Qlink.get_display_image(page))
             |> assign(:recipient, page.recipient)
             |> assign(:arqade_fullpane_dom_id, nil)

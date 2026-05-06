@@ -269,8 +269,9 @@
     <div
       data-theme="light"
       class={[
-        "fixed z-[47] bg-base-100 rounded-t-lg h-[calc(90vh-50px)] overflow-hidden flex flex-col transition-all duration-300 ease-out",
-        if(@show_sponster_drawer, do: "bottom-[50px]", else: "-bottom-[90vh]")
+        "fixed z-[47] bg-base-100 rounded-t-lg overflow-hidden flex flex-col transition-all duration-300 ease-out",
+        "h-[calc(100vh-50px)] md:h-[calc(90vh-50px)]",
+        if(@show_sponster_drawer, do: "bottom-[50px]", else: "-bottom-[calc(100vh-50px)] md:-bottom-[calc(90vh-50px)]")
       ]}
       style="left: 50%; transform: translateX(-50%); width: min(100%, 800px); box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);"
     >

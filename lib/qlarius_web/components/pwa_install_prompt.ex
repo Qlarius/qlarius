@@ -104,7 +104,7 @@ defmodule QlariusWeb.Components.PWAInstallPrompt do
             <p class="text-base leading-snug text-base-content dark:text-base-content/90">
               <span class="block font-bold text-lg mb-2">Install Qadabra</span>
               <span class="block text-sm">
-                Get the best mobile experience with easy home screen access, full-screen mobile experience, and importantnotifications.
+                Get the best mobile experience with easy home screen access, full-screen mobile experience, and important notifications.
               </span>
             </p>
 

@@ -212,7 +212,7 @@ defmodule QlariusWeb.Components.AuthSteps do
           class="h-14 w-14 rounded-xl object-contain md:h-16 md:w-16"
         />
         <h1 class="text-2xl font-bold text-widget-900 md:text-3xl dark:text-white">
-          Welcome!
+          Welcome
         </h1>
       </div>
 
@@ -221,17 +221,17 @@ defmodule QlariusWeb.Components.AuthSteps do
         role="status"
       >
         <div class="min-w-0 space-y-2">
-          <h2 class="text-xl font-bold leading-snug text-widget-900 md:text-2xl dark:text-white">
+          <h2 class="text-xl font-bold leading-snug text-widget-900 md:text-2xl dark:text-white text-center">
           <span class="font-semibold text-widget-900 dark:text-white">
               {format_phone_number(@mobile_number)}
             </span>
-            is new here.
+            is new here!
           </h2>
           <p class="text-sm leading-relaxed text-base-content/80 md:text-base">
-            We'll set up a new account and wallet for you and fund it with some starter money.
+            Let's set up a new account and wallet for you. We will even fund it with a little starter money.
           </p>
           <p class="text-sm leading-relaxed text-base-content/80 md:text-base">
-            Going forward, your mobile number is your way in. No passwords needed.
+            Going forward, your mobile number is all you need. No passwords.
           </p>
         </div>
       </div>
