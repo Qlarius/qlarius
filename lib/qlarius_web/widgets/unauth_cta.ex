@@ -103,6 +103,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
   attr :offered_amount, :any, default: nil
   attr :ads_count, :any, default: nil
   attr :id, :string, default: "wallet-strip"
+  attr :daily_gift_available?, :boolean, default: true
 
   attr :on_click, JS,
     default: nil,
@@ -119,6 +120,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
         balance={@balance}
         offered_amount={@offered_amount}
         ads_count={@ads_count || 0}
+        daily_gift_available?={@daily_gift_available?}
       />
     <% else %>
       <div class="w-full max-w-sm mx-auto text-base-content bg-base-200 border-t border-base-300 px-3 py-2 rounded-lg border-1 border-base-300">

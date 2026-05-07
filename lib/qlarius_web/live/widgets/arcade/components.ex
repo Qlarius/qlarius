@@ -255,14 +255,22 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   attr :offered_amount, Decimal, default: nil
   attr :ads_count, :integer, default: 0
   attr :id, :string, default: "wallet-balance-arcade-strip"
+  attr :daily_gift_available?, :boolean, default: true
 
   def wallet_strip(assigns) do
     ~H"""
-    <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-3 py-2 rounded-lg border-1 border-base-300">
-      <div class="flex flex-row flex-wrap justify-between items-center space-x-4">
+    <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-3 py-2.5 rounded-xl border border-base-300">
+      <div class="flex flex-row flex-wrap justify-between items-center gap-3">
         <.wallet_balance id={@id} balance={@balance} footer_label="WALLET" />
 
-        <.popover id={"#{@id}-topup"} placement="top" trigger_type="click" class="w-56">
+        <.popover
+          id={"#{@id}-topup"}
+          placement="top"
+          position_strategy="fixed"
+          trigger_type="click"
+          use_floating_size={false}
+          class="w-56 max-w-[calc(100vw-1.5rem)] min-w-0 px-3.5 pt-3 pb-3 shadow-xl"
+        >
           <:trigger>
             <button class="btn-widget btn-md rounded-full leading-none">
               <.icon name="hero-plus" class="w-4 h-4 mr-0" />
@@ -272,39 +280,58 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
             </button>
           </:trigger>
           <:content>
-            <div class="p-3 space-y-2">
-              <p class="text-xs font-semibold text-base-content/60 uppercase tracking-wide">
+            <div class="space-y-2.5 w-full">
+              <p class="text-xs font-semibold text-widget-600 uppercase tracking-wide text-center">
                 Top up wallet
               </p>
               <button
-                class="btn-widget btn-sm btn-block justify-start gap-2 rounded-lg"
-                onclick="parent.postMessage('open_widget','*');"
+                type="button"
+                id={"#{@id}-sponster-open"}
+                class="btn-widget btn-widget-emphasis btn-md btn-block justify-start gap-2 rounded-full min-h-12"
+                phx-hook="WalletTopupOpenSponster"
+                data-popover-id={"#{@id}-topup"}
+                data-drawer-delay-ms="280"
               >
+                <%!-- `Sponster_logo_white_horiz.svg` is not shipped; color horiz is in priv/static/images. --%>
                 <img
-                  src="/images/Sponster_logo_white_horiz.svg"
+                  src="/images/Sponster_logo_color_horiz.svg"
                   alt="Sponster"
-                  class="h-4"
-                  onerror="this.style.display='none';this.nextElementSibling.style.display='inline';"
+                  class="h-5 w-auto max-w-[6.5rem] shrink-0 object-contain object-left"
+                  decoding="async"
                 />
-                <span style="display:none;">Sponster</span>
-                <span class="ml-auto text-xs opacity-80">
+                <span class="ml-auto text-xs opacity-90 shrink-0 whitespace-nowrap">
                   {@ads_count} ads • {if @offered_amount,
                     do: format_usd(@offered_amount),
                     else: "$0.00"}
                 </span>
               </button>
               <button
-                class="btn-widget btn-sm btn-block justify-start gap-2 rounded-lg"
-                phx-click="topup"
+                :if={@daily_gift_available?}
+                type="button"
+                class="btn-widget btn-widget-emphasis btn-md btn-block justify-start gap-2 rounded-full min-h-12"
+                phx-click="daily-gift"
               >
-                <.icon name="hero-gift" class="w-4 h-4" /> Daily gift
-                <span class="ml-auto text-xs opacity-80">$0.50</span>
+                <.icon name="hero-gift" class="w-5 h-5 shrink-0" /> Daily gift
+                <span class="ml-auto text-xs opacity-90 shrink-0">$0.50</span>
               </button>
               <button
-                class="btn-widget btn-sm btn-block justify-start gap-2 rounded-lg"
-                phx-click="topup"
+                :if={not @daily_gift_available?}
+                type="button"
+                class="btn-widget btn-widget-emphasis btn-md btn-block justify-start gap-2 rounded-full min-h-12 btn-disabled cursor-not-allowed opacity-80"
+                disabled
+                title="You can claim again 24 hours after your last daily gift"
               >
-                <.icon name="hero-credit-card" class="w-4 h-4" /> Credit / Debit
+                <.icon name="hero-gift" class="w-5 h-5 shrink-0" /> Daily gift
+                <span class="ml-auto text-xs opacity-90 shrink-0">$0.50</span>
+              </button>
+              <button
+                type="button"
+                disabled
+                aria-disabled="true"
+                title="Coming soon"
+                class="btn-widget btn-md btn-block justify-start gap-2 rounded-full min-h-12 btn-disabled cursor-not-allowed opacity-70"
+              >
+                <.icon name="hero-credit-card" class="w-5 h-5 shrink-0" /> Credit / Debit
               </button>
             </div>
           </:content>

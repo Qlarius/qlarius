@@ -28,6 +28,7 @@ defmodule QlariusWeb.InstaTipComponents do
   attr :target, :any, default: nil
   attr :add_class, :string, default: nil
   attr :wallet_strip_id, :string, default: "wallet-balance-tipjar"
+  attr :daily_gift_available?, :boolean, default: true
 
   attr :on_auth_click, JS,
     default: nil,
@@ -97,6 +98,7 @@ defmodule QlariusWeb.InstaTipComponents do
           balance={@wallet_balance}
           offered_amount={@offered_amount}
           ads_count={@ads_count}
+          daily_gift_available?={@daily_gift_available?}
           on_click={@on_auth_click}
         />
       </div>
@@ -172,14 +174,23 @@ defmodule QlariusWeb.InstaTipComponents do
 
   def insta_tip_thanks_modal(assigns) do
     ~H"""
-    <.modal :if={@show} id="insta-tip-thanks-modal" show on_cancel={JS.push("close-insta-tip-thanks-modal")}>
+    <.modal
+      :if={@show}
+      id="insta-tip-thanks-modal"
+      show
+      on_cancel={JS.push("close-insta-tip-thanks-modal")}
+    >
       <div class="text-center space-y-6 p-8">
         <div class="space-y-4">
           <div class="text-5xl mb-2">✓</div>
           <h2 class="text-xl font-bold text-success">Thank you!</h2>
           <p class="text-base-content">
-            Your tip of <span class="font-bold text-sponster-600 dark:text-sponster-300">{format_usd(@amount)}</span>
-            to <span class="font-semibold">{@recipient_name}</span> was sent.
+            Your tip of
+            <span class="font-bold text-sponster-600 dark:text-sponster-300">
+              {format_usd(@amount)}
+            </span>
+            to <span class="font-semibold">{@recipient_name}</span>
+            was sent.
           </p>
         </div>
         <button

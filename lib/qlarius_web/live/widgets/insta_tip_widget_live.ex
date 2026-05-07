@@ -56,6 +56,8 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
     scope = socket.assigns.current_scope
     user = scope && scope.user
 
+    daily_gift_available? = if user, do: Wallets.daily_gift_available?(user), else: false
+
     socket =
       socket
       |> assign(:page_title, "InstaTip")
@@ -71,6 +73,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
       |> assign(:show_auth_sheet, false)
       |> assign(:auth_referral_context, Qlarius.Referrals.Context.none())
       |> assign(:current_balance, user && Wallets.get_user_current_balance(user))
+      |> assign(:daily_gift_available?, daily_gift_available?)
 
     if connected?(socket) and user do
       # Subscribe to wallet balance updates for this me_file
@@ -78,6 +81,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
 
       # Subscribe to InstaTip notifications
       Phoenix.PubSub.subscribe(Qlarius.PubSub, "user:#{user.id}")
+      Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{user.id}")
     end
 
     {:ok, socket}
@@ -123,6 +127,24 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
       Map.put(socket.assigns.current_scope, :pending_referral_clicks_count, pending_clicks_count)
 
     {:noreply, assign(socket, :current_scope, current_scope)}
+  end
+
+  @impl true
+  def handle_info(:update_balance, socket) do
+    user = socket.assigns.current_scope && socket.assigns.current_scope.user
+
+    if user do
+      new_balance = Wallets.get_user_current_balance(user)
+      current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
+
+      {:noreply,
+       socket
+       |> assign(:current_scope, current_scope)
+       |> assign(:current_balance, new_balance)
+       |> assign(:daily_gift_available?, Wallets.daily_gift_available?(user))}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
@@ -222,6 +244,42 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
     {:noreply, assign(socket, :show_auth_sheet, false)}
   end
 
+  def handle_event("open-sponster-drawer", _params, socket) do
+    {:noreply, push_event(socket, "send-post-message", %{type: "open_sponster_drawer"})}
+  end
+
+  def handle_event("daily-gift", _params, socket) do
+    with {:cont, socket} <- maybe_intercept_for_unauth(socket) do
+      user = socket.assigns.current_scope.user
+
+      case Wallets.claim_daily_gift(user) do
+        {:ok, :credited} ->
+          Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
+
+          new_balance = Wallets.get_user_current_balance(user)
+          current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
+
+          {:noreply,
+           socket
+           |> assign(:current_scope, current_scope)
+           |> assign(:current_balance, new_balance)
+           |> assign(:daily_gift_available?, false)}
+
+        {:error, :cooldown} ->
+          {:noreply,
+           socket
+           |> put_flash(
+             :error,
+             "You already claimed your daily gift. Try again 24 hours after your last claim."
+           )
+           |> assign(:daily_gift_available?, false)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Could not apply daily gift. Please try again.")}
+      end
+    end
+  end
+
   # Gate for wallet-required handlers. Mirrors `ArcadeLive`'s helper.
   # Returns `{:cont, socket}` when authed, `{:noreply, socket}` with
   # `show_connect_modal: true` when unauthed — so a `with` clause at
@@ -255,6 +313,13 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
   @impl true
   def render(assigns) do
     ~H"""
+    <div
+      id="insta-tip-postmessage-bridge"
+      phx-hook="PostMessage"
+      class="hidden"
+      aria-hidden="true"
+    >
+    </div>
     <div data-theme="light" class="bg-base-100 h-screen flex items-center justify-center mt-2">
       <div class="container mx-auto px-4">
         <.insta_tip_card
@@ -266,6 +331,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
           ads_count={@current_scope && @current_scope.ads_count}
           amounts={Enum.map(@amounts, &Decimal.to_string/1)}
           wallet_strip_id="wallet-balance-tipjar-widget"
+          daily_gift_available?={@daily_gift_available?}
           on_auth_click={
             if auth_sheet_enabled?(assigns),
               do: Phoenix.LiveView.JS.push("open_auth_sheet"),

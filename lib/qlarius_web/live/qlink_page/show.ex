@@ -248,10 +248,12 @@ defmodule QlariusWeb.QlinkPage.Show do
   defp subscribe_to_updates(socket) do
     if socket.assigns.current_scope && socket.assigns.current_scope.user do
       me_file = socket.assigns.current_scope.user.me_file
+      user = socket.assigns.current_scope.user
 
       if me_file do
         MeFileStatsBroadcaster.subscribe_to_me_file_stats(me_file.id)
-        Phoenix.PubSub.subscribe(Qlarius.PubSub, "user:#{socket.assigns.current_scope.user.id}")
+        Phoenix.PubSub.subscribe(Qlarius.PubSub, "user:#{user.id}")
+        Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{user.id}")
       end
     end
   end
@@ -315,35 +317,14 @@ defmodule QlariusWeb.QlinkPage.Show do
   end
 
   def handle_event("toggle_sponster_drawer", _params, socket) do
-    will_open = !socket.assigns.show_sponster_drawer
-
-    me_file =
-      socket.assigns.current_scope && socket.assigns.current_scope.user &&
-        socket.assigns.current_scope.user.me_file
-
-    socket =
-      socket
-      |> then(fn s ->
-        if will_open && Enum.empty?(s.assigns.video_offers) && s.assigns.current_scope do
-          s
-          |> assign(:loading_offers, true)
-          |> load_offers()
-        else
-          s
-        end
-      end)
-      |> assign(:show_sponster_drawer, will_open)
-      |> assign(:show_split_reminder, false)
-      |> then(fn s ->
-        if will_open && me_file && MeFile.should_show_split_reminder?(me_file) do
-          Process.send_after(self(), :show_split_reminder, 1500)
-          s
-        else
-          s
-        end
-      end)
-
-    {:noreply, socket}
+    {:noreply,
+     if socket.assigns.show_sponster_drawer do
+       socket
+       |> assign(:show_sponster_drawer, false)
+       |> assign(:show_split_reminder, false)
+     else
+       ensure_sponster_drawer_open(socket)
+     end}
   end
 
   @impl true
@@ -558,6 +539,47 @@ defmodule QlariusWeb.QlinkPage.Show do
     {:noreply, assign(socket, :show_auth_sheet, false)}
   end
 
+  def handle_event("open-sponster-drawer", _params, socket) do
+    {:noreply,
+     if socket.assigns.show_sponster_drawer do
+       socket
+     else
+       ensure_sponster_drawer_open(socket)
+     end}
+  end
+
+  def handle_event("daily-gift", _params, socket) do
+    if authed?(socket.assigns.current_scope) do
+      user = socket.assigns.current_scope.user
+
+      case Wallets.claim_daily_gift(user) do
+        {:ok, :credited} ->
+          Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
+
+          new_balance = Wallets.get_user_current_balance(user)
+          current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
+
+          {:noreply,
+           socket
+           |> assign(:current_scope, current_scope)
+           |> assign(:current_balance, new_balance)}
+
+        {:error, :cooldown} ->
+          {:noreply,
+           socket
+           |> put_flash(
+             :error,
+             "You already claimed your daily gift. Try again 24 hours after your last claim."
+           )}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Could not apply daily gift. Please try again.")}
+      end
+    else
+      {:noreply, assign(socket, :show_connect_modal, true)}
+    end
+  end
+
   # InstaTip events
   @impl true
   def handle_event("initiate_insta_tip", params, socket) do
@@ -665,6 +687,16 @@ defmodule QlariusWeb.QlinkPage.Show do
   # sheet instances.
   def handle_info(:open_auth_sheet, socket) do
     {:noreply, open_auth_sheet(socket)}
+  end
+
+  @impl true
+  def handle_info(:open_sponster_drawer_from_embed, socket) do
+    {:noreply,
+     if socket.assigns.show_sponster_drawer do
+       socket
+     else
+       ensure_sponster_drawer_open(socket)
+     end}
   end
 
   @impl true
@@ -776,6 +808,23 @@ defmodule QlariusWeb.QlinkPage.Show do
   end
 
   @impl true
+  def handle_info(:update_balance, socket) do
+    user = socket.assigns[:current_scope] && socket.assigns.current_scope.user
+
+    if user do
+      new_balance = Wallets.get_user_current_balance(user)
+      current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
+
+      {:noreply,
+       socket
+       |> assign(:current_scope, current_scope)
+       |> assign(:current_balance, new_balance)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_info({:me_file_offers_updated, _me_file_id}, socket) do
     {:noreply, socket}
   end
@@ -796,6 +845,33 @@ defmodule QlariusWeb.QlinkPage.Show do
     else
       {:noreply, socket}
     end
+  end
+
+  defp ensure_sponster_drawer_open(socket) do
+    me_file =
+      socket.assigns.current_scope && socket.assigns.current_scope.user &&
+        socket.assigns.current_scope.user.me_file
+
+    socket
+    |> then(fn s ->
+      if Enum.empty?(s.assigns.video_offers) && s.assigns.current_scope do
+        s
+        |> assign(:loading_offers, true)
+        |> load_offers()
+      else
+        s
+      end
+    end)
+    |> assign(:show_sponster_drawer, true)
+    |> assign(:show_split_reminder, false)
+    |> then(fn s ->
+      if me_file && MeFile.should_show_split_reminder?(me_file) do
+        Process.send_after(self(), :show_split_reminder, 1500)
+        s
+      else
+        s
+      end
+    end)
   end
 
   defp load_offers(socket) do
@@ -1070,6 +1146,10 @@ defmodule QlariusWeb.QlinkPage.Show do
             show_image={@show_header}
             show_message={@show_header}
             wallet_strip_id={"wallet-balance-tipjar-#{@link.id}"}
+            daily_gift_available?={
+              @current_scope && @current_scope.user &&
+                Wallets.daily_gift_available?(@current_scope.user)
+            }
             on_auth_click={@on_auth_click}
           />
       <% end %>
@@ -1335,6 +1415,8 @@ defmodule QlariusWeb.QlinkPage.Show do
     <div class="relative w-full" style={"min-height: #{@inline_arqade_height}px;"}>
       <div
         id={"arqade-embed-shell-#{@inline_arqade_dom_id}"}
+        phx-hook="BodyScrollLock"
+        data-body-scroll-lock={if @arqade_fullpane_active?, do: "true", else: "false"}
         class={[
           "w-full",
           @arqade_fullpane_active? &&
@@ -1357,7 +1439,9 @@ defmodule QlariusWeb.QlinkPage.Show do
             </button>
           </div>
         <% end %>
-        <div class={if(@arqade_fullpane_active?, do: "min-h-0 flex-1 overflow-y-auto", else: "w-full")}>
+        <div class={
+          if(@arqade_fullpane_active?, do: "min-h-0 flex-1 overflow-y-auto", else: "w-full")
+        }>
           {live_render(@socket, @inline_arqade_module,
             id: @inline_arqade_dom_id,
             session: @inline_arqade_session

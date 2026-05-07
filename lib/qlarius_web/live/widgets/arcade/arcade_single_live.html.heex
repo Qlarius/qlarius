@@ -157,6 +157,7 @@
                     balance={@balance}
                     offered_amount={@offered_amount}
                     ads_count={@current_scope && @current_scope.ads_count}
+                    daily_gift_available?={@daily_gift_available?}
                     on_click={
                       if QlariusWeb.Widgets.Arcade.ArcadeSingleLive.auth_sheet_enabled?(assigns),
                         do: Phoenix.LiveView.JS.push("open_auth_sheet"),
@@ -303,7 +304,14 @@
 </Layouts.maybe_mobile>
 <%= if @show_tiqit_content_modal and @inline? and not is_nil(@piece) and not is_nil(@tiqit) do %>
   <div
-    class="fixed inset-0 z-[110] flex flex-col bg-base-100"
+    id={"tiqit-inline-modal-#{@piece.id}"}
+    phx-hook="BodyScrollLock"
+    data-body-scroll-lock="true"
+    class={[
+      "fixed inset-0 z-[110] flex flex-col bg-base-100",
+      "tiqit-content-modal-active",
+      @tiqit_content_modal_leaving? && "tiqit-content-modal-leaving"
+    ]}
     data-theme={if @base_path == "/widgets", do: @force_theme}
     phx-window-keydown="close-tiqit-content"
     phx-key="Escape"

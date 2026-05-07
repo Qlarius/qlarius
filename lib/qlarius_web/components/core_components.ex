@@ -891,6 +891,11 @@ defmodule QlariusWeb.CoreComponents do
     doc:
       "md+ (768px+): min(available, viewport*frac - 80) for max-width, e.g. 0.5 in a 50/50 two-column row"
 
+  attr :use_floating_size, :boolean, default: true,
+    doc:
+      "when false, the Popover hook skips Floating UI `size` middleware so the panel is not given " <>
+        "viewport-derived max-width/max-height (keeps compact menus identical across hosts)"
+
   slot :trigger, required: true, doc: "the element that opens the popover"
   slot :content, required: true, doc: "panel body; with flex on the panel, keep :content flush to the first node"
 
@@ -907,6 +912,7 @@ defmodule QlariusWeb.CoreComponents do
       data-position-strategy={@position_strategy}
       data-popover-arrow-align={@arrow_align}
       data-floating-width-cap-frac-md={if @floating_width_cap_frac_md, do: to_string(@floating_width_cap_frac_md)}
+      data-popover-use-floating-size={if @use_floating_size, do: "true", else: "false"}
       class={@root_class}
     >
       <div

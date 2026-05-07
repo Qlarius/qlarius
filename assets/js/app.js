@@ -99,6 +99,48 @@ Hooks.FlashAutoHide = {
   }
 }
 
+// Ref-counted `overflow-hidden` on `document.body` so overlapping overlays
+// (e.g. AuthSheet + nested widget modal) don't unlock early. Matches
+// `JS.add_class("overflow-hidden", to: "body")` used by `<.modal>`.
+Hooks.BodyScrollLock = {
+  mounted() {
+    this._applied = false
+    this._sync()
+  },
+  updated() {
+    this._sync()
+  },
+  destroyed() {
+    this._set(false)
+  },
+  _wantLock() {
+    return this.el.dataset.bodyScrollLock === "true"
+  },
+  _sync() {
+    this._set(this._wantLock())
+  },
+  _set(want) {
+    if (want === this._applied) return
+    if (want) {
+      window.__qlariusBodyScrollLock =
+        (typeof window.__qlariusBodyScrollLock === "number" ? window.__qlariusBodyScrollLock : 0) + 1
+      this._applied = true
+      if (window.__qlariusBodyScrollLock === 1) {
+        document.body.classList.add("overflow-hidden")
+      }
+    } else if (this._applied) {
+      window.__qlariusBodyScrollLock = Math.max(
+        0,
+        (typeof window.__qlariusBodyScrollLock === "number" ? window.__qlariusBodyScrollLock : 1) - 1
+      )
+      this._applied = false
+      if (window.__qlariusBodyScrollLock === 0) {
+        document.body.classList.remove("overflow-hidden")
+      }
+    }
+  }
+}
+
 Hooks.PWAInstall = {
   deferredPrompt: null,
 
@@ -1139,6 +1181,7 @@ Hooks.Popover = {
     this.positionStrategy = this.el.dataset.positionStrategy || "absolute"
     this.arrowAlign = (this.el.dataset.popoverArrowAlign || "reference").toLowerCase()
     this.flipEnabled = this.el.getAttribute("data-flip") !== "false"
+    this.useFloatingSize = this.el.getAttribute("data-popover-use-floating-size") !== "false"
     this.isOpen = false
     this.cleanupAutoUpdate = null
 
@@ -1158,6 +1201,11 @@ Hooks.Popover = {
     this.toggle = this.toggle.bind(this)
     this.onClickOutside = this.onClickOutside.bind(this)
     this.onKeyDown = this.onKeyDown.bind(this)
+    this._onExternalCloseRequest = (ev) => {
+      if (!ev.detail || ev.detail.id !== this.el.id) return
+      this.hide()
+    }
+    window.addEventListener("qlarius:close-popover", this._onExternalCloseRequest)
 
     if (this.triggerType === "click") {
       this.triggerEl.addEventListener("click", this.toggle)
@@ -1190,35 +1238,37 @@ Hooks.Popover = {
     const mw = [offset(this.offsetPx)]
     if (this.flipEnabled) mw.push(flip())
     mw.push(shift({ padding, rootBoundary: "viewport" }))
-    mw.push(
-      size({
-        apply: ({ availableWidth, availableHeight, elements }) => {
-          let w = Math.max(0, availableWidth)
-          const fr = this.el.getAttribute("data-floating-width-cap-frac-md")
-          if (
-            fr != null &&
-            fr !== "" &&
-            typeof window !== "undefined" &&
-            window.matchMedia("(min-width: 768px)").matches
-          ) {
-            const frac = parseFloat(fr, 10)
-            if (Number.isFinite(frac) && frac > 0) {
-              // half-column cap: 80px inset from column split (tune in one place)
-              const cap = Math.max(0, window.innerWidth * frac - 80)
-              w = Math.min(w, cap)
+    if (this.useFloatingSize) {
+      mw.push(
+        size({
+          apply: ({ availableWidth, availableHeight, elements }) => {
+            let w = Math.max(0, availableWidth)
+            const fr = this.el.getAttribute("data-floating-width-cap-frac-md")
+            if (
+              fr != null &&
+              fr !== "" &&
+              typeof window !== "undefined" &&
+              window.matchMedia("(min-width: 768px)").matches
+            ) {
+              const frac = parseFloat(fr, 10)
+              if (Number.isFinite(frac) && frac > 0) {
+                // half-column cap: 80px inset from column split (tune in one place)
+                const cap = Math.max(0, window.innerWidth * frac - 80)
+                w = Math.min(w, cap)
+              }
             }
-          }
-          let h = Math.max(0, availableHeight)
-          if (h === 0 && typeof window !== "undefined") {
-            h = Math.max(0, Math.min(240, window.innerHeight * 0.35 - 8))
-          }
-          if (w > 0) elements.floating.style.maxWidth = `${w}px`
-          else elements.floating.style.removeProperty("max-width")
-          elements.floating.style.maxHeight = `${h}px`
-        },
-        padding
-      })
-    )
+            let h = Math.max(0, availableHeight)
+            if (h === 0 && typeof window !== "undefined") {
+              h = Math.max(0, Math.min(240, window.innerHeight * 0.35 - 8))
+            }
+            if (w > 0) elements.floating.style.maxWidth = `${w}px`
+            else elements.floating.style.removeProperty("max-width")
+            elements.floating.style.maxHeight = `${h}px`
+          },
+          padding
+        })
+      )
+    }
     if (this.arrowEl) {
       const pl = this.placement || ""
       const isTopOrBottom = /^(top|bottom)(-|$)/.test(pl)
@@ -1333,6 +1383,10 @@ Hooks.Popover = {
   },
 
   destroyed() {
+    if (this._onExternalCloseRequest) {
+      window.removeEventListener("qlarius:close-popover", this._onExternalCloseRequest)
+      this._onExternalCloseRequest = null
+    }
     this.hide()
     if (this.triggerType === "click") {
       this.triggerEl.removeEventListener("click", this.toggle)
@@ -1346,6 +1400,34 @@ Hooks.Popover = {
     } else if (this.triggerType === "focus") {
       this.triggerEl.removeEventListener("focus", this.show)
       this.triggerEl.removeEventListener("blur", this.hide)
+    }
+  }
+}
+
+/**
+ * Wallet top-up → Sponster: fade the popover out first (Popover hook listens for
+ * qlarius:close-popover), then push open-sponster-drawer so the drawer animates after.
+ */
+Hooks.WalletTopupOpenSponster = {
+  mounted() {
+    this._onClick = (e) => {
+      e.stopPropagation()
+      const popoverId = this.el.dataset.popoverId
+      if (popoverId) {
+        window.dispatchEvent(new CustomEvent("qlarius:close-popover", { detail: { id: popoverId } }))
+      }
+      const ms = parseInt(this.el.dataset.drawerDelayMs || "280", 10)
+      this._timer = window.setTimeout(() => {
+        this._timer = null
+        this.pushEvent("open-sponster-drawer", {})
+      }, ms)
+    }
+    this.el.addEventListener("click", this._onClick)
+  },
+  destroyed() {
+    this.el.removeEventListener("click", this._onClick)
+    if (this._timer) {
+      window.clearTimeout(this._timer)
     }
   }
 }

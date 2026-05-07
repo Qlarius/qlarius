@@ -108,7 +108,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
       id={@id}
       phx-hook="WalletPulse"
       class={[
-        "inline-flex w-auto bg-sponster-200 dark:bg-sponster-800 text-base-content dark:text-sponster-100 px-3 py-1.5 rounded-lg border border-sponster-300 dark:border-sponster-500",
+        "inline-flex w-auto bg-sponster-200 dark:bg-sponster-800 text-base-content dark:text-sponster-100 px-3 py-1.5 rounded-xl border border-sponster-300 dark:border-sponster-500",
         if(@footer_label,
           do: "flex-col items-center justify-center gap-0.5 text-lg",
           else: "items-center text-lg"

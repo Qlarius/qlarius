@@ -31,6 +31,9 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   # same hook + rationale.
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
+  # Must stay in sync with `.tiqit-content-modal-*` animation duration in `app.css`.
+  @tiqit_content_modal_close_ms 300
+
   # This LiveView serves three contexts via @base_path / @inline?:
   # - Embedded standalone widgets: mounted at /widgets/arqade/:piece_id
   #   → @base_path = "/widgets", @inline? = false. Used when creators
@@ -62,7 +65,9 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
        socket
        |> assign(
          balance: scope && scope.wallet_balance,
-         offered_amount: scope && scope.offered_amount
+         offered_amount: scope && scope.offered_amount,
+         daily_gift_available?:
+           if(scope && scope.user, do: Wallets.daily_gift_available?(scope.user), else: false)
        )}
     else
       scope = socket.assigns.current_scope
@@ -134,6 +139,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           auth_sheet_host_enabled?: auth_sheet_host_enabled?,
           force_theme: force_theme,
           show_tiqit_content_modal: false,
+          tiqit_content_modal_leaving?: false,
+          tiqit_content_modal_close_timer_ref: nil,
           embed_phx_id: session["embed_phx_id"]
         )
         |> assign(scope_assigns(scope, group, catalog))
@@ -178,6 +185,11 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
         false
       end
 
+    daily_gift_available? =
+      if scope && scope.user,
+        do: Wallets.daily_gift_available?(scope.user),
+        else: false
+
     %{
       balance: scope && scope.wallet_balance,
       offered_amount: scope && scope.offered_amount,
@@ -185,7 +197,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
       tiqit_up_group_count: group_count,
       tiqit_up_catalog_credit: catalog_credit,
       tiqit_up_catalog_count: catalog_count,
-      tiqit_up_nudge: nudge?
+      tiqit_up_nudge: nudge?,
+      daily_gift_available?: daily_gift_available?
     }
   end
 
@@ -213,11 +226,14 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   end
 
   def handle_event("open-tiqit-content", _params, socket) do
-    socket |> assign(:show_tiqit_content_modal, true) |> noreply()
+    socket
+    |> cancel_tiqit_content_modal_close_timer()
+    |> assign(:show_tiqit_content_modal, true)
+    |> noreply()
   end
 
   def handle_event("close-tiqit-content", _params, socket) do
-    socket |> assign(:show_tiqit_content_modal, false) |> noreply()
+    {:noreply, begin_tiqit_content_modal_close(socket)}
   end
 
   def handle_event("hide-options", _params, socket) do
@@ -251,6 +267,19 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
   def handle_event("close_auth_sheet", _params, socket) do
     socket |> assign(:show_auth_sheet, false) |> noreply()
+  end
+
+  def handle_event("open-sponster-drawer", _params, socket) do
+    case socket.parent_pid do
+      nil ->
+        socket
+        |> push_event("send-post-message", %{type: "open_sponster_drawer"})
+        |> noreply()
+
+      parent_pid ->
+        send(parent_pid, :open_sponster_drawer_from_embed)
+        noreply(socket)
+    end
   end
 
   # Browse-options entry for anonymous viewers. Mirrors
@@ -302,15 +331,32 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
     socket |> assign(:options_modal, true) |> noreply()
   end
 
-  def handle_event("topup", _params, socket) do
+  def handle_event("daily-gift", _params, socket) do
     with {:cont, socket} <- maybe_intercept_for_unauth(socket) do
       user = socket.assigns.current_scope.user
 
-      Wallets.fake_topup(user)
+      case Wallets.claim_daily_gift(user) do
+        {:ok, :credited} ->
+          Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
 
-      Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
+          socket
+          |> assign(:daily_gift_available?, false)
+          |> noreply()
 
-      socket |> noreply()
+        {:error, :cooldown} ->
+          socket
+          |> put_flash(
+            :error,
+            "You already claimed your daily gift. Try again 24 hours after your last claim."
+          )
+          |> assign(:daily_gift_available?, false)
+          |> noreply()
+
+        {:error, _} ->
+          socket
+          |> put_flash(:error, "Could not apply daily gift. Please try again.")
+          |> noreply()
+      end
     end
   end
 
@@ -343,6 +389,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
       updated_scope = scope && %{scope | wallet_balance: balance}
 
       socket
+      |> cancel_tiqit_content_modal_close_timer()
       |> assign(
         has_tiqit?: true,
         tiqit: tiqit,
@@ -370,6 +417,18 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
     end
   end
 
+  def handle_info(:tiqit_content_modal_close_done, socket) do
+    if socket.assigns[:tiqit_content_modal_leaving?] == true do
+      {:noreply,
+       socket
+       |> assign(:show_tiqit_content_modal, false)
+       |> assign(:tiqit_content_modal_leaving?, false)
+       |> assign(:tiqit_content_modal_close_timer_ref, nil)}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_info(:update_balance, socket) do
     if socket.assigns[:mounted] do
       user = socket.assigns.current_scope.user
@@ -379,11 +438,14 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
       updated_scope = %{scope | wallet_balance: balance}
 
+      daily_gift_available? = if user, do: Wallets.daily_gift_available?(user), else: false
+
       {:noreply,
        assign(socket,
          balance: balance,
          current_scope: updated_scope,
-         offered_amount: scope && scope.offered_amount
+         offered_amount: scope && scope.offered_amount,
+         daily_gift_available?: daily_gift_available?
        )}
     else
       {:noreply, socket}
@@ -444,6 +506,40 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   defp pluralize(word) do
     word = to_string(word)
     if word == "series", do: "series", else: word <> "s"
+  end
+
+  defp cancel_tiqit_content_modal_close_timer(socket) do
+    case socket.assigns[:tiqit_content_modal_close_timer_ref] do
+      ref when is_reference(ref) -> Process.cancel_timer(ref)
+      _ -> :ok
+    end
+
+    assign(socket,
+      tiqit_content_modal_close_timer_ref: nil,
+      tiqit_content_modal_leaving?: false
+    )
+  end
+
+  defp begin_tiqit_content_modal_close(socket) do
+    cond do
+      socket.assigns[:show_tiqit_content_modal] != true ->
+        socket
+
+      socket.assigns[:tiqit_content_modal_leaving?] == true ->
+        socket
+
+      true ->
+        ref =
+          Process.send_after(
+            self(),
+            :tiqit_content_modal_close_done,
+            @tiqit_content_modal_close_ms
+          )
+
+        socket
+        |> assign(:tiqit_content_modal_leaving?, true)
+        |> assign(:tiqit_content_modal_close_timer_ref, ref)
+    end
   end
 
   defp purchase_image_url(scope, piece, group) do

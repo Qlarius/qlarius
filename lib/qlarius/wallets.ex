@@ -302,6 +302,62 @@ defmodule Qlarius.Wallets do
     :ok
   end
 
+  @daily_gift_meta "Daily Gift"
+  @daily_gift_amount Decimal.new("0.50")
+
+  def daily_gift_available?(%User{} = user) do
+    not daily_gift_cooldown_active?(user)
+  end
+
+  def claim_daily_gift(%User{} = user) do
+    if daily_gift_cooldown_active?(user) do
+      {:error, :cooldown}
+    else
+      insert_daily_gift_ledger(user)
+    end
+  end
+
+  defp daily_gift_cooldown_active?(%User{} = user) do
+    me_file_id = user.me_file.id
+    cutoff = NaiveDateTime.add(NaiveDateTime.utc_now(), -24 * 3600, :second)
+
+    query =
+      from e in LedgerEntry,
+        join: h in LedgerHeader,
+        on: e.ledger_header_id == h.id,
+        where: h.me_file_id == ^me_file_id,
+        where: e.meta_1 == ^@daily_gift_meta,
+        where: e.created_at > ^cutoff
+
+    Repo.exists?(query)
+  end
+
+  defp insert_daily_gift_ledger(%User{} = user) do
+    Repo.transaction(fn ->
+      ledger_header = user.me_file.ledger_header
+      amount = @daily_gift_amount
+
+      new_balance = Decimal.add(ledger_header.balance || Decimal.new(0), amount)
+
+      ledger_header
+      |> Ecto.Changeset.change(balance: new_balance)
+      |> Repo.update!()
+
+      %LedgerEntry{
+        ledger_header_id: ledger_header.id,
+        amt: amount,
+        running_balance: new_balance,
+        description: "Daily gift",
+        meta_1: @daily_gift_meta
+      }
+      |> Repo.insert!()
+    end)
+    |> case do
+      {:ok, _} -> {:ok, :credited}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
   def get_tiqit_purchase_details(tiqit_id) do
     tiqit =
       Repo.get(Tiqit, tiqit_id)

@@ -430,10 +430,15 @@ defmodule QlariusWeb.Components.AdsComponents do
   def video_collection_drawer(assigns) do
     ~H"""
     <%= if @show_collection_drawer || @closing do %>
-      <div class={[
-        "fixed inset-x-0 bottom-0 z-[60] flex justify-center",
-        if(@closing, do: "animate-slide-down", else: "animate-slide-up")
-      ]}>
+      <div
+        id="video-collection-drawer-scroll-lock"
+        phx-hook="BodyScrollLock"
+        data-body-scroll-lock="true"
+        class={[
+          "fixed inset-x-0 bottom-0 z-[60] flex justify-center",
+          if(@closing, do: "animate-slide-down", else: "animate-slide-up")
+        ]}
+      >
         <div
           data-theme={if @force_light, do: "light"}
           class={[

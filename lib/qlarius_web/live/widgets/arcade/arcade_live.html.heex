@@ -1,4 +1,5 @@
 <div id="arcade-pwa-detect" phx-hook="PWADetect">
+<div id="arcade-postmessage-bridge" phx-hook="PostMessage" class="hidden" aria-hidden="true"></div>
 <%!--
   When this LV is rendered inline inside another LV (e.g. a Qlink
   page), the parent page already supplies the outer mobile layout
@@ -91,15 +92,16 @@
 
     <div class="flex-1 bg-base-100 text-base-content min-h-0 flex flex-col md:!flex-row">
       <%!-- Selected content piece - STATIONARY --%>
-      <div class="w-full md:!w-1/2 md:p-5 flex flex-col flex-none overflow-visible md:overflow-y-auto">
-        <div class="bg-base-100 rounded-lg p-4 md:!p-0 flex-shrink-0 min-w-0">
-          <%!--
+      <div class="w-full md:!w-1/2 md:p-5 flex flex-col flex-none min-h-0 overflow-visible md:self-start">
+        <div class="min-h-0 shrink-0 overflow-y-auto overflow-x-hidden min-w-0 max-h-[min(70vh,32rem)] md:max-h-none">
+          <div class="bg-base-100 rounded-lg p-4 md:!p-0 min-w-0">
+            <%!--
             Hero thumb width must track the *column* (embed card), not the viewport:
             `sm:/md:/lg:` max-widths looked fine full-screen but starved title text when
             the widget lived in a narrow host (e.g. qlink). `clamp()` ties size to % of
             this flex row while capping absolute growth.
           --%>
-          <div class="flex flex-row gap-3 sm:gap-4 items-stretch min-w-0">
+            <div class="flex flex-row gap-3 sm:gap-4 items-stretch min-w-0">
             <div class="shrink-0 self-start w-[clamp(5rem,34%,8.5rem)] max-w-[42%]">
               <img
                 src={content_image_url(@selected_piece, @group)}
@@ -107,7 +109,7 @@
                 class="block w-full h-auto max-h-[12rem] object-contain rounded-lg"
               />
             </div>
-            <div class="min-w-0 flex-1 flex flex-col gap-1.5 min-h-0">
+            <div class="min-w-0 flex-1 flex flex-col gap-1.5 min-h-0 self-start">
               <p class="text-base sm:text-lg font-semibold leading-tight text-base-content [overflow-wrap:anywhere] shrink-0">
                 {@selected_piece.title}
               </p>
@@ -120,9 +122,9 @@
                 </span>
               </div>
               <%= if String.trim(@selected_piece.description || "") != "" do %>
-                <div class="relative w-full min-w-0 flex-1 flex flex-col min-h-0">
+                <div class="relative w-full min-w-0 flex flex-col shrink-0">
                   <p
-                    class="text-xs text-base-content/70 line-clamp-3 [overflow-wrap:anywhere] break-words w-full min-h-0 md:line-clamp-none md:flex-1 md:overflow-y-auto"
+                    class="text-xs text-base-content/70 line-clamp-3 [overflow-wrap:anywhere] break-words w-full min-h-0 md:line-clamp-none md:max-h-36 md:overflow-y-auto"
                     style="line-height: 1.15rem;"
                   >
                     {description_preview_text(@selected_piece.description)}
@@ -162,8 +164,11 @@
               <% end %>
             </div>
           </div>
+          </div>
+        </div>
 
-          <div class="flex flex-col justify-between mt-6 gap-4 align-middle text-center">
+        <div class="shrink-0 min-w-0 overflow-visible relative z-[30] px-4 pb-1 md:px-0">
+          <div class="flex flex-col justify-between mt-3 md:mt-3 gap-3 align-middle text-center">
             <%!--
               CTA states (View anywhere, Act only when authed):
                 1. Authed viewer with a valid tiqit: Play + countdown.
@@ -240,6 +245,7 @@
                   balance={@balance}
                   offered_amount={@offered_amount}
                   ads_count={@current_scope && @current_scope.ads_count}
+                  daily_gift_available?={@daily_gift_available?}
                   on_click={
                     if QlariusWeb.Widgets.Arcade.ArcadeLive.auth_sheet_enabled?(assigns),
                       do: Phoenix.LiveView.JS.push("open_auth_sheet"),
@@ -439,7 +445,14 @@
 </Layouts.maybe_mobile>
 <%= if @show_tiqit_content_modal and @inline? and not is_nil(@selected_piece) and not is_nil(@tiqit) do %>
   <div
-    class="fixed inset-0 z-[110] flex flex-col bg-base-100"
+    id={"tiqit-inline-modal-#{@selected_piece.id}"}
+    phx-hook="BodyScrollLock"
+    data-body-scroll-lock="true"
+    class={[
+      "fixed inset-0 z-[110] flex flex-col bg-base-100",
+      "tiqit-content-modal-active",
+      @tiqit_content_modal_leaving? && "tiqit-content-modal-leaving"
+    ]}
     data-theme={if @base_path == "/widgets", do: @force_theme}
     phx-window-keydown="close-tiqit-content"
     phx-key="Escape"

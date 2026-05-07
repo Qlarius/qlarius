@@ -257,6 +257,9 @@
   <%= if @recipient do %>
     <%!-- Overlay (only when drawer is open) --%>
     <div
+      id="sponster-drawer-backdrop"
+      phx-hook="BodyScrollLock"
+      data-body-scroll-lock={if @show_sponster_drawer, do: "true", else: "false"}
       class={[
         "fixed inset-0 z-[46] bg-black/50 backdrop-blur-sm transition-opacity duration-300",
         if(@show_sponster_drawer, do: "opacity-100", else: "opacity-0 pointer-events-none")

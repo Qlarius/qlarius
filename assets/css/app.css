@@ -395,6 +395,32 @@
     }
   }
 
+  /* Inline Tiqit play overlay (Arcade / ArcadeSingle on Qlink): same enter/leave
+     motion and timing as `.arqade-fullpane-active` (see `show.ex` + handlers). */
+  .tiqit-content-modal-active:not(.tiqit-content-modal-leaving) {
+    animation: arqade-fullpane-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: center center;
+  }
+
+  .tiqit-content-modal-active.tiqit-content-modal-leaving {
+    animation: arqade-fullpane-leave 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+    transform-origin: center center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tiqit-content-modal-active:not(.tiqit-content-modal-leaving) {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+
+    .tiqit-content-modal-active.tiqit-content-modal-leaving {
+      animation: none;
+      opacity: 0;
+      transform: none;
+    }
+  }
+
   /* Widget button — neutral gray rest, dark blue hover. Use in arqade,
      tipjar, and other embedded widget contexts so widgets don't impose
      Qlarius brand colors on host pages. Composes with daisyUI size and
