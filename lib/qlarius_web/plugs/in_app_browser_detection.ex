@@ -1,7 +1,7 @@
 defmodule QlariusWeb.Plugs.InAppBrowserDetection do
   @moduledoc """
   Classifies the request's `User-Agent` as an in-app webview (Instagram,
-  Facebook, TikTok, etc.) and stashes the result in both `conn.assigns`
+  Facebook, TikTok, Reddit, etc.) and stashes the result in both `conn.assigns`
   and the session for the Qlink LiveView `on_mount`
   (`QlariusWeb.InAppBrowserMount`) to read.
 

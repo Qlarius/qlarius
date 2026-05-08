@@ -34,10 +34,14 @@ config :qlarius, debug_enabled: false
 # AuthSheet production rollout (B6 stage 2).
 #
 # Keyword-list values on `config :app, :key, ...` are merged at the
-# key level (Mix.Config semantics), so this only flips the listed
-# keys and leaves all other `:auth_sheet` defaults from config.exs
-# (e.g. `on_qlink_page`, `on_widget_standalone`, `on_landing_pages`)
-# untouched. Those stay gated separately.
+# key level (Mix.Config semantics), so this replaces the listed keys
+# on `:auth_sheet` and leaves unlisted keys (e.g. `on_widget_standalone`,
+# `on_landing_pages`) at their `config.exs` defaults.
+#
+# Both vanity (`qlinkin.bio`) and interact (`qlink.qadabra.app`, etc.)
+# hosts enable in-place AuthSheet so visitors opening Qlinks from
+# in-app browsers (Instagram, Reddit, …) can sign in without a
+# separate prod gate on the interact host.
 #
 # Originally this was documented as "requires a Cloudflare
 # bypass-cache-when-authed rule first" — but a `curl -I` against
@@ -53,4 +57,7 @@ config :qlarius, debug_enabled: false
 # defense-in-depth if anyone ever overrides that cache-control
 # header for perf reasons, but is not a prerequisite for this
 # flag. See `docs/qlink_auth_refactor_plan.md` §B6 / rev 10.
-config :qlarius, :auth_sheet, on_qlinkin_bio: true
+# Interact Qlink host (qlink.qadabra.app / gigalixir qlink) uses
+# `:on_qlink_page` — keep in sync with qlinkin.bio so in-app browsers
+# (e.g. Reddit) get the same in-place AuthSheet as the vanity host.
+config :qlarius, :auth_sheet, on_qlinkin_bio: true, on_qlink_page: true

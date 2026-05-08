@@ -12,6 +12,7 @@ defmodule Qlarius.Browsers.InAppClassifier do
           | :pinterest
           | :messenger
           | :kakao
+          | :reddit
           | :in_app_webview
 
   @type os :: :ios | :android | :other
@@ -39,6 +40,7 @@ defmodule Qlarius.Browsers.InAppClassifier do
 
   defp match_family(ua) do
     cond do
+      reddit_in_app?(ua) -> {:reddit, :high}
       String.contains?(ua, "instagram") -> {:instagram, :high}
       String.contains?(ua, "tiktok") or String.contains?(ua, "musical.ly") -> {:tiktok, :high}
       String.contains?(ua, "snapchat") -> {:snapchat, :high}
@@ -52,6 +54,12 @@ defmodule Qlarius.Browsers.InAppClassifier do
       generic_android_webview?(ua) -> {:in_app_webview, :medium}
       true -> nil
     end
+  end
+
+  # Official Reddit apps append `Reddit/<version>`; Android builds may
+  # also mention the front-end package in the WebView UA.
+  defp reddit_in_app?(ua) do
+    String.contains?(ua, "reddit/") or String.contains?(ua, "com.reddit.frontpage")
   end
 
   defp twitter_in_app?(ua) do

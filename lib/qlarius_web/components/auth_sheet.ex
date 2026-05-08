@@ -956,7 +956,7 @@ defmodule QlariusWeb.Components.AuthSheet do
         />
 
         <div
-          class="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4"
+          class="fixed inset-0 z-[70] flex items-end md:items-center justify-center p-0 md:p-4"
           id={"#{@id}-scroll-lock"}
           phx-hook="BodyScrollLock"
           data-body-scroll-lock="true"

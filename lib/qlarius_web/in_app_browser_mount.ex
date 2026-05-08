@@ -38,6 +38,7 @@ defmodule QlariusWeb.InAppBrowserMount do
       "pinterest" -> {:ok, :pinterest}
       "messenger" -> {:ok, :messenger}
       "kakao" -> {:ok, :kakao}
+      "reddit" -> {:ok, :reddit}
       "in_app_webview" -> {:ok, :in_app_webview}
       _ -> :error
     end

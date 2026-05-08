@@ -47,9 +47,16 @@ defmodule QlariusWeb.Components.InAppBrowserEscape do
         </div>
 
         <p class="px-4 py-3 text-sm text-base-content/80">
-          Should work fine here, but works better in your browser. Tap the menu
-          <kbd class="kbd kbd-sm align-middle">⋯</kbd>
-          → <span class="font-semibold">Open in Browser</span>.
+          <%= if @in_app_browser.family == :reddit do %>
+            Reddit’s in-app browser can block sign-in. Open this page in
+            Safari or Chrome: tap <kbd class="kbd kbd-sm align-middle">⋯</kbd>
+            (often top right) → <span class="font-semibold">Open in external browser</span>
+            or similar.
+          <% else %>
+            Should work fine here, but works better in your browser. Tap the menu
+            <kbd class="kbd kbd-sm align-middle">⋯</kbd>
+            → <span class="font-semibold">Open in Browser</span>.
+          <% end %>
         </p>
 
         <div class="px-4 pb-4 flex flex-col gap-2">

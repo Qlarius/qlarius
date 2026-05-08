@@ -37,4 +37,18 @@ defmodule Qlarius.Browsers.InAppClassifierTest do
 
     assert %{family: :twitter, os: :ios} = InAppClassifier.classify(ua)
   end
+
+  test "reddit ios in-app marker" do
+    ua =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Reddit/2024.45.0"
+
+    assert %{family: :reddit, os: :ios, confidence: :high} = InAppClassifier.classify(ua)
+  end
+
+  test "reddit android webview package marker" do
+    ua =
+      "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/119.0.0.0 Mobile Safari/537.36 com.reddit.frontpage/2024.45.0"
+
+    assert %{family: :reddit, os: :android, confidence: :high} = InAppClassifier.classify(ua)
+  end
 end

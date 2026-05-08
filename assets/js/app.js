@@ -2119,7 +2119,12 @@ window.addEventListener("push-request-permission", () => {
 // top-frame cookies reliably). See docs/qlink_auth_refactor_plan.md §5.2.
 Hooks.IframeDetect = {
   mounted() {
-    const inIframe = window.self !== window.top
+    // `self !== top` is true in some in-app shells (e.g. Reddit) even when
+    // this document is the user's navigated page, not our embed — which
+    // incorrectly forced the "open in new tab" auth interstitial.
+    // `frameElement` is non-null only when this document is actually
+    // loaded inside an HTML iframe.
+    const inIframe = window.frameElement != null
     // Round-trip through the component so server-side rendering stays
     // authoritative — client is a hint, not a source of truth.
     this.pushEventTo(this.el, "iframe-status", { in_iframe: inIframe })
