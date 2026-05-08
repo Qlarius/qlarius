@@ -155,15 +155,20 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
           |> Decimal.mult(split_percentage)
           |> Decimal.round(2, :half_up)
 
-        # Get Phase 1 recipient amount to calculate exact remainder
+        # Sum Phase 1 recipient payouts across all banner-impression events for this offer.
+        # Media runs may allow multiple phase-1 collects (`maximum_banner_count`, retry buffers)
+        # before the consumer completes phase 2 (jump); each collect inserts its own row.
         phase1_recipient_amount =
-          case Repo.get_by(AdEvent,
-                 offer_id: offer.id,
-                 me_file_id: offer.me_file_id,
-                 media_piece_phase_id: 1
-               ) do
+          from(a in AdEvent,
+            where: a.offer_id == ^offer.id,
+            where: a.me_file_id == ^offer.me_file_id,
+            where: a.media_piece_phase_id == ^previous_phase.id,
+            select: sum(a.event_recipient_collect_amt)
+          )
+          |> Repo.one()
+          |> case do
             nil -> Decimal.new("0.00")
-            phase1_event -> phase1_event.event_recipient_collect_amt || Decimal.new("0.00")
+            %Decimal{} = d -> d
           end
 
         # Phase 2 recipient gets exactly what's left to reach the target split

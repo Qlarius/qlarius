@@ -65,6 +65,16 @@ config :qlarius, :twilio_filter_us_carriers, false
 # Lookup rejection rows: `blocked_until = inserted_at + N days` (default 30).
 config :qlarius, :phone_carrier_rejection_block_days, 30
 
+# 3-tap ad jump page (`/jump/:id`): after successful POST `/jump/collect`,
+# navigate with `location.replace` when enabled so the jump page does not stay
+# in history (better IAB back UX). `replace_strategy: :iab_only` uses replace only
+# when session `qlarius_iab` is set (see InAppBrowserDetection on Qlink hosts).
+# QA: desktop new tab Back from advertiser; Reddit/IG IAB one fewer hop; block
+# `/jump/collect` in DevTools — expect error UI, no silent redirect to advertiser.
+config :qlarius, :ad_jump,
+  use_location_replace: true,
+  replace_strategy: :universal
+
 config :qlarius, :auth_sheet,
   on_qlink_page: false,
   on_qlinkin_bio: false,

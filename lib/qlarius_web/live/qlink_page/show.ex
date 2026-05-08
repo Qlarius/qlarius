@@ -628,7 +628,6 @@ defmodule QlariusWeb.QlinkPage.Show do
 
     case Wallets.create_insta_tip_request(user, recipient, amount, user) do
       {:ok, _ledger_event} ->
-        Process.send_after(self(), :close_insta_tip_thanks_modal, 3000)
         new_balance = Decimal.sub(socket.assigns.current_scope.wallet_balance, amount)
         current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
 
@@ -727,14 +726,6 @@ defmodule QlariusWeb.QlinkPage.Show do
     else
       {:noreply, socket}
     end
-  end
-
-  def handle_info(:close_insta_tip_thanks_modal, socket) do
-    {:noreply,
-     socket
-     |> assign(:show_insta_tip_thanks_modal, false)
-     |> assign(:insta_tip_thanks_amount, nil)
-     |> assign(:insta_tip_thanks_recipient, nil)}
   end
 
   @impl true

@@ -26,7 +26,8 @@ defmodule QlariusWeb.AdJumpPageController do
         render(conn, :jump,
           layout: false,
           offer: offer,
-          recipient_id: recipient_id
+          recipient_id: recipient_id,
+          use_location_replace: use_location_replace?(conn)
         )
     end
   end
@@ -47,7 +48,8 @@ defmodule QlariusWeb.AdJumpPageController do
 
       offer ->
         # Get recipient if provided
-        recipient = if recipient_id && recipient_id != "", do: Repo.get(Recipient, recipient_id), else: nil
+        recipient =
+          if recipient_id && recipient_id != "", do: Repo.get(Recipient, recipient_id), else: nil
 
         # Get split_amount from the offer's me_file
         offer = Repo.preload(offer, me_file: [])
@@ -65,6 +67,7 @@ defmodule QlariusWeb.AdJumpPageController do
               offer.me_file_id,
               Qlarius.Wallets.get_me_file_ledger_header_balance(offer.me_file)
             )
+
             MeFileStatsBroadcaster.broadcast_offers_updated(offer.me_file_id)
 
             conn
@@ -83,6 +86,20 @@ defmodule QlariusWeb.AdJumpPageController do
     case Plug.Conn.get_req_header(conn, "x-forwarded-for") do
       [forwarded | _] -> forwarded |> String.split(",") |> List.first() |> String.trim()
       [] -> conn.remote_ip |> :inet.ntoa() |> to_string()
+    end
+  end
+
+  defp use_location_replace?(conn) do
+    cfg = Application.get_env(:qlarius, :ad_jump, [])
+
+    if Keyword.get(cfg, :use_location_replace, true) do
+      case Keyword.get(cfg, :replace_strategy, :universal) do
+        :universal -> true
+        :iab_only -> Plug.Conn.get_session(conn, "qlarius_iab") != nil
+        _ -> true
+      end
+    else
+      false
     end
   end
 end

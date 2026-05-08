@@ -165,8 +165,8 @@ defmodule QlariusWeb.InstaTipComponents do
   end
 
   @doc """
-  Thanks/confirmation modal shown after a successful InstaTip. Auto-dismisses
-  after 3 seconds and has standard close button. Uses same styling as other modals.
+  Thanks/confirmation modal shown after a successful InstaTip. The visitor closes it
+  via Done, backdrop click, or Escape — same pattern as other modals.
   """
   attr :show, :boolean, default: false
   attr :recipient_name, :string, required: true
