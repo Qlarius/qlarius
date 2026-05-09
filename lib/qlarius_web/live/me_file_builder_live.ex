@@ -16,7 +16,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
     <div id="mefilebuilder-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile
         {assigns}
-        title="Tagger"
+        title="Tag Index"
         slide_over_active={@editing}
         slide_over_title={(@survey_in_edit && @survey_in_edit.name) || "Survey"}
       >
@@ -48,26 +48,32 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
             percent_complete =
               if total_traits == 0, do: 0, else: trunc(completed_traits / total_traits * 100) %>
-            <div class="relative">
+            <div class="relative tagger-progress">
               <progress
                 class={[
                   "progress w-full h-6",
                   cond do
-                    percent_complete == 0 -> "progress-error"
+                    percent_complete == 0 -> nil
                     percent_complete == 100 -> "progress-success"
                     true -> "progress-warning"
                   end
                 ]}
-                value={max(10, percent_complete)}
+                value={if percent_complete == 0, do: 0, else: max(22, percent_complete)}
                 max="100"
               >
               </progress>
-              <div
-                class="absolute top-0 left-0 h-6 flex items-center justify-center text-xs font-bold text-white pointer-events-none"
-                style={"width: #{max(10, percent_complete)}%"}
-              >
-                {completed_traits}/{total_traits}
-              </div>
+              <%= if percent_complete == 0 do %>
+                <div class="tagger-progress-fill-label tagger-zero-progress-chip text-xs leading-none">
+                  {completed_traits}/{total_traits}
+                </div>
+              <% else %>
+                <div
+                  class="tagger-progress-fill-label text-xs leading-none"
+                  style={"width: #{max(22, percent_complete)}%"}
+                >
+                  {completed_traits}/{total_traits}
+                </div>
+              <% end %>
             </div>
             <h1 class="text-base-content mt-2 text-xl">Fill the empty tags below. Update or delete existing tags.</h1>
           </div>
@@ -108,7 +114,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                   <div class={[
                     "badge badge-lg rounded-full px-3 py-3 font-bold",
                     cond do
-                      percent_complete == 0 -> "badge-error"
+                      percent_complete == 0 -> "tagger-zero-stat-badge"
                       percent_complete == 100 -> "badge-success"
                       true -> "badge-warning"
                     end
@@ -117,26 +123,32 @@ defmodule QlariusWeb.MeFileBuilderLive do
                   </div>
                 </div>
                 <div class="mb-5">
-                  <div class="relative">
+                  <div class="relative tagger-progress">
                     <progress
                       class={[
                         "progress w-full h-6",
                         cond do
-                          percent_complete == 0 -> "progress-error"
+                          percent_complete == 0 -> nil
                           percent_complete == 100 -> "progress-success"
                           true -> "progress-warning"
                         end
                       ]}
-                      value={max(10, percent_complete)}
+                      value={if percent_complete == 0, do: 0, else: max(22, percent_complete)}
                       max="100"
                     >
                     </progress>
-                    <div
-                      class="absolute top-0 left-0 h-6 flex items-center justify-center text-sm font-bold text-white pointer-events-none"
-                      style={"width: #{max(10, percent_complete)}%"}
-                    >
-                      {percent_complete}%
-                    </div>
+                    <%= if percent_complete == 0 do %>
+                      <div class="tagger-progress-fill-label tagger-zero-progress-chip text-sm leading-none">
+                        {percent_complete}%
+                      </div>
+                    <% else %>
+                      <div
+                        class="tagger-progress-fill-label text-sm leading-none"
+                        style={"width: #{max(22, percent_complete)}%"}
+                      >
+                        {percent_complete}%
+                      </div>
+                    <% end %>
                   </div>
                 </div>
 
@@ -151,9 +163,9 @@ defmodule QlariusWeb.MeFileBuilderLive do
                       <span class="text-xl text-base-content">{survey.name}</span>
                       <div class="flex items-center space-x-2">
                         <span class={[
-                          "badge badge-lg rounded-full px-3 py-3",
+                          "badge badge-lg rounded-full px-3 py-3 font-bold",
                           cond do
-                            answered_question_count == 0 -> "badge-error"
+                            answered_question_count == 0 -> "tagger-zero-stat-badge"
                             answered_question_count == question_count -> "badge-success"
                             true -> "badge-warning"
                           end
@@ -229,6 +241,17 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
   def handle_event("toggle_tag_view", _params, socket) do
     {:noreply, assign(socket, :show_expanded_tags, !socket.assigns.show_expanded_tags)}
+  end
+
+  def handle_event("sync_tag_selection", params, socket) do
+    case socket.assigns.trait_in_edit do
+      %{input_type: type} when type in ["multi_select", "single_select"] ->
+        ids = child_trait_ids_from_form_params(params)
+        {:noreply, assign(socket, :selected_child_trait_ids, ids)}
+
+      _ ->
+        {:noreply, socket}
+    end
   end
 
   def handle_event("open_edit", %{"id" => id}, socket) do
@@ -425,6 +448,18 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
         {:noreply, socket}
     end
+  end
+
+  defp child_trait_ids_from_form_params(params) do
+    params
+    |> Map.get("child_trait_ids")
+    |> List.wrap()
+    |> Enum.flat_map(fn raw ->
+      case Integer.parse(to_string(raw)) do
+        {id, _} -> [id]
+        :error -> []
+      end
+    end)
   end
 
   defp open_survey(socket, survey_id) do

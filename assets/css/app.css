@@ -335,6 +335,81 @@
     border-top: 1px solid var(--divider-color);
   }
 
+  /*
+   * MeFile Tagger (/me_file_builder): zero-count badges — neutral fill + white text;
+   * no stroke (contrast is sufficient without a border).
+   */
+  .badge.tagger-zero-stat-badge {
+    --badge-bg: oklch(68% 0.025 260);
+    --badge-fg: #fff;
+    background-color: oklch(68% 0.025 260) !important;
+    border: none !important;
+    color: #fff !important;
+  }
+
+  [data-theme="dark"] .badge.tagger-zero-stat-badge {
+    --badge-bg: oklch(52% 0.03 260);
+    --badge-fg: #fff;
+    background-color: oklch(52% 0.03 260) !important;
+    border: none !important;
+    color: #fff !important;
+  }
+
+  /*
+   * MeFile Tagger progress: one visual system for track, native fill, and overlays.
+   * Daisy applies `border-radius` on all corners of `::-webkit-progress-value`, which
+   * gaps the fill from the track edge — zero the left radius on the value only.
+   */
+  .tagger-progress {
+    --tagger-progress-h: 1.5rem;
+    --radius-box: 0.125rem;
+  }
+
+  .tagger-progress progress {
+    height: var(--tagger-progress-h);
+    border-radius: var(--radius-box);
+  }
+
+  .tagger-progress progress::-webkit-progress-bar {
+    border-radius: var(--radius-box);
+  }
+
+  .tagger-progress progress::-webkit-progress-value {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-top-right-radius: var(--radius-box);
+    border-bottom-right-radius: var(--radius-box);
+  }
+
+  .tagger-progress progress::-moz-progress-bar {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-top-right-radius: var(--radius-box);
+    border-bottom-right-radius: var(--radius-box);
+  }
+
+  /* Overlays (0% chip + % text on orange): same height and horizontal padding as each other */
+  .tagger-progress-fill-label {
+    @apply absolute left-0 top-0 z-[1] flex items-center justify-center font-bold text-white pointer-events-none;
+    height: var(--tagger-progress-h);
+    min-height: var(--tagger-progress-h);
+    min-width: 3.5rem;
+    max-width: 100%;
+    padding-inline: 0.5rem;
+    box-sizing: border-box;
+  }
+
+  .tagger-zero-progress-chip {
+    min-width: 2.75rem;
+    background-color: oklch(68% 0.025 260);
+    border-radius: 0 var(--radius-box) var(--radius-box) 0;
+    box-sizing: border-box;
+  }
+
+  [data-theme="dark"] .tagger-zero-progress-chip {
+    background-color: oklch(52% 0.03 260);
+  }
+
   /* Qlink inline arqade full-pane: parent `.arqade-fullpane-active` wraps
      `live_render` (see QlinkPage.Show). Inline card + open-in-tab use
      utilities on the same nodes — utilities layer beats @layer components,

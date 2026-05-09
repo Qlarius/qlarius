@@ -1081,16 +1081,18 @@ defmodule QlariusWeb.RegistrationLive do
     <div class="space-y-6">
       <div>
         <h2 class="text-2xl md:text-3xl font-bold mb-3 dark:text-white">Mobile Number</h2>
-        <p class="text-base md:text-lg text-base-content/70 dark:text-base-content/60">
-          <%= cond do %>
-            <% @proxy_offer_user -> %>
-              Enter the code we just texted to {@proxy_offer_user.alias}'s phone to confirm ownership.
-            <% @mode == "proxy" -> %>
-              Optional: Enter a mobile number for this proxy user
-            <% true -> %>
-              We'll send a verification code to confirm your phone number
-          <% end %>
-        </p>
+        <%= if not @phone_verified do %>
+          <p class="text-base md:text-lg text-base-content/70 dark:text-base-content/60">
+            <%= cond do %>
+              <% @proxy_offer_user -> %>
+                Enter the code we just texted to {@proxy_offer_user.alias}'s phone to confirm ownership.
+              <% @mode == "proxy" -> %>
+                Optional: Enter a mobile number for this proxy user
+              <% true -> %>
+                We'll send a verification code to confirm your phone number
+            <% end %>
+          </p>
+        <% end %>
       </div>
 
       <%= if @mode != "proxy" or @proxy_offer_user do %>

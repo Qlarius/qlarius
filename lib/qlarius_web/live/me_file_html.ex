@@ -120,6 +120,7 @@ defmodule QlariusWeb.MeFileHTML do
             <.form
               :if={@trait_in_edit}
               for={%{}}
+              phx-change="sync_tag_selection"
               phx-submit="save_tags"
               class="flex flex-col flex-1 min-h-0"
             >

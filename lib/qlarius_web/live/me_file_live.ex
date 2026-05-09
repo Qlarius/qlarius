@@ -260,6 +260,17 @@ defmodule QlariusWeb.MeFileLive do
     {:noreply, assign(socket, :show_expanded_tags, !socket.assigns.show_expanded_tags)}
   end
 
+  def handle_event("sync_tag_selection", params, socket) do
+    case socket.assigns.trait_in_edit do
+      %{input_type: type} when type in ["multi_select", "single_select"] ->
+        ids = child_trait_ids_from_form_params(params)
+        {:noreply, assign(socket, :selected_child_trait_ids, ids)}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
   @impl true
   def handle_info({:perform_tag_deletion, trait_id, child_trait_ids, current_scope}, socket) do
     # Remove the selected tags from the me_file
@@ -317,6 +328,18 @@ defmodule QlariusWeb.MeFileLive do
       :me_file_tag_map_by_category_trait_tag,
       MeFiles.me_file_tag_map_by_category_trait_tag(me_file_id)
     )
+  end
+
+  defp child_trait_ids_from_form_params(params) do
+    params
+    |> Map.get("child_trait_ids")
+    |> List.wrap()
+    |> Enum.flat_map(fn raw ->
+      case Integer.parse(to_string(raw)) do
+        {id, _} -> [id]
+        :error -> []
+      end
+    end)
   end
 
   defp selected_child_trait_ids_from_map(me_file_tag_map_by_category_trait_tag, parent_trait_id) do
