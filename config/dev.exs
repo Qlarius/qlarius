@@ -110,13 +110,17 @@ config :waffle,
 # different ports.
 
 # Watch static and templates for browser reloading.
+# Include all of `lib/qlarius_web/**` — the old pattern only matched
+# controllers|live|components, so changes to layouts, endpoint, plugs, etc.
+# recompiled but did not notify LiveReload (no auto refresh until manual reload).
 config :qlarius, QlariusWeb.Endpoint,
   live_reload: [
     web_console_logger: false,
     patterns: [
       ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/qlarius_web/(controllers|live|components)/.*(ex|heex)$"
+      ~r"lib/qlarius_web/.*\.(ex|heex)$",
+      ~r"lib/qlarius/.*\.ex$"
     ]
   ]
 

@@ -370,6 +370,25 @@
     border-radius: var(--radius-box);
   }
 
+  /* Empty / 0% track: lighter than default `base-content` mix so neutral bars read softer */
+  .tagger-progress progress.tagger-progress-zero {
+    background-color: oklch(94% 0.01 260);
+    color: oklch(94% 0.01 260);
+  }
+
+  [data-theme="dark"] .tagger-progress progress.tagger-progress-zero {
+    background-color: oklch(38% 0.022 260);
+    color: oklch(38% 0.022 260);
+  }
+
+  .tagger-progress progress.tagger-progress-zero::-webkit-progress-value {
+    background-color: transparent;
+  }
+
+  .tagger-progress progress.tagger-progress-zero::-moz-progress-bar {
+    background-color: transparent;
+  }
+
   .tagger-progress progress::-webkit-progress-bar {
     border-radius: var(--radius-box);
   }

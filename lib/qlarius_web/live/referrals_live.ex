@@ -167,17 +167,19 @@ defmodule QlariusWeb.ReferralsLive do
       <Layouts.mobile {assigns}>
         <div class="container mx-auto px-4 py-6 max-w-3xl">
           <div class="space-y-6">
-            <div class="stats shadow-xl bg-primary text-primary-content w-full">
-              <div class="stat">
-                <div class="stat-figure text-primary-content">
-                  <.icon name="hero-user-group" class="w-10 h-10" />
+            <div class="stats stats-vertical w-full rounded-2xl border border-base-300 bg-base-200 text-base-content shadow-xl dark:border-base-content/15 dark:bg-base-300/90">
+              <div class="stat px-4 py-6 sm:px-6">
+                <div class="stat-figure text-primary">
+                  <.icon name="hero-user-group" class="w-10 h-10 opacity-90" />
                 </div>
-                <div class="stat-title text-primary-content/70">Lifetime Referral Earnings</div>
-                <div class="stat-value text-3xl">
+                <div class="stat-title text-base-content/70">
+                  Lifetime Referral Earnings
+                </div>
+                <div class="stat-value text-3xl font-bold tabular-nums text-base-content">
                   ${Decimal.to_string(@total_paid, :normal)}
                 </div>
-                <div class="stat-desc text-primary-content/60">
-                  Total paid from all referrals
+                <div class="stat-desc text-base-content/60">
+                  From {referral_count_display(length(@referred_users), :description)}
                 </div>
               </div>
             </div>
@@ -330,7 +332,12 @@ defmodule QlariusWeb.ReferralsLive do
             <%= if Enum.any?(@referred_users) do %>
               <div class="card bg-base-200 shadow-xl">
                 <div class="card-body">
-                  <h2 class="card-title">Users You've Referred</h2>
+                  <h2 class="card-title">
+                    Users You've Referred{referral_count_display(
+                      length(@referred_users),
+                      :title_suffix
+                    )}
+                  </h2>
                   <div class="overflow-x-auto mt-4">
                     <table class="table table-zebra w-full">
                       <thead>
@@ -373,7 +380,8 @@ defmodule QlariusWeb.ReferralsLive do
               </div>
               <div class="p-6">
                 <p class="py-4">
-                  Process <span class="font-bold text-primary">{@pending_clicks_count}</span> pending clicks
+                  Process <span class="font-bold text-primary">{@pending_clicks_count}</span>
+                  pending clicks
                   for <span class="font-bold text-success">${Decimal.to_string(Decimal.mult(Decimal.new("0.01"), @pending_clicks_count), :normal)}</span>?
                 </p>
                 <div class="modal-action">
@@ -393,4 +401,13 @@ defmodule QlariusWeb.ReferralsLive do
     </div>
     """
   end
+
+  # Shared copy for referral counts from `length(@referred_users)`.
+  defp referral_count_display(1, :description), do: "1 total referral"
+
+  defp referral_count_display(n, :description) when is_integer(n) and n >= 0,
+    do: "#{n} total referrals"
+
+  defp referral_count_display(n, :title_suffix) when is_integer(n) and n >= 0,
+    do: " (#{n})"
 end

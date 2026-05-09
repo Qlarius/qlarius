@@ -53,7 +53,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                 class={[
                   "progress w-full h-6",
                   cond do
-                    percent_complete == 0 -> nil
+                    percent_complete == 0 -> "tagger-progress-zero"
                     percent_complete == 100 -> "progress-success"
                     true -> "progress-warning"
                   end
@@ -128,7 +128,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                       class={[
                         "progress w-full h-6",
                         cond do
-                          percent_complete == 0 -> nil
+                          percent_complete == 0 -> "tagger-progress-zero"
                           percent_complete == 100 -> "progress-success"
                           true -> "progress-warning"
                         end

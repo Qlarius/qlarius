@@ -538,7 +538,7 @@ defmodule QlariusWeb.Layouts do
       </div>
 
       <%!-- Bottom navigation bar - in document flow, not fixed --%>
-      <nav :if={@current_scope} class="flex-shrink-0 h-20 flex justify-around items-start pt-2 bg-base-100 border-t border-base-300 shadow-[0_-1px_4px_rgba(0,0,0,0.04)]">
+      <nav :if={@current_scope} class="flex-shrink-0 h-20 flex items-stretch pt-2 bg-base-100 border-t border-base-300 shadow-[0_-1px_4px_rgba(0,0,0,0.04)]">
         <.nav_item
           icon="hero-home"
           label="Home"
@@ -587,14 +587,17 @@ defmodule QlariusWeb.Layouts do
     ~H"""
     <button
       class={[
-        "flex flex-col items-center gap-1 px-4 py-1 cursor-pointer transition-colors relative",
+        "flex flex-1 min-w-0 flex-col items-center gap-1 px-2 py-1 cursor-pointer transition-colors relative",
         if(@active, do: "text-primary", else: "text-base-content/60")
       ]}
       phx-click={@on_click || JS.navigate(@path)}
     >
-      <.icon name={@icon} class="size-6" />
+      <.icon name={@icon} class="size-6 shrink-0" />
       <span class="text-[0.7rem] font-medium">{@label}</span>
-      <span class={["w-4 h-1 rounded-full", if(@active, do: "bg-primary", else: "bg-transparent")]}></span>
+      <span class={[
+        "self-stretch h-1 shrink-0 rounded-full",
+        if(@active, do: "bg-primary", else: "bg-transparent")
+      ]}></span>
       <span
         :if={@badge && @badge > 0}
         class="absolute left-1/2 ml-1 top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-400"

@@ -54,6 +54,45 @@
             <span class="ml-3">Home</span>
           </.link>
         </li>
+        <li>
+          <.link
+            navigate={~p"/wallet"}
+            class="flex items-center justify-between p-2 rounded-lg text-base-content hover:bg-base-200 group"
+          >
+            <div class="flex items-center">
+              <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-500">
+                <.icon name="hero-wallet" class="h-5 w-5 text-neutral-content" />
+              </div>
+              <span class="ml-3">Wallet</span>
+            </div>
+            <span
+              class="badge badge-sm rounded px-2 py-3 !bg-gray-500 !text-neutral-content"
+              data-app-target="balance"
+            >
+              ${@current_scope.user.me_file.ledger_header.balance}
+            </span>
+          </.link>
+        </li>
+        <li>
+          <.link
+            navigate={~p"/referrals"}
+            class="flex items-center justify-between p-2 rounded-lg text-base-content hover:bg-base-200 group"
+          >
+            <div class="flex items-center">
+              <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-500">
+                <.icon name="hero-user-group" class="h-5 w-5 text-neutral-content" />
+              </div>
+              <span class="ml-3">Referrals</span>
+            </div>
+            <span
+              :if={@current_scope.pending_referral_clicks_count > 0}
+              class="badge badge-sm rounded px-2 py-3 !bg-gray-500 !text-neutral-content"
+              data-app-target="pendingReferralClicks"
+            >
+              {@current_scope.pending_referral_clicks_count}
+            </span>
+          </.link>
+        </li>
       </ul>
       <div class="divider my-1"></div>
       <div class="mt-4 mb-1 px-2 mb-3 flex flex-row justify-between items-center">
@@ -68,13 +107,13 @@
             class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
           >
             <div class="flex items-center">
-              <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata-500">
+              <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata-700">
                 <.icon name="hero-identification" class="h-5 w-5 text-primary-content" />
               </div>
               <span class="ml-3">MeFile</span>
             </div>
             <span
-              class="badge badge-sm rounded px-1 py-2 !bg-youdata-500 !text-primary-content"
+              class="badge badge-sm rounded px-2 py-3 !bg-youdata-700 !text-primary-content"
               data-app-target="traitCount"
             >
               {@current_scope.trait_count}
@@ -87,7 +126,7 @@
             navigate={~p"/me_file_builder"}
             class="flex items-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
           >
-            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata-500">
+            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata-700">
               <.icon name="hero-wrench-screwdriver" class="h-5 w-5 text-primary-content" />
             </div>
             <span class="ml-3">Tag Index</span>
@@ -113,49 +152,10 @@
               <span class="ml-3">Ads</span>
             </div>
             <span
-              class="badge badge-sm rounded px-1 py-2 !bg-sponster-500 !text-primary-content"
+              class="badge badge-sm rounded px-2 py-3 !bg-sponster-500 !text-primary-content"
               data-app-target="offerCount"
             >
               {@current_scope.ads_count}
-            </span>
-          </.link>
-        </li>
-        <li>
-          <.link
-            navigate={~p"/wallet"}
-            class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
-          >
-            <div class="flex items-center">
-              <div class="flex items-center justify-center h-8 w-8 rounded-full bg-sponster-500">
-                <.icon name="hero-wallet" class="h-5 w-5 text-primary-content" />
-              </div>
-              <span class="ml-3">Wallet</span>
-            </div>
-            <span
-              class="badge badge-sm rounded px-1 py-2 !bg-sponster-500 !text-primary-content"
-              data-app-target="balance"
-            >
-              ${@current_scope.user.me_file.ledger_header.balance}
-            </span>
-          </.link>
-        </li>
-        <li>
-          <.link
-            navigate={~p"/referrals"}
-            class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
-          >
-            <div class="flex items-center">
-              <div class="flex items-center justify-center h-8 w-8 rounded-full bg-sponster-500">
-                <.icon name="hero-user-group" class="h-5 w-5 text-primary-content" />
-              </div>
-              <span class="ml-3">Referrals</span>
-            </div>
-            <span
-              :if={@current_scope.pending_referral_clicks_count > 0}
-              class="badge badge-sm rounded px-2 py-2 !bg-sponster-500 !text-primary-content"
-              data-app-target="pendingReferralClicks"
-            >
-              {@current_scope.pending_referral_clicks_count}
             </span>
           </.link>
         </li>
@@ -180,7 +180,7 @@
             </div>
             <span
               :if={@current_scope && @current_scope.active_tiqit_count > 0}
-              class="badge badge-sm rounded px-1 py-2 !bg-tiqit-600 !text-primary-content"
+              class="badge badge-sm rounded px-2 py-3 !bg-tiqit-600 !text-primary-content"
             >
               {@current_scope.active_tiqit_count}
             </span>
