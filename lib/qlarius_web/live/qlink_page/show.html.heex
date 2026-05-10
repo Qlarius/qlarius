@@ -139,112 +139,86 @@
       <div class="sponster-announcer-logo-container flex-shrink-0" />
 
       <%!--
-        Stats box rendered for everyone. Values fall back to "$--.--"
-        / "--" for anonymous viewers (same visual shape as authed so
-        the bar doesn't reflow). For anon, the whole box is wrapped
-        in a clickable target that routes to the right auth surface:
-          * Host flag on (AuthSheet enabled) -> open the in-place
-            AuthSheet with `phx-click="open_auth_sheet"`.
-          * qlinkin.bio + flag off -> cross-host redirect to
-            `@interact_login_url` (with `?return_to=/@alias`) via
-            `target="_top"` — this is the legacy pre-B6 path and is
-            kept as a safety net for the staged rollout (prod flag
-            stays off until the Cloudflare cache rule ships).
-          * Interactive host + flag off -> in-app `/login` with the
-            same `return_to` pass-through.
-        Authed renders the same box as a static div — not clickable.
+        Authed: wallet balance centered (Sponster pill); drawer toggle on the
+        right shows ADS + offered like the arcade wallet-strip top-up trigger
+        (widget pill + btn-widget), not the old "Show" label.
+        Anonymous: READY + Connect strip (`tray?={false}`) with legacy Connect routing.
       --%>
       <% is_authed = authed?(@current_scope) %>
-      <% wallet_text =
-        if is_authed,
-          do: "$" <> (Decimal.round(@current_scope.wallet_balance || Decimal.new("0"), 2) |> Decimal.to_string()),
-          else: "$--.--" %>
-      <% ads_text =
-        if is_authed,
-          do: to_string(@current_scope.ads_count || 0),
-          else: "--" %>
-      <% offered_text =
-        if is_authed,
-          do: "$" <> (Decimal.round(@current_scope.offered_amount || Decimal.new("0"), 2) |> Decimal.to_string()),
-          else: "$--.--" %>
-
-      <% stats_box_class = "flex items-center bg-base-200 rounded-lg shadow-[inset_0_0_2px_rgba(0,0,0,0.1)]" %>
-      <% stats_box_style = "width: 240px;" %>
-      <% value_class =
-        if is_authed,
-          do: "text-base-content font-semibold",
-          else: "text-base-content/60 font-semibold" %>
+      <% announcer_ads_text =
+           if(is_authed, do: to_string(@current_scope.ads_count || 0), else: "") %>
+      <% announcer_offered_text =
+           if(is_authed,
+             do: format_usd(@current_scope.offered_amount || Decimal.new("0")),
+             else: ""
+           ) %>
 
       <%= if is_authed do %>
-        <div class={stats_box_class} style={stats_box_style}>
-          <.sponster_stat_cell label="WALLET" value={wallet_text} value_class={value_class} />
-          <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
-          <.sponster_stat_cell label="ADS" value={ads_text} value_class={value_class} />
-          <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
-          <.sponster_stat_cell label="OFFERED" value={offered_text} value_class={value_class} />
+        <div class="flex-1 flex justify-center min-w-0 px-1">
+          <.wallet_balance
+            id="qlink-announcer-wallet-balance"
+            balance={@current_scope.wallet_balance || Decimal.new("0")}
+            footer_label="WALLET"
+            compact?={true}
+          />
         </div>
       <% else %>
-        <%!--
-          Unauthed wallet stats box. Three paths:
-            1. AuthSheet flag on (per-host) → open the in-place sheet.
-            2. qlinkin.bio + flag off → cross-host redirect (legacy).
-            3. Interactive host + flag off → in-app /login redirect.
-        --%>
-        <%= cond do %>
-          <% QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns) -> %>
-            <button
-              type="button"
-              phx-click="open_auth_sheet"
-              class={[stats_box_class, "hover:bg-base-300 transition-colors cursor-pointer"]}
-              style={stats_box_style}
-              title="Connect your wallet"
-            >
-              <.sponster_stat_cell label="WALLET" value={wallet_text} value_class={value_class} />
-              <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
-              <.sponster_stat_cell label="ADS" value={ads_text} value_class={value_class} />
-              <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
-              <.sponster_stat_cell label="OFFERED" value={offered_text} value_class={value_class} />
-            </button>
-          <% QlariusWeb.QlinkPage.Show.on_qlinkin_bio_host?(assigns) -> %>
-            <.link
-              href={@interact_login_url}
-              target="_top"
-              class={[stats_box_class, "hover:bg-base-300 transition-colors cursor-pointer"]}
-              style={stats_box_style}
-              title="Connect your wallet"
-            >
-              <.sponster_stat_cell label="WALLET" value={wallet_text} value_class={value_class} />
-              <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
-              <.sponster_stat_cell label="ADS" value={ads_text} value_class={value_class} />
-              <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
-              <.sponster_stat_cell label="OFFERED" value={offered_text} value_class={value_class} />
-            </.link>
-          <% true -> %>
-            <.link
-              href={~p"/login?return_to=/@#{@page.alias}"}
-              class={[stats_box_class, "hover:bg-base-300 transition-colors cursor-pointer"]}
-              style={stats_box_style}
-              title="Connect your wallet"
-            >
-              <.sponster_stat_cell label="WALLET" value={wallet_text} value_class={value_class} />
-              <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
-              <.sponster_stat_cell label="ADS" value={ads_text} value_class={value_class} />
-              <div style="width: 0px; height: 20px; border-left: 1px solid #cbcbcb;"></div>
-              <.sponster_stat_cell label="OFFERED" value={offered_text} value_class={value_class} />
-            </.link>
-        <% end %>
+        <% on_click =
+             if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
+               do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+               else: nil %>
+        <% {connect_href, connect_link_target} =
+             cond do
+               on_click ->
+                 {nil, "_top"}
+               QlariusWeb.QlinkPage.Show.on_qlinkin_bio_host?(assigns) ->
+                 {@interact_login_url, "_top"}
+               true ->
+                 {~p"/login?return_to=/@#{@page.alias}", "_self"}
+             end %>
+        <div class="flex-1 flex justify-center min-w-0 px-1" title="Connect your wallet">
+          <.wallet_strip_or_connect
+            tray?={false}
+            scope={@current_scope}
+            balance={Decimal.new("0")}
+            id="qlink-announcer-wallet-strip"
+            on_click={on_click}
+            connect_href={connect_href}
+            connect_link_target={connect_link_target}
+          />
+        </div>
       <% end %>
 
-      <%!-- Show/Hide Button --%>
+      <%!--
+        Drawer toggle: authed = pill (widget border + pale fill) with stats + chevron,
+        Tiqit-chip style. Anon = Show/Hide pill + chevron.
+      --%>
       <button
+        type="button"
         phx-click="toggle_sponster_drawer"
-          class="flex items-center justify-center gap-1 w-[88px] py-1 rounded-full border-[1.5px] border-base-content/80 bg-transparent hover:bg-base-200 transition-colors flex-shrink-0 cursor-pointer"
-        >
-        <span class="text-base-content text-[13px] font-semibold">
-          {if @show_sponster_drawer, do: "Hide", else: "Show"}
-        </span>
+        title={if @show_sponster_drawer, do: "Hide offers", else: "Show offers"}
+        class={[
+          "flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer transition-colors",
+          if(
+            is_authed,
+            do:
+              "min-w-0 rounded-full border border-widget-700 bg-widget-100 px-3 py-1.5 text-widget-900 hover:bg-widget-200/90",
+            else:
+              "w-[88px] py-1 rounded-full border-[1.5px] border-base-content/80 bg-transparent text-base-content hover:bg-base-200"
+          )
+        ]}
+      >
+        <%= if is_authed do %>
+          <span class="text-sm font-bold tabular-nums whitespace-nowrap shrink-0">
+            {announcer_ads_text} ads • {announcer_offered_text}
+          </span>
+        <% else %>
+          <span class="text-[13px] font-semibold">
+            {if @show_sponster_drawer, do: "Hide", else: "Show"}
+          </span>
+        <% end %>
         <span class={[
-          "hero-chevron-double-up bg-sponster-500 transition-transform duration-200",
+          "hero-chevron-double-up bg-sponster-600 transition-transform duration-200 shrink-0",
           if(@show_sponster_drawer, do: "rotate-180")
         ]} />
       </button>
@@ -589,6 +563,7 @@
   --%>
   <.connect_wallet_modal
     show={@show_connect_modal}
+    scope={@current_scope}
     on_click={
       if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
         do: Phoenix.LiveView.JS.push("open_auth_sheet"),
@@ -673,17 +648,17 @@
     >
       <div class="border-2 border-primary rounded-box">
         <div class="bg-base-200 px-6 py-4 rounded-t-box">
-          <h3 class="font-bold text-lg">Confirm Logout</h3>
+          <h3 class="font-bold text-lg">Disconnect wallet</h3>
         </div>
         <div class="p-6">
-          <p class="py-4">Are you sure you want to log out?</p>
+          <p class="py-4">You will leave this session on this page. You can connect again anytime.</p>
           <div class="modal-action">
             <button class="btn btn-ghost" phx-click="cancel_logout">Cancel</button>
             <form action={~p"/logout"} method="post">
               <input type="hidden" name="_method" value="delete" />
               <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
               <input type="hidden" name="return_to" value={"/@" <> @page.alias} />
-              <button type="submit" class="btn btn-error">Log Out</button>
+              <button type="submit" class="btn btn-error">Disconnect</button>
             </form>
           </div>
         </div>

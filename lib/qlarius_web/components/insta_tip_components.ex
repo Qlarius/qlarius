@@ -10,8 +10,8 @@ defmodule QlariusWeb.InstaTipComponents do
   # `scope` is the current `%Scope{}` (or nil for anonymous viewers).
   # Passed through to `wallet_strip_or_connect/1` so the wallet
   # footer renders the real balance + top-up popover for authed
-  # viewers, or `$--.--` + a Connect-wallet button for anonymous
-  # viewers — same visual component the arqade widget uses.
+  # viewers, or **READY** + **Connect** (mirrored strip layout) for
+  # anonymous viewers — same shell as the arqade widget uses.
   #
   # `wallet_balance` is kept as an explicit attr so the scope can be
   # nil while still displaying a live-updated balance (e.g. after a

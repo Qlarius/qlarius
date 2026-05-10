@@ -582,7 +582,7 @@ defmodule QlariusWeb.Components.AdsComponents do
                 phx-click="show_logout_modal"
                 class="flex items-center gap-2 whitespace-nowrap text-base-content"
               >
-                <.icon name="hero-arrow-right-on-rectangle" class="w-4 h-4" /> Log out
+                <.icon name="hero-link-slash" class="w-4 h-4 shrink-0" /> Disconnect
               </button>
             </li>
           </ul>

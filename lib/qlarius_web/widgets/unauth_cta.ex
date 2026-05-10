@@ -20,7 +20,9 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
       purchase modal.
 
   The `connect_wallet_modal/1` component is the single CTA surface
-  across all widgets. It has two rendering modes:
+  across all widgets. Its primary action is the same
+  `wallet_strip_or_connect/1` strip (READY + Connect) as elsewhere.
+  It has two rendering modes for the Connect control:
 
     * **In-place AuthSheet mode** (preferred) — when the caller
       passes `on_click={JS.push("open_auth_sheet")}` (or similar),
@@ -41,7 +43,8 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
       replacements for `format_usd/1` when the value is personal.
     * `wallet_strip_or_connect/1` — drop-in replacement for the
       arqade `wallet_strip/1`; renders the authed strip when a scope
-      is present, a Connect CTA otherwise.
+      is present, or the same two-column strip with **READY** + **Connect**
+      (Sponster ring strobe on the READY pill) when anonymous.
     * `connect_wallet_modal/1` — single-modal component; widgets
       toggle it via their existing `show_*_modal` assign pattern.
 
@@ -61,6 +64,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
 
   import QlariusWeb.CoreComponents
   import QlariusWeb.Money
+  import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
 
   @doc """
   True when `scope` represents a logged-in user we can transact on
@@ -91,12 +95,15 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
 
   @doc """
   Wallet strip that renders the authed `wallet_strip/1` when a user is
-  present, or a Connect-wallet alternate layout otherwise. The anon
-  layout uses the same outer pill styling + same pixel footprint so
-  switching between states doesn't jitter the page.
+  present, or the same two-column layout when anonymous: **READY** + WALLET
+  label (instead of a dollar amount) and a **Connect** button (instead of
+  top-up). The READY `wallet_balance` pill uses `anon_strobe?` for a subtle
+  Sponster fill pulse.
 
   Accepts an `id` prefix so the component is usable more than once
   on a page (each arqade LC/widget can namespace independently).
+
+  Set `tray?={false}` to omit the outer base-200 tray (e.g. Sponster announcer bar).
   """
   attr :scope, :any, required: true, doc: "a %Scope{} or nil"
   attr :balance, :any, default: nil
@@ -104,13 +111,24 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
   attr :ads_count, :any, default: nil
   attr :id, :string, default: "wallet-strip"
   attr :daily_gift_available?, :boolean, default: true
+  attr :tray?, :boolean, default: true, doc: "When false, only the READY row + Connect (no outer tray)."
 
   attr :on_click, JS,
     default: nil,
     doc:
       "When set, the Connect CTA becomes a phx-click button that fires this JS command " <>
         "(typically `JS.push(\"open_auth_sheet\")` so the hosting LV opens its AuthSheet in " <>
-        "place). When nil, falls back to the legacy redirect link."
+        "place). When nil, falls back to a link."
+
+  attr :connect_href, :string,
+    default: nil,
+    doc:
+      "When `on_click` is nil and this is set, Connect uses this href. When both are nil, " <>
+        "falls back to `interact_login_url/0`."
+
+  attr :connect_link_target, :string,
+    default: "_top",
+    doc: "Target for the Connect `<.link>` when `on_click` is nil (e.g. `\"_self\"` for in-app login)."
 
   def wallet_strip_or_connect(assigns) do
     ~H"""
@@ -123,34 +141,60 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
         daily_gift_available?={@daily_gift_available?}
       />
     <% else %>
-      <div class="w-full max-w-sm mx-auto text-base-content bg-base-200 border-t border-base-300 px-3 py-2 rounded-lg border-1 border-base-300">
-        <div class="flex flex-col items-stretch gap-2">
-          <div class="flex flex-row flex-wrap justify-center items-center">
+      <% connect_classes =
+           if @tray?,
+             do: "btn-widget btn-md rounded-full leading-none",
+             else: "btn-widget btn-sm rounded-full leading-none min-h-8 h-8 px-3 py-0" %>
+      <%= if @tray? do %>
+        <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-3 py-2.5 rounded-xl border border-base-300">
+          <div class="flex flex-row flex-wrap justify-between items-center gap-3">
+            <.wallet_balance
+              id={@id}
+              balance={Decimal.new("0")}
+              footer_label="WALLET"
+              value_text="READY"
+              anon_strobe?={true}
+            />
             <%= if @on_click do %>
-              <button
-                type="button"
-                phx-click={@on_click}
-                class="btn-widget btn-md rounded-full leading-none"
-              >
-                <.icon name="hero-wallet" class="w-4 h-4 mr-1" />
-                <span class="font-bold">Connect wallet</span>
+              <button type="button" phx-click={@on_click} class={connect_classes}>
+                <span class="font-bold">Connect</span>
               </button>
             <% else %>
-              <.link
-                href={Urls.interact_login_url()}
-                target="_top"
-                class="btn-widget btn-md rounded-full leading-none"
-              >
-                <.icon name="hero-wallet" class="w-4 h-4 mr-1" />
-                <span class="font-bold">Connect wallet</span>
+              <% href =
+                   if @connect_href not in [nil, ""],
+                     do: @connect_href,
+                     else: Urls.interact_login_url() %>
+              <.link href={href} target={@connect_link_target} class={connect_classes}>
+                <span class="font-bold">Connect</span>
               </.link>
             <% end %>
           </div>
-          <p class="text-center text-xs text-base-content/65 leading-snug">
-            Use your mobile number to connect. New wallets prefunded with $3.00+ on us.
-          </p>
         </div>
-      </div>
+      <% else %>
+        <div class="flex flex-row flex-nowrap items-center justify-center gap-1.5 min-w-0 shrink">
+          <.wallet_balance
+            id={@id}
+            balance={Decimal.new("0")}
+            footer_label="WALLET"
+            value_text="READY"
+            anon_strobe?={true}
+            compact?={true}
+          />
+          <%= if @on_click do %>
+            <button type="button" phx-click={@on_click} class={connect_classes}>
+              <span class="font-bold text-sm">Connect</span>
+            </button>
+          <% else %>
+            <% href =
+                 if @connect_href not in [nil, ""],
+                   do: @connect_href,
+                   else: Urls.interact_login_url() %>
+            <.link href={href} target={@connect_link_target} class={connect_classes}>
+              <span class="font-bold text-sm">Connect</span>
+            </.link>
+          <% end %>
+        </div>
+      <% end %>
     <% end %>
     """
   end
@@ -180,6 +224,14 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
       "When set, the primary CTA becomes a phx-click button firing this JS command (to open " <>
         "the hosting LV's AuthSheet). When nil, falls back to the legacy redirect link."
 
+  attr :scope, :any,
+    default: nil,
+    doc: "Optional `%Scope{}`; defaults to anon. Used by the embedded `wallet_strip_or_connect/1`."
+
+  attr :wallet_strip_id, :string,
+    default: nil,
+    doc: "Dom id prefix for the strip's balance node (defaults to `id <> \"-wallet-strip\"`)."
+
   def connect_wallet_modal(assigns) do
     ~H"""
     <.modal :if={@show} id={@id} on_cancel={@on_cancel} show>
@@ -189,23 +241,14 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
         </div>
         <h2 class="text-xl font-bold text-base-content">{@title}</h2>
         <p class="text-base-content/70 max-w-sm">{@message}</p>
-        <%= if @on_click do %>
-          <button
-            type="button"
-            phx-click={@on_click}
-            class="btn-widget btn-lg btn-block rounded-full"
-          >
-            <.icon name="hero-arrow-right-on-rectangle" class="w-5 h-5 mr-2" /> Connect your wallet
-          </button>
-        <% else %>
-          <.link
-            href={Urls.interact_login_url()}
-            target="_top"
-            class="btn-widget btn-lg btn-block rounded-full"
-          >
-            <.icon name="hero-arrow-right-on-rectangle" class="w-5 h-5 mr-2" /> Connect your wallet
-          </.link>
-        <% end %>
+        <div class="w-full max-w-md flex justify-center">
+          <.wallet_strip_or_connect
+            scope={@scope}
+            balance={Decimal.new("0")}
+            id={@wallet_strip_id || "#{@id}-wallet-strip"}
+            on_click={@on_click}
+          />
+        </div>
         <p class="text-xs text-base-content/65 leading-snug max-w-sm">
           Use your mobile number to connect. New wallets prefunded with $3.00+ on us.
         </p>

@@ -52,7 +52,7 @@ defmodule QlariusWeb.Components.AuthSteps do
   def signup_progress_bar(assigns) do
     ~H"""
     <div
-      class="mb-2 flex w-full items-start justify-center gap-0 px-1 sm:px-2"
+      class="mb-2 flex w-full items-start justify-center gap-0 px-4 sm:px-6"
       role="navigation"
       aria-label="Registration steps"
     >
@@ -231,7 +231,7 @@ defmodule QlariusWeb.Components.AuthSteps do
             Let's set you up and fund your wallet.
           </p>
           <p class="text-sm leading-relaxed text-base-content/80 md:text-base">
-            Going forward, your mobile number is all you need. No passwords.
+            Going forward, your mobile number is all you need to connect.
           </p>
         </div>
       </div>

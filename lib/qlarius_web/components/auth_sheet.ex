@@ -1067,7 +1067,7 @@ defmodule QlariusWeb.Components.AuthSheet do
           New here?
         </h3>
         <p class="text-sm text-base-content/70 md:text-base">
-          We'll take you through a quick sign-up and fund up your new wallet with starter funds.
+          We'll get your new wallet started and funded with $3.00+ on us.
         </p>
       </div>
 

@@ -2397,18 +2397,26 @@ Hooks.WalletPulse = {
     const newBalanceNum = this.parseBalance(newBalance)
     
     if (newBalance !== this.lastBalance) {
-      // Balance changed - trigger pulse animation
-      this.el.classList.remove('wallet-pulse')
-      // Force reflow to restart animation
-      void this.el.offsetWidth
-      this.el.classList.add('wallet-pulse')
-      
+      // Anon READY pill uses infinite bg pulse; `.wallet-pulse` sets `animation` and would
+      // replace that shorthand after LiveView patches if we applied it here.
+      const anonStrobe = this.el.classList.contains('wallet-strip-anon-focus')
+      if (!anonStrobe) {
+        this.el.classList.remove('wallet-pulse')
+        void this.el.offsetWidth
+        this.el.classList.add('wallet-pulse')
+      }
+
       // Play coin sound only when balance increases, sounds enabled, and not recently played
       // Use a global debounce to prevent multiple components from playing simultaneously
       const now = Date.now()
       const lastPlayed = window.walletSoundLastPlayed || 0
       
-      if (newBalanceNum > this.lastBalanceNum && this.isSoundEnabled() && (now - lastPlayed > 500)) {
+      if (
+        !anonStrobe &&
+        newBalanceNum > this.lastBalanceNum &&
+        this.isSoundEnabled() &&
+        now - lastPlayed > 500
+      ) {
         window.walletSoundLastPlayed = now
         this.coinSound.currentTime = 0
         this.coinSound.play().catch(() => {

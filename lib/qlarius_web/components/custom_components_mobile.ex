@@ -101,6 +101,9 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
   attr :balance, :any, required: true
   attr :id, :string, default: "wallet-balance"
   attr :footer_label, :string, default: nil
+  attr :value_text, :string, default: nil
+  attr :anon_strobe?, :boolean, default: false
+  attr :compact?, :boolean, default: false
 
   def wallet_balance(assigns) do
     ~H"""
@@ -108,14 +111,25 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
       id={@id}
       phx-hook="WalletPulse"
       class={[
-        "inline-flex w-auto bg-sponster-200 dark:bg-sponster-800 text-base-content dark:text-sponster-100 px-3 py-1.5 rounded-xl border border-sponster-300 dark:border-sponster-500",
+        "inline-flex w-auto bg-sponster-200 dark:bg-sponster-800 text-base-content dark:text-sponster-100 rounded-md border border-sponster-300 dark:border-sponster-500",
+        if(@compact?, do: "px-2 py-0.5", else: "px-3 py-1.5"),
         if(@footer_label,
-          do: "flex-col items-center justify-center gap-0.5 text-lg",
-          else: "items-center text-lg"
-        )
+          do: [
+            "flex-col items-center justify-center gap-0.5",
+            if(@compact?, do: "text-base", else: "text-lg")
+          ],
+          else: [if(@compact?, do: "items-center text-base", else: "items-center text-lg")]
+        ),
+        if(@anon_strobe?, do: "wallet-strip-anon-focus")
       ]}
     >
-      <span class="font-bold leading-tight">{format_usd(@balance)}</span>
+      <span class="font-bold leading-tight">
+        <%= if @value_text not in [nil, ""] do %>
+          {@value_text}
+        <% else %>
+          {format_usd(@balance)}
+        <% end %>
+      </span>
       <%= if @footer_label not in [nil, ""] do %>
         <span
           class="text-base-content/40 font-medium"

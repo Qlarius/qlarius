@@ -336,6 +336,50 @@
   }
 
   /*
+   * Anon READY pill (`wallet_balance` + `anon_strobe?`): gentle fill pulse on the pill
+   * (background-color — avoids ring/box-shadow stacking and WalletPulse `animation` clashes).
+   */
+  @keyframes wallet-strip-anon-bg-pulse-light {
+    0%,
+    100% {
+      background-color: var(--color-sponster-200);
+    }
+
+    50% {
+      background-color: var(--color-sponster-100);
+    }
+  }
+
+  @keyframes wallet-strip-anon-bg-pulse-dark {
+    0%,
+    100% {
+      background-color: var(--color-sponster-800);
+    }
+
+    50% {
+      background-color: var(--color-sponster-700);
+    }
+  }
+
+  .wallet-strip-anon-focus {
+    animation: wallet-strip-anon-bg-pulse-light 2.8s ease-in-out infinite;
+  }
+
+  [data-theme="dark"] .wallet-strip-anon-focus {
+    animation: wallet-strip-anon-bg-pulse-dark 2.8s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wallet-strip-anon-focus {
+      animation: none;
+    }
+
+    [data-theme="dark"] .wallet-strip-anon-focus {
+      animation: none;
+    }
+  }
+
+  /*
    * MeFile Tagger (/me_file_builder): zero-count badges — neutral fill + white text;
    * no stroke (contrast is sufficient without a border).
    */
@@ -660,6 +704,19 @@
 
   .wallet-pulse {
     animation: wallet-pulse 350ms ease-in-out;
+  }
+
+  /* If both apply: bg pulse + scale pulse (different properties). */
+  .wallet-strip-anon-focus.wallet-pulse {
+    animation:
+      wallet-strip-anon-bg-pulse-light 2.8s ease-in-out infinite,
+      wallet-pulse 350ms ease-in-out;
+  }
+
+  [data-theme="dark"] .wallet-strip-anon-focus.wallet-pulse {
+    animation:
+      wallet-strip-anon-bg-pulse-dark 2.8s ease-in-out infinite,
+      wallet-pulse 350ms ease-in-out;
   }
 
   /* Empty trait strobe (YouData theme) */

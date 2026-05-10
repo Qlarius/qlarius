@@ -4,6 +4,7 @@ defmodule QlariusWeb.QlinkPage.Show do
   alias Qlarius.Qlink
   alias Qlarius.Repo
   alias Qlarius.Sponster.Offer
+  alias Qlarius.Sponster.Offers
   alias Qlarius.Wallets
   alias Qlarius.Wallets.MeFileStatsBroadcaster
 
@@ -12,6 +13,8 @@ defmodule QlariusWeb.QlinkPage.Show do
   import QlariusWeb.Components.AdsComponents
   import QlariusWeb.Components.SplitComponents
   import QlariusWeb.InstaTipComponents
+  import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
+
   # Shared "View anywhere, Act only when authed" helpers —
   # authed?/1, connect_wallet_modal/1, etc. Same module the arqade
   # widget consumes; keeps the anonymous-viewer UX consistent across
@@ -817,7 +820,21 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   @impl true
   def handle_info({:me_file_offers_updated, _me_file_id}, socket) do
-    {:noreply, socket}
+    case socket.assigns[:current_scope] do
+      %{user: %{me_file: %MeFile{} = me_file}} = scope ->
+        ads_count = MeFile.ad_offer_count(me_file)
+        offered_amount = Offers.total_active_offer_amount(me_file)
+
+        current_scope =
+          scope
+          |> Map.put(:ads_count, ads_count)
+          |> Map.put(:offered_amount, offered_amount)
+
+        {:noreply, assign(socket, :current_scope, current_scope)}
+
+      _ ->
+        {:noreply, socket}
+    end
   end
 
   @impl true
