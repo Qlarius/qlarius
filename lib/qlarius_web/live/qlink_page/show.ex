@@ -1360,8 +1360,7 @@ defmodule QlariusWeb.QlinkPage.Show do
   defp render_inline_arqade_live(assigns, module, opts) do
     embed_config = assigns.link.embed_config
 
-    height =
-      get_embed_value(embed_config, "height") || get_embed_value(embed_config, :height) || 500
+    height = iframe_embed_height_px(embed_config)
 
     show_title_raw =
       case {get_embed_value(embed_config, "show_title"),
@@ -1413,20 +1412,33 @@ defmodule QlariusWeb.QlinkPage.Show do
       |> assign(:arqade_fullpane_active?, fullpane?)
       |> assign(:arqade_fullpane_shell_leaving?, shell_leaving?)
 
-    # Thin outer box reserves min-height in the link list while the
-    # nested LV boots. When `@arqade_fullpane_active?`, the inner shell
-    # is `fixed` full viewport width between the top and the Sponster bar
-    # (`bottom-[50px]`, `z-[45]` below the Sponster drawer at z-[46]/[47]
-    # and the bar's `z-50`) — not limited to
-    # the qlink `max-w-2xl` column. Same DOM / same `live_render`.
+    # Outer box fixes height to the creator's "Height (px)" embed setting
+    # so nested arqade content scrolls inside it (same intent as iframe
+    # `height=`). When `@arqade_fullpane_active?`, the inner shell is
+    # `fixed` full viewport — only a min-height placeholder remains here.
     ~H"""
-    <div class="relative w-full" style={"min-height: #{@inline_arqade_height}px;"}>
+    <div
+      class={
+        if(@arqade_fullpane_active?,
+          do: "relative w-full",
+          else: "relative w-full flex flex-col overflow-hidden"
+        )
+      }
+      style={
+        if(@arqade_fullpane_active?,
+          do: "min-height: #{@inline_arqade_height}px;",
+          else:
+            "height: #{@inline_arqade_height}px; max-height: #{@inline_arqade_height}px;"
+        )
+      }
+    >
       <div
         id={"arqade-embed-shell-#{@inline_arqade_dom_id}"}
         phx-hook="BodyScrollLock"
         data-body-scroll-lock={if @arqade_fullpane_active?, do: "true", else: "false"}
         class={[
           "w-full",
+          not @arqade_fullpane_active? && "h-full min-h-0 flex flex-col overflow-hidden",
           @arqade_fullpane_active? &&
             "arqade-fullpane-active fixed inset-x-0 top-0 bottom-[50px] z-[45] flex w-full flex-col overflow-hidden bg-base-100 shadow-2xl",
           @arqade_fullpane_shell_leaving? && "arqade-fullpane-leaving"
@@ -1447,9 +1459,14 @@ defmodule QlariusWeb.QlinkPage.Show do
             </button>
           </div>
         <% end %>
-        <div class={
-          if(@arqade_fullpane_active?, do: "min-h-0 flex-1 overflow-y-auto", else: "w-full")
-        }>
+        <div
+          class={
+            if(@arqade_fullpane_active?,
+              do: "min-h-0 flex-1 overflow-y-auto flex flex-col",
+              else: "min-h-0 flex-1 overflow-hidden flex flex-col"
+            )
+          }
+        >
           {live_render(@socket, @inline_arqade_module,
             id: @inline_arqade_dom_id,
             session: @inline_arqade_session
@@ -1480,6 +1497,37 @@ defmodule QlariusWeb.QlinkPage.Show do
   end
 
   defp get_embed_value(_, _), do: nil
+
+  # Embed block "Height (px)" — stored on `embed_config["height"]` (forms may
+  # persist integers or strings). Used for iframe `height` / inline arqade shell.
+  defp iframe_embed_height_px(embed_config) when is_map(embed_config) do
+    raw =
+      get_embed_value(embed_config, "height") ||
+        get_embed_value(embed_config, :height)
+
+    n =
+      cond do
+        is_integer(raw) and raw > 0 ->
+          raw
+
+        is_float(raw) and raw > 0 ->
+          trunc(raw)
+
+        is_binary(raw) ->
+          case Integer.parse(String.trim(raw)) do
+            {i, _} when i > 0 -> i
+            _ -> nil
+          end
+
+        true ->
+          nil
+      end
+
+    n = n || 500
+    min(max(n, 120), 8000)
+  end
+
+  defp iframe_embed_height_px(_), do: 500
 
   defp render_youtube_embed(assigns, video_id) do
     assigns = assign(assigns, :video_id, video_id)
@@ -1573,8 +1621,7 @@ defmodule QlariusWeb.QlinkPage.Show do
   defp render_iframe_embed(assigns, iframe_url) do
     embed_config = assigns.link.embed_config
 
-    height =
-      get_embed_value(embed_config, "height") || get_embed_value(embed_config, :height) || 500
+    height = iframe_embed_height_px(embed_config)
 
     # Use case to properly handle false values (|| treats false as falsy)
     show_title =
@@ -1609,11 +1656,15 @@ defmodule QlariusWeb.QlinkPage.Show do
       |> assign(:iframe_height, height)
 
     ~H"""
-    <div class="w-full rounded-xl overflow-hidden border border-neutral/50">
+    <div
+      class="w-full rounded-xl overflow-hidden border border-neutral/50"
+      style={"height: #{@iframe_height}px; max-height: #{@iframe_height}px;"}
+    >
       <iframe
         src={@iframe_url}
-        class="w-full border-none"
-        style={"height: #{@iframe_height}px;"}
+        class="w-full max-h-full border-none block"
+        height={@iframe_height}
+        style={"height: #{@iframe_height}px; max-height: #{@iframe_height}px;"}
         title={@link.title || "Embedded content"}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowfullscreen

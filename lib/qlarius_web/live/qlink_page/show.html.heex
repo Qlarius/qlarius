@@ -134,9 +134,9 @@
   <%!-- Sponster Announcer Bar (bottom of screen - always on top) --%>
   <%= if @recipient do %>
     <div class="fixed bottom-0 left-0 right-0 h-[50px] bg-base-100 z-50 shadow-[0_-2px_10px_rgba(0,0,0,0.15)]"></div>
-    <div class="fixed bottom-0 left-1/2 -translate-x-1/2 h-[50px] w-full max-w-[800px] bg-base-100 z-50 px-3 flex items-center justify-between">
+    <div class="fixed bottom-0 left-1/2 -translate-x-1/2 h-[50px] w-full max-w-[800px] bg-base-100 z-50 px-3 flex items-center justify-between gap-2">
       <%!-- Sponster Logo --%>
-      <div class="sponster-announcer-logo-container flex-shrink-0" />
+      <div class="sponster-announcer-logo-container flex-shrink-0 md:relative md:z-10" />
 
       <%!--
         Authed: wallet balance centered (Sponster pill); drawer toggle on the
@@ -154,7 +154,7 @@
            ) %>
 
       <%= if is_authed do %>
-        <div class="flex-1 flex justify-center min-w-0 px-1">
+        <div class="flex-1 flex justify-center min-w-0 px-1 md:flex-none md:absolute md:left-1/2 md:top-1/2 md:z-0 md:w-max md:max-w-[min(70%,22rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:px-2">
           <.wallet_balance
             id="qlink-announcer-wallet-balance"
             balance={@current_scope.wallet_balance || Decimal.new("0")}
@@ -176,7 +176,10 @@
                true ->
                  {~p"/login?return_to=/@#{@page.alias}", "_self"}
              end %>
-        <div class="flex-1 flex justify-center min-w-0 px-1" title="Connect your wallet">
+        <div
+          class="flex-1 flex justify-center min-w-0 px-1 md:flex-none md:absolute md:left-1/2 md:top-1/2 md:z-0 md:w-max md:max-w-[min(70%,22rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:px-2"
+          title="Connect your wallet"
+        >
           <.wallet_strip_or_connect
             tray?={false}
             scope={@current_scope}
@@ -198,7 +201,7 @@
         phx-click="toggle_sponster_drawer"
         title={if @show_sponster_drawer, do: "Hide offers", else: "Show offers"}
         class={[
-          "flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer transition-colors",
+          "[font-family:Inter,system-ui,sans-serif] flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer transition-colors md:relative md:z-10",
           if(
             is_authed,
             do:

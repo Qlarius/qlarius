@@ -1,4 +1,8 @@
-<div id="arcade-pwa-detect" phx-hook="PWADetect">
+<div
+  id="arcade-pwa-detect"
+  phx-hook="PWADetect"
+  class={[@inline? && "flex h-full min-h-0 max-h-full flex-1 flex-col"]}
+>
 <div id="arcade-postmessage-bridge" phx-hook="PostMessage" class="hidden" aria-hidden="true"></div>
 <%!--
   When this LV is rendered inline inside another LV (e.g. a Qlink
@@ -31,10 +35,20 @@
     data-arqade-inline-card={if(@inline?, do: "true")}
     class={[
       "w-full relative z-0 isolate",
-      @inline? && "rounded-2xl border border-neutral/50 overflow-hidden bg-base-100"
+      @inline? &&
+        "rounded-2xl border border-neutral/50 overflow-hidden bg-base-100 min-h-0 flex flex-col flex-1"
     ]}
   >
-  <div class={"w-full flex flex-col relative #{if @base_path == "", do: "h-full", else: "h-screen"}"}>
+  <div class={
+    [
+      "w-full flex flex-col relative min-h-0",
+      cond do
+        @inline? -> "h-full max-h-full flex-1 overflow-hidden"
+        @base_path == "" -> "h-full"
+        true -> "h-screen"
+      end
+    ]
+  }>
     <%= if @group.show_open_in_tab && (@base_path == "/widgets" || @inline?) do %>
       <%= if @inline? && @arqade_expand_parent? do %>
         <button
@@ -90,10 +104,24 @@
       </div>
     <% end %>
 
-    <div class="flex-1 bg-base-100 text-base-content min-h-0 flex flex-col md:!flex-row">
+    <div class={[
+      "flex-1 bg-base-100 text-base-content min-h-0 flex flex-col md:!flex-row md:items-stretch",
+      @inline? && "overflow-hidden"
+    ]}>
       <%!-- Selected content piece - STATIONARY --%>
-      <div class="relative z-[40] w-full md:!w-1/2 md:p-5 flex flex-col flex-none min-h-0 overflow-visible md:self-start">
-        <div class="relative z-[35] min-h-0 shrink-0 overflow-y-auto overflow-x-hidden min-w-0 max-h-[min(70vh,32rem)] md:max-h-none">
+      <div class={[
+        "relative z-[40] w-full md:!w-1/2 md:p-5 flex flex-col min-h-0",
+        @inline? && "flex-1 md:overflow-y-auto",
+        !@inline? && "flex-none overflow-visible md:self-start"
+      ]}>
+        <div class={[
+          "relative z-[35] min-h-0 shrink-0 overflow-y-auto overflow-x-hidden min-w-0",
+          if(@inline?,
+            do:
+              "max-h-[min(70vh,32rem)] md:max-h-none md:flex-none md:w-full",
+            else: "max-h-[min(70vh,32rem)] md:max-h-none"
+          )
+        ]}>
           <div class="bg-base-100 rounded-lg p-4 md:!p-0 min-w-0">
             <%!--
             Hero thumb width must track the *column* (embed card), not the viewport:
@@ -169,7 +197,7 @@
         </div>
 
         <div class="relative z-[30] shrink-0 min-w-0 overflow-visible px-2 pb-0 md:px-0">
-          <div class="flex flex-col justify-between mt-4 gap-1.5 align-middle text-center">
+          <div class="flex flex-col justify-start mt-4 gap-1.5 align-middle text-center">
             <%!--
               CTA states (View anywhere, Act only when authed):
                 1. Authed viewer with a valid tiqit: Play + countdown.
@@ -259,7 +287,11 @@
       </div>
 
       <%!-- Episodes list - SCROLLABLE --%>
-      <div class="relative z-10 w-full md:!w-1/2 p-5 flex flex-col flex-1 md:flex-none min-h-0 border-t md:!border-t-0 md:border-l border-base-300">
+      <div class={[
+        "relative z-10 w-full md:!w-1/2 p-5 flex flex-col min-h-0 border-t md:!border-t-0 md:border-l border-base-300",
+        @inline? && "flex-1 md:flex-1 md:overflow-hidden",
+        !@inline? && "flex-1 md:flex-none"
+      ]}>
         <h2 class="text-lg font-semibold text-base-content mb-4 flex-shrink-0">
           {String.capitalize(to_string(@group.catalog.piece_type))}s
         </h2>
