@@ -110,7 +110,7 @@
               </h2>
               <p class="text-sm text-base-content/70 mb-4 text-center md:text-left" style="white-space: pre-line;">{String.trim(@piece.description || "")}</p>
 
-              <div class="flex flex-col gap-4">
+              <div class="flex flex-col gap-2">
                 <%!--
                   Buy/options CTA (View anywhere, Act only when authed):
                     - Authed + sufficient balance: Buy is active.
@@ -118,9 +118,8 @@
                     - Anon: Buy is clickable; the LV's
                       `select-tiqit-class` handler short-circuits via
                       `maybe_intercept_for_unauth/1` to open the
-                      Connect-wallet modal. Anon also gets a "See all
-                      Tiqit options" link so they can freely browse
-                      prices without authenticating first.
+                      Connect-wallet modal. "See all Tiqit options" is
+                      available for everyone.
                   Wallet strip: `wallet_strip_or_connect/1` renders real
                   balance for authed, `$--.--` + Connect button for anon.
                 --%>
@@ -142,15 +141,13 @@
                       Not enough funds — top up below.
                     </div>
                   <% end %>
-                  <%= if !is_authed do %>
-                    <button
-                      type="button"
-                      phx-click="browse-tiqit-options"
-                      class="btn-widget-ghost btn-sm rounded-full"
-                    >
-                      See all Tiqit options
-                    </button>
-                  <% end %>
+                  <button
+                    type="button"
+                    phx-click="browse-tiqit-options"
+                    class="btn-widget-ghost btn-sm rounded-full shrink-0"
+                  >
+                    Full Tiqit options
+                  </button>
                   <.wallet_strip_or_connect
                     id="wallet-balance-arcade-single-main"
                     scope={@current_scope}

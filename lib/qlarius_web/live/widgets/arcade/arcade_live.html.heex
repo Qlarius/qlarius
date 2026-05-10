@@ -41,7 +41,7 @@
           type="button"
           id="open-in-tab-btn"
           phx-click="toggle-arqade-fullpane"
-          class="absolute top-2 right-2 z-10 btn btn-ghost btn-sm btn-circle bg-base-200/80 hover:bg-base-300 text-base-content/60 hover:text-base-content"
+          class="absolute top-2 right-2 z-[60] btn btn-ghost btn-sm btn-circle bg-base-200/80 hover:bg-base-300 text-base-content/60 hover:text-base-content"
           title="Expand on this page (Sponster bar stays visible)"
         >
           <.icon name="hero-arrow-top-right-on-square" class="w-5 h-5" />
@@ -58,7 +58,7 @@
           }
           target="_blank"
           rel="noopener noreferrer"
-          class="absolute top-2 right-2 z-10 btn btn-ghost btn-sm btn-circle bg-base-200/80 hover:bg-base-300 text-base-content/60 hover:text-base-content"
+          class="absolute top-2 right-2 z-[60] btn btn-ghost btn-sm btn-circle bg-base-200/80 hover:bg-base-300 text-base-content/60 hover:text-base-content"
           title="Open in new tab (full screen)"
           phx-hook="HideOpenInTabWhenFullscreen"
         >
@@ -92,8 +92,8 @@
 
     <div class="flex-1 bg-base-100 text-base-content min-h-0 flex flex-col md:!flex-row">
       <%!-- Selected content piece - STATIONARY --%>
-      <div class="w-full md:!w-1/2 md:p-5 flex flex-col flex-none min-h-0 overflow-visible md:self-start">
-        <div class="min-h-0 shrink-0 overflow-y-auto overflow-x-hidden min-w-0 max-h-[min(70vh,32rem)] md:max-h-none">
+      <div class="relative z-[40] w-full md:!w-1/2 md:p-5 flex flex-col flex-none min-h-0 overflow-visible md:self-start">
+        <div class="relative z-[35] min-h-0 shrink-0 overflow-y-auto overflow-x-hidden min-w-0 max-h-[min(70vh,32rem)] md:max-h-none">
           <div class="bg-base-100 rounded-lg p-4 md:!p-0 min-w-0">
             <%!--
             Hero thumb width must track the *column* (embed card), not the viewport:
@@ -130,20 +130,21 @@
                     {description_preview_text(@selected_piece.description)}
                   </p>
                   <%= if description_exceeds_preview?(@selected_piece.description) do %>
-                    <%!-- top-start, full ref, end tail, 0.5 cap; :content tight to first node. --%>
+                    <%!--
+                      Root is absolutely pinned to the bottom of this block so the pill floats
+                      over the end of the line-clamped copy. [data-popover-trigger] stays a narrow
+                      inline-flex around the button only so Floating UI’s reference matches the
+                      control (not the full column width).
+                    --%>
                     <.popover
                       id={"arcade-selected-desc-#{@selected_piece.id}"}
-                      placement="top-start"
+                      placement="top"
                       position_strategy="fixed"
-                      arrow_align="end"
-                      floating_width_cap_frac_md="0.5"
                       trigger_type="click"
-                      offset={4}
-                      shift_padding={28}
-                      flip={false}
-                      root_class="absolute left-0 right-0 bottom-0 z-20 w-full min-w-0 block pointer-events-none"
-                      trigger_class="group w-full min-w-0 flex justify-end pointer-events-none *:pointer-events-auto"
-                      class="w-auto min-w-0 !box-border !pointer-events-auto shadow-xl flex flex-col min-h-0"
+                      use_floating_size={false}
+                      root_class="absolute left-0 right-0 bottom-0 z-20 w-full min-w-0 flex justify-end items-end pointer-events-none"
+                      trigger_class="group inline-flex shrink-0 pointer-events-auto"
+                      class="z-[60] w-[min(22rem,calc(100vw-1.5rem))] max-h-[min(70vh,18rem)] px-3 py-2.5 shadow-xl flex flex-col min-h-0"
                     >
                       <:trigger>
                         <button
@@ -155,8 +156,8 @@
                         </button>
                       </:trigger>
                       <:content><p
-                        class="p-2 sm:p-2.5 min-h-0 flex-1 overflow-y-auto text-xs sm:text-sm text-base-content/90 leading-snug whitespace-pre-line [overflow-wrap:anywhere]"
-                        style="line-height: 1.2rem;"
+                        class="p-2 sm:p-2.5 min-h-0 flex-1 overflow-y-auto text-sm sm:text-[15px] text-base-content/90 leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]"
+                        style="line-height: 1.35rem;"
                       >{String.trim(@selected_piece.description || "")}</p></:content>
                     </.popover>
                   <% end %>
@@ -167,8 +168,8 @@
           </div>
         </div>
 
-        <div class="shrink-0 min-w-0 overflow-visible relative z-[30] px-4 pb-1 md:px-0">
-          <div class="flex flex-col justify-between mt-3 md:mt-3 gap-3 align-middle text-center">
+        <div class="relative z-[30] shrink-0 min-w-0 overflow-visible px-2 pb-0 md:px-0">
+          <div class="flex flex-col justify-between mt-4 gap-1.5 align-middle text-center">
             <%!--
               CTA states (View anywhere, Act only when authed):
                 1. Authed viewer with a valid tiqit: Play + countdown.
@@ -180,9 +181,8 @@
                    unauth clicks → Connect-wallet modal.
                    Wallet strip: `wallet_strip_or_connect/1` renders
                    real balance for authed, `$--.--` + Connect button
-                   for anon. Anon also gets a "See all Tiqit options"
-                   link so they can browse the full grid without
-                   needing to authenticate first.
+                   for anon. "See all Tiqit options" opens the full
+                   tiqit grid for everyone.
             --%>
             <%= cond do %>
               <% Arcade.has_valid_tiqit?(@current_scope, @selected_piece) -> %>
@@ -230,15 +230,13 @@
                     Not enough funds — top up below.
                   </div>
                 <% end %>
-                <%= if !is_authed do %>
-                  <button
-                    type="button"
-                    phx-click="browse-tiqit-options"
-                    class="btn-widget-ghost btn-sm rounded-full"
-                  >
-                    See all Tiqit options
-                  </button>
-                <% end %>
+                <button
+                  type="button"
+                  phx-click="browse-tiqit-options"
+                  class="btn-widget-ghost btn-sm rounded-full shrink-0"
+                >
+                  Full Tiqit options
+                </button>
                 <.wallet_strip_or_connect
                   id="wallet-balance-arcade-main"
                   scope={@current_scope}
@@ -254,14 +252,14 @@
                 />
             <% end %>
           </div>
-          <div class="flex flex-row justify-center items-center mt-4 mb-1">
+          <div class="flex flex-row justify-center items-center mt-2 mb-1">
             <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
           </div>
         </div>
       </div>
 
       <%!-- Episodes list - SCROLLABLE --%>
-      <div class="w-full md:!w-1/2 p-5 flex flex-col flex-1 md:flex-none min-h-0 border-t md:!border-t-0 md:border-l border-base-300">
+      <div class="relative z-10 w-full md:!w-1/2 p-5 flex flex-col flex-1 md:flex-none min-h-0 border-t md:!border-t-0 md:border-l border-base-300">
         <h2 class="text-lg font-semibold text-base-content mb-4 flex-shrink-0">
           {String.capitalize(to_string(@group.catalog.piece_type))}s
         </h2>

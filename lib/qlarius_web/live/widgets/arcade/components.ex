@@ -259,8 +259,8 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
 
   def wallet_strip(assigns) do
     ~H"""
-    <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-3 py-2.5 rounded-xl border border-base-300">
-      <div class="flex flex-row flex-wrap justify-between items-center gap-3">
+    <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-2 py-1.5 rounded-xl border border-base-300 max-w-full min-w-0">
+      <div class="flex flex-row flex-nowrap justify-between items-center gap-2 min-w-0">
         <.wallet_balance id={@id} balance={@balance} footer_label="WALLET" />
 
         <.popover

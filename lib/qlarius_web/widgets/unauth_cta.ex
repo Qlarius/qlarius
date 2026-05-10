@@ -146,14 +146,15 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
              do: "btn-widget btn-md rounded-full leading-none",
              else: "btn-widget btn-sm rounded-full leading-none min-h-8 h-8 px-3 py-0" %>
       <%= if @tray? do %>
-        <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-3 py-2.5 rounded-xl border border-base-300">
-          <div class="flex flex-row flex-wrap justify-between items-center gap-3">
+        <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-2 py-1.5 rounded-xl border border-base-300 max-w-full min-w-0">
+          <div class="flex flex-row flex-nowrap justify-between items-center gap-2 min-w-0">
             <.wallet_balance
               id={@id}
               balance={Decimal.new("0")}
               footer_label="WALLET"
               value_text="READY"
               anon_strobe?={true}
+              anon_ready_ellipsis?={true}
             />
             <%= if @on_click do %>
               <button type="button" phx-click={@on_click} class={connect_classes}>
@@ -178,6 +179,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
             footer_label="WALLET"
             value_text="READY"
             anon_strobe?={true}
+            anon_ready_ellipsis?={true}
             compact?={true}
           />
           <%= if @on_click do %>

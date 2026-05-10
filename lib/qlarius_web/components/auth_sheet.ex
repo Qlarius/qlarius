@@ -1061,13 +1061,13 @@ defmodule QlariusWeb.Components.AuthSheet do
           Connect to Qadabra
         </h2>
         <p class="text-sm text-base-content/70 md:text-base">
-          Enter your mobile number, and we'll text you a 6-digit code.
+          Enter your mobile number to receive a 6-digit code.
         </p>
         <h3 class="text-md font-bold text-base-content/70 md:text-base mb-0 mt-3 tracking-tight">
           New here?
         </h3>
         <p class="text-sm text-base-content/70 md:text-base">
-          We'll get your new wallet started and funded with $3.00+ on us.
+          Get your new wallet started and funded with $3.00+ on us.
         </p>
       </div>
 
