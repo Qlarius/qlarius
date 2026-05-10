@@ -202,21 +202,15 @@
         title={if @show_sponster_drawer, do: "Hide offers", else: "Show offers"}
         class={[
           "[font-family:Inter,system-ui,sans-serif] flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer transition-colors md:relative md:z-10",
-          if(
-            is_authed,
-            do:
-              "min-w-0 rounded-full border border-widget-700 bg-widget-100 px-3 py-1.5 text-widget-900 hover:bg-widget-200/90",
-            else:
-              "w-[88px] py-1 rounded-full border-[1.5px] border-base-content/80 bg-transparent text-base-content hover:bg-base-200"
-          )
+          "btn-widget btn-sm rounded-full leading-none min-h-8 h-8 px-3 py-0 gap-2 border-[1.5px] border-widget-700"
         ]}
       >
         <%= if is_authed do %>
-          <span class="text-sm font-bold tabular-nums whitespace-nowrap shrink-0">
+          <span class="text-xs font-bold tabular-nums leading-none whitespace-nowrap shrink-0">
             {announcer_ads_text} ads • {announcer_offered_text}
           </span>
         <% else %>
-          <span class="text-[13px] font-semibold">
+          <span class="font-bold text-sm">
             {if @show_sponster_drawer, do: "Hide", else: "Show"}
           </span>
         <% end %>
