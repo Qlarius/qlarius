@@ -206,12 +206,13 @@
         ]}
       >
         <%= if is_authed do %>
-          <span class="text-xs font-bold tabular-nums leading-none whitespace-nowrap shrink-0">
+          <%!-- Same Inter stack as page (`html` + btn); span sets size/weight so it matches Connect label rhythm. --%>
+          <span class="text-xs font-semibold tabular-nums leading-none whitespace-nowrap shrink-0 [font-family:Inter,system-ui,sans-serif]">
             {announcer_ads_text} ads • {announcer_offered_text}
           </span>
         <% else %>
-          <span class="font-bold text-sm">
-            {if @show_sponster_drawer, do: "Hide", else: "Show"}
+          <span class="font-bold text-sm [font-family:Inter,system-ui,sans-serif]">
+            {if @show_sponster_drawer, do: "Hide", else: "Info"}
           </span>
         <% end %>
         <span class={[
@@ -249,19 +250,38 @@
       ]}
       style="left: 50%; transform: translateX(-50%); width: min(100%, 800px); box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);"
     >
+      <% drawer_authed = authed?(@current_scope) %>
+      <% drawer_connect_on_click =
+           if(!drawer_authed && QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
+             do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+             else: nil
+           ) %>
+      <% {drawer_connect_href, drawer_connect_link_target} =
+           cond do
+             drawer_connect_on_click ->
+               {nil, "_top"}
+             QlariusWeb.QlinkPage.Show.on_qlinkin_bio_host?(assigns) ->
+               {@interact_login_url, "_top"}
+             true ->
+               {~p"/login?return_to=/@#{@page.alias}", "_self"}
+           end %>
+
       <%!-- Drawer header --%>
       <.sponster_drawer_header
         wallet_balance={@current_scope && @current_scope.wallet_balance}
         user_alias={@current_scope && @current_scope.user && @current_scope.user.alias}
-        authed={authed?(@current_scope)}
+        authed={drawer_authed}
         on_close={JS.push("close_sponster_drawer")}
+        connect_on_click={drawer_connect_on_click}
+        connect_href={drawer_connect_href}
+        connect_link_target={drawer_connect_link_target}
       />
 
       <%!-- Drawer content wrapper (contains ads + split drawer) --%>
-      <div class="flex-1 overflow-hidden relative">
-        <%!-- Scrollable ads content --%>
-        <div class="absolute inset-0 overflow-y-auto p-4 z-10">
-          <%= if @current_scope && @current_scope.user do %>
+      <div class="flex-1 overflow-hidden relative min-h-0">
+        <%= if @current_scope && @current_scope.user do %>
+          <%!-- Scrollable ads content --%>
+          <div class="absolute inset-0 overflow-y-auto p-4 z-10">
             <%= if @loading_offers do %>
               <div class="flex items-center justify-center py-12">
                 <span class="loading loading-spinner loading-lg"></span>
@@ -321,50 +341,18 @@
                 <% end %>
               <% end %>
             <% end %>
-          <% else %>
-            <%!--
-              Unauthed drawer body. Three paths:
-                1. Anon share host (qlinkin.bio) → hand off to the interact
-                   host, with target="_top" so iframed embeds break out.
-                2. Interactive host + AuthSheet flag on → open the in-place
-                   sheet (closes the drawer behind the modal).
-                3. Fallback → legacy /login redirect with ?return_to=/@alias
-                   so the visitor lands back here after sign-in.
-            --%>
-            <div class="text-center py-12">
-              <.icon name="hero-lock-closed" class="w-12 h-12 mx-auto mb-4 text-base-content/30" />
-              <p class="text-base-content/70 mb-4">Sign in to view and earn from ads</p>
-              <%= cond do %>
-                <% QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns) -> %>
-                  <button
-                    type="button"
-                    phx-click="open_auth_sheet"
-                    class="btn btn-primary"
-                  >
-                    <.icon name="hero-wallet" class="w-5 h-5 mr-2" />
-                    Connect your wallet
-                  </button>
-                <% QlariusWeb.QlinkPage.Show.on_qlinkin_bio_host?(assigns) -> %>
-                  <.link
-                    href={@interact_login_url}
-                    target="_top"
-                    class="btn btn-primary"
-                  >
-                    <.icon name="hero-wallet" class="w-5 h-5 mr-2" />
-                    Connect your wallet
-                  </.link>
-                <% true -> %>
-                  <.link
-                    href={~p"/login?return_to=/@#{@page.alias}"}
-                    class="btn btn-primary"
-                  >
-                    <.icon name="hero-wallet" class="w-5 h-5 mr-2" />
-                    Connect your wallet
-                  </.link>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
+          </div>
+        <% else %>
+          <div class="absolute inset-0 z-10 flex flex-col min-h-0 bg-base-100">
+            <iframe
+              src="https://qadabra.co"
+              class="w-full flex-1 min-h-0 border-0"
+              title="Qadabra"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+            />
+          </div>
+        <% end %>
 
         <%!-- Darkening overlay when split drawer is open --%>
         <div
@@ -479,8 +467,32 @@
         <% end %>
       </div>
 
-      <%!-- Disclaimer Bar (always visible at bottom) --%>
-      <.ads_disclaimer_bar class="flex-shrink-0" />
+      <%= if drawer_authed do %>
+        <%!-- Disclaimer only when ads surface is relevant --%>
+        <.ads_disclaimer_bar class="flex-shrink-0" />
+      <% else %>
+        <div class="flex-shrink-0 bg-base-200 border-t border-base-300 px-4 py-3 flex justify-center">
+          <%= if drawer_connect_on_click do %>
+            <button
+              type="button"
+              phx-click={drawer_connect_on_click}
+              class="btn-widget btn-md rounded-full leading-none min-h-11 w-full max-w-sm gap-2 border-[1.5px] border-widget-700 inline-flex items-center justify-center"
+            >
+              <.icon name="hero-wallet" class="w-5 h-5 shrink-0" />
+              <span class="font-bold text-base">Connect your wallet</span>
+            </button>
+          <% else %>
+            <.link
+              href={drawer_connect_href}
+              target={drawer_connect_link_target}
+              class="btn-widget btn-md rounded-full leading-none min-h-11 w-full max-w-sm gap-2 border-[1.5px] border-widget-700 inline-flex items-center justify-center"
+            >
+              <.icon name="hero-wallet" class="w-5 h-5 shrink-0" />
+              <span class="font-bold text-base">Connect your wallet</span>
+            </.link>
+          <% end %>
+        </div>
+      <% end %>
 
     </div>
   <% end %>

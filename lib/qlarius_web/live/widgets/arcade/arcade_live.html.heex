@@ -110,8 +110,8 @@
     ]}>
       <%!-- Selected content piece - STATIONARY --%>
       <div class={[
-        "relative z-[40] w-full md:!w-1/2 md:p-5 flex flex-col min-h-0",
-        @inline? && "flex-1 md:overflow-y-auto",
+        "relative z-[40] w-full shrink-0 md:!w-1/2 md:p-5 flex flex-col min-h-0",
+        @inline? && "flex-none md:flex-1 md:min-h-0 md:overflow-y-auto",
         !@inline? && "flex-none overflow-visible md:self-start"
       ]}>
         <div class={[
@@ -288,9 +288,9 @@
 
       <%!-- Episodes list - SCROLLABLE --%>
       <div class={[
-        "relative z-10 w-full md:!w-1/2 p-5 flex flex-col min-h-0 border-t md:!border-t-0 md:border-l border-base-300",
-        @inline? && "flex-1 md:flex-1 md:overflow-hidden",
-        !@inline? && "flex-1 md:flex-none"
+        "relative z-10 w-full min-h-0 flex-1 overflow-hidden md:!w-1/2 p-5 flex flex-col border-t md:!border-t-0 md:border-l border-base-300",
+        @inline? && "md:flex-1",
+        !@inline? && "md:flex-none"
       ]}>
         <h2 class="text-lg font-semibold text-base-content mb-4 flex-shrink-0">
           {String.capitalize(to_string(@group.catalog.piece_type))}s{" "}

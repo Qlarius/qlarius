@@ -32,6 +32,8 @@ defmodule QlariusWeb.SecurityHeaders do
     # rendered inside a Qlink page on qlinkin.bio)
     "https://qadabra.app",
     "https://*.qadabra.app",
+    "https://qadabra.co",
+    "https://*.qadabra.co",
     "https://qlinkin.bio",
     "https://*.qlinkin.bio",
     "https://qlarius.gigalixirapp.com",

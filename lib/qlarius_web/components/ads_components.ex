@@ -5,7 +5,10 @@ defmodule QlariusWeb.Components.AdsComponents do
   use Phoenix.Component
   import QlariusWeb.CoreComponents
   import QlariusWeb.Money
+  import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
+  alias Decimal
   alias Phoenix.LiveView.JS
+  alias Qlarius.Qlink.Urls
 
   @doc """
   Determines whether to show ad type tabs and which ad type to select by default.
@@ -501,9 +504,22 @@ defmodule QlariusWeb.Components.AdsComponents do
   attr :user_alias, :string, default: nil
   attr :authed, :boolean, default: true,
     doc:
-      "when false, the wallet pill renders as `$--.--` and the user dropdown is hidden. " <>
+      "when false, the header shows compact READY strip + Connect (see `connect_*`). " <>
         "Defaults to true to preserve legacy call sites."
   attr :on_close, :any, required: true
+
+  attr :connect_on_click, Phoenix.LiveView.JS,
+    default: nil,
+    doc:
+      "When set (qlink unauthed + AuthSheet), Connect uses phx-click instead of a link."
+
+  attr :connect_href, :string,
+    default: nil,
+    doc: "Fallback login href when `connect_on_click` is nil."
+
+  attr :connect_link_target, :string,
+    default: "_top",
+    doc: "Target for the Connect `<.link>` when not using `connect_on_click`."
 
   def sponster_drawer_header(assigns) do
     ~H"""
@@ -513,20 +529,46 @@ defmodule QlariusWeb.Components.AdsComponents do
         <span class="bg-gray-400 text-white text-xs font-semibold rounded px-2 py-1">BETA</span>
       </div>
       <div class="flex items-center gap-0">
-        <div class="flex flex-col items-center justify-center bg-base-200 px-3 min-w-[80px] h-[64px]">
-          <span class={[
-            "inline-flex items-center text-lg bg-sponster-200 px-3 py-1 rounded-lg border border-sponster-300",
-            if(@authed, do: "text-base-content", else: "text-base-content/60")
-          ]}>
-            <span class="font-bold">
-              <%= if @authed do %>
+        <%= if @authed do %>
+          <div class="flex flex-col items-center justify-center bg-base-200 px-3 min-w-[80px] h-[64px]">
+            <span class="inline-flex items-center text-lg bg-sponster-200 px-3 py-1 rounded-lg border border-sponster-300 text-base-content">
+              <span class="font-bold">
                 ${Decimal.round(@wallet_balance || Decimal.new("0"), 2)}
-              <% else %>
-                $--.--
-              <% end %>
+              </span>
             </span>
-          </span>
-        </div>
+          </div>
+        <% else %>
+          <div class="flex flex-row flex-nowrap items-center gap-2 bg-base-200 px-3 h-16 shrink min-w-0">
+            <.wallet_balance
+              id="sponster-drawer-header-wallet"
+              balance={Decimal.new("0")}
+              compact?={true}
+              value_text="READY"
+              anon_strobe?={true}
+              anon_ready_ellipsis?={true}
+            />
+            <%= if @connect_on_click do %>
+              <button
+                type="button"
+                phx-click={@connect_on_click}
+                class="btn-widget btn-sm rounded-full leading-none min-h-8 h-8 px-3 py-0"
+              >
+                <span class="font-bold text-sm">Connect</span>
+              </button>
+            <% else %>
+              <% href =
+                   if(@connect_href not in [nil, ""],
+                     do: @connect_href,
+                     else: Urls.interact_login_url()
+                   ) %>
+              <.link href={href} target={@connect_link_target} class={[
+                "btn-widget btn-sm rounded-full leading-none min-h-8 h-8 px-3 py-0"
+              ]}>
+                <span class="font-bold text-sm">Connect</span>
+              </.link>
+            <% end %>
+          </div>
+        <% end %>
         <details :if={@authed} class="dropdown dropdown-end">
           <summary class="flex items-center justify-center bg-base-300 text-base-content/40 hover:bg-gray-500 h-16 w-16 cursor-pointer">
             <svg
