@@ -213,8 +213,8 @@
                    unauth clicks → Connect-wallet modal.
                    Wallet strip: `wallet_strip_or_connect/1` renders
                    real balance for authed, `$--.--` + Connect button
-                   for anon. "See all Tiqit options" opens the full
-                   tiqit grid for everyone.
+                   for anon. "Purchase options" opens the full tiqit grid
+                   for everyone.
             --%>
             <%= cond do %>
               <% Arcade.has_valid_tiqit?(@current_scope, @selected_piece) -> %>
@@ -267,7 +267,7 @@
                   phx-click="browse-tiqit-options"
                   class="btn-widget-ghost btn-sm rounded-full shrink-0"
                 >
-                  Full Tiqit options
+                  Purchase options
                 </button>
                 <.wallet_strip_or_connect
                   id="wallet-balance-arcade-main"

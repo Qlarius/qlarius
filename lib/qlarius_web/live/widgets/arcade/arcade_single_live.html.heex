@@ -118,7 +118,7 @@
                     - Anon: Buy is clickable; the LV's
                       `select-tiqit-class` handler short-circuits via
                       `maybe_intercept_for_unauth/1` to open the
-                      Connect-wallet modal. "See all Tiqit options" is
+                      Connect-wallet modal. "All purchase options" is
                       available for everyone.
                   Wallet strip: `wallet_strip_or_connect/1` renders real
                   balance for authed, `$--.--` + Connect button for anon.
@@ -146,7 +146,7 @@
                     phx-click="browse-tiqit-options"
                     class="btn-widget-ghost btn-sm rounded-full shrink-0"
                   >
-                    Full Tiqit options
+                    All purchase options
                   </button>
                   <.wallet_strip_or_connect
                     id="wallet-balance-arcade-single-main"
