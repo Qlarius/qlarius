@@ -207,9 +207,9 @@ defmodule QlariusWeb.Components.AuthSteps do
     <div class="space-y-5">
       <div class="flex flex-col items-center gap-3 text-center">
         <img
-          src="/images/qadabra_logo_squares_color.svg"
+          src="/images/qadabra_full_gray_opt.svg"
           alt="Qadabra"
-          class="h-14 w-14 rounded-xl object-contain md:h-16 md:w-16"
+          class="h-10 w-auto max-w-[min(20rem,88vw)] object-contain object-center md:h-12"
         />
         <h1 class="text-2xl font-bold text-widget-900 md:text-3xl dark:text-white">
           Welcome
@@ -217,52 +217,50 @@ defmodule QlariusWeb.Components.AuthSteps do
       </div>
 
       <div
-        class="flex gap-3 rounded-xl border border-widget-300 bg-widget-100 p-4 text-left"
+        class="rounded-xl border border-widget-300 bg-widget-100 p-4 text-center"
         role="status"
       >
-        <div class="min-w-0 space-y-2">
-          <h2 class="text-xl font-bold leading-snug text-widget-900 md:text-2xl dark:text-white text-center">
-          <span class="font-semibold text-widget-900 dark:text-white">
-              {format_phone_number(@mobile_number)}
-            </span>
-            is new here!
+        <div class="mx-auto min-w-0 max-w-lg space-y-2">
+          <h2 class="text-xl font-bold leading-snug text-widget-900 md:text-2xl dark:text-white">
+            <span class="font-semibold text-widget-900 dark:text-white">{format_phone_number(@mobile_number)}</span>
+            {" "}is new here!
           </h2>
           <p class="text-sm leading-relaxed text-base-content/80 md:text-base">
             Let's set you up and fund your wallet.
           </p>
           <p class="text-sm leading-relaxed text-base-content/80 md:text-base">
-            Going forward, your mobile number is all you need to connect.
+            Going forward, your mobile number is all you need to connect to the entire Qadabra suite.
           </p>
         </div>
       </div>
 
       <div class="pt-4">
         <div
-          class="mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-4"
+          class="mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-5 md:gap-6"
           aria-label="Qadabra includes Sponster, Tiqit, Qlink, and YouData"
         >
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center md:h-12 md:w-12">
+          <div class="flex h-14 w-14 shrink-0 items-center justify-center md:h-[4.25rem] md:w-[4.25rem]">
             <img
               src="/images/sponster_gray_square.svg"
               alt="Sponster"
               class="max-h-full max-w-full object-contain"
             />
           </div>
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center md:h-12 md:w-12">
+          <div class="flex h-14 w-14 shrink-0 items-center justify-center md:h-[4.25rem] md:w-[4.25rem]">
             <img
               src="/images/tiqit_gray_square.svg"
               alt="Tiqit"
               class="max-h-full max-w-full object-contain"
             />
           </div>
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center md:h-12 md:w-12">
+          <div class="flex h-14 w-14 shrink-0 items-center justify-center md:h-[4.25rem] md:w-[4.25rem]">
             <img
               src="/images/qlink_gray_square.svg"
               alt="Qlink"
               class="max-h-full max-w-full object-contain"
             />
           </div>
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center md:h-12 md:w-12">
+          <div class="flex h-14 w-14 shrink-0 items-center justify-center md:h-[4.25rem] md:w-[4.25rem]">
             <img
               src="/images/youdata_gray_square.svg"
               alt="YouData"

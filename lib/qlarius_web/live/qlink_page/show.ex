@@ -239,6 +239,7 @@ defmodule QlariusWeb.QlinkPage.Show do
     |> assign(:host_uri, host_uri)
     |> assign(:show_connect_modal, false)
     |> assign(:show_auth_sheet, false)
+    |> assign(:auth_sheet_connect_brand, :qadabra)
   end
 
   defp get_current_balance(socket) do
@@ -534,12 +535,16 @@ defmodule QlariusWeb.QlinkPage.Show do
   # AuthSheet open/close. Gated behind `:auth_sheet[:on_qlink_page]` —
   # when the flag is off, the FAB falls back to the legacy `/login`
   # redirect and these events never fire.
-  def handle_event("open_auth_sheet", _params, socket) do
-    {:noreply, open_auth_sheet(socket)}
+  def handle_event("open_auth_sheet", params, socket) do
+    brand = normalize_auth_sheet_connect_brand(params["brand"])
+    {:noreply, open_auth_sheet(socket, brand)}
   end
 
   def handle_event("close_auth_sheet", _params, socket) do
-    {:noreply, assign(socket, :show_auth_sheet, false)}
+    {:noreply,
+     socket
+     |> assign(:show_auth_sheet, false)
+     |> assign(:auth_sheet_connect_brand, :qadabra)}
   end
 
   def handle_event("open-sponster-drawer", _params, socket) do
@@ -687,8 +692,8 @@ defmodule QlariusWeb.QlinkPage.Show do
   # The nested LV sends this via `send(socket.parent_pid, …)` instead
   # of mounting its own `AuthSheet` so the page never stacks two
   # sheet instances.
-  def handle_info(:open_auth_sheet, socket) do
-    {:noreply, open_auth_sheet(socket)}
+  def handle_info({:open_auth_sheet, brand}, socket) do
+    {:noreply, open_auth_sheet(socket, brand)}
   end
 
   @impl true
@@ -1678,13 +1683,30 @@ defmodule QlariusWeb.QlinkPage.Show do
   # intermediate `connect_wallet_modal` if it was open — otherwise
   # opening the sheet from inside that interstitial would stack two
   # modals on top of each other. Shared between the `phx-click`
-  # event handler and the `:open_auth_sheet` info message forwarded
+  # event handler and the `{:open_auth_sheet, brand}` info message forwarded
   # by nested arcade LVs.
-  defp open_auth_sheet(socket) do
+  defp open_auth_sheet(socket, brand) do
     socket
     |> assign(:show_auth_sheet, true)
     |> assign(:show_connect_modal, false)
+    |> assign(:auth_sheet_connect_brand, normalize_auth_sheet_connect_brand(brand))
   end
+
+  defp normalize_auth_sheet_connect_brand(nil), do: :qadabra
+
+  defp normalize_auth_sheet_connect_brand(b) when b in [:qadabra, :sponster, :tiqit],
+    do: b
+
+  defp normalize_auth_sheet_connect_brand(b) when is_binary(b) do
+    case String.downcase(String.trim(b)) do
+      "sponster" -> :sponster
+      "tiqit" -> :tiqit
+      "qadabra" -> :qadabra
+      _ -> :qadabra
+    end
+  end
+
+  defp normalize_auth_sheet_connect_brand(_), do: :qadabra
 
   # Whether the in-place AuthSheet should be rendered on this request.
   # Picks the feature-flag key based on the request host — qlinkin.bio

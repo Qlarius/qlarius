@@ -11,7 +11,7 @@ defmodule QlariusWeb.GetUserIP do
   skip per-IP gate", which is the right behavior for nested children
   anyway since their parent LV (which does have the real IP) is the one
   hosting the `AuthSheet`; nested children forward
-  `:open_auth_sheet` to the parent rather than opening their own sheet
+  `{:open_auth_sheet, brand}` to the parent rather than opening their own sheet
   (see plan rev 8 / B5).
   """
 

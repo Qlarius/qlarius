@@ -334,7 +334,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
           daily_gift_available?={@daily_gift_available?}
           on_auth_click={
             if auth_sheet_enabled?(assigns),
-              do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+              do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
               else: nil
           }
         />
@@ -369,7 +369,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
       scope={@current_scope}
       on_click={
         if auth_sheet_enabled?(assigns),
-          do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+          do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
           else: nil
       }
     />
@@ -390,6 +390,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
         surface={:on_widget_standalone}
         referral_context={@auth_referral_context}
         client_ip={assigns[:user_ip] || "0.0.0.0"}
+        connect_brand={:sponster}
         on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
       />
     <% end %>

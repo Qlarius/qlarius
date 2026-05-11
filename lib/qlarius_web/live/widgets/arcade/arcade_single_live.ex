@@ -257,7 +257,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
         |> noreply()
 
       parent_pid ->
-        send(parent_pid, :open_auth_sheet)
+        send(parent_pid, {:open_auth_sheet, :tiqit})
 
         socket
         |> assign(:show_connect_modal, false)

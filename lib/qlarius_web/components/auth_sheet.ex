@@ -66,6 +66,9 @@ defmodule QlariusWeb.Components.AuthSheet do
       `send_code` rate limiting. Defaults to `"0.0.0.0"` when the
       parent can't resolve an IP, in which case the per-IP gate is
       skipped (see `Qlarius.Auth.RateLimit`).
+    * `:connect_brand` — `:qadabra` | `:sponster` | `:tiqit`; selects the
+      header logo on the `:phone` and `:code` steps only (defaults to
+      `:qadabra`). Does not change the sign-up intro pane.
   """
 
   use QlariusWeb, :live_component
@@ -114,9 +117,49 @@ defmodule QlariusWeb.Components.AuthSheet do
       |> assign(:resume, Map.get(assigns, :resume))
       |> assign(:on_cancel, Map.get(assigns, :on_cancel, %JS{}))
       |> assign(:client_ip, Map.get(assigns, :client_ip, "0.0.0.0"))
+      |> assign(:connect_brand, normalize_connect_brand(Map.get(assigns, :connect_brand)))
       |> maybe_apply_iframe_hint(Map.get(assigns, :iframe_hint))
 
     {:ok, socket}
+  end
+
+  defp normalize_connect_brand(nil), do: :qadabra
+
+  defp normalize_connect_brand(b) when b in [:qadabra, :sponster, :tiqit], do: b
+
+  defp normalize_connect_brand(b) when is_binary(b) do
+    case String.downcase(String.trim(b)) do
+      "sponster" -> :sponster
+      "tiqit" -> :tiqit
+      "qadabra" -> :qadabra
+      _ -> :qadabra
+    end
+  end
+
+  defp normalize_connect_brand(_), do: :qadabra
+
+  defp connect_brand_header_logo(:sponster) do
+    %{
+      src: "/images/Sponster_logo_color_horiz.svg",
+      alt: "Sponster",
+      class: "h-9 w-auto max-w-[min(18rem,88vw)] object-contain md:h-11"
+    }
+  end
+
+  defp connect_brand_header_logo(:tiqit) do
+    %{
+      src: "/images/Tiqit_logo_color_horiz.svg",
+      alt: "Tiqit",
+      class: "h-9 w-auto max-w-[min(18rem,88vw)] object-contain md:h-11"
+    }
+  end
+
+  defp connect_brand_header_logo(_) do
+    %{
+      src: "/images/qadabra_full_gray_opt.svg",
+      alt: "Qadabra",
+      class: "h-10 w-auto max-w-[min(20rem,88vw)] object-contain md:h-11"
+    }
   end
 
   # Apply the server-side iframe heuristic once, before the JS hook has
@@ -1049,16 +1092,25 @@ defmodule QlariusWeb.Components.AuthSheet do
   end
 
   defp render_state(%{state: :phone} = assigns) do
+    assigns =
+      assign(
+        assigns,
+        :header_logo,
+        connect_brand_header_logo(assigns.connect_brand)
+      )
+
     ~H"""
     <div class="space-y-5">
       <div class="flex flex-col items-center gap-0 text-center">
-        <img
-          src="/images/qadabra_logo_squares_color.svg"
-          alt="Qadabra"
-          class="h-14 w-14 rounded-xl object-contain md:h-16 md:w-16"
-        />
+        <div class="mb-4 md:mb-5">
+          <img
+            src={@header_logo.src}
+            alt={@header_logo.alt}
+            class={@header_logo.class}
+          />
+        </div>
         <h2 class="text-2xl font-bold text-widget-900 md:text-3xl dark:text-white">
-          Connect to Qadabra
+          Connect via mobile
         </h2>
         <p class="text-sm text-base-content/70 md:text-base">
           Enter your mobile number to receive a 6-digit code.
@@ -1067,7 +1119,7 @@ defmodule QlariusWeb.Components.AuthSheet do
           New here?
         </h3>
         <p class="text-sm text-base-content/70 md:text-base">
-          Get your new wallet started and funded with $3.00+ on us.
+          Start your new account and wallet with $3.00+ on us.
         </p>
       </div>
 
@@ -1113,14 +1165,23 @@ defmodule QlariusWeb.Components.AuthSheet do
   end
 
   defp render_state(%{state: :code} = assigns) do
+    assigns =
+      assign(
+        assigns,
+        :header_logo,
+        connect_brand_header_logo(assigns.connect_brand)
+      )
+
     ~H"""
     <div class="space-y-5">
       <div class="flex flex-col items-center gap-0 text-center">
-        <img
-          src="/images/qadabra_logo_squares_color.svg"
-          alt="Qadabra"
-          class="h-14 w-14 rounded-xl object-contain md:h-16 md:w-16"
-        />
+        <div class="mb-4 md:mb-5">
+          <img
+            src={@header_logo.src}
+            alt={@header_logo.alt}
+            class={@header_logo.class}
+          />
+        </div>
         <h2 class="text-2xl font-bold text-widget-900 md:text-3xl dark:text-white">
           Enter your code
         </h2>

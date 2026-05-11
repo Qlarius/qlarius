@@ -296,6 +296,7 @@
     surface={:on_widget_standalone}
     referral_context={@auth_referral_context}
     client_ip={assigns[:user_ip] || "0.0.0.0"}
+    connect_brand={:tiqit}
     on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
   />
 <% end %>

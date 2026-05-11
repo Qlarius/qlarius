@@ -70,7 +70,7 @@
             arqade_fullpane_closing?={@arqade_fullpane_closing?}
             on_auth_click={
               if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
-                do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+                do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
                 else: nil
             }
           />
@@ -101,7 +101,7 @@
                     arqade_fullpane_closing?={@arqade_fullpane_closing?}
                     on_auth_click={
                       if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
-                        do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+                        do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
                         else: nil
                     }
                   />
@@ -165,7 +165,7 @@
       <% else %>
         <% on_click =
              if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
-               do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+               do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
                else: nil %>
         <% {connect_href, connect_link_target} =
              cond do
@@ -253,7 +253,7 @@
       <% drawer_authed = authed?(@current_scope) %>
       <% drawer_connect_on_click =
            if(!drawer_authed && QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
-             do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+             do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
              else: nil
            ) %>
       <% {drawer_connect_href, drawer_connect_link_target} =
@@ -266,15 +266,12 @@
                {~p"/login?return_to=/@#{@page.alias}", "_self"}
            end %>
 
-      <%!-- Drawer header --%>
+      <%!-- Drawer header (wallet + Connect live on announcer bar when anonymous) --%>
       <.sponster_drawer_header
         wallet_balance={@current_scope && @current_scope.wallet_balance}
         user_alias={@current_scope && @current_scope.user && @current_scope.user.alias}
         authed={drawer_authed}
         on_close={JS.push("close_sponster_drawer")}
-        connect_on_click={drawer_connect_on_click}
-        connect_href={drawer_connect_href}
-        connect_link_target={drawer_connect_link_target}
       />
 
       <%!-- Drawer content wrapper (contains ads + split drawer) --%>
@@ -575,7 +572,7 @@
     scope={@current_scope}
     on_click={
       if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
-        do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+        do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
         else: nil
     }
   />
@@ -595,6 +592,7 @@
           <button
             type="button"
             phx-click="open_auth_sheet"
+            phx-value-brand="sponster"
             class="btn btn-primary btn-lg rounded-full shadow-2xl gap-2 hover:scale-105 transition-transform"
           >
             <.icon name="hero-wallet" class="w-6 h-6" />
@@ -636,6 +634,7 @@
       surface={:on_qlink_page}
       referral_context={@auth_referral_context}
       client_ip={assigns[:user_ip] || "0.0.0.0"}
+      connect_brand={@auth_sheet_connect_brand}
       on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
     />
   <% end %>
