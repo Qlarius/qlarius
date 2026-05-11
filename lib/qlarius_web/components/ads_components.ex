@@ -5,7 +5,7 @@ defmodule QlariusWeb.Components.AdsComponents do
   use Phoenix.Component
   import QlariusWeb.CoreComponents
   import QlariusWeb.Money
-  import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
+  import QlariusWeb.Components.WalletBalance, only: [wallet_balance: 1]
   alias Decimal
   alias Phoenix.LiveView.JS
   alias Qlarius.Qlink.Urls
