@@ -74,10 +74,9 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           <thead class="bg-base-200">
             <tr>
               <th class="w-40 font-semibold text-base-content text-right py-2 px-3 whitespace-nowrap">
-                Duration
               </th>
               <th class="w-40 font-semibold text-base-content text-center py-2 px-3 leading-none">
-                Single<br />{@catalog.piece_type |> to_string() |> String.capitalize()}
+                This<br />{@catalog.piece_type |> to_string() |> String.capitalize()}
               </th>
               <th
                 :if={@show_group?}
