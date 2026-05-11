@@ -108,11 +108,15 @@
       "flex-1 bg-base-100 text-base-content min-h-0 flex flex-col md:!flex-row md:items-stretch",
       @inline? && "overflow-hidden"
     ]}>
-      <%!-- Selected content piece - STATIONARY --%>
+      <%!--
+        Selected pane: intrinsic height on mobile (priority); never steals flex
+        growth from the episodes list. On md+ inline embed, column can scroll.
+      --%>
       <div class={[
-        "relative z-[40] w-full shrink-0 md:!w-1/2 md:p-5 flex flex-col min-h-0",
-        @inline? && "flex-none md:flex-1 md:min-h-0 md:overflow-y-auto",
-        !@inline? && "flex-none overflow-visible md:self-start"
+        "relative w-full shrink-0 md:!w-1/2 md:p-5 flex flex-col",
+        @inline? &&
+          "z-[1] grow-0 shrink-0 basis-auto max-w-full overflow-x-hidden md:flex-1 md:min-h-0 md:overflow-y-auto",
+        !@inline? && "z-[40] min-h-0 flex-none overflow-visible md:self-start"
       ]}>
         <div class={[
           "relative z-[35] min-h-0 shrink-0 overflow-y-auto overflow-x-hidden min-w-0",
@@ -172,7 +176,7 @@
                       use_floating_size={false}
                       root_class="absolute left-0 right-0 bottom-0 z-20 w-full min-w-0 flex justify-end items-end pointer-events-none"
                       trigger_class="group inline-flex shrink-0 pointer-events-auto"
-                      class="z-[60] w-[min(22rem,calc(100vw-1.5rem))] max-h-[min(70vh,18rem)] px-3 py-2.5 shadow-xl flex flex-col min-h-0"
+                      class="w-[min(22rem,calc(100vw-1.5rem))] max-h-[min(70vh,18rem)] px-3 py-2.5 shadow-xl flex flex-col min-h-0"
                     >
                       <:trigger>
                         <button
@@ -286,11 +290,12 @@
         </div>
       </div>
 
-      <%!-- Episodes list - SCROLLABLE --%>
+      <%!-- Episodes list - fills remaining height in fixed embed; scrolls inside --%>
       <div class={[
-        "relative z-10 w-full min-h-0 flex-1 overflow-hidden md:!w-1/2 p-5 flex flex-col border-t md:!border-t-0 md:border-l border-base-300",
-        @inline? && "md:flex-1",
-        !@inline? && "md:flex-none"
+        "relative w-full min-h-0 flex flex-col p-5 border-t md:!border-t-0 md:border-l border-base-300 md:!w-1/2",
+        "flex-1 min-h-0 overflow-hidden",
+        @inline? && "z-0 md:flex-1",
+        !@inline? && "z-10 md:flex-none"
       ]}>
         <h2 class="text-lg font-semibold text-base-content mb-4 flex-shrink-0">
           {String.capitalize(to_string(@group.catalog.piece_type))}s{" "}

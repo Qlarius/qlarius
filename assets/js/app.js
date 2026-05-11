@@ -1184,6 +1184,7 @@ Hooks.Popover = {
     this.useFloatingSize = this.el.getAttribute("data-popover-use-floating-size") !== "false"
     this.isOpen = false
     this.cleanupAutoUpdate = null
+    this._portaled = false
 
     this._runPosition = () => {
       return computePosition(this.triggerEl, this.contentEl, {
@@ -1201,6 +1202,8 @@ Hooks.Popover = {
     this.toggle = this.toggle.bind(this)
     this.onClickOutside = this.onClickOutside.bind(this)
     this.onKeyDown = this.onKeyDown.bind(this)
+    this._portalMarker = null
+
     this._onExternalCloseRequest = (ev) => {
       if (!ev.detail || ev.detail.id !== this.el.id) return
       this.hide()
@@ -1220,6 +1223,28 @@ Hooks.Popover = {
       this.triggerEl.addEventListener("focus", this.show)
       this.triggerEl.addEventListener("blur", this.hide)
     }
+  },
+
+  /**
+   * Portal fixed panels only while open. Porting on `mounted` duplicates IDs when
+   * LiveView patches the hook (new DOM + old node still in `document.body`).
+   */
+  _portalFixedToBody() {
+    if (this.positionStrategy !== "fixed" || this._portaled || !this.contentEl?.parentNode) return
+    this._portalMarker = document.createComment("popover-fixed-anchor")
+    this.contentEl.parentNode.insertBefore(this._portalMarker, this.contentEl)
+    document.body.appendChild(this.contentEl)
+    this._portaled = true
+  },
+
+  _restoreFixedPortal() {
+    if (!this._portaled || !this.contentEl) return
+    if (this._portalMarker?.parentNode) {
+      this._portalMarker.parentNode.insertBefore(this.contentEl, this._portalMarker)
+    }
+    this._portalMarker?.remove()
+    this._portalMarker = null
+    this._portaled = false
   },
 
   _syncToggleLabels() {
@@ -1311,6 +1336,7 @@ Hooks.Popover = {
 
   show() {
     if (this.isOpen) return
+    this._portalFixedToBody()
     this.isOpen = true
 
     this.contentEl.classList.remove("hidden")
@@ -1343,6 +1369,7 @@ Hooks.Popover = {
         // clear only after display:none; during fade, dropped max-* reflows full height and flashes
         this.contentEl.style.removeProperty("max-width")
         this.contentEl.style.removeProperty("max-height")
+        this._restoreFixedPortal()
       }
     }, duration)
 
@@ -1360,7 +1387,9 @@ Hooks.Popover = {
   },
 
   onClickOutside(e) {
-    if (!this.el.contains(e.target)) {
+    const inTriggerTree = this.el.contains(e.target)
+    const inPanel = this.contentEl && this.contentEl.contains(e.target)
+    if (!inTriggerTree && !inPanel) {
       this.hide()
     }
   },
@@ -1373,6 +1402,31 @@ Hooks.Popover = {
   },
 
   updated() {
+    const nextContent = this.el.querySelector("[data-popover-content]")
+    const nextArrow = this.el.querySelector("[data-popover-arrow]")
+    if (nextContent && nextContent !== this.contentEl) {
+      if (this.cleanupAutoUpdate) {
+        this.cleanupAutoUpdate()
+        this.cleanupAutoUpdate = null
+      }
+      if (this.contentEl?.parentNode === document.body) {
+        this.contentEl.remove()
+      }
+      this.contentEl = nextContent
+      this.arrowEl = nextArrow || null
+      this._portaled = false
+      this._portalMarker = null
+      if (this.isOpen) {
+        this._portalFixedToBody()
+        this.contentEl.classList.remove("hidden", "opacity-0")
+        requestAnimationFrame(() => {
+          if (this.isOpen) {
+            this.cleanupAutoUpdate = autoUpdate(this.triggerEl, this.contentEl, this._runPosition)
+          }
+        })
+        return
+      }
+    }
     if (!this.isOpen || !this.cleanupAutoUpdate) return
     this.cleanupAutoUpdate()
     requestAnimationFrame(() => {
@@ -1387,7 +1441,13 @@ Hooks.Popover = {
       window.removeEventListener("qlarius:close-popover", this._onExternalCloseRequest)
       this._onExternalCloseRequest = null
     }
-    this.hide()
+    if (this.cleanupAutoUpdate) {
+      this.cleanupAutoUpdate()
+      this.cleanupAutoUpdate = null
+    }
+    document.removeEventListener("click", this.onClickOutside, true)
+    document.removeEventListener("keydown", this.onKeyDown)
+    this._restoreFixedPortal()
     if (this.triggerType === "click") {
       this.triggerEl.removeEventListener("click", this.toggle)
     } else if (this.triggerType === "hover") {

@@ -929,8 +929,8 @@ defmodule QlariusWeb.CoreComponents do
         data-popover-content
         role={@role}
         class={[
-          if(@position_strategy == "fixed", do: "fixed", else: "absolute"),
-          "z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg",
+          if(@position_strategy == "fixed", do: "fixed z-[80]", else: "absolute z-50"),
+          "bg-base-100 border border-base-300 rounded-lg shadow-lg",
           "transition-opacity duration-150 ease-in-out",
           "hidden opacity-0",
           @class
