@@ -88,6 +88,10 @@ defmodule QlariusWeb.Components.AuthSheet do
   alias QlariusWeb.Components.AuthSteps
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
 
+  # Time to keep the overlay mounted after the parent sets `show: false`,
+  # so backdrop + panel exit animations can finish before unmounting.
+  @auth_sheet_exit_ms 360
+
   @impl true
   def mount(socket) do
     {:ok,
@@ -103,24 +107,97 @@ defmodule QlariusWeb.Components.AuthSheet do
      |> assign(:signup_initialized, false)
      |> assign(:carrier_info, nil)
      |> assign(:pending_carrier_info, nil)
-     |> assign(:carrier_rejection_message, nil)}
+     |> assign(:carrier_rejection_message, nil)
+     |> assign(:modal_overlay_visible, false)
+     |> assign(:modal_exiting, false)
+     |> assign(:exit_timer_ref, nil)}
   end
 
   @impl true
   def update(assigns, socket) do
+    exit_done? = Map.get(assigns, :__auth_sheet_exit_done__) == true
+
+    parent_show =
+      case Map.fetch(assigns, :show) do
+        {:ok, v} -> !!v
+        :error -> if exit_done?, do: !!(socket.assigns[:show]), else: false
+      end
+
+    was_overlay_visible = socket.assigns[:modal_overlay_visible] == true
+
     socket =
       socket
       |> assign(:id, assigns.id)
-      |> assign(:show, Map.get(assigns, :show, false))
-      |> assign(:surface, Map.get(assigns, :surface))
-      |> assign(:referral_context, Map.get(assigns, :referral_context))
-      |> assign(:resume, Map.get(assigns, :resume))
-      |> assign(:on_cancel, Map.get(assigns, :on_cancel, %JS{}))
-      |> assign(:client_ip, Map.get(assigns, :client_ip, "0.0.0.0"))
-      |> assign(:connect_brand, normalize_connect_brand(Map.get(assigns, :connect_brand)))
-      |> maybe_apply_iframe_hint(Map.get(assigns, :iframe_hint))
+      |> assign(:show, parent_show)
+      |> assign(:surface, Map.get(assigns, :surface, socket.assigns[:surface]))
+      |> assign(:referral_context, Map.get(assigns, :referral_context, socket.assigns[:referral_context]))
+      |> assign(:resume, Map.get(assigns, :resume, socket.assigns[:resume]))
+      |> assign(:on_cancel, Map.get(assigns, :on_cancel, socket.assigns[:on_cancel]) || %JS{})
+      |> assign(:client_ip, Map.get(assigns, :client_ip, socket.assigns[:client_ip]) || "0.0.0.0")
+      |> assign(
+        :connect_brand,
+        normalize_connect_brand(
+          Map.get(assigns, :connect_brand, socket.assigns[:connect_brand])
+        )
+      )
+      |> maybe_apply_iframe_hint(Map.get(assigns, :iframe_hint, :not_provided))
+
+    socket =
+      cond do
+        exit_done? && parent_show ->
+          socket
+          |> cancel_auth_sheet_exit_timer()
+          |> assign(:modal_exiting, false)
+          |> assign(:modal_overlay_visible, true)
+
+        exit_done? ->
+          socket
+          |> cancel_auth_sheet_exit_timer()
+          |> assign(:modal_overlay_visible, false)
+          |> assign(:modal_exiting, false)
+
+        parent_show ->
+          socket
+          |> cancel_auth_sheet_exit_timer()
+          |> assign(:modal_overlay_visible, true)
+          |> assign(:modal_exiting, false)
+
+        was_overlay_visible && not parent_show && socket.assigns[:modal_exiting] != true ->
+          ref =
+            Phoenix.LiveView.send_update_after(
+              self(),
+              __MODULE__,
+              [id: socket.assigns.id, __auth_sheet_exit_done__: true],
+              @auth_sheet_exit_ms
+            )
+
+          socket
+          |> cancel_auth_sheet_exit_timer()
+          |> assign(:exit_timer_ref, ref)
+          |> assign(:modal_exiting, true)
+
+        was_overlay_visible && not parent_show ->
+          socket
+
+        true ->
+          socket
+          |> cancel_auth_sheet_exit_timer()
+          |> assign(:modal_overlay_visible, false)
+          |> assign(:modal_exiting, false)
+      end
 
     {:ok, socket}
+  end
+
+  defp cancel_auth_sheet_exit_timer(socket) do
+    case socket.assigns[:exit_timer_ref] do
+      ref when is_reference(ref) ->
+        Process.cancel_timer(ref)
+        assign(socket, :exit_timer_ref, nil)
+
+      _ ->
+        assign(socket, :exit_timer_ref, nil)
+    end
   end
 
   defp normalize_connect_brand(nil), do: :qadabra
@@ -167,6 +244,8 @@ defmodule QlariusWeb.Components.AuthSheet do
   # confirmation, so only apply on the very first `update/2`.
   defp maybe_apply_iframe_hint(%{assigns: %{iframe_hint_applied: true}} = socket, _hint),
     do: socket
+
+  defp maybe_apply_iframe_hint(socket, :not_provided), do: socket
 
   defp maybe_apply_iframe_hint(socket, hint) when is_boolean(hint) do
     socket
@@ -990,7 +1069,7 @@ defmodule QlariusWeb.Components.AuthSheet do
       phx-hook="AuthFinalize"
       data-auth-sheet="true"
     >
-      <%= if @show do %>
+      <%= if @modal_overlay_visible do %>
         <div
           id={"#{@id}-iframe-probe"}
           phx-hook="IframeDetect"
@@ -1007,7 +1086,13 @@ defmodule QlariusWeb.Components.AuthSheet do
           <%!-- Backdrop --%>
           <div
             id={"#{@id}-backdrop"}
-            class="absolute inset-0 bg-black/60 backdrop-blur-sm animate-auth-sheet-backdrop"
+            class={[
+              "absolute inset-0 bg-black/60 backdrop-blur-sm",
+              if(@modal_exiting,
+                do: "animate-auth-sheet-backdrop-out",
+                else: "animate-auth-sheet-backdrop"
+              )
+            ]}
             phx-click={@on_cancel}
           />
 
@@ -1019,7 +1104,13 @@ defmodule QlariusWeb.Components.AuthSheet do
             Enter animation matches qlink modals (fade + slight motion).
           --%>
           <div
-            class="relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-t-2xl border border-widget-300 bg-base-100 shadow-2xl animate-auth-sheet-panel md:max-w-lg md:rounded-2xl dark:bg-base-200"
+            class={[
+              "relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-t-2xl border border-widget-300 bg-base-100 shadow-2xl md:max-w-lg md:rounded-2xl dark:bg-base-200",
+              if(@modal_exiting,
+                do: "animate-auth-sheet-panel-out",
+                else: "animate-auth-sheet-panel"
+              )
+            ]}
             phx-window-keydown={@on_cancel}
             phx-key="escape"
           >
@@ -1119,7 +1210,7 @@ defmodule QlariusWeb.Components.AuthSheet do
           New here?
         </h3>
         <p class="text-sm text-base-content/70 md:text-base">
-          Start your new account and wallet with $3.00+ on us.
+          Start your new account and wallet.<br/>Prefunded with $3.00+ on us.
         </p>
       </div>
 

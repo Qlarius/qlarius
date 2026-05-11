@@ -56,7 +56,7 @@
           id="open-in-tab-btn"
           phx-click="toggle-arqade-fullpane"
           class="absolute top-2 right-2 z-[60] btn btn-ghost btn-sm btn-circle bg-base-200/80 hover:bg-base-300 text-base-content/60 hover:text-base-content"
-          title="Expand on this page (Sponster bar stays visible)"
+          title="Expand arqade full screen"
         >
           <.icon name="hero-arrow-top-right-on-square" class="w-5 h-5" />
         </button>
@@ -456,6 +456,7 @@
 <.connect_wallet_modal
   show={@show_connect_modal}
   scope={@current_scope}
+  connect_brand={:tiqit}
   on_click={
     if QlariusWeb.Widgets.Arcade.ArcadeLive.auth_sheet_enabled?(assigns),
       do: Phoenix.LiveView.JS.push("open_auth_sheet"),

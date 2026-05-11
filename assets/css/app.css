@@ -93,10 +93,50 @@
   animation: auth-sheet-panel-in 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@keyframes auth-sheet-backdrop-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes auth-sheet-panel-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.98);
+  }
+}
+
+.animate-auth-sheet-backdrop-out {
+  animation: auth-sheet-backdrop-out 0.26s ease-in forwards;
+}
+
+.animate-auth-sheet-panel-out {
+  animation: auth-sheet-panel-out 0.32s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-auth-sheet-backdrop,
   .animate-auth-sheet-panel {
     animation: none;
+  }
+
+  .animate-auth-sheet-backdrop-out,
+  .animate-auth-sheet-panel-out {
+    animation: none;
+    opacity: 0;
+  }
+
+  .animate-auth-sheet-panel-out {
+    transform: translateY(0.75rem) scale(0.98);
   }
 }
 @source "../css";

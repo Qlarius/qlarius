@@ -209,14 +209,25 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
 
   `on_cancel` defaults to a `JS.push("close-connect-modal")` so
   widgets can handle it via a uniform event name.
+
+  Pass `connect_brand` to match `AuthSheet` header branding: `:tiqit` for Arqade,
+  `:sponster` for Tips / Sponster surfaces, `:qadabra` for the neutral full
+  wordmark. Omit `title` / `message` to use defaults tailored to the brand.
   """
   attr :show, :boolean, default: false
   attr :id, :string, default: "connect-wallet-modal"
-  attr :title, :string, default: "Connect your wallet to continue"
+
+  attr :title, :string,
+    default: nil,
+    doc: "Optional override; when nil, a default title is used (same for all brands today)."
 
   attr :message, :string,
-    default:
-      "Sign in on Qadabra to buy Tiqits, tip creators, and earn from ads. Your wallet follows you across Qadabra."
+    default: nil,
+    doc: "Optional override; when nil, copy is chosen from `connect_brand`."
+
+  attr :connect_brand, :any,
+    default: nil,
+    doc: "`:tiqit` (Arqade), `:sponster` (Tips), or `:qadabra`; controls header logo and default body copy."
 
   attr :on_cancel, JS, default: JS.push("close-connect-modal")
 
@@ -235,11 +246,44 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
     doc: "Dom id prefix for the strip's balance node (defaults to `id <> \"-wallet-strip\"`)."
 
   def connect_wallet_modal(assigns) do
+    brand = normalize_connect_modal_brand(Map.get(assigns, :connect_brand))
+
+    title =
+      case Map.get(assigns, :title) do
+        t when is_binary(t) ->
+          t = String.trim(t)
+          if t != "", do: t, else: default_connect_modal_title(brand)
+
+        _ ->
+          default_connect_modal_title(brand)
+      end
+
+    message =
+      case Map.get(assigns, :message) do
+        m when is_binary(m) ->
+          m = String.trim(m)
+          if m != "", do: m, else: default_connect_modal_message(brand)
+
+        _ ->
+          default_connect_modal_message(brand)
+      end
+
+    assigns =
+      assigns
+      |> assign(:connect_brand, brand)
+      |> assign(:header_logo, connect_modal_brand_logo(brand))
+      |> assign(:title, title)
+      |> assign(:message, message)
+
     ~H"""
     <.modal :if={@show} id={@id} on_cancel={@on_cancel} show>
       <div class="flex flex-col items-center text-center space-y-4 p-8">
-        <div class="w-16 h-16 rounded-full bg-widget-100 flex items-center justify-center">
-          <.icon name="hero-wallet" class="w-8 h-8 text-widget-700" />
+        <div class="mb-4 md:mb-5">
+          <img
+            src={@header_logo.src}
+            alt={@header_logo.alt}
+            class={@header_logo.class}
+          />
         </div>
         <h2 class="text-xl font-bold text-base-content">{@title}</h2>
         <p class="text-base-content/70 max-w-sm">{@message}</p>
@@ -264,5 +308,58 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
       </div>
     </.modal>
     """
+  end
+
+  defp normalize_connect_modal_brand(nil), do: :qadabra
+
+  defp normalize_connect_modal_brand(b) when b in [:qadabra, :sponster, :tiqit], do: b
+
+  defp normalize_connect_modal_brand(b) when is_binary(b) do
+    case String.downcase(String.trim(b)) do
+      "sponster" -> :sponster
+      "tiqit" -> :tiqit
+      "qadabra" -> :qadabra
+      _ -> :qadabra
+    end
+  end
+
+  defp normalize_connect_modal_brand(_), do: :qadabra
+
+  defp connect_modal_brand_logo(:sponster) do
+    %{
+      src: "/images/Sponster_logo_color_horiz.svg",
+      alt: "Sponster",
+      class: "h-9 w-auto max-w-[min(18rem,88vw)] object-contain md:h-11"
+    }
+  end
+
+  defp connect_modal_brand_logo(:tiqit) do
+    %{
+      src: "/images/Tiqit_logo_color_horiz.svg",
+      alt: "Tiqit",
+      class: "h-9 w-auto max-w-[min(18rem,88vw)] object-contain md:h-11"
+    }
+  end
+
+  defp connect_modal_brand_logo(_) do
+    %{
+      src: "/images/qadabra_full_gray_opt.svg",
+      alt: "Qadabra",
+      class: "h-10 w-auto max-w-[min(20rem,88vw)] object-contain md:h-11"
+    }
+  end
+
+  defp default_connect_modal_title(_brand), do: "Connect your wallet to continue"
+
+  defp default_connect_modal_message(:tiqit) do
+    "Sign in on Qadabra to buy Tiqits, unlock content, and earn from ads. Your wallet follows you across Qadabra."
+  end
+
+  defp default_connect_modal_message(:sponster) do
+    "Sign in on Qadabra to tip creators, earn from ads, and use your wallet across Qadabra."
+  end
+
+  defp default_connect_modal_message(_) do
+    "Sign in on Qadabra to buy Tiqits, tip creators, and earn from ads. Your wallet follows you across Qadabra."
   end
 end

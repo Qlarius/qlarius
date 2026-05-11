@@ -367,6 +367,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
     <.connect_wallet_modal
       show={@show_connect_modal}
       scope={@current_scope}
+      connect_brand={:sponster}
       on_click={
         if auth_sheet_enabled?(assigns),
           do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
