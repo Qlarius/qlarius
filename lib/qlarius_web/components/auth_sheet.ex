@@ -124,6 +124,28 @@ defmodule QlariusWeb.Components.AuthSheet do
       end
 
     was_overlay_visible = socket.assigns[:modal_overlay_visible] == true
+    was_exiting = socket.assigns[:modal_exiting] == true
+
+    # Parent often resets `connect_brand` to :qadabra in the same patch as
+    # `show: false` while we keep the overlay mounted for the exit animation.
+    # Ignore that reset until the overlay is fully dismissed so the header
+    # logo does not flash back to Qadabra mid-close.
+    #
+    # Note: LiveView still re-renders this component on every patch; stable
+    # `connect_brand` only keeps assigns consistent. A separate visual "pop"
+    # came from swapping panel enter/exit keyframes that used `scale()` —
+    # see `app.css` (translateY + opacity only).
+    preserve_connect_brand? =
+      not parent_show && (was_overlay_visible || was_exiting)
+
+    connect_brand =
+      if preserve_connect_brand? do
+        socket.assigns[:connect_brand] || :qadabra
+      else
+        normalize_connect_brand(
+          Map.get(assigns, :connect_brand, socket.assigns[:connect_brand])
+        )
+      end
 
     socket =
       socket
@@ -134,12 +156,7 @@ defmodule QlariusWeb.Components.AuthSheet do
       |> assign(:resume, Map.get(assigns, :resume, socket.assigns[:resume]))
       |> assign(:on_cancel, Map.get(assigns, :on_cancel, socket.assigns[:on_cancel]) || %JS{})
       |> assign(:client_ip, Map.get(assigns, :client_ip, socket.assigns[:client_ip]) || "0.0.0.0")
-      |> assign(
-        :connect_brand,
-        normalize_connect_brand(
-          Map.get(assigns, :connect_brand, socket.assigns[:connect_brand])
-        )
-      )
+      |> assign(:connect_brand, connect_brand)
       |> maybe_apply_iframe_hint(Map.get(assigns, :iframe_hint, :not_provided))
 
     socket =
@@ -167,7 +184,11 @@ defmodule QlariusWeb.Components.AuthSheet do
             Phoenix.LiveView.send_update_after(
               self(),
               __MODULE__,
-              [id: socket.assigns.id, __auth_sheet_exit_done__: true],
+              [
+                id: socket.assigns.id,
+                __auth_sheet_exit_done__: true,
+                connect_brand: socket.assigns[:connect_brand] || :qadabra
+              ],
               @auth_sheet_exit_ms
             )
 
@@ -1195,6 +1216,7 @@ defmodule QlariusWeb.Components.AuthSheet do
       <div class="flex flex-col items-center gap-0 text-center">
         <div class="mb-4 md:mb-5">
           <img
+            id={"#{@id}-sheet-brand-logo"}
             src={@header_logo.src}
             alt={@header_logo.alt}
             class={@header_logo.class}
@@ -1268,6 +1290,7 @@ defmodule QlariusWeb.Components.AuthSheet do
       <div class="flex flex-col items-center gap-0 text-center">
         <div class="mb-4 md:mb-5">
           <img
+            id={"#{@id}-sheet-brand-logo"}
             src={@header_logo.src}
             alt={@header_logo.alt}
             class={@header_logo.class}

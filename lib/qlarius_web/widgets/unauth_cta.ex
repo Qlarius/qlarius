@@ -43,8 +43,9 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
       replacements for `format_usd/1` when the value is personal.
     * `wallet_strip_or_connect/1` — drop-in replacement for the
       arqade `wallet_strip/1`; renders the authed strip when a scope
-      is present, or the same two-column strip with **READY** + **Connect**
-      (Sponster ring strobe on the READY pill) when anonymous.
+      is present, or the same two-column strip with **READY** + **Connect…**
+      (Sponster ring strobe on the READY pill; animated ellipsis on **Connect**)
+      when anonymous.
     * `connect_wallet_modal/1` — single-modal component; widgets
       toggle it via their existing `show_*_modal` assign pattern.
 
@@ -98,7 +99,8 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
   present, or the same two-column layout when anonymous: **READY** + WALLET
   label (instead of a dollar amount) and a **Connect** button (instead of
   top-up). The READY `wallet_balance` pill uses `anon_strobe?` for a subtle
-  Sponster fill pulse.
+  Sponster fill pulse. The **Connect** label uses the same ellipsis animation
+  as the former READY label (`wallet-ready-ellipsis` CSS).
 
   Accepts an `id` prefix so the component is usable more than once
   on a page (each arqade LC/widget can namespace independently).
@@ -142,9 +144,13 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
       />
     <% else %>
       <% connect_classes =
-           if @tray?,
-             do: "btn-widget btn-md rounded-full leading-none",
-             else: "btn-widget btn-sm rounded-full leading-none min-h-8 h-8 px-3 py-0" %>
+           [
+             if(@tray?,
+               do: "btn-widget btn-md rounded-full leading-none",
+               else: "btn-widget btn-sm rounded-full leading-none min-h-8 h-8 px-3 py-0"
+             ),
+             "connect-strip-cta-border-strobe"
+           ] %>
       <%= if @tray? do %>
         <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-2 py-1.5 rounded-xl border border-base-300 max-w-full min-w-0">
           <div class="flex flex-row flex-nowrap justify-between items-center gap-2 min-w-0">
@@ -154,11 +160,10 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
               footer_label="WALLET"
               value_text="READY"
               anon_strobe?={true}
-              anon_ready_ellipsis?={true}
             />
             <%= if @on_click do %>
               <button type="button" phx-click={@on_click} class={connect_classes}>
-                <span class="font-bold">Connect</span>
+                <.connect_strip_cta_label />
               </button>
             <% else %>
               <% href =
@@ -166,7 +171,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
                      do: @connect_href,
                      else: Urls.interact_login_url() %>
               <.link href={href} target={@connect_link_target} class={connect_classes}>
-                <span class="font-bold">Connect</span>
+                <.connect_strip_cta_label />
               </.link>
             <% end %>
           </div>
@@ -179,12 +184,11 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
             footer_label="WALLET"
             value_text="READY"
             anon_strobe?={true}
-            anon_ready_ellipsis?={true}
             compact?={true}
           />
           <%= if @on_click do %>
             <button type="button" phx-click={@on_click} class={connect_classes}>
-              <span class="font-bold text-sm">Connect</span>
+              <.connect_strip_cta_label text_sm?={true} />
             </button>
           <% else %>
             <% href =
@@ -192,12 +196,31 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
                    do: @connect_href,
                    else: Urls.interact_login_url() %>
             <.link href={href} target={@connect_link_target} class={connect_classes}>
-              <span class="font-bold text-sm">Connect</span>
+              <.connect_strip_cta_label text_sm?={true} />
             </.link>
           <% end %>
         </div>
       <% end %>
     <% end %>
+    """
+  end
+
+  @doc false
+  attr :text_sm?, :boolean, default: false
+
+  def connect_strip_cta_label(assigns) do
+    ~H"""
+    <span class={[
+      "font-bold whitespace-nowrap inline-flex items-baseline",
+      @text_sm? && "text-sm"
+    ]}>
+      Connect
+      <span class="wallet-ready-ellipsis connect-strip-cta-ellipsis" aria-hidden="true">
+        <span class="wallet-ready-ellipsis-dot">.</span>
+        <span class="wallet-ready-ellipsis-dot">.</span>
+        <span class="wallet-ready-ellipsis-dot">.</span>
+      </span>
+    </span>
     """
   end
 
@@ -296,7 +319,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
           />
         </div>
         <p class="text-xs text-base-content/65 leading-snug max-w-sm">
-          Use your mobile number to connect. New wallets prefunded with $3.00+ on us.
+          Your US mobile number is all you need. New wallets are even prefunded with $3.00+ on us.
         </p>
         <button
           type="button"
@@ -349,17 +372,17 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
     }
   end
 
-  defp default_connect_modal_title(_brand), do: "Connect your wallet to continue"
+  defp default_connect_modal_title(_brand), do: "Connect to continue"
 
   defp default_connect_modal_message(:tiqit) do
-    "Sign in on Qadabra to buy Tiqits, unlock content, and earn from ads. Your wallet follows you across Qadabra."
+    "Once connected, you will have full access to purchase tiqits to your favorite media."
   end
 
   defp default_connect_modal_message(:sponster) do
-    "Sign in on Qadabra to tip creators, earn from ads, and use your wallet across Qadabra."
+    "Once connected, you will have full access to fund your wallet, collect revenues from ads, and support your favorite creators and media."
   end
 
   defp default_connect_modal_message(_) do
-    "Sign in on Qadabra to buy Tiqits, tip creators, and earn from ads. Your wallet follows you across Qadabra."
+    "Once connected, you will have full access to your Qadabrawallet, tiqits, ads, and all other features."
   end
 end

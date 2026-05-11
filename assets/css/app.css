@@ -76,12 +76,12 @@
 @keyframes auth-sheet-panel-in {
   from {
     opacity: 0;
-    transform: translateY(0.75rem) scale(0.98);
+    transform: translateY(0.75rem);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
@@ -136,7 +136,7 @@
   }
 
   .animate-auth-sheet-panel-out {
-    transform: translateY(0.75rem) scale(0.98);
+    transform: translateY(0.75rem);
   }
 }
 @source "../css";
@@ -461,6 +461,77 @@
     .wallet-ready-ellipsis-dot {
       animation: none;
       opacity: 1;
+    }
+  }
+
+  /* Anon Connect CTA (wallet strip): larger ellipsis + border strobe vs default btn-widget */
+  @keyframes connect-strip-cta-ellipsis-wave {
+    0%,
+    70%,
+    100% {
+      opacity: 0.22;
+      transform: translateY(0) scale(1);
+    }
+
+    35% {
+      opacity: 1;
+      transform: translateY(-0.16em) scale(1.2);
+    }
+  }
+
+  @keyframes connect-strip-cta-border-strobe-light {
+    0%,
+    100% {
+      border-color: var(--color-widget-300);
+    }
+
+    50% {
+      border-color: var(--color-widget-700);
+    }
+  }
+
+  @keyframes connect-strip-cta-border-strobe-dark {
+    0%,
+    100% {
+      border-color: var(--color-widget-500);
+    }
+
+    50% {
+      border-color: var(--color-widget-300);
+    }
+  }
+
+  .connect-strip-cta-ellipsis {
+    display: inline-flex;
+    margin-left: 0.06em;
+    font-size: 1.45em;
+    line-height: 0;
+    vertical-align: -0.06em;
+  }
+
+  .connect-strip-cta-ellipsis .wallet-ready-ellipsis-dot {
+    animation-name: connect-strip-cta-ellipsis-wave;
+    animation-duration: 1.05s;
+    opacity: 0.4;
+  }
+
+  .connect-strip-cta-border-strobe {
+    animation: connect-strip-cta-border-strobe-light 2.4s ease-in-out infinite;
+  }
+
+  [data-theme="dark"] .connect-strip-cta-border-strobe {
+    animation-name: connect-strip-cta-border-strobe-dark;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .connect-strip-cta-ellipsis .wallet-ready-ellipsis-dot {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+
+    .connect-strip-cta-border-strobe {
+      animation: none;
     }
   }
 
