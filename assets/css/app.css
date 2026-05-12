@@ -402,11 +402,12 @@
   }
 
   .wallet-strip-anon-focus {
-    animation: wallet-strip-anon-bg-pulse-light 2.8s ease-in-out infinite;
+    --wallet-anon-pill-cycle: 2.8s;
+    animation: wallet-strip-anon-bg-pulse-light var(--wallet-anon-pill-cycle) ease-in-out infinite;
   }
 
   [data-theme="dark"] .wallet-strip-anon-focus {
-    animation: wallet-strip-anon-bg-pulse-dark 2.8s ease-in-out infinite;
+    animation: wallet-strip-anon-bg-pulse-dark var(--wallet-anon-pill-cycle) ease-in-out infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -464,21 +465,93 @@
     }
   }
 
-  /* Anon Connect CTA (wallet strip): larger ellipsis + border strobe vs default btn-widget */
-  @keyframes connect-strip-cta-ellipsis-wave {
+  /* READY + ellipsis: one full word↔dots cycle every
+     `calc(var(--wallet-anon-pill-cycle) * 2)` (twice the anon pill bg pulse). */
+  .wallet-ready-dissolve-wrap {
+    display: inline-grid;
+    place-items: center;
+    grid-template-areas: "stack";
+    min-width: 5ch;
+    min-height: 1.2em;
+    vertical-align: middle;
+  }
+
+  .wallet-ready-dissolve-word,
+  .wallet-ready-dissolve-dots {
+    grid-area: stack;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .wallet-ready-dissolve-word {
+    animation: wallet-ready-dissolve-word calc(var(--wallet-anon-pill-cycle, 2.8s) * 2)
+      ease-in-out infinite;
+  }
+
+  .wallet-ready-dissolve-dots {
+    animation: wallet-ready-dissolve-dots calc(var(--wallet-anon-pill-cycle, 2.8s) * 2)
+      ease-in-out infinite;
+  }
+
+  .wallet-ready-ellipsis--dissolve {
+    margin-left: 0;
+  }
+
+  @keyframes wallet-ready-dissolve-word {
     0%,
-    70%,
-    100% {
-      opacity: 0.22;
-      transform: translateY(0) scale(1);
+    10% {
+      opacity: 1;
     }
 
-    35% {
+    40% {
+      opacity: 0;
+    }
+
+    60% {
+      opacity: 0;
+    }
+
+    90%,
+    100% {
       opacity: 1;
-      transform: translateY(-0.16em) scale(1.2);
     }
   }
 
+  @keyframes wallet-ready-dissolve-dots {
+    0%,
+    10% {
+      opacity: 0;
+    }
+
+    40% {
+      opacity: 1;
+    }
+
+    60% {
+      opacity: 1;
+    }
+
+    90%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wallet-ready-dissolve-word {
+      animation: none;
+      opacity: 1;
+    }
+
+    .wallet-ready-dissolve-dots {
+      animation: none;
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+
+  /* Anon Connect CTA (wallet strip): border strobe vs default btn-widget */
   @keyframes connect-strip-cta-border-strobe-light {
     0%,
     100% {
@@ -501,20 +574,6 @@
     }
   }
 
-  .connect-strip-cta-ellipsis {
-    display: inline-flex;
-    margin-left: 0.06em;
-    font-size: 1.45em;
-    line-height: 0;
-    vertical-align: -0.06em;
-  }
-
-  .connect-strip-cta-ellipsis .wallet-ready-ellipsis-dot {
-    animation-name: connect-strip-cta-ellipsis-wave;
-    animation-duration: 1.05s;
-    opacity: 0.4;
-  }
-
   .connect-strip-cta-border-strobe {
     animation: connect-strip-cta-border-strobe-light 2.4s ease-in-out infinite;
   }
@@ -524,12 +583,6 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .connect-strip-cta-ellipsis .wallet-ready-ellipsis-dot {
-      animation: none;
-      opacity: 1;
-      transform: none;
-    }
-
     .connect-strip-cta-border-strobe {
       animation: none;
     }
@@ -865,13 +918,13 @@
   /* If both apply: bg pulse + scale pulse (different properties). */
   .wallet-strip-anon-focus.wallet-pulse {
     animation:
-      wallet-strip-anon-bg-pulse-light 2.8s ease-in-out infinite,
+      wallet-strip-anon-bg-pulse-light var(--wallet-anon-pill-cycle) ease-in-out infinite,
       wallet-pulse 350ms ease-in-out;
   }
 
   [data-theme="dark"] .wallet-strip-anon-focus.wallet-pulse {
     animation:
-      wallet-strip-anon-bg-pulse-dark 2.8s ease-in-out infinite,
+      wallet-strip-anon-bg-pulse-dark var(--wallet-anon-pill-cycle) ease-in-out infinite,
       wallet-pulse 350ms ease-in-out;
   }
 

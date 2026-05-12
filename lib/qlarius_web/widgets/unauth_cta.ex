@@ -43,9 +43,8 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
       replacements for `format_usd/1` when the value is personal.
     * `wallet_strip_or_connect/1` — drop-in replacement for the
       arqade `wallet_strip/1`; renders the authed strip when a scope
-      is present, or the same two-column strip with **READY** + **Connect…**
-      (Sponster ring strobe on the READY pill; animated ellipsis on **Connect**)
-      when anonymous.
+      is present, or the same two-column strip with **READY** (crossfade
+      ellipsis in the pill) + **Connect** (widget border strobe) when anonymous.
     * `connect_wallet_modal/1` — single-modal component; widgets
       toggle it via their existing `show_*_modal` assign pattern.
 
@@ -99,8 +98,9 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
   present, or the same two-column layout when anonymous: **READY** + WALLET
   label (instead of a dollar amount) and a **Connect** button (instead of
   top-up). The READY `wallet_balance` pill uses `anon_strobe?` for a subtle
-  Sponster fill pulse. The **Connect** label uses the same ellipsis animation
-  as the former READY label (`wallet-ready-ellipsis` CSS).
+  Sponster fill pulse and `anon_ready_ellipsis?` to crossfade **READY** with
+  animated dots in the same space. **Connect** uses a widget border strobe
+  (`connect-strip-cta-border-strobe`).
 
   Accepts an `id` prefix so the component is usable more than once
   on a page (each arqade LC/widget can namespace independently).
@@ -160,6 +160,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
               footer_label="WALLET"
               value_text="READY"
               anon_strobe?={true}
+              anon_ready_ellipsis?={true}
             />
             <%= if @on_click do %>
               <button type="button" phx-click={@on_click} class={connect_classes}>
@@ -184,6 +185,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
             footer_label="WALLET"
             value_text="READY"
             anon_strobe?={true}
+            anon_ready_ellipsis?={true}
             compact?={true}
           />
           <%= if @on_click do %>
@@ -211,15 +213,10 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
   def connect_strip_cta_label(assigns) do
     ~H"""
     <span class={[
-      "font-bold whitespace-nowrap inline-flex items-baseline",
+      "font-bold whitespace-nowrap",
       @text_sm? && "text-sm"
     ]}>
       Connect
-      <span class="wallet-ready-ellipsis connect-strip-cta-ellipsis" aria-hidden="true">
-        <span class="wallet-ready-ellipsis-dot">.</span>
-        <span class="wallet-ready-ellipsis-dot">.</span>
-        <span class="wallet-ready-ellipsis-dot">.</span>
-      </span>
     </span>
     """
   end

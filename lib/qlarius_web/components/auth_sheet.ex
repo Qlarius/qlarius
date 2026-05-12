@@ -1078,6 +1078,24 @@ defmodule QlariusWeb.Components.AuthSheet do
 
   defp register_url, do: "https://qadabra.app/register"
 
+  # Phone + code steps only (not signup / iframe / etc.).
+  defp powered_by_qadabra_footer do
+    assigns = %{}
+
+    ~H"""
+    <div class="mt-2 flex flex-col items-center gap-1 border-t border-base-content/[0.07] pt-5">
+      <span class="text-[10px] font-medium text-base-content/45 -mb-1">
+        Powered by
+      </span>
+      <img
+        src="/images/qadabra_full_gray_opt.svg"
+        alt="Qadabra"
+        class="h-4.5 w-auto max-w-[5.25rem] object-contain ml-1"
+      />
+    </div>
+    """
+  end
+
   # --------------------------------------------------------------------
   # Render
   # --------------------------------------------------------------------
@@ -1273,6 +1291,8 @@ defmodule QlariusWeb.Components.AuthSheet do
           Send code
         </button>
       </.form>
+
+      {powered_by_qadabra_footer()}
     </div>
     """
   end
@@ -1348,6 +1368,8 @@ defmodule QlariusWeb.Components.AuthSheet do
           Resend code
         </button>
       </div>
+
+      {powered_by_qadabra_footer()}
     </div>
     """
   end

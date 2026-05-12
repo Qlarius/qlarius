@@ -19,8 +19,8 @@ defmodule QlariusWeb.Components.WalletBalance do
 
   attr :anon_ready_ellipsis?, :boolean, default: false,
     doc:
-      "When true with `value_text`, shows a loading-style animated ellipsis after the label " <>
-        "(anon READY / waiting state)."
+      "When true with `value_text`, crossfades the label (e.g. READY) with animated ellipsis " <>
+        "in the same slot (anon waiting state)."
 
   def wallet_balance(assigns) do
     ~H"""
@@ -43,12 +43,16 @@ defmodule QlariusWeb.Components.WalletBalance do
       <span class="font-bold leading-tight inline-flex flex-wrap items-center justify-center gap-0">
         <%= if @value_text not in [nil, ""] do %>
           <%= if @anon_ready_ellipsis? do %>
-            <span class="whitespace-nowrap inline-flex items-baseline">
-              {String.trim_trailing(@value_text, ".")}
-              <span class="wallet-ready-ellipsis" aria-hidden="true">
-                <span class="wallet-ready-ellipsis-dot">.</span>
-                <span class="wallet-ready-ellipsis-dot">.</span>
-                <span class="wallet-ready-ellipsis-dot">.</span>
+            <span class="wallet-ready-dissolve-wrap whitespace-nowrap">
+              <span class="wallet-ready-dissolve-word">
+                {String.trim_trailing(@value_text, ".")}
+              </span>
+              <span class="wallet-ready-dissolve-dots" aria-hidden="true">
+                <span class="wallet-ready-ellipsis wallet-ready-ellipsis--dissolve">
+                  <span class="wallet-ready-ellipsis-dot">.</span>
+                  <span class="wallet-ready-ellipsis-dot">.</span>
+                  <span class="wallet-ready-ellipsis-dot">.</span>
+                </span>
               </span>
             </span>
           <% else %>

@@ -105,7 +105,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
 
   attr :anon_ready_ellipsis?, :boolean, default: false,
     doc:
-      "When true with `value_text`, shows a loading-style animated ellipsis after the label " <>
+      "When true with `value_text`, crossfades the label with animated ellipsis in the same slot " <>
         "(anon READY / waiting state)."
 
   def wallet_balance(assigns), do: QlariusWeb.Components.WalletBalance.wallet_balance(assigns)
