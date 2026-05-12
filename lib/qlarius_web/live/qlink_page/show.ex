@@ -1421,19 +1421,23 @@ defmodule QlariusWeb.QlinkPage.Show do
     # so nested arqade content scrolls inside it (same intent as iframe
     # `height=`). When `@arqade_fullpane_active?`, the inner shell is
     # `fixed` full viewport — only a min-height placeholder remains here.
+    #
+    # Do not use overflow-hidden on these wrappers: nested LiveViews render
+    # `position: fixed` modals (Tiqit purchase, connect wallet). WebKit and
+    # many in-app browsers clip fixed overlays to overflow-hidden ancestors,
+    # which looks like horizontal "bands" and a truncated modal card.
     ~H"""
     <div
       class={
         if(@arqade_fullpane_active?,
           do: "relative w-full",
-          else: "relative w-full flex flex-col overflow-hidden"
+          else: "relative w-full flex flex-col min-h-0 overflow-visible"
         )
       }
       style={
         if(@arqade_fullpane_active?,
           do: "min-height: #{@inline_arqade_height}px;",
-          else:
-            "height: #{@inline_arqade_height}px; max-height: #{@inline_arqade_height}px;"
+          else: "height: #{@inline_arqade_height}px; max-height: #{@inline_arqade_height}px;"
         )
       }
     >
@@ -1443,9 +1447,9 @@ defmodule QlariusWeb.QlinkPage.Show do
         data-body-scroll-lock={if @arqade_fullpane_active?, do: "true", else: "false"}
         class={[
           "w-full",
-          not @arqade_fullpane_active? && "h-full min-h-0 flex flex-col overflow-hidden",
+          not @arqade_fullpane_active? && "h-full min-h-0 flex flex-col overflow-visible",
           @arqade_fullpane_active? &&
-            "arqade-fullpane-active fixed inset-x-0 top-0 bottom-[50px] z-[45] flex w-full flex-col overflow-hidden bg-base-100 shadow-2xl",
+            "arqade-fullpane-active fixed inset-x-0 top-0 bottom-[50px] z-[45] flex w-full flex-col overflow-visible bg-base-100 shadow-2xl",
           @arqade_fullpane_shell_leaving? && "arqade-fullpane-leaving"
         ]}
         phx-window-keydown={if(@arqade_fullpane_active?, do: "close-arqade-fullpane")}
@@ -1464,14 +1468,12 @@ defmodule QlariusWeb.QlinkPage.Show do
             </button>
           </div>
         <% end %>
-        <div
-          class={
-            if(@arqade_fullpane_active?,
-              do: "min-h-0 flex-1 overflow-y-auto flex flex-col",
-              else: "min-h-0 flex-1 overflow-hidden flex flex-col"
-            )
-          }
-        >
+        <div class={
+          if(@arqade_fullpane_active?,
+            do: "min-h-0 flex-1 overflow-y-auto flex flex-col",
+            else: "min-h-0 flex-1 overflow-visible flex flex-col"
+          )
+        }>
           {live_render(@socket, @inline_arqade_module,
             id: @inline_arqade_dom_id,
             session: @inline_arqade_session

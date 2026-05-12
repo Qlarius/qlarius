@@ -635,7 +635,7 @@ defmodule QlariusWeb.CoreComponents do
     <div
       id={@id}
       class={[
-        "bg-base-300/80 backdrop-blur-sm fixed inset-0 transition-opacity",
+        "bg-base-300/80 backdrop-blur-sm fixed inset-0 z-0 transition-opacity",
         @class
       ]}
       aria-hidden="true"
@@ -647,9 +647,10 @@ defmodule QlariusWeb.CoreComponents do
   @doc """
   Renders a modal.
 
-  The root uses `z-[100]` (not `z-50`) so the overlay stays above fixed
-  bottom chrome (e.g. Qlink sponster strip) when the modal is rendered
-  from an earlier part of the DOM, such as a nested LiveView.
+  The root uses `z-[150]` (not `z-50`) so the overlay stays above fixed
+  bottom chrome (e.g. Qlink sponster strip, inline arqade full-pane shell
+  at `z-[45]`, video overlays) when the modal is rendered from an earlier
+  part of the DOM, such as a nested LiveView.
 
   ## Examples
 
@@ -677,34 +678,32 @@ defmodule QlariusWeb.CoreComponents do
       phx-mounted={@show && show_modal(@id)}
       phx-remove={hide_modal(@id)}
       data-cancel={JS.exec(@on_cancel, "phx-remove")}
-      class="relative z-[100] hidden"
+      class="relative z-[150] hidden"
     >
       <.backdrop id={"#{@id}-bg"} />
-
+      
     <!-- Modal Container -->
       <!--
-        Full-viewport scroll area. `w-fit mx-auto` here would shrink the
-        container to the card's width, and because `overflow-y:auto`
-        promotes `overflow-x` to `auto`, it would clip the card's
-        `shadow-2xl` on the sides. Centering is handled by the flex
-        child (`flex justify-center` + `max-w-4xl mx-auto`).
+        Full-viewport scroll area. Centering uses `flex justify-center` on the
+        inner row; the card wrapper uses `w-full max-w-[min(56rem,96%)]` so wide
+        content cannot spill past the viewport on narrow IABs.
       -->
       <div
-        class="fixed inset-0 overflow-y-auto"
+        class="fixed inset-0 z-10 overflow-y-auto"
         aria-labelledby={"#{@id}-title"}
         aria-describedby={"#{@id}-description"}
         role="dialog"
         aria-modal="true"
         tabindex="0"
       >
-        <div class="flex min-h-full items-center justify-center p-4">
+        <div class="flex min-h-full items-center justify-center p-3 sm:p-4">
           <!--
-            `max-w-4xl` without `w-full` → card sizes to content with a cap
-            (≈896px). Prevents Tip/Tiqit modals from stretching full-viewport
-            on mobile/small tablets. Inner content can still add `min-w-*` if
-            a narrower natural width is undesirable for a specific modal.
+            `w-full` + `min-w-0` keeps wide grids/tables inside the viewport;
+            `max-w-[min(56rem,96%)]` matches the old `max-w-4xl` cap on desktop
+            and caps width at ~96% of the dialog scrollport on small screens /
+            in-app browsers so the card and close control stay in view.
           -->
-          <div class="max-w-4xl">
+          <div class="w-full min-w-0 max-w-[min(56rem,96%)] mx-auto">
             <!-- Modal Card -->
             <.focus_wrap
               id={"#{@id}-container"}
@@ -724,7 +723,7 @@ defmodule QlariusWeb.CoreComponents do
                   <.icon name="hero-x-mark" class="w-5 h-5" />
                 </button>
               </div>
-
+              
     <!-- Modal Content -->
               <div id={"#{@id}-content"} class="p-0">
                 {render_slot(@inner_block)}
@@ -783,6 +782,7 @@ defmodule QlariusWeb.CoreComponents do
     <div class={["grid grid-cols-2 sm:grid-cols-4 gap-3 justify-items-center", @add_class]}>
       <%= for amount <- @amounts do %>
         <% amount_decimal = Decimal.new(amount)
+
         enabled =
           is_nil(@wallet_balance) or Decimal.compare(@wallet_balance, amount_decimal) != :lt %>
         <button
@@ -862,42 +862,62 @@ defmodule QlariusWeb.CoreComponents do
 
   attr :offset, :integer, default: 8, doc: "pixel distance from trigger element"
 
-  attr :position_strategy, :string, default: "absolute", values: ~w(absolute fixed),
+  attr :position_strategy, :string,
+    default: "absolute",
+    values: ~w(absolute fixed),
     doc:
       "use fixed to position vs viewport/iframe and avoid clipping from overflow auto/hidden parents (per Floating UI strategy)"
 
-  attr :arrow_align, :string, default: "reference", values: ~w(reference end),
+  attr :arrow_align, :string,
+    default: "reference",
+    values: ~w(reference end),
     doc:
       "end: keep the popover tail on the bottom-right (for top placement) / top-right (for bottom) to point at the trigger"
 
-  attr :shift_padding, :integer, default: 8,
+  attr :shift_padding, :integer,
+    default: 8,
     doc: "viewport edge inset for shift/size; hook uses extra top for top* placements"
 
-  attr :flip, :boolean, default: true, doc: "if false, disable flip middleware so placement stays on the initial side (e.g. top stays top)"
+  attr :flip, :boolean,
+    default: true,
+    doc:
+      "if false, disable flip middleware so placement stays on the initial side (e.g. top stays top)"
 
-  attr :root_class, :string, default: "relative inline-block", doc: "class on the hook root (e.g. block w-full to size the popover content panel to a wide ancestor)"
+  attr :root_class, :string,
+    default: "relative inline-block",
+    doc:
+      "class on the hook root (e.g. block w-full to size the popover content panel to a wide ancestor)"
 
-  attr :trigger_class, :string, default: "group", doc: "class on the [data-popover-trigger] element that wraps the trigger slot"
+  attr :trigger_class, :string,
+    default: "group",
+    doc: "class on the [data-popover-trigger] element that wraps the trigger slot"
 
-  attr :class, :string, default: nil,
-    doc: "content panel classes; with flex, open :content immediately before the first child (no leading whitespace)"
+  attr :class, :string,
+    default: nil,
+    doc:
+      "content panel classes; with flex, open :content immediately before the first child (no leading whitespace)"
 
   attr :role, :string,
     default: "dialog",
     values: ["dialog", "tooltip"],
     doc: "ARIA role for the content panel"
 
-  attr :floating_width_cap_frac_md, :any, default: nil,
+  attr :floating_width_cap_frac_md, :any,
+    default: nil,
     doc:
       "md+ (768px+): min(available, viewport*frac - 80) for max-width, e.g. 0.5 in a 50/50 two-column row"
 
-  attr :use_floating_size, :boolean, default: true,
+  attr :use_floating_size, :boolean,
+    default: true,
     doc:
       "when false, the Popover hook skips Floating UI `size` middleware so the panel is not given " <>
         "viewport-derived max-width/max-height (keeps compact menus identical across hosts)"
 
   slot :trigger, required: true, doc: "the element that opens the popover"
-  slot :content, required: true, doc: "panel body; with flex on the panel, keep :content flush to the first node"
+
+  slot :content,
+    required: true,
+    doc: "panel body; with flex on the panel, keep :content flush to the first node"
 
   def popover(assigns) do
     ~H"""
@@ -911,7 +931,9 @@ defmodule QlariusWeb.CoreComponents do
       data-flip={if @flip, do: "true", else: "false"}
       data-position-strategy={@position_strategy}
       data-popover-arrow-align={@arrow_align}
-      data-floating-width-cap-frac-md={if @floating_width_cap_frac_md, do: to_string(@floating_width_cap_frac_md)}
+      data-floating-width-cap-frac-md={
+        if @floating_width_cap_frac_md, do: to_string(@floating_width_cap_frac_md)
+      }
       data-popover-use-floating-size={if @use_floating_size, do: "true", else: "false"}
       class={@root_class}
     >
