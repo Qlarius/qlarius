@@ -201,17 +201,16 @@
         phx-click="toggle_sponster_drawer"
         title={if @show_sponster_drawer, do: "Hide offers", else: "Show offers"}
         class={[
-          "[font-family:Inter,system-ui,sans-serif] flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer transition-colors md:relative md:z-10",
+          "flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer transition-colors md:relative md:z-10",
           "btn-widget btn-sm rounded-full leading-none min-h-8 h-8 px-3 py-0 gap-2 border-[1.5px] border-widget-700"
         ]}
       >
         <%= if is_authed do %>
-          <%!-- Same Inter stack as page (`html` + btn); span sets size/weight so it matches Connect label rhythm. --%>
-          <span class="text-xs font-semibold tabular-nums leading-none whitespace-nowrap shrink-0 [font-family:Inter,system-ui,sans-serif]">
+          <span class="text-xs font-semibold tabular-nums leading-none whitespace-nowrap shrink-0">
             {announcer_ads_text} ads • {announcer_offered_text}
           </span>
         <% else %>
-          <span class="font-bold text-sm [font-family:Inter,system-ui,sans-serif]">
+          <span class="font-bold text-sm">
             {if @show_sponster_drawer, do: "Hide", else: "Info"}
           </span>
         <% end %>

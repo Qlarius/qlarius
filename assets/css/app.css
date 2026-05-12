@@ -976,6 +976,15 @@
     font-family: "Inter", system-ui, sans-serif;
   }
 
+  /* Safari/WebKit often applies system UI to native form controls; inherit the
+     document stack so `.btn-widget` and other buttons match spans and body text. */
+  button,
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+  }
+
   /* Fix iOS Safari autofill text color in dark mode */
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
