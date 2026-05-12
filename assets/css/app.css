@@ -376,38 +376,39 @@
   }
 
   /*
-   * Anon READY pill (`wallet_balance` + `anon_strobe?`): gentle fill pulse on the pill
-   * (background-color — avoids ring/box-shadow stacking and WalletPulse `animation` clashes).
+   * Anon READY pill (`wallet_balance` + `anon_strobe?`): border strobe into darker
+   * Sponster green — same 2.4s tempo as Connect (`connect-strip-cta-border-strobe`).
    */
-  @keyframes wallet-strip-anon-bg-pulse-light {
+  @keyframes wallet-strip-anon-border-strobe-light {
     0%,
     100% {
-      background-color: var(--color-sponster-200);
+      border-color: var(--color-sponster-300);
     }
 
     50% {
-      background-color: var(--color-sponster-100);
+      border-color: var(--color-sponster-700);
     }
   }
 
-  @keyframes wallet-strip-anon-bg-pulse-dark {
+  @keyframes wallet-strip-anon-border-strobe-dark {
     0%,
     100% {
-      background-color: var(--color-sponster-800);
+      border-color: var(--color-sponster-500);
     }
 
     50% {
-      background-color: var(--color-sponster-700);
+      border-color: var(--color-sponster-800);
     }
   }
 
   .wallet-strip-anon-focus {
-    --wallet-anon-pill-cycle: 2.8s;
-    animation: wallet-strip-anon-bg-pulse-light var(--wallet-anon-pill-cycle) ease-in-out infinite;
+    --wallet-anon-border-cycle: 2.4s;
+    animation: wallet-strip-anon-border-strobe-light var(--wallet-anon-border-cycle) ease-in-out
+      infinite;
   }
 
   [data-theme="dark"] .wallet-strip-anon-focus {
-    animation: wallet-strip-anon-bg-pulse-dark var(--wallet-anon-pill-cycle) ease-in-out infinite;
+    animation-name: wallet-strip-anon-border-strobe-dark;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -420,31 +421,65 @@
     }
   }
 
-  /* Anon READY pill: staggered “loading” dots after the label */
-  .wallet-ready-ellipsis {
-    display: inline-flex;
-    margin-left: 0.03em;
+  /* Anon READY label: subtle scale pulse — same period as pill border strobe (inherits `--wallet-anon-border-cycle`). */
+  @keyframes wallet-ready-throb {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.03);
+    }
   }
 
-  .wallet-ready-ellipsis-dot {
+  .wallet-ready-throb {
     display: inline-block;
-    animation: wallet-ready-ellipsis-wave 1.05s ease-in-out infinite both;
+    transform-origin: center;
+    animation: wallet-ready-throb var(--wallet-anon-border-cycle, 2.4s) ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wallet-ready-throb {
+      animation: none;
+    }
+  }
+
+  /*
+   * Anon pill footer: WALLET ↔ strobing ellipsis (same slot). Ellipsis uses `scale()` only
+   * so row height stays 10px. `translateY` is in `em` (footer is 8px); period glyphs need a
+   * large negative em nudge — small values like -0.22em are only ~1px and read “too low”.
+   */
+  .wallet-footer-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.02em;
+    height: 10px;
+    line-height: 1;
+    transform: translateY(-1.15em) scale(4);
+    transform-origin: center center;
+  }
+
+  .wallet-footer-ellipsis-dot {
+    display: inline-block;
+    animation: wallet-footer-ellipsis-wave 1.4s ease-in-out infinite both;
     opacity: 0.35;
   }
 
-  .wallet-ready-ellipsis-dot:nth-child(1) {
+  .wallet-footer-ellipsis-dot:nth-child(1) {
     animation-delay: 0ms;
   }
 
-  .wallet-ready-ellipsis-dot:nth-child(2) {
+  .wallet-footer-ellipsis-dot:nth-child(2) {
     animation-delay: 160ms;
   }
 
-  .wallet-ready-ellipsis-dot:nth-child(3) {
+  .wallet-footer-ellipsis-dot:nth-child(3) {
     animation-delay: 320ms;
   }
 
-  @keyframes wallet-ready-ellipsis-wave {
+  @keyframes wallet-footer-ellipsis-wave {
     0%,
     70%,
     100% {
@@ -454,97 +489,131 @@
 
     35% {
       opacity: 1;
-      transform: translateY(-0.07em);
+      transform: translateY(-0.03em);
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .wallet-ready-ellipsis-dot {
-      animation: none;
-      opacity: 1;
-    }
-  }
-
-  /* READY + ellipsis: one full word↔dots cycle every
-     `calc(var(--wallet-anon-pill-cycle) * 2)` (twice the anon pill bg pulse). */
-  .wallet-ready-dissolve-wrap {
+  .wallet-footer-label-dissolve-wrap {
+    --wallet-footer-label-crossfade-cycle: 4.75s;
     display: inline-grid;
     place-items: center;
     grid-template-areas: "stack";
-    min-width: 5ch;
-    min-height: 1.2em;
+    min-width: 5.5ch;
+    height: 10px;
+    min-height: 10px;
+    max-height: 10px;
+    line-height: 10px;
     vertical-align: middle;
   }
 
-  .wallet-ready-dissolve-word,
-  .wallet-ready-dissolve-dots {
+  .wallet-footer-label-dissolve-word,
+  .wallet-footer-label-dissolve-dots {
     grid-area: stack;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    height: 10px;
+    min-height: 10px;
+    max-height: 10px;
+    line-height: 10px;
+    overflow: visible;
+    font-size: inherit;
   }
 
-  .wallet-ready-dissolve-word {
-    animation: wallet-ready-dissolve-word calc(var(--wallet-anon-pill-cycle, 2.8s) * 2)
-      ease-in-out infinite;
+  .wallet-footer-label-dissolve-word {
+    animation: wallet-footer-label-dissolve-word
+      var(--wallet-footer-label-crossfade-cycle, 4.75s) cubic-bezier(0.42, 0, 0.58, 1) infinite;
   }
 
-  .wallet-ready-dissolve-dots {
-    animation: wallet-ready-dissolve-dots calc(var(--wallet-anon-pill-cycle, 2.8s) * 2)
-      ease-in-out infinite;
+  .wallet-footer-label-dissolve-dots {
+    animation: wallet-footer-label-dissolve-dots
+      var(--wallet-footer-label-crossfade-cycle, 4.75s) cubic-bezier(0.42, 0, 0.58, 1) infinite;
   }
 
-  .wallet-ready-ellipsis--dissolve {
-    margin-left: 0;
-  }
-
-  @keyframes wallet-ready-dissolve-word {
+  @keyframes wallet-footer-label-dissolve-word {
     0%,
-    10% {
+    30% {
       opacity: 1;
     }
 
-    40% {
+    36% {
+      opacity: 0.65;
+    }
+
+    42% {
+      opacity: 0.2;
+    }
+
+    48% {
       opacity: 0;
     }
 
-    60% {
+    68% {
       opacity: 0;
     }
 
-    90%,
+    74% {
+      opacity: 0.2;
+    }
+
+    80% {
+      opacity: 0.65;
+    }
+
+    86%,
     100% {
       opacity: 1;
     }
   }
 
-  @keyframes wallet-ready-dissolve-dots {
+  @keyframes wallet-footer-label-dissolve-dots {
     0%,
-    10% {
+    30% {
       opacity: 0;
     }
 
-    40% {
+    36% {
+      opacity: 0.35;
+    }
+
+    42% {
+      opacity: 0.8;
+    }
+
+    48% {
       opacity: 1;
     }
 
-    60% {
+    68% {
       opacity: 1;
     }
 
-    90%,
+    74% {
+      opacity: 0.8;
+    }
+
+    80% {
+      opacity: 0.35;
+    }
+
+    86%,
     100% {
       opacity: 0;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .wallet-ready-dissolve-word {
+    .wallet-footer-ellipsis-dot {
       animation: none;
       opacity: 1;
     }
 
-    .wallet-ready-dissolve-dots {
+    .wallet-footer-label-dissolve-word {
+      animation: none;
+      opacity: 1;
+    }
+
+    .wallet-footer-label-dissolve-dots {
       animation: none;
       opacity: 0;
       visibility: hidden;
@@ -806,6 +875,28 @@
     font-family: "Inter", system-ui, sans-serif;
   }
 
+  /* Qlink Sponster drawer (anon): chevron nudge toward fixed wallet strip */
+  @keyframes qlink-sponster-drawer-cta-chevron-nudge {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(5px);
+    }
+  }
+
+  .qlink-sponster-drawer-cta-chevron {
+    animation: qlink-sponster-drawer-cta-chevron-nudge 1.75s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .qlink-sponster-drawer-cta-chevron {
+      animation: none;
+    }
+  }
+
   /* Widget button — ghost variant. Transparent at rest, soft widget wash
      on hover. Use for secondary/tertiary actions (e.g. "See all options"
      links sitting next to a primary .btn-widget CTA). */
@@ -922,16 +1013,18 @@
     animation: wallet-pulse 350ms ease-in-out;
   }
 
-  /* If both apply: bg pulse + scale pulse (different properties). */
+  /* If both apply: border strobe + one-shot scale pulse (different properties). */
   .wallet-strip-anon-focus.wallet-pulse {
     animation:
-      wallet-strip-anon-bg-pulse-light var(--wallet-anon-pill-cycle) ease-in-out infinite,
+      wallet-strip-anon-border-strobe-light var(--wallet-anon-border-cycle, 2.4s) ease-in-out
+        infinite,
       wallet-pulse 350ms ease-in-out;
   }
 
   [data-theme="dark"] .wallet-strip-anon-focus.wallet-pulse {
     animation:
-      wallet-strip-anon-bg-pulse-dark var(--wallet-anon-pill-cycle) ease-in-out infinite,
+      wallet-strip-anon-border-strobe-dark var(--wallet-anon-border-cycle, 2.4s) ease-in-out
+        infinite,
       wallet-pulse 350ms ease-in-out;
   }
 

@@ -252,20 +252,6 @@
       style="left: 50%; transform: translateX(-50%); width: min(100%, 800px); box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);"
     >
       <% drawer_authed = authed?(@current_scope) %>
-      <% drawer_connect_on_click =
-           if(!drawer_authed && QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
-             do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
-             else: nil
-           ) %>
-      <% {drawer_connect_href, drawer_connect_link_target} =
-           cond do
-             drawer_connect_on_click ->
-               {nil, "_top"}
-             QlariusWeb.QlinkPage.Show.on_qlinkin_bio_host?(assigns) ->
-               {@interact_login_url, "_top"}
-             true ->
-               {~p"/login?return_to=/@#{@page.alias}", "_self"}
-           end %>
 
       <%!-- Drawer header (wallet + Connect live on announcer bar when anonymous) --%>
       <.sponster_drawer_header
@@ -469,26 +455,16 @@
         <%!-- Disclaimer only when ads surface is relevant --%>
         <.ads_disclaimer_bar class="flex-shrink-0" />
       <% else %>
-        <div class="flex-shrink-0 bg-base-200 border-t border-base-300 px-4 py-3 flex justify-center">
-          <%= if drawer_connect_on_click do %>
-            <button
-              type="button"
-              phx-click={drawer_connect_on_click}
-              class="btn-widget btn-md rounded-full leading-none min-h-11 w-full max-w-sm gap-2 border-[1.5px] border-widget-700 inline-flex items-center justify-center"
-            >
-              <.icon name="hero-wallet" class="w-5 h-5 shrink-0" />
-              <span class="font-bold text-base">Connect your wallet</span>
-            </button>
-          <% else %>
-            <.link
-              href={drawer_connect_href}
-              target={drawer_connect_link_target}
-              class="btn-widget btn-md rounded-full leading-none min-h-11 w-full max-w-sm gap-2 border-[1.5px] border-widget-700 inline-flex items-center justify-center"
-            >
-              <.icon name="hero-wallet" class="w-5 h-5 shrink-0" />
-              <span class="font-bold text-base">Connect your wallet</span>
-            </.link>
-          <% end %>
+        <div class="flex-shrink-0 bg-base-200 border-t border-base-300 px-4 pt-3 flex flex-col items-center gap-1 text-center">
+          <p class="text-sm sm:text-base text-base-content font-medium leading-snug max-w-[min(28rem,calc(100%-2rem))]">
+            Ready to try it out? Connect and sign up for free. Your wallet awaits.
+          </p>
+          <div class="flex justify-center pb-2" aria-hidden="true">
+            <.icon
+              name="hero-chevron-down"
+              class="w-7 h-7 text-sponster-600 qlink-sponster-drawer-cta-chevron"
+            />
+          </div>
         </div>
       <% end %>
 

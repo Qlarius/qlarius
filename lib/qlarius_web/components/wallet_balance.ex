@@ -14,13 +14,12 @@ defmodule QlariusWeb.Components.WalletBalance do
   attr :id, :string, default: "wallet-balance"
   attr :footer_label, :string, default: nil
   attr :value_text, :string, default: nil
-  attr :anon_strobe?, :boolean, default: false
-  attr :compact?, :boolean, default: false
-
-  attr :anon_ready_ellipsis?, :boolean, default: false,
+  attr :anon_strobe?, :boolean, default: false,
     doc:
-      "When true with `value_text`, crossfades the label (e.g. READY) with animated ellipsis " <>
-        "in the same slot (anon waiting state)."
+      "When true (e.g. anon wallet strip), applies `wallet-strip-anon-focus`: Sponster border strobe " <>
+        "in sync with Connect CTA tempo. With `value_text`, READY gets a subtle scale throb; with " <>
+        "`footer_label` as well, the footer label (e.g. WALLET) crossfades with strobing ellipsis."
+  attr :compact?, :boolean, default: false
 
   def wallet_balance(assigns) do
     ~H"""
@@ -42,18 +41,9 @@ defmodule QlariusWeb.Components.WalletBalance do
     >
       <span class="font-bold leading-tight inline-flex flex-wrap items-center justify-center gap-0">
         <%= if @value_text not in [nil, ""] do %>
-          <%= if @anon_ready_ellipsis? do %>
-            <span class="wallet-ready-dissolve-wrap whitespace-nowrap">
-              <span class="wallet-ready-dissolve-word">
-                {String.trim_trailing(@value_text, ".")}
-              </span>
-              <span class="wallet-ready-dissolve-dots" aria-hidden="true">
-                <span class="wallet-ready-ellipsis wallet-ready-ellipsis--dissolve">
-                  <span class="wallet-ready-ellipsis-dot">.</span>
-                  <span class="wallet-ready-ellipsis-dot">.</span>
-                  <span class="wallet-ready-ellipsis-dot">.</span>
-                </span>
-              </span>
+          <%= if @anon_strobe? do %>
+            <span class="wallet-ready-throb whitespace-nowrap">
+              {String.trim_trailing(@value_text, ".")}
             </span>
           <% else %>
             {@value_text}
@@ -63,12 +53,28 @@ defmodule QlariusWeb.Components.WalletBalance do
         <% end %>
       </span>
       <%= if @footer_label not in [nil, ""] do %>
-        <span
-          class="text-base-content/40 font-medium"
-          style="font-size: 8px; line-height: 10px; letter-spacing: 0.2px; margin-top: -4px;"
-        >
-          {@footer_label}
-        </span>
+        <%= if @anon_strobe? && @value_text not in [nil, ""] do %>
+          <span
+            class="wallet-footer-label-dissolve-wrap text-base-content/40 font-medium"
+            style="font-size: 8px; line-height: 10px; letter-spacing: 0.2px; margin-top: -4px;"
+          >
+            <span class="wallet-footer-label-dissolve-word">{@footer_label}</span>
+            <span class="wallet-footer-label-dissolve-dots" aria-hidden="true">
+              <span class="wallet-footer-ellipsis">
+                <span class="wallet-footer-ellipsis-dot">.</span>
+                <span class="wallet-footer-ellipsis-dot">.</span>
+                <span class="wallet-footer-ellipsis-dot">.</span>
+              </span>
+            </span>
+          </span>
+        <% else %>
+          <span
+            class="text-base-content/40 font-medium"
+            style="font-size: 8px; line-height: 10px; letter-spacing: 0.2px; margin-top: -4px;"
+          >
+            {@footer_label}
+          </span>
+        <% end %>
       <% end %>
     </span>
     """
