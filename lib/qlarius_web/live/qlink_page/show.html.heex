@@ -193,29 +193,31 @@
       <% end %>
 
       <%!--
-        Drawer toggle: authed = pill (widget border + pale fill) with stats + chevron,
-        Tiqit-chip style. Anon = Show/Hide pill + chevron.
+        Drawer toggle: same control stack as arcade `wallet_strip` Top up trigger
+        (`btn-widget btn-md rounded-full leading-none`), plus emphasis + thicker
+        border; green double chevron matches legacy announcer (`all-animate`).
       --%>
       <button
         type="button"
+        id="qlink-sponster-drawer-toggle"
         phx-click="toggle_sponster_drawer"
         title={if @show_sponster_drawer, do: "Hide offers", else: "Show offers"}
         class={[
-          "flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer transition-colors md:relative md:z-10",
-          "btn-widget btn-sm rounded-full leading-none min-h-8 h-8 px-3 py-0 gap-2 border-[1.5px] border-widget-700"
+          "qlink-sponster-drawer-toggle btn-widget btn-widget-emphasis btn-md rounded-full leading-none border-[1.5px]",
+          "inline-flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer transition-colors md:relative md:z-10"
         ]}
       >
         <%= if is_authed do %>
-          <span class="text-xs font-semibold tabular-nums leading-none whitespace-nowrap shrink-0">
+          <span class="font-bold tabular-nums whitespace-nowrap shrink-0">
             {announcer_ads_text} ads • {announcer_offered_text}
           </span>
         <% else %>
-          <span class="font-bold text-sm">
+          <span class="font-bold text-sm whitespace-nowrap">
             {if @show_sponster_drawer, do: "Hide", else: "Info"}
           </span>
         <% end %>
         <span class={[
-          "hero-chevron-double-up bg-sponster-600 transition-transform duration-200 shrink-0",
+          "hero-chevron-double-up all-animate bg-sponster-600 shrink-0",
           if(@show_sponster_drawer, do: "rotate-180")
         ]} />
       </button>

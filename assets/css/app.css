@@ -799,6 +799,13 @@
     @apply border-widget-300;
   }
 
+  /* Qlink Sponster announcer drawer toggle: explicit Inter so the fixed bar
+     control never briefly shows system UI after LiveView patches (native
+     `<button>` + inheritance timing). Matches wallet-strip Top up typography. */
+  .qlink-sponster-drawer-toggle {
+    font-family: "Inter", system-ui, sans-serif;
+  }
+
   /* Widget button — ghost variant. Transparent at rest, soft widget wash
      on hover. Use for secondary/tertiary actions (e.g. "See all options"
      links sitting next to a primary .btn-widget CTA). */
