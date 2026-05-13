@@ -118,8 +118,8 @@
                     - Anon: Buy is clickable; the LV's
                       `select-tiqit-class` handler short-circuits via
                       `maybe_intercept_for_unauth/1` to open the
-                      Connect-wallet modal. "All purchase options" is
-                      available for everyone.
+                      Connect-wallet modal. The ellipsis control opens
+                      all purchase options for everyone.
                   Wallet strip: `wallet_strip_or_connect/1` renders real
                   balance for authed, `$--.--` + Connect button for anon.
                 --%>
@@ -127,27 +127,31 @@
                   <% is_authed = authed?(@current_scope) %>
                   <% can_afford = is_authed && Decimal.compare(@balance, @default_tiqit_class.price) != :lt %>
                   <% btn_enabled = !is_authed || can_afford %>
-                  <button
-                    phx-click="select-tiqit-class"
-                    phx-value-tiqit-class-id={@default_tiqit_class.id}
-                    disabled={is_authed && !can_afford}
-                    class={"btn-widget btn-widget-emphasis btn-lg rounded-full #{if btn_enabled, do: "", else: "btn-disabled"}"}
-                  >
-                    {if Decimal.eq?(@default_tiqit_class.price, 0), do: "Get", else: "Buy"} Tiqit •
-                    <span class="font-bold">{format_usd(@default_tiqit_class.price, zero_free: true)}</span>
-                  </button>
+                  <div class="flex w-full flex-row items-center gap-1.5">
+                    <button
+                      phx-click="select-tiqit-class"
+                      phx-value-tiqit-class-id={@default_tiqit_class.id}
+                      disabled={is_authed && !can_afford}
+                      class={"btn-widget btn-widget-emphasis btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap #{if btn_enabled, do: "", else: "btn-disabled"}"}
+                    >
+                      {if Decimal.eq?(@default_tiqit_class.price, 0), do: "Get", else: "Buy"}{" "}{String.capitalize(to_string(@group.catalog.piece_type))} •
+                      <span class="font-bold">{format_usd(@default_tiqit_class.price, zero_free: true)}</span>
+                    </button>
+                    <button
+                      type="button"
+                      phx-click="browse-tiqit-options"
+                      class="btn-widget flex h-14 w-10 shrink-0 items-center justify-center rounded-full border-widget-200 !p-0"
+                      aria-label="More purchase options"
+                      title="More purchase options"
+                    >
+                      <.icon name="hero-ellipsis-horizontal" class="h-5 w-5 shrink-0" />
+                    </button>
+                  </div>
                   <%= if is_authed && !can_afford do %>
                     <div class="text-sm text-warning text-center">
                       Not enough funds — top up below.
                     </div>
                   <% end %>
-                  <button
-                    type="button"
-                    phx-click="browse-tiqit-options"
-                    class="btn-widget-ghost btn-sm rounded-full shrink-0"
-                  >
-                    All purchase options
-                  </button>
                   <.wallet_strip_or_connect
                     id="wallet-balance-arcade-single-main"
                     scope={@current_scope}
@@ -193,28 +197,58 @@
 >
   <div class="flex flex-col space-y-4 p-8">
     <% desc = purchase_description(@selected_tiqit_class, @group) %>
-    <div class="relative">
-      <img
-        src={purchase_image_url(desc.scope, @piece, @group)}
-        alt={if desc.scope == :piece, do: @piece.title, else: @group.title}
-        class="max-h-30 rounded-lg mx-auto"
-      />
-    </div>
-    <%= if desc.scope == :piece do %>
-      <h3 class="text-base-content/60 text-center mb-0">
-        {@group.title}
-      </h3>
-      <h2 class="text-xl font-bold text-base-content text-center">
-        {@piece.title}
-      </h2>
-    <% else %>
-      <h2 class="text-xl font-bold text-base-content text-center">
-        {@group.title}
-      </h2>
-    <% end %>
     <%= if assigns[:options_modal] do %>
-      <.tiqit_class_grid piece={@piece} group={@group} balance={@balance} tiqit_up_group_credit={@tiqit_up_group_credit} tiqit_up_catalog_credit={@tiqit_up_catalog_credit} />
+      <h2 id="confirm-purchase-modal-title" class="text-xl font-bold text-base-content text-center">
+        Tiqit Purchase Options
+      </h2>
+      <div class="flex flex-row gap-4 items-start">
+        <div class="relative shrink-0">
+          <img
+            src={purchase_image_url(desc.scope, @piece, @group)}
+            alt={if desc.scope == :piece, do: @piece.title, else: @group.title}
+            class="h-28 w-28 object-cover rounded-lg border border-base-300"
+          />
+        </div>
+        <div class="min-w-0 flex-1 text-left space-y-1">
+          <%= if desc.scope == :piece do %>
+            <p class="text-sm text-base-content/60">{@group.title}</p>
+            <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
+              {@piece.title}
+            </h3>
+          <% else %>
+            <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
+              {@group.title}
+            </h3>
+          <% end %>
+        </div>
+      </div>
+      <.tiqit_class_grid
+        piece={@piece}
+        group={@group}
+        balance={@balance}
+        tiqit_up_group_credit={@tiqit_up_group_credit}
+        tiqit_up_catalog_credit={@tiqit_up_catalog_credit}
+      />
     <% else %>
+      <div class="relative">
+        <img
+          src={purchase_image_url(desc.scope, @piece, @group)}
+          alt={if desc.scope == :piece, do: @piece.title, else: @group.title}
+          class="max-h-30 rounded-lg mx-auto"
+        />
+      </div>
+      <%= if desc.scope == :piece do %>
+        <h3 class="text-base-content/60 text-center mb-0">
+          {@group.title}
+        </h3>
+        <h2 class="text-xl font-bold text-base-content text-center">
+          {@piece.title}
+        </h2>
+      <% else %>
+        <h2 class="text-xl font-bold text-base-content text-center">
+          {@group.title}
+        </h2>
+      <% end %>
       <p class="text-base-content/60 text-center">
         <%= if @selected_tiqit_class.duration_hours do %>
           You are purchasing access to the
