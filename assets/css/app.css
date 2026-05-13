@@ -897,6 +897,95 @@
     }
   }
 
+  /*
+   * Qlink public profile (`QlinkPage.Show`): WebKit often keeps `:hover` after
+   * a tap and paints tap highlights / focus rings on links and Daisy `.btn`s.
+   * Gate hovers to fine pointers, clear tap flash, and normalize
+   * `:focus:not(:focus-visible)` so controls return to their resting look.
+   */
+  .qlink-public-page {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .qlink-public-page a.qlink-link-card:hover {
+      @apply bg-base-300;
+    }
+
+    .qlink-public-page a.qlink-social-icon:hover {
+      @apply bg-base-200;
+    }
+
+    .qlink-public-page a.qlink-social-icon:hover .qlink-social-icon-img {
+      @apply opacity-100;
+    }
+
+    .qlink-public-page a.qlink-footer-mark:hover {
+      @apply shadow-md opacity-90;
+    }
+
+    .qlink-public-page .qlink-split-drawer-close:hover {
+      @apply bg-base-200;
+    }
+
+    .qlink-public-page .qlink-hover-scale:hover {
+      @apply scale-105;
+    }
+
+    .qlink-public-page .split-tab-trigger:hover {
+      @apply bg-gray-600;
+    }
+  }
+
+  .qlink-public-page .split-tab-trigger:focus:not(:focus-visible) {
+    @apply bg-gray-700;
+    outline: none;
+  }
+
+  .qlink-public-page a.qlink-link-card:focus:not(:focus-visible) {
+    @apply bg-base-200;
+    outline: none;
+    box-shadow: none;
+  }
+
+  .qlink-public-page a.qlink-footer-mark:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  .qlink-public-page .qlink-split-drawer-close:focus:not(:focus-visible) {
+    @apply bg-base-100;
+    outline: none;
+  }
+
+  .qlink-public-page .btn:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  .qlink-public-page .btn.btn-widget:focus:not(:focus-visible) {
+    @apply bg-widget-100 text-widget-900 border-widget-300;
+    box-shadow: none;
+  }
+
+  .qlink-public-page .btn.btn-widget.btn-widget-emphasis:focus:not(:focus-visible) {
+    @apply border-widget-700;
+  }
+
+  .qlink-public-page .btn.btn-widget-ghost:focus:not(:focus-visible) {
+    @apply bg-transparent text-base-content/60 border-transparent shadow-none;
+  }
+
+  .qlink-public-page .btn.btn-ghost:focus:not(:focus-visible) {
+    @apply border-transparent bg-transparent shadow-none;
+  }
+
+  .qlink-public-page .btn.btn-primary:focus:not(:focus-visible) {
+    box-shadow: none;
+  }
+
+  .qlink-public-page .btn.btn-error:focus:not(:focus-visible) {
+    box-shadow: none;
+  }
+
   /* Widget button — ghost variant. Transparent at rest, soft widget wash
      on hover. Use for secondary/tertiary actions (e.g. "See all options"
      links sitting next to a primary .btn-widget CTA). */

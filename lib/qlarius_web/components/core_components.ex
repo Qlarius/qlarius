@@ -684,9 +684,9 @@ defmodule QlariusWeb.CoreComponents do
       
     <!-- Modal Container -->
       <!--
-        Full-viewport scroll area. Centering uses `flex justify-center` on the
-        inner row; the card wrapper uses `w-full max-w-[min(56rem,96%)]` so wide
-        content cannot spill past the viewport on narrow IABs.
+        Centered dialog: width is `min(100% of scrollport, max-content)` so narrow
+        UIs (e.g. InstaTip confirm) stay compact, with `max-w-[min(56rem,96%)]`
+        capping wide forms/tables on desktop and in IABs.
       -->
       <div
         class="fixed inset-0 z-10 overflow-y-auto"
@@ -697,13 +697,7 @@ defmodule QlariusWeb.CoreComponents do
         tabindex="0"
       >
         <div class="flex min-h-full items-center justify-center p-3 sm:p-4">
-          <!--
-            `w-full` + `min-w-0` keeps wide grids/tables inside the viewport;
-            `max-w-[min(56rem,96%)]` matches the old `max-w-4xl` cap on desktop
-            and caps width at ~96% of the dialog scrollport on small screens /
-            in-app browsers so the card and close control stay in view.
-          -->
-          <div class="w-full min-w-0 max-w-[min(56rem,96%)] mx-auto">
+          <div class="mx-auto w-[min(100%,max-content)] min-w-0 max-w-[min(56rem,96%)]">
             <!-- Modal Card -->
             <.focus_wrap
               id={"#{@id}-container"}

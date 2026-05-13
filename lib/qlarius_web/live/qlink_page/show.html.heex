@@ -1,5 +1,5 @@
 <div
-  class="min-h-screen"
+  class="min-h-screen qlink-public-page"
   data-theme={get_theme(@page)}
   style={get_background_style(@page)}
 >
@@ -37,14 +37,14 @@
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              class="btn btn-circle btn-ghost hover:bg-base-200"
+              class="qlink-social-icon btn btn-circle btn-ghost outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
               title={String.capitalize(platform)}
             >
               <%= if icon_path do %>
                 <img
                   src={icon_path}
                   alt={String.capitalize(platform)}
-                  class="w-6 h-6 opacity-80 hover:opacity-100 transition-opacity"
+                  class="qlink-social-icon-img w-6 h-6 opacity-80 transition-opacity"
                 />
               <% else %>
                 <.icon name="hero-link" class="w-6 h-6" />
@@ -119,7 +119,7 @@
         href="https://qadabra.co/qlink"
         target="_blank"
         rel="noopener noreferrer"
-        class="inline-block cursor-pointer mb-2 rounded-lg bg-white px-3 py-1.5 shadow-sm transition-all duration-200 ease-out hover:shadow-md hover:opacity-90 active:scale-[0.99]"
+        class="qlink-footer-mark inline-block cursor-pointer mb-2 rounded-lg bg-white px-3 py-1.5 shadow-sm transition-all duration-200 ease-out active:scale-[0.99] outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
       >
         <img
           src="/images/qlink_logo_color_horiz.svg"
@@ -204,7 +204,8 @@
         title={if @show_sponster_drawer, do: "Hide offers", else: "Show offers"}
         class={[
           "qlink-sponster-drawer-toggle btn-widget btn-widget-emphasis btn-md rounded-full leading-none border-[1.5px]",
-          "inline-flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer transition-colors md:relative md:z-10"
+          "inline-flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer transition-colors md:relative md:z-10",
+          "outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/40"
         ]}
       >
         <%= if is_authed do %>
@@ -375,7 +376,8 @@
                 </div>
                 <button
                   phx-click="toggle_split_drawer"
-                  class="flex items-center justify-center w-10 h-10 rounded-full border border-base-300 bg-base-100 shadow hover:bg-base-200 cursor-pointer transition-colors"
+                  type="button"
+                  class="qlink-split-drawer-close flex items-center justify-center w-10 h-10 rounded-full border border-base-300 bg-base-100 shadow cursor-pointer transition-colors outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
                 >
                   <.icon name="hero-chevron-down" class="w-6 h-6 text-base-content" />
                 </button>
@@ -487,7 +489,11 @@
             <h2 class="text-lg font-bold">
               <%= @current_video_offer.media_run.media_piece.ad_category.ad_category_name %>
             </h2>
-            <button class="btn btn-sm btn-circle btn-ghost" phx-click="close_video_player">
+            <button
+              type="button"
+              class="btn btn-sm btn-circle btn-ghost outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
+              phx-click="close_video_player"
+            >
               ✕
             </button>
           </div>
@@ -571,7 +577,7 @@
             type="button"
             phx-click="open_auth_sheet"
             phx-value-brand="sponster"
-            class="btn btn-primary btn-lg rounded-full shadow-2xl gap-2 hover:scale-105 transition-transform"
+            class="qlink-hover-scale btn btn-primary btn-lg rounded-full shadow-2xl gap-2 transition-transform outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-content/40"
           >
             <.icon name="hero-wallet" class="w-6 h-6" />
             <span class="font-semibold">Connect your wallet</span>
@@ -579,7 +585,7 @@
         <% QlariusWeb.QlinkPage.Show.on_qlinkin_bio_host?(assigns) -> %>
           <.link
             href={@interact_url}
-            class="btn btn-primary btn-lg rounded-full shadow-2xl gap-2 hover:scale-105 transition-transform"
+            class="qlink-hover-scale btn btn-primary btn-lg rounded-full shadow-2xl gap-2 transition-transform outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-content/40"
           >
             <.icon name="hero-wallet" class="w-6 h-6" />
             <span class="font-semibold">Connect your wallet</span>
@@ -587,7 +593,7 @@
         <% true -> %>
           <.link
             navigate={~p"/login"}
-            class="btn btn-primary btn-lg rounded-full shadow-2xl gap-2 hover:scale-105 transition-transform"
+            class="qlink-hover-scale btn btn-primary btn-lg rounded-full shadow-2xl gap-2 transition-transform outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-content/40"
           >
             <.icon name="hero-wallet" class="w-6 h-6" />
             <span class="font-semibold">Connect your wallet</span>
@@ -639,12 +645,23 @@
         <div class="p-6">
           <p class="py-4">You will leave this session on this page. You can connect again anytime.</p>
           <div class="modal-action">
-            <button class="btn btn-ghost" phx-click="cancel_logout">Cancel</button>
+            <button
+              type="button"
+              class="btn btn-ghost outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
+              phx-click="cancel_logout"
+            >
+              Cancel
+            </button>
             <form action={~p"/logout"} method="post">
               <input type="hidden" name="_method" value="delete" />
               <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
               <input type="hidden" name="return_to" value={"/@" <> @page.alias} />
-              <button type="submit" class="btn btn-error">Disconnect</button>
+              <button
+                type="submit"
+                class="btn btn-error outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-error-content/50"
+              >
+                Disconnect
+              </button>
             </form>
           </div>
         </div>

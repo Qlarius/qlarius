@@ -145,17 +145,17 @@ defmodule QlariusWeb.InstaTipComponents do
           </div>
         </div>
 
-        <div class="flex gap-3">
+        <div class="flex gap-3 flex-wrap justify-center">
           <button
             type="button"
             phx-click="confirm_insta_tip"
             phx-value-amount={@amount}
             phx-value-recipient-id={@recipient_id}
-            class="btn-widget flex-1 font-bold rounded-full"
+            class="btn-widget min-w-[7rem] font-bold rounded-full px-8"
           >
             TIP
           </button>
-          <button type="button" phx-click="close-insta-tip-modal" class="btn btn-ghost flex-1">
+          <button type="button" phx-click="close-insta-tip-modal" class="btn btn-ghost">
             Cancel
           </button>
         </div>

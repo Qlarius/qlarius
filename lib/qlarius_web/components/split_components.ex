@@ -39,8 +39,7 @@ defmodule QlariusWeb.Components.SplitComponents do
         <div class="p-6">
           <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
             <span class="block">
-              Currently splitting
-              <strong class="text-widget-800">{@split_amount}%</strong>
+              Currently splitting <strong class="text-widget-800">{@split_amount}%</strong>
               of ad earnings with this creator. Edit split amount below.
             </span>
           </p>
@@ -70,9 +69,10 @@ defmodule QlariusWeb.Components.SplitComponents do
   def split_tab(assigns) do
     ~H"""
     <button
+      type="button"
       phx-click="toggle_split_drawer"
       class={[
-        "flex items-center gap-2 bg-gray-700 text-white px-5 py-2 rounded-tl-3xl cursor-pointer select-none hover:bg-gray-600 transition-colors",
+        "split-tab-trigger flex items-center gap-2 bg-gray-700 text-white px-5 py-2 rounded-tl-3xl cursor-pointer select-none transition-colors outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40",
         @class
       ]}
     >
@@ -220,7 +220,9 @@ defmodule QlariusWeb.Components.SplitComponents do
                 <img
                   src={
                     if @recipient.graphic_url do
-                      QlariusWeb.Uploaders.RecipientBrandImage.url({@recipient.graphic_url, @recipient})
+                      QlariusWeb.Uploaders.RecipientBrandImage.url(
+                        {@recipient.graphic_url, @recipient}
+                      )
                     else
                       "/images/tipjar_love_default.png"
                     end
@@ -241,7 +243,8 @@ defmodule QlariusWeb.Components.SplitComponents do
           <% end %>
         </div>
         <%!-- Divider and spacing above disclaimer (mobile) --%>
-        <div class="border-divider-color my-4 w-full max-w-[280px] mx-auto md:hidden flex-shrink-0"></div>
+        <div class="border-divider-color my-4 w-full max-w-[280px] mx-auto md:hidden flex-shrink-0">
+        </div>
       </div>
     </div>
     """

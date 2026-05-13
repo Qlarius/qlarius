@@ -1178,7 +1178,7 @@ defmodule QlariusWeb.QlinkPage.Show do
       href={@link.url}
       target="_blank"
       rel="noopener noreferrer"
-      class="block w-full rounded-full bg-base-200 hover:bg-base-300 transition-colors border border-neutral/30"
+      class="qlink-link-card block w-full rounded-full bg-base-200 border border-neutral/30 transition-colors active:bg-base-300 outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
       style="padding: 1.25rem 1.5rem !important;"
     >
       <div class="flex items-center gap-4 w-full">
@@ -1613,6 +1613,7 @@ defmodule QlariusWeb.QlinkPage.Show do
               target="_blank"
               title={@link.title || "TikTok video"}
               href={"https://www.tiktok.com/#{@video_id}"}
+              class="outline-none focus:outline-none focus-visible:underline"
             >
               View on TikTok
             </a>
