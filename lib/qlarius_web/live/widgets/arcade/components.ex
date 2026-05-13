@@ -268,7 +268,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           position_strategy="fixed"
           trigger_type="click"
           use_floating_size={false}
-          class="w-56 max-w-[calc(100vw-1.5rem)] min-w-0 px-3.5 pt-3 pb-3 shadow-xl"
+          class="w-max max-w-[min(28rem,calc(100vw-1.5rem))] min-w-[17rem] px-4 pt-3.5 pb-4 shadow-xl"
         >
           <:trigger>
             <button class="btn-widget btn-md rounded-full leading-none">
@@ -279,14 +279,14 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
             </button>
           </:trigger>
           <:content>
-            <div class="space-y-2.5 w-full">
+            <div class="flex w-full flex-col gap-3">
               <p class="text-xs font-semibold text-widget-600 uppercase tracking-wide text-center">
                 Top up wallet
               </p>
               <button
                 type="button"
                 id={"#{@id}-sponster-open"}
-                class="btn-widget btn-widget-emphasis btn-md btn-block justify-start gap-2 rounded-full min-h-12"
+                class="btn-widget btn-widget-emphasis btn-md btn-block flex min-h-14 w-full flex-row items-center justify-between gap-3 rounded-full px-4 py-3.5"
                 phx-hook="WalletTopupOpenSponster"
                 data-popover-id={"#{@id}-topup"}
                 data-drawer-delay-ms="280"
@@ -295,10 +295,10 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                 <img
                   src="/images/Sponster_logo_color_horiz.svg"
                   alt="Sponster"
-                  class="h-5 w-auto max-w-[6.5rem] shrink-0 object-contain object-left"
+                  class="h-6 w-auto max-w-[8rem] shrink-0 object-contain object-left"
                   decoding="async"
                 />
-                <span class="ml-auto text-xs opacity-90 shrink-0 whitespace-nowrap">
+                <span class="shrink-0 whitespace-nowrap text-end text-sm font-semibold tabular-nums opacity-90">
                   {@ads_count} ads • {if @offered_amount,
                     do: format_usd(@offered_amount),
                     else: "$0.00"}
@@ -307,30 +307,37 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
               <button
                 :if={@daily_gift_available?}
                 type="button"
-                class="btn-widget btn-widget-emphasis btn-md btn-block justify-start gap-2 rounded-full min-h-12"
+                class="btn-widget btn-widget-emphasis btn-md btn-block flex min-h-14 w-full flex-row items-center justify-between gap-3 rounded-full px-4 py-3.5"
                 phx-click="daily-gift"
               >
-                <.icon name="hero-gift" class="w-5 h-5 shrink-0" /> Daily gift
-                <span class="ml-auto text-xs opacity-90 shrink-0">$0.50</span>
+                <span class="flex min-w-0 flex-row items-center gap-2">
+                  <.icon name="hero-gift" class="h-6 w-6 shrink-0" />
+                  <span class="text-sm font-medium">Daily gift</span>
+                </span>
+                <span class="shrink-0 text-sm font-semibold tabular-nums opacity-90">$0.50</span>
               </button>
               <button
                 :if={not @daily_gift_available?}
                 type="button"
-                class="btn-widget btn-widget-emphasis btn-md btn-block justify-start gap-2 rounded-full min-h-12 btn-disabled cursor-not-allowed opacity-80"
+                class="btn-widget btn-widget-emphasis btn-md btn-block flex min-h-14 w-full flex-row items-center justify-between gap-3 rounded-full px-4 py-3.5 btn-disabled cursor-not-allowed opacity-80"
                 disabled
                 title="You can claim again 24 hours after your last daily gift"
               >
-                <.icon name="hero-gift" class="w-5 h-5 shrink-0" /> Daily gift
-                <span class="ml-auto text-xs opacity-90 shrink-0">$0.50</span>
+                <span class="flex min-w-0 flex-row items-center gap-2">
+                  <.icon name="hero-gift" class="h-6 w-6 shrink-0" />
+                  <span class="text-sm font-medium">Daily gift</span>
+                </span>
+                <span class="shrink-0 text-sm font-semibold tabular-nums opacity-90">$0.50</span>
               </button>
               <button
                 type="button"
                 disabled
                 aria-disabled="true"
                 title="Coming soon"
-                class="btn-widget btn-md btn-block justify-start gap-2 rounded-full min-h-12 btn-disabled cursor-not-allowed opacity-70"
+                class="btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5 btn-disabled cursor-not-allowed opacity-70"
               >
-                <.icon name="hero-credit-card" class="w-5 h-5 shrink-0" /> Credit / Debit
+                <.icon name="hero-credit-card" class="h-6 w-6 shrink-0" />
+                <span class="text-sm font-medium">Credit / Debit</span>
               </button>
             </div>
           </:content>
