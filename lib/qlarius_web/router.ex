@@ -439,6 +439,10 @@ defmodule QlariusWeb.Router do
            Creators.ContentPieceLive.Form,
            :new
 
+      live "/creators/content_groups/:content_group_id/youtube_import",
+           Creators.ContentGroupLive.YoutubeImport,
+           :index
+
       live "/creators/content_pieces/:id", Creators.ContentPieceLive.Show, :show
       live "/creators/content_pieces/:id/edit", Creators.ContentPieceLive.Form, :edit
 
@@ -461,7 +465,7 @@ defmodule QlariusWeb.Router do
 
     live_session :creators,
       on_mount: [
-        # {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.UserAuth, :mount_current_scope},
         {QlariusWeb.Layouts, :set_current_path}
       ] do
       live "/content_pieces/:id", ContentPieceLive.Show, :show

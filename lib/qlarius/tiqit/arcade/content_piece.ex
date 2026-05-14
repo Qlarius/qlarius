@@ -6,6 +6,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
   alias Qlarius.Tiqit.Arcade.TiqitClass
 
   schema "content_pieces" do
+    field :display_order, :integer, default: 0
     field :title, :string
     field :description, :string
     field :date_published, :date
@@ -17,6 +18,11 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
     field :price_default, :decimal, default: Decimal.new("0.00")
     field :image, :string
 
+    field :source_provider, :string
+    field :source_url, :string
+    field :source_imported_at, :utc_datetime
+    field :archived_at, :utc_datetime
+
     has_many :tiqit_classes, TiqitClass, on_replace: :delete
     belongs_to :content_group, ContentGroup
 
@@ -26,6 +32,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
   def changeset(content, attrs) do
     content
     |> cast(attrs, [
+      :display_order,
       :title,
       :description,
       :date_published,
@@ -40,6 +47,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
       :date_published
     ])
     |> validate_length(:title, max: 200)
+    |> validate_number(:display_order, greater_than_or_equal_to: 0)
     |> cast_assoc(
       :tiqit_classes,
       drop_param: :tiqit_class_drop,
@@ -52,6 +60,30 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
     content
     |> changeset(attrs)
     |> put_change(:image, attrs["image"])
+  end
+
+  @doc """
+  Changeset used by the YouTube import flow. Casts metadata fields the
+  manual creator form does not, including `:youtube_id`, `:image`, and
+  the `:source_*` provenance trio.
+  """
+  def import_changeset(content, attrs) do
+    content
+    |> cast(attrs, [
+      :display_order,
+      :title,
+      :description,
+      :date_published,
+      :length,
+      :image,
+      :youtube_id,
+      :source_provider,
+      :source_url,
+      :source_imported_at
+    ])
+    |> validate_required([:title, :youtube_id, :source_provider])
+    |> validate_length(:title, max: 200)
+    |> validate_number(:display_order, greater_than_or_equal_to: 0)
   end
 
   def default_tiqit_class(%__MODULE__{tiqit_classes: []} = _piece), do: nil

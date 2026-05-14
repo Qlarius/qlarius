@@ -12,7 +12,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
 
   # EDIT
   @impl true
-  def handle_params(%{"id" => id}, _uri, socket) do
+  def handle_params(%{"id" => id}, _uri, %{assigns: %{live_action: :edit}} = socket) do
     catalog =
       Creators.get_catalog!(id)
       |> Repo.preload(:tiqit_classes)
@@ -38,9 +38,11 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
     |> noreply()
   end
 
-  # NEW
+  # NEW — supports both `:creator_id` (creator self-serve route) and
+  # `:id` (admin route nested under `resources "/", CreatorController`).
   @impl true
-  def handle_params(%{"creator_id" => creator_id}, _uri, socket) do
+  def handle_params(params, _uri, %{assigns: %{live_action: :new}} = socket) do
+    creator_id = params["creator_id"] || params["id"]
     creator = Creators.get_creator!(creator_id)
     changeset = Creators.change_catalog(%Catalog{})
 
@@ -93,10 +95,8 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
   end
 
   def handle_event("write_default_tiqit_classes", _params, socket) do
-    # Call the arcade context function to write default tiqit classes for this catalog
     Qlarius.Tiqit.Arcade.Arcade.write_default_catalog_tiqit_classes(socket.assigns.catalog)
 
-    # Reload the catalog to get updated tiqit classes
     catalog = Qlarius.Tiqit.Arcade.Creators.get_catalog!(socket.assigns.catalog.id)
 
     {:noreply, assign(socket, :catalog, catalog)}

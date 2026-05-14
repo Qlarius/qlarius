@@ -6,6 +6,8 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.Creator
   alias Qlarius.Tiqit.Arcade.TiqitClass
+  alias Qlarius.Tiqit.Arcade.Tiqit
+  alias Qlarius.Wallets.LedgerEntry
   alias Qlarius.Repo
 
   # ---------------------------------------
@@ -186,9 +188,72 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
         do: &ContentPiece.changeset_with_image/2,
         else: &ContentPiece.changeset/2
 
+    attrs = put_next_display_order_if_absent(group, attrs)
+
     %ContentPiece{content_group: group}
     |> changeset_fn.(attrs)
     |> Repo.insert()
+  end
+
+  @doc """
+  Next `display_order` for a new piece in this group (max + 1, or 0 if empty).
+  """
+  def next_content_piece_display_order(%ContentGroup{id: gid}) do
+    agg =
+      Repo.one(
+        from p in ContentPiece,
+          where: p.content_group_id == ^gid and is_nil(p.archived_at),
+          select: max(p.display_order)
+      )
+
+    (agg || -1) + 1
+  end
+
+  @doc """
+  Persists `display_order` as 0..n-1 for the given list order (must match
+  the group's current pieces exactly).
+  """
+  def restripe_content_pieces(%ContentGroup{id: gid} = group, ordered_pieces)
+      when is_list(ordered_pieces) do
+    active = Enum.reject(group.content_pieces, & &1.archived_at)
+    expected = active |> Enum.map(& &1.id) |> MapSet.new()
+    ids = ordered_pieces |> Enum.map(& &1.id) |> MapSet.new()
+
+    cond do
+      MapSet.size(ids) != MapSet.size(expected) ->
+        {:error, :invalid_piece_set}
+
+      not MapSet.equal?(ids, expected) ->
+        {:error, :invalid_piece_set}
+
+      not Enum.all?(ordered_pieces, fn p ->
+        p.content_group_id == gid and is_nil(p.archived_at)
+      end) ->
+        {:error, :invalid_piece_set}
+
+      true ->
+        Repo.transaction(fn ->
+          Enum.each(Enum.with_index(ordered_pieces), fn {piece, idx} ->
+            {1, _} =
+              Repo.update_all(
+                from(p in ContentPiece,
+                  where: p.id == ^piece.id and p.content_group_id == ^gid
+                ),
+                set: [display_order: idx]
+              )
+          end)
+
+          get_content_group!(gid)
+        end)
+    end
+  end
+
+  defp put_next_display_order_if_absent(%ContentGroup{} = group, attrs) do
+    if Map.has_key?(attrs, "display_order") || Map.has_key?(attrs, :display_order) do
+      attrs
+    else
+      Map.put(attrs, :display_order, next_content_piece_display_order(group))
+    end
   end
 
   def update_content_piece(%ContentPiece{} = piece, attrs) do
@@ -202,8 +267,74 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
     |> Repo.update()
   end
 
+  @doc """
+  Returns true when the piece may be hard-deleted: never had a tiqit
+  purchase for its piece-scoped classes and no ledger line references
+  a tiqit tied to those classes. Archived pieces are never deletable.
+  """
+  def content_piece_hard_deletable?(%ContentPiece{} = piece) do
+    is_nil(piece.archived_at) and not piece_has_tiqit_or_ledger_activity?(piece.id)
+  end
+
+  defp piece_has_tiqit_or_ledger_activity?(piece_id) do
+    has_tiqit? =
+      Repo.exists?(
+        from t in Tiqit,
+          join: tc in assoc(t, :tiqit_class),
+          where: tc.content_piece_id == ^piece_id
+      )
+
+    has_ledger? =
+      Repo.exists?(
+        from le in LedgerEntry,
+          join: t in assoc(le, :tiqit),
+          join: tc in assoc(t, :tiqit_class),
+          where: tc.content_piece_id == ^piece_id,
+          where: not is_nil(le.tiqit_id)
+      )
+
+    has_tiqit? or has_ledger?
+  end
+
+  @doc """
+  Soft-removes a content piece from catalog surfaces while preserving rows
+  needed for purchase history. Deactivates piece-scoped `tiqit_classes`.
+  """
+  def archive_content_piece(%ContentPiece{archived_at: at} = piece) when not is_nil(at),
+    do: {:ok, get_content_piece!(piece.id)}
+
+  def archive_content_piece(%ContentPiece{} = piece) do
+    Repo.transaction(fn ->
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+      case piece
+           |> Ecto.Changeset.change(%{archived_at: now})
+           |> Repo.update() do
+        {:ok, updated} ->
+          Repo.update_all(
+            from(tc in TiqitClass, where: tc.content_piece_id == ^updated.id),
+            set: [active: false]
+          )
+
+          get_content_piece!(updated.id)
+
+        {:error, cs} ->
+          Repo.rollback(cs)
+      end
+    end)
+  end
+
   def delete_content_piece(%ContentPiece{} = piece) do
-    Repo.delete(piece)
+    cond do
+      not is_nil(piece.archived_at) ->
+        {:error, :already_archived}
+
+      not content_piece_hard_deletable?(piece) ->
+        {:error, :requires_archive}
+
+      true ->
+        Repo.delete(piece)
+    end
   end
 
   def delete_content_piece_image(%ContentPiece{} = piece) do

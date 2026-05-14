@@ -19,6 +19,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
      |> assign(:content_group, group)
      |> assign(:catalog, catalog)
      |> assign(:creator, creator)
+     |> assign(:piece_hard_deletable, Creators.content_piece_hard_deletable?(piece))
      |> assign(:page_title, piece.title)}
   end
 
@@ -31,12 +32,45 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
   def handle_event("delete", _params, socket) do
     piece = socket.assigns.piece
     group = piece.content_group
-    {:ok, _piece} = Creators.delete_content_piece(piece)
 
-    {:noreply,
-     socket
-     |> put_flash(:info, "Content piece deleted successfully")
-     |> push_navigate(to: ~p"/creators/content_groups/#{group.id}")}
+    case Creators.delete_content_piece(piece) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Content piece deleted successfully")
+         |> push_navigate(to: ~p"/creators/content_groups/#{group.id}")}
+
+      {:error, :requires_archive} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "This piece cannot be deleted because it has purchase or ledger history. Use Archive instead."
+         )}
+
+      {:error, :already_archived} ->
+        {:noreply, put_flash(socket, :error, "This content piece is already archived.")}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, put_flash(socket, :error, "Delete failed: #{inspect(changeset.errors)}")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Delete failed.")}
+    end
+  end
+
+  def handle_event("archive", _params, socket) do
+    case Creators.archive_content_piece(socket.assigns.piece) do
+      {:ok, piece} ->
+        {:noreply,
+         socket
+         |> assign(:piece, piece)
+         |> assign(:piece_hard_deletable, Creators.content_piece_hard_deletable?(piece))
+         |> put_flash(:info, "Content piece archived. It no longer appears in catalog lists.")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not archive this content piece.")}
+    end
   end
 
   @impl true
@@ -53,19 +87,30 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
             <div class="p-6">
               <div class="space-y-6">
                 <!-- Breadcrumbs -->
-                <.breadcrumbs crumbs={[
-                  {@creator.name, ~p"/creators/#{@creator.id}"},
-                  {"#{String.capitalize(to_string(@catalog.type))}: #{@catalog.name}", ~p"/creators/catalogs/#{@catalog.id}"},
-                  {"#{String.capitalize(to_string(@catalog.group_type))}: #{@content_group.title}", ~p"/creators/content_groups/#{@content_group.id}"}
-                ]} current={"#{String.capitalize(to_string(@catalog.piece_type))}: #{@piece.title}"} />
-
-                <!-- Header Section -->
+                <.breadcrumbs
+                  crumbs={[
+                    {@creator.name, ~p"/creators/#{@creator.id}"},
+                    {"#{String.capitalize(to_string(@catalog.type))}: #{@catalog.name}",
+                     ~p"/creators/catalogs/#{@catalog.id}"},
+                    {"#{String.capitalize(to_string(@catalog.group_type))}: #{@content_group.title}",
+                     ~p"/creators/content_groups/#{@content_group.id}"}
+                  ]}
+                  current={"#{String.capitalize(to_string(@catalog.piece_type))}: #{@piece.title}"}
+                />
+                
+    <!-- Header Section -->
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <h1 class="text-2xl font-bold text-base-content">{@piece.title}</h1>
                     <p class="text-base-content/60 mt-1">
                       Content Piece • ID: {@piece.id}
                     </p>
+                    <div :if={@piece.archived_at} class="mt-2">
+                      <span class="badge badge-warning badge-lg">Archived</span>
+                      <p class="text-sm text-base-content/60 mt-1 max-w-xl">
+                        Removed from catalog and arcade lists. Existing access from past purchases is unchanged.
+                      </p>
+                    </div>
                   </div>
                   <div class="flex gap-2">
                     <.link
@@ -75,15 +120,24 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
                       <.icon name="hero-pencil" class="w-4 h-4 mr-2" /> Edit
                     </.link>
                     <button
+                      :if={is_nil(@piece.archived_at) && @piece_hard_deletable}
                       phx-click="delete"
-                      data-confirm="Are you sure you want to delete this content piece?"
+                      data-confirm="Permanently delete this content piece? This cannot be undone."
                       class="btn btn-outline btn-error"
                     >
                       <.icon name="hero-trash" class="w-4 h-4 mr-2" /> Delete
                     </button>
+                    <button
+                      :if={is_nil(@piece.archived_at) && !@piece_hard_deletable}
+                      phx-click="archive"
+                      data-confirm="Archive this content piece? It will be hidden from lists; purchase and ledger history stay intact."
+                      class="btn btn-outline btn-warning"
+                    >
+                      <.icon name="hero-archive-box" class="w-4 h-4 mr-2" /> Archive
+                    </button>
                   </div>
                 </div>
-
+                
     <!-- Content Details -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <!-- Main Content Card -->
@@ -120,7 +174,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
                               </div>
                             </div>
                           </div>
-
+                          
     <!-- Description -->
                           <div>
                             <h4 class="text-md font-medium text-base-content mb-3">Description</h4>
@@ -128,7 +182,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
                               <p class="text-base-content leading-relaxed">{@piece.description}</p>
                             </div>
                           </div>
-
+                          
     <!-- Content Group Info -->
                           <div>
                             <h4 class="text-md font-medium text-base-content mb-3 flex items-center">
@@ -160,7 +214,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
                       </div>
                     </div>
                   </div>
-
+                  
     <!-- Tiqit Classes Sidebar -->
                   <div class="lg:col-span-1">
                     <div class="card bg-base-100 shadow-lg">
@@ -186,7 +240,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
                         <% end %>
                       </div>
                     </div>
-
+                    
     <!-- Stats Card -->
                     <div class="card bg-base-100 shadow-lg mt-4">
                       <div class="card-body">

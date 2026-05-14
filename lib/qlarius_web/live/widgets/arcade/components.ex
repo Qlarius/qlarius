@@ -361,7 +361,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     ~H"""
     <nav
       :if={@base_path != "/widgets"}
-      class="text-xs text-base-content/50 flex items-center gap-1 flex-wrap pt-3 mb-3"
+      class="shrink-0 text-xs text-base-content/50 flex items-center gap-1 flex-wrap pt-3 mb-3"
     >
       <.link navigate="/arqade" class="hover:text-widget-700 transition-colors">Discover</.link>
       <span :for={{label, path} <- @crumbs} class="flex items-center gap-1">

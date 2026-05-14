@@ -55,12 +55,17 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   end
 
   def get_content_group!(id) do
+    pieces_query =
+      from p in ContentPiece,
+        where: is_nil(p.archived_at),
+        order_by: [asc: p.display_order, asc: p.inserted_at, asc: p.id]
+
     ContentGroup
     |> Repo.get!(id)
     |> Repo.preload([
       :tiqit_classes,
       catalog: [:tiqit_classes, :creator, content_groups: :content_pieces],
-      content_pieces: :tiqit_classes
+      content_pieces: {pieces_query, :tiqit_classes}
     ])
   end
 
@@ -92,7 +97,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
   # TODO use Creators.get_content_piece! instead? ... maybe
   def get_content_piece!(id) do
-    ContentPiece |> Repo.get!(id) |> Repo.preload([content_group: :catalog, tiqit_classes: []])
+    ContentPiece |> Repo.get!(id) |> Repo.preload(content_group: :catalog, tiqit_classes: [])
   end
 
   def create_content(attrs \\ %{}) do
@@ -184,7 +189,8 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
         creator_desc =
           if has_credit,
-            do: "Tiqit Up sale: #{content_title} (#{duration_label}) -- $#{tiqit_up_credit} credited to consumer",
+            do:
+              "Tiqit Up sale: #{content_title} (#{duration_label}) -- $#{tiqit_up_credit} credited to consumer",
             else: "Tiqit sale: #{content_title} (#{duration_label})"
 
         %LedgerEntry{
@@ -362,11 +368,12 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         where: u.id == ^user.id,
         where: is_nil(t.disconnected_at) and is_nil(t.undone_at),
         where: is_nil(t.expires_at) or t.expires_at > ^now,
-        where: tc.content_piece_id in subquery(
-          from cp in ContentPiece,
-            where: cp.content_group_id == ^group.id,
-            select: cp.id
-        ),
+        where:
+          tc.content_piece_id in subquery(
+            from cp in ContentPiece,
+              where: cp.content_group_id == ^group.id,
+              select: cp.id
+          ),
         select: {sum(tc.price), count(t.id)}
       )
       |> Repo.one()
@@ -483,7 +490,10 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     creator = tiqit_class_creator(tiqit.tiqit_class)
     catalog = tiqit_class_catalog(tiqit.tiqit_class)
     undo_limit = if catalog, do: catalog.tiqit_undo_limit
-    undos_used = if creator && undo_limit, do: get_undo_count(user.me_file.id, creator.id), else: 0
+
+    undos_used =
+      if creator && undo_limit, do: get_undo_count(user.me_file.id, creator.id), else: 0
+
     undos_remaining = if undo_limit, do: undo_limit - undos_used
 
     %{
@@ -644,7 +654,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         on: tc.content_piece_id == cp.id,
         join: cg in ContentGroup,
         on: cp.content_group_id == cg.id,
-        where: tc.active == true,
+        where: tc.active == true and is_nil(cp.archived_at),
         select: cg.catalog_id
       )
 
@@ -672,7 +682,9 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   end
 
   def count_group_pieces(group_id) do
-    from(cp in ContentPiece, where: cp.content_group_id == ^group_id)
+    from(cp in ContentPiece,
+      where: cp.content_group_id == ^group_id and is_nil(cp.archived_at)
+    )
     |> Repo.aggregate(:count)
   end
 

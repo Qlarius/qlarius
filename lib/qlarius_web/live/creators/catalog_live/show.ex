@@ -4,6 +4,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Tiqit.Arcade.Creators
   alias Qlarius.Tiqit.Arcade.Arcade
+  alias Qlarius.Tiqit.Arcade.ContentGroup
   alias QlariusWeb.TiqitClassHTML
   alias QlariusWeb.Helpers.ImageHelpers
   import QlariusWeb.CoreComponents
@@ -73,11 +74,14 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
             <div class="p-6">
               <div class="space-y-6">
                 <!-- Breadcrumbs -->
-                <.breadcrumbs crumbs={[
-                  {@creator.name, ~p"/creators/#{@creator.id}"}
-                ]} current={"#{String.capitalize(to_string(@catalog.type))}: #{@catalog.name}"} />
-
-                <!-- Header Section -->
+                <.breadcrumbs
+                  crumbs={[
+                    {@creator.name, ~p"/creators/#{@creator.id}"}
+                  ]}
+                  current={"#{String.capitalize(to_string(@catalog.type))}: #{@catalog.name}"}
+                />
+                
+    <!-- Header Section -->
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <h1 class="text-2xl font-bold text-base-content">{@catalog.name}</h1>
@@ -101,7 +105,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                     </button>
                   </div>
                 </div>
-
+                
     <!-- Overview Section -->
                 <div class="card bg-base-100 shadow-lg">
                   <div class="card-body">
@@ -141,7 +145,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                     </div>
                   </div>
                 </div>
-
+                
     <!-- URL Section -->
                 <%= if @catalog.url do %>
                   <div class="card bg-base-100 shadow-lg">
@@ -167,7 +171,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                     </div>
                   </div>
                 <% end %>
-
+                
     <!-- Tiqit Classes Section -->
                 <div class="space-y-4">
                   <div class="flex items-center justify-between">
@@ -181,7 +185,10 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                   <%= if Enum.any?(@catalog.tiqit_classes) do %>
                     <div class="card bg-base-100 shadow-lg">
                       <div class="card-body p-0">
-                        <TiqitClassHTML.tiqit_classes_table record={@catalog} on_delete="delete_tiqit_class" />
+                        <TiqitClassHTML.tiqit_classes_table
+                          record={@catalog}
+                          on_delete="delete_tiqit_class"
+                        />
                       </div>
                     </div>
                   <% else %>
@@ -216,7 +223,7 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                     </div>
                   <% end %>
                 </div>
-
+                
     <!-- Content Groups Section -->
                 <div class="space-y-4">
                   <div class="flex items-center justify-between">
@@ -277,7 +284,9 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                                   </td>
                                   <td class="text-base-content">
                                     <span class="badge badge-secondary badge-sm p-2">
-                                      {length(group.content_pieces)}
+                                      {length(
+                                        ContentGroup.active_content_pieces(group.content_pieces)
+                                      )}
                                     </span>
                                   </td>
                                   <td class="text-right">

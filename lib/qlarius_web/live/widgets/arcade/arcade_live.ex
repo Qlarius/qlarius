@@ -2,6 +2,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Tiqit.Arcade.Arcade
+  alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.Wallets
@@ -88,21 +89,11 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       pieces =
         group.content_pieces
         |> Enum.filter(&Enum.any?(&1.tiqit_classes))
-        |> Enum.sort_by(& &1.inserted_at, sort_direction(group.pieces_sort_order))
+        |> ContentGroup.ordered_content_pieces()
 
-      # Generate random durations only once per piece (cache them)
-      pieces =
-        Enum.map(pieces, fn piece ->
-          # Use piece ID as seed for consistent but random durations
-          :rand.seed(:exsplus, {piece.id, piece.id, piece.id})
-          # 19..32 minutes range
-          mins = :rand.uniform(14) + 18
-          # 1..59 seconds range
-          secs = :rand.uniform(59) + 1
-          # Format as MM:SS
-          duration = :io_lib.format("~B:~2..0B", [mins, secs])
-          Map.put(piece, :duration, duration)
-        end)
+      # Runtime label for the clock row: real `length` (seconds) when set,
+      # otherwise a stable seeded placeholder prefixed with ~.
+      pieces = Enum.map(pieces, &put_piece_display_duration/1)
 
       if connected?(socket) && scope && scope.user do
         Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{scope.user.id}")
@@ -172,7 +163,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          tiqit_content_modal_leaving?: false,
          tiqit_content_modal_close_timer_ref: nil,
          embed_phx_id: session["embed_phx_id"],
-         arqade_expand_parent?: is_pid(socket.parent_pid)
+         arqade_expand_parent?: is_pid(socket.parent_pid),
+         fixed_viewport: base_path == "" and not inline?
        )
        |> assign(scope_assigns(scope, group))
        |> maybe_init_selected_piece(inline?, session, params)}
@@ -683,10 +675,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     end
   end
 
-  defp sort_direction("asc"), do: :asc
-  defp sort_direction("desc"), do: :desc
-  defp sort_direction(_), do: :desc
-
   # Heuristic: matches ~3 line-clamp at text-xs without measuring DOM.
   defp description_exceeds_preview?(nil), do: false
 
@@ -702,6 +690,26 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     (description || "")
     |> String.trim()
     |> String.replace("\n", " ")
+  end
+
+  defp put_piece_display_duration(%ContentPiece{} = piece) do
+    duration =
+      case piece.length do
+        n when is_number(n) and n > 0 ->
+          format_duration(n) |> to_string()
+
+        _ ->
+          "~" <> generated_placeholder_duration(piece.id)
+      end
+
+    Map.put(piece, :duration, duration)
+  end
+
+  defp generated_placeholder_duration(piece_id) do
+    :rand.seed(:exsplus, {piece_id, piece_id, piece_id})
+    mins = :rand.uniform(14) + 18
+    secs = :rand.uniform(59) + 1
+    :io_lib.format("~B:~2..0B", [mins, secs]) |> IO.iodata_to_binary()
   end
 
   # Returns {credit, active_tiqit_count} for a tiqit class based on its scope.

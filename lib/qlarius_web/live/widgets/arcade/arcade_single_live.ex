@@ -2,6 +2,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Tiqit.Arcade.Arcade
+  alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.Wallets
@@ -472,7 +473,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
         }
 
       tiqit_class.content_group_id ->
-        piece_count = length(group.content_pieces)
+        active_pieces = ContentGroup.active_content_pieces(group.content_pieces)
+        piece_count = length(active_pieces)
         piece_type = catalog.piece_type |> to_string()
         piece_label = if piece_count == 1, do: piece_type, else: pluralize(piece_type)
 
@@ -489,7 +491,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
         piece_count =
           catalog.content_groups
-          |> Enum.flat_map(& &1.content_pieces)
+          |> Enum.flat_map(&ContentGroup.active_content_pieces(&1.content_pieces))
           |> length()
 
         piece_type = catalog.piece_type |> to_string()

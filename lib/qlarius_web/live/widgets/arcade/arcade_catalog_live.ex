@@ -10,6 +10,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Tiqit.Arcade.Creators
+  alias Qlarius.Tiqit.Arcade.ContentGroup
   alias QlariusWeb.Layouts
 
   import QlariusWeb.Helpers.ImageHelpers
@@ -23,7 +24,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
 
     groups =
       catalog.content_groups
-      |> Enum.filter(fn g -> Enum.any?(g.content_pieces) end)
+      |> Enum.filter(fn g -> ContentGroup.has_active_content_pieces?(g.content_pieces) end)
       |> Enum.sort_by(& &1.inserted_at, :desc)
       |> Enum.map(fn g -> %{g | catalog: catalog} end)
 
@@ -57,71 +58,94 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
   def render(assigns) do
     ~H"""
     <div id="catalog-pwa-detect" phx-hook="PWADetect">
-    <Layouts.maybe_mobile wrap={@base_path == ""} {assigns}>
-      <.arqade_breadcrumbs base_path={@base_path} crumbs={[]} />
-      <div class="mb-6">
-        <div class="flex items-center gap-4 mb-6">
-          <%= if @catalog.image do %>
-            <img
-              src={catalog_image_url(@catalog)}
-              alt={@catalog.name}
-              class="w-16 h-16 rounded-lg object-cover border border-base-300"
-            />
-          <% end %>
-          <div>
-            <h1 class="text-2xl font-bold">{@catalog.name}</h1>
-            <p class="text-sm text-base-content/60">
-              {length(@groups)} {if length(@groups) == 1, do: @catalog.group_type, else: pluralize(@catalog.group_type)}
-            </p>
+      <Layouts.maybe_mobile wrap={@base_path == ""} {assigns}>
+        <.arqade_breadcrumbs base_path={@base_path} crumbs={[]} />
+        <div class="mb-6">
+          <div class="flex items-center gap-4 mb-6">
+            <%= if @catalog.image do %>
+              <img
+                src={catalog_image_url(@catalog)}
+                alt={@catalog.name}
+                class="w-16 h-16 rounded-lg object-cover border border-base-300"
+              />
+            <% end %>
+            <div>
+              <h1 class="text-2xl font-bold">{@catalog.name}</h1>
+              <p class="text-sm text-base-content/60">
+                {length(@groups)} {if length(@groups) == 1,
+                  do: @catalog.group_type,
+                  else: pluralize(@catalog.group_type)}
+              </p>
+            </div>
           </div>
-        </div>
 
-        <%= if @groups == [] do %>
-          <div class="text-center text-base-content/50 py-8">
-            No content available in this catalog.
-          </div>
-        <% else %>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <.link
-              :for={group <- @groups}
-              navigate={"#{@base_path}/arqade/group/#{group.id}"}
-              class="bg-base-200 rounded-lg p-4 border border-base-300 hover:border-widget-400 hover:bg-base-200/80 transition-all cursor-pointer block"
-            >
-              <div class="flex gap-4 items-start">
-                <img
-                  src={group_image_url(group)}
-                  alt={group.title}
-                  class="w-20 h-20 rounded-lg object-cover border border-base-300/50 flex-shrink-0"
-                />
-                <div class="flex-1 min-w-0">
-                  <h3 class="font-semibold text-base-content mb-1">{group.title}</h3>
-                  <p class="text-sm text-base-content/60">
-                    {length(group.content_pieces)} {if length(group.content_pieces) == 1, do: @catalog.piece_type, else: pluralize(@catalog.piece_type)}
-                  </p>
-                  <% price_info = group_price_info(group) %>
-                  <p :if={price_info} class="text-xs font-medium mt-1">
-                    <span :if={price_info.min_price} class="text-widget-700">from {price_info.min_price}</span>
-                    <span :if={price_info.min_price && price_info.free_count > 0} class="text-base-content/50">·</span>
-                    <span :if={price_info.free_count > 0} class="text-base-content/50">
-                      Includes {price_info.free_count} FREE {if price_info.free_count == 1, do: @catalog.piece_type, else: pluralize(@catalog.piece_type)}
-                    </span>
-                  </p>
+          <%= if @groups == [] do %>
+            <div class="text-center text-base-content/50 py-8">
+              No content available in this catalog.
+            </div>
+          <% else %>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <.link
+                :for={group <- @groups}
+                navigate={"#{@base_path}/arqade/group/#{group.id}"}
+                class="bg-base-200 rounded-lg p-4 border border-base-300 hover:border-widget-400 hover:bg-base-200/80 transition-all cursor-pointer block"
+              >
+                <div class="flex gap-4 items-start">
+                  <img
+                    src={group_image_url(group)}
+                    alt={group.title}
+                    class="w-20 h-20 rounded-lg object-cover border border-base-300/50 flex-shrink-0"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <h3 class="font-semibold text-base-content mb-1">{group.title}</h3>
+                    <p class="text-sm text-base-content/60">
+                      {length(ContentGroup.active_content_pieces(group.content_pieces))} {if length(
+                                                                                               ContentGroup.active_content_pieces(
+                                                                                                 group.content_pieces
+                                                                                               )
+                                                                                             ) == 1,
+                                                                                             do:
+                                                                                               @catalog.piece_type,
+                                                                                             else:
+                                                                                               pluralize(
+                                                                                                 @catalog.piece_type
+                                                                                               )}
+                    </p>
+                    <% price_info = group_price_info(group) %>
+                    <p :if={price_info} class="text-xs font-medium mt-1">
+                      <span :if={price_info.min_price} class="text-widget-700">
+                        from {price_info.min_price}
+                      </span>
+                      <span
+                        :if={price_info.min_price && price_info.free_count > 0}
+                        class="text-base-content/50"
+                      >
+                        ·
+                      </span>
+                      <span :if={price_info.free_count > 0} class="text-base-content/50">
+                        Includes {price_info.free_count} FREE {if price_info.free_count == 1,
+                          do: @catalog.piece_type,
+                          else: pluralize(@catalog.piece_type)}
+                      </span>
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </.link>
-          </div>
-        <% end %>
-      </div>
-    </Layouts.maybe_mobile>
+              </.link>
+            </div>
+          <% end %>
+        </div>
+      </Layouts.maybe_mobile>
     </div>
     """
   end
 
   defp group_price_info(group) do
+    active_pieces = ContentGroup.active_content_pieces(group.content_pieces)
+
     all_tiqit_classes =
       Enum.concat(
         Enum.filter(group.tiqit_classes, & &1.active),
-        group.content_pieces
+        active_pieces
         |> Enum.flat_map(& &1.tiqit_classes)
         |> Enum.filter(& &1.active)
       )
@@ -135,7 +159,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
         paid = Enum.reject(prices, &Decimal.eq?(&1, 0))
 
         free_count =
-          Enum.count(group.content_pieces, fn piece ->
+          Enum.count(active_pieces, fn piece ->
             piece.tiqit_classes
             |> Enum.filter(& &1.active)
             |> Enum.any?(&Decimal.eq?(&1.price, 0))

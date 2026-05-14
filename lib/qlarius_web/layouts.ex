@@ -140,7 +140,10 @@ defmodule QlariusWeb.Layouts do
               <%= if assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") do %>
                 <.tag_count count={@current_scope.trait_count} />
               <% else %>
-                <.wallet_balance id="wallet-balance-mobile-header" balance={@current_scope.wallet_balance} />
+                <.wallet_balance
+                  id="wallet-balance-mobile-header"
+                  balance={@current_scope.wallet_balance}
+                />
               <% end %>
             <% end %>
           </div>
@@ -253,6 +256,12 @@ defmodule QlariusWeb.Layouts do
   attr :slide_over_active, :boolean, default: false
   attr :slide_over_title, :string, default: "Details"
   attr :slide_over_show_wallet, :boolean, default: false
+  # When true, the page slot fills the panel's viewport-bounded box and
+  # is responsible for its own internal scrolling (e.g. ArcadeLive's
+  # episodes column). Default false preserves the legacy behavior where
+  # the page itself grows and `.panel-scroll` scrolls the whole page
+  # (Wallet, Ads, etc.).
+  attr :fixed_viewport, :boolean, default: false
 
   @doc """
   Conditionally wraps content in the mobile layout.
@@ -283,6 +292,7 @@ defmodule QlariusWeb.Layouts do
       assigns
       |> Map.put_new(:show_logout_modal, false)
       |> Map.put_new(:is_pwa, false)
+      |> Map.put_new(:fixed_viewport, false)
 
     ~H"""
     <.flash_group flash={@flash} is_pwa={@is_pwa} is_mobile={assigns[:is_mobile] || false} />
@@ -379,7 +389,6 @@ defmodule QlariusWeb.Layouts do
         display: none !important;
       }
 
-
       /* Floating action buttons - consistent position above nav bar (h-20 = 5rem) */
       /* z-index 40 keeps it below sidebars (z-50) but above normal content */
       .mobile-shell .floating-action-btn {
@@ -401,10 +410,20 @@ defmodule QlariusWeb.Layouts do
             <div class="panel-scroll">
               <%!-- Safe area top spacer for PWA notch --%>
               <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
-                <div class="bg-base-100 dark:!bg-base-300 flex-shrink-0" style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"></div>
+                <div
+                  class="bg-base-100 dark:!bg-base-300 flex-shrink-0"
+                  style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"
+                >
+                </div>
               <% end %>
-              <div class="bg-base-100 dark:!bg-base-300 flex flex-col min-h-full">
-                <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
+              <div class={[
+                "bg-base-100 dark:!bg-base-300 flex flex-col",
+                if(@fixed_viewport, do: "h-full min-h-0", else: "min-h-full")
+              ]}>
+                <div class={[
+                  "container mx-auto px-4 py-6 flex-1 flex flex-col",
+                  @fixed_viewport && "min-h-0"
+                ]}>
                   <div class="w-full mb-6 flex items-center flex-shrink-0">
                     <div class="w-8 flex justify-start">
                       <button class="cursor-pointer" phx-click={toggle_sponster_sidebar(:on)}>
@@ -419,12 +438,18 @@ defmodule QlariusWeb.Layouts do
                         <%= if assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") do %>
                           <.tag_count count={@current_scope.trait_count} />
                         <% else %>
-                          <.wallet_balance id="wallet-balance-dual-panel" balance={@current_scope.wallet_balance} />
+                          <.wallet_balance
+                            id="wallet-balance-dual-panel"
+                            balance={@current_scope.wallet_balance}
+                          />
                         <% end %>
                       <% end %>
                     </div>
                   </div>
-                  <div class="flex-1">
+                  <div class={[
+                    "flex-1",
+                    @fixed_viewport && "min-h-0 flex flex-col"
+                  ]}>
                     {render_slot(@inner_block)}
                   </div>
                   <.debug_assigns {assigns} />
@@ -438,7 +463,11 @@ defmodule QlariusWeb.Layouts do
             <div class="panel-scroll">
               <%!-- Safe area top spacer for PWA notch --%>
               <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
-                <div class="bg-base-100 dark:!bg-base-300 flex-shrink-0" style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"></div>
+                <div
+                  class="bg-base-100 dark:!bg-base-300 flex-shrink-0"
+                  style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"
+                >
+                </div>
               <% end %>
               <div class="bg-base-100 dark:!bg-base-300 flex flex-col min-h-full">
                 <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
@@ -451,13 +480,18 @@ defmodule QlariusWeb.Layouts do
                     </button>
                     <%= if assigns[:slide_over_show_wallet] && assigns[:current_scope] do %>
                       <div class="flex-shrink-0">
-                        <.wallet_balance id="wallet-balance-slide-over" balance={@current_scope.wallet_balance} />
+                        <.wallet_balance
+                          id="wallet-balance-slide-over"
+                          balance={@current_scope.wallet_balance}
+                        />
                       </div>
                     <% end %>
                   </div>
 
                   <div class="flex-1 flex flex-col items-center justify-center">
-                    <h1 class="text-2xl font-bold mb-2 text-center">{assigns[:slide_over_title] || "Details"}</h1>
+                    <h1 class="text-2xl font-bold mb-2 text-center">
+                      {assigns[:slide_over_title] || "Details"}
+                    </h1>
 
                     <div class="w-full">
                       {render_slot(assigns[:slide_over_content] || [])}
@@ -538,7 +572,10 @@ defmodule QlariusWeb.Layouts do
       </div>
 
       <%!-- Bottom navigation bar - in document flow, not fixed --%>
-      <nav :if={@current_scope} class="flex-shrink-0 h-20 flex items-stretch pt-2 bg-base-100 border-t border-base-300 shadow-[0_-1px_4px_rgba(0,0,0,0.04)]">
+      <nav
+        :if={@current_scope}
+        class="flex-shrink-0 h-20 flex items-stretch pt-2 bg-base-100 border-t border-base-300 shadow-[0_-1px_4px_rgba(0,0,0,0.04)]"
+      >
         <.nav_item
           icon="hero-home"
           label="Home"
@@ -597,7 +634,8 @@ defmodule QlariusWeb.Layouts do
       <span class={[
         "self-stretch h-1 shrink-0 rounded-full",
         if(@active, do: "bg-primary", else: "bg-transparent")
-      ]}></span>
+      ]}>
+      </span>
       <span
         :if={@badge && @badge > 0}
         class="absolute left-1/2 ml-1 top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-400"
