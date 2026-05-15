@@ -30,6 +30,7 @@ defmodule QlariusWeb.Components.AuthSteps do
 
     * `confirm_step/1`
       - `toggle_confirmation` (params: `checked`)
+      - `toggle_legal_confirmation` (params: `checked`)
 
   ## Using from a LiveComponent
 
@@ -580,6 +581,7 @@ defmodule QlariusWeb.Components.AuthSteps do
   attr :referral_code, :string, default: ""
   attr :show_referral_code, :boolean, default: true
   attr :confirmation_checked, :boolean, default: false
+  attr :legal_confirmation_checked, :boolean, default: false
   attr :can_complete, :boolean, default: false
   attr :target, :any, default: nil
 
@@ -658,7 +660,7 @@ defmodule QlariusWeb.Components.AuthSteps do
         <% end %>
       </div>
 
-      <div class="form-control mt-4">
+      <div class="form-control mt-4 space-y-3">
         <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-widget-200 bg-widget-100 p-3">
           <input
             type="checkbox"
@@ -670,6 +672,38 @@ defmodule QlariusWeb.Components.AuthSteps do
           />
           <span class="text-sm md:text-base dark:text-gray-300">
             I confirm my birthdate and sex are correct as entered and understand the values cannot be updated later.
+          </span>
+        </label>
+
+        <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-widget-200 bg-widget-100 p-3">
+          <input
+            type="checkbox"
+            class="checkbox mt-0.5 shrink-0 border-2 border-widget-300 checked:border-widget-700 checked:bg-widget-700 checked:text-white"
+            checked={@legal_confirmation_checked}
+            phx-click="toggle_legal_confirmation"
+            phx-value-checked={to_string(!@legal_confirmation_checked)}
+            phx-target={@target}
+          />
+          <span class="text-sm md:text-base dark:text-gray-300">
+            I agree to the
+            <a
+              href="https://qadabra.co/app/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="font-semibold text-widget-800 underline decoration-widget-400 underline-offset-2 hover:text-widget-900"
+            >
+              Privacy Policy
+            </a>
+            {" "}and{" "}
+            <a
+              href="https://qadabra.co/app/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="font-semibold text-widget-800 underline decoration-widget-400 underline-offset-2 hover:text-widget-900"
+            >
+              Terms of Service
+            </a>
+            .
           </span>
         </label>
       </div>

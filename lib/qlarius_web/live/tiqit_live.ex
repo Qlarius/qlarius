@@ -204,7 +204,7 @@ defmodule QlariusWeb.TiqitLive do
               No tiqits found for this filter.
             </div>
           <% else %>
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 items-start md:grid-cols-2 xl:grid-cols-3 gap-6">
               <.tiqit_detail_card
                 :for={tiqit <- @tiqits}
                 tiqit={tiqit}

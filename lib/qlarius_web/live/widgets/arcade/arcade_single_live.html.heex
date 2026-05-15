@@ -53,27 +53,25 @@
         >
           {String.trim(@piece.description || "")}
         </p>
-        <%= if @inline? do %>
-          <button
-            type="button"
-            phx-click="open-tiqit-content"
-            phx-target={@embed_phx_id && "#" <> @embed_phx_id}
-            class="btn-widget btn-lg rounded-full w-full max-w-sm"
-          >
-            <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
-          </button>
-        <% else %>
-          <.link
-            navigate={
-              if @force_theme,
-                do: "#{@base_path}/content/#{@piece.id}?force_theme=#{@force_theme}",
-                else: "#{@base_path}/content/#{@piece.id}"
-            }
-            class="btn-widget btn-lg rounded-full w-full max-w-sm"
-          >
-            <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
-          </.link>
-        <% end %>
+        <div class="mx-auto mb-3 w-full max-w-sm">
+          <%= if @inline? do %>
+            <button
+              type="button"
+              phx-click="open-tiqit-content"
+              phx-target={@embed_phx_id && "#" <> @embed_phx_id}
+              class="btn-sponster-play btn-lg min-h-14 w-full rounded-full whitespace-nowrap"
+            >
+              <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
+            </button>
+          <% else %>
+            <.link
+              navigate={"#{@base_path}/content/#{@piece.id}"}
+              class="btn-sponster-play btn-lg min-h-14 w-full rounded-full whitespace-nowrap"
+            >
+              <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
+            </.link>
+          <% end %>
+        </div>
       </div>
     </div>
   <% else %>
@@ -127,7 +125,7 @@
                   <% is_authed = authed?(@current_scope) %>
                   <% can_afford = is_authed && Decimal.compare(@balance, @default_tiqit_class.price) != :lt %>
                   <% btn_enabled = !is_authed || can_afford %>
-                  <div class="flex w-full flex-row items-center gap-1.5">
+                  <div class="mb-3 flex w-full flex-row items-center gap-1.5">
                     <button
                       phx-click="select-tiqit-class"
                       phx-value-tiqit-class-id={@default_tiqit_class.id}

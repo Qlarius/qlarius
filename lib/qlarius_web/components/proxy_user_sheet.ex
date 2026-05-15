@@ -56,7 +56,7 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
   The alias/data/confirm event handlers and helpers below are deliberately
   parallel to the sign-up half of `AuthSheet` (select_base_name,
   select_number, regenerate_*, update_birthdate, lookup_zip_code,
-  toggle_confirmation, signup_next/back, submit_signup). With only two
+  toggle_confirmation, toggle_legal_confirmation, signup_next/back, submit_signup). With only two
   consumers of the flow (AuthSheet + ProxyUserSheet) we're keeping them
   forked rather than prematurely extracting a shared state-machine helper
   module. If a third consumer appears, extract.
@@ -206,6 +206,10 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
 
   def handle_event("toggle_confirmation", %{"checked" => checked}, socket) do
     {:noreply, assign(socket, :confirmation_checked, checked == "true")}
+  end
+
+  def handle_event("toggle_legal_confirmation", %{"checked" => checked}, socket) do
+    {:noreply, assign(socket, :legal_confirmation_checked, checked == "true")}
   end
 
   # --------------------------------------------------------------------
@@ -365,6 +369,7 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
     |> assign(:calculated_age, nil)
     |> assign(:age_trait_id, nil)
     |> assign(:confirmation_checked, false)
+    |> assign(:legal_confirmation_checked, false)
     # ZipCodeLookup reads `trait_in_edit.id` as the parent trait id.
     # Trait 4 is the zip-code parent trait.
     |> assign(:trait_in_edit, %{id: 4})
@@ -419,7 +424,8 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
   end
 
   defp can_complete?(assigns) do
-    alias_ready?(assigns) and data_step_ready?(assigns) and assigns[:confirmation_checked]
+    alias_ready?(assigns) and data_step_ready?(assigns) and assigns[:confirmation_checked] and
+      assigns[:legal_confirmation_checked]
   end
 
   # --------------------------------------------------------------------
@@ -570,6 +576,7 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
         referral_code={ReferralContext.code(@referral_context) || ""}
         show_referral_code={not is_nil(@referral_context)}
         confirmation_checked={@confirmation_checked}
+        legal_confirmation_checked={@legal_confirmation_checked}
         can_complete={can_complete?(assigns)}
         target={@myself}
       />

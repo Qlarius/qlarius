@@ -32,9 +32,21 @@ defmodule Qlarius.DateTime do
 
   def format_for_user(datetime, user, format \\ :standard)
 
+  def format_for_user(%DateTime{} = datetime, nil, format) do
+    datetime
+    |> to_timezone("Etc/UTC")
+    |> format_datetime(format)
+  end
+
   def format_for_user(%DateTime{} = datetime, user, format) do
     datetime
     |> to_user_timezone(user)
+    |> format_datetime(format)
+  end
+
+  def format_for_user(%NaiveDateTime{} = naive_datetime, nil, format) do
+    naive_datetime
+    |> to_timezone("Etc/UTC")
     |> format_datetime(format)
   end
 
@@ -48,6 +60,10 @@ defmodule Qlarius.DateTime do
 
   def format_datetime(%DateTime{} = datetime, :standard) do
     Timex.format!(datetime, "%b %d, %Y %I:%M %p %Z", :strftime)
+  end
+
+  def format_datetime(%DateTime{} = datetime, :standard_no_tz) do
+    Timex.format!(datetime, "%b %d, %Y %I:%M %p", :strftime)
   end
 
   def format_datetime(%DateTime{} = datetime, :short) do

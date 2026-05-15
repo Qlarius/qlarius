@@ -502,13 +502,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
         |> noreply()
       else
         base = socket.assigns.base_path
-
-        redirect_path =
-          if socket.assigns.force_theme do
-            "#{base}/content/#{socket.assigns.selected_piece.id}?force_theme=#{socket.assigns.force_theme}"
-          else
-            "#{base}/content/#{socket.assigns.selected_piece.id}"
-          end
+        redirect_path = "#{base}/content/#{socket.assigns.selected_piece.id}"
 
         socket
         |> redirect(to: redirect_path)

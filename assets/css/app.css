@@ -855,7 +855,8 @@
 
   /* Strong border — pairs visually with selected arqade list row (`border-widget-700`).
      Use only on the primary Buy / Get Tiqit / Confirm purchase CTAs; keep default
-     `.btn-widget` for wallet top-up, Connect, Play, grid chips, etc. */
+     `.btn-widget` for wallet top-up, Connect, grid chips, etc. Owned playable
+     content uses `.btn-sponster-play` (matches `WalletBalance` sponster surfaces). */
   .btn-widget.btn-widget-emphasis {
     @apply border-widget-700;
   }
@@ -1009,6 +1010,44 @@
   /* Widget badge — soft (light) variant for inactive/available states. */
   .badge-widget-soft {
     @apply badge bg-widget-100 text-widget-900 border-widget-300;
+  }
+
+  /* Sponster wallet-pill styling — owned playable Play CTA and list checkmarks. */
+  .btn-sponster-play {
+    @apply btn bg-sponster-200 text-base-content border-sponster-300 font-semibold shadow-sm;
+    @apply dark:bg-sponster-800 dark:text-sponster-100 dark:border-sponster-500;
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sponster-500;
+  }
+
+  .btn-sponster-play:hover:not(:disabled):not(.btn-disabled) {
+    @apply bg-sponster-300 border-sponster-400;
+    @apply dark:bg-sponster-700 dark:border-sponster-400;
+  }
+
+  .btn-sponster-play:disabled,
+  .btn-sponster-play[disabled],
+  .btn-sponster-play.btn-disabled {
+    @apply opacity-60 cursor-not-allowed;
+  }
+
+  /* Arqade episode list: fixed box — Daisy `badge` padding varies by content,
+     so we use explicit flex + h/w instead of `badge` for pixel parity. */
+  .badge-arqade-episode-cell,
+  .badge-sponster-playable {
+    @apply box-border inline-flex items-center justify-center shrink-0;
+    @apply h-6 w-[3.25rem] min-w-[3.25rem] max-w-[3.25rem] rounded-md border border-solid px-1;
+    @apply leading-none whitespace-nowrap;
+  }
+
+  .badge-arqade-episode-cell {
+    @apply border-widget-400 bg-widget-100 text-widget-950;
+    @apply text-xs font-extrabold;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+
+  .badge-sponster-playable {
+    @apply border-sponster-400 bg-sponster-200 text-base-content;
+    @apply dark:border-sponster-500 dark:bg-sponster-800 dark:text-sponster-100;
   }
 
   /* Ads page styles */
@@ -1481,6 +1520,13 @@ body {
 /* Tiqit ticket card — 3×3 structural grid with notch cutouts */
 .tiqit-grid {
   --notch-r: 10px;
+  --tiqit-bot-padding-y: 0.75rem;
+  --tiqit-tail-t: 0.38s;
+  --tiqit-tail-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* From top of `.tiqit-bot` content to vertical center of dashed fold (row height = 2×notch) */
+  --tiqit-toggle-lift: calc(var(--tiqit-bot-padding-y) + var(--notch-r));
+  /* ~½ oblong control height — nudges toggle so its center sits on the dotted line */
+  --tiqit-expand-hit-half-h: 0.75rem;
   display: grid;
   grid-template-columns: var(--notch-r) 1fr var(--notch-r);
   grid-template-rows: auto calc(var(--notch-r) * 2) auto;
@@ -1540,8 +1586,19 @@ body {
   padding: 1rem 1.25rem 0.75rem 0.75rem;
 }
 .tiqit-bot {
+  position: relative;
+  z-index: 1;
   border-bottom: 1px solid var(--ticket-border);
-  padding: 0.75rem 1.25rem 1rem 0.75rem;
+  padding: var(--tiqit-bot-padding-y) 1.25rem 0.5rem 0.75rem;
+  /* Single paint for translucent `--ticket-bg` (avoid stacking same token in tail, which shifts hue) */
+  background-color: var(--ticket-bg);
+  overflow: visible;
+  transition: padding-bottom var(--tiqit-tail-t, 0.36s) var(--tiqit-tail-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+/* Collapsed tail: trim a bit of dead air under the chevron before the card bottom */
+.tiqit-bot:has(> .tiqit-tail-details:not([open])) {
+  padding-bottom: 0.3rem;
 }
 
 /* ── Notch cells — overflow-hidden with a shifted circle inside ── */
@@ -1575,5 +1632,137 @@ body {
   border-top: 1px dashed color-mix(in oklch, var(--ticket-border) 50%, transparent);
 }
 
+/* Tail `<details>`: keep backgrounds transparent so only `.tiqit-bot` paints `--ticket-bg`
+   (semi-transparent ticket tokens would compound and look like a mismatched “inner panel”). */
+.tiqit-tail-details,
+.tiqit-tail-details-summary,
+.tiqit-tail-details-summary-inner,
+.tiqit-tail-details-body {
+  background-color: transparent;
+}
+
+.tiqit-tail-details-summary {
+  /* Collapsed: modest tap target + small tail under the (visually lifted) toggle */
+  min-height: 2.05rem;
+  padding-bottom: 0.2rem;
+  transition:
+    min-height var(--tiqit-tail-t, 0.38s) var(--tiqit-tail-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    padding-bottom var(--tiqit-tail-t, 0.38s) var(--tiqit-tail-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.tiqit-tail-details[open] .tiqit-tail-details-summary {
+  /* Expanded: no reserved “spacer” band — body sits tight under the summary row */
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.tiqit-tail-details[open] .tiqit-tail-details-body {
+  /* Pull content up into the layout band reserved for the (visually lifted) summary control */
+  margin-top: calc(
+    -1 * (var(--tiqit-bot-padding-y) + var(--tiqit-expand-hit-half-h))
+  );
+  padding-bottom: 0.875rem;
+}
+
+/* Smooth tail expand/collapse (non-summary slot); Chromium + Safari 17.4+ */
+@supports (interpolate-size: allow-keywords) and (selector(details::details-content)) {
+  .tiqit-tail-details {
+    interpolate-size: allow-keywords;
+  }
+
+  .tiqit-tail-details::details-content {
+    height: 0;
+    overflow: clip;
+    content-visibility: hidden;
+    transition:
+      height var(--tiqit-tail-t, 0.38s) var(--tiqit-tail-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+      content-visibility var(--tiqit-tail-t, 0.38s) allow-discrete;
+  }
+
+  .tiqit-tail-details[open]::details-content {
+    height: auto;
+    content-visibility: visible;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tiqit-bot {
+    transition-duration: 0.01ms;
+  }
+
+  .tiqit-tail-details-summary {
+    transition-duration: 0.01ms;
+  }
+
+  .tiqit-tail-expand-hit {
+    transition-duration: 0.01ms;
+  }
+
+  .tiqit-tail-details-chevron {
+    transition-duration: 0.01ms;
+  }
+
+  @supports (interpolate-size: allow-keywords) and (selector(details::details-content)) {
+    .tiqit-tail-details::details-content {
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+.tiqit-tail-details-summary-inner {
+  display: flex;
+  justify-content: center;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  transform: translateY(
+    calc(-1 * (var(--tiqit-toggle-lift) + var(--tiqit-expand-hit-half-h)))
+  );
+  position: relative;
+  z-index: 2;
+}
+
+.tiqit-tail-expand-hit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.85rem;
+  padding: 0.18rem 0.95rem;
+  border-radius: 0.65rem;
+  border: 1px solid color-mix(in oklch, var(--ticket-border) 55%, transparent);
+  /* Opaque fill so dashed perf line cannot show through translucent `--ticket-bg` */
+  background-color: var(--ticket-bg);
+  color: inherit;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+}
+
+@supports (background-color: oklch(from peru l c h)) {
+  .tiqit-tail-expand-hit {
+    background-color: oklch(from var(--ticket-bg) l c h / 1);
+  }
+}
+
+.tiqit-tail-expand-hit:hover {
+  filter: brightness(1.12);
+  border-color: color-mix(in oklch, var(--ticket-border) 85%, transparent);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+
+[data-theme="dark"] .tiqit-tail-expand-hit:hover {
+  filter: brightness(1.18);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+}
+
+.tiqit-tail-details-chevron {
+  transition: transform var(--tiqit-tail-t, 0.38s) var(--tiqit-tail-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.tiqit-tail-details[open] .tiqit-tail-details-chevron {
+  transform: rotate(180deg);
+}
 
 /* Nexus Admin CSS */

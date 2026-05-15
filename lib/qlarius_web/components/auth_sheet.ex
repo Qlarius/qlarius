@@ -508,6 +508,10 @@ defmodule QlariusWeb.Components.AuthSheet do
     {:noreply, assign(socket, :confirmation_checked, checked == "true")}
   end
 
+  def handle_event("toggle_legal_confirmation", %{"checked" => checked}, socket) do
+    {:noreply, assign(socket, :legal_confirmation_checked, checked == "true")}
+  end
+
   # Linear next/back through the sign-up steps. We deliberately keep a
   # flat state machine (no `:current_step` index) — each transition is
   # guarded by `can_advance?/1` so buttons only enable once the current
@@ -803,6 +807,7 @@ defmodule QlariusWeb.Components.AuthSheet do
     |> assign(:calculated_age, nil)
     |> assign(:age_trait_id, nil)
     |> assign(:confirmation_checked, false)
+    |> assign(:legal_confirmation_checked, false)
     # ZipCodeLookup reads `trait_in_edit.id` as the parent trait id.
     # Trait 4 is the zip-code parent trait; see `RegistrationLive`.
     |> assign(:trait_in_edit, %{id: 4})
@@ -860,7 +865,8 @@ defmodule QlariusWeb.Components.AuthSheet do
   end
 
   defp can_complete?(assigns) do
-    alias_ready?(assigns) and data_step_ready?(assigns) and assigns[:confirmation_checked]
+    alias_ready?(assigns) and data_step_ready?(assigns) and assigns[:confirmation_checked] and
+      assigns[:legal_confirmation_checked]
   end
 
   # --------------------------------------------------------------------
@@ -1478,6 +1484,7 @@ defmodule QlariusWeb.Components.AuthSheet do
         referral_code={ReferralContext.code(@referral_context) || ""}
         show_referral_code={not is_nil(@referral_context)}
         confirmation_checked={@confirmation_checked}
+        legal_confirmation_checked={@legal_confirmation_checked}
         can_complete={can_complete?(assigns)}
         target={@myself}
       />

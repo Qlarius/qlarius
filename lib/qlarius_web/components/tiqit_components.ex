@@ -43,52 +43,6 @@ defmodule QlariusWeb.TiqitComponents do
   end
 
   attr :tiqit, :any, required: true
-  attr :status, :atom, required: true
-  attr :fleet_after_hours, :integer, default: 24
-
-  def tiqit_countdown(assigns) do
-    assigns =
-      assign(assigns, :fleet_at, fn ->
-        if assigns.tiqit.expires_at do
-          DateTime.add(assigns.tiqit.expires_at, assigns.fleet_after_hours, :hour)
-        end
-      end)
-
-    ~H"""
-    <span class="text-xs text-base-content/60">
-      <%= case @status do %>
-        <% :active -> %>
-          <%= if @tiqit.expires_at do %>
-            <QlariusWeb.Components.TiqitExpirationCountdown.text
-              expires_at={@tiqit.expires_at}
-            />
-          <% else %>
-            Lifetime access
-          <% end %>
-        <% :expired -> %>
-          <%= if @tiqit.preserved do %>
-            Will not AutoFleet
-          <% else %>
-            <% fleet_at = @fleet_at.() %>
-            <%= if fleet_at && DateTime.compare(fleet_at, DateTime.utc_now()) == :gt do %>
-              AutoFleet in
-              <QlariusWeb.Components.TiqitExpirationCountdown.text
-                expires_at={fleet_at}
-              />
-            <% else %>
-              AutoFleet pending
-            <% end %>
-          <% end %>
-        <% :fleeted -> %>
-          Fleeted on {Calendar.strftime(@tiqit.disconnected_at, "%b %d, %Y")}
-        <% :undone -> %>
-          Refunded on {Calendar.strftime(@tiqit.undone_at, "%b %d, %Y")}
-      <% end %>
-    </span>
-    """
-  end
-
-  attr :tiqit, :any, required: true
 
   def tiqit_undo_countdown(assigns) do
     undo_window = Qlarius.System.get_global_variable_int("tiqit_undo_window_hours", 2)
@@ -118,6 +72,7 @@ defmodule QlariusWeb.TiqitComponents do
   attr :tiqit, :any, required: true
   attr :status, :atom, required: true
   attr :fleet_after_hours, :integer, default: 24
+  attr :user, :any, default: nil
   attr :fleet_modal_id, :string, default: "fleet-confirm-modal"
   attr :undo_modal_id, :string, default: "undo-confirm-modal"
   attr :preserve_modal_id, :string, default: "preserve-confirm-modal"
@@ -132,6 +87,10 @@ defmodule QlariusWeb.TiqitComponents do
 
     ~H"""
     <div class="space-y-3">
+      <div class="text-xs text-base-content/50 pb-2 border-b border-base-300/30 dark:border-base-content/15">
+        Purchased {format_purchased_at(@tiqit.purchased_at, @user)}
+      </div>
+
       <%!-- View content button — shown for all linked (non-fleeted) tiqits --%>
       <.link
         :if={@status in [:active, :expired] && @content_path}
@@ -142,18 +101,7 @@ defmodule QlariusWeb.TiqitComponents do
         Go to {if @scope_label != "", do: @scope_label, else: "Content"}
       </.link>
 
-      <%!-- Line 1: Status badge(s) + time info --%>
-      <div class="flex items-center gap-2 flex-wrap">
-        <.tiqit_status_badges status={@status} preserved={@tiqit.preserved} />
-        <span :if={@status in [:active, :expired]} class="text-xs text-base-content/50 flex items-center gap-1">
-          <%= if @status == :active do %>
-            Access remaining:
-          <% end %>
-          <.tiqit_countdown tiqit={@tiqit} status={@status} fleet_after_hours={@fleet_after_hours} />
-        </span>
-      </div>
-
-      <%!-- Line 2: Undo row — show if eligible, or disabled on active only --%>
+      <%!-- Undo row — show if eligible, or disabled on active only --%>
       <%= if @status in [:active, :expired] do %>
         <%= cond do %>
           <% @undo_available -> %>
@@ -186,7 +134,7 @@ defmodule QlariusWeb.TiqitComponents do
         <% end %>
       <% end %>
 
-      <%!-- Line 3: Preserve/Unpreserve + Fleet Now --%>
+      <%!-- Preserve/Unpreserve + Fleet Now --%>
       <%= if @status in [:active, :expired] do %>
         <div class="flex flex-wrap gap-2">
           <%!-- Expired+preserved: no Unpreserve, just Fleet Now --%>
@@ -255,9 +203,18 @@ defmodule QlariusWeb.TiqitComponents do
   attr :unpreserve_modal_id, :string, default: "unpreserve-confirm-modal"
 
   def tiqit_detail_card(assigns) do
+    status = Arcade.tiqit_status(assigns.tiqit)
+    tiqit = assigns.tiqit
+
+    fleet_at_deadline =
+      if status == :expired && !tiqit.preserved && tiqit.expires_at do
+        DateTime.add(tiqit.expires_at, assigns.fleet_after_hours, :hour)
+      end
+
     assigns =
       assigns
-      |> assign(:status, Arcade.tiqit_status(assigns.tiqit))
+      |> assign(:status, status)
+      |> assign(:fleet_at_deadline, fleet_at_deadline)
       |> assign(:title, tiqit_title(assigns.tiqit))
       |> assign(:scope_label, tiqit_scope_label(assigns.tiqit))
       |> assign(:content_summary, tiqit_content_summary(assigns.tiqit))
@@ -278,9 +235,43 @@ defmodule QlariusWeb.TiqitComponents do
         <div :if={@hierarchy != []} class="text-xs text-base-content/50 mt-1">
           {Enum.join(@hierarchy, " › ")}
         </div>
-        <div class="text-xs text-base-content/40 mt-2 clear-right">
-          Purchased {format_purchased_at(@tiqit.purchased_at, @user)}
-        </div>
+
+        <%= if @status in [:active, :expired] do %>
+          <div class="clear-both mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-base-300/25 pt-3 dark:border-base-content/15">
+            <%= cond do %>
+              <% @status == :active -> %>
+                <.tiqit_primary_status_badge status={:active} />
+                <span class="text-xs text-base-content/55">
+                  Time remaining:{" "}
+                  <span class="text-base-content/80">
+                    <%= if @tiqit.expires_at do %>
+                      <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={@tiqit.expires_at} />
+                    <% else %>
+                      <span class="font-semibold">Lifetime access</span>
+                    <% end %>
+                  </span>
+                </span>
+              <% @status == :expired && @tiqit.preserved -> %>
+                <div class="flex flex-wrap items-center gap-2">
+                  <.tiqit_status_badges status={:expired} preserved={true} />
+                </div>
+              <% @status == :expired -> %>
+                <.tiqit_primary_status_badge status={:expired} />
+                <span class="text-xs text-base-content/55">
+                  Before Self-Fleet:{" "}
+                  <span class="text-base-content/80">
+                    <%= if @fleet_at_deadline &&
+                           DateTime.compare(@fleet_at_deadline, DateTime.utc_now()) == :gt do %>
+                      <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={@fleet_at_deadline} />
+                    <% else %>
+                      <span class="font-semibold">AutoFleet pending</span>
+                    <% end %>
+                  </span>
+                </span>
+              <% true -> %>
+            <% end %>
+          </div>
+        <% end %>
       </div>
       <div class="tiqit-tr"></div>
 
@@ -290,15 +281,33 @@ defmodule QlariusWeb.TiqitComponents do
 
       <div class="tiqit-bl"></div>
       <div class="tiqit-bot">
-        <.tiqit_status_and_actions
-          tiqit={@tiqit}
-          status={@status}
-          fleet_after_hours={@fleet_after_hours}
-          fleet_modal_id={@fleet_modal_id}
-          undo_modal_id={@undo_modal_id}
-          preserve_modal_id={@preserve_modal_id}
-          unpreserve_modal_id={@unpreserve_modal_id}
-        />
+        <details class="tiqit-tail-details min-w-0">
+          <summary
+            class="tiqit-tail-details-summary flex cursor-pointer list-none flex-col justify-start [&::-webkit-details-marker]:hidden"
+            aria-label="Show or hide purchase details and actions"
+          >
+            <div class="tiqit-tail-details-summary-inner shrink-0">
+              <span class="tiqit-tail-expand-hit">
+                <.icon
+                  name="hero-chevron-down"
+                  class="tiqit-tail-details-chevron h-4 w-4 shrink-0 text-base-content/55"
+                />
+              </span>
+            </div>
+          </summary>
+          <div class="tiqit-tail-details-body">
+            <.tiqit_status_and_actions
+              tiqit={@tiqit}
+              status={@status}
+              user={@user}
+              fleet_after_hours={@fleet_after_hours}
+              fleet_modal_id={@fleet_modal_id}
+              undo_modal_id={@undo_modal_id}
+              preserve_modal_id={@preserve_modal_id}
+              unpreserve_modal_id={@unpreserve_modal_id}
+            />
+          </div>
+        </details>
       </div>
       <div class="tiqit-br"></div>
     </div>
@@ -496,12 +505,8 @@ defmodule QlariusWeb.TiqitComponents do
 
   # Helpers
 
-  defp format_purchased_at(datetime, nil) do
-    Calendar.strftime(datetime, "%b %d, %Y at %I:%M %p")
-  end
-
   defp format_purchased_at(datetime, user) do
-    Qlarius.DateTime.format_for_user(datetime, user, :standard)
+    Qlarius.DateTime.format_for_user(datetime, user, :standard_no_tz)
   end
 
   defp tiqit_image_url(tiqit) do

@@ -73,6 +73,7 @@ defmodule QlariusWeb.RegistrationLive do
       |> assign(:calculated_age, nil)
       |> assign(:age_trait_id, nil)
       |> assign(:confirmation_checked, false)
+      |> assign(:legal_confirmation_checked, false)
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
       |> assign(:trait_in_edit, %{id: 4})
       |> init_pwa_assigns(session)
@@ -517,6 +518,10 @@ defmodule QlariusWeb.RegistrationLive do
     {:noreply, assign(socket, :confirmation_checked, checked == "true")}
   end
 
+  def handle_event("toggle_legal_confirmation", %{"checked" => checked}, socket) do
+    {:noreply, assign(socket, :legal_confirmation_checked, checked == "true")}
+  end
+
   def handle_event("complete_registration", _params, socket) do
     if can_complete?(socket.assigns) do
       case create_user(socket) do
@@ -636,7 +641,8 @@ defmodule QlariusWeb.RegistrationLive do
       assigns.sex_trait_id != nil &&
       assigns.birthdate_valid &&
       assigns.age_trait_id != nil &&
-      assigns.confirmation_checked
+      assigns.confirmation_checked &&
+      assigns.legal_confirmation_checked
   end
 
   defp put_referral_code_cookie(socket, _code) do
@@ -874,6 +880,7 @@ defmodule QlariusWeb.RegistrationLive do
               zip_lookup_trait={@zip_lookup_trait}
               referral_code={@referral_code}
               confirmation_checked={@confirmation_checked}
+              legal_confirmation_checked={@legal_confirmation_checked}
               can_complete={can_complete?(assigns)}
             />
           <% end %>
