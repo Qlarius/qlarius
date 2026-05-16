@@ -75,6 +75,14 @@ config :qlarius, :ad_jump,
   use_location_replace: true,
   replace_strategy: :universal
 
+# Tiqit player frame override. `:auto` (default) lets
+# `QlariusWeb.Components.TiqitPlayer.play_frame_for/1` pick by context:
+# `:modal` for inline Qlink embeds, `:page` for `/widgets/...` standalone,
+# and `:side_panel` for in-app `/arqade/...` mobile-shell pages. Pin to
+# `:page`, `:modal`, or `:side_panel` to force a single frame everywhere
+# (kill switch / debugging). Per-env overrides go in runtime.exs.
+config :qlarius, :tiqit_player_frame, :auto
+
 config :qlarius, :auth_sheet,
   on_qlink_page: false,
   on_qlinkin_bio: false,

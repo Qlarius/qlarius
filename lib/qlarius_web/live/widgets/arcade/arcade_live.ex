@@ -15,7 +15,11 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   import QlariusWeb.PWAHelpers
   import QlariusWeb.TiqitClassHTML
   import QlariusWeb.Widgets.Arcade.Components
-  import QlariusWeb.Components.TiqitUnlockedContent, only: [tiqit_unlocked_content_player: 1]
+
+  import QlariusWeb.Components.TiqitPlayer,
+    only: [player_modal_frame: 1, player_side_panel_frame: 1]
+
+  alias QlariusWeb.Components.TiqitPlayer
   # Shared helpers for the "View anywhere, Act only when authed"
   # pattern — `authed?/1`, `format_usd_or_dashes/1`,
   # `wallet_strip_or_connect/1`, `connect_wallet_modal/1`, etc.
@@ -169,7 +173,10 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          arqade_expand_parent?: is_pid(socket.parent_pid),
          fixed_viewport: base_path == "" and not inline?,
          episode_search: "",
-         show_owned_only?: false
+         show_owned_only?: false,
+         play_frame: nil,
+         slide_over_active: false,
+         slide_over_title: "Now playing"
        )
        |> assign(scope_assigns(scope, group, pieces))
        |> maybe_init_selected_piece(inline?, session, params)}
@@ -475,15 +482,73 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     end
   end
 
+  # Unified play entry. Operates on `@selected_piece` (the list-click
+  # already set it via `select-content`) and picks a frame:
+  #
+  #   * `:page`       — `push_navigate/2` to `/content/:id`
+  #     (`ContentLive` in-app, `ContentController` under `/widgets`).
+  #   * `:modal`      — opens the inline fullscreen overlay; this is
+  #     the historical Qlink-embed behavior. Reuses the existing
+  #     `:show_tiqit_content_modal` machinery so the close-animation
+  #     timer keeps working unchanged.
+  #   * `:side_panel` — slides the in-app mobile shell's right panel
+  #     in over the episode list; `Layouts.mobile` renders the
+  #     `:slide_over_content` slot the template passes in.
+  #
+  # See `TiqitPlayer.play_frame_for/1` for the per-context decision.
+  def handle_event("play-piece", _params, socket) do
+    case socket.assigns.selected_piece do
+      nil ->
+        noreply(socket)
+
+      piece ->
+        case TiqitPlayer.play_frame_for(socket.assigns) do
+          :page ->
+            socket
+            |> push_navigate(to: "#{socket.assigns.base_path}/content/#{piece.id}")
+            |> noreply()
+
+          :modal ->
+            socket
+            |> cancel_tiqit_content_modal_close_timer()
+            |> assign(:play_frame, :modal)
+            |> assign(:show_tiqit_content_modal, true)
+            |> noreply()
+
+          :side_panel ->
+            socket
+            |> assign(
+              play_frame: :side_panel,
+              slide_over_active: true,
+              slide_over_title: piece.title
+            )
+            |> noreply()
+        end
+    end
+  end
+
+  # Legacy modal-open entry — kept so any cached `phx-click="open-tiqit-content"`
+  # on the wire (e.g. from a half-reloaded Qlink page) still works.
+  # New clicks go through `play-piece`.
   def handle_event("open-tiqit-content", _params, socket) do
     socket
     |> cancel_tiqit_content_modal_close_timer()
+    |> assign(:play_frame, :modal)
     |> assign(:show_tiqit_content_modal, true)
     |> noreply()
   end
 
   def handle_event("close-tiqit-content", _params, socket) do
     {:noreply, begin_tiqit_content_modal_close(socket)}
+  end
+
+  # Mobile-shell right slide-over close. The slide-over's Back button
+  # in `Layouts.mobile` pushes this event; we flip the panel off and
+  # clear `:play_frame` so the dispatcher stays consistent.
+  def handle_event("close_slide_over", _params, socket) do
+    socket
+    |> assign(slide_over_active: false, play_frame: nil)
+    |> noreply()
   end
 
   def handle_event("purchase-tiqit", %{"tiqit-class-id" => tiqit_class_id}, socket) do
@@ -559,7 +624,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
        socket
        |> assign(:show_tiqit_content_modal, false)
        |> assign(:tiqit_content_modal_leaving?, false)
-       |> assign(:tiqit_content_modal_close_timer_ref, nil)}
+       |> assign(:tiqit_content_modal_close_timer_ref, nil)
+       |> assign(:play_frame, nil)}
     else
       {:noreply, socket}
     end

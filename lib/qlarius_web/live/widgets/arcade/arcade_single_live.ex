@@ -15,7 +15,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   import QlariusWeb.PWAHelpers
   import QlariusWeb.TiqitClassHTML
   import QlariusWeb.Widgets.Arcade.Components
-  import QlariusWeb.Components.TiqitUnlockedContent, only: [tiqit_unlocked_content_player: 1]
+  import QlariusWeb.Components.TiqitPlayer, only: [player_modal_frame: 1]
   # Shared helpers for the "View anywhere, Act only when authed"
   # pattern — `authed?/1`, `format_usd_or_dashes/1`,
   # `wallet_strip_or_connect/1`, `connect_wallet_modal/1`, etc.

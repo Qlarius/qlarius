@@ -1206,6 +1206,34 @@ Hooks.VideoThumbnail = {
   }
 }
 
+Hooks.EpisodeSearchField = {
+  mounted() {
+    this._onInput = () => this.syncClear()
+    this.input()?.addEventListener('input', this._onInput)
+    this.syncClear()
+  },
+  updated() {
+    this.syncClear()
+  },
+  destroyed() {
+    this.input()?.removeEventListener('input', this._onInput)
+  },
+  input() {
+    return this.el.querySelector('[data-episode-search-input]')
+  },
+  clearBtn() {
+    return this.el.querySelector('[data-episode-search-clear]')
+  },
+  syncClear() {
+    const input = this.input()
+    const btn = this.clearBtn()
+    if (!input || !btn) return
+    const show = input.value.length > 0
+    btn.classList.toggle('hidden', !show)
+    btn.classList.toggle('inline-flex', show)
+  }
+}
+
 Hooks.YouTubePoster = {
   mounted() {
     const youtubeId = this.el.dataset.youtubeId

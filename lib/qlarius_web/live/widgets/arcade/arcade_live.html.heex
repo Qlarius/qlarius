@@ -18,15 +18,29 @@
   just lure clicks away from the page.
 --%>
   <Layouts.maybe_mobile wrap={@base_path == "" and not @inline?} {assigns}>
+    <:slide_over_content :if={@play_frame == :side_panel and not is_nil(@selected_piece) and not is_nil(@tiqit)}>
+      <.player_side_panel_frame
+        piece={@selected_piece}
+        group={@group}
+        tiqit={@tiqit}
+      />
+    </:slide_over_content>
+    <div
+      data-arqade-in-app-page={if(@base_path == "" && !@inline?, do: "true")}
+      class={[
+        @base_path == "" && !@inline? &&
+          "flex flex-col flex-1 min-h-0 overflow-hidden"
+      ]}
+    >
     <.arqade_breadcrumbs
       :if={not @inline?}
       base_path={@base_path}
-      crumbs={[
-        {@group.catalog.creator.name, "#{@base_path}/arqade"},
-        {@group.catalog.name, "#{@base_path}/arqade/catalog/#{@group.catalog.id}"}
-      ]}
-    />
-    <%!--
+        crumbs={[
+          {@group.catalog.creator.name, "#{@base_path}/arqade"},
+          {@group.catalog.name, "#{@base_path}/arqade/catalog/#{@group.catalog.id}"}
+        ]}
+      />
+      <%!--
   Inline embeds (rendered by QlinkPage.Show via live_render/3) paint
   the arqade as a rounded "card". This wrapper owns the rounded clip
   so the embed chrome reads as a card without trapping `position: fixed`
@@ -37,18 +51,20 @@
     <%= if Enum.any?(@pieces) do %>
       <div
         data-arqade-inline-card={if(@inline?, do: "true")}
+        data-arqade-in-app-group={if(@base_path == "" && !@inline?, do: "true")}
         class={[
           "w-full relative z-0 isolate",
           @inline? &&
             "rounded-2xl border border-neutral/50 overflow-hidden bg-base-100 min-h-0 flex flex-col flex-1",
-          @base_path == "" && !@inline? && "flex min-h-0 flex-1 flex-col"
+          @base_path == "" && !@inline? &&
+            "flex flex-col flex-1 min-h-0 w-full max-w-full min-w-0 overflow-hidden"
         ]}
       >
         <div class={[
-          "w-full flex flex-col relative min-h-0",
+          "w-full flex flex-col relative min-h-0 min-w-0 max-w-full",
           cond do
             @inline? -> "h-full max-h-full flex-1 overflow-hidden"
-            @base_path == "" -> "flex min-h-0 flex-1 flex-col overflow-hidden"
+            @base_path == "" -> "w-full flex flex-col flex-1 min-h-0 overflow-hidden"
             true -> "h-screen"
           end
         ]}>
@@ -107,27 +123,33 @@
             </div>
           <% end %>
 
-          <div class={[
-            "flex-1 bg-base-100 text-base-content min-h-0 flex flex-col md:!flex-row md:items-stretch",
-            (@inline? || (@base_path == "" && !@inline?)) && "overflow-hidden"
-          ]}>
-            <%!--
-        Selected pane: intrinsic height on mobile (priority); never steals flex
-        growth from the episodes list. On md+ inline embed, column can scroll.
-      --%>
-            <div class={[
-              "relative w-full shrink-0 md:!w-1/2 md:p-5 flex flex-col",
-              @inline? &&
-                "z-[1] grow-0 shrink-0 basis-auto max-w-full overflow-x-hidden md:flex-1 md:min-h-0 md:overflow-y-auto",
-              !@inline? &&
-                "z-[40] min-h-0 flex-none overflow-visible md:min-h-0 md:flex-1 md:self-stretch md:overflow-y-auto"
-            ]}>
+          <div
+            data-arqade-split="true"
+            class={[
+              "flex-1 bg-base-100 text-base-content min-w-0 max-w-full flex flex-col md:!flex-row md:items-stretch",
+              (@inline? || @base_path == "/widgets") && "min-h-0 overflow-hidden",
+              @base_path == "" && !@inline? &&
+                "min-h-0 flex-1 max-md:overflow-hidden md:overflow-hidden"
+            ]}
+          >
+            <%!-- In-app mobile: split height + list scroll via app.css (5rem nav). Qlink + md+ unchanged. --%>
+            <div
+              data-arqade-selected-pane="true"
+              class={[
+                "relative w-full shrink-0 md:!w-1/2 md:p-5 flex flex-col",
+                @inline? &&
+                  "z-[1] grow-0 shrink-0 basis-auto max-w-full overflow-x-hidden md:flex-1 md:min-h-0 md:overflow-y-auto",
+                !@inline? &&
+                  "z-[40] min-h-0 flex-none overflow-x-hidden md:min-h-0 md:flex-1 md:self-stretch md:overflow-y-auto"
+              ]}
+            >
               <div class={[
-                "relative z-[35] min-h-0 shrink-0 overflow-y-auto overflow-x-hidden min-w-0",
-                if(@inline?,
-                  do: "max-h-[min(70vh,32rem)] md:max-h-none md:flex-none md:w-full",
-                  else: "max-h-[min(70vh,32rem)] md:max-h-none"
-                )
+                "relative z-[35] min-h-0 shrink-0 overflow-x-hidden min-w-0",
+                cond do
+                  @inline? -> "overflow-y-auto max-h-[min(70vh,32rem)] md:max-h-none md:flex-none md:w-full"
+                  @base_path == "" -> "max-md:overflow-visible md:overflow-y-auto md:max-h-none"
+                  true -> "overflow-y-auto max-h-[min(70vh,32rem)] md:max-h-none"
+                end
               ]}>
                 <div class="bg-base-100 rounded-lg p-4 md:!p-0 min-w-0">
                   <%!--
@@ -211,7 +233,7 @@
                 </div>
               </div>
 
-              <div class="relative z-[30] shrink-0 min-w-0 overflow-visible px-2 pb-0 md:px-0">
+              <div class="relative z-[30] shrink-0 min-w-0 overflow-x-hidden px-2 pb-0 md:px-0">
                 <div class="flex flex-col justify-start mt-4 gap-1.5 align-middle text-center">
                   <%!--
               CTA states (View anywhere, Act only when authed):
@@ -231,23 +253,18 @@
                     <% Arcade.has_valid_tiqit?(@current_scope, @selected_piece) -> %>
                       <div class="flex w-full flex-col items-stretch gap-3">
                         <div class="mb-3 w-full">
-                          <%= if @inline? do %>
-                            <button
-                              type="button"
-                              phx-click="open-tiqit-content"
-                              phx-target={@embed_phx_id && "#" <> @embed_phx_id}
-                              class="btn-sponster-play btn-lg min-h-14 w-full rounded-full whitespace-nowrap"
-                            >
-                              <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
-                            </button>
-                          <% else %>
-                            <.link
-                              navigate={"#{@base_path}/content/#{@selected_piece.id}"}
-                              class="btn-sponster-play btn-lg min-h-14 w-full rounded-full whitespace-nowrap"
-                            >
-                              <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
-                            </.link>
-                          <% end %>
+                          <%!-- Single Play CTA → TiqitPlayer.play_frame_for/1 picks
+                  modal (inline Qlink), side panel (in-app), or page
+                  (standalone widget). `phx-target` to the embed phx-id
+                  keeps inline events routed to this child LV. --%>
+                          <button
+                            type="button"
+                            phx-click="play-piece"
+                            phx-target={@embed_phx_id && "#" <> @embed_phx_id}
+                            class="btn-sponster-play btn-lg min-h-14 w-full rounded-full whitespace-nowrap"
+                          >
+                            <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
+                          </button>
                         </div>
                         <QlariusWeb.Components.TiqitExpirationCountdown.badge
                           expires_at={@tiqit.expires_at}
@@ -311,21 +328,26 @@
             </div>
 
             <%!-- Episodes list - fills remaining height in fixed embed; scrolls inside --%>
-            <div class={[
-              "relative w-full min-h-0 flex flex-col p-5 border-t md:!border-t-0 md:border-l border-base-300 md:!w-1/2",
-              "flex-1 min-h-0 overflow-hidden",
-              @inline? && "z-0 md:flex-1",
-              !@inline? && "z-10 md:min-h-0 md:flex-1"
-            ]}>
+            <div
+              data-arqade-episodes-column="true"
+              class={[
+                "relative w-full min-h-0 flex flex-col border-t md:!border-t-0 md:border-l border-base-300 md:!w-1/2",
+                @inline? && "z-0 min-h-0 flex-1 overflow-hidden p-5 md:flex-1",
+                @base_path == "" && !@inline? &&
+                  "z-10 flex min-h-0 min-w-0 flex-col overflow-hidden pt-2 pb-0 max-md:min-h-0 md:p-5 md:flex-1",
+                @base_path == "/widgets" && "z-10 min-h-0 flex-1 overflow-hidden p-5 md:min-h-0 md:flex-1"
+              ]}
+            >
               <% visible_pieces =
                 filter_pieces(@pieces, @episode_search, @show_owned_only?, @valid_tiqit_piece_ids) %>
               <% search_active? = @episode_search != "" %>
               <% filter_active? = search_active? or @show_owned_only? %>
               <% has_owned? = MapSet.size(@valid_tiqit_piece_ids) > 0 %>
-              <div class="flex items-center justify-between gap-3 mb-2 flex-shrink-0 flex-wrap">
-                <h2 class="text-lg font-semibold text-base-content">
+              <%!-- List header: title + search on one row; search grows to fill remaining width. --%>
+              <div class="flex items-center gap-2 sm:gap-3 mb-2 flex-shrink-0 min-w-0">
+                <h2 class="text-sm sm:text-lg font-semibold text-base-content leading-tight shrink-0 whitespace-nowrap">
                   {String.capitalize(to_string(@group.catalog.piece_type))}s{" "}
-                  <span class="text-base font-medium text-base-content/55 tabular-nums">
+                  <span class="text-xs sm:text-base font-medium text-base-content/55 tabular-nums">
                     <%= if filter_active? do %>
                       ({length(visible_pieces)}/{length(@pieces)})
                     <% else %>
@@ -333,50 +355,62 @@
                     <% end %>
                   </span>
                 </h2>
-                <%!-- Episode search (phase 1, in-memory). Filters @pieces by title + description; `select-content` clicks unaffected. --%>
-                <form phx-change="search-episodes" class="flex items-center gap-2 shrink-0">
-                  <label class="sr-only" for="episode-search-input">
-                    Search {to_string(@group.catalog.piece_type)}s
-                  </label>
-                  <.icon
-                    name="hero-magnifying-glass"
-                    class="w-5 h-5 text-base-content/60 shrink-0"
-                  />
-                  <input
-                    id="episode-search-input"
-                    type="text"
-                    name="q"
-                    value={@episode_search}
-                    placeholder={"Search #{to_string(@group.catalog.piece_type)}s"}
-                    class="input input-bordered input-sm w-44 sm:w-56"
-                    autocomplete="off"
-                    phx-debounce="200"
-                  />
-                  <%= if search_active? do %>
+                <%!-- Episode search: daisyUI `input` flex row — icon replaces placeholder on the left. --%>
+                <form
+                  id={"episode-search-form-#{@group.id}"}
+                  phx-change="search-episodes"
+                  phx-hook="EpisodeSearchField"
+                  class="flex-1 min-w-0"
+                >
+                  <label class="input input-bordered flex h-8 min-h-8 w-full items-center gap-1.5 px-2 sm:h-9 sm:min-h-9 sm:gap-2 sm:px-2.5">
+                    <.icon
+                      name="hero-magnifying-glass"
+                      class="w-3.5 h-3.5 shrink-0 text-base-content/50 sm:w-4 sm:h-4 pointer-events-none"
+                    />
+                    <input
+                      id="episode-search-input"
+                      data-episode-search-input
+                      type="text"
+                      name="q"
+                      value={@episode_search}
+                      aria-label={"Search #{to_string(@group.catalog.piece_type)}s"}
+                      class="min-w-0 w-full grow border-0 bg-transparent p-0 h-full text-xs shadow-none focus:outline-none focus:ring-0 sm:text-sm"
+                      autocomplete="off"
+                      phx-debounce="200"
+                    />
                     <button
                       type="button"
+                      data-episode-search-clear
                       phx-click="clear-episode-search"
-                      class="btn btn-ghost btn-sm btn-circle"
+                      class="btn btn-ghost btn-xs btn-circle hidden h-6 w-6 min-h-0 shrink-0 sm:h-7 sm:w-7"
                       aria-label="Clear search"
                       title="Clear search"
                     >
-                      <.icon name="hero-x-circle" class="w-5 h-5 text-base-content/70" />
+                      <.icon name="hero-x-circle" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-base-content/70" />
                     </button>
-                  <% end %>
+                  </label>
                 </form>
               </div>
               <%!-- Owned-only filter — hidden when the user has no valid tiqits in scope. --%>
               <%= if has_owned? do %>
-                <label class="flex items-center gap-2 mb-3 flex-shrink-0 cursor-pointer text-sm text-base-content/70 select-none">
+                <label class="flex items-center gap-2 mb-3 flex-shrink-0 cursor-pointer text-xs text-base-content/70 select-none">
                   <input
                     type="checkbox"
                     class="checkbox checkbox-sm"
                     checked={@show_owned_only?}
                     phx-click="toggle-owned-only"
-                  /> Only active purchases
+                  /> Active
                 </label>
               <% end %>
-              <div class="flex-1 overflow-y-auto min-h-0 space-y-2 pb-4">
+              <div
+                id="arqade-episodes-scroll"
+                class={[
+                  "space-y-2 min-h-0",
+                  @base_path == "" && !@inline? && "pb-0",
+                  (@inline? || @base_path == "/widgets") && "overflow-y-auto pb-4",
+                  @base_path != "" && @base_path != "/widgets" && "pb-2"
+                ]}
+              >
                 <%!--
             Piece selection always goes through the `select-content`
             event (not a URL `patch=`) so this template works
@@ -603,6 +637,7 @@
     <% else %>
       Unable to render this content group as it has no valid Tiqit classes
     <% end %>
+    </div>
 
     <.connect_wallet_modal
       show={@show_connect_modal}
@@ -635,41 +670,18 @@
       />
     <% end %>
   </Layouts.maybe_mobile>
-  <%= if @show_tiqit_content_modal and @inline? and not is_nil(@selected_piece) and not is_nil(@tiqit) do %>
-    <div
-      id={"tiqit-inline-modal-#{@selected_piece.id}"}
-      phx-hook="BodyScrollLock"
-      data-body-scroll-lock="true"
-      class={[
-        "fixed inset-0 z-[110] flex flex-col bg-base-100",
-        "tiqit-content-modal-active",
-        @tiqit_content_modal_leaving? && "tiqit-content-modal-leaving"
-      ]}
-      data-theme={if @base_path == "/widgets", do: @force_theme}
-      phx-window-keydown="close-tiqit-content"
-      phx-key="Escape"
-      phx-target={@embed_phx_id && "#" <> @embed_phx_id}
-    >
-      <div class="flex items-center justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] border-b border-base-300 bg-base-100 flex-shrink-0">
-        <span class="font-semibold text-base-content truncate">{@selected_piece.title}</span>
-        <button
-          type="button"
-          phx-click="close-tiqit-content"
-          phx-target={@embed_phx_id && "#" <> @embed_phx_id}
-          class="btn btn-ghost btn-circle flex-shrink-0"
-          aria-label={gettext("close")}
-        >
-          <.icon name="hero-x-mark" class="w-6 h-6" />
-        </button>
-      </div>
-      <div class="flex-1 min-h-0 overflow-y-auto p-4 pb-8 max-w-4xl w-full mx-auto">
-        <.tiqit_unlocked_content_player
-          id_prefix={"inline-arcade-#{@selected_piece.id}"}
-          piece={@selected_piece}
-          group={@group}
-          tiqit={@tiqit}
-        />
-      </div>
-    </div>
-  <% end %>
+  <.player_modal_frame
+    :if={
+      @show_tiqit_content_modal and @inline? and not is_nil(@selected_piece) and
+        not is_nil(@tiqit)
+    }
+    id="tiqit-inline-modal"
+    id_prefix="inline-arcade"
+    piece={@selected_piece}
+    group={@group}
+    tiqit={@tiqit}
+    leaving?={@tiqit_content_modal_leaving?}
+    force_theme={if @base_path == "/widgets", do: @force_theme}
+    target={@embed_phx_id && "#" <> @embed_phx_id}
+  />
 </div>

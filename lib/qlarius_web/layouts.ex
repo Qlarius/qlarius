@@ -272,13 +272,20 @@ defmodule QlariusWeb.Layouts do
   attr :wrap, :boolean, default: true
 
   def maybe_mobile(assigns) do
-    mobile_assigns = Map.drop(assigns, [:wrap])
+    # Drop slot data (and our own attrs) before splatting into `.mobile/1`;
+    # slots are re-forwarded explicitly below so they arrive as slots, not
+    # as attributes.
+    mobile_assigns =
+      Map.drop(assigns, [:wrap, :inner_block, :slide_over_content, :modals, :floating_actions])
 
     assigns = assign(assigns, :mobile_assigns, mobile_assigns)
 
     ~H"""
     <%= if @wrap do %>
       <.mobile {@mobile_assigns}>
+        <:slide_over_content :for={entry <- assigns[:slide_over_content] || []}>
+          {render_slot(entry)}
+        </:slide_over_content>
         {render_slot(@inner_block)}
       </.mobile>
     <% else %>
