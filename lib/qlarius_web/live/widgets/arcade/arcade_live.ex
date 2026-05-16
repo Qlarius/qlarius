@@ -167,9 +167,10 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          tiqit_content_modal_close_timer_ref: nil,
          embed_phx_id: session["embed_phx_id"],
          arqade_expand_parent?: is_pid(socket.parent_pid),
-         fixed_viewport: base_path == "" and not inline?
+         fixed_viewport: base_path == "" and not inline?,
+         episode_search: ""
        )
-       |> assign(scope_assigns(scope, group))
+       |> assign(scope_assigns(scope, group, pieces))
        |> maybe_init_selected_piece(inline?, session, params)}
     end
   end
@@ -239,7 +240,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   # mount and `handle_info(:update_balance | {:me_file_offers_updated, _}, ...)` refresh paths, and
   # (b) when ArcadeLive is later extracted to a LiveComponent this
   # function can be called from the LC's `update/2` callback unchanged.
-  defp scope_assigns(scope, group) do
+  defp scope_assigns(scope, group, pieces) do
     {group_credit, group_count} =
       if scope,
         do: Arcade.calculate_tiqit_up_credit_with_count(scope, group),
@@ -273,7 +274,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       tiqit_up_catalog_credit: catalog_credit,
       tiqit_up_catalog_count: catalog_count,
       tiqit_up_nudge: nudge?,
-      daily_gift_available?: daily_gift_available?
+      daily_gift_available?: daily_gift_available?,
+      valid_tiqit_piece_ids: Arcade.valid_piece_ids_for_group(scope, group, pieces)
     }
   end
 
@@ -289,6 +291,18 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   # `select_content_by_id/2` parses it.
   def handle_event("select-content", %{"content-id" => content_id}, socket) do
     {:noreply, select_content_by_id(socket, content_id)}
+  end
+
+  # Episode list search (phase 1, in-memory). Filters @pieces by title
+  # + description against `@episode_search`; debounced from the input
+  # to limit chatter. Does NOT change `@selected_piece` — clicking a
+  # result still triggers `select-content`.
+  def handle_event("search-episodes", %{"q" => q}, socket) when is_binary(q) do
+    {:noreply, assign(socket, :episode_search, q)}
+  end
+
+  def handle_event("clear-episode-search", _params, socket) do
+    {:noreply, assign(socket, :episode_search, "")}
   end
 
   def handle_event("pwa_detected", params, socket) do
@@ -561,6 +575,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   defp refresh_scope_after_wallet_or_offer_event(socket) do
     scope = socket.assigns[:current_scope]
     group = socket.assigns[:group]
+    pieces = socket.assigns[:pieces] || []
 
     cond do
       scope && scope.true_user && group ->
@@ -568,7 +583,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
         assign(
           socket,
-          Map.merge(scope_assigns(refreshed, group), %{current_scope: refreshed})
+          Map.merge(scope_assigns(refreshed, group, pieces), %{current_scope: refreshed})
         )
 
       true ->
@@ -603,14 +618,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
         group_type = catalog.group_type |> to_string()
         group_label = if group_count == 1, do: group_type, else: pluralize(group_type)
 
-        piece_count =
-          catalog.content_groups
-          |> Enum.map(fn g ->
-            if Ecto.assoc_loaded?(g.content_pieces),
-              do: length(g.content_pieces),
-              else: 0
-          end)
-          |> Enum.sum()
+        piece_count = Arcade.active_piece_count_for_catalog(catalog)
 
         piece_type = catalog.piece_type |> to_string()
         piece_label = if piece_count == 1, do: piece_type, else: pluralize(piece_type)
@@ -698,6 +706,36 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     |> String.replace("\n", " ")
   end
 
+  @doc """
+  Episode list search filter (in-memory). Matches `title` or
+  `description` (case-insensitive substring). Empty query returns
+  pieces unchanged.
+
+  Phase 1 only — runs over the already-loaded `@pieces`. When phase 2
+  pagination lands this is replaced by a DB-driven `search_pieces/3`.
+  """
+  def filter_pieces(pieces, query) when is_list(pieces) and is_binary(query) do
+    case String.trim(query) do
+      "" ->
+        pieces
+
+      q ->
+        needle = String.downcase(q)
+
+        Enum.filter(pieces, fn piece ->
+          piece_field_contains?(piece.title, needle) or
+            piece_field_contains?(piece.description, needle)
+        end)
+    end
+  end
+
+  def filter_pieces(pieces, _query) when is_list(pieces), do: pieces
+
+  defp piece_field_contains?(nil, _needle), do: false
+
+  defp piece_field_contains?(value, needle) when is_binary(value),
+    do: String.contains?(String.downcase(value), needle)
+
   defp put_piece_display_duration(%ContentPiece{} = piece) do
     duration =
       case piece.length do
@@ -710,6 +748,24 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
     Map.put(piece, :duration, duration)
   end
+
+  @doc false
+  def piece_published_date_label(%ContentPiece{} = piece) do
+    case piece_display_date(piece) do
+      %Date{} = date -> Calendar.strftime(date, "%b %d, %Y")
+      _ -> nil
+    end
+  end
+
+  defp piece_display_date(%ContentPiece{date_published: %Date{} = date}), do: date
+
+  defp piece_display_date(%ContentPiece{inserted_at: %DateTime{} = dt}),
+    do: DateTime.to_date(dt)
+
+  defp piece_display_date(%ContentPiece{inserted_at: %NaiveDateTime{} = ndt}),
+    do: NaiveDateTime.to_date(ndt)
+
+  defp piece_display_date(_), do: nil
 
   defp generated_placeholder_duration(piece_id) do
     :rand.seed(:exsplus, {piece_id, piece_id, piece_id})

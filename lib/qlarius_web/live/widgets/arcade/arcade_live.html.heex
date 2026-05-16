@@ -152,12 +152,11 @@
                         <span class="flex items-center gap-1">
                           <.icon name="hero-clock" class="w-3 h-3" />{@selected_piece.duration}
                         </span>
-                        <span class="flex items-center gap-1">
-                          <.icon name="hero-calendar" class="w-3 h-3" />{Calendar.strftime(
-                            @selected_piece.inserted_at,
-                            "%b %d, %Y"
-                          )}
-                        </span>
+                        <%= if label = piece_published_date_label(@selected_piece) do %>
+                          <span class="flex items-center gap-1">
+                            <.icon name="hero-calendar" class="w-3 h-3" />{label}
+                          </span>
+                        <% end %>
                       </div>
                       <%= if String.trim(@selected_piece.description || "") != "" do %>
                         <div class="relative w-full min-w-0 flex flex-col shrink-0">
@@ -318,12 +317,51 @@
               @inline? && "z-0 md:flex-1",
               !@inline? && "z-10 md:min-h-0 md:flex-1"
             ]}>
-              <h2 class="text-lg font-semibold text-base-content mb-4 flex-shrink-0">
-                {String.capitalize(to_string(@group.catalog.piece_type))}s{" "}
-                <span class="text-base font-medium text-base-content/55 tabular-nums">
-                  ({length(@pieces)})
-                </span>
-              </h2>
+              <% visible_pieces = filter_pieces(@pieces, @episode_search) %>
+              <% search_active? = @episode_search != "" %>
+              <div class="flex items-center justify-between gap-3 mb-4 flex-shrink-0 flex-wrap">
+                <h2 class="text-lg font-semibold text-base-content">
+                  {String.capitalize(to_string(@group.catalog.piece_type))}s{" "}
+                  <span class="text-base font-medium text-base-content/55 tabular-nums">
+                    <%= if search_active? do %>
+                      ({length(visible_pieces)}/{length(@pieces)})
+                    <% else %>
+                      ({length(@pieces)})
+                    <% end %>
+                  </span>
+                </h2>
+                <%!-- Episode search (phase 1, in-memory). Filters @pieces by title + description; `select-content` clicks unaffected. --%>
+                <form phx-change="search-episodes" class="flex items-center gap-2 shrink-0">
+                  <label class="sr-only" for="episode-search-input">
+                    Search {to_string(@group.catalog.piece_type)}s
+                  </label>
+                  <.icon
+                    name="hero-magnifying-glass"
+                    class="w-5 h-5 text-base-content/60 shrink-0"
+                  />
+                  <input
+                    id="episode-search-input"
+                    type="text"
+                    name="q"
+                    value={@episode_search}
+                    placeholder={"Search #{to_string(@group.catalog.piece_type)}s"}
+                    class="input input-bordered input-sm w-44 sm:w-56"
+                    autocomplete="off"
+                    phx-debounce="200"
+                  />
+                  <%= if search_active? do %>
+                    <button
+                      type="button"
+                      phx-click="clear-episode-search"
+                      class="btn btn-ghost btn-sm btn-circle"
+                      aria-label="Clear search"
+                      title="Clear search"
+                    >
+                      <.icon name="hero-x-circle" class="w-5 h-5 text-base-content/70" />
+                    </button>
+                  <% end %>
+                </form>
+              </div>
               <div class="flex-1 overflow-y-auto min-h-0 space-y-2 pb-4">
                 <%!--
             Piece selection always goes through the `select-content`
@@ -336,8 +374,13 @@
             Initial piece deep-linking via `?content_id=N` is still
             honored at mount (see `maybe_init_selected_piece/4`).
           --%>
+                <%= if search_active? and visible_pieces == [] do %>
+                  <p class="text-sm text-base-content/60 px-3 py-6 text-center">
+                    No {to_string(@group.catalog.piece_type)}s match "{@episode_search}".
+                  </p>
+                <% end %>
                 <.link
-                  :for={piece <- @pieces}
+                  :for={piece <- visible_pieces}
                   href="#"
                   phx-click="select-content"
                   phx-value-content-id={piece.id}
@@ -350,6 +393,8 @@
                       <img
                         src={content_image_url(piece, @group)}
                         alt={piece.title}
+                        loading="lazy"
+                        decoding="async"
                         class="h-full w-full object-cover"
                       />
                     </div>
@@ -360,12 +405,20 @@
                         <p class="text-sm font-semibold leading-tight line-clamp-2 text-base-content [overflow-wrap:anywhere]">
                           {piece.title}
                         </p>
-                        <div class="flex items-center gap-1 text-[11px] text-base-content/50 leading-none">
-                          <.icon name="hero-clock" class="w-3 h-3 shrink-0" />{piece.duration}
+                        <div class="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-base-content/50 leading-none">
+                          <span class="flex items-center gap-1">
+                            <.icon name="hero-clock" class="w-3 h-3 shrink-0" />{piece.duration}
+                          </span>
+                          <%= if label = piece_published_date_label(piece) do %>
+                            <span class="flex items-center gap-1">
+                              <.icon name="hero-calendar" class="w-3 h-3 shrink-0" />{label}
+                            </span>
+                          <% end %>
                         </div>
                       </div>
-                      <span class={"shrink-0 #{if Arcade.has_valid_tiqit?(@current_scope, piece), do: "badge-sponster-playable", else: "badge-arqade-episode-cell"}"}>
-                        <%= if Arcade.has_valid_tiqit?(@current_scope, piece) do %>
+                      <% piece_has_tiqit? = MapSet.member?(@valid_tiqit_piece_ids, piece.id) %>
+                      <span class={"shrink-0 #{if piece_has_tiqit?, do: "badge-sponster-playable", else: "badge-arqade-episode-cell"}"}>
+                        <%= if piece_has_tiqit? do %>
                           <%!-- Plain bold stroke check (Hero outline reads thin at this size). --%>
                           <svg
                             class="h-4 w-4 shrink-0 text-current"

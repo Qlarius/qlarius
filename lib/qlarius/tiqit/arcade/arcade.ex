@@ -50,6 +50,71 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     !!get_valid_tiqit(scope, piece)
   end
 
+  @doc """
+  Batched valid-tiqit lookup for the episode list. Returns a `MapSet`
+  of `content_piece.id`s the user has a currently-valid tiqit for
+  within `group`'s scope (piece-, group-, or catalog-level).
+
+  Replaces N per-row `has_valid_tiqit?/2` calls with at most two
+  fixed-size queries:
+
+    1. `exists?` — any non-expired group- or catalog-level tiqit
+       (which unlocks every piece in this group); short-circuits to
+       all `pieces` ids if true.
+    2. `select` — piece-level tiqits restricted to ids in `pieces`.
+
+  Anon viewers (`nil` or `%Scope{user: nil}`) get an empty set and no
+  query runs.
+  """
+  def valid_piece_ids_for_group(scope, group, pieces)
+
+  def valid_piece_ids_for_group(nil, %ContentGroup{}, _pieces), do: MapSet.new()
+  def valid_piece_ids_for_group(%Scope{user: nil}, %ContentGroup{}, _pieces), do: MapSet.new()
+
+  def valid_piece_ids_for_group(
+        %Scope{} = scope,
+        %ContentGroup{id: group_id, catalog_id: catalog_id},
+        pieces
+      )
+      when is_list(pieces) do
+    now = DateTime.utc_now()
+    user_id = scope.user.id
+
+    any_broad? =
+      Repo.exists?(
+        from t in Tiqit,
+          join: tc in assoc(t, :tiqit_class),
+          join: u in assoc(t, :user),
+          where: u.id == ^user_id,
+          where: is_nil(t.expires_at) or t.expires_at > ^now,
+          where: tc.content_group_id == ^group_id or tc.catalog_id == ^catalog_id
+      )
+
+    if any_broad? do
+      MapSet.new(pieces, & &1.id)
+    else
+      piece_ids = Enum.map(pieces, & &1.id)
+
+      piece_ids
+      |> piece_level_valid_tiqit_piece_ids(user_id, now)
+      |> MapSet.new()
+    end
+  end
+
+  defp piece_level_valid_tiqit_piece_ids([], _user_id, _now), do: []
+
+  defp piece_level_valid_tiqit_piece_ids(piece_ids, user_id, now) do
+    Repo.all(
+      from t in Tiqit,
+        join: tc in assoc(t, :tiqit_class),
+        join: u in assoc(t, :user),
+        where: u.id == ^user_id,
+        where: is_nil(t.expires_at) or t.expires_at > ^now,
+        where: tc.content_piece_id in ^piece_ids,
+        select: tc.content_piece_id
+    )
+  end
+
   def list_content_groups do
     Repo.all(from g in ContentGroup, order_by: [asc: g.title])
   end
@@ -64,9 +129,26 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     |> Repo.get!(id)
     |> Repo.preload([
       :tiqit_classes,
-      catalog: [:tiqit_classes, :creator, content_groups: :content_pieces],
+      catalog: [:tiqit_classes, :creator, :content_groups],
       content_pieces: {pieces_query, :tiqit_classes}
     ])
+  end
+
+  @doc """
+  Count of non-archived `ContentPiece`s across all groups in a catalog.
+  One aggregate query — used by the catalog-scope purchase description
+  copy in place of preloading every group's pieces.
+  """
+  def active_piece_count_for_catalog(%Catalog{id: catalog_id}),
+    do: active_piece_count_for_catalog(catalog_id)
+
+  def active_piece_count_for_catalog(catalog_id) when is_integer(catalog_id) do
+    Repo.one(
+      from p in ContentPiece,
+        join: g in assoc(p, :content_group),
+        where: g.catalog_id == ^catalog_id and is_nil(p.archived_at),
+        select: count(p.id)
+    ) || 0
   end
 
   def list_pieces_in_content_group(%ContentGroup{} = group) do
