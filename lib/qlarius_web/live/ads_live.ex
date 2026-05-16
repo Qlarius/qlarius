@@ -214,7 +214,8 @@ defmodule QlariusWeb.AdsLive do
     IO.inspect(socket.assigns.show_collection_drawer, label: "Show Collection Drawer (before)")
 
     # Check if this video has already been collected (don't show drawer for replay)
-    already_collected = socket.assigns.current_video_offer.id in socket.assigns.completed_video_offers
+    already_collected =
+      socket.assigns.current_video_offer.id in socket.assigns.completed_video_offers
 
     if already_collected do
       {:noreply, socket}
@@ -460,7 +461,10 @@ defmodule QlariusWeb.AdsLive do
       <%= if @current_video_offer && @show_video_player do %>
         <.video_collection_drawer
           current_video_offer={@current_video_offer}
-          show_collection_drawer={@show_collection_drawer && (@video_watched_complete || @video_payment_collected || @show_replay_button)}
+          show_collection_drawer={
+            @show_collection_drawer &&
+              (@video_watched_complete || @video_payment_collected || @show_replay_button)
+          }
           video_payment_collected={@video_payment_collected}
           show_replay_button={@show_replay_button}
           closing={@drawer_closing}

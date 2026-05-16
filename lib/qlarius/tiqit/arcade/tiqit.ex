@@ -21,7 +21,10 @@ defmodule Qlarius.Tiqit.Arcade.Tiqit do
 
   def changeset(tiqit, attrs) do
     tiqit
-    |> cast(attrs, ~w[purchased_at expires_at preserved disconnected_at undone_at refund_locked_at me_file_id]a)
+    |> cast(
+      attrs,
+      ~w[purchased_at expires_at preserved disconnected_at undone_at refund_locked_at me_file_id]a
+    )
     |> validate_required(~w[purchased_at]a)
   end
 end

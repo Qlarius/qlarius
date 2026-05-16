@@ -16,7 +16,14 @@ defmodule Qlarius.Notifications.PushSubscription do
 
   def changeset(subscription, attrs) do
     subscription
-    |> cast(attrs, [:user_id, :subscription_data, :device_type, :user_agent, :active, :last_used_at])
+    |> cast(attrs, [
+      :user_id,
+      :subscription_data,
+      :device_type,
+      :user_agent,
+      :active,
+      :last_used_at
+    ])
     |> validate_required([:user_id, :subscription_data])
     |> validate_subscription_data()
     |> foreign_key_constraint(:user_id)

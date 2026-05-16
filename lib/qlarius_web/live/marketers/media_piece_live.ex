@@ -418,7 +418,10 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
                               <tr class="hover">
                                 <td class="align-top">
                                   <%= if media_piece.media_piece_type_id == 2 do %>
-                                    <.video_thumbnail media_piece={media_piece} id={"mp-admin-#{media_piece.id}"} />
+                                    <.video_thumbnail
+                                      media_piece={media_piece}
+                                      id={"mp-admin-#{media_piece.id}"}
+                                    />
                                   <% else %>
                                     <%= if media_piece.banner_image do %>
                                       <img
@@ -629,7 +632,11 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
             <span class="label-text font-semibold">Video File</span>
           </label>
 
-          <div class={if @media_piece && @media_piece.video_file, do: "grid grid-cols-1 md:grid-cols-2 gap-4", else: ""}>
+          <div class={
+            if @media_piece && @media_piece.video_file,
+              do: "grid grid-cols-1 md:grid-cols-2 gap-4",
+              else: ""
+          }>
             <%= if @media_piece && @media_piece.video_file do %>
               <div class="p-3 bg-base-200 rounded-lg">
                 <.video_thumbnail
@@ -646,8 +653,14 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
                 phx-drop-target={@uploads.video_file.ref}
               >
                 <.live_file_input upload={@uploads.video_file} class="hidden" />
-                <label for={@uploads.video_file.ref} class="cursor-pointer p-6 text-center w-full block">
-                  <.icon name="hero-arrow-up-tray" class="w-12 h-12 mx-auto mb-2 text-base-content/50" />
+                <label
+                  for={@uploads.video_file.ref}
+                  class="cursor-pointer p-6 text-center w-full block"
+                >
+                  <.icon
+                    name="hero-arrow-up-tray"
+                    class="w-12 h-12 mx-auto mb-2 text-base-content/50"
+                  />
                   <p class="text-sm text-base-content/70">
                     Click to upload or drag and drop
                   </p>

@@ -10,9 +10,7 @@ defmodule QlariusWeb.DebugHelpers do
     debug_var = System.get_env("DEBUG")
     result = debug_var == "true"
 
-    Logger.info(
-      "Debug check - DEBUG env var: #{inspect(debug_var)}, enabled: #{result}"
-    )
+    Logger.info("Debug check - DEBUG env var: #{inspect(debug_var)}, enabled: #{result}")
 
     result
   end

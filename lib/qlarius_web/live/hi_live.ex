@@ -225,7 +225,7 @@ defmodule QlariusWeb.HiLive do
               </p>
 
               <p class="text-2xl">
-                You bought it. <br/>You pay the monthly bill.
+                You bought it. <br />You pay the monthly bill.
               </p>
 
               <p class="text-2xl">
@@ -523,7 +523,6 @@ defmodule QlariusWeb.HiLive do
   defp carousel(assigns) do
     ~H"""
     <div class="carousel carousel-center w-full max-w-7xl space-x-4 px-4">
-
       <div id="card1" class="carousel-item w-[85%] md:w-[300px]">
         <div class="card bg-base-200 shadow-xl w-full">
           <figure class="h-48 sm:h-56 md:h-64 bg-gradient-to-br from-green-400 to-emerald-600 relative overflow-hidden">
@@ -541,7 +540,8 @@ defmodule QlariusWeb.HiLive do
           <div class="card-body">
             <h2 class="card-title text-3xl font-bold mb-3">Sell your attention.</h2>
             <p class="text-base-content/70 text-lg">
-            Let advertisers buy attention directly from the source - <span class="font-extrabold">you.</span>
+              Let advertisers buy attention directly from the source -
+              <span class="font-extrabold">you.</span>
             </p>
             <div class="card-actions justify-center mt-4">
               <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-8 w-auto" />
@@ -567,7 +567,7 @@ defmodule QlariusWeb.HiLive do
           <div class="card-body">
             <h2 class="card-title text-3xl font-bold mb-3">Fuel your wallet.</h2>
             <p class="text-base-content/70 text-lg">
-            Collect ad revenues into your Qadabra wallet.
+              Collect ad revenues into your Qadabra wallet.
             </p>
             <div class="card-actions justify-center mt-4">
               <img src="/images/qadabra_logo_squares_color.svg" alt="Qadabra" class="h-8 w-auto" />
@@ -593,7 +593,7 @@ defmodule QlariusWeb.HiLive do
           <div class="card-body">
             <h2 class="card-title text-3xl font-bold mb-3">Buy your media.</h2>
             <p class="text-base-content/70 text-lg">
-            Use funds to buy access to your favorite media.
+              Use funds to buy access to your favorite media.
             </p>
             <div class="card-actions justify-center mt-4">
               <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-8 w-auto" />

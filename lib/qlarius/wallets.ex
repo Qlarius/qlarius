@@ -305,6 +305,8 @@ defmodule Qlarius.Wallets do
   @daily_gift_meta "Daily Gift"
   @daily_gift_amount Decimal.new("0.50")
 
+  def daily_gift_amount, do: @daily_gift_amount
+
   def daily_gift_available?(%User{} = user) do
     not daily_gift_cooldown_active?(user)
   end

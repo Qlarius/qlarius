@@ -129,8 +129,7 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
     from(o in Offer,
       join: mr in assoc(o, :media_run),
       join: mp in assoc(mr, :media_piece),
-      where:
-        o.me_file_id == ^me_file.id and o.is_current == true and mp.media_piece_type_id == 1
+      where: o.me_file_id == ^me_file.id and o.is_current == true and mp.media_piece_type_id == 1
     )
     |> Repo.aggregate(:count)
   end
@@ -139,8 +138,7 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
     from(o in Offer,
       join: mr in assoc(o, :media_run),
       join: mp in assoc(mr, :media_piece),
-      where:
-        o.me_file_id == ^me_file.id and o.is_current == true and mp.media_piece_type_id == 2
+      where: o.me_file_id == ^me_file.id and o.is_current == true and mp.media_piece_type_id == 2
     )
     |> Repo.aggregate(:count)
   end
@@ -188,6 +186,7 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
 
   def increment_split_reminder_shown(%__MODULE__{} = me_file) do
     count = (me_file.split_reminder_shown_count || 0) + 1
+
     me_file
     |> Ecto.Changeset.change(split_reminder_shown_count: count)
     |> Repo.update()

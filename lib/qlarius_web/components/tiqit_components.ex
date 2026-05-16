@@ -59,9 +59,7 @@ defmodule QlariusWeb.TiqitComponents do
     <span class="text-xs text-base-content/60">
       <%= if @undo_available do %>
         available for
-        <QlariusWeb.Components.TiqitExpirationCountdown.text
-          expires_at={@undo_deadline}
-        />
+        <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={@undo_deadline} />
       <% else %>
         {@undo_window}hr window closed
       <% end %>
@@ -112,7 +110,7 @@ defmodule QlariusWeb.TiqitComponents do
                 phx-value-id={@tiqit.id}
               >
                 <.icon name="hero-arrow-uturn-left" class="w-4 h-4" /> Refund
-            </button>
+              </button>
               <span class="text-xs text-base-content/50 flex items-center gap-1">
                 <.tiqit_undo_countdown tiqit={@tiqit} />
               </span>
@@ -245,7 +243,9 @@ defmodule QlariusWeb.TiqitComponents do
                   Time remaining:{" "}
                   <span class="text-base-content/80">
                     <%= if @tiqit.expires_at do %>
-                      <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={@tiqit.expires_at} />
+                      <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={
+                        @tiqit.expires_at
+                      } />
                     <% else %>
                       <span class="font-semibold">Lifetime access</span>
                     <% end %>
@@ -262,7 +262,9 @@ defmodule QlariusWeb.TiqitComponents do
                   <span class="text-base-content/80">
                     <%= if @fleet_at_deadline &&
                            DateTime.compare(@fleet_at_deadline, DateTime.utc_now()) == :gt do %>
-                      <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={@fleet_at_deadline} />
+                      <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={
+                        @fleet_at_deadline
+                      } />
                     <% else %>
                       <span class="font-semibold">AutoFleet pending</span>
                     <% end %>
@@ -275,9 +277,13 @@ defmodule QlariusWeb.TiqitComponents do
       </div>
       <div class="tiqit-tr"></div>
 
-      <div class="tiqit-notch tiqit-notch-l"><div></div></div>
+      <div class="tiqit-notch tiqit-notch-l">
+        <div></div>
+      </div>
       <div class="tiqit-perf"></div>
-      <div class="tiqit-notch tiqit-notch-r"><div></div></div>
+      <div class="tiqit-notch tiqit-notch-r">
+        <div></div>
+      </div>
 
       <div class="tiqit-bl"></div>
       <div class="tiqit-bot">
@@ -341,9 +347,13 @@ defmodule QlariusWeb.TiqitComponents do
       </div>
       <div class="tiqit-tr"></div>
 
-      <div class="tiqit-notch tiqit-notch-l"><div></div></div>
+      <div class="tiqit-notch tiqit-notch-l">
+        <div></div>
+      </div>
       <div class="tiqit-perf"></div>
-      <div class="tiqit-notch tiqit-notch-r"><div></div></div>
+      <div class="tiqit-notch tiqit-notch-r">
+        <div></div>
+      </div>
 
       <div class="tiqit-bl"></div>
       <div class="tiqit-bot">
@@ -463,14 +473,17 @@ defmodule QlariusWeb.TiqitComponents do
             <%= if @undo_context.limited? do %>
               <div class="flex justify-between items-center">
                 <span class="text-base-content/70">Refunds with {@undo_context.creator_name}:</span>
-                <span class="font-semibold">{@undo_context.undos_remaining} of {@undo_context.undo_limit} remaining</span>
+                <span class="font-semibold">
+                  {@undo_context.undos_remaining} of {@undo_context.undo_limit} remaining
+                </span>
               </div>
               <div class="flex items-start gap-2 text-warning">
                 <.icon name="hero-exclamation-triangle" class="w-4 h-4 mt-0.5 shrink-0" />
                 <span>
                   Limited refunds require a permanent counter linking you to this creator.
                   The content you purchased is not tracked, but the association to
-                  <strong>{@undo_context.creator_name}</strong> cannot be removed.
+                  <strong>{@undo_context.creator_name}</strong>
+                  cannot be removed.
                 </span>
               </div>
             <% else %>
@@ -526,7 +539,6 @@ defmodule QlariusWeb.TiqitComponents do
         placeholder_image_url()
     end
   end
-
 
   def format_time_remaining(seconds) when is_integer(seconds) and seconds <= 0, do: "Expired"
   def format_time_remaining(:never), do: "Never"

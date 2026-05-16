@@ -18,7 +18,8 @@ defmodule Qlarius.Jobs.SendHourlyAdNotificationsWorker do
 
     users_to_notify =
       Enum.filter(users, fn user ->
-        user_local_hour = QlariusDateTime.current_hour_in_timezone(user.timezone || "America/New_York")
+        user_local_hour =
+          QlariusDateTime.current_hour_in_timezone(user.timezone || "America/New_York")
 
         pref = Notifications.get_preference(user.id, "web_push", "ad_count")
         should_notify = pref && pref.enabled && user_local_hour in (pref.preferred_hours || [])
@@ -50,7 +51,10 @@ defmodule Qlarius.Jobs.SendHourlyAdNotificationsWorker do
             {:ok, :skipped}
 
           {:error, reason} ->
-            Logger.error("[AdNotifications] Failed to send to user #{user.id}: #{inspect(reason)}")
+            Logger.error(
+              "[AdNotifications] Failed to send to user #{user.id}: #{inspect(reason)}"
+            )
+
             {:error, reason}
         end
       end)

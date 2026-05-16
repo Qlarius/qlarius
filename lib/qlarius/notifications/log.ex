@@ -19,7 +19,19 @@ defmodule Qlarius.Notifications.Log do
 
   def changeset(log, attrs) do
     log
-    |> cast(attrs, [:user_id, :notification_type, :channel, :title, :body, :data, :sent_at, :delivered_at, :clicked_at, :failed_at, :failure_reason])
+    |> cast(attrs, [
+      :user_id,
+      :notification_type,
+      :channel,
+      :title,
+      :body,
+      :data,
+      :sent_at,
+      :delivered_at,
+      :clicked_at,
+      :failed_at,
+      :failure_reason
+    ])
     |> validate_required([:user_id, :notification_type, :channel, :sent_at])
   end
 end

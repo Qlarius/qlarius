@@ -157,7 +157,10 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
           {:allow, _count} ->
             {:noreply,
              socket
-             |> assign(:available_numbers, AliasGenerator.generate_available_numbers(base_name, 5))
+             |> assign(
+               :available_numbers,
+               AliasGenerator.generate_available_numbers(base_name, 5)
+             )
              |> assign(:selected_number, nil)
              |> assign(:alias, "")
              |> assign(:alias_error, nil)}
@@ -309,7 +312,8 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
         {:noreply,
          socket
          |> assign(:state, :confirm)
-         |> assign(:signup_error,
+         |> assign(
+           :signup_error,
            "We couldn't create the proxy user. Please double-check the details and try again."
          )}
     end

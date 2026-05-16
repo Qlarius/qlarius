@@ -32,6 +32,7 @@ defmodule Qlarius.Jobs.HandleOfferCompletionWorker do
               Logger.info(
                 "HandleOfferCompletionWorker: Deleted original and created next offer for me_file #{offer.me_file_id}"
               )
+
             {:error, reason} ->
               Logger.error(
                 "HandleOfferCompletionWorker: Failed to create next offer for me_file #{offer.me_file_id}: #{inspect(reason)}"
@@ -41,6 +42,7 @@ defmodule Qlarius.Jobs.HandleOfferCompletionWorker do
           Logger.info(
             "HandleOfferCompletionWorker: Media run complete for me_file #{offer.me_file_id}, deleting final offer"
           )
+
           Repo.delete(offer)
           MeFileStatsBroadcaster.broadcast_offers_updated(offer.me_file_id)
         end

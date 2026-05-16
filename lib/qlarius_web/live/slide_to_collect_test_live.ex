@@ -15,7 +15,10 @@ defmodule QlariusWeb.SlideToCollectTestLive do
   @impl true
   def handle_event("collect_video_payment", %{"offer_id" => offer_id}, socket) do
     require Logger
-    Logger.info("🎉 PAYMENT COLLECTED! Offer ID: #{offer_id}, Amount: #{socket.assigns.test_amount}")
+
+    Logger.info(
+      "🎉 PAYMENT COLLECTED! Offer ID: #{offer_id}, Amount: #{socket.assigns.test_amount}"
+    )
 
     {:noreply,
      socket

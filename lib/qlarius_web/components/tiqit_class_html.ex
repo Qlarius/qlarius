@@ -1,6 +1,7 @@
 defmodule QlariusWeb.TiqitClassHTML do
   use QlariusWeb, :html
 
+  alias Qlarius.Tiqit.Arcade.TiqitClass
   import QlariusWeb.Money, only: [format_usd: 2]
 
   attr :form, Phoenix.HTML.Form, required: true
@@ -103,7 +104,7 @@ defmodule QlariusWeb.TiqitClassHTML do
           </tr>
         </thead>
         <tbody class="divide-y divide-base-300">
-          <%= for tc <- Enum.sort_by(@record.tiqit_classes, &(&1.duration_hours || 999_999)) do %>
+          <%= for tc <- TiqitClass.order_by_duration_hours_asc(@record.tiqit_classes) do %>
             <tr class="hover:bg-base-200 transition-colors">
               <td class="font-medium text-base-content">
                 <div class="badge badge-outline badge-sm">

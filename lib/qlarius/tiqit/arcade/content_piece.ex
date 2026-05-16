@@ -23,7 +23,10 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
     field :source_imported_at, :utc_datetime
     field :archived_at, :utc_datetime
 
-    has_many :tiqit_classes, TiqitClass, on_replace: :delete
+    has_many :tiqit_classes, TiqitClass,
+      on_replace: :delete,
+      preload_order: [asc: :duration_hours, asc: :id]
+
     belongs_to :content_group, ContentGroup
 
     timestamps()

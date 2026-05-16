@@ -11,6 +11,10 @@ defmodule Qlarius.Qlink.Urls do
     the shared `.qadabra.app` session cookie and serves the
     interactive UI (tips, ad-engage, purchases, etc.).
 
+  * `me_file_url_for_sponsorship/1` and
+    `settings_notifications_url_for_sponsorship/1` point at the main Qadabra
+    app from Qlink (e.g. Sponster drawer empty state).
+
   The underlying hosts come from application config keys
   `:qlink_share_host` and `:qlink_interact_host`, which are
   overridden in `config/dev.exs` to point at `localhost:4001` so the
@@ -98,6 +102,72 @@ defmodule Qlarius.Qlink.Urls do
   end
 
   def sanitize_return_to(_), do: nil
+
+  @doc """
+  Main-app `MeFileLive` URL (`/me_file`) from a Qlink request URI.
+
+  Uses `https://qadabra.app` in production; localhost / Gigalixir use the request origin.
+  """
+  @spec me_file_url_for_sponsorship(URI.t() | nil) :: String.t()
+  def me_file_url_for_sponsorship(uri \\ nil) do
+    sponsorship_app_url(uri, "/me_file", %{from: "sponster_drawer"})
+  end
+
+  @doc """
+  Main-app `/settings` URL with the notifications panel opened (`setting=notifications`).
+  """
+  @spec settings_notifications_url_for_sponsorship(URI.t() | nil) :: String.t()
+  def settings_notifications_url_for_sponsorship(uri \\ nil) do
+    sponsorship_app_url(uri, "/settings", %{
+      setting: "notifications",
+      from: "sponster_drawer"
+    })
+  end
+
+  defp sponsorship_app_url(uri, path, query) when is_binary(path) and is_map(query) do
+    sponsorship_main_origin(uri) <> path <> "?" <> URI.encode_query(query)
+  end
+
+  defp sponsorship_main_origin(nil), do: "https://qadabra.app"
+
+  defp sponsorship_main_origin(%URI{host: host} = uri) when is_binary(host) do
+    cond do
+      host in ["localhost", "127.0.0.1"] ->
+        origin_from_request(uri)
+
+      host == "qlarius.gigalixirapp.com" or String.ends_with?(host, ".gigalixirapp.com") ->
+        origin_from_request(uri)
+
+      true ->
+        "https://qadabra.app"
+    end
+  end
+
+  defp sponsorship_main_origin(_), do: "https://qadabra.app"
+
+  defp origin_from_request(%URI{} = uri) do
+    scheme = uri.scheme || "https"
+
+    authority =
+      case {scheme, uri.host, uri.port} do
+        {_, h, _} when not is_binary(h) ->
+          "localhost"
+
+        {"https", h, p} when p in [nil, 443] ->
+          h
+
+        {"http", h, p} when p in [nil, 80] ->
+          h
+
+        {_, h, p} when is_integer(p) ->
+          "#{h}:#{p}"
+
+        {_, h, _} ->
+          h
+      end
+
+    "#{scheme}://#{authority}"
+  end
 
   @doc """
   Rewrites the host/port/scheme of an arqade **widget** iframe URL to

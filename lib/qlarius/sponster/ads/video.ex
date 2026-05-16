@@ -79,23 +79,30 @@ defmodule Qlarius.Sponster.Ads.Video do
         case Wallets.update_ledgers_from_ad_event(ad_event) do
           {:ok, _} ->
             require Logger
-            Logger.info("📹 Video ad_event created, enqueueing HandleOfferCompletionWorker for offer #{ad_event.offer_id}")
+
+            Logger.info(
+              "📹 Video ad_event created, enqueueing HandleOfferCompletionWorker for offer #{ad_event.offer_id}"
+            )
 
             # Credit referral click if applicable
             create_referral_click_if_applicable(ad_event)
 
             case HandleOfferCompletionWorker.new(%{
-              offer_id: ad_event.offer_id,
-              completed_at: NaiveDateTime.to_iso8601(ad_event.created_at)
-            })
-            |> Oban.insert() do
+                   offer_id: ad_event.offer_id,
+                   completed_at: NaiveDateTime.to_iso8601(ad_event.created_at)
+                 })
+                 |> Oban.insert() do
               {:ok, job} ->
                 Logger.info("✅ HandleOfferCompletionWorker job enqueued successfully: #{job.id}")
                 {:ok, ad_event}
 
               {:error, changeset} ->
-                Logger.error("❌ Failed to enqueue HandleOfferCompletionWorker: #{inspect(changeset)}")
-                {:ok, ad_event}  # Still return success for the ad_event itself
+                Logger.error(
+                  "❌ Failed to enqueue HandleOfferCompletionWorker: #{inspect(changeset)}"
+                )
+
+                # Still return success for the ad_event itself
+                {:ok, ad_event}
             end
 
           {:error, error} ->

@@ -73,9 +73,7 @@ defmodule Qlarius.Cloudflare.Cache do
         :ok
 
       {:ok, %Req.Response{status: status, body: body}} ->
-        Logger.warning(
-          "Cloudflare purge failed (status #{status}): #{inspect(body)}"
-        )
+        Logger.warning("Cloudflare purge failed (status #{status}): #{inspect(body)}")
 
         {:error, {:http_status, status}}
 

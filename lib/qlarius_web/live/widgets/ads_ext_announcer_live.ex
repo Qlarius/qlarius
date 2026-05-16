@@ -138,7 +138,11 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   def handle_info({:me_file_pending_referral_clicks_updated, pending_clicks_count}, socket) do
     if socket.assigns[:current_scope] do
       current_scope =
-        Map.put(socket.assigns.current_scope, :pending_referral_clicks_count, pending_clicks_count)
+        Map.put(
+          socket.assigns.current_scope,
+          :pending_referral_clicks_count,
+          pending_clicks_count
+        )
 
       {:noreply, assign(socket, :current_scope, current_scope)}
     else
@@ -198,7 +202,11 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
       <% end %>
     </div>
 
-    <div class="sponster-announcer-bottom-float-strip bg-base-100" style="box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);"></div>
+    <div
+      class="sponster-announcer-bottom-float-strip bg-base-100"
+      style="box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);"
+    >
+    </div>
 
     <div class="sponster-announcer-bottom-float-content-container bg-base-100">
       <%= if @recruiter_mode do %>

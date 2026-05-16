@@ -75,7 +75,9 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         where: c.group_id == ^group.id,
         order_by: [desc: c.inserted_at],
         limit: 5,
-        preload: [tiqit_classes: ^from(t in TiqitClass, order_by: t.price)]
+        preload: [
+          tiqit_classes: ^from(t in TiqitClass, order_by: [asc: t.duration_hours, asc: t.id])
+        ]
     )
   end
 

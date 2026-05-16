@@ -325,7 +325,6 @@ defmodule QlariusWeb.UserAuth do
     needs_redirect = is_nil(me_file) || !Qlarius.YouData.MeFiles.is_initialized?(me_file)
 
     if needs_redirect do
-
       {:halt,
        socket
        |> Phoenix.LiveView.put_flash(:info, "Please complete your registration")

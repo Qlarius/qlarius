@@ -1,11 +1,13 @@
 defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   use QlariusWeb, :live_view
 
+  alias Qlarius.Accounts.Scope
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.Wallets
+  alias Qlarius.Wallets.MeFileStatsBroadcaster
 
   alias QlariusWeb.Layouts
 
@@ -89,6 +91,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
       if connected?(socket) && scope && scope.user do
         Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{scope.user.id}")
+        MeFileStatsBroadcaster.subscribe_to_me_file_stats(scope.user.me_file.id)
       end
 
       inline? = session["inline?"] == true
@@ -163,7 +166,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   # credits and nil money fields, so templates can render via
   # `format_usd_or_dashes/1` without guarding.
   #
-  # Mirrors `ArcadeLive.scope_assigns/2` so both LVs are consistent
+  # Mirrors `ArcadeLive.scope_assigns/2` (same refresh paths: wallet + offer PubSub) so both LVs stay consistent
   # and ready to be extracted to a shared LiveComponent later.
   defp scope_assigns(scope, group, catalog) do
     {group_credit, group_count} =
@@ -432,24 +435,36 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
   def handle_info(:update_balance, socket) do
     if socket.assigns[:mounted] do
-      user = socket.assigns.current_scope.user
-      scope = socket.assigns.current_scope
-
-      balance = if user, do: Wallets.get_user_current_balance(user), else: socket.assigns.balance
-
-      updated_scope = %{scope | wallet_balance: balance}
-
-      daily_gift_available? = if user, do: Wallets.daily_gift_available?(user), else: false
-
-      {:noreply,
-       assign(socket,
-         balance: balance,
-         current_scope: updated_scope,
-         offered_amount: scope && scope.offered_amount,
-         daily_gift_available?: daily_gift_available?
-       )}
+      {:noreply, refresh_scope_after_wallet_or_offer_event(socket)}
     else
       {:noreply, socket}
+    end
+  end
+
+  def handle_info({:me_file_offers_updated, _me_file_id}, socket) do
+    if socket.assigns[:mounted] do
+      {:noreply, refresh_scope_after_wallet_or_offer_event(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp refresh_scope_after_wallet_or_offer_event(socket) do
+    scope = socket.assigns[:current_scope]
+    group = socket.assigns[:group]
+    catalog = socket.assigns[:catalog]
+
+    cond do
+      scope && scope.true_user && group && catalog ->
+        refreshed = Scope.for_user(scope.true_user)
+
+        assign(
+          socket,
+          Map.merge(scope_assigns(refreshed, group, catalog), %{current_scope: refreshed})
+        )
+
+      true ->
+        socket
     end
   end
 

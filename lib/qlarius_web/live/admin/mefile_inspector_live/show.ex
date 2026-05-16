@@ -76,8 +76,7 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
            )}
 
         {:ok, :no_subscriptions} ->
-          {:noreply,
-           put_flash(socket, :warning, "⚠️ User has no active push subscriptions")}
+          {:noreply, put_flash(socket, :warning, "⚠️ User has no active push subscriptions")}
 
         {:error, reason} ->
           {:noreply,
@@ -273,8 +272,7 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
                     class="btn btn-sm btn-info"
                     title="Send test ad count notification"
                   >
-                    <.icon name="hero-bell-alert" class="w-5 h-5" />
-                    Send Test Notification
+                    <.icon name="hero-bell-alert" class="w-5 h-5" /> Send Test Notification
                   </button>
                   <button
                     phx-click="navigate_prev"

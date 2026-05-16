@@ -78,7 +78,10 @@ defmodule QlariusWeb.Plugs.InAppBrowserDetectionTest do
     conn =
       :get
       |> conn("https://qadabra.app/")
-      |> init_test_session(%{"user_token" => "stays-put", "qlarius_iab" => %{"family" => "instagram"}})
+      |> init_test_session(%{
+        "user_token" => "stays-put",
+        "qlarius_iab" => %{"family" => "instagram"}
+      })
       |> put_req_header("user-agent", ua)
       |> fetch_session()
       |> InAppBrowserDetection.call([])

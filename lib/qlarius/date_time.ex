@@ -6,7 +6,8 @@ defmodule Qlarius.DateTime do
   alias Qlarius.Accounts.User
   alias Qlarius.Timezones
 
-  def to_user_timezone(%DateTime{} = datetime, %User{timezone: timezone}) when is_binary(timezone) do
+  def to_user_timezone(%DateTime{} = datetime, %User{timezone: timezone})
+      when is_binary(timezone) do
     to_timezone(datetime, timezone)
   end
 

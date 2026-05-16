@@ -223,7 +223,9 @@ defmodule QlariusWeb.WalletLive do
           <%= if Enum.empty?(@paginated_entries.entries) do %>
             <div class="flex flex-col items-center justify-center min-h-[50vh] gap-4">
               <p class="text-xl text-base-content/70">No ledger activity to display.</p>
-              <p class="text-base text-base-content/60">Check out your first ads and seed this wallet.</p>
+              <p class="text-base text-base-content/60">
+                Check out your first ads and seed this wallet.
+              </p>
               <.link navigate="/ads" class="btn btn-primary btn-lg rounded-full px-6 py-5 shadow-lg">
                 View Ads
               </.link>
@@ -348,8 +350,15 @@ defmodule QlariusWeb.WalletLive do
       <QlariusWeb.TiqitComponents.fleet_confirm_modal id="sidebar-fleet-confirm-modal" />
       <QlariusWeb.TiqitComponents.preserve_confirm_modal id="sidebar-preserve-confirm-modal" />
       <QlariusWeb.TiqitComponents.unpreserve_confirm_modal id="sidebar-unpreserve-confirm-modal" />
-      <QlariusWeb.TiqitComponents.undo_confirm_modal id="sidebar-undo-confirm-modal" undo_context={@undo_context} />
-      <div :if={@undo_context} id="sidebar-undo-modal-trigger" phx-mounted={show_modal("sidebar-undo-confirm-modal")} />
+      <QlariusWeb.TiqitComponents.undo_confirm_modal
+        id="sidebar-undo-confirm-modal"
+        undo_context={@undo_context}
+      />
+      <div
+        :if={@undo_context}
+        id="sidebar-undo-modal-trigger"
+        phx-mounted={show_modal("sidebar-undo-confirm-modal")}
+      />
     </div>
     """
   end

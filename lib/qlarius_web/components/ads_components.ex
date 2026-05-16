@@ -186,7 +186,10 @@ defmodule QlariusWeb.Components.AdsComponents do
           </div>
 
           <%!-- Checkmark for success state --%>
-          <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10" id={"#{@id}-checkmark"}>
+          <div
+            class="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
+            id={"#{@id}-checkmark"}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               class="h-10 w-10 text-success"
@@ -247,7 +250,6 @@ defmodule QlariusWeb.Components.AdsComponents do
             </span>
           </div>
         </div>
-
       </div>
     </div>
     """
@@ -356,7 +358,7 @@ defmodule QlariusWeb.Components.AdsComponents do
           </div>
         </div>
       </div>
-      
+
       <video
         id="video-player"
         phx-hook="VideoPlayer"
@@ -377,27 +379,26 @@ defmodule QlariusWeb.Components.AdsComponents do
 
     <%!-- Reserve space for replay buttons to prevent layout shift --%>
     <div class="text-center mb-4 min-h-[64px] flex items-center justify-center">
-      <div
-        class={[
-          "w-full transition-opacity duration-500",
-          if(@show_replay_button || @video_payment_collected, do: "opacity-100", else: "opacity-0 pointer-events-none")
-        ]}
-      >
+      <div class={[
+        "w-full transition-opacity duration-500",
+        if(@show_replay_button || @video_payment_collected,
+          do: "opacity-100",
+          else: "opacity-0 pointer-events-none"
+        )
+      ]}>
         <%= if @show_replay_button do %>
           <button
             class="btn btn-primary btn-lg w-full rounded-full"
             phx-click="replay_video"
           >
-            <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" />
-            Replay Video
+            <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" /> Replay Video
           </button>
         <% else %>
           <button
             class="btn btn-outline btn-lg w-full rounded-full"
             phx-click="replay_video"
           >
-            <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" />
-            Watch Again (Unpaid)
+            <.icon name="hero-arrow-path" class="w-5 h-5 mr-2" /> Watch Again (Unpaid)
           </button>
         <% end %>
       </div>
@@ -468,12 +469,10 @@ defmodule QlariusWeb.Components.AdsComponents do
                 <div id="video-slider-section">
                   <%!-- Message text --%>
                   <div class="text-center mb-6">
-                    <p
-                      class={[
-                        "text-base font-semibold",
-                        if(@video_payment_collected, do: "text-success", else: "text-base-content")
-                      ]}
-                    >
+                    <p class={[
+                      "text-base font-semibold",
+                      if(@video_payment_collected, do: "text-success", else: "text-base-content")
+                    ]}>
                       <%= if @video_payment_collected do %>
                         Collected to Wallet
                       <% else %>
@@ -501,10 +500,13 @@ defmodule QlariusWeb.Components.AdsComponents do
 
   attr :wallet_balance, :any, required: true
   attr :user_alias, :string, default: nil
-  attr :authed, :boolean, default: true,
+
+  attr :authed, :boolean,
+    default: true,
     doc:
       "when false, the header omits wallet UI (qlink announcer bar already shows READY + Connect). " <>
         "Defaults to true to preserve legacy call sites."
+
   attr :on_close, :any, required: true
 
   def sponster_drawer_header(assigns) do
@@ -742,7 +744,10 @@ defmodule QlariusWeb.Components.AdsComponents do
         "list-row transition-all duration-200 !rounded-none h-[120px]",
         if(@completed,
           do: ["bg-base-300 cursor-default select-none", if(!@force_light, do: "dark:!bg-base-300")],
-          else: ["bg-base-200 cursor-pointer hover:bg-base-300", if(!@force_light, do: "dark:!bg-base-200 dark:hover:!bg-base-100")]
+          else: [
+            "bg-base-200 cursor-pointer hover:bg-base-300",
+            if(!@force_light, do: "dark:!bg-base-200 dark:hover:!bg-base-100")
+          ]
         )
       ]}
       phx-click={if !@completed, do: "open_video_ad"}
@@ -801,7 +806,10 @@ defmodule QlariusWeb.Components.AdsComponents do
               </div>
             <% end %>
             <div class="text-base-content/50 text-sm">
-              {format_duration(@offer.media_run.media_piece.duration || 0)} · <span class="font-bold text-sponster-600 dark:text-sponster-400">${Decimal.round(@rate, 3)}/sec</span>
+              {format_duration(@offer.media_run.media_piece.duration || 0)} ·
+              <span class="font-bold text-sponster-600 dark:text-sponster-400">
+                ${Decimal.round(@rate, 3)}/sec
+              </span>
             </div>
           </div>
         </div>

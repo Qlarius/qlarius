@@ -17,7 +17,15 @@ defmodule Qlarius.Notifications.Preference do
 
   def changeset(preference, attrs) do
     preference
-    |> cast(attrs, [:user_id, :channel, :category, :enabled, :preferred_hours, :quiet_hours_start, :quiet_hours_end])
+    |> cast(attrs, [
+      :user_id,
+      :channel,
+      :category,
+      :enabled,
+      :preferred_hours,
+      :quiet_hours_start,
+      :quiet_hours_end
+    ])
     |> validate_required([:user_id, :channel, :category])
     |> validate_inclusion(:channel, ["web_push", "mobile_push", "sms"])
     |> validate_inclusion(:category, ["ad_count", "wallet", "reminders", "engagement"])

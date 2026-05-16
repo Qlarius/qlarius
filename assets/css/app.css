@@ -620,35 +620,74 @@
     }
   }
 
-  /* Anon Connect CTA (wallet strip): border strobe vs default btn-widget */
+  /*
+   * Wallet strip action CTAs (Connect, Top up when funded): border + scale + subtle
+   * bg strobe (widget neutral → Sponster one step lighter than wallet pill).
+   * Same 2.4s tempo as anon READY pill (`wallet-strip-anon-focus`).
+   */
   @keyframes connect-strip-cta-border-strobe-light {
     0%,
     100% {
-      border-color: var(--color-widget-300);
+      border-color: var(--color-sponster-300);
     }
 
     50% {
-      border-color: var(--color-widget-700);
+      border-color: var(--color-sponster-700);
     }
   }
 
   @keyframes connect-strip-cta-border-strobe-dark {
     0%,
     100% {
-      border-color: var(--color-widget-500);
+      border-color: var(--color-sponster-500);
     }
 
     50% {
-      border-color: var(--color-widget-300);
+      border-color: var(--color-sponster-800);
+    }
+  }
+
+  /* Wallet pill is sponster-200 (light) / sponster-800 (dark); peak is one step lighter. */
+  @keyframes wallet-strip-action-bg-strobe-light {
+    0%,
+    100% {
+      background-color: var(--color-widget-100);
+    }
+
+    50% {
+      background-color: var(--color-sponster-100);
+    }
+  }
+
+  @keyframes wallet-strip-action-bg-strobe-dark {
+    0%,
+    100% {
+      background-color: var(--color-widget-100);
+    }
+
+    50% {
+      background-color: var(--color-sponster-700);
     }
   }
 
   .connect-strip-cta-border-strobe {
-    animation: connect-strip-cta-border-strobe-light 2.4s ease-in-out infinite;
+    --wallet-strip-action-strobe-cycle: 2.4s;
+    transform-origin: center;
+    animation:
+      connect-strip-cta-border-strobe-light var(--wallet-strip-action-strobe-cycle) ease-in-out
+        infinite,
+      wallet-strip-action-bg-strobe-light var(--wallet-strip-action-strobe-cycle) ease-in-out
+        infinite,
+      wallet-ready-throb var(--wallet-strip-action-strobe-cycle) ease-in-out infinite;
   }
 
   [data-theme="dark"] .connect-strip-cta-border-strobe {
-    animation-name: connect-strip-cta-border-strobe-dark;
+    animation:
+      connect-strip-cta-border-strobe-dark var(--wallet-strip-action-strobe-cycle) ease-in-out
+        infinite,
+      wallet-strip-action-bg-strobe-dark var(--wallet-strip-action-strobe-cycle) ease-in-out
+        infinite,
+      wallet-ready-throb var(--wallet-strip-action-strobe-cycle) ease-in-out infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -898,6 +937,11 @@
     }
   }
 
+  /* Qlink split settings: peek lift matches measured disclaimer slot (`Hooks.QlinkSplitDisclaimerPeek`). */
+  #qlink-split-settings-panel.qlink-split-panel--peek {
+    transform: translateY(calc(100% - 2.75rem + 10px - var(--qlink-peek-disclaimer-px, 0px)));
+  }
+
   /*
    * Qlink public profile (`QlinkPage.Show`): WebKit often keeps `:hover` after
    * a tap and paints tap highlights / focus rings on links and Daisy `.btn`s.
@@ -1027,6 +1071,24 @@
   .btn-sponster-play:disabled,
   .btn-sponster-play[disabled],
   .btn-sponster-play.btn-disabled {
+    @apply opacity-60 cursor-not-allowed;
+  }
+
+  /* Wallet strip Connect / Top up — transparent fill; border + text match `WalletBalance`. */
+  .btn-wallet-strip-action {
+    @apply btn inline-flex flex-row flex-nowrap items-center justify-center gap-1 font-bold shadow-none;
+    @apply rounded-full border border-sponster-300 bg-transparent text-base-content;
+    @apply dark:border-sponster-500 dark:bg-transparent dark:text-sponster-100;
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sponster-500;
+  }
+
+  .btn-wallet-strip-action:hover:not(:disabled):not(.btn-disabled) {
+    @apply border-sponster-400 dark:border-sponster-400;
+  }
+
+  .btn-wallet-strip-action:disabled,
+  .btn-wallet-strip-action[disabled],
+  .btn-wallet-strip-action.btn-disabled {
     @apply opacity-60 cursor-not-allowed;
   }
 

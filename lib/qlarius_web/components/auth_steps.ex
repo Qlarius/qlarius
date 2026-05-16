@@ -223,7 +223,9 @@ defmodule QlariusWeb.Components.AuthSteps do
       >
         <div class="mx-auto min-w-0 max-w-lg space-y-2">
           <h2 class="text-xl font-bold leading-snug text-widget-900 md:text-2xl dark:text-white">
-            <span class="font-semibold text-widget-900 dark:text-white">{format_phone_number(@mobile_number)}</span>
+            <span class="font-semibold text-widget-900 dark:text-white">
+              {format_phone_number(@mobile_number)}
+            </span>
             {" "}is new here!
           </h2>
           <p class="text-sm leading-relaxed text-base-content/80 md:text-base">

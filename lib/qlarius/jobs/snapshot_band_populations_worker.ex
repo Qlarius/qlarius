@@ -1,7 +1,7 @@
 defmodule Qlarius.Jobs.SnapshotBandPopulationsWorker do
   @moduledoc """
   **DEPRECATED FOR NEW POPULATIONS** - Snapshots are now created inline during PopulateTargetWorker.
-  
+
   This worker is only used for backfilling matching_tags_snapshot for legacy target_populations
   that were created before inline snapshot creation was implemented.
 

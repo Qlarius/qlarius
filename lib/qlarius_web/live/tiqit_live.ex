@@ -157,72 +157,71 @@ defmodule QlariusWeb.TiqitLive do
   def render(assigns) do
     ~H"""
     <div id="tiqit-pwa-detect" phx-hook="HiPagePWADetect">
-    <Layouts.mobile {assigns}>
-      <div class="mb-6">
-        <h2 class="text-xl font-bold mb-4">Stash</h2>
+      <Layouts.mobile {assigns}>
+        <div class="mb-6">
+          <h2 class="text-xl font-bold mb-4">Stash</h2>
 
-        <div class="flex flex-wrap gap-2 mb-4">
-          <button
-            :for={status <- [:all, :active, :expired, :fleeted, :preserved]}
-            phx-click="filter"
-            phx-value-status={status}
-            class={[
-              "btn btn-sm",
-              if(@status_filter == status, do: "btn-primary", else: "btn-ghost")
-            ]}
-          >
-            {filter_label(status)}
-          </button>
-        </div>
-
-        <%= if @status_filter == :fleeted do %>
-          <div class="bg-base-200 rounded-lg p-6 text-center">
-            <div class="text-4xl font-bold mb-2">
-              {@fleeted_count + @undone_count}
-            </div>
-            <div class="text-base-content/60 mb-4">
-              tiqits have been fleeted
-            </div>
-            <div class="flex justify-center gap-6 mb-4">
-              <div class="text-center">
-                <div class="text-2xl font-bold">{@fleeted_count}</div>
-                <div class="text-xs text-base-content/50">fleeted</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold">{@undone_count}</div>
-                <div class="text-xs text-base-content/50">refunded</div>
-              </div>
-            </div>
-            <p class="text-sm text-base-content/40 max-w-sm mx-auto">
-              Fleeted tiqits have been permanently disconnected from your account.
-              No details are retrievable. (That's the point.)
-            </p>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <button
+              :for={status <- [:all, :active, :expired, :fleeted, :preserved]}
+              phx-click="filter"
+              phx-value-status={status}
+              class={[
+                "btn btn-sm",
+                if(@status_filter == status, do: "btn-primary", else: "btn-ghost")
+              ]}
+            >
+              {filter_label(status)}
+            </button>
           </div>
-        <% else %>
-          <%= if @tiqits == [] do %>
-            <div class="text-center text-base-content/50 py-8">
-              No tiqits found for this filter.
+
+          <%= if @status_filter == :fleeted do %>
+            <div class="bg-base-200 rounded-lg p-6 text-center">
+              <div class="text-4xl font-bold mb-2">
+                {@fleeted_count + @undone_count}
+              </div>
+              <div class="text-base-content/60 mb-4">
+                tiqits have been fleeted
+              </div>
+              <div class="flex justify-center gap-6 mb-4">
+                <div class="text-center">
+                  <div class="text-2xl font-bold">{@fleeted_count}</div>
+                  <div class="text-xs text-base-content/50">fleeted</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-2xl font-bold">{@undone_count}</div>
+                  <div class="text-xs text-base-content/50">refunded</div>
+                </div>
+              </div>
+              <p class="text-sm text-base-content/40 max-w-sm mx-auto">
+                Fleeted tiqits have been permanently disconnected from your account.
+                No details are retrievable. (That's the point.)
+              </p>
             </div>
           <% else %>
-            <div class="grid grid-cols-1 items-start md:grid-cols-2 xl:grid-cols-3 gap-6">
-              <.tiqit_detail_card
-                :for={tiqit <- @tiqits}
-                tiqit={tiqit}
-                user={@current_scope.user}
-                fleet_after_hours={@fleet_after_hours}
-              />
-            </div>
+            <%= if @tiqits == [] do %>
+              <div class="text-center text-base-content/50 py-8">
+                No tiqits found for this filter.
+              </div>
+            <% else %>
+              <div class="grid grid-cols-1 items-start md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <.tiqit_detail_card
+                  :for={tiqit <- @tiqits}
+                  tiqit={tiqit}
+                  user={@current_scope.user}
+                  fleet_after_hours={@fleet_after_hours}
+                />
+              </div>
+            <% end %>
           <% end %>
-        <% end %>
-      </div>
+        </div>
+      </Layouts.mobile>
 
-    </Layouts.mobile>
-
-    <.fleet_confirm_modal />
-    <.preserve_confirm_modal />
-    <.unpreserve_confirm_modal />
-    <.undo_confirm_modal undo_context={@undo_context} />
-    <div :if={@undo_context} id="undo-modal-trigger" phx-mounted={show_modal("undo-confirm-modal")} />
+      <.fleet_confirm_modal />
+      <.preserve_confirm_modal />
+      <.unpreserve_confirm_modal />
+      <.undo_confirm_modal undo_context={@undo_context} />
+      <div :if={@undo_context} id="undo-modal-trigger" phx-mounted={show_modal("undo-confirm-modal")} />
     </div>
     """
   end

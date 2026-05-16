@@ -327,7 +327,9 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
         %{}
         |> then(fn attrs -> if height, do: Map.put(attrs, :embed_height, height), else: attrs end)
-        |> then(fn attrs -> if show_title != nil, do: Map.put(attrs, :embed_show_title, show_title), else: attrs end)
+        |> then(fn attrs ->
+          if show_title != nil, do: Map.put(attrs, :embed_show_title, show_title), else: attrs
+        end)
       else
         %{}
       end
@@ -747,8 +749,10 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     case Map.get(link_params, "is_visible") do
       [_, last | _] when is_binary(last) ->
         Map.put(link_params, "is_visible", last)
+
       [single] when is_binary(single) ->
         Map.put(link_params, "is_visible", single)
+
       _ ->
         link_params
     end
@@ -788,15 +792,23 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
       # Merge user-provided height into embed_config if present
       embed_config =
         case Map.get(link_params, "embed_height") do
-          nil -> base_config
-          "" -> base_config
-          height when is_integer(height) -> Map.put(base_config, "height", height)
+          nil ->
+            base_config
+
+          "" ->
+            base_config
+
+          height when is_integer(height) ->
+            Map.put(base_config, "height", height)
+
           height_str when is_binary(height_str) ->
             case Integer.parse(height_str) do
               {height, _} when height > 0 -> Map.put(base_config, "height", height)
               _ -> base_config
             end
-          _ -> base_config
+
+          _ ->
+            base_config
         end
 
       # Merge user-provided show_title into embed_config (always set it explicitly)

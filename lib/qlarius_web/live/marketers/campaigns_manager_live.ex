@@ -454,7 +454,8 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
             case Decimal.parse(edited_offer_amt) do
               {new_offer_amt, _} ->
                 if not Decimal.eq?(new_offer_amt, bid.offer_amt) do
-                  new_marketer_cost_amt = Campaigns.calculate_marketer_cost(new_offer_amt, media_piece_type)
+                  new_marketer_cost_amt =
+                    Campaigns.calculate_marketer_cost(new_offer_amt, media_piece_type)
 
                   Qlarius.Repo.get!(Qlarius.Sponster.Campaigns.Bid, bid.id)
                   |> Qlarius.Sponster.Campaigns.Bid.changeset(%{
@@ -1074,7 +1075,8 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
                                 get_in(@editing_bids, [campaign.id, bid.id, :offer_amt]) ||
                                   Decimal.to_string(bid.offer_amt) %>
                               <% media_run = List.first(campaign.media_sequence.media_runs) %>
-                              <% media_piece_type = media_run && media_run.media_piece.media_piece_type %>
+                              <% media_piece_type =
+                                media_run && media_run.media_piece.media_piece_type %>
                               <% calculated_cost =
                                 case Decimal.parse(edit_value) do
                                   {decimal_val, _} ->

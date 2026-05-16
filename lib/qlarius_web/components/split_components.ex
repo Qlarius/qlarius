@@ -136,12 +136,13 @@ defmodule QlariusWeb.Components.SplitComponents do
   @doc """
   Disclaimer bar for ad drawer.
   """
+  attr :id, :string, default: "ads-disclaimer-bar"
   attr :class, :string, default: nil
 
   def ads_disclaimer_bar(assigns) do
     ~H"""
     <div
-      id="ads-disclaimer-bar"
+      id={@id}
       class={[
         "bg-gray-500 text-white text-xs text-center py-4 px-4",
         @class

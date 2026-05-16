@@ -21,7 +21,9 @@ defmodule QlariusWeb.Components.StrongStartComponent do
           </h2>
         </div>
         <div class="text-right">
-          <div class="text-xl md:text-3xl font-bold tracking-tight text-base-content/50">{@progress.completed_count}/{@progress.total_count}</div>
+          <div class="text-xl md:text-3xl font-bold tracking-tight text-base-content/50">
+            {@progress.completed_count}/{@progress.total_count}
+          </div>
         </div>
       </div>
       <p class="text-base md:text-lg text-base-content/60 mb-4">
@@ -43,189 +45,206 @@ defmodule QlariusWeb.Components.StrongStartComponent do
         class="w-full flex flex-col items-center justify-center"
       >
         <div class="carousel carousel-center w-full space-x-4 mb-2">
-        <%!-- Step 1: Complete ESSENTIALS survey --%>
-        <div id="step1" class="carousel-item w-[85%] md:w-[320px]">
-          <div class={[
-            "flex flex-col gap-3 p-4 rounded-lg transition-all border w-full",
-            if(@progress.steps.essentials_survey_completed,
-              do: "bg-success/5 border-success/20",
-              else: "bg-base-100 border-primary"
-            )
-          ]}>
-            <div class="flex items-center gap-3">
-              <div class="flex-shrink-0">
+          <%!-- Step 1: Complete ESSENTIALS survey --%>
+          <div id="step1" class="carousel-item w-[85%] md:w-[320px]">
+            <div class={[
+              "flex flex-col gap-3 p-4 rounded-lg transition-all border w-full",
+              if(@progress.steps.essentials_survey_completed,
+                do: "bg-success/5 border-success/20",
+                else: "bg-base-100 border-primary"
+              )
+            ]}>
+              <div class="flex items-center gap-3">
+                <div class="flex-shrink-0">
+                  <%= if @progress.steps.essentials_survey_completed do %>
+                    <.icon name="hero-check-circle-solid" class="w-10 h-10 text-success" />
+                  <% else %>
+                    <.icon name="hero-check-circle" class="w-10 h-10 text-base-content/30" />
+                  <% end %>
+                </div>
+                <div class="flex-grow">
+                  <div class="font-bold text-xl">Tag your "Essentials"</div>
+                </div>
+              </div>
+              <div class="text-base text-base-content/60 min-h-[3rem]">
                 <%= if @progress.steps.essentials_survey_completed do %>
-                  <.icon name="hero-check-circle-solid" class="w-10 h-10 text-success" />
+                  All essential tags added
                 <% else %>
-                  <.icon name="hero-check-circle" class="w-10 h-10 text-base-content/30" />
+                  Add these <span class="font-bold text-primary">{@progress.survey_total}</span>
+                  most valuable tags to your MeFile.
+                  <span class="font-bold text-primary">{@progress.survey_answered}</span>
+                  already tagged.
                 <% end %>
               </div>
-              <div class="flex-grow">
-                <div class="font-bold text-xl">Tag your "Essentials"</div>
-              </div>
-            </div>
-            <div class="text-base text-base-content/60 min-h-[3rem]">
-              <%= if @progress.steps.essentials_survey_completed do %>
-                All essential tags added
-              <% else %>
-                Add these <span class="font-bold text-primary">{@progress.survey_total}</span> most valuable tags to your MeFile.
-                <span class="font-bold text-primary">{@progress.survey_answered}</span> already tagged.
+              <%= if !@progress.steps.essentials_survey_completed do %>
+                <.link
+                  navigate={
+                    if @starter_survey_id do
+                      "/me_file_builder?survey_id=#{@starter_survey_id}"
+                    else
+                      "/me_file"
+                    end
+                  }
+                  class="btn btn-md btn-primary rounded-full w-full text-base"
+                >
+                  {if @progress.survey_answered == 0, do: "Start", else: "Continue"}
+                </.link>
               <% end %>
             </div>
-            <%= if !@progress.steps.essentials_survey_completed do %>
-              <.link
-                navigate={
-                  if @starter_survey_id do
-                    "/me_file_builder?survey_id=#{@starter_survey_id}"
-                  else
-                    "/me_file"
-                  end
-                }
-                class="btn btn-md btn-primary rounded-full w-full text-base"
-              >
-                <%= if @progress.survey_answered == 0, do: "Start", else: "Continue" %>
-              </.link>
-            <% end %>
           </div>
-        </div>
 
-        <%!-- Step 2: Check your first ads --%>
-        <div id="step2" class="carousel-item w-[85%] md:w-[320px]">
-          <div class={[
-            "flex flex-col gap-3 p-4 rounded-lg transition-all border w-full",
-            if(@progress.steps.first_ad_interacted,
-              do: "bg-success/5 border-success/20",
-              else: "bg-base-100 border-primary"
-            )
-          ]}>
-            <div class="flex items-center gap-3">
-              <div class="flex-shrink-0">
-                <%= if @progress.steps.first_ad_interacted do %>
-                  <.icon name="hero-check-circle-solid" class="w-10 h-10 text-success" />
-                <% else %>
-                  <.icon name="hero-check-circle" class="w-10 h-10 text-base-content/30" />
-                <% end %>
+          <%!-- Step 2: Check your first ads --%>
+          <div id="step2" class="carousel-item w-[85%] md:w-[320px]">
+            <div class={[
+              "flex flex-col gap-3 p-4 rounded-lg transition-all border w-full",
+              if(@progress.steps.first_ad_interacted,
+                do: "bg-success/5 border-success/20",
+                else: "bg-base-100 border-primary"
+              )
+            ]}>
+              <div class="flex items-center gap-3">
+                <div class="flex-shrink-0">
+                  <%= if @progress.steps.first_ad_interacted do %>
+                    <.icon name="hero-check-circle-solid" class="w-10 h-10 text-success" />
+                  <% else %>
+                    <.icon name="hero-check-circle" class="w-10 h-10 text-base-content/30" />
+                  <% end %>
+                </div>
+                <div class="flex-grow">
+                  <div class="font-bold text-xl">Check your ads</div>
+                </div>
               </div>
-              <div class="flex-grow">
-                <div class="font-bold text-xl">Check your ads</div>
+              <div class="text-base text-base-content/60 min-h-[3rem]">
+                Sell your attention to your personal sponsors. Fuel your wallet.
               </div>
-            </div>
-            <div class="text-base text-base-content/60 min-h-[3rem]">
-              Sell your attention to your personal sponsors. Fuel your wallet.
-            </div>
-            <%= if !@progress.steps.first_ad_interacted do %>
-              <.link navigate="/ads" class="btn btn-md btn-primary rounded-full w-full text-base">
-                View Ads
-              </.link>
-            <% end %>
-          </div>
-        </div>
-
-        <%!-- Step 3: Set up notifications --%>
-        <div id="step3" class="carousel-item w-[85%] md:w-[320px]">
-          <div class={[
-            "flex flex-col gap-3 p-4 rounded-lg transition-all border w-full",
-            if(@progress.steps.notifications_configured,
-              do: "bg-success/5 border-success/20",
-              else: "bg-base-100 border-primary"
-            )
-          ]}>
-            <div class="flex items-center gap-3">
-              <div class="flex-shrink-0">
-                <%= if @progress.steps.notifications_configured do %>
-                  <.icon name="hero-check-circle-solid" class="w-10 h-10 text-success" />
-                <% else %>
-                  <.icon name="hero-check-circle" class="w-10 h-10 text-base-content/30" />
-                <% end %>
-              </div>
-              <div class="flex-grow">
-                <div class="font-bold text-xl">Set up notifications</div>
-              </div>
-            </div>
-            <div class="text-base text-base-content/60 min-h-[3rem]">
-              Set up alerts for when you have ads and want to see them.
-            </div>
-            <%= if !@progress.steps.notifications_configured do %>
-              <div class="flex gap-2">
-                <.link navigate="/settings?setting=notifications" class="btn btn-md btn-primary rounded-full flex-1 text-base">
-                  View
+              <%= if !@progress.steps.first_ad_interacted do %>
+                <.link navigate="/ads" class="btn btn-md btn-primary rounded-full w-full text-base">
+                  View Ads
                 </.link>
-                <button phx-click={@on_mark_notifications} class="btn btn-md btn-ghost rounded-full flex-1 text-base">
-                  Skip
-                </button>
-              </div>
-            <% end %>
+              <% end %>
+            </div>
           </div>
-        </div>
 
-        <%!-- Step 4: Create 25 tags --%>
-        <div id="step4" class="carousel-item w-[85%] md:w-[320px]">
-          <div class={[
-            "flex flex-col gap-3 p-4 rounded-lg transition-all border w-full",
-            if(@progress.steps.tags_25_reached,
-              do: "bg-success/5 border-success/20",
-              else: "bg-base-100 border-primary"
-            )
-          ]}>
-            <div class="flex items-center gap-3">
-              <div class="flex-shrink-0">
-                <%= if @progress.steps.tags_25_reached do %>
-                  <.icon name="hero-check-circle-solid" class="w-10 h-10 text-success" />
-                <% else %>
-                  <.icon name="hero-check-circle" class="w-10 h-10 text-base-content/30" />
-                <% end %>
+          <%!-- Step 3: Set up notifications --%>
+          <div id="step3" class="carousel-item w-[85%] md:w-[320px]">
+            <div class={[
+              "flex flex-col gap-3 p-4 rounded-lg transition-all border w-full",
+              if(@progress.steps.notifications_configured,
+                do: "bg-success/5 border-success/20",
+                else: "bg-base-100 border-primary"
+              )
+            ]}>
+              <div class="flex items-center gap-3">
+                <div class="flex-shrink-0">
+                  <%= if @progress.steps.notifications_configured do %>
+                    <.icon name="hero-check-circle-solid" class="w-10 h-10 text-success" />
+                  <% else %>
+                    <.icon name="hero-check-circle" class="w-10 h-10 text-base-content/30" />
+                  <% end %>
+                </div>
+                <div class="flex-grow">
+                  <div class="font-bold text-xl">Set up notifications</div>
+                </div>
               </div>
-              <div class="flex-grow">
-                <div class="font-bold text-xl">Get to {@progress.tag_goal} tags</div>
+              <div class="text-base text-base-content/60 min-h-[3rem]">
+                Set up alerts for when you have ads and want to see them.
               </div>
+              <%= if !@progress.steps.notifications_configured do %>
+                <div class="flex gap-2">
+                  <.link
+                    navigate="/settings?setting=notifications"
+                    class="btn btn-md btn-primary rounded-full flex-1 text-base"
+                  >
+                    View
+                  </.link>
+                  <button
+                    phx-click={@on_mark_notifications}
+                    class="btn btn-md btn-ghost rounded-full flex-1 text-base"
+                  >
+                    Skip
+                  </button>
+                </div>
+              <% end %>
             </div>
-            <div class="text-base text-base-content/60 min-h-[3rem]">
-              Optimize your MeFile by adding more tags. Current: {@progress.tag_count}/{@progress.tag_goal} tags
-            </div>
-            <%= if !@progress.steps.tags_25_reached do %>
-              <.link navigate="/me_file_builder" class="btn btn-md btn-primary rounded-full w-full text-base">
-                Add Tags
-              </.link>
-            <% end %>
           </div>
-        </div>
 
-        <%!-- Step 5: View referral program --%>
-        <div id="step5" class="carousel-item w-[85%] md:w-[320px]">
-          <div class={[
-            "flex flex-col gap-3 p-4 rounded-lg transition-all border w-full",
-            if(@progress.steps.referral_viewed,
-              do: "bg-success/5 border-success/20",
-              else: "bg-base-100 border-primary"
-            )
-          ]}>
-            <div class="flex items-center gap-3">
-              <div class="flex-shrink-0">
-                <%= if @progress.steps.referral_viewed do %>
-                  <.icon name="hero-check-circle-solid" class="w-10 h-10 text-success" />
-                <% else %>
-                  <.icon name="hero-check-circle" class="w-10 h-10 text-base-content/30" />
-                <% end %>
+          <%!-- Step 4: Create 25 tags --%>
+          <div id="step4" class="carousel-item w-[85%] md:w-[320px]">
+            <div class={[
+              "flex flex-col gap-3 p-4 rounded-lg transition-all border w-full",
+              if(@progress.steps.tags_25_reached,
+                do: "bg-success/5 border-success/20",
+                else: "bg-base-100 border-primary"
+              )
+            ]}>
+              <div class="flex items-center gap-3">
+                <div class="flex-shrink-0">
+                  <%= if @progress.steps.tags_25_reached do %>
+                    <.icon name="hero-check-circle-solid" class="w-10 h-10 text-success" />
+                  <% else %>
+                    <.icon name="hero-check-circle" class="w-10 h-10 text-base-content/30" />
+                  <% end %>
+                </div>
+                <div class="flex-grow">
+                  <div class="font-bold text-xl">Get to {@progress.tag_goal} tags</div>
+                </div>
               </div>
-              <div class="flex-grow">
-                <div class="font-bold text-xl">Invite some friends</div>
+              <div class="text-base text-base-content/60 min-h-[3rem]">
+                Optimize your MeFile by adding more tags. Current: {@progress.tag_count}/{@progress.tag_goal} tags
               </div>
-            </div>
-            <div class="text-base text-base-content/60 min-h-[3rem]">
-              Spread the word via referrals and feed your wallet.
-            </div>
-            <%= if !@progress.steps.referral_viewed do %>
-              <div class="flex gap-2">
-                <.link navigate="/referrals" class="btn btn-md btn-primary rounded-full flex-1 text-base">
-                  View
+              <%= if !@progress.steps.tags_25_reached do %>
+                <.link
+                  navigate="/me_file_builder"
+                  class="btn btn-md btn-primary rounded-full w-full text-base"
+                >
+                  Add Tags
                 </.link>
-                <button phx-click={@on_mark_referral} class="btn btn-md btn-ghost rounded-full flex-1 text-base">
-                  Skip
-                </button>
-              </div>
-            <% end %>
+              <% end %>
+            </div>
           </div>
-        </div>
+
+          <%!-- Step 5: View referral program --%>
+          <div id="step5" class="carousel-item w-[85%] md:w-[320px]">
+            <div class={[
+              "flex flex-col gap-3 p-4 rounded-lg transition-all border w-full",
+              if(@progress.steps.referral_viewed,
+                do: "bg-success/5 border-success/20",
+                else: "bg-base-100 border-primary"
+              )
+            ]}>
+              <div class="flex items-center gap-3">
+                <div class="flex-shrink-0">
+                  <%= if @progress.steps.referral_viewed do %>
+                    <.icon name="hero-check-circle-solid" class="w-10 h-10 text-success" />
+                  <% else %>
+                    <.icon name="hero-check-circle" class="w-10 h-10 text-base-content/30" />
+                  <% end %>
+                </div>
+                <div class="flex-grow">
+                  <div class="font-bold text-xl">Invite some friends</div>
+                </div>
+              </div>
+              <div class="text-base text-base-content/60 min-h-[3rem]">
+                Spread the word via referrals and feed your wallet.
+              </div>
+              <%= if !@progress.steps.referral_viewed do %>
+                <div class="flex gap-2">
+                  <.link
+                    navigate="/referrals"
+                    class="btn btn-md btn-primary rounded-full flex-1 text-base"
+                  >
+                    View
+                  </.link>
+                  <button
+                    phx-click={@on_mark_referral}
+                    class="btn btn-md btn-ghost rounded-full flex-1 text-base"
+                  >
+                    Skip
+                  </button>
+                </div>
+              <% end %>
+            </div>
+          </div>
         </div>
 
         <%!-- Carousel Indicators --%>
@@ -265,7 +284,10 @@ defmodule QlariusWeb.Components.StrongStartComponent do
 
       <%!-- Footer Actions --%>
       <div class="flex justify-between items-center mt-4 pt-4 border-t border-base-300">
-        <button phx-click={@on_skip} class="btn btn-md btn-ghost !text-base-content/20 hover:!text-error rounded-full text-base">
+        <button
+          phx-click={@on_skip}
+          class="btn btn-md btn-ghost !text-base-content/20 hover:!text-error rounded-full text-base"
+        >
           Dismiss forever
         </button>
         <button phx-click={@on_remind} class="btn btn-md btn-ghost rounded-full text-base">

@@ -83,13 +83,13 @@ defmodule QlariusWeb.MeFileHTML do
               <div
                 :if={
                   @trait_in_edit &&
-                  @trait_in_edit.input_type != "single_select_zip" &&
-                  Ecto.assoc_loaded?(@trait_in_edit.child_traits) &&
-                  Enum.any?(@trait_in_edit.child_traits, fn child ->
-                    child.survey_answer &&
-                    child.survey_answer.text not in [nil, ""] &&
-                    child.survey_answer.text != child.trait_name
-                  end)
+                    @trait_in_edit.input_type != "single_select_zip" &&
+                    Ecto.assoc_loaded?(@trait_in_edit.child_traits) &&
+                    Enum.any?(@trait_in_edit.child_traits, fn child ->
+                      child.survey_answer &&
+                        child.survey_answer.text not in [nil, ""] &&
+                        child.survey_answer.text != child.trait_name
+                    end)
                 }
                 class="flex gap-2 mt-2"
               >
@@ -212,9 +212,9 @@ defmodule QlariusWeb.MeFileHTML do
                       <div
                         :if={
                           @show_expanded_tags &&
-                          child_trait.survey_answer &&
-                          child_trait.survey_answer.text not in [nil, ""] &&
-                          child_trait.survey_answer.text != child_trait.trait_name
+                            child_trait.survey_answer &&
+                            child_trait.survey_answer.text not in [nil, ""] &&
+                            child_trait.survey_answer.text != child_trait.trait_name
                         }
                         class="text-sm text-base-content/60 mt-1"
                       >
@@ -227,7 +227,11 @@ defmodule QlariusWeb.MeFileHTML do
 
               <%!-- Fixed footer --%>
               <div class="py-4 px-6 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
-                <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost rounded-full">
+                <button
+                  type="button"
+                  phx-click="close_modal"
+                  class="btn btn-lg btn-ghost rounded-full"
+                >
                   Cancel
                 </button>
                 <button
@@ -296,7 +300,11 @@ defmodule QlariusWeb.MeFileHTML do
 
               <%!-- Fixed footer --%>
               <div class="py-4 px-6 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
-                <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost rounded-full">
+                <button
+                  type="button"
+                  phx-click="close_modal"
+                  class="btn btn-lg btn-ghost rounded-full"
+                >
                   Cancel
                 </button>
                 <button

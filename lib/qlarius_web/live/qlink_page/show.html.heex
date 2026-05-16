@@ -131,103 +131,7 @@
     </div>
   </div>
 
-  <%!-- Sponster Announcer Bar (bottom of screen - always on top) --%>
-  <%= if @recipient do %>
-    <div class="fixed bottom-0 left-0 right-0 h-[50px] bg-base-100 z-50 shadow-[0_-2px_10px_rgba(0,0,0,0.15)]"></div>
-    <div class="fixed bottom-0 left-1/2 -translate-x-1/2 h-[50px] w-full max-w-[800px] bg-base-100 z-50 px-3 flex items-center justify-between gap-2">
-      <%!-- Sponster Logo --%>
-      <div class="sponster-announcer-logo-container flex-shrink-0 md:relative md:z-10" />
-
-      <%!--
-        Authed: wallet balance centered (Sponster pill); drawer toggle on the
-        right shows ADS + offered like the arcade wallet-strip top-up trigger
-        (widget pill + btn-widget), not the old "Show" label.
-        Anonymous: READY + Connect strip (`tray?={false}`) with legacy Connect routing.
-      --%>
-      <% is_authed = authed?(@current_scope) %>
-      <% announcer_ads_text =
-           if(is_authed, do: to_string(@current_scope.ads_count || 0), else: "") %>
-      <% announcer_offered_text =
-           if(is_authed,
-             do: format_usd(@current_scope.offered_amount || Decimal.new("0")),
-             else: ""
-           ) %>
-
-      <%= if is_authed do %>
-        <div class="flex-1 flex justify-center min-w-0 px-1 md:flex-none md:absolute md:left-1/2 md:top-1/2 md:z-0 md:w-max md:max-w-[min(70%,22rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:px-2">
-          <.wallet_balance
-            id="qlink-announcer-wallet-balance"
-            balance={@current_scope.wallet_balance || Decimal.new("0")}
-            footer_label="WALLET"
-            compact?={true}
-          />
-        </div>
-      <% else %>
-        <% on_click =
-             if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
-               do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
-               else: nil %>
-        <% {connect_href, connect_link_target} =
-             cond do
-               on_click ->
-                 {nil, "_top"}
-               QlariusWeb.QlinkPage.Show.on_qlinkin_bio_host?(assigns) ->
-                 {@interact_login_url, "_top"}
-               true ->
-                 {~p"/login?return_to=/@#{@page.alias}", "_self"}
-             end %>
-        <div
-          class="flex-1 flex justify-center min-w-0 px-1 md:flex-none md:absolute md:left-1/2 md:top-1/2 md:z-0 md:w-max md:max-w-[min(70%,22rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:px-2"
-          title="Connect your wallet"
-        >
-          <.wallet_strip_or_connect
-            tray?={false}
-            scope={@current_scope}
-            balance={Decimal.new("0")}
-            id="qlink-announcer-wallet-strip"
-            on_click={on_click}
-            connect_href={connect_href}
-            connect_link_target={connect_link_target}
-          />
-        </div>
-      <% end %>
-
-      <%!--
-        Drawer toggle: same control stack as arcade `wallet_strip` Top up trigger
-        (`btn-widget btn-md rounded-full leading-none`), plus emphasis + thicker
-        border; green double chevron matches legacy announcer (`all-animate`).
-      --%>
-      <button
-        type="button"
-        id="qlink-sponster-drawer-toggle"
-        phx-click="toggle_sponster_drawer"
-        title={if @show_sponster_drawer, do: "Hide offers", else: "Show offers"}
-        class={[
-          "qlink-sponster-drawer-toggle btn-widget btn-widget-emphasis btn-md rounded-full leading-none border-[1.5px]",
-          "inline-flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer transition-colors md:relative md:z-10",
-          "outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/40"
-        ]}
-      >
-        <%= if is_authed do %>
-          <span class="font-bold whitespace-nowrap shrink-0">
-            {announcer_ads_text} ads • {announcer_offered_text}
-          </span>
-        <% else %>
-          <span class="font-bold text-sm whitespace-nowrap">
-            {if @show_sponster_drawer, do: "Hide", else: "Info"}
-          </span>
-        <% end %>
-        <span class={[
-          "hero-chevron-double-up all-animate bg-sponster-600 shrink-0",
-          if(@show_sponster_drawer, do: "rotate-180")
-        ]} />
-      </button>
-    </div>
-  <% end %>
-
-  <%!-- Sponster Drawer (slides up from behind the bar).
-       z-index: arqade full-pane uses z-[45] (see QlinkPage.Show); drawer
-       stack must sit above it but below the announcer bar (z-50). --%>
+  <%!-- Sponster stack (one @recipient): backdrop → drawer → disclaimer → split tab → announcer (top z, painted last). --%>
   <%= if @recipient do %>
     <%!-- Overlay (only when drawer is open) --%>
     <div
@@ -235,7 +139,7 @@
       phx-hook="BodyScrollLock"
       data-body-scroll-lock={if @show_sponster_drawer, do: "true", else: "false"}
       class={[
-        "fixed inset-0 z-[46] bg-black/50 backdrop-blur-sm transition-opacity duration-300",
+        "fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300",
         if(@show_sponster_drawer, do: "opacity-100", else: "opacity-0 pointer-events-none")
       ]}
       phx-click="close_sponster_drawer"
@@ -246,9 +150,9 @@
     <div
       data-theme="light"
       class={[
-        "fixed z-[47] bg-base-100 rounded-t-lg overflow-hidden flex flex-col transition-all duration-300 ease-out",
-        "h-[calc(100vh-50px)] md:h-[calc(90vh-50px)]",
-        if(@show_sponster_drawer, do: "bottom-[50px]", else: "-bottom-[calc(100vh-50px)] md:-bottom-[calc(90vh-50px)]")
+        "fixed z-[41] bg-base-100 rounded-t-lg overflow-hidden flex flex-col transition-all duration-300 ease-out",
+        "h-[calc(95vh-50px)]",
+        if(@show_sponster_drawer, do: "bottom-[50px]", else: "-bottom-[calc(95vh-50px)]")
       ]}
       style="left: 50%; transform: translateX(-50%); width: min(100%, 800px); box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);"
     >
@@ -273,10 +177,63 @@
               </div>
             <% else %>
               <%= if Enum.empty?(@video_offers) && Enum.empty?(@active_offers) do %>
-                <div class="text-center py-12 text-base-content/70">
-                  <.icon name="hero-inbox" class="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No ads available right now.</p>
-                  <p class="text-sm mt-2">Check back later or update your MeFile for more offers.</p>
+                <div class="py-10 px-4 max-w-md mx-auto text-base-content/80 text-center">
+                  <h2 class="h2 font-semibold text-lg text-base-content">No ads available right now.</h2>
+                  <p class="text-sm mt-1">Try back later.</p>
+                  <p class="text-sm mt-5 text-base-content/70">
+                    Want to maximize sponsorships?
+                  </p>
+                  <div class="mt-4 flex flex-col gap-3">
+                    <a
+                      href={@me_file_sponsorship_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class={[
+                        "btn btn-widget btn-widget-emphasis btn-lg rounded-full border-[1.5px] w-full min-h-16",
+                        "px-6 py-4 h-auto leading-snug font-semibold",
+                        "inline-flex items-center justify-between gap-3 transition-colors text-left",
+                        "outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/40"
+                      ]}
+                    >
+                      <span class="flex min-w-0 items-center gap-3">
+                        <img
+                          src="/images/youdata_gray_square.svg"
+                          alt=""
+                          class="h-10 w-10 shrink-0 rounded-md object-contain"
+                          decoding="async"
+                        />
+                        <span class="leading-snug">Optimize your MeFile</span>
+                      </span>
+                      <.icon
+                        name="hero-arrow-top-right-on-square"
+                        class="h-6 w-6 shrink-0 text-base-content/35"
+                      />
+                    </a>
+                    <a
+                      href={@settings_notifications_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class={[
+                        "btn btn-widget-ghost btn-lg rounded-full w-full min-h-16",
+                        "px-6 py-4 h-auto leading-snug font-semibold",
+                        "inline-flex items-center justify-between gap-3 transition-colors text-left",
+                        "outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/40"
+                      ]}
+                    >
+                      <span class="flex min-w-0 items-center gap-3">
+                        <.icon name="hero-megaphone" class="h-7 w-7 shrink-0 text-base-content/55" />
+                        <span class="leading-snug">Set notifications</span>
+                      </span>
+                      <.icon
+                        name="hero-arrow-top-right-on-square"
+                        class="h-6 w-6 shrink-0 text-base-content/35"
+                      />
+                    </a>
+                  </div>
+                  <div class="mt-4 space-y-1 text-xs text-base-content/50 leading-snug text-center">
+                    <p>Better data = better sponsors + more revenue</p>
+                    <p>Receive alerts when you have ads.</p>
+                  </div>
                 </div>
               <% else %>
                 <%!-- Ad type tabs --%>
@@ -348,7 +305,7 @@
           phx-click="toggle_split_drawer"
         />
 
-        <%!-- Split drawer with tab (positioned at bottom, slides up/down) --%>
+        <%!-- Split settings: tab, disclaimer (collapsed unless peek), TIP header, body. Peek lift: JS measures #qlink-split-disclaimer-slot → --qlink-peek-disclaimer-px. --%>
         <%= if @current_scope && @current_scope.user && @recipient do %>
           <%= if @show_split_reminder do %>
             <.split_reminder_tip
@@ -356,19 +313,49 @@
               split_amount={(@current_scope.user.me_file && @current_scope.user.me_file.split_amount) || 50}
             />
           <% end %>
+          <% qlink_split_disclaimer_open? = @sponster_disclaimer_dock_visible %>
+          <% qlink_split_panel_state =
+               cond do
+                 @show_split_drawer -> "open"
+                 @sponster_disclaimer_dock_visible -> "peek"
+                 true -> "recessed"
+               end %>
+          <% split_slide =
+               cond do
+                 @show_split_drawer -> "translate-y-0"
+                 @sponster_disclaimer_dock_visible -> "qlink-split-panel--peek"
+                 true -> "translate-y-[calc(100%-2.75rem+10px)]"
+               end %>
           <div
+            id="qlink-split-settings-panel"
+            phx-hook="QlinkSplitDisclaimerPeek"
+            data-split-panel-state={qlink_split_panel_state}
             class={[
-              "absolute left-0 right-0 bottom-0 z-30 flex flex-col max-h-[95%] transition-transform duration-300 ease-out",
-              if(@show_split_drawer, do: "translate-y-0", else: "translate-y-[calc(100%-36px)]")
+              "absolute inset-x-0 bottom-0 z-30 flex max-h-[90%] min-h-0 flex-col transition-transform duration-500 ease-out",
+              split_slide
             ]}
           >
-            <%!-- Split Tab --%>
-            <div class="flex justify-end flex-shrink-0">
-              <.split_tab split_amount={(@current_scope.user.me_file && @current_scope.user.me_file.split_amount) || 50} />
+            <div
+              class={[
+                "pointer-events-none relative z-10 flex w-full flex-shrink-0 justify-end bg-transparent",
+                if(@show_split_drawer, do: "border-b border-base-content/10", else: "border-b-0")
+              ]}
+            >
+              <div class="pointer-events-auto shrink-0">
+                <.split_tab split_amount={(@current_scope.user.me_file && @current_scope.user.me_file.split_amount) || 50} />
+              </div>
             </div>
-
-            <%!-- Drawer content --%>
-            <div class="bg-base-200 overflow-hidden flex flex-col">
+            <div
+              id="qlink-split-disclaimer-slot"
+              class={[
+                "w-full shrink-0 overflow-hidden transition-[max-height] duration-500 ease-out",
+                if(qlink_split_disclaimer_open?, do: "max-h-[10rem]", else: "max-h-0")
+              ]}
+              aria-hidden={if qlink_split_disclaimer_open?, do: "false", else: "true"}
+            >
+              <.ads_disclaimer_bar id="qlink-ads-disclaimer-bar" class="w-full shadow-sm" />
+            </div>
+            <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-base-200">
               <%!-- Header --%>
               <div class="w-full bg-base-100 border-b border-base-300 p-5 flex justify-between items-center shadow-sm flex-shrink-0">
                 <div class="text-base-content font-bold uppercase tracking-wider text-sm">
@@ -383,8 +370,8 @@
                 </button>
               </div>
 
-              <%!-- Content --%>
-              <div class="flex-1 flex flex-col md:!flex-row gap-8 px-8 pt-6 pb-12 overflow-y-auto max-w-[800px] mx-auto bg-base-200 mt-1">
+              <%!-- min-h-0: flex-1 scroll area must shrink inside the drawer. --%>
+              <div class="flex min-h-0 flex-1 flex-col gap-8 overflow-y-auto bg-base-200 px-8 pb-12 pt-6 max-w-[800px] mx-auto mt-1 md:!flex-row">
                 <%!-- Left: AutoSplit + InstaTip --%>
                 <div class="flex-1 flex flex-col items-center md:items-start">
                   <%!-- AutoSplit Section --%>
@@ -445,18 +432,13 @@
                     </div>
                   <% end %>
                 </div>
-                <%!-- Divider and spacing above disclaimer (mobile) --%>
-                <div class="border-divider-color my-4 w-full max-w-[280px] mx-auto md:hidden flex-shrink-0"></div>
               </div>
             </div>
           </div>
         <% end %>
       </div>
 
-      <%= if drawer_authed do %>
-        <%!-- Disclaimer only when ads surface is relevant --%>
-        <.ads_disclaimer_bar class="flex-shrink-0" />
-      <% else %>
+      <%= if not drawer_authed do %>
         <div class="flex-shrink-0 bg-base-200 border-t border-base-300 px-4 pt-3 flex flex-col items-center gap-1 text-center">
           <p class="text-sm sm:text-base text-base-content font-medium tracking-tight leading-snug">
             Ready to try it out? Connect and sign up for free. Your wallet awaits.
@@ -470,6 +452,84 @@
         </div>
       <% end %>
 
+    </div>
+
+    <% qlink_announcer_authed = authed?(@current_scope) %>
+    <% qlink_announcer_ads =
+         if(qlink_announcer_authed, do: to_string(@current_scope.ads_count || 0), else: "") %>
+    <% qlink_announcer_offered =
+         if(qlink_announcer_authed,
+           do: format_usd(@current_scope.offered_amount || Decimal.new("0")),
+           else: ""
+         ) %>
+
+    <div class="fixed inset-x-0 bottom-0 z-[56] flex justify-center bg-base-100 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] isolate">
+      <div class="flex h-[50px] w-full max-w-[800px] items-center justify-between gap-2 px-3">
+        <div class="sponster-announcer-logo-container flex-shrink-0 md:relative md:z-10" />
+        <%= if qlink_announcer_authed do %>
+          <div class="flex flex-1 justify-center min-w-0 px-1 md:absolute md:left-1/2 md:top-1/2 md:z-0 md:w-max md:max-w-[min(70%,22rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:px-2">
+            <.wallet_balance
+              id="qlink-announcer-wallet-balance"
+              balance={@current_scope.wallet_balance || Decimal.new("0")}
+              footer_label="WALLET"
+              compact?={true}
+            />
+          </div>
+        <% else %>
+          <% qlink_on_click =
+               if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
+                 do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
+                 else: nil %>
+          <% {qlink_connect_href, qlink_connect_target} =
+               cond do
+                 qlink_on_click ->
+                   {nil, "_top"}
+                 QlariusWeb.QlinkPage.Show.on_qlinkin_bio_host?(assigns) ->
+                   {@interact_login_url, "_top"}
+                 true ->
+                   {~p"/login?return_to=/@#{@page.alias}", "_self"}
+               end %>
+          <div
+            class="flex flex-1 justify-center min-w-0 px-1 md:absolute md:left-1/2 md:top-1/2 md:z-0 md:w-max md:max-w-[min(70%,22rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:px-2"
+            title="Connect your wallet"
+          >
+            <.wallet_strip_or_connect
+              tray?={false}
+              scope={@current_scope}
+              balance={Decimal.new("0")}
+              id="qlink-announcer-wallet-strip"
+              on_click={qlink_on_click}
+              connect_href={qlink_connect_href}
+              connect_link_target={qlink_connect_target}
+            />
+          </div>
+        <% end %>
+        <button
+          type="button"
+          id="qlink-sponster-drawer-toggle"
+          phx-click="toggle_sponster_drawer"
+          title={if @show_sponster_drawer, do: "Hide offers", else: "Show offers"}
+          class={[
+            "qlink-sponster-drawer-toggle btn-widget btn-widget-emphasis btn-md rounded-full leading-none border-[1.5px]",
+            "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 transition-colors md:relative md:z-10",
+            "outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/40"
+          ]}
+        >
+          <%= if qlink_announcer_authed do %>
+            <span class="shrink-0 font-bold whitespace-nowrap">
+              {qlink_announcer_ads} ads • {qlink_announcer_offered}
+            </span>
+          <% else %>
+            <span class="text-sm font-bold whitespace-nowrap">
+              {if @show_sponster_drawer, do: "Hide", else: "Info"}
+            </span>
+          <% end %>
+          <span class={[
+            "hero-chevron-double-up all-animate bg-sponster-600 shrink-0",
+            if(@show_sponster_drawer, do: "rotate-180")
+          ]} />
+        </button>
+      </div>
     </div>
   <% end %>
 

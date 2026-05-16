@@ -28,6 +28,15 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   @arqade_fullpane_close_ms 300
 
+  # Sponster drawer uses `transition-all duration-300` on the sheet; the settings strip
+  # disclaimer stays collapsed until peek timers set `sponster_disclaimer_dock_visible`, then
+  # the strip peeks (translate) after a short beat, holds ~4s after the peek transition (~500ms),
+  # then slides back to tab-only and collapses the disclaimer again.
+  @sponster_drawer_slide_ms 300
+  @sponster_disclaimer_peek_pause_after_drawer_ms 150
+  @disclaimer_dock_expand_ms 500
+  @disclaimer_dock_hold_visible_ms 4000
+
   @impl true
   def mount(%{"alias" => page_alias}, _session, socket) do
     page =
@@ -207,10 +216,15 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   defp init_sponster_assigns(socket) do
     host_uri =
-      case get_connect_info(socket, :uri) do
-        nil -> URI.parse("http://localhost")
-        uri -> uri
+      case socket.host_uri do
+        %URI{host: host} = uri when is_binary(host) -> uri
+        _ -> URI.parse("https://qadabra.app")
       end
+
+    me_file_sponsorship_url = Qlarius.Qlink.Urls.me_file_url_for_sponsorship(host_uri)
+
+    settings_notifications_url =
+      Qlarius.Qlink.Urls.settings_notifications_url_for_sponsorship(host_uri)
 
     socket
     |> assign(:show_sponster_drawer, false)
@@ -236,7 +250,11 @@ defmodule QlariusWeb.QlinkPage.Show do
     |> assign(:show_ad_type_tabs, false)
     |> assign(:show_split_drawer, false)
     |> assign(:show_split_reminder, false)
+    |> assign(:sponster_disclaimer_dock_visible, false)
+    |> assign(:sponster_disclaimer_dock_gen, 0)
     |> assign(:host_uri, host_uri)
+    |> assign(:me_file_sponsorship_url, me_file_sponsorship_url)
+    |> assign(:settings_notifications_url, settings_notifications_url)
     |> assign(:show_connect_modal, false)
     |> assign(:show_auth_sheet, false)
     |> assign(:auth_sheet_connect_brand, :qadabra)
@@ -326,6 +344,8 @@ defmodule QlariusWeb.QlinkPage.Show do
        socket
        |> assign(:show_sponster_drawer, false)
        |> assign(:show_split_reminder, false)
+       |> assign(:sponster_disclaimer_dock_visible, false)
+       |> bump_sponster_disclaimer_dock_gen()
      else
        ensure_sponster_drawer_open(socket)
      end}
@@ -337,7 +357,9 @@ defmodule QlariusWeb.QlinkPage.Show do
      socket
      |> assign(:show_sponster_drawer, false)
      |> assign(:show_split_drawer, false)
-     |> assign(:show_split_reminder, false)}
+     |> assign(:show_split_reminder, false)
+     |> assign(:sponster_disclaimer_dock_visible, false)
+     |> bump_sponster_disclaimer_dock_gen()}
   end
 
   @impl true
@@ -360,7 +382,9 @@ defmodule QlariusWeb.QlinkPage.Show do
               s
             end
 
-          assign(s, :show_sponster_drawer, true)
+          s
+          |> assign(:show_sponster_drawer, true)
+          |> schedule_sponster_disclaimer_dock_peek()
         else
           s
         end
@@ -758,6 +782,24 @@ defmodule QlariusWeb.QlinkPage.Show do
   end
 
   @impl true
+  def handle_info({:sponster_disclaimer_dock_show, gen}, socket) do
+    if socket.assigns[:sponster_disclaimer_dock_gen] == gen && socket.assigns[:show_sponster_drawer] do
+      {:noreply, assign(socket, :sponster_disclaimer_dock_visible, true)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:sponster_disclaimer_dock_hide, gen}, socket) do
+    if socket.assigns[:sponster_disclaimer_dock_gen] == gen do
+      {:noreply, assign(socket, :sponster_disclaimer_dock_visible, false)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_info(:show_split_reminder, socket) do
     Process.send_after(self(), :split_reminder_auto_hide, 5000)
     {:noreply, assign(socket, :show_split_reminder, true)}
@@ -885,6 +927,31 @@ defmodule QlariusWeb.QlinkPage.Show do
         s
       end
     end)
+    |> schedule_sponster_disclaimer_dock_peek()
+  end
+
+  defp bump_sponster_disclaimer_dock_gen(socket) do
+    assign(socket, :sponster_disclaimer_dock_gen, (socket.assigns[:sponster_disclaimer_dock_gen] || 0) + 1)
+  end
+
+  defp schedule_sponster_disclaimer_dock_peek(socket) do
+    if authed?(socket.assigns[:current_scope]) do
+      gen = (socket.assigns[:sponster_disclaimer_dock_gen] || 0) + 1
+
+      peek_show_ms = @sponster_drawer_slide_ms + @sponster_disclaimer_peek_pause_after_drawer_ms
+
+      peek_hide_ms =
+        peek_show_ms + @disclaimer_dock_expand_ms + @disclaimer_dock_hold_visible_ms
+
+      Process.send_after(self(), {:sponster_disclaimer_dock_show, gen}, peek_show_ms)
+      Process.send_after(self(), {:sponster_disclaimer_dock_hide, gen}, peek_hide_ms)
+
+      socket
+      |> assign(:sponster_disclaimer_dock_gen, gen)
+      |> assign(:sponster_disclaimer_dock_visible, false)
+    else
+      socket
+    end
   end
 
   defp load_offers(socket) do

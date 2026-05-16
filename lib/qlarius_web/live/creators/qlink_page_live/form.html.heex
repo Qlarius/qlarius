@@ -31,7 +31,7 @@
                 </p>
               </div>
             </div>
-            
+
             <%= if @live_action == :edit do %>
               <div class="flex items-center gap-4">
                 <%!-- Published Toggle (saves immediately) --%>
@@ -45,10 +45,10 @@
                     "font-semibold text-sm",
                     if(@page.is_published, do: "text-success", else: "text-base-content/50")
                   ]}>
-                    <%= if @page.is_published, do: "Published", else: "Draft" %>
+                    {if @page.is_published, do: "Published", else: "Draft"}
                   </span>
                 </div>
-                
+
                 <%= if @page.alias do %>
                   <a
                     href={~p"/@#{@page.alias}"}
@@ -117,196 +117,198 @@
                 <% end %>
 
                 <%= if @active_tab == "basics" do %>
-                <!-- Basic Information Section -->
-                <div>
-                  <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                    <.icon name="hero-information-circle" class="w-5 h-5 mr-3 text-info" />
-                    Basic Information
-                  </h3>
+                  <!-- Basic Information Section -->
+                  <div>
+                    <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+                      <.icon name="hero-information-circle" class="w-5 h-5 mr-3 text-info" />
+                      Basic Information
+                    </h3>
 
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Left Column: Title and Alias -->
-                    <div class="space-y-4">
-                      <div class="form-control">
-                        <label class="label">
-                          <span class="label-text font-medium">Title *</span>
-                        </label>
-                        <.input
-                          field={@form[:title]}
-                          type="text"
-                          class="input input-bordered w-full"
-                          placeholder="My Link Page"
-                          required
-                        />
-                      </div>
-
-                      <%= if @live_action == :new do %>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <!-- Left Column: Title and Alias -->
+                      <div class="space-y-4">
                         <div class="form-control">
                           <label class="label">
-                            <span class="label-text font-medium">Alias *</span>
+                            <span class="label-text font-medium">Title *</span>
                           </label>
                           <.input
-                            field={@form[:alias]}
+                            field={@form[:title]}
                             type="text"
                             class="input input-bordered w-full"
-                            placeholder="my-page"
+                            placeholder="My Link Page"
                             required
                           />
-                          <label class="label">
-                            <span class="label-text-alt text-base-content/60">
-                              URL: /@{@form[:alias].value || "alias"}
-                            </span>
-                          </label>
-                          <%= if @form[:alias].errors != [] do %>
-                            <%= for {error, _} <- @form[:alias].errors do %>
-                              <label class="label">
-                                <span class="label-text-alt text-error">{error}</span>
-                              </label>
-                            <% end %>
-                          <% end %>
                         </div>
-                      <% else %>
-                        <div class="form-control">
-                          <label class="label">
-                            <span class="label-text font-medium">Alias</span>
-                          </label>
-                          <div class="input input-bordered w-full bg-base-200">
-                            @{@page.alias}
-                          </div>
-                          <label class="label">
-                            <span class="label-text-alt text-base-content/60">
-                              URL: /@{@page.alias}
-                            </span>
-                          </label>
-                        </div>
-                      <% end %>
-                    </div>
 
-                    <!-- Right Column: Bio -->
-                    <div class="form-control">
-                      <label class="label">
-                        <span class="label-text font-medium">Bio</span>
-                      </label>
-                      <.input
-                        field={@form[:bio_text]}
-                        type="textarea"
-                        class="textarea textarea-bordered w-full h-full"
-                        placeholder="Tell visitors about your page..."
-                        rows="5"
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-<!-- Profile Photo and Social Links Section -->
-                <div class="border-t border-base-300 pt-6">
-                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Profile Photo -->
-                    <div>
-                      <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                        <.icon name="hero-photo" class="w-5 h-5 mr-3 text-primary" />
-                        Profile Photo
-                      </h3>
-                      <.image_upload_field
-                        upload={@uploads.image}
-                        label=""
-                        current_image={@page.profile_photo}
-                        current_image_url={
-                          if @page.profile_photo,
-                            do:
-                              QlariusWeb.Uploaders.CreatorImage.url(
-                                {@page.profile_photo, @page},
-                                :original
-                              )
-                        }
-                        on_delete="delete_image"
-                      />
-                    </div>
-                    
-<!-- Social Links -->
-                    <div>
-                      <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                        <.icon name="hero-share" class="w-5 h-5 mr-3 text-accent" /> Social Links
-                      </h3>
-                      
-<!-- Add Social Link Selector -->
-                      <div class="flex items-center gap-3 mb-4">
-                        <div class="form-control flex-1">
-                          <select
-                            id="social-platform-select"
-                            name="selected_social_platform"
-                            class="select select-bordered w-full"
-                            phx-change="select_social_platform"
-                          >
-                            <option value="">Select Platform</option>
-                            <%= for platform <- available_social_platforms(@used_social_platforms) do %>
-                              <option
-                                value={platform}
-                                selected={@selected_social_platform == platform}
-                              >
-                                {format_platform_name(platform)}
-                              </option>
+                        <%= if @live_action == :new do %>
+                          <div class="form-control">
+                            <label class="label">
+                              <span class="label-text font-medium">Alias *</span>
+                            </label>
+                            <.input
+                              field={@form[:alias]}
+                              type="text"
+                              class="input input-bordered w-full"
+                              placeholder="my-page"
+                              required
+                            />
+                            <label class="label">
+                              <span class="label-text-alt text-base-content/60">
+                                URL: /@{@form[:alias].value || "alias"}
+                              </span>
+                            </label>
+                            <%= if @form[:alias].errors != [] do %>
+                              <%= for {error, _} <- @form[:alias].errors do %>
+                                <label class="label">
+                                  <span class="label-text-alt text-error">{error}</span>
+                                </label>
+                              <% end %>
                             <% end %>
-                          </select>
-                        </div>
-                        <button
-                          type="button"
-                          phx-click="add_selected_social_link"
-                          class="btn btn-primary btn-sm"
-                          disabled={
-                            @selected_social_platform == "" || @selected_social_platform == nil
-                          }
-                        >
-                          <.icon name="hero-plus" class="w-4 h-4" />
-                        </button>
-                      </div>
-                      
-<!-- Added Social Links -->
-                      <div id="social-links" class="space-y-3">
-                        <%= for link <- @social_links do %>
-                          <div id={link.id} class="flex items-center gap-3">
-                            <div class="form-control flex-1">
-                              <div class="label">
-                                <span class="label-text font-medium">
-                                  {format_platform_name(link.platform)}
-                                </span>
-                              </div>
-                              <input
-                                type="url"
-                                name={"social_links[#{link.id}][url]"}
-                                value={link.url}
-                                class="input input-bordered w-full"
-                                placeholder="https://..."
-                                phx-change="update_social_link"
-                                phx-value-id={link.id}
-                              />
+                          </div>
+                        <% else %>
+                          <div class="form-control">
+                            <label class="label">
+                              <span class="label-text font-medium">Alias</span>
+                            </label>
+                            <div class="input input-bordered w-full bg-base-200">
+                              @{@page.alias}
                             </div>
-                            <button
-                              type="button"
-                              phx-click="remove_social_link"
-                              phx-value-id={link.id}
-                              class="btn btn-ghost btn-sm text-error mt-6"
-                              title="Remove"
-                            >
-                              <.icon name="hero-trash" class="w-4 h-4" />
-                            </button>
+                            <label class="label">
+                              <span class="label-text-alt text-base-content/60">
+                                URL: /@{@page.alias}
+                              </span>
+                            </label>
                           </div>
                         <% end %>
                       </div>
+                      
+<!-- Right Column: Bio -->
+                      <div class="form-control">
+                        <label class="label">
+                          <span class="label-text font-medium">Bio</span>
+                        </label>
+                        <.input
+                          field={@form[:bio_text]}
+                          type="textarea"
+                          class="textarea textarea-bordered w-full h-full"
+                          placeholder="Tell visitors about your page..."
+                          rows="5"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
+                  
+<!-- Profile Photo and Social Links Section -->
+                  <div class="border-t border-base-300 pt-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <!-- Profile Photo -->
+                      <div>
+                        <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+                          <.icon name="hero-photo" class="w-5 h-5 mr-3 text-primary" />
+                          Profile Photo
+                        </h3>
+                        <.image_upload_field
+                          upload={@uploads.image}
+                          label=""
+                          current_image={@page.profile_photo}
+                          current_image_url={
+                            if @page.profile_photo,
+                              do:
+                                QlariusWeb.Uploaders.CreatorImage.url(
+                                  {@page.profile_photo, @page},
+                                  :original
+                                )
+                          }
+                          on_delete="delete_image"
+                        />
+                      </div>
+                      
+<!-- Social Links -->
+                      <div>
+                        <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
+                          <.icon name="hero-share" class="w-5 h-5 mr-3 text-accent" />
+                          Social Links
+                        </h3>
+                        
+<!-- Add Social Link Selector -->
+                        <div class="flex items-center gap-3 mb-4">
+                          <div class="form-control flex-1">
+                            <select
+                              id="social-platform-select"
+                              name="selected_social_platform"
+                              class="select select-bordered w-full"
+                              phx-change="select_social_platform"
+                            >
+                              <option value="">Select Platform</option>
+                              <%= for platform <- available_social_platforms(@used_social_platforms) do %>
+                                <option
+                                  value={platform}
+                                  selected={@selected_social_platform == platform}
+                                >
+                                  {format_platform_name(platform)}
+                                </option>
+                              <% end %>
+                            </select>
+                          </div>
+                          <button
+                            type="button"
+                            phx-click="add_selected_social_link"
+                            class="btn btn-primary btn-sm"
+                            disabled={
+                              @selected_social_platform == "" || @selected_social_platform == nil
+                            }
+                          >
+                            <.icon name="hero-plus" class="w-4 h-4" />
+                          </button>
+                        </div>
+                        
+<!-- Added Social Links -->
+                        <div id="social-links" class="space-y-3">
+                          <%= for link <- @social_links do %>
+                            <div id={link.id} class="flex items-center gap-3">
+                              <div class="form-control flex-1">
+                                <div class="label">
+                                  <span class="label-text font-medium">
+                                    {format_platform_name(link.platform)}
+                                  </span>
+                                </div>
+                                <input
+                                  type="url"
+                                  name={"social_links[#{link.id}][url]"}
+                                  value={link.url}
+                                  class="input input-bordered w-full"
+                                  placeholder="https://..."
+                                  phx-change="update_social_link"
+                                  phx-value-id={link.id}
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                phx-click="remove_social_link"
+                                phx-value-id={link.id}
+                                class="btn btn-ghost btn-sm text-error mt-6"
+                                title="Remove"
+                              >
+                                <.icon name="hero-trash" class="w-4 h-4" />
+                              </button>
+                            </div>
+                          <% end %>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 <% end %>
 
                 <%= if @active_tab == "content" && @live_action == :edit && @page.id do %>
-                <!-- Sections and Blocks Management -->
+                  <!-- Sections and Blocks Management -->
                   <div class="border-t border-base-300 pt-6">
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       <!-- Sections Column -->
                       <div class="lg:col-span-1">
                         <div class="flex items-center justify-between mb-4">
                           <h3 class="text-lg font-semibold text-base-content flex items-center">
-                            <.icon name="hero-folder" class="w-5 h-5 mr-3 text-secondary" /> Sections
+                            <.icon name="hero-folder" class="w-5 h-5 mr-3 text-secondary" />
+                            Sections
                           </h3>
                           <button
                             type="button"
@@ -331,12 +333,13 @@
                           </div>
                         <% end %>
                       </div>
-
-                      <!-- Blocks Column -->
+                      
+<!-- Blocks Column -->
                       <div class="lg:col-span-2">
                         <div class="flex items-center justify-between mb-4">
                           <h3 class="text-lg font-semibold text-base-content flex items-center">
-                            <.icon name="hero-squares-2x2" class="w-5 h-5 mr-3 text-primary" /> Blocks
+                            <.icon name="hero-squares-2x2" class="w-5 h-5 mr-3 text-primary" />
+                            Blocks
                           </h3>
                           <button
                             type="button"
@@ -376,7 +379,9 @@
                                   </div>
                                   <div class="collapse-content">
                                     <%= if section.description do %>
-                                      <p class="text-sm text-base-content/60 mb-3">{section.description}</p>
+                                      <p class="text-sm text-base-content/60 mb-3">
+                                        {section.description}
+                                      </p>
                                     <% end %>
                                     <div class="space-y-2">
                                       <%= for link <- section_links do %>
@@ -398,7 +403,8 @@
                   <%!-- Style tab: writes background_config[type|value] (already cast on QlinkPage). --%>
                   <div class="space-y-6">
                     <h3 class="text-lg font-semibold text-base-content flex items-center">
-                      <.icon name="hero-paint-brush" class="w-5 h-5 mr-3 text-primary" /> Background
+                      <.icon name="hero-paint-brush" class="w-5 h-5 mr-3 text-primary" />
+                      Background
                     </h3>
 
                     <div class="form-control max-w-md">
@@ -409,10 +415,18 @@
                         name="qlink_page[background_config][type]"
                         class="select select-bordered w-full"
                       >
-                        <option value="" selected={bg_type(@form) in [nil, ""]}>None (default)</option>
-                        <option value="solid" selected={bg_type(@form) == "solid"}>Solid color</option>
-                        <option value="gradient" selected={bg_type(@form) == "gradient"}>Gradient</option>
-                        <option value="image" selected={bg_type(@form) == "image"}>Image URL</option>
+                        <option value="" selected={bg_type(@form) in [nil, ""]}>
+                          None (default)
+                        </option>
+                        <option value="solid" selected={bg_type(@form) == "solid"}>
+                          Solid color
+                        </option>
+                        <option value="gradient" selected={bg_type(@form) == "gradient"}>
+                          Gradient
+                        </option>
+                        <option value="image" selected={bg_type(@form) == "image"}>
+                          Image URL
+                        </option>
                       </select>
                       <label class="label">
                         <span class="label-text-alt text-base-content/60">
@@ -484,10 +498,11 @@
                 <% end %>
 
                 <%= if @active_tab == "monetization" && @live_action == :edit && @page.id do %>
-                <!-- Ad Revenue Recipient Section -->
+                  <!-- Ad Revenue Recipient Section -->
                   <div>
                     <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                      <.icon name="hero-currency-dollar" class="w-5 h-5 mr-3 text-warning" /> Ad Revenue Recipient
+                      <.icon name="hero-currency-dollar" class="w-5 h-5 mr-3 text-warning" />
+                      Ad Revenue Recipient
                     </h3>
 
                     <div class="form-control max-w-md">
@@ -502,7 +517,10 @@
                         <%= for recipient <- @recipients do %>
                           <option
                             value={recipient.id}
-                            selected={@form[:recipient_id].value == recipient.id || @page.recipient_id == recipient.id}
+                            selected={
+                              @form[:recipient_id].value == recipient.id ||
+                                @page.recipient_id == recipient.id
+                            }
                           >
                             {recipient.name}
                           </option>
@@ -516,7 +534,6 @@
                     </div>
                   </div>
                 <% end %>
-
                 
 <!-- Form Actions -->
                 <%!-- Disable Update on :edit when no pending changes; :new is always enabled --%>
@@ -637,8 +654,8 @@
                     <label class="label">
                       <span class="label-text-alt text-base-content/60">
                         Embed types (YouTube, Spotify, TikTok, Tiqit/Qadabra) will be auto-detected
-                    </span>
-                  </label>
+                      </span>
+                    </label>
                   </div>
                 <% end %>
 
@@ -714,7 +731,9 @@
                       <%= for recipient <- @recipients do %>
                         <option
                           value={recipient.id}
-                          selected={to_string(@link_form[:recipient_id].value) == to_string(recipient.id)}
+                          selected={
+                            to_string(@link_form[:recipient_id].value) == to_string(recipient.id)
+                          }
                         >
                           {recipient.name}
                         </option>

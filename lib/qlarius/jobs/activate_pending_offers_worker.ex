@@ -21,15 +21,14 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     pending_unthrottled = count_pending_unthrottled_offers(now)
     pending_throttled = count_pending_throttled_offers(now)
 
-    Logger.info(
-      "📊 Config: throttle_limit=#{throttle_limit}, throttle_days=#{throttle_days}"
-    )
+    Logger.info("📊 Config: throttle_limit=#{throttle_limit}, throttle_days=#{throttle_days}")
 
     Logger.info(
       "📊 Pending offers: #{pending_unthrottled} unthrottled, #{pending_throttled} throttled"
     )
 
     unthrottled_activated = activate_unthrottled_offers(now)
+
     {throttled_activated, throttled_blocked, me_files_processed} =
       activate_throttled_offers(now, throttle_limit, throttle_days)
 
@@ -112,7 +111,8 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     me_files_count = map_size(throttled_offers_by_me_file)
 
     {total_activated, blocked_count} =
-      Enum.reduce(throttled_offers_by_me_file, {0, 0}, fn {me_file_id, offers}, {activated_acc, blocked_acc} ->
+      Enum.reduce(throttled_offers_by_me_file, {0, 0}, fn {me_file_id, offers},
+                                                          {activated_acc, blocked_acc} ->
         current_count = count_current_throttled_offers(me_file_id)
         completed_count = count_completed_throttled_ads(me_file_id, seven_days_ago)
 

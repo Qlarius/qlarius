@@ -926,6 +926,61 @@ Hooks.TipDrawerHook = {
   }
 }
 
+/** Qlink Sponster: split settings panel disclaimer peek uses measured bar height (see app.css). */
+Hooks.QlinkSplitDisclaimerPeek = {
+  mounted() {
+    this._resizeObserver = null
+    this.syncDisclaimerPeekHeight()
+  },
+
+  updated() {
+    this.syncDisclaimerPeekHeight()
+  },
+
+  destroyed() {
+    this.disconnectDisclaimerResizeObserver()
+  },
+
+  disconnectDisclaimerResizeObserver() {
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect()
+      this._resizeObserver = null
+    }
+  },
+
+  syncDisclaimerPeekHeight() {
+    const state = this.el.dataset.splitPanelState
+    this.disconnectDisclaimerResizeObserver()
+
+    if (state !== 'peek') {
+      this.el.style.removeProperty('--qlink-peek-disclaimer-px')
+      return
+    }
+
+    const apply = () => {
+      const slot = document.getElementById('qlink-split-disclaimer-slot')
+      if (!slot) return
+      const h = Math.ceil(slot.getBoundingClientRect().height)
+      if (h > 0) {
+        this.el.style.setProperty('--qlink-peek-disclaimer-px', `${h}px`)
+      }
+    }
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        apply()
+        const slot = document.getElementById('qlink-split-disclaimer-slot')
+        if (!slot || typeof ResizeObserver === 'undefined') return
+        this._resizeObserver = new ResizeObserver(() => {
+          if (this.el.dataset.splitPanelState !== 'peek') return
+          apply()
+        })
+        this._resizeObserver.observe(slot)
+      })
+    })
+  }
+}
+
 Hooks.Carousel = {
   mounted() {
     this.intervalMs = parseInt(this.el.dataset.autoplayInterval || '4000')

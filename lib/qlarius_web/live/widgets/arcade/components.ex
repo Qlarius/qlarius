@@ -4,6 +4,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass
+  alias Qlarius.Wallets
   import QlariusWeb.CoreComponents
   import QlariusWeb.Money
   import QlariusWeb.TiqitClassHTML
@@ -257,6 +258,22 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   attr :daily_gift_available?, :boolean, default: true
 
   def wallet_strip(assigns) do
+    topup_total =
+      topup_offer_total(assigns.offered_amount, assigns.daily_gift_available?)
+
+    ads_n =
+      case assigns.ads_count do
+        n when is_integer(n) and n >= 0 -> n
+        _ -> 0
+      end
+
+    assigns =
+      assigns
+      |> assign(:topup_total, topup_total)
+      |> assign(:topup_funds_available?, Decimal.gt?(topup_total, 0))
+      |> assign(:topup_button_label, topup_button_label(topup_total))
+      |> assign(:sponster_ads_available?, ads_n > 0)
+
     ~H"""
     <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-2 py-1.5 rounded-xl border border-base-300 max-w-full min-w-0">
       <div class="flex flex-row flex-nowrap justify-between items-center gap-2 min-w-0">
@@ -271,11 +288,12 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           class="w-max max-w-[min(28rem,calc(100vw-1.5rem))] min-w-[17rem] px-4 pt-3.5 pb-4 shadow-xl"
         >
           <:trigger>
-            <button class="btn-widget btn-md rounded-full leading-none">
-              <.icon name="hero-plus" class="w-4 h-4 mr-0" />
-              <span class="font-bold">
-                {if @offered_amount, do: format_usd(@offered_amount), else: "$0.00"}
-              </span>
+            <button class={[
+              "btn-wallet-strip-action btn-md leading-none",
+              @topup_funds_available? && "connect-strip-cta-border-strobe"
+            ]}>
+              <.icon name="hero-plus" class="w-4 h-4 shrink-0" />
+              <span class="font-bold">{@topup_button_label}</span>
             </button>
           </:trigger>
           <:content>
@@ -284,6 +302,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                 Top up wallet
               </p>
               <button
+                :if={@sponster_ads_available?}
                 type="button"
                 id={"#{@id}-sponster-open"}
                 class="btn-widget btn-widget-emphasis btn-md btn-block flex min-h-14 w-full flex-row items-center justify-between gap-3 rounded-full px-4 py-3.5"
@@ -299,6 +318,27 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                   decoding="async"
                 />
                 <span class="shrink-0 whitespace-nowrap text-end text-sm font-semibold tabular-nums opacity-90">
+                  {@ads_count} ads • {if @offered_amount,
+                    do: format_usd(@offered_amount),
+                    else: "$0.00"}
+                </span>
+              </button>
+              <button
+                :if={not @sponster_ads_available?}
+                type="button"
+                id={"#{@id}-sponster-open-disabled"}
+                disabled
+                aria-disabled="true"
+                title="No ads available right now"
+                class="btn-widget btn-widget-emphasis btn-md btn-block flex min-h-14 w-full flex-row items-center justify-between gap-3 rounded-full px-4 py-3.5 btn-disabled cursor-not-allowed opacity-80"
+              >
+                <img
+                  src="/images/Sponster_logo_color_horiz.svg"
+                  alt="Sponster"
+                  class="h-6 w-auto max-w-[8rem] shrink-0 object-contain object-left opacity-60"
+                  decoding="async"
+                />
+                <span class="shrink-0 whitespace-nowrap text-end text-sm font-semibold tabular-nums opacity-70">
                   {@ads_count} ads • {if @offered_amount,
                     do: format_usd(@offered_amount),
                     else: "$0.00"}
@@ -345,6 +385,21 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       </div>
     </div>
     """
+  end
+
+  defp topup_offer_total(offered_amount, daily_gift_available?) do
+    ads =
+      case offered_amount do
+        %Decimal{} = d -> d
+        _ -> Decimal.new(0)
+      end
+
+    gift = if daily_gift_available?, do: Wallets.daily_gift_amount(), else: Decimal.new(0)
+    Decimal.add(ads, gift)
+  end
+
+  defp topup_button_label(%Decimal{} = total) do
+    if Decimal.gt?(total, 0), do: format_usd(total), else: "Top up"
   end
 
   @doc """

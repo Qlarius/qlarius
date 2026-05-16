@@ -19,7 +19,10 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
     field :show_open_in_tab, :boolean, default: true
 
     has_many :content_pieces, ContentPiece
-    has_many :tiqit_classes, TiqitClass, on_replace: :delete
+
+    has_many :tiqit_classes, TiqitClass,
+      on_replace: :delete,
+      preload_order: [asc: :duration_hours, asc: :id]
 
     timestamps(type: :utc_datetime)
   end

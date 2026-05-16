@@ -125,7 +125,10 @@ defmodule Qlarius.Accounts do
           Qlarius.Referrals.create_referral(referrer_type, referrer_id, me_file.id)
 
         {:error, :not_found} ->
-          Logger.warning("🎯 REFERRAL DEBUG - No referrer found for code: #{inspect(referral_code)}")
+          Logger.warning(
+            "🎯 REFERRAL DEBUG - No referrer found for code: #{inspect(referral_code)}"
+          )
+
           {:ok, :no_referral}
       end
     end)

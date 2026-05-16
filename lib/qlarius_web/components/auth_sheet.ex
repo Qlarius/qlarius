@@ -120,7 +120,7 @@ defmodule QlariusWeb.Components.AuthSheet do
     parent_show =
       case Map.fetch(assigns, :show) do
         {:ok, v} -> !!v
-        :error -> if exit_done?, do: !!(socket.assigns[:show]), else: false
+        :error -> if exit_done?, do: !!socket.assigns[:show], else: false
       end
 
     was_overlay_visible = socket.assigns[:modal_overlay_visible] == true
@@ -142,9 +142,7 @@ defmodule QlariusWeb.Components.AuthSheet do
       if preserve_connect_brand? do
         socket.assigns[:connect_brand] || :qadabra
       else
-        normalize_connect_brand(
-          Map.get(assigns, :connect_brand, socket.assigns[:connect_brand])
-        )
+        normalize_connect_brand(Map.get(assigns, :connect_brand, socket.assigns[:connect_brand]))
       end
 
     socket =
@@ -152,7 +150,10 @@ defmodule QlariusWeb.Components.AuthSheet do
       |> assign(:id, assigns.id)
       |> assign(:show, parent_show)
       |> assign(:surface, Map.get(assigns, :surface, socket.assigns[:surface]))
-      |> assign(:referral_context, Map.get(assigns, :referral_context, socket.assigns[:referral_context]))
+      |> assign(
+        :referral_context,
+        Map.get(assigns, :referral_context, socket.assigns[:referral_context])
+      )
       |> assign(:resume, Map.get(assigns, :resume, socket.assigns[:resume]))
       |> assign(:on_cancel, Map.get(assigns, :on_cancel, socket.assigns[:on_cancel]) || %JS{})
       |> assign(:client_ip, Map.get(assigns, :client_ip, socket.assigns[:client_ip]) || "0.0.0.0")
@@ -1256,7 +1257,7 @@ defmodule QlariusWeb.Components.AuthSheet do
           New here?
         </h3>
         <p class="text-sm text-base-content/70 md:text-base">
-          Start your new account and wallet.<br/>Prefunded with $3.00+ on us.
+          Start your new account and wallet.<br />Prefunded with $3.00+ on us.
         </p>
       </div>
 

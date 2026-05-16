@@ -320,7 +320,8 @@ defmodule Qlarius.YouData.Traits do
   def traits_index_by_parent do
     child_traits_query =
       from t in Trait,
-        join: p in Trait, on: t.parent_trait_id == p.id,
+        join: p in Trait,
+        on: t.parent_trait_id == p.id,
         where: not is_nil(t.parent_trait_id) and t.is_active == true,
         where: p.input_type != "single_select_zip",
         order_by: [asc: t.display_order],
@@ -346,7 +347,9 @@ defmodule Qlarius.YouData.Traits do
 
     child_trait_ids =
       categories_with_traits
-      |> Enum.flat_map(fn c -> Enum.flat_map(c.traits, fn p -> Enum.map(p.child_traits, & &1.id) end) end)
+      |> Enum.flat_map(fn c ->
+        Enum.flat_map(c.traits, fn p -> Enum.map(p.child_traits, & &1.id) end)
+      end)
       |> Enum.uniq()
 
     trait_group_names_by_parent =
@@ -359,7 +362,9 @@ defmodule Qlarius.YouData.Traits do
         )
         |> Repo.all()
         |> Enum.group_by(fn {pid, _} -> pid end, fn {_, title} -> title end)
-        |> Enum.map(fn {pid, titles} -> {pid, Enum.uniq(titles) |> Enum.sort() |> Enum.join(", ")} end)
+        |> Enum.map(fn {pid, titles} ->
+          {pid, Enum.uniq(titles) |> Enum.sort() |> Enum.join(", ")}
+        end)
         |> Map.new()
       end
 

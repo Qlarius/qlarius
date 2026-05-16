@@ -112,7 +112,9 @@ defmodule QlariusWeb.Admin.GlobalVariablesLive do
     variables =
       if search != "" do
         System.list_global_variables()
-        |> Enum.filter(fn var -> String.contains?(String.downcase(var.name), String.downcase(search)) end)
+        |> Enum.filter(fn var ->
+          String.contains?(String.downcase(var.name), String.downcase(search))
+        end)
       else
         System.list_global_variables()
       end

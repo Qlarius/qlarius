@@ -291,7 +291,11 @@ defmodule QlariusWeb.UserSettingsLive do
 
   def handle_event("device_unsubscribed", %{"endpoint" => endpoint}, socket) do
     require Logger
-    Logger.info("🔔 device_unsubscribed event received with endpoint: #{String.slice(endpoint, 0..50)}...")
+
+    Logger.info(
+      "🔔 device_unsubscribed event received with endpoint: #{String.slice(endpoint, 0..50)}..."
+    )
+
     user_id = socket.assigns.current_scope.user.id
 
     case Notifications.unsubscribe_by_endpoint(user_id, endpoint) do
@@ -417,6 +421,7 @@ defmodule QlariusWeb.UserSettingsLive do
 
       {:error, changeset} ->
         Logger.error("❌ Failed to update timezone: #{inspect(changeset)}")
+
         {:noreply,
          socket
          |> put_flash(:error, "Failed to update time zone")}
@@ -664,8 +669,13 @@ defmodule QlariusWeb.UserSettingsLive do
     timezones = Timezones.list()
 
     # Use assigns if already set, otherwise calculate from user
-    current_timezone = Map.get(assigns, :current_timezone) || assigns.current_scope.user.timezone || Timezones.default()
-    current_time = Map.get(assigns, :current_time) || Qlarius.DateTime.current_time_in_timezone(current_timezone)
+    current_timezone =
+      Map.get(assigns, :current_timezone) || assigns.current_scope.user.timezone ||
+        Timezones.default()
+
+    current_time =
+      Map.get(assigns, :current_time) ||
+        Qlarius.DateTime.current_time_in_timezone(current_timezone)
 
     assigns = assign(assigns, :timezones, timezones)
     assigns = assign(assigns, :current_timezone, current_timezone)
@@ -736,7 +746,9 @@ defmodule QlariusWeb.UserSettingsLive do
             <div class="flex items-center justify-between p-4 bg-base-300 rounded-lg">
               <div>
                 <div class="text-lg font-medium text-base-content">Wallet Credit Sounds</div>
-                <div class="text-sm text-base-content/60">Play a coin sound when your wallet balance increases</div>
+                <div class="text-sm text-base-content/60">
+                  Play a coin sound when your wallet balance increases
+                </div>
               </div>
               <.local_toggle
                 id="wallet-sounds-toggle"

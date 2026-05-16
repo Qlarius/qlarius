@@ -127,7 +127,11 @@ defmodule QlariusWeb.OfferHTML do
               <div class="text-green-500 text-xs">
                 {@offer.media_piece.display_url}
               </div>
-              <.click_jump_actions phase_1_complete? phase_2_amount={@phase_2_amount} force_light={@force_light} />
+              <.click_jump_actions
+                phase_1_complete?
+                phase_2_amount={@phase_2_amount}
+                force_light={@force_light}
+              />
             </a>
           </.offer_container>
         </div>

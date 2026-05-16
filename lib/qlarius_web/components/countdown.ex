@@ -14,7 +14,8 @@ defmodule QlariusWeb.Components.TiqitExpirationCountdown do
     assigns =
       assigns
       |> assign(:id, assigns[:id] || "countdown-#{System.unique_integer([:positive])}")
-      |> assign(:expires_str,
+      |> assign(
+        :expires_str,
         case assigns.expires_at do
           %ElixirDateTime{} = dt -> ElixirDateTime.to_iso8601(dt)
           %ElixirNaiveDateTime{} = ndt -> ElixirNaiveDateTime.to_iso8601(ndt) <> "Z"
@@ -46,7 +47,8 @@ defmodule QlariusWeb.Components.TiqitExpirationCountdown do
     assigns =
       assigns
       |> assign(:id, assigns[:id] || "countdown-#{System.unique_integer([:positive])}")
-      |> assign(:expires_str,
+      |> assign(
+        :expires_str,
         case assigns.expires_at do
           %ElixirDateTime{} = dt -> ElixirDateTime.to_iso8601(dt)
           %ElixirNaiveDateTime{} = ndt -> ElixirNaiveDateTime.to_iso8601(ndt) <> "Z"

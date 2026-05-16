@@ -9,10 +9,12 @@ defmodule QlariusWeb.Widgets.ContentHTML do
         <div class="mb-3">
           <.back navigate={
             if @force_theme && @base_path == "/widgets",
-              do: "#{@base_path}/arqade/group/#{@content.content_group.id}?content_id=#{@content.id}&force_theme=#{@force_theme}",
-              else: "#{@base_path}/arqade/group/#{@content.content_group.id}?content_id=#{@content.id}"
+              do:
+                "#{@base_path}/arqade/group/#{@content.content_group.id}?content_id=#{@content.id}&force_theme=#{@force_theme}",
+              else:
+                "#{@base_path}/arqade/group/#{@content.content_group.id}?content_id=#{@content.id}"
           }>
-            To full <%= String.capitalize(to_string(@content.content_group.catalog.piece_type)) %> arqade
+            To full {String.capitalize(to_string(@content.content_group.catalog.piece_type))} arqade
           </.back>
         </div>
         <div class="p-4">
@@ -32,8 +34,8 @@ defmodule QlariusWeb.Widgets.ContentHTML do
                 </div>
               </div>
             </div>
-
-            <!-- YouTube iframe (hidden initially) -->
+            
+    <!-- YouTube iframe (hidden initially) -->
             <iframe
               id="video-iframe"
               class="w-full h-full hidden"

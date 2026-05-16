@@ -75,6 +75,7 @@ defmodule Qlarius.Jobs.BackfillMissingSnapshotsWorker do
       end)
 
       elapsed = System.monotonic_time(:millisecond) - start_time
+
       Logger.info(
         "BackfillMissingSnapshotsWorker: ✅ COMPLETE - Fixed #{total} missing snapshots in #{elapsed}ms"
       )
@@ -222,9 +223,7 @@ defmodule Qlarius.Jobs.BackfillMissingSnapshotsWorker do
         end)
       end)
 
-    Logger.info(
-      "BackfillMissingSnapshotsWorker: Updated #{update_count} population snapshots"
-    )
+    Logger.info("BackfillMissingSnapshotsWorker: Updated #{update_count} population snapshots")
   end
 
   defp batch_update_offers_and_events(population_updates) do
@@ -282,9 +281,7 @@ defmodule Qlarius.Jobs.BackfillMissingSnapshotsWorker do
           end)
         end)
 
-      Logger.info(
-        "BackfillMissingSnapshotsWorker: Updated #{offer_count} offers with snapshots"
-      )
+      Logger.info("BackfillMissingSnapshotsWorker: Updated #{offer_count} offers with snapshots")
     end
 
     if events_to_update != [] do
@@ -295,7 +292,9 @@ defmodule Qlarius.Jobs.BackfillMissingSnapshotsWorker do
 
             if snapshot do
               {count, _} =
-                from(ae in AdEvent, where: ae.id == ^event.id and is_nil(ae.matching_tags_snapshot))
+                from(ae in AdEvent,
+                  where: ae.id == ^event.id and is_nil(ae.matching_tags_snapshot)
+                )
                 |> Repo.update_all(set: [matching_tags_snapshot: snapshot])
 
               acc + count

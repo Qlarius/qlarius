@@ -437,7 +437,8 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   @impl true
   def handle_event("video_watched_complete", _params, socket) do
     # Check if this video has already been collected (don't show drawer for replay)
-    already_collected = socket.assigns.current_video_offer.id in socket.assigns.completed_video_offers
+    already_collected =
+      socket.assigns.current_video_offer.id in socket.assigns.completed_video_offers
 
     if already_collected do
       {:noreply, socket}
@@ -461,7 +462,12 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
         split_amount = socket.assigns.current_scope.user.me_file.split_amount || 0
         user_ip = socket.assigns[:user_ip] || "0.0.0.0"
 
-        case Qlarius.Sponster.Ads.Video.create_video_ad_event(offer, recipient, split_amount, user_ip) do
+        case Qlarius.Sponster.Ads.Video.create_video_ad_event(
+               offer,
+               recipient,
+               split_amount,
+               user_ip
+             ) do
           {:ok, _ad_event} ->
             completed_ids = [offer_id | socket.assigns.completed_video_offers]
             Process.send_after(self(), :auto_close_drawer, 3000)
@@ -571,7 +577,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
               <div id="video-player-content" class="p-3">
                 <div class="flex justify-between items-center mb-3">
                   <h2 class="text-lg font-bold">
-                    <%= @current_video_offer.media_run.media_piece.ad_category.ad_category_name %>
+                    {@current_video_offer.media_run.media_piece.ad_category.ad_category_name}
                   </h2>
                   <button
                     class="btn btn-sm btn-circle btn-ghost"
@@ -594,7 +600,10 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
         <%= if @current_video_offer && @show_video_player do %>
           <.video_collection_drawer
             current_video_offer={@current_video_offer}
-            show_collection_drawer={@show_collection_drawer && (@video_watched_complete || @video_payment_collected || @show_replay_button)}
+            show_collection_drawer={
+              @show_collection_drawer &&
+                (@video_watched_complete || @video_payment_collected || @show_replay_button)
+            }
             video_payment_collected={@video_payment_collected}
             show_replay_button={@show_replay_button}
             closing={@drawer_closing}

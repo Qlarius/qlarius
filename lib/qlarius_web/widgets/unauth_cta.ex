@@ -101,7 +101,8 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
   **top-up**). The READY `wallet_balance` pill uses `anon_strobe?` for a Sponster
   border strobe (same tempo as Connect), a subtle READY throb, and a WALLET ↔
   ellipsis crossfade in the footer label row.
-  **Connect** uses a widget border strobe (`connect-strip-cta-border-strobe`).
+  **Connect** uses the same Sponster styling as the wallet pill (`btn-wallet-strip-action`)
+  plus border + scale + subtle bg strobe (`connect-strip-cta-border-strobe`).
 
   Accepts an `id` prefix so the component is usable more than once
   on a page (each arqade LC/widget can namespace independently).
@@ -114,7 +115,10 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
   attr :ads_count, :any, default: nil
   attr :id, :string, default: "wallet-strip"
   attr :daily_gift_available?, :boolean, default: true
-  attr :tray?, :boolean, default: true, doc: "When false, only the READY row + Connect (no outer tray)."
+
+  attr :tray?, :boolean,
+    default: true,
+    doc: "When false, only the READY row + Connect (no outer tray)."
 
   attr :on_click, JS,
     default: nil,
@@ -131,7 +135,8 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
 
   attr :connect_link_target, :string,
     default: "_top",
-    doc: "Target for the Connect `<.link>` when `on_click` is nil (e.g. `\"_self\"` for in-app login)."
+    doc:
+      "Target for the Connect `<.link>` when `on_click` is nil (e.g. `\"_self\"` for in-app login)."
 
   def wallet_strip_or_connect(assigns) do
     ~H"""
@@ -145,13 +150,13 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
       />
     <% else %>
       <% connect_classes =
-           [
-             if(@tray?,
-               do: "btn-widget btn-md rounded-full leading-none",
-               else: "btn-widget btn-sm rounded-full leading-none min-h-8 h-8 px-3 py-0"
-             ),
-             "connect-strip-cta-border-strobe"
-           ] %>
+        [
+          if(@tray?,
+            do: "btn-wallet-strip-action btn-md leading-none",
+            else: "btn-wallet-strip-action btn-sm leading-none min-h-8 h-8 px-3 py-0"
+          ),
+          "connect-strip-cta-border-strobe"
+        ] %>
       <%= if @tray? do %>
         <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-2 py-1.5 rounded-xl border border-base-300 max-w-full min-w-0">
           <div class="flex flex-row flex-nowrap justify-between items-center gap-2 min-w-0">
@@ -168,9 +173,9 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
               </button>
             <% else %>
               <% href =
-                   if @connect_href not in [nil, ""],
-                     do: @connect_href,
-                     else: Urls.interact_login_url() %>
+                if @connect_href not in [nil, ""],
+                  do: @connect_href,
+                  else: Urls.interact_login_url() %>
               <.link href={href} target={@connect_link_target} class={connect_classes}>
                 <.connect_strip_cta_label />
               </.link>
@@ -193,9 +198,9 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
             </button>
           <% else %>
             <% href =
-                 if @connect_href not in [nil, ""],
-                   do: @connect_href,
-                   else: Urls.interact_login_url() %>
+              if @connect_href not in [nil, ""],
+                do: @connect_href,
+                else: Urls.interact_login_url() %>
             <.link href={href} target={@connect_link_target} class={connect_classes}>
               <.connect_strip_cta_label text_sm?={true} />
             </.link>
@@ -211,10 +216,11 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
 
   def connect_strip_cta_label(assigns) do
     ~H"""
-    <span class={[
-      "font-bold whitespace-nowrap",
-      @text_sm? && "text-sm"
-    ]}>
+    <.icon
+      name="hero-arrow-left"
+      class={["shrink-0", if(@text_sm?, do: "w-3.5 h-3.5", else: "w-4 h-4")]}
+    />
+    <span class={["font-bold whitespace-nowrap", @text_sm? && "text-sm"]}>
       Connect
     </span>
     """
@@ -246,7 +252,8 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
 
   attr :connect_brand, :any,
     default: nil,
-    doc: "`:tiqit` (Arqade), `:sponster` (Tips), or `:qadabra`; controls header logo and default body copy."
+    doc:
+      "`:tiqit` (Arqade), `:sponster` (Tips), or `:qadabra`; controls header logo and default body copy."
 
   attr :on_cancel, JS, default: JS.push("close-connect-modal")
 
@@ -258,7 +265,8 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
 
   attr :scope, :any,
     default: nil,
-    doc: "Optional `%Scope{}`; defaults to anon. Used by the embedded `wallet_strip_or_connect/1`."
+    doc:
+      "Optional `%Scope{}`; defaults to anon. Used by the embedded `wallet_strip_or_connect/1`."
 
   attr :wallet_strip_id, :string,
     default: nil,

@@ -331,7 +331,7 @@ defmodule QlariusWeb.CreatorDashboard.Show do
                     </div>
                   <% end %>
                 </div>
-
+                
     <!-- Tiqit Catalogs Section -->
                 <div>
                   <div class="flex justify-between items-center mb-4">

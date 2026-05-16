@@ -16,6 +16,14 @@ defmodule Qlarius.Tiqit.Arcade.TiqitClass do
     timestamps()
   end
 
+  @duration_hours_sort_nil_sentinel 999_999_999
+
+  def order_by_duration_hours_asc(classes) when is_list(classes) do
+    Enum.sort_by(classes, fn tc ->
+      {tc.duration_hours || @duration_hours_sort_nil_sentinel, tc.id}
+    end)
+  end
+
   def changeset(tc, params) do
     tc
     |> cast(params, ~w[duration_hours price]a)

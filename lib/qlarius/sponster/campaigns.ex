@@ -124,7 +124,8 @@ defmodule Qlarius.Sponster.Campaigns do
           Decimal.new("0.10")
           |> Decimal.add(Decimal.new("0.01") |> Decimal.mult(band_count - index - 1))
 
-        marketer_cost_amt = calculate_marketer_cost(offer_amt, media_run.media_piece.media_piece_type)
+        marketer_cost_amt =
+          calculate_marketer_cost(offer_amt, media_run.media_piece.media_piece_type)
 
         %Bid{}
         |> Bid.changeset(%{
@@ -291,7 +292,8 @@ defmodule Qlarius.Sponster.Campaigns do
                 _ -> nil
               end
 
-            marketer_cost_amt = calculate_marketer_cost(new_offer_amt, media_run.media_piece.media_piece_type)
+            marketer_cost_amt =
+              calculate_marketer_cost(new_offer_amt, media_run.media_piece.media_piece_type)
 
             if existing_bid do
               unless Decimal.eq?(existing_bid.offer_amt, new_offer_amt) do
@@ -430,7 +432,10 @@ defmodule Qlarius.Sponster.Campaigns do
 
         bands = Enum.sort_by(campaign.target.target_bands, & &1.id)
         band_count = length(bands)
-        media_run = List.first(campaign.media_sequence.media_runs) |> Repo.preload(media_piece: :media_piece_type)
+
+        media_run =
+          List.first(campaign.media_sequence.media_runs)
+          |> Repo.preload(media_piece: :media_piece_type)
 
         unless media_run do
           Repo.rollback("Media sequence has no media runs")
@@ -447,7 +452,8 @@ defmodule Qlarius.Sponster.Campaigns do
             Decimal.new("0.10")
             |> Decimal.add(Decimal.new("0.01") |> Decimal.mult(band_count - index - 1))
 
-          marketer_cost_amt = calculate_marketer_cost(offer_amt, media_run.media_piece.media_piece_type)
+          marketer_cost_amt =
+            calculate_marketer_cost(offer_amt, media_run.media_piece.media_piece_type)
 
           %Bid{}
           |> Bid.changeset(%{

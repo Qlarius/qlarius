@@ -40,8 +40,14 @@ defmodule Qlarius.Accounts.User do
     user
     |> cast(attrs, [:alias, :role, :timezone, :fleet_after_hours])
     |> validate_required([:alias])
-    |> validate_inclusion(:timezone, Qlarius.Timezones.list() |> Enum.map(fn {_label, iana} -> iana end))
-    |> validate_number(:fleet_after_hours, greater_than_or_equal_to: 0, less_than_or_equal_to: 720)
+    |> validate_inclusion(
+      :timezone,
+      Qlarius.Timezones.list() |> Enum.map(fn {_label, iana} -> iana end)
+    )
+    |> validate_number(:fleet_after_hours,
+      greater_than_or_equal_to: 0,
+      less_than_or_equal_to: 720
+    )
     |> unique_constraint(:alias)
   end
 

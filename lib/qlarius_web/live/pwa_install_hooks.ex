@@ -134,7 +134,9 @@ defmodule QlariusWeb.PWAInstallHooks do
 
       user ->
         user
-        |> Ecto.Changeset.change(%{pwa_install_dismissed_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+        |> Ecto.Changeset.change(%{
+          pwa_install_dismissed_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
         |> Qlarius.Repo.update()
     end
   end

@@ -54,7 +54,9 @@ defmodule QlariusWeb.Components.ImageUploadField do
         </label>
       <% end %>
 
-      <div class={if @current_image && @current_image_url, do: "grid grid-cols-1 md:grid-cols-2 gap-4", else: ""}>
+      <div class={
+        if @current_image && @current_image_url, do: "grid grid-cols-1 md:grid-cols-2 gap-4", else: ""
+      }>
         <!-- Current Image (left column when exists) -->
         <%= if @current_image && @current_image_url do %>
           <div class="p-3 bg-base-200 rounded-lg relative">
@@ -76,8 +78,8 @@ defmodule QlariusWeb.Components.ImageUploadField do
             />
           </div>
         <% end %>
-
-        <!-- Upload area (right column when current image exists, full width otherwise) -->
+        
+    <!-- Upload area (right column when current image exists, full width otherwise) -->
         <div
           class="w-full border-2 border-dashed border-base-300 rounded-lg flex items-center justify-center overflow-hidden"
           phx-drop-target={@upload.ref}

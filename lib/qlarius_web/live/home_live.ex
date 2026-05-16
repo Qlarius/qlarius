@@ -188,7 +188,6 @@ defmodule QlariusWeb.HomeLive do
                 <div class="text-sm font-light text-base-content/60">offered</div>
               </div>
             </div>
-
           </div>
 
           <div class="bg-base-200 rounded-lg p-4">
@@ -227,7 +226,7 @@ defmodule QlariusWeb.HomeLive do
                 phx-click={JS.navigate("/tiqits?status=preserved")}
               >
                 <div class="text-3xl font-bold leading-none">{@preserved_tiqits_count}</div>
-                  <div class="text-sm font-light text-base-content/60">preserved</div>
+                <div class="text-sm font-light text-base-content/60">preserved</div>
               </div>
             </div>
           </div>

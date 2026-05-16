@@ -238,7 +238,8 @@ defmodule Qlarius.YouData.StrongStart do
     trait_count = MeFile.trait_tag_count(me_file)
     progress = get_progress(me_file, trait_count)
 
-    if progress.completed_count == progress.total_count && is_nil(me_file.strong_start_completed_at) do
+    if progress.completed_count == progress.total_count &&
+         is_nil(me_file.strong_start_completed_at) do
       changeset
       |> Ecto.Changeset.put_change(:strong_start_status, "completed")
       |> Ecto.Changeset.put_change(

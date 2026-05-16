@@ -77,8 +77,8 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
       if populations_to_insert != [] do
         Logger.info("PopulateTargetWorker: Building snapshots and inserting populations...")
         trait_metadata_by_band = build_trait_metadata_for_bands(bands)
-        
-        total_inserted = 
+
+        total_inserted =
           populations_to_insert
           |> Enum.chunk_every(@batch_size)
           |> Enum.with_index(1)
@@ -86,7 +86,7 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
             Logger.info(
               "PopulateTargetWorker: Processing batch #{batch_num}/#{ceil(length(populations_to_insert) / @batch_size)} (#{length(batch)} populations)"
             )
-            
+
             count = insert_populations_with_snapshots(batch, trait_metadata_by_band)
             acc + count
           end)
@@ -117,7 +117,7 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
   defp build_trait_metadata_for_bands(bands) do
     require Logger
     Logger.info("PopulateTargetWorker: Building trait metadata for #{length(bands)} bands")
-    
+
     bands
     |> Enum.map(fn band ->
       band = Repo.preload(band, trait_groups: :traits)

@@ -23,7 +23,9 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
     field :tiqit_undo_limit, :integer
     field :tiqit_up_enabled, :boolean, default: true
 
-    has_many :tiqit_classes, TiqitClass, on_replace: :delete
+    has_many :tiqit_classes, TiqitClass,
+      on_replace: :delete,
+      preload_order: [asc: :duration_hours, asc: :id]
 
     timestamps(type: :utc_datetime)
   end
@@ -35,7 +37,15 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
   @doc false
   def changeset(catalog, attrs) do
     catalog
-    |> cast(attrs, [:name, :url, :type, :group_type, :piece_type, :tiqit_undo_limit, :tiqit_up_enabled])
+    |> cast(attrs, [
+      :name,
+      :url,
+      :type,
+      :group_type,
+      :piece_type,
+      :tiqit_undo_limit,
+      :tiqit_up_enabled
+    ])
     |> validate_required([:name, :url, :type, :group_type, :piece_type])
     |> validate_number(:tiqit_undo_limit, greater_than_or_equal_to: 3)
     |> validate_length(:name, max: 30)
