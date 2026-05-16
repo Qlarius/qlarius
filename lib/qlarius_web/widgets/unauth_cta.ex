@@ -218,7 +218,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
     ~H"""
     <.icon
       name="hero-arrow-left"
-      class={["shrink-0", if(@text_sm?, do: "w-3.5 h-3.5", else: "w-4 h-4")]}
+      class={"shrink-0 #{if @text_sm?, do: "w-3.5 h-3.5", else: "w-4 h-4"}"}
     />
     <span class={["font-bold whitespace-nowrap", @text_sm? && "text-sm"]}>
       Connect

@@ -850,105 +850,110 @@
     }
   }
 
-  /* In-app arqade group (mobile): page does not scroll — only #arqade-episodes-scroll.
+  /* In-app arqade group: page does not scroll — only #arqade-episodes-scroll (all widths).
      Height comes from the mobile shell flex chain (nav is h-20 in flow). Qlink inline +
      full-pane overrides below. */
+  .mobile-shell:has([data-arqade-in-app-page="true"]) .slide-panels .panel-scroll {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mobile-shell:has([data-arqade-in-app-page="true"])
+    .slide-panels
+    .panel-scroll
+    > div.flex.flex-col {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  .mobile-shell:has([data-arqade-in-app-page="true"])
+    .slide-panels
+    .panel-scroll
+    .container.mx-auto {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    /* py-6 leaves dead space above bottom nav; keep top padding only */
+    padding-bottom: 0 !important;
+  }
+
+  .mobile-shell:has([data-arqade-in-app-page="true"])
+    .slide-panels
+    .panel-scroll
+    .container.mx-auto
+    > .flex-1 {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  [data-arqade-in-app-page="true"] [data-arqade-in-app-group="true"] {
+    flex: 1 1 0%;
+    min-height: 0;
+  }
+
+  [data-arqade-in-app-group="true"] [data-arqade-split] {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  [data-arqade-in-app-group="true"] [data-arqade-episodes-column] {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  [data-arqade-in-app-group="true"] #arqade-episodes-scroll {
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0;
+    scroll-padding-bottom: 0.25rem;
+  }
+
   @media (max-width: 767px) {
-    .mobile-shell:has([data-arqade-in-app-page="true"]) .slide-panels .panel-scroll {
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .mobile-shell:has([data-arqade-in-app-page="true"])
-      .slide-panels
-      .panel-scroll
-      > div.flex.flex-col {
-      flex: 1 1 auto;
-      min-height: 0;
-      height: 100%;
-      max-height: 100%;
-      overflow: hidden;
-    }
-
-    .mobile-shell:has([data-arqade-in-app-page="true"])
-      .slide-panels
-      .panel-scroll
-      .container.mx-auto {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      /* py-6 leaves dead space above bottom nav; keep top padding only */
-      padding-bottom: 0 !important;
-    }
-
-    .mobile-shell:has([data-arqade-in-app-page="true"])
-      .slide-panels
-      .panel-scroll
-      .container.mx-auto
-      > .flex-1 {
-      flex: 1 1 0%;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    [data-arqade-in-app-page="true"] [data-arqade-in-app-group="true"] {
-      flex: 1 1 0%;
-      min-height: 0;
-    }
-
-    [data-arqade-in-app-group="true"] [data-arqade-split] {
-      flex: 1 1 0%;
-      min-height: 0;
-      height: auto;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
     [data-arqade-in-app-group="true"] [data-arqade-selected-pane] {
       flex-shrink: 0;
       max-height: min(42vh, 24rem);
       overflow-x: hidden;
       overflow-y: hidden;
     }
-
-    [data-arqade-in-app-group="true"] [data-arqade-episodes-column] {
-      flex: 1 1 0%;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      padding-bottom: 0;
-    }
-
-    [data-arqade-in-app-group="true"] #arqade-episodes-scroll {
-      flex: 1 1 0%;
-      min-height: 0;
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      -webkit-overflow-scrolling: touch;
-      padding-bottom: 0;
-      /* Tiny end inset so the last card border isn't flush against the panel edge */
-      scroll-padding-bottom: 0.25rem;
-    }
   }
 
   @media (min-width: 768px) {
     [data-arqade-in-app-group="true"] [data-arqade-split] {
-      height: auto;
-      min-height: 0;
       flex-direction: row;
-      overflow: hidden;
+      align-items: stretch;
     }
 
     [data-arqade-in-app-group="true"] [data-arqade-selected-pane] {
+      flex: 1 1 0%;
+      min-height: 0;
       max-height: none;
+      overflow-x: hidden;
       overflow-y: auto;
+    }
+
+    [data-arqade-in-app-group="true"] [data-arqade-episodes-column] {
+      flex: 1 1 0%;
+      min-height: 0;
+      max-height: 100%;
     }
   }
 
