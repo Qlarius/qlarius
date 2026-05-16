@@ -317,13 +317,16 @@
               @inline? && "z-0 md:flex-1",
               !@inline? && "z-10 md:min-h-0 md:flex-1"
             ]}>
-              <% visible_pieces = filter_pieces(@pieces, @episode_search) %>
+              <% visible_pieces =
+                filter_pieces(@pieces, @episode_search, @show_owned_only?, @valid_tiqit_piece_ids) %>
               <% search_active? = @episode_search != "" %>
-              <div class="flex items-center justify-between gap-3 mb-4 flex-shrink-0 flex-wrap">
+              <% filter_active? = search_active? or @show_owned_only? %>
+              <% has_owned? = MapSet.size(@valid_tiqit_piece_ids) > 0 %>
+              <div class="flex items-center justify-between gap-3 mb-2 flex-shrink-0 flex-wrap">
                 <h2 class="text-lg font-semibold text-base-content">
                   {String.capitalize(to_string(@group.catalog.piece_type))}s{" "}
                   <span class="text-base font-medium text-base-content/55 tabular-nums">
-                    <%= if search_active? do %>
+                    <%= if filter_active? do %>
                       ({length(visible_pieces)}/{length(@pieces)})
                     <% else %>
                       ({length(@pieces)})
@@ -362,6 +365,17 @@
                   <% end %>
                 </form>
               </div>
+              <%!-- Owned-only filter — hidden when the user has no valid tiqits in scope. --%>
+              <%= if has_owned? do %>
+                <label class="flex items-center gap-2 mb-3 flex-shrink-0 cursor-pointer text-sm text-base-content/70 select-none">
+                  <input
+                    type="checkbox"
+                    class="checkbox checkbox-sm"
+                    checked={@show_owned_only?}
+                    phx-click="toggle-owned-only"
+                  /> Only active purchases
+                </label>
+              <% end %>
               <div class="flex-1 overflow-y-auto min-h-0 space-y-2 pb-4">
                 <%!--
             Piece selection always goes through the `select-content`
@@ -374,9 +388,16 @@
             Initial piece deep-linking via `?content_id=N` is still
             honored at mount (see `maybe_init_selected_piece/4`).
           --%>
-                <%= if search_active? and visible_pieces == [] do %>
+                <%= if filter_active? and visible_pieces == [] do %>
                   <p class="text-sm text-base-content/60 px-3 py-6 text-center">
-                    No {to_string(@group.catalog.piece_type)}s match "{@episode_search}".
+                    <%= cond do %>
+                      <% search_active? and @show_owned_only? -> %>
+                        No purchased {to_string(@group.catalog.piece_type)}s match "{@episode_search}".
+                      <% search_active? -> %>
+                        No {to_string(@group.catalog.piece_type)}s match "{@episode_search}".
+                      <% true -> %>
+                        No purchased {to_string(@group.catalog.piece_type)}s yet.
+                    <% end %>
                   </p>
                 <% end %>
                 <.link

@@ -168,7 +168,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          embed_phx_id: session["embed_phx_id"],
          arqade_expand_parent?: is_pid(socket.parent_pid),
          fixed_viewport: base_path == "" and not inline?,
-         episode_search: ""
+         episode_search: "",
+         show_owned_only?: false
        )
        |> assign(scope_assigns(scope, group, pieces))
        |> maybe_init_selected_piece(inline?, session, params)}
@@ -303,6 +304,14 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
   def handle_event("clear-episode-search", _params, socket) do
     {:noreply, assign(socket, :episode_search, "")}
+  end
+
+  # Toggle "Show only purchased" — restrict the list to pieces in
+  # `@valid_tiqit_piece_ids` (currently-valid tiqits at piece, group,
+  # or catalog scope). Combines with `@episode_search`; selected piece
+  # is unaffected.
+  def handle_event("toggle-owned-only", _params, socket) do
+    {:noreply, update(socket, :show_owned_only?, &(!&1))}
   end
 
   def handle_event("pwa_detected", params, socket) do
@@ -707,14 +716,25 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   end
 
   @doc """
-  Episode list search filter (in-memory). Matches `title` or
-  `description` (case-insensitive substring). Empty query returns
-  pieces unchanged.
+  Episode list filter (in-memory). Applies an optional case-insensitive
+  substring match on `title` or `description`, then optionally
+  restricts to pieces in `owned_ids` (the user's currently-valid
+  tiqits — see `Arcade.valid_piece_ids_for_group/3`).
 
   Phase 1 only — runs over the already-loaded `@pieces`. When phase 2
   pagination lands this is replaced by a DB-driven `search_pieces/3`.
   """
-  def filter_pieces(pieces, query) when is_list(pieces) and is_binary(query) do
+  def filter_pieces(pieces, query, owned_only?, owned_ids)
+      when is_list(pieces) and is_binary(query) do
+    pieces
+    |> filter_by_query(query)
+    |> filter_by_owned(owned_only?, owned_ids)
+  end
+
+  def filter_pieces(pieces, _query, _owned_only?, _owned_ids) when is_list(pieces),
+    do: pieces
+
+  defp filter_by_query(pieces, query) do
     case String.trim(query) do
       "" ->
         pieces
@@ -729,7 +749,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     end
   end
 
-  def filter_pieces(pieces, _query) when is_list(pieces), do: pieces
+  defp filter_by_owned(pieces, false, _owned_ids), do: pieces
+
+  defp filter_by_owned(pieces, true, %MapSet{} = owned_ids),
+    do: Enum.filter(pieces, &MapSet.member?(owned_ids, &1.id))
+
+  defp filter_by_owned(pieces, true, _owned_ids), do: pieces
 
   defp piece_field_contains?(nil, _needle), do: false
 
