@@ -55,7 +55,7 @@ defmodule QlariusWeb.Components.TiqitUnlockedContent do
 
       <div class="flex items-start justify-between mt-0">
         <div class="flex-1">
-          <h1 class="text-2xl font-bold text-base-content mb-0">
+          <h1 class="text-2xl font-bold leading-tight text-base-content mb-1.5">
             {@piece.title}
           </h1>
           <p class="text-base-content/70 text-sm mb-3">

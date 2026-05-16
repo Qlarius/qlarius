@@ -477,7 +477,7 @@ defmodule QlariusWeb.Layouts do
                 </div>
               <% end %>
               <div class="bg-base-100 dark:!bg-base-300 flex flex-col min-h-full">
-                <div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
+                <div class="w-full max-w-4xl mx-auto px-4 py-6 flex-1 flex flex-col">
                   <div class="flex items-center justify-between mb-4">
                     <button
                       phx-click="close_slide_over"
@@ -495,12 +495,18 @@ defmodule QlariusWeb.Layouts do
                     <% end %>
                   </div>
 
-                  <div class="flex-1 flex flex-col items-center justify-center">
-                    <h1 class="text-2xl font-bold mb-2 text-center">
-                      {assigns[:slide_over_title] || "Details"}
+                  <div class="flex-1 flex flex-col items-center justify-start min-h-0 overflow-y-auto">
+                    <h1
+                      :if={
+                        is_binary(assigns[:slide_over_title]) and
+                          String.trim(assigns[:slide_over_title]) != ""
+                      }
+                      class="text-2xl font-bold mb-2 text-center shrink-0"
+                    >
+                      {assigns[:slide_over_title]}
                     </h1>
 
-                    <div class="w-full">
+                    <div class="w-full min-h-0">
                       {render_slot(assigns[:slide_over_content] || [])}
                     </div>
                   </div>

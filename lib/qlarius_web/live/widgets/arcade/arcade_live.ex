@@ -25,6 +25,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   # `wallet_strip_or_connect/1`, `connect_wallet_modal/1`, etc.
   import QlariusWeb.Widgets.UnauthCTA
 
+  import QlariusWeb.Creators.ContentGroupHTML, only: [piece_list_description: 1]
+
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
   # Ensure `current_scope` is assigned whether this LV is reached
@@ -497,34 +499,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   #
   # See `TiqitPlayer.play_frame_for/1` for the per-context decision.
   def handle_event("play-piece", _params, socket) do
-    case socket.assigns.selected_piece do
-      nil ->
-        noreply(socket)
-
-      piece ->
-        case TiqitPlayer.play_frame_for(socket.assigns) do
-          :page ->
-            socket
-            |> push_navigate(to: "#{socket.assigns.base_path}/content/#{piece.id}")
-            |> noreply()
-
-          :modal ->
-            socket
-            |> cancel_tiqit_content_modal_close_timer()
-            |> assign(:play_frame, :modal)
-            |> assign(:show_tiqit_content_modal, true)
-            |> noreply()
-
-          :side_panel ->
-            socket
-            |> assign(
-              play_frame: :side_panel,
-              slide_over_active: true,
-              slide_over_title: piece.title
-            )
-            |> noreply()
-        end
-    end
+    socket |> open_player_for_selected_piece() |> noreply()
   end
 
   # Legacy modal-open entry — kept so any cached `phx-click="open-tiqit-content"`
@@ -569,36 +544,10 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
       :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class, opts)
 
-      user = socket.assigns.current_scope.user
-
-      Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
-
-      if socket.assigns.inline? do
-        tiqit =
-          Arcade.get_valid_tiqit(socket.assigns.current_scope, socket.assigns.selected_piece)
-
-        balance = Wallets.get_user_current_balance(user)
-        scope = socket.assigns.current_scope
-        updated_scope = scope && %{scope | wallet_balance: balance}
-
-        socket
-        |> cancel_tiqit_content_modal_close_timer()
-        |> assign(
-          tiqit: tiqit,
-          selected_tiqit_class: nil,
-          show_tiqit_content_modal: true,
-          balance: balance,
-          current_scope: updated_scope
-        )
-        |> noreply()
-      else
-        base = socket.assigns.base_path
-        redirect_path = "#{base}/content/#{socket.assigns.selected_piece.id}"
-
-        socket
-        |> redirect(to: redirect_path)
-        |> noreply()
-      end
+      socket
+      |> socket_after_tiqit_purchase()
+      |> open_player_for_selected_piece()
+      |> noreply()
     end
   end
 
@@ -645,6 +594,59 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     else
       {:noreply, socket}
     end
+  end
+
+  defp open_player_for_selected_piece(socket) do
+    case socket.assigns.selected_piece do
+      nil ->
+        socket
+
+      piece ->
+        case TiqitPlayer.play_frame_for(socket.assigns) do
+          :page ->
+            push_navigate(socket, to: "#{socket.assigns.base_path}/content/#{piece.id}")
+
+          :modal ->
+            socket
+            |> cancel_tiqit_content_modal_close_timer()
+            |> assign(
+              play_frame: :modal,
+              show_tiqit_content_modal: true,
+              slide_over_active: false
+            )
+
+          :side_panel ->
+            assign(socket,
+              play_frame: :side_panel,
+              slide_over_active: true,
+              slide_over_title: nil,
+              show_tiqit_content_modal: false
+            )
+        end
+    end
+  end
+
+  defp socket_after_tiqit_purchase(socket) do
+    scope = socket.assigns.current_scope
+    user = scope.user
+    piece = socket.assigns.selected_piece
+    group = socket.assigns.group
+    pieces = socket.assigns.pieces
+
+    tiqit = Arcade.get_valid_tiqit(scope, piece)
+    balance = Wallets.get_user_current_balance(user)
+    updated_scope = %{scope | wallet_balance: balance}
+
+    Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
+
+    assign(socket,
+      tiqit: tiqit,
+      selected_tiqit_class: nil,
+      options_modal: false,
+      balance: balance,
+      current_scope: updated_scope,
+      valid_tiqit_piece_ids: Arcade.valid_piece_ids_for_group(updated_scope, group, pieces)
+    )
   end
 
   defp refresh_scope_after_wallet_or_offer_event(socket) do
@@ -768,7 +770,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   defp description_exceeds_preview?(nil), do: false
 
   defp description_exceeds_preview?(description) do
-    t = String.trim(to_string(description))
+    t = piece_list_description(description)
     line_blocks = String.split(t, "\n", trim: true)
 
     t != "" and
@@ -776,8 +778,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   end
 
   defp description_preview_text(description) do
-    (description || "")
-    |> String.trim()
+    description
+    |> piece_list_description()
     |> String.replace("\n", " ")
   end
 

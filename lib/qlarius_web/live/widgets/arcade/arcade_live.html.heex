@@ -180,14 +180,12 @@
                           </span>
                         <% end %>
                       </div>
-                      <%= if String.trim(@selected_piece.description || "") != "" do %>
+                      <%= if piece_list_description(@selected_piece.description) != "" do %>
                         <div class="relative w-full min-w-0 flex flex-col shrink-0">
                           <p
                             class="text-xs text-base-content/70 line-clamp-3 [overflow-wrap:anywhere] break-words w-full min-h-0 md:line-clamp-none md:max-h-36 md:overflow-y-auto"
                             style="line-height: 1.15rem;"
-                          >
-                            {description_preview_text(@selected_piece.description)}
-                          </p>
+                          >{description_preview_text(@selected_piece.description)}</p>
                           <%= if description_exceeds_preview?(@selected_piece.description) do %>
                             <%!--
                       Root is absolutely pinned to the bottom of this block so the pill floats
@@ -216,14 +214,10 @@
                                   </span>
                                 </button>
                               </:trigger>
-                              <:content>
-                                <p
+                              <:content><p
                                   class="p-2 sm:p-2.5 min-h-0 flex-1 overflow-y-auto text-sm sm:text-[15px] text-base-content/90 leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]"
                                   style="line-height: 1.35rem;"
-                                >
-                                  {String.trim(@selected_piece.description || "")}
-                                </p>
-                              </:content>
+                                >{piece_list_description(@selected_piece.description)}</p></:content>
                             </.popover>
                           <% end %>
                         </div>
@@ -497,9 +491,7 @@
                       </span>
                     </div>
                     <%= if @group.show_piece_descriptions && piece.description do %>
-                      <p class="text-xs text-base-content/60 line-clamp-2 mt-0 pt-0 leading-snug whitespace-normal [overflow-wrap:anywhere]">
-                        {String.trim(piece.description)}
-                      </p>
+                      <p class="text-xs text-base-content/60 line-clamp-2 mt-0 pt-0 leading-snug whitespace-normal [overflow-wrap:anywhere]">{piece_list_description(piece.description)}</p>
                     <% end %>
                   </div>
                 </.link>

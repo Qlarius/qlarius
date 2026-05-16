@@ -138,17 +138,20 @@ defmodule QlariusWeb.Components.TiqitPlayer do
   Side-panel frame — thin wrapper around the core player meant to live
   inside `Layouts.mobile`'s `:slide_over_content` slot. The slide-over
   already provides its own back button (`phx-click=\"close_slide_over\"`)
-  and title; the host LV is responsible for setting `slide_over_active`
-  and `slide_over_title` when opening this frame.
+  back button; the host LV sets `slide_over_active` when opening. Leave
+  `slide_over_title` blank — the core player renders the piece title.
   """
   def player_side_panel_frame(assigns) do
     ~H"""
-    <.tiqit_unlocked_content_player
-      id_prefix={"#{@id_prefix}-#{@piece.id}"}
-      piece={@piece}
-      group={@group}
-      tiqit={@tiqit}
-    />
+    <%!-- Same cap as modal / content page; slide-over panel supplies horizontal padding. --%>
+    <div class="w-full max-w-4xl mx-auto pb-4">
+      <.tiqit_unlocked_content_player
+        id_prefix={"#{@id_prefix}-#{@piece.id}"}
+        piece={@piece}
+        group={@group}
+        tiqit={@tiqit}
+      />
+    </div>
     """
   end
 end
