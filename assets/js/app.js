@@ -2274,11 +2274,15 @@ Hooks.IframeDetect = {
   }
 }
 
-Hooks.InAppEscapeDismissPersist = {
+const IAB_ESCAPE_SHOW_DELAY_MS = 1000
+const IAB_ESCAPE_CLOSE_MS = 300
+
+Hooks.InAppEscapePopover = {
   mounted() {
     try {
       if (localStorage.getItem("qlarius_iab_escape_dismissed") === "1") {
         this.pushEvent("iab_escape_client_dismissed", {})
+        return
       }
     } catch (_e) {}
 
@@ -2287,8 +2291,58 @@ Hooks.InAppEscapeDismissPersist = {
         localStorage.setItem("qlarius_iab_escape_dismissed", "1")
       } catch (_e) {}
     })
+
+    this.backdrop = this.el.querySelector("[data-iab-escape-backdrop]")
+    this.onBackdropClick = () => this.dismiss()
+
+    if (this.backdrop) {
+      this.backdrop.addEventListener("click", this.onBackdropClick)
+    }
+
+    this.dismissButtons = this.el.querySelectorAll("[data-iab-escape-dismiss]")
+    this.onDismissClick = (e) => {
+      e.preventDefault()
+      this.dismiss()
+    }
+    this.dismissButtons.forEach((btn) =>
+      btn.addEventListener("click", this.onDismissClick)
+    )
+
+    this.showTimer = setTimeout(() => {
+      this.el.classList.add("iab-escape-popover-active")
+      this.el.setAttribute("aria-hidden", "false")
+      const panel = this.el.querySelector("[data-iab-escape-panel]")
+      panel?.setAttribute("aria-hidden", "false")
+    }, IAB_ESCAPE_SHOW_DELAY_MS)
+  },
+
+  dismiss() {
+    if (this.dismissing) return
+    this.dismissing = true
+    clearTimeout(this.showTimer)
+    this.el.classList.remove("iab-escape-popover-active")
+    this.el.classList.add("iab-escape-popover-leaving")
+
+    setTimeout(() => {
+      this.pushEvent("iab_escape_dismiss", {})
+    }, IAB_ESCAPE_CLOSE_MS)
+  },
+
+  destroyed() {
+    clearTimeout(this.showTimer)
+    if (this.backdrop && this.onBackdropClick) {
+      this.backdrop.removeEventListener("click", this.onBackdropClick)
+    }
+    if (this.dismissButtons && this.onDismissClick) {
+      this.dismissButtons.forEach((btn) =>
+        btn.removeEventListener("click", this.onDismissClick)
+      )
+    }
   }
 }
+
+// Kept for any cached markup still referencing the old hook name.
+Hooks.InAppEscapeDismissPersist = Hooks.InAppEscapePopover
 
 // Multi-attempt iOS handoff to Safari. Meta's webviews on iOS 26.x+
 // block single-shot `x-safari-https://` redirects, so we fire several

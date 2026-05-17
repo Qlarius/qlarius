@@ -990,6 +990,87 @@
     transform-origin: center center;
   }
 
+  /* Qlink in-app browser escape — centered popover, delayed enter via JS hook */
+  .iab-escape-popover {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+    pointer-events: none;
+  }
+
+  .iab-escape-popover__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.45);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .iab-escape-popover__panel {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 22rem;
+    padding: 1rem 1rem 1.25rem;
+    border-radius: 1rem;
+    border: 1px solid var(--color-base-300, #d4d4d4);
+    background: var(--color-base-100, #fff);
+    color: var(--color-base-content, #171717);
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+    opacity: 0;
+    transform: scale(0.94);
+    transform-origin: center center;
+  }
+
+  .iab-escape-popover-active {
+    pointer-events: auto;
+  }
+
+  .iab-escape-popover-active .iab-escape-popover__backdrop {
+    opacity: 1;
+  }
+
+  .iab-escape-popover-active .iab-escape-popover__panel {
+    animation: arqade-fullpane-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .iab-escape-popover-leaving .iab-escape-popover__backdrop {
+    opacity: 0;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 1, 1);
+  }
+
+  .iab-escape-popover-leaving .iab-escape-popover__panel {
+    animation: arqade-fullpane-leave 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .iab-escape-popover-active .iab-escape-popover__panel {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+
+    .iab-escape-popover-leaving .iab-escape-popover__panel {
+      animation: none;
+      opacity: 0;
+      transform: none;
+    }
+
+    .iab-escape-popover-active .iab-escape-popover__backdrop {
+      transition: none;
+      opacity: 1;
+    }
+
+    .iab-escape-popover-leaving .iab-escape-popover__backdrop {
+      transition: none;
+      opacity: 0;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .tiqit-content-modal-active:not(.tiqit-content-modal-leaving) {
       animation: none;
