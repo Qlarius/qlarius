@@ -22,7 +22,7 @@ defmodule QlariusWeb.Components.InAppBrowserEscape do
     >
       <div class="iab-escape-popover__backdrop" data-iab-escape-backdrop aria-hidden="true" />
       <div
-        class="iab-escape-popover__panel"
+        class="iab-escape-popover__panel flex flex-col items-center text-center"
         data-iab-escape-panel
         role="dialog"
         aria-modal="true"
@@ -40,10 +40,10 @@ defmodule QlariusWeb.Components.InAppBrowserEscape do
         <img
           src="/images/qlink_logo_color_horiz.svg"
           alt="Qlink"
-          class="h-5 w-auto max-w-[8rem] mb-3"
+          class="h-8 w-auto max-w-[11rem] mb-4"
         />
 
-        <h2 id="qlarius-in-app-escape-title" class="text-base font-semibold leading-snug text-base-content pr-8">
+        <h2 id="qlarius-in-app-escape-title" class="text-base font-semibold leading-snug text-base-content w-full">
           Might be fine here, but...
         </h2>
 
