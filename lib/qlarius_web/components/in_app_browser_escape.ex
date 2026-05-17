@@ -3,6 +3,8 @@ defmodule QlariusWeb.Components.InAppBrowserEscape do
 
   import QlariusWeb.CoreComponents
 
+  alias Qlarius.Browsers.InAppClassifier
+
   attr :show, :boolean, required: true
   attr :canonical_url, :string, required: true
   attr :in_app_browser, :map, required: true
@@ -12,6 +14,13 @@ defmodule QlariusWeb.Components.InAppBrowserEscape do
   end
 
   def in_app_browser_escape(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :platform_name,
+        InAppClassifier.display_name(assigns.in_app_browser.family)
+      )
+
     ~H"""
     <div
       id="qlarius-in-app-escape"
@@ -48,7 +57,11 @@ defmodule QlariusWeb.Components.InAppBrowserEscape do
         </h2>
 
         <p class="mt-2 text-sm text-base-content/80 leading-relaxed">
-          If things get wonky or crowded in this in-app browser window, open this in an external browser window.
+          <%= if @platform_name do %>
+            If things get wonky or crowded in this in-app ({@platform_name}) browser window, open this page in an external browser window.
+          <% else %>
+            If things get wonky or crowded in this in-app browser window, open this page in an external browser window.
+          <% end %>
         </p>
 
         <p class="mt-3 text-sm text-base-content/80">

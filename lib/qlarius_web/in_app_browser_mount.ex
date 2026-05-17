@@ -29,6 +29,7 @@ defmodule QlariusWeb.InAppBrowserMount do
   defp to_family(s) do
     case s do
       "instagram" -> {:ok, :instagram}
+      "threads" -> {:ok, :threads}
       "facebook" -> {:ok, :facebook}
       "tiktok" -> {:ok, :tiktok}
       "snapchat" -> {:ok, :snapchat}

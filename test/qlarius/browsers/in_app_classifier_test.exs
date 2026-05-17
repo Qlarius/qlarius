@@ -15,6 +15,15 @@ defmodule Qlarius.Browsers.InAppClassifierTest do
       "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 289.0.0.15.76"
 
     assert %{family: :instagram, os: :ios, confidence: :high} = InAppClassifier.classify(ua)
+    assert InAppClassifier.display_name(:instagram) == "Instagram"
+  end
+
+  test "threads on iOS (Barcelona codename)" do
+    ua =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/23E246 Barcelona 415.0.0.19.68 (iPhone16,1; iOS 26_4; en_US; en; scale=3.00; IABMV/1; 873683319)"
+
+    assert %{family: :threads, os: :ios, confidence: :high} = InAppClassifier.classify(ua)
+    assert InAppClassifier.display_name(:threads) == "Threads"
   end
 
   test "facebook in-app markers" do
@@ -24,11 +33,19 @@ defmodule Qlarius.Browsers.InAppClassifierTest do
     assert %{family: :facebook, os: :android, confidence: :high} = InAppClassifier.classify(ua)
   end
 
-  test "tiktok" do
+  test "tiktok via musical_ly" do
     ua =
       "Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/91.0.4472.114 Mobile Safari/537.36 musical_ly"
 
     assert %{family: :tiktok, os: :android} = InAppClassifier.classify(ua)
+  end
+
+  test "tiktok via BytedanceWebview on iOS" do
+    ua =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 trill_34.0.0 JsSdk/2.0 WKWebView/1 BytedanceWebview/d8a21c6"
+
+    assert %{family: :tiktok, os: :ios, confidence: :high} = InAppClassifier.classify(ua)
+    assert InAppClassifier.display_name(:tiktok) == "TikTok"
   end
 
   test "twitter for iphone" do
@@ -36,6 +53,30 @@ defmodule Qlarius.Browsers.InAppClassifierTest do
       "Mozilla/5.0 (iPhone; CPU iPhone OS 15_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Twitter for iPhone/9.26"
 
     assert %{family: :twitter, os: :ios} = InAppClassifier.classify(ua)
+    assert InAppClassifier.display_name(:twitter) == "X"
+  end
+
+  test "twitter android package marker" do
+    ua =
+      "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0.0.0 Mobile Safari/537.36 TwitterAndroid"
+
+    assert %{family: :twitter, os: :android, confidence: :high} = InAppClassifier.classify(ua)
+  end
+
+  test "snapchat in-app" do
+    ua =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Snapchat/12.0.0"
+
+    assert %{family: :snapchat, os: :ios, confidence: :high} = InAppClassifier.classify(ua)
+    assert InAppClassifier.display_name(:snapchat) == "Snapchat"
+  end
+
+  test "linkedin in-app" do
+    ua =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 LinkedInApp/9.24.0"
+
+    assert %{family: :linkedin, os: :ios, confidence: :high} = InAppClassifier.classify(ua)
+    assert InAppClassifier.display_name(:linkedin) == "LinkedIn"
   end
 
   test "reddit ios in-app marker" do
@@ -50,5 +91,13 @@ defmodule Qlarius.Browsers.InAppClassifierTest do
       "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/119.0.0.0 Mobile Safari/537.36 com.reddit.frontpage/2024.45.0"
 
     assert %{family: :reddit, os: :android, confidence: :high} = InAppClassifier.classify(ua)
+  end
+
+  test "generic android webview has no display name" do
+    ua =
+      "Mozilla/5.0 (Linux; Android 13; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/112.0.0.0 Mobile Safari/537.36"
+
+    assert %{family: :in_app_webview, confidence: :medium} = InAppClassifier.classify(ua)
+    assert InAppClassifier.display_name(:in_app_webview) == nil
   end
 end

@@ -34,6 +34,37 @@ defmodule QlariusWeb.Plugs.InAppBrowserDetectionTest do
     assert %{"family" => "instagram", "os" => "ios"} = get_session(conn, "qlarius_iab")
   end
 
+  test "on Qlink host: assigns in_app_browser and session for Threads UA" do
+    ua =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/23E246 Barcelona 415.0.0.19.68 IABMV/1"
+
+    conn =
+      :get
+      |> conn("/")
+      |> put_req_header("host", "qlinkin.bio")
+      |> put_req_header("user-agent", ua)
+      |> init_test_session(%{})
+      |> InAppBrowserDetection.call([])
+
+    assert %{family: :threads, os: :ios} = conn.assigns.in_app_browser
+    assert %{"family" => "threads", "os" => "ios"} = get_session(conn, "qlarius_iab")
+  end
+
+  test "on Qlink host: assigns in_app_browser and session for TikTok UA" do
+    ua =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 BytedanceWebview/d8a21c6 trill_34.0.0"
+
+    conn =
+      :get
+      |> conn("/")
+      |> put_req_header("host", "qlinkin.bio")
+      |> put_req_header("user-agent", ua)
+      |> init_test_session(%{})
+      |> InAppBrowserDetection.call([])
+
+    assert %{family: :tiktok, os: :ios} = conn.assigns.in_app_browser
+  end
+
   test "on Qlink host: assigns in_app_browser and session for Reddit UA" do
     ua =
       "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Reddit/2024.45.0"
