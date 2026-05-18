@@ -51,6 +51,17 @@ defmodule Qlarius.Browsers.InAppClassifier do
   @spec display_name(family()) :: String.t() | nil
   def display_name(family) when is_atom(family), do: Map.get(@display_names, family)
 
+  # Matomo device-detector + inapp-spy (`\bTwitter`) — X still brands as "Twitter" in UA,
+  # not "X for iPhone". See: https://docs.uaparser.dev/info/browser/name/twitter.html
+  @twitter_ua_patterns [
+    ~r/twitter\s+for\s+(iphone|ipad)/i,
+    ~r/twitter\s+for\s+android/i,
+    ~r/twitterandroid/i,
+    ~r/com\.twitter\.android/i,
+    ~r/twitter\/[\d.]+/i,
+    ~r/\btwitter\b/i
+  ]
+
   @spec classify(String.t()) :: result() | nil
   def classify(user_agent) when is_binary(user_agent) do
     ua = String.downcase(user_agent)
@@ -65,6 +76,23 @@ defmodule Qlarius.Browsers.InAppClassifier do
   end
 
   def classify(_), do: nil
+
+  @doc """
+  When UA classification fails, infer X/Twitter from `Referer` (common when the
+  in-app webview sends a generic Safari-like UA without a Twitter token).
+  """
+  @spec classify_with_referer(String.t(), String.t() | nil) :: result() | nil
+  def classify_with_referer(user_agent, referer) when is_binary(user_agent) do
+    case classify(user_agent) do
+      %{} = result ->
+        result
+
+      nil ->
+        infer_twitter_from_referer(user_agent, referer)
+    end
+  end
+
+  def classify_with_referer(_, _), do: nil
 
   # Order matters: more specific markers before broader ones (e.g. Threads
   # "Barcelona" before Instagram; TikTok Bytedance before generic Android WV).
@@ -82,6 +110,7 @@ defmodule Qlarius.Browsers.InAppClassifier do
       messenger_in_app?(ua) -> {:messenger, :medium}
       facebook_in_app?(ua) -> {:facebook, :high}
       twitter_in_app?(ua) -> {:twitter, :high}
+      ios_wk_in_app?(ua) -> {:in_app_webview, :medium}
       generic_android_webview?(ua) -> {:in_app_webview, :medium}
       true -> nil
     end
@@ -133,12 +162,33 @@ defmodule Qlarius.Browsers.InAppClassifier do
   end
 
   defp twitter_in_app?(ua) do
-    String.contains?(ua, "twitter for iphone") or
-      String.contains?(ua, "twitter for android") or
-      String.contains?(ua, "twitterandroid") or
-      String.contains?(ua, "com.twitter.android") or
-      String.contains?(ua, "twitter/") or
-      (String.contains?(ua, "twitter") and mobile_ua?(ua))
+    Enum.any?(@twitter_ua_patterns, &Regex.match?(&1, ua))
+  end
+
+  # inapp-spy: iPhone/iPad WebKit without `Safari/` (many social IABs, including X).
+  defp ios_wk_in_app?(ua) do
+    (String.contains?(ua, "iphone") or String.contains?(ua, "ipad") or
+       String.contains?(ua, "ipod")) and
+      String.contains?(ua, "mobile/") and
+      not String.contains?(ua, "safari/")
+  end
+
+  defp infer_twitter_from_referer(user_agent, referer) when is_binary(referer) do
+    ua = String.downcase(user_agent)
+    ref = String.downcase(referer)
+
+    if x_referer?(ref) and mobile_ua?(ua) do
+      %{family: :twitter, confidence: :medium, os: infer_os(ua)}
+    else
+      nil
+    end
+  end
+
+  defp infer_twitter_from_referer(_, _), do: nil
+
+  defp x_referer?(ref) do
+    String.contains?(ref, "x.com") or String.contains?(ref, "twitter.com") or
+      String.contains?(ref, "t.co/")
   end
 
   defp generic_android_webview?(ua) do

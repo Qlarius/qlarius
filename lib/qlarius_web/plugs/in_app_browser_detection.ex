@@ -87,8 +87,9 @@ defmodule QlariusWeb.Plugs.InAppBrowserDetection do
 
   defp run_detection(conn) do
     user_agent = get_req_header(conn, "user-agent") |> List.first() || ""
+    referer = get_req_header(conn, "referer") |> List.first()
 
-    case InAppClassifier.classify(user_agent) do
+    case InAppClassifier.classify_with_referer(user_agent, referer) do
       nil ->
         conn
         |> assign(:in_app_browser, nil)

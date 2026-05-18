@@ -63,6 +63,35 @@ defmodule Qlarius.Browsers.InAppClassifierTest do
     assert %{family: :twitter, os: :android, confidence: :high} = InAppClassifier.classify(ua)
   end
 
+  test "twitter android 2025 release tag (uaparser / device-detector shape)" do
+    ua =
+      "Mozilla/5.0 (Linux; Android 16; Pixel 7 Build/CP1A.260305.018; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/146.0.7680.164 Mobile Safari/537.36 TwitterAndroid/11.76.0-release.0"
+
+    assert %{family: :twitter, os: :android, confidence: :high} = InAppClassifier.classify(ua)
+  end
+
+  test "twitter ios via Twitter/ version token" do
+    ua =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/22G100 Twitter/11.37"
+
+    assert %{family: :twitter, os: :ios, confidence: :high} = InAppClassifier.classify(ua)
+  end
+
+  test "classify_with_referer infers X from x.com referer when UA is generic mobile webkit" do
+    ua =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/22G100"
+
+    assert %{family: :twitter, os: :ios, confidence: :medium} =
+             InAppClassifier.classify_with_referer(ua, "https://x.com/some/status/123")
+  end
+
+  test "ios webkit without Safari/ is generic in_app_webview" do
+    ua =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/22G100"
+
+    assert %{family: :in_app_webview, os: :ios, confidence: :medium} = InAppClassifier.classify(ua)
+  end
+
   test "snapchat in-app" do
     ua =
       "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Snapchat/12.0.0"

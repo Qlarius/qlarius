@@ -65,6 +65,23 @@ defmodule QlariusWeb.Plugs.InAppBrowserDetectionTest do
     assert %{family: :tiktok, os: :ios} = conn.assigns.in_app_browser
   end
 
+  test "on Qlink host: infers twitter from x.com Referer when UA lacks Twitter token" do
+    ua =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/22G100"
+
+    conn =
+      :get
+      |> conn("/")
+      |> put_req_header("host", "qlinkin.bio")
+      |> put_req_header("user-agent", ua)
+      |> put_req_header("referer", "https://x.com/i/status/123")
+      |> init_test_session(%{})
+      |> InAppBrowserDetection.call([])
+
+    assert %{family: :twitter, os: :ios, confidence: :medium} = conn.assigns.in_app_browser
+    assert %{"family" => "twitter", "os" => "ios"} = get_session(conn, "qlarius_iab")
+  end
+
   test "on Qlink host: assigns in_app_browser and session for Reddit UA" do
     ua =
       "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Reddit/2024.45.0"
