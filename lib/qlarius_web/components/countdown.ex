@@ -7,13 +7,21 @@ defmodule QlariusWeb.Components.TiqitExpirationCountdown do
   attr :expires_at, :any, required: true
   attr :id, :string, default: nil
   attr :class, :string, default: ""
-  attr :label, :string, default: "Time Remaining:"
+  attr :label, :string, default: nil
+  attr :countdown_kind, :atom, default: :expires, values: [:expires, :auto_fleet]
   attr :show_icon, :boolean, default: true
 
   def badge(assigns) do
+    label =
+      case Map.get(assigns, :label) do
+        nil -> default_badge_label(Map.get(assigns, :countdown_kind, :expires))
+        label -> label
+      end
+
     assigns =
       assigns
-      |> assign(:id, assigns[:id] || "countdown-#{System.unique_integer([:positive])}")
+      |> assign(:id, Map.get(assigns, :id) || "countdown-#{System.unique_integer([:positive])}")
+      |> assign(:label, label)
       |> assign(
         :expires_str,
         case assigns.expires_at do
@@ -69,4 +77,7 @@ defmodule QlariusWeb.Components.TiqitExpirationCountdown do
     </span>
     """
   end
+
+  defp default_badge_label(:auto_fleet), do: "Auto-Fleets in"
+  defp default_badge_label(_), do: "Expires in"
 end

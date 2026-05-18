@@ -248,7 +248,7 @@ defmodule QlariusWeb.TiqitComponents do
               <% @status == :active -> %>
                 <.tiqit_primary_status_badge status={:active} />
                 <span class="text-xs text-base-content/55">
-                  Time remaining:{" "}
+                  Expires in{" "}
                   <span class="text-base-content/80">
                     <%= if @tiqit.expires_at do %>
                       <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={
@@ -266,7 +266,7 @@ defmodule QlariusWeb.TiqitComponents do
               <% @status == :expired -> %>
                 <.tiqit_primary_status_badge status={:expired} />
                 <span class="text-xs text-base-content/55">
-                  Before Self-Fleet:{" "}
+                  Auto-Fleets in{" "}
                   <span class="text-base-content/80">
                     <%= if @fleet_at_deadline &&
                            DateTime.compare(@fleet_at_deadline, DateTime.utc_now()) == :gt do %>
