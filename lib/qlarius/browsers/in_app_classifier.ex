@@ -51,6 +51,17 @@ defmodule Qlarius.Browsers.InAppClassifier do
   @spec display_name(family()) :: String.t() | nil
   def display_name(family) when is_atom(family), do: Map.get(@display_names, family)
 
+  @type escape_directions_style :: :menu | :browser_icon
+
+  @doc """
+  How the Qlink IAB escape popover should describe opening an external browser.
+  `:menu` — ellipsis → "Open in External Browser" (Instagram, Threads, Facebook, etc.).
+  `:browser_icon` — compass / open-in-browser toolbar icon (X/Twitter).
+  """
+  @spec escape_directions_style(family()) :: escape_directions_style()
+  def escape_directions_style(:twitter), do: :browser_icon
+  def escape_directions_style(_family), do: :menu
+
   # Matomo device-detector + inapp-spy (`\bTwitter`) — X still brands as "Twitter" in UA,
   # not "X for iPhone". See: https://docs.uaparser.dev/info/browser/name/twitter.html
   @twitter_ua_patterns [

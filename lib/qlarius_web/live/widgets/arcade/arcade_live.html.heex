@@ -296,26 +296,38 @@
                         </button>
                       </div>
                       <%= if is_authed && !can_afford do %>
-                        <div class="text-sm text-warning text-center">
+                        <div
+                          class={[
+                            "text-sm text-warning text-center",
+                            @base_path == "" && !@inline? && "max-md:hidden"
+                          ]}
+                        >
                           Not enough funds — top up below.
                         </div>
                       <% end %>
-                      <.wallet_strip_or_connect
-                        id="wallet-balance-arcade-main"
-                        scope={@current_scope}
-                        balance={@balance}
-                        offered_amount={@offered_amount}
-                        ads_count={@current_scope && @current_scope.ads_count}
-                        daily_gift_available?={@daily_gift_available?}
-                        on_click={
-                          if QlariusWeb.Widgets.Arcade.ArcadeLive.auth_sheet_enabled?(assigns),
-                            do: Phoenix.LiveView.JS.push("open_auth_sheet"),
-                            else: nil
-                        }
-                      />
+                      <div class={@base_path == "" && !@inline? && "max-md:hidden"}>
+                        <.wallet_strip_or_connect
+                          id="wallet-balance-arcade-main"
+                          scope={@current_scope}
+                          balance={@balance}
+                          offered_amount={@offered_amount}
+                          ads_count={@current_scope && @current_scope.ads_count}
+                          daily_gift_available?={@daily_gift_available?}
+                          on_click={
+                            if QlariusWeb.Widgets.Arcade.ArcadeLive.auth_sheet_enabled?(assigns),
+                              do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+                              else: nil
+                          }
+                        />
+                      </div>
                   <% end %>
                 </div>
-                <div class="flex flex-row justify-center items-center mt-2 mb-1">
+                <div
+                  class={[
+                    "flex flex-row justify-center items-center mt-2 mb-1",
+                    @base_path == "" && !@inline? && "max-md:hidden"
+                  ]}
+                >
                   <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
                 </div>
               </div>

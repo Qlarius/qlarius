@@ -124,6 +124,12 @@ defmodule QlariusWeb.TiqitLive do
          |> assign(:undo_context, nil)
          |> put_flash(:error, "Refund limit reached for this creator")}
 
+      {:error, :not_refundable} ->
+        {:noreply,
+         socket
+         |> assign(:undo_context, nil)
+         |> put_flash(:error, "Free tiqits cannot be refunded")}
+
       {:error, reason} ->
         {:noreply,
          socket

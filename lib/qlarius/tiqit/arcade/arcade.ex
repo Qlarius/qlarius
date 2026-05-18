@@ -550,6 +550,21 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     if diff > 0, do: diff, else: 0
   end
 
+  @doc """
+  True when the tiqit was purchased at $0.00 (no refund applies).
+  """
+  def free_tiqit?(%Tiqit{tiqit_class: %TiqitClass{price: price}}) when not is_nil(price) do
+    Decimal.compare(price, Decimal.new(0)) != :gt
+  end
+
+  def free_tiqit?(%Tiqit{} = tiqit) do
+    tiqit
+    |> Repo.preload(:tiqit_class)
+    |> free_tiqit?()
+  end
+
+  def free_tiqit?(_), do: false
+
   def undo_available?(%Tiqit{} = tiqit) do
     undo_window = System.get_global_variable_int("tiqit_undo_window_hours", 2)
     deadline = DateTime.add(tiqit.purchased_at, undo_window, :hour)
@@ -558,6 +573,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
       is_nil(tiqit.disconnected_at) and
       is_nil(tiqit.refund_locked_at) and
       not is_nil(tiqit.me_file_id) and
+      not free_tiqit?(tiqit) and
       DateTime.compare(DateTime.utc_now(), deadline) == :lt
   end
 
@@ -880,6 +896,9 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
       is_nil(tiqit.me_file_id) ->
         {:error, :already_fleeted}
+
+      free_tiqit?(tiqit) ->
+        {:error, :not_refundable}
 
       DateTime.compare(now, deadline) != :lt ->
         {:error, :undo_window_expired}

@@ -166,25 +166,32 @@
                           </button>
                         </div>
                         <%= if is_authed && !can_afford do %>
-                          <div class="text-sm text-warning text-center">
+                          <div
+                            class={[
+                              "text-sm text-warning text-center",
+                              @base_path == "" && !@inline? && "max-md:hidden"
+                            ]}
+                          >
                             Not enough funds — top up below.
                           </div>
                         <% end %>
-                        <.wallet_strip_or_connect
-                          id="wallet-balance-arcade-single-main"
-                          scope={@current_scope}
-                          balance={@balance}
-                          offered_amount={@offered_amount}
-                          ads_count={@current_scope && @current_scope.ads_count}
-                          daily_gift_available?={@daily_gift_available?}
-                          on_click={
-                            if QlariusWeb.Widgets.Arcade.ArcadeSingleLive.auth_sheet_enabled?(
-                                 assigns
-                               ),
-                               do: Phoenix.LiveView.JS.push("open_auth_sheet"),
-                               else: nil
-                          }
-                        />
+                        <div class={@base_path == "" && !@inline? && "max-md:hidden"}>
+                          <.wallet_strip_or_connect
+                            id="wallet-balance-arcade-single-main"
+                            scope={@current_scope}
+                            balance={@balance}
+                            offered_amount={@offered_amount}
+                            ads_count={@current_scope && @current_scope.ads_count}
+                            daily_gift_available?={@daily_gift_available?}
+                            on_click={
+                              if QlariusWeb.Widgets.Arcade.ArcadeSingleLive.auth_sheet_enabled?(
+                                   assigns
+                                 ),
+                                 do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+                                 else: nil
+                            }
+                          />
+                        </div>
                       <% else %>
                         <div class="alert alert-warning">
                           <.icon name="hero-exclamation-triangle" class="w-6 h-6" />
@@ -195,7 +202,12 @@
                   </div>
                 </div>
 
-                <div class="flex flex-row justify-center items-center mt-6">
+                <div
+                  class={[
+                    "flex flex-row justify-center items-center mt-6",
+                    @base_path == "" && !@inline? && "max-md:hidden"
+                  ]}
+                >
                   <div class="text-base-content/40 text-xs mr-1">Access via</div>
                   <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
                 </div>

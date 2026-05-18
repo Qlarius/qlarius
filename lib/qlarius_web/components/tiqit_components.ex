@@ -80,6 +80,7 @@ defmodule QlariusWeb.TiqitComponents do
     assigns =
       assigns
       |> assign(:undo_available, Arcade.undo_available?(assigns.tiqit))
+      |> assign(:free_tiqit?, Arcade.free_tiqit?(assigns.tiqit))
       |> assign(:content_path, tiqit_content_path(assigns.tiqit))
       |> assign(:scope_label, tiqit_scope_label(assigns.tiqit))
 
@@ -114,6 +115,13 @@ defmodule QlariusWeb.TiqitComponents do
               <span class="text-xs text-base-content/50 flex items-center gap-1">
                 <.tiqit_undo_countdown tiqit={@tiqit} />
               </span>
+            </div>
+          <% @free_tiqit? and @status == :active -> %>
+            <div class="flex items-center gap-2">
+              <button class="btn btn-sm rounded-full btn-disabled" disabled>
+                <.icon name="hero-arrow-uturn-left" class="w-4 h-4" /> Refund
+              </button>
+              <span class="text-xs text-base-content/40">Not refundable (free)</span>
             </div>
           <% not is_nil(@tiqit.refund_locked_at) -> %>
             <div class="flex items-center gap-2">

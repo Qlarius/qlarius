@@ -129,4 +129,12 @@ defmodule Qlarius.Browsers.InAppClassifierTest do
     assert %{family: :in_app_webview, confidence: :medium} = InAppClassifier.classify(ua)
     assert InAppClassifier.display_name(:in_app_webview) == nil
   end
+
+  test "escape_directions_style is browser_icon for X/Twitter, menu for Meta apps" do
+    assert InAppClassifier.escape_directions_style(:twitter) == :browser_icon
+    assert InAppClassifier.escape_directions_style(:instagram) == :menu
+    assert InAppClassifier.escape_directions_style(:threads) == :menu
+    assert InAppClassifier.escape_directions_style(:facebook) == :menu
+    assert InAppClassifier.escape_directions_style(:tiktok) == :menu
+  end
 end

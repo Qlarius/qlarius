@@ -15,10 +15,11 @@ defmodule QlariusWeb.Components.InAppBrowserEscape do
 
   def in_app_browser_escape(assigns) do
     assigns =
-      assign(
-        assigns,
-        :platform_name,
-        InAppClassifier.display_name(assigns.in_app_browser.family)
+      assigns
+      |> assign(:platform_name, InAppClassifier.display_name(assigns.in_app_browser.family))
+      |> assign(
+        :escape_directions_style,
+        InAppClassifier.escape_directions_style(assigns.in_app_browser.family)
       )
 
     ~H"""
@@ -64,14 +65,34 @@ defmodule QlariusWeb.Components.InAppBrowserEscape do
           <% end %>
         </p>
 
-        <p class="mt-3 text-sm text-base-content/80">
-          Usually:<br />
-          <kbd class="kbd kbd-sm align-middle mx-0.5">⋯</kbd>
-          →
-          <span class="font-semibold text-base-content">Open in External Browser</span>
-        </p>
+        <%= if @escape_directions_style == :browser_icon do %>
+          <p class="mt-3 text-sm text-base-content/80 leading-relaxed">
+            Look for the
+            <span class="iab-escape-open-browser-icon" aria-hidden="true">
+              <.iab_open_in_browser_icon />
+            </span>
+            icon at the top or bottom of this screen.
+          </p>
+        <% else %>
+          <p class="mt-3 text-sm text-base-content/80">
+            Usually:<br />
+            <kbd class="kbd kbd-sm align-middle mx-0.5">⋯</kbd>
+            →
+            <span class="font-semibold text-base-content">Open in External Browser</span>
+          </p>
+        <% end %>
       </div>
     </div>
+    """
+  end
+
+  defp iab_open_in_browser_icon(assigns) do
+    ~H"""
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4">
+      <circle cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.75" />
+      <path d="M12 5.75 14.1 14.35 12 11.85 9.9 14.35 12 5.75Z" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.15" fill="currentColor" />
+    </svg>
     """
   end
 end
