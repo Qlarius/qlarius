@@ -418,8 +418,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     <nav
       :if={@base_path != "/widgets"}
       class={[
-        "shrink-0 text-xs text-base-content/50 flex items-center gap-1 flex-wrap",
-        if(@compact, do: "pt-0 mb-1", else: "pt-3 mb-3")
+        "shrink-0 text-xs text-base-content/50 flex items-center gap-1 flex-wrap pt-0 mb-1"
       ]}
     >
       <.link navigate="/arqade" class="hover:text-widget-700 transition-colors">Discover</.link>
