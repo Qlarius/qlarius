@@ -28,6 +28,7 @@
     <div
       data-arqade-in-app-page={if(@base_path == "" && !@inline?, do: "true")}
       class={[
+        @inline? && "flex flex-col flex-1 min-h-0 h-full max-h-full overflow-hidden",
         @base_path == "" && !@inline? &&
           "flex flex-col flex-1 min-h-0 overflow-hidden"
       ]}
@@ -146,12 +147,15 @@
               <div class={[
                 "relative z-[35] min-h-0 shrink-0 overflow-x-hidden min-w-0",
                 cond do
-                  @inline? -> "overflow-y-auto max-h-[min(70vh,32rem)] md:max-h-none md:flex-none md:w-full"
+                  @inline? -> "max-md:overflow-hidden md:overflow-y-auto md:max-h-none md:flex-none md:w-full"
                   @base_path == "" -> "max-md:overflow-visible md:overflow-y-auto md:max-h-none"
                   true -> "overflow-y-auto max-h-[min(70vh,32rem)] md:max-h-none"
                 end
               ]}>
-                <div class="bg-base-100 rounded-lg p-4 md:!p-0 min-w-0">
+                <div
+                  data-arqade-hero-block={if(@base_path == "" && !@inline?, do: "true")}
+                  class="bg-base-100 rounded-lg p-4 md:!p-0 min-w-0"
+                >
                   <%!--
             Hero thumb width must track the *column* (embed card), not the viewport:
             `sm:/md:/lg:` max-widths looked fine full-screen but starved title text when
@@ -227,7 +231,10 @@
                 </div>
               </div>
 
-              <div class="relative z-[30] shrink-0 min-w-0 overflow-x-hidden px-2 pb-0 md:px-0">
+              <div
+                data-arqade-cta-block={if(@base_path == "" && !@inline?, do: "true")}
+                class="relative z-[30] shrink-0 min-w-0 overflow-x-hidden px-2 pb-0 md:px-0"
+              >
                 <div class="flex flex-col justify-start mt-4 gap-1.5 align-middle text-center">
                   <%!--
               CTA states (View anywhere, Act only when authed):
@@ -271,7 +278,10 @@
                       <% can_afford =
                         is_authed && Decimal.compare(@balance, default_tc.price) != :lt %>
                       <% btn_enabled = !is_authed || can_afford %>
-                      <div class="mb-3 flex w-full flex-row items-center gap-1.5">
+                      <div
+                        data-arqade-buy-row={if(@base_path == "" && !@inline?, do: "true")}
+                        class="mb-3 flex w-full flex-row items-center gap-1.5"
+                      >
                         <button
                           phx-click="select-tiqit-class"
                           phx-value-tiqit-class-id={default_tc.id}
@@ -413,7 +423,8 @@
                 class={[
                   "space-y-2 min-h-0",
                   @base_path == "" && !@inline? && "flex-1 min-h-0 overflow-y-auto pb-0",
-                  (@inline? || @base_path == "/widgets") && "overflow-y-auto pb-4",
+                  @inline? && "flex-1 min-h-0 overflow-y-auto pb-4 max-md:min-h-0",
+                  @base_path == "/widgets" && !@inline? && "overflow-y-auto pb-4",
                   @base_path != "" && @base_path != "/widgets" && "pb-2"
                 ]}
               >

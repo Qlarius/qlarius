@@ -934,6 +934,24 @@
       overflow-x: hidden;
       overflow-y: hidden;
     }
+
+    /* In-app group mobile: tighten gap above Buy/Play, add space before Lessons list. */
+    [data-arqade-in-app-group="true"] [data-arqade-hero-block="true"] {
+      padding-bottom: 0.25rem !important;
+    }
+
+    [data-arqade-in-app-group="true"] [data-arqade-cta-block="true"] {
+      margin-top: 0 !important;
+      padding-bottom: 0.75rem !important;
+    }
+
+    [data-arqade-in-app-group="true"] [data-arqade-cta-block="true"] > .flex.flex-col {
+      margin-top: 0 !important;
+    }
+
+    [data-arqade-in-app-group="true"] [data-arqade-buy-row="true"] {
+      margin-bottom: 0.5rem !important;
+    }
   }
 
   @media (min-width: 768px) {
@@ -957,20 +975,113 @@
     }
   }
 
-  [data-arqade-inline-card="true"] [data-arqade-split],
+  /* Qlink embed cage: hard vertical cap from creator Height (px) (mirrors iframe). */
+  .qlink-arqade-embed-cage {
+    box-sizing: border-box;
+  }
+
+  .qlink-arqade-embed-cage #arcade-pwa-detect {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .qlink-arqade-embed-cage #arcade-pwa-detect > div:not(.hidden) {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .qlink-arqade-embed-cage [data-arqade-inline-card="true"] {
+    flex: 1 1 0% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  .qlink-arqade-embed-cage [data-arqade-inline-card="true"] [data-arqade-split] {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .qlink-arqade-embed-cage [data-arqade-inline-card="true"] [data-arqade-selected-pane] {
+    flex-shrink: 0;
+    max-height: min(42vh, 24rem);
+    overflow-x: hidden;
+    overflow-y: hidden;
+  }
+
+  .qlink-arqade-embed-cage [data-arqade-inline-card="true"] [data-arqade-episodes-column] {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .qlink-arqade-embed-cage [data-arqade-inline-card="true"] #arqade-episodes-scroll {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Qlink inline arqade (mobile): fixed embed height from settings — only the episode list scrolls. */
+  @media (max-width: 767px) {
+    [data-arqade-inline-card="true"] [data-arqade-split] {
+      flex: 1 1 0%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    [data-arqade-inline-card="true"] [data-arqade-selected-pane] {
+      flex-shrink: 0;
+      max-height: min(42vh, 24rem);
+      overflow-x: hidden;
+      overflow-y: hidden;
+    }
+
+    [data-arqade-inline-card="true"] [data-arqade-episodes-column] {
+      flex: 1 1 0%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    [data-arqade-inline-card="true"] #arqade-episodes-scroll {
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
+  /* Full-pane expand: page scrolls inside the shell — do not clip to embed height. */
   .arqade-fullpane-active [data-arqade-split] {
     height: auto !important;
     min-height: 0 !important;
     overflow: visible !important;
   }
 
-  [data-arqade-inline-card="true"] [data-arqade-selected-pane],
   .arqade-fullpane-active [data-arqade-selected-pane] {
     max-height: none !important;
     overflow: visible !important;
   }
 
-  [data-arqade-inline-card="true"] #arqade-episodes-scroll,
   .arqade-fullpane-active #arqade-episodes-scroll {
     flex: none !important;
     height: auto !important;

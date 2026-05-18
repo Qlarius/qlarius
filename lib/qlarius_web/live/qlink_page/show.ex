@@ -1484,45 +1484,23 @@ defmodule QlariusWeb.QlinkPage.Show do
       |> assign(:arqade_fullpane_active?, fullpane?)
       |> assign(:arqade_fullpane_shell_leaving?, shell_leaving?)
 
-    # Outer box fixes height to the creator's "Height (px)" embed setting
-    # so nested arqade content scrolls inside it (same intent as iframe
-    # `height=`). When `@arqade_fullpane_active?`, the inner shell is
-    # `fixed` full viewport — only a min-height placeholder remains here.
-    #
-    # Do not use overflow-hidden on these wrappers: nested LiveViews render
-    # `position: fixed` modals (Tiqit purchase, connect wallet). WebKit and
-    # many in-app browsers clip fixed overlays to overflow-hidden ancestors,
-    # which looks like horizontal "bands" and a truncated modal card.
+    # Non–full-pane: iframe-style cage (`height` + `max-height` from embed
+    # settings, inner `overflow-hidden`) so the qlink page does not grow with
+    # the episode list. Full-pane keeps `overflow-visible` on the shell.
     ~H"""
-    <div
-      class={
-        if(@arqade_fullpane_active?,
-          do: "relative w-full",
-          else: "relative w-full flex flex-col min-h-0 overflow-visible"
-        )
-      }
-      style={
-        if(@arqade_fullpane_active?,
-          do: "min-height: #{@inline_arqade_height}px;",
-          else: "height: #{@inline_arqade_height}px; max-height: #{@inline_arqade_height}px;"
-        )
-      }
-    >
-      <div
-        id={"arqade-embed-shell-#{@inline_arqade_dom_id}"}
-        phx-hook="BodyScrollLock"
-        data-body-scroll-lock={if @arqade_fullpane_active?, do: "true", else: "false"}
-        class={[
-          "w-full",
-          not @arqade_fullpane_active? && "h-full min-h-0 flex flex-col overflow-visible",
-          @arqade_fullpane_active? &&
+    <%= if @arqade_fullpane_active? do %>
+      <div class="relative w-full" style={"min-height: #{@inline_arqade_height}px;"}>
+        <div
+          id={"arqade-embed-shell-#{@inline_arqade_dom_id}"}
+          phx-hook="BodyScrollLock"
+          data-body-scroll-lock="true"
+          class={[
             "arqade-fullpane-active fixed inset-x-0 top-0 bottom-[50px] z-[45] flex w-full flex-col overflow-visible bg-base-100 shadow-2xl",
-          @arqade_fullpane_shell_leaving? && "arqade-fullpane-leaving"
-        ]}
-        phx-window-keydown={if(@arqade_fullpane_active?, do: "close-arqade-fullpane")}
-        phx-key={if(@arqade_fullpane_active?, do: "Escape")}
-      >
-        <%= if @arqade_fullpane_active? do %>
+            @arqade_fullpane_shell_leaving? && "arqade-fullpane-leaving"
+          ]}
+          phx-window-keydown="close-arqade-fullpane"
+          phx-key="Escape"
+        >
           <div class="flex flex-none items-center justify-between gap-2 border-b border-base-300 bg-base-200 px-3 py-2">
             <span class="truncate text-sm font-semibold text-base-content">Arqade</span>
             <button
@@ -1534,20 +1512,29 @@ defmodule QlariusWeb.QlinkPage.Show do
               <.icon name="hero-x-mark" class="h-5 w-5" />
             </button>
           </div>
-        <% end %>
-        <div class={
-          if(@arqade_fullpane_active?,
-            do: "min-h-0 flex-1 overflow-y-auto flex flex-col",
-            else: "min-h-0 flex-1 overflow-visible flex flex-col"
-          )
-        }>
+          <div class="min-h-0 flex-1 overflow-y-auto flex flex-col">
+            {live_render(@socket, @inline_arqade_module,
+              id: @inline_arqade_dom_id,
+              session: @inline_arqade_session
+            )}
+          </div>
+        </div>
+      </div>
+    <% else %>
+      <div
+        id={"qlink-arqade-embed-cage-#{@inline_arqade_dom_id}"}
+        class="qlink-arqade-embed-cage relative w-full rounded-xl overflow-hidden"
+        style={"height: #{@inline_arqade_height}px; max-height: #{@inline_arqade_height}px;"}
+        data-qlink-arqade-embed-height={@inline_arqade_height}
+      >
+        <div class="qlink-arqade-embed-cage__inner h-full max-h-full min-h-0 overflow-hidden flex flex-col">
           {live_render(@socket, @inline_arqade_module,
             id: @inline_arqade_dom_id,
             session: @inline_arqade_session
           )}
         </div>
       </div>
-    </div>
+    <% end %>
     """
   end
 
