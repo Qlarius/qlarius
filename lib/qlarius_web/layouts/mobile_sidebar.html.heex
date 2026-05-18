@@ -14,7 +14,7 @@
     <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
       <div class="bg-base-300" style="height: max(12px, env(safe-area-inset-top));"></div>
     <% end %>
-    <div class="flex items-center justify-between px-4 py-5 mb-5 bg-base-300">
+    <div class="flex items-center justify-between px-4 pt-5 pb-6 bg-base-300">
       <div class="flex items-center">
         <img src="/images/qlarius_logo_squares.svg" class="h-5 mr-3" alt="Logo" />
         <div>
@@ -36,8 +36,11 @@
         <.icon name="hero-x-mark" class="h-7 w-7" />
       </button>
     </div>
-    <div class="flex justify-center">
-      <Layouts.theme_toggle />
+    <%!-- Theme toggle straddles the header bottom edge; wrapper adds a contrasting border ring against bg-base-300. --%>
+    <div class="relative z-10 flex justify-center -mt-5">
+      <div class="rounded-full border border-base-content/20 bg-base-100 p-0.5">
+        <Layouts.theme_toggle />
+      </div>
     </div>
     <!-- * profile box -->
 
