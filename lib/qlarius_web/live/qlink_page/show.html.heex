@@ -11,7 +11,7 @@
     />
   <% end %>
   <div
-  class="container mx-auto px-6 md:px-8 py-8 max-w-2xl"
+  class="container mx-auto px-6 md:px-8 py-8 max-w-3xl"
   style={if @recipient, do: "padding-bottom: 100px;", else: ""}
 >
 
@@ -139,7 +139,7 @@
       phx-hook="BodyScrollLock"
       data-body-scroll-lock={if @show_sponster_drawer, do: "true", else: "false"}
       class={[
-        "fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300",
+        "fixed inset-0 z-[61] bg-black/50 backdrop-blur-sm transition-opacity duration-300",
         if(@show_sponster_drawer, do: "opacity-100", else: "opacity-0 pointer-events-none")
       ]}
       phx-click="close_sponster_drawer"
@@ -150,11 +150,11 @@
     <div
       data-theme="light"
       class={[
-        "fixed z-[41] bg-base-100 rounded-t-lg overflow-hidden flex flex-col transition-all duration-300 ease-out",
+        "fixed z-[62] bg-base-100 rounded-t-lg overflow-hidden flex flex-col transition-all duration-300 ease-out",
         "h-[calc(95vh-50px)]",
         if(@show_sponster_drawer, do: "bottom-[50px]", else: "-bottom-[calc(95vh-50px)]")
       ]}
-      style="left: 50%; transform: translateX(-50%); width: min(100%, 800px); box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);"
+      style="left: 50%; transform: translateX(-50%); width: min(100%, 48rem); box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);"
     >
       <% drawer_authed = authed?(@current_scope) %>
 
@@ -371,7 +371,7 @@
               </div>
 
               <%!-- min-h-0: flex-1 scroll area must shrink inside the drawer. --%>
-              <div class="flex min-h-0 flex-1 flex-col gap-8 overflow-y-auto bg-base-200 px-8 pb-12 pt-6 max-w-[800px] mx-auto mt-1 md:!flex-row">
+              <div class="flex min-h-0 flex-1 flex-col gap-8 overflow-y-auto bg-base-200 px-8 pb-12 pt-6 max-w-3xl mx-auto mt-1 md:!flex-row">
                 <%!-- Left: AutoSplit + InstaTip --%>
                 <div class="flex-1 flex flex-col items-center md:items-start">
                   <%!-- AutoSplit Section --%>
@@ -464,7 +464,7 @@
          ) %>
 
     <div class="fixed inset-x-0 bottom-0 z-[56] flex justify-center bg-base-100 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] isolate">
-      <div class="flex h-[50px] w-full max-w-[800px] items-center justify-between gap-2 px-3">
+      <div class="flex h-[50px] w-full max-w-3xl items-center justify-between gap-2 px-3">
         <div class="sponster-announcer-logo-container flex-shrink-0 md:relative md:z-10" />
         <%= if qlink_announcer_authed do %>
           <div class="flex flex-1 justify-center min-w-0 px-1 md:absolute md:left-1/2 md:top-1/2 md:z-0 md:w-max md:max-w-[min(70%,22rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:px-2">

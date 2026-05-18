@@ -169,13 +169,13 @@
                           <div
                             class={[
                               "text-sm text-warning text-center",
-                              @base_path == "" && !@inline? && "max-md:hidden"
+                              @base_path == "" && !@inline? && "hidden"
                             ]}
                           >
                             Not enough funds — top up below.
                           </div>
                         <% end %>
-                        <div class={@base_path == "" && !@inline? && "max-md:hidden"}>
+                        <div class={@base_path == "" && !@inline? && "hidden"}>
                           <.wallet_strip_or_connect
                             id="wallet-balance-arcade-single-main"
                             scope={@current_scope}
@@ -205,7 +205,7 @@
                 <div
                   class={[
                     "flex flex-row justify-center items-center mt-6",
-                    @base_path == "" && !@inline? && "max-md:hidden"
+                    @base_path == "" && !@inline? && "hidden"
                   ]}
                 >
                   <div class="text-base-content/40 text-xs mr-1">Access via</div>

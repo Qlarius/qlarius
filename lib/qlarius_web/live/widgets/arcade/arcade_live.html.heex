@@ -153,8 +153,18 @@
                 end
               ]}>
                 <div
-                  data-arqade-hero-block={if(@base_path == "" && !@inline?, do: "true")}
-                  class="bg-base-100 rounded-lg p-4 md:!p-0 min-w-0"
+                  data-arqade-hero-block={
+                    cond do
+                      @inline? -> "inline"
+                      @base_path == "" && !@inline? -> "in-app"
+                      true -> nil
+                    end
+                  }
+                  class={[
+                    "bg-base-100 rounded-lg min-w-0",
+                    @inline? && "p-4 max-md:px-3 max-md:pt-3 max-md:pb-1 md:!p-0",
+                    !@inline? && "p-4 md:!p-0"
+                  ]}
                 >
                   <%!--
             Hero thumb width must track the *column* (embed card), not the viewport:
@@ -163,11 +173,19 @@
             this flex row while capping absolute growth.
           --%>
                   <div class="flex flex-row gap-3 sm:gap-4 items-stretch min-w-0">
-                    <div class="shrink-0 self-start w-[clamp(5rem,34%,8.5rem)] max-w-[42%]">
+                    <div class={[
+                      "shrink-0 self-start w-[clamp(5rem,34%,8.5rem)] max-w-[42%]",
+                      @inline? && "max-md:aspect-square max-md:overflow-hidden max-md:rounded-lg"
+                    ]}>
                       <img
                         src={content_image_url(@selected_piece, @group)}
                         alt={@selected_piece.title}
-                        class="block w-full h-auto max-h-[12rem] object-contain rounded-lg"
+                        class={[
+                          "block w-full rounded-lg",
+                          @inline? &&
+                            "h-auto max-h-[12rem] object-contain max-md:h-full max-md:max-h-none max-md:object-cover",
+                          !@inline? && "h-auto max-h-[12rem] object-contain"
+                        ]}
                       />
                     </div>
                     <div class="min-w-0 flex-1 flex flex-col gap-1.5 min-h-0 self-start">
@@ -232,10 +250,22 @@
               </div>
 
               <div
-                data-arqade-cta-block={if(@base_path == "" && !@inline?, do: "true")}
+                data-arqade-cta-block={
+                  cond do
+                    @inline? -> "inline"
+                    @base_path == "" && !@inline? -> "in-app"
+                    true -> nil
+                  end
+                }
                 class="relative z-[30] shrink-0 min-w-0 overflow-x-hidden px-2 pb-0 md:px-0"
               >
-                <div class="flex flex-col justify-start mt-4 gap-1.5 align-middle text-center">
+                <div
+                  class={[
+                    "flex flex-col justify-start gap-1.5 align-middle text-center",
+                    @inline? && "mt-2 max-md:mt-1 md:mt-4",
+                    !@inline? && "mt-4"
+                  ]}
+                >
                   <%!--
               CTA states (View anywhere, Act only when authed):
                 1. Authed viewer with a valid tiqit: Play + countdown.
@@ -309,13 +339,13 @@
                         <div
                           class={[
                             "text-sm text-warning text-center",
-                            @base_path == "" && !@inline? && "max-md:hidden"
+                            @base_path == "" && !@inline? && "hidden"
                           ]}
                         >
                           Not enough funds — top up below.
                         </div>
                       <% end %>
-                      <div class={@base_path == "" && !@inline? && "max-md:hidden"}>
+                      <div class={@base_path == "" && !@inline? && "hidden"}>
                         <.wallet_strip_or_connect
                           id="wallet-balance-arcade-main"
                           scope={@current_scope}
@@ -333,9 +363,11 @@
                   <% end %>
                 </div>
                 <div
+                  data-arqade-tiqit-logo-row={@inline? && "inline"}
                   class={[
-                    "flex flex-row justify-center items-center mt-2 mb-1",
-                    @base_path == "" && !@inline? && "max-md:hidden"
+                    "flex flex-row justify-center items-center",
+                    @inline? && "mt-2 mb-3 max-md:mb-4",
+                    @base_path == "" && !@inline? && "hidden"
                   ]}
                 >
                   <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />

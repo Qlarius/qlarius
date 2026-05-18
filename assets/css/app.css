@@ -826,24 +826,35 @@
     }
   }
 
-  .arqade-fullpane-active:not(.arqade-fullpane-leaving) {
+  /* Full-pane overlay: above qlink announcer (z-56); Sponster drawer uses z-[61]/z-[62]. */
+  .arqade-fullpane-active {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    z-index: 58;
+  }
+
+  .arqade-fullpane-active:not(.arqade-fullpane-leaving) .arqade-fullpane-active__motion {
     animation: arqade-fullpane-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
     transform-origin: center center;
   }
 
-  .arqade-fullpane-active.arqade-fullpane-leaving {
+  .arqade-fullpane-active.arqade-fullpane-leaving .arqade-fullpane-active__motion {
     animation: arqade-fullpane-leave 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
     transform-origin: center center;
+    pointer-events: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .arqade-fullpane-active:not(.arqade-fullpane-leaving) {
+    .arqade-fullpane-active:not(.arqade-fullpane-leaving) .arqade-fullpane-active__motion {
       animation: none;
       opacity: 1;
       transform: none;
     }
 
-    .arqade-fullpane-active.arqade-fullpane-leaving {
+    .arqade-fullpane-active.arqade-fullpane-leaving .arqade-fullpane-active__motion {
       animation: none;
       opacity: 0;
       transform: none;
@@ -936,21 +947,34 @@
     }
 
     /* In-app group mobile: tighten gap above Buy/Play, add space before Lessons list. */
-    [data-arqade-in-app-group="true"] [data-arqade-hero-block="true"] {
+    [data-arqade-in-app-group="true"] [data-arqade-hero-block="in-app"] {
       padding-bottom: 0.25rem !important;
     }
 
-    [data-arqade-in-app-group="true"] [data-arqade-cta-block="true"] {
+    [data-arqade-in-app-group="true"] [data-arqade-cta-block="in-app"] {
       margin-top: 0 !important;
       padding-bottom: 0.75rem !important;
     }
 
-    [data-arqade-in-app-group="true"] [data-arqade-cta-block="true"] > .flex.flex-col {
+    [data-arqade-in-app-group="true"] [data-arqade-cta-block="in-app"] > .flex.flex-col {
       margin-top: 0 !important;
     }
 
     [data-arqade-in-app-group="true"] [data-arqade-buy-row="true"] {
       margin-bottom: 0.5rem !important;
+    }
+
+    /* Qlink inline embed (mobile): tighten hero→CTA gap; breathing room before episode list. */
+    .qlink-arqade-embed-cage [data-arqade-hero-block="inline"] {
+      padding-bottom: 0.25rem !important;
+    }
+
+    .qlink-arqade-embed-cage [data-arqade-cta-block="inline"] > .flex.flex-col {
+      margin-top: 0.25rem !important;
+    }
+
+    .qlink-arqade-embed-cage [data-arqade-tiqit-logo-row="inline"] {
+      margin-bottom: 1rem !important;
     }
   }
 
@@ -1070,23 +1094,99 @@
     }
   }
 
-  /* Full-pane expand: page scrolls inside the shell — do not clip to embed height. */
-  .arqade-fullpane-active [data-arqade-split] {
-    height: auto !important;
+  /* Full-pane expand: fill viewport; episode list scrolls inside (same flex chain as embed cage). */
+  .arqade-fullpane-active__content {
+    min-height: 0;
+  }
+
+  .arqade-fullpane-active #arcade-pwa-detect {
+    height: 100% !important;
+    max-height: 100% !important;
     min-height: 0 !important;
-    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
-  .arqade-fullpane-active [data-arqade-selected-pane] {
-    max-height: none !important;
-    overflow: visible !important;
+  .arqade-fullpane-active #arcade-pwa-detect > div:not(.hidden) {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
   }
 
-  .arqade-fullpane-active #arqade-episodes-scroll {
-    flex: none !important;
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
+  .arqade-fullpane-active [data-arqade-inline-card="true"] {
+    flex: 1 1 0% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .arqade-fullpane-active [data-arqade-inline-card="true"] > div {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  /* Room for floating close button over group title row */
+  .arqade-fullpane-active [data-arqade-inline-card="true"] > div > .grow-0.bg-base-200 {
+    padding-right: 3.25rem;
+  }
+
+  .arqade-fullpane-active [data-arqade-inline-card="true"] [data-arqade-split] {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .arqade-fullpane-active [data-arqade-inline-card="true"] [data-arqade-selected-pane] {
+    flex-shrink: 0 !important;
+    max-height: min(42vh, 24rem) !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+  }
+
+  .arqade-fullpane-active [data-arqade-inline-card="true"] [data-arqade-episodes-column] {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .arqade-fullpane-active [data-arqade-inline-card="true"] #arqade-episodes-scroll {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  @media (min-width: 768px) {
+    .arqade-fullpane-active [data-arqade-inline-card="true"] [data-arqade-split] {
+      flex-direction: row !important;
+      align-items: stretch !important;
+    }
+
+    .arqade-fullpane-active [data-arqade-inline-card="true"] [data-arqade-selected-pane] {
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      max-height: 100% !important;
+      overflow-y: auto !important;
+    }
+
+    .arqade-fullpane-active [data-arqade-inline-card="true"] [data-arqade-episodes-column] {
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+    }
   }
 
   /* Inline Tiqit play overlay (Arcade / ArcadeSingle on Qlink): same enter/leave

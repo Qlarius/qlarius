@@ -21,7 +21,7 @@ defmodule QlariusWeb.Components.TraitComponents do
         "h-full border rounded-lg bg-base-100 transition-all duration-300 ease-in-out",
         @tags_traits == [] &&
           "border-2 empty-trait-strobe border-youdata-500 dark:border-base-content",
-        @tags_traits != [] && "border-youdata-300 dark:border-youdata-500",
+        @tags_traits != [] && "border-youdata-500",
         @clickable && @editable && @tags_traits == [] &&
           @parent_trait_name not in ["Birthdate", "Age", "Sex (Bio)"] &&
           "cursor-pointer",

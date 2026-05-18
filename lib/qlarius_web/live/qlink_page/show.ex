@@ -33,7 +33,7 @@ defmodule QlariusWeb.QlinkPage.Show do
   # the strip peeks (translate) after a short beat, holds ~4s after the peek transition (~500ms),
   # then slides back to tab-only and collapses the disclaimer again.
   @sponster_drawer_slide_ms 300
-  @sponster_disclaimer_peek_pause_after_drawer_ms 150
+  @sponster_disclaimer_peek_pause_after_drawer_ms 650
   @disclaimer_dock_expand_ms 500
   @disclaimer_dock_hold_visible_ms 4000
 
@@ -1484,57 +1484,63 @@ defmodule QlariusWeb.QlinkPage.Show do
       |> assign(:arqade_fullpane_active?, fullpane?)
       |> assign(:arqade_fullpane_shell_leaving?, shell_leaving?)
 
-    # Non–full-pane: iframe-style cage (`height` + `max-height` from embed
-    # settings, inner `overflow-hidden`) so the qlink page does not grow with
-    # the episode list. Full-pane keeps `overflow-visible` on the shell.
+    # One shell + one `live_render` (see 82b0abc): toggle fixed full-pane via classes only.
+    # No JS portal — avoids blank flash when closing and keeps LiveView DOM stable.
     ~H"""
-    <%= if @arqade_fullpane_active? do %>
-      <div class="relative w-full" style={"min-height: #{@inline_arqade_height}px;"}>
-        <div
-          id={"arqade-embed-shell-#{@inline_arqade_dom_id}"}
-          phx-hook="BodyScrollLock"
-          data-body-scroll-lock="true"
-          class={[
-            "arqade-fullpane-active fixed inset-x-0 top-0 bottom-[50px] z-[45] flex w-full flex-col overflow-visible bg-base-100 shadow-2xl",
-            @arqade_fullpane_shell_leaving? && "arqade-fullpane-leaving"
-          ]}
-          phx-window-keydown="close-arqade-fullpane"
-          phx-key="Escape"
-        >
-          <div class="flex flex-none items-center justify-between gap-2 border-b border-base-300 bg-base-200 px-3 py-2">
-            <span class="truncate text-sm font-semibold text-base-content">Arqade</span>
-            <button
-              type="button"
-              phx-click="close-arqade-fullpane"
-              class="btn btn-ghost btn-sm btn-circle flex-shrink-0"
-              aria-label="Close full view"
-            >
-              <.icon name="hero-x-mark" class="h-5 w-5" />
-            </button>
-          </div>
-          <div class="min-h-0 flex-1 overflow-y-auto flex flex-col">
-            {live_render(@socket, @inline_arqade_module,
-              id: @inline_arqade_dom_id,
-              session: @inline_arqade_session
-            )}
-          </div>
-        </div>
-      </div>
-    <% else %>
+    <div
+      class={
+        if(@arqade_fullpane_active?,
+          do: "relative w-full",
+          else: "relative w-full flex flex-col min-h-0"
+        )
+      }
+      style={
+        if(@arqade_fullpane_active?,
+          do: "min-height: #{@inline_arqade_height}px;",
+          else: "height: #{@inline_arqade_height}px; max-height: #{@inline_arqade_height}px;"
+        )
+      }
+    >
       <div
-        id={"qlink-arqade-embed-cage-#{@inline_arqade_dom_id}"}
-        class="qlink-arqade-embed-cage relative w-full rounded-xl overflow-hidden"
-        style={"height: #{@inline_arqade_height}px; max-height: #{@inline_arqade_height}px;"}
+        id={"arqade-embed-shell-#{@inline_arqade_dom_id}"}
+        phx-hook="BodyScrollLock"
+        data-body-scroll-lock={to_string(@arqade_fullpane_active?)}
         data-qlink-arqade-embed-height={@inline_arqade_height}
+        class={[
+          "w-full",
+          !@arqade_fullpane_active? &&
+            "qlink-arqade-embed-cage h-full min-h-0 flex flex-col overflow-hidden rounded-xl",
+          @arqade_fullpane_active? &&
+            "arqade-fullpane-active fixed inset-x-0 top-0 bottom-0 z-[58] flex w-full flex-col overflow-hidden bg-base-100 shadow-2xl",
+          @arqade_fullpane_shell_leaving? && "arqade-fullpane-leaving"
+        ]}
+        phx-window-keydown={if(@arqade_fullpane_active?, do: "close-arqade-fullpane")}
+        phx-key={if(@arqade_fullpane_active?, do: "Escape")}
       >
-        <div class="qlink-arqade-embed-cage__inner h-full max-h-full min-h-0 overflow-hidden flex flex-col">
+        <button
+          :if={@arqade_fullpane_active?}
+          type="button"
+          phx-click="close-arqade-fullpane"
+          class="absolute top-2 right-2 z-[60] btn btn-ghost btn-sm btn-circle flex-shrink-0 bg-base-200/90 hover:bg-base-300 shadow-sm"
+          aria-label="Close full view"
+        >
+          <.icon name="hero-x-mark" class="h-5 w-5" />
+        </button>
+        <div
+          class={[
+            "qlink-arqade-embed-cage__inner h-full max-h-full min-h-0 flex flex-col",
+            !@arqade_fullpane_active? && "overflow-hidden",
+            @arqade_fullpane_active? &&
+              "arqade-fullpane-active__motion relative min-h-0 flex-1 overflow-hidden"
+          ]}
+        >
           {live_render(@socket, @inline_arqade_module,
             id: @inline_arqade_dom_id,
             session: @inline_arqade_session
           )}
         </div>
       </div>
-    <% end %>
+    </div>
     """
   end
 
