@@ -98,6 +98,23 @@ defmodule QlariusWeb.Plugs.InAppBrowserDetectionTest do
     assert %{"family" => "reddit", "os" => "ios"} = get_session(conn, "qlarius_iab")
   end
 
+  test "on Qlink host: infers reddit from reddit.com Referer when UA lacks Reddit token" do
+    ua =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/22G100"
+
+    conn =
+      :get
+      |> conn("https://qlinkin.bio/")
+      |> init_test_session(%{})
+      |> put_req_header("user-agent", ua)
+      |> put_req_header("referer", "https://www.reddit.com/r/test/")
+      |> fetch_session()
+      |> InAppBrowserDetection.call([])
+
+    assert %{family: :reddit, os: :ios, confidence: :medium} = conn.assigns.in_app_browser
+    assert %{"family" => "reddit", "os" => "ios"} = get_session(conn, "qlarius_iab")
+  end
+
   # Qlink host: stale IAB session data is cleared when the UA no longer matches.
   test "on Qlink host: clears assign and session for normal mobile Chrome" do
     ua =

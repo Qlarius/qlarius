@@ -19,7 +19,10 @@ defmodule QlariusWeb.Components.InAppBrowserEscape do
       |> assign(:platform_name, InAppClassifier.display_name(assigns.in_app_browser.family))
       |> assign(
         :escape_directions_style,
-        InAppClassifier.escape_directions_style(assigns.in_app_browser.family)
+        InAppClassifier.escape_directions_style(
+          assigns.in_app_browser.family,
+          assigns.in_app_browser.os
+        )
       )
 
     ~H"""
@@ -65,33 +68,72 @@ defmodule QlariusWeb.Components.InAppBrowserEscape do
           <% end %>
         </p>
 
-        <%= if @escape_directions_style == :browser_icon do %>
-          <p class="mt-3 text-sm text-base-content/80 leading-relaxed">
-            Look for the
-            <span class="iab-escape-open-browser-icon" aria-hidden="true">
-              <.iab_open_in_browser_icon />
-            </span>
-            icon at the top or bottom of this screen.
-          </p>
-        <% else %>
-          <p class="mt-3 text-sm text-base-content/80">
-            Usually:<br />
-            <kbd class="kbd kbd-sm align-middle mx-0.5">⋯</kbd>
-            →
-            <span class="font-semibold text-base-content">Open in External Browser</span>
-          </p>
+        <%= case @escape_directions_style do %>
+          <% :ios_browser_icon -> %>
+            <p class="mt-3 text-sm text-base-content/80 leading-relaxed">
+              Look for the
+              <span class="iab-escape-open-browser-icon" aria-hidden="true">
+                <.iab_safari_compass_icon />
+              </span>
+              icon at the top or bottom of this screen.
+            </p>
+          <% :android_browser_menu -> %>
+            <p class="mt-3 text-sm text-base-content/80 leading-relaxed">
+              Usually:
+              <kbd class="kbd kbd-sm align-middle mx-0.5">⋮</kbd>
+              →
+              <span class="font-semibold text-base-content">Open in browser</span>
+              <span class="text-base-content/70">, or look for the</span>
+              <span class="iab-escape-open-browser-icon iab-escape-open-browser-icon--android" aria-hidden="true">
+                <.iab_android_open_browser_icon />
+              </span>
+              <span class="text-base-content/70">icon in the toolbar.</span>
+            </p>
+          <% _ -> %>
+            <p class="mt-3 text-sm text-base-content/80">
+              Usually:<br />
+              <kbd class="kbd kbd-sm align-middle mx-0.5">⋯</kbd>
+              →
+              <span class="font-semibold text-base-content">Open in External Browser</span>
+            </p>
         <% end %>
       </div>
     </div>
     """
   end
 
-  defp iab_open_in_browser_icon(assigns) do
+  # Safari / iOS in-app toolbar: circle + tilted compass needle + center hub (see iOS X/Reddit IAB).
+  defp iab_safari_compass_icon(assigns) do
     ~H"""
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4">
-      <circle cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.75" />
-      <path d="M12 5.75 14.1 14.35 12 11.85 9.9 14.35 12 5.75Z" fill="currentColor" />
-      <circle cx="12" cy="12" r="1.15" fill="currentColor" />
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-[1.05rem] w-[1.05rem]" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.85" stroke="currentColor" stroke-width="1.5" />
+      <path
+        d="M12 5.85 15.55 12 12 18.15 8.45 12 12 5.85Z"
+        fill="currentColor"
+      />
+      <circle cx="12" cy="12" r="1.2" fill="var(--color-base-200, #f5f5f5)" />
+    </svg>
+    """
+  end
+
+  # Android in-app / Chrome Custom Tab: "open in browser" (box with outward arrow).
+  defp iab_android_open_browser_icon(assigns) do
+    ~H"""
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-[1.05rem] w-[1.05rem]" aria-hidden="true">
+      <path
+        d="M8.5 15.5H6.75A1.75 1.75 0 0 1 5 13.75V6.75A1.75 1.75 0 0 1 6.75 5h6.75A1.75 1.75 0 0 1 15.25 6.75V8.5"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+      <path
+        d="M11 13h6.25V6.75M11 13 18.5 5.5"
+        stroke="currentColor"
+        stroke-width="1.75"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
     </svg>
     """
   end

@@ -130,10 +130,22 @@ defmodule Qlarius.Browsers.InAppClassifierTest do
     assert InAppClassifier.display_name(:in_app_webview) == nil
   end
 
-  test "escape_directions_style is browser_icon for X/Twitter, menu for Meta apps" do
-    assert InAppClassifier.escape_directions_style(:twitter) == :browser_icon
-    assert InAppClassifier.escape_directions_style(:instagram) == :menu
-    assert InAppClassifier.escape_directions_style(:threads) == :menu
+  test "classify_with_referer infers Reddit from reddit.com referer when UA is generic mobile webkit" do
+    ua =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/22G100"
+
+    assert %{family: :reddit, os: :ios, confidence: :medium} =
+             InAppClassifier.classify_with_referer(ua, "https://www.reddit.com/r/elixir/comments/abc/")
+  end
+
+  test "escape_directions_style uses OS-specific toolbar hints for X and Reddit" do
+    assert InAppClassifier.escape_directions_style(:twitter, :ios) == :ios_browser_icon
+    assert InAppClassifier.escape_directions_style(:twitter, :android) == :android_browser_menu
+    assert InAppClassifier.escape_directions_style(:reddit, :ios) == :ios_browser_icon
+    assert InAppClassifier.escape_directions_style(:reddit, :android) == :android_browser_menu
+    assert InAppClassifier.display_name(:reddit) == "Reddit"
+    assert InAppClassifier.escape_directions_style(:instagram, :ios) == :menu
+    assert InAppClassifier.escape_directions_style(:threads, :android) == :menu
     assert InAppClassifier.escape_directions_style(:facebook) == :menu
     assert InAppClassifier.escape_directions_style(:tiktok) == :menu
   end

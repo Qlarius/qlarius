@@ -51,16 +51,25 @@ defmodule Qlarius.Browsers.InAppClassifier do
   @spec display_name(family()) :: String.t() | nil
   def display_name(family) when is_atom(family), do: Map.get(@display_names, family)
 
-  @type escape_directions_style :: :menu | :browser_icon
+  @type escape_directions_style :: :menu | :ios_browser_icon | :android_browser_menu
 
   @doc """
   How the Qlink IAB escape popover should describe opening an external browser.
-  `:menu` — ellipsis → "Open in External Browser" (Instagram, Threads, Facebook, etc.).
-  `:browser_icon` — compass / open-in-browser toolbar icon (X/Twitter).
+
+  * `:menu` — `⋯` → "Open in External Browser" (Instagram, Threads, Facebook, etc.).
+  * `:ios_browser_icon` — Safari-style compass toolbar icon (X, Reddit on iOS).
+  * `:android_browser_menu` — overflow menu → "Open in browser" (X, Reddit on Android).
   """
-  @spec escape_directions_style(family()) :: escape_directions_style()
-  def escape_directions_style(:twitter), do: :browser_icon
-  def escape_directions_style(_family), do: :menu
+  @spec escape_directions_style(family(), os()) :: escape_directions_style()
+  def escape_directions_style(family, os \\ :other)
+
+  def escape_directions_style(:twitter, os), do: toolbar_escape_style(os)
+  def escape_directions_style(:reddit, os), do: toolbar_escape_style(os)
+  def escape_directions_style(_family, _os), do: :menu
+
+  defp toolbar_escape_style(:android), do: :android_browser_menu
+  defp toolbar_escape_style(:ios), do: :ios_browser_icon
+  defp toolbar_escape_style(_), do: :ios_browser_icon
 
   # Matomo device-detector + inapp-spy (`\bTwitter`) — X still brands as "Twitter" in UA,
   # not "X for iPhone". See: https://docs.uaparser.dev/info/browser/name/twitter.html
@@ -99,7 +108,8 @@ defmodule Qlarius.Browsers.InAppClassifier do
         result
 
       nil ->
-        infer_twitter_from_referer(user_agent, referer)
+        infer_twitter_from_referer(user_agent, referer) ||
+          infer_reddit_from_referer(user_agent, referer)
     end
   end
 
@@ -196,6 +206,23 @@ defmodule Qlarius.Browsers.InAppClassifier do
   end
 
   defp infer_twitter_from_referer(_, _), do: nil
+
+  defp infer_reddit_from_referer(user_agent, referer) when is_binary(referer) do
+    ua = String.downcase(user_agent)
+    ref = String.downcase(referer)
+
+    if reddit_referer?(ref) and mobile_ua?(ua) do
+      %{family: :reddit, confidence: :medium, os: infer_os(ua)}
+    else
+      nil
+    end
+  end
+
+  defp infer_reddit_from_referer(_, _), do: nil
+
+  defp reddit_referer?(ref) do
+    String.contains?(ref, "reddit.com") or String.contains?(ref, "redd.it/")
+  end
 
   defp x_referer?(ref) do
     String.contains?(ref, "x.com") or String.contains?(ref, "twitter.com") or
