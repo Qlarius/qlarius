@@ -206,7 +206,7 @@ defmodule QlariusWeb.Components.AdminSidebar do
                   <a class="menu-item false" href={~p"/admin/global_variables"}>
                     <span class="grow">Global Variables</span>
                   </a>
-                  <a class="menu-item false" href="#">
+                  <a class="menu-item false" href={~p"/admin/sponster_ledger"}>
                     <span class="grow">Sponster Ledger</span>
                   </a>
                 </div>

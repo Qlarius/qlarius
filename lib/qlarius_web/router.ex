@@ -594,5 +594,13 @@ defmodule QlariusWeb.Router do
       live "/mefile_inspector", MeFileInspectorLive, :index
       live "/mefile_inspector/:id", MeFileInspectorLive.Show, :show
     end
+
+    live_session :admin_sponster_ledger,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
+      live "/sponster_ledger", SponsterLedgerLive, :index
+    end
   end
 end

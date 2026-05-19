@@ -94,13 +94,7 @@
         <%= case @entry_details.type do %>
           <% :ad_event -> %>
             <div class="space-y-4">
-              <!-- Marketer Info -->
-              <div class="space-y-2 text-sm bg-base-200 rounded-lg p-3">
-                <div class="flex justify-between">
-                  <span class="text-base-content/70">Marketer:</span>
-                  <span>{@entry_details.marketer_name}</span>
-                </div>
-              </div>
+              <QlariusWeb.Components.LedgerAdEventDetails.summary entry_details={@entry_details} />
 
               <h4 class="font-medium text-base-content">Ad Content</h4>
 

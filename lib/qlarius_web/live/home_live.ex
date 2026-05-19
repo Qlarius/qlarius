@@ -144,7 +144,7 @@ defmodule QlariusWeb.HomeLive do
           />
         <% end %>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="bg-base-200 rounded-lg p-4">
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-lg font-bold tracking-tight text-base-content/50">Own your data.</h2>
@@ -190,7 +190,7 @@ defmodule QlariusWeb.HomeLive do
             </div>
           </div>
 
-          <div class="bg-base-200 rounded-lg p-4">
+          <div class="bg-base-200 rounded-lg p-4 md:col-span-2">
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-lg font-bold tracking-tight text-base-content/50">Buy your media.</h2>
               <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />

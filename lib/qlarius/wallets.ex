@@ -13,6 +13,32 @@ defmodule Qlarius.Wallets do
   alias Qlarius.Tiqit.Arcade.Tiqit
   alias Qlarius.Sponster.Recipient
 
+  @sponster_ledger_header_id 1
+
+  def sponster_ledger_header_id, do: @sponster_ledger_header_id
+
+  def sponster_ledger_header do
+    Repo.get(LedgerHeader, @sponster_ledger_header_id)
+  end
+
+  def sponster_ledger_header! do
+    Repo.get!(LedgerHeader, @sponster_ledger_header_id)
+  end
+
+  def get_ledger_entry_for_header!(ledger_entry_id, ledger_header_id) do
+    Repo.one!(
+      from e in LedgerEntry,
+        where: e.id == ^ledger_entry_id and e.ledger_header_id == ^ledger_header_id,
+        preload: [
+          ad_event: [
+            :campaign,
+            campaign: :marketer,
+            media_piece: [:media_piece_type, :ad_category]
+          ]
+        ]
+    )
+  end
+
   # Added missing function that was being called from multiple LiveView modules
   def get_user_current_balance(%User{} = user) do
     # Delegate to existing function using user's me_file
@@ -243,13 +269,14 @@ defmodule Qlarius.Wallets do
 
   def update_sponster_ledger_from_ad_event(ad_event, phase_description, marketer_name) do
     Repo.transaction(fn ->
-      # Get the master sponster ledger header (with id 1
-      ledger_header = Repo.get!(LedgerHeader, 1)
+      ledger_header = sponster_ledger_header!()
 
       existing_ledger_entry =
         Repo.one(
           from e in LedgerEntry,
-            where: e.ad_event_id == ^ad_event.id and e.ledger_header_id == 1
+            where:
+              e.ad_event_id == ^ad_event.id and
+                e.ledger_header_id == ^@sponster_ledger_header_id
         )
 
       if existing_ledger_entry do

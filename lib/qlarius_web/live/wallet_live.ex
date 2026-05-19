@@ -10,9 +10,6 @@ defmodule QlariusWeb.WalletLive do
   alias Qlarius.Wallets
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
-  alias Qlarius.DateTime, as: QlariusDateTime
-  alias Qlarius.Sponster.Campaigns.Targets
-
   @impl true
   def mount(_params, session, socket) do
     current_scope = socket.assigns.current_scope
@@ -231,116 +228,11 @@ defmodule QlariusWeb.WalletLive do
               </.link>
             </div>
           <% else %>
-            <div class="flex justify-center mt-2 mb-6 space-x-2">
-              <div class="join">
-                <button
-                  phx-click="paginate"
-                  phx-value-page="1"
-                  class={"join-item btn btn-md #{if @page < 2, do: "btn-disabled"}"}
-                >
-                  Newest
-                </button>
-                <button
-                  phx-click="paginate"
-                  phx-value-page={if @page > 1, do: @page - 1, else: 1}
-                  class={"join-item btn btn-md #{if @page < 2, do: "btn-disabled"}"}
-                >
-                  <.icon name="hero-chevron-left" class="h-4 w-4" />
-                </button>
-                <div class="join-item btn btn-md btn-neutral">
-                  Page {@page}
-                </div>
-                <button
-                  phx-click="paginate"
-                  phx-value-page={@page + 1}
-                  class={"join-item btn btn-md #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
-                >
-                  <.icon name="hero-chevron-right" class="h-4 w-4" />
-                </button>
-                <button
-                  phx-click="paginate"
-                  phx-value-page="oldest"
-                  class={"join-item btn btn-md #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
-                >
-                  Oldest
-                </button>
-              </div>
-            </div>
-
-            <ul class="-mx-4 sm:mx-0 list bg-base-200 dark:!bg-base-200 sm:rounded-box shadow-md overflow-hidden">
-              <li
-                :for={entry <- @paginated_entries.entries}
-                class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100"
-                phx-click={
-                  %JS{}
-                  |> JS.push("select_ledger_entry", loading: "#right-sidebar-container")
-                  |> JS.add_class("translate-x-0", to: "#right-sidebar")
-                  |> JS.remove_class("translate-x-full", to: "#right-sidebar")
-                  |> JS.remove_class("opacity-0 pointer-events-none", to: "#right-sidebar-bg")
-                }
-                phx-value-entry_id={entry.id}
-              >
-                <div class="flex flex-col items-start justify-start mr-1">
-                  <span class={[
-                    "inline-flex items-center justify-center rounded-full w-8 h-8",
-                    if(Decimal.compare(entry.amt, 0) == :gt,
-                      do: "!bg-sponster-200 dark:!bg-sponster-800",
-                      else: "!bg-tiqit-200 dark:!bg-tiqit-800"
-                    )
-                  ]}>
-                    <.icon name={icon_for_entry(entry)} class="h-5 w-5 text-base-content" />
-                  </span>
-                </div>
-                <div class="list-col-grow">
-                  <div class="text-lg leading-snug">{entry.description}</div>
-                  <div class="text-base-content/50 text-sm">{entry.meta_1}</div>
-                  <div class="text-base-content/50 text-sm">
-                    {format_date(entry.created_at, assigns)}
-                  </div>
-                </div>
-                <div class="flex items-start">
-                  <div class="text-right mr-2">
-                    <div class="flex items-center gap-1">
-                      <span
-                        :if={Decimal.compare(entry.amt, 0) != 0}
-                        class={[
-                          "badge badge-md p-1 mr-1",
-                          if(Decimal.compare(entry.amt, 0) == :gt,
-                            do: "!bg-sponster-200 dark:!bg-sponster-800",
-                            else: "!bg-tiqit-200 dark:!bg-tiqit-800"
-                          )
-                        ]}
-                      >
-                        <.icon
-                          name={
-                            if(Decimal.compare(entry.amt, 0) == :gt,
-                              do: "hero-plus",
-                              else: "hero-minus"
-                            )
-                          }
-                          class="h-3 w-3 text-base-content"
-                        />
-                      </span>
-                      <span class={[
-                        "text-lg font-bold",
-                        if(Decimal.compare(entry.amt, 0) == :gt,
-                          do: "text-sponster-500 dark:text-sponster-300",
-                          else: "text-tiqit-500"
-                        )
-                      ]}>
-                        {format_currency(Decimal.abs(entry.amt))}
-                      </span>
-                    </div>
-                    <div class="text-base-content/50 text-sm">
-                      {format_currency(entry.running_balance)}
-                    </div>
-                  </div>
-                  <div class="text-base-content/50">
-                    <.icon name="hero-chevron-right" class="h-6 w-6" />
-                  </div>
-                </div>
-              </li>
-            </ul>
+            <QlariusWeb.Components.LedgerEntriesList.ledger_entries_list
+              paginated_entries={@paginated_entries}
+              page={@page}
+              current_scope={@current_scope}
+            />
           <% end %>
         <% end %>
 
@@ -361,15 +253,6 @@ defmodule QlariusWeb.WalletLive do
       />
     </div>
     """
-  end
-
-  # Helper functions
-  defp format_currency(amount) do
-    "$#{:erlang.float_to_binary(Decimal.to_float(amount), decimals: 2)}"
-  end
-
-  defp format_date(datetime, assigns) do
-    QlariusDateTime.format_for_user(datetime, assigns.current_scope.user, :short)
   end
 
   # Commented out unused function - not called anywhere in the codebase
@@ -397,7 +280,7 @@ defmodule QlariusWeb.WalletLive do
     cond do
       # Ad event entry
       entry.ad_event_id != nil ->
-        get_ad_event_details(entry.ad_event)
+        QlariusWeb.LedgerEntryDetails.ad_event_details(entry.ad_event)
 
       # Tiqit-related entry (purchase, undo, etc.)
       entry.tiqit_id != nil or String.contains?(entry.description, "Tiqit") ->
@@ -407,31 +290,6 @@ defmodule QlariusWeb.WalletLive do
       true ->
         %{type: :other, description: entry.description}
     end
-  end
-
-  defp get_ad_event_details(ad_event) do
-    ad_event =
-      ad_event
-      |> Repo.preload([
-        :campaign,
-        campaign: [:marketer],
-        media_piece: [:media_piece_type, :ad_category]
-      ])
-
-    matching_tags =
-      case ad_event.matching_tags_snapshot do
-        nil -> []
-        snapshot -> Targets.snapshot_to_tuples(snapshot)
-      end
-
-    %{
-      type: :ad_event,
-      ad_event: ad_event,
-      media_piece: ad_event.media_piece,
-      matching_tags: matching_tags,
-      campaign_title: ad_event.campaign && ad_event.campaign.title,
-      marketer_name: get_marketer_name(ad_event.campaign)
-    }
   end
 
   defp get_tiqit_purchase_details(entry) do
@@ -469,7 +327,8 @@ defmodule QlariusWeb.WalletLive do
     else
       reason =
         cond do
-          entry.meta_1 == "Tiqit Undo" -> :undone
+          entry.meta_1 in ["Tiqit Refund", "Tiqit Undo"] -> :undone
+          entry.description == "*REFUNDED*" -> :undone
           String.contains?(to_string(entry.description), "undo") -> :undone
           true -> :fleeted
         end
@@ -488,18 +347,10 @@ defmodule QlariusWeb.WalletLive do
     end
   end
 
-  defp get_marketer_name(campaign) when campaign != nil do
-    campaign = Repo.preload(campaign, :marketer)
-    campaign.marketer.business_name
-  end
-
-  defp get_marketer_name(_), do: "Unknown"
-
-  defp icon_for_entry(%{tiqit_id: tiqit_id}) when not is_nil(tiqit_id), do: "hero-ticket"
-  defp icon_for_entry(entry), do: icon_for_meta_1(entry.meta_1)
-
   def icon_for_meta_1("Tip/Donation"), do: "hero-gift"
   def icon_for_meta_1("Tiqit Purchase"), do: "hero-ticket"
+  def icon_for_meta_1("Tiqit Refund"), do: "hero-arrow-uturn-left"
+  def icon_for_meta_1("Tiqit Undo"), do: "hero-arrow-uturn-left"
   def icon_for_meta_1("Referral Bonus"), do: "hero-user-group"
   def icon_for_meta_1("Text/Jump"), do: "hero-arrow-right-start-on-rectangle"
   def icon_for_meta_1("Banner Tap"), do: "hero-photo"

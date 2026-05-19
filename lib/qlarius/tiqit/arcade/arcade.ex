@@ -697,7 +697,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
       undone_count =
         from(e in LedgerEntry,
           where: e.ledger_header_id == ^ledger_header.id,
-          where: e.meta_1 == "Tiqit Undo"
+          where: e.meta_1 in ["Tiqit Refund", "Tiqit Undo"]
         )
         |> Repo.aggregate(:count)
 
@@ -721,7 +721,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     if ledger_header do
       from(e in LedgerEntry,
         where: e.ledger_header_id == ^ledger_header.id,
-        where: e.meta_1 == "Tiqit Undo"
+        where: e.meta_1 in ["Tiqit Refund", "Tiqit Undo"]
       )
       |> Repo.aggregate(:count)
     else
@@ -921,8 +921,8 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
               ledger_header_id: consumer_ledger.id,
               amt: refund_amount,
               running_balance: new_consumer_balance,
-              description: "Tiqit undo (refund)",
-              meta_1: "Tiqit Undo"
+              description: "*REFUNDED*",
+              meta_1: "Tiqit Refund"
             }
             |> Repo.insert!()
 
@@ -951,7 +951,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
             end
 
             # Sanitize consumer's original purchase entry before unlinking
-            sanitize_consumer_ledger_entries(tiqit)
+            sanitize_consumer_ledger_entries(tiqit, "*REFUNDED*")
 
             # Mark tiqit as undone + fleet
             tiqit
@@ -977,7 +977,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     end
   end
 
-  defp sanitize_consumer_ledger_entries(%Tiqit{} = tiqit) do
+  defp sanitize_consumer_ledger_entries(%Tiqit{} = tiqit, description \\ "*FLEETED*") do
     if tiqit.me_file_id do
       consumer_ledger = Repo.get_by(LedgerHeader, me_file_id: tiqit.me_file_id)
 
@@ -986,7 +986,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
           where: e.tiqit_id == ^tiqit.id,
           where: e.ledger_header_id == ^consumer_ledger.id
         )
-        |> Repo.update_all(set: [description: "*FLEETED*"])
+        |> Repo.update_all(set: [description: description])
       end
     end
   end
