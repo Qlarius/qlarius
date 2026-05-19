@@ -10,6 +10,7 @@ defmodule QlariusWeb.WalletLive do
   alias Qlarius.Wallets
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
+  alias Qlarius.Sponster.Campaigns.Targets
   @impl true
   def mount(_params, session, socket) do
     current_scope = socket.assigns.current_scope
@@ -280,7 +281,7 @@ defmodule QlariusWeb.WalletLive do
     cond do
       # Ad event entry
       entry.ad_event_id != nil ->
-        QlariusWeb.LedgerEntryDetails.ad_event_details(entry.ad_event)
+        get_ad_event_details(entry.ad_event)
 
       # Tiqit-related entry (purchase, undo, etc.)
       entry.tiqit_id != nil or String.contains?(entry.description, "Tiqit") ->
@@ -290,6 +291,31 @@ defmodule QlariusWeb.WalletLive do
       true ->
         %{type: :other, description: entry.description}
     end
+  end
+
+  defp get_ad_event_details(ad_event) do
+    ad_event =
+      ad_event
+      |> Repo.preload([
+        :campaign,
+        campaign: [:marketer],
+        media_piece: [:media_piece_type, :ad_category]
+      ])
+
+    matching_tags =
+      case ad_event.matching_tags_snapshot do
+        nil -> []
+        snapshot -> Targets.snapshot_to_tuples(snapshot)
+      end
+
+    %{
+      type: :ad_event,
+      ad_event: ad_event,
+      media_piece: ad_event.media_piece,
+      matching_tags: matching_tags,
+      campaign_title: ad_event.campaign && ad_event.campaign.title,
+      marketer_name: get_marketer_name(ad_event.campaign)
+    }
   end
 
   defp get_tiqit_purchase_details(entry) do
@@ -346,6 +372,13 @@ defmodule QlariusWeb.WalletLive do
       }
     end
   end
+
+  defp get_marketer_name(campaign) when campaign != nil do
+    campaign = Repo.preload(campaign, :marketer)
+    campaign.marketer.business_name
+  end
+
+  defp get_marketer_name(_), do: "Unknown"
 
   def icon_for_meta_1("Tip/Donation"), do: "hero-gift"
   def icon_for_meta_1("Tiqit Purchase"), do: "hero-ticket"

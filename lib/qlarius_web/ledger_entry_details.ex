@@ -1,6 +1,6 @@
 defmodule QlariusWeb.LedgerEntryDetails do
   @moduledoc """
-  Shared ad-event ledger entry detail payloads for wallet and admin views.
+  Ad-event ledger entry detail payloads for admin views.
   """
 
   alias Qlarius.Repo
