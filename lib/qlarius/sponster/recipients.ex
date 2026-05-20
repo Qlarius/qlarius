@@ -12,7 +12,7 @@ defmodule Qlarius.Sponster.Recipients do
 
   def create_recipient(attrs \\ %{}) do
     attrs =
-      Map.put_new(attrs, :referral_code, Qlarius.Referrals.generate_referral_code("recipient"))
+      Map.put_new(attrs, "referral_code", Qlarius.Referrals.generate_referral_code("recipient"))
 
     %Recipient{}
     |> Recipient.changeset(attrs)
