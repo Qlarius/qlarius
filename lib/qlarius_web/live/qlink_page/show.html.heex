@@ -372,7 +372,7 @@
               </div>
 
               <%!-- min-h-0: flex-1 scroll area must shrink inside the drawer. --%>
-              <div class="flex min-h-0 flex-1 flex-col gap-8 overflow-y-auto bg-base-200 px-8 pb-12 pt-6 max-w-3xl mx-auto mt-1 md:!flex-row">
+              <div class="flex min-h-0 flex-1 flex-col gap-3 md:gap-8 overflow-y-auto bg-base-200 px-4 md:px-8 pb-6 md:pb-12 pt-4 md:pt-6 max-w-3xl mx-auto mt-1 md:!flex-row">
                 <%!-- Left: AutoSplit + InstaTip --%>
                 <div class="flex-1 flex flex-col items-center md:items-start">
                   <%!-- AutoSplit Section --%>
@@ -381,11 +381,11 @@
                     force_light={true}
                   />
 
-                  <div class="divider my-4 w-full max-w-[280px] mx-auto"></div>
+                  <div class="divider my-2 md:my-4 w-full max-w-[280px] mx-auto"></div>
 
                   <%!-- InstaTip Section --%>
                   <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
-                  <div class="text-base-content/70 text-sm mb-4">
+                  <div class="text-base-content/70 text-sm mb-2 md:mb-4">
                     Instantly tip from your wallet
                     <.icon name="hero-arrow-right" class="w-4 h-4 inline-block" />
                     <span class="inline-flex items-center text-lg bg-sponster-200 text-base-content px-3 py-1 rounded-lg border border-sponster-300">
@@ -400,16 +400,16 @@
                 </div>
 
                 <%!-- Divider above recipient (mobile only) --%>
-                <div class="border-divider-color my-4 w-full max-w-[280px] mx-auto md:hidden"></div>
+                <div class="border-divider-color my-2 md:my-4 w-full max-w-[280px] mx-auto md:hidden"></div>
 
                 <%!-- Right: Recipient --%>
-                <div class="flex-1 flex flex-col items-center pt-6 md:pt-0">
+                <div class="flex-1 flex flex-col items-center pt-1 md:pt-0">
                   <%= if @recipient do %>
-                    <div class="text-2xl font-bold text-base-content mb-2 text-center">
+                    <div class="text-2xl font-bold text-base-content mb-1 md:mb-2 text-center">
                       {@recipient.name || "Recipient"}
                     </div>
-                    <div class="flex flex-col items-center gap-4">
-                      <div class="w-40 h-auto bg-base-300 shadow-md flex items-center justify-center overflow-hidden rounded">
+                    <div class="flex flex-col items-center gap-2 md:gap-4">
+                      <div class="w-32 md:w-40 h-auto bg-base-300 shadow-md flex items-center justify-center overflow-hidden rounded">
                         <img
                           src={
                             if @recipient.graphic_url do

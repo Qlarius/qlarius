@@ -24,6 +24,7 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
     field :strong_start_data, :map, default: %{}
     field :split_reminder_dismissed_at, :utc_datetime
     field :split_reminder_shown_count, :integer, default: 0
+    field :tag_display_mode, :string, default: "tag"
 
     belongs_to :user, User
     has_one :ledger_header, LedgerHeader
@@ -48,11 +49,13 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
       :strong_start_completed_at,
       :strong_start_data,
       :split_reminder_dismissed_at,
-      :split_reminder_shown_count
+      :split_reminder_shown_count,
+      :tag_display_mode
     ])
     |> validate_required([:user_id])
     |> validate_number(:split_amount, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
     |> validate_inclusion(:strong_start_status, ["active", "completed", "skipped", "dismissed"])
+    |> validate_inclusion(:tag_display_mode, ~w(tag block list))
     |> foreign_key_constraint(:user_id)
   end
 
@@ -171,6 +174,12 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
       when is_integer(split_amount) do
     me_file
     |> Ecto.Changeset.change(split_amount: split_amount)
+    |> Repo.update()
+  end
+
+  def update_tag_display_mode(%__MODULE__{} = me_file, mode) when mode in ~w(tag block list) do
+    me_file
+    |> Ecto.Changeset.change(tag_display_mode: mode)
     |> Repo.update()
   end
 

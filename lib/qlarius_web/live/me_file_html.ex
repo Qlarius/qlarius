@@ -326,4 +326,250 @@ defmodule QlariusWeb.MeFileHTML do
     </div>
     """
   end
+
+  attr :tag_search, :string, required: true
+
+  def tag_search_input(assigns) do
+    ~H"""
+    <form phx-change="tag_search_changed" class="flex-1 min-w-0">
+      <label class="input input-bordered input-sm flex items-center gap-2 w-full">
+        <.icon name="hero-magnifying-glass" class="h-4 w-4 opacity-50 shrink-0" aria-hidden="true" />
+        <input
+          type="search"
+          name="tag_search"
+          value={@tag_search}
+          autocomplete="off"
+          aria-label="Search tags"
+          class="grow min-w-0 bg-transparent outline-none"
+        />
+        <button
+          :if={@tag_search != ""}
+          type="button"
+          phx-click="clear_tag_search"
+          class="btn btn-ghost btn-xs btn-circle shrink-0"
+          aria-label="Clear search"
+        >
+          <.icon name="hero-x-mark" class="h-4 w-4" />
+        </button>
+      </label>
+    </form>
+    """
+  end
+
+  attr :tag_display_mode, :string, required: true
+
+  def tag_display_mode_dropdown(assigns) do
+    ~H"""
+    <div class="dropdown dropdown-end shrink-0">
+      <div
+        tabindex="0"
+        role="button"
+        class="btn btn-ghost btn-sm btn-square"
+        aria-label={"Tag display: #{tag_display_mode_label(@tag_display_mode)}"}
+      >
+        <.icon name={tag_display_mode_icon(@tag_display_mode)} class="h-5 w-5" />
+      </div>
+      <ul
+        tabindex="0"
+        class="dropdown-content menu bg-base-100 rounded-box z-50 mt-1 w-auto min-w-0 border border-base-300 p-1 shadow-lg"
+      >
+        <li :for={mode <- ~w(tag block list)}>
+          <button
+            type="button"
+            phx-click="set_tag_display_mode"
+            phx-value-mode={mode}
+            class={[
+              "btn btn-ghost btn-sm btn-square",
+              @tag_display_mode == mode && "active bg-youdata-300/50 dark:bg-youdata-800/50"
+            ]}
+            aria-label={tag_display_mode_label(mode)}
+            aria-current={@tag_display_mode == mode && "true"}
+          >
+            <.icon name={tag_display_mode_icon(mode)} class="h-5 w-5" />
+          </button>
+        </li>
+      </ul>
+    </div>
+    """
+  end
+
+  attr :me_file_tag_map_by_category_trait_tag, :any, required: true
+  attr :tag_display_mode, :string, required: true
+  attr :tag_search, :string, default: ""
+
+  def tags_display(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :me_file_tag_map_by_category_trait_tag,
+        filter_tag_map_by_search(
+          assigns.me_file_tag_map_by_category_trait_tag,
+          assigns.tag_search
+        )
+      )
+
+    ~H"""
+    <div
+      :if={Enum.empty?(@me_file_tag_map_by_category_trait_tag) and tag_search_active?(@tag_search)}
+      class="text-center py-12 text-base-content/60"
+    >
+      <p>No tags match your search.</p>
+    </div>
+    <div :for={{{_id, name, _display_order}, parent_traits} <- @me_file_tag_map_by_category_trait_tag}>
+      <div class="flex flex-row justify-between items-baseline mb-4">
+        <h2 class="text-xl font-medium">{name}</h2>
+        <span class="text-lg text-gray-500">
+          {length(parent_traits)} tags
+        </span>
+      </div>
+
+      <div class="rounded-xl bg-base-100 shadow-sm border border-youdata-500 overflow-hidden">
+      <%= case @tag_display_mode do %>
+        <% "block" -> %>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
+            <.trait_card
+              :for={
+                {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
+                  parent_traits
+              }
+              parent_trait_id={parent_trait_id}
+              parent_trait_name={parent_trait_name}
+              tags_traits={tags_traits}
+              clickable={false}
+              display_mode="block"
+              extra_classes="h-full"
+            />
+          </div>
+        <% "list" -> %>
+          <ul class="bg-base-100 overflow-hidden [&>li:first-child>div:first-child]:border-t-0">
+            <li
+              :for={
+                {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
+                  parent_traits
+              }
+              id={"trait-card-#{parent_trait_id}"}
+              phx-hook="AnimateTrait"
+            >
+              <div class="bg-base-300/50 dark:bg-base-700/45 border-t-2 border-youdata-500 text-base-content px-4 py-3 flex items-center justify-between gap-2">
+                <span class="text-lg font-bold leading-tight min-w-0 text-youdata-800 dark:text-youdata-200">
+                  {parent_trait_name}
+                </span>
+                <.trait_actions
+                  parent_trait_id={parent_trait_id}
+                  parent_trait_name={parent_trait_name}
+                  actions_class="flex gap-3 shrink-0"
+                />
+              </div>
+              <div class="py-2">
+                <ul
+                  :if={tags_traits != []}
+                  class="ps-6 pe-4 space-y-1 border-l-2 border-youdata-500/50 ms-4"
+                >
+                  <li
+                    :for={{_tag_id, tag_value, _display_order} <- tags_traits}
+                    class="text-base leading-tight text-base-content/80 py-0.5"
+                  >
+                    {tag_value}
+                  </li>
+                </ul>
+                <p
+                  :if={tags_traits == []}
+                  class="ps-6 pe-4 text-base leading-tight italic text-base-content/70 border-l-2 border-youdata-500/50 ms-4"
+                >
+                  {empty_tag_tease_message()}
+                </p>
+              </div>
+            </li>
+          </ul>
+        <% _ -> %>
+          <div class="flex flex-row flex-wrap gap-4 p-4">
+            <.trait_card
+              :for={
+                {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
+                  parent_traits
+              }
+              parent_trait_id={parent_trait_id}
+              parent_trait_name={parent_trait_name}
+              tags_traits={tags_traits}
+              clickable={false}
+              display_mode="tag"
+            />
+          </div>
+      <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Filters the me-file tag map by search text.
+
+  When a parent trait name or any child tag value matches, the full parent
+  entry (all child tags) is kept. Categories with no matching parents are omitted.
+  """
+  def filter_tag_map_by_search(tag_categories, search) when search in [nil, ""],
+    do: normalize_tag_categories(tag_categories)
+
+  def filter_tag_map_by_search(tag_categories, search) do
+    needle =
+      search
+      |> to_string()
+      |> String.trim()
+      |> String.downcase()
+
+    if needle == "" do
+      normalize_tag_categories(tag_categories)
+    else
+      tag_categories
+      |> normalize_tag_categories()
+      |> Enum.map(fn {category, parent_traits} ->
+        {category, Enum.filter(parent_traits, &parent_trait_matches_search?(&1, needle))}
+      end)
+      |> Enum.reject(fn {_category, parent_traits} -> parent_traits == [] end)
+    end
+  end
+
+  defp normalize_tag_categories(tag_categories) when is_list(tag_categories), do: tag_categories
+
+  defp normalize_tag_categories(tag_categories) when is_map(tag_categories) do
+    tag_categories
+    |> Map.to_list()
+    |> Enum.sort_by(fn {{_id, name, display_order}, _parent_traits} -> [display_order, name] end)
+  end
+
+  defp parent_trait_matches_search?({_id, parent_name, _order, tags_traits}, needle) do
+    text_matches_search?(parent_name, needle) or
+      Enum.any?(tags_traits, fn {_id, tag_value, _order} ->
+        text_matches_search?(tag_value, needle)
+      end)
+  end
+
+  defp text_matches_search?(text, needle) do
+    text
+    |> to_string()
+    |> String.downcase()
+    |> String.contains?(needle)
+  end
+
+  defp tag_search_active?(search) do
+    search |> to_string() |> String.trim() != ""
+  end
+
+  defp tag_display_mode_label("tag"), do: "Tags"
+  defp tag_display_mode_label("block"), do: "Blocks"
+  defp tag_display_mode_label("list"), do: "List"
+  defp tag_display_mode_label(_), do: "Tags"
+
+  defp tag_display_mode_icon("tag"), do: "hero-tag"
+  defp tag_display_mode_icon("block"), do: "hero-squares-2x2"
+  defp tag_display_mode_icon("list"), do: "hero-bars-3-bottom-left"
+  defp tag_display_mode_icon(_), do: "hero-tag"
+
+  defp empty_tag_tease_message do
+    if function_exported?(Qlarius.YouData.TagTeaseAgent, :next_message, 0) do
+      Qlarius.YouData.TagTeaseAgent.next_message()
+    else
+      "Click to add tags"
+    end
+  end
 end

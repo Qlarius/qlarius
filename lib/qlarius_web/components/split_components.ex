@@ -108,7 +108,7 @@ defmodule QlariusWeb.Components.SplitComponents do
     ~H"""
     <div class="flex flex-col items-center">
       <div class="text-lg font-bold text-base-content mb-1">AutoSplit</div>
-      <div class="text-base-content/70 text-sm mb-4 text-center">
+      <div class="text-base-content/70 text-sm mb-2 md:mb-4 text-center">
         Automatically tip a percentage from each ad engaged on this site.
       </div>
       <div class="inline-flex rounded-lg overflow-hidden border border-base-300 bg-base-100 divide-x divide-base-300">
@@ -186,17 +186,17 @@ defmodule QlariusWeb.Components.SplitComponents do
       </div>
 
       <%!-- Content --%>
-      <div class="flex flex-col md:flex-row gap-8 px-8 pt-6 pb-8 overflow-y-auto max-w-[800px] mx-auto">
+      <div class="flex flex-col md:flex-row gap-3 md:gap-8 px-4 md:px-8 pt-4 md:pt-6 pb-6 md:pb-8 overflow-y-auto max-w-[800px] mx-auto">
         <%!-- Left: AutoSplit + InstaTip --%>
         <div class="flex-1 flex flex-col items-center md:items-start">
           <%!-- AutoSplit Section --%>
           <.auto_split_controls split_amount={@split_amount} force_light={@force_light} />
 
-          <div class="divider my-6"></div>
+          <div class="divider my-3 md:my-6"></div>
 
           <%!-- InstaTip Section --%>
           <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
-          <div class="text-base-content/70 text-sm mb-4">
+          <div class="text-base-content/70 text-sm mb-2 md:mb-4">
             Instantly tip from your wallet
             <.icon name="hero-arrow-right" class="w-4 h-4 inline-block" />
             <span class="inline-flex items-center text-lg bg-widget-100 text-widget-900 px-3 py-1 rounded-lg border border-widget-300">
@@ -211,13 +211,13 @@ defmodule QlariusWeb.Components.SplitComponents do
         </div>
 
         <%!-- Right: Recipient --%>
-        <div class="flex-1 flex flex-col items-center border-divider-color pt-6 md:pt-0 md:border-none">
+        <div class="flex-1 flex flex-col items-center border-divider-color pt-1 md:pt-0 md:border-none">
           <%= if @recipient do %>
-            <div class="text-2xl font-bold text-base-content mb-2 text-center">
+            <div class="text-2xl font-bold text-base-content mb-1 md:mb-2 text-center">
               {@recipient.name || "Recipient"}
             </div>
-            <div class="flex flex-col items-center gap-4">
-              <div class="w-40 h-auto bg-base-300 shadow-md flex items-center justify-center overflow-hidden rounded">
+            <div class="flex flex-col items-center gap-2 md:gap-4">
+              <div class="w-32 md:w-40 h-auto bg-base-300 shadow-md flex items-center justify-center overflow-hidden rounded">
                 <img
                   src={
                     if @recipient.graphic_url do

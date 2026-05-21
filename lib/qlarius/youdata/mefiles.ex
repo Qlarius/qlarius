@@ -11,6 +11,10 @@ defmodule Qlarius.YouData.MeFiles do
     Repo.one(from mf in MeFile, where: mf.user_id == ^user_id)
   end
 
+  def update_tag_display_mode(%MeFile{} = me_file, mode) when mode in ~w(tag block list) do
+    MeFile.update_tag_display_mode(me_file, mode)
+  end
+
   def is_initialized?(%MeFile{} = me_file) do
     has_sex? = has_tag_with_parent_trait?(me_file.id, 1)
     has_age? = has_tag_with_parent_trait?(me_file.id, 93)

@@ -32,38 +32,22 @@ defmodule QlariusWeb.MeFileLive do
           />
         </:modals>
 
-        <div class="mb-8 flex gap-2 justify-start items-center">
+        <div class="mb-8 space-y-4">
           <div class="text-xl">
             Manage your tags below.
+          </div>
+          <div class="flex flex-row items-center gap-2">
+            <.tag_search_input tag_search={@tag_search} />
+            <.tag_display_mode_dropdown tag_display_mode={@tag_display_mode} />
           </div>
         </div>
 
         <div class="space-y-8 py-6 pb-24">
-          <div :for={
-            {{_id, name, _display_order}, parent_traits} <- @me_file_tag_map_by_category_trait_tag
-          }>
-            <div class="flex flex-row justify-between items-baseline mb-4">
-              <h2 class="text-xl font-medium">{name}</h2>
-              <span class="text-lg text-gray-500">
-                {length(parent_traits)} tags
-              </span>
-            </div>
-
-            <div class="flex flex-row flex-wrap gap-4">
-              <.trait_card
-                :for={
-                  {parent_trait_id, parent_trait_name, parent_trait_display_order, tags_traits} <-
-                    parent_traits
-                }
-                parent_trait_id={parent_trait_id}
-                parent_trait_name={parent_trait_name}
-                tags_traits={tags_traits}
-                clickable={false}
-              />
-            </div>
-
-            <div class="mt-8 border-b border-neutral-300 dark:border-neutral-500"></div>
-          </div>
+          <.tags_display
+            me_file_tag_map_by_category_trait_tag={@me_file_tag_map_by_category_trait_tag}
+            tag_display_mode={@tag_display_mode}
+            tag_search={@tag_search}
+          />
 
           <%!-- Inline Tagger button at bottom of list --%>
           <div
@@ -260,6 +244,27 @@ defmodule QlariusWeb.MeFileLive do
     {:noreply, assign(socket, :show_expanded_tags, !socket.assigns.show_expanded_tags)}
   end
 
+  def handle_event("tag_search_changed", %{"tag_search" => search}, socket) do
+    {:noreply, assign(socket, :tag_search, search)}
+  end
+
+  def handle_event("clear_tag_search", _params, socket) do
+    {:noreply, assign(socket, :tag_search, "")}
+  end
+
+  def handle_event("set_tag_display_mode", %{"mode" => mode}, socket)
+      when mode in ~w(tag block list) do
+    me_file = socket.assigns.current_scope.user.me_file
+
+    case MeFiles.update_tag_display_mode(me_file, mode) do
+      {:ok, updated_me_file} ->
+        {:noreply, assign(socket, :tag_display_mode, updated_me_file.tag_display_mode)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not update display mode")}
+    end
+  end
+
   def handle_event("sync_tag_selection", params, socket) do
     case socket.assigns.trait_in_edit do
       %{input_type: type} when type in ["multi_select", "single_select"] ->
@@ -294,7 +299,6 @@ defmodule QlariusWeb.MeFileLive do
         |> Enum.reject(fn {_category, parent_traits} ->
           parent_traits == []
         end)
-        |> Map.new()
       end)
       |> assign(:selected_child_trait_ids, [])
 
@@ -316,8 +320,20 @@ defmodule QlariusWeb.MeFileLive do
     |> assign(:zip_lookup_valid, false)
     |> assign(:zip_lookup_error, nil)
     |> assign(:show_expanded_tags, false)
+    |> assign(:tag_search, "")
+    |> assign_tag_display_mode()
     |> init_pwa_assigns(session)
     |> ok()
+  end
+
+  defp assign_tag_display_mode(socket) do
+    mode =
+      case socket.assigns.current_scope.user.me_file do
+        %{tag_display_mode: mode} when mode in ~w(tag block list) -> mode
+        _ -> "tag"
+      end
+
+    assign(socket, :tag_display_mode, mode)
   end
 
   defp assign_me_file_tags(socket) do
