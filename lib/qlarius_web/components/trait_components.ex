@@ -70,10 +70,10 @@ defmodule QlariusWeb.Components.TraitComponents do
     <div
       id={"trait-card-#{@parent_trait_id}"}
       class={[
-        "trait-card-animate border rounded-lg bg-base-100 transition-shadow duration-300 ease-in-out",
+        "trait-card-animate rounded-lg border-x border-b bg-base-100 transition-shadow duration-300 ease-in-out",
+        "border-base-300/65 dark:border-base-content/10",
         @block_mode? && "h-full flex flex-col",
         !@block_mode? && "h-full",
-        "border-youdata-500",
         @tap_to_edit? && "cursor-pointer hover:shadow-md hover:z-10 relative",
         @extra_classes
       ]}
