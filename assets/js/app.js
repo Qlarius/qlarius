@@ -2000,6 +2000,24 @@ window.addEventListener("phx:scroll-tag-list-to-top", () => {
   }
 })
 
+Hooks.MeFilePanelScroll = {
+  mounted() {
+    this.handleEvent("scroll-mefile-tags-to-top", () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => this._scrollPanelToTop())
+      })
+    })
+  },
+
+  _scrollPanelToTop() {
+    const tagsDisplay = document.getElementById("mefile-tags-display")
+    const scrollContainer = tagsDisplay?.closest(".panel-scroll")
+    if (scrollContainer) {
+      scrollContainer.scrollTop = 0
+    }
+  },
+}
+
 // Extension detection for logging/debugging
 const urlParams = new URLSearchParams(window.location.search)
 const isExtension = urlParams.get('extension') === 'true'

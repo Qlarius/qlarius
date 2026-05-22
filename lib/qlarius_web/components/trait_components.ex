@@ -73,18 +73,29 @@ defmodule QlariusWeb.Components.TraitComponents do
         "trait-card-animate border rounded-lg bg-base-100 transition-shadow duration-300 ease-in-out",
         @block_mode? && "h-full flex flex-col",
         !@block_mode? && "h-full",
-        @tags_traits == [] && "empty-trait-strobe border-transparent",
-        @tags_traits != [] && "border-youdata-500",
+        "border-youdata-500",
         @tap_to_edit? && "cursor-pointer hover:shadow-md hover:z-10 relative",
         @extra_classes
       ]}
-      style={@tags_traits == [] && "--animation-delay: #{@strobe_delay_ms}ms"}
       phx-click={@tap_to_edit? && "edit_tags"}
       phx-value-id={@tap_to_edit? && @parent_trait_id}
     >
       <div class={["overflow-hidden rounded-lg", @block_mode? && "flex flex-col flex-1 min-h-0"]}>
-        <div class="bg-base-300/50 dark:bg-base-700/45 border-t-2 border-youdata-500 text-base-content px-4 py-3 text-lg font-bold leading-tight flex justify-between items-center shrink-0">
-          <span class="min-w-0 text-youdata-800 dark:text-youdata-200">{@parent_trait_name}</span>
+        <div
+          class={[
+            "border-t-2 border-youdata-500 text-base-content px-4 py-3 text-lg font-bold leading-tight flex justify-between items-center shrink-0",
+            "bg-base-300/50 dark:bg-base-700/45",
+            @tags_traits == [] && "empty-trait-header-strobe"
+          ]}
+          style={@tags_traits == [] && "--animation-delay: #{@strobe_delay_ms}ms"}
+        >
+          <span class={[
+            "min-w-0 font-bold leading-tight",
+            @tags_traits == [] && "text-base-content/65 dark:text-base-content/75",
+            @tags_traits != [] && "text-youdata-800 dark:text-youdata-200"
+          ]}>
+            {@parent_trait_name}
+          </span>
           <.trait_actions
             parent_trait_id={@parent_trait_id}
             parent_trait_name={@parent_trait_name}
@@ -95,8 +106,7 @@ defmodule QlariusWeb.Components.TraitComponents do
         <div class={[
           "p-0 max-h-[245px] overflow-y-auto",
           @block_mode? && @tags_traits != [] && "flex flex-1 flex-col min-h-0",
-          !@block_mode? && "space-y-1",
-          @tags_traits == [] && "bg-warning/30"
+          !@block_mode? && "space-y-1"
         ]}>
           <div :if={@block_mode? && @tags_traits != []} class="shrink-0">
             <div
@@ -119,7 +129,7 @@ defmodule QlariusWeb.Components.TraitComponents do
             <div class="px-4 py-0.5 leading-tight">{tag_value}</div>
           </div>
           <div :if={@tags_traits == []} class="mx-0 my-1 text-base leading-tight">
-            <div class="px-4 py-0.5 italic text-base-content/70 leading-tight">
+            <div class="px-4 py-0.5 italic text-base-content/40 leading-tight">
               {empty_tag_tease_message()}
             </div>
           </div>

@@ -13,7 +13,7 @@ defmodule QlariusWeb.MeFileLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id="mefile-pwa-detect" phx-hook="HiPagePWADetect">
+    <div id="mefile-pwa-detect" phx-hook="HiPagePWADetect MeFilePanelScroll">
       <Layouts.mobile {assigns}>
         <:modals>
           <.tag_edit_modal
@@ -40,9 +40,10 @@ defmodule QlariusWeb.MeFileLive do
 
         <div class="pt-2 pb-32">
           <.tags_display
-            me_file_tag_map_by_category_trait_tag={@me_file_tag_map_by_category_trait_tag}
+            tag_display_map={@tag_display_map}
             tag_display_mode={@tag_display_mode}
             tag_search={@tag_search}
+            tag_search_epoch={@tag_search_epoch}
           />
 
           <%!-- Inline Tagger button at bottom of list --%>
@@ -179,6 +180,7 @@ defmodule QlariusWeb.MeFileLive do
       |> assign(:selected_child_trait_ids, Enum.map(elem(updated_parent_tuple, 3), &elem(&1, 0)))
       |> assign(:show_modal, false)
       |> assign(:show_delete_confirm, false)
+      |> assign_filtered_tag_display()
       |> push_event("animate_trait", %{trait_id: trait_id, delay_ms: 250, value: "update_pulse"})
 
     {:noreply, socket}
@@ -233,6 +235,13 @@ defmodule QlariusWeb.MeFileLive do
      |> assign(:show_view_menu, false)}
   end
 
+  def handle_event("hide_tag_search", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_tag_search, false)
+     |> assign(:show_view_menu, false)}
+  end
+
   def handle_event("toggle_view_menu", _params, socket) do
     show = !socket.assigns.show_view_menu
 
@@ -242,16 +251,26 @@ defmodule QlariusWeb.MeFileLive do
      |> assign(:show_tag_search, false)}
   end
 
-  def handle_event("tag_search_changed", %{"tag_search" => search}, socket) do
-    {:noreply, assign(socket, :tag_search, search)}
+  def handle_event("tag_search_changed", params, socket) do
+    search = Map.get(params, "tag_search", "")
+
+    {:noreply,
+     socket
+     |> assign(:tag_search, search)
+     |> assign_filtered_tag_display()
+     |> bump_tag_search_epoch()
+     |> push_event("scroll-mefile-tags-to-top", %{})}
   end
 
   def handle_event("clear_tag_search", _params, socket) do
     {:noreply,
      socket
      |> assign(:tag_search, "")
-     |> assign(:show_tag_search, false)
-     |> assign(:show_view_menu, false)}
+     |> assign(:show_view_menu, false)
+     |> assign_me_file_tags()
+     |> assign_filtered_tag_display()
+     |> bump_tag_search_epoch()
+     |> push_event("scroll-mefile-tags-to-top", %{})}
   end
 
   def handle_event("set_tag_display_mode", %{"mode" => mode}, socket)
@@ -308,6 +327,7 @@ defmodule QlariusWeb.MeFileLive do
         |> Enum.reject(fn {_category, parent_traits} -> parent_traits == [] end)
       end)
       |> assign(:selected_child_trait_ids, [])
+      |> assign_filtered_tag_display()
 
     {:noreply, socket}
   end
@@ -328,9 +348,11 @@ defmodule QlariusWeb.MeFileLive do
     |> assign(:zip_lookup_error, nil)
     |> assign(:show_expanded_tags, false)
     |> assign(:tag_search, "")
+    |> assign(:tag_search_epoch, 0)
     |> assign(:show_tag_search, false)
     |> assign(:show_view_menu, false)
     |> assign_tag_display_mode()
+    |> assign_filtered_tag_display()
     |> init_pwa_assigns(session)
     |> ok()
   end
@@ -353,6 +375,20 @@ defmodule QlariusWeb.MeFileLive do
       :me_file_tag_map_by_category_trait_tag,
       MeFiles.me_file_tag_map_by_category_trait_tag(me_file_id)
     )
+  end
+
+  defp assign_filtered_tag_display(socket) do
+    display_map =
+      filter_tag_map_by_search(
+        socket.assigns.me_file_tag_map_by_category_trait_tag,
+        socket.assigns.tag_search
+      )
+
+    assign(socket, :tag_display_map, display_map)
+  end
+
+  defp bump_tag_search_epoch(socket) do
+    assign(socket, :tag_search_epoch, socket.assigns.tag_search_epoch + 1)
   end
 
   defp child_trait_ids_from_form_params(params) do

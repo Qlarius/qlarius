@@ -313,16 +313,19 @@ defmodule QlariusWeb.MeFileHTML do
     ~H"""
     <form phx-change="tag_search_changed" class="flex-1 min-w-0 w-full">
       <label class={[
-        "input flex items-center gap-2 w-full shadow-lg bg-base-100 dark:bg-base-200 border-base-300",
+        "input flex w-full items-center gap-2 min-w-0 shadow-lg bg-base-100 dark:bg-base-200 border-base-300",
         @compact && "input-sm rounded-full",
         !@compact && "input-bordered input-sm"
       ]}>
         <.icon name="hero-magnifying-glass" class="h-4 w-4 opacity-50 shrink-0" />
         <input
           id="mefile-tag-search-input"
-          type="search"
+          type="text"
           name="tag_search"
           value={@tag_search}
+          inputmode="search"
+          enterkeyhint="search"
+          role="searchbox"
           autocomplete="off"
           aria-label="Search tags"
           autofocus={@autofocus}
@@ -333,7 +336,7 @@ defmodule QlariusWeb.MeFileHTML do
           type="button"
           phx-click="clear_tag_search"
           class="btn btn-ghost btn-xs btn-circle shrink-0"
-          aria-label="Clear search"
+          aria-label="Clear search text"
         >
           <.icon name="hero-x-mark" class="h-4 w-4" />
         </button>
@@ -350,73 +353,101 @@ defmodule QlariusWeb.MeFileHTML do
   attr :show_search, :boolean, default: true
 
   def mefile_floating_toolbar(assigns) do
+    assigns = assign(assigns, :compact_toolbar?, !assigns.show_add_tags && !assigns.show_search)
+
     ~H"""
     <div
       id="mefile-floating-toolbar"
-      class="fixed right-6 bottom-[6.5rem] z-40 flex flex-col-reverse items-end gap-3 max-w-[min(100vw-3rem,20rem)]"
+      class="fixed right-4 bottom-[5.75rem] z-40 max-w-[calc(100vw-2rem)] pointer-events-none"
     >
-      <.link
-        :if={@show_add_tags}
-        id="floating-tagger-btn"
-        navigate={~p"/me_file_builder"}
-        class="btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg transition-opacity duration-300"
+      <div
+        id="mefile-floating-toolbar-inner"
+        phx-click-away={@show_search && @show_tag_search && "hide_tag_search"}
+        class="flex flex-col items-end gap-2 pointer-events-auto"
       >
-        <.icon name="hero-plus" class="h-5 w-5" /> Add tags
-      </.link>
-
-      <div class="flex flex-row items-center gap-2">
         <div
-          :if={@show_view_menu}
-          class="rounded-2xl border border-base-300 bg-base-100 dark:bg-base-200 shadow-lg p-2 flex flex-row gap-1"
-          role="menu"
-          aria-label="Tag display mode"
+          :if={@show_search && @show_tag_search}
+          id="mefile-tag-search-panel"
+          class="w-full min-w-[16rem] max-w-[calc(100vw-2rem)]"
+          phx-mounted={JS.dispatch("phx:focus", detail: %{id: "mefile-tag-search-input"})}
         >
+          <.tag_search_input tag_search={@tag_search} autofocus={true} compact={true} />
+        </div>
+
+        <.mefile_view_mode_menu
+          :if={@show_view_menu && @compact_toolbar?}
+          tag_display_mode={@tag_display_mode}
+        />
+
+        <div class="flex flex-row items-center justify-end gap-2">
+        <button
+          :if={@show_search}
+          type="button"
+          phx-click="toggle_tag_search"
+          class={mefile_fab_class(@show_tag_search)}
+          aria-label="Search tags"
+          aria-expanded={to_string(@show_tag_search)}
+        >
+          <.icon name="hero-magnifying-glass" class="h-5 w-5" />
+        </button>
+        <div class="relative shrink-0">
+          <.mefile_view_mode_menu
+            :if={@show_view_menu && !@compact_toolbar?}
+            tag_display_mode={@tag_display_mode}
+            class="absolute bottom-full right-0 z-50 mb-2"
+          />
           <button
-            :for={mode <- ~w(tag block list)}
             type="button"
-            phx-click="set_tag_display_mode"
-            phx-value-mode={mode}
-            class={[
-              "btn btn-sm btn-square btn-ghost",
-              @tag_display_mode == mode && "bg-youdata-300/50 dark:bg-youdata-800/50"
-            ]}
-            aria-label={tag_display_mode_label(mode)}
-            aria-current={@tag_display_mode == mode && "true"}
-            role="menuitem"
+            phx-click="toggle_view_menu"
+            class={mefile_fab_class(@show_view_menu)}
+            aria-label={"View: #{tag_display_mode_label(@tag_display_mode)}"}
+            aria-expanded={to_string(@show_view_menu)}
           >
-            <.icon name={tag_display_mode_icon(mode)} class="h-5 w-5" />
+            <.icon name={tag_display_mode_icon(@tag_display_mode)} class="h-5 w-5" />
           </button>
         </div>
-        <button
-          type="button"
-          phx-click="toggle_view_menu"
-          class={mefile_fab_class(@show_view_menu)}
-          aria-label={"View: #{tag_display_mode_label(@tag_display_mode)}"}
-          aria-expanded={to_string(@show_view_menu)}
+        <.link
+          :if={@show_add_tags}
+          id="floating-tagger-btn"
+          navigate={~p"/me_file_builder"}
+          class="btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg transition-opacity duration-300"
         >
-          <.icon name={tag_display_mode_icon(@tag_display_mode)} class="h-5 w-5" />
-        </button>
+          <.icon name="hero-plus" class="h-5 w-5" /> Add tags
+        </.link>
+        </div>
       </div>
+    </div>
+    """
+  end
 
+  attr :tag_display_mode, :string, required: true
+  attr :class, :string, default: ""
+
+  def mefile_view_mode_menu(assigns) do
+    ~H"""
+    <div
+      class={[
+        "rounded-2xl border border-base-300 bg-base-100 dark:bg-base-200 shadow-lg p-2 flex flex-row gap-1 shrink-0",
+        @class
+      ]}
+      role="menu"
+      aria-label="Tag display mode"
+    >
       <button
-        :if={@show_search}
+        :for={mode <- ~w(tag block list)}
         type="button"
-        phx-click="toggle_tag_search"
-        class={mefile_fab_class(@show_tag_search)}
-        aria-label="Search tags"
-        aria-expanded={to_string(@show_tag_search)}
+        phx-click="set_tag_display_mode"
+        phx-value-mode={mode}
+        class={[
+          "btn btn-sm btn-square btn-ghost",
+          @tag_display_mode == mode && "bg-youdata-300/50 dark:bg-youdata-800/50"
+        ]}
+        aria-label={tag_display_mode_label(mode)}
+        aria-current={@tag_display_mode == mode && "true"}
+        role="menuitem"
       >
-        <.icon name="hero-magnifying-glass" class="h-5 w-5" />
+        <.icon name={tag_display_mode_icon(mode)} class="h-5 w-5" />
       </button>
-
-      <div
-        :if={@show_search && @show_tag_search}
-        id="mefile-tag-search-panel"
-        class="w-full min-w-[16rem]"
-        phx-mounted={JS.dispatch("phx:focus", detail: %{id: "mefile-tag-search-input"})}
-      >
-        <.tag_search_input tag_search={@tag_search} autofocus={true} compact={true} />
-      </div>
     </div>
     """
   end
@@ -466,7 +497,7 @@ defmodule QlariusWeb.MeFileHTML do
     <%= case @tag_display_mode do %>
       <% "list" -> %>
         <div class="mx-4 mb-4 rounded-lg border border-youdata-500 bg-base-100 dark:bg-base-950/40 overflow-hidden list-trait-cards">
-          <ul class="[&>li:first-child>div:first-child]:border-t-0">
+          <ul class="divide-y divide-youdata-500">
             <li
               :for={
                 {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
@@ -475,16 +506,25 @@ defmodule QlariusWeb.MeFileHTML do
               id={"trait-card-#{parent_trait_id}"}
               class={[
                 "trait-card-animate relative",
-                tags_traits == [] && "empty-trait-strobe border-transparent",
                 editable_parent_trait?(parent_trait_name) &&
                   "cursor-pointer transition-shadow duration-200 hover:shadow-md hover:z-10"
               ]}
-              style={tags_traits == [] && "--animation-delay: #{rem(abs(parent_trait_id), 2000)}ms"}
               phx-click={editable_parent_trait?(parent_trait_name) && "edit_tags"}
               phx-value-id={editable_parent_trait?(parent_trait_name) && parent_trait_id}
             >
-              <div class="bg-base-300/50 dark:bg-base-700/45 border-t-2 border-youdata-500 text-base-content px-4 py-3 flex items-center justify-between gap-2">
-                <span class="text-lg font-bold leading-tight min-w-0 text-youdata-800 dark:text-youdata-200">
+              <div
+                class={[
+                  "text-base-content px-4 py-3 flex items-center justify-between gap-2",
+                  "bg-base-300/50 dark:bg-base-700/45",
+                  tags_traits == [] && "empty-trait-header-strobe"
+                ]}
+                style={tags_traits == [] && "--animation-delay: #{rem(abs(parent_trait_id), 2000)}ms"}
+              >
+                <span class={[
+                  "text-lg font-bold leading-tight min-w-0",
+                  tags_traits == [] && "text-base-content/65 dark:text-base-content/75",
+                  tags_traits != [] && "text-youdata-800 dark:text-youdata-200"
+                ]}>
                   {parent_trait_name}
                 </span>
                 <.trait_actions
@@ -508,7 +548,7 @@ defmodule QlariusWeb.MeFileHTML do
                 </ul>
                 <p
                   :if={tags_traits == []}
-                  class="ps-6 pe-4 text-base leading-tight italic text-base-content/70 border-l-2 border-youdata-500/50 ms-4"
+                  class="ps-6 pe-4 text-base leading-tight italic text-base-content/40 border-l-2 border-youdata-500/50 ms-4"
                 >
                   {QlariusWeb.Components.TraitComponents.empty_tag_tease_message()}
                 </p>
@@ -580,30 +620,26 @@ defmodule QlariusWeb.MeFileHTML do
     """
   end
 
-  attr :me_file_tag_map_by_category_trait_tag, :any, required: true
+  attr :tag_display_map, :any, required: true
   attr :tag_display_mode, :string, required: true
   attr :tag_search, :string, default: ""
+  attr :tag_search_epoch, :integer, default: 0
 
   def tags_display(assigns) do
-    assigns =
-      assign(
-        assigns,
-        :me_file_tag_map_by_category_trait_tag,
-        filter_tag_map_by_search(
-          assigns.me_file_tag_map_by_category_trait_tag,
-          assigns.tag_search
-        )
-      )
-
     ~H"""
-    <div id="mefile-tags-display" phx-hook="AnimateTrait" class="flex flex-col gap-10">
+    <div
+      id="mefile-tags-display"
+      phx-hook="AnimateTrait"
+      phx-key={@tag_search_epoch}
+      class="flex flex-col gap-10"
+    >
       <div
-        :if={Enum.empty?(@me_file_tag_map_by_category_trait_tag) and tag_search_active?(@tag_search)}
+        :if={Enum.empty?(@tag_display_map) and tag_search_active?(@tag_search)}
         class="text-center py-12 text-base-content/60"
       >
         <p>No tags match your search.</p>
       </div>
-      <div :for={{{_id, name, _display_order}, parent_traits} <- @me_file_tag_map_by_category_trait_tag}>
+      <div :for={{{_id, name, _display_order}, parent_traits} <- @tag_display_map}>
       <div class="rounded-lg bg-base-200/50 dark:bg-black shadow-sm overflow-hidden border-t-4 border-neutral-300 dark:border-neutral-600">
         <div class="flex flex-row justify-between items-baseline px-4 pt-4 pb-3">
           <h2 class="text-xl font-light uppercase tracking-widest text-youdata-800 dark:text-youdata-400">

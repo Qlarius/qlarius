@@ -1658,15 +1658,36 @@
       wallet-pulse 350ms ease-in-out;
   }
 
-  /* Empty trait strobe (YouData theme) */
-  @keyframes qlarius-youdata-strobe {
+  /* Empty trait: subtle warning pulse on parent header only (opacity animates reliably) */
+  @keyframes empty-trait-header-opacity-strobe {
     0%, 100% {
-      box-shadow: inset 0 0 0 1px var(--empty-trait-strobe-color-25);
+      opacity: 0.1;
     }
     50% {
-      box-shadow: inset 0 0 0 2px var(--empty-trait-strobe-color-50),
-        0 0 10px 2px var(--empty-trait-strobe-color-25);
+      opacity: 0.26;
     }
+  }
+
+  .empty-trait-header-strobe {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .empty-trait-header-strobe::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-color: var(--color-warning);
+    opacity: 0.1;
+    animation: empty-trait-header-opacity-strobe 2.4s ease-in-out infinite;
+    animation-delay: var(--animation-delay, 0ms);
+  }
+
+  .empty-trait-header-strobe > * {
+    position: relative;
+    z-index: 1;
   }
 
   @keyframes trait-update-pulse {
@@ -1696,20 +1717,6 @@
     outline-offset: -2px;
   }
 
-  /* List mode lives inside overflow-hidden shells; inset-only strobe avoids clipped glow. */
-  .list-trait-cards .empty-trait-strobe::after {
-    animation-name: qlarius-youdata-strobe-inset;
-  }
-
-  @keyframes qlarius-youdata-strobe-inset {
-    0%, 100% {
-      box-shadow: inset 0 0 0 1px var(--empty-trait-strobe-color-25);
-    }
-    50% {
-      box-shadow: inset 0 0 0 2px var(--empty-trait-strobe-color-50);
-    }
-  }
-
   .trait-card-animate.trait-animate-update {
     animation: trait-update-pulse 0.95s ease-in-out;
   }
@@ -1718,28 +1725,6 @@
     animation: trait-delete-pulse 0.95s ease-in-out;
   }
 
-  .empty-trait-strobe {
-    --empty-trait-strobe-color-25: #8585ad40;
-    --empty-trait-strobe-color-50: #8585ad80;
-    position: relative;
-    border-radius: inherit;
-  }
-
-  .empty-trait-strobe::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    animation: qlarius-youdata-strobe 2.4s ease-in-out infinite;
-    animation-delay: var(--animation-delay, 0ms);
-    will-change: box-shadow;
-  }
-
-  [data-theme=dark] .empty-trait-strobe {
-    --empty-trait-strobe-color-25: rgba(255, 255, 255, 0.2);
-    --empty-trait-strobe-color-50: rgba(255, 255, 255, 0.45);
-  }
 }
 
 @layer base {
