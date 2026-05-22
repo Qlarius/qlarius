@@ -2074,8 +2074,6 @@ body {
   display: grid;
   grid-template-columns: var(--notch-r) 1fr var(--notch-r);
   grid-template-rows: auto calc(var(--notch-r) * 2) auto;
-  border-top: 4px solid var(--ticket-border, var(--color-base-300));
-  overflow: hidden;
 }
 
 .tiqit-grid > * {
@@ -2105,6 +2103,12 @@ body {
 }
 
 /* ── Corner cells ── */
+.tiqit-tl,
+.tiqit-top,
+.tiqit-tr {
+  box-shadow: inset 0 4px 0 0 var(--ticket-border);
+}
+
 .tiqit-tl {
   border-left: 1px solid var(--ticket-border);
   border-top-left-radius: 8px;
@@ -2187,15 +2191,18 @@ body {
   padding: 0;
 }
 
-/* Pull toggle + ellipses up onto the perforation together */
+/* Pull toggle onto the perforation; padding reserves collapsed tail height */
 .tiqit-tail-fold {
   position: relative;
   margin-top: -36px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
   z-index: 2;
+}
+
+.tiqit-tail-details:not([open]) .tiqit-tail-fold {
+  padding-bottom: 19px;
 }
 
 .tiqit-tail-toggle {
@@ -2212,7 +2219,7 @@ body {
 
 .tiqit-tail-details[open] .tiqit-tail-details-body {
   margin-top: -16px;
-  padding-top: 12px;
+  padding-top: 24px;
   padding-bottom: 14px;
   animation: tiqit-tail-body-in var(--tiqit-tail-t) var(--tiqit-tail-ease) 0.06s both;
 }
@@ -2267,10 +2274,6 @@ body {
     transition-duration: 0.01ms;
   }
 
-  .tiqit-tail-collapsed-hint {
-    transition-duration: 0.01ms;
-  }
-
   .tiqit-tail-details[open] .tiqit-tail-details-body {
     animation: none;
     opacity: 1;
@@ -2282,34 +2285,6 @@ body {
       transition-duration: 0.01ms !important;
     }
   }
-}
-
-.tiqit-tail-collapsed-hint {
-  display: block;
-  width: 100%;
-  max-height: 14px;
-  margin-top: 0;
-  padding-bottom: 0;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: 0.3em;
-  color: color-mix(in oklch, var(--color-base-content) 58%, transparent);
-  user-select: none;
-  opacity: 1;
-  overflow: hidden;
-  transition:
-    opacity 0.28s var(--tiqit-tail-ease),
-    max-height 0.28s var(--tiqit-tail-ease),
-    transform 0.28s var(--tiqit-tail-ease);
-}
-
-.tiqit-tail-details[open] .tiqit-tail-collapsed-hint {
-  max-height: 0;
-  opacity: 0;
-  transform: translateY(-4px);
-  pointer-events: none;
 }
 
 .tiqit-tail-expand-hit {

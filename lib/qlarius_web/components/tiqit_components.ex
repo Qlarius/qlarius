@@ -313,7 +313,6 @@ defmodule QlariusWeb.TiqitComponents do
                     />
                   </span>
                 </span>
-                <span class="tiqit-tail-collapsed-hint" aria-hidden="true">···</span>
               </div>
             </summary>
             <div class="tiqit-tail-details-body">
