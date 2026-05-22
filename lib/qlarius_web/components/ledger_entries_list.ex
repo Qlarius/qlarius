@@ -20,7 +20,7 @@ defmodule QlariusWeb.Components.LedgerEntriesList do
       <p class="text-center text-base-content/60 py-8">{@empty_message}</p>
     <% else %>
       <div class="flex justify-center mt-2 mb-6 space-x-2">
-        <div class="join">
+        <div class="join [--radius-field:9999px]">
           <button
             phx-click="paginate"
             phx-value-page="1"

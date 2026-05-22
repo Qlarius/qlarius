@@ -109,78 +109,50 @@ defmodule QlariusWeb.MeFileBuilderLive do
           <span class="text-xl">Select a category below and fill empty tags.</span>
         </div>
 
-        <div class="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <div class="mt-8 grid gap-10 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           <%= for category <- @categories do %>
             <% {answered_total, question_total, percent_complete} =
               Map.get(category, :category_stats, {0, 0, 0}) %>
-            <div class="bg-base-100 overflow-hidden shadow rounded-lg">
-              <div class="px-4 py-5 sm:p-6">
-                <div class="flex items-center justify-between mb-2">
-                  <h3 class="text-xl leading-6 text-base-content font-bold">
-                    {category.survey_category_name}
-                  </h3>
-                  <div class={[
-                    "badge badge-lg rounded-full px-3 py-3 font-bold",
-                    cond do
-                      percent_complete == 0 -> "tagger-zero-stat-badge"
-                      percent_complete == 100 -> "badge-success"
-                      true -> "badge-warning"
-                    end
-                  ]}>
-                    {answered_total}/{question_total}
-                  </div>
-                </div>
-                <div class="mb-5">
-                  <div class="relative tagger-progress">
-                    <progress
-                      class={[
-                        "progress w-full h-6",
-                        cond do
-                          percent_complete == 0 -> "tagger-progress-zero"
-                          percent_complete == 100 -> "progress-success"
-                          true -> "progress-warning"
-                        end
-                      ]}
-                      value={if percent_complete == 0, do: 0, else: max(22, percent_complete)}
-                      max="100"
-                    >
-                    </progress>
-                    <%= if percent_complete == 0 do %>
-                      <div class="tagger-progress-fill-label tagger-zero-progress-chip text-sm leading-none">
-                        {percent_complete}%
-                      </div>
-                    <% else %>
-                      <div
-                        class="tagger-progress-fill-label text-sm leading-none"
-                        style={"width: #{max(22, percent_complete)}%"}
-                      >
-                        {percent_complete}%
-                      </div>
-                    <% end %>
-                  </div>
+            <div class="rounded-lg bg-base-200/50 dark:bg-black shadow-sm overflow-hidden border-t-4 border-neutral-300 dark:border-neutral-600">
+              <div class="flex justify-between items-center px-4 pt-4 pb-3">
+                <h2 class="text-lg font-bold tracking-tight text-base-content/50">
+                  {category.survey_category_name}
+                </h2>
+                <span class="text-sm text-base-content/50">
+                  {answered_total}/{question_total}
+                </span>
+              </div>
+              <div class="px-4 pb-4">
+                <div class="tagger-progress tagger-progress-thin mb-4">
+                  <progress
+                    class={[
+                      "progress w-full",
+                      cond do
+                        percent_complete == 0 -> "tagger-progress-zero"
+                        percent_complete == 100 -> "progress-success"
+                        true -> "progress-warning"
+                      end
+                    ]}
+                    value={percent_complete}
+                    max="100"
+                  >
+                  </progress>
                 </div>
 
                 <%= for survey <- category.surveys do %>
                   <% {answered_question_count, question_count} = survey.survey_stats || {0, 0} %>
                   <div
-                    class="mb-3 p-3 bg-base-200 rounded-lg cursor-pointer"
+                    class="mb-3 p-3 bg-base-200 dark:bg-base-300/40 rounded-full cursor-pointer transition-colors hover:bg-base-300 dark:hover:bg-base-300/60"
                     phx-click="open_edit"
                     phx-value-id={survey.id}
                   >
                     <div class="flex justify-between items-center">
                       <span class="text-xl text-base-content">{survey.name}</span>
-                      <div class="flex items-center space-x-2">
-                        <span class={[
-                          "badge badge-lg rounded-full px-3 py-3 font-bold",
-                          cond do
-                            answered_question_count == 0 -> "tagger-zero-stat-badge"
-                            answered_question_count == question_count -> "badge-success"
-                            true -> "badge-warning"
-                          end
-                        ]}>
+                      <div class="flex items-center gap-2">
+                        <span class={survey_ratio_text_class(answered_question_count, question_count)}>
                           {answered_question_count}/{question_count}
                         </span>
-                        <.icon name="hero-chevron-right" class="w-5 h-5 text-base-content/60" />
+                        <.icon name="hero-chevron-right" class="w-5 h-5 shrink-0 text-base-content/60" />
                       </div>
                     </div>
                   </div>
@@ -251,8 +223,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
     {:noreply, socket}
   end
 
-  def handle_event("toggle_tag_view", _params, socket) do
-    {:noreply, assign(socket, :show_expanded_tags, !socket.assigns.show_expanded_tags)}
+  def handle_event("set_tag_view", %{"expanded" => expanded}, socket) do
+    {:noreply, assign(socket, :show_expanded_tags, expanded == "true")}
   end
 
   def handle_event("toggle_view_menu", _params, socket) do
@@ -510,5 +482,18 @@ defmodule QlariusWeb.MeFileBuilderLive do
       end
 
     assign(socket, :tag_display_mode, mode)
+  end
+
+  defp survey_ratio_text_class(answered, total) do
+    base = "text-sm font-medium shrink-0"
+
+    color =
+      cond do
+        answered == 0 -> "text-base-content/50"
+        answered == total -> "text-success"
+        true -> "text-warning"
+      end
+
+    "#{base} #{color}"
   end
 end

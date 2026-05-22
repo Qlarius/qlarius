@@ -45,20 +45,6 @@ defmodule QlariusWeb.MeFileLive do
             tag_search={@tag_search}
             tag_search_epoch={@tag_search_epoch}
           />
-
-          <%!-- Inline Tagger button at bottom of list --%>
-          <div
-            id="inline-tagger-btn"
-            class="flex justify-center mt-10"
-            phx-hook="TaggerButtonObserver"
-          >
-            <.link
-              navigate={~p"/me_file_builder"}
-              class="btn btn-primary btn-lg rounded-full flex items-center gap-2 px-6 py-5 shadow-lg"
-            >
-              <.icon name="hero-plus" class="h-5 w-5" /> Add more tags
-            </.link>
-          </div>
         </div>
 
         <:floating_actions>
@@ -222,8 +208,8 @@ defmodule QlariusWeb.MeFileLive do
     {:noreply, socket}
   end
 
-  def handle_event("toggle_tag_view", _params, socket) do
-    {:noreply, assign(socket, :show_expanded_tags, !socket.assigns.show_expanded_tags)}
+  def handle_event("set_tag_view", %{"expanded" => expanded}, socket) do
+    {:noreply, assign(socket, :show_expanded_tags, expanded == "true")}
   end
 
   def handle_event("toggle_tag_search", _params, socket) do

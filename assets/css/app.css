@@ -726,6 +726,10 @@
     --radius-box: 0.125rem;
   }
 
+  .tagger-progress.tagger-progress-thin {
+    --tagger-progress-h: 0.5rem;
+  }
+
   .tagger-progress progress {
     height: var(--tagger-progress-h);
     border-radius: var(--radius-box);

@@ -83,9 +83,10 @@ defmodule QlariusWeb.Components.TraitComponents do
       <div class={["overflow-hidden rounded-lg", @block_mode? && "flex flex-col flex-1 min-h-0"]}>
         <div
           class={[
-            "border-t-2 border-youdata-500 text-base-content px-4 py-3 text-lg font-bold leading-tight flex justify-between items-center shrink-0",
+            "border-t-2 text-base-content px-4 py-3 text-lg font-bold leading-tight flex justify-between items-center shrink-0",
             "bg-base-300/50 dark:bg-base-700/45",
-            @tags_traits == [] && "empty-trait-header-strobe"
+            @tags_traits == [] && "border-warning empty-trait-header-strobe",
+            @tags_traits != [] && "border-youdata-500"
           ]}
           style={@tags_traits == [] && "--animation-delay: #{@strobe_delay_ms}ms"}
         >
@@ -106,7 +107,7 @@ defmodule QlariusWeb.Components.TraitComponents do
         <div class={[
           "p-0 max-h-[245px] overflow-y-auto",
           @block_mode? && @tags_traits != [] && "flex flex-1 flex-col min-h-0",
-          !@block_mode? && "space-y-1"
+          !@block_mode? && "space-y-1 pb-3"
         ]}>
           <div :if={@block_mode? && @tags_traits != []} class="shrink-0">
             <div

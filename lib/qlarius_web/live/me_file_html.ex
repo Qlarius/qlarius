@@ -90,29 +90,27 @@ defmodule QlariusWeb.MeFileHTML do
                         child.survey_answer.text != child.trait_name
                     end)
                 }
-                class="flex gap-2 mt-2"
+                class="join mt-2 [--radius-field:9999px]"
+                role="group"
+                aria-label="Tag list view"
               >
                 <button
                   type="button"
-                  phx-click="toggle_tag_view"
-                  class={[
-                    "btn btn-sm rounded-full",
-                    !@show_expanded_tags && "btn-primary",
-                    @show_expanded_tags && "btn-ghost"
-                  ]}
+                  phx-click="set_tag_view"
+                  phx-value-expanded="false"
+                  class={["join-item btn btn-sm", !@show_expanded_tags && "btn-active"]}
+                  aria-pressed={to_string(!@show_expanded_tags)}
                 >
-                  Simple tags
+                  Simple
                 </button>
                 <button
                   type="button"
-                  phx-click="toggle_tag_view"
-                  class={[
-                    "btn btn-sm rounded-full",
-                    @show_expanded_tags && "btn-primary",
-                    !@show_expanded_tags && "btn-ghost"
-                  ]}
+                  phx-click="set_tag_view"
+                  phx-value-expanded="true"
+                  class={["join-item btn btn-sm", @show_expanded_tags && "btn-active"]}
+                  aria-pressed={to_string(@show_expanded_tags)}
                 >
-                  Expanded tags
+                  Expanded
                 </button>
               </div>
             </div>
@@ -313,11 +311,14 @@ defmodule QlariusWeb.MeFileHTML do
     ~H"""
     <form phx-change="tag_search_changed" class="flex-1 min-w-0 w-full">
       <label class={[
-        "input flex w-full items-center gap-2 min-w-0 shadow-lg bg-base-100 dark:bg-base-200 border-base-300",
-        @compact && "input-sm rounded-full",
-        !@compact && "input-bordered input-sm"
+        "input flex w-full items-center min-w-0 shadow-lg bg-base-100 dark:bg-base-200 border-base-300",
+        @compact && "input-lg gap-3 rounded-full px-4",
+        !@compact && "input-bordered input-md gap-2"
       ]}>
-        <.icon name="hero-magnifying-glass" class="h-4 w-4 opacity-50 shrink-0" />
+        <.icon
+          name="hero-magnifying-glass"
+          class={["opacity-50 shrink-0", @compact && "h-5 w-5", !@compact && "h-4 w-4"]}
+        />
         <input
           id="mefile-tag-search-input"
           type="text"
@@ -329,16 +330,24 @@ defmodule QlariusWeb.MeFileHTML do
           autocomplete="off"
           aria-label="Search tags"
           autofocus={@autofocus}
-          class="grow min-w-0 bg-transparent outline-none"
+          class={[
+            "grow min-w-0 bg-transparent outline-none",
+            @compact && "text-lg",
+            !@compact && "text-base"
+          ]}
         />
         <button
           :if={@tag_search != ""}
           type="button"
           phx-click="clear_tag_search"
-          class="btn btn-ghost btn-xs btn-circle shrink-0"
+          class={[
+            "btn btn-ghost btn-circle shrink-0",
+            @compact && "btn-sm",
+            !@compact && "btn-xs"
+          ]}
           aria-label="Clear search text"
         >
-          <.icon name="hero-x-mark" class="h-4 w-4" />
+          <.icon name="hero-x-mark" class={[@compact && "h-5 w-5", !@compact && "h-4 w-4"]} />
         </button>
       </label>
     </form>
@@ -408,9 +417,8 @@ defmodule QlariusWeb.MeFileHTML do
         </div>
         <.link
           :if={@show_add_tags}
-          id="floating-tagger-btn"
           navigate={~p"/me_file_builder"}
-          class="btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg transition-opacity duration-300"
+          class="btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg"
         >
           <.icon name="hero-plus" class="h-5 w-5" /> Add tags
         </.link>
@@ -641,11 +649,11 @@ defmodule QlariusWeb.MeFileHTML do
       </div>
       <div :for={{{_id, name, _display_order}, parent_traits} <- @tag_display_map}>
       <div class="rounded-lg bg-base-200/50 dark:bg-black shadow-sm overflow-hidden border-t-4 border-neutral-300 dark:border-neutral-600">
-        <div class="flex flex-row justify-between items-baseline px-4 pt-4 pb-3">
-          <h2 class="text-xl font-light uppercase tracking-widest text-youdata-800 dark:text-youdata-400">
+        <div class="flex justify-between items-center px-4 pt-4 pb-3">
+          <h2 class="text-lg font-bold tracking-tight text-base-content/50">
             {name}
           </h2>
-          <span class="text-md text-gray-500">
+          <span class="text-sm text-base-content/50">
             {length(parent_traits)} tags
           </span>
         </div>
