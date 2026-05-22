@@ -573,42 +573,39 @@ Hooks.AnimateTrait = {
   mounted() {
     this.handleEvent("animate_trait", ({trait_id, delay_ms, value}) => {
       const delay = typeof delay_ms === "number" ? delay_ms : 250
+      const durationMs = 950
+
       setTimeout(() => {
         const el = document.getElementById(`trait-card-${trait_id}`)
-        if (!el) return
-        // ensure pointer events are re-enabled globally in case a lingering backdrop exists
+        if (!el || el.dataset.traitAnimating === "true") return
+
         document.documentElement.style.pointerEvents = ""
         document.body.style.pointerEvents = ""
 
-        if (value === "update_pulse") {
-          // Clear any existing animations
-          el.classList.remove("ring", "ring-primary", "ring-success", "bg-success", "text-success-content", "ring-error", "bg-error", "text-error-content", "opacity-50")
-          void el.offsetWidth // Force reflow
+        const animationClass =
+          value === "delete_fade" ? "trait-animate-delete" : "trait-animate-update"
 
-          // Add success colors (transition is preset on element)
-          el.classList.add("ring", "ring-success", "bg-success", "text-success-content")
+        el.classList.remove("trait-animate-update", "trait-animate-delete")
+        void el.offsetWidth
 
-          setTimeout(() => {
-            // Remove success styling smoothly
-            el.classList.remove("ring", "ring-success", "bg-success", "text-success-content")
-          }, 800)
-        } else if (value === "delete_fade") {
-          // Clear any existing animations
-          el.classList.remove("ring", "ring-primary", "ring-success", "bg-success", "text-success-content", "ring-error", "bg-error", "text-error-content", "opacity-50")
-          void el.offsetWidth // Force reflow
-
-          // Add error colors (transition is preset on element)
-          el.classList.add("ring", "ring-error", "bg-error", "text-error-content")
-
-          // Keep the error styling longer for delete feedback
-          setTimeout(() => {
-            // Remove error styling smoothly
-            el.classList.remove("ring", "ring-error", "bg-error", "text-error-content")
-          }, 1200)
+        const cleanup = () => {
+          delete el.dataset.traitAnimating
+          el.classList.remove("trait-animate-update", "trait-animate-delete")
+          el.removeEventListener("animationend", onEnd)
         }
+
+        const onEnd = (event) => {
+          if (event.target !== el) return
+          cleanup()
+        }
+
+        el.dataset.traitAnimating = "true"
+        el.addEventListener("animationend", onEnd)
+        el.classList.add(animationClass)
+        setTimeout(cleanup, durationMs + 100)
       }, delay)
     })
-  }
+  },
 }
 
 function setupCountdown(el, forceReset = false){
@@ -1097,37 +1094,64 @@ Hooks.ZipSelector = {
 
 Hooks.TaggerButtonObserver = {
   mounted() {
-    this.floatingBtn = document.getElementById('floating-tagger-btn')
-    
-    if (!this.floatingBtn) return
-    
-    // Find the scroll container (either .panel-scroll for dual-pane or viewport for single-pane)
-    const scrollContainer = this.el.closest('.panel-scroll')
-    
-    const options = {
-      root: scrollContainer,
-      rootMargin: '0px 0px -80px 0px', // Account for nav bar height
-      threshold: 0
-    }
-    
-    this.observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          // Inline button is visible, hide floating button
-          this.floatingBtn.classList.add('opacity-0', 'pointer-events-none')
-        } else {
-          // Inline button is out of view (below nav bar), show floating button
-          this.floatingBtn.classList.remove('opacity-0', 'pointer-events-none')
-        }
-      })
-    }, options)
-    
-    this.observer.observe(this.el)
+    this._init()
   },
-  
+
+  updated() {
+    this._init()
+  },
+
   destroyed() {
+    if (this._retryTimer) {
+      clearTimeout(this._retryTimer)
+    }
     if (this.observer) {
       this.observer.disconnect()
+      this.observer = null
+    }
+  },
+
+  _init() {
+    if (!this._floatingBtn()) {
+      this._retryTimer = setTimeout(() => this._init(), 0)
+      return
+    }
+
+    if (this.observer) return
+
+    const scrollContainer = this.el.closest('.panel-scroll')
+
+    const options = {
+      root: scrollContainer,
+      rootMargin: '0px 0px -80px 0px',
+      threshold: 0
+    }
+
+    this.observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        this._setFloatingVisible(!entry.isIntersecting)
+      })
+    }, options)
+
+    this.observer.observe(this.el)
+    this._setFloatingVisible(true)
+  },
+
+  _floatingBtn() {
+    if (!this.floatingBtn) {
+      this.floatingBtn = document.getElementById('floating-tagger-btn')
+    }
+    return this.floatingBtn
+  },
+
+  _setFloatingVisible(visible) {
+    const btn = this._floatingBtn()
+    if (!btn) return
+
+    if (visible) {
+      btn.classList.remove('opacity-0', 'pointer-events-none')
+    } else {
+      btn.classList.add('opacity-0', 'pointer-events-none')
     }
   }
 }

@@ -11,7 +11,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
 
   def strong_start(assigns) do
     ~H"""
-    <div class="bg-base-200 rounded-lg p-4 mb-4">
+    <div class="rounded-lg bg-base-200/50 dark:bg-black shadow-sm overflow-hidden border-t-4 border-neutral-300 dark:border-neutral-600 p-4 mb-4">
       <%!-- Header --%>
       <div class="flex justify-between items-center mb-3">
         <div class="flex items-center gap-3">

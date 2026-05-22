@@ -26,7 +26,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
             me_file_id={@current_scope.user.me_file.id}
             selected_ids={@selected_child_trait_ids || []}
             show_modal={@show_modal}
-            tag_edit_mode={@tag_edit_mode || "update"}
+            show_delete_confirm={@show_delete_confirm}
             zip_lookup_input={@zip_lookup_input || ""}
             zip_lookup_trait={@zip_lookup_trait}
             zip_lookup_valid={@zip_lookup_valid || false}
@@ -80,23 +80,29 @@ defmodule QlariusWeb.MeFileBuilderLive do
             </h1>
           </div>
 
-          <div class="flex flex-row flex-wrap gap-4 pt-4 pb-32">
-            <.trait_card
-              :for={
-                {parent_trait_id, parent_trait_name, parent_trait_display_order, tags_traits} <-
-                  (@survey_in_edit && @survey_in_edit.parent_traits) || []
-              }
-              parent_trait_id={parent_trait_id}
-              parent_trait_name={parent_trait_name}
-              tags_traits={tags_traits}
-              clickable={true}
-            />
-          </div>
+          <.survey_traits_display
+            :if={@survey_in_edit}
+            parent_traits={@survey_in_edit.parent_traits}
+            tag_display_mode={@tag_display_mode}
+            tag_search={@tag_search}
+          />
 
           <div :if={!@active_survey_id} class="text-base-content/50 text-sm">
             No survey selected
           </div>
         </:slide_over_content>
+
+        <:floating_actions>
+          <.mefile_floating_toolbar
+            :if={@editing}
+            tag_search={@tag_search}
+            tag_display_mode={@tag_display_mode}
+            show_tag_search={@show_tag_search}
+            show_view_menu={@show_view_menu}
+            show_add_tags={false}
+            show_search={false}
+          />
+        </:floating_actions>
 
         <%!-- Main content: Survey category index --%>
         <div class="mb-8 flex gap-2 justify-start items-center">
@@ -206,8 +212,12 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:trait_in_edit, nil)
       |> assign(:selected_child_trait_ids, [])
       |> assign(:show_modal, false)
-      |> assign(:tag_edit_mode, "update")
+      |> assign(:show_delete_confirm, false)
       |> assign(:show_expanded_tags, false)
+      |> assign(:tag_search, "")
+      |> assign(:show_tag_search, false)
+      |> assign(:show_view_menu, false)
+      |> assign_tag_display_mode()
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
       |> init_pwa_assigns(session)
 
@@ -243,6 +253,31 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
   def handle_event("toggle_tag_view", _params, socket) do
     {:noreply, assign(socket, :show_expanded_tags, !socket.assigns.show_expanded_tags)}
+  end
+
+  def handle_event("toggle_view_menu", _params, socket) do
+    show = !socket.assigns.show_view_menu
+
+    {:noreply,
+     socket
+     |> assign(:show_view_menu, show)
+     |> assign(:show_tag_search, false)}
+  end
+
+  def handle_event("set_tag_display_mode", %{"mode" => mode}, socket)
+      when mode in ~w(tag block list) do
+    me_file = socket.assigns.current_scope.user.me_file
+
+    case MeFiles.update_tag_display_mode(me_file, mode) do
+      {:ok, updated_me_file} ->
+        {:noreply,
+         socket
+         |> assign(:tag_display_mode, updated_me_file.tag_display_mode)
+         |> assign(:show_view_menu, false)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not update display mode")}
+    end
   end
 
   def handle_event("sync_tag_selection", params, socket) do
@@ -286,33 +321,9 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:trait_in_edit, trait)
       |> assign(:selected_child_trait_ids, selected_ids)
       |> assign(:show_modal, true)
-      |> assign(:tag_edit_mode, "update")
+      |> assign(:show_delete_confirm, false)
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
       |> push_event("scroll-tag-list-to-top", %{})
-
-    {:noreply, socket}
-  end
-
-  def handle_event("delete_tags", %{"id" => trait_id}, socket) do
-    {trait_id, _} = Integer.parse(trait_id)
-    {:ok, trait} = Traits.get_trait_with_full_survey_data!(trait_id)
-
-    # Load existing tags for this trait
-    existing_tags =
-      MeFiles.existing_tags_per_parent_trait(
-        socket.assigns.current_scope.user.me_file.id,
-        trait_id
-      )
-
-    selected_ids = Enum.map(existing_tags, & &1.trait_id)
-
-    socket =
-      socket
-      |> assign(:trait_in_edit, trait)
-      |> assign(:selected_child_trait_ids, selected_ids)
-      |> assign(:show_modal, true)
-      |> assign(:tag_edit_mode, "delete")
-      |> ZipCodeLookup.initialize_zip_lookup_assigns()
 
     {:noreply, socket}
   end
@@ -323,7 +334,19 @@ defmodule QlariusWeb.MeFileBuilderLive do
   end
 
   def handle_event("close_modal", _params, socket) do
-    {:noreply, assign(socket, :show_modal, false)}
+    {:noreply, socket |> assign(:show_modal, false) |> assign(:show_delete_confirm, false)}
+  end
+
+  def handle_event("request_delete_confirm", _params, socket) do
+    if (socket.assigns.selected_child_trait_ids || []) == [] do
+      {:noreply, socket}
+    else
+      {:noreply, assign(socket, :show_delete_confirm, !socket.assigns.show_delete_confirm)}
+    end
+  end
+
+  def handle_event("cancel_delete_confirm", _params, socket) do
+    {:noreply, assign(socket, :show_delete_confirm, false)}
   end
 
   def handle_event(
@@ -387,6 +410,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
           |> assign(:answered_survey_question_ids, answered_ids)
           |> assign(:survey_in_edit, survey_in_edit)
           |> assign(:show_modal, false)
+          |> assign(:show_delete_confirm, false)
           |> push_event("animate_trait", %{
             trait_id: trait_id,
             delay_ms: 250,
@@ -397,58 +421,53 @@ defmodule QlariusWeb.MeFileBuilderLive do
     end
   end
 
-  def handle_event(
-        "perform_delete_tags",
-        %{
-          "me_file_id" => _me_file_id,
-          "trait_id" => trait_id,
-          "child_trait_ids" => child_trait_ids
-        },
-        socket
-      ) do
-    {trait_id, _} = Integer.parse(trait_id)
-    child_trait_ids = List.wrap(child_trait_ids)
+  def handle_event("confirm_delete_tags", _params, socket) do
+    trait_id = socket.assigns.trait_in_edit.id
+    child_trait_ids = socket.assigns.selected_child_trait_ids || []
 
-    # Delete tags and refresh survey data
-    case MeFiles.delete_mefile_tags(
-           socket.assigns.current_scope.user.me_file.id,
-           trait_id,
-           child_trait_ids
-         ) do
-      :ok ->
-        # Refresh the survey data after tag deletion
-        me_file_id = socket.assigns.current_scope.user.me_file.id
-        answered_ids = MeFiles.get_answered_survey_question_ids(me_file_id)
+    if child_trait_ids == [] do
+      {:noreply, socket}
+    else
+      case MeFiles.delete_mefile_tags(
+             socket.assigns.current_scope.user.me_file.id,
+             trait_id,
+             child_trait_ids
+           ) do
+        :ok ->
+          me_file_id = socket.assigns.current_scope.user.me_file.id
+          answered_ids = MeFiles.get_answered_survey_question_ids(me_file_id)
 
-        categories_with_stats =
-          Surveys.list_survey_categories_with_surveys_and_stats(me_file_id, answered_ids)
+          categories_with_stats =
+            Surveys.list_survey_categories_with_surveys_and_stats(me_file_id, answered_ids)
 
-        survey_in_edit =
-          if socket.assigns.survey_in_edit do
-            parent_traits_with_tags =
-              Surveys.parent_traits_for_survey_with_tags(
-                socket.assigns.survey_in_edit.id,
-                me_file_id
-              )
+          survey_in_edit =
+            if socket.assigns.survey_in_edit do
+              parent_traits_with_tags =
+                Surveys.parent_traits_for_survey_with_tags(
+                  socket.assigns.survey_in_edit.id,
+                  me_file_id
+                )
 
-            Map.put(socket.assigns.survey_in_edit, :parent_traits, parent_traits_with_tags)
-          else
-            nil
-          end
+              Map.put(socket.assigns.survey_in_edit, :parent_traits, parent_traits_with_tags)
+            else
+              nil
+            end
 
-        socket =
-          socket
-          |> assign(:categories, categories_with_stats)
-          |> assign(:answered_survey_question_ids, answered_ids)
-          |> assign(:survey_in_edit, survey_in_edit)
-          |> assign(:show_modal, false)
-          |> push_event("animate_trait", %{
-            trait_id: trait_id,
-            delay_ms: 250,
-            value: "delete_fade"
-          })
+          socket =
+            socket
+            |> assign(:categories, categories_with_stats)
+            |> assign(:answered_survey_question_ids, answered_ids)
+            |> assign(:survey_in_edit, survey_in_edit)
+            |> assign(:show_modal, false)
+            |> assign(:show_delete_confirm, false)
+            |> push_event("animate_trait", %{
+              trait_id: trait_id,
+              delay_ms: 250,
+              value: "delete_fade"
+            })
 
-        {:noreply, socket}
+          {:noreply, socket}
+      end
     end
   end
 
@@ -479,5 +498,17 @@ defmodule QlariusWeb.MeFileBuilderLive do
     socket
     |> assign(editing: true, active_survey_id: survey_id)
     |> assign(:survey_in_edit, survey_in_edit)
+    |> assign(:show_view_menu, false)
+    |> assign(:show_tag_search, false)
+  end
+
+  defp assign_tag_display_mode(socket) do
+    mode =
+      case socket.assigns.current_scope.user.me_file do
+        %{tag_display_mode: mode} when mode in ~w(tag block list) -> mode
+        _ -> "tag"
+      end
+
+    assign(socket, :tag_display_mode, mode)
   end
 end

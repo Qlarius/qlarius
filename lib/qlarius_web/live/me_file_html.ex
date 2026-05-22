@@ -39,7 +39,7 @@ defmodule QlariusWeb.MeFileHTML do
   attr :me_file_id, :integer, required: true
   attr :selected_ids, :list, default: []
   attr :show_modal, :boolean, default: false
-  attr :tag_edit_mode, :string, default: "update"
+  attr :show_delete_confirm, :boolean, default: false
   attr :zip_lookup_input, :string, default: ""
   attr :zip_lookup_trait, :any, default: nil
   attr :zip_lookup_valid, :boolean, default: false
@@ -71,8 +71,7 @@ defmodule QlariusWeb.MeFileHTML do
         </div>
 
         <%!-- Expandable content area --%>
-        <%= cond do %>
-          <% @tag_edit_mode == "update" -> %>
+        <%= if @trait_in_edit do %>
             <%!-- Fixed question section --%>
             <div class="p-4 bg-base-200 text-base-content/70 shrink-0">
               <p :if={@trait_in_edit && @trait_in_edit.survey_question} class="text-lg mb-3">
@@ -118,7 +117,6 @@ defmodule QlariusWeb.MeFileHTML do
               </div>
             </div>
             <.form
-              :if={@trait_in_edit}
               for={%{}}
               phx-change="sync_tag_selection"
               phx-submit="save_tags"
@@ -225,100 +223,80 @@ defmodule QlariusWeb.MeFileHTML do
                 </div>
               </div>
 
-              <%!-- Fixed footer --%>
-              <div class="py-4 px-6 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
-                <button
-                  type="button"
-                  phx-click="close_modal"
-                  class="btn btn-lg btn-ghost rounded-full"
+              <%!-- Footer + delete confirm strip (slides up behind the button bar) --%>
+              <div class="relative shrink-0">
+                <div
+                  class={[
+                    "overflow-hidden transition-[max-height] duration-200 ease-out",
+                    @show_delete_confirm && "max-h-28",
+                    !@show_delete_confirm && "max-h-0"
+                  ]}
+                  aria-hidden={!@show_delete_confirm}
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  class="btn btn-lg btn-primary rounded-full"
-                  disabled={@trait_in_edit.input_type == "single_select_zip" && !@zip_lookup_valid}
-                >
-                  Save/Update Tags
-                </button>
-              </div>
-            </.form>
-          <% @tag_edit_mode == "delete" -> %>
-            <.form
-              :if={@trait_in_edit}
-              for={%{}}
-              phx-submit="perform_delete_tags"
-              class="flex flex-col flex-1 min-h-0"
-            >
-              <div class="flex-1 overflow-y-auto p-4">
-                <input type="hidden" name="me_file_id" value={@me_file_id} />
-                <input type="hidden" name="trait_id" value={@trait_in_edit.id} />
-                <%= for child_trait_id <- @selected_ids do %>
-                  <input type="hidden" name="child_trait_ids[]" value={child_trait_id} />
-                <% end %>
-                <div class="space-y-4">
-                  <div
-                    :if={
-                      Ecto.assoc_loaded?(@trait_in_edit.child_traits) &&
-                        @trait_in_edit.child_traits != []
-                    }
-                    class="py-0"
-                  >
-                    <%= for child_trait <- Enum.sort_by(@trait_in_edit.child_traits, & &1.display_order) do %>
-                      <%= if child_trait.id in @selected_ids do %>
-                        <div class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-3 px-2">
-                          <div class="text-lg text-base-content">
-                            {child_trait.trait_name}
-                          </div>
-                        </div>
-                      <% end %>
-                    <% end %>
-                  </div>
-                  <div :if={Enum.empty?(@selected_ids)} class="text-center py-8 text-base-content/50">
-                    No tags selected for deletion
-                  </div>
-                </div>
-              </div>
-
-              <%!-- Fixed question section --%>
-              <div class="p-4 bg-error shrink-0">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0">
-                    <.icon name="hero-exclamation-triangle" class="h-7 w-7 text-white" />
-                  </div>
-                  <div class="ml-3">
-                    <p class="text-sm font-medium text-white">
-                      {if @trait_in_edit && @trait_in_edit.survey_question do
-                        "Confirm that you want to delete this tag?"
-                      else
-                        "Confirm deletion"
-                      end}
+                  <div class="bg-error text-error-content px-6 py-4 border-t border-error/60">
+                    <p class="text-sm font-semibold mb-3">
+                      Delete {length(@selected_ids)} selected tag{if length(@selected_ids) == 1,
+                        do: "",
+                        else: "s"}?
                     </p>
+                    <div class="flex flex-row gap-2 justify-end">
+                      <button
+                        type="button"
+                        phx-click="cancel_delete_confirm"
+                        class="btn btn-sm btn-ghost rounded-full text-error-content hover:bg-error-content/15"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        phx-click="confirm_delete_tags"
+                        class="btn btn-sm rounded-full bg-error-content text-error hover:bg-error-content/90"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="relative z-10 py-4 px-6 flex flex-row items-center justify-between gap-3 bg-base-200 border-t border-base-300">
+                  <div class="shrink-0">
+                    <button
+                      :if={deletable_trait?(@trait_in_edit)}
+                      type="button"
+                      phx-click="request_delete_confirm"
+                      class={[
+                        "btn btn-circle btn-lg btn-ghost text-error hover:bg-error/10",
+                        @show_delete_confirm && "btn-active bg-error/10"
+                      ]}
+                      disabled={length(@selected_ids) == 0}
+                      aria-label="Delete selected tags"
+                      aria-expanded={to_string(@show_delete_confirm)}
+                    >
+                      <.icon name="hero-trash" class="h-6 w-6" />
+                    </button>
+                  </div>
+                  <div class="flex flex-row items-center gap-2 justify-end min-w-0">
+                    <button
+                      type="button"
+                      phx-click="close_modal"
+                      class="btn btn-lg btn-ghost rounded-full"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      class="btn btn-lg btn-primary rounded-full"
+                      disabled={@trait_in_edit.input_type == "single_select_zip" && !@zip_lookup_valid}
+                    >
+                      Save/Update Tags
+                    </button>
                   </div>
                 </div>
               </div>
-
-              <%!-- Fixed footer --%>
-              <div class="py-4 px-6 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
-                <button
-                  type="button"
-                  phx-click="close_modal"
-                  class="btn btn-lg btn-ghost rounded-full"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  class="btn btn-lg btn-error rounded-full"
-                  disabled={Enum.empty?(@selected_ids)}
-                >
-                  Delete Tag
-                </button>
-              </div>
             </.form>
-          <% true -> %>
+        <% else %>
             <div class="flex-1 flex items-center justify-center p-8">
-              <div class="text-base-content/50">Invalid edit mode</div>
+              <div class="text-base-content/50">No trait selected</div>
             </div>
         <% end %>
       </div>
@@ -328,18 +306,26 @@ defmodule QlariusWeb.MeFileHTML do
   end
 
   attr :tag_search, :string, required: true
+  attr :autofocus, :boolean, default: false
+  attr :compact, :boolean, default: false
 
   def tag_search_input(assigns) do
     ~H"""
-    <form phx-change="tag_search_changed" class="flex-1 min-w-0">
-      <label class="input input-bordered input-sm flex items-center gap-2 w-full">
-        <.icon name="hero-magnifying-glass" class="h-4 w-4 opacity-50 shrink-0" aria-hidden="true" />
+    <form phx-change="tag_search_changed" class="flex-1 min-w-0 w-full">
+      <label class={[
+        "input flex items-center gap-2 w-full shadow-lg bg-base-100 dark:bg-base-200 border-base-300",
+        @compact && "input-sm rounded-full",
+        !@compact && "input-bordered input-sm"
+      ]}>
+        <.icon name="hero-magnifying-glass" class="h-4 w-4 opacity-50 shrink-0" />
         <input
+          id="mefile-tag-search-input"
           type="search"
           name="tag_search"
           value={@tag_search}
           autocomplete="off"
           aria-label="Search tags"
+          autofocus={@autofocus}
           class="grow min-w-0 bg-transparent outline-none"
         />
         <button
@@ -353,6 +339,85 @@ defmodule QlariusWeb.MeFileHTML do
         </button>
       </label>
     </form>
+    """
+  end
+
+  attr :tag_search, :string, required: true
+  attr :tag_display_mode, :string, required: true
+  attr :show_tag_search, :boolean, required: true
+  attr :show_view_menu, :boolean, required: true
+  attr :show_add_tags, :boolean, default: true
+  attr :show_search, :boolean, default: true
+
+  def mefile_floating_toolbar(assigns) do
+    ~H"""
+    <div
+      id="mefile-floating-toolbar"
+      class="fixed right-6 bottom-[6.5rem] z-40 flex flex-col-reverse items-end gap-3 max-w-[min(100vw-3rem,20rem)]"
+    >
+      <.link
+        :if={@show_add_tags}
+        id="floating-tagger-btn"
+        navigate={~p"/me_file_builder"}
+        class="btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg transition-opacity duration-300"
+      >
+        <.icon name="hero-plus" class="h-5 w-5" /> Add tags
+      </.link>
+
+      <div class="flex flex-row items-center gap-2">
+        <div
+          :if={@show_view_menu}
+          class="rounded-2xl border border-base-300 bg-base-100 dark:bg-base-200 shadow-lg p-2 flex flex-row gap-1"
+          role="menu"
+          aria-label="Tag display mode"
+        >
+          <button
+            :for={mode <- ~w(tag block list)}
+            type="button"
+            phx-click="set_tag_display_mode"
+            phx-value-mode={mode}
+            class={[
+              "btn btn-sm btn-square btn-ghost",
+              @tag_display_mode == mode && "bg-youdata-300/50 dark:bg-youdata-800/50"
+            ]}
+            aria-label={tag_display_mode_label(mode)}
+            aria-current={@tag_display_mode == mode && "true"}
+            role="menuitem"
+          >
+            <.icon name={tag_display_mode_icon(mode)} class="h-5 w-5" />
+          </button>
+        </div>
+        <button
+          type="button"
+          phx-click="toggle_view_menu"
+          class={mefile_fab_class(@show_view_menu)}
+          aria-label={"View: #{tag_display_mode_label(@tag_display_mode)}"}
+          aria-expanded={to_string(@show_view_menu)}
+        >
+          <.icon name={tag_display_mode_icon(@tag_display_mode)} class="h-5 w-5" />
+        </button>
+      </div>
+
+      <button
+        :if={@show_search}
+        type="button"
+        phx-click="toggle_tag_search"
+        class={mefile_fab_class(@show_tag_search)}
+        aria-label="Search tags"
+        aria-expanded={to_string(@show_tag_search)}
+      >
+        <.icon name="hero-magnifying-glass" class="h-5 w-5" />
+      </button>
+
+      <div
+        :if={@show_search && @show_tag_search}
+        id="mefile-tag-search-panel"
+        class="w-full min-w-[16rem]"
+        phx-mounted={JS.dispatch("phx:focus", detail: %{id: "mefile-tag-search-input"})}
+      >
+        <.tag_search_input tag_search={@tag_search} autofocus={true} compact={true} />
+      </div>
+    </div>
     """
   end
 
@@ -393,62 +458,30 @@ defmodule QlariusWeb.MeFileHTML do
     """
   end
 
-  attr :me_file_tag_map_by_category_trait_tag, :any, required: true
+  attr :parent_traits, :list, required: true
   attr :tag_display_mode, :string, required: true
-  attr :tag_search, :string, default: ""
 
-  def tags_display(assigns) do
-    assigns =
-      assign(
-        assigns,
-        :me_file_tag_map_by_category_trait_tag,
-        filter_tag_map_by_search(
-          assigns.me_file_tag_map_by_category_trait_tag,
-          assigns.tag_search
-        )
-      )
-
+  def parent_traits_display(assigns) do
     ~H"""
-    <div
-      :if={Enum.empty?(@me_file_tag_map_by_category_trait_tag) and tag_search_active?(@tag_search)}
-      class="text-center py-12 text-base-content/60"
-    >
-      <p>No tags match your search.</p>
-    </div>
-    <div :for={{{_id, name, _display_order}, parent_traits} <- @me_file_tag_map_by_category_trait_tag}>
-      <div class="flex flex-row justify-between items-baseline mb-4">
-        <h2 class="text-xl font-medium">{name}</h2>
-        <span class="text-lg text-gray-500">
-          {length(parent_traits)} tags
-        </span>
-      </div>
-
-      <div class="rounded-xl bg-base-100 shadow-sm border border-youdata-500 overflow-hidden">
-      <%= case @tag_display_mode do %>
-        <% "block" -> %>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
-            <.trait_card
-              :for={
-                {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
-                  parent_traits
-              }
-              parent_trait_id={parent_trait_id}
-              parent_trait_name={parent_trait_name}
-              tags_traits={tags_traits}
-              clickable={false}
-              display_mode="block"
-              extra_classes="h-full"
-            />
-          </div>
-        <% "list" -> %>
-          <ul class="bg-base-100 overflow-hidden [&>li:first-child>div:first-child]:border-t-0">
+    <%= case @tag_display_mode do %>
+      <% "list" -> %>
+        <div class="mx-4 mb-4 rounded-lg border border-youdata-500 bg-base-100 dark:bg-base-950/40 overflow-hidden list-trait-cards">
+          <ul class="[&>li:first-child>div:first-child]:border-t-0">
             <li
               :for={
                 {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
-                  parent_traits
+                  @parent_traits
               }
               id={"trait-card-#{parent_trait_id}"}
-              phx-hook="AnimateTrait"
+              class={[
+                "trait-card-animate relative",
+                tags_traits == [] && "empty-trait-strobe border-transparent",
+                editable_parent_trait?(parent_trait_name) &&
+                  "cursor-pointer transition-shadow duration-200 hover:shadow-md hover:z-10"
+              ]}
+              style={tags_traits == [] && "--animation-delay: #{rem(abs(parent_trait_id), 2000)}ms"}
+              phx-click={editable_parent_trait?(parent_trait_name) && "edit_tags"}
+              phx-value-id={editable_parent_trait?(parent_trait_name) && parent_trait_id}
             >
               <div class="bg-base-300/50 dark:bg-base-700/45 border-t-2 border-youdata-500 text-base-content px-4 py-3 flex items-center justify-between gap-2">
                 <span class="text-lg font-bold leading-tight min-w-0 text-youdata-800 dark:text-youdata-200">
@@ -457,7 +490,8 @@ defmodule QlariusWeb.MeFileHTML do
                 <.trait_actions
                   parent_trait_id={parent_trait_id}
                   parent_trait_name={parent_trait_name}
-                  actions_class="flex gap-3 shrink-0"
+                  nav_indicator="chevron"
+                  actions_class="flex shrink-0"
                 />
               </div>
               <div class="py-2">
@@ -476,26 +510,112 @@ defmodule QlariusWeb.MeFileHTML do
                   :if={tags_traits == []}
                   class="ps-6 pe-4 text-base leading-tight italic text-base-content/70 border-l-2 border-youdata-500/50 ms-4"
                 >
-                  {empty_tag_tease_message()}
+                  {QlariusWeb.Components.TraitComponents.empty_tag_tease_message()}
                 </p>
               </div>
             </li>
           </ul>
-        <% _ -> %>
-          <div class="flex flex-row flex-wrap gap-4 p-4">
-            <.trait_card
-              :for={
-                {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
-                  parent_traits
-              }
-              parent_trait_id={parent_trait_id}
-              parent_trait_name={parent_trait_name}
-              tags_traits={tags_traits}
-              clickable={false}
-              display_mode="tag"
-            />
-          </div>
-      <% end %>
+        </div>
+      <% "block" -> %>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 px-4 pb-4">
+          <.trait_card
+            :for={
+              {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
+                @parent_traits
+            }
+            parent_trait_id={parent_trait_id}
+            parent_trait_name={parent_trait_name}
+            tags_traits={tags_traits}
+            clickable={true}
+            nav_indicator="chevron"
+            display_mode="block"
+            extra_classes="h-full"
+          />
+        </div>
+      <% _ -> %>
+        <div class="flex flex-row flex-wrap gap-4 px-4 pb-4">
+          <.trait_card
+            :for={
+              {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
+                @parent_traits
+            }
+            parent_trait_id={parent_trait_id}
+            parent_trait_name={parent_trait_name}
+            tags_traits={tags_traits}
+            clickable={true}
+            nav_indicator="chevron"
+            display_mode="tag"
+          />
+        </div>
+    <% end %>
+    """
+  end
+
+  attr :parent_traits, :list, required: true
+  attr :tag_display_mode, :string, required: true
+  attr :tag_search, :string, default: ""
+
+  def survey_traits_display(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :parent_traits,
+        filter_parent_traits_by_search(assigns.parent_traits, assigns.tag_search)
+      )
+
+    ~H"""
+    <div id="mefilebuilder-tags-display" phx-hook="AnimateTrait" class="pb-32">
+      <div
+        :if={@parent_traits == [] and tag_search_active?(@tag_search)}
+        class="text-center py-12 text-base-content/60"
+      >
+        <p>No tags match your search.</p>
+      </div>
+      <.parent_traits_display
+        :if={@parent_traits != []}
+        parent_traits={@parent_traits}
+        tag_display_mode={@tag_display_mode}
+      />
+    </div>
+    """
+  end
+
+  attr :me_file_tag_map_by_category_trait_tag, :any, required: true
+  attr :tag_display_mode, :string, required: true
+  attr :tag_search, :string, default: ""
+
+  def tags_display(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :me_file_tag_map_by_category_trait_tag,
+        filter_tag_map_by_search(
+          assigns.me_file_tag_map_by_category_trait_tag,
+          assigns.tag_search
+        )
+      )
+
+    ~H"""
+    <div id="mefile-tags-display" phx-hook="AnimateTrait" class="flex flex-col gap-10">
+      <div
+        :if={Enum.empty?(@me_file_tag_map_by_category_trait_tag) and tag_search_active?(@tag_search)}
+        class="text-center py-12 text-base-content/60"
+      >
+        <p>No tags match your search.</p>
+      </div>
+      <div :for={{{_id, name, _display_order}, parent_traits} <- @me_file_tag_map_by_category_trait_tag}>
+      <div class="rounded-lg bg-base-200/50 dark:bg-black shadow-sm overflow-hidden border-t-4 border-neutral-300 dark:border-neutral-600">
+        <div class="flex flex-row justify-between items-baseline px-4 pt-4 pb-3">
+          <h2 class="text-xl font-light uppercase tracking-widest text-youdata-800 dark:text-youdata-400">
+            {name}
+          </h2>
+          <span class="text-md text-gray-500">
+            {length(parent_traits)} tags
+          </span>
+        </div>
+
+        <.parent_traits_display parent_traits={parent_traits} tag_display_mode={@tag_display_mode} />
+      </div>
       </div>
     </div>
     """
@@ -507,6 +627,23 @@ defmodule QlariusWeb.MeFileHTML do
   When a parent trait name or any child tag value matches, the full parent
   entry (all child tags) is kept. Categories with no matching parents are omitted.
   """
+  def filter_parent_traits_by_search(parent_traits, search) when search in [nil, ""],
+    do: parent_traits
+
+  def filter_parent_traits_by_search(parent_traits, search) do
+    needle =
+      search
+      |> to_string()
+      |> String.trim()
+      |> String.downcase()
+
+    if needle == "" do
+      parent_traits
+    else
+      Enum.filter(parent_traits, &parent_trait_matches_search?(&1, needle))
+    end
+  end
+
   def filter_tag_map_by_search(tag_categories, search) when search in [nil, ""],
     do: normalize_tag_categories(tag_categories)
 
@@ -555,6 +692,22 @@ defmodule QlariusWeb.MeFileHTML do
     search |> to_string() |> String.trim() != ""
   end
 
+  @protected_trait_names ["Birthdate", "Age", "Sex (Bio)"]
+
+  defp deletable_trait?(%{trait_name: name}), do: editable_parent_trait?(name)
+  defp deletable_trait?(_), do: false
+
+  defp editable_parent_trait?(name), do: name not in @protected_trait_names
+
+  defp mefile_fab_class(active?) do
+    [
+      "btn btn-lg btn-circle shadow-lg border border-base-300",
+      "bg-base-100 dark:bg-base-200 text-base-content",
+      "hover:bg-base-200 dark:hover:bg-base-300",
+      active? && "ring-2 ring-youdata-500/60"
+    ]
+  end
+
   defp tag_display_mode_label("tag"), do: "Tags"
   defp tag_display_mode_label("block"), do: "Blocks"
   defp tag_display_mode_label("list"), do: "List"
@@ -565,11 +718,4 @@ defmodule QlariusWeb.MeFileHTML do
   defp tag_display_mode_icon("list"), do: "hero-bars-3-bottom-left"
   defp tag_display_mode_icon(_), do: "hero-tag"
 
-  defp empty_tag_tease_message do
-    if function_exported?(Qlarius.YouData.TagTeaseAgent, :next_message, 0) do
-      Qlarius.YouData.TagTeaseAgent.next_message()
-    else
-      "Click to add tags"
-    end
-  end
 end
