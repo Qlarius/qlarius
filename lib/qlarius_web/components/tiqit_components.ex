@@ -9,6 +9,8 @@ defmodule QlariusWeb.TiqitComponents do
   alias Phoenix.LiveView.JS
   alias Qlarius.Tiqit.Arcade.Arcade
 
+  @tiqit_card_shell_class "overflow-hidden rounded-lg shadow-sm"
+
   # Status badges use a combinable model:
   # - Primary: Active (green) or Expired (yellow) — based on whether access has lapsed
   # - Fleeting (orange): only if expired AND not preserved — subject to auto-fleet
@@ -43,31 +45,6 @@ defmodule QlariusWeb.TiqitComponents do
   end
 
   attr :tiqit, :any, required: true
-
-  def tiqit_undo_countdown(assigns) do
-    undo_window = Qlarius.System.get_global_variable_int("tiqit_undo_window_hours", 2)
-    undo_deadline = DateTime.add(assigns.tiqit.purchased_at, undo_window, :hour)
-    undo_available = Arcade.undo_available?(assigns.tiqit)
-
-    assigns =
-      assigns
-      |> assign(:undo_window, undo_window)
-      |> assign(:undo_deadline, undo_deadline)
-      |> assign(:undo_available, undo_available)
-
-    ~H"""
-    <span class="text-xs text-base-content/60">
-      <%= if @undo_available do %>
-        available for
-        <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={@undo_deadline} />
-      <% else %>
-        {@undo_window}hr window closed
-      <% end %>
-    </span>
-    """
-  end
-
-  attr :tiqit, :any, required: true
   attr :status, :atom, required: true
   attr :fleet_after_hours, :integer, default: 24
   attr :user, :any, default: nil
@@ -77,126 +54,139 @@ defmodule QlariusWeb.TiqitComponents do
   attr :unpreserve_modal_id, :string, default: "unpreserve-confirm-modal"
 
   def tiqit_status_and_actions(assigns) do
+    undo_window = Qlarius.System.get_global_variable_int("tiqit_undo_window_hours", 2)
+    undo_deadline = DateTime.add(assigns.tiqit.purchased_at, undo_window, :hour)
+
     assigns =
       assigns
-      |> assign(:undo_available, Arcade.undo_available?(assigns.tiqit))
-      |> assign(:free_tiqit?, Arcade.free_tiqit?(assigns.tiqit))
+      |> assign(:undo_deadline, undo_deadline)
+      |> assign(:refund_locked?, not is_nil(assigns.tiqit.refund_locked_at))
       |> assign(:content_path, tiqit_content_path(assigns.tiqit))
       |> assign(:scope_label, tiqit_scope_label(assigns.tiqit))
+      |> assign(:show_preserve_cell?, !(assigns.status == :expired && assigns.tiqit.preserved))
+      |> assign(:show_refund_cell?, !assigns.tiqit.refund_locked_at && Arcade.undo_available?(assigns.tiqit))
 
     ~H"""
-    <div class="space-y-3">
-      <div class="text-xs text-base-content/50 pb-2 border-b border-base-300/30 dark:border-base-content/15">
+    <div class="tiqit-actions flex w-full flex-col gap-3">
+      <div class="border-b border-base-300/30 pb-2 text-sm text-base-content/50 dark:border-base-content/15">
         Purchased {format_purchased_at(@tiqit.purchased_at, @user)}
       </div>
 
-      <%!-- View content button — shown for all linked (non-fleeted) tiqits --%>
       <.link
         :if={@status in [:active, :expired] && @content_path}
         navigate={@content_path}
-        class="btn btn-sm btn-primary rounded-full"
+        class={[tiqit_action_btn_base(), "btn-primary gap-2 text-base font-semibold"]}
       >
-        <.icon name="hero-play" class="w-4 h-4" />
+        <.icon name="hero-play" class="h-5 w-5 shrink-0" />
         Go to {if @scope_label != "", do: @scope_label, else: "Content"}
       </.link>
 
-      <%!-- Undo row — show if eligible, or disabled on active only --%>
       <%= if @status in [:active, :expired] do %>
-        <%= cond do %>
-          <% @undo_available -> %>
-            <div class="flex items-center gap-2">
-              <button
-                class="btn btn-sm btn-outline rounded-full"
-                phx-click="prepare_undo"
-                phx-value-id={@tiqit.id}
-              >
-                <.icon name="hero-arrow-uturn-left" class="w-4 h-4" /> Refund
-              </button>
-              <span class="text-xs text-base-content/50 flex items-center gap-1">
-                <.tiqit_undo_countdown tiqit={@tiqit} />
-              </span>
-            </div>
-          <% @free_tiqit? and @status == :active -> %>
-            <div class="flex items-center gap-2">
-              <button class="btn btn-sm rounded-full btn-disabled" disabled>
-                <.icon name="hero-arrow-uturn-left" class="w-4 h-4" /> Refund
-              </button>
-              <span class="text-xs text-base-content/40">Not refundable (free)</span>
-            </div>
-          <% not is_nil(@tiqit.refund_locked_at) -> %>
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-base-content/40 flex items-center gap-1">
-                <.icon name="hero-lock-closed-mini" class="w-3.5 h-3.5" /> Discount applied to TiqitUp
-              </span>
-            </div>
-          <% @status == :active -> %>
-            <div class="flex items-center gap-2">
-              <button class="btn btn-sm rounded-full btn-disabled" disabled>
-                <.icon name="hero-arrow-uturn-left" class="w-4 h-4" /> Refund
-              </button>
-              <span class="text-xs text-base-content/40">Refund option expired</span>
-            </div>
-          <% true -> %>
-        <% end %>
-      <% end %>
+        <div :if={@refund_locked?} class="flex items-center gap-1 text-xs text-base-content/40">
+          <.icon name="hero-lock-closed-mini" class="h-4 w-4 shrink-0" />
+          Discount applied to TiqitUp
+        </div>
 
-      <%!-- Preserve/Unpreserve + Fleet Now --%>
-      <%= if @status in [:active, :expired] do %>
-        <div class="flex flex-wrap gap-2">
-          <%!-- Expired+preserved: no Unpreserve, just Fleet Now --%>
-          <%= if @status == :expired && @tiqit.preserved do %>
-            <button
-              class="btn btn-sm btn-error btn-outline rounded-full"
-              phx-click={
-                JS.set_attribute({"phx-value-id", to_string(@tiqit.id)},
-                  to: "##{@fleet_modal_id}-confirm-btn"
-                )
-                |> show_modal(@fleet_modal_id)
-              }
-            >
-              <.icon name="hero-trash" class="w-4 h-4" /> Fleet Now
-            </button>
-          <% else %>
-            <%= if @tiqit.preserved do %>
-              <button
-                class="btn btn-sm btn-outline rounded-full"
-                phx-click={
-                  JS.set_attribute({"phx-value-id", to_string(@tiqit.id)},
-                    to: "##{@unpreserve_modal_id}-confirm-btn"
-                  )
-                  |> show_modal(@unpreserve_modal_id)
-                }
-              >
-                <.icon name="hero-shield-exclamation" class="w-4 h-4" /> Unpreserve
-              </button>
-            <% else %>
-              <button
-                class="btn btn-sm btn-outline rounded-full"
-                phx-click={
-                  JS.set_attribute({"phx-value-id", to_string(@tiqit.id)},
-                    to: "##{@preserve_modal_id}-confirm-btn"
-                  )
-                  |> show_modal(@preserve_modal_id)
-                }
-              >
-                <.icon name="hero-shield-check" class="w-4 h-4" /> Preserve
-              </button>
-            <% end %>
-            <button
-              class="btn btn-sm btn-error btn-outline rounded-full"
-              phx-click={
-                JS.set_attribute({"phx-value-id", to_string(@tiqit.id)},
-                  to: "##{@fleet_modal_id}-confirm-btn"
-                )
-                |> show_modal(@fleet_modal_id)
-              }
-            >
-              <.icon name="hero-trash" class="w-4 h-4" /> Fleet Now
-            </button>
-          <% end %>
+        <div class="flex w-full gap-2">
+          <div :if={@show_refund_cell?} class="min-w-0 flex-1">
+            <.tiqit_refund_cell tiqit={@tiqit} undo_deadline={@undo_deadline} />
+          </div>
+
+          <div :if={@show_preserve_cell?} class="min-w-0 flex-1">
+            <.tiqit_preserve_cell
+              tiqit={@tiqit}
+              preserve_modal_id={@preserve_modal_id}
+              unpreserve_modal_id={@unpreserve_modal_id}
+            />
+          </div>
+
+          <div class="min-w-0 flex-1">
+            <.tiqit_fleet_cell tiqit={@tiqit} fleet_modal_id={@fleet_modal_id} />
+          </div>
         </div>
       <% end %>
     </div>
+    """
+  end
+
+  attr :tiqit, :any, required: true
+  attr :undo_deadline, :any, required: true
+
+  defp tiqit_refund_cell(assigns) do
+    ~H"""
+    <button
+      class={[tiqit_action_btn_base(), "btn-outline flex-col gap-0.5"]}
+      phx-click="prepare_undo"
+      phx-value-id={@tiqit.id}
+    >
+      <span class="flex items-center gap-1 text-sm font-semibold leading-tight">
+        <.icon name="hero-arrow-uturn-left" class="h-4 w-4 shrink-0" /> Refund
+      </span>
+      <QlariusWeb.Components.TiqitExpirationCountdown.text
+        expires_at={@undo_deadline}
+        format={:hms}
+        class="text-[10px] font-normal leading-tight tabular-nums text-base-content/60"
+      />
+    </button>
+    """
+  end
+
+  attr :tiqit, :any, required: true
+  attr :preserve_modal_id, :string, required: true
+  attr :unpreserve_modal_id, :string, required: true
+
+  defp tiqit_preserve_cell(assigns) do
+    ~H"""
+    <%= if @tiqit.preserved do %>
+      <button
+        class={[tiqit_action_btn_base(), "btn-outline"]}
+        phx-click={
+          JS.set_attribute({"phx-value-id", to_string(@tiqit.id)},
+            to: "##{@unpreserve_modal_id}-confirm-btn"
+          )
+          |> show_modal(@unpreserve_modal_id)
+        }
+      >
+        <span class="flex items-center gap-1 text-sm font-semibold leading-tight">
+          <.icon name="hero-shield-exclamation" class="h-4 w-4 shrink-0" /> Unpreserve
+        </span>
+      </button>
+    <% else %>
+      <button
+        class={[tiqit_action_btn_base(), "btn-outline"]}
+        phx-click={
+          JS.set_attribute({"phx-value-id", to_string(@tiqit.id)},
+            to: "##{@preserve_modal_id}-confirm-btn"
+          )
+          |> show_modal(@preserve_modal_id)
+        }
+      >
+        <span class="flex items-center gap-1 text-sm font-semibold leading-tight">
+          <.icon name="hero-shield-check" class="h-4 w-4 shrink-0" /> Preserve
+        </span>
+      </button>
+    <% end %>
+    """
+  end
+
+  attr :tiqit, :any, required: true
+  attr :fleet_modal_id, :string, required: true
+
+  defp tiqit_fleet_cell(assigns) do
+    ~H"""
+    <button
+      class={[tiqit_action_btn_base(), "btn-error btn-outline"]}
+      phx-click={
+        JS.set_attribute({"phx-value-id", to_string(@tiqit.id)},
+          to: "##{@fleet_modal_id}-confirm-btn"
+        )
+        |> show_modal(@fleet_modal_id)
+      }
+    >
+      <span class="flex items-center gap-1 text-sm font-semibold leading-tight">
+        <.icon name="hero-trash" class="h-4 w-4 shrink-0" /> Fleet
+      </span>
+    </button>
     """
   end
 
@@ -226,28 +216,42 @@ defmodule QlariusWeb.TiqitComponents do
       |> assign(:content_summary, tiqit_content_summary(assigns.tiqit))
       |> assign(:hierarchy, tiqit_hierarchy(assigns.tiqit))
       |> assign(:image_url, tiqit_image_url(assigns.tiqit))
+      |> assign(:tiqit_card_shell_class, @tiqit_card_shell_class)
 
     ~H"""
-    <div class="tiqit-grid" data-status={@status} data-preserved={to_string(@tiqit.preserved)}>
-      <div class="tiqit-tl"></div>
-      <div class="tiqit-top">
-        <img
-          src={@image_url}
-          class="max-w-20 max-h-20 w-auto h-auto rounded-lg border border-base-300/50 float-right ml-3 mb-1"
-        />
-        <div class="font-semibold mb-1">{@title}</div>
-        <div class="text-sm text-base-content/60">{@scope_label}</div>
-        <div :if={@content_summary} class="text-xs text-base-content/50">{@content_summary}</div>
-        <div :if={@hierarchy != []} class="text-xs text-base-content/50 mt-1">
-          {Enum.join(@hierarchy, " › ")}
-        </div>
+    <div class={@tiqit_card_shell_class}>
+      <div class="tiqit-grid" data-status={@status} data-preserved={to_string(@tiqit.preserved)}>
+        <div class="tiqit-tl"></div>
+        <div class="tiqit-top">
+          <div class="flex items-start gap-3">
+            <img
+              src={@image_url}
+              alt=""
+              class="h-24 w-24 shrink-0 rounded-lg border border-base-300/50 object-cover"
+            />
+          <div class="min-w-0 flex-1 text-left">
+            <div
+              :if={@scope_label != ""}
+              class="mb-1 text-xs font-extralight uppercase leading-relaxed tracking-widest text-base-content/55"
+            >
+              {@scope_label}
+            </div>
+            <div class="text-base font-semibold leading-snug">{@title}</div>
+            <div :if={@content_summary} class="mt-0.5 text-sm text-base-content/50">
+              {@content_summary}
+            </div>
+            <div :if={@hierarchy != []} class="mt-1 text-sm text-base-content/50">
+              {Enum.join(@hierarchy, " › ")}
+            </div>
+          </div>
+          </div>
 
-        <%= if @status in [:active, :expired] do %>
-          <div class="clear-both mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-base-300/25 pt-3 dark:border-base-content/15">
+          <%= if @status in [:active, :expired] do %>
+          <div class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-base-300/25 pt-3 dark:border-base-content/15">
             <%= cond do %>
               <% @status == :active -> %>
                 <.tiqit_primary_status_badge status={:active} />
-                <span class="text-xs text-base-content/55">
+                <span class="text-sm text-base-content/55">
                   Expires in{" "}
                   <span class="text-base-content/80">
                     <%= if @tiqit.expires_at do %>
@@ -265,7 +269,7 @@ defmodule QlariusWeb.TiqitComponents do
                 </div>
               <% @status == :expired -> %>
                 <.tiqit_primary_status_badge status={:expired} />
-                <span class="text-xs text-base-content/55">
+                <span class="text-sm text-base-content/55">
                   Auto-Fleets in{" "}
                   <span class="text-base-content/80">
                     <%= if @fleet_at_deadline &&
@@ -281,49 +285,53 @@ defmodule QlariusWeb.TiqitComponents do
               <% true -> %>
             <% end %>
           </div>
-        <% end %>
-      </div>
-      <div class="tiqit-tr"></div>
+          <% end %>
+        </div>
+        <div class="tiqit-tr"></div>
 
-      <div class="tiqit-notch tiqit-notch-l">
-        <div></div>
-      </div>
-      <div class="tiqit-perf"></div>
-      <div class="tiqit-notch tiqit-notch-r">
-        <div></div>
-      </div>
+        <div class="tiqit-notch tiqit-notch-l">
+          <div></div>
+        </div>
+        <div class="tiqit-perf"></div>
+        <div class="tiqit-notch tiqit-notch-r">
+          <div></div>
+        </div>
 
-      <div class="tiqit-bl"></div>
-      <div class="tiqit-bot">
-        <details class="tiqit-tail-details min-w-0">
-          <summary
-            class="tiqit-tail-details-summary flex cursor-pointer list-none flex-col justify-start [&::-webkit-details-marker]:hidden"
-            aria-label="Show or hide purchase details and actions"
-          >
-            <div class="tiqit-tail-details-summary-inner shrink-0">
-              <span class="tiqit-tail-expand-hit">
-                <.icon
-                  name="hero-chevron-down"
-                  class="tiqit-tail-details-chevron h-4 w-4 shrink-0 text-base-content/55"
-                />
-              </span>
+        <div class="tiqit-bl"></div>
+        <div class="tiqit-bot">
+          <details class="tiqit-tail-details min-w-0">
+            <summary
+              class="tiqit-tail-details-summary cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+              aria-label="Show or hide purchase details and actions"
+            >
+              <div class="tiqit-tail-fold">
+                <span class="tiqit-tail-toggle">
+                  <span class="tiqit-tail-expand-hit">
+                    <.icon
+                      name="hero-chevron-down"
+                      class="tiqit-tail-details-chevron h-5 w-5 shrink-0 text-base-content/55"
+                    />
+                  </span>
+                </span>
+                <span class="tiqit-tail-collapsed-hint" aria-hidden="true">···</span>
+              </div>
+            </summary>
+            <div class="tiqit-tail-details-body">
+              <.tiqit_status_and_actions
+                tiqit={@tiqit}
+                status={@status}
+                user={@user}
+                fleet_after_hours={@fleet_after_hours}
+                fleet_modal_id={@fleet_modal_id}
+                undo_modal_id={@undo_modal_id}
+                preserve_modal_id={@preserve_modal_id}
+                unpreserve_modal_id={@unpreserve_modal_id}
+              />
             </div>
-          </summary>
-          <div class="tiqit-tail-details-body">
-            <.tiqit_status_and_actions
-              tiqit={@tiqit}
-              status={@status}
-              user={@user}
-              fleet_after_hours={@fleet_after_hours}
-              fleet_modal_id={@fleet_modal_id}
-              undo_modal_id={@undo_modal_id}
-              preserve_modal_id={@preserve_modal_id}
-              unpreserve_modal_id={@unpreserve_modal_id}
-            />
-          </div>
-        </details>
+          </details>
+        </div>
+        <div class="tiqit-br"></div>
       </div>
-      <div class="tiqit-br"></div>
     </div>
     """
   end
@@ -333,10 +341,14 @@ defmodule QlariusWeb.TiqitComponents do
   def tiqit_fleeted_card(assigns) do
     status = if assigns.disconnect_reason == :undone, do: :undone, else: :fleeted
 
-    assigns = assign(assigns, :status, status)
+    assigns =
+      assigns
+      |> assign(:status, status)
+      |> assign(:tiqit_card_shell_class, @tiqit_card_shell_class)
 
     ~H"""
-    <div class="tiqit-grid" data-status={@status}>
+    <div class={@tiqit_card_shell_class}>
+      <div class="tiqit-grid" data-status={@status}>
       <div class="tiqit-tl"></div>
       <div class="tiqit-top">
         <div class="flex flex-col items-center justify-center py-4 text-center">
@@ -373,7 +385,8 @@ defmodule QlariusWeb.TiqitComponents do
           <% end %>
         </p>
       </div>
-      <div class="tiqit-br"></div>
+        <div class="tiqit-br"></div>
+      </div>
     </div>
     """
   end
@@ -397,7 +410,7 @@ defmodule QlariusWeb.TiqitComponents do
             phx-click={JS.push("fleet_tiqit") |> hide_modal(@id)}
             phx-value-id=""
           >
-            Fleet Now
+            Fleet
           </button>
         </div>
       </div>
@@ -525,6 +538,10 @@ defmodule QlariusWeb.TiqitComponents do
   end
 
   # Helpers
+
+  defp tiqit_action_btn_base do
+    "btn btn-md flex min-h-[3.75rem] w-full items-center justify-center rounded-full px-2 py-1.5"
+  end
 
   defp format_purchased_at(datetime, user) do
     Qlarius.DateTime.format_for_user(datetime, user, :standard_no_tz)

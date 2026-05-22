@@ -317,7 +317,7 @@ defmodule QlariusWeb.MeFileHTML do
       ]}>
         <.icon
           name="hero-magnifying-glass"
-          class={["opacity-50 shrink-0", @compact && "h-5 w-5", !@compact && "h-4 w-4"]}
+          class={if(@compact, do: "opacity-50 shrink-0 h-5 w-5", else: "opacity-50 shrink-0 h-4 w-4")}
         />
         <input
           id="mefile-tag-search-input"
@@ -347,7 +347,7 @@ defmodule QlariusWeb.MeFileHTML do
           ]}
           aria-label="Clear search text"
         >
-          <.icon name="hero-x-mark" class={[@compact && "h-5 w-5", !@compact && "h-4 w-4"]} />
+          <.icon name="hero-x-mark" class={if(@compact, do: "h-5 w-5", else: "h-4 w-4")} />
         </button>
       </label>
     </form>

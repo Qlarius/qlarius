@@ -19,6 +19,9 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
   import QlariusWeb.Helpers.ImageHelpers
   import QlariusWeb.PWAHelpers
 
+  import QlariusWeb.Widgets.Arcade.Components,
+    only: [discovery_item_card: 1, discovery_grid_class: 0]
+
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
   def mount(_params, session, socket) do
@@ -56,7 +59,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
     ~H"""
     <div id="discovery-pwa-detect" phx-hook="PWADetect">
       <Layouts.maybe_mobile wrap={@base_path == ""} {assigns}>
-        <div class="px-4 py-4 space-y-6">
+        <div class="px-4 py-4 space-y-8">
           <div>
             <h1 class="text-xl font-bold">Discover</h1>
             <p class="text-sm text-base-content/50">Browse content from creators</p>
@@ -67,81 +70,35 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
               No content available yet. Check back soon.
             </div>
           <% else %>
-            <%!-- Catalog cards — larger, more prominent --%>
-            <div :if={@catalogs != []} class="space-y-3">
-              <h2 class="text-sm font-semibold text-base-content/40 uppercase tracking-wider">
-                Catalogs
-              </h2>
-              <div class="grid grid-cols-1 gap-3">
-                <.link
+            <div :if={@catalogs != []} class="space-y-4">
+              <h2 class="text-lg font-bold tracking-tight text-base-content/50">Catalogs</h2>
+              <div class={discovery_grid_class()}>
+                <.discovery_item_card
                   :for={catalog <- @catalogs}
                   navigate={"#{@base_path}/arqade/catalog/#{catalog.id}"}
-                  class="bg-base-200 rounded-xl overflow-hidden border border-base-300 hover:border-widget-400 transition-all cursor-pointer block"
-                >
-                  <div class="flex gap-4 p-4">
-                    <img
-                      src={catalog_image_url(catalog)}
-                      alt={catalog.name}
-                      class="w-20 h-20 rounded-lg object-cover border border-base-300/50 flex-shrink-0"
-                    />
-                    <div class="flex-1 min-w-0">
-                      <div class="font-semibold text-base-content">{catalog.name}</div>
-                      <div class="text-sm text-base-content/60">{catalog.creator.name}</div>
-                      <div class="text-xs text-base-content/40 mt-1">
-                        {catalog_summary(catalog)}
-                      </div>
-                      <% price_info = catalog_price_info(catalog) %>
-                      <div :if={price_info} class="text-xs font-medium mt-1">
-                        <span :if={price_info.min_price} class="text-widget-700">
-                          from {price_info.min_price}
-                        </span>
-                        <span
-                          :if={price_info.min_price && price_info.free_count > 0}
-                          class="text-base-content/50"
-                        >
-                          ·
-                        </span>
-                        <span :if={price_info.free_count > 0} class="text-base-content/50">
-                          Includes {price_info.free_count} FREE {pluralize(
-                            to_string(catalog.piece_type),
-                            price_info.free_count
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </.link>
+                  image_src={catalog_image_url(catalog)}
+                  image_alt={catalog.name}
+                  title={catalog.name}
+                  subtitle={catalog.creator.name}
+                  detail={catalog_summary(catalog)}
+                  price_info={catalog_price_info(catalog)}
+                  piece_type={to_string(catalog.piece_type)}
+                />
               </div>
             </div>
 
-            <%!-- Group cards — smaller, secondary prominence --%>
-            <div :if={@groups != []} class="space-y-3">
-              <h2 class="text-sm font-semibold text-base-content/40 uppercase tracking-wider">
-                Featured
-              </h2>
-              <div class="grid grid-cols-1 gap-3">
-                <.link
+            <div :if={@groups != []} class="space-y-4">
+              <h2 class="text-lg font-bold tracking-tight text-base-content/50">Featured</h2>
+              <div class={discovery_grid_class()}>
+                <.discovery_item_card
                   :for={group <- @groups}
                   navigate={"#{@base_path}/arqade/group/#{group.id}"}
-                  class="bg-base-200 rounded-lg overflow-hidden border border-base-300 hover:border-widget-400 transition-all cursor-pointer block"
-                >
-                  <div class="flex gap-3 p-3">
-                    <img
-                      src={group_image_url(group)}
-                      alt={group.title}
-                      class="w-14 h-14 rounded-lg object-cover border border-base-300/50 flex-shrink-0"
-                    />
-                    <div class="flex-1 min-w-0">
-                      <div class="font-medium text-sm text-base-content">{group.title}</div>
-                      <div class="text-xs text-base-content/50">
-                        {group.catalog.creator.name} › {group.catalog.name}
-                      </div>
-                      <div class="text-xs text-base-content/40 mt-0.5">
-                        {group_summary(group)}
-                      </div>
-                    </div>
-                  </div>
-                </.link>
+                  image_src={group_image_url(group)}
+                  image_alt={group.title}
+                  title={group.title}
+                  subtitle={"#{group.catalog.creator.name} › #{group.catalog.name}"}
+                  detail={group_summary(group)}
+                />
               </div>
             </div>
           <% end %>

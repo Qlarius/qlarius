@@ -633,16 +633,28 @@ function setupCountdown(el, forceReset = false){
       display.textContent = 'expired'
       return
     }
-    const d = Math.floor(distance / (1000*60*60*24))
-    const h = Math.floor((distance % (1000*60*60*24)) / (1000*60*60))
-    const m = Math.floor((distance % (1000*60*60)) / (1000*60))
-    const s = Math.floor((distance % (1000*60)) / 1000)
-    const parts = []
-    if (d > 0) parts.push(`${d} ${d===1?'day':'days'}`)
-    if (h > 0 || d > 0) parts.push(`${h} ${h===1?'hr':'hrs'}`)
-    if (d < 1) parts.push(`${m} ${m===1?'min':'mins'}`)
-    if (d < 1 && h < 1 && m < 10) parts.push(`${s} ${s===1?'sec':'secs'}`)
-    display.textContent = parts.join(', ')
+    const format = el.dataset.countdownFormat || 'friendly'
+    if (format === 'hms') {
+      const totalH = Math.floor(distance / (1000 * 60 * 60))
+      const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+      const s = Math.floor((distance % (1000 * 60)) / 1000)
+      display.textContent = [
+        String(totalH).padStart(2, '0'),
+        String(m).padStart(2, '0'),
+        String(s).padStart(2, '0')
+      ].join(':')
+    } else {
+      const d = Math.floor(distance / (1000*60*60*24))
+      const h = Math.floor((distance % (1000*60*60*24)) / (1000*60*60))
+      const m = Math.floor((distance % (1000*60*60)) / (1000*60))
+      const s = Math.floor((distance % (1000*60)) / 1000)
+      const parts = []
+      if (d > 0) parts.push(`${d} ${d===1?'day':'days'}`)
+      if (h > 0 || d > 0) parts.push(`${h} ${h===1?'hr':'hrs'}`)
+      if (d < 1) parts.push(`${m} ${m===1?'min':'mins'}`)
+      if (d < 1 && h < 1 && m < 10) parts.push(`${s} ${s===1?'sec':'secs'}`)
+      display.textContent = parts.join(', ')
+    }
     el._countdownTimeout = setTimeout(update, 1000)
   }
 

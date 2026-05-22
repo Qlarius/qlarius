@@ -2041,27 +2041,41 @@ body {
   display: none !important;
 }
 
-/* Tiqit action buttons — keep outline visible on hover */
-.tiqit-grid .btn-outline:not(.btn-error):hover {
+/* Tiqit action buttons — readable label + countdown on hover (light/dark) */
+.tiqit-grid .btn-outline:not(.btn-error):hover:not(:disabled):not(.btn-disabled) {
   background-color: var(--color-base-content);
-  color: var(--color-base-100);
   border-color: var(--color-base-content);
-  opacity: 0.85;
+  color: var(--color-base-100);
+}
+
+.tiqit-grid .btn-outline:not(.btn-error):hover:not(:disabled):not(.btn-disabled) :is(
+    span,
+    [data-countdown-root],
+    [data-countdown-display]
+  ) {
+  color: var(--color-base-100) !important;
+}
+
+.tiqit-grid .btn-outline.btn-error:hover:not(:disabled):not(.btn-disabled) {
+  background-color: var(--color-error);
+  border-color: var(--color-error);
+  color: var(--color-error-content);
+}
+
+.tiqit-grid .btn-outline.btn-error:hover:not(:disabled):not(.btn-disabled) :is(span, svg) {
+  color: var(--color-error-content) !important;
 }
 
 /* Tiqit ticket card — 3×3 structural grid with notch cutouts */
 .tiqit-grid {
-  --notch-r: 10px;
-  --tiqit-bot-padding-y: 0.75rem;
+  --notch-r: 12px;
   --tiqit-tail-t: 0.38s;
   --tiqit-tail-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  /* From top of `.tiqit-bot` content to vertical center of dashed fold (row height = 2×notch) */
-  --tiqit-toggle-lift: calc(var(--tiqit-bot-padding-y) + var(--notch-r));
-  /* ~½ oblong control height — nudges toggle so its center sits on the dotted line */
-  --tiqit-expand-hit-half-h: 0.75rem;
   display: grid;
   grid-template-columns: var(--notch-r) 1fr var(--notch-r);
   grid-template-rows: auto calc(var(--notch-r) * 2) auto;
+  border-top: 4px solid var(--ticket-border, var(--color-base-300));
+  overflow: hidden;
 }
 
 .tiqit-grid > * {
@@ -2093,44 +2107,40 @@ body {
 /* ── Corner cells ── */
 .tiqit-tl {
   border-left: 1px solid var(--ticket-border);
-  border-top: 1px solid var(--ticket-border);
-  border-top-left-radius: 0.5rem;
+  border-top-left-radius: 8px;
 }
 .tiqit-tr {
   border-right: 1px solid var(--ticket-border);
-  border-top: 1px solid var(--ticket-border);
-  border-top-right-radius: 0.5rem;
+  border-top-right-radius: 8px;
 }
 .tiqit-bl {
   border-left: 1px solid var(--ticket-border);
   border-bottom: 1px solid var(--ticket-border);
-  border-bottom-left-radius: 0.5rem;
+  border-bottom-left-radius: 8px;
 }
 .tiqit-br {
   border-right: 1px solid var(--ticket-border);
   border-bottom: 1px solid var(--ticket-border);
-  border-bottom-right-radius: 0.5rem;
+  border-bottom-right-radius: 8px;
 }
 
 /* ── Content sections ── */
 .tiqit-top {
-  border-top: 1px solid var(--ticket-border);
-  padding: 1rem 1.25rem 0.75rem 0.75rem;
+  padding: 20px 24px 16px 16px;
 }
 .tiqit-bot {
   position: relative;
   z-index: 1;
   border-bottom: 1px solid var(--ticket-border);
-  padding: var(--tiqit-bot-padding-y) 1.25rem 0.5rem 0.75rem;
+  padding: 10px 24px 8px 16px;
   /* Single paint for translucent `--ticket-bg` (avoid stacking same token in tail, which shifts hue) */
   background-color: var(--ticket-bg);
   overflow: visible;
   transition: padding-bottom var(--tiqit-tail-t, 0.36s) var(--tiqit-tail-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
-/* Collapsed tail: trim a bit of dead air under the chevron before the card bottom */
 .tiqit-bot:has(> .tiqit-tail-details:not([open])) {
-  padding-bottom: 0.3rem;
+  padding-bottom: 2px;
 }
 
 /* ── Notch cells — overflow-hidden with a shifted circle inside ── */
@@ -2168,33 +2178,55 @@ body {
    (semi-transparent ticket tokens would compound and look like a mismatched “inner panel”). */
 .tiqit-tail-details,
 .tiqit-tail-details-summary,
-.tiqit-tail-details-summary-inner,
 .tiqit-tail-details-body {
   background-color: transparent;
 }
 
 .tiqit-tail-details-summary {
-  /* Collapsed: modest tap target + small tail under the (visually lifted) toggle */
-  min-height: 2.05rem;
-  padding-bottom: 0.2rem;
-  transition:
-    min-height var(--tiqit-tail-t, 0.38s) var(--tiqit-tail-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-    padding-bottom var(--tiqit-tail-t, 0.38s) var(--tiqit-tail-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  display: block;
+  padding: 0;
+}
+
+/* Pull toggle + ellipses up onto the perforation together */
+.tiqit-tail-fold {
+  position: relative;
+  margin-top: -36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  z-index: 2;
+}
+
+.tiqit-tail-toggle {
+  position: relative;
 }
 
 .tiqit-tail-details[open] .tiqit-tail-details-summary {
-  /* Expanded: no reserved “spacer” band — body sits tight under the summary row */
   min-height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
+}
+
+.tiqit-tail-details-body {
+  opacity: 0;
 }
 
 .tiqit-tail-details[open] .tiqit-tail-details-body {
-  /* Pull content up into the layout band reserved for the (visually lifted) summary control */
-  margin-top: calc(
-    -1 * (var(--tiqit-bot-padding-y) + var(--tiqit-expand-hit-half-h))
-  );
-  padding-bottom: 0.875rem;
+  margin-top: -16px;
+  padding-top: 12px;
+  padding-bottom: 14px;
+  animation: tiqit-tail-body-in var(--tiqit-tail-t) var(--tiqit-tail-ease) 0.06s both;
+}
+
+@keyframes tiqit-tail-body-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Smooth tail expand/collapse (non-summary slot); Chromium + Safari 17.4+ */
@@ -2235,6 +2267,16 @@ body {
     transition-duration: 0.01ms;
   }
 
+  .tiqit-tail-collapsed-hint {
+    transition-duration: 0.01ms;
+  }
+
+  .tiqit-tail-details[open] .tiqit-tail-details-body {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
   @supports (interpolate-size: allow-keywords) and (selector(details::details-content)) {
     .tiqit-tail-details::details-content {
       transition-duration: 0.01ms !important;
@@ -2242,25 +2284,41 @@ body {
   }
 }
 
-.tiqit-tail-details-summary-inner {
-  display: flex;
-  justify-content: center;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-  transform: translateY(
-    calc(-1 * (var(--tiqit-toggle-lift) + var(--tiqit-expand-hit-half-h)))
-  );
-  position: relative;
-  z-index: 2;
+.tiqit-tail-collapsed-hint {
+  display: block;
+  width: 100%;
+  max-height: 14px;
+  margin-top: 0;
+  padding-bottom: 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.3em;
+  color: color-mix(in oklch, var(--color-base-content) 58%, transparent);
+  user-select: none;
+  opacity: 1;
+  overflow: hidden;
+  transition:
+    opacity 0.28s var(--tiqit-tail-ease),
+    max-height 0.28s var(--tiqit-tail-ease),
+    transform 0.28s var(--tiqit-tail-ease);
+}
+
+.tiqit-tail-details[open] .tiqit-tail-collapsed-hint {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
 }
 
 .tiqit-tail-expand-hit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2.85rem;
-  padding: 0.18rem 0.95rem;
-  border-radius: 0.65rem;
+  min-width: 46px;
+  padding: 3px 15px;
+  border-radius: 10px;
   border: 1px solid color-mix(in oklch, var(--ticket-border) 55%, transparent);
   /* Opaque fill so dashed perf line cannot show through translucent `--ticket-bg` */
   background-color: var(--ticket-bg);

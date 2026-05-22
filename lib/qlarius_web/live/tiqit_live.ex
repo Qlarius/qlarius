@@ -167,18 +167,26 @@ defmodule QlariusWeb.TiqitLive do
         <div class="mb-6">
           <h2 class="text-xl font-bold mb-4">Stash</h2>
 
-          <div class="flex flex-wrap gap-2 mb-4">
-            <button
-              :for={status <- [:all, :active, :expired, :fleeted, :preserved]}
-              phx-click="filter"
-              phx-value-status={status}
-              class={[
-                "btn btn-sm",
-                if(@status_filter == status, do: "btn-primary", else: "btn-ghost")
-              ]}
+          <div class="mb-4 overflow-x-auto">
+            <div
+              class="join min-w-max [--radius-field:9999px]"
+              role="group"
+              aria-label="Stash filter"
             >
-              {filter_label(status)}
-            </button>
+              <button
+                :for={status <- [:all, :active, :expired, :fleeted, :preserved]}
+                type="button"
+                phx-click="filter"
+                phx-value-status={status}
+                class={[
+                  "join-item btn btn-md whitespace-nowrap",
+                  @status_filter == status && "btn-active"
+                ]}
+                aria-pressed={to_string(@status_filter == status)}
+              >
+                {filter_label(status)}
+              </button>
+            </div>
           </div>
 
           <%= if @status_filter == :fleeted do %>

@@ -15,7 +15,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
 
   import QlariusWeb.Helpers.ImageHelpers
   import QlariusWeb.PWAHelpers
-  import QlariusWeb.Widgets.Arcade.Components, only: [arqade_breadcrumbs: 1]
+  import QlariusWeb.Widgets.Arcade.Components,
+    only: [arqade_breadcrumbs: 1, discovery_item_card: 1, discovery_grid_class: 0]
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
@@ -59,19 +60,21 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
     ~H"""
     <div id="catalog-pwa-detect" phx-hook="PWADetect">
       <Layouts.maybe_mobile wrap={@base_path == ""} {assigns}>
-        <.arqade_breadcrumbs base_path={@base_path} crumbs={[]} />
-        <div class="mb-6">
-          <div class="flex items-center gap-4 mb-6">
-            <%= if @catalog.image do %>
-              <img
-                src={catalog_image_url(@catalog)}
-                alt={@catalog.name}
-                class="w-16 h-16 rounded-lg object-cover border border-base-300"
-              />
-            <% end %>
-            <div>
-              <h1 class="text-2xl font-bold">{@catalog.name}</h1>
-              <p class="text-sm text-base-content/60">
+        <.arqade_breadcrumbs
+          base_path={@base_path}
+          crumbs={[{@catalog.name, "#{@base_path}/arqade/catalog/#{@catalog.id}"}]}
+        />
+        <div class="px-4 py-4 space-y-6">
+          <div class="flex items-center gap-4">
+            <img
+              :if={@catalog.image}
+              src={catalog_image_url(@catalog)}
+              alt={@catalog.name}
+              class="aspect-square w-16 shrink-0 rounded-lg object-cover border border-base-300"
+            />
+            <div class="min-w-0">
+              <h1 class="text-lg font-bold tracking-tight text-base-content/50">{@catalog.name}</h1>
+              <p class="text-sm text-base-content/50">
                 {length(@groups)} {if length(@groups) == 1,
                   do: @catalog.group_type,
                   else: pluralize(@catalog.group_type)}
@@ -84,53 +87,17 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
               No content available in this catalog.
             </div>
           <% else %>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <.link
+            <div class={discovery_grid_class()}>
+              <.discovery_item_card
                 :for={group <- @groups}
                 navigate={"#{@base_path}/arqade/group/#{group.id}"}
-                class="bg-base-200 rounded-lg p-4 border border-base-300 hover:border-widget-400 hover:bg-base-200/80 transition-all cursor-pointer block"
-              >
-                <div class="flex gap-4 items-start">
-                  <img
-                    src={group_image_url(group)}
-                    alt={group.title}
-                    class="w-20 h-20 rounded-lg object-cover border border-base-300/50 flex-shrink-0"
-                  />
-                  <div class="flex-1 min-w-0">
-                    <h3 class="font-semibold text-base-content mb-1">{group.title}</h3>
-                    <p class="text-sm text-base-content/60">
-                      {length(ContentGroup.active_content_pieces(group.content_pieces))} {if length(
-                                                                                               ContentGroup.active_content_pieces(
-                                                                                                 group.content_pieces
-                                                                                               )
-                                                                                             ) == 1,
-                                                                                             do:
-                                                                                               @catalog.piece_type,
-                                                                                             else:
-                                                                                               pluralize(
-                                                                                                 @catalog.piece_type
-                                                                                               )}
-                    </p>
-                    <% price_info = group_price_info(group) %>
-                    <p :if={price_info} class="text-xs font-medium mt-1">
-                      <span :if={price_info.min_price} class="text-widget-700">
-                        from {price_info.min_price}
-                      </span>
-                      <span
-                        :if={price_info.min_price && price_info.free_count > 0}
-                        class="text-base-content/50"
-                      >
-                        ·
-                      </span>
-                      <span :if={price_info.free_count > 0} class="text-base-content/50">
-                        Includes {price_info.free_count} FREE {if price_info.free_count == 1,
-                          do: @catalog.piece_type,
-                          else: pluralize(@catalog.piece_type)}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              </.link>
+                image_src={group_image_url(group)}
+                image_alt={group.title}
+                title={group.title}
+                detail={group_card_detail(group, @catalog)}
+                price_info={group_price_info(group)}
+                piece_type={to_string(@catalog.piece_type)}
+              />
             </div>
           <% end %>
         </div>
@@ -138,6 +105,17 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
     </div>
     """
   end
+
+  defp group_card_detail(group, catalog) do
+    count = length(ContentGroup.active_content_pieces(group.content_pieces))
+    label = catalog.piece_type |> to_string()
+
+    "#{count} #{if count == 1, do: label, else: pluralize_piece_type(label)}"
+  end
+
+  defp pluralize_piece_type("series"), do: "series"
+  defp pluralize_piece_type("class"), do: "classes"
+  defp pluralize_piece_type(label), do: label <> "s"
 
   defp group_price_info(group) do
     active_pieces = ContentGroup.active_content_pieces(group.content_pieces)

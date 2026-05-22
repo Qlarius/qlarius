@@ -403,6 +403,72 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   end
 
   @doc """
+  Responsive grid class for Arqade discovery/catalog browse cards (1–4 columns).
+  """
+  def discovery_grid_class do
+    "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+  end
+
+  attr :navigate, :string, required: true
+  attr :image_src, :string, required: true
+  attr :image_alt, :string, required: true
+  attr :title, :string, required: true
+  attr :subtitle, :string, default: nil
+  attr :detail, :string, default: nil
+  attr :price_info, :map, default: nil
+  attr :piece_type, :string, default: nil
+
+  @doc """
+  Browse card for Arqade catalogs and content groups (matches /home and /me_file group shells).
+  """
+  def discovery_item_card(assigns) do
+    ~H"""
+    <.link
+      navigate={@navigate}
+      class={[
+        "group flex h-full flex-col rounded-lg bg-base-200/50 dark:bg-black shadow-sm overflow-hidden",
+        "border-t-4 border-neutral-300 dark:border-neutral-600",
+        "transition-shadow duration-200 hover:shadow-md"
+      ]}
+    >
+      <img
+        src={@image_src}
+        alt={@image_alt}
+        class="aspect-square w-full object-cover bg-base-300/40 dark:bg-base-700/40"
+      />
+      <div class="flex flex-1 flex-col gap-1 p-4 min-w-0">
+        <h3 class="font-bold text-base-content leading-tight line-clamp-2">{@title}</h3>
+        <p :if={@subtitle} class="text-sm text-base-content/60 truncate">{@subtitle}</p>
+        <p :if={@detail} class="text-xs text-base-content/50 leading-snug">{@detail}</p>
+        <div :if={@price_info} class="text-xs font-medium mt-auto pt-1">
+          <span :if={@price_info.min_price} class="text-widget-700">
+            from {@price_info.min_price}
+          </span>
+          <span
+            :if={@price_info.min_price && @price_info.free_count > 0}
+            class="text-base-content/50"
+          >
+            ·
+          </span>
+          <span :if={@price_info.free_count > 0} class="text-base-content/50">
+            Includes {@price_info.free_count} FREE {pluralize_discovery_piece_label(
+              @piece_type,
+              @price_info.free_count
+            )}
+          </span>
+        </div>
+      </div>
+    </.link>
+    """
+  end
+
+  defp pluralize_discovery_piece_label(label, 1), do: label || "item"
+  defp pluralize_discovery_piece_label("series", _), do: "series"
+  defp pluralize_discovery_piece_label("class", _), do: "classes"
+  defp pluralize_discovery_piece_label(label, _) when is_binary(label), do: label <> "s"
+  defp pluralize_discovery_piece_label(_, _), do: "items"
+
+  @doc """
   Breadcrumb trail for arqade content hierarchy.
 
   Hidden in widget context (@base_path == "/widgets") since embedded iframes

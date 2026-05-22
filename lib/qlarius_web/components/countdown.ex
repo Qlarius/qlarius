@@ -50,6 +50,7 @@ defmodule QlariusWeb.Components.TiqitExpirationCountdown do
   attr :expires_at, :any, required: true
   attr :id, :string, default: nil
   attr :class, :string, default: ""
+  attr :format, :atom, default: :friendly, values: [:friendly, :hms]
 
   def text(assigns) do
     assigns =
@@ -68,15 +69,23 @@ defmodule QlariusWeb.Components.TiqitExpirationCountdown do
     ~H"""
     <span
       id={@id}
-      class={"font-semibold #{@class}"}
+      class={[
+        @format == :hms && "font-normal",
+        @format != :hms && "font-semibold",
+        @class
+      ]}
       phx-hook="TiqitExpirationCountdown"
       data-expires-at={@expires_str}
+      data-countdown-format={countdown_format_attr(@format)}
       data-countdown-root
     >
       <span data-countdown-display></span>
     </span>
     """
   end
+
+  defp countdown_format_attr(:hms), do: "hms"
+  defp countdown_format_attr(_), do: "friendly"
 
   defp default_badge_label(:auto_fleet), do: "Auto-Fleets in"
   defp default_badge_label(_), do: "Expires in"

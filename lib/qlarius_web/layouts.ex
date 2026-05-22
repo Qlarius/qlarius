@@ -546,12 +546,20 @@ defmodule QlariusWeb.Layouts do
             <%!-- Content --%>
             <div class="p-6">
               <p class="py-4">Are you sure you want to log out?</p>
-              <div class="modal-action">
-                <button class="btn btn-ghost" phx-click="cancel_logout">Cancel</button>
-                <form action={~p"/logout"} method="post">
+              <div class="flex w-full gap-3">
+                <button
+                  type="button"
+                  class="btn btn-ghost rounded-full flex-1"
+                  phx-click="cancel_logout"
+                >
+                  Cancel
+                </button>
+                <form action={~p"/logout"} method="post" class="flex-1 min-w-0">
                   <input type="hidden" name="_method" value="delete" />
                   <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-                  <button type="submit" class="btn btn-error">Log Out</button>
+                  <button type="submit" class="btn btn-error rounded-full w-full">
+                    Log Out
+                  </button>
                 </form>
               </div>
             </div>
