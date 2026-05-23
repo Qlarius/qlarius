@@ -215,11 +215,18 @@ Hooks.PWAInstall = {
 
 Hooks.PWADetect = {
   mounted() {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+                  window.navigator.standalone === true
+
+  // Apply layout fixes immediately so LiveView mount does not jump content
+    if (isPWA && isIOS) {
+      this.applySafeAreaFix()
+      this.applyViewportFix()
+    }
+
     setTimeout(() => {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
       const isAndroid = /Android/.test(navigator.userAgent)
-      const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                    window.navigator.standalone === true
       const inIframe = window.self !== window.top
 
       let deviceType = 'mobile_phone'
@@ -240,7 +247,7 @@ Hooks.PWADetect = {
         deviceType,
         matchMedia: window.matchMedia('(display-mode: standalone)').matches,
         standalone: window.navigator.standalone,
-        safeAreaTop: getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-top)'),
+        safeAreaTop: getComputedStyle(document.documentElement).getPropertyValue('--pwa-safe-area-top'),
         safeAreaBottom: getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)')
       })
 
@@ -253,12 +260,6 @@ Hooks.PWADetect = {
         console.warn('[PWA Detection] Could not store in cookie:', e)
       }
 
-      // iOS 18+ fix: env() safe area insets don't work properly in PWAs
-      // Use JavaScript to apply safe area padding dynamically
-      if (isPWA && isIOS) {
-        this.applySafeAreaFix()
-      }
-
       this.pushEvent("pwa_detected", {
         is_pwa: isPWA,
         in_iframe: inIframe,
@@ -267,19 +268,27 @@ Hooks.PWADetect = {
       })
     }, 100)
   },
-  
+
+  measureSafeAreaInsetTop() {
+    const probe = document.createElement('div')
+    probe.style.cssText =
+      'position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top);'
+    document.documentElement.appendChild(probe)
+    const top = parseFloat(getComputedStyle(probe).paddingTop) || 0
+    probe.remove()
+    return top
+  },
+
   applySafeAreaFix() {
-    // iOS 18+ PWAs automatically handle safe area spacing
-    // Set to 0 to let iOS handle it natively
-    let bottomInset = 0
-    
-    console.log('[Safe Area Fix]', {
-      bottomInset: bottomInset,
-      message: 'Disabled - letting iOS handle safe area natively'
-    })
-    
-    // Apply custom CSS variable (set to 0)
-    document.documentElement.style.setProperty('--safe-area-inset-bottom-js', `${bottomInset}px`)
+    let topInset = this.measureSafeAreaInsetTop()
+
+    // env() can mis-resolve to huge values in iOS PWAs after hydration
+    topInset = Math.min(Math.max(topInset, 0), 59)
+
+    console.log('[Safe Area Fix]', { topInset })
+
+    document.documentElement.style.setProperty('--pwa-safe-area-top', `${topInset}px`)
+    document.documentElement.style.setProperty('--safe-area-inset-bottom-js', '0px')
   },
   
   applyViewportFix() {

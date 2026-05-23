@@ -1791,8 +1791,13 @@
   }
 
   .mobile-shell:has(.mobile-bottom-nav-area) .slide-panels .panel-scroll > .page-canvas {
-    flex: 1 0 auto;
-    min-height: 100%;
+    flex: 1 1 0%;
+    min-height: 0;
+  }
+
+  /* PWA notch — padding on scrollport, not a sibling spacer (avoids min-height stacking on iOS) */
+  .panel-scroll--pwa-safe-top {
+    padding-top: max(12px, var(--pwa-safe-area-top, env(safe-area-inset-top, 0px)));
   }
 
   /* Reserve scroll clearance on content, not the scrollport — avoids an empty canvas strip above the nav */

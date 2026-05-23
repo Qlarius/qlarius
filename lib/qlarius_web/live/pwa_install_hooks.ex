@@ -3,10 +3,10 @@ defmodule QlariusWeb.PWAInstallHooks do
   LiveView hooks for handling PWA installation prompts and tracking.
   """
 
-  import Phoenix.Component, only: [assign: 3]
+  import Phoenix.Component, only: [assign: 3, assign_new: 3]
   import Phoenix.LiveView, only: [attach_hook: 4, put_flash: 3]
 
-  def on_mount(:default, _params, _session, socket) do
+  def on_mount(:default, _params, session, socket) do
     {:cont,
      socket
      |> assign(:show_install_banner, false)
@@ -14,7 +14,7 @@ defmodule QlariusWeb.PWAInstallHooks do
      |> assign(:show_android_guide, false)
      |> assign(:is_ios, false)
      |> assign(:is_android, false)
-     |> assign(:is_pwa, false)
+     |> assign_new(:is_pwa, fn -> session["is_pwa"] || false end)
      |> attach_hook(:pwa_install_events, :handle_event, &handle_pwa_events/3)}
   end
 
