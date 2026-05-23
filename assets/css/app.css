@@ -1764,19 +1764,18 @@
     --mobile-bottom-nav-height: 4rem;
     --mobile-bottom-nav-padding-top: 0.5rem;
     --mobile-bottom-nav-padding-x: 1rem;
-    --mobile-bottom-nav-padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    --mobile-bottom-nav-edge-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
     --mobile-bottom-nav-offset: calc(
       var(--mobile-bottom-nav-padding-top) + var(--mobile-bottom-nav-height) +
-        var(--mobile-bottom-nav-padding-bottom)
+        var(--mobile-bottom-nav-edge-bottom)
     );
 
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: var(--mobile-bottom-nav-edge-bottom);
     z-index: 45;
-    padding: var(--mobile-bottom-nav-padding-top) var(--mobile-bottom-nav-padding-x)
-      var(--mobile-bottom-nav-padding-bottom);
+    padding: var(--mobile-bottom-nav-padding-top) var(--mobile-bottom-nav-padding-x) 0;
     pointer-events: none;
   }
 
@@ -1785,19 +1784,7 @@
   }
 
   .mobile-shell:has(.mobile-bottom-nav-area) .slide-panels .panel-scroll {
-    display: flex;
-    flex-direction: column;
     scroll-padding-bottom: var(--mobile-bottom-nav-offset);
-  }
-
-  .mobile-shell:has(.mobile-bottom-nav-area) .slide-panels .panel-scroll > .page-canvas {
-    flex: 1 1 0%;
-    min-height: 0;
-  }
-
-  /* PWA notch — padding on scrollport, not a sibling spacer (avoids min-height stacking on iOS) */
-  .panel-scroll--pwa-safe-top {
-    padding-top: max(12px, var(--pwa-safe-area-top, env(safe-area-inset-top, 0px)));
   }
 
   /* Reserve scroll clearance on content, not the scrollport — avoids an empty canvas strip above the nav */

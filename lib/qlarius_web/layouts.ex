@@ -306,15 +306,17 @@ defmodule QlariusWeb.Layouts do
 
     <style phx-no-curly-interpolation>
       /* Mobile shell — full viewport; bottom nav overlays content (fixed) */
-      /* Use --app-height (JS) with 100vh fallback; 100dvh causes iOS PWA bugs */
+      /* Use 100vh (not 100dvh) - dvh causes iOS PWA viewport calculation bugs */
       .mobile-shell {
-        position: relative;
-        height: var(--app-height, 100vh);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
         overflow: hidden;
       }
 
       .slide-panels {
-        height: 100%;
+        flex: 1;
+        min-height: 0;
         position: relative;
         width: 100%;
         overflow: hidden;
@@ -417,10 +419,15 @@ defmodule QlariusWeb.Layouts do
         <div class="track">
           <%!-- Main screen panel --%>
           <div class="panel">
-            <div class={[
-              "panel-scroll",
-              assigns[:is_pwa] && assigns[:is_mobile] && "panel-scroll--pwa-safe-top"
-            ]}>
+            <div class="panel-scroll">
+              <%!-- Safe area top spacer for PWA notch --%>
+              <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
+                <div
+                  class="page-canvas flex-shrink-0"
+                  style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"
+                >
+                </div>
+              <% end %>
               <div class={[
                 "page-canvas flex flex-col",
                 if(@fixed_viewport, do: "h-full min-h-0", else: "min-h-full")
@@ -465,10 +472,15 @@ defmodule QlariusWeb.Layouts do
 
           <%!-- Slide-over screen panel --%>
           <div class="panel">
-            <div class={[
-              "panel-scroll",
-              assigns[:is_pwa] && assigns[:is_mobile] && "panel-scroll--pwa-safe-top"
-            ]}>
+            <div class="panel-scroll">
+              <%!-- Safe area top spacer for PWA notch --%>
+              <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
+                <div
+                  class="page-canvas flex-shrink-0"
+                  style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"
+                >
+                </div>
+              <% end %>
               <div class="page-canvas flex flex-col min-h-full">
                 <div class="w-full max-w-4xl mx-auto px-4 py-6 flex-1 flex flex-col">
                   <div class="flex items-center justify-between mb-4">

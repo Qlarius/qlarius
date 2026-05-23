@@ -215,18 +215,11 @@ Hooks.PWAInstall = {
 
 Hooks.PWADetect = {
   mounted() {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
-                  window.navigator.standalone === true
-
-  // Apply layout fixes immediately so LiveView mount does not jump content
-    if (isPWA && isIOS) {
-      this.applySafeAreaFix()
-      this.applyViewportFix()
-    }
-
     setTimeout(() => {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
       const isAndroid = /Android/.test(navigator.userAgent)
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+                    window.navigator.standalone === true
       const inIframe = window.self !== window.top
 
       let deviceType = 'mobile_phone'
@@ -247,7 +240,7 @@ Hooks.PWADetect = {
         deviceType,
         matchMedia: window.matchMedia('(display-mode: standalone)').matches,
         standalone: window.navigator.standalone,
-        safeAreaTop: getComputedStyle(document.documentElement).getPropertyValue('--pwa-safe-area-top'),
+        safeAreaTop: getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-top)'),
         safeAreaBottom: getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)')
       })
 
@@ -269,44 +262,19 @@ Hooks.PWADetect = {
     }, 100)
   },
 
-  measureSafeAreaInsetTop() {
-    const probe = document.createElement('div')
-    probe.style.cssText =
-      'position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top);'
-    document.documentElement.appendChild(probe)
-    const top = parseFloat(getComputedStyle(probe).paddingTop) || 0
-    probe.remove()
-    return top
-  },
-
   applySafeAreaFix() {
-    let topInset = this.measureSafeAreaInsetTop()
-
-    // env() can mis-resolve to huge values in iOS PWAs after hydration
-    topInset = Math.min(Math.max(topInset, 0), 59)
-
-    console.log('[Safe Area Fix]', { topInset })
-
-    document.documentElement.style.setProperty('--pwa-safe-area-top', `${topInset}px`)
     document.documentElement.style.setProperty('--safe-area-inset-bottom-js', '0px')
   },
-  
+
   applyViewportFix() {
-    // iOS PWA viewport bug: 100dvh isn't calculated correctly on initial load
-    // Fix: Set a CSS variable with the actual viewport height from JavaScript
     const setViewportHeight = () => {
       const vh = window.innerHeight
       document.documentElement.style.setProperty('--app-height', `${vh}px`)
       console.log('[Viewport Fix] Set --app-height to', vh)
     }
-    
-    // Set immediately
+
     setViewportHeight()
-    
-    // Also set on resize (orientation change, etc)
     window.addEventListener('resize', setViewportHeight)
-    
-    // And after a short delay to catch any late layout shifts
     setTimeout(setViewportHeight, 100)
     setTimeout(setViewportHeight, 500)
   }
