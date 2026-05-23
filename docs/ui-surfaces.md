@@ -15,7 +15,7 @@ Consumer mobile screens use a two-layer surface model inspired by high-contrast 
 - **Canvas:** `bg-base-200` (light), `bg-base-300` (dark).
 - **Panel fill:** `bg-base-100` (light), `bg-black` (dark) — dark uses black (not `base-100`) so panels stay clearly elevated on the charcoal canvas.
 - **Panel accent:** `border-t-4 border-neutral-300` / `dark:border-neutral-600`.
-- **Panel edge:** no side/bottom border; elevation comes from fill contrast and a light custom shadow on `.surface-panel`.
+- **Panel edge:** no side/bottom border; elevation comes from fill contrast and `.surface-panel-shadow` (shared with 3-tap offer cards).
 
 ## Usage
 
@@ -38,8 +38,8 @@ Applied in `Layouts.mobile` on the main content wrapper. Individual LiveViews sh
 
 ## Rollout
 
-1. **Done:** `/home` section panels, Strong Start, global mobile page canvas, `/me_file` category groups, `/me_file_builder` category index.
-2. **Later:** wallet/ads/tiqits screens, metric tile system, builder slide-over trait list wrapper (if needed).
+1. **Done:** `/home` section panels, Strong Start, global mobile page canvas, `/me_file` category groups, `/me_file_builder` category index, `/wallet` ledger list, `/ads` 3-tap cards and video list.
+2. **Later:** metric tile system, builder slide-over trait list wrapper (if needed).
 
 ## Related
 

@@ -8,52 +8,66 @@ defmodule QlariusWeb.Components.LedgerEntriesList do
 
   attr :paginated_entries, :map, required: true
   attr :page, :integer, required: true
+
+  def ledger_entries_pagination(assigns) do
+    ~H"""
+    <div class="flex justify-center mb-4 space-x-2">
+      <div class="join [--radius-field:9999px]">
+        <button
+          phx-click="paginate"
+          phx-value-page="1"
+          class={"join-item btn btn-md #{if @page < 2, do: "btn-disabled"}"}
+        >
+          Newest
+        </button>
+        <button
+          phx-click="paginate"
+          phx-value-page={if @page > 1, do: @page - 1, else: 1}
+          class={"join-item btn btn-md #{if @page < 2, do: "btn-disabled"}"}
+        >
+          <.icon name="hero-chevron-left" class="h-4 w-4" />
+        </button>
+        <div class="join-item btn btn-md btn-neutral">
+          Page {@page}
+        </div>
+        <button
+          phx-click="paginate"
+          phx-value-page={@page + 1}
+          class={"join-item btn btn-md #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
+        >
+          <.icon name="hero-chevron-right" class="h-4 w-4" />
+        </button>
+        <button
+          phx-click="paginate"
+          phx-value-page="oldest"
+          class={"join-item btn btn-md #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
+        >
+          Oldest
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  attr :paginated_entries, :map, required: true
+  attr :page, :integer, required: true
   attr :current_scope, :map, required: true
   attr :show_meta_1, :boolean, default: true
   attr :use_wallet_sidebar, :boolean, default: true
   attr :list_class, :string, default: nil
   attr :empty_message, :string, default: "No ledger activity to display."
+  attr :show_pagination, :boolean, default: true
 
   def ledger_entries_list(assigns) do
     ~H"""
     <%= if Enum.empty?(@paginated_entries.entries) do %>
       <p class="text-center text-base-content/60 py-8">{@empty_message}</p>
     <% else %>
-      <div class="flex justify-center mt-2 mb-6 space-x-2">
-        <div class="join [--radius-field:9999px]">
-          <button
-            phx-click="paginate"
-            phx-value-page="1"
-            class={"join-item btn btn-md #{if @page < 2, do: "btn-disabled"}"}
-          >
-            Newest
-          </button>
-          <button
-            phx-click="paginate"
-            phx-value-page={if @page > 1, do: @page - 1, else: 1}
-            class={"join-item btn btn-md #{if @page < 2, do: "btn-disabled"}"}
-          >
-            <.icon name="hero-chevron-left" class="h-4 w-4" />
-          </button>
-          <div class="join-item btn btn-md btn-neutral">
-            Page {@page}
-          </div>
-          <button
-            phx-click="paginate"
-            phx-value-page={@page + 1}
-            class={"join-item btn btn-md #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
-          >
-            <.icon name="hero-chevron-right" class="h-4 w-4" />
-          </button>
-          <button
-            phx-click="paginate"
-            phx-value-page="oldest"
-            class={"join-item btn btn-md #{if @page == @paginated_entries.total_pages, do: "btn-disabled"}"}
-          >
-            Oldest
-          </button>
-        </div>
-      </div>
+      <.ledger_entries_pagination
+        :if={@show_pagination}
+        paginated_entries={@paginated_entries}
+        page={@page}
+      />
 
       <ul class={[
         "list bg-base-200 dark:!bg-base-200 shadow-md overflow-hidden",
@@ -61,7 +75,7 @@ defmodule QlariusWeb.Components.LedgerEntriesList do
       ]}>
         <li
           :for={entry <- @paginated_entries.entries}
-          class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100"
+          class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-200/70 dark:hover:bg-base-300/35"
           phx-click={select_click(@use_wallet_sidebar)}
           phx-value-entry_id={entry.id}
         >

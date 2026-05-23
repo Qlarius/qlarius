@@ -2,6 +2,7 @@ defmodule QlariusWeb.WalletLive do
   use QlariusWeb, :live_view
 
   import QlariusWeb.WalletHTML
+  import QlariusWeb.Components.LedgerEntriesList
   import QlariusWeb.PWAHelpers
   alias QlariusWeb.Layouts
 
@@ -229,11 +230,19 @@ defmodule QlariusWeb.WalletLive do
               </.link>
             </div>
           <% else %>
-            <QlariusWeb.Components.LedgerEntriesList.ledger_entries_list
+            <.ledger_entries_pagination
               paginated_entries={@paginated_entries}
               page={@page}
-              current_scope={@current_scope}
             />
+            <.surface_panel padding={false}>
+              <.ledger_entries_list
+                paginated_entries={@paginated_entries}
+                page={@page}
+                current_scope={@current_scope}
+                show_pagination={false}
+                list_class="list !mx-0 !rounded-none !shadow-none !bg-base-100 dark:!bg-black divide-y divide-base-300/60 dark:divide-base-content/10"
+              />
+            </.surface_panel>
           <% end %>
         <% end %>
 

@@ -21,11 +21,17 @@ defmodule QlariusWeb.OfferHTML do
   def offer_skeleton(assigns) do
     ~H"""
     <div
-      class="rounded-md border border-gray-300 dark:border-gray-600 overflow-hidden mb-4"
+      class="offer-container three-tap-offer-cover surface-panel-shadow surface-panel-fill rounded-md border border-gray-300 dark:border-gray-600 overflow-hidden mb-4"
       style="width: 347px; height: 152px;"
     >
-      <div class="h-full w-full bg-base-200">
-        <div class="h-full w-full bg-base-300/50 dark:bg-base-300/30 rounded animate-pulse"></div>
+      <div class="p-5 h-full surface-panel-fill flex flex-col justify-between">
+        <div class="space-y-2">
+          <div class="h-8 w-24 rounded bg-base-content/10 animate-pulse"></div>
+          <div class="h-4 w-44 max-w-full rounded bg-base-content/10 animate-pulse"></div>
+        </div>
+        <div class="flex justify-end">
+          <div class="h-6 w-6 rounded bg-base-content/10 animate-pulse"></div>
+        </div>
       </div>
     </div>
     """
@@ -54,7 +60,7 @@ defmodule QlariusWeb.OfferHTML do
       data-theme={if @force_light, do: "light"}
       id={"offer-#{@offer.id}"}
       class={[
-        "offer-container rounded-md border border-gray-300 overflow-hidden cursor-pointer transition-all duration-300",
+        "offer-container three-tap-offer-cover surface-panel-shadow surface-panel-fill rounded-md border border-gray-300 overflow-hidden cursor-pointer transition-all duration-300",
         if(!@force_light, do: "dark:border-gray-600")
       ]}
       style="width: 347px; height: 152px;"
@@ -63,7 +69,7 @@ defmodule QlariusWeb.OfferHTML do
         <div class={"offer-phase phase-0 #{if @phase > 0, do: "slide-left"}"}>
           <.offer_container
             offer={@offer}
-            class="p-5 text-base-content bg-base-200"
+            class="p-5 text-base-content surface-panel-fill"
             target={@target}
             recipient={@recipient}
           >

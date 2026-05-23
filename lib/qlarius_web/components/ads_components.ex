@@ -736,19 +736,14 @@ defmodule QlariusWeb.Components.AdsComponents do
   attr :recipient, :any, default: nil
   # See docs/embedded_theming.md for force_light/pub_theme strategy
   attr :force_light, :boolean, default: false
+  attr :surface_panel_row?, :boolean, default: false
 
   def video_offer_list_item(assigns) do
     ~H"""
     <li
       class={[
         "list-row transition-all duration-200 !rounded-none h-[120px]",
-        if(@completed,
-          do: ["bg-base-300 cursor-default select-none", if(!@force_light, do: "dark:!bg-base-300")],
-          else: [
-            "bg-base-200 cursor-pointer hover:bg-base-300",
-            if(!@force_light, do: "dark:!bg-base-200 dark:hover:!bg-base-100")
-          ]
-        )
+        surface_panel_row_classes(@completed, @surface_panel_row?, @force_light)
       ]}
       phx-click={if !@completed, do: "open_video_ad"}
       phx-value-offer_id={@offer.id}
@@ -821,5 +816,30 @@ defmodule QlariusWeb.Components.AdsComponents do
       <% end %>
     </li>
     """
+  end
+
+  defp surface_panel_row_classes(true, true, _force_light) do
+    ["cursor-default select-none bg-base-200/50 dark:bg-base-300/25"]
+  end
+
+  defp surface_panel_row_classes(false, true, force_light) do
+    [
+      "cursor-pointer hover:bg-base-200/70",
+      if(!force_light, do: "dark:hover:bg-base-300/35")
+    ]
+  end
+
+  defp surface_panel_row_classes(true, false, force_light) do
+    [
+      "bg-base-300 cursor-default select-none",
+      if(!force_light, do: "dark:!bg-base-300")
+    ]
+  end
+
+  defp surface_panel_row_classes(false, false, force_light) do
+    [
+      "bg-base-200 cursor-pointer hover:bg-base-300",
+      if(!force_light, do: "dark:!bg-base-200 dark:hover:!bg-base-100")
+    ]
   end
 end

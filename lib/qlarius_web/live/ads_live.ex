@@ -444,16 +444,19 @@ defmodule QlariusWeb.AdsLive do
               No video ads available
             </div>
           <% else %>
-            <ul class="-mx-4 sm:mx-0 list bg-base-200 dark:!bg-base-200 sm:rounded-box shadow-md overflow-hidden">
-              <.video_offer_list_item
-                :for={{offer, rate} <- @video_offers}
-                offer={offer}
-                rate={rate}
-                completed={offer.id in @completed_video_offers}
-                me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
-                recipient={nil}
-              />
-            </ul>
+            <.surface_panel padding={false}>
+              <ul class="list divide-y divide-base-300/60 dark:divide-base-content/10 overflow-hidden">
+                <.video_offer_list_item
+                  :for={{offer, rate} <- @video_offers}
+                  offer={offer}
+                  rate={rate}
+                  completed={offer.id in @completed_video_offers}
+                  me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
+                  recipient={nil}
+                  surface_panel_row?={true}
+                />
+              </ul>
+            </.surface_panel>
           <% end %>
         <% end %>
       </Layouts.mobile>
