@@ -418,13 +418,13 @@ defmodule QlariusWeb.Layouts do
               <%!-- Safe area top spacer for PWA notch --%>
               <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
                 <div
-                  class="bg-base-100 dark:!bg-base-300 flex-shrink-0"
+                  class="page-canvas flex-shrink-0"
                   style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"
                 >
                 </div>
               <% end %>
               <div class={[
-                "bg-base-100 dark:!bg-base-300 flex flex-col",
+                "page-canvas flex flex-col",
                 if(@fixed_viewport, do: "h-full min-h-0", else: "min-h-full")
               ]}>
                 <div class={[
@@ -471,12 +471,12 @@ defmodule QlariusWeb.Layouts do
               <%!-- Safe area top spacer for PWA notch --%>
               <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
                 <div
-                  class="bg-base-100 dark:!bg-base-300 flex-shrink-0"
+                  class="page-canvas flex-shrink-0"
                   style="height: max(12px, calc(env(safe-area-inset-top) - 25px));"
                 >
                 </div>
               <% end %>
-              <div class="bg-base-100 dark:!bg-base-300 flex flex-col min-h-full">
+              <div class="page-canvas flex flex-col min-h-full">
                 <div class="w-full max-w-4xl mx-auto px-4 py-6 flex-1 flex flex-col">
                   <div class="flex items-center justify-between mb-4">
                     <button

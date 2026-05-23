@@ -1,0 +1,27 @@
+---
+description: Page canvas and section panel styling for consumer mobile UI
+globs:
+  - lib/qlarius_web/layouts.ex
+  - lib/qlarius_web/layouts/**
+  - lib/qlarius_web/live/home_live.ex
+  - lib/qlarius_web/live/me_file_html.ex
+  - lib/qlarius_web/components/surface_components.ex
+  - lib/qlarius_web/components/strong_start_component.ex
+  - assets/css/app.css
+---
+
+# UI surfaces
+
+Read `docs/ui-surfaces.md` for full vocabulary and rollout notes.
+
+## Quick rules
+
+1. **Page canvas** — Use `.page-canvas` on mobile shell content areas (`bg-base-200` / `dark:bg-base-300`). Do not put section content directly on `bg-base-100` unless it is chrome (nav, modals).
+
+2. **Section panels** — Use `<.surface_panel>` (or `.surface-panel` + `.surface-panel--padded`) for grouped “hot” areas. Keep the **top accent** (`border-t-4` neutral). Do not replace with Daisy `card` unless explicitly migrating.
+
+3. **Metric tiles** — Inner Home stats (youdata/sponster/tiqit counts) keep brand colors until a dedicated tile pass. Do not nest another full section panel inside a section panel.
+
+4. **Contrast** — Light panels: `bg-base-100`. Dark panels: `bg-black` on `dark:` so they pop against the canvas (documented exception to pure `base-100` in dark).
+
+5. **New screens** — Prefer `surface_panel` over ad-hoc `bg-base-200/50 dark:bg-black rounded-lg border-t-4` strings.

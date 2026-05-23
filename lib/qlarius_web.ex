@@ -102,6 +102,7 @@ defmodule QlariusWeb do
       import QlariusWeb.Components.SplitComponents
       import QlariusWeb.Components.ImageUploadField
       import QlariusWeb.Components.InAppBrowserEscape
+      import QlariusWeb.Components.SurfaceComponents
 
       # Image helpers
       import QlariusWeb.Helpers.ImageHelpers

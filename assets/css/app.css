@@ -1716,6 +1716,30 @@
     }
   }
 
+  /*
+   * UI surfaces — page canvas + section panels (docs/ui-surfaces.md)
+   */
+  .page-canvas {
+    @apply bg-base-200 dark:bg-base-300;
+  }
+
+  .surface-panel {
+    @apply rounded-2xl bg-base-100 overflow-hidden;
+    @apply border-t-4 border-neutral-300 dark:border-neutral-600;
+    @apply dark:bg-black;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 1px 4px rgba(0, 0, 0, 0.03);
+  }
+
+  [data-theme="dark"] .surface-panel {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+  }
+
+  .surface-panel--padded {
+    @apply p-4;
+  }
+
   .trait-card-animate {
     outline: 2px solid transparent;
     outline-offset: -2px;

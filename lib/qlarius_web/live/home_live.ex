@@ -125,13 +125,6 @@ defmodule QlariusWeb.HomeLive do
   end
 
   def render(assigns) do
-    assigns =
-      assign(
-        assigns,
-        :group_card_class,
-        "rounded-lg bg-base-200/50 dark:bg-black shadow-sm overflow-hidden border-t-4 border-neutral-300 dark:border-neutral-600 p-4"
-      )
-
     ~H"""
     <div id="home-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile {assigns}>
@@ -152,7 +145,7 @@ defmodule QlariusWeb.HomeLive do
         <% end %>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class={@group_card_class}>
+          <.surface_panel>
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-lg font-bold tracking-tight text-base-content/50">Own your data.</h2>
               <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-6 w-auto" />
@@ -166,9 +159,9 @@ defmodule QlariusWeb.HomeLive do
                 <div class="text-sm font-light text-base-content/60">tags</div>
               </div>
             </.link>
-          </div>
+          </.surface_panel>
 
-          <div class={@group_card_class}>
+          <.surface_panel>
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-lg font-bold tracking-tight text-base-content/50">
                 Sell your attention.
@@ -195,9 +188,9 @@ defmodule QlariusWeb.HomeLive do
                 <div class="text-sm font-light text-base-content/60">offered</div>
               </div>
             </div>
-          </div>
+          </.surface_panel>
 
-          <div class={[@group_card_class, "md:col-span-2"]}>
+          <.surface_panel class="md:col-span-2">
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-lg font-bold tracking-tight text-base-content/50">Buy your media.</h2>
               <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
@@ -236,7 +229,7 @@ defmodule QlariusWeb.HomeLive do
                 <div class="text-sm font-light text-base-content/60">preserved</div>
               </div>
             </div>
-          </div>
+          </.surface_panel>
         </div>
       </Layouts.mobile>
     </div>

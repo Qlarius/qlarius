@@ -113,7 +113,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
           <%= for category <- @categories do %>
             <% {answered_total, question_total, percent_complete} =
               Map.get(category, :category_stats, {0, 0, 0}) %>
-            <div class="rounded-lg bg-base-200/50 dark:bg-black shadow-sm overflow-hidden border-t-4 border-neutral-300 dark:border-neutral-600">
+            <.surface_panel padding={false}>
               <div class="flex justify-between items-center px-4 pt-4 pb-3">
                 <h2 class="text-lg font-bold tracking-tight text-base-content/50">
                   {category.survey_category_name}
@@ -158,7 +158,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                   </div>
                 <% end %>
               </div>
-            </div>
+            </.surface_panel>
           <% end %>
         </div>
       </Layouts.mobile>

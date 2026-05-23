@@ -27,6 +27,7 @@ This directory contains comprehensive development rules and best practices for t
 
 ### UI Framework
 - **daisyui.mdc** - DaisyUI component library usage and patterns
+- **ui-surfaces.mdc** - Page canvas and section panel primitives (`docs/ui-surfaces.md`)
 
 ## Philosophy
 

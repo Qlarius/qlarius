@@ -504,66 +504,66 @@ defmodule QlariusWeb.MeFileHTML do
     ~H"""
     <%= case @tag_display_mode do %>
       <% "list" -> %>
-        <div class="mx-4 mb-4 rounded-lg border border-youdata-500 bg-base-100 dark:bg-base-950/40 overflow-hidden list-trait-cards">
-          <ul class="divide-y divide-youdata-500">
-            <li
-              :for={
-                {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
-                  @parent_traits
-              }
-              id={"trait-card-#{parent_trait_id}"}
+        <ul class="divide-y divide-base-300/60 dark:divide-base-content/10 pb-4 list-trait-cards">
+          <li
+            :for={
+              {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
+                @parent_traits
+            }
+            id={"trait-card-#{parent_trait_id}"}
+            class={[
+              "trait-card-animate relative flex items-stretch gap-3 px-4 py-3",
+              editable_parent_trait?(parent_trait_name) &&
+                "cursor-pointer transition-colors duration-200 hover:bg-base-200/40 dark:hover:bg-base-300/20"
+            ]}
+            phx-click={editable_parent_trait?(parent_trait_name) && "edit_tags"}
+            phx-value-id={editable_parent_trait?(parent_trait_name) && parent_trait_id}
+          >
+            <div class="w-[34%] max-w-[9rem] shrink-0 flex items-center">
+              <span class={[
+                "text-base font-bold leading-tight",
+                tags_traits == [] && "text-base-content/65 dark:text-base-content/75",
+                tags_traits != [] && "text-base-content"
+              ]}>
+                {parent_trait_name}
+              </span>
+            </div>
+            <div
               class={[
-                "trait-card-animate relative",
-                editable_parent_trait?(parent_trait_name) &&
-                  "cursor-pointer transition-shadow duration-200 hover:shadow-md hover:z-10"
+                "flex flex-1 min-w-0 items-stretch rounded-lg overflow-hidden",
+                "bg-base-200 dark:bg-base-300/55",
+                tags_traits == [] && "empty-trait-header-strobe"
               ]}
-              phx-click={editable_parent_trait?(parent_trait_name) && "edit_tags"}
-              phx-value-id={editable_parent_trait?(parent_trait_name) && parent_trait_id}
+              style={tags_traits == [] && "--animation-delay: #{rem(abs(parent_trait_id), 2000)}ms"}
             >
-              <div
-                class={[
-                  "text-base-content px-4 py-3 flex items-center justify-between gap-2",
-                  "bg-base-300/50 dark:bg-base-700/45",
-                  tags_traits == [] && "empty-trait-header-strobe"
-                ]}
-                style={tags_traits == [] && "--animation-delay: #{rem(abs(parent_trait_id), 2000)}ms"}
-              >
-                <span class={[
-                  "text-lg font-bold leading-tight min-w-0",
-                  tags_traits == [] && "text-base-content/65 dark:text-base-content/75",
-                  tags_traits != [] && "text-youdata-800 dark:text-youdata-200"
-                ]}>
-                  {parent_trait_name}
-                </span>
+              <div class="w-1 shrink-0 bg-youdata-500" aria-hidden="true"></div>
+              <div class="flex flex-1 min-w-0 items-center justify-between gap-2 px-3 py-2.5">
+                <div class="min-w-0 flex-1">
+                  <ul :if={tags_traits != []} class="space-y-0.5">
+                    <li
+                      :for={{_tag_id, tag_value, _display_order} <- tags_traits}
+                      class="text-sm leading-snug text-base-content/85"
+                    >
+                      {tag_value}
+                    </li>
+                  </ul>
+                  <p
+                    :if={tags_traits == []}
+                    class="text-sm leading-snug italic text-base-content/45"
+                  >
+                    {QlariusWeb.Components.TraitComponents.empty_tag_tease_message()}
+                  </p>
+                </div>
                 <.trait_actions
                   parent_trait_id={parent_trait_id}
                   parent_trait_name={parent_trait_name}
                   nav_indicator="chevron"
-                  actions_class="flex shrink-0"
+                  actions_class="flex shrink-0 self-center"
                 />
               </div>
-              <div class="py-2">
-                <ul
-                  :if={tags_traits != []}
-                  class="ps-6 pe-4 space-y-1 border-l-2 border-youdata-500/50 ms-4"
-                >
-                  <li
-                    :for={{_tag_id, tag_value, _display_order} <- tags_traits}
-                    class="text-base leading-tight text-base-content/80 py-0.5"
-                  >
-                    {tag_value}
-                  </li>
-                </ul>
-                <p
-                  :if={tags_traits == []}
-                  class="ps-6 pe-4 text-base leading-tight italic text-base-content/40 border-l-2 border-youdata-500/50 ms-4"
-                >
-                  {QlariusWeb.Components.TraitComponents.empty_tag_tease_message()}
-                </p>
-              </div>
-            </li>
-          </ul>
-        </div>
+            </div>
+          </li>
+        </ul>
       <% "block" -> %>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 px-4 pb-4">
           <.trait_card
@@ -647,20 +647,22 @@ defmodule QlariusWeb.MeFileHTML do
       >
         <p>No tags match your search.</p>
       </div>
-      <div :for={{{_id, name, _display_order}, parent_traits} <- @tag_display_map}>
-      <div class="rounded-lg bg-base-200/50 dark:bg-black shadow-sm overflow-hidden border-t-4 border-neutral-300 dark:border-neutral-600">
+      <.surface_panel
+        :for={{{_id, name, _display_order}, parent_traits} <- @tag_display_map}
+        padding={false}
+      >
         <div class="flex justify-between items-center px-4 pt-4 pb-3">
           <h2 class="text-lg font-bold tracking-tight text-base-content/50">
             {name}
           </h2>
           <span class="text-sm text-base-content/50">
-            {length(parent_traits)} tags
+            <% tag_count = length(parent_traits) %>
+            {tag_count} {plural_tag_word(tag_count)}
           </span>
         </div>
 
         <.parent_traits_display parent_traits={parent_traits} tag_display_mode={@tag_display_mode} />
-      </div>
-      </div>
+      </.surface_panel>
     </div>
     """
   end
@@ -751,6 +753,9 @@ defmodule QlariusWeb.MeFileHTML do
       active? && "ring-2 ring-youdata-500/60"
     ]
   end
+
+  defp plural_tag_word(1), do: "tag"
+  defp plural_tag_word(_), do: "tags"
 
   defp tag_display_mode_label("tag"), do: "Tags"
   defp tag_display_mode_label("block"), do: "Blocks"
