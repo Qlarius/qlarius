@@ -103,6 +103,7 @@ defmodule QlariusWeb do
       import QlariusWeb.Components.ImageUploadField
       import QlariusWeb.Components.InAppBrowserEscape
       import QlariusWeb.Components.SurfaceComponents
+      import QlariusWeb.Components.MobileBottomNav
 
       # Image helpers
       import QlariusWeb.Helpers.ImageHelpers
