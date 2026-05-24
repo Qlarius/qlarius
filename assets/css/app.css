@@ -939,8 +939,8 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: var(--mobile-bottom-nav-offset, 0px);
-    scroll-padding-bottom: calc(var(--mobile-bottom-nav-offset, 0px) + 0.25rem);
+    padding-bottom: calc(var(--mobile-bottom-nav-offset, 5.25rem) + 0.5rem) !important;
+    scroll-padding-bottom: calc(var(--mobile-bottom-nav-offset, 5.25rem) + 0.75rem) !important;
   }
 
   @media (max-width: 767px) {
