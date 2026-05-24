@@ -403,10 +403,79 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   end
 
   @doc """
-  Responsive grid class for Arqade discovery/catalog browse cards (1–4 columns).
+  Responsive grid/list container for Arqade discovery/catalog browse cards.
   """
-  def discovery_grid_class do
-    "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+  def discovery_grid_class(display_mode \\ "tile")
+
+  def discovery_grid_class("list"), do: "flex flex-col gap-2"
+
+  def discovery_grid_class("tile") do
+    "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3"
+  end
+
+  attr :display_mode, :string, required: true
+  attr :class, :string, default: ""
+
+  def discovery_view_mode_menu(assigns) do
+    ~H"""
+    <div
+      class={[
+        "rounded-2xl border border-base-300 bg-base-100 dark:bg-base-200 shadow-lg p-2 flex flex-row gap-1 shrink-0",
+        @class
+      ]}
+      role="menu"
+      aria-label="Discovery display mode"
+    >
+      <button
+        :for={mode <- ~w(tile list)}
+        type="button"
+        phx-click="set_discovery_display_mode"
+        phx-value-mode={mode}
+        class={[
+          "btn btn-sm btn-square btn-ghost",
+          @display_mode == mode && "bg-youdata-300/50 dark:bg-youdata-800/50"
+        ]}
+        aria-label={discovery_display_mode_label(mode)}
+        aria-current={@display_mode == mode && "true"}
+        role="menuitem"
+      >
+        <.icon name={discovery_display_mode_icon(mode)} class="h-5 w-5" />
+      </button>
+    </div>
+    """
+  end
+
+  attr :display_mode, :string, required: true
+  attr :show_view_menu, :boolean, default: false
+
+  def discovery_view_toolbar(assigns) do
+    ~H"""
+    <div
+      id="discovery-view-toolbar"
+      class="fixed right-4 z-40 max-w-[calc(100vw-2rem)] pointer-events-none bottom-[calc(var(--mobile-bottom-nav-offset,5.25rem)+0.75rem)]"
+    >
+      <div
+        id="discovery-view-toolbar-inner"
+        phx-click-away={@show_view_menu && "hide_discovery_view_menu"}
+        class="flex flex-col items-end gap-2 pointer-events-auto"
+      >
+        <.discovery_view_mode_menu
+          :if={@show_view_menu}
+          display_mode={@display_mode}
+        />
+
+        <button
+          type="button"
+          phx-click="toggle_discovery_view_menu"
+          class={discovery_fab_class(@show_view_menu)}
+          aria-label={"View: #{discovery_display_mode_label(@display_mode)}"}
+          aria-expanded={to_string(@show_view_menu)}
+        >
+          <.icon name={discovery_display_mode_icon(@display_mode)} class="h-5 w-5" />
+        </button>
+      </div>
+    </div>
+    """
   end
 
   attr :navigate, :string, required: true
@@ -417,30 +486,31 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   attr :detail, :string, default: nil
   attr :price_info, :map, default: nil
   attr :piece_type, :string, default: nil
+  attr :display_mode, :string, default: "tile", values: ~w(tile list)
 
   @doc """
   Browse card for Arqade catalogs and content groups (matches /home and /me_file group shells).
   """
-  def discovery_item_card(assigns) do
+  def discovery_item_card(%{display_mode: "list"} = assigns) do
     ~H"""
     <.link
       navigate={@navigate}
       class={[
-        "group flex h-full flex-col rounded-lg bg-base-200/50 dark:bg-black shadow-sm overflow-hidden",
-        "border-t-4 border-neutral-300 dark:border-neutral-600",
-        "transition-shadow duration-200 hover:shadow-md"
+        "group flex flex-row items-stretch gap-3 rounded-lg bg-base-200/50 dark:bg-black shadow-sm overflow-hidden",
+        "border border-base-300/60 dark:border-base-content/10",
+        "transition-shadow duration-200 hover:shadow-md p-2 sm:p-2.5 min-h-[4.5rem]"
       ]}
     >
       <img
         src={@image_src}
         alt={@image_alt}
-        class="aspect-square w-full object-cover bg-base-300/40 dark:bg-base-700/40"
+        class="h-16 w-16 sm:h-[4.5rem] sm:w-[4.5rem] shrink-0 rounded-md object-cover bg-base-300/40 dark:bg-base-700/40"
       />
-      <div class="flex flex-1 flex-col gap-1 p-4 min-w-0">
-        <h3 class="font-bold text-base-content leading-tight line-clamp-2">{@title}</h3>
-        <p :if={@subtitle} class="text-sm text-base-content/60 truncate">{@subtitle}</p>
-        <p :if={@detail} class="text-xs text-base-content/50 leading-snug">{@detail}</p>
-        <div :if={@price_info} class="text-xs font-medium mt-auto pt-1">
+      <div class="min-w-0 flex flex-1 flex-col justify-center gap-0.5">
+        <h3 class="font-bold text-sm text-base-content leading-snug line-clamp-2">{@title}</h3>
+        <p :if={@subtitle} class="text-xs text-base-content/60 truncate">{@subtitle}</p>
+        <p :if={@detail} class="text-[11px] text-base-content/50 leading-snug line-clamp-1">{@detail}</p>
+        <div :if={@price_info} class="text-[11px] font-medium pt-0.5">
           <span :if={@price_info.min_price} class="text-widget-700">
             from {@price_info.min_price}
           </span>
@@ -460,6 +530,64 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       </div>
     </.link>
     """
+  end
+
+  def discovery_item_card(assigns) do
+    ~H"""
+    <.link
+      navigate={@navigate}
+      class={[
+        "group flex h-full flex-col rounded-lg bg-base-200/50 dark:bg-black shadow-sm overflow-hidden",
+        "border-t-2 border-neutral-300 dark:border-neutral-600",
+        "transition-shadow duration-200 hover:shadow-md"
+      ]}
+    >
+      <img
+        src={@image_src}
+        alt={@image_alt}
+        class="aspect-[4/3] sm:aspect-square w-full object-cover bg-base-300/40 dark:bg-base-700/40"
+      />
+      <div class="flex flex-1 flex-col gap-0.5 p-2 sm:p-3 min-w-0">
+        <h3 class="font-bold text-sm sm:text-base text-base-content leading-snug line-clamp-2">{@title}</h3>
+        <p :if={@subtitle} class="text-xs text-base-content/60 truncate">{@subtitle}</p>
+        <p :if={@detail} class="text-[11px] sm:text-xs text-base-content/50 leading-snug line-clamp-2">{@detail}</p>
+        <div :if={@price_info} class="text-[11px] sm:text-xs font-medium mt-auto pt-0.5">
+          <span :if={@price_info.min_price} class="text-widget-700">
+            from {@price_info.min_price}
+          </span>
+          <span
+            :if={@price_info.min_price && @price_info.free_count > 0}
+            class="text-base-content/50"
+          >
+            ·
+          </span>
+          <span :if={@price_info.free_count > 0} class="text-base-content/50">
+            Includes {@price_info.free_count} FREE {pluralize_discovery_piece_label(
+              @piece_type,
+              @price_info.free_count
+            )}
+          </span>
+        </div>
+      </div>
+    </.link>
+    """
+  end
+
+  defp discovery_display_mode_label("tile"), do: "Tiles"
+  defp discovery_display_mode_label("list"), do: "List"
+  defp discovery_display_mode_label(_), do: "Tiles"
+
+  defp discovery_display_mode_icon("tile"), do: "hero-squares-2x2"
+  defp discovery_display_mode_icon("list"), do: "hero-bars-3-bottom-left"
+  defp discovery_display_mode_icon(_), do: "hero-squares-2x2"
+
+  defp discovery_fab_class(active?) do
+    [
+      "btn btn-lg btn-circle shadow-lg border border-base-300",
+      "bg-base-100 dark:bg-base-200 text-base-content",
+      "hover:bg-base-200 dark:hover:bg-base-300",
+      active? && "ring-2 ring-youdata-500/60"
+    ]
   end
 
   defp pluralize_discovery_piece_label(label, 1), do: label || "item"

@@ -20,7 +20,11 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
   import QlariusWeb.PWAHelpers
 
   import QlariusWeb.Widgets.Arcade.Components,
-    only: [discovery_item_card: 1, discovery_grid_class: 0]
+    only: [
+      discovery_item_card: 1,
+      discovery_grid_class: 1,
+      discovery_view_toolbar: 1
+    ]
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
@@ -36,7 +40,9 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
         groups: groups,
         base_path: "",
         current_path: "/arqade",
-        title: "Arqade"
+        title: "Arqade",
+        display_mode: "tile",
+        show_discovery_view_menu: false
       )
 
     {:ok, socket}
@@ -55,11 +61,27 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
     {:noreply, socket}
   end
 
+  def handle_event("set_discovery_display_mode", %{"mode" => mode}, socket)
+      when mode in ~w(tile list) do
+    {:noreply,
+     socket
+     |> assign(:display_mode, mode)
+     |> assign(:show_discovery_view_menu, false)}
+  end
+
+  def handle_event("toggle_discovery_view_menu", _params, socket) do
+    {:noreply, assign(socket, :show_discovery_view_menu, !socket.assigns.show_discovery_view_menu)}
+  end
+
+  def handle_event("hide_discovery_view_menu", _params, socket) do
+    {:noreply, assign(socket, :show_discovery_view_menu, false)}
+  end
+
   def render(assigns) do
     ~H"""
     <div id="discovery-pwa-detect" phx-hook="PWADetect">
       <Layouts.maybe_mobile wrap={@base_path == ""} {assigns}>
-        <div class="px-4 py-4 space-y-8">
+        <div class="space-y-6 pb-2">
           <div>
             <h1 class="text-xl font-bold">Discover</h1>
             <p class="text-sm text-base-content/50">Browse content from creators</p>
@@ -70,11 +92,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
               No content available yet. Check back soon.
             </div>
           <% else %>
-            <div :if={@catalogs != []} class="space-y-4">
-              <h2 class="text-lg font-bold tracking-tight text-base-content/50">Catalogs</h2>
-              <div class={discovery_grid_class()}>
+            <div :if={@catalogs != []} class="space-y-3">
+              <h2 class="text-base sm:text-lg font-bold tracking-tight text-base-content/50">Catalogs</h2>
+              <div class={discovery_grid_class(@display_mode)}>
                 <.discovery_item_card
                   :for={catalog <- @catalogs}
+                  display_mode={@display_mode}
                   navigate={"#{@base_path}/arqade/catalog/#{catalog.id}"}
                   image_src={catalog_image_url(catalog)}
                   image_alt={catalog.name}
@@ -87,11 +110,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
               </div>
             </div>
 
-            <div :if={@groups != []} class="space-y-4">
-              <h2 class="text-lg font-bold tracking-tight text-base-content/50">Featured</h2>
-              <div class={discovery_grid_class()}>
+            <div :if={@groups != []} class="space-y-3">
+              <h2 class="text-base sm:text-lg font-bold tracking-tight text-base-content/50">Featured</h2>
+              <div class={discovery_grid_class(@display_mode)}>
                 <.discovery_item_card
                   :for={group <- @groups}
+                  display_mode={@display_mode}
                   navigate={"#{@base_path}/arqade/group/#{group.id}"}
                   image_src={group_image_url(group)}
                   image_alt={group.title}
@@ -103,6 +127,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
             </div>
           <% end %>
         </div>
+
+        <.discovery_view_toolbar
+          :if={@base_path == ""}
+          display_mode={@display_mode}
+          show_view_menu={@show_discovery_view_menu}
+        />
       </Layouts.maybe_mobile>
     </div>
     """
