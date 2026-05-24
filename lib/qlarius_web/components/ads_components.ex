@@ -57,7 +57,7 @@ defmodule QlariusWeb.Components.AdsComponents do
   def ad_type_tabs(assigns) do
     ~H"""
     <div class="flex justify-center mt-2 mb-6">
-      <div class="join [--radius-field:9999px]" role="group" aria-label="Ad type">
+      <div class="join pill-join-selector [--radius-field:9999px]" role="group" aria-label="Ad type">
         <button
           type="button"
           phx-click="switch_ad_type"

@@ -519,7 +519,7 @@ defmodule QlariusWeb.MeFileHTML do
             phx-click={editable_parent_trait?(parent_trait_name) && "edit_tags"}
             phx-value-id={editable_parent_trait?(parent_trait_name) && parent_trait_id}
           >
-            <div class="w-[34%] max-w-[9rem] shrink-0 flex items-center">
+            <div class="w-[34%] max-w-[9rem] shrink-0 flex items-start pt-2.5">
               <span class={[
                 "text-base font-bold leading-tight",
                 tags_traits == [] && "text-base-content/65 dark:text-base-content/75",
@@ -612,7 +612,7 @@ defmodule QlariusWeb.MeFileHTML do
       )
 
     ~H"""
-    <div id="mefilebuilder-tags-display" phx-hook="AnimateTrait" class="pb-32">
+    <div id="mefilebuilder-tags-display" phx-hook="AnimateTrait">
       <div
         :if={@parent_traits == [] and tag_search_active?(@tag_search)}
         class="text-center py-12 text-base-content/60"

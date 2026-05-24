@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Qadabra",
   "short_name": "Qadabra",
-  "start_url": "/",
+  "start_url": "/hi",
   "scope": "/",
   "display": "standalone",
   "background_color": "#1f2937",

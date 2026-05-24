@@ -1,19 +1,33 @@
 defmodule QlariusWeb.PWAInstallHooks do
   @moduledoc """
-  LiveView hooks for handling PWA installation prompts and tracking.
+  LiveView hooks for PWA install tracking and mobile-browser redirects.
+
+  Authenticated users on mobile Safari/Chrome are sent to `/hi` for install
+  instructions so iOS saves the correct home-screen URL.
   """
 
   import Phoenix.Component, only: [assign: 3, assign_new: 3]
-  import Phoenix.LiveView, only: [attach_hook: 4, put_flash: 3]
+  import Phoenix.LiveView, only: [attach_hook: 4, put_flash: 3, push_navigate: 2]
+
+  use Phoenix.VerifiedRoutes,
+    endpoint: QlariusWeb.Endpoint,
+    router: QlariusWeb.Router,
+    statics: QlariusWeb.static_paths()
+
+  def on_mount(:require_pwa_on_mobile, _params, session, socket) do
+    is_mobile = session["is_mobile"] || false
+    is_pwa = session["is_pwa"] || false
+
+    if is_mobile && !is_pwa do
+      {:halt, push_navigate(socket, to: ~p"/hi")}
+    else
+      {:cont, socket}
+    end
+  end
 
   def on_mount(:default, _params, session, socket) do
     {:cont,
      socket
-     |> assign(:show_install_banner, false)
-     |> assign(:show_ios_guide, false)
-     |> assign(:show_android_guide, false)
-     |> assign(:is_ios, false)
-     |> assign(:is_android, false)
      |> assign_new(:is_pwa, fn -> session["is_pwa"] || false end)
      |> attach_hook(:pwa_install_events, :handle_event, &handle_pwa_events/3)}
   end
@@ -23,43 +37,17 @@ defmodule QlariusWeb.PWAInstallHooks do
          %{"is_ios" => is_ios, "is_android" => is_android, "is_pwa" => is_pwa},
          socket
        ) do
-    user_id = get_user_id(socket)
-    should_show = should_show_install_banner?(user_id, is_ios, is_android, is_pwa)
+    socket =
+      socket
+      |> assign(:is_ios, is_ios)
+      |> assign(:is_android, is_android)
+      |> assign(:is_pwa, is_pwa)
 
-    {:halt,
-     socket
-     |> assign(:is_ios, is_ios)
-     |> assign(:is_android, is_android)
-     |> assign(:is_pwa, is_pwa)
-     |> assign(:show_install_banner, should_show)}
-  end
-
-  defp handle_pwa_events("show_ios_guide", _params, socket) do
-    {:halt, assign(socket, :show_ios_guide, true)}
-  end
-
-  defp handle_pwa_events("hide_ios_guide", _params, socket) do
-    {:halt, assign(socket, :show_ios_guide, false)}
-  end
-
-  defp handle_pwa_events("show_android_guide", _params, socket) do
-    {:halt, assign(socket, :show_android_guide, true)}
-  end
-
-  defp handle_pwa_events("hide_android_guide", _params, socket) do
-    {:halt, assign(socket, :show_android_guide, false)}
-  end
-
-  defp handle_pwa_events("dismiss_install_banner", _params, socket) do
-    user_id = get_user_id(socket)
-
-    if user_id do
-      store_dismissal(user_id)
+    if redirect_to_hi?(socket, is_ios, is_android, is_pwa) do
+      {:halt, push_navigate(socket, to: ~p"/hi")}
+    else
+      {:halt, socket}
     end
-
-    {:halt,
-     socket
-     |> assign(:show_install_banner, false)}
   end
 
   defp handle_pwa_events("pwa_installed", _params, socket) do
@@ -70,19 +58,14 @@ defmodule QlariusWeb.PWAInstallHooks do
         case mark_pwa_installed(user_id) do
           {:ok, :newly_installed} ->
             socket
-            |> assign(:show_install_banner, false)
             |> assign(:is_pwa, true)
-            |> put_flash(:info, "🎉 Welcome to the Qlarius app!")
+            |> put_flash(:info, "🎉 Welcome to the Qadabra app!")
 
           {:ok, :already_installed} ->
-            socket
-            |> assign(:show_install_banner, false)
-            |> assign(:is_pwa, true)
+            assign(socket, :is_pwa, true)
         end
       else
-        socket
-        |> assign(:show_install_banner, false)
-        |> assign(:is_pwa, true)
+        assign(socket, :is_pwa, true)
       end
 
     {:halt, socket}
@@ -92,52 +75,15 @@ defmodule QlariusWeb.PWAInstallHooks do
     {:cont, socket}
   end
 
+  defp redirect_to_hi?(socket, is_ios, is_android, is_pwa) do
+    is_mobile = is_ios || is_android
+    is_mobile && !is_pwa && !!socket.assigns[:current_scope]
+  end
+
   defp get_user_id(socket) do
     case socket.assigns do
       %{current_scope: %{user: %{id: id}}} -> id
       _ -> nil
-    end
-  end
-
-  defp should_show_install_banner?(user_id, is_ios, is_android, is_pwa) do
-    cond do
-      is_pwa -> false
-      !is_ios && !is_android -> false
-      recently_dismissed?(user_id) -> false
-      true -> true
-    end
-  end
-
-  defp recently_dismissed?(nil), do: false
-
-  defp recently_dismissed?(user_id) do
-    case Qlarius.Repo.get(Qlarius.Accounts.User, user_id) do
-      nil ->
-        false
-
-      user ->
-        case user.pwa_install_dismissed_at do
-          nil ->
-            false
-
-          dismissed_at ->
-            days_ago = DateTime.diff(DateTime.utc_now(), dismissed_at, :day)
-            days_ago < 7
-        end
-    end
-  end
-
-  defp store_dismissal(user_id) do
-    case Qlarius.Repo.get(Qlarius.Accounts.User, user_id) do
-      nil ->
-        :ok
-
-      user ->
-        user
-        |> Ecto.Changeset.change(%{
-          pwa_install_dismissed_at: DateTime.utc_now() |> DateTime.truncate(:second)
-        })
-        |> Qlarius.Repo.update()
     end
   end
 

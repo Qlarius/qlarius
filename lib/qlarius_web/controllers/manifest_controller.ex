@@ -37,9 +37,9 @@ defmodule QlariusWeb.ManifestController do
 
     start_url =
       if ref_code && ref_code != "" do
-        "/?ref=#{ref_code}"
+        "/hi?ref=#{ref_code}"
       else
-        "/"
+        "/hi"
       end
 
     manifest = Map.put(@manifest, "start_url", start_url)

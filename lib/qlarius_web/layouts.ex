@@ -161,20 +161,8 @@ defmodule QlariusWeb.Layouts do
     <%!-- Onboarding tip (shown based on conditions) --%>
     <.onboarding_tip :if={@current_scope} current_path={@current_path} current_scope={@current_scope} />
 
-    <%!-- PWA Install Prompts --%>
-    <div :if={@current_scope} phx-hook="PWAInstall" id="pwa-install-hook">
-      <QlariusWeb.Components.PWAInstallPrompt.install_banner
-        show_banner={assigns[:show_install_banner] || false}
-        is_ios={assigns[:is_ios] || false}
-        is_android={assigns[:is_android] || false}
-      />
-      <QlariusWeb.Components.PWAInstallPrompt.ios_install_guide show={
-        assigns[:show_ios_guide] || false
-      } />
-      <QlariusWeb.Components.PWAInstallPrompt.android_install_guide show={
-        assigns[:show_android_guide] || false
-      } />
-    </div>
+    <%!-- PWA detection for redirect to /hi (no in-app install UI) --%>
+    <div :if={@current_scope} phx-hook="PWAInstall" id="pwa-install-hook" class="hidden" aria-hidden="true" />
 
     <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
     <div :if={@current_scope} class="dock z-40">
@@ -433,7 +421,7 @@ defmodule QlariusWeb.Layouts do
                 if(@fixed_viewport, do: "h-full min-h-0", else: "min-h-full")
               ]}>
                 <div class={[
-                  "container mx-auto px-4 py-6 flex-1 flex flex-col",
+                  "container mx-auto px-4 pt-6 flex-1 flex flex-col mobile-layout-content",
                   @fixed_viewport && "min-h-0"
                 ]}>
                   <div class="w-full mb-6 flex items-center flex-shrink-0">
@@ -482,7 +470,7 @@ defmodule QlariusWeb.Layouts do
                 </div>
               <% end %>
               <div class="page-canvas flex flex-col min-h-full">
-                <div class="w-full max-w-4xl mx-auto px-4 py-6 flex-1 flex flex-col">
+                <div class="w-full max-w-4xl mx-auto px-4 pt-6 flex-1 flex flex-col mobile-layout-content">
                   <div class="flex items-center justify-between mb-4">
                     <button
                       phx-click="close_slide_over"
@@ -582,20 +570,14 @@ defmodule QlariusWeb.Layouts do
         current_scope={@current_scope}
       />
 
-      <%!-- PWA Install Prompts --%>
-      <div :if={@current_scope} phx-hook="PWAInstall" id="pwa-install-hook">
-        <QlariusWeb.Components.PWAInstallPrompt.install_banner
-          show_banner={assigns[:show_install_banner] || false}
-          is_ios={assigns[:is_ios] || false}
-          is_android={assigns[:is_android] || false}
-        />
-        <QlariusWeb.Components.PWAInstallPrompt.ios_install_guide show={
-          assigns[:show_ios_guide] || false
-        } />
-        <QlariusWeb.Components.PWAInstallPrompt.android_install_guide show={
-          assigns[:show_android_guide] || false
-        } />
-      </div>
+      <%!-- PWA detection for redirect to /hi (no in-app install UI) --%>
+      <div
+        :if={@current_scope}
+        phx-hook="PWAInstall"
+        id="pwa-install-hook"
+        class="hidden"
+        aria-hidden="true"
+      />
 
       <%!-- Bottom navigation — fixed liquid glass pill overlaying content --%>
       <.mobile_bottom_nav :if={@current_scope}>

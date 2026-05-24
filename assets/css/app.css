@@ -1757,6 +1757,16 @@
   }
 
   /*
+   * Joined pill filter tabs (/tiqits, /ads). Primary label on active;
+   * standard daisyUI btn-active background.
+   */
+  .pill-join-selector .join-item.btn.btn-active {
+    --btn-fg: var(--color-primary);
+    color: var(--color-primary) !important;
+    font-weight: 600;
+  }
+
+  /*
    * Floating mobile bottom nav — liquid glass pill (light + dark).
    * Fixed overlay at viewport bottom; scroll areas reserve --mobile-bottom-nav-offset.
    */
@@ -1764,18 +1774,20 @@
     --mobile-bottom-nav-height: 4rem;
     --mobile-bottom-nav-padding-top: 0.5rem;
     --mobile-bottom-nav-padding-x: 1rem;
-    --mobile-bottom-nav-edge-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    --mobile-bottom-nav-padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
     --mobile-bottom-nav-offset: calc(
       var(--mobile-bottom-nav-padding-top) + var(--mobile-bottom-nav-height) +
-        var(--mobile-bottom-nav-edge-bottom)
+        var(--mobile-bottom-nav-padding-bottom)
     );
 
     position: fixed;
     left: 0;
     right: 0;
-    bottom: var(--mobile-bottom-nav-edge-bottom);
+    /* Flush to layout viewport bottom; pad inside so iOS PWA doesn't double-count safe area */
+    bottom: 0;
     z-index: 45;
-    padding: var(--mobile-bottom-nav-padding-top) var(--mobile-bottom-nav-padding-x) 0;
+    padding: var(--mobile-bottom-nav-padding-top) var(--mobile-bottom-nav-padding-x)
+      var(--mobile-bottom-nav-padding-bottom);
     pointer-events: none;
   }
 
@@ -1783,13 +1795,16 @@
     --mobile-bottom-nav-offset: calc(0.5rem + 4rem + max(0.75rem, env(safe-area-inset-bottom, 0px)));
   }
 
+  .mobile-shell .mobile-layout-content {
+    padding-bottom: 1.5rem;
+  }
+
   .mobile-shell:has(.mobile-bottom-nav-area) .slide-panels .panel-scroll {
     scroll-padding-bottom: var(--mobile-bottom-nav-offset);
   }
 
-  /* Reserve scroll clearance on content, not the scrollport — avoids an empty canvas strip above the nav */
-  .mobile-shell:has(.mobile-bottom-nav-area) .slide-panels .panel-scroll .page-canvas > .container.mx-auto,
-  .mobile-shell:has(.mobile-bottom-nav-area) .slide-panels .panel-scroll .page-canvas > .max-w-4xl {
+  /* Reserve scroll clearance on layout content — pt-6 only on node so pb isn't overridden by utilities */
+  .mobile-shell:has(.mobile-bottom-nav-area) .mobile-layout-content {
     padding-bottom: calc(1.5rem + var(--mobile-bottom-nav-offset));
   }
 

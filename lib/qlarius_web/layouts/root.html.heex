@@ -21,7 +21,7 @@
     <meta name="csrf-token" content={get_csrf_token()} />
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="32x32" />
     <link rel="apple-touch-icon" sizes="180x180" href="/images/qlarius_app_icon_180.png" />
-    <%!-- Manifest link is added dynamically by JavaScript with referral code --%>
+    <link rel="manifest" href={~p"/app-manifest.webmanifest"} />
     <%!-- Omit live_title `default` so a missing join `t` does not overwrite SSR title. --%>
     <.live_title>
       {assigns[:page_title] || "Qadabra"}

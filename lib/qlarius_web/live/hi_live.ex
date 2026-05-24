@@ -61,24 +61,23 @@ defmodule QlariusWeb.HiLive do
       |> assign(:is_mobile, is_mobile)
       |> assign(:device_type, device_type)
 
+    socket =
+      if mode == :install do
+        push_patch(socket, to: ~p"/hi")
+      else
+        socket
+      end
+
     {:noreply, socket}
   end
 
   def handle_event("show_install_guide", _params, socket) do
-    # Ensure the URL contains the referral code when user installs
-    # iOS PWAs use the URL bar content as start_url, not the manifest's start_url
-    ref_code = socket.assigns.referral_code
-
-    socket =
-      if ref_code && ref_code != "" do
-        socket
-        |> assign(:mode, :install)
-        |> push_patch(to: ~p"/?ref=#{ref_code}")
-      else
-        assign(socket, :mode, :install)
-      end
-
-    {:noreply, socket}
+    # Keep a clean /hi URL in the address bar for iOS Add to Home Screen.
+    # Referral codes stay in assigns/cookies, not the visible URL.
+    {:noreply,
+     socket
+     |> assign(:mode, :install)
+     |> push_patch(to: ~p"/hi")}
   end
 
   def handle_event("dismiss_manifesto", _params, socket) do
@@ -96,21 +95,21 @@ defmodule QlariusWeb.HiLive do
 
   def handle_event("splash_complete", _params, socket) do
     cond do
-      # Authenticated users: always go to home
-      socket.assigns.is_authenticated ->
+      # Authenticated PWA users: splash then home
+      socket.assigns.is_authenticated && socket.assigns.is_pwa ->
         {:noreply, push_navigate(socket, to: ~p"/home")}
 
-      # Saved credentials: allow full access even in mobile browser
+      # Mobile browser (not PWA): install instructions on /hi
+      socket.assigns.is_mobile && !socket.assigns.is_pwa ->
+        {:noreply, assign(socket, :mode, :install)}
+
+      # Saved credentials in desktop browser: go to login
       socket.assigns.has_session_token ->
         {:noreply, push_navigate(socket, to: ~p"/login")}
 
       # PWA users (not authenticated): go to register
       socket.assigns.is_pwa ->
         {:noreply, push_navigate(socket, to: register_path(socket.assigns.referral_code))}
-
-      # Mobile browser (not PWA): show welcome carousel with Install button
-      socket.assigns.is_mobile ->
-        {:noreply, assign(socket, :mode, :welcome)}
 
       # Desktop: show welcome carousel with Login/Register buttons
       true ->
@@ -122,13 +121,17 @@ defmodule QlariusWeb.HiLive do
   defp register_path(""), do: ~p"/register"
   defp register_path(code), do: ~p"/register?ref=#{code}"
 
-  defp determine_mode(is_mobile, _is_pwa, _in_iframe, is_authenticated) do
+  defp determine_mode(is_mobile, is_pwa, _in_iframe, is_authenticated) do
     cond do
-      # Authenticated users always see splash before redirect
+      # Mobile browser: install page on /hi (clean URL for Add to Home Screen)
+      is_mobile && !is_pwa ->
+        :install
+
+      # Authenticated PWA: brief splash before home
       is_authenticated ->
         :splash
 
-      # Mobile users (not authenticated) start with splash
+      # Mobile PWA (not authenticated): splash before register
       is_mobile ->
         :splash
 

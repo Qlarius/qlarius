@@ -38,7 +38,7 @@ defmodule QlariusWeb.MeFileLive do
           </div>
         </div>
 
-        <div class="pt-2 pb-32">
+        <div class="pt-2">
           <.tags_display
             tag_display_map={@tag_display_map}
             tag_display_mode={@tag_display_mode}

@@ -169,7 +169,7 @@ defmodule QlariusWeb.TiqitLive do
 
           <div class="mb-4 overflow-x-auto">
             <div
-              class="join min-w-max [--radius-field:9999px]"
+              class="join min-w-max pill-join-selector [--radius-field:9999px]"
               role="group"
               aria-label="Stash filter"
             >

@@ -389,6 +389,7 @@ defmodule QlariusWeb.Router do
         {QlariusWeb.UserAuth, :mount_current_scope},
         {QlariusWeb.UserAuth, :ensure_authenticated},
         {QlariusWeb.UserAuth, :require_initialized_mefile},
+        {QlariusWeb.PWAInstallHooks, :require_pwa_on_mobile},
         {QlariusWeb.Layouts, :set_current_path}
       ] do
       live "/home", HomeLive, :index
