@@ -31,6 +31,15 @@
     </script>
     <script>
       (() => {
+        // iOS standalone PWA: flag before first paint so bottom nav skips double safe-area inset
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isPWA =
+          window.matchMedia("(display-mode: standalone)").matches ||
+          window.navigator.standalone === true;
+        if (isIOS && isPWA) {
+          document.documentElement.classList.add("ios-pwa");
+        }
+
         // Referral code sharing via Cache Storage (works across Safari <-> PWA on iOS)
         const REFERRAL_ENDPOINT = '/_shared/referral-code';
         

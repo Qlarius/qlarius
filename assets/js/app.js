@@ -213,8 +213,22 @@ Hooks.PWAInstall = {
   }
 }
 
+function detectIosPwa() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
+  const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+                window.navigator.standalone === true
+  return isIOS && isPWA
+}
+
+function applyIosPwaLayoutFix() {
+  if (!detectIosPwa()) return
+  document.documentElement.classList.add('ios-pwa')
+}
+
 Hooks.PWADetect = {
   mounted() {
+    applyIosPwaLayoutFix()
+
     setTimeout(() => {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
       const isAndroid = /Android/.test(navigator.userAgent)

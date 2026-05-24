@@ -1812,6 +1812,32 @@
     bottom: calc(var(--mobile-bottom-nav-offset) + 0.75rem);
   }
 
+  /*
+   * iOS standalone PWA: WebKit already lifts fixed bottom content above the home
+   * indicator, so env(safe-area-inset-bottom) on our padding double-counts that inset.
+   */
+  @supports (-webkit-touch-callout: none) {
+    @media (display-mode: standalone) {
+      .mobile-bottom-nav-area {
+        --mobile-bottom-nav-padding-bottom: 0.75rem;
+        bottom: 0;
+      }
+
+      .mobile-shell {
+        --mobile-bottom-nav-offset: calc(0.5rem + 4rem + 0.75rem);
+      }
+    }
+  }
+
+  html.ios-pwa .mobile-bottom-nav-area {
+    --mobile-bottom-nav-padding-bottom: 0.75rem;
+    bottom: 0;
+  }
+
+  html.ios-pwa .mobile-shell {
+    --mobile-bottom-nav-offset: calc(0.5rem + 4rem + 0.75rem);
+  }
+
   .mobile-bottom-nav {
     width: 100%;
     pointer-events: auto;
