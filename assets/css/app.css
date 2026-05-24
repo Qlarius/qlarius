@@ -1757,13 +1757,47 @@
   }
 
   /*
-   * Joined pill filter tabs (/tiqits, /ads). Primary label on active;
-   * standard daisyUI btn-active background.
+   * Joined pill filter tabs — shared control for /ads, /tiqits, me_file, etc.
+   * Selectable segments are lighter; active segment is darker with higher contrast.
    */
+  .pill-join-selector {
+    background-color: color-mix(in oklab, var(--color-base-200) 75%, transparent);
+    padding: 0.125rem;
+    border-radius: 9999px;
+  }
+
+  html[data-theme="dark"] .pill-join-selector {
+    background-color: color-mix(in oklab, var(--color-base-300) 35%, transparent);
+  }
+
+  .pill-join-selector .join-item.btn {
+    border-color: transparent;
+    box-shadow: none;
+    background-color: var(--color-base-100) !important;
+    color: color-mix(in oklab, var(--color-base-content) 50%, transparent) !important;
+    font-weight: 500;
+  }
+
   .pill-join-selector .join-item.btn.btn-active {
-    --btn-fg: var(--color-primary);
+    background-color: var(--color-base-300) !important;
     color: var(--color-primary) !important;
     font-weight: 600;
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.1),
+      inset 0 1px 0 rgb(255 255 255 / 0.05);
+  }
+
+  html[data-theme="dark"] .pill-join-selector .join-item.btn {
+    background-color: var(--color-base-100) !important;
+    color: color-mix(in oklab, var(--color-base-content) 50%, transparent) !important;
+  }
+
+  html[data-theme="dark"] .pill-join-selector .join-item.btn.btn-active {
+    background-color: var(--color-base-300) !important;
+    color: var(--color-primary) !important;
+    box-shadow:
+      0 1px 3px rgb(0 0 0 / 0.35),
+      inset 0 1px 0 rgb(255 255 255 / 0.06);
   }
 
   /*
@@ -2059,6 +2093,99 @@
 
   .trait-card-animate.trait-animate-delete {
     animation: trait-delete-pulse 0.95s ease-in-out;
+  }
+
+  /* MeFile tag edit modal — backdrop fades, sheet slides; avoid visibility toggles (breaks enter animation). */
+  .tag-edit-modal {
+    --tag-edit-modal-duration: 0.72s;
+    --tag-edit-modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .tag-edit-modal.modal,
+  .tag-edit-modal.modal.modal-open {
+    visibility: visible;
+    opacity: 1;
+    background-color: transparent;
+    transition: none;
+  }
+
+  .tag-edit-modal.modal:not(.modal-open) {
+    pointer-events: none;
+  }
+
+  .tag-edit-modal.modal.modal-open {
+    pointer-events: auto;
+  }
+
+  .tag-edit-modal.modal::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-color: color-mix(in oklab, var(--color-base-300) 80%, transparent);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity var(--tag-edit-modal-duration) var(--tag-edit-modal-ease);
+    pointer-events: none;
+  }
+
+  html[data-theme="dark"] .tag-edit-modal.modal::before {
+    background-color: color-mix(in oklab, var(--color-base-300) 55%, transparent);
+  }
+
+  .tag-edit-modal.modal.modal-open::before {
+    opacity: 1;
+  }
+
+  .tag-edit-modal__backdrop {
+    z-index: 0;
+    color: transparent;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--tag-edit-modal-duration) var(--tag-edit-modal-ease);
+  }
+
+  .tag-edit-modal.modal.modal-open .tag-edit-modal__backdrop {
+    opacity: 1;
+  }
+
+  .tag-edit-modal__backdrop button {
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+
+  .tag-edit-modal .modal-box {
+    position: relative;
+    z-index: 1;
+    scale: 1 !important;
+    opacity: 1 !important;
+    box-shadow: 0 -8px 32px rgb(0 0 0 / 0.18);
+    transition: translate var(--tag-edit-modal-duration) var(--tag-edit-modal-ease) !important;
+    will-change: translate;
+    --modal-tl: 1rem;
+    --modal-tr: 1rem;
+    --modal-bl: 0;
+    --modal-br: 0;
+  }
+
+  .tag-edit-modal.modal:not(.modal-open) .modal-box {
+    translate: 0 100%;
+  }
+
+  .tag-edit-modal.modal.modal-open .modal-box {
+    translate: 0 0;
+  }
+
+  .tag-edit-modal.modal:not(.modal-open) .modal-box {
+    will-change: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tag-edit-modal {
+      --tag-edit-modal-duration: 0.01ms;
+    }
   }
 
 }

@@ -202,7 +202,7 @@ defmodule QlariusWeb.HomeLive do
                 phx-click={JS.navigate("/tiqits?status=active")}
               >
                 <div class="text-3xl font-bold leading-none">{@active_tiqits_count}</div>
-                <div class="text-sm font-light text-base-content/60">active</div>
+                <div class="text-xs sm:text-sm font-light text-base-content/60">active</div>
               </div>
 
               <div
@@ -210,7 +210,7 @@ defmodule QlariusWeb.HomeLive do
                 phx-click={JS.navigate("/tiqits?status=expired")}
               >
                 <div class="text-3xl font-bold leading-none">{@fleeting_tiqits_count}</div>
-                <div class="text-sm font-light text-base-content/60">fleeting</div>
+                <div class="text-xs sm:text-sm font-light text-base-content/60">fleeting</div>
               </div>
 
               <div
@@ -218,7 +218,7 @@ defmodule QlariusWeb.HomeLive do
                 phx-click={JS.navigate("/tiqits?status=fleeted")}
               >
                 <div class="text-3xl font-bold leading-none">{@fleeted_tiqits_count}</div>
-                <div class="text-sm font-light text-base-content/60">fleeted</div>
+                <div class="text-xs sm:text-sm font-light text-base-content/60">fleeted</div>
               </div>
 
               <div
@@ -226,7 +226,7 @@ defmodule QlariusWeb.HomeLive do
                 phx-click={JS.navigate("/tiqits?status=preserved")}
               >
                 <div class="text-3xl font-bold leading-none">{@preserved_tiqits_count}</div>
-                <div class="text-sm font-light text-base-content/60">preserved</div>
+                <div class="text-xs sm:text-sm font-light text-base-content/60">preserved</div>
               </div>
             </div>
           </.surface_panel>

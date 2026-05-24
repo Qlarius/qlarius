@@ -346,7 +346,8 @@ defmodule QlariusWeb.Layouts do
          transform: translateX(0) which trapped fixed-position modals. Now that
          the default transform is removed, standard <.modal> works correctly.
          Kept for backward compatibility with me_file's tag_edit_modal. */
-      .slide-panels .modal-dual-pane.modal-open {
+      /* Dual-pane tag edit modal — keep fixed layout always so open/close translate animates smoothly */
+      .slide-panels .modal-dual-pane {
         position: fixed !important;
         top: 0 !important;
         left: 0 !important;
@@ -354,12 +355,15 @@ defmodule QlariusWeb.Layouts do
         bottom: 0 !important;
         width: 100vw !important;
         height: 100vh !important;
-        z-index: 60 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         margin: 0 !important;
         transform: none !important;
+      }
+
+      .slide-panels .modal-dual-pane.modal-open {
+        z-index: 60 !important;
       }
 
       /* Raise panel z-index when modal is open */
@@ -369,7 +373,7 @@ defmodule QlariusWeb.Layouts do
 
       /* Mobile: Bottom drawer style */
       @media (max-width: 639px) {
-        .slide-panels .modal-dual-pane.modal-open {
+        .slide-panels .modal-dual-pane {
           align-items: flex-end !important;
         }
       }

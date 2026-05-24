@@ -50,39 +50,52 @@ defmodule QlariusWeb.MeFileHTML do
 
   def tag_edit_modal(assigns) do
     ~H"""
-    <div class={[
-      "modal modal-bottom sm:modal-middle",
-      @dual_pane && "modal-dual-pane",
-      @show_modal && "modal-open bg-base-300/80 backdrop-blur-sm"
-    ]}>
+    <div
+      class={[
+        "modal modal-bottom tag-edit-modal",
+        @dual_pane && "modal-dual-pane",
+        @show_modal && "modal-open"
+      ]}
+      aria-hidden={not @show_modal}
+    >
+      <div class="modal-backdrop tag-edit-modal__backdrop">
+        <button type="button" phx-click="close_modal" aria-label="Close modal">
+          close
+        </button>
+      </div>
       <div class={[
-        "flex flex-col modal-box border border-youdata-500 dark:border-youdata-700 bg-base-100 p-0",
+        "tag-edit-modal__box modal-box flex flex-col bg-base-100 p-0 overflow-hidden",
+        "border-x border-b border-youdata-200 dark:border-base-content/10",
         @is_pwa && "max-h-[calc(90vh-env(safe-area-inset-top))]",
         !@is_pwa && "max-h-[90vh]"
       ]}>
-        <%!-- Fixed header --%>
-        <div class="p-4 flex flex-row justify-between items-baseline bg-youdata-300/80 dark:bg-youdata-800/80 text-base-content shrink-0">
-          <h3 class="text-lg font-bold">
+        <%!-- Trait-card style header --%>
+        <div class="border-t-4 border-youdata-500 bg-base-300/50 dark:bg-base-700/45 shrink-0 px-4 py-3 flex flex-row justify-between items-center gap-3">
+          <h3 class="min-w-0 text-lg font-bold leading-tight text-youdata-800 dark:text-youdata-200">
             {if @trait_in_edit, do: @trait_in_edit.trait_name, else: "Edit Trait"}
           </h3>
-          <button type="button" phx-click="close_modal" class="btn btn-md btn-circle btn-ghost">
-            ✕
+          <button
+            type="button"
+            phx-click="close_modal"
+            class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-base-200 dark:bg-base-300/70 border border-base-300/80 dark:border-base-content/10 text-base-content/60 hover:text-base-content hover:bg-base-300 dark:hover:bg-base-300/90 transition-colors"
+            aria-label="Close"
+          >
+            <.icon name="hero-x-mark" class="h-5 w-5" />
           </button>
         </div>
 
         <%!-- Expandable content area --%>
         <%= if @trait_in_edit do %>
-            <%!-- Fixed question section --%>
-            <div class="p-4 bg-base-200 text-base-content/70 shrink-0">
+            <%!-- Question section --%>
+            <div class="p-4 bg-base-100 text-base-content/70 shrink-0 border-b border-base-300/40 dark:border-base-content/10">
               <p :if={@trait_in_edit && @trait_in_edit.survey_question} class="text-lg mb-3">
                 {Phoenix.HTML.raw(@trait_in_edit.survey_question.text)}
               </p>
 
               <%!-- Toggle for expanded/simple view - only show if there are meaningful expanded answers --%>
-              <div
+              <.pill_join_selector
                 :if={
-                  @trait_in_edit &&
-                    @trait_in_edit.input_type != "single_select_zip" &&
+                  @trait_in_edit.input_type != "single_select_zip" &&
                     Ecto.assoc_loaded?(@trait_in_edit.child_traits) &&
                     Enum.any?(@trait_in_edit.child_traits, fn child ->
                       child.survey_answer &&
@@ -90,29 +103,26 @@ defmodule QlariusWeb.MeFileHTML do
                         child.survey_answer.text != child.trait_name
                     end)
                 }
-                class="join mt-2 [--radius-field:9999px]"
-                role="group"
-                aria-label="Tag list view"
+                label="Tag list view"
+                class="mt-2"
               >
-                <button
-                  type="button"
+                <.pill_join_item
+                  active={!@show_expanded_tags}
                   phx-click="set_tag_view"
                   phx-value-expanded="false"
-                  class={["join-item btn btn-sm", !@show_expanded_tags && "btn-active"]}
                   aria-pressed={to_string(!@show_expanded_tags)}
                 >
                   Simple
-                </button>
-                <button
-                  type="button"
+                </.pill_join_item>
+                <.pill_join_item
+                  active={@show_expanded_tags}
                   phx-click="set_tag_view"
                   phx-value-expanded="true"
-                  class={["join-item btn btn-sm", @show_expanded_tags && "btn-active"]}
                   aria-pressed={to_string(@show_expanded_tags)}
                 >
                   Expanded
-                </button>
-              </div>
+                </.pill_join_item>
+              </.pill_join_selector>
             </div>
             <.form
               for={%{}}

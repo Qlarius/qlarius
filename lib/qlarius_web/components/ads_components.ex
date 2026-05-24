@@ -57,15 +57,12 @@ defmodule QlariusWeb.Components.AdsComponents do
   def ad_type_tabs(assigns) do
     ~H"""
     <div class="flex justify-center mt-2 mb-6">
-      <div class="join pill-join-selector [--radius-field:9999px]" role="group" aria-label="Ad type">
-        <button
-          type="button"
+      <.pill_join_selector label="Ad type">
+        <.pill_join_item
+          active={@selected_ad_type == "three_tap"}
+          class="gap-2"
           phx-click="switch_ad_type"
           phx-value-type="three_tap"
-          class={[
-            "join-item btn btn-md gap-2",
-            @selected_ad_type == "three_tap" && "btn-active"
-          ]}
           aria-pressed={to_string(@selected_ad_type == "three_tap")}
         >
           3-Tap
@@ -74,15 +71,12 @@ defmodule QlariusWeb.Components.AdsComponents do
               {@three_tap_ad_count}
             </span>
           <% end %>
-        </button>
-        <button
-          type="button"
+        </.pill_join_item>
+        <.pill_join_item
+          active={@selected_ad_type == "video"}
+          class="gap-2"
           phx-click="switch_ad_type"
           phx-value-type="video"
-          class={[
-            "join-item btn btn-md gap-2",
-            @selected_ad_type == "video" && "btn-active"
-          ]}
           aria-pressed={to_string(@selected_ad_type == "video")}
         >
           Video
@@ -91,8 +85,8 @@ defmodule QlariusWeb.Components.AdsComponents do
               {@video_ad_count}
             </span>
           <% end %>
-        </button>
-      </div>
+        </.pill_join_item>
+      </.pill_join_selector>
     </div>
     """
   end

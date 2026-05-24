@@ -127,6 +127,52 @@ defmodule QlariusWeb.CoreComponents do
   end
 
   @doc """
+  Joined pill selector track for filter/tab toggles (/ads, /tiqits, me_file, etc.).
+
+  Wrap `<.pill_join_item>` buttons inside.
+  """
+  attr :class, :any, default: nil
+  attr :label, :string, required: true
+  slot :inner_block, required: true
+
+  def pill_join_selector(assigns) do
+    ~H"""
+    <div
+      class={["join pill-join-selector [--radius-field:9999px]", @class]}
+      role="group"
+      aria-label={@label}
+    >
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
+  attr :active, :boolean, default: false
+  attr :size, :string, default: "md", values: ~w(sm md)
+  attr :class, :any, default: nil
+  attr :rest, :global, include: ~w(phx-click phx-value-type phx-value-status phx-value-expanded disabled aria-pressed aria-label)
+
+  slot :inner_block, required: true
+
+  def pill_join_item(assigns) do
+    ~H"""
+    <button
+      type="button"
+      class={[
+        "join-item btn whitespace-nowrap",
+        @size == "sm" && "btn-sm",
+        @size == "md" && "btn-md",
+        @active && "btn-active",
+        @class
+      ]}
+      {@rest}
+    >
+      {render_slot(@inner_block)}
+    </button>
+    """
+  end
+
+  @doc """
   Renders a simple form.
 
   ## Examples
