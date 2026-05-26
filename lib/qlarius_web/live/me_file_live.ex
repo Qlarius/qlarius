@@ -32,11 +32,9 @@ defmodule QlariusWeb.MeFileLive do
           />
         </:modals>
 
-        <div class="mb-8">
-          <div class="text-xl">
-            Manage your tags below.
-          </div>
-        </div>
+        <Layouts.mobile_page_intro>
+          Manage your tags below.
+        </Layouts.mobile_page_intro>
 
         <div class="pt-2">
           <.tags_display

@@ -1834,6 +1834,10 @@
     padding-bottom: 1.5rem;
   }
 
+  .mobile-shell .mobile-page-intro {
+    @apply text-sm leading-snug text-base-content/80;
+  }
+
   .mobile-shell:has(.mobile-bottom-nav-area) .slide-panels .panel-scroll {
     scroll-padding-bottom: var(--mobile-bottom-nav-offset);
   }

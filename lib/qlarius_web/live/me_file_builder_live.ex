@@ -75,9 +75,9 @@ defmodule QlariusWeb.MeFileBuilderLive do
                 </div>
               <% end %>
             </div>
-            <h1 class="text-base-content mt-2 text-xl">
+            <p class="mobile-page-intro mt-2 mb-0">
               Fill the empty tags below. Update or delete existing tags.
-            </h1>
+            </p>
           </div>
 
           <.survey_traits_display
@@ -105,9 +105,9 @@ defmodule QlariusWeb.MeFileBuilderLive do
         </:floating_actions>
 
         <%!-- Main content: Survey category index --%>
-        <div class="mb-8 flex gap-2 justify-start items-center">
-          <span class="text-xl">Select a category below and fill empty tags.</span>
-        </div>
+        <Layouts.mobile_page_intro>
+          Select a category below and fill empty tags.
+        </Layouts.mobile_page_intro>
 
         <div class="mt-8 grid gap-10 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           <%= for category <- @categories do %>

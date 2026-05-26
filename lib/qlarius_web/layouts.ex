@@ -105,6 +105,20 @@ defmodule QlariusWeb.Layouts do
     """
   end
 
+  @doc """
+  Subtitle or instructional copy directly under the mobile shell page title row.
+  """
+  attr :class, :string, default: ""
+  slot :inner_block, required: true
+
+  def mobile_page_intro(assigns) do
+    ~H"""
+    <p class={["mobile-page-intro mb-8", @class]}>
+      {render_slot(@inner_block)}
+    </p>
+    """
+  end
+
   # attr :ads_count, :integer, required: true
   # attr :flash, :map, required: true
   # attr :current_scope, Scope, required: true
