@@ -713,6 +713,156 @@ Hooks.TiqitExpirationCountdown = {
   }
 }
 
+// Smooth close for tiqit ticket `<details>` tail — keep [open] until animation completes.
+Hooks.TiqitTailDetails = {
+  mounted() {
+    this.summary = this.el.querySelector("summary")
+    if (!this.summary) return
+
+    this.onSummaryClick = (event) => {
+      if (!this.el.open || this.closing) return
+      event.preventDefault()
+      event.stopPropagation()
+      this.beginClose()
+    }
+
+    this.onToggle = () => {
+      if (this.closing) {
+        if (!this.el.open) this.el.open = true
+        return
+      }
+
+      if (this.el.open) {
+        this.clearCloseState()
+        this.maybeAnimateOpen()
+      }
+    }
+
+    this.onOpenTransitionEnd = (event) => {
+      if (event.target !== this.el) return
+      if (event.propertyName !== "height") return
+      if (!this.el.classList.contains("tiqit-tail-animate-open")) return
+      this.el.classList.remove("tiqit-tail-animate-open")
+    }
+
+    this.summary.addEventListener("click", this.onSummaryClick, true)
+    this.el.addEventListener("toggle", this.onToggle)
+    this.el.addEventListener("transitionend", this.onOpenTransitionEnd)
+  },
+
+  updated() {
+    this.summary = this.el.querySelector("summary")
+
+    if (this.closing && this.el.open) {
+      this.el.classList.add("tiqit-tail-is-closing")
+      const h = this.el.style.getPropertyValue("--tiqit-tail-content-h")
+      if (!h || h.trim() === "") {
+        this.el.style.setProperty("--tiqit-tail-content-h", "0px")
+      }
+    }
+  },
+
+  destroyed() {
+    this.summary?.removeEventListener("click", this.onSummaryClick, true)
+    this.el.removeEventListener("toggle", this.onToggle)
+    this.el.removeEventListener("transitionend", this.onOpenTransitionEnd)
+    this.cancelCloseRaf()
+    this.clearCloseTimer()
+    this.closing = false
+  },
+
+  beginClose() {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      this.clearCloseState()
+      this.el.open = false
+      return
+    }
+
+    if (!this.supportsAnimatedDetailsContent()) {
+      this.clearCloseState()
+      this.el.open = false
+      return
+    }
+
+    this.closing = true
+    const duration = this.tailDurationMs()
+    const height = this.el.scrollHeight
+
+    this.el.classList.remove("tiqit-tail-animate-open")
+    this.el.classList.add("tiqit-tail-is-closing")
+    this.el.style.setProperty("--tiqit-tail-content-h", `${height}px`)
+    this.el.getBoundingClientRect()
+
+    this.cancelCloseRaf()
+    this.closeRaf = requestAnimationFrame(() => {
+      this.closeRaf = null
+      this.el.style.setProperty("--tiqit-tail-content-h", "0px")
+    })
+
+    this.clearCloseTimer()
+    this.closeTimer = window.setTimeout(() => this.finishClose(), duration + 80)
+  },
+
+  finishClose() {
+    if (!this.closing) return
+
+    this.cancelCloseRaf()
+    this.clearCloseTimer()
+
+    // Kill ::details-content height transition before removing [open] (avoids second collapse).
+    this.el.classList.add("tiqit-tail-instant-shut")
+    this.el.removeAttribute("open")
+    this.el.style.removeProperty("--tiqit-tail-content-h")
+    this.closing = false
+
+    requestAnimationFrame(() => {
+      this.el.classList.remove("tiqit-tail-is-closing", "tiqit-tail-instant-shut")
+    })
+  },
+
+  clearCloseState() {
+    this.el.classList.remove("tiqit-tail-is-closing", "tiqit-tail-instant-shut")
+    this.el.style.removeProperty("--tiqit-tail-content-h")
+  },
+
+  maybeAnimateOpen() {
+    if (!this.supportsAnimatedDetailsContent()) return
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+
+    this.el.classList.add("tiqit-tail-animate-open")
+  },
+
+  supportsAnimatedDetailsContent() {
+    return (
+      CSS.supports("interpolate-size", "allow-keywords") &&
+      CSS.supports("selector(details::details-content)")
+    )
+  },
+
+  cancelCloseRaf() {
+    if (this.closeRaf) {
+      cancelAnimationFrame(this.closeRaf)
+      this.closeRaf = null
+    }
+  },
+
+  tailDurationMs() {
+    const grid = this.el.closest(".tiqit-grid")
+    const source = grid || this.el
+    const raw = getComputedStyle(source).getPropertyValue("--tiqit-tail-t").trim()
+    if (!raw) return 520
+    if (raw.endsWith("ms")) return parseFloat(raw)
+    return parseFloat(raw) * 1000
+  },
+
+  clearCloseTimer() {
+    if (this.closeTimer) {
+      window.clearTimeout(this.closeTimer)
+      this.closeTimer = null
+    }
+  }
+}
+
 Hooks.InstaTipHook = {
   mounted() {
     // Listen for Alpine.js events from the InstaTip modal

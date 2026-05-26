@@ -302,7 +302,7 @@ defmodule QlariusWeb.TiqitComponents do
 
         <div class="tiqit-bl"></div>
         <div class="tiqit-bot">
-          <details class="tiqit-tail-details min-w-0">
+          <details class="tiqit-tail-details min-w-0" phx-hook="TiqitTailDetails" id={"tiqit-tail-#{@tiqit.id}"}>
             <summary
               class="tiqit-tail-details-summary cursor-pointer list-none [&::-webkit-details-marker]:hidden"
               aria-label="Show or hide purchase details and actions"
