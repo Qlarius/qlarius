@@ -251,17 +251,23 @@ defmodule QlariusWeb.Components.AdsComponents do
 
   attr :media_piece, :map, required: true
   attr :show_banner, :boolean, default: false
+  attr :compact, :boolean, default: false
   # See docs/embedded_theming.md for force_light/pub_theme strategy
   attr :force_light, :boolean, default: false
 
   def three_tap_ad(assigns) do
     ~H"""
     <div class={[
-      "bg-base-200 rounded-lg overflow-hidden shadow-sm max-w-[340px]",
-      if(!@force_light, do: "dark:bg-base-900/20")
+      "overflow-hidden",
+      @compact && "w-full",
+      !@compact && "bg-base-200 rounded-lg shadow-sm max-w-[340px]",
+      !@compact && !@force_light && "dark:bg-base-900/20"
     ]}>
       <%= if @show_banner && @media_piece.banner_image do %>
-        <div class="flex justify-center items-center bg-white">
+        <div class={[
+          "flex justify-center items-center bg-white overflow-hidden",
+          @compact && "max-h-[115px]"
+        ]}>
           <img
             src={
               QlariusWeb.Uploaders.ThreeTapBanner.url(
@@ -270,41 +276,63 @@ defmodule QlariusWeb.Components.AdsComponents do
               )
             }
             alt={@media_piece.title}
-            class="w-full h-auto object-cover"
+            class={[
+              "w-full object-cover object-center",
+              @compact && "max-h-[115px]",
+              !@compact && "h-auto"
+            ]}
           />
         </div>
       <% end %>
 
-      <div class="p-4">
+      <div class={[@compact && "px-4 py-3", !@compact && "p-4"]}>
         <div class={[
-          "text-blue-600 mb-1 font-bold text-lg leading-tight",
+          "text-blue-600 mb-1 font-bold leading-tight min-w-0",
+          @compact && "text-base",
+          !@compact && "text-lg",
           if(!@force_light, do: "dark:text-blue-300")
         ]}>
-          <a href={@media_piece.jump_url} target="_blank" class="hover:underline">
+          <a
+            href={@media_piece.jump_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class={["hover:underline", @compact && "block truncate"]}
+            title={@media_piece.title}
+          >
             {@media_piece.title}
           </a>
         </div>
 
         <%= if @media_piece.body_copy do %>
-          <div class="text-base-content/70 text-sm mb-1" style="line-height: 1.1rem">
+          <div
+            class={[
+              "text-base-content/70 text-sm mb-1",
+              @compact && "line-clamp-2"
+            ]}
+            style="line-height: 1.1rem"
+          >
             {@media_piece.body_copy}
           </div>
         <% end %>
 
         <%= if @media_piece.display_url do %>
-          <div class="text-green-500 text-xs mb-1">
+          <div class="text-green-500 text-xs mb-1 truncate" title={@media_piece.display_url}>
             {@media_piece.display_url}
           </div>
         <% end %>
 
         <%= if @media_piece.jump_url do %>
-          <div class="border-t border-base-300/30 mt-2 pt-2">
-            <div class="text-xs text-base-content/50">
-              <span class="font-semibold">LINK:</span>
-              <a href={@media_piece.jump_url} target="_blank" class="link link-primary ml-1 truncate">
-                {@media_piece.jump_url}
-              </a>
-            </div>
+          <div class="border-t border-base-300/30 dark:border-base-content/10 mt-2 pt-2 min-w-0">
+            <div class="text-xs text-base-content/50 font-semibold mb-0.5">LINK:</div>
+            <a
+              href={@media_piece.jump_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="block text-xs link link-primary truncate"
+              title={@media_piece.jump_url}
+            >
+              {@media_piece.jump_url}
+            </a>
           </div>
         <% end %>
       </div>

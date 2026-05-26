@@ -509,12 +509,23 @@ defmodule QlariusWeb.MeFileHTML do
 
   attr :parent_traits, :list, required: true
   attr :tag_display_mode, :string, required: true
+  attr :readonly, :boolean, default: false
 
   def parent_traits_display(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :inset_class,
+        if(assigns.readonly, do: "p-4", else: "px-4 pb-4")
+      )
+
     ~H"""
     <%= case @tag_display_mode do %>
       <% "list" -> %>
-        <ul class="divide-y divide-base-300/60 dark:divide-base-content/10 pb-4 list-trait-cards">
+        <ul class={[
+          "divide-y divide-base-300/60 dark:divide-base-content/10 list-trait-cards",
+          if(@readonly, do: @inset_class, else: "pb-4")
+        ]}>
           <li
             :for={
               {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
@@ -523,11 +534,15 @@ defmodule QlariusWeb.MeFileHTML do
             id={"trait-card-#{parent_trait_id}"}
             class={[
               "trait-card-animate relative flex items-stretch gap-3 px-4 py-3",
-              editable_parent_trait?(parent_trait_name) &&
+              !@readonly && editable_parent_trait?(parent_trait_name) &&
                 "cursor-pointer transition-colors duration-200 hover:bg-base-200/40 dark:hover:bg-base-300/20"
             ]}
-            phx-click={editable_parent_trait?(parent_trait_name) && "edit_tags"}
-            phx-value-id={editable_parent_trait?(parent_trait_name) && parent_trait_id}
+            phx-click={
+              !@readonly && editable_parent_trait?(parent_trait_name) && "edit_tags"
+            }
+            phx-value-id={
+              !@readonly && editable_parent_trait?(parent_trait_name) && parent_trait_id
+            }
           >
             <div class="w-[34%] max-w-[9rem] shrink-0 flex items-start pt-2.5">
               <span class={[
@@ -567,7 +582,8 @@ defmodule QlariusWeb.MeFileHTML do
                 <.trait_actions
                   parent_trait_id={parent_trait_id}
                   parent_trait_name={parent_trait_name}
-                  nav_indicator="chevron"
+                  editable={!@readonly}
+                  nav_indicator={if(@readonly, do: "none", else: "chevron")}
                   actions_class="flex shrink-0 self-center"
                 />
               </div>
@@ -575,7 +591,11 @@ defmodule QlariusWeb.MeFileHTML do
           </li>
         </ul>
       <% "block" -> %>
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 px-4 pb-4">
+        <div class={[
+          "grid gap-3",
+          @inset_class,
+          block_grid_cols_class(@readonly)
+        ]}>
           <.trait_card
             :for={
               {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
@@ -584,14 +604,20 @@ defmodule QlariusWeb.MeFileHTML do
             parent_trait_id={parent_trait_id}
             parent_trait_name={parent_trait_name}
             tags_traits={tags_traits}
-            clickable={true}
-            nav_indicator="chevron"
+            clickable={!@readonly}
+            editable={!@readonly}
+            nav_indicator={if(@readonly, do: "none", else: "chevron")}
             display_mode="block"
-            extra_classes="h-full"
+            extra_classes={if(@readonly, do: "h-full !shadow-none", else: "h-full")}
           />
         </div>
       <% _ -> %>
-        <div class="flex flex-row flex-wrap gap-4 px-4 pb-4">
+        <div class={[
+          "flex flex-row flex-wrap",
+          @inset_class,
+          @readonly && "gap-3",
+          !@readonly && "gap-4"
+        ]}>
           <.trait_card
             :for={
               {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
@@ -600,9 +626,11 @@ defmodule QlariusWeb.MeFileHTML do
             parent_trait_id={parent_trait_id}
             parent_trait_name={parent_trait_name}
             tags_traits={tags_traits}
-            clickable={true}
-            nav_indicator="chevron"
+            clickable={!@readonly}
+            editable={!@readonly}
+            nav_indicator={if(@readonly, do: "none", else: "chevron")}
             display_mode="tag"
+            extra_classes={@readonly && "!shadow-none"}
           />
         </div>
     <% end %>
@@ -766,6 +794,12 @@ defmodule QlariusWeb.MeFileHTML do
 
   defp plural_tag_word(1), do: "tag"
   defp plural_tag_word(_), do: "tags"
+
+  defp block_grid_cols_class(true), do: "grid-cols-2"
+
+  defp block_grid_cols_class(false) do
+    "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
+  end
 
   defp tag_display_mode_label("tag"), do: "Tags"
   defp tag_display_mode_label("block"), do: "Blocks"

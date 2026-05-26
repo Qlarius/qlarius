@@ -6,7 +6,7 @@
 />
 <div
   id="right-sidebar"
-  class="fixed inset-y-0 right-0 z-50 w-96 transform translate-x-full transition-transform duration-300 ease-in-out bg-base-100 border-l border-base-300 dark:!border-base-200"
+  class="fixed inset-y-0 right-0 z-50 w-96 max-w-[100vw] transform translate-x-full transition-transform duration-300 ease-in-out page-canvas border-l border-base-300/80 dark:border-base-content/15 shadow-2xl"
   tabindex="1"
   phx-click-away={toggle_right_sidebar(:off)}
 >
@@ -14,100 +14,99 @@
     class="flex flex-col h-full overflow-hidden"
     id="right-sidebar-container"
   >
-    
-<!-- Header - Fixed -->
-    <div class="bg-base-300 flex-shrink-0">
+    <div class="flex-shrink-0 border-b border-base-300/80 dark:border-base-content/15 bg-base-200/95 dark:bg-base-300/95 backdrop-blur-sm">
       <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
-        <div
-          class="bg-base-300 flex-shrink-0"
-          style="height: max(12px, env(safe-area-inset-top));"
-        >
-        </div>
+        <div style="height: max(12px, env(safe-area-inset-top));"></div>
       <% end %>
 
-      <div class="flex items-center justify-between px-4 py-4 bg-base-300 flex-shrink-0">
-        <h3 class="text-lg font-semibold">Transaction Details</h3>
+      <div class="flex items-center justify-between px-4 py-3">
+        <h3 class="text-lg font-bold tracking-tight">Transaction Details</h3>
 
         <button
           phx-click={toggle_right_sidebar(:off)}
           class="text-base-content/50 hover:text-base-content cursor-pointer"
+          aria-label="Close"
         >
           <.icon name="hero-x-mark" class="h-7 w-7" />
         </button>
       </div>
     </div>
-    
-<!-- Content - flex-1 fills remaining space instead of fixed height -->
-    <div class="flex-1 overflow-y-auto px-4 py-4">
+
+    <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
       <%= if assigns[:selected_entry] && assigns[:entry_details] do %>
-        <!-- Entry Amount and Date -->
-        <div class="bg-base-200 rounded-lg p-4 mb-4">
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-sm text-base-content/70">Amount</span>
-            <span class={[
-              "text-lg font-bold",
-              if(Decimal.compare(@selected_entry.amt, Decimal.new(0)) == :gt,
-                do: "text-sponster-500",
-                else: "text-tiqit-500"
-              )
-            ]}>
-              <%= if Decimal.compare(@selected_entry.amt, Decimal.new(0)) == :gt do %>
-                +{QlariusWeb.Money.format_usd(@selected_entry.amt)}
-              <% else %>
-                {QlariusWeb.Money.format_usd(@selected_entry.amt)}
-              <% end %>
-            </span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-base-content/70">Date & Time</span>
-            <span class="text-sm text-right">
-              {Qlarius.DateTime.format_for_user(
-                @selected_entry.created_at,
-                @current_scope.user,
-                :standard
-              )}
-            </span>
-          </div>
-          <%= if @selected_entry.meta_1 do %>
-            <div class="flex justify-between items-center mt-2 pt-2 border-t border-base-300">
-              <span class="text-sm text-base-content/70">Category</span>
-              <span class="flex items-center gap-2">
-                <span class={[
-                  "inline-flex items-center justify-center rounded-full w-7 h-7",
-                  if(Decimal.compare(@selected_entry.amt, 0) == :gt,
-                    do: "!bg-sponster-200 dark:!bg-sponster-800",
-                    else: "!bg-tiqit-200 dark:!bg-tiqit-800"
-                  )
-                ]}>
-                  <.icon
-                    name={QlariusWeb.WalletLive.icon_for_meta_1(@selected_entry.meta_1)}
-                    class="h-4 w-4 text-base-content"
-                  />
-                </span>
-                <span class="text-sm">{@selected_entry.meta_1}</span>
-              </span>
+        <.surface_panel>
+          <dl class="divide-y divide-base-300/60 dark:divide-base-content/10">
+            <div class="flex justify-between items-center gap-3 pb-3">
+              <dt class="text-sm text-base-content/60">Amount</dt>
+              <dd class={[
+                "text-lg font-bold text-right",
+                if(Decimal.compare(@selected_entry.amt, Decimal.new(0)) == :gt,
+                  do: "text-sponster-500",
+                  else: "text-tiqit-500"
+                )
+              ]}>
+                <%= if Decimal.compare(@selected_entry.amt, Decimal.new(0)) == :gt do %>
+                  +{QlariusWeb.Money.format_usd(@selected_entry.amt)}
+                <% else %>
+                  {QlariusWeb.Money.format_usd(@selected_entry.amt)}
+                <% end %>
+              </dd>
             </div>
-          <% end %>
-        </div>
-        
-<!-- Transaction Type Details -->
+            <%= if @entry_details.type == :ad_event do %>
+              <div class="flex justify-between items-center gap-3 py-3">
+                <dt class="text-sm text-base-content/60">Marketer</dt>
+                <dd class="text-sm text-right font-medium">{@entry_details.marketer_name}</dd>
+              </div>
+            <% end %>
+            <%= if @entry_details.type == :tiqit_purchase && @entry_details.creator do %>
+              <div class="flex justify-between items-center gap-3 py-3">
+                <dt class="text-sm text-base-content/60">Creator</dt>
+                <dd class="text-sm text-right font-medium truncate max-w-[14rem]">
+                  {@entry_details.creator.name}
+                </dd>
+              </div>
+            <% end %>
+            <div class="flex justify-between items-start gap-3 py-3">
+              <dt class="text-sm text-base-content/60 shrink-0">Date & Time</dt>
+              <dd class="text-sm text-right text-base-content">
+                {Qlarius.DateTime.format_for_user(
+                  @selected_entry.created_at,
+                  @current_scope.user,
+                  :standard
+                )}
+              </dd>
+            </div>
+            <%= if @selected_entry.meta_1 do %>
+              <div class="flex justify-between items-center gap-3 pt-3">
+                <dt class="text-sm text-base-content/60">Event</dt>
+                <dd class="flex items-center gap-2 min-w-0">
+                  <span class={[
+                    "inline-flex shrink-0 items-center justify-center rounded-full w-7 h-7",
+                    if(Decimal.compare(@selected_entry.amt, 0) == :gt,
+                      do: "bg-sponster-200 dark:bg-sponster-900/50",
+                      else: "bg-tiqit-200 dark:bg-tiqit-900/50"
+                    )
+                  ]}>
+                    <.icon
+                      name={QlariusWeb.WalletLive.icon_for_meta_1(@selected_entry.meta_1)}
+                      class="h-4 w-4 text-base-content"
+                    />
+                  </span>
+                  <span class="text-sm truncate">{@selected_entry.meta_1}</span>
+                </dd>
+              </div>
+            <% end %>
+          </dl>
+        </.surface_panel>
+
         <%= case @entry_details.type do %>
           <% :ad_event -> %>
-            <div class="space-y-4">
-              <!-- Marketer Info -->
-              <div class="space-y-2 text-sm bg-base-200 rounded-lg p-3">
-                <div class="flex justify-between">
-                  <span class="text-base-content/70">Marketer:</span>
-                  <span>{@entry_details.marketer_name}</span>
-                </div>
-              </div>
-
-              <h4 class="font-medium text-base-content">Ad Content</h4>
+            <div>
+              <h4 class="text-sm font-semibold text-base-content/60 mb-2 px-0.5">Ad Content</h4>
 
               <%= if @entry_details.media_piece do %>
                 <%= if @entry_details.media_piece.media_piece_type_id == 2 do %>
-                  <!-- Video Ad -->
-                  <div class="bg-base-200 dark:bg-base-900/20 rounded-lg overflow-hidden shadow-sm">
+                  <.surface_panel padding={false} class="overflow-hidden">
                     <QlariusWeb.Components.AdsComponents.video_thumbnail
                       media_piece={@entry_details.media_piece}
                       class="w-full"
@@ -115,84 +114,82 @@
                     />
 
                     <%= if @entry_details.media_piece.ad_category do %>
-                      <div class="p-3 border-t border-base-300">
+                      <div class="px-4 py-3 border-t border-base-300/60 dark:border-base-content/10">
                         <p class="text-sm font-medium">
                           {@entry_details.media_piece.ad_category.ad_category_name}
                         </p>
                         <%= if @entry_details.media_piece.duration do %>
-                          <p class="text-xs text-base-content/60">
+                          <p class="text-xs text-base-content/60 mt-0.5">
                             Duration: {@entry_details.media_piece.duration}s
                           </p>
                         <% end %>
                       </div>
                     <% end %>
-                  </div>
+                  </.surface_panel>
                 <% else %>
-                  <!-- 3-Tap Ad -->
-                  <.three_tap_ad media_piece={@entry_details.media_piece} show_banner={true} />
+                  <.surface_panel padding={false} class="overflow-hidden">
+                    <.three_tap_ad
+                      media_piece={@entry_details.media_piece}
+                      show_banner={true}
+                      compact
+                    />
+                  </.surface_panel>
                 <% end %>
               <% else %>
-                <div class="bg-base-200 dark:bg-base-900/20 rounded-lg overflow-hidden shadow-sm p-4">
-                  <h5 class="font-medium mb-2">Ad Content</h5>
-                  <p class="text-sm text-base-content/70 mb-3">
+                <.surface_panel>
+                  <p class="text-sm text-base-content/60">
                     Media piece details not available
                   </p>
-                </div>
+                </.surface_panel>
               <% end %>
+            </div>
+
+            <div>
+              <h4 class="text-sm font-semibold text-base-content/60 mb-2 px-0.5">
+                Matching Tags (Why you?)
+              </h4>
 
               <%= if @entry_details.matching_tags && length(@entry_details.matching_tags) > 0 do %>
-                <div>
-                  <h5 class="font-medium mb-2">Matching Tags (Why you?)</h5>
-                  <div class="space-y-2">
-                    <.trait_card
-                      :for={
-                        {parent_id, parent_name, _parent_order, child_tags} <-
-                          @entry_details.matching_tags
-                      }
-                      parent_trait_id={parent_id}
-                      parent_trait_name={parent_name}
-                      tags_traits={child_tags}
-                      editable={false}
-                    />
-                  </div>
-                </div>
+                <.surface_panel padding={false}>
+                  <.parent_traits_display
+                    parent_traits={@entry_details.matching_tags}
+                    tag_display_mode={assigns[:tag_display_mode] || "tag"}
+                    readonly
+                  />
+                </.surface_panel>
               <% else %>
-                <div>
-                  <h5 class="font-medium mb-2">Matching Tags (Why you?)</h5>
+                <.surface_panel>
                   <p class="text-sm text-base-content/60">No matching info found.</p>
-                </div>
+                </.surface_panel>
               <% end %>
             </div>
           <% :tiqit_purchase -> %>
-            <div class="space-y-4">
-              <%= if assigns[:entry_details] && @entry_details.tiqit do %>
-                <QlariusWeb.TiqitComponents.tiqit_detail_card
-                  tiqit={@entry_details.tiqit}
-                  user={@current_scope.user}
-                  fleet_after_hours={@current_scope.user.fleet_after_hours}
-                  fleet_modal_id="sidebar-fleet-confirm-modal"
-                  undo_modal_id="sidebar-undo-confirm-modal"
-                  preserve_modal_id="sidebar-preserve-confirm-modal"
-                  unpreserve_modal_id="sidebar-unpreserve-confirm-modal"
-                />
-              <% else %>
+            <%= if assigns[:entry_details] && @entry_details.tiqit do %>
+              <QlariusWeb.TiqitComponents.tiqit_detail_card
+                tiqit={@entry_details.tiqit}
+                user={@current_scope.user}
+                fleet_after_hours={@current_scope.user.fleet_after_hours}
+                fleet_modal_id="sidebar-fleet-confirm-modal"
+                undo_modal_id="sidebar-undo-confirm-modal"
+                preserve_modal_id="sidebar-preserve-confirm-modal"
+                unpreserve_modal_id="sidebar-unpreserve-confirm-modal"
+              />
+            <% else %>
+              <.surface_panel>
                 <QlariusWeb.TiqitComponents.tiqit_fleeted_card disconnect_reason={
                   Map.get(@entry_details, :disconnect_reason)
                 } />
-              <% end %>
-            </div>
+              </.surface_panel>
+            <% end %>
           <% :other -> %>
-            <div class="space-y-4">
-              <h4 class="font-medium text-base-content">Transaction</h4>
-
-              <div class="bg-base-200 rounded-lg p-4">
-                <p class="text-sm">{@entry_details.description}</p>
-              </div>
-            </div>
+            <.surface_panel>
+              <h4 class="text-sm font-semibold text-base-content/60 mb-2">Transaction</h4>
+              <p class="text-sm text-base-content">{@entry_details.description}</p>
+            </.surface_panel>
         <% end %>
       <% else %>
-        <div class="flex items-center justify-center h-full text-base-content/50">
-          <p>Select a transaction to view details</p>
+        <div class="flex items-center justify-center min-h-[12rem] text-base-content/50">
+          <p class="text-sm">Select a transaction to view details</p>
         </div>
       <% end %>
     </div>

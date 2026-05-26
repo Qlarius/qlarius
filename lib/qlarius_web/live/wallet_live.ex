@@ -44,6 +44,7 @@ defmodule QlariusWeb.WalletLive do
     |> assign(:page, page)
     |> assign(:paginated_entries, paginated_entries)
     |> assign(:undo_context, nil)
+    |> assign_tag_display_mode()
     |> init_pwa_assigns(session)
     |> ok()
   end
@@ -167,6 +168,16 @@ defmodule QlariusWeb.WalletLive do
          |> assign(:undo_context, nil)
          |> put_flash(:error, "Could not refund: #{reason}")}
     end
+  end
+
+  defp assign_tag_display_mode(socket) do
+    mode =
+      case socket.assigns.current_scope.user.me_file do
+        %{tag_display_mode: mode} when mode in ~w(tag block list) -> mode
+        _ -> "tag"
+      end
+
+    assign(socket, :tag_display_mode, mode)
   end
 
   defp reload_entry_details(socket) do
