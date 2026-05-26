@@ -13,6 +13,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   alias Qlarius.Wallets
   alias Qlarius.Wallets.LedgerEntry
   alias Qlarius.Wallets.LedgerHeader
+  alias Qlarius.Wallets.MeFileStatsBroadcaster
   alias Qlarius.Repo
 
   # Anonymous viewers (e.g. the arqade iframe rendered inside a
@@ -852,16 +853,25 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   # --- Tiqit actions ---
 
   def fleet_tiqit!(%Tiqit{} = tiqit) do
-    Repo.transaction(fn ->
-      sanitize_consumer_ledger_entries(tiqit)
+    me_file_id = tiqit.me_file_id
 
-      tiqit
-      |> Tiqit.changeset(%{disconnected_at: DateTime.utc_now(), me_file_id: nil})
-      |> Repo.update!()
+    result =
+      Repo.transaction(fn ->
+        sanitize_consumer_ledger_entries(tiqit)
 
-      from(e in LedgerEntry, where: e.tiqit_id == ^tiqit.id)
-      |> Repo.update_all(set: [tiqit_id: nil])
-    end)
+        tiqit
+        |> Tiqit.changeset(%{disconnected_at: DateTime.utc_now(), me_file_id: nil})
+        |> Repo.update!()
+
+        from(e in LedgerEntry, where: e.tiqit_id == ^tiqit.id)
+        |> Repo.update_all(set: [tiqit_id: nil])
+      end)
+
+    if me_file_id && match?({:ok, _}, result) do
+      MeFileStatsBroadcaster.broadcast_ledger_updated(me_file_id)
+    end
+
+    result
   end
 
   def preserve_tiqit(%Tiqit{} = tiqit, preserved) when is_boolean(preserved) do
@@ -908,71 +918,84 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         catalog = tiqit_class_catalog(tiqit.tiqit_class)
 
         with :ok <- check_undo_limit(user.me_file, creator, catalog) do
-          Repo.transaction(fn ->
-            duration_label = format_duration(tiqit.tiqit_class.duration_hours)
-            content_title = tiqit_content_title(tiqit.tiqit_class)
+          case Repo.transaction(fn ->
+                 duration_label = format_duration(tiqit.tiqit_class.duration_hours)
+                 content_title = tiqit_content_title(tiqit.tiqit_class)
 
-            # Reverse consumer ledger
-            consumer_ledger = Wallets.get_me_file_ledger_header(user.me_file)
-            refund_amount = tiqit.tiqit_class.price
-            new_consumer_balance = Decimal.add(consumer_ledger.balance, refund_amount)
+                 # Reverse consumer ledger
+                 consumer_ledger = Wallets.get_me_file_ledger_header(user.me_file)
+                 refund_amount = tiqit.tiqit_class.price
+                 new_consumer_balance = Decimal.add(consumer_ledger.balance, refund_amount)
 
-            %LedgerEntry{
-              ledger_header_id: consumer_ledger.id,
-              amt: refund_amount,
-              running_balance: new_consumer_balance,
-              description: "*REFUNDED*",
-              meta_1: "Tiqit Refund"
-            }
-            |> Repo.insert!()
+                 %LedgerEntry{
+                   ledger_header_id: consumer_ledger.id,
+                   amt: refund_amount,
+                   running_balance: new_consumer_balance,
+                   description: "*REFUNDED*",
+                   meta_1: "Tiqit Refund"
+                 }
+                 |> Repo.insert!()
 
-            consumer_ledger
-            |> Ecto.Changeset.change(balance: new_consumer_balance)
-            |> Repo.update!()
+                 consumer_ledger
+                 |> Ecto.Changeset.change(balance: new_consumer_balance)
+                 |> Repo.update!()
 
-            # Reverse creator ledger
-            if creator do
-              creator_ledger = Wallets.get_or_create_creator_ledger_header(creator)
-              creator_debit = Decimal.negate(refund_amount)
-              new_creator_balance = Decimal.add(creator_ledger.balance, creator_debit)
+                 # Reverse creator ledger
+                 if creator do
+                   creator_ledger = Wallets.get_or_create_creator_ledger_header(creator)
+                   creator_debit = Decimal.negate(refund_amount)
+                   new_creator_balance = Decimal.add(creator_ledger.balance, creator_debit)
 
-              %LedgerEntry{
-                ledger_header_id: creator_ledger.id,
-                amt: creator_debit,
-                running_balance: new_creator_balance,
-                description: "Tiqit undo: #{content_title} (#{duration_label})",
-                meta_1: "Tiqit Undo"
-              }
-              |> Repo.insert!()
+                   %LedgerEntry{
+                     ledger_header_id: creator_ledger.id,
+                     amt: creator_debit,
+                     running_balance: new_creator_balance,
+                     description: "Tiqit undo: #{content_title} (#{duration_label})",
+                     meta_1: "Tiqit Undo"
+                   }
+                   |> Repo.insert!()
 
-              creator_ledger
-              |> Ecto.Changeset.change(balance: new_creator_balance)
-              |> Repo.update!()
-            end
+                   creator_ledger
+                   |> Ecto.Changeset.change(balance: new_creator_balance)
+                   |> Repo.update!()
+                 end
 
-            # Sanitize consumer's original purchase entry before unlinking
-            sanitize_consumer_ledger_entries(tiqit, "*REFUNDED*")
+                 # Sanitize consumer's original purchase entry before unlinking
+                 sanitize_consumer_ledger_entries(tiqit, "*REFUNDED*")
 
-            # Mark tiqit as undone + fleet
-            tiqit
-            |> Tiqit.changeset(%{
-              undone_at: now,
-              disconnected_at: now,
-              me_file_id: nil
-            })
-            |> Repo.update!()
+                 # Mark tiqit as undone + fleet
+                 tiqit
+                 |> Tiqit.changeset(%{
+                   undone_at: now,
+                   disconnected_at: now,
+                   me_file_id: nil
+                 })
+                 |> Repo.update!()
 
-            # Unlink ledger entries
-            from(e in LedgerEntry, where: e.tiqit_id == ^tiqit.id)
-            |> Repo.update_all(set: [tiqit_id: nil])
+                 # Unlink ledger entries
+                 from(e in LedgerEntry, where: e.tiqit_id == ^tiqit.id)
+                 |> Repo.update_all(set: [tiqit_id: nil])
 
-            # Increment undo counter only if creator has finite limit
-            if catalog && catalog.tiqit_undo_limit do
-              increment_undo_count(user.me_file.id, creator.id)
-            end
+                 # Increment undo counter only if creator has finite limit
+                 if catalog && catalog.tiqit_undo_limit do
+                   increment_undo_count(user.me_file.id, creator.id)
+                 end
 
-            :ok
-          end)
+                 :ok
+               end) do
+            {:ok, :ok} ->
+              consumer_ledger = Wallets.get_me_file_ledger_header(user.me_file)
+              MeFileStatsBroadcaster.broadcast_balance_updated(
+                user.me_file.id,
+                consumer_ledger.balance
+              )
+
+              MeFileStatsBroadcaster.broadcast_ledger_updated(user.me_file.id)
+              {:ok, :ok}
+
+            {:error, reason} ->
+              {:error, reason}
+          end
         end
     end
   end

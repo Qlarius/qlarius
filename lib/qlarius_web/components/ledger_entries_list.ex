@@ -75,6 +75,7 @@ defmodule QlariusWeb.Components.LedgerEntriesList do
       ]}>
         <li
           :for={entry <- @paginated_entries.entries}
+          id={"ledger-entry-#{entry.id}"}
           class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-200/70 dark:hover:bg-base-300/35"
           phx-click={select_click(@use_wallet_sidebar)}
           phx-value-entry_id={entry.id}

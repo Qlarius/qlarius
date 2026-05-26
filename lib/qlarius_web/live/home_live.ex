@@ -226,7 +226,7 @@ defmodule QlariusWeb.HomeLive do
                 phx-click={JS.navigate("/tiqits?status=preserved")}
               >
                 <div class="text-3xl font-bold leading-none">{@preserved_tiqits_count}</div>
-                <div class="text-xs sm:text-sm font-light text-base-content/60">preserved</div>
+                <div class="text-xs sm:text-sm font-light text-base-content/60">marked</div>
               </div>
             </div>
           </.surface_panel>

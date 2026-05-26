@@ -122,7 +122,7 @@ defmodule QlariusWeb.OfferHTML do
           <.offer_container offer={@offer} class="px-3 py-2" target={@target} recipient={@recipient}>
             <a class="block w-full h-full" href={jump_url(@offer, @recipient)} target="_blank">
               <div class={[
-                "text-blue-600 font-bold text-lg underline",
+                "truncate text-blue-600 font-bold text-lg underline",
                 if(!@force_light, do: "dark:text-blue-300")
               ]}>
                 {@offer.media_piece.title}

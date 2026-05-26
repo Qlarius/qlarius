@@ -13,8 +13,8 @@ defmodule QlariusWeb.TiqitComponents do
 
   # Status badges use a combinable model:
   # - Primary: Active (green) or Expired (yellow) — based on whether access has lapsed
-  # - Fleeting (orange): only if expired AND not preserved — subject to auto-fleet
-  # - Preserved (blue): if the user has preserved the tiqit
+  # - Fleeting (orange): only if expired AND not marked — subject to auto-fleet
+  # - Marked (blue): if the user has bookmarked the tiqit to keep it
   # Fleeted/refunded tiqits render as blank anonymous cards and don't use these badges.
   attr :status, :atom, required: true
   attr :preserved, :boolean, default: false
@@ -26,7 +26,7 @@ defmodule QlariusWeb.TiqitComponents do
       Fleeting
     </span>
     <span :if={@preserved} class="badge badge-md badge-info gap-1 text-xs">
-      <.icon name="hero-shield-check-mini" class="w-3.5 h-3.5" /> Preserved
+      <.icon name="hero-bookmark-mini" class="w-3.5 h-3.5" /> Marked
     </span>
     """
   end
@@ -148,7 +148,7 @@ defmodule QlariusWeb.TiqitComponents do
         }
       >
         <span class="flex items-center gap-1 text-sm font-semibold leading-tight">
-          <.icon name="hero-shield-exclamation" class="h-4 w-4 shrink-0" /> Unpreserve
+          <.icon name="hero-bookmark-slash" class="h-4 w-4 shrink-0" /> Unmark
         </span>
       </button>
     <% else %>
@@ -162,7 +162,7 @@ defmodule QlariusWeb.TiqitComponents do
         }
       >
         <span class="flex items-center gap-1 text-sm font-semibold leading-tight">
-          <.icon name="hero-shield-check" class="h-4 w-4 shrink-0" /> Preserve
+          <.icon name="hero-bookmark" class="h-4 w-4 shrink-0" /> Mark
         </span>
       </button>
     <% end %>
@@ -423,13 +423,13 @@ defmodule QlariusWeb.TiqitComponents do
     ~H"""
     <.modal id={@id}>
       <div class="p-6">
-        <h3 class="text-lg font-bold mb-2">Preserve This Tiqit?</h3>
+        <h3 class="text-lg font-bold mb-2">Mark This Tiqit?</h3>
         <p class="text-base-content/70 mb-4">
-          Preserving prevents this tiqit from being AutoFleeted after expiration.
+          Marking prevents this tiqit from being AutoFleeted after expiration.
           The purchase details will remain linked to your account indefinitely.
         </p>
         <p class="text-sm text-base-content/50 mb-4">
-          You can unpreserve or manually fleet at any time.
+          You can unmark or manually fleet at any time.
         </p>
         <div class="flex justify-end gap-2">
           <button class="btn btn-ghost" phx-click={hide_modal(@id)}>Cancel</button>
@@ -439,7 +439,7 @@ defmodule QlariusWeb.TiqitComponents do
             phx-click={JS.push("preserve_tiqit") |> hide_modal(@id)}
             phx-value-id=""
           >
-            Preserve
+            Mark
           </button>
         </div>
       </div>
@@ -453,9 +453,9 @@ defmodule QlariusWeb.TiqitComponents do
     ~H"""
     <.modal id={@id}>
       <div class="p-6">
-        <h3 class="text-lg font-bold mb-2">Unpreserve This Tiqit?</h3>
+        <h3 class="text-lg font-bold mb-2">Unmark This Tiqit?</h3>
         <p class="text-base-content/70 mb-4">
-          If this tiqit has expired, removing preservation will make it eligible
+          If this tiqit has expired, removing the mark will make it eligible
           for AutoFleet. It may be automatically fleeted and all purchase details
           permanently disconnected from your account.
         </p>
@@ -467,7 +467,7 @@ defmodule QlariusWeb.TiqitComponents do
             phx-click={JS.push("unpreserve_tiqit") |> hide_modal(@id)}
             phx-value-id=""
           >
-            Unpreserve
+            Unmark
           </button>
         </div>
       </div>

@@ -837,8 +837,8 @@ defmodule QlariusWeb.UserSettingsLive do
           <div class="alert alert-info mt-6">
             <.icon name="hero-information-circle" class="w-5 h-5" />
             <span class="text-sm">
-              You can always manually fleet a tiqit at any time, or mark it as "preserved" to
-              prevent AutoFleet. Preserved tiqits stay linked to your account until you choose
+              You can always manually fleet a tiqit at any time, or mark it to
+              prevent AutoFleet. Marked tiqits stay linked to your account until you choose
               to fleet them.
             </span>
           </div>

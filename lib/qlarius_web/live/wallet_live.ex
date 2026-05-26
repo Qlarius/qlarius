@@ -24,6 +24,14 @@ defmodule QlariusWeb.WalletLive do
     per_page = 20
     paginated_entries = Wallets.list_ledger_entries(ledger_header.id, page, per_page)
 
+    socket =
+      if connected?(socket) do
+        Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{user.id}")
+        socket
+      else
+        socket
+      end
+
     socket
     |> assign(:current_path, "/wallet")
     |> assign(:title, "Wallet")
@@ -106,7 +114,7 @@ defmodule QlariusWeb.WalletLive do
     tiqit = Qlarius.Repo.get!(Qlarius.Tiqit.Arcade.Tiqit, id)
 
     case Qlarius.Tiqit.Arcade.Arcade.fleet_tiqit!(tiqit) do
-      {:ok, _} -> {:noreply, reload_entry_details(socket)}
+      {:ok, _} -> {:noreply, reload_ledger(socket)}
       {:error, _} -> {:noreply, put_flash(socket, :error, "Could not fleet tiqit")}
     end
   end
@@ -116,7 +124,7 @@ defmodule QlariusWeb.WalletLive do
 
     case Qlarius.Tiqit.Arcade.Arcade.preserve_tiqit(tiqit, true) do
       {:ok, _} -> {:noreply, reload_entry_details(socket)}
-      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not preserve tiqit")}
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not mark tiqit")}
     end
   end
 
@@ -125,7 +133,7 @@ defmodule QlariusWeb.WalletLive do
 
     case Qlarius.Tiqit.Arcade.Arcade.preserve_tiqit(tiqit, false) do
       {:ok, _} -> {:noreply, reload_entry_details(socket)}
-      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not unpreserve tiqit")}
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not unmark tiqit")}
     end
   end
 
@@ -151,7 +159,7 @@ defmodule QlariusWeb.WalletLive do
          socket
          |> assign(:undo_context, nil)
          |> put_flash(:info, "Tiqit refunded successfully")
-         |> reload_entry_details()}
+         |> reload_ledger()}
 
       {:error, reason} ->
         {:noreply,
@@ -174,6 +182,34 @@ defmodule QlariusWeb.WalletLive do
       _ ->
         socket
     end
+  end
+
+  # Assign-only refresh (no push_patch / navigate) so the mobile shell scroll
+  # container keeps its scroll position across ledger PubSub updates.
+  defp reload_ledger(socket) do
+    %{me_file: me_file, page: page} = socket.assigns
+    per_page = 20
+
+    ledger_header = Repo.get_by!(LedgerHeader, me_file_id: me_file.id)
+    paginated_entries = Wallets.list_ledger_entries(ledger_header.id, page, per_page)
+
+    current_scope =
+      Map.put(socket.assigns.current_scope, :wallet_balance, ledger_header.balance)
+
+    socket
+    |> assign(:ledger_header, ledger_header)
+    |> assign(:paginated_entries, paginated_entries)
+    |> assign(:current_scope, current_scope)
+    |> reload_entry_details()
+  end
+
+  @impl true
+  def handle_info(:ledger_updated, socket) do
+    {:noreply, reload_ledger(socket)}
+  end
+
+  def handle_info(:update_balance, socket) do
+    {:noreply, reload_ledger(socket)}
   end
 
   @impl true
