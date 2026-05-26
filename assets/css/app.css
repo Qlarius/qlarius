@@ -2549,9 +2549,8 @@ body {
 
 /* ── Status themes (light) ── */
 .tiqit-grid[data-status="active"] {
-  --ticket-border: var(--color-success);
-  /* Match expired fill weight; muted neutral green */
-  --ticket-bg: oklch(98.25% 0.015 182.5 / 0.6);
+  --ticket-border: var(--color-sponster-500);
+  --ticket-bg: oklch(99% 0.012 155 / 0.34);
 }
 .tiqit-grid[data-status="expired"] {
   --ticket-border: var(--color-tiqit-600);
@@ -2568,8 +2567,8 @@ body {
 
 /* ── Status themes (dark) ── */
 [data-theme="dark"] .tiqit-grid[data-status="active"] {
-  --ticket-border: var(--color-success);
-  --ticket-bg: oklch(26% 0.055 184.704 / 0.38);
+  --ticket-border: var(--color-sponster-600);
+  --ticket-bg: oklch(28% 0.04 155 / 0.18);
 }
 [data-theme="dark"] .tiqit-grid[data-status="expired"] {
   --ticket-border: var(--color-tiqit-700);

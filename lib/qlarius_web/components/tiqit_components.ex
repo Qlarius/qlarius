@@ -37,7 +37,10 @@ defmodule QlariusWeb.TiqitComponents do
     ~H"""
     <span class={[
       "badge badge-md text-xs",
-      if(@status == :active, do: "badge-success", else: "badge-warning")
+      if(@status == :active,
+        do: "!border-0 !bg-sponster-500 !text-primary-content",
+        else: "badge-warning"
+      )
     ]}>
       {if @status == :active, do: "Active", else: "Expired"}
     </span>

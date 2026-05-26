@@ -160,7 +160,7 @@ defmodule QlariusWeb.TiqitLive do
   end
 
   defp filter_badge(assigns, :active) when assigns.active_count > 0 do
-    %{count: assigns.active_count, variant: :success}
+    %{count: assigns.active_count, variant: :sponster}
   end
 
   defp filter_badge(assigns, :preserved) when assigns.preserved_count > 0 do
@@ -173,8 +173,8 @@ defmodule QlariusWeb.TiqitLive do
 
   defp filter_badge(_assigns, _status), do: nil
 
-  defp pill_count_badge_class(:success),
-    do: "badge badge-sm ml-2 rounded px-2 py-3 !border-0 !bg-success !text-success-content"
+  defp pill_count_badge_class(:sponster),
+    do: "badge badge-sm ml-2 rounded px-2 py-3 !border-0 !bg-sponster-500 !text-primary-content"
 
   defp pill_count_badge_class(:info),
     do: "badge badge-sm ml-2 rounded px-2 py-3 !border-0 !bg-info !text-info-content"
