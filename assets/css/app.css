@@ -2884,7 +2884,7 @@ body {
   transition: transform var(--tiqit-tail-t) var(--tiqit-tail-ease);
 }
 
-.tiqit-tail-details[open] .tiqit-tail-details-chevron {
+.tiqit-tail-details[open]:not(.tiqit-tail-is-closing) .tiqit-tail-details-chevron {
   transform: rotate(180deg);
 }
 
