@@ -18,11 +18,10 @@ defmodule QlariusWeb.Plugs.StorePWASession do
         _ -> false
       end
 
-    # Store in session for LiveView access
-    if is_pwa != get_session(conn, :is_pwa) do
-      put_session(conn, :is_pwa, is_pwa)
-    else
-      conn
-    end
+    mobile_browser_ok = conn.cookies["mobile_browser_ok"] == "true"
+
+    conn
+    |> put_session(:is_pwa, is_pwa)
+    |> put_session(:mobile_browser_ok, mobile_browser_ok)
   end
 end

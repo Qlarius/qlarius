@@ -217,7 +217,7 @@ defmodule QlariusWeb.UserAuth do
   # they were headed for, not the generic signed-in home page.
   defp already_signed_in_redirect_path(params) do
     case Qlarius.Qlink.Urls.sanitize_return_to(Map.get(params, "return_to")) do
-      nil -> ~p"/"
+      nil -> ~p"/home"
       path -> path
     end
   end

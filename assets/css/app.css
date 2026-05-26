@@ -2529,8 +2529,8 @@ body {
 /* Tiqit ticket card — 3×3 structural grid with notch cutouts */
 .tiqit-grid {
   --notch-r: 12px;
-  --tiqit-tail-t: 0.38s;
-  --tiqit-tail-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --tiqit-tail-t: 0.55s;
+  --tiqit-tail-ease: cubic-bezier(0.33, 1, 0.68, 1);
   /* Match .page-canvas / panel-scroll so notch cutouts blend with the page */
   --tiqit-canvas-bg: var(--color-base-200);
   --tiqit-notch-inset-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -2544,8 +2544,15 @@ body {
 }
 
 /* ── Status themes (light) ── */
-.tiqit-grid[data-status="active"]    { --ticket-border: var(--color-tiqit-300); --ticket-bg: var(--color-tiqit-50); }
-.tiqit-grid[data-status="expired"]   { --ticket-border: var(--color-tiqit-200); --ticket-bg: oklch(98.25% 0.02 89.35 / 0.6); }
+.tiqit-grid[data-status="active"] {
+  --ticket-border: var(--color-success);
+  /* Match expired fill weight; muted neutral green */
+  --ticket-bg: oklch(98.25% 0.015 182.5 / 0.6);
+}
+.tiqit-grid[data-status="expired"] {
+  --ticket-border: var(--color-tiqit-600);
+  --ticket-bg: oklch(98.25% 0.02 89.35 / 0.6);
+}
 .tiqit-grid[data-status="fleeted"],
 .tiqit-grid[data-status="undone"]    { --ticket-border: var(--color-base-300);  --ticket-bg: var(--color-base-200); }
 
@@ -2556,8 +2563,14 @@ body {
 }
 
 /* ── Status themes (dark) ── */
-[data-theme="dark"] .tiqit-grid[data-status="active"]    { --ticket-bg: oklch(26.72% 0.08 39.05 / 0.4); }
-[data-theme="dark"] .tiqit-grid[data-status="expired"]   { --ticket-bg: oklch(26.72% 0.08 39.05 / 0.25); }
+[data-theme="dark"] .tiqit-grid[data-status="active"] {
+  --ticket-border: var(--color-success);
+  --ticket-bg: oklch(26% 0.055 184.704 / 0.38);
+}
+[data-theme="dark"] .tiqit-grid[data-status="expired"] {
+  --ticket-border: var(--color-tiqit-700);
+  --ticket-bg: oklch(26.72% 0.08 39.05 / 0.25);
+}
 
 /* ── Marked+expired "on ice" override (dark) ── */
 [data-theme="dark"] .tiqit-grid[data-status="expired"][data-preserved="true"] {
@@ -2608,7 +2621,7 @@ body {
   /* Single paint for translucent `--ticket-bg` (avoid stacking same token in tail, which shifts hue) */
   background-color: var(--ticket-bg);
   overflow: visible;
-  transition: padding-bottom var(--tiqit-tail-t, 0.36s) var(--tiqit-tail-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  transition: padding-bottom var(--tiqit-tail-t) var(--tiqit-tail-ease);
 }
 
 .tiqit-bot:has(> .tiqit-tail-details:not([open])) {
@@ -2687,13 +2700,14 @@ body {
   margin-top: -16px;
   padding-top: 24px;
   padding-bottom: 14px;
-  animation: tiqit-tail-body-in var(--tiqit-tail-t) var(--tiqit-tail-ease) 0.06s both;
+  animation: tiqit-tail-body-in var(--tiqit-tail-t) var(--tiqit-tail-ease) both;
+  animation-delay: calc(var(--tiqit-tail-t) * 0.12);
 }
 
 @keyframes tiqit-tail-body-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(6px);
   }
 
   to {
@@ -2712,14 +2726,25 @@ body {
     height: 0;
     overflow: clip;
     content-visibility: hidden;
-    transition:
-      height var(--tiqit-tail-t, 0.38s) var(--tiqit-tail-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-      content-visibility var(--tiqit-tail-t, 0.38s) allow-discrete;
+    transition: height var(--tiqit-tail-t) var(--tiqit-tail-ease);
   }
 
   .tiqit-tail-details[open]::details-content {
     height: auto;
     content-visibility: visible;
+  }
+
+  /* Let ::details-content height drive the motion — avoid stacked keyframe + height fights */
+  .tiqit-tail-details[open] .tiqit-tail-details-body {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    transition: opacity calc(var(--tiqit-tail-t) * 0.65) var(--tiqit-tail-ease);
+  }
+
+  .tiqit-tail-details:not([open]) .tiqit-tail-details-body {
+    opacity: 0;
+    transition: opacity calc(var(--tiqit-tail-t) * 0.4) var(--tiqit-tail-ease);
   }
 }
 
@@ -2789,7 +2814,7 @@ body {
 }
 
 .tiqit-tail-details-chevron {
-  transition: transform var(--tiqit-tail-t, 0.38s) var(--tiqit-tail-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  transition: transform var(--tiqit-tail-t) var(--tiqit-tail-ease);
 }
 
 .tiqit-tail-details[open] .tiqit-tail-details-chevron {

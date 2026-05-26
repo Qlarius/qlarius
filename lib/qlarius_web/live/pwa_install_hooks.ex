@@ -17,8 +17,9 @@ defmodule QlariusWeb.PWAInstallHooks do
   def on_mount(:require_pwa_on_mobile, _params, session, socket) do
     is_mobile = session["is_mobile"] || false
     is_pwa = session["is_pwa"] || false
+    mobile_browser_ok = session["mobile_browser_ok"] || false
 
-    if is_mobile && !is_pwa do
+    if is_mobile && !is_pwa && !mobile_browser_ok do
       {:halt, push_navigate(socket, to: ~p"/hi")}
     else
       {:cont, socket}
@@ -29,6 +30,7 @@ defmodule QlariusWeb.PWAInstallHooks do
     {:cont,
      socket
      |> assign_new(:is_pwa, fn -> session["is_pwa"] || false end)
+     |> assign_new(:mobile_browser_ok, fn -> session["mobile_browser_ok"] || false end)
      |> attach_hook(:pwa_install_events, :handle_event, &handle_pwa_events/3)}
   end
 
@@ -77,7 +79,8 @@ defmodule QlariusWeb.PWAInstallHooks do
 
   defp redirect_to_hi?(socket, is_ios, is_android, is_pwa) do
     is_mobile = is_ios || is_android
-    is_mobile && !is_pwa && !!socket.assigns[:current_scope]
+    mobile_browser_ok = socket.assigns[:mobile_browser_ok] || false
+    is_mobile && !is_pwa && !mobile_browser_ok && !!socket.assigns[:current_scope]
   end
 
   defp get_user_id(socket) do

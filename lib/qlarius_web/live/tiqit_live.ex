@@ -28,6 +28,7 @@ defmodule QlariusWeb.TiqitLive do
       |> assign(:undo_context, nil)
       |> assign(:fleeted_count, Arcade.count_fleeted_tiqits(scope))
       |> assign(:undone_count, Arcade.count_undone_tiqits(scope))
+      |> assign_stash_filter_counts(scope)
       |> init_pwa_assigns(session)
 
     {:ok, socket}
@@ -42,7 +43,8 @@ defmodule QlariusWeb.TiqitLive do
     {:noreply,
      socket
      |> assign(:status_filter, status)
-     |> assign(:tiqits, tiqits)}
+     |> assign(:tiqits, tiqits)
+     |> assign_stash_filter_counts(scope)}
   end
 
   @impl true
@@ -147,7 +149,38 @@ defmodule QlariusWeb.TiqitLive do
     |> assign(:tiqits, tiqits)
     |> assign(:fleeted_count, Arcade.count_fleeted_tiqits(scope))
     |> assign(:undone_count, Arcade.count_undone_tiqits(scope))
+    |> assign_stash_filter_counts(scope)
   end
+
+  defp assign_stash_filter_counts(socket, scope) do
+    socket
+    |> assign(:active_count, Arcade.count_active_tiqits(scope))
+    |> assign(:preserved_count, Arcade.count_preserved_tiqits(scope))
+    |> assign(:fleeting_count, Arcade.count_fleeting_tiqits(scope))
+  end
+
+  defp filter_badge(assigns, :active) when assigns.active_count > 0 do
+    %{count: assigns.active_count, variant: :success}
+  end
+
+  defp filter_badge(assigns, :preserved) when assigns.preserved_count > 0 do
+    %{count: assigns.preserved_count, variant: :info}
+  end
+
+  defp filter_badge(assigns, :expired) when assigns.fleeting_count > 0 do
+    %{count: assigns.fleeting_count, variant: :warning}
+  end
+
+  defp filter_badge(_assigns, _status), do: nil
+
+  defp pill_count_badge_class(:success),
+    do: "badge badge-sm ml-2 rounded px-2 py-3 !border-0 !bg-success !text-success-content"
+
+  defp pill_count_badge_class(:info),
+    do: "badge badge-sm ml-2 rounded px-2 py-3 !border-0 !bg-info !text-info-content"
+
+  defp pill_count_badge_class(:warning),
+    do: "badge badge-sm ml-2 rounded px-2 py-3 !border-0 !bg-warning !text-warning-content"
 
   defp parse_status(nil), do: :all
   defp parse_status(s) when s in @valid_statuses, do: String.to_existing_atom(s)
@@ -170,13 +203,19 @@ defmodule QlariusWeb.TiqitLive do
           <div class="mb-4 overflow-x-auto">
             <.pill_join_selector label="Stash filter" class="min-w-max">
               <.pill_join_item
-                :for={status <- [:all, :active, :expired, :fleeted, :preserved]}
+                :for={status <- [:all, :active, :preserved, :expired, :fleeted]}
                 active={@status_filter == status}
+                class="gap-2"
                 phx-click="filter"
                 phx-value-status={status}
                 aria-pressed={to_string(@status_filter == status)}
               >
                 {filter_label(status)}
+                <%= if badge = filter_badge(assigns, status) do %>
+                  <span class={pill_count_badge_class(badge.variant)}>
+                    {badge.count}
+                  </span>
+                <% end %>
               </.pill_join_item>
             </.pill_join_selector>
           </div>

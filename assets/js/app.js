@@ -294,6 +294,16 @@ Hooks.PWADetect = {
   }
 }
 
+// Persist "continue in browser" so protected routes skip /hi PWA redirect.
+const MOBILE_BROWSER_OK_COOKIE = 'mobile_browser_ok=true; path=/; max-age=31536000; SameSite=Lax'
+
+if (!window.__qlariusMobileBrowserOkListener) {
+  window.__qlariusMobileBrowserOkListener = true
+  window.addEventListener('qlarius:store-mobile-browser-ok', () => {
+    document.cookie = MOBILE_BROWSER_OK_COOKIE
+  })
+}
+
 // HiPagePWADetect - extends PWADetect to also capture referral code from URL
 Hooks.HiPagePWADetect = {
   mounted() {
@@ -399,38 +409,51 @@ Hooks.HiPageSplash = {
 
 Hooks.CarouselIndicators = {
   mounted() {
+    this.bindCarouselIndicators()
+  },
+
+  updated() {
+    // LiveView re-renders (e.g. manifesto dismiss) reset indicator classes from the template
+    this.bindCarouselIndicators()
+  },
+
+  destroyed() {
+    this.teardownCarouselIndicators?.()
+  },
+
+  bindCarouselIndicators() {
+    this.teardownCarouselIndicators?.()
+
     const carousel = this.el.querySelector('.carousel')
     const indicators = this.el.querySelectorAll('.carousel-indicator')
-    
+
     if (!carousel || indicators.length === 0) return
 
     const calculatePagination = () => {
       const carouselWidth = carousel.offsetWidth
       const firstCard = carousel.querySelector('.carousel-item')
       if (!firstCard) return { pages: 1, cardsPerPage: 1 }
-      
+
       const cardWidth = firstCard.offsetWidth
       const gap = 16
       const cardsPerPage = Math.max(1, Math.floor(carouselWidth / (cardWidth + gap)))
       const totalCards = carousel.querySelectorAll('.carousel-item').length
       const pages = Math.ceil(totalCards / cardsPerPage)
-      
+
       return { pages, cardsPerPage, cardWidth, gap, totalCards }
     }
 
     const updateIndicators = () => {
-      const { pages, cardsPerPage, cardWidth, gap, totalCards } = calculatePagination()
+      const { pages } = calculatePagination()
       const scrollLeft = carousel.scrollLeft
       const maxScroll = carousel.scrollWidth - carousel.offsetWidth
-      
-      // Calculate current page based on scroll position
+
       let currentPage = 0
       if (maxScroll > 0) {
         const scrollProgress = scrollLeft / maxScroll
         currentPage = Math.min(pages - 1, Math.floor(scrollProgress * pages))
       }
-      
-      // Hide entire indicator container if only one page
+
       const indicatorContainer = indicators[0]?.parentElement
       if (indicatorContainer) {
         if (pages <= 1) {
@@ -439,18 +462,17 @@ Hooks.CarouselIndicators = {
           indicatorContainer.style.display = 'flex'
         }
       }
-      
-      // Show/hide individual indicators based on number of pages
+
       indicators.forEach((indicator, index) => {
         if (index < pages) {
           indicator.style.display = 'block'
-          
+
           if (index === currentPage) {
-            indicator.classList.remove('bg-base-content/30')
+            indicator.classList.remove('bg-base-content/30', 'w-3')
             indicator.classList.add('bg-primary', 'w-6')
           } else {
             indicator.classList.remove('bg-primary', 'w-6')
-            indicator.classList.add('bg-base-content/30')
+            indicator.classList.add('bg-base-content/30', 'w-3')
           }
         } else {
           indicator.style.display = 'none'
@@ -458,22 +480,36 @@ Hooks.CarouselIndicators = {
       })
     }
 
-    // Update on scroll
-    carousel.addEventListener('scroll', updateIndicators)
-    
-    // Update on window resize
-    let resizeTimeout
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimeout)
-      resizeTimeout = setTimeout(updateIndicators, 100)
-    })
-    
-    // Initial update
-    setTimeout(updateIndicators, 100)
-    
-    this.handleEvent = () => {
-      updateIndicators()
+    const scheduleUpdate = () => {
+      requestAnimationFrame(() => {
+        updateIndicators()
+        requestAnimationFrame(updateIndicators)
+      })
     }
+
+    carousel.addEventListener('scroll', updateIndicators)
+
+    let resizeTimeout
+    const onResize = () => {
+      clearTimeout(resizeTimeout)
+      resizeTimeout = setTimeout(scheduleUpdate, 100)
+    }
+    window.addEventListener('resize', onResize)
+
+    const resizeObserver = new ResizeObserver(() => scheduleUpdate())
+    resizeObserver.observe(carousel)
+
+    scheduleUpdate()
+    setTimeout(scheduleUpdate, 100)
+
+    this.teardownCarouselIndicators = () => {
+      carousel.removeEventListener('scroll', updateIndicators)
+      window.removeEventListener('resize', onResize)
+      resizeObserver.disconnect()
+      clearTimeout(resizeTimeout)
+    }
+
+    this.updateIndicators = updateIndicators
   }
 }
 
