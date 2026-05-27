@@ -764,7 +764,7 @@ defmodule QlariusWeb.Components.AdsComponents do
     ~H"""
     <li
       class={[
-        "list-row transition-all duration-200 !rounded-none h-[120px]",
+        "flex items-center gap-3 w-full min-w-0 px-4 transition-all duration-200 !rounded-none h-[120px]",
         surface_panel_row_classes(@completed, @surface_panel_row?, @force_light)
       ]}
       phx-click={if !@completed, do: "open_video_ad"}
@@ -800,39 +800,42 @@ defmodule QlariusWeb.Components.AdsComponents do
           </div>
         </div>
       <% else %>
-        <%!-- Available state --%>
-        <div class="flex flex-col items-start justify-start mr-1">
-          <span class={[
-            "inline-flex items-center justify-center rounded-full w-8 h-8 !bg-sponster-200",
-            if(!@force_light, do: "dark:!bg-sponster-800")
-          ]}>
-            <.icon name="hero-film" class="h-5 w-5 text-base-content" />
-          </span>
-        </div>
-        <div class="list-col-grow flex flex-col justify-center">
-          <div class="text-2xl font-bold mb-1">
-            ${Decimal.round(@offer.offer_amt || Decimal.new("0"), 2)}
-          </div>
-          <div class="mb-1 text-base-content/50 text-base">
-            {@offer.media_run.media_piece.ad_category.ad_category_name}
-          </div>
-          <div class="flex items-center gap-2">
-            <%= if @offer.matching_tags_snapshot && String.contains?(String.downcase(inspect(@offer.matching_tags_snapshot)), "zip code") do %>
-              <div class="text-blue-400">
-                <.icon name="hero-map-pin-solid" class="w-4 h-4" />
+        <%!-- Available state: text left; icon top-right, chevrons bottom-right in same column --%>
+        <div class="flex min-w-0 flex-1 items-stretch gap-3">
+          <div class="flex min-w-0 flex-1 flex-col justify-center gap-1">
+            <div class="text-2xl font-bold tabular-nums leading-none">
+              ${Decimal.round(@offer.offer_amt || Decimal.new("0"), 2)}
+            </div>
+            <p
+              class="min-w-0 truncate text-base text-base-content/50"
+              title={@offer.media_run.media_piece.ad_category.ad_category_name}
+            >
+              {@offer.media_run.media_piece.ad_category.ad_category_name}
+            </p>
+            <div class="flex min-w-0 items-center gap-2">
+              <%= if @offer.matching_tags_snapshot && String.contains?(String.downcase(inspect(@offer.matching_tags_snapshot)), "zip code") do %>
+                <div class="shrink-0 text-blue-400">
+                  <.icon name="hero-map-pin-solid" class="h-4 w-4" />
+                </div>
+              <% end %>
+              <div class="min-w-0 truncate text-sm text-base-content/50">
+                {format_duration(@offer.media_run.media_piece.duration || 0)} ·
+                <span class="font-bold text-sponster-600 dark:text-sponster-400">
+                  ${Decimal.round(@rate, 3)}/sec
+                </span>
               </div>
-            <% end %>
-            <div class="text-base-content/50 text-sm">
-              {format_duration(@offer.media_run.media_piece.duration || 0)} ·
-              <span class="font-bold text-sponster-600 dark:text-sponster-400">
-                ${Decimal.round(@rate, 3)}/sec
-              </span>
             </div>
           </div>
-        </div>
-        <div class="flex items-center">
-          <div class="text-green-600">
-            <.icon name="hero-chevron-double-right" class="w-6 h-6" />
+          <div class="flex w-8 shrink-0 flex-col items-center justify-between">
+            <span class={[
+              "inline-flex h-8 w-8 items-center justify-center rounded-full !bg-sponster-200",
+              if(!@force_light, do: "dark:!bg-sponster-800")
+            ]}>
+              <.icon name="hero-film" class="h-5 w-5 text-base-content" />
+            </span>
+            <div class="text-green-600">
+              <.icon name="hero-chevron-double-right" class="h-6 w-6" />
+            </div>
           </div>
         </div>
       <% end %>

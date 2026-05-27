@@ -367,6 +367,12 @@
   --color-widget-950: oklch(16.00% 0.120 264);
 }
 
+/* Tabular figures for money/counts — Inter tnum/lnum (no extra font family) */
+@utility tabular-amount {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum", "lnum";
+}
+
 /* Application styles - using @layer components for Tailwind v4 */
 @layer components {
 
@@ -1756,6 +1762,47 @@
 
   .surface-panel--padded {
     @apply p-4;
+  }
+
+  /* Home dashboard stat cards (/home) */
+  .home-stat-card.surface-panel--padded {
+    @apply px-5 py-6;
+  }
+
+  .home-stat-card--youdata.surface-panel {
+    @apply border-t-youdata-400 dark:border-t-youdata-400;
+  }
+
+  .home-stat-card--sponster.surface-panel {
+    @apply border-t-sponster-400 dark:border-t-sponster-500;
+  }
+
+  .home-stat-card--tiqit.surface-panel {
+    @apply border-t-tiqit-400 dark:border-t-tiqit-400;
+  }
+
+  .home-stat {
+    @apply flex flex-col items-start;
+  }
+
+  .home-stat--interactive {
+    @apply cursor-pointer rounded-lg -mx-2 px-2 py-1 transition-colors hover:bg-base-200/60 dark:hover:bg-base-300/40;
+  }
+
+  .home-stat__value {
+    @apply tabular-amount text-5xl font-bold leading-none tracking-tight text-base-content;
+  }
+
+  .home-stat__label {
+    @apply mt-1.5 text-sm font-normal lowercase text-base-content/50;
+  }
+
+  .home-stat-grid--2 {
+    @apply grid grid-cols-2 gap-x-8 gap-y-2;
+  }
+
+  .home-stat-grid--4 {
+    @apply grid grid-cols-4 gap-x-3 gap-y-2 sm:gap-x-4;
   }
 
   /*

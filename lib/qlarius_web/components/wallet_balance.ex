@@ -39,7 +39,7 @@ defmodule QlariusWeb.Components.WalletBalance do
         if(@anon_strobe?, do: "wallet-strip-anon-focus")
       ]}
     >
-      <span class="font-bold leading-tight inline-flex flex-wrap items-center justify-center gap-0">
+      <span class="tabular-amount font-bold leading-tight inline-flex flex-wrap items-center justify-center gap-0">
         <%= if @value_text not in [nil, ""] do %>
           <%= if @anon_strobe? do %>
             <span class="wallet-ready-throb whitespace-nowrap">

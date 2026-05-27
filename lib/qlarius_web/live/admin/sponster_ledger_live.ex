@@ -380,13 +380,13 @@ defmodule QlariusWeb.Admin.SponsterLedgerLive do
         <div class="bg-base-200 rounded-lg p-4">
           <div class="flex justify-between mb-2">
             <span class="text-sm text-base-content/70">Amount</span>
-            <span class="font-bold text-sponster-500">
+            <span class="tabular-amount font-bold text-sponster-500">
               +{format_usd(@selected_entry.amt)}
             </span>
           </div>
           <div class="flex justify-between">
             <span class="text-sm text-base-content/70">Balance after</span>
-            <span class="text-sm">{format_usd(@selected_entry.running_balance)}</span>
+            <span class="tabular-amount text-sm">{format_usd(@selected_entry.running_balance)}</span>
           </div>
           <div class="flex justify-between mt-2">
             <span class="text-sm text-base-content/70">Date</span>

@@ -144,89 +144,96 @@ defmodule QlariusWeb.HomeLive do
           />
         <% end %>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <.surface_panel>
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="text-lg font-bold tracking-tight text-base-content/50">Own your data.</h2>
-              <img src="/images/YouData_logo_color_horiz.svg" alt="YouData" class="h-6 w-auto" />
-            </div>
+        <div class="flex flex-col gap-4">
+          <.surface_panel class="home-stat-card home-stat-card--youdata">
+            <.home_stat_card_header
+              title="Own your data."
+              logo_src="/images/YouData_logo_color_horiz.svg"
+              logo_alt="YouData"
+            />
 
-            <.link navigate={~p"/me_file"}>
-              <div class="bg-youdata-200 dark:bg-youdata-900 text-base-content/80 rounded-lg border border-youdata-300 dark:border-youdata-500 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-youdata-300 dark:hover:bg-youdata-800 hover:border-youdata-400 dark:hover:border-youdata-400">
-                <div class="text-3xl font-bold leading-none">
-                  {@current_scope.trait_count}
-                </div>
-                <div class="text-sm font-light text-base-content/60">tags</div>
-              </div>
+            <.link navigate={~p"/me_file"} class="home-stat home-stat--interactive">
+              <span class="home-stat__value">{@current_scope.trait_count}</span>
+              <span class="home-stat__label">tags</span>
             </.link>
           </.surface_panel>
 
-          <.surface_panel>
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="text-lg font-bold tracking-tight text-base-content/50">
-                Sell your attention.
-              </h2>
-              <img src="/images/Sponster_logo_color_horiz.svg" alt="Sponster" class="h-6 w-auto" />
-            </div>
+          <.surface_panel class="home-stat-card home-stat-card--sponster">
+            <.home_stat_card_header
+              title="Sell your attention."
+              logo_src="/images/Sponster_logo_color_horiz.svg"
+              logo_alt="Sponster"
+            />
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="home-stat-grid--2">
               <div
-                class="bg-sponster-200 dark:bg-sponster-800 text-base-content/80 rounded-lg border border-sponster-300 dark:border-sponster-500 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-sponster-300 dark:hover:bg-sponster-700 hover:border-sponster-400 dark:hover:border-sponster-400"
+                class="home-stat home-stat--interactive"
                 phx-click={JS.navigate("/ads")}
+                role="link"
+                tabindex="0"
               >
-                <div class="text-3xl font-bold leading-none">{@current_scope.ads_count}</div>
-                <div class="text-sm font-light text-base-content/60">ads</div>
+                <span class="home-stat__value">{@current_scope.ads_count}</span>
+                <span class="home-stat__label">ads</span>
               </div>
 
               <div
-                class="bg-sponster-200 dark:bg-sponster-800 text-base-content/80 rounded-lg border border-sponster-300 dark:border-sponster-500 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-sponster-300 dark:hover:bg-sponster-700 hover:border-sponster-400 dark:hover:border-sponster-400"
+                class="home-stat home-stat--interactive"
                 phx-click={JS.navigate("/ads")}
+                role="link"
+                tabindex="0"
               >
-                <div class="text-3xl font-bold leading-none">
-                  {format_usd(@current_scope.offered_amount)}
-                </div>
-                <div class="text-sm font-light text-base-content/60">offered</div>
+                <span class="home-stat__value">{format_usd(@current_scope.offered_amount)}</span>
+                <span class="home-stat__label">offered</span>
               </div>
             </div>
           </.surface_panel>
 
-          <.surface_panel class="md:col-span-2">
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="text-lg font-bold tracking-tight text-base-content/50">Buy your media.</h2>
-              <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
-            </div>
+          <.surface_panel class="home-stat-card home-stat-card--tiqit">
+            <.home_stat_card_header
+              title="Buy your media."
+              logo_src="/images/Tiqit_logo_color_horiz.svg"
+              logo_alt="Tiqit"
+            />
 
-            <div class="grid grid-cols-4 gap-4">
+            <div class="home-stat-grid--4">
               <div
-                class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-tiqit-300 dark:hover:bg-tiqit-800 hover:border-tiqit-400 dark:hover:border-tiqit-400"
+                class="home-stat home-stat--interactive"
                 phx-click={JS.navigate("/tiqits?status=active")}
+                role="link"
+                tabindex="0"
               >
-                <div class="text-3xl font-bold leading-none">{@active_tiqits_count}</div>
-                <div class="text-xs sm:text-sm font-light text-base-content/60">active</div>
+                <span class="home-stat__value">{@active_tiqits_count}</span>
+                <span class="home-stat__label">active</span>
               </div>
 
               <div
-                class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-tiqit-300 dark:hover:bg-tiqit-800 hover:border-tiqit-400 dark:hover:border-tiqit-400"
-                phx-click={JS.navigate("/tiqits?status=expired")}
-              >
-                <div class="text-3xl font-bold leading-none">{@fleeting_tiqits_count}</div>
-                <div class="text-xs sm:text-sm font-light text-base-content/60">fleeting</div>
-              </div>
-
-              <div
-                class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-tiqit-300 dark:hover:bg-tiqit-800 hover:border-tiqit-400 dark:hover:border-tiqit-400"
-                phx-click={JS.navigate("/tiqits?status=fleeted")}
-              >
-                <div class="text-3xl font-bold leading-none">{@fleeted_tiqits_count}</div>
-                <div class="text-xs sm:text-sm font-light text-base-content/60">fleeted</div>
-              </div>
-
-              <div
-                class="bg-tiqit-200 dark:bg-tiqit-900 text-base-content/80 rounded-lg border border-tiqit-300 dark:border-tiqit-600 p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-tiqit-300 dark:hover:bg-tiqit-800 hover:border-tiqit-400 dark:hover:border-tiqit-400"
+                class="home-stat home-stat--interactive"
                 phx-click={JS.navigate("/tiqits?status=preserved")}
+                role="link"
+                tabindex="0"
               >
-                <div class="text-3xl font-bold leading-none">{@preserved_tiqits_count}</div>
-                <div class="text-xs sm:text-sm font-light text-base-content/60">marked</div>
+                <span class="home-stat__value">{@preserved_tiqits_count}</span>
+                <span class="home-stat__label">marked</span>
+              </div>
+
+              <div
+                class="home-stat home-stat--interactive"
+                phx-click={JS.navigate("/tiqits?status=expired")}
+                role="link"
+                tabindex="0"
+              >
+                <span class="home-stat__value">{@fleeting_tiqits_count}</span>
+                <span class="home-stat__label">fleeting</span>
+              </div>
+
+              <div
+                class="home-stat home-stat--interactive"
+                phx-click={JS.navigate("/tiqits?status=fleeted")}
+                role="link"
+                tabindex="0"
+              >
+                <span class="home-stat__value">{@fleeted_tiqits_count}</span>
+                <span class="home-stat__label">fleeted</span>
               </div>
             </div>
           </.surface_panel>
@@ -235,4 +242,18 @@ defmodule QlariusWeb.HomeLive do
     </div>
     """
   end
+
+  attr :title, :string, required: true
+  attr :logo_src, :string, required: true
+  attr :logo_alt, :string, required: true
+
+  defp home_stat_card_header(assigns) do
+    ~H"""
+    <div class="flex items-start justify-between gap-3 mb-6">
+      <h2 class="text-xl font-bold tracking-tight text-base-content/50">{@title}</h2>
+      <img src={@logo_src} alt={@logo_alt} class="h-6 w-auto shrink-0" />
+    </div>
+    """
+  end
+
 end
