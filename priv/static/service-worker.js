@@ -1,39 +1,60 @@
-// Version: 1.0.3 - Add shared referral code storage for iOS PWA
-// Don't run service worker if we detect extension/iframe context
-self.addEventListener("install", () => self.skipWaiting())
-self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim())
+// Version: 1.0.4 - Bypass HTTP cache for /assets/ in PWA; keep referral cache isolated
+const SW_VERSION = "1.0.4"
+const REFERRAL_CACHE = "qadabra-shared-data"
+const REFERRAL_CODE_ENDPOINT = "/_shared/referral-code"
+
+self.addEventListener("install", (event) => {
+  self.skipWaiting()
 })
 
-// Fake endpoint for sharing referral code between Safari and PWA via Cache Storage
-// Cache Storage IS shared on iOS, unlike localStorage/cookies
-const REFERRAL_CODE_ENDPOINT = '/_shared/referral-code'
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys()
+      await Promise.all(
+        keys
+          .filter((key) => key !== REFERRAL_CACHE)
+          .map((key) => caches.delete(key))
+      )
+      await self.clients.claim()
+      const clients = await self.clients.matchAll({ type: "window" })
+      for (const client of clients) {
+        client.postMessage({ type: "APP_UPDATED", version: SW_VERSION })
+      }
+    })()
+  )
+})
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting()
+  }
+})
 
 self.addEventListener("fetch", (event) => {
   const { request } = event
   const url = new URL(request.url)
-  
-  // Handle our fake referral code endpoint
+
   if (url.pathname === REFERRAL_CODE_ENDPOINT) {
-    if (request.method === 'POST') {
-      // Store referral code in cache
+    if (request.method === "POST") {
       event.respondWith(
-        request.json().then(body => {
-          return caches.open('qadabra-shared-data').then(cache => {
+        request.json().then((body) => {
+          return caches.open(REFERRAL_CACHE).then((cache) => {
             const response = new Response(JSON.stringify(body))
             cache.put(REFERRAL_CODE_ENDPOINT, response.clone())
             return new Response(JSON.stringify({ success: true }))
           })
-        }).catch(err => {
+        }).catch((err) => {
           return new Response(JSON.stringify({ error: err.message }), { status: 500 })
         })
       )
       return
-    } else if (request.method === 'GET') {
-      // Retrieve referral code from cache
+    }
+
+    if (request.method === "GET") {
       event.respondWith(
-        caches.open('qadabra-shared-data').then(cache => {
-          return cache.match(REFERRAL_CODE_ENDPOINT).then(response => {
+        caches.open(REFERRAL_CACHE).then((cache) => {
+          return cache.match(REFERRAL_CODE_ENDPOINT).then((response) => {
             return response || new Response(JSON.stringify({}))
           })
         }).catch(() => {
@@ -43,23 +64,28 @@ self.addEventListener("fetch", (event) => {
       return
     }
   }
-  
-  // Don't intercept navigation requests - let browser handle document loads
-  // (avoids 408 when fetch fails in extension iframe context)
-  if (event.request.mode === 'navigate') {
+
+  // Let the browser handle navigations (fresh HTML with current digested asset URLs).
+  if (event.request.mode === "navigate") {
     return
   }
 
-  // Pass through all other requests
-  event.respondWith(fetch(event.request).catch(() => {
-    return new Response('Network error', { status: 408, statusText: 'Request Timeout' })
-  }))
+  // PWAs cache /assets/* aggressively; always hit the network for JS/CSS bundles.
+  const isAsset =
+    url.pathname.startsWith("/assets/") ||
+    url.pathname === "/service-worker.js"
+
+  event.respondWith(
+    fetch(request, isAsset ? { cache: "no-store" } : undefined).catch(() => {
+      return new Response("Network error", { status: 408, statusText: "Request Timeout" })
+    })
+  )
 })
 
 self.addEventListener("push", (event) => {
   console.log("Push notification received:", event)
   console.log("Push event.data:", event.data)
-  
+
   let data = {}
   try {
     if (event.data) {
@@ -70,7 +96,7 @@ self.addEventListener("push", (event) => {
   } catch (error) {
     console.error("Error parsing push data:", error)
   }
-  
+
   const options = {
     body: data.body || "You have new ads available",
     icon: data.icon || "/images/qadabra_app_icon_192.png",
@@ -83,11 +109,11 @@ self.addEventListener("push", (event) => {
       { action: "close", title: "Dismiss" }
     ]
   }
-  
+
   console.log("Showing notification with title:", data.title || "Sponser here")
   console.log("Notification options:", options)
 
-  event.waitUntil(
+  event.respondWith(
     Promise.all([
       self.registration.showNotification(data.title || "Sponser here", options)
         .then(() => {
@@ -112,7 +138,7 @@ self.addEventListener("notificationclick", (event) => {
   }
 
   const url = event.notification.data?.url || "/ads"
-  
+
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true })
       .then(clientList => {
@@ -121,11 +147,11 @@ self.addEventListener("notificationclick", (event) => {
             return client.focus()
           }
         }
-        
+
         if (clients.openWindow) {
           return clients.openWindow(url).then(client => {
             clearBadge()
-            
+
             fetch("/api/push/track-click", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -160,5 +186,3 @@ async function clearBadge() {
     }
   }
 }
-
-

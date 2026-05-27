@@ -3130,15 +3130,51 @@ Hooks.OTPInput = {
 
 // Register service worker for PWA (but NOT in extension context to avoid caching issues)
 if ("serviceWorker" in navigator && !isExtension) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/service-worker.js")
-      .then(registration => {
+  const registerPwaServiceWorker = () => {
+    let swReloading = false
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (swReloading) return
+      swReloading = true
+      window.location.reload()
+    })
+
+    navigator.serviceWorker.register("/service-worker.js", { updateViaCache: "none" })
+      .then((registration) => {
         console.log("✅ Service Worker registered:", registration.scope)
+
+        const activateWaitingWorker = () => {
+          if (registration.waiting) {
+            registration.waiting.postMessage({ type: "SKIP_WAITING" })
+          }
+        }
+
+        registration.addEventListener("updatefound", () => {
+          const worker = registration.installing
+          if (!worker) return
+
+          worker.addEventListener("statechange", () => {
+            if (worker.state === "installed" && navigator.serviceWorker.controller) {
+              activateWaitingWorker()
+            }
+          })
+        })
+
+        activateWaitingWorker()
+        registration.update().catch(() => {})
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") {
+            registration.update().catch(() => {})
+          }
+        })
       })
-      .catch(error => {
+      .catch((error) => {
         console.error("❌ Service Worker registration failed:", error)
       })
-  })
+  }
+
+  window.addEventListener("load", registerPwaServiceWorker)
 } else if (isExtension) {
   console.log("🚫 Service Worker disabled in extension context (skip register; do NOT unregister - unregister can trigger reload loop)")
 } else {
