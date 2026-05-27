@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "deploy": "cd .. && mix assets.deploy && rm -f _build/esbuild*"
+    "deploy": "cd .. && bin/gigalixir_assets_deploy.sh"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.7.6"
