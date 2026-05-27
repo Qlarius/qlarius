@@ -598,40 +598,55 @@ Hooks.AdminSidebar = {
 
 Hooks.AnimateTrait = {
   mounted() {
+    this.pendingTimers = []
+
     this.handleEvent("animate_trait", ({trait_id, delay_ms, value}) => {
       const delay = typeof delay_ms === "number" ? delay_ms : 250
-      const durationMs = 950
-
-      setTimeout(() => {
-        const el = document.getElementById(`trait-card-${trait_id}`)
-        if (!el || el.dataset.traitAnimating === "true") return
-
-        document.documentElement.style.pointerEvents = ""
-        document.body.style.pointerEvents = ""
-
-        const animationClass =
-          value === "delete_fade" ? "trait-animate-delete" : "trait-animate-update"
-
-        el.classList.remove("trait-animate-update", "trait-animate-delete")
-        void el.offsetWidth
-
-        const cleanup = () => {
-          delete el.dataset.traitAnimating
-          el.classList.remove("trait-animate-update", "trait-animate-delete")
-          el.removeEventListener("animationend", onEnd)
-        }
-
-        const onEnd = (event) => {
-          if (event.target !== el) return
-          cleanup()
-        }
-
-        el.dataset.traitAnimating = "true"
-        el.addEventListener("animationend", onEnd)
-        el.classList.add(animationClass)
-        setTimeout(cleanup, durationMs + 100)
-      }, delay)
+      const timer = setTimeout(() => this.playTraitAnimation(trait_id, value), delay)
+      this.pendingTimers.push(timer)
     })
+  },
+
+  destroyed() {
+    if (this.pendingTimers) {
+      this.pendingTimers.forEach((timer) => clearTimeout(timer))
+      this.pendingTimers = []
+    }
+  },
+
+  playTraitAnimation(traitId, value) {
+    const durationMs = 950
+    const animationClass =
+      value === "delete_fade" ? "trait-animate-delete" : "trait-animate-update"
+
+    const findAndAnimate = (attempt = 0) => {
+      const el = document.getElementById(`trait-card-${traitId}`)
+      if (!el) {
+        if (attempt < 16) requestAnimationFrame(() => findAndAnimate(attempt + 1))
+        return
+      }
+
+      if (el.dataset.traitAnimating === "true") return
+
+      document.documentElement.style.pointerEvents = ""
+      document.body.style.pointerEvents = ""
+
+      el.classList.remove("trait-animate-update", "trait-animate-delete")
+      void el.offsetWidth
+
+      const cleanup = () => {
+        delete el.dataset.traitAnimating
+        el.classList.remove("trait-animate-update", "trait-animate-delete")
+      }
+
+      el.dataset.traitAnimating = "true"
+      el.classList.add(animationClass)
+
+      const doneTimer = setTimeout(cleanup, durationMs + 100)
+      this.pendingTimers.push(doneTimer)
+    }
+
+    findAndAnimate()
   },
 }
 

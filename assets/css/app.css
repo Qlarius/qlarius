@@ -1696,25 +1696,26 @@
     z-index: 1;
   }
 
-  @keyframes trait-update-pulse {
-    0%, 100% {
-      outline-color: transparent;
-      background-color: transparent;
+  /* Trait save/delete feedback — opacity on ::after (outline+color-mix animates poorly in some prod browsers). */
+  @keyframes trait-update-pulse-overlay {
+    0%,
+    100% {
+      opacity: 0;
     }
+
     40% {
-      outline-color: color-mix(in oklch, var(--color-success) 65%, transparent);
-      background-color: color-mix(in oklch, var(--color-success) 14%, transparent);
+      opacity: 1;
     }
   }
 
-  @keyframes trait-delete-pulse {
-    0%, 100% {
-      outline-color: transparent;
-      background-color: transparent;
+  @keyframes trait-delete-pulse-overlay {
+    0%,
+    100% {
+      opacity: 0;
     }
+
     40% {
-      outline-color: color-mix(in oklch, var(--color-error) 60%, transparent);
-      background-color: color-mix(in oklch, var(--color-error) 14%, transparent);
+      opacity: 1;
     }
   }
 
@@ -2088,16 +2089,43 @@
   }
 
   .trait-card-animate {
-    outline: 2px solid transparent;
-    outline-offset: -2px;
+    position: relative;
+    isolation: isolate;
   }
 
-  .trait-card-animate.trait-animate-update {
-    animation: trait-update-pulse 0.95s ease-in-out;
+  .trait-card-animate.trait-animate-update::after,
+  .trait-card-animate.trait-animate-delete::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0;
   }
 
-  .trait-card-animate.trait-animate-delete {
-    animation: trait-delete-pulse 0.95s ease-in-out;
+  .trait-card-animate.trait-animate-update::after {
+    background-color: color-mix(in oklch, var(--color-success) 26%, transparent);
+    box-shadow: inset 0 0 0 2px color-mix(in oklch, var(--color-success) 58%, transparent);
+    animation: trait-update-pulse-overlay 0.95s ease-in-out;
+  }
+
+  .trait-card-animate.trait-animate-delete::after {
+    background-color: color-mix(in oklch, var(--color-error) 24%, transparent);
+    box-shadow: inset 0 0 0 2px color-mix(in oklch, var(--color-error) 55%, transparent);
+    animation: trait-delete-pulse-overlay 0.95s ease-in-out;
+  }
+
+  @supports not (background: color-mix(in oklch, white 50%, transparent)) {
+    .trait-card-animate.trait-animate-update::after {
+      background-color: rgb(34 197 94 / 0.18);
+      box-shadow: inset 0 0 0 2px rgb(34 197 94 / 0.42);
+    }
+
+    .trait-card-animate.trait-animate-delete::after {
+      background-color: rgb(239 68 68 / 0.16);
+      box-shadow: inset 0 0 0 2px rgb(239 68 68 / 0.4);
+    }
   }
 
   /* MeFile tag edit modal — backdrop fades, sheet slides; avoid visibility toggles (breaks enter animation). */
