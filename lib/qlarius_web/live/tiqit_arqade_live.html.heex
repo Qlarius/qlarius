@@ -1,6 +1,5 @@
 <div
   class="flex h-dvh flex-col overflow-hidden bg-base-100"
-  data-theme="light"
   data-arqade-in-app-page="true"
 >
   <header class="shrink-0 border-b border-base-300 bg-base-100">
@@ -30,7 +29,6 @@
         "embed_host" => "tiqit_arqade",
         "base_path" => "",
         "show_title" => false,
-        "force_theme" => "light",
         "content_id" => @selected_piece_id,
         "auth_sheet_host_enabled?" => QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns)
       }
@@ -115,7 +113,6 @@
       show_replay_button={@show_replay_button}
       closing={@drawer_closing}
       has_bottom_dock={false}
-      force_light={true}
     />
   <% end %>
 

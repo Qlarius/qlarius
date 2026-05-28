@@ -6,7 +6,7 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
   import QlariusWeb.Money, only: [format_usd: 1]
   import QlariusWeb.Components.AdsComponents
   import QlariusWeb.Components.SplitComponents
-  import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
+  import QlariusWeb.Components.SponsterAnnouncerBar
   import QlariusWeb.Widgets.UnauthCTA
 
   alias QlariusWeb.Helpers.SponsterInfoIframe
@@ -57,7 +57,6 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
       </div>
 
       <div
-        data-theme="light"
         class={[
           "fixed bg-base-100 rounded-t-lg overflow-hidden flex flex-col transition-all duration-300 ease-out",
           "h-[calc(95vh-50px)]",
@@ -166,7 +165,6 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                         current_scope={@current_scope}
                         host_uri={@host_uri}
                         recipient={@recipient}
-                        force_light={true}
                       />
                     <% end %>
                   <% else %>
@@ -183,7 +181,6 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                           completed={offer.id in @completed_video_offers}
                           me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
                           recipient={@recipient}
-                          force_light={true}
                         />
                       </ul>
                     <% end %>
@@ -314,7 +311,6 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                           (@current_scope.user.me_file && @current_scope.user.me_file.split_amount) ||
                             50
                         }
-                        force_light={true}
                       />
 
                       <div class="divider my-2 md:my-4 w-full max-w-[280px] mx-auto"></div>
@@ -379,73 +375,15 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
         <% end %>
       </div>
 
-      <% announcer_authed = authed?(@current_scope) %>
-      <% announcer_ads =
-        if(announcer_authed, do: to_string(@current_scope.ads_count || 0), else: "") %>
-      <% announcer_offered =
-        if(announcer_authed,
-          do: format_usd(@current_scope.offered_amount || Decimal.new("0")),
-          else: ""
-        ) %>
 
-      <div
-        class="fixed inset-x-0 bottom-0 flex justify-center bg-base-100 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] isolate"
-        style="z-index: 63;"
-      >
-        <div class="flex h-[50px] w-full max-w-3xl items-center justify-between gap-2 px-3">
-          <div class="sponster-announcer-logo-container flex-shrink-0 md:relative md:z-10" />
-          <%= if announcer_authed do %>
-            <div class="flex flex-1 justify-center min-w-0 px-1 md:absolute md:left-1/2 md:top-1/2 md:z-0 md:w-max md:max-w-[min(70%,22rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:px-2">
-              <.wallet_balance
-                id={"#{@announcer_id_prefix}-announcer-wallet-balance"}
-                balance={@current_scope.wallet_balance || Decimal.new("0")}
-                footer_label="WALLET"
-                compact?={true}
-              />
-            </div>
-          <% else %>
-            <div
-              class="flex flex-1 justify-center min-w-0 px-1 md:absolute md:left-1/2 md:top-1/2 md:z-0 md:w-max md:max-w-[min(70%,22rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:px-2"
-              title="Connect your wallet"
-            >
-              <.wallet_strip_or_connect
-                tray?={false}
-                scope={@current_scope}
-                balance={Decimal.new("0")}
-                id={"#{@announcer_id_prefix}-announcer-wallet-strip"}
-                on_click={@on_auth_click}
-                connect_href={@connect_href}
-                connect_link_target={@connect_link_target}
-              />
-            </div>
-          <% end %>
-          <button
-            type="button"
-            id={"#{@announcer_id_prefix}-sponster-drawer-toggle"}
-            phx-click="toggle_sponster_drawer"
-            title={if @show_sponster_drawer, do: "Hide offers", else: "Show offers"}
-            class={[
-              "qlink-sponster-drawer-toggle btn-widget btn-widget-emphasis btn-md rounded-full leading-none border-[1.5px]",
-              "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 transition-colors md:relative md:z-10",
-              "outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/40"
-            ]}
-          >
-            <%= if announcer_authed do %>
-              <span class="shrink-0 font-bold whitespace-nowrap tabular-amount">
-                {announcer_ads} ads • {announcer_offered}
-              </span>
-            <% else %>
-              <span class="text-sm font-bold whitespace-nowrap">
-                {if @show_sponster_drawer, do: "Hide", else: "Info"}
-              </span>
-            <% end %>
-            <span class={[
-              "hero-chevron-double-up all-animate bg-sponster-600 shrink-0",
-              if(@show_sponster_drawer, do: "rotate-180")
-            ]} />
-          </button>
-        </div>
-      </div>
+      <.sponster_announcer_bar
+        id_prefix={@announcer_id_prefix}
+        current_scope={@current_scope}
+        show_sponster_drawer={@show_sponster_drawer}
+        on_auth_click={@on_auth_click}
+        connect_href={@connect_href}
+        connect_link_target={@connect_link_target}
+      />
     <% end %>
     """
   end

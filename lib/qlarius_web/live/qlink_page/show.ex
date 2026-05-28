@@ -13,7 +13,7 @@ defmodule QlariusWeb.QlinkPage.Show do
   import QlariusWeb.Components.AdsComponents
   import QlariusWeb.Components.SplitComponents
   import QlariusWeb.InstaTipComponents
-  import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
+  import QlariusWeb.Components.SponsterAnnouncerBar
 
   # Shared "View anywhere, Act only when authed" helpers —
   # authed?/1, connect_wallet_modal/1, etc. Same module the arqade
@@ -1092,11 +1092,11 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   # Template helpers
 
-  defp get_theme(_page) do
-    # Qlink surfaces are light-only for now (no dark page shell). Re-enable
-    # per-page `theme_config["theme"]` when Qlink dark theme is product-ready.
-    "light"
-  end
+  defp get_theme(%{theme_config: %{"theme" => theme}})
+       when theme in ["light", "dark"],
+       do: theme
+
+  defp get_theme(_page), do: nil
 
   defp get_background_style(page) do
     case page.background_config do

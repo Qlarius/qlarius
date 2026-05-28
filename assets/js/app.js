@@ -1482,6 +1482,26 @@ Hooks.Popover = {
     this.contentEl.parentNode.insertBefore(this._portalMarker, this.contentEl)
     document.body.appendChild(this.contentEl)
     this._portaled = true
+    this._syncPortaledTheme()
+  },
+
+  _resolveDataTheme(el) {
+    if (!el?.closest) {
+      return document.documentElement.getAttribute("data-theme") || "light"
+    }
+    const themed = el.closest("[data-theme]")
+    return (
+      themed?.getAttribute("data-theme") ||
+      document.documentElement.getAttribute("data-theme") ||
+      "light"
+    )
+  },
+
+  _syncPortaledTheme() {
+    if (!this.contentEl || !this._portaled) return
+    const theme = this._resolveDataTheme(this.triggerEl)
+    this.contentEl.setAttribute("data-theme", theme)
+    if (this.arrowEl) this.arrowEl.setAttribute("data-theme", theme)
   },
 
   _restoreFixedPortal() {

@@ -281,8 +281,8 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       |> assign(:sponster_ads_available?, ads_n > 0)
 
     ~H"""
-    <div class="w-fit mx-auto text-base-content bg-base-200 border-t border-base-300 px-2 py-1.5 rounded-xl border border-base-300 max-w-full min-w-0">
-      <div class="flex flex-row flex-nowrap justify-between items-center gap-2 min-w-0">
+    <div class="wallet-strip-tray">
+      <div class="wallet-strip-tray__row">
         <.wallet_balance id={@id} balance={@balance} footer_label="WALLET" />
 
         <.popover

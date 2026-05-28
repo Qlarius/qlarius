@@ -106,17 +106,8 @@
           }
         };
 
-        // Public Qlink page (`/@:alias` on qlink/localhost/qlinkin, etc.): always light <html> theme,
-        // independent of `phx:theme`, system appearance, and `?force_theme=`.
-        const isQlinkPublicPath = (pathname) => pathname.startsWith("/@");
-
+        // Apply theme from query param, localStorage, or system preference.
         const applyThemeForCurrentPath = () => {
-          if (isQlinkPublicPath(window.location.pathname)) {
-            document.documentElement.setAttribute("data-theme", "light");
-            document.documentElement.setAttribute("data-theme-mode", "qlink");
-            updateThemeColor(false);
-            return;
-          }
           const sp = new URLSearchParams(window.location.search);
           const forceT = sp.get("force_theme");
           if (forceT) {
@@ -135,18 +126,15 @@
         const sp0 = new URLSearchParams(window.location.search);
         if (!sp0.get("force_theme")) {
           window.addEventListener("storage", (e) => {
-            if (e.key !== "phx:theme" || isQlinkPublicPath(window.location.pathname))
-              return;
+            if (e.key !== "phx:theme") return;
             setTheme(e.newValue || "system");
           });
           window.addEventListener("phx:set-theme", ({ detail: { theme } }) => {
-            if (isQlinkPublicPath(window.location.pathname)) return;
             setTheme(theme);
           });
           window
             .matchMedia("(prefers-color-scheme: dark)")
             .addEventListener("change", () => {
-              if (isQlinkPublicPath(window.location.pathname)) return;
               const current = localStorage.getItem("phx:theme");
               if (!current || current === "system") setTheme("system");
             });

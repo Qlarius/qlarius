@@ -27,15 +27,9 @@ defmodule QlariusWeb.Components.WalletBalance do
       id={@id}
       phx-hook="WalletPulse"
       class={[
-        "inline-flex w-auto bg-sponster-200 dark:bg-sponster-800 text-base-content dark:text-sponster-100 rounded-md border border-sponster-300 dark:border-sponster-500",
-        if(@compact?, do: "px-2 py-0.5", else: "px-3 py-1.5"),
-        if(@footer_label,
-          do: [
-            "flex-col items-center justify-center gap-0.5",
-            if(@compact?, do: "text-base", else: "text-lg")
-          ],
-          else: [if(@compact?, do: "items-center text-base", else: "items-center text-lg")]
-        ),
+        "wallet-balance-pill",
+        if(@compact?, do: "wallet-balance-pill--compact", else: "wallet-balance-pill--default"),
+        @footer_label && "wallet-balance-pill--with-footer",
         if(@anon_strobe?, do: "wallet-strip-anon-focus")
       ]}
     >

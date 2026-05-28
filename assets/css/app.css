@@ -236,9 +236,8 @@
 @custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
 @custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
 
-/* Use the data attribute for dark mode. Exclude descendants of a *nested* [data-theme=light] so
-   forced-light islands (widgets, qlink) keep light semantic tokens and light-only Tailwind colors
-   while the root may still be data-theme=dark (system / user preference on <html>). */
+/* Use the data attribute for dark mode. Descendants inside a nested `[data-theme=light]`
+   island (e.g. widget embeds with `?force_theme=light`) keep light semantic tokens. */
 @custom-variant dark (
   &:where(
     :where(
@@ -1653,6 +1652,33 @@
     @apply opacity-60 cursor-not-allowed;
   }
 
+  /* Wallet balance pill — shared across announcer bar, arqade strip, headers. */
+  .wallet-balance-pill {
+    @apply inline-flex w-auto bg-sponster-200 text-base-content rounded-md border border-sponster-300;
+    @apply dark:bg-sponster-800 dark:text-sponster-100 dark:border-sponster-500;
+  }
+
+  .wallet-balance-pill--default {
+    @apply px-3 py-1.5 text-lg items-center;
+  }
+
+  .wallet-balance-pill--compact {
+    @apply px-2 py-0.5 text-base items-center;
+  }
+
+  .wallet-balance-pill--with-footer {
+    @apply flex-col items-center justify-center gap-0.5;
+  }
+
+  /* Gray tray wrapping wallet pill + top-up in arqade buy row and anon connect strip. */
+  .wallet-strip-tray {
+    @apply w-fit mx-auto max-w-full min-w-0 rounded-xl border border-base-300 bg-base-200 px-2 py-1.5 text-base-content;
+  }
+
+  .wallet-strip-tray__row {
+    @apply flex min-w-0 flex-row flex-nowrap items-center justify-between gap-2;
+  }
+
   /* Wallet strip Connect / Top up — transparent fill; border + text match `WalletBalance`. */
   .btn-wallet-strip-action {
     @apply btn inline-flex flex-row flex-nowrap items-center justify-center gap-1 font-bold shadow-none;
@@ -1877,8 +1903,8 @@
   }
 
   html[data-theme="dark"] .surface-panel-fill:not([data-theme="light"]),
-  html[data-theme="dark"] .surface-panel,
-  html[data-theme="dark"] .three-tap-offer-cover {
+  html[data-theme="dark"] .surface-panel:not([data-theme="light"]),
+  html[data-theme="dark"] .three-tap-offer-cover:not([data-theme="light"]) {
     background-color: #000000;
   }
 

@@ -151,7 +151,6 @@
 
     <%!-- Drawer --%>
     <div
-      data-theme="light"
       class={[
         "fixed bg-base-100 rounded-t-lg overflow-hidden flex flex-col transition-all duration-300 ease-out",
         "h-[calc(95vh-50px)]",
@@ -262,7 +261,6 @@
                       current_scope={@current_scope}
                       host_uri={@host_uri}
                       recipient={@recipient}
-                      force_light={true}
                     />
                   <% end %>
                 <% else %>
@@ -279,7 +277,6 @@
                         completed={offer.id in @completed_video_offers}
                         me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
                         recipient={@recipient}
-                        force_light={true}
                       />
                     </ul>
                   <% end %>
@@ -380,7 +377,6 @@
                   <%!-- AutoSplit Section --%>
                   <.auto_split_controls
                     split_amount={(@current_scope.user.me_file && @current_scope.user.me_file.split_amount) || 50}
-                    force_light={true}
                   />
 
                   <div class="divider my-2 md:my-4 w-full max-w-[280px] mx-auto"></div>
@@ -451,86 +447,30 @@
 
     </div>
 
-    <% qlink_announcer_authed = authed?(@current_scope) %>
-    <% qlink_announcer_ads =
-         if(qlink_announcer_authed, do: to_string(@current_scope.ads_count || 0), else: "") %>
-    <% qlink_announcer_offered =
-         if(qlink_announcer_authed,
-           do: format_usd(@current_scope.offered_amount || Decimal.new("0")),
-           else: ""
-         ) %>
+    <% qlink_on_click =
+         if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
+           do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
+           else: nil %>
+    <% {qlink_connect_href, qlink_connect_target} =
+         cond do
+           qlink_on_click ->
+             {nil, "_top"}
 
-    <div
-      class="fixed inset-x-0 bottom-0 flex justify-center bg-base-100 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] isolate"
-      style="z-index: 63;"
-    >
-      <div class="flex h-[50px] w-full max-w-3xl items-center justify-between gap-2 px-3">
-        <div class="sponster-announcer-logo-container flex-shrink-0 md:relative md:z-10" />
-        <%= if qlink_announcer_authed do %>
-          <div class="flex flex-1 justify-center min-w-0 px-1 md:absolute md:left-1/2 md:top-1/2 md:z-0 md:w-max md:max-w-[min(70%,22rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:px-2">
-            <.wallet_balance
-              id="qlink-announcer-wallet-balance"
-              balance={@current_scope.wallet_balance || Decimal.new("0")}
-              footer_label="WALLET"
-              compact?={true}
-            />
-          </div>
-        <% else %>
-          <% qlink_on_click =
-               if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
-                 do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
-                 else: nil %>
-          <% {qlink_connect_href, qlink_connect_target} =
-               cond do
-                 qlink_on_click ->
-                   {nil, "_top"}
-                 QlariusWeb.QlinkPage.Show.on_qlinkin_bio_host?(assigns) ->
-                   {@interact_login_url, "_top"}
-                 true ->
-                   {~p"/login?return_to=/@#{@page.alias}", "_self"}
-               end %>
-          <div
-            class="flex flex-1 justify-center min-w-0 px-1 md:absolute md:left-1/2 md:top-1/2 md:z-0 md:w-max md:max-w-[min(70%,22rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:px-2"
-            title="Connect your wallet"
-          >
-            <.wallet_strip_or_connect
-              tray?={false}
-              scope={@current_scope}
-              balance={Decimal.new("0")}
-              id="qlink-announcer-wallet-strip"
-              on_click={qlink_on_click}
-              connect_href={qlink_connect_href}
-              connect_link_target={qlink_connect_target}
-            />
-          </div>
-        <% end %>
-        <button
-          type="button"
-          id="qlink-sponster-drawer-toggle"
-          phx-click="toggle_sponster_drawer"
-          title={if @show_sponster_drawer, do: "Hide offers", else: "Show offers"}
-          class={[
-            "qlink-sponster-drawer-toggle btn-widget btn-widget-emphasis btn-md rounded-full leading-none border-[1.5px]",
-            "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 transition-colors md:relative md:z-10",
-            "outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/40"
-          ]}
-        >
-          <%= if qlink_announcer_authed do %>
-            <span class="shrink-0 font-bold whitespace-nowrap">
-              {qlink_announcer_ads} ads • {qlink_announcer_offered}
-            </span>
-          <% else %>
-            <span class="text-sm font-bold whitespace-nowrap">
-              {if @show_sponster_drawer, do: "Hide", else: "Info"}
-            </span>
-          <% end %>
-          <span class={[
-            "hero-chevron-double-up all-animate bg-sponster-600 shrink-0",
-            if(@show_sponster_drawer, do: "rotate-180")
-          ]} />
-        </button>
-      </div>
-    </div>
+           QlariusWeb.QlinkPage.Show.on_qlinkin_bio_host?(assigns) ->
+             {@interact_login_url, "_top"}
+
+           true ->
+             {~p"/login?return_to=/@#{@page.alias}", "_self"}
+         end %>
+
+    <.sponster_announcer_bar
+      id_prefix="qlink"
+      current_scope={@current_scope}
+      show_sponster_drawer={@show_sponster_drawer}
+      on_auth_click={qlink_on_click}
+      connect_href={qlink_connect_href}
+      connect_link_target={qlink_connect_target}
+    />
   <% end %>
 
   <%!-- Video Player Modal --%>
@@ -540,7 +480,6 @@
       phx-click="close_video_player"
     >
       <div
-        data-theme="light"
         class="bg-base-100 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto animate-fade-in"
         phx-click-away="close_video_player"
       >
@@ -577,7 +516,6 @@
       show_replay_button={@show_replay_button}
       closing={@drawer_closing}
       has_bottom_dock={false}
-      force_light={true}
     />
   <% end %>
 
