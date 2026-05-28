@@ -99,16 +99,32 @@ defmodule Qlarius.Secrets do
     end
   end
 
-  defp use_aws_ssm? do
-    # Use AWS SSM only if:
-    # 1. Not on Gigalixir (GIGALIXIR_APP_NAME not set)
-    # 2. Not on Heroku (DYNO not set)
-    # 3. AWS region is configured (AWS_REGION set)
-    # This means we're likely on AWS EKS/ECS
-    !System.get_env("GIGALIXIR_APP_NAME") &&
-      !System.get_env("DYNO") &&
-      System.get_env("AWS_REGION")
+  @doc false
+  def aws_ssm_enabled? do
+    case System.get_env("QLARIUS_USE_AWS_SSM") do
+      value when value in ~w(true 1) -> true
+      value when value in ~w(false 0) -> false
+      _ -> aws_ssm_enabled_by_default?()
+    end
   end
+
+  defp aws_ssm_enabled_by_default? do
+    on_paas_platform?() == false &&
+      paas_secrets_in_env?() == false &&
+      System.get_env("AWS_REGION") not in [nil, ""]
+  end
+
+  defp on_paas_platform? do
+    System.get_env("GIGALIXIR_APP_NAME") not in [nil, ""] ||
+      System.get_env("DYNO") not in [nil, ""]
+  end
+
+  defp paas_secrets_in_env? do
+    System.get_env("TWILIO_ACCOUNT_SID") not in [nil, ""] ||
+      System.get_env("CLOAK_KEY") not in [nil, ""]
+  end
+
+  defp use_aws_ssm?, do: aws_ssm_enabled?()
 
   defp fetch_from_aws_ssm do
     Logger.info("Fetching Twilio credentials from AWS Parameter Store")
