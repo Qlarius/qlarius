@@ -9,6 +9,7 @@ defmodule Qlarius.Creators do
 
   alias Qlarius.Creators.Creator
   alias Qlarius.Creators.CreatorMembership
+  alias Qlarius.Creators.RecipientProvisioning
   alias Qlarius.Accounts.User
 
   @doc """
@@ -77,6 +78,7 @@ defmodule Qlarius.Creators do
     %Creator{}
     |> changeset_fn.(attrs)
     |> Repo.insert()
+    |> tap(&provision_recipient/1)
   end
 
   @doc """
@@ -85,7 +87,8 @@ defmodule Qlarius.Creators do
   def create_creator_with_user(attrs \\ %{}, user_id) do
     Repo.transaction(fn ->
       with {:ok, creator} <- do_create_creator(attrs),
-           {:ok, _membership} <- create_creator_membership(creator.id, user_id, :owner) do
+           {:ok, _membership} <- create_creator_membership(creator.id, user_id, :owner),
+           {:ok, creator} <- provision_recipient(creator) do
         creator
       else
         {:error, changeset} -> Repo.rollback(changeset)
@@ -103,6 +106,13 @@ defmodule Qlarius.Creators do
     |> changeset_fn.(attrs)
     |> Repo.insert()
   end
+
+  defp provision_recipient({:ok, %Creator{} = creator}) do
+    _ = RecipientProvisioning.ensure_recipient_for_creator(creator)
+    {:ok, creator}
+  end
+
+  defp provision_recipient(other), do: other
 
   @doc """
   Updates a creator.

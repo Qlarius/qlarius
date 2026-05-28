@@ -41,7 +41,6 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     catalog = group.catalog
     group_credit = assigns.tiqit_up_group_credit || Decimal.new(0)
     catalog_credit = assigns.tiqit_up_catalog_credit || Decimal.new(0)
-    any_credit = Decimal.gt?(group_credit, 0) or Decimal.gt?(catalog_credit, 0)
 
     durations =
       [piece, group, catalog]
@@ -49,17 +48,24 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       |> Enum.uniq()
       |> Enum.sort()
 
+    show_group? = Enum.any?(group.tiqit_classes)
+    show_catalog? = Enum.any?(catalog.tiqit_classes)
+
+    show_discount_notice? =
+      (show_group? and Decimal.gt?(group_credit, 0)) or
+        (show_catalog? and Decimal.gt?(catalog_credit, 0))
+
     assigns =
       assign(assigns,
         catalog: catalog,
         group_credit: group_credit,
         catalog_credit: catalog_credit,
-        any_credit: any_credit,
+        show_discount_notice?: show_discount_notice?,
         durations: durations,
         group: group,
         piece: piece,
-        show_group?: Enum.any?(group.tiqit_classes),
-        show_catalog?: Enum.any?(catalog.tiqit_classes)
+        show_group?: show_group?,
+        show_catalog?: show_catalog?
       )
 
     ~H"""
@@ -153,7 +159,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
             </tr>
           </tbody>
         </table>
-        <%= if @any_credit do %>
+        <%= if @show_discount_notice? do %>
           <div class="alert bg-widget-100 border-widget-300 py-2 px-4 rounded-lg flex flex-col items-center gap-2 mt-4 justify-center text-center">
             <div class="flex items-center justify-center gap-2 w-full">
               <.icon name="hero-arrow-trending-up" class="w-5 h-5 text-widget-700 shrink-0" />

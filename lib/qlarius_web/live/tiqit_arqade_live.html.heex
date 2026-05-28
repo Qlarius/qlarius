@@ -1,0 +1,199 @@
+<div
+  class="flex h-dvh flex-col overflow-hidden bg-base-100"
+  data-theme="light"
+  data-arqade-in-app-page="true"
+>
+  <header class="shrink-0 border-b border-base-300 bg-base-100">
+    <div class="flex w-full items-center justify-center px-4 py-4">
+      <img
+        src="/images/Tiqit_logo_color_horiz.svg"
+        alt="Tiqit"
+        class="h-8 w-auto"
+        decoding="async"
+      />
+    </div>
+  </header>
+
+  <main class={[
+    "flex min-h-0 w-full flex-1 flex-col overflow-hidden",
+    @recipient && "pb-[50px]"
+  ]}>
+    <div
+      id="tiqit-arqade-embed"
+      class="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden"
+    >
+      {live_render(@socket, QlariusWeb.Widgets.Arcade.ArcadeLive,
+      id: "tiqit-arqade-#{@group.id}-#{@selected_piece_id || "default"}",
+      session: %{
+        "group_id" => @group.id,
+        "inline?" => true,
+        "embed_host" => "tiqit_arqade",
+        "base_path" => "",
+        "show_title" => false,
+        "force_theme" => "light",
+        "content_id" => @selected_piece_id,
+        "auth_sheet_host_enabled?" => QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns)
+      }
+    )}
+    </div>
+  </main>
+
+  <%= if @recipient do %>
+    <.sponster_stack
+      recipient={@recipient}
+      creator={@creator}
+      info_context={:tiqit}
+      current_scope={@current_scope}
+      tip_only={true}
+      show_sponster_drawer={@show_sponster_drawer}
+      show_split_drawer={@show_split_drawer}
+      show_split_reminder={@show_split_reminder}
+      sponster_disclaimer_dock_visible={@sponster_disclaimer_dock_visible}
+      loading_offers={@loading_offers}
+      active_offers={@active_offers}
+      video_offers={@video_offers}
+      completed_video_offers={@completed_video_offers}
+      selected_ad_type={@selected_ad_type}
+      show_ad_type_tabs={@show_ad_type_tabs}
+      host_uri={@host_uri}
+      me_file_sponsorship_url={@me_file_sponsorship_url}
+      settings_notifications_url={@settings_notifications_url}
+      user_ip={assigns[:user_ip] || "0.0.0.0"}
+      auth_sheet_enabled?={QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns)}
+      on_auth_click={
+        if QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns),
+          do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
+          else: nil
+      }
+      connect_href={
+        if QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns),
+          do: nil,
+          else: ~p"/login?return_to=#{@return_to}"
+      }
+      connect_link_target="_self"
+      announcer_id_prefix="tiqit-arqade"
+      split_panel_id="tiqit-creator-tip-panel"
+    />
+  <% end %>
+
+  <%= if @show_video_player && @current_video_offer do %>
+    <div
+      class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-2 animate-fade-in"
+      phx-click="close_video_player"
+    >
+      <div
+        class="relative w-full max-w-4xl bg-base-100 rounded-lg overflow-hidden shadow-2xl"
+        phx-click-away="close_video_player"
+      >
+        <div class="absolute top-2 right-2 z-10">
+          <button
+            phx-click="close_video_player"
+            class="btn btn-circle btn-sm bg-base-200/90 hover:bg-base-300"
+            aria-label="Close video player"
+          >
+            ✕
+          </button>
+        </div>
+
+        <.video_player
+          current_video_offer={@current_video_offer}
+          video_payment_collected={@video_payment_collected}
+          show_replay_button={@show_replay_button}
+        />
+      </div>
+    </div>
+  <% end %>
+
+  <%= if @current_video_offer && @show_video_player do %>
+    <.video_collection_drawer
+      current_video_offer={@current_video_offer}
+      show_collection_drawer={
+        @show_collection_drawer &&
+          (@video_watched_complete || @video_payment_collected || @show_replay_button)
+      }
+      video_payment_collected={@video_payment_collected}
+      show_replay_button={@show_replay_button}
+      closing={@drawer_closing}
+      has_bottom_dock={false}
+      force_light={true}
+    />
+  <% end %>
+
+  <%= if @current_scope do %>
+    <% tip_recipient = @insta_tip_recipient || @recipient %>
+    <.insta_tip_modal
+      show={@show_insta_tip_modal}
+      recipient_name={(tip_recipient && tip_recipient.name) || "Recipient"}
+      recipient_id={tip_recipient && tip_recipient.id}
+      amount={@insta_tip_amount || Decimal.new("0.00")}
+      current_balance={@current_scope.wallet_balance}
+    />
+
+    <.insta_tip_thanks_modal
+      show={@show_insta_tip_thanks_modal}
+      recipient_name={@insta_tip_thanks_recipient || "Recipient"}
+      amount={@insta_tip_thanks_amount || Decimal.new("0.00")}
+    />
+  <% end %>
+
+  <.connect_wallet_modal
+    show={@show_connect_modal}
+    scope={@current_scope}
+    connect_brand={:sponster}
+    on_click={
+      if QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns),
+        do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
+        else: nil
+    }
+  />
+
+  <%= if QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns) do %>
+    <.live_component
+      module={QlariusWeb.Components.AuthSheet}
+      id="tiqit-arqade-auth-sheet"
+      show={@show_auth_sheet}
+      surface={:on_qlink_page}
+      referral_context={@auth_referral_context}
+      client_ip={assigns[:user_ip] || "0.0.0.0"}
+      connect_brand={@auth_sheet_connect_brand}
+      on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
+    />
+  <% end %>
+
+  <%= if @current_scope && assigns[:show_logout_modal] do %>
+    <.modal
+      id="tiqit-arqade-logout-modal"
+      show={true}
+      on_cancel={JS.push("cancel_logout")}
+    >
+      <div class="border-2 border-primary rounded-box">
+        <div class="bg-base-200 px-6 py-4 rounded-t-box">
+          <h3 class="font-bold text-lg">Disconnect wallet</h3>
+        </div>
+        <div class="p-6">
+          <p class="py-4">You will leave this session on this page. You can connect again anytime.</p>
+          <div class="modal-action">
+            <button
+              type="button"
+              class="btn btn-ghost outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
+              phx-click="cancel_logout"
+            >
+              Cancel
+            </button>
+            <form action={~p"/logout"} method="post">
+              <input type="hidden" name="_method" value="delete" />
+              <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+              <input type="hidden" name="return_to" value={@return_to} />
+              <button
+                type="submit"
+                class="btn btn-error outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-error-content/50"
+              >
+                Disconnect
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </.modal>
+  <% end %>
+</div>

@@ -150,12 +150,22 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       #   3. Default to "" (main-app style).
       base_path = socket.assigns[:base_path] || session["base_path"] || ""
 
+      full_viewport_embed? = session["embed_host"] == "tiqit_arqade"
+      embed_card? = inline? and not full_viewport_embed?
+      in_app_group? = (base_path == "" and not inline?) or full_viewport_embed?
+      # Qlink card embed + public Tiqit Arqade: wallet strip + Tiqit logo below Buy.
+      show_qlink_footer? = embed_card? or full_viewport_embed?
+
       {:ok,
        socket
        |> init_pwa_assigns(session)
        |> assign(
          mounted: true,
          inline?: inline?,
+         embed_card?: embed_card?,
+         in_app_group?: in_app_group?,
+         full_viewport_embed?: full_viewport_embed?,
+         show_qlink_footer?: show_qlink_footer?,
          base_path: base_path,
          title: "Arqade",
          current_path: "/arqade/group/#{group_id}",
@@ -173,7 +183,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          tiqit_content_modal_close_timer_ref: nil,
          embed_phx_id: session["embed_phx_id"],
          arqade_expand_parent?: is_pid(socket.parent_pid),
-         fixed_viewport: base_path == "" and not inline?,
+         fixed_viewport: in_app_group?,
          episode_search: "",
          show_owned_only?: false,
          play_frame: nil,

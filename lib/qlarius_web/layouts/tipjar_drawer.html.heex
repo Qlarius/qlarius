@@ -140,11 +140,7 @@
             <div class="flex flex-row md:!flex-col items-center gap-2 md:gap-4">
               <div class="w-50 h-auto bg-base-300 shadow-md flex items-center justify-center mb-0 md:mb-4 overflow-hidden">
                 <img
-                  src={
-                    QlariusWeb.Uploaders.RecipientBrandImage.url(
-                      {@recipient.graphic_url, @recipient} || ~p"/images/tipjar_love_default.png"
-                    )
-                  }
+                  src={recipient_brand_image_url(@recipient, creator: assigns[:creator])}
                   alt="Recipient"
                   class="object-contain w-full h-full rounded"
                 />

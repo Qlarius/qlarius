@@ -77,7 +77,7 @@ Convenience wrapper returning only the `credit` Decimal value.
 - **Catalog column** passes `tiqit_up_catalog_credit` to each price cell.
 - Active (affordable) prices show the original price with strikethrough and the discounted price.
 - Disabled (unaffordable) prices are styled with a faded primary color.
-- A "Tiqit Up discounts applied to reflect active tiqits" notice appears below the table when either group or catalog credit is greater than `$0.00`.
+- A "Tiqit Up discounts applied to credit active tiqits" notice appears below the table only when the grid includes a group or catalog pricing column and that column has credit greater than `$0.00` (piece-only grids omit the notice even if the user has credit elsewhere).
 
 ### Confirmation Modal
 

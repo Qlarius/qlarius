@@ -950,8 +950,135 @@
     scroll-padding-bottom: calc(var(--mobile-bottom-nav-offset, 5.25rem) + 0.75rem) !important;
   }
 
+  /* Public Tiqit Arqade: full viewport with Sponster announcer (no app bottom nav). */
+  [data-arqade-tiqit-arqade="true"] {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  [data-arqade-tiqit-arqade="true"] > div {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  [data-arqade-tiqit-arqade="true"] [data-arqade-split] {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  [data-arqade-tiqit-arqade="true"] [data-arqade-episodes-column] {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  [data-arqade-tiqit-arqade="true"] #arqade-episodes-scroll {
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 1rem !important;
+    scroll-padding-bottom: 1.25rem !important;
+  }
+
+  #tiqit-arqade-embed,
+  #tiqit-arqade-embed #arcade-pwa-detect {
+    display: flex;
+    flex: 1 1 0%;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+  }
+
   @media (max-width: 767px) {
-    [data-arqade-in-app-group="true"] [data-arqade-selected-pane] {
+    [data-arqade-tiqit-arqade="true"] [data-arqade-hero-block="inline"] {
+      padding-bottom: 0.25rem !important;
+    }
+
+    [data-arqade-tiqit-arqade="true"] [data-arqade-cta-block="inline"] > .flex.flex-col {
+      margin-top: 0.25rem !important;
+    }
+
+    [data-arqade-tiqit-arqade="true"] [data-arqade-tiqit-logo-row="inline"] {
+      margin-bottom: 1rem !important;
+    }
+
+    [data-arqade-tiqit-arqade="true"] [data-arqade-selected-pane] {
+      flex: 0 0 auto;
+      max-height: none;
+      overflow-x: hidden;
+      overflow-y: visible;
+    }
+
+    [data-arqade-tiqit-arqade="true"] [data-arqade-episodes-column] {
+      flex: 1 1 0%;
+      min-height: 0;
+    }
+  }
+
+  @media (min-width: 768px) {
+    [data-arqade-tiqit-arqade="true"] [data-arqade-split] {
+      flex-direction: row;
+      align-items: stretch;
+    }
+
+    [data-arqade-tiqit-arqade="true"] [data-arqade-selected-pane] {
+      flex: 1 1 0%;
+      min-height: 0;
+      max-height: none;
+      align-self: stretch;
+      overflow-y: auto;
+    }
+
+    [data-arqade-tiqit-arqade="true"] [data-arqade-episodes-column] {
+      flex: 1 1 0%;
+      min-height: 0;
+      max-height: 100%;
+    }
+  }
+
+  [data-arqade-in-app-page="true"]:has([data-arqade-tiqit-arqade="true"]) {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #tiqit-arqade-embed {
+    flex: 1 1 0%;
+    min-height: 0;
+  }
+
+  body:has([data-arqade-tiqit-arqade="true"]) .min-h-screen {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
+  body:has([data-arqade-tiqit-arqade="true"]) .min-h-screen > .flex-1 {
+    display: flex;
+    flex: 1 1 0%;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  @media (max-width: 767px) {
+    [data-arqade-in-app-group="true"]:not([data-arqade-tiqit-arqade="true"])
+      [data-arqade-selected-pane] {
       flex-shrink: 0;
       max-height: min(42vh, 24rem);
       overflow-x: hidden;

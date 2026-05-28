@@ -2,7 +2,7 @@
   id="arcade-pwa-detect"
   phx-hook="PWADetect"
   class={[
-    @inline? && "flex h-full min-h-0 max-h-full flex-1 flex-col",
+    (@embed_card? || @full_viewport_embed?) && "flex h-full min-h-0 max-h-full flex-1 flex-col",
     @base_path == "" && !@inline? && "flex min-h-0 flex-col"
   ]}
 >
@@ -26,11 +26,13 @@
       />
     </:slide_over_content>
     <div
-      data-arqade-in-app-page={if(@base_path == "" && !@inline?, do: "true")}
+      data-arqade-in-app-page={if(@in_app_group?, do: "true")}
       class={[
-        @inline? && "flex flex-col flex-1 min-h-0 h-full max-h-full overflow-hidden",
-        @base_path == "" && !@inline? &&
-          "flex flex-col flex-1 min-h-0 overflow-hidden"
+        (@embed_card? || @full_viewport_embed?) &&
+          "flex flex-col flex-1 min-h-0 h-full max-h-full overflow-hidden",
+        @in_app_group? && !@full_viewport_embed? &&
+          "flex flex-col flex-1 min-h-0 overflow-hidden",
+        @full_viewport_embed? && "flex flex-col flex-1 min-h-0 h-full overflow-hidden"
       ]}
     >
     <.arqade_breadcrumbs
@@ -51,26 +53,27 @@
 --%>
     <%= if Enum.any?(@pieces) do %>
       <div
-        data-arqade-inline-card={if(@inline?, do: "true")}
-        data-arqade-in-app-group={if(@base_path == "" && !@inline?, do: "true")}
+        data-arqade-inline-card={if(@embed_card?, do: "true")}
+        data-arqade-in-app-group={if(@in_app_group?, do: "true")}
+        data-arqade-tiqit-arqade={if(@full_viewport_embed?, do: "true")}
         class={[
           "w-full relative z-0 isolate",
-          @inline? &&
+          @embed_card? &&
             "rounded-2xl border border-neutral/50 overflow-hidden bg-base-100 min-h-0 flex flex-col flex-1",
-          @base_path == "" && !@inline? &&
-            "flex flex-col flex-1 min-h-0 w-full max-w-full min-w-0 overflow-hidden"
+          @in_app_group? &&
+            "flex flex-col flex-1 min-h-0 w-full max-w-full min-w-0 overflow-hidden bg-base-100"
         ]}
       >
         <div class={[
           "w-full flex flex-col relative min-h-0 min-w-0 max-w-full",
           cond do
-            @inline? -> "h-full max-h-full flex-1 overflow-hidden"
-            @base_path == "" -> "w-full flex flex-col flex-1 min-h-0 overflow-hidden"
+            @embed_card? || @full_viewport_embed? -> "h-full max-h-full flex-1 overflow-hidden"
+            @in_app_group? -> "w-full flex flex-col flex-1 min-h-0 overflow-hidden"
             true -> "h-screen"
           end
         ]}>
-          <%= if @group.show_open_in_tab && (@base_path == "/widgets" || @inline?) do %>
-            <%= if @inline? && @arqade_expand_parent? do %>
+          <%= if @group.show_open_in_tab && (@base_path == "/widgets" || @embed_card?) do %>
+            <%= if @embed_card? && @arqade_expand_parent? do %>
               <button
                 type="button"
                 id="open-in-tab-btn"
@@ -128,9 +131,8 @@
             data-arqade-split="true"
             class={[
               "flex-1 bg-base-100 text-base-content min-w-0 max-w-full flex flex-col md:!flex-row md:items-stretch",
-              (@inline? || @base_path == "/widgets") && "min-h-0 overflow-hidden",
-              @base_path == "" && !@inline? &&
-                "min-h-0 flex-1 max-md:overflow-hidden md:overflow-hidden"
+              (@embed_card? || @base_path == "/widgets") && "min-h-0 overflow-hidden",
+              @in_app_group? && "min-h-0 flex-1 max-md:overflow-hidden md:overflow-hidden"
             ]}
           >
             <%!-- In-app mobile: split height + list scroll via app.css (5rem nav). Qlink + md+ unchanged. --%>
@@ -138,32 +140,34 @@
               data-arqade-selected-pane="true"
               class={[
                 "relative w-full shrink-0 md:!w-1/2 md:p-5 flex flex-col",
-                @inline? &&
+                @embed_card? &&
                   "z-[1] grow-0 shrink-0 basis-auto max-w-full overflow-x-hidden md:flex-1 md:min-h-0 md:overflow-y-auto",
-                !@inline? &&
+                @full_viewport_embed? &&
+                  "z-[40] min-h-0 max-md:shrink-0 max-md:flex-none flex flex-col overflow-x-hidden md:min-h-0 md:flex-1 md:self-stretch md:overflow-y-auto bg-base-100",
+                !@embed_card? && !@full_viewport_embed? &&
                   "z-[40] min-h-0 flex-none overflow-x-hidden md:min-h-0 md:flex-1 md:self-stretch md:overflow-y-auto"
               ]}
             >
               <div class={[
                 "relative z-[35] min-h-0 shrink-0 overflow-x-hidden min-w-0",
                 cond do
-                  @inline? -> "max-md:overflow-hidden md:overflow-y-auto md:max-h-none md:flex-none md:w-full"
-                  @base_path == "" -> "max-md:overflow-visible md:overflow-y-auto md:max-h-none"
+                  @embed_card? -> "max-md:overflow-hidden md:overflow-y-auto md:max-h-none md:flex-none md:w-full"
+                  @in_app_group? -> "max-md:overflow-visible md:overflow-y-auto md:max-h-none"
                   true -> "overflow-y-auto max-h-[min(70vh,32rem)] md:max-h-none"
                 end
               ]}>
                 <div
                   data-arqade-hero-block={
                     cond do
-                      @inline? -> "inline"
-                      @base_path == "" && !@inline? -> "in-app"
+                      @show_qlink_footer? -> "inline"
+                      @in_app_group? -> "in-app"
                       true -> nil
                     end
                   }
                   class={[
                     "bg-base-100 rounded-lg min-w-0",
-                    @inline? && "p-4 max-md:px-3 max-md:pt-3 max-md:pb-1 md:!p-0",
-                    !@inline? && "p-4 md:!p-0"
+                    @show_qlink_footer? && "p-4 max-md:px-3 max-md:pt-3 max-md:pb-1 md:!p-0",
+                    !@show_qlink_footer? && "p-4 md:!p-0"
                   ]}
                 >
                   <%!--
@@ -175,16 +179,16 @@
                   <div class="flex flex-row gap-3 sm:gap-4 items-stretch min-w-0">
                     <div class={[
                       "shrink-0 self-start w-[clamp(5rem,34%,8.5rem)] max-w-[42%]",
-                      @inline? && "max-md:aspect-square max-md:overflow-hidden max-md:rounded-lg"
+                      @show_qlink_footer? && "max-md:aspect-square max-md:overflow-hidden max-md:rounded-lg"
                     ]}>
                       <img
                         src={content_image_url(@selected_piece, @group)}
                         alt={@selected_piece.title}
                         class={[
                           "block w-full rounded-lg",
-                          @inline? &&
+                          @show_qlink_footer? &&
                             "h-auto max-h-[12rem] object-contain max-md:h-full max-md:max-h-none max-md:object-cover",
-                          !@inline? && "h-auto max-h-[12rem] object-contain"
+                          !@show_qlink_footer? && "h-auto max-h-[12rem] object-contain"
                         ]}
                       />
                     </div>
@@ -252,8 +256,8 @@
               <div
                 data-arqade-cta-block={
                   cond do
-                    @inline? -> "inline"
-                    @base_path == "" && !@inline? -> "in-app"
+                    @show_qlink_footer? -> "inline"
+                    @in_app_group? -> "in-app"
                     true -> nil
                   end
                 }
@@ -262,8 +266,8 @@
                 <div
                   class={[
                     "flex flex-col justify-start gap-1.5 align-middle text-center",
-                    @inline? && "mt-2 max-md:mt-1 md:mt-4",
-                    !@inline? && "mt-4"
+                    @show_qlink_footer? && "mt-2 max-md:mt-1 md:mt-4",
+                    !@show_qlink_footer? && "mt-4"
                   ]}
                 >
                   <%!--
@@ -309,7 +313,7 @@
                         is_authed && Decimal.compare(@balance, default_tc.price) != :lt %>
                       <% btn_enabled = !is_authed || can_afford %>
                       <div
-                        data-arqade-buy-row={if(@base_path == "" && !@inline?, do: "true")}
+                        data-arqade-buy-row={if(@in_app_group? && !@show_qlink_footer?, do: "true")}
                         class="mb-3 flex w-full flex-row items-center gap-1.5"
                       >
                         <button
@@ -339,13 +343,13 @@
                         <div
                           class={[
                             "text-sm text-warning text-center",
-                            @base_path == "" && !@inline? && "hidden"
+                            @in_app_group? && !@show_qlink_footer? && "hidden"
                           ]}
                         >
                           Not enough funds — top up below.
                         </div>
                       <% end %>
-                      <div class={@base_path == "" && !@inline? && "hidden"}>
+                      <div class={@in_app_group? && !@show_qlink_footer? && "hidden"}>
                         <.wallet_strip_or_connect
                           id="wallet-balance-arcade-main"
                           scope={@current_scope}
@@ -363,11 +367,11 @@
                   <% end %>
                 </div>
                 <div
-                  data-arqade-tiqit-logo-row={@inline? && "inline"}
+                  data-arqade-tiqit-logo-row={@show_qlink_footer? && "inline"}
                   class={[
                     "flex flex-row justify-center items-center",
-                    @inline? && "mt-2 mb-3 max-md:mb-4",
-                    @base_path == "" && !@inline? && "hidden"
+                    @show_qlink_footer? && "mt-2 mb-3 max-md:mb-4",
+                    !@show_qlink_footer? && "hidden"
                   ]}
                 >
                   <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
@@ -380,8 +384,8 @@
               data-arqade-episodes-column="true"
               class={[
                 "relative w-full min-h-0 flex flex-col border-t md:!border-t-0 md:border-l border-base-300 md:!w-1/2",
-                @inline? && "z-0 min-h-0 flex-1 overflow-hidden p-5 md:flex-1",
-                @base_path == "" && !@inline? &&
+                @embed_card? && "z-0 min-h-0 flex-1 overflow-hidden p-5 md:flex-1",
+                @in_app_group? &&
                   "z-10 flex min-h-0 min-w-0 flex-col overflow-hidden px-3 pt-2 pb-0 max-md:min-h-0 md:p-5 md:flex-1",
                 @base_path == "/widgets" && "z-10 min-h-0 flex-1 overflow-hidden p-5 md:min-h-0 md:flex-1"
               ]}
@@ -454,8 +458,8 @@
                 id="arqade-episodes-scroll"
                 class={[
                   "space-y-2 min-h-0",
-                  @base_path == "" && !@inline? && "flex-1 min-h-0 overflow-y-auto",
-                  @inline? && "flex-1 min-h-0 overflow-y-auto pb-4 max-md:min-h-0",
+                  @in_app_group? && "flex-1 min-h-0 overflow-y-auto",
+                  @embed_card? && "flex-1 min-h-0 overflow-y-auto pb-4 max-md:min-h-0",
                   @base_path == "/widgets" && !@inline? && "overflow-y-auto pb-4",
                   @base_path != "" && @base_path != "/widgets" && "pb-2"
                 ]}

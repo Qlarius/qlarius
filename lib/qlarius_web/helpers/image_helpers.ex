@@ -1,5 +1,11 @@
 defmodule QlariusWeb.Helpers.ImageHelpers do
+  import Ecto.Query
+
+  alias Qlarius.Creators.Creator
+  alias Qlarius.Repo
+  alias Qlarius.Sponster.Recipient
   alias QlariusWeb.Uploaders.CreatorImage
+  alias QlariusWeb.Uploaders.RecipientBrandImage
 
   @doc """
   Returns the appropriate image URL following the hierarchy:
@@ -102,5 +108,38 @@ defmodule QlariusWeb.Helpers.ImageHelpers do
   """
   def placeholder_image_url do
     "/images/placeholder-image.svg"
+  end
+
+  @doc """
+  Returns the brand image URL for a Sponster recipient.
+
+  Falls back to the linked Creator's image when the recipient has no brand image.
+  Pass `creator:` when the creator is already loaded to avoid an extra query.
+  """
+  def recipient_brand_image_url(recipient, opts \\ [])
+
+  def recipient_brand_image_url(nil, _opts), do: placeholder_image_url()
+
+  def recipient_brand_image_url(%Recipient{} = recipient, opts) do
+    creator = Keyword.get(opts, :creator) || creator_for_recipient(recipient.id)
+
+    cond do
+      recipient.graphic_url ->
+        RecipientBrandImage.url({recipient.graphic_url, recipient})
+
+      creator && creator.image ->
+        CreatorImage.url({creator.image, creator}, :original)
+
+      true ->
+        placeholder_image_url()
+    end
+  end
+
+  defp creator_for_recipient(recipient_id) do
+    Repo.one(
+      from c in Creator,
+        where: c.recipient_id == ^recipient_id,
+        limit: 1
+    )
   end
 end

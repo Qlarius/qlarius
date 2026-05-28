@@ -357,6 +357,20 @@ defmodule QlariusWeb.Router do
   end
 
   scope "/", QlariusWeb do
+    pipe_through [:browser, :iab_detection]
+
+    live_session :public_tiqit_arqade,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.GetUserIP, :assign_ip},
+        {QlariusWeb.InAppBrowserMount, :assign_in_app_browser}
+      ] do
+      live "/tiqit/arqade/:content_group_id", TiqitArqadeLive, :show
+      live "/tiqit/arqade/:content_group_id/:content_piece_id", TiqitArqadeLive, :show
+    end
+  end
+
+  scope "/", QlariusWeb do
     pipe_through [:browser]
 
     live_session :hi,

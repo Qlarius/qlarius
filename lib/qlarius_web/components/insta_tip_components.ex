@@ -17,6 +17,7 @@ defmodule QlariusWeb.InstaTipComponents do
   # nil while still displaying a live-updated balance (e.g. after a
   # tip). Most callers should simply pass `@current_scope.wallet_balance`.
   attr :recipient, :map, required: true
+  attr :creator, :map, default: nil
   attr :scope, :any, default: nil
   attr :wallet_balance, :any, required: true
   attr :offered_amount, :any, default: nil
@@ -52,13 +53,7 @@ defmodule QlariusWeb.InstaTipComponents do
           <%= if @show_image do %>
             <div class="w-28 h-auto flex-shrink-0 bg-base-300 shadow-md flex items-center justify-center overflow-hidden rounded">
               <img
-                src={
-                  if @recipient.graphic_url do
-                    QlariusWeb.Uploaders.RecipientBrandImage.url({@recipient.graphic_url, @recipient})
-                  else
-                    ~p"/images/tipjar_love_default.png"
-                  end
-                }
+                src={recipient_brand_image_url(@recipient, creator: @creator)}
                 alt={@recipient.name || "Recipient"}
                 class="object-contain w-full h-full"
               />

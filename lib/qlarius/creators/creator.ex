@@ -5,6 +5,7 @@ defmodule Qlarius.Creators.Creator do
   alias Qlarius.Accounts.User
   alias Qlarius.Creators.CreatorMembership
   alias Qlarius.Qlink.QlinkPage
+  alias Qlarius.Sponster.Recipient
   alias Qlarius.Tiqit.Arcade.Catalog
   alias QlariusWeb.Uploaders.CreatorImage
 
@@ -14,6 +15,7 @@ defmodule Qlarius.Creators.Creator do
     field :image, :string
     field :is_verified, :boolean, default: false
 
+    belongs_to :recipient, Recipient
     has_many :qlink_pages, QlinkPage
     has_many :catalogs, Catalog
 

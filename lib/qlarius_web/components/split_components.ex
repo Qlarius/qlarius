@@ -2,6 +2,7 @@ defmodule QlariusWeb.Components.SplitComponents do
   use Phoenix.Component
   alias Phoenix.LiveView.JS
   import QlariusWeb.CoreComponents
+  import QlariusWeb.Helpers.ImageHelpers, only: [recipient_brand_image_url: 2]
   import QlariusWeb.Money, only: [format_usd: 1]
 
   @doc """
@@ -54,6 +55,114 @@ defmodule QlariusWeb.Components.SplitComponents do
         </div>
         <div class="flex justify-end pr-12 pb-4" aria-hidden="true">
           <.icon name="hero-chevron-down" class="w-8 h-8 text-widget-700 animate-bounce" />
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Tip-only tab trigger (no AutoSplit percentage).
+  """
+  attr :class, :string, default: nil
+
+  def creator_tip_tab(assigns) do
+    ~H"""
+    <button
+      type="button"
+      phx-click="toggle_split_drawer"
+      class={[
+        "split-tab-trigger flex items-center gap-2 bg-gray-700 text-white px-5 py-2 rounded-tl-3xl cursor-pointer select-none transition-colors outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40",
+        @class
+      ]}
+    >
+      <span class="uppercase text-xs tracking-wider font-semibold whitespace-nowrap">
+        Tip this creator
+      </span>
+      <svg
+        class="w-5 h-5 shrink-0"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+        />
+      </svg>
+    </button>
+    """
+  end
+
+  @doc """
+  Tip-only drawer body with InstaTip and recipient (no AutoSplit).
+  """
+  attr :recipient, :map, required: true
+  attr :creator, :map, default: nil
+  attr :wallet_balance, :any, required: true
+  attr :show, :boolean, default: false
+
+  def creator_tip_drawer_panel(assigns) do
+    ~H"""
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-base-200">
+      <div class="w-full bg-base-100 border-b border-base-300 p-5 flex justify-between items-center shadow-sm flex-shrink-0">
+        <div class="text-base-content font-bold uppercase tracking-wider text-sm">
+          TIP TO SUPPORT WHAT MATTERS
+        </div>
+        <button
+          phx-click="toggle_split_drawer"
+          type="button"
+          class="qlink-split-drawer-close flex items-center justify-center w-10 h-10 rounded-full border border-base-300 bg-base-100 shadow cursor-pointer transition-colors outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
+        >
+          <.icon name="hero-chevron-down" class="w-6 h-6 text-base-content" />
+        </button>
+      </div>
+
+      <div class="flex min-h-0 flex-1 flex-col gap-3 md:gap-8 overflow-y-auto bg-base-200 px-4 md:px-8 pb-6 md:pb-12 pt-4 md:pt-6 max-w-3xl mx-auto md:!flex-row">
+        <div class="flex-1 flex flex-col items-center md:items-start">
+          <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
+          <div class="text-base-content/70 text-sm mb-2 md:mb-4">
+            Instantly tip from your wallet
+            <.icon name="hero-arrow-right" class="w-4 h-4 inline-block" />
+            <span class="inline-flex items-center text-lg bg-sponster-200 text-base-content px-3 py-1 rounded-lg border border-sponster-300">
+              <span class="tabular-amount font-bold">{format_usd(@wallet_balance)}</span>
+            </span>
+          </div>
+          <.insta_tip_button_group
+            amounts={["0.25", "0.50", "1.00", "2.00"]}
+            wallet_balance={@wallet_balance}
+            recipient_id={@recipient && @recipient.id}
+          />
+        </div>
+
+        <div class="border-divider-color my-2 md:my-4 w-full max-w-[280px] mx-auto md:hidden"></div>
+
+        <div class="flex-1 flex flex-col items-center pt-1 md:pt-0">
+          <%= if @recipient do %>
+            <div class="text-2xl font-bold text-base-content mb-1 md:mb-2 text-center">
+              {@recipient.name || "Recipient"}
+            </div>
+            <div class="flex flex-col items-center gap-2 md:gap-4">
+              <div class="w-32 md:w-40 h-auto bg-base-300 shadow-md flex items-center justify-center overflow-hidden rounded">
+                <img
+                  src={recipient_brand_image_url(@recipient, creator: @creator)}
+                  alt={@recipient.name || "Recipient"}
+                  class="object-contain w-full h-full"
+                />
+              </div>
+              <div class="text-base-content/70 text-sm text-center max-w-xs">
+                {@recipient.message ||
+                  "Thank you for supporting this content. Your Sponster tips are greatly appreciated!"}
+              </div>
+            </div>
+          <% else %>
+            <div class="text-base-content/50 text-center py-8">
+              No recipient configured for this page
+            </div>
+          <% end %>
         </div>
       </div>
     </div>
@@ -157,6 +266,7 @@ defmodule QlariusWeb.Components.SplitComponents do
   Full tip/split drawer content with InstaTip, AutoSplit, and Recipient sections.
   """
   attr :recipient, :map, required: true
+  attr :creator, :map, default: nil
   attr :wallet_balance, :any, required: true
   attr :split_amount, :integer, required: true
   attr :show, :boolean, default: false
@@ -219,15 +329,7 @@ defmodule QlariusWeb.Components.SplitComponents do
             <div class="flex flex-col items-center gap-2 md:gap-4">
               <div class="w-32 md:w-40 h-auto bg-base-300 shadow-md flex items-center justify-center overflow-hidden rounded">
                 <img
-                  src={
-                    if @recipient.graphic_url do
-                      QlariusWeb.Uploaders.RecipientBrandImage.url(
-                        {@recipient.graphic_url, @recipient}
-                      )
-                    else
-                      "/images/tipjar_love_default.png"
-                    end
-                  }
+                  src={recipient_brand_image_url(@recipient, creator: @creator)}
                   alt={@recipient.name || "Recipient"}
                   class="object-contain w-full h-full"
                 />

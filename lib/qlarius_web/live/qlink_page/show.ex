@@ -1178,6 +1178,7 @@ defmodule QlariusWeb.QlinkPage.Show do
   # and does not implement Access.
   attr :arqade_fullpane_dom_id, :any, default: nil
   attr :arqade_fullpane_closing?, :boolean, default: false
+  attr :creator, :map, default: nil
 
   def render_link(assigns) do
     cond do
@@ -1219,6 +1220,7 @@ defmodule QlariusWeb.QlinkPage.Show do
         <% true -> %>
           <.insta_tip_card
             recipient={@block_recipient}
+            creator={@creator}
             scope={@current_scope}
             wallet_balance={@current_scope && @current_scope.wallet_balance}
             offered_amount={@current_scope && @current_scope.offered_amount}

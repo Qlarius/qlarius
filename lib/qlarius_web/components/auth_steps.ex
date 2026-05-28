@@ -492,7 +492,7 @@ defmodule QlariusWeb.Components.AuthSteps do
     ~H"""
     <div class="space-y-6">
       <div>
-        <h2 class="text-2xl md:text-3xl font-bold mb-3 dark:text-white">Core Data Tags</h2>
+        <h2 class="text-2xl md:text-3xl font-bold mb-3 dark:text-white">Basic Data</h2>
       </div>
 
       <div class="form-control w-full">

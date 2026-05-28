@@ -64,6 +64,7 @@
           <.render_link
             link={link}
             recipient={@recipient}
+            creator={@page.creator}
             current_scope={@current_scope}
             socket={@socket}
             arqade_fullpane_dom_id={@arqade_fullpane_dom_id}
@@ -95,6 +96,7 @@
                   <.render_link
                     link={link}
                     recipient={@recipient}
+                    creator={@page.creator}
                     current_scope={@current_scope}
                     socket={@socket}
                     arqade_fullpane_dom_id={@arqade_fullpane_dom_id}
@@ -288,7 +290,7 @@
         <% else %>
           <div class="absolute inset-0 z-10 flex flex-col min-h-0 bg-base-100">
             <iframe
-              src="https://qadabra.co/app/sponster_info_default/"
+              src={QlariusWeb.Helpers.SponsterInfoIframe.src(:qlink)}
               class="w-full flex-1 min-h-0 border-0"
               title="What is Sponster?"
               loading="lazy"
@@ -411,13 +413,7 @@
                     <div class="flex flex-col items-center gap-2 md:gap-4">
                       <div class="w-32 md:w-40 h-auto bg-base-300 shadow-md flex items-center justify-center overflow-hidden rounded">
                         <img
-                          src={
-                            if @recipient.graphic_url do
-                              QlariusWeb.Uploaders.RecipientBrandImage.url({@recipient.graphic_url, @recipient})
-                            else
-                              "/images/tipjar_love_default.png"
-                            end
-                          }
+                          src={recipient_brand_image_url(@recipient, creator: @page.creator)}
                           alt={@recipient.name || "Recipient"}
                           class="object-contain w-full h-full"
                         />
