@@ -216,7 +216,7 @@ defmodule QlariusWeb.Layouts do
       >
         <.icon name="hero-wallet" class="size-[1.5em]" />
         <span class="dock-label">Wallet</span>
-        <span class="tabular-amount absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-400">
+        <span class="absolute left-1/2 ml-[4px] top-0 badge badge-xs rounded-full px-1 py-2 text-white !bg-sponster-400">
           {format_usd(@current_scope.wallet_balance)}
         </span>
       </button>

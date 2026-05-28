@@ -23,15 +23,15 @@ defmodule QlariusWeb.Components.LedgerAdEventDetails do
       </div>
       <div class="flex justify-between gap-2">
         <dt class="text-base-content/60">Sponster collect</dt>
-        <dd class="tabular-amount">{format_usd(ae.event_sponster_collect_amt)}</dd>
+        <dd>{format_usd(ae.event_sponster_collect_amt)}</dd>
       </div>
       <div class="flex justify-between gap-2">
         <dt class="text-base-content/60">Consumer collect</dt>
-        <dd class="tabular-amount">{format_usd(ae.event_me_file_collect_amt)}</dd>
+        <dd>{format_usd(ae.event_me_file_collect_amt)}</dd>
       </div>
       <div class="flex justify-between gap-2">
         <dt class="text-base-content/60">Marketer cost</dt>
-        <dd class="tabular-amount">{format_usd(ae.event_marketer_cost_amt)}</dd>
+        <dd>{format_usd(ae.event_marketer_cost_amt)}</dd>
       </div>
       <%= if ae.recipient_id do %>
         <div class="flex justify-between gap-2">
@@ -44,11 +44,11 @@ defmodule QlariusWeb.Components.LedgerAdEventDetails do
         </div>
         <div class="flex justify-between gap-2">
           <dt class="text-base-content/60">Recipient collect</dt>
-          <dd class="tabular-amount">{format_usd(ae.event_recipient_collect_amt)}</dd>
+          <dd>{format_usd(ae.event_recipient_collect_amt)}</dd>
         </div>
         <div class="flex justify-between gap-2">
           <dt class="text-base-content/60">Sponster → recipient</dt>
-          <dd class="tabular-amount">{format_usd(ae.event_sponster_to_recipient_amt)}</dd>
+          <dd>{format_usd(ae.event_sponster_to_recipient_amt)}</dd>
         </div>
       <% end %>
       <div class="flex justify-between gap-2">

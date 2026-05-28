@@ -124,7 +124,7 @@ defmodule QlariusWeb.Components.LedgerEntriesList do
                   />
                 </span>
                 <span class={[
-                  "tabular-amount text-lg font-bold",
+                  "text-lg font-bold",
                   if(Decimal.compare(entry.amt, 0) == :gt,
                     do: "text-sponster-500 dark:text-sponster-300",
                     else: "text-tiqit-500"
@@ -133,7 +133,7 @@ defmodule QlariusWeb.Components.LedgerEntriesList do
                   {format_currency(Decimal.abs(entry.amt))}
                 </span>
               </div>
-              <div class="tabular-amount text-base-content/50 text-sm">
+              <div class="text-base-content/50 text-sm">
                 {format_currency(entry.running_balance)}
               </div>
             </div>

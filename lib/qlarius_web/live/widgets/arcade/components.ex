@@ -263,6 +263,11 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   attr :id, :string, default: "wallet-balance-arcade-strip"
   attr :daily_gift_available?, :boolean, default: true
 
+  attr :parent_phx_id, :string,
+    default: nil,
+    doc:
+      "When set (inline embed), top-up Sponster pushes `open-sponster-drawer` to the hosting parent LV."
+
   def wallet_strip(assigns) do
     topup_total =
       topup_offer_total(assigns.offered_amount, assigns.daily_gift_available?)
@@ -315,6 +320,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                 phx-hook="WalletTopupOpenSponster"
                 data-popover-id={"#{@id}-topup"}
                 data-drawer-delay-ms="280"
+                data-parent-phx-id={@parent_phx_id}
               >
                 <%!-- `Sponster_logo_white_horiz.svg` is not shipped; color horiz is in priv/static/images. --%>
                 <img

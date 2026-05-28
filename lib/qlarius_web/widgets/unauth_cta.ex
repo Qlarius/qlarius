@@ -138,6 +138,10 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
     doc:
       "Target for the Connect `<.link>` when `on_click` is nil (e.g. `\"_self\"` for in-app login)."
 
+  attr :parent_phx_id, :string,
+    default: nil,
+    doc: "Hosting parent LiveView id for inline embed top-up → Sponster drawer routing."
+
   def wallet_strip_or_connect(assigns) do
     ~H"""
     <%= if authed?(@scope) do %>
@@ -147,6 +151,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
         offered_amount={@offered_amount}
         ads_count={@ads_count || 0}
         daily_gift_available?={@daily_gift_available?}
+        parent_phx_id={@parent_phx_id}
       />
     <% else %>
       <% connect_classes =

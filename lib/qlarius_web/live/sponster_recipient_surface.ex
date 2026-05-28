@@ -6,8 +6,8 @@ defmodule QlariusWeb.SponsterRecipientSurface do
   alias Qlarius.Sponster.Offers
   alias Qlarius.Sponster.Recipients
   alias Qlarius.Wallets
-  alias Qlarius.Wallets.MeFileStatsBroadcaster
   alias Qlarius.YouData.MeFiles.MeFile
+  alias QlariusWeb.WalletBalanceSync
 
   import QlariusWeb.Widgets.UnauthCTA, only: [authed?: 1]
 
@@ -92,18 +92,22 @@ defmodule QlariusWeb.SponsterRecipientSurface do
   end
 
   def subscribe(socket) do
-    if socket.assigns.current_scope && socket.assigns.current_scope.user do
-      me_file = socket.assigns.current_scope.user.me_file
-      user = socket.assigns.current_scope.user
+    socket = WalletBalanceSync.subscribe(socket)
 
-      if me_file do
-        MeFileStatsBroadcaster.subscribe_to_me_file_stats(me_file.id)
-        Phoenix.PubSub.subscribe(Qlarius.PubSub, "user:#{user.id}")
-        Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{user.id}")
-      end
+    if socket.assigns.current_scope && socket.assigns.current_scope.user do
+      Phoenix.PubSub.subscribe(Qlarius.PubSub, "user:#{socket.assigns.current_scope.user.id}")
     end
 
     socket
+  end
+
+  @doc "Opens the Sponster ad drawer if not already open (Qlink / Tiqit parent pages)."
+  def open_drawer(socket) do
+    if socket.assigns.show_sponster_drawer do
+      socket
+    else
+      ensure_sponster_drawer_open(socket)
+    end
   end
 
   def handle_event(event, params, socket) when event in @sponster_events do
@@ -117,12 +121,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
   end
 
   def handle_info(:open_sponster_drawer_from_embed, socket) do
-    {:handled,
-     if socket.assigns.show_sponster_drawer do
-       socket
-     else
-       ensure_sponster_drawer_open(socket)
-     end}
+    {:handled, open_drawer(socket)}
   end
 
   def handle_info(:show_collection_drawer, socket) do
@@ -201,35 +200,6 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     end
   end
 
-  def handle_info({:me_file_balance_updated, new_balance}, socket) do
-    if socket.assigns[:current_scope] do
-      current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-
-      {:handled,
-       socket
-       |> Phoenix.Component.assign(:current_scope, current_scope)
-       |> Phoenix.Component.assign(:current_balance, new_balance)}
-    else
-      {:handled, socket}
-    end
-  end
-
-  def handle_info(:update_balance, socket) do
-    user = socket.assigns[:current_scope] && socket.assigns.current_scope.user
-
-    if user do
-      new_balance = Wallets.get_user_current_balance(user)
-      current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-
-      {:handled,
-       socket
-       |> Phoenix.Component.assign(:current_scope, current_scope)
-       |> Phoenix.Component.assign(:current_balance, new_balance)}
-    else
-      {:handled, socket}
-    end
-  end
-
   def handle_info({:me_file_offers_updated, _me_file_id}, socket) do
     case socket.assigns[:current_scope] do
       %{user: %{me_file: %MeFile{} = me_file}} = scope ->
@@ -250,18 +220,6 @@ defmodule QlariusWeb.SponsterRecipientSurface do
 
   def handle_info({:me_file_pending_referral_clicks_updated, _count}, socket) do
     {:handled, socket}
-  end
-
-  def handle_info({:refresh_wallet_balance, _me_file_id}, socket) do
-    if socket.assigns[:current_scope] do
-      new_balance =
-        Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
-
-      current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-      {:handled, Phoenix.Component.assign(socket, :current_scope, current_scope)}
-    else
-      {:handled, socket}
-    end
   end
 
   def handle_info(_msg, _socket), do: :unhandled
@@ -476,11 +434,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
   end
 
   defp do_handle_event("open-sponster-drawer", _params, socket) do
-    if socket.assigns.show_sponster_drawer do
-      socket
-    else
-      ensure_sponster_drawer_open(socket)
-    end
+    open_drawer(socket)
   end
 
   defp do_handle_event("daily-gift", _params, socket) do

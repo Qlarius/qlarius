@@ -7,7 +7,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.Wallets
-  alias Qlarius.Wallets.MeFileStatsBroadcaster
 
   alias QlariusWeb.Layouts
 
@@ -103,11 +102,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       # otherwise a stable seeded placeholder prefixed with ~.
       pieces = Enum.map(pieces, &put_piece_display_duration/1)
 
-      if connected?(socket) && scope && scope.user do
-        Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{scope.user.id}")
-        MeFileStatsBroadcaster.subscribe_to_me_file_stats(scope.user.me_file.id)
-      end
-
       show_title = Map.get(params, "show_title", "true") != "false"
 
       # `inline?` is set by the parent LV when this module is
@@ -182,6 +176,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          tiqit_content_modal_leaving?: false,
          tiqit_content_modal_close_timer_ref: nil,
          embed_phx_id: session["embed_phx_id"],
+         parent_phx_id: session["parent_phx_id"],
          arqade_expand_parent?: is_pid(socket.parent_pid),
          fixed_viewport: in_app_group?,
          episode_search: "",
@@ -585,14 +580,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
        |> assign(:tiqit_content_modal_leaving?, false)
        |> assign(:tiqit_content_modal_close_timer_ref, nil)
        |> assign(:play_frame, nil)}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  def handle_info(:update_balance, socket) do
-    if socket.assigns[:mounted] do
-      {:noreply, refresh_scope_after_wallet_or_offer_event(socket)}
     else
       {:noreply, socket}
     end

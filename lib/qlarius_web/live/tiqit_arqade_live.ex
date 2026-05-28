@@ -67,6 +67,10 @@ defmodule QlariusWeb.TiqitArqadeLive do
   end
 
   @impl true
+  def handle_event("open-sponster-drawer", _params, socket) do
+    {:noreply, SponsterRecipientSurface.open_drawer(socket)}
+  end
+
   def handle_event(event, params, socket) do
     case SponsterRecipientSurface.handle_event(event, params, socket) do
       {:handled, socket} -> {:noreply, socket}
@@ -75,6 +79,10 @@ defmodule QlariusWeb.TiqitArqadeLive do
   end
 
   @impl true
+  def handle_info(:open_sponster_drawer_from_embed, socket) do
+    {:noreply, SponsterRecipientSurface.open_drawer(socket)}
+  end
+
   def handle_info(msg, socket) do
     case SponsterRecipientSurface.handle_info(msg, socket) do
       {:handled, socket} -> {:noreply, socket}

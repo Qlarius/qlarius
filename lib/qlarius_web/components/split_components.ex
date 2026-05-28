@@ -3,7 +3,7 @@ defmodule QlariusWeb.Components.SplitComponents do
   alias Phoenix.LiveView.JS
   import QlariusWeb.CoreComponents
   import QlariusWeb.Helpers.ImageHelpers, only: [recipient_brand_image_url: 2]
-  import QlariusWeb.Money, only: [format_usd: 1]
+  import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
 
   @doc """
   Tip shown above the split bar for new users (first 3 split-drawer opens).
@@ -124,12 +124,14 @@ defmodule QlariusWeb.Components.SplitComponents do
       <div class="flex min-h-0 flex-1 flex-col gap-3 md:gap-8 overflow-y-auto bg-base-200 px-4 md:px-8 pb-6 md:pb-12 pt-4 md:pt-6 max-w-3xl mx-auto md:!flex-row">
         <div class="flex-1 flex flex-col items-center md:items-start">
           <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
-          <div class="text-base-content/70 text-sm mb-2 md:mb-4">
+          <div class="text-base-content/70 text-sm mb-2 md:mb-4 inline-flex flex-wrap items-center gap-1">
             Instantly tip from your wallet
-            <.icon name="hero-arrow-right" class="w-4 h-4 inline-block" />
-            <span class="inline-flex items-center text-lg bg-sponster-200 text-base-content px-3 py-1 rounded-lg border border-sponster-300">
-              <span class="tabular-amount font-bold">{format_usd(@wallet_balance)}</span>
-            </span>
+            <.icon name="hero-arrow-right" class="w-4 h-4 inline-block shrink-0" />
+            <.wallet_balance
+              id="tip-split-drawer-wallet"
+              balance={@wallet_balance}
+              compact?={true}
+            />
           </div>
           <.insta_tip_button_group
             amounts={["0.25", "0.50", "1.00", "2.00"]}
@@ -306,12 +308,14 @@ defmodule QlariusWeb.Components.SplitComponents do
 
           <%!-- InstaTip Section --%>
           <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
-          <div class="text-base-content/70 text-sm mb-2 md:mb-4">
+          <div class="text-base-content/70 text-sm mb-2 md:mb-4 inline-flex flex-wrap items-center gap-1">
             Instantly tip from your wallet
-            <.icon name="hero-arrow-right" class="w-4 h-4 inline-block" />
-            <span class="inline-flex items-center text-lg bg-widget-100 text-widget-900 px-3 py-1 rounded-lg border border-widget-300">
-              <span class="font-bold">{format_usd(@wallet_balance)}</span>
-            </span>
+            <.icon name="hero-arrow-right" class="w-4 h-4 inline-block shrink-0" />
+            <.wallet_balance
+              id="tip-split-panel-wallet"
+              balance={@wallet_balance}
+              compact?={true}
+            />
           </div>
           <.insta_tip_button_group
             amounts={["0.25", "0.50", "1.00", "2.00"]}

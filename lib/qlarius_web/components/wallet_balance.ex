@@ -26,6 +26,7 @@ defmodule QlariusWeb.Components.WalletBalance do
     <span
       id={@id}
       phx-hook="WalletPulse"
+      data-wallet-balance={balance_string(@balance)}
       class={[
         "wallet-balance-pill",
         if(@compact?, do: "wallet-balance-pill--compact", else: "wallet-balance-pill--default"),
@@ -33,7 +34,7 @@ defmodule QlariusWeb.Components.WalletBalance do
         if(@anon_strobe?, do: "wallet-strip-anon-focus")
       ]}
     >
-      <span class="tabular-amount font-bold leading-tight inline-flex flex-wrap items-center justify-center gap-0">
+      <span class="font-bold leading-tight inline-flex flex-wrap items-center justify-center gap-0">
         <%= if @value_text not in [nil, ""] do %>
           <%= if @anon_strobe? do %>
             <span class="wallet-ready-throb whitespace-nowrap">
@@ -73,4 +74,8 @@ defmodule QlariusWeb.Components.WalletBalance do
     </span>
     """
   end
+
+  defp balance_string(%Decimal{} = balance), do: Decimal.to_string(balance)
+  defp balance_string(balance) when is_binary(balance), do: balance
+  defp balance_string(_), do: "0"
 end

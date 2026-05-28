@@ -183,6 +183,7 @@
                             offered_amount={@offered_amount}
                             ads_count={@current_scope && @current_scope.ads_count}
                             daily_gift_available?={@daily_gift_available?}
+                            parent_phx_id={@parent_phx_id}
                             on_click={
                               if QlariusWeb.Widgets.Arcade.ArcadeSingleLive.auth_sheet_enabled?(
                                    assigns

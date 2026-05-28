@@ -39,7 +39,7 @@
             <div class="flex justify-between items-center gap-3 pb-3">
               <dt class="text-sm text-base-content/60">Amount</dt>
               <dd class={[
-                "tabular-amount text-lg font-bold text-right",
+                "text-lg font-bold text-right",
                 if(Decimal.compare(@selected_entry.amt, Decimal.new(0)) == :gt,
                   do: "text-sponster-500",
                   else: "text-tiqit-500"

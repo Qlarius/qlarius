@@ -30,7 +30,8 @@
         "base_path" => "",
         "show_title" => false,
         "content_id" => @selected_piece_id,
-        "auth_sheet_host_enabled?" => QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns)
+        "auth_sheet_host_enabled?" => QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns),
+        "parent_phx_id" => @socket.id
       }
     )}
     </div>

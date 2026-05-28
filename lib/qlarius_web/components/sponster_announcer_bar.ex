@@ -76,7 +76,7 @@ defmodule QlariusWeb.Components.SponsterAnnouncerBar do
           ]}
         >
           <%= if @authed do %>
-            <span class="shrink-0 font-bold whitespace-nowrap tabular-amount">
+            <span class="shrink-0 font-bold whitespace-nowrap">
               {@ads_count} ads • {@offered}
             </span>
           <% else %>

@@ -3,10 +3,10 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
 
   import QlariusWeb.CoreComponents
   import QlariusWeb.Helpers.ImageHelpers, only: [recipient_brand_image_url: 2]
-  import QlariusWeb.Money, only: [format_usd: 1]
   import QlariusWeb.Components.AdsComponents
   import QlariusWeb.Components.SplitComponents
   import QlariusWeb.Components.SponsterAnnouncerBar
+  import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
   import QlariusWeb.Widgets.UnauthCTA
 
   alias QlariusWeb.Helpers.SponsterInfoIframe
@@ -316,14 +316,14 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                       <div class="divider my-2 md:my-4 w-full max-w-[280px] mx-auto"></div>
 
                       <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
-                      <div class="text-base-content/70 text-sm mb-2 md:mb-4">
+                      <div class="text-base-content/70 text-sm mb-2 md:mb-4 inline-flex flex-wrap items-center gap-1">
                         Instantly tip from your wallet
-                        <.icon name="hero-arrow-right" class="w-4 h-4 inline-block" />
-                        <span class="inline-flex items-center text-lg bg-sponster-200 text-base-content px-3 py-1 rounded-lg border border-sponster-300">
-                          <span class="tabular-amount font-bold">
-                            {format_usd(@current_scope.wallet_balance)}
-                          </span>
-                        </span>
+                        <.icon name="hero-arrow-right" class="w-4 h-4 inline-block shrink-0" />
+                        <.wallet_balance
+                          id={"#{@announcer_id_prefix}-tip-drawer-wallet"}
+                          balance={@current_scope.wallet_balance}
+                          compact?={true}
+                        />
                       </div>
                       <.insta_tip_button_group
                         amounts={["0.25", "0.50", "1.00", "2.00"]}

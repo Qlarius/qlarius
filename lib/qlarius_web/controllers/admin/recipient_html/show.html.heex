@@ -52,7 +52,7 @@
                 <span class="font-bold">Current Balance:</span>
                 <span class="text-green-700 font-mono">
                   <%= if @ledger_header do %>
-                    <span class="tabular-amount">
+                    <span>
                       {QlariusWeb.Money.format_usd(@ledger_header.balance)}
                     </span>
                   <% else %>
@@ -88,13 +88,13 @@
                         <td>{entry.description}</td>
                         <%!-- Changed from deprecated Decimal.cmp to Decimal.compare --%>
                         <td class={[
-                          "tabular-amount text-right",
+                          "text-right",
                           (Decimal.compare(entry.amt, 0) == :gt && "text-green-600") ||
                             "text-red-600"
                         ]}>
                           {QlariusWeb.Money.format_usd(entry.amt)}
                         </td>
-                        <td class="tabular-amount text-right">
+                        <td class="text-right">
                           {QlariusWeb.Money.format_usd(entry.running_balance)}
                         </td>
                       </tr>

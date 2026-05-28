@@ -7,7 +7,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.Wallets
-  alias Qlarius.Wallets.MeFileStatsBroadcaster
 
   alias QlariusWeb.Layouts
 
@@ -89,11 +88,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
       default_tiqit_class = ContentPiece.default_tiqit_class(piece)
 
-      if connected?(socket) && scope && scope.user do
-        Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{scope.user.id}")
-        MeFileStatsBroadcaster.subscribe_to_me_file_stats(scope.user.me_file.id)
-      end
-
       inline? = session["inline?"] == true
 
       # Parent LV's per-host AuthSheet decision, threaded through so
@@ -145,7 +139,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           show_tiqit_content_modal: false,
           tiqit_content_modal_leaving?: false,
           tiqit_content_modal_close_timer_ref: nil,
-          embed_phx_id: session["embed_phx_id"]
+          embed_phx_id: session["embed_phx_id"],
+          parent_phx_id: session["parent_phx_id"]
         )
         |> assign(scope_assigns(scope, group, catalog))
 
@@ -428,14 +423,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
        |> assign(:show_tiqit_content_modal, false)
        |> assign(:tiqit_content_modal_leaving?, false)
        |> assign(:tiqit_content_modal_close_timer_ref, nil)}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  def handle_info(:update_balance, socket) do
-    if socket.assigns[:mounted] do
-      {:noreply, refresh_scope_after_wallet_or_offer_event(socket)}
     else
       {:noreply, socket}
     end

@@ -6,14 +6,14 @@ defmodule QlariusWeb.QlinkPage.Show do
   alias Qlarius.Sponster.Offer
   alias Qlarius.Sponster.Offers
   alias Qlarius.Wallets
-  alias Qlarius.Wallets.MeFileStatsBroadcaster
+  alias QlariusWeb.WalletBalanceSync
 
   import Ecto.Query, except: [update: 2, update: 3]
-  import QlariusWeb.Money, only: [format_usd: 1]
   import QlariusWeb.Components.AdsComponents
   import QlariusWeb.Components.SplitComponents
   import QlariusWeb.InstaTipComponents
   import QlariusWeb.Components.SponsterAnnouncerBar
+  import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
 
   # Shared "View anywhere, Act only when authed" helpers —
   # authed?/1, connect_wallet_modal/1, etc. Same module the arqade
@@ -268,16 +268,13 @@ defmodule QlariusWeb.QlinkPage.Show do
   end
 
   defp subscribe_to_updates(socket) do
-    if socket.assigns.current_scope && socket.assigns.current_scope.user do
-      me_file = socket.assigns.current_scope.user.me_file
-      user = socket.assigns.current_scope.user
+    socket = WalletBalanceSync.subscribe(socket)
 
-      if me_file do
-        MeFileStatsBroadcaster.subscribe_to_me_file_stats(me_file.id)
-        Phoenix.PubSub.subscribe(Qlarius.PubSub, "user:#{user.id}")
-        Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{user.id}")
-      end
+    if socket.assigns.current_scope && socket.assigns.current_scope.user do
+      Phoenix.PubSub.subscribe(Qlarius.PubSub, "user:#{socket.assigns.current_scope.user.id}")
     end
+
+    socket
   end
 
   @impl true
@@ -835,37 +832,6 @@ defmodule QlariusWeb.QlinkPage.Show do
   end
 
   @impl true
-  def handle_info({:me_file_balance_updated, new_balance}, socket) do
-    if socket.assigns[:current_scope] do
-      current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-
-      {:noreply,
-       socket
-       |> assign(:current_scope, current_scope)
-       |> assign(:current_balance, new_balance)}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_info(:update_balance, socket) do
-    user = socket.assigns[:current_scope] && socket.assigns.current_scope.user
-
-    if user do
-      new_balance = Wallets.get_user_current_balance(user)
-      current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-
-      {:noreply,
-       socket
-       |> assign(:current_scope, current_scope)
-       |> assign(:current_balance, new_balance)}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  @impl true
   def handle_info({:me_file_offers_updated, _me_file_id}, socket) do
     case socket.assigns[:current_scope] do
       %{user: %{me_file: %MeFile{} = me_file}} = scope ->
@@ -887,19 +853,6 @@ defmodule QlariusWeb.QlinkPage.Show do
   @impl true
   def handle_info({:me_file_pending_referral_clicks_updated, _count}, socket) do
     {:noreply, socket}
-  end
-
-  @impl true
-  def handle_info({:refresh_wallet_balance, _me_file_id}, socket) do
-    if socket.assigns[:current_scope] do
-      new_balance =
-        Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
-
-      current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-      {:noreply, assign(socket, :current_scope, current_scope)}
-    else
-      {:noreply, socket}
-    end
   end
 
   defp ensure_sponster_drawer_open(socket) do
@@ -1467,7 +1420,8 @@ defmodule QlariusWeb.QlinkPage.Show do
         # lockstep with what the parent will actually render — otherwise
         # an `open_auth_sheet` event forwarded up to the parent could
         # fall on deaf ears when the parent's flag is off for this host.
-        "auth_sheet_host_enabled?" => auth_sheet_enabled?(assigns)
+        "auth_sheet_host_enabled?" => auth_sheet_enabled?(assigns),
+        "parent_phx_id" => assigns.socket.id
       }
       |> Map.merge(opts[:session_params] || %{})
 

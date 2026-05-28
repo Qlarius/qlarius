@@ -1746,7 +1746,12 @@ Hooks.WalletTopupOpenSponster = {
       const ms = parseInt(this.el.dataset.drawerDelayMs || "280", 10)
       this._timer = window.setTimeout(() => {
         this._timer = null
-        this.pushEvent("open-sponster-drawer", {})
+        const parentPhxId = this.el.dataset.parentPhxId
+        if (parentPhxId) {
+          this.pushEventTo(`#${parentPhxId}`, "open-sponster-drawer", {})
+        } else {
+          this.pushEvent("open-sponster-drawer", {})
+        }
       }, ms)
     }
     this.el.addEventListener("click", this._onClick)
