@@ -1149,6 +1149,12 @@ Hooks.QlinkSplitDisclaimerPeek = {
     }
   },
 
+  disclaimerSlot() {
+    // Scope to this panel so Tiqit + Qlink each measure their own slot.
+    return this.el.querySelector('[data-disclaimer-slot]') ||
+      document.getElementById('qlink-split-disclaimer-slot')
+  },
+
   syncDisclaimerPeekHeight() {
     const state = this.el.dataset.splitPanelState
     this.disconnectDisclaimerResizeObserver()
@@ -1159,26 +1165,29 @@ Hooks.QlinkSplitDisclaimerPeek = {
     }
 
     const apply = () => {
-      const slot = document.getElementById('qlink-split-disclaimer-slot')
+      const slot = this.disclaimerSlot()
       if (!slot) return
-      const h = Math.ceil(slot.getBoundingClientRect().height)
+      // scrollHeight is the content's natural height, independent of the
+      // slot's max-height open/close animation — so it's correct from the
+      // first frame and the panel transform animates straight to the right
+      // peek position instead of chasing the growing measured box height.
+      const h = Math.ceil(slot.scrollHeight)
       if (h > 0) {
         this.el.style.setProperty('--qlink-peek-disclaimer-px', `${h}px`)
       }
     }
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        apply()
-        const slot = document.getElementById('qlink-split-disclaimer-slot')
-        if (!slot || typeof ResizeObserver === 'undefined') return
-        this._resizeObserver = new ResizeObserver(() => {
-          if (this.el.dataset.splitPanelState !== 'peek') return
-          apply()
-        })
-        this._resizeObserver.observe(slot)
-      })
+    // Measure synchronously (before paint) so the very first open lands at the
+    // correct position; previously a 2-frame delay let the panel jump first.
+    apply()
+
+    const slot = this.disclaimerSlot()
+    if (!slot || typeof ResizeObserver === 'undefined') return
+    this._resizeObserver = new ResizeObserver(() => {
+      if (this.el.dataset.splitPanelState !== 'peek') return
+      apply()
     })
+    this._resizeObserver.observe(slot)
   }
 }
 

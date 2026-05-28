@@ -179,7 +179,7 @@
                           <.wallet_strip_or_connect
                             id="wallet-balance-arcade-single-main"
                             scope={@current_scope}
-                            balance={@balance}
+                            balance={@current_scope && @current_scope.wallet_balance}
                             offered_amount={@offered_amount}
                             ads_count={@current_scope && @current_scope.ads_count}
                             daily_gift_available?={@daily_gift_available?}

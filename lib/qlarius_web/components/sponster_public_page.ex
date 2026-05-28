@@ -165,6 +165,7 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                         current_scope={@current_scope}
                         host_uri={@host_uri}
                         recipient={@recipient}
+                        tip_only={@tip_only}
                       />
                     <% end %>
                   <% else %>
@@ -181,6 +182,7 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                           completed={offer.id in @completed_video_offers}
                           me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
                           recipient={@recipient}
+                          tip_only={@tip_only}
                         />
                       </ul>
                     <% end %>
@@ -210,12 +212,23 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
 
           <%= if @current_scope && @current_scope.user && @recipient do %>
             <%= if @tip_only do %>
+              <% tip_disclaimer_open? = @sponster_disclaimer_dock_visible %>
+              <% tip_panel_state =
+                cond do
+                  @show_split_drawer -> "open"
+                  @sponster_disclaimer_dock_visible -> "peek"
+                  true -> "recessed"
+                end %>
               <% tip_panel_slide =
-                if @show_split_drawer,
-                  do: "translate-y-0",
-                  else: "translate-y-[calc(100%-2.75rem+10px)]" %>
+                cond do
+                  @show_split_drawer -> "translate-y-0"
+                  @sponster_disclaimer_dock_visible -> "qlink-split-panel--peek"
+                  true -> "translate-y-[calc(100%-2.75rem+10px)]"
+                end %>
               <div
                 id={@split_panel_id}
+                phx-hook="QlinkSplitDisclaimerPeek"
+                data-split-panel-state={tip_panel_state}
                 class={[
                   "absolute inset-x-0 bottom-0 z-30 flex max-h-[90%] min-h-0 flex-col transition-transform duration-500 ease-out",
                   tip_panel_slide
@@ -228,6 +241,20 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                   <div class="pointer-events-auto shrink-0">
                     <.creator_tip_tab />
                   </div>
+                </div>
+                <div
+                  id={"#{@announcer_id_prefix}-split-disclaimer-slot"}
+                  data-disclaimer-slot
+                  class={[
+                    "w-full shrink-0 overflow-hidden transition-[max-height] duration-500 ease-out",
+                    if(tip_disclaimer_open?, do: "max-h-[10rem]", else: "max-h-0")
+                  ]}
+                  aria-hidden={if tip_disclaimer_open?, do: "false", else: "true"}
+                >
+                  <.ads_disclaimer_bar
+                    id={"#{@announcer_id_prefix}-ads-disclaimer-bar"}
+                    class="w-full shadow-sm"
+                  />
                 </div>
                 <.creator_tip_drawer_panel
                   recipient={@recipient}
@@ -279,6 +306,7 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                 </div>
                 <div
                   id={"#{@announcer_id_prefix}-split-disclaimer-slot"}
+                  data-disclaimer-slot
                   class={[
                     "w-full shrink-0 overflow-hidden transition-[max-height] duration-500 ease-out",
                     if(split_disclaimer_open?, do: "max-h-[10rem]", else: "max-h-0")

@@ -4,6 +4,7 @@ defmodule QlariusWeb.AdJumpPageHTML do
   attr :offer, :any, required: true
   attr :recipient_id, :string, default: nil
   attr :use_location_replace, :boolean, default: true
+  attr :autosplit_disabled, :boolean, default: false
 
   def jump(assigns) do
     ~H"""
@@ -15,6 +16,7 @@ defmodule QlariusWeb.AdJumpPageHTML do
       data-jump-url={@offer.media_piece.jump_url}
       data-csrf={Plug.CSRFProtection.get_csrf_token()}
       data-use-location-replace={to_string(@use_location_replace)}
+      data-autosplit-disabled={to_string(@autosplit_disabled)}
     >
       <%!-- Countdown UI (shown initially) --%>
       <div id="countdown-ui">
@@ -85,6 +87,7 @@ defmodule QlariusWeb.AdJumpPageHTML do
         const datasetJumpUrl = container.dataset.jumpUrl;
         const csrfToken = container.dataset.csrf;
         const useLocationReplace = container.dataset.useLocationReplace === 'true';
+        const autosplitDisabled = container.dataset.autosplitDisabled === 'true';
 
         const progressBar = document.getElementById('progress-bar');
         const countdown = document.getElementById('countdown');
@@ -149,7 +152,8 @@ defmodule QlariusWeb.AdJumpPageHTML do
             credentials: 'same-origin',
             body: JSON.stringify({
               offer_id: offerId,
-              recipient_id: recipientId
+              recipient_id: recipientId,
+              autosplit: autosplitDisabled ? '0' : undefined
             })
           }).then(async (response) => {
             let data = {};

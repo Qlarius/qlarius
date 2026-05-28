@@ -5,7 +5,6 @@ defmodule QlariusWeb.AdJumpPageController do
   alias Qlarius.Sponster.Offers
   alias Qlarius.Sponster.Ads.ThreeTap
   alias Qlarius.Sponster.Recipient
-  alias Qlarius.Wallets.MeFileStatsBroadcaster
 
   @doc """
   Renders the jump page with countdown. Payment is NOT processed here.
@@ -27,6 +26,7 @@ defmodule QlariusWeb.AdJumpPageController do
           layout: false,
           offer: offer,
           recipient_id: recipient_id,
+          autosplit_disabled: params["autosplit"] == "0",
           use_location_replace: use_location_replace?(conn)
         )
     end
@@ -51,9 +51,14 @@ defmodule QlariusWeb.AdJumpPageController do
         recipient =
           if recipient_id && recipient_id != "", do: Repo.get(Recipient, recipient_id), else: nil
 
-        # Get split_amount from the offer's me_file
         offer = Repo.preload(offer, me_file: [])
-        split_amount = (offer.me_file && offer.me_file.split_amount) || 0
+
+        split_amount =
+          if params["autosplit"] == "0" do
+            0
+          else
+            (offer.me_file && offer.me_file.split_amount) || 0
+          end
 
         # Get request info for ad event
         ip = get_client_ip(conn)
@@ -62,14 +67,6 @@ defmodule QlariusWeb.AdJumpPageController do
         # Create the jump ad event (processes payment) - this also enqueues the completion worker
         case ThreeTap.create_jump_ad_event(offer, recipient, split_amount, ip, host) do
           {:ok, _ad_event} ->
-            # Broadcast wallet balance update
-            MeFileStatsBroadcaster.broadcast_balance_updated(
-              offer.me_file_id,
-              Qlarius.Wallets.get_me_file_ledger_header_balance(offer.me_file)
-            )
-
-            MeFileStatsBroadcaster.broadcast_offers_updated(offer.me_file_id)
-
             conn
             |> put_status(:ok)
             |> json(%{success: true, jump_url: offer.media_piece.jump_url})

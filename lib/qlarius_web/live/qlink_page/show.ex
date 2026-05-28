@@ -718,6 +718,18 @@ defmodule QlariusWeb.QlinkPage.Show do
   end
 
   @impl true
+  def handle_info({:inline_arcade_embed_ready, pid}, socket) when is_pid(pid) do
+    {:noreply, WalletBalanceSync.register_inline_embed(socket, pid)}
+  end
+
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, socket) do
+    if ref == socket.assigns[:arcade_embed_monitor_ref] do
+      {:noreply, WalletBalanceSync.clear_inline_embed(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_info(:open_sponster_drawer_from_embed, socket) do
     {:noreply,
      if socket.assigns.show_sponster_drawer do

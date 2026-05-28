@@ -11,6 +11,7 @@ defmodule QlariusWeb.ThreeTapStackComponent do
 
   alias Qlarius.Sponster.Ads.ThreeTap
   alias Qlarius.YouData.StrongStart
+  alias QlariusWeb.WalletBalanceSync
   # Commented out unused alias - Component not directly referenced
   # alias Phoenix.Component
   # Commented out unused import - only used in commented update_ads_count function
@@ -29,6 +30,7 @@ defmodule QlariusWeb.ThreeTapStackComponent do
             target={@myself}
             current_scope={@current_scope}
             recipient={Map.get(assigns, :recipient)}
+            tip_only={Map.get(assigns, :tip_only, false)}
             force_light={Map.get(assigns, :force_light, false)}
           />
         </div>
@@ -67,10 +69,13 @@ defmodule QlariusWeb.ThreeTapStackComponent do
 
     {offer, phase} = Enum.find(socket.assigns.active_offers, fn {o, _p} -> o.id == offer_id end)
 
-    # Get split_amount from current_scope if available, or default to 0
+    # Tiqit pages pass tip_only: true — no AutoSplit on ad collections (InstaTip remains).
     split_amount =
-      (socket.assigns.current_scope.user.me_file &&
-         socket.assigns.current_scope.user.me_file.split_amount) || 0
+      if Map.get(socket.assigns, :tip_only, false),
+        do: 0,
+        else:
+          (socket.assigns.current_scope.user.me_file &&
+             socket.assigns.current_scope.user.me_file.split_amount) || 0
 
     handle_phase(socket, offer, phase, recipient, split_amount)
   end
@@ -80,19 +85,26 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   end
 
   defp handle_phase(socket, offer, 1, recipient, split_amount) do
-    ThreeTap.create_banner_ad_event(
-      offer,
-      recipient,
-      split_amount,
-      socket.assigns.user_ip,
-      socket.assigns.host_uri.host
-    )
+    result =
+      ThreeTap.create_banner_ad_event(
+        offer,
+        recipient,
+        split_amount,
+        socket.assigns.user_ip,
+        socket.assigns.host_uri.host
+      )
 
     me_file = socket.assigns.current_scope.user.me_file
     StrongStart.mark_step_complete(me_file, "first_ad_interacted")
 
-    send(self(), {:refresh_wallet_balance, socket.assigns.current_scope.user.me_file.id})
-    increment_phase(socket, offer.id)
+    # Banner collect runs in a LiveComponent on the parent LV; push an immediate
+    # refresh so the announcer footer updates even if me_file PubSub was missed.
+    socket = WalletBalanceSync.sync_host_after_ad_collection(socket)
+
+    case result do
+      {:ok, _} -> increment_phase(socket, offer.id)
+      {:error, _} -> increment_phase(socket, offer.id)
+    end
   end
 
   defp handle_phase(socket, offer, 2, _recipient, _split_amount) do

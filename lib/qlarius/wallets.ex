@@ -103,20 +103,28 @@ defmodule Qlarius.Wallets do
     phase_description = phase.desc
     campaign = Repo.get!(Campaign, ad_event.campaign_id) |> Repo.preload(:marketer)
     marketer_name = campaign.marketer.business_name
-    update_me_file_ledger_from_ad_event(ad_event, phase_description, marketer_name)
 
-    # Only update recipient ledger if there is a recipient_id
-    if ad_event.recipient_id do
-      update_recipient_ledger_from_ad_event(ad_event, phase_description)
+    with {:ok, new_balance} <-
+           update_me_file_ledger_from_ad_event(ad_event, phase_description, marketer_name) do
+      if ad_event.recipient_id do
+        update_recipient_ledger_from_ad_event(ad_event, phase_description)
+      end
+
+      update_campaign_ledger_from_ad_event(ad_event, phase_description)
+      update_sponster_ledger_from_ad_event(ad_event, phase_description, marketer_name)
+
+      MeFileStatsBroadcaster.broadcast_ad_event_collected(
+        ad_event.me_file_id,
+        new_balance,
+        offer_complete: ad_event.is_offer_complete
+      )
+
+      {:ok, new_balance}
     end
-
-    update_campaign_ledger_from_ad_event(ad_event, phase_description)
-    update_sponster_ledger_from_ad_event(ad_event, phase_description, marketer_name)
   end
 
   def update_me_file_ledger_from_ad_event(ad_event, phase_description, marketer_name) do
     Repo.transaction(fn ->
-      # Check if ledger entry already exists for this ad_event
       ledger_header = Repo.get_by!(LedgerHeader, me_file_id: ad_event.me_file_id)
 
       existing_ledger_entry =
@@ -141,7 +149,6 @@ defmodule Qlarius.Wallets do
 
         meta_1 = phase_description_to_meta_1(phase_description)
 
-        # Create a new ledger entry for the ad event
         %LedgerEntry{}
         |> LedgerEntry.changeset(%{
           ledger_header_id: ledger_header.id,
@@ -154,18 +161,19 @@ defmodule Qlarius.Wallets do
         })
         |> Repo.insert!()
 
-        # Update the ledger header
         ledger_header
         |> Ecto.Changeset.change(balance: new_balance, balance_payable: new_balance_payable)
         |> Repo.update!()
 
-        MeFileStatsBroadcaster.broadcast_balance_updated(
-          ad_event.me_file_id,
-          new_balance
-        )
+        {:ok, new_balance}
       end
     end)
+    |> normalize_transaction_result()
   end
+
+  defp normalize_transaction_result({:ok, {:ok, new_balance}}), do: {:ok, new_balance}
+  defp normalize_transaction_result({:ok, {:error, reason}}), do: {:error, reason}
+  defp normalize_transaction_result({:error, reason}), do: {:error, reason}
 
   def update_recipient_ledger_from_ad_event(ad_event, phase_description) do
     Repo.transaction(fn ->

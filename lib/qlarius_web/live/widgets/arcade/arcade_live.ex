@@ -7,6 +7,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.Wallets
+  alias QlariusWeb.WalletBalanceSync
 
   alias QlariusWeb.Layouts
 
@@ -77,16 +78,21 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   def mount(%{"group_id" => group_id} = params, session, socket) do
     if connected?(socket) and socket.assigns[:mounted] do
       scope = socket.assigns.current_scope
+      group = socket.assigns.group
+      pieces = socket.assigns.pieces || []
+
+      refreshed =
+        if scope && scope.true_user, do: Scope.for_user(scope.true_user), else: scope
 
       {:ok,
        socket
        |> assign(
-         balance: scope && scope.wallet_balance,
-         offered_amount: scope && scope.offered_amount,
-         arqade_expand_parent?: is_pid(socket.parent_pid),
-         daily_gift_available?:
-           if(scope && scope.user, do: Wallets.daily_gift_available?(scope.user), else: false)
-       )}
+         Map.merge(scope_assigns(refreshed, group, pieces), %{
+           current_scope: refreshed,
+           arqade_expand_parent?: is_pid(socket.parent_pid)
+         })
+       )
+       |> WalletBalanceSync.notify_inline_parent()}
     else
       scope = socket.assigns.current_scope
 
@@ -186,7 +192,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          slide_over_title: "Now playing"
        )
        |> assign(scope_assigns(scope, group, pieces))
-       |> maybe_init_selected_piece(inline?, session, params)}
+       |> maybe_init_selected_piece(inline?, session, params)
+       |> WalletBalanceSync.notify_inline_parent()}
     end
   end
 
@@ -644,6 +651,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       current_scope: updated_scope,
       valid_tiqit_piece_ids: Arcade.valid_piece_ids_for_group(updated_scope, group, pieces)
     )
+    |> WalletBalanceSync.notify_parent_wallet_update(balance)
   end
 
   defp refresh_scope_after_wallet_or_offer_event(socket) do

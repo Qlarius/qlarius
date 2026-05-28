@@ -15,8 +15,22 @@ defmodule QlariusWeb.OfferHTML do
 
   @phase_1_amount Decimal.new("0.05")
 
-  def jump_url(offer, nil), do: ~p"/jump/#{offer}"
-  def jump_url(offer, recipient), do: ~p"/jump/#{offer}?recipient_id=#{recipient.id}"
+  def jump_url(offer, recipient, opts \\ [])
+
+  def jump_url(offer, nil, _opts), do: ~p"/jump/#{offer}"
+
+  def jump_url(offer, recipient, opts) when not is_nil(recipient) do
+    query =
+      if Keyword.get(opts, :tip_only, false) do
+        "recipient_id=#{recipient.id}&autosplit=0"
+      else
+        "recipient_id=#{recipient.id}"
+      end
+
+    ~p"/jump/#{offer}?#{query}"
+  end
+
+  def jump_url(offer, _recipient, _opts), do: ~p"/jump/#{offer}"
 
   def offer_skeleton(assigns) do
     ~H"""
@@ -45,10 +59,9 @@ defmodule QlariusWeb.OfferHTML do
   attr :current_scope, :any, required: true
   # See docs/embedded_theming.md for force_light/pub_theme strategy
   attr :force_light, :boolean, default: false
+  attr :tip_only, :boolean, default: false
 
   def clickable_offer(assigns) do
-    # Variable extracted for potential future use but not currently referenced in template
-    _split_amount = assigns.current_scope.user.me_file.split_amount
     phase_2_amount = Decimal.sub(assigns.offer.offer_amt, @phase_1_amount)
     assigns = assign(assigns, :phase_2_amount, phase_2_amount)
     assigns = assign_new(assigns, :target, fn -> nil end)
@@ -120,7 +133,7 @@ defmodule QlariusWeb.OfferHTML do
       <div class="absolute inset-0 overflow-hidden" style="height: 150px;">
         <div class={"offer-phase phase-2 #{if @phase > 2, do: "hidden"}"}>
           <.offer_container offer={@offer} class="px-3 py-2" target={@target} recipient={@recipient}>
-            <a class="block w-full h-full" href={jump_url(@offer, @recipient)} target="_blank">
+            <a class="block w-full h-full" href={jump_url(@offer, @recipient, tip_only: @tip_only)} target="_blank">
               <div class={[
                 "truncate text-blue-600 font-bold text-lg underline",
                 if(!@force_light, do: "dark:text-blue-300")
@@ -163,7 +176,7 @@ defmodule QlariusWeb.OfferHTML do
             <div class="text-sm text-gray-400">
               Collected: <span class="font-semibold">{format_usd(me_file_collect_total)}</span>
             </div>
-            <%= if @recipient do %>
+            <%= if @recipient && !@tip_only do %>
               <div class="text-sm text-gray-400 -mt-1">
                 Given: <span class="font-semibold">{format_usd(recipient_collect_total)}</span>
               </div>

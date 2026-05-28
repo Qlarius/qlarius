@@ -23,16 +23,36 @@ defmodule Qlarius.Wallets.MeFileStatsBroadcaster do
       "#{@topic_prefix}#{me_file_id}",
       {:me_file_balance_updated, new_balance}
     )
+  end
 
-    # Keep LiveViews on "wallet:#{user_id}" (arqade, wallet widget) in sync with ledger changes
-    # that go through this broadcaster (ads, referrals, transfers, etc.)
+  @doc """
+  Refetch-only wallet sync for callers that don't have the new balance handy
+  (e.g. daily gift, generic ledger refresh).
+  """
+  def broadcast_wallet_refetch(user_id) when is_integer(user_id) do
+    PubSub.broadcast(Qlarius.PubSub, "wallet:#{user_id}", :update_balance)
+  end
+
+  @doc """
+  Notify LiveViews after an ad collection commits. Updates wallet balance,
+  me_file stats (ads_count, offered_amount, etc.), and offer lists when the
+  ad run is complete (3-tap phase 2, video, etc.).
+  """
+  def broadcast_ad_event_collected(me_file_id, new_balance, opts \\ []) do
+    broadcast_balance_updated(me_file_id, new_balance)
+    broadcast_stats_updated(me_file_id)
+
+    # Secondary channel for LiveViews subscribed on wallet:USER_ID only
     case user_id_for_me_file(me_file_id) do
-      user_id when is_integer(user_id) ->
-        PubSub.broadcast(Qlarius.PubSub, "wallet:#{user_id}", :update_balance)
-
-      _ ->
-        :ok
+      user_id when is_integer(user_id) -> broadcast_wallet_refetch(user_id)
+      _ -> :ok
     end
+
+    if Keyword.get(opts, :offer_complete, false) do
+      broadcast_offers_updated(me_file_id)
+    end
+
+    :ok
   end
 
   @doc """

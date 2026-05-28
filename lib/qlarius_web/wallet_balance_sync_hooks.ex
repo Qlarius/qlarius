@@ -27,8 +27,14 @@ defmodule QlariusWeb.WalletBalanceSyncHooks do
           {:halt, subscribe_once(socket)}
 
         msg, socket ->
-          if WalletBalanceSync.wallet_message?(msg) do
-            {:halt, WalletBalanceSync.handle_info_message(msg, socket)}
+          if WalletBalanceSync.sync_message?(msg) do
+            socket =
+              msg
+              |> WalletBalanceSync.handle_sync_message(socket)
+              |> WalletBalanceSync.notify_parent_after_sync()
+              |> WalletBalanceSync.forward_to_inline_embed(:update_balance)
+
+            {:halt, socket}
           else
             {:cont, socket}
           end
@@ -41,9 +47,24 @@ defmodule QlariusWeb.WalletBalanceSyncHooks do
     if Map.get(socket.private, @subscribe_key) do
       socket
     else
-      socket
-      |> WalletBalanceSync.subscribe()
-      |> put_private(@subscribe_key, true)
+      case wallet_user(socket) do
+        nil ->
+          Process.send_after(self(), @subscribe_msg, 10)
+          socket
+
+        _ ->
+          socket
+          |> WalletBalanceSync.subscribe()
+          |> put_private(@subscribe_key, true)
+      end
+    end
+  end
+
+  defp wallet_user(socket) do
+    case socket.assigns[:current_scope] do
+      %{user: %{id: _user_id, me_file: %{id: _me_file_id}}} -> :ok
+      %{user: %{id: _user_id}} -> :ok
+      _ -> nil
     end
   end
 end

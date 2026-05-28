@@ -1515,8 +1515,9 @@
     }
   }
 
-  /* Qlink split settings: peek lift matches measured disclaimer slot (`Hooks.QlinkSplitDisclaimerPeek`). */
-  #qlink-split-settings-panel.qlink-split-panel--peek {
+  /* Split/tip settings peek lift matches measured disclaimer slot (`Hooks.QlinkSplitDisclaimerPeek`).
+     Applies to both Qlink (#qlink-split-settings-panel) and Tiqit (#tiqit-creator-tip-panel). */
+  .qlink-split-panel--peek {
     transform: translateY(calc(100% - 2.75rem + 10px - var(--qlink-peek-disclaimer-px, 0px)));
   }
 

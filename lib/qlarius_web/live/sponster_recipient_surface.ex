@@ -3,7 +3,6 @@ defmodule QlariusWeb.SponsterRecipientSurface do
 
   alias Qlarius.Repo
   alias Qlarius.Sponster.Offer
-  alias Qlarius.Sponster.Offers
   alias Qlarius.Sponster.Recipients
   alias Qlarius.Wallets
   alias Qlarius.YouData.MeFiles.MeFile
@@ -40,6 +39,16 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     set_split
     split_reminder_dismiss
   )
+
+  @doc "Split pct applied to ad collections; 0 on Tiqit (tip-only) pages."
+  def ad_event_split_amount(socket) do
+    if socket.assigns[:tip_only?] do
+      0
+    else
+      (socket.assigns.current_scope.user.me_file &&
+         socket.assigns.current_scope.user.me_file.split_amount) || 0
+    end
+  end
 
   def init_assigns(socket, recipient, opts \\ []) do
     tip_only? = Keyword.get(opts, :tip_only?, false)
@@ -200,24 +209,6 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     end
   end
 
-  def handle_info({:me_file_offers_updated, _me_file_id}, socket) do
-    case socket.assigns[:current_scope] do
-      %{user: %{me_file: %MeFile{} = me_file}} = scope ->
-        ads_count = MeFile.ad_offer_count(me_file)
-        offered_amount = Offers.total_active_offer_amount(me_file)
-
-        current_scope =
-          scope
-          |> Map.put(:ads_count, ads_count)
-          |> Map.put(:offered_amount, offered_amount)
-
-        {:handled, Phoenix.Component.assign(socket, :current_scope, current_scope)}
-
-      _ ->
-        {:handled, socket}
-    end
-  end
-
   def handle_info({:me_file_pending_referral_clicks_updated, _count}, socket) do
     {:handled, socket}
   end
@@ -375,7 +366,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
 
       {offer, _rate} ->
         recipient = socket.assigns.recipient
-        split_amount = socket.assigns.current_scope.user.me_file.split_amount || 0
+        split_amount = ad_event_split_amount(socket)
         user_ip = socket.assigns[:user_ip] || "0.0.0.0"
 
         case Qlarius.Sponster.Ads.Video.create_video_ad_event(
@@ -451,6 +442,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
           socket
           |> Phoenix.Component.assign(:current_scope, current_scope)
           |> Phoenix.Component.assign(:current_balance, new_balance)
+          |> WalletBalanceSync.forward_to_inline_embed(:update_balance)
 
         {:error, :cooldown} ->
           socket
@@ -513,6 +505,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
         socket
         |> Phoenix.Component.assign(:current_scope, current_scope)
         |> Phoenix.Component.assign(:current_balance, new_balance)
+        |> WalletBalanceSync.forward_to_inline_embed(:update_balance)
         |> Phoenix.Component.assign(:show_insta_tip_modal, false)
         |> Phoenix.Component.assign(:insta_tip_amount, nil)
         |> Phoenix.Component.assign(:insta_tip_recipient, nil)
@@ -579,12 +572,9 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     |> maybe_schedule_disclaimer_dock_peek()
   end
 
+  # Disclaimer peek fires on every page (Tiqit + Qlink) when the ad drawer opens.
   defp maybe_schedule_disclaimer_dock_peek(socket) do
-    if socket.assigns[:tip_only?] do
-      socket
-    else
-      schedule_sponster_disclaimer_dock_peek(socket)
-    end
+    schedule_sponster_disclaimer_dock_peek(socket)
   end
 
   defp bump_sponster_disclaimer_dock_gen(socket) do

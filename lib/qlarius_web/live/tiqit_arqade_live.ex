@@ -4,6 +4,7 @@ defmodule QlariusWeb.TiqitArqadeLive do
   alias Qlarius.Repo
   alias Qlarius.Tiqit.Arcade.PublicPage
   alias QlariusWeb.SponsterRecipientSurface
+  alias QlariusWeb.WalletBalanceSync
 
   import QlariusWeb.Components.AdsComponents
   import QlariusWeb.Components.SponsterPublicPage, only: [sponster_stack: 1]
@@ -79,6 +80,18 @@ defmodule QlariusWeb.TiqitArqadeLive do
   end
 
   @impl true
+  def handle_info({:inline_arcade_embed_ready, pid}, socket) when is_pid(pid) do
+    {:noreply, WalletBalanceSync.register_inline_embed(socket, pid)}
+  end
+
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, socket) do
+    if ref == socket.assigns[:arcade_embed_monitor_ref] do
+      {:noreply, WalletBalanceSync.clear_inline_embed(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_info(:open_sponster_drawer_from_embed, socket) do
     {:noreply, SponsterRecipientSurface.open_drawer(socket)}
   end

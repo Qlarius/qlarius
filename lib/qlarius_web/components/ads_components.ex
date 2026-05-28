@@ -449,6 +449,8 @@ defmodule QlariusWeb.Components.AdsComponents do
   attr :show_replay_button, :boolean, required: true
   attr :closing, :boolean, default: false
   attr :has_bottom_dock, :boolean, default: true
+  # Stack above the sponster ad drawer (z-index: 62) on pages that host it (e.g. Tiqit).
+  attr :z_class, :string, default: "z-[60]"
   # See docs/embedded_theming.md for force_light/pub_theme strategy
   attr :force_light, :boolean, default: false
 
@@ -460,7 +462,8 @@ defmodule QlariusWeb.Components.AdsComponents do
         phx-hook="BodyScrollLock"
         data-body-scroll-lock="true"
         class={[
-          "fixed inset-x-0 bottom-0 z-[60] flex justify-center",
+          "fixed inset-x-0 bottom-0 flex justify-center",
+          @z_class,
           if(@closing, do: "animate-slide-down", else: "animate-slide-up")
         ]}
       >
@@ -759,6 +762,7 @@ defmodule QlariusWeb.Components.AdsComponents do
   # See docs/embedded_theming.md for force_light/pub_theme strategy
   attr :force_light, :boolean, default: false
   attr :surface_panel_row?, :boolean, default: false
+  attr :tip_only, :boolean, default: false
 
   def video_offer_list_item(assigns) do
     ~H"""
@@ -792,7 +796,7 @@ defmodule QlariusWeb.Components.AdsComponents do
             <div class="text-sm text-gray-400">
               Collected: <span class="font-semibold">{format_usd(me_file_collect_total)}</span>
             </div>
-            <%= if @recipient && recipient_collect_total do %>
+            <%= if @recipient && !@tip_only && recipient_collect_total do %>
               <div class="text-sm text-gray-400">
                 Given: <span class="font-semibold">{format_usd(recipient_collect_total)}</span>
               </div>
