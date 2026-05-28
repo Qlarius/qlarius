@@ -3,7 +3,10 @@ defmodule QlariusWeb.Components.SplitComponents do
   alias Phoenix.LiveView.JS
   import QlariusWeb.CoreComponents
   import QlariusWeb.Helpers.ImageHelpers, only: [recipient_brand_image_url: 2]
-  import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
+  # Module-qualified (not imported) to avoid a compile-time dependency cycle:
+  # QlariusWeb html helpers import SplitComponents, and CustomComponentsMobile
+  # uses those helpers — importing it here would close the loop and deadlock.
+  alias QlariusWeb.Components.CustomComponentsMobile
 
   @doc """
   Tip shown above the split bar for new users (first 3 split-drawer opens).
@@ -127,7 +130,7 @@ defmodule QlariusWeb.Components.SplitComponents do
           <div class="text-base-content/70 text-sm mb-2 md:mb-4 inline-flex flex-wrap items-center gap-1">
             Instantly tip from your wallet
             <.icon name="hero-arrow-right" class="w-4 h-4 inline-block shrink-0" />
-            <.wallet_balance
+            <CustomComponentsMobile.wallet_balance
               id="tip-split-drawer-wallet"
               balance={@wallet_balance}
               compact?={true}
@@ -311,7 +314,7 @@ defmodule QlariusWeb.Components.SplitComponents do
           <div class="text-base-content/70 text-sm mb-2 md:mb-4 inline-flex flex-wrap items-center gap-1">
             Instantly tip from your wallet
             <.icon name="hero-arrow-right" class="w-4 h-4 inline-block shrink-0" />
-            <.wallet_balance
+            <CustomComponentsMobile.wallet_balance
               id="tip-split-panel-wallet"
               balance={@wallet_balance}
               compact?={true}
