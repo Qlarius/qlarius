@@ -359,7 +359,7 @@
                                     target: "#arcade-pwa-detect"
                                   )
                                 }
-                                class="btn-widget btn-widget-emphasis btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5"
+                                class="btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5"
                               >
                                 <.icon name="hero-squares-2x2" class="h-6 w-6 shrink-0" />
                                 <span class="text-sm font-medium">Full purchase options</span>
@@ -375,7 +375,7 @@
                                     target: "#arcade-pwa-detect"
                                   )
                                 }
-                                class="btn-widget btn-widget-emphasis btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5"
+                                class="btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5"
                               >
                                 <.icon name="hero-gift" class="h-6 w-6 shrink-0" />
                                 <span class="text-sm font-medium">Share / Gift</span>
@@ -628,25 +628,27 @@
             >
               Tiqit Purchase Options
             </h2>
-            <div class="flex flex-row gap-4 items-start">
-              <div class="relative shrink-0">
-                <img
-                  src={purchase_image_url(desc.scope, @selected_piece, @group)}
-                  alt={if desc.scope == :piece, do: @selected_piece.title, else: @group.title}
-                  class="h-28 w-28 object-cover rounded-lg border border-base-300"
-                />
-              </div>
-              <div class="min-w-0 flex-1 text-left space-y-1">
-                <%= if desc.scope == :piece do %>
-                  <p class="text-sm text-base-content/60">{@group.title}</p>
-                  <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
-                    {@selected_piece.title}
-                  </h3>
-                <% else %>
-                  <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
-                    {@group.title}
-                  </h3>
-                <% end %>
+            <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+              <div class="flex flex-row items-center justify-center gap-4">
+                <div class="relative shrink-0">
+                  <img
+                    src={purchase_image_url(desc.scope, @selected_piece, @group)}
+                    alt={if desc.scope == :piece, do: @selected_piece.title, else: @group.title}
+                    class="h-28 w-28 object-cover rounded-lg border border-base-300"
+                  />
+                </div>
+                <div class="min-w-0 flex-1 text-left space-y-1">
+                  <%= if desc.scope == :piece do %>
+                    <p class="text-sm text-base-content/60">{@group.title}</p>
+                    <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
+                      {@selected_piece.title}
+                    </h3>
+                  <% else %>
+                    <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
+                      {@group.title}
+                    </h3>
+                  <% end %>
+                </div>
               </div>
             </div>
             <.tiqit_class_grid
@@ -657,25 +659,29 @@
               tiqit_up_catalog_credit={@tiqit_up_catalog_credit}
             />
           <% else %>
-            <div class="relative">
-              <img
-                src={purchase_image_url(desc.scope, @selected_piece, @group)}
-                alt={if desc.scope == :piece, do: @selected_piece.title, else: @group.title}
-                class="max-h-30 rounded-lg mx-auto"
-              />
+            <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+              <div class="flex flex-row items-center justify-center gap-4">
+                <div class="relative shrink-0">
+                  <img
+                    src={purchase_image_url(desc.scope, @selected_piece, @group)}
+                    alt={if desc.scope == :piece, do: @selected_piece.title, else: @group.title}
+                    class="h-28 w-28 object-cover rounded-lg border border-base-300"
+                  />
+                </div>
+                <div class="min-w-0 flex-1 text-left space-y-1">
+                  <%= if desc.scope == :piece do %>
+                    <p class="text-sm text-base-content/60">{@group.title}</p>
+                    <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
+                      {@selected_piece.title}
+                    </h3>
+                  <% else %>
+                    <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
+                      {@group.title}
+                    </h3>
+                  <% end %>
+                </div>
+              </div>
             </div>
-            <%= if desc.scope == :piece do %>
-              <h3 class="text-base-content/60 text-center mb-0">
-                {@group.title}
-              </h3>
-              <h2 class="text-xl font-bold text-base-content text-center">
-                {@selected_piece.title}
-              </h2>
-            <% else %>
-              <h2 class="text-xl font-bold text-base-content text-center">
-                {@group.title}
-              </h2>
-            <% end %>
             <p class="text-base-content/60 text-center">
               <%= if @selected_tiqit_class.duration_hours do %>
                 You are purchasing access to the
@@ -760,12 +766,18 @@
       show={@show_share_gift_modal}
       on_cancel={JS.push("close-share-gift-modal")}
     >
-      <div class="flex flex-col space-y-4 p-8">
-        <h2 id="share-gift-modal-title" class="text-xl font-bold text-base-content text-center">
+      <div class="flex flex-col p-8">
+        <div class={"mx-auto flex w-full flex-col items-center gap-4 #{if @share_gift_mode == "share", do: "max-w-[400px]", else: ""}"}>
+        <h2
+          id="share-gift-modal-title"
+          tabindex="-1"
+          phx-mounted={JS.focus(to: "#share-gift-modal-title")}
+          class="text-xl font-bold text-base-content text-center outline-none"
+        >
           Share or gift this content
         </h2>
 
-        <.pill_join_selector label="Share or gift" class="w-full max-w-md mx-auto">
+        <.pill_join_selector label="Share or gift" class="mx-auto w-fit min-w-max">
           <.pill_join_item
             active={@share_gift_mode == "share"}
             phx-click="share-gift-set-mode"
@@ -820,69 +832,83 @@
             if @share_gift_mode == "share" && @share_gift_share_target == "content_group",
               do: :group,
               else: :piece %>
-          <div class="flex flex-row gap-4 items-start">
-            <div class="relative shrink-0">
-              <img
-                src={purchase_image_url(share_header_scope, @selected_piece, @group)}
-                alt={
-                  if share_header_scope == :piece,
-                    do: @selected_piece.title,
-                    else: @group.title
-                }
-                class="h-28 w-28 object-cover rounded-lg border border-base-300"
-              />
-            </div>
-            <div class="min-w-0 flex-1 text-left space-y-1">
-              <%= if share_header_scope == :piece do %>
-                <p class="text-sm text-base-content/60">{@group.title}</p>
-                <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
-                  {@selected_piece.title}
-                </h3>
-              <% else %>
-                <p class="text-sm text-base-content/60">{@group.catalog.name}</p>
-                <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
-                  {@group.title}
-                </h3>
-              <% end %>
+          <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+            <div class="flex flex-row items-center justify-center gap-4">
+              <div class="relative shrink-0">
+                <img
+                  src={purchase_image_url(share_header_scope, @selected_piece, @group)}
+                  alt={
+                    if share_header_scope == :piece,
+                      do: @selected_piece.title,
+                      else: @group.title
+                  }
+                  class="h-28 w-28 object-cover rounded-lg border border-base-300"
+                />
+              </div>
+              <div class="min-w-0 flex-1 text-left space-y-1">
+                <%= if share_header_scope == :piece do %>
+                  <p class="text-sm text-base-content/60">{@group.title}</p>
+                  <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
+                    {@selected_piece.title}
+                  </h3>
+                <% else %>
+                  <p class="text-sm text-base-content/60">{@group.catalog.name}</p>
+                  <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
+                    {@group.title}
+                  </h3>
+                <% end %>
+              </div>
             </div>
           </div>
 
           <%= if @share_gift_mode == "share" do %>
-            <p class="text-base-content/60 text-center">
+            <p class="max-w-[360px] text-base-content/60 text-center">
               Recommend this content. No payment — your friend can buy or unlock it themselves.
             </p>
-            <div class="flex flex-col gap-2 max-w-md mx-auto w-full">
-              <button
+            <div class="mx-auto grid w-full max-w-md grid-cols-2 gap-2">
+              <label
                 :if={@selected_piece}
-                type="button"
-                phx-click="share-gift-set-target"
-                phx-value-target="content_piece"
                 class={[
-                  "btn-widget btn-md flex w-full flex-row items-center gap-3 rounded-full px-4 py-3.5 text-left",
+                  "label cursor-pointer justify-start gap-3 rounded-lg border px-3 py-2",
                   @share_gift_share_target == "content_piece" &&
-                    "ring-2 ring-primary ring-offset-1 bg-primary/10"
+                    "border-primary bg-primary/10",
+                  @share_gift_share_target != "content_piece" &&
+                    "border-base-300"
                 ]}
               >
-                <.icon name="hero-play-circle" class="h-5 w-5 shrink-0" />
-                <span class="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">
-                  This {to_string(@group.catalog.piece_type)}: {@selected_piece.title}
+                <input
+                  type="radio"
+                  name="share-target"
+                  class="radio radio-sm"
+                  checked={@share_gift_share_target == "content_piece"}
+                  phx-click="share-gift-set-target"
+                  phx-value-target="content_piece"
+                />
+                <span class="label-text text-sm">
+                  This {to_string(@group.catalog.piece_type)}
                 </span>
-              </button>
-              <button
-                type="button"
-                phx-click="share-gift-set-target"
-                phx-value-target="content_group"
+              </label>
+              <label
                 class={[
-                  "btn-widget btn-md flex w-full flex-row items-center gap-3 rounded-full px-4 py-3.5 text-left",
+                  "label cursor-pointer justify-start gap-3 rounded-lg border px-3 py-2",
                   @share_gift_share_target == "content_group" &&
-                    "ring-2 ring-primary ring-offset-1 bg-primary/10"
+                    "border-primary bg-primary/10",
+                  @share_gift_share_target != "content_group" &&
+                    "border-base-300"
                 ]}
               >
-                <.icon name="hero-squares-2x2" class="h-5 w-5 shrink-0" />
-                <span class="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">
-                  Entire {to_string(@group.catalog.group_type)}: {@group.title}
+                <input
+                  type="radio"
+                  name="share-target"
+                  class="radio radio-sm"
+                  checked={@share_gift_share_target == "content_group"}
+                  phx-click="share-gift-set-target"
+                  phx-value-target="content_group"
+                />
+                <span class="label-text text-sm">
+                  Full {to_string(@group.catalog.group_type)}
                 </span>
-              </button>
+              </label>
             </div>
             <div class="flex items-center">
               <button
@@ -894,7 +920,7 @@
               </button>
             </div>
           <% else %>
-            <p class="text-base-content/60 text-center">
+            <p class="max-w-[420px] text-base-content/60 text-center">
               Prepay a Tiqit and leave it at will call. Your friend has 48 hours to claim it.
             </p>
             <.tiqit_class_grid
@@ -925,6 +951,7 @@
 
         <div class="flex justify-center mt-2">
           <img src="/images/TIQIT_logo_color_square.svg" alt="Tiqit" class="h-8 w-auto" />
+        </div>
         </div>
       </div>
     </.modal>

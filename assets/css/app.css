@@ -1985,9 +1985,7 @@
     background-color: var(--color-base-300) !important;
     color: var(--color-primary) !important;
     font-weight: 600;
-    box-shadow:
-      0 1px 2px rgb(0 0 0 / 0.1),
-      inset 0 1px 0 rgb(255 255 255 / 0.05);
+    box-shadow: none;
   }
 
   html[data-theme="dark"] .pill-join-selector .join-item.btn {
@@ -1998,9 +1996,7 @@
   html[data-theme="dark"] .pill-join-selector .join-item.btn.btn-active {
     background-color: var(--color-base-300) !important;
     color: var(--color-primary) !important;
-    box-shadow:
-      0 1px 3px rgb(0 0 0 / 0.35),
-      inset 0 1px 0 rgb(255 255 255 / 0.06);
+    box-shadow: none;
   }
 
   /*

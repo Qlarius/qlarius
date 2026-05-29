@@ -237,25 +237,27 @@
           >
             Tiqit Purchase Options
           </h2>
-          <div class="flex flex-row gap-4 items-start">
-            <div class="relative shrink-0">
-              <img
-                src={purchase_image_url(desc.scope, @piece, @group)}
-                alt={if desc.scope == :piece, do: @piece.title, else: @group.title}
-                class="h-28 w-28 object-cover rounded-lg border border-base-300"
-              />
-            </div>
-            <div class="min-w-0 flex-1 text-left space-y-1">
-              <%= if desc.scope == :piece do %>
-                <p class="text-sm text-base-content/60">{@group.title}</p>
-                <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
-                  {@piece.title}
-                </h3>
-              <% else %>
-                <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
-                  {@group.title}
-                </h3>
-              <% end %>
+          <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+            <div class="flex flex-row items-center justify-center gap-4">
+              <div class="relative shrink-0">
+                <img
+                  src={purchase_image_url(desc.scope, @piece, @group)}
+                  alt={if desc.scope == :piece, do: @piece.title, else: @group.title}
+                  class="h-28 w-28 object-cover rounded-lg border border-base-300"
+                />
+              </div>
+              <div class="min-w-0 flex-1 text-left space-y-1">
+                <%= if desc.scope == :piece do %>
+                  <p class="text-sm text-base-content/60">{@group.title}</p>
+                  <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
+                    {@piece.title}
+                  </h3>
+                <% else %>
+                  <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
+                    {@group.title}
+                  </h3>
+                <% end %>
+              </div>
             </div>
           </div>
           <.tiqit_class_grid
@@ -266,25 +268,29 @@
             tiqit_up_catalog_credit={@tiqit_up_catalog_credit}
           />
         <% else %>
-          <div class="relative">
-            <img
-              src={purchase_image_url(desc.scope, @piece, @group)}
-              alt={if desc.scope == :piece, do: @piece.title, else: @group.title}
-              class="max-h-30 rounded-lg mx-auto"
-            />
+          <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+            <div class="flex flex-row items-center justify-center gap-4">
+              <div class="relative shrink-0">
+                <img
+                  src={purchase_image_url(desc.scope, @piece, @group)}
+                  alt={if desc.scope == :piece, do: @piece.title, else: @group.title}
+                  class="h-28 w-28 object-cover rounded-lg border border-base-300"
+                />
+              </div>
+              <div class="min-w-0 flex-1 text-left space-y-1">
+                <%= if desc.scope == :piece do %>
+                  <p class="text-sm text-base-content/60">{@group.title}</p>
+                  <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
+                    {@piece.title}
+                  </h3>
+                <% else %>
+                  <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
+                    {@group.title}
+                  </h3>
+                <% end %>
+              </div>
+            </div>
           </div>
-          <%= if desc.scope == :piece do %>
-            <h3 class="text-base-content/60 text-center mb-0">
-              {@group.title}
-            </h3>
-            <h2 class="text-xl font-bold text-base-content text-center">
-              {@piece.title}
-            </h2>
-          <% else %>
-            <h2 class="text-xl font-bold text-base-content text-center">
-              {@group.title}
-            </h2>
-          <% end %>
           <p class="text-base-content/60 text-center">
             <%= if @selected_tiqit_class.duration_hours do %>
               You are purchasing access to the
