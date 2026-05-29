@@ -116,7 +116,13 @@ defmodule QlariusWeb.InstaTipComponents do
 
   def insta_tip_modal(assigns) do
     ~H"""
-    <.modal :if={@show} id="insta-tip-modal" show on_cancel={JS.push("close-insta-tip-modal")}>
+    <.modal
+      :if={@show}
+      id="insta-tip-modal"
+      show
+      border_class="border border-widget-700"
+      on_cancel={JS.push("close-insta-tip-modal")}
+    >
       <div class="text-center space-y-6 p-8">
         <div class="space-y-4">
           <h2 class="text-xl font-bold text-base-content">Confirm Tip</h2>
@@ -180,6 +186,7 @@ defmodule QlariusWeb.InstaTipComponents do
       :if={@show}
       id="insta-tip-thanks-modal"
       show
+      border_class="border border-widget-700"
       on_cancel={JS.push("close-insta-tip-thanks-modal")}
     >
       <div class="text-center space-y-6 p-8">

@@ -715,6 +715,7 @@ defmodule QlariusWeb.CoreComponents do
   attr :id, :string, required: true
   attr :show, :boolean, default: false
   attr :on_cancel, JS, default: %JS{}
+  attr :border_class, :string, default: "border border-base-300"
   slot :inner_block, required: true
 
   def modal(assigns) do
@@ -750,7 +751,10 @@ defmodule QlariusWeb.CoreComponents do
               phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
               phx-key="escape"
               phx-click-away={JS.exec("data-cancel", to: "##{@id}")}
-              class="relative hidden bg-base-100 rounded-box shadow-2xl border border-base-300 transition-all duration-200"
+              class={[
+                "relative hidden bg-base-100 rounded-box shadow-2xl transition-all duration-200",
+                @border_class
+              ]}
             >
               <!-- Close Button -->
               <div class="absolute top-4 right-4 z-10">

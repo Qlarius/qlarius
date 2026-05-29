@@ -543,14 +543,16 @@
             #{if @gift_piece_id && piece.id == @gift_piece_id, do: "ring-2 ring-primary ring-offset-1", else: ""}"}
                 >
                   <%= if @group.show_piece_thumbnails do %>
-                    <%!-- Thumb width tracks the list row (embed), not viewport sm/md. --%>
-                    <div class="shrink-0 self-start w-[clamp(3.25rem,23%,5rem)] max-w-[36%] aspect-square overflow-hidden rounded-md">
+                    <%!-- Thumb width tracks the list row (embed), not viewport sm/md.
+                          Image shape mirrors the selected-piece image: full image,
+                          own aspect ratio, no crop. --%>
+                    <div class="shrink-0 self-start w-[clamp(3.25rem,23%,5rem)] max-w-[36%]">
                       <img
                         src={content_image_url(piece, @group)}
                         alt={piece.title}
                         loading="lazy"
                         decoding="async"
-                        class="h-full w-full object-cover"
+                        class="block w-full h-auto rounded-lg object-contain"
                       />
                     </div>
                   <% end %>
@@ -616,6 +618,7 @@
       <.modal
         :if={@selected_tiqit_class}
         id="confirm-purchase-modal"
+        border_class="border border-widget-700"
         on_cancel={JS.push("close-confirm-purchase-modal")}
         show
       >
@@ -634,7 +637,7 @@
                   <img
                     src={purchase_image_url(desc.scope, @selected_piece, @group)}
                     alt={if desc.scope == :piece, do: @selected_piece.title, else: @group.title}
-                    class="h-28 w-28 object-cover rounded-lg border border-base-300"
+                    class="block w-28 h-auto object-contain rounded-lg"
                   />
                 </div>
                 <div class="min-w-0 flex-1 text-left space-y-1">
@@ -665,7 +668,7 @@
                   <img
                     src={purchase_image_url(desc.scope, @selected_piece, @group)}
                     alt={if desc.scope == :piece, do: @selected_piece.title, else: @group.title}
-                    class="h-28 w-28 object-cover rounded-lg border border-base-300"
+                    class="block w-28 h-auto object-contain rounded-lg"
                   />
                 </div>
                 <div class="min-w-0 flex-1 text-left space-y-1">
@@ -764,6 +767,7 @@
       :if={@show_share_gift_modal}
       id="share-gift-modal"
       show={@show_share_gift_modal}
+      border_class="border border-widget-700"
       on_cancel={JS.push("close-share-gift-modal")}
     >
       <div class="flex flex-col p-8">
@@ -842,7 +846,7 @@
                       do: @selected_piece.title,
                       else: @group.title
                   }
-                  class="h-28 w-28 object-cover rounded-lg border border-base-300"
+                  class="block w-28 h-auto object-contain rounded-lg"
                 />
               </div>
               <div class="min-w-0 flex-1 text-left space-y-1">

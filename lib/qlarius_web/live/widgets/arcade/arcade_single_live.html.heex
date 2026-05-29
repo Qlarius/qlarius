@@ -225,6 +225,7 @@
     <.modal
       :if={@selected_tiqit_class}
       id="confirm-purchase-modal"
+      border_class="border border-widget-700"
       on_cancel={JS.push("close-confirm-purchase-modal")}
       show
     >
@@ -243,7 +244,7 @@
                 <img
                   src={purchase_image_url(desc.scope, @piece, @group)}
                   alt={if desc.scope == :piece, do: @piece.title, else: @group.title}
-                  class="h-28 w-28 object-cover rounded-lg border border-base-300"
+                  class="block w-28 h-auto object-contain rounded-lg"
                 />
               </div>
               <div class="min-w-0 flex-1 text-left space-y-1">
@@ -274,7 +275,7 @@
                 <img
                   src={purchase_image_url(desc.scope, @piece, @group)}
                   alt={if desc.scope == :piece, do: @piece.title, else: @group.title}
-                  class="h-28 w-28 object-cover rounded-lg border border-base-300"
+                  class="block w-28 h-auto object-contain rounded-lg"
                 />
               </div>
               <div class="min-w-0 flex-1 text-left space-y-1">
