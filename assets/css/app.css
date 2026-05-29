@@ -1516,9 +1516,14 @@
   }
 
   /* Split/tip settings peek lift matches measured disclaimer slot (`Hooks.QlinkSplitDisclaimerPeek`).
-     Applies to both Qlink (#qlink-split-settings-panel) and Tiqit (#tiqit-creator-tip-panel). */
+     Applies to both Qlink (#qlink-split-settings-panel) and Tiqit (#tiqit-creator-tip-panel).
+     Must use the `translate` property (not `transform`): the recessed/open states use Tailwind v4
+     `translate-y-*` utilities, which compile to `translate`. Mixing `transform` here made the
+     drawer-open transition snap the panel too high, because removing the utility's `translate`
+     value is instant while only `transform` animated. Keeping the same property lets
+     `transition-transform` (which covers transform/translate/scale/rotate in v4) interpolate. */
   .qlink-split-panel--peek {
-    transform: translateY(calc(100% - 2.75rem + 10px - var(--qlink-peek-disclaimer-px, 0px)));
+    translate: 0 calc(100% - 2.75rem + 10px - var(--qlink-peek-disclaimer-px, 0px));
   }
 
   /*
