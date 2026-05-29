@@ -338,6 +338,115 @@ defmodule QlariusWeb.TiqitComponents do
     """
   end
 
+  attr :gift, :any, required: true
+  attr :user, :any, default: nil
+
+  def gifted_tiqit_card(assigns) do
+    gift = assigns.gift
+    invitation = gift.share_invitation
+
+    {status_label, status_class} = gift_status_display(gift.will_call_status)
+
+    title =
+      cond do
+        gift.content_piece && gift.content_piece.title -> gift.content_piece.title
+        gift.content_group && gift.content_group.title -> gift.content_group.title
+        true -> "Gift"
+      end
+
+    scope_label = if gift.content_group, do: gift.content_group.title, else: ""
+
+    assigns =
+      assigns
+      |> assign(:invitation, invitation)
+      |> assign(:status_label, status_label)
+      |> assign(:status_class, status_class)
+      |> assign(:title, title)
+      |> assign(:scope_label, scope_label)
+      |> assign(:image_url, gift_image_url(gift))
+      |> assign(:amount_label, format_gift_amount(gift.amount))
+      |> assign(:tiqit_card_shell_class, @tiqit_card_shell_class)
+
+    ~H"""
+    <div class={[@tiqit_card_shell_class, "border border-base-300/50 bg-base-100 p-4"]}>
+      <div class="flex items-start gap-3">
+        <img
+          src={@image_url}
+          alt=""
+          class="h-20 w-20 shrink-0 rounded-lg border border-base-300/50 object-cover"
+        />
+        <div class="min-w-0 flex-1 text-left">
+          <div class="mb-1 flex items-center gap-2">
+            <span class="badge badge-sm gap-1 !border-0 !bg-primary !text-primary-content">
+              <.icon name="hero-gift-mini" class="h-3.5 w-3.5" /> Gifted
+            </span>
+            <span class={["badge badge-sm", @status_class]}>{@status_label}</span>
+          </div>
+          <div
+            :if={@scope_label != "" && @scope_label != @title}
+            class="text-xs font-extralight uppercase tracking-widest text-base-content/55"
+          >
+            {@scope_label}
+          </div>
+          <div class="text-base font-semibold leading-snug">{@title}</div>
+          <div class="mt-0.5 text-sm text-base-content/50">{@amount_label} prepaid</div>
+
+          <div
+            :if={@gift.will_call_status in ["at_will_call", "claim_check_required"]}
+            class="mt-1 text-sm text-base-content/55"
+          >
+            <%= if @invitation && @invitation.gift_expires_at &&
+                   DateTime.compare(@invitation.gift_expires_at, DateTime.utc_now()) == :gt do %>
+              Claim window ends in{" "}
+              <span class="text-base-content/80">
+                <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={
+                  @invitation.gift_expires_at
+                } />
+              </span>
+            <% else %>
+              Awaiting pickup
+            <% end %>
+          </div>
+
+          <div
+            :if={@gift.will_call_status == "expired"}
+            class="mt-1 text-sm text-base-content/55"
+          >
+            Unclaimed — amount refunded to your wallet
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp gift_status_display("picked_up"), do: {"Claimed", "badge-success"}
+  defp gift_status_display("expired"), do: {"Expired", "badge-ghost"}
+  defp gift_status_display("pulled"), do: {"Withdrawn", "badge-ghost"}
+  defp gift_status_display(_), do: {"Awaiting pickup", "badge-warning"}
+
+  defp gift_image_url(gift) do
+    cond do
+      gift.content_piece && gift.content_group ->
+        content_image_url(gift.content_piece, gift.content_group)
+
+      gift.content_piece ->
+        content_image_url(gift.content_piece, nil)
+
+      gift.content_group ->
+        group_image_url(gift.content_group)
+
+      true ->
+        placeholder_image_url()
+    end
+  end
+
+  defp format_gift_amount(nil), do: "$0.00"
+
+  defp format_gift_amount(%Decimal{} = amount) do
+    "$" <> (amount |> Decimal.round(2) |> Decimal.to_string())
+  end
+
   attr :disconnect_reason, :atom, default: :fleeted
 
   def tiqit_fleeted_card(assigns) do

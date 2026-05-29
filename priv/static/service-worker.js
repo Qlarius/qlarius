@@ -1,11 +1,9 @@
-// Version: 1.0.4 - Bypass HTTP cache for /assets/ in PWA; keep referral cache isolated
-const SW_VERSION = "1.0.4"
+// Version: 1.0.5 - Conservative SW activation to avoid forced LV remounts
+const SW_VERSION = "1.0.5"
 const REFERRAL_CACHE = "qadabra-shared-data"
 const REFERRAL_CODE_ENDPOINT = "/_shared/referral-code"
 
-self.addEventListener("install", (event) => {
-  self.skipWaiting()
-})
+self.addEventListener("install", () => {})
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
@@ -16,20 +14,13 @@ self.addEventListener("activate", (event) => {
           .filter((key) => key !== REFERRAL_CACHE)
           .map((key) => caches.delete(key))
       )
-      await self.clients.claim()
-      const clients = await self.clients.matchAll({ type: "window" })
-      for (const client of clients) {
-        client.postMessage({ type: "APP_UPDATED", version: SW_VERSION })
-      }
+      // Intentionally no clients.claim(): let new SW control on next navigation.
+      // This avoids surprise takeovers that can force LiveView remount/reload loops.
     })()
   )
 })
 
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
-    self.skipWaiting()
-  }
-})
+self.addEventListener("message", () => {})
 
 self.addEventListener("fetch", (event) => {
   const { request } = event

@@ -23,7 +23,8 @@ config :qlarius, Oban,
        {"0 * * * *", Qlarius.Jobs.BackfillMissingSnapshotsWorker},
        {"0 * * * *", Qlarius.Jobs.SendHourlyAdNotificationsWorker},
        {"0 0 * * 5", Qlarius.Jobs.ProcessReferralPayoutsWorker},
-       {"*/15 * * * *", Qlarius.Jobs.AutoFleetTiqitsWorker}
+       {"*/15 * * * *", Qlarius.Jobs.AutoFleetTiqitsWorker},
+       {"*/10 * * * *", Qlarius.Jobs.ExpireWillCallGiftsWorker}
      ]}
   ]
 

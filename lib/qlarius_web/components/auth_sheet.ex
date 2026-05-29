@@ -714,11 +714,18 @@ defmodule QlariusWeb.Components.AuthSheet do
     socket = assign(socket, :state, :creating)
 
     attrs = build_user_attrs(socket.assigns)
-    referral_code = ReferralContext.code(socket.assigns.referral_context)
+    referral_context = socket.assigns.referral_context
+    referral_code = ReferralContext.code(referral_context)
+
+    referral_opts = [
+      source: ReferralContext.source(referral_context),
+      source_id: ReferralContext.source_id(referral_context)
+    ]
+
     ip = socket.assigns.client_ip
     surface = socket.assigns.surface
 
-    case Accounts.register_new_user(attrs, referral_code) do
+    case Accounts.register_new_user(attrs, referral_code, referral_opts) do
       {:ok, %{user: user}} ->
         AuditLog.log(:"register_new_user.allowed", %{
           user_id: user.id,

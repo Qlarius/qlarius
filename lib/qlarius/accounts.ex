@@ -39,7 +39,7 @@ defmodule Qlarius.Accounts do
     end
   end
 
-  def register_new_user(attrs, referral_code \\ nil) do
+  def register_new_user(attrs, referral_code \\ nil, referral_opts \\ []) do
     Ecto.Multi.new()
     |> Ecto.Multi.insert(:user, User.registration_changeset(%User{}, attrs))
     |> Ecto.Multi.insert(:me_file, fn %{user: user} ->
@@ -60,9 +60,12 @@ defmodule Qlarius.Accounts do
         balance_payable: Decimal.new("0.00")
       })
     end)
+    |> Ecto.Multi.run(:starter_credit, fn repo, %{ledger_header: ledger_header} ->
+      Qlarius.Wallets.create_starter_credit(ledger_header, repo)
+    end)
     |> maybe_insert_proxy_user(attrs)
     |> maybe_insert_me_file_tags(attrs)
-    |> maybe_create_referral(referral_code)
+    |> maybe_create_referral(referral_code, referral_opts)
     |> Ecto.Multi.run(:enqueue_sync_job, fn _repo, %{me_file: me_file} ->
       Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker.new(%{me_file_id: me_file.id})
       |> Oban.insert()
@@ -101,9 +104,10 @@ defmodule Qlarius.Accounts do
     end)
   end
 
-  defp maybe_create_referral(multi, nil), do: multi
+  defp maybe_create_referral(multi, nil, _opts), do: multi
 
-  defp maybe_create_referral(multi, referral_code) when is_binary(referral_code) do
+  defp maybe_create_referral(multi, referral_code, referral_opts)
+       when is_binary(referral_code) do
     require Logger
 
     Logger.info(
@@ -122,7 +126,12 @@ defmodule Qlarius.Accounts do
             "🎯 REFERRAL DEBUG - Found referrer: type=#{referrer_type}, id=#{referrer_id}"
           )
 
-          Qlarius.Referrals.create_referral(referrer_type, referrer_id, me_file.id)
+          Qlarius.Referrals.create_referral(
+            referrer_type,
+            referrer_id,
+            me_file.id,
+            referral_opts
+          )
 
         {:error, :not_found} ->
           Logger.warning(

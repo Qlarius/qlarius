@@ -14,6 +14,8 @@ defmodule Qlarius.Referrals.Referral do
     field :entered_at, :utc_datetime
     field :expires_at, :utc_datetime
     field :status, :string, default: "active"
+    field :source, :string
+    field :source_id, :integer
 
     belongs_to :referred_me_file, MeFile
     has_many :referral_clicks, ReferralClick
@@ -30,7 +32,9 @@ defmodule Qlarius.Referrals.Referral do
       :referred_me_file_id,
       :entered_at,
       :expires_at,
-      :status
+      :status,
+      :source,
+      :source_id
     ])
     |> validate_required([
       :referrer_type,

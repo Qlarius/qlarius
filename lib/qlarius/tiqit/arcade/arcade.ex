@@ -213,8 +213,31 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   end
 
   def purchase_tiqit(%Scope{} = scope, %TiqitClass{} = tiqit_class, opts \\ []) do
+    Repo.transaction(fn ->
+      {:ok, _result} = purchase_tiqit_txn(scope, tiqit_class, opts)
+    end)
+
+    :ok
+  end
+
+  @doc """
+  Runs the Tiqit purchase inside the CALLER's transaction and returns the
+  created tiqit plus the consumer debit and creator credit ledger entries.
+
+  Use `purchase_tiqit/3` for the standalone (self-transaction) version.
+
+  Opts:
+    * `:tiqit_up_credit` - Tiqit Up discount applied (default `0`).
+    * `:refund_locked` - when `true`, the created tiqit gets `refund_locked_at`
+      set immediately so `undo_available?/1` blocks refund/undo (used for
+      claimed gifts).
+
+  Returns `{:ok, %{tiqit: tiqit, debit_entry: entry, creator_entry: entry | nil}}`.
+  """
+  def purchase_tiqit_txn(%Scope{} = scope, %TiqitClass{} = tiqit_class, opts \\ []) do
     %{user: user} = scope
     tiqit_up_credit = Keyword.get(opts, :tiqit_up_credit, Decimal.new(0))
+    refund_locked? = Keyword.get(opts, :refund_locked, false)
     purchased_at = DateTime.utc_now()
 
     tiqit_class =
@@ -235,25 +258,29 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     has_credit = Decimal.compare(tiqit_up_credit, Decimal.new(0)) == :gt
     net_price = Decimal.max(Decimal.new(0), Decimal.sub(tiqit_class.price, tiqit_up_credit))
 
-    Repo.transaction(fn ->
-      ledger_header = %LedgerHeader{} = Wallets.get_me_file_ledger_header(user.me_file)
-      me_file = %MeFile{} = user.me_file
+    ledger_header = %LedgerHeader{} = Wallets.get_me_file_ledger_header(user.me_file)
+    me_file = %MeFile{} = user.me_file
 
-      amount = Decimal.negate(net_price)
-      new_balance = Decimal.add(ledger_header.balance, amount)
+    amount = Decimal.negate(net_price)
+    new_balance = Decimal.add(ledger_header.balance, amount)
 
-      {:ok, tiqit} =
-        %Tiqit{me_file: me_file, tiqit_class: tiqit_class}
-        |> Tiqit.changeset(%{purchased_at: purchased_at, expires_at: expires_at})
-        |> Repo.insert()
+    tiqit_attrs =
+      %{purchased_at: purchased_at, expires_at: expires_at}
+      |> maybe_put_refund_locked(refund_locked?, purchased_at)
 
-      duration_label = format_duration(tiqit_class.duration_hours)
-      content_title = tiqit_content_title(tiqit_class)
-      creator = tiqit_class_creator(tiqit_class)
-      creator_name_caps = if creator, do: String.upcase(creator.name), else: "UNKNOWN"
+    {:ok, tiqit} =
+      %Tiqit{me_file: me_file, tiqit_class: tiqit_class}
+      |> Tiqit.changeset(tiqit_attrs)
+      |> Repo.insert()
 
-      consumer_meta = if has_credit, do: "Tiqit Up", else: "Tiqit Purchase"
+    duration_label = format_duration(tiqit_class.duration_hours)
+    content_title = tiqit_content_title(tiqit_class)
+    creator = tiqit_class_creator(tiqit_class)
+    creator_name_caps = if creator, do: String.upcase(creator.name), else: "UNKNOWN"
 
+    consumer_meta = if has_credit, do: "Tiqit Up", else: "Tiqit Purchase"
+
+    debit_entry =
       %LedgerEntry{
         ledger_header_id: ledger_header.id,
         amt: amount,
@@ -264,10 +291,11 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
       }
       |> Repo.insert!()
 
-      ledger_header
-      |> Ecto.Changeset.change(balance: new_balance)
-      |> Repo.update!()
+    ledger_header
+    |> Ecto.Changeset.change(balance: new_balance)
+    |> Repo.update!()
 
+    creator_entry =
       if creator do
         creator_ledger = Wallets.get_or_create_creator_ledger_header(creator)
         creator_new_balance = Decimal.add(creator_ledger.balance, net_price)
@@ -278,30 +306,33 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
               "Tiqit Up sale: #{content_title} (#{duration_label}) -- $#{tiqit_up_credit} credited to consumer",
             else: "Tiqit sale: #{content_title} (#{duration_label})"
 
-        %LedgerEntry{
-          ledger_header_id: creator_ledger.id,
-          amt: net_price,
-          running_balance: creator_new_balance,
-          description: creator_desc,
-          meta_1: "Tiqit Sale",
-          tiqit_id: tiqit.id
-        }
-        |> Repo.insert!()
+        entry =
+          %LedgerEntry{
+            ledger_header_id: creator_ledger.id,
+            amt: net_price,
+            running_balance: creator_new_balance,
+            description: creator_desc,
+            meta_1: "Tiqit Sale",
+            tiqit_id: tiqit.id
+          }
+          |> Repo.insert!()
 
         creator_ledger
         |> Ecto.Changeset.change(balance: creator_new_balance)
         |> Repo.update!()
+
+        entry
       end
 
-      if has_credit do
-        lock_tiqit_up_contributors(user, tiqit_class, purchased_at)
-      end
+    if has_credit do
+      lock_tiqit_up_contributors(user, tiqit_class, purchased_at)
+    end
 
-      tiqit
-    end)
-
-    :ok
+    {:ok, %{tiqit: tiqit, debit_entry: debit_entry, creator_entry: creator_entry}}
   end
+
+  defp maybe_put_refund_locked(attrs, true, now), do: Map.put(attrs, :refund_locked_at, now)
+  defp maybe_put_refund_locked(attrs, false, _now), do: attrs
 
   # When a TiqitUp discount is applied, the tiqits that contributed to the
   # discount become ineligible for refund. Otherwise the consumer could

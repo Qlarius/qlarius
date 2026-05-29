@@ -6,10 +6,11 @@ defmodule QlariusWeb.TiqitLive do
 
   alias QlariusWeb.Layouts
   alias Qlarius.Tiqit.Arcade.Arcade
+  alias Qlarius.ContentSharing
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
-  @valid_statuses ~w[active expired preserved fleeted all]
+  @valid_statuses ~w[active expired preserved fleeted gifted all]
 
   @impl true
   def mount(params, session, socket) do
@@ -24,6 +25,7 @@ defmodule QlariusWeb.TiqitLive do
       |> assign(:title, "Tiqits")
       |> assign(:status_filter, status)
       |> assign(:tiqits, tiqits)
+      |> assign(:gifts, load_gifts(scope, status))
       |> assign(:fleet_after_hours, scope.user.fleet_after_hours)
       |> assign(:undo_context, nil)
       |> assign(:fleeted_count, Arcade.count_fleeted_tiqits(scope))
@@ -44,6 +46,7 @@ defmodule QlariusWeb.TiqitLive do
      socket
      |> assign(:status_filter, status)
      |> assign(:tiqits, tiqits)
+     |> assign(:gifts, load_gifts(scope, status))
      |> assign_stash_filter_counts(scope)}
   end
 
@@ -147,6 +150,7 @@ defmodule QlariusWeb.TiqitLive do
 
     socket
     |> assign(:tiqits, tiqits)
+    |> assign(:gifts, load_gifts(scope, status))
     |> assign(:fleeted_count, Arcade.count_fleeted_tiqits(scope))
     |> assign(:undone_count, Arcade.count_undone_tiqits(scope))
     |> assign_stash_filter_counts(scope)
@@ -157,7 +161,11 @@ defmodule QlariusWeb.TiqitLive do
     |> assign(:active_count, Arcade.count_active_tiqits(scope))
     |> assign(:preserved_count, Arcade.count_preserved_tiqits(scope))
     |> assign(:fleeting_count, Arcade.count_fleeting_tiqits(scope))
+    |> assign(:gifted_count, ContentSharing.count_pending_sender_gifts(scope))
   end
+
+  defp load_gifts(scope, :gifted), do: ContentSharing.list_sender_gifts(scope)
+  defp load_gifts(_scope, _status), do: []
 
   defp filter_badge(assigns, :active) when assigns.active_count > 0 do
     %{count: assigns.active_count, variant: :sponster}
@@ -169,6 +177,10 @@ defmodule QlariusWeb.TiqitLive do
 
   defp filter_badge(assigns, :expired) when assigns.fleeting_count > 0 do
     %{count: assigns.fleeting_count, variant: :warning}
+  end
+
+  defp filter_badge(assigns, :gifted) when assigns.gifted_count > 0 do
+    %{count: assigns.gifted_count, variant: :info}
   end
 
   defp filter_badge(_assigns, _status), do: nil
@@ -191,6 +203,7 @@ defmodule QlariusWeb.TiqitLive do
   defp filter_label(:expired), do: "Fleeting"
   defp filter_label(:fleeted), do: "Fleeted"
   defp filter_label(:preserved), do: "Marked"
+  defp filter_label(:gifted), do: "Gifted"
 
   @impl true
   def render(assigns) do
@@ -203,7 +216,7 @@ defmodule QlariusWeb.TiqitLive do
           <div class="mb-4 overflow-x-auto">
             <.pill_join_selector label="Stash filter" class="min-w-max">
               <.pill_join_item
-                :for={status <- [:all, :active, :preserved, :expired, :fleeted]}
+                :for={status <- [:all, :active, :preserved, :expired, :fleeted, :gifted]}
                 active={@status_filter == status}
                 class="gap-2"
                 phx-click="filter"
@@ -220,6 +233,21 @@ defmodule QlariusWeb.TiqitLive do
             </.pill_join_selector>
           </div>
 
+          <%= if @status_filter == :gifted do %>
+            <%= if @gifts == [] do %>
+              <div class="text-center text-base-content/50 py-8">
+                You haven't gifted any content yet.
+              </div>
+            <% else %>
+              <div class="grid grid-cols-1 items-start md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <.gifted_tiqit_card
+                  :for={gift <- @gifts}
+                  gift={gift}
+                  user={@current_scope.user}
+                />
+              </div>
+            <% end %>
+          <% else %>
           <%= if @status_filter == :fleeted do %>
             <div class="bg-base-200 rounded-lg p-6 text-center">
               <div class="text-4xl font-bold mb-2">
@@ -258,6 +286,7 @@ defmodule QlariusWeb.TiqitLive do
                 />
               </div>
             <% end %>
+          <% end %>
           <% end %>
         </div>
       </Layouts.mobile>

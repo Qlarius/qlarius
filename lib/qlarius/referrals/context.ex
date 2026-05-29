@@ -31,14 +31,15 @@ defmodule Qlarius.Referrals.Context do
   alias Qlarius.Referrals
   alias Qlarius.YouData.MeFiles.MeFile
 
-  @type source :: :creator | :admin | :url
+  @type source :: :creator | :admin | :url | :content_gift | :content_share
   @type t :: %__MODULE__{
           source: source(),
           code: String.t() | nil,
-          source_user_id: integer() | nil
+          source_user_id: integer() | nil,
+          source_id: integer() | nil
         }
 
-  defstruct [:source, :code, :source_user_id]
+  defstruct [:source, :code, :source_user_id, :source_id]
 
   @doc """
   Build a referral context from a creator / qlink-page-owner user.
@@ -58,6 +59,22 @@ defmodule Qlarius.Referrals.Context do
   """
   @spec from_admin(User.t()) :: t() | nil
   def from_admin(%User{} = user), do: build_from_user(user, :admin)
+
+  @doc """
+  Build a referral context for a content gift/share invitation.
+
+  Uses the sender's me_file `referral_code` (generated if absent) and records the
+  `source` (`:content_gift` | `:content_share`) plus the `share_invitations.id`
+  as `source_id` for growth-dashboard attribution.
+  """
+  @spec from_content_invitation(User.t(), :content_gift | :content_share, integer()) :: t() | nil
+  def from_content_invitation(%User{} = user, source, source_id)
+      when source in [:content_gift, :content_share] do
+    case build_from_user(user, source) do
+      %__MODULE__{} = ctx -> %{ctx | source_id: source_id}
+      other -> other
+    end
+  end
 
   @doc """
   Build a referral context from a raw `?ref=CODE` URL parameter.
@@ -96,6 +113,11 @@ defmodule Qlarius.Referrals.Context do
   @spec source(t() | nil) :: source() | nil
   def source(nil), do: nil
   def source(%__MODULE__{source: source}), do: source
+
+  @doc "Returns the source_id (e.g. share_invitation id), or nil."
+  @spec source_id(t() | nil) :: integer() | nil
+  def source_id(nil), do: nil
+  def source_id(%__MODULE__{source_id: source_id}), do: source_id
 
   # --- internal ---
 

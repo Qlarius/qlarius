@@ -101,15 +101,21 @@ defmodule Qlarius.Referrals do
     end
   end
 
-  def create_referral(referrer_type, referrer_id, referred_me_file_id) do
+  def create_referral(referrer_type, referrer_id, referred_me_file_id, opts \\ []) do
     attrs = %{
       referrer_type: referrer_type,
-      referrer_id: referrer_id
+      referrer_id: referrer_id,
+      source: normalize_source(opts[:source]),
+      source_id: opts[:source_id]
     }
 
     Referral.create_changeset(attrs, referred_me_file_id)
     |> Repo.insert()
   end
+
+  defp normalize_source(nil), do: nil
+  defp normalize_source(source) when is_atom(source), do: Atom.to_string(source)
+  defp normalize_source(source) when is_binary(source), do: source
 
   def get_referral_by_me_file(me_file_id) do
     case Repo.get_by(Referral, referred_me_file_id: me_file_id) do

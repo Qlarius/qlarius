@@ -3162,46 +3162,15 @@ Hooks.OTPInput = {
   }
 }
 
-// Register service worker for PWA (but NOT in extension context to avoid caching issues)
+// Register service worker for PWA.
+// NOTE (2026-05-28): We intentionally avoid forced SW takeover/reload here.
+// The previous flow (auto skipWaiting + controllerchange -> reload + eager update checks)
+// caused periodic LiveView remounts without user interaction.
 if ("serviceWorker" in navigator && !isExtension) {
   const registerPwaServiceWorker = () => {
-    let swReloading = false
-
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (swReloading) return
-      swReloading = true
-      window.location.reload()
-    })
-
-    navigator.serviceWorker.register("/service-worker.js", { updateViaCache: "none" })
+    navigator.serviceWorker.register("/service-worker.js")
       .then((registration) => {
         console.log("✅ Service Worker registered:", registration.scope)
-
-        const activateWaitingWorker = () => {
-          if (registration.waiting) {
-            registration.waiting.postMessage({ type: "SKIP_WAITING" })
-          }
-        }
-
-        registration.addEventListener("updatefound", () => {
-          const worker = registration.installing
-          if (!worker) return
-
-          worker.addEventListener("statechange", () => {
-            if (worker.state === "installed" && navigator.serviceWorker.controller) {
-              activateWaitingWorker()
-            }
-          })
-        })
-
-        activateWaitingWorker()
-        registration.update().catch(() => {})
-
-        document.addEventListener("visibilitychange", () => {
-          if (document.visibilityState === "visible") {
-            registration.update().catch(() => {})
-          }
-        })
       })
       .catch((error) => {
         console.error("❌ Service Worker registration failed:", error)

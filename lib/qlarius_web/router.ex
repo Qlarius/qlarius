@@ -367,6 +367,8 @@ defmodule QlariusWeb.Router do
       ] do
       live "/tiqit/arqade/:content_group_id", TiqitArqadeLive, :show
       live "/tiqit/arqade/:content_group_id/:content_piece_id", TiqitArqadeLive, :show
+      live "/tiqit/gift/:token", TiqitArqadeLive, :gift
+      live "/tiqit/share/:token", TiqitArqadeLive, :share
     end
   end
 

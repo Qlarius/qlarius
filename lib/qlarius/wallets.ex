@@ -395,6 +395,121 @@ defmodule Qlarius.Wallets do
     end
   end
 
+  # --- Starter (Welcome Gift) credit -------------------------------------
+
+  @welcome_gift_meta "Welcome Gift"
+  @welcome_gift_description "QADABRA - Welcome Gift"
+  @default_starter_credit "2.00"
+
+  @doc """
+  The configured starter wallet credit amount, read from the
+  `starter_wallet_credit_amount` global variable (default `$2.00`).
+  """
+  def starter_credit_amount do
+    Qlarius.System.get_global_variable("starter_wallet_credit_amount", @default_starter_credit)
+    |> Decimal.new()
+  end
+
+  @doc """
+  Credits a newly created wallet with the configured starter ("Welcome Gift")
+  amount as its first ledger entry.
+
+  Idempotent: a no-op when a Welcome Gift entry already exists for the header or
+  when the configured amount is zero. Accepts an explicit `repo` so it can run
+  inside the registration `Ecto.Multi` transaction.
+  """
+  def create_starter_credit(%LedgerHeader{} = ledger_header, repo \\ Repo) do
+    amount = starter_credit_amount()
+
+    cond do
+      Decimal.compare(amount, Decimal.new(0)) != :gt ->
+        {:ok, :skipped}
+
+      welcome_gift_exists?(ledger_header, repo) ->
+        {:ok, :skipped}
+
+      true ->
+        new_balance = Decimal.add(ledger_header.balance || Decimal.new(0), amount)
+
+        entry =
+          %LedgerEntry{
+            ledger_header_id: ledger_header.id,
+            amt: amount,
+            running_balance: new_balance,
+            description: @welcome_gift_description,
+            meta_1: @welcome_gift_meta
+          }
+          |> repo.insert!()
+
+        ledger_header
+        |> Ecto.Changeset.change(balance: new_balance)
+        |> repo.update!()
+
+        {:ok, entry}
+    end
+  end
+
+  defp welcome_gift_exists?(%LedgerHeader{id: id}, repo) do
+    repo.exists?(
+      from e in LedgerEntry,
+        where: e.ledger_header_id == ^id and e.meta_1 == ^@welcome_gift_meta
+    )
+  end
+
+  # --- Content gift ledger writers ---------------------------------------
+  #
+  # All bang variants insert a single ledger entry and update the header
+  # balance. They do NOT open their own transaction; callers compose them inside
+  # one (e.g. `ContentSharing.create_gift/2`, `redeem_gift/2`, expiration).
+
+  @will_call_gift_meta "Will Call Gift"
+  @will_call_reversal_meta "Will Call Gift Reversal"
+  @media_gift_credit_meta "Media gift credit"
+
+  @doc "Reversible sender debit recorded when a will-call gift is created."
+  def create_will_call_debit!(%LedgerHeader{} = header, amount, description) do
+    insert_ledger_entry!(header, Decimal.negate(amount), description, @will_call_gift_meta)
+  end
+
+  @doc "Compensating sender credit when an unclaimed will-call gift expires."
+  def create_will_call_reversal!(%LedgerHeader{} = header, amount, description) do
+    insert_ledger_entry!(header, amount, description, @will_call_reversal_meta)
+  end
+
+  @doc """
+  Restricted recipient credit at gift claim. Visible in ledger history but
+  immediately consumed by the matching Tiqit purchase in the same transaction,
+  so it never becomes independently spendable.
+  """
+  def create_gift_passthrough_credit!(%LedgerHeader{} = header, amount) do
+    insert_ledger_entry!(header, amount, @media_gift_credit_meta, @media_gift_credit_meta)
+  end
+
+  @doc "Loads a me_file's ledger header by me_file id (nil if none)."
+  def get_me_file_ledger_header_by_id(me_file_id) do
+    Repo.get_by(LedgerHeader, me_file_id: me_file_id)
+  end
+
+  defp insert_ledger_entry!(%LedgerHeader{} = header, signed_amt, description, meta_1) do
+    new_balance = Decimal.add(header.balance || Decimal.new(0), signed_amt)
+
+    entry =
+      %LedgerEntry{
+        ledger_header_id: header.id,
+        amt: signed_amt,
+        running_balance: new_balance,
+        description: description,
+        meta_1: meta_1
+      }
+      |> Repo.insert!()
+
+    header
+    |> Ecto.Changeset.change(balance: new_balance)
+    |> Repo.update!()
+
+    entry
+  end
+
   def get_tiqit_purchase_details(tiqit_id) do
     tiqit =
       Repo.get(Tiqit, tiqit_id)
