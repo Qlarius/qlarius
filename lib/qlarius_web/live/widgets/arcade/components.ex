@@ -329,7 +329,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                   class="h-6 w-auto max-w-[8rem] shrink-0 object-contain object-left"
                   decoding="async"
                 />
-                <span class="shrink-0 whitespace-nowrap text-end text-sm font-semibold tabular-nums opacity-90">
+                <span class="shrink-0 whitespace-nowrap text-end text-sm font-semibold opacity-90">
                   {@ads_count} ads • {if @offered_amount,
                     do: format_usd(@offered_amount),
                     else: "$0.00"}
@@ -350,7 +350,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                   class="h-6 w-auto max-w-[8rem] shrink-0 object-contain object-left opacity-60"
                   decoding="async"
                 />
-                <span class="shrink-0 whitespace-nowrap text-end text-sm font-semibold tabular-nums opacity-70">
+                <span class="shrink-0 whitespace-nowrap text-end text-sm font-semibold opacity-70">
                   {@ads_count} ads • {if @offered_amount,
                     do: format_usd(@offered_amount),
                     else: "$0.00"}
@@ -366,7 +366,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                   <.icon name="hero-gift" class="h-6 w-6 shrink-0" />
                   <span class="text-sm font-medium">Daily gift</span>
                 </span>
-                <span class="shrink-0 text-sm font-semibold tabular-nums opacity-90">$0.50</span>
+                <span class="shrink-0 text-sm font-semibold opacity-90">$0.50</span>
               </button>
               <button
                 :if={not @daily_gift_available?}
@@ -379,7 +379,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                   <.icon name="hero-gift" class="h-6 w-6 shrink-0" />
                   <span class="text-sm font-medium">Daily gift</span>
                 </span>
-                <span class="shrink-0 text-sm font-semibold tabular-nums opacity-90">$0.50</span>
+                <span class="shrink-0 text-sm font-semibold opacity-90">$0.50</span>
               </button>
               <button
                 type="button"

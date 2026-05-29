@@ -18,7 +18,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
           Do these first.
         </h2>
         <div class="flex items-center gap-2 shrink-0">
-          <span class="text-sm font-semibold tabular-nums tracking-tight text-base-content/50">
+          <span class="text-sm font-semibold tracking-tight text-base-content/50">
             {@progress.completed_count}/{@progress.total_count}
           </span>
           <img

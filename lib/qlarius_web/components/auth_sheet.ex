@@ -1328,7 +1328,7 @@ defmodule QlariusWeb.Components.AuthSheet do
         </h2>
         <p class="text-sm text-base-content/70 md:text-base">
           We sent a 6-digit code to{" "}
-          <span class="font-semibold text-widget-900 dark:text-white tabular-nums">
+          <span class="font-semibold text-widget-900 dark:text-white">
             {AuthSteps.format_phone_number(@mobile_number)}
           </span>
           .

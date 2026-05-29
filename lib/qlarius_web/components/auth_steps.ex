@@ -167,7 +167,7 @@ defmodule QlariusWeb.Components.AuthSteps do
         </h2>
         <p class="text-sm text-base-content/70 md:text-base">
           We could not send a verification code to{" "}
-          <span class="font-semibold text-widget-900 dark:text-white tabular-nums">
+          <span class="font-semibold text-widget-900 dark:text-white">
             {format_phone_number(@mobile_number)}
           </span>
           .

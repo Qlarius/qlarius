@@ -175,7 +175,7 @@ defmodule QlariusWeb.ReferralsLive do
                 <div class="stat-title text-base-content/70">
                   Lifetime Referral Earnings
                 </div>
-                <div class="stat-value text-3xl font-bold tabular-nums text-base-content">
+                <div class="stat-value text-3xl font-bold text-base-content">
                   ${Decimal.to_string(@total_paid, :normal)}
                 </div>
                 <div class="stat-desc text-base-content/60">

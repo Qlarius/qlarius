@@ -128,7 +128,7 @@ defmodule QlariusWeb.TiqitComponents do
       <QlariusWeb.Components.TiqitExpirationCountdown.text
         expires_at={@undo_deadline}
         format={:hms}
-        class="text-[10px] font-normal leading-tight tabular-nums text-base-content/60"
+        class="text-[10px] font-normal leading-tight text-base-content/60"
       />
     </button>
     """

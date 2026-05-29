@@ -807,7 +807,7 @@ defmodule QlariusWeb.Components.AdsComponents do
         <%!-- Available state: text left; icon top-right, chevrons bottom-right in same column --%>
         <div class="flex min-w-0 flex-1 items-stretch gap-3">
           <div class="flex min-w-0 flex-1 flex-col justify-center gap-1">
-            <div class="text-2xl font-bold tabular-nums leading-none">
+            <div class="text-2xl font-bold leading-none">
               ${Decimal.round(@offer.offer_amt || Decimal.new("0"), 2)}
             </div>
             <p
