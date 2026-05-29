@@ -37,9 +37,16 @@ defmodule QlariusWeb.InstaTipComponents do
       "Passed through to the embedded `wallet_strip_or_connect/1` Connect-wallet CTA. When " <>
         "nil, the CTA keeps its legacy redirect behavior."
 
+  # When true, pin the card to the light theme (embedded/widget surfaces).
+  # Defaults to false so hosts like the Qlink Tip Jar follow the viewer's theme.
+  attr :force_light, :boolean, default: false
+
   def insta_tip_card(assigns) do
     ~H"""
-    <div data-theme="light" class={["flex flex-col items-center", @add_class]}>
+    <div
+      data-theme={if @force_light, do: "light"}
+      class={["flex flex-col items-center", @add_class]}
+    >
       <%!-- Recipient title --%>
       <%= if @recipient && (@show_image || @show_message) do %>
         <div class="text-xl font-bold text-base-content text-center mt-4 mb-2">

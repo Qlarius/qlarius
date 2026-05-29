@@ -1057,12 +1057,6 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   # Template helpers
 
-  defp get_theme(%{theme_config: %{"theme" => theme}})
-       when theme in ["light", "dark"],
-       do: theme
-
-  defp get_theme(_page), do: nil
-
   defp get_background_style(page) do
     case page.background_config do
       %{"type" => "image", "value" => url} ->
@@ -1176,7 +1170,7 @@ defmodule QlariusWeb.QlinkPage.Show do
     # intercepts unauth clicks and opens the shared Connect-wallet
     # modal instead of proceeding to confirm.
     ~H"""
-    <div class="w-full rounded-2xl border border-neutral/50 overflow-hidden">
+    <div class="w-full rounded-2xl border border-neutral/30 bg-base-200 overflow-hidden">
       <%= cond do %>
         <% is_nil(@block_recipient) -> %>
           <div class="text-center py-8">

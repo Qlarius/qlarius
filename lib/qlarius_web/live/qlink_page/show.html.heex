@@ -1,6 +1,7 @@
+<%!-- No data-theme override: inherit the viewer's theme from <html> (root layout
+     sets light/dark/system per their preference, defaulting to light). --%>
 <div
   class="min-h-screen qlink-public-page"
-  data-theme={get_theme(@page)}
   style={get_background_style(@page)}
 >
   <%= if @in_app_browser && !@in_app_escape_dismissed && is_binary(@in_app_escape_canonical_url) do %>
@@ -10,13 +11,16 @@
       in_app_browser={@in_app_browser}
     />
   <% end %>
+  <%!-- Full-width wrapper: each block below owns its own max-width
+       (max-w-xl mx-auto) so they stay capped independently of the page
+       container and responsive breakpoints. --%>
   <div
-  class="container mx-auto px-6 md:px-8 py-8 max-w-3xl"
+  class="w-full px-6 md:px-8 py-8"
   style={if @recipient, do: "padding-bottom: 100px;", else: ""}
 >
 
     <!-- Profile Section -->
-    <div class="text-center mb-8">
+    <div class="text-center mb-8 w-full max-w-2xl mx-auto">
       <div class="avatar mb-4">
         <div class="w-40 rounded-full ring ring-neutral ring-offset-base-100 ring-offset-2">
           <img src={@display_image} alt={@page.title} />
@@ -56,7 +60,7 @@
     </div>
     
 <!-- Links Section -->
-    <div class="space-y-4">
+    <div class="space-y-4 w-full max-w-2xl mx-auto">
       <!-- Unsectioned links first -->
       <% unsectioned_links = Enum.filter(@links, &is_nil(&1.qlink_section_id)) %>
       <%= if unsectioned_links != [] do %>
@@ -116,7 +120,7 @@
     </div>
     
 <!-- Footer -->
-    <div class="text-center mt-12">
+    <div class="text-center mt-12 w-full max-w-2xl mx-auto">
       <a
         href="https://qadabra.co/qlink"
         target="_blank"
