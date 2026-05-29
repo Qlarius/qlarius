@@ -40,6 +40,15 @@ defmodule QlariusWeb.WalletBalanceSyncHooks do
           end
       end)
 
+    socket =
+      attach_hook(socket, :wallet_balance_sync_event, :handle_event, fn
+        "sync_wallet_balance", _params, socket ->
+          {:halt, WalletBalanceSync.refetch_and_assign(socket)}
+
+        _event, _params, socket ->
+          {:cont, socket}
+      end)
+
     {:cont, socket}
   end
 

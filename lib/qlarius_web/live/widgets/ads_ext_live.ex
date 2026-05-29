@@ -22,7 +22,6 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   # Commented out unused alias - Component not directly referenced in this file
   # alias Phoenix.Component
   alias Qlarius.Wallets
-  alias Qlarius.Wallets.MeFileStatsBroadcaster
   # Commented out unused import - OfferHTML functions not used in this LiveView
   # import QlariusWeb.OfferHTML
   import Ecto.Query, except: [update: 2, update: 3]
@@ -81,6 +80,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
       |> assign(:show_collection_drawer, false)
       |> assign(:drawer_closing, false)
       |> assign(:on_close, JS.dispatch("sponster:close-ext-drawer"))
+      |> assign(:extension_wallet_push?, true)
       |> assign(
         :current_balance,
         Wallets.get_user_current_balance(socket.assigns.current_scope.user)
@@ -88,10 +88,6 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
 
     if connected?(socket) do
       send(self(), :load_offers)
-
-      MeFileStatsBroadcaster.subscribe_to_me_file_stats(
-        socket.assigns.current_scope.user.me_file.id
-      )
 
       # Subscribe to InstaTip notifications
       Phoenix.PubSub.subscribe(Qlarius.PubSub, "user:#{socket.assigns.current_scope.user.id}")
@@ -193,26 +189,8 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
     {:noreply, socket}
   end
 
-  # me_file_id from message not used - we get me_file from socket.assigns instead
-  @impl true
-  def handle_info({:refresh_wallet_balance, _me_file_id}, socket) do
-    new_balance =
-      Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
-
-    current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-    {:noreply, assign(socket, :current_scope, current_scope)}
-  end
-
-  @impl true
-  def handle_info({:me_file_balance_updated, new_balance}, socket) do
-    current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-
-    {:noreply,
-     socket
-     |> assign(:current_scope, current_scope)
-     |> assign(:current_balance, new_balance)
-     |> push_event("update-balance", %{balance: Decimal.to_string(new_balance, :normal)})}
-  end
+  # Wallet balance / offer stats: `WalletBalanceSyncHooks` (global on_mount).
+  # Extension iframe balance push: `extension_wallet_push?` → `WalletBalanceSync`.
 
   @impl true
   def handle_info("insta_tip_success", socket) do
@@ -222,13 +200,6 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   @impl true
   def handle_info("insta_tip_failure", socket) do
     {:noreply, put_flash(socket, :error, "InstaTip failed. Please try again.")}
-  end
-
-  @impl true
-  def handle_info({:me_file_offers_updated, _me_file_id}, socket) do
-    # Don't reload offers here - let completed offers (phase 3) stay visible
-    # Offers will refresh on next mount/page load
-    {:noreply, socket}
   end
 
   @impl true

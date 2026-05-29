@@ -308,7 +308,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
       |> assign(:message, message)
 
     ~H"""
-    <.modal :if={@show} id={@id} on_cancel={@on_cancel} show>
+    <.modal :if={@show} id={@id} border_class="border border-widget-700" on_cancel={@on_cancel} show>
       <div class="flex flex-col items-center text-center space-y-4 p-8">
         <div class="mb-4 md:mb-5">
           <img

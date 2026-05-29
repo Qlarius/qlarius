@@ -2780,6 +2780,33 @@ Hooks.TimezoneDetector = {
   }
 }
 
+Hooks.MobileWalletSync = {
+  mounted() {
+    this.sync = () => this.pushEvent("sync_wallet_balance", {})
+
+    this.onVisible = () => {
+      if (document.visibilityState === "visible") this.sync()
+    }
+
+    this.onMessage = (event) => {
+      if (event.origin !== window.location.origin) return
+      if (event.data?.type === "qlarius:wallet-sync") this.sync()
+    }
+
+    document.addEventListener("visibilitychange", this.onVisible)
+    window.addEventListener("focus", this.sync)
+    window.addEventListener("message", this.onMessage)
+  },
+
+  destroyed() {
+    if (this.onVisible) {
+      document.removeEventListener("visibilitychange", this.onVisible)
+    }
+    window.removeEventListener("focus", this.sync)
+    window.removeEventListener("message", this.onMessage)
+  }
+}
+
 Hooks.WalletPulse = {
   mounted() {
     this.lastBalance = this.el.innerText.trim()

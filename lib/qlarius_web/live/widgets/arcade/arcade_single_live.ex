@@ -340,7 +340,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
       case Wallets.claim_daily_gift(user) do
         {:ok, :credited} ->
-          Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
+          WalletBalanceSync.broadcast_balance_change(user)
 
           socket
           |> assign(:daily_gift_available?, false)
@@ -382,12 +382,10 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
       :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class, opts)
 
       user = socket.assigns.current_scope.user
-
-      Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
+      balance = Wallets.get_user_current_balance(user)
+      WalletBalanceSync.broadcast_balance_change(user, balance)
 
       tiqit = Arcade.get_valid_tiqit(socket.assigns.current_scope, socket.assigns.piece)
-      user = socket.assigns.current_scope.user
-      balance = Wallets.get_user_current_balance(user)
       scope = socket.assigns.current_scope
       updated_scope = scope && %{scope | wallet_balance: balance}
 

@@ -418,7 +418,7 @@ defmodule QlariusWeb.Layouts do
       }
     </style>
 
-    <div class="mobile-shell">
+    <div class="mobile-shell" id="mobile-shell" phx-hook="MobileWalletSync">
       <div class={[
         "slide-panels",
         assigns[:slide_over_active] && "active"

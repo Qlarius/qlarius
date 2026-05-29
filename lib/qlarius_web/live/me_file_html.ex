@@ -657,11 +657,12 @@ defmodule QlariusWeb.MeFileHTML do
       >
         <p>No tags match your search.</p>
       </div>
-      <.parent_traits_display
-        :if={@parent_traits != []}
-        parent_traits={@parent_traits}
-        tag_display_mode={@tag_display_mode}
-      />
+      <.surface_panel :if={@parent_traits != []} padding={false} class="pt-4">
+        <.parent_traits_display
+          parent_traits={@parent_traits}
+          tag_display_mode={@tag_display_mode}
+        />
+      </.surface_panel>
     </div>
     """
   end

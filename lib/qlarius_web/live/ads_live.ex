@@ -13,14 +13,6 @@ defmodule QlariusWeb.AdsLive do
   # Commented out unused alias - AdEvent not directly referenced
   # alias Qlarius.Sponster.AdEvent
   alias Qlarius.Repo
-  # Commented out unused alias - Scope not directly referenced
-  # alias Qlarius.Accounts.Scope
-  # Commented out unused aliases - ThreeTap/MediaPiece/AdCategory not directly referenced
-  # alias Qlarius.Sponster.Ads.{ThreeTap, MediaPiece, AdCategory}
-  # Commented out unused alias - Component not directly referenced
-  # alias Phoenix.Component
-  alias Qlarius.Wallets
-  alias Qlarius.Wallets.MeFileStatsBroadcaster
   # Commented out unused import - OfferHTML functions not used in this LiveView
   # import QlariusWeb.OfferHTML
   import Ecto.Query, except: [update: 2, update: 3]
@@ -69,11 +61,6 @@ defmodule QlariusWeb.AdsLive do
 
     if connected?(socket) do
       send(self(), :load_offers)
-
-      MeFileStatsBroadcaster.subscribe_to_me_file_stats(
-        socket.assigns.current_scope.user.me_file.id
-      )
-
       {:ok, socket}
     else
       {:ok, socket}
@@ -118,11 +105,6 @@ defmodule QlariusWeb.AdsLive do
 
     if connected?(socket) do
       send(self(), :load_offers)
-
-      MeFileStatsBroadcaster.subscribe_to_me_file_stats(
-        socket.assigns.current_scope.user.me_file.id
-      )
-
       {:ok, socket}
     else
       {:ok, socket}
@@ -348,39 +330,7 @@ defmodule QlariusWeb.AdsLive do
      |> assign(:loading, false)}
   end
 
-  # me_file_id from message not used - we get me_file from socket.assigns instead
-  @impl true
-  def handle_info({:refresh_wallet_balance, _me_file_id}, socket) do
-    new_balance =
-      Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
-
-    current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-    {:noreply, assign(socket, :current_scope, current_scope)}
-  end
-
-  @impl true
-  def handle_info({:me_file_balance_updated, new_balance}, socket) do
-    current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-    {:noreply, assign(socket, :current_scope, current_scope)}
-  end
-
-  @impl true
-  def handle_info({:me_file_offers_updated, _me_file_id}, socket) do
-    me_file = socket.assigns.current_scope.user.me_file
-    ads_count = Qlarius.YouData.MeFiles.MeFile.ad_offer_count(me_file)
-    three_tap_ad_count = Qlarius.YouData.MeFiles.MeFile.three_tap_ad_offer_count(me_file)
-    video_ad_count = Qlarius.YouData.MeFiles.MeFile.video_ad_offer_count(me_file)
-    offered_amount = Qlarius.Sponster.Offers.total_active_offer_amount(me_file)
-
-    current_scope =
-      socket.assigns.current_scope
-      |> Map.put(:ads_count, ads_count)
-      |> Map.put(:three_tap_ad_count, three_tap_ad_count)
-      |> Map.put(:video_ad_count, video_ad_count)
-      |> Map.put(:offered_amount, offered_amount)
-
-    {:noreply, assign(socket, :current_scope, current_scope)}
-  end
+  # Wallet balance / offer stats: `WalletBalanceSyncHooks` (global on_mount).
 
   @impl true
   def handle_info({:me_file_pending_referral_clicks_updated, pending_clicks_count}, socket) do

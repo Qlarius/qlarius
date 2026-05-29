@@ -8,12 +8,29 @@ defmodule QlariusWeb.WalletBalanceSync do
   """
 
   alias Qlarius.Accounts.Scope
+  alias Qlarius.Accounts.User
   alias Qlarius.Repo
   alias Qlarius.Wallets
   alias Qlarius.Wallets.MeFileStatsBroadcaster
   alias Qlarius.YouData.MeFiles.MeFile
 
   import Ecto.Query, only: [from: 2]
+
+  @doc """
+  Notify all subscribed LiveViews after a balance change (mobile header,
+  arqade strip, sidebar, extension iframe, etc.).
+
+  Sends `{:me_file_balance_updated, balance}` on the me_file stats topic and
+  `:update_balance` on `wallet:USER_ID`.
+  """
+  def broadcast_balance_change(%User{} = user, balance) do
+    MeFileStatsBroadcaster.broadcast_user_balance_updated(user, balance)
+    :ok
+  end
+
+  def broadcast_balance_change(%User{} = user) do
+    broadcast_balance_change(user, Wallets.get_user_current_balance(user))
+  end
 
   @doc "Subscribe to me_file stats + wallet topics for the scoped user."
   def subscribe(socket) do
@@ -73,12 +90,14 @@ defmodule QlariusWeb.WalletBalanceSync do
   def assign_wallet_fields(socket, new_balance) do
     case socket.assigns[:current_scope] do
       scope when not is_nil(scope) ->
-        current_scope = Map.put(scope, :wallet_balance, new_balance)
+        current_scope = put_scope_wallet_balance(scope, new_balance)
 
         socket
         |> assign(:current_scope, current_scope)
         |> maybe_assign(:current_balance, new_balance)
         |> maybe_assign(:balance, new_balance)
+        |> maybe_push_extension_balance(new_balance)
+        |> maybe_assign_daily_gift_available()
 
       _ ->
         socket
@@ -241,5 +260,42 @@ defmodule QlariusWeb.WalletBalanceSync do
 
   defp maybe_assign(socket, key, value) do
     if Map.has_key?(socket.assigns, key), do: assign(socket, key, value), else: socket
+  end
+
+  defp put_scope_wallet_balance(%Scope{user: %User{me_file: %MeFile{ledger_header: lh} = mf} = user} = scope, new_balance)
+       when not is_nil(lh) do
+    %{scope | wallet_balance: new_balance, user: %{user | me_file: %{mf | ledger_header: %{lh | balance: new_balance}}}}
+  end
+
+  defp put_scope_wallet_balance(%Scope{} = scope, new_balance) do
+    %{scope | wallet_balance: new_balance}
+  end
+
+  defp put_scope_wallet_balance(scope, new_balance) when is_map(scope) do
+    Map.put(scope, :wallet_balance, new_balance)
+  end
+
+  defp maybe_push_extension_balance(socket, new_balance) do
+    if Map.get(socket.assigns, :extension_wallet_push?) && Phoenix.LiveView.connected?(socket) do
+      Phoenix.LiveView.push_event(socket, "update-balance", %{
+        balance: Decimal.to_string(new_balance, :normal)
+      })
+    else
+      socket
+    end
+  end
+
+  defp maybe_assign_daily_gift_available(socket) do
+    if Map.has_key?(socket.assigns, :daily_gift_available?) do
+      case scope_user(socket) do
+        %User{} = user ->
+          assign(socket, :daily_gift_available?, Wallets.daily_gift_available?(user))
+
+        _ ->
+          socket
+      end
+    else
+      socket
+    end
   end
 end

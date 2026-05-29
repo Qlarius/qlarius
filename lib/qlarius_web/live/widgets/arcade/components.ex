@@ -9,6 +9,8 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   import QlariusWeb.Money
   import QlariusWeb.TiqitClassHTML
   import QlariusWeb.Components.CustomComponentsMobile
+  import QlariusWeb.Creators.ContentGroupHTML, only: [piece_list_description: 1]
+  import QlariusWeb.Helpers.ImageHelpers, only: [content_image_url: 2]
 
   defp pluralize(count, word) do
     word_str = to_string(word)
@@ -693,5 +695,191 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       </span>
     </nav>
     """
+  end
+
+  slot :inner_block, required: true
+
+  def selected_piece_panel(assigns) do
+    ~H"""
+    <div class="mx-auto flex w-full min-w-0 max-w-[600px] flex-col">
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
+  attr :piece, :map, required: true
+  attr :group, :map, required: true
+  attr :variant, :atom, default: :compact
+
+  def selected_piece_hero(assigns) do
+    ~H"""
+    <%= case @variant do %>
+      <% v when v in [:responsive, :embed] -> %>
+        <.selected_piece_hero_roomy piece={@piece} group={@group} class="hidden md:flex" />
+        <.selected_piece_hero_compact piece={@piece} group={@group} class="md:hidden" />
+      <% _ -> %>
+        <.selected_piece_hero_compact piece={@piece} group={@group} />
+    <% end %>
+    """
+  end
+
+  attr :piece, :map, required: true
+  attr :group, :map, required: true
+  attr :class, :string, default: ""
+
+  defp selected_piece_hero_roomy(assigns) do
+    ~H"""
+    <div
+      data-arqade-hero-roomy
+      class={["flex-col gap-3 sm:gap-4 min-w-0", @class]}
+    >
+      <div class="flex w-full justify-start">
+        <img
+          src={content_image_url(@piece, @group)}
+          alt={@piece.title}
+          class="block max-h-[330px] w-auto rounded-lg object-contain"
+        />
+      </div>
+      <.selected_piece_hero_copy
+        piece={@piece}
+        description_line_clamp={5}
+        class="w-full min-w-0 flex flex-col gap-1.5"
+      />
+    </div>
+    """
+  end
+
+  attr :piece, :map, required: true
+  attr :group, :map, required: true
+  attr :class, :string, default: ""
+
+  defp selected_piece_hero_compact(assigns) do
+    ~H"""
+    <div
+      data-arqade-hero-compact
+      class={["flex flex-row gap-3 sm:gap-4 items-stretch min-w-0", @class]}
+    >
+      <div class="shrink-0 self-start w-[clamp(5rem,34%,8.5rem)] max-w-[42%]">
+        <img
+          src={content_image_url(@piece, @group)}
+          alt={@piece.title}
+          class="block w-full rounded-lg h-auto max-h-[12rem] object-contain"
+        />
+      </div>
+      <.selected_piece_hero_copy
+        piece={@piece}
+        class="min-w-0 flex-1 flex flex-col gap-1.5 min-h-0 self-start"
+      />
+    </div>
+    """
+  end
+
+  attr :piece, :map, required: true
+  attr :class, :string, default: "min-w-0 flex flex-col gap-1.5"
+  attr :description_line_clamp, :integer, default: 3
+
+  def selected_piece_hero_copy(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :description_clamp_class,
+        description_clamp_class(assigns.description_line_clamp)
+      )
+
+    ~H"""
+    <div class={@class}>
+      <p class="text-base sm:text-lg font-semibold leading-tight text-base-content [overflow-wrap:anywhere] shrink-0">
+        {@piece.title}
+      </p>
+      <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-base-content/50 text-xs shrink-0">
+        <span class="flex items-center gap-1">
+          <.icon name="hero-clock" class="w-3 h-3" />{@piece.duration}
+        </span>
+        <%= if label = piece_published_date_label(@piece) do %>
+          <span class="flex items-center gap-1">
+            <.icon name="hero-calendar" class="w-3 h-3" />{label}
+          </span>
+        <% end %>
+      </div>
+      <%= if piece_list_description(@piece.description) != "" do %>
+        <div class="relative w-full min-w-0 flex flex-col shrink-0">
+          <p
+            class={[
+              "text-xs text-base-content/70 [overflow-wrap:anywhere] break-words w-full shrink-0",
+              @description_clamp_class
+            ]}
+            style="line-height: 1.15rem;"
+          >{description_preview_text(@piece.description)}</p>
+          <%= if description_exceeds_preview?(@piece.description, @description_line_clamp) do %>
+            <.popover
+              id={"arcade-selected-desc-#{@piece.id}"}
+              placement="top"
+              position_strategy="fixed"
+              trigger_type="click"
+              use_floating_size={false}
+              root_class="absolute left-0 right-0 bottom-0 z-20 w-full min-w-0 flex justify-end items-end pointer-events-none"
+              trigger_class="group inline-flex shrink-0 pointer-events-auto"
+              class="w-[min(22rem,calc(100vw-1.5rem))] max-h-[min(70vh,18rem)] px-3 py-2.5 shadow-xl flex flex-col min-h-0"
+            >
+              <:trigger>
+                <button
+                  type="button"
+                  class="btn btn-xs h-auto min-h-0 !bg-widget-100 !text-widget-800 !border-widget-300 px-2 py-0.5 font-medium no-underline hover:no-underline hover:!bg-widget-200 hover:!text-widget-900 hover:!border-widget-400 rounded-full whitespace-nowrap shadow-sm"
+                >
+                  <span data-popover-toggle-label="show">Show full</span>
+                  <span data-popover-toggle-label="hide" class="hidden">Hide full</span>
+                </button>
+              </:trigger>
+              <:content><p
+                  class="p-2 sm:p-2.5 min-h-0 flex-1 overflow-y-auto text-sm sm:text-[15px] text-base-content/90 leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]"
+                  style="line-height: 1.35rem;"
+                >{piece_list_description(@piece.description)}</p></:content>
+            </.popover>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+    """
+  end
+
+  defp piece_published_date_label(%ContentPiece{} = piece) do
+    case piece_display_date(piece) do
+      %Date{} = date -> Calendar.strftime(date, "%b %d, %Y")
+      _ -> nil
+    end
+  end
+
+  defp piece_display_date(%ContentPiece{date_published: %Date{} = date}), do: date
+
+  defp piece_display_date(%ContentPiece{inserted_at: %DateTime{} = dt}),
+    do: DateTime.to_date(dt)
+
+  defp piece_display_date(%ContentPiece{inserted_at: %NaiveDateTime{} = ndt}),
+    do: NaiveDateTime.to_date(ndt)
+
+  defp piece_display_date(_), do: nil
+
+  defp description_clamp_class(5), do: "line-clamp-5"
+  defp description_clamp_class(3), do: "line-clamp-3"
+  defp description_clamp_class(_), do: nil
+
+  defp description_exceeds_preview?(nil, _lines), do: false
+
+  defp description_exceeds_preview?(description, lines) do
+    t = piece_list_description(description)
+    line_blocks = String.split(t, "\n", trim: true)
+
+    t != "" and
+      (String.length(t) > description_preview_char_limit(lines) or
+         length(line_blocks) > lines)
+  end
+
+  defp description_preview_char_limit(5), do: 200
+  defp description_preview_char_limit(_), do: 120
+
+  defp description_preview_text(description) do
+    description
+    |> piece_list_description()
+    |> String.replace("\n", " ")
   end
 end

@@ -434,9 +434,8 @@ defmodule QlariusWeb.SponsterRecipientSurface do
 
       case Wallets.claim_daily_gift(user) do
         {:ok, :credited} ->
-          Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
-
           new_balance = Wallets.get_user_current_balance(user)
+          WalletBalanceSync.broadcast_balance_change(user, new_balance)
           current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
 
           socket

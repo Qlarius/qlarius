@@ -1175,10 +1175,15 @@
   }
 
   .qlink-arqade-embed-cage [data-arqade-inline-card="true"] [data-arqade-selected-pane] {
-    flex-shrink: 0;
-    max-height: min(42vh, 24rem);
+    flex: 1 1 0%;
+    min-height: 0;
+    max-height: 100%;
     overflow-x: hidden;
-    overflow-y: hidden;
+    overflow-y: auto;
+  }
+
+  .qlink-arqade-embed-cage:not(.arqade-fullpane-active) [data-arqade-selected-hero-scroll] {
+    overflow: visible !important;
   }
 
   .qlink-arqade-embed-cage [data-arqade-inline-card="true"] [data-arqade-episodes-column] {
@@ -1209,10 +1214,11 @@
     }
 
     [data-arqade-inline-card="true"] [data-arqade-selected-pane] {
-      flex-shrink: 0;
-      max-height: min(42vh, 24rem);
+      flex: 1 1 0%;
+      min-height: 0;
+      max-height: 100%;
       overflow-x: hidden;
-      overflow-y: hidden;
+      overflow-y: auto;
     }
 
     [data-arqade-inline-card="true"] [data-arqade-episodes-column] {
@@ -1285,10 +1291,11 @@
   }
 
   .arqade-fullpane-active [data-arqade-inline-card="true"] [data-arqade-selected-pane] {
-    flex-shrink: 0 !important;
-    max-height: min(42vh, 24rem) !important;
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
     overflow-x: hidden !important;
-    overflow-y: hidden !important;
+    overflow-y: auto !important;
   }
 
   .arqade-fullpane-active [data-arqade-inline-card="true"] [data-arqade-episodes-column] {
@@ -1324,6 +1331,20 @@
     .arqade-fullpane-active [data-arqade-inline-card="true"] [data-arqade-episodes-column] {
       flex: 1 1 0% !important;
       min-height: 0 !important;
+    }
+
+    /* Qlink full-pane expand: match tiqit arqade roomy selected-piece hero at md+. */
+    .arqade-fullpane-active [data-arqade-hero-compact] {
+      display: none !important;
+    }
+
+    .arqade-fullpane-active [data-arqade-hero-roomy] {
+      display: flex !important;
+      flex-direction: column;
+    }
+
+    .arqade-fullpane-active [data-arqade-inline-card="true"] [data-arqade-selected-hero-scroll] {
+      overflow: visible !important;
     }
   }
 

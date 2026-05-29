@@ -149,10 +149,7 @@ defmodule QlariusWeb.ReferralsLive do
     |> DateTime.new!(~T[00:00:00], "Etc/UTC")
   end
 
-  def handle_info({:me_file_balance_updated, new_balance}, socket) do
-    current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-    {:noreply, assign(socket, :current_scope, current_scope)}
-  end
+  # Wallet balance: `WalletBalanceSyncHooks` (global on_mount).
 
   def handle_info({:me_file_pending_referral_clicks_updated, pending_clicks_count}, socket) do
     current_scope =

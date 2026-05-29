@@ -139,20 +139,24 @@
             <div
               data-arqade-selected-pane="true"
               class={[
-                "relative w-full shrink-0 md:!w-1/2 md:p-5 flex flex-col",
+                "relative w-full flex flex-col",
                 @embed_card? &&
-                  "z-[1] grow-0 shrink-0 basis-auto max-w-full overflow-x-hidden md:flex-1 md:min-h-0 md:overflow-y-auto",
+                  "z-[1] min-h-0 flex-1 p-5 md:w-1/2 max-w-full self-stretch overflow-x-hidden overflow-y-auto",
+                !@embed_card? && "shrink-0 md:!w-1/2 md:p-5",
                 @full_viewport_embed? &&
                   "z-[40] min-h-0 max-md:shrink-0 max-md:flex-none flex flex-col overflow-x-hidden md:min-h-0 md:flex-1 md:self-stretch md:overflow-y-auto bg-base-100",
                 !@embed_card? && !@full_viewport_embed? &&
                   "z-[40] min-h-0 flex-none overflow-x-hidden md:min-h-0 md:flex-1 md:self-stretch md:overflow-y-auto"
               ]}
             >
-              <div class={[
+              <.selected_piece_panel>
+              <div
+                data-arqade-selected-hero-scroll
+                class={[
                 "relative z-[35] min-h-0 shrink-0 overflow-x-hidden min-w-0",
                 cond do
-                  @embed_card? -> "max-md:overflow-hidden md:overflow-y-auto md:max-h-none md:flex-none md:w-full"
-                  @in_app_group? -> "max-md:overflow-visible md:overflow-y-auto md:max-h-none"
+                  @embed_card? -> "overflow-visible md:max-h-none md:flex-none md:w-full"
+                  @in_app_group? -> "max-md:overflow-visible md:overflow-visible md:max-h-none"
                   true -> "overflow-y-auto max-h-[min(70vh,32rem)] md:max-h-none"
                 end
               ]}>
@@ -166,8 +170,10 @@
                   }
                   class={[
                     "bg-base-100 rounded-lg min-w-0",
-                    @show_qlink_footer? && "p-4 max-md:px-3 max-md:pt-3 max-md:pb-1 md:!p-0",
-                    !@show_qlink_footer? && "p-4 md:!p-0"
+                    @full_viewport_embed? && "p-4 max-md:px-3 max-md:pt-3 max-md:pb-1 md:!p-0",
+                    !@embed_card? && !@full_viewport_embed? && @show_qlink_footer? &&
+                      "p-4 max-md:px-3 max-md:pt-3 max-md:pb-1 md:!p-0",
+                    !@embed_card? && !@full_viewport_embed? && !@show_qlink_footer? && "p-4 md:!p-0"
                   ]}
                 >
                   <%!--
@@ -176,80 +182,21 @@
             the widget lived in a narrow host (e.g. qlink). `clamp()` ties size to % of
             this flex row while capping absolute growth.
           --%>
-                  <div class="flex flex-row gap-3 sm:gap-4 items-stretch min-w-0">
-                    <div class={[
-                      "shrink-0 self-start w-[clamp(5rem,34%,8.5rem)] max-w-[42%]",
-                      @show_qlink_footer? && "max-md:aspect-square max-md:overflow-hidden max-md:rounded-lg"
-                    ]}>
-                      <img
-                        src={content_image_url(@selected_piece, @group)}
-                        alt={@selected_piece.title}
-                        class={[
-                          "block w-full rounded-lg",
-                          @show_qlink_footer? &&
-                            "h-auto max-h-[12rem] object-contain max-md:h-full max-md:max-h-none max-md:object-cover",
-                          !@show_qlink_footer? && "h-auto max-h-[12rem] object-contain"
-                        ]}
-                      />
-                    </div>
-                    <div class="min-w-0 flex-1 flex flex-col gap-1.5 min-h-0 self-start">
-                      <p class="text-base sm:text-lg font-semibold leading-tight text-base-content [overflow-wrap:anywhere] shrink-0">
-                        {@selected_piece.title}
-                      </p>
-                      <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-base-content/50 text-xs shrink-0">
-                        <span class="flex items-center gap-1">
-                          <.icon name="hero-clock" class="w-3 h-3" />{@selected_piece.duration}
-                        </span>
-                        <%= if label = piece_published_date_label(@selected_piece) do %>
-                          <span class="flex items-center gap-1">
-                            <.icon name="hero-calendar" class="w-3 h-3" />{label}
-                          </span>
-                        <% end %>
-                      </div>
-                      <%= if piece_list_description(@selected_piece.description) != "" do %>
-                        <div class="relative w-full min-w-0 flex flex-col shrink-0">
-                          <p
-                            class="text-xs text-base-content/70 line-clamp-3 [overflow-wrap:anywhere] break-words w-full min-h-0 md:line-clamp-none md:max-h-36 md:overflow-y-auto"
-                            style="line-height: 1.15rem;"
-                          >{description_preview_text(@selected_piece.description)}</p>
-                          <%= if description_exceeds_preview?(@selected_piece.description) do %>
-                            <%!--
-                      Root is absolutely pinned to the bottom of this block so the pill floats
-                      over the end of the line-clamped copy. [data-popover-trigger] stays a narrow
-                      inline-flex around the button only so Floating UI’s reference matches the
-                      control (not the full column width).
-                    --%>
-                            <.popover
-                              id={"arcade-selected-desc-#{@selected_piece.id}"}
-                              placement="top"
-                              position_strategy="fixed"
-                              trigger_type="click"
-                              use_floating_size={false}
-                              root_class="absolute left-0 right-0 bottom-0 z-20 w-full min-w-0 flex justify-end items-end pointer-events-none"
-                              trigger_class="group inline-flex shrink-0 pointer-events-auto"
-                              class="w-[min(22rem,calc(100vw-1.5rem))] max-h-[min(70vh,18rem)] px-3 py-2.5 shadow-xl flex flex-col min-h-0"
-                            >
-                              <:trigger>
-                                <button
-                                  type="button"
-                                  class="btn btn-xs h-auto min-h-0 !bg-widget-100 !text-widget-800 !border-widget-300 px-2 py-0.5 font-medium no-underline hover:no-underline hover:!bg-widget-200 hover:!text-widget-900 hover:!border-widget-400 rounded-full whitespace-nowrap shadow-sm"
-                                >
-                                  <span data-popover-toggle-label="show">Show full</span>
-                                  <span data-popover-toggle-label="hide" class="hidden">
-                                    Hide full
-                                  </span>
-                                </button>
-                              </:trigger>
-                              <:content><p
-                                  class="p-2 sm:p-2.5 min-h-0 flex-1 overflow-y-auto text-sm sm:text-[15px] text-base-content/90 leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]"
-                                  style="line-height: 1.35rem;"
-                                >{piece_list_description(@selected_piece.description)}</p></:content>
-                            </.popover>
-                          <% end %>
-                        </div>
-                      <% end %>
-                    </div>
-                  </div>
+                  <%!--
+            Compact row below md; roomy stacked hero at md+ (2-column split).
+            Same on tiqit arqade, qlink inline embed, and qlink full-pane expand.
+          --%>
+                  <.selected_piece_hero
+                    piece={@selected_piece}
+                    group={@group}
+                    variant={
+                      cond do
+                        @in_app_group? -> :responsive
+                        @embed_card? -> :embed
+                        true -> :compact
+                      end
+                    }
+                  />
                 </div>
               </div>
 
@@ -261,7 +208,10 @@
                     true -> nil
                   end
                 }
-                class="relative z-[30] shrink-0 min-w-0 overflow-x-hidden px-2 pb-0 md:px-0"
+                class={[
+                  "relative z-[30] shrink-0 min-w-0 overflow-x-hidden pb-0",
+                  !@embed_card? && "px-2 md:px-0"
+                ]}
               >
                 <div
                   class={[
@@ -423,6 +373,7 @@
                   <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
                 </div>
               </div>
+              </.selected_piece_panel>
             </div>
 
             <%!-- Episodes list - fills remaining height in fixed embed; scrolls inside --%>

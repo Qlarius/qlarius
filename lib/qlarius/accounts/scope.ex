@@ -21,6 +21,7 @@ defmodule Qlarius.Accounts.Scope do
   alias Qlarius.Sponster.Offers
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Repo
+  alias Qlarius.Wallets
 
   defstruct true_user: nil,
             user: nil,
@@ -46,6 +47,9 @@ defmodule Qlarius.Accounts.Scope do
       |> User.active_proxy_user_or_self()
       |> Repo.preload(me_file: :ledger_header)
 
+    balance = Wallets.get_me_file_ledger_header_balance(proxy_user.me_file)
+    proxy_user = sync_ledger_balance(proxy_user, balance)
+
     %__MODULE__{
       true_user: user,
       user: proxy_user,
@@ -55,11 +59,18 @@ defmodule Qlarius.Accounts.Scope do
       video_ad_count: MeFile.video_ad_offer_count(proxy_user.me_file),
       trait_count: MeFile.trait_tag_count(proxy_user.me_file),
       tag_count: MeFile.tag_count(proxy_user.me_file),
-      wallet_balance: proxy_user.me_file.ledger_header.balance,
+      wallet_balance: balance,
       offered_amount: Offers.total_active_offer_amount(proxy_user.me_file),
       pending_referral_clicks_count:
         Qlarius.Referrals.get_pending_clicks_for_me_file(proxy_user.me_file),
       active_tiqit_count: Arcade.count_active_tiqits(proxy_user)
     }
   end
+
+  defp sync_ledger_balance(%User{me_file: %{ledger_header: lh} = mf} = user, balance)
+       when not is_nil(lh) do
+    %{user | me_file: %{mf | ledger_header: %{lh | balance: balance}}}
+  end
+
+  defp sync_ledger_balance(user, _balance), do: user
 end

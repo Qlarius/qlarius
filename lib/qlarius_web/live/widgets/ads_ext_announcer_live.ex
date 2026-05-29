@@ -11,12 +11,6 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
   # alias Qlarius.Accounts.User
   # Commented out unused alias - LedgerHeader not directly referenced
   # alias Qlarius.Wallets.LedgerHeader
-  alias Qlarius.Wallets.MeFileStatsBroadcaster
-
-  # Added missing Wallets alias for handle_info callback that calls get_me_file_ledger_header_balance
-  alias Qlarius.Wallets
-  alias Qlarius.Sponster.Offers
-  alias Qlarius.YouData.MeFiles.MeFile
   # Commented out unused alias - Repo not directly referenced
   # alias Qlarius.Repo
   # Commented out unused alias - Scope not directly referenced
@@ -82,57 +76,13 @@ defmodule QlariusWeb.Widgets.AdsExtAnnouncerLive do
       |> assign(:sm_slides, sm_slides)
 
     if connected?(socket) && socket.assigns[:current_scope] do
-      MeFileStatsBroadcaster.subscribe_to_me_file_stats(
-        socket.assigns.current_scope.user.me_file.id
-      )
-
       {:ok, socket}
     else
       {:ok, socket}
     end
   end
 
-  # me_file_id from message not used - we get me_file from socket.assigns instead
-  @impl true
-  def handle_info({:refresh_wallet_balance, _me_file_id}, socket) do
-    if socket.assigns[:current_scope] do
-      new_balance =
-        Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
-
-      current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-      {:noreply, assign(socket, :current_scope, current_scope)}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_info({:me_file_balance_updated, new_balance}, socket) do
-    if socket.assigns[:current_scope] do
-      current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-      {:noreply, assign(socket, :current_scope, current_scope)}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_info({:me_file_offers_updated, _me_file_id}, socket) do
-    if socket.assigns[:current_scope] do
-      me_file = socket.assigns.current_scope.user.me_file
-      ads_count = MeFile.ad_offer_count(me_file)
-      offered_amount = Offers.total_active_offer_amount(me_file)
-
-      current_scope =
-        socket.assigns.current_scope
-        |> Map.put(:ads_count, ads_count)
-        |> Map.put(:offered_amount, offered_amount)
-
-      {:noreply, assign(socket, :current_scope, current_scope)}
-    else
-      {:noreply, socket}
-    end
-  end
+  # Wallet balance / offer stats: `WalletBalanceSyncHooks` (global on_mount).
 
   @impl true
   def handle_info({:me_file_pending_referral_clicks_updated, pending_clicks_count}, socket) do

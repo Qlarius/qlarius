@@ -185,6 +185,15 @@ defmodule QlariusWeb.AdJumpPageHTML do
               clearInterval(window.__jumpPageTimer);
               runCollect()
                 .then((data) => {
+                  try {
+                    if (window.opener && !window.opener.closed) {
+                      window.opener.postMessage(
+                        { type: 'qlarius:wallet-sync' },
+                        window.location.origin
+                      );
+                    }
+                  } catch (_e) {}
+
                   navigateToAdvertiser(data.jump_url);
                 })
                 .catch((error) => {

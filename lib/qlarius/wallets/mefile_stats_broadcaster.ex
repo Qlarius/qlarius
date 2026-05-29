@@ -8,6 +8,7 @@ defmodule Qlarius.Wallets.MeFileStatsBroadcaster do
   import Ecto.Query, only: [from: 2]
 
   alias Phoenix.PubSub
+  alias Qlarius.Accounts.User
   alias Qlarius.Repo
   alias Qlarius.YouData.MeFiles.MeFile
 
@@ -31,6 +32,19 @@ defmodule Qlarius.Wallets.MeFileStatsBroadcaster do
   """
   def broadcast_wallet_refetch(user_id) when is_integer(user_id) do
     PubSub.broadcast(Qlarius.PubSub, "wallet:#{user_id}", :update_balance)
+  end
+
+  @doc """
+  Notify all wallet UI after a balance change: mobile header, arqade strip,
+  drawer chrome, sidebar, etc.
+
+  Pushes `{:me_file_balance_updated, balance}` on the me_file stats topic and
+  `:update_balance` on `wallet:USER_ID` so LiveViews subscribed to either
+  channel refresh (see `WalletBalanceSyncHooks`).
+  """
+  def broadcast_user_balance_updated(%User{id: user_id, me_file: %MeFile{id: me_file_id}}, new_balance) do
+    broadcast_balance_updated(me_file_id, new_balance)
+    broadcast_wallet_refetch(user_id)
   end
 
   @doc """

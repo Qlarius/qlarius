@@ -603,7 +603,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
       case Wallets.claim_daily_gift(user) do
         {:ok, :credited} ->
-          Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
+          WalletBalanceSync.broadcast_balance_change(user)
 
           socket
           |> assign(:daily_gift_available?, false)
@@ -771,7 +771,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     balance = Wallets.get_user_current_balance(user)
     updated_scope = %{scope | wallet_balance: balance}
 
-    Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
+    WalletBalanceSync.broadcast_balance_change(user, balance)
 
     assign(socket,
       tiqit: tiqit,
@@ -901,22 +901,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     end
   end
 
-  # Heuristic: matches ~3 line-clamp at text-xs without measuring DOM.
-  defp description_exceeds_preview?(nil), do: false
-
-  defp description_exceeds_preview?(description) do
-    t = piece_list_description(description)
-    line_blocks = String.split(t, "\n", trim: true)
-
-    t != "" and
-      (String.length(t) > 120 or length(line_blocks) > 3)
-  end
-
-  defp description_preview_text(description) do
-    description
-    |> piece_list_description()
-    |> String.replace("\n", " ")
-  end
 
   @doc """
   Episode list filter (in-memory). Applies an optional case-insensitive
@@ -1019,7 +1003,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     balance = Wallets.get_user_current_balance(user)
     updated_scope = %{scope | wallet_balance: balance}
 
-    Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
+    WalletBalanceSync.broadcast_balance_change(user, balance)
 
     socket
     |> assign(balance: balance, current_scope: updated_scope)

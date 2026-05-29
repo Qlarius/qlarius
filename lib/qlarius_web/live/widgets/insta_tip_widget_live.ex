@@ -3,6 +3,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
 
   alias Qlarius.Accounts.Users
   alias Qlarius.Wallets
+  alias QlariusWeb.WalletBalanceSync
 
   import QlariusWeb.InstaTipComponents
   # Shared helpers for the "View anywhere, Act only when authed"
@@ -87,20 +88,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
     {:ok, socket}
   end
 
-  @impl true
-  def handle_info({:refresh_wallet_balance, _me_file_id}, socket) do
-    new_balance =
-      Wallets.get_me_file_ledger_header_balance(socket.assigns.current_scope.user.me_file)
-
-    current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-    {:noreply, assign(socket, :current_scope, current_scope)}
-  end
-
-  @impl true
-  def handle_info({:me_file_balance_updated, new_balance}, socket) do
-    current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-    {:noreply, assign(socket, :current_scope, current_scope)}
-  end
+  # Wallet balance: `WalletBalanceSyncHooks` (global on_mount).
 
   @impl true
   def handle_info("insta_tip_success", socket) do
@@ -127,24 +115,6 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
       Map.put(socket.assigns.current_scope, :pending_referral_clicks_count, pending_clicks_count)
 
     {:noreply, assign(socket, :current_scope, current_scope)}
-  end
-
-  @impl true
-  def handle_info(:update_balance, socket) do
-    user = socket.assigns.current_scope && socket.assigns.current_scope.user
-
-    if user do
-      new_balance = Wallets.get_user_current_balance(user)
-      current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-
-      {:noreply,
-       socket
-       |> assign(:current_scope, current_scope)
-       |> assign(:current_balance, new_balance)
-       |> assign(:daily_gift_available?, Wallets.daily_gift_available?(user))}
-    else
-      {:noreply, socket}
-    end
   end
 
   @impl true
@@ -254,9 +224,8 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
 
       case Wallets.claim_daily_gift(user) do
         {:ok, :credited} ->
-          Phoenix.PubSub.broadcast(Qlarius.PubSub, "wallet:#{user.id}", :update_balance)
-
           new_balance = Wallets.get_user_current_balance(user)
+          WalletBalanceSync.broadcast_balance_change(user, new_balance)
           current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
 
           {:noreply,
