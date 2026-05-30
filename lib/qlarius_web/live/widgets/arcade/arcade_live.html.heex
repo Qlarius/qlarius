@@ -629,9 +629,9 @@
               <%= if assigns[:purchase_intent] == :gift do %>
                 <button
                   phx-click="confirm-gift-purchase"
-                  class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
+                  class="btn-widget btn-widget-emphasis btn-lg min-h-14 btn-block rounded-full whitespace-nowrap"
                 >
-                  <.icon name="hero-gift" class="h-4 w-4 mr-2" /> Confirm gift •
+                  <.icon name="hero-gift" class="mr-2 h-5 w-5 shrink-0" /> Confirm gift •
                   <span class="font-bold">
                     {format_usd(
                       assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price,
@@ -646,9 +646,9 @@
                 <button
                   phx-click="purchase-tiqit"
                   phx-value-tiqit-class-id={@selected_tiqit_class.id}
-                  class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
+                  class="btn-widget btn-widget-emphasis btn-lg min-h-14 btn-block rounded-full whitespace-nowrap"
                 >
-                  <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm •
+                  <.icon name="hero-check" class="mr-2 h-5 w-5 shrink-0" /> Confirm •
                   <span class="font-bold">
                     {format_usd(
                       assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price,
@@ -773,9 +773,9 @@
               id="copy-share-gift"
               phx-hook="CopyToClipboard"
               data-target="share-gift-message"
-              class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
+              class="btn-widget btn-widget-emphasis btn-lg min-h-14 btn-block rounded-full whitespace-nowrap"
             >
-              <.icon name="hero-clipboard-document" class="mr-2 h-4 w-4" /> Copy invitation
+              <.icon name="hero-clipboard-document" class="mr-2 h-5 w-5 shrink-0" /> Copy invitation
             </button>
           </div>
         <% else %>
@@ -864,18 +864,18 @@
             <p class="max-w-[360px] text-base-content/60 text-center">
               Simple share. No purchase.<br/>(Or switch to Gift mode above.)
             </p>
-            <div class="flex items-center">
+            <div class="w-full">
               <button
                 type="button"
                 phx-click="create-share"
-                class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
+                class="btn-widget btn-widget-emphasis btn-lg min-h-14 w-full rounded-full whitespace-nowrap"
               >
-                <.icon name="hero-link" class="mr-2 h-4 w-4" /> Create share link
+                <.icon name="hero-link" class="mr-2 h-5 w-5 shrink-0" /> Create share link
               </button>
             </div>
           <% else %>
             <p class="max-w-[420px] text-base-content/60 text-center">
-              Pick a tiqit to purchase and share as a gift.
+              Buy it for them.<br/>Pick a tiqit to purchase and share as a gift.
             </p>
             <.tiqit_class_grid
               piece={@selected_piece}

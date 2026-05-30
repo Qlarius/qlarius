@@ -516,22 +516,13 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
                 />
               <% end %>
             <% else %>
-              <%= if !@loading && Enum.empty?(@video_offers) do %>
-                <div class="text-center text-base-content/70 py-8">
-                  No video ads available
-                </div>
-              <% else %>
-                <ul class="-mx-4 sm:mx-0 list bg-base-200 dark:!bg-base-200 sm:rounded-box shadow-md overflow-hidden">
-                  <.video_offer_list_item
-                    :for={{offer, rate} <- @video_offers}
-                    offer={offer}
-                    rate={rate}
-                    completed={offer.id in @completed_video_offers}
-                    me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
-                    recipient={@recipient}
-                  />
-                </ul>
-              <% end %>
+              <.video_offer_list
+                video_offers={@video_offers}
+                completed_video_offers={@completed_video_offers}
+                me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
+                recipient={@recipient}
+                loading={@loading}
+              />
             <% end %>
           </div>
         <% end %>

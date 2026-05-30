@@ -389,25 +389,12 @@ defmodule QlariusWeb.AdsLive do
             </div>
           <% end %>
         <% else %>
-          <%= if !@loading && Enum.empty?(@video_offers) do %>
-            <div class="text-center text-base-content/70 py-8">
-              No video ads available
-            </div>
-          <% else %>
-            <.surface_panel padding={false}>
-              <ul class="list divide-y divide-base-300/60 dark:divide-base-content/10 overflow-hidden">
-                <.video_offer_list_item
-                  :for={{offer, rate} <- @video_offers}
-                  offer={offer}
-                  rate={rate}
-                  completed={offer.id in @completed_video_offers}
-                  me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
-                  recipient={nil}
-                  surface_panel_row?={true}
-                />
-              </ul>
-            </.surface_panel>
-          <% end %>
+          <.video_offer_list
+            video_offers={@video_offers}
+            completed_video_offers={@completed_video_offers}
+            me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
+            loading={@loading}
+          />
         <% end %>
       </Layouts.mobile>
 

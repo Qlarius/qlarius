@@ -169,23 +169,14 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                       />
                     <% end %>
                   <% else %>
-                    <%= if Enum.empty?(@video_offers) do %>
-                      <div class="text-center text-base-content/70 py-8">
-                        No video ads available
-                      </div>
-                    <% else %>
-                      <ul class="list bg-base-200 rounded-box shadow-md overflow-hidden">
-                        <.video_offer_list_item
-                          :for={{offer, rate} <- @video_offers}
-                          offer={offer}
-                          rate={rate}
-                          completed={offer.id in @completed_video_offers}
-                          me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
-                          recipient={@recipient}
-                          tip_only={@tip_only}
-                        />
-                      </ul>
-                    <% end %>
+                    <.video_offer_list
+                      video_offers={@video_offers}
+                      completed_video_offers={@completed_video_offers}
+                      me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
+                      recipient={@recipient}
+                      tip_only={@tip_only}
+                      loading={@loading_offers}
+                    />
                   <% end %>
                 <% end %>
               <% end %>

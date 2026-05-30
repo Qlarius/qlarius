@@ -312,13 +312,15 @@
   <% end %>
 
   <%= if @invitation && !@show_invitation_overlay && @invitation.state == :active_gift do %>
-    <button
-      type="button"
-      phx-click="reopen-invitation-overlay"
-      class="btn btn-primary btn-sm fixed bottom-20 right-4 z-[74] gap-1 shadow-lg"
-    >
-      <.icon name="hero-gift" class="h-4 w-4" /> Gift waiting
-    </button>
+    <div class="fixed right-4 bottom-[5.75rem] z-40 max-w-[calc(100vw-2rem)] pointer-events-none">
+      <button
+        type="button"
+        phx-click="reopen-invitation-overlay"
+        class="btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg pointer-events-auto"
+      >
+        <.icon name="hero-gift" class="h-5 w-5" /> Gift waiting
+      </button>
+    </div>
   <% end %>
 
   <%= if QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns) do %>

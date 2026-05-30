@@ -5,6 +5,7 @@ defmodule QlariusWeb.Components.AdsComponents do
   use Phoenix.Component
   import QlariusWeb.CoreComponents
   import QlariusWeb.Money
+  import QlariusWeb.Components.SurfaceComponents
   import QlariusWeb.Components.WalletBalance, only: [wallet_balance: 1]
   alias Decimal
   alias Phoenix.LiveView.JS
@@ -751,6 +752,46 @@ defmodule QlariusWeb.Components.AdsComponents do
         <% end %>
       <% end %>
     </div>
+    """
+  end
+
+  @doc """
+  Video ad offer list in the shared `/ads` surface panel style.
+
+  Wraps `video_offer_list_item/1` rows in `surface_panel` with dividers so
+  drawer, qlink, and standalone ads pages stay visually in sync.
+  """
+  attr :video_offers, :list, required: true
+  attr :completed_video_offers, :list, default: []
+  attr :me_file_id, :integer, default: nil
+  attr :recipient, :any, default: nil
+  attr :tip_only, :boolean, default: false
+  attr :loading, :boolean, default: false
+  attr :force_light, :boolean, default: false
+  attr :empty_message, :string, default: "No video ads available"
+  attr :class, :string, default: ""
+
+  def video_offer_list(assigns) do
+    ~H"""
+    <%= if !@loading && Enum.empty?(@video_offers) do %>
+      <div class="text-center text-base-content/70 py-8">{@empty_message}</div>
+    <% else %>
+      <.surface_panel padding={false} class={@class}>
+        <ul class="list divide-y divide-base-300/60 dark:divide-base-content/10 overflow-hidden">
+          <.video_offer_list_item
+            :for={{offer, rate} <- @video_offers}
+            offer={offer}
+            rate={rate}
+            completed={offer.id in @completed_video_offers}
+            me_file_id={@me_file_id}
+            recipient={@recipient}
+            tip_only={@tip_only}
+            force_light={@force_light}
+            surface_panel_row?={true}
+          />
+        </ul>
+      </.surface_panel>
+    <% end %>
     """
   end
 
