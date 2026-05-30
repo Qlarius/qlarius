@@ -237,19 +237,20 @@
                   <%= cond do %>
                     <% Arcade.has_valid_tiqit?(@current_scope, @selected_piece) -> %>
                       <div class="flex w-full flex-col items-stretch gap-3">
-                        <div class="mb-3 w-full">
-                          <%!-- Single Play CTA → TiqitPlayer.play_frame_for/1 picks
-                  modal (inline Qlink), side panel (in-app), or page
-                  (standalone widget). `phx-target` to the embed phx-id
-                  keeps inline events routed to this child LV. --%>
+                        <div class="mb-3 flex w-full flex-row items-center gap-1.5">
                           <button
                             type="button"
                             phx-click="play-piece"
                             phx-target={@embed_phx_id && "#" <> @embed_phx_id}
-                            class="btn-sponster-play btn-lg min-h-14 w-full rounded-full whitespace-nowrap"
+                            class="btn-sponster-play btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap"
                           >
                             <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
                           </button>
+                          <.arcade_more_options_popover
+                            piece={@selected_piece}
+                            current_scope={@current_scope}
+                            disable_purchase_options?={true}
+                          />
                         </div>
                         <QlariusWeb.Components.TiqitExpirationCountdown.badge
                           expires_at={@tiqit.expires_at}
@@ -279,60 +280,13 @@
                             {format_usd(default_tc.price, zero_free: true)}
                           </span>
                         </button>
-                        <.popover
-                          id={"arcade-more-options-#{@selected_piece.id}"}
-                          placement="left"
-                          position_strategy="fixed"
-                          trigger_type="click"
-                          use_floating_size={false}
-                          class="w-max max-w-[min(28rem,calc(100vw-1.5rem))] min-w-[15rem] px-4 pt-3.5 pb-4 shadow-xl"
-                        >
-                          <:trigger>
-                            <button
-                              type="button"
-                              class="btn-widget flex h-14 w-10 shrink-0 items-center justify-center rounded-full border-widget-200 !p-0"
-                              aria-label="More options"
-                              title="More options"
-                            >
-                              <.icon name="hero-ellipsis-horizontal" class="h-5 w-5 shrink-0" />
-                            </button>
-                          </:trigger>
-                          <:content>
-                            <div class="flex w-full flex-col gap-3">
-                              <button
-                                type="button"
-                                phx-click={
-                                  Phoenix.LiveView.JS.dispatch("qlarius:close-popover",
-                                    detail: %{id: "arcade-more-options-#{@selected_piece.id}"}
-                                  )
-                                  |> Phoenix.LiveView.JS.push("browse-tiqit-options",
-                                    target: "#arcade-pwa-detect"
-                                  )
-                                }
-                                class="btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5"
-                              >
-                                <.icon name="hero-squares-2x2" class="h-6 w-6 shrink-0" />
-                                <span class="text-sm font-medium">Full purchase options</span>
-                              </button>
-                              <button
-                                :if={authed?(@current_scope)}
-                                type="button"
-                                phx-click={
-                                  Phoenix.LiveView.JS.dispatch("qlarius:close-popover",
-                                    detail: %{id: "arcade-more-options-#{@selected_piece.id}"}
-                                  )
-                                  |> Phoenix.LiveView.JS.push("open-share-gift-modal",
-                                    target: "#arcade-pwa-detect"
-                                  )
-                                }
-                                class="btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5"
-                              >
-                                <.icon name="hero-gift" class="h-6 w-6 shrink-0" />
-                                <span class="text-sm font-medium">Share / Gift</span>
-                              </button>
-                            </div>
-                          </:content>
-                        </.popover>
+                        <.arcade_more_options_popover
+                          piece={@selected_piece}
+                          current_scope={@current_scope}
+                          disable_purchase_options?={
+                            Arcade.has_valid_tiqit?(@current_scope, @selected_piece)
+                          }
+                        />
                       </div>
                       <%= if is_authed && !can_afford do %>
                         <div
@@ -582,7 +536,7 @@
             >
               Tiqit Purchase Options
             </h2>
-            <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+            <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/80 bg-base-200/65 dark:border-base-content/12 dark:bg-base-300/30 p-3">
               <div class="flex flex-row items-center justify-center gap-4">
                 <div class="relative shrink-0">
                   <img
@@ -613,7 +567,7 @@
               tiqit_up_catalog_credit={@tiqit_up_catalog_credit}
             />
           <% else %>
-            <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+            <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/80 bg-base-200/65 dark:border-base-content/12 dark:bg-base-300/30 p-3">
               <div class="flex flex-row items-center justify-center gap-4">
                 <div class="relative shrink-0">
                   <img
@@ -637,38 +591,75 @@
               </div>
             </div>
             <p class="text-base-content/60 text-center">
-              <%= if @selected_tiqit_class.duration_hours do %>
-                You are purchasing access to the
-                <span class="text-base-content font-bold">
-                  {desc.label}
-                </span>
-                for <span class="text-base-content font-bold">{format_tiqit_class_duration(
-              @selected_tiqit_class.duration_hours
-            )}</span>.
+              <%= if assigns[:purchase_intent] == :gift do %>
+                <%= if @selected_tiqit_class.duration_hours do %>
+                  You are purchasing and gifting access to the
+                  <span class="text-base-content font-bold">
+                    {desc.label}
+                  </span>
+                  for <span class="text-base-content font-bold">{format_tiqit_class_duration(
+                @selected_tiqit_class.duration_hours
+              )}</span>.
+                <% else %>
+                  You are purchasing and gifting <span class="text-base-content font-bold">lifetime</span>
+                  access to the <span class="text-base-content font-bold">{desc.label}</span>.
+                <% end %>
+                <%= if desc.detail do %>
+                  <br /><span class="text-base-content/50 text-sm">Includes {desc.detail}.</span>
+                <% end %>
               <% else %>
-                You are purchasing <span class="text-base-content font-bold">lifetime</span>
-                access to the <span class="text-base-content font-bold">{desc.label}</span>.
-              <% end %>
-              <%= if desc.detail do %>
-                <br /><span class="text-base-content/50 text-sm">Includes {desc.detail}.</span>
+                <%= if @selected_tiqit_class.duration_hours do %>
+                  You are purchasing access to the
+                  <span class="text-base-content font-bold">
+                    {desc.label}
+                  </span>
+                  for <span class="text-base-content font-bold">{format_tiqit_class_duration(
+                @selected_tiqit_class.duration_hours
+              )}</span>.
+                <% else %>
+                  You are purchasing <span class="text-base-content font-bold">lifetime</span>
+                  access to the <span class="text-base-content font-bold">{desc.label}</span>.
+                <% end %>
+                <%= if desc.detail do %>
+                  <br /><span class="text-base-content/50 text-sm">Includes {desc.detail}.</span>
+                <% end %>
               <% end %>
             </p>
-            <div class="flex items-center">
-              <button
-                phx-click="purchase-tiqit"
-                phx-value-tiqit-class-id={@selected_tiqit_class.id}
-                class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
-              >
-                <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm •
-                <span class="font-bold">
-                  {format_usd(
-                    assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price,
-                    zero_free: true
-                  )}
-                </span>
-              </button>
+            <div class="flex w-full flex-col gap-2">
+              <%= if assigns[:purchase_intent] == :gift do %>
+                <button
+                  phx-click="confirm-gift-purchase"
+                  class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
+                >
+                  <.icon name="hero-gift" class="h-4 w-4 mr-2" /> Confirm gift •
+                  <span class="font-bold">
+                    {format_usd(
+                      assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price,
+                      zero_free: true
+                    )}
+                  </span>
+                </button>
+                <p class="text-center text-sm leading-snug text-base-content/60 px-2 pt-4">
+                  Recipients have 48 hours to claim gifted tiqits. Full credit back for unclaimed gift tiqits.
+                </p>
+              <% else %>
+                <button
+                  phx-click="purchase-tiqit"
+                  phx-value-tiqit-class-id={@selected_tiqit_class.id}
+                  class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
+                >
+                  <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm •
+                  <span class="font-bold">
+                    {format_usd(
+                      assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price,
+                      zero_free: true
+                    )}
+                  </span>
+                </button>
+              <% end %>
             </div>
-            <%= if assigns[:selected_tiqit_class_credit] && Decimal.gt?(assigns.selected_tiqit_class_credit, 0) do %>
+            <%= if assigns[:purchase_intent] != :gift && assigns[:selected_tiqit_class_credit] &&
+                    Decimal.gt?(assigns.selected_tiqit_class_credit, 0) do %>
               <div class="alert bg-widget-100 border border-widget-300 mt-2 py-2 justify-center">
                 <span class="text-sm flex items-center gap-1">
                   <.icon name="hero-sparkles-solid" class="h-4 w-4 text-widget-700" />
@@ -683,7 +674,7 @@
             <% end %>
           <% end %>
           <div class="flex flex-col gap-1">
-            <%= if !assigns[:options_modal] do %>
+            <%= if !assigns[:options_modal] && assigns[:purchase_intent] != :gift do %>
               <div class="divider m-1"></div>
               <div class="flex flex-row gap-1 justify-center align-middle">
                 <p class="text-base-content/60">Want to binge? Full catalog access?</p>
@@ -716,42 +707,47 @@
 
     <.modal
       :if={@show_share_gift_modal}
-      id="share-gift-modal"
+      id={"share-gift-modal-#{@share_gift_modal_token}"}
       show={@show_share_gift_modal}
       border_class="border border-widget-700"
       on_cancel={JS.push("close-share-gift-modal")}
     >
       <div class="flex flex-col p-8">
-        <div class={"mx-auto flex w-full flex-col items-center gap-4 #{if @share_gift_mode == "share", do: "max-w-[400px]", else: ""}"}>
-        <h2
-          id="share-gift-modal-title"
+        <div class={
+          [
+            "mx-auto flex w-full flex-col items-center gap-6",
+            @share_gift_result && "max-w-lg",
+            !@share_gift_result && @share_gift_mode == "share" && "max-w-[400px]"
+          ]
+        }>
+        <.pill_join_selector
+          :if={is_nil(@share_gift_result)}
+          id="share-gift-mode-selector"
+          label="Share or gift"
+          size="large"
+          class="mx-auto w-fit min-w-max outline-none"
           tabindex="-1"
-          phx-mounted={JS.focus(to: "#share-gift-modal-title")}
-          class="text-xl font-bold text-base-content text-center outline-none"
+          phx-mounted={JS.focus(to: "#share-gift-mode-selector")}
         >
-          Share or gift this content
-        </h2>
-
-        <.pill_join_selector label="Share or gift" class="mx-auto w-fit min-w-max">
           <.pill_join_item
             active={@share_gift_mode == "share"}
             phx-click="share-gift-set-mode"
             phx-value-mode="share"
           >
-            <.icon name="hero-arrow-up-on-square" class="mr-1 h-4 w-4" /> Share
+            <.icon name="hero-arrow-up-on-square" class="mr-1 h-5 w-5" /> Share
           </.pill_join_item>
           <.pill_join_item
             active={@share_gift_mode == "gift"}
             phx-click="share-gift-set-mode"
             phx-value-mode="gift"
           >
-            <.icon name="hero-gift" class="mr-1 h-4 w-4" /> Gift
+            <.icon name="hero-gift" class="mr-1 h-5 w-5" /> Gift
           </.pill_join_item>
         </.pill_join_selector>
 
         <%= if @share_gift_result do %>
-          <div class="space-y-3 text-center">
-            <p class="text-sm font-medium text-base-content/80">
+          <div class="flex w-full flex-col items-stretch gap-6 text-center">
+            <p class="text-sm font-medium leading-relaxed text-base-content/80 px-1">
               <%= if @share_gift_result.type == "gift" do %>
                 Your gift is waiting at will call. Send this to your friend:
               <% else %>
@@ -761,11 +757,11 @@
             <textarea
               id="share-gift-message"
               readonly
-              rows="6"
-              class="textarea textarea-bordered w-full text-sm text-left"
+              rows="9"
+              class="textarea textarea-bordered tiqit-invitation-text w-full min-h-[12rem] resize-y py-4 px-4 text-sm leading-relaxed text-left"
             ><%= @share_gift_result.message %></textarea>
             <%= if @share_gift_result.pin do %>
-              <p class="text-sm">
+              <p class="text-sm leading-relaxed">
                 Claim PIN:
                 <span class="font-mono text-base font-bold tracking-widest tabular-nums">
                   {@share_gift_result.pin}
@@ -787,7 +783,7 @@
             if @share_gift_mode == "share" && @share_gift_share_target == "content_group",
               do: :group,
               else: :piece %>
-          <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+          <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/80 bg-base-200/65 dark:border-base-content/12 dark:bg-base-300/30 p-3">
             <div class="flex flex-row items-center justify-center gap-4">
               <div class="relative shrink-0">
                 <img
@@ -817,16 +813,13 @@
           </div>
 
           <%= if @share_gift_mode == "share" do %>
-            <p class="max-w-[360px] text-base-content/60 text-center">
-              Recommend this content. No payment — your friend can buy or unlock it themselves.
-            </p>
             <div class="mx-auto grid w-full max-w-md grid-cols-2 gap-2">
               <label
                 :if={@selected_piece}
                 class={[
                   "label cursor-pointer justify-start gap-3 rounded-lg border px-3 py-2",
                   @share_gift_share_target == "content_piece" &&
-                    "border-primary bg-primary/10",
+                    "border-widget-700 bg-widget-100 text-widget-900",
                   @share_gift_share_target != "content_piece" &&
                     "border-base-300"
                 ]}
@@ -845,9 +838,9 @@
               </label>
               <label
                 class={[
-                  "label cursor-pointer justify-start gap-3 rounded-lg border px-3 py-2",
+                  "label cursor-pointer items-start justify-start gap-3 rounded-lg border px-3 py-2",
                   @share_gift_share_target == "content_group" &&
-                    "border-primary bg-primary/10",
+                    "border-widget-700 bg-widget-100 text-widget-900",
                   @share_gift_share_target != "content_group" &&
                     "border-base-300"
                 ]}
@@ -860,11 +853,17 @@
                   phx-click="share-gift-set-target"
                   phx-value-target="content_group"
                 />
-                <span class="label-text text-sm">
-                  Full {to_string(@group.catalog.group_type)}
+                <span class="label-text text-sm leading-snug">
+                  <span class="block">Full {to_string(@group.catalog.group_type)}</span>
+                  <span class="block text-xs text-base-content/50">
+                    {group_piece_count_label(@group)}
+                  </span>
                 </span>
               </label>
             </div>
+            <p class="max-w-[360px] text-base-content/60 text-center">
+              Simple share. No purchase.<br/>(Or switch to Gift mode above.)
+            </p>
             <div class="flex items-center">
               <button
                 type="button"
@@ -876,35 +875,23 @@
             </div>
           <% else %>
             <p class="max-w-[420px] text-base-content/60 text-center">
-              Prepay a Tiqit and leave it at will call. Your friend has 48 hours to claim it.
+              Pick a tiqit to purchase and share as a gift.
             </p>
             <.tiqit_class_grid
               piece={@selected_piece}
               group={@group}
               balance={@balance}
-              select_event="gift-select-class"
-              selected_class_id={@share_gift_selected_class_id}
               apply_tiqit_up?={false}
             />
-            <div class="flex items-center">
-              <button
-                type="button"
-                phx-click="create-gift"
-                disabled={is_nil(@share_gift_selected_class_id)}
-                class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
-              >
-                <.icon name="hero-gift" class="mr-2 h-4 w-4" /> Confirm gift
-              </button>
-            </div>
           <% end %>
         <% end %>
 
         <p class="text-xs text-base-content/60 text-center">
-          New friend joins? You get referral credit.
+          You get referral credit for new joins!
           <.link navigate="/referrals" class="link">See referral details.</.link>
         </p>
 
-        <div class="flex justify-center mt-2">
+        <div class="flex justify-center">
           <img src="/images/TIQIT_logo_color_square.svg" alt="Tiqit" class="h-8 w-auto" />
         </div>
         </div>

@@ -127,6 +127,13 @@ config :qlarius, QlariusWeb.Endpoint,
 # Enable dev routes for dashboard and mailbox
 config :qlarius, dev_routes: true
 
+# Log LiveView mount/reconnect, wallet PubSub sync, and socket events.
+# Events -> tmp/lv_debug.ndjson — run `mix lv_debug.recent` after a refresh, or ask the agent to search that file.
+config :qlarius, QlariusWeb.LiveViewDebug,
+  enabled: true,
+  log_path: "tmp/lv_debug.ndjson",
+  max_log_bytes: 20 * 1024 * 1024
+
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"
 

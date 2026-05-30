@@ -10,6 +10,7 @@ defmodule Qlarius.ContentSharingTest do
   alias Qlarius.Referrals
   alias Qlarius.Repo
   alias Qlarius.Tiqit.Arcade.{Catalog, ContentGroup, ContentPiece, TiqitClass, Tiqit}
+  alias Qlarius.Wallets
   alias Qlarius.Wallets.{LedgerEntry, LedgerHeader}
 
   describe "starter credit" do
@@ -37,7 +38,8 @@ defmodule Qlarius.ContentSharingTest do
     test "debits the sender and creates a will-call ticket", %{
       sender_scope: scope,
       group: group,
-      tiqit_class: tc
+      tiqit_class: tc,
+      creator: creator
     } do
       starting = wallet_balance(scope)
 
@@ -46,6 +48,15 @@ defmodule Qlarius.ContentSharingTest do
                  tiqit_class_id: tc.id,
                  content_group_id: group.id
                })
+
+      sender_header = me_file_header(scope)
+
+      debit_entry =
+        Repo.get!(LedgerEntry, will_call.sender_debit_ledger_entry_id)
+
+      assert debit_entry.description == String.upcase(creator.name)
+      assert debit_entry.meta_1 == "Tiqit Gift Purchase (Will Call)"
+      assert debit_entry.ledger_header_id == sender_header.id
 
       assert will_call.will_call_status == "at_will_call"
       assert String.length(pin) == 4
@@ -56,6 +67,22 @@ defmodule Qlarius.ContentSharingTest do
                wallet_balance(scope),
                Decimal.sub(starting, tc.price)
              )
+
+      reloaded_inv = Repo.get!(Qlarius.ContentSharing.ShareInvitation, will_call.share_invitation_id)
+      assert reloaded_inv.sender_claim_token_encrypted
+      assert reloaded_inv.sender_claim_pin_encrypted
+
+      wc =
+        Repo.preload(will_call, [
+          :tiqit_class,
+          :content_piece,
+          :content_group,
+          share_invitation: []
+        ])
+
+      message = ContentSharing.sender_gift_invitation_message(wc)
+      assert message =~ pin
+      assert message =~ "/tiqit/gift/#{token}"
     end
 
     test "rejects gifts the sender cannot afford", %{sender_scope: scope, group: group} do
@@ -125,6 +152,18 @@ defmodule Qlarius.ContentSharingTest do
       purchase_idx = Enum.find_index(entries, &(&1.meta_1 == "Tiqit Purchase"))
       assert gift_idx < purchase_idx
 
+      gift_entry = Enum.at(entries, gift_idx)
+      purchase_entry = Enum.at(entries, purchase_idx)
+
+      assert Decimal.equal?(gift_entry.running_balance, Decimal.add(starting, wc.amount))
+      assert Decimal.equal?(purchase_entry.running_balance, starting)
+
+      newest_first =
+        Wallets.list_ledger_entries(recipient_header.id, 1, 20).entries
+        |> Enum.take(2)
+
+      assert [purchase_entry.id, gift_entry.id] == Enum.map(newest_first, & &1.id)
+
       # Pass-through credit + matching purchase debit net to zero.
       assert Decimal.equal?(me_file_header(recipient_scope).balance, starting)
 
@@ -167,6 +206,35 @@ defmodule Qlarius.ContentSharingTest do
     end
   end
 
+  describe "revoke_gift/2" do
+    setup [:build_content, :build_sender, :create_gift]
+
+    test "credits the sender and marks the gift withdrawn", %{
+      will_call: wc,
+      sender_scope: sender_scope,
+      tiqit_class: tc
+    } do
+      before = wallet_balance(sender_scope)
+
+      assert {:ok, revoked} = ContentSharing.revoke_gift(sender_scope, wc.id)
+      assert revoked.will_call_status == "pulled"
+      refute is_nil(revoked.reversed_at)
+
+      assert Decimal.equal?(wallet_balance(sender_scope), Decimal.add(before, tc.price))
+
+      assert Repo.get!(Qlarius.ContentSharing.ShareInvitation, wc.share_invitation_id).status ==
+               "revoked"
+    end
+
+    test "rejects revoke after pickup", %{will_call: wc, sender_scope: sender_scope} do
+      wc
+      |> Ecto.Changeset.change(will_call_status: "picked_up")
+      |> Repo.update!()
+
+      assert {:error, :not_revokable} = ContentSharing.revoke_gift(sender_scope, wc.id)
+    end
+  end
+
   describe "referral attribution" do
     setup [:build_content, :build_sender]
 
@@ -196,6 +264,135 @@ defmodule Qlarius.ContentSharingTest do
       assert referral
       assert referral.source == "content_gift"
       assert referral.source_id == invitation.id
+    end
+  end
+
+  describe "share fork visits" do
+    import Plug.Conn
+    import Phoenix.ConnTest, only: [build_conn: 0, init_test_session: 2]
+
+    alias Qlarius.ContentSharing.ShareInvitation
+
+    setup [:build_content, :build_sender]
+
+    test "canonical share link spawns a per-session fork", %{sender_scope: scope, group: group} do
+      {:ok, %{raw_token: canonical_token, invitation: canonical}} =
+        ContentSharing.create_share(scope, %{
+          share_target_type: "content_group",
+          content_group_id: group.id
+        })
+
+      conn = build_conn() |> init_test_session(%{})
+
+      assert {:redirect, fork_token, conn} = ContentSharing.resolve_share_visit(conn, canonical_token)
+      assert fork_token != canonical_token
+
+      fork =
+        Repo.get_by!(ShareInvitation, token_hash: ContentSharing.hash_token(fork_token))
+
+      assert fork.parent_share_invitation_id == canonical.id
+      assert fork.sender_user_id == canonical.sender_user_id
+      assert fork.content_group_id == group.id
+      assert get_session(conn, ContentSharing.share_fork_session_key(canonical.id)) == fork_token
+    end
+
+    test "same session reuses the fork without creating duplicates", %{
+      sender_scope: scope,
+      group: group
+    } do
+      {:ok, %{raw_token: canonical_token, invitation: canonical}} =
+        ContentSharing.create_share(scope, %{
+          share_target_type: "content_group",
+          content_group_id: group.id
+        })
+
+      conn = build_conn() |> init_test_session(%{})
+
+      assert {:redirect, fork_token, conn} = ContentSharing.resolve_share_visit(conn, canonical_token)
+
+      assert {:ok, ^fork_token, _conn} = ContentSharing.resolve_share_visit(conn, fork_token)
+      assert {:redirect, ^fork_token, _conn} = ContentSharing.resolve_share_visit(conn, canonical_token)
+
+      fork_count =
+        Repo.aggregate(
+          from(i in ShareInvitation, where: i.parent_share_invitation_id == ^canonical.id),
+          :count
+        )
+
+      assert fork_count == 1
+    end
+
+    test "separate sessions each get their own fork", %{sender_scope: scope, group: group} do
+      {:ok, %{raw_token: canonical_token, invitation: canonical}} =
+        ContentSharing.create_share(scope, %{
+          share_target_type: "content_group",
+          content_group_id: group.id
+        })
+
+      conn_a = build_conn() |> init_test_session(%{})
+      conn_b = build_conn() |> init_test_session(%{})
+
+      assert {:redirect, fork_a, _} = ContentSharing.resolve_share_visit(conn_a, canonical_token)
+      assert {:redirect, fork_b, _} = ContentSharing.resolve_share_visit(conn_b, canonical_token)
+      assert fork_a != fork_b
+
+      fork_count =
+        Repo.aggregate(
+          from(i in ShareInvitation, where: i.parent_share_invitation_id == ^canonical.id),
+          :count
+        )
+
+      assert fork_count == 2
+    end
+
+    test "gift links pass through without forking", %{
+      sender_scope: scope,
+      group: group,
+      tiqit_class: tc
+    } do
+      {:ok, %{raw_token: gift_token}} =
+        ContentSharing.create_gift(scope, %{
+          tiqit_class_id: tc.id,
+          content_group_id: group.id
+        })
+
+      conn = build_conn() |> init_test_session(%{})
+
+      assert {:pass, _conn} = ContentSharing.resolve_share_visit(conn, gift_token)
+    end
+
+    test "referral signup attributes the fork invitation id", %{
+      sender_scope: scope,
+      group: group
+    } do
+      {:ok, %{raw_token: canonical_token}} =
+        ContentSharing.create_share(scope, %{
+          share_target_type: "content_group",
+          content_group_id: group.id
+        })
+
+      conn = build_conn() |> init_test_session(%{})
+      assert {:redirect, fork_token, _} = ContentSharing.resolve_share_visit(conn, canonical_token)
+
+      fork =
+        Repo.get_by!(ShareInvitation, token_hash: ContentSharing.hash_token(fork_token))
+
+      sender_user = scope.user
+
+      ref_context =
+        Referrals.Context.from_content_invitation(sender_user, :content_share, fork.id)
+
+      {:ok, %{me_file: recipient_me_file}} =
+        Accounts.register_new_user(
+          valid_registration_attrs(),
+          Referrals.Context.code(ref_context),
+          source: Referrals.Context.source(ref_context),
+          source_id: Referrals.Context.source_id(ref_context)
+        )
+
+      referral = Repo.get_by!(Referrals.Referral, referred_me_file_id: recipient_me_file.id)
+      assert referral.source == "content_share"
+      assert referral.source_id == fork.id
     end
   end
 

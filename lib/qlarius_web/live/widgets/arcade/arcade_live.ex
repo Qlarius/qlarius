@@ -93,6 +93,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
            arqade_expand_parent?: is_pid(socket.parent_pid)
          })
        )
+       |> ensure_share_gift_assigns()
        |> WalletBalanceSync.notify_inline_parent()}
     else
       scope = socket.assigns.current_scope
@@ -175,10 +176,11 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          selected_tiqit_class: nil,
          show_connect_modal: false,
          show_share_gift_modal: false,
+         share_gift_modal_token: 0,
          share_gift_mode: "share",
          share_gift_share_target: "content_piece",
-         share_gift_selected_class_id: nil,
          share_gift_result: nil,
+         purchase_intent: nil,
          show_auth_sheet: false,
          auth_referral_context: Qlarius.Referrals.Context.none(),
          auth_sheet_host_enabled?: auth_sheet_host_enabled?,
@@ -351,7 +353,23 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   end
 
   def handle_event("close-confirm-purchase-modal", _params, socket) do
-    socket |> assign(selected_tiqit_class: nil) |> noreply()
+    reopen_gift? =
+      socket.assigns[:purchase_intent] == :gift and is_nil(socket.assigns[:share_gift_result])
+
+    socket =
+      socket
+      |> assign(
+        selected_tiqit_class: nil,
+        purchase_intent: nil,
+        options_modal: false
+      )
+
+    socket =
+      if reopen_gift?,
+        do: assign(socket, show_share_gift_modal: true, share_gift_mode: "gift"),
+        else: socket
+
+    noreply(socket)
   end
 
   def handle_event("dismiss-tiqit-up-nudge", _params, socket) do
@@ -432,62 +450,57 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   # purchase modal — but reachable directly, since anon viewers can't
   # open the confirm modal (there's no Buy action for them).
   def handle_event("browse-tiqit-options", _params, socket) do
-    socket
-    |> assign(
-      selected_tiqit_class: ContentPiece.default_tiqit_class(socket.assigns.selected_piece),
-      options_modal: true
-    )
-    |> noreply()
+    piece = socket.assigns.selected_piece
+
+    if Arcade.has_valid_tiqit?(socket.assigns.current_scope, piece) do
+      {:noreply, socket}
+    else
+      socket
+      |> assign(
+        selected_tiqit_class: ContentPiece.default_tiqit_class(piece),
+        options_modal: true
+      )
+      |> noreply()
+    end
   end
 
   # --- Share / Gift ------------------------------------------------------
 
   def handle_event("open-share-gift-modal", _params, socket) do
     socket
+    |> ensure_share_gift_assigns()
     |> assign(
       show_share_gift_modal: true,
+      share_gift_modal_token: next_share_gift_modal_token(),
       share_gift_mode: "share",
       share_gift_share_target: "content_piece",
-      share_gift_selected_class_id: nil,
       share_gift_result: nil
     )
     |> noreply()
   end
 
   def handle_event("close-share-gift-modal", _params, socket) do
-    socket |> assign(show_share_gift_modal: false) |> noreply()
+    socket
+    |> assign(
+      show_share_gift_modal: false,
+      share_gift_result: nil,
+      purchase_intent: nil,
+      selected_tiqit_class: nil,
+      options_modal: false
+    )
+    |> noreply()
   end
 
   def handle_event("share-gift-set-mode", %{"mode" => mode}, socket)
       when mode in ["share", "gift"] do
     socket
-    |> assign(share_gift_mode: mode, share_gift_result: nil, share_gift_selected_class_id: nil)
+    |> assign(share_gift_mode: mode, share_gift_result: nil)
     |> noreply()
   end
 
   def handle_event("share-gift-set-target", %{"target" => target}, socket)
       when target in ["content_piece", "content_group"] do
     socket |> assign(share_gift_share_target: target) |> noreply()
-  end
-
-  def handle_event("gift-select-class", %{"tiqit-class-id" => id}, socket) do
-    with {:cont, socket} <- maybe_intercept_for_unauth(socket) do
-      tc =
-        %TiqitClass{} =
-        Arcade.get_tiqit_class_for_piece!(
-          id,
-          socket.assigns.selected_piece,
-          socket.assigns.group
-        )
-
-      balance = socket.assigns[:balance] || Decimal.new(0)
-
-      if Decimal.compare(balance, tc.price) == :lt do
-        {:noreply, put_flash(socket, :error, "Not enough wallet balance to gift this Tiqit.")}
-      else
-        {:noreply, assign(socket, share_gift_selected_class_id: tc.id)}
-      end
-    end
   end
 
   def handle_event("create-share", _params, socket) do
@@ -517,57 +530,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     end
   end
 
-  def handle_event("create-gift", _params, socket) do
-    with {:cont, socket} <- maybe_intercept_for_unauth(socket) do
-      class_id = socket.assigns.share_gift_selected_class_id
-      piece = socket.assigns.selected_piece
-      group = socket.assigns.group
-      balance = socket.assigns[:balance] || Decimal.new(0)
-
-      tc =
-        if class_id do
-          Arcade.get_tiqit_class_for_piece!(class_id, piece, group)
-        end
-
-      cond do
-        is_nil(tc) ->
-          noreply(socket)
-
-        Decimal.compare(balance, tc.price) == :lt ->
-          socket
-          |> put_flash(:error, "Not enough wallet balance to gift this Tiqit.")
-          |> noreply()
-
-        true ->
-          attrs = %{
-            tiqit_class_id: tc.id,
-            content_group_id: group.id,
-            content_piece_id: if(tc.content_piece_id, do: piece && piece.id)
-          }
-
-          case ContentSharing.create_gift(socket.assigns.current_scope, attrs) do
-            {:ok, result} ->
-              socket
-              |> refresh_balance_after_gift()
-              |> assign(:share_gift_result, build_gift_result(result, tc, piece, group))
-              |> noreply()
-
-            {:error, :insufficient_funds} ->
-              socket
-              |> put_flash(:error, "Not enough wallet balance to gift this Tiqit.")
-              |> noreply()
-          end
-      end
-    end
-  end
-
-  def handle_event("copy_success", _params, socket), do: noreply(socket)
-
-  # Any action that requires a wallet (select-tiqit-class,
-  # purchase-tiqit, topup) is intercepted for anonymous viewers via
-  # `maybe_intercept_for_unauth/1` at the top of each handler. If
-  # unauthed, the handler returns early with `show_connect_modal: true`
-  # and the real work never runs.
   def handle_event("select-tiqit-class", %{"tiqit-class-id" => tc_id}, socket) do
     with {:cont, socket} <- maybe_intercept_for_unauth(socket) do
       tc =
@@ -578,23 +540,77 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
           socket.assigns.group
         )
 
-      {credit, count} = tiqit_class_credit(tc, socket.assigns)
-      adjusted_price = Decimal.max(Decimal.new(0), Decimal.sub(tc.price, credit))
+      gift_flow? =
+        socket.assigns.show_share_gift_modal && socket.assigns.share_gift_mode == "gift"
 
-      socket
-      |> assign(
-        selected_tiqit_class: tc,
-        selected_tiqit_class_adjusted_price: adjusted_price,
-        selected_tiqit_class_credit: credit,
-        selected_tiqit_class_active_count: count,
-        options_modal: false
-      )
-      |> noreply()
+      {credit, count, adjusted_price} =
+        if gift_flow? do
+          {Decimal.new(0), 0, tc.price}
+        else
+          {credit, count} = tiqit_class_credit(tc, socket.assigns)
+          {credit, count, Decimal.max(Decimal.new(0), Decimal.sub(tc.price, credit))}
+        end
+
+      balance = socket.assigns[:balance] || Decimal.new(0)
+
+      if gift_flow? && Decimal.compare(balance, tc.price) == :lt do
+        socket
+        |> put_flash(:error, "Not enough wallet balance to gift this Tiqit.")
+        |> noreply()
+      else
+        socket
+        |> assign(
+          show_share_gift_modal: if(gift_flow?, do: false, else: socket.assigns.show_share_gift_modal),
+          purchase_intent: if(gift_flow?, do: :gift, else: nil),
+          selected_tiqit_class: tc,
+          selected_tiqit_class_adjusted_price: adjusted_price,
+          selected_tiqit_class_credit: credit,
+          selected_tiqit_class_active_count: count,
+          options_modal: false
+        )
+        |> noreply()
+      end
     end
   end
 
   def handle_event("show-options", _params, socket) do
     socket |> assign(:options_modal, true) |> noreply()
+  end
+
+  def handle_event("copy_success", _params, socket), do: noreply(socket)
+
+  def handle_event("confirm-gift-purchase", _params, socket) do
+    with {:cont, socket} <- maybe_intercept_for_unauth(socket) do
+      tc = socket.assigns.selected_tiqit_class
+      piece = socket.assigns.selected_piece
+      group = socket.assigns.group
+
+      if tc && socket.assigns[:purchase_intent] == :gift do
+        attrs = ContentSharing.gift_attrs_for_class(tc, piece, group)
+
+        case ContentSharing.create_gift(socket.assigns.current_scope, attrs) do
+          {:ok, result} ->
+            socket
+            |> refresh_balance_after_gift()
+            |> assign(
+              selected_tiqit_class: nil,
+              purchase_intent: nil,
+              show_share_gift_modal: true,
+              share_gift_modal_token: next_share_gift_modal_token(),
+              share_gift_mode: "gift",
+              share_gift_result: build_gift_result(result, tc, piece, group)
+            )
+            |> noreply()
+
+          {:error, :insufficient_funds} ->
+            socket
+            |> put_flash(:error, "Not enough wallet balance to gift this Tiqit.")
+            |> noreply()
+        end
+      else
+        noreply(socket)
+      end
+    end
   end
 
   def handle_event("daily-gift", _params, socket) do
@@ -853,6 +869,13 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     if word == "series", do: "series", else: word <> "s"
   end
 
+  defp group_piece_count_label(%ContentGroup{} = group) do
+    piece_count = length(group.content_pieces)
+    piece_type = group.catalog.piece_type |> to_string()
+    piece_label = if piece_count == 1, do: piece_type, else: pluralize(piece_type)
+    "#{piece_count} #{piece_label}"
+  end
+
   defp reset_tiqit_content_modal(socket) do
     socket
     |> cancel_tiqit_content_modal_close_timer()
@@ -997,6 +1020,21 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
   defp parse_int(_), do: nil
 
+  defp ensure_share_gift_assigns(socket) do
+    assign(socket, %{
+      purchase_intent: socket.assigns[:purchase_intent],
+      show_share_gift_modal: socket.assigns[:show_share_gift_modal] || false,
+      share_gift_modal_token: socket.assigns[:share_gift_modal_token] || 0,
+      share_gift_mode: socket.assigns[:share_gift_mode] || "share",
+      share_gift_share_target: socket.assigns[:share_gift_share_target] || "content_piece",
+      share_gift_result: socket.assigns[:share_gift_result]
+    })
+  end
+
+  defp next_share_gift_modal_token do
+    System.unique_integer([:positive, :monotonic])
+  end
+
   defp refresh_balance_after_gift(socket) do
     scope = socket.assigns.current_scope
     user = scope.user
@@ -1025,23 +1063,15 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   defp build_gift_result(%{invitation: invitation, raw_pin: pin, claim_path: claim_path}, %TiqitClass{} = tc, piece, group) do
     title = if tc.content_piece_id && piece, do: piece.title, else: group.title
     url = QlariusWeb.Endpoint.url() <> claim_path
-    deadline = format_claim_deadline(invitation.gift_expires_at)
 
     message =
-      "I left a Tiqit for you at will call:\n#{title}\n\n" <>
-        "Claim it here: #{url}\nClaim PIN: #{pin}\n\n" <>
-        "This ticket is waiting until #{deadline}. After that, the link still works as a recommendation."
+      ContentSharing.build_gift_invitation_message(title, url, pin, invitation.gift_expires_at)
 
     %{type: "gift", url: url, pin: pin, message: message}
   end
 
   defp share_content_title("content_group", _piece, group), do: group.title
   defp share_content_title(_target, piece, group), do: (piece && piece.title) || group.title
-
-  defp format_claim_deadline(%DateTime{} = dt),
-    do: Calendar.strftime(dt, "%b %d, %Y %I:%M %p UTC")
-
-  defp format_claim_deadline(_), do: "the claim deadline"
 
   # Returns {credit, active_tiqit_count} for a tiqit class based on its scope.
   # piece-level tiqits never apply credit; group-level uses group credit;

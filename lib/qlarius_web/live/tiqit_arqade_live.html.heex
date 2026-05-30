@@ -22,8 +22,8 @@
       class="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden"
     >
       {live_render(@socket, QlariusWeb.Widgets.Arcade.ArcadeLive,
-      id: "tiqit-arqade-#{@group.id}-#{@selected_piece_id || "default"}",
-      session: %{
+        id: "tiqit-arqade-#{@group.id}",
+        session: %{
         "group_id" => @group.id,
         "inline?" => true,
         "embed_host" => "tiqit_arqade",
@@ -210,9 +210,14 @@
               <h2 class="mt-3 text-xl font-bold">A friend bought this for you.</h2>
               <p class="mt-1 text-base-content/70">{@group.title}</p>
               <p class="mt-3 text-sm font-medium text-warning">
-                Your ticket is waiting at will call for {QlariusWeb.TiqitArqadeLive.format_remaining_claim_time(
-                  @invitation.claim_time_remaining_seconds
-                )}.
+                You have
+                <QlariusWeb.Components.TiqitExpirationCountdown.text
+                  id="gift-claim-countdown"
+                  expires_at={inv.gift_expires_at}
+                  format={:hm}
+                  class="tabular-nums font-semibold text-warning"
+                />
+                to claim gifted tiqits.
               </p>
 
               <%= if @pin_verified? do %>
@@ -222,7 +227,7 @@
                   phx-click="claim-gift"
                   class="btn btn-primary mt-3 w-full"
                 >
-                  Claim your ticket
+                  Claim your tiqit
                 </button>
               <% else %>
                 <p class="mt-4 text-sm text-base-content/70">
@@ -239,7 +244,9 @@
                     placeholder="1234"
                     class="input input-bordered w-full text-center text-2xl tracking-[0.5em] tabular-nums"
                   />
-                  <button type="submit" class="btn btn-primary w-full">Unlock my ticket</button>
+                  <button type="submit" class="btn btn-primary btn-lg w-full rounded-full">
+                    Claim your tiqit
+                  </button>
                 </form>
               <% end %>
 

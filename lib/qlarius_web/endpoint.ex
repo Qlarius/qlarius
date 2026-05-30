@@ -56,7 +56,7 @@ defmodule QlariusWeb.Endpoint do
   if code_reloading? do
     socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
     plug Phoenix.LiveReloader
-    plug Phoenix.CodeReloader
+    plug QlariusWeb.LiveViewDebug.CodeReloaderPlug
     plug Phoenix.Ecto.CheckRepoStatus, otp_app: :qlarius
   end
 

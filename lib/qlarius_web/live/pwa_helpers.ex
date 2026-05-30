@@ -48,9 +48,10 @@ defmodule QlariusWeb.PWAHelpers do
       "[PWA Detection] is_mobile=#{inspect(is_mobile)} is_pwa=#{inspect(is_pwa)} device_type=#{inspect(device_type)} | current: is_mobile=#{inspect(socket.assigns[:is_mobile])} is_pwa=#{inspect(socket.assigns[:is_pwa])}"
     )
 
-    # Only update if values actually changed to avoid unnecessary re-render
     socket =
-      if socket.assigns[:is_pwa] != is_pwa || socket.assigns[:is_mobile] != is_mobile do
+      if socket.assigns[:is_pwa] != is_pwa ||
+           socket.assigns[:is_mobile] != is_mobile ||
+           socket.assigns[:device_type] != device_type_atom do
         Logger.debug("[PWA Detection] Values changed, updating assigns")
 
         socket
@@ -59,7 +60,6 @@ defmodule QlariusWeb.PWAHelpers do
         |> assign(:device_type, device_type_atom)
       else
         socket
-        |> assign(:device_type, device_type_atom)
       end
 
     {:noreply, socket}

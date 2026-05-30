@@ -50,7 +50,7 @@ defmodule QlariusWeb.Components.TiqitExpirationCountdown do
   attr :expires_at, :any, required: true
   attr :id, :string, default: nil
   attr :class, :string, default: ""
-  attr :format, :atom, default: :friendly, values: [:friendly, :hms]
+  attr :format, :atom, default: :friendly, values: [:friendly, :hms, :hm, :ms]
 
   def text(assigns) do
     assigns =
@@ -85,6 +85,8 @@ defmodule QlariusWeb.Components.TiqitExpirationCountdown do
   end
 
   defp countdown_format_attr(:hms), do: "hms"
+  defp countdown_format_attr(:hm), do: "hm"
+  defp countdown_format_attr(:ms), do: "ms"
   defp countdown_format_attr(_), do: "friendly"
 
   defp default_badge_label(:auto_fleet), do: "Auto-Fleets in"

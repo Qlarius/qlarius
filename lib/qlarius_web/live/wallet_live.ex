@@ -8,6 +8,7 @@ defmodule QlariusWeb.WalletLive do
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
+  alias Qlarius.ContentSharing
   alias Qlarius.Wallets
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
@@ -140,6 +141,31 @@ defmodule QlariusWeb.WalletLive do
 
   def handle_event("clear_undo_context", _params, socket) do
     {:noreply, assign(socket, :undo_context, nil)}
+  end
+
+  def handle_event("revoke-gift", %{"id" => id}, socket) do
+    scope = socket.assigns.current_scope
+
+    case ContentSharing.revoke_gift(scope, String.to_integer(id)) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Gift withdrawn — credit returned to your wallet")
+         |> reload_ledger()}
+
+      {:error, :unauthorized} ->
+        {:noreply, put_flash(socket, :error, "You can't withdraw this gift")}
+
+      {:error, :not_revokable} ->
+        {:noreply, put_flash(socket, :error, "This gift can no longer be withdrawn")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not withdraw gift")}
+    end
+  end
+
+  def handle_event("copy_success", _params, socket) do
+    {:noreply, put_flash(socket, :info, "Copied to clipboard")}
   end
 
   def handle_event("prepare_undo", %{"id" => id}, socket) do
@@ -333,11 +359,22 @@ defmodule QlariusWeb.WalletLive do
   #   Decimal.sub(ledger_header.balance, newer_entries_sum)
   # end
 
+  defp will_call_gift_metas do
+    [
+      "Will Call Gift",
+      "Tiqit Gift Purchase (Will Call)",
+      "Will Call Gift Reversal"
+    ]
+  end
+
   defp get_entry_details(entry) do
     cond do
       # Ad event entry
       entry.ad_event_id != nil ->
         get_ad_event_details(entry.ad_event)
+
+      entry.meta_1 in will_call_gift_metas() ->
+        get_will_call_gift_details(entry)
 
       # Tiqit-related entry (purchase, undo, etc.)
       entry.tiqit_id != nil or String.contains?(entry.description, "Tiqit") ->
@@ -346,6 +383,21 @@ defmodule QlariusWeb.WalletLive do
       # Other transaction types
       true ->
         %{type: :other, description: entry.description}
+    end
+  end
+
+  defp get_will_call_gift_details(entry) do
+    case ContentSharing.get_sender_gift_by_ledger_entry_id(entry.id) do
+      nil ->
+        %{type: :other, description: entry.description}
+
+      gift ->
+        %{
+          type: :will_call_gift,
+          gift: gift,
+          amount: entry.amt,
+          purchase_time: entry.created_at
+        }
     end
   end
 
@@ -438,6 +490,9 @@ defmodule QlariusWeb.WalletLive do
 
   def icon_for_meta_1("Tip/Donation"), do: "hero-gift"
   def icon_for_meta_1("Tiqit Purchase"), do: "hero-ticket"
+  def icon_for_meta_1("Will Call Gift"), do: "hero-gift"
+  def icon_for_meta_1("Tiqit Gift Purchase (Will Call)"), do: "hero-gift"
+  def icon_for_meta_1("Will Call Gift Reversal"), do: "hero-arrow-uturn-left"
   def icon_for_meta_1("Tiqit Refund"), do: "hero-arrow-uturn-left"
   def icon_for_meta_1("Tiqit Undo"), do: "hero-arrow-uturn-left"
   def icon_for_meta_1("Referral Bonus"), do: "hero-user-group"

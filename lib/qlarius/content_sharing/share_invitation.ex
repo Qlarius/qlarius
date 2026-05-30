@@ -2,7 +2,9 @@ defmodule Qlarius.ContentSharing.ShareInvitation do
   @moduledoc """
   A share or gift invitation link.
 
-  A `share` recommends a content piece/group with no prepaid entitlement. A
+  A `share` recommends a content piece/group with no prepaid entitlement. Plain
+  share links may spawn child fork rows (same content, new token) per browser
+  session for referral attribution; see `parent_share_invitation_id`. A
   `gift` prepays a `TiqitClass` and leaves it at will call (see
   `Qlarius.ContentSharing.WillCallTiqit`). Only the SHA-256 `token_hash` is
   stored; the raw token lives solely in the copied link.
@@ -29,16 +31,20 @@ defmodule Qlarius.ContentSharing.ShareInvitation do
     field :gift_expires_at, :utc_datetime
     field :converts_to_share_after_gift_expiration, :boolean, default: true
     field :redeemed_at, :utc_datetime
+    field :sender_claim_token_encrypted, Qlarius.Encrypted.Binary
+    field :sender_claim_pin_encrypted, Qlarius.Encrypted.Binary
 
     belongs_to :sender_user, User
     belongs_to :sender_me_file, MeFile
     belongs_to :content_piece, ContentPiece
     belongs_to :content_group, ContentGroup
     belongs_to :tiqit_class, TiqitClass
-    belongs_to :redeemed_by_user, User
-    belongs_to :redeemed_by_me_file, MeFile
+  belongs_to :redeemed_by_user, User
+  belongs_to :redeemed_by_me_file, MeFile
+  belongs_to :parent_share_invitation, __MODULE__
 
-    has_one :will_call_tiqit, WillCallTiqit
+  has_one :will_call_tiqit, WillCallTiqit
+  has_many :share_forks, __MODULE__, foreign_key: :parent_share_invitation_id
 
     timestamps(type: :utc_datetime)
   end
@@ -55,13 +61,16 @@ defmodule Qlarius.ContentSharing.ShareInvitation do
       :gift_expires_at,
       :converts_to_share_after_gift_expiration,
       :redeemed_at,
+      :sender_claim_token_encrypted,
+      :sender_claim_pin_encrypted,
       :sender_user_id,
       :sender_me_file_id,
       :content_piece_id,
       :content_group_id,
       :tiqit_class_id,
       :redeemed_by_user_id,
-      :redeemed_by_me_file_id
+      :redeemed_by_me_file_id,
+      :parent_share_invitation_id
     ])
     |> validate_required([:token_hash, :share_type, :sender_user_id, :sender_me_file_id])
     |> validate_inclusion(:share_type, @share_types)

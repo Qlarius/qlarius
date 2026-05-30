@@ -20,6 +20,7 @@ defmodule Qlarius.ContentSharing do
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.ContentSharing.{ShareInvitation, WillCallTiqit}
+  alias Qlarius.Wallets.MeFileStatsBroadcaster
 
   @max_pin_attempts 5
   @default_claim_window_hours 48
@@ -37,8 +38,18 @@ defmodule Qlarius.ContentSharing do
   `{:error, :insufficient_funds}`.
   """
   def create_gift(%Scope{user: %{me_file: me_file} = user}, attrs) do
-    tiqit_class = Repo.get!(TiqitClass, attrs.tiqit_class_id)
+    tiqit_class =
+      TiqitClass
+      |> Repo.get!(attrs.tiqit_class_id)
+      |> Repo.preload([
+        :catalog,
+        content_piece: [content_group: [catalog: :creator]],
+        content_group: [catalog: :creator],
+        catalog: :creator
+      ])
+
     amount = tiqit_class.price
+    debit_description = will_call_gift_debit_description(tiqit_class)
     raw_token = generate_token()
     raw_pin = generate_pin()
     claim_window_hours = claim_window_hours()
@@ -55,7 +66,7 @@ defmodule Qlarius.ContentSharing do
       ensure_referral_code!(me_file)
 
       debit_entry =
-        Wallets.create_will_call_debit!(ledger_header, amount, "Will Call Gift")
+        Wallets.create_will_call_debit!(ledger_header, amount, debit_description)
 
       invitation =
         %ShareInvitation{}
@@ -70,7 +81,9 @@ defmodule Qlarius.ContentSharing do
           tiqit_class_id: tiqit_class.id,
           personal_message: attrs[:personal_message],
           claim_window_hours: claim_window_hours,
-          gift_expires_at: DateTime.add(now, claim_window_hours, :hour)
+          gift_expires_at: DateTime.add(now, claim_window_hours, :hour),
+          sender_claim_token_encrypted: raw_token,
+          sender_claim_pin_encrypted: raw_pin
         })
         |> Repo.insert!()
 
@@ -163,6 +176,121 @@ defmodule Qlarius.ContentSharing do
   end
 
   def get_invitation_by_token(_), do: {:error, :not_found}
+
+  @doc """
+  Resolves a plain share link visit to the session attribution token.
+
+  Canonical share URLs spawn a child invitation (new token, same content) once
+  per browser session so each recipient journey gets its own `source_id` for
+  referrals. Gift links pass through unchanged.
+
+  Returns:
+
+  * `{:ok, token, conn}` — continue with this token (URL already matches)
+  * `{:redirect, fork_token, conn}` — redirect to the session fork
+  * `{:pass, conn}` — not a forkable share (missing, gift, inactive, etc.)
+  """
+  def resolve_share_visit(%Plug.Conn{} = conn, raw_token) when is_binary(raw_token) do
+    conn = Plug.Conn.fetch_session(conn)
+
+    case get_invitation_by_token(raw_token) do
+      {:error, :not_found} ->
+        {:pass, conn}
+
+      {:ok, %{invitation: invitation, state: :active_share}} ->
+        resolve_active_share_visit(conn, invitation, raw_token)
+
+      {:ok, _resolved} ->
+        {:pass, conn}
+    end
+  end
+
+  def resolve_share_visit(conn, _), do: {:pass, conn}
+
+  @doc "Returns the canonical (sharer-created) invitation for a share or its fork."
+  def canonical_share_invitation(%ShareInvitation{share_type: "share"} = invitation) do
+    case invitation.parent_share_invitation_id do
+      nil ->
+        invitation
+
+      parent_id ->
+        Repo.get!(ShareInvitation, parent_id)
+    end
+  end
+
+  @doc """
+  Creates a child share invitation for attribution tracking.
+
+  Copies sender/content/target fields from the canonical row; only the token differs.
+  """
+  def fork_share_invitation!(%ShareInvitation{id: id} = canonical) when is_integer(id) do
+    raw_token = generate_token()
+
+    %ShareInvitation{}
+    |> ShareInvitation.changeset(%{
+      token_hash: hash_token(raw_token),
+      share_type: "share",
+      share_target_type: canonical.share_target_type,
+      status: "active",
+      sender_user_id: canonical.sender_user_id,
+      sender_me_file_id: canonical.sender_me_file_id,
+      content_piece_id: canonical.content_piece_id,
+      content_group_id: canonical.content_group_id,
+      personal_message: canonical.personal_message,
+      parent_share_invitation_id: canonical.id
+    })
+    |> Repo.insert!()
+
+    raw_token
+  end
+
+  @doc false
+  def share_fork_session_key(canonical_id) when is_integer(canonical_id) do
+    "share_fork_#{canonical_id}"
+  end
+
+  defp resolve_active_share_visit(conn, invitation, raw_token) do
+    canonical = canonical_share_invitation(invitation)
+    session_key = share_fork_session_key(canonical.id)
+    stored_token = Plug.Conn.get_session(conn, session_key)
+
+    target_token =
+      cond do
+        share_fork_for_canonical?(raw_token, canonical.id) ->
+          raw_token
+
+        share_fork_for_canonical?(stored_token, canonical.id) ->
+          stored_token
+
+        true ->
+          fork_share_invitation!(canonical)
+      end
+
+    conn = Plug.Conn.put_session(conn, session_key, target_token)
+
+    if target_token == raw_token do
+      {:ok, raw_token, conn}
+    else
+      {:redirect, target_token, conn}
+    end
+  end
+
+  defp share_fork_for_canonical?(raw_token, canonical_id)
+       when is_binary(raw_token) and is_integer(canonical_id) do
+    case Repo.get_by(ShareInvitation, token_hash: hash_token(raw_token)) do
+      %ShareInvitation{
+        share_type: "share",
+        status: "active",
+        parent_share_invitation_id: ^canonical_id
+      } ->
+        true
+
+      _ ->
+        false
+    end
+  end
+
+  defp share_fork_for_canonical?(_, _), do: false
 
   defp resolve_state(%ShareInvitation{} = invitation) do
     now = DateTime.utc_now()
@@ -354,17 +482,38 @@ defmodule Qlarius.ContentSharing do
 
   # --- Sender stash ------------------------------------------------------
 
+  @sender_gift_preloads [
+    :tiqit_class,
+    :share_invitation,
+    content_group: [catalog: :creator],
+    content_piece: [content_group: [catalog: :creator]]
+  ]
+
   @doc "Lists a sender's will-call gifts (newest first) for the /tiqits Gifted tab."
   def list_sender_gifts(%Scope{user: %{me_file: me_file}}) do
     Repo.all(
       from wc in WillCallTiqit,
         where: wc.sender_me_file_id == ^me_file.id,
         order_by: [desc: wc.inserted_at],
-        preload: [:tiqit_class, :content_group, :content_piece, :share_invitation]
+        preload: ^@sender_gift_preloads
     )
   end
 
   def list_sender_gifts(_scope), do: []
+
+  @doc """
+  Loads a sender will-call gift linked to a wallet ledger entry (debit or reversal).
+  Used by `/wallet` transaction details.
+  """
+  def get_sender_gift_by_ledger_entry_id(entry_id) when is_integer(entry_id) do
+    Repo.one(
+      from wc in WillCallTiqit,
+        where:
+          wc.sender_debit_ledger_entry_id == ^entry_id or
+            wc.sender_reversal_ledger_entry_id == ^entry_id,
+        preload: ^@sender_gift_preloads
+    )
+  end
 
   @doc "Counts a sender's gifts still awaiting pickup (for the Gifted tab badge)."
   def count_pending_sender_gifts(%Scope{user: %{me_file: me_file}}) do
@@ -377,6 +526,107 @@ defmodule Qlarius.ContentSharing do
   end
 
   def count_pending_sender_gifts(_scope), do: 0
+
+  @doc """
+  Builds copy-ready invitation text for a sender-owned will-call gift.
+  Requires encrypted sender secrets on the invitation (gifts created after
+  sender-retrieval support shipped).
+  """
+  def sender_gift_invitation_message(%WillCallTiqit{} = will_call) do
+    will_call =
+      Repo.preload(will_call, [
+        :tiqit_class,
+        :content_piece,
+        :content_group,
+        share_invitation: []
+      ])
+
+    invitation = will_call.share_invitation
+    token = invitation && invitation.sender_claim_token_encrypted
+    pin = invitation && invitation.sender_claim_pin_encrypted
+
+    if is_binary(token) and token != "" and is_binary(pin) and pin != "" do
+      title = gift_content_title(will_call)
+      url = QlariusWeb.Endpoint.url() <> "/tiqit/gift/#{token}"
+
+      build_gift_invitation_message(title, url, pin, invitation.gift_expires_at)
+    else
+      nil
+    end
+  end
+
+  @doc """
+  Builds copy-ready gift invitation text from title, claim URL, PIN, and deadline.
+  """
+  def build_gift_invitation_message(title, url, pin, gift_expires_at) do
+    deadline = format_claim_deadline(gift_expires_at)
+
+    "I bought a Tiqit for you and left it at will call:\n#{title}\n\n" <>
+      "Claim it here: #{url}\n\nClaim PIN: #{pin}\n\n" <>
+      "This tiqit is waiting until #{deadline}. After that, the link still works as a recommendation, but you will have to buy it yourself."
+  end
+
+  @doc """
+  Revokes an unclaimed gift: credits the sender, marks will-call `pulled`,
+  and sets the invitation to `revoked`.
+  """
+  def revoke_gift(%Scope{user: %{me_file: me_file}}, will_call_id) when is_integer(will_call_id) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    Repo.transaction(fn ->
+      locked = lock_will_call!(will_call_id)
+
+      unless locked.sender_me_file_id == me_file.id do
+        Repo.rollback(:unauthorized)
+      end
+
+      unless locked.will_call_status in ["at_will_call", "claim_check_required"] do
+        Repo.rollback(:not_revokable)
+      end
+
+      sender_header = Wallets.get_me_file_ledger_header(me_file)
+
+      reversal_entry =
+        Wallets.create_will_call_reversal!(sender_header, locked.amount, "Will Call Gift Reversal")
+
+      locked
+      |> WillCallTiqit.changeset(%{
+        will_call_status: "pulled",
+        reversed_at: now,
+        sender_reversal_ledger_entry_id: reversal_entry.id
+      })
+      |> Repo.update!()
+
+      invitation = Repo.get!(ShareInvitation, locked.share_invitation_id)
+
+      invitation
+      |> ShareInvitation.changeset(%{status: "revoked"})
+      |> Repo.update!()
+
+      MeFileStatsBroadcaster.broadcast_balance_updated(
+        me_file.id,
+        Wallets.get_me_file_ledger_header_balance(me_file)
+      )
+
+      Repo.get!(WillCallTiqit, locked.id)
+    end)
+  end
+
+  @doc "Attrs for `create_gift/2` from a selected `TiqitClass` and page context."
+  def gift_attrs_for_class(%TiqitClass{} = tc, piece, group) do
+    base = %{tiqit_class_id: tc.id}
+
+    cond do
+      tc.content_piece_id ->
+        Map.merge(base, %{content_piece_id: tc.content_piece_id, content_group_id: group.id})
+
+      tc.content_group_id ->
+        Map.merge(base, %{content_group_id: tc.content_group_id, content_piece_id: nil})
+
+      true ->
+        Map.merge(base, %{content_group_id: group.id, content_piece_id: piece && piece.id})
+    end
+  end
 
   # --- Token / PIN helpers ----------------------------------------------
 
@@ -419,4 +669,36 @@ defmodule Qlarius.ContentSharing do
         lock: "FOR UPDATE"
     )
   end
+
+  defp gift_content_title(%WillCallTiqit{} = wc) do
+    cond do
+      wc.content_piece && wc.content_piece.title != "" -> wc.content_piece.title
+      wc.content_group && wc.content_group.title != "" -> wc.content_group.title
+      true -> "Gift"
+    end
+  end
+
+  defp will_call_gift_debit_description(%TiqitClass{} = tc) do
+    creator =
+      cond do
+        tc.content_piece && tc.content_piece.content_group ->
+          tc.content_piece.content_group.catalog.creator
+
+        tc.content_group && tc.content_group.catalog ->
+          tc.content_group.catalog.creator
+
+        tc.catalog ->
+          tc.catalog.creator
+
+        true ->
+          nil
+      end
+
+    if creator, do: String.upcase(creator.name), else: "UNKNOWN"
+  end
+
+  defp format_claim_deadline(%DateTime{} = dt),
+    do: Calendar.strftime(dt, "%b %d, %Y %I:%M %p UTC")
+
+  defp format_claim_deadline(_), do: "the claim deadline"
 end

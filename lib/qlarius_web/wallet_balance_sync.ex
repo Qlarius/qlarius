@@ -153,6 +153,41 @@ defmodule QlariusWeb.WalletBalanceSync do
   def handle_info_message(msg, socket), do: handle_sync_message(msg, socket)
 
   @doc """
+  Wallet sync hook entry point: refresh assigns, then optionally notify the
+  hosting parent or forward to a registered inline embed.
+
+  Parent↔embed ping-pong is avoided by never forwarding after
+  `{:me_file_balance_updated, _}` (the embed already has that balance) and
+  never notifying the parent after `:update_balance` (the parent sent or will
+  receive that refetch itself).
+  """
+  def apply_sync_hook(socket, msg) do
+    socket
+    |> handle_sync_message(msg)
+    |> maybe_notify_parent_after_sync(msg)
+    |> maybe_forward_to_inline_embed(msg)
+  end
+
+  @doc false
+  def notify_parent_after_sync?({:me_file_balance_updated, _}), do: false
+  def notify_parent_after_sync?(:update_balance), do: false
+  def notify_parent_after_sync?(_), do: true
+
+  @doc false
+  def forward_to_inline_embed?({:me_file_balance_updated, _}), do: false
+  def forward_to_inline_embed?(_), do: true
+
+  defp maybe_notify_parent_after_sync(socket, msg) do
+    if notify_parent_after_sync?(msg), do: notify_parent_after_sync(socket), else: socket
+  end
+
+  defp maybe_forward_to_inline_embed(socket, msg) do
+    if forward_to_inline_embed?(msg),
+      do: forward_to_inline_embed(socket, :update_balance),
+      else: socket
+  end
+
+  @doc """
   Inline arqade embeds notify the hosting parent on connect so wallet PubSub
   events can be forwarded when the nested LV misses a broadcast.
   """

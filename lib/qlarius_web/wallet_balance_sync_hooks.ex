@@ -11,10 +11,12 @@ defmodule QlariusWeb.WalletBalanceSyncHooks do
 
   import Phoenix.LiveView
 
-  alias QlariusWeb.WalletBalanceSync
+  alias QlariusWeb.{LiveViewDebug, WalletBalanceSync}
 
   @subscribe_key :wallet_balance_sync_subscribed?
+  @subscribe_attempts_key :wallet_balance_sync_attempts
   @subscribe_msg :wallet_balance_sync_subscribe
+  @max_subscribe_attempts 100
 
   def on_mount(:default, _params, _session, socket) do
     if connected?(socket) do
@@ -28,11 +30,9 @@ defmodule QlariusWeb.WalletBalanceSyncHooks do
 
         msg, socket ->
           if WalletBalanceSync.sync_message?(msg) do
-            socket =
-              msg
-              |> WalletBalanceSync.handle_sync_message(socket)
-              |> WalletBalanceSync.notify_parent_after_sync()
-              |> WalletBalanceSync.forward_to_inline_embed(:update_balance)
+            if LiveViewDebug.enabled?(), do: LiveViewDebug.log_wallet_sync(socket, msg)
+
+            socket = WalletBalanceSync.apply_sync_hook(socket, msg)
 
             {:halt, socket}
           else
@@ -53,19 +53,54 @@ defmodule QlariusWeb.WalletBalanceSyncHooks do
   end
 
   defp subscribe_once(socket) do
-    if Map.get(socket.private, @subscribe_key) do
-      socket
-    else
-      case wallet_user(socket) do
-        nil ->
-          Process.send_after(self(), @subscribe_msg, 10)
-          socket
+    case Map.get(socket.private, @subscribe_key) do
+      true ->
+        socket
 
-        _ ->
-          socket
-          |> WalletBalanceSync.subscribe()
-          |> put_private(@subscribe_key, true)
-      end
+      :skipped ->
+        socket
+
+      _ ->
+        case wallet_user(socket) do
+          nil ->
+            if no_wallet_scope?(socket) do
+              if LiveViewDebug.enabled?(),
+                do: LiveViewDebug.log_wallet_subscribe(socket, "skipped_no_scope")
+
+              put_private(socket, @subscribe_key, :skipped)
+            else
+              attempts = Map.get(socket.private, @subscribe_attempts_key, 0) + 1
+
+              if attempts >= @max_subscribe_attempts do
+                if LiveViewDebug.enabled?(),
+                  do: LiveViewDebug.log_wallet_subscribe(socket, "gave_up")
+
+                put_private(socket, @subscribe_key, :skipped)
+              else
+                Process.send_after(self(), @subscribe_msg, 10)
+
+                socket
+                |> put_private(@subscribe_attempts_key, attempts)
+              end
+            end
+
+          _ ->
+            if LiveViewDebug.enabled?(),
+              do: LiveViewDebug.log_wallet_subscribe(socket, "subscribed")
+
+            socket
+            |> WalletBalanceSync.subscribe()
+            |> put_private(@subscribe_key, true)
+        end
+    end
+  end
+
+  defp no_wallet_scope?(socket) do
+    case socket.assigns[:current_scope] do
+      nil -> true
+      %{user: nil} -> true
+      %{true_user: nil, user: nil} -> true
+      _ -> false
     end
   end
 

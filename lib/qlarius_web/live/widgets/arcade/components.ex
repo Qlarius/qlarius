@@ -11,6 +11,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   import QlariusWeb.Components.CustomComponentsMobile
   import QlariusWeb.Creators.ContentGroupHTML, only: [piece_list_description: 1]
   import QlariusWeb.Helpers.ImageHelpers, only: [content_image_url: 2]
+  import QlariusWeb.Widgets.UnauthCTA, only: [authed?: 1]
 
   defp pluralize(count, word) do
     word_str = to_string(word)
@@ -314,6 +315,80 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     if selected?,
       do: base <> " ring-2 ring-primary ring-offset-1 bg-primary/15 font-semibold",
       else: base
+  end
+
+  attr :piece, :map, required: true
+  attr :current_scope, :map, default: nil
+  attr :event_target, :string, default: "#arcade-pwa-detect"
+  attr :disable_purchase_options?, :boolean, default: false
+
+  def arcade_more_options_popover(assigns) do
+    popover_id = "arcade-more-options-#{assigns.piece.id}"
+    assigns = assign(assigns, :popover_id, popover_id)
+
+    ~H"""
+    <.popover
+      id={@popover_id}
+      placement="left"
+      position_strategy="fixed"
+      trigger_type="click"
+      use_floating_size={false}
+      class="w-max max-w-[min(28rem,calc(100vw-1.5rem))] min-w-[15rem] px-4 pt-3.5 pb-4 shadow-xl"
+    >
+      <:trigger>
+        <button
+          type="button"
+          class="btn-widget flex h-14 w-10 shrink-0 items-center justify-center rounded-full border-widget-200 !p-0"
+          aria-label="More options"
+          title="More options"
+        >
+          <.icon name="hero-ellipsis-horizontal" class="h-5 w-5 shrink-0" />
+        </button>
+      </:trigger>
+      <:content>
+        <div class="flex w-full flex-col gap-3">
+          <button
+            type="button"
+            disabled={@disable_purchase_options?}
+            phx-click={
+              unless @disable_purchase_options? do
+                Phoenix.LiveView.JS.dispatch("qlarius:close-popover",
+                  detail: %{id: @popover_id}
+                )
+                |> Phoenix.LiveView.JS.push("browse-tiqit-options", target: @event_target)
+              end
+            }
+            class={[
+              "btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5",
+              @disable_purchase_options? && "btn-disabled opacity-60 cursor-not-allowed"
+            ]}
+            title={
+              if @disable_purchase_options?,
+                do: "You already have an active Tiqit for this episode",
+                else: nil
+            }
+          >
+            <.icon name="hero-squares-2x2" class="h-6 w-6 shrink-0" />
+            <span class="text-sm font-medium">Full purchase options</span>
+          </button>
+          <button
+            :if={authed?(@current_scope)}
+            type="button"
+            phx-click={
+              Phoenix.LiveView.JS.dispatch("qlarius:close-popover",
+                detail: %{id: @popover_id}
+              )
+              |> Phoenix.LiveView.JS.push("open-share-gift-modal", target: @event_target)
+            }
+            class="btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5"
+          >
+            <.icon name="hero-gift" class="h-6 w-6 shrink-0" />
+            <span class="text-sm font-medium">Share / Gift</span>
+          </button>
+        </div>
+      </:content>
+    </.popover>
+    """
   end
 
   attr :balance, Decimal, required: true
@@ -740,11 +815,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           class="block max-h-[330px] w-auto rounded-lg object-contain"
         />
       </div>
-      <.selected_piece_hero_copy
-        piece={@piece}
-        description_line_clamp={5}
-        class="w-full min-w-0 flex flex-col gap-1.5"
-      />
+      <.selected_piece_hero_copy piece={@piece} class="w-full min-w-0 flex flex-col gap-1.5" />
     </div>
     """
   end
@@ -859,7 +930,6 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
 
   defp piece_display_date(_), do: nil
 
-  defp description_clamp_class(5), do: "line-clamp-5"
   defp description_clamp_class(3), do: "line-clamp-3"
   defp description_clamp_class(_), do: nil
 
@@ -874,7 +944,6 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
          length(line_blocks) > lines)
   end
 
-  defp description_preview_char_limit(5), do: 200
   defp description_preview_char_limit(_), do: 120
 
   defp description_preview_text(description) do

@@ -75,7 +75,7 @@ defmodule Qlarius.Wallets do
     query =
       from e in LedgerEntry,
         where: e.ledger_header_id == ^ledger_header_id,
-        order_by: [desc: e.created_at],
+        order_by: [desc: e.created_at, desc: e.id],
         limit: ^per_page,
         offset: ^offset
 
@@ -462,7 +462,7 @@ defmodule Qlarius.Wallets do
   # balance. They do NOT open their own transaction; callers compose them inside
   # one (e.g. `ContentSharing.create_gift/2`, `redeem_gift/2`, expiration).
 
-  @will_call_gift_meta "Will Call Gift"
+  @will_call_gift_meta "Tiqit Gift Purchase (Will Call)"
   @will_call_reversal_meta "Will Call Gift Reversal"
   @media_gift_credit_meta "Media gift credit"
 

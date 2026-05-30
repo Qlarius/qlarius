@@ -97,6 +97,31 @@ defmodule QlariusWeb.TiqitLive do
     {:noreply, assign(socket, :undo_context, nil)}
   end
 
+  def handle_event("revoke-gift", %{"id" => id}, socket) do
+    scope = socket.assigns.current_scope
+
+    case ContentSharing.revoke_gift(scope, String.to_integer(id)) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Gift withdrawn — credit returned to your wallet")
+         |> reload_tiqits()}
+
+      {:error, :unauthorized} ->
+        {:noreply, put_flash(socket, :error, "You can't withdraw this gift")}
+
+      {:error, :not_revokable} ->
+        {:noreply, put_flash(socket, :error, "This gift can no longer be withdrawn")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not withdraw gift")}
+    end
+  end
+
+  def handle_event("copy_success", _params, socket) do
+    {:noreply, put_flash(socket, :info, "Copied to clipboard")}
+  end
+
   def handle_event("prepare_undo", %{"id" => id}, socket) do
     scope = socket.assigns.current_scope
     tiqit = Qlarius.Repo.get!(Qlarius.Tiqit.Arcade.Tiqit, id)
@@ -164,7 +189,9 @@ defmodule QlariusWeb.TiqitLive do
     |> assign(:gifted_count, ContentSharing.count_pending_sender_gifts(scope))
   end
 
-  defp load_gifts(scope, :gifted), do: ContentSharing.list_sender_gifts(scope)
+  defp load_gifts(scope, status) when status in [:gifted, :all],
+    do: ContentSharing.list_sender_gifts(scope)
+
   defp load_gifts(_scope, _status), do: []
 
   defp filter_badge(assigns, :active) when assigns.active_count > 0 do
@@ -180,7 +207,7 @@ defmodule QlariusWeb.TiqitLive do
   end
 
   defp filter_badge(assigns, :gifted) when assigns.gifted_count > 0 do
-    %{count: assigns.gifted_count, variant: :info}
+    %{count: assigns.gifted_count, variant: :neutral}
   end
 
   defp filter_badge(_assigns, _status), do: nil
@@ -194,6 +221,10 @@ defmodule QlariusWeb.TiqitLive do
   defp pill_count_badge_class(:warning),
     do: "badge badge-sm ml-2 rounded px-2 py-3 !border-0 !bg-warning !text-warning-content"
 
+  defp pill_count_badge_class(:neutral),
+    do:
+      "stash-pill-count-neutral badge badge-sm ml-2 rounded px-2 py-3 !border-0"
+
   defp parse_status(nil), do: :all
   defp parse_status(s) when s in @valid_statuses, do: String.to_existing_atom(s)
   defp parse_status(_), do: :all
@@ -204,6 +235,10 @@ defmodule QlariusWeb.TiqitLive do
   defp filter_label(:fleeted), do: "Fleeted"
   defp filter_label(:preserved), do: "Marked"
   defp filter_label(:gifted), do: "Gifted"
+
+  defp stash_empty?(assigns) do
+    assigns.tiqits == [] and (assigns.status_filter != :all or assigns.gifts == [])
+  end
 
   @impl true
   def render(assigns) do
@@ -239,8 +274,8 @@ defmodule QlariusWeb.TiqitLive do
                 You haven't gifted any content yet.
               </div>
             <% else %>
-              <div class="grid grid-cols-1 items-start md:grid-cols-2 xl:grid-cols-3 gap-6">
-                <.gifted_tiqit_card
+              <div class="tiqit-stash-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch">
+                <.tiqit_detail_card
                   :for={gift <- @gifts}
                   gift={gift}
                   user={@current_scope.user}
@@ -272,17 +307,23 @@ defmodule QlariusWeb.TiqitLive do
               </p>
             </div>
           <% else %>
-            <%= if @tiqits == [] do %>
+            <%= if stash_empty?(assigns) do %>
               <div class="text-center text-base-content/50 py-8">
                 No tiqits found for this filter.
               </div>
             <% else %>
-              <div class="grid grid-cols-1 items-start md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div class="tiqit-stash-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch">
                 <.tiqit_detail_card
                   :for={tiqit <- @tiqits}
                   tiqit={tiqit}
                   user={@current_scope.user}
                   fleet_after_hours={@fleet_after_hours}
+                />
+                <.tiqit_detail_card
+                  :for={gift <- @gifts}
+                  :if={@status_filter == :all}
+                  gift={gift}
+                  user={@current_scope.user}
                 />
               </div>
             <% end %>

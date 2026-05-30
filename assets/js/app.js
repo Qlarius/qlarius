@@ -685,6 +685,14 @@ function setupCountdown(el, forceReset = false){
         String(m).padStart(2, '0'),
         String(s).padStart(2, '0')
       ].join(':')
+    } else if (format === 'hm') {
+      const totalH = Math.floor(distance / (1000 * 60 * 60))
+      const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+      display.textContent = `${String(totalH).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+    } else if (format === 'ms') {
+      const totalM = Math.floor(distance / (1000 * 60))
+      const s = Math.floor((distance % (1000 * 60)) / 1000)
+      display.textContent = `${String(totalM).padStart(2, '0')}:${String(s).padStart(2, '0')}`
     } else {
       const d = Math.floor(distance / (1000*60*60*24))
       const h = Math.floor((distance % (1000*60*60*24)) / (1000*60*60))
@@ -2238,6 +2246,85 @@ window.addEventListener("phx:close-modal", (e) => {
 
 // connect if there are any LiveViews on the page
 liveSocket.connect()
+
+function attachLiveViewDebugLogging() {
+  if (process.env.NODE_ENV !== "development") return
+
+  const tabId = (() => {
+    const key = "qlarius_lv_debug_tab_id"
+    let id = sessionStorage.getItem(key)
+    if (!id) {
+      id = crypto.randomUUID?.() || `tab-${Date.now()}`
+      sessionStorage.setItem(key, id)
+    }
+    return id
+  })()
+
+  window.__qlariusLvDebugTabId = tabId
+
+  const lvDebugClient = (type, detail = {}) => {
+    const payload = {
+      type,
+      tab_id: tabId,
+      url: window.location.pathname + window.location.search,
+      detail
+    }
+
+    console.info(`[LV debug] client ${type}`, detail)
+
+    fetch("/dev/lv-debug", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken
+      },
+      body: JSON.stringify(payload),
+      keepalive: true
+    }).catch(() => {})
+  }
+
+  window.__qlariusLvDebugClient = lvDebugClient
+
+  lvDebugClient("tab_ready", { userAgent: navigator.userAgent.slice(0, 80) })
+
+  window.addEventListener("phx:page-loading-start", (e) =>
+    lvDebugClient("page_loading_start", e.detail || {})
+  )
+  window.addEventListener("phx:page-loading-stop", (e) =>
+    lvDebugClient("page_loading_stop", e.detail || {})
+  )
+  window.addEventListener("phx:navigate", (e) => lvDebugClient("navigate", e.detail || {}))
+
+  window.addEventListener("phx:live_reload:attached", () => lvDebugClient("live_reload", {}))
+
+  const hookSocket = () => {
+    const socket = liveSocket.socket
+    if (!socket || socket.__qlariusLvDebugHooked) return
+    socket.__qlariusLvDebugHooked = true
+
+    socket.onOpen(() => lvDebugClient("socket_open", {}))
+    socket.onClose((event) =>
+      lvDebugClient("socket_close", {
+        code: event?.code,
+        reason: event?.reason,
+        wasClean: event?.wasClean
+      })
+    )
+    socket.onError((error) => lvDebugClient("socket_error", { error: String(error) }))
+  }
+
+  hookSocket()
+  setTimeout(hookSocket, 0)
+  setTimeout(hookSocket, 500)
+
+  document.addEventListener("visibilitychange", () => {
+    lvDebugClient("visibility", { state: document.visibilityState })
+  })
+
+  window.addEventListener("focus", () => lvDebugClient("window_focus", {}))
+}
+
+attachLiveViewDebugLogging()
 
 // expose liveSocket on window for web console debug logs and latency simulation:
 // >> liveSocket.enableDebug()

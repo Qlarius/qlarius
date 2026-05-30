@@ -129,18 +129,25 @@ defmodule QlariusWeb.CoreComponents do
   @doc """
   Joined pill selector track for filter/tab toggles (/ads, /tiqits, me_file, etc.).
 
-  Wrap `<.pill_join_item>` buttons inside.
+  Wrap `<.pill_join_item>` buttons inside. Set `size` to scale every item
+  (`compact`, `default`, or `large`; default is `default`).
   """
   attr :class, :any, default: nil
   attr :label, :string, required: true
+  attr :size, :string, default: "default", values: ~w(compact default large)
+  attr :rest, :global, include: ~w(id tabindex phx-mounted)
   slot :inner_block, required: true
 
   def pill_join_selector(assigns) do
     ~H"""
     <div
-      class={["join pill-join-selector [--radius-field:9999px]", @class]}
+      class={[
+        "join pill-join-selector pill-join-selector--#{@size} [--radius-field:9999px]",
+        @class
+      ]}
       role="group"
       aria-label={@label}
+      {@rest}
     >
       {render_slot(@inner_block)}
     </div>
@@ -148,20 +155,21 @@ defmodule QlariusWeb.CoreComponents do
   end
 
   attr :active, :boolean, default: false
-  attr :size, :string, default: "md", values: ~w(sm md)
+  attr :size, :string, values: ~w(compact default large)
   attr :class, :any, default: nil
-  attr :rest, :global, include: ~w(phx-click phx-value-type phx-value-status phx-value-expanded disabled aria-pressed aria-label)
+  attr :rest, :global, include: ~w(phx-click phx-value-type phx-value-status phx-value-expanded phx-value-mode disabled aria-pressed aria-label)
 
   slot :inner_block, required: true
 
   def pill_join_item(assigns) do
+    assigns = assign_new(assigns, :size, fn -> nil end)
+
     ~H"""
     <button
       type="button"
       class={[
         "join-item btn whitespace-nowrap",
-        @size == "sm" && "btn-sm",
-        @size == "md" && "btn-md",
+        pill_join_item_size_class(@size),
         @active && "btn-active",
         @class
       ]}
@@ -171,6 +179,11 @@ defmodule QlariusWeb.CoreComponents do
     </button>
     """
   end
+
+  defp pill_join_item_size_class(nil), do: nil
+  defp pill_join_item_size_class("compact"), do: "btn-sm"
+  defp pill_join_item_size_class("default"), do: "btn-md"
+  defp pill_join_item_size_class("large"), do: "btn-lg"
 
   @doc """
   Renders a simple form.
@@ -724,7 +737,7 @@ defmodule QlariusWeb.CoreComponents do
       id={@id}
       phx-mounted={@show && show_modal(@id)}
       phx-remove={hide_modal(@id)}
-      data-cancel={JS.exec(@on_cancel, "phx-remove")}
+      data-cancel={@on_cancel}
       class="relative z-[150] hidden"
     >
       <.backdrop id={"#{@id}-bg"} />

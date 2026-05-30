@@ -32,6 +32,10 @@ defmodule QlariusWeb.Router do
     plug :set_current_path
   end
 
+  pipeline :share_fork do
+    plug QlariusWeb.Plugs.EnsureShareFork
+  end
+
   # Surface-only pipeline for the in-app-browser escape feature. Runs
   # `InAppBrowserDetection` and nothing else, and is attached **only**
   # to the Qlink route scopes below — the only surface that renders
@@ -267,6 +271,8 @@ defmodule QlariusWeb.Router do
     scope "/dev" do
       pipe_through :browser
 
+      post "/lv-debug", QlariusWeb.Dev.LiveViewDebugController, :create
+
       live_dashboard "/dashboard", metrics: QlariusWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
@@ -357,7 +363,7 @@ defmodule QlariusWeb.Router do
   end
 
   scope "/", QlariusWeb do
-    pipe_through [:browser, :iab_detection]
+    pipe_through [:browser, :iab_detection, :share_fork]
 
     live_session :public_tiqit_arqade,
       on_mount: [

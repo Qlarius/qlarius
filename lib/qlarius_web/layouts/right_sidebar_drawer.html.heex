@@ -181,6 +181,11 @@
                 } />
               </.surface_panel>
             <% end %>
+          <% :will_call_gift -> %>
+            <QlariusWeb.TiqitComponents.tiqit_detail_card
+              gift={@entry_details.gift}
+              user={@current_scope.user}
+            />
           <% :other -> %>
             <.surface_panel>
               <h4 class="text-sm font-semibold text-base-content/60 mb-2">Transaction</h4>

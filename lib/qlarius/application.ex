@@ -8,39 +8,23 @@ defmodule Qlarius.Application do
   @impl true
   def start(_type, _args) do
     Oban.Telemetry.attach_default_logger()
+    QlariusWeb.LiveViewDebug.attach!()
 
-    # Attach a telemetry handler to filter out Oban plugin info logs
-    # This ignores events like [:oban, :plugin, :stop] without affecting other logs
-    # :telemetry.attach(
-    #   "ignore-oban-plugin-logs",
-    #   [:oban, :plugin, :stop],
-    #   # Drop the event (no logging)
-    #   fn _event, _measurements, _metadata, _config -> :ok end,
-    #   nil
-    # )
-
-    children = [
-      QlariusWeb.Telemetry,
-      Qlarius.Repo,
-      Qlarius.Vault,
-      Qlarius.Secrets,
-      {DNSCluster, query: Application.get_env(:qlarius, :dns_cluster_query) || :ignore},
-      {Oban, Application.fetch_env!(:qlarius, Oban)},
-      {Phoenix.PubSub, name: Qlarius.PubSub},
-      # Start the Finch HTTP client for sending emails
-      {Finch, name: Qlarius.Finch},
-      # Tag tease agent for managing non-repeating messages
-      Qlarius.YouData.TagTeaseAgent,
-      # Alias generator with word cache
-      Qlarius.Accounts.AliasGenerator,
-      # Owns the AuthSheet finalize-token jti table and sweeps expired
-      # entries. Must start before the Endpoint accepts requests.
-      QlariusWeb.Auth.FinalizeTokenSweeper,
-      # Start a worker by calling: Qlarius.Worker.start_link(arg)
-      # {Qlarius.Worker, arg},
-      # Start to serve requests, typically the last entry
-      QlariusWeb.Endpoint
-    ]
+    children =
+      [
+        QlariusWeb.Telemetry,
+        Qlarius.Repo,
+        Qlarius.Vault,
+        Qlarius.Secrets,
+        {DNSCluster, query: Application.get_env(:qlarius, :dns_cluster_query) || :ignore},
+        {Oban, Application.fetch_env!(:qlarius, Oban)},
+        {Phoenix.PubSub, name: Qlarius.PubSub},
+        {Finch, name: Qlarius.Finch},
+        Qlarius.YouData.TagTeaseAgent,
+        Qlarius.Accounts.AliasGenerator,
+        QlariusWeb.Auth.FinalizeTokenSweeper,
+        QlariusWeb.Endpoint
+      ] ++ QlariusWeb.LiveViewDebug.children()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

@@ -171,6 +171,8 @@ defmodule QlariusWeb.Components.LedgerEntriesList do
 
   defp icon_for_meta_1("Tip/Donation"), do: "hero-gift"
   defp icon_for_meta_1("Tiqit Purchase"), do: "hero-ticket"
+  defp icon_for_meta_1("Will Call Gift"), do: "hero-gift"
+  defp icon_for_meta_1("Tiqit Gift Purchase (Will Call)"), do: "hero-gift"
   defp icon_for_meta_1("Tiqit Refund"), do: "hero-arrow-uturn-left"
   defp icon_for_meta_1("Tiqit Undo"), do: "hero-arrow-uturn-left"
   defp icon_for_meta_1("Referral Bonus"), do: "hero-user-group"
