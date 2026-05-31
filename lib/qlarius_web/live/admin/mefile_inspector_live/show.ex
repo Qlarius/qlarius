@@ -236,6 +236,8 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
   end
 
   defp icon_for_meta_1(nil), do: "hero-cube"
+  defp icon_for_meta_1("Friend gift credit"), do: "hero-gift"
+  defp icon_for_meta_1("Media gift credit"), do: "hero-gift"
   defp icon_for_meta_1("Tip/Donation"), do: "hero-gift"
   defp icon_for_meta_1("Tiqit Purchase"), do: "hero-ticket"
   defp icon_for_meta_1("Referral Bonus"), do: "hero-user-group"

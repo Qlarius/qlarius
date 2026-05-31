@@ -1,0 +1,28 @@
+---
+description: Typography — do not use tabular/monospace numeric styling by default
+alwaysApply: true
+---
+
+# Typography
+
+## Tabular and numeric styling
+
+Do **not** add `tabular-nums`, `lining-nums`, `font-variant-numeric: tabular-nums`, `font-mono` for numbers, or similar fixed-width numeric styling unless the user explicitly asks for it.
+
+Default body and UI copy should use proportional figures so text reads naturally (e.g. countdowns, labels, wallet amounts in prose).
+
+### When tabular styling is appropriate (only if requested)
+
+- Aligned columns of numbers (ledger amounts, stat tables)
+- OTP/PIN digit inputs where fixed-width alignment is a deliberate UX choice
+- Monospace data displays (tokens, hashes, codes)
+
+### Examples
+
+```heex
+<%# ✅ Default — proportional %>
+<span class="font-semibold text-warning">{@countdown}</span>
+
+<%# ❌ Do not add unless asked %>
+<span class="tabular-nums font-semibold">{@countdown}</span>
+```

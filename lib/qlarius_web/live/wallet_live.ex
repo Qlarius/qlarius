@@ -488,6 +488,8 @@ defmodule QlariusWeb.WalletLive do
 
   defp get_marketer_name(_), do: "Unknown"
 
+  def icon_for_meta_1("Friend gift credit"), do: "hero-gift"
+  def icon_for_meta_1("Media gift credit"), do: "hero-gift"
   def icon_for_meta_1("Tip/Donation"), do: "hero-gift"
   def icon_for_meta_1("Tiqit Purchase"), do: "hero-ticket"
   def icon_for_meta_1("Will Call Gift"), do: "hero-gift"

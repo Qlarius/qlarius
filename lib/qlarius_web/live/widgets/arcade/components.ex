@@ -198,7 +198,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
             <div class="flex items-center justify-center gap-2 w-full">
               <.icon name="hero-arrow-trending-up" class="w-5 h-5 text-widget-700 shrink-0" />
               <span class="text-sm font-medium text-base-content">
-                TiqitUp discounts applied to credit active tiqits
+                Discounts applied to credit for active tiqits
               </span>
             </div>
           </div>
@@ -785,21 +785,33 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   attr :piece, :map, required: true
   attr :group, :map, required: true
   attr :variant, :atom, default: :compact
+  attr :gift_pending?, :boolean, default: false
 
   def selected_piece_hero(assigns) do
     ~H"""
     <%= case @variant do %>
       <% v when v in [:responsive, :embed] -> %>
-        <.selected_piece_hero_roomy piece={@piece} group={@group} class="hidden md:flex" />
-        <.selected_piece_hero_compact piece={@piece} group={@group} class="md:hidden" />
+        <.selected_piece_hero_roomy
+          piece={@piece}
+          group={@group}
+          gift_pending?={@gift_pending?}
+          class="hidden md:flex"
+        />
+        <.selected_piece_hero_compact
+          piece={@piece}
+          group={@group}
+          gift_pending?={@gift_pending?}
+          class="md:hidden"
+        />
       <% _ -> %>
-        <.selected_piece_hero_compact piece={@piece} group={@group} />
+        <.selected_piece_hero_compact piece={@piece} group={@group} gift_pending?={@gift_pending?} />
     <% end %>
     """
   end
 
   attr :piece, :map, required: true
   attr :group, :map, required: true
+  attr :gift_pending?, :boolean, default: false
   attr :class, :string, default: ""
 
   defp selected_piece_hero_roomy(assigns) do
@@ -815,13 +827,18 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           class="block max-h-[330px] w-auto rounded-lg object-contain"
         />
       </div>
-      <.selected_piece_hero_copy piece={@piece} class="w-full min-w-0 flex flex-col gap-1.5" />
+      <.selected_piece_hero_copy
+        piece={@piece}
+        gift_pending?={@gift_pending?}
+        class="w-full min-w-0 flex flex-col gap-1.5"
+      />
     </div>
     """
   end
 
   attr :piece, :map, required: true
   attr :group, :map, required: true
+  attr :gift_pending?, :boolean, default: false
   attr :class, :string, default: ""
 
   defp selected_piece_hero_compact(assigns) do
@@ -839,6 +856,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       </div>
       <.selected_piece_hero_copy
         piece={@piece}
+        gift_pending?={@gift_pending?}
         class="min-w-0 flex-1 flex flex-col gap-1.5 min-h-0 self-start"
       />
     </div>
@@ -846,6 +864,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   end
 
   attr :piece, :map, required: true
+  attr :gift_pending?, :boolean, default: false
   attr :class, :string, default: "min-w-0 flex flex-col gap-1.5"
   attr :description_line_clamp, :integer, default: 3
 
@@ -862,6 +881,12 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       <p class="text-base sm:text-lg font-semibold leading-tight text-base-content [overflow-wrap:anywhere] shrink-0">
         {@piece.title}
       </p>
+      <span
+        :if={@gift_pending?}
+        class="badge badge-primary mt-0.5 h-auto w-fit gap-1.5 py-1.5 text-sm shrink-0"
+      >
+        <.icon name="hero-gift" class="h-4 w-4" /> Gifted
+      </span>
       <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-base-content/50 text-xs shrink-0">
         <span class="flex items-center gap-1">
           <.icon name="hero-clock" class="w-3 h-3" />{@piece.duration}

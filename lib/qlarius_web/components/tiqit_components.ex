@@ -9,6 +9,7 @@ defmodule QlariusWeb.TiqitComponents do
   alias Phoenix.LiveView.JS
   alias Qlarius.ContentSharing
   alias Qlarius.Tiqit.Arcade.Arcade
+  alias Qlarius.Tiqit.Arcade.TiqitClass
 
   @tiqit_card_shell_class "tiqit-card-shell overflow-hidden rounded-lg"
 
@@ -202,6 +203,7 @@ defmodule QlariusWeb.TiqitComponents do
   attr :undo_modal_id, :string, default: "undo-confirm-modal"
   attr :preserve_modal_id, :string, default: "preserve-confirm-modal"
   attr :unpreserve_modal_id, :string, default: "unpreserve-confirm-modal"
+  attr :gift_read_only, :boolean, default: false
 
   def tiqit_detail_card(%{gift: %{} = gift} = assigns) do
     invitation = gift.share_invitation
@@ -228,6 +230,7 @@ defmodule QlariusWeb.TiqitComponents do
       |> assign(:tiqit_card_shell_class, @tiqit_card_shell_class)
       |> assign(:tiqit, nil)
       |> assign(:fleet_at_deadline, nil)
+      |> assign(:gift_read_only, Map.get(assigns, :gift_read_only, false))
 
     ~H"""
     <.tiqit_detail_card_shell
@@ -241,39 +244,31 @@ defmodule QlariusWeb.TiqitComponents do
       hierarchy={@hierarchy}
       image_url={@image_url}
       tiqit_card_shell_class={@tiqit_card_shell_class}
+      read_only={@gift_read_only}
     >
       <:status_row>
         <span class="badge badge-md stash-gift-status-badge gap-1 text-xs">
           <.icon name="hero-gift-mini" class="h-3.5 w-3.5" /> Gifted
         </span>
         <.gift_will_call_status_badge status={@gift.will_call_status} />
-        <%= cond do %>
-          <% @gift.will_call_status in ["at_will_call", "claim_check_required"] -> %>
-            <span class="text-sm text-base-content/55">
-              Claim window ends in{" "}
-              <span class="text-base-content/80">
-                <%= if @invitation && @invitation.gift_expires_at &&
-                       DateTime.compare(@invitation.gift_expires_at, DateTime.utc_now()) == :gt do %>
-                  <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={
-                    @invitation.gift_expires_at
-                  } />
-                <% else %>
-                  <span class="font-semibold">Awaiting pickup</span>
-                <% end %>
-              </span>
-            </span>
-          <% @gift.will_call_status == "expired" -> %>
-            <span class="text-sm text-base-content/55">
-              Unclaimed — amount refunded to your wallet
-            </span>
-          <% @gift.will_call_status == "pulled" -> %>
-            <span class="text-sm text-base-content/55">
-              Withdrawn — amount returned to your wallet
-            </span>
-          <% true -> %>
+        <%= unless @gift_read_only do %>
+          <.gift_claim_window_line gift={@gift} invitation={@invitation} />
+        <% else %>
+          <%= if @gift.will_call_status in ["expired", "pulled"] do %>
+            <.gift_claim_window_line gift={@gift} invitation={@invitation} />
+          <% end %>
         <% end %>
       </:status_row>
-      <:tail>
+      <:read_only_tail :if={
+        @gift_read_only && @gift.will_call_status in ["at_will_call", "claim_check_required"]
+      }>
+        <.gift_claim_window_line
+          gift={@gift}
+          invitation={@invitation}
+          in_read_only_tail={true}
+        />
+      </:read_only_tail>
+      <:tail :if={!@gift_read_only}>
         <.tiqit_gift_status_and_actions
           gift={@gift}
           user={@user}
@@ -384,6 +379,7 @@ defmodule QlariusWeb.TiqitComponents do
   attr :grid_status, :string, required: true
   attr :preserved, :boolean, default: false
   attr :gift?, :boolean, default: false
+  attr :read_only, :boolean, default: false
   attr :title, :string, required: true
   attr :scope_label, :string, default: ""
   attr :content_summary, :string, default: nil
@@ -391,7 +387,8 @@ defmodule QlariusWeb.TiqitComponents do
   attr :image_url, :string, required: true
   attr :tiqit_card_shell_class, :string, required: true
   slot :status_row
-  slot :tail, required: true
+  slot :tail
+  slot :read_only_tail
 
   defp tiqit_detail_card_shell(assigns) do
     ~H"""
@@ -445,31 +442,37 @@ defmodule QlariusWeb.TiqitComponents do
         </div>
 
         <div class="tiqit-bl"></div>
-        <div class="tiqit-bot">
-          <details
-            class="tiqit-tail-details min-w-0"
-            phx-hook="TiqitTailDetails"
-            id={"tiqit-tail-#{@card_id}"}
-          >
-            <summary
-              class="tiqit-tail-details-summary cursor-pointer list-none [&::-webkit-details-marker]:hidden"
-              aria-label="Show or hide purchase details and actions"
-            >
-              <div class="tiqit-tail-fold">
-                <span class="tiqit-tail-toggle">
-                  <span class="tiqit-tail-expand-hit">
-                    <.icon
-                      name="hero-chevron-down"
-                      class="tiqit-tail-details-chevron h-5 w-5 shrink-0 text-base-content/55"
-                    />
-                  </span>
-                </span>
-              </div>
-            </summary>
-            <div class="tiqit-tail-details-body">
-              {render_slot(@tail)}
+        <div class={["tiqit-bot", @read_only && "tiqit-bot--read-only"]}>
+          <%= if @read_only do %>
+            <div class="tiqit-tail-read-only">
+              {render_slot(@read_only_tail)}
             </div>
-          </details>
+          <% else %>
+            <details
+              class="tiqit-tail-details min-w-0"
+              phx-hook="TiqitTailDetails"
+              id={"tiqit-tail-#{@card_id}"}
+            >
+              <summary
+                class="tiqit-tail-details-summary cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+                aria-label="Show or hide purchase details and actions"
+              >
+                <div class="tiqit-tail-fold">
+                  <span class="tiqit-tail-toggle">
+                    <span class="tiqit-tail-expand-hit">
+                      <.icon
+                        name="hero-chevron-down"
+                        class="tiqit-tail-details-chevron h-5 w-5 shrink-0 text-base-content/55"
+                      />
+                    </span>
+                  </span>
+                </div>
+              </summary>
+              <div class="tiqit-tail-details-body">
+                {render_slot(@tail)}
+              </div>
+            </details>
+          <% end %>
         </div>
         <div class="tiqit-br"></div>
       </div>
@@ -538,6 +541,45 @@ defmodule QlariusWeb.TiqitComponents do
     """
   end
 
+  attr :gift, :any, required: true
+  attr :invitation, :any, default: nil
+  attr :in_read_only_tail, :boolean, default: false
+
+  defp gift_claim_window_line(assigns) do
+    ~H"""
+    <%= cond do %>
+      <% @gift.will_call_status in ["at_will_call", "claim_check_required"] -> %>
+        <span class={[
+          "text-sm",
+          @in_read_only_tail && "tiqit-tail-read-only-claim font-medium text-primary",
+          !@in_read_only_tail && "text-base-content/55"
+        ]}>
+          Claim window ends in{" "}
+          <span class={!@in_read_only_tail && "text-base-content/80"}>
+            <%= if @invitation && @invitation.gift_expires_at &&
+                   DateTime.compare(@invitation.gift_expires_at, DateTime.utc_now()) == :gt do %>
+              <QlariusWeb.Components.TiqitExpirationCountdown.text
+                expires_at={@invitation.gift_expires_at}
+                class={if(@in_read_only_tail, do: "font-semibold text-primary", else: "")}
+              />
+            <% else %>
+              <span class="font-semibold">Awaiting pickup</span>
+            <% end %>
+          </span>
+        </span>
+      <% @gift.will_call_status == "expired" -> %>
+        <span class="text-sm text-base-content/55">
+          Unclaimed — amount refunded to your wallet
+        </span>
+      <% @gift.will_call_status == "pulled" -> %>
+        <span class="text-sm text-base-content/55">
+          Withdrawn — amount returned to your wallet
+        </span>
+      <% true -> %>
+    <% end %>
+    """
+  end
+
   defp gift_status_display("picked_up"), do: {"Claimed", "!border-0 !bg-sponster-500 !text-primary-content"}
   defp gift_status_display("expired"), do: {"Expired", "badge-warning"}
   defp gift_status_display("pulled"), do: {"Withdrawn", "badge-ghost"}
@@ -587,17 +629,42 @@ defmodule QlariusWeb.TiqitComponents do
   defp gift_content_summary(gift) do
     catalog = gift_catalog(gift)
 
-    cond do
-      gift.content_group_id && catalog ->
-        count = Arcade.count_group_pieces(gift.content_group_id)
-        "#{count} #{label(catalog.piece_type, count)}"
+    case gift_tiqit_class(gift) do
+      %TiqitClass{} = tc when not is_nil(catalog) ->
+        gift_content_summary_for_class(tc, catalog)
 
-      gift.content_piece_id && gift.content_group_id && catalog ->
-        count = Arcade.count_group_pieces(gift.content_group_id)
-        "#{count} #{label(catalog.piece_type, count)}"
+      _ ->
+        if gift.content_piece_id, do: nil, else: legacy_gift_content_summary(gift, catalog)
+    end
+  end
 
-      true ->
-        nil
+  defp gift_tiqit_class(%{tiqit_class: %TiqitClass{} = tc}), do: tc
+
+  defp gift_tiqit_class(%{share_invitation: %{tiqit_class: %TiqitClass{} = tc}}), do: tc
+
+  defp gift_tiqit_class(_), do: nil
+
+  defp gift_content_summary_for_class(%TiqitClass{content_piece_id: id}, _catalog)
+       when not is_nil(id),
+       do: nil
+
+  defp gift_content_summary_for_class(%TiqitClass{content_group_id: id}, catalog)
+       when not is_nil(id) do
+    count = Arcade.count_group_pieces(id)
+    "#{count} #{label(catalog.piece_type, count)}"
+  end
+
+  defp gift_content_summary_for_class(%TiqitClass{catalog_id: id}, catalog) when not is_nil(id) do
+    {group_count, piece_count} = Arcade.catalog_content_counts(id)
+    "#{piece_count} #{label(catalog.piece_type, piece_count)} in #{group_count} #{label(catalog.group_type, group_count)}"
+  end
+
+  defp gift_content_summary_for_class(_, _), do: nil
+
+  defp legacy_gift_content_summary(gift, catalog) do
+    if gift.content_group_id && catalog do
+      count = Arcade.count_group_pieces(gift.content_group_id)
+      "#{count} #{label(catalog.piece_type, count)}"
     end
   end
 

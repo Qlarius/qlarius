@@ -29,8 +29,9 @@
         "embed_host" => "tiqit_arqade",
         "base_path" => "",
         "show_title" => true,
-        "content_id" => @gift_piece_id || @selected_piece_id,
-        "gift_piece_id" => @gift_piece_id,
+        "content_id" => invitation_content_piece_id(@invitation) || @selected_piece_id,
+        "gift_piece_id" =>
+          gift_highlight_piece_id(@invitation, @gift_claim_succeeded),
         "auth_sheet_host_enabled?" => QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns),
         "parent_phx_id" => @socket.id
       }
@@ -100,7 +101,7 @@
       ) %>
     <div
       id="video-player-modal"
-      class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+      class={"fixed inset-0 z-[70] #{modal_backdrop_class()} flex items-center justify-center p-4 sm:p-6"}
       phx-click="close_video_player"
       phx-mounted={video_modal_enter}
       phx-remove={video_modal_leave}
@@ -108,7 +109,7 @@
       <%!-- No-op phx-click absorbs inner clicks (resolves to card, not the backdrop). --%>
       <div
         id="video-player-content"
-        class="relative flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-base-100 shadow-2xl"
+        class={"relative flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden bg-base-100 shadow-2xl #{modal_panel_radius_class()} #{tiqit_arqade_modal_border_class()}"}
         phx-click={%Phoenix.LiveView.JS{}}
       >
         <%!-- Header: offer amount + ad category, with close button --%>
@@ -181,138 +182,121 @@
   <.connect_wallet_modal
     show={@show_connect_modal}
     scope={@current_scope}
-    connect_brand={:sponster}
+    connect_brand={@connect_modal_brand}
     on_click={
       if QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns),
-        do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
+        do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: Atom.to_string(@connect_modal_brand)}),
         else: nil
     }
   />
 
   <%= if @invitation && @show_invitation_overlay do %>
     <% inv = @invitation.invitation %>
-    <div class="fixed inset-0 z-[75] flex items-end justify-center p-0 sm:items-center sm:p-4">
-      <div class="absolute inset-0 bg-black/50" phx-click="dismiss-invitation-overlay"></div>
-      <div class="relative w-full max-w-md rounded-t-2xl bg-base-100 p-6 shadow-2xl sm:rounded-2xl">
-        <button
-          type="button"
-          phx-click="dismiss-invitation-overlay"
-          class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3"
-          aria-label="Close"
-        >
-          <.icon name="hero-x-mark" class="h-5 w-5" />
-        </button>
+    <.overlay id="gift-invitation-modal" on_dismiss={JS.push("dismiss-invitation-overlay")}>
+      <:footnote :if={
+        !@gift_claim_succeeded &&
+          !(@invitation.state == :active_gift and authed?(@current_scope))
+      }>
+        <.footnote>
+          <%= cond do %>
+            <% @invitation.state == :redeemed -> %>
+              {if authed?(@current_scope),
+                do: "Use your Qadabra wallet to purchase your media.",
+                else: "Connect to your Qadabra wallet to purchase your media."}
+            <% inv.share_type == "gift" -> %>
+              Your wallet is set up automatically when you join.
+            <% true -> %>
+              Just use your mobile number to connect.
+          <% end %>
+        </.footnote>
+      </:footnote>
 
-        <%= case @invitation.state do %>
-          <% :active_gift -> %>
-            <div class="flex flex-col items-center text-center">
-              <.icon name="hero-gift" class="h-10 w-10 text-primary" />
-              <h2 class="mt-3 text-xl font-bold">A friend bought this for you.</h2>
-              <p class="mt-1 text-base-content/70">{@group.title}</p>
-              <p class="mt-3 text-sm font-medium text-warning">
-                You have
-                <QlariusWeb.Components.TiqitExpirationCountdown.text
-                  id="gift-claim-countdown"
-                  expires_at={inv.gift_expires_at}
-                  format={:hm}
-                  class="tabular-nums font-semibold text-warning"
-                />
-                to claim gifted tiqits.
-              </p>
+      <%= case @invitation.state do %>
+        <% :active_gift -> %>
+          <% gift_card = recipient_gift_card(@invitation, @group) %>
+          <% gift_claim_authed? = authed?(@current_scope) %>
+          <.content_stack>
+            <.brand_logo />
+            <.icon_title icon="hero-gift">A friend bought this for you.</.icon_title>
+            <.tiqit_detail_card :if={gift_card} gift={gift_card} gift_read_only={true} />
 
-              <%= if @pin_verified? do %>
-                <p class="mt-4 text-sm text-success">PIN accepted. You're all set.</p>
-                <button
-                  type="button"
-                  phx-click="claim-gift"
-                  class="btn btn-primary mt-3 w-full"
-                >
-                  Claim your tiqit
-                </button>
+            <%= if gift_claim_authed? do %>
+              <%= if @gift_claim_succeeded do %>
+                <.lede class="font-medium text-success">Tiqit claim successful. Enjoy this content.</.lede>
+                <.primary_button phx-click="dismiss-invitation-overlay">OK</.primary_button>
               <% else %>
-                <p class="mt-4 text-sm text-base-content/70">
-                  Enter the 4-digit claim PIN from your invitation.
-                </p>
-                <form phx-submit="verify-claim-pin" class="mt-3 flex w-full flex-col gap-2">
-                  <input
-                    type="text"
-                    name="pin"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    maxlength="4"
-                    autocomplete="one-time-code"
-                    placeholder="1234"
-                    class="input input-bordered w-full text-center text-2xl tracking-[0.5em] tabular-nums"
-                  />
-                  <button type="submit" class="btn btn-primary btn-lg w-full rounded-full">
-                    Claim your tiqit
-                  </button>
-                </form>
+                <div class="flex w-full flex-col gap-4">
+                  <.lede>Enter the 4-digit claim PIN from your invitation.</.lede>
+                  <form phx-submit="verify-claim-pin" class="flex w-full flex-col gap-4">
+                    <.pin_input />
+                    <.submit_button>Claim your tiqit</.submit_button>
+                  </form>
+                  <.ghost_button phx-click="dismiss-invitation-overlay">Later. Let me browse first.</.ghost_button>
+                </div>
               <% end %>
 
-              <p :if={@pin_error} class="mt-2 text-sm text-error">{@pin_error}</p>
-
-              <button
-                type="button"
-                phx-click="dismiss-invitation-overlay"
-                class="btn btn-ghost btn-sm mt-3"
-              >
-                I'll do this later
-              </button>
-            </div>
-          <% state when state in [:active_share, :expired_share] -> %>
-            <div class="flex flex-col items-center text-center">
-              <.icon name="hero-arrow-up-on-square" class="h-10 w-10 text-primary" />
-              <h2 class="mt-3 text-xl font-bold">A friend shared this with you.</h2>
-              <p class="mt-1 text-base-content/70">{@group.title}</p>
-              <p class="mt-3 text-sm text-base-content/70">
-                It's not free, but you don't have to use your own money — we have a prefunded wallet ready for you.
-              </p>
-              <button
-                type="button"
-                phx-click="dismiss-invitation-overlay"
-                class="btn btn-primary mt-4 w-full"
-              >
-                View content
-              </button>
-            </div>
-          <% :redeemed -> %>
-            <div class="flex flex-col items-center text-center">
-              <.icon name="hero-check-circle" class="h-10 w-10 text-success" />
-              <h2 class="mt-3 text-xl font-bold">This gift has already been claimed.</h2>
-              <button
-                type="button"
-                phx-click="dismiss-invitation-overlay"
-                class="btn btn-primary mt-4 w-full"
-              >
-                View content
-              </button>
-            </div>
-          <% _ -> %>
-            <div class="flex flex-col items-center text-center">
-              <.icon name="hero-x-circle" class="h-10 w-10 text-error" />
-              <h2 class="mt-3 text-xl font-bold">This invitation is no longer available.</h2>
-              <button
-                type="button"
-                phx-click="dismiss-invitation-overlay"
-                class="btn btn-primary mt-4 w-full"
-              >
-                View content
-              </button>
-            </div>
-        <% end %>
-
-        <p class="mt-4 text-center text-xs text-base-content/50">
-          {if inv.share_type == "gift",
-            do: "Your wallet is set up automatically when you join.",
-            else: "Just use your mobile number to connect."}
-        </p>
-      </div>
-    </div>
+              <p :if={@pin_error} class="text-sm text-error">{@pin_error}</p>
+            <% else %>
+              <.lede>
+                Connect to save this gifted tiqit to your wallet.
+              </.lede>
+              <.actions_group>
+                <div class="w-full max-w-md flex justify-center">
+                  <.wallet_strip_or_connect
+                    scope={@current_scope}
+                    balance={Decimal.new("0")}
+                    id="gift-invitation-wallet-strip"
+                    on_click={
+                      if QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns),
+                        do: JS.push("open_auth_sheet", value: %{brand: "tiqit"}),
+                        else: nil
+                    }
+                    connect_href={
+                      if QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns),
+                        do: nil,
+                        else: ~p"/login?return_to=#{@return_to}"
+                    }
+                    connect_link_target="_self"
+                  />
+                </div>
+                <.ghost_button phx-click="dismiss-invitation-overlay">Maybe later. Let me browse first.</.ghost_button>
+              </.actions_group>
+            <% end %>
+          </.content_stack>
+        <% state when state in [:active_share, :expired_share] -> %>
+          <.content_stack>
+            <.brand_logo />
+            <.icon_title icon="hero-arrow-up-on-square">A friend shared this with you.</.icon_title>
+            <.lede>{@group.title}</.lede>
+            <.lede>
+              It's not free, but you don't have to use your own money — we have a prefunded wallet ready for you.
+            </.lede>
+            <.primary_button phx-click="dismiss-invitation-overlay">View content</.primary_button>
+          </.content_stack>
+        <% :redeemed -> %>
+          <% gift_card = recipient_gift_card(@invitation, @group) %>
+          <.content_stack>
+            <.brand_logo />
+            <.icon_title icon="hero-check-circle" icon_class="h-8 w-8 shrink-0 text-success md:h-9 md:w-9">
+              This tiqit has already been claimed.
+            </.icon_title>
+            <.tiqit_detail_card :if={gift_card} gift={gift_card} gift_read_only={true} />
+            <.primary_button phx-click="dismiss-invitation-overlay">OK</.primary_button>
+          </.content_stack>
+        <% _ -> %>
+          <.content_stack>
+            <.brand_logo />
+            <.icon_title icon="hero-x-circle" icon_class="h-8 w-8 shrink-0 text-error md:h-9 md:w-9">
+              This invitation is no longer available.
+            </.icon_title>
+            <.primary_button phx-click="dismiss-invitation-overlay">View content</.primary_button>
+          </.content_stack>
+      <% end %>
+    </.overlay>
   <% end %>
 
-  <%= if @invitation && !@show_invitation_overlay && @invitation.state == :active_gift do %>
-    <div class="fixed right-4 bottom-[5.75rem] z-40 max-w-[calc(100vw-2rem)] pointer-events-none">
+  <%= if @invitation && !@show_invitation_overlay && !@show_auth_sheet && @invitation.state == :active_gift do %>
+    <div class="fixed right-4 bottom-[calc(50px+0.5rem)] z-40 max-w-[calc(100vw-2rem)] pointer-events-none">
       <button
         type="button"
         phx-click="reopen-invitation-overlay"
@@ -332,6 +316,9 @@
       referral_context={@auth_referral_context}
       client_ip={assigns[:user_ip] || "0.0.0.0"}
       connect_brand={@auth_sheet_connect_brand}
+      overlay_z_class="z-[160]"
+      backdrop_class={modal_backdrop_class()}
+      panel_border_class={tiqit_arqade_modal_border_class()}
       on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
     />
   <% end %>
@@ -340,7 +327,7 @@
     <.modal
       id="tiqit-arqade-logout-modal"
       show={true}
-      border_class="border border-widget-700"
+      border_class={tiqit_arqade_modal_border_class()}
       on_cancel={JS.push("cancel_logout")}
     >
       <div class="rounded-box overflow-hidden">

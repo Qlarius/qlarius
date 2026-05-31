@@ -464,7 +464,8 @@ defmodule Qlarius.Wallets do
 
   @will_call_gift_meta "Tiqit Gift Purchase (Will Call)"
   @will_call_reversal_meta "Will Call Gift Reversal"
-  @media_gift_credit_meta "Media gift credit"
+  @media_gift_credit_description "TIQIT GIFT CREDIT"
+  @media_gift_credit_meta "Friend gift credit"
 
   @doc "Reversible sender debit recorded when a will-call gift is created."
   def create_will_call_debit!(%LedgerHeader{} = header, amount, description) do
@@ -482,7 +483,7 @@ defmodule Qlarius.Wallets do
   so it never becomes independently spendable.
   """
   def create_gift_passthrough_credit!(%LedgerHeader{} = header, amount) do
-    insert_ledger_entry!(header, amount, @media_gift_credit_meta, @media_gift_credit_meta)
+    insert_ledger_entry!(header, amount, @media_gift_credit_description, @media_gift_credit_meta)
   end
 
   @doc "Loads a me_file's ledger header by me_file id (nil if none)."

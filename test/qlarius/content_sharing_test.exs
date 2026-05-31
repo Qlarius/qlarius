@@ -145,15 +145,17 @@ defmodule Qlarius.ContentSharingTest do
         )
 
       metas = Enum.map(entries, & &1.meta_1)
-      assert "Media gift credit" in metas
+      assert "Friend gift credit" in metas
       assert "Tiqit Purchase" in metas
 
-      gift_idx = Enum.find_index(entries, &(&1.meta_1 == "Media gift credit"))
+      gift_idx = Enum.find_index(entries, &(&1.meta_1 == "Friend gift credit"))
       purchase_idx = Enum.find_index(entries, &(&1.meta_1 == "Tiqit Purchase"))
       assert gift_idx < purchase_idx
 
       gift_entry = Enum.at(entries, gift_idx)
       purchase_entry = Enum.at(entries, purchase_idx)
+
+      assert gift_entry.description == "TIQIT GIFT CREDIT"
 
       assert Decimal.equal?(gift_entry.running_balance, Decimal.add(starting, wc.amount))
       assert Decimal.equal?(purchase_entry.running_balance, starting)

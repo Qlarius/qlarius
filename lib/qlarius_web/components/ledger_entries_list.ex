@@ -169,6 +169,8 @@ defmodule QlariusWeb.Components.LedgerEntriesList do
   defp icon_for_entry(%{ad_event_id: ad_event_id}) when not is_nil(ad_event_id), do: "hero-film"
   defp icon_for_entry(entry), do: icon_for_meta_1(entry.meta_1)
 
+  defp icon_for_meta_1("Friend gift credit"), do: "hero-gift"
+  defp icon_for_meta_1("Media gift credit"), do: "hero-gift"
   defp icon_for_meta_1("Tip/Donation"), do: "hero-gift"
   defp icon_for_meta_1("Tiqit Purchase"), do: "hero-ticket"
   defp icon_for_meta_1("Will Call Gift"), do: "hero-gift"

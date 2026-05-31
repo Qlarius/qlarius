@@ -25,6 +25,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     close-insta-tip-modal
     close-insta-tip-thanks-modal
     close-connect-modal
+    open-connect-modal
     open_auth_sheet
     close_auth_sheet
     open-sponster-drawer
@@ -96,6 +97,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     |> Phoenix.Component.assign(:me_file_sponsorship_url, me_file_sponsorship_url)
     |> Phoenix.Component.assign(:settings_notifications_url, settings_notifications_url)
     |> Phoenix.Component.assign(:show_connect_modal, false)
+    |> Phoenix.Component.assign(:connect_modal_brand, :tiqit)
     |> Phoenix.Component.assign(:show_auth_sheet, false)
     |> Phoenix.Component.assign(:auth_sheet_connect_brand, :qadabra)
   end
@@ -411,6 +413,14 @@ defmodule QlariusWeb.SponsterRecipientSurface do
 
   defp do_handle_event("close-connect-modal", _params, socket) do
     Phoenix.Component.assign(socket, :show_connect_modal, false)
+  end
+
+  defp do_handle_event("open-connect-modal", params, socket) do
+    brand = normalize_auth_sheet_connect_brand(params["brand"])
+
+    socket
+    |> Phoenix.Component.assign(:connect_modal_brand, brand)
+    |> Phoenix.Component.assign(:show_connect_modal, true)
   end
 
   defp do_handle_event("open_auth_sheet", params, socket) do

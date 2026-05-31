@@ -162,8 +162,8 @@ defmodule QlariusWeb.WalletBalanceSync do
   receive that refetch itself).
   """
   def apply_sync_hook(socket, msg) do
-    socket
-    |> handle_sync_message(msg)
+    msg
+    |> handle_sync_message(socket)
     |> maybe_notify_parent_after_sync(msg)
     |> maybe_forward_to_inline_embed(msg)
   end

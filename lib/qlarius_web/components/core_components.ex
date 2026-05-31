@@ -728,6 +728,7 @@ defmodule QlariusWeb.CoreComponents do
   attr :id, :string, required: true
   attr :show, :boolean, default: false
   attr :on_cancel, JS, default: %JS{}
+  attr :close_on_click_away, :boolean, default: true
   attr :border_class, :string, default: "border border-base-300"
   slot :inner_block, required: true
 
@@ -763,7 +764,9 @@ defmodule QlariusWeb.CoreComponents do
               id={"#{@id}-container"}
               phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
               phx-key="escape"
-              phx-click-away={JS.exec("data-cancel", to: "##{@id}")}
+              phx-click-away={
+                @close_on_click_away && JS.exec("data-cancel", to: "##{@id}")
+              }
               class={[
                 "relative hidden bg-base-100 rounded-box shadow-2xl transition-all duration-200",
                 @border_class

@@ -3,6 +3,32 @@ defmodule QlariusWeb.WalletBalanceSyncTest do
 
   alias QlariusWeb.WalletBalanceSync
 
+  describe "apply_sync_hook/2" do
+    test "applies balance update without crashing" do
+      socket = %Phoenix.LiveView.Socket{
+        assigns: %{
+          __changed__: %{},
+          current_scope: %{
+            wallet_balance: Decimal.new("1.25"),
+            user: %{me_file: %{ledger_header: %{balance: Decimal.new("1.25")}}}
+          },
+          balance: Decimal.new("1.25")
+        }
+      }
+
+      new_balance = Decimal.new("1.00")
+
+      updated =
+        WalletBalanceSync.apply_sync_hook(
+          socket,
+          {:me_file_balance_updated, new_balance}
+        )
+
+      assert updated.assigns.balance == new_balance
+      assert updated.assigns.current_scope.wallet_balance == new_balance
+    end
+  end
+
   describe "notify_parent_after_sync?/1" do
     test "skips refetch and direct balance pushes to avoid parent ping-pong" do
       refute WalletBalanceSync.notify_parent_after_sync?(:update_balance)

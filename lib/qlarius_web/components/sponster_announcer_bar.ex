@@ -37,7 +37,7 @@ defmodule QlariusWeb.Components.SponsterAnnouncerBar do
 
     ~H"""
     <div
-      class="fixed inset-x-0 bottom-0 flex justify-center bg-base-100 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] isolate"
+      class="sponster-announcer-bar fixed inset-x-0 bottom-0 flex justify-center bg-base-100 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] isolate"
       style="z-index: 63;"
     >
       <div class="flex h-[50px] w-full max-w-3xl items-center justify-between gap-2 px-3">

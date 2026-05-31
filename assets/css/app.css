@@ -1711,7 +1711,7 @@
     @apply btn inline-flex flex-row flex-nowrap items-center justify-center gap-1 font-bold shadow-none;
     @apply rounded-full border border-sponster-300 bg-transparent text-base-content;
     @apply dark:border-sponster-500 dark:bg-transparent dark:text-sponster-100;
-    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sponster-500;
+    @apply outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0;
   }
 
   .btn-wallet-strip-action:hover:not(:disabled):not(.btn-disabled) {
@@ -2607,6 +2607,13 @@ body {
   margin-right: 10px;
 }
 
+/* Fixed bottom announcer — light mode uses the Tailwind shadow on the bar;
+   dark mode needs a clearer top edge against the page canvas. */
+html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) {
+  border-top: 1px solid color-mix(in oklch, var(--color-base-content) 14%, transparent);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.42);
+}
+
 .sponster-ad-count-button {
   position: absolute;
   display: inline-block;
@@ -2987,6 +2994,15 @@ body {
 .tiqit-bot:has(> .tiqit-tail-details:not([open])),
 .tiqit-bot:has(> .tiqit-tail-details[open].tiqit-tail-is-closing) {
   padding-bottom: 2px;
+}
+
+.tiqit-bot--read-only {
+  padding: 8px 16px 10px;
+}
+
+.tiqit-tail-read-only-claim {
+  display: block;
+  line-height: 1.35;
 }
 
 /* ── Notch cells — overflow-hidden with a shifted circle inside ── */

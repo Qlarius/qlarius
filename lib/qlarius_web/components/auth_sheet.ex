@@ -158,6 +158,25 @@ defmodule QlariusWeb.Components.AuthSheet do
       |> assign(:on_cancel, Map.get(assigns, :on_cancel, socket.assigns[:on_cancel]) || %JS{})
       |> assign(:client_ip, Map.get(assigns, :client_ip, socket.assigns[:client_ip]) || "0.0.0.0")
       |> assign(:connect_brand, connect_brand)
+      |> assign(
+        :backdrop_class,
+        Map.get(assigns, :backdrop_class, socket.assigns[:backdrop_class]) ||
+          "bg-black/60 backdrop-blur-sm"
+      )
+      |> assign(
+        :panel_border_class,
+        Map.get(assigns, :panel_border_class, socket.assigns[:panel_border_class]) ||
+          "border border-widget-300"
+      )
+      |> assign(
+        :panel_radius_class,
+        Map.get(assigns, :panel_radius_class, socket.assigns[:panel_radius_class]) ||
+          QlariusWeb.Components.GiftModalComponents.modal_sheet_panel_radius_class()
+      )
+      |> assign(
+        :overlay_z_class,
+        Map.get(assigns, :overlay_z_class, socket.assigns[:overlay_z_class]) || "z-[70]"
+      )
       |> maybe_apply_iframe_hint(Map.get(assigns, :iframe_hint, :not_provided))
 
     socket =
@@ -1131,7 +1150,7 @@ defmodule QlariusWeb.Components.AuthSheet do
         />
 
         <div
-          class="fixed inset-0 z-[70] flex items-end md:items-center justify-center p-0 md:p-4"
+          class={["fixed inset-0 flex items-end md:items-center justify-center p-0 md:p-4", @overlay_z_class]}
           id={"#{@id}-scroll-lock"}
           phx-hook="BodyScrollLock"
           data-body-scroll-lock="true"
@@ -1140,7 +1159,8 @@ defmodule QlariusWeb.Components.AuthSheet do
           <div
             id={"#{@id}-backdrop"}
             class={[
-              "absolute inset-0 bg-black/60 backdrop-blur-sm",
+              "absolute inset-0",
+              @backdrop_class,
               if(@modal_exiting,
                 do: "animate-auth-sheet-backdrop-out",
                 else: "animate-auth-sheet-backdrop"
@@ -1158,7 +1178,9 @@ defmodule QlariusWeb.Components.AuthSheet do
           --%>
           <div
             class={[
-              "relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-t-2xl border border-widget-300 bg-base-100 shadow-2xl md:max-w-lg md:rounded-2xl dark:bg-base-200",
+              "relative flex w-full max-h-[90vh] flex-col overflow-hidden bg-base-100 shadow-2xl md:max-w-lg dark:bg-base-200",
+              @panel_radius_class,
+              @panel_border_class,
               if(@modal_exiting,
                 do: "animate-auth-sheet-panel-out",
                 else: "animate-auth-sheet-panel"
@@ -1264,7 +1286,10 @@ defmodule QlariusWeb.Components.AuthSheet do
           New here?
         </h3>
         <p class="text-sm text-base-content/70 md:text-base">
-          Start your new account and wallet.<br />Prefunded with $3.00+ on us.
+          Start your new account and wallet.<br />
+          Only need your US mobile phone.<br />
+          Takes 2 minutes or less.<br />
+          Prefunded with $3.00+ on us.
         </p>
       </div>
 

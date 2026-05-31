@@ -689,6 +689,19 @@ function setupCountdown(el, forceReset = false){
       const totalH = Math.floor(distance / (1000 * 60 * 60))
       const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
       display.textContent = `${String(totalH).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+    } else if (format === 'hm_prose') {
+      const totalH = Math.floor(distance / (1000 * 60 * 60))
+      const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+      if (totalH > 0 && m > 0) {
+        display.textContent = `${totalH} hrs and ${m} min`
+      } else if (totalH > 0) {
+        display.textContent = `${totalH} ${totalH === 1 ? 'hr' : 'hrs'}`
+      } else if (m > 0) {
+        display.textContent = `${m} min`
+      } else {
+        const s = Math.floor((distance % (1000 * 60)) / 1000)
+        display.textContent = `${s} ${s === 1 ? 'sec' : 'secs'}`
+      }
     } else if (format === 'ms') {
       const totalM = Math.floor(distance / (1000 * 60))
       const s = Math.floor((distance % (1000 * 60)) / 1000)

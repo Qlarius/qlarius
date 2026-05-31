@@ -328,7 +328,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
           />
         </div>
         <p class="text-xs text-base-content/65 leading-snug max-w-sm">
-          Your US mobile number is all you need. New wallets are even prefunded with $3.00+ on us.
+          Your US mobile number is all you need. New wallets are prefunded with $3.00+ on us.
         </p>
         <button
           type="button"

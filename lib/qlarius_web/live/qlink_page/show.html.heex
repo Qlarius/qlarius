@@ -503,7 +503,7 @@
       <%!-- No-op phx-click absorbs inner clicks (resolves to card, not the backdrop). --%>
       <div
         id="video-player-content"
-        class="relative flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-base-100 shadow-2xl"
+        class={"relative flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden bg-base-100 shadow-2xl #{modal_panel_radius_class()}"}
         phx-click={%Phoenix.LiveView.JS{}}
       >
         <%!-- Header: offer amount + ad category, with close button --%>

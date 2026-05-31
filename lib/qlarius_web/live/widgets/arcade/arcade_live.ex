@@ -413,6 +413,14 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     end
   end
 
+  def handle_event("accept-gift", _params, socket) do
+    if parent_pid = socket.parent_pid do
+      send(parent_pid, :reopen_invitation_overlay)
+    end
+
+    noreply(socket)
+  end
+
   def handle_event("toggle-arqade-fullpane", _params, socket) do
     if socket.assigns[:inline?] && socket.assigns[:embed_phx_id] do
       case socket.parent_pid do
@@ -590,13 +598,17 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
         case ContentSharing.create_gift(socket.assigns.current_scope, attrs) do
           {:ok, result} ->
+            # Defer opening the copy-invitation modal until after the confirm
+            # click finishes — otherwise phx-click-away on the newly mounted
+            # modal treats that same click as an outside dismiss.
+            Process.send_after(self(), :open_share_gift_result_modal, 0)
+
             socket
             |> refresh_balance_after_gift()
             |> assign(
               selected_tiqit_class: nil,
               purchase_intent: nil,
-              show_share_gift_modal: true,
-              share_gift_modal_token: next_share_gift_modal_token(),
+              show_share_gift_modal: false,
               share_gift_mode: "gift",
               share_gift_result: build_gift_result(result, tc, piece, group)
             )
@@ -722,6 +734,18 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       {:cont, socket}
     else
       {:noreply, socket |> assign(:show_connect_modal, true)}
+    end
+  end
+
+  def handle_info(:open_share_gift_result_modal, socket) do
+    if socket.assigns[:share_gift_result] do
+      {:noreply,
+       assign(socket,
+         show_share_gift_modal: true,
+         share_gift_modal_token: next_share_gift_modal_token()
+       )}
+    else
+      {:noreply, socket}
     end
   end
 
@@ -1007,6 +1031,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     mins = :rand.uniform(14) + 18
     secs = :rand.uniform(59) + 1
     :io_lib.format("~B:~2..0B", [mins, secs]) |> IO.iodata_to_binary()
+  end
+
+  @doc false
+  def gift_piece_highlight?(piece_id, gift_piece_id, valid_tiqit_piece_ids) do
+    not is_nil(gift_piece_id) and piece_id == gift_piece_id and
+      not MapSet.member?(valid_tiqit_piece_ids, piece_id)
   end
 
   defp parse_int(id) when is_integer(id), do: id
