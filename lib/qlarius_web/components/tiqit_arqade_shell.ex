@@ -14,7 +14,6 @@ defmodule QlariusWeb.Components.TiqitArqadeShell do
     ]
   import QlariusWeb.Components.SponsterPublicPage, only: [sponster_stack: 1]
   import QlariusWeb.InstaTipComponents
-  import QlariusWeb.TiqitComponents
   import QlariusWeb.Widgets.UnauthCTA
 
   alias QlariusWeb.TiqitArqade.Host

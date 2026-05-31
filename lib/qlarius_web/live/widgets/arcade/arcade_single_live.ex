@@ -11,8 +11,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   alias QlariusWeb.TiqitArqade.Host
   alias QlariusWeb.Widgets.Arcade.Paths
 
-  alias QlariusWeb.Layouts
-
   import QlariusWeb.Money
   import QlariusWeb.PWAHelpers
   import QlariusWeb.TiqitClassHTML
