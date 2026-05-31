@@ -10,15 +10,15 @@ defmodule QlariusWeb.TiqitArqadeLive do
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias QlariusWeb.SponsterRecipientSurface
+  alias QlariusWeb.TiqitArqade.Host
+  alias QlariusWeb.Widgets.Arcade.Paths
   alias QlariusWeb.WalletBalanceSync
 
-  import QlariusWeb.Components.AdsComponents
-  import QlariusWeb.Components.SponsterPublicPage, only: [sponster_stack: 1]
   import QlariusWeb.Helpers.ImageHelpers
-  import QlariusWeb.InstaTipComponents
   import QlariusWeb.TiqitClassHTML, only: [format_tiqit_class_duration: 1]
   import QlariusWeb.Widgets.UnauthCTA
   import QlariusWeb.TiqitComponents
+  import QlariusWeb.Widgets.Arcade.Components, only: [arqade_breadcrumbs: 1]
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
@@ -102,15 +102,20 @@ defmodule QlariusWeb.TiqitArqadeLive do
   end
 
   defp assign_page(socket, page, recipient) do
+    group = page.group
+    return_to = return_to_path(group.id, page.selected_piece_id)
+
     socket
     |> assign(:page, page)
-    |> assign(:group, page.group)
+    |> assign(:group, group)
     |> assign(:creator, page.creator)
     |> assign(:recipient, recipient)
     |> assign(:tipping_enabled?, page.tipping_enabled?)
     |> assign(:selected_piece_id, page.selected_piece_id)
-    |> assign(:page_title, page.group.title || "Tiqit Arqade")
+    |> assign(:page_title, group.title || "Tiqit Arqade")
     |> assign(:parent_request_uri, parent_request_uri(socket))
+    |> assign(:base_path, "/tiqit")
+    |> assign(:return_to, return_to)
   end
 
   defp maybe_subscribe(socket) do
@@ -418,16 +423,7 @@ defmodule QlariusWeb.TiqitArqadeLive do
     assign(socket, :auth_referral_context, context)
   end
 
-  def auth_sheet_enabled?(assigns) do
-    flag_on? =
-      Application.get_env(:qlarius, :auth_sheet, [])
-      |> Keyword.get(:on_qlink_page, false)
-
-    anonymous? =
-      is_nil(assigns[:current_scope]) or is_nil(assigns[:current_scope].true_user)
-
-    flag_on? and anonymous?
-  end
+  def auth_sheet_enabled?(assigns), do: Host.auth_sheet_enabled?(assigns)
 
   @doc false
   def invitation_content_piece_id(nil), do: nil

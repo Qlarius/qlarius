@@ -8,6 +8,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.Wallets
   alias QlariusWeb.WalletBalanceSync
+  alias QlariusWeb.TiqitArqade.Host
+  alias QlariusWeb.Widgets.Arcade.Paths
 
   alias QlariusWeb.Layouts
 
@@ -117,6 +119,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
       #      `live_render/3`'s `:session` option (inline mounts).
       #   3. Default to "" (main-app style).
       base_path = socket.assigns[:base_path] || session["base_path"] || ""
+      return_to = Paths.piece(base_path, piece_id)
 
       socket =
         socket
@@ -126,7 +129,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           base_path: base_path,
           inline?: inline?,
           title: "Arqade",
-          current_path: "/arqade/#{piece_id}",
+          current_path: return_to,
           piece: piece,
           group: group,
           catalog: catalog,
@@ -147,6 +150,13 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           parent_phx_id: session["parent_phx_id"]
         )
         |> assign(scope_assigns(scope, group, catalog))
+
+      socket =
+        if base_path == "/tiqit" and not inline? do
+          Host.init_creator_scope(socket, group.catalog.creator, return_to)
+        else
+          socket
+        end
 
       socket =
         if has_tiqit? do
@@ -251,18 +261,24 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   # Nested inside a hosting LV (`socket.parent_pid` set) → forward
   # to parent so there's only ever one sheet on the page.
   # Standalone → host locally.
-  def handle_event("open_auth_sheet", _params, socket) do
-    case socket.parent_pid do
-      nil ->
+  def handle_event("open_auth_sheet", params, socket) do
+    cond do
+      Host.tiqit_host?(socket) ->
+        case Host.handle_event("open_auth_sheet", params, socket) do
+          {:handled, socket} -> {:noreply, socket}
+          :unhandled -> {:noreply, socket}
+        end
+
+      is_pid(socket.parent_pid) ->
+        send(socket.parent_pid, {:open_auth_sheet, :tiqit})
+
         socket
-        |> assign(:show_auth_sheet, true)
         |> assign(:show_connect_modal, false)
         |> noreply()
 
-      parent_pid ->
-        send(parent_pid, {:open_auth_sheet, :tiqit})
-
+      true ->
         socket
+        |> assign(:show_auth_sheet, true)
         |> assign(:show_connect_modal, false)
         |> noreply()
     end
@@ -273,15 +289,18 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   end
 
   def handle_event("open-sponster-drawer", _params, socket) do
-    case socket.parent_pid do
-      nil ->
+    cond do
+      Host.tiqit_host?(socket) ->
+        {:noreply, QlariusWeb.SponsterRecipientSurface.open_drawer(socket)}
+
+      is_pid(socket.parent_pid) ->
+        send(socket.parent_pid, :open_sponster_drawer_from_embed)
+        noreply(socket)
+
+      true ->
         socket
         |> push_event("send-post-message", %{type: "open_sponster_drawer"})
         |> noreply()
-
-      parent_pid ->
-        send(parent_pid, :open_sponster_drawer_from_embed)
-        noreply(socket)
     end
   end
 
@@ -405,6 +424,17 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
     end
   end
 
+  def handle_event(event, params, socket) do
+    if Host.tiqit_host?(socket) do
+      case Host.handle_event(event, params, socket) do
+        {:handled, socket} -> {:noreply, socket}
+        :unhandled -> {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
   # Gate for wallet-required handlers. Returns `{:cont, socket}` when
   # the viewer is authed — callers unwrap via
   # `with {:cont, socket} <- maybe_intercept_for_unauth(socket)` to
@@ -434,6 +464,17 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   def handle_info({:me_file_offers_updated, _me_file_id}, socket) do
     if socket.assigns[:mounted] do
       {:noreply, refresh_scope_after_wallet_or_offer_event(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info(msg, socket) do
+    if Host.tiqit_host?(socket) do
+      case Host.handle_info(msg, socket) do
+        {:handled, socket} -> {:noreply, socket}
+        :unhandled -> {:noreply, socket}
+      end
     else
       {:noreply, socket}
     end

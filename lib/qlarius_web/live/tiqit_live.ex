@@ -245,10 +245,8 @@ defmodule QlariusWeb.TiqitLive do
     ~H"""
     <div id="tiqit-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile {assigns}>
-        <div class="mb-6">
-          <h2 class="text-xl font-bold mb-4">Stash</h2>
-
-          <div class="mb-4 overflow-x-auto">
+        <div class="flex flex-col gap-6">
+          <div class="overflow-x-auto">
             <.pill_join_selector label="Stash filter" class="min-w-max">
               <.pill_join_item
                 :for={status <- [:all, :active, :preserved, :expired, :fleeted, :gifted]}
@@ -270,9 +268,9 @@ defmodule QlariusWeb.TiqitLive do
 
           <%= if @status_filter == :gifted do %>
             <%= if @gifts == [] do %>
-              <div class="text-center text-base-content/50 py-8">
+              <p class="mobile-page-intro text-center py-8">
                 You haven't gifted any content yet.
-              </div>
+              </p>
             <% else %>
               <div class="tiqit-stash-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch">
                 <.tiqit_detail_card
@@ -284,7 +282,7 @@ defmodule QlariusWeb.TiqitLive do
             <% end %>
           <% else %>
           <%= if @status_filter == :fleeted do %>
-            <div class="bg-base-200 rounded-lg p-6 text-center">
+            <.surface_panel class="text-center">
               <div class="text-4xl font-bold mb-2">
                 {@fleeted_count + @undone_count}
               </div>
@@ -305,12 +303,12 @@ defmodule QlariusWeb.TiqitLive do
                 Fleeted tiqits have been permanently disconnected from your account.
                 No details are retrievable. (That's the point.)
               </p>
-            </div>
+            </.surface_panel>
           <% else %>
             <%= if stash_empty?(assigns) do %>
-              <div class="text-center text-base-content/50 py-8">
+              <p class="mobile-page-intro text-center py-8">
                 No tiqits found for this filter.
-              </div>
+              </p>
             <% else %>
               <div class="tiqit-stash-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch">
                 <.tiqit_detail_card

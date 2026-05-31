@@ -130,17 +130,18 @@ defmodule QlariusWeb.ProxyUsersLive do
           </button>
 
           <div class="flex justify-between items-center mb-4">
-            <p class="text-base-content/60">Deselect all to return to true user.</p>
+            <p class="mobile-page-intro">Deselect all to return to true user.</p>
             <button class="btn btn-primary btn-sm" phx-click="add_proxy">
               <.icon name="hero-plus" class="w-4 h-4" /> Add Proxy User
             </button>
           </div>
 
-          <ul class="-mx-4 sm:mx-0 list bg-base-200 dark:!bg-base-200 sm:rounded-box shadow-md overflow-hidden">
+          <.surface_panel padding={false}>
+            <ul class="list !mx-0 !rounded-none !shadow-none !bg-base-100 dark:!bg-black divide-y divide-base-300/60 dark:divide-base-content/10">
             <li
               :for={proxy <- @proxy_users}
               class={[
-                "list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100",
+                "list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-200/70 dark:hover:bg-base-300/35",
                 proxy.active &&
                   "!bg-green-50 dark:!bg-green-900/30 border-l-4 border-green-500 dark:border-green-400 pl-4"
               ]}
@@ -158,7 +159,8 @@ defmodule QlariusWeb.ProxyUsersLive do
                 <% end %>
               </div>
             </li>
-          </ul>
+            </ul>
+          </.surface_panel>
         </div>
       </Layouts.mobile>
 

@@ -9,6 +9,7 @@ defmodule QlariusWeb.TiqitComponents do
   alias Phoenix.LiveView.JS
   alias Qlarius.ContentSharing
   alias Qlarius.Tiqit.Arcade.Arcade
+  alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.TiqitClass
 
   @tiqit_card_shell_class "tiqit-card-shell overflow-hidden rounded-lg"
@@ -651,12 +652,12 @@ defmodule QlariusWeb.TiqitComponents do
   defp gift_content_summary_for_class(%TiqitClass{content_group_id: id}, catalog)
        when not is_nil(id) do
     count = Arcade.count_group_pieces(id)
-    "#{count} #{label(catalog.piece_type, count)}"
+    "#{count} #{Catalog.type_label(catalog.piece_type, count)}"
   end
 
   defp gift_content_summary_for_class(%TiqitClass{catalog_id: id}, catalog) when not is_nil(id) do
     {group_count, piece_count} = Arcade.catalog_content_counts(id)
-    "#{piece_count} #{label(catalog.piece_type, piece_count)} in #{group_count} #{label(catalog.group_type, group_count)}"
+    "#{piece_count} #{Catalog.type_label(catalog.piece_type, piece_count)} in #{group_count} #{Catalog.type_label(catalog.group_type, group_count)}"
   end
 
   defp gift_content_summary_for_class(_, _), do: nil
@@ -664,7 +665,7 @@ defmodule QlariusWeb.TiqitComponents do
   defp legacy_gift_content_summary(gift, catalog) do
     if gift.content_group_id && catalog do
       count = Arcade.count_group_pieces(gift.content_group_id)
-      "#{count} #{label(catalog.piece_type, count)}"
+      "#{count} #{Catalog.type_label(catalog.piece_type, count)}"
     end
   end
 
@@ -1024,55 +1025,15 @@ defmodule QlariusWeb.TiqitComponents do
     cond do
       tc.content_group_id && catalog ->
         count = Arcade.count_group_pieces(tc.content_group_id)
-        "#{count} #{label(catalog.piece_type, count)}"
+        "#{count} #{Catalog.type_label(catalog.piece_type, count)}"
 
       tc.catalog_id && catalog ->
         {group_count, piece_count} = Arcade.catalog_content_counts(tc.catalog_id)
 
-        "#{piece_count} #{label(catalog.piece_type, piece_count)} in #{group_count} #{label(catalog.group_type, group_count)}"
+        "#{piece_count} #{Catalog.type_label(catalog.piece_type, piece_count)} in #{group_count} #{Catalog.type_label(catalog.group_type, group_count)}"
 
       true ->
         nil
-    end
-  end
-
-  # Explicit {singular, plural} for every Catalog enum value (piece_type,
-  # group_type, and type). When a new enum value is added to
-  # Qlarius.Tiqit.Arcade.Catalog, add its entry here — English pluralization
-  # is too irregular for safe rule-based derivation ("Series" stays "Series",
-  # "Class" becomes "Classes", etc.). The label/2 helper below uses this map
-  # to render counts on tiqit cards (e.g. "8 Episodes in 2 Seasons").
-  @label_plurals %{
-    # piece_types — see Catalog @piece_types
-    article: {"Article", "Articles"},
-    episode: {"Episode", "Episodes"},
-    chapter: {"Chapter", "Chapters"},
-    song: {"Song", "Songs"},
-    piece: {"Piece", "Pieces"},
-    lesson: {"Lesson", "Lessons"},
-    segment: {"Segment", "Segments"},
-    # group_types — see Catalog @group_types
-    section: {"Section", "Sections"},
-    show: {"Show", "Shows"},
-    season: {"Season", "Seasons"},
-    series: {"Series", "Series"},
-    album: {"Album", "Albums"},
-    book: {"Book", "Books"},
-    class: {"Class", "Classes"},
-    # catalog types — see Catalog @types
-    site: {"Site", "Sites"},
-    catalog: {"Catalog", "Catalogs"},
-    studio: {"Studio", "Studios"},
-    collection: {"Collection", "Collections"},
-    curriculum: {"Curriculum", "Curriculums"},
-    semester: {"Semester", "Semesters"}
-  }
-
-  defp label(type_atom, count) do
-    case Map.get(@label_plurals, type_atom) do
-      {singular, _plural} when count == 1 -> singular
-      {_singular, plural} -> plural
-      nil -> type_atom |> to_string() |> String.capitalize()
     end
   end
 

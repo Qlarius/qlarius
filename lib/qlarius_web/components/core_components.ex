@@ -684,7 +684,7 @@ defmodule QlariusWeb.CoreComponents do
             type="button"
             class={[
               @button_class,
-              "border border-base-content/10 text-base-content/50",
+              "cursor-pointer border border-base-content/10 text-base-content/50",
               "hover:text-base-content hover:border-base-content/20 hover:bg-base-200/80"
             ]}
             aria-label={"Navigate up from #{@current || @title || hierarchy_nav_leaf_label(@crumbs, @root_label)}"}

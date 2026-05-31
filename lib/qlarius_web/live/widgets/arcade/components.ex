@@ -633,6 +633,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   attr :price_info, :map, default: nil
   attr :piece_type, :string, default: nil
   attr :display_mode, :string, default: "tile", values: ~w(tile list)
+  attr :elevated, :boolean, default: false
 
   @doc """
   Browse card for Arqade catalogs and content groups (matches /home and /me_file group shells).
@@ -642,9 +643,13 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     <.link
       navigate={@navigate}
       class={[
-        "group flex flex-row items-stretch gap-3 rounded-lg bg-base-200/50 dark:bg-black shadow-sm overflow-hidden",
-        "border border-base-300/60 dark:border-base-content/10",
-        "transition-shadow duration-200 hover:shadow-md p-2 sm:p-2.5 min-h-[4.5rem]"
+        "group flex flex-row items-stretch gap-3 overflow-hidden transition-shadow duration-200 p-2 sm:p-2.5 min-h-[4.5rem]",
+        @elevated && "surface-panel surface-panel-shadow hover:shadow-lg",
+        !@elevated && [
+          "rounded-lg bg-base-200/50 dark:bg-black shadow-sm",
+          "border border-base-300/60 dark:border-base-content/10",
+          "hover:shadow-md"
+        ]
       ]}
     >
       <img
@@ -683,9 +688,13 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     <.link
       navigate={@navigate}
       class={[
-        "group flex h-full flex-col rounded-lg bg-base-200/50 dark:bg-black shadow-sm overflow-hidden",
-        "border-t-2 border-neutral-300 dark:border-neutral-600",
-        "transition-shadow duration-200 hover:shadow-md"
+        "group flex h-full flex-col overflow-hidden transition-shadow duration-200",
+        @elevated && "surface-panel surface-panel-shadow hover:shadow-lg",
+        !@elevated && [
+          "rounded-lg bg-base-200/50 dark:bg-black shadow-sm",
+          "border-t-2 border-neutral-300 dark:border-neutral-600",
+          "hover:shadow-md"
+        ]
       ]}
     >
       <img
@@ -741,6 +750,37 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   defp pluralize_discovery_piece_label("class", _), do: "classes"
   defp pluralize_discovery_piece_label(label, _) when is_binary(label), do: label <> "s"
   defp pluralize_discovery_piece_label(_, _), do: "items"
+
+  @doc """
+  Wraps arqade page content in mobile layout, Tiqit public shell, or bare
+  widget embed depending on `@base_path`.
+  """
+  attr :base_path, :string, required: true
+  attr :wrap_mobile, :boolean, default: true
+  attr :rest, :global
+
+  slot :inner_block, required: true
+  slot :slide_over_content
+
+  def arqade_page_wrap(assigns) do
+    ~H"""
+    <%= cond do %>
+      <% @base_path == "/tiqit" -> %>
+        <QlariusWeb.Components.TiqitArqadeShell.shell {@rest}>
+          {render_slot(@inner_block)}
+        </QlariusWeb.Components.TiqitArqadeShell.shell>
+      <% @wrap_mobile -> %>
+        <QlariusWeb.Layouts.maybe_mobile wrap={@base_path == ""} {@rest}>
+          <:slide_over_content :for={entry <- @slide_over_content}>
+            {render_slot(entry)}
+          </:slide_over_content>
+          {render_slot(@inner_block)}
+        </QlariusWeb.Layouts.maybe_mobile>
+      <% true -> %>
+        {render_slot(@inner_block)}
+    <% end %>
+    """
+  end
 
   @doc """
   Hierarchy navigator for arqade content pages.

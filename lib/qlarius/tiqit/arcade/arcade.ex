@@ -801,6 +801,11 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     |> Repo.all()
   end
 
+  def list_discoverable_catalogs_by_creator(creator_id) do
+    list_discoverable_catalogs()
+    |> Enum.filter(&(&1.creator_id == creator_id))
+  end
+
   def list_discoverable_groups do
     from(cg in ContentGroup,
       join: tc in TiqitClass,
@@ -811,6 +816,11 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
       preload: [:content_pieces, catalog: :creator]
     )
     |> Repo.all()
+  end
+
+  def list_discoverable_groups_by_creator(creator_id) do
+    list_discoverable_groups()
+    |> Enum.filter(fn group -> group.catalog.creator_id == creator_id end)
   end
 
   def count_group_pieces(group_id) do

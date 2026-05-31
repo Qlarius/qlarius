@@ -34,6 +34,71 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
   def group_types, do: @group_types
   def piece_types, do: @piece_types
 
+  # Explicit {singular, plural} for every enum value (piece_type, group_type, type).
+  # When a new enum value is added above, add its entry here — English pluralization
+  # is too irregular for safe rule-based derivation ("Series" stays "Series",
+  # "Class" becomes "Classes", etc.).
+  @type_labels %{
+    # piece_types
+    article: {"Article", "Articles"},
+    episode: {"Episode", "Episodes"},
+    chapter: {"Chapter", "Chapters"},
+    song: {"Song", "Songs"},
+    piece: {"Piece", "Pieces"},
+    lesson: {"Lesson", "Lessons"},
+    segment: {"Segment", "Segments"},
+    # group_types
+    section: {"Section", "Sections"},
+    show: {"Show", "Shows"},
+    season: {"Season", "Seasons"},
+    series: {"Series", "Series"},
+    album: {"Album", "Albums"},
+    book: {"Book", "Books"},
+    class: {"Class", "Classes"},
+    # catalog types
+    site: {"Site", "Sites"},
+    catalog: {"Catalog", "Catalogs"},
+    studio: {"Studio", "Studios"},
+    collection: {"Collection", "Collections"},
+    curriculum: {"Curriculum", "Curriculums"},
+    semester: {"Semester", "Semesters"}
+  }
+
+  @doc """
+  Human-readable singular or plural label for a catalog content-type atom.
+
+  Options:
+    * `:capitalize` — when `false`, returns lowercase (e.g. `"class"`, `"classes"`)
+      for inline counts like `"3 classes"`. Defaults to `true`.
+  """
+  @spec type_label(atom() | String.t(), non_neg_integer(), keyword()) :: String.t()
+  def type_label(type, count \\ 1, opts \\ [])
+
+  def type_label(type, count, opts) when is_binary(type) do
+    type_label(String.to_existing_atom(type), count, opts)
+  rescue
+    ArgumentError -> type_label_fallback(type, count, opts)
+  end
+
+  def type_label(type, count, opts) when is_atom(type) do
+    capitalize = Keyword.get(opts, :capitalize, true)
+
+    word =
+      case Map.get(@type_labels, type) do
+        {singular, _plural} when count == 1 -> singular
+        {_singular, plural} -> plural
+        nil -> type_label_fallback(to_string(type), count, capitalize: capitalize)
+      end
+
+    if capitalize, do: word, else: String.downcase(word)
+  end
+
+  defp type_label_fallback(type, count, opts) do
+    capitalize = Keyword.get(opts, :capitalize, true)
+    base = if capitalize, do: String.capitalize(type), else: type
+    if count == 1, do: base, else: base <> "s"
+  end
+
   @doc false
   def changeset(catalog, attrs) do
     catalog

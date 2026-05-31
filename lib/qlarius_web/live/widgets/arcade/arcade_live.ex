@@ -4,11 +4,13 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   alias Qlarius.Accounts.Scope
   alias Qlarius.ContentSharing
   alias Qlarius.Tiqit.Arcade.Arcade
+  alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.Wallets
   alias QlariusWeb.WalletBalanceSync
+  alias QlariusWeb.Widgets.Arcade.Paths
 
   alias QlariusWeb.Layouts
 

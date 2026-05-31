@@ -282,7 +282,9 @@ defmodule QlariusWeb.CreatorDashboard.Index do
                         <h2 class="card-title">{creator.name}</h2>
 
                         <%= if creator.bio do %>
-                          <p class="text-sm">{creator.bio}</p>
+                          <p class="text-sm line-clamp-5 whitespace-pre-line [overflow-wrap:anywhere] w-full text-base-content/70">
+                            {creator.bio}
+                          </p>
                         <% end %>
 
                         <div class="stats stats-horizontal shadow mt-4">

@@ -1,15 +1,19 @@
 <div id="single-pwa-detect" phx-hook="PWADetect">
-  <Layouts.maybe_mobile wrap={@base_path == "" and not @inline?} {assigns}>
+  <.arqade_page_wrap
+    base_path={@base_path}
+    wrap_mobile={@base_path == "" and not @inline?}
+    {assigns}
+  >
     <.arqade_breadcrumbs
-      :if={not @inline?}
+      :if={not @inline? and @base_path != "/widgets"}
       base_path={@base_path}
       title={@piece.title}
       title_class="text-2xl font-bold text-base-content truncate min-w-0"
       class="mb-4"
       crumbs={[
-        {@group.catalog.creator.name, "#{@base_path}/arqade"},
-        {@group.catalog.name, "#{@base_path}/arqade/catalog/#{@group.catalog.id}"},
-        {@group.title, "#{@base_path}/arqade/group/#{@group.id}"}
+        {@group.catalog.creator.name, Paths.creator(@base_path, @group.catalog.creator_id)},
+        {@group.catalog.name, Paths.catalog(@base_path, @group.catalog.id)},
+        {@group.title, Paths.group(@base_path, @group.id)}
       ]}
       current={@piece.title}
     />
@@ -379,7 +383,7 @@
   Nested mounts forward `open_auth_sheet` to the hosting LV's sheet.
   See `ArcadeLive` template for the full rationale.
 --%>
-    <%= if QlariusWeb.Widgets.Arcade.ArcadeSingleLive.auth_sheet_enabled?(assigns) and not @inline? do %>
+    <%= if QlariusWeb.Widgets.Arcade.ArcadeSingleLive.auth_sheet_enabled?(assigns) and not @inline? and @base_path != "/tiqit" do %>
       <.live_component
         module={QlariusWeb.Components.AuthSheet}
         id="arcade-single-auth-sheet"
@@ -391,7 +395,7 @@
         on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
       />
     <% end %>
-  </Layouts.maybe_mobile>
+  </.arqade_page_wrap>
   <.player_modal_frame
     :if={@show_tiqit_content_modal and @inline? and not is_nil(@piece) and not is_nil(@tiqit)}
     id="tiqit-inline-modal"

@@ -1,18 +1,13 @@
-defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
+defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
   @moduledoc """
-  Discovery feed for browsable content — the "front door" to Arqade.
+  Creator-scoped discovery — catalogs and featured groups for one creator.
 
-  Presents a mixed feed of discoverable catalogs and content groups that
-  have active (purchasable) tiqit classes. This is the first "dumb" version;
-  future iterations will personalise results using tag-based matching.
-
-  Serves three contexts via @base_path (same pattern as other arqade LiveViews):
-  - Main app: /arqade → @base_path = ""
-  - Widget:   /widgets/arqade → @base_path = "/widgets"
-  - Tiqit:    /tiqit/arqade → @base_path = "/tiqit"
+  Mounted at `/arqade/creator/:creator_id` (mobile) and
+  `/tiqit/arqade/creator/:creator_id` (Tiqit public host).
   """
   use QlariusWeb, :live_view
 
+  alias Qlarius.Creators
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias QlariusWeb.TiqitArqade.Host
@@ -23,6 +18,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
 
   import QlariusWeb.Widgets.Arcade.Components,
     only: [
+      arqade_breadcrumbs: 1,
       arqade_page_wrap: 1,
       discovery_item_card: 1,
       discovery_grid_class: 1,
@@ -31,35 +27,41 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
-  def mount(_params, session, socket) do
-    catalogs = Arcade.list_discoverable_catalogs()
-    groups = Arcade.list_discoverable_groups()
+  def mount(%{"creator_id" => creator_id}, session, socket) do
+    creator = Creators.get_creator!(creator_id)
+    catalogs = Arcade.list_discoverable_catalogs_by_creator(creator.id)
+    groups = Arcade.list_discoverable_groups_by_creator(creator.id)
+
+    return_to = Paths.creator("", creator.id)
+    current_path = return_to
 
     socket =
       socket
       |> init_pwa_assigns(session)
       |> assign(
+        creator: creator,
         catalogs: catalogs,
         groups: groups,
         base_path: "",
-        current_path: Paths.discover(""),
+        current_path: current_path,
         title: "Arqade",
         display_mode: "tile",
         show_discovery_view_menu: false
       )
-      |> maybe_init_tiqit_host()
+      |> maybe_init_tiqit_host(return_to)
 
     {:ok, socket}
   end
 
   def handle_params(_params, uri, socket) do
     base_path = Paths.resolve_base_path(uri, socket.assigns[:base_path])
+    return_to = Paths.creator(base_path, socket.assigns.creator.id)
 
     socket =
       socket
       |> assign(:base_path, base_path)
-      |> assign(:current_path, Paths.discover(base_path))
-      |> maybe_init_tiqit_host()
+      |> assign(:current_path, return_to)
+      |> maybe_init_tiqit_host(return_to)
 
     {:noreply, socket}
   end
@@ -123,17 +125,36 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
 
   def render(assigns) do
     ~H"""
-    <div id="discovery-pwa-detect" phx-hook="PWADetect">
+    <div id="creator-pwa-detect" phx-hook="PWADetect">
       <.arqade_page_wrap base_path={@base_path} wrap_mobile={@base_path == ""} {assigns}>
         <div class={[
-          "flex flex-col gap-6 pb-2",
-          @base_path == "/tiqit" && "overflow-y-auto flex-1 min-h-0 px-4 py-4"
+          "flex flex-col gap-6 pb-2 overflow-y-auto flex-1 min-h-0 px-4 py-4",
+          @base_path == "/tiqit" && "px-4 py-4"
         ]}>
-          <p class="mobile-page-intro">Browse content from creators</p>
+          <div class="flex items-center gap-4">
+            <img
+              :if={@creator.image}
+              src={creator_image_url(@creator)}
+              alt={@creator.name}
+              class="aspect-square w-16 shrink-0 rounded-lg object-cover border border-base-300"
+            />
+            <div class="min-w-0 flex-1">
+              <.arqade_breadcrumbs
+                base_path={@base_path}
+                title={@creator.name}
+                title_class="text-2xl font-bold text-base-content truncate min-w-0"
+                crumbs={[]}
+                current={@creator.name}
+              />
+              <p :if={String.trim(@creator.bio || "") != ""} class="text-sm text-base-content/60 mt-2 line-clamp-5">
+                {String.trim(@creator.bio)}
+              </p>
+            </div>
+          </div>
 
           <%= if @catalogs == [] && @groups == [] do %>
             <div class="text-center text-base-content/50 py-12">
-              No content available yet. Check back soon.
+              No content available from this creator yet.
             </div>
           <% else %>
             <div :if={@catalogs != []} class="flex flex-col gap-3">
@@ -147,7 +168,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
                   image_src={catalog_image_url(catalog)}
                   image_alt={catalog.name}
                   title={catalog.name}
-                  subtitle={catalog.creator.name}
+                  subtitle={@creator.name}
                   detail={catalog_summary(catalog)}
                   price_info={catalog_price_info(catalog)}
                   piece_type={to_string(catalog.piece_type)}
@@ -166,7 +187,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
                   image_src={group_image_url(group)}
                   image_alt={group.title}
                   title={group.title}
-                  subtitle={"#{group.catalog.creator.name} › #{group.catalog.name}"}
+                  subtitle={"#{@creator.name} › #{group.catalog.name}"}
                   detail={group_summary(group)}
                 />
               </div>
@@ -184,9 +205,9 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
     """
   end
 
-  defp maybe_init_tiqit_host(socket) do
+  defp maybe_init_tiqit_host(socket, return_to) do
     if socket.assigns[:base_path] == "/tiqit" do
-      Host.init_browse_scope(socket, Paths.discover("/tiqit"))
+      Host.init_creator_scope(socket, socket.assigns.creator, return_to)
     else
       socket
     end

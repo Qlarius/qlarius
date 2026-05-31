@@ -299,6 +299,7 @@ defmodule QlariusWeb.Router do
         {QlariusWeb.Layouts, {:set_base_path, "/widgets"}}
       ] do
       live "/arqade", Arcade.ArqadeDiscoveryLive
+      live "/arqade/creator/:creator_id", Arcade.ArqadeCreatorLive
       live "/arqade/group/:group_id", Arcade.ArcadeLive
       live "/arqade/catalog/:catalog_id", Arcade.ArcadeCatalogLive
       live "/arqade/:piece_id", Arcade.ArcadeSingleLive
@@ -369,8 +370,13 @@ defmodule QlariusWeb.Router do
       on_mount: [
         {QlariusWeb.UserAuth, :mount_current_scope},
         {QlariusWeb.GetUserIP, :assign_ip},
-        {QlariusWeb.InAppBrowserMount, :assign_in_app_browser}
+        {QlariusWeb.InAppBrowserMount, :assign_in_app_browser},
+        {QlariusWeb.Layouts, {:set_base_path, "/tiqit"}}
       ] do
+      live "/tiqit/arqade", Widgets.Arcade.ArqadeDiscoveryLive
+      live "/tiqit/arqade/catalog/:catalog_id", Widgets.Arcade.ArcadeCatalogLive
+      live "/tiqit/arqade/creator/:creator_id", Widgets.Arcade.ArqadeCreatorLive
+      live "/tiqit/arqade/piece/:piece_id", Widgets.Arcade.ArcadeSingleLive
       live "/tiqit/arqade/:content_group_id", TiqitArqadeLive, :show
       live "/tiqit/arqade/:content_group_id/:content_piece_id", TiqitArqadeLive, :show
       live "/tiqit/gift/:token", TiqitArqadeLive, :gift
@@ -426,6 +432,7 @@ defmodule QlariusWeb.Router do
       # More specific routes must come before the catch-all /arqade/:piece_id.
       live "/content/:id", Widgets.ContentLive
       live "/arqade", Widgets.Arcade.ArqadeDiscoveryLive
+      live "/arqade/creator/:creator_id", Widgets.Arcade.ArqadeCreatorLive
       live "/arqade/group/:group_id", Widgets.Arcade.ArcadeLive
       live "/arqade/catalog/:catalog_id", Widgets.Arcade.ArcadeCatalogLive
       live "/arqade/:piece_id", Widgets.Arcade.ArcadeSingleLive

@@ -43,7 +43,31 @@ defmodule Qlarius.Tiqit.Arcade.PublicPage do
 
   defp load_tipping_recipient(creator, group_id) do
     site_url = tiqit_arqade_url(group_id)
+    load_recipient(creator, site_url)
+  end
 
+  @doc """
+  Loads creator + tipping recipient for a Tiqit browse page at `site_path`
+  (e.g. `/tiqit/arqade/catalog/1`).
+  """
+  @spec load_creator_tipping(any(), String.t()) :: %{
+          creator: any(),
+          recipient: any() | nil,
+          tipping_enabled?: boolean()
+        }
+  def load_creator_tipping(creator, site_path) when is_binary(site_path) do
+    creator = Repo.preload(creator, :users)
+    site_url = Qlarius.Qlink.Urls.public_app_url(site_path)
+    recipient = load_recipient(creator, site_url)
+
+    %{
+      creator: creator,
+      recipient: recipient,
+      tipping_enabled?: not is_nil(recipient)
+    }
+  end
+
+  defp load_recipient(creator, site_url) do
     case RecipientProvisioning.ensure_recipient_for_creator(creator, site_url: site_url) do
       {:ok, recipient} -> recipient
       {:error, _} -> Repo.preload(creator, :recipient).recipient

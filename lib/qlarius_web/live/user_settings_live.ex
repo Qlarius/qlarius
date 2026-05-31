@@ -23,12 +23,13 @@ defmodule QlariusWeb.UserSettingsLive do
         </:slide_over_content>
 
         <%!-- Main content: Settings list --%>
-        <div class="mx-auto max-w-2xl">
-          <div class="mb-6">
-            <h2 class="text-xl font-semibold text-base-content/70 mb-3">General</h2>
-            <ul class="-mx-4 sm:mx-0 list bg-base-200 dark:!bg-base-200 sm:rounded-box shadow-md overflow-hidden">
+        <div class="mx-auto max-w-2xl flex flex-col gap-6">
+          <div>
+            <h2 class={settings_section_heading_classes()}>General</h2>
+            <.surface_panel padding={false}>
+              <ul class={settings_list_classes()}>
               <li
-                class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100"
+                class={settings_list_row_classes()}
                 phx-click="open_setting"
                 phx-value-setting="notifications"
               >
@@ -44,7 +45,7 @@ defmodule QlariusWeb.UserSettingsLive do
               </li>
 
               <li
-                class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100"
+                class={settings_list_row_classes()}
                 phx-click="open_setting"
                 phx-value-setting="time_zone"
               >
@@ -60,7 +61,7 @@ defmodule QlariusWeb.UserSettingsLive do
               </li>
 
               <li
-                class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100"
+                class={settings_list_row_classes()}
                 phx-click="open_setting"
                 phx-value-setting="audio_alerts"
               >
@@ -76,7 +77,7 @@ defmodule QlariusWeb.UserSettingsLive do
               </li>
 
               <li
-                class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100"
+                class={settings_list_row_classes()}
                 phx-click="open_setting"
                 phx-value-setting="tiqit_privacy"
               >
@@ -90,15 +91,17 @@ defmodule QlariusWeb.UserSettingsLive do
                   <.icon name="hero-chevron-right" class="h-5 w-5 text-base-content/40" />
                 </div>
               </li>
-            </ul>
+              </ul>
+            </.surface_panel>
           </div>
 
           <%= if @current_scope.true_user.role == "admin" do %>
             <div>
-              <h2 class="text-xl font-semibold text-base-content/70 mb-3">Admin</h2>
-              <ul class="-mx-4 sm:mx-0 list bg-base-200 dark:!bg-base-200 sm:rounded-box shadow-md overflow-hidden">
+              <h2 class={settings_section_heading_classes()}>Admin</h2>
+              <.surface_panel padding={false}>
+                <ul class={settings_list_classes()}>
                 <li
-                  class="list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-300 dark:hover:!bg-base-100"
+                  class={settings_list_row_classes()}
                   phx-click="open_setting"
                   phx-value-setting="proxy_users"
                 >
@@ -112,7 +115,8 @@ defmodule QlariusWeb.UserSettingsLive do
                     <.icon name="hero-chevron-right" class="h-5 w-5 text-base-content/40" />
                   </div>
                 </li>
-              </ul>
+                </ul>
+              </.surface_panel>
             </div>
           <% end %>
         </div>
@@ -445,23 +449,6 @@ defmodule QlariusWeb.UserSettingsLive do
     end
   end
 
-  def handle_event("fleet_preset", %{"hours" => hours_str}, socket) do
-    hours = String.to_integer(hours_str)
-    user = socket.assigns.current_scope.user
-
-    case Accounts.update_user(user, %{fleet_after_hours: hours}) do
-      {:ok, updated_user} ->
-        {:noreply,
-         socket
-         |> assign(:fleet_after_hours, hours)
-         |> assign(:current_scope, %{socket.assigns.current_scope | user: updated_user})
-         |> put_flash(:info, "AutoFleet timing updated")}
-
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to update AutoFleet timing")}
-    end
-  end
-
   def handle_event("timezone_detected", %{"timezone" => detected_tz}, socket) do
     user = socket.assigns.current_scope.user
 
@@ -493,11 +480,9 @@ defmodule QlariusWeb.UserSettingsLive do
        )
        when not is_nil(pref) do
     ~H"""
-    <div class="pb-8 space-y-4" id="push-notifications-container" phx-hook="PushNotifications">
-      <%!-- Card 1: Enable/Disable Toggle --%>
-      <div class="card bg-base-200 shadow-md">
-        <div class="card-body">
-          <h2 class="card-title text-xl mb-4">
+    <div class="pb-8 w-full max-w-2xl mx-auto flex flex-col gap-4" id="push-notifications-container" phx-hook="PushNotifications">
+      <.surface_panel>
+          <h2 class={settings_panel_title_classes()}>
             <.icon name="hero-megaphone" class="w-5 h-5" /> Push Notifications
           </h2>
 
@@ -538,14 +523,11 @@ defmodule QlariusWeb.UserSettingsLive do
               </p> --%>
             </div>
           </div>
-        </div>
-      </div>
+      </.surface_panel>
 
       <%= if @notification_preference.enabled do %>
-        <%!-- Card 2: Ad Offer Notification Times --%>
-        <div class="card bg-base-200 shadow-md">
-          <div class="card-body">
-            <h2 class="card-title text-xl mb-4">
+        <.surface_panel>
+            <h2 class={settings_panel_title_classes()}>
               <.icon name="hero-clock" class="w-5 h-5" /> Ad Offer Notification Times
             </h2>
             <p class="text-sm text-base-content/60 mb-4">
@@ -558,7 +540,7 @@ defmodule QlariusWeb.UserSettingsLive do
                 <h4 class="font-medium text-center mb-2 text-base-content/70">AM</h4>
                 <div class="space-y-1">
                   <%= for hour <- 0..11 do %>
-                    <label class="flex items-center p-3 hover:bg-base-300 rounded cursor-pointer">
+                    <label class="flex items-center p-3 hover:bg-base-200/70 dark:hover:bg-base-300/35 rounded cursor-pointer">
                       <input
                         type="checkbox"
                         class="checkbox checkbox-primary w-7 h-7 mr-4"
@@ -577,7 +559,7 @@ defmodule QlariusWeb.UserSettingsLive do
                 <h4 class="font-medium text-center mb-2 text-base-content/70">PM</h4>
                 <div class="space-y-1">
                   <%= for hour <- 12..23 do %>
-                    <label class="flex items-center p-3 hover:bg-base-300 rounded cursor-pointer">
+                    <label class="flex items-center p-3 hover:bg-base-200/70 dark:hover:bg-base-300/35 rounded cursor-pointer">
                       <input
                         type="checkbox"
                         class="checkbox checkbox-primary w-7 h-7 mr-4"
@@ -608,13 +590,10 @@ defmodule QlariusWeb.UserSettingsLive do
                 Clear All
               </button>
             </div>
-          </div>
-        </div>
+        </.surface_panel>
 
-        <%!-- Card 3: Quiet Hours --%>
-        <div class="card bg-base-200 shadow-md">
-          <div class="card-body">
-            <h2 class="card-title text-xl mb-4">
+        <.surface_panel>
+            <h2 class={settings_panel_title_classes()}>
               <.icon name="hero-moon" class="w-5 h-5" /> Quiet Hours
             </h2>
             <p class="text-sm text-base-content/60 mb-4">
@@ -658,8 +637,7 @@ defmodule QlariusWeb.UserSettingsLive do
                 </div>
               </form>
             </div>
-          </div>
-        </div>
+        </.surface_panel>
       <% end %>
     </div>
     """
@@ -682,10 +660,9 @@ defmodule QlariusWeb.UserSettingsLive do
     assigns = assign(assigns, :current_time, current_time)
 
     ~H"""
-    <div class="pb-8" id="timezone-settings" phx-hook="TimezoneDetector">
-      <div class="card bg-base-200 shadow-md">
-        <div class="card-body">
-          <h2 class="card-title text-xl mb-4">
+    <div class="pb-8 w-full max-w-2xl mx-auto" id="timezone-settings" phx-hook="TimezoneDetector">
+      <.surface_panel>
+          <h2 class={settings_panel_title_classes()}>
             <.icon name="hero-globe-alt" class="w-5 h-5" /> Time Zone
           </h2>
 
@@ -712,7 +689,7 @@ defmodule QlariusWeb.UserSettingsLive do
             </div>
           </form>
 
-          <div class="mt-4 p-4 bg-base-300 rounded-lg">
+          <div class={"mt-4 p-4 #{settings_inset_panel_classes()}"}>
             <p class="text-sm text-base-content/70 mb-1">Current time in your timezone:</p>
             <p class="text-2xl font-semibold text-primary">{@current_time}</p>
           </div>
@@ -723,18 +700,16 @@ defmodule QlariusWeb.UserSettingsLive do
               Changing your timezone will update when notifications are sent and how all dates are displayed.
             </span>
           </div>
-        </div>
-      </div>
+      </.surface_panel>
     </div>
     """
   end
 
   defp render_setting_content(%{selected_setting: "audio_alerts"} = assigns) do
     ~H"""
-    <div class="pb-8" id="audio-alerts-settings" phx-hook="AudioAlertSettings">
-      <div class="card bg-base-200 shadow-md">
-        <div class="card-body">
-          <h2 class="card-title text-xl mb-4">
+    <div class="pb-8 w-full max-w-2xl mx-auto" id="audio-alerts-settings" phx-hook="AudioAlertSettings">
+      <.surface_panel>
+          <h2 class={settings_panel_title_classes()}>
             <.icon name="hero-speaker-wave" class="w-5 h-5" /> Audio Alerts
           </h2>
 
@@ -743,7 +718,7 @@ defmodule QlariusWeb.UserSettingsLive do
           </p>
 
           <div class="form-control">
-            <div class="flex items-center justify-between p-4 bg-base-300 rounded-lg">
+            <div class={"flex items-center justify-between p-4 #{settings_inset_panel_classes()}"}>
               <div>
                 <div class="text-lg font-medium text-base-content">Wallet Credit Sounds</div>
                 <div class="text-sm text-base-content/60">
@@ -763,18 +738,16 @@ defmodule QlariusWeb.UserSettingsLive do
               Audio settings are stored on this device only. You may have different settings on other devices.
             </span>
           </div>
-        </div>
-      </div>
+      </.surface_panel>
     </div>
     """
   end
 
   defp render_setting_content(%{selected_setting: "tiqit_privacy"} = assigns) do
     ~H"""
-    <div class="pb-8 space-y-4">
-      <div class="card bg-base-200 shadow-md">
-        <div class="card-body">
-          <h2 class="card-title text-xl mb-4">
+    <div class="pb-8 w-full max-w-2xl mx-auto flex flex-col gap-4">
+      <.surface_panel>
+          <h2 class={settings_panel_title_classes()}>
             <.icon name="hero-shield-check" class="w-5 h-5" /> AutoFleet Timing
           </h2>
 
@@ -785,54 +758,23 @@ defmodule QlariusWeb.UserSettingsLive do
             philosophy in DFT.
           </p>
 
-          <div class="form-control mb-4">
-            <label class="label">
-              <span class="label-text text-lg">Hours after expiration before AutoFleet</span>
-            </label>
-            <form phx-change="update_fleet_after_hours">
-              <input
-                type="range"
-                name="fleet_after_hours"
-                min="0"
-                max="720"
-                step="1"
-                value={@fleet_after_hours}
-                class="range range-primary"
-              />
-            </form>
-            <div class="mt-2 text-center text-lg font-semibold">
-              <%= cond do %>
-                <% @fleet_after_hours == 0 -> %>
-                  Immediate (on expiration)
-                <% @fleet_after_hours < 24 -> %>
-                  {@fleet_after_hours} hours
-                <% @fleet_after_hours == 24 -> %>
-                  24 hours (1 day)
-                <% @fleet_after_hours < 168 -> %>
-                  {@fleet_after_hours} hours ({Float.round(@fleet_after_hours / 24, 1)} days)
-                <% @fleet_after_hours == 168 -> %>
-                  168 hours (1 week)
-                <% true -> %>
-                  {@fleet_after_hours} hours ({Float.round(@fleet_after_hours / 24, 1)} days)
-              <% end %>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap gap-2">
-            <p class="w-full text-sm font-medium text-base-content/70 mb-1">Quick presets:</p>
-            <button class="btn btn-sm btn-outline" phx-click="fleet_preset" phx-value-hours="0">
-              Immediate
-            </button>
-            <button class="btn btn-sm btn-outline" phx-click="fleet_preset" phx-value-hours="24">
-              24 hours
-            </button>
-            <button class="btn btn-sm btn-outline" phx-click="fleet_preset" phx-value-hours="48">
-              48 hours
-            </button>
-            <button class="btn btn-sm btn-outline" phx-click="fleet_preset" phx-value-hours="168">
-              1 week
-            </button>
-          </div>
+          <form phx-change="update_fleet_after_hours" class="space-y-1">
+            <p class="text-sm font-medium text-base-content/70 mb-2">
+              Grace period after expiration
+            </p>
+            <%= for {label, hours} <- fleet_after_hour_options() do %>
+              <label class="flex items-center gap-3 cursor-pointer rounded-lg px-2 py-2.5 hover:bg-base-200/70 dark:hover:bg-base-300/35">
+                <input
+                  type="radio"
+                  name="fleet_after_hours"
+                  value={hours}
+                  checked={@fleet_after_hours == hours}
+                  class="radio radio-primary"
+                />
+                <span class="text-base">{label}</span>
+              </label>
+            <% end %>
+          </form>
 
           <div class="alert alert-info mt-6">
             <.icon name="hero-information-circle" class="w-5 h-5" />
@@ -842,8 +784,7 @@ defmodule QlariusWeb.UserSettingsLive do
               to fleet them.
             </span>
           </div>
-        </div>
-      </div>
+      </.surface_panel>
     </div>
     """
   end
@@ -861,4 +802,34 @@ defmodule QlariusWeb.UserSettingsLive do
 
   defp time_to_hour(nil), do: 0
   defp time_to_hour(time), do: time.hour
+
+  defp fleet_after_hour_options do
+    [
+      {"1 hr", 1},
+      {"24 hrs", 24},
+      {"48 hrs", 48},
+      {"7 days", 168},
+      {"30 days", 720}
+    ]
+  end
+
+  defp settings_section_heading_classes do
+    "text-lg font-bold tracking-tight text-base-content/50 mb-3"
+  end
+
+  defp settings_panel_title_classes do
+    "text-xl font-bold tracking-tight text-base-content flex items-center gap-2 mb-4"
+  end
+
+  defp settings_list_classes do
+    "list !mx-0 !rounded-none !shadow-none !bg-base-100 dark:!bg-black divide-y divide-base-300/60 dark:divide-base-content/10"
+  end
+
+  defp settings_list_row_classes do
+    "list-row cursor-pointer transition-all duration-200 !rounded-none hover:bg-base-200/70 dark:hover:bg-base-300/35"
+  end
+
+  defp settings_inset_panel_classes do
+    "rounded-lg bg-base-200/60 dark:bg-base-300/40"
+  end
 end

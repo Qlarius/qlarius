@@ -43,8 +43,8 @@
         title_class="text-2xl font-bold text-base-content truncate min-w-0"
         class="shrink-0 mb-2"
         crumbs={[
-          {@group.catalog.creator.name, "#{@base_path}/arqade"},
-          {@group.catalog.name, "#{@base_path}/arqade/catalog/#{@group.catalog.id}"}
+          {@group.catalog.creator.name, Paths.creator(@base_path, @group.catalog.creator_id)},
+          {@group.catalog.name, Paths.catalog(@base_path, @group.catalog.id)}
         ]}
         current={@group.title}
       />
@@ -374,7 +374,7 @@
               <%!-- List header: title + search on one row; search grows to fill remaining width. --%>
               <div class="flex items-center gap-2 sm:gap-3 mb-2 flex-shrink-0 min-w-0">
                 <h2 class="text-sm sm:text-lg font-semibold text-base-content leading-tight shrink-0 whitespace-nowrap">
-                  {String.capitalize(to_string(@group.catalog.piece_type))}s{" "}
+                  {Catalog.type_label(@group.catalog.piece_type, length(@pieces))}{" "}
                   <span class="text-xs sm:text-base font-medium text-base-content/55">
                     <%= if filter_active? do %>
                       ({length(visible_pieces)}/{length(@pieces)})
