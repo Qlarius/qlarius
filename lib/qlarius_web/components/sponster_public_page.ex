@@ -58,7 +58,7 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
 
       <div
         class={[
-          "fixed bg-base-100 rounded-t-lg overflow-hidden flex flex-col transition-all duration-300 ease-out",
+          "fixed page-canvas rounded-t-lg overflow-hidden flex flex-col transition-all duration-300 ease-out",
           "h-[calc(95vh-50px)]",
           if(@show_sponster_drawer, do: "bottom-[50px]", else: "-bottom-[calc(95vh-50px)]")
         ]}
@@ -157,16 +157,18 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                         No 3-Tap ads available
                       </div>
                     <% else %>
-                      <.live_component
-                        module={QlariusWeb.ThreeTapStackComponent}
-                        id={"#{@announcer_id_prefix}-three-tap-stack"}
-                        active_offers={@active_offers}
-                        user_ip={@user_ip}
-                        current_scope={@current_scope}
-                        host_uri={@host_uri}
-                        recipient={@recipient}
-                        tip_only={@tip_only}
-                      />
+                      <div class="max-w-3xl mx-auto w-full">
+                        <.live_component
+                          module={QlariusWeb.ThreeTapStackComponent}
+                          id={"#{@announcer_id_prefix}-three-tap-stack"}
+                          active_offers={@active_offers}
+                          user_ip={@user_ip}
+                          current_scope={@current_scope}
+                          host_uri={@host_uri}
+                          recipient={@recipient}
+                          tip_only={@tip_only}
+                        />
+                      </div>
                     <% end %>
                   <% else %>
                     <.video_offer_list
@@ -176,13 +178,14 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                       recipient={@recipient}
                       tip_only={@tip_only}
                       loading={@loading_offers}
+                      class="max-w-3xl mx-auto w-full"
                     />
                   <% end %>
                 <% end %>
               <% end %>
             </div>
           <% else %>
-            <div class="absolute inset-0 z-10 flex flex-col min-h-0 bg-base-100">
+            <div class="absolute inset-0 z-10 flex flex-col min-h-0 page-canvas">
               <iframe
                 src={@info_iframe_src}
                 class="w-full flex-1 min-h-0 border-0"
@@ -380,7 +383,7 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
         </div>
 
         <%= if not drawer_authed do %>
-          <div class="flex-shrink-0 bg-base-200 border-t border-base-300 px-4 pt-3 flex flex-col items-center gap-1 text-center">
+          <div class="flex-shrink-0 page-canvas border-t border-base-300/60 px-4 pt-3 flex flex-col items-center gap-1 text-center">
             <p class="text-sm sm:text-base text-base-content font-medium tracking-tight leading-snug">
               Ready to try it out? Connect and sign up for free. Your wallet awaits.
             </p>

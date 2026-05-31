@@ -133,12 +133,7 @@ defmodule QlariusWeb.TiqitArqadeLive do
   end
 
   def handle_event("dismiss-invitation-overlay", _params, socket) do
-    socket =
-      socket
-      |> assign(:show_invitation_overlay, false)
-      |> maybe_refresh_claimed_invitation()
-
-    {:noreply, socket}
+    {:noreply, dismiss_invitation_overlay(socket)}
   end
 
   def handle_event("reopen-invitation-overlay", _params, socket) do
@@ -220,6 +215,41 @@ defmodule QlariusWeb.TiqitArqadeLive do
 
   defp invitation_return_to(token, "gift"), do: "/tiqit/gift/#{token}"
   defp invitation_return_to(token, _), do: "/tiqit/share/#{token}"
+
+  defp dismiss_invitation_overlay(socket) do
+    if leave_gift_url?(socket.assigns) do
+      push_navigate_to_arqade_content(socket)
+    else
+      socket
+      |> assign(:show_invitation_overlay, false)
+      |> maybe_refresh_claimed_invitation()
+    end
+  end
+
+  defp leave_gift_url?(assigns) do
+    assigns[:gift_claim_succeeded] == true or
+      match?(%{state: :redeemed}, assigns[:invitation])
+  end
+
+  defp push_navigate_to_arqade_content(socket) do
+    path = arqade_content_path(socket.assigns)
+
+    socket
+    |> assign(:show_invitation_overlay, false)
+    |> assign(:invitation, nil)
+    |> assign(:invitation_token, nil)
+    |> assign(:gift_claim_succeeded, false)
+    |> assign(:return_to, path)
+    |> push_navigate(to: path, replace: true)
+  end
+
+  defp arqade_content_path(%{group: %{id: group_id}} = assigns) do
+    piece_id =
+      invitation_content_piece_id(assigns[:invitation]) ||
+        assigns[:selected_piece_id]
+
+    return_to_path(group_id, piece_id)
+  end
 
   defp parent_request_uri(socket) do
     case socket.host_uri do
@@ -325,7 +355,8 @@ defmodule QlariusWeb.TiqitArqadeLive do
             {:noreply,
              socket
              |> assign(:gift_claim_succeeded, true)
-             |> assign(:pin_error, nil)}
+             |> assign(:pin_error, nil)
+             |> notify_arcade_embed_gift_claimed()}
 
           {:error, :not_claimable} ->
             {:noreply,
@@ -343,6 +374,17 @@ defmodule QlariusWeb.TiqitArqadeLive do
     do: refresh_invitation(socket)
 
   defp maybe_refresh_claimed_invitation(socket), do: socket
+
+  # Tell the inline arcade embed to refresh its scope/tiqits and drop the gift
+  # highlight so the claimed piece renders as Active (Play) instead of Gifted.
+  defp notify_arcade_embed_gift_claimed(socket) do
+    case socket.assigns[:arcade_embed_pid] do
+      pid when is_pid(pid) -> send(pid, :gift_claimed)
+      _ -> :ok
+    end
+
+    socket
+  end
 
   @doc false
   def format_remaining_claim_time(nil), do: "a limited time"

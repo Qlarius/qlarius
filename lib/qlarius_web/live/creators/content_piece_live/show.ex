@@ -86,22 +86,20 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
           <div class="overflow-auto">
             <div class="p-6">
               <div class="space-y-6">
-                <!-- Breadcrumbs -->
-                <.breadcrumbs
-                  crumbs={[
-                    {@creator.name, ~p"/creators/#{@creator.id}"},
-                    {"#{String.capitalize(to_string(@catalog.type))}: #{@catalog.name}",
-                     ~p"/creators/catalogs/#{@catalog.id}"},
-                    {"#{String.capitalize(to_string(@catalog.group_type))}: #{@content_group.title}",
-                     ~p"/creators/content_groups/#{@content_group.id}"}
-                  ]}
-                  current={"#{String.capitalize(to_string(@catalog.piece_type))}: #{@piece.title}"}
-                />
-                
-    <!-- Header Section -->
+                <!-- Header Section -->
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <h1 class="text-2xl font-bold text-base-content">{@piece.title}</h1>
+                  <div class="min-w-0">
+                    <.breadcrumbs
+                      title={@piece.title}
+                      crumbs={[
+                        {@creator.name, ~p"/creators/#{@creator.id}"},
+                        {"#{String.capitalize(to_string(@catalog.type))}: #{@catalog.name}",
+                         ~p"/creators/catalogs/#{@catalog.id}"},
+                        {"#{String.capitalize(to_string(@catalog.group_type))}: #{@content_group.title}",
+                         ~p"/creators/content_groups/#{@content_group.id}"}
+                      ]}
+                      current={"#{String.capitalize(to_string(@catalog.piece_type))}: #{@piece.title}"}
+                    />
                     <p class="text-base-content/60 mt-1">
                       Content Piece • ID: {@piece.id}
                     </p>

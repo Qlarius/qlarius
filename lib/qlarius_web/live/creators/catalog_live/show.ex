@@ -73,18 +73,16 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
           <div class="overflow-auto">
             <div class="p-6">
               <div class="space-y-6">
-                <!-- Breadcrumbs -->
-                <.breadcrumbs
-                  crumbs={[
-                    {@creator.name, ~p"/creators/#{@creator.id}"}
-                  ]}
-                  current={"#{String.capitalize(to_string(@catalog.type))}: #{@catalog.name}"}
-                />
-                
-    <!-- Header Section -->
+                <!-- Header Section -->
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <h1 class="text-2xl font-bold text-base-content">{@catalog.name}</h1>
+                  <div class="min-w-0">
+                    <.breadcrumbs
+                      title={@catalog.name}
+                      crumbs={[
+                        {@creator.name, ~p"/creators/#{@creator.id}"}
+                      ]}
+                      current={"#{String.capitalize(to_string(@catalog.type))}: #{@catalog.name}"}
+                    />
                     <p class="text-base-content/60 mt-1">
                       {@catalog.type |> to_string() |> String.capitalize()} • {@creator.name}
                     </p>

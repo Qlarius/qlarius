@@ -104,6 +104,33 @@ defmodule Qlarius.Qlink.Urls do
   def sanitize_return_to(_), do: nil
 
   @doc """
+  Canonical origin for user-facing links copied out of the app (gift/share
+  invitations, public arqade URLs, referral links, etc.).
+
+  When `:public_app_host` is set (production default `qadabra.app`; dev/test
+  `localhost:4001`), links use that host regardless of the deployment host
+  (e.g. `qlarius.gigalixirapp.com`). When unset, falls back to
+  `QlariusWeb.Endpoint.url()`.
+  """
+  @spec public_app_origin() :: String.t()
+  def public_app_origin do
+    case Application.get_env(:qlarius, :public_app_host) do
+      host when is_binary(host) and host != "" ->
+        scheme = Application.get_env(:qlarius, :public_app_scheme, "https")
+        "#{scheme}://#{host}"
+
+      _ ->
+        QlariusWeb.Endpoint.url()
+    end
+  end
+
+  @doc "Absolute URL on the public app host for a local path (must start with `/`)."
+  @spec public_app_url(String.t()) :: String.t()
+  def public_app_url(path) when is_binary(path) do
+    public_app_origin() <> path
+  end
+
+  @doc """
   Main-app `MeFileLive` URL (`/me_file`) from a Qlink request URI.
 
   Uses `https://qadabra.app` in production; localhost / Gigalixir use the request origin.

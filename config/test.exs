@@ -24,6 +24,9 @@ config :qlarius, QlariusWeb.Endpoint,
   secret_key_base: "5HsMlQK87KtrnZivmFbN6hlNaWEQhaacWTic5ugEhIXTCz9DkGrEf+J56H+hboxA",
   server: false
 
+# Copyable public links use https://localhost:4001 locally (see Qlarius.Qlink.Urls.public_app_url/1).
+config :qlarius, public_app_host: "localhost:4001", public_app_scheme: "https"
+
 # In test we don't send emails
 config :qlarius, Qlarius.Mailer, adapter: Swoosh.Adapters.Test
 

@@ -51,7 +51,9 @@ config :qlarius,
 config :qlarius,
   qlink_share_host: "qlinkin.bio",
   qlink_interact_host: "qlink.qadabra.app",
-  qlink_landing_redirect_url: "https://qadabra.co/qlink"
+  qlink_landing_redirect_url: "https://qadabra.co/qlink",
+  public_app_host: "qadabra.app",
+  public_app_scheme: "https"
 
 # AuthSheet (and ProxyUserSheet) rollout flags. Each surface is gated
 # independently so we can enable in-place auth one surface at a time.

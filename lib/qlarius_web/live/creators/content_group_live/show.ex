@@ -151,20 +151,18 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
             <div class="overflow-auto">
               <div class="p-6">
                 <div class="space-y-6">
-                  <!-- Breadcrumbs -->
-                  <.breadcrumbs
-                    crumbs={[
-                      {@creator.name, ~p"/creators/#{@creator.id}"},
-                      {"#{String.capitalize(to_string(@catalog.type))}: #{@catalog.name}",
-                       ~p"/creators/catalogs/#{@catalog.id}"}
-                    ]}
-                    current={"#{String.capitalize(to_string(@catalog.group_type))}: #{@content_group.title}"}
-                  />
-                  
-    <!-- Header Section -->
+                  <!-- Header Section -->
                   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                      <h1 class="text-2xl font-bold text-base-content">{@content_group.title}</h1>
+                    <div class="min-w-0">
+                      <.breadcrumbs
+                        title={@content_group.title}
+                        crumbs={[
+                          {@creator.name, ~p"/creators/#{@creator.id}"},
+                          {"#{String.capitalize(to_string(@catalog.type))}: #{@catalog.name}",
+                           ~p"/creators/catalogs/#{@catalog.id}"}
+                        ]}
+                        current={"#{String.capitalize(to_string(@catalog.group_type))}: #{@content_group.title}"}
+                      />
                       <p class="text-base-content/60 mt-1">
                         {@catalog.group_type |> to_string() |> String.capitalize()} • {@creator.name}
                       </p>

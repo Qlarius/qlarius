@@ -625,37 +625,142 @@ defmodule QlariusWeb.CoreComponents do
     """
   end
 
+  @doc """
+  Popover hierarchy navigator — round chevron-up button opens ancestors back to root.
+
+  `crumbs` is a list of `{label, path}` pairs; `current` is the active page (non-link).
+  """
+  attr :id, :string, default: nil
+  attr :root_label, :string, required: true
+  attr :root_path, :string, required: true
+  attr :root_icon, :string, default: nil
+  attr :crumbs, :list, default: []
+  attr :current, :string, default: nil
+  attr :title, :string, default: nil
+  attr :title_class, :string, default: "text-2xl font-bold text-base-content truncate min-w-0"
+  attr :class, :string, default: nil
+  attr :size, :atom, default: :sm, values: [:xs, :sm]
+
+  def hierarchy_nav_popover(assigns) do
+    popover_id =
+      assigns.id ||
+        hierarchy_nav_id(assigns.root_path, assigns.crumbs, assigns.current)
+
+    button_class =
+      case assigns.size do
+        :xs -> "btn-circle btn-ghost btn-xs h-7 w-7 min-h-7 min-w-7"
+        :sm -> "btn-circle btn-ghost btn-sm h-8 w-8 min-h-8 min-w-8"
+      end
+
+    icon_class = if assigns.size == :xs, do: "h-3.5 w-3.5", else: "h-4 w-4"
+
+    assigns =
+      assigns
+      |> assign(:popover_id, popover_id)
+      |> assign(:button_class, button_class)
+      |> assign(:icon_class, icon_class)
+
+    wrapper_class =
+      if assigns.title,
+        do: ["flex items-center gap-2 min-w-0", assigns.class],
+        else: ["shrink-0 mb-1", assigns.class]
+
+    assigns = assign(assigns, :wrapper_class, wrapper_class)
+
+    ~H"""
+    <div class={@wrapper_class}>
+      <h1 :if={@title} class={@title_class}>{@title}</h1>
+      <.popover
+        id={@popover_id}
+        placement="top"
+        position_strategy="fixed"
+        trigger_type="click"
+        use_floating_size={false}
+        root_class="inline-block shrink-0"
+        class="w-max min-w-[11rem] max-w-[min(20rem,calc(100vw-1.5rem))] px-1 py-1.5 shadow-lg"
+      >
+        <:trigger>
+          <button
+            type="button"
+            class={[
+              @button_class,
+              "border border-base-content/10 text-base-content/50",
+              "hover:text-base-content hover:border-base-content/20 hover:bg-base-200/80"
+            ]}
+            aria-label={"Navigate up from #{@current || @title || hierarchy_nav_leaf_label(@crumbs, @root_label)}"}
+          >
+            <.icon name="hero-chevron-up" class={@icon_class} />
+          </button>
+        </:trigger>
+        <:content>
+          <nav aria-label="Page hierarchy">
+            <ul class="menu menu-sm p-0 gap-0 w-full">
+              <li class="min-w-0">
+                <.link
+                  navigate={@root_path}
+                  class="rounded-md text-base-content/80 hover:text-base-content truncate"
+                  phx-click={JS.dispatch("qlarius:close-popover", detail: %{id: @popover_id})}
+                >
+                  <.icon :if={@root_icon} name={@root_icon} class="h-4 w-4 shrink-0 opacity-70" />
+                  <span class="truncate">{@root_label}</span>
+                </.link>
+              </li>
+              <li :for={{label, path} <- @crumbs} class="min-w-0">
+                <.link
+                  navigate={path}
+                  class="rounded-md text-base-content/80 hover:text-base-content truncate"
+                  phx-click={JS.dispatch("qlarius:close-popover", detail: %{id: @popover_id})}
+                >
+                  <span class="truncate">{label}</span>
+                </.link>
+              </li>
+              <li :if={@current} class="min-w-0">
+                <span class="rounded-md font-semibold text-base-content truncate pointer-events-none">
+                  {@current}
+                </span>
+              </li>
+            </ul>
+          </nav>
+        </:content>
+      </.popover>
+    </div>
+    """
+  end
+
+  defp hierarchy_nav_id(root_path, crumbs, current) do
+    ([root_path | Enum.map(crumbs, &elem(&1, 1))] ++ [current || ""])
+    |> Enum.join("-")
+    |> then(&("hierarchy-nav-" <> &1))
+    |> String.replace(~r/[^a-zA-Z0-9_-]/, "-")
+  end
+
+  defp hierarchy_nav_leaf_label(crumbs, root_label) do
+    case List.last(crumbs) do
+      {label, _} -> label
+      _ -> root_label
+    end
+  end
+
   # Based on https://daisyui.com/components/breadcrumb/
   attr :crumbs, :list, default: []
   attr :current, :string, default: nil
+  attr :title, :string, default: nil
+  attr :title_class, :string, default: "text-2xl font-bold text-base-content truncate min-w-0"
+  attr :class, :string, default: nil
 
   def breadcrumbs(assigns) do
     ~H"""
-    <div class="text-sm breadcrumbs">
-      <ul>
-        <li>
-          <.link
-            navigate={~p"/creators"}
-            class="text-base-content hover:text-primary"
-          >
-            <.icon name="hero-home" class="w-4 h-4 mr-2" /> Creators
-          </.link>
-        </li>
-        <li :for={{text, href} <- @crumbs}>
-          <.link
-            navigate={href}
-            class="text-base-content hover:text-primary"
-          >
-            {text}
-          </.link>
-        </li>
-        <li :if={@current}>
-          <span class="text-base-content font-bold" style="text-decoration: none; cursor: default;">
-            {@current}
-          </span>
-        </li>
-      </ul>
-    </div>
+    <.hierarchy_nav_popover
+      root_label="Creators"
+      root_path={~p"/creators"}
+      root_icon="hero-home"
+      crumbs={@crumbs}
+      current={@current}
+      title={@title}
+      title_class={@title_class}
+      class={@class}
+      size={:sm}
+    />
     """
   end
 

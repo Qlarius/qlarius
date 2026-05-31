@@ -3,11 +3,15 @@
     <.arqade_breadcrumbs
       :if={not @inline?}
       base_path={@base_path}
+      title={@piece.title}
+      title_class="text-2xl font-bold text-base-content truncate min-w-0"
+      class="mb-4"
       crumbs={[
         {@group.catalog.creator.name, "#{@base_path}/arqade"},
         {@group.catalog.name, "#{@base_path}/arqade/catalog/#{@group.catalog.id}"},
         {@group.title, "#{@base_path}/arqade/group/#{@group.id}"}
       ]}
+      current={@piece.title}
     />
     <%!--
   Inline embeds (rendered by QlinkPage.Show via live_render/3) paint

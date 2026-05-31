@@ -85,6 +85,33 @@ defmodule Qlarius.ContentSharingTest do
       assert message =~ "/tiqit/gift/#{token}"
     end
 
+    test "gift invitation message uses the configured public app host", %{
+      sender_scope: scope,
+      group: group,
+      tiqit_class: tc
+    } do
+      prev_host = Application.get_env(:qlarius, :public_app_host)
+      on_exit(fn -> Application.put_env(:qlarius, :public_app_host, prev_host) end)
+      Application.put_env(:qlarius, :public_app_host, "qadabra.app")
+
+      assert {:ok, %{will_call: will_call, raw_token: token}} =
+               ContentSharing.create_gift(scope, %{
+                 tiqit_class_id: tc.id,
+                 content_group_id: group.id
+               })
+
+      wc =
+        Repo.preload(will_call, [
+          :tiqit_class,
+          :content_piece,
+          :content_group,
+          share_invitation: []
+        ])
+
+      message = ContentSharing.sender_gift_invitation_message(wc)
+      assert message =~ "https://qadabra.app/tiqit/gift/#{token}"
+    end
+
     test "rejects gifts the sender cannot afford", %{sender_scope: scope, group: group} do
       pricey =
         %TiqitClass{content_group_id: group.id}

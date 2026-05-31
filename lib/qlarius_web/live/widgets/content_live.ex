@@ -61,16 +61,20 @@ defmodule QlariusWeb.Widgets.ContentLive do
     ~H"""
     <div id="content-pwa-detect" phx-hook="PWADetect">
       <Layouts.maybe_mobile wrap={true} {assigns}>
-        <.arqade_breadcrumbs
-          base_path=""
-          crumbs={[
-            {@content.content_group.catalog.creator.name, "/arqade"},
-            {@content.content_group.catalog.name,
-             "/arqade/catalog/#{@content.content_group.catalog.id}"},
-            {@content.content_group.title, "/arqade/group/#{@content.content_group.id}"}
-          ]}
-        />
         <div class="container mx-auto px-4 py-4 max-w-4xl">
+          <.arqade_breadcrumbs
+            base_path=""
+            title={@content.title}
+            title_class="text-2xl font-bold text-base-content truncate min-w-0"
+            class="mb-4"
+            crumbs={[
+              {@content.content_group.catalog.creator.name, "/arqade"},
+              {@content.content_group.catalog.name,
+               "/arqade/catalog/#{@content.content_group.catalog.id}"},
+              {@content.content_group.title, "/arqade/group/#{@content.content_group.id}"}
+            ]}
+            current={@content.title}
+          />
           <div class="p-4">
             <.tiqit_unlocked_content_player
               id_prefix={"content-#{@content.id}"}

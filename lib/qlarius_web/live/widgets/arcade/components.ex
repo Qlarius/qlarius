@@ -743,32 +743,37 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   defp pluralize_discovery_piece_label(_, _), do: "items"
 
   @doc """
-  Breadcrumb trail for arqade content hierarchy.
+  Hierarchy navigator for arqade content pages.
 
   Hidden in widget context (@base_path == "/widgets") since embedded iframes
   don't benefit from hierarchical navigation — the host page controls that.
-  In-app, renders a compact clickable trail rooted at "Discover".
+  In-app, a chevron-up button opens a popover rooted at "Discover".
   """
   attr :crumbs, :list, default: []
+  attr :current, :string, default: nil
+  attr :title, :string, default: nil
+  attr :title_class, :string, default: "text-2xl font-bold text-base-content truncate min-w-0"
   attr :base_path, :string, default: ""
+  attr :class, :string, default: nil
   attr :compact, :boolean, default: false
 
   def arqade_breadcrumbs(assigns) do
+    root_path = "#{assigns.base_path}/arqade"
+
+    assigns = assign(assigns, :root_path, root_path)
+
     ~H"""
-    <nav
+    <.hierarchy_nav_popover
       :if={@base_path != "/widgets"}
-      class={[
-        "shrink-0 text-xs text-base-content/50 flex items-center gap-1 flex-wrap pt-0 mb-1"
-      ]}
-    >
-      <.link navigate="/arqade" class="hover:text-widget-700 transition-colors">Discover</.link>
-      <span :for={{label, path} <- @crumbs} class="flex items-center gap-1">
-        <span class="text-base-content/30">›</span>
-        <.link navigate={path} class="hover:text-widget-700 transition-colors truncate max-w-[120px]">
-          {label}
-        </.link>
-      </span>
-    </nav>
+      root_label="Discover"
+      root_path={@root_path}
+      crumbs={@crumbs}
+      current={@current}
+      title={@title}
+      title_class={@title_class}
+      class={@class}
+      size={:xs}
+    />
     """
   end
 

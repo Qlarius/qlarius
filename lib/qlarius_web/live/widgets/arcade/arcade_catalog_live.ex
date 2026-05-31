@@ -60,10 +60,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
     ~H"""
     <div id="catalog-pwa-detect" phx-hook="PWADetect">
       <Layouts.maybe_mobile wrap={@base_path == ""} {assigns}>
-        <.arqade_breadcrumbs
-          base_path={@base_path}
-          crumbs={[{@catalog.name, "#{@base_path}/arqade/catalog/#{@catalog.id}"}]}
-        />
         <div class="px-4 py-4 space-y-6">
           <div class="flex items-center gap-4">
             <img
@@ -72,9 +68,23 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeCatalogLive do
               alt={@catalog.name}
               class="aspect-square w-16 shrink-0 rounded-lg object-cover border border-base-300"
             />
-            <div class="min-w-0">
-              <h1 class="text-lg font-bold tracking-tight text-base-content/50">{@catalog.name}</h1>
-              <p class="text-sm text-base-content/50">
+            <div class="min-w-0 flex-1">
+              <%= if @base_path == "/widgets" do %>
+                <h1 class="text-lg font-bold tracking-tight text-base-content/50 truncate">
+                  {@catalog.name}
+                </h1>
+              <% else %>
+                <.arqade_breadcrumbs
+                  base_path={@base_path}
+                  title={@catalog.name}
+                  title_class="text-lg font-bold tracking-tight text-base-content truncate min-w-0"
+                  crumbs={[
+                    {@catalog.creator.name, "#{@base_path}/arqade"}
+                  ]}
+                  current={@catalog.name}
+                />
+              <% end %>
+              <p class="text-sm text-base-content/50 mt-1">
                 {length(@groups)} {if length(@groups) == 1,
                   do: @catalog.group_type,
                   else: pluralize(@catalog.group_type)}

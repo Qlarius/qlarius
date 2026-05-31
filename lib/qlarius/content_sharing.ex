@@ -547,7 +547,7 @@ defmodule Qlarius.ContentSharing do
 
     if is_binary(token) and token != "" and is_binary(pin) and pin != "" do
       title = gift_content_title(will_call)
-      url = QlariusWeb.Endpoint.url() <> "/tiqit/gift/#{token}"
+      url = Qlarius.Qlink.Urls.public_app_url("/tiqit/gift/#{token}")
 
       build_gift_invitation_message(title, url, pin, invitation.gift_expires_at)
     else

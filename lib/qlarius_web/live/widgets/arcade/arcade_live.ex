@@ -770,6 +770,21 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     end
   end
 
+  # Sent by the host LV after a gift PIN claim succeeds. Refresh the scope so
+  # the newly-redeemed tiqit lands in `valid_tiqit_piece_ids` (flipping the
+  # piece to Active/Play) and clear the gift highlight so the "Gifted" /
+  # "Gifted to you" badges and "Accept Gift" CTA disappear.
+  def handle_info(:gift_claimed, socket) do
+    if socket.assigns[:mounted] do
+      {:noreply,
+       socket
+       |> assign(:gift_piece_id, nil)
+       |> refresh_scope_after_wallet_or_offer_event()}
+    else
+      {:noreply, socket}
+    end
+  end
+
   defp open_player_for_selected_piece(socket) do
     case socket.assigns.selected_piece do
       nil ->
@@ -1080,7 +1095,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
   defp build_share_result(%{claim_path: claim_path}, target, piece, group) do
     title = share_content_title(target, piece, group)
-    url = QlariusWeb.Endpoint.url() <> claim_path
+    url = Qlarius.Qlink.Urls.public_app_url(claim_path)
 
     %{
       type: "share",
@@ -1092,7 +1107,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
   defp build_gift_result(%{invitation: invitation, raw_pin: pin, claim_path: claim_path}, %TiqitClass{} = tc, piece, group) do
     title = if tc.content_piece_id && piece, do: piece.title, else: group.title
-    url = QlariusWeb.Endpoint.url() <> claim_path
+    url = Qlarius.Qlink.Urls.public_app_url(claim_path)
 
     message =
       ContentSharing.build_gift_invitation_message(title, url, pin, invitation.gift_expires_at)

@@ -138,7 +138,7 @@ defmodule QlariusWeb.CreatorDashboard.Show do
           <div class="overflow-auto">
             <div class="container mx-auto px-4 py-8">
               <div class="mb-6">
-                <.breadcrumbs crumbs={[]} current={@creator.name} />
+                <.breadcrumbs title={@creator.name} crumbs={[]} current={@creator.name} />
               </div>
 
               <%= if @show_edit_form do %>

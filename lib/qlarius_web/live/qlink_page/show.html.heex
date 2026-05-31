@@ -156,7 +156,7 @@
     <%!-- Drawer --%>
     <div
       class={[
-        "fixed bg-base-100 rounded-t-lg overflow-hidden flex flex-col transition-all duration-300 ease-out",
+        "fixed page-canvas rounded-t-lg overflow-hidden flex flex-col transition-all duration-300 ease-out",
         "h-[calc(95vh-50px)]",
         if(@show_sponster_drawer, do: "bottom-[50px]", else: "-bottom-[calc(95vh-50px)]")
       ]}
@@ -257,15 +257,17 @@
                       No 3-Tap ads available
                     </div>
                   <% else %>
-                    <.live_component
-                      module={QlariusWeb.ThreeTapStackComponent}
-                      id="three-tap-stack"
-                      active_offers={@active_offers}
-                      user_ip={assigns[:user_ip] || "0.0.0.0"}
-                      current_scope={@current_scope}
-                      host_uri={@host_uri}
-                      recipient={@recipient}
-                    />
+                    <div class="max-w-3xl mx-auto w-full">
+                      <.live_component
+                        module={QlariusWeb.ThreeTapStackComponent}
+                        id="three-tap-stack"
+                        active_offers={@active_offers}
+                        user_ip={assigns[:user_ip] || "0.0.0.0"}
+                        current_scope={@current_scope}
+                        host_uri={@host_uri}
+                        recipient={@recipient}
+                      />
+                    </div>
                   <% end %>
                 <% else %>
                   <.video_offer_list
@@ -273,13 +275,14 @@
                     completed_video_offers={@completed_video_offers}
                     me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
                     recipient={@recipient}
+                    class="max-w-3xl mx-auto w-full"
                   />
                 <% end %>
               <% end %>
             <% end %>
           </div>
         <% else %>
-          <div class="absolute inset-0 z-10 flex flex-col min-h-0 bg-base-100">
+          <div class="absolute inset-0 z-10 flex flex-col min-h-0 page-canvas">
             <iframe
               src={QlariusWeb.Helpers.SponsterInfoIframe.src(:qlink)}
               class="w-full flex-1 min-h-0 border-0"
@@ -429,7 +432,7 @@
       </div>
 
       <%= if not drawer_authed do %>
-        <div class="flex-shrink-0 bg-base-200 border-t border-base-300 px-4 pt-3 flex flex-col items-center gap-1 text-center">
+        <div class="flex-shrink-0 page-canvas border-t border-base-300/60 px-4 pt-3 flex flex-col items-center gap-1 text-center">
           <p class="text-sm sm:text-base text-base-content font-medium tracking-tight leading-snug">
             Ready to try it out? Connect and sign up for free. Your wallet awaits.
           </p>

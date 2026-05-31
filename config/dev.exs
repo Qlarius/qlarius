@@ -71,7 +71,9 @@ config :qlarius, QlariusWeb.Endpoint,
 config :qlarius,
   qlink_share_host: "localhost:4001",
   qlink_interact_host: "localhost:4001",
-  qlink_landing_redirect_url: "http://localhost:4001/"
+  qlink_landing_redirect_url: "http://localhost:4001/",
+  public_app_host: "localhost:4001",
+  public_app_scheme: "https"
 
 # Dev CORS extension IDs: includes the pinned dev extension ID alongside the
 # legacy prod ID. Replace DEV_EXTENSION_ID_PLACEHOLDER once the extension build

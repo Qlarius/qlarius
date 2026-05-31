@@ -50,7 +50,7 @@ defmodule Qlarius.Tiqit.Arcade.PublicPage do
     end
   end
 
-  defp tiqit_arqade_url(group_id), do: QlariusWeb.Endpoint.url() <> "/tiqit/arqade/#{group_id}"
+  defp tiqit_arqade_url(group_id), do: Qlarius.Qlink.Urls.public_app_url("/tiqit/arqade/#{group_id}")
 
   defp normalize_piece_id(nil, _group), do: nil
 

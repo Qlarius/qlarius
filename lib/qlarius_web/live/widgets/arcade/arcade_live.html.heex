@@ -35,13 +35,18 @@
         @full_viewport_embed? && "flex flex-col flex-1 min-h-0 h-full overflow-hidden"
       ]}
     >
-    <.arqade_breadcrumbs
-      :if={not @inline?}
-      base_path={@base_path}
+      <%!-- Page heading + hierarchy nav (in-app only; embeds use show_title bar below). --%>
+      <.arqade_breadcrumbs
+        :if={not @inline? and @base_path != "/widgets"}
+        base_path={@base_path}
+        title={@group.title}
+        title_class="text-2xl font-bold text-base-content truncate min-w-0"
+        class="shrink-0 mb-2"
         crumbs={[
           {@group.catalog.creator.name, "#{@base_path}/arqade"},
           {@group.catalog.name, "#{@base_path}/arqade/catalog/#{@group.catalog.id}"}
         ]}
+        current={@group.title}
       />
       <%!--
   Inline embeds (rendered by QlinkPage.Show via live_render/3) paint
@@ -103,7 +108,7 @@
               </a>
             <% end %>
           <% end %>
-          <%= if @show_title do %>
+          <%= if @show_title and (@inline? or @embed_card? or @base_path == "/widgets") do %>
             <div class="grow-0 bg-base-200 text-base-content p-3 border-b border-base-300">
               <h1 class="font-bold text-xl">{@group.title}</h1>
             </div>
