@@ -18,6 +18,7 @@ defmodule Qlarius.ContentSharing do
   alias Qlarius.Referrals
   alias Qlarius.System
   alias Qlarius.Tiqit.Arcade.Arcade
+  alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.ContentSharing.{ShareInvitation, WillCallTiqit}
   alias Qlarius.Wallets.MeFileStatsBroadcaster
@@ -446,7 +447,7 @@ defmodule Qlarius.ContentSharing do
       sender_header = Wallets.get_me_file_ledger_header_by_id(locked.sender_me_file_id)
 
       reversal_entry =
-        Wallets.create_will_call_reversal!(sender_header, locked.amount, "Will Call Gift Reversal")
+        insert_gift_reversal!(sender_header, locked, locked.amount)
 
       locked
       |> WillCallTiqit.changeset(%{
@@ -546,24 +547,96 @@ defmodule Qlarius.ContentSharing do
     pin = invitation && invitation.sender_claim_pin_encrypted
 
     if is_binary(token) and token != "" and is_binary(pin) and pin != "" do
-      title = gift_content_title(will_call)
+      {content_type, content_name} = gift_message_fields(will_call)
       url = Qlarius.Qlink.Urls.public_app_url("/tiqit/gift/#{token}")
 
-      build_gift_invitation_message(title, url, pin, invitation.gift_expires_at)
+      build_gift_invitation_message(
+        url: url,
+        pin: pin,
+        gift_expires_at: invitation.gift_expires_at,
+        content_type: content_type,
+        content_name: content_name
+      )
     else
       nil
     end
   end
 
   @doc """
-  Builds copy-ready gift invitation text from title, claim URL, PIN, and deadline.
+  Resolves the content-type atom and display name for gift copy from a will-call row.
   """
-  def build_gift_invitation_message(title, url, pin, gift_expires_at) do
+  @spec gift_message_fields(struct()) :: {atom(), String.t()}
+  def gift_message_fields(%WillCallTiqit{} = will_call) do
+    will_call =
+      Repo.preload(will_call, [
+        :content_piece,
+        content_group: :catalog,
+        tiqit_class: [
+          :catalog,
+          content_group: :catalog,
+          content_piece: [content_group: :catalog]
+        ]
+      ])
+
+    group =
+      case will_call.content_group do
+        %{catalog: %Catalog{}} = g -> g
+        g when not is_nil(g) -> Repo.preload(g, :catalog)
+        _ -> nil
+      end
+
+    gift_message_fields(will_call.tiqit_class, will_call.content_piece, group)
+  end
+
+  @doc """
+  Resolves the content-type atom and display name for gift copy from purchase context.
+  """
+  @spec gift_message_fields(TiqitClass.t(), map() | nil, map() | nil) :: {atom(), String.t()}
+  def gift_message_fields(%TiqitClass{} = tc, piece, group) do
+    catalog = gift_message_catalog(tc, piece, group)
+
+    cond do
+      is_nil(catalog) ->
+        {:piece, (piece && piece.title) || (group && group.title) || "Gift"}
+
+      tc.content_piece_id && piece && piece.title not in [nil, ""] ->
+        {catalog.piece_type, piece.title}
+
+      tc.content_piece_id && piece ->
+        {catalog.piece_type, (group && group.title) || "Gift"}
+
+      tc.content_group_id && group && group.title not in [nil, ""] ->
+        {catalog.group_type, group.title}
+
+      tc.content_group_id && group ->
+        {catalog.group_type, catalog.name}
+
+      true ->
+        {catalog.type, catalog.name}
+    end
+  end
+
+  @doc """
+  Builds copy-ready gift invitation text for sharing with a recipient.
+  """
+  def build_gift_invitation_message(opts) when is_list(opts) do
+    url = Keyword.fetch!(opts, :url)
+    pin = Keyword.fetch!(opts, :pin)
+    gift_expires_at = Keyword.fetch!(opts, :gift_expires_at)
+    content_type = Keyword.fetch!(opts, :content_type)
+    content_name = Keyword.fetch!(opts, :content_name)
+
+    type_phrase = Catalog.type_with_article(content_type)
+    type_line = Catalog.type_label(content_type, 1)
+    remaining = format_claim_window_remaining(gift_expires_at)
     deadline = format_claim_deadline(gift_expires_at)
 
-    "I bought a Tiqit for you and left it at will call:\n#{title}\n\n" <>
-      "Claim it here: #{url}\n\nClaim PIN: #{pin}\n\n" <>
-      "This tiqit is waiting until #{deadline}. After that, the link still works as a recommendation, but you will have to buy it yourself."
+    "I bought a Tiqit for you for #{type_phrase} that I think you'll like:\n\n" <>
+      "#{content_name}\n(#{type_line})\n\n" <>
+      "You have #{remaining} to claim it at the link below (like will call):\n#{url}\n\n" <>
+      "Claim PIN: #{pin}\n\n" <>
+      "This pre-paid tiqit is waiting until #{deadline}. After that, the link still works as a recommendation, but you will have to buy it yourself.\n\n" <>
+      "TIQIT: The Box Office for Your Favorite Media.\nPowered by Qadabra."
   end
 
   @doc """
@@ -587,7 +660,7 @@ defmodule Qlarius.ContentSharing do
       sender_header = Wallets.get_me_file_ledger_header(me_file)
 
       reversal_entry =
-        Wallets.create_will_call_reversal!(sender_header, locked.amount, "Will Call Gift Reversal")
+        insert_gift_reversal!(sender_header, locked, locked.amount)
 
       locked
       |> WillCallTiqit.changeset(%{
@@ -670,12 +743,22 @@ defmodule Qlarius.ContentSharing do
     )
   end
 
-  defp gift_content_title(%WillCallTiqit{} = wc) do
-    cond do
-      wc.content_piece && wc.content_piece.title != "" -> wc.content_piece.title
-      wc.content_group && wc.content_group.title != "" -> wc.content_group.title
-      true -> "Gift"
-    end
+  defp insert_gift_reversal!(sender_header, %WillCallTiqit{} = will_call, amount) do
+    description = will_call_reversal_description(will_call)
+    Wallets.create_will_call_reversal!(sender_header, amount, description)
+  end
+
+  defp will_call_reversal_description(%WillCallTiqit{} = will_call) do
+    will_call =
+      Repo.preload(will_call, [
+        tiqit_class: [
+          :catalog,
+          content_group: [catalog: :creator],
+          content_piece: [content_group: [catalog: :creator]]
+        ]
+      ])
+
+    will_call_gift_debit_description(will_call.tiqit_class)
   end
 
   defp will_call_gift_debit_description(%TiqitClass{} = tc) do
@@ -696,6 +779,42 @@ defmodule Qlarius.ContentSharing do
 
     if creator, do: String.upcase(creator.name), else: "UNKNOWN"
   end
+
+  defp gift_message_catalog(%TiqitClass{} = tc, piece, group) do
+    cond do
+      group && Ecto.assoc_loaded?(group.catalog) && group.catalog -> group.catalog
+      group && group.catalog_id -> Repo.get!(Catalog, group.catalog_id)
+      tc.content_group && Ecto.assoc_loaded?(tc.content_group.catalog) && tc.content_group.catalog ->
+        tc.content_group.catalog
+
+      tc.content_piece &&
+          Ecto.assoc_loaded?(tc.content_piece.content_group) &&
+          Ecto.assoc_loaded?(tc.content_piece.content_group.catalog) &&
+          tc.content_piece.content_group.catalog ->
+        tc.content_piece.content_group.catalog
+
+      tc.catalog -> tc.catalog
+
+      piece && Ecto.assoc_loaded?(piece.content_group) &&
+          Ecto.assoc_loaded?(piece.content_group.catalog) && piece.content_group.catalog ->
+        piece.content_group.catalog
+
+      true ->
+        nil
+    end
+  end
+
+  defp format_claim_window_remaining(%DateTime{} = expires_at) do
+    seconds = max(DateTime.diff(expires_at, DateTime.utc_now(), :second), 0)
+    hours = div(seconds, 3600)
+    minutes = div(rem(seconds, 3600), 60)
+
+    hour_part = if hours == 1, do: "1 hr", else: "#{hours} hrs"
+    minute_part = if minutes == 1, do: "1 min", else: "#{minutes} min"
+    "#{hour_part} and #{minute_part}"
+  end
+
+  defp format_claim_window_remaining(_), do: "48 hrs and 0 min"
 
   defp format_claim_deadline(%DateTime{} = dt),
     do: Calendar.strftime(dt, "%b %d, %Y %I:%M %p UTC")

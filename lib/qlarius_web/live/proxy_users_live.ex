@@ -131,8 +131,8 @@ defmodule QlariusWeb.ProxyUsersLive do
 
           <div class="flex justify-between items-center mb-4">
             <p class="mobile-page-intro">Deselect all to return to true user.</p>
-            <button class="btn btn-primary btn-sm" phx-click="add_proxy">
-              <.icon name="hero-plus" class="w-4 h-4" /> Add Proxy User
+            <button class="btn btn-primary btn-lg rounded-full gap-2 px-5" phx-click="add_proxy">
+              <.icon name="hero-plus" class="w-5 h-5" /> Add Proxy User
             </button>
           </div>
 

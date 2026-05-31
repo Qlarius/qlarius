@@ -83,6 +83,13 @@ defmodule Qlarius.ContentSharingTest do
       message = ContentSharing.sender_gift_invitation_message(wc)
       assert message =~ pin
       assert message =~ "/tiqit/gift/#{token}"
+      assert message =~ "I bought a Tiqit for you for a show that I think you'll like:"
+      assert message =~ "#{group.title}\n(Show)"
+      assert message =~ "You have "
+      assert message =~ " to claim it at the link below (like will call):"
+      assert message =~ "Claim PIN: #{pin}"
+      assert message =~ "TIQIT: The Box Office for Your Favorite Media."
+      assert message =~ "Powered by Qadabra."
     end
 
     test "gift invitation message uses the configured public app host", %{
@@ -110,6 +117,36 @@ defmodule Qlarius.ContentSharingTest do
 
       message = ContentSharing.sender_gift_invitation_message(wc)
       assert message =~ "https://qadabra.app/tiqit/gift/#{token}"
+    end
+
+    test "gift invitation message uses an for vowel-leading piece types", %{
+      sender_scope: scope,
+      group: group,
+      piece: piece
+    } do
+      tc =
+        %TiqitClass{content_piece_id: piece.id}
+        |> TiqitClass.changeset(%{price: Decimal.new("1.00"), active: true})
+        |> Repo.insert!()
+
+      assert {:ok, %{raw_pin: pin}} =
+               ContentSharing.create_gift(scope, %{
+                 tiqit_class_id: tc.id,
+                 content_group_id: group.id,
+                 content_piece_id: piece.id
+               })
+
+      message =
+        ContentSharing.build_gift_invitation_message(
+          url: "https://example.com/tiqit/gift/token",
+          pin: pin,
+          gift_expires_at: DateTime.add(DateTime.utc_now(), 48, :hour),
+          content_type: :episode,
+          content_name: piece.title
+        )
+
+      assert message =~ "for an episode that I think you'll like:"
+      assert message =~ "#{piece.title}\n(Episode)"
     end
 
     test "rejects gifts the sender cannot afford", %{sender_scope: scope, group: group} do
@@ -212,7 +249,8 @@ defmodule Qlarius.ContentSharingTest do
       will_call: wc,
       invitation: invitation,
       sender_scope: sender_scope,
-      tiqit_class: tc
+      tiqit_class: tc,
+      creator: creator
     } do
       # Force the claim window into the past.
       past = DateTime.add(DateTime.utc_now(), -1, :hour) |> DateTime.truncate(:second)
@@ -230,6 +268,10 @@ defmodule Qlarius.ContentSharingTest do
       assert expired.will_call_status == "expired"
       refute is_nil(expired.reversed_at)
 
+      reversal = Repo.get!(LedgerEntry, expired.sender_reversal_ledger_entry_id)
+      assert reversal.meta_1 == "Revoked - Tiqit Gift Purchase"
+      assert reversal.description == String.upcase(creator.name)
+
       assert Decimal.equal?(wallet_balance(sender_scope), Decimal.add(before, tc.price))
       assert Repo.get!(Qlarius.ContentSharing.ShareInvitation, invitation.id).status == "expired"
     end
@@ -241,13 +283,18 @@ defmodule Qlarius.ContentSharingTest do
     test "credits the sender and marks the gift withdrawn", %{
       will_call: wc,
       sender_scope: sender_scope,
-      tiqit_class: tc
+      tiqit_class: tc,
+      creator: creator
     } do
       before = wallet_balance(sender_scope)
 
       assert {:ok, revoked} = ContentSharing.revoke_gift(sender_scope, wc.id)
       assert revoked.will_call_status == "pulled"
       refute is_nil(revoked.reversed_at)
+
+      reversal = Repo.get!(LedgerEntry, revoked.sender_reversal_ledger_entry_id)
+      assert reversal.meta_1 == "Revoked - Tiqit Gift Purchase"
+      assert reversal.description == String.upcase(creator.name)
 
       assert Decimal.equal?(wallet_balance(sender_scope), Decimal.add(before, tc.price))
 

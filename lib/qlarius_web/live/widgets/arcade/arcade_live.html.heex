@@ -118,9 +118,16 @@
             <div class="bg-accent/10 border-b border-accent/30 px-4 py-2 flex items-center justify-between">
               <div class="flex items-center gap-2 text-sm">
                 <.icon name="hero-arrow-trending-up" class="w-5 h-5 text-accent" />
-                <span class="font-semibold text-accent">Tiqit Up available!</span>
+                <span class="font-semibold text-accent">Tiqit Up discount available!</span>
                 <span class="text-base-content/70">
-                  You've earned a free upgrade to the full {@group.catalog.group_type}. Select it in the tiqit grid!
+                  Check out your
+                  <button
+                    type="button"
+                    phx-click="browse-tiqit-options"
+                    class="link link-primary font-medium align-baseline"
+                  >
+                    Purchase Options
+                  </button>.
                 </span>
               </div>
               <button
@@ -192,9 +199,10 @@
             Same on tiqit arqade, qlink inline embed, and qlink full-pane expand.
           --%>
                   <% selected_gift_pending? =
-                    gift_piece_highlight?(
-                      @selected_piece.id,
+                    selected_gift_pending?(
+                      @gift_scope,
                       @gift_piece_id,
+                      @selected_piece.id,
                       @valid_tiqit_piece_ids
                     ) %>
                   <.selected_piece_hero
@@ -261,7 +269,6 @@
                           <.arcade_more_options_popover
                             piece={@selected_piece}
                             current_scope={@current_scope}
-                            disable_purchase_options?={true}
                           />
                         </div>
                         <QlariusWeb.Components.TiqitExpirationCountdown.badge
@@ -308,9 +315,6 @@
                         <.arcade_more_options_popover
                           piece={@selected_piece}
                           current_scope={@current_scope}
-                          disable_purchase_options?={
-                            Arcade.has_valid_tiqit?(@current_scope, @selected_piece)
-                          }
                         />
                       </div>
                       <%= if is_authed && !can_afford do %>
@@ -419,6 +423,13 @@
                   </label>
                 </form>
               </div>
+              <p
+                :if={@gift_header_label && gift_scope_pending?(@gift_scope)}
+                class="mb-2 flex shrink-0 items-center gap-1.5 text-xs font-medium text-primary sm:text-sm"
+              >
+                <.icon name="hero-gift" class="h-4 w-4 shrink-0" />
+                {@gift_header_label}
+              </p>
               <%!-- Owned-only filter — hidden when the user has no valid tiqits in scope. --%>
               <%= if has_owned? do %>
                 <label class="flex items-center gap-2 mb-3 flex-shrink-0 cursor-pointer text-xs text-base-content/70 select-none">
@@ -432,6 +443,7 @@
               <% end %>
               <div
                 id="arqade-episodes-scroll"
+                phx-hook="ArqadeEpisodesScroll"
                 class={[
                   "space-y-2 min-h-0",
                   @in_app_group? && "flex-1 min-h-0 overflow-y-auto",
@@ -466,6 +478,7 @@
                 <.link
                   :for={piece <- visible_pieces}
                   href="#"
+                  data-arqade-piece-id={piece.id}
                   phx-click="select-content"
                   phx-value-content-id={piece.id}
                   class={"rounded-lg p-3 flex gap-3 items-stretch min-w-0 border-2 border-solid transition-colors hover:shadow-sm
@@ -529,8 +542,19 @@
                             />
                           </svg>
                         <% else %>
-                          {ContentPiece.default_tiqit_class(piece).price
-                          |> format_usd(zero_free: true)}
+                          <%= if gift_piece_included?(
+                                 piece.id,
+                                 @gift_scope,
+                                 @gift_piece_id,
+                                 @valid_tiqit_piece_ids
+                               ) do %>
+                            <span title="Included in your gift">
+                              <.icon name="hero-gift" class="h-4 w-4 shrink-0 text-primary" />
+                            </span>
+                          <% else %>
+                            {ContentPiece.default_tiqit_class(piece).price
+                            |> format_usd(zero_free: true)}
+                          <% end %>
                         <% end %>
                       </span>
                     </div>
@@ -571,6 +595,9 @@
               balance={@balance}
               tiqit_up_group_credit={@tiqit_up_group_credit}
               tiqit_up_catalog_credit={@tiqit_up_catalog_credit}
+              active_tiqit_classes={
+                Arcade.active_tiqit_classes(@current_scope, @selected_piece)
+              }
             />
           <% else %>
             <.content_shelf

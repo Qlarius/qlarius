@@ -1428,6 +1428,31 @@ Hooks.EpisodeSearchField = {
   }
 }
 
+Hooks.ArqadeEpisodesScroll = {
+  mounted() {
+    this._pendingPieceId = null
+    this.handleEvent('scroll_arqade_episode_into_view', ({ piece_id: pieceId }) => {
+      this._pendingPieceId = pieceId
+      this.scrollToPiece(pieceId)
+    })
+  },
+  updated() {
+    if (this._pendingPieceId != null) {
+      this.scrollToPiece(this._pendingPieceId)
+      this._pendingPieceId = null
+    }
+  },
+  scrollToPiece(pieceId) {
+    if (pieceId == null || pieceId === '') return
+    requestAnimationFrame(() => {
+      const row = this.el.querySelector(`[data-arqade-piece-id="${pieceId}"]`)
+      if (row) {
+        row.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      }
+    })
+  }
+}
+
 Hooks.YouTubePoster = {
   mounted() {
     const youtubeId = this.el.dataset.youtubeId

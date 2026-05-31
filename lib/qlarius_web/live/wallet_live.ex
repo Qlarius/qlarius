@@ -363,7 +363,8 @@ defmodule QlariusWeb.WalletLive do
     [
       "Will Call Gift",
       "Tiqit Gift Purchase (Will Call)",
-      "Will Call Gift Reversal"
+      "Will Call Gift Reversal",
+      "Revoked - Tiqit Gift Purchase"
     ]
   end
 
@@ -495,6 +496,7 @@ defmodule QlariusWeb.WalletLive do
   def icon_for_meta_1("Will Call Gift"), do: "hero-gift"
   def icon_for_meta_1("Tiqit Gift Purchase (Will Call)"), do: "hero-gift"
   def icon_for_meta_1("Will Call Gift Reversal"), do: "hero-arrow-uturn-left"
+  def icon_for_meta_1("Revoked - Tiqit Gift Purchase"), do: "hero-arrow-uturn-left"
   def icon_for_meta_1("Tiqit Refund"), do: "hero-arrow-uturn-left"
   def icon_for_meta_1("Tiqit Undo"), do: "hero-arrow-uturn-left"
   def icon_for_meta_1("Referral Bonus"), do: "hero-user-group"

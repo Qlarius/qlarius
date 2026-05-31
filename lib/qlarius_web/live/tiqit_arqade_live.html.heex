@@ -65,6 +65,9 @@
           "content_id" => invitation_content_piece_id(@invitation) || @selected_piece_id,
           "gift_piece_id" =>
             gift_highlight_piece_id(@invitation, @gift_claim_succeeded),
+          "gift_scope" => gift_embed_scope(@invitation, @gift_claim_succeeded),
+          "gift_header_label" =>
+            gift_embed_header_label(@invitation, @group, @gift_claim_succeeded),
           "auth_sheet_host_enabled?" => QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns),
           "parent_phx_id" => @socket.id
         }

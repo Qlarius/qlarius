@@ -228,6 +228,7 @@ defmodule QlariusWeb.TiqitArqadeLive do
       socket
       |> assign(:show_invitation_overlay, false)
       |> maybe_refresh_claimed_invitation()
+      |> maybe_focus_gift_piece_in_embed()
     end
   end
 
@@ -380,6 +381,34 @@ defmodule QlariusWeb.TiqitArqadeLive do
 
   defp maybe_refresh_claimed_invitation(socket), do: socket
 
+  defp maybe_focus_gift_piece_in_embed(socket) do
+    case socket.assigns[:invitation] do
+      %{state: :active_gift} ->
+        notify_arcade_embed_focus_gift(socket)
+
+      _ ->
+        socket
+    end
+  end
+
+  defp notify_arcade_embed_focus_gift(socket) do
+    case {socket.assigns[:arcade_embed_pid], gift_focus_piece_id(socket.assigns)} do
+      {pid, piece_id} when is_pid(pid) and not is_nil(piece_id) ->
+        send(pid, {:focus_gift_piece, piece_id})
+
+      _ ->
+        :ok
+    end
+
+    socket
+  end
+
+  defp gift_focus_piece_id(assigns) do
+    gift_highlight_piece_id(assigns[:invitation], assigns[:gift_claim_succeeded]) ||
+      invitation_content_piece_id(assigns[:invitation]) ||
+      assigns[:selected_piece_id]
+  end
+
   # Tell the inline arcade embed to refresh its scope/tiqits and drop the gift
   # highlight so the claimed piece renders as Active (Play) instead of Gifted.
   defp notify_arcade_embed_gift_claimed(socket) do
@@ -441,6 +470,45 @@ defmodule QlariusWeb.TiqitArqadeLive do
       do: id
 
   def gift_highlight_piece_id(_, _), do: nil
+
+  @doc false
+  def gift_embed_scope(nil, _gift_claim_succeeded?), do: nil
+  def gift_embed_scope(_resolved, true), do: nil
+
+  def gift_embed_scope(%{state: :active_gift, invitation: invitation}, false) do
+    case gift_access_scope(invitation.tiqit_class, invitation) do
+      :piece -> "piece"
+      :group -> "group"
+      :catalog -> "catalog"
+      _ -> nil
+    end
+  end
+
+  def gift_embed_scope(_resolved, _gift_claim_succeeded?), do: nil
+
+  @doc false
+  def gift_embed_header_label(nil, _group, _gift_claim_succeeded?), do: nil
+  def gift_embed_header_label(_resolved, _group, true), do: nil
+
+  def gift_embed_header_label(%{state: :active_gift, invitation: invitation}, group, false) do
+    catalog = group.catalog
+
+    type_label =
+      case gift_access_scope(invitation.tiqit_class, invitation) do
+        :group ->
+          Qlarius.Tiqit.Arcade.Catalog.type_label(catalog.group_type, 1, capitalize: false)
+
+        :catalog ->
+          Qlarius.Tiqit.Arcade.Catalog.type_label(catalog.type, 1, capitalize: false)
+
+        _ ->
+          nil
+      end
+
+    if type_label, do: "Gifted to you · entire #{type_label}", else: nil
+  end
+
+  def gift_embed_header_label(_resolved, _group, _gift_claim_succeeded?), do: nil
 
   @doc false
   def recipient_gift_card(%{will_call: will_call, invitation: invitation}, group)
@@ -574,7 +642,7 @@ defmodule QlariusWeb.TiqitArqadeLive do
     "Entire #{group_type} · #{piece_count} #{piece_label}"
   end
 
-  defp gift_access_includes(:catalog, group, catalog) do
+  defp gift_access_includes(:catalog, _group, catalog) do
     group_count = length(catalog.content_groups)
     group_type = catalog.group_type |> to_string()
     group_label = if group_count == 1, do: group_type, else: pluralize(group_type)

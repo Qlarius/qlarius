@@ -198,6 +198,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          episode_search: "",
          show_owned_only?: false,
          gift_piece_id: parse_int(session["gift_piece_id"]),
+         gift_scope: session["gift_scope"],
+         gift_header_label: session["gift_header_label"],
          play_frame: nil,
          slide_over_active: false,
          slide_over_title: "Now playing"
@@ -462,16 +464,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   def handle_event("browse-tiqit-options", _params, socket) do
     piece = socket.assigns.selected_piece
 
-    if Arcade.has_valid_tiqit?(socket.assigns.current_scope, piece) do
-      {:noreply, socket}
-    else
-      socket
-      |> assign(
-        selected_tiqit_class: ContentPiece.default_tiqit_class(piece),
-        options_modal: true
-      )
-      |> noreply()
-    end
+    socket
+    |> assign(
+      selected_tiqit_class: ContentPiece.default_tiqit_class(piece),
+      options_modal: true
+    )
+    |> noreply()
   end
 
   # --- Share / Gift ------------------------------------------------------
@@ -553,6 +551,19 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       gift_flow? =
         socket.assigns.show_share_gift_modal && socket.assigns.share_gift_mode == "gift"
 
+      blocked_for_purchase? =
+        !gift_flow? &&
+          !Arcade.tiqit_class_purchasable?(
+            tc,
+            Arcade.active_tiqit_classes(
+              socket.assigns.current_scope,
+              socket.assigns.selected_piece
+            )
+          )
+
+      if blocked_for_purchase? do
+        {:noreply, socket}
+      else
       {credit, count, adjusted_price} =
         if gift_flow? do
           {Decimal.new(0), 0, tc.price}
@@ -579,6 +590,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
           options_modal: false
         )
         |> noreply()
+      end
       end
     end
   end
@@ -707,19 +719,29 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
           socket.assigns.group
         )
 
-      opts =
-        if tiqit_class.content_piece_id do
-          []
-        else
-          [tiqit_up_credit: socket.assigns.selected_tiqit_class_credit]
-        end
+      if Arcade.tiqit_class_purchasable?(
+           tiqit_class,
+           Arcade.active_tiqit_classes(
+             socket.assigns.current_scope,
+             socket.assigns.selected_piece
+           )
+         ) do
+        opts =
+          if tiqit_class.content_piece_id do
+            []
+          else
+            [tiqit_up_credit: socket.assigns.selected_tiqit_class_credit]
+          end
 
-      :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class, opts)
+        :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class, opts)
 
-      socket
-      |> socket_after_tiqit_purchase()
-      |> open_player_for_selected_piece()
-      |> noreply()
+        socket
+        |> socket_after_tiqit_purchase()
+        |> open_player_for_selected_piece()
+        |> noreply()
+      else
+        {:noreply, put_flash(socket, :error, "That Tiqit is not an upgrade from your current access.")}
+      end
     end
   end
 
@@ -781,7 +803,24 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       {:noreply,
        socket
        |> assign(:gift_piece_id, nil)
+       |> assign(:gift_scope, nil)
+       |> assign(:gift_header_label, nil)
        |> refresh_scope_after_wallet_or_offer_event()}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info({:focus_gift_piece, piece_id}, socket) do
+    if socket.assigns[:mounted] do
+      piece_id = parse_int(piece_id) || piece_id
+
+      socket =
+        socket
+        |> select_content_by_id(piece_id)
+        |> push_event("scroll_arqade_episode_into_view", %{piece_id: piece_id})
+
+      {:noreply, socket}
     else
       {:noreply, socket}
     end
@@ -1051,6 +1090,41 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   end
 
   @doc false
+  def gift_scope_pending?(gift_scope) when gift_scope in ["piece", "group", "catalog"], do: true
+  def gift_scope_pending?(_gift_scope), do: false
+
+  @doc false
+  def selected_gift_pending?(gift_scope, gift_piece_id, selected_piece_id, valid_tiqit_piece_ids) do
+    cond do
+      gift_scope in ["group", "catalog"] ->
+        true
+
+      gift_scope == "piece" ->
+        gift_piece_highlight?(selected_piece_id, gift_piece_id, valid_tiqit_piece_ids)
+
+      true ->
+        false
+    end
+  end
+
+  @doc false
+  def gift_piece_included?(piece_id, gift_scope, gift_piece_id, valid_tiqit_piece_ids) do
+    cond do
+      MapSet.member?(valid_tiqit_piece_ids, piece_id) ->
+        false
+
+      gift_scope in ["group", "catalog"] ->
+        true
+
+      gift_scope == "piece" ->
+        gift_piece_highlight?(piece_id, gift_piece_id, valid_tiqit_piece_ids)
+
+      true ->
+        false
+    end
+  end
+
+  @doc false
   def gift_piece_highlight?(piece_id, gift_piece_id, valid_tiqit_piece_ids) do
     not is_nil(gift_piece_id) and piece_id == gift_piece_id and
       not MapSet.member?(valid_tiqit_piece_ids, piece_id)
@@ -1108,11 +1182,17 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   end
 
   defp build_gift_result(%{invitation: invitation, raw_pin: pin, claim_path: claim_path}, %TiqitClass{} = tc, piece, group) do
-    title = if tc.content_piece_id && piece, do: piece.title, else: group.title
     url = Qlarius.Qlink.Urls.public_app_url(claim_path)
+    {content_type, content_name} = ContentSharing.gift_message_fields(tc, piece, group)
 
     message =
-      ContentSharing.build_gift_invitation_message(title, url, pin, invitation.gift_expires_at)
+      ContentSharing.build_gift_invitation_message(
+        url: url,
+        pin: pin,
+        gift_expires_at: invitation.gift_expires_at,
+        content_type: content_type,
+        content_name: content_name
+      )
 
     %{type: "gift", url: url, pin: pin, message: message}
   end

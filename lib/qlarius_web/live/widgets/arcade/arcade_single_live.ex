@@ -334,18 +334,25 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           socket.assigns.group
         )
 
-      {credit, count} = tiqit_class_credit(tc, socket.assigns)
-      adjusted_price = Decimal.max(Decimal.new(0), Decimal.sub(tc.price, credit))
+      if Arcade.tiqit_class_purchasable?(
+           tc,
+           Arcade.active_tiqit_classes(socket.assigns.current_scope, socket.assigns.piece)
+         ) do
+        {credit, count} = tiqit_class_credit(tc, socket.assigns)
+        adjusted_price = Decimal.max(Decimal.new(0), Decimal.sub(tc.price, credit))
 
-      socket
-      |> assign(
-        selected_tiqit_class: tc,
-        selected_tiqit_class_adjusted_price: adjusted_price,
-        selected_tiqit_class_credit: credit,
-        selected_tiqit_class_active_count: count,
-        options_modal: false
-      )
-      |> noreply()
+        socket
+        |> assign(
+          selected_tiqit_class: tc,
+          selected_tiqit_class_adjusted_price: adjusted_price,
+          selected_tiqit_class_credit: credit,
+          selected_tiqit_class_active_count: count,
+          options_modal: false
+        )
+        |> noreply()
+      else
+        {:noreply, socket}
+      end
     end
   end
 
@@ -391,36 +398,43 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           socket.assigns.group
         )
 
-      opts =
-        if tiqit_class.content_piece_id do
-          []
-        else
-          [tiqit_up_credit: socket.assigns.selected_tiqit_class_credit]
-        end
+      if Arcade.tiqit_class_purchasable?(
+           tiqit_class,
+           Arcade.active_tiqit_classes(socket.assigns.current_scope, socket.assigns.piece)
+         ) do
+        opts =
+          if tiqit_class.content_piece_id do
+            []
+          else
+            [tiqit_up_credit: socket.assigns.selected_tiqit_class_credit]
+          end
 
-      :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class, opts)
+        :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class, opts)
 
-      user = socket.assigns.current_scope.user
-      balance = Wallets.get_user_current_balance(user)
-      WalletBalanceSync.broadcast_balance_change(user, balance)
+        user = socket.assigns.current_scope.user
+        balance = Wallets.get_user_current_balance(user)
+        WalletBalanceSync.broadcast_balance_change(user, balance)
 
-      tiqit = Arcade.get_valid_tiqit(socket.assigns.current_scope, socket.assigns.piece)
-      scope = socket.assigns.current_scope
-      updated_scope = scope && %{scope | wallet_balance: balance}
+        tiqit = Arcade.get_valid_tiqit(socket.assigns.current_scope, socket.assigns.piece)
+        scope = socket.assigns.current_scope
+        updated_scope = scope && %{scope | wallet_balance: balance}
 
-      socket
-      |> cancel_tiqit_content_modal_close_timer()
-      |> assign(
-        has_tiqit?: true,
-        tiqit: tiqit,
-        selected_tiqit_class: nil,
-        show_tiqit_content_modal: socket.assigns[:inline?] == true,
-        balance: balance,
-        current_scope: updated_scope
-      )
-      |> WalletBalanceSync.notify_parent_wallet_update(balance)
-      |> send_post_message("tiqit_purchased", tiqit)
-      |> noreply()
+        socket
+        |> cancel_tiqit_content_modal_close_timer()
+        |> assign(
+          has_tiqit?: true,
+          tiqit: tiqit,
+          selected_tiqit_class: nil,
+          show_tiqit_content_modal: socket.assigns[:inline?] == true,
+          balance: balance,
+          current_scope: updated_scope
+        )
+        |> WalletBalanceSync.notify_parent_wallet_update(balance)
+        |> send_post_message("tiqit_purchased", tiqit)
+        |> noreply()
+      else
+        {:noreply, put_flash(socket, :error, "That Tiqit is not an upgrade from your current access.")}
+      end
     end
   end
 

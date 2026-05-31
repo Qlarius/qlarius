@@ -463,7 +463,7 @@ defmodule Qlarius.Wallets do
   # one (e.g. `ContentSharing.create_gift/2`, `redeem_gift/2`, expiration).
 
   @will_call_gift_meta "Tiqit Gift Purchase (Will Call)"
-  @will_call_reversal_meta "Will Call Gift Reversal"
+  @will_call_reversal_meta "Revoked - Tiqit Gift Purchase"
   @media_gift_credit_description "TIQIT GIFT CREDIT"
   @media_gift_credit_meta "Friend gift credit"
 

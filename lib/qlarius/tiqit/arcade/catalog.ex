@@ -64,6 +64,45 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
     semester: {"Semester", "Semesters"}
   }
 
+  # Indefinite article for lowercase singular labels in prose ("a lesson", "an episode").
+  @type_indefinite_articles %{
+    article: "an",
+    episode: "an",
+    album: "an"
+  }
+
+  @doc """
+  Returns `"a"` or `"an"` for a catalog content-type atom's singular label.
+  """
+  @spec indefinite_article(atom() | String.t()) :: String.t()
+  def indefinite_article(type) when is_binary(type) do
+    type |> String.to_existing_atom() |> indefinite_article()
+  rescue
+    ArgumentError -> "a"
+  end
+
+  def indefinite_article(type) when is_atom(type) do
+    Map.get(@type_indefinite_articles, type, "a")
+  end
+
+  @doc """
+  Singular type label prefixed with the correct indefinite article.
+
+  ## Examples
+
+      iex> Qlarius.Tiqit.Arcade.Catalog.type_with_article(:lesson)
+      "a lesson"
+
+      iex> Qlarius.Tiqit.Arcade.Catalog.type_with_article(:episode)
+      "an episode"
+  """
+  @spec type_with_article(atom() | String.t(), keyword()) :: String.t()
+  def type_with_article(type, opts \\ []) do
+    article = indefinite_article(type)
+    label = type_label(type, 1, Keyword.put_new(opts, :capitalize, false))
+    "#{article} #{label}"
+  end
+
   @doc """
   Human-readable singular or plural label for a catalog content-type atom.
 

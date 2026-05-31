@@ -98,9 +98,16 @@
               <div class="bg-accent/10 border-b border-accent/30 px-4 py-2 flex items-center justify-between">
                 <div class="flex items-center gap-2 text-sm">
                   <.icon name="hero-arrow-trending-up" class="w-5 h-5 text-accent" />
-                  <span class="font-semibold text-accent">Tiqit Up available!</span>
+                  <span class="font-semibold text-accent">Tiqit Up discount available!</span>
                   <span class="text-base-content/70">
-                    You've earned a free upgrade. Select it in the tiqit grid!
+                    Check out your
+                    <button
+                      type="button"
+                      phx-click="browse-tiqit-options"
+                      class="link link-primary font-medium align-baseline"
+                    >
+                      Purchase Options
+                    </button>.
                   </span>
                 </div>
                 <button class="btn btn-ghost btn-xs" phx-click="dismiss-tiqit-up-nudge">
@@ -275,6 +282,7 @@
             balance={@balance}
             tiqit_up_group_credit={@tiqit_up_group_credit}
             tiqit_up_catalog_credit={@tiqit_up_catalog_credit}
+            active_tiqit_classes={Arcade.active_tiqit_classes(@current_scope, @piece)}
           />
         <% else %>
           <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/70 bg-base-200/40 p-3">

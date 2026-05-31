@@ -44,6 +44,101 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     Repo.one(query)
   end
 
+  @doc """
+  Returns active `TiqitClass` records the user currently holds valid
+  non-expired tiqits for within this piece's scope (piece, group, or catalog).
+  """
+  def active_tiqit_classes(nil, %ContentPiece{}), do: []
+  def active_tiqit_classes(%Scope{user: nil}, %ContentPiece{}), do: []
+
+  def active_tiqit_classes(%Scope{} = scope, %ContentPiece{} = piece) do
+    now = DateTime.utc_now()
+    piece = Repo.preload(piece, :content_group)
+
+    from(t in Tiqit,
+      join: tc in assoc(t, :tiqit_class),
+      join: u in assoc(t, :user),
+      where:
+        tc.content_piece_id == ^piece.id or
+          tc.content_group_id == ^piece.content_group_id or
+          tc.catalog_id == ^piece.content_group.catalog_id,
+      where: u.id == ^scope.user.id,
+      where: is_nil(t.expires_at) or t.expires_at > ^now,
+      select: tc
+    )
+    |> Repo.all()
+    |> Enum.uniq_by(& &1.id)
+  end
+
+  @doc """
+  Returns a `MapSet` of `tiqit_class.id`s the user currently holds valid
+  non-expired tiqits for within this piece's scope (piece, group, or catalog).
+  """
+  def active_tiqit_class_ids(scope, piece) do
+    scope
+    |> active_tiqit_classes(piece)
+    |> Enum.map(& &1.id)
+    |> MapSet.new()
+  end
+
+  @doc """
+  True when `candidate` may be purchased while `active_classes` are held.
+  Blocks the exact active class and any option that is lower in access scope,
+  duration, or price than an active tiqit (upgrades only).
+  """
+  def tiqit_class_purchasable?(_candidate, []), do: true
+
+  def tiqit_class_purchasable?(candidate, active_classes) when is_list(active_classes) do
+    Enum.all?(active_classes, fn active ->
+      not downgrade_relative_to_active?(candidate, active)
+    end)
+  end
+
+  @doc false
+  def tiqit_class_scope_level(%TiqitClass{content_piece_id: id}) when not is_nil(id), do: 1
+
+  def tiqit_class_scope_level(%TiqitClass{content_group_id: id}) when not is_nil(id), do: 2
+
+  def tiqit_class_scope_level(%TiqitClass{
+        catalog_id: id,
+        content_piece_id: nil,
+        content_group_id: nil
+      })
+      when not is_nil(id),
+      do: 3
+
+  def tiqit_class_scope_level(_), do: 0
+
+  @doc false
+  def tiqit_class_duration_rank(%TiqitClass{duration_hours: nil}), do: 999_999_999
+
+  def tiqit_class_duration_rank(%TiqitClass{duration_hours: hours}) when is_integer(hours),
+    do: hours
+
+  defp downgrade_relative_to_active?(%TiqitClass{id: id}, %TiqitClass{id: id}), do: true
+
+  defp downgrade_relative_to_active?(candidate, active) do
+    candidate_scope = tiqit_class_scope_level(candidate)
+    active_scope = tiqit_class_scope_level(active)
+
+    cond do
+      candidate_scope < active_scope ->
+        true
+
+      candidate_scope > active_scope ->
+        false
+
+      tiqit_class_duration_rank(candidate) < tiqit_class_duration_rank(active) ->
+        true
+
+      Decimal.compare(candidate.price, active.price) == :lt ->
+        true
+
+      true ->
+        false
+    end
+  end
+
   def has_valid_tiqit?(nil, %ContentPiece{}), do: false
   def has_valid_tiqit?(%Scope{user: nil}, %ContentPiece{}), do: false
 

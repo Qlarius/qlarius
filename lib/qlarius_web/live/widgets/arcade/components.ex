@@ -4,6 +4,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass
+  alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Wallets
   import QlariusWeb.CoreComponents
   import QlariusWeb.Money
@@ -40,6 +41,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   attr :select_event, :string, default: "select-tiqit-class"
   attr :selected_class_id, :integer, default: nil
   attr :apply_tiqit_up?, :boolean, default: true
+  attr :active_tiqit_classes, :list, default: []
 
   def tiqit_class_grid(assigns) do
     piece = assigns.piece
@@ -132,6 +134,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                       tiqit_class={class}
                       select_event={@select_event}
                       selected_class_id={@selected_class_id}
+                      active_tiqit_classes={@active_tiqit_classes}
                     />
                   </div>
                 <% else %>
@@ -149,6 +152,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                           credit={@group_credit}
                           select_event={@select_event}
                           selected_class_id={@selected_class_id}
+                          active_tiqit_classes={@active_tiqit_classes}
                         />
                       <% else %>
                         <.tiqit_class_grid_price
@@ -156,6 +160,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                           tiqit_class={class}
                           select_event={@select_event}
                           selected_class_id={@selected_class_id}
+                          active_tiqit_classes={@active_tiqit_classes}
                         />
                       <% end %>
                     </div>
@@ -175,6 +180,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                           credit={@catalog_credit}
                           select_event={@select_event}
                           selected_class_id={@selected_class_id}
+                          active_tiqit_classes={@active_tiqit_classes}
                         />
                       <% else %>
                         <.tiqit_class_grid_price
@@ -182,6 +188,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                           tiqit_class={class}
                           select_event={@select_event}
                           selected_class_id={@selected_class_id}
+                          active_tiqit_classes={@active_tiqit_classes}
                         />
                       <% end %>
                     </div>
@@ -213,12 +220,16 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   attr :credit, :any, required: true
   attr :select_event, :string, default: "select-tiqit-class"
   attr :selected_class_id, :integer, default: nil
+  attr :active_tiqit_classes, :list, default: []
 
   def tiqit_class_grid_price_with_credit(assigns) do
-    credit = assigns.credit
+    credit = assigns.credit || Decimal.new(0)
     original = assigns.tiqit_class.price
     adjusted = Decimal.max(Decimal.new(0), Decimal.sub(original, credit))
     has_credit = Decimal.compare(credit, Decimal.new(0)) == :gt
+
+    purchasable? =
+      Arcade.tiqit_class_purchasable?(assigns.tiqit_class, assigns.active_tiqit_classes)
 
     assigns =
       assign(assigns,
@@ -226,10 +237,15 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         has_credit: has_credit,
         is_free: Decimal.compare(adjusted, Decimal.new(0)) != :gt,
         original: original,
-        chip_class: grid_price_chip_class(assigns.tiqit_class.id, assigns.selected_class_id, true)
+        purchasable?: purchasable?,
+        chip_class:
+          grid_price_chip_class(assigns.tiqit_class.id, assigns.selected_class_id, purchasable?)
       )
 
     ~H"""
+    <%= if !@purchasable? do %>
+      <.tiqit_class_grid_price_locked price={@original} />
+    <% else %>
     <%= if @is_free and @has_credit do %>
       <div class="flex flex-col items-center gap-0.5">
         <span class="text-xs text-base-content/40 line-through">{format_usd(@original)}</span>
@@ -268,9 +284,24 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           tiqit_class={@tiqit_class}
           select_event={@select_event}
           selected_class_id={@selected_class_id}
+          active_tiqit_classes={@active_tiqit_classes}
         />
       <% end %>
     <% end %>
+    <% end %>
+    """
+  end
+
+  attr :price, :any, required: true
+
+  defp tiqit_class_grid_price_locked(assigns) do
+    ~H"""
+    <div
+      class="btn-widget btn-sm btn-disabled rounded-full px-3 py-1 cursor-not-allowed opacity-60"
+      title="Upgrade only — you already have equal or better access"
+    >
+      {format_usd(@price, zero_free: true)}
+    </div>
     """
   end
 
@@ -282,12 +313,24 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   attr :balance, :any, required: true
   attr :select_event, :string, default: "select-tiqit-class"
   attr :selected_class_id, :integer, default: nil
+  attr :active_tiqit_classes, :list, default: []
 
   def tiqit_class_grid_price(assigns) do
-    chip_class = grid_price_chip_class(assigns.tiqit_class.id, assigns.selected_class_id, true)
-    assigns = assign(assigns, :chip_class, chip_class)
+    purchasable? =
+      Arcade.tiqit_class_purchasable?(assigns.tiqit_class, assigns.active_tiqit_classes)
+
+    chip_class =
+      grid_price_chip_class(assigns.tiqit_class.id, assigns.selected_class_id, purchasable?)
+
+    assigns =
+      assigns
+      |> assign(:purchasable?, purchasable?)
+      |> assign(:chip_class, chip_class)
 
     ~H"""
+    <%= if !@purchasable? do %>
+      <.tiqit_class_grid_price_locked price={@tiqit_class.price} />
+    <% else %>
     <%= if is_nil(@balance) or Decimal.compare(@balance, @tiqit_class.price) != :lt do %>
       <button
         phx-click={@select_event}
@@ -300,6 +343,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       <div class="btn-widget btn-sm btn-disabled rounded-full px-3 py-1">
         {format_usd(@tiqit_class.price, zero_free: true)}
       </div>
+    <% end %>
     <% end %>
     """
   end
@@ -320,11 +364,14 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   attr :piece, :map, required: true
   attr :current_scope, :map, default: nil
   attr :event_target, :string, default: "#arcade-pwa-detect"
-  attr :disable_purchase_options?, :boolean, default: false
 
   def arcade_more_options_popover(assigns) do
     popover_id = "arcade-more-options-#{assigns.piece.id}"
-    assigns = assign(assigns, :popover_id, popover_id)
+
+    assigns =
+      assigns
+      |> assign(:popover_id, popover_id)
+      |> assign(:share_gift_disabled?, !authed?(assigns.current_scope))
 
     ~H"""
     <.popover
@@ -349,38 +396,33 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         <div class="flex w-full flex-col gap-3">
           <button
             type="button"
-            disabled={@disable_purchase_options?}
             phx-click={
-              unless @disable_purchase_options? do
-                Phoenix.LiveView.JS.dispatch("qlarius:close-popover",
-                  detail: %{id: @popover_id}
-                )
-                |> Phoenix.LiveView.JS.push("browse-tiqit-options", target: @event_target)
-              end
+              Phoenix.LiveView.JS.dispatch("qlarius:close-popover",
+                detail: %{id: @popover_id}
+              )
+              |> Phoenix.LiveView.JS.push("browse-tiqit-options", target: @event_target)
             }
-            class={[
-              "btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5",
-              @disable_purchase_options? && "btn-disabled opacity-60 cursor-not-allowed"
-            ]}
-            title={
-              if @disable_purchase_options?,
-                do: "You already have an active Tiqit for this episode",
-                else: nil
-            }
+            class="btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5"
           >
             <.icon name="hero-squares-2x2" class="h-6 w-6 shrink-0" />
             <span class="text-sm font-medium">Full purchase options</span>
           </button>
           <button
-            :if={authed?(@current_scope)}
             type="button"
+            disabled={@share_gift_disabled?}
             phx-click={
-              Phoenix.LiveView.JS.dispatch("qlarius:close-popover",
-                detail: %{id: @popover_id}
-              )
-              |> Phoenix.LiveView.JS.push("open-share-gift-modal", target: @event_target)
+              unless @share_gift_disabled? do
+                Phoenix.LiveView.JS.dispatch("qlarius:close-popover",
+                  detail: %{id: @popover_id}
+                )
+                |> Phoenix.LiveView.JS.push("open-share-gift-modal", target: @event_target)
+              end
             }
-            class="btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5"
+            class={[
+              "btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5",
+              @share_gift_disabled? && "btn-disabled opacity-60 cursor-not-allowed"
+            ]}
+            title={if @share_gift_disabled?, do: "Connect to share or gift", else: nil}
           >
             <.icon name="hero-gift" class="h-6 w-6 shrink-0" />
             <span class="text-sm font-medium">Share / Gift</span>
@@ -928,7 +970,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       </p>
       <span
         :if={@gift_pending?}
-        class="badge badge-primary mt-0.5 h-auto w-fit gap-1.5 py-1.5 text-sm shrink-0"
+        class="badge badge-primary mt-0.5 h-auto w-fit gap-1.5 py-2.5 text-sm shrink-0"
       >
         <.icon name="hero-gift" class="h-4 w-4" /> Gifted
       </span>
