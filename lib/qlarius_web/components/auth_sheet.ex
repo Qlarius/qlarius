@@ -1282,15 +1282,6 @@ defmodule QlariusWeb.Components.AuthSheet do
         <p class="text-sm text-base-content/70 md:text-base">
           Enter your mobile number to receive a 6-digit code.
         </p>
-        <h3 class="text-md font-bold text-base-content/70 md:text-base mb-0 mt-3 tracking-tight">
-          New here?
-        </h3>
-        <p class="text-sm text-base-content/70 md:text-base">
-          Start your new account and wallet.<br />
-          Only need your US mobile phone.<br />
-          Takes 2 minutes or less.<br />
-          Prefunded with $3.00+ on us.
-        </p>
       </div>
 
       <.form
@@ -1330,6 +1321,18 @@ defmodule QlariusWeb.Components.AuthSheet do
           Send code
         </button>
       </.form>
+
+      <div class="flex flex-col items-center gap-0 text-center border-t border-base-content/[0.07] pt-5">
+        <h3 class="text-md font-bold text-base-content/70 md:text-base mb-0 tracking-tight">
+          New here?
+        </h3>
+        <p class="text-sm text-base-content/70 md:text-base">
+          Start your new account and wallet.<br />
+          Only need your US mobile phone.<br />
+          Takes 2 minutes or less.<br />
+          Prefunded with $3.00+ on us.
+        </p>
+      </div>
 
       {powered_by_qadabra_footer()}
     </div>

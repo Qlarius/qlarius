@@ -61,24 +61,101 @@ document.addEventListener('touchstart', primeAudioForIOS, { once: true })
 
 Hooks.CopyToClipboard = {
   mounted() {
-    this.el.addEventListener("click", (e) => {
-      const targetId = this.el.dataset.target
-      const targetEl = document.getElementById(targetId)
-      
-      if (targetEl) {
-        targetEl.select()
-        targetEl.setSelectionRange(0, 99999)
-        
-        try {
-          const successful = document.execCommand('copy')
-          if (successful) {
-            this.pushEvent("copy_success", {})
-          }
-        } catch (err) {
-          console.error('Failed to copy: ', err)
-        }
+    this._confirmationTimeout = null
+    this._copiedLabelTimeout = null
+    this._originalLabel = null
+    this._handleClick = () => this._copy()
+    this.el.addEventListener("click", this._handleClick)
+    this._cacheCopyLabel()
+  },
+  updated() {
+    if (!this._copiedLabelTimeout) {
+      this._cacheCopyLabel()
+    }
+  },
+  destroyed() {
+    this.el.removeEventListener("click", this._handleClick)
+    this._clearTimers()
+  },
+  _cacheCopyLabel() {
+    const labelEl = this.el.querySelector("[data-copy-label]")
+    if (labelEl) {
+      this._originalLabel = labelEl.textContent
+    }
+  },
+  _clearTimers() {
+    if (this._confirmationTimeout) {
+      clearTimeout(this._confirmationTimeout)
+      this._confirmationTimeout = null
+    }
+    if (this._copiedLabelTimeout) {
+      clearTimeout(this._copiedLabelTimeout)
+      this._copiedLabelTimeout = null
+    }
+  },
+  async _copy() {
+    const targetId = this.el.dataset.target
+    const targetEl = document.getElementById(targetId)
+
+    if (!targetEl) return
+
+    const text = targetEl.value ?? targetEl.textContent ?? ""
+    let successful = false
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+        successful = true
+      } else {
+        targetEl.select?.()
+        targetEl.setSelectionRange?.(0, text.length)
+        successful = document.execCommand("copy")
       }
-    })
+    } catch (err) {
+      try {
+        targetEl.select?.()
+        targetEl.setSelectionRange?.(0, text.length)
+        successful = document.execCommand("copy")
+      } catch (fallbackErr) {
+        console.error("Failed to copy:", fallbackErr)
+      }
+    }
+
+    if (successful) {
+      this._showConfirmation()
+      this.pushEvent("copy_success", {})
+    }
+  },
+  _showConfirmation() {
+    const confirmationId = this.el.dataset.confirmation
+
+    if (confirmationId) {
+      const confirmationEl = document.getElementById(confirmationId)
+
+      if (confirmationEl) {
+        confirmationEl.classList.remove("hidden")
+
+        if (this._confirmationTimeout) clearTimeout(this._confirmationTimeout)
+
+        this._confirmationTimeout = setTimeout(() => {
+          confirmationEl.classList.add("hidden")
+          this._confirmationTimeout = null
+        }, 2500)
+      }
+    }
+
+    const labelEl = this.el.querySelector("[data-copy-label]")
+
+    if (labelEl && this._originalLabel) {
+      labelEl.textContent = this.el.dataset.copiedLabel || "Copied!"
+
+      if (this._copiedLabelTimeout) clearTimeout(this._copiedLabelTimeout)
+
+      this._copiedLabelTimeout = setTimeout(() => {
+        labelEl.textContent = this._originalLabel
+        this._copiedLabelTimeout = null
+      }, 2500)
+    }
   }
 }
 

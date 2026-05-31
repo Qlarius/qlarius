@@ -763,14 +763,19 @@
         </.pill_join_selector>
 
         <%= if @share_gift_result do %>
+          <div class="mb-2 w-full">
+            <.brand_logo />
+          </div>
           <div class="flex w-full flex-col items-stretch gap-5 text-center">
-            <.lede class="font-medium text-base-content/80 px-1">
-              <%= if @share_gift_result.type == "gift" do %>
-                Your gift is waiting at will call. Send this to your friend:
-              <% else %>
+            <%= if @share_gift_result.type == "gift" do %>
+              <.title class="px-1">
+                Gift purchase successful. Send this info via text or email:
+              </.title>
+            <% else %>
+              <.lede class="font-medium text-base-content/80 px-1">
                 Your share link is ready. Send this to your friend:
-              <% end %>
-            </.lede>
+              </.lede>
+            <% end %>
             <.invitation_textarea id="share-gift-message" value={@share_gift_result.message} />
             <%= if @share_gift_result.pin do %>
               <.lede>
@@ -782,9 +787,20 @@
               id="copy-share-gift"
               phx-hook="CopyToClipboard"
               data-target="share-gift-message"
+              data-confirmation="copy-share-gift-confirmation"
+              data-copied-label="Copied!"
             >
-              <.icon name="hero-clipboard-document" class="mr-2 h-5 w-5 shrink-0" /> Copy invitation
+              <.icon name="hero-clipboard-document" class="mr-2 h-5 w-5 shrink-0" />
+              <span data-copy-label>Copy invitation</span>
             </.primary_button>
+            <p
+              id="copy-share-gift-confirmation"
+              class="hidden text-sm font-medium text-success"
+              aria-live="polite"
+              role="status"
+            >
+              Copied to clipboard!
+            </p>
           </div>
         <% else %>
           <% share_header_scope =
@@ -878,7 +894,7 @@
           <.link navigate="/referrals" class="link">See referral details.</.link>
         </.footnote>
 
-        <div class="flex justify-center">
+        <div :if={is_nil(@share_gift_result)} class="flex justify-center">
           <img src="/images/TIQIT_logo_color_square.svg" alt="Tiqit" class="h-8 w-auto" />
         </div>
         </div>
