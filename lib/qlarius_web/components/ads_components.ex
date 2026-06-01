@@ -816,15 +816,10 @@ defmodule QlariusWeb.Components.AdsComponents do
       phx-value-offer_id={@offer.id}
     >
       <%= if @completed do %>
-        <%!-- Completed state - matches 3-tap phase 3 layout --%>
-        <div class="flex items-center gap-4 w-full px-2">
-          <%!-- Checkmark on left --%>
-          <div class="flex-shrink-0 text-green-500">
-            <.icon name="hero-check" class="w-8 h-8" />
-          </div>
-          <%!-- Text content on right with fixed width for alignment --%>
-          <div class="flex flex-col justify-center min-w-[160px]">
-            <div class="font-semibold text-sm text-gray-400">
+        <%!-- Completed state: text left, checkmark right --%>
+        <div class="flex w-full items-center justify-between gap-4">
+          <div class="flex min-w-0 flex-1 flex-col justify-center">
+            <div class="text-sm font-semibold text-gray-400">
               Attention Paid™
             </div>
             <% # Get totals from Video context
@@ -842,6 +837,9 @@ defmodule QlariusWeb.Components.AdsComponents do
                 Given: <span class="font-semibold">{format_usd(recipient_collect_total)}</span>
               </div>
             <% end %>
+          </div>
+          <div class="shrink-0 text-green-500">
+            <.icon name="hero-check" class="h-8 w-8" />
           </div>
         </div>
       <% else %>

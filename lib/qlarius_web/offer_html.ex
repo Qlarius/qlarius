@@ -160,27 +160,29 @@ defmodule QlariusWeb.OfferHTML do
         <div class={"offer-phase phase-3 #{if @phase < 3, do: "hidden"}"}>
           <.offer_container
             offer={@offer}
-            class="p-3 bg-base-300 flex flex-col justify-center text-center text-base-content select-none"
+            class="bg-base-300 flex items-center justify-between gap-4 p-5 text-base-content select-none"
             target={@target}
             recipient={@recipient}
           >
-            <div class="text-green-500 -mt-3">
-              <.icon name="hero-check" class="w-6 h-6" />
-            </div>
-            <div class="font-semibold text-sm text-gray-400">
-              Attention Paid™
-            </div>
-            <% # Get totals from ThreeTap context
-            {me_file_collect_total, recipient_collect_total} =
-              ThreeTap.calculate_offer_totals(@offer.id, @current_scope.user.me_file.id, @recipient) %>
-            <div class="text-sm text-gray-400">
-              Collected: <span class="font-semibold">{format_usd(me_file_collect_total)}</span>
-            </div>
-            <%= if @recipient && !@tip_only do %>
-              <div class="text-sm text-gray-400 -mt-1">
-                Given: <span class="font-semibold">{format_usd(recipient_collect_total)}</span>
+            <div class="flex min-w-0 flex-1 flex-col justify-center text-left">
+              <div class="text-sm font-semibold text-gray-400">
+                Attention Paid™
               </div>
-            <% end %>
+              <% # Get totals from ThreeTap context
+              {me_file_collect_total, recipient_collect_total} =
+                ThreeTap.calculate_offer_totals(@offer.id, @current_scope.user.me_file.id, @recipient) %>
+              <div class="text-sm text-gray-400">
+                Collected: <span class="font-semibold">{format_usd(me_file_collect_total)}</span>
+              </div>
+              <%= if @recipient && !@tip_only do %>
+                <div class="text-sm text-gray-400">
+                  Given: <span class="font-semibold">{format_usd(recipient_collect_total)}</span>
+                </div>
+              <% end %>
+            </div>
+            <div class="shrink-0 text-green-500">
+              <.icon name="hero-check" class="h-8 w-8" />
+            </div>
           </.offer_container>
         </div>
       </div>
