@@ -1327,10 +1327,7 @@ defmodule QlariusWeb.Components.AuthSheet do
           New here?
         </h3>
         <p class="text-sm text-base-content/70 md:text-base">
-          Start your new account and wallet.<br />
-          Only need your US mobile phone.<br />
-          Takes 2 minutes or less.<br />
-          Prefunded with $3.00+ on us.
+          Your US mobile phone is all you need to activate your new wallet, prefunded with $3.00+ on us. Takes 2 minutes or less.
         </p>
       </div>
 
