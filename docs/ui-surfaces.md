@@ -38,7 +38,7 @@ Applied in `Layouts.mobile` on the main content wrapper. Individual LiveViews sh
 
 ## Rollout
 
-1. **Done:** `/home` section panels, Strong Start, global mobile page canvas, `/me_file` category groups, `/me_file_builder` category index, `/wallet` ledger list and transaction detail drawer, `/ads` 3-tap cards and video list.
+1. **Done:** `/home` section panels, Strong Start, global mobile page canvas, `/me_file` category groups, `/me_file_builder` category index, `/wallet` ledger list and transaction detail drawer, `/ads` 3-tap cards and video list, `/referrals`.
 2. **Later:** metric tile system, builder slide-over trait list wrapper (if needed).
 
 ## Related
