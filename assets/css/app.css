@@ -2144,13 +2144,15 @@
 
   .mobile-bottom-nav__track {
     --mobile-nav-track-padding: 0.25rem;
+    --mobile-nav-track-padding-x: 0.375rem;
+    --mobile-nav-active-inset: 0.25rem;
 
     position: relative;
     display: flex;
     align-items: stretch;
     box-sizing: border-box;
     height: var(--mobile-bottom-nav-height);
-    padding: var(--mobile-nav-track-padding) 0;
+    padding: var(--mobile-nav-track-padding) var(--mobile-nav-track-padding-x);
     border: 1px solid var(--color-base-300);
     border-radius: 9999px;
     overflow: hidden;
@@ -2401,10 +2403,20 @@
 
   .mobile-bottom-nav__item--active {
     color: var(--color-primary);
-    background: rgba(15, 23, 42, 0.05);
+    background: transparent;
   }
 
-  html[data-theme="dark"] .mobile-bottom-nav__item--active {
+  .mobile-bottom-nav__item--active::before {
+    content: "";
+    position: absolute;
+    inset: var(--mobile-nav-active-inset);
+    z-index: -1;
+    border-radius: 9999px;
+    background: rgba(15, 23, 42, 0.05);
+    transition: background-color 180ms ease;
+  }
+
+  html[data-theme="dark"] .mobile-bottom-nav__item--active::before {
     background: rgba(255, 255, 255, 0.08);
   }
 
