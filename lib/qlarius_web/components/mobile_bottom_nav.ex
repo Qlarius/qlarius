@@ -1,9 +1,14 @@
 defmodule QlariusWeb.Components.MobileBottomNav do
   @moduledoc """
-  Floating pill-shaped bottom navigation with Apple-inspired liquid glass styling.
+  Floating pill-shaped bottom navigation with liquid glass styling.
 
   Fixed to the viewport bottom and overlays page content; scroll regions use
-  `--mobile-bottom-nav-offset` for bottom clearance. See `app.css`.
+  `--mobile-bottom-nav-offset` for bottom clearance. See `app.css` and
+  `assets/js/mobile_bottom_nav_glass.js`.
+
+  - **Safari / iOS / Firefox:** frosted `-webkit-backdrop-filter` only (no SVG refraction).
+  - **Chromium (when detected):** `backdrop-filter: url(#qlarius-mobile-bottom-nav-glass)` on
+    the glass `::after` layer (filter defs in `root.html.heex`, built by JS).
   """
   use Phoenix.Component
 
@@ -23,7 +28,12 @@ defmodule QlariusWeb.Components.MobileBottomNav do
     ~H"""
     <div class={["mobile-bottom-nav-area", @class]}>
       <nav class="mobile-bottom-nav" aria-label="Main navigation">
-        <div class="mobile-bottom-nav__track">
+        <div
+          id="mobile-bottom-nav-track"
+          class="mobile-bottom-nav__track"
+          phx-hook="MobileBottomNavGlass"
+        >
+          <div class="mobile-bottom-nav__glass-backdrop" aria-hidden="true"></div>
           {render_slot(@inner_block)}
         </div>
       </nav>

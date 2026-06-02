@@ -36,6 +36,15 @@ Consumer mobile screens use a two-layer surface model inspired by high-contrast 
 
 Applied in `Layouts.mobile` on the main content wrapper. Individual LiveViews should not set their own page background unless there is a deliberate full-bleed exception.
 
+### Mobile bottom nav liquid glass
+
+The floating pill nav uses a dedicated glass backdrop layer (`mobile_bottom_nav__glass-backdrop`):
+
+- **Safari / iOS / Firefox:** `-webkit-backdrop-filter` frosted blur + light gradient tint (no SVG grain).
+- **Chromium (when `MobileBottomNavGlass` hook enables it):** `feDisplacementMap` via `backdrop-filter: url(#qlarius-mobile-bottom-nav-glass)` on the glass `::after` layer (blur lives inside the SVG filter, not in CSS).
+
+Do not apply SVG `url()` filters in `backdrop-filter` on iOS — WebKit accepts the syntax but drops the entire backdrop stack.
+
 ## Rollout
 
 1. **Done:** `/home` section panels, Strong Start, global mobile page canvas, `/me_file` category groups, `/me_file_builder` category index, `/wallet` ledger list and transaction detail drawer, `/ads` 3-tap cards and video list, `/referrals`.

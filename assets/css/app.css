@@ -2143,104 +2143,231 @@
   }
 
   .mobile-bottom-nav__track {
+    --mobile-nav-track-padding: 0.25rem;
+
     position: relative;
     display: flex;
     align-items: stretch;
     height: var(--mobile-bottom-nav-height);
-    padding: 0.25rem;
+    padding: var(--mobile-nav-track-padding) 0;
     border-radius: 9999px;
     overflow: hidden;
     isolation: isolate;
   }
 
-  /* Light mode — low tint + heavy blur; let backdrop do the work, not a white fill */
-  html:not([data-theme="dark"]) .mobile-bottom-nav__track {
+  /*
+   * Glass shell: tint/border on the element; backdrop blur/refraction on ::after only
+   * (Chromium needs backdrop-filter: url(#…) alone — no CSS blur() beside it).
+   */
+  .mobile-bottom-nav__glass-backdrop {
+    --mobile-nav-glass-blur: 16px;
+
+    position: absolute;
+    /* Cover full pill outline (padding box is inset from rounded border box). */
+    inset: calc(-1 * var(--mobile-nav-track-padding)) 0;
+    z-index: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    isolation: isolate;
+  }
+
+  .mobile-bottom-nav__glass-backdrop::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    isolation: isolate;
+    -webkit-backdrop-filter: blur(var(--mobile-nav-glass-blur)) saturate(165%);
+    backdrop-filter: blur(var(--mobile-nav-glass-blur)) saturate(165%);
+  }
+
+  /* Safari / Firefox frosted glass (not Chromium SVG refraction) */
+  html:not([data-liquid-glass-backdrop="true"]):not([data-theme="dark"])
+    .mobile-bottom-nav__glass-backdrop {
     background: rgba(255, 255, 255, 0.14);
-    border: 1px solid rgba(255, 255, 255, 0.38);
+    /* Inset ring: track overflow:hidden clips outer border on flat top/bottom edges */
+    border: none;
     box-shadow:
-      0 10px 28px rgba(15, 23, 42, 0.07),
-      0 2px 8px rgba(15, 23, 42, 0.04),
-      inset 0 1px 0 rgba(255, 255, 255, 0.32),
+      inset 0 0 0 1px color-mix(in srgb, var(--color-base-content) 34%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.58),
+      inset 0 -1px 0 color-mix(in srgb, var(--color-base-content) 16%, transparent),
+      0 10px 28px rgba(15, 23, 42, 0.09),
+      0 2px 8px rgba(15, 23, 42, 0.05);
+  }
+
+  html:not([data-theme="dark"]) .mobile-bottom-nav__glass-backdrop::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 1;
+    background:
+      radial-gradient(
+        125% 95% at 50% 0%,
+        rgba(255, 255, 255, 0.38) 0%,
+        rgba(255, 255, 255, 0.1) 45%,
+        transparent 72%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 255, 255, 0.06) 46%,
+        rgba(255, 255, 255, 0.02) 68%,
+        color-mix(in srgb, var(--color-base-content) 5%, transparent) 100%
+      ),
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--color-base-content) 6%, transparent) 0%,
+        transparent 20%,
+        transparent 80%,
+        color-mix(in srgb, var(--color-base-content) 6%, transparent) 100%
+      );
+  }
+
+  html:not([data-liquid-glass-backdrop="true"])[data-theme="dark"]
+    .mobile-bottom-nav__glass-backdrop {
+    background: rgba(28, 28, 30, 0.36);
+    border: none;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.34),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.45),
+      0 12px 32px rgba(0, 0, 0, 0.42),
+      0 2px 8px rgba(0, 0, 0, 0.28);
+  }
+
+  html[data-theme="dark"] .mobile-bottom-nav__glass-backdrop::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 1;
+    background:
+      radial-gradient(
+        125% 95% at 50% 0%,
+        rgba(255, 255, 255, 0.14) 0%,
+        rgba(255, 255, 255, 0.04) 48%,
+        transparent 74%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.03) 44%,
+        rgba(255, 255, 255, 0.01) 66%,
+        rgba(0, 0, 0, 0.18) 100%
+      ),
+      linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.14) 0%,
+        transparent 20%,
+        transparent 80%,
+        rgba(0, 0, 0, 0.14) 100%
+      );
+  }
+
+  html[data-theme="dark"] .mobile-bottom-nav__glass-backdrop::after {
+    -webkit-backdrop-filter: blur(var(--mobile-nav-glass-blur)) saturate(165%)
+      brightness(0.96);
+    backdrop-filter: blur(var(--mobile-nav-glass-blur)) saturate(165%) brightness(0.96);
+  }
+
+  /*
+   * Chromium: SVG refraction on ::after (url() only — no CSS blur beside it).
+   * Do not use clip-path here; it disables backdrop-filter in Chrome.
+   * Pill masking comes from .mobile-bottom-nav__track { overflow: hidden }.
+   */
+  html[data-liquid-glass-backdrop="true"] .mobile-bottom-nav__glass-backdrop::after {
+    -webkit-backdrop-filter: url(#qlarius-mobile-bottom-nav-glass);
+    backdrop-filter: url(#qlarius-mobile-bottom-nav-glass);
+  }
+
+  html[data-liquid-glass-backdrop="true"]:not([data-theme="dark"])
+    .mobile-bottom-nav__glass-backdrop {
+    background: rgba(255, 255, 255, 0.34);
+    border: 1px solid rgba(255, 255, 255, 0.58);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.22),
+      0 10px 28px rgba(15, 23, 42, 0.09),
+      0 2px 8px rgba(15, 23, 42, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.48),
       inset 0 -1px 0 rgba(15, 23, 42, 0.05);
-    -webkit-backdrop-filter: blur(32px) saturate(165%);
-    backdrop-filter: blur(32px) saturate(165%);
   }
 
-  html:not([data-theme="dark"]) .mobile-bottom-nav__track::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    z-index: 1;
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.14) 0%,
-      rgba(255, 255, 255, 0.03) 40%,
-      transparent 65%
-    );
+  html[data-liquid-glass-backdrop="true"]:not([data-theme="dark"])
+    .mobile-bottom-nav__glass-backdrop::before {
+    background:
+      radial-gradient(
+        125% 95% at 50% 0%,
+        rgba(255, 255, 255, 0.45) 0%,
+        rgba(255, 255, 255, 0.14) 42%,
+        transparent 70%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.28) 0%,
+        rgba(255, 255, 255, 0.1) 40%,
+        rgba(255, 255, 255, 0.04) 62%,
+        color-mix(in srgb, var(--color-base-content) 4%, transparent) 100%
+      ),
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--color-base-content) 5%, transparent) 0%,
+        transparent 18%,
+        transparent 82%,
+        color-mix(in srgb, var(--color-base-content) 5%, transparent) 100%
+      );
   }
 
-  html:not([data-theme="dark"]) .mobile-bottom-nav__track::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0.03;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    mix-blend-mode: overlay;
-  }
-
-  html[data-theme="dark"] .mobile-bottom-nav__track {
-    background: rgba(28, 28, 30, 0.42);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+  html[data-liquid-glass-backdrop="true"][data-theme="dark"]
+    .mobile-bottom-nav__glass-backdrop {
+    background: rgba(28, 28, 30, 0.48);
+    border: 1px solid rgba(255, 255, 255, 0.16);
     box-shadow:
-      0 12px 32px rgba(0, 0, 0, 0.38),
-      0 2px 8px rgba(0, 0, 0, 0.24),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.3);
-    -webkit-backdrop-filter: blur(28px) saturate(165%) brightness(0.92);
-    backdrop-filter: blur(28px) saturate(165%) brightness(0.92);
+      0 0 0 1px rgba(255, 255, 255, 0.06),
+      0 12px 32px rgba(0, 0, 0, 0.4),
+      0 2px 8px rgba(0, 0, 0, 0.26),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.32);
   }
 
-  html[data-theme="dark"] .mobile-bottom-nav__track::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    z-index: 1;
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.1) 0%,
-      rgba(255, 255, 255, 0.02) 42%,
-      transparent 68%
-    );
-  }
-
-  html[data-theme="dark"] .mobile-bottom-nav__track::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0.035;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    mix-blend-mode: overlay;
+  html[data-liquid-glass-backdrop="true"][data-theme="dark"]
+    .mobile-bottom-nav__glass-backdrop::before {
+    background:
+      radial-gradient(
+        125% 95% at 50% 0%,
+        rgba(255, 255, 255, 0.16) 0%,
+        rgba(255, 255, 255, 0.05) 46%,
+        transparent 72%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.12) 0%,
+        rgba(255, 255, 255, 0.04) 42%,
+        rgba(255, 255, 255, 0.015) 64%,
+        rgba(0, 0, 0, 0.16) 100%
+      ),
+      linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.12) 0%,
+        transparent 18%,
+        transparent 82%,
+        rgba(0, 0, 0, 0.12) 100%
+      );
   }
 
   @supports not (
     (-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))
   ) {
-    html:not([data-theme="dark"]) .mobile-bottom-nav__track {
+    html:not([data-theme="dark"]) .mobile-bottom-nav__glass-backdrop {
       background: color-mix(in srgb, var(--color-base-100) 88%, transparent);
       border-color: var(--color-base-300);
     }
 
-    html[data-theme="dark"] .mobile-bottom-nav__track {
+    html[data-theme="dark"] .mobile-bottom-nav__glass-backdrop {
       background: var(--color-base-300);
       border-color: rgba(255, 255, 255, 0.08);
     }
@@ -2319,20 +2446,20 @@
   }
 
   @media (prefers-reduced-transparency: reduce) {
-    html:not([data-theme="dark"]) .mobile-bottom-nav__track {
-      -webkit-backdrop-filter: none;
-      backdrop-filter: none;
+    html:not([data-theme="dark"]) .mobile-bottom-nav__glass-backdrop {
       background: color-mix(in srgb, var(--color-base-100) 92%, transparent);
     }
 
-    html[data-theme="dark"] .mobile-bottom-nav__track {
-      -webkit-backdrop-filter: none;
-      backdrop-filter: none;
+    html[data-theme="dark"] .mobile-bottom-nav__glass-backdrop {
       background: var(--color-base-300);
     }
 
-    .mobile-bottom-nav__track::before,
-    .mobile-bottom-nav__track::after {
+    .mobile-bottom-nav__glass-backdrop::after {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+
+    .mobile-bottom-nav__glass-backdrop::before {
       display: none;
     }
   }

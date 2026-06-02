@@ -25,9 +25,12 @@ import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import {hooks as colocatedHooks} from "phoenix-colocated/qlarius"
 import {computePosition, flip, shift, offset, arrow, size, autoUpdate} from "@floating-ui/dom"
+import {MobileBottomNavGlassHook} from "./mobile_bottom_nav_glass"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let Hooks = {}
+
+Hooks.MobileBottomNavGlass = MobileBottomNavGlassHook()
 
 // iOS Audio Priming - unlock audio playback on first user interaction
 // iOS Safari requires audio to be triggered by user gesture before programmatic playback works
