@@ -2,6 +2,7 @@ defmodule QlariusWeb.ReferralsLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Referrals
+  alias Qlarius.Qlink.Urls
   import QlariusWeb.PWAHelpers
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
@@ -60,6 +61,7 @@ defmodule QlariusWeb.ReferralsLive do
       |> assign(:can_add_referral, can_add)
       |> assign(:referred_users, referred_users)
       |> assign(:my_referral_code, my_referral_code)
+      |> assign(:referral_link_url, Urls.public_app_url("/?ref=#{my_referral_code}"))
       |> assign(:referral_code_input, "")
       |> assign(:referral_error, nil)
       |> assign(:show_referral_form, referral == nil && can_add)
@@ -193,7 +195,7 @@ defmodule QlariusWeb.ReferralsLive do
                       <input
                         id="referral-link-input"
                         type="text"
-                        value={"#{QlariusWeb.Endpoint.url()}/?ref=#{@my_referral_code}"}
+                        value={@referral_link_url}
                         readonly
                         class="input input-bordered flex-1 font-mono text-sm"
                       />

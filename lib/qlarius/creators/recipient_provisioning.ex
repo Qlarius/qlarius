@@ -120,7 +120,6 @@ defmodule Qlarius.Creators.RecipientProvisioning do
   end
 
   defp default_site_url(%Creator{id: id}) do
-    path = "/creators/#{id}"
-    QlariusWeb.Endpoint.url() <> path
+    Qlarius.Qlink.Urls.public_app_url("/creators/#{id}")
   end
 end

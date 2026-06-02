@@ -133,7 +133,7 @@ defmodule Qlarius.Qlink.Urls do
   @doc """
   Main-app `MeFileLive` URL (`/me_file`) from a Qlink request URI.
 
-  Uses `https://qadabra.app` in production; localhost / Gigalixir use the request origin.
+  Uses `public_app_origin/0` (qadabra.app in production); localhost uses the request origin.
   """
   @spec me_file_url_for_sponsorship(URI.t() | nil) :: String.t()
   def me_file_url_for_sponsorship(uri \\ nil) do
@@ -155,22 +155,17 @@ defmodule Qlarius.Qlink.Urls do
     sponsorship_main_origin(uri) <> path <> "?" <> URI.encode_query(query)
   end
 
-  defp sponsorship_main_origin(nil), do: "https://qadabra.app"
+  defp sponsorship_main_origin(nil), do: public_app_origin()
 
   defp sponsorship_main_origin(%URI{host: host} = uri) when is_binary(host) do
-    cond do
-      host in ["localhost", "127.0.0.1"] ->
-        origin_from_request(uri)
-
-      host == "qlarius.gigalixirapp.com" or String.ends_with?(host, ".gigalixirapp.com") ->
-        origin_from_request(uri)
-
-      true ->
-        "https://qadabra.app"
+    if host in ["localhost", "127.0.0.1"] do
+      origin_from_request(uri)
+    else
+      public_app_origin()
     end
   end
 
-  defp sponsorship_main_origin(_), do: "https://qadabra.app"
+  defp sponsorship_main_origin(_), do: public_app_origin()
 
   defp origin_from_request(%URI{} = uri) do
     scheme = uri.scheme || "https"
