@@ -786,7 +786,7 @@ defmodule QlariusWeb.MeFileHTML do
 
   defp mefile_fab_class(active?) do
     [
-      "btn btn-lg btn-circle shadow-lg border border-base-300",
+      "mobile-floating-fab btn btn-lg btn-circle shadow-lg",
       "bg-base-100 dark:bg-base-200 text-base-content",
       "hover:bg-base-200 dark:hover:bg-base-300",
       active? && "ring-2 ring-youdata-500/60"

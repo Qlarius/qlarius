@@ -2148,11 +2148,17 @@
     position: relative;
     display: flex;
     align-items: stretch;
+    box-sizing: border-box;
     height: var(--mobile-bottom-nav-height);
     padding: var(--mobile-nav-track-padding) 0;
+    border: 1px solid var(--color-base-300);
     border-radius: 9999px;
     overflow: hidden;
     isolation: isolate;
+  }
+
+  html[data-theme="dark"] .mobile-bottom-nav__track {
+    border-color: color-mix(in srgb, var(--color-base-content) 24%, transparent);
   }
 
   /*
@@ -2187,12 +2193,10 @@
   html:not([data-liquid-glass-backdrop="true"]):not([data-theme="dark"])
     .mobile-bottom-nav__glass-backdrop {
     background: rgba(255, 255, 255, 0.14);
-    /* Inset ring: track overflow:hidden clips outer border on flat top/bottom edges */
     border: none;
     box-shadow:
-      inset 0 0 0 1px color-mix(in srgb, var(--color-base-content) 34%, transparent),
-      inset 0 1px 0 rgba(255, 255, 255, 0.58),
-      inset 0 -1px 0 color-mix(in srgb, var(--color-base-content) 16%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.48),
+      inset 0 -1px 0 color-mix(in srgb, var(--color-base-content) 12%, transparent),
       0 10px 28px rgba(15, 23, 42, 0.09),
       0 2px 8px rgba(15, 23, 42, 0.05);
   }
@@ -2232,9 +2236,8 @@
     background: rgba(28, 28, 30, 0.36);
     border: none;
     box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.34),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.4),
       0 12px 32px rgba(0, 0, 0, 0.42),
       0 2px 8px rgba(0, 0, 0, 0.28);
   }
@@ -2288,9 +2291,8 @@
   html[data-liquid-glass-backdrop="true"]:not([data-theme="dark"])
     .mobile-bottom-nav__glass-backdrop {
     background: rgba(255, 255, 255, 0.34);
-    border: 1px solid rgba(255, 255, 255, 0.58);
+    border: none;
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.22),
       0 10px 28px rgba(15, 23, 42, 0.09),
       0 2px 8px rgba(15, 23, 42, 0.05),
       inset 0 1px 0 rgba(255, 255, 255, 0.48),
@@ -2325,9 +2327,8 @@
   html[data-liquid-glass-backdrop="true"][data-theme="dark"]
     .mobile-bottom-nav__glass-backdrop {
     background: rgba(28, 28, 30, 0.48);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    border: none;
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.06),
       0 12px 32px rgba(0, 0, 0, 0.4),
       0 2px 8px rgba(0, 0, 0, 0.26),
       inset 0 1px 0 rgba(255, 255, 255, 0.12),
@@ -2364,12 +2365,10 @@
   ) {
     html:not([data-theme="dark"]) .mobile-bottom-nav__glass-backdrop {
       background: color-mix(in srgb, var(--color-base-100) 88%, transparent);
-      border-color: var(--color-base-300);
     }
 
     html[data-theme="dark"] .mobile-bottom-nav__glass-backdrop {
       background: var(--color-base-300);
-      border-color: rgba(255, 255, 255, 0.08);
     }
   }
 
@@ -2607,6 +2606,20 @@
     }
   }
 
+}
+
+/*
+ * Mobile floating FABs (me_file, arcade): DaisyUI .btn --btn-border matches fill;
+ * utilities cannot fix it reliably — inset outline matches bottom nav track rim.
+ */
+html[data-theme="dark"] .mobile-floating-fab.btn:not(.ring-2) {
+  outline: 1px solid color-mix(in srgb, var(--color-base-content) 30%, transparent) !important;
+  outline-offset: -1px !important;
+}
+
+html:not([data-theme="dark"]) .mobile-floating-fab.btn:not(.ring-2) {
+  outline: 1px solid var(--color-base-300) !important;
+  outline-offset: -1px !important;
 }
 
 @layer base {
