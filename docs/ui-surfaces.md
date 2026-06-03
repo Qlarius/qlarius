@@ -36,14 +36,11 @@ Consumer mobile screens use a two-layer surface model inspired by high-contrast 
 
 Applied in `Layouts.mobile` on the main content wrapper. Individual LiveViews should not set their own page background unless there is a deliberate full-bleed exception.
 
-### Mobile bottom nav liquid glass
+### Mobile bottom nav frosted glass
 
-The floating pill nav uses a dedicated glass backdrop layer (`mobile_bottom_nav__glass-backdrop`):
+The floating pill nav uses a dedicated glass backdrop layer (`mobile_bottom_nav__glass-backdrop`): a `backdrop-filter: blur()` frost plus gradient highlights, applied consistently across all browsers. This is pure CSS — no JS hook and no per-browser refraction path, which keeps it flash-free on LiveView navigation.
 
-- **Safari / iOS / Firefox:** `-webkit-backdrop-filter` frosted blur + light gradient tint (no SVG grain).
-- **Chromium (when `MobileBottomNavGlass` hook enables it):** `feDisplacementMap` via `backdrop-filter: url(#qlarius-mobile-bottom-nav-glass)` on the glass `::after` layer (blur lives inside the SVG filter, not in CSS).
-
-Do not apply SVG `url()` filters in `backdrop-filter` on iOS — WebKit accepts the syntax but drops the entire backdrop stack.
+Avoid SVG `url()` filters in `backdrop-filter` here: iOS WebKit accepts the syntax but drops the entire backdrop stack, and Chromium's variant required a JS-generated displacement map that flashed on every nav patch.
 
 ## Rollout
 

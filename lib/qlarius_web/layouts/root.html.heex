@@ -145,38 +145,6 @@
     </script>
   </head>
   <body>
-    <svg
-      id="qlarius-mobile-bottom-nav-svg-defs"
-      xmlns="http://www.w3.org/2000/svg"
-      width="0"
-      height="0"
-      style="position: absolute; overflow: hidden"
-      color-interpolation-filters="sRGB"
-      aria-hidden="true"
-    >
-      <filter id="qlarius-svg-backdrop-supports-test" color-interpolation-filters="sRGB">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="0" />
-      </filter>
-      <defs id="qlarius-mobile-bottom-nav-filter-defs"></defs>
-    </svg>
-    <script>
-      (() => {
-        const ua = navigator.userAgent;
-        const chromium =
-          /Chrome|Chromium|Edg|OPR|Brave|CriOS/i.test(ua) &&
-          !/Firefox|FxiOS/i.test(ua) &&
-          !(/Safari/i.test(ua) && !/Chrome|Chromium|Edg|OPR|CriOS/i.test(ua)) &&
-          !/iPhone|iPod/i.test(ua);
-
-        if (
-          chromium &&
-          window.CSS?.supports?.("backdrop-filter", "blur(4px)") &&
-          CSS.supports("backdrop-filter", "url(#qlarius-svg-backdrop-supports-test)")
-        ) {
-          document.documentElement.dataset.liquidGlassBackdrop = "true";
-        }
-      })();
-    </script>
     {@inner_content}
   </body>
 </html>
