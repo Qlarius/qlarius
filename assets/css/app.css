@@ -2144,8 +2144,15 @@
 
   .mobile-bottom-nav__track {
     --mobile-nav-track-padding: 0.25rem;
-    --mobile-nav-track-padding-x: 0.375rem;
-    --mobile-nav-active-inset: 0.25rem;
+    --mobile-nav-track-padding-x: 0.25rem;
+    --mobile-nav-active-gap: 0.25rem;
+    --mobile-nav-inner-height: calc(
+      var(--mobile-bottom-nav-height) - 2 * var(--mobile-nav-track-padding)
+    );
+    --mobile-nav-inner-radius: calc(var(--mobile-nav-inner-height) / 2);
+    --mobile-nav-active-radius: calc(
+      var(--mobile-nav-inner-radius) - var(--mobile-nav-active-gap)
+    );
 
     position: relative;
     display: flex;
@@ -2409,11 +2416,22 @@
   .mobile-bottom-nav__item--active::before {
     content: "";
     position: absolute;
-    inset: var(--mobile-nav-active-inset);
+    inset: var(--mobile-nav-active-gap);
     z-index: -1;
     border-radius: 9999px;
     background: rgba(15, 23, 42, 0.05);
     transition: background-color 180ms ease;
+  }
+
+  /* Concentric cap radius on end tabs (9999px was sharper than the bar inner curve). */
+  .mobile-bottom-nav__item:first-child.mobile-bottom-nav__item--active::before {
+    left: calc(-1 * var(--mobile-nav-track-padding-x) + var(--mobile-nav-active-gap));
+    border-radius: var(--mobile-nav-active-radius) 9999px 9999px var(--mobile-nav-active-radius);
+  }
+
+  .mobile-bottom-nav__item:last-child.mobile-bottom-nav__item--active::before {
+    right: calc(-1 * var(--mobile-nav-track-padding-x) + var(--mobile-nav-active-gap));
+    border-radius: 9999px var(--mobile-nav-active-radius) var(--mobile-nav-active-radius) 9999px;
   }
 
   html[data-theme="dark"] .mobile-bottom-nav__item--active::before {
