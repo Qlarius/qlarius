@@ -769,7 +769,7 @@ defmodule QlariusWeb.Components.AdsComponents do
   attr :loading, :boolean, default: false
   attr :force_light, :boolean, default: false
   attr :empty_message, :string, default: "No video ads available"
-  attr :class, :string, default: ""
+  attr :class, :string, default: "max-w-[470px] mx-auto w-full"
 
   def video_offer_list(assigns) do
     ~H"""

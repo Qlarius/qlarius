@@ -183,7 +183,6 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                       recipient={@recipient}
                       tip_only={@tip_only}
                       loading={@loading_offers}
-                      class="max-w-3xl mx-auto w-full"
                     />
                   <% end %>
                 <% end %>
