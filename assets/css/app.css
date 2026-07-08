@@ -2145,7 +2145,7 @@
   .mobile-bottom-nav__track {
     --mobile-nav-track-padding: 0.25rem;
     --mobile-nav-track-padding-x: 0.25rem;
-    --mobile-nav-active-gap: 0.25rem;
+    --mobile-nav-active-gap: 0.1rem;
     --mobile-nav-inner-height: calc(
       var(--mobile-bottom-nav-height) - 2 * var(--mobile-nav-track-padding)
     );
@@ -2800,6 +2800,21 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) {
   bottom: 0px;
   left: 50%;
   overflow: hidden;
+}
+
+/* Promo-mode coin bounce layer inside the shared announcer bar.
+   80px tall (50px bar + 30px headroom), clipped so the coin slides in
+   from below, hides behind the bar surface (z-index above this layer),
+   and peeks above the bar/banner within the headroom. */
+.sponster-announcer-coin-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 80px;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .spin-bounce-background-item {

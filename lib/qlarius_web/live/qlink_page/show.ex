@@ -3,17 +3,13 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   alias Qlarius.Qlink
   alias Qlarius.Repo
-  alias Qlarius.Sponster.Offer
-  alias Qlarius.Sponster.Offers
   alias Qlarius.Wallets
+  alias QlariusWeb.SponsterRecipientSurface
   alias QlariusWeb.WalletBalanceSync
 
-  import Ecto.Query, except: [update: 2, update: 3]
   import QlariusWeb.Components.AdsComponents
-  import QlariusWeb.Components.SplitComponents
   import QlariusWeb.InstaTipComponents
-  import QlariusWeb.Components.SponsterAnnouncerBar
-  import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
+  import QlariusWeb.Components.SponsterPublicPage, only: [sponster_stack: 1]
 
   # Shared "View anywhere, Act only when authed" helpers —
   # authed?/1, connect_wallet_modal/1, etc. Same module the arqade
@@ -21,21 +17,11 @@ defmodule QlariusWeb.QlinkPage.Show do
   # Qlink page + embedded widgets.
   import QlariusWeb.Widgets.UnauthCTA
 
-  alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Browsers.InAppEscapeUrls
 
   on_mount {QlariusWeb.GetUserIP, :assign_ip}
 
   @arqade_fullpane_close_ms 300
-
-  # Sponster drawer uses `transition-all duration-300` on the sheet; the settings strip
-  # disclaimer stays collapsed until peek timers set `sponster_disclaimer_dock_visible`, then
-  # the strip peeks (translate) after a short beat, holds ~4s after the peek transition (~500ms),
-  # then slides back to tab-only and collapses the disclaimer again.
-  @sponster_drawer_slide_ms 300
-  @sponster_disclaimer_peek_pause_after_drawer_ms 650
-  @disclaimer_dock_expand_ms 500
-  @disclaimer_dock_hold_visible_ms 4000
 
   @impl true
   def mount(%{"alias" => page_alias}, _session, socket) do
@@ -76,14 +62,17 @@ defmodule QlariusWeb.QlinkPage.Show do
             |> assign(:arqade_fullpane_close_timer_ref, nil)
             |> assign_surface_context(page)
             |> assign_auth_referral_context(page)
-            |> init_sponster_assigns()
+            |> SponsterRecipientSurface.init_assigns(page.recipient)
             |> assign_in_app_escape_canonical()
             |> maybe_fire_iab_escape_shown_telemetry()
 
           # Subscribe to PubSub if authenticated and connected
-          if connected?(socket) && socket.assigns.current_scope do
-            subscribe_to_updates(socket)
-          end
+          socket =
+            if connected?(socket) && socket.assigns.current_scope do
+              SponsterRecipientSurface.subscribe(socket)
+            else
+              socket
+            end
 
           {:ok, socket}
         else
@@ -214,69 +203,6 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   defp iab_escape_url_allowed?(_), do: false
 
-  defp init_sponster_assigns(socket) do
-    host_uri =
-      case socket.host_uri do
-        %URI{host: host} = uri when is_binary(host) -> uri
-        _ -> URI.parse("https://qadabra.app")
-      end
-
-    me_file_sponsorship_url = Qlarius.Qlink.Urls.me_file_url_for_sponsorship(host_uri)
-
-    settings_notifications_url =
-      Qlarius.Qlink.Urls.settings_notifications_url_for_sponsorship(host_uri)
-
-    socket
-    |> assign(:show_sponster_drawer, false)
-    |> assign(:selected_ad_type, "three_tap")
-    |> assign(:active_offers, [])
-    |> assign(:video_offers, [])
-    |> assign(:loading_offers, false)
-    |> assign(:show_video_player, false)
-    |> assign(:current_video_offer, nil)
-    |> assign(:video_watched_complete, false)
-    |> assign(:show_replay_button, false)
-    |> assign(:video_payment_collected, false)
-    |> assign(:completed_video_offers, [])
-    |> assign(:show_collection_drawer, false)
-    |> assign(:drawer_closing, false)
-    |> assign(:show_insta_tip_modal, false)
-    |> assign(:insta_tip_amount, nil)
-    |> assign(:insta_tip_recipient, nil)
-    |> assign(:show_insta_tip_thanks_modal, false)
-    |> assign(:insta_tip_thanks_amount, nil)
-    |> assign(:insta_tip_thanks_recipient, nil)
-    |> assign(:current_balance, get_current_balance(socket))
-    |> assign(:show_ad_type_tabs, false)
-    |> assign(:show_split_drawer, false)
-    |> assign(:show_split_reminder, false)
-    |> assign(:sponster_disclaimer_dock_visible, false)
-    |> assign(:sponster_disclaimer_dock_gen, 0)
-    |> assign(:host_uri, host_uri)
-    |> assign(:me_file_sponsorship_url, me_file_sponsorship_url)
-    |> assign(:settings_notifications_url, settings_notifications_url)
-    |> assign(:show_connect_modal, false)
-    |> assign(:show_auth_sheet, false)
-    |> assign(:auth_sheet_connect_brand, :qadabra)
-  end
-
-  defp get_current_balance(socket) do
-    case socket.assigns[:current_scope] do
-      nil -> Decimal.new("0")
-      scope -> Wallets.get_user_current_balance(scope.user)
-    end
-  end
-
-  defp subscribe_to_updates(socket) do
-    socket = WalletBalanceSync.subscribe(socket)
-
-    if socket.assigns.current_scope && socket.assigns.current_scope.user do
-      Phoenix.PubSub.subscribe(Qlarius.PubSub, "user:#{socket.assigns.current_scope.user.id}")
-    end
-
-    socket
-  end
-
   @impl true
   def handle_event("iab_escape_dismiss", _params, socket) do
     :telemetry.execute([:qlarius, :in_app_browser_escape, :dismissed], %{}, %{})
@@ -335,387 +261,17 @@ defmodule QlariusWeb.QlinkPage.Show do
     {:noreply, begin_arqade_fullpane_close(socket)}
   end
 
-  def handle_event("toggle_sponster_drawer", _params, socket) do
-    {:noreply,
-     if socket.assigns.show_sponster_drawer do
-       socket
-       |> assign(:show_sponster_drawer, false)
-       |> assign(:show_split_reminder, false)
-       |> assign(:sponster_disclaimer_dock_visible, false)
-       |> bump_sponster_disclaimer_dock_gen()
-     else
-       ensure_sponster_drawer_open(socket)
-     end}
-  end
-
-  @impl true
-  def handle_event("close_sponster_drawer", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:show_sponster_drawer, false)
-     |> assign(:show_split_drawer, false)
-     |> assign(:show_split_reminder, false)
-     |> assign(:sponster_disclaimer_dock_visible, false)
-     |> bump_sponster_disclaimer_dock_gen()}
-  end
-
-  @impl true
-  def handle_event("toggle_split_drawer", _params, socket) do
-    will_open = !socket.assigns.show_split_drawer
-
-    socket =
-      socket
-      |> assign(:show_split_drawer, will_open)
-      |> assign(:show_split_reminder, false)
-      |> then(fn s ->
-        if will_open && !s.assigns.show_sponster_drawer do
-          s =
-            if Enum.empty?(s.assigns.video_offers) && Enum.empty?(s.assigns.active_offers) &&
-                 s.assigns.current_scope do
-              s
-              |> assign(:loading_offers, true)
-              |> load_offers()
-            else
-              s
-            end
-
-          s
-          |> assign(:show_sponster_drawer, true)
-          |> schedule_sponster_disclaimer_dock_peek()
-        else
-          s
-        end
-      end)
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_event("split_reminder_dismiss", _params, socket) do
-    me_file = socket.assigns.current_scope.user.me_file
-
-    socket =
-      if me_file do
-        case MeFile.dismiss_split_reminder_forever(me_file) do
-          {:ok, updated} ->
-            current_scope =
-              Map.put(
-                socket.assigns.current_scope,
-                :user,
-                Map.put(socket.assigns.current_scope.user, :me_file, updated)
-              )
-
-            socket
-            |> assign(:current_scope, current_scope)
-            |> assign(:show_split_reminder, false)
-
-          {:error, _} ->
-            assign(socket, :show_split_reminder, false)
-        end
-      else
-        assign(socket, :show_split_reminder, false)
-      end
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_event("set_split", %{"split" => split}, socket) do
-    split_amount = String.to_integer(split)
-    me_file = socket.assigns.current_scope.user.me_file
-
-    case MeFile.update_me_file_split_amount(me_file, split_amount) do
-      {:ok, updated_me_file} ->
-        current_scope =
-          Map.put(
-            socket.assigns.current_scope,
-            :user,
-            Map.put(socket.assigns.current_scope.user, :me_file, updated_me_file)
-          )
-
-        {:noreply, assign(socket, :current_scope, current_scope)}
-
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to update split amount")}
+  # All Sponster drawer / split / tip / video / auth-sheet / connect-modal
+  # events are shared with the public Tiqit Arqade pages and the embed
+  # widget via `SponsterRecipientSurface`.
+  def handle_event(event, params, socket) do
+    case SponsterRecipientSurface.handle_event(event, params, socket) do
+      {:handled, socket} -> {:noreply, socket}
+      :unhandled -> {:noreply, socket}
     end
-  end
-
-  @impl true
-  def handle_event("switch_ad_type", %{"type" => ad_type}, socket) do
-    {:noreply, assign(socket, :selected_ad_type, ad_type)}
-  end
-
-  @impl true
-  def handle_event("open_video_ad", %{"offer_id" => offer_id}, socket) do
-    offer_id = String.to_integer(offer_id)
-
-    {offer, _rate} =
-      Enum.find(socket.assigns.video_offers, fn {o, _r} -> o.id == offer_id end)
-
-    {:noreply,
-     socket
-     |> assign(:current_video_offer, offer)
-     |> assign(:show_video_player, true)
-     |> assign(:video_watched_complete, false)
-     |> assign(:show_replay_button, false)
-     |> assign(:show_collection_drawer, false)}
-  end
-
-  @impl true
-  def handle_event("close_video_player", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:show_video_player, false)
-     |> assign(:current_video_offer, nil)
-     |> assign(:video_watched_complete, false)
-     |> assign(:show_replay_button, false)
-     |> assign(:video_payment_collected, false)
-     |> assign(:show_collection_drawer, false)}
-  end
-
-  @impl true
-  def handle_event("video_watched_complete", _params, socket) do
-    already_collected =
-      socket.assigns.current_video_offer.id in socket.assigns.completed_video_offers
-
-    if already_collected do
-      {:noreply, socket}
-    else
-      socket = assign(socket, :video_watched_complete, true)
-      Process.send_after(self(), :show_collection_drawer, 100)
-      {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_event("collect_video_payment", %{"offer_id" => offer_id}, socket) do
-    offer_id = String.to_integer(offer_id)
-
-    case Enum.find(socket.assigns.video_offers, fn {o, _r} -> o.id == offer_id end) do
-      nil ->
-        {:noreply, put_flash(socket, :error, "Offer not found")}
-
-      {offer, _rate} ->
-        recipient = socket.assigns.recipient
-        split_amount = socket.assigns.current_scope.user.me_file.split_amount || 0
-        user_ip = socket.assigns[:user_ip] || "0.0.0.0"
-
-        case Qlarius.Sponster.Ads.Video.create_video_ad_event(
-               offer,
-               recipient,
-               split_amount,
-               user_ip
-             ) do
-          {:ok, _ad_event} ->
-            completed_ids = [offer_id | socket.assigns.completed_video_offers]
-            Process.send_after(self(), :auto_close_drawer, 3000)
-
-            {:noreply,
-             socket
-             |> assign(:video_watched_complete, false)
-             |> assign(:show_replay_button, false)
-             |> assign(:video_payment_collected, true)
-             |> assign(:completed_video_offers, completed_ids)}
-
-          {:error, _reason} ->
-            {:noreply, put_flash(socket, :error, "Failed to collect payment")}
-        end
-    end
-  end
-
-  @impl true
-  def handle_event("video_collect_timeout", _params, socket) do
-    Process.send_after(self(), :auto_close_drawer, 3000)
-
-    {:noreply,
-     socket
-     |> assign(:video_watched_complete, false)
-     |> assign(:show_replay_button, true)
-     |> assign(:show_collection_drawer, true)}
-  end
-
-  @impl true
-  def handle_event("replay_video", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:show_replay_button, false)
-     |> assign(:video_payment_collected, false)
-     |> assign(:show_collection_drawer, false)
-     |> assign(:drawer_closing, false)
-     |> push_event("replay-video", %{})}
-  end
-
-  # Close the shared Connect-wallet modal. Symmetric with the
-  # `phx-click` inside `connect_wallet_modal/1`'s "Keep browsing"
-  # button.
-  @impl true
-  def handle_event("close-connect-modal", _params, socket) do
-    {:noreply, assign(socket, :show_connect_modal, false)}
-  end
-
-  # AuthSheet open/close. Gated behind `:auth_sheet[:on_qlink_page]` —
-  # when the flag is off, the FAB falls back to the legacy `/login`
-  # redirect and these events never fire.
-  def handle_event("open_auth_sheet", params, socket) do
-    brand = normalize_auth_sheet_connect_brand(params["brand"])
-    {:noreply, open_auth_sheet(socket, brand)}
-  end
-
-  def handle_event("close_auth_sheet", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:show_auth_sheet, false)
-     |> assign(:auth_sheet_connect_brand, :qadabra)}
-  end
-
-  def handle_event("open-sponster-drawer", _params, socket) do
-    {:noreply,
-     if socket.assigns.show_sponster_drawer do
-       socket
-     else
-       ensure_sponster_drawer_open(socket)
-     end}
-  end
-
-  def handle_event("daily-gift", _params, socket) do
-    if authed?(socket.assigns.current_scope) do
-      user = socket.assigns.current_scope.user
-
-      case Wallets.claim_daily_gift(user) do
-        {:ok, :credited} ->
-          new_balance = Wallets.get_user_current_balance(user)
-          WalletBalanceSync.broadcast_balance_change(user, new_balance)
-          current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-
-          {:noreply,
-           socket
-           |> assign(:current_scope, current_scope)
-           |> assign(:current_balance, new_balance)}
-
-        {:error, :cooldown} ->
-          {:noreply,
-           socket
-           |> put_flash(
-             :error,
-             "You already claimed your daily gift. Try again 24 hours after your last claim."
-           )}
-
-        {:error, _} ->
-          {:noreply, put_flash(socket, :error, "Could not apply daily gift. Please try again.")}
-      end
-    else
-      {:noreply, assign(socket, :show_connect_modal, true)}
-    end
-  end
-
-  # InstaTip events
-  @impl true
-  def handle_event("initiate_insta_tip", params, socket) do
-    # Anonymous viewers see the full tip-button grid so they can
-    # explore the interaction — but the tip itself requires a
-    # connected wallet. Intercept and show the Connect modal
-    # instead of opening the confirm modal.
-    if authed?(socket.assigns.current_scope) do
-      amount = Decimal.new(to_string(params["amount"]))
-      recipient_id = params["recipient-id"] || params["recipient_id"]
-
-      # Look up the recipient for the modal
-      tip_recipient =
-        if recipient_id do
-          Qlarius.Sponster.Recipients.get_recipient!(String.to_integer(recipient_id))
-        else
-          socket.assigns.recipient
-        end
-
-      socket =
-        socket
-        |> assign(:insta_tip_amount, amount)
-        |> assign(:insta_tip_recipient, tip_recipient)
-        |> assign(:show_insta_tip_modal, true)
-        |> assign(:current_balance, get_current_balance(socket))
-
-      {:noreply, socket}
-    else
-      {:noreply, assign(socket, :show_connect_modal, true)}
-    end
-  end
-
-  @impl true
-  def handle_event("confirm_insta_tip", params, socket) do
-    amount = Decimal.new(params["amount"])
-    user = socket.assigns.current_scope.user
-    recipient_id = params["recipient-id"] || params["recipient_id"]
-
-    # Use the stored tip recipient or look it up
-    recipient =
-      if recipient_id do
-        Qlarius.Sponster.Recipients.get_recipient!(String.to_integer(recipient_id))
-      else
-        socket.assigns[:insta_tip_recipient] || socket.assigns.recipient
-      end
-
-    case Wallets.create_insta_tip_request(user, recipient, amount, user) do
-      {:ok, _ledger_event} ->
-        new_balance = Decimal.sub(socket.assigns.current_scope.wallet_balance, amount)
-        current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
-
-        {:noreply,
-         socket
-         |> assign(:current_scope, current_scope)
-         |> assign(:current_balance, new_balance)
-         |> assign(:show_insta_tip_modal, false)
-         |> assign(:insta_tip_amount, nil)
-         |> assign(:insta_tip_recipient, nil)
-         |> assign(:show_insta_tip_thanks_modal, true)
-         |> assign(:insta_tip_thanks_amount, amount)
-         |> assign(:insta_tip_thanks_recipient, (recipient && recipient.name) || "Recipient")}
-
-      {:error, _changeset} ->
-        {:noreply,
-         socket
-         |> assign(:show_insta_tip_modal, false)
-         |> assign(:insta_tip_amount, nil)
-         |> assign(:insta_tip_recipient, nil)
-         |> put_flash(:error, "Failed to send InstaTip. Please try again.")}
-    end
-  end
-
-  @impl true
-  def handle_event("cancel_insta_tip", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:show_insta_tip_modal, false)
-     |> assign(:insta_tip_amount, nil)}
-  end
-
-  @impl true
-  def handle_event("close-insta-tip-modal", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:show_insta_tip_modal, false)
-     |> assign(:insta_tip_amount, nil)}
-  end
-
-  @impl true
-  def handle_event("close-insta-tip-thanks-modal", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:show_insta_tip_thanks_modal, false)
-     |> assign(:insta_tip_thanks_amount, nil)
-     |> assign(:insta_tip_thanks_recipient, nil)}
   end
 
   # Handle info callbacks
-  @impl true
-  # Forwarded from a nested arcade LV when its Connect-wallet CTA is
-  # clicked (see `ArcadeLive.handle_event("open_auth_sheet", …)`).
-  # The nested LV sends this via `send(socket.parent_pid, …)` instead
-  # of mounting its own `AuthSheet` so the page never stacks two
-  # sheet instances.
-  def handle_info({:open_auth_sheet, brand}, socket) do
-    {:noreply, open_auth_sheet(socket, brand)}
-  end
-
   @impl true
   def handle_info({:inline_arcade_embed_ready, pid}, socket) when is_pid(pid) do
     {:noreply, WalletBalanceSync.register_inline_embed(socket, pid)}
@@ -727,15 +283,6 @@ defmodule QlariusWeb.QlinkPage.Show do
     else
       {:noreply, socket}
     end
-  end
-
-  def handle_info(:open_sponster_drawer_from_embed, socket) do
-    {:noreply,
-     if socket.assigns.show_sponster_drawer do
-       socket
-     else
-       ensure_sponster_drawer_open(socket)
-     end}
   end
 
   @impl true
@@ -768,211 +315,13 @@ defmodule QlariusWeb.QlinkPage.Show do
     end
   end
 
-  @impl true
-  def handle_info(:show_collection_drawer, socket) do
-    {:noreply, assign(socket, :show_collection_drawer, true)}
-  end
-
-  @impl true
-  def handle_info(:auto_close_drawer, socket) do
-    socket = assign(socket, :drawer_closing, true)
-    Process.send_after(self(), :finish_closing_drawer, 300)
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_info(:finish_closing_drawer, socket) do
-    {:noreply,
-     socket
-     |> assign(:video_watched_complete, false)
-     |> assign(:show_collection_drawer, false)
-     |> assign(:drawer_closing, false)}
-  end
-
-  @impl true
-  def handle_info({:sponster_disclaimer_dock_show, gen}, socket) do
-    if socket.assigns[:sponster_disclaimer_dock_gen] == gen && socket.assigns[:show_sponster_drawer] do
-      {:noreply, assign(socket, :sponster_disclaimer_dock_visible, true)}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_info({:sponster_disclaimer_dock_hide, gen}, socket) do
-    if socket.assigns[:sponster_disclaimer_dock_gen] == gen do
-      {:noreply, assign(socket, :sponster_disclaimer_dock_visible, false)}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_info(:show_split_reminder, socket) do
-    Process.send_after(self(), :split_reminder_auto_hide, 5000)
-    {:noreply, assign(socket, :show_split_reminder, true)}
-  end
-
-  @impl true
-  def handle_info(:split_reminder_auto_hide, socket) do
-    me_file = socket.assigns.current_scope.user.me_file
-
-    socket =
-      if me_file && socket.assigns.show_split_reminder do
-        case MeFile.increment_split_reminder_shown(me_file) do
-          {:ok, updated} ->
-            current_scope =
-              Map.put(
-                socket.assigns.current_scope,
-                :user,
-                Map.put(socket.assigns.current_scope.user, :me_file, updated)
-              )
-
-            socket
-            |> assign(:current_scope, current_scope)
-            |> assign(:show_split_reminder, false)
-
-          {:error, _} ->
-            assign(socket, :show_split_reminder, false)
-        end
-      else
-        assign(socket, :show_split_reminder, false)
-      end
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_info({:me_file_offers_updated, _me_file_id}, socket) do
-    case socket.assigns[:current_scope] do
-      %{user: %{me_file: %MeFile{} = me_file}} = scope ->
-        ads_count = MeFile.ad_offer_count(me_file)
-        offered_amount = Offers.total_active_offer_amount(me_file)
-
-        current_scope =
-          scope
-          |> Map.put(:ads_count, ads_count)
-          |> Map.put(:offered_amount, offered_amount)
-
-        {:noreply, assign(socket, :current_scope, current_scope)}
-
-      _ ->
-        {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_info({:me_file_pending_referral_clicks_updated, _count}, socket) do
-    {:noreply, socket}
-  end
-
-  defp ensure_sponster_drawer_open(socket) do
-    me_file =
-      socket.assigns.current_scope && socket.assigns.current_scope.user &&
-        socket.assigns.current_scope.user.me_file
-
-    socket
-    |> then(fn s ->
-      if Enum.empty?(s.assigns.video_offers) && s.assigns.current_scope do
-        s
-        |> assign(:loading_offers, true)
-        |> load_offers()
-      else
-        s
-      end
-    end)
-    |> assign(:show_sponster_drawer, true)
-    |> assign(:show_split_reminder, false)
-    |> then(fn s ->
-      if me_file && MeFile.should_show_split_reminder?(me_file) do
-        Process.send_after(self(), :show_split_reminder, 1500)
-        s
-      else
-        s
-      end
-    end)
-    |> schedule_sponster_disclaimer_dock_peek()
-  end
-
-  defp bump_sponster_disclaimer_dock_gen(socket) do
-    assign(socket, :sponster_disclaimer_dock_gen, (socket.assigns[:sponster_disclaimer_dock_gen] || 0) + 1)
-  end
-
-  defp schedule_sponster_disclaimer_dock_peek(socket) do
-    if authed?(socket.assigns[:current_scope]) do
-      gen = (socket.assigns[:sponster_disclaimer_dock_gen] || 0) + 1
-
-      peek_show_ms = @sponster_drawer_slide_ms + @sponster_disclaimer_peek_pause_after_drawer_ms
-
-      peek_hide_ms =
-        peek_show_ms + @disclaimer_dock_expand_ms + @disclaimer_dock_hold_visible_ms
-
-      Process.send_after(self(), {:sponster_disclaimer_dock_show, gen}, peek_show_ms)
-      Process.send_after(self(), {:sponster_disclaimer_dock_hide, gen}, peek_hide_ms)
-
-      socket
-      |> assign(:sponster_disclaimer_dock_gen, gen)
-      |> assign(:sponster_disclaimer_dock_visible, false)
-    else
-      socket
-    end
-  end
-
-  defp load_offers(socket) do
-    case socket.assigns[:current_scope] do
-      nil ->
-        assign(socket, :loading_offers, false)
-
-      scope ->
-        me_file_id = scope.user.me_file.id
-
-        # Load 3-tap offers
-        three_tap_query =
-          from(o in Offer,
-            join: mp in assoc(o, :media_piece),
-            where:
-              o.me_file_id == ^me_file_id and o.is_current == true and mp.media_piece_type_id == 1,
-            order_by: [desc: o.offer_amt],
-            preload: [media_piece: :ad_category]
-          )
-
-        active_offers =
-          three_tap_query
-          |> Repo.all()
-          |> Enum.map(fn offer -> {offer, 0} end)
-
-        # Load video offers
-        video_query =
-          from(o in Offer,
-            join: mp in assoc(o, :media_piece),
-            where:
-              o.me_file_id == ^me_file_id and o.is_current == true and mp.media_piece_type_id == 2,
-            preload: [media_run: [media_piece: :ad_category]]
-          )
-
-        video_offers = Repo.all(video_query)
-
-        video_offers_with_rate =
-          Enum.map(video_offers, fn offer ->
-            duration = offer.media_run.media_piece.duration || 1
-            rate = Decimal.div(offer.offer_amt || Decimal.new("0"), Decimal.new(duration))
-            {offer, rate}
-          end)
-          |> Enum.sort_by(fn {_offer, rate} -> Decimal.to_float(rate) end, :desc)
-
-        # Use shared helper to determine tab visibility and default ad type
-        {show_tabs, selected_ad_type} =
-          QlariusWeb.Components.AdsComponents.determine_ad_type_display(
-            length(active_offers),
-            length(video_offers_with_rate)
-          )
-
-        socket
-        |> assign(:active_offers, active_offers)
-        |> assign(:video_offers, video_offers_with_rate)
-        |> assign(:show_ad_type_tabs, show_tabs)
-        |> assign(:selected_ad_type, selected_ad_type)
-        |> assign(:loading_offers, false)
+  # Remaining Sponster surface messages (drawer timers, disclaimer dock,
+  # split reminder, auth sheet forwards, wallet stats) are shared via
+  # `SponsterRecipientSurface`.
+  def handle_info(msg, socket) do
+    case SponsterRecipientSurface.handle_info(msg, socket) do
+      {:handled, socket} -> {:noreply, socket}
+      :unhandled -> {:noreply, socket}
     end
   end
 
@@ -1083,35 +432,6 @@ defmodule QlariusWeb.QlinkPage.Show do
       "github" -> "/images/social-icons/github.svg"
       _ -> nil
     end
-  end
-
-  @doc """
-  One column of the Sponster announcer-bar stats box (WALLET / ADS /
-  OFFERED). Kept as a component so the authed and anon branches of
-  the bar can share exact markup — only the wrapping element
-  (`<div>` vs. `<.link>`) and the values differ.
-  """
-  attr :label, :string, required: true
-  attr :value, :string, required: true
-  attr :value_class, :string, required: true
-
-  def sponster_stat_cell(assigns) do
-    ~H"""
-    <div class="flex flex-col items-center justify-center w-full" style="padding: 6px 0;">
-      <div
-        class={@value_class}
-        style="font-size: 16px; line-height: 16px; letter-spacing: 0.4px;"
-      >
-        {@value}
-      </div>
-      <div
-        class="text-base-content/40 font-medium"
-        style="font-size: 8px; line-height: 10px; letter-spacing: 0.2px;"
-      >
-        {@label}
-      </div>
-    </div>
-    """
   end
 
   attr :link, :map, required: true
@@ -1702,35 +1022,6 @@ defmodule QlariusWeb.QlinkPage.Show do
     </div>
     """
   end
-
-  # Open the in-place AuthSheet and simultaneously close the
-  # intermediate `connect_wallet_modal` if it was open — otherwise
-  # opening the sheet from inside that interstitial would stack two
-  # modals on top of each other. Shared between the `phx-click`
-  # event handler and the `{:open_auth_sheet, brand}` info message forwarded
-  # by nested arcade LVs.
-  defp open_auth_sheet(socket, brand) do
-    socket
-    |> assign(:show_auth_sheet, true)
-    |> assign(:show_connect_modal, false)
-    |> assign(:auth_sheet_connect_brand, normalize_auth_sheet_connect_brand(brand))
-  end
-
-  defp normalize_auth_sheet_connect_brand(nil), do: :qadabra
-
-  defp normalize_auth_sheet_connect_brand(b) when b in [:qadabra, :sponster, :tiqit],
-    do: b
-
-  defp normalize_auth_sheet_connect_brand(b) when is_binary(b) do
-    case String.downcase(String.trim(b)) do
-      "sponster" -> :sponster
-      "tiqit" -> :tiqit
-      "qadabra" -> :qadabra
-      _ -> :qadabra
-    end
-  end
-
-  defp normalize_auth_sheet_connect_brand(_), do: :qadabra
 
   # Whether the in-place AuthSheet should be rendered on this request.
   # Picks the feature-flag key based on the request host — qlinkin.bio

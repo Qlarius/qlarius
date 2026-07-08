@@ -1353,6 +1353,45 @@ Hooks.PostMessage = {
   }
 }
 
+// Bidirectional bridge for the single-iframe Sponster embed (AdsExtLive).
+// Outbound: forwards LV resize events to the host page's embed script, and
+// reports the viewer-dependent collapsed height (50px authed, 80px anon —
+// see data-collapsed-height) so the iframe only reserves promo/coin
+// headroom for anonymous visitors.
+// Inbound: the embed script relays "open_sponster_drawer" requests from
+// sibling widget iframes (e.g. the InstaTip card); push them to the LV so
+// the shared surface opens the drawer.
+Hooks.SponsterWidgetBridge = {
+  mounted() {
+    this.handleEvent("send-post-message", (payload) => {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(payload, '*')
+      }
+    })
+    this.onMessage = (e) => {
+      if (e.data?.type === "open_sponster_drawer") {
+        this.pushEvent("open-sponster-drawer", {})
+      }
+    }
+    window.addEventListener("message", this.onMessage)
+    this.reportCollapsedHeight()
+  },
+  updated() {
+    // Auth state can flip on remount/patch (e.g. AuthSheet sign-in).
+    this.reportCollapsedHeight()
+  },
+  destroyed() {
+    window.removeEventListener("message", this.onMessage)
+  },
+  reportCollapsedHeight() {
+    const height = parseInt(this.el.dataset.collapsedHeight, 10)
+    if (!height || window.parent === window) return
+    if (height === this.lastReportedCollapsedHeight) return
+    this.lastReportedCollapsedHeight = height
+    window.parent.postMessage({ type: "sponster_widget_collapsed_height", height }, '*')
+  }
+}
+
 Hooks.CurrentMarketer = {
   mounted() {
     this.handleEvent('store_current_marketer', async ({ marketer_id }) => {

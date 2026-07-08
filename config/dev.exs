@@ -42,6 +42,12 @@ endpoint_config =
       certfile: Path.expand("../priv/cert/localhost+2.pem", __DIR__)
     ],
     check_origin: false,
+    # Force https://localhost:4001 locally: any request on the plain-http
+    # :4000 listener 301s to the https listener. Keeps every local surface
+    # (demosite, widget iframes, auth) on one canonical origin so the
+    # Secure/SameSite=None session cookie always applies. HSTS is off so
+    # the browser doesn't pin localhost to https for other projects.
+    force_ssl: [hsts: false, host: "localhost:4001"],
     url: [host: "localhost", port: 4001, scheme: "https"],
     static_url: [host: "localhost", port: 4001, scheme: "https"],
     code_reloader: true,
@@ -71,7 +77,7 @@ config :qlarius, QlariusWeb.Endpoint,
 config :qlarius,
   qlink_share_host: "localhost:4001",
   qlink_interact_host: "localhost:4001",
-  qlink_landing_redirect_url: "http://localhost:4001/",
+  qlink_landing_redirect_url: "https://localhost:4001/",
   public_app_host: "localhost:4001",
   public_app_scheme: "https"
 

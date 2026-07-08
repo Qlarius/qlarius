@@ -304,7 +304,6 @@ defmodule QlariusWeb.Router do
       live "/arqade/catalog/:catalog_id", Arcade.ArcadeCatalogLive
       live "/arqade/:piece_id", Arcade.ArcadeSingleLive
       live "/wallet", WalletLive
-      live "/ads_ext_announcer", AdsExtAnnouncerLive
       live "/ads_ext/", AdsExtLive
       live "/ads_ext/:split_code", AdsExtLive
       live "/insta_tip", InstaTipWidgetLive

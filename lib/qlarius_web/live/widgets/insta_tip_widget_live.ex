@@ -3,6 +3,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
 
   alias Qlarius.Accounts.Users
   alias Qlarius.Wallets
+  alias QlariusWeb.SponsterRecipientSurface
   alias QlariusWeb.WalletBalanceSync
 
   import QlariusWeb.InstaTipComponents
@@ -101,15 +102,6 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
   end
 
   @impl true
-  def handle_info(:close_insta_tip_thanks_modal, socket) do
-    {:noreply,
-     socket
-     |> assign(:show_insta_tip_thanks_modal, false)
-     |> assign(:insta_tip_thanks_amount, nil)
-     |> assign(:insta_tip_thanks_recipient, nil)}
-  end
-
-  @impl true
   def handle_info({:me_file_pending_referral_clicks_updated, pending_clicks_count}, socket) do
     current_scope =
       Map.put(socket.assigns.current_scope, :pending_referral_clicks_count, pending_clicks_count)
@@ -117,109 +109,18 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
     {:noreply, assign(socket, :current_scope, current_scope)}
   end
 
+  # Unlike the Sponster drawer surfaces, this LV has no local drawer —
+  # ask the host page (via the embed script) to open the single-iframe
+  # Sponster widget instead.
   @impl true
-  def handle_event("initiate_insta_tip", %{"amount" => amount_str}, socket) do
-    with {:cont, socket} <- maybe_intercept_for_unauth(socket) do
-      amount = Decimal.new(to_string(amount_str))
-
-      socket =
-        socket
-        |> assign(:insta_tip_amount, amount)
-        |> assign(:show_insta_tip_modal, true)
-        |> assign(
-          :current_balance,
-          Wallets.get_user_current_balance(socket.assigns.current_scope.user)
-        )
-
-      {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_event("confirm_insta_tip", %{"amount" => amount_str}, socket) do
-    amount = Decimal.new(amount_str)
-    user = socket.assigns.current_scope.user
-    recipient = socket.assigns.recipient
-
-    case Wallets.create_insta_tip_request(user, recipient, amount, user) do
-      {:ok, _ledger_event} ->
-        Process.send_after(self(), :close_insta_tip_thanks_modal, 3000)
-
-        socket =
-          socket
-          |> assign(:show_insta_tip_modal, false)
-          |> assign(:insta_tip_amount, nil)
-          |> assign(:show_insta_tip_thanks_modal, true)
-          |> assign(:insta_tip_thanks_amount, amount)
-          |> assign(:insta_tip_thanks_recipient, (recipient && recipient.name) || "Recipient")
-
-        {:noreply, socket}
-
-      {:error, _changeset} ->
-        socket =
-          socket
-          |> assign(:show_insta_tip_modal, false)
-          |> assign(:insta_tip_amount, nil)
-          |> put_flash(:error, "Failed to send InstaTip. Please try again.")
-
-        {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_event("cancel_insta_tip", _params, socket) do
-    {:noreply, socket |> assign(:show_insta_tip_modal, false) |> assign(:insta_tip_amount, nil)}
-  end
-
-  @impl true
-  def handle_event("close-insta-tip-modal", _params, socket) do
-    {:noreply, socket |> assign(:show_insta_tip_modal, false) |> assign(:insta_tip_amount, nil)}
-  end
-
-  @impl true
-  def handle_event("close-insta-tip-thanks-modal", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:show_insta_tip_thanks_modal, false)
-     |> assign(:insta_tip_thanks_amount, nil)
-     |> assign(:insta_tip_thanks_recipient, nil)}
-  end
-
-  # Shared "close the Connect interstitial" handler. Fires from both
-  # the connect_wallet_modal's Cancel button and its default
-  # `on_cancel` JS command.
-  def handle_event("close-connect-modal", _params, socket) do
-    {:noreply, assign(socket, :show_connect_modal, false)}
-  end
-
-  # AuthSheet open/close. Gated behind `auth_sheet_enabled?/1` — when
-  # the flag is off, CTAs fall back to the legacy `interact_login_url`
-  # redirect (via `wallet_strip_or_connect/1` with `on_click={nil}`)
-  # and these events never fire.
-  #
-  # Unlike arcade, this LV is ONLY ever mounted standalone (it's at
-  # /widgets/insta_tip, not rendered inline from another LV), so
-  # there's no `socket.parent_pid` forwarding to consider — we always
-  # host the sheet locally. Also closes the intermediate
-  # `show_connect_modal` to avoid stacking two modals when the user
-  # clicks "Connect your wallet" from inside the interstitial.
-  def handle_event("open_auth_sheet", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:show_auth_sheet, true)
-     |> assign(:show_connect_modal, false)}
-  end
-
-  def handle_event("close_auth_sheet", _params, socket) do
-    {:noreply, assign(socket, :show_auth_sheet, false)}
-  end
-
   def handle_event("open-sponster-drawer", _params, socket) do
     {:noreply, push_event(socket, "send-post-message", %{type: "open_sponster_drawer"})}
   end
 
+  # Kept local (not delegated) because this LV also tracks
+  # `daily_gift_available?` to disable the gift button after a claim.
   def handle_event("daily-gift", _params, socket) do
-    with {:cont, socket} <- maybe_intercept_for_unauth(socket) do
+    if authed?(socket.assigns.current_scope) do
       user = socket.assigns.current_scope.user
 
       case Wallets.claim_daily_gift(user) do
@@ -246,19 +147,18 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
         {:error, _} ->
           {:noreply, put_flash(socket, :error, "Could not apply daily gift. Please try again.")}
       end
+    else
+      {:noreply, assign(socket, :show_connect_modal, true)}
     end
   end
 
-  # Gate for wallet-required handlers. Mirrors `ArcadeLive`'s helper.
-  # Returns `{:cont, socket}` when authed, `{:noreply, socket}` with
-  # `show_connect_modal: true` when unauthed — so a `with` clause at
-  # the top of each gated handler short-circuits to open the modal
-  # instead of running the real work.
-  defp maybe_intercept_for_unauth(socket) do
-    if authed?(socket.assigns.current_scope) do
-      {:cont, socket}
-    else
-      {:noreply, assign(socket, :show_connect_modal, true)}
+  # All remaining tip / connect-modal / AuthSheet events share the exact
+  # semantics of the Sponster drawer surfaces (Qlink, Tiqit, ads_ext), so
+  # they delegate to the shared handler module.
+  def handle_event(event, params, socket) do
+    case SponsterRecipientSurface.handle_event(event, params, socket) do
+      {:handled, socket} -> {:noreply, socket}
+      :unhandled -> {:noreply, socket}
     end
   end
 

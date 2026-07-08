@@ -37,6 +37,11 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
   attr :split_panel_id, :string, default: "sponster-split-settings-panel"
   attr :info_context, :atom, default: :default
 
+  attr :announcer_anon_display, :atom,
+    default: :connect,
+    values: [:connect, :promo],
+    doc: "Anonymous announcer center content — see `sponster_announcer_bar/1`."
+
   def sponster_stack(assigns) do
     assigns =
       assign(assigns, :info_iframe_src, SponsterInfoIframe.src(assigns.info_context))
@@ -405,6 +410,7 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
         on_auth_click={@on_auth_click}
         connect_href={@connect_href}
         connect_link_target={@connect_link_target}
+        anon_display={@announcer_anon_display}
       />
     <% end %>
     """

@@ -1109,7 +1109,19 @@ defmodule QlariusWeb.Components.AuthSheet do
   defp surface_to_string(str) when is_binary(str), do: str
   defp surface_to_string(_), do: nil
 
-  defp register_url, do: "https://qadabra.app/register"
+  # Environment-aware main-app URLs for the iframe break-out interstitial:
+  # `https://qadabra.app/...` in production, `https://localhost:4001/...`
+  # in dev (see `:public_app_host` / `:public_app_scheme` config).
+  defp login_url, do: Qlarius.Qlink.Urls.public_app_url("/login")
+  defp register_url, do: Qlarius.Qlink.Urls.public_app_url("/register")
+
+  # Bare host for user-facing copy ("Sign in at qadabra.app").
+  defp public_app_host_label do
+    Qlarius.Qlink.Urls.public_app_origin()
+    |> URI.parse()
+    |> Map.get(:host)
+    |> Kernel.||("qadabra.app")
+  end
 
   # Phone + code steps only (not signup / iframe / etc.).
   defp powered_by_qadabra_footer do
@@ -1222,12 +1234,13 @@ defmodule QlariusWeb.Components.AuthSheet do
       </div>
 
       <a
-        href="https://qadabra.app/login"
+        href={login_url()}
         target="_blank"
         rel="noopener"
         class="btn-widget btn-widget-emphasis btn-lg btn-block min-h-14 rounded-full py-3.5 text-base"
       >
-        <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4" /> Sign in at qadabra.app
+        <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4" />
+        Sign in at {public_app_host_label()}
       </a>
 
       <p class="text-xs text-base-content/60">
