@@ -186,6 +186,9 @@ defmodule QlariusWeb.Components.AdminSidebar do
                   <a class="menu-item false" href={~p"/admin/traits_index"}>
                     <span class="grow">Traits Index (JSON)</span>
                   </a>
+                  <a class="menu-item false" href={~p"/admin/mefile_tags_index"}>
+                    <span class="grow">MeFile Tags Map (JSON)</span>
+                  </a>
                   <a class="menu-item false" href={~p"/admin/surveys"}>
                     <span class="grow">Survey Manager</span>
                   </a>

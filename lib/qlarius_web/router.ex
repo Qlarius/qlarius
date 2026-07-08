@@ -532,6 +532,7 @@ defmodule QlariusWeb.Router do
     # Commented out unimplemented DashboardLive module - route not implemented yet
     # live "/", DashboardLive, :index
     get "/traits_index", TraitsIndexController, :index
+    get "/mefile_tags_index", MeFileTagsIndexController, :index
     resources "/recipients", RecipientController
 
     live_session :admin_recipients,

@@ -1,0 +1,32 @@
+<div class="flex h-screen">
+  <AdminSidebar.sidebar current_user={@current_scope.user} />
+  <div class="flex min-w-0 grow flex-col">
+    <AdminTopbar.topbar current_user={@current_scope.user} />
+    <div class="overflow-auto">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h1 class="text-2xl font-bold">MeFile Tags Map (JSON)</h1>
+          <button
+            type="button"
+            class="btn btn-sm btn-primary"
+            onclick="navigator.clipboard.writeText(document.getElementById('mefile-tags-index-json').innerText).then(() => { this.textContent = 'Copied!'; setTimeout(() => { this.textContent = 'Copy'; }, 2000); })"
+          >
+            Copy
+          </button>
+        </div>
+        <p class="text-base-content/70 mb-4">
+          Output of <code class="text-sm">MeFiles.me_file_tag_map_by_category_trait_tag/1</code>
+          for MeFile {@me_file_id}: categories → parent traits → tags. Append
+          <code class="text-sm">?me_file_id=123</code>
+          to inspect another MeFile.
+        </p>
+        <div class="bg-base-200 rounded-lg p-4 overflow-x-auto">
+          <pre
+            id="mefile-tags-index-json"
+            class="text-sm font-mono whitespace-pre-wrap select-all cursor-text"
+          ><%= @json_string %></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

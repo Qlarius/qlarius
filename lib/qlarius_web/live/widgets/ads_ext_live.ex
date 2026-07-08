@@ -13,8 +13,8 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   The embed script (`priv/static/sponster-tipjar-widget-ext-script.js`)
   creates one collapsed bottom iframe. The collapsed height depends on the
   viewer: 80px for anonymous visitors (50px bar + 30px promo/coin
-  headroom) and 50px for authed viewers (just the bar — no promo overflow
-  to make room for). The `SponsterWidgetBridge` hook reports the right
+  headroom) and 60px for authed viewers (50px bar + ~10px upward shadow
+  headroom). The `SponsterWidgetBridge` hook reports the right
   height to the host page on mount. When the drawer or any modal
   opens/closes, this LV posts `sponster_widget_expand` /
   `sponster_widget_collapse` messages and the script resizes the iframe
@@ -122,12 +122,13 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <%!-- Collapsed height: authed viewers only need the 50px bar; anon
-         viewers get 30px extra headroom for promo banners + coin peek. --%>
+    <%!-- Collapsed height: authed viewers need the 50px bar plus headroom
+         for the upward box-shadow; anon viewers get 30px extra for promo
+         banners + coin peek. --%>
     <div
       id="ads-ext-postmessage-bridge"
       phx-hook="SponsterWidgetBridge"
-      data-collapsed-height={if authed?(@current_scope), do: "50", else: "80"}
+      data-collapsed-height={if authed?(@current_scope), do: "60", else: "80"}
       class="hidden"
       aria-hidden="true"
     >

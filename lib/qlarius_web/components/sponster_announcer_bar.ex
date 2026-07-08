@@ -81,7 +81,7 @@ defmodule QlariusWeb.Components.SponsterAnnouncerBar do
 
       <%!-- Bar surface: 50px background/shadow strip. Kept separate from the
            content row so promo banners + coin can overflow above it. --%>
-      <div class="sponster-announcer-bar__surface absolute inset-x-0 bottom-0 z-10 h-[50px] bg-base-100 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]" />
+      <div class="sponster-announcer-bar__surface absolute inset-x-0 bottom-0 z-10 h-[50px] bg-base-100" />
 
       <div class="relative z-20 flex h-[50px] w-full max-w-3xl items-center justify-between gap-2 px-3">
         <div class="sponster-announcer-logo-container shrink-0 md:relative md:z-10" />

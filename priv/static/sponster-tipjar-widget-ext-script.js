@@ -8,8 +8,8 @@
 // This script injects a single bottom-anchored iframe pointing at
 // /widgets/ads_ext/:split_code — the shared Sponster stack (announcer bar +
 // ad/tip drawer). Collapsed, the iframe hugs the bottom strip: the widget
-// reports its needed height via `sponster_widget_collapsed_height` (50px
-// for authed viewers — just the bar; 80px for anonymous viewers — bar plus
+// reports its needed height via `sponster_widget_collapsed_height` (60px
+// for authed viewers — bar plus shadow headroom; 80px for anonymous viewers — bar plus
 // 30px promo-banner/coin headroom). When the LiveView opens its drawer or
 // a modal it posts `sponster_widget_expand` / `sponster_widget_collapse`
 // messages here and we resize the iframe to full viewport height / back to
@@ -106,7 +106,7 @@
       if (type === "sponster_widget_collapse") collapse();
 
       // Viewer-dependent collapsed height reported by the widget on mount
-      // (50px authed, 80px anon). Apply immediately unless the drawer is
+      // (60px authed, 80px anon). Apply immediately unless the drawer is
       // currently open.
       if (type === "sponster_widget_collapsed_height" && e.data.height > 0) {
         collapsedHeight = e.data.height + "px";

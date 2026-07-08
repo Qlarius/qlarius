@@ -1355,7 +1355,7 @@ Hooks.PostMessage = {
 
 // Bidirectional bridge for the single-iframe Sponster embed (AdsExtLive).
 // Outbound: forwards LV resize events to the host page's embed script, and
-// reports the viewer-dependent collapsed height (50px authed, 80px anon —
+// reports the viewer-dependent collapsed height (60px authed, 80px anon —
 // see data-collapsed-height) so the iframe only reserves promo/coin
 // headroom for anonymous visitors.
 // Inbound: the embed script relays "open_sponster_drawer" requests from

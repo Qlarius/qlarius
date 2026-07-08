@@ -2694,11 +2694,15 @@ body {
   margin-right: 10px;
 }
 
-/* Fixed bottom announcer — light mode uses the Tailwind shadow on the bar;
-   dark mode needs a clearer top edge against the page canvas. */
-html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) {
-  border-top: 1px solid color-mix(in oklch, var(--color-base-content) 14%, transparent);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.42);
+/* Fixed bottom announcer surface — subtle top edge + compact upward shadow. */
+.sponster-announcer-bar__surface {
+  border-top: 1px solid color-mix(in oklch, var(--color-base-content) 10%, transparent);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .sponster-announcer-bar__surface {
+  border-top-color: color-mix(in oklch, var(--color-base-content) 14%, transparent);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.42);
 }
 
 .sponster-ad-count-button {
