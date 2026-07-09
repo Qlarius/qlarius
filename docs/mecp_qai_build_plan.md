@@ -1,0 +1,126 @@
+# MeCP + Qai Build Plan (Draft 1)
+
+**July 2026 · Companion to `qadabra_web/docs/qai-personal-ai-concept.md` (the concept doc). Read that first for strategy, personas, and vocabulary. This doc is the code-level plan for the `qlarius` Phoenix app.**
+
+## Ground rules
+
+1. **All tags are 100% user generated.** Qai and any AI only tee up suggested tag edits; nothing writes to a MeFile without explicit user confirmation. This is a hard constraint, not a default.
+2. **Freshness semantics are delete-and-rewrite.** Tag modification deletes old rows and writes fresh ones, so `added_date` on `me_file_tags` is always the freshness/confirmation date. No `last_confirmed_at` column is needed; re-confirmation is a rewrite.
+3. **Brand mapping:** MeCP components are YouData-branded product surfaces; Qai is the assistant surface only, exactly one MeCP client among many. Code contexts are `Qlarius.MeCP` and `Qlarius.Qai`.
+4. **Git:** commit locally, never push. Trae pushes manually (origin = GitHub; gigalixir remote deploys and requires explicit targeting).
+5. **Copy style:** no em dashes in any user-facing copy.
+
+## New contexts
+
+### `Qlarius.MeCP` (the gateway; YouData product surface)
+
+Everything governing external access to MeFile data.
+
+| Module | Responsibility |
+|---|---|
+| `MeCP.Clients` | Counterparty registry: Qai, BYO assistants, (later) commercial agents. Client type, status, MyTerms posture |
+| `MeCP.Grants` | Permission ledger: per me_file + client, category/trait scope, disclosure tier, expiry, revocation |
+| `MeCP.Capsules` | Capsule compiler: me_file + scope in, compact rendered context out (with tag dates) |
+| `MeCP.Oracle` | Narrow question answering against grants, with disclosure budgets |
+| `MeCP.AccessLog` | Audit trail: who asked what, at which tier, what shape returned, under which terms |
+| `MeCP.Terms` | MyTerms (IEEE 7012) agreement records; proffer-at-handshake |
+
+### `Qlarius.Qai` (the assistant; one MeCP client among many)
+
+Phase 2. Kept thin by design: chat sessions, model routing, suggestion queue. Qai reads MeFile data only through MeCP grants like any other client, which keeps the architecture honest and dogfoods the gateway.
+
+| Module | Responsibility |
+|---|---|
+| `Qai.Sessions` | Chat sessions and messages with `expires_at` (fleeting by default; preserve is opt-in) |
+| `Qai.Router` | Model routing: local/cheap/frontier by task and sensitivity; pooled anonymous API calls |
+| `Qai.Suggestions` | Confirm-to-add queue: proposed tag edits, pending until user confirms or dismisses |
+
+## Schema changes
+
+### Phase 0 migrations
+
+1. **`me_file_tags`: add `add_source_context` (string, nullable).** UX-optimization tracking only (e.g., `"survey"`, `"mefile_builder"`, `"qai_suggestion_confirmed"`). Does not change authorship: the user is always the author.
+2. **New tables (all `mecp_` prefixed):**
+
+```
+mecp_clients        id, name, client_type, status, public_key/token_hash,
+                    myterms_roster_ref, inserted_at, updated_at
+
+mecp_grants         id, me_file_id, mecp_client_id, scope (jsonb: category/trait ids),
+                    tier (int: 0=vault,1=rerank,2=oracle,3=capsule),
+                    budget (jsonb: per-period disclosure counters config),
+                    expires_at, revoked_at, timestamps
+
+mecp_access_events  id, mecp_grant_id, kind (capsule|oracle|rerank|handshake),
+                    request_digest, response_shape (jsonb summary, never raw values),
+                    terms_agreement_id, occurred_at
+
+mecp_terms_agreements  id, mecp_client_id, me_file_id, roster_agreement_ref,
+                       agreed_at, agreement_record (jsonb)
+```
+
+3. **`traits` volatility class: deferred.** Decision pending on new integer columns vs. `meta_*` fields; time calculations will want integers, so expect a migration. Circle back before Layer B work begins. Until then, capsule rendering treats all tags uniformly and includes dates.
+
+### Explicitly not needed
+
+- `last_confirmed_at` on tags (delete-and-rewrite makes `added_date` authoritative).
+- Source/provenance enum for authorship (all tags user generated; `add_source_context` is analytics, not provenance).
+
+## Phase 0 build (in order)
+
+1. **Migrations** above.
+2. **`MeCP.Capsules` compiler.**
+   - Input: `me_file_id`, scope (trait category ids or trait ids), options.
+   - Output: deterministic, compact markdown/text block: category → trait → tag values, each tag annotated with its `added_date` (month/year granularity) so consuming models can reason about staleness.
+   - Target ~2-4K tokens for a full file; scoped capsules much smaller.
+   - Respect grant tier and scope; sensitive-tier categories excluded unless explicitly granted.
+   - Pure function over preloaded data; property-test the rendering.
+3. **`MeCP.Oracle` prototype.**
+   - v1: structured question forms only (trait lookup, boolean/bucket answers), not free-text NL questions. Free-text comes later and will itself need an LLM pass.
+   - Enforce per-grant disclosure budgets (simple counters in `mecp_grants.budget`, incremented via `mecp_access_events`).
+4. **`MeCP.AccessLog`** writes on every capsule/oracle/handshake event. LiveView admin page can reuse patterns from `admin/mefile_inspector_live`.
+5. **Unit-economics model** (spreadsheet or livebook, not code): tokens/session × sessions/WAU vs. sponsorship and top-up rates; wallet write batching design (session-level or daily rollup; per-query ledger writes are untenable).
+
+## Phase 1 build
+
+1. **MCP server endpoint.**
+   - Evaluate current Elixir MCP libraries at build time (the ecosystem moves fast; `hermes_mcp` and SSE-transport options existed as of mid-2026). Fall back to a thin hand-rolled JSON-RPC handler on a Phoenix route if libraries disappoint; the MCP surface is small.
+   - Tools exposed: `get_capsule(scope)`, `ask_me(question_form)`. Auth: bearer token bound to a `mecp_grant`.
+   - Connector onboarding flow: user generates a grant + token in the MeFile UI, pastes into their assistant's connector config.
+2. **MyTerms proffering.**
+   - Handshake response carries the user's chosen Customer Commons roster agreement reference; agreement recorded in `mecp_terms_agreements` when the client acknowledges.
+   - v1 is a stub (reference + record); enforcement is contractual. Track roster availability of AI-era terms; propose ours (see concept doc Section 7).
+3. **Do-not-retain preamble** baked into every capsule/oracle response envelope.
+4. **Hygiene kit** (mostly content, not code; lives with marketing but link from MeFile UI).
+5. **Open schema publication** decision executes here: export format for MeFile (JSON, matching the taxonomy structure) + published spec. `created_at`/`added_date` included from v1.
+
+## Phase 2 build (Qai; sketch only, detail when Phase 1 ships)
+
+- `Qai.Sessions` with `expires_at` sweeping (Oban job; fleeting default).
+- `Qai.Router` with pooled provider keys, ZDR config, per-session ephemeral ids; local-model tier when available.
+- `Qai.Suggestions` confirm-to-add queue; confirmed suggestions write tags through the normal user-authored path with `add_source_context: "qai_suggestion_confirmed"`.
+- Wallet integration: batched settlement per session or daily rollup (per unit-economics work in Phase 0).
+- Sponsored inference pilot wiring against Sponster.
+
+## Phase 3 (pointer only)
+
+Re-ranking endpoint (`MeCP` tier 1, generalizing the existing `trait_groups`/`target_band_trait_groups` matching machinery), agentic-commerce rails, attested compute, freshness ripeness product (advertiser parameterization, decay curves). See concept doc Sections 4, 9, 13.
+
+## Verification plan
+
+- Property tests on capsule rendering (determinism, scope containment: a capsule must never contain a trait outside its grant scope).
+- Budget enforcement tests on Oracle (exhausted budget refuses).
+- Access-log completeness: every external read has exactly one event row.
+- Manual end-to-end: connect a real MCP client (Claude/ChatGPT connector or local Ollama-based client) against a seeded MeFile.
+
+## Open items
+
+- Volatility class columns on `traits` (integer time calcs; migration; decide before Layer B).
+- Unit economics + wallet batching (Phase 0 deliverable, informs Phase 2).
+- Elixir MCP library selection (evaluate at build time).
+- Free-text oracle questions (needs LLM pass; post-Phase-1).
+- Standalone gateway extraction: not now; revisit only if scale or isolation demands it.
+
+## Handoff note for Claude Code
+
+Start with the Phase 0 migrations and `MeCP.Capsules`. The concept doc (`qadabra_web/docs/qai-personal-ai-concept.md`) carries strategy context; this doc carries the build order. Existing code worth reading first: `lib/qlarius/youdata/mefiles/me_file_tag.ex`, `lib/qlarius/youdata/traits/trait.ex`, `lib/qlarius/sponster/campaigns/trait_group.ex`, `docs/trait_groups.md`, `docs/mefile.md`, `docs/data_model.mmd`.
