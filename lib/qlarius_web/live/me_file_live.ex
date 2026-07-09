@@ -34,6 +34,9 @@ defmodule QlariusWeb.MeFileLive do
 
         <Layouts.mobile_page_intro>
           Manage your tags below.
+          <.link navigate={~p"/me_file/connectors"} class="link link-primary whitespace-nowrap">
+            AI connectors
+          </.link>
         </Layouts.mobile_page_intro>
 
         <div class="pt-2">

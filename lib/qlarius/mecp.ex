@@ -29,7 +29,7 @@ defmodule Qlarius.MeCP do
   stay side-effect free underneath.
   """
 
-  alias Qlarius.MeCP.{AccessLog, Capsules, Grants, Oracle}
+  alias Qlarius.MeCP.{AccessLog, Capsules, Clients, Grants, Oracle}
   alias Qlarius.MeCP.Grants.Grant
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Repo
@@ -81,6 +81,54 @@ defmodule Qlarius.MeCP do
 
   @doc "Answers a structured oracle question under a grant. See `MeCP.Oracle.ask/3`."
   defdelegate ask(grant, question, opts \\ []), to: Oracle
+
+  @doc """
+  Connector onboarding: creates the client, its grant, and the grant-bound
+  bearer token in one transaction (build plan Phase 1: "user initiates from
+  the MeFile UI (creates the grant, sets scope/tier)").
+
+  Attrs: `:name` (required), `:client_type` (default `"byo_assistant"`),
+  `:tier` (default 3), `:category_ids` (empty/omitted means full scope),
+  `:budget_max` (per-day disclosure cap; nil means unlimited).
+
+  Returns `{:ok, %{client: client, grant: grant, token: plaintext_token}}`;
+  the token is shown exactly once.
+  """
+  def create_connector(%MeFile{} = me_file, attrs) do
+    scope =
+      case attrs[:category_ids] do
+        ids when is_list(ids) and ids != [] -> %{"category_ids" => ids}
+        _ -> %{}
+      end
+
+    budget =
+      case attrs[:budget_max] do
+        max when is_integer(max) and max >= 0 -> %{"period" => "day", "max" => max}
+        _ -> %{}
+      end
+
+    Repo.transaction(fn ->
+      with {:ok, client} <-
+             Clients.create_client(%{
+               name: attrs[:name],
+               client_type: attrs[:client_type] || "byo_assistant",
+               status: "active"
+             }),
+           {:ok, grant} <-
+             Grants.create_grant(%{
+               me_file_id: me_file.id,
+               mecp_client_id: client.id,
+               scope: scope,
+               tier: attrs[:tier] || 3,
+               budget: budget
+             }),
+           {:ok, token, grant} <- Grants.issue_token(grant) do
+        %{client: client, grant: %{grant | mecp_client: client}, token: token}
+      else
+        {:error, changeset} -> Repo.rollback(changeset)
+      end
+    end)
+  end
 
   @doc """
   Loads a MeFile with the preloads `Capsules` requires. Useful for callers

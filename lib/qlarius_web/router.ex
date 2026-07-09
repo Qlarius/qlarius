@@ -439,6 +439,7 @@ defmodule QlariusWeb.Router do
       live "/referrals", ReferralsLive, :index
       live "/proxy_users", ProxyUsersLive, :index
       live "/me_file", MeFileLive, :index
+      live "/me_file/connectors", MeCPConnectorsLive, :index
       live "/me_file_builder", MeFileBuilderLive, :index
 
       # Test/Design routes
