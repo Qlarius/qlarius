@@ -13,6 +13,9 @@ defmodule Qlarius.YouData.MeFiles.MeFileTag do
     field :modified_by, :integer
     field :added_by, :integer
     field :customized_hash, :string
+    # UX-optimization tracking only (e.g. "survey", "mefile_builder",
+    # "qai_suggestion_confirmed"). Not provenance: every tag is user-authored.
+    field :add_source_context, :string
 
     belongs_to :me_file, MeFile
     belongs_to :trait, Trait
@@ -28,7 +31,8 @@ defmodule Qlarius.YouData.MeFiles.MeFileTag do
       :tag_value,
       :modified_by,
       :added_by,
-      :customized_hash
+      :customized_hash,
+      :add_source_context
     ])
     |> validate_required([
       :me_file_id,
