@@ -1,82 +1,10 @@
 defmodule Qlarius.MeCP.OracleTest do
   use Qlarius.DataCase, async: true
 
+  import Qlarius.MeCPFixtures
+
   alias Qlarius.MeCP
-  alias Qlarius.MeCP.{AccessLog, Clients, Grants, Oracle}
-  alias Qlarius.YouData.MeFiles.{MeFile, MeFileTag}
-  alias Qlarius.YouData.Traits.{Trait, TraitCategory}
-
-  # --- fixtures (direct struct inserts; legacy tables have audit NOT NULLs) --
-
-  defp insert_category!(name) do
-    Repo.insert!(%TraitCategory{
-      name: "#{name} #{System.unique_integer([:positive])}",
-      display_order: 1,
-      modified_by: 0,
-      added_by: 0
-    })
-  end
-
-  defp insert_trait!(category, name, opts \\ []) do
-    Repo.insert!(%Trait{
-      trait_name: name,
-      input_type: "text",
-      display_order: Keyword.get(opts, :display_order, 1),
-      trait_category_id: category && category.id,
-      parent_trait_id: Keyword.get(opts, :parent_trait_id),
-      modified_by: 0,
-      added_by: 0
-    })
-  end
-
-  defp insert_tag!(me_file, trait, value) do
-    Repo.insert!(%MeFileTag{
-      me_file_id: me_file.id,
-      trait_id: trait.id,
-      tag_value: value,
-      modified_by: 0,
-      added_by: 0
-    })
-  end
-
-  defp insert_client! do
-    {:ok, client} =
-      Clients.create_client(%{name: "Test Client", client_type: "qai", status: "active"})
-
-    client
-  end
-
-  defp insert_grant!(me_file, client, attrs) do
-    {:ok, grant} =
-      attrs
-      |> Enum.into(%{me_file_id: me_file.id, mecp_client_id: client.id, tier: 3})
-      |> Grants.create_grant()
-
-    grant
-  end
-
-  # One MeFile with two categories: Demographics (housing trait, value "Renter")
-  # and Lifestyle (pets trait, value "Dog"). Grant scoped as given.
-  defp seed!(grant_attrs) do
-    me_file = Repo.insert!(%MeFile{})
-    demo = insert_category!("Demographics")
-    lifestyle = insert_category!("Lifestyle")
-    housing = insert_trait!(demo, "Housing")
-    pets = insert_trait!(lifestyle, "Pets")
-    insert_tag!(me_file, housing, "Renter")
-    insert_tag!(me_file, pets, "Dog")
-
-    grant = insert_grant!(me_file, insert_client!(), grant_attrs)
-
-    %{
-      me_file: me_file,
-      housing: housing,
-      pets: pets,
-      demo: demo,
-      lifestyle: lifestyle,
-      grant: grant
-    }
-  end
+  alias Qlarius.MeCP.{AccessLog, Grants, Oracle}
 
   defp event_count(grant), do: length(AccessLog.list_events_for_grant(grant.id))
 

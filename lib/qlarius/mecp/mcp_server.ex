@@ -1,0 +1,286 @@
+defmodule Qlarius.MeCP.MCPServer do
+  @moduledoc """
+  Thin hand-rolled MCP (Model Context Protocol) JSON-RPC handler.
+
+  The build plan blesses this fallback because the MeCP surface is small: two
+  tools (`get_capsule`, `ask_me`) behind a bearer token bound to one
+  `mecp_grant`. A library would mostly add supervision machinery while we
+  would still have to thread grant auth and mandatory access logging through
+  it (evaluated hermes_mcp / phantom_mcp / emcp, July 2026).
+
+  Speaks the streamable HTTP flavor minimally: JSON request in, JSON response
+  out. Methods: `initialize` (logs a handshake event, proffers MyTerms),
+  `notifications/initialized` (records the terms acknowledgment), `ping`,
+  `tools/list`, `tools/call`.
+
+  Every response that carries MeFile data leads with the do-not-retain
+  preamble. Tool-level refusals (revoked grant, exhausted budget, out of
+  scope) return `isError: true` tool results, not JSON-RPC errors.
+  """
+
+  alias Qlarius.MeCP
+  alias Qlarius.MeCP.{AccessLog, Oracle, Terms}
+  alias Qlarius.MeCP.Grants.Grant
+
+  @protocol_versions ~w(2025-06-18 2025-03-26)
+  @server_info %{
+    "name" => "mecp",
+    "title" => "MeCP (YouData MeFile gateway)",
+    "version" => "0.1.0"
+  }
+
+  @doc """
+  Handles one decoded JSON-RPC message under an authenticated grant.
+
+  Returns `{:reply, response_map}` for requests, or `:accepted` for
+  notifications (no `id`), which the transport answers with HTTP 202.
+  """
+  @spec handle(Grant.t(), map()) :: {:reply, map()} | :accepted
+  def handle(%Grant{} = grant, %{"method" => method} = request) do
+    id = Map.get(request, "id")
+    params = Map.get(request, "params", %{})
+
+    case {method, id} do
+      {"notifications/initialized", nil} ->
+        acknowledge_terms(grant)
+        :accepted
+
+      {"notifications/" <> _, nil} ->
+        :accepted
+
+      {_method, nil} ->
+        # Unknown notification: accept and ignore per spec.
+        :accepted
+
+      {"initialize", id} ->
+        {:reply, result(id, initialize(grant, params))}
+
+      {"ping", id} ->
+        {:reply, result(id, %{})}
+
+      {"tools/list", id} ->
+        {:reply, result(id, %{"tools" => tool_definitions()})}
+
+      {"tools/call", id} ->
+        {:reply, result(id, call_tool(grant, params))}
+
+      {_unknown, id} ->
+        {:reply, error(id, -32_601, "method not found: #{method}")}
+    end
+  end
+
+  def handle(%Grant{}, request) do
+    {:reply, error(Map.get(request, "id"), -32_600, "invalid request")}
+  end
+
+  # --- lifecycle --------------------------------------------------------------
+
+  defp initialize(grant, params) do
+    requested = Map.get(params, "protocolVersion")
+    version = if requested in @protocol_versions, do: requested, else: hd(@protocol_versions)
+
+    AccessLog.record!(
+      grant,
+      "handshake",
+      AccessLog.digest({:initialize, requested}),
+      %{"method" => "initialize", "protocol_version" => version}
+    )
+
+    %{
+      "protocolVersion" => version,
+      "capabilities" => %{"tools" => %{}},
+      "serverInfo" => @server_info,
+      "instructions" => instructions(grant)
+    }
+  end
+
+  defp instructions(grant) do
+    myterms =
+      case grant.mecp_client do
+        %{myterms_roster_ref: ref} when is_binary(ref) and ref != "" ->
+          "\n\nAccess is offered under the MyTerms roster agreement \"#{ref}\". " <>
+            "Continuing past initialization records your acknowledgment."
+
+        _ ->
+          ""
+      end
+
+    "MeCP provides scoped, user-granted access to one person's MeFile " <>
+      "(self-declared profile data). Use get_capsule for rendered context and " <>
+      "ask_me for narrow structured questions.\n\n" <>
+      String.trim(MeCP.do_not_retain_preamble()) <> myterms
+  end
+
+  defp acknowledge_terms(%Grant{mecp_client: client} = grant) do
+    case client do
+      %{myterms_roster_ref: ref} when is_binary(ref) and ref != "" ->
+        Terms.record_agreement(client.id, grant.me_file_id, ref)
+
+      _ ->
+        :ok
+    end
+  end
+
+  # --- tools --------------------------------------------------------------------
+
+  defp tool_definitions do
+    [
+      %{
+        "name" => "get_capsule",
+        "title" => "Get MeFile capsule",
+        "description" =>
+          "Returns the scoped MeFile capsule this grant permits: compact markdown of " <>
+            "category > trait > values, each value dated with its confirmation month/year.",
+        "inputSchema" => %{
+          "type" => "object",
+          "properties" => %{},
+          "additionalProperties" => false
+        }
+      },
+      %{
+        "name" => "ask_me",
+        "title" => "Ask a narrow question",
+        "description" =>
+          "Answers one structured question about a single trait, within this grant's " <>
+            "scope and disclosure budget. Forms: has_trait (boolean), trait_values " <>
+            "(values with dates), value_in (boolean membership), bucket (bucket label only).",
+        "inputSchema" => %{
+          "type" => "object",
+          "properties" => %{
+            "form" => %{
+              "type" => "string",
+              "enum" => ["has_trait", "trait_values", "value_in", "bucket"]
+            },
+            "trait_id" => %{"type" => "integer"},
+            "values" => %{
+              "type" => "array",
+              "items" => %{"type" => "string"},
+              "description" => "Candidate values, required for form=value_in"
+            },
+            "buckets" => %{
+              "type" => "array",
+              "items" => %{
+                "type" => "object",
+                "properties" => %{
+                  "label" => %{"type" => "string"},
+                  "values" => %{"type" => "array", "items" => %{"type" => "string"}}
+                },
+                "required" => ["label", "values"]
+              },
+              "description" => "Labeled value buckets, required for form=bucket"
+            }
+          },
+          "required" => ["form", "trait_id"]
+        }
+      }
+    ]
+  end
+
+  defp call_tool(grant, %{"name" => "get_capsule"} = params) do
+    _args = Map.get(params, "arguments", %{})
+
+    case MeCP.request_capsule(grant, terms_opts(grant)) do
+      {:ok, rendered} ->
+        tool_text(String.trim(MeCP.do_not_retain_preamble()) <> "\n\n" <> rendered)
+
+      {:error, reason} ->
+        tool_refusal(reason)
+    end
+  end
+
+  defp call_tool(grant, %{"name" => "ask_me"} = params) do
+    args = Map.get(params, "arguments", %{})
+
+    with {:ok, question} <- build_question(args),
+         {:ok, answer} <- Oracle.ask(grant, question, terms_opts(grant)) do
+      envelope = %{
+        "preamble" => String.trim(MeCP.do_not_retain_preamble()),
+        "form" => args["form"],
+        "trait_id" => args["trait_id"],
+        "answer" => encode_answer(answer)
+      }
+
+      tool_text(Jason.encode!(envelope))
+    else
+      {:error, reason} -> tool_refusal(reason)
+    end
+  end
+
+  defp call_tool(_grant, %{"name" => name}) do
+    tool_refusal("unknown tool: #{name}")
+  end
+
+  defp call_tool(_grant, _params), do: tool_refusal(:invalid_arguments)
+
+  defp build_question(%{"form" => form, "trait_id" => trait_id}) when not is_integer(trait_id),
+    do: {:error, "trait_id must be an integer (form: #{form})"}
+
+  defp build_question(%{"form" => "has_trait", "trait_id" => id}), do: {:ok, {:has_trait, id}}
+
+  defp build_question(%{"form" => "trait_values", "trait_id" => id}),
+    do: {:ok, {:trait_values, id}}
+
+  defp build_question(%{"form" => "value_in", "trait_id" => id, "values" => values})
+       when is_list(values),
+       do: {:ok, {:value_in, id, values}}
+
+  defp build_question(%{"form" => "bucket", "trait_id" => id, "buckets" => buckets})
+       when is_list(buckets) do
+    pairs =
+      Enum.map(buckets, fn
+        %{"label" => label, "values" => values} when is_binary(label) and is_list(values) ->
+          {label, values}
+
+        _ ->
+          nil
+      end)
+
+    if Enum.any?(pairs, &is_nil/1) do
+      {:error, "each bucket needs a label and a values array"}
+    else
+      {:ok, {:bucket, id, pairs}}
+    end
+  end
+
+  defp build_question(_), do: {:error, :invalid_arguments}
+
+  defp encode_answer(values) when is_list(values) do
+    Enum.map(values, fn %{value: v, confirmed: c} -> %{"value" => v, "confirmed" => c} end)
+  end
+
+  defp encode_answer(other), do: other
+
+  defp terms_opts(%Grant{} = grant) do
+    case grant.mecp_client do
+      %{id: client_id} ->
+        [terms_agreement_id: Terms.latest_agreement_id(client_id, grant.me_file_id)]
+
+      _ ->
+        []
+    end
+  end
+
+  # --- response plumbing ---------------------------------------------------------
+
+  defp tool_text(text) do
+    %{"content" => [%{"type" => "text", "text" => text}], "isError" => false}
+  end
+
+  defp tool_refusal(reason) do
+    %{
+      "content" => [%{"type" => "text", "text" => "refused: #{format_reason(reason)}"}],
+      "isError" => true
+    }
+  end
+
+  defp format_reason(reason) when is_atom(reason), do: Atom.to_string(reason)
+  defp format_reason(reason) when is_binary(reason), do: reason
+
+  defp result(id, result) do
+    %{"jsonrpc" => "2.0", "id" => id, "result" => result}
+  end
+
+  defp error(id, code, message) do
+    %{"jsonrpc" => "2.0", "id" => id, "error" => %{"code" => code, "message" => message}}
+  end
+end

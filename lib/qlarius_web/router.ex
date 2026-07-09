@@ -526,6 +526,14 @@ defmodule QlariusWeb.Router do
   end
 
   # ------ ADMIN ROUTES ------
+  # MeCP MCP endpoint: grant-bound bearer token auth, JSON-RPC over HTTP.
+  scope "/mecp", QlariusWeb do
+    pipe_through :api
+
+    post "/mcp", MeCPController, :rpc
+    get "/mcp", MeCPController, :method_not_allowed
+  end
+
   scope "/admin", QlariusWeb.Admin do
     pipe_through [:browser, :admin]
 

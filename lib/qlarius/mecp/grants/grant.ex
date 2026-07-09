@@ -33,6 +33,8 @@ defmodule Qlarius.MeCP.Grants.Grant do
     field :budget, :map, default: %{}
     field :expires_at, :utc_datetime
     field :revoked_at, :utc_datetime
+    # SHA-256 hash of the grant-bound MCP bearer token; plaintext never stored.
+    field :token_hash, :string
 
     belongs_to :me_file, MeFile
     belongs_to :mecp_client, Client, foreign_key: :mecp_client_id

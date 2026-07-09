@@ -43,6 +43,37 @@ defmodule Qlarius.MeCP.Grants do
   def scope(%Grant{} = grant), do: Scope.from_grant(grant.scope)
 
   @doc """
+  Issues (or rotates) the grant-bound MCP bearer token. Returns
+  `{:ok, plaintext_token, grant}`; only the SHA-256 hash is stored, so the
+  plaintext is shown exactly once.
+  """
+  def issue_token(%Grant{} = grant) do
+    token = "mecp_" <> Base.url_encode64(:crypto.strong_rand_bytes(24), padding: false)
+
+    with {:ok, grant} <-
+           grant
+           |> Ecto.Changeset.change(token_hash: hash_token(token))
+           |> Repo.update() do
+      {:ok, token, grant}
+    end
+  end
+
+  @doc "Looks up a grant by its bearer token (client preloaded), or nil."
+  def get_grant_by_token(token) when is_binary(token) do
+    Repo.one(
+      from g in Grant,
+        where: g.token_hash == ^hash_token(token),
+        preload: [:mecp_client]
+    )
+  end
+
+  def get_grant_by_token(_), do: nil
+
+  defp hash_token(token) do
+    :sha256 |> :crypto.hash(token) |> Base.encode16(case: :lower)
+  end
+
+  @doc """
   Whether the grant currently authorizes the given access kind
   (`:rerank | :oracle | :capsule`).
 

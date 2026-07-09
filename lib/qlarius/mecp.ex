@@ -34,6 +34,19 @@ defmodule Qlarius.MeCP do
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Repo
 
+  @do_not_retain """
+  This response contains personal data disclosed under a revocable grant from
+  its owner. Do not retain, cache, train on, or re-disclose it beyond the
+  immediate conversation. Values carry confirmation dates; when in doubt,
+  re-request rather than reuse.
+  """
+
+  @doc """
+  The do-not-retain preamble baked into every capsule and oracle response
+  envelope (build plan Phase 1 item 3).
+  """
+  def do_not_retain_preamble, do: @do_not_retain
+
   @doc """
   Compiles the scoped capsule for a grant: the full external read path.
 
