@@ -1,0 +1,152 @@
+# Qai Unit Economics
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.14"}
+])
+```
+
+## Purpose
+
+Phase 0 deliverable from `docs/mecp_qai_build_plan.md`: model Qai inference
+cost per user against sponsorship and top-up revenue, and compare wallet
+write batching strategies. This is a working model, not code that ships.
+
+**Every number in the Assumptions section is a placeholder.** Replace with
+real rates before drawing conclusions. All costs in USD.
+
+## Assumptions (edit these)
+
+```elixir
+inputs = [
+  # --- usage shape ---
+  sessions_per_wau_per_week: Kino.Input.number("Sessions per WAU per week", default: 5),
+  messages_per_session: Kino.Input.number("Messages (user turns) per session", default: 8),
+
+  # --- token shape per user turn ---
+  input_tokens_per_message: Kino.Input.number("Input tokens per turn (incl. history + capsule)", default: 4_000),
+  output_tokens_per_message: Kino.Input.number("Output tokens per turn", default: 400),
+
+  # --- model mix (fractions must sum to 1.0) ---
+  frontier_fraction: Kino.Input.number("Fraction of turns routed to frontier model", default: 0.3),
+  cheap_fraction: Kino.Input.number("Fraction of turns routed to cheap model", default: 0.7),
+
+  # --- provider pricing (USD per million tokens) ---
+  frontier_input_per_mtok: Kino.Input.number("Frontier input $/MTok", default: 3.0),
+  frontier_output_per_mtok: Kino.Input.number("Frontier output $/MTok", default: 15.0),
+  cheap_input_per_mtok: Kino.Input.number("Cheap input $/MTok", default: 0.25),
+  cheap_output_per_mtok: Kino.Input.number("Cheap output $/MTok", default: 1.25),
+
+  # --- revenue side ---
+  sponsored_fraction: Kino.Input.number("Fraction of sessions sponsored", default: 0.5),
+  sponsorship_revenue_per_session: Kino.Input.number("Sponsorship revenue per sponsored session $", default: 0.05),
+  topup_arpu_per_month: Kino.Input.number("Top-up revenue per WAU per month $", default: 1.00),
+
+  # --- scale ---
+  wau: Kino.Input.number("Weekly active users", default: 10_000)
+]
+
+form = Kino.Control.form(inputs, submit: "Recompute")
+```
+
+## Model
+
+```elixir
+frame = Kino.Frame.new()
+
+Kino.listen(form, fn %{data: d} ->
+  # --- cost per session ---
+  in_tok = d.input_tokens_per_message
+  out_tok = d.output_tokens_per_message
+
+  cost_per_msg =
+    d.frontier_fraction * (in_tok / 1.0e6 * d.frontier_input_per_mtok + out_tok / 1.0e6 * d.frontier_output_per_mtok) +
+      d.cheap_fraction * (in_tok / 1.0e6 * d.cheap_input_per_mtok + out_tok / 1.0e6 * d.cheap_output_per_mtok)
+
+  cost_per_session = cost_per_msg * d.messages_per_session
+  sessions_per_month = d.sessions_per_wau_per_week * 52 / 12
+
+  cost_per_wau_month = cost_per_session * sessions_per_month
+
+  # --- revenue per WAU-month ---
+  sponsorship_per_wau_month =
+    d.sponsored_fraction * d.sponsorship_revenue_per_session * sessions_per_month
+
+  revenue_per_wau_month = sponsorship_per_wau_month + d.topup_arpu_per_month
+  margin_per_wau_month = revenue_per_wau_month - cost_per_wau_month
+
+  # --- fleet scale ---
+  fleet_cost_month = cost_per_wau_month * d.wau
+  fleet_margin_month = margin_per_wau_month * d.wau
+
+  # --- wallet write batching ---
+  # Ledger writes per month at fleet scale under each settlement strategy.
+  msgs_per_month = d.messages_per_session * sessions_per_month * d.wau
+  sessions_month_fleet = sessions_per_month * d.wau
+
+  writes = [
+    {"Per-query ledger writes", msgs_per_month},
+    {"Per-session settlement", sessions_month_fleet},
+    {"Daily rollup", d.wau * 30},
+    {"Weekly rollup", d.wau * 52 / 12}
+  ]
+
+  usd = fn v -> "$#{:erlang.float_to_binary(v * 1.0, decimals: 4)}" end
+  usd2 = fn v -> "$#{:erlang.float_to_binary(v * 1.0, decimals: 2)}" end
+
+  md = """
+  ### Per-unit results
+
+  | Metric | Value |
+  |---|---|
+  | Cost per message | #{usd.(cost_per_msg)} |
+  | Cost per session | #{usd.(cost_per_session)} |
+  | Cost per WAU-month | #{usd2.(cost_per_wau_month)} |
+  | Sponsorship revenue per WAU-month | #{usd2.(sponsorship_per_wau_month)} |
+  | Top-up revenue per WAU-month | #{usd2.(d.topup_arpu_per_month)} |
+  | **Margin per WAU-month** | **#{usd2.(margin_per_wau_month)}** |
+
+  ### Fleet scale (#{trunc(d.wau)} WAU)
+
+  | Metric | Value / month |
+  |---|---|
+  | Inference cost | #{usd2.(fleet_cost_month)} |
+  | **Margin** | **#{usd2.(fleet_margin_month)}** |
+
+  ### Wallet write volume by settlement strategy
+
+  | Strategy | Ledger writes / month |
+  |---|---|
+  #{Enum.map_join(writes, "\n", fn {name, n} -> "| #{name} | #{trunc(n)} |" end)}
+
+  Per-query writes are untenable at scale (see build plan). Session-level
+  settlement tracks earning UX closely; daily rollup is the floor for
+  write volume while still showing daily movement in the wallet.
+  """
+
+  Kino.Frame.render(frame, Kino.Markdown.new(md))
+end)
+
+frame
+```
+
+## Break-even explorer
+
+```elixir
+# At what sponsorship rate does a session pay for itself?
+# cost_per_session = sponsored_fraction * sponsorship_revenue_per_session
+# Run the form above first, then reason from the per-session cost.
+Kino.Markdown.new("""
+Break-even sponsorship revenue per session equals the per-session inference
+cost divided by the sponsored fraction. If cost per session is $0.01 and half
+of sessions are sponsored, each sponsored session must earn $0.02 to break
+even before top-ups.
+
+**Decisions this model must inform (build plan):**
+
+1. Wallet write batching: session-level settlement vs daily rollup.
+2. Sponsored-inference pricing floor for the Sponster pilot (Phase 2).
+3. Router mix targets: what frontier fraction keeps margin positive at
+   expected sponsorship rates.
+""")
+```
