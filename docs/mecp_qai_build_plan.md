@@ -102,9 +102,12 @@ mecp_terms_agreements  id, mecp_client_id, me_file_id, roster_agreement_ref,
 - Wallet integration: batched settlement per session or daily rollup (per unit-economics work in Phase 0).
 - Sponsored inference pilot wiring against Sponster.
 
-## Phase 3 (pointer only)
+## Later phases (as demand justifies)
 
-Re-ranking endpoint (`MeCP` tier 1, generalizing the existing `trait_groups`/`target_band_trait_groups` matching machinery), agentic-commerce rails, attested compute, freshness ripeness product (advertiser parameterization, decay curves). See concept doc Sections 4, 9, 13.
+- **Attested compute (TEE inference)**: privacy hardening for Qai; adopt when provider availability matures.
+- **Freshness ripeness product**: advertiser parameterization on tag freshness, decay curves, expiry policies. Fits the current advertiser GTM; ships when capture history has accumulated.
+
+**Not on the current roadmap:** the commercial re-ranking API and agentic-commerce rail integrations have been separated out as a suggested future addition; see `docs/mecp_future_commercial_agents.md`. The marketplace is not currently asking for it, and its GTM differs fundamentally from the current consumer/advertiser/media direction.
 
 ## Verification plan
 
