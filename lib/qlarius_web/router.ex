@@ -533,6 +533,27 @@ defmodule QlariusWeb.Router do
 
     post "/mcp", MeCPController, :rpc
     get "/mcp", MeCPController, :method_not_allowed
+
+    # OAuth 2.1 machine endpoints (no session; PKCE public clients).
+    post "/oauth/register", MeCPOAuthController, :register
+    post "/oauth/token", MeCPOAuthController, :token
+  end
+
+  # OAuth discovery metadata (RFC 9728 + RFC 8414), unauthenticated.
+  scope "/.well-known", QlariusWeb do
+    pipe_through :api
+
+    get "/oauth-protected-resource", MeCPOAuthController, :protected_resource_metadata
+    get "/oauth-protected-resource/mecp/mcp", MeCPOAuthController, :protected_resource_metadata
+    get "/oauth-authorization-server", MeCPOAuthController, :authorization_server_metadata
+  end
+
+  # OAuth user approval page: browser session required; approving creates the grant.
+  scope "/mecp/oauth", QlariusWeb do
+    pipe_through [:browser, :require_auth]
+
+    get "/authorize", MeCPOAuthController, :authorize
+    post "/authorize", MeCPOAuthController, :approve
   end
 
   scope "/admin", QlariusWeb.Admin do

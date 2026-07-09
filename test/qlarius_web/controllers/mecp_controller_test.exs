@@ -42,7 +42,8 @@ defmodule QlariusWeb.MeCPControllerTest do
         |> post(@path, Jason.encode!(rpc_request("ping")))
 
       assert %{"error" => %{"message" => "unauthorized"}} = json_response(conn, 401)
-      assert get_resp_header(conn, "www-authenticate") == ["Bearer"]
+      assert [header] = get_resp_header(conn, "www-authenticate")
+      assert header =~ ~r/^Bearer resource_metadata=/
     end
 
     test "refuses a bad token", %{conn: conn} do

@@ -9,6 +9,7 @@ defmodule QlariusWeb.MeCPController do
   alias Qlarius.MeCP.Grants
   alias Qlarius.MeCP.Grants.Grant
   alias Qlarius.MeCP.MCPServer
+  alias Qlarius.MeCP.OAuth
 
   def rpc(conn, _params) do
     case authenticate(conn) do
@@ -19,8 +20,12 @@ defmodule QlariusWeb.MeCPController do
         end
 
       :error ->
+        # Points OAuth-capable clients (Claude/ChatGPT connectors) at the
+        # discovery metadata per RFC 9728.
+        metadata_url = url(conn, ~p"/.well-known/oauth-protected-resource/mecp/mcp")
+
         conn
-        |> put_resp_header("www-authenticate", "Bearer")
+        |> put_resp_header("www-authenticate", ~s(Bearer resource_metadata="#{metadata_url}"))
         |> put_status(:unauthorized)
         |> json(%{
           "jsonrpc" => "2.0",
@@ -36,9 +41,14 @@ defmodule QlariusWeb.MeCPController do
     send_resp(conn, 405, "")
   end
 
+  # Static grant tokens (local token-paste clients) and OAuth access tokens
+  # (remote connectors) both resolve to a grant; everything downstream is
+  # identical.
   defp authenticate(conn) do
     with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
-         %Grant{} = grant <- Grants.get_grant_by_token(String.trim(token)) do
+         token = String.trim(token),
+         %Grant{} = grant <-
+           Grants.get_grant_by_token(token) || OAuth.verify_access_token(token) do
       {:ok, grant}
     else
       _ -> :error
