@@ -389,7 +389,7 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
         <%= if not drawer_authed do %>
           <div class="flex-shrink-0 page-canvas border-t border-base-300/60 px-4 pt-3 flex flex-col items-center gap-1 text-center">
             <p class="text-sm sm:text-base text-base-content font-medium tracking-tight leading-snug">
-              Ready to try it out? Connect and sign up for free. Your wallet awaits.
+              Connect and sign up for free. Your wallet awaits.
             </p>
             <div class="flex justify-center pb-2" aria-hidden="true">
               <.icon

@@ -700,7 +700,14 @@ defmodule QlariusWeb.MeFileHTML do
           </span>
         </div>
 
-        <.parent_traits_display parent_traits={parent_traits} tag_display_mode={@tag_display_mode} />
+        <.parent_traits_display
+          :if={@tag_display_mode != "list"}
+          parent_traits={parent_traits}
+          tag_display_mode={@tag_display_mode}
+        />
+        <div :if={@tag_display_mode == "list"} class="max-w-3xl mx-auto w-full">
+          <.parent_traits_display parent_traits={parent_traits} tag_display_mode={@tag_display_mode} />
+        </div>
       </.surface_panel>
     </div>
     """

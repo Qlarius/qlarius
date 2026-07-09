@@ -303,19 +303,21 @@ defmodule QlariusWeb.WalletLive do
               </.link>
             </div>
           <% else %>
-            <.ledger_entries_pagination
-              paginated_entries={@paginated_entries}
-              page={@page}
-            />
-            <.surface_panel padding={false}>
-              <.ledger_entries_list
+            <div class="max-w-3xl mx-auto w-full">
+              <.ledger_entries_pagination
                 paginated_entries={@paginated_entries}
                 page={@page}
-                current_scope={@current_scope}
-                show_pagination={false}
-                list_class="list !mx-0 !rounded-none !shadow-none !bg-base-100 dark:!bg-black divide-y divide-base-300/60 dark:divide-base-content/10"
               />
-            </.surface_panel>
+              <.surface_panel padding={false}>
+                <.ledger_entries_list
+                  paginated_entries={@paginated_entries}
+                  page={@page}
+                  current_scope={@current_scope}
+                  show_pagination={false}
+                  list_class="list !mx-0 !rounded-none !shadow-none !bg-base-100 dark:!bg-black divide-y divide-base-300/60 dark:divide-base-content/10"
+                />
+              </.surface_panel>
+            </div>
           <% end %>
         <% end %>
 
