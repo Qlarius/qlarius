@@ -85,8 +85,9 @@ mecp_terms_agreements  id, mecp_client_id, me_file_id, roster_agreement_ref,
 
 1. **MCP server endpoint.**
    - Evaluate current Elixir MCP libraries at build time (the ecosystem moves fast; `hermes_mcp` and SSE-transport options existed as of mid-2026). Fall back to a thin hand-rolled JSON-RPC handler on a Phoenix route if libraries disappoint; the MCP surface is small.
-   - Tools exposed: `get_capsule(scope)`, `ask_me(question_form)`. Auth: bearer token bound to a `mecp_grant`.
-   - Connector onboarding flow: user generates a grant + token in the MeFile UI, pastes into their assistant's connector config.
+   - Tools exposed: `get_capsule(scope)`, `ask_me(question_form)`. Auth: token bound to a `mecp_grant`.
+   - **Acceptance target: a consumer can add MeCP as a custom connector in Claude and ChatGPT.** Both clients follow the MCP auth spec for remote connectors, which in practice means an OAuth 2.1 authorization flow (not just a pasted bearer token). Plan for a minimal OAuth server issuing grant-bound tokens; verify each client's exact connector requirements at build time. Simple token paste remains fine for local MCP clients (Ollama-based, LM Studio).
+   - Connector onboarding flow: user initiates from the MeFile UI (creates the grant, sets scope/tier), then completes the client-side connector add via OAuth or token.
 2. **MyTerms proffering.**
    - Handshake response carries the user's chosen Customer Commons roster agreement reference; agreement recorded in `mecp_terms_agreements` when the client acknowledges.
    - v1 is a stub (reference + record); enforcement is contractual. Track roster availability of AI-era terms; propose ours (see concept doc Section 7).
@@ -95,6 +96,8 @@ mecp_terms_agreements  id, mecp_client_id, me_file_id, roster_agreement_ref,
 5. **Open schema publication** decision executes here: export format for MeFile (JSON, matching the taxonomy structure) + published spec. `created_at`/`added_date` included from v1.
 
 ## Phase 2 build (Qai; sketch only, detail when Phase 1 ships)
+
+**Acceptance target: a consumer can select Qai inside the existing qlarius consumer app and use it as a private/secure chat on par with current AI chat standards.** Qai ships as a LiveView surface in this app (consumer nav entry), not a separate app. "On par" checklist for v1: streamed responses, markdown rendering, session history (fleeting by default, preserve opt-in), stop/regenerate, mobile-first layout matching the existing PWA patterns. Explicit v1 scope decisions needed for: attachments/images, voice, and web search. Frontier-model quality comes via `Qai.Router` (pooled anonymous calls, ZDR); privacy posture (two-sided anonymity) is the differentiator, not a feature tradeoff.
 
 - `Qai.Sessions` with `expires_at` sweeping (Oban job; fleeting default).
 - `Qai.Router` with pooled provider keys, ZDR config, per-session ephemeral ids; local-model tier when available.
