@@ -212,6 +212,9 @@ defmodule QlariusWeb.Components.AdminSidebar do
                   <a class="menu-item false" href={~p"/admin/sponster_ledger"}>
                     <span class="grow">Sponster Ledger</span>
                   </a>
+                  <a class="menu-item false" href={~p"/admin/mecp_access_log"}>
+                    <span class="grow">MeCP Access Log</span>
+                  </a>
                 </div>
               </div>
             </div>

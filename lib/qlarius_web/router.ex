@@ -632,5 +632,13 @@ defmodule QlariusWeb.Router do
       ] do
       live "/sponster_ledger", SponsterLedgerLive, :index
     end
+
+    live_session :admin_mecp_access_log,
+      on_mount: [
+        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.Layouts, :set_current_path}
+      ] do
+      live "/mecp_access_log", MeCPAccessLogLive, :index
+    end
   end
 end

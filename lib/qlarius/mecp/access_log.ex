@@ -72,6 +72,37 @@ defmodule Qlarius.MeCP.AccessLog do
     )
   end
 
+  @doc """
+  Pages through all events, newest first, optionally filtered by kind.
+  Grants and clients preloaded for display. Options: `:kind`, `:page`, `:per_page`.
+  """
+  def list_events(opts \\ []) do
+    page = Keyword.get(opts, :page, 1)
+    per_page = Keyword.get(opts, :per_page, 50)
+
+    Repo.all(
+      from e in events_query(opts[:kind]),
+        order_by: [desc: e.occurred_at, desc: e.id],
+        offset: ^((page - 1) * per_page),
+        limit: ^per_page,
+        preload: [mecp_grant: :mecp_client]
+    )
+  end
+
+  @doc "Total event count, optionally filtered by kind."
+  def count_events(kind \\ nil) do
+    Repo.one(from e in events_query(kind), select: count(e.id))
+  end
+
+  @doc "Event counts grouped by kind, as a map."
+  def counts_by_kind do
+    Repo.all(from e in AccessEvent, group_by: e.kind, select: {e.kind, count(e.id)})
+    |> Map.new()
+  end
+
+  defp events_query(nil), do: AccessEvent
+  defp events_query(kind), do: from(e in AccessEvent, where: e.kind == ^kind)
+
   @doc "SHA-256 digest of a request term, for `request_digest`."
   def digest(term) do
     :sha256
