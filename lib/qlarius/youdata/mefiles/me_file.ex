@@ -10,6 +10,8 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
 
+  @type t :: %__MODULE__{}
+
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
 

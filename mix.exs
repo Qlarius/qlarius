@@ -71,6 +71,7 @@ defmodule Qlarius.MixProject do
       {:sweet_xml, "~> 0.6"},
       {:tidewave, "~> 0.4", only: [:dev]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:stream_data, "~> 1.1", only: [:dev, :test]},
       {:tzdata, "~> 1.1"},
       {:oban, "~> 2.19"},
       {:igniter, "~> 0.5", only: [:dev]},
