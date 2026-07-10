@@ -163,7 +163,15 @@ conversation. Every chat makes the asset more valuable and the user authors ever
    in the client.
 2. **Tier-3 clients rarely use the oracle.** With capsule access, assistants fetch the
    capsule once and answer follow-ups from it. The oracle earns its keep at tier 2.
-3. **Trait ids were not discoverable by clients**, making `ask_me` unusable in
+3. **ChatGPT acceptance is gated by OpenAI account tiering**, not by MeCP. Claude
+   passed in full (OAuth connect, capsule personalization, gap-nudge, revocation).
+   ChatGPT custom MCP connectors on Plus/Pro individual accounts are limited to
+   read-only via web Developer mode (write-capable connectors are
+   Business/Enterprise/Edu only), and availability of the toggle varies. MeCP v1 is
+   entirely read tools, the OAuth server matches ChatGPT's documented requirements,
+   and ChatGPT-User is allowed at the Cloudflare edge; status: server-side ready,
+   vendor-gated. Retest from a Business workspace when available.
+4. **Trait ids were not discoverable by clients**, making `ask_me` unusable in
    practice. Fixed with the taxonomy gap-nudge feature: `search_traits` tool
    (keyword match over trait/category/child-trait names, scope-filtered, has_data
    flags budget-gated) plus `ask_me` accepting trait names and a
