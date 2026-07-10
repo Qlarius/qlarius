@@ -11,6 +11,7 @@ defmodule QlariusWeb.MeCPOAuthController do
   alias Qlarius.YouData.Traits
 
   plug :put_view, html: QlariusWeb.MeCPOAuthHTML
+  plug :rate_limit when action in [:register, :token]
 
   # --- discovery (RFC 9728 + RFC 8414) -----------------------------------------
 
@@ -164,6 +165,24 @@ defmodule QlariusWeb.MeCPOAuthController do
   end
 
   # --- helpers -----------------------------------------------------------------------
+
+  # DCR and token are unauthenticated by design (public clients); per-IP
+  # throttling keeps them from becoming a write amplifier. Claude registers a
+  # fresh client per connection, so the ceiling stays generous.
+  defp rate_limit(conn, _opts) do
+    ip = conn.remote_ip |> :inet.ntoa() |> to_string()
+
+    case Hammer.check_rate("mecp_oauth:#{ip}", 60_000, 30) do
+      {:allow, _count} ->
+        conn
+
+      {:deny, _limit} ->
+        conn
+        |> put_status(:too_many_requests)
+        |> json(%{"error" => "slow_down"})
+        |> halt()
+    end
+  end
 
   defp origin(conn) do
     uri = conn |> url(~p"/") |> URI.parse()

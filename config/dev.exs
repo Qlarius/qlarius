@@ -48,8 +48,20 @@ endpoint_config =
     # Secure/SameSite=None session cookie always applies. HSTS is off so
     # the browser doesn't pin localhost to https for other projects.
     force_ssl: [hsts: false, host: "localhost:4001"],
-    url: [host: "localhost", port: 4001, scheme: "https"],
-    static_url: [host: "localhost", port: 4001, scheme: "https"],
+    # PUBLIC_HOST supports tunnel testing (ngrok/cloudflared) of MCP remote
+    # connectors: OAuth discovery metadata and generated URLs must advertise
+    # the public tunnel origin, not localhost. Point the tunnel at the https
+    # :4001 listener (force_ssl redirects non-localhost hosts off :4000).
+    url:
+      case System.get_env("PUBLIC_HOST") do
+        nil -> [host: "localhost", port: 4001, scheme: "https"]
+        host -> [host: host, port: 443, scheme: "https"]
+      end,
+    static_url:
+      case System.get_env("PUBLIC_HOST") do
+        nil -> [host: "localhost", port: 4001, scheme: "https"]
+        host -> [host: host, port: 443, scheme: "https"]
+      end,
     code_reloader: true,
     debug_errors: true,
     secret_key_base: "I0TNoNVsAUb60KoJZG27GA8uKP29XGc9Sifl6xY/RfCkULLRYLyl67A6PjHiYgoF",
