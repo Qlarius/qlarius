@@ -184,6 +184,19 @@ config :qlarius,
 # Quota: 10,000 units/day (free). One channel of ≤50 videos = ~3 units.
 config :qlarius, :youtube, api_key: System.get_env("YOUTUBE_DATA_API_KEY")
 
+# Qai: pooled provider key for two-sided anonymity (the provider sees only
+# Qadabra's org account plus ephemeral session ids). Model tiers override the
+# defaults in Qlarius.Qai.Router when set. Test env keeps its Req.Test stub
+# config from config/test.exs.
+if config_env() != :test do
+  config :qlarius, :qai,
+    anthropic_api_key: System.get_env("ANTHROPIC_API_KEY"),
+    models: [
+      cheap: System.get_env("QAI_CHEAP_MODEL", "claude-haiku-4-5"),
+      frontier: System.get_env("QAI_FRONTIER_MODEL", "claude-sonnet-4-6")
+    ]
+end
+
 # Configure web_push_encryption library
 config :web_push_encryption, :vapid_details,
   subject: System.get_env("VAPID_SUBJECT", "mailto:support@qlarius.com"),

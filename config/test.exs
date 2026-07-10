@@ -50,3 +50,9 @@ config :phoenix_live_view,
 config :qlarius, :auth_rate_limit, enabled?: false
 
 config :qlarius, :in_app_browser_escape, enabled: true, auto_attempt: false
+
+# Qai routes all provider HTTP through a Req.Test stub; tests set per-process
+# expectations with Req.Test.stub(Qlarius.Qai.Anthropic, ...).
+config :qlarius, :qai,
+  anthropic_api_key: "test-key",
+  req_options: [plug: {Req.Test, Qlarius.Qai.Anthropic}]
