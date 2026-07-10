@@ -103,11 +103,12 @@ defmodule QlariusWeb.Endpoint do
   # per request, which lets us merge runtime-configured extension IDs
   # without recompiling. MFA tuples are NOT supported — passing one
   # crashes on every request with a FunctionClauseError.
-  plug CORSPlug,
-    origin: &__MODULE__.cors_origins/0,
-    headers: ["*"],
-    methods: ["GET", "POST"],
-    credentials: true
+  #
+  # AppCORS dispatches by path: MeCP machine endpoints get wildcard
+  # non-credentialed CORS (browser-driven MCP clients connect from origins
+  # we cannot enumerate); everything else keeps the credentialed allowlist
+  # below via cors_origins/0.
+  plug QlariusWeb.Plugs.AppCORS
 
   plug QlariusWeb.Router
 

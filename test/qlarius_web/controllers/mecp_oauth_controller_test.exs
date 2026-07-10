@@ -207,6 +207,50 @@ defmodule QlariusWeb.MeCPOAuthControllerTest do
     end
   end
 
+  describe "CORS for browser-driven MCP clients" do
+    test "MCP endpoint answers cross-origin preflight with wildcard, no credentials", %{
+      conn: conn
+    } do
+      conn =
+        conn
+        |> put_req_header("origin", "https://claude.ai")
+        |> put_req_header("access-control-request-method", "POST")
+        |> put_req_header("access-control-request-headers", "authorization,content-type")
+        |> options("/mecp/mcp")
+
+      assert get_resp_header(conn, "access-control-allow-origin") == ["*"]
+      assert get_resp_header(conn, "access-control-allow-credentials") == []
+      assert [exposed] = get_resp_header(conn, "access-control-expose-headers")
+      assert exposed =~ "www-authenticate"
+    end
+
+    test "discovery and token endpoints carry wildcard CORS on responses", %{conn: conn} do
+      resp =
+        conn
+        |> put_req_header("origin", "https://chatgpt.com")
+        |> get(~p"/.well-known/oauth-authorization-server")
+
+      assert json_response(resp, 200)
+      assert get_resp_header(resp, "access-control-allow-origin") == ["*"]
+
+      resp =
+        build_conn()
+        |> put_req_header("origin", "https://claude.ai")
+        |> post(~p"/mecp/oauth/token", %{"grant_type" => "password"})
+
+      assert get_resp_header(resp, "access-control-allow-origin") == ["*"]
+    end
+
+    test "app routes keep the credentialed allowlist (claude.ai NOT allowed)", %{conn: conn} do
+      conn =
+        conn
+        |> put_req_header("origin", "https://claude.ai")
+        |> get("/login")
+
+      assert get_resp_header(conn, "access-control-allow-origin") == []
+    end
+  end
+
   describe "MCP 401 discovery hint" do
     test "unauthorized responses point at the resource metadata", %{conn: conn} do
       _ctx = seed!(%{scope: %{}})
