@@ -143,7 +143,11 @@ defmodule Qlarius.MeCP.MCPServer do
         "description" =>
           "Answers one structured question about a single trait, within this grant's " <>
             "scope and disclosure budget. Forms: has_trait (boolean), trait_values " <>
-            "(values with dates), value_in (boolean membership), bucket (bucket label only).",
+            "(values with dates), value_in (boolean membership), bucket (bucket label only). " <>
+            "Target the trait by exact name (see search_traits) or by trait_id. " <>
+            "If the answer comes back empty with a missing_data_hint, the owner has no " <>
+            "tags there yet; if it fits the conversation, gently let them know they can " <>
+            "add tags in the MeFile Builder in their Qadabra app.",
         "inputSchema" => %{
           "type" => "object",
           "properties" => %{
@@ -152,6 +156,10 @@ defmodule Qlarius.MeCP.MCPServer do
               "enum" => ["has_trait", "trait_values", "value_in", "bucket"]
             },
             "trait_id" => %{"type" => "integer"},
+            "trait" => %{
+              "type" => "string",
+              "description" => "Exact trait name (case-insensitive); alternative to trait_id"
+            },
             "values" => %{
               "type" => "array",
               "items" => %{"type" => "string"},
@@ -170,7 +178,28 @@ defmodule Qlarius.MeCP.MCPServer do
               "description" => "Labeled value buckets, required for form=bucket"
             }
           },
-          "required" => ["form", "trait_id"]
+          "required" => ["form"]
+        }
+      },
+      %{
+        "name" => "search_traits",
+        "title" => "Search the MeFile taxonomy",
+        "description" =>
+          "Searches the MeFile trait taxonomy by keywords and returns matching traits " <>
+            "with a has_data flag for this MeFile. Use topic nouns and synonyms " <>
+            "(for a dog question, search 'pet dog'). Matches without data are gaps " <>
+            "the owner can fill: when it fits the conversation, gently suggest they " <>
+            "add tags in the MeFile Builder in their Qadabra app. Costs one unit of " <>
+            "disclosure budget per call.",
+        "inputSchema" => %{
+          "type" => "object",
+          "properties" => %{
+            "query" => %{
+              "type" => "string",
+              "description" => "Keywords to match against trait and category names"
+            }
+          },
+          "required" => ["query"]
         }
       }
     ]
@@ -193,16 +222,48 @@ defmodule Qlarius.MeCP.MCPServer do
 
     with {:ok, question} <- build_question(args),
          {:ok, answer} <- Oracle.ask(grant, question, terms_opts(grant)) do
-      envelope = %{
-        "preamble" => String.trim(MeCP.do_not_retain_preamble()),
-        "form" => args["form"],
-        "trait_id" => args["trait_id"],
-        "answer" => encode_answer(answer)
-      }
+      envelope =
+        %{
+          "preamble" => String.trim(MeCP.do_not_retain_preamble()),
+          "form" => args["form"],
+          "trait" => args["trait"] || args["trait_id"],
+          "answer" => encode_answer(answer)
+        }
+        |> maybe_add_missing_data_hint(args, answer)
 
       tool_text(Jason.encode!(envelope))
     else
       {:error, reason} -> tool_refusal(reason)
+    end
+  end
+
+  defp call_tool(grant, %{"name" => "search_traits"} = params) do
+    args = Map.get(params, "arguments", %{})
+
+    case Oracle.search_traits(grant, args["query"] || "", terms_opts(grant)) do
+      {:ok, matches} ->
+        envelope = %{
+          "preamble" => String.trim(MeCP.do_not_retain_preamble()),
+          "query" => args["query"],
+          "matches" =>
+            Enum.map(matches, fn m ->
+              %{
+                "trait_id" => m.trait_id,
+                "trait" => m.trait,
+                "category" => m.category,
+                "has_data" => m.has_data
+              }
+            end),
+          "guidance" =>
+            "Matches with has_data false are gaps in the MeFile. If it fits the " <>
+              "conversation, gently suggest the owner add tags for that topic in the " <>
+              "MeFile Builder in their Qadabra app."
+        }
+
+        tool_text(Jason.encode!(envelope))
+
+      {:error, reason} ->
+        tool_refusal(reason)
     end
   end
 
@@ -212,20 +273,32 @@ defmodule Qlarius.MeCP.MCPServer do
 
   defp call_tool(_grant, _params), do: tool_refusal(:invalid_arguments)
 
-  defp build_question(%{"form" => form, "trait_id" => trait_id}) when not is_integer(trait_id),
-    do: {:error, "trait_id must be an integer (form: #{form})"}
+  defp build_question(args) do
+    with {:ok, ref} <- trait_ref(args) do
+      case args do
+        %{"form" => "has_trait"} ->
+          {:ok, {:has_trait, ref}}
 
-  defp build_question(%{"form" => "has_trait", "trait_id" => id}), do: {:ok, {:has_trait, id}}
+        %{"form" => "trait_values"} ->
+          {:ok, {:trait_values, ref}}
 
-  defp build_question(%{"form" => "trait_values", "trait_id" => id}),
-    do: {:ok, {:trait_values, id}}
+        %{"form" => "value_in", "values" => values} when is_list(values) ->
+          {:ok, {:value_in, ref, values}}
 
-  defp build_question(%{"form" => "value_in", "trait_id" => id, "values" => values})
-       when is_list(values),
-       do: {:ok, {:value_in, id, values}}
+        %{"form" => "bucket", "buckets" => buckets} when is_list(buckets) ->
+          build_bucket_question(ref, buckets)
 
-  defp build_question(%{"form" => "bucket", "trait_id" => id, "buckets" => buckets})
-       when is_list(buckets) do
+        _ ->
+          {:error, :invalid_arguments}
+      end
+    end
+  end
+
+  defp trait_ref(%{"trait_id" => id}) when is_integer(id), do: {:ok, id}
+  defp trait_ref(%{"trait" => name}) when is_binary(name) and name != "", do: {:ok, name}
+  defp trait_ref(_), do: {:error, "provide trait (name) or trait_id (integer)"}
+
+  defp build_bucket_question(ref, buckets) do
     pairs =
       Enum.map(buckets, fn
         %{"label" => label, "values" => values} when is_binary(label) and is_list(values) ->
@@ -238,11 +311,30 @@ defmodule Qlarius.MeCP.MCPServer do
     if Enum.any?(pairs, &is_nil/1) do
       {:error, "each bucket needs a label and a values array"}
     else
-      {:ok, {:bucket, id, pairs}}
+      {:ok, {:bucket, ref, pairs}}
     end
   end
 
-  defp build_question(_), do: {:error, :invalid_arguments}
+  # An empty answer means the trait exists in the taxonomy but the owner has
+  # no tags there: turn the miss into a gentle enrichment nudge the assistant
+  # can relay (build plan: every unanswerable question is a capture prompt).
+  defp maybe_add_missing_data_hint(envelope, args, answer) when answer in [false, [], nil] do
+    subject =
+      case args["trait"] do
+        name when is_binary(name) and name != "" -> "'#{name}'"
+        _ -> "this topic"
+      end
+
+    Map.put(
+      envelope,
+      "missing_data_hint",
+      "The owner has no confirmed tags for #{subject}. They can add tags in the " <>
+        "MeFile Builder in their Qadabra app. If it fits the conversation, gently " <>
+        "let them know."
+    )
+  end
+
+  defp maybe_add_missing_data_hint(envelope, _args, _answer), do: envelope
 
   defp encode_answer(values) when is_list(values) do
     Enum.map(values, fn %{value: v, confirmed: c} -> %{"value" => v, "confirmed" => c} end)

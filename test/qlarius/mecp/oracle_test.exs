@@ -54,6 +54,76 @@ defmodule Qlarius.MeCP.OracleTest do
     end
   end
 
+  # --- taxonomy search ---------------------------------------------------------
+
+  describe "search_traits/3" do
+    # The build-plan case study: "Do I own a dog?" with no pet tags. The
+    # taxonomy has "Pet Ownership" with a "Dog" child trait; searching "dog"
+    # must surface the gap so the assistant can nudge the owner.
+    test "finds unanswered traits by child-trait name and flags the gap" do
+      ctx = seed!(%{tier: 2, scope: %{}})
+
+      pet_ownership =
+        insert_trait!(ctx.lifestyle, "Pet Ownership #{System.unique_integer([:positive])}")
+
+      insert_trait!(nil, "Dog", parent_trait_id: pet_ownership.id)
+
+      assert {:ok, matches} = Oracle.search_traits(ctx.grant, "do I own a dog?")
+
+      gap = Enum.find(matches, &(&1.trait_id == pet_ownership.id))
+      assert gap.has_data == false
+      assert gap.category =~ "Lifestyle"
+    end
+
+    test "answered traits carry has_data true; plural tokens match" do
+      ctx = seed!(%{tier: 2, scope: %{}})
+
+      assert {:ok, matches} = Oracle.search_traits(ctx.grant, "housings")
+      match = Enum.find(matches, &(&1.trait_id == ctx.housing.id))
+      assert match.has_data == true
+    end
+
+    test "scope containment: out-of-scope traits never match" do
+      ctx = seed!(%{tier: 2, scope: %{}})
+      scoped = %{ctx.grant | scope: %{"category_ids" => [ctx.demo.id]}}
+
+      assert {:ok, matches} = Oracle.search_traits(scoped, "pets housing")
+      ids = Enum.map(matches, & &1.trait_id)
+      assert ctx.housing.id in ids
+      refute ctx.pets.id in ids
+    end
+
+    test "tier, budget, and logging apply like any oracle read" do
+      ctx = seed!(%{tier: 1, scope: %{}})
+      assert {:error, :insufficient_tier} = Oracle.search_traits(ctx.grant, "pets")
+
+      capped = seed!(%{tier: 2, scope: %{}, budget: %{"max" => 1}})
+      assert {:ok, _} = Oracle.search_traits(capped.grant, "pets")
+      assert {:error, :budget_exhausted} = Oracle.search_traits(capped.grant, "pets")
+
+      [event] = AccessLog.list_events_for_grant(capped.grant.id)
+      assert event.kind == "oracle"
+      assert event.response_shape["form"] == "search_traits"
+      refute inspect(event.response_shape) =~ "Pets"
+    end
+
+    test "empty or too-short queries refuse without logging" do
+      ctx = seed!(%{tier: 2, scope: %{}})
+      assert {:error, :empty_query} = Oracle.search_traits(ctx.grant, "a b")
+      assert event_count(ctx.grant) == 0
+    end
+  end
+
+  describe "ask/3 by trait name" do
+    test "resolves case-insensitive exact names" do
+      ctx = seed!(%{tier: 2, scope: %{}})
+
+      assert {:ok, true} = Oracle.ask(ctx.grant, {:has_trait, "housing"})
+      assert {:ok, [%{value: "Renter"}]} = Oracle.ask(ctx.grant, {:trait_values, "HOUSING"})
+      assert {:error, :unknown_trait} = Oracle.ask(ctx.grant, {:has_trait, "no such trait"})
+    end
+  end
+
   # --- grant checks -----------------------------------------------------------
 
   describe "ask/3 grant checks" do

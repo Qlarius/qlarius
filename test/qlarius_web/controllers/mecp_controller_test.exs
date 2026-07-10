@@ -146,7 +146,7 @@ defmodule QlariusWeb.MeCPControllerTest do
 
       body = conn |> rpc(ctx.token, rpc_request("tools/list")) |> json_response(200)
 
-      assert [%{"name" => "ask_me"}, %{"name" => "get_capsule"}] =
+      assert [%{"name" => "ask_me"}, %{"name" => "get_capsule"}, %{"name" => "search_traits"}] =
                body["result"]["tools"] |> Enum.sort_by(& &1["name"])
     end
   end
@@ -253,6 +253,51 @@ defmodule QlariusWeb.MeCPControllerTest do
 
       assert [event] = AccessLog.list_events_for_grant(ctx.grant.id)
       assert event.terms_agreement_id == agreement_id
+    end
+  end
+
+  describe "tools/call search_traits and missing-data nudges" do
+    test "the dog case study: gap surfaces with guidance, ask_me by name hints", %{conn: conn} do
+      ctx = seed_with_token!(%{tier: 2, scope: %{}})
+      pet_ownership = insert_trait!(ctx.lifestyle, "Pet Ownership")
+      insert_trait!(nil, "Dog", parent_trait_id: pet_ownership.id)
+
+      # search_traits finds the unanswered trait via its child name.
+      body = call_tool(conn, ctx.token, "search_traits", %{"query" => "do I own a dog"})
+      assert %{"result" => %{"isError" => false, "content" => [%{"text" => text}]}} = body
+      envelope = Jason.decode!(text)
+
+      gap = Enum.find(envelope["matches"], &(&1["trait_id"] == pet_ownership.id))
+      assert gap["has_data"] == false
+      assert envelope["guidance"] =~ "MeFile Builder"
+
+      # ask_me by name on the unanswered trait carries the nudge.
+      body =
+        call_tool(build_conn(), ctx.token, "ask_me", %{
+          "form" => "has_trait",
+          "trait" => "Pet Ownership"
+        })
+
+      envelope = body["result"]["content"] |> hd() |> Map.fetch!("text") |> Jason.decode!()
+      assert envelope["answer"] == false
+      assert envelope["missing_data_hint"] =~ "Pet Ownership"
+      assert envelope["missing_data_hint"] =~ "MeFile Builder"
+
+      # Answered questions carry no hint.
+      body =
+        call_tool(build_conn(), ctx.token, "ask_me", %{"form" => "has_trait", "trait" => "Pets"})
+
+      envelope = body["result"]["content"] |> hd() |> Map.fetch!("text") |> Jason.decode!()
+      assert envelope["answer"] == true
+      refute Map.has_key?(envelope, "missing_data_hint")
+    end
+
+    test "tools/list exposes search_traits", %{conn: conn} do
+      ctx = seed_with_token!(%{scope: %{}})
+      body = conn |> rpc(ctx.token, rpc_request("tools/list")) |> json_response(200)
+
+      names = body["result"]["tools"] |> Enum.map(& &1["name"]) |> Enum.sort()
+      assert names == ["ask_me", "get_capsule", "search_traits"]
     end
   end
 

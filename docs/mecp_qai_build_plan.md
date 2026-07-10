@@ -119,6 +119,23 @@ mecp_terms_agreements  id, mecp_client_id, me_file_id, roster_agreement_ref,
 - Access-log completeness: every external read has exactly one event row.
 - Manual end-to-end: connect a real MCP client (Claude/ChatGPT connector or local Ollama-based client) against a seeded MeFile.
 
+## Phase 1 acceptance findings (July 2026, live Claude connector testing)
+
+1. **Cloudflare blocks MCP agents by default.** The "Manage AI bots" feature ate every
+   authenticated `Claude-User` request; the fix is allowing `Claude-User` (and
+   `ChatGPT-User`) in AI Crawl Control. Any consumer-facing MeCP deployment doc must
+   mention this class of edge blocking; it presents as an opaque "connection failed"
+   in the client.
+2. **Tier-3 clients rarely use the oracle.** With capsule access, assistants fetch the
+   capsule once and answer follow-ups from it. The oracle earns its keep at tier 2.
+3. **Trait ids were not discoverable by clients**, making `ask_me` unusable in
+   practice. Fixed with the taxonomy gap-nudge feature: `search_traits` tool
+   (keyword match over trait/category/child-trait names, scope-filtered, has_data
+   flags budget-gated) plus `ask_me` accepting trait names and a
+   `missing_data_hint` on empty answers so assistants gently suggest the owner add
+   tags in the MeFile Builder. Every unanswerable question becomes a capture prompt,
+   which feeds the tag-freshness flywheel.
+
 ## Open items
 
 - Volatility class columns on `traits` (integer time calcs; migration; decide before Layer B).
