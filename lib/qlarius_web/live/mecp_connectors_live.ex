@@ -61,7 +61,8 @@ defmodule QlariusWeb.MeCPConnectorsLive do
       name: name,
       tier: String.to_integer(params["tier"] || "3"),
       category_ids: parse_category_ids(params),
-      budget_max: parse_budget_max(params["budget_max"])
+      budget_max: parse_budget_max(params["budget_max"]),
+      user_id: socket.assigns.current_scope.true_user.id
     }
 
     cond do
@@ -107,12 +108,13 @@ defmodule QlariusWeb.MeCPConnectorsLive do
 
   defp find_own_grant!(socket, grant_id) do
     id = String.to_integer(grant_id)
-    # Only grants belonging to the current MeFile are actionable.
+    # Only grants this user manages are actionable.
     Enum.find(socket.assigns.grants, &(&1.id == id)) || raise "grant not found"
   end
 
   defp assign_grants(socket) do
-    assign(socket, :grants, Grants.list_grants_for_me_file(me_file(socket).id))
+    owner_id = socket.assigns.current_scope.true_user.id
+    assign(socket, :grants, Grants.list_grants_for_owner(owner_id, me_file(socket).id))
   end
 
   defp parse_category_ids(params) do

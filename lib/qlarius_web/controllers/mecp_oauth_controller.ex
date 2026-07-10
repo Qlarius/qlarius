@@ -97,12 +97,16 @@ defmodule QlariusWeb.MeCPOAuthController do
   end
 
   defp do_approve(conn, client, checked, params) do
-    me_file = conn.assigns.current_scope.user.me_file
+    scope = conn.assigns.current_scope
+    # Snapshot the active persona's MeFile; own the grant as the true user so
+    # request-time resolution follows whichever proxy persona is active.
+    me_file = scope.user.me_file
 
     grant_attrs = %{
       tier: String.to_integer(params["tier"] || "3"),
       category_ids: parse_category_ids(params),
-      budget_max: parse_budget_max(params["budget_max"])
+      budget_max: parse_budget_max(params["budget_max"]),
+      user_id: scope.true_user.id
     }
 
     case OAuth.approve_authorization(client, me_file, grant_attrs, checked) do

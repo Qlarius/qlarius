@@ -68,18 +68,22 @@ defmodule Qlarius.MeCP.Oracle do
          :ok <- Grants.check_budget(grant, now),
          {:ok, trait_id} <- question_trait_id(question),
          {:ok, trait_ref} <- effective_trait_ref(trait_id),
-         :ok <- check_scope(scope, trait_ref),
-         {:ok, answer} <- answer(build_capsule(grant, scope), retarget(question, trait_ref)) do
-      AccessLog.record!(
-        grant,
-        "oracle",
-        AccessLog.digest(question),
-        response_shape(question, answer),
-        occurred_at: now,
-        terms_agreement_id: Keyword.get(opts, :terms_agreement_id)
-      )
+         :ok <- check_scope(scope, trait_ref) do
+      me_file_id = Qlarius.MeCP.effective_me_file_id(grant)
 
-      {:ok, answer}
+      with {:ok, answer} <-
+             answer(build_capsule(me_file_id, scope), retarget(question, trait_ref)) do
+        AccessLog.record!(
+          grant,
+          "oracle",
+          AccessLog.digest(question),
+          question |> response_shape(answer) |> Map.put("me_file_id", me_file_id),
+          occurred_at: now,
+          terms_agreement_id: Keyword.get(opts, :terms_agreement_id)
+        )
+
+        {:ok, answer}
+      end
     end
   end
 
@@ -108,6 +112,8 @@ defmodule Qlarius.MeCP.Oracle do
     with :ok <- Grants.check(grant, :oracle, now),
          :ok <- Grants.check_budget(grant, now),
          {:ok, tokens} <- tokenize(query) do
+      me_file_id = Qlarius.MeCP.effective_me_file_id(grant)
+
       matches =
         tokens
         |> matching_effective_traits()
@@ -115,7 +121,7 @@ defmodule Qlarius.MeCP.Oracle do
           &Scope.allows?(scope, %{trait_id: &1.trait_id, category_key: &1.category_id})
         )
         |> Enum.take(@search_result_limit)
-        |> mark_has_data(grant.me_file_id)
+        |> mark_has_data(me_file_id)
 
       AccessLog.record!(
         grant,
@@ -124,7 +130,8 @@ defmodule Qlarius.MeCP.Oracle do
         %{
           "form" => "search_traits",
           "answer_type" => "trait_list",
-          "answer_size" => length(matches)
+          "answer_size" => length(matches),
+          "me_file_id" => me_file_id
         },
         occurred_at: now,
         terms_agreement_id: Keyword.get(opts, :terms_agreement_id)
@@ -323,8 +330,8 @@ defmodule Qlarius.MeCP.Oracle do
     if Scope.allows?(scope, trait_ref), do: :ok, else: {:error, :out_of_scope}
   end
 
-  defp build_capsule(%Grant{} = grant, %Scope{} = scope) do
-    grant.me_file_id
+  defp build_capsule(me_file_id, %Scope{} = scope) when is_integer(me_file_id) do
+    me_file_id
     |> Qlarius.MeCP.load_me_file()
     |> Capsules.build(scope)
   end

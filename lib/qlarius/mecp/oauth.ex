@@ -145,6 +145,7 @@ defmodule Qlarius.MeCP.OAuth do
              Grants.create_grant(%{
                me_file_id: me_file.id,
                mecp_client_id: oauth_client.mecp_client_id,
+               user_id: grant_attrs[:user_id],
                scope: scope,
                tier: grant_attrs[:tier] || 3,
                budget: budget

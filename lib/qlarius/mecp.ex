@@ -29,6 +29,7 @@ defmodule Qlarius.MeCP do
   stay side-effect free underneath.
   """
 
+  alias Qlarius.Accounts.User
   alias Qlarius.MeCP.{AccessLog, Capsules, Clients, Grants, Oracle}
   alias Qlarius.MeCP.Grants.Grant
   alias Qlarius.YouData.MeFiles.MeFile
@@ -63,14 +64,15 @@ defmodule Qlarius.MeCP do
 
     with :ok <- Grants.check(grant, :capsule, now),
          :ok <- Grants.check_budget(grant, now) do
-      capsule = Capsules.build(load_me_file(grant.me_file_id), Grants.scope(grant))
+      me_file_id = effective_me_file_id(grant)
+      capsule = Capsules.build(load_me_file(me_file_id), Grants.scope(grant))
       rendered = Capsules.render(capsule, Keyword.take(opts, [:title]))
 
       AccessLog.record!(
         grant,
         "capsule",
         AccessLog.digest({:capsule, grant.scope}),
-        capsule_shape(capsule, rendered),
+        capsule |> capsule_shape(rendered) |> Map.put("me_file_id", me_file_id),
         occurred_at: now,
         terms_agreement_id: Keyword.get(opts, :terms_agreement_id)
       )
@@ -89,7 +91,9 @@ defmodule Qlarius.MeCP do
 
   Attrs: `:name` (required), `:client_type` (default `"byo_assistant"`),
   `:tier` (default 3), `:category_ids` (empty/omitted means full scope),
-  `:budget_max` (per-day disclosure cap; nil means unlimited).
+  `:budget_max` (per-day disclosure cap; nil means unlimited), `:user_id`
+  (the approving true user; makes the grant follow their active proxy
+  persona at request time).
 
   Returns `{:ok, %{client: client, grant: grant, token: plaintext_token}}`;
   the token is shown exactly once.
@@ -118,6 +122,7 @@ defmodule Qlarius.MeCP do
              Grants.create_grant(%{
                me_file_id: me_file.id,
                mecp_client_id: client.id,
+               user_id: attrs[:user_id],
                scope: scope,
                tier: attrs[:tier] || 3,
                budget: budget
@@ -138,6 +143,28 @@ defmodule Qlarius.MeCP do
     MeFile
     |> Repo.get!(me_file_id)
     |> Repo.preload(me_file_tags: [trait: [:trait_category, parent_trait: :trait_category]])
+  end
+
+  @doc """
+  The MeFile id a grant serves right now.
+
+  Grants belong to the user who approved them; when that user has an active
+  proxy persona (a DB flag, so it resolves without any browser session), the
+  persona's MeFile is served, otherwise the user's own. Legacy grants without
+  an owner, and owners whose active persona has no MeFile, fall back to the
+  approval-time `me_file_id` snapshot. Every read path resolves through this,
+  so switching personas in the app immediately redirects what connectors see.
+  """
+  def effective_me_file_id(%Grant{user_id: nil} = grant), do: grant.me_file_id
+
+  def effective_me_file_id(%Grant{} = grant) do
+    with %User{} = owner <- Repo.get(User, grant.user_id),
+         %User{} = persona <- User.active_proxy_user_or_self(owner),
+         %MeFile{} = me_file <- Repo.get_by(MeFile, user_id: persona.id) do
+      me_file.id
+    else
+      _ -> grant.me_file_id
+    end
   end
 
   # Shape summary only: counts and size, never values.

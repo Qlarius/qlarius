@@ -39,6 +39,19 @@ defmodule Qlarius.MeCP.Grants do
     )
   end
 
+  @doc """
+  Grants the given user manages: owned by them (they follow the user's active
+  proxy persona) plus legacy grants pinned to the given MeFile snapshot.
+  """
+  def list_grants_for_owner(user_id, me_file_id) do
+    Repo.all(
+      from g in Grant,
+        where: g.user_id == ^user_id or (is_nil(g.user_id) and g.me_file_id == ^me_file_id),
+        order_by: [desc: g.inserted_at],
+        preload: [:mecp_client]
+    )
+  end
+
   @doc "The grant's scope as a `Capsules.Scope`."
   def scope(%Grant{} = grant), do: Scope.from_grant(grant.scope)
 

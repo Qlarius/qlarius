@@ -38,6 +38,10 @@ defmodule Qlarius.MeCP.Grants.Grant do
 
     belongs_to :me_file, MeFile
     belongs_to :mecp_client, Client, foreign_key: :mecp_client_id
+    # The human who approved the grant. The MeFile actually served is resolved
+    # per request from this user's active proxy persona (or self); me_file_id
+    # is the approval-time snapshot and legacy fallback.
+    belongs_to :user, Qlarius.Accounts.User
 
     timestamps(type: :utc_datetime)
   end
@@ -53,6 +57,7 @@ defmodule Qlarius.MeCP.Grants.Grant do
     |> cast(attrs, [
       :me_file_id,
       :mecp_client_id,
+      :user_id,
       :scope,
       :tier,
       :budget,
@@ -64,6 +69,7 @@ defmodule Qlarius.MeCP.Grants.Grant do
     |> validate_change(:budget, &validate_budget/2)
     |> foreign_key_constraint(:me_file_id)
     |> foreign_key_constraint(:mecp_client_id)
+    |> foreign_key_constraint(:user_id)
   end
 
   defp validate_budget(:budget, budget) when budget == %{}, do: []

@@ -250,7 +250,8 @@ defmodule Qlarius.MeCP.OracleTest do
                "categories" => 2,
                "traits" => 2,
                "values" => 2,
-               "bytes" => byte_size(rendered)
+               "bytes" => byte_size(rendered),
+               "me_file_id" => ctx.me_file.id
              }
     end
   end
