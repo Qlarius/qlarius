@@ -58,6 +58,18 @@ defmodule QlariusWeb.MeCPControllerTest do
       assert %{"result" => %{}} = json_response(conn, 200)
     end
 
+    test "the bearer scheme is case-insensitive per RFC 7235", %{conn: conn} do
+      ctx = seed_with_token!(%{scope: %{}})
+
+      conn =
+        conn
+        |> put_req_header("authorization", "bearer #{ctx.token}")
+        |> put_req_header("content-type", "application/json")
+        |> post(@path, Jason.encode!(rpc_request("ping")))
+
+      assert %{"result" => %{}} = json_response(conn, 200)
+    end
+
     test "GET is not supported (no SSE stream in v1)", %{conn: conn} do
       assert conn |> get(@path) |> response(405)
     end

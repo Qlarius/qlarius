@@ -45,13 +45,24 @@ defmodule QlariusWeb.MeCPController do
   # (remote connectors) both resolve to a grant; everything downstream is
   # identical.
   defp authenticate(conn) do
-    with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
-         token = String.trim(token),
+    with [header] <- get_req_header(conn, "authorization"),
+         token when is_binary(token) <- parse_bearer(header),
          %Grant{} = grant <-
            Grants.get_grant_by_token(token) || OAuth.verify_access_token(token) do
       {:ok, grant}
     else
       _ -> :error
+    end
+  end
+
+  # RFC 7235: the auth scheme is case-insensitive ("Bearer" == "bearer").
+  defp parse_bearer(header) do
+    case String.split(header, " ", parts: 2) do
+      [scheme, token] ->
+        if String.downcase(scheme) == "bearer", do: String.trim(token)
+
+      _ ->
+        nil
     end
   end
 end
