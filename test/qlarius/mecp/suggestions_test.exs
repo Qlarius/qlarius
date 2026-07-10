@@ -7,7 +7,7 @@ defmodule Qlarius.MeCP.SuggestionsTest do
   alias Qlarius.YouData.Surveys.SurveyQuestion
 
   # Suggestions render as survey questions, so suggestible traits need one.
-  defp make_askable!(trait) do
+  defp make_askable_question!(trait) do
     Repo.insert!(%SurveyQuestion{
       text: "Question about #{trait.trait_name}?",
       trait_id: trait.id,
@@ -17,7 +17,10 @@ defmodule Qlarius.MeCP.SuggestionsTest do
       added_by: 0,
       modified_by: 0
     })
+  end
 
+  defp make_askable!(trait) do
+    make_askable_question!(trait)
     trait
   end
 
@@ -207,15 +210,56 @@ defmodule Qlarius.MeCP.SuggestionsTest do
       assert Suggestions.pending_count_for_me_file(ctx.me_file.id) == 0
     end
 
-    test "parent_traits_for_suggestions matches the Builder survey tuple shape" do
+    test "suggested_surveys groups anchors by survey with progress and byline data" do
+      ctx = seed_with_gap!()
+
+      # A second gap trait in the same survey collapses into one entry.
+      sibling =
+        insert_trait!(ctx.lifestyle, "Ideal Vacation Activities #{System.unique_integer()}")
+
+      sibling_question = make_askable_question!(sibling)
+      gap_question = Repo.get_by!(Qlarius.YouData.Surveys.SurveyQuestion, trait_id: ctx.gap.id)
+
+      survey =
+        Repo.insert!(%Qlarius.YouData.Surveys.Survey{
+          name: "Ideal Vacation/Getaway",
+          active: true,
+          created_by: 0,
+          updated_by: 0
+        })
+
+      for {question, order} <- [{gap_question, 1}, {sibling_question, 2}] do
+        Repo.insert!(%Qlarius.YouData.Surveys.SurveyQuestionSurvey{
+          survey_question_id: question.id,
+          survey_id: survey.id,
+          display_order: order
+        })
+      end
+
+      {:ok, _} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{})
+      {:ok, _} = Suggestions.create_suggestion(ctx.grant, sibling.id, %{})
+
+      assert [entry] = Suggestions.suggested_surveys_for_me_file(ctx.me_file.id)
+      assert entry.survey.id == survey.id
+      assert length(entry.suggestions) == 2
+      assert entry.answered == 0
+      assert entry.total == 2
+      assert entry.latest.grant.mecp_client.name == "Test Client"
+
+      # Group dismissal clears both anchors.
+      ids = Enum.map(entry.suggestions, & &1.id)
+      assert 2 = Suggestions.dismiss_many(ids, ctx.me_file.id)
+      assert Suggestions.suggested_surveys_for_me_file(ctx.me_file.id) == []
+    end
+
+    test "anchors without a survey fall back to a trait-level entry" do
       ctx = seed_with_gap!()
       {:ok, _} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{})
 
-      assert [{trait_id, trait_name, 0, []}] =
-               Suggestions.parent_traits_for_suggestions(ctx.me_file.id)
-
-      assert trait_id == ctx.gap.id
-      assert trait_name == ctx.gap.trait_name
+      assert [entry] = Suggestions.suggested_surveys_for_me_file(ctx.me_file.id)
+      assert entry.survey == nil
+      assert entry.total == 1
+      assert entry.latest.trait.trait_name == ctx.gap.trait_name
     end
 
     test "list_pending_for_me_file preloads what the Builder needs" do

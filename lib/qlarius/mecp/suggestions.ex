@@ -2,10 +2,12 @@ defmodule Qlarius.MeCP.Suggestions do
   @moduledoc """
   The confirm-to-add suggestion queue (build plan Phase 1.5).
 
-  Connected assistants propose tags through `suggest_tag`; proposals land here
-  and render as the virtual "From Recent Chats" survey in the MeFile Builder.
-  Nothing touches the MeFile until the user answers that question through the
-  normal survey flow, which then resolves the suggestion via
+  Suggestions arrive two ways: MeCP observes a read hitting a gap
+  (`observe_gap/3`, the frictionless default) or an assistant explicitly calls
+  `suggest_tag` (`create_suggestion/4`). Pending anchors group by their
+  survey (`suggested_surveys_for_me_file/1`) and surface in the Builder's
+  "From Recent Chats" panel, which opens the real survey. Nothing touches the
+  MeFile until the user answers there; the write resolves the suggestion via
   `accept_pending_for_trait/2`.
 
   Queue rules: suggestions target effective traits that carry a survey
@@ -105,29 +107,77 @@ defmodule Qlarius.MeCP.Suggestions do
   end
 
   @doc """
-  Pending suggestions shaped like `Surveys.parent_traits_for_survey_with_tags/2`
-  (`{trait_id, trait_name, display_order, tags}` tuples), so the Builder's
-  virtual "From Recent Chats" survey renders through the same components real
-  surveys use.
-  """
-  def parent_traits_for_suggestions(me_file_id) do
-    me_file_id
-    |> list_pending_for_me_file()
-    |> Enum.with_index()
-    |> Enum.map(fn {suggestion, index} ->
-      tags =
-        Qlarius.YouData.MeFiles.existing_tags_per_parent_trait(me_file_id, suggestion.trait_id)
-        |> Enum.map(fn mt ->
-          if mt.trait.parent_trait do
-            {mt.trait.id, mt.trait.trait_name, mt.trait.display_order}
-          else
-            {mt.trait.id, mt.tag_value, mt.trait.display_order}
-          end
-        end)
-        |> Enum.sort_by(fn {_id, name, display_order} -> [display_order, name] end)
+  Pending suggestions grouped by the survey their anchor trait belongs to,
+  newest first. The survey is the taxonomy's curated cluster of related
+  traits, so a single asked-about gap ("Ideal Vacation: Destinations")
+  surfaces the whole topic ("Ideal Vacation/Getaway", 6 questions) in the
+  Builder, which opens the real survey through the normal flow.
 
-      {suggestion.trait_id, suggestion.trait.trait_name, index, tags}
+  Returns entries of `%{survey: %Survey{} | nil, suggestions: [...],
+  answered: n, total: n, latest: %TagSuggestion{}}`. Entries with `survey:
+  nil` (anchor question attached to no survey) fall back to trait-level
+  handling; their totals count the suggestions themselves.
+  """
+  def suggested_surveys_for_me_file(me_file_id) do
+    suggestions = list_pending_for_me_file(me_file_id)
+    trait_ids = suggestions |> Enum.map(& &1.trait_id) |> Enum.uniq()
+
+    survey_by_trait =
+      Repo.all(
+        from sq in SurveyQuestion,
+          join: sqs in "survey_question_surveys",
+          on: sqs.survey_question_id == sq.id,
+          join: s in Qlarius.YouData.Surveys.Survey,
+          on: s.id == sqs.survey_id,
+          where: sq.trait_id in ^trait_ids,
+          select: {sq.trait_id, s},
+          order_by: [asc: sq.trait_id, asc: s.id]
+      )
+      |> Enum.group_by(fn {trait_id, _survey} -> trait_id end, fn {_trait_id, survey} ->
+        survey
+      end)
+      |> Map.new(fn {trait_id, [first_survey | _]} -> {trait_id, first_survey} end)
+
+    suggestions
+    |> Enum.group_by(&survey_by_trait[&1.trait_id])
+    |> Enum.map(fn {survey, group} ->
+      latest = Enum.max_by(group, & &1.inserted_at, DateTime)
+      {answered, total} = survey_progress(survey, group, me_file_id)
+
+      %{survey: survey, suggestions: group, answered: answered, total: total, latest: latest}
     end)
+    |> Enum.sort_by(& &1.latest.inserted_at, {:desc, DateTime})
+  end
+
+  @doc "Whether a pending suggestion exists for this effective trait."
+  def pending_for_trait?(me_file_id, trait_id) do
+    Repo.exists?(
+      from s in TagSuggestion,
+        where: s.me_file_id == ^me_file_id and s.trait_id == ^trait_id and s.status == "pending"
+    )
+  end
+
+  @doc "Dismisses several pending suggestions at once (a survey group)."
+  def dismiss_many(suggestion_ids, me_file_id, now \\ DateTime.utc_now()) do
+    {count, _} =
+      Repo.update_all(
+        from(s in TagSuggestion,
+          where: s.id in ^suggestion_ids and s.me_file_id == ^me_file_id and s.status == "pending"
+        ),
+        set: [status: "dismissed", reason: nil, resolved_at: DateTime.truncate(now, :second)]
+      )
+
+    count
+  end
+
+  defp survey_progress(nil, group, _me_file_id), do: {0, length(group)}
+
+  defp survey_progress(survey, _group, me_file_id) do
+    parent_traits =
+      Qlarius.YouData.Surveys.parent_traits_for_survey_with_tags(survey.id, me_file_id)
+
+    answered = Enum.count(parent_traits, fn {_id, _name, _order, tags} -> tags != [] end)
+    {answered, length(parent_traits)}
   end
 
   @doc """

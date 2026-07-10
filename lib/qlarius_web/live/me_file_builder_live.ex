@@ -81,39 +81,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
             </p>
           </div>
 
-          <%!-- Provenance bylines for the virtual suggestions survey: each entry
-               is the assistant's words, clearly attributed, with a dismiss. --%>
-          <div
-            :if={@survey_in_edit && @survey_in_edit.id == :suggestions}
-            class="mb-4 flex flex-col gap-2"
-          >
-            <div
-              :for={s <- @pending_suggestions}
-              class="flex items-start justify-between gap-2 text-sm bg-base-200 dark:bg-base-300/40 rounded-lg p-3"
-            >
-              <div class="min-w-0">
-                <div class="font-medium">{s.trait.trait_name}</div>
-                <div class="text-base-content/60">
-                  {if s.source == "observed", do: "Asked about by", else: "Suggested by"} {s.grant.mecp_client.name} on {Calendar.strftime(
-                    s.inserted_at,
-                    "%b %d"
-                  )}
-                </div>
-                <div :if={s.reason} class="text-base-content/60 italic">"{s.reason}"</div>
-                <div :if={s.proposed_values != []} class="text-base-content/60">
-                  Mentioned: {Enum.join(s.proposed_values, ", ")}
-                </div>
-              </div>
-              <button
-                class="btn btn-xs btn-ghost shrink-0"
-                phx-click="dismiss_suggestion"
-                phx-value-id={s.id}
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
-
           <.survey_traits_display
             :if={@survey_in_edit}
             parent_traits={@survey_in_edit.parent_traits}
@@ -143,25 +110,63 @@ defmodule QlariusWeb.MeFileBuilderLive do
           Select a category below and fill empty tags.
         </Layouts.mobile_page_intro>
 
-        <%!-- Virtual survey: pending suggestions from connected assistants --%>
-        <div :if={@pending_suggestions != []} class="mt-8">
+        <%!-- Suggested surveys: topics your assistants looked for and found empty --%>
+        <div :if={@suggested_surveys != []} class="mt-8">
           <.surface_panel padding={false}>
-            <div
-              class="p-4 cursor-pointer transition-colors hover:bg-base-200/60 rounded-2xl"
-              phx-click="open_suggestions"
-            >
-              <div class="flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                  <.icon name="hero-sparkles" class="w-5 h-5 text-primary" />
-                  <span class="text-xl text-base-content">From Recent Chats</span>
-                  <span class="badge badge-primary badge-sm">{length(@pending_suggestions)}</span>
-                </div>
-                <.icon name="hero-chevron-right" class="w-5 h-5 shrink-0 text-base-content/60" />
+            <div class="px-4 pt-4 pb-3">
+              <div class="flex items-center gap-2">
+                <.icon name="hero-sparkles" class="w-5 h-5 text-primary" />
+                <h2 class="text-lg font-bold tracking-tight text-base-content/50">
+                  From Recent Chats
+                </h2>
+                <span class="badge badge-primary badge-sm">{length(@suggested_surveys)}</span>
               </div>
               <p class="text-sm text-base-content/60 mt-1">
-                Your AI assistants noticed these gaps. Answer or dismiss; nothing is added
-                without you.
+                Recent chats would have been more personal with these tags filled in.
+                Answer or dismiss; nothing is added without you.
               </p>
+            </div>
+            <div class="px-4 pb-4">
+              <div
+                :for={entry <- @suggested_surveys}
+                class="mb-3 p-3 bg-base-200 dark:bg-base-300/40 rounded-2xl"
+              >
+                <div
+                  class="flex justify-between items-center cursor-pointer transition-colors hover:opacity-80"
+                  phx-click={if entry.survey, do: "open_edit", else: "edit_tags"}
+                  phx-value-id={if entry.survey, do: entry.survey.id, else: entry.latest.trait_id}
+                >
+                  <span class="text-xl text-base-content">
+                    {(entry.survey && entry.survey.name) || entry.latest.trait.trait_name}
+                  </span>
+                  <div class="flex items-center gap-2">
+                    <span class={survey_ratio_text_class(entry.answered, entry.total)}>
+                      {entry.answered}/{entry.total}
+                    </span>
+                    <.icon name="hero-chevron-right" class="w-5 h-5 shrink-0 text-base-content/60" />
+                  </div>
+                </div>
+                <div class="flex justify-between items-center mt-1">
+                  <span class="text-sm text-base-content/60">
+                    {if entry.latest.source == "observed",
+                      do: "Asked about by",
+                      else: "Suggested by"} {entry.latest.grant.mecp_client.name} on {Calendar.strftime(
+                      entry.latest.inserted_at,
+                      "%b %d"
+                    )}
+                  </span>
+                  <button
+                    class="btn btn-xs btn-ghost shrink-0"
+                    phx-click="dismiss_suggestion_group"
+                    phx-value-ids={Enum.map_join(entry.suggestions, ",", & &1.id)}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+                <div :if={entry.latest.reason} class="text-sm text-base-content/60 italic mt-1">
+                  "{entry.latest.reason}"
+                </div>
+              </div>
             </div>
           </.surface_panel>
         </div>
@@ -237,7 +242,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
       socket
       |> assign(:current_path, "/me_file_builder")
       |> assign(:categories, categories_with_stats)
-      |> assign(:pending_suggestions, Suggestions.list_pending_for_me_file(me_file_id))
+      |> assign(:suggested_surveys, Suggestions.suggested_surveys_for_me_file(me_file_id))
       |> assign(:answered_survey_question_ids, answered_ids)
       |> assign(:editing, false)
       |> assign(:active_survey_id, nil)
@@ -329,27 +334,23 @@ defmodule QlariusWeb.MeFileBuilderLive do
     {:noreply, open_survey(socket, survey_id)}
   end
 
-  def handle_event("open_suggestions", _params, socket) do
-    {:noreply, open_suggestions_survey(socket)}
-  end
-
-  def handle_event("dismiss_suggestion", %{"id" => id}, socket) do
+  def handle_event("dismiss_suggestion_group", %{"ids" => ids}, socket) do
     me_file_id = socket.assigns.current_scope.user.me_file.id
-    {suggestion_id, _} = Integer.parse(to_string(id))
 
-    Suggestions.dismiss(suggestion_id, me_file_id)
-    socket = refresh_suggestions(socket)
+    suggestion_ids =
+      ids
+      |> String.split(",", trim: true)
+      |> Enum.flat_map(fn raw ->
+        case Integer.parse(raw) do
+          {id, _} -> [id]
+          :error -> []
+        end
+      end)
 
-    # Close the slide-over when the last suggestion is handled.
-    if socket.assigns.pending_suggestions == [] and
-         socket.assigns.active_survey_id == :suggestions do
-      {:noreply,
-       socket
-       |> assign(editing: false, active_survey_id: nil)
-       |> assign(:survey_in_edit, nil)}
-    else
-      {:noreply, socket}
-    end
+    Suggestions.dismiss_many(suggestion_ids, me_file_id)
+
+    {:noreply,
+     assign(socket, :suggested_surveys, Suggestions.suggested_surveys_for_me_file(me_file_id))}
   end
 
   def handle_event("close_slide_over", _params, socket) do
@@ -432,6 +433,11 @@ defmodule QlariusWeb.MeFileBuilderLive do
           %{}
       end
 
+    # Checked before the write: saving resolves the suggestion, and we stamp
+    # the capture surface on the fresh tags afterwards.
+    had_suggestion =
+      Suggestions.pending_for_trait?(socket.assigns.current_scope.user.me_file.id, trait_id)
+
     # Update tags and refresh survey data
     case MeFiles.create_replace_mefile_tags(
            socket.assigns.current_scope.user.me_file.id,
@@ -443,9 +449,9 @@ defmodule QlariusWeb.MeFileBuilderLive do
         # Refresh the survey data after tag update
         me_file_id = socket.assigns.current_scope.user.me_file.id
 
-        # Answered through the virtual suggestions survey: stamp the capture
-        # surface (the write itself already resolved the suggestion).
-        if socket.assigns.active_survey_id == :suggestions do
+        # The write above resolved any pending suggestion for this trait
+        # (surface-agnostic hook); stamp the capture surface here.
+        if had_suggestion do
           MeFiles.set_tags_source_context(me_file_id, trait_id, "mecp_suggestion_confirmed")
         end
 
@@ -455,22 +461,16 @@ defmodule QlariusWeb.MeFileBuilderLive do
           Surveys.list_survey_categories_with_surveys_and_stats(me_file_id, answered_ids)
 
         survey_in_edit =
-          case socket.assigns.survey_in_edit do
-            nil ->
-              nil
-
-            %{id: :suggestions} = survey ->
-              Map.put(
-                survey,
-                :parent_traits,
-                Suggestions.parent_traits_for_suggestions(me_file_id)
+          if socket.assigns.survey_in_edit do
+            parent_traits_with_tags =
+              Surveys.parent_traits_for_survey_with_tags(
+                socket.assigns.survey_in_edit.id,
+                me_file_id
               )
 
-            survey ->
-              parent_traits_with_tags =
-                Surveys.parent_traits_for_survey_with_tags(survey.id, me_file_id)
-
-              Map.put(survey, :parent_traits, parent_traits_with_tags)
+            Map.put(socket.assigns.survey_in_edit, :parent_traits, parent_traits_with_tags)
+          else
+            nil
           end
 
         socket =
@@ -478,7 +478,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
           |> assign(:categories, categories_with_stats)
           |> assign(:answered_survey_question_ids, answered_ids)
           |> assign(:survey_in_edit, survey_in_edit)
-          |> assign(:pending_suggestions, Suggestions.list_pending_for_me_file(me_file_id))
+          |> assign(:suggested_surveys, Suggestions.suggested_surveys_for_me_file(me_file_id))
           |> assign(:show_modal, false)
           |> assign(:show_delete_confirm, false)
           |> push_event("animate_trait", %{
@@ -570,39 +570,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
     |> assign(:survey_in_edit, survey_in_edit)
     |> assign(:show_view_menu, false)
     |> assign(:show_tag_search, false)
-  end
-
-  # The virtual survey: pending assistant suggestions rendered through the
-  # same components as real surveys (see MeCP.Suggestions).
-  defp open_suggestions_survey(socket) do
-    socket = refresh_suggestions(socket)
-
-    socket
-    |> assign(editing: true, active_survey_id: :suggestions)
-    |> assign(:show_view_menu, false)
-    |> assign(:show_tag_search, false)
-  end
-
-  defp refresh_suggestions(socket) do
-    me_file_id = socket.assigns.current_scope.user.me_file.id
-    pending = Suggestions.list_pending_for_me_file(me_file_id)
-
-    survey_in_edit =
-      if socket.assigns[:active_survey_id] == :suggestions or
-           match?(%{id: :suggestions}, socket.assigns[:survey_in_edit]) or
-           socket.assigns[:survey_in_edit] == nil do
-        %{
-          id: :suggestions,
-          name: "From Recent Chats",
-          parent_traits: Suggestions.parent_traits_for_suggestions(me_file_id)
-        }
-      else
-        socket.assigns.survey_in_edit
-      end
-
-    socket
-    |> assign(:pending_suggestions, pending)
-    |> assign(:survey_in_edit, survey_in_edit)
   end
 
   defp assign_tag_display_mode(socket) do

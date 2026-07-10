@@ -144,13 +144,15 @@ defmodule Qlarius.MeCP.Oracle do
         terms_agreement_id: Keyword.get(opts, :terms_agreement_id)
       )
 
-      # The assistant searched for something the MeFile lacks: queue the
-      # top-scoring gap as an observed suggestion (matches are already
-      # score-ordered; best-effort, never fails the read).
-      case Enum.find(matches, &(&1.has_data == false)) do
-        %{trait_id: gap_trait_id} -> Suggestions.observe_gap(grant, gap_trait_id, now: now)
-        nil -> :ok
-      end
+      # The assistant searched for something the MeFile lacks: queue the top
+      # gap matches as observed suggestions (matches are already
+      # score-ordered; best-effort, never fails the read). The Builder groups
+      # anchors by survey, so several anchors in one topic collapse to a
+      # single suggested survey rather than adding noise.
+      matches
+      |> Enum.filter(&(&1.has_data == false))
+      |> Enum.take(3)
+      |> Enum.each(&Suggestions.observe_gap(grant, &1.trait_id, now: now))
 
       {:ok, matches}
     end
