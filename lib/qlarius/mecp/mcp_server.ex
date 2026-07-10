@@ -123,6 +123,16 @@ defmodule Qlarius.MeCP.MCPServer do
 
   # --- tools --------------------------------------------------------------------
 
+  # Every MeCP v1 tool is a pure read. Declaring that via MCP tool annotations
+  # lets clients (claude.ai honors readOnlyHint) skip per-use write-safety
+  # confirmations instead of prompting on every chat.
+  @read_only_annotations %{
+    "readOnlyHint" => true,
+    "destructiveHint" => false,
+    "idempotentHint" => true,
+    "openWorldHint" => false
+  }
+
   defp tool_definitions do
     [
       %{
@@ -131,6 +141,7 @@ defmodule Qlarius.MeCP.MCPServer do
         "description" =>
           "Returns the scoped MeFile capsule this grant permits: compact markdown of " <>
             "category > trait > values, each value dated with its confirmation month/year.",
+        "annotations" => @read_only_annotations,
         "inputSchema" => %{
           "type" => "object",
           "properties" => %{},
@@ -148,6 +159,7 @@ defmodule Qlarius.MeCP.MCPServer do
             "If the answer comes back empty with a missing_data_hint, the owner has no " <>
             "tags there yet; if it fits the conversation, gently let them know they can " <>
             "add tags in the MeFile Builder in their Qadabra app.",
+        "annotations" => @read_only_annotations,
         "inputSchema" => %{
           "type" => "object",
           "properties" => %{
@@ -191,6 +203,7 @@ defmodule Qlarius.MeCP.MCPServer do
             "the owner can fill: when it fits the conversation, gently suggest they " <>
             "add tags in the MeFile Builder in their Qadabra app. Costs one unit of " <>
             "disclosure budget per call.",
+        "annotations" => @read_only_annotations,
         "inputSchema" => %{
           "type" => "object",
           "properties" => %{

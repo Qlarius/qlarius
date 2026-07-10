@@ -147,7 +147,14 @@ defmodule QlariusWeb.MeCPControllerTest do
       body = conn |> rpc(ctx.token, rpc_request("tools/list")) |> json_response(200)
 
       assert [%{"name" => "ask_me"}, %{"name" => "get_capsule"}, %{"name" => "search_traits"}] =
-               body["result"]["tools"] |> Enum.sort_by(& &1["name"])
+               tools = body["result"]["tools"] |> Enum.sort_by(& &1["name"])
+
+      # All v1 tools are pure reads; the annotation is what lets clients skip
+      # per-use write-safety confirmations.
+      for tool <- tools do
+        assert tool["annotations"]["readOnlyHint"] == true
+        assert tool["annotations"]["destructiveHint"] == false
+      end
     end
   end
 
