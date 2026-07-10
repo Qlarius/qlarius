@@ -219,12 +219,13 @@ defmodule Qlarius.MeCP.MCPServer do
         "name" => "suggest_tag",
         "title" => "Suggest a MeFile addition",
         "description" =>
-          "Proposes that the owner add tags for a trait they have no data on. " <>
-            "Nothing is written to the MeFile: the proposal appears as a question " <>
-            "in the From Recent Chats survey in their MeFile Builder, where the " <>
-            "owner answers or dismisses it. Only call this after the owner agrees " <>
-            "in conversation that adding the data sounds useful. Target a trait " <>
-            "surfaced by search_traits with has_data false.",
+          "Proposes that the owner add tags for a trait, with specific values they " <>
+            "mentioned and your reason. Rarely needed: gaps you hit via search_traits " <>
+            "or ask_me are queued for the owner automatically. Call this only when " <>
+            "the owner explicitly asks you to save a suggestion or mentions concrete " <>
+            "values worth attaching. Nothing is written to the MeFile: the proposal " <>
+            "appears as a question in the From Recent Chats survey in their MeFile " <>
+            "Builder, where the owner answers or dismisses it.",
         # Deliberately NOT read-only: this queues something for the owner, so
         # clients should treat it as a write and confirm with their user.
         "annotations" => %{
@@ -308,9 +309,10 @@ defmodule Qlarius.MeCP.MCPServer do
               }
             end),
           "guidance" =>
-            "Matches with has_data false are gaps in the MeFile. If it fits the " <>
-              "conversation, gently suggest the owner add tags for that topic in the " <>
-              "MeFile Builder in their Qadabra app."
+            "Matches with has_data false are gaps in the MeFile; the top gap has " <>
+              "been noted for the owner in the From Recent Chats survey in their " <>
+              "MeFile Builder. If it fits the conversation, gently let them know " <>
+              "it is waiting there."
         }
 
         tool_text(Jason.encode!(envelope))
@@ -429,9 +431,9 @@ defmodule Qlarius.MeCP.MCPServer do
     Map.put(
       envelope,
       "missing_data_hint",
-      "The owner has no confirmed tags for #{subject}. They can add tags in the " <>
-        "MeFile Builder in their Qadabra app. If it fits the conversation, gently " <>
-        "let them know."
+      "The owner has no confirmed tags for #{subject}. This gap has been noted " <>
+        "for them in the From Recent Chats survey in their MeFile Builder. If it " <>
+        "fits the conversation, gently let them know it is waiting there."
     )
   end
 

@@ -19,6 +19,9 @@ defmodule Qlarius.MeCP.Suggestions.TagSuggestion do
   alias Qlarius.YouData.Traits.Trait
 
   @statuses ~w(pending accepted dismissed)
+  # assistant: explicit suggest_tag call; observed: MeCP queued it itself when
+  # a read hit a gap.
+  @sources ~w(assistant observed)
   @reason_max_length 280
 
   @type t :: %__MODULE__{}
@@ -27,6 +30,7 @@ defmodule Qlarius.MeCP.Suggestions.TagSuggestion do
     field :proposed_values, {:array, :string}, default: []
     field :reason, :string
     field :status, :string, default: "pending"
+    field :source, :string, default: "assistant"
     field :resolved_at, :utc_datetime
 
     belongs_to :grant, Grant, foreign_key: :mecp_grant_id
@@ -48,10 +52,12 @@ defmodule Qlarius.MeCP.Suggestions.TagSuggestion do
       :proposed_values,
       :reason,
       :status,
+      :source,
       :resolved_at
     ])
-    |> validate_required([:mecp_grant_id, :me_file_id, :trait_id, :status])
+    |> validate_required([:mecp_grant_id, :me_file_id, :trait_id, :status, :source])
     |> validate_inclusion(:status, @statuses)
+    |> validate_inclusion(:source, @sources)
     |> truncate_reason()
     |> foreign_key_constraint(:mecp_grant_id)
     |> foreign_key_constraint(:me_file_id)

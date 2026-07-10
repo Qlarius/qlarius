@@ -94,7 +94,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
               <div class="min-w-0">
                 <div class="font-medium">{s.trait.trait_name}</div>
                 <div class="text-base-content/60">
-                  Suggested by {s.grant.mecp_client.name} on {Calendar.strftime(
+                  {if s.source == "observed", do: "Asked about by", else: "Suggested by"} {s.grant.mecp_client.name} on {Calendar.strftime(
                     s.inserted_at,
                     "%b %d"
                   )}

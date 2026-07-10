@@ -119,6 +119,57 @@ defmodule Qlarius.MeCP.SuggestionsTest do
     end
   end
 
+  describe "observed gaps (hybrid loop)" do
+    alias Qlarius.MeCP.Oracle
+
+    test "an empty ask_me answer queues an observed suggestion with one event total" do
+      ctx = seed_with_gap!()
+
+      assert {:ok, false} = Oracle.ask(ctx.grant, {:has_trait, ctx.gap.id})
+
+      [suggestion] = Suggestions.list_pending_for_me_file(ctx.me_file.id)
+      assert suggestion.source == "observed"
+      assert suggestion.trait_id == ctx.gap.id
+      assert suggestion.reason == nil
+
+      # Exactly one event: the oracle read. Observation logs nothing extra.
+      [event] = AccessLog.list_events_for_grant(ctx.grant.id)
+      assert event.kind == "oracle"
+    end
+
+    test "an answered ask_me queues nothing" do
+      ctx = seed_with_gap!()
+      make_askable!(ctx.pets)
+
+      assert {:ok, true} = Oracle.ask(ctx.grant, {:has_trait, ctx.pets.id})
+      assert Suggestions.pending_count_for_me_file(ctx.me_file.id) == 0
+    end
+
+    test "search_traits queues the top gap once; repeats dedupe" do
+      ctx = seed_with_gap!()
+      insert_trait!(nil, "Dog", parent_trait_id: ctx.gap.id)
+
+      assert {:ok, _} = Oracle.search_traits(ctx.grant, "do I own a dog?")
+      assert {:ok, _} = Oracle.search_traits(ctx.grant, "dogs again")
+
+      [suggestion] = Suggestions.list_pending_for_me_file(ctx.me_file.id)
+      assert suggestion.source == "observed"
+      assert suggestion.trait_id == ctx.gap.id
+
+      # Two searches, two oracle events, still one suggestion.
+      events = AccessLog.list_events_for_grant(ctx.grant.id)
+      assert Enum.map(events, & &1.kind) |> Enum.sort() == ["oracle", "oracle"]
+    end
+
+    test "gaps on non-askable traits are skipped silently" do
+      ctx = seed!(%{tier: 2, scope: %{}})
+      empty = insert_trait!(ctx.demo, "Vehicle")
+
+      assert {:ok, false} = Oracle.ask(ctx.grant, {:has_trait, empty.id})
+      assert Suggestions.pending_count_for_me_file(ctx.me_file.id) == 0
+    end
+  end
+
   describe "lifecycle" do
     test "answering the trait accepts pending suggestions" do
       ctx = seed_with_gap!()

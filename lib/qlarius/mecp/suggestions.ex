@@ -57,10 +57,30 @@ defmodule Qlarius.MeCP.Suggestions do
          me_file_id = MeCP.effective_me_file_id(grant),
          :ok <- check_not_duplicate(me_file_id, trait.id, now),
          :ok <- check_pending_cap(grant.id) do
-      insert_suggestion(grant, me_file_id, trait, attrs, now)
+      insert_suggestion(grant, me_file_id, trait, attrs, now, opts)
     else
       {:duplicate, :already_suggested} -> {:ok, :already_suggested}
       other -> other
+    end
+  end
+
+  @doc """
+  Queues an observation-derived suggestion: MeCP itself watched a read hit a
+  gap (an empty `ask_me` answer or a `search_traits` match without data), so
+  no explicit `suggest_tag` call, and no in-chat confirmation, is needed.
+
+  Same queue rules as `create_suggestion/4`, but the row is marked
+  `source: "observed"` and no access event is written: the triggering read
+  already logged one, and every external read has exactly one event row.
+  Best-effort by design: all refusals collapse to `:skipped` so the read that
+  triggered the observation can never fail because of it.
+  """
+  def observe_gap(%Grant{} = grant, trait_ref, opts \\ []) do
+    attrs = %{source: "observed"}
+
+    case create_suggestion(grant, trait_ref, attrs, Keyword.put(opts, :log_event, false)) do
+      {:ok, %TagSuggestion{} = suggestion} -> {:ok, suggestion}
+      _refused_or_duplicate -> :skipped
     end
   end
 
@@ -235,7 +255,7 @@ defmodule Qlarius.MeCP.Suggestions do
     if count >= @max_pending_per_grant, do: {:error, :suggestion_limit_reached}, else: :ok
   end
 
-  defp insert_suggestion(grant, me_file_id, trait, attrs, now) do
+  defp insert_suggestion(grant, me_file_id, trait, attrs, now, opts) do
     result =
       %TagSuggestion{}
       |> TagSuggestion.changeset(%{
@@ -244,24 +264,29 @@ defmodule Qlarius.MeCP.Suggestions do
         trait_id: trait.id,
         proposed_values: List.wrap(attrs[:proposed_values] || []),
         reason: attrs[:reason],
-        status: "pending"
+        status: "pending",
+        source: attrs[:source] || "assistant"
       })
       |> Repo.insert()
 
     case result do
       {:ok, suggestion} ->
-        AccessLog.record!(
-          grant,
-          "suggestion",
-          AccessLog.digest({:suggest_tag, trait.id}),
-          %{
-            "form" => "suggest_tag",
-            "trait_id" => trait.id,
-            "me_file_id" => me_file_id,
-            "proposed_values_count" => length(suggestion.proposed_values)
-          },
-          occurred_at: now
-        )
+        # Observed suggestions skip this: their triggering read already logged
+        # an event, and every external read has exactly one event row.
+        if Keyword.get(opts, :log_event, true) do
+          AccessLog.record!(
+            grant,
+            "suggestion",
+            AccessLog.digest({:suggest_tag, trait.id}),
+            %{
+              "form" => "suggest_tag",
+              "trait_id" => trait.id,
+              "me_file_id" => me_file_id,
+              "proposed_values_count" => length(suggestion.proposed_values)
+            },
+            occurred_at: now
+          )
+        end
 
         {:ok, suggestion}
 

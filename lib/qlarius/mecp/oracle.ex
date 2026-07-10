@@ -30,6 +30,7 @@ defmodule Qlarius.MeCP.Oracle do
   alias Qlarius.MeCP.Capsules.{Capsule, Scope}
   alias Qlarius.MeCP.Grants
   alias Qlarius.MeCP.Grants.Grant
+  alias Qlarius.MeCP.Suggestions
   alias Qlarius.Repo
   alias Qlarius.YouData.MeFiles.MeFileTag
   alias Qlarius.YouData.Traits.{Trait, TraitCategory}
@@ -81,6 +82,12 @@ defmodule Qlarius.MeCP.Oracle do
           occurred_at: now,
           terms_agreement_id: Keyword.get(opts, :terms_agreement_id)
         )
+
+        # An empty answer is a confirmed gap the assistant explicitly needed:
+        # queue an observed suggestion (best-effort, never fails the read).
+        if answer in [false, [], nil] do
+          Suggestions.observe_gap(grant, trait_ref.trait_id, now: now)
+        end
 
         {:ok, answer}
       end
@@ -136,6 +143,14 @@ defmodule Qlarius.MeCP.Oracle do
         occurred_at: now,
         terms_agreement_id: Keyword.get(opts, :terms_agreement_id)
       )
+
+      # The assistant searched for something the MeFile lacks: queue the
+      # top-scoring gap as an observed suggestion (matches are already
+      # score-ordered; best-effort, never fails the read).
+      case Enum.find(matches, &(&1.has_data == false)) do
+        %{trait_id: gap_trait_id} -> Suggestions.observe_gap(grant, gap_trait_id, now: now)
+        nil -> :ok
+      end
 
       {:ok, matches}
     end
