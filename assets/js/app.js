@@ -59,6 +59,30 @@ function primeAudioForIOS() {
 document.addEventListener('click', primeAudioForIOS, { once: true })
 document.addEventListener('touchstart', primeAudioForIOS, { once: true })
 
+// Qai chat: keep the message list pinned to the bottom while streaming,
+// unless the user has scrolled up to read something.
+Hooks.QaiScroll = {
+  mounted() {
+    this._pinned = true
+    this._onScroll = () => {
+      const nearBottom =
+        this.el.scrollHeight - this.el.scrollTop - this.el.clientHeight < 80
+      this._pinned = nearBottom
+    }
+    this.el.addEventListener("scroll", this._onScroll, { passive: true })
+    this._scrollToBottom()
+  },
+  updated() {
+    if (this._pinned) this._scrollToBottom()
+  },
+  destroyed() {
+    this.el.removeEventListener("scroll", this._onScroll)
+  },
+  _scrollToBottom() {
+    this.el.scrollTop = this.el.scrollHeight
+  }
+}
+
 Hooks.CopyToClipboard = {
   mounted() {
     this._confirmationTimeout = null

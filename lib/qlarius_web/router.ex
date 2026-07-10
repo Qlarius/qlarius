@@ -441,6 +441,7 @@ defmodule QlariusWeb.Router do
       live "/me_file", MeFileLive, :index
       live "/me_file/connectors", MeCPConnectorsLive, :index
       live "/me_file_builder", MeFileBuilderLive, :index
+      live "/qai", QaiLive, :index
 
       # Test/Design routes
       live "/test/slide-to-collect", SlideToCollectTestLive, :index
