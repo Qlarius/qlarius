@@ -197,6 +197,10 @@ defmodule Qlarius.YouData.MeFiles do
 
         check_and_mark_survey_complete(me_file, parent_trait_id)
 
+        # Answering a trait resolves any pending assistant suggestion for it,
+        # regardless of which surface the user answered through.
+        Qlarius.MeCP.Suggestions.accept_pending_for_trait(me_file_id, parent_trait_id)
+
         :ok
 
       {:error, _} ->
@@ -254,11 +258,30 @@ defmodule Qlarius.YouData.MeFiles do
 
         check_and_mark_survey_complete(me_file, parent_trait_id)
 
+        # Answering a trait resolves any pending assistant suggestion for it,
+        # regardless of which surface the user answered through.
+        Qlarius.MeCP.Suggestions.accept_pending_for_trait(me_file_id, parent_trait_id)
+
         :ok
 
       {:error, _} ->
         :ok
     end
+  end
+
+  @doc """
+  Stamps the current tags of an effective trait with a capture-surface context
+  (`add_source_context` is analytics, not provenance: the user authored the
+  tags either way). Called after a delete-and-rewrite, so it covers exactly
+  the rows just written.
+  """
+  def set_tags_source_context(me_file_id, parent_trait_id, context) when is_binary(context) do
+    from(mt in MeFileTag,
+      join: t in Trait,
+      on: mt.trait_id == t.id,
+      where: mt.me_file_id == ^me_file_id and t.parent_trait_id == ^parent_trait_id
+    )
+    |> Repo.update_all(set: [add_source_context: context])
   end
 
   def delete_mefile_tags(me_file_id, parent_trait_id, child_trait_ids) do

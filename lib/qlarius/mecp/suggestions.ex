@@ -85,6 +85,32 @@ defmodule Qlarius.MeCP.Suggestions do
   end
 
   @doc """
+  Pending suggestions shaped like `Surveys.parent_traits_for_survey_with_tags/2`
+  (`{trait_id, trait_name, display_order, tags}` tuples), so the Builder's
+  virtual "From Recent Chats" survey renders through the same components real
+  surveys use.
+  """
+  def parent_traits_for_suggestions(me_file_id) do
+    me_file_id
+    |> list_pending_for_me_file()
+    |> Enum.with_index()
+    |> Enum.map(fn {suggestion, index} ->
+      tags =
+        Qlarius.YouData.MeFiles.existing_tags_per_parent_trait(me_file_id, suggestion.trait_id)
+        |> Enum.map(fn mt ->
+          if mt.trait.parent_trait do
+            {mt.trait.id, mt.trait.trait_name, mt.trait.display_order}
+          else
+            {mt.trait.id, mt.tag_value, mt.trait.display_order}
+          end
+        end)
+        |> Enum.sort_by(fn {_id, name, display_order} -> [display_order, name] end)
+
+      {suggestion.trait_id, suggestion.trait.trait_name, index, tags}
+    end)
+  end
+
+  @doc """
   Resolves pending suggestions for a trait after the user answered it through
   the Builder. Matches on the effective trait id.
   """

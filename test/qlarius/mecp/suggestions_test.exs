@@ -140,6 +140,33 @@ defmodule Qlarius.MeCP.SuggestionsTest do
       assert Suggestions.pending_count_for_me_file(ctx.me_file.id) == 0
     end
 
+    test "answering through the normal tag write path resolves the suggestion" do
+      ctx = seed_with_gap!()
+      {:ok, _} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{})
+      child = insert_trait!(nil, "Dog", parent_trait_id: ctx.gap.id)
+
+      :ok =
+        Qlarius.YouData.MeFiles.create_replace_mefile_tags(
+          ctx.me_file.id,
+          ctx.gap.id,
+          [child.id],
+          0
+        )
+
+      assert Suggestions.pending_count_for_me_file(ctx.me_file.id) == 0
+    end
+
+    test "parent_traits_for_suggestions matches the Builder survey tuple shape" do
+      ctx = seed_with_gap!()
+      {:ok, _} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{})
+
+      assert [{trait_id, trait_name, 0, []}] =
+               Suggestions.parent_traits_for_suggestions(ctx.me_file.id)
+
+      assert trait_id == ctx.gap.id
+      assert trait_name == ctx.gap.trait_name
+    end
+
     test "list_pending_for_me_file preloads what the Builder needs" do
       ctx = seed_with_gap!()
       {:ok, _} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{reason: "why"})
