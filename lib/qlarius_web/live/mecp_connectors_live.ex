@@ -33,6 +33,13 @@ defmodule QlariusWeb.MeCPConnectorsLive do
      |> assign_grants()}
   end
 
+  # Pushed by the app-global referral JS hook to every LiveView; ignored here
+  # (same no-op as HomeLive/WalletLive).
+  @impl true
+  def handle_event("referral_code_from_storage", _params, socket) do
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_event("toggle_form", _params, socket) do
     {:noreply,
