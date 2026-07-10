@@ -114,12 +114,19 @@ had no way to follow through. This closes that loop.
    suggested; revoking a grant sweeps its pending suggestions), trait reference,
    proposed values (jsonb), reason (length-capped), status
    (pending/accepted/dismissed), resolved_at, timestamps.
-3. **In-app surface.** "Tag Suggestions" badge/card on the MeFile page; each entry
-   shows trait, proposed values, source assistant, date, and the reason rendered
-   clearly as the assistant's words, not app copy. Accept opens the existing tag-edit
-   modal prefilled so the write goes through the normal user-authored path with
-   `add_source_context: "mecp_suggestion_confirmed"`. Dismiss deletes (reason text
-   included; retention is user-controlled).
+3. **In-app surface: a virtual survey in the MeFile Builder.** Surveys are global
+   taxonomy, so a me_file-specific survey cannot live in the surveys tables; instead
+   the suggestion queue renders as a synthetic "From Recent Chats" survey pinned in
+   the Builder whenever pending suggestions exist. Its question list is assembled at
+   render time (suggestion, then trait, then survey question) and feeds the same
+   trait-rendering components real surveys use, so answering gets the full native
+   UX. Answering writes tags through the normal user-authored path with
+   `add_source_context: "mecp_suggestion_confirmed"` and auto-resolves the
+   suggestion; a per-question dismiss control clears without answering. Each
+   question carries a byline (suggesting assistant, date, short reason rendered as
+   the assistant's words). Suggestions store the effective MeFile at suggestion
+   time, so proxy personas resolve naturally. suggest_tag accepts only traits that
+   have a survey question, guaranteeing renderability.
 4. **Noise controls.** Cap pending suggestions per grant (~10), dedupe by trait,
    silently drop repeats. Taxonomy-bound only in v1: proposing new traits is taxonomy
    governance, out of scope.

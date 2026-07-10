@@ -19,7 +19,7 @@ defmodule Qlarius.MeCP.MCPServer do
   """
 
   alias Qlarius.MeCP
-  alias Qlarius.MeCP.{AccessLog, Oracle, Terms}
+  alias Qlarius.MeCP.{AccessLog, Oracle, Suggestions, Terms}
   alias Qlarius.MeCP.Grants.Grant
 
   @protocol_versions ~w(2025-06-18 2025-03-26)
@@ -214,6 +214,46 @@ defmodule Qlarius.MeCP.MCPServer do
           },
           "required" => ["query"]
         }
+      },
+      %{
+        "name" => "suggest_tag",
+        "title" => "Suggest a MeFile addition",
+        "description" =>
+          "Proposes that the owner add tags for a trait they have no data on. " <>
+            "Nothing is written to the MeFile: the proposal appears as a question " <>
+            "in the From Recent Chats survey in their MeFile Builder, where the " <>
+            "owner answers or dismisses it. Only call this after the owner agrees " <>
+            "in conversation that adding the data sounds useful. Target a trait " <>
+            "surfaced by search_traits with has_data false.",
+        # Deliberately NOT read-only: this queues something for the owner, so
+        # clients should treat it as a write and confirm with their user.
+        "annotations" => %{
+          "readOnlyHint" => false,
+          "destructiveHint" => false,
+          "idempotentHint" => true,
+          "openWorldHint" => false
+        },
+        "inputSchema" => %{
+          "type" => "object",
+          "properties" => %{
+            "trait" => %{
+              "type" => "string",
+              "description" => "Exact trait name (case-insensitive); alternative to trait_id"
+            },
+            "trait_id" => %{"type" => "integer"},
+            "values" => %{
+              "type" => "array",
+              "items" => %{"type" => "string"},
+              "description" => "Optional values the owner mentioned, shown as context"
+            },
+            "reason" => %{
+              "type" => "string",
+              "description" =>
+                "One short sentence, in your words, on why this came up (shown to the owner)"
+            }
+          },
+          "required" => ["reason"]
+        }
       }
     ]
   end
@@ -274,6 +314,54 @@ defmodule Qlarius.MeCP.MCPServer do
         }
 
         tool_text(Jason.encode!(envelope))
+
+      {:error, reason} ->
+        tool_refusal(reason)
+    end
+  end
+
+  defp call_tool(grant, %{"name" => "suggest_tag"} = params) do
+    args = Map.get(params, "arguments", %{})
+
+    with {:ok, ref} <- trait_ref(args),
+         {:ok, outcome} <-
+           Suggestions.create_suggestion(grant, ref, %{
+             proposed_values: List.wrap(args["values"] || []),
+             reason: args["reason"]
+           }) do
+      envelope =
+        case outcome do
+          :already_suggested ->
+            %{
+              "status" => "already_suggested",
+              "note" =>
+                "A suggestion for this trait is already waiting for the owner " <>
+                  "(or was recently dismissed). No need to suggest it again."
+            }
+
+          _suggestion ->
+            %{
+              "status" => "queued",
+              "note" =>
+                "Queued. The owner will see this as a question in the From Recent " <>
+                  "Chats survey in their MeFile Builder. They decide; nothing was " <>
+                  "written to the MeFile."
+            }
+        end
+
+      tool_text(Jason.encode!(envelope))
+    else
+      {:error, :suggestion_limit_reached} ->
+        tool_refusal(
+          "suggestion limit reached: this connector already has the maximum " <>
+            "pending suggestions; wait for the owner to review them"
+        )
+
+      {:error, :not_askable} ->
+        tool_refusal(
+          "not_askable: this trait has no survey question, so the owner cannot " <>
+            "be asked it in the Builder"
+        )
 
       {:error, reason} ->
         tool_refusal(reason)

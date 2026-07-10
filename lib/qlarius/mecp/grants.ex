@@ -23,11 +23,19 @@ defmodule Qlarius.MeCP.Grants do
     |> Repo.insert()
   end
 
-  @doc "Revokes a grant now. Revocation is permanent; issue a new grant to re-permit."
+  @doc """
+  Revokes a grant now. Revocation is permanent; issue a new grant to
+  re-permit. Pending tag suggestions from the grant are swept in the same
+  breath: a revoked counterparty leaves nothing actionable behind.
+  """
   def revoke_grant(%Grant{} = grant, now \\ DateTime.utc_now()) do
-    grant
-    |> Ecto.Changeset.change(revoked_at: DateTime.truncate(now, :second))
-    |> Repo.update()
+    with {:ok, revoked} <-
+           grant
+           |> Ecto.Changeset.change(revoked_at: DateTime.truncate(now, :second))
+           |> Repo.update() do
+      Qlarius.MeCP.Suggestions.dismiss_all_for_grant(grant.id, now)
+      {:ok, revoked}
+    end
   end
 
   def list_grants_for_me_file(me_file_id) do

@@ -13,7 +13,7 @@ defmodule Qlarius.MeCP.AccessLog.AccessEvent do
   alias Qlarius.MeCP.Grants.Grant
   alias Qlarius.MeCP.Terms.TermsAgreement
 
-  @kinds ~w(capsule oracle rerank handshake)
+  @kinds ~w(capsule oracle rerank handshake suggestion)
 
   @type t :: %__MODULE__{}
 

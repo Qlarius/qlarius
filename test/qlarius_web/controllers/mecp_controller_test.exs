@@ -146,13 +146,15 @@ defmodule QlariusWeb.MeCPControllerTest do
 
       body = conn |> rpc(ctx.token, rpc_request("tools/list")) |> json_response(200)
 
-      assert [%{"name" => "ask_me"}, %{"name" => "get_capsule"}, %{"name" => "search_traits"}] =
-               tools = body["result"]["tools"] |> Enum.sort_by(& &1["name"])
+      tools = body["result"]["tools"] |> Enum.sort_by(& &1["name"])
+      assert Enum.map(tools, & &1["name"]) == ~w(ask_me get_capsule search_traits suggest_tag)
 
-      # All v1 tools are pure reads; the annotation is what lets clients skip
-      # per-use write-safety confirmations.
+      # Read tools carry readOnlyHint so clients skip per-use write-safety
+      # confirmations; suggest_tag queues something for the owner, so it is
+      # deliberately NOT read-only and clients should confirm it.
       for tool <- tools do
-        assert tool["annotations"]["readOnlyHint"] == true
+        expected_read_only = tool["name"] != "suggest_tag"
+        assert tool["annotations"]["readOnlyHint"] == expected_read_only
         assert tool["annotations"]["destructiveHint"] == false
       end
     end
@@ -304,7 +306,49 @@ defmodule QlariusWeb.MeCPControllerTest do
       body = conn |> rpc(ctx.token, rpc_request("tools/list")) |> json_response(200)
 
       names = body["result"]["tools"] |> Enum.map(& &1["name"]) |> Enum.sort()
-      assert names == ["ask_me", "get_capsule", "search_traits"]
+      assert names == ["ask_me", "get_capsule", "search_traits", "suggest_tag"]
+    end
+  end
+
+  describe "tools/call suggest_tag" do
+    test "queues a suggestion after consent; duplicates answer gently", %{conn: conn} do
+      ctx = seed_with_token!(%{tier: 2, scope: %{}})
+      gap = insert_trait!(ctx.lifestyle, "Pet Ownership")
+
+      Qlarius.Repo.insert!(%Qlarius.YouData.Surveys.SurveyQuestion{
+        text: "Do you have pets?",
+        trait_id: gap.id,
+        # Legacy bytea column holding ASCII "1" for active.
+        active: "1",
+        display_order: 1,
+        added_by: 0,
+        modified_by: 0
+      })
+
+      args = %{
+        "trait" => "Pet Ownership",
+        "values" => ["Dog"],
+        "reason" => "Owner said a dog suggestion would be useful."
+      }
+
+      body = call_tool(conn, ctx.token, "suggest_tag", args)
+      envelope = body["result"]["content"] |> hd() |> Map.fetch!("text") |> Jason.decode!()
+      assert envelope["status"] == "queued"
+      assert envelope["note"] =~ "From Recent Chats"
+
+      body = call_tool(build_conn(), ctx.token, "suggest_tag", args)
+      envelope = body["result"]["content"] |> hd() |> Map.fetch!("text") |> Jason.decode!()
+      assert envelope["status"] == "already_suggested"
+
+      # Trait without a survey question refuses with a clear reason.
+      body =
+        call_tool(build_conn(), ctx.token, "suggest_tag", %{
+          "trait" => "Housing",
+          "reason" => "context"
+        })
+
+      assert %{"result" => %{"isError" => true, "content" => [%{"text" => text}]}} = body
+      assert text =~ "not_askable"
     end
   end
 
