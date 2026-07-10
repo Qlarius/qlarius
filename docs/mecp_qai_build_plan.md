@@ -137,7 +137,53 @@ The full arc this completes: MeCP reads (capsule/oracle) find gaps (`search_trai
 propose fills (`suggest_tag`), user confirms in-app, richer MeFile, better next
 conversation. Every chat makes the asset more valuable and the user authors every byte.
 
-## Phase 2 build (Qai; sketch only, detail when Phase 1 ships)
+## Phase 2 detailed design (July 2026; Phase 1 shipped, detailing per plan)
+
+Canonical concept: `qai-personal-ai-concept.md` (Qadabra Web repo,
+`~/Claude/Projects/Qadabra Web/docs/`). This design implements the Persona 2
+surface from that doc: two-sided anonymity (pooled provider credentials,
+ephemeral session ids, no PII held on our side), fleeting chats (fleet/preserve,
+as with Tiqit DFTs), and confirm-to-add via the existing Phase 1.5 suggestion
+loop. Qai stays exactly one MeCP client among many: it reads only through its
+own grant, logged and revocable like any counterparty. Local-first hybrid
+routing from the concept doc is deferred past v1 (frontier tier ships first).
+
+**v1 scope decisions** (the explicit calls the sketch asked for):
+
+- Text only: no attachments/images, no voice, no web search in v1. All three are
+  post-v1; the "on par" bar for v1 is streaming, markdown, history, stop/regenerate,
+  mobile-first.
+- Provider: Anthropic API with a pooled org key (`ANTHROPIC_API_KEY` app config).
+  Two tiers in `Qai.Router` v1: cheap (Haiku class) for utility calls like session
+  titles, frontier (Sonnet class) for conversation. Local-model tier deferred.
+  ZDR posture is an org-level arrangement on the Anthropic account; per-session
+  ephemeral user ids ship in v1 (no user identifiers in API metadata).
+- Wallet integration and the Sponster sponsored-inference pilot are Phase 2.1,
+  after the chat surface proves out (unit-economics livebook still needs real rates).
+
+**Architecture decisions:**
+
+- `qai_sessions` (me_file_id, title, expires_at, preserved_at, timestamps) and
+  `qai_messages` (session_id, role, content, model, stopped flag, timestamps).
+  Fleeting by default: expires_at = now + 24h on every session touch; "preserve"
+  nulls expires_at. Hourly Oban sweep hard-deletes expired sessions and messages
+  (fleeting means gone, not archived).
+- Qai reads MeFile data ONLY through MeCP, dogfooding the gateway: one global
+  "Qai" `mecp_clients` row (client_type "qai"), and a per-user grant created at
+  first opt-in through the same scope/tier/budget consent surface connectors use.
+  Qai calls `MeCP.request_capsule/2` under that grant; every read lands in the
+  access log like any counterparty; revoking the grant from the connectors page
+  cuts Qai off identically. Proxy personas resolve through the grant owner as
+  with any connector.
+- Chat surface: `QaiLive` in the consumer nav (mobile-first PWA patterns).
+  Streaming via async task sending deltas to the LiveView process; stop kills the
+  task and marks the message stopped; regenerate replays the last user turn.
+  The MeCP capsule is fetched once per session start (and on regenerate), injected
+  as system context with the do-not-retain preamble intact.
+- Suggestion loop composes for free: Qai's grant makes its gap-hitting reads queue
+  observed suggestions exactly like external assistants.
+
+## Phase 2 build (Qai; original sketch)
 
 **Acceptance target: a consumer can select Qai inside the existing qlarius consumer app and use it as a private/secure chat on par with current AI chat standards.** Qai ships as a LiveView surface in this app (consumer nav entry), not a separate app. "On par" checklist for v1: streamed responses, markdown rendering, session history (fleeting by default, preserve opt-in), stop/regenerate, mobile-first layout matching the existing PWA patterns. Explicit v1 scope decisions needed for: attachments/images, voice, and web search. Frontier-model quality comes via `Qai.Router` (pooled anonymous calls, ZDR); privacy posture (two-sided anonymity) is the differentiator, not a feature tradeoff.
 
