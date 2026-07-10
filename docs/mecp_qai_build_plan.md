@@ -95,13 +95,48 @@ mecp_terms_agreements  id, mecp_client_id, me_file_id, roster_agreement_ref,
 4. **Hygiene kit** (mostly content, not code; lives with marketing but link from MeFile UI).
 5. **Open schema publication** decision executes here: export format for MeFile (JSON, matching the taxonomy structure) + published spec. `created_at`/`added_date` included from v1.
 
+## Phase 1.5 build (MeCP suggestion loop; next up)
+
+Pulls `Qai.Suggestions` forward from Phase 2 and generalizes it to the MeCP layer so any
+connected assistant can propose tags, not just Qai. Motivated by live acceptance testing:
+the knitting case study, where Claude used the capsule for real personalization (Austin
+yarn shops from the zip, weekday classes from work situation), surfaced the empty Arts
+and Crafts category via the gap-nudge, offered "I can help you add a tag or two," and
+had no way to follow through. This closes that loop.
+
+1. **`suggest_tag` MCP tool.** The first inbound surface, but it writes only to a
+   suggestion queue, never to the MeFile (ground rule 1 intact). Args: trait (name or
+   id, must exist in the taxonomy), optional proposed values, short `reason` string.
+   Grant-gated and access-logged (new `suggestion` event kind); costs no disclosure
+   budget because it discloses nothing. Tool description teaches double opt-in: call
+   only after the user says yes in chat; the app confirms again before any write.
+2. **`mecp_tag_suggestions` table.** Grant-bound (user always sees which connector
+   suggested; revoking a grant sweeps its pending suggestions), trait reference,
+   proposed values (jsonb), reason (length-capped), status
+   (pending/accepted/dismissed), resolved_at, timestamps.
+3. **In-app surface.** "Tag Suggestions" badge/card on the MeFile page; each entry
+   shows trait, proposed values, source assistant, date, and the reason rendered
+   clearly as the assistant's words, not app copy. Accept opens the existing tag-edit
+   modal prefilled so the write goes through the normal user-authored path with
+   `add_source_context: "mecp_suggestion_confirmed"`. Dismiss deletes (reason text
+   included; retention is user-controlled).
+4. **Noise controls.** Cap pending suggestions per grant (~10), dedupe by trait,
+   silently drop repeats. Taxonomy-bound only in v1: proposing new traits is taxonomy
+   governance, out of scope.
+5. **Metric.** Suggestion-to-acceptance conversion per client falls out for free and
+   feeds both the freshness story and the unit-economics model.
+
+The full arc this completes: MeCP reads (capsule/oracle) find gaps (`search_traits`),
+propose fills (`suggest_tag`), user confirms in-app, richer MeFile, better next
+conversation. Every chat makes the asset more valuable and the user authors every byte.
+
 ## Phase 2 build (Qai; sketch only, detail when Phase 1 ships)
 
 **Acceptance target: a consumer can select Qai inside the existing qlarius consumer app and use it as a private/secure chat on par with current AI chat standards.** Qai ships as a LiveView surface in this app (consumer nav entry), not a separate app. "On par" checklist for v1: streamed responses, markdown rendering, session history (fleeting by default, preserve opt-in), stop/regenerate, mobile-first layout matching the existing PWA patterns. Explicit v1 scope decisions needed for: attachments/images, voice, and web search. Frontier-model quality comes via `Qai.Router` (pooled anonymous calls, ZDR); privacy posture (two-sided anonymity) is the differentiator, not a feature tradeoff.
 
 - `Qai.Sessions` with `expires_at` sweeping (Oban job; fleeting default).
 - `Qai.Router` with pooled provider keys, ZDR config, per-session ephemeral ids; local-model tier when available.
-- `Qai.Suggestions` confirm-to-add queue; confirmed suggestions write tags through the normal user-authored path with `add_source_context: "qai_suggestion_confirmed"`.
+- `Qai.Suggestions` rides the shared MeCP suggestion queue from Phase 1.5 (Qai is just another suggesting client); confirmed suggestions write tags through the normal user-authored path with `add_source_context: "qai_suggestion_confirmed"`.
 - Wallet integration: batched settlement per session or daily rollup (per unit-economics work in Phase 0).
 - Sponsored inference pilot wiring against Sponster.
 
