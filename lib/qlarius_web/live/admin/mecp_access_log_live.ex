@@ -95,6 +95,16 @@ defmodule QlariusWeb.Admin.MeCPAccessLogLive do
   defp truncate_digest(nil), do: "-"
   defp truncate_digest(digest), do: String.slice(digest, 0, 12)
 
+  # The MeFile actually served: recorded per event since proxy resolution
+  # landed; older events fall back to the grant's approval-time snapshot.
+  defp served_me_file_id(event) do
+    event.response_shape["me_file_id"] || event.mecp_grant.me_file_id
+  end
+
+  defp owner_label(%{mecp_grant: %{user: %{alias: alias_}}}) when is_binary(alias_), do: alias_
+  defp owner_label(%{mecp_grant: %{user_id: user_id}}) when not is_nil(user_id), do: "##{user_id}"
+  defp owner_label(_event), do: "-"
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -180,7 +190,8 @@ defmodule QlariusWeb.Admin.MeCPAccessLogLive do
                           <th>Occurred</th>
                           <th>Kind</th>
                           <th>Client</th>
-                          <th class="text-center">MeFile</th>
+                          <th>User</th>
+                          <th class="text-center">MeFile Served</th>
                           <th class="text-center">Grant</th>
                           <th class="text-center">Tier</th>
                           <th>Request Digest</th>
@@ -194,12 +205,13 @@ defmodule QlariusWeb.Admin.MeCPAccessLogLive do
                             <span class={"badge #{kind_badge_class(event.kind)}"}>{event.kind}</span>
                           </td>
                           <td class="font-medium">{event.mecp_grant.mecp_client.name}</td>
+                          <td class="text-sm">{owner_label(event)}</td>
                           <td class="text-center">
                             <.link
-                              navigate={~p"/admin/mefile_inspector/#{event.mecp_grant.me_file_id}"}
+                              navigate={~p"/admin/mefile_inspector/#{served_me_file_id(event)}"}
                               class="link link-hover"
                             >
-                              {event.mecp_grant.me_file_id}
+                              {served_me_file_id(event)}
                             </.link>
                           </td>
                           <td class="text-center">{event.mecp_grant_id}</td>

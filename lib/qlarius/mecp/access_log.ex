@@ -85,7 +85,7 @@ defmodule Qlarius.MeCP.AccessLog do
         order_by: [desc: e.occurred_at, desc: e.id],
         offset: ^((page - 1) * per_page),
         limit: ^per_page,
-        preload: [mecp_grant: :mecp_client]
+        preload: [mecp_grant: [:mecp_client, :user]]
     )
   end
 
