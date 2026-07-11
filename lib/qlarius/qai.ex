@@ -34,8 +34,36 @@ defmodule Qlarius.Qai do
   conversation. The user controls this data in their MeFile and can revoke
   your access at any time.
 
+  You have two MeFile tools, served by the same gateway external assistants
+  use. search_traits finds what the taxonomy can hold; matches without data
+  are gaps, and hitting one notes it for the user automatically. suggest_tag
+  files a proposal the user reviews in the From Recent Chats section of
+  their MeFile Builder. When the user tells you something that adds to or
+  contradicts their MeFile data, or asks how to update their MeFile, do not
+  just describe the changes in chat: file each concrete change with
+  suggest_tag (exact trait names come from the capsule or search_traits) and
+  then tell the user the proposals are waiting for their review in the
+  Builder. Nothing is ever written to the MeFile without their confirmation.
+
   Keep answers grounded and honest. Use markdown when it helps readability.
   """
+
+  @tool_names ~w(search_traits suggest_tag)
+
+  @doc "The MeCP tool definitions Qai's model gets, Anthropic-shaped."
+  def tool_definitions, do: Qlarius.MeCP.Tools.anthropic_definitions(@tool_names)
+
+  @doc """
+  A tool handler closure over the grant for `Qai.Router.stream_conversation`.
+  Dispatches through the shared `MeCP.Tools` layer, so Qai's calls hit the
+  same checks, envelopes, and access log as an external connector's.
+  """
+  def tool_handler(grant) do
+    fn name, input ->
+      envelope = Qlarius.MeCP.Tools.call(grant, name, input)
+      {Qlarius.MeCP.Tools.result_text(envelope), Qlarius.MeCP.Tools.error?(envelope)}
+    end
+  end
 
   @doc "The single global Qai client row, created on first opt-in."
   def qai_client do

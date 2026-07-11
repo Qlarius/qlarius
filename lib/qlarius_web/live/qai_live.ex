@@ -237,12 +237,20 @@ defmodule QlariusWeb.QaiLive do
 
     lv = self()
     system = socket.assigns.system_prompt
+    grant = socket.assigns.grant
 
     task =
       Task.async(fn ->
         Router.stream_conversation(
           transcript,
-          [system: system, session_id: session.id],
+          [
+            system: system,
+            session_id: session.id,
+            # Same MeCP tool surface external connectors get, dispatched
+            # in-process under Qai's grant (logged, budgeted, revocable).
+            tools: Qai.tool_definitions(),
+            tool_handler: Qai.tool_handler(grant)
+          ],
           fn {:delta, text} -> send(lv, {:qai_delta, text}) end
         )
       end)

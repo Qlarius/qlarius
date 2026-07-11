@@ -21,8 +21,11 @@ defmodule Qlarius.Qai.Anthropic do
 
   @doc """
   Streams a Messages API call. `fun` receives `{:delta, text}` for each text
-  delta. Returns `{:ok, %{content:, model:, stop_reason:, usage:}}` with the
-  fully accumulated text, or `{:error, reason}`.
+  delta. Returns `{:ok, %{content:, blocks:, model:, stop_reason:, usage:}}`
+  or `{:error, reason}`. `content` is the accumulated text; `blocks` is the
+  ordered content-block list (`%{type: "text", text:}` and
+  `%{type: "tool_use", id:, name:, input:}`), which callers running a tool
+  loop echo back as the assistant turn.
   """
   def stream(params, fun) when is_map(params) and is_function(fun, 1) do
     with {:ok, api_key} <- fetch_api_key() do
@@ -83,8 +86,19 @@ defmodule Qlarius.Qai.Anthropic do
 
   ## SSE collection
 
+  # `blocks` maps stream index -> content block under assembly; text and
+  # tool-call JSON both arrive as deltas against an index. `error_chunks`
+  # collects the plain-JSON body of non-200 responses.
   defp initial_state do
-    %{buffer: SSE.new(), content: [], model: nil, stop_reason: nil, usage: %{}, api_error: nil}
+    %{
+      buffer: SSE.new(),
+      blocks: %{},
+      model: nil,
+      stop_reason: nil,
+      usage: %{},
+      api_error: nil,
+      error_chunks: []
+    }
   end
 
   defp collect_sse({:data, chunk}, {req, resp}, fun) do
@@ -95,8 +109,7 @@ defmodule Qlarius.Qai.Anthropic do
         {events, buffer} = SSE.feed(state.buffer, chunk)
         Enum.reduce(events, %{state | buffer: buffer}, &handle_event(&1, &2, fun))
       else
-        # Error bodies arrive as plain JSON chunks; reuse content as the sink.
-        %{state | content: [chunk | state.content]}
+        %{state | error_chunks: [chunk | state.error_chunks]}
       end
 
     {:cont, {req, Req.Response.put_private(resp, :qai, state)}}
@@ -107,12 +120,42 @@ defmodule Qlarius.Qai.Anthropic do
   end
 
   defp handle_event(
-         %{"type" => "content_block_delta", "delta" => %{"type" => "text_delta", "text" => text}},
+         %{"type" => "content_block_start", "index" => index, "content_block" => block},
+         state,
+         _fun
+       ) do
+    started =
+      case block do
+        %{"type" => "text"} -> %{type: "text", parts: []}
+        %{"type" => "tool_use", "id" => id, "name" => name} -> %{type: "tool_use", id: id, name: name, json: []}
+        %{"type" => other} -> %{type: other}
+      end
+
+    %{state | blocks: Map.put(state.blocks, index, started)}
+  end
+
+  defp handle_event(
+         %{"type" => "content_block_delta", "index" => index, "delta" => delta},
          state,
          fun
        ) do
-    fun.({:delta, text})
-    %{state | content: [text | state.content]}
+    case {delta, state.blocks[index]} do
+      {%{"type" => "text_delta", "text" => text}, %{type: "text", parts: parts} = block} ->
+        fun.({:delta, text})
+        %{state | blocks: Map.put(state.blocks, index, %{block | parts: [text | parts]})}
+
+      # Tolerate a delta with no preceding content_block_start.
+      {%{"type" => "text_delta", "text" => text}, nil} ->
+        fun.({:delta, text})
+        %{state | blocks: Map.put(state.blocks, index, %{type: "text", parts: [text]})}
+
+      {%{"type" => "input_json_delta", "partial_json" => json}, %{type: "tool_use", json: acc} = block} ->
+        %{state | blocks: Map.put(state.blocks, index, %{block | json: [json | acc]})}
+
+      # thinking deltas and anything newer.
+      _ ->
+        state
+    end
   end
 
   defp handle_event(%{"type" => "message_delta"} = event, state, _fun) do
@@ -127,24 +170,57 @@ defmodule Qlarius.Qai.Anthropic do
     %{state | api_error: error}
   end
 
-  # ping, content_block_start/stop, thinking deltas, and anything new.
+  # ping, content_block_stop, and anything new.
   defp handle_event(_event, state, _fun), do: state
 
   defp finish(%{api_error: error}) when not is_nil(error), do: {:error, {:api_error, error}}
 
   defp finish(state) do
+    blocks =
+      state.blocks
+      |> Enum.sort_by(fn {index, _} -> index end)
+      |> Enum.map(fn {_, block} -> finalize_block(block) end)
+      |> Enum.reject(&is_nil/1)
+
+    content =
+      blocks
+      |> Enum.filter(&(&1.type == "text"))
+      |> Enum.map_join("", & &1.text)
+
     {:ok,
      %{
-       content: state.content |> Enum.reverse() |> IO.iodata_to_binary(),
+       content: content,
+       blocks: blocks,
        model: state.model,
        stop_reason: state.stop_reason,
        usage: state.usage
      }}
   end
 
+  defp finalize_block(%{type: "text", parts: parts}) do
+    %{type: "text", text: parts |> Enum.reverse() |> IO.iodata_to_binary()}
+  end
+
+  defp finalize_block(%{type: "tool_use", id: id, name: name, json: json}) do
+    raw = json |> Enum.reverse() |> IO.iodata_to_binary()
+
+    input =
+      case Jason.decode(raw) do
+        {:ok, decoded} when is_map(decoded) -> decoded
+        # Empty input streams as no deltas at all.
+        _ when raw == "" -> %{}
+        _ -> %{}
+      end
+
+    %{type: "tool_use", id: id, name: name, input: input}
+  end
+
+  # thinking and unknown block types carry nothing we replay.
+  defp finalize_block(_block), do: nil
+
   defp error_body(resp) do
     body =
-      Req.Response.get_private(resp, :qai, initial_state()).content
+      Req.Response.get_private(resp, :qai, initial_state()).error_chunks
       |> Enum.reverse()
       |> IO.iodata_to_binary()
 

@@ -72,6 +72,18 @@ defmodule QlariusWeb.QaiLiveTest do
     end)
   end
 
+  defp stream_sse(conn, events) do
+    conn =
+      conn
+      |> Plug.Conn.put_resp_header("content-type", "text/event-stream")
+      |> Plug.Conn.send_chunked(200)
+
+    Enum.reduce(events, conn, fn event, conn ->
+      {:ok, conn} = Plug.Conn.chunk(conn, "data: #{Jason.encode!(event)}\n\n")
+      conn
+    end)
+  end
+
   defp render_until(view, needle, tries \\ 50) do
     html = render(view)
 
@@ -132,6 +144,107 @@ defmodule QlariusWeb.QaiLiveTest do
     # The cheap-tier title lands asynchronously.
     render_until(view, "Test Chat")
     assert Qlarius.Repo.reload!(session).title == "Test Chat"
+  end
+
+  test "a conversation about updating the MeFile files suggestions into the Builder queue", %{
+    conn: conn,
+    user: user
+  } do
+    me_file = me_file(user)
+    {:ok, grant} = Qai.enable(me_file.id, user.id)
+
+    # An askable, already-tagged trait: the "eating healthier" update case.
+    # nextval could collide with the explicit-id traits from setup; jump past.
+    Repo.query!("SELECT setval('traits_id_seq', 1000000)")
+    import Qlarius.MeCPFixtures
+    category = insert_category!("Eating")
+    trait = insert_trait!(category, "Fast Food Frequency")
+    insert_tag!(me_file, trait, "Weekly")
+
+    Repo.insert!(%Qlarius.YouData.Surveys.SurveyQuestion{
+      text: "How often do you eat fast food?",
+      trait_id: trait.id,
+      active: "1",
+      display_order: 1,
+      added_by: 0,
+      modified_by: 0
+    })
+
+    test_pid = self()
+
+    Req.Test.stub(Qlarius.Qai.Anthropic, fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      body = Jason.decode!(body)
+
+      tool_round? =
+        not Enum.any?(body["messages"], fn m ->
+          is_list(m["content"]) and Enum.any?(m["content"], &(&1["type"] == "tool_result"))
+        end)
+
+      cond do
+        # The async title call on the cheap tier (non-streaming).
+        body["stream"] != true ->
+          Req.Test.json(conn, %{
+            "content" => [%{"type" => "text", "text" => "Eating Healthier"}],
+            "model" => "m",
+            "stop_reason" => "end_turn",
+            "usage" => %{}
+          })
+
+        tool_round? ->
+          send(test_pid, {:tools_offered, Enum.map(body["tools"] || [], & &1["name"])})
+
+          input =
+            Jason.encode!(%{
+              "trait" => "Fast Food Frequency",
+              "values" => ["Rarely"],
+              "reason" => "You are cutting back on fast food."
+            })
+
+          stream_sse(conn, [
+            %{"type" => "message_start", "message" => %{"model" => "m", "usage" => %{}}},
+            %{"type" => "content_block_start", "index" => 0, "content_block" => %{"type" => "tool_use", "id" => "tu_1", "name" => "suggest_tag"}},
+            %{"type" => "content_block_delta", "index" => 0, "delta" => %{"type" => "input_json_delta", "partial_json" => input}},
+            %{"type" => "content_block_stop", "index" => 0},
+            %{"type" => "message_delta", "delta" => %{"stop_reason" => "tool_use"}, "usage" => %{}},
+            %{"type" => "message_stop"}
+          ])
+
+        true ->
+          stream_sse(conn, [
+            %{"type" => "message_start", "message" => %{"model" => "m", "usage" => %{}}},
+            %{"type" => "content_block_delta", "index" => 0, "delta" => %{"type" => "text_delta", "text" => "Queued for your review in the Builder."}},
+            %{"type" => "message_delta", "delta" => %{"stop_reason" => "end_turn"}, "usage" => %{}},
+            %{"type" => "message_stop"}
+          ])
+      end
+    end)
+
+    {:ok, view, _html} = live(conn, ~p"/qai")
+
+    view
+    |> element("form[phx-submit=send]")
+    |> render_submit(%{"message" => "I'm trying to eat healthier. How should I update my MeFile?"})
+
+    render_until(view, "Queued for your review in the Builder.")
+
+    # The model was offered the shared MeCP tools.
+    assert_received {:tools_offered, names}
+    assert "suggest_tag" in names and "search_traits" in names
+
+    # The suggestion landed in the Builder queue, marked as an update, filed by Qai.
+    alias Qlarius.MeCP.Suggestions
+    assert [suggestion] = Suggestions.list_pending_for_me_file(me_file.id)
+    assert suggestion.trait_id == trait.id
+    assert suggestion.proposed_values == ["Rarely"]
+    assert suggestion.grant.mecp_client.name == "Qai"
+
+    assert [entry] = Suggestions.suggested_surveys_for_me_file(me_file.id)
+    assert entry.update?
+
+    # And the tool call is in the access log like any counterparty's.
+    events = Qlarius.MeCP.AccessLog.list_events_for_grant(grant.id)
+    assert Enum.any?(events, &(&1.kind == "suggestion"))
   end
 
   test "a revoked grant returns the user to the opt-in card", %{conn: conn, user: user} do
