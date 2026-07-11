@@ -144,8 +144,14 @@ defmodule QlariusWeb.Endpoint do
       "127.0.0.1",
       "10.0.2.2"
     ] or host == "qadabra.app" or String.ends_with?(host, ".qadabra.app") or
-      String.ends_with?(host, ".gigalixirapp.com") or uri.scheme == "chrome-extension"
+      String.ends_with?(host, ".gigalixirapp.com") or uri.scheme == "chrome-extension" or
+      host == advertised_host()
   end
+
+  # The host this endpoint is configured to generate URLs for (PHX_HOST in
+  # prod, PUBLIC_HOST when tunnel-testing in dev) is by definition a valid
+  # origin for its own pages.
+  defp advertised_host, do: config(:url)[:host]
 
   defp set_csp(conn, _) do
     Plug.Conn.put_resp_header(
