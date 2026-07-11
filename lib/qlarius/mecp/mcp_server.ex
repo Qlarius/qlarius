@@ -108,6 +108,12 @@ defmodule Qlarius.MeCP.MCPServer do
     "MeCP provides scoped, user-granted access to one person's MeFile " <>
       "(self-declared profile data). Use get_capsule for rendered context and " <>
       "ask_me for narrow structured questions.\n\n" <>
+      "Keeping the MeFile current: gaps you hit through empty reads are noted " <>
+      "for the owner automatically. But only you see the conversation, so when " <>
+      "the owner says something that contradicts or extends their MeFile data " <>
+      "(new pet, moved cities, changed jobs), or a value's confirmation date " <>
+      "looks stale for its subject, propose an update with suggest_tag. The " <>
+      "owner reviews it in their MeFile Builder; nothing is written without them.\n\n" <>
       String.trim(MeCP.do_not_retain_preamble()) <> myterms
   end
 
@@ -217,15 +223,19 @@ defmodule Qlarius.MeCP.MCPServer do
       },
       %{
         "name" => "suggest_tag",
-        "title" => "Suggest a MeFile addition",
+        "title" => "Suggest a MeFile addition or update",
         "description" =>
-          "Proposes that the owner add tags for a trait, with specific values they " <>
-            "mentioned and your reason. Rarely needed: gaps you hit via search_traits " <>
-            "or ask_me are queued for the owner automatically. Call this only when " <>
-            "the owner explicitly asks you to save a suggestion or mentions concrete " <>
-            "values worth attaching. Nothing is written to the MeFile: the proposal " <>
-            "appears as a question in the From Recent Chats survey in their MeFile " <>
-            "Builder, where the owner answers or dismisses it.",
+          "Proposes that the owner add or update tags for a trait, with specific " <>
+            "values they mentioned and your reason. Empty gaps you hit via " <>
+            "search_traits or ask_me are queued for the owner automatically, so " <>
+            "the main reason to call this is an UPDATE: the owner states something " <>
+            "that contradicts or extends data the MeFile already has (their tags " <>
+            "say Bird and Fish; they just told you they got a dog), or an existing " <>
+            "value looks stale from its confirmation date. Updates to existing tags " <>
+            "only reach the owner if you call this. Also call it when the owner " <>
+            "explicitly asks you to save a suggestion. Nothing is written to the " <>
+            "MeFile: the proposal appears as a question in the From Recent Chats " <>
+            "survey in their MeFile Builder, where the owner answers or dismisses it.",
         # Deliberately NOT read-only: this queues something for the owner, so
         # clients should treat it as a write and confirm with their user.
         "annotations" => %{

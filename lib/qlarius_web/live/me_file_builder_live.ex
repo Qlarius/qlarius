@@ -122,8 +122,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
                 <span class="badge badge-primary badge-sm">{length(@suggested_surveys)}</span>
               </div>
               <p class="text-sm text-base-content/60 mt-1">
-                Recent chats would have been more personal with these tags filled in.
-                Answer or dismiss; nothing is added without you.
+                Recent chats would have been more personal with these tags filled in
+                or brought up to date. Answer or dismiss; nothing is added without you.
               </p>
             </div>
             <div class="px-4 pb-4">
@@ -138,6 +138,9 @@ defmodule QlariusWeb.MeFileBuilderLive do
                 >
                   <span class="text-xl text-base-content">
                     {(entry.survey && entry.survey.name) || entry.latest.trait.trait_name}
+                    <span :if={entry.update?} class="badge badge-secondary badge-sm align-middle ml-1">
+                      Update
+                    </span>
                   </span>
                   <div class="flex items-center gap-2">
                     <span class={survey_ratio_text_class(entry.answered, entry.total)}>
@@ -148,9 +151,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                 </div>
                 <div class="flex justify-between items-center mt-1">
                   <span class="text-sm text-base-content/60">
-                    {if entry.latest.source == "observed",
-                      do: "Asked about by",
-                      else: "Suggested by"} {entry.latest.grant.mecp_client.name} on {Calendar.strftime(
+                    {suggestion_byline(entry)} {entry.latest.grant.mecp_client.name} on {Calendar.strftime(
                       entry.latest.inserted_at,
                       "%b %d"
                     )}
@@ -165,6 +166,12 @@ defmodule QlariusWeb.MeFileBuilderLive do
                 </div>
                 <div :if={entry.latest.reason} class="text-sm text-base-content/60 italic mt-1">
                   "{entry.latest.reason}"
+                </div>
+                <div
+                  :if={entry.latest.proposed_values != []}
+                  class="text-sm text-base-content/60 mt-1"
+                >
+                  Mentioned in chat: {Enum.join(entry.latest.proposed_values, ", ")}
                 </div>
               </div>
             </div>
@@ -581,6 +588,12 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
     assign(socket, :tag_display_mode, mode)
   end
+
+  # Update entries mean the anchor trait already has tags: the assistant heard
+  # something newer in chat. Gap entries are fills for empty traits.
+  defp suggestion_byline(%{update?: true}), do: "Update suggested by"
+  defp suggestion_byline(%{latest: %{source: "observed"}}), do: "Asked about by"
+  defp suggestion_byline(_entry), do: "Suggested by"
 
   defp survey_ratio_text_class(answered, total) do
     base = "text-sm font-medium shrink-0"

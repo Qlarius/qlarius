@@ -114,13 +114,17 @@ defmodule Qlarius.MeCP.Suggestions do
   Builder, which opens the real survey through the normal flow.
 
   Returns entries of `%{survey: %Survey{} | nil, suggestions: [...],
-  answered: n, total: n, latest: %TagSuggestion{}}`. Entries with `survey:
-  nil` (anchor question attached to no survey) fall back to trait-level
-  handling; their totals count the suggestions themselves.
+  answered: n, total: n, latest: %TagSuggestion{}, update?: boolean}`.
+  Entries with `survey: nil` (anchor question attached to no survey) fall
+  back to trait-level handling; their totals count the suggestions
+  themselves. `update?` marks entries whose anchor trait already carries
+  tags: the assistant is proposing a revision to existing data (only it
+  sees the conversation), not a fill for a gap.
   """
   def suggested_surveys_for_me_file(me_file_id) do
     suggestions = list_pending_for_me_file(me_file_id)
     trait_ids = suggestions |> Enum.map(& &1.trait_id) |> Enum.uniq()
+    tagged_trait_ids = tagged_anchor_trait_ids(me_file_id, trait_ids)
 
     survey_by_trait =
       Repo.all(
@@ -144,9 +148,35 @@ defmodule Qlarius.MeCP.Suggestions do
       latest = Enum.max_by(group, & &1.inserted_at, DateTime)
       {answered, total} = survey_progress(survey, group, me_file_id)
 
-      %{survey: survey, suggestions: group, answered: answered, total: total, latest: latest}
+      %{
+        survey: survey,
+        suggestions: group,
+        answered: answered,
+        total: total,
+        latest: latest,
+        update?: Enum.any?(group, &(&1.trait_id in tagged_trait_ids))
+      }
     end)
     |> Enum.sort_by(& &1.latest.inserted_at, {:desc, DateTime})
+  end
+
+  # Anchor traits (of the given ids) that already carry tags for this MeFile.
+  # Tags live on child traits; they resolve to their effective parent the same
+  # way the oracle counts data.
+  defp tagged_anchor_trait_ids(_me_file_id, []), do: MapSet.new()
+
+  defp tagged_anchor_trait_ids(me_file_id, trait_ids) do
+    Repo.all(
+      from tag in Qlarius.YouData.MeFiles.MeFileTag,
+        join: t in Trait,
+        on: t.id == tag.trait_id,
+        where:
+          tag.me_file_id == ^me_file_id and
+            coalesce(t.parent_trait_id, t.id) in ^trait_ids,
+        select: coalesce(t.parent_trait_id, t.id),
+        distinct: true
+    )
+    |> MapSet.new()
   end
 
   @doc "Whether a pending suggestion exists for this effective trait."

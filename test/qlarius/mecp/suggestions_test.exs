@@ -260,6 +260,61 @@ defmodule Qlarius.MeCP.SuggestionsTest do
       assert entry.survey == nil
       assert entry.total == 1
       assert entry.latest.trait.trait_name == ctx.gap.trait_name
+      refute entry.update?
+    end
+
+    test "suggestions on already-tagged traits queue and mark the entry as an update" do
+      ctx = seed_with_gap!()
+      pets_question = make_askable_question!(ctx.pets)
+      gap_question = Repo.get_by!(SurveyQuestion, trait_id: ctx.gap.id)
+
+      # Separate surveys so the tagged and untagged anchors group apart.
+      for {name, question} <- [{"Pets", pets_question}, {"New Topics", gap_question}] do
+        survey =
+          Repo.insert!(%Qlarius.YouData.Surveys.Survey{
+            name: name,
+            active: true,
+            created_by: 0,
+            updated_by: 0
+          })
+
+        Repo.insert!(%Qlarius.YouData.Surveys.SurveyQuestionSurvey{
+          survey_question_id: question.id,
+          survey_id: survey.id,
+          display_order: 1
+        })
+      end
+
+      # Pets already carries the seeded "Dog" tag: this is the "user said
+      # something newer in chat" case, not a gap fill.
+      assert {:ok, suggestion} =
+               Suggestions.create_suggestion(ctx.grant, ctx.pets.id, %{
+                 proposed_values: ["Dog", "Bird"],
+                 reason: "Owner mentioned they recently got a dog."
+               })
+
+      assert suggestion.status == "pending"
+
+      {:ok, _} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{})
+
+      entries = Suggestions.suggested_surveys_for_me_file(ctx.me_file.id)
+      update_entry = Enum.find(entries, & &1.update?)
+      gap_entry = Enum.find(entries, &(not &1.update?))
+
+      assert update_entry.latest.trait_id == ctx.pets.id
+      assert update_entry.latest.proposed_values == ["Dog", "Bird"]
+      assert gap_entry.latest.trait_id == ctx.gap.id
+    end
+
+    test "child-trait tags mark the parent anchor's entry as an update" do
+      ctx = seed_with_gap!()
+      child = insert_trait!(nil, "Cat", parent_trait_id: ctx.gap.id)
+      insert_tag!(ctx.me_file, child, "Cat")
+
+      {:ok, _} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{})
+
+      assert [entry] = Suggestions.suggested_surveys_for_me_file(ctx.me_file.id)
+      assert entry.update?
     end
 
     test "list_pending_for_me_file preloads what the Builder needs" do
