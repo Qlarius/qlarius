@@ -40,6 +40,12 @@ defmodule QlariusWeb.MeCPConnectorsLive do
     {:noreply, socket}
   end
 
+  # Pushed by the HiPagePWADetect hook wrapping this page.
+  @impl true
+  def handle_event("pwa_detected", params, socket) do
+    QlariusWeb.PWAHelpers.handle_pwa_detection(socket, params)
+  end
+
   @impl true
   def handle_event("toggle_form", _params, socket) do
     {:noreply,

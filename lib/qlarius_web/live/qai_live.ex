@@ -51,6 +51,11 @@ defmodule QlariusWeb.QaiLive do
     {:noreply, socket}
   end
 
+  # Pushed by the HiPagePWADetect hook wrapping this page.
+  def handle_event("pwa_detected", params, socket) do
+    QlariusWeb.PWAHelpers.handle_pwa_detection(socket, params)
+  end
+
   def handle_event("enable_qai", params, socket) do
     attrs = %{category_ids: parse_category_ids(params)}
 
