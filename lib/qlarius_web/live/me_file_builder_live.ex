@@ -139,7 +139,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                   <span class="text-xl text-base-content">
                     {(entry.survey && entry.survey.name) || entry.latest.trait.trait_name}
                     <span :if={entry.update?} class="badge badge-secondary badge-sm align-middle ml-1">
-                      Update
+                      Review
                     </span>
                   </span>
                   <div class="flex items-center gap-2">
@@ -591,7 +591,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
   # Update entries mean the anchor trait already has tags: the assistant heard
   # something newer in chat. Gap entries are fills for empty traits.
-  defp suggestion_byline(%{update?: true}), do: "Update suggested by"
+  defp suggestion_byline(%{update?: true}), do: "Review suggested by"
   defp suggestion_byline(%{latest: %{source: "observed"}}), do: "Asked about by"
   defp suggestion_byline(_entry), do: "Suggested by"
 
