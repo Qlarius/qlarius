@@ -531,7 +531,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
         }
 
       tiqit_class.content_group_id ->
-        active_pieces = ContentGroup.active_content_pieces(group.content_pieces)
+        active_pieces =
+          case group.content_pieces do
+            pieces when is_list(pieces) -> ContentGroup.active_content_pieces(pieces)
+            _ -> []
+          end
+
         piece_count = length(active_pieces)
         piece_type = catalog.piece_type |> to_string()
         piece_label = if piece_count == 1, do: piece_type, else: pluralize(piece_type)
@@ -539,26 +544,44 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
         %{
           scope: :group,
           label: "entire #{catalog.group_type}",
-          detail: "#{piece_count} #{piece_label}"
+          detail: if(piece_count > 0, do: "#{piece_count} #{piece_label}")
         }
 
       true ->
-        group_count = length(catalog.content_groups)
+        groups =
+          case catalog.content_groups do
+            loaded when is_list(loaded) -> loaded
+            _ -> []
+          end
+
+        group_count = length(groups)
         group_type = catalog.group_type |> to_string()
         group_label = if group_count == 1, do: group_type, else: pluralize(group_type)
 
         piece_count =
-          catalog.content_groups
-          |> Enum.flat_map(&ContentGroup.active_content_pieces(&1.content_pieces))
+          groups
+          |> Enum.flat_map(fn g ->
+            case g.content_pieces do
+              pieces when is_list(pieces) -> ContentGroup.active_content_pieces(pieces)
+              _ -> []
+            end
+          end)
           |> length()
 
         piece_type = catalog.piece_type |> to_string()
         piece_label = if piece_count == 1, do: piece_type, else: pluralize(piece_type)
 
+        detail =
+          cond do
+            group_count == 0 -> nil
+            piece_count > 0 -> "#{group_count} #{group_label}, #{piece_count} #{piece_label}"
+            true -> "#{group_count} #{group_label}"
+          end
+
         %{
           scope: :catalog,
           label: "entire #{catalog.type}",
-          detail: "#{group_count} #{group_label}, #{piece_count} #{piece_label}"
+          detail: detail
         }
     end
   end

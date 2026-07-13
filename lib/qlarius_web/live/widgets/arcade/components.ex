@@ -29,6 +29,14 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     end
   end
 
+  # Count for header labels. Assoc may be unloaded on piece-focused
+  # surfaces (e.g. ArcadeSingleLive) where group/catalog ownership
+  # tiqits are optional — skip the parenthetical count rather than
+  # crashing on `length(%Ecto.Association.NotLoaded{})`.
+  defp assoc_count(list) when is_list(list), do: length(list)
+  defp assoc_count(%Ecto.Association.NotLoaded{}), do: nil
+  defp assoc_count(_), do: nil
+
   # `balance` is `nil` for unauthenticated viewers — the grid still
   # renders fully so anon users can browse all Tiqit options; the
   # `select-tiqit-class` LV event is intercepted server-side for
@@ -74,7 +82,9 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         group: group,
         piece: piece,
         show_group?: show_group?,
-        show_catalog?: show_catalog?
+        show_catalog?: show_catalog?,
+        group_piece_count: assoc_count(group.content_pieces),
+        catalog_group_count: assoc_count(catalog.content_groups)
       )
 
     ~H"""
@@ -99,11 +109,8 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                 class="w-40 font-semibold text-base-content text-center py-2 px-3 leading-none"
               >
                 Entire {@catalog.group_type |> to_string() |> String.capitalize()}<br />
-                <span class="text-base-content/40 text-xs mt-0">
-                  ({length(@group.content_pieces)} {pluralize(
-                    length(@group.content_pieces),
-                    @catalog.piece_type
-                  )})
+                <span :if={@group_piece_count} class="text-base-content/40 text-xs mt-0">
+                  ({@group_piece_count} {pluralize(@group_piece_count, @catalog.piece_type)})
                 </span>
               </th>
               <th
@@ -111,11 +118,8 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                 class="w-40 font-semibold text-base-content text-center py-2 px-3 leading-none"
               >
                 Entire {@catalog.type |> to_string() |> String.capitalize()}<br />
-                <span class="text-base-content/40 text-xs mt-0">
-                  ({length(@catalog.content_groups)} {pluralize(
-                    length(@catalog.content_groups),
-                    @catalog.group_type
-                  )})
+                <span :if={@catalog_group_count} class="text-base-content/40 text-xs mt-0">
+                  ({@catalog_group_count} {pluralize(@catalog_group_count, @catalog.group_type)})
                 </span>
               </th>
             </tr>
