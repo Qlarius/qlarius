@@ -22,6 +22,15 @@
     </style>
 </head>
 <body class="bg-gray-50">
+
+    <!-- Hidden demo control: enables in-house ad units via ?in_house_ads=true -->
+    <a
+        id="in-house-ads-toggle"
+        href="?in_house_ads=true"
+        class="fixed top-0 left-0 z-[100] block h-4 w-4 opacity-0"
+        aria-label="Enable in-house ads"
+        title=""
+    ></a>
     
     <!-- Top Header Bar -->
     <div class="bg-black text-white">
@@ -68,6 +77,19 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- In-house banner ad — full width across columns (shown when ?in_house_ads=true) -->
+        <div id="in-house-banner-ad" class="hidden mb-8 flex justify-center" aria-hidden="true">
+            <a href="#" class="block">
+                <img
+                    src="../../images/springfield_founders_friday_fest_banner.png"
+                    alt="Springfield Founders Friday Fest"
+                    width="970"
+                    height="242"
+                    class="w-[970px] max-w-full h-auto"
+                >
+            </a>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <!-- Main Content Column (2/3 width on desktop) -->
@@ -260,6 +282,19 @@
                     </div>
                 </div>
 
+                <!-- In-house rect ad (shown when ?in_house_ads=true) -->
+                <div id="in-house-rect-ad" class="hidden flex justify-center" aria-hidden="true">
+                    <a href="#" class="block">
+                        <img
+                            src="../../images/springfield_founders_friday_fest_rect.png"
+                            alt="Springfield Founders Friday Fest"
+                            width="300"
+                            height="249"
+                            class="w-[300px] max-w-full h-auto"
+                        >
+                    </a>
+                </div>
+
                 <!-- Opinion Section -->
                 <div class="bg-white rounded-lg shadow-sm p-6">
                     <h3 class="text-xl font-bold mb-4 pb-2 border-b">Opinion</h3>
@@ -399,7 +434,32 @@
     <!-- SPONSTER EMBED CODE BEGIN  -->
         <div id="sponster-tipjar-widget" sponster-split-code="daily_local"></div>
         <script src="../../sponster-tipjar-widget-ext-script.js"></script>
-    <!-- SPONSTER EMBED CODE END  -->   
+    <!-- SPONSTER EMBED CODE END  -->
+
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var showAds = params.get("in_house_ads") === "true";
+        var banner = document.getElementById("in-house-banner-ad");
+        var rect = document.getElementById("in-house-rect-ad");
+        var toggle = document.getElementById("in-house-ads-toggle");
+
+        if (showAds) {
+          if (banner) {
+            banner.classList.remove("hidden");
+            banner.setAttribute("aria-hidden", "false");
+          }
+          if (rect) {
+            rect.classList.remove("hidden");
+            rect.setAttribute("aria-hidden", "false");
+          }
+          if (toggle) {
+            toggle.href = "?in_house_ads=false";
+            toggle.setAttribute("aria-label", "Disable in-house ads");
+          }
+        }
+      })();
+    </script>
 
 </body>
 </html>
