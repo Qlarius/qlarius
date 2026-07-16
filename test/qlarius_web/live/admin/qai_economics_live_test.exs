@@ -49,14 +49,8 @@ defmodule QlariusWeb.Admin.QaiEconomicsLiveTest do
 
     assert html =~ "$0.50"
 
-    # Sponsorship coverage recomputes independently and is labeled as funding.
-    html =
-      view
-      |> element("#sponsorship-coverage-form")
-      |> render_change(%{"engagement_revenue" => "0.20"})
-
-    assert html =~ "Funding, not margin"
-    assert html =~ "$0.20"
+    # Funding source is out of scope by design: margin math only.
+    refute html =~ "Sponsorship Coverage"
 
     # Window switch reloads data.
     assert view |> element("button[phx-value-days='7']") |> render_click() =~ "Qai Economics"
