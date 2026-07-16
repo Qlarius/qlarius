@@ -215,6 +215,9 @@ defmodule QlariusWeb.Components.AdminSidebar do
                   <a class="menu-item false" href={~p"/admin/mecp_access_log"}>
                     <span class="grow">MeCP Access Log</span>
                   </a>
+                  <a class="menu-item false" href={~p"/admin/qai_economics"}>
+                    <span class="grow">Qai Economics</span>
+                  </a>
                 </div>
               </div>
             </div>

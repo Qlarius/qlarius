@@ -670,6 +670,7 @@ defmodule QlariusWeb.Router do
         {QlariusWeb.Layouts, :set_current_path}
       ] do
       live "/mecp_access_log", MeCPAccessLogLive, :index
+      live "/qai_economics", QaiEconomicsLive, :index
     end
   end
 end
