@@ -197,14 +197,10 @@ defmodule QlariusWeb.Admin.QaiEconomicsLive do
                     clear p90 cost, not the average, or heavy sessions run negative.
                   </p>
 
-                  <form phx-change="set_scenario" class="grid grid-cols-2 md:grid-cols-6 gap-3 py-2">
+                  <form id="pricing-scenario-form" phx-change="set_scenario" class="grid grid-cols-2 md:grid-cols-5 gap-3 py-2">
                     <label class="form-control">
                       <span class="label-text text-xs">Price / session $</span>
                       <input type="text" name="price" value={@price} class="input input-bordered input-sm" />
-                    </label>
-                    <label class="form-control">
-                      <span class="label-text text-xs">Sponsor rev / engagement $</span>
-                      <input type="text" name="engagement_revenue" value={@engagement_revenue} class="input input-bordered input-sm" />
                     </label>
                     <label class="form-control">
                       <span class="label-text text-xs">Frontier in $/MTok</span>
@@ -266,14 +262,44 @@ defmodule QlariusWeb.Admin.QaiEconomicsLive do
                   </div>
 
                   <div class="text-sm text-base-content/70 pt-1">
-                    Sponsored inference: one engagement at {usd(@engagement_revenue, 2)} funds
+                    Break-even flat price is p90 cost:
+                    <span class="font-semibold">{usd(@distribution.p90)}</span>.
+                  </div>
+                </div>
+              </div>
+
+              <%!-- Sponsorship coverage: funding, not margin --%>
+              <div class="card bg-base-100 border border-base-300 mb-6">
+                <div class="card-body">
+                  <h2 class="card-title">Sponsorship Coverage</h2>
+                  <p class="text-sm text-base-content/60">
+                    Funding, not margin: sponsorship changes who pays the session price,
+                    never the session's margin. This asks whether attention income covers
+                    usage - the "attention pays for intelligence" ratio.
+                  </p>
+                  <form id="sponsorship-coverage-form" phx-change="set_scenario" class="max-w-xs py-1">
+                    <label class="form-control">
+                      <span class="label-text text-xs">Sponster platform rev / engagement $</span>
+                      <input
+                        type="text"
+                        name="engagement_revenue"
+                        value={@engagement_revenue}
+                        class="input input-bordered input-sm"
+                      />
+                    </label>
+                  </form>
+                  <div class="text-sm text-base-content/70">
+                    One engagement at {usd(@engagement_revenue, 2)} covers
                     <span class="font-semibold">
                       {if @cost_per_session > 0,
                         do: Float.round(@engagement_revenue / @cost_per_session, 1),
                         else: "-"}
                     </span>
-                    average sessions. Break-even flat price is p90 cost:
-                    <span class="font-semibold">{usd(@distribution.p90)}</span>.
+                    average sessions of COGS, or
+                    <span class="font-semibold">
+                      {if @price > 0, do: Float.round(@engagement_revenue / @price, 2), else: "-"}
+                    </span>
+                    sessions at the {usd(@price, 2)} price.
                   </div>
                 </div>
               </div>

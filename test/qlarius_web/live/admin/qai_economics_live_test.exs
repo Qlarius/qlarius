@@ -44,10 +44,19 @@ defmodule QlariusWeb.Admin.QaiEconomicsLiveTest do
     # Scenario inputs recompute without crashing.
     html =
       view
-      |> element("form[phx-change=set_scenario]")
+      |> element("#pricing-scenario-form")
       |> render_change(%{"price" => "0.50", "frontier_input" => "6.0"})
 
     assert html =~ "$0.50"
+
+    # Sponsorship coverage recomputes independently and is labeled as funding.
+    html =
+      view
+      |> element("#sponsorship-coverage-form")
+      |> render_change(%{"engagement_revenue" => "0.20"})
+
+    assert html =~ "Funding, not margin"
+    assert html =~ "$0.20"
 
     # Window switch reloads data.
     assert view |> element("button[phx-value-days='7']") |> render_click() =~ "Qai Economics"
