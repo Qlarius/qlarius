@@ -105,12 +105,24 @@ defmodule Qlarius.Qai.Sessions do
     end
   end
 
-  @doc "Writes the streamed content once at stream end; `stopped: true` if cut off."
+  @doc """
+  Writes the streamed content once at stream end; `stopped: true` if cut off.
+  `:usage` (provider token counts) and `:model` (the id that actually served
+  the turn) are recorded when the stream completed normally.
+  """
   def finalize_message(%Message{} = message, content, opts \\ []) do
+    attrs =
+      %{content: content, stopped: Keyword.get(opts, :stopped, false)}
+      |> maybe_put(:usage, Keyword.get(opts, :usage))
+      |> maybe_put(:model, Keyword.get(opts, :model))
+
     message
-    |> Message.changeset(%{content: content, stopped: Keyword.get(opts, :stopped, false)})
+    |> Message.changeset(attrs)
     |> Repo.update()
   end
+
+  defp maybe_put(attrs, _key, nil), do: attrs
+  defp maybe_put(attrs, key, value), do: Map.put(attrs, key, value)
 
   def list_messages(session_id) do
     Message

@@ -206,18 +206,35 @@ defmodule Qlarius.MeCP.Capsules do
 
   # --- rendering ------------------------------------------------------------
 
+  # Compact: one line per trait, values joined with "; " (commas appear inside
+  # values like "Austin, TX"), and a single trailing date when every value in
+  # the trait shares one. Purely presentational; token cost is real money per
+  # conversation turn, so this format trades markdown ceremony for density
+  # while keeping every value and date.
+
   defp render_category(%Category{} = category) do
-    ["", "## #{category.name}"] ++ Enum.flat_map(category.traits, &render_trait/1)
+    ["", "## #{category.name}"] ++ Enum.map(category.traits, &render_trait/1)
   end
 
   defp render_trait(%Trait{} = trait) do
-    ["", "### #{trait.name}"] ++ Enum.map(trait.values, &render_value/1)
+    "- #{trait.name}: #{render_values(trait.values)}"
   end
 
-  defp render_value(%Value{} = value) do
-    case format_date(value.added_date) do
-      nil -> "- #{value.text}"
-      date -> "- #{value.text} (#{date})"
+  defp render_values(values) do
+    case values |> Enum.map(&format_date(&1.added_date)) |> Enum.uniq() do
+      [nil] ->
+        Enum.map_join(values, "; ", & &1.text)
+
+      [shared_date] ->
+        "#{Enum.map_join(values, "; ", & &1.text)} (#{shared_date})"
+
+      _mixed ->
+        Enum.map_join(values, "; ", fn value ->
+          case format_date(value.added_date) do
+            nil -> value.text
+            date -> "#{value.text} (#{date})"
+          end
+        end)
     end
   end
 

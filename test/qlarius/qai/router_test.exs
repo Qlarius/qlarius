@@ -63,7 +63,15 @@ defmodule Qlarius.Qai.RouterTest do
       assert_received {:request, body, headers}
       assert body["model"] == Router.model_for(:frontier)
       assert body["stream"] == true
-      assert body["system"] == "Capsule context here."
+      # System goes as a block with a cache breakpoint: the capsule-bearing
+      # prefix is byte-stable per session, so later turns read it from cache.
+      assert body["system"] == [
+               %{
+                 "type" => "text",
+                 "text" => "Capsule context here.",
+                 "cache_control" => %{"type" => "ephemeral"}
+               }
+             ]
       assert body["metadata"]["user_id"] == Router.ephemeral_id(42)
       assert {"x-api-key", "test-key"} in headers
       assert {"anthropic-version", "2023-06-01"} in headers
@@ -151,6 +159,10 @@ defmodule Qlarius.Qai.RouterTest do
       # Text concatenates across the tool round-trip; the turn ends normally.
       assert result.content == "Filing that. Queued for review."
       assert result.stop_reason == "end_turn"
+
+      # Both rounds bill; the turn's usage is the sum.
+      assert result.usage["input_tokens"] == 10
+      assert result.usage["output_tokens"] == 13
 
       # The streamed partial JSON decoded into one handler call.
       assert_received {:tool_call, "suggest_tag", %{"trait" => "Pets", "reason" => "got a dog"}}

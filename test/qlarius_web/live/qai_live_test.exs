@@ -45,9 +45,9 @@ defmodule QlariusWeb.QaiLiveTest do
 
       if Jason.decode!(body)["stream"] do
         events = [
-          %{"type" => "message_start", "message" => %{"model" => "claude-sonnet-4-6", "usage" => %{}}},
+          %{"type" => "message_start", "message" => %{"model" => "claude-sonnet-4-6", "usage" => %{"input_tokens" => 40}}},
           %{"type" => "content_block_delta", "index" => 0, "delta" => %{"type" => "text_delta", "text" => reply_text}},
-          %{"type" => "message_delta", "delta" => %{"stop_reason" => "end_turn"}, "usage" => %{"output_tokens" => 5}},
+          %{"type" => "message_delta", "delta" => %{"stop_reason" => "end_turn"}, "usage" => %{"output_tokens" => 12}},
           %{"type" => "message_stop"}
         ]
 
@@ -133,9 +133,16 @@ defmodule QlariusWeb.QaiLiveTest do
     assert html =~ "Hi Qai"
 
     [session] = Sessions.list_sessions(me_file(user).id)
-    contents = Sessions.list_messages(session.id) |> Enum.map(&{&1.role, &1.content})
+    messages = Sessions.list_messages(session.id)
+    contents = Enum.map(messages, &{&1.role, &1.content})
     assert {"user", "Hi Qai"} in contents
     assert {"assistant", "Hello back!"} in contents
+
+    # Token usage and the serving model land on the message for economics.
+    reply = Enum.find(messages, &(&1.role == "assistant"))
+    assert reply.usage["input_tokens"] == 40
+    assert reply.usage["output_tokens"] == 12
+    assert reply.model == "claude-sonnet-4-6"
 
     # Dogfooding: the capsule was read through the gateway and logged.
     events = AccessLog.list_events_for_grant(grant.id)

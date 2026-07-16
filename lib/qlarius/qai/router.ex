@@ -57,10 +57,10 @@ defmodule Qlarius.Qai.Router do
       |> put_metadata(Keyword.get(opts, :session_id))
       |> put_tools(Keyword.get(opts, :tools))
 
-    run_turn(base, messages, Keyword.get(opts, :tool_handler), @max_tool_rounds, "", fun)
+    run_turn(base, messages, Keyword.get(opts, :tool_handler), @max_tool_rounds, "", %{}, fun)
   end
 
-  defp run_turn(base, messages, handler, rounds_left, text_acc, fun) do
+  defp run_turn(base, messages, handler, rounds_left, text_acc, usage_acc, fun) do
     case Anthropic.stream(Map.put(base, :messages, messages), fun) do
       {:ok, %{stop_reason: "tool_use", blocks: blocks} = result}
       when is_function(handler, 2) and rounds_left > 0 ->
@@ -83,14 +83,31 @@ defmodule Qlarius.Qai.Router do
               %{role: "user", content: tool_results}
             ]
 
-        run_turn(base, messages, handler, rounds_left - 1, text_acc <> result.content, fun)
+        run_turn(
+          base,
+          messages,
+          handler,
+          rounds_left - 1,
+          text_acc <> result.content,
+          sum_usage(usage_acc, result.usage),
+          fun
+        )
 
       {:ok, result} ->
-        {:ok, %{result | content: text_acc <> result.content}}
+        {:ok, %{result | content: text_acc <> result.content, usage: sum_usage(usage_acc, result.usage)}}
 
       error ->
         error
     end
+  end
+
+  # Every round of a tool loop bills separately; the turn's true cost is the
+  # sum. Numeric fields add, anything else keeps the latest value.
+  defp sum_usage(acc, usage) do
+    Map.merge(acc, usage || %{}, fn
+      _key, a, b when is_number(a) and is_number(b) -> a + b
+      _key, _a, b -> b
+    end)
   end
 
   # The assistant turn echoed back to the API: text and tool_use blocks in
@@ -134,7 +151,17 @@ defmodule Qlarius.Qai.Router do
   end
 
   defp put_system(params, nil), do: params
-  defp put_system(params, system), do: Map.put(params, :system, system)
+
+  # A cache breakpoint on the system block: the persona + capsule prefix is
+  # byte-stable for the whole session (capsule fetched once), so every turn
+  # after the first reads it at ~0.1x input price instead of full price.
+  # Below the model's minimum cacheable prefix it silently doesn't cache,
+  # which costs nothing.
+  defp put_system(params, system) do
+    Map.put(params, :system, [
+      %{type: "text", text: system, cache_control: %{type: "ephemeral"}}
+    ])
+  end
 
   defp put_tools(params, tools) when is_list(tools) and tools != [],
     do: Map.put(params, :tools, tools)

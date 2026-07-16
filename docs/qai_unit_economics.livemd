@@ -130,6 +130,81 @@ end)
 frame
 ```
 
+## Real usage (attach to the running app)
+
+Every completed Qai assistant message stores the provider's token usage
+(summed across tool rounds) in `qai_messages.usage`, so the assumptions above
+can be replaced with measured numbers. Run this section with the livebook
+**attached to the app node** (Runtime settings > Attached node); it reads
+through `Qlarius.Repo`.
+
+```elixir
+import Ecto.Query
+alias Qlarius.Repo
+
+days_back = 30
+since = DateTime.add(DateTime.utc_now(), -days_back * 86_400, :second)
+
+# Cache-aware pricing: cache writes bill ~1.25x input, cache reads ~0.1x.
+frontier_in = 3.0 / 1.0e6
+frontier_out = 15.0 / 1.0e6
+
+rows =
+  Repo.all(
+    from m in "qai_messages",
+      where: m.role == "assistant" and m.inserted_at >= ^since,
+      select: %{
+        session_id: m.qai_session_id,
+        model: m.model,
+        usage: m.usage,
+        stopped: m.stopped
+      }
+  )
+
+usage_num = fn u, key -> (is_map(u) && u[key]) || 0 end
+
+stats =
+  Enum.reduce(rows, %{n: 0, in: 0, out: 0, cache_read: 0, cache_write: 0}, fn r, acc ->
+    %{
+      n: acc.n + 1,
+      in: acc.in + usage_num.(r.usage, "input_tokens"),
+      out: acc.out + usage_num.(r.usage, "output_tokens"),
+      cache_read: acc.cache_read + usage_num.(r.usage, "cache_read_input_tokens"),
+      cache_write: acc.cache_write + usage_num.(r.usage, "cache_creation_input_tokens")
+    }
+  end)
+
+sessions = rows |> Enum.map(& &1.session_id) |> Enum.uniq() |> length()
+
+cost =
+  stats.in * frontier_in +
+    stats.cache_write * frontier_in * 1.25 +
+    stats.cache_read * frontier_in * 0.1 +
+    stats.out * frontier_out
+
+per = fn total -> if stats.n > 0, do: Float.round(total / stats.n, 1), else: 0 end
+
+Kino.Markdown.new("""
+### Measured, last #{days_back} days
+
+| Metric | Value |
+|---|---|
+| Assistant messages | #{stats.n} |
+| Sessions | #{sessions} |
+| Avg turns per session | #{if sessions > 0, do: Float.round(stats.n / sessions, 1), else: 0} |
+| Avg uncached input tokens per turn | #{per.(stats.in)} |
+| Avg cache-read tokens per turn | #{per.(stats.cache_read)} |
+| Avg cache-write tokens per turn | #{per.(stats.cache_write)} |
+| Avg output tokens per turn | #{per.(stats.out)} |
+| Total inference cost (frontier rates) | $#{Float.round(cost, 4)} |
+| Cost per session | $#{if sessions > 0, do: Float.round(cost / sessions, 4), else: 0} |
+
+Cache reads at 0.1x confirm the capsule breakpoint is working: after turn
+one, most input tokens should shift from the uncached row to the cache-read
+row. Feed these measured shapes back into the Assumptions form above.
+""")
+```
+
 ## Break-even explorer
 
 ```elixir

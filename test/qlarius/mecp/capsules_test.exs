@@ -43,19 +43,31 @@ defmodule Qlarius.MeCP.CapsulesTest do
              _Self-declared by the MeFile owner. Dates show when each value was last confirmed._
 
              ## Demographics
-
-             ### Trait 10
-             - Renter (Jul 2026)
-
-             ### Trait 11
-             - Dog owner (Nov 2025)
+             - Trait 10: Renter (Jul 2026)
+             - Trait 11: Dog owner (Nov 2025)
              """
+    end
+
+    test "multi-value traits join on one line and collapse a shared date" do
+      me_file =
+        me_file([
+          leaf_tag(10, "Veal", ~N[2026-07-01 12:00:00]),
+          leaf_tag(10, "Lamb", ~N[2026-07-02 08:00:00]),
+          leaf_tag(12, "Austin, TX", ~N[2026-01-10 00:00:00]),
+          leaf_tag(12, "Chicago, IL", ~N[2026-03-05 00:00:00])
+        ])
+
+      capsule = Capsules.compile(me_file)
+
+      # Same month collapses to one trailing date; mixed months stay per-value.
+      assert capsule =~ "- Trait 10: Lamb; Veal (Jul 2026)"
+      assert capsule =~ "- Trait 12: Austin, TX (Jan 2026); Chicago, IL (Mar 2026)"
     end
 
     test "a parent trait's value is the child trait name, not tag_value" do
       me_file = me_file([parent_tag(13, "Frequent traveler", ~N[2026-01-15 00:00:00])])
 
-      assert Capsules.compile(me_file) =~ "- Frequent traveler (Jan 2026)"
+      assert Capsules.compile(me_file) =~ "- Trait 13: Frequent traveler (Jan 2026)"
     end
 
     test "drops blank and whitespace-only values" do

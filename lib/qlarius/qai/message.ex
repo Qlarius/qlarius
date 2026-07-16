@@ -20,6 +20,9 @@ defmodule Qlarius.Qai.Message do
     field :content, :string, default: ""
     field :model, :string
     field :stopped, :boolean, default: false
+    # Provider token usage, summed across the turn's tool rounds. Feeds the
+    # unit-economics livebook; empty for user turns and stopped streams.
+    field :usage, :map, default: %{}
 
     belongs_to :session, Session, foreign_key: :qai_session_id
 
@@ -30,7 +33,7 @@ defmodule Qlarius.Qai.Message do
 
   def changeset(message, attrs) do
     message
-    |> cast(attrs, [:qai_session_id, :role, :content, :model, :stopped])
+    |> cast(attrs, [:qai_session_id, :role, :content, :model, :stopped, :usage])
     |> validate_required([:qai_session_id, :role])
     |> validate_inclusion(:role, @roles)
     |> foreign_key_constraint(:qai_session_id)

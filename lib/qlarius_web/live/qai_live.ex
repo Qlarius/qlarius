@@ -264,8 +264,13 @@ defmodule QlariusWeb.QaiLive do
 
     socket =
       case result do
-        {:ok, %{content: content}} ->
-          {:ok, _} = Sessions.finalize_message(draft, content)
+        {:ok, %{content: content} = completed} ->
+          {:ok, _} =
+            Sessions.finalize_message(draft, content,
+              usage: completed.usage,
+              model: completed.model
+            )
+
           maybe_generate_title(socket)
 
         {:error, reason} ->
