@@ -396,27 +396,28 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
         </div>
 
         <%= if not drawer_authed do %>
-          <div class="flex-shrink-0 page-canvas border-t border-base-300/60 px-4 pt-3 pb-2 flex flex-col items-center gap-2 text-center">
-            <p class="text-sm sm:text-base text-base-content font-medium tracking-tight leading-snug">
-              Connect and sign up for free. Your wallet awaits.
-            </p>
+          <div class="flex-shrink-0 page-canvas border-t border-base-300/60 px-4 pt-3 pb-1 flex flex-col items-center gap-2 text-center">
             <a
               href={@sponster_info_outbound_url}
               target="_blank"
               rel="noopener noreferrer"
               class={[
-                "btn btn-widget-ghost btn-sm rounded-full border-[1.5px]",
-                "inline-flex items-center gap-1.5 px-4 font-semibold",
-                "outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/40"
+                "btn btn-sm rounded-full !border-0",
+                "!bg-sponster-500 hover:!bg-sponster-600 !text-white",
+                "inline-flex items-center gap-1.5 px-4 font-semibold shadow-sm",
+                "outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sponster-500"
               ]}
             >
               <span>More Sponster Info</span>
               <span aria-hidden="true">→</span>
             </a>
+            <p class="text-sm sm:text-base text-base-content font-medium tracking-tight leading-snug">
+              Connect and sign up for free. Your prefunded wallet awaits.
+            </p>
             <div class="flex justify-center" aria-hidden="true">
               <.icon
                 name="hero-chevron-down"
-                class="w-7 h-7 text-sponster-600 qlink-sponster-drawer-cta-chevron"
+                class="w-5 h-5 text-sponster-600 qlink-sponster-drawer-cta-chevron -mt-2"
               />
             </div>
           </div>

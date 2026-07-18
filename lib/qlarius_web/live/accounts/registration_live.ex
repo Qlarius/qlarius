@@ -645,9 +645,14 @@ defmodule QlariusWeb.RegistrationLive do
       assigns.legal_confirmation_checked
   end
 
-  defp put_referral_code_cookie(socket, _code) do
-    socket
+  # Client writes `qadabra_referral_code` cookie + localStorage via
+  # `phx:store-referral-code` (see assets/js/app.js). Legacy
+  # `qlarius_referral_code` is never written.
+  defp put_referral_code_cookie(socket, code) when is_binary(code) and code != "" do
+    push_event(socket, "store-referral-code", %{code: String.trim(code)})
   end
+
+  defp put_referral_code_cookie(socket, _code), do: socket
 
   # Actually send (or bypass) the SMS verification code for the phone number
   # currently in `socket.assigns.mobile_number`. Extracted so the happy path

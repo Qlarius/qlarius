@@ -405,36 +405,92 @@ if (!window.__qlariusMobileBrowserOkListener) {
   })
 }
 
+// Canonical referral storage key. Legacy `qlarius_referral_code` is
+// read once and migrated; all writes use `qadabra_referral_code`.
+const REFERRAL_STORAGE_KEY = "qadabra_referral_code"
+const REFERRAL_STORAGE_KEY_LEGACY = "qlarius_referral_code"
+const REFERRAL_ENDPOINT = "/_shared/referral-code"
+
+function referralCookieMap() {
+  return document.cookie.split(";").reduce((acc, cookie) => {
+    const [key, ...rest] = cookie.trim().split("=")
+    if (key && rest.length) acc[key] = decodeURIComponent(rest.join("="))
+    return acc
+  }, {})
+}
+
+function storeReferralCode(code) {
+  if (!code || typeof code !== "string") return
+  const trimmed = code.trim()
+  if (!trimmed) return
+
+  const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString()
+  document.cookie = `${REFERRAL_STORAGE_KEY}=${encodeURIComponent(trimmed)}; expires=${expires}; path=/; SameSite=Lax`
+  try {
+    localStorage.setItem(REFERRAL_STORAGE_KEY, trimmed)
+  } catch (_e) {}
+
+  // Drop deprecated storage so registration never reads the old key.
+  try {
+    localStorage.removeItem(REFERRAL_STORAGE_KEY_LEGACY)
+  } catch (_e) {}
+  document.cookie = `${REFERRAL_STORAGE_KEY_LEGACY}=; max-age=0; path=/`
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.ready
+      .then(() =>
+        fetch(REFERRAL_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ referral_code: trimmed })
+        })
+      )
+      .catch(() => {})
+  }
+}
+
+function getStoredReferralCode() {
+  try {
+    const lsCode = localStorage.getItem(REFERRAL_STORAGE_KEY)
+    if (lsCode) return lsCode
+  } catch (_e) {}
+
+  const cookies = referralCookieMap()
+  if (cookies[REFERRAL_STORAGE_KEY]) return cookies[REFERRAL_STORAGE_KEY]
+
+  // One-time migrate from deprecated key (pre-rename clients).
+  let legacy = null
+  try {
+    legacy = localStorage.getItem(REFERRAL_STORAGE_KEY_LEGACY)
+  } catch (_e) {}
+  if (!legacy) legacy = cookies[REFERRAL_STORAGE_KEY_LEGACY] || null
+  if (legacy) {
+    storeReferralCode(legacy)
+    return legacy
+  }
+
+  return null
+}
+
+window.addEventListener("phx:store-referral-code", (e) => {
+  const code = e.detail && e.detail.code
+  if (code) storeReferralCode(code)
+})
+
 // HiPagePWADetect - extends PWADetect to also capture referral code from URL
 Hooks.HiPagePWADetect = {
   mounted() {
-    const REFERRAL_ENDPOINT = '/_shared/referral-code'
-    
     // Capture referral code from URL and store everywhere
     const urlParams = new URLSearchParams(window.location.search)
     const refCodeFromUrl = urlParams.get('ref') || urlParams.get('invite')
     
     if (refCodeFromUrl) {
-      // Set cookie that expires in 30 days
-      const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString()
-      document.cookie = `qadabra_referral_code=${encodeURIComponent(refCodeFromUrl)}; expires=${expires}; path=/; SameSite=Lax`
-      // Store in localStorage
-      try { localStorage.setItem('qadabra_referral_code', refCodeFromUrl) } catch (e) {}
-      // Store in Cache Storage via service worker (SHARED on iOS!)
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(() => {
-          fetch(REFERRAL_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ referral_code: refCodeFromUrl })
-          }).catch(() => {})
-        })
-      }
+      storeReferralCode(refCodeFromUrl)
       console.log('🎯 Referral code captured:', refCodeFromUrl)
     }
     
     // Get referral code (from URL or localStorage)
-    let refCode = refCodeFromUrl || this.getStoredReferralCode()
+    let refCode = refCodeFromUrl || getStoredReferralCode()
     
     // If we have a code, push to LiveView
     if (refCode) {
@@ -468,13 +524,12 @@ Hooks.HiPagePWADetect = {
   },
   
   tryLoadFromCacheStorage() {
-    const REFERRAL_ENDPOINT = '/_shared/referral-code'
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then(() => {
         fetch(REFERRAL_ENDPOINT).then(r => r.json()).then(data => {
           if (data.referral_code && !this.referralPushed) {
             console.log('🎯 Loaded referral from Cache Storage:', data.referral_code)
-            try { localStorage.setItem('qadabra_referral_code', data.referral_code) } catch (e) {}
+            storeReferralCode(data.referral_code)
             this.pushReferralToLiveView(data.referral_code)
           }
         }).catch(() => {})
@@ -482,19 +537,7 @@ Hooks.HiPagePWADetect = {
     }
   },
   
-  getStoredReferralCode() {
-    try {
-      const lsCode = localStorage.getItem('qadabra_referral_code')
-      if (lsCode) return lsCode
-    } catch (e) {}
-    
-    const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-      const [key, value] = cookie.trim().split('=')
-      if (key && value) acc[key] = decodeURIComponent(value)
-      return acc
-    }, {})
-    return cookies['qadabra_referral_code'] || null
-  },
+  getStoredReferralCode,
   
   applySafeAreaFix: Hooks.PWADetect.applySafeAreaFix,
   applyViewportFix: Hooks.PWADetect.applyViewportFix
@@ -3180,7 +3223,7 @@ Hooks.RegistrationReferralCode = {
     console.log('🎯 RegistrationReferralCode hook mounted')
     this.referralPushed = false
     
-    const storedCode = this.getStoredReferralCode()
+    const storedCode = getStoredReferralCode()
     console.log('🎯 Checking storage for referral code:', storedCode || '(none found)')
     
     if (storedCode) {
@@ -3209,13 +3252,12 @@ Hooks.RegistrationReferralCode = {
   },
   
   tryLoadFromCacheStorage() {
-    const REFERRAL_ENDPOINT = '/_shared/referral-code'
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then(() => {
         fetch(REFERRAL_ENDPOINT).then(r => r.json()).then(data => {
           if (data.referral_code && !this.referralPushed) {
             console.log('🎯 Loaded referral from Cache Storage:', data.referral_code)
-            try { localStorage.setItem('qadabra_referral_code', data.referral_code) } catch (e) {}
+            storeReferralCode(data.referral_code)
             this.pushReferralToLiveView(data.referral_code)
           }
         }).catch(() => {})
@@ -3223,19 +3265,7 @@ Hooks.RegistrationReferralCode = {
     }
   },
   
-  getStoredReferralCode() {
-    try {
-      const lsCode = localStorage.getItem('qadabra_referral_code')
-      if (lsCode) return lsCode
-    } catch (e) {}
-    
-    const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-      const [key, value] = cookie.trim().split('=')
-      if (key && value) acc[key] = decodeURIComponent(value)
-      return acc
-    }, {})
-    return cookies['qadabra_referral_code'] || null
-  }
+  getStoredReferralCode
 }
 
 // Date Input - 3-field MM/DD/YYYY with auto-advance and validation

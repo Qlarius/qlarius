@@ -40,16 +40,36 @@
           document.documentElement.classList.add("ios-pwa");
         }
 
-        // Referral code sharing via Cache Storage (works across Safari <-> PWA on iOS)
+        // Referral code sharing via Cache Storage (works across Safari <-> PWA on iOS).
+        // Canonical key: qadabra_referral_code. Legacy qlarius_referral_code is
+        // migrated on read and never written.
         const REFERRAL_ENDPOINT = '/_shared/referral-code';
+        const REFERRAL_STORAGE_KEY = 'qadabra_referral_code';
+        const REFERRAL_STORAGE_KEY_LEGACY = 'qlarius_referral_code';
+
+        const storeRootReferralCode = (code) => {
+          if (!code) return;
+          const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
+          document.cookie = `${REFERRAL_STORAGE_KEY}=${encodeURIComponent(code)}; expires=${expires}; path=/; SameSite=Lax`;
+          try { localStorage.setItem(REFERRAL_STORAGE_KEY, code); } catch (e) {}
+          try { localStorage.removeItem(REFERRAL_STORAGE_KEY_LEGACY); } catch (e) {}
+          document.cookie = `${REFERRAL_STORAGE_KEY_LEGACY}=; max-age=0; path=/`;
+        };
+
+        // Migrate any leftover deprecated storage before other readers run.
+        try {
+          const legacyLs = localStorage.getItem(REFERRAL_STORAGE_KEY_LEGACY);
+          if (legacyLs && !localStorage.getItem(REFERRAL_STORAGE_KEY)) {
+            storeRootReferralCode(legacyLs);
+          }
+        } catch (e) {}
         
         const refParams = new URLSearchParams(window.location.search);
         const refCodeFromUrl = refParams.get('ref') || refParams.get('invite');
         
         // If we have a ref code from URL, store it everywhere
         if (refCodeFromUrl) {
-          // Store in localStorage (works within same context)
-          try { localStorage.setItem('qadabra_referral_code', refCodeFromUrl); } catch (e) {}
+          storeRootReferralCode(refCodeFromUrl);
           
           // Store in Cache Storage via service worker (SHARED between Safari and PWA on iOS!)
           if ('serviceWorker' in navigator) {
@@ -71,8 +91,7 @@
             fetch(REFERRAL_ENDPOINT).then(r => r.json()).then(data => {
               if (data.referral_code) {
                 console.log('🎯 Referral code loaded from shared Cache Storage:', data.referral_code);
-                // Store to localStorage so our hooks can find it
-                try { localStorage.setItem('qadabra_referral_code', data.referral_code); } catch (e) {}
+                storeRootReferralCode(data.referral_code);
                 // Dispatch event for any listeners
                 window.dispatchEvent(new CustomEvent('referral-code-loaded', { detail: data.referral_code }));
               }
