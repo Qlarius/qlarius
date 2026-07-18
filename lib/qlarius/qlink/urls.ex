@@ -131,6 +131,31 @@ defmodule Qlarius.Qlink.Urls do
   end
 
   @doc """
+  Outbound "More Sponster Info" URL: lands on the app host first so
+  `?ref=` can stamp `qadabra_referral_code`, then
+  `SponsterInfoRedirectController` redirects to `qadabra.co/sponster`.
+
+  Pass the publisher/recipient referral code when available.
+  """
+  @spec sponster_info_outbound_url(String.t() | nil) :: String.t()
+  def sponster_info_outbound_url(referral_code) do
+    path =
+      case referral_code do
+        code when is_binary(code) ->
+          case String.trim(code) do
+            "" -> "/go/sponster"
+            trimmed -> "/go/sponster?" <> URI.encode_query(%{"ref" => trimmed})
+          end
+
+        _ ->
+          "/go/sponster"
+      end
+
+    public_app_url(path)
+  end
+
+
+  @doc """
   Main-app `MeFileLive` URL (`/me_file`) from a Qlink request URI.
 
   Uses `public_app_origin/0` (qadabra.app in production); localhost uses the request origin.

@@ -9,6 +9,7 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
   import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
   import QlariusWeb.Widgets.UnauthCTA
 
+  alias Qlarius.Qlink.Urls
   alias QlariusWeb.Helpers.SponsterInfoIframe
 
   attr :recipient, :map, required: true
@@ -43,8 +44,16 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
     doc: "Anonymous announcer center content — see `sponster_announcer_bar/1`."
 
   def sponster_stack(assigns) do
+    referral_code =
+      case assigns.recipient do
+        %{referral_code: code} when is_binary(code) -> code
+        _ -> nil
+      end
+
     assigns =
-      assign(assigns, :info_iframe_src, SponsterInfoIframe.src(assigns.info_context))
+      assigns
+      |> assign(:info_iframe_src, SponsterInfoIframe.src(assigns.info_context))
+      |> assign(:sponster_info_outbound_url, Urls.sponster_info_outbound_url(referral_code))
 
     ~H"""
     <%= if @recipient do %>
@@ -387,11 +396,24 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
         </div>
 
         <%= if not drawer_authed do %>
-          <div class="flex-shrink-0 page-canvas border-t border-base-300/60 px-4 pt-3 flex flex-col items-center gap-1 text-center">
+          <div class="flex-shrink-0 page-canvas border-t border-base-300/60 px-4 pt-3 pb-2 flex flex-col items-center gap-2 text-center">
             <p class="text-sm sm:text-base text-base-content font-medium tracking-tight leading-snug">
               Connect and sign up for free. Your wallet awaits.
             </p>
-            <div class="flex justify-center pb-2" aria-hidden="true">
+            <a
+              href={@sponster_info_outbound_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class={[
+                "btn btn-widget-ghost btn-sm rounded-full border-[1.5px]",
+                "inline-flex items-center gap-1.5 px-4 font-semibold",
+                "outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/40"
+              ]}
+            >
+              <span>More Sponster Info</span>
+              <span aria-hidden="true">→</span>
+            </a>
+            <div class="flex justify-center" aria-hidden="true">
               <.icon
                 name="hero-chevron-down"
                 class="w-7 h-7 text-sponster-600 qlink-sponster-drawer-cta-chevron"

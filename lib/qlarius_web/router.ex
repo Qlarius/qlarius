@@ -386,6 +386,9 @@ defmodule QlariusWeb.Router do
   scope "/", QlariusWeb do
     pipe_through [:browser]
 
+    # Stamp publisher referral on .app, then bounce to qadabra.co/sponster.
+    get "/go/sponster", SponsterInfoRedirectController, :go
+
     live_session :hi,
       on_mount: [
         {QlariusWeb.UserAuth, :mount_current_scope}
@@ -393,6 +396,7 @@ defmodule QlariusWeb.Router do
       live "/", HiLive, :index
       live "/hi", HiLive, :index
     end
+
 
     live_session :public,
       on_mount: [
