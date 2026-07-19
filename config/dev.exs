@@ -204,6 +204,8 @@ config :qlarius, bypass_phone_verification: true
 config :qlarius, :auth_sheet,
   on_qlink_page: true,
   on_qlinkin_bio: true,
-  on_widget_standalone: true
+  on_widget_standalone: true,
+  extension_token_emit: true,
+  extension_exchange_enabled: true
 
 config :qlarius, :in_app_browser_escape, enabled: true, auto_attempt: false

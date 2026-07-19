@@ -152,6 +152,17 @@ defmodule QlariusWeb.Router do
     pipe_through [:auth_finalize]
 
     post "/finalize_session", FinalizeSessionController, :create
+    get "/session_status", ExtensionExchangeController, :session_status
+    post "/extension_exchange", ExtensionExchangeController, :create
+    post "/extension_token", ExtensionExchangeController, :mint
+    post "/invalidate_extension_token", ExtensionExchangeController, :invalidate
+  end
+
+  # CSRF-free: authenticated by the extension vault token itself.
+  scope "/auth", QlariusWeb.Auth, host: ["qlinkin.bio", "www.qlinkin.bio"] do
+    pipe_through [:auth_extension_remote]
+
+    post "/extension_remote_logout", ExtensionExchangeController, :remote_logout
   end
 
   scope "/", QlariusWeb, host: ["qlinkin.bio", "www.qlinkin.bio"] do
@@ -333,10 +344,34 @@ defmodule QlariusWeb.Router do
     plug :fetch_current_scope_for_user
   end
 
+  # Extension SW fan-out logout — no CSRF; vault token is the credential.
+  pipeline :auth_extension_remote do
+    plug :accepts, ["json"]
+    plug :fetch_session
+    plug :put_secure_browser_headers
+    plug :fetch_current_scope_for_user
+  end
+
   scope "/auth", QlariusWeb.Auth do
     pipe_through [:auth_finalize]
 
     post "/finalize_session", FinalizeSessionController, :create
+    get "/session_status", ExtensionExchangeController, :session_status
+    post "/extension_exchange", ExtensionExchangeController, :create
+    post "/extension_token", ExtensionExchangeController, :mint
+    post "/invalidate_extension_token", ExtensionExchangeController, :invalidate
+  end
+
+  scope "/auth", QlariusWeb.Auth do
+    pipe_through [:auth_extension_remote]
+
+    post "/extension_remote_logout", ExtensionExchangeController, :remote_logout
+  end
+
+  scope "/auth", QlariusWeb.Auth do
+    pipe_through [:browser]
+
+    get "/popup_done", PopupDoneController, :show
   end
 
   scope "/api", QlariusWeb do
@@ -403,9 +438,14 @@ defmodule QlariusWeb.Router do
         {QlariusWeb.UserAuth, :mount_current_scope},
         {QlariusWeb.UserAuth, :redirect_if_user_is_authenticated}
       ] do
-      live "/login", LoginLive, :index
+      live "/connect", ConnectLive, :index
+      # Proxy-user admin path still uses RegistrationLive (`?mode=proxy`).
+      # Public `/register` redirects to `/connect` in RegistrationLive.mount/3.
       live "/register", RegistrationLive, :index
     end
+
+    # Legacy public entry points → unified Connect page.
+    get "/login", ConnectRedirectController, :to_connect
 
     post "/login/create_session", UserSessionCreateController, :create
     delete "/logout", UserSessionController, :delete

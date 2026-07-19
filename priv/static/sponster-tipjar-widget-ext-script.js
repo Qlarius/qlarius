@@ -70,6 +70,7 @@
     "height: " + collapsedHeight,
     "border: 0",
     "background: transparent",
+    "overflow: hidden",
     "z-index: 999999"
   ].join(";");
 
@@ -77,6 +78,44 @@
 
   var collapseTimer = null;
   var expanded = false;
+
+  // Presence-only probe for the browser extension (no identity tokens
+  // on the publisher page). Nudges the widget iframe when present.
+  ;(function probeExtensionPresence() {
+    if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.sendMessage) {
+      return;
+    }
+
+    var idsMeta =
+      document.querySelector('meta[name="qadabra-extension-ids"]') &&
+      document.querySelector('meta[name="qadabra-extension-ids"]').getAttribute("content");
+    // Publisher pages usually lack the meta tag; fall back to known IDs
+    // embedded for the production + empty-dev placeholders.
+    var ids = (idsMeta || "mhedmgbdabpgflgijpkabcdnkpncbdgp")
+      .split(",")
+      .map(function (s) {
+        return s.trim();
+      })
+      .filter(function (id) {
+        return id && id !== "DEV_EXTENSION_ID_PLACEHOLDER";
+      });
+
+    ids.forEach(function (id) {
+      try {
+        chrome.runtime.sendMessage(id, { type: "qadabra:auth:probe" }, function (response) {
+          if (chrome.runtime.lastError || !response || !response.ok) return;
+          if (iframe.contentWindow) {
+            iframe.contentWindow.postMessage(
+              { type: "sponster_extension_present", authed: !!response.authed },
+              qlariusOrigin
+            );
+          }
+        });
+      } catch (_e) {
+        // Extension absent or blocked — leave widget anon.
+      }
+    });
+  })();
 
   function expand() {
     if (collapseTimer) {

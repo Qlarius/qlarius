@@ -140,6 +140,19 @@ defmodule QlariusWeb.UserAuth do
   them to the generic `/login` screen.
   """
   def log_out_user(conn, opts \\ []) do
+    redirect_to = Keyword.get(opts, :to, ~p"/login")
+
+    conn
+    |> clear_user_session()
+    |> redirect(to: redirect_to)
+  end
+
+  @doc """
+  Clears the Phoenix session / remember-me cookies and DB session token
+  without redirecting. Used by the extension remote-logout path so the
+  service worker can fan out a global disconnect as `204`.
+  """
+  def clear_user_session(conn) do
     user_token = get_session(conn, :user_token)
     user_token && Accounts.delete_user_session_token(user_token)
 
@@ -147,12 +160,9 @@ defmodule QlariusWeb.UserAuth do
       QlariusWeb.Endpoint.broadcast(live_socket_id, "disconnect", %{})
     end
 
-    redirect_to = Keyword.get(opts, :to, ~p"/login")
-
     conn
     |> renew_session()
     |> delete_resp_cookie(@remember_me_cookie, delete_remember_me_options(conn))
-    |> redirect(to: redirect_to)
   end
 
   # `delete_resp_cookie` only evicts a cookie whose `Domain`, `Path`,
@@ -229,7 +239,7 @@ defmodule QlariusWeb.UserAuth do
       conn
       |> put_flash(:error, "You must log in to access this page.")
       |> maybe_store_return_to()
-      |> redirect(to: ~p"/login")
+      |> redirect(to: ~p"/connect")
       |> halt()
     end
   end
@@ -286,7 +296,7 @@ defmodule QlariusWeb.UserAuth do
       socket =
         socket
         |> Phoenix.LiveView.put_flash(:error, "You must log in to access this page.")
-        |> Phoenix.LiveView.redirect(to: ~p"/login")
+        |> Phoenix.LiveView.redirect(to: ~p"/connect")
 
       {:halt, socket}
     end

@@ -16,11 +16,20 @@ defmodule QlariusWeb.AutoLoginController do
         |> redirect(to: ~p"/login")
 
       user ->
-        conn
-        |> maybe_put_return_to(params)
-        |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
+        conn = maybe_put_return_to(conn, params)
+
+        if popup_auth?(params) do
+          conn
+          |> UserAuth.log_in_user_from_finalize(user, remember_me: true)
+          |> redirect(to: ~p"/auth/popup_done")
+        else
+          UserAuth.log_in_user(conn, user, %{"remember_me" => "true"})
+        end
     end
   end
+
+  defp popup_auth?(%{"popup" => v}) when v in ["1", "true", true], do: true
+  defp popup_auth?(_), do: false
 
   # `?return_to=<local-path>` pass-through sanitized at the controller
   # boundary. When present, overwrites any implicit `:user_return_to`

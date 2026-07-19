@@ -35,13 +35,15 @@ config :qlarius, debug_enabled: false
 #
 # Keyword-list values on `config :app, :key, ...` are merged at the
 # key level (Mix.Config semantics), so this replaces the listed keys
-# on `:auth_sheet` and leaves unlisted keys (e.g. `on_widget_standalone`,
-# `on_landing_pages`) at their `config.exs` defaults.
+# on `:auth_sheet` and leaves unlisted keys (e.g. `on_landing_pages`)
+# at their `config.exs` defaults.
 #
 # Both vanity (`qlinkin.bio`) and interact (`qlink.qadabra.app`, etc.)
 # hosts enable in-place AuthSheet so visitors opening Qlinks from
 # in-app browsers (Instagram, Reddit, …) can sign in without a
-# separate prod gate on the interact host.
+# separate prod gate on the interact host. Standalone publisher
+# widgets use the same AuthSheet Connect interstitial → `/connect?popup=1`
+# (or extension silent exchange) — not classic login/register.
 #
 # Originally this was documented as "requires a Cloudflare
 # bypass-cache-when-authed rule first" — but a `curl -I` against
@@ -60,4 +62,7 @@ config :qlarius, debug_enabled: false
 # Interact Qlink host (qlink.qadabra.app / gigalixir qlink) uses
 # `:on_qlink_page` — keep in sync with qlinkin.bio so in-app browsers
 # (e.g. Reddit) get the same in-place AuthSheet as the vanity host.
-config :qlarius, :auth_sheet, on_qlinkin_bio: true, on_qlink_page: true
+config :qlarius, :auth_sheet,
+  on_qlinkin_bio: true,
+  on_qlink_page: true,
+  on_widget_standalone: true

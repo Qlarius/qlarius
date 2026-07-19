@@ -1,263 +1,36 @@
 defmodule QlariusWeb.LoginLive do
+  @moduledoc """
+  Retired public sign-in LiveView.
+
+  Public entry is `/connect` (AuthSheet). The `/login` route redirects
+  via `QlariusWeb.ConnectRedirectController`. This module remains only
+  as a safety net if anything still mounts `LoginLive` directly.
+  """
   use QlariusWeb, :live_view
 
-  alias Qlarius.{Auth, Accounts}
   alias Qlarius.Qlink.Urls
-  alias QlariusWeb.Components.AuthSteps
-  import QlariusWeb.PWAHelpers
-  import QlariusWeb.Components.CustomComponentsMobile, only: [otp_input: 1]
 
-  on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+  def mount(params, _session, socket) do
+    kept =
+      params
+      |> Map.take(["return_to", "popup", "ref", "invite"])
+      |> Enum.reject(fn {_k, v} -> v in [nil, ""] end)
+      |> Map.new()
 
-  def mount(params, session, socket) do
-    # `?return_to=<local-path>` pass-through. Sanitized to local-path
-    # only (see `Urls.sanitize_return_to/1`) to close open-redirect
-    # attack surface. The value is threaded through the entire login
-    # flow: Login form → auto_login token URL → session → post-login
-    # redirect in `UserAuth.log_in_user/3`.
-    return_to = Urls.sanitize_return_to(Map.get(params, "return_to"))
+    kept =
+      case Map.get(kept, "return_to") do
+        nil -> kept
+        raw -> Map.put(kept, "return_to", Urls.sanitize_return_to(raw) || raw)
+      end
 
-    socket =
-      socket
-      |> assign(:page_title, "Sign In")
-      |> assign(:mobile_number, "")
-      |> assign(:mobile_number_error, nil)
-      |> assign(:verification_code, "")
-      |> assign(:verification_code_error, nil)
-      |> assign(:code_sent, false)
-      |> assign(:show_biometric, false)
-      |> assign(:return_to, return_to)
-      |> init_pwa_assigns(session)
-
-    {:ok, socket}
-  end
-
-  def handle_event("pwa_detected", params, socket) do
-    handle_pwa_detection(socket, params)
-  end
-
-  def handle_event("referral_code_from_storage", _params, socket) do
-    {:noreply, socket}
-  end
-
-  def handle_event("update_mobile", %{"value" => mobile}, socket) do
-    {:noreply,
-     socket
-     |> assign(:mobile_number, mobile)
-     |> assign(:mobile_number_error, nil)}
-  end
-
-  def handle_event("send_login_code", _params, socket) do
-    phone = socket.assigns.mobile_number
-    formatted_phone = if String.starts_with?(phone, "+"), do: phone, else: "+1#{phone}"
-
-    case Auth.get_user_by_phone(formatted_phone) do
-      nil ->
-        {:noreply,
-         socket
-         |> assign(:mobile_number_error, "No account found with this number")
-         |> put_flash(:error, "No account found. Please register first.")}
-
-      _user ->
-        case Qlarius.Services.Twilio.send_verification_code(formatted_phone) do
-          {:ok, _response} ->
-            {:noreply,
-             socket
-             |> assign(:code_sent, true)
-             |> assign(:mobile_number_error, nil)
-             |> assign(:verification_code, "")
-             |> put_flash(:info, "Verification code sent")}
-
-          {:error, _reason} ->
-            {:noreply,
-             socket
-             |> assign(:mobile_number_error, "Failed to send code")
-             |> put_flash(:error, "Failed to send SMS. Please try again.")}
-        end
-    end
-  end
-
-  def handle_event("update_verification_code", %{"verification_code" => code}, socket) do
-    {:noreply,
-     socket
-     |> assign(:verification_code, code)
-     |> assign(:verification_code_error, nil)}
-  end
-
-  # Legacy handler for form change
-  def handle_event("update_verification_code", %{"value" => code}, socket) do
-    {:noreply,
-     socket
-     |> assign(:verification_code, code)
-     |> assign(:verification_code_error, nil)}
-  end
-
-  # Handle auto-submit from OTP component
-  def handle_event("verify_login_code", %{"code" => code}, socket) do
-    socket = assign(socket, :verification_code, code)
-    verify_login(socket)
-  end
-
-  # Handle form submit
-  def handle_event("verify_login_code", _params, socket) do
-    verify_login(socket)
-  end
-
-  defp verify_login(socket) do
-    phone = socket.assigns.mobile_number
-    code = socket.assigns.verification_code
-    formatted_phone = if String.starts_with?(phone, "+"), do: phone, else: "+1#{phone}"
-
-    case Qlarius.Services.Twilio.verify_code(formatted_phone, code) do
-      {:ok, :verified} ->
-        case Auth.get_user_by_phone(formatted_phone) do
-          nil ->
-            {:noreply,
-             socket
-             |> put_flash(:error, "Account not found")
-             |> assign(:code_sent, false)}
-
-          user ->
-            token = Accounts.generate_user_login_token(user.id)
-
-            auto_login_path =
-              case socket.assigns.return_to do
-                nil ->
-                  ~p"/auto_login/#{token}"
-
-                return_to ->
-                  ~p"/auto_login/#{token}" <>
-                    "?" <> URI.encode_query(return_to: return_to)
-              end
-
-            {:noreply,
-             socket
-             |> put_flash(:info, "Welcome back!")
-             |> redirect(to: auto_login_path)}
-        end
-
-      {:error, _reason} ->
-        {:noreply,
-         socket
-         |> assign(:verification_code, "")
-         |> assign(:verification_code_error, "Invalid code entered. Please try again.")
-         |> put_flash(:error, "Invalid verification code")}
-    end
+    query = URI.encode_query(kept)
+    path = if query == "", do: "/connect", else: "/connect?" <> query
+    {:ok, push_navigate(socket, to: path)}
   end
 
   def render(assigns) do
     ~H"""
-    <div
-      id="login-pwa-detect"
-      phx-hook="HiPagePWADetect"
-      class="min-h-screen flex flex-col px-4"
-    >
-      <%!-- Safe area top spacer for PWA notch --%>
-      <div class="h-[env(safe-area-inset-top)] flex-shrink-0"></div>
-      <%!-- Logo spacer --%>
-      <div class="flex-shrink-0 py-8 md:py-12 flex justify-center">
-        <img
-          src="/images/qadabra_full_gray_opt.svg"
-          alt="Qadabra"
-          class="h-12 md:h-16 w-auto"
-        />
-      </div>
-
-      <div class="flex-1 flex items-center justify-center pb-32">
-        <div class="max-w-md w-full space-y-8 px-6 md:px-8">
-          <div>
-            <h1 class="text-4xl md:text-5xl font-bold text-center dark:text-white">
-              Sign In
-            </h1>
-            <p class="mt-2 text-center text-base md:text-lg text-base-content/70">
-              Enter your mobile number to continue
-            </p>
-          </div>
-
-          <div class="space-y-6">
-            <%= if not @code_sent do %>
-              <.form
-                for={%{}}
-                phx-change="update_mobile"
-                phx-submit="send_login_code"
-                autocomplete="off"
-              >
-                <div class="form-control w-full">
-                  <label class="label">
-                    <span class="label-text text-lg dark:text-gray-300">Mobile Number</span>
-                  </label>
-                  <div class="flex flex-col gap-3 w-full">
-                    <input
-                      id="mobile-input"
-                      name="value"
-                      type="tel"
-                      inputmode="numeric"
-                      pattern="[0-9]*"
-                      maxlength="10"
-                      placeholder="5551234567"
-                      autocomplete="tel-national"
-                      oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                      data-form-type="other"
-                      class={"input input-bordered input-lg w-full text-lg dark:bg-base-100 dark:text-white #{if @mobile_number_error, do: "input-error"}"}
-                      value={@mobile_number}
-                    />
-                    <button
-                      type="submit"
-                      class="btn btn-primary btn-lg rounded-full w-full"
-                      disabled={String.length(@mobile_number) != 10}
-                    >
-                      Send Code
-                    </button>
-                  </div>
-                  <%= if @mobile_number_error do %>
-                    <div class="mt-3">
-                      <div class="badge badge-error badge-lg p-4 text-base">
-                        <.icon name="hero-x-circle" class="w-5 h-5 mr-2" />
-                        {@mobile_number_error}
-                      </div>
-                    </div>
-                  <% else %>
-                    <%= if @mobile_number != "" && String.length(@mobile_number) < 10 do %>
-                      <label class="label">
-                        <span class="label-text-alt text-base">
-                          {String.length(@mobile_number)}/10 digits
-                        </span>
-                      </label>
-                    <% end %>
-                  <% end %>
-                </div>
-              </.form>
-            <% else %>
-              <div class="alert alert-info">
-                <.icon name="hero-information-circle" class="w-6 h-6" />
-                <span>Verification code sent to {AuthSteps.format_phone_number(@mobile_number)}</span>
-              </div>
-
-              <div class="space-y-2">
-                <label class="label">
-                  <span class="label-text text-lg dark:text-gray-300">Verification Code</span>
-                </label>
-                <.otp_input
-                  id="login-otp"
-                  value={@verification_code}
-                  error={@verification_code_error}
-                  verify_event="verify_login_code"
-                  update_event="update_verification_code"
-                  resend_event="send_login_code"
-                />
-              </div>
-            <% end %>
-
-            <div class="text-center">
-              <p class="text-base">
-                Don't have an account?
-                <.link navigate={~p"/register"} class="link link-primary">Register</.link>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div class="min-h-screen" />
     """
   end
 end

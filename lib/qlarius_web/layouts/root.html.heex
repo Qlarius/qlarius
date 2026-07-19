@@ -19,6 +19,19 @@
     <meta name="application-name" content="Qadabra" />
     <meta name="apple-mobile-web-app-title" content="Qadabra" />
     <meta name="csrf-token" content={get_csrf_token()} />
+    <meta
+      name="qadabra-extension-ids"
+      content={
+        Application.get_env(:qlarius, :cors_extension_ids, [])
+        |> Enum.map(fn
+          "chrome-extension://" <> id -> id
+          id when is_binary(id) -> id
+          _ -> nil
+        end)
+        |> Enum.reject(&is_nil/1)
+        |> Enum.join(",")
+      }
+    />
     <link rel="icon" type="image/png" href="/images/favicon.png" sizes="32x32" />
     <link rel="apple-touch-icon" sizes="180x180" href="/images/qlarius_app_icon_180.png" />
     <link rel="manifest" href={~p"/app-manifest.webmanifest"} />

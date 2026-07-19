@@ -397,6 +397,7 @@
         id="arcade-single-auth-sheet"
         show={@show_auth_sheet}
         surface={:on_widget_standalone}
+        iframe_hint={not @inline?}
         referral_context={@auth_referral_context}
         client_ip={assigns[:user_ip] || "0.0.0.0"}
         connect_brand={:tiqit}

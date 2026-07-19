@@ -544,7 +544,7 @@ defmodule QlariusWeb.Layouts do
           <div class="border-2 border-primary rounded-box">
             <%!-- Header bar --%>
             <div class="bg-base-200 dark:bg-base-300 px-6 py-4 flex items-center justify-between rounded-t-box">
-              <h3 class="font-bold text-lg">Confirm Logout</h3>
+              <h3 class="font-bold text-lg">Confirm disconnect</h3>
               <button
                 phx-click={JS.push("cancel_logout")}
                 type="button"
@@ -556,7 +556,11 @@ defmodule QlariusWeb.Layouts do
             </div>
             <%!-- Content --%>
             <div class="p-6">
-              <p class="py-4">Are you sure you want to log out?</p>
+              <p class="py-4">
+                This disconnects you from Qadabra for all browser activity on this device,
+                including publisher widgets and the browser extension. You can reconnect
+                anytime with your mobile number.
+              </p>
               <div class="flex w-full gap-3">
                 <button
                   type="button"

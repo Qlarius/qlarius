@@ -10,6 +10,7 @@ defmodule QlariusWeb.Auth.FinalizeTokenSweeper do
 
   use GenServer
 
+  alias QlariusWeb.Auth.ExtensionIdentityToken
   alias QlariusWeb.Auth.FinalizeToken
 
   @sweep_interval_ms :timer.seconds(30)
@@ -20,10 +21,28 @@ defmodule QlariusWeb.Auth.FinalizeTokenSweeper do
 
   @impl true
   def init(_opts) do
-    table = FinalizeToken.jti_table()
+    # Owns both finalize single-use jtis and extension-identity revoke jtis.
+    # `:public` lets request processes insert; modules only read/insert.
+    tables = [FinalizeToken.jti_table(), ExtensionIdentityToken.jti_table()]
+    Enum.each(tables, &ensure_table/1)
 
-    # The sweeper owns the table; `FinalizeToken` only reads/inserts.
-    # `:public` lets `insert_new/2` be called from any request process.
+    schedule_sweep()
+    {:ok, %{tables: tables}}
+  end
+
+  @impl true
+  def handle_info(:sweep, %{tables: tables} = state) do
+    now = System.system_time(:second)
+
+    # Match spec: {_jti, expires_at} where expires_at <= now -> true (delete)
+    match_spec = [{{:_, :"$1"}, [{:"=<", :"$1", now}], [true]}]
+    Enum.each(tables, &:ets.select_delete(&1, match_spec))
+
+    schedule_sweep()
+    {:noreply, state}
+  end
+
+  defp ensure_table(table) do
     case :ets.whereis(table) do
       :undefined ->
         :ets.new(table, [:set, :public, :named_table, read_concurrency: true])
@@ -31,21 +50,6 @@ defmodule QlariusWeb.Auth.FinalizeTokenSweeper do
       _ref ->
         :ok
     end
-
-    schedule_sweep()
-    {:ok, %{table: table}}
-  end
-
-  @impl true
-  def handle_info(:sweep, %{table: table} = state) do
-    now = System.system_time(:second)
-
-    # Match spec: {_jti, expires_at} where expires_at <= now -> true (delete)
-    match_spec = [{{:_, :"$1"}, [{:"=<", :"$1", now}], [true]}]
-    :ets.select_delete(table, match_spec)
-
-    schedule_sweep()
-    {:noreply, state}
   end
 
   defp schedule_sweep do

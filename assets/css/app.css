@@ -310,6 +310,22 @@
 
 
 
+  /* Qai */
+  --color-qai-hex: #E26565;
+  --color-qai-50: oklch(97.50% 0.01 21.31);        /* #FFF4F3 */
+  --color-qai-100: oklch(94.50% 0.04 21.81);       /* #FFE3E1 */
+  --color-qai-200: oklch(89.50% 0.08 22.31);       /* #FFC9C5 */
+  --color-qai-300: oklch(82.50% 0.12 22.31);       /* #FFA7A3 */
+  --color-qai-400: oklch(74.50% 0.15 22.31);       /* #FC8381 */
+  --color-qai-500: oklch(67.44% 0.16 22.31);       /* #E26565 */
+  --color-qai-600: oklch(58.00% 0.14 22.81);       /* #BE5453 */
+  --color-qai-700: oklch(48.56% 0.11 23.31);       /* #944140 */
+  --color-qai-800: oklch(40.47% 0.09 23.81);       /* #723230 */
+  --color-qai-900: oklch(35.07% 0.08 24.31);       /* #5C2927 */
+  --color-qai-950: oklch(24.28% 0.05 24.81);       /* #331614 */
+
+
+
   /* Widget — neutral slate ramp for embedded widgets (arqade, tipjar, etc.).
      Light end is near-neutral gray; dark end shifts to rich blue for hover/
      active states. Used so widgets don't impose Qlarius brand colors on
@@ -2698,6 +2714,40 @@ body {
 .sponster-announcer-bar__surface {
   border-top: 1px solid color-mix(in oklch, var(--color-base-content) 10%, transparent);
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/*
+  Third-party embed iframe (AdsExtLive): pin the document to the iframe's
+  box and use absolute (not fixed) for the announcer. `position: fixed`
+  plus root `scrollbar-gutter: stable` in a short iframe clips the bar
+  vertically and eats the right-edge padding in Chromium.
+*/
+html:has(.sponster-embed-root) {
+  height: 100%;
+  scrollbar-gutter: auto;
+}
+
+html:has(.sponster-embed-root) body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+.sponster-embed-root {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.sponster-embed-root .sponster-announcer-bar {
+  position: absolute;
+}
+
+/* Keep the wordmark inside the 50px bar (legacy 800px rule sets height: 54px). */
+.sponster-announcer-bar .sponster-announcer-logo-container {
+  height: 44px;
+  max-height: 44px;
 }
 
 html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .sponster-announcer-bar__surface {

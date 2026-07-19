@@ -14,17 +14,17 @@ defmodule QlariusWeb.Components.StrongStartComponent do
     <div class="surface-panel surface-panel--padded mb-4">
       <%!-- Header --%>
       <div class="flex justify-between items-center gap-3 mb-2">
-        <h2 class="text-lg font-bold tracking-tight text-base-content/50 min-w-0">
+        <h2 class="text-xl font-bold tracking-tight text-base-content/50 min-w-0">
           Do these first.
         </h2>
         <div class="flex items-center gap-2 shrink-0">
-          <span class="text-sm font-semibold tracking-tight text-base-content/50">
+          <span class="text-md font-semibold tracking-tight text-base-content/50">
             {@progress.completed_count}/{@progress.total_count}
           </span>
           <img
             src="/images/qadabra_logo_squares_color.svg"
             alt="Qadabra"
-            class="w-6 h-6"
+            class="w-8 h-8"
           />
         </div>
       </div>
@@ -46,9 +46,13 @@ defmodule QlariusWeb.Components.StrongStartComponent do
         id="strong-start-carousel"
         class="w-full flex flex-col items-center justify-center"
       >
-        <div class="carousel carousel-center w-full space-x-3 mb-1">
+        <div class="carousel carousel-center w-full space-x-4 mb-1">
           <%!-- Step 1: Complete ESSENTIALS survey --%>
-          <div id="step1" class="carousel-item w-[78%] md:w-[248px]">
+          <%!--
+            Fixed card widths; CarouselIndicators computes how many fit
+            per viewport (e.g. 3 → 2 page dots) and hides dots when all fit.
+          --%>
+          <div id="step1" class="carousel-item w-[85%] max-w-[320px] md:w-[320px]">
             <div class={[
               "flex flex-col gap-2 p-3 rounded-lg transition-all border w-full",
               if(@progress.steps.essentials_survey_completed,
@@ -96,7 +100,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
           </div>
 
           <%!-- Step 2: Check your first ads --%>
-          <div id="step2" class="carousel-item w-[78%] md:w-[248px]">
+          <div id="step2" class="carousel-item w-[85%] max-w-[320px] md:w-[320px]">
             <div class={[
               "flex flex-col gap-2 p-3 rounded-lg transition-all border w-full",
               if(@progress.steps.first_ad_interacted,
@@ -128,7 +132,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
           </div>
 
           <%!-- Step 3: Set up notifications --%>
-          <div id="step3" class="carousel-item w-[78%] md:w-[248px]">
+          <div id="step3" class="carousel-item w-[85%] max-w-[320px] md:w-[320px]">
             <div class={[
               "flex flex-col gap-2 p-3 rounded-lg transition-all border w-full",
               if(@progress.steps.notifications_configured,
@@ -171,7 +175,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
           </div>
 
           <%!-- Step 4: Create 25 tags --%>
-          <div id="step4" class="carousel-item w-[78%] md:w-[248px]">
+          <div id="step4" class="carousel-item w-[85%] max-w-[320px] md:w-[320px]">
             <div class={[
               "flex flex-col gap-2 p-3 rounded-lg transition-all border w-full",
               if(@progress.steps.tags_25_reached,
@@ -206,7 +210,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
           </div>
 
           <%!-- Step 5: View referral program --%>
-          <div id="step5" class="carousel-item w-[78%] md:w-[248px]">
+          <div id="step5" class="carousel-item w-[85%] max-w-[320px] md:w-[320px]">
             <div class={[
               "flex flex-col gap-2 p-3 rounded-lg transition-all border w-full",
               if(@progress.steps.referral_viewed,
@@ -250,35 +254,35 @@ defmodule QlariusWeb.Components.StrongStartComponent do
         </div>
 
         <%!-- Carousel Indicators --%>
-        <div class="flex justify-center gap-1.5 py-2">
+        <div class="flex justify-center gap-2 py-2">
           <a
             href="#step1"
             data-indicator="1"
-            class="carousel-indicator w-2 h-2 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
+            class="carousel-indicator w-3 h-3 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
           >
           </a>
           <a
             href="#step2"
             data-indicator="2"
-            class="carousel-indicator w-2 h-2 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
+            class="carousel-indicator w-3 h-3 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
           >
           </a>
           <a
             href="#step3"
             data-indicator="3"
-            class="carousel-indicator w-2 h-2 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
+            class="carousel-indicator w-3 h-3 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
           >
           </a>
           <a
             href="#step4"
             data-indicator="4"
-            class="carousel-indicator w-2 h-2 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
+            class="carousel-indicator w-3 h-3 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
           >
           </a>
           <a
             href="#step5"
             data-indicator="5"
-            class="carousel-indicator w-2 h-2 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
+            class="carousel-indicator w-3 h-3 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
           >
           </a>
         </div>

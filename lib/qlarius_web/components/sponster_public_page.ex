@@ -44,16 +44,24 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
     doc: "Anonymous announcer center content — see `sponster_announcer_bar/1`."
 
   def sponster_stack(assigns) do
-    referral_code =
+    # Prefer recipient.referral_code; fall back to split_code so the /go hop
+    # still attributes when a referral_code was never minted.
+    attribution_code =
       case assigns.recipient do
-        %{referral_code: code} when is_binary(code) -> code
-        _ -> nil
+        %{referral_code: code} when is_binary(code) ->
+          case String.trim(code) do
+            "" -> recipient_split_code(assigns.recipient)
+            trimmed -> trimmed
+          end
+
+        recipient ->
+          recipient_split_code(recipient)
       end
 
     assigns =
       assigns
       |> assign(:info_iframe_src, SponsterInfoIframe.src(assigns.info_context))
-      |> assign(:sponster_info_outbound_url, Urls.sponster_info_outbound_url(referral_code))
+      |> assign(:sponster_info_outbound_url, Urls.sponster_info_outbound_url(attribution_code))
 
     ~H"""
     <%= if @recipient do %>
@@ -396,7 +404,7 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
         </div>
 
         <%= if not drawer_authed do %>
-          <div class="flex-shrink-0 page-canvas border-t border-base-300/60 px-4 pt-3 pb-1 flex flex-col items-center gap-2 text-center">
+          <div class="flex-shrink-0 page-canvas border-t border-base-300/60 px-4 pt-4 pb-1 flex flex-col items-center gap-2 text-center">
             <a
               href={@sponster_info_outbound_url}
               target="_blank"
@@ -409,7 +417,7 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
               ]}
             >
               <span>More Sponster Info</span>
-              <span aria-hidden="true">→</span>
+              <.icon name="hero-arrow-top-right-on-square" class="w-3 h-3" />
             </a>
             <p class="text-sm sm:text-base text-base-content font-medium tracking-tight leading-snug">
               Connect and sign up for free. Your prefunded wallet awaits.
@@ -437,4 +445,13 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
     <% end %>
     """
   end
+
+  defp recipient_split_code(%{split_code: code}) when is_binary(code) do
+    case String.trim(code) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp recipient_split_code(_), do: nil
 end

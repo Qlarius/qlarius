@@ -103,12 +103,8 @@ defmodule QlariusWeb.HiLive do
     {:noreply, socket}
   end
 
-  def handle_event("go_to_login", _params, socket) do
-    {:noreply, redirect(socket, to: ~p"/login")}
-  end
-
-  def handle_event("go_to_register", _params, socket) do
-    {:noreply, redirect(socket, to: register_path(socket.assigns.referral_code))}
+  def handle_event("go_to_connect", _params, socket) do
+    {:noreply, redirect(socket, to: connect_path(socket.assigns.referral_code))}
   end
 
   def handle_event("show_install_guide", _params, socket) do
@@ -128,7 +124,7 @@ defmodule QlariusWeb.HiLive do
         {:noreply, push_navigate(socket, to: ~p"/home")}
 
       socket.assigns.has_session_token ->
-        {:noreply, redirect(socket, to: ~p"/login")}
+        {:noreply, redirect(socket, to: connect_path(socket.assigns.referral_code))}
 
       true ->
         {:noreply,
@@ -180,15 +176,15 @@ defmodule QlariusWeb.HiLive do
            show_manifesto?(:welcome, true, false, false, socket.assigns.mobile_use_browser)
          )}
 
-      # Saved credentials in desktop browser: go to login
+      # Saved credentials in desktop browser: go to Connect
       socket.assigns.has_session_token ->
-        {:noreply, redirect(socket, to: ~p"/login")}
+        {:noreply, redirect(socket, to: connect_path(socket.assigns.referral_code))}
 
-      # PWA users (not authenticated): go to register
+      # PWA users (not authenticated): Connect (AuthSheet phone → branch)
       socket.assigns.is_pwa ->
-        {:noreply, push_navigate(socket, to: register_path(socket.assigns.referral_code))}
+        {:noreply, push_navigate(socket, to: connect_path(socket.assigns.referral_code))}
 
-      # Desktop: show welcome carousel with Login/Register buttons
+      # Desktop: show welcome carousel with Connect CTA
       true ->
         {:noreply,
          socket
@@ -197,9 +193,9 @@ defmodule QlariusWeb.HiLive do
     end
   end
 
-  defp register_path(nil), do: ~p"/register"
-  defp register_path(""), do: ~p"/register"
-  defp register_path(code), do: ~p"/register?ref=#{code}"
+  defp connect_path(nil), do: ~p"/connect"
+  defp connect_path(""), do: ~p"/connect"
+  defp connect_path(code), do: ~p"/connect?ref=#{code}"
 
   defp store_mobile_browser_ok_click do
     %JS{}
@@ -452,17 +448,10 @@ defmodule QlariusWeb.HiLive do
                 <% true -> %>
                   <button
                     type="button"
-                    phx-click="go_to_login"
-                    class="btn btn-outline btn-lg flex-1 rounded-full text-lg normal-case"
+                    phx-click="go_to_connect"
+                    class="btn btn-primary btn-lg w-full rounded-full text-lg normal-case"
                   >
-                    Login
-                  </button>
-                  <button
-                    type="button"
-                    phx-click="go_to_register"
-                    class="btn btn-primary btn-lg flex-1 rounded-full text-lg normal-case"
-                  >
-                    Register
+                    Connect
                   </button>
               <% end %>
             </div>

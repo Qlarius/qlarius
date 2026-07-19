@@ -39,6 +39,12 @@ defmodule Qlarius.Auth.AuditLog do
          reasons: :rate_limited | :token_expired | :token_replayed
                 | :token_invalid | :unknown_user | :missing_token
 
+      extension_exchange.allowed %{user_id, ip}
+      extension_exchange.denied  %{ip, reason, user_id?}
+      extension_token.minted     %{user_id, ip}
+      extension_token.invalidated %{ip}
+      extension_token.invalidate_denied %{ip, reason}
+
   ## PII policy
 
     * **Phone numbers** are always masked via `mask_phone/1` — last
@@ -68,6 +74,11 @@ defmodule Qlarius.Auth.AuditLog do
           | :"register_new_user.denied"
           | :"finalize_session.allowed"
           | :"finalize_session.denied"
+          | :"extension_exchange.allowed"
+          | :"extension_exchange.denied"
+          | :"extension_token.minted"
+          | :"extension_token.invalidated"
+          | :"extension_token.invalidate_denied"
 
   @doc """
   Emit a single structured audit line.

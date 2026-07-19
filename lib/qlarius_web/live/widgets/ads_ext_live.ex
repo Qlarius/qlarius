@@ -47,7 +47,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
       socket
       |> assign(:page_title, "Sponster")
       |> assign(:split_code, split_code)
-      |> assign(:auth_referral_context, Qlarius.Referrals.Context.none())
+      |> assign(:auth_referral_context, referral_context_for_recipient(recipient))
       |> SponsterRecipientSurface.init_assigns(recipient)
 
     socket =
@@ -122,48 +122,49 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <%!-- Collapsed height: authed viewers need the 50px bar plus headroom
-         for the upward box-shadow; anon viewers get 30px extra for promo
-         banners + coin peek. --%>
-    <div
-      id="ads-ext-postmessage-bridge"
-      phx-hook="SponsterWidgetBridge"
-      data-collapsed-height={if authed?(@current_scope), do: "60", else: "80"}
-      class="hidden"
-      aria-hidden="true"
-    >
-    </div>
+    <%!-- Embed root: fills the host iframe so the announcer can use
+         absolute positioning (see `.sponster-embed-root` in app.css).
+         Collapsed height: 60px authed (bar + shadow), 80px anon (promo/coin). --%>
+    <div class="sponster-embed-root">
+      <div
+        id="ads-ext-postmessage-bridge"
+        phx-hook="SponsterWidgetBridge"
+        data-collapsed-height={if authed?(@current_scope), do: "60", else: "80"}
+        class="hidden"
+        aria-hidden="true"
+      >
+      </div>
 
-    <%= if @recipient do %>
-      <% widget_on_click =
-        if auth_sheet_enabled?(assigns),
-          do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
-          else: nil %>
+      <%= if @recipient do %>
+        <% widget_on_click =
+          if auth_sheet_enabled?(assigns),
+            do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
+            else: nil %>
 
-      <.sponster_stack
-        recipient={@recipient}
-        info_context={:default}
-        current_scope={@current_scope}
-        show_sponster_drawer={@show_sponster_drawer}
-        show_split_drawer={@show_split_drawer}
-        show_split_reminder={@show_split_reminder}
-        sponster_disclaimer_dock_visible={@sponster_disclaimer_dock_visible}
-        loading_offers={@loading_offers}
-        active_offers={@active_offers}
-        video_offers={@video_offers}
-        completed_video_offers={@completed_video_offers}
-        selected_ad_type={@selected_ad_type}
-        show_ad_type_tabs={@show_ad_type_tabs}
-        host_uri={@host_uri}
-        me_file_sponsorship_url={@me_file_sponsorship_url}
-        settings_notifications_url={@settings_notifications_url}
-        user_ip={assigns[:user_ip] || "0.0.0.0"}
-        on_auth_click={widget_on_click}
-        connect_link_target="_top"
-        announcer_id_prefix="ads-ext"
-        split_panel_id="ads-ext-split-settings-panel"
-        announcer_anon_display={:promo}
-      />
+        <.sponster_stack
+          recipient={@recipient}
+          info_context={:default}
+          current_scope={@current_scope}
+          show_sponster_drawer={@show_sponster_drawer}
+          show_split_drawer={@show_split_drawer}
+          show_split_reminder={@show_split_reminder}
+          sponster_disclaimer_dock_visible={@sponster_disclaimer_dock_visible}
+          loading_offers={@loading_offers}
+          active_offers={@active_offers}
+          video_offers={@video_offers}
+          completed_video_offers={@completed_video_offers}
+          selected_ad_type={@selected_ad_type}
+          show_ad_type_tabs={@show_ad_type_tabs}
+          host_uri={@host_uri}
+          me_file_sponsorship_url={@me_file_sponsorship_url}
+          settings_notifications_url={@settings_notifications_url}
+          user_ip={assigns[:user_ip] || "0.0.0.0"}
+          on_auth_click={widget_on_click}
+          connect_link_target="_top"
+          announcer_id_prefix="ads-ext"
+          split_panel_id="ads-ext-split-settings-panel"
+          announcer_anon_display={:promo}
+        />
 
       <%!-- Video Player Modal --%>
       <%= if @show_video_player && @current_video_offer do %>
@@ -275,20 +276,29 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
         on_click={widget_on_click}
       />
 
-      <%!-- In-place AuthSheet (`:on_widget_standalone` flag). --%>
-      <%= if auth_sheet_enabled?(assigns) do %>
-        <.live_component
-          module={QlariusWeb.Components.AuthSheet}
-          id="ads-ext-auth-sheet"
-          show={@show_auth_sheet}
-          surface={:on_widget_standalone}
-          referral_context={@auth_referral_context}
-          client_ip={assigns[:user_ip] || "0.0.0.0"}
-          connect_brand={:sponster}
-          on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
-        />
+        <%!-- In-place AuthSheet (`:on_widget_standalone` flag). --%>
+        <%= if auth_sheet_enabled?(assigns) do %>
+          <.live_component
+            module={QlariusWeb.Components.AuthSheet}
+            id="ads-ext-auth-sheet"
+            show={@show_auth_sheet}
+            surface={:on_widget_standalone}
+            iframe_hint={true}
+            referral_context={@auth_referral_context}
+            client_ip={assigns[:user_ip] || "0.0.0.0"}
+            connect_brand={:sponster}
+            on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
+          />
+        <% end %>
       <% end %>
-    <% end %>
+    </div>
     """
+  end
+
+  defp referral_context_for_recipient(nil), do: Qlarius.Referrals.Context.none()
+
+  defp referral_context_for_recipient(recipient) do
+    code = recipient.referral_code || recipient.split_code
+    Qlarius.Referrals.Context.from_url(code) || Qlarius.Referrals.Context.none()
   end
 end

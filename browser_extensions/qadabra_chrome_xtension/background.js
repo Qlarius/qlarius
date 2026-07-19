@@ -1,13 +1,21 @@
-// Primary API host. Points at the Qadabra apex so the extension's
-// credentialed fetches send the shared `Domain=.qadabra.app` session
-// cookie — i.e. a user signed in on `qlink.qadabra.app` (e.g. via a
-// Qlink "Connect your wallet" flow) is recognized by the extension
-// without a second login. The legacy `qlarius.gigalixirapp.com` host
-// remains whitelisted in the manifest for transitional support but
-// is no longer the canonical target.
+// Primary API host. Credentialed fetches send the shared
+// `Domain=.qadabra.app` session cookie when present.
 const API_BASE = "https://qadabra.app";
 const AD_COUNT_ENDPOINT = `${API_BASE}/api/extension/ad_count`;
-const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const POLL_INTERVAL_MS = 5 * 60 * 1000;
+
+const STORAGE_TOKEN_KEY = "qadabra_identity_token";
+const STORAGE_DEVICE_KEY = "qadabra_device_id";
+
+// Hosts to clear on global logout (session cookies).
+const LOGOUT_HOSTS = [
+  "https://qadabra.app",
+  "https://qlink.qadabra.app",
+  "https://qlinkin.bio",
+  "https://www.qlinkin.bio",
+  "https://localhost:4001",
+  "http://localhost:4000"
+];
 
 let notificationTimer;
 let adCountPoller;
@@ -15,26 +23,165 @@ let cachedAdCount = 0;
 let cachedOfferedAmount = 0;
 
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("Extension installed or updated.");
-
   chrome.action.setBadgeBackgroundColor({ color: "#e36159" });
   chrome.action.setBadgeTextColor({ color: "#fff" });
-
+  ensureDeviceId();
   fetchAdCount();
   startAdCountPolling();
   startNotificationTimer();
 });
 
 chrome.runtime.onStartup.addListener(() => {
+  ensureDeviceId();
   fetchAdCount();
   startAdCountPolling();
+});
+
+async function ensureDeviceId() {
+  const existing = await chrome.storage.local.get(STORAGE_DEVICE_KEY);
+  if (existing[STORAGE_DEVICE_KEY]) return existing[STORAGE_DEVICE_KEY];
+
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const deviceId = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  await chrome.storage.local.set({ [STORAGE_DEVICE_KEY]: deviceId });
+  return deviceId;
+}
+
+async function getVault() {
+  const data = await chrome.storage.local.get([STORAGE_TOKEN_KEY, STORAGE_DEVICE_KEY]);
+  return {
+    token: data[STORAGE_TOKEN_KEY] || null,
+    device_id: data[STORAGE_DEVICE_KEY] || null
+  };
+}
+
+async function storeToken(token) {
+  if (!token || typeof token !== "string") return false;
+  await ensureDeviceId();
+  await chrome.storage.local.set({ [STORAGE_TOKEN_KEY]: token });
+  return true;
+}
+
+async function clearToken() {
+  await chrome.storage.local.remove(STORAGE_TOKEN_KEY);
+}
+
+async function globalLogout() {
+  const vault = await getVault();
+  const token = vault.token;
+
+  if (token) {
+    await Promise.all(
+      LOGOUT_HOSTS.map(async (origin) => {
+        try {
+          await fetch(`${origin}/auth/extension_remote_logout`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ token })
+          });
+        } catch (_err) {
+          // Best-effort; current-origin logout still runs from the page.
+        }
+      })
+    );
+  }
+
+  await clearToken();
+}
+
+function isAllowedExternalSender(sender) {
+  const url = sender?.url || sender?.origin || "";
+  try {
+    const { hostname, protocol } = new URL(url);
+    if (protocol !== "https:" && !(protocol === "http:" && hostname === "localhost")) {
+      return false;
+    }
+    return (
+      hostname === "qadabra.app" ||
+      hostname.endsWith(".qadabra.app") ||
+      hostname === "qlinkin.bio" ||
+      hostname === "www.qlinkin.bio" ||
+      hostname === "localhost" ||
+      hostname.endsWith(".gigalixirapp.com")
+    );
+  } catch (_e) {
+    return false;
+  }
+}
+
+async function handleAuthMessage(message) {
+  switch (message?.type) {
+    case "qadabra:auth:probe": {
+      const vault = await getVault();
+      return { ok: true, authed: !!vault.token };
+    }
+    case "qadabra:auth:get-device-id": {
+      const device_id = await ensureDeviceId();
+      return { ok: true, device_id };
+    }
+    case "qadabra:auth:get-token": {
+      const vault = await getVault();
+      if (!vault.device_id) vault.device_id = await ensureDeviceId();
+      return { ok: true, token: vault.token, device_id: vault.device_id };
+    }
+    case "qadabra:auth:store-token": {
+      const ok = await storeToken(message.token);
+      return { ok };
+    }
+    case "qadabra:auth:clear-token": {
+      await clearToken();
+      return { ok: true };
+    }
+    case "qadabra:auth:logout": {
+      await globalLogout();
+      return { ok: true };
+    }
+    default:
+      return null;
+  }
+}
+
+// Messages from extension pages (popup) and externally_connectable web pages.
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.action === "refresh_ad_count") {
+    fetchAdCount();
+    sendResponse({ ok: true });
+    return false;
+  }
+
+  if (message?.type && String(message.type).startsWith("qadabra:auth:")) {
+    handleAuthMessage(message).then(sendResponse);
+    return true;
+  }
+
+  return false;
+});
+
+chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+  if (!isAllowedExternalSender(sender)) {
+    sendResponse({ ok: false, error: "origin_denied" });
+    return false;
+  }
+
+  if (message?.type && String(message.type).startsWith("qadabra:auth:")) {
+    handleAuthMessage(message).then(sendResponse);
+    return true;
+  }
+
+  sendResponse({ ok: false, error: "unknown_message" });
+  return false;
 });
 
 async function fetchAdCount() {
   try {
     const response = await fetch(AD_COUNT_ENDPOINT, {
       credentials: "include",
-      headers: { "Accept": "application/json" }
+      headers: { Accept: "application/json" }
     });
 
     if (!response.ok) {
@@ -48,7 +195,6 @@ async function fetchAdCount() {
 
     const badgeText = cachedAdCount > 0 ? String(cachedAdCount) : "";
     chrome.action.setBadgeText({ text: badgeText });
-    console.log(`Badge updated: ${cachedAdCount} ads, $${cachedOfferedAmount.toFixed(2)}`);
   } catch (error) {
     console.warn("Ad count fetch error:", error.message);
   }
@@ -65,7 +211,7 @@ function startNotificationTimer() {
 
     notificationTimer = setInterval(() => {
       showNotification();
-    }, 1800000); // 30 minutes
+    }, 1800000);
   }, 6000);
 }
 
@@ -86,10 +232,4 @@ function showNotification() {
 
 chrome.notifications.onClicked.addListener(() => {
   chrome.action.openPopup();
-});
-
-chrome.runtime.onMessage.addListener((message) => {
-  if (message.action === "refresh_ad_count") {
-    fetchAdCount();
-  }
 });

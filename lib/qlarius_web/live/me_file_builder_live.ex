@@ -17,7 +17,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
     <div id="mefilebuilder-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile
         {assigns}
-        title="Tag Index"
+        title="MeFile Builder"
         slide_over_active={@editing}
         slide_over_title={(@survey_in_edit && @survey_in_edit.name) || "Survey"}
       >
@@ -105,78 +105,119 @@ defmodule QlariusWeb.MeFileBuilderLive do
           />
         </:floating_actions>
 
-        <%!-- Main content: Survey category index --%>
-        <Layouts.mobile_page_intro>
-          Select a category below and fill empty tags.
-        </Layouts.mobile_page_intro>
 
-        <%!-- Suggested surveys: topics your assistants looked for and found empty --%>
+        <%!-- Suggested surveys: topics Qai looked for and found empty / stale --%>
         <div :if={@suggested_surveys != []} class="mt-8">
-          <.surface_panel padding={false}>
-            <div class="px-4 pt-4 pb-3">
-              <div class="flex items-center gap-2">
-                <.icon name="hero-sparkles" class="w-5 h-5 text-primary" />
-                <h2 class="text-lg font-bold tracking-tight text-base-content/50">
-                  From Recent Chats
-                </h2>
-                <span class="badge badge-primary badge-sm">{length(@suggested_surveys)}</span>
-              </div>
-              <p class="text-sm text-base-content/60 mt-1">
-                Recent chats would have been more personal with these tags filled in
-                or brought up to date. Answer or dismiss; nothing is added without you.
-              </p>
-            </div>
-            <div class="px-4 pb-4">
-              <div
-                :for={entry <- @suggested_surveys}
-                class="mb-3 p-3 bg-base-200 dark:bg-base-300/40 rounded-2xl"
-              >
-                <div
-                  class="flex justify-between items-center cursor-pointer transition-colors hover:opacity-80"
-                  phx-click={if entry.survey, do: "open_edit", else: "edit_tags"}
-                  phx-value-id={if entry.survey, do: entry.survey.id, else: entry.latest.trait_id}
-                >
-                  <span class="text-xl text-base-content">
-                    {(entry.survey && entry.survey.name) || entry.latest.trait.trait_name}
-                    <span :if={entry.update?} class="badge badge-secondary badge-sm align-middle ml-1">
-                      Review
-                    </span>
-                  </span>
-                  <div class="flex items-center gap-2">
-                    <span class={survey_ratio_text_class(entry.answered, entry.total)}>
-                      {entry.answered}/{entry.total}
-                    </span>
-                    <.icon name="hero-chevron-right" class="w-5 h-5 shrink-0 text-base-content/60" />
-                  </div>
+          <.surface_panel
+            padding={false}
+            class="border-t-qai-400 dark:border-t-qai-500"
+          >
+            <div class="collapse">
+              <input type="checkbox" class="peer" />
+              <div class="collapse-title min-h-0 relative px-4 py-4 pr-12 peer-checked:[&_.qai-suggestions-chevron]:rotate-180">
+                <.icon
+                  name="hero-chevron-down"
+                  class="qai-suggestions-chevron pointer-events-none absolute right-3 top-4 h-7 w-7 text-base-content/50 transition-transform duration-200"
+                />
+                <div class="flex items-center gap-2">
+                  <img
+                    src="/images/qai_logo_color_horiz.svg"
+                    alt="Qai"
+                    class="h-8 w-auto shrink-0"
+                  />
+                  <h2 class="text-lg font-bold tracking-tight text-base-content/50">
+                    Suggestions
+                  </h2>
                 </div>
-                <div class="flex justify-between items-center mt-1">
-                  <span class="text-sm text-base-content/60">
-                    {suggestion_byline(entry)} {entry.latest.grant.mecp_client.name} on {Calendar.strftime(
-                      entry.latest.inserted_at,
-                      "%b %d"
-                    )}
+                <p class="text-sm text-base-content mt-1 font-normal normal-case">
+                  <span class="font-bold text-qai-500">
+                    {length(@suggested_surveys)} {if length(@suggested_surveys) == 1,
+                      do: "category",
+                      else: "categories"}
                   </span>
-                  <button
-                    class="btn btn-xs btn-ghost shrink-0"
-                    phx-click="dismiss_suggestion_group"
-                    phx-value-ids={Enum.map_join(entry.suggestions, ",", & &1.id)}
+                  suggested for review based on recent chats and activity.
+                </p>
+                <div class="mt-3 flex flex-wrap gap-1.5 font-normal normal-case">
+                  <span
+                    :for={entry <- @suggested_surveys}
+                    class="badge badge-sm badge-neutral"
                   >
-                    Dismiss
-                  </button>
+                    {(entry.survey && entry.survey.name) || entry.latest.trait.trait_name}
+                  </span>
                 </div>
-                <div :if={entry.latest.reason} class="text-sm text-base-content/60 italic mt-1">
-                  "{entry.latest.reason}"
-                </div>
+              </div>
+              <div class="collapse-content px-4 pb-4">
+              <div class="divider mb-4"></div>
+                <p class="text-sm text-base-content mb-3">
+                  Recent chats would have been more personal with these tags filled in
+                  or brought up to date. Answer or dismiss; nothing is added without you.
+                </p>
                 <div
-                  :if={entry.latest.proposed_values != []}
-                  class="text-sm text-base-content/60 mt-1"
+                  :for={entry <- @suggested_surveys}
+                  class="mb-3 p-3 bg-base-200 dark:bg-base-300/40 rounded-2xl last:mb-0"
                 >
-                  Mentioned in chat: {Enum.join(entry.latest.proposed_values, ", ")}
+                  <div
+                    class="flex justify-between items-center cursor-pointer transition-colors hover:opacity-80"
+                    phx-click={if entry.survey, do: "open_edit", else: "edit_tags"}
+                    phx-value-id={
+                      if entry.survey, do: entry.survey.id, else: entry.latest.trait_id
+                    }
+                  >
+                    <span class="text-xl text-base-content">
+                      {(entry.survey && entry.survey.name) || entry.latest.trait.trait_name}
+                      <span
+                        :if={entry.update?}
+                        class="badge badge-secondary badge-sm align-middle ml-1"
+                      >
+                        Review
+                      </span>
+                    </span>
+                    <div class="flex items-center gap-2">
+                      <span class={survey_ratio_text_class(entry.answered, entry.total)}>
+                        {entry.answered}/{entry.total}
+                      </span>
+                      <.icon
+                        name="hero-chevron-right"
+                        class="w-5 h-5 shrink-0 text-base-content/60"
+                      />
+                    </div>
+                  </div>
+                  <div class="flex justify-between items-center mt-1">
+                    <span class="text-sm text-base-content/60">
+                      {suggestion_byline(entry)} {entry.latest.grant.mecp_client.name} on {Calendar.strftime(
+                        entry.latest.inserted_at,
+                        "%b %d"
+                      )}
+                    </span>
+                    <button
+                      class="btn btn-xs btn-ghost shrink-0"
+                      phx-click="dismiss_suggestion_group"
+                      phx-value-ids={Enum.map_join(entry.suggestions, ",", & &1.id)}
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                  <div :if={entry.latest.reason} class="text-sm text-base-content/60 italic mt-1">
+                    "{entry.latest.reason}"
+                  </div>
+                  <div
+                    :if={entry.latest.proposed_values != []}
+                    class="text-sm text-base-content/60 mt-1"
+                  >
+                    Mentioned in chat: {Enum.join(entry.latest.proposed_values, ", ")}
+                  </div>
                 </div>
               </div>
             </div>
           </.surface_panel>
         </div>
+
+        <h2 class="text-2xl font-bold text-base-content mt-6 mb-4">Tag Index</h2>
+
+        <%!-- Main content: Survey category index --%>
+        <Layouts.mobile_page_intro>
+          Select a category below and fill empty tags.
+        </Layouts.mobile_page_intro>
 
         <div class="mt-8 grid gap-10 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           <%= for category <- @categories do %>

@@ -73,7 +73,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
       |> assign(:insta_tip_thanks_recipient, nil)
       |> assign(:show_connect_modal, false)
       |> assign(:show_auth_sheet, false)
-      |> assign(:auth_referral_context, Qlarius.Referrals.Context.none())
+      |> assign(:auth_referral_context, referral_context_for_recipient(recipient))
       |> assign(:current_balance, user && Wallets.get_user_current_balance(user))
       |> assign(:daily_gift_available?, daily_gift_available?)
 
@@ -258,6 +258,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
         id="insta-tip-auth-sheet"
         show={@show_auth_sheet}
         surface={:on_widget_standalone}
+        iframe_hint={true}
         referral_context={@auth_referral_context}
         client_ip={assigns[:user_ip] || "0.0.0.0"}
         connect_brand={:sponster}
@@ -265,5 +266,12 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
       />
     <% end %>
     """
+  end
+
+  defp referral_context_for_recipient(nil), do: Qlarius.Referrals.Context.none()
+
+  defp referral_context_for_recipient(recipient) do
+    code = recipient.referral_code || recipient.split_code
+    Qlarius.Referrals.Context.from_url(code) || Qlarius.Referrals.Context.none()
   end
 end

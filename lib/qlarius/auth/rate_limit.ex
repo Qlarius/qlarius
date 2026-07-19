@@ -19,6 +19,9 @@ defmodule Qlarius.Auth.RateLimit do
       but a loud attacker can still probe signed-token space; this
       is belt-and-suspenders).
 
+    * `check_extension_exchange_per_ip/1` — 40 attempts per hour, keyed
+      by IP. Caps `POST /auth/extension_exchange` probes.
+
   All functions return `:ok` when allowed, or
   `{:error, {:rate_limited, retry_after_seconds}}` when denied. The
   retry-after is a conservative ceiling (full window) — Hammer's
@@ -56,6 +59,9 @@ defmodule Qlarius.Auth.RateLimit do
   @per_ip_finalize_window_ms 60 * 60 * 1_000
   @per_ip_finalize_limit 20
 
+  @per_ip_extension_exchange_window_ms 60 * 60 * 1_000
+  @per_ip_extension_exchange_limit 40
+
   @type result :: :ok | {:error, {:rate_limited, non_neg_integer()}}
 
   @spec check_send_code_per_phone(String.t() | nil) :: result()
@@ -87,6 +93,19 @@ defmodule Qlarius.Auth.RateLimit do
         "auth:finalize:ip:#{ip}",
         @per_ip_finalize_window_ms,
         @per_ip_finalize_limit
+      )
+    end
+  end
+
+  @spec check_extension_exchange_per_ip(String.t() | nil) :: result()
+  def check_extension_exchange_per_ip(ip) do
+    if skip_ip?(ip) do
+      :ok
+    else
+      check(
+        "auth:extension_exchange:ip:#{ip}",
+        @per_ip_extension_exchange_window_ms,
+        @per_ip_extension_exchange_limit
       )
     end
   end

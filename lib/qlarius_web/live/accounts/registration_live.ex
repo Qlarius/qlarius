@@ -11,11 +11,31 @@ defmodule QlariusWeb.RegistrationLive do
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
   def mount(params, session, socket) do
+    mode = Map.get(params, "mode", "regular")
+
+    # Public registration is AuthSheet Connect; keep this LiveView for
+    # admin proxy-offer (`?mode=proxy`) only.
+    if mode != "proxy" do
+      query =
+        params
+        |> Map.take(["return_to", "popup", "ref", "invite"])
+        |> Enum.reject(fn {_k, v} -> v in [nil, ""] end)
+        |> URI.encode_query()
+
+      path = if query == "", do: "/connect", else: "/connect?" <> query
+      {:ok, push_navigate(socket, to: path)}
+    else
+      mount_proxy_registration(params, session, socket)
+    end
+  end
+
+  defp mount_proxy_registration(params, session, socket) do
     require Logger
 
-    mode = Map.get(params, "mode", "regular")
+    mode = "proxy"
     proxy_user_id = Map.get(params, "proxy_user_id")
     referral_code_from_params = Map.get(params, "ref") || Map.get(params, "invite")
+    popup? = Map.get(params, "popup") in ["1", "true"]
 
     referral_code_from_session =
       Map.get(session, "referral_code") || Map.get(session, "invitation_code")
@@ -23,7 +43,7 @@ defmodule QlariusWeb.RegistrationLive do
     referral_code = referral_code_from_params || referral_code_from_session || ""
 
     Logger.info("""
-    🎯 REFERRAL DEBUG - Registration mount:
+    🎯 REFERRAL DEBUG - Registration mount (proxy):
       - from_params: #{inspect(referral_code_from_params)}
       - from_session: #{inspect(referral_code_from_session)}
       - final referral_code: #{inspect(referral_code)}
@@ -32,12 +52,13 @@ defmodule QlariusWeb.RegistrationLive do
     mobile = Phoenix.Flash.get(socket.assigns.flash, :registration_mobile)
     alias_value = Phoenix.Flash.get(socket.assigns.flash, :registration_alias)
 
-    referral_code_verified = mode == "proxy" && referral_code != nil && referral_code != ""
-    true_user_id = if mode == "proxy", do: get_true_user_id_from_scope(socket), else: nil
+    referral_code_verified = referral_code != nil && referral_code != ""
+    true_user_id = get_true_user_id_from_scope(socket)
 
     socket =
       socket
       |> assign(:page_title, "Register")
+      |> assign(:popup?, popup?)
       |> assign(:mode, mode)
       |> assign(:proxy_user_id, proxy_user_id)
       |> assign(:true_user_id, true_user_id)
@@ -539,7 +560,7 @@ defmodule QlariusWeb.RegistrationLive do
               {:noreply,
                socket
                |> put_flash(:info, "Proxy user created! You're now signed in.")
-               |> redirect(to: ~p"/auto_login/#{token}")}
+               |> redirect(to: auto_login_path(socket, token))}
 
             # Legacy admin-authed proxy path (admin already logged in, creating
             # proxy from the proxy admin UI).
@@ -555,7 +576,7 @@ defmodule QlariusWeb.RegistrationLive do
               {:noreply,
                socket
                |> put_flash(:info, "Registration complete!")
-               |> redirect(to: ~p"/auto_login/#{token}")}
+               |> redirect(to: auto_login_path(socket, token))}
           end
 
         {:error, _failed_operation, _failed_value, _changes_so_far} ->
@@ -1070,7 +1091,7 @@ defmodule QlariusWeb.RegistrationLive do
       <div class="text-center mt-6">
         <p class="text-base">
           Already have an account?
-          <.link navigate={~p"/login"} class="link link-primary">Sign In</.link>
+          <.link navigate={~p"/connect"} class="link link-primary">Connect</.link>
         </p>
       </div>
     </div>
@@ -1170,11 +1191,11 @@ defmodule QlariusWeb.RegistrationLive do
                           <.icon name="hero-user-plus" class="w-4 h-4" /> Continue as proxy user
                         </button>
                         <.link
-                          navigate={~p"/login"}
+                          navigate={~p"/connect"}
                           class="btn btn-ghost btn-sm"
                         >
                           <.icon name="hero-arrow-right-on-rectangle" class="w-4 h-4" />
-                          Log in instead
+                          Connect instead
                         </.link>
                       </div>
                     </div>
@@ -1197,10 +1218,10 @@ defmodule QlariusWeb.RegistrationLive do
                           If this is your number, please log in instead.
                         </p>
                         <.link
-                          navigate={~p"/login"}
+                          navigate={~p"/connect"}
                           class="btn btn-warning btn-sm mt-3"
                         >
-                          <.icon name="hero-arrow-right-on-rectangle" class="w-4 h-4" /> Go to Login
+                          <.icon name="hero-arrow-right-on-rectangle" class="w-4 h-4" /> Connect
                         </.link>
                       </div>
                     </div>
@@ -1307,11 +1328,19 @@ defmodule QlariusWeb.RegistrationLive do
         <div class="text-center mt-6">
           <p class="text-base">
             Already have an account?
-            <.link navigate={~p"/login"} class="link link-primary">Sign In</.link>
+            <.link navigate={~p"/connect"} class="link link-primary">Connect</.link>
           </p>
         </div>
       <% end %>
     </div>
     """
+  end
+
+  defp auto_login_path(socket, token) do
+    if socket.assigns[:popup?] do
+      ~p"/auto_login/#{token}" <> "?" <> URI.encode_query(popup: "1")
+    else
+      ~p"/auto_login/#{token}"
+    end
   end
 end

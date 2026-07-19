@@ -154,7 +154,7 @@
              {@interact_login_url, "_top"}
 
            true ->
-             {~p"/login?return_to=/@#{@page.alias}", "_self"}
+             {~p"/connect?return_to=/@#{@page.alias}", "_self"}
          end %>
 
     <.sponster_stack
@@ -314,7 +314,7 @@
     Three paths, matching the wallet-stats cond above:
       1. AuthSheet flag on (per-host) → open in-place.
       2. qlinkin.bio + flag off → cross-host redirect (legacy).
-      3. Interactive host + flag off → in-app /login.
+      3. Interactive host + flag off → in-app /connect.
   --%>
   <%= if is_nil(@recipient) && (is_nil(@current_scope) || is_nil(@current_scope.true_user)) do %>
     <div class="fixed bottom-6 right-6 z-50">
@@ -339,7 +339,7 @@
           </.link>
         <% true -> %>
           <.link
-            navigate={~p"/login"}
+            navigate={~p"/connect?return_to=/@#{@page.alias}"}
             class="qlink-hover-scale btn btn-primary btn-lg rounded-full shadow-2xl gap-2 transition-transform outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-content/40"
           >
             <.icon name="hero-wallet" class="w-6 h-6" />
@@ -362,7 +362,11 @@
       module={QlariusWeb.Components.AuthSheet}
       id="qlink-auth-sheet"
       show={@show_auth_sheet}
-      surface={:on_qlink_page}
+      surface={
+        if QlariusWeb.QlinkPage.Show.on_qlinkin_bio_host?(assigns),
+          do: :on_qlinkin_bio,
+          else: :on_qlink_page
+      }
       referral_context={@auth_referral_context}
       client_ip={assigns[:user_ip] || "0.0.0.0"}
       connect_brand={@auth_sheet_connect_brand}
@@ -388,10 +392,14 @@
     >
       <div class="rounded-box overflow-hidden">
         <div class="bg-base-200 px-6 py-4 rounded-t-box">
-          <h3 class="font-bold text-lg">Disconnect wallet</h3>
+          <h3 class="font-bold text-lg">Disconnect</h3>
         </div>
         <div class="p-6">
-          <p class="py-4">You will leave this session on this page. You can connect again anytime.</p>
+          <p class="py-4">
+            This disconnects you from Qadabra for all browser activity on this device,
+            including publisher widgets and the browser extension. You can reconnect
+            anytime with your mobile number.
+          </p>
           <div class="modal-action">
             <button
               type="button"

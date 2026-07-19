@@ -80,13 +80,14 @@ defmodule Qlarius.Referrals do
         # First try to find a MeFile with this referral_code
         me_file = from(m in MeFile, where: m.referral_code == ^code, limit: 1) |> Repo.one()
 
-        if me_file do
-          {:ok, "mefile", me_file.id}
-        else
-          # Fall back to user alias
-          user = Repo.get_by(User, alias: code)
+        cond do
+          me_file ->
+            {:ok, "mefile", me_file.id}
 
-          if user do
+          recipient = lookup_recipient_by_attribution_code(code) ->
+            {:ok, "recipient", recipient.id}
+
+          user = Repo.get_by(User, alias: code) ->
             me_file = Repo.preload(user, :me_file).me_file
 
             if me_file do
@@ -94,11 +95,21 @@ defmodule Qlarius.Referrals do
             else
               {:error, :not_found}
             end
-          else
+
+          true ->
             {:error, :not_found}
-          end
         end
     end
+  end
+
+  # Sponster info hop may stamp `recipient.referral_code` or fall back to
+  # `recipient.split_code` when no referral_code exists.
+  defp lookup_recipient_by_attribution_code(code) do
+    from(r in Recipient,
+      where: r.referral_code == ^code or r.split_code == ^code,
+      limit: 1
+    )
+    |> Repo.one()
   end
 
   def create_referral(referrer_type, referrer_id, referred_me_file_id, opts \\ []) do

@@ -75,7 +75,7 @@ defmodule Qlarius.Qlink.Urls do
   def interact_login_url(return_to \\ nil)
 
   def interact_login_url(nil) do
-    "#{scheme_for(interact_host())}://#{interact_host()}/login"
+    "#{scheme_for(interact_host())}://#{interact_host()}/connect"
   end
 
   def interact_login_url(return_to) when is_binary(return_to) do

@@ -69,6 +69,8 @@ defmodule QlariusWeb.Components.AuthSheet do
     * `:connect_brand` — `:qadabra` | `:sponster` | `:tiqit`; selects the
       header logo on the `:phone` and `:code` steps only (defaults to
       `:qadabra`). Does not change the sign-up intro pane.
+    * `:popup` — when true, `AuthFinalize` navigates to `/auth/popup_done`
+      after a successful session finalize (Connect popup from iframes).
   """
 
   use QlariusWeb, :live_component
@@ -110,7 +112,8 @@ defmodule QlariusWeb.Components.AuthSheet do
      |> assign(:carrier_rejection_message, nil)
      |> assign(:modal_overlay_visible, false)
      |> assign(:modal_exiting, false)
-     |> assign(:exit_timer_ref, nil)}
+     |> assign(:exit_timer_ref, nil)
+     |> assign(:popup, false)}
   end
 
   @impl true
@@ -158,6 +161,7 @@ defmodule QlariusWeb.Components.AuthSheet do
       |> assign(:on_cancel, Map.get(assigns, :on_cancel, socket.assigns[:on_cancel]) || %JS{})
       |> assign(:client_ip, Map.get(assigns, :client_ip, socket.assigns[:client_ip]) || "0.0.0.0")
       |> assign(:connect_brand, connect_brand)
+      |> assign(:popup, Map.get(assigns, :popup, socket.assigns[:popup]) == true)
       |> assign(
         :backdrop_class,
         Map.get(assigns, :backdrop_class, socket.assigns[:backdrop_class]) ||
@@ -1112,10 +1116,18 @@ defmodule QlariusWeb.Components.AuthSheet do
   # Environment-aware main-app URLs for the iframe break-out interstitial:
   # `https://qadabra.app/...` in production, `https://localhost:4001/...`
   # in dev (see `:public_app_host` / `:public_app_scheme` config).
-  defp login_url, do: Qlarius.Qlink.Urls.public_app_url("/login")
-  defp register_url, do: Qlarius.Qlink.Urls.public_app_url("/register")
+  defp connect_url(opts \\ []) do
+    base = Qlarius.Qlink.Urls.public_app_url("/connect")
 
-  # Bare host for user-facing copy ("Sign in at qadabra.app").
+    query =
+      []
+      |> then(fn q -> if opts[:popup], do: Keyword.put(q, :popup, "1"), else: q end)
+      |> URI.encode_query()
+
+    if query == "", do: base, else: base <> "?" <> query
+  end
+
+  # Bare host for user-facing copy ("Connect at qadabra.app").
   defp public_app_host_label do
     Qlarius.Qlink.Urls.public_app_origin()
     |> URI.parse()
@@ -1152,6 +1164,7 @@ defmodule QlariusWeb.Components.AuthSheet do
       id={@id}
       phx-hook="AuthFinalize"
       data-auth-sheet="true"
+      data-auth-popup={to_string(@popup == true)}
     >
       <%= if @modal_overlay_visible do %>
         <div
@@ -1224,34 +1237,43 @@ defmodule QlariusWeb.Components.AuthSheet do
   # render fragment; we deliberately avoid `<.live_component>` nesting
   # so the sheet stays one atomic component.
   defp render_state(%{in_iframe: true} = assigns) do
+    assigns =
+      assigns
+      |> assign(:popup_connect_url, connect_url(popup: true))
+      |> assign(:fallback_connect_url, connect_url())
+
     ~H"""
     <div class="space-y-5 text-center">
       <div>
-        <h2 class="text-2xl font-bold dark:text-white">Open Qadabra to sign in</h2>
+        <h2 class="text-2xl font-bold dark:text-white">Connect at Qadabra</h2>
         <p class="mt-2 text-base-content/70">
-          This widget is embedded, so we need to open Qadabra in a new tab to finish signing you in.
+          This widget is embedded, so we open Qadabra to connect with your mobile number.
+          New and returning users use the same short flow. With the browser extension
+          installed, connect can happen automatically next time.
         </p>
       </div>
 
-      <a
-        href={login_url()}
-        target="_blank"
-        rel="noopener"
+      <button
+        type="button"
+        id={"#{@id}-auth-popup"}
+        phx-hook="AuthPopup"
+        data-auth-url={@popup_connect_url}
+        data-fallback-url={@fallback_connect_url}
         class="btn-widget btn-widget-emphasis btn-lg btn-block min-h-14 rounded-full py-3.5 text-base"
       >
         <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4" />
-        Sign in at {public_app_host_label()}
-      </a>
+        Connect at {public_app_host_label()}
+      </button>
 
-      <p class="text-xs text-base-content/60">
-        New to Qadabra?
+      <p class="text-xs text-base-content/50">
+        Prefer silent auto-connect?
         <a
-          href={register_url()}
+          href="https://chromewebstore.google.com/detail/mhedmgbdabpgflgijpkabcdnkpncbdgp"
           target="_blank"
           rel="noopener"
-          class="font-medium text-widget-800 hover:text-widget-900 hover:underline"
+          class="font-medium text-widget-800 hover:underline"
         >
-          Create an account
+          Install the browser extension
         </a>
       </p>
     </div>

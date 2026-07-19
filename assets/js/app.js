@@ -25,9 +25,16 @@ import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import {hooks as colocatedHooks} from "phoenix-colocated/qlarius"
 import {computePosition, flip, shift, offset, arrow, size, autoUpdate} from "@floating-ui/dom"
+import {
+  ExtensionBridgeHook,
+  mintTokenIntoExtension,
+  startExtensionAuthBridge
+} from "./hooks/extension_bridge"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let Hooks = {}
+
+Hooks.ExtensionBridge = ExtensionBridgeHook
 
 // iOS Audio Priming - unlock audio playback on first user interaction
 // iOS Safari requires audio to be triggered by user gesture before programmatic playback works
@@ -573,18 +580,25 @@ Hooks.CarouselIndicators = {
 
     if (!carousel || indicators.length === 0) return
 
+    // Matches Strong Start / hi carousels (`space-x-4` = 1rem).
+    // Include the trailing-gap correction so N cards that visually fit
+    // (N*width + (N-1)*gap) count as N per page, not N-1.
+    const GAP = 16
+
     const calculatePagination = () => {
       const carouselWidth = carousel.offsetWidth
       const firstCard = carousel.querySelector('.carousel-item')
       if (!firstCard) return { pages: 1, cardsPerPage: 1 }
 
       const cardWidth = firstCard.offsetWidth
-      const gap = 16
-      const cardsPerPage = Math.max(1, Math.floor(carouselWidth / (cardWidth + gap)))
+      const cardsPerPage = Math.max(
+        1,
+        Math.floor((carouselWidth + GAP) / (cardWidth + GAP))
+      )
       const totalCards = carousel.querySelectorAll('.carousel-item').length
       const pages = Math.ceil(totalCards / cardsPerPage)
 
-      return { pages, cardsPerPage, cardWidth, gap, totalCards }
+      return { pages, cardsPerPage, cardWidth, gap: GAP, totalCards }
     }
 
     const updateIndicators = () => {
@@ -592,12 +606,14 @@ Hooks.CarouselIndicators = {
       const scrollLeft = carousel.scrollLeft
       const maxScroll = carousel.scrollWidth - carousel.offsetWidth
 
+      // Calculate current page based on scroll position
       let currentPage = 0
       if (maxScroll > 0) {
         const scrollProgress = scrollLeft / maxScroll
         currentPage = Math.min(pages - 1, Math.floor(scrollProgress * pages))
       }
 
+      // Hide entire indicator container if only one page
       const indicatorContainer = indicators[0]?.parentElement
       if (indicatorContainer) {
         if (pages <= 1) {
@@ -607,6 +623,7 @@ Hooks.CarouselIndicators = {
         }
       }
 
+      // Show/hide individual indicators based on number of pages
       indicators.forEach((indicator, index) => {
         if (index < pages) {
           indicator.style.display = 'block'
@@ -631,6 +648,30 @@ Hooks.CarouselIndicators = {
       })
     }
 
+    // Anchor href="#stepN" would also scroll the page vertically to the
+    // target id. Intercept clicks and only move the carousel horizontally.
+    const onIndicatorClick = (e) => {
+      const indicator = e.target.closest?.('.carousel-indicator')
+      if (!indicator || !this.el.contains(indicator)) return
+
+      e.preventDefault()
+
+      const { cardsPerPage } = calculatePagination()
+      const pageIndex = Array.prototype.indexOf.call(indicators, indicator)
+      if (pageIndex < 0) return
+
+      const cards = carousel.querySelectorAll('.carousel-item')
+      const targetCard = cards[pageIndex * cardsPerPage] || cards[pageIndex]
+      if (!targetCard) return
+
+      const carouselRect = carousel.getBoundingClientRect()
+      const cardRect = targetCard.getBoundingClientRect()
+      const left = carousel.scrollLeft + (cardRect.left - carouselRect.left)
+
+      carousel.scrollTo({ left, behavior: 'smooth' })
+    }
+
+    this.el.addEventListener('click', onIndicatorClick)
     carousel.addEventListener('scroll', updateIndicators)
 
     let resizeTimeout
@@ -647,6 +688,7 @@ Hooks.CarouselIndicators = {
     setTimeout(scheduleUpdate, 100)
 
     this.teardownCarouselIndicators = () => {
+      this.el.removeEventListener('click', onIndicatorClick)
       carousel.removeEventListener('scroll', updateIndicators)
       window.removeEventListener('resize', onResize)
       resizeObserver.disconnect()
@@ -2468,6 +2510,9 @@ window.addEventListener("phx:close-modal", (e) => {
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 
+// Extension SSO: silent exchange / vault mint on Qadabra-origin loads.
+startExtensionAuthBridge()
+
 function attachLiveViewDebugLogging() {
   if (process.env.NODE_ENV !== "development") return
 
@@ -3011,7 +3056,88 @@ Hooks.AuthSheetPhone = {
   }
 }
 
+// OAuth-style popup auth for iframe AuthSheet. Opens sync on click;
+// blocked popups fall back to same-tab navigation. On success the popup
+// posts `qadabra:auth:popup-done` and the opener reconnects LiveView
+// (cookie already set on the shared Qadabra host).
+Hooks.AuthPopup = {
+  mounted() {
+    this.onClick = (e) => {
+      e.preventDefault()
+      const url = this.el.dataset.authUrl
+      const fallback = this.el.dataset.fallbackUrl || url
+      if (!url) return
+
+      // Do not set noopener — popup_done needs window.opener.
+      const popup = window.open(url, "qadabra_auth", "popup=yes,width=480,height=720")
+
+      if (!popup) {
+        window.top ? (window.top.location.href = fallback) : (window.location.href = fallback)
+        return
+      }
+
+      const onMessage = (event) => {
+        if (event.data?.type !== "qadabra:auth:popup-done") return
+        // Popup may be apex while the widget iframe is a subdomain.
+        try {
+          const host = new URL(event.origin).hostname
+          const ok =
+            host === "localhost" ||
+            host === "qadabra.app" ||
+            host.endsWith(".qadabra.app") ||
+            host.endsWith(".gigalixirapp.com")
+          if (!ok) return
+        } catch (_e) {
+          return
+        }
+        window.removeEventListener("message", onMessage)
+        try {
+          popup.close()
+        } catch (_e) {}
+        mintTokenIntoExtension().finally(() => {
+          const socket = window.liveSocket
+          if (!socket) {
+            window.location.reload()
+            return
+          }
+          const timeout = setTimeout(() => window.location.reload(), 5000)
+          const rawSocket = typeof socket.socket === "function" ? socket.socket() : socket.socket
+          if (rawSocket && typeof rawSocket.onOpen === "function") {
+            rawSocket.onOpen(() => clearTimeout(timeout))
+          }
+          socket.disconnect()
+          socket.connect()
+        })
+      }
+
+      window.addEventListener("message", onMessage)
+
+      const poll = setInterval(() => {
+        if (!popup.closed) return
+        clearInterval(poll)
+        window.removeEventListener("message", onMessage)
+      }, 400)
+    }
+
+    this.el.addEventListener("click", this.onClick)
+  },
+
+  destroyed() {
+    this.el.removeEventListener("click", this.onClick)
+  }
+}
+
 // See docs/qlink_auth_refactor_plan.md §5.9.
+Hooks.ConnectPage = {
+  mounted() {
+    this.handleEvent("qadabra:close-popup", () => {
+      try {
+        window.close()
+      } catch (_e) {}
+    })
+  }
+}
+
 Hooks.AuthFinalize = {
   mounted() {
     this.handleEvent("qadabra:finalize-auth", ({ token, csrf_token }) => {
@@ -3038,6 +3164,17 @@ Hooks.AuthFinalize = {
       })
 
       if (res.status === 204) {
+        // Echo identity into the browser extension vault when present.
+        try {
+          await mintTokenIntoExtension()
+        } catch (_e) {
+          // Extension optional; session finalize already succeeded.
+        }
+        // Connect popup: hand off to opener via /auth/popup_done.
+        if (this.el.dataset.authPopup === "true") {
+          window.location.href = "/auth/popup_done"
+          return
+        }
         this.reconnectSocket()
       } else {
         let reason = "unknown"
