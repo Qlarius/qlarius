@@ -20,11 +20,14 @@ defmodule QlariusWeb.OfferHTML do
   def jump_url(offer, nil, _opts), do: ~p"/jump/#{offer}"
 
   def jump_url(offer, recipient, opts) when not is_nil(recipient) do
+    # Pass a map into ~p — a prebuilt query string gets URI-encoded
+    # (`recipient_id=99` → `recipient_id%3D99`), so /jump/collect never
+    # sees recipient_id and the Text/Jump phase skips recipient split.
     query =
       if Keyword.get(opts, :tip_only, false) do
-        "recipient_id=#{recipient.id}&autosplit=0"
+        %{recipient_id: recipient.id, autosplit: 0}
       else
-        "recipient_id=#{recipient.id}"
+        %{recipient_id: recipient.id}
       end
 
     ~p"/jump/#{offer}?#{query}"
