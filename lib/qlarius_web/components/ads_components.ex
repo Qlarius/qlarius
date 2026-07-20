@@ -594,6 +594,16 @@ defmodule QlariusWeb.Components.AdsComponents do
               <hr class="border-t border-base-300 m-0" />
             </li>
             <li>
+              <button
+                type="button"
+                phx-click="refresh_offers"
+                onclick="this.closest('details')?.removeAttribute('open')"
+                class="flex items-center gap-2 whitespace-nowrap text-base-content"
+              >
+                <.icon name="hero-arrow-path" class="w-4 h-4 shrink-0" /> Refresh
+              </button>
+            </li>
+            <li>
               <%!--
                 Fires the shared `show_logout_modal` event (handled by
                 `QlariusWeb.LogoutModalHooks`). The host LV template is

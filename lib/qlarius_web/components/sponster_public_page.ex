@@ -22,6 +22,7 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
   attr :sponster_disclaimer_dock_visible, :boolean, default: false
   attr :loading_offers, :boolean, default: false
   attr :active_offers, :list, default: []
+  attr :offers_refresh_gen, :integer, default: 0
   attr :video_offers, :list, default: []
   attr :completed_video_offers, :list, default: []
   attr :selected_ad_type, :string, default: "three_tap"
@@ -184,6 +185,7 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                           module={QlariusWeb.ThreeTapStackComponent}
                           id={"#{@announcer_id_prefix}-three-tap-stack"}
                           active_offers={@active_offers}
+                          offers_refresh_gen={@offers_refresh_gen}
                           user_ip={@user_ip}
                           current_scope={@current_scope}
                           host_uri={@host_uri}

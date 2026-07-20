@@ -15,6 +15,8 @@ defmodule Qlarius.Sponster.AdEvent do
     field :offer_bid_amt, :decimal
     field :is_throttled, :boolean, default: false
     field :is_offer_complete, :boolean, default: false
+    # "full_funnel" | "banner_max" | nil — see Offers / LedgerReporting.
+    field :completion_kind, :string
     field :ip_address, :string
     field :url, :string
     field :media_piece_phase_id, :integer
@@ -51,6 +53,7 @@ defmodule Qlarius.Sponster.AdEvent do
       :offer_bid_amt,
       :is_throttled,
       :is_offer_complete,
+      :completion_kind,
       :ip_address,
       :url,
       :offer_id,
@@ -77,6 +80,7 @@ defmodule Qlarius.Sponster.AdEvent do
       :session_id_string,
       :matching_tags_snapshot
     ])
+    |> validate_inclusion(:completion_kind, ["full_funnel", "banner_max"])
     |> validate_required([
       :offer_bid_amt,
       :is_throttled,

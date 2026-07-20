@@ -31,6 +31,7 @@ defmodule QlariusWeb.Components.TiqitArqadeShell do
   attr :sponster_disclaimer_dock_visible, :boolean, default: false
   attr :loading_offers, :boolean, default: false
   attr :active_offers, :list, default: []
+  attr :offers_refresh_gen, :integer, default: 0
   attr :video_offers, :list, default: []
   attr :completed_video_offers, :list, default: []
   attr :selected_ad_type, :string, default: "three_tap"
@@ -98,6 +99,7 @@ defmodule QlariusWeb.Components.TiqitArqadeShell do
           sponster_disclaimer_dock_visible={@sponster_disclaimer_dock_visible}
           loading_offers={@loading_offers}
           active_offers={@active_offers}
+          offers_refresh_gen={@offers_refresh_gen}
           video_offers={@video_offers}
           completed_video_offers={@completed_video_offers}
           selected_ad_type={@selected_ad_type}

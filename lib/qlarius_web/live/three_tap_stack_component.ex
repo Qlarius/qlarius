@@ -43,17 +43,30 @@ defmodule QlariusWeb.ThreeTapStackComponent do
 
   @impl true
   def update(%{active_offers: new_offers} = assigns, socket) do
+    refresh_gen = Map.get(assigns, :offers_refresh_gen, 0)
+    prev_refresh_gen = Map.get(socket.assigns, :offers_refresh_gen, 0)
+    force_reset? = refresh_gen != prev_refresh_gen
+
     old_offers = Map.get(socket.assigns, :active_offers, [])
     old_ids = Enum.map(old_offers, fn {offer, _phase} -> offer.id end)
     new_ids = Enum.map(new_offers, fn {offer, _phase} -> offer.id end)
 
     active_offers =
-      if old_ids == new_ids do
-        # Keep local phase state
-        old_offers
-      else
-        # New offers, reset phases
-        Enum.map(new_offers, fn {offer, _} -> {offer, 0} end)
+      cond do
+        force_reset? ->
+          # Explicit Refresh: always restart at the banner (never mid-funnel).
+          Enum.map(new_offers, fn {offer, _} -> {offer, 0} end)
+
+        old_ids == new_ids ->
+          # Keep in-session phase progress across unrelated parent re-renders.
+          phases = Map.new(old_offers, fn {offer, phase} -> {offer.id, phase} end)
+
+          Enum.map(new_offers, fn {offer, _} ->
+            {offer, Map.get(phases, offer.id, 0)}
+          end)
+
+        true ->
+          Enum.map(new_offers, fn {offer, _} -> {offer, 0} end)
       end
 
     {:ok, assign(socket, assigns) |> assign(:active_offers, active_offers)}

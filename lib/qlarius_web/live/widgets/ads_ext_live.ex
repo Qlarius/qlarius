@@ -151,6 +151,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
           sponster_disclaimer_dock_visible={@sponster_disclaimer_dock_visible}
           loading_offers={@loading_offers}
           active_offers={@active_offers}
+          offers_refresh_gen={@offers_refresh_gen}
           video_offers={@video_offers}
           completed_video_offers={@completed_video_offers}
           selected_ad_type={@selected_ad_type}

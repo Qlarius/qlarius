@@ -3,6 +3,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
 
   alias Qlarius.Repo
   alias Qlarius.Sponster.Offer
+  alias Qlarius.Sponster.Offers
   alias Qlarius.Sponster.Recipients
   alias Qlarius.Wallets
   alias Qlarius.YouData.MeFiles.MeFile
@@ -39,6 +40,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     daily-gift
     set_split
     split_reminder_dismiss
+    refresh_offers
   )
 
   @doc "Split pct applied to ad collections; 0 on Tiqit (tip-only) pages."
@@ -73,6 +75,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     |> Phoenix.Component.assign(:active_offers, [])
     |> Phoenix.Component.assign(:video_offers, [])
     |> Phoenix.Component.assign(:loading_offers, false)
+    |> Phoenix.Component.assign(:offers_refresh_gen, 0)
     |> Phoenix.Component.assign(:show_video_player, false)
     |> Phoenix.Component.assign(:current_video_offer, nil)
     |> Phoenix.Component.assign(:video_watched_complete, false)
@@ -215,6 +218,27 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     {:handled, socket}
   end
 
+  def handle_info(:refresh_offers, socket) do
+    socket =
+      case socket.assigns[:current_scope] do
+        %{user: %{me_file: %{id: me_file_id}}} when is_integer(me_file_id) ->
+          Offers.refresh_statuses_for_me_file(me_file_id)
+
+          socket
+          |> Phoenix.Component.assign(
+            :offers_refresh_gen,
+            (socket.assigns[:offers_refresh_gen] || 0) + 1
+          )
+          |> load_offers(preserve_selected_ad_type: true)
+          |> WalletBalanceSync.refresh_scope_stats()
+
+        _ ->
+          Phoenix.Component.assign(socket, :loading_offers, false)
+      end
+
+    {:handled, socket}
+  end
+
   def handle_info(_msg, _socket), do: :unhandled
 
   defp do_handle_event("toggle_sponster_drawer", _params, socket) do
@@ -224,6 +248,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
       |> Phoenix.Component.assign(:show_split_reminder, false)
       |> Phoenix.Component.assign(:sponster_disclaimer_dock_visible, false)
       |> bump_sponster_disclaimer_dock_gen()
+      |> request_offers_refresh()
     else
       ensure_sponster_drawer_open(socket)
     end
@@ -236,6 +261,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     |> Phoenix.Component.assign(:show_split_reminder, false)
     |> Phoenix.Component.assign(:sponster_disclaimer_dock_visible, false)
     |> bump_sponster_disclaimer_dock_gen()
+    |> request_offers_refresh()
   end
 
   defp do_handle_event("toggle_split_drawer", _params, socket) do
@@ -316,6 +342,12 @@ defmodule QlariusWeb.SponsterRecipientSurface do
           Phoenix.LiveView.put_flash(socket, :error, "Failed to update split amount")
       end
     end
+  end
+
+  defp do_handle_event("refresh_offers", _params, socket) do
+    send(self(), :refresh_offers)
+
+    Phoenix.Component.assign(socket, :loading_offers, true)
   end
 
   defp do_handle_event("switch_ad_type", %{"type" => ad_type}, socket) do
@@ -553,6 +585,14 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     |> Phoenix.Component.assign(:insta_tip_thanks_recipient, nil)
   end
 
+  defp request_offers_refresh(socket) do
+    if socket.assigns[:current_scope] do
+      send(self(), :refresh_offers)
+    end
+
+    socket
+  end
+
   defp ensure_sponster_drawer_open(socket) do
     me_file =
       socket.assigns.current_scope && socket.assigns.current_scope.user &&
@@ -614,7 +654,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     end
   end
 
-  defp load_offers(socket) do
+  defp load_offers(socket, opts \\ []) do
     case socket.assigns[:current_scope] do
       nil ->
         Phoenix.Component.assign(socket, :loading_offers, false)
@@ -622,19 +662,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
       scope ->
         me_file_id = scope.user.me_file.id
 
-        three_tap_query =
-          from(o in Offer,
-            join: mp in assoc(o, :media_piece),
-            where:
-              o.me_file_id == ^me_file_id and o.is_current == true and mp.media_piece_type_id == 1,
-            order_by: [desc: o.offer_amt],
-            preload: [media_piece: :ad_category]
-          )
-
-        active_offers =
-          three_tap_query
-          |> Repo.all()
-          |> Enum.map(fn offer -> {offer, 0} end)
+        active_offers = Offers.list_current_three_tap_offers(me_file_id)
 
         video_query =
           from(o in Offer,
@@ -654,11 +682,23 @@ defmodule QlariusWeb.SponsterRecipientSurface do
           end)
           |> Enum.sort_by(fn {_offer, rate} -> Decimal.to_float(rate) end, :desc)
 
-        {show_tabs, selected_ad_type} =
+        {show_tabs, default_selected_ad_type} =
           QlariusWeb.Components.AdsComponents.determine_ad_type_display(
             length(active_offers),
             length(video_offers_with_rate)
           )
+
+        selected_ad_type =
+          if Keyword.get(opts, :preserve_selected_ad_type, false) do
+            preserve_selected_ad_type(
+              socket.assigns[:selected_ad_type],
+              length(active_offers),
+              length(video_offers_with_rate),
+              default_selected_ad_type
+            )
+          else
+            default_selected_ad_type
+          end
 
         socket
         |> Phoenix.Component.assign(:active_offers, active_offers)
@@ -668,6 +708,16 @@ defmodule QlariusWeb.SponsterRecipientSurface do
         |> Phoenix.Component.assign(:loading_offers, false)
     end
   end
+
+  defp preserve_selected_ad_type("three_tap", three_tap_count, _video_count, _default)
+       when three_tap_count > 0,
+       do: "three_tap"
+
+  defp preserve_selected_ad_type("video", _three_tap_count, video_count, _default)
+       when video_count > 0,
+       do: "video"
+
+  defp preserve_selected_ad_type(_current, _three_tap_count, _video_count, default), do: default
 
   defp get_current_balance(socket) do
     case socket.assigns[:current_scope] do

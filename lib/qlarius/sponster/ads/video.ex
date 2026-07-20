@@ -41,6 +41,7 @@ defmodule Qlarius.Sponster.Ads.Video do
       event_me_file_collect_amt: offer_amt,
       event_sponster_collect_amt: sponster_cut,
       is_offer_complete: true,
+      completion_kind: "full_funnel",
       matching_tags_snapshot: offer.matching_tags_snapshot,
       ip_address: ip,
       url: "video://watched"

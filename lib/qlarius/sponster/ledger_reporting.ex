@@ -44,7 +44,15 @@ defmodule Qlarius.Sponster.LedgerReporting do
       consumer_payouts: sum_decimal(revenue_base, :event_me_file_collect_amt),
       recipient_payouts: recipient_payouts_sum(revenue_base),
       unique_consumers: count_distinct(revenue_base, :me_file_id),
-      offer_completions: count_rows(from(ae in base, where: ae.is_offer_complete == true))
+      # Successful engagement completions only — exclude banner-max exhausted attempts.
+      offer_completions:
+        count_rows(
+          from(ae in base,
+            where:
+              ae.is_offer_complete == true and
+                (is_nil(ae.completion_kind) or ae.completion_kind == "full_funnel")
+          )
+        )
     }
     |> Map.put(
       :avg_revenue_per_payable,

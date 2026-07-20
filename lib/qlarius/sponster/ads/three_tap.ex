@@ -138,6 +138,7 @@ defmodule Qlarius.Sponster.Ads.ThreeTap do
       event_me_file_collect_amt: event_me_file_collect_amt,
       event_sponster_collect_amt: event_sponster_collect_amt,
       is_offer_complete: phase.is_final_phase,
+      completion_kind: if(phase.is_final_phase, do: "full_funnel", else: nil),
       matching_tags_snapshot: offer.matching_tags_snapshot,
       ip_address: ip,
       url: url
