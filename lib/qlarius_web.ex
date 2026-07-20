@@ -56,6 +56,7 @@ defmodule QlariusWeb do
 
       on_mount QlariusWeb.PWAInstallHooks
       on_mount QlariusWeb.LogoutModalHooks
+      on_mount QlariusWeb.SessionSyncHooks
       on_mount QlariusWeb.LiveViewDebugHooks
       on_mount {QlariusWeb.TimezoneHooks, :assign_timezone}
       on_mount {QlariusWeb.WalletBalanceSyncHooks, :default}

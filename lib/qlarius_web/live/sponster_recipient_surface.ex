@@ -727,13 +727,20 @@ defmodule QlariusWeb.SponsterRecipientSurface do
   end
 
   defp open_auth_sheet(socket, brand) do
-    socket
-    |> Phoenix.Component.assign(:show_auth_sheet, true)
-    |> Phoenix.Component.assign(:show_connect_modal, false)
-    |> Phoenix.Component.assign(
-      :auth_sheet_connect_brand,
-      normalize_auth_sheet_connect_brand(brand)
-    )
+    # Already connected — never stack a Connect sheet over an authed wallet.
+    if authed?(socket.assigns[:current_scope]) do
+      socket
+      |> Phoenix.Component.assign(:show_auth_sheet, false)
+      |> Phoenix.Component.assign(:show_connect_modal, false)
+    else
+      socket
+      |> Phoenix.Component.assign(:show_auth_sheet, true)
+      |> Phoenix.Component.assign(:show_connect_modal, false)
+      |> Phoenix.Component.assign(
+        :auth_sheet_connect_brand,
+        normalize_auth_sheet_connect_brand(brand)
+      )
+    end
   end
 
   defp normalize_auth_sheet_connect_brand(nil), do: :qadabra

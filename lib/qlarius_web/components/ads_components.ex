@@ -616,6 +616,7 @@ defmodule QlariusWeb.Components.AdsComponents do
               <button
                 type="button"
                 phx-click="show_logout_modal"
+                onclick="this.closest('details')?.removeAttribute('open')"
                 class="flex items-center gap-2 whitespace-nowrap text-base-content"
               >
                 <.icon name="hero-link-slash" class="w-4 h-4 shrink-0" /> Disconnect

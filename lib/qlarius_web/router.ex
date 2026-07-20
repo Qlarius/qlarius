@@ -7,6 +7,7 @@ defmodule QlariusWeb.Router do
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
+    plug QlariusWeb.Plugs.EnsureSessionSyncId
     plug QlariusWeb.Plugs.StorePWASession
     plug QlariusWeb.Plugs.StoreReferralCode
     plug :fetch_live_flash
@@ -22,6 +23,7 @@ defmodule QlariusWeb.Router do
   pipeline :widgets do
     plug :accepts, ["html"]
     plug :fetch_session
+    plug QlariusWeb.Plugs.EnsureSessionSyncId
     plug :fetch_live_flash
     plug :put_root_layout, html: {QlariusWeb.Layouts, :root}
     plug :protect_from_forgery
@@ -339,6 +341,7 @@ defmodule QlariusWeb.Router do
   pipeline :auth_finalize do
     plug :accepts, ["json"]
     plug :fetch_session
+    plug QlariusWeb.Plugs.EnsureSessionSyncId
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug :fetch_current_scope_for_user

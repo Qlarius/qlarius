@@ -65,4 +65,8 @@ config :qlarius, debug_enabled: false
 config :qlarius, :auth_sheet,
   on_qlinkin_bio: true,
   on_qlink_page: true,
-  on_widget_standalone: true
+  on_widget_standalone: true,
+  # Vault bridge: authed widgets mint into the extension; the popup / other
+  # cookie partitions redeem via exchange. Required for cross-iframe SSO.
+  extension_token_emit: true,
+  extension_exchange_enabled: true

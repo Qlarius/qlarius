@@ -1,12 +1,13 @@
-// Browser-extension identity bridge for Qadabra-origin pages.
+// Browser-extension identity bridge for Qadabra-origin pages / widget iframes.
 //
-// Authed page  → mint Phoenix.Token into extension vault
-// Unauthed page → redeem vault token via /auth/extension_exchange
-//                 then reuse AuthFinalize-style LiveSocket reconnect
+// Authed session  → mint Phoenix.Token into extension vault
+// Unauthed session + vault token → redeem via /auth/extension_exchange
+//                                   then LiveSocket reconnect (SessionSync
+//                                   remounts sibling LiveViews)
 //
-// Publisher pages never call this; only Qadabra hosts + widget iframes.
+// Publisher host pages never call this; only Qadabra hosts + widget iframes.
 
-const PROBE_TIMEOUT_MS = 250
+const PROBE_TIMEOUT_MS = 800
 
 function csrfToken() {
   return document.querySelector("meta[name='csrf-token']")?.getAttribute("content") || ""
@@ -19,14 +20,25 @@ function extensionRuntime() {
 }
 
 function extensionIds() {
+  const ids = new Set()
+
   const meta = document
     .querySelector("meta[name='qadabra-extension-ids']")
     ?.getAttribute("content")
-  if (!meta) return []
-  return meta
-    .split(",")
-    .map((s) => s.trim())
-    .filter((id) => id && id !== "DEV_EXTENSION_ID_PLACEHOLDER")
+  if (meta) {
+    meta
+      .split(",")
+      .map((s) => s.trim())
+      .filter((id) => id && id !== "DEV_EXTENSION_ID_PLACEHOLDER")
+      .forEach((id) => ids.add(id))
+  }
+
+  // Content script publishes the running extension's id (covers unpacked
+  // extensions whose id is not in the server allowlist meta tag).
+  const fromDom = document.documentElement?.dataset?.qadabraExtensionId
+  if (fromDom) ids.add(fromDom)
+
+  return [...ids]
 }
 
 function sendToExtension(message) {
@@ -148,7 +160,11 @@ export async function exchangeExtensionToken() {
   if (res.status === 422) {
     try {
       const body = await res.json()
-      if (body.error === "token_expired" || body.error === "token_invalidated" || body.error === "invalid_token") {
+      if (
+        body.error === "token_expired" ||
+        body.error === "token_invalidated" ||
+        body.error === "invalid_token"
+      ) {
         await sendToExtension({ type: "qadabra:auth:clear-token" })
       }
     } catch (_e) {
@@ -175,8 +191,44 @@ export async function globalExtensionLogout() {
   await sendToExtension({ type: "qadabra:auth:logout" })
 }
 
+/**
+ * Reconcile Phoenix session ↔ extension vault.
+ * Safe to call after every LiveSocket reconnect / SessionSync remount.
+ *
+ * @returns {"minted" | "exchanged" | "noop" | "absent"}
+ */
+export async function syncExtensionWithSession() {
+  const { present, authed: extAuthed } = await probeExtension()
+  if (!present) return "absent"
+
+  let sessionAuthed = false
+  try {
+    const statusRes = await fetchJson("/auth/session_status", { method: "GET" })
+    if (statusRes.ok) {
+      const body = await statusRes.json()
+      sessionAuthed = !!body.authed
+    }
+  } catch (_e) {
+    return "noop"
+  }
+
+  if (sessionAuthed) {
+    await mintTokenIntoExtension()
+    return "minted"
+  }
+
+  if (extAuthed) {
+    const exchanged = await exchangeExtensionToken()
+    return exchanged ? "exchanged" : "noop"
+  }
+
+  return "noop"
+}
+
 let bridgeStarted = false
 let logoutWired = false
+let extensionPageListenerWired = false
+let syncInFlight = null
 
 function wireGlobalLogoutIntercept() {
   if (logoutWired) return
@@ -200,33 +252,50 @@ function wireGlobalLogoutIntercept() {
   )
 }
 
+function wireExtensionPageListener() {
+  if (extensionPageListenerWired) return
+  extensionPageListenerWired = true
+
+  // Content script posts here when the vault token is stored/cleared
+  // (including from the extension popup iframe on another host / cookie
+  // partition). It may also perform exchange itself and ask us to reconnect.
+  window.addEventListener("message", (event) => {
+    if (event.origin !== window.location.origin) return
+
+    if (event.data?.type === "qadabra:extension-hello" && event.data.id) {
+      document.documentElement.dataset.qadabraExtensionId = event.data.id
+      syncExtensionWithSessionDebounced()
+      return
+    }
+
+    if (event.data?.type === "qadabra:auth:please-reconnect") {
+      // Content script already redeemed the vault into this frame's session.
+      reconnectLiveSocket()
+      return
+    }
+
+    if (event.data?.type !== "qadabra:auth:extension-changed") return
+    syncExtensionWithSessionDebounced()
+  })
+}
+
+export function syncExtensionWithSessionDebounced() {
+  if (syncInFlight) return syncInFlight
+  syncInFlight = syncExtensionWithSession().finally(() => {
+    syncInFlight = null
+  })
+  return syncInFlight
+}
+
 export async function startExtensionAuthBridge() {
-  if (bridgeStarted) return
+  if (bridgeStarted) {
+    await syncExtensionWithSessionDebounced()
+    return
+  }
   bridgeStarted = true
   wireGlobalLogoutIntercept()
-
-  const { present, authed: extAuthed } = await probeExtension()
-  if (!present) return
-
-  let sessionAuthed = false
-  try {
-    const statusRes = await fetchJson("/auth/session_status", { method: "GET" })
-    if (statusRes.ok) {
-      const body = await statusRes.json()
-      sessionAuthed = !!body.authed
-    }
-  } catch (_e) {
-    return
-  }
-
-  if (sessionAuthed) {
-    await mintTokenIntoExtension()
-    return
-  }
-
-  if (extAuthed) {
-    await exchangeExtensionToken()
-  }
+  wireExtensionPageListener()
+  await syncExtensionWithSessionDebounced()
 }
 
 // Optional LiveView hook for surfaces that want an explicit remount trigger.

@@ -93,12 +93,15 @@ defmodule QlariusWeb.UserAuth do
   # cookie wiring.
   defp establish_user_session(conn, user, params) do
     token = Accounts.generate_user_session_token(user)
+    sync_id = persistent_session_sync_id(conn)
 
     conn
     |> renew_session()
+    |> put_session(:session_sync_id, sync_id)
     |> put_token_in_session(token)
     |> maybe_write_remember_me_cookie(token, params)
     |> track_sign_in(user)
+    |> tap(fn _conn -> QlariusWeb.SessionSync.broadcast(sync_id, :authed) end)
   end
 
   defp maybe_write_remember_me_cookie(conn, token, %{"remember_me" => "true"}) do
@@ -154,15 +157,44 @@ defmodule QlariusWeb.UserAuth do
   """
   def clear_user_session(conn) do
     user_token = get_session(conn, :user_token)
+    sync_id = persistent_session_sync_id(conn)
+    live_socket_id = get_session(conn, :live_socket_id)
+
+    # Invalidate the DB token first so any early sibling reconnect cannot
+    # restore the user from a still-present cookie value.
     user_token && Accounts.delete_user_session_token(user_token)
 
-    if live_socket_id = get_session(conn, :live_socket_id) do
-      QlariusWeb.Endpoint.broadcast(live_socket_id, "disconnect", %{})
+    # PubSub WHILE sibling LiveViews are still alive. They push_event a
+    # client reconnect. Broadcasting `live_socket_id` disconnect *before*
+    # this kills those processes and the tipjar/ads_ext siblings never
+    # learn about logout.
+    QlariusWeb.SessionSync.broadcast(sync_id, :anonymous)
+
+    conn =
+      conn
+      |> renew_session()
+      |> put_session(:session_sync_id, sync_id)
+      |> delete_resp_cookie(@remember_me_cookie, delete_remember_me_options(conn))
+
+    # Backstop for stray tabs after SessionSync push_event has had time
+    # to flush over the socket.
+    if live_socket_id do
+      Task.start(fn ->
+        Process.sleep(400)
+        QlariusWeb.Endpoint.broadcast(live_socket_id, "disconnect", %{})
+      end)
     end
 
     conn
-    |> renew_session()
-    |> delete_resp_cookie(@remember_me_cookie, delete_remember_me_options(conn))
+  end
+
+  # Survives `renew_session/1` (which clears the session) so sibling
+  # widget iframes stay on the same PubSub auth bus across login/logout.
+  defp persistent_session_sync_id(conn) do
+    case get_session(conn, :session_sync_id) do
+      id when is_binary(id) and id != "" -> id
+      _ -> Ecto.UUID.generate()
+    end
   end
 
   # `delete_resp_cookie` only evicts a cookie whose `Domain`, `Path`,

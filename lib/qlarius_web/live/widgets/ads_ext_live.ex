@@ -61,6 +61,16 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   end
 
   @impl true
+  def handle_event("confirm_widget_logout", _params, socket) do
+    # In-iframe disconnect must not navigate the embed document (that paints
+    # a blank full-height AdsExt page over the third-party host). Clear the
+    # session via fetch + LiveSocket reconnect — same pattern as AuthFinalize.
+    {:noreply,
+     push_event(socket, "qadabra:session-logout", %{
+       csrf_token: Plug.CSRFProtection.get_csrf_token()
+     })}
+  end
+
   def handle_event(event, params, socket) do
     was_expanded = expanded?(socket)
 
@@ -88,7 +98,8 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
     a = socket.assigns
 
     !!(a[:show_sponster_drawer] || a[:show_video_player] || a[:show_insta_tip_modal] ||
-         a[:show_insta_tip_thanks_modal] || a[:show_connect_modal] || a[:show_auth_sheet])
+         a[:show_insta_tip_thanks_modal] || a[:show_connect_modal] || a[:show_auth_sheet] ||
+         a[:show_logout_modal])
   end
 
   # Tell the embed script to grow/shrink the iframe when the expanded
@@ -290,6 +301,51 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
             connect_brand={:sponster}
             on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
           />
+        <% end %>
+
+        <%!--
+          Disconnect confirmation. `show_logout_modal` is toggled by
+          `LogoutModalHooks`; this surface must render the modal itself
+          (unlike app layouts / Qlink which already host one). Confirm
+          uses in-place session clear + LiveSocket reconnect so the
+          third-party host page never navigates.
+        --%>
+        <%= if @current_scope && assigns[:show_logout_modal] do %>
+          <.modal
+            id="ads-ext-logout-modal"
+            show={true}
+            border_class="border border-widget-700"
+            on_cancel={JS.push("cancel_logout")}
+          >
+            <div class="rounded-box overflow-hidden">
+              <div class="bg-base-200 px-6 py-4 rounded-t-box">
+                <h3 class="font-bold text-lg">Disconnect</h3>
+              </div>
+              <div class="p-6">
+                <p class="py-4">
+                  This disconnects you from Qadabra for all browser activity on this device,
+                  including publisher widgets and the browser extension. You can reconnect
+                  anytime with your mobile number.
+                </p>
+                <div class="modal-action">
+                  <button
+                    type="button"
+                    class="btn btn-ghost outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
+                    phx-click="cancel_logout"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    phx-click="confirm_widget_logout"
+                    class="btn btn-error outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-error-content/50"
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              </div>
+            </div>
+          </.modal>
         <% end %>
       <% end %>
     </div>

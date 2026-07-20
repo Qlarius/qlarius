@@ -27,14 +27,52 @@ import {hooks as colocatedHooks} from "phoenix-colocated/qlarius"
 import {computePosition, flip, shift, offset, arrow, size, autoUpdate} from "@floating-ui/dom"
 import {
   ExtensionBridgeHook,
+  globalExtensionLogout,
   mintTokenIntoExtension,
-  startExtensionAuthBridge
+  startExtensionAuthBridge,
+  syncExtensionWithSessionDebounced
 } from "./hooks/extension_bridge"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let Hooks = {}
 
 Hooks.ExtensionBridge = ExtensionBridgeHook
+
+// LiveView `push_event("qadabra:reconnect-socket")` (SessionSyncHooks) and
+// AuthFinalize both land here — remount with the current session cookie.
+function reconnectLiveSocket() {
+  const socket = window.liveSocket
+  if (!socket) {
+    window.location.reload()
+    return
+  }
+
+  const timeout = setTimeout(() => window.location.reload(), 5000)
+  const rawSocket = typeof socket.socket === "function" ? socket.socket() : socket.socket
+  if (rawSocket && typeof rawSocket.onOpen === "function") {
+    rawSocket.onOpen(() => {
+      clearTimeout(timeout)
+      // After SessionSync / AuthFinalize remount, keep the extension vault
+      // aligned with the new Phoenix session (mint or exchange).
+      syncExtensionWithSessionDebounced()
+    })
+  }
+  socket.disconnect()
+  socket.connect()
+}
+
+// SessionSync PubSub can notify siblings before the authing/logout fetch's
+// Set-Cookie hits the shared jar. Brief delay so remount sees the new session.
+const SESSION_SYNC_RECONNECT_DELAY_MS = 200
+let sessionSyncReconnectTimer = null
+
+function scheduleSessionSyncReconnect() {
+  if (sessionSyncReconnectTimer) clearTimeout(sessionSyncReconnectTimer)
+  sessionSyncReconnectTimer = setTimeout(() => {
+    sessionSyncReconnectTimer = null
+    reconnectLiveSocket()
+  }, SESSION_SYNC_RECONNECT_DELAY_MS)
+}
 
 // iOS Audio Priming - unlock audio playback on first user interaction
 // iOS Safari requires audio to be triggered by user gesture before programmatic playback works
@@ -1477,6 +1515,11 @@ Hooks.SponsterWidgetBridge = {
         window.parent.postMessage(payload, '*')
       }
     })
+    // Mirror AuthFinalize: clear session in-place, keep the third-party
+    // host page, remount this LV anonymous (no iframe navigation).
+    this.handleEvent("qadabra:session-logout", ({ csrf_token }) => {
+      this.sessionLogout(csrf_token)
+    })
     this.onMessage = (e) => {
       if (e.data?.type === "open_sponster_drawer") {
         this.pushEvent("open-sponster-drawer", {})
@@ -1498,6 +1541,42 @@ Hooks.SponsterWidgetBridge = {
     if (height === this.lastReportedCollapsedHeight) return
     this.lastReportedCollapsedHeight = height
     window.parent.postMessage({ type: "sponster_widget_collapsed_height", height }, '*')
+  },
+  async sessionLogout(csrfTokenOverride) {
+    try {
+      await globalExtensionLogout()
+    } catch (_e) {
+      // Extension optional; continue clearing the browser session.
+    }
+
+    const csrf =
+      csrfTokenOverride ||
+      document.querySelector("meta[name='csrf-token']")?.getAttribute("content") ||
+      ""
+
+    try {
+      await fetch("/logout", {
+        method: "POST",
+        credentials: "same-origin",
+        redirect: "manual",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "x-csrf-token": csrf,
+          Accept: "text/html"
+        },
+        body: "_method=delete"
+      })
+    } catch (err) {
+      console.warn("[SponsterWidgetBridge] logout fetch failed", err)
+      window.location.reload()
+      return
+    }
+
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "sponster_widget_collapse" }, "*")
+    }
+
+    reconnectLiveSocket()
   }
 }
 
@@ -2598,6 +2677,10 @@ attachLiveViewDebugLogging()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
+// SessionSyncHooks → push_event("qadabra:reconnect-socket") when auth
+// changes in another same-session LiveView (sibling widget iframes).
+window.addEventListener("phx:qadabra:reconnect-socket", () => scheduleSessionSyncReconnect())
+
 // The lines below enable quality of life phoenix_live_reload
 // development features:
 //
@@ -3095,18 +3178,7 @@ Hooks.AuthPopup = {
           popup.close()
         } catch (_e) {}
         mintTokenIntoExtension().finally(() => {
-          const socket = window.liveSocket
-          if (!socket) {
-            window.location.reload()
-            return
-          }
-          const timeout = setTimeout(() => window.location.reload(), 5000)
-          const rawSocket = typeof socket.socket === "function" ? socket.socket() : socket.socket
-          if (rawSocket && typeof rawSocket.onOpen === "function") {
-            rawSocket.onOpen(() => clearTimeout(timeout))
-          }
-          socket.disconnect()
-          socket.connect()
+          reconnectLiveSocket()
         })
       }
 
@@ -3175,7 +3247,9 @@ Hooks.AuthFinalize = {
           window.location.href = "/auth/popup_done"
           return
         }
-        this.reconnectSocket()
+        // Server SessionSync.broadcast/2 remounts sibling widget LVs;
+        // reconnect this socket for the new session cookie.
+        reconnectLiveSocket()
       } else {
         let reason = "unknown"
         try {
@@ -3190,30 +3264,6 @@ Hooks.AuthFinalize = {
       console.warn("[AuthFinalize] fetch failed", err)
       this.pushEventTo(this.el, "auth:finalize_failed", { reason: "network" })
     }
-  },
-
-  reconnectSocket() {
-    const socket = window.liveSocket
-    if (!socket) {
-      window.location.reload()
-      return
-    }
-
-    // Watchdog: if the socket doesn't come back online within 5s, do a
-    // full reload so the user still lands authed.
-    const timeout = setTimeout(() => window.location.reload(), 5000)
-
-    // phoenix's Socket exposes an onOpen listener via `.socket.onOpen/1`;
-    // liveSocket wraps it but doesn't currently expose a matching API,
-    // so probe the underlying socket directly.
-    const rawSocket = typeof socket.socket === "function" ? socket.socket() : socket.socket
-
-    if (rawSocket && typeof rawSocket.onOpen === "function") {
-      rawSocket.onOpen(() => clearTimeout(timeout))
-    }
-
-    socket.disconnect()
-    socket.connect()
   }
 }
 
