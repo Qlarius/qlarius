@@ -120,14 +120,15 @@ defmodule QlariusWeb.MeFileBuilderLive do
                   class="qai-suggestions-chevron pointer-events-none absolute right-3 top-4 h-7 w-7 text-base-content/50 transition-transform duration-200"
                 />
                 <div class="flex items-center gap-2">
+                  <h2 class="text-lg font-bold tracking-tight text-base-content/50">
+                    Suggestions by
+                  </h2>
                   <img
                     src="/images/qai_logo_color_horiz.svg"
                     alt="Qai"
-                    class="h-8 w-auto shrink-0"
+                    class="h-6 w-auto shrink-0"
                   />
-                  <h2 class="text-lg font-bold tracking-tight text-base-content/50">
-                    Suggestions
-                  </h2>
+
                 </div>
                 <p class="text-sm text-base-content mt-1 font-normal normal-case">
                   <span class="font-bold text-qai-500">
@@ -147,9 +148,9 @@ defmodule QlariusWeb.MeFileBuilderLive do
                 </div>
               </div>
               <div class="collapse-content px-4 pb-4">
-              <div class="divider mb-4"></div>
-                <p class="text-sm text-base-content mb-3">
-                  Recent chats would have been more personal with these tags filled in
+              <div class="divider mb-2"></div>
+                <p class="text-sm text-base-content mb-5">
+                  Recent chats may have been more personal with these tags filled in
                   or brought up to date. Answer or dismiss; nothing is added without you.
                 </p>
                 <div
