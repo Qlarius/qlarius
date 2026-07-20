@@ -34,6 +34,43 @@
               <li><strong>Contact Email:</strong> {@recipient.contact_email}</li>
             </ul>
 
+            <div class="mt-8 border-t border-base-300 pt-6">
+              <h3 class="text-xl font-semibold mb-2 flex items-center">
+                <.icon name="hero-code-bracket" class="w-5 h-5 mr-2" /> Sponster Embed Code
+              </h3>
+              <p class="text-sm text-base-content/70 mb-3">
+                Paste this on a third-party site to load the full Sponster experience
+                (announcer bar, ads, and tip jar) in a bottom iframe.
+              </p>
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-start gap-4">
+                <div class="flex-1 min-w-0">
+                  <div
+                    class="relative bg-base-200 hover:bg-base-300 rounded-lg p-4 cursor-pointer transition-colors group"
+                    onclick="copySponsterEmbed(this)"
+                  >
+                    <div class="flex items-start justify-between gap-4">
+                      <pre class="text-sm font-mono text-base-content whitespace-pre-wrap break-all m-0"><code>{sponster_embed_code(@recipient)}</code></pre>
+                      <.icon
+                        name="hero-document-duplicate"
+                        class="w-5 h-5 shrink-0 text-base-content/60 group-hover:text-base-content mt-0.5"
+                      />
+                    </div>
+                    <div class="copy-notification hidden absolute -top-2 -right-2 bg-success text-success-content text-xs px-2 py-1 rounded shadow-lg">
+                      Copied!
+                    </div>
+                  </div>
+                </div>
+                <a
+                  href={sponster_widget_preview_url(@recipient)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn btn-outline btn-sm whitespace-nowrap"
+                >
+                  <.icon name="hero-eye" class="w-4 h-4 mr-2" /> Preview
+                </a>
+              </div>
+            </div>
+
             <div class="mt-8">
               <h3 class="text-xl font-semibold mb-2 flex items-center">
                 <.icon name="hero-banknotes" class="w-5 h-5 mr-2 text-green-600" /> Tipjar Ledger
@@ -145,3 +182,12 @@
     </div>
   </div>
 </div>
+
+<script type="text/javascript">
+  function copySponsterEmbed(element) {
+    navigator.clipboard.writeText(element.querySelector("code").textContent);
+    const notification = element.querySelector(".copy-notification");
+    notification.classList.remove("hidden");
+    setTimeout(() => notification.classList.add("hidden"), 2000);
+  }
+</script>
