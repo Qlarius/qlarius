@@ -166,7 +166,8 @@ defmodule QlariusWeb.Components.LedgerEntriesList do
   end
 
   defp icon_for_entry(%{tiqit_id: tiqit_id}) when not is_nil(tiqit_id), do: "hero-ticket"
-  defp icon_for_entry(%{ad_event_id: ad_event_id}) when not is_nil(ad_event_id), do: "hero-film"
+  # Ad events: use meta_1 (Banner Tap / Text/Jump / Video Ad). Do not map
+  # every ad_event_id to film — that incorrectly icons 3-tap phases as video.
   defp icon_for_entry(entry), do: icon_for_meta_1(entry.meta_1)
 
   defp icon_for_meta_1("Friend gift credit"), do: "hero-gift"
@@ -183,5 +184,6 @@ defmodule QlariusWeb.Components.LedgerEntriesList do
   defp icon_for_meta_1("Text/Jump"), do: "hero-arrow-right-start-on-rectangle"
   defp icon_for_meta_1("Banner Tap"), do: "hero-photo"
   defp icon_for_meta_1("Video Ad"), do: "hero-film"
+  defp icon_for_meta_1("Video Viewing"), do: "hero-film"
   defp icon_for_meta_1(_), do: "hero-cube"
 end
