@@ -3177,7 +3177,7 @@ Hooks.AuthPopup = {
         try {
           popup.close()
         } catch (_e) {}
-        mintTokenIntoExtension().finally(() => {
+        mintTokenIntoExtension({ force: true }).finally(() => {
           reconnectLiveSocket()
         })
       }
@@ -3238,7 +3238,7 @@ Hooks.AuthFinalize = {
       if (res.status === 204) {
         // Echo identity into the browser extension vault when present.
         try {
-          await mintTokenIntoExtension()
+          await mintTokenIntoExtension({ force: true })
         } catch (_e) {
           // Extension optional; session finalize already succeeded.
         }

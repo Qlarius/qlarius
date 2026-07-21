@@ -129,6 +129,10 @@ defmodule QlariusWeb.Auth.ExtensionExchangeController do
 
   Verifies the vault token, invalidates it, and clears the session
   cookie on this host via `UserAuth.clear_user_session/1`.
+
+  `:expired` / `:invalidated` still clear the caller's cookie jar — the
+  page often invalidates the vault token before the SW fan-out, and each
+  host/partition must clear independently (CHIPS).
   """
   def remote_logout(conn, %{"token" => token}) when is_binary(token) do
     ip = conn.remote_ip |> RateLimit.format_ip()
@@ -143,10 +147,14 @@ defmodule QlariusWeb.Auth.ExtensionExchangeController do
         |> send_resp(204, "")
 
       {:error, :expired} ->
-        send_resp(conn, 204, "")
+        conn
+        |> UserAuth.clear_user_session()
+        |> send_resp(204, "")
 
       {:error, :invalidated} ->
-        send_resp(conn, 204, "")
+        conn
+        |> UserAuth.clear_user_session()
+        |> send_resp(204, "")
 
       {:error, :invalid} ->
         send_json_error(conn, 422, "invalid_token")

@@ -1,14 +1,15 @@
 // Injected on Qadabra-family pages (including widget iframes).
 //
-// The extension popup and publisher widget iframes sit in different cookie
-// partitions, so a session in one does not appear in the other. The shared
-// vault is the bridge:
+// The extension popup, first-party qadabra.app tabs, and publisher widget
+// iframes sit in different cookie partitions — a session in one does not
+// appear in the others. The shared vault is the bridge:
 //
 //   authed page + empty vault  → mint identity token into vault
 //   vault token + anon page    → extension_exchange → LiveSocket reconnect
+//   vault cleared (logout)     → CSRF /logout in THIS frame → reconnect
 //
-// After logout, never re-mint from a frame that still has a warm session —
-// that was bouncing the extension popup back into an authed state.
+// The service worker's remote_logout only clears the first-party cookie jar.
+// Third-party embed partitions must clear themselves here.
 
 let helloPublished = false;
 // "1:1" = session authed + vault token; "0:0" = anon + empty vault; null = unknown
@@ -128,6 +129,51 @@ async function exchangeVault(vault) {
   return res.status === 204;
 }
 
+// Clear THIS frame's partitioned Phoenix session, then remount LiveViews.
+// Required for third-party widgets — SW fetch cannot touch their CHIPS jar.
+let partitionClearInFlight = null;
+
+async function clearPartitionSession() {
+  if (partitionClearInFlight) return partitionClearInFlight;
+
+  partitionClearInFlight = (async () => {
+    settledKey = "0:0";
+
+    const csrf = csrfToken();
+    if (!csrf) {
+      askPageReconnect("extension_logout");
+      return;
+    }
+
+    try {
+      const authed = await sessionAuthed();
+      if (authed) {
+        // Same pattern as SponsterWidgetBridge.sessionLogout — clears the
+        // cookie partition that issued this request.
+        await fetch("/logout", {
+          method: "POST",
+          credentials: "include",
+          redirect: "manual",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "x-csrf-token": csrf,
+            Accept: "text/html"
+          },
+          body: "_method=delete"
+        });
+      }
+    } catch (_err) {
+      // Best-effort; still reconnect so LV can reflect anon state.
+    }
+
+    askPageReconnect("extension_logout");
+  })().finally(() => {
+    partitionClearInFlight = null;
+  });
+
+  return partitionClearInFlight;
+}
+
 let reconcileInFlight = null;
 
 async function reconcileFromVault() {
@@ -139,8 +185,12 @@ async function reconcileFromVault() {
   if (!vault?.ok) return;
 
   if (await logoutGuardActive()) {
-    // Logout in flight — do not mint or exchange.
-    settledKey = vault.token ? null : "0:0";
+    // Logout in flight — clear this partition if still authed, never mint.
+    if (!vault.token) {
+      await clearPartitionSession();
+      return;
+    }
+    settledKey = null;
     return;
   }
 
@@ -211,10 +261,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
       !change.newValue
   );
 
-  // Vault cleared (logout) — stay logged-out locally. Do NOT reconcile into
-  // a mint while this frame's session cookie is still briefly warm.
+  // Vault cleared — clear THIS partition's session (not just settle anon).
   if (tokenGone) {
-    settledKey = "0:0";
+    clearPartitionSession();
     return;
   }
 
@@ -234,8 +283,7 @@ chrome.runtime.onMessage.addListener((message) => {
   if (message?.type !== "qadabra:auth:extension-changed") return;
 
   if (message.state === "anonymous") {
-    // Mirror vault clear — do not mint from a stale authed cookie.
-    settledKey = "0:0";
+    clearPartitionSession();
     return;
   }
 

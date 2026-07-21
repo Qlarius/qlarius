@@ -122,9 +122,19 @@ export async function probeExtension() {
   }
 }
 
-export async function mintTokenIntoExtension() {
-  // Intentional login path — lift the post-logout mint block.
-  await sendToExtension({ type: "qadabra:auth:clear-logout-guard" })
+/**
+ * Mint a vault token from the current Phoenix session.
+ * @param {{ force?: boolean }} [opts] — `force: true` for intentional
+ *   login (AuthFinalize / connect popup). Clears the post-logout guard.
+ *   Default path refuses to mint while logout is settling.
+ */
+export async function mintTokenIntoExtension(opts = {}) {
+  if (opts.force) {
+    await sendToExtension({ type: "qadabra:auth:clear-logout-guard" })
+  } else {
+    const guard = await sendToExtension({ type: "qadabra:auth:logout-guard-active" })
+    if (guard?.active) return false
+  }
 
   const deviceRes = await sendToExtension({ type: "qadabra:auth:get-device-id" })
   if (!deviceRes?.device_id) return false
@@ -237,6 +247,11 @@ export async function syncExtensionWithSession() {
       lastSyncResult = "noop"
       return "noop"
     }
+    const guard = await sendToExtension({ type: "qadabra:auth:logout-guard-active" })
+    if (guard?.active) {
+      // Logout settling — content script clears this partition; do not remint.
+      return "noop"
+    }
     await mintTokenIntoExtension()
     lastSyncResult = "minted"
     return "minted"
@@ -298,7 +313,8 @@ function wireExtensionPageListener() {
     }
 
     if (event.data?.type === "qadabra:auth:please-reconnect") {
-      // Content script already redeemed the vault into this frame's session.
+      // Content script already exchanged or cleared this frame's session.
+      lastSyncResult = null
       reconnectLiveSocket()
       return
     }

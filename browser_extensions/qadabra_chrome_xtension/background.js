@@ -91,26 +91,32 @@ async function getVault() {
   };
 }
 
-async function notifyOpenTabs(state) {
+async function notifyOpenTabs(state, extra = {}) {
   // Content scripts also see chrome.storage.onChanged. Fan out once per
   // frame via sendMessage only — executeScript+postMessage was doubling
   // reconciles (session_status stampede across every widget iframe).
+  // Every Qadabra frame (incl. third-party widget iframes) must hear
+  // anonymous so it can CSRF-logout its own cookie partition.
   try {
     const tabs = await chrome.tabs.query({});
     await Promise.all(
       tabs.map(async (tab) => {
         if (!tab.id) return;
 
+        const payload = {
+          type: "qadabra:auth:extension-changed",
+          state,
+          ...extra
+        };
+
         try {
           const frames = await chrome.webNavigation.getAllFrames({ tabId: tab.id });
           await Promise.all(
             (frames || [{ frameId: 0 }]).map(async (frame) => {
               try {
-                await chrome.tabs.sendMessage(
-                  tab.id,
-                  { type: "qadabra:auth:extension-changed", state },
-                  { frameId: frame.frameId }
-                );
+                await chrome.tabs.sendMessage(tab.id, payload, {
+                  frameId: frame.frameId
+                });
               } catch (_err) {
                 // Frame has no content script — ignore.
               }
@@ -118,10 +124,7 @@ async function notifyOpenTabs(state) {
           );
         } catch (_err) {
           try {
-            await chrome.tabs.sendMessage(tab.id, {
-              type: "qadabra:auth:extension-changed",
-              state
-            });
+            await chrome.tabs.sendMessage(tab.id, payload);
           } catch (_e) {
             // ignore
           }
@@ -241,6 +244,9 @@ async function handleAuthMessage(message) {
     case "qadabra:auth:clear-logout-guard": {
       await clearLogoutGuard();
       return { ok: true };
+    }
+    case "qadabra:auth:logout-guard-active": {
+      return { ok: true, active: await underLogoutGuard() };
     }
     case "qadabra:auth:clear-token": {
       await setLogoutGuard();
