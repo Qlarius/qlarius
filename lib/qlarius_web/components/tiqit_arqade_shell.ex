@@ -258,6 +258,7 @@ defmodule QlariusWeb.Components.TiqitArqadeShell do
         <.modal
           id="tiqit-arqade-logout-modal"
           show={true}
+          close_on_click_away={false}
           border_class={tiqit_arqade_modal_border_class()}
           on_cancel={JS.push("cancel_logout")}
         >

@@ -15,6 +15,9 @@ defmodule QlariusWeb.UserAuth do
     http_only: true
   ]
 
+  @doc "Signed remember-me cookie name (for lightweight session probes)."
+  def remember_me_cookie, do: @remember_me_cookie
+
   # Remember-me cookie parity with the shared session cookie
   # (see `QlariusWeb.Plugs.HostAwareSession`): when the request is
   # served from a Qadabra-apex host the cookie is written with

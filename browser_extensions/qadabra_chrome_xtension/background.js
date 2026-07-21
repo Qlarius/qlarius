@@ -92,14 +92,15 @@ async function getVault() {
 }
 
 async function notifyOpenTabs(state) {
+  // Content scripts also see chrome.storage.onChanged. Fan out once per
+  // frame via sendMessage only — executeScript+postMessage was doubling
+  // reconciles (session_status stampede across every widget iframe).
   try {
     const tabs = await chrome.tabs.query({});
     await Promise.all(
       tabs.map(async (tab) => {
         if (!tab.id) return;
 
-        // Message every frame that has our content script (top-level alone
-        // misses publisher pages whose only Qadabra docs are widget iframes).
         try {
           const frames = await chrome.webNavigation.getAllFrames({ tabId: tab.id });
           await Promise.all(
@@ -125,22 +126,6 @@ async function notifyOpenTabs(state) {
             // ignore
           }
         }
-
-        // Belt-and-suspenders: inject a postMessage into every accessible frame.
-        try {
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id, allFrames: true },
-            func: (authState) => {
-              window.postMessage(
-                { type: "qadabra:auth:extension-changed", state: authState },
-                window.location.origin
-              );
-            },
-            args: [state]
-          });
-        } catch (_err) {
-          // No host permission / restricted page — ignore.
-        }
       })
     );
   } catch (_err) {
@@ -150,11 +135,19 @@ async function notifyOpenTabs(state) {
 
 async function storeToken(token) {
   if (!token || typeof token !== "string") return false;
+  // Reject re-mint while logout is settling (popup session often still
+  // authed for one tick and would otherwise vault a fresh token).
+  if (await underLogoutGuard()) return false;
+
   await ensureDeviceId();
   const env = await getQadabraEnv();
-  await chrome.storage.local.set({ [qadabraTokenKey(env.id)]: token });
+  const key = qadabraTokenKey(env.id);
+  const existing = await chrome.storage.local.get(key);
+  // Same token already vaulted — skip write/notify to avoid mint loops.
+  if (existing[key] === token) return true;
+
+  await chrome.storage.local.set({ [key]: token });
   await notifyOpenTabs("authed");
-  // Vault just became valid — refresh badge for this env.
   fetchAdCount();
   return true;
 }
@@ -169,9 +162,16 @@ async function clearToken() {
 }
 
 async function globalLogout() {
+  // Guard FIRST so any still-authed frame that sees an empty vault cannot
+  // mint a replacement token before cookies finish clearing.
+  await setLogoutGuard();
+
   const vault = await getVault();
   const token = vault.token;
   const env = await getQadabraEnv();
+
+  // Drop the vault before remote logout fan-out so exchanges cannot race.
+  await clearToken();
 
   if (token) {
     await Promise.all(
@@ -192,8 +192,6 @@ async function globalLogout() {
       })
     );
   }
-
-  await clearToken();
 }
 
 function isAllowedExternalSender(sender) {
@@ -240,7 +238,12 @@ async function handleAuthMessage(message) {
       const ok = await storeToken(message.token);
       return { ok };
     }
+    case "qadabra:auth:clear-logout-guard": {
+      await clearLogoutGuard();
+      return { ok: true };
+    }
     case "qadabra:auth:clear-token": {
+      await setLogoutGuard();
       await clearToken();
       return { ok: true };
     }

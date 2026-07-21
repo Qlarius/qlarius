@@ -154,10 +154,16 @@ defmodule QlariusWeb.Router do
     pipe_through [:auth_finalize]
 
     post "/finalize_session", FinalizeSessionController, :create
-    get "/session_status", ExtensionExchangeController, :session_status
     post "/extension_exchange", ExtensionExchangeController, :create
     post "/extension_token", ExtensionExchangeController, :mint
     post "/invalidate_extension_token", ExtensionExchangeController, :invalidate
+  end
+
+  # Cheap authed? probe — session cookie only, no Scope.for_user/1.
+  scope "/auth", QlariusWeb.Auth, host: ["qlinkin.bio", "www.qlinkin.bio"] do
+    pipe_through [:auth_session_probe]
+
+    get "/session_status", ExtensionExchangeController, :session_status
   end
 
   # CSRF-free: authenticated by the extension vault token itself.
@@ -347,6 +353,13 @@ defmodule QlariusWeb.Router do
     plug :fetch_current_scope_for_user
   end
 
+  # Bridge "am I signed in?" probe — must stay cheap (no Scope.for_user/1).
+  pipeline :auth_session_probe do
+    plug :accepts, ["json"]
+    plug :fetch_session
+    plug :put_secure_browser_headers
+  end
+
   # Extension SW fan-out logout — no CSRF; vault token is the credential.
   pipeline :auth_extension_remote do
     plug :accepts, ["json"]
@@ -359,10 +372,15 @@ defmodule QlariusWeb.Router do
     pipe_through [:auth_finalize]
 
     post "/finalize_session", FinalizeSessionController, :create
-    get "/session_status", ExtensionExchangeController, :session_status
     post "/extension_exchange", ExtensionExchangeController, :create
     post "/extension_token", ExtensionExchangeController, :mint
     post "/invalidate_extension_token", ExtensionExchangeController, :invalidate
+  end
+
+  scope "/auth", QlariusWeb.Auth do
+    pipe_through [:auth_session_probe]
+
+    get "/session_status", ExtensionExchangeController, :session_status
   end
 
   scope "/auth", QlariusWeb.Auth do

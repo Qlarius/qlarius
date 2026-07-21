@@ -49,6 +49,9 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
       |> assign(:split_code, split_code)
       |> assign(:auth_referral_context, referral_context_for_recipient(recipient))
       |> SponsterRecipientSurface.init_assigns(recipient)
+      # Attached last so it runs before LogoutModalHooks and can expand the
+      # host iframe when Disconnect opens the confirmation overlay.
+      |> attach_hook(:ads_ext_logout_modal, :handle_event, &handle_logout_modal_event/3)
 
     socket =
       if connected?(socket) && socket.assigns.current_scope do
@@ -79,6 +82,22 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
       :unhandled -> {:noreply, socket}
     end
   end
+
+  # Own Disconnect open/close so iframe resize runs (LogoutModalHooks would
+  # `:halt` before this LV's handle_event).
+  defp handle_logout_modal_event("show_logout_modal", _params, socket) do
+    was_expanded = expanded?(socket)
+    socket = assign(socket, :show_logout_modal, true)
+    {:halt, notify_parent_of_resize(socket, was_expanded)}
+  end
+
+  defp handle_logout_modal_event("cancel_logout", _params, socket) do
+    was_expanded = expanded?(socket)
+    socket = assign(socket, :show_logout_modal, false)
+    {:halt, notify_parent_of_resize(socket, was_expanded)}
+  end
+
+  defp handle_logout_modal_event(_event, _params, socket), do: {:cont, socket}
 
   @impl true
   def handle_info(msg, socket) do
@@ -304,22 +323,24 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
         <% end %>
 
         <%!--
-          Disconnect confirmation. `show_logout_modal` is toggled by
-          `LogoutModalHooks`; this surface must render the modal itself
-          (unlike app layouts / Qlink which already host one). Confirm
-          uses in-place session clear + LiveSocket reconnect so the
-          third-party host page never navigates.
+          Disconnect confirmation. Use absolute (not CoreComponents modal /
+          position:fixed) so the dialog is not clipped by
+          `.sponster-embed-root { overflow: hidden }`. Confirm clears the
+          session in-place + LiveSocket reconnect (no host navigation).
         --%>
-        <%= if @current_scope && assigns[:show_logout_modal] do %>
-          <.modal
+        <%= if @current_scope && @show_logout_modal do %>
+          <div
             id="ads-ext-logout-modal"
-            show={true}
-            border_class="border border-widget-700"
-            on_cancel={JS.push("cancel_logout")}
+            class="absolute inset-0 z-[150] flex items-center justify-center bg-black/50 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ads-ext-logout-title"
+            phx-window-keydown={JS.push("cancel_logout")}
+            phx-key="Escape"
           >
-            <div class="rounded-box overflow-hidden">
+            <div class="w-full max-w-md overflow-hidden rounded-box border border-widget-700 bg-base-100 shadow-2xl">
               <div class="bg-base-200 px-6 py-4 rounded-t-box">
-                <h3 class="font-bold text-lg">Disconnect</h3>
+                <h3 id="ads-ext-logout-title" class="font-bold text-lg">Disconnect</h3>
               </div>
               <div class="p-6">
                 <p class="py-4">
@@ -345,7 +366,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
                 </div>
               </div>
             </div>
-          </.modal>
+          </div>
         <% end %>
       <% end %>
     </div>

@@ -22,13 +22,27 @@ defmodule QlariusWeb.Auth.ExtensionExchangeController do
   plug :accepts, ["json"]
 
   def session_status(conn, _params) do
-    authed? =
-      case conn.assigns[:current_scope] do
-        %{true_user: %{id: _}} -> true
-        _ -> false
+    # Lightweight probe — do not build a full Scope (offer counts, tags, …).
+    # Bridge clients call this often; a Scope.for_user/1 here stampedes the DB.
+    authed? = session_authed?(conn)
+    json(conn, %{authed: authed?})
+  end
+
+  defp session_authed?(conn) do
+    token =
+      case get_session(conn, :user_token) do
+        t when is_binary(t) and t != "" ->
+          t
+
+        _ ->
+          conn = fetch_cookies(conn, signed: [UserAuth.remember_me_cookie()])
+          conn.cookies[UserAuth.remember_me_cookie()]
       end
 
-    json(conn, %{authed: authed?})
+    case token do
+      t when is_binary(t) and t != "" -> match?(%{id: _}, Accounts.get_user_by_session_token(t))
+      _ -> false
+    end
   end
 
   def create(conn, %{"token" => token} = params) when is_binary(token) do

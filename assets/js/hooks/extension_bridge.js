@@ -123,6 +123,9 @@ export async function probeExtension() {
 }
 
 export async function mintTokenIntoExtension() {
+  // Intentional login path — lift the post-logout mint block.
+  await sendToExtension({ type: "qadabra:auth:clear-logout-guard" })
+
   const deviceRes = await sendToExtension({ type: "qadabra:auth:get-device-id" })
   if (!deviceRes?.device_id) return false
 
@@ -153,6 +156,7 @@ export async function exchangeExtensionToken() {
   })
 
   if (res.status === 204) {
+    lastSyncResult = "exchanged"
     reconnectLiveSocket()
     return true
   }
@@ -176,6 +180,8 @@ export async function exchangeExtensionToken() {
 }
 
 export async function globalExtensionLogout() {
+  lastSyncResult = null
+
   const vault = await sendToExtension({ type: "qadabra:auth:get-token" })
   if (vault?.token) {
     try {
@@ -191,6 +197,10 @@ export async function globalExtensionLogout() {
   await sendToExtension({ type: "qadabra:auth:logout" })
 }
 
+// Last settled bridge outcome for this page — skip repeat probes on
+// LiveSocket reconnect when nothing auth-related changed.
+let lastSyncResult = null
+
 /**
  * Reconcile Phoenix session ↔ extension vault.
  * Safe to call after every LiveSocket reconnect / SessionSync remount.
@@ -199,7 +209,15 @@ export async function globalExtensionLogout() {
  */
 export async function syncExtensionWithSession() {
   const { present, authed: extAuthed } = await probeExtension()
-  if (!present) return "absent"
+  if (!present) {
+    lastSyncResult = "absent"
+    return "absent"
+  }
+
+  // Already aligned (session + vault) — avoid /auth/session_status storms.
+  if (lastSyncResult === "noop" && extAuthed) return "noop"
+  if (lastSyncResult === "minted" && extAuthed) return "noop"
+  if (lastSyncResult === "exchanged" && extAuthed) return "noop"
 
   let sessionAuthed = false
   try {
@@ -212,16 +230,25 @@ export async function syncExtensionWithSession() {
     return "noop"
   }
 
+  // Only mint when the vault is empty. Re-minting on every reconcile
+  // rewrites storage, re-notifies frames, and loops.
   if (sessionAuthed) {
+    if (extAuthed) {
+      lastSyncResult = "noop"
+      return "noop"
+    }
     await mintTokenIntoExtension()
+    lastSyncResult = "minted"
     return "minted"
   }
 
   if (extAuthed) {
     const exchanged = await exchangeExtensionToken()
-    return exchanged ? "exchanged" : "noop"
+    lastSyncResult = exchanged ? "exchanged" : "noop"
+    return lastSyncResult
   }
 
+  lastSyncResult = "noop"
   return "noop"
 }
 
@@ -263,8 +290,10 @@ function wireExtensionPageListener() {
     if (event.origin !== window.location.origin) return
 
     if (event.data?.type === "qadabra:extension-hello" && event.data.id) {
+      const prev = document.documentElement.dataset.qadabraExtensionId
       document.documentElement.dataset.qadabraExtensionId = event.data.id
-      syncExtensionWithSessionDebounced()
+      // First hello only — repeats would re-enter sync/mint forever.
+      if (prev !== event.data.id) syncExtensionWithSessionDebounced()
       return
     }
 
@@ -275,6 +304,8 @@ function wireExtensionPageListener() {
     }
 
     if (event.data?.type !== "qadabra:auth:extension-changed") return
+    // Force re-probe after vault clear / cross-frame auth change.
+    lastSyncResult = null
     syncExtensionWithSessionDebounced()
   })
 }

@@ -539,6 +539,7 @@ defmodule QlariusWeb.Layouts do
         <.modal
           id="logout-modal"
           show={true}
+          close_on_click_away={false}
           on_cancel={JS.push("cancel_logout")}
         >
           <div class="border-2 border-primary rounded-box">

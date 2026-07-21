@@ -6,6 +6,26 @@ const QADABRA_DEVICE_KEY = "qadabra_device_id";
 const QADABRA_LEGACY_TOKEN_KEY = "qadabra_identity_token";
 // When true, popup shows the Local/Prod switcher. Off by default for prod UX.
 const QADABRA_DEV_ENV_UI_KEY = "qadabra_dev_env_ui";
+// Blocks vault mint/exchange briefly after logout so a still-authed frame
+// cannot re-mint and bounce the popup back into an authed session.
+const QADABRA_LOGOUT_GUARD_KEY = "qadabra_logout_guard_until";
+const QADABRA_LOGOUT_GUARD_MS = 30_000;
+
+async function setLogoutGuard() {
+  await chrome.storage.local.set({
+    [QADABRA_LOGOUT_GUARD_KEY]: Date.now() + QADABRA_LOGOUT_GUARD_MS
+  });
+}
+
+async function clearLogoutGuard() {
+  await chrome.storage.local.remove(QADABRA_LOGOUT_GUARD_KEY);
+}
+
+async function underLogoutGuard() {
+  const data = await chrome.storage.local.get(QADABRA_LOGOUT_GUARD_KEY);
+  const until = data[QADABRA_LOGOUT_GUARD_KEY];
+  return typeof until === "number" && Date.now() < until;
+}
 
 const QADABRA_ENVS = {
   prod: {
