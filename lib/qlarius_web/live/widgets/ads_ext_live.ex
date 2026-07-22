@@ -338,12 +338,17 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
             phx-window-keydown={JS.push("cancel_logout")}
             phx-key="Escape"
           >
-            <div class="w-full max-w-md overflow-hidden rounded-box border border-widget-700 bg-base-100 shadow-2xl">
+            <div class="w-[min(100%,28rem)] overflow-hidden rounded-box border border-widget-700 bg-base-100 shadow-2xl">
               <div class="bg-base-200 px-6 py-4 rounded-t-box">
                 <h3 id="ads-ext-logout-title" class="font-bold text-lg">Disconnect</h3>
               </div>
               <div class="p-6">
-                <p class="py-4">
+                <img
+                  src="/images/qadabra_logo_squares_color.svg"
+                  alt="Qadabra"
+                  class="mx-auto mb-3 h-14 w-14 rounded-xl object-contain"
+                />
+                <p class="py-2">
                   This disconnects you from Qadabra for all browser activity on this device,
                   including publisher widgets and the browser extension. You can reconnect
                   anytime with your mobile number.

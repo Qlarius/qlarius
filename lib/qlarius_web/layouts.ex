@@ -540,44 +540,47 @@ defmodule QlariusWeb.Layouts do
           id="logout-modal"
           show={true}
           close_on_click_away={false}
+          border_class="border-2 border-primary"
+          panel_class="w-[min(100%,28rem)]"
           on_cancel={JS.push("cancel_logout")}
         >
-          <div class="border-2 border-primary rounded-box">
-            <%!-- Header bar --%>
-            <div class="bg-base-200 dark:bg-base-300 px-6 py-4 flex items-center justify-between rounded-t-box">
-              <h3 class="font-bold text-lg">Confirm disconnect</h3>
+          <div class="bg-base-200 dark:bg-base-300 px-6 py-4 flex items-center justify-between">
+            <h3 class="font-bold text-lg">Confirm disconnect</h3>
+            <button
+              phx-click={JS.push("cancel_logout")}
+              type="button"
+              class="btn btn-circle btn-ghost btn-sm hover:bg-base-300"
+              aria-label={gettext("close")}
+            >
+              <.icon name="hero-x-mark" class="w-5 h-5" />
+            </button>
+          </div>
+          <div class="p-6">
+            <img
+              src="/images/qadabra_logo_squares_color.svg"
+              alt="Qadabra"
+              class="mx-auto mb-3 h-14 w-14 rounded-xl object-contain"
+            />
+            <p class="py-2">
+              This disconnects you from Qadabra for all browser activity on this device,
+              including publisher widgets and the browser extension. You can reconnect
+              anytime with your mobile number.
+            </p>
+            <div class="flex w-full gap-3">
               <button
-                phx-click={JS.push("cancel_logout")}
                 type="button"
-                class="btn btn-circle btn-ghost btn-sm hover:bg-base-300"
-                aria-label={gettext("close")}
+                class="btn btn-ghost rounded-full flex-1"
+                phx-click="cancel_logout"
               >
-                <.icon name="hero-x-mark" class="w-5 h-5" />
+                Cancel
               </button>
-            </div>
-            <%!-- Content --%>
-            <div class="p-6">
-              <p class="py-4">
-                This disconnects you from Qadabra for all browser activity on this device,
-                including publisher widgets and the browser extension. You can reconnect
-                anytime with your mobile number.
-              </p>
-              <div class="flex w-full gap-3">
-                <button
-                  type="button"
-                  class="btn btn-ghost rounded-full flex-1"
-                  phx-click="cancel_logout"
-                >
-                  Cancel
+              <form action={~p"/logout"} method="post" class="flex-1 min-w-0">
+                <input type="hidden" name="_method" value="delete" />
+                <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+                <button type="submit" class="btn btn-error rounded-full w-full">
+                  Log Out
                 </button>
-                <form action={~p"/logout"} method="post" class="flex-1 min-w-0">
-                  <input type="hidden" name="_method" value="delete" />
-                  <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-                  <button type="submit" class="btn btn-error rounded-full w-full">
-                    Log Out
-                  </button>
-                </form>
-              </div>
+              </form>
             </div>
           </div>
         </.modal>

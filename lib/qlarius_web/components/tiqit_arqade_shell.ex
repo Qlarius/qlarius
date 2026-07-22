@@ -260,34 +260,33 @@ defmodule QlariusWeb.Components.TiqitArqadeShell do
           show={true}
           close_on_click_away={false}
           border_class={tiqit_arqade_modal_border_class()}
+          panel_class="w-[min(100%,28rem)]"
           on_cancel={JS.push("cancel_logout")}
         >
-          <div class="rounded-box overflow-hidden">
-            <div class="bg-base-200 px-6 py-4 rounded-t-box">
-              <h3 class="font-bold text-lg">Disconnect wallet</h3>
-            </div>
-            <div class="p-6">
-              <p class="py-4">You will leave this session on this page. You can connect again anytime.</p>
-              <div class="modal-action">
+          <div class="bg-base-200 px-6 py-4">
+            <h3 class="font-bold text-lg">Disconnect wallet</h3>
+          </div>
+          <div class="p-6">
+            <p class="py-4">You will leave this session on this page. You can connect again anytime.</p>
+            <div class="modal-action">
+              <button
+                type="button"
+                class="btn btn-ghost outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
+                phx-click="cancel_logout"
+              >
+                Cancel
+              </button>
+              <form action={~p"/logout"} method="post">
+                <input type="hidden" name="_method" value="delete" />
+                <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+                <input type="hidden" name="return_to" value={@return_to} />
                 <button
-                  type="button"
-                  class="btn btn-ghost outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
-                  phx-click="cancel_logout"
+                  type="submit"
+                  class="btn btn-error outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-error-content/50"
                 >
-                  Cancel
+                  Disconnect
                 </button>
-                <form action={~p"/logout"} method="post">
-                  <input type="hidden" name="_method" value="delete" />
-                  <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-                  <input type="hidden" name="return_to" value={@return_to} />
-                  <button
-                    type="submit"
-                    class="btn btn-error outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-error-content/50"
-                  >
-                    Disconnect
-                  </button>
-                </form>
-              </div>
+              </form>
             </div>
           </div>
         </.modal>

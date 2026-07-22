@@ -764,13 +764,33 @@ defmodule QlariusWeb.CoreComponents do
     """
   end
 
+  @doc """
+  Compact duration for ad/content lists.
+
+  * under 1 minute — `:SS` (e.g. 15 → `:15`)
+  * under 1 hour — `M:SS` (e.g. 90 → `1:30`)
+  * 1 hour+ — `H:MM:SS` (e.g. 3661 → `1:01:01`)
+  """
   def format_duration(seconds) when is_integer(seconds) or is_float(seconds) do
-    seconds = round(seconds)
-    hours = div(seconds, 3600)
-    minutes = div(rem(seconds, 3600), 60)
-    remaining_seconds = rem(seconds, 60)
-    :io_lib.format("~2..0B:~2..0B:~2..0B", [hours, minutes, remaining_seconds])
+    seconds = max(round(seconds), 0)
+
+    cond do
+      seconds < 60 ->
+        ":#{pad2(seconds)}"
+
+      seconds < 3600 ->
+        "#{div(seconds, 60)}:#{pad2(rem(seconds, 60))}"
+
+      true ->
+        hours = div(seconds, 3600)
+        minutes = div(rem(seconds, 3600), 60)
+        secs = rem(seconds, 60)
+        "#{hours}:#{pad2(minutes)}:#{pad2(secs)}"
+    end
   end
+
+  defp pad2(n) when n < 10, do: "0#{n}"
+  defp pad2(n), do: Integer.to_string(n)
 
   ## --------------------------
   ##      Pre-1.8 components
@@ -835,6 +855,10 @@ defmodule QlariusWeb.CoreComponents do
   attr :on_cancel, JS, default: %JS{}
   attr :close_on_click_away, :boolean, default: true
   attr :border_class, :string, default: "border border-base-300"
+  # Width of the *centered* shell (e.g. `w-[min(100%,28rem)]`). Must live on
+  # this wrapper — not the inner card — or `max-content` stays wide and the
+  # card sits left/off-center. Do not nest a second bordered `rounded-box`.
+  attr :panel_class, :string, default: nil
   slot :inner_block, required: true
 
   def modal(assigns) do
@@ -850,9 +874,9 @@ defmodule QlariusWeb.CoreComponents do
       
     <!-- Modal Container -->
       <!--
-        Centered dialog: width is `min(100% of scrollport, max-content)` so narrow
-        UIs (e.g. InstaTip confirm) stay compact, with `max-w-[min(56rem,96%)]`
-        capping wide forms/tables on desktop and in IABs.
+        Centered dialog: default width is `min(100%, max-content)` so narrow
+        UIs stay compact, with `max-w-[min(56rem,96%)]` capping wide forms.
+        Pass `panel_class` to fix the centered shell’s width explicitly.
       -->
       <div
         class="fixed inset-0 z-10 overflow-y-auto"
@@ -863,7 +887,10 @@ defmodule QlariusWeb.CoreComponents do
         tabindex="0"
       >
         <div class="flex min-h-full items-center justify-center p-3 sm:p-4">
-          <div class="mx-auto w-[min(100%,max-content)] min-w-0 max-w-[min(56rem,96%)]">
+          <div class={[
+            "mx-auto min-w-0",
+            @panel_class || "w-[min(100%,max-content)] max-w-[min(56rem,96%)]"
+          ]}>
             <!-- Modal Card -->
             <.focus_wrap
               id={"#{@id}-container"}
@@ -873,7 +900,7 @@ defmodule QlariusWeb.CoreComponents do
                 @close_on_click_away && JS.exec("data-cancel", to: "##{@id}")
               }
               class={[
-                "relative hidden bg-base-100 rounded-box shadow-2xl transition-all duration-200",
+                "relative hidden w-full overflow-hidden bg-base-100 rounded-box shadow-2xl transition-all duration-200",
                 @border_class
               ]}
             >
