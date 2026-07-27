@@ -36,6 +36,8 @@ qlarius-*.tar
 /priv/static/service-worker-*.js.gz
 /priv/static/sponster-tipjar-widget-ext-script-*.js
 /priv/static/sponster-tipjar-widget-ext-script-*.js.gz
+/priv/static/tiqit-arqade-widget-script-*.js
+/priv/static/tiqit-arqade-widget-script-*.js.gz
 
 # Ignore compressed and digested static files (build artifacts)
 /priv/static/**/*.gz

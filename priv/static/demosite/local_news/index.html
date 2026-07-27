@@ -256,6 +256,44 @@
             <!-- Sidebar (1/3 width on desktop) -->
             <aside class="space-y-6">
 
+                <!-- Newsletter subscribe (demo only — no backend) -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-xl font-bold mb-2 pb-2 border-b">Daily Digest</h3>
+                    <p class="text-sm text-gray-600 mb-4">
+                        Get Springfield's top community stories in your inbox every morning — free.
+                    </p>
+                    <form
+                        class="space-y-3"
+                        action="#"
+                        method="post"
+                        onsubmit="event.preventDefault(); this.querySelector('[data-subscribe-feedback]').classList.remove('hidden'); this.querySelector('button[type=submit]').disabled = true;"
+                    >
+                        <label class="block sans text-xs font-semibold text-gray-700 uppercase tracking-wide" for="sidebar-digest-email">
+                            Email address
+                        </label>
+                        <input
+                            id="sidebar-digest-email"
+                            type="email"
+                            name="email"
+                            required
+                            placeholder="you@example.com"
+                            class="sans w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                        >
+                        <button
+                            type="submit"
+                            class="sans w-full rounded bg-black px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 disabled:cursor-default disabled:opacity-70"
+                        >
+                            Subscribe
+                        </button>
+                        <p data-subscribe-feedback class="hidden sans text-sm text-green-700">
+                            You're on the list — watch for tomorrow's digest.
+                        </p>
+                        <p class="sans text-xs text-gray-500">
+                            No spam. Unsubscribe anytime.
+                        </p>
+                    </form>
+                </div>
+
                 <div class="bg-white rounded-lg shadow-sm p-6">
                     <h3 class="text-xl font-bold mb-4 pb-2 border-b">Weather</h3>
                     <div class="text-center">

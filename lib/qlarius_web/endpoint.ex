@@ -34,6 +34,23 @@ defmodule QlariusWeb.Endpoint do
       check_origin: false
     ]
 
+  # Third-party embed loaders use a permanent public URL (publishers hardcode
+  # it). Unlike digested app.js/css (~p"/assets/..."), these cannot change
+  # path on every deploy — so send `no-cache` and revalidate via ETag instead
+  # of far-future caching. Pair with a Cloudflare Cache Rule that bypasses
+  # (or respects origin) for these paths.
+  @embed_script_paths ~w(
+    sponster-tipjar-widget-ext-script.js
+    tiqit-arqade-widget-script.js
+  )
+
+  plug Plug.Static,
+    at: "/",
+    from: :qlarius,
+    gzip: false,
+    only: @embed_script_paths,
+    headers: [{"cache-control", "no-cache"}]
+
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phx.digest
