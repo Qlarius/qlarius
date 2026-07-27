@@ -11,6 +11,16 @@
   // Guard to prevent multiple activations
   let activationInProgress = false;
 
+  // Publisher pages (e.g. daily-local.com) must iframe Qadabra, not themselves.
+  // Local demosite / tunnel hosts hit the local Phoenix app on :4001.
+  function resolveBaseUrl() {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'https://localhost:4001';
+    }
+    return 'https://qadabra.app';
+  }
+
   function initTiqitArqadeWidget() {
     console.log('[Tiqit Arqade] Initializing widget...');
     const marker = document.getElementById('tiqit-paywall-hide-start');
@@ -45,7 +55,7 @@
       return;
     }
 
-    const baseUrl = window.location.protocol + '//' + window.location.host;
+    const baseUrl = resolveBaseUrl();
     const iframeUrl = `${baseUrl}/widgets/arqade/${pieceId}?force_theme=light`;
     console.log('[Tiqit Arqade] Creating iframe with URL:', iframeUrl);
 
@@ -167,4 +177,3 @@
     initTiqitArqadeWidget();
   }
 })();
-
