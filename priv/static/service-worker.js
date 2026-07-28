@@ -1,5 +1,5 @@
-// Version: 1.0.5 - Conservative SW activation to avoid forced LV remounts
-const SW_VERSION = "1.0.5"
+// Version: 1.0.6 - Do not mediate LiveView transports (Safari iframe remount loop)
+const SW_VERSION = "1.0.6"
 const REFERRAL_CACHE = "qadabra-shared-data"
 const REFERRAL_CODE_ENDPOINT = "/_shared/referral-code"
 
@@ -25,6 +25,16 @@ self.addEventListener("message", () => {})
 self.addEventListener("fetch", (event) => {
   const { request } = event
   const url = new URL(request.url)
+
+  // Never intercept Phoenix LiveView / realtime. Safari third-party iframes
+  // often use longpoll; SW fetch mediation remount-loops the socket.
+  if (
+    url.pathname.startsWith("/live") ||
+    url.pathname.startsWith("/widgets/live") ||
+    url.pathname.startsWith("/phoenix/")
+  ) {
+    return
+  }
 
   if (url.pathname === REFERRAL_CODE_ENDPOINT) {
     if (request.method === "POST") {

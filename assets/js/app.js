@@ -3671,11 +3671,28 @@ Hooks.OTPInput = {
   }
 }
 
-// Register service worker for PWA.
+// Register service worker for PWA — never for third-party widget embeds.
+// Safari third-party iframes often fall back to LiveView longpoll; a
+// controlling SW that mediates those fetches causes mount/reconnect loops.
 // NOTE (2026-05-28): We intentionally avoid forced SW takeover/reload here.
 // The previous flow (auto skipWaiting + controllerchange -> reload + eager update checks)
 // caused periodic LiveView remounts without user interaction.
-if ("serviceWorker" in navigator && !isExtension) {
+const isWidgetEmbedPath = window.location.pathname.startsWith("/widgets/")
+const isEmbeddedIframe = (() => {
+  try {
+    return window.self !== window.top
+  } catch (_e) {
+    // Cross-origin parent access can throw; treat as embedded.
+    return true
+  }
+})()
+
+if (
+  "serviceWorker" in navigator &&
+  !isExtension &&
+  !isEmbeddedIframe &&
+  !isWidgetEmbedPath
+) {
   const registerPwaServiceWorker = () => {
     navigator.serviceWorker.register("/service-worker.js")
       .then((registration) => {
@@ -3689,6 +3706,8 @@ if ("serviceWorker" in navigator && !isExtension) {
   window.addEventListener("load", registerPwaServiceWorker)
 } else if (isExtension) {
   console.log("🚫 Service Worker disabled in extension context (skip register; do NOT unregister - unregister can trigger reload loop)")
+} else if (isEmbeddedIframe || isWidgetEmbedPath) {
+  console.log("🚫 Service Worker skipped for widget / iframe embed")
 } else {
   console.warn("❌ Service Worker not supported in this browser")
 }
