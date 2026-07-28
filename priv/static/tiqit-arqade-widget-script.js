@@ -13,6 +13,8 @@
 
   // Publisher pages (e.g. daily-local.com) must iframe Qadabra, not themselves.
   // Local demosite / tunnel hosts hit the local Phoenix app on :4001.
+  // Resolve from the *page* hostname so the same embed HTML works in local
+  // testing and production without swapping script/iframe URLs.
   function resolveBaseUrl() {
     const host = window.location.hostname;
     if (host === 'localhost' || host === '127.0.0.1') {

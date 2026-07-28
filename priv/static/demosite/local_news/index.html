@@ -365,7 +365,17 @@
                 <!-- Insta Tipjar Widget -->
                 <div class="bg-white rounded-lg shadow-sm p-6">
                     <h3 class="text-xl font-bold mb-4 pb-2 border-b">Thank you for your support!</h3>
-                    <iframe allow="fullscreen" src="https://qadabra.app/widgets/insta_tip?force_theme=light&split_code=daily_local" style="width: 100%; height: 640px; box-sizing:border-box; border: none;" title="Sponster Tipjar"></iframe>
+                    <iframe id="sponster-insta-tip-iframe" allow="fullscreen" src="about:blank" style="width: 100%; height: 640px; box-sizing:border-box; border: none;" title="Sponster Tipjar"></iframe>
+                    <script>
+                      (function () {
+                        var host = window.location.hostname;
+                        var base = (host === "localhost" || host === "127.0.0.1")
+                          ? "https://localhost:4001"
+                          : "https://qadabra.app";
+                        document.getElementById("sponster-insta-tip-iframe").src =
+                          base + "/widgets/insta_tip?force_theme=light&split_code=daily_local";
+                      })();
+                    </script>
                 </div>
 
                 <!-- Events -->
@@ -471,7 +481,15 @@
 
     <!-- SPONSTER EMBED CODE BEGIN  -->
     <div id="sponster-tipjar-widget" sponster-split-code="daily_local"></div>
-    <script src="https://qadabra.app/sponster-tipjar-widget-ext-script.js"></script>
+    <script>
+      (function () {
+        var host = window.location.hostname;
+        var base = (host === "localhost" || host === "127.0.0.1")
+          ? "https://localhost:4001"
+          : "https://qadabra.app";
+        document.write('<script src="' + base + '/sponster-tipjar-widget-ext-script.js"><\/script>');
+      })();
+    </script>
     <!-- SPONSTER EMBED CODE END  -->
 
     <script>

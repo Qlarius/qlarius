@@ -3,7 +3,11 @@
 // Host pages include:
 //
 //   <div id="sponster-tipjar-widget" sponster-split-code="SPLIT_CODE"></div>
-//   <script src="https://<qlarius-host>/sponster-tipjar-widget-ext-script.js"></script>
+//   <script src="https://qadabra.app/sponster-tipjar-widget-ext-script.js"></script>
+//
+// The iframe target is chosen from the *page* hostname (localhost →
+// https://localhost:4001, otherwise https://qadabra.app) so demosite and
+// publisher HTML do not need environment-specific embed URLs.
 //
 // This script injects a single bottom-anchored iframe pointing at
 // /widgets/ads_ext/:split_code — the shared Sponster stack (announcer bar +
@@ -28,24 +32,16 @@
   var splitCode = widgetDiv.getAttribute("sponster-split-code");
   if (!splitCode) return;
 
-  // Resolve the Qlarius origin from this script's own src so the embed
-  // works from any third-party page against whichever host served the
-  // script (qadabra.app in production, localhost:4000 in dev). Falls back
-  // to the page's own origin, which is only correct for same-origin
-  // embeds like the local demosite.
+  // Publisher pages (e.g. daily-local.com) must iframe Qadabra, not themselves.
+  // Local demosite / tunnel hosts hit the local Phoenix app on :4001.
+  // Resolve from the *page* hostname so the same embed HTML works in local
+  // testing and production without swapping script/iframe URLs.
   var qlariusOrigin = (function () {
-    var scriptEl =
-      document.currentScript ||
-      document.querySelector('script[src*="sponster-tipjar-widget-ext-script"]');
-
-    try {
-      // `.src` is the DOM property, already resolved to an absolute URL.
-      if (scriptEl && scriptEl.src) return new URL(scriptEl.src).origin;
-    } catch (_e) {
-      // fall through
+    var host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1") {
+      return "https://localhost:4001";
     }
-
-    return window.location.origin;
+    return "https://qadabra.app";
   })();
 
   var widgetSrc =

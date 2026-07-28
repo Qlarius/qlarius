@@ -41,18 +41,30 @@
 
     <!-- Main Content -->
     <main class="w-full md:w-2/4 space-y-6">
-      <iframe 
+      <iframe
+        id="demosite-arcade-group-1"
         allow="fullscreen"
-        src="http://localhost:4000/widgets/arcade/group/1"
+        src="about:blank"
         style="width: 640px; height: 480px; border: none; margin-top: 20px; border: 1px solid oklch(70.7% 0.022 261.325);"
         title="Qlarius Arcade"
       ></iframe>
-      <iframe 
+      <iframe
+        id="demosite-arcade-group-2"
         allow="fullscreen"
-        src="http://localhost:4000/widgets/arcade/group/2"
+        src="about:blank"
         style="width: 640px; height: 480px; border: none; margin-top: 20px; border: 1px solid oklch(70.7% 0.022 261.325);"
         title="Qlarius Arcade"
       ></iframe>
+      <script>
+        (function () {
+          var host = window.location.hostname;
+          var base = (host === "localhost" || host === "127.0.0.1")
+            ? "https://localhost:4001"
+            : "https://qadabra.app";
+          document.getElementById("demosite-arcade-group-1").src = base + "/widgets/arqade/group/1";
+          document.getElementById("demosite-arcade-group-2").src = base + "/widgets/arqade/group/2";
+        })();
+      </script>
 
       <!-- Video Card -->
       <div class="bg-white rounded shadow overflow-hidden">
@@ -146,12 +158,22 @@
         </table>
       </div>
     </aside>
-      <iframe 
+      <iframe
+        id="demosite-wallet-iframe"
         allow="fullscreen"
-        src="http://localhost:4000/widgets/wallet"
+        src="about:blank"
         class="w-full fixed bottom-0 left-0 h-16"
         title="Qlarius Arcade"
       ></iframe>
+      <script>
+        (function () {
+          var host = window.location.hostname;
+          var base = (host === "localhost" || host === "127.0.0.1")
+            ? "https://localhost:4001"
+            : "https://qadabra.app";
+          document.getElementById("demosite-wallet-iframe").src = base + "/widgets/wallet";
+        })();
+      </script>
   </div>
 </body>
 </html>

@@ -187,7 +187,15 @@
 
 
                       <!-- Tiqit Arqade Widget Script -->
-                    <script src="https://qadabra.app/tiqit-arqade-widget-script.js"></script>
+                    <script>
+                      (function () {
+                        var host = window.location.hostname;
+                        var base = (host === "localhost" || host === "127.0.0.1")
+                          ? "https://localhost:4001"
+                          : "https://qadabra.app";
+                        document.write('<script src="' + base + '/tiqit-arqade-widget-script.js"><\/script>');
+                      })();
+                    </script>
 
                       <p class="mb-6" style="display: none;">
                           The park features a state-of-the-art playground designed for children of all abilities, including wheelchair-accessible equipment and sensory play areas. A network of walking trails winds through mature oak and maple trees, connecting three distinct zones: an active recreation area, a quiet contemplation garden, and a community gathering space with picnic pavilions.
@@ -353,7 +361,15 @@
 
     <!-- SPONSTER EMBED CODE BEGIN  -->
     <div id="sponster-tipjar-widget" sponster-split-code="daily_local"></div>
-    <script src="https://qadabra.app/sponster-tipjar-widget-ext-script.js"></script>
+    <script>
+      (function () {
+        var host = window.location.hostname;
+        var base = (host === "localhost" || host === "127.0.0.1")
+          ? "https://localhost:4001"
+          : "https://qadabra.app";
+        document.write('<script src="' + base + '/sponster-tipjar-widget-ext-script.js"><\/script>');
+      })();
+    </script>
     <!-- SPONSTER EMBED CODE END  -->   
 
 </body>
