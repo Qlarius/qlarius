@@ -138,6 +138,18 @@ defmodule Qlarius.Tiqit.Arcade.Catalog do
     if count == 1, do: base, else: base <> "s"
   end
 
+  @doc """
+  Shortest-duration catalog tiqit class (lifetime sorts last).
+  Returns `nil` when the catalog has no tiqit classes.
+  """
+  def default_tiqit_class(%__MODULE__{tiqit_classes: []} = _catalog), do: nil
+
+  def default_tiqit_class(%__MODULE__{} = catalog) do
+    catalog.tiqit_classes
+    |> TiqitClass.order_by_duration_hours_asc()
+    |> List.first()
+  end
+
   @doc false
   def changeset(catalog, attrs) do
     catalog

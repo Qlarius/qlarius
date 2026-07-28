@@ -42,6 +42,7 @@ defmodule QlariusWeb.Endpoint do
   @embed_script_paths ~w(
     sponster-tipjar-widget-ext-script.js
     tiqit-arqade-widget-script.js
+    tiqit-pass-widget-script.js
   )
 
   plug Plug.Static,

@@ -325,6 +325,7 @@ defmodule QlariusWeb.Router do
       live "/wallet", WalletLive
       live "/ads_ext/", AdsExtLive
       live "/ads_ext/:split_code", AdsExtLive
+      live "/tiqit_pass/:catalog_id", TiqitPassLive
       live "/insta_tip", InstaTipWidgetLive
     end
   end

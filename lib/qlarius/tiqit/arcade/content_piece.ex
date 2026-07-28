@@ -23,6 +23,9 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
     field :source_imported_at, :utc_datetime
     field :archived_at, :utc_datetime
 
+    field :exclude_from_catalog_access, :boolean, default: false
+    field :exclude_from_group_access, :boolean, default: false
+
     has_many :tiqit_classes, TiqitClass,
       on_replace: :delete,
       preload_order: [asc: :duration_hours, asc: :id]
@@ -43,7 +46,9 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
       :preview_length,
       :file_url,
       :preview_url,
-      :price_default
+      :price_default,
+      :exclude_from_catalog_access,
+      :exclude_from_group_access
     ])
     |> validate_required([
       :title,
@@ -92,6 +97,8 @@ defmodule Qlarius.Tiqit.Arcade.ContentPiece do
   def default_tiqit_class(%__MODULE__{tiqit_classes: []} = _piece), do: nil
 
   def default_tiqit_class(%__MODULE__{} = piece) do
-    Enum.min_by(piece.tiqit_classes, & &1.duration_hours)
+    piece.tiqit_classes
+    |> TiqitClass.order_by_duration_hours_asc()
+    |> List.first()
   end
 end

@@ -28,25 +28,82 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     now = DateTime.utc_now()
 
     piece = Repo.preload(piece, :content_group)
+    catalog_id = piece.content_group.catalog_id
+    group_id = piece.content_group_id
+    allow_group? = not piece.exclude_from_group_access
+    allow_catalog? = not piece.exclude_from_catalog_access
 
     query =
       from t in Tiqit,
         join: tc in assoc(t, :tiqit_class),
         join: u in assoc(t, :user),
-        where:
-          tc.content_piece_id == ^piece.id or
-            tc.content_group_id == ^piece.content_group_id or
-            tc.catalog_id == ^piece.content_group.catalog_id,
         where: u.id == ^scope.user.id,
         where: is_nil(t.expires_at) or t.expires_at > ^now,
+        where:
+          tc.content_piece_id == ^piece.id or
+            (^allow_group? and tc.content_group_id == ^group_id) or
+            (^allow_catalog? and tc.catalog_id == ^catalog_id),
         limit: 1
 
     Repo.one(query)
   end
 
   @doc """
+  Returns a valid non-expired catalog-level tiqit for `catalog_id`, if any.
+  Used by the Tiqit Pass widget (General Admission).
+  """
+  def get_valid_catalog_tiqit(nil, _catalog_id), do: nil
+  def get_valid_catalog_tiqit(%Scope{user: nil}, _catalog_id), do: nil
+
+  def get_valid_catalog_tiqit(%Scope{} = scope, catalog_id) when is_integer(catalog_id) do
+    now = DateTime.utc_now()
+
+    Repo.one(
+      from t in Tiqit,
+        join: tc in assoc(t, :tiqit_class),
+        join: u in assoc(t, :user),
+        where: u.id == ^scope.user.id,
+        where: is_nil(t.expires_at) or t.expires_at > ^now,
+        where: tc.catalog_id == ^catalog_id,
+        where: is_nil(tc.content_piece_id),
+        where: is_nil(tc.content_group_id),
+        order_by: [desc: t.expires_at],
+        limit: 1,
+        preload: [:tiqit_class]
+    )
+  end
+
+  def has_valid_catalog_tiqit?(scope, catalog_id),
+    do: !!get_valid_catalog_tiqit(scope, catalog_id)
+
+  @doc """
+  Active catalog-scoped tiqit classes the user holds for this catalog
+  (for upgrade-only purchasability checks on the Pass widget).
+  """
+  def active_catalog_tiqit_classes(nil, _catalog_id), do: []
+  def active_catalog_tiqit_classes(%Scope{user: nil}, _catalog_id), do: []
+
+  def active_catalog_tiqit_classes(%Scope{} = scope, catalog_id) when is_integer(catalog_id) do
+    now = DateTime.utc_now()
+
+    from(t in Tiqit,
+      join: tc in assoc(t, :tiqit_class),
+      join: u in assoc(t, :user),
+      where: u.id == ^scope.user.id,
+      where: is_nil(t.expires_at) or t.expires_at > ^now,
+      where: tc.catalog_id == ^catalog_id,
+      where: is_nil(tc.content_piece_id),
+      where: is_nil(tc.content_group_id),
+      select: tc
+    )
+    |> Repo.all()
+    |> Enum.uniq_by(& &1.id)
+  end
+
+  @doc """
   Returns active `TiqitClass` records the user currently holds valid
-  non-expired tiqits for within this piece's scope (piece, group, or catalog).
+  non-expired tiqits for within this piece's scope (piece, group, or catalog),
+  respecting exclude-from-access flags on the piece.
   """
   def active_tiqit_classes(nil, %ContentPiece{}), do: []
   def active_tiqit_classes(%Scope{user: nil}, %ContentPiece{}), do: []
@@ -54,16 +111,20 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   def active_tiqit_classes(%Scope{} = scope, %ContentPiece{} = piece) do
     now = DateTime.utc_now()
     piece = Repo.preload(piece, :content_group)
+    catalog_id = piece.content_group.catalog_id
+    group_id = piece.content_group_id
+    allow_group? = not piece.exclude_from_group_access
+    allow_catalog? = not piece.exclude_from_catalog_access
 
     from(t in Tiqit,
       join: tc in assoc(t, :tiqit_class),
       join: u in assoc(t, :user),
-      where:
-        tc.content_piece_id == ^piece.id or
-          tc.content_group_id == ^piece.content_group_id or
-          tc.catalog_id == ^piece.content_group.catalog_id,
       where: u.id == ^scope.user.id,
       where: is_nil(t.expires_at) or t.expires_at > ^now,
+      where:
+        tc.content_piece_id == ^piece.id or
+          (^allow_group? and tc.content_group_id == ^group_id) or
+          (^allow_catalog? and tc.catalog_id == ^catalog_id),
       select: tc
     )
     |> Repo.all()
@@ -151,13 +212,8 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   of `content_piece.id`s the user has a currently-valid tiqit for
   within `group`'s scope (piece-, group-, or catalog-level).
 
-  Replaces N per-row `has_valid_tiqit?/2` calls with at most two
-  fixed-size queries:
-
-    1. `exists?` — any non-expired group- or catalog-level tiqit
-       (which unlocks every piece in this group); short-circuits to
-       all `pieces` ids if true.
-    2. `select` — piece-level tiqits restricted to ids in `pieces`.
+  Respects `exclude_from_group_access` / `exclude_from_catalog_access`
+  on each piece when applying broad (group/catalog) tiqits.
 
   Anon viewers (`nil` or `%Scope{user: nil}`) get an empty set and no
   query runs.
@@ -176,25 +232,44 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     now = DateTime.utc_now()
     user_id = scope.user.id
 
-    any_broad? =
+    has_group_tiqit? =
       Repo.exists?(
         from t in Tiqit,
           join: tc in assoc(t, :tiqit_class),
           join: u in assoc(t, :user),
           where: u.id == ^user_id,
           where: is_nil(t.expires_at) or t.expires_at > ^now,
-          where: tc.content_group_id == ^group_id or tc.catalog_id == ^catalog_id
+          where: tc.content_group_id == ^group_id
       )
 
-    if any_broad? do
-      MapSet.new(pieces, & &1.id)
-    else
-      piece_ids = Enum.map(pieces, & &1.id)
+    has_catalog_tiqit? =
+      Repo.exists?(
+        from t in Tiqit,
+          join: tc in assoc(t, :tiqit_class),
+          join: u in assoc(t, :user),
+          where: u.id == ^user_id,
+          where: is_nil(t.expires_at) or t.expires_at > ^now,
+          where: tc.catalog_id == ^catalog_id,
+          where: is_nil(tc.content_piece_id),
+          where: is_nil(tc.content_group_id)
+      )
 
+    from_broad =
+      pieces
+      |> Enum.filter(fn piece ->
+        (has_group_tiqit? and not piece.exclude_from_group_access) or
+          (has_catalog_tiqit? and not piece.exclude_from_catalog_access)
+      end)
+      |> MapSet.new(& &1.id)
+
+    piece_ids = Enum.map(pieces, & &1.id)
+
+    from_piece =
       piece_ids
       |> piece_level_valid_tiqit_piece_ids(user_id, now)
       |> MapSet.new()
-    end
+
+    MapSet.union(from_broad, from_piece)
   end
 
   defp piece_level_valid_tiqit_piece_ids([], _user_id, _now), do: []
@@ -266,13 +341,35 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     # in the current arcade
     classes = piece.tiqit_classes ++ group.tiqit_classes ++ group.catalog.tiqit_classes
 
-    id = String.to_integer(class_id)
+    id = if is_binary(class_id), do: String.to_integer(class_id), else: class_id
 
     if Enum.find(classes, &(&1.id == id)) do
       class
     else
       raise "invalid tiqit class"
     end
+  end
+
+  def get_tiqit_class_for_catalog!(class_id, %Catalog{} = catalog) do
+    class = TiqitClass |> Repo.get!(class_id)
+    id = if is_binary(class_id), do: String.to_integer(class_id), else: class_id
+
+    if class.catalog_id == catalog.id and is_nil(class.content_piece_id) and
+         is_nil(class.content_group_id) and Enum.any?(catalog.tiqit_classes, &(&1.id == id)) do
+      class
+    else
+      raise "invalid tiqit class"
+    end
+  end
+
+  def get_catalog!(id) do
+    Catalog
+    |> Repo.get!(id)
+    |> Repo.preload([
+      :creator,
+      tiqit_classes: from(t in TiqitClass, order_by: [asc: t.duration_hours, asc: t.id]),
+      content_groups: :content_pieces
+    ])
   end
 
   # TODO use Creators.get_content_piece! instead? ... maybe

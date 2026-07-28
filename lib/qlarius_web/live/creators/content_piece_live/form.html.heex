@@ -85,6 +85,24 @@
                     }
                     on_delete="delete_image"
                   />
+
+                  <div class="mt-6 space-y-3 rounded-lg border border-base-300 bg-base-200/50 p-4">
+                    <h4 class="text-sm font-semibold text-base-content">Access exclusions</h4>
+                    <p class="text-xs text-base-content/60">
+                      Opt this {Catalog.type_label(@catalog.piece_type, 1, capitalize: false)} out of
+                      broader Access Tiqits so buyers must purchase it separately.
+                    </p>
+                    <.input
+                      field={@form[:exclude_from_catalog_access]}
+                      type="checkbox"
+                      label={"Exclude from #{Catalog.type_label(@catalog.type)} Access Tiqit"}
+                    />
+                    <.input
+                      field={@form[:exclude_from_group_access]}
+                      type="checkbox"
+                      label={"Exclude from #{Catalog.type_label(@catalog.group_type)} Access Tiqit"}
+                    />
+                  </div>
                 </div>
                 
 <!-- Tiqit Classes Section -->
