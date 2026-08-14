@@ -425,6 +425,7 @@ defmodule QlariusWeb.QlinkPage.Show do
     case platform do
       "twitter" -> "/images/social-icons/x.svg"
       "instagram" -> "/images/social-icons/instagram.svg"
+      "threads" -> "/images/social-icons/threads.svg"
       "facebook" -> "/images/social-icons/facebook.svg"
       "linkedin" -> "/images/social-icons/linkedin.svg"
       "youtube" -> "/images/social-icons/youtube.svg"

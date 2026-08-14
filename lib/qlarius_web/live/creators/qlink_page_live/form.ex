@@ -710,6 +710,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     all_platforms = [
       "twitter",
       "instagram",
+      "threads",
       "facebook",
       "linkedin",
       "youtube",
@@ -723,6 +724,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
   def format_platform_name("twitter"), do: "Twitter/X"
   def format_platform_name("instagram"), do: "Instagram"
+  def format_platform_name("threads"), do: "Threads"
   def format_platform_name("facebook"), do: "Facebook"
   def format_platform_name("linkedin"), do: "LinkedIn"
   def format_platform_name("youtube"), do: "YouTube"
