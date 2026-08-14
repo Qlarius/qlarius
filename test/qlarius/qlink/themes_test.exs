@@ -21,6 +21,18 @@ defmodule Qlarius.Qlink.ThemesTest do
     end
   end
 
+  describe "document_theme/1" do
+    test "pins to the template embed theme and defaults unthemed pages to light" do
+      assert Themes.document_theme(Themes.resolve(Themes.apply("classic").theme_config)) ==
+               "light"
+
+      assert Themes.document_theme(Themes.resolve(Themes.apply("midnight").theme_config)) ==
+               "dark"
+
+      assert Themes.document_theme(nil) == "light"
+    end
+  end
+
   describe "template_origin/2" do
     test "applied when theme and background match the template" do
       applied = Themes.apply("classic")

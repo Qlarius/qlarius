@@ -244,6 +244,17 @@ defmodule Qlarius.Qlink.Themes do
   end
 
   @doc """
+  Daisy theme for `<html>` on a public Qlink page.
+
+  Set from `QlinkPage.Show` mount (not the request host), so every
+  surface that renders this LiveView — qlinkin.bio, qlink.qadabra.app,
+  and localhost — pins the same way. Unthemed pages pin to light.
+  """
+  def document_theme(theme) do
+    embed_theme(theme) || "light"
+  end
+
+  @doc """
   Safe inline background CSS. Never interpolates third-party URLs.
   """
   def background_css(%QlinkPage{} = page) do

@@ -2,6 +2,8 @@
 <html
   lang="en"
   class="[scrollbar-gutter:stable]"
+  data-theme={assigns[:qlink_document_theme]}
+  data-theme-mode={assigns[:qlink_document_theme] && "qlink"}
 >
   <head>
     <meta charset="utf-8" />
@@ -13,9 +15,25 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#1f2937" media="(prefers-color-scheme: dark)" />
+    <meta
+      name="color-scheme"
+      content={
+        case assigns[:qlink_document_theme] do
+          "dark" -> "dark"
+          "light" -> "light"
+          _ -> "light dark"
+        end
+      }
+    />
+    <%= if assigns[:qlink_document_theme] in ["light", "dark"] do %>
+      <meta
+        name="theme-color"
+        content={if assigns[:qlink_document_theme] == "dark", do: "#1f2937", else: "#f3f4f6"}
+      />
+    <% else %>
+      <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)" />
+      <meta name="theme-color" content="#1f2937" media="(prefers-color-scheme: dark)" />
+    <% end %>
     <meta name="application-name" content="Qadabra" />
     <meta name="apple-mobile-web-app-title" content="Qadabra" />
     <meta name="csrf-token" content={get_csrf_token()} />
@@ -138,14 +156,25 @@
           }
         };
 
-        // Apply theme from query param, localStorage, or system preference.
+        // QlinkPage.Show mount sets data-theme-mode="qlink" on <html>.
+        // Honor that pin (any host) and skip system / localStorage.
+        const qlinkPinned =
+          document.documentElement.getAttribute("data-theme-mode") === "qlink";
+
         const applyThemeForCurrentPath = () => {
           const sp = new URLSearchParams(window.location.search);
           const forceT = sp.get("force_theme");
-          if (forceT) {
+          if (forceT === "light" || forceT === "dark") {
             document.documentElement.setAttribute("data-theme", forceT);
-            document.documentElement.setAttribute("data-theme-mode", "forced");
+            document.documentElement.setAttribute(
+              "data-theme-mode",
+              qlinkPinned ? "qlink" : "forced"
+            );
             updateThemeColor(forceT === "dark");
+            return;
+          }
+          if (qlinkPinned) {
+            updateThemeColor(document.documentElement.getAttribute("data-theme") === "dark");
             return;
           }
           const initial =
@@ -156,7 +185,7 @@
         applyThemeForCurrentPath();
 
         const sp0 = new URLSearchParams(window.location.search);
-        if (!sp0.get("force_theme")) {
+        if (!qlinkPinned && !sp0.get("force_theme")) {
           window.addEventListener("storage", (e) => {
             if (e.key !== "phx:theme") return;
             setTheme(e.newValue || "system");

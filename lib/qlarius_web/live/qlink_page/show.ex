@@ -61,6 +61,9 @@ defmodule QlariusWeb.QlinkPage.Show do
             |> assign(:display_image, Qlink.get_display_image(page))
             |> assign(:qlink_theme, theme)
             |> assign(:embed_theme, Themes.embed_theme(theme))
+            # Pins `<html data-theme>` in the root layout. Both public
+            # Qlink hosts mount this LiveView, so the pin is host-agnostic.
+            |> assign(:qlink_document_theme, Themes.document_theme(theme))
             |> assign(:recipient, page.recipient)
             |> assign(:arqade_fullpane_dom_id, nil)
             |> assign(:arqade_fullpane_closing?, false)

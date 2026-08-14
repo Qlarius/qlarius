@@ -2753,6 +2753,14 @@
   color-scheme: dark;
 }
 
+html[data-theme-mode="qlink"][data-theme="light"] {
+  color-scheme: light;
+}
+
+html[data-theme-mode="qlink"][data-theme="dark"] {
+  color-scheme: dark;
+}
+
 .qlink-widget-frame {
   overflow: hidden;
   box-shadow: none;
