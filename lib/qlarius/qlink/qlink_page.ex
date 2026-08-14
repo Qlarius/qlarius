@@ -6,6 +6,7 @@ defmodule Qlarius.Qlink.QlinkPage do
   alias Qlarius.Qlink.QlinkLink
   alias Qlarius.Qlink.QlinkSection
   alias Qlarius.Qlink.PageView
+  alias Qlarius.Qlink.Themes
   alias Qlarius.Sponster.Recipient
 
   schema "qlink_pages" do
@@ -59,6 +60,7 @@ defmodule Qlarius.Qlink.QlinkPage do
     |> validate_length(:title, max: 100)
     |> validate_length(:bio_text, max: 500)
     |> foreign_key_constraint(:recipient_id)
+    |> sanitize_style_configs()
   end
 
   @doc false
@@ -70,6 +72,26 @@ defmodule Qlarius.Qlink.QlinkPage do
     |> validate_alias()
     |> foreign_key_constraint(:creator_id)
     |> unique_constraint(:alias)
+  end
+
+  defp sanitize_style_configs(changeset) do
+    changeset
+    |> update_change(:theme_config, fn
+      nil ->
+        nil
+
+      cfg ->
+        sanitized = Themes.sanitize_theme_config(cfg)
+        if sanitized == %{}, do: nil, else: sanitized
+    end)
+    |> update_change(:background_config, fn
+      nil ->
+        nil
+
+      cfg ->
+        sanitized = Themes.sanitize_background_config(cfg)
+        if sanitized == %{}, do: nil, else: sanitized
+    end)
   end
 
   defp validate_alias(changeset) do

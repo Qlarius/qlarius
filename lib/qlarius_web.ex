@@ -108,6 +108,7 @@ defmodule QlariusWeb do
       import QlariusWeb.Components.SurfaceComponents
       import QlariusWeb.Components.GiftModalComponents
       import QlariusWeb.Components.MobileBottomNav
+      import QlariusWeb.Components.QlinkTheme
 
       # Image helpers
       import QlariusWeb.Helpers.ImageHelpers

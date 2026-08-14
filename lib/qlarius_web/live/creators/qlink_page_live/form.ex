@@ -7,6 +7,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   alias Qlarius.Qlink.QlinkPage
   alias Qlarius.Qlink.QlinkLink
   alias Qlarius.Qlink.QlinkSection
+  alias Qlarius.Qlink.Themes
   alias Qlarius.Creators
   alias Qlarius.Repo
   alias Qlarius.Sponster.Recipients
@@ -59,6 +60,8 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
       social_links_data: social_links_map
     )
     |> ImageUpload.setup_upload(:image)
+    |> ImageUpload.setup_upload(:background)
+    |> ImageUpload.setup_upload(:link_thumbnail)
     |> noreply()
   end
 
@@ -91,12 +94,17 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
       used_social_platforms: MapSet.new()
     )
     |> ImageUpload.setup_upload(:image)
+    |> ImageUpload.setup_upload(:background)
+    |> ImageUpload.setup_upload(:link_thumbnail)
     |> noreply()
   end
 
   @impl true
   def handle_event("validate", %{"qlink_page" => page_params} = _params, socket) do
-    page_params = normalize_social_links_params(page_params, socket.assigns.social_links_data)
+    page_params =
+      page_params
+      |> normalize_social_links_params(socket.assigns.social_links_data)
+      |> merge_style_params(socket)
 
     changeset =
       socket.assigns.page
@@ -138,6 +146,33 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
   @impl true
   def handle_event("select_tab", _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("apply_template", %{"id" => id}, socket) do
+    case Themes.apply(id) do
+      nil ->
+        {:noreply, socket}
+
+      %{theme_config: theme_config, background_config: background_config} ->
+        page = Ecto.Changeset.apply_changes(socket.assigns.form.source)
+
+        changeset =
+          page
+          |> Qlink.change_page(%{
+            "theme_config" => theme_config,
+            "background_config" => background_config
+          })
+          |> Map.put(:action, :validate)
+
+        {:noreply, assign(socket, form: to_form(changeset), dirty: true)}
+    end
+  end
+
+  @impl true
+  def handle_event("reset_template", _params, socket) do
+    id = theme_value(socket.assigns.form, ["template_id"])
+    handle_event("apply_template", %{"id" => id || ""}, socket)
+  end
 
   @impl true
   def handle_event("select_social_platform", params, socket) do
@@ -258,12 +293,24 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
   @impl true
   def handle_event("save", %{"qlink_page" => page_params} = all_params, socket) do
+    page_params = merge_style_params(page_params, socket)
     save_page(socket, socket.assigns.live_action, page_params, all_params)
   end
 
   @impl true
   def handle_event("cancel-upload", %{"ref" => ref}, socket) do
-    {:noreply, cancel_upload(socket, :image, ref)}
+    socket =
+      Enum.reduce([:image, :background, :link_thumbnail], socket, fn name, acc ->
+        entries = acc.assigns.uploads[name].entries
+
+        if Enum.any?(entries, &(&1.ref == ref)) do
+          cancel_upload(acc, name, ref)
+        else
+          acc
+        end
+      end)
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -280,6 +327,59 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Failed to delete image")}
+    end
+  end
+
+  @impl true
+  def handle_event("delete_background", _params, socket) do
+    page = socket.assigns.page
+    bg = page.background_config || %{}
+    file = bg["file"]
+
+    if is_binary(file) and file != "" do
+      CreatorImage.delete({file, page})
+    end
+
+    case Qlink.update_page(page, %{background_config: %{}}) do
+      {:ok, page} ->
+        page = Repo.preload(page, [:creator, :recipient])
+
+        socket
+        |> assign(page: page)
+        |> assign(form: to_form(Qlink.change_page(page)))
+        |> put_flash(:info, "Background image deleted")
+        |> noreply()
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to delete background")}
+    end
+  end
+
+  @impl true
+  def handle_event("delete_link_thumbnail", _params, socket) do
+    case socket.assigns.editing_link do
+      nil ->
+        {:noreply, socket}
+
+      link ->
+        if is_binary(link.thumbnail) and
+             not String.starts_with?(link.thumbnail, ["http://", "https://"]) do
+          CreatorImage.delete({link.thumbnail, socket.assigns.page})
+        end
+
+        case Qlink.update_link(link, %{thumbnail: nil}) do
+          {:ok, updated} ->
+            links = Qlink.list_page_links(socket.assigns.page.id) |> Repo.preload(:qlink_section)
+            changeset = Qlink.change_link(updated)
+
+            socket
+            |> assign(links: links, editing_link: updated, link_form: to_form(changeset))
+            |> put_flash(:info, "Thumbnail deleted")
+            |> noreply()
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to delete thumbnail")}
+        end
     end
   end
 
@@ -375,6 +475,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
       link_params
       |> normalize_link_params()
       |> detect_embed_type(existing_embed_config)
+      |> put_link_thumbnail(socket)
 
     result =
       if socket.assigns.editing_link do
@@ -609,11 +710,95 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     end
   end
 
+  defp bg_file(form) do
+    form |> bg_config() |> Map.get("file")
+  end
+
+  defp style_theme(%Phoenix.HTML.Form{} = form) do
+    case form[:theme_config].value do
+      %{} = m -> Themes.resolve(m)
+      _ -> nil
+    end
+  end
+
+  defp theme_value(form, keys, default \\ nil) do
+    case style_theme(form) do
+      %{} = theme -> get_in(theme, keys) || default
+      _ -> default
+    end
+  end
+
+  defp style_preview_page(form, page) do
+    form.source
+    |> Ecto.Changeset.apply_changes()
+    |> Map.put(:id, page.id)
+    |> Map.put(:creator_id, page.creator_id)
+    |> Map.put(:profile_photo, page.profile_photo)
+    |> Map.put(:alias, page.alias)
+  end
+
+  defp merge_style_params(page_params, socket) do
+    cs = socket.assigns.form.source
+    current_theme = Ecto.Changeset.get_field(cs, :theme_config)
+    current_bg = Ecto.Changeset.get_field(cs, :background_config)
+
+    page_params
+    |> then(fn params ->
+      case params["theme_config"] do
+        %{} = incoming ->
+          incoming_id = incoming["template_id"]
+
+          if incoming_id in [nil, ""] and current_theme in [nil, %{}] do
+            Map.delete(params, "theme_config")
+          else
+            Map.put(params, "theme_config", Themes.merge_theme(current_theme, incoming))
+          end
+
+        _ ->
+          params
+      end
+    end)
+    |> then(fn params ->
+      case params["background_config"] do
+        %{} = incoming ->
+          Map.put(params, "background_config", Themes.merge_background(current_bg, incoming))
+
+        _ ->
+          params
+      end
+    end)
+  end
+
+  defp put_background_file(params, nil, _page), do: params
+
+  defp put_background_file(params, filename, _page) do
+    bg = Map.get(params, "background_config") || %{}
+    Map.put(params, "background_config", Map.merge(bg, %{"type" => "image", "file" => filename}))
+  end
+
+  defp put_link_thumbnail(link_params, socket) do
+    filename =
+      ImageUpload.consume_upload(socket, :link_thumbnail, socket.assigns.page, CreatorImage)
+
+    if filename do
+      Map.put(link_params, "thumbnail", filename)
+    else
+      Map.delete(link_params, "thumbnail")
+    end
+  end
+
   defp save_page(socket, :edit, page_params, _all_params) do
     filename = ImageUpload.consume_upload(socket, :image, socket.assigns.page, CreatorImage)
 
+    bg_filename =
+      ImageUpload.consume_upload(socket, :background, socket.assigns.page, CreatorImage)
+
     page_params_with_image =
-      if filename, do: Map.put(page_params, "profile_photo", filename), else: page_params
+      page_params
+      |> then(fn params ->
+        if filename, do: Map.put(params, "profile_photo", filename), else: params
+      end)
+      |> put_background_file(bg_filename, socket.assigns.page)
 
     require Logger
 
@@ -720,6 +905,10 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
     all_platforms
     |> Enum.reject(&MapSet.member?(used_platforms, &1))
+  end
+
+  def page_view_url(alias_) when is_binary(alias_) do
+    Qlarius.Qlink.Urls.interact_url(alias_)
   end
 
   def format_platform_name("twitter"), do: "Twitter/X"

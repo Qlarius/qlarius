@@ -302,13 +302,14 @@ defmodule QlariusWeb.CreatorDashboard.Show do
                                 </div>
                               </div>
                               <div class="card-actions">
-                                <.link
-                                  navigate={~p"/@#{page.alias}"}
+                                <a
+                                  href={Qlarius.Qlink.Urls.interact_url(page.alias)}
                                   class="btn btn-ghost btn-sm"
                                   target="_blank"
+                                  rel="noopener noreferrer"
                                 >
-                                  View
-                                </.link>
+                                  {if page.is_published, do: "View", else: "Preview"}
+                                </a>
                                 <.link
                                   navigate={~p"/creators/qlink_pages/#{page.id}/edit"}
                                   class="btn btn-ghost btn-sm"

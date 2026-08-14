@@ -51,12 +51,13 @@
 
                 <%= if @page.alias do %>
                   <a
-                    href={~p"/@#{@page.alias}"}
+                    href={page_view_url(@page.alias)}
                     target="_blank"
                     rel="noopener noreferrer"
                     class="btn btn-primary btn-sm"
                   >
-                    <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4 mr-2" /> View Page
+                    <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4 mr-2" />
+                    {if @page.is_published, do: "View Page", else: "Preview"}
                   </a>
                 <% end %>
               </div>
@@ -400,99 +401,375 @@
                 <% end %>
 
                 <%= if @active_tab == "style" && @live_action == :edit && @page.id do %>
-                  <%!-- Style tab: writes background_config[type|value] (already cast on QlinkPage). --%>
-                  <div class="space-y-6">
-                    <h3 class="text-lg font-semibold text-base-content flex items-center">
-                      <.icon name="hero-paint-brush" class="w-5 h-5 mr-3 text-primary" />
-                      Background
-                    </h3>
+                  <% theme = style_theme(@form) %>
+                  <% preview_page = style_preview_page(@form, @page) %>
+                  <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_280px] gap-8 items-start">
+                    <div class="space-y-8 min-w-0">
+                      <%= if theme do %>
+                        <input
+                          type="hidden"
+                          name="qlink_page[theme_config][template_id]"
+                          value={theme_value(@form, ["template_id"], "")}
+                        />
+                      <% end %>
 
-                    <div class="form-control max-w-md">
-                      <label class="label">
-                        <span class="label-text font-medium">Type</span>
-                      </label>
-                      <select
-                        name="qlink_page[background_config][type]"
-                        class="select select-bordered w-full"
-                      >
-                        <option value="" selected={bg_type(@form) in [nil, ""]}>
-                          None (default)
-                        </option>
-                        <option value="solid" selected={bg_type(@form) == "solid"}>
-                          Solid color
-                        </option>
-                        <option value="gradient" selected={bg_type(@form) == "gradient"}>
-                          Gradient
-                        </option>
-                        <option value="image" selected={bg_type(@form) == "image"}>
-                          Image URL
-                        </option>
-                      </select>
-                      <label class="label">
-                        <span class="label-text-alt text-base-content/60">
-                          Save to apply. Inputs below match the selected type.
-                        </span>
-                      </label>
+                      <div>
+                        <div class="flex items-center justify-between mb-3">
+                          <h3 class="text-lg font-semibold text-base-content flex items-center">
+                            <.icon name="hero-paint-brush" class="w-5 h-5 mr-3 text-primary" />
+                            Templates
+                          </h3>
+                          <%= if theme_value(@form, ["template_id"]) do %>
+                            <button
+                              type="button"
+                              class="btn btn-ghost btn-xs"
+                              phx-click="reset_template"
+                            >
+                              Reset to template
+                            </button>
+                          <% end %>
+                        </div>
+                        <div class="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                          <%= for t <- Themes.templates() do %>
+                            <button
+                              type="button"
+                              phx-click="apply_template"
+                              phx-value-id={t["id"]}
+                              data-confirm={
+                                if theme_value(@form, ["template_id"]),
+                                  do:
+                                    "Replace colors, fonts, and buttons with the #{t["label"]} template? Links and content stay the same."
+                              }
+                              class={[
+                                "qlink-style-swatch",
+                                theme_value(@form, ["template_id"]) == t["id"] && "is-selected"
+                              ]}
+                            >
+                              <span
+                                class="qlink-style-swatch__face"
+                                style={"background: #{t["swatch"]}; color: #{t["text_color"]}; font-family: #{Themes.font_family(t["font"])}"}
+                              >
+                                {t["label"]}
+                              </span>
+                            </button>
+                          <% end %>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 class="text-lg font-semibold text-base-content flex items-center mb-3">
+                          <.icon name="hero-paint-brush" class="w-5 h-5 mr-3 text-primary" />
+                          Background
+                        </h3>
+                        <div class="form-control max-w-md">
+                          <label class="label">
+                            <span class="label-text font-medium">Type</span>
+                          </label>
+                          <select
+                            name="qlink_page[background_config][type]"
+                            class="select select-bordered w-full"
+                          >
+                            <option value="" selected={bg_type(@form) in [nil, ""]}>
+                              None (default)
+                            </option>
+                            <option value="solid" selected={bg_type(@form) == "solid"}>
+                              Solid color
+                            </option>
+                            <option value="gradient" selected={bg_type(@form) == "gradient"}>
+                              Gradient
+                            </option>
+                            <option value="image" selected={bg_type(@form) == "image"}>
+                              Image
+                            </option>
+                          </select>
+                        </div>
+
+                        <%= case bg_type(@form) do %>
+                          <% "solid" -> %>
+                            <div class="form-control max-w-md mt-3">
+                              <label class="label">
+                                <span class="label-text font-medium">Color</span>
+                              </label>
+                              <input
+                                type="color"
+                                name="qlink_page[background_config][value]"
+                                value={bg_value(@form) || "#ffffff"}
+                                class="h-12 w-24 rounded border border-base-300"
+                              />
+                            </div>
+                          <% "gradient" -> %>
+                            <div class="form-control max-w-md mt-3">
+                              <label class="label">
+                                <span class="label-text font-medium">CSS Gradient</span>
+                              </label>
+                              <input
+                                type="text"
+                                name="qlink_page[background_config][value]"
+                                value={bg_value(@form) || ""}
+                                class="input input-bordered w-full"
+                                placeholder="linear-gradient(135deg, #f5d142 0%, #e8533f 100%)"
+                              />
+                            </div>
+                          <% "image" -> %>
+                            <input
+                              type="hidden"
+                              name="qlink_page[background_config][file]"
+                              value={bg_file(@form) || ""}
+                            />
+                            <div class="max-w-md mt-3">
+                              <.image_upload_field
+                                upload={@uploads.background}
+                                label="Background image"
+                                current_image={bg_file(@form)}
+                                current_image_url={
+                                  if bg_file(@form),
+                                    do:
+                                      QlariusWeb.Uploaders.CreatorImage.url(
+                                        {bg_file(@form), @page},
+                                        :original
+                                      )
+                                }
+                                on_delete="delete_background"
+                              />
+                            </div>
+                          <% _ -> %>
+                            <input
+                              type="hidden"
+                              name="qlink_page[background_config][value]"
+                              value=""
+                            />
+                        <% end %>
+                      </div>
+
+                      <%= if theme do %>
+                        <div>
+                          <h3 class="text-lg font-semibold text-base-content mb-3">Bio photo</h3>
+                          <div class="flex flex-wrap gap-2">
+                            <%= for {label, value} <- [{"In-frame", "avatar"}, {"Hero fade", "hero"}] do %>
+                              <label class="cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="qlink_page[theme_config][header]"
+                                  value={value}
+                                  checked={theme_value(@form, ["header"], "avatar") == value}
+                                  class="hidden peer"
+                                />
+                                <span class="btn btn-sm btn-outline peer-checked:btn-primary">
+                                  {label}
+                                </span>
+                              </label>
+                            <% end %>
+                          </div>
+                          <%= if theme_value(@form, ["header"], "avatar") == "avatar" do %>
+                            <div class="flex flex-wrap gap-2 mt-3">
+                              <%= for {label, value} <- [{"Circle", "circle"}, {"Rounded", "rounded"}] do %>
+                                <label class="cursor-pointer">
+                                  <input
+                                    type="radio"
+                                    name="qlink_page[theme_config][avatar]"
+                                    value={value}
+                                    checked={theme_value(@form, ["avatar"], "circle") == value}
+                                    class="hidden peer"
+                                  />
+                                  <span class="btn btn-sm btn-outline peer-checked:btn-primary">
+                                    {label}
+                                  </span>
+                                </label>
+                              <% end %>
+                            </div>
+                          <% else %>
+                            <input
+                              type="hidden"
+                              name="qlink_page[theme_config][avatar]"
+                              value={theme_value(@form, ["avatar"], "circle")}
+                            />
+                          <% end %>
+                        </div>
+
+                        <div>
+                          <h3 class="text-lg font-semibold text-base-content mb-3">Colors</h3>
+                          <div class="flex flex-wrap gap-6">
+                            <label class="form-control">
+                              <span class="label-text font-medium mb-1">Page text</span>
+                              <input
+                                type="color"
+                                name="qlink_page[theme_config][text_color]"
+                                value={theme_value(@form, ["text_color"], "#0c0a09")}
+                                class="h-12 w-16 rounded border border-base-300"
+                              />
+                            </label>
+                            <label class="form-control">
+                              <span class="label-text font-medium mb-1">Page color</span>
+                              <input
+                                type="color"
+                                name="qlink_page[theme_config][canvas]"
+                                value={theme_value(@form, ["canvas"], "#ffffff")}
+                                class="h-12 w-16 rounded border border-base-300"
+                              />
+                            </label>
+                            <label class="form-control">
+                              <span class="label-text font-medium mb-1">Side panels</span>
+                              <input
+                                type="color"
+                                name="qlink_page[theme_config][gutter]"
+                                value={theme_value(@form, ["gutter"], "#c5c9d0")}
+                                class="h-12 w-16 rounded border border-base-300"
+                              />
+                            </label>
+                            <label class="form-control">
+                              <span class="label-text font-medium mb-1">Button</span>
+                              <input
+                                type="color"
+                                name="qlink_page[theme_config][button][bg]"
+                                value={theme_value(@form, ["button", "bg"], "#0c0a09")}
+                                class="h-12 w-16 rounded border border-base-300"
+                              />
+                            </label>
+                            <label class="form-control">
+                              <span class="label-text font-medium mb-1">Button text</span>
+                              <input
+                                type="color"
+                                name="qlink_page[theme_config][button][text]"
+                                value={theme_value(@form, ["button", "text"], "#fafaf9")}
+                                class="h-12 w-16 rounded border border-base-300"
+                              />
+                            </label>
+                          </div>
+                          <p class="text-sm text-base-content/60 mt-2 max-w-md">
+                            Side panels color the gutters on wide screens. On phones the page is full width.
+                          </p>
+                        </div>
+
+                        <div>
+                          <h3 class="text-lg font-semibold text-base-content mb-3">Buttons</h3>
+                          <p class="text-sm text-base-content/60 mb-2">Layout</p>
+                          <div class="flex flex-wrap gap-2 mb-4">
+                            <%= for layout <- Themes.layouts() do %>
+                              <label class="cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="qlink_page[theme_config][button][layout]"
+                                  value={layout}
+                                  checked={
+                                    theme_value(@form, ["button", "layout"], "classic") == layout
+                                  }
+                                  class="hidden peer"
+                                />
+                                <span class="btn btn-sm btn-outline capitalize peer-checked:btn-primary">
+                                  {layout}
+                                </span>
+                              </label>
+                            <% end %>
+                          </div>
+                          <p class="text-sm text-base-content/60 mb-2">Shape</p>
+                          <div class="flex flex-wrap gap-2 mb-4">
+                            <%= for shape <- Themes.shapes() do %>
+                              <label class="cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="qlink_page[theme_config][button][shape]"
+                                  value={shape}
+                                  checked={
+                                    theme_value(@form, ["button", "shape"], "pill") == shape
+                                  }
+                                  class="hidden peer"
+                                />
+                                <span class="btn btn-sm btn-outline capitalize peer-checked:btn-primary">
+                                  {shape}
+                                </span>
+                              </label>
+                            <% end %>
+                          </div>
+                          <p class="text-sm text-base-content/60 mb-2">Style</p>
+                          <div class="flex flex-wrap gap-2">
+                            <%= for style <- Themes.styles() do %>
+                              <label class="cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="qlink_page[theme_config][button][style]"
+                                  value={style}
+                                  checked={
+                                    theme_value(@form, ["button", "style"], "fill") == style
+                                  }
+                                  class="hidden peer"
+                                />
+                                <span class="btn btn-sm btn-outline capitalize peer-checked:btn-primary">
+                                  {style}
+                                </span>
+                              </label>
+                            <% end %>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h3 class="text-lg font-semibold text-base-content mb-3">Type</h3>
+                          <div class="form-control max-w-md">
+                            <select
+                              name="qlink_page[theme_config][font]"
+                              class="select select-bordered"
+                            >
+                              <%= for {name, id} <- Themes.font_options() do %>
+                                <option
+                                  value={id}
+                                  selected={theme_value(@form, ["font"], "figtree") == id}
+                                >
+                                  {name}
+                                </option>
+                              <% end %>
+                            </select>
+                          </div>
+                          <label class="label cursor-pointer justify-start gap-3 mt-3 max-w-md">
+                            <input
+                              type="hidden"
+                              name="qlink_page[theme_config][grain]"
+                              value="false"
+                            />
+                            <input
+                              type="checkbox"
+                              name="qlink_page[theme_config][grain]"
+                              value="true"
+                              checked={theme_value(@form, ["grain"]) == true}
+                              class="checkbox checkbox-sm"
+                            />
+                            <span class="label-text">Film grain overlay</span>
+                          </label>
+                        </div>
+
+                        <div>
+                          <h3 class="text-lg font-semibold text-base-content mb-3">Widgets</h3>
+                          <div class="flex flex-wrap gap-2">
+                            <%= for value <- Themes.embed_themes() do %>
+                              <label class="cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="qlink_page[theme_config][embed_theme]"
+                                  value={value}
+                                  checked={theme_value(@form, ["embed_theme"], "light") == value}
+                                  class="hidden peer"
+                                />
+                                <span class="btn btn-sm btn-outline capitalize peer-checked:btn-primary">
+                                  {value}
+                                </span>
+                              </label>
+                            <% end %>
+                          </div>
+                          <p class="text-sm text-base-content/60 mt-2">
+                            Light or dark chrome for Tip Jar, Sponster, and Arqade. Independent of the page template.
+                          </p>
+                        </div>
+                      <% end %>
                     </div>
 
-                    <%= case bg_type(@form) do %>
-                      <% "solid" -> %>
-                        <div class="form-control max-w-md">
-                          <label class="label">
-                            <span class="label-text font-medium">Color</span>
-                          </label>
-                          <input
-                            type="color"
-                            name="qlink_page[background_config][value]"
-                            value={bg_value(@form) || "#ffffff"}
-                            class="h-12 w-24 rounded border border-base-300"
-                          />
-                        </div>
-                      <% "gradient" -> %>
-                        <div class="form-control max-w-md">
-                          <label class="label">
-                            <span class="label-text font-medium">CSS Gradient</span>
-                          </label>
-                          <input
-                            type="text"
-                            name="qlink_page[background_config][value]"
-                            value={bg_value(@form) || ""}
-                            class="input input-bordered w-full"
-                            placeholder="linear-gradient(135deg, #f5d142 0%, #e8533f 100%)"
-                          />
-                          <label class="label">
-                            <span class="label-text-alt text-base-content/60">
-                              Any valid CSS background value (linear-gradient, radial-gradient, etc.).
-                            </span>
-                          </label>
-                        </div>
-                      <% "image" -> %>
-                        <div class="form-control max-w-md">
-                          <label class="label">
-                            <span class="label-text font-medium">Image URL</span>
-                          </label>
-                          <input
-                            type="url"
-                            name="qlink_page[background_config][value]"
-                            value={bg_value(@form) || ""}
-                            class="input input-bordered w-full"
-                            placeholder="https://..."
-                          />
-                          <label class="label">
-                            <span class="label-text-alt text-base-content/60">
-                              Rendered with cover/center.
-                            </span>
-                          </label>
-                        </div>
-                      <% _ -> %>
-                        <input type="hidden" name="qlink_page[background_config][value]" value="" />
-                    <% end %>
-
-                    <%!-- Future-proof placeholders. Add real controls here as designs land. --%>
-                    <div class="border-t border-base-300 pt-4 opacity-60">
-                      <h4 class="font-medium">Buttons (coming soon)</h4>
-                      <h4 class="font-medium mt-2">Typography (coming soon)</h4>
-                      <h4 class="font-medium mt-2">Theme presets (coming soon)</h4>
+                    <div class="xl:sticky xl:top-4 flex justify-center">
+                      <.phone_preview
+                        page={preview_page}
+                        theme={theme}
+                        display_image={
+                          Qlarius.Qlink.get_display_image(@page) || "/images/default_avatar.png"
+                        }
+                        links={@links}
+                        embed_theme={Themes.embed_theme(theme)}
+                      />
                     </div>
                   </div>
                 <% end %>
@@ -780,14 +1057,25 @@
 
                   <div class="form-control">
                     <label class="label">
-                      <span class="label-text font-medium">Thumbnail URL</span>
+                      <span class="label-text font-medium">Thumbnail</span>
                     </label>
-                    <.input
-                      field={@link_form[:thumbnail]}
-                      type="url"
-                      class="input input-bordered w-full"
-                      placeholder="https://example.com/image.jpg"
+                    <.image_upload_field
+                      upload={@uploads.link_thumbnail}
+                      label=""
+                      current_image={@editing_link && @editing_link.thumbnail}
+                      current_image_url={
+                        if @editing_link && @editing_link.thumbnail,
+                          do:
+                            Qlarius.Qlink.Themes.first_party_src(
+                              @editing_link.thumbnail,
+                              @page
+                            )
+                      }
+                      on_delete={if @editing_link, do: "delete_link_thumbnail"}
                     />
+                    <p class="text-xs text-base-content/60 mt-1">
+                      Upload an image (not a URL). Used by Media, Cover, and Stack layouts.
+                    </p>
                   </div>
                 </div>
 

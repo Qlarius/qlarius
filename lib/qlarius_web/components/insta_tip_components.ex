@@ -41,10 +41,18 @@ defmodule QlariusWeb.InstaTipComponents do
   # Defaults to false so hosts like the Qlink Tip Jar follow the viewer's theme.
   attr :force_light, :boolean, default: false
 
+  attr :theme, :string, default: nil
+
   def insta_tip_card(assigns) do
     ~H"""
     <div
-      data-theme={if @force_light, do: "light"}
+      data-theme={
+        cond do
+          @force_light -> "light"
+          @theme in ["light", "dark"] -> @theme
+          true -> nil
+        end
+      }
       class={["flex flex-col items-center", @add_class]}
     >
       <%!-- Recipient title --%>

@@ -1,139 +1,121 @@
-<%!-- No data-theme override: inherit the viewer's theme from <html> (root layout
-     sets light/dark/system per their preference, defaulting to light). --%>
+<%!-- Themed pages isolate from the viewer's Daisy light/dark via CSS variables.
+     Unthemed/legacy pages inherit from <html>. --%>
 <div
-  class="min-h-screen qlink-public-page"
-  style={get_background_style(@page)}
+  class={["min-h-screen qlink-public-page", Themes.page_classes(@qlink_theme)]}
+  style={Themes.css_vars(@qlink_theme)}
 >
-  <%= if @in_app_browser && !@in_app_escape_dismissed && is_binary(@in_app_escape_canonical_url) do %>
-    <.in_app_browser_escape
-      show={true}
-      canonical_url={@in_app_escape_canonical_url}
-      in_app_browser={@in_app_browser}
-    />
-  <% end %>
-  <%!-- Full-width wrapper: each block below owns its own max-width
+  <div class="qlink-public-page__column" style={get_background_style(@page)}>
+    <%= if @in_app_browser && !@in_app_escape_dismissed && is_binary(@in_app_escape_canonical_url) do %>
+      <.in_app_browser_escape
+        show={true}
+        canonical_url={@in_app_escape_canonical_url}
+        in_app_browser={@in_app_browser}
+      />
+    <% end %>
+    <%!-- Full-width wrapper: each block below owns its own max-width
        (max-w-xl mx-auto) so they stay capped independently of the page
        container and responsive breakpoints. --%>
-  <div
-  class="w-full px-6 md:px-8 py-8"
-  style={if @recipient, do: "padding-bottom: 100px;", else: ""}
->
-
-    <!-- Profile Section -->
-    <div class="text-center mb-8 w-full max-w-2xl mx-auto">
-      <div class="avatar mb-4">
-        <div class="w-40 rounded-full ring ring-neutral ring-offset-base-100 ring-offset-2">
-          <img src={@display_image} alt={@page.title} />
+    <div
+      class="w-full px-6 md:px-8 py-8"
+      style={if @recipient, do: "padding-bottom: 100px;", else: ""}
+    >
+      <%= if !@page.is_published do %>
+        <div class="w-full max-w-2xl mx-auto mb-6">
+          <div class="alert alert-warning text-sm py-2">
+            <.icon name="hero-eye" class="w-4 h-4" />
+            <span>Draft preview — this page is not published yet.</span>
+          </div>
         </div>
-      </div>
-
-      <h1 class="text-3xl font-bold mb-2">{@page.title}</h1>
-
-      <%= if @page.bio_text do %>
-        <p class="text-base-content/70 mb-4">{@page.bio_text}</p>
-      <% end %>
-
-      <%= if @page.social_links && map_size(@page.social_links) > 0 do %>
-        <div class="flex justify-center gap-4 mb-4">
-          <%= for {platform, url} <- @page.social_links do %>
-            <% icon_path = get_social_icon_path(platform) %>
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="qlink-social-icon btn btn-circle btn-ghost outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
-              title={String.capitalize(platform)}
-            >
-              <%= if icon_path do %>
-                <img
-                  src={icon_path}
-                  alt={String.capitalize(platform)}
-                  class="qlink-social-icon-img w-6 h-6 opacity-80 transition-opacity"
-                />
-              <% else %>
-                <.icon name="hero-link" class="w-6 h-6" />
-              <% end %>
-            </a>
-          <% end %>
-        </div>
-      <% end %>
-    </div>
-    
-<!-- Links Section -->
-    <div class="space-y-4 w-full max-w-2xl mx-auto">
-      <!-- Unsectioned links first -->
-      <% unsectioned_links = Enum.filter(@links, &is_nil(&1.qlink_section_id)) %>
-      <%= if unsectioned_links != [] do %>
-        <%= for link <- unsectioned_links do %>
-          <.render_link
-            link={link}
-            recipient={@recipient}
-            creator={@page.creator}
-            current_scope={@current_scope}
-            socket={@socket}
-            arqade_fullpane_dom_id={@arqade_fullpane_dom_id}
-            arqade_fullpane_closing?={@arqade_fullpane_closing?}
-            on_auth_click={
-              if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
-                do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
-                else: nil
-            }
-          />
-        <% end %>
       <% end %>
       
-<!-- Sections with their links -->
-      <%= if @sections != [] do %>
-        <%= for section <- @sections do %>
-          <% section_links = Enum.filter(@links, &(&1.qlink_section_id == section.id)) %>
-          <%= if section_links != [] do %>
-            <div class="mt-12 pt-4">
-              <div class="divider my-6 px-4">
-                <span class="text-2xl font-semibold">{section.title}</span>
-              </div>
-              <%= if section.description do %>
-                <p class="text-center text-lg text-base-content/70 mb-6 px-4">{section.description}</p>
-              <% end %>
-
-              <div class="space-y-4">
-                <%= for link <- section_links do %>
-                  <.render_link
-                    link={link}
-                    recipient={@recipient}
-                    creator={@page.creator}
-                    current_scope={@current_scope}
-                    socket={@socket}
-                    arqade_fullpane_dom_id={@arqade_fullpane_dom_id}
-                    arqade_fullpane_closing?={@arqade_fullpane_closing?}
-                    on_auth_click={
-                      if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
-                        do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
-                        else: nil
-                    }
-                  />
-                <% end %>
-              </div>
-            </div>
+<!-- Profile Section -->
+      <.bio_header page={@page} theme={@qlink_theme} display_image={@display_image} />
+      
+<!-- Links Section -->
+      <div class="space-y-4 w-full max-w-2xl mx-auto">
+        <!-- Unsectioned links first -->
+        <% unsectioned_links = Enum.filter(@links, &is_nil(&1.qlink_section_id)) %>
+        <%= if unsectioned_links != [] do %>
+          <%= for link <- unsectioned_links do %>
+            <.render_link
+              link={link}
+              recipient={@recipient}
+              creator={@page.creator}
+              current_scope={@current_scope}
+              socket={@socket}
+              page={@page}
+              theme={@qlink_theme}
+              arqade_fullpane_dom_id={@arqade_fullpane_dom_id}
+              arqade_fullpane_closing?={@arqade_fullpane_closing?}
+              on_auth_click={
+                if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
+                  do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
+                  else: nil
+              }
+            />
           <% end %>
         <% end %>
-      <% end %>
-    </div>
-    
+        
+<!-- Sections with their links -->
+        <%= if @sections != [] do %>
+          <%= for section <- @sections do %>
+            <% section_links = Enum.filter(@links, &(&1.qlink_section_id == section.id)) %>
+            <%= if section_links != [] do %>
+              <div class="mt-12 pt-4">
+                <div class="divider my-6 px-4">
+                  <span class="text-2xl font-semibold">{section.title}</span>
+                </div>
+                <%= if section.description do %>
+                  <p class="text-center text-lg text-base-content/70 mb-6 px-4">
+                    {section.description}
+                  </p>
+                <% end %>
+
+                <div class="space-y-4">
+                  <%= for link <- section_links do %>
+                    <.render_link
+                      link={link}
+                      recipient={@recipient}
+                      creator={@page.creator}
+                      current_scope={@current_scope}
+                      socket={@socket}
+                      page={@page}
+                      theme={@qlink_theme}
+                      arqade_fullpane_dom_id={@arqade_fullpane_dom_id}
+                      arqade_fullpane_closing?={@arqade_fullpane_closing?}
+                      on_auth_click={
+                        if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
+                          do:
+                            Phoenix.LiveView.JS.push("open_auth_sheet",
+                              value: %{brand: "sponster"}
+                            ),
+                          else: nil
+                      }
+                    />
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          <% end %>
+        <% end %>
+      </div>
+      
 <!-- Footer -->
-    <div class="text-center mt-12 w-full max-w-2xl mx-auto">
-      <a
-        href="https://qadabra.co/qlink"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="qlink-footer-mark inline-block cursor-pointer mb-2 rounded-lg bg-white px-3 py-1.5 shadow-sm transition-all duration-200 ease-out active:scale-[0.99] outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
-      >
-        <img
-          src="/images/qlink_logo_color_horiz.svg"
-          alt="Qlink"
-          class="h-8 block"
-        />
-      </a>
-      <p class="text-xs text-base-content/50">by Qadabra</p>
+      <div class="text-center mt-12 w-full max-w-2xl mx-auto">
+        <a
+          href="https://qadabra.co/qlink"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="qlink-footer-mark inline-block cursor-pointer mb-2 rounded-lg bg-white px-3 py-1.5 shadow-sm transition-all duration-200 ease-out active:scale-[0.99] outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
+        >
+          <img
+            src="/images/qlink_logo_color_horiz.svg"
+            alt="Qlink"
+            class="h-8 block"
+          />
+        </a>
+        <p class="text-xs text-base-content/50">by Qadabra</p>
+      </div>
     </div>
   </div>
 
@@ -142,47 +124,49 @@
        see `QlariusWeb.Components.SponsterPublicPage`. --%>
   <%= if @recipient do %>
     <% qlink_on_click =
-         if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
-           do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
-           else: nil %>
+      if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
+        do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
+        else: nil %>
     <% {qlink_connect_href, qlink_connect_target} =
-         cond do
-           qlink_on_click ->
-             {nil, "_top"}
+      cond do
+        qlink_on_click ->
+          {nil, "_top"}
 
-           QlariusWeb.QlinkPage.Show.on_qlinkin_bio_host?(assigns) ->
-             {@interact_login_url, "_top"}
+        QlariusWeb.QlinkPage.Show.on_qlinkin_bio_host?(assigns) ->
+          {@interact_login_url, "_top"}
 
-           true ->
-             {~p"/connect?return_to=/@#{@page.alias}", "_self"}
-         end %>
+        true ->
+          {~p"/connect?return_to=/@#{@page.alias}", "_self"}
+      end %>
 
-    <.sponster_stack
-      recipient={@recipient}
-      creator={@page.creator}
-      info_context={:qlink}
-      current_scope={@current_scope}
-      show_sponster_drawer={@show_sponster_drawer}
-      show_split_drawer={@show_split_drawer}
-      show_split_reminder={@show_split_reminder}
-      sponster_disclaimer_dock_visible={@sponster_disclaimer_dock_visible}
-      loading_offers={@loading_offers}
-      active_offers={@active_offers}
-      offers_refresh_gen={@offers_refresh_gen}
-      video_offers={@video_offers}
-      completed_video_offers={@completed_video_offers}
-      selected_ad_type={@selected_ad_type}
-      show_ad_type_tabs={@show_ad_type_tabs}
-      host_uri={@host_uri}
-      me_file_sponsorship_url={@me_file_sponsorship_url}
-      settings_notifications_url={@settings_notifications_url}
-      user_ip={assigns[:user_ip] || "0.0.0.0"}
-      on_auth_click={qlink_on_click}
-      connect_href={qlink_connect_href}
-      connect_link_target={qlink_connect_target}
-      announcer_id_prefix="qlink"
-      split_panel_id="qlink-split-settings-panel"
-    />
+    <div class="qlink-widget-chrome" data-theme={@embed_theme}>
+      <.sponster_stack
+        recipient={@recipient}
+        creator={@page.creator}
+        info_context={:qlink}
+        current_scope={@current_scope}
+        show_sponster_drawer={@show_sponster_drawer}
+        show_split_drawer={@show_split_drawer}
+        show_split_reminder={@show_split_reminder}
+        sponster_disclaimer_dock_visible={@sponster_disclaimer_dock_visible}
+        loading_offers={@loading_offers}
+        active_offers={@active_offers}
+        offers_refresh_gen={@offers_refresh_gen}
+        video_offers={@video_offers}
+        completed_video_offers={@completed_video_offers}
+        selected_ad_type={@selected_ad_type}
+        show_ad_type_tabs={@show_ad_type_tabs}
+        host_uri={@host_uri}
+        me_file_sponsorship_url={@me_file_sponsorship_url}
+        settings_notifications_url={@settings_notifications_url}
+        user_ip={assigns[:user_ip] || "0.0.0.0"}
+        on_auth_click={qlink_on_click}
+        connect_href={qlink_connect_href}
+        connect_link_target={qlink_connect_target}
+        announcer_id_prefix="qlink"
+        split_panel_id="qlink-split-settings-panel"
+      />
+    </div>
   <% end %>
 
   <%!-- Video Player Modal --%>
@@ -210,7 +194,8 @@
       ) %>
     <div
       id="video-player-modal"
-      class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+      class="qlink-widget-chrome fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+      data-theme={@embed_theme}
       phx-click="close_video_player"
       phx-mounted={video_modal_enter}
       phx-remove={video_modal_leave}
@@ -258,33 +243,40 @@
 
   <%!-- Video Collection Drawer --%>
   <%= if @current_video_offer && @show_video_player do %>
-    <.video_collection_drawer
-      current_video_offer={@current_video_offer}
-      show_collection_drawer={@show_collection_drawer && (@video_watched_complete || @video_payment_collected || @show_replay_button)}
-      video_payment_collected={@video_payment_collected}
-      show_replay_button={@show_replay_button}
-      closing={@drawer_closing}
-      has_bottom_dock={false}
-      z_class="z-[70]"
-    />
+    <div class="qlink-widget-chrome" data-theme={@embed_theme}>
+      <.video_collection_drawer
+        current_video_offer={@current_video_offer}
+        show_collection_drawer={
+          @show_collection_drawer &&
+            (@video_watched_complete || @video_payment_collected || @show_replay_button)
+        }
+        video_payment_collected={@video_payment_collected}
+        show_replay_button={@show_replay_button}
+        closing={@drawer_closing}
+        has_bottom_dock={false}
+        z_class="z-[70]"
+      />
+    </div>
   <% end %>
 
   <%!-- InstaTip Modal --%>
   <%= if @current_scope do %>
-    <% tip_recipient = @insta_tip_recipient || @recipient %>
-    <.insta_tip_modal
-      show={@show_insta_tip_modal}
-      recipient_name={tip_recipient && tip_recipient.name || "Recipient"}
-      recipient_id={tip_recipient && tip_recipient.id}
-      amount={@insta_tip_amount || Decimal.new("0.00")}
-      current_balance={@current_scope.wallet_balance}
-    />
+    <div class="qlink-widget-chrome" data-theme={@embed_theme}>
+      <% tip_recipient = @insta_tip_recipient || @recipient %>
+      <.insta_tip_modal
+        show={@show_insta_tip_modal}
+        recipient_name={(tip_recipient && tip_recipient.name) || "Recipient"}
+        recipient_id={tip_recipient && tip_recipient.id}
+        amount={@insta_tip_amount || Decimal.new("0.00")}
+        current_balance={@current_scope.wallet_balance}
+      />
 
-    <.insta_tip_thanks_modal
-      show={@show_insta_tip_thanks_modal}
-      recipient_name={@insta_tip_thanks_recipient || "Recipient"}
-      amount={@insta_tip_thanks_amount || Decimal.new("0.00")}
-    />
+      <.insta_tip_thanks_modal
+        show={@show_insta_tip_thanks_modal}
+        recipient_name={@insta_tip_thanks_recipient || "Recipient"}
+        amount={@insta_tip_thanks_amount || Decimal.new("0.00")}
+      />
+    </div>
   <% end %>
 
   <%!--
@@ -298,16 +290,18 @@
     redirect to the interact host's /login so iframe embeds still
     break out to the main app.
   --%>
-  <.connect_wallet_modal
-    show={@show_connect_modal}
-    scope={@current_scope}
-    connect_brand={:sponster}
-    on_click={
-      if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
-        do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
-        else: nil
-    }
-  />
+  <div class="qlink-widget-chrome" data-theme={@embed_theme}>
+    <.connect_wallet_modal
+      show={@show_connect_modal}
+      scope={@current_scope}
+      connect_brand={:sponster}
+      on_click={
+        if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns),
+          do: Phoenix.LiveView.JS.push("open_auth_sheet", value: %{brand: "sponster"}),
+          else: nil
+      }
+    />
+  </div>
 
   <%!--
     Floating "Connect your wallet" button for unauthenticated users
@@ -318,7 +312,7 @@
       3. Interactive host + flag off → in-app /connect.
   --%>
   <%= if is_nil(@recipient) && (is_nil(@current_scope) || is_nil(@current_scope.true_user)) do %>
-    <div class="fixed bottom-6 right-6 z-50">
+    <div class="qlink-widget-chrome fixed bottom-6 right-6 z-50" data-theme={@embed_theme}>
       <%= cond do %>
         <% QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns) -> %>
           <button
@@ -359,20 +353,22 @@
     render condition.
   --%>
   <%= if QlariusWeb.QlinkPage.Show.auth_sheet_enabled?(assigns) do %>
-    <.live_component
-      module={QlariusWeb.Components.AuthSheet}
-      id="qlink-auth-sheet"
-      show={@show_auth_sheet}
-      surface={
-        if QlariusWeb.QlinkPage.Show.on_qlinkin_bio_host?(assigns),
-          do: :on_qlinkin_bio,
-          else: :on_qlink_page
-      }
-      referral_context={@auth_referral_context}
-      client_ip={assigns[:user_ip] || "0.0.0.0"}
-      connect_brand={@auth_sheet_connect_brand}
-      on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
-    />
+    <div class="qlink-widget-chrome" data-theme={@embed_theme}>
+      <.live_component
+        module={QlariusWeb.Components.AuthSheet}
+        id="qlink-auth-sheet"
+        show={@show_auth_sheet}
+        surface={
+          if QlariusWeb.QlinkPage.Show.on_qlinkin_bio_host?(assigns),
+            do: :on_qlinkin_bio,
+            else: :on_qlink_page
+        }
+        referral_context={@auth_referral_context}
+        client_ip={assigns[:user_ip] || "0.0.0.0"}
+        connect_brand={@auth_sheet_connect_brand}
+        on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
+      />
+    </div>
   <% end %>
 
   <%!--
@@ -385,49 +381,51 @@
     globally by `QlariusWeb.LogoutModalHooks`.
   --%>
   <%= if @current_scope && assigns[:show_logout_modal] do %>
-    <.modal
-      id="qlink-logout-modal"
-      show={true}
-      close_on_click_away={false}
-      border_class="border border-widget-700"
-      panel_class="w-[min(100%,28rem)]"
-      on_cancel={JS.push("cancel_logout")}
-    >
-      <div class="bg-base-200 px-6 py-4">
-        <h3 class="font-bold text-lg">Disconnect</h3>
-      </div>
-      <div class="p-6">
-        <img
-          src="/images/qadabra_logo_squares_color.svg"
-          alt="Qadabra"
-          class="mx-auto mb-3 h-14 w-14 rounded-xl object-contain"
-        />
-        <p class="py-2">
-          This disconnects you from Qadabra for all browser activity on this device,
-          including publisher widgets and the browser extension. You can reconnect
-          anytime with your mobile number.
-        </p>
-        <div class="modal-action">
-          <button
-            type="button"
-            class="btn btn-ghost outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
-            phx-click="cancel_logout"
-          >
-            Cancel
-          </button>
-          <form action={~p"/logout"} method="post">
-            <input type="hidden" name="_method" value="delete" />
-            <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-            <input type="hidden" name="return_to" value={"/@" <> @page.alias} />
-            <button
-              type="submit"
-              class="btn btn-error outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-error-content/50"
-            >
-              Disconnect
-            </button>
-          </form>
+    <div class="qlink-widget-chrome" data-theme={@embed_theme}>
+      <.modal
+        id="qlink-logout-modal"
+        show={true}
+        close_on_click_away={false}
+        border_class="border border-widget-700"
+        panel_class="w-[min(100%,28rem)]"
+        on_cancel={JS.push("cancel_logout")}
+      >
+        <div class="bg-base-200 px-6 py-4">
+          <h3 class="font-bold text-lg">Disconnect</h3>
         </div>
-      </div>
-    </.modal>
+        <div class="p-6">
+          <img
+            src="/images/qadabra_logo_squares_color.svg"
+            alt="Qadabra"
+            class="mx-auto mb-3 h-14 w-14 rounded-xl object-contain"
+          />
+          <p class="py-2">
+            This disconnects you from Qadabra for all browser activity on this device,
+            including publisher widgets and the browser extension. You can reconnect
+            anytime with your mobile number.
+          </p>
+          <div class="modal-action">
+            <button
+              type="button"
+              class="btn btn-ghost outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
+              phx-click="cancel_logout"
+            >
+              Cancel
+            </button>
+            <form action={~p"/logout"} method="post">
+              <input type="hidden" name="_method" value="delete" />
+              <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+              <input type="hidden" name="return_to" value={"/@" <> @page.alias} />
+              <button
+                type="submit"
+                class="btn btn-error outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-error-content/50"
+              >
+                Disconnect
+              </button>
+            </form>
+          </div>
+        </div>
+      </.modal>
+    </div>
   <% end %>
 </div>

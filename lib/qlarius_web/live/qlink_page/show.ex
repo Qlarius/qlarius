@@ -2,6 +2,7 @@ defmodule QlariusWeb.QlinkPage.Show do
   use QlariusWeb, :live_view
 
   alias Qlarius.Qlink
+  alias Qlarius.Qlink.Themes
   alias Qlarius.Repo
   alias Qlarius.Wallets
   alias QlariusWeb.SponsterRecipientSurface
@@ -39,23 +40,27 @@ defmodule QlariusWeb.QlinkPage.Show do
          |> redirect(to: ~p"/")}
 
       page ->
-        if page.is_published or creator_viewing_own_page?(socket, page) do
-          # Record page view only when WebSocket is connected (prevents double counting)
-          if connected?(socket) do
+        if can_view_page?(socket, page) do
+          # Record page view only when WebSocket is connected (prevents double counting).
+          # Skip unpublished previews so admin/creator checks don't inflate stats.
+          if connected?(socket) and page.is_published do
             record_page_view(socket, page)
           end
 
           # Get links organized by section
           links = Qlink.list_visible_links(page.id)
           sections = Qlink.list_page_sections(page.id)
+          theme = Themes.resolve(page)
 
           socket =
             socket
             |> assign(:page, page)
             |> assign(:links, links)
             |> assign(:sections, sections)
-            |> assign(:page_title, "Qlink | @#{page.alias}")
+            |> assign(:page_title, page_title(page))
             |> assign(:display_image, Qlink.get_display_image(page))
+            |> assign(:qlink_theme, theme)
+            |> assign(:embed_theme, Themes.embed_theme(theme))
             |> assign(:recipient, page.recipient)
             |> assign(:arqade_fullpane_dom_id, nil)
             |> assign(:arqade_fullpane_closing?, false)
@@ -325,6 +330,20 @@ defmodule QlariusWeb.QlinkPage.Show do
     end
   end
 
+  defp page_title(%{is_published: false, alias: alias_}), do: "Qlink | @#{alias_} (Preview)"
+  defp page_title(%{alias: alias_}), do: "Qlink | @#{alias_}"
+
+  defp can_view_page?(socket, page) do
+    page.is_published or creator_viewing_own_page?(socket, page) or admin_user?(socket)
+  end
+
+  defp admin_user?(socket) do
+    case socket.assigns[:current_scope] do
+      %{true_user: %{role: "admin"}} -> true
+      _ -> false
+    end
+  end
+
   defp creator_viewing_own_page?(socket, page) do
     case socket.assigns[:current_scope] do
       nil ->
@@ -405,35 +424,7 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   # Template helpers
 
-  defp get_background_style(page) do
-    case page.background_config do
-      %{"type" => "image", "value" => url} ->
-        "background-image: url('#{url}'); background-size: cover; background-position: center;"
-
-      %{"type" => "gradient", "value" => gradient} ->
-        "background: #{gradient};"
-
-      %{"type" => "solid", "value" => color} ->
-        "background-color: #{color};"
-
-      _ ->
-        ""
-    end
-  end
-
-  defp get_social_icon_path(platform) do
-    case platform do
-      "twitter" -> "/images/social-icons/x.svg"
-      "instagram" -> "/images/social-icons/instagram.svg"
-      "threads" -> "/images/social-icons/threads.svg"
-      "facebook" -> "/images/social-icons/facebook.svg"
-      "linkedin" -> "/images/social-icons/linkedin.svg"
-      "youtube" -> "/images/social-icons/youtube.svg"
-      "tiktok" -> "/images/social-icons/tiktok.svg"
-      "github" -> "/images/social-icons/github.svg"
-      _ -> nil
-    end
-  end
+  defp get_background_style(page), do: Themes.background_css(page)
 
   attr :link, :map, required: true
   attr :recipient, :map, default: nil
@@ -458,6 +449,8 @@ defmodule QlariusWeb.QlinkPage.Show do
   attr :arqade_fullpane_dom_id, :any, default: nil
   attr :arqade_fullpane_closing?, :boolean, default: false
   attr :creator, :map, default: nil
+  attr :page, :map, default: nil
+  attr :theme, :map, default: nil
 
   def render_link(assigns) do
     cond do
@@ -490,7 +483,10 @@ defmodule QlariusWeb.QlinkPage.Show do
     # intercepts unauth clicks and opens the shared Connect-wallet
     # modal instead of proceeding to confirm.
     ~H"""
-    <div class="w-full rounded-2xl border border-neutral/30 bg-base-200 overflow-hidden">
+    <div
+      class="qlink-widget-chrome qlink-widget-frame w-full bg-base-200"
+      data-theme={Themes.embed_theme(@theme)}
+    >
       <%= cond do %>
         <% is_nil(@block_recipient) -> %>
           <div class="text-center py-8">
@@ -512,6 +508,7 @@ defmodule QlariusWeb.QlinkPage.Show do
                 Wallets.daily_gift_available?(@current_scope.user)
             }
             on_auth_click={@on_auth_click}
+            theme={Themes.embed_theme(@theme)}
           />
       <% end %>
     </div>
@@ -522,28 +519,7 @@ defmodule QlariusWeb.QlinkPage.Show do
 
   defp render_standard_link(assigns) do
     ~H"""
-    <a
-      href={@link.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      class="qlink-link-card block w-full rounded-full bg-base-200 border border-neutral/30 transition-colors active:bg-base-300 outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
-      style="padding: 1.25rem 1.5rem !important;"
-    >
-      <div class="flex items-center gap-4 w-full">
-        <%= if @link.icon do %>
-          <span class="text-2xl flex-shrink-0">{@link.icon}</span>
-        <% end %>
-        <div class="flex-1 text-left min-w-0">
-          <div class="font-semibold">{@link.title}</div>
-          <%= if @link.description do %>
-            <div class="text-sm opacity-70">{@link.description}</div>
-          <% end %>
-        </div>
-        <%= if @link.thumbnail do %>
-          <img src={@link.thumbnail} alt="" class="w-12 h-12 rounded object-cover flex-shrink-0" />
-        <% end %>
-      </div>
-    </a>
+    <.standard_link link={@link} theme={@theme} page={@page} />
     """
   end
 
@@ -737,7 +713,8 @@ defmodule QlariusWeb.QlinkPage.Show do
         # honor the creator's "hide title" setting.
         "show_title" => show_title_raw != false,
         "content_id" => Map.get(query_params, "content_id"),
-        "force_theme" => Map.get(query_params, "force_theme"),
+        "force_theme" =>
+          Map.get(query_params, "force_theme") || Themes.embed_theme(assigns.theme),
         # Same as `id:` in `live_render/3` — nested LV events must
         # `phx-target` this so they reach the child, not the Qlink parent.
         "embed_phx_id" => opts[:dom_id],
@@ -772,10 +749,11 @@ defmodule QlariusWeb.QlinkPage.Show do
     <div
       class={
         if(@arqade_fullpane_active?,
-          do: "relative w-full",
-          else: "relative w-full flex flex-col min-h-0"
+          do: "relative w-full qlink-widget-chrome",
+          else: "relative w-full flex flex-col min-h-0 qlink-widget-chrome qlink-widget-frame"
         )
       }
+      data-theme={Themes.embed_theme(@theme)}
       style={
         if(@arqade_fullpane_active?,
           do: "min-height: #{@inline_arqade_height}px;",
@@ -808,14 +786,12 @@ defmodule QlariusWeb.QlinkPage.Show do
         >
           <.icon name="hero-x-mark" class="h-5 w-5" />
         </button>
-        <div
-          class={[
-            "qlink-arqade-embed-cage__inner h-full max-h-full min-h-0 flex flex-col",
-            !@arqade_fullpane_active? && "overflow-hidden",
-            @arqade_fullpane_active? &&
-              "arqade-fullpane-active__motion relative min-h-0 flex-1 overflow-hidden"
-          ]}
-        >
+        <div class={[
+          "qlink-arqade-embed-cage__inner h-full max-h-full min-h-0 flex flex-col",
+          !@arqade_fullpane_active? && "overflow-hidden",
+          @arqade_fullpane_active? &&
+            "arqade-fullpane-active__motion relative min-h-0 flex-1 overflow-hidden"
+        ]}>
           {live_render(@socket, @inline_arqade_module,
             id: @inline_arqade_dom_id,
             session: @inline_arqade_session
@@ -834,6 +810,22 @@ defmodule QlariusWeb.QlinkPage.Show do
   end
 
   defp extract_query_params(_), do: %{}
+
+  defp widget_iframe_url?(url) when is_binary(url) do
+    path = URI.parse(url).path || ""
+    String.contains?(path, "/widgets/")
+  end
+
+  defp widget_iframe_url?(_), do: false
+
+  defp maybe_put_query(url, _key, nil), do: url
+  defp maybe_put_query(url, _key, ""), do: url
+
+  defp maybe_put_query(url, key, value) when is_binary(url) do
+    uri = URI.parse(url)
+    query = uri.query |> Kernel.||("") |> URI.decode_query() |> Map.put(key, value)
+    URI.to_string(%{uri | query: URI.encode_query(query)})
+  end
 
   defp get_embed_platform(embed_config) when is_map(embed_config) do
     Map.get(embed_config, "platform") || Map.get(embed_config, :platform)
@@ -991,23 +983,32 @@ defmodule QlariusWeb.QlinkPage.Show do
         assigns[:parent_request_uri]
       )
 
-    # Append show_title param if explicitly set to false
     iframe_url =
-      if show_title == false do
-        separator = if String.contains?(iframe_url, "?"), do: "&", else: "?"
-        "#{iframe_url}#{separator}show_title=false"
-      else
-        iframe_url
-      end
+      iframe_url
+      |> maybe_put_query("show_title", if(show_title == false, do: "false"))
+      |> maybe_put_query(
+        "force_theme",
+        if(
+          widget_iframe_url?(iframe_url) and
+            is_nil(extract_query_params(iframe_url)["force_theme"]),
+          do: Themes.embed_theme(assigns.theme)
+        )
+      )
 
     assigns =
       assigns
       |> assign(:iframe_url, iframe_url)
       |> assign(:iframe_height, height)
+      |> assign(:widget_iframe?, widget_iframe_url?(iframe_url))
 
     ~H"""
     <div
-      class="w-full rounded-xl overflow-hidden border border-neutral/50"
+      class={[
+        "qlink-widget-chrome w-full overflow-hidden",
+        @widget_iframe? && "qlink-widget-frame",
+        !@widget_iframe? && "rounded-xl border border-neutral/50"
+      ]}
+      data-theme={Themes.embed_theme(@theme)}
       style={"height: #{@iframe_height}px; max-height: #{@iframe_height}px;"}
     >
       <iframe
