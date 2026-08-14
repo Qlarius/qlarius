@@ -6,6 +6,7 @@ defmodule Qlarius.Qlink.Themes do
   modifier classes. No JS hooks or stylesheet swaps.
   """
 
+  alias Qlarius.Qlink.BackgroundPatterns
   alias Qlarius.Qlink.QlinkPage
   alias QlariusWeb.Uploaders.CreatorImage
 
@@ -29,9 +30,20 @@ defmodule Qlarius.Qlink.Themes do
   @headers ~w(avatar hero)
   @avatars ~w(circle rounded)
   @embed_themes ~w(light dark)
+  @brand_logo_width_min 40
+  @brand_logo_width_max 460
 
   @hex ~r/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/
   @gradient_ok ~r/^(?:repeating-)?(?:linear|radial|conic)-gradient\(/i
+  @linear_two ~r/^linear-gradient\(\s*(\d+(?:\.\d+)?)deg\s*,\s*(#[0-9a-fA-F]{3,8})(?:\s+\d+%)?\s*,\s*(#[0-9a-fA-F]{3,8})/i
+
+  @gradient_angles [
+    {"Up", "0"},
+    {"Up right", "45"},
+    {"Right", "90"},
+    {"Down right", "135"},
+    {"Down", "180"}
+  ]
 
   @shape_radius %{
     "pill" => "9999px",
@@ -46,6 +58,10 @@ defmodule Qlarius.Qlink.Themes do
   def headers, do: @headers
   def avatars, do: @avatars
   def embed_themes, do: @embed_themes
+  def gradient_angles, do: @gradient_angles
+  def pattern_ids, do: BackgroundPatterns.ids()
+  def pattern_options, do: BackgroundPatterns.options()
+  def pattern_fits, do: BackgroundPatterns.fits()
 
   def font_options do
     Enum.map(@fonts, fn {id, {name, _}} -> {name, id} end)
@@ -86,6 +102,43 @@ defmodule Qlarius.Qlink.Themes do
   end
 
   @doc """
+  Whether the current theme and background still match their origin template.
+
+  * `:none` — no template
+  * `{:applied, id, label}` — tokens match the template
+  * `{:custom, id, label}` — template was a starting point but styling has diverged
+  """
+  def template_origin(theme_config, background_config) do
+    theme = sanitize_theme_config(theme_config)
+    id = theme["template_id"]
+
+    case template(id) do
+      %{"label" => label} ->
+        if matches_template?(theme, background_config, id) do
+          {:applied, id, label}
+        else
+          {:custom, id, label}
+        end
+
+      _ ->
+        :none
+    end
+  end
+
+  def template_summary(:none), do: "None"
+
+  def template_summary({:applied, _id, label}), do: label
+
+  def template_summary({:custom, _id, label}), do: "Custom (from #{label} originally)"
+
+  defp matches_template?(theme, background_config, id) do
+    %{theme_config: applied_theme, background_config: applied_bg} = apply(id)
+
+    theme == sanitize_theme_config(applied_theme) and
+      sanitize_background_config(background_config) == sanitize_background_config(applied_bg)
+  end
+
+  @doc """
   Returns a sanitized theme map, or nil for unthemed/legacy pages.
   """
   def resolve(%QlinkPage{theme_config: cfg}), do: resolve(cfg)
@@ -121,6 +174,7 @@ defmodule Qlarius.Qlink.Themes do
         {"--qlink-font", font_family(theme["font"])},
         {"--qlink-btn-bg", button["bg"]},
         {"--qlink-btn-text", button["text"]},
+        {"--qlink-btn-border", button["border"]},
         {"--qlink-btn-radius", Map.get(@shape_radius, shape, "9999px")}
       ]
       |> Enum.reject(fn {_k, v} -> is_nil(v) or v == "" end)
@@ -206,12 +260,43 @@ defmodule Qlarius.Qlink.Themes do
       %{"type" => "image", "static" => path} ->
         image_background_css(first_party_src(path, page))
 
+      %{"type" => "pattern"} = cfg ->
+        BackgroundPatterns.css(cfg)
+
       _ ->
         ""
     end
   end
 
   def background_css(_), do: ""
+
+  @doc """
+  Two-stop `linear-gradient(Ndeg, #from, #to)` as picker fields, or nil
+  for custom blends (Aurora-style stacked radials).
+  """
+  def parse_linear_gradient(value) when is_binary(value) do
+    case Regex.run(@linear_two, String.trim(value)) do
+      [_, angle, from, to] ->
+        from = expand_hex(from)
+        to = expand_hex(to)
+
+        if from && to do
+          %{"angle" => normalize_angle(angle) || "135", "from" => from, "to" => to}
+        else
+          nil
+        end
+
+      _ ->
+        nil
+    end
+  end
+
+  def parse_linear_gradient(_), do: nil
+
+  def compose_linear_gradient(angle, from, to) do
+    deg = normalize_angle(angle) || "135"
+    "linear-gradient(#{deg}deg, #{from} 0%, #{to} 100%)"
+  end
 
   defp image_background_css(nil), do: ""
 
@@ -268,6 +353,26 @@ defmodule Qlarius.Qlink.Themes do
 
   def first_party_src(_, _), do: nil
 
+  @doc """
+  First-party URL for a page brand logo, or nil.
+  """
+  def brand_logo_src(%QlinkPage{} = page), do: first_party_src(page.brand_logo, page)
+  def brand_logo_src(_), do: nil
+
+  def brand_logo_width_min, do: @brand_logo_width_min
+  def brand_logo_width_max, do: @brand_logo_width_max
+
+  def brand_logo_max_width(%QlinkPage{} = page),
+    do: clamp_brand_logo_width(page.brand_logo_max_width)
+
+  def brand_logo_max_width(_), do: @brand_logo_width_max
+
+  def clamp_brand_logo_width(n) when is_integer(n) do
+    n |> max(@brand_logo_width_min) |> min(@brand_logo_width_max)
+  end
+
+  def clamp_brand_logo_width(_), do: @brand_logo_width_max
+
   def first_party_url?(url) when is_binary(url) do
     case URI.parse(url) do
       %URI{scheme: scheme, host: host} when scheme in ["http", "https"] and is_binary(host) ->
@@ -309,7 +414,15 @@ defmodule Qlarius.Qlink.Themes do
           "shape" => pick(button["shape"], @shapes, pick(base_button["shape"], @shapes, "pill")),
           "style" => pick(button["style"], @styles, pick(base_button["style"], @styles, "fill")),
           "bg" => hex_or(button["bg"], hex_or(base_button["bg"], "#0c0a09")),
-          "text" => hex_or(button["text"], hex_or(base_button["text"], "#fafaf9"))
+          "text" => hex_or(button["text"], hex_or(base_button["text"], "#fafaf9")),
+          "border" =>
+            hex_or(
+              button["border"],
+              hex_or(
+                base_button["border"],
+                hex_or(button["text"], hex_or(base_button["text"], "#fafaf9"))
+              )
+            )
         },
         "avatar" => pick(merged["avatar"], @avatars, pick(base["avatar"], @avatars, "circle")),
         "header" => pick(merged["header"], @headers, pick(base["header"], @headers, "avatar")),
@@ -357,8 +470,11 @@ defmodule Qlarius.Qlink.Themes do
             %{"type" => "image", "static" => cfg["static"]}
 
           true ->
-            %{}
+            %{"type" => "image"}
         end
+
+      "pattern" ->
+        sanitize_pattern_config(cfg)
 
       _ ->
         %{}
@@ -382,14 +498,136 @@ defmodule Qlarius.Qlink.Themes do
     incoming = stringify_keys(incoming || %{})
     merged = Map.merge(current, incoming)
 
-    cond do
-      merged["type"] == "image" and merged["file"] in [nil, ""] and is_binary(current["file"]) ->
-        Map.put(merged, "file", current["file"])
+    case merged["type"] do
+      "solid" ->
+        color =
+          hex_or(incoming["value"], nil) ||
+            hex_or(current["value"], nil) ||
+            get_in(parse_linear_gradient(current["value"]) || %{}, ["from"]) ||
+            "#ffffff"
 
-      true ->
-        merged
+        %{"type" => "solid", "value" => color}
+
+      "gradient" ->
+        %{"type" => "gradient", "value" => gradient_value_from_merge(current, incoming)}
+
+      "image" ->
+        cond do
+          is_binary(merged["file"]) and merged["file"] != "" and not http_url?(merged["file"]) ->
+            %{"type" => "image", "file" => merged["file"]}
+
+          is_binary(current["file"]) and current["file"] != "" and not http_url?(current["file"]) ->
+            %{"type" => "image", "file" => current["file"]}
+
+          is_binary(merged["static"]) and String.starts_with?(merged["static"], "/images/") ->
+            %{"type" => "image", "static" => merged["static"]}
+
+          true ->
+            %{"type" => "image"}
+        end
+
+      "pattern" ->
+        sanitize_pattern_config(%{
+          "pattern" => merged["pattern"],
+          "base" =>
+            incoming["base"] ||
+              current["base"] ||
+              incoming["value"] ||
+              current["value"] ||
+              get_in(parse_linear_gradient(current["value"]) || %{}, ["from"]),
+          "fill" => incoming["fill"] || current["fill"],
+          "opacity" => incoming["opacity"] || current["opacity"],
+          "fit" => incoming["fit"] || current["fit"]
+        })
+
+      _ ->
+        %{}
     end
   end
+
+  defp sanitize_pattern_config(cfg) do
+    %{
+      "type" => "pattern",
+      "pattern" => pick(cfg["pattern"], BackgroundPatterns.ids(), "blobs"),
+      "base" => hex_or(cfg["base"], "#95acd5"),
+      "fill" => hex_or(cfg["fill"], "#ffffff"),
+      "opacity" => clamp_opacity(cfg["opacity"]),
+      "fit" => pick(cfg["fit"], BackgroundPatterns.fits(), "stretch")
+    }
+  end
+
+  defp clamp_opacity(value) do
+    n =
+      cond do
+        is_integer(value) ->
+          value
+
+        is_float(value) ->
+          if value <= 1.0, do: round(value * 100), else: round(value)
+
+        is_binary(value) ->
+          case Integer.parse(value) do
+            {int, _} -> int
+            :error -> 50
+          end
+
+        true ->
+          50
+      end
+
+    n |> max(10) |> min(100)
+  end
+
+  defp gradient_value_from_merge(current, incoming) do
+    from = hex_or(incoming["from"], nil)
+    to = hex_or(incoming["to"], nil)
+
+    angle =
+      normalize_angle(incoming["angle"]) ||
+        get_in(parse_linear_gradient(current["value"]) || %{}, ["angle"]) ||
+        "135"
+
+    cond do
+      from && to ->
+        compose_linear_gradient(angle, from, to)
+
+      safe_gradient?(incoming["value"]) ->
+        String.trim(incoming["value"])
+
+      safe_gradient?(current["value"]) ->
+        String.trim(current["value"])
+
+      true ->
+        seed = hex_or(current["value"], "#ea580c")
+        compose_linear_gradient("135", seed, "#e11d48")
+    end
+  end
+
+  defp normalize_angle(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {n, _} when n in 0..360 -> Integer.to_string(n)
+      _ -> nil
+    end
+  end
+
+  defp normalize_angle(n) when is_integer(n) and n in 0..360, do: Integer.to_string(n)
+  defp normalize_angle(_), do: nil
+
+  defp expand_hex("#" <> hex) do
+    hex = String.downcase(hex)
+
+    expanded =
+      case String.length(hex) do
+        3 -> hex |> String.graphemes() |> Enum.map_join(&(&1 <> &1))
+        6 -> hex
+        8 -> String.slice(hex, 0, 6)
+        _ -> nil
+      end
+
+    if expanded, do: hex_or("#" <> expanded, nil)
+  end
+
+  defp expand_hex(_), do: nil
 
   defp template_defaults(id) do
     case template(id) do
@@ -414,7 +652,8 @@ defmodule Qlarius.Qlink.Themes do
           "shape" => "pill",
           "style" => "fill",
           "bg" => "#0c0a09",
-          "text" => "#fafaf9"
+          "text" => "#fafaf9",
+          "border" => "#fafaf9"
         },
         "avatar" => "circle",
         "header" => "avatar",
@@ -435,7 +674,8 @@ defmodule Qlarius.Qlink.Themes do
           "shape" => "pill",
           "style" => "outline",
           "bg" => "#1c1917",
-          "text" => "#f5f5f4"
+          "text" => "#f5f5f4",
+          "border" => "#f5f5f4"
         },
         "avatar" => "circle",
         "header" => "avatar",
@@ -456,7 +696,8 @@ defmodule Qlarius.Qlink.Themes do
           "shape" => "rounded",
           "style" => "fill",
           "bg" => "#fff7ed",
-          "text" => "#9f1239"
+          "text" => "#9f1239",
+          "border" => "#9f1239"
         },
         "avatar" => "circle",
         "header" => "hero",
@@ -480,7 +721,8 @@ defmodule Qlarius.Qlink.Themes do
           "shape" => "rounded",
           "style" => "glass",
           "bg" => "#1e293b",
-          "text" => "#e0f2fe"
+          "text" => "#e0f2fe",
+          "border" => "#e0f2fe"
         },
         "avatar" => "circle",
         "header" => "avatar",
@@ -505,7 +747,8 @@ defmodule Qlarius.Qlink.Themes do
           "shape" => "rounded",
           "style" => "shadow",
           "bg" => "#ffffff",
-          "text" => "#1c1917"
+          "text" => "#1c1917",
+          "border" => "#1c1917"
         },
         "avatar" => "rounded",
         "header" => "hero",
@@ -526,7 +769,8 @@ defmodule Qlarius.Qlink.Themes do
           "shape" => "pill",
           "style" => "fill",
           "bg" => "#fce7f3",
-          "text" => "#831843"
+          "text" => "#831843",
+          "border" => "#831843"
         },
         "avatar" => "circle",
         "header" => "hero",
@@ -547,7 +791,8 @@ defmodule Qlarius.Qlink.Themes do
           "shape" => "square",
           "style" => "outline",
           "bg" => "#14532d",
-          "text" => "#d9f99d"
+          "text" => "#d9f99d",
+          "border" => "#d9f99d"
         },
         "avatar" => "rounded",
         "header" => "avatar",
@@ -568,7 +813,8 @@ defmodule Qlarius.Qlink.Themes do
           "shape" => "rounded",
           "style" => "fill",
           "bg" => "#052e16",
-          "text" => "#ecfdf5"
+          "text" => "#ecfdf5",
+          "border" => "#ecfdf5"
         },
         "avatar" => "rounded",
         "header" => "hero",
@@ -589,7 +835,8 @@ defmodule Qlarius.Qlink.Themes do
           "shape" => "square",
           "style" => "shadow",
           "bg" => "#fafafa",
-          "text" => "#171717"
+          "text" => "#171717",
+          "border" => "#171717"
         },
         "avatar" => "rounded",
         "header" => "avatar",
@@ -610,7 +857,8 @@ defmodule Qlarius.Qlink.Themes do
           "shape" => "rounded",
           "style" => "fill",
           "bg" => "#cffafe",
-          "text" => "#164e63"
+          "text" => "#164e63",
+          "border" => "#164e63"
         },
         "avatar" => "circle",
         "header" => "hero",

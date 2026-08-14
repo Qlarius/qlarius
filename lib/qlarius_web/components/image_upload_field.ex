@@ -45,6 +45,10 @@ defmodule QlariusWeb.Components.ImageUploadField do
     default: "w-16 h-16",
     doc: "Current image preview size classes"
 
+  attr :current_image_class, :string,
+    default: "w-full max-w-32 h-auto object-cover rounded-lg",
+    doc: "Classes for the saved-image preview"
+
   def image_upload_field(assigns) do
     ~H"""
     <div class="space-y-2">
@@ -73,7 +77,7 @@ defmodule QlariusWeb.Components.ImageUploadField do
             <% end %>
             <img
               src={@current_image_url}
-              class="w-full max-w-32 h-auto object-cover rounded-lg"
+              class={@current_image_class}
               alt="Current image preview"
             />
           </div>

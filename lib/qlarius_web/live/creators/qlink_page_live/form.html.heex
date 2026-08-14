@@ -141,6 +141,40 @@
                           />
                         </div>
 
+                        <div class="form-control">
+                          <label class="label">
+                            <span class="label-text font-medium">Brand logo</span>
+                          </label>
+                          <p class="text-sm text-base-content/60 mb-2">
+                            Optional. Overrides the title on the public page. Title is still used for the browser tab. PNG with transparency works best.
+                          </p>
+                          <.image_upload_field
+                            upload={@uploads.brand_logo}
+                            label=""
+                            current_image={@page.brand_logo}
+                            current_image_url={
+                              if @page.brand_logo,
+                                do:
+                                  QlariusWeb.Uploaders.CreatorImage.url(
+                                    {@page.brand_logo, @page},
+                                    :original
+                                  )
+                            }
+                            current_image_class="w-full max-w-48 max-h-20 h-auto object-contain"
+                            on_delete={if @page.id, do: "delete_brand_logo"}
+                            accept_text="JPG, PNG, GIF, WebP (max 10MB)"
+                          />
+                          <.input
+                            field={@form[:brand_logo_max_width]}
+                            type="number"
+                            min={Themes.brand_logo_width_min()}
+                            max={Themes.brand_logo_width_max()}
+                            step="1"
+                            label="Max width (px)"
+                            description={"Height stays in ratio. Default and maximum #{Themes.brand_logo_width_max()}px."}
+                          />
+                        </div>
+
                         <%= if @live_action == :new do %>
                           <div class="form-control">
                             <label class="label">
@@ -413,46 +447,61 @@
                         />
                       <% end %>
 
-                      <div>
-                        <div class="flex items-center justify-between mb-3">
-                          <h3 class="text-lg font-semibold text-base-content flex items-center">
-                            <.icon name="hero-paint-brush" class="w-5 h-5 mr-3 text-primary" />
-                            Templates
-                          </h3>
-                          <%= if theme_value(@form, ["template_id"]) do %>
-                            <button
-                              type="button"
-                              class="btn btn-ghost btn-xs"
-                              phx-click="reset_template"
-                            >
-                              Reset to template
-                            </button>
-                          <% end %>
+                      <% origin = template_origin(@form) %>
+                      <div class="collapse collapse-arrow border border-base-300 rounded-xl">
+                        <input type="checkbox" />
+                        <div class="collapse-title min-h-0 py-3">
+                          <div class="flex items-center justify-between gap-3 pr-4">
+                            <h3 class="text-lg font-semibold text-base-content flex items-center">
+                              <.icon name="hero-paint-brush" class="w-5 h-5 mr-3 text-primary" />
+                              Templates
+                            </h3>
+                            <span class="text-sm font-normal text-base-content/70 truncate">
+                              {Themes.template_summary(origin)}
+                            </span>
+                          </div>
                         </div>
-                        <div class="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                          <%= for t <- Themes.templates() do %>
-                            <button
-                              type="button"
-                              phx-click="apply_template"
-                              phx-value-id={t["id"]}
-                              data-confirm={
-                                if theme_value(@form, ["template_id"]),
-                                  do:
-                                    "Replace colors, fonts, and buttons with the #{t["label"]} template? Links and content stay the same."
-                              }
-                              class={[
-                                "qlink-style-swatch",
-                                theme_value(@form, ["template_id"]) == t["id"] && "is-selected"
-                              ]}
-                            >
-                              <span
-                                class="qlink-style-swatch__face"
-                                style={"background: #{t["swatch"]}; color: #{t["text_color"]}; font-family: #{Themes.font_family(t["font"])}"}
+                        <div class="collapse-content">
+                          <div class="flex items-center justify-between gap-3 mb-3">
+                            <p class="text-sm text-base-content/60">
+                              Applying a template replaces colors, fonts, buttons, and background.
+                            </p>
+                            <%= if origin != :none do %>
+                              <button
+                                type="button"
+                                class="btn btn-ghost btn-xs shrink-0"
+                                phx-click="reset_template"
+                                data-confirm="Reset to the original template? This will overwrite any custom styling. Links and content stay the same."
                               >
-                                {t["label"]}
-                              </span>
-                            </button>
-                          <% end %>
+                                Reset to template
+                              </button>
+                            <% end %>
+                          </div>
+                          <div class="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                            <%= for t <- Themes.templates() do %>
+                              <button
+                                type="button"
+                                phx-click="apply_template"
+                                phx-value-id={t["id"]}
+                                data-confirm={
+                                  if origin != :none,
+                                    do:
+                                      "Replace colors, fonts, and buttons with the #{t["label"]} template? Links and content stay the same."
+                                }
+                                class={[
+                                  "qlink-style-swatch",
+                                  template_applied?(origin, t["id"]) && "is-selected"
+                                ]}
+                              >
+                                <span
+                                  class="qlink-style-swatch__face"
+                                  style={"background: #{t["swatch"]}; color: #{t["text_color"]}; font-family: #{Themes.font_family(t["font"])}"}
+                                >
+                                  {t["label"]}
+                                </span>
+                              </button>
+                            <% end %>
+                          </div>
                         </div>
                       </div>
 
@@ -461,62 +510,110 @@
                           <.icon name="hero-paint-brush" class="w-5 h-5 mr-3 text-primary" />
                           Background
                         </h3>
-                        <div class="form-control max-w-md">
-                          <label class="label">
-                            <span class="label-text font-medium">Type</span>
-                          </label>
-                          <select
-                            name="qlink_page[background_config][type]"
-                            class="select select-bordered w-full"
-                          >
-                            <option value="" selected={bg_type(@form) in [nil, ""]}>
-                              None (default)
-                            </option>
-                            <option value="solid" selected={bg_type(@form) == "solid"}>
-                              Solid color
-                            </option>
-                            <option value="gradient" selected={bg_type(@form) == "gradient"}>
-                              Gradient
-                            </option>
-                            <option value="image" selected={bg_type(@form) == "image"}>
-                              Image
-                            </option>
-                          </select>
+                        <p class="text-sm text-base-content/60 mb-3 max-w-md">
+                          Fills the page column. Side panels stay the gutter color on wide screens.
+                        </p>
+                        <div
+                          class="h-16 max-w-md rounded-xl border border-base-300 mb-3"
+                          style={bg_preview_style(@form, @page)}
+                        >
+                        </div>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                          <%= for {label, value} <- [{"Color", "solid"}, {"Gradient", "gradient"}, {"Image", "image"}, {"Pattern", "pattern"}] do %>
+                            <label class="cursor-pointer">
+                              <input
+                                type="radio"
+                                name="qlink_page[background_config][type]"
+                                value={value}
+                                checked={bg_type(@form) == value}
+                                class="hidden peer"
+                              />
+                              <span class="btn btn-sm btn-outline peer-checked:btn-primary">
+                                {label}
+                              </span>
+                            </label>
+                          <% end %>
                         </div>
 
                         <%= case bg_type(@form) do %>
                           <% "solid" -> %>
-                            <div class="form-control max-w-md mt-3">
-                              <label class="label">
-                                <span class="label-text font-medium">Color</span>
-                              </label>
+                            <div class="form-control max-w-md">
+                              <span class="label-text font-medium mb-1">Color</span>
                               <input
                                 type="color"
                                 name="qlink_page[background_config][value]"
-                                value={bg_value(@form) || "#ffffff"}
-                                class="h-12 w-24 rounded border border-base-300"
+                                value={bg_solid_hex(@form)}
+                                class="h-12 w-16 rounded border border-base-300"
                               />
                             </div>
                           <% "gradient" -> %>
-                            <div class="form-control max-w-md mt-3">
-                              <label class="label">
-                                <span class="label-text font-medium">CSS Gradient</span>
-                              </label>
+                            <% linear = bg_linear(@form) %>
+                            <%= if linear do %>
                               <input
-                                type="text"
+                                type="hidden"
                                 name="qlink_page[background_config][value]"
-                                value={bg_value(@form) || ""}
-                                class="input input-bordered w-full"
-                                placeholder="linear-gradient(135deg, #f5d142 0%, #e8533f 100%)"
+                                value={bg_value(@form)}
                               />
-                            </div>
+                              <div class="flex flex-wrap gap-6 max-w-md">
+                                <label class="form-control">
+                                  <span class="label-text font-medium mb-1">From</span>
+                                  <input
+                                    type="color"
+                                    name="qlink_page[background_config][from]"
+                                    value={linear["from"]}
+                                    class="h-12 w-16 rounded border border-base-300"
+                                  />
+                                </label>
+                                <label class="form-control">
+                                  <span class="label-text font-medium mb-1">To</span>
+                                  <input
+                                    type="color"
+                                    name="qlink_page[background_config][to]"
+                                    value={linear["to"]}
+                                    class="h-12 w-16 rounded border border-base-300"
+                                  />
+                                </label>
+                              </div>
+                              <p class="text-sm text-base-content/60 mt-3 mb-2">Direction</p>
+                              <div class="flex flex-wrap gap-2 max-w-md">
+                                <%= for {label, angle} <- gradient_angle_options(linear) do %>
+                                  <button
+                                    type="button"
+                                    phx-click="set_bg_gradient_angle"
+                                    phx-value-angle={angle}
+                                    class={[
+                                      "btn btn-sm btn-outline",
+                                      linear["angle"] == angle && "btn-primary"
+                                    ]}
+                                  >
+                                    {label}
+                                  </button>
+                                <% end %>
+                              </div>
+                            <% else %>
+                              <input
+                                type="hidden"
+                                name="qlink_page[background_config][value]"
+                                value={bg_value(@form)}
+                              />
+                              <p class="text-sm text-base-content/60 max-w-md mb-3">
+                                This template uses a custom blend. Edit it as two colors, or keep it as-is.
+                              </p>
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-outline"
+                                phx-click="simplify_background_gradient"
+                              >
+                                Edit as two colors
+                              </button>
+                            <% end %>
                           <% "image" -> %>
                             <input
                               type="hidden"
                               name="qlink_page[background_config][file]"
                               value={bg_file(@form) || ""}
                             />
-                            <div class="max-w-md mt-3">
+                            <div class="max-w-md">
                               <.image_upload_field
                                 upload={@uploads.background}
                                 label="Background image"
@@ -531,13 +628,88 @@
                                 }
                                 on_delete="delete_background"
                               />
+                              <p class="text-sm text-base-content/60 mt-2">
+                                Photo covers the page. Keep Page text high-contrast so copy stays readable.
+                              </p>
                             </div>
-                          <% _ -> %>
-                            <input
-                              type="hidden"
-                              name="qlink_page[background_config][value]"
-                              value=""
-                            />
+                          <% "pattern" -> %>
+                            <% pattern_cfg = bg_pattern_config(@form) %>
+                            <p class="text-sm text-base-content/60 mb-2">Pattern</p>
+                            <div class="flex flex-wrap gap-2 mb-4 max-w-lg">
+                              <%= for {label, id} <- Themes.pattern_options() do %>
+                                <label class="cursor-pointer">
+                                  <input
+                                    type="radio"
+                                    name="qlink_page[background_config][pattern]"
+                                    value={id}
+                                    checked={pattern_cfg["pattern"] == id}
+                                    class="hidden peer"
+                                  />
+                                  <span
+                                    class={[
+                                      "qlink-pattern-chip border-2 border-transparent peer-checked:border-primary"
+                                    ]}
+                                    style={pattern_chip_style(pattern_cfg, id)}
+                                  >
+                                    {label}
+                                  </span>
+                                </label>
+                              <% end %>
+                            </div>
+                            <div class="flex flex-wrap gap-6 max-w-md mb-4">
+                              <label class="form-control">
+                                <span class="label-text font-medium mb-1">Base</span>
+                                <input
+                                  type="color"
+                                  name="qlink_page[background_config][base]"
+                                  value={pattern_cfg["base"]}
+                                  class="h-12 w-16 rounded border border-base-300"
+                                />
+                              </label>
+                              <label class="form-control">
+                                <span class="label-text font-medium mb-1">Pattern</span>
+                                <input
+                                  type="color"
+                                  name="qlink_page[background_config][fill]"
+                                  value={pattern_cfg["fill"]}
+                                  class="h-12 w-16 rounded border border-base-300"
+                                />
+                              </label>
+                            </div>
+                            <label class="form-control max-w-md mb-4">
+                              <span class="label-text font-medium mb-1">
+                                Pattern opacity · {pattern_cfg["opacity"]}%
+                              </span>
+                              <input
+                                type="range"
+                                min="10"
+                                max="100"
+                                step="5"
+                                name="qlink_page[background_config][opacity]"
+                                value={pattern_cfg["opacity"]}
+                                class="range range-sm range-primary"
+                              />
+                            </label>
+                            <p class="text-sm text-base-content/60 mb-2">Fit</p>
+                            <div class="flex flex-wrap gap-2">
+                              <%= for {label, value} <- [{"Stretch", "stretch"}, {"Tile", "tile"}] do %>
+                                <label class="cursor-pointer">
+                                  <input
+                                    type="radio"
+                                    name="qlink_page[background_config][fit]"
+                                    value={value}
+                                    checked={pattern_cfg["fit"] == value}
+                                    class="hidden peer"
+                                  />
+                                  <span class="btn btn-sm btn-outline peer-checked:btn-primary">
+                                    {label}
+                                  </span>
+                                </label>
+                              <% end %>
+                            </div>
+                            <p class="text-sm text-base-content/60 mt-3 max-w-md">
+                              White at ~50% on a colored base reads as a lighter wash of that color.
+                            </p>
                         <% end %>
                       </div>
 
@@ -631,6 +803,21 @@
                                 type="color"
                                 name="qlink_page[theme_config][button][text]"
                                 value={theme_value(@form, ["button", "text"], "#fafaf9")}
+                                class="h-12 w-16 rounded border border-base-300"
+                              />
+                            </label>
+                            <label class="form-control">
+                              <span class="label-text font-medium mb-1">Button border</span>
+                              <input
+                                type="color"
+                                name="qlink_page[theme_config][button][border]"
+                                value={
+                                  theme_value(
+                                    @form,
+                                    ["button", "border"],
+                                    theme_value(@form, ["button", "text"], "#fafaf9")
+                                  )
+                                }
                                 class="h-12 w-16 rounded border border-base-300"
                               />
                             </label>

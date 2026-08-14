@@ -15,7 +15,11 @@ defmodule QlariusWeb.Components.QlinkTheme do
   attr :preview, :boolean, default: false
 
   def bio_header(assigns) do
-    assigns = assign(assigns, :header, Themes.header_mode(assigns.theme, assigns.page))
+    assigns =
+      assigns
+      |> assign(:header, Themes.header_mode(assigns.theme, assigns.page))
+      |> assign(:brand_logo, Themes.brand_logo_src(assigns.page))
+      |> assign(:logo_max_width, Themes.brand_logo_max_width(assigns.page))
 
     ~H"""
     <div class={["qlink-header", @header == "hero" && "qlink-header--hero"]}>
@@ -35,7 +39,18 @@ defmodule QlariusWeb.Components.QlinkTheme do
       <% end %>
 
       <div class="qlink-header__copy max-w-2xl mx-auto">
-        <h1 class="qlink-header__title">{@page.title}</h1>
+        <%= if @brand_logo do %>
+          <h1 class="qlink-header__title qlink-header__title--logo">
+            <img
+              src={@brand_logo}
+              alt={@page.title}
+              class="qlink-header__logo"
+              style={"max-width: min(#{@logo_max_width}px, 100%)"}
+            />
+          </h1>
+        <% else %>
+          <h1 class="qlink-header__title">{@page.title}</h1>
+        <% end %>
         <%= if @page.bio_text not in [nil, ""] do %>
           <p class="qlink-header__bio">{@page.bio_text}</p>
         <% end %>

@@ -874,12 +874,12 @@ defmodule QlariusWeb.QlinkPage.Show do
     assigns = assign(assigns, :video_id, video_id)
 
     ~H"""
-    <div class="w-full rounded-2xl bg-base-200 border border-neutral/30 p-4">
+    <div class="qlink-embed-card w-full rounded-2xl p-4">
       <%= if @link.title do %>
-        <h3 class="text-lg font-semibold mb-2">{@link.title}</h3>
+        <h3 class="qlink-embed-card__title text-lg font-semibold mb-2">{@link.title}</h3>
       <% end %>
       <%= if @link.description do %>
-        <p class="text-sm text-base-content/70 mb-3">{@link.description}</p>
+        <p class="qlink-embed-card__desc text-sm mb-3">{@link.description}</p>
       <% end %>
       <div class="aspect-video rounded-xl overflow-hidden">
         <iframe
@@ -901,12 +901,12 @@ defmodule QlariusWeb.QlinkPage.Show do
     assigns = assign(assigns, :content_id, content_id)
 
     ~H"""
-    <div class="w-full rounded-2xl bg-base-200 border border-neutral/30 p-4">
+    <div class="qlink-embed-card w-full rounded-2xl p-4">
       <%= if @link.title do %>
-        <h3 class="text-lg font-semibold mb-2">{@link.title}</h3>
+        <h3 class="qlink-embed-card__title text-lg font-semibold mb-2">{@link.title}</h3>
       <% end %>
       <%= if @link.description do %>
-        <p class="text-sm text-base-content/70 mb-3">{@link.description}</p>
+        <p class="qlink-embed-card__desc text-sm mb-3">{@link.description}</p>
       <% end %>
       <div class="rounded-xl overflow-hidden">
         <iframe
@@ -929,12 +929,12 @@ defmodule QlariusWeb.QlinkPage.Show do
     assigns = assign(assigns, :video_id, video_id)
 
     ~H"""
-    <div class="w-full rounded-2xl bg-base-200 border border-neutral/30 p-4">
+    <div class="qlink-embed-card w-full rounded-2xl p-4">
       <%= if @link.title do %>
-        <h3 class="text-lg font-semibold mb-2">{@link.title}</h3>
+        <h3 class="qlink-embed-card__title text-lg font-semibold mb-2">{@link.title}</h3>
       <% end %>
       <%= if @link.description do %>
-        <p class="text-sm text-base-content/70 mb-3">{@link.description}</p>
+        <p class="qlink-embed-card__desc text-sm mb-3">{@link.description}</p>
       <% end %>
       <div class="rounded-xl overflow-hidden">
         <blockquote

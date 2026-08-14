@@ -61,6 +61,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     )
     |> ImageUpload.setup_upload(:image)
     |> ImageUpload.setup_upload(:background)
+    |> ImageUpload.setup_upload(:brand_logo)
     |> ImageUpload.setup_upload(:link_thumbnail)
     |> noreply()
   end
@@ -95,6 +96,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     )
     |> ImageUpload.setup_upload(:image)
     |> ImageUpload.setup_upload(:background)
+    |> ImageUpload.setup_upload(:brand_logo)
     |> ImageUpload.setup_upload(:link_thumbnail)
     |> noreply()
   end
@@ -172,6 +174,34 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   def handle_event("reset_template", _params, socket) do
     id = theme_value(socket.assigns.form, ["template_id"])
     handle_event("apply_template", %{"id" => id || ""}, socket)
+  end
+
+  @impl true
+  def handle_event("set_bg_gradient_angle", %{"angle" => angle}, socket) do
+    patch_background(socket, fn current ->
+      parsed = Themes.parse_linear_gradient(current["value"]) || %{}
+
+      Themes.merge_background(current, %{
+        "type" => "gradient",
+        "from" => parsed["from"] || "#ea580c",
+        "to" => parsed["to"] || "#e11d48",
+        "angle" => angle
+      })
+    end)
+  end
+
+  @impl true
+  def handle_event("simplify_background_gradient", _params, socket) do
+    theme = Ecto.Changeset.get_field(socket.assigns.form.source, :theme_config) || %{}
+
+    patch_background(socket, fn current ->
+      Themes.merge_background(current, %{
+        "type" => "gradient",
+        "from" => theme["canvas"] || "#0f172a",
+        "to" => theme["text_color"] || "#e0f2fe",
+        "angle" => "135"
+      })
+    end)
   end
 
   @impl true
@@ -300,7 +330,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   @impl true
   def handle_event("cancel-upload", %{"ref" => ref}, socket) do
     socket =
-      Enum.reduce([:image, :background, :link_thumbnail], socket, fn name, acc ->
+      Enum.reduce([:image, :background, :brand_logo, :link_thumbnail], socket, fn name, acc ->
         entries = acc.assigns.uploads[name].entries
 
         if Enum.any?(entries, &(&1.ref == ref)) do
@@ -331,6 +361,29 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   end
 
   @impl true
+  def handle_event("delete_brand_logo", _params, socket) do
+    page = socket.assigns.page
+
+    if is_binary(page.brand_logo) and page.brand_logo != "" do
+      CreatorImage.delete({page.brand_logo, page})
+    end
+
+    case Qlink.update_page(page, %{brand_logo: nil}) do
+      {:ok, page} ->
+        page = Repo.preload(page, [:creator, :recipient])
+
+        socket
+        |> assign(page: page)
+        |> assign(form: to_form(Qlink.change_page(page)))
+        |> put_flash(:info, "Brand logo deleted")
+        |> noreply()
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to delete brand logo")}
+    end
+  end
+
+  @impl true
   def handle_event("delete_background", _params, socket) do
     page = socket.assigns.page
     bg = page.background_config || %{}
@@ -340,7 +393,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
       CreatorImage.delete({file, page})
     end
 
-    case Qlink.update_page(page, %{background_config: %{}}) do
+    case Qlink.update_page(page, %{background_config: %{"type" => "image"}}) do
       {:ok, page} ->
         page = Repo.preload(page, [:creator, :recipient])
 
@@ -695,9 +748,84 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
   # Style tab helpers: read background_config from a form (preferred, reflects unsaved
   # changes from phx-change="validate") or fall back to the persisted page struct.
-  defp bg_type(%Phoenix.HTML.Form{} = form), do: form |> bg_config() |> Map.get("type")
-  defp bg_type(%{background_config: %{"type" => t}}), do: t
-  defp bg_type(_), do: nil
+  defp bg_type(%Phoenix.HTML.Form{} = form) do
+    case form |> bg_config() |> Map.get("type") do
+      t when t in ["solid", "gradient", "image", "pattern"] -> t
+      _ -> "solid"
+    end
+  end
+
+  defp bg_type(%{background_config: %{"type" => t}})
+       when t in ["solid", "gradient", "image", "pattern"],
+       do: t
+
+  defp bg_type(_), do: "solid"
+
+  defp bg_pattern_config(form) do
+    Themes.sanitize_background_config(Map.merge(%{"type" => "pattern"}, bg_config(form)))
+  end
+
+  defp pattern_chip_style(pattern_cfg, id) do
+    Qlarius.Qlink.BackgroundPatterns.swatch_css(
+      id,
+      pattern_cfg["base"],
+      pattern_cfg["fill"],
+      pattern_cfg["opacity"]
+    )
+  end
+
+  defp bg_linear(form), do: Themes.parse_linear_gradient(bg_value(form))
+
+  defp bg_solid_hex(form) do
+    value = bg_value(form)
+
+    cond do
+      is_binary(value) and String.match?(value, ~r/^#[0-9a-fA-F]{6}$/) ->
+        value
+
+      is_binary(value) ->
+        case Themes.parse_linear_gradient(value) do
+          %{"from" => from} -> from
+          _ -> theme_value(form, ["canvas"], "#ffffff")
+        end
+
+      true ->
+        theme_value(form, ["canvas"], "#ffffff")
+    end
+  end
+
+  defp bg_preview_style(form, page) do
+    css = Themes.background_css(style_preview_page(form, page))
+
+    if css == "" do
+      "background-color: #{theme_value(form, ["canvas"], "#ffffff")};"
+    else
+      css
+    end
+  end
+
+  defp patch_background(socket, fun) do
+    page = Ecto.Changeset.apply_changes(socket.assigns.form.source)
+    merged = fun.(page.background_config || %{})
+
+    changeset =
+      page
+      |> Qlink.change_page(%{"background_config" => merged})
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, form: to_form(changeset), dirty: true)}
+  end
+
+  defp gradient_angle_options(linear) do
+    base = Themes.gradient_angles()
+    angle = linear && linear["angle"]
+
+    if is_binary(angle) and not Enum.any?(base, fn {_label, a} -> a == angle end) do
+      base ++ [{"#{angle}°", angle}]
+    else
+      base
+    end
+  end
 
   defp bg_value(%Phoenix.HTML.Form{} = form), do: form |> bg_config() |> Map.get("value")
   defp bg_value(%{background_config: %{"value" => v}}), do: v
@@ -728,12 +856,22 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
     end
   end
 
+  defp template_origin(%Phoenix.HTML.Form{} = form) do
+    Themes.template_origin(
+      Ecto.Changeset.get_field(form.source, :theme_config),
+      Ecto.Changeset.get_field(form.source, :background_config)
+    )
+  end
+
+  defp template_applied?(origin, id), do: match?({:applied, ^id, _}, origin)
+
   defp style_preview_page(form, page) do
     form.source
     |> Ecto.Changeset.apply_changes()
     |> Map.put(:id, page.id)
     |> Map.put(:creator_id, page.creator_id)
     |> Map.put(:profile_photo, page.profile_photo)
+    |> Map.put(:brand_logo, page.brand_logo)
     |> Map.put(:alias, page.alias)
   end
 
@@ -790,6 +928,9 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   defp save_page(socket, :edit, page_params, _all_params) do
     filename = ImageUpload.consume_upload(socket, :image, socket.assigns.page, CreatorImage)
 
+    logo_filename =
+      ImageUpload.consume_upload(socket, :brand_logo, socket.assigns.page, CreatorImage)
+
     bg_filename =
       ImageUpload.consume_upload(socket, :background, socket.assigns.page, CreatorImage)
 
@@ -797,6 +938,9 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
       page_params
       |> then(fn params ->
         if filename, do: Map.put(params, "profile_photo", filename), else: params
+      end)
+      |> then(fn params ->
+        if logo_filename, do: Map.put(params, "brand_logo", logo_filename), else: params
       end)
       |> put_background_file(bg_filename, socket.assigns.page)
 
@@ -841,8 +985,16 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
     filename = ImageUpload.consume_upload(socket, :image, temp_page, CreatorImage)
 
+    logo_filename = ImageUpload.consume_upload(socket, :brand_logo, temp_page, CreatorImage)
+
     page_params_with_image =
-      if filename, do: Map.put(page_params, "profile_photo", filename), else: page_params
+      page_params
+      |> then(fn params ->
+        if filename, do: Map.put(params, "profile_photo", filename), else: params
+      end)
+      |> then(fn params ->
+        if logo_filename, do: Map.put(params, "brand_logo", logo_filename), else: params
+      end)
 
     social_links_map =
       socket.assigns.social_links_data

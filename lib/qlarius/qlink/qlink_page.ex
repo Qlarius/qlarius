@@ -15,6 +15,8 @@ defmodule Qlarius.Qlink.QlinkPage do
     field :title, :string
     field :bio_text, :string
     field :profile_photo, :string
+    field :brand_logo, :string
+    field :brand_logo_max_width, :integer, default: 460
     field :social_links, :map
     field :theme_config, :map
     field :background_config, :map
@@ -47,6 +49,8 @@ defmodule Qlarius.Qlink.QlinkPage do
       :title,
       :bio_text,
       :profile_photo,
+      :brand_logo,
+      :brand_logo_max_width,
       :social_links,
       :theme_config,
       :background_config,
@@ -59,6 +63,7 @@ defmodule Qlarius.Qlink.QlinkPage do
     |> validate_length(:slug, min: 3, max: 50)
     |> validate_length(:title, max: 100)
     |> validate_length(:bio_text, max: 500)
+    |> clamp_brand_logo_max_width()
     |> foreign_key_constraint(:recipient_id)
     |> sanitize_style_configs()
   end
@@ -101,6 +106,22 @@ defmodule Qlarius.Qlink.QlinkPage do
       message: "must be lowercase alphanumeric with underscores or hyphens only"
     )
     |> validate_exclusion(:alias, @reserved_aliases, message: "is reserved")
+  end
+
+  defp clamp_brand_logo_max_width(changeset) do
+    had_error? = Keyword.has_key?(changeset.errors, :brand_logo_max_width)
+
+    changeset = Map.update!(changeset, :errors, &Keyword.delete(&1, :brand_logo_max_width))
+
+    if changed?(changeset, :brand_logo_max_width) or had_error? do
+      put_change(
+        changeset,
+        :brand_logo_max_width,
+        Themes.clamp_brand_logo_width(get_field(changeset, :brand_logo_max_width))
+      )
+    else
+      changeset
+    end
   end
 
   @doc """
