@@ -1,0 +1,343 @@
+<Layouts.admin {assigns}>
+  <div class="flex h-screen bg-base-200 dark:bg-base-300 text-base-content">
+    <AdminSidebar.sidebar current_user={@current_scope.user} />
+
+    <div class="flex min-w-0 grow flex-col bg-base-200 dark:bg-base-300">
+      <AdminTopbar.topbar current_user={@current_scope.user} />
+
+      <div class="overflow-auto grow bg-base-200 dark:bg-base-300">
+        <div class="p-6 space-y-6">
+          <div>
+            <h1 class="text-2xl font-bold text-base-content flex items-center gap-2">
+              <.icon name="hero-link" class="w-6 h-6 text-primary" /> Link-in-bio Migration
+            </h1>
+            <p class="text-base-content/70 mt-1">
+              Import a Linktree, Beacons, or other public bio page into a draft Qlink page.
+            </p>
+          </div>
+
+          <div class="card bg-base-100 border border-base-300 text-base-content shadow-sm">
+            <div class="card-body py-3">
+              <ul class="steps steps-horizontal w-full text-xs text-base-content">
+                <li class={"step #{if step_at_or_past?(@wizard_step, :destination), do: "step-primary"}"}>
+                  Destination
+                </li>
+                <li class={"step #{if step_at_or_past?(@wizard_step, :source), do: "step-primary"}"}>
+                  Source
+                </li>
+                <li class={"step #{if step_at_or_past?(@wizard_step, :review), do: "step-primary"}"}>
+                  Review
+                </li>
+                <li class={"step #{if step_at_or_past?(@wizard_step, :importing), do: "step-primary"}"}>
+                  Import
+                </li>
+                <li class={"step #{if step_at_or_past?(@wizard_step, :done), do: "step-primary"}"}>
+                  Done
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <%= if @wizard_step == :destination do %>
+            <div class="card bg-base-100 border border-base-300 text-base-content shadow-sm">
+              <div class="card-body space-y-4">
+                <h3 class="text-lg font-semibold text-base-content">Choose destination creator</h3>
+                <p class="text-sm text-base-content/70">
+                  The imported Qlink page will belong to this creator. A Tip Jar is added
+                  automatically using the creator’s tip recipient.
+                </p>
+
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    phx-click="set_creator_mode"
+                    phx-value-mode="existing"
+                    class={"btn btn-sm #{if @creator_mode == :existing, do: "btn-primary", else: "btn-outline"}"}
+                  >
+                    Existing creator
+                  </button>
+                  <button
+                    type="button"
+                    phx-click="set_creator_mode"
+                    phx-value-mode="new"
+                    class={"btn btn-sm #{if @creator_mode == :new, do: "btn-primary", else: "btn-outline"}"}
+                  >
+                    New creator
+                  </button>
+                </div>
+
+                <%= if @creator_mode == :existing do %>
+                  <form phx-change="select_creator" class="space-y-2">
+                    <label class="form-control w-full max-w-lg">
+                      <span class="label-text text-base-content">Creator</span>
+                      <select name="creator_id" class="select select-bordered w-full bg-base-100 text-base-content">
+                        <option value="">Select…</option>
+                        <%= for c <- @creators do %>
+                          <option
+                            value={c.id}
+                            selected={to_string(c.id) == to_string(@selected_creator_id)}
+                          >
+                            {c.name}
+                          </option>
+                        <% end %>
+                      </select>
+                    </label>
+                  </form>
+                <% else %>
+                  <form phx-change="update_new_creator_name" class="space-y-2">
+                    <label class="form-control w-full max-w-lg">
+                      <span class="label-text text-base-content">New creator name</span>
+                      <input
+                        type="text"
+                        name="name"
+                        value={@new_creator_name}
+                        class="input input-bordered w-full bg-base-100 text-base-content"
+                        placeholder="Creator display name"
+                      />
+                    </label>
+                  </form>
+                <% end %>
+
+                <%= if @creator_error do %>
+                  <div class="alert alert-error text-sm">{@creator_error}</div>
+                <% end %>
+
+                <div class="pt-2">
+                  <button type="button" phx-click="continue_destination" class="btn btn-primary">
+                    Continue
+                  </button>
+                </div>
+              </div>
+            </div>
+          <% end %>
+
+          <%= if @wizard_step == :source do %>
+            <div class="card bg-base-100 border border-base-300 text-base-content shadow-sm">
+              <div class="card-body space-y-4">
+                <div class="flex items-center justify-between gap-4">
+                  <h3 class="text-lg font-semibold text-base-content">Source URL</h3>
+                  <button type="button" phx-click="back_to_destination" class="btn btn-ghost btn-sm">
+                    Back
+                  </button>
+                </div>
+                <p class="text-sm text-base-content/70">
+                  Creator: <span class="font-medium text-base-content">{@creator.name}</span>
+                </p>
+                <p class="text-sm text-base-content/70">
+                  Paste a Linktree, Beacons, or other public link-in-bio URL.
+                </p>
+
+                <form phx-change="update_source_url" phx-submit="fetch_preview" class="space-y-3">
+                  <label class="form-control w-full max-w-2xl">
+                    <span class="label-text text-base-content">URL</span>
+                    <input
+                      type="url"
+                      name="url"
+                      value={@source_url}
+                      class="input input-bordered w-full bg-base-100 text-base-content"
+                      placeholder="https://linktr.ee/username"
+                      disabled={@fetching?}
+                    />
+                  </label>
+
+                  <%= if @fetch_error do %>
+                    <div class="alert alert-error text-sm">{@fetch_error}</div>
+                  <% end %>
+
+                  <button
+                    type="submit"
+                    class="btn btn-primary"
+                    disabled={@fetching? or String.trim(@source_url) == ""}
+                  >
+                    <%= if @fetching? do %>
+                      <span class="loading loading-spinner loading-sm"></span> Fetching…
+                    <% else %>
+                      Fetch & preview
+                    <% end %>
+                  </button>
+                </form>
+              </div>
+            </div>
+          <% end %>
+
+          <%= if @wizard_step == :review and @draft do %>
+            <div class="card bg-base-100 border border-base-300 text-base-content shadow-sm">
+              <div class="card-body space-y-5">
+                <div class="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 class="text-lg font-semibold text-base-content">Review import</h3>
+                    <p class="text-sm text-base-content/70">
+                      Detected as <span class="font-medium text-base-content">{platform_label(@draft.platform)}</span>
+                      · {included_count(@draft)} of {link_count(@draft)} links included
+                      · Tip Jar will be appended
+                    </p>
+                  </div>
+                  <button type="button" phx-click="back_to_source" class="btn btn-ghost btn-sm">
+                    Back
+                  </button>
+                </div>
+
+                <%= if @draft.warnings != [] do %>
+                  <div class="alert alert-warning">
+                    <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
+                    <ul class="text-sm list-disc ms-4">
+                      <%= for w <- @draft.warnings do %>
+                        <li>{w}</li>
+                      <% end %>
+                    </ul>
+                  </div>
+                <% end %>
+
+                <%= if @import_error do %>
+                  <div class="alert alert-error text-sm">{@import_error}</div>
+                <% end %>
+
+                <form phx-change="update_review" class="grid gap-4 max-w-2xl">
+                  <label class="form-control">
+                    <span class="label-text text-base-content">Alias</span>
+                    <input
+                      type="text"
+                      name="alias"
+                      value={@review_alias}
+                      class="input input-bordered bg-base-100 text-base-content"
+                    />
+                    <%= if @alias_warning do %>
+                      <span class="label-text-alt text-warning mt-1">{@alias_warning}</span>
+                    <% end %>
+                  </label>
+                  <label class="form-control">
+                    <span class="label-text text-base-content">Title</span>
+                    <input
+                      type="text"
+                      name="title"
+                      value={@review_title}
+                      class="input input-bordered bg-base-100 text-base-content"
+                    />
+                  </label>
+                  <label class="form-control">
+                    <span class="label-text text-base-content">Bio</span>
+                    <textarea
+                      name="bio"
+                      rows="3"
+                      class="textarea textarea-bordered bg-base-100 text-base-content"
+                    >{@review_bio}</textarea>
+                  </label>
+                </form>
+
+                <%= if @draft.avatar_url do %>
+                  <div class="flex items-center gap-3">
+                    <img
+                      src={@draft.avatar_url}
+                      alt="Avatar preview"
+                      class="w-14 h-14 rounded-full object-cover border border-base-300"
+                    />
+                    <span class="text-sm text-base-content/70">Avatar will be rehosted on import</span>
+                  </div>
+                <% end %>
+
+                <div class="overflow-x-auto border border-base-300 rounded-lg bg-base-100">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr class="bg-base-200 text-base-content">
+                        <th class="w-12">Include</th>
+                        <th>Title</th>
+                        <th>URL</th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-base-content">
+                      <%= for {section, s_idx} <- Enum.with_index(@draft.sections) do %>
+                        <%= if section.title do %>
+                          <tr class="bg-base-200">
+                            <td colspan="3" class="font-medium text-sm">{section.title}</td>
+                          </tr>
+                        <% end %>
+                        <%= for {link, l_idx} <- Enum.with_index(section.links) do %>
+                          <tr class="hover:bg-base-200/60">
+                            <td>
+                              <input
+                                type="checkbox"
+                                class="checkbox checkbox-sm"
+                                checked={link[:include?]}
+                                phx-click="toggle_link"
+                                phx-value-section={s_idx}
+                                phx-value-link={l_idx}
+                              />
+                            </td>
+                            <td class="max-w-[12rem] truncate">{link.title}</td>
+                            <td class="max-w-md truncate text-xs">
+                              <a
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="link link-primary"
+                              >
+                                {link.url}
+                              </a>
+                            </td>
+                          </tr>
+                        <% end %>
+                      <% end %>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div>
+                  <button
+                    type="button"
+                    phx-click="start_import"
+                    class="btn btn-primary"
+                    disabled={included_count(@draft) == 0}
+                  >
+                    Import as draft Qlink page
+                  </button>
+                </div>
+              </div>
+            </div>
+          <% end %>
+
+          <%= if @wizard_step == :importing do %>
+            <div class="card bg-base-100 border border-base-300 text-base-content shadow-sm">
+              <div class="card-body items-center text-center space-y-3 py-12">
+                <span class="loading loading-spinner loading-lg text-primary"></span>
+                <p class="font-medium text-base-content">
+                  Importing page, rehosting images, adding Tip Jar…
+                </p>
+              </div>
+            </div>
+          <% end %>
+
+          <%= if @wizard_step == :done and @imported_page do %>
+            <div class="card bg-base-100 border border-base-300 text-base-content shadow-sm">
+              <div class="card-body space-y-4">
+                <div class="alert alert-success">
+                  <.icon name="hero-check-circle" class="w-5 h-5" />
+                  <div>
+                    <p class="font-medium">Import complete</p>
+                    <p class="text-sm">
+                      Draft page <span class="font-semibold">@{@imported_page.alias}</span> created
+                      (unpublished).
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" phx-click="edit_page" class="btn btn-primary">
+                    Edit Qlink page
+                  </button>
+                  <%= if url = public_qlink_url(@imported_page.alias) do %>
+                    <a href={url} target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+                      Open public URL
+                    </a>
+                  <% end %>
+                  <button type="button" phx-click="start_over" class="btn btn-ghost">
+                    Import another
+                  </button>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layouts.admin>

@@ -515,6 +515,7 @@ defmodule QlariusWeb.Router do
       # Creator dashboard routes
       live "/creators", CreatorDashboard.Index, :index
       live "/creators/new", CreatorDashboard.Index, :new
+      live "/creators/link_in_bio_migration", Creators.LinkInBioMigrationLive, :index
       live "/creators/:id", CreatorDashboard.Show, :show
       live "/creators/:id/edit", CreatorDashboard.Show, :edit
       live "/creators/:id/referrals", CreatorDashboard.Referrals, :index

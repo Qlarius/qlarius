@@ -132,6 +132,9 @@ defmodule QlariusWeb.Components.AdminSidebar do
                   <a class="menu-item false" href={~p"/creators"}>
                     <span class="grow">Creators</span>
                   </a>
+                  <a class="menu-item false" href={~p"/creators/link_in_bio_migration"}>
+                    <span class="grow">Link-in-bio Migration</span>
+                  </a>
                   <a class="menu-item false" href="#">
                     <span class="grow">Dashboard</span>
                   </a>
