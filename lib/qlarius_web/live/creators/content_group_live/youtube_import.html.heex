@@ -146,17 +146,17 @@
                 <% end %>
                 
 <!-- Filter -->
-                <% visible_videos = filtered_videos(@videos, @filter, @min_minutes) %>
+                <% visible_videos = filtered_videos(@videos, @filter, @min_seconds) %>
                 <% visible_count = length(visible_videos) %>
                 <% total_count = length(@videos) %>
                 <% selected_count = MapSet.size(@selected_video_ids) %>
                 <% selected_visible_count =
                   Enum.count(visible_videos, &MapSet.member?(@selected_video_ids, &1.youtube_id)) %>
                 <% selected_hidden_count = selected_count - selected_visible_count %>
-                <% filters_active? = @filter != "" or @min_minutes > 0 %>
+                <% filters_active? = @filter != "" or @min_seconds > 0 %>
 
-                <form phx-change="filter" class="flex flex-col sm:flex-row sm:items-end gap-2">
-                  <div class="relative flex-1">
+                <form phx-change="filter" class="flex items-center gap-2 min-w-0">
+                  <div class="relative min-w-0 flex-1">
                     <.icon
                       name="hero-magnifying-glass"
                       class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none"
@@ -166,19 +166,18 @@
                       name="filter"
                       value={@filter}
                       placeholder="Filter by title or description…"
-                      class="input input-bordered w-full pl-9"
+                      class="input input-bordered input-sm w-full pl-9"
                       phx-debounce="200"
                     />
                   </div>
-                  <label class="form-control w-full sm:w-40">
-                    <span class="label-text text-xs">Min minutes</span>
+                  <label class="flex items-center gap-2 shrink-0">
+                    <span class="text-xs text-base-content/70 whitespace-nowrap">Min</span>
                     <input
-                      type="number"
-                      name="min_minutes"
-                      min="0"
-                      step="1"
-                      value={@min_minutes}
-                      class="input input-bordered w-full"
+                      type="text"
+                      name="min_length"
+                      value={@min_length}
+                      placeholder="m:ss"
+                      class="input input-bordered input-sm w-24"
                       phx-debounce="200"
                     />
                   </label>
@@ -186,7 +185,7 @@
                     <button
                       type="button"
                       phx-click="clear_filter"
-                      class="btn btn-ghost btn-sm sm:mb-0.5"
+                      class="btn btn-ghost btn-sm shrink-0"
                     >
                       Clear
                     </button>
@@ -221,10 +220,10 @@
                   <%= if visible_videos == [] do %>
                     <div class="p-8 text-center text-sm text-base-content/60">
                       <%= cond do %>
-                        <% @filter != "" and @min_minutes > 0 -> %>
-                          No videos match "{@filter}" and at least {@min_minutes} min.
-                        <% @min_minutes > 0 -> %>
-                          No videos are at least {@min_minutes} min long.
+                        <% @filter != "" and @min_seconds > 0 -> %>
+                          No videos match "{@filter}" and at least {format_min_sec(@min_seconds)}.
+                        <% @min_seconds > 0 -> %>
+                          No videos are at least {format_min_sec(@min_seconds)} long.
                         <% true -> %>
                           No videos match "{@filter}".
                       <% end %>
