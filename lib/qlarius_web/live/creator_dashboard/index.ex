@@ -17,7 +17,10 @@ defmodule QlariusWeb.CreatorDashboard.Index do
      |> assign(:page_title, "My Creators")
      |> assign(:show_form, false)
      |> assign(:form, nil)
-     |> assign(:editing_creator, nil)}
+     |> assign(:editing_creator, nil)
+     |> assign(:view, :grid)
+     |> assign(:search, "")
+     |> assign(:sort, :az)}
   end
 
   @impl true
@@ -95,6 +98,18 @@ defmodule QlariusWeb.CreatorDashboard.Index do
 
   def handle_event("cancel-upload", %{"ref" => ref}, socket) do
     {:noreply, cancel_upload(socket, :image, ref)}
+  end
+
+  def handle_event("search", %{"q" => q}, socket) do
+    {:noreply, assign(socket, :search, q)}
+  end
+
+  def handle_event("sort", %{"sort" => sort}, socket) do
+    {:noreply, assign(socket, :sort, parse_sort(sort))}
+  end
+
+  def handle_event("set_view", %{"view" => view}, socket) do
+    {:noreply, assign(socket, :view, parse_view(view))}
   end
 
   defp save_creator(socket, :new, creator_params) do
@@ -259,71 +274,237 @@ defmodule QlariusWeb.CreatorDashboard.Index do
                   </div>
                 </div>
               <% else %>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <%= for creator <- @creators do %>
-                    <div class="card bg-base-100 shadow-xl">
-                      <figure class="px-10 pt-10">
-                        <%= if creator.image do %>
-                          <img
-                            src={CreatorImage.url({creator.image, creator}, :original)}
-                            alt={creator.name}
-                            class="rounded-full w-24 h-24 object-cover"
-                          />
-                        <% else %>
-                          <div class="avatar placeholder">
-                            <div class="bg-neutral text-neutral-content rounded-full w-24">
-                              <span class="text-3xl">{String.first(creator.name)}</span>
+                <%= if @creators != [] do %>
+                  <div class="flex items-center gap-2 mb-6 min-w-0">
+                    <form phx-change="search" class="relative min-w-0 flex-1">
+                      <.icon
+                        name="hero-magnifying-glass"
+                        class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none"
+                      />
+                      <input
+                        type="text"
+                        name="q"
+                        value={@search}
+                        placeholder="Search by name…"
+                        class="input input-bordered input-sm w-full pl-9"
+                        phx-debounce="200"
+                      />
+                    </form>
+                    <div class="join shrink-0">
+                      <button
+                        type="button"
+                        phx-click="sort"
+                        phx-value-sort="az"
+                        class={"join-item btn btn-sm #{if @sort == :az, do: "btn-active"}"}
+                      >
+                        A–Z
+                      </button>
+                      <button
+                        type="button"
+                        phx-click="sort"
+                        phx-value-sort="za"
+                        class={"join-item btn btn-sm #{if @sort == :za, do: "btn-active"}"}
+                      >
+                        Z–A
+                      </button>
+                    </div>
+                    <div class="join shrink-0">
+                      <button
+                        type="button"
+                        phx-click="set_view"
+                        phx-value-view="grid"
+                        class={"join-item btn btn-sm #{if @view == :grid, do: "btn-active"}"}
+                        title="Grid"
+                      >
+                        <.icon name="hero-squares-2x2" class="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        phx-click="set_view"
+                        phx-value-view="list"
+                        class={"join-item btn btn-sm #{if @view == :list, do: "btn-active"}"}
+                        title="List"
+                      >
+                        <.icon name="hero-bars-3" class="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                <% end %>
+
+                <% filtered = visible_creators(@creators, @search, @sort) %>
+
+                <%= if filtered == [] do %>
+                  <div class="card bg-base-200">
+                    <div class="card-body items-center text-center py-10">
+                      <p class="text-base-content/70">
+                        No creators match "{@search}".
+                      </p>
+                    </div>
+                  </div>
+                <% else %>
+                  <%= if @view == :list do %>
+                    <div class="overflow-x-auto border border-base-300 rounded-lg bg-base-100">
+                      <table class="table">
+                        <thead>
+                          <tr>
+                            <th class="w-14"></th>
+                            <th>Name</th>
+                            <th class="text-right">Qlink Pages</th>
+                            <th class="text-right">Catalogs</th>
+                            <th class="w-40"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <%= for creator <- filtered do %>
+                            <tr class="hover">
+                              <td>
+                                <.creator_avatar creator={creator} size_class="w-10 h-10 text-sm" />
+                              </td>
+                              <td class="min-w-0">
+                                <div class="font-medium">{creator.name}</div>
+                                <%= if creator.bio do %>
+                                  <div class="text-sm text-base-content/60 line-clamp-1">
+                                    {creator.bio}
+                                  </div>
+                                <% end %>
+                              </td>
+                              <td class="text-right">{length(creator.qlink_pages)}</td>
+                              <td class="text-right">{length(creator.catalogs)}</td>
+                              <td>
+                                <div class="flex justify-end gap-2">
+                                  <.link
+                                    navigate={~p"/creators/#{creator.id}"}
+                                    class="btn btn-primary btn-sm"
+                                  >
+                                    Manage
+                                  </.link>
+                                  <button
+                                    phx-click="delete"
+                                    phx-value-id={creator.id}
+                                    data-confirm="Are you sure you want to delete this creator?"
+                                    class="btn btn-error btn-sm"
+                                  >
+                                    <.icon name="hero-trash" class="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          <% end %>
+                        </tbody>
+                      </table>
+                    </div>
+                  <% else %>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <%= for creator <- filtered do %>
+                        <div class="card bg-base-100 shadow-xl">
+                          <figure class="px-10 pt-10">
+                            <.creator_avatar creator={creator} size_class="w-24 h-24 text-3xl" />
+                          </figure>
+
+                          <div class="card-body items-center text-center">
+                            <h2 class="card-title">{creator.name}</h2>
+
+                            <%= if creator.bio do %>
+                              <p class="text-sm line-clamp-5 whitespace-pre-line [overflow-wrap:anywhere] w-full text-base-content/70">
+                                {creator.bio}
+                              </p>
+                            <% end %>
+
+                            <div class="stats stats-horizontal shadow mt-4">
+                              <div class="stat place-items-center">
+                                <div class="stat-title">Qlink Pages</div>
+                                <div class="stat-value text-sm">{length(creator.qlink_pages)}</div>
+                              </div>
+                              <div class="stat place-items-center">
+                                <div class="stat-title">Catalogs</div>
+                                <div class="stat-value text-sm">{length(creator.catalogs)}</div>
+                              </div>
+                            </div>
+
+                            <div class="card-actions justify-end w-full mt-4 gap-2">
+                              <.link
+                                navigate={~p"/creators/#{creator.id}"}
+                                class="btn btn-primary btn-sm"
+                              >
+                                Manage
+                              </.link>
+                              <button
+                                phx-click="delete"
+                                phx-value-id={creator.id}
+                                data-confirm="Are you sure you want to delete this creator?"
+                                class="btn btn-error btn-sm"
+                              >
+                                <.icon name="hero-trash" class="w-4 h-4" />
+                              </button>
                             </div>
                           </div>
-                        <% end %>
-                      </figure>
-
-                      <div class="card-body items-center text-center">
-                        <h2 class="card-title">{creator.name}</h2>
-
-                        <%= if creator.bio do %>
-                          <p class="text-sm line-clamp-5 whitespace-pre-line [overflow-wrap:anywhere] w-full text-base-content/70">
-                            {creator.bio}
-                          </p>
-                        <% end %>
-
-                        <div class="stats stats-horizontal shadow mt-4">
-                          <div class="stat place-items-center">
-                            <div class="stat-title">Qlink Pages</div>
-                            <div class="stat-value text-sm">{length(creator.qlink_pages)}</div>
-                          </div>
-                          <div class="stat place-items-center">
-                            <div class="stat-title">Catalogs</div>
-                            <div class="stat-value text-sm">{length(creator.catalogs)}</div>
-                          </div>
                         </div>
-
-                        <div class="card-actions justify-end w-full mt-4 gap-2">
-                          <.link
-                            navigate={~p"/creators/#{creator.id}"}
-                            class="btn btn-primary btn-sm"
-                          >
-                            Manage
-                          </.link>
-                          <button
-                            phx-click="delete"
-                            phx-value-id={creator.id}
-                            data-confirm="Are you sure you want to delete this creator?"
-                            class="btn btn-error btn-sm"
-                          >
-                            <.icon name="hero-trash" class="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
+                      <% end %>
                     </div>
                   <% end %>
-                </div>
+                <% end %>
               <% end %>
             </div>
           </div>
         </div>
       </div>
     </Layouts.admin>
+    """
+  end
+
+  @doc false
+  def visible_creators(creators, search, sort) when is_list(creators) do
+    creators
+    |> filter_by_name(search)
+    |> sort_by_name(sort)
+  end
+
+  defp filter_by_name(creators, search) do
+    case String.trim(search || "") do
+      "" ->
+        creators
+
+      query ->
+        q = String.downcase(query)
+
+        Enum.filter(creators, fn creator ->
+          String.contains?(String.downcase(creator.name || ""), q)
+        end)
+    end
+  end
+
+  defp sort_by_name(creators, :za) do
+    Enum.sort_by(creators, &String.downcase(&1.name || ""), :desc)
+  end
+
+  defp sort_by_name(creators, _) do
+    Enum.sort_by(creators, &String.downcase(&1.name || ""), :asc)
+  end
+
+  defp parse_sort("za"), do: :za
+  defp parse_sort(_), do: :az
+
+  defp parse_view("list"), do: :list
+  defp parse_view(_), do: :grid
+
+  attr :creator, :map, required: true
+  attr :size_class, :string, default: "w-24 h-24 text-3xl"
+
+  defp creator_avatar(assigns) do
+    ~H"""
+    <%= if @creator.image do %>
+      <img
+        src={CreatorImage.url({@creator.image, @creator}, :original)}
+        alt={@creator.name}
+        class={"rounded-full object-cover #{@size_class}"}
+      />
+    <% else %>
+      <div class="avatar placeholder">
+        <div class={"bg-neutral text-neutral-content rounded-full #{@size_class}"}>
+          <span>{String.first(@creator.name || "?")}</span>
+        </div>
+      </div>
+    <% end %>
     """
   end
 end
