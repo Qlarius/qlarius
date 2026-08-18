@@ -87,6 +87,24 @@ defmodule Qlarius.Qlink.LinkInBio.ParseHelpers do
     }
   end
 
+  def section_map(title, links, description \\ nil) do
+    %{
+      title: blank_to_nil(title),
+      description: blank_to_nil(description),
+      links: links || []
+    }
+  end
+
+  defp blank_to_nil(nil), do: nil
+  defp blank_to_nil(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp blank_to_nil(_), do: nil
+
   def present_or(nil, fallback), do: fallback
   def present_or("", fallback), do: fallback
   def present_or(value, _fallback) when is_binary(value), do: String.trim(value)

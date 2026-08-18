@@ -17,6 +17,8 @@ defmodule Qlarius.Qlink.LinkInBioImporter do
   alias QlariusWeb.Uploaders.CreatorImage
 
   @user_agent "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  @support_section_title "Support"
+  @support_section_description "Show love and support for your favorite creators."
 
   @doc """
   Detect platform from URL host.
@@ -292,42 +294,42 @@ defmodule Qlarius.Qlink.LinkInBioImporter do
   defp content_type_for(_), do: "image/jpeg"
 
   defp create_sections_and_links(page, sections, recipient_id) do
-    {order, _} =
-      Enum.reduce(sections, {0, 0}, fn section, {link_order, section_order} ->
-        included = Enum.filter(section.links || [], & &1[:include?])
+    prepared =
+      sections
+      |> Enum.map(fn section ->
+        included = Enum.filter(section_links(section), &included_link?/1)
+        {section, included}
+      end)
+      |> Enum.reject(fn {_section, included} -> included == [] end)
 
-        if included == [] do
-          {link_order, section_order}
-        else
-          section_id =
-            if section[:title] && String.trim(to_string(section.title)) != "" do
-              case Qlink.create_section(%{
-                     "qlink_page_id" => page.id,
-                     "title" => String.slice(to_string(section.title), 0, 100),
-                     "display_order" => section_order
-                   }) do
-                {:ok, s} -> s.id
-                _ -> nil
-              end
-            else
-              nil
-            end
+    unnamed = Enum.filter(prepared, fn {section, _} -> not named_section?(section) end)
+    named = Enum.filter(prepared, fn {section, _} -> named_section?(section) end)
 
-          link_order =
-            Enum.reduce(included, link_order, fn link, ord ->
-              insert_content_link(page, link, ord, section_id)
-              ord + 1
-            end)
-
-          next_section_order = if section_id, do: section_order + 1, else: section_order
-          {link_order, next_section_order}
-        end
+    named_with_ids =
+      named
+      |> Enum.with_index()
+      |> Enum.map(fn {{section, links}, idx} ->
+        section_id = insert_section(page, section, idx)
+        {section_id, links}
       end)
 
-    # Default tip jar at the bottom
+    support_id = insert_support_section(page, length(named_with_ids))
+
+    order =
+      unnamed
+      |> Enum.reduce(0, fn {_section, links}, ord ->
+        insert_links(page, links, ord, nil)
+      end)
+
+    order =
+      Enum.reduce(named_with_ids, order, fn {section_id, links}, ord ->
+        insert_links(page, links, ord, section_id)
+      end)
+
     _ =
       Qlink.create_link(%{
         "qlink_page_id" => page.id,
+        "qlink_section_id" => support_id,
         "type" => "insta_tip",
         "title" => "Tip Jar",
         "display_order" => order,
@@ -338,6 +340,68 @@ defmodule Qlarius.Qlink.LinkInBioImporter do
 
     {:ok, page}
   end
+
+  defp insert_section(page, section, display_order) do
+    attrs = %{
+      "qlink_page_id" => page.id,
+      "title" => String.slice(to_string(section_field(section, :title)), 0, 100),
+      "display_order" => display_order
+    }
+
+    attrs =
+      case section_field(section, :description) do
+        desc when is_binary(desc) and desc != "" ->
+          Map.put(attrs, "description", String.slice(desc, 0, 500))
+
+        _ ->
+          attrs
+      end
+
+    case Qlink.create_section(attrs) do
+      {:ok, record} ->
+        record.id
+
+      {:error, changeset} ->
+        Logger.warning("Failed to import section #{inspect(attrs["title"])}: #{inspect(changeset.errors)}")
+        nil
+    end
+  end
+
+  defp insert_support_section(page, display_order) do
+    insert_section(
+      page,
+      %{title: @support_section_title, description: @support_section_description},
+      display_order
+    )
+  end
+
+  defp insert_links(page, links, order, section_id) do
+    Enum.reduce(links, order, fn link, ord ->
+      insert_content_link(page, link, ord, section_id)
+      ord + 1
+    end)
+  end
+
+  defp named_section?(section) do
+    case section_field(section, :title) do
+      title when is_binary(title) -> String.trim(title) != ""
+      _ -> false
+    end
+  end
+
+  defp section_links(section) do
+    section_field(section, :links) || []
+  end
+
+  defp section_field(section, key) when is_map(section) do
+    section[key] || section[Atom.to_string(key)]
+  end
+
+  defp included_link?(link) when is_map(link) do
+    Map.get(link, :include?, Map.get(link, "include?", false))
+  end
+
+  defp included_link?(_), do: false
 
   defp insert_content_link(page, link, order, section_id) do
     url = link[:url] || link["url"]

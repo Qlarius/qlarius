@@ -72,30 +72,38 @@ defmodule Qlarius.Qlink.LinkInBio.Beacons do
         end
       )
 
-    links = if sections == [], do: flat_links, else: Enum.flat_map(sections, & &1.links)
-
-    if links == [] and flat_links == [] do
+    if sections == [] and flat_links == [] do
       draft = Generic.parse(html, source_url)
       %{draft | platform: :beacons, warnings: ["Beacons JSON had no links; used generic DOM." | draft.warnings]}
     else
       final_sections =
-        if sections == [] do
-          [%{title: nil, links: flat_links}]
-        else
-          sections
+        cond do
+          sections == [] ->
+            [ParseHelpers.section_map(nil, flat_links)]
+
+          flat_links == [] ->
+            Enum.reject(sections, &(&1.links == []))
+
+          true ->
+            [ParseHelpers.section_map(nil, flat_links) | Enum.reject(sections, &(&1.links == []))]
         end
 
-      %Draft{
-        platform: :beacons,
-        source_url: source_url,
-        suggested_alias: Draft.sanitize_alias(username),
-        title: title,
-        bio_text: bio && String.slice(to_string(bio), 0, 500),
-        avatar_url: avatar && ParseHelpers.absolutize(to_string(avatar), source_url),
-        social_links: social_links,
-        sections: final_sections,
-        warnings: []
-      }
+      if Enum.flat_map(final_sections, & &1.links) == [] do
+        draft = Generic.parse(html, source_url)
+        %{draft | platform: :beacons, warnings: ["Beacons JSON had no links; used generic DOM." | draft.warnings]}
+      else
+        %Draft{
+          platform: :beacons,
+          source_url: source_url,
+          suggested_alias: Draft.sanitize_alias(username),
+          title: title,
+          bio_text: bio && String.slice(to_string(bio), 0, 500),
+          avatar_url: avatar && ParseHelpers.absolutize(to_string(avatar), source_url),
+          social_links: social_links,
+          sections: final_sections,
+          warnings: []
+        }
+      end
     end
   end
 
@@ -106,7 +114,8 @@ defmodule Qlarius.Qlink.LinkInBio.Beacons do
       cond do
         type in ["header", "section", "heading", "title"] ->
           title = block["title"] || block["text"] || block["name"]
-          {sections ++ [%{title: title, links: []}], links, socials}
+          description = block["description"] || block["subtitle"]
+          {sections ++ [ParseHelpers.section_map(title, [], description)], links, socials}
 
         type in ["link", "button", "url", "custom_link"] ->
           case block_to_link(block, source_url) do

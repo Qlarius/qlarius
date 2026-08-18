@@ -65,7 +65,7 @@ defmodule Qlarius.Qlink.LinkInBio.Generic do
       bio_text: bio && String.slice(bio, 0, 500),
       avatar_url: avatar,
       social_links: social_links,
-      sections: [%{title: nil, links: content_links}],
+      sections: [ParseHelpers.section_map(nil, content_links)],
       warnings: Enum.reverse(warnings)
     }
   end

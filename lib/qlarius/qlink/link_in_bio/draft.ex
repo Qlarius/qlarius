@@ -23,6 +23,7 @@ defmodule Qlarius.Qlink.LinkInBio.Draft do
 
   @type section :: %{
           title: String.t() | nil,
+          description: String.t() | nil,
           links: [link()]
         }
 
