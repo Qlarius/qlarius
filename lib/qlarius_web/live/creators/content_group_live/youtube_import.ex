@@ -38,6 +38,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.YoutubeImport do
         channel_error: nil,
         videos: [],
         filter: "",
+        min_minutes: 1,
         selected_video_ids: MapSet.new(),
         existing_youtube_ids: MapSet.new(),
         progress: 0,
@@ -66,12 +67,17 @@ defmodule QlariusWeb.Creators.ContentGroupLive.YoutubeImport do
        channel_preview: nil,
        videos: [],
        filter: "",
+       min_minutes: 1,
        selected_video_ids: MapSet.new()
      )}
   end
 
-  def handle_event("filter", %{"filter" => filter}, socket) do
-    {:noreply, assign(socket, filter: filter)}
+  def handle_event("filter", params, socket) do
+    {:noreply,
+     assign(socket,
+       filter: Map.get(params, "filter", socket.assigns.filter),
+       min_minutes: parse_min_minutes(Map.get(params, "min_minutes"))
+     )}
   end
 
   def handle_event("clear_filter", _params, socket) do
@@ -96,7 +102,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.YoutubeImport do
   def handle_event("toggle_all", _params, socket) do
     visible_selectable =
       socket.assigns.videos
-      |> filtered_videos(socket.assigns.filter)
+      |> filtered_videos(socket.assigns.filter, socket.assigns.min_minutes)
       |> Enum.reject(fn v ->
         MapSet.member?(socket.assigns.existing_youtube_ids, v.youtube_id)
       end)
@@ -213,7 +219,13 @@ defmodule QlariusWeb.Creators.ContentGroupLive.YoutubeImport do
   defp catalog_has_active_tiqit_class?(_), do: false
 
   @doc false
-  def filtered_videos(videos, filter) when is_list(videos) do
+  def filtered_videos(videos, filter, min_minutes \\ 0) when is_list(videos) do
+    videos
+    |> filter_by_text(filter)
+    |> filter_by_min_minutes(min_minutes)
+  end
+
+  defp filter_by_text(videos, filter) do
     case String.trim(filter || "") do
       "" ->
         videos
@@ -227,6 +239,30 @@ defmodule QlariusWeb.Creators.ContentGroupLive.YoutubeImport do
         end)
     end
   end
+
+  defp filter_by_min_minutes(videos, min_minutes) when is_integer(min_minutes) and min_minutes > 0 do
+    min_seconds = min_minutes * 60
+
+    Enum.filter(videos, fn v ->
+      length = Map.get(v, :length) || 0
+      length <= 0 or length >= min_seconds
+    end)
+  end
+
+  defp filter_by_min_minutes(videos, _), do: videos
+
+  defp parse_min_minutes(nil), do: 0
+  defp parse_min_minutes(""), do: 0
+
+  defp parse_min_minutes(raw) when is_binary(raw) do
+    case Integer.parse(String.trim(raw)) do
+      {n, _} when n >= 0 -> n
+      _ -> 0
+    end
+  end
+
+  defp parse_min_minutes(n) when is_integer(n) and n >= 0, do: n
+  defp parse_min_minutes(_), do: 0
 
   @wizard_step_order [:channel, :review, :confirm, :importing, :done]
 

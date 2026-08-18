@@ -146,15 +146,16 @@
                 <% end %>
                 
 <!-- Filter -->
-                <% visible_videos = filtered_videos(@videos, @filter) %>
+                <% visible_videos = filtered_videos(@videos, @filter, @min_minutes) %>
                 <% visible_count = length(visible_videos) %>
                 <% total_count = length(@videos) %>
                 <% selected_count = MapSet.size(@selected_video_ids) %>
                 <% selected_visible_count =
                   Enum.count(visible_videos, &MapSet.member?(@selected_video_ids, &1.youtube_id)) %>
                 <% selected_hidden_count = selected_count - selected_visible_count %>
+                <% filters_active? = @filter != "" or @min_minutes > 0 %>
 
-                <form phx-change="filter" class="flex items-center gap-2">
+                <form phx-change="filter" class="flex flex-col sm:flex-row sm:items-end gap-2">
                   <div class="relative flex-1">
                     <.icon
                       name="hero-magnifying-glass"
@@ -169,11 +170,23 @@
                       phx-debounce="200"
                     />
                   </div>
+                  <label class="form-control w-full sm:w-40">
+                    <span class="label-text text-xs">Min minutes</span>
+                    <input
+                      type="number"
+                      name="min_minutes"
+                      min="0"
+                      step="1"
+                      value={@min_minutes}
+                      class="input input-bordered w-full"
+                      phx-debounce="200"
+                    />
+                  </label>
                   <%= if @filter != "" do %>
                     <button
                       type="button"
                       phx-click="clear_filter"
-                      class="btn btn-ghost btn-sm"
+                      class="btn btn-ghost btn-sm sm:mb-0.5"
                     >
                       Clear
                     </button>
@@ -183,10 +196,10 @@
 <!-- Selection header -->
                 <div class="flex items-center justify-between">
                   <h4 class="font-semibold">
-                    <%= if @filter == "" do %>
-                      {total_count} videos found
-                    <% else %>
+                    <%= if filters_active? do %>
                       Showing {visible_count} of {total_count}
+                    <% else %>
+                      {total_count} videos found
                     <% end %>
                     <span class="text-sm font-normal text-base-content/60">
                       — {selected_count} selected
@@ -196,10 +209,10 @@
                     </span>
                   </h4>
                   <button type="button" phx-click="toggle_all" class="btn btn-ghost btn-sm">
-                    <%= if @filter == "" do %>
-                      Toggle all
-                    <% else %>
+                    <%= if filters_active? do %>
                       Toggle filtered
+                    <% else %>
+                      Toggle all
                     <% end %>
                   </button>
                 </div>
@@ -207,7 +220,14 @@
                 <div class="border border-base-300 rounded-lg max-h-[28rem] overflow-y-auto divide-y divide-base-300">
                   <%= if visible_videos == [] do %>
                     <div class="p-8 text-center text-sm text-base-content/60">
-                      No videos match "{@filter}".
+                      <%= cond do %>
+                        <% @filter != "" and @min_minutes > 0 -> %>
+                          No videos match "{@filter}" and at least {@min_minutes} min.
+                        <% @min_minutes > 0 -> %>
+                          No videos are at least {@min_minutes} min long.
+                        <% true -> %>
+                          No videos match "{@filter}".
+                      <% end %>
                     </div>
                   <% end %>
                   <%= for video <- visible_videos do %>
