@@ -14,6 +14,7 @@ defmodule Qlarius.Wallets.LedgerEvent do
 
   schema "ledger_events" do
     field :amount, :decimal
+    field :credit_backed_amount, :decimal, default: Decimal.new("0.00")
     field :status, :string, default: "pending"
     field :description, :string
 
@@ -28,6 +29,7 @@ defmodule Qlarius.Wallets.LedgerEvent do
     ledger_event
     |> cast(attrs, [
       :amount,
+      :credit_backed_amount,
       :status,
       :description,
       :from_ledger_id,

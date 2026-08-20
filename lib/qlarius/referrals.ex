@@ -383,6 +383,7 @@ defmodule Qlarius.Referrals do
           LedgerEntry.changeset(%LedgerEntry{}, %{
             ledger_header_id: ledger_header.id,
             amt: total_amount,
+            payable_delta: Decimal.new("0.00"),
             description: "Referral Payout - #{total_clicks} clicks",
             meta_1: "Referral Bonus",
             running_balance: new_balance
@@ -419,7 +420,13 @@ defmodule Qlarius.Referrals do
         |> case do
           {:ok, _result} ->
             if referrer_type == "mefile" do
-              MeFileStatsBroadcaster.broadcast_balance_updated(referrer_id, new_balance)
+              me_file = Qlarius.Repo.get!(Qlarius.YouData.MeFiles.MeFile, referrer_id)
+
+              MeFileStatsBroadcaster.broadcast_balance_updated(
+                referrer_id,
+                Qlarius.Wallets.available_to_spend(me_file)
+              )
+
               new_pending_count = get_pending_clicks_for_me_file(referrer_id)
 
               MeFileStatsBroadcaster.broadcast_pending_referral_clicks_updated(

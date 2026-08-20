@@ -122,7 +122,12 @@ defmodule QlariusWeb.Widgets.TiqitPassLive do
   def handle_event("select-tiqit-class", %{"tiqit-class-id" => tc_id}, socket) do
     with {:cont, socket} <- maybe_intercept_for_unauth(socket) do
       tc = Arcade.get_tiqit_class_for_catalog!(tc_id, socket.assigns.catalog)
-      active = Arcade.active_catalog_tiqit_classes(socket.assigns.current_scope, socket.assigns.catalog.id)
+
+      active =
+        Arcade.active_catalog_tiqit_classes(
+          socket.assigns.current_scope,
+          socket.assigns.catalog.id
+        )
 
       if Arcade.tiqit_class_purchasable?(tc, active) do
         credit = socket.assigns.tiqit_up_catalog_credit
@@ -175,35 +180,49 @@ defmodule QlariusWeb.Widgets.TiqitPassLive do
   def handle_event("purchase-tiqit", %{"tiqit-class-id" => tiqit_class_id}, socket) do
     with {:cont, socket} <- maybe_intercept_for_unauth(socket) do
       tiqit_class = Arcade.get_tiqit_class_for_catalog!(tiqit_class_id, socket.assigns.catalog)
-      active = Arcade.active_catalog_tiqit_classes(socket.assigns.current_scope, socket.assigns.catalog.id)
+
+      active =
+        Arcade.active_catalog_tiqit_classes(
+          socket.assigns.current_scope,
+          socket.assigns.catalog.id
+        )
 
       if Arcade.tiqit_class_purchasable?(tiqit_class, active) do
-        :ok =
-          Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class,
-            tiqit_up_credit: socket.assigns.selected_tiqit_class_credit
-          )
+        case Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class,
+               tiqit_up_credit: socket.assigns.selected_tiqit_class_credit
+             ) do
+          :ok ->
+            user = socket.assigns.current_scope.user
+            balance = Wallets.get_user_current_balance(user)
+            WalletBalanceSync.broadcast_balance_change(user, balance)
 
-        user = socket.assigns.current_scope.user
-        balance = Wallets.get_user_current_balance(user)
-        WalletBalanceSync.broadcast_balance_change(user, balance)
+            tiqit =
+              Arcade.get_valid_catalog_tiqit(
+                socket.assigns.current_scope,
+                socket.assigns.catalog.id
+              )
 
-        tiqit = Arcade.get_valid_catalog_tiqit(socket.assigns.current_scope, socket.assigns.catalog.id)
-        scope = socket.assigns.current_scope
-        updated_scope = scope && %{scope | wallet_balance: balance}
+            scope = socket.assigns.current_scope
+            updated_scope = scope && %{scope | wallet_balance: balance}
 
-        {:noreply,
-         socket
-         |> assign(
-           has_tiqit?: true,
-           tiqit: tiqit,
-           selected_tiqit_class: nil,
-           options_modal: false,
-           balance: balance,
-           current_scope: updated_scope
-         )
-         |> send_post_message("tiqit_purchased", tiqit)}
+            {:noreply,
+             socket
+             |> assign(
+               has_tiqit?: true,
+               tiqit: tiqit,
+               selected_tiqit_class: nil,
+               options_modal: false,
+               balance: balance,
+               current_scope: updated_scope
+             )
+             |> send_post_message("tiqit_purchased", tiqit)}
+
+          {:error, :insufficient_funds} ->
+            {:noreply, put_flash(socket, :error, "Not enough available to buy this Tiqit.")}
+        end
       else
-        {:noreply, put_flash(socket, :error, "That Tiqit is not an upgrade from your current access.")}
+        {:noreply,
+         put_flash(socket, :error, "That Tiqit is not an upgrade from your current access.")}
       end
     end
   end
@@ -294,8 +313,10 @@ defmodule QlariusWeb.Widgets.TiqitPassLive do
                   </div>
                   <div class="space-y-3 bg-base-100 px-5 py-6">
                     <p class="text-2xl font-bold text-base-content">
-                      {format_tiqit_class_duration(@default_tiqit_class.duration_hours)}
-                      for {format_usd(@default_tiqit_class.price, zero_free: true)}
+                      {format_tiqit_class_duration(@default_tiqit_class.duration_hours)} for {format_usd(
+                        @default_tiqit_class.price,
+                        zero_free: true
+                      )}
                     </p>
                     <p class="text-sm text-base-content/70">
                       Unlock general {@catalog_label |> String.downcase()} reporting and stories
@@ -425,13 +446,11 @@ defmodule QlariusWeb.Widgets.TiqitPassLive do
               <%= if @selected_tiqit_class.duration_hours do %>
                 You are purchasing
                 <span class="font-bold text-base-content">{@catalog_label} Access</span>
-                for
-                <span class="font-bold text-base-content">
+                for <span class="font-bold text-base-content">
                   {format_tiqit_class_duration(@selected_tiqit_class.duration_hours)}
                 </span>.
               <% else %>
-                You are purchasing
-                <span class="font-bold text-base-content">lifetime {@catalog_label} Access</span>.
+                You are purchasing <span class="font-bold text-base-content">lifetime {@catalog_label} Access</span>.
               <% end %>
             </p>
             <button

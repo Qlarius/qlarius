@@ -71,9 +71,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
       {:ok,
        socket
-       |> assign(
-         Map.merge(scope_assigns(refreshed, group, catalog), %{current_scope: refreshed})
-       )
+       |> assign(Map.merge(scope_assigns(refreshed, group, catalog), %{current_scope: refreshed}))
        |> WalletBalanceSync.notify_inline_parent()}
     else
       scope = socket.assigns.current_scope
@@ -407,31 +405,38 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
             [tiqit_up_credit: socket.assigns.selected_tiqit_class_credit]
           end
 
-        :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class, opts)
+        case Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class, opts) do
+          :ok ->
+            user = socket.assigns.current_scope.user
+            balance = Wallets.get_user_current_balance(user)
+            WalletBalanceSync.broadcast_balance_change(user, balance)
 
-        user = socket.assigns.current_scope.user
-        balance = Wallets.get_user_current_balance(user)
-        WalletBalanceSync.broadcast_balance_change(user, balance)
+            tiqit = Arcade.get_valid_tiqit(socket.assigns.current_scope, socket.assigns.piece)
+            scope = socket.assigns.current_scope
+            updated_scope = scope && %{scope | wallet_balance: balance}
 
-        tiqit = Arcade.get_valid_tiqit(socket.assigns.current_scope, socket.assigns.piece)
-        scope = socket.assigns.current_scope
-        updated_scope = scope && %{scope | wallet_balance: balance}
+            socket
+            |> cancel_tiqit_content_modal_close_timer()
+            |> assign(
+              has_tiqit?: true,
+              tiqit: tiqit,
+              selected_tiqit_class: nil,
+              show_tiqit_content_modal: socket.assigns[:inline?] == true,
+              balance: balance,
+              current_scope: updated_scope
+            )
+            |> WalletBalanceSync.notify_parent_wallet_update(balance)
+            |> send_post_message("tiqit_purchased", tiqit)
+            |> noreply()
 
-        socket
-        |> cancel_tiqit_content_modal_close_timer()
-        |> assign(
-          has_tiqit?: true,
-          tiqit: tiqit,
-          selected_tiqit_class: nil,
-          show_tiqit_content_modal: socket.assigns[:inline?] == true,
-          balance: balance,
-          current_scope: updated_scope
-        )
-        |> WalletBalanceSync.notify_parent_wallet_update(balance)
-        |> send_post_message("tiqit_purchased", tiqit)
-        |> noreply()
+          {:error, :insufficient_funds} ->
+            socket
+            |> put_flash(:error, "Not enough available to buy this Tiqit.")
+            |> noreply()
+        end
       else
-        {:noreply, put_flash(socket, :error, "That Tiqit is not an upgrade from your current access.")}
+        {:noreply,
+         put_flash(socket, :error, "That Tiqit is not an upgrade from your current access.")}
       end
     end
   end

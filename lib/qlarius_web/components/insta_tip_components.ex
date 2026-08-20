@@ -121,6 +121,7 @@ defmodule QlariusWeb.InstaTipComponents do
   attr :recipient_id, :integer, default: nil
   attr :amount, :any, required: true
   attr :current_balance, :any, required: true
+  attr :notice, :string, default: nil
 
   def insta_tip_modal(assigns) do
     ~H"""
@@ -141,6 +142,9 @@ defmodule QlariusWeb.InstaTipComponents do
             <div class="text-base-content/70">
               to <span class="font-semibold">{@recipient_name}</span>
             </div>
+            <p :if={@notice} class="text-sm text-base-content/70 mt-3">
+              {@notice}
+            </p>
           </div>
         </div>
 

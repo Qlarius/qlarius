@@ -87,6 +87,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     |> Phoenix.Component.assign(:show_insta_tip_modal, false)
     |> Phoenix.Component.assign(:insta_tip_amount, nil)
     |> Phoenix.Component.assign(:insta_tip_recipient, nil)
+    |> Phoenix.Component.assign(:insta_tip_notice, nil)
     |> Phoenix.Component.assign(:show_insta_tip_thanks_modal, false)
     |> Phoenix.Component.assign(:insta_tip_thanks_amount, nil)
     |> Phoenix.Component.assign(:insta_tip_thanks_recipient, nil)
@@ -507,6 +508,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
   defp do_handle_event("initiate_insta_tip", params, socket) do
     if authed?(socket.assigns.current_scope) do
       amount = Decimal.new(to_string(params["amount"]))
+      user = socket.assigns.current_scope.user
       recipient_id = params["recipient-id"] || params["recipient_id"]
 
       tip_recipient =
@@ -516,10 +518,16 @@ defmodule QlariusWeb.SponsterRecipientSurface do
           socket.assigns.recipient
         end
 
+      notice =
+        user.me_file
+        |> Wallets.tip_quote(amount)
+        |> Wallets.tip_notice_copy()
+
       socket
       |> Phoenix.Component.assign(:insta_tip_amount, amount)
       |> Phoenix.Component.assign(:insta_tip_recipient, tip_recipient)
       |> Phoenix.Component.assign(:show_insta_tip_modal, true)
+      |> Phoenix.Component.assign(:insta_tip_notice, notice)
       |> Phoenix.Component.assign(:current_balance, get_current_balance(socket))
     else
       Phoenix.Component.assign(socket, :show_connect_modal, true)
@@ -550,6 +558,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
         |> Phoenix.Component.assign(:show_insta_tip_modal, false)
         |> Phoenix.Component.assign(:insta_tip_amount, nil)
         |> Phoenix.Component.assign(:insta_tip_recipient, nil)
+        |> Phoenix.Component.assign(:insta_tip_notice, nil)
         |> Phoenix.Component.assign(:show_insta_tip_thanks_modal, true)
         |> Phoenix.Component.assign(:insta_tip_thanks_amount, amount)
         |> Phoenix.Component.assign(
@@ -557,12 +566,28 @@ defmodule QlariusWeb.SponsterRecipientSurface do
           (recipient && recipient.name) || "Recipient"
         )
 
-      {:error, _changeset} ->
+      {:error, reason} ->
+        message =
+          case reason do
+            :insufficient_funds ->
+              "Not enough available to send this tip."
+
+            :credit_tip_throttled ->
+              "You've already used a credit-backed tip in the last 24 hours."
+
+            :credit_not_allowed ->
+              "Credit can only cover a 25¢ tip. This amount needs earned wallet funds."
+
+            _ ->
+              "Failed to send InstaTip. Please try again."
+          end
+
         socket
         |> Phoenix.Component.assign(:show_insta_tip_modal, false)
         |> Phoenix.Component.assign(:insta_tip_amount, nil)
         |> Phoenix.Component.assign(:insta_tip_recipient, nil)
-        |> Phoenix.LiveView.put_flash(:error, "Failed to send InstaTip. Please try again.")
+        |> Phoenix.Component.assign(:insta_tip_notice, nil)
+        |> Phoenix.LiveView.put_flash(:error, message)
     end
   end
 

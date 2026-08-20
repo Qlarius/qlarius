@@ -49,7 +49,8 @@ defmodule Qlarius.Accounts do
         user_id: user.id,
         date_of_birth: attrs[:date_of_birth],
         display_name: attrs[:alias],
-        referral_code: referral_code
+        referral_code: referral_code,
+        credit_allowance: Qlarius.Wallets.default_credit_allowance()
       })
     end)
     |> Ecto.Multi.insert(:ledger_header, fn %{me_file: me_file} ->
@@ -59,9 +60,6 @@ defmodule Qlarius.Accounts do
         balance: Decimal.new("0.00"),
         balance_payable: Decimal.new("0.00")
       })
-    end)
-    |> Ecto.Multi.run(:starter_credit, fn repo, %{ledger_header: ledger_header} ->
-      Qlarius.Wallets.create_starter_credit(ledger_header, repo)
     end)
     |> maybe_insert_proxy_user(attrs)
     |> maybe_insert_me_file_tags(attrs)

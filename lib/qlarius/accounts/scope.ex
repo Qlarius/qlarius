@@ -59,7 +59,7 @@ defmodule Qlarius.Accounts.Scope do
       video_ad_count: MeFile.video_ad_offer_count(proxy_user.me_file),
       trait_count: MeFile.trait_tag_count(proxy_user.me_file),
       tag_count: MeFile.tag_count(proxy_user.me_file),
-      wallet_balance: balance,
+      wallet_balance: Wallets.get_user_current_balance(proxy_user),
       offered_amount: Offers.total_active_offer_amount(proxy_user.me_file),
       pending_referral_clicks_count:
         Qlarius.Referrals.get_pending_clicks_for_me_file(proxy_user.me_file),

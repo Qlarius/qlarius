@@ -13,10 +13,12 @@ defmodule Qlarius.Wallets.LedgerEntry do
   schema "ledger_entries" do
     field :amt, :decimal
     field :running_balance, :decimal
+    field :payable_delta, :decimal
     field :description, :string
     field :meta_1, :string
 
     belongs_to :ledger_header, LedgerHeader
+    belongs_to :reversed_ledger_entry, __MODULE__
     belongs_to :ad_event, AdEvent
     belongs_to :tiqit, Tiqit
     has_many :referral_credits, ReferralCredit
@@ -29,11 +31,13 @@ defmodule Qlarius.Wallets.LedgerEntry do
     |> cast(attrs, [
       :amt,
       :running_balance,
+      :payable_delta,
       :description,
       :meta_1,
       :ledger_header_id,
       :ad_event_id,
-      :tiqit_id
+      :tiqit_id,
+      :reversed_ledger_entry_id
     ])
     |> validate_required([
       :amt,
@@ -44,5 +48,6 @@ defmodule Qlarius.Wallets.LedgerEntry do
     |> foreign_key_constraint(:ledger_header_id)
     |> foreign_key_constraint(:ad_event_id)
     |> foreign_key_constraint(:tiqit_id)
+    |> foreign_key_constraint(:reversed_ledger_entry_id)
   end
 end

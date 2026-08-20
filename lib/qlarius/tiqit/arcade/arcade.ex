@@ -405,11 +405,15 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   end
 
   def purchase_tiqit(%Scope{} = scope, %TiqitClass{} = tiqit_class, opts \\ []) do
-    Repo.transaction(fn ->
-      {:ok, _result} = purchase_tiqit_txn(scope, tiqit_class, opts)
-    end)
-
-    :ok
+    case Repo.transaction(fn ->
+           case purchase_tiqit_txn(scope, tiqit_class, opts) do
+             {:ok, result} -> result
+             {:error, reason} -> Repo.rollback(reason)
+           end
+         end) do
+      {:ok, _result} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   @doc """
@@ -448,13 +452,9 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
       end
 
     has_credit = Decimal.compare(tiqit_up_credit, Decimal.new(0)) == :gt
-    net_price = Decimal.max(Decimal.new(0), Decimal.sub(tiqit_class.price, tiqit_up_credit))
+    net_price = Decimal.max(Decimal.new("0"), Decimal.sub(tiqit_class.price, tiqit_up_credit))
 
-    ledger_header = %LedgerHeader{} = Wallets.get_me_file_ledger_header(user.me_file)
     me_file = %MeFile{} = user.me_file
-
-    amount = Decimal.negate(net_price)
-    new_balance = Decimal.add(ledger_header.balance, amount)
 
     tiqit_attrs =
       %{purchased_at: purchased_at, expires_at: expires_at}
@@ -472,55 +472,48 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
     consumer_meta = if has_credit, do: "Tiqit Up", else: "Tiqit Purchase"
 
-    debit_entry =
-      %LedgerEntry{
-        ledger_header_id: ledger_header.id,
-        amt: amount,
-        running_balance: new_balance,
-        description: creator_name_caps,
-        meta_1: consumer_meta,
-        tiqit_id: tiqit.id
-      }
-      |> Repo.insert!()
-
-    ledger_header
-    |> Ecto.Changeset.change(balance: new_balance)
-    |> Repo.update!()
-
-    creator_entry =
-      if creator do
-        creator_ledger = Wallets.get_or_create_creator_ledger_header(creator)
-        creator_new_balance = Decimal.add(creator_ledger.balance, net_price)
-
-        creator_desc =
-          if has_credit,
-            do:
-              "Tiqit Up sale: #{content_title} (#{duration_label}) -- $#{tiqit_up_credit} credited to consumer",
-            else: "Tiqit sale: #{content_title} (#{duration_label})"
-
-        entry =
-          %LedgerEntry{
-            ledger_header_id: creator_ledger.id,
-            amt: net_price,
-            running_balance: creator_new_balance,
-            description: creator_desc,
-            meta_1: "Tiqit Sale",
-            tiqit_id: tiqit.id
-          }
-          |> Repo.insert!()
-
-        creator_ledger
-        |> Ecto.Changeset.change(balance: creator_new_balance)
-        |> Repo.update!()
-
-        entry
+    debit_result =
+      if Decimal.compare(net_price, Decimal.new("0")) == :gt do
+        Wallets.authorize_and_debit_purchase(me_file, net_price, %{
+          description: creator_name_caps,
+          meta_1: consumer_meta,
+          tiqit_id: tiqit.id
+        })
+      else
+        {:ok, %{entry: nil}}
       end
 
-    if has_credit do
-      lock_tiqit_up_contributors(user, tiqit_class, purchased_at)
-    end
+    case debit_result do
+      {:error, reason} ->
+        {:error, reason}
 
-    {:ok, %{tiqit: tiqit, debit_entry: debit_entry, creator_entry: creator_entry}}
+      {:ok, %{entry: debit_entry}} ->
+        creator_entry =
+          if creator && Decimal.compare(net_price, Decimal.new("0")) == :gt do
+            creator_ledger = Wallets.get_or_create_creator_ledger_header(creator)
+
+            creator_desc =
+              if has_credit,
+                do:
+                  "Tiqit Up sale: #{content_title} (#{duration_label}) -- $#{tiqit_up_credit} credited to consumer",
+                else: "Tiqit sale: #{content_title} (#{duration_label})"
+
+            %{entry: entry} =
+              Wallets.apply_credit!(creator_ledger, net_price, %{
+                description: creator_desc,
+                meta_1: "Tiqit Sale",
+                tiqit_id: tiqit.id
+              })
+
+            entry
+          end
+
+        if has_credit do
+          lock_tiqit_up_contributors(user, tiqit_class, purchased_at)
+        end
+
+        {:ok, %{tiqit: tiqit, debit_entry: debit_entry, creator_entry: creator_entry}}
+    end
   end
 
   defp maybe_put_refund_locked(attrs, true, now), do: Map.put(attrs, :refund_locked_at, now)
@@ -1155,42 +1148,61 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
                  duration_label = format_duration(tiqit.tiqit_class.duration_hours)
                  content_title = tiqit_content_title(tiqit.tiqit_class)
 
-                 # Reverse consumer ledger
-                 consumer_ledger = Wallets.get_me_file_ledger_header(user.me_file)
-                 refund_amount = tiqit.tiqit_class.price
-                 new_consumer_balance = Decimal.add(consumer_ledger.balance, refund_amount)
+                 consumer_ledger = Wallets.lock_me_file_header!(user.me_file.id)
 
-                 %LedgerEntry{
-                   ledger_header_id: consumer_ledger.id,
-                   amt: refund_amount,
-                   running_balance: new_consumer_balance,
-                   description: "*REFUNDED*",
-                   meta_1: "Tiqit Refund"
-                 }
-                 |> Repo.insert!()
+                 original_debit =
+                   Repo.one(
+                     from e in LedgerEntry,
+                       where: e.tiqit_id == ^tiqit.id,
+                       where: e.ledger_header_id == ^consumer_ledger.id,
+                       where: is_nil(e.reversed_ledger_entry_id),
+                       order_by: [asc: e.id],
+                       limit: 1
+                   )
 
-                 consumer_ledger
-                 |> Ecto.Changeset.change(balance: new_consumer_balance)
-                 |> Repo.update!()
+                 if original_debit do
+                   Wallets.reverse_ledger_entry!(original_debit, %{
+                     description: "*REFUNDED*",
+                     meta_1: "Tiqit Refund"
+                   })
+                 else
+                   refund_amount = tiqit.tiqit_class.price
 
-                 # Reverse creator ledger
+                   Wallets.apply_credit!(consumer_ledger, refund_amount, %{
+                     description: "*REFUNDED*",
+                     meta_1: "Tiqit Refund"
+                   })
+                 end
+
                  if creator do
                    creator_ledger = Wallets.get_or_create_creator_ledger_header(creator)
-                   creator_debit = Decimal.negate(refund_amount)
-                   new_creator_balance = Decimal.add(creator_ledger.balance, creator_debit)
 
-                   %LedgerEntry{
-                     ledger_header_id: creator_ledger.id,
-                     amt: creator_debit,
-                     running_balance: new_creator_balance,
-                     description: "Tiqit undo: #{content_title} (#{duration_label})",
-                     meta_1: "Tiqit Undo"
-                   }
-                   |> Repo.insert!()
+                   original_credit =
+                     Repo.one(
+                       from e in LedgerEntry,
+                         where: e.tiqit_id == ^tiqit.id,
+                         where: e.ledger_header_id == ^creator_ledger.id,
+                         where: is_nil(e.reversed_ledger_entry_id),
+                         order_by: [asc: e.id],
+                         limit: 1
+                     )
 
-                   creator_ledger
-                   |> Ecto.Changeset.change(balance: new_creator_balance)
-                   |> Repo.update!()
+                   if original_credit do
+                     Wallets.reverse_ledger_entry!(original_credit, %{
+                       description: "Tiqit undo: #{content_title} (#{duration_label})",
+                       meta_1: "Tiqit Undo"
+                     })
+                   else
+                     creator_ledger = Wallets.get_or_create_creator_ledger_header(creator)
+                     refund_amount = tiqit.tiqit_class.price
+
+                     Wallets.apply_entry!(creator_ledger, %{
+                       amt: Decimal.negate(refund_amount),
+                       payable_delta: Decimal.new("0.00"),
+                       description: "Tiqit undo: #{content_title} (#{duration_label})",
+                       meta_1: "Tiqit Undo"
+                     })
+                   end
                  end
 
                  # Sanitize consumer's original purchase entry before unlinking
@@ -1217,10 +1229,9 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
                  :ok
                end) do
             {:ok, :ok} ->
-              consumer_ledger = Wallets.get_me_file_ledger_header(user.me_file)
               MeFileStatsBroadcaster.broadcast_balance_updated(
                 user.me_file.id,
-                consumer_ledger.balance
+                Wallets.available_to_spend(user.me_file)
               )
 
               MeFileStatsBroadcaster.broadcast_ledger_updated(user.me_file.id)

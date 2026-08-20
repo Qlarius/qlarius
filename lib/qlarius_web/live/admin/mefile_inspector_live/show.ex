@@ -8,6 +8,7 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
   alias Qlarius.YouData.MeFiles
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Wallets.{LedgerHeader, LedgerEntry}
+  alias Qlarius.Wallets
   alias Qlarius.Sponster.{Offer, Offers}
   alias Qlarius.Notifications
 
@@ -30,6 +31,31 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
   @impl true
   def handle_params(_params, _uri, socket) do
     {:noreply, assign(socket, :page_title, "MeFile: #{socket.assigns.me_file.user.alias}")}
+  end
+
+  @impl true
+  def handle_event("update_credit_allowance", %{"credit_allowance" => value}, socket) do
+    case Wallets.update_credit_allowance(socket.assigns.me_file, value) do
+      {:ok, updated} ->
+        me_file = %{socket.assigns.me_file | credit_allowance: updated.credit_allowance}
+
+        {:noreply,
+         socket
+         |> assign(:me_file, me_file)
+         |> assign_user_details()
+         |> put_flash(:info, "Credit allowance updated")}
+
+      {:error, :below_minimum} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Cannot lower allowance below the amount already used against the activity ledger"
+         )}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not update credit allowance")}
+    end
   end
 
   @impl true
@@ -104,12 +130,14 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
       |> Repo.one()
 
     wallet_balance = if ledger_header, do: ledger_header.balance, else: Decimal.new("0.00")
+    summary = Wallets.consumer_wallet_summary(me_file)
 
     socket
     |> assign(:user, user)
     |> assign(:masked_mobile, masked_mobile)
     |> assign(:home_zip, home_zip)
     |> assign(:wallet_balance, wallet_balance)
+    |> assign(:wallet_summary, summary)
     |> assign(:registered_at, user.inserted_at)
     |> assign(:last_sign_in_at, user.last_sign_in_at)
   end
@@ -320,7 +348,13 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
 
                     <div class="stats shadow-sm bg-base-200 border border-base-300">
                       <div class="stat py-3 px-4">
-                        <div class="stat-title text-xs">Wallet Balance</div>
+                        <div class="stat-title text-xs">Available to spend</div>
+                        <div class="stat-value text-2xl">
+                          {QlariusWeb.Money.format_usd(@wallet_summary.available_to_spend)}
+                        </div>
+                      </div>
+                      <div class="stat py-3 px-4">
+                        <div class="stat-title text-xs">Activity</div>
                         <div class="stat-value text-2xl">
                           {QlariusWeb.Money.format_usd(@wallet_balance)}
                         </div>
@@ -335,6 +369,18 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
                       </div>
                     </div>
                   </div>
+                  <form phx-submit="update_credit_allowance" class="flex items-end gap-3 mt-4">
+                    <label class="form-control">
+                      <span class="label-text text-xs">Credit allowance</span>
+                      <input
+                        type="text"
+                        name="credit_allowance"
+                        value={@me_file.credit_allowance}
+                        class="input input-bordered input-sm w-32"
+                      />
+                    </label>
+                    <button type="submit" class="btn btn-sm btn-primary">Update allowance</button>
+                  </form>
                 </div>
               </div>
 

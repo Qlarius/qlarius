@@ -27,6 +27,7 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
     field :split_reminder_dismissed_at, :utc_datetime
     field :split_reminder_shown_count, :integer, default: 0
     field :tag_display_mode, :string, default: "tag"
+    field :credit_allowance, :decimal, default: Decimal.new("0.00")
 
     belongs_to :user, User
     has_one :ledger_header, LedgerHeader
@@ -52,12 +53,14 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
       :strong_start_data,
       :split_reminder_dismissed_at,
       :split_reminder_shown_count,
-      :tag_display_mode
+      :tag_display_mode,
+      :credit_allowance
     ])
     |> validate_required([:user_id])
     |> validate_number(:split_amount, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
     |> validate_inclusion(:strong_start_status, ["active", "completed", "skipped", "dismissed"])
     |> validate_inclusion(:tag_display_mode, ~w(tag block list))
+    |> validate_number(:credit_allowance, greater_than_or_equal_to: 0)
     |> foreign_key_constraint(:user_id)
   end
 

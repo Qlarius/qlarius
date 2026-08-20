@@ -59,15 +59,14 @@ defmodule Qlarius.ContentSharing do
     Repo.transaction(fn ->
       ledger_header = Wallets.get_me_file_ledger_header(me_file)
 
-      if ledger_header == nil or
-           Decimal.compare(ledger_header.balance || Decimal.new(0), amount) == :lt do
+      if ledger_header == nil do
         Repo.rollback(:insufficient_funds)
       end
 
       ensure_referral_code!(me_file)
 
       debit_entry =
-        Wallets.create_will_call_debit!(ledger_header, amount, debit_description)
+        Wallets.create_will_call_debit!(me_file, amount, debit_description)
 
       invitation =
         %ShareInvitation{}
@@ -320,7 +319,11 @@ defmodule Qlarius.ContentSharing do
     }
   end
 
-  defp gift_claimable?(%ShareInvitation{share_type: "gift"} = invitation, %WillCallTiqit{} = wc, now) do
+  defp gift_claimable?(
+         %ShareInvitation{share_type: "gift"} = invitation,
+         %WillCallTiqit{} = wc,
+         now
+       ) do
     wc.will_call_status in ["at_will_call", "claim_check_required"] and
       invitation.gift_expires_at != nil and
       DateTime.compare(invitation.gift_expires_at, now) == :gt
@@ -384,32 +387,35 @@ defmodule Qlarius.ContentSharing do
       gift_credit_entry =
         Wallets.create_gift_passthrough_credit!(recipient_header, locked.amount)
 
-      {:ok, %{tiqit: tiqit, debit_entry: debit_entry, creator_entry: creator_entry}} =
-        Arcade.purchase_tiqit_txn(scope, tiqit_class, refund_locked: true)
+      case Arcade.purchase_tiqit_txn(scope, tiqit_class, refund_locked: true) do
+        {:ok, %{tiqit: tiqit, debit_entry: debit_entry, creator_entry: creator_entry}} ->
+          locked
+          |> WillCallTiqit.changeset(%{
+            will_call_status: "picked_up",
+            claimed_at: now,
+            claimed_by_user_id: user.id,
+            claimed_by_me_file_id: me_file.id,
+            recipient_tiqit_id: tiqit.id,
+            recipient_gift_credit_ledger_entry_id: gift_credit_entry.id,
+            recipient_purchase_debit_ledger_entry_id: debit_entry && debit_entry.id,
+            creator_credit_ledger_entry_id: creator_entry && creator_entry.id
+          })
+          |> Repo.update!()
 
-      locked
-      |> WillCallTiqit.changeset(%{
-        will_call_status: "picked_up",
-        claimed_at: now,
-        claimed_by_user_id: user.id,
-        claimed_by_me_file_id: me_file.id,
-        recipient_tiqit_id: tiqit.id,
-        recipient_gift_credit_ledger_entry_id: gift_credit_entry.id,
-        recipient_purchase_debit_ledger_entry_id: debit_entry.id,
-        creator_credit_ledger_entry_id: creator_entry && creator_entry.id
-      })
-      |> Repo.update!()
+          invitation
+          |> ShareInvitation.changeset(%{
+            status: "redeemed",
+            redeemed_at: now,
+            redeemed_by_user_id: user.id,
+            redeemed_by_me_file_id: me_file.id
+          })
+          |> Repo.update!()
 
-      invitation
-      |> ShareInvitation.changeset(%{
-        status: "redeemed",
-        redeemed_at: now,
-        redeemed_by_user_id: user.id,
-        redeemed_by_me_file_id: me_file.id
-      })
-      |> Repo.update!()
+          Repo.get!(WillCallTiqit, locked.id)
 
-      Repo.get!(WillCallTiqit, locked.id)
+        {:error, reason} ->
+          Repo.rollback(reason)
+      end
     end)
   end
 
@@ -643,7 +649,8 @@ defmodule Qlarius.ContentSharing do
   Revokes an unclaimed gift: credits the sender, marks will-call `pulled`,
   and sets the invitation to `revoked`.
   """
-  def revoke_gift(%Scope{user: %{me_file: me_file}}, will_call_id) when is_integer(will_call_id) do
+  def revoke_gift(%Scope{user: %{me_file: me_file}}, will_call_id)
+      when is_integer(will_call_id) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     Repo.transaction(fn ->
@@ -678,7 +685,7 @@ defmodule Qlarius.ContentSharing do
 
       MeFileStatsBroadcaster.broadcast_balance_updated(
         me_file.id,
-        Wallets.get_me_file_ledger_header_balance(me_file)
+        Wallets.available_to_spend(me_file)
       )
 
       Repo.get!(WillCallTiqit, locked.id)
@@ -714,7 +721,7 @@ defmodule Qlarius.ContentSharing do
   end
 
   defp generate_pin do
-    :rand.uniform(10_000) - 1
+    (:rand.uniform(10_000) - 1)
     |> Integer.to_string()
     |> String.pad_leading(4, "0")
   end
@@ -743,20 +750,21 @@ defmodule Qlarius.ContentSharing do
     )
   end
 
-  defp insert_gift_reversal!(sender_header, %WillCallTiqit{} = will_call, amount) do
+  defp insert_gift_reversal!(_sender_header, %WillCallTiqit{} = will_call, _amount) do
+    original = Repo.get!(Qlarius.Wallets.LedgerEntry, will_call.sender_debit_ledger_entry_id)
     description = will_call_reversal_description(will_call)
-    Wallets.create_will_call_reversal!(sender_header, amount, description)
+    Wallets.create_will_call_reversal!(original, description)
   end
 
   defp will_call_reversal_description(%WillCallTiqit{} = will_call) do
     will_call =
-      Repo.preload(will_call, [
+      Repo.preload(will_call,
         tiqit_class: [
           :catalog,
           content_group: [catalog: :creator],
           content_piece: [content_group: [catalog: :creator]]
         ]
-      ])
+      )
 
     will_call_gift_debit_description(will_call.tiqit_class)
   end
@@ -782,21 +790,26 @@ defmodule Qlarius.ContentSharing do
 
   defp gift_message_catalog(%TiqitClass{} = tc, piece, group) do
     cond do
-      group && Ecto.assoc_loaded?(group.catalog) && group.catalog -> group.catalog
-      group && group.catalog_id -> Repo.get!(Catalog, group.catalog_id)
+      group && Ecto.assoc_loaded?(group.catalog) && group.catalog ->
+        group.catalog
+
+      group && group.catalog_id ->
+        Repo.get!(Catalog, group.catalog_id)
+
       tc.content_group && Ecto.assoc_loaded?(tc.content_group.catalog) && tc.content_group.catalog ->
         tc.content_group.catalog
 
       tc.content_piece &&
-          Ecto.assoc_loaded?(tc.content_piece.content_group) &&
-          Ecto.assoc_loaded?(tc.content_piece.content_group.catalog) &&
+        Ecto.assoc_loaded?(tc.content_piece.content_group) &&
+        Ecto.assoc_loaded?(tc.content_piece.content_group.catalog) &&
           tc.content_piece.content_group.catalog ->
         tc.content_piece.content_group.catalog
 
-      tc.catalog -> tc.catalog
+      tc.catalog ->
+        tc.catalog
 
       piece && Ecto.assoc_loaded?(piece.content_group) &&
-          Ecto.assoc_loaded?(piece.content_group.catalog) && piece.content_group.catalog ->
+        Ecto.assoc_loaded?(piece.content_group.catalog) && piece.content_group.catalog ->
         piece.content_group.catalog
 
       true ->

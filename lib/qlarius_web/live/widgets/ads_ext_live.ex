@@ -197,115 +197,116 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
           announcer_anon_display={:promo}
         />
 
-      <%!-- Video Player Modal --%>
-      <%= if @show_video_player && @current_video_offer do %>
-        <% video_modal_enter =
-          Phoenix.LiveView.JS.transition(
-            {"transition-opacity ease-out duration-200", "opacity-0", "opacity-100"},
-            time: 200
-          )
-          |> Phoenix.LiveView.JS.transition(
-            {"transition ease-out duration-300", "opacity-0 scale-95", "opacity-100 scale-100"},
-            to: "#video-player-content",
-            time: 300
-          ) %>
-        <% video_modal_leave =
-          Phoenix.LiveView.JS.hide(
-            transition: {"transition-opacity ease-in duration-200", "opacity-100", "opacity-0"},
-            time: 200
-          )
-          |> Phoenix.LiveView.JS.hide(
-            to: "#video-player-content",
-            transition:
-              {"transition ease-in duration-200", "opacity-100 scale-100", "opacity-0 scale-95"},
-            time: 200
-          ) %>
-        <div
-          id="video-player-modal"
-          class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
-          phx-click="close_video_player"
-          phx-mounted={video_modal_enter}
-          phx-remove={video_modal_leave}
-        >
+        <%!-- Video Player Modal --%>
+        <%= if @show_video_player && @current_video_offer do %>
+          <% video_modal_enter =
+            Phoenix.LiveView.JS.transition(
+              {"transition-opacity ease-out duration-200", "opacity-0", "opacity-100"},
+              time: 200
+            )
+            |> Phoenix.LiveView.JS.transition(
+              {"transition ease-out duration-300", "opacity-0 scale-95", "opacity-100 scale-100"},
+              to: "#video-player-content",
+              time: 300
+            ) %>
+          <% video_modal_leave =
+            Phoenix.LiveView.JS.hide(
+              transition: {"transition-opacity ease-in duration-200", "opacity-100", "opacity-0"},
+              time: 200
+            )
+            |> Phoenix.LiveView.JS.hide(
+              to: "#video-player-content",
+              transition:
+                {"transition ease-in duration-200", "opacity-100 scale-100", "opacity-0 scale-95"},
+              time: 200
+            ) %>
           <div
-            id="video-player-content"
-            class={"relative flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden bg-base-100 shadow-2xl #{modal_panel_radius_class()}"}
-            phx-click={%Phoenix.LiveView.JS{}}
+            id="video-player-modal"
+            class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+            phx-click="close_video_player"
+            phx-mounted={video_modal_enter}
+            phx-remove={video_modal_leave}
           >
-            <div class="flex items-start justify-between gap-3 border-b border-base-300 px-6 pt-5 pb-4">
-              <div class="min-w-0">
-                <div class="text-2xl font-bold leading-none">
-                  ${Decimal.round(@current_video_offer.offer_amt || Decimal.new("0"), 2)}
+            <div
+              id="video-player-content"
+              class={"relative flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden bg-base-100 shadow-2xl #{modal_panel_radius_class()}"}
+              phx-click={%Phoenix.LiveView.JS{}}
+            >
+              <div class="flex items-start justify-between gap-3 border-b border-base-300 px-6 pt-5 pb-4">
+                <div class="min-w-0">
+                  <div class="text-2xl font-bold leading-none">
+                    ${Decimal.round(@current_video_offer.offer_amt || Decimal.new("0"), 2)}
+                  </div>
+                  <p
+                    class="mt-1.5 truncate text-sm text-base-content/60"
+                    title={@current_video_offer.media_run.media_piece.ad_category.ad_category_name}
+                  >
+                    {@current_video_offer.media_run.media_piece.ad_category.ad_category_name}
+                  </p>
                 </div>
-                <p
-                  class="mt-1.5 truncate text-sm text-base-content/60"
-                  title={@current_video_offer.media_run.media_piece.ad_category.ad_category_name}
+                <button
+                  phx-click="close_video_player"
+                  type="button"
+                  class="btn btn-circle btn-sm btn-ghost shrink-0 outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
+                  aria-label="Close video player"
                 >
-                  {@current_video_offer.media_run.media_piece.ad_category.ad_category_name}
-                </p>
+                  <.icon name="hero-x-mark" class="w-5 h-5" />
+                </button>
               </div>
-              <button
-                phx-click="close_video_player"
-                type="button"
-                class="btn btn-circle btn-sm btn-ghost shrink-0 outline-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content/35"
-                aria-label="Close video player"
-              >
-                <.icon name="hero-x-mark" class="w-5 h-5" />
-              </button>
-            </div>
 
-            <div class="overflow-y-auto px-6 pt-5 pb-3">
-              <.video_player
-                current_video_offer={@current_video_offer}
-                video_payment_collected={@video_payment_collected}
-                show_replay_button={@show_replay_button}
-              />
+              <div class="overflow-y-auto px-6 pt-5 pb-3">
+                <.video_player
+                  current_video_offer={@current_video_offer}
+                  video_payment_collected={@video_payment_collected}
+                  show_replay_button={@show_replay_button}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      <% end %>
+        <% end %>
 
-      <%!-- Video Collection Drawer --%>
-      <%= if @current_video_offer && @show_video_player do %>
-        <.video_collection_drawer
-          current_video_offer={@current_video_offer}
-          show_collection_drawer={
-            @show_collection_drawer &&
-              (@video_watched_complete || @video_payment_collected || @show_replay_button)
-          }
-          video_payment_collected={@video_payment_collected}
-          show_replay_button={@show_replay_button}
-          closing={@drawer_closing}
-          has_bottom_dock={false}
-          z_class="z-[70]"
+        <%!-- Video Collection Drawer --%>
+        <%= if @current_video_offer && @show_video_player do %>
+          <.video_collection_drawer
+            current_video_offer={@current_video_offer}
+            show_collection_drawer={
+              @show_collection_drawer &&
+                (@video_watched_complete || @video_payment_collected || @show_replay_button)
+            }
+            video_payment_collected={@video_payment_collected}
+            show_replay_button={@show_replay_button}
+            closing={@drawer_closing}
+            has_bottom_dock={false}
+            z_class="z-[70]"
+          />
+        <% end %>
+
+        <%!-- InstaTip Modals --%>
+        <%= if @current_scope do %>
+          <% tip_recipient = @insta_tip_recipient || @recipient %>
+          <.insta_tip_modal
+            show={@show_insta_tip_modal}
+            recipient_name={(tip_recipient && tip_recipient.name) || "Recipient"}
+            recipient_id={tip_recipient && tip_recipient.id}
+            amount={@insta_tip_amount || Decimal.new("0.00")}
+            current_balance={@current_scope.wallet_balance}
+            notice={assigns[:insta_tip_notice]}
+          />
+
+          <.insta_tip_thanks_modal
+            show={@show_insta_tip_thanks_modal}
+            recipient_name={@insta_tip_thanks_recipient || "Recipient"}
+            amount={@insta_tip_thanks_amount || Decimal.new("0.00")}
+          />
+        <% end %>
+
+        <%!-- Connect-wallet interstitial for anonymous wallet-required taps. --%>
+        <.connect_wallet_modal
+          show={@show_connect_modal}
+          scope={@current_scope}
+          connect_brand={:sponster}
+          on_click={widget_on_click}
         />
-      <% end %>
-
-      <%!-- InstaTip Modals --%>
-      <%= if @current_scope do %>
-        <% tip_recipient = @insta_tip_recipient || @recipient %>
-        <.insta_tip_modal
-          show={@show_insta_tip_modal}
-          recipient_name={(tip_recipient && tip_recipient.name) || "Recipient"}
-          recipient_id={tip_recipient && tip_recipient.id}
-          amount={@insta_tip_amount || Decimal.new("0.00")}
-          current_balance={@current_scope.wallet_balance}
-        />
-
-        <.insta_tip_thanks_modal
-          show={@show_insta_tip_thanks_modal}
-          recipient_name={@insta_tip_thanks_recipient || "Recipient"}
-          amount={@insta_tip_thanks_amount || Decimal.new("0.00")}
-        />
-      <% end %>
-
-      <%!-- Connect-wallet interstitial for anonymous wallet-required taps. --%>
-      <.connect_wallet_modal
-        show={@show_connect_modal}
-        scope={@current_scope}
-        connect_brand={:sponster}
-        on_click={widget_on_click}
-      />
 
         <%!-- In-place AuthSheet (`:on_widget_standalone` flag). --%>
         <%= if auth_sheet_enabled?(assigns) do %>

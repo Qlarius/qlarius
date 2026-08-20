@@ -6,12 +6,14 @@ defmodule QlariusWeb.Components.TiqitArqadeShell do
 
   use QlariusWeb, :html
   import QlariusWeb.Components.AdsComponents
+
   import QlariusWeb.Components.GiftModalComponents,
     only: [
       modal_backdrop_class: 0,
       modal_panel_radius_class: 0,
       tiqit_arqade_modal_border_class: 0
     ]
+
   import QlariusWeb.Components.SponsterPublicPage, only: [sponster_stack: 1]
   import QlariusWeb.InstaTipComponents
   import QlariusWeb.Widgets.UnauthCTA
@@ -215,6 +217,7 @@ defmodule QlariusWeb.Components.TiqitArqadeShell do
           recipient_id={tip_recipient && tip_recipient.id}
           amount={@insta_tip_amount || Decimal.new("0.00")}
           current_balance={@current_scope.wallet_balance}
+          notice={assigns[:insta_tip_notice]}
         />
 
         <.insta_tip_thanks_modal
@@ -267,7 +270,9 @@ defmodule QlariusWeb.Components.TiqitArqadeShell do
             <h3 class="font-bold text-lg">Disconnect wallet</h3>
           </div>
           <div class="p-6">
-            <p class="py-4">You will leave this session on this page. You can connect again anytime.</p>
+            <p class="py-4">
+              You will leave this session on this page. You can connect again anytime.
+            </p>
             <div class="modal-action">
               <button
                 type="button"

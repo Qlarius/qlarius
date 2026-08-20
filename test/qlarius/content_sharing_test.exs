@@ -14,21 +14,19 @@ defmodule Qlarius.ContentSharingTest do
   alias Qlarius.Wallets.{LedgerEntry, LedgerHeader}
 
   describe "starter credit" do
-    test "new wallets receive the QADABRA - Welcome Gift credit" do
+    test "new wallets receive a stored credit allowance instead of a Welcome Gift deposit" do
       user = register_user!()
       me_file = Accounts.get_me_file_by_user_id(user.id)
       header = Repo.get_by!(LedgerHeader, me_file_id: me_file.id)
 
-      welcome =
-        Repo.one(
-          from e in LedgerEntry,
-            where: e.ledger_header_id == ^header.id and e.meta_1 == "Welcome Gift"
-        )
+      refute Repo.one(
+               from e in LedgerEntry,
+                 where: e.ledger_header_id == ^header.id and e.meta_1 == "Welcome Gift"
+             )
 
-      assert welcome
-      assert welcome.description == "QADABRA - Welcome Gift"
-      assert Decimal.equal?(header.balance, welcome.amt)
-      assert Decimal.compare(header.balance, Decimal.new(0)) == :gt
+      assert Decimal.eq?(header.balance, Decimal.new("0.00"))
+      assert Decimal.eq?(me_file.credit_allowance, Decimal.new("2.00"))
+      assert Decimal.eq?(Wallets.available_to_spend(me_file), Decimal.new("2.00"))
     end
   end
 
@@ -68,7 +66,9 @@ defmodule Qlarius.ContentSharingTest do
                Decimal.sub(starting, tc.price)
              )
 
-      reloaded_inv = Repo.get!(Qlarius.ContentSharing.ShareInvitation, will_call.share_invitation_id)
+      reloaded_inv =
+        Repo.get!(Qlarius.ContentSharing.ShareInvitation, will_call.share_invitation_id)
+
       assert reloaded_inv.sender_claim_token_encrypted
       assert reloaded_inv.sender_claim_pin_encrypted
 
@@ -326,7 +326,9 @@ defmodule Qlarius.ContentSharingTest do
         })
 
       sender_user = scope.user
-      ref_context = Referrals.Context.from_content_invitation(sender_user, :content_gift, invitation.id)
+
+      ref_context =
+        Referrals.Context.from_content_invitation(sender_user, :content_gift, invitation.id)
 
       {:ok, %{me_file: recipient_me_file}} =
         Accounts.register_new_user(
@@ -360,7 +362,9 @@ defmodule Qlarius.ContentSharingTest do
 
       conn = build_conn() |> init_test_session(%{})
 
-      assert {:redirect, fork_token, conn} = ContentSharing.resolve_share_visit(conn, canonical_token)
+      assert {:redirect, fork_token, conn} =
+               ContentSharing.resolve_share_visit(conn, canonical_token)
+
       assert fork_token != canonical_token
 
       fork =
@@ -384,10 +388,13 @@ defmodule Qlarius.ContentSharingTest do
 
       conn = build_conn() |> init_test_session(%{})
 
-      assert {:redirect, fork_token, conn} = ContentSharing.resolve_share_visit(conn, canonical_token)
+      assert {:redirect, fork_token, conn} =
+               ContentSharing.resolve_share_visit(conn, canonical_token)
 
       assert {:ok, ^fork_token, _conn} = ContentSharing.resolve_share_visit(conn, fork_token)
-      assert {:redirect, ^fork_token, _conn} = ContentSharing.resolve_share_visit(conn, canonical_token)
+
+      assert {:redirect, ^fork_token, _conn} =
+               ContentSharing.resolve_share_visit(conn, canonical_token)
 
       fork_count =
         Repo.aggregate(
@@ -448,7 +455,9 @@ defmodule Qlarius.ContentSharingTest do
         })
 
       conn = build_conn() |> init_test_session(%{})
-      assert {:redirect, fork_token, _} = ContentSharing.resolve_share_visit(conn, canonical_token)
+
+      assert {:redirect, fork_token, _} =
+               ContentSharing.resolve_share_visit(conn, canonical_token)
 
       fork =
         Repo.get_by!(ShareInvitation, token_hash: ContentSharing.hash_token(fork_token))
@@ -475,7 +484,8 @@ defmodule Qlarius.ContentSharingTest do
   # --- fixtures ----------------------------------------------------------
 
   defp build_content(_ctx) do
-    {:ok, creator} = Creators.create_creator(%{"name" => "Test Creator #{System.unique_integer([:positive])}"})
+    {:ok, creator} =
+      Creators.create_creator(%{"name" => "Test Creator #{System.unique_integer([:positive])}"})
 
     catalog =
       %Catalog{creator_id: creator.id}

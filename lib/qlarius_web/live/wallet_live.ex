@@ -45,6 +45,8 @@ defmodule QlariusWeb.WalletLive do
     |> assign(:page, page)
     |> assign(:paginated_entries, paginated_entries)
     |> assign(:undo_context, nil)
+    |> assign(:wallet_summary, Wallets.consumer_wallet_summary(me_file))
+    |> assign(:wallet_details_open, false)
     |> assign_tag_display_mode()
     |> init_pwa_assigns(session)
     |> ok()
@@ -196,6 +198,10 @@ defmodule QlariusWeb.WalletLive do
     end
   end
 
+  def handle_event("toggle_wallet_details", _params, socket) do
+    {:noreply, assign(socket, :wallet_details_open, !socket.assigns.wallet_details_open)}
+  end
+
   defp assign_tag_display_mode(socket) do
     mode =
       case socket.assigns.current_scope.user.me_file do
@@ -227,14 +233,18 @@ defmodule QlariusWeb.WalletLive do
     %{me_file: me_file, page: page} = socket.assigns
     per_page = 20
 
+    me_file = Repo.get!(Qlarius.YouData.MeFiles.MeFile, me_file.id)
     ledger_header = Repo.get_by!(LedgerHeader, me_file_id: me_file.id)
     paginated_entries = Wallets.list_ledger_entries(ledger_header.id, page, per_page)
+    summary = Wallets.consumer_wallet_summary(me_file)
 
     current_scope =
-      Map.put(socket.assigns.current_scope, :wallet_balance, ledger_header.balance)
+      Map.put(socket.assigns.current_scope, :wallet_balance, summary.available_to_spend)
 
     socket
+    |> assign(:me_file, me_file)
     |> assign(:ledger_header, ledger_header)
+    |> assign(:wallet_summary, summary)
     |> assign(:paginated_entries, paginated_entries)
     |> assign(:current_scope, current_scope)
     |> reload_entry_details()
@@ -292,18 +302,22 @@ defmodule QlariusWeb.WalletLive do
             {@error}
           </div>
         <% else %>
-          <%= if Enum.empty?(@paginated_entries.entries) do %>
-            <div class="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-              <p class="mobile-page-intro text-center">No ledger activity to display.</p>
-              <p class="text-base text-base-content/60">
-                Check out your first ads and seed this wallet.
-              </p>
-              <.link navigate="/ads" class="btn btn-primary btn-lg rounded-full px-6 py-5 shadow-lg">
-                View Ads
-              </.link>
-            </div>
-          <% else %>
-            <div class="max-w-3xl mx-auto w-full">
+          <div class="max-w-3xl mx-auto w-full space-y-4">
+            <.wallet_summary_card
+              summary={@wallet_summary}
+              details_open={@wallet_details_open}
+            />
+            <%= if Enum.empty?(@paginated_entries.entries) do %>
+              <div class="flex flex-col items-center justify-center py-12 gap-4">
+                <p class="mobile-page-intro text-center">No ledger activity to display.</p>
+                <p class="text-base text-base-content/60">
+                  Check out your first ads and seed this wallet.
+                </p>
+                <.link navigate="/ads" class="btn btn-primary btn-lg rounded-full px-6 py-5 shadow-lg">
+                  View Ads
+                </.link>
+              </div>
+            <% else %>
               <.ledger_entries_pagination
                 paginated_entries={@paginated_entries}
                 page={@page}
@@ -317,8 +331,8 @@ defmodule QlariusWeb.WalletLive do
                   list_class="list !mx-0 !rounded-none !shadow-none !bg-base-100 dark:!bg-black divide-y divide-base-300/60 dark:divide-base-content/10"
                 />
               </.surface_panel>
-            </div>
-          <% end %>
+            <% end %>
+          </div>
         <% end %>
 
         <.ledger_entry_detail_sidebar :if={@sidebar_entry} entry={@sidebar_entry} />

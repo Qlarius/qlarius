@@ -3,7 +3,7 @@ defmodule Qlarius.Wallets do
   require Logger
 
   alias Qlarius.Repo
-  alias Qlarius.Wallets.{LedgerHeader, LedgerEntry, LedgerEvent}
+  alias Qlarius.Wallets.{LedgerHeader, LedgerEntry, LedgerEvent, Consumer}
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.Sponster.Campaigns.Campaign
   alias Qlarius.Sponster.Ads.MediaPiecePhase
@@ -39,10 +39,32 @@ defmodule Qlarius.Wallets do
     )
   end
 
-  # Added missing function that was being called from multiple LiveView modules
+  defdelegate default_credit_allowance, to: Consumer
+  defdelegate credit_backed_tip_amount, to: Consumer
+  defdelegate consumer_wallet_summary(me_file), to: Consumer
+  defdelegate available_to_spend(me_file), to: Consumer
+  defdelegate allocate_debit(header, allowance, amount), to: Consumer
+  defdelegate authorize_and_debit_purchase(me_file, amount, attrs), to: Consumer
+  defdelegate apply_credit!(header, amount, attrs), to: Consumer
+  defdelegate apply_credit!(header, amount, attrs, opts), to: Consumer
+  defdelegate reverse_ledger_entry!(original, attrs), to: Consumer
+  defdelegate apply_entry!(header, attrs), to: Consumer
+  defdelegate tip_quote(me_file, amount), to: Consumer
+  defdelegate authorize_tip(me_file, amount), to: Consumer
+  defdelegate authorize_tip(me_file, amount, opts), to: Consumer
+  defdelegate tip_notice_copy(quote), to: Consumer
+  defdelegate update_credit_allowance(me_file, new_amount), to: Consumer
+  defdelegate lock_me_file_header!(me_file_id), to: Consumer
+  defdelegate lock_header!(header_id), to: Consumer
+
   def get_user_current_balance(%User{} = user) do
-    # Delegate to existing function using user's me_file
-    get_me_file_ledger_header_balance(user.me_file)
+    me_file =
+      case user do
+        %{me_file: %MeFile{} = mf} -> mf
+        _ -> Repo.preload(user, :me_file).me_file
+      end
+
+    Consumer.available_to_spend(me_file)
   end
 
   def get_me_file_ledger_header_balance(%MeFile{} = me_file) do
@@ -115,7 +137,7 @@ defmodule Qlarius.Wallets do
 
       MeFileStatsBroadcaster.broadcast_ad_event_collected(
         ad_event.me_file_id,
-        new_balance,
+        available_to_spend_for_me_file_id(ad_event.me_file_id),
         offer_complete: ad_event.is_offer_complete
       )
 
@@ -125,7 +147,7 @@ defmodule Qlarius.Wallets do
 
   def update_me_file_ledger_from_ad_event(ad_event, phase_description, marketer_name) do
     Repo.transaction(fn ->
-      ledger_header = Repo.get_by!(LedgerHeader, me_file_id: ad_event.me_file_id)
+      ledger_header = Consumer.lock_me_file_header!(ad_event.me_file_id)
 
       existing_ledger_entry =
         Repo.one(
@@ -137,35 +159,19 @@ defmodule Qlarius.Wallets do
       if existing_ledger_entry do
         {:error, :ledger_entry_exists}
       else
-        new_balance =
-          Decimal.add(ledger_header.balance, ad_event.event_me_file_collect_amt)
-
-        new_balance_payable =
-          if ad_event.is_payable do
-            Decimal.add(ledger_header.balance, ad_event.event_me_file_collect_amt)
-          else
-            ledger_header.balance
-          end
-
+        amount = ad_event.event_me_file_collect_amt
         meta_1 = phase_description_to_meta_1(phase_description)
 
-        %LedgerEntry{}
-        |> LedgerEntry.changeset(%{
-          ledger_header_id: ledger_header.id,
-          amt: ad_event.event_me_file_collect_amt,
-          running_balance: new_balance,
-          description: String.upcase(marketer_name),
-          meta_1: meta_1,
-          ad_event_id: ad_event.id,
-          running_balance_payable: new_balance_payable
-        })
-        |> Repo.insert!()
+        %{header: header} =
+          Consumer.apply_entry!(ledger_header, %{
+            amt: amount,
+            payable_delta: if(ad_event.is_payable, do: amount, else: Consumer.zero()),
+            description: String.upcase(marketer_name),
+            meta_1: meta_1,
+            ad_event_id: ad_event.id
+          })
 
-        ledger_header
-        |> Ecto.Changeset.change(balance: new_balance, balance_payable: new_balance_payable)
-        |> Repo.update!()
-
-        {:ok, new_balance}
+        {:ok, header.balance}
       end
     end)
     |> normalize_transaction_result()
@@ -314,24 +320,12 @@ defmodule Qlarius.Wallets do
   # Simulate topping up by $0.50. Useful when debugging.
   def fake_topup(user) do
     Repo.transaction(fn ->
-      ledger_header = user.me_file.ledger_header
+      ledger_header = Consumer.lock_me_file_header!(user.me_file.id)
 
-      amount = Decimal.new("0.50")
-
-      new_balance = Decimal.add(ledger_header.balance || Decimal.new(0), amount)
-
-      ledger_header
-      |> Ecto.Changeset.change(balance: new_balance)
-      |> Repo.update!()
-
-      %LedgerEntry{
-        ledger_header_id: ledger_header.id,
-        amt: amount,
-        running_balance: new_balance,
+      Consumer.apply_credit!(ledger_header, Decimal.new("0.50"), %{
         description: "Top up - GIFT",
         meta_1: "Gift"
-      }
-      |> Repo.insert!()
+      })
     end)
 
     :ok
@@ -371,23 +365,12 @@ defmodule Qlarius.Wallets do
 
   defp insert_daily_gift_ledger(%User{} = user) do
     Repo.transaction(fn ->
-      ledger_header = user.me_file.ledger_header
-      amount = @daily_gift_amount
+      ledger_header = Consumer.lock_me_file_header!(user.me_file.id)
 
-      new_balance = Decimal.add(ledger_header.balance || Decimal.new(0), amount)
-
-      ledger_header
-      |> Ecto.Changeset.change(balance: new_balance)
-      |> Repo.update!()
-
-      %LedgerEntry{
-        ledger_header_id: ledger_header.id,
-        amt: amount,
-        running_balance: new_balance,
+      Consumer.apply_credit!(ledger_header, @daily_gift_amount, %{
         description: "Daily gift",
         meta_1: @daily_gift_meta
-      }
-      |> Repo.insert!()
+      })
     end)
     |> case do
       {:ok, _} -> {:ok, :credited}
@@ -468,13 +451,25 @@ defmodule Qlarius.Wallets do
   @media_gift_credit_meta "Friend gift credit"
 
   @doc "Reversible sender debit recorded when a will-call gift is created."
-  def create_will_call_debit!(%LedgerHeader{} = header, amount, description) do
-    insert_ledger_entry!(header, Decimal.negate(amount), description, @will_call_gift_meta)
+  def create_will_call_debit!(%MeFile{} = me_file, amount, description) do
+    case Consumer.authorize_and_debit_purchase(me_file, amount, %{
+           description: description,
+           meta_1: @will_call_gift_meta
+         }) do
+      {:ok, %{entry: entry}} -> entry
+      {:error, :insufficient_funds} -> Repo.rollback(:insufficient_funds)
+    end
   end
 
   @doc "Compensating sender credit when an unclaimed will-call gift expires."
-  def create_will_call_reversal!(%LedgerHeader{} = header, amount, description) do
-    insert_ledger_entry!(header, amount, description, @will_call_reversal_meta)
+  def create_will_call_reversal!(%LedgerEntry{} = original, description) do
+    %{entry: entry} =
+      Consumer.reverse_ledger_entry!(original, %{
+        description: description,
+        meta_1: @will_call_reversal_meta
+      })
+
+    entry
   end
 
   @doc """
@@ -483,7 +478,13 @@ defmodule Qlarius.Wallets do
   so it never becomes independently spendable.
   """
   def create_gift_passthrough_credit!(%LedgerHeader{} = header, amount) do
-    insert_ledger_entry!(header, amount, @media_gift_credit_description, @media_gift_credit_meta)
+    %{entry: entry} =
+      Consumer.apply_credit!(header, amount, %{
+        description: @media_gift_credit_description,
+        meta_1: @media_gift_credit_meta
+      })
+
+    entry
   end
 
   @doc "Loads a me_file's ledger header by me_file id (nil if none)."
@@ -491,24 +492,8 @@ defmodule Qlarius.Wallets do
     Repo.get_by(LedgerHeader, me_file_id: me_file_id)
   end
 
-  defp insert_ledger_entry!(%LedgerHeader{} = header, signed_amt, description, meta_1) do
-    new_balance = Decimal.add(header.balance || Decimal.new(0), signed_amt)
-
-    entry =
-      %LedgerEntry{
-        ledger_header_id: header.id,
-        amt: signed_amt,
-        running_balance: new_balance,
-        description: description,
-        meta_1: meta_1
-      }
-      |> Repo.insert!()
-
-    header
-    |> Ecto.Changeset.change(balance: new_balance)
-    |> Repo.update!()
-
-    entry
+  defp available_to_spend_for_me_file_id(me_file_id) do
+    Consumer.available_to_spend(Repo.get!(MeFile, me_file_id))
   end
 
   def get_tiqit_purchase_details(tiqit_id) do
@@ -569,11 +554,11 @@ defmodule Qlarius.Wallets do
   # InstaTip functions
 
   @doc """
-  Validates if a user has sufficient funds for a tip amount.
+  Validates if a user can send a tip of the given amount.
   """
   def validate_sufficient_funds(%User{} = user, amount) do
-    current_balance = get_user_current_balance(user)
-    Decimal.compare(current_balance, amount) != :lt
+    me_file = user.me_file || Repo.preload(user, :me_file).me_file
+    Consumer.tip_quote(me_file, amount).authorized?
   end
 
   def get_or_create_creator_ledger_header(%Qlarius.Creators.Creator{} = creator) do
@@ -637,25 +622,32 @@ defmodule Qlarius.Wallets do
         amount,
         %User{} = requested_by_user
       ) do
+    amount = if is_binary(amount), do: Decimal.new(amount), else: amount
+
     Repo.transaction(fn ->
-      # Get or create ledger headers
-      from_ledger = get_me_file_ledger_header(from_user.me_file)
+      me_file = from_user.me_file || Repo.preload(from_user, :me_file).me_file
+      quote = Consumer.authorize_tip(me_file, amount)
+
+      unless quote.authorized? do
+        Repo.rollback(quote.reason)
+      end
+
+      from_ledger = quote.header
       to_ledger = get_or_create_recipient_ledger_header(to_recipient)
 
-      # Create the ledger event
       ledger_event =
         %LedgerEvent{}
         |> LedgerEvent.changeset(%{
           from_ledger_id: from_ledger.id,
           to_ledger_id: to_ledger.id,
           amount: amount,
+          credit_backed_amount: quote.credit_backed_amount,
           status: "pending",
           description: "InstaTip to #{to_recipient.name}",
           requested_by_user_id: requested_by_user.id
         })
         |> Repo.insert!()
 
-      # Enqueue the processing job
       %{ledger_event_id: ledger_event.id}
       |> Qlarius.Jobs.ProcessInstaTip.new()
       |> Oban.insert()
@@ -669,7 +661,6 @@ defmodule Qlarius.Wallets do
   """
   def process_insta_tip(%LedgerEvent{} = ledger_event) do
     Repo.transaction(fn ->
-      # Reload with required nested associations
       ledger_event =
         Repo.preload(ledger_event,
           from_ledger: [:me_file],
@@ -677,76 +668,64 @@ defmodule Qlarius.Wallets do
           requested_by_user: []
         )
 
-      # Check if user still has sufficient funds
-      current_balance = ledger_event.from_ledger.balance
+      me_file = ledger_event.from_ledger.me_file
+      header = Consumer.lock_header!(ledger_event.from_ledger_id)
 
-      if Decimal.compare(current_balance, ledger_event.amount) == :lt do
-        # Update status to failed
-        ledger_event
-        |> Ecto.Changeset.change(status: "failed")
-        |> Repo.update!()
+      case Consumer.allocate_debit(
+             header,
+             me_file.credit_allowance || Consumer.zero(),
+             ledger_event.amount
+           ) do
+        {:error, :insufficient_funds} ->
+          ledger_event
+          |> Ecto.Changeset.change(status: "failed")
+          |> Repo.update!()
 
-        {:error, :insufficient_funds}
-      else
-        # Update status to processing
-        ledger_event
-        |> Ecto.Changeset.change(status: "processing")
-        |> Repo.update!()
+          {:error, :insufficient_funds}
 
-        # Process the transfer
-        process_ledger_transfer(ledger_event)
+        {:ok, alloc} ->
+          ledger_event
+          |> Ecto.Changeset.change(status: "processing")
+          |> Repo.update!()
 
-        # Update status to completed
-        ledger_event
-        |> Ecto.Changeset.change(status: "completed")
-        |> Repo.update!()
+          process_ledger_transfer(ledger_event, header, alloc)
 
-        {:ok, ledger_event}
+          ledger_event =
+            ledger_event
+            |> Ecto.Changeset.change(status: "completed")
+            |> Repo.update!()
+
+          {:ok, ledger_event}
       end
     end)
+    |> normalize_transaction_result()
   end
 
-  defp process_ledger_transfer(%LedgerEvent{} = ledger_event) do
-    # Deduct from sender's ledger
-    new_from_balance = Decimal.sub(ledger_event.from_ledger.balance, ledger_event.amount)
+  defp process_ledger_transfer(
+         %LedgerEvent{} = ledger_event,
+         %LedgerHeader{} = from_header,
+         alloc
+       ) do
+    %{header: from_header} =
+      Consumer.apply_entry!(from_header, %{
+        amt: alloc.amt,
+        payable_delta: alloc.payable_delta,
+        description: String.upcase(ledger_event.to_ledger.recipient.name),
+        meta_1: "Tip/Donation"
+      })
 
-    ledger_event.from_ledger
-    |> Ecto.Changeset.change(balance: new_from_balance)
-    |> Repo.update!()
+    to_header = Consumer.lock_header!(ledger_event.to_ledger_id)
 
-    # Create debit entry for sender
-    %LedgerEntry{}
-    |> LedgerEntry.changeset(%{
-      ledger_header_id: ledger_event.from_ledger_id,
-      amt: Decimal.negate(ledger_event.amount),
-      running_balance: new_from_balance,
-      description: String.upcase(ledger_event.to_ledger.recipient.name),
-      meta_1: "Tip/Donation"
-    })
-    |> Repo.insert!()
-
-    # Add to recipient's ledger
-    new_to_balance = Decimal.add(ledger_event.to_ledger.balance, ledger_event.amount)
-
-    ledger_event.to_ledger
-    |> Ecto.Changeset.change(balance: new_to_balance)
-    |> Repo.update!()
-
-    # Create credit entry for recipient
-    %LedgerEntry{}
-    |> LedgerEntry.changeset(%{
-      ledger_header_id: ledger_event.to_ledger_id,
+    Consumer.apply_entry!(to_header, %{
       amt: ledger_event.amount,
-      running_balance: new_to_balance,
+      payable_delta: Consumer.zero(),
       description: "InstaTip from #{ledger_event.requested_by_user.alias}",
       meta_1: "Tip/Donation"
     })
-    |> Repo.insert!()
 
-    # Broadcast balance update
     MeFileStatsBroadcaster.broadcast_balance_updated(
-      ledger_event.from_ledger.me_file_id,
-      new_from_balance
+      from_header.me_file_id,
+      available_to_spend_for_me_file_id(from_header.me_file_id)
     )
   end
 

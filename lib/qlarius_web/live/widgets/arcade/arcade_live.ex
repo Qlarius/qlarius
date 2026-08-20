@@ -564,33 +564,34 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       if blocked_for_purchase? do
         {:noreply, socket}
       else
-      {credit, count, adjusted_price} =
-        if gift_flow? do
-          {Decimal.new(0), 0, tc.price}
+        {credit, count, adjusted_price} =
+          if gift_flow? do
+            {Decimal.new(0), 0, tc.price}
+          else
+            {credit, count} = tiqit_class_credit(tc, socket.assigns)
+            {credit, count, Decimal.max(Decimal.new(0), Decimal.sub(tc.price, credit))}
+          end
+
+        balance = socket.assigns[:balance] || Decimal.new(0)
+
+        if gift_flow? && Decimal.compare(balance, tc.price) == :lt do
+          socket
+          |> put_flash(:error, "Not enough wallet balance to gift this Tiqit.")
+          |> noreply()
         else
-          {credit, count} = tiqit_class_credit(tc, socket.assigns)
-          {credit, count, Decimal.max(Decimal.new(0), Decimal.sub(tc.price, credit))}
+          socket
+          |> assign(
+            show_share_gift_modal:
+              if(gift_flow?, do: false, else: socket.assigns.show_share_gift_modal),
+            purchase_intent: if(gift_flow?, do: :gift, else: nil),
+            selected_tiqit_class: tc,
+            selected_tiqit_class_adjusted_price: adjusted_price,
+            selected_tiqit_class_credit: credit,
+            selected_tiqit_class_active_count: count,
+            options_modal: false
+          )
+          |> noreply()
         end
-
-      balance = socket.assigns[:balance] || Decimal.new(0)
-
-      if gift_flow? && Decimal.compare(balance, tc.price) == :lt do
-        socket
-        |> put_flash(:error, "Not enough wallet balance to gift this Tiqit.")
-        |> noreply()
-      else
-        socket
-        |> assign(
-          show_share_gift_modal: if(gift_flow?, do: false, else: socket.assigns.show_share_gift_modal),
-          purchase_intent: if(gift_flow?, do: :gift, else: nil),
-          selected_tiqit_class: tc,
-          selected_tiqit_class_adjusted_price: adjusted_price,
-          selected_tiqit_class_credit: credit,
-          selected_tiqit_class_active_count: count,
-          options_modal: false
-        )
-        |> noreply()
-      end
       end
     end
   end
@@ -733,14 +734,21 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
             [tiqit_up_credit: socket.assigns.selected_tiqit_class_credit]
           end
 
-        :ok = Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class, opts)
+        case Arcade.purchase_tiqit(socket.assigns.current_scope, tiqit_class, opts) do
+          :ok ->
+            socket
+            |> socket_after_tiqit_purchase()
+            |> open_player_for_selected_piece()
+            |> noreply()
 
-        socket
-        |> socket_after_tiqit_purchase()
-        |> open_player_for_selected_piece()
-        |> noreply()
+          {:error, :insufficient_funds} ->
+            socket
+            |> put_flash(:error, "Not enough available to buy this Tiqit.")
+            |> noreply()
+        end
       else
-        {:noreply, put_flash(socket, :error, "That Tiqit is not an upgrade from your current access.")}
+        {:noreply,
+         put_flash(socket, :error, "That Tiqit is not an upgrade from your current access.")}
       end
     end
   end
@@ -1004,7 +1012,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     end
   end
 
-
   @doc """
   Episode list filter (in-memory). Applies an optional case-insensitive
   substring match on `title` or `description`, then optionally
@@ -1181,7 +1188,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     }
   end
 
-  defp build_gift_result(%{invitation: invitation, raw_pin: pin, claim_path: claim_path}, %TiqitClass{} = tc, piece, group) do
+  defp build_gift_result(
+         %{invitation: invitation, raw_pin: pin, claim_path: claim_path},
+         %TiqitClass{} = tc,
+         piece,
+         group
+       ) do
     url = Qlarius.Qlink.Urls.public_app_url(claim_path)
     {content_type, content_name} = ContentSharing.gift_message_fields(tc, piece, group)
 

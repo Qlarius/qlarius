@@ -157,7 +157,10 @@ defmodule QlariusWeb.CoreComponents do
   attr :active, :boolean, default: false
   attr :size, :string, values: ~w(compact default large)
   attr :class, :any, default: nil
-  attr :rest, :global, include: ~w(phx-click phx-value-type phx-value-status phx-value-expanded phx-value-mode disabled aria-pressed aria-label)
+
+  attr :rest, :global,
+    include:
+      ~w(phx-click phx-value-type phx-value-status phx-value-expanded phx-value-mode disabled aria-pressed aria-label)
 
   slot :inner_block, required: true
 
@@ -896,9 +899,7 @@ defmodule QlariusWeb.CoreComponents do
               id={"#{@id}-container"}
               phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
               phx-key="escape"
-              phx-click-away={
-                @close_on_click_away && JS.exec("data-cancel", to: "##{@id}")
-              }
+              phx-click-away={@close_on_click_away && JS.exec("data-cancel", to: "##{@id}")}
               class={[
                 "relative hidden w-full overflow-hidden bg-base-100 rounded-box shadow-2xl transition-all duration-200",
                 @border_class
@@ -957,11 +958,10 @@ defmodule QlariusWeb.CoreComponents do
   InstaTip amount button grid. Shared by InstaTipComponents and SplitComponents
   to avoid circular dependencies.
 
-  `wallet_balance` is `nil` for anonymous viewers — in that case all
-  amount buttons render as enabled (styled same as "can afford") and
-  the `initiate_insta_tip` LV handler intercepts the click to open
-  the Connect-wallet modal. This keeps the anon UI visually identical
-  to the authed version, so tipping looks reachable.
+  `wallet_balance` is unused for enablement — amount buttons stay tappable.
+  The confirm modal explains a credit-tip throttle or amounts that need
+  earned funds; the backend remains authoritative. For anonymous viewers
+  `wallet_balance` may be nil and `initiate_insta_tip` opens Connect.
   """
   attr :amounts, :list, required: true
   attr :wallet_balance, :any, required: true
@@ -973,21 +973,13 @@ defmodule QlariusWeb.CoreComponents do
     ~H"""
     <div class={["grid grid-cols-2 sm:grid-cols-4 gap-3 justify-items-center", @add_class]}>
       <%= for amount <- @amounts do %>
-        <% amount_decimal = Decimal.new(amount)
-
-        enabled =
-          is_nil(@wallet_balance) or Decimal.compare(@wallet_balance, amount_decimal) != :lt %>
         <button
           type="button"
           phx-click="initiate_insta_tip"
           phx-target={@target}
           phx-value-amount={amount}
           phx-value-recipient-id={@recipient_id}
-          disabled={!enabled}
-          class={[
-            "btn-widget btn-circle btn-lg font-bold p-8 shrink-0",
-            if(enabled, do: "", else: "btn-disabled")
-          ]}
+          class="btn-widget btn-circle btn-lg font-bold p-8 shrink-0"
         >
           <span>
             <%= case to_string(amount) do %>
