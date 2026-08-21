@@ -330,6 +330,9 @@ defmodule QlariusWeb.WalletLive do
                 </.link>
               </div>
             <% else %>
+              <h2 class="pt-4 text-center text-xl font-bold tracking-tight text-base-content/50">
+                Activity Ledger
+              </h2>
               <.ledger_entries_pagination
                 paginated_entries={@paginated_entries}
                 page={@page}
