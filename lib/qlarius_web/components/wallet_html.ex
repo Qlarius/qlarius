@@ -61,30 +61,38 @@ defmodule QlariusWeb.WalletHTML do
         class={["wallet-details", @details_open && "wallet-details--open"]}
         aria-hidden={to_string(!@details_open)}
       >
-        <div class="wallet-details__content space-y-4">
-          <div class="wallet-stat-grid wallet-stat-grid--3">
-            <.wallet_metric
-              amount={@summary.non_payable_balance}
-              label="in-app"
-              icon="hero-device-phone-mobile"
-            />
-            <.wallet_metric
-              amount={@summary.balance_payable}
-              label="cashable"
-              icon="hero-arrow-trending-up"
-              class="text-success"
-            />
+        <div class="wallet-details__clip">
+          <div class="space-y-4 pt-4">
+            <div class="wallet-equation" aria-label="Activity total equals in-app plus cashable">
+              <.wallet_metric
+                amount={@summary.activity_balance}
+                label="activity total"
+                class={@activity_negative? && "text-warning"}
+              />
+              <span class="wallet-equation__op" aria-hidden="true">=</span>
+              <.wallet_metric
+                amount={@summary.non_payable_balance}
+                label="in-app"
+                class="text-sponster-700 dark:text-sponster-300"
+              />
+              <span class="wallet-equation__op" aria-hidden="true">+</span>
+              <.wallet_metric
+                amount={@summary.balance_payable}
+                label="cashable"
+                class="text-sponster-500"
+              />
+            </div>
+            <p class="text-sm text-base-content/50 leading-relaxed">
+              in-app balance = activity proceeds you can spend, but not cash out <br />
+              cashable = cash proceeds eligible for withdrawal
+            </p>
+            <p class="text-sm text-base-content/50 leading-relaxed">
+              See the Activity Ledger below for details.
+            </p>
+            <p :if={@activity_negative?} class="text-sm text-base-content/50 leading-relaxed">
+              Eligible sponsored activity can restore your activity balance.
+            </p>
           </div>
-          <p class="text-sm text-base-content/50 leading-relaxed">
-            Cashable is paid-ad earnings you can withdraw. In-app is demo and gift
-            activity you can spend here, but not cash out.
-          </p>
-          <p :if={@activity_negative?} class="text-sm text-base-content/50 leading-relaxed">
-            Eligible sponsored activity can restore your activity balance.
-          </p>
-          <p class="text-sm text-base-content/50 leading-relaxed">
-            Tips use earned wallet value; credit covers a 25¢ tip at most once every 24 hours.
-          </p>
         </div>
       </div>
     </.surface_panel>

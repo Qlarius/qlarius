@@ -2136,18 +2136,6 @@
     @apply border-t-sponster-400 dark:border-t-sponster-500;
   }
 
-  .wallet-stat-grid {
-    @apply grid gap-x-5 gap-y-3;
-  }
-
-  .wallet-stat-grid--2 {
-    @apply grid-cols-2;
-  }
-
-  .wallet-stat-grid--3 {
-    @apply grid-cols-3;
-  }
-
   .wallet-equation {
     @apply flex flex-wrap items-start gap-x-4 gap-y-2;
   }
@@ -2177,8 +2165,13 @@
       opacity 220ms ease 120ms;
   }
 
-  .wallet-details__content {
-    @apply min-h-0 overflow-hidden pt-4;
+  /*
+   * The clip element must stay padding-free: padding survives `min-height: 0`
+   * and would keep the collapsed 0fr row that tall, leaving dead space under
+   * the toggle. Spacing belongs on the inner element it clips.
+   */
+  .wallet-details__clip {
+    @apply min-h-0 overflow-hidden;
   }
 
   @media (prefers-reduced-motion: reduce) {

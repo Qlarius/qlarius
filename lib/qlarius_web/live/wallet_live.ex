@@ -323,14 +323,14 @@ defmodule QlariusWeb.WalletLive do
               <div class="flex flex-col items-center justify-center py-12 gap-4">
                 <p class="mobile-page-intro text-center">No ledger activity to display.</p>
                 <p class="text-base text-base-content/60">
-                  Check out your first ads and seed this wallet.
+                  Check out some ads and seed this wallet.
                 </p>
                 <.link navigate="/ads" class="btn btn-primary btn-lg rounded-full px-6 py-5 shadow-lg">
                   View Ads
                 </.link>
               </div>
             <% else %>
-              <h2 class="pt-4 text-center text-xl font-bold tracking-tight text-base-content/50">
+              <h2 class="pt-4 text-center text-xl font-bold tracking-tight text-base-content">
                 Activity Ledger
               </h2>
               <.ledger_entries_pagination
