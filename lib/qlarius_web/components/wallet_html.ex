@@ -22,25 +22,27 @@ defmodule QlariusWeb.WalletHTML do
     <.surface_panel class="home-stat-card home-stat-card--wallet">
       <div class="flex items-start justify-between gap-3 mb-6">
         <h2 class="text-xl font-bold tracking-tight text-base-content/50">Your wallet.</h2>
-        <.icon name="hero-wallet" class="h-7 w-7 shrink-0 text-sponster-400" />
+        <.icon name="hero-wallet" class="h-7 w-7 shrink-0 text-sponster-500" />
       </div>
 
-      <div class="wallet-equation" aria-label="Spendable equals activity plus credit float">
-        <div class="wallet-equation__terms">
-          <.wallet_metric amount={@summary.available_to_spend} label="spendable" size={:hero} />
-          <.wallet_metric
-            amount={@summary.activity_balance}
-            label="activity"
-            class={@activity_negative? && "text-warning"}
-          />
-          <.wallet_metric
-            amount={@summary.credit_allowance}
-            label="credit float"
-            class="text-info"
-          />
-        </div>
-        <span class="wallet-equation__op wallet-equation__op--eq" aria-hidden="true">=</span>
-        <span class="wallet-equation__op wallet-equation__op--plus" aria-hidden="true">+</span>
+      <div class="wallet-equation" aria-label="Spendable equals activity plus credit">
+        <.wallet_metric
+          amount={@summary.available_to_spend}
+          label="spendable"
+          class="text-sponster-400"
+        />
+        <span class="wallet-equation__op" aria-hidden="true">=</span>
+        <.wallet_metric
+          amount={@summary.activity_balance}
+          label="activity"
+          class={@activity_negative? && "text-warning"}
+        />
+        <span class="wallet-equation__op" aria-hidden="true">+</span>
+        <.wallet_metric
+          amount={@summary.credit_allowance}
+          label="credit"
+          class="text-info"
+        />
       </div>
 
       <div class="mt-5 flex justify-center">
@@ -55,36 +57,35 @@ defmodule QlariusWeb.WalletHTML do
         </button>
       </div>
 
-      <div :if={@details_open} class="mt-4 space-y-4">
-        <div class="wallet-stat-grid wallet-stat-grid--3">
-          <.wallet_metric
-            amount={@summary.non_payable_balance}
-            label="in-app"
-            icon="hero-device-phone-mobile"
-          />
-          <.wallet_metric
-            amount={@summary.balance_payable}
-            label="cashable"
-            icon="hero-arrow-trending-up"
-            class="text-success"
-          />
-          <.wallet_metric
-            amount={@summary.available_to_tip}
-            label="tip-able"
-            icon="hero-heart"
-            class="text-sponster-400"
-          />
+      <div
+        class={["wallet-details", @details_open && "wallet-details--open"]}
+        aria-hidden={to_string(!@details_open)}
+      >
+        <div class="wallet-details__content space-y-4">
+          <div class="wallet-stat-grid wallet-stat-grid--3">
+            <.wallet_metric
+              amount={@summary.non_payable_balance}
+              label="in-app"
+              icon="hero-device-phone-mobile"
+            />
+            <.wallet_metric
+              amount={@summary.balance_payable}
+              label="cashable"
+              icon="hero-arrow-trending-up"
+              class="text-success"
+            />
+          </div>
+          <p class="text-sm text-base-content/50 leading-relaxed">
+            Cashable is paid-ad earnings you can withdraw. In-app is demo and gift
+            activity you can spend here, but not cash out.
+          </p>
+          <p :if={@activity_negative?} class="text-sm text-base-content/50 leading-relaxed">
+            Eligible sponsored activity can restore your activity balance.
+          </p>
+          <p class="text-sm text-base-content/50 leading-relaxed">
+            Tips use earned wallet value; credit covers a 25¢ tip at most once every 24 hours.
+          </p>
         </div>
-        <p class="text-sm text-base-content/50 leading-relaxed">
-          Cashable is paid-ad earnings you can withdraw. In-app is demo and gift
-          activity you can spend here, but not cash out.
-        </p>
-        <p :if={@activity_negative?} class="text-sm text-base-content/50 leading-relaxed">
-          Eligible sponsored activity can restore your activity balance.
-        </p>
-        <p class="text-sm text-base-content/50 leading-relaxed">
-          Tips use earned wallet value; credit covers a 25¢ tip at most once every 24 hours.
-        </p>
       </div>
     </.surface_panel>
     """

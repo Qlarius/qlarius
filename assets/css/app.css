@@ -2149,30 +2149,44 @@
   }
 
   .wallet-equation {
-    @apply relative;
-  }
-
-  .wallet-equation__terms {
-    @apply grid items-start;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .wallet-equation .home-stat {
-    @apply w-full items-center text-center;
+    @apply flex flex-wrap items-start gap-x-4 gap-y-2;
   }
 
   .wallet-equation__op {
-    @apply pointer-events-none absolute text-2xl font-light leading-none text-base-content/35;
-    top: 0.35rem;
-    transform: translateX(-50%);
+    @apply mt-1 text-2xl font-light leading-none text-base-content/35;
   }
 
-  .wallet-equation__op--eq {
-    left: 33.333%;
+  /*
+   * Collapsible wallet details. The 0fr/1fr grid row animates to the content's
+   * natural height, which `height: auto` cannot do. Copy fades out ahead of the
+   * collapse and in behind the expand so the two never fight each other.
+   */
+  .wallet-details {
+    @apply grid opacity-0;
+    grid-template-rows: 0fr;
+    transition:
+      grid-template-rows 280ms ease,
+      opacity 140ms ease;
   }
 
-  .wallet-equation__op--plus {
-    left: 66.666%;
+  .wallet-details--open {
+    @apply opacity-100;
+    grid-template-rows: 1fr;
+    transition:
+      grid-template-rows 280ms ease,
+      opacity 220ms ease 120ms;
+  }
+
+  .wallet-details__content {
+    @apply min-h-0 overflow-hidden pt-4;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wallet-details,
+    .wallet-details--open {
+      transition-duration: 0.01ms;
+      transition-delay: 0ms;
+    }
   }
 
   .wallet-details-toggle {

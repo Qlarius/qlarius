@@ -60,23 +60,23 @@ defmodule QlariusWeb.WalletLiveTest do
     %{conn: log_in_user(conn, user), user: user}
   end
 
-  test "shows spendable, activity, and credit float", %{conn: conn} do
+  test "shows the spendable equation and reveals details on toggle", %{conn: conn} do
     {:ok, view, html} = live(conn, ~p"/wallet")
 
     assert html =~ "spendable"
     assert html =~ "$2.00"
     assert html =~ "activity"
-    assert html =~ "credit float"
-    refute html =~ "tip-able"
+    assert html =~ "credit"
+    refute html =~ "wallet-details--open"
 
     view
     |> element("button[aria-label='Show wallet details']")
     |> render_click()
 
     html = render(view)
+    assert html =~ "wallet-details--open"
     assert html =~ "in-app"
     assert html =~ "cashable"
-    assert html =~ "tip-able"
   end
 
   test "refreshes ledger and available-to-spend on wallet balance PubSub", %{
