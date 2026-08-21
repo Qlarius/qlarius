@@ -13,6 +13,8 @@ defmodule QlariusWeb.WalletLive do
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Repo
   alias Qlarius.Sponster.Campaigns.Targets
+  alias QlariusWeb.WalletBalanceSync
+
   @impl true
   def mount(_params, session, socket) do
     current_scope = socket.assigns.current_scope
@@ -27,8 +29,7 @@ defmodule QlariusWeb.WalletLive do
 
     socket =
       if connected?(socket) do
-        Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{user.id}")
-        socket
+        WalletBalanceSync.subscribe(socket)
       else
         socket
       end
@@ -250,12 +251,23 @@ defmodule QlariusWeb.WalletLive do
     |> reload_entry_details()
   end
 
+  # Balance/ledger PubSub is handled by WalletBalanceSyncHooks, which reloads
+  # `/wallet` ledger assigns. These clauses remain as a fallback if a message
+  # is not treated as a sync event.
   @impl true
   def handle_info(:ledger_updated, socket) do
     {:noreply, reload_ledger(socket)}
   end
 
   def handle_info(:update_balance, socket) do
+    {:noreply, reload_ledger(socket)}
+  end
+
+  def handle_info({:me_file_balance_updated, _balance}, socket) do
+    {:noreply, reload_ledger(socket)}
+  end
+
+  def handle_info({:me_file_ledger_updated, _me_file_id}, socket) do
     {:noreply, reload_ledger(socket)}
   end
 

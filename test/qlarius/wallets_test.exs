@@ -26,6 +26,31 @@ defmodule Qlarius.WalletsTest do
 
       assert Decimal.eq?(Wallets.get_user_current_balance(user), Decimal.new("2.00"))
     end
+
+    test "get_user_current_balance does not double-count credit from a poisoned preload" do
+      %{user: user, me_file: me_file, header: header} = register_consumer!()
+
+      Repo.transaction(fn ->
+        Wallets.apply_credit!(header, Decimal.new("0.50"), %{
+          description: "Ad",
+          meta_1: "Banner Tap"
+        })
+      end)
+
+      header = Repo.reload!(header)
+      me_file = Repo.preload(me_file, :ledger_header)
+
+      poisoned_header = %{
+        me_file.ledger_header
+        | balance: Decimal.add(header.balance, me_file.credit_allowance)
+      }
+
+      user = %{user | me_file: %{me_file | ledger_header: poisoned_header}}
+
+      assert Decimal.eq?(header.balance, Decimal.new("0.50"))
+      assert Decimal.eq?(poisoned_header.balance, Decimal.new("2.50"))
+      assert Decimal.eq?(Wallets.get_user_current_balance(user), Decimal.new("2.50"))
+    end
   end
 
   describe "authorize_and_debit_purchase/3" do
@@ -297,6 +322,36 @@ defmodule Qlarius.WalletsTest do
         end)
 
       assert oks == 1
+    end
+  end
+
+  describe "rebuild_header_payable!/1" do
+    test "clears cash-out that was copied from activity on non-payable collects" do
+      %{me_file: me_file, header: header} = register_consumer!()
+
+      %{header: header} =
+        Repo.transaction(fn ->
+          Wallets.apply_entry!(header, %{
+            amt: Decimal.new("1.00"),
+            payable_delta: Decimal.new("0.00"),
+            description: "DEMO AD",
+            meta_1: "Banner Tap"
+          })
+        end)
+        |> then(fn {:ok, result} -> result end)
+
+      header
+      |> Ecto.Changeset.change(balance_payable: Decimal.new("1.00"))
+      |> Repo.update!()
+
+      Wallets.rebuild_header_payable!(header.id)
+      header = Repo.reload!(header)
+      summary = Wallets.consumer_wallet_summary(reload_me_file(me_file))
+
+      assert Decimal.eq?(header.balance, Decimal.new("1.00"))
+      assert Decimal.eq?(header.balance_payable, Decimal.new("0.00"))
+      assert Decimal.eq?(summary.non_payable_balance, Decimal.new("1.00"))
+      assert Decimal.eq?(summary.balance_payable, Decimal.new("0.00"))
     end
   end
 

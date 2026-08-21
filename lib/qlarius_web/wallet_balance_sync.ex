@@ -11,6 +11,7 @@ defmodule QlariusWeb.WalletBalanceSync do
   alias Qlarius.Accounts.User
   alias Qlarius.Repo
   alias Qlarius.Wallets
+  alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Wallets.MeFileStatsBroadcaster
   alias Qlarius.YouData.MeFiles.MeFile
 
@@ -75,6 +76,8 @@ defmodule QlariusWeb.WalletBalanceSync do
   @doc false
   def sync_message?({:me_file_balance_updated, _}), do: true
   def sync_message?(:update_balance), do: true
+  def sync_message?(:ledger_updated), do: true
+  def sync_message?({:me_file_ledger_updated, _}), do: true
   def sync_message?({:refresh_wallet_balance, _}), do: true
   def sync_message?({:me_file_stats_updated, _}), do: true
   def sync_message?({:me_file_offers_updated, _}), do: true
@@ -136,13 +139,27 @@ defmodule QlariusWeb.WalletBalanceSync do
 
   @doc "Route a wallet/stats PubSub message to the appropriate assign refresh."
   def handle_sync_message({:me_file_balance_updated, new_balance}, socket) do
-    assign_wallet_fields(socket, new_balance)
+    socket
+    |> assign_wallet_fields(new_balance)
+    |> maybe_reload_wallet_ledger()
   end
 
-  def handle_sync_message(:update_balance, socket), do: refetch_and_assign(socket)
+  def handle_sync_message(:update_balance, socket) do
+    socket
+    |> refetch_and_assign()
+    |> maybe_reload_wallet_ledger()
+  end
 
-  def handle_sync_message({:refresh_wallet_balance, _me_file_id}, socket),
-    do: refetch_and_assign(socket)
+  def handle_sync_message(:ledger_updated, socket), do: maybe_reload_wallet_ledger(socket)
+
+  def handle_sync_message({:me_file_ledger_updated, _me_file_id}, socket),
+    do: maybe_reload_wallet_ledger(socket)
+
+  def handle_sync_message({:refresh_wallet_balance, _me_file_id}, socket) do
+    socket
+    |> refetch_and_assign()
+    |> maybe_reload_wallet_ledger()
+  end
 
   def handle_sync_message({:me_file_stats_updated, _me_file_id}, socket),
     do: refresh_scope_stats(socket)
@@ -171,6 +188,8 @@ defmodule QlariusWeb.WalletBalanceSync do
   @doc false
   def notify_parent_after_sync?({:me_file_balance_updated, _}), do: false
   def notify_parent_after_sync?(:update_balance), do: false
+  def notify_parent_after_sync?(:ledger_updated), do: false
+  def notify_parent_after_sync?({:me_file_ledger_updated, _}), do: false
   def notify_parent_after_sync?(_), do: true
 
   @doc false
@@ -266,9 +285,7 @@ defmodule QlariusWeb.WalletBalanceSync do
         me_file_id
 
       %{user: %{id: user_id}} when is_integer(user_id) ->
-        Repo.one(
-          from m in MeFile, where: m.user_id == ^user_id, select: m.id, limit: 1
-        )
+        Repo.one(from m in MeFile, where: m.user_id == ^user_id, select: m.id, limit: 1)
 
       _ ->
         nil
@@ -297,11 +314,45 @@ defmodule QlariusWeb.WalletBalanceSync do
     if Map.has_key?(socket.assigns, key), do: assign(socket, key, value), else: socket
   end
 
-  defp put_scope_wallet_balance(%Scope{user: %User{me_file: %MeFile{ledger_header: lh} = mf} = user} = scope, new_balance)
-       when not is_nil(lh) do
-    %{scope | wallet_balance: new_balance, user: %{user | me_file: %{mf | ledger_header: %{lh | balance: new_balance}}}}
+  # `/wallet` keeps a summary card and paginated ledger in assigns. The global
+  # sync hook otherwise only refreshes `wallet_balance` and would leave those
+  # stale after an ad collect, tip, or purchase in another tab.
+  defp maybe_reload_wallet_ledger(socket) do
+    case socket.assigns do
+      %{me_file: %{id: me_file_id}, page: page, paginated_entries: _, wallet_summary: _} ->
+        reload_wallet_ledger(socket, me_file_id, page)
+
+      _ ->
+        socket
+    end
   end
 
+  defp reload_wallet_ledger(socket, me_file_id, page) do
+    me_file = Repo.get!(MeFile, me_file_id)
+    ledger_header = Repo.get_by!(LedgerHeader, me_file_id: me_file.id)
+    paginated_entries = Wallets.list_ledger_entries(ledger_header.id, page, 20)
+    summary = Wallets.consumer_wallet_summary(me_file)
+
+    socket
+    |> assign(:me_file, me_file)
+    |> assign(:ledger_header, ledger_header)
+    |> assign(:wallet_summary, summary)
+    |> assign(:paginated_entries, paginated_entries)
+    |> maybe_put_scope_wallet_balance(summary.available_to_spend)
+  end
+
+  defp maybe_put_scope_wallet_balance(socket, new_balance) do
+    case socket.assigns[:current_scope] do
+      nil ->
+        socket
+
+      scope ->
+        assign(socket, :current_scope, put_scope_wallet_balance(scope, new_balance))
+    end
+  end
+
+  # Only `wallet_balance` is spendable. `ledger_header.balance` is activity and
+  # must not be overwritten — a later refetch would add credit allowance twice.
   defp put_scope_wallet_balance(%Scope{} = scope, new_balance) do
     %{scope | wallet_balance: new_balance}
   end

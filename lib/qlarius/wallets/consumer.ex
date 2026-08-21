@@ -48,6 +48,54 @@ defmodule Qlarius.Wallets.Consumer do
     )
   end
 
+  @doc """
+  Recompute me-file `balance_payable` from `ad_events.is_payable`.
+
+  The pre-allowance writer set `balance_payable` to activity on every collect,
+  so cash-out tracked nearly the whole ledger even when most ads were not payable.
+  """
+  def rebuild_me_file_balance_payable! do
+    headers =
+      Repo.all(from h in LedgerHeader, where: not is_nil(h.me_file_id), select: h.id)
+
+    Enum.each(headers, &rebuild_header_payable!/1)
+    length(headers)
+  end
+
+  def rebuild_header_payable!(header_id) when is_integer(header_id) do
+    {:ok, header} =
+      Repo.transaction(fn ->
+        header = lock_header!(header_id)
+
+        entries =
+          Repo.all(
+            from e in LedgerEntry,
+              where: e.ledger_header_id == ^header.id,
+              order_by: [asc: e.created_at, asc: e.id],
+              preload: :ad_event
+          )
+
+        {_activity, payable, updates} =
+          Enum.reduce(entries, {@zero, @zero, []}, fn entry, {activity, payable, acc} ->
+            {activity, payable, pd} = payable_step(entry, activity, payable)
+            activity = clamp_activity(entry, activity)
+            payable = clamp_payable(payable, activity)
+            {activity, payable, [{entry.id, pd} | acc]}
+          end)
+
+        Enum.each(updates, fn {id, pd} ->
+          from(e in LedgerEntry, where: e.id == ^id)
+          |> Repo.update_all(set: [payable_delta: pd])
+        end)
+
+        header
+        |> Ecto.Changeset.change(balance_payable: payable)
+        |> Repo.update!()
+      end)
+
+    header
+  end
+
   def allocate_debit(%LedgerHeader{} = header, allowance, amount) do
     amount = to_dec(amount)
     allowance = to_dec(allowance)
@@ -328,6 +376,41 @@ defmodule Qlarius.Wallets.Consumer do
 
   defp empty_summary do
     build_summary(nil, @zero)
+  end
+
+  defp payable_step(entry, activity, payable) do
+    amt = to_dec(entry.amt || @zero)
+
+    cond do
+      Decimal.compare(amt, @zero) != :lt ->
+        pd = payable_credit_delta(entry, amt)
+        {Decimal.add(activity, amt), Decimal.add(payable, pd), pd}
+
+      true ->
+        spend = Decimal.negate(amt)
+        non_payable = positive_part(Decimal.sub(activity, payable))
+        from_non_payable = Decimal.min(spend, non_payable)
+        remain = Decimal.sub(spend, from_non_payable)
+        from_payable = Decimal.min(remain, positive_part(payable))
+        pd = Decimal.negate(from_payable)
+
+        {Decimal.sub(activity, spend), Decimal.sub(payable, from_payable), pd}
+    end
+  end
+
+  defp payable_credit_delta(%{ad_event: %{is_payable: true}}, amt), do: amt
+  defp payable_credit_delta(%{ad_event: %{is_payable: false}}, _amt), do: @zero
+  defp payable_credit_delta(%{ad_event: %{is_payable: nil}}, _amt), do: @zero
+  defp payable_credit_delta(%{payable_delta: %Decimal{} = pd}, _amt), do: pd
+  defp payable_credit_delta(_entry, _amt), do: @zero
+
+  defp clamp_activity(%{running_balance: %Decimal{} = rb}, _activity), do: rb
+  defp clamp_activity(_entry, activity), do: activity
+
+  defp clamp_payable(payable, activity) do
+    payable
+    |> Decimal.min(positive_part(activity))
+    |> Decimal.max(@zero)
   end
 
   defp ledger_header_for(%MeFile{ledger_header: %LedgerHeader{} = header}), do: header

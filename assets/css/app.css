@@ -2132,6 +2132,67 @@
     @apply grid grid-cols-4 gap-x-3 gap-y-2 sm:gap-x-4;
   }
 
+  .home-stat-card--wallet.surface-panel {
+    @apply border-t-sponster-400 dark:border-t-sponster-500;
+  }
+
+  .wallet-stat-grid {
+    @apply grid gap-x-5 gap-y-3;
+  }
+
+  .wallet-stat-grid--2 {
+    @apply grid-cols-2;
+  }
+
+  .wallet-stat-grid--3 {
+    @apply grid-cols-3;
+  }
+
+  .wallet-equation {
+    @apply relative;
+  }
+
+  .wallet-equation__terms {
+    @apply grid items-start;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .wallet-equation .home-stat {
+    @apply w-full items-center text-center;
+  }
+
+  .wallet-equation__op {
+    @apply pointer-events-none absolute text-2xl font-light leading-none text-base-content/35;
+    top: 0.35rem;
+    transform: translateX(-50%);
+  }
+
+  .wallet-equation__op--eq {
+    left: 33.333%;
+  }
+
+  .wallet-equation__op--plus {
+    left: 66.666%;
+  }
+
+  .wallet-details-toggle {
+    @apply inline-flex min-w-[46px] cursor-pointer items-center justify-center px-4 py-1;
+    @apply rounded-[10px] border border-base-content/15 bg-base-200/60;
+    @apply transition-colors hover:bg-base-200 dark:bg-base-content/5 dark:hover:bg-base-content/10;
+  }
+
+  .wallet-details-toggle__chevron {
+    @apply transition-transform duration-200;
+  }
+
+  .wallet-stat__value {
+    @apply text-2xl font-bold leading-none tracking-tight text-base-content;
+  }
+
+  .wallet-stat__value--hero {
+    @apply text-3xl sm:text-4xl;
+  }
+
   /*
    * Joined pill filter tabs — shared control for /ads, /tiqits, me_file, etc.
    * Selectable segments are lighter; active segment is darker with higher contrast.

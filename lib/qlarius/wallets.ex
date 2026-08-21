@@ -56,12 +56,17 @@ defmodule Qlarius.Wallets do
   defdelegate update_credit_allowance(me_file, new_amount), to: Consumer
   defdelegate lock_me_file_header!(me_file_id), to: Consumer
   defdelegate lock_header!(header_id), to: Consumer
+  defdelegate rebuild_me_file_balance_payable!(), to: Consumer
+  defdelegate rebuild_header_payable!(header_id), to: Consumer
 
   def get_user_current_balance(%User{} = user) do
     me_file =
       case user do
-        %{me_file: %MeFile{} = mf} -> mf
-        _ -> Repo.preload(user, :me_file).me_file
+        %{me_file: %MeFile{id: id}} when is_integer(id) ->
+          Repo.get(MeFile, id)
+
+        _ ->
+          Repo.preload(user, :me_file).me_file
       end
 
     Consumer.available_to_spend(me_file)
