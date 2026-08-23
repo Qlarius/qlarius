@@ -474,13 +474,19 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
   # --- Share / Gift ------------------------------------------------------
 
-  def handle_event("open-share-gift-modal", _params, socket) do
+  def handle_event("open-share-gift-modal", params, socket) do
+    mode =
+      case params do
+        %{"mode" => mode} when mode in ["share", "gift"] -> mode
+        _ -> "share"
+      end
+
     socket
     |> ensure_share_gift_assigns()
     |> assign(
       show_share_gift_modal: true,
       share_gift_modal_token: next_share_gift_modal_token(),
-      share_gift_mode: "share",
+      share_gift_mode: mode,
       share_gift_share_target: "content_piece",
       share_gift_result: nil
     )

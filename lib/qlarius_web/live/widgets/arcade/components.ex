@@ -56,8 +56,14 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     group = assigns.group
     catalog = group.catalog
     apply_tiqit_up? = assigns.apply_tiqit_up?
-    group_credit = if(apply_tiqit_up?, do: assigns.tiqit_up_group_credit, else: Decimal.new(0)) || Decimal.new(0)
-    catalog_credit = if(apply_tiqit_up?, do: assigns.tiqit_up_catalog_credit, else: Decimal.new(0)) || Decimal.new(0)
+
+    group_credit =
+      if(apply_tiqit_up?, do: assigns.tiqit_up_group_credit, else: Decimal.new(0)) ||
+        Decimal.new(0)
+
+    catalog_credit =
+      if(apply_tiqit_up?, do: assigns.tiqit_up_catalog_credit, else: Decimal.new(0)) ||
+        Decimal.new(0)
 
     durations =
       [piece, group, catalog]
@@ -250,48 +256,48 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     <%= if !@purchasable? do %>
       <.tiqit_class_grid_price_locked price={@original} />
     <% else %>
-    <%= if @is_free and @has_credit do %>
-      <div class="flex flex-col items-center gap-0.5">
-        <span class="text-xs text-base-content/40 line-through">{format_usd(@original)}</span>
-        <button
-          phx-click={@select_event}
-          phx-value-tiqit-class-id={@tiqit_class.id}
-          class={@chip_class}
-        >
-          Free!
-        </button>
-      </div>
-    <% else %>
-      <%= if @has_credit do %>
-        <%= if Decimal.compare(@balance, @adjusted) != :lt do %>
-          <div class="flex flex-col items-center gap-0.5">
-            <span class="text-xs text-base-content/40 line-through">{format_usd(@original)}</span>
-            <button
-              phx-click={@select_event}
-              phx-value-tiqit-class-id={@tiqit_class.id}
-              class={@chip_class}
-            >
-              {format_usd(@adjusted)}
-            </button>
-          </div>
-        <% else %>
-          <div class="flex flex-col items-center gap-0.5">
-            <span class="text-xs text-base-content/40 line-through">{format_usd(@original)}</span>
-            <div class="btn-widget btn-sm btn-disabled rounded-full px-4">
-              {format_usd(@adjusted)}
-            </div>
-          </div>
-        <% end %>
+      <%= if @is_free and @has_credit do %>
+        <div class="flex flex-col items-center gap-0.5">
+          <span class="text-xs text-base-content/40 line-through">{format_usd(@original)}</span>
+          <button
+            phx-click={@select_event}
+            phx-value-tiqit-class-id={@tiqit_class.id}
+            class={@chip_class}
+          >
+            Free!
+          </button>
+        </div>
       <% else %>
-        <.tiqit_class_grid_price
-          balance={@balance}
-          tiqit_class={@tiqit_class}
-          select_event={@select_event}
-          selected_class_id={@selected_class_id}
-          active_tiqit_classes={@active_tiqit_classes}
-        />
+        <%= if @has_credit do %>
+          <%= if Decimal.compare(@balance, @adjusted) != :lt do %>
+            <div class="flex flex-col items-center gap-0.5">
+              <span class="text-xs text-base-content/40 line-through">{format_usd(@original)}</span>
+              <button
+                phx-click={@select_event}
+                phx-value-tiqit-class-id={@tiqit_class.id}
+                class={@chip_class}
+              >
+                {format_usd(@adjusted)}
+              </button>
+            </div>
+          <% else %>
+            <div class="flex flex-col items-center gap-0.5">
+              <span class="text-xs text-base-content/40 line-through">{format_usd(@original)}</span>
+              <div class="btn-widget btn-sm btn-disabled rounded-full px-4">
+                {format_usd(@adjusted)}
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <.tiqit_class_grid_price
+            balance={@balance}
+            tiqit_class={@tiqit_class}
+            select_event={@select_event}
+            selected_class_id={@selected_class_id}
+            active_tiqit_classes={@active_tiqit_classes}
+          />
+        <% end %>
       <% end %>
-    <% end %>
     <% end %>
     """
   end
@@ -335,19 +341,19 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     <%= if !@purchasable? do %>
       <.tiqit_class_grid_price_locked price={@tiqit_class.price} />
     <% else %>
-    <%= if is_nil(@balance) or Decimal.compare(@balance, @tiqit_class.price) != :lt do %>
-      <button
-        phx-click={@select_event}
-        phx-value-tiqit-class-id={@tiqit_class.id}
-        class={@chip_class}
-      >
-        {format_usd(@tiqit_class.price, zero_free: true)}
-      </button>
-    <% else %>
-      <div class="btn-widget btn-sm btn-disabled rounded-full px-3 py-1">
-        {format_usd(@tiqit_class.price, zero_free: true)}
-      </div>
-    <% end %>
+      <%= if is_nil(@balance) or Decimal.compare(@balance, @tiqit_class.price) != :lt do %>
+        <button
+          phx-click={@select_event}
+          phx-value-tiqit-class-id={@tiqit_class.id}
+          class={@chip_class}
+        >
+          {format_usd(@tiqit_class.price, zero_free: true)}
+        </button>
+      <% else %>
+        <div class="btn-widget btn-sm btn-disabled rounded-full px-3 py-1">
+          {format_usd(@tiqit_class.price, zero_free: true)}
+        </div>
+      <% end %>
     <% end %>
     """
   end
@@ -411,29 +417,60 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
             <.icon name="hero-squares-2x2" class="h-6 w-6 shrink-0" />
             <span class="text-sm font-medium">Full purchase options</span>
           </button>
-          <button
-            type="button"
-            disabled={@share_gift_disabled?}
-            phx-click={
-              unless @share_gift_disabled? do
-                Phoenix.LiveView.JS.dispatch("qlarius:close-popover",
-                  detail: %{id: @popover_id}
-                )
-                |> Phoenix.LiveView.JS.push("open-share-gift-modal", target: @event_target)
-              end
-            }
-            class={[
-              "btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5",
-              @share_gift_disabled? && "btn-disabled opacity-60 cursor-not-allowed"
-            ]}
-            title={if @share_gift_disabled?, do: "Connect to share or gift", else: nil}
-          >
-            <.icon name="hero-gift" class="h-6 w-6 shrink-0" />
-            <span class="text-sm font-medium">Share / Gift</span>
-          </button>
+          <.share_gift_option_button
+            popover_id={@popover_id}
+            event_target={@event_target}
+            disabled?={@share_gift_disabled?}
+            mode="share"
+            icon="hero-arrow-up-on-square"
+            label="Share"
+          />
+          <.share_gift_option_button
+            popover_id={@popover_id}
+            event_target={@event_target}
+            disabled?={@share_gift_disabled?}
+            mode="gift"
+            icon="hero-gift"
+            label="Gift"
+          />
         </div>
       </:content>
     </.popover>
+    """
+  end
+
+  attr :popover_id, :string, required: true
+  attr :event_target, :string, required: true
+  attr :disabled?, :boolean, required: true
+  attr :mode, :string, required: true
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+
+  defp share_gift_option_button(assigns) do
+    ~H"""
+    <button
+      type="button"
+      disabled={@disabled?}
+      phx-click={
+        unless @disabled? do
+          Phoenix.LiveView.JS.dispatch("qlarius:close-popover",
+            detail: %{id: @popover_id}
+          )
+          |> Phoenix.LiveView.JS.push("open-share-gift-modal",
+            target: @event_target,
+            value: %{mode: @mode}
+          )
+        end
+      }
+      class={[
+        "btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5",
+        @disabled? && "btn-disabled opacity-60 cursor-not-allowed"
+      ]}
+      title={if @disabled?, do: "Connect to #{String.downcase(@label)}", else: nil}
+    >
+      <.icon name={@icon} class="h-6 w-6 shrink-0" />
+      <span class="text-sm font-medium">{@label}</span>
+    </button>
     """
   end
 
@@ -691,11 +728,12 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       class={[
         "group flex flex-row items-stretch gap-3 overflow-hidden transition-shadow duration-200 p-2 sm:p-2.5 min-h-[4.5rem]",
         @elevated && "surface-panel surface-panel-shadow hover:shadow-lg",
-        !@elevated && [
-          "rounded-lg bg-base-200/50 dark:bg-black shadow-sm",
-          "border border-base-300/60 dark:border-base-content/10",
-          "hover:shadow-md"
-        ]
+        !@elevated &&
+          [
+            "rounded-lg bg-base-200/50 dark:bg-black shadow-sm",
+            "border border-base-300/60 dark:border-base-content/10",
+            "hover:shadow-md"
+          ]
       ]}
     >
       <img
@@ -706,7 +744,9 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       <div class="min-w-0 flex flex-1 flex-col justify-center gap-0.5">
         <h3 class="font-bold text-sm text-base-content leading-snug line-clamp-2">{@title}</h3>
         <p :if={@subtitle} class="text-xs text-base-content/60 truncate">{@subtitle}</p>
-        <p :if={@detail} class="text-[11px] text-base-content/50 leading-snug line-clamp-1">{@detail}</p>
+        <p :if={@detail} class="text-[11px] text-base-content/50 leading-snug line-clamp-1">
+          {@detail}
+        </p>
         <div :if={@price_info} class="text-[11px] font-medium pt-0.5">
           <span :if={@price_info.min_price} class="text-widget-700">
             from {@price_info.min_price}
@@ -736,11 +776,12 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       class={[
         "group flex h-full flex-col overflow-hidden transition-shadow duration-200",
         @elevated && "surface-panel surface-panel-shadow hover:shadow-lg",
-        !@elevated && [
-          "rounded-lg bg-base-200/50 dark:bg-black shadow-sm",
-          "border-t-2 border-neutral-300 dark:border-neutral-600",
-          "hover:shadow-md"
-        ]
+        !@elevated &&
+          [
+            "rounded-lg bg-base-200/50 dark:bg-black shadow-sm",
+            "border-t-2 border-neutral-300 dark:border-neutral-600",
+            "hover:shadow-md"
+          ]
       ]}
     >
       <img
@@ -749,9 +790,13 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         class="aspect-[4/3] sm:aspect-square w-full object-cover bg-base-300/40 dark:bg-base-700/40"
       />
       <div class="flex flex-1 flex-col gap-0.5 p-2 sm:p-3 min-w-0">
-        <h3 class="font-bold text-sm sm:text-base text-base-content leading-snug line-clamp-2">{@title}</h3>
+        <h3 class="font-bold text-sm sm:text-base text-base-content leading-snug line-clamp-2">
+          {@title}
+        </h3>
         <p :if={@subtitle} class="text-xs text-base-content/60 truncate">{@subtitle}</p>
-        <p :if={@detail} class="text-[11px] sm:text-xs text-base-content/50 leading-snug line-clamp-2">{@detail}</p>
+        <p :if={@detail} class="text-[11px] sm:text-xs text-base-content/50 leading-snug line-clamp-2">
+          {@detail}
+        </p>
         <div :if={@price_info} class="text-[11px] sm:text-xs font-medium mt-auto pt-0.5">
           <span :if={@price_info.min_price} class="text-widget-700">
             from {@price_info.min_price}
@@ -996,7 +1041,9 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
               @description_clamp_class
             ]}
             style="line-height: 1.15rem;"
-          >{description_preview_text(@piece.description)}</p>
+          >
+            {description_preview_text(@piece.description)}
+          </p>
           <%= if description_exceeds_preview?(@piece.description, @description_line_clamp) do %>
             <.popover
               id={"arcade-selected-desc-#{@piece.id}"}
@@ -1017,10 +1064,14 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                   <span data-popover-toggle-label="hide" class="hidden">Hide full</span>
                 </button>
               </:trigger>
-              <:content><p
+              <:content>
+                <p
                   class="p-2 sm:p-2.5 min-h-0 flex-1 overflow-y-auto text-sm sm:text-[15px] text-base-content/90 leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]"
                   style="line-height: 1.35rem;"
-                >{piece_list_description(@piece.description)}</p></:content>
+                >
+                  {piece_list_description(@piece.description)}
+                </p>
+              </:content>
             </.popover>
           <% end %>
         </div>

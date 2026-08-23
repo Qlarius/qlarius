@@ -64,6 +64,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
   alias Qlarius.Qlink.Urls
 
   import QlariusWeb.CoreComponents
+  import QlariusWeb.Components.GiftModalComponents, only: [tiqit_arqade_modal_border_class: 0]
   import QlariusWeb.Money
   import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
 
@@ -308,7 +309,13 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
       |> assign(:message, message)
 
     ~H"""
-    <.modal :if={@show} id={@id} border_class="border border-widget-700" on_cancel={@on_cancel} show>
+    <.modal
+      :if={@show}
+      id={@id}
+      border_class={tiqit_arqade_modal_border_class()}
+      on_cancel={@on_cancel}
+      show
+    >
       <div class="flex flex-col items-center text-center space-y-4 p-8">
         <div class="mb-4 md:mb-5">
           <img

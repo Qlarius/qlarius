@@ -339,7 +339,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
             phx-window-keydown={JS.push("cancel_logout")}
             phx-key="Escape"
           >
-            <div class="w-[min(100%,28rem)] overflow-hidden rounded-box border border-widget-700 bg-base-100 shadow-2xl">
+            <div class="w-[min(100%,28rem)] overflow-hidden rounded-box modal-widget-frame shadow-2xl">
               <div class="bg-base-200 px-6 py-4 rounded-t-box">
                 <h3 id="ads-ext-logout-title" class="font-bold text-lg">Disconnect</h3>
               </div>

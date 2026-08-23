@@ -129,7 +129,7 @@ defmodule QlariusWeb.InstaTipComponents do
       :if={@show}
       id="insta-tip-modal"
       show
-      border_class="border border-widget-700"
+      border_class={tiqit_arqade_modal_border_class()}
       on_cancel={JS.push("close-insta-tip-modal")}
     >
       <div class="text-center space-y-6 p-8">
@@ -198,7 +198,7 @@ defmodule QlariusWeb.InstaTipComponents do
       :if={@show}
       id="insta-tip-thanks-modal"
       show
-      border_class="border border-widget-700"
+      border_class={tiqit_arqade_modal_border_class()}
       on_cancel={JS.push("close-insta-tip-thanks-modal")}
     >
       <div class="text-center space-y-6 p-8">

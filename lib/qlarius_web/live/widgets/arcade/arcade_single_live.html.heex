@@ -100,8 +100,7 @@
                   <.icon name="hero-arrow-trending-up" class="w-5 h-5 text-accent" />
                   <span class="font-semibold text-accent">Tiqit Up discount available!</span>
                   <span class="text-base-content/70">
-                    Check out your
-                    <button
+                    Check out your <button
                       type="button"
                       phx-click="browse-tiqit-options"
                       class="link link-primary font-medium align-baseline"
@@ -181,12 +180,10 @@
                           </button>
                         </div>
                         <%= if is_authed && !can_afford do %>
-                          <div
-                            class={[
-                              "text-sm text-warning text-center",
-                              @base_path == "" && !@inline? && "hidden"
-                            ]}
-                          >
+                          <div class={[
+                            "text-sm text-warning text-center",
+                            @base_path == "" && !@inline? && "hidden"
+                          ]}>
                             Not enough funds — top up below.
                           </div>
                         <% end %>
@@ -218,12 +215,10 @@
                   </div>
                 </div>
 
-                <div
-                  class={[
-                    "flex flex-row justify-center items-center mt-6",
-                    @base_path == "" && !@inline? && "hidden"
-                  ]}
-                >
+                <div class={[
+                  "flex flex-row justify-center items-center mt-6",
+                  @base_path == "" && !@inline? && "hidden"
+                ]}>
                   <div class="text-base-content/40 text-xs mr-1">Access via</div>
                   <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
                 </div>
@@ -240,7 +235,7 @@
     <.modal
       :if={@selected_tiqit_class}
       id="confirm-purchase-modal"
-      border_class="border border-widget-700"
+      border_class={tiqit_arqade_modal_border_class()}
       on_cancel={JS.push("close-confirm-purchase-modal")}
       show
     >

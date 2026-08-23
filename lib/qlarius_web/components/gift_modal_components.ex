@@ -12,7 +12,7 @@ defmodule QlariusWeb.Components.GiftModalComponents do
   @primary_btn_classes "btn-widget btn-widget-emphasis btn-lg btn-block min-h-14 rounded-full py-3.5 text-base whitespace-nowrap"
   @ghost_btn_classes "btn-widget-ghost btn-md min-h-11 rounded-full text-sm"
   @modal_border_class "border border-widget-300"
-  @tiqit_arqade_modal_border_class "border border-widget-700"
+  @tiqit_arqade_modal_border_class "modal-widget-frame"
   @modal_backdrop_class "bg-base-300/80 backdrop-blur-sm"
   @modal_panel_radius_class "rounded-box"
   @modal_sheet_panel_radius_class "rounded-t-box md:rounded-box"
@@ -194,7 +194,7 @@ defmodule QlariusWeb.Components.GiftModalComponents do
     ~H"""
     <.icon
       name={@icon}
-      class={@class || "mx-auto mb-3 h-10 w-10 text-widget-700 md:mb-4 dark:text-widget-300"}
+      class={@class || "mx-auto mb-3 h-10 w-10 text-widget-700 md:mb-4"}
     />
     """
   end
@@ -210,7 +210,6 @@ defmodule QlariusWeb.Components.GiftModalComponents do
     ~H"""
     <div class={[
       "mx-auto w-full max-w-[400px] rounded-xl border border-widget-300 bg-widget-100/60 p-3",
-      "dark:border-widget-700/40 dark:bg-widget-900/25",
       @class
     ]}>
       <div class="flex flex-row items-start gap-4">
@@ -225,7 +224,7 @@ defmodule QlariusWeb.Components.GiftModalComponents do
           <p :if={@subtitle} class="text-sm leading-snug text-base-content/60">
             {@subtitle}
           </p>
-          <h3 class="text-base font-bold leading-snug text-widget-900 [overflow-wrap:anywhere] dark:text-white">
+          <h3 class="text-base font-bold leading-snug text-widget-900 [overflow-wrap:anywhere]">
             {@title}
           </h3>
           <p :if={@includes} class="text-sm text-base-content/70">

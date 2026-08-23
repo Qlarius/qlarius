@@ -1650,6 +1650,15 @@
     @apply border-widget-300;
   }
 
+  /*
+   * Confirm Tip / Share / Gift / purchase dialog chrome.
+   * `widget-700` is navy on light and a light blue on dark because
+   * `--color-widget-*` remaps under `[data-theme=dark]`.
+   */
+  .modal-widget-frame {
+    @apply border border-widget-700 bg-base-100;
+  }
+
   /* Qlink Sponster announcer drawer toggle: explicit Inter so the fixed bar
      control never briefly shows system UI after LiveView patches (native
      `<button>` + inheritance timing). Matches wallet-strip Top up typography. */

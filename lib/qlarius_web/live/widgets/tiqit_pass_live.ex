@@ -389,7 +389,7 @@ defmodule QlariusWeb.Widgets.TiqitPassLive do
       <.modal
         :if={@selected_tiqit_class}
         id="tiqit-pass-confirm-modal"
-        border_class="border border-widget-700"
+        border_class={tiqit_arqade_modal_border_class()}
         on_cancel={JS.push("close-confirm-purchase-modal")}
         show
       >

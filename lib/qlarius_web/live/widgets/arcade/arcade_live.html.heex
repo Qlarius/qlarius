@@ -572,11 +572,7 @@
       <.modal
         :if={@selected_tiqit_class}
         id="confirm-purchase-modal"
-        border_class={
-          if @full_viewport_embed?,
-            do: tiqit_arqade_modal_border_class(),
-            else: modal_border_class()
-        }
+        border_class={tiqit_arqade_modal_border_class()}
         on_cancel={JS.push("close-confirm-purchase-modal")}
         show
       >
@@ -720,11 +716,7 @@
       :if={@show_share_gift_modal}
       id={"share-gift-modal-#{@share_gift_modal_token}"}
       show={@show_share_gift_modal}
-      border_class={
-        if @full_viewport_embed?,
-          do: tiqit_arqade_modal_border_class(),
-          else: modal_border_class()
-      }
+      border_class={tiqit_arqade_modal_border_class()}
       close_on_click_away={is_nil(@share_gift_result)}
       on_cancel={JS.push("close-share-gift-modal")}
     >
