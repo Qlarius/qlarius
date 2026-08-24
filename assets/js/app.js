@@ -1735,12 +1735,13 @@ Hooks.EpisodeSearchField = {
 Hooks.ArqadeEpisodesScroll = {
   mounted() {
     this._pendingPieceId = null
-    this._onClick = (event) => {
+    this._onPointerDown = (event) => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return
       const row = event.target.closest('[data-arqade-piece-id]')
       if (!row || !this.el.contains(row)) return
       this.previewSelected(row)
     }
-    this.el.addEventListener('click', this._onClick)
+    this.el.addEventListener('pointerdown', this._onPointerDown)
     this.handleEvent('scroll_arqade_episode_into_view', ({ piece_id: pieceId }) => {
       this._pendingPieceId = pieceId
       this.scrollToPiece(pieceId)
@@ -1753,18 +1754,13 @@ Hooks.ArqadeEpisodesScroll = {
     }
   },
   destroyed() {
-    if (this._onClick) this.el.removeEventListener('click', this._onClick)
+    if (this._onPointerDown) this.el.removeEventListener('pointerdown', this._onPointerDown)
   },
   previewSelected(row) {
-    const selected = ['bg-widget-100', 'border-widget-700', 'shadow-sm']
-    const idle = ['bg-base-100', 'border-base-200']
+    if (row.getAttribute('data-arqade-selected') === 'true') return
+
     this.el.querySelectorAll('[data-arqade-piece-id]').forEach((el) => {
-      const on = el === row
-      el.classList.toggle(selected[0], on)
-      el.classList.toggle(selected[1], on)
-      el.classList.toggle(selected[2], on)
-      el.classList.toggle(idle[0], !on)
-      el.classList.toggle(idle[1], !on)
+      el.setAttribute('data-arqade-selected', el === row ? 'true' : 'false')
     })
 
     const root = this.el.closest('[data-arqade-group-root]') || document
@@ -1786,6 +1782,18 @@ Hooks.ArqadeEpisodesScroll = {
       root.querySelectorAll('[data-arqade-selected-duration]').forEach((el) => {
         el.textContent = duration
       })
+    }
+
+    const rowDesc = row.querySelector('[data-arqade-row-description]')
+    root.querySelectorAll('[data-arqade-selected-description]').forEach((el) => {
+      el.textContent = rowDesc ? rowDesc.textContent : ''
+    })
+
+    const skeleton = root.querySelector('[data-arqade-cta-skeleton]')
+    const ready = root.querySelector('[data-arqade-cta-ready]')
+    if (skeleton && ready) {
+      skeleton.classList.remove('hidden')
+      ready.classList.add('hidden')
     }
   },
   scrollToPiece(pieceId) {

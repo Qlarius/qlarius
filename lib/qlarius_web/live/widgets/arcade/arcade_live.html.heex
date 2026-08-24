@@ -266,6 +266,17 @@
                    for anon. The ellipsis control opens the full tiqit grid
                    for everyone.
             --%>
+                  <div
+                    data-arqade-cta-skeleton="true"
+                    class="mb-3 hidden"
+                    aria-hidden="true"
+                  >
+                    <div class="flex w-full flex-row items-center gap-1.5">
+                      <div class="skeleton h-14 flex-1 rounded-full"></div>
+                      <div class="skeleton h-14 w-10 shrink-0 rounded-full"></div>
+                    </div>
+                  </div>
+                  <div data-arqade-cta-ready="true">
                   <%= cond do %>
                     <% @tiqit -> %>
                       <div class="flex w-full flex-col items-stretch gap-3">
@@ -356,6 +367,7 @@
                         />
                       </div>
                   <% end %>
+                  </div>
                 </div>
                 <div
                   data-arqade-tiqit-logo-row={@show_qlink_footer? && "inline"}
@@ -487,17 +499,17 @@
                     <% end %>
                   </p>
                 <% end %>
-                <.link
+                <button
                   :for={piece <- visible_pieces}
-                  href="#"
+                  type="button"
                   data-arqade-piece-id={piece.id}
+                  data-arqade-selected={to_string(piece.id == @selected_piece.id)}
                   data-arqade-title={piece.title}
                   data-arqade-image={content_image_url(piece, @group)}
                   data-arqade-duration={piece.duration}
                   phx-click="select-content"
                   phx-value-content-id={piece.id}
-                  class={"rounded-lg p-3 flex gap-3 items-stretch min-w-0 border-2 border-solid transition-colors hover:shadow-sm
-            #{if piece.id == @selected_piece.id, do: "bg-widget-100 border-widget-700 shadow-sm", else: "bg-base-100 border-base-200 hover:border-base-300 hover:bg-base-200"}
+                  class={"arqade-episode-row w-full text-left appearance-none rounded-lg p-3 flex gap-3 items-stretch min-w-0 border-2 border-solid cursor-pointer
             #{if gift_piece_highlight?(piece.id, @gift_piece_id, @valid_tiqit_piece_ids), do: "ring-2 ring-primary ring-offset-1", else: ""}"}
                 >
                   <%= if @group.show_piece_thumbnails do %>
@@ -574,10 +586,13 @@
                       </span>
                     </div>
                     <%= if @group.show_piece_descriptions && piece.description do %>
-                      <p class="text-xs text-base-content/60 line-clamp-2 mt-0 pt-0 leading-snug whitespace-normal [overflow-wrap:anywhere]">{piece_list_description(piece.description)}</p>
+                      <p
+                        data-arqade-row-description
+                        class="text-xs text-base-content/60 line-clamp-2 mt-0 pt-0 leading-snug whitespace-normal [overflow-wrap:anywhere]"
+                      >{piece_list_description(piece.description)}</p>
                     <% end %>
                   </div>
-                </.link>
+                </button>
               </div>
             </div>
           </div>

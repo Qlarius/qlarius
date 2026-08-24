@@ -1210,6 +1210,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       <%= if piece_list_description(@piece.description) != "" do %>
         <div class="relative w-full min-w-0 flex flex-col shrink-0">
           <p
+            data-arqade-selected-description
             class={[
               "text-xs text-base-content/70 [overflow-wrap:anywhere] break-words w-full shrink-0",
               @description_clamp_class

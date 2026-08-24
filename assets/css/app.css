@@ -1900,6 +1900,22 @@
     @apply dark:border-sponster-500 dark:bg-sponster-800 dark:text-sponster-100;
   }
 
+  /* Instant episode-row highlight — attribute-driven so tap feedback is not
+     waiting on a LiveView class morph or `transition-colors`. */
+  #arqade-episodes-scroll .arqade-episode-row {
+    touch-action: manipulation;
+    @apply bg-base-100 border-base-200;
+  }
+
+  #arqade-episodes-scroll .arqade-episode-row:hover {
+    @apply border-base-300 bg-base-200 shadow-sm;
+  }
+
+  #arqade-episodes-scroll .arqade-episode-row[data-arqade-selected="true"],
+  #arqade-episodes-scroll .arqade-episode-row[data-arqade-selected="true"]:hover {
+    @apply bg-widget-100 border-widget-700 shadow-sm;
+  }
+
   /* Ads page styles */
   .ad-card {
     @apply transition-all duration-300;
