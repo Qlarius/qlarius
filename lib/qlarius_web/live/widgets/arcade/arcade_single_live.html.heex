@@ -4,6 +4,14 @@
     wrap_mobile={@base_path == "" and not @inline?}
     {assigns}
   >
+    <%= if @page_loading? do %>
+      <.arcade_single_page_skeleton show_header={not @inline? and @base_path != "/widgets"} />
+    <% else %>
+      <%= if @page_failed? do %>
+        <div class="text-center text-base-content/50 py-12">
+          Couldn't load this content. Try refreshing.
+        </div>
+      <% else %>
     <.arqade_breadcrumbs
       :if={not @inline? and @base_path != "/widgets"}
       base_path={@base_path}
@@ -228,6 +236,8 @@
         <% end %>
       </div>
     </div>
+      <% end %>
+    <% end %>
 
     <%!-- Lives as a sibling of the rounded wrapper above — keeps the
       Tiqit purchase modal outside any overflow-hidden ancestor so

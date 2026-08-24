@@ -22,6 +22,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
       arqade_page_wrap: 1,
       discovery_item_card: 1,
       discovery_grid_class: 1,
+      discovery_section_skeleton: 1,
       discovery_view_toolbar: 1
     ]
 
@@ -29,7 +30,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
 
   def mount(%{"creator_id" => creator_id}, session, socket) do
     creator = Creators.get_creator!(creator_id)
-    catalogs = Arcade.list_discoverable_catalogs_by_creator(creator.id)
+    creator_id = creator.id
 
     return_to = Paths.creator("", creator.id)
     current_path = return_to
@@ -39,13 +40,15 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
       |> init_pwa_assigns(session)
       |> assign(
         creator: creator,
-        catalogs: catalogs,
         base_path: "",
         current_path: current_path,
         title: "Arqade",
         display_mode: "tile",
         show_discovery_view_menu: false
       )
+      |> assign_async(:catalogs, fn ->
+        {:ok, %{catalogs: Arcade.list_discoverable_catalogs_by_creator(creator_id)}}
+      end)
       |> maybe_init_tiqit_host(return_to)
 
     {:ok, socket}
@@ -150,30 +153,44 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
             </div>
           </div>
 
-          <%= if @catalogs == [] do %>
-            <div class="text-center text-base-content/50 py-12">
-              No content available from this creator yet.
-            </div>
-          <% else %>
-            <div class="flex flex-col gap-3">
-              <h2 class="text-lg font-bold tracking-tight text-base-content/50">Catalogs</h2>
-              <div class={discovery_grid_class(@display_mode)}>
-                <.discovery_item_card
-                  :for={catalog <- @catalogs}
-                  elevated={@base_path == ""}
-                  display_mode={@display_mode}
-                  navigate={Paths.catalog(@base_path, catalog.id)}
-                  image_src={catalog_image_url(catalog)}
-                  image_alt={catalog.name}
-                  title={catalog.name}
-                  subtitle={@creator.name}
-                  detail={catalog_summary(catalog)}
-                  price_info={catalog_price_info(catalog)}
-                  piece_type={to_string(catalog.piece_type)}
-                />
+          <.async_result :let={catalogs} assign={@catalogs}>
+            <:loading>
+              <.discovery_section_skeleton
+                display_mode={@display_mode}
+                elevated={@base_path == ""}
+              />
+            </:loading>
+            <:failed>
+              <div class="text-center text-base-content/50 py-12">
+                Couldn't load catalogs. Try refreshing.
               </div>
-            </div>
-          <% end %>
+            </:failed>
+
+            <%= if catalogs == [] do %>
+              <div class="text-center text-base-content/50 py-12">
+                No content available from this creator yet.
+              </div>
+            <% else %>
+              <div class="flex flex-col gap-3">
+                <h2 class="text-lg font-bold tracking-tight text-base-content/50">Catalogs</h2>
+                <div class={discovery_grid_class(@display_mode)}>
+                  <.discovery_item_card
+                    :for={catalog <- catalogs}
+                    elevated={@base_path == ""}
+                    display_mode={@display_mode}
+                    navigate={Paths.catalog(@base_path, catalog.id)}
+                    image_src={catalog_image_url(catalog)}
+                    image_alt={catalog.name}
+                    title={catalog.name}
+                    subtitle={@creator.name}
+                    detail={catalog_summary(catalog)}
+                    price_info={catalog_price_info(catalog)}
+                    piece_type={to_string(catalog.piece_type)}
+                  />
+                </div>
+              </div>
+            <% end %>
+          </.async_result>
         </div>
 
         <.discovery_view_toolbar

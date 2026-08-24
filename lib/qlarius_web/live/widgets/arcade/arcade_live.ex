@@ -79,7 +79,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   end
 
   def mount(%{"group_id" => group_id} = params, session, socket) do
-    if connected?(socket) and socket.assigns[:mounted] do
+    if connected?(socket) && socket.assigns[:mounted] && socket.assigns[:group] do
       scope = socket.assigns.current_scope
       group = socket.assigns.group
       pieces = socket.assigns.pieces || []
@@ -99,18 +99,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
        |> WalletBalanceSync.notify_inline_parent()}
     else
       scope = socket.assigns.current_scope
-
-      # Load data once
-      group = Arcade.get_content_group!(group_id)
-
-      pieces =
-        group.content_pieces
-        |> Enum.filter(&Enum.any?(&1.tiqit_classes))
-        |> ContentGroup.ordered_content_pieces()
-
-      # Runtime label for the clock row: real `length` (seconds) when set,
-      # otherwise a stable seeded placeholder prefixed with ~.
-      pieces = Enum.map(pieces, &put_piece_display_duration/1)
 
       show_title = Map.get(params, "show_title", "true") != "false"
 
@@ -173,8 +161,15 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          base_path: base_path,
          title: "Arqade",
          current_path: "/arqade/group/#{group_id}",
-         group: group,
-         pieces: pieces,
+         page_loading?: true,
+         page_failed?: false,
+         group: nil,
+         pieces: [],
+         selected_piece: nil,
+         default_tiqit_class: nil,
+         tiqit: nil,
+         pending_content_id:
+           (is_map(params) && params["content_id"]) || session["content_id"],
          selected_tiqit_class: nil,
          show_connect_modal: false,
          show_share_gift_modal: false,
@@ -204,26 +199,23 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          slide_over_active: false,
          slide_over_title: "Now playing"
        )
-       |> assign(scope_assigns(scope, group, pieces))
-       |> maybe_init_selected_piece(inline?, session, params)
+       |> assign(loading_scope_assigns(scope))
+       |> maybe_load_group_page(group_id, scope)
        |> WalletBalanceSync.notify_inline_parent()}
     end
   end
 
-  # Seeds `selected_piece` + `tiqit` from the `content_id` present
-  # in either `params` (standalone HTTP mount) or `session` (inline
-  # nested mount). Unified across both contexts because nested
-  # LiveViews can't define `handle_params/3` (Phoenix LV constraint
-  # — it's only allowed on root LVs). Consequently piece selection
-  # clicks must always go through `select-content` rather than a
-  # URL patch, and the only URL-driven input is the initial
-  # `?content_id=N` deep-link consumed here at mount.
-  defp maybe_init_selected_piece(socket, _inline?, session, params) do
-    content_id =
-      (is_map(params) && params["content_id"]) ||
-        session["content_id"]
+  defp maybe_load_group_page(socket, group_id, scope) do
+    if connected?(socket) do
+      %{group: group, pieces: pieces} = load_group_page(group_id)
 
-    select_content_by_id(socket, content_id)
+      socket
+      |> assign(page_loading?: false, page_failed?: false, group: group, pieces: pieces)
+      |> assign(scope_assigns(scope, group, pieces))
+      |> select_content_by_id(socket.assigns.pending_content_id)
+    else
+      socket
+    end
   end
 
   # Shared piece-selection logic. Resolves `content_id` (string or
@@ -275,6 +267,33 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   # mount and `handle_info(:update_balance | {:me_file_offers_updated, _}, ...)` refresh paths, and
   # (b) when ArcadeLive is later extracted to a LiveComponent this
   # function can be called from the LC's `update/2` callback unchanged.
+  defp load_group_page(group_id) do
+    group = Arcade.get_content_group!(group_id)
+
+    pieces =
+      group.content_pieces
+      |> Enum.filter(&Enum.any?(&1.tiqit_classes))
+      |> ContentGroup.ordered_content_pieces()
+      |> Enum.map(&put_piece_display_duration/1)
+
+    %{group: group, pieces: pieces}
+  end
+
+  defp loading_scope_assigns(scope) do
+    %{
+      balance: scope && scope.wallet_balance,
+      offered_amount: scope && scope.offered_amount,
+      tiqit_up_group_credit: Decimal.new(0),
+      tiqit_up_group_count: 0,
+      tiqit_up_catalog_credit: Decimal.new(0),
+      tiqit_up_catalog_count: 0,
+      tiqit_up_nudge: false,
+      daily_gift_available?:
+        if(scope && scope.user, do: Wallets.daily_gift_available?(scope.user), else: false),
+      valid_tiqit_piece_ids: MapSet.new()
+    }
+  end
+
   defp scope_assigns(scope, group, pieces) do
     {group_credit, group_count} =
       if scope,

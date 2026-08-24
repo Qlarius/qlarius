@@ -35,6 +35,17 @@
         @full_viewport_embed? && "flex flex-col flex-1 min-h-0 h-full overflow-hidden"
       ]}
     >
+      <%= if @page_loading? do %>
+        <.arcade_group_page_skeleton
+          show_header={not @inline? and @base_path != "/widgets"}
+          in_app_group?={@in_app_group?}
+        />
+      <% else %>
+        <%= if @page_failed? do %>
+          <div class="text-center text-base-content/50 py-12">
+            Couldn't load this series. Try refreshing.
+          </div>
+        <% else %>
       <%!-- Page heading + hierarchy nav (in-app only; embeds use show_title bar below). --%>
       <.arqade_breadcrumbs
         :if={not @inline? and @base_path != "/widgets"}
@@ -699,6 +710,8 @@
     <% else %>
       Unable to render this content group as it has no valid Tiqit classes
     <% end %>
+        <% end %>
+      <% end %>
     </div>
 
     <.connect_wallet_modal

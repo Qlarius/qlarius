@@ -892,6 +892,100 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     """
   end
 
+  attr :class, :string, default: ""
+
+  @doc """
+  Square image + title/subtitle bones matching catalog and creator headers.
+  """
+  def arqade_header_skeleton(assigns) do
+    ~H"""
+    <div class={["flex items-center gap-4", @class]} aria-hidden="true">
+      <div class="skeleton aspect-square w-16 shrink-0 rounded-lg"></div>
+      <div class="min-w-0 flex-1 flex flex-col gap-2">
+        <div class="skeleton h-7 w-2/3 max-w-xs"></div>
+        <div class="skeleton h-4 w-1/3 max-w-[8rem]"></div>
+      </div>
+    </div>
+    """
+  end
+
+  attr :show_header, :boolean, default: true
+  attr :in_app_group?, :boolean, default: false
+
+  @doc """
+  Group-page placeholder: title, selected-piece hero, and episode rows.
+  """
+  def arcade_group_page_skeleton(assigns) do
+    ~H"""
+    <div class="flex flex-col flex-1 min-h-0" aria-busy="true" aria-label="Loading series">
+      <div :if={@show_header} class="skeleton h-8 w-56 shrink-0 mb-2"></div>
+      <div class={[
+        "flex flex-col flex-1 min-h-0 w-full",
+        @in_app_group? && "overflow-hidden bg-base-100"
+      ]}>
+        <div class="flex-1 min-h-0 flex flex-col md:!flex-row md:items-stretch">
+          <div class="w-full md:!w-1/2 p-4 md:p-5">
+            <div class="flex flex-row gap-3 md:flex-col">
+              <div class="skeleton h-28 w-28 md:h-64 md:w-full md:max-w-xs rounded-lg shrink-0">
+              </div>
+              <div class="flex-1 flex flex-col gap-2">
+                <div class="skeleton h-5 w-4/5"></div>
+                <div class="skeleton h-3 w-1/2"></div>
+                <div class="skeleton h-12 w-full rounded-full mt-2"></div>
+              </div>
+            </div>
+          </div>
+          <div class="w-full md:!w-1/2 border-t md:!border-t-0 md:border-l border-base-300 p-3 md:p-5 flex flex-col gap-2">
+            <div class="flex items-center gap-2 mb-1">
+              <div class="skeleton h-5 w-24"></div>
+              <div class="skeleton h-8 flex-1"></div>
+            </div>
+            <.arcade_episode_row_skeleton :for={_ <- 1..6} />
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  def arcade_episode_row_skeleton(assigns) do
+    ~H"""
+    <div
+      class="rounded-lg p-3 flex gap-3 items-stretch border-2 border-base-200"
+      aria-hidden="true"
+    >
+      <div class="skeleton h-16 w-16 rounded-lg shrink-0"></div>
+      <div class="min-w-0 flex-1 flex flex-col gap-1.5">
+        <div class="skeleton h-4 w-3/4"></div>
+        <div class="skeleton h-3 w-1/3"></div>
+      </div>
+      <div class="skeleton h-6 w-10 shrink-0"></div>
+    </div>
+    """
+  end
+
+  attr :show_header, :boolean, default: true
+
+  @doc """
+  Single-piece placeholder: title, artwork, copy, and CTA.
+  """
+  def arcade_single_page_skeleton(assigns) do
+    ~H"""
+    <div class="flex flex-col gap-6" aria-busy="true" aria-label="Loading content">
+      <div :if={@show_header} class="skeleton h-8 w-56"></div>
+      <div class="flex flex-col md:!flex-row gap-6 items-center md:items-start p-6">
+        <div class="skeleton h-40 w-40 rounded-lg shrink-0"></div>
+        <div class="flex-1 w-full flex flex-col gap-3">
+          <div class="skeleton h-8 w-3/4"></div>
+          <div class="skeleton h-4 w-full"></div>
+          <div class="skeleton h-4 w-2/3"></div>
+          <div class="skeleton h-14 w-full rounded-full mt-2"></div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   defp discovery_display_mode_label("tile"), do: "Tiles"
   defp discovery_display_mode_label("list"), do: "List"
   defp discovery_display_mode_label(_), do: "Tiles"

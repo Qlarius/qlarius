@@ -61,7 +61,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   end
 
   defp mount_impl(piece_id, params, session, socket) do
-    if connected?(socket) and socket.assigns[:mounted] do
+    if connected?(socket) && socket.assigns[:mounted] && socket.assigns[:piece] do
       scope = socket.assigns.current_scope
       group = socket.assigns.group
       catalog = socket.assigns.catalog
@@ -75,20 +75,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
        |> WalletBalanceSync.notify_inline_parent()}
     else
       scope = socket.assigns.current_scope
-
-      piece =
-        Arcade.get_content_piece!(piece_id)
-        |> Qlarius.Repo.preload(
-          content_group: [:tiqit_classes, catalog: [:tiqit_classes, :creator]]
-        )
-
-      group = piece.content_group
-      catalog = group.catalog
-
-      tiqit = Arcade.get_valid_tiqit(scope, piece)
-      has_tiqit? = Arcade.has_valid_tiqit?(scope, piece)
-
-      default_tiqit_class = ContentPiece.default_tiqit_class(piece)
 
       inline? = session["inline?"] == true
 
@@ -126,12 +112,14 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           inline?: inline?,
           title: "Arqade",
           current_path: return_to,
-          piece: piece,
-          group: group,
-          catalog: catalog,
-          tiqit: tiqit,
-          has_tiqit?: has_tiqit?,
-          default_tiqit_class: default_tiqit_class,
+          page_loading?: true,
+          page_failed?: false,
+          piece: nil,
+          group: nil,
+          catalog: nil,
+          tiqit: nil,
+          has_tiqit?: false,
+          default_tiqit_class: nil,
           selected_tiqit_class: nil,
           options_modal: false,
           show_connect_modal: false,
@@ -145,23 +133,48 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           embed_phx_id: session["embed_phx_id"],
           parent_phx_id: session["parent_phx_id"]
         )
+        |> assign(loading_scope_assigns(scope))
+        |> maybe_load_piece_page(piece_id, scope)
+
+      {:ok, socket |> WalletBalanceSync.notify_inline_parent()}
+    end
+  end
+
+  defp maybe_load_piece_page(socket, piece_id, scope) do
+    if connected?(socket) do
+      %{piece: piece, group: group, catalog: catalog} = load_piece_page(piece_id)
+      tiqit = Arcade.get_valid_tiqit(scope, piece)
+      has_tiqit? = Arcade.has_valid_tiqit?(scope, piece)
+      return_to = socket.assigns.current_path
+
+      socket =
+        socket
+        |> assign(
+          page_loading?: false,
+          page_failed?: false,
+          piece: piece,
+          group: group,
+          catalog: catalog,
+          tiqit: tiqit,
+          has_tiqit?: has_tiqit?,
+          default_tiqit_class: ContentPiece.default_tiqit_class(piece)
+        )
         |> assign(scope_assigns(scope, group, catalog))
 
       socket =
-        if base_path == "/tiqit" and not inline? do
-          Host.init_creator_scope(socket, group.catalog.creator, return_to)
+        if socket.assigns.base_path == "/tiqit" and not socket.assigns.inline? do
+          Host.init_creator_scope(socket, catalog.creator, return_to)
         else
           socket
         end
 
-      socket =
-        if has_tiqit? do
-          send_post_message(socket, "tiqit_already_active", tiqit)
-        else
-          socket
-        end
-
-      {:ok, socket |> WalletBalanceSync.notify_inline_parent()}
+      if has_tiqit? do
+        send_post_message(socket, "tiqit_already_active", tiqit)
+      else
+        socket
+      end
+    else
+      socket
     end
   end
 
@@ -173,6 +186,32 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   #
   # Mirrors `ArcadeLive.scope_assigns/2` (same refresh paths: wallet + offer PubSub) so both LVs stay consistent
   # and ready to be extracted to a shared LiveComponent later.
+  defp load_piece_page(piece_id) do
+    piece =
+      Arcade.get_content_piece!(piece_id)
+      |> Qlarius.Repo.preload(
+        content_group: [:tiqit_classes, catalog: [:tiqit_classes, :creator]]
+      )
+
+    group = piece.content_group
+
+    %{piece: piece, group: group, catalog: group.catalog}
+  end
+
+  defp loading_scope_assigns(scope) do
+    %{
+      balance: scope && scope.wallet_balance,
+      offered_amount: scope && scope.offered_amount,
+      tiqit_up_group_credit: Decimal.new(0),
+      tiqit_up_group_count: 0,
+      tiqit_up_catalog_credit: Decimal.new(0),
+      tiqit_up_catalog_count: 0,
+      tiqit_up_nudge: false,
+      daily_gift_available?:
+        if(scope && scope.user, do: Wallets.daily_gift_available?(scope.user), else: false)
+    }
+  end
+
   defp scope_assigns(scope, group, catalog) do
     {group_credit, group_count} =
       if scope,
