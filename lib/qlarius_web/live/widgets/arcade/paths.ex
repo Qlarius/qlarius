@@ -4,6 +4,9 @@ defmodule QlariusWeb.Widgets.Arcade.Paths do
   and Tiqit public host (`"/tiqit"`).
   """
 
+  alias Qlarius.Tiqit.Arcade.Catalog
+  alias Qlarius.Tiqit.Arcade.ContentGroup
+
   @doc "Discovery root — `/arqade`, `/widgets/arqade`, or `/tiqit/arqade`."
   def discover(""), do: "/arqade"
   def discover("/widgets"), do: "/widgets/arqade"
@@ -18,6 +21,68 @@ defmodule QlariusWeb.Widgets.Arcade.Paths do
   @doc "Catalog page."
   def catalog(base_path, catalog_id) do
     "#{discover(base_path)}/catalog/#{catalog_id}"
+  end
+
+  @doc """
+  Discover/creator entry for a catalog. When the catalog has exactly one
+  navigable group, skip the catalog page and go to that group.
+  """
+  def catalog_destination(base_path, %Catalog{} = catalog) do
+    case only_navigable_group(catalog) do
+      %{id: group_id} -> group(base_path, group_id)
+      _ -> catalog(base_path, catalog.id)
+    end
+  end
+
+  @doc """
+  Crumbs above a group: creator, plus catalog only when that catalog has
+  more than one navigable group.
+  """
+  def group_crumbs(base_path, group) do
+    catalog = group.catalog
+    creator = catalog.creator
+    crumbs = [{creator.name, creator(base_path, creator.id)}]
+
+    if skip_catalog_crumb?(catalog) do
+      crumbs
+    else
+      crumbs ++ [{catalog.name, catalog(base_path, catalog.id)}]
+    end
+  end
+
+  @doc "Crumbs above a piece: `group_crumbs/2` plus the group itself."
+  def piece_crumbs(base_path, group) do
+    group_crumbs(base_path, group) ++ [{group.title, group(base_path, group.id)}]
+  end
+
+  def skip_catalog_crumb?(%Catalog{} = catalog) do
+    match?([_], navigable_groups(catalog))
+  end
+
+  def only_navigable_group(%Catalog{} = catalog) do
+    case navigable_groups(catalog) do
+      [group] -> group
+      _ -> nil
+    end
+  end
+
+  defp navigable_groups(%Catalog{} = catalog) do
+    groups =
+      if Ecto.assoc_loaded?(catalog.content_groups),
+        do: catalog.content_groups,
+        else: []
+
+    groups =
+      if Enum.any?(groups, &Ecto.assoc_loaded?(&1.content_pieces)) do
+        Enum.filter(groups, fn group ->
+          Ecto.assoc_loaded?(group.content_pieces) and
+            ContentGroup.has_active_content_pieces?(group.content_pieces)
+        end)
+      else
+        groups
+      end
+
+    Enum.sort_by(groups, & &1.inserted_at, :desc)
   end
 
   @doc "Content group — Tiqit uses `/tiqit/arqade/:id`; mobile uses `/arqade/group/:id`."

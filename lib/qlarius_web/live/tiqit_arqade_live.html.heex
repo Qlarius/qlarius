@@ -44,10 +44,7 @@
       title={@group.title}
       title_class="text-2xl font-bold text-base-content truncate min-w-0"
       class="shrink-0 mb-2"
-      crumbs={[
-        {@creator.name, Paths.creator(@base_path, @creator.id)},
-        {@group.catalog.name, Paths.catalog(@base_path, @group.catalog.id)}
-      ]}
+      crumbs={Paths.group_crumbs(@base_path, @group)}
       current={@group.title}
     />
 

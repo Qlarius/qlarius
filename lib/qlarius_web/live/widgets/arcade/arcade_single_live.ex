@@ -190,7 +190,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
     piece =
       Arcade.get_content_piece!(piece_id)
       |> Qlarius.Repo.preload(
-        content_group: [:tiqit_classes, catalog: [:tiqit_classes, :creator]]
+        content_group: [:tiqit_classes, catalog: [:tiqit_classes, :creator, :content_groups]]
       )
 
     group = piece.content_group

@@ -18,11 +18,7 @@
       title={@piece.title}
       title_class="text-2xl font-bold text-base-content truncate min-w-0"
       class="mb-4"
-      crumbs={[
-        {@group.catalog.creator.name, Paths.creator(@base_path, @group.catalog.creator_id)},
-        {@group.catalog.name, Paths.catalog(@base_path, @group.catalog.id)},
-        {@group.title, Paths.group(@base_path, @group.id)}
-      ]}
+      crumbs={Paths.piece_crumbs(@base_path, @group)}
       current={@piece.title}
     />
     <%!--

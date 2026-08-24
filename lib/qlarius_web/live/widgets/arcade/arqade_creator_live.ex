@@ -178,7 +178,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
                     :for={catalog <- catalogs}
                     elevated={@base_path == ""}
                     display_mode={@display_mode}
-                    navigate={Paths.catalog(@base_path, catalog.id)}
+                    navigate={Paths.catalog_destination(@base_path, catalog)}
                     image_src={catalog_image_url(catalog)}
                     image_alt={catalog.name}
                     title={catalog.name}
