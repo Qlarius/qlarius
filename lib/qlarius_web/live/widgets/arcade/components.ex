@@ -819,6 +819,79 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     """
   end
 
+  attr :display_mode, :string, default: "tile", values: ~w(tile list)
+  attr :elevated, :boolean, default: false
+  attr :count, :integer, default: 8
+
+  @doc """
+  Placeholder grid shown while discoverable catalogs load via `assign_async`.
+  """
+  def discovery_section_skeleton(assigns) do
+    ~H"""
+    <div class="flex flex-col gap-3" aria-busy="true" aria-label="Loading catalogs">
+      <div class="skeleton h-6 w-24"></div>
+      <div class={discovery_grid_class(@display_mode)}>
+        <.discovery_item_card_skeleton
+          :for={_ <- 1..@count}
+          display_mode={@display_mode}
+          elevated={@elevated}
+        />
+      </div>
+    </div>
+    """
+  end
+
+  attr :display_mode, :string, default: "tile", values: ~w(tile list)
+  attr :elevated, :boolean, default: false
+
+  def discovery_item_card_skeleton(%{display_mode: "list"} = assigns) do
+    ~H"""
+    <div
+      class={[
+        "flex flex-row items-stretch gap-3 overflow-hidden p-2 sm:p-2.5 min-h-[4.5rem]",
+        @elevated && "surface-panel surface-panel-shadow",
+        !@elevated &&
+          [
+            "rounded-lg bg-base-200/50 dark:bg-black shadow-sm",
+            "border border-base-300/60 dark:border-base-content/10"
+          ]
+      ]}
+      aria-hidden="true"
+    >
+      <div class="skeleton h-16 w-16 sm:h-[4.5rem] sm:w-[4.5rem] shrink-0 rounded-md"></div>
+      <div class="min-w-0 flex flex-1 flex-col justify-center gap-1.5">
+        <div class="skeleton h-4 w-3/4"></div>
+        <div class="skeleton h-3 w-1/2"></div>
+        <div class="skeleton h-3 w-2/5"></div>
+      </div>
+    </div>
+    """
+  end
+
+  def discovery_item_card_skeleton(assigns) do
+    ~H"""
+    <div
+      class={[
+        "flex h-full flex-col overflow-hidden",
+        @elevated && "surface-panel surface-panel-shadow",
+        !@elevated &&
+          [
+            "rounded-lg bg-base-200/50 dark:bg-black shadow-sm",
+            "border-t-2 border-neutral-300 dark:border-neutral-600"
+          ]
+      ]}
+      aria-hidden="true"
+    >
+      <div class="skeleton aspect-[4/3] sm:aspect-square w-full"></div>
+      <div class="flex flex-1 flex-col gap-2 p-2 sm:p-3">
+        <div class="skeleton h-4 w-4/5"></div>
+        <div class="skeleton h-3 w-2/3"></div>
+        <div class="skeleton h-3 w-1/2"></div>
+      </div>
+    </div>
+    """
+  end
+
   defp discovery_display_mode_label("tile"), do: "Tiles"
   defp discovery_display_mode_label("list"), do: "List"
   defp discovery_display_mode_label(_), do: "Tiles"

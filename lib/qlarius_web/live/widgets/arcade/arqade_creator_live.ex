@@ -1,6 +1,6 @@
 defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
   @moduledoc """
-  Creator-scoped discovery — catalogs and featured groups for one creator.
+  Creator-scoped discovery — catalogs for one creator.
 
   Mounted at `/arqade/creator/:creator_id` (mobile) and
   `/tiqit/arqade/creator/:creator_id` (Tiqit public host).
@@ -30,7 +30,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
   def mount(%{"creator_id" => creator_id}, session, socket) do
     creator = Creators.get_creator!(creator_id)
     catalogs = Arcade.list_discoverable_catalogs_by_creator(creator.id)
-    groups = Arcade.list_discoverable_groups_by_creator(creator.id)
 
     return_to = Paths.creator("", creator.id)
     current_path = return_to
@@ -41,7 +40,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
       |> assign(
         creator: creator,
         catalogs: catalogs,
-        groups: groups,
         base_path: "",
         current_path: current_path,
         title: "Arqade",
@@ -152,12 +150,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
             </div>
           </div>
 
-          <%= if @catalogs == [] && @groups == [] do %>
+          <%= if @catalogs == [] do %>
             <div class="text-center text-base-content/50 py-12">
               No content available from this creator yet.
             </div>
           <% else %>
-            <div :if={@catalogs != []} class="flex flex-col gap-3">
+            <div class="flex flex-col gap-3">
               <h2 class="text-lg font-bold tracking-tight text-base-content/50">Catalogs</h2>
               <div class={discovery_grid_class(@display_mode)}>
                 <.discovery_item_card
@@ -172,23 +170,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
                   detail={catalog_summary(catalog)}
                   price_info={catalog_price_info(catalog)}
                   piece_type={to_string(catalog.piece_type)}
-                />
-              </div>
-            </div>
-
-            <div :if={@groups != []} class="flex flex-col gap-3">
-              <h2 class="text-lg font-bold tracking-tight text-base-content/50">Featured</h2>
-              <div class={discovery_grid_class(@display_mode)}>
-                <.discovery_item_card
-                  :for={group <- @groups}
-                  elevated={@base_path == ""}
-                  display_mode={@display_mode}
-                  navigate={Paths.group(@base_path, group.id)}
-                  image_src={group_image_url(group)}
-                  image_alt={group.title}
-                  title={group.title}
-                  subtitle={"#{@creator.name} › #{group.catalog.name}"}
-                  detail={group_summary(group)}
                 />
               </div>
             </div>
@@ -230,12 +211,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeCreatorLive do
     piece_label = catalog.piece_type |> to_string()
 
     "#{piece_count} #{pluralize(piece_label, piece_count)} in #{group_count} #{pluralize(group_label, group_count)}"
-  end
-
-  defp group_summary(group) do
-    count = length(ContentGroup.active_content_pieces(group.content_pieces))
-    label = group.catalog.piece_type |> to_string()
-    "#{count} #{pluralize(label, count)}"
   end
 
   defp catalog_price_info(catalog) do

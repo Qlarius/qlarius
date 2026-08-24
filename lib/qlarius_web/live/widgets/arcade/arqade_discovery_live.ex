@@ -2,14 +2,13 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
   @moduledoc """
   Discovery feed for browsable content — the "front door" to Arqade.
 
-  Presents a mixed feed of discoverable catalogs and content groups that
-  have active (purchasable) tiqit classes. This is the first "dumb" version;
-  future iterations will personalise results using tag-based matching.
+  Catalogs load via `assign_async` so the first paint can show a skeleton
+  instead of blocking on the discoverable-catalog query.
 
   Serves three contexts via @base_path (same pattern as other arqade LiveViews):
-  - Main app: /arqade → @base_path = ""
-  - Widget:   /widgets/arqade → @base_path = "/widgets"
-  - Tiqit:    /tiqit/arqade → @base_path = "/tiqit"
+    - Main app: /arqade → @base_path = ""
+    - Widget:   /widgets/arqade → @base_path = "/widgets"
+    - Tiqit:    /tiqit/arqade → @base_path = "/tiqit"
   """
   use QlariusWeb, :live_view
 
@@ -26,27 +25,26 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
       arqade_page_wrap: 1,
       discovery_item_card: 1,
       discovery_grid_class: 1,
+      discovery_section_skeleton: 1,
       discovery_view_toolbar: 1
     ]
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
   def mount(_params, session, socket) do
-    catalogs = Arcade.list_discoverable_catalogs()
-    groups = Arcade.list_discoverable_groups()
-
     socket =
       socket
       |> init_pwa_assigns(session)
       |> assign(
-        catalogs: catalogs,
-        groups: groups,
         base_path: "",
         current_path: Paths.discover(""),
         title: "Arqade",
         display_mode: "tile",
         show_discovery_view_menu: false
       )
+      |> assign_async(:catalogs, fn ->
+        {:ok, %{catalogs: Arcade.list_discoverable_catalogs()}}
+      end)
       |> maybe_init_tiqit_host()
 
     {:ok, socket}
@@ -131,47 +129,44 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
         ]}>
           <p class="mobile-page-intro">Browse content from creators</p>
 
-          <%= if @catalogs == [] && @groups == [] do %>
-            <div class="text-center text-base-content/50 py-12">
-              No content available yet. Check back soon.
-            </div>
-          <% else %>
-            <div :if={@catalogs != []} class="flex flex-col gap-3">
-              <h2 class="text-lg font-bold tracking-tight text-base-content/50">Catalogs</h2>
-              <div class={discovery_grid_class(@display_mode)}>
-                <.discovery_item_card
-                  :for={catalog <- @catalogs}
-                  elevated={@base_path == ""}
-                  display_mode={@display_mode}
-                  navigate={Paths.catalog(@base_path, catalog.id)}
-                  image_src={catalog_image_url(catalog)}
-                  image_alt={catalog.name}
-                  title={catalog.name}
-                  subtitle={catalog.creator.name}
-                  detail={catalog_summary(catalog)}
-                  price_info={catalog_price_info(catalog)}
-                  piece_type={to_string(catalog.piece_type)}
-                />
+          <.async_result :let={catalogs} assign={@catalogs}>
+            <:loading>
+              <.discovery_section_skeleton
+                display_mode={@display_mode}
+                elevated={@base_path == ""}
+              />
+            </:loading>
+            <:failed>
+              <div class="text-center text-base-content/50 py-12">
+                Couldn't load catalogs. Try refreshing.
               </div>
-            </div>
+            </:failed>
 
-            <div :if={@groups != []} class="flex flex-col gap-3">
-              <h2 class="text-lg font-bold tracking-tight text-base-content/50">Featured</h2>
-              <div class={discovery_grid_class(@display_mode)}>
-                <.discovery_item_card
-                  :for={group <- @groups}
-                  elevated={@base_path == ""}
-                  display_mode={@display_mode}
-                  navigate={Paths.group(@base_path, group.id)}
-                  image_src={group_image_url(group)}
-                  image_alt={group.title}
-                  title={group.title}
-                  subtitle={"#{group.catalog.creator.name} › #{group.catalog.name}"}
-                  detail={group_summary(group)}
-                />
+            <%= if catalogs == [] do %>
+              <div class="text-center text-base-content/50 py-12">
+                No content available yet. Check back soon.
               </div>
-            </div>
-          <% end %>
+            <% else %>
+              <div class="flex flex-col gap-3">
+                <h2 class="text-lg font-bold tracking-tight text-base-content/50">Catalogs</h2>
+                <div class={discovery_grid_class(@display_mode)}>
+                  <.discovery_item_card
+                    :for={catalog <- catalogs}
+                    elevated={@base_path == ""}
+                    display_mode={@display_mode}
+                    navigate={Paths.catalog(@base_path, catalog.id)}
+                    image_src={catalog_image_url(catalog)}
+                    image_alt={catalog.name}
+                    title={catalog.name}
+                    subtitle={catalog.creator.name}
+                    detail={catalog_summary(catalog)}
+                    price_info={catalog_price_info(catalog)}
+                    piece_type={to_string(catalog.piece_type)}
+                  />
+                </div>
+              </div>
+            <% end %>
+          </.async_result>
         </div>
 
         <.discovery_view_toolbar
@@ -209,12 +204,6 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
     piece_label = catalog.piece_type |> to_string()
 
     "#{piece_count} #{pluralize(piece_label, piece_count)} in #{group_count} #{pluralize(group_label, group_count)}"
-  end
-
-  defp group_summary(group) do
-    count = length(ContentGroup.active_content_pieces(group.content_pieces))
-    label = group.catalog.piece_type |> to_string()
-    "#{count} #{pluralize(label, count)}"
   end
 
   defp catalog_price_info(catalog) do
