@@ -1735,6 +1735,12 @@ Hooks.EpisodeSearchField = {
 Hooks.ArqadeEpisodesScroll = {
   mounted() {
     this._pendingPieceId = null
+    this._onClick = (event) => {
+      const row = event.target.closest('[data-arqade-piece-id]')
+      if (!row || !this.el.contains(row)) return
+      this.previewSelected(row)
+    }
+    this.el.addEventListener('click', this._onClick)
     this.handleEvent('scroll_arqade_episode_into_view', ({ piece_id: pieceId }) => {
       this._pendingPieceId = pieceId
       this.scrollToPiece(pieceId)
@@ -1744,6 +1750,42 @@ Hooks.ArqadeEpisodesScroll = {
     if (this._pendingPieceId != null) {
       this.scrollToPiece(this._pendingPieceId)
       this._pendingPieceId = null
+    }
+  },
+  destroyed() {
+    if (this._onClick) this.el.removeEventListener('click', this._onClick)
+  },
+  previewSelected(row) {
+    const selected = ['bg-widget-100', 'border-widget-700', 'shadow-sm']
+    const idle = ['bg-base-100', 'border-base-200']
+    this.el.querySelectorAll('[data-arqade-piece-id]').forEach((el) => {
+      const on = el === row
+      el.classList.toggle(selected[0], on)
+      el.classList.toggle(selected[1], on)
+      el.classList.toggle(selected[2], on)
+      el.classList.toggle(idle[0], !on)
+      el.classList.toggle(idle[1], !on)
+    })
+
+    const root = this.el.closest('[data-arqade-group-root]') || document
+    const title = row.dataset.arqadeTitle
+    const image = row.dataset.arqadeImage
+    const duration = row.dataset.arqadeDuration
+    if (title) {
+      root.querySelectorAll('[data-arqade-selected-title]').forEach((el) => {
+        el.textContent = title
+      })
+    }
+    if (image) {
+      root.querySelectorAll('[data-arqade-selected-image]').forEach((el) => {
+        el.src = image
+        el.alt = title || el.alt
+      })
+    }
+    if (duration) {
+      root.querySelectorAll('[data-arqade-selected-duration]').forEach((el) => {
+        el.textContent = duration
+      })
     }
   },
   scrollToPiece(pieceId) {

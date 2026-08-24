@@ -95,6 +95,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
            arqade_expand_parent?: is_pid(socket.parent_pid)
          })
        )
+       |> sync_selected_tiqit()
        |> ensure_share_gift_assigns()
        |> WalletBalanceSync.notify_inline_parent()}
     else
@@ -242,19 +243,29 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
           List.first(pieces)
       end
 
-    default_tiqit_class =
-      if selected_piece, do: ContentPiece.default_tiqit_class(selected_piece), else: nil
+    if selected_piece && socket.assigns[:selected_piece] &&
+         selected_piece.id == socket.assigns.selected_piece.id do
+      socket
+    else
+      default_tiqit_class =
+        if selected_piece, do: ContentPiece.default_tiqit_class(selected_piece), else: nil
 
-    tiqit =
-      if selected_piece,
-        do: Arcade.get_valid_tiqit(socket.assigns.current_scope, selected_piece),
-        else: nil
+      tiqit =
+        selected_piece &&
+          Map.get(socket.assigns[:valid_tiqits_by_piece_id] || %{}, selected_piece.id)
 
-    socket
-    |> assign(:selected_piece, selected_piece)
-    |> assign(:default_tiqit_class, default_tiqit_class)
-    |> assign(:tiqit, tiqit)
-    |> reset_tiqit_content_modal()
+      socket
+      |> assign(:selected_piece, selected_piece)
+      |> assign(:default_tiqit_class, default_tiqit_class)
+      |> assign(:tiqit, tiqit)
+      |> reset_tiqit_content_modal()
+    end
+  end
+
+  defp sync_selected_tiqit(socket) do
+    piece = socket.assigns[:selected_piece]
+    by_id = socket.assigns[:valid_tiqits_by_piece_id] || %{}
+    assign(socket, :tiqit, piece && Map.get(by_id, piece.id))
   end
 
   # Computes all scope-dependent assigns (balance, offered, tiqit-up
@@ -290,7 +301,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       tiqit_up_nudge: false,
       daily_gift_available?:
         if(scope && scope.user, do: Wallets.daily_gift_available?(scope.user), else: false),
-      valid_tiqit_piece_ids: MapSet.new()
+      valid_tiqit_piece_ids: MapSet.new(),
+      valid_tiqits_by_piece_id: %{}
     }
   end
 
@@ -320,6 +332,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
         do: Wallets.daily_gift_available?(scope.user),
         else: false
 
+    tiqits_by_piece_id = Arcade.valid_tiqits_by_piece_id(scope, group, pieces)
+
     %{
       balance: scope && scope.wallet_balance,
       offered_amount: scope && scope.offered_amount,
@@ -329,7 +343,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       tiqit_up_catalog_count: catalog_count,
       tiqit_up_nudge: nudge?,
       daily_gift_available?: daily_gift_available?,
-      valid_tiqit_piece_ids: Arcade.valid_piece_ids_for_group(scope, group, pieces)
+      valid_tiqits_by_piece_id: tiqits_by_piece_id,
+      valid_tiqit_piece_ids: MapSet.new(Map.keys(tiqits_by_piece_id))
     }
   end
 
@@ -896,19 +911,20 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
     group = socket.assigns.group
     pieces = socket.assigns.pieces
 
-    tiqit = Arcade.get_valid_tiqit(scope, piece)
     balance = Wallets.get_user_current_balance(user)
     updated_scope = %{scope | wallet_balance: balance}
+    tiqits_by_piece_id = Arcade.valid_tiqits_by_piece_id(updated_scope, group, pieces)
 
     WalletBalanceSync.broadcast_balance_change(user, balance)
 
     assign(socket,
-      tiqit: tiqit,
+      tiqit: piece && Map.get(tiqits_by_piece_id, piece.id),
       selected_tiqit_class: nil,
       options_modal: false,
       balance: balance,
       current_scope: updated_scope,
-      valid_tiqit_piece_ids: Arcade.valid_piece_ids_for_group(updated_scope, group, pieces)
+      valid_tiqits_by_piece_id: tiqits_by_piece_id,
+      valid_tiqit_piece_ids: MapSet.new(Map.keys(tiqits_by_piece_id))
     )
     |> WalletBalanceSync.notify_parent_wallet_update(balance)
   end
@@ -922,10 +938,11 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       scope && scope.true_user && group ->
         refreshed = Scope.for_user(scope.true_user)
 
-        assign(
-          socket,
+        socket
+        |> assign(
           Map.merge(scope_assigns(refreshed, group, pieces), %{current_scope: refreshed})
         )
+        |> sync_selected_tiqit()
 
       true ->
         socket

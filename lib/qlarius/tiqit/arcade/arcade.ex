@@ -208,22 +208,23 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   end
 
   @doc """
-  Batched valid-tiqit lookup for the episode list. Returns a `MapSet`
-  of `content_piece.id`s the user has a currently-valid tiqit for
-  within `group`'s scope (piece-, group-, or catalog-level).
+  Batched valid-tiqit lookup for the episode list. Returns a map of
+  `content_piece.id => %Tiqit{}` for pieces the user can currently
+  access within `group`'s scope (piece-, group-, or catalog-level).
+
+  When a piece matches more than one scope, the most specific tiqit
+  wins (piece, then group, then catalog).
 
   Respects `exclude_from_group_access` / `exclude_from_catalog_access`
   on each piece when applying broad (group/catalog) tiqits.
 
-  Anon viewers (`nil` or `%Scope{user: nil}`) get an empty set and no
+  Anon viewers (`nil` or `%Scope{user: nil}`) get an empty map and no
   query runs.
   """
-  def valid_piece_ids_for_group(scope, group, pieces)
+  def valid_tiqits_by_piece_id(nil, %ContentGroup{}, _pieces), do: %{}
+  def valid_tiqits_by_piece_id(%Scope{user: nil}, %ContentGroup{}, _pieces), do: %{}
 
-  def valid_piece_ids_for_group(nil, %ContentGroup{}, _pieces), do: MapSet.new()
-  def valid_piece_ids_for_group(%Scope{user: nil}, %ContentGroup{}, _pieces), do: MapSet.new()
-
-  def valid_piece_ids_for_group(
+  def valid_tiqits_by_piece_id(
         %Scope{} = scope,
         %ContentGroup{id: group_id, catalog_id: catalog_id},
         pieces
@@ -231,59 +232,77 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
       when is_list(pieces) do
     now = DateTime.utc_now()
     user_id = scope.user.id
-
-    has_group_tiqit? =
-      Repo.exists?(
-        from t in Tiqit,
-          join: tc in assoc(t, :tiqit_class),
-          join: u in assoc(t, :user),
-          where: u.id == ^user_id,
-          where: is_nil(t.expires_at) or t.expires_at > ^now,
-          where: tc.content_group_id == ^group_id
-      )
-
-    has_catalog_tiqit? =
-      Repo.exists?(
-        from t in Tiqit,
-          join: tc in assoc(t, :tiqit_class),
-          join: u in assoc(t, :user),
-          where: u.id == ^user_id,
-          where: is_nil(t.expires_at) or t.expires_at > ^now,
-          where: tc.catalog_id == ^catalog_id,
-          where: is_nil(tc.content_piece_id),
-          where: is_nil(tc.content_group_id)
-      )
-
-    from_broad =
-      pieces
-      |> Enum.filter(fn piece ->
-        (has_group_tiqit? and not piece.exclude_from_group_access) or
-          (has_catalog_tiqit? and not piece.exclude_from_catalog_access)
-      end)
-      |> MapSet.new(& &1.id)
-
     piece_ids = Enum.map(pieces, & &1.id)
 
-    from_piece =
-      piece_ids
-      |> piece_level_valid_tiqit_piece_ids(user_id, now)
-      |> MapSet.new()
+    group_tiqit = latest_valid_group_tiqit(user_id, now, group_id)
+    catalog_tiqit = latest_valid_catalog_tiqit(user_id, now, catalog_id)
+    piece_tiqits = piece_level_valid_tiqits(piece_ids, user_id, now)
 
-    MapSet.union(from_broad, from_piece)
+    Enum.reduce(pieces, %{}, fn piece, acc ->
+      tiqit =
+        Map.get(piece_tiqits, piece.id) ||
+          (not piece.exclude_from_group_access && group_tiqit) ||
+          (not piece.exclude_from_catalog_access && catalog_tiqit) ||
+          nil
+
+      if tiqit, do: Map.put(acc, piece.id, tiqit), else: acc
+    end)
   end
 
-  defp piece_level_valid_tiqit_piece_ids([], _user_id, _now), do: []
+  @doc """
+  `MapSet` of piece ids from `valid_tiqits_by_piece_id/3`.
+  """
+  def valid_piece_ids_for_group(scope, group, pieces) do
+    scope
+    |> valid_tiqits_by_piece_id(group, pieces)
+    |> Map.keys()
+    |> MapSet.new()
+  end
 
-  defp piece_level_valid_tiqit_piece_ids(piece_ids, user_id, now) do
-    Repo.all(
+  defp latest_valid_group_tiqit(user_id, now, group_id) do
+    Repo.one(
       from t in Tiqit,
         join: tc in assoc(t, :tiqit_class),
         join: u in assoc(t, :user),
         where: u.id == ^user_id,
         where: is_nil(t.expires_at) or t.expires_at > ^now,
-        where: tc.content_piece_id in ^piece_ids,
-        select: tc.content_piece_id
+        where: tc.content_group_id == ^group_id,
+        order_by: [desc: t.expires_at],
+        limit: 1
     )
+  end
+
+  defp latest_valid_catalog_tiqit(user_id, now, catalog_id) do
+    Repo.one(
+      from t in Tiqit,
+        join: tc in assoc(t, :tiqit_class),
+        join: u in assoc(t, :user),
+        where: u.id == ^user_id,
+        where: is_nil(t.expires_at) or t.expires_at > ^now,
+        where: tc.catalog_id == ^catalog_id,
+        where: is_nil(tc.content_piece_id),
+        where: is_nil(tc.content_group_id),
+        order_by: [desc: t.expires_at],
+        limit: 1
+    )
+  end
+
+  defp piece_level_valid_tiqits([], _user_id, _now), do: %{}
+
+  defp piece_level_valid_tiqits(piece_ids, user_id, now) do
+    from(t in Tiqit,
+      join: tc in assoc(t, :tiqit_class),
+      join: u in assoc(t, :user),
+      where: u.id == ^user_id,
+      where: is_nil(t.expires_at) or t.expires_at > ^now,
+      where: tc.content_piece_id in ^piece_ids,
+      order_by: [desc: t.expires_at],
+      select: {tc.content_piece_id, t}
+    )
+    |> Repo.all()
+    |> Enum.reduce(%{}, fn {piece_id, tiqit}, acc ->
+      Map.put_new(acc, piece_id, tiqit)
+    end)
   end
 
   def list_content_groups do

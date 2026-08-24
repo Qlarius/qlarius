@@ -1125,8 +1125,10 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     >
       <div class="flex w-full justify-start">
         <img
+          data-arqade-selected-image
           src={content_image_url(@piece, @group)}
           alt={@piece.title}
+          decoding="async"
           class="block max-h-[330px] w-auto rounded-lg object-contain"
         />
       </div>
@@ -1152,8 +1154,10 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     >
       <div class="shrink-0 self-start w-[clamp(5rem,34%,8.5rem)] max-w-[42%]">
         <img
+          data-arqade-selected-image
           src={content_image_url(@piece, @group)}
           alt={@piece.title}
+          decoding="async"
           class="block w-full rounded-lg h-auto max-h-[12rem] object-contain"
         />
       </div>
@@ -1181,7 +1185,10 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
 
     ~H"""
     <div class={@class}>
-      <p class="text-base sm:text-lg font-semibold leading-tight text-base-content [overflow-wrap:anywhere] shrink-0">
+      <p
+        data-arqade-selected-title
+        class="text-base sm:text-lg font-semibold leading-tight text-base-content [overflow-wrap:anywhere] shrink-0"
+      >
         {@piece.title}
       </p>
       <span
@@ -1192,7 +1199,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       </span>
       <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-base-content/50 text-xs shrink-0">
         <span class="flex items-center gap-1">
-          <.icon name="hero-clock" class="w-3 h-3" />{@piece.duration}
+          <.icon name="hero-clock" class="w-3 h-3" /><span data-arqade-selected-duration>{@piece.duration}</span>
         </span>
         <%= if label = piece_published_date_label(@piece) do %>
           <span class="flex items-center gap-1">

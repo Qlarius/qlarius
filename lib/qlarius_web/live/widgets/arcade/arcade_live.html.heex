@@ -69,6 +69,7 @@
 --%>
     <%= if Enum.any?(@pieces) do %>
       <div
+        data-arqade-group-root
         data-arqade-inline-card={if(@embed_card?, do: "true")}
         data-arqade-in-app-group={if(@in_app_group?, do: "true")}
         data-arqade-tiqit-arqade={if(@full_viewport_embed?, do: "true")}
@@ -266,7 +267,7 @@
                    for everyone.
             --%>
                   <%= cond do %>
-                    <% Arcade.has_valid_tiqit?(@current_scope, @selected_piece) -> %>
+                    <% @tiqit -> %>
                       <div class="flex w-full flex-col items-stretch gap-3">
                         <div class="mb-3 flex w-full flex-row items-center gap-1.5">
                           <button
@@ -301,7 +302,7 @@
                         </button>
                       </div>
                     <% true -> %>
-                      <% default_tc = ContentPiece.default_tiqit_class(@selected_piece) %>
+                      <% default_tc = @default_tiqit_class %>
                       <% is_authed = authed?(@current_scope) %>
                       <% can_afford =
                         is_authed && Decimal.compare(@balance, default_tc.price) != :lt %>
@@ -490,6 +491,9 @@
                   :for={piece <- visible_pieces}
                   href="#"
                   data-arqade-piece-id={piece.id}
+                  data-arqade-title={piece.title}
+                  data-arqade-image={content_image_url(piece, @group)}
+                  data-arqade-duration={piece.duration}
                   phx-click="select-content"
                   phx-value-content-id={piece.id}
                   class={"rounded-lg p-3 flex gap-3 items-stretch min-w-0 border-2 border-solid transition-colors hover:shadow-sm
