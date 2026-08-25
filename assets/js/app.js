@@ -1735,13 +1735,17 @@ Hooks.EpisodeSearchField = {
 Hooks.ArqadeEpisodesScroll = {
   mounted() {
     this._pendingPieceId = null
-    this._onPointerDown = (event) => {
-      if (event.pointerType === 'mouse' && event.button !== 0) return
-      const row = event.target.closest('[data-arqade-piece-id]')
-      if (!row || !this.el.contains(row)) return
-      this.previewSelected(row)
-    }
+    this._gesture = null
+    this._onPointerDown = (event) => this.beginEpisodeGesture(event)
+    this._onPointerMove = (event) => this.trackEpisodeGesture(event)
+    this._onPointerUp = (event) => this.endEpisodeGesture(event)
+    this._onPointerCancel = (event) => this.cancelEpisodeGesture(event)
+    this._onScroll = () => this.cancelEpisodeGesture()
     this.el.addEventListener('pointerdown', this._onPointerDown)
+    this.el.addEventListener('pointermove', this._onPointerMove, { passive: true })
+    this.el.addEventListener('pointerup', this._onPointerUp)
+    this.el.addEventListener('pointercancel', this._onPointerCancel)
+    this.el.addEventListener('scroll', this._onScroll, { passive: true })
     this.handleEvent('scroll_arqade_episode_into_view', ({ piece_id: pieceId }) => {
       this._pendingPieceId = pieceId
       this.scrollToPiece(pieceId)
@@ -1755,6 +1759,48 @@ Hooks.ArqadeEpisodesScroll = {
   },
   destroyed() {
     if (this._onPointerDown) this.el.removeEventListener('pointerdown', this._onPointerDown)
+    if (this._onPointerMove) this.el.removeEventListener('pointermove', this._onPointerMove)
+    if (this._onPointerUp) this.el.removeEventListener('pointerup', this._onPointerUp)
+    if (this._onPointerCancel) this.el.removeEventListener('pointercancel', this._onPointerCancel)
+    if (this._onScroll) this.el.removeEventListener('scroll', this._onScroll)
+  },
+  beginEpisodeGesture(event) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    const row = event.target.closest('[data-arqade-piece-id]')
+    if (!row || !this.el.contains(row)) return
+
+    // Mouse is a click, not a drag-to-scroll. Touch/pen wait for lift
+    // so a scroll start does not paint a selection.
+    if (event.pointerType === 'mouse') {
+      this.previewSelected(row)
+      return
+    }
+
+    this._gesture = {
+      pointerId: event.pointerId,
+      row,
+      x: event.clientX,
+      y: event.clientY,
+      scrolling: false
+    }
+  },
+  trackEpisodeGesture(event) {
+    const gesture = this._gesture
+    if (!gesture || gesture.pointerId !== event.pointerId || gesture.scrolling) return
+    const dx = event.clientX - gesture.x
+    const dy = event.clientY - gesture.y
+    if (dx * dx + dy * dy > 100) gesture.scrolling = true
+  },
+  endEpisodeGesture(event) {
+    const gesture = this._gesture
+    this._gesture = null
+    if (!gesture || gesture.pointerId !== event.pointerId || gesture.scrolling) return
+    if (!this.el.contains(gesture.row)) return
+    this.previewSelected(gesture.row)
+  },
+  cancelEpisodeGesture(event) {
+    if (event && this._gesture && this._gesture.pointerId !== event.pointerId) return
+    this._gesture = null
   },
   previewSelected(row) {
     if (row.getAttribute('data-arqade-selected') === 'true') return
