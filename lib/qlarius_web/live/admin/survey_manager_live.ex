@@ -415,54 +415,62 @@ defmodule QlariusWeb.Admin.SurveyManagerLive do
                                 </div>
 
                                 <div class="flex-1">
-                                  <%= if sqs.survey_question.trait do %>
-                                    <div class="text-sm font-semibold text-base-content/70">
-                                      {sqs.survey_question.trait.trait_name}
-                                    </div>
-                                  <% end %>
-                                  <div class="text-base mt-1">
-                                    {sqs.survey_question.text}
-                                  </div>
-
-                                  <%= if sqs.survey_question.trait && sqs.survey_question.trait.child_traits != [] do %>
-                                    <% is_expanded =
-                                      MapSet.member?(@expanded_questions, sqs.survey_question_id) %>
-                                    <button
-                                      phx-click="toggle_question_answers"
-                                      phx-value-question_id={sqs.survey_question_id}
-                                      class="btn btn-xs btn-ghost mt-2"
+                                  <%= if question = sqs.survey_question do %>
+                                    <div
+                                      :if={question.trait}
+                                      class="text-sm font-semibold text-base-content/70"
                                     >
-                                      <.icon
-                                        name={
-                                          if is_expanded,
-                                            do: "hero-chevron-up",
-                                            else: "hero-chevron-down"
-                                        }
-                                        class="w-3 h-3"
-                                      />
-                                      {if is_expanded, do: "Hide", else: "Show"} Answers
-                                      ({length(sqs.survey_question.trait.child_traits)})
-                                    </button>
+                                      {question.trait.trait_name}
+                                    </div>
+                                    <div class="text-base mt-1">
+                                      {question.text}
+                                    </div>
 
-                                    <%= if is_expanded do %>
-                                      <div class="mt-3 ml-4 space-y-1">
-                                        <%= for child <- sqs.survey_question.trait.child_traits do %>
-                                          <div class="flex items-start gap-2 text-sm">
-                                            <div class="badge badge-sm badge-outline">
-                                              {child.display_order}
-                                            </div>
-                                            <div class="flex-1">
-                                              <span class="font-medium">{child.trait_name}</span>
-                                              <%= if child.survey_answer do %>
-                                                <span class="text-base-content/60 ml-2">
+                                    <%= if question.trait && question.trait.child_traits != [] do %>
+                                      <% is_expanded =
+                                        MapSet.member?(@expanded_questions, sqs.survey_question_id) %>
+                                      <button
+                                        phx-click="toggle_question_answers"
+                                        phx-value-question_id={sqs.survey_question_id}
+                                        class="btn btn-xs btn-ghost mt-2"
+                                      >
+                                        <.icon
+                                          name={
+                                            if is_expanded,
+                                              do: "hero-chevron-up",
+                                              else: "hero-chevron-down"
+                                          }
+                                          class="w-3 h-3"
+                                        />
+                                        {if is_expanded, do: "Hide", else: "Show"} Answers
+                                        ({length(question.trait.child_traits)})
+                                      </button>
+
+                                      <%= if is_expanded do %>
+                                        <div class="mt-3 ml-4 space-y-1">
+                                          <%= for child <- question.trait.child_traits do %>
+                                            <div class="flex items-start gap-2 text-sm">
+                                              <div class="badge badge-sm badge-outline">
+                                                {child.display_order}
+                                              </div>
+                                              <div class="flex-1">
+                                                <span class="font-medium">{child.trait_name}</span>
+                                                <span
+                                                  :if={child.survey_answer}
+                                                  class="text-base-content/60 ml-2"
+                                                >
                                                   - {child.survey_answer.text}
                                                 </span>
-                                              <% end %>
+                                              </div>
                                             </div>
-                                          </div>
-                                        <% end %>
-                                      </div>
+                                          <% end %>
+                                        </div>
+                                      <% end %>
                                     <% end %>
+                                  <% else %>
+                                    <p class="text-sm text-error">
+                                      Question {sqs.survey_question_id} is missing from the catalog
+                                    </p>
                                   <% end %>
                                 </div>
 

@@ -31,36 +31,25 @@ defmodule Qlarius.YouData.SurveyManager do
   def get_survey_with_details(_scope, id) do
     child_traits_query =
       from ct in Trait,
-        order_by: [asc: ct.display_order, asc: ct.trait_name]
+        order_by: [asc: ct.display_order, asc: ct.trait_name],
+        preload: [:survey_answer]
 
-    survey =
-      Repo.get!(Survey, id)
-      |> Repo.preload([
-        :survey_category,
-        survey_question_surveys:
-          from(sqs in SurveyQuestionSurvey,
-            order_by: [asc: sqs.display_order],
-            preload: [
-              survey_question: [
-                trait: [
-                  :trait_category,
-                  child_traits: ^child_traits_query
-                ]
+    Repo.get!(Survey, id)
+    |> Repo.preload([
+      :survey_category,
+      survey_question_surveys:
+        from(sqs in SurveyQuestionSurvey,
+          order_by: [asc: sqs.display_order],
+          preload: [
+            survey_question: [
+              trait: [
+                :trait_category,
+                child_traits: ^child_traits_query
               ]
             ]
-          )
-      ])
-      |> Repo.preload(
-        survey_question_surveys: [
-          survey_question: [
-            trait: [
-              child_traits: :survey_answer
-            ]
           ]
-        ]
-      )
-
-    survey
+        )
+    ])
   end
 
   def list_survey_categories(_scope) do
