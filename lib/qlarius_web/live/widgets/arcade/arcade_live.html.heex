@@ -274,71 +274,71 @@
                     </div>
                   </div>
                   <div data-arqade-cta-ready="true">
-                  <%= cond do %>
-                    <% @tiqit -> %>
-                      <div class="flex w-full flex-col items-stretch gap-3">
-                        <div class="mb-3 flex w-full flex-row items-center gap-1.5">
+                    <%= cond do %>
+                      <% @tiqit -> %>
+                        <div class="flex w-full flex-col items-stretch gap-3">
+                          <div class="mb-3 flex w-full flex-row items-center gap-1.5">
+                            <button
+                              type="button"
+                              phx-click="play-piece"
+                              phx-target={@embed_phx_id && "#" <> @embed_phx_id}
+                              class="btn-sponster-play btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap"
+                            >
+                              <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
+                            </button>
+                            <.arcade_more_options_popover
+                              piece={@selected_piece}
+                              current_scope={@current_scope}
+                            />
+                          </div>
+                          <QlariusWeb.Components.TiqitExpirationCountdown.badge
+                            expires_at={@tiqit.expires_at}
+                            class="badge-outline mx-auto badge-xs px-2 py-3 rounded-lg"
+                          />
+                        </div>
+                      <% selected_gift_pending? -> %>
+                        <div
+                          data-arqade-buy-row={if(@in_app_group? && !@show_qlink_footer?, do: "true")}
+                          class="mb-3 flex w-full flex-row items-center gap-1.5"
+                        >
                           <button
                             type="button"
-                            phx-click="play-piece"
-                            phx-target={@embed_phx_id && "#" <> @embed_phx_id}
-                            class="btn-sponster-play btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap"
+                            phx-click="accept-gift"
+                            class="btn-widget btn-widget-emphasis btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap"
                           >
-                            <.icon name="hero-play" class="h-6 w-6 mr-1" /> Play
+                            <.icon name="hero-gift" class="h-6 w-6 mr-1" /> Accept Gift
+                          </button>
+                        </div>
+                      <% true -> %>
+                        <% default_tc = @default_tiqit_class %>
+                        <% is_authed = authed?(@current_scope) %>
+                        <% can_afford =
+                          is_authed && Decimal.compare(@balance, default_tc.price) != :lt %>
+                        <% btn_enabled = !is_authed || can_afford %>
+                        <div
+                          data-arqade-buy-row={if(@in_app_group? && !@show_qlink_footer?, do: "true")}
+                          class="mb-3 flex w-full flex-row items-center gap-1.5"
+                        >
+                          <button
+                            phx-click="select-tiqit-class"
+                            phx-value-tiqit-class-id={default_tc.id}
+                            disabled={is_authed && !can_afford}
+                            class={"btn-widget btn-widget-emphasis btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap #{if btn_enabled, do: "", else: "btn-disabled"}"}
+                          >
+                            {if Decimal.eq?(default_tc.price, 0), do: "Get", else: "Buy"}{" "}{String.capitalize(
+                              to_string(@group.catalog.piece_type)
+                            )} •
+                            <span class="font-bold">
+                              {format_usd(default_tc.price, zero_free: true)}
+                            </span>
                           </button>
                           <.arcade_more_options_popover
                             piece={@selected_piece}
                             current_scope={@current_scope}
                           />
                         </div>
-                        <QlariusWeb.Components.TiqitExpirationCountdown.badge
-                          expires_at={@tiqit.expires_at}
-                          class="badge-outline mx-auto badge-xs px-2 py-3 rounded-lg"
-                        />
-                      </div>
-                    <% selected_gift_pending? -> %>
-                      <div
-                        data-arqade-buy-row={if(@in_app_group? && !@show_qlink_footer?, do: "true")}
-                        class="mb-3 flex w-full flex-row items-center gap-1.5"
-                      >
-                        <button
-                          type="button"
-                          phx-click="accept-gift"
-                          class="btn-widget btn-widget-emphasis btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap"
-                        >
-                          <.icon name="hero-gift" class="h-6 w-6 mr-1" /> Accept Gift
-                        </button>
-                      </div>
-                    <% true -> %>
-                      <% default_tc = @default_tiqit_class %>
-                      <% is_authed = authed?(@current_scope) %>
-                      <% can_afford =
-                        is_authed && Decimal.compare(@balance, default_tc.price) != :lt %>
-                      <% btn_enabled = !is_authed || can_afford %>
-                      <div
-                        data-arqade-buy-row={if(@in_app_group? && !@show_qlink_footer?, do: "true")}
-                        class="mb-3 flex w-full flex-row items-center gap-1.5"
-                      >
-                        <button
-                          phx-click="select-tiqit-class"
-                          phx-value-tiqit-class-id={default_tc.id}
-                          disabled={is_authed && !can_afford}
-                          class={"btn-widget btn-widget-emphasis btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap #{if btn_enabled, do: "", else: "btn-disabled"}"}
-                        >
-                          {if Decimal.eq?(default_tc.price, 0), do: "Get", else: "Buy"}{" "}{String.capitalize(
-                            to_string(@group.catalog.piece_type)
-                          )} •
-                          <span class="font-bold">
-                            {format_usd(default_tc.price, zero_free: true)}
-                          </span>
-                        </button>
-                        <.arcade_more_options_popover
-                          piece={@selected_piece}
-                          current_scope={@current_scope}
-                        />
-                      </div>
-                      <%= if is_authed && !can_afford do %>
                         <div
+                          :if={is_authed && !can_afford}
                           class={[
                             "text-sm text-warning text-center",
                             @in_app_group? && !@show_qlink_footer? && "hidden"
@@ -346,33 +346,35 @@
                         >
                           Not enough funds — top up below.
                         </div>
-                      <% end %>
-                      <div class={@in_app_group? && !@show_qlink_footer? && "hidden"}>
-                        <.wallet_strip_or_connect
-                          id="wallet-balance-arcade-main"
-                          scope={@current_scope}
-                          balance={@current_scope && @current_scope.wallet_balance}
-                          offered_amount={@offered_amount}
-                          ads_count={@current_scope && @current_scope.ads_count}
-                          daily_gift_available?={@daily_gift_available?}
-                          parent_phx_id={@parent_phx_id}
-                          on_click={
-                            if QlariusWeb.Widgets.Arcade.ArcadeLive.auth_sheet_enabled?(assigns),
-                              do: Phoenix.LiveView.JS.push("open_auth_sheet"),
-                              else: nil
-                          }
-                        />
-                      </div>
-                  <% end %>
+                    <% end %>
+                  </div>
+                  <div
+                    :if={@show_qlink_footer?}
+                    id="arqade-cta-wallet"
+                    class={(@tiqit || selected_gift_pending?) && "hidden"}
+                  >
+                    <.wallet_strip_or_connect
+                      id="wallet-balance-arcade-main"
+                      scope={@current_scope}
+                      balance={@current_scope && @current_scope.wallet_balance}
+                      offered_amount={@offered_amount}
+                      ads_count={@current_scope && @current_scope.ads_count}
+                      daily_gift_available?={@daily_gift_available?}
+                      parent_phx_id={@parent_phx_id}
+                      on_click={
+                        if QlariusWeb.Widgets.Arcade.ArcadeLive.auth_sheet_enabled?(assigns),
+                          do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+                          else: nil
+                      }
+                    />
                   </div>
                 </div>
                 <div
-                  data-arqade-tiqit-logo-row={@show_qlink_footer? && "inline"}
-                  class={[
-                    "flex flex-row justify-center items-center",
-                    @show_qlink_footer? && "mt-2 mb-3 max-md:mb-4",
-                    !@show_qlink_footer? && "hidden"
-                  ]}
+                  :if={@show_qlink_footer?}
+                  id="arqade-cta-tiqit-logo"
+                  data-arqade-tiqit-logo-row="inline"
+                  phx-update="ignore"
+                  class="flex flex-row justify-center items-center mt-2 mb-3 max-md:mb-4"
                 >
                   <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
                 </div>
