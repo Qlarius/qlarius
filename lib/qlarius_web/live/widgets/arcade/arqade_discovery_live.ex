@@ -2,8 +2,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
   @moduledoc """
   Discovery feed for browsable content — the "front door" to Arqade.
 
-  Catalogs load via `assign_async` so the first paint can show a skeleton
-  instead of blocking on the discoverable-catalog query.
+  Groups load via `assign_async` so the first paint can show a skeleton
+  instead of blocking on the discoverable-group query.
 
   Serves three contexts via @base_path (same pattern as other arqade LiveViews):
     - Main app: /arqade → @base_path = ""
@@ -13,6 +13,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Tiqit.Arcade.Arcade
+  alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias QlariusWeb.TiqitArqade.Host
   alias QlariusWeb.Widgets.Arcade.Paths
@@ -42,8 +43,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
         display_mode: "tile",
         show_discovery_view_menu: false
       )
-      |> assign_async(:catalogs, fn ->
-        {:ok, %{catalogs: Arcade.list_discoverable_catalogs()}}
+      |> assign_async(:groups, fn ->
+        {:ok, %{groups: Arcade.list_discoverable_groups()}}
       end)
       |> maybe_init_tiqit_host()
 
@@ -129,7 +130,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
         ]}>
           <p class="mobile-page-intro">Browse content from creators</p>
 
-          <.async_result :let={catalogs} assign={@catalogs}>
+          <.async_result :let={groups} assign={@groups}>
             <:loading>
               <.discovery_section_skeleton
                 display_mode={@display_mode}
@@ -138,32 +139,29 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
             </:loading>
             <:failed>
               <div class="text-center text-base-content/50 py-12">
-                Couldn't load catalogs. Try refreshing.
+                Couldn't load content. Try refreshing.
               </div>
             </:failed>
 
-            <%= if catalogs == [] do %>
+            <%= if groups == [] do %>
               <div class="text-center text-base-content/50 py-12">
                 No content available yet. Check back soon.
               </div>
             <% else %>
-              <div class="flex flex-col gap-3">
-                <h2 class="text-lg font-bold tracking-tight text-base-content/50">Catalogs</h2>
-                <div class={discovery_grid_class(@display_mode)}>
-                  <.discovery_item_card
-                    :for={catalog <- catalogs}
-                    elevated={@base_path == ""}
-                    display_mode={@display_mode}
-                    navigate={Paths.catalog_destination(@base_path, catalog)}
-                    image_src={catalog_image_url(catalog)}
-                    image_alt={catalog.name}
-                    title={catalog.name}
-                    subtitle={catalog.creator.name}
-                    detail={catalog_summary(catalog)}
-                    price_info={catalog_price_info(catalog)}
-                    piece_type={to_string(catalog.piece_type)}
-                  />
-                </div>
+              <div class={discovery_grid_class(@display_mode)}>
+                <.discovery_item_card
+                  :for={group <- groups}
+                  elevated={@base_path == ""}
+                  display_mode={@display_mode}
+                  navigate={Paths.group(@base_path, group.id)}
+                  image_src={group_image_url(group)}
+                  image_alt={group.title}
+                  title={group.title}
+                  subtitle={group.catalog.creator.name}
+                  detail={group_card_detail(group)}
+                  price_info={group_price_info(group)}
+                  piece_type={to_string(group.catalog.piece_type)}
+                />
               </div>
             <% end %>
           </.async_result>
@@ -187,34 +185,23 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
     end
   end
 
-  defp catalog_summary(catalog) do
-    groups =
-      Enum.filter(catalog.content_groups, fn g ->
-        ContentGroup.has_active_content_pieces?(g.content_pieces)
-      end)
+  defp group_card_detail(group) do
+    catalog = group.catalog
+    count = length(ContentGroup.active_content_pieces(group.content_pieces))
 
-    group_count = length(groups)
-
-    piece_count =
-      groups
-      |> Enum.map(fn g -> length(ContentGroup.active_content_pieces(g.content_pieces)) end)
-      |> Enum.sum()
-
-    group_label = catalog.group_type |> to_string()
-    piece_label = catalog.piece_type |> to_string()
-
-    "#{piece_count} #{pluralize(piece_label, piece_count)} in #{group_count} #{pluralize(group_label, group_count)}"
+    "#{count} #{Catalog.type_label(catalog.piece_type, count, capitalize: false)}"
   end
 
-  defp catalog_price_info(catalog) do
+  defp group_price_info(group) do
+    active_pieces = ContentGroup.active_content_pieces(group.content_pieces)
+
     all_tiqit_classes =
-      Enum.concat([
-        Enum.filter(catalog.tiqit_classes, & &1.active),
-        catalog.content_groups
-        |> Enum.flat_map(&ContentGroup.active_content_pieces(&1.content_pieces))
+      Enum.concat(
+        Enum.filter(group.tiqit_classes, & &1.active),
+        active_pieces
         |> Enum.flat_map(& &1.tiqit_classes)
         |> Enum.filter(& &1.active)
-      ])
+      )
 
     case all_tiqit_classes do
       [] ->
@@ -223,30 +210,17 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
       classes ->
         prices = Enum.map(classes, & &1.price)
         paid = Enum.reject(prices, &Decimal.eq?(&1, 0))
-        free_pieces = count_free_pieces(catalog)
 
-        min_price =
-          case paid do
-            [] -> nil
-            p -> "$#{Enum.min(p)}"
-          end
+        free_count =
+          Enum.count(active_pieces, fn piece ->
+            piece.tiqit_classes
+            |> Enum.filter(& &1.active)
+            |> Enum.any?(&Decimal.eq?(&1.price, 0))
+          end)
 
-        %{min_price: min_price, free_count: free_pieces}
+        min_price = if paid != [], do: "$#{Enum.min(paid)}"
+
+        %{min_price: min_price, free_count: free_count}
     end
   end
-
-  defp count_free_pieces(catalog) do
-    catalog.content_groups
-    |> Enum.flat_map(&ContentGroup.active_content_pieces(&1.content_pieces))
-    |> Enum.count(fn piece ->
-      piece.tiqit_classes
-      |> Enum.filter(& &1.active)
-      |> Enum.any?(&Decimal.eq?(&1.price, 0))
-    end)
-  end
-
-  defp pluralize(word, 1), do: word
-  defp pluralize("series", _), do: "series"
-  defp pluralize("class", _), do: "classes"
-  defp pluralize(word, _), do: word <> "s"
 end

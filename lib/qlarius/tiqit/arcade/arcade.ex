@@ -1000,7 +1000,11 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
           c.id in subquery(catalog_ids_from_group_tc) or
           c.id in subquery(catalog_ids_from_piece_tc),
       order_by: c.name,
-      preload: [:creator, :tiqit_classes, content_groups: [content_pieces: :tiqit_classes]]
+      preload: [
+        :creator,
+        :tiqit_classes,
+        content_groups: [:tiqit_classes, content_pieces: :tiqit_classes]
+      ]
     )
     |> Repo.all()
   end
@@ -1011,15 +1015,15 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   end
 
   def list_discoverable_groups do
-    from(cg in ContentGroup,
-      join: tc in TiqitClass,
-      on: tc.content_group_id == cg.id,
-      where: tc.active == true,
-      distinct: cg.id,
-      order_by: [desc: cg.inserted_at],
-      preload: [:content_pieces, catalog: :creator]
-    )
-    |> Repo.all()
+    list_discoverable_catalogs()
+    |> Enum.flat_map(&navigable_groups_from_catalog/1)
+    |> Enum.sort_by(& &1.title)
+  end
+
+  defp navigable_groups_from_catalog(catalog) do
+    catalog.content_groups
+    |> Enum.filter(&ContentGroup.has_active_content_pieces?(&1.content_pieces))
+    |> Enum.map(&%{&1 | catalog: catalog})
   end
 
   def list_discoverable_groups_by_creator(creator_id) do

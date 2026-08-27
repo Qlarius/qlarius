@@ -828,7 +828,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   """
   def discovery_section_skeleton(assigns) do
     ~H"""
-    <div class="flex flex-col gap-3" aria-busy="true" aria-label="Loading catalogs">
+    <div class="flex flex-col gap-3" aria-busy="true" aria-label="Loading content">
       <div class="skeleton h-6 w-24"></div>
       <div class={discovery_grid_class(@display_mode)}>
         <.discovery_item_card_skeleton
