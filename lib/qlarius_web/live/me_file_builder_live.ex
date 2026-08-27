@@ -17,7 +17,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
     <div id="mefilebuilder-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile
         {assigns}
-        title="MeFile Builder"
+        title="Tag Index"
         slide_over_active={@editing}
         slide_over_title={(@survey_in_edit && @survey_in_edit.name) || "Survey"}
       >
