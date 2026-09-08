@@ -213,7 +213,7 @@ defmodule QlariusWeb.HomeLive do
                 tabindex="0"
               >
                 <span class="home-stat__value">{@preserved_tiqits_count}</span>
-                <span class="home-stat__label">marked</span>
+                <span class="home-stat__label">kept</span>
               </div>
 
               <div

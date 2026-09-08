@@ -2208,9 +2208,9 @@
   }
 
   .wallet-details-toggle {
-    @apply inline-flex min-w-[46px] cursor-pointer items-center justify-center px-4 py-1;
-    @apply rounded-[10px] border border-base-content/15 bg-base-200/60;
-    @apply transition-colors hover:bg-base-200 dark:bg-base-content/5 dark:hover:bg-base-content/10;
+    @apply inline-flex size-4 shrink-0 cursor-pointer items-center justify-center;
+    @apply rounded-full border border-base-content/25 bg-transparent text-base-content/55;
+    @apply transition-colors hover:border-base-content/40 hover:bg-base-200/70 dark:hover:bg-base-content/10;
   }
 
   .wallet-details-toggle__chevron {
@@ -3858,7 +3858,7 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
 .tiqit-grid[data-status="fleeted"],
 .tiqit-grid[data-status="undone"]    { --ticket-border: var(--color-base-300);  --ticket-bg: var(--color-base-200); }
 
-/* ── Marked+expired "on ice" override (light) ── */
+/* ── Kept+expired "on ice" override (light) ── */
 .tiqit-grid[data-status="expired"][data-preserved="true"] {
   --ticket-border: oklch(70% 0.1 250);
   --ticket-bg: oklch(97% 0.01 264);
@@ -3878,7 +3878,7 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
   --ticket-bg: oklch(32% 0.01 264 / 0.22);
 }
 
-/* ── Marked+expired "on ice" override (dark) ── */
+/* ── Kept+expired "on ice" override (dark) ── */
 [data-theme="dark"] .tiqit-grid[data-status="expired"][data-preserved="true"] {
   --ticket-bg: oklch(21% 0.06 265 / 0.3);
   --ticket-border: oklch(55% 0.1 250);

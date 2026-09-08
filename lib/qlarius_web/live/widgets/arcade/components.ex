@@ -600,14 +600,18 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
               </button>
               <button
                 type="button"
-                disabled
-                aria-disabled="true"
-                title="Coming soon"
-                class="btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5 btn-disabled cursor-not-allowed opacity-70"
+                class="btn-widget btn-widget-emphasis btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5"
+                phx-click={Phoenix.LiveView.JS.show(to: "##{@id}-credit-debit-soon")}
               >
                 <.icon name="hero-credit-card" class="h-6 w-6 shrink-0" />
                 <span class="text-sm font-medium">Credit / Debit</span>
               </button>
+              <p
+                id={"#{@id}-credit-debit-soon"}
+                class="hidden text-center text-sm text-base-content/60"
+              >
+                Coming soon
+              </p>
             </div>
           </:content>
         </.popover>

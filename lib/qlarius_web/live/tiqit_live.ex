@@ -80,7 +80,7 @@ defmodule QlariusWeb.TiqitLive do
 
     case Arcade.preserve_tiqit(tiqit, true) do
       {:ok, _} -> {:noreply, reload_tiqits(socket)}
-      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not mark tiqit")}
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not keep tiqit")}
     end
   end
 
@@ -89,7 +89,7 @@ defmodule QlariusWeb.TiqitLive do
 
     case Arcade.preserve_tiqit(tiqit, false) do
       {:ok, _} -> {:noreply, reload_tiqits(socket)}
-      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not unmark tiqit")}
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not stop keeping tiqit")}
     end
   end
 
@@ -233,7 +233,7 @@ defmodule QlariusWeb.TiqitLive do
   defp filter_label(:active), do: "Active"
   defp filter_label(:expired), do: "Fleeting"
   defp filter_label(:fleeted), do: "Fleeted"
-  defp filter_label(:preserved), do: "Marked"
+  defp filter_label(:preserved), do: "Kept"
   defp filter_label(:gifted), do: "Gifted"
 
   defp stash_empty?(assigns) do

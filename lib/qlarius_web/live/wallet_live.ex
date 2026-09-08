@@ -48,6 +48,7 @@ defmodule QlariusWeb.WalletLive do
     |> assign(:undo_context, nil)
     |> assign(:wallet_summary, Wallets.consumer_wallet_summary(me_file))
     |> assign(:wallet_details_open, false)
+    |> assign(:wallet_details_section, :activity)
     |> assign_tag_display_mode()
     |> init_pwa_assigns(session)
     |> ok()
@@ -129,7 +130,7 @@ defmodule QlariusWeb.WalletLive do
 
     case Qlarius.Tiqit.Arcade.Arcade.preserve_tiqit(tiqit, true) do
       {:ok, _} -> {:noreply, reload_entry_details(socket)}
-      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not mark tiqit")}
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not keep tiqit")}
     end
   end
 
@@ -138,7 +139,7 @@ defmodule QlariusWeb.WalletLive do
 
     case Qlarius.Tiqit.Arcade.Arcade.preserve_tiqit(tiqit, false) do
       {:ok, _} -> {:noreply, reload_entry_details(socket)}
-      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not unmark tiqit")}
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not stop keeping tiqit")}
     end
   end
 
@@ -199,8 +200,20 @@ defmodule QlariusWeb.WalletLive do
     end
   end
 
-  def handle_event("toggle_wallet_details", _params, socket) do
-    {:noreply, assign(socket, :wallet_details_open, !socket.assigns.wallet_details_open)}
+  def handle_event("toggle_wallet_details", %{"section" => section}, socket)
+      when section in ["activity", "credit"] do
+    section = String.to_existing_atom(section)
+
+    socket =
+      if socket.assigns.wallet_details_open and socket.assigns.wallet_details_section == section do
+        assign(socket, :wallet_details_open, false)
+      else
+        socket
+        |> assign(:wallet_details_open, true)
+        |> assign(:wallet_details_section, section)
+      end
+
+    {:noreply, socket}
   end
 
   defp assign_tag_display_mode(socket) do
@@ -318,6 +331,7 @@ defmodule QlariusWeb.WalletLive do
             <.wallet_summary_card
               summary={@wallet_summary}
               details_open={@wallet_details_open}
+              details_section={@wallet_details_section}
             />
             <%= if Enum.empty?(@paginated_entries.entries) do %>
               <div class="flex flex-col items-center justify-center py-12 gap-4">
