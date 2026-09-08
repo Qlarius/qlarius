@@ -212,7 +212,11 @@ defmodule QlariusWeb.Components.GiftModalComponents do
       "mx-auto w-full max-w-[400px] rounded-xl border border-widget-300 bg-widget-100/60 p-3",
       @class
     ]}>
-      <div class="flex flex-row items-start gap-4">
+      <div class={[
+        "flex flex-row gap-4",
+        @subtitle && "items-start",
+        !@subtitle && "items-center"
+      ]}>
         <div class="relative shrink-0">
           <img
             src={@image_url}
@@ -224,7 +228,7 @@ defmodule QlariusWeb.Components.GiftModalComponents do
           <p :if={@subtitle} class="text-sm leading-snug text-base-content/60">
             {@subtitle}
           </p>
-          <h3 class="text-base font-bold leading-snug text-widget-900 [overflow-wrap:anywhere]">
+          <h3 class="text-xl font-bold leading-snug text-widget-900 [overflow-wrap:anywhere] md:text-2xl">
             {@title}
           </h3>
           <p :if={@includes} class="text-sm text-base-content/70">

@@ -325,9 +325,7 @@
                             disabled={is_authed && !can_afford}
                             class={"btn-widget btn-widget-emphasis btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap #{if btn_enabled, do: "", else: "btn-disabled"}"}
                           >
-                            {if Decimal.eq?(default_tc.price, 0), do: "Get", else: "Buy"}{" "}{String.capitalize(
-                              to_string(@group.catalog.piece_type)
-                            )} •
+                            {if Decimal.eq?(default_tc.price, 0), do: "Get", else: "Buy"} Tiqit •
                             <span class="font-bold">
                               {format_usd(default_tc.price, zero_free: true)}
                             </span>
@@ -611,7 +609,13 @@
             <.title id="confirm-purchase-modal-title">Tiqit Purchase Options</.title>
             <.content_shelf
               image_url={purchase_image_url(desc.scope, @selected_piece, @group)}
-              title={if desc.scope == :piece, do: @selected_piece.title, else: @group.title}
+              title={
+                case desc.scope do
+                  :piece -> @selected_piece.title
+                  :group -> @group.title
+                  :catalog -> @group.catalog.name
+                end
+              }
               subtitle={if desc.scope == :piece, do: @group.title, else: nil}
             />
             <.tiqit_class_grid
@@ -627,43 +631,35 @@
           <% else %>
             <.content_shelf
               image_url={purchase_image_url(desc.scope, @selected_piece, @group)}
-              title={if desc.scope == :piece, do: @selected_piece.title, else: @group.title}
+              title={
+                case desc.scope do
+                  :piece -> @selected_piece.title
+                  :group -> @group.title
+                  :catalog -> @group.catalog.name
+                end
+              }
               subtitle={if desc.scope == :piece, do: @group.title, else: nil}
             />
             <.lede>
               <%= if assigns[:purchase_intent] == :gift do %>
-                <%= if @selected_tiqit_class.duration_hours do %>
-                  You are purchasing and gifting access to the
-                  <span class="text-base-content font-bold">
-                    {desc.label}
-                  </span>
-                  for <span class="text-base-content font-bold">{format_tiqit_class_duration(
-                @selected_tiqit_class.duration_hours
-              )}</span>.
-                <% else %>
-                  You are purchasing and gifting <span class="text-base-content font-bold">lifetime</span>
-                  access to the <span class="text-base-content font-bold">{desc.label}</span>.
-                <% end %>
-                <%= if desc.detail do %>
-                  <br /><span class="text-base-content/50 text-sm">Includes {desc.detail}.</span>
-                <% end %>
+                You are purchasing and gifting access to:
               <% else %>
-                <%= if @selected_tiqit_class.duration_hours do %>
-                  You are purchasing access to the
-                  <span class="text-base-content font-bold">
-                    {desc.label}
-                  </span>
-                  for <span class="text-base-content font-bold">{format_tiqit_class_duration(
-                @selected_tiqit_class.duration_hours
-              )}</span>.
-                <% else %>
-                  You are purchasing <span class="text-base-content font-bold">lifetime</span>
-                  access to the <span class="text-base-content font-bold">{desc.label}</span>.
-                <% end %>
-                <%= if desc.detail do %>
-                  <br /><span class="text-base-content/50 text-sm">Includes {desc.detail}.</span>
-                <% end %>
+                You are purchasing access to:
               <% end %>
+              <span class="mt-1 flex flex-col items-center gap-0">
+                <span class="text-base font-bold leading-none text-base-content md:text-lg">
+                  <%= if @selected_tiqit_class.duration_hours do %>
+                    {desc.label} for {format_tiqit_class_duration(
+                      @selected_tiqit_class.duration_hours
+                    )}
+                  <% else %>
+                    {desc.label} for lifetime
+                  <% end %>
+                </span>
+                <span :if={desc.detail} class="mt-1 text-sm font-normal leading-none text-base-content/50">
+                  Includes {desc.detail}.
+                </span>
+              </span>
             </.lede>
             <div class="flex w-full flex-col gap-4">
               <%= if assigns[:purchase_intent] == :gift do %>

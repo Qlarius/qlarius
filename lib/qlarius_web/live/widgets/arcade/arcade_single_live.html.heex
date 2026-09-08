@@ -166,9 +166,7 @@
                             disabled={is_authed && !can_afford}
                             class={"btn-widget btn-widget-emphasis btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap #{if btn_enabled, do: "", else: "btn-disabled"}"}
                           >
-                            {if Decimal.eq?(@default_tiqit_class.price, 0), do: "Get", else: "Buy"}{" "}{String.capitalize(
-                              to_string(@group.catalog.piece_type)
-                            )} •
+                            {if Decimal.eq?(@default_tiqit_class.price, 0), do: "Get", else: "Buy"} Tiqit •
                             <span class="font-bold">
                               {format_usd(@default_tiqit_class.price, zero_free: true)}
                             </span>
@@ -266,12 +264,12 @@
               <div class="min-w-0 flex-1 text-left space-y-1">
                 <%= if desc.scope == :piece do %>
                   <p class="text-sm text-base-content/60">{@group.title}</p>
-                  <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
+                  <h3 class="text-xl font-bold leading-snug text-base-content [overflow-wrap:anywhere] md:text-2xl">
                     {@piece.title}
                   </h3>
                 <% else %>
-                  <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
-                    {@group.title}
+                  <h3 class="text-xl font-bold leading-snug text-base-content [overflow-wrap:anywhere] md:text-2xl">
+                    {if desc.scope == :catalog, do: @group.catalog.name, else: @group.title}
                   </h3>
                 <% end %>
               </div>
@@ -298,33 +296,33 @@
               <div class="min-w-0 flex-1 text-left space-y-1">
                 <%= if desc.scope == :piece do %>
                   <p class="text-sm text-base-content/60">{@group.title}</p>
-                  <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
+                  <h3 class="text-xl font-bold leading-snug text-base-content [overflow-wrap:anywhere] md:text-2xl">
                     {@piece.title}
                   </h3>
                 <% else %>
-                  <h3 class="text-lg font-bold text-base-content leading-snug [overflow-wrap:anywhere]">
-                    {@group.title}
+                  <h3 class="text-xl font-bold leading-snug text-base-content [overflow-wrap:anywhere] md:text-2xl">
+                    {if desc.scope == :catalog, do: @group.catalog.name, else: @group.title}
                   </h3>
                 <% end %>
               </div>
             </div>
           </div>
-          <p class="text-base-content/60 text-center">
-            <%= if @selected_tiqit_class.duration_hours do %>
-              You are purchasing access to the
-              <span class="text-base-content font-bold">
-                {desc.label}
+          <p class="text-center text-sm text-base-content/70 md:text-base">
+            You are purchasing access to:
+            <span class="mt-1 flex flex-col items-center gap-0">
+              <span class="text-base font-bold leading-none text-base-content md:text-lg">
+                <%= if @selected_tiqit_class.duration_hours do %>
+                  {desc.label} for {format_tiqit_class_duration(
+                    @selected_tiqit_class.duration_hours
+                  )}
+                <% else %>
+                  {desc.label} for lifetime
+                <% end %>
               </span>
-              for <span class="text-base-content font-bold">{format_tiqit_class_duration(
-          @selected_tiqit_class.duration_hours
-        )}</span>.
-            <% else %>
-              You are purchasing <span class="text-base-content font-bold">lifetime</span>
-              access to the <span class="text-base-content font-bold">{desc.label}</span>.
-            <% end %>
-            <%= if desc.detail do %>
-              <br /><span class="text-base-content/50 text-sm">Includes {desc.detail}.</span>
-            <% end %>
+              <span :if={desc.detail} class="mt-1 text-sm font-normal leading-none text-base-content/50">
+                Includes {desc.detail}.
+              </span>
+            </span>
           </p>
           <div class="flex items-center">
             <button
