@@ -7,6 +7,7 @@ defmodule Qlarius.Tiqit.Arcade.PieceTiqitClassDefaultsTest do
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.Creators
+  alias Qlarius.Tiqit.Arcade.Tiqit
   alias Qlarius.Tiqit.Arcade.TiqitClass
 
   describe "write_default_piece_tiqit_classes/2" do
@@ -43,7 +44,7 @@ defmodule Qlarius.Tiqit.Arcade.PieceTiqitClassDefaultsTest do
     } do
       insert_class(piece_a, 3, "0.99")
 
-      assert :ok = Arcade.write_default_piece_tiqit_classes(group, mode: :fill_in)
+      assert {:ok, []} = Arcade.write_default_piece_tiqit_classes(group, mode: :fill_in)
 
       assert price_for(piece_a, 3) == Decimal.new("0.99")
       assert price_for(piece_a, 24) == Decimal.new("0.25")
@@ -60,7 +61,7 @@ defmodule Qlarius.Tiqit.Arcade.PieceTiqitClassDefaultsTest do
 
       classes = [%{duration_hours: 3, price: Decimal.new("0.15")}]
 
-      assert :ok =
+      assert {:ok, []} =
                Arcade.write_default_piece_tiqit_classes(group,
                  mode: :overwrite,
                  classes: classes
@@ -81,7 +82,7 @@ defmodule Qlarius.Tiqit.Arcade.PieceTiqitClassDefaultsTest do
 
       classes = [%{duration_hours: 3, price: Decimal.new("0.12")}]
 
-      assert :ok =
+      assert {:ok, []} =
                Arcade.write_default_piece_tiqit_classes(group,
                  mode: :overwrite,
                  classes: classes
@@ -92,12 +93,50 @@ defmodule Qlarius.Tiqit.Arcade.PieceTiqitClassDefaultsTest do
       refute class?(piece_b, 720)
     end
 
+    test "overwrite deletes sold classes after the purchase is snapshotted", %{
+      group: group,
+      piece_a: piece_a
+    } do
+      class_3 = insert_class(piece_a, 3, "0.10")
+      insert_class(piece_a, 720, "0.75")
+
+      tiqit =
+        %Tiqit{
+          tiqit_class_id: class_3.id,
+          purchased_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        }
+        |> Tiqit.changeset(Tiqit.snapshot_attrs(class_3))
+        |> Repo.insert!()
+
+      classes = [
+        %{duration_hours: 5, price: Decimal.new("0.35")},
+        %{duration_hours: 24, price: Decimal.new("0.50")}
+      ]
+
+      assert {:ok, []} =
+               Arcade.write_default_piece_tiqit_classes(group,
+                 mode: :overwrite,
+                 classes: classes
+               )
+
+      refute class?(piece_a, 3)
+      assert price_for(piece_a, 5) == Decimal.new("0.35")
+      assert price_for(piece_a, 24) == Decimal.new("0.50")
+      refute class?(piece_a, 720)
+
+      tiqit = Repo.get!(Tiqit, tiqit.id)
+      assert is_nil(tiqit.tiqit_class_id)
+      assert tiqit.content_piece_id == piece_a.id
+      assert tiqit.duration_hours == 3
+      assert tiqit.price == Decimal.new("0.10")
+    end
+
     test "fill_in does not delete extra durations", %{group: group, piece_a: piece_a} do
       insert_class(piece_a, 720, "0.75")
 
       classes = [%{duration_hours: 3, price: Decimal.new("0.10")}]
 
-      assert :ok =
+      assert {:ok, []} =
                Arcade.write_default_piece_tiqit_classes(group,
                  mode: :fill_in,
                  classes: classes
@@ -110,7 +149,7 @@ defmodule Qlarius.Tiqit.Arcade.PieceTiqitClassDefaultsTest do
     test "defaults to overwrite for a single piece", %{piece_a: piece_a} do
       insert_class(piece_a, 3, "0.99")
 
-      assert :ok = Arcade.write_default_piece_tiqit_classes(piece_a)
+      assert {:ok, []} = Arcade.write_default_piece_tiqit_classes(piece_a)
 
       assert price_for(piece_a, 3) == Decimal.new("0.10")
     end

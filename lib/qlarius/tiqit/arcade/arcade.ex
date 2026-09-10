@@ -35,14 +35,13 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
     query =
       from t in Tiqit,
-        join: tc in assoc(t, :tiqit_class),
         join: u in assoc(t, :user),
         where: u.id == ^scope.user.id,
         where: is_nil(t.expires_at) or t.expires_at > ^now,
         where:
-          tc.content_piece_id == ^piece.id or
-            (^allow_group? and tc.content_group_id == ^group_id) or
-            (^allow_catalog? and tc.catalog_id == ^catalog_id),
+          t.content_piece_id == ^piece.id or
+            (^allow_group? and t.content_group_id == ^group_id) or
+            (^allow_catalog? and t.catalog_id == ^catalog_id),
         limit: 1
 
     Repo.one(query)
@@ -60,16 +59,15 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
     Repo.one(
       from t in Tiqit,
-        join: tc in assoc(t, :tiqit_class),
         join: u in assoc(t, :user),
         where: u.id == ^scope.user.id,
         where: is_nil(t.expires_at) or t.expires_at > ^now,
-        where: tc.catalog_id == ^catalog_id,
-        where: is_nil(tc.content_piece_id),
-        where: is_nil(tc.content_group_id),
+        where: t.catalog_id == ^catalog_id,
+        where: is_nil(t.content_piece_id),
+        where: is_nil(t.content_group_id),
         order_by: [desc: t.expires_at],
         limit: 1,
-        preload: [:tiqit_class]
+        preload: [:tiqit_class, :catalog]
     )
   end
 
@@ -87,17 +85,16 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     now = DateTime.utc_now()
 
     from(t in Tiqit,
-      join: tc in assoc(t, :tiqit_class),
       join: u in assoc(t, :user),
       where: u.id == ^scope.user.id,
       where: is_nil(t.expires_at) or t.expires_at > ^now,
-      where: tc.catalog_id == ^catalog_id,
-      where: is_nil(tc.content_piece_id),
-      where: is_nil(tc.content_group_id),
-      select: tc
+      where: t.catalog_id == ^catalog_id,
+      where: is_nil(t.content_piece_id),
+      where: is_nil(t.content_group_id)
     )
     |> Repo.all()
-    |> Enum.uniq_by(& &1.id)
+    |> Enum.map(&Tiqit.entitlement_class/1)
+    |> Enum.uniq_by(&entitlement_class_key/1)
   end
 
   @doc """
@@ -117,18 +114,17 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     allow_catalog? = not piece.exclude_from_catalog_access
 
     from(t in Tiqit,
-      join: tc in assoc(t, :tiqit_class),
       join: u in assoc(t, :user),
       where: u.id == ^scope.user.id,
       where: is_nil(t.expires_at) or t.expires_at > ^now,
       where:
-        tc.content_piece_id == ^piece.id or
-          (^allow_group? and tc.content_group_id == ^group_id) or
-          (^allow_catalog? and tc.catalog_id == ^catalog_id),
-      select: tc
+        t.content_piece_id == ^piece.id or
+          (^allow_group? and t.content_group_id == ^group_id) or
+          (^allow_catalog? and t.catalog_id == ^catalog_id)
     )
     |> Repo.all()
-    |> Enum.uniq_by(& &1.id)
+    |> Enum.map(&Tiqit.entitlement_class/1)
+    |> Enum.uniq_by(&entitlement_class_key/1)
   end
 
   @doc """
@@ -262,11 +258,10 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   defp latest_valid_group_tiqit(user_id, now, group_id) do
     Repo.one(
       from t in Tiqit,
-        join: tc in assoc(t, :tiqit_class),
         join: u in assoc(t, :user),
         where: u.id == ^user_id,
         where: is_nil(t.expires_at) or t.expires_at > ^now,
-        where: tc.content_group_id == ^group_id,
+        where: t.content_group_id == ^group_id,
         order_by: [desc: t.expires_at],
         limit: 1
     )
@@ -275,13 +270,12 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   defp latest_valid_catalog_tiqit(user_id, now, catalog_id) do
     Repo.one(
       from t in Tiqit,
-        join: tc in assoc(t, :tiqit_class),
         join: u in assoc(t, :user),
         where: u.id == ^user_id,
         where: is_nil(t.expires_at) or t.expires_at > ^now,
-        where: tc.catalog_id == ^catalog_id,
-        where: is_nil(tc.content_piece_id),
-        where: is_nil(tc.content_group_id),
+        where: t.catalog_id == ^catalog_id,
+        where: is_nil(t.content_piece_id),
+        where: is_nil(t.content_group_id),
         order_by: [desc: t.expires_at],
         limit: 1
     )
@@ -291,18 +285,24 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
   defp piece_level_valid_tiqits(piece_ids, user_id, now) do
     from(t in Tiqit,
-      join: tc in assoc(t, :tiqit_class),
       join: u in assoc(t, :user),
       where: u.id == ^user_id,
       where: is_nil(t.expires_at) or t.expires_at > ^now,
-      where: tc.content_piece_id in ^piece_ids,
+      where: t.content_piece_id in ^piece_ids,
       order_by: [desc: t.expires_at],
-      select: {tc.content_piece_id, t}
+      select: {t.content_piece_id, t}
     )
     |> Repo.all()
     |> Enum.reduce(%{}, fn {piece_id, tiqit}, acc ->
       Map.put_new(acc, piece_id, tiqit)
     end)
+  end
+
+  defp entitlement_class_key(%TiqitClass{id: id}) when not is_nil(id), do: {:id, id}
+
+  defp entitlement_class_key(%TiqitClass{} = class) do
+    {:snapshot, class.content_piece_id, class.content_group_id, class.catalog_id,
+     class.duration_hours, class.price}
   end
 
   def list_content_groups do
@@ -419,7 +419,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         join: u in assoc(t, :user),
         where: u.id == ^user.id,
         order_by: [desc: t.purchased_at],
-        preload: [:tiqit_class]
+        preload: [:tiqit_class, :content_piece, :content_group, :catalog]
     )
   end
 
@@ -476,7 +476,9 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     me_file = %MeFile{} = user.me_file
 
     tiqit_attrs =
-      %{purchased_at: purchased_at, expires_at: expires_at}
+      tiqit_class
+      |> Tiqit.snapshot_attrs()
+      |> Map.merge(%{purchased_at: purchased_at, expires_at: expires_at})
       |> maybe_put_refund_locked(refund_locked?, purchased_at)
 
     {:ok, tiqit} =
@@ -546,14 +548,13 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
       cond do
         tc.content_group_id ->
           from(t in Tiqit,
-            join: tc_inner in assoc(t, :tiqit_class),
             join: u in assoc(t, :user),
             where: u.id == ^user.id,
             where: is_nil(t.disconnected_at) and is_nil(t.undone_at),
             where: is_nil(t.expires_at) or t.expires_at > ^now,
             where: is_nil(t.refund_locked_at),
             where:
-              tc_inner.content_piece_id in subquery(
+              t.content_piece_id in subquery(
                 from(cp in ContentPiece,
                   where: cp.content_group_id == ^tc.content_group_id,
                   select: cp.id
@@ -572,15 +573,14 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
             )
 
           from(t in Tiqit,
-            join: tc_inner in assoc(t, :tiqit_class),
             join: u in assoc(t, :user),
             where: u.id == ^user.id,
             where: is_nil(t.disconnected_at) and is_nil(t.undone_at),
             where: is_nil(t.expires_at) or t.expires_at > ^now,
             where: is_nil(t.refund_locked_at),
             where:
-              tc_inner.content_piece_id in subquery(piece_ids) or
-                tc_inner.content_group_id in subquery(group_ids)
+              t.content_piece_id in subquery(piece_ids) or
+                t.content_group_id in subquery(group_ids)
           )
 
         true ->
@@ -642,6 +642,10 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   @doc """
   Writes piece-scoped Tiqit classes onto a piece or every active piece in a group.
 
+  Returns `{:ok, kept_duration_hours}`. Extra durations are deleted even when
+  they have been purchased; those tiqits keep a snapshot of price, duration,
+  and scope, and `tiqit_class_id` is nilified.
+
   Opts:
     * `:mode` - `:overwrite` (default) upserts matching durations and deletes
       classes whose duration is not in the submitted grid. `:fill_in` inserts
@@ -652,21 +656,24 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   def write_default_piece_tiqit_classes(target, opts \\ [])
 
   def write_default_piece_tiqit_classes(%ContentPiece{} = piece, opts) when is_list(opts) do
-    apply_piece_default_tiqit_classes(piece, opts)
-    :ok
+    {:ok,
+     piece
+     |> apply_piece_default_tiqit_classes(opts)
+     |> Enum.uniq()
+     |> Enum.sort()}
   end
 
   def write_default_piece_tiqit_classes(%ContentGroup{} = group, opts) when is_list(opts) do
     group = Repo.preload(group, content_pieces: :tiqit_classes)
 
-    {:ok, _} =
-      Repo.transaction(fn ->
-        group.content_pieces
-        |> ContentGroup.active_content_pieces()
-        |> Enum.each(&apply_piece_default_tiqit_classes(&1, opts))
-      end)
+    kept =
+      group.content_pieces
+      |> ContentGroup.active_content_pieces()
+      |> Enum.flat_map(&apply_piece_default_tiqit_classes(&1, opts))
+      |> Enum.uniq()
+      |> Enum.sort()
 
-    :ok
+    {:ok, kept}
   end
 
   def default_piece_tiqit_class_specs do
@@ -715,6 +722,10 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
       |> Repo.all()
       |> Enum.reject(&MapSet.member?(keep_durations, &1.duration_hours))
       |> Enum.each(&Repo.delete!/1)
+
+      []
+    else
+      []
     end
   end
 
@@ -754,18 +765,17 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
       now = DateTime.utc_now()
 
       from(t in Tiqit,
-        join: tc in assoc(t, :tiqit_class),
         join: u in assoc(t, :user),
         where: u.id == ^user.id,
         where: is_nil(t.disconnected_at) and is_nil(t.undone_at),
         where: is_nil(t.expires_at) or t.expires_at > ^now,
         where:
-          tc.content_piece_id in subquery(
+          t.content_piece_id in subquery(
             from cp in ContentPiece,
               where: cp.content_group_id == ^group.id,
               select: cp.id
           ),
-        select: {sum(tc.price), count(t.id)}
+        select: {sum(t.price), count(t.id)}
       )
       |> Repo.one()
       |> case do
@@ -788,15 +798,14 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         from(cp in ContentPiece, where: cp.content_group_id in subquery(group_ids), select: cp.id)
 
       from(t in Tiqit,
-        join: tc in assoc(t, :tiqit_class),
         join: u in assoc(t, :user),
         where: u.id == ^user.id,
         where: is_nil(t.disconnected_at) and is_nil(t.undone_at),
         where: is_nil(t.expires_at) or t.expires_at > ^now,
         where:
-          tc.content_piece_id in subquery(piece_ids) or
-            tc.content_group_id in subquery(group_ids),
-        select: {sum(tc.price), count(t.id)}
+          t.content_piece_id in subquery(piece_ids) or
+            t.content_group_id in subquery(group_ids),
+        select: {sum(t.price), count(t.id)}
       )
       |> Repo.one()
       |> case do
@@ -860,14 +869,8 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   @doc """
   True when the tiqit was purchased at $0.00 (no refund applies).
   """
-  def free_tiqit?(%Tiqit{tiqit_class: %TiqitClass{price: price}}) when not is_nil(price) do
+  def free_tiqit?(%Tiqit{price: price}) when not is_nil(price) do
     Decimal.compare(price, Decimal.new(0)) != :gt
-  end
-
-  def free_tiqit?(%Tiqit{} = tiqit) do
-    tiqit
-    |> Repo.preload(:tiqit_class)
-    |> free_tiqit?()
   end
 
   def free_tiqit?(_), do: false
@@ -885,17 +888,10 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   end
 
   def get_undo_context(%Scope{user: user}, %Tiqit{} = tiqit) do
-    tiqit =
-      Repo.preload(tiqit,
-        tiqit_class: [
-          content_piece: [content_group: [catalog: :creator]],
-          content_group: [catalog: :creator],
-          catalog: :creator
-        ]
-      )
+    tiqit = preload_tiqit_content(tiqit)
 
-    creator = tiqit_class_creator(tiqit.tiqit_class)
-    catalog = tiqit_class_catalog(tiqit.tiqit_class)
+    creator = tiqit_entitlement_creator(tiqit)
+    catalog = tiqit_entitlement_catalog(tiqit)
     undo_limit = if catalog, do: catalog.tiqit_undo_limit
 
     undos_used =
@@ -1133,13 +1129,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         join: u in assoc(t, :user),
         where: u.id == ^user.id,
         order_by: [desc: t.purchased_at],
-        preload: [
-          tiqit_class: [
-            content_piece: [content_group: [catalog: :creator]],
-            content_group: [catalog: :creator],
-            catalog: :creator
-          ]
-        ]
+        preload: ^tiqit_content_preload()
 
     query =
       case status do
@@ -1201,17 +1191,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   end
 
   def undo_tiqit!(%Scope{user: user} = _scope, %Tiqit{} = tiqit) do
-    tiqit =
-      Repo.preload(tiqit,
-        tiqit_class: [
-          :content_piece,
-          :content_group,
-          :catalog,
-          content_piece: [content_group: [catalog: :creator]],
-          content_group: [catalog: :creator],
-          catalog: :creator
-        ]
-      )
+    tiqit = preload_tiqit_content(tiqit)
 
     undo_window = System.get_global_variable_int("tiqit_undo_window_hours", 2)
     deadline = DateTime.add(tiqit.purchased_at, undo_window, :hour)
@@ -1234,13 +1214,13 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         {:error, :undo_window_expired}
 
       true ->
-        creator = tiqit_class_creator(tiqit.tiqit_class)
-        catalog = tiqit_class_catalog(tiqit.tiqit_class)
+        creator = tiqit_entitlement_creator(tiqit)
+        catalog = tiqit_entitlement_catalog(tiqit)
 
         with :ok <- check_undo_limit(user.me_file, creator, catalog) do
           case Repo.transaction(fn ->
-                 duration_label = format_duration(tiqit.tiqit_class.duration_hours)
-                 content_title = tiqit_content_title(tiqit.tiqit_class)
+                 duration_label = format_duration(tiqit.duration_hours)
+                 content_title = tiqit_entitlement_title(tiqit)
 
                  consumer_ledger = Wallets.lock_me_file_header!(user.me_file.id)
 
@@ -1260,7 +1240,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
                      meta_1: "Tiqit Refund"
                    })
                  else
-                   refund_amount = tiqit.tiqit_class.price
+                   refund_amount = tiqit.price || (tiqit.tiqit_class && tiqit.tiqit_class.price)
 
                    Wallets.apply_credit!(consumer_ledger, refund_amount, %{
                      description: "*REFUNDED*",
@@ -1288,7 +1268,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
                      })
                    else
                      creator_ledger = Wallets.get_or_create_creator_ledger_header(creator)
-                     refund_amount = tiqit.tiqit_class.price
+                     refund_amount = tiqit.price || (tiqit.tiqit_class && tiqit.tiqit_class.price)
 
                      Wallets.apply_entry!(creator_ledger, %{
                        amt: Decimal.negate(refund_amount),
@@ -1414,6 +1394,68 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
         nil
     end
   end
+
+  defp tiqit_content_preload do
+    [
+      content_piece: [content_group: [catalog: :creator]],
+      content_group: [catalog: :creator],
+      catalog: :creator,
+      tiqit_class: [
+        content_piece: [content_group: [catalog: :creator]],
+        content_group: [catalog: :creator],
+        catalog: :creator
+      ]
+    ]
+  end
+
+  defp preload_tiqit_content(tiqit), do: Repo.preload(tiqit, tiqit_content_preload())
+
+  defp tiqit_entitlement_creator(%Tiqit{} = tiqit) do
+    cond do
+      match?(%ContentPiece{}, tiqit.content_piece) and tiqit.content_piece.content_group ->
+        tiqit.content_piece.content_group.catalog.creator
+
+      match?(%ContentGroup{}, tiqit.content_group) and tiqit.content_group.catalog ->
+        tiqit.content_group.catalog.creator
+
+      match?(%Catalog{}, tiqit.catalog) ->
+        tiqit.catalog.creator
+
+      match?(%TiqitClass{}, tiqit.tiqit_class) ->
+        tiqit_class_creator(tiqit.tiqit_class)
+
+      true ->
+        nil
+    end
+  end
+
+  defp tiqit_entitlement_catalog(%Tiqit{} = tiqit) do
+    cond do
+      match?(%ContentPiece{}, tiqit.content_piece) and tiqit.content_piece.content_group ->
+        tiqit.content_piece.content_group.catalog
+
+      match?(%ContentGroup{}, tiqit.content_group) and tiqit.content_group.catalog ->
+        tiqit.content_group.catalog
+
+      match?(%Catalog{}, tiqit.catalog) ->
+        tiqit.catalog
+
+      match?(%TiqitClass{}, tiqit.tiqit_class) ->
+        tiqit_class_catalog(tiqit.tiqit_class)
+
+      true ->
+        nil
+    end
+  end
+
+  defp tiqit_entitlement_title(%Tiqit{content_piece: %ContentPiece{title: title}}), do: title
+  defp tiqit_entitlement_title(%Tiqit{content_group: %ContentGroup{title: title}}), do: title
+  defp tiqit_entitlement_title(%Tiqit{catalog: %Catalog{name: name}}), do: name
+
+  defp tiqit_entitlement_title(%Tiqit{tiqit_class: %TiqitClass{} = class}),
+    do: tiqit_content_title(class)
+
+  defp tiqit_entitlement_title(_), do: "Unknown"
 
   defp default_tiqit_class_grid() do
     [

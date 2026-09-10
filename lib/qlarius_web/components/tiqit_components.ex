@@ -10,6 +10,7 @@ defmodule QlariusWeb.TiqitComponents do
   alias Qlarius.ContentSharing
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Tiqit.Arcade.Catalog
+  alias Qlarius.Tiqit.Arcade.Tiqit
   alias Qlarius.Tiqit.Arcade.TiqitClass
 
   @tiqit_card_shell_class "tiqit-card-shell overflow-hidden rounded-lg"
@@ -919,17 +920,15 @@ defmodule QlariusWeb.TiqitComponents do
   end
 
   defp tiqit_image_url(tiqit) do
-    tc = tiqit.tiqit_class
-
     cond do
-      tc.content_piece ->
-        content_image_url(tc.content_piece, tc.content_piece.content_group)
+      piece = Tiqit.content_piece(tiqit) ->
+        content_image_url(piece, piece.content_group)
 
-      tc.content_group ->
-        group_image_url(tc.content_group)
+      group = Tiqit.content_group(tiqit) ->
+        group_image_url(group)
 
-      tc.catalog ->
-        catalog_image_url(tc.catalog)
+      catalog = Tiqit.catalog(tiqit) ->
+        catalog_image_url(catalog)
 
       true ->
         placeholder_image_url()
@@ -950,28 +949,25 @@ defmodule QlariusWeb.TiqitComponents do
   end
 
   def tiqit_title(tiqit) do
-    tc = tiqit.tiqit_class
-
     cond do
-      tc.content_piece -> tc.content_piece.title
-      tc.content_group -> tc.content_group.title
-      tc.catalog -> tc.catalog.name
+      piece = Tiqit.content_piece(tiqit) -> piece.title
+      group = Tiqit.content_group(tiqit) -> group.title
+      catalog = Tiqit.catalog(tiqit) -> catalog.name
       true -> "Unknown"
     end
   end
 
   def tiqit_scope_label(tiqit) do
-    tc = tiqit.tiqit_class
     catalog = tiqit_catalog(tiqit)
 
     cond do
-      tc.content_piece_id && catalog ->
+      Tiqit.scope_piece_id(tiqit) && catalog ->
         catalog.piece_type |> to_string() |> String.capitalize()
 
-      tc.content_group_id && catalog ->
+      Tiqit.scope_group_id(tiqit) && catalog ->
         catalog.group_type |> to_string() |> String.capitalize()
 
-      tc.catalog_id && catalog ->
+      Tiqit.scope_catalog_id(tiqit) && catalog ->
         catalog.type |> to_string() |> String.capitalize()
 
       true ->
@@ -984,33 +980,29 @@ defmodule QlariusWeb.TiqitComponents do
   # and serves content directly if active, or redirects to arcade if not.
   # Group/catalog: /arqade/... pages for browsing and selecting content.
   def tiqit_content_path(tiqit) do
-    tc = tiqit.tiqit_class
-
     cond do
-      tc.content_piece_id -> "/content/#{tc.content_piece_id}"
-      tc.content_group_id -> "/arqade/group/#{tc.content_group_id}"
-      tc.catalog_id -> "/arqade/catalog/#{tc.catalog_id}"
+      piece_id = Tiqit.scope_piece_id(tiqit) -> "/content/#{piece_id}"
+      group_id = Tiqit.scope_group_id(tiqit) -> "/arqade/group/#{group_id}"
+      catalog_id = Tiqit.scope_catalog_id(tiqit) -> "/arqade/catalog/#{catalog_id}"
       true -> nil
     end
   end
 
   defp tiqit_hierarchy(tiqit) do
-    tc = tiqit.tiqit_class
-
     cond do
-      tc.content_piece ->
-        group = tc.content_piece.content_group
+      piece = Tiqit.content_piece(tiqit) ->
+        group = piece.content_group
         catalog = group.catalog
         creator = catalog.creator
         [creator.name, catalog.name, group.title]
 
-      tc.content_group ->
-        catalog = tc.content_group.catalog
+      group = Tiqit.content_group(tiqit) ->
+        catalog = group.catalog
         creator = catalog.creator
         [creator.name, catalog.name]
 
-      tc.catalog ->
-        creator = tc.catalog.creator
+      catalog = Tiqit.catalog(tiqit) ->
+        creator = catalog.creator
         [creator.name]
 
       true ->
@@ -1019,39 +1011,26 @@ defmodule QlariusWeb.TiqitComponents do
   end
 
   defp tiqit_content_summary(tiqit) do
-    tc = tiqit.tiqit_class
     catalog = tiqit_catalog(tiqit)
 
     cond do
-      tc.content_group_id && catalog ->
-        count = Arcade.count_group_pieces(tc.content_group_id)
-        "#{count} #{Catalog.type_label(catalog.piece_type, count)}"
+      group_id = Tiqit.scope_group_id(tiqit) ->
+        if catalog do
+          count = Arcade.count_group_pieces(group_id)
+          "#{count} #{Catalog.type_label(catalog.piece_type, count)}"
+        end
 
-      tc.catalog_id && catalog ->
-        {group_count, piece_count} = Arcade.catalog_content_counts(tc.catalog_id)
+      catalog_id = Tiqit.scope_catalog_id(tiqit) ->
+        if catalog do
+          {group_count, piece_count} = Arcade.catalog_content_counts(catalog_id)
 
-        "#{piece_count} #{Catalog.type_label(catalog.piece_type, piece_count)} in #{group_count} #{Catalog.type_label(catalog.group_type, group_count)}"
-
-      true ->
-        nil
-    end
-  end
-
-  defp tiqit_catalog(tiqit) do
-    tc = tiqit.tiqit_class
-
-    cond do
-      tc.content_piece && Ecto.assoc_loaded?(tc.content_piece.content_group) ->
-        tc.content_piece.content_group.catalog
-
-      tc.content_group && Ecto.assoc_loaded?(tc.content_group.catalog) ->
-        tc.content_group.catalog
-
-      tc.catalog ->
-        tc.catalog
+          "#{piece_count} #{Catalog.type_label(catalog.piece_type, piece_count)} in #{group_count} #{Catalog.type_label(catalog.group_type, group_count)}"
+        end
 
       true ->
         nil
     end
   end
+
+  defp tiqit_catalog(tiqit), do: Tiqit.catalog(tiqit)
 end

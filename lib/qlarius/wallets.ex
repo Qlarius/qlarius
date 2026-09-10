@@ -505,51 +505,33 @@ defmodule Qlarius.Wallets do
     tiqit =
       Repo.get(Tiqit, tiqit_id)
       |> Repo.preload(
+        content_piece: [content_group: [catalog: :creator]],
+        content_group: [catalog: :creator],
+        catalog: :creator,
         tiqit_class: [
-          :content_piece,
-          :content_group,
-          content_piece: [
-            content_group: [
-              catalog: [:creator]
-            ]
-          ],
-          content_group: [
-            catalog: [:creator]
-          ]
+          content_piece: [content_group: [catalog: :creator]],
+          content_group: [catalog: :creator],
+          catalog: :creator
         ]
       )
 
     if tiqit do
-      # Handle different tiqit class types (content_piece vs content_group)
+      content_piece = Tiqit.content_piece(tiqit)
+      content_group = Tiqit.content_group(tiqit)
+      catalog = Tiqit.catalog(tiqit)
+
       creator =
         cond do
-          tiqit.tiqit_class.content_group && tiqit.tiqit_class.content_group.catalog ->
-            tiqit.tiqit_class.content_group.catalog.creator
-
-          tiqit.tiqit_class.content_piece && tiqit.tiqit_class.content_piece.content_group ->
-            tiqit.tiqit_class.content_piece.content_group.catalog.creator
-
-          true ->
-            nil
-        end
-
-      content_group =
-        cond do
-          tiqit.tiqit_class.content_group ->
-            tiqit.tiqit_class.content_group
-
-          tiqit.tiqit_class.content_piece && tiqit.tiqit_class.content_piece.content_group ->
-            tiqit.tiqit_class.content_piece.content_group
-
-          true ->
-            nil
+          content_group && content_group.catalog -> content_group.catalog.creator
+          catalog -> catalog.creator
+          true -> nil
         end
 
       %{
         tiqit: tiqit,
         creator: creator,
         content_group: content_group,
-        content_piece: tiqit.tiqit_class.content_piece
+        content_piece: content_piece
       }
     else
       nil

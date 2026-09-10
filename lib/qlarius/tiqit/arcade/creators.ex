@@ -280,16 +280,14 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
     has_tiqit? =
       Repo.exists?(
         from t in Tiqit,
-          join: tc in assoc(t, :tiqit_class),
-          where: tc.content_piece_id == ^piece_id
+          where: t.content_piece_id == ^piece_id
       )
 
     has_ledger? =
       Repo.exists?(
         from le in LedgerEntry,
           join: t in assoc(le, :tiqit),
-          join: tc in assoc(t, :tiqit_class),
-          where: tc.content_piece_id == ^piece_id,
+          where: t.content_piece_id == ^piece_id,
           where: not is_nil(le.tiqit_id)
       )
 

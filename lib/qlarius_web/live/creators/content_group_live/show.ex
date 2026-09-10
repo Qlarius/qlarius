@@ -205,30 +205,24 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
             {:noreply, put_flash(socket, :error, "Enter at least one duration and price.")}
 
           specs ->
-            Arcade.write_default_piece_tiqit_classes(group, mode: mode, classes: specs)
+            {:ok, kept_durations} =
+              Arcade.write_default_piece_tiqit_classes(group, mode: mode, classes: specs)
+
             content_group = Creators.get_content_group!(group.id)
 
             piece_label =
               Catalog.type_label(socket.assigns.catalog.piece_type, 2, capitalize: false)
 
-            info =
-              case mode do
-                :fill_in ->
-                  "Filled in missing Tiqit classes on all #{piece_label}."
+            socket =
+              socket
+              |> assign(:content_group, content_group)
+              |> assign(
+                :piece_class_defaults,
+                Enum.map(specs, &piece_class_default_row/1)
+              )
+              |> refresh_piece_class_defaults_form()
 
-                :overwrite ->
-                  "Overwrote Tiqit pricing on all #{piece_label}."
-              end
-
-            {:noreply,
-             socket
-             |> assign(:content_group, content_group)
-             |> assign(
-               :piece_class_defaults,
-               Enum.map(specs, &piece_class_default_row/1)
-             )
-             |> refresh_piece_class_defaults_form()
-             |> put_flash(:info, info)}
+            {:noreply, flash_piece_class_defaults(socket, mode, piece_label, kept_durations)}
         end
     end
   end
@@ -259,6 +253,27 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
   end
 
   defp empty_piece_class_default_row, do: %{duration_hours: nil, price: ""}
+
+  defp flash_piece_class_defaults(socket, :fill_in, piece_label, _kept) do
+    put_flash(socket, :info, "Filled in missing Tiqit classes on all #{piece_label}.")
+  end
+
+  defp flash_piece_class_defaults(socket, :overwrite, piece_label, []) do
+    put_flash(socket, :info, "Overwrote Tiqit pricing on all #{piece_label}.")
+  end
+
+  defp flash_piece_class_defaults(socket, :overwrite, piece_label, kept_durations) do
+    kept =
+      kept_durations
+      |> Enum.map(&TiqitClassHTML.format_tiqit_class_duration/1)
+      |> Enum.join(", ")
+
+    put_flash(
+      socket,
+      :error,
+      "Updated pricing on all #{piece_label}, but could not remove #{kept} because purchased tiqits still use #{if length(kept_durations) == 1, do: "that class", else: "those classes"}."
+    )
+  end
 
   defp refresh_piece_class_defaults_form(socket) do
     assign(
