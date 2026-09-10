@@ -2,13 +2,16 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
   use QlariusWeb, :live_view
 
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
+  alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.Creators
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Tiqit.Arcade.ContentGroup
+  alias Qlarius.Tiqit.Arcade.TiqitClass
   alias QlariusWeb.Creators.ContentGroupHTML
   alias QlariusWeb.Helpers.ImageHelpers
   alias QlariusWeb.TiqitClassHTML
   import QlariusWeb.CoreComponents
+  import QlariusWeb.Money, only: [format_usd: 2]
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -21,7 +24,9 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
      |> assign(:content_group, content_group)
      |> assign(:catalog, catalog)
      |> assign(:creator, creator)
-     |> assign(:page_title, content_group.title)}
+     |> assign(:page_title, content_group.title)
+     |> assign(:piece_class_defaults, piece_class_defaults_from_group(content_group))
+     |> assign(:piece_class_defaults_form_id, "piece-class-defaults-form")}
   end
 
   @impl true
@@ -96,6 +101,56 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
 
   def handle_event("move_piece", _params, socket), do: {:noreply, socket}
 
+  def handle_event("update_piece_class_defaults", %{"defaults" => defaults} = params, socket) do
+    socket = assign(socket, :piece_class_defaults, parse_piece_class_default_rows(defaults))
+
+    case params["mode"] do
+      mode when mode in ["overwrite", "fill_in"] ->
+        apply_piece_class_defaults(socket, String.to_existing_atom(mode))
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("update_piece_class_defaults", _params, socket), do: {:noreply, socket}
+
+  def handle_event("add_piece_class_default", _params, socket) do
+    rows = socket.assigns.piece_class_defaults ++ [empty_piece_class_default_row()]
+
+    {:noreply,
+     socket
+     |> assign(:piece_class_defaults, rows)
+     |> refresh_piece_class_defaults_form()}
+  end
+
+  def handle_event("remove_piece_class_default", %{"index" => index}, socket) do
+    case Integer.parse(to_string(index)) do
+      {idx, _} ->
+        rows = List.delete_at(socket.assigns.piece_class_defaults, idx)
+
+        {:noreply,
+         socket
+         |> assign(:piece_class_defaults, rows)
+         |> refresh_piece_class_defaults_form()}
+
+      :error ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event(
+        "apply_piece_class_defaults",
+        %{"defaults" => defaults, "mode" => mode},
+        socket
+      )
+      when mode in ["overwrite", "fill_in"] do
+    socket = assign(socket, :piece_class_defaults, parse_piece_class_default_rows(defaults))
+    apply_piece_class_defaults(socket, String.to_existing_atom(mode))
+  end
+
+  def handle_event("apply_piece_class_defaults", _params, socket), do: {:noreply, socket}
+
   def handle_event("apply_piece_order_preset", params, socket) do
     preset = Map.get(params, "preset", "")
 
@@ -134,6 +189,132 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
     a = Enum.at(list, i)
     b = Enum.at(list, j)
     list |> List.replace_at(i, b) |> List.replace_at(j, a)
+  end
+
+  defp apply_piece_class_defaults(socket, mode) do
+    group = socket.assigns.content_group
+    pieces = ContentGroup.active_content_pieces(group.content_pieces)
+
+    cond do
+      pieces == [] ->
+        {:noreply, put_flash(socket, :error, "Add content pieces before applying pricing.")}
+
+      true ->
+        case piece_class_default_specs(socket.assigns.piece_class_defaults) do
+          [] ->
+            {:noreply, put_flash(socket, :error, "Enter at least one duration and price.")}
+
+          specs ->
+            Arcade.write_default_piece_tiqit_classes(group, mode: mode, classes: specs)
+            content_group = Creators.get_content_group!(group.id)
+
+            piece_label =
+              Catalog.type_label(socket.assigns.catalog.piece_type, 2, capitalize: false)
+
+            info =
+              case mode do
+                :fill_in ->
+                  "Filled in missing Tiqit classes on all #{piece_label}."
+
+                :overwrite ->
+                  "Overwrote Tiqit pricing on all #{piece_label}."
+              end
+
+            {:noreply,
+             socket
+             |> assign(:content_group, content_group)
+             |> assign(
+               :piece_class_defaults,
+               Enum.map(specs, &piece_class_default_row/1)
+             )
+             |> refresh_piece_class_defaults_form()
+             |> put_flash(:info, info)}
+        end
+    end
+  end
+
+  defp piece_class_defaults_from_group(group) do
+    first_with_classes =
+      group.content_pieces
+      |> ContentGroup.active_content_pieces()
+      |> Enum.find(&(is_list(&1.tiqit_classes) and &1.tiqit_classes != []))
+
+    specs =
+      if first_with_classes do
+        first_with_classes.tiqit_classes
+        |> TiqitClass.order_by_duration_hours_asc()
+        |> Enum.map(&%{duration_hours: &1.duration_hours, price: &1.price})
+      else
+        Arcade.default_piece_tiqit_class_specs()
+      end
+
+    Enum.map(specs, &piece_class_default_row/1)
+  end
+
+  defp piece_class_default_row(spec) do
+    %{
+      duration_hours: spec.duration_hours,
+      price: spec.price |> to_string()
+    }
+  end
+
+  defp empty_piece_class_default_row, do: %{duration_hours: nil, price: ""}
+
+  defp refresh_piece_class_defaults_form(socket) do
+    assign(
+      socket,
+      :piece_class_defaults_form_id,
+      "piece-class-defaults-form-#{System.unique_integer([:positive])}"
+    )
+  end
+
+  defp parse_piece_class_default_rows(defaults) when is_map(defaults) do
+    defaults
+    |> Enum.sort_by(fn {key, _} ->
+      case Integer.parse(to_string(key)) do
+        {idx, _} -> idx
+        :error -> 0
+      end
+    end)
+    |> Enum.map(fn {_key, row} ->
+      hours =
+        case Integer.parse(to_string(row["duration_hours"] || "")) do
+          {value, _} -> value
+          :error -> nil
+        end
+
+      %{duration_hours: hours, price: row["price"] || ""}
+    end)
+  end
+
+  defp piece_class_default_specs(rows) do
+    rows
+    |> Enum.flat_map(fn row ->
+      price = parse_price(row.price)
+
+      if is_integer(row.duration_hours) and row.duration_hours > 0 and price do
+        [%{duration_hours: row.duration_hours, price: price}]
+      else
+        []
+      end
+    end)
+  end
+
+  defp parse_price(value) do
+    value
+    |> to_string()
+    |> String.trim()
+    |> String.replace(",", "")
+    |> case do
+      "" ->
+        nil
+
+      trimmed ->
+        case Decimal.parse(trimmed) do
+          {decimal, ""} -> decimal
+          _ -> nil
+        end
+    end
   end
 
   @impl true
@@ -288,6 +469,123 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                       </div>
                     <% end %>
                   </div>
+
+                  <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                      <h2 class="text-xl font-semibold text-base-content flex items-center">
+                        <.icon name="hero-tag" class="w-6 h-6 mr-3 text-primary" />
+                        {Catalog.type_label(@catalog.piece_type, 1)} Tiqit Class Defaults
+                      </h2>
+                    </div>
+
+                    <div class="card bg-base-100 shadow-lg">
+                      <div class="card-body space-y-4">
+                        <p class="text-sm text-base-content/70">
+                          Edit the default duration and price grid, then apply it to every {Catalog.type_label(
+                            @catalog.piece_type,
+                            2,
+                            capitalize: false
+                          )} in this group. Fill in missing leaves existing prices alone; overwrite replaces matching durations and removes classes that are no longer in this grid.
+                        </p>
+
+                        <form
+                          id={@piece_class_defaults_form_id}
+                          phx-change="update_piece_class_defaults"
+                          phx-submit="apply_piece_class_defaults"
+                        >
+                          <div class="overflow-x-auto">
+                            <table class="table table-zebra w-full">
+                              <thead class="bg-base-200">
+                                <tr>
+                                  <th class="font-semibold text-base-content text-left">
+                                    Duration (hours)
+                                  </th>
+                                  <th class="font-semibold text-base-content text-left">Price ($)</th>
+                                  <th class="font-semibold text-base-content text-right">
+                                    <span class="sr-only">Remove</span>
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <%= for {row, idx} <- Enum.with_index(@piece_class_defaults) do %>
+                                  <tr>
+                                    <td>
+                                      <input
+                                        type="number"
+                                        name={"defaults[#{idx}][duration_hours]"}
+                                        value={row.duration_hours}
+                                        min="1"
+                                        class="input input-bordered input-sm w-full max-w-32"
+                                      />
+                                    </td>
+                                    <td>
+                                      <input
+                                        type="text"
+                                        name={"defaults[#{idx}][price]"}
+                                        value={row.price}
+                                        inputmode="decimal"
+                                        class="input input-bordered input-sm w-full max-w-32"
+                                      />
+                                    </td>
+                                    <td class="text-right">
+                                      <button
+                                        type="button"
+                                        phx-click="remove_piece_class_default"
+                                        phx-value-index={idx}
+                                        class="btn btn-ghost btn-sm text-error"
+                                        aria-label="Remove default class"
+                                      >
+                                        <.icon name="hero-x-mark" class="w-4 h-4" />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                <% end %>
+                              </tbody>
+                            </table>
+                          </div>
+
+                          <div class="mt-4 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              phx-click="add_piece_class_default"
+                              class="btn btn-outline btn-sm"
+                            >
+                              <.icon name="hero-plus" class="w-4 h-4 mr-2" /> Add class
+                            </button>
+                            <button
+                              type="submit"
+                              name="mode"
+                              value="fill_in"
+                              class="btn btn-outline btn-primary btn-sm"
+                              disabled={
+                                !ContentGroup.has_active_content_pieces?(
+                                  @content_group.content_pieces
+                                )
+                              }
+                            >
+                              Fill in missing
+                            </button>
+                            <button
+                              type="submit"
+                              name="mode"
+                              value="overwrite"
+                              data-confirm="Overwrite existing piece prices to match these defaults? Classes not in this grid will be removed from every piece."
+                              class="btn btn-primary btn-sm"
+                              disabled={
+                                !ContentGroup.has_active_content_pieces?(
+                                  @content_group.content_pieces
+                                )
+                              }
+                            >
+                              Overwrite all {Catalog.type_label(@catalog.piece_type, 2,
+                                capitalize: false
+                              )}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
                   
     <!-- Content Pieces Section -->
                   <div class="space-y-4">
@@ -361,6 +659,30 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                                           <.icon name="hero-tag" class="w-3 h-3" />
                                           {length(piece.tiqit_classes)} classes
                                         </span>
+                                      </div>
+
+                                      <div class="flex flex-wrap gap-1 pt-1">
+                                        <%= if piece.tiqit_classes == [] do %>
+                                          <span class="text-xs text-base-content/50">
+                                            No {Catalog.type_label(@catalog.piece_type, 1,
+                                              capitalize: false
+                                            )} classes
+                                          </span>
+                                        <% else %>
+                                          <span
+                                            :for={
+                                              tc <-
+                                                TiqitClass.order_by_duration_hours_asc(
+                                                  piece.tiqit_classes
+                                                )
+                                            }
+                                            class="badge badge-outline badge-sm"
+                                          >
+                                            {TiqitClassHTML.format_tiqit_class_duration(
+                                              tc.duration_hours
+                                            )} · {format_usd(tc.price, zero_free: true)}
+                                          </span>
+                                        <% end %>
                                       </div>
 
                                       <%= if @content_group.show_piece_descriptions && piece.description do %>

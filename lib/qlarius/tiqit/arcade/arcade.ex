@@ -639,12 +639,83 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     end)
   end
 
-  def write_default_piece_tiqit_classes(%ContentPiece{} = piece) do
+  @doc """
+  Writes piece-scoped Tiqit classes onto a piece or every active piece in a group.
+
+  Opts:
+    * `:mode` - `:overwrite` (default) upserts matching durations and deletes
+      classes whose duration is not in the submitted grid. `:fill_in` inserts
+      missing durations only and never deletes.
+    * `:classes` - list of `%{duration_hours:, price:}`. Defaults to
+      `default_piece_tiqit_class_specs/0`.
+  """
+  def write_default_piece_tiqit_classes(target, opts \\ [])
+
+  def write_default_piece_tiqit_classes(%ContentPiece{} = piece, opts) when is_list(opts) do
+    apply_piece_default_tiqit_classes(piece, opts)
+    :ok
+  end
+
+  def write_default_piece_tiqit_classes(%ContentGroup{} = group, opts) when is_list(opts) do
+    group = Repo.preload(group, content_pieces: :tiqit_classes)
+
+    {:ok, _} =
+      Repo.transaction(fn ->
+        group.content_pieces
+        |> ContentGroup.active_content_pieces()
+        |> Enum.each(&apply_piece_default_tiqit_classes(&1, opts))
+      end)
+
+    :ok
+  end
+
+  def default_piece_tiqit_class_specs do
     default_tiqit_class_grid()
-    |> Enum.each(fn duration_map ->
+    |> Enum.map(fn duration_map ->
       [{duration, prices}] = Map.to_list(duration_map)
-      upsert_tiqit_class(duration, prices.piece, content_piece_id: piece.id)
+
+      %{
+        duration_hours: duration,
+        price: prices.piece |> to_string() |> Decimal.new()
+      }
     end)
+  end
+
+  defp apply_piece_default_tiqit_classes(%ContentPiece{} = piece, opts) do
+    mode = Keyword.get(opts, :mode, :overwrite)
+
+    unless mode in [:overwrite, :fill_in] do
+      raise ArgumentError, "expected :mode to be :overwrite or :fill_in, got: #{inspect(mode)}"
+    end
+
+    specs = Keyword.get(opts, :classes) || default_piece_tiqit_class_specs()
+
+    Enum.each(specs, fn spec ->
+      duration = Map.fetch!(spec, :duration_hours)
+      price = Map.fetch!(spec, :price)
+
+      case Repo.get_by(TiqitClass, duration_hours: duration, content_piece_id: piece.id) do
+        nil ->
+          upsert_tiqit_class(duration, price, content_piece_id: piece.id)
+
+        _existing when mode == :fill_in ->
+          :ok
+
+        existing ->
+          existing
+          |> TiqitClass.changeset(%{price: price})
+          |> Repo.update!()
+      end
+    end)
+
+    if mode == :overwrite and specs != [] do
+      keep_durations = MapSet.new(specs, &Map.fetch!(&1, :duration_hours))
+
+      from(tc in TiqitClass, where: tc.content_piece_id == ^piece.id)
+      |> Repo.all()
+      |> Enum.reject(&MapSet.member?(keep_durations, &1.duration_hours))
+      |> Enum.each(&Repo.delete!/1)
+    end
   end
 
   # Helper function to upsert (insert or update) tiqit classes
