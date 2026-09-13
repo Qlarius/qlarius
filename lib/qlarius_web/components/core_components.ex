@@ -874,7 +874,7 @@ defmodule QlariusWeb.CoreComponents do
       class="relative z-[150] hidden"
     >
       <.backdrop id={"#{@id}-bg"} />
-      
+
     <!-- Modal Container -->
       <!--
         Centered dialog: default width is `min(100%, max-content)` so narrow
@@ -916,7 +916,7 @@ defmodule QlariusWeb.CoreComponents do
                   <.icon name="hero-x-mark" class="w-5 h-5" />
                 </button>
               </div>
-              
+
     <!-- Modal Content -->
               <div id={"#{@id}-content"} class="p-0">
                 {render_slot(@inner_block)}
@@ -958,13 +958,13 @@ defmodule QlariusWeb.CoreComponents do
   InstaTip amount button grid. Shared by InstaTipComponents and SplitComponents
   to avoid circular dependencies.
 
-  `wallet_balance` is unused for enablement — amount buttons stay tappable.
-  The confirm modal explains a credit-tip throttle or amounts that need
-  earned funds; the backend remains authoritative. For anonymous viewers
-  `wallet_balance` may be nil and `initiate_insta_tip` opens Connect.
+  Enablement uses `available_to_tip` (activity), not `wallet_balance`
+  (spendable). Anonymous viewers pass `available_to_tip` nil so buttons
+  stay tappable and `initiate_insta_tip` opens Connect.
   """
   attr :amounts, :list, required: true
   attr :wallet_balance, :any, required: true
+  attr :available_to_tip, :any, default: nil
   attr :target, :any, default: nil
   attr :add_class, :string, default: nil
   attr :recipient_id, :integer, default: nil
@@ -973,13 +973,18 @@ defmodule QlariusWeb.CoreComponents do
     ~H"""
     <div class={["grid grid-cols-2 sm:grid-cols-4 gap-3 justify-items-center", @add_class]}>
       <%= for amount <- @amounts do %>
+        <% enabled? = insta_tip_amount_enabled?(@available_to_tip, amount) %>
         <button
           type="button"
           phx-click="initiate_insta_tip"
           phx-target={@target}
           phx-value-amount={amount}
           phx-value-recipient-id={@recipient_id}
-          class="btn-widget btn-circle btn-lg font-bold p-8 shrink-0"
+          disabled={not enabled?}
+          class={[
+            "btn-widget btn-circle btn-lg font-bold p-8 shrink-0",
+            not enabled? && "opacity-40 cursor-not-allowed pointer-events-none"
+          ]}
         >
           <span>
             <%= case to_string(amount) do %>
@@ -1000,6 +1005,56 @@ defmodule QlariusWeb.CoreComponents do
     </div>
     """
   end
+
+  @doc """
+  InstaTip strip. Shows only the activity amount that can be tipped.
+  Full wallet is already in the host chrome (header / footer).
+  """
+  attr :id, :string, required: true
+  attr :wallet_balance, :any, required: true
+  attr :available_to_tip, :any, default: nil
+
+  def insta_tip_funds_line(assigns) do
+    assigns = assign(assigns, :credit_excluded, credit_excluded(assigns))
+
+    ~H"""
+    <div class="mb-2 md:mb-4 flex flex-col items-center md:items-start gap-0.5">
+      <div class="text-base-content/70 text-sm inline-flex flex-wrap items-center justify-center md:justify-start gap-1">
+        Wallet available for tipping
+        <.icon name="hero-arrow-right" class="w-4 h-4 inline-block shrink-0" />
+        <span id={@id} class="font-semibold text-base-content">
+          {QlariusWeb.Money.format_usd(@available_to_tip || Decimal.new("0.00"))}
+        </span>
+      </div>
+      <p :if={@credit_excluded} class="text-xs text-base-content/50">
+        Credit amount ({QlariusWeb.Money.format_usd(@credit_excluded)}) excluded
+      </p>
+    </div>
+    """
+  end
+
+  defp insta_tip_amount_enabled?(nil, _amount), do: true
+
+  defp insta_tip_amount_enabled?(available_to_tip, amount) do
+    Decimal.compare(to_tip_decimal(available_to_tip), to_tip_decimal(amount)) != :lt
+  end
+
+  defp credit_excluded(%{available_to_tip: tippable, wallet_balance: wallet})
+       when not is_nil(tippable) and not is_nil(wallet) do
+    credit = Decimal.sub(to_tip_decimal(wallet), to_tip_decimal(tippable))
+
+    if Decimal.compare(credit, Decimal.new("0")) == :gt do
+      credit
+    end
+  end
+
+  defp credit_excluded(_), do: nil
+
+  defp to_tip_decimal(%Decimal{} = n), do: n
+  defp to_tip_decimal(n) when is_binary(n), do: Decimal.new(n)
+  defp to_tip_decimal(n) when is_integer(n), do: Decimal.new(n)
+  defp to_tip_decimal(n) when is_float(n), do: Decimal.from_float(n)
+  defp to_tip_decimal(_), do: Decimal.new("0.00")
 
   ## --------------------
   ##      CUSTOM

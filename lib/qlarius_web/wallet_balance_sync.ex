@@ -93,7 +93,8 @@ defmodule QlariusWeb.WalletBalanceSync do
   def assign_wallet_fields(socket, new_balance) do
     case socket.assigns[:current_scope] do
       scope when not is_nil(scope) ->
-        current_scope = put_scope_wallet_balance(scope, new_balance)
+        tippable = tippable_for_scope(scope)
+        current_scope = Scope.put_wallet(scope, new_balance, tippable)
 
         socket
         |> assign(:current_scope, current_scope)
@@ -111,7 +112,29 @@ defmodule QlariusWeb.WalletBalanceSync do
   def refetch_and_assign(socket) do
     case socket.assigns[:current_scope] do
       %{user: user} ->
-        assign_wallet_fields(socket, Wallets.get_user_current_balance(user))
+        me_file =
+          case user do
+            %{me_file: %MeFile{id: id}} when is_integer(id) -> Repo.get(MeFile, id)
+            _ -> Repo.preload(user, :me_file).me_file
+          end
+
+        summary = Wallets.consumer_wallet_summary(me_file)
+
+        case socket.assigns[:current_scope] do
+          scope when not is_nil(scope) ->
+            current_scope =
+              Scope.put_wallet(scope, summary.available_to_spend, summary.available_to_tip)
+
+            socket
+            |> assign(:current_scope, current_scope)
+            |> maybe_assign(:current_balance, summary.available_to_spend)
+            |> maybe_assign(:balance, summary.available_to_spend)
+            |> maybe_push_extension_balance(summary.available_to_spend)
+            |> maybe_assign_daily_gift_available()
+
+          _ ->
+            socket
+        end
 
       _ ->
         socket
@@ -338,28 +361,31 @@ defmodule QlariusWeb.WalletBalanceSync do
     |> assign(:ledger_header, ledger_header)
     |> assign(:wallet_summary, summary)
     |> assign(:paginated_entries, paginated_entries)
-    |> maybe_put_scope_wallet_balance(summary.available_to_spend)
+    |> maybe_put_scope_wallet(summary.available_to_spend, summary.available_to_tip)
   end
 
-  defp maybe_put_scope_wallet_balance(socket, new_balance) do
+  defp maybe_put_scope_wallet(socket, spendable, tippable) do
     case socket.assigns[:current_scope] do
       nil ->
         socket
 
       scope ->
-        assign(socket, :current_scope, put_scope_wallet_balance(scope, new_balance))
+        assign(socket, :current_scope, Scope.put_wallet(scope, spendable, tippable))
     end
   end
 
-  # Only `wallet_balance` is spendable. `ledger_header.balance` is activity and
-  # must not be overwritten — a later refetch would add credit allowance twice.
-  defp put_scope_wallet_balance(%Scope{} = scope, new_balance) do
-    %{scope | wallet_balance: new_balance}
+  defp tippable_for_scope(%{available_to_tip: %Decimal{} = tippable}), do: tippable
+
+  defp tippable_for_scope(%{user: %{me_file: %MeFile{} = me_file}}) do
+    Wallets.available_to_tip(me_file)
   end
 
-  defp put_scope_wallet_balance(scope, new_balance) when is_map(scope) do
-    Map.put(scope, :wallet_balance, new_balance)
+  defp tippable_for_scope(%{user: user}) when not is_nil(user) do
+    me_file = Repo.preload(user, :me_file).me_file
+    Wallets.available_to_tip(me_file)
   end
+
+  defp tippable_for_scope(_), do: Decimal.new("0.00")
 
   defp maybe_push_extension_balance(socket, new_balance) do
     if Map.get(socket.assigns, :extension_wallet_push?) && Phoenix.LiveView.connected?(socket) do

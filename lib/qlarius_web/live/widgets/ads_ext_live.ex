@@ -289,6 +289,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
             recipient_name={(tip_recipient && tip_recipient.name) || "Recipient"}
             recipient_id={tip_recipient && tip_recipient.id}
             amount={@insta_tip_amount || Decimal.new("0.00")}
+            requested_amount={assigns[:insta_tip_requested_amount]}
             current_balance={@current_scope.wallet_balance}
             notice={assigns[:insta_tip_notice]}
           />

@@ -2,6 +2,7 @@ defmodule QlariusWeb.RegistrationLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.Accounts
+  alias Qlarius.Accounts.DevProxySignup
   alias Qlarius.YouData.Traits
   alias QlariusWeb.Components.AuthSteps
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
@@ -252,30 +253,33 @@ defmodule QlariusWeb.RegistrationLive do
     phone = socket.assigns.mobile_number
     formatted_phone = if String.starts_with?(phone, "+"), do: phone, else: "+1#{phone}"
 
-    case Qlarius.Auth.get_user_by_phone(formatted_phone) do
-      nil ->
+    case DevProxySignup.resolve_true_user(formatted_phone) do
+      {:ok, true_user} ->
+        require Logger
+
+        Logger.info(
+          "🧑‍💼 DEV-PROXY-SIGNUP: attaching new user under #{true_user.alias} (id=#{true_user.id})"
+        )
+
+        socket =
+          socket
+          |> assign(:mode, "proxy")
+          |> assign(:true_user_id, true_user.id)
+          |> assign(:proxy_offer_user, nil)
+          |> assign(:mobile_number_exists, false)
+
         dispatch_send_verification_code(socket)
 
-      %{role: "admin"} = existing_user ->
-        # Admin phone: offer the proxy-under-this-account escape hatch instead
-        # of dead-ending at a "log in instead" error. Verifying the code proves
-        # the caller controls this admin's phone, which authorizes them to
-        # spawn a proxy user beneath the admin account. No code is sent until
-        # the admin explicitly accepts the offer via `accept_proxy_offer`.
+      {:error, :true_user_missing} ->
         {:noreply,
          socket
-         |> assign(:proxy_offer_user, existing_user)
-         |> assign(:mobile_number_exists, true)
-         |> assign(:mobile_number_error, nil)
-         |> assign(:code_sent, false)}
-
-      _existing_user ->
-        {:noreply,
-         socket
-         |> assign(:mobile_number_error, "This mobile number is already registered.")
-         |> assign(:mobile_number_exists, true)
+         |> assign(:mobile_number_error, DevProxySignup.missing_true_user_message())
+         |> assign(:mobile_number_exists, false)
          |> assign(:proxy_offer_user, nil)
          |> assign(:code_sent, false)}
+
+      :ignore ->
+        send_verification_code_for_existing_or_new(socket, formatted_phone)
     end
   end
 
@@ -554,7 +558,9 @@ defmodule QlariusWeb.RegistrationLive do
             # socket (they arrived anonymously at /register and proved phone
             # ownership). Auto-login as the freshly created proxy user so they
             # land on /home instead of bouncing off /proxy_users.
-            socket.assigns.mode == "proxy" and not is_nil(socket.assigns.proxy_offer_user) ->
+            socket.assigns.mode == "proxy" and
+                (not is_nil(socket.assigns.proxy_offer_user) or
+                   DevProxySignup.omit_persisted_phone?(socket.assigns.mobile_number)) ->
               token = Accounts.generate_user_login_token(result.user.id)
 
               {:noreply,
@@ -678,6 +684,34 @@ defmodule QlariusWeb.RegistrationLive do
   # Actually send (or bypass) the SMS verification code for the phone number
   # currently in `socket.assigns.mobile_number`. Extracted so the happy path
   # and the admin proxy-offer acceptance path share the same plumbing.
+  defp send_verification_code_for_existing_or_new(socket, formatted_phone) do
+    case Qlarius.Auth.get_user_by_phone(formatted_phone) do
+      nil ->
+        dispatch_send_verification_code(socket)
+
+      %{role: "admin"} = existing_user ->
+        # Admin phone: offer the proxy-under-this-account escape hatch instead
+        # of dead-ending at a "log in instead" error. Verifying the code proves
+        # the caller controls this admin's phone, which authorizes them to
+        # spawn a proxy user beneath the admin account. No code is sent until
+        # the admin explicitly accepts the offer via `accept_proxy_offer`.
+        {:noreply,
+         socket
+         |> assign(:proxy_offer_user, existing_user)
+         |> assign(:mobile_number_exists, true)
+         |> assign(:mobile_number_error, nil)
+         |> assign(:code_sent, false)}
+
+      _existing_user ->
+        {:noreply,
+         socket
+         |> assign(:mobile_number_error, "This mobile number is already registered.")
+         |> assign(:mobile_number_exists, true)
+         |> assign(:proxy_offer_user, nil)
+         |> assign(:code_sent, false)}
+    end
+  end
+
   defp dispatch_send_verification_code(socket) do
     phone = socket.assigns.mobile_number
     formatted_phone = if String.starts_with?(phone, "+"), do: phone, else: "+1#{phone}"
@@ -733,6 +767,7 @@ defmodule QlariusWeb.RegistrationLive do
     mobile_number =
       cond do
         socket.assigns.mode == "proxy" and not is_nil(socket.assigns.proxy_offer_user) -> nil
+        DevProxySignup.omit_persisted_phone?(socket.assigns.mobile_number) -> nil
         socket.assigns.mobile_number == "" -> nil
         true -> socket.assigns.mobile_number
       end

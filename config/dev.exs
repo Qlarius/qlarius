@@ -191,6 +191,13 @@ config :qlarius, :twilio_filter_us_carriers, true
 # Set to true when testing registration flow without real SMS
 config :qlarius, bypass_phone_verification: true
 
+# Local proxy signup: entering this phone (OTP still 000000) attaches
+# the new user as an active proxy under the given true-user alias.
+# The trigger phone is not persisted. Leave unset in prod/test.
+config :qlarius, :dev_proxy_signup,
+  trigger_phone: "5551234567",
+  true_user_alias: "trae@qlarius.com"
+
 # AuthSheet dev rollout. Enable on all three surfaces we have wired
 # so far so B2+ in-place sign-in can be smoke-tested locally:
 #   - `on_qlink_page` — qlink.qadabra.app / localhost qlink pages (B2)

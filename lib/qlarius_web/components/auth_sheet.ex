@@ -78,6 +78,7 @@ defmodule QlariusWeb.Components.AuthSheet do
   alias Phoenix.LiveView.JS
   alias Qlarius.Accounts
   alias Qlarius.Accounts.AliasGenerator
+  alias Qlarius.Accounts.DevProxySignup
   alias Qlarius.Auth, as: AuthCtx
   alias Qlarius.Auth.AuditLog
   alias Qlarius.Auth.PhoneCarrierRejection
@@ -107,6 +108,7 @@ defmodule QlariusWeb.Components.AuthSheet do
      |> assign(:signup_error, nil)
      |> assign(:in_iframe, false)
      |> assign(:signup_initialized, false)
+     |> assign(:true_user_id, nil)
      |> assign(:carrier_info, nil)
      |> assign(:pending_carrier_info, nil)
      |> assign(:carrier_rejection_message, nil)
@@ -316,7 +318,8 @@ defmodule QlariusWeb.Components.AuthSheet do
     {:noreply,
      socket
      |> assign(:mobile_number, AuthSteps.format_phone_number(to_string(raw)))
-     |> assign(:mobile_number_error, nil)}
+     |> assign(:mobile_number_error, nil)
+     |> assign(:true_user_id, nil)}
   end
 
   def handle_event("send_code", _params, socket) do
@@ -646,6 +649,53 @@ defmodule QlariusWeb.Components.AuthSheet do
     ip = socket.assigns.client_ip
     surface = socket.assigns.surface
 
+    case DevProxySignup.resolve_true_user(formatted_phone) do
+      {:ok, true_user} ->
+        require Logger
+
+        Logger.info(
+          "🧑‍💼 DEV-PROXY-SIGNUP: attaching new user under #{true_user.alias} (id=#{true_user.id})"
+        )
+
+        AuditLog.log(:"verify_code.allowed", %{
+          phone: formatted_phone,
+          ip: ip,
+          surface: surface,
+          outcome: :new_user_branch,
+          true_user_id: true_user.id
+        })
+
+        {:noreply,
+         socket
+         |> assign(:true_user_id, true_user.id)
+         |> init_signup_assigns()
+         |> assign(:state, :signup_intro)
+         |> assign(:verification_code_error, nil)
+         |> assign(:finalize_error, nil)}
+
+      {:error, :true_user_missing} ->
+        AuditLog.log(:"verify_code.denied", %{
+          phone: formatted_phone,
+          ip: ip,
+          surface: surface,
+          reason: :dev_proxy_true_user_missing
+        })
+
+        {:noreply,
+         socket
+         |> assign(:true_user_id, nil)
+         |> assign(:verification_code, "")
+         |> assign(:verification_code_error, DevProxySignup.missing_true_user_message())}
+
+      :ignore ->
+        branch_on_existing_or_signup(assign(socket, :true_user_id, nil), formatted_phone)
+    end
+  end
+
+  defp branch_on_existing_or_signup(socket, formatted_phone) do
+    ip = socket.assigns.client_ip
+    surface = socket.assigns.surface
+
     case AuthCtx.get_user_by_phone(formatted_phone) do
       nil ->
         AuditLog.log(:"verify_code.allowed", %{
@@ -758,6 +808,7 @@ defmodule QlariusWeb.Components.AuthSheet do
           referral_source: ReferralContext.source(socket.assigns.referral_context)
         })
 
+        maybe_activate_dev_proxy(socket, user)
         finalize_for_user(socket, user)
 
       {:error, failed_step, _failed_value, _changes_so_far} ->
@@ -790,13 +841,14 @@ defmodule QlariusWeb.Components.AuthSheet do
       )
 
     mobile_number =
-      case assigns.mobile_number do
-        "" -> nil
-        phone when is_binary(phone) -> format_phone(phone)
-        _ -> nil
+      cond do
+        DevProxySignup.omit_persisted_phone?(assigns.mobile_number) -> nil
+        assigns.mobile_number == "" -> nil
+        is_binary(assigns.mobile_number) -> format_phone(assigns.mobile_number)
+        true -> nil
       end
 
-    %{
+    attrs = %{
       alias: assigns.alias,
       mobile_number: mobile_number,
       role: "user",
@@ -806,6 +858,18 @@ defmodule QlariusWeb.Components.AuthSheet do
       zip_code_trait_id: if(assigns.zip_lookup_valid, do: assigns.zip_lookup_trait.id, else: nil),
       home_zip: if(assigns.zip_lookup_valid, do: assigns.zip_lookup_input, else: nil)
     }
+
+    case assigns[:true_user_id] do
+      id when is_integer(id) -> Map.put(attrs, :true_user_id, id)
+      _ -> attrs
+    end
+  end
+
+  defp maybe_activate_dev_proxy(socket, user) do
+    case socket.assigns[:true_user_id] do
+      id when is_integer(id) -> Accounts.activate_proxy_user(id, user.id)
+      _ -> :ok
+    end
   end
 
   # --------------------------------------------------------------------

@@ -14,6 +14,12 @@ defmodule Qlarius.Accounts do
 
   def get_user!(id), do: Repo.get!(User, id)
 
+  def get_user_by_alias(alias) when is_binary(alias) do
+    Repo.get_by(User, alias: alias)
+  end
+
+  def get_user_by_alias(_), do: nil
+
   def get_user_with_me_file(id) do
     Repo.get(User, id)
     |> Repo.preload(:me_file)

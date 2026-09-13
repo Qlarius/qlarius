@@ -5,7 +5,7 @@ defmodule Qlarius.WalletsTest do
   alias Qlarius.Repo
   alias Qlarius.Sponster.Recipient
   alias Qlarius.Wallets
-  alias Qlarius.Wallets.{LedgerEntry, LedgerEvent}
+  alias Qlarius.Wallets.LedgerEntry
 
   describe "new MeFile credit allowance" do
     test "copies the default allowance and does not write a Welcome Gift" do
@@ -16,8 +16,8 @@ defmodule Qlarius.WalletsTest do
 
       summary = Wallets.consumer_wallet_summary(me_file)
       assert Decimal.eq?(summary.available_to_spend, Decimal.new("2.00"))
-      assert Decimal.eq?(summary.available_to_tip, Decimal.new("0.25"))
-      assert summary.credit_backed_tip_available?
+      assert Decimal.eq?(summary.available_to_tip, Decimal.new("0.00"))
+      refute summary.credit_backed_tip_available?
 
       refute Repo.exists?(
                from e in LedgerEntry,
@@ -180,82 +180,46 @@ defmodule Qlarius.WalletsTest do
   end
 
   describe "tips" do
-    test "credit-backed 25 cent tip records credit_backed_amount and observes the throttle" do
-      %{user: user, me_file: me_file} = register_consumer!()
+    test "credit cannot cover a tip when activity is zero" do
+      %{user: user} = register_consumer!()
       recipient = recipient_fixture!(user)
 
-      assert {:ok, event} =
-               Wallets.create_insta_tip_request(user, recipient, Decimal.new("0.25"), user)
-
-      assert Decimal.eq?(event.credit_backed_amount, Decimal.new("0.25"))
-      assert event.status == "pending"
-
-      assert {:error, :credit_tip_throttled} =
-               Wallets.create_insta_tip_request(user, recipient, Decimal.new("0.25"), user)
-
-      assert {:ok, processed} = Wallets.process_insta_tip(event)
-      assert processed.status == "completed"
-
-      header = Wallets.get_me_file_ledger_header(me_file)
-      assert Decimal.eq?(header.balance, Decimal.new("-0.25"))
-
-      assert {:error, :credit_tip_throttled} =
+      assert {:error, :insufficient_funds} =
                Wallets.create_insta_tip_request(user, recipient, Decimal.new("0.25"), user)
     end
 
-    test "failed credit-backed tip does not hold the throttle" do
-      %{user: user, me_file: me_file} = register_consumer!()
-      recipient = recipient_fixture!(user)
-
-      {:ok, event} =
-        Wallets.create_insta_tip_request(user, recipient, Decimal.new("0.25"), user)
-
-      {:ok, _} = debit!(me_file, "2.00", "Tiqit Purchase")
-      assert {:error, :insufficient_funds} = Wallets.process_insta_tip(event)
-      assert Repo.get!(LedgerEvent, event.id).status == "failed"
-
-      Repo.transaction(fn ->
-        header = Wallets.get_me_file_ledger_header(me_file)
-
-        Wallets.apply_credit!(header, Decimal.new("2.00"), %{
-          description: "Restore",
-          meta_1: "Gift"
-        })
-      end)
-
-      assert {:ok, _event} =
-               Wallets.create_insta_tip_request(user, recipient, Decimal.new("0.25"), user)
-    end
-
-    test "ledger-funded tip does not consume the credit throttle" do
+    test "activity-funded tip succeeds and does not use credit" do
       %{user: user, me_file: me_file, header: header} = register_consumer!()
       recipient = recipient_fixture!(user)
 
       header
-      |> Ecto.Changeset.change(balance: Decimal.new("1.00"), balance_payable: Decimal.new("0.00"))
+      |> Ecto.Changeset.change(balance: Decimal.new("1.35"), balance_payable: Decimal.new("0.00"))
       |> Repo.update!()
+
+      offer = Wallets.tip_offer(reload_me_file(me_file), Decimal.new("2.00"))
+      assert Decimal.eq?(offer.allowed, Decimal.new("1.35"))
+      assert offer.alternative?
 
       assert {:ok, event} =
-               Wallets.create_insta_tip_request(user, recipient, Decimal.new("0.50"), user)
+               Wallets.create_insta_tip_request(user, recipient, Decimal.new("1.00"), user)
 
       assert Decimal.eq?(event.credit_backed_amount, Decimal.new("0.00"))
-      assert {:ok, _} = Wallets.process_insta_tip(event)
+      assert {:ok, processed} = Wallets.process_insta_tip(event)
+      assert processed.status == "completed"
 
-      Wallets.get_me_file_ledger_header(me_file)
-      |> Ecto.Changeset.change(balance: Decimal.new("0.00"), balance_payable: Decimal.new("0.00"))
-      |> Repo.update!()
-
-      assert {:ok, credit_tip} =
-               Wallets.create_insta_tip_request(user, recipient, Decimal.new("0.25"), user)
-
-      assert Decimal.eq?(credit_tip.credit_backed_amount, Decimal.new("0.25"))
+      header = Wallets.get_me_file_ledger_header(me_file)
+      assert Decimal.eq?(header.balance, Decimal.new("0.35"))
     end
 
-    test "amounts above 25 cents cannot use credit" do
-      %{user: user} = register_consumer!()
+    test "cannot tip more than activity even when credit remains" do
+      %{user: user, header: header} = register_consumer!()
       recipient = recipient_fixture!(user)
 
-      assert {:error, :credit_not_allowed} =
+      header
+      |> Ecto.Changeset.change(balance: Decimal.new("0.40"), balance_payable: Decimal.new("0.00"))
+      |> Repo.update!()
+
+      assert {:error, :insufficient_funds} =
                Wallets.create_insta_tip_request(user, recipient, Decimal.new("0.50"), user)
     end
   end

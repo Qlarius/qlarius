@@ -20,6 +20,7 @@ defmodule QlariusWeb.InstaTipComponents do
   attr :creator, :map, default: nil
   attr :scope, :any, default: nil
   attr :wallet_balance, :any, required: true
+  attr :available_to_tip, :any, default: nil
   attr :offered_amount, :any, default: nil
   attr :ads_count, :any, default: nil
   attr :amounts, :list, default: @default_amounts
@@ -96,6 +97,7 @@ defmodule QlariusWeb.InstaTipComponents do
       <.insta_tip_button_group
         amounts={@amounts}
         wallet_balance={@wallet_balance}
+        available_to_tip={@available_to_tip || (@scope && @scope.available_to_tip)}
         recipient_id={@recipient && @recipient.id}
         target={@target}
         add_class="mb-4"
@@ -120,10 +122,23 @@ defmodule QlariusWeb.InstaTipComponents do
   attr :recipient_name, :string, required: true
   attr :recipient_id, :integer, default: nil
   attr :amount, :any, required: true
+  attr :requested_amount, :any, default: nil
   attr :current_balance, :any, required: true
   attr :notice, :string, default: nil
 
   def insta_tip_modal(assigns) do
+    requested = assigns.requested_amount || assigns.amount
+    allowed = assigns.amount
+    alternative? = Decimal.compare(to_modal_decimal(requested), to_modal_decimal(allowed)) == :gt
+    after_tip = Decimal.sub(to_modal_decimal(assigns.current_balance), to_modal_decimal(allowed))
+
+    assigns =
+      assigns
+      |> assign(:requested_amount, requested)
+      |> assign(:alternative?, alternative?)
+      |> assign(:after_tip, after_tip)
+      |> assign(:can_tip?, Decimal.compare(to_modal_decimal(allowed), Decimal.new("0")) == :gt)
+
     ~H"""
     <.modal
       :if={@show}
@@ -142,6 +157,10 @@ defmodule QlariusWeb.InstaTipComponents do
             <div class="text-base-content/70">
               to <span class="font-semibold">{@recipient_name}</span>
             </div>
+            <p :if={@alternative?} class="text-sm text-base-content/80 mt-3">
+              You selected {format_usd(@requested_amount)}.
+              {format_usd(@amount)} from earned funds can be tipped instead.
+            </p>
             <p :if={@notice} class="text-sm text-base-content/70 mt-3">
               {@notice}
             </p>
@@ -157,9 +176,9 @@ defmodule QlariusWeb.InstaTipComponents do
           </div>
           <div class="flex justify-between items-center">
             <span class="text-sm text-base-content/70">After Tip:</span>
-            <span class="inline-flex items-center w-auto text-lg bg-sponster-200 dark:bg-sponster-800 text-base-content dark:text-sponster-100 px-3 py-1 ml-3 rounded-lg border border-dashed border-sponster-500 dark:border-sponster-400">
-              <span class="font-bold text-base-content/90 dark:text-sponster-100/90">
-                {format_usd(Decimal.sub(@current_balance, @amount))}
+            <span class="inline-flex items-center w-auto text-lg px-3 py-1 ml-3 rounded-lg border border-dashed border-base-300 bg-base-100 text-base-content/90">
+              <span class="font-bold">
+                {format_usd(@after_tip)}
               </span>
             </span>
           </div>
@@ -167,13 +186,14 @@ defmodule QlariusWeb.InstaTipComponents do
 
         <div class="flex gap-3 flex-wrap justify-center">
           <button
+            :if={@can_tip?}
             type="button"
             phx-click="confirm_insta_tip"
             phx-value-amount={@amount}
             phx-value-recipient-id={@recipient_id}
             class="btn-widget min-w-[7rem] font-bold rounded-full px-8"
           >
-            TIP
+            {if @alternative?, do: "TIP #{format_usd(@amount)}", else: "TIP"}
           </button>
           <button type="button" phx-click="close-insta-tip-modal" class="btn btn-ghost">
             Cancel
@@ -183,6 +203,11 @@ defmodule QlariusWeb.InstaTipComponents do
     </.modal>
     """
   end
+
+  defp to_modal_decimal(%Decimal{} = n), do: n
+  defp to_modal_decimal(n) when is_binary(n), do: Decimal.new(n)
+  defp to_modal_decimal(n) when is_integer(n), do: Decimal.new(n)
+  defp to_modal_decimal(_), do: Decimal.new("0.00")
 
   @doc """
   Thanks/confirmation modal shown after a successful InstaTip. The visitor closes it

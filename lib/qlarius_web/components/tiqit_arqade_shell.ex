@@ -50,6 +50,7 @@ defmodule QlariusWeb.Components.TiqitArqadeShell do
   attr :video_watched_complete, :boolean, default: false
   attr :show_insta_tip_modal, :boolean, default: false
   attr :insta_tip_amount, :any, default: nil
+  attr :insta_tip_requested_amount, :any, default: nil
   attr :insta_tip_recipient, :any, default: nil
   attr :show_insta_tip_thanks_modal, :boolean, default: false
   attr :insta_tip_thanks_amount, :any, default: nil
@@ -216,6 +217,7 @@ defmodule QlariusWeb.Components.TiqitArqadeShell do
           recipient_name={(tip_recipient && tip_recipient.name) || "Recipient"}
           recipient_id={tip_recipient && tip_recipient.id}
           amount={@insta_tip_amount || Decimal.new("0.00")}
+          requested_amount={assigns[:insta_tip_requested_amount]}
           current_balance={@current_scope.wallet_balance}
           notice={assigns[:insta_tip_notice]}
         />

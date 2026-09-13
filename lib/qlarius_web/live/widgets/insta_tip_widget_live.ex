@@ -218,6 +218,7 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
       recipient_name={(@recipient && @recipient.name) || "Recipient"}
       recipient_id={@recipient && @recipient.id}
       amount={@insta_tip_amount || Decimal.new("0.00")}
+      requested_amount={assigns[:insta_tip_requested_amount]}
       current_balance={(@current_scope && @current_scope.wallet_balance) || Decimal.new("0.00")}
       notice={assigns[:insta_tip_notice]}
     />

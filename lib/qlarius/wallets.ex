@@ -43,6 +43,8 @@ defmodule Qlarius.Wallets do
   defdelegate credit_backed_tip_amount, to: Consumer
   defdelegate consumer_wallet_summary(me_file), to: Consumer
   defdelegate available_to_spend(me_file), to: Consumer
+  defdelegate available_to_tip(me_file), to: Consumer
+  defdelegate tip_offer(me_file, requested), to: Consumer
   defdelegate allocate_debit(header, allowance, amount), to: Consumer
   defdelegate authorize_and_debit_purchase(me_file, amount, attrs), to: Consumer
   defdelegate apply_credit!(header, amount, attrs), to: Consumer
@@ -655,14 +657,9 @@ defmodule Qlarius.Wallets do
           requested_by_user: []
         )
 
-      me_file = ledger_event.from_ledger.me_file
       header = Consumer.lock_header!(ledger_event.from_ledger_id)
 
-      case Consumer.allocate_debit(
-             header,
-             me_file.credit_allowance || Consumer.zero(),
-             ledger_event.amount
-           ) do
+      case Consumer.allocate_debit(header, Consumer.zero(), ledger_event.amount) do
         {:error, :insufficient_funds} ->
           ledger_event
           |> Ecto.Changeset.change(status: "failed")

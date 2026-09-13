@@ -6,7 +6,6 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
   import QlariusWeb.Components.AdsComponents
   import QlariusWeb.Components.SplitComponents
   import QlariusWeb.Components.SponsterAnnouncerBar
-  import QlariusWeb.Components.CustomComponentsMobile, only: [wallet_balance: 1]
   import QlariusWeb.Widgets.UnauthCTA
 
   alias Qlarius.Qlink.Urls
@@ -277,6 +276,7 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                   recipient={@recipient}
                   creator={@creator}
                   wallet_balance={@current_scope.wallet_balance}
+                  available_to_tip={@current_scope.available_to_tip}
                   show={@show_split_drawer}
                 />
               </div>
@@ -361,18 +361,15 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                       <div class="divider my-2 md:my-4 w-full max-w-[280px] mx-auto"></div>
 
                       <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
-                      <div class="text-base-content/70 text-sm mb-2 md:mb-4 inline-flex flex-wrap items-center gap-1">
-                        Instantly tip from your wallet
-                        <.icon name="hero-arrow-right" class="w-4 h-4 inline-block shrink-0" />
-                        <.wallet_balance
-                          id={"#{@announcer_id_prefix}-tip-drawer-wallet"}
-                          balance={@current_scope.wallet_balance}
-                          compact?={true}
-                        />
-                      </div>
+                      <.insta_tip_funds_line
+                        id={"#{@announcer_id_prefix}-tip-drawer-wallet"}
+                        wallet_balance={@current_scope.wallet_balance}
+                        available_to_tip={@current_scope.available_to_tip}
+                      />
                       <.insta_tip_button_group
                         amounts={["0.25", "0.50", "1.00", "2.00"]}
                         wallet_balance={@current_scope.wallet_balance}
+                        available_to_tip={@current_scope.available_to_tip}
                         recipient_id={@recipient && @recipient.id}
                       />
                     </div>

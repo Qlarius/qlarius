@@ -1,6 +1,9 @@
 defmodule QlariusWeb.SponsterRecipientSurface do
   import Ecto.Query, except: [update: 2, update: 3]
+  import Phoenix.Component, only: [assign: 3]
+  import Phoenix.LiveView, only: [put_flash: 3, push_event: 3]
 
+  alias Qlarius.Accounts.Scope
   alias Qlarius.Repo
   alias Qlarius.Sponster.Offer
   alias Qlarius.Sponster.Offers
@@ -68,42 +71,43 @@ defmodule QlariusWeb.SponsterRecipientSurface do
       Qlarius.Qlink.Urls.settings_notifications_url_for_sponsorship(host_uri)
 
     socket
-    |> Phoenix.Component.assign(:recipient, recipient)
-    |> Phoenix.Component.assign(:tip_only?, tip_only?)
-    |> Phoenix.Component.assign(:show_sponster_drawer, false)
-    |> Phoenix.Component.assign(:selected_ad_type, "three_tap")
-    |> Phoenix.Component.assign(:active_offers, [])
-    |> Phoenix.Component.assign(:video_offers, [])
-    |> Phoenix.Component.assign(:loading_offers, false)
-    |> Phoenix.Component.assign(:offers_refresh_gen, 0)
-    |> Phoenix.Component.assign(:show_video_player, false)
-    |> Phoenix.Component.assign(:current_video_offer, nil)
-    |> Phoenix.Component.assign(:video_watched_complete, false)
-    |> Phoenix.Component.assign(:show_replay_button, false)
-    |> Phoenix.Component.assign(:video_payment_collected, false)
-    |> Phoenix.Component.assign(:completed_video_offers, [])
-    |> Phoenix.Component.assign(:show_collection_drawer, false)
-    |> Phoenix.Component.assign(:drawer_closing, false)
-    |> Phoenix.Component.assign(:show_insta_tip_modal, false)
-    |> Phoenix.Component.assign(:insta_tip_amount, nil)
-    |> Phoenix.Component.assign(:insta_tip_recipient, nil)
-    |> Phoenix.Component.assign(:insta_tip_notice, nil)
-    |> Phoenix.Component.assign(:show_insta_tip_thanks_modal, false)
-    |> Phoenix.Component.assign(:insta_tip_thanks_amount, nil)
-    |> Phoenix.Component.assign(:insta_tip_thanks_recipient, nil)
-    |> Phoenix.Component.assign(:current_balance, get_current_balance(socket))
-    |> Phoenix.Component.assign(:show_ad_type_tabs, false)
-    |> Phoenix.Component.assign(:show_split_drawer, false)
-    |> Phoenix.Component.assign(:show_split_reminder, false)
-    |> Phoenix.Component.assign(:sponster_disclaimer_dock_visible, false)
-    |> Phoenix.Component.assign(:sponster_disclaimer_dock_gen, 0)
-    |> Phoenix.Component.assign(:host_uri, host_uri)
-    |> Phoenix.Component.assign(:me_file_sponsorship_url, me_file_sponsorship_url)
-    |> Phoenix.Component.assign(:settings_notifications_url, settings_notifications_url)
-    |> Phoenix.Component.assign(:show_connect_modal, false)
-    |> Phoenix.Component.assign(:connect_modal_brand, :tiqit)
-    |> Phoenix.Component.assign(:show_auth_sheet, false)
-    |> Phoenix.Component.assign(:auth_sheet_connect_brand, :qadabra)
+    |> assign(:recipient, recipient)
+    |> assign(:tip_only?, tip_only?)
+    |> assign(:show_sponster_drawer, false)
+    |> assign(:selected_ad_type, "three_tap")
+    |> assign(:active_offers, [])
+    |> assign(:video_offers, [])
+    |> assign(:loading_offers, false)
+    |> assign(:offers_refresh_gen, 0)
+    |> assign(:show_video_player, false)
+    |> assign(:current_video_offer, nil)
+    |> assign(:video_watched_complete, false)
+    |> assign(:show_replay_button, false)
+    |> assign(:video_payment_collected, false)
+    |> assign(:completed_video_offers, [])
+    |> assign(:show_collection_drawer, false)
+    |> assign(:drawer_closing, false)
+    |> assign(:show_insta_tip_modal, false)
+    |> assign(:insta_tip_amount, nil)
+    |> assign(:insta_tip_requested_amount, nil)
+    |> assign(:insta_tip_recipient, nil)
+    |> assign(:insta_tip_notice, nil)
+    |> assign(:show_insta_tip_thanks_modal, false)
+    |> assign(:insta_tip_thanks_amount, nil)
+    |> assign(:insta_tip_thanks_recipient, nil)
+    |> assign(:current_balance, get_current_balance(socket))
+    |> assign(:show_ad_type_tabs, false)
+    |> assign(:show_split_drawer, false)
+    |> assign(:show_split_reminder, false)
+    |> assign(:sponster_disclaimer_dock_visible, false)
+    |> assign(:sponster_disclaimer_dock_gen, 0)
+    |> assign(:host_uri, host_uri)
+    |> assign(:me_file_sponsorship_url, me_file_sponsorship_url)
+    |> assign(:settings_notifications_url, settings_notifications_url)
+    |> assign(:show_connect_modal, false)
+    |> assign(:connect_modal_brand, :tiqit)
+    |> assign(:show_auth_sheet, false)
+    |> assign(:auth_sheet_connect_brand, :qadabra)
   end
 
   def subscribe(socket) do
@@ -140,11 +144,11 @@ defmodule QlariusWeb.SponsterRecipientSurface do
   end
 
   def handle_info(:show_collection_drawer, socket) do
-    {:handled, Phoenix.Component.assign(socket, :show_collection_drawer, true)}
+    {:handled, assign(socket, :show_collection_drawer, true)}
   end
 
   def handle_info(:auto_close_drawer, socket) do
-    socket = Phoenix.Component.assign(socket, :drawer_closing, true)
+    socket = assign(socket, :drawer_closing, true)
     Process.send_after(self(), :finish_closing_drawer, 300)
     {:handled, socket}
   end
@@ -152,15 +156,15 @@ defmodule QlariusWeb.SponsterRecipientSurface do
   def handle_info(:finish_closing_drawer, socket) do
     {:handled,
      socket
-     |> Phoenix.Component.assign(:video_watched_complete, false)
-     |> Phoenix.Component.assign(:show_collection_drawer, false)
-     |> Phoenix.Component.assign(:drawer_closing, false)}
+     |> assign(:video_watched_complete, false)
+     |> assign(:show_collection_drawer, false)
+     |> assign(:drawer_closing, false)}
   end
 
   def handle_info({:sponster_disclaimer_dock_show, gen}, socket) do
     if socket.assigns[:sponster_disclaimer_dock_gen] == gen &&
          socket.assigns[:show_sponster_drawer] do
-      {:handled, Phoenix.Component.assign(socket, :sponster_disclaimer_dock_visible, true)}
+      {:handled, assign(socket, :sponster_disclaimer_dock_visible, true)}
     else
       {:handled, socket}
     end
@@ -168,7 +172,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
 
   def handle_info({:sponster_disclaimer_dock_hide, gen}, socket) do
     if socket.assigns[:sponster_disclaimer_dock_gen] == gen do
-      {:handled, Phoenix.Component.assign(socket, :sponster_disclaimer_dock_visible, false)}
+      {:handled, assign(socket, :sponster_disclaimer_dock_visible, false)}
     else
       {:handled, socket}
     end
@@ -179,7 +183,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
       {:handled, socket}
     else
       Process.send_after(self(), :split_reminder_auto_hide, 5000)
-      {:handled, Phoenix.Component.assign(socket, :show_split_reminder, true)}
+      {:handled, assign(socket, :show_split_reminder, true)}
     end
   end
 
@@ -201,14 +205,14 @@ defmodule QlariusWeb.SponsterRecipientSurface do
                 )
 
               socket
-              |> Phoenix.Component.assign(:current_scope, current_scope)
-              |> Phoenix.Component.assign(:show_split_reminder, false)
+              |> assign(:current_scope, current_scope)
+              |> assign(:show_split_reminder, false)
 
             {:error, _} ->
-              Phoenix.Component.assign(socket, :show_split_reminder, false)
+              assign(socket, :show_split_reminder, false)
           end
         else
-          Phoenix.Component.assign(socket, :show_split_reminder, false)
+          assign(socket, :show_split_reminder, false)
         end
 
       {:handled, socket}
@@ -226,7 +230,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
           Offers.refresh_statuses_for_me_file(me_file_id)
 
           socket
-          |> Phoenix.Component.assign(
+          |> assign(
             :offers_refresh_gen,
             (socket.assigns[:offers_refresh_gen] || 0) + 1
           )
@@ -234,7 +238,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
           |> WalletBalanceSync.refresh_scope_stats()
 
         _ ->
-          Phoenix.Component.assign(socket, :loading_offers, false)
+          assign(socket, :loading_offers, false)
       end
 
     {:handled, socket}
@@ -245,9 +249,9 @@ defmodule QlariusWeb.SponsterRecipientSurface do
   defp do_handle_event("toggle_sponster_drawer", _params, socket) do
     if socket.assigns.show_sponster_drawer do
       socket
-      |> Phoenix.Component.assign(:show_sponster_drawer, false)
-      |> Phoenix.Component.assign(:show_split_reminder, false)
-      |> Phoenix.Component.assign(:sponster_disclaimer_dock_visible, false)
+      |> assign(:show_sponster_drawer, false)
+      |> assign(:show_split_reminder, false)
+      |> assign(:sponster_disclaimer_dock_visible, false)
       |> bump_sponster_disclaimer_dock_gen()
       |> request_offers_refresh()
     else
@@ -257,10 +261,10 @@ defmodule QlariusWeb.SponsterRecipientSurface do
 
   defp do_handle_event("close_sponster_drawer", _params, socket) do
     socket
-    |> Phoenix.Component.assign(:show_sponster_drawer, false)
-    |> Phoenix.Component.assign(:show_split_drawer, false)
-    |> Phoenix.Component.assign(:show_split_reminder, false)
-    |> Phoenix.Component.assign(:sponster_disclaimer_dock_visible, false)
+    |> assign(:show_sponster_drawer, false)
+    |> assign(:show_split_drawer, false)
+    |> assign(:show_split_reminder, false)
+    |> assign(:sponster_disclaimer_dock_visible, false)
     |> bump_sponster_disclaimer_dock_gen()
     |> request_offers_refresh()
   end
@@ -269,22 +273,22 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     will_open = !socket.assigns.show_split_drawer
 
     socket
-    |> Phoenix.Component.assign(:show_split_drawer, will_open)
-    |> Phoenix.Component.assign(:show_split_reminder, false)
+    |> assign(:show_split_drawer, will_open)
+    |> assign(:show_split_reminder, false)
     |> then(fn s ->
       if will_open && !s.assigns.show_sponster_drawer do
         s =
           if Enum.empty?(s.assigns.video_offers) && Enum.empty?(s.assigns.active_offers) &&
                s.assigns.current_scope do
             s
-            |> Phoenix.Component.assign(:loading_offers, true)
+            |> assign(:loading_offers, true)
             |> load_offers()
           else
             s
           end
 
         s
-        |> Phoenix.Component.assign(:show_sponster_drawer, true)
+        |> assign(:show_sponster_drawer, true)
         |> maybe_schedule_disclaimer_dock_peek()
       else
         s
@@ -294,7 +298,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
 
   defp do_handle_event("split_reminder_dismiss", _params, socket) do
     if socket.assigns[:tip_only?] do
-      Phoenix.Component.assign(socket, :show_split_reminder, false)
+      assign(socket, :show_split_reminder, false)
     else
       me_file = socket.assigns.current_scope.user.me_file
 
@@ -309,14 +313,14 @@ defmodule QlariusWeb.SponsterRecipientSurface do
               )
 
             socket
-            |> Phoenix.Component.assign(:current_scope, current_scope)
-            |> Phoenix.Component.assign(:show_split_reminder, false)
+            |> assign(:current_scope, current_scope)
+            |> assign(:show_split_reminder, false)
 
           {:error, _} ->
-            Phoenix.Component.assign(socket, :show_split_reminder, false)
+            assign(socket, :show_split_reminder, false)
         end
       else
-        Phoenix.Component.assign(socket, :show_split_reminder, false)
+        assign(socket, :show_split_reminder, false)
       end
     end
   end
@@ -337,10 +341,10 @@ defmodule QlariusWeb.SponsterRecipientSurface do
               Map.put(socket.assigns.current_scope.user, :me_file, updated_me_file)
             )
 
-          Phoenix.Component.assign(socket, :current_scope, current_scope)
+          assign(socket, :current_scope, current_scope)
 
         {:error, _changeset} ->
-          Phoenix.LiveView.put_flash(socket, :error, "Failed to update split amount")
+          put_flash(socket, :error, "Failed to update split amount")
       end
     end
   end
@@ -348,11 +352,11 @@ defmodule QlariusWeb.SponsterRecipientSurface do
   defp do_handle_event("refresh_offers", _params, socket) do
     send(self(), :refresh_offers)
 
-    Phoenix.Component.assign(socket, :loading_offers, true)
+    assign(socket, :loading_offers, true)
   end
 
   defp do_handle_event("switch_ad_type", %{"type" => ad_type}, socket) do
-    Phoenix.Component.assign(socket, :selected_ad_type, ad_type)
+    assign(socket, :selected_ad_type, ad_type)
   end
 
   defp do_handle_event("open_video_ad", %{"offer_id" => offer_id}, socket) do
@@ -362,21 +366,21 @@ defmodule QlariusWeb.SponsterRecipientSurface do
       Enum.find(socket.assigns.video_offers, fn {o, _r} -> o.id == offer_id end)
 
     socket
-    |> Phoenix.Component.assign(:current_video_offer, offer)
-    |> Phoenix.Component.assign(:show_video_player, true)
-    |> Phoenix.Component.assign(:video_watched_complete, false)
-    |> Phoenix.Component.assign(:show_replay_button, false)
-    |> Phoenix.Component.assign(:show_collection_drawer, false)
+    |> assign(:current_video_offer, offer)
+    |> assign(:show_video_player, true)
+    |> assign(:video_watched_complete, false)
+    |> assign(:show_replay_button, false)
+    |> assign(:show_collection_drawer, false)
   end
 
   defp do_handle_event("close_video_player", _params, socket) do
     socket
-    |> Phoenix.Component.assign(:show_video_player, false)
-    |> Phoenix.Component.assign(:current_video_offer, nil)
-    |> Phoenix.Component.assign(:video_watched_complete, false)
-    |> Phoenix.Component.assign(:show_replay_button, false)
-    |> Phoenix.Component.assign(:video_payment_collected, false)
-    |> Phoenix.Component.assign(:show_collection_drawer, false)
+    |> assign(:show_video_player, false)
+    |> assign(:current_video_offer, nil)
+    |> assign(:video_watched_complete, false)
+    |> assign(:show_replay_button, false)
+    |> assign(:video_payment_collected, false)
+    |> assign(:show_collection_drawer, false)
   end
 
   defp do_handle_event("video_watched_complete", _params, socket) do
@@ -386,7 +390,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     if already_collected do
       socket
     else
-      socket = Phoenix.Component.assign(socket, :video_watched_complete, true)
+      socket = assign(socket, :video_watched_complete, true)
       Process.send_after(self(), :show_collection_drawer, 100)
       socket
     end
@@ -397,7 +401,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
 
     case Enum.find(socket.assigns.video_offers, fn {o, _r} -> o.id == offer_id end) do
       nil ->
-        Phoenix.LiveView.put_flash(socket, :error, "Offer not found")
+        put_flash(socket, :error, "Offer not found")
 
       {offer, _rate} ->
         recipient = socket.assigns.recipient
@@ -415,13 +419,13 @@ defmodule QlariusWeb.SponsterRecipientSurface do
             Process.send_after(self(), :auto_close_drawer, 3000)
 
             socket
-            |> Phoenix.Component.assign(:video_watched_complete, false)
-            |> Phoenix.Component.assign(:show_replay_button, false)
-            |> Phoenix.Component.assign(:video_payment_collected, true)
-            |> Phoenix.Component.assign(:completed_video_offers, completed_ids)
+            |> assign(:video_watched_complete, false)
+            |> assign(:show_replay_button, false)
+            |> assign(:video_payment_collected, true)
+            |> assign(:completed_video_offers, completed_ids)
 
           {:error, _reason} ->
-            Phoenix.LiveView.put_flash(socket, :error, "Failed to collect payment")
+            put_flash(socket, :error, "Failed to collect payment")
         end
     end
   end
@@ -430,30 +434,30 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     Process.send_after(self(), :auto_close_drawer, 3000)
 
     socket
-    |> Phoenix.Component.assign(:video_watched_complete, false)
-    |> Phoenix.Component.assign(:show_replay_button, true)
-    |> Phoenix.Component.assign(:show_collection_drawer, true)
+    |> assign(:video_watched_complete, false)
+    |> assign(:show_replay_button, true)
+    |> assign(:show_collection_drawer, true)
   end
 
   defp do_handle_event("replay_video", _params, socket) do
     socket
-    |> Phoenix.Component.assign(:show_replay_button, false)
-    |> Phoenix.Component.assign(:video_payment_collected, false)
-    |> Phoenix.Component.assign(:show_collection_drawer, false)
-    |> Phoenix.Component.assign(:drawer_closing, false)
-    |> Phoenix.LiveView.push_event("replay-video", %{})
+    |> assign(:show_replay_button, false)
+    |> assign(:video_payment_collected, false)
+    |> assign(:show_collection_drawer, false)
+    |> assign(:drawer_closing, false)
+    |> push_event("replay-video", %{})
   end
 
   defp do_handle_event("close-connect-modal", _params, socket) do
-    Phoenix.Component.assign(socket, :show_connect_modal, false)
+    assign(socket, :show_connect_modal, false)
   end
 
   defp do_handle_event("open-connect-modal", params, socket) do
     brand = normalize_auth_sheet_connect_brand(params["brand"])
 
     socket
-    |> Phoenix.Component.assign(:connect_modal_brand, brand)
-    |> Phoenix.Component.assign(:show_connect_modal, true)
+    |> assign(:connect_modal_brand, brand)
+    |> assign(:show_connect_modal, true)
   end
 
   defp do_handle_event("open_auth_sheet", params, socket) do
@@ -463,8 +467,8 @@ defmodule QlariusWeb.SponsterRecipientSurface do
 
   defp do_handle_event("close_auth_sheet", _params, socket) do
     socket
-    |> Phoenix.Component.assign(:show_auth_sheet, false)
-    |> Phoenix.Component.assign(:auth_sheet_connect_brand, :qadabra)
+    |> assign(:show_auth_sheet, false)
+    |> assign(:auth_sheet_connect_brand, :qadabra)
   end
 
   defp do_handle_event("open-sponster-drawer", _params, socket) do
@@ -482,32 +486,32 @@ defmodule QlariusWeb.SponsterRecipientSurface do
           current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
 
           socket
-          |> Phoenix.Component.assign(:current_scope, current_scope)
-          |> Phoenix.Component.assign(:current_balance, new_balance)
+          |> assign(:current_scope, current_scope)
+          |> assign(:current_balance, new_balance)
           |> WalletBalanceSync.forward_to_inline_embed(:update_balance)
 
         {:error, :cooldown} ->
           socket
-          |> Phoenix.LiveView.put_flash(
+          |> put_flash(
             :error,
             "You already claimed your daily gift. Try again 24 hours after your last claim."
           )
 
         {:error, _} ->
-          Phoenix.LiveView.put_flash(
+          put_flash(
             socket,
             :error,
             "Could not apply daily gift. Please try again."
           )
       end
     else
-      Phoenix.Component.assign(socket, :show_connect_modal, true)
+      assign(socket, :show_connect_modal, true)
     end
   end
 
   defp do_handle_event("initiate_insta_tip", params, socket) do
     if authed?(socket.assigns.current_scope) do
-      amount = Decimal.new(to_string(params["amount"]))
+      requested = Decimal.new(to_string(params["amount"]))
       user = socket.assigns.current_scope.user
       recipient_id = params["recipient-id"] || params["recipient_id"]
 
@@ -518,19 +522,17 @@ defmodule QlariusWeb.SponsterRecipientSurface do
           socket.assigns.recipient
         end
 
-      notice =
-        user.me_file
-        |> Wallets.tip_quote(amount)
-        |> Wallets.tip_notice_copy()
+      offer = Wallets.tip_offer(user.me_file, requested)
 
       socket
-      |> Phoenix.Component.assign(:insta_tip_amount, amount)
-      |> Phoenix.Component.assign(:insta_tip_recipient, tip_recipient)
-      |> Phoenix.Component.assign(:show_insta_tip_modal, true)
-      |> Phoenix.Component.assign(:insta_tip_notice, notice)
-      |> Phoenix.Component.assign(:current_balance, get_current_balance(socket))
+      |> assign(:insta_tip_requested_amount, offer.requested)
+      |> assign(:insta_tip_amount, offer.allowed)
+      |> assign(:insta_tip_recipient, tip_recipient)
+      |> assign(:show_insta_tip_modal, true)
+      |> assign(:insta_tip_notice, insta_tip_offer_notice(offer))
+      |> assign(:current_balance, offer.wallet)
     else
-      Phoenix.Component.assign(socket, :show_connect_modal, true)
+      assign(socket, :show_connect_modal, true)
     end
   end
 
@@ -548,67 +550,72 @@ defmodule QlariusWeb.SponsterRecipientSurface do
 
     case Wallets.create_insta_tip_request(user, recipient, amount, user) do
       {:ok, _ledger_event} ->
-        new_balance = Decimal.sub(socket.assigns.current_scope.wallet_balance, amount)
-        current_scope = Map.put(socket.assigns.current_scope, :wallet_balance, new_balance)
+        scope = socket.assigns.current_scope
+        zero = Decimal.new("0.00")
+        new_spendable = Decimal.sub(scope.wallet_balance || zero, amount)
+        new_tippable = Decimal.max(Decimal.sub(scope.available_to_tip || zero, amount), zero)
+
+        current_scope = Scope.put_wallet(scope, new_spendable, new_tippable)
 
         socket
-        |> Phoenix.Component.assign(:current_scope, current_scope)
-        |> Phoenix.Component.assign(:current_balance, new_balance)
+        |> assign(:current_scope, current_scope)
+        |> assign(:current_balance, new_spendable)
         |> WalletBalanceSync.forward_to_inline_embed(:update_balance)
-        |> Phoenix.Component.assign(:show_insta_tip_modal, false)
-        |> Phoenix.Component.assign(:insta_tip_amount, nil)
-        |> Phoenix.Component.assign(:insta_tip_recipient, nil)
-        |> Phoenix.Component.assign(:insta_tip_notice, nil)
-        |> Phoenix.Component.assign(:show_insta_tip_thanks_modal, true)
-        |> Phoenix.Component.assign(:insta_tip_thanks_amount, amount)
-        |> Phoenix.Component.assign(
+        |> assign(:show_insta_tip_modal, false)
+        |> assign(:insta_tip_amount, nil)
+        |> assign(:insta_tip_requested_amount, nil)
+        |> assign(:insta_tip_recipient, nil)
+        |> assign(:insta_tip_notice, nil)
+        |> assign(:show_insta_tip_thanks_modal, true)
+        |> assign(:insta_tip_thanks_amount, amount)
+        |> assign(
           :insta_tip_thanks_recipient,
           (recipient && recipient.name) || "Recipient"
         )
 
-      {:error, reason} ->
-        message =
-          case reason do
-            :insufficient_funds ->
-              "Not enough available to send this tip."
-
-            :credit_tip_throttled ->
-              "You've already used a credit-backed tip in the last 24 hours."
-
-            :credit_not_allowed ->
-              "Credit can only cover a 25¢ tip. This amount needs earned wallet funds."
-
-            _ ->
-              "Failed to send InstaTip. Please try again."
-          end
+      {:error, _reason} ->
+        requested = socket.assigns[:insta_tip_requested_amount] || amount
+        offer = Wallets.tip_offer(user.me_file, requested)
 
         socket
-        |> Phoenix.Component.assign(:show_insta_tip_modal, false)
-        |> Phoenix.Component.assign(:insta_tip_amount, nil)
-        |> Phoenix.Component.assign(:insta_tip_recipient, nil)
-        |> Phoenix.Component.assign(:insta_tip_notice, nil)
-        |> Phoenix.LiveView.put_flash(:error, message)
+        |> assign(:show_insta_tip_modal, true)
+        |> assign(:insta_tip_requested_amount, offer.requested)
+        |> assign(:insta_tip_amount, offer.allowed)
+        |> assign(:current_balance, offer.wallet)
+        |> assign(:insta_tip_notice, insta_tip_offer_notice(offer))
     end
   end
 
   defp do_handle_event("cancel_insta_tip", _params, socket) do
     socket
-    |> Phoenix.Component.assign(:show_insta_tip_modal, false)
-    |> Phoenix.Component.assign(:insta_tip_amount, nil)
+    |> assign(:show_insta_tip_modal, false)
+    |> assign(:insta_tip_amount, nil)
+    |> assign(:insta_tip_requested_amount, nil)
+    |> assign(:insta_tip_notice, nil)
   end
 
   defp do_handle_event("close-insta-tip-modal", _params, socket) do
     socket
-    |> Phoenix.Component.assign(:show_insta_tip_modal, false)
-    |> Phoenix.Component.assign(:insta_tip_amount, nil)
+    |> assign(:show_insta_tip_modal, false)
+    |> assign(:insta_tip_amount, nil)
+    |> assign(:insta_tip_requested_amount, nil)
+    |> assign(:insta_tip_notice, nil)
   end
 
   defp do_handle_event("close-insta-tip-thanks-modal", _params, socket) do
     socket
-    |> Phoenix.Component.assign(:show_insta_tip_thanks_modal, false)
-    |> Phoenix.Component.assign(:insta_tip_thanks_amount, nil)
-    |> Phoenix.Component.assign(:insta_tip_thanks_recipient, nil)
+    |> assign(:show_insta_tip_thanks_modal, false)
+    |> assign(:insta_tip_thanks_amount, nil)
+    |> assign(:insta_tip_thanks_recipient, nil)
   end
+
+  defp insta_tip_offer_notice(%{allowed: allowed}) do
+    if Decimal.compare(allowed, Decimal.new("0")) != :gt do
+      "No earned funds are available to tip right now."
+    end
+  end
+
+  defp insta_tip_offer_notice(_), do: nil
 
   defp request_offers_refresh(socket) do
     if socket.assigns[:current_scope] do
@@ -627,14 +634,14 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     |> then(fn s ->
       if Enum.empty?(s.assigns.video_offers) && s.assigns.current_scope do
         s
-        |> Phoenix.Component.assign(:loading_offers, true)
+        |> assign(:loading_offers, true)
         |> load_offers()
       else
         s
       end
     end)
-    |> Phoenix.Component.assign(:show_sponster_drawer, true)
-    |> Phoenix.Component.assign(:show_split_reminder, false)
+    |> assign(:show_sponster_drawer, true)
+    |> assign(:show_split_reminder, false)
     |> then(fn s ->
       if !s.assigns[:tip_only?] && me_file && MeFile.should_show_split_reminder?(me_file) do
         Process.send_after(self(), :show_split_reminder, 1500)
@@ -652,7 +659,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
   end
 
   defp bump_sponster_disclaimer_dock_gen(socket) do
-    Phoenix.Component.assign(
+    assign(
       socket,
       :sponster_disclaimer_dock_gen,
       (socket.assigns[:sponster_disclaimer_dock_gen] || 0) + 1
@@ -672,8 +679,8 @@ defmodule QlariusWeb.SponsterRecipientSurface do
       Process.send_after(self(), {:sponster_disclaimer_dock_hide, gen}, peek_hide_ms)
 
       socket
-      |> Phoenix.Component.assign(:sponster_disclaimer_dock_gen, gen)
-      |> Phoenix.Component.assign(:sponster_disclaimer_dock_visible, false)
+      |> assign(:sponster_disclaimer_dock_gen, gen)
+      |> assign(:sponster_disclaimer_dock_visible, false)
     else
       socket
     end
@@ -682,7 +689,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
   defp load_offers(socket, opts \\ []) do
     case socket.assigns[:current_scope] do
       nil ->
-        Phoenix.Component.assign(socket, :loading_offers, false)
+        assign(socket, :loading_offers, false)
 
       scope ->
         me_file_id = scope.user.me_file.id
@@ -726,11 +733,11 @@ defmodule QlariusWeb.SponsterRecipientSurface do
           end
 
         socket
-        |> Phoenix.Component.assign(:active_offers, active_offers)
-        |> Phoenix.Component.assign(:video_offers, video_offers_with_rate)
-        |> Phoenix.Component.assign(:show_ad_type_tabs, show_tabs)
-        |> Phoenix.Component.assign(:selected_ad_type, selected_ad_type)
-        |> Phoenix.Component.assign(:loading_offers, false)
+        |> assign(:active_offers, active_offers)
+        |> assign(:video_offers, video_offers_with_rate)
+        |> assign(:show_ad_type_tabs, show_tabs)
+        |> assign(:selected_ad_type, selected_ad_type)
+        |> assign(:loading_offers, false)
     end
   end
 
@@ -755,13 +762,13 @@ defmodule QlariusWeb.SponsterRecipientSurface do
     # Already connected — never stack a Connect sheet over an authed wallet.
     if authed?(socket.assigns[:current_scope]) do
       socket
-      |> Phoenix.Component.assign(:show_auth_sheet, false)
-      |> Phoenix.Component.assign(:show_connect_modal, false)
+      |> assign(:show_auth_sheet, false)
+      |> assign(:show_connect_modal, false)
     else
       socket
-      |> Phoenix.Component.assign(:show_auth_sheet, true)
-      |> Phoenix.Component.assign(:show_connect_modal, false)
-      |> Phoenix.Component.assign(
+      |> assign(:show_auth_sheet, true)
+      |> assign(:show_connect_modal, false)
+      |> assign(
         :auth_sheet_connect_brand,
         normalize_auth_sheet_connect_brand(brand)
       )

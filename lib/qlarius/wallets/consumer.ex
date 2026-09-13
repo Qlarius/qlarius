@@ -32,6 +32,46 @@ defmodule Qlarius.Wallets.Consumer do
     consumer_wallet_summary(me_file).available_to_spend
   end
 
+  def available_to_tip(%MeFile{} = me_file) do
+    consumer_wallet_summary(me_file).available_to_tip
+  end
+
+  def available_to_tip(_), do: @zero
+
+  @doc """
+  Compare a requested tip to activity-only funds.
+
+  `allowed` is `min(requested, available_to_tip)`. Callers offer that
+  amount in the confirm modal when it is lower than the button value.
+  """
+  def tip_offer(%MeFile{} = me_file, requested) do
+    summary = consumer_wallet_summary(me_file)
+    requested = to_dec(requested)
+    tippable = summary.available_to_tip
+    allowed = Decimal.min(requested, tippable)
+
+    %{
+      requested: requested,
+      allowed: allowed,
+      tippable: tippable,
+      wallet: summary.available_to_spend,
+      alternative?:
+        Decimal.compare(allowed, @zero) == :gt and Decimal.compare(requested, allowed) == :gt
+    }
+  end
+
+  def tip_offer(_, requested) do
+    requested = to_dec(requested)
+
+    %{
+      requested: requested,
+      allowed: @zero,
+      tippable: @zero,
+      wallet: @zero,
+      alternative?: false
+    }
+  end
+
   def lock_me_file_header!(me_file_id) do
     Repo.one!(
       from h in LedgerHeader,
@@ -207,17 +247,14 @@ defmodule Qlarius.Wallets.Consumer do
 
   def tip_quote(%MeFile{} = me_file, amount) do
     header = ledger_header_for(me_file)
-    do_tip_quote(header, me_file.credit_allowance || @zero, amount, exclude_event_id: nil)
+    do_tip_quote(header, amount)
   end
 
-  def authorize_tip(%MeFile{} = me_file, amount, opts \\ []) do
+  def authorize_tip(%MeFile{} = me_file, amount, _opts \\ []) do
     header = lock_me_file_header!(me_file.id)
     me_file = Repo.get!(MeFile, me_file.id)
-    exclude_event_id = Keyword.get(opts, :exclude_event_id)
 
-    do_tip_quote(header, me_file.credit_allowance || @zero, amount,
-      exclude_event_id: exclude_event_id
-    )
+    do_tip_quote(header, amount)
     |> Map.put(:header, header)
     |> Map.put(:me_file, me_file)
   end
@@ -283,44 +320,26 @@ defmodule Qlarius.Wallets.Consumer do
     end
   end
 
-  defp do_tip_quote(nil, _allowance, _amount, _opts) do
+  defp do_tip_quote(nil, _amount) do
     %{authorized?: false, reason: :insufficient_funds, credit_backed_amount: @zero}
   end
 
-  defp do_tip_quote(%LedgerHeader{} = header, allowance, amount, opts) do
+  defp do_tip_quote(%LedgerHeader{} = header, amount) do
     amount = to_dec(amount)
 
-    case allocate_debit(header, allowance, amount) do
+    # Tips spend activity only. Pass a zero allowance so credit cannot cover.
+    case allocate_debit(header, @zero, amount) do
       {:error, reason} ->
         %{authorized?: false, reason: reason, credit_backed_amount: @zero}
 
       {:ok, alloc} ->
-        cond do
-          Decimal.compare(alloc.credit_amount, @zero) == :gt and
-              not Decimal.eq?(amount, credit_backed_tip_amount()) ->
-            %{
-              authorized?: false,
-              reason: :credit_not_allowed,
-              credit_backed_amount: alloc.credit_amount
-            }
-
-          Decimal.compare(alloc.credit_amount, @zero) == :gt and
-              credit_backed_tip_throttle_active?(header.id, opts) ->
-            %{
-              authorized?: false,
-              reason: :credit_tip_throttled,
-              credit_backed_amount: alloc.credit_amount
-            }
-
-          true ->
-            %{
-              authorized?: true,
-              reason: nil,
-              credit_backed_amount: alloc.credit_amount,
-              payable_delta: alloc.payable_delta,
-              amt: alloc.amt
-            }
-        end
+        %{
+          authorized?: true,
+          reason: nil,
+          credit_backed_amount: @zero,
+          payable_delta: alloc.payable_delta,
+          amt: alloc.amt
+        }
     end
   end
 
@@ -343,21 +362,8 @@ defmodule Qlarius.Wallets.Consumer do
     allowance = allowance || @zero
     non_payable = Decimal.sub(activity, payable)
     available = positive_part(Decimal.add(activity, allowance))
-    ledger_funded_tip = positive_part(activity)
-
-    credit_tip_quote =
-      do_tip_quote(header, allowance, credit_backed_tip_amount(), exclude_event_id: nil)
-
-    credit_backed_tip_available? =
-      credit_tip_quote.authorized? and
-        Decimal.compare(credit_tip_quote.credit_backed_amount, @zero) == :gt
-
-    available_to_tip =
-      if credit_backed_tip_available? do
-        Decimal.max(ledger_funded_tip, credit_backed_tip_amount())
-      else
-        ledger_funded_tip
-      end
+    available_to_tip = positive_part(activity)
+    credit_backed_tip_available? = false
 
     cash_out_eligible =
       Decimal.min(positive_part(payable), positive_part(activity))

@@ -3,10 +3,6 @@ defmodule QlariusWeb.Components.SplitComponents do
   alias Phoenix.LiveView.JS
   import QlariusWeb.CoreComponents
   import QlariusWeb.Helpers.ImageHelpers, only: [recipient_brand_image_url: 2]
-  # Module-qualified (not imported) to avoid a compile-time dependency cycle:
-  # QlariusWeb html helpers import SplitComponents, and CustomComponentsMobile
-  # uses those helpers — importing it here would close the loop and deadlock.
-  alias QlariusWeb.Components.CustomComponentsMobile
 
   @doc """
   Tip shown above the split bar for new users (first 3 split-drawer opens).
@@ -106,6 +102,7 @@ defmodule QlariusWeb.Components.SplitComponents do
   attr :recipient, :map, required: true
   attr :creator, :map, default: nil
   attr :wallet_balance, :any, required: true
+  attr :available_to_tip, :any, default: nil
   attr :show, :boolean, default: false
 
   def creator_tip_drawer_panel(assigns) do
@@ -127,18 +124,15 @@ defmodule QlariusWeb.Components.SplitComponents do
       <div class="flex min-h-0 flex-1 flex-col gap-3 md:gap-8 overflow-y-auto bg-base-200 px-4 md:px-8 pb-6 md:pb-12 pt-4 md:pt-6 max-w-3xl mx-auto md:!flex-row">
         <div class="flex-1 flex flex-col items-center md:items-start">
           <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
-          <div class="text-base-content/70 text-sm mb-2 md:mb-4 inline-flex flex-wrap items-center gap-1">
-            Instantly tip from your wallet
-            <.icon name="hero-arrow-right" class="w-4 h-4 inline-block shrink-0" />
-            <CustomComponentsMobile.wallet_balance
-              id="tip-split-drawer-wallet"
-              balance={@wallet_balance}
-              compact?={true}
-            />
-          </div>
+          <.insta_tip_funds_line
+            id="tip-split-drawer-wallet"
+            wallet_balance={@wallet_balance}
+            available_to_tip={@available_to_tip}
+          />
           <.insta_tip_button_group
             amounts={["0.25", "0.50", "1.00", "2.00"]}
             wallet_balance={@wallet_balance}
+            available_to_tip={@available_to_tip}
             recipient_id={@recipient && @recipient.id}
           />
         </div>
@@ -273,6 +267,7 @@ defmodule QlariusWeb.Components.SplitComponents do
   attr :recipient, :map, required: true
   attr :creator, :map, default: nil
   attr :wallet_balance, :any, required: true
+  attr :available_to_tip, :any, default: nil
   attr :split_amount, :integer, required: true
   attr :show, :boolean, default: false
   # See docs/embedded_theming.md for force_light/pub_theme strategy
@@ -311,18 +306,15 @@ defmodule QlariusWeb.Components.SplitComponents do
 
           <%!-- InstaTip Section --%>
           <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
-          <div class="text-base-content/70 text-sm mb-2 md:mb-4 inline-flex flex-wrap items-center gap-1">
-            Instantly tip from your wallet
-            <.icon name="hero-arrow-right" class="w-4 h-4 inline-block shrink-0" />
-            <CustomComponentsMobile.wallet_balance
-              id="tip-split-panel-wallet"
-              balance={@wallet_balance}
-              compact?={true}
-            />
-          </div>
+          <.insta_tip_funds_line
+            id="tip-split-panel-wallet"
+            wallet_balance={@wallet_balance}
+            available_to_tip={@available_to_tip}
+          />
           <.insta_tip_button_group
             amounts={["0.25", "0.50", "1.00", "2.00"]}
             wallet_balance={@wallet_balance}
+            available_to_tip={@available_to_tip}
             recipient_id={@recipient && @recipient.id}
           />
         </div>

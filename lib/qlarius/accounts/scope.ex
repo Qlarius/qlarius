@@ -26,6 +26,7 @@ defmodule Qlarius.Accounts.Scope do
   defstruct true_user: nil,
             user: nil,
             wallet_balance: nil,
+            available_to_tip: nil,
             offered_amount: nil,
             ads_count: nil,
             three_tap_ad_count: nil,
@@ -47,8 +48,8 @@ defmodule Qlarius.Accounts.Scope do
       |> User.active_proxy_user_or_self()
       |> Repo.preload(me_file: :ledger_header)
 
-    balance = Wallets.get_me_file_ledger_header_balance(proxy_user.me_file)
-    proxy_user = sync_ledger_balance(proxy_user, balance)
+    summary = Wallets.consumer_wallet_summary(proxy_user.me_file)
+    proxy_user = sync_ledger_balance(proxy_user, summary.activity_balance)
 
     %__MODULE__{
       true_user: user,
@@ -59,12 +60,23 @@ defmodule Qlarius.Accounts.Scope do
       video_ad_count: MeFile.video_ad_offer_count(proxy_user.me_file),
       trait_count: MeFile.trait_tag_count(proxy_user.me_file),
       tag_count: MeFile.tag_count(proxy_user.me_file),
-      wallet_balance: Wallets.get_user_current_balance(proxy_user),
+      wallet_balance: summary.available_to_spend,
+      available_to_tip: summary.available_to_tip,
       offered_amount: Offers.total_active_offer_amount(proxy_user.me_file),
       pending_referral_clicks_count:
         Qlarius.Referrals.get_pending_clicks_for_me_file(proxy_user.me_file),
       active_tiqit_count: Arcade.count_active_tiqits(proxy_user)
     }
+  end
+
+  def put_wallet(%__MODULE__{} = scope, spendable, tippable) do
+    %{scope | wallet_balance: spendable, available_to_tip: tippable}
+  end
+
+  def put_wallet(scope, spendable, tippable) when is_map(scope) do
+    scope
+    |> Map.put(:wallet_balance, spendable)
+    |> Map.put(:available_to_tip, tippable)
   end
 
   defp sync_ledger_balance(%User{me_file: %{ledger_header: lh} = mf} = user, balance)
