@@ -187,7 +187,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
             <%= if @tip_data.screen == :me_file do %>
               <div>
                 <p class="text-lg leading-relaxed text-base-content dark:text-base-content/90">
-                  <span class="block">Build/manage your MeFile here.</span>
+                  <span class="block">Build and manage your MeFile here.</span>
                   <span class="block mt-2">
                     You've already got {@current_scope.trait_count} "tags". Add more to optimize the sponsorships that fuel your wallet.
                   </span>
