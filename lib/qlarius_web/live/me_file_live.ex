@@ -34,9 +34,6 @@ defmodule QlariusWeb.MeFileLive do
 
         <Layouts.mobile_page_intro>
           Manage your tags below.
-          <.link navigate={~p"/me_file/connectors"} class="link link-primary whitespace-nowrap">
-            AI connectors
-          </.link>
         </Layouts.mobile_page_intro>
 
         <div class="pt-2">
@@ -45,6 +42,7 @@ defmodule QlariusWeb.MeFileLive do
             tag_display_mode={@tag_display_mode}
             tag_search={@tag_search}
             tag_search_epoch={@tag_search_epoch}
+            loading={@tags_loading}
           />
         </div>
 
@@ -321,27 +319,57 @@ defmodule QlariusWeb.MeFileLive do
 
   @impl true
   def mount(_params, session, socket) do
-    socket
-    |> assign(:title, "MeFile")
-    |> assign(:current_path, "/me_file")
-    |> assign_me_file_tags()
-    |> assign(:trait_in_edit, nil)
-    |> assign(:selected_child_trait_ids, [])
-    |> assign(:show_modal, false)
-    |> assign(:show_delete_confirm, false)
-    |> assign(:zip_lookup_input, "")
-    |> assign(:zip_lookup_trait, nil)
-    |> assign(:zip_lookup_valid, false)
-    |> assign(:zip_lookup_error, nil)
-    |> assign(:show_expanded_tags, false)
-    |> assign(:tag_search, "")
-    |> assign(:tag_search_epoch, 0)
-    |> assign(:show_tag_search, false)
-    |> assign(:show_view_menu, false)
-    |> assign_tag_display_mode()
-    |> assign_filtered_tag_display()
-    |> init_pwa_assigns(session)
-    |> ok()
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+
+    socket =
+      socket
+      |> assign(:title, "MeFile")
+      |> assign(:current_path, "/me_file")
+      |> assign(:me_file_tag_map_by_category_trait_tag, [])
+      |> assign(:tag_display_map, [])
+      |> assign(:tags_loading, true)
+      |> assign(:trait_in_edit, nil)
+      |> assign(:selected_child_trait_ids, [])
+      |> assign(:show_modal, false)
+      |> assign(:show_delete_confirm, false)
+      |> assign(:zip_lookup_input, "")
+      |> assign(:zip_lookup_trait, nil)
+      |> assign(:zip_lookup_valid, false)
+      |> assign(:zip_lookup_error, nil)
+      |> assign(:show_expanded_tags, false)
+      |> assign(:tag_search, "")
+      |> assign(:tag_search_epoch, 0)
+      |> assign(:show_tag_search, false)
+      |> assign(:show_view_menu, false)
+      |> assign_tag_display_mode()
+      |> init_pwa_assigns(session)
+
+    socket =
+      if connected?(socket) do
+        start_async(socket, :me_file_tags, fn ->
+          MeFiles.me_file_tag_map_by_category_trait_tag(me_file_id)
+        end)
+      else
+        socket
+      end
+
+    ok(socket)
+  end
+
+  @impl true
+  def handle_async(:me_file_tags, {:ok, tag_map}, socket) do
+    {:noreply,
+     socket
+     |> assign(:me_file_tag_map_by_category_trait_tag, tag_map)
+     |> assign(:tags_loading, false)
+     |> assign_filtered_tag_display()}
+  end
+
+  def handle_async(:me_file_tags, {:exit, _reason}, socket) do
+    {:noreply,
+     socket
+     |> assign(:tags_loading, false)
+     |> put_flash(:error, "Could not load tags")}
   end
 
   defp assign_tag_display_mode(socket) do

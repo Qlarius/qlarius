@@ -25,3 +25,5 @@ Read `docs/ui-surfaces.md` for full vocabulary and rollout notes.
 4. **Contrast** — Light panels: `bg-base-100`. Dark panels: `bg-black` on `dark:` so they pop against the canvas (documented exception to pure `base-100` in dark).
 
 5. **New screens** — Prefer `surface_panel` over ad-hoc `bg-base-200/50 dark:bg-black rounded-lg border-t-4` strings.
+
+6. **Corner radius** — Buttons are pills (`rounded-full`). Daisy `btn` defaults to `--radius-field` (a rounded rect) — always add `rounded-full`. Badges stay rounded rectangles (`badge` / `--radius-selector`). Do not put `rounded-full` on badges.

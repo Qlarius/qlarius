@@ -14,16 +14,47 @@ defmodule QlariusWeb.HomeLive do
   def mount(_params, session, socket) do
     scope = socket.assigns.current_scope
     me_file = scope.user.me_file
+    trait_count = scope.trait_count
 
     socket =
       socket
       |> assign(:current_path, "/home")
       |> assign(:title, "Home")
       |> init_pwa_assigns(session)
-      |> assign_strong_start(me_file)
-      |> assign_tiqit_counts(scope)
+      |> assign(:show_strong_start, false)
+      |> assign(:strong_start_progress, nil)
+      |> assign(:starter_survey_id, nil)
+      |> assign(:home_extras_loading, true)
+      |> assign(:active_tiqits_count, nil)
+      |> assign(:fleeting_tiqits_count, nil)
+      |> assign(:fleeted_tiqits_count, nil)
+      |> assign(:preserved_tiqits_count, nil)
+
+    socket =
+      if connected?(socket) do
+        start_async(socket, :home_extras, fn ->
+          load_home_extras(me_file, scope, trait_count)
+        end)
+      else
+        socket
+      end
 
     {:ok, socket}
+  end
+
+  def handle_async(:home_extras, {:ok, extras}, socket) do
+    {:noreply, socket |> assign(extras) |> assign(:home_extras_loading, false)}
+  end
+
+  def handle_async(:home_extras, {:exit, _reason}, socket) do
+    {:noreply,
+     socket
+     |> assign(:home_extras_loading, false)
+     |> assign(:show_strong_start, false)
+     |> assign(:active_tiqits_count, 0)
+     |> assign(:fleeting_tiqits_count, 0)
+     |> assign(:fleeted_tiqits_count, 0)
+     |> assign(:preserved_tiqits_count, 0)}
   end
 
   def handle_event("pwa_detected", params, socket) do
@@ -94,33 +125,36 @@ defmodule QlariusWeb.HomeLive do
     end
   end
 
-  defp assign_tiqit_counts(socket, scope) do
-    socket
-    |> assign(:active_tiqits_count, Arcade.count_active_tiqits(scope))
-    |> assign(:fleeting_tiqits_count, Arcade.count_fleeting_tiqits(scope))
-    |> assign(:fleeted_tiqits_count, Arcade.count_fleeted_tiqits(scope))
-    |> assign(:preserved_tiqits_count, Arcade.count_preserved_tiqits(scope))
+  defp load_home_extras(me_file, scope, trait_count) do
+    Map.merge(load_strong_start(me_file, trait_count), %{
+      active_tiqits_count: Arcade.count_active_tiqits(scope),
+      fleeting_tiqits_count: Arcade.count_fleeting_tiqits(scope),
+      fleeted_tiqits_count: Arcade.count_fleeted_tiqits(scope),
+      preserved_tiqits_count: Arcade.count_preserved_tiqits(scope)
+    })
   end
 
   defp assign_strong_start(socket, me_file) do
+    assign(socket, load_strong_start(me_file, socket.assigns.current_scope.trait_count))
+  end
+
+  defp load_strong_start(me_file, trait_count) do
     if StrongStart.should_show?(me_file) do
-      trait_count = socket.assigns.current_scope.trait_count
       progress = StrongStart.get_progress(me_file, trait_count)
 
       if progress.completed_count == progress.total_count do
         StrongStart.mark_all_complete(me_file)
-        assign(socket, :show_strong_start, false)
-      else
-        starter_survey_id =
-          Qlarius.System.get_global_variable_int("STRONG_START_SURVEY_ID", nil)
 
-        socket
-        |> assign(:show_strong_start, true)
-        |> assign(:strong_start_progress, progress)
-        |> assign(:starter_survey_id, starter_survey_id)
+        %{show_strong_start: false, strong_start_progress: nil, starter_survey_id: nil}
+      else
+        %{
+          show_strong_start: true,
+          strong_start_progress: progress,
+          starter_survey_id: Qlarius.System.get_global_variable_int("STRONG_START_SURVEY_ID", nil)
+        }
       end
     else
-      assign(socket, :show_strong_start, false)
+      %{show_strong_start: false, strong_start_progress: nil, starter_survey_id: nil}
     end
   end
 
@@ -202,7 +236,7 @@ defmodule QlariusWeb.HomeLive do
                 role="link"
                 tabindex="0"
               >
-                <span class="home-stat__value">{@active_tiqits_count}</span>
+                <.home_stat_value loading={@home_extras_loading} value={@active_tiqits_count} />
                 <span class="home-stat__label">active</span>
               </div>
 
@@ -212,7 +246,7 @@ defmodule QlariusWeb.HomeLive do
                 role="link"
                 tabindex="0"
               >
-                <span class="home-stat__value">{@preserved_tiqits_count}</span>
+                <.home_stat_value loading={@home_extras_loading} value={@preserved_tiqits_count} />
                 <span class="home-stat__label">kept</span>
               </div>
 
@@ -222,7 +256,7 @@ defmodule QlariusWeb.HomeLive do
                 role="link"
                 tabindex="0"
               >
-                <span class="home-stat__value">{@fleeting_tiqits_count}</span>
+                <.home_stat_value loading={@home_extras_loading} value={@fleeting_tiqits_count} />
                 <span class="home-stat__label">fleeting</span>
               </div>
 
@@ -232,7 +266,7 @@ defmodule QlariusWeb.HomeLive do
                 role="link"
                 tabindex="0"
               >
-                <span class="home-stat__value">{@fleeted_tiqits_count}</span>
+                <.home_stat_value loading={@home_extras_loading} value={@fleeted_tiqits_count} />
                 <span class="home-stat__label">fleeted</span>
               </div>
             </div>
@@ -240,6 +274,18 @@ defmodule QlariusWeb.HomeLive do
         </div>
       </Layouts.mobile>
     </div>
+    """
+  end
+
+  attr :loading, :boolean, required: true
+  attr :value, :any, required: true
+
+  defp home_stat_value(assigns) do
+    ~H"""
+    <span class="home-stat__value">
+      <span :if={@loading} class="skeleton inline-block h-12 w-14 rounded-md align-middle"></span>
+      <span :if={not @loading}>{@value}</span>
+    </span>
     """
   end
 
@@ -255,5 +301,4 @@ defmodule QlariusWeb.HomeLive do
     </div>
     """
   end
-
 end

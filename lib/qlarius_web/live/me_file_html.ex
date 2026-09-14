@@ -65,6 +65,7 @@ defmodule QlariusWeb.MeFileHTML do
       </div>
       <div class={[
         "tag-edit-modal__box modal-box flex flex-col bg-base-100 p-0 overflow-hidden",
+        "w-full max-w-4xl mx-auto",
         "border-x border-b border-youdata-200 dark:border-base-content/10",
         @is_pwa && "max-h-[calc(90vh-env(safe-area-inset-top))]",
         !@is_pwa && "max-h-[90vh]"
@@ -86,226 +87,224 @@ defmodule QlariusWeb.MeFileHTML do
 
         <%!-- Expandable content area --%>
         <%= if @trait_in_edit do %>
-            <%!-- Question section --%>
-            <div class="p-4 bg-base-100 text-base-content/70 shrink-0 border-b border-base-300/40 dark:border-base-content/10">
-              <p :if={@trait_in_edit && @trait_in_edit.survey_question} class="text-lg mb-3">
-                {Phoenix.HTML.raw(@trait_in_edit.survey_question.text)}
-              </p>
+          <%!-- Question section --%>
+          <div class="p-4 bg-base-100 text-base-content/70 shrink-0 border-b border-base-300/40 dark:border-base-content/10">
+            <p :if={@trait_in_edit && @trait_in_edit.survey_question} class="text-lg mb-3">
+              {Phoenix.HTML.raw(@trait_in_edit.survey_question.text)}
+            </p>
 
-              <%!-- Toggle for expanded/simple view - only show if there are meaningful expanded answers --%>
-              <.pill_join_selector
+            <%!-- Toggle for expanded/simple view - only show if there are meaningful expanded answers --%>
+            <.pill_join_selector
+              :if={
+                @trait_in_edit.input_type != "single_select_zip" &&
+                  Ecto.assoc_loaded?(@trait_in_edit.child_traits) &&
+                  Enum.any?(@trait_in_edit.child_traits, fn child ->
+                    child.survey_answer &&
+                      child.survey_answer.text not in [nil, ""] &&
+                      child.survey_answer.text != child.trait_name
+                  end)
+              }
+              label="Tag list view"
+              class="mt-2"
+            >
+              <.pill_join_item
+                active={!@show_expanded_tags}
+                phx-click="set_tag_view"
+                phx-value-expanded="false"
+                aria-pressed={to_string(!@show_expanded_tags)}
+              >
+                Simple
+              </.pill_join_item>
+              <.pill_join_item
+                active={@show_expanded_tags}
+                phx-click="set_tag_view"
+                phx-value-expanded="true"
+                aria-pressed={to_string(@show_expanded_tags)}
+              >
+                Expanded
+              </.pill_join_item>
+            </.pill_join_selector>
+          </div>
+          <.form
+            for={%{}}
+            phx-change="sync_tag_selection"
+            phx-submit="save_tags"
+            class="flex flex-col flex-1 min-h-0"
+          >
+            <div
+              id="tag-list-scroll-container"
+              class="flex-1 overflow-y-auto p-4"
+            >
+              <input type="hidden" name="me_file_id" value={@me_file_id} />
+              <input type="hidden" name="trait_id" value={@trait_in_edit.id} />
+              <div
+                :if={@trait_in_edit.input_type == "single_select_zip"}
+                class="space-y-4"
+              >
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text text-lg mb-2">Enter 5-digit zip code:</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="zip_code_input"
+                    value={@zip_lookup_input}
+                    phx-change="lookup_zip_code"
+                    maxlength="5"
+                    pattern="\d{5}"
+                    inputmode="numeric"
+                    autocomplete="postal-code"
+                    data-1p-ignore="true"
+                    data-lpignore="true"
+                    data-form-type="other"
+                    class="input input-bordered input-xl w-full text-xl"
+                  />
+                </div>
+
+                <div class="min-h-[4rem]">
+                  <div :if={@zip_lookup_trait && @zip_lookup_valid} class="space-y-2">
+                    <div class="badge badge-primary badge-lg p-4">
+                      <.icon name="hero-map-pin" class="w-5 h-5" />
+                      {@zip_lookup_trait.meta_1}
+                    </div>
+                    <input
+                      type="hidden"
+                      name="child_trait_ids[]"
+                      value={@zip_lookup_trait.id}
+                    />
+                  </div>
+
+                  <div :if={@zip_lookup_error} class="alert alert-error">
+                    <.icon name="hero-exclamation-triangle" class="w-6 h-6" />
+                    <span>{@zip_lookup_error}</span>
+                  </div>
+                </div>
+              </div>
+              <div
                 :if={
                   @trait_in_edit.input_type != "single_select_zip" &&
                     Ecto.assoc_loaded?(@trait_in_edit.child_traits) &&
-                    Enum.any?(@trait_in_edit.child_traits, fn child ->
-                      child.survey_answer &&
-                        child.survey_answer.text not in [nil, ""] &&
-                        child.survey_answer.text != child.trait_name
-                    end)
+                    @trait_in_edit.child_traits != []
                 }
-                label="Tag list view"
-                class="mt-2"
+                class="py-0"
               >
-                <.pill_join_item
-                  active={!@show_expanded_tags}
-                  phx-click="set_tag_view"
-                  phx-value-expanded="false"
-                  aria-pressed={to_string(!@show_expanded_tags)}
+                <label
+                  :for={child_trait <- Enum.sort_by(@trait_in_edit.child_traits, & &1.display_order)}
+                  class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-4 px-2 hover:bg-base-200 cursor-pointer"
                 >
-                  Simple
-                </.pill_join_item>
-                <.pill_join_item
-                  active={@show_expanded_tags}
-                  phx-click="set_tag_view"
-                  phx-value-expanded="true"
-                  aria-pressed={to_string(@show_expanded_tags)}
-                >
-                  Expanded
-                </.pill_join_item>
-              </.pill_join_selector>
-            </div>
-            <.form
-              for={%{}}
-              phx-change="sync_tag_selection"
-              phx-submit="save_tags"
-              class="flex flex-col flex-1 min-h-0"
-            >
-              <div
-                id="tag-list-scroll-container"
-                class="flex-1 overflow-y-auto p-4"
-              >
-                <input type="hidden" name="me_file_id" value={@me_file_id} />
-                <input type="hidden" name="trait_id" value={@trait_in_edit.id} />
-                <div
-                  :if={@trait_in_edit.input_type == "single_select_zip"}
-                  class="space-y-4"
-                >
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text text-lg mb-2">Enter 5-digit zip code:</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="zip_code_input"
-                      value={@zip_lookup_input}
-                      phx-change="lookup_zip_code"
-                      maxlength="5"
-                      pattern="\d{5}"
-                      inputmode="numeric"
-                      autocomplete="postal-code"
-                      data-1p-ignore="true"
-                      data-lpignore="true"
-                      data-form-type="other"
-                      class="input input-bordered input-xl w-full text-xl"
-                    />
-                  </div>
-
-                  <div class="min-h-[4rem]">
-                    <div :if={@zip_lookup_trait && @zip_lookup_valid} class="space-y-2">
-                      <div class="badge badge-primary badge-lg p-4">
-                        <.icon name="hero-map-pin" class="w-5 h-5" />
-                        {@zip_lookup_trait.meta_1}
-                      </div>
-                      <input
-                        type="hidden"
-                        name="child_trait_ids[]"
-                        value={@zip_lookup_trait.id}
-                      />
+                  <input
+                    :if={@trait_in_edit.input_type == "single_select"}
+                    type="radio"
+                    name="child_trait_ids[]"
+                    value={child_trait.id}
+                    id={"trait-#{child_trait.id}"}
+                    checked={child_trait.id in @selected_ids}
+                    class="radio w-7 h-7"
+                  />
+                  <input
+                    :if={@trait_in_edit.input_type == "multi_select"}
+                    type="checkbox"
+                    name="child_trait_ids[]"
+                    value={child_trait.id}
+                    id={"trait-#{child_trait.id}"}
+                    checked={child_trait.id in @selected_ids}
+                    class="checkbox w-7 h-7"
+                  />
+                  <div class="flex-1">
+                    <div class="text-lg text-base-content font-medium">
+                      {child_trait.trait_name}
                     </div>
-
-                    <div :if={@zip_lookup_error} class="alert alert-error">
-                      <.icon name="hero-exclamation-triangle" class="w-6 h-6" />
-                      <span>{@zip_lookup_error}</span>
-                    </div>
-                  </div>
-                </div>
-                <div
-                  :if={
-                    @trait_in_edit.input_type != "single_select_zip" &&
-                      Ecto.assoc_loaded?(@trait_in_edit.child_traits) &&
-                      @trait_in_edit.child_traits != []
-                  }
-                  class="py-0"
-                >
-                  <label
-                    :for={
-                      child_trait <- Enum.sort_by(@trait_in_edit.child_traits, & &1.display_order)
-                    }
-                    class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-4 px-2 hover:bg-base-200 cursor-pointer"
-                  >
-                    <input
-                      :if={@trait_in_edit.input_type == "single_select"}
-                      type="radio"
-                      name="child_trait_ids[]"
-                      value={child_trait.id}
-                      id={"trait-#{child_trait.id}"}
-                      checked={child_trait.id in @selected_ids}
-                      class="radio w-7 h-7"
-                    />
-                    <input
-                      :if={@trait_in_edit.input_type == "multi_select"}
-                      type="checkbox"
-                      name="child_trait_ids[]"
-                      value={child_trait.id}
-                      id={"trait-#{child_trait.id}"}
-                      checked={child_trait.id in @selected_ids}
-                      class="checkbox w-7 h-7"
-                    />
-                    <div class="flex-1">
-                      <div class="text-lg text-base-content font-medium">
-                        {child_trait.trait_name}
-                      </div>
-                      <div
-                        :if={
-                          @show_expanded_tags &&
-                            child_trait.survey_answer &&
-                            child_trait.survey_answer.text not in [nil, ""] &&
-                            child_trait.survey_answer.text != child_trait.trait_name
-                        }
-                        class="text-sm text-base-content/60 mt-1"
-                      >
-                        {child_trait.survey_answer.text}
-                      </div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              <%!-- Footer + delete confirm strip (slides up behind the button bar) --%>
-              <div class="relative shrink-0">
-                <div
-                  class={[
-                    "overflow-hidden transition-[max-height] duration-200 ease-out",
-                    @show_delete_confirm && "max-h-28",
-                    !@show_delete_confirm && "max-h-0"
-                  ]}
-                  aria-hidden={!@show_delete_confirm}
-                >
-                  <div class="bg-error text-error-content px-6 py-4 border-t border-error/60">
-                    <p class="text-sm font-semibold mb-3">
-                      Delete {length(@selected_ids)} selected tag{if length(@selected_ids) == 1,
-                        do: "",
-                        else: "s"}?
-                    </p>
-                    <div class="flex flex-row gap-2 justify-end">
-                      <button
-                        type="button"
-                        phx-click="cancel_delete_confirm"
-                        class="btn btn-sm btn-ghost rounded-full text-error-content hover:bg-error-content/15"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        phx-click="confirm_delete_tags"
-                        class="btn btn-sm rounded-full bg-error-content text-error hover:bg-error-content/90"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="relative z-10 py-4 px-6 flex flex-row items-center justify-between gap-3 bg-base-200 border-t border-base-300">
-                  <div class="shrink-0">
-                    <button
-                      :if={deletable_trait?(@trait_in_edit)}
-                      type="button"
-                      phx-click="request_delete_confirm"
-                      class={[
-                        "btn btn-circle btn-lg btn-ghost text-error hover:bg-error/10",
-                        @show_delete_confirm && "btn-active bg-error/10"
-                      ]}
-                      disabled={length(@selected_ids) == 0}
-                      aria-label="Delete selected tags"
-                      aria-expanded={to_string(@show_delete_confirm)}
+                    <div
+                      :if={
+                        @show_expanded_tags &&
+                          child_trait.survey_answer &&
+                          child_trait.survey_answer.text not in [nil, ""] &&
+                          child_trait.survey_answer.text != child_trait.trait_name
+                      }
+                      class="text-sm text-base-content/60 mt-1"
                     >
-                      <.icon name="hero-trash" class="h-6 w-6" />
-                    </button>
+                      {child_trait.survey_answer.text}
+                    </div>
                   </div>
-                  <div class="flex flex-row items-center gap-2 justify-end min-w-0">
+                </label>
+              </div>
+            </div>
+
+            <%!-- Footer + delete confirm strip (slides up behind the button bar) --%>
+            <div class="relative shrink-0">
+              <div
+                class={[
+                  "overflow-hidden transition-[max-height] duration-200 ease-out",
+                  @show_delete_confirm && "max-h-28",
+                  !@show_delete_confirm && "max-h-0"
+                ]}
+                aria-hidden={!@show_delete_confirm}
+              >
+                <div class="bg-error text-error-content px-6 py-4 border-t border-error/60">
+                  <p class="text-sm font-semibold mb-3">
+                    Delete {length(@selected_ids)} selected tag{if length(@selected_ids) == 1,
+                      do: "",
+                      else: "s"}?
+                  </p>
+                  <div class="flex flex-row gap-2 justify-end">
                     <button
                       type="button"
-                      phx-click="close_modal"
-                      class="btn btn-lg btn-ghost rounded-full"
+                      phx-click="cancel_delete_confirm"
+                      class="btn btn-sm btn-ghost rounded-full text-error-content hover:bg-error-content/15"
                     >
                       Cancel
                     </button>
                     <button
-                      type="submit"
-                      class="btn btn-lg btn-primary rounded-full"
-                      disabled={@trait_in_edit.input_type == "single_select_zip" && !@zip_lookup_valid}
+                      type="button"
+                      phx-click="confirm_delete_tags"
+                      class="btn btn-sm rounded-full bg-error-content text-error hover:bg-error-content/90"
                     >
-                      Save/Update Tags
+                      Delete
                     </button>
                   </div>
                 </div>
               </div>
-            </.form>
-        <% else %>
-            <div class="flex-1 flex items-center justify-center p-8">
-              <div class="text-base-content/50">No trait selected</div>
+
+              <div class="relative z-10 py-4 px-6 flex flex-row items-center justify-between gap-3 bg-base-200 border-t border-base-300">
+                <div class="shrink-0">
+                  <button
+                    :if={deletable_trait?(@trait_in_edit)}
+                    type="button"
+                    phx-click="request_delete_confirm"
+                    class={[
+                      "btn btn-circle btn-lg btn-ghost text-error hover:bg-error/10",
+                      @show_delete_confirm && "btn-active bg-error/10"
+                    ]}
+                    disabled={length(@selected_ids) == 0}
+                    aria-label="Delete selected tags"
+                    aria-expanded={to_string(@show_delete_confirm)}
+                  >
+                    <.icon name="hero-trash" class="h-6 w-6" />
+                  </button>
+                </div>
+                <div class="flex flex-row items-center gap-2 justify-end min-w-0">
+                  <button
+                    type="button"
+                    phx-click="close_modal"
+                    class="btn btn-lg btn-ghost rounded-full"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    class="btn btn-lg btn-primary rounded-full"
+                    disabled={@trait_in_edit.input_type == "single_select_zip" && !@zip_lookup_valid}
+                  >
+                    Save/Update Tags
+                  </button>
+                </div>
+              </div>
             </div>
+          </.form>
+        <% else %>
+          <div class="flex-1 flex items-center justify-center p-8">
+            <div class="text-base-content/50">No trait selected</div>
+          </div>
         <% end %>
       </div>
       <%!-- <pre :if={@trait_in_edit} class="py-4 overflow-auto max-h-96 whitespace-pre-wrap bg-base-200 rounded-lg p-4">{inspect(@trait_in_edit, pretty: true, width: 60)}</pre> --%>
@@ -399,39 +398,39 @@ defmodule QlariusWeb.MeFileHTML do
         />
 
         <div class="flex flex-row items-center justify-end gap-2">
-        <button
-          :if={@show_search}
-          type="button"
-          phx-click="toggle_tag_search"
-          class={mefile_fab_class(@show_tag_search)}
-          aria-label="Search tags"
-          aria-expanded={to_string(@show_tag_search)}
-        >
-          <.icon name="hero-magnifying-glass" class="h-5 w-5" />
-        </button>
-        <div class="relative shrink-0">
-          <.mefile_view_mode_menu
-            :if={@show_view_menu && !@compact_toolbar?}
-            tag_display_mode={@tag_display_mode}
-            class="absolute bottom-full right-0 z-50 mb-2"
-          />
           <button
+            :if={@show_search}
             type="button"
-            phx-click="toggle_view_menu"
-            class={mefile_fab_class(@show_view_menu)}
-            aria-label={"View: #{tag_display_mode_label(@tag_display_mode)}"}
-            aria-expanded={to_string(@show_view_menu)}
+            phx-click="toggle_tag_search"
+            class={mefile_fab_class(@show_tag_search)}
+            aria-label="Search tags"
+            aria-expanded={to_string(@show_tag_search)}
           >
-            <.icon name={tag_display_mode_icon(@tag_display_mode)} class="h-5 w-5" />
+            <.icon name="hero-magnifying-glass" class="h-5 w-5" />
           </button>
-        </div>
-        <.link
-          :if={@show_add_tags}
-          navigate={~p"/me_file_builder"}
-          class="btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg"
-        >
-          <.icon name="hero-plus" class="h-5 w-5" /> Add tags
-        </.link>
+          <div class="relative shrink-0">
+            <.mefile_view_mode_menu
+              :if={@show_view_menu && !@compact_toolbar?}
+              tag_display_mode={@tag_display_mode}
+              class="absolute bottom-full right-0 z-50 mb-2"
+            />
+            <button
+              type="button"
+              phx-click="toggle_view_menu"
+              class={mefile_fab_class(@show_view_menu)}
+              aria-label={"View: #{tag_display_mode_label(@tag_display_mode)}"}
+              aria-expanded={to_string(@show_view_menu)}
+            >
+              <.icon name={tag_display_mode_icon(@tag_display_mode)} class="h-5 w-5" />
+            </button>
+          </div>
+          <.link
+            :if={@show_add_tags}
+            navigate={~p"/me_file_builder"}
+            class="btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg"
+          >
+            <.icon name="hero-plus" class="h-5 w-5" /> Add tags
+          </.link>
         </div>
       </div>
     </div>
@@ -537,12 +536,8 @@ defmodule QlariusWeb.MeFileHTML do
               !@readonly && editable_parent_trait?(parent_trait_name) &&
                 "cursor-pointer transition-colors duration-200 hover:bg-base-200/40 dark:hover:bg-base-300/20"
             ]}
-            phx-click={
-              !@readonly && editable_parent_trait?(parent_trait_name) && "edit_tags"
-            }
-            phx-value-id={
-              !@readonly && editable_parent_trait?(parent_trait_name) && parent_trait_id
-            }
+            phx-click={!@readonly && editable_parent_trait?(parent_trait_name) && "edit_tags"}
+            phx-value-id={!@readonly && editable_parent_trait?(parent_trait_name) && parent_trait_id}
           >
             <div class="w-[34%] max-w-[9rem] shrink-0 flex items-start pt-2.5">
               <span class={[
@@ -671,6 +666,7 @@ defmodule QlariusWeb.MeFileHTML do
   attr :tag_display_mode, :string, required: true
   attr :tag_search, :string, default: ""
   attr :tag_search_epoch, :integer, default: 0
+  attr :loading, :boolean, default: false
 
   def tags_display(assigns) do
     ~H"""
@@ -680,14 +676,26 @@ defmodule QlariusWeb.MeFileHTML do
       phx-key={@tag_search_epoch}
       class="flex flex-col gap-10"
     >
+      <div :if={@loading} class="flex flex-col gap-10" aria-busy="true" aria-label="Loading tags">
+        <.surface_panel :for={_ <- 1..2} padding={false}>
+          <div class="flex justify-between items-center px-4 pt-4 pb-3">
+            <div class="skeleton h-5 w-28"></div>
+            <div class="skeleton h-4 w-16"></div>
+          </div>
+          <div class="flex flex-wrap gap-2 px-4 pb-4">
+            <div :for={_ <- 1..6} class="skeleton h-8 w-20 rounded-full"></div>
+          </div>
+        </.surface_panel>
+      </div>
       <div
-        :if={Enum.empty?(@tag_display_map) and tag_search_active?(@tag_search)}
+        :if={not @loading and Enum.empty?(@tag_display_map) and tag_search_active?(@tag_search)}
         class="text-center py-12 text-base-content/60"
       >
         <p>No tags match your search.</p>
       </div>
       <.surface_panel
         :for={{{_id, name, _display_order}, parent_traits} <- @tag_display_map}
+        :if={not @loading}
         padding={false}
       >
         <div class="flex justify-between items-center px-4 pt-4 pb-3">
@@ -818,5 +826,4 @@ defmodule QlariusWeb.MeFileHTML do
   defp tag_display_mode_icon("block"), do: "hero-squares-2x2"
   defp tag_display_mode_icon("list"), do: "hero-bars-3-bottom-left"
   defp tag_display_mode_icon(_), do: "hero-tag"
-
 end

@@ -2538,6 +2538,14 @@
     }
   }
 
+  .mobile-layout-content {
+    transition: opacity 120ms ease;
+  }
+
+  .mobile-shell.is-navigating .mobile-layout-content {
+    opacity: 0.55;
+  }
+
   .mobile-bottom-nav__item {
     position: relative;
     z-index: 2;
@@ -2766,6 +2774,12 @@
     z-index: 1;
     scale: 1 !important;
     opacity: 1 !important;
+    /* Same column as Layouts.mobile content (`max-w-4xl mx-auto`).
+       Overrides daisy `modal-bottom` width:100% / max-width:none. */
+    width: min(100%, 56rem);
+    max-width: 56rem;
+    justify-self: center;
+    margin-inline: auto;
     box-shadow: 0 -8px 32px rgb(0 0 0 / 0.18);
     transition: translate var(--tag-edit-modal-duration) var(--tag-edit-modal-ease) !important;
     will-change: translate;
@@ -2773,6 +2787,13 @@
     --modal-tr: 1rem;
     --modal-bl: 0;
     --modal-br: 0;
+  }
+
+  @media (min-width: 56rem) {
+    .tag-edit-modal .modal-box {
+      --modal-bl: 1rem;
+      --modal-br: 1rem;
+    }
   }
 
   .tag-edit-modal.modal:not(.modal-open) .modal-box {

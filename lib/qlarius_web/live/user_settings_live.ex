@@ -95,6 +95,29 @@ defmodule QlariusWeb.UserSettingsLive do
             </.surface_panel>
           </div>
 
+          <div>
+            <h2 class={settings_section_heading_classes()}>YouData</h2>
+            <.surface_panel padding={false}>
+              <ul class={settings_list_classes()}>
+              <li
+                class={settings_list_row_classes()}
+                phx-click="open_setting"
+                phx-value-setting="ai_connectors"
+              >
+                <div class="flex items-center mr-3">
+                  <.icon name="hero-cpu-chip" class="h-6 w-6 text-base-content/70" />
+                </div>
+                <div class="list-col-grow">
+                  <div class="text-xl font-medium text-base-content">AI Connectors</div>
+                </div>
+                <div class="flex items-center">
+                  <.icon name="hero-chevron-right" class="h-5 w-5 text-base-content/40" />
+                </div>
+              </li>
+              </ul>
+            </.surface_panel>
+          </div>
+
           <%= if @current_scope.true_user.role == "admin" do %>
             <div>
               <h2 class={settings_section_heading_classes()}>Admin</h2>
@@ -160,6 +183,9 @@ defmodule QlariusWeb.UserSettingsLive do
           |> assign(:selected_setting, "time_zone")
           |> assign(:current_timezone, timezone)
           |> assign(:current_time, current_time)
+
+        "ai_connectors" ->
+          assign(socket, :selected_setting, "ai_connectors")
 
         _ ->
           socket
@@ -472,6 +498,7 @@ defmodule QlariusWeb.UserSettingsLive do
   defp get_setting_title("time_zone"), do: "Time Zone"
   defp get_setting_title("audio_alerts"), do: "Audio Alerts"
   defp get_setting_title("tiqit_privacy"), do: "Tiqit Privacy"
+  defp get_setting_title("ai_connectors"), do: "AI Connectors"
   defp get_setting_title("proxy_users"), do: "Manage Proxy Users"
   defp get_setting_title(_), do: "Settings"
 
@@ -786,6 +813,16 @@ defmodule QlariusWeb.UserSettingsLive do
           </div>
       </.surface_panel>
     </div>
+    """
+  end
+
+  defp render_setting_content(%{selected_setting: "ai_connectors"} = assigns) do
+    ~H"""
+    <.live_component
+      module={QlariusWeb.MeCPConnectorsPanel}
+      id="ai-connectors-panel"
+      current_scope={@current_scope}
+    />
     """
   end
 

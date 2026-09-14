@@ -392,10 +392,11 @@ defmodule QlariusWeb.Layouts do
         }
       }
 
-      /* Desktop: Remove default margin from modal-box */
+      /* Desktop: keep the tag-edit sheet centered in the max-w-4xl column */
       @media (min-width: 640px) {
         .slide-panels .modal-dual-pane .modal-box {
-          margin: 0 !important;
+          margin-block: 0 !important;
+          margin-inline: auto !important;
         }
       }
 

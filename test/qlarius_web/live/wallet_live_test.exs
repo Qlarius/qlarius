@@ -61,7 +61,8 @@ defmodule QlariusWeb.WalletLiveTest do
   end
 
   test "shows the spendable equation and reveals section details on toggle", %{conn: conn} do
-    {:ok, view, html} = live(conn, ~p"/wallet")
+    {:ok, view, _html} = live(conn, ~p"/wallet")
+    html = render_async(view)
 
     assert html =~ "spendable"
     assert html =~ "$2.00"
@@ -102,7 +103,8 @@ defmodule QlariusWeb.WalletLiveTest do
     conn: conn,
     user: user
   } do
-    {:ok, view, html} = live(conn, ~p"/wallet")
+    {:ok, view, _html} = live(conn, ~p"/wallet")
+    html = render_async(view)
     refute html =~ "PUBSUB AD"
     refute html =~ "$2.50"
 
@@ -127,7 +129,8 @@ defmodule QlariusWeb.WalletLiveTest do
     conn: conn,
     user: user
   } do
-    {:ok, view, html} = live(conn, ~p"/wallet")
+    {:ok, view, _html} = live(conn, ~p"/wallet")
+    html = render_async(view)
     refute html =~ "$2.50"
     refute html =~ "$4.50"
 

@@ -10,6 +10,25 @@ Consumer mobile screens use a two-layer surface model inspired by high-contrast 
 | **Section panel** | `.surface-panel` / `<.surface_panel>` | Primary grouped content (Home feature blocks, Strong Start, MeFile categories). White/near-white in light mode, black in dark mode, with top accent, shadow, and subtle side/bottom borders. |
 | **Metric tile** | _(not standardized yet)_ | Inner stat/action cells inside a section panel (e.g. tag count, ads count on Home). Still use brand-tinted styles until a follow-up pass. |
 
+## Corner radius
+
+- **Buttons** are pills. Daisy `btn` uses `--radius-field` (rounded rect) by default — always add `rounded-full`.
+- **Badges** are rounded rectangles (`badge` uses `--radius-selector`). Do not add `rounded-full` to badges.
+
+```heex
+<%# ✅ Button — pill %>
+<button class="btn btn-primary rounded-full">New connector</button>
+
+<%# ✅ Badge — rounded rect %>
+<span class="badge badge-success rounded">Active</span>
+
+<%# ❌ Button left on Daisy default radius %>
+<button class="btn btn-primary">New connector</button>
+
+<%# ❌ Badge as a pill %>
+<span class="badge badge-success rounded-full">Active</span>
+```
+
 ## DaisyUI tokens
 
 - **Canvas:** `bg-base-200` (light), `bg-base-300` (dark).

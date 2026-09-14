@@ -49,7 +49,7 @@ defmodule QlariusWeb.Components.MobileBottomNav do
         "mobile-bottom-nav__item",
         @active && "mobile-bottom-nav__item--active"
       ]}
-      phx-click={@on_click || JS.navigate(@path)}
+      phx-click={@on_click || navigate_tab(@path)}
       aria-current={if(@active, do: "page", else: nil)}
       aria-label={@label}
     >
@@ -63,5 +63,12 @@ defmodule QlariusWeb.Components.MobileBottomNav do
       </span>
     </button>
     """
+  end
+
+  defp navigate_tab(path) when is_binary(path) do
+    JS.remove_class("mobile-bottom-nav__item--active", to: ".mobile-bottom-nav__item")
+    |> JS.add_class("mobile-bottom-nav__item--active")
+    |> JS.add_class("is-navigating", to: "#mobile-shell")
+    |> JS.navigate(path)
   end
 end

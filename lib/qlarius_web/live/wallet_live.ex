@@ -21,12 +21,6 @@ defmodule QlariusWeb.WalletLive do
     user = current_scope.user
     me_file = user.me_file
 
-    ledger_header = Repo.get_by(LedgerHeader, me_file_id: me_file.id)
-
-    page = 1
-    per_page = 20
-    paginated_entries = Wallets.list_ledger_entries(ledger_header.id, page, per_page)
-
     socket =
       if connected?(socket) do
         WalletBalanceSync.subscribe(socket)
@@ -39,14 +33,15 @@ defmodule QlariusWeb.WalletLive do
     |> assign(:title, "Wallet")
     |> assign(:me_file, me_file)
     |> assign(:loading, true)
-    |> assign(:ledger_header, ledger_header)
+    |> assign(:wallet_async_started, false)
+    |> assign(:ledger_header, nil)
     |> assign(:sidebar_entry, nil)
     |> assign(:selected_entry, nil)
     |> assign(:entry_details, nil)
-    |> assign(:page, page)
-    |> assign(:paginated_entries, paginated_entries)
+    |> assign(:page, 1)
+    |> assign(:paginated_entries, nil)
     |> assign(:undo_context, nil)
-    |> assign(:wallet_summary, Wallets.consumer_wallet_summary(me_file))
+    |> assign(:wallet_summary, nil)
     |> assign(:wallet_details_open, false)
     |> assign(:wallet_details_section, :activity)
     |> assign_tag_display_mode()
@@ -243,6 +238,10 @@ defmodule QlariusWeb.WalletLive do
 
   # Assign-only refresh (no push_patch / navigate) so the mobile shell scroll
   # container keeps its scroll position across ledger PubSub updates.
+  defp reload_ledger(%{assigns: %{loading: true}} = socket), do: socket
+
+  defp reload_ledger(%{assigns: %{ledger_header: nil}} = socket), do: socket
+
   defp reload_ledger(socket) do
     %{me_file: me_file, page: page} = socket.assigns
     per_page = 20
@@ -286,35 +285,43 @@ defmodule QlariusWeb.WalletLive do
 
   @impl true
   def handle_params(params, _url, socket) do
-    page =
-      case params["page"] do
-        "oldest" ->
-          if socket.assigns[:paginated_entries] do
-            socket.assigns.paginated_entries.total_pages
-          else
-            1
-          end
+    page = wallet_page_from_params(params, socket)
+    socket = assign(socket, :page, page)
 
-        "1" ->
-          1
+    cond do
+      not socket.assigns.loading and socket.assigns.ledger_header ->
+        {:noreply,
+         assign(
+           socket,
+           :paginated_entries,
+           Wallets.list_ledger_entries(socket.assigns.ledger_header.id, page, 20)
+         )}
 
-        nil ->
-          1
+      connected?(socket) and not socket.assigns.wallet_async_started ->
+        me_file = socket.assigns.me_file
 
-        page_str ->
-          String.to_integer(page_str)
-      end
+        {:noreply,
+         socket
+         |> assign(:wallet_async_started, true)
+         |> start_async(:wallet_page, fn -> load_wallet_page(me_file, page) end)}
 
-    if socket.assigns[:ledger_header] do
-      paginated_entries = Wallets.list_ledger_entries(socket.assigns.ledger_header.id, page, 20)
-
-      {:noreply,
-       socket
-       |> assign(:page, page)
-       |> assign(:paginated_entries, paginated_entries)}
-    else
-      {:noreply, socket}
+      true ->
+        {:noreply, socket}
     end
+  end
+
+  @impl true
+  def handle_async(:wallet_page, {:ok, data}, socket) do
+    {:noreply,
+     socket
+     |> assign(:ledger_header, data.ledger_header)
+     |> assign(:paginated_entries, data.paginated_entries)
+     |> assign(:wallet_summary, data.wallet_summary)
+     |> assign(:loading, false)}
+  end
+
+  def handle_async(:wallet_page, {:exit, _reason}, socket) do
+    {:noreply, socket |> assign(:loading, false) |> assign(:error, "Could not load wallet")}
   end
 
   @impl true
@@ -328,38 +335,45 @@ defmodule QlariusWeb.WalletLive do
           </div>
         <% else %>
           <div class="max-w-3xl mx-auto w-full space-y-4">
-            <.wallet_summary_card
-              summary={@wallet_summary}
-              details_open={@wallet_details_open}
-              details_section={@wallet_details_section}
-            />
-            <%= if Enum.empty?(@paginated_entries.entries) do %>
-              <div class="flex flex-col items-center justify-center py-12 gap-4">
-                <p class="mobile-page-intro text-center">No ledger activity to display.</p>
-                <p class="text-base text-base-content/60">
-                  Check out some ads and seed this wallet.
-                </p>
-                <.link navigate="/ads" class="btn btn-primary btn-lg rounded-full px-6 py-5 shadow-lg">
-                  View Ads
-                </.link>
-              </div>
+            <%= if @loading do %>
+              <.wallet_page_skeleton />
             <% else %>
-              <h2 class="pt-4 text-center text-xl font-bold tracking-tight text-base-content">
-                Activity Ledger
-              </h2>
-              <.ledger_entries_pagination
-                paginated_entries={@paginated_entries}
-                page={@page}
+              <.wallet_summary_card
+                summary={@wallet_summary}
+                details_open={@wallet_details_open}
+                details_section={@wallet_details_section}
               />
-              <.surface_panel padding={false}>
-                <.ledger_entries_list
+              <%= if Enum.empty?(@paginated_entries.entries) do %>
+                <div class="flex flex-col items-center justify-center py-12 gap-4">
+                  <p class="mobile-page-intro text-center">No ledger activity to display.</p>
+                  <p class="text-base text-base-content/60">
+                    Check out some ads and seed this wallet.
+                  </p>
+                  <.link
+                    navigate="/ads"
+                    class="btn btn-primary btn-lg rounded-full px-6 py-5 shadow-lg"
+                  >
+                    View Ads
+                  </.link>
+                </div>
+              <% else %>
+                <h2 class="pt-4 text-center text-xl font-bold tracking-tight text-base-content">
+                  Activity Ledger
+                </h2>
+                <.ledger_entries_pagination
                   paginated_entries={@paginated_entries}
                   page={@page}
-                  current_scope={@current_scope}
-                  show_pagination={false}
-                  list_class="list !mx-0 !rounded-none !shadow-none !bg-base-100 dark:!bg-black divide-y divide-base-300/60 dark:divide-base-content/10"
                 />
-              </.surface_panel>
+                <.surface_panel padding={false}>
+                  <.ledger_entries_list
+                    paginated_entries={@paginated_entries}
+                    page={@page}
+                    current_scope={@current_scope}
+                    show_pagination={false}
+                    list_class="list !mx-0 !rounded-none !shadow-none !bg-base-100 dark:!bg-black divide-y divide-base-300/60 dark:divide-base-content/10"
+                  />
+                </.surface_panel>
+              <% end %>
             <% end %>
           </div>
         <% end %>
@@ -379,6 +393,88 @@ defmodule QlariusWeb.WalletLive do
         id="sidebar-undo-modal-trigger"
         phx-mounted={show_modal("sidebar-undo-confirm-modal")}
       />
+    </div>
+    """
+  end
+
+  defp wallet_page_from_params(params, socket) do
+    case params["page"] do
+      "oldest" ->
+        case socket.assigns[:paginated_entries] do
+          %{total_pages: total_pages} when is_integer(total_pages) and total_pages > 0 ->
+            total_pages
+
+          _ ->
+            1
+        end
+
+      "1" ->
+        1
+
+      nil ->
+        1
+
+      page_str ->
+        String.to_integer(page_str)
+    end
+  end
+
+  defp load_wallet_page(me_file, page) do
+    ledger_header = Repo.get_by(LedgerHeader, me_file_id: me_file.id)
+
+    paginated_entries =
+      if ledger_header do
+        Wallets.list_ledger_entries(ledger_header.id, page, 20)
+      else
+        %{entries: [], page_number: page, page_size: 20, total_entries: 0, total_pages: 0}
+      end
+
+    %{
+      ledger_header: ledger_header,
+      paginated_entries: paginated_entries,
+      wallet_summary: Wallets.consumer_wallet_summary(me_file)
+    }
+  end
+
+  defp wallet_page_skeleton(assigns) do
+    ~H"""
+    <div aria-busy="true" aria-label="Loading wallet">
+      <.surface_panel class="home-stat-card home-stat-card--wallet">
+        <div class="flex items-start justify-between gap-3 mb-6">
+          <div class="skeleton h-6 w-36"></div>
+          <div class="skeleton h-7 w-7 rounded-md"></div>
+        </div>
+        <div class="flex items-end justify-between gap-3">
+          <div class="space-y-2">
+            <div class="skeleton h-10 w-24"></div>
+            <div class="skeleton h-3 w-16"></div>
+          </div>
+          <div class="space-y-2">
+            <div class="skeleton h-10 w-20"></div>
+            <div class="skeleton h-3 w-14"></div>
+          </div>
+          <div class="space-y-2">
+            <div class="skeleton h-10 w-20"></div>
+            <div class="skeleton h-3 w-12"></div>
+          </div>
+        </div>
+      </.surface_panel>
+      <div class="pt-8 space-y-3">
+        <div class="skeleton mx-auto h-6 w-40"></div>
+        <.surface_panel padding={false}>
+          <div
+            :for={_ <- 1..6}
+            class="flex items-center gap-3 px-4 py-4 border-b border-base-300/60 last:border-0"
+          >
+            <div class="skeleton h-10 w-10 shrink-0 rounded-full"></div>
+            <div class="flex-1 space-y-2">
+              <div class="skeleton h-4 w-2/3"></div>
+              <div class="skeleton h-3 w-1/3"></div>
+            </div>
+            <div class="skeleton h-5 w-14"></div>
+          </div>
+        </.surface_panel>
+      </div>
     </div>
     """
   end
