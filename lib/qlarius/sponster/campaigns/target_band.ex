@@ -14,6 +14,17 @@ defmodule Qlarius.Sponster.Campaigns.TargetBand do
     field :is_bullseye, :string
     field :user_created_by, :integer
 
+    # Stable ring position, 0 being the most restrictive band. Preferred over
+    # re-deriving order from `length(band.trait_groups)`, which ties.
+    field :tier, :integer
+
+    # Maintained by PopulateTargetWorker and the incremental sync worker.
+    field :population_count, :integer
+
+    # Fingerprint of the band's trait sets, so content-identical bands can
+    # share a single population scan.
+    field :definition_hash, :string
+
     has_many :target_band_trait_groups, TargetBandTraitGroup
     has_many :trait_groups, through: [:target_band_trait_groups, :trait_group]
     has_many :target_populations, TargetPopulation
@@ -26,7 +37,14 @@ defmodule Qlarius.Sponster.Campaigns.TargetBand do
 
   def changeset(target_band, attrs) do
     target_band
-    |> cast(attrs, [:target_id, :is_bullseye, :user_created_by])
+    |> cast(attrs, [
+      :target_id,
+      :is_bullseye,
+      :user_created_by,
+      :tier,
+      :population_count,
+      :definition_hash
+    ])
     |> validate_required([:target_id])
     |> validate_inclusion(:is_bullseye, ["0", "1"])
     |> foreign_key_constraint(:target_id)

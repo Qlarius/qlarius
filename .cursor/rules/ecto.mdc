@@ -194,6 +194,70 @@ def changeset(user, attrs) do
 end
 ```
 
+## Migrations
+
+### Prefer the Ecto DSL over raw SQL
+
+Reach for `execute/1,2` only when the DSL genuinely cannot express the change.
+The DSL gives automatic reversibility, so `change/0` usually replaces a
+hand-written `up`/`down` pair.
+
+CHECK constraints and foreign keys added to existing tables both have DSL
+equivalents that are easy to miss:
+
+```elixir
+# ✅ Good: reversible, no hand-written down/0
+create constraint(:targets, :exactly_one_owner,
+         check: "(marketer_id IS NOT NULL)::int + (creator_id IS NOT NULL)::int = 1"
+       )
+
+alter table(:marketer_users) do
+  modify :user_id, references(:users, on_delete: :delete_all), null: false
+end
+
+# ❌ Avoid: needs a matching down/0, and silently loses reversibility if omitted
+execute """
+ALTER TABLE targets ADD CONSTRAINT exactly_one_owner CHECK (...)
+"""
+```
+
+### When raw SQL is the right call
+
+Do not hesitate when there is a real reason. The common ones:
+
+- **Data backfills.** A backfill must keep working against the schema as it was
+  the day it was written, so it must not reference a schema module that will
+  drift or be deleted. Write the `UPDATE` in SQL and pass `""` as the reverse
+  when rolling back drops the column anyway.
+- **Window functions and CTEs** in a backfill, which the migration DSL has no
+  vocabulary for at all.
+- **Postgres features with no DSL equivalent** — partial and expression indexes
+  beyond `where:`, trigger and extension management.
+
+Always give `execute/2` a reverse (or an explicit `""`) rather than `execute/1`,
+so the migration stays rollback-safe.
+
+### Verify a constraint is satisfiable before adding it
+
+Count the violating rows first. A `CHECK` or `null: false` added against
+existing data fails the whole deploy if even one row disagrees, and the count
+also tells you whether a backfill is needed or the rule belongs in the
+changeset only.
+
+### Large tables
+
+Build indexes `concurrently` on tables big enough that a write lock matters,
+which needs its own migration:
+
+```elixir
+@disable_ddl_transaction true
+@disable_migration_lock true
+
+def change do
+  create index(:me_file_tags, [:trait_id, :me_file_id], concurrently: true)
+end
+```
+
 ## Performance
 
 ### Pagination

@@ -74,8 +74,13 @@ defmodule QlariusWeb.Router do
     plug :require_admin_user
   end
 
+  # Marketer management is org-scoped, not public. `current_marketer` is chosen
+  # client-side (localStorage) and validated against `marketer_users` in
+  # `CurrentMarketer.on_mount`, so an authenticated user still only reaches orgs
+  # they belong to — admins reach all of them.
   pipeline :marketer do
     plug :put_layout, {QlariusWeb.Layouts, :admin}
+    plug :require_authenticated_user
   end
 
   pipeline :require_auth do
@@ -259,7 +264,7 @@ defmodule QlariusWeb.Router do
 
     live_session :marketer,
       on_mount: [
-        {QlariusWeb.UserAuth, :mount_current_scope},
+        {QlariusWeb.UserAuth, :ensure_authenticated},
         {QlariusWeb.Layouts, :set_current_path}
       ] do
       live "/campaigns", Live.Marketers.CampaignsManagerLive, :index
@@ -453,7 +458,6 @@ defmodule QlariusWeb.Router do
       live "/", HiLive, :index
       live "/hi", HiLive, :index
     end
-
 
     live_session :public,
       on_mount: [

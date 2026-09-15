@@ -10,7 +10,7 @@ defmodule Qlarius.Creators do
   alias Qlarius.Creators.Creator
   alias Qlarius.Creators.CreatorMembership
   alias Qlarius.Creators.RecipientProvisioning
-  alias Qlarius.Accounts.User
+  alias Qlarius.Accounts.{Authz, Scope, User}
 
   @doc """
   Returns the list of all creators.
@@ -47,6 +47,49 @@ defmodule Qlarius.Creators do
         content_groups: [:content_pieces, :tiqit_classes]
       ]
     ])
+  end
+
+  @doc """
+  Fetches a creator the scope may act for: any creator for an admin, otherwise
+  only those the acting user holds a membership in. Raises
+  `Ecto.NoResultsError` when it does not exist or is out of reach.
+
+  The counterpart of `Marketers.accessible_marketer!/2`. Together with
+  `Authz.admin?/1` these are the only places the admin bypass lives —
+  `user_has_creator_access?/2` stays factual.
+  """
+  def accessible_creator!(%Scope{} = scope, creator_id) do
+    scope
+    |> accessible_creators_query()
+    |> where([c], c.id == ^creator_id)
+    |> Repo.one!()
+  end
+
+  @doc """
+  Lists the creators the scope may act for.
+  """
+  def list_accessible_creators(%Scope{} = scope) do
+    scope
+    |> accessible_creators_query()
+    |> order_by([c], asc: c.name)
+    |> Repo.all()
+  end
+
+  defp accessible_creators_query(%Scope{} = scope) do
+    cond do
+      Authz.admin?(scope) ->
+        from(c in Creator)
+
+      user_id = Authz.acting_user_id(scope) ->
+        from(c in Creator,
+          join: cm in CreatorMembership,
+          on: cm.creator_id == c.id,
+          where: cm.user_id == ^user_id
+        )
+
+      true ->
+        from(c in Creator, limit: 0)
+    end
   end
 
   @doc """

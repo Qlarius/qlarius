@@ -2,7 +2,7 @@ defmodule Qlarius.Sponster.Campaigns.TraitGroup do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Sponster.Campaigns.{TraitGroupTrait, TargetBandTraitGroup}
+  alias Qlarius.Sponster.Campaigns.{Ownership, TraitGroupTrait, TargetBandTraitGroup}
 
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
@@ -11,6 +11,7 @@ defmodule Qlarius.Sponster.Campaigns.TraitGroup do
     field :description, :string
     field :parent_trait_id, :integer
     field :marketer_id, :integer
+    field :creator_id, :integer
     field :user_created_by, :integer
     field :deactivated_at, :naive_datetime
 
@@ -30,9 +31,11 @@ defmodule Qlarius.Sponster.Campaigns.TraitGroup do
       :description,
       :parent_trait_id,
       :marketer_id,
+      :creator_id,
       :user_created_by,
       :deactivated_at
     ])
-    |> validate_required([:title, :marketer_id])
+    |> validate_required([:title])
+    |> Ownership.validate_exactly_one_owner()
   end
 end

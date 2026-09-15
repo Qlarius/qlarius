@@ -2,7 +2,7 @@ defmodule Qlarius.Sponster.Campaigns.Target do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Qlarius.Sponster.Campaigns.TargetBand
+  alias Qlarius.Sponster.Campaigns.{Ownership, TargetBand}
 
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
@@ -11,6 +11,7 @@ defmodule Qlarius.Sponster.Campaigns.Target do
     field :title, :string
     field :description, :string
     field :marketer_id, :integer
+    field :creator_id, :integer
     field :user_created_by, :integer
     field :population_status, :string, default: "not_populated"
     field :last_populated_at, :naive_datetime
@@ -26,11 +27,13 @@ defmodule Qlarius.Sponster.Campaigns.Target do
       :title,
       :description,
       :marketer_id,
+      :creator_id,
       :user_created_by,
       :population_status,
       :last_populated_at
     ])
-    |> validate_required([:title, :marketer_id])
+    |> validate_required([:title])
+    |> Ownership.validate_exactly_one_owner()
     |> validate_inclusion(:population_status, ["not_populated", "populating", "populated"])
   end
 end

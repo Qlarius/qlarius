@@ -6,7 +6,8 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker do
 
   import Ecto.Query
   alias Qlarius.Repo
-  alias Qlarius.Sponster.Campaigns.{Campaign, TargetPopulation, TargetBand}
+  alias Qlarius.Sponster.Campaigns.{Campaign, Target, TargetPopulation, TargetBand}
+  alias Qlarius.Tiqit.ContentAudienceTarget
   alias Qlarius.YouData.MeFiles.MeFileTag
   alias Qlarius.YouData.Traits.Trait
   alias Qlarius.Jobs.ReconcileOffersForMeFileWorker
@@ -20,14 +21,14 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker do
       "SyncMeFileToTargetPopulationsWorker: Processing me_file #{me_file_id}, deleted_traits=#{inspect(deleted_trait_ids)}"
     )
 
-    active_campaigns = get_active_campaigns()
+    active_targets = get_active_targets()
 
     Logger.info(
-      "SyncMeFileToTargetPopulationsWorker: Found #{length(active_campaigns)} active campaigns"
+      "SyncMeFileToTargetPopulationsWorker: Found #{length(active_targets)} active targets"
     )
 
     {new_populations, removed_populations} =
-      sync_populations_for_me_file(me_file_id, active_campaigns)
+      sync_populations_for_me_file(me_file_id, active_targets)
 
     if new_populations != [] or removed_populations != [] do
       Logger.info(
@@ -45,27 +46,42 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker do
     :ok
   end
 
-  defp get_active_campaigns do
-    from(c in Campaign,
-      where: is_nil(c.deactivated_at),
-      preload: [target: :target_bands]
+  # Every target worth keeping populations for: those driving a live campaign,
+  # plus those attached to creator content. Content-only audiences never reach a
+  # campaign, so keying this off campaigns alone would leave their populations
+  # to drift as users retag.
+  #
+  # Returns distinct targets with bands and traits loaded once, rather than once
+  # per referencing campaign — several campaigns commonly share a target.
+  defp get_active_targets do
+    campaign_target_ids =
+      from(c in Campaign,
+        where: is_nil(c.deactivated_at) and not is_nil(c.target_id),
+        select: c.target_id
+      )
+
+    content_target_ids = from(a in ContentAudienceTarget, select: a.target_id)
+
+    from(t in Target,
+      where: t.id in subquery(campaign_target_ids) or t.id in subquery(content_target_ids),
+      preload: [target_bands: [trait_groups: :traits]]
     )
     |> Repo.all()
   end
 
-  defp sync_populations_for_me_file(me_file_id, campaigns) do
-    optimal_bands_by_target =
-      Enum.reduce(campaigns, %{}, fn campaign, acc ->
-        if campaign.target do
-          optimal_band = find_optimal_band_for_me_file(campaign.target, me_file_id)
+  defp sync_populations_for_me_file(me_file_id, targets) do
+    # Trait-group membership checks dominate this worker, and the same group
+    # recurs across bands, across targets and across every copy of an audience.
+    # Memoize on the trait id set so identical groups cost one query, not one
+    # per occurrence.
+    {optimal_bands_by_target, _cache} =
+      Enum.reduce(targets, {%{}, %{}}, fn target, {acc, cache} ->
+        {optimal_band, cache} = find_optimal_band_for_me_file(target, me_file_id, cache)
 
-          if optimal_band do
-            Map.put(acc, campaign.target.id, optimal_band.id)
-          else
-            acc
-          end
+        if optimal_band do
+          {Map.put(acc, target.id, optimal_band.id), cache}
         else
-          acc
+          {acc, cache}
         end
       end)
 
@@ -96,44 +112,49 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker do
     {bands_to_add, bands_to_remove}
   end
 
-  defp find_optimal_band_for_me_file(target, me_file_id) do
-    target = Repo.preload(target, target_bands: [trait_groups: :traits])
-    bands = target.target_bands
-
-    sorted_bands = Enum.sort_by(bands, &length(&1.trait_groups), :desc)
-
-    Enum.find(sorted_bands, fn band ->
-      me_file_matches_band?(me_file_id, band)
+  # Bands are checked most-restrictive first and the first match wins, so the
+  # me_file lands in its innermost qualifying band — the same rule
+  # PopulateTargetWorker applies in batch.
+  defp find_optimal_band_for_me_file(target, me_file_id, cache) do
+    target.target_bands
+    |> Enum.sort_by(&length(&1.trait_groups), :desc)
+    |> Enum.reduce_while({nil, cache}, fn band, {_none, cache} ->
+      case me_file_matches_band?(me_file_id, band, cache) do
+        {true, cache} -> {:halt, {band, cache}}
+        {false, cache} -> {:cont, {nil, cache}}
+      end
     end)
   end
 
-  defp me_file_matches_band?(me_file_id, band) do
-    trait_groups = band.trait_groups
+  defp me_file_matches_band?(_me_file_id, %{trait_groups: []}, cache), do: {false, cache}
 
-    if trait_groups == [] do
-      false
-    else
-      Enum.all?(trait_groups, fn trait_group ->
-        me_file_has_trait_from_group?(me_file_id, trait_group)
-      end)
-    end
+  defp me_file_matches_band?(me_file_id, band, cache) do
+    Enum.reduce_while(band.trait_groups, {true, cache}, fn trait_group, {_so_far, cache} ->
+      case me_file_has_trait_from_group?(me_file_id, trait_group, cache) do
+        {true, cache} -> {:cont, {true, cache}}
+        {false, cache} -> {:halt, {false, cache}}
+      end
+    end)
   end
 
-  defp me_file_has_trait_from_group?(me_file_id, trait_group) do
-    trait_ids = Enum.map(trait_group.traits, & &1.id)
+  defp me_file_has_trait_from_group?(me_file_id, trait_group, cache) do
+    trait_ids = trait_group.traits |> Enum.map(& &1.id) |> Enum.sort()
 
-    if trait_ids == [] do
-      false
-    else
-      exists =
-        from(mft in MeFileTag,
-          where: mft.me_file_id == ^me_file_id,
-          where: mft.trait_id in ^trait_ids,
-          select: count(mft.id)
-        )
-        |> Repo.one()
+    cond do
+      trait_ids == [] ->
+        {false, cache}
 
-      exists > 0
+      Map.has_key?(cache, trait_ids) ->
+        {Map.fetch!(cache, trait_ids), cache}
+
+      true ->
+        matches =
+          from(mft in MeFileTag,
+            where: mft.me_file_id == ^me_file_id and mft.trait_id in ^trait_ids
+          )
+          |> Repo.exists?()
+
+        {matches, Map.put(cache, trait_ids, matches)}
     end
   end
 

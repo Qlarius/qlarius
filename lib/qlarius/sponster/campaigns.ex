@@ -90,14 +90,22 @@ defmodule Qlarius.Sponster.Campaigns do
           attrs["start_date"] || NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
         )
 
+      target = Repo.get!(Target, attrs["target_id"]) |> Repo.preload(:target_bands)
+
+      # Targeting assets belong to exactly one org and are never shared across
+      # one. A creator-owned content audience must be cloned into the marketer
+      # org before it can be advertised against, so reject it here rather than
+      # billing against someone else's definition.
+      unless target.marketer_id == marketer_id do
+        Repo.rollback("Target does not belong to this marketer")
+      end
+
       campaign =
         %Campaign{}
         |> Campaign.changeset(campaign_attrs)
         |> Repo.insert!()
 
       Wallets.create_campaign_ledger_header(campaign, marketer_id)
-
-      target = Repo.get!(Target, attrs["target_id"]) |> Repo.preload(:target_bands)
 
       bands = Enum.sort_by(target.target_bands, & &1.id)
 

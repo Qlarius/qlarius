@@ -3,7 +3,16 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
 
   import Ecto.Query
   alias Qlarius.Repo
-  alias Qlarius.Sponster.Campaigns.{Target, TargetBand, TargetPopulation, Targets, CampaignPubSub}
+
+  alias Qlarius.Sponster.Campaigns.{
+    BandDefinition,
+    CampaignPubSub,
+    Target,
+    TargetBand,
+    TargetPopulation,
+    Targets
+  }
+
   alias Qlarius.YouData.MeFiles.MeFileTag
   alias Qlarius.YouData.Traits.Trait
 
@@ -31,87 +40,271 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
         )
       end)
 
-      existing_populations =
-        from(tp in TargetPopulation,
-          join: tb in TargetBand,
-          on: tp.target_band_id == tb.id,
-          where: tb.target_id == ^target_id,
-          select: {tp.me_file_id, tp.target_band_id}
+      # Recomputed fresh every run, so a hash that drifted since the last
+      # populate costs a missed optimization rather than producing wrong rows.
+      hashes_by_band = refresh_band_metadata(sorted_bands)
+
+      case populate_by_copy(target_id, sorted_bands, hashes_by_band) do
+        {:ok, copied} ->
+          Logger.info(
+            "PopulateTargetWorker: Reused an existing population, copied #{copied} rows"
+          )
+
+          finish_populating(target, sorted_bands)
+          {:ok, :copied}
+
+        :no_twin ->
+          populate_by_scan(target, target_id, bands, sorted_bands)
+      end
+    end
+  end
+
+  defp populate_by_scan(target, target_id, bands, sorted_bands) do
+    require Logger
+
+    existing_populations =
+      from(tp in TargetPopulation,
+        join: tb in TargetBand,
+        on: tp.target_band_id == tb.id,
+        where: tb.target_id == ^target_id,
+        select: {tp.me_file_id, tp.target_band_id}
+      )
+      |> Repo.all()
+      |> MapSet.new()
+
+    Logger.info(
+      "PopulateTargetWorker: Found #{MapSet.size(existing_populations)} existing populations"
+    )
+
+    new_populations = populate_bands_bottom_up(sorted_bands)
+
+    Logger.info("PopulateTargetWorker: Calculated #{map_size(new_populations)} new populations")
+
+    {populations_to_insert, populations_to_delete} =
+      calculate_population_changes(new_populations, existing_populations)
+
+    Logger.info(
+      "PopulateTargetWorker: #{length(populations_to_insert)} to insert, #{length(populations_to_delete)} to delete"
+    )
+
+    if populations_to_delete != [] do
+      delete_conditions =
+        Enum.map(populations_to_delete, fn {mf_id, band_id} ->
+          dynamic([tp], tp.me_file_id == ^mf_id and tp.target_band_id == ^band_id)
+        end)
+
+      delete_query =
+        Enum.reduce(delete_conditions, false, fn condition, acc ->
+          dynamic([], ^acc or ^condition)
+        end)
+
+      {deleted_count, _} =
+        from(tp in TargetPopulation, where: ^delete_query)
+        |> Repo.delete_all()
+
+      Logger.info("PopulateTargetWorker: Deleted #{deleted_count} populations")
+    end
+
+    if populations_to_insert != [] do
+      Logger.info("PopulateTargetWorker: Building snapshots and inserting populations...")
+      trait_metadata_by_band = build_trait_metadata_for_bands(bands)
+
+      total_inserted =
+        populations_to_insert
+        |> Enum.chunk_every(@batch_size)
+        |> Enum.with_index(1)
+        |> Enum.reduce(0, fn {batch, batch_num}, acc ->
+          Logger.info(
+            "PopulateTargetWorker: Processing batch #{batch_num}/#{ceil(length(populations_to_insert) / @batch_size)} (#{length(batch)} populations)"
+          )
+
+          count = insert_populations_with_snapshots(batch, trait_metadata_by_band)
+          acc + count
+        end)
+
+      Logger.info("PopulateTargetWorker: Inserted #{total_inserted} populations with snapshots")
+    end
+
+    finish_populating(target, sorted_bands)
+
+    {:ok, :scanned}
+  end
+
+  defp finish_populating(target, bands) do
+    require Logger
+
+    refresh_population_counts(bands)
+
+    Targets.update_target(target, %{
+      population_status: "populated",
+      last_populated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+    })
+
+    timestamp = NaiveDateTime.utc_now() |> NaiveDateTime.to_string()
+    Logger.info("PopulateTargetWorker: ✅ COMPLETE for target_id=#{target.id} at #{timestamp}")
+
+    Phoenix.PubSub.broadcast(
+      Qlarius.PubSub,
+      "targets",
+      {:target_populated, target.id, timestamp}
+    )
+
+    broadcast_to_campaigns_using_target(target.id)
+  end
+
+  # --- Population reuse by content fingerprint ---
+
+  # `tier` and `definition_hash` are both caches derived from band structure, and
+  # both are refreshed here rather than when bands are edited. Population is only
+  # ever triggered explicitly (`Targets.trigger_population/1`), so between edits
+  # and the next populate these columns describe the structure the population
+  # rows were computed against — which is the state any reader of those rows
+  # wants. Bands created since the last populate carry a nil tier.
+  #
+  # Ordering matches the backfill in
+  # 20260915043240_add_ranking_fields_to_target_bands.exs: most trait groups
+  # first, id as tiebreak, so tier 0 is the most restrictive band.
+  defp refresh_band_metadata(bands) do
+    bands
+    |> Enum.sort_by(fn band -> {-length(band.trait_groups), band.id} end)
+    |> Enum.with_index()
+    |> Map.new(fn {band, tier} ->
+      hash = BandDefinition.hash_for_band(band)
+
+      from(tb in TargetBand, where: tb.id == ^band.id)
+      |> Repo.update_all(set: [tier: tier, definition_hash: hash])
+
+      {band.id, hash}
+    end)
+  end
+
+  defp refresh_population_counts(bands) do
+    counts =
+      from(tp in TargetPopulation,
+        where: tp.target_band_id in ^Enum.map(bands, & &1.id),
+        group_by: tp.target_band_id,
+        select: {tp.target_band_id, count(tp.id)}
+      )
+      |> Repo.all()
+      |> Map.new()
+
+    # Note this counts rows in `target_populations`, which records only each
+    # me_file's *innermost* matching band. So it is "me_files whose best match
+    # is this band", not "everyone who satisfies this band's criteria" — the
+    # latter would double-count people assigned to narrower bands. Selectivity
+    # ranking wants the former.
+    Enum.each(bands, fn band ->
+      from(tb in TargetBand, where: tb.id == ^band.id)
+      |> Repo.update_all(set: [population_count: Map.get(counts, band.id, 0)])
+    end)
+  end
+
+  # Populates by copying another target's rows when the whole band set is
+  # content-identical.
+  #
+  # Reuse is all-or-nothing across the band set, never per band. A population
+  # row records only the me_file's innermost matching band, so that assignment
+  # is a property of the *set* — importing one band's rows in isolation would
+  # bring over an assignment computed against a different set of rings. Partial
+  # overlap therefore falls back to the normal scan.
+  defp populate_by_copy(target_id, bands, hashes_by_band) do
+    require Logger
+
+    our_hashes = Enum.map(bands, &Map.get(hashes_by_band, &1.id))
+
+    if not BandDefinition.reusable?(our_hashes) do
+      :no_twin
+    else
+      case find_twin_target(target_id, our_hashes) do
+        nil ->
+          :no_twin
+
+        source_bands_by_hash ->
+          our_bands_by_hash = Map.new(bands, &{Map.get(hashes_by_band, &1.id), &1.id})
+          copy_populations(target_id, our_bands_by_hash, source_bands_by_hash)
+      end
+    end
+  end
+
+  # Finds a populated target whose band set fingerprints identically, verifying
+  # the candidate by recomputing its hashes rather than trusting the stored
+  # column, which can be stale. Returns a hash => band_id map for the winner.
+  defp find_twin_target(target_id, our_hashes) do
+    wanted = Enum.sort(our_hashes)
+
+    candidate_ids =
+      from(tb in TargetBand,
+        join: t in Target,
+        on: t.id == tb.target_id,
+        where:
+          tb.target_id != ^target_id and
+            t.population_status == "populated" and
+            tb.definition_hash in ^our_hashes,
+        distinct: true,
+        select: tb.target_id
+      )
+      |> Repo.all()
+
+    candidate_ids
+    |> Enum.find_value(fn candidate_id ->
+      candidate_bands =
+        from(tb in TargetBand,
+          where: tb.target_id == ^candidate_id,
+          preload: [trait_groups: :traits]
         )
         |> Repo.all()
-        |> MapSet.new()
 
-      Logger.info(
-        "PopulateTargetWorker: Found #{MapSet.size(existing_populations)} existing populations"
-      )
+      fresh = Map.new(candidate_bands, &{&1.id, BandDefinition.hash_for_band(&1)})
+      fresh_hashes = Map.values(fresh)
 
-      new_populations = populate_bands_bottom_up(sorted_bands)
-
-      Logger.info("PopulateTargetWorker: Calculated #{map_size(new_populations)} new populations")
-
-      {populations_to_insert, populations_to_delete} =
-        calculate_population_changes(new_populations, existing_populations)
-
-      Logger.info(
-        "PopulateTargetWorker: #{length(populations_to_insert)} to insert, #{length(populations_to_delete)} to delete"
-      )
-
-      if populations_to_delete != [] do
-        delete_conditions =
-          Enum.map(populations_to_delete, fn {mf_id, band_id} ->
-            dynamic([tp], tp.me_file_id == ^mf_id and tp.target_band_id == ^band_id)
-          end)
-
-        delete_query =
-          Enum.reduce(delete_conditions, false, fn condition, acc ->
-            dynamic([], ^acc or ^condition)
-          end)
-
-        {deleted_count, _} =
-          from(tp in TargetPopulation, where: ^delete_query)
-          |> Repo.delete_all()
-
-        Logger.info("PopulateTargetWorker: Deleted #{deleted_count} populations")
+      if BandDefinition.reusable?(fresh_hashes) and Enum.sort(fresh_hashes) == wanted do
+        Map.new(fresh, fn {band_id, hash} -> {hash, band_id} end)
       end
+    end)
+  end
 
-      if populations_to_insert != [] do
-        Logger.info("PopulateTargetWorker: Building snapshots and inserting populations...")
-        trait_metadata_by_band = build_trait_metadata_for_bands(bands)
+  defp copy_populations(target_id, our_bands_by_hash, source_bands_by_hash) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
 
-        total_inserted =
-          populations_to_insert
-          |> Enum.chunk_every(@batch_size)
-          |> Enum.with_index(1)
-          |> Enum.reduce(0, fn {batch, batch_num}, acc ->
-            Logger.info(
-              "PopulateTargetWorker: Processing batch #{batch_num}/#{ceil(length(populations_to_insert) / @batch_size)} (#{length(batch)} populations)"
-            )
+    # Replace wholesale rather than diffing. Reuse only runs when a target is
+    # being populated, so any rows already present were computed against a band
+    # set we are about to supersede.
+    from(tp in TargetPopulation,
+      join: tb in TargetBand,
+      on: tp.target_band_id == tb.id,
+      where: tb.target_id == ^target_id
+    )
+    |> Repo.delete_all()
 
-            count = insert_populations_with_snapshots(batch, trait_metadata_by_band)
-            acc + count
-          end)
+    copied =
+      Enum.reduce(our_bands_by_hash, 0, fn {hash, our_band_id}, acc ->
+        source_band_id = Map.fetch!(source_bands_by_hash, hash)
 
-        Logger.info("PopulateTargetWorker: Inserted #{total_inserted} populations with snapshots")
-      end
+        # INSERT ... SELECT, so no population rows travel through the app. The
+        # snapshot copies verbatim because it is content-determined: identical
+        # trait id sets yield identical parent/child metadata.
+        source =
+          from(tp in TargetPopulation,
+            where: tp.target_band_id == ^source_band_id,
+            select: %{
+              me_file_id: tp.me_file_id,
+              target_band_id: type(^our_band_id, :integer),
+              matching_tags_snapshot: tp.matching_tags_snapshot,
+              created_at: type(^now, :naive_datetime),
+              updated_at: type(^now, :naive_datetime)
+            }
+          )
 
-      Targets.update_target(target, %{
-        population_status: "populated",
-        last_populated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-      })
+        {count, _} =
+          Repo.insert_all(TargetPopulation, source,
+            on_conflict: :nothing,
+            conflict_target: [:target_band_id, :me_file_id]
+          )
 
-      timestamp = NaiveDateTime.utc_now() |> NaiveDateTime.to_string()
-      Logger.info("PopulateTargetWorker: ✅ COMPLETE for target_id=#{target_id} at #{timestamp}")
+        acc + count
+      end)
 
-      Phoenix.PubSub.broadcast(
-        Qlarius.PubSub,
-        "targets",
-        {:target_populated, target_id, timestamp}
-      )
-
-      broadcast_to_campaigns_using_target(target_id)
-
-      :ok
-    end
+    {:ok, copied}
   end
 
   defp build_trait_metadata_for_bands(bands) do

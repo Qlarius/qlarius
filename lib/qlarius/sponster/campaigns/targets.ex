@@ -263,11 +263,22 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
     end
   end
 
+  @doc """
+  Whether a target's band structure is locked against edits.
+
+  Frozen if and only if a launched, still-active campaign references it, since
+  bids are priced per band and re-shaping the rings under a running campaign
+  would break billing integrity.
+
+  This replaces the old rule of "any population row exists", which was only
+  approximating the above. Two consequences, both intended: a content audience
+  that drives discovery but no advertising stays editable, and a marketer target
+  that was populated but never launched becomes editable again where it was
+  previously stuck.
+  """
   def is_frozen?(target_id) do
-    from(tp in Qlarius.Sponster.Campaigns.TargetPopulation,
-      join: tb in TargetBand,
-      on: tp.target_band_id == tb.id,
-      where: tb.target_id == ^target_id,
+    from(c in Qlarius.Sponster.Campaigns.Campaign,
+      where: c.target_id == ^target_id and not is_nil(c.launched_at) and is_nil(c.deactivated_at),
       limit: 1
     )
     |> Repo.exists?()
