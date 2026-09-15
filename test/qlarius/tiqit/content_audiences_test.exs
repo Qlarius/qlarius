@@ -390,4 +390,34 @@ defmodule Qlarius.Tiqit.ContentAudiencesTest do
       refute ContentAudiences.piece_visible?(ctx.scope, ctx.piece)
     end
   end
+
+  describe "why_you/2" do
+    test "names the creator and reads parsed tuples, not inspect/1", ctx do
+      {:ok, target} =
+        ContentAudiences.create_audience(ctx.scope, ctx.creator.id, %{title: "Fans"})
+
+      target = mark_populated!(target)
+
+      band =
+        %TargetBand{}
+        |> TargetBand.changeset(%{target_id: target.id, is_bullseye: "1", tier: 0})
+        |> Repo.insert!()
+
+      {:ok, _} = ContentAudiences.set_attachment(ctx.scope, target, ctx.piece, :boost)
+
+      snapshot = %{
+        "tags" => [[ctx.parent.id, "Interests", 1, [[ctx.music.id, "Music", 1]]]]
+      }
+
+      populate_band!(band, ctx.scope.user.me_file, %{matching_tags_snapshot: snapshot})
+
+      why = ContentAudiences.why_you(ctx.scope, ctx.piece)
+
+      assert why.label == "Because you're into Interests"
+      assert why.source_copy == "#{ctx.creator.name} set this audience for this episode"
+      assert [{_, "Interests", _, children}] = why.parent_traits
+      assert Enum.any?(children, fn tuple -> elem(tuple, 1) == "Music" end)
+      refute why.label =~ "parent_trait"
+    end
+  end
 end

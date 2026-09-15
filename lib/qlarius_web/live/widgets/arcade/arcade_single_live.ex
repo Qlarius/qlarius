@@ -17,6 +17,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   import QlariusWeb.PWAHelpers
   import QlariusWeb.TiqitClassHTML
   import QlariusWeb.Widgets.Arcade.Components
+  import QlariusWeb.WhyYouPanel, only: [why_you_panel: 1]
   import QlariusWeb.Components.TiqitPlayer, only: [player_modal_frame: 1]
   # Shared helpers for the "View anywhere, Act only when authed"
   # pattern — `authed?/1`, `format_usd_or_dashes/1`,
@@ -166,6 +167,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           |> assign(
             page_loading?: false,
             page_failed?: false,
+            why_you: ContentAudiences.why_you(scope, piece),
             piece: piece,
             group: group,
             catalog: catalog,

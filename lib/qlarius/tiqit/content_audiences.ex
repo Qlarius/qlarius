@@ -308,6 +308,46 @@ defmodule Qlarius.Tiqit.ContentAudiences do
 
   def why_you_label(_), do: nil
 
+  @doc """
+  Full "Why you?" payload for group and piece pages: short label, who
+  attached the audience, and parsed trait tuples for `parent_traits_display`.
+  """
+  def why_you(scope, content) do
+    ancestry = ancestry_for(content)
+    result = resolve(ancestry, matches_for_scope(scope), gate_attachments())
+    why_you_from_resolve(result, ancestry)
+  end
+
+  def why_you_from_resolve(%{boost_source: nil}, _ancestry), do: nil
+
+  def why_you_from_resolve(result, ancestry) do
+    %{
+      label: why_you_label(result),
+      source_copy: why_you_source(result.boost_source, ancestry),
+      parent_traits: Targets.snapshot_to_tuples(result.matched_traits || %{})
+    }
+  end
+
+  defp why_you_source(level, ancestry) do
+    creator_name =
+      case ancestry do
+        %{creator: %{name: name}} when is_binary(name) -> name
+        _ -> "This creator"
+      end
+
+    catalog = Map.get(ancestry, :catalog)
+    piece_type = (catalog && catalog.piece_type) || :episode
+    group_type = (catalog && catalog.group_type) || :show
+
+    case level do
+      :piece -> "#{creator_name} set this audience for this #{piece_type}"
+      :group -> "#{creator_name} set this audience for this #{group_type}"
+      :catalog -> "#{creator_name} set this audience for this catalog"
+      :creator -> "#{creator_name} set this audience for everything they make"
+      _ -> "#{creator_name} recommended this because of your tags"
+    end
+  end
+
   # --- Ancestry ---
 
   def ancestry_for(%ContentPiece{} = piece) do

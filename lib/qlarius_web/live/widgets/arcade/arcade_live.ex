@@ -4,6 +4,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   alias Qlarius.Accounts.Scope
   alias Qlarius.ContentSharing
   alias Qlarius.Tiqit.Arcade.Arcade
+  alias Qlarius.Tiqit.ContentAudiences
   alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
@@ -18,6 +19,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   import QlariusWeb.PWAHelpers
   import QlariusWeb.TiqitClassHTML
   import QlariusWeb.Widgets.Arcade.Components
+  import QlariusWeb.WhyYouPanel, only: [why_you_panel: 1]
 
   import QlariusWeb.Components.TiqitPlayer,
     only: [player_modal_frame: 1, player_side_panel_frame: 1]
@@ -164,6 +166,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          current_path: "/arqade/group/#{group_id}",
          page_loading?: true,
          page_failed?: false,
+         why_you: nil,
          group: nil,
          pieces: [],
          selected_piece: nil,
@@ -211,7 +214,13 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
       pieces = Arcade.filter_visible_pieces(scope, group, pieces)
 
       socket
-      |> assign(page_loading?: false, page_failed?: false, group: group, pieces: pieces)
+      |> assign(
+        page_loading?: false,
+        page_failed?: false,
+        group: group,
+        pieces: pieces,
+        why_you: ContentAudiences.why_you(scope, group)
+      )
       |> assign(scope_assigns(scope, group, pieces))
       |> select_content_by_id(socket.assigns.pending_content_id)
     else
