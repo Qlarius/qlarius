@@ -3,6 +3,8 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
 
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Tiqit.Arcade.Creators
+  alias Qlarius.Tiqit.ContentAudiences
+  alias QlariusWeb.AudienceCard
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias QlariusWeb.TiqitClassHTML
@@ -18,7 +20,8 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
      socket
      |> assign(:catalog, catalog)
      |> assign(:creator, creator)
-     |> assign(:page_title, catalog.name)}
+     |> assign(:page_title, catalog.name)
+     |> assign(:audience, ContentAudiences.effective_audience(catalog))}
   end
 
   @impl true
@@ -221,6 +224,13 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                     </div>
                   <% end %>
                 </div>
+
+                <AudienceCard.card
+                  creator={@creator}
+                  content={@catalog}
+                  effective={@audience}
+                  level={:catalog}
+                />
                 
     <!-- Content Groups Section -->
                 <div class="space-y-4">

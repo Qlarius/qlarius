@@ -3,6 +3,8 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
 
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Tiqit.Arcade.Creators
+  alias Qlarius.Tiqit.ContentAudiences
+  alias QlariusWeb.AudienceCard
   alias QlariusWeb.TiqitClassHTML
   import QlariusWeb.CoreComponents
 
@@ -20,7 +22,8 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
      |> assign(:catalog, catalog)
      |> assign(:creator, creator)
      |> assign(:piece_hard_deletable, Creators.content_piece_hard_deletable?(piece))
-     |> assign(:page_title, piece.title)}
+     |> assign(:page_title, piece.title)
+     |> assign(:audience, ContentAudiences.effective_audience(piece))}
   end
 
   @impl true
@@ -238,6 +241,13 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
                         <% end %>
                       </div>
                     </div>
+
+                    <AudienceCard.card
+                      creator={@creator}
+                      content={@piece}
+                      effective={@audience}
+                      level={:piece}
+                    />
                     
     <!-- Stats Card -->
                     <div class="card bg-base-100 shadow-lg mt-4">

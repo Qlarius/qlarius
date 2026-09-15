@@ -2,6 +2,8 @@ defmodule QlariusWeb.CreatorDashboard.Show do
   use QlariusWeb, :live_view
 
   alias Qlarius.Creators
+  alias Qlarius.Tiqit.ContentAudiences
+  alias QlariusWeb.AudienceCard
   alias Qlarius.Qlink
   alias QlariusWeb.Uploaders.CreatorImage
   alias QlariusWeb.LiveView.ImageUpload
@@ -16,6 +18,7 @@ defmodule QlariusWeb.CreatorDashboard.Show do
      socket
      |> assign(:creator, creator)
      |> assign(:page_title, creator.name)
+     |> assign(:audience, ContentAudiences.effective_audience(creator))
      |> assign(:show_edit_form, false)
      |> assign(:form, nil)}
   end
@@ -237,6 +240,13 @@ defmodule QlariusWeb.CreatorDashboard.Show do
                   </div>
                 </div>
               <% end %>
+
+              <AudienceCard.card
+                creator={@creator}
+                content={@creator}
+                effective={@audience}
+                level={:creator}
+              />
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <!-- Qlink Pages Section -->

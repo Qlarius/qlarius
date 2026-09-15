@@ -194,6 +194,29 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
                         <li><strong>Contact Email:</strong> {@marketer.contact_email}</li>
                         <li><strong>SIC Code:</strong> {@marketer.sic_code}</li>
                       </ul>
+
+                      <h3 class="text-lg font-semibold mt-6 mb-2">Members</h3>
+                      <ul class="mb-4">
+                        <li :for={m <- @members}>
+                          User #{m.user_id} — {m.role}
+                        </li>
+                        <li :if={@members == []} class="text-base-content/60">No members yet.</li>
+                      </ul>
+                      <form phx-submit="add_member" class="flex gap-2 items-end">
+                        <label class="form-control">
+                          <span class="label-text">User id</span>
+                          <input type="number" name="user_id" class="input input-bordered" required />
+                        </label>
+                        <label class="form-control">
+                          <span class="label-text">Role</span>
+                          <select name="role" class="select select-bordered">
+                            <option value="owner">owner</option>
+                            <option value="admin">admin</option>
+                            <option value="member">member</option>
+                          </select>
+                        </label>
+                        <button class="btn btn-primary">Add member</button>
+                      </form>
                     </div>
                   </div>
                 </div>
@@ -353,6 +376,7 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
     socket
     |> assign(:page_title, "Show Marketer")
     |> assign(:marketer, marketer)
+    |> assign(:members, Marketers.list_marketer_members(marketer.id))
   end
 
   def handle_event("validate", %{"marketer" => attrs}, socket) do
@@ -370,6 +394,22 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
 
   def handle_event("save", %{"marketer" => attrs}, socket) do
     save_marketer(socket, socket.assigns.live_action, attrs)
+  end
+
+  def handle_event("add_member", %{"user_id" => user_id, "role" => role}, socket) do
+    {user_id, _} = Integer.parse(user_id)
+    role = String.to_existing_atom(role)
+
+    case Marketers.create_marketer_membership(socket.assigns.marketer.id, user_id, role) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> assign(:members, Marketers.list_marketer_members(socket.assigns.marketer.id))
+         |> put_flash(:info, "Member added")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not add member")}
+    end
   end
 
   def handle_event("delete", %{"id" => id}, socket) do

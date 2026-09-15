@@ -4,6 +4,8 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.Creators
+  alias Qlarius.Tiqit.ContentAudiences
+  alias QlariusWeb.AudienceCard
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.TiqitClass
@@ -26,7 +28,8 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
      |> assign(:creator, creator)
      |> assign(:page_title, content_group.title)
      |> assign(:piece_class_defaults, piece_class_defaults_from_group(content_group))
-     |> assign(:piece_class_defaults_form_id, "piece-class-defaults-form")}
+     |> assign(:piece_class_defaults_form_id, "piece-class-defaults-form")
+     |> assign(:audience, ContentAudiences.effective_audience(content_group))}
   end
 
   @impl true
@@ -442,6 +445,13 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                   </div>
                   
     <!-- Tiqit Classes Section -->
+                  <AudienceCard.card
+                    creator={@creator}
+                    content={@content_group}
+                    effective={@audience}
+                    level={:group}
+                  />
+
                   <div class="space-y-4">
                     <div class="flex items-center justify-between">
                       <h2 class="text-xl font-semibold text-base-content flex items-center">
