@@ -11,6 +11,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   alias Qlarius.Tiqit.Arcade.Tiqit
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.Tiqit.ContentAudiences
+  alias Qlarius.Tiqit.ContentEngagement
   alias Qlarius.Wallets
   alias Qlarius.Wallets.LedgerEntry
   alias Qlarius.Wallets.LedgerHeader
@@ -534,8 +535,18 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
           lock_tiqit_up_contributors(user, tiqit_class, purchased_at)
         end
 
+        maybe_record_purchase(scope, tiqit, tiqit_class, opts)
+
         {:ok, %{tiqit: tiqit, debit_entry: debit_entry, creator_entry: creator_entry}}
     end
+  end
+
+  defp maybe_record_purchase(scope, tiqit, tiqit_class, opts) do
+    ContentEngagement.record_purchase(scope, tiqit, tiqit_class, opts)
+  rescue
+    _ -> :ok
+  catch
+    kind, _ when kind in [:error, :exit, :throw] -> :ok
   end
 
   defp maybe_put_refund_locked(attrs, true, now), do: Map.put(attrs, :refund_locked_at, now)
@@ -1113,10 +1124,13 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
 
     {picked, rest} = split_picked(group_cards ++ piece_cards)
 
-    %{
+    feed = %{
       picked: picked,
       more: Enum.sort_by(rest, &more_title/1)
     }
+
+    ContentEngagement.record_feed_impressions(feed)
+    feed
   end
 
   def filter_visible_pieces(scope, group, pieces) do

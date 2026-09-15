@@ -402,4 +402,21 @@ defmodule Qlarius.Accounts do
         get_user!(login_token.user_id)
     end
   end
+
+  @doc """
+  Account-deletion hook. Nilifies `me_file_id`, `matching_tags_snapshot`,
+  and `session_id` on engagement events so personal trait data does not
+  outlive the account, while aggregate history stays intact.
+
+  There is no `delete_user/1` yet; call this from that path when it lands.
+  """
+  def anonymize_user_personal_data(%User{} = user) do
+    user = Repo.preload(user, :me_file)
+
+    if user.me_file do
+      Qlarius.Tiqit.ContentEngagement.anonymize_for_me_file(user.me_file.id)
+    else
+      {0, nil}
+    end
+  end
 end

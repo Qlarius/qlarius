@@ -16,6 +16,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
   alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.ContentAudiences
+  alias Qlarius.Tiqit.ContentEngagement
   alias QlariusWeb.TiqitArqade.Host
   alias QlariusWeb.Widgets.Arcade.Paths
 
@@ -89,6 +90,13 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
 
   def handle_event("hide_discovery_view_menu", _params, socket) do
     {:noreply, assign(socket, :show_discovery_view_menu, false)}
+  end
+
+  def handle_event("discovery_click", params, socket) do
+    _ = ContentEngagement.record_discovery_click(socket.assigns.current_scope, click_attrs(params))
+    {:noreply, socket}
+  rescue
+    _ -> {:noreply, socket}
   end
 
   def handle_event("open_auth_sheet", params, socket) do
@@ -167,6 +175,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
                     detail={card_detail(card)}
                     price_info={card_price(card)}
                     piece_type={card_piece_type(card)}
+                    click_rest={card_click_rest(card, :picked_for_you)}
                   />
                 </div>
               </section>
@@ -186,6 +195,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
                     detail={card_detail(card)}
                     price_info={card_price(card)}
                     piece_type={card_piece_type(card)}
+                    click_rest={card_click_rest(card, :more_from_creators)}
                   />
                 </div>
               </section>
@@ -208,6 +218,81 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
       Host.init_browse_scope(socket, Paths.discover("/tiqit"))
     else
       socket
+    end
+  end
+
+  defp card_click_rest(card, surface) do
+    %{
+      "phx-click" => "discovery_click",
+      "phx-value-surface" => to_string(surface),
+      "phx-value-kind" => to_string(card.kind),
+      "phx-value-id" => to_string(card.item.id),
+      "phx-value-band-id" => optional_id(card.resolve, :band_id),
+      "phx-value-target-id" => optional_id(card.resolve, :target_id)
+    }
+  end
+
+  defp optional_id(%{boost_match: match}, key) when is_map(match) do
+    case Map.get(match, key) do
+      id when is_integer(id) -> to_string(id)
+      _ -> ""
+    end
+  end
+
+  defp optional_id(_, _), do: ""
+
+  defp click_attrs(%{"kind" => kind, "id" => id} = params) do
+    surface = String.to_existing_atom(params["surface"] || "direct")
+    band_id = parse_optional_int(params["band-id"])
+    target_id = parse_optional_int(params["target-id"])
+
+    loaded = load_click_content(kind, id)
+
+    Map.merge(loaded, %{
+      surface: surface,
+      target_band_id: band_id,
+      target_id: target_id,
+      boost_level: kind
+    })
+  end
+
+  defp click_attrs(_), do: %{surface: :direct}
+
+  defp load_click_content("piece", id) do
+    piece =
+      Arcade.get_content_piece!(id)
+      |> Qlarius.Repo.preload(content_group: [catalog: :creator])
+
+    %{
+      piece: piece,
+      group: piece.content_group,
+      catalog: piece.content_group && piece.content_group.catalog,
+      creator: piece.content_group && piece.content_group.catalog && piece.content_group.catalog.creator
+    }
+  end
+
+  defp load_click_content("group", id) do
+    group =
+      Arcade.get_content_group!(id)
+      |> Qlarius.Repo.preload(catalog: :creator)
+
+    %{
+      piece: nil,
+      group: group,
+      catalog: group.catalog,
+      creator: group.catalog && group.catalog.creator
+    }
+  end
+
+  defp load_click_content(_, _), do: %{}
+
+  defp parse_optional_int(nil), do: nil
+  defp parse_optional_int(""), do: nil
+
+  defp parse_optional_int(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {int, _} -> int
+      :error -> nil
     end
   end
 

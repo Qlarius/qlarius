@@ -721,6 +721,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   attr :piece_type, :string, default: nil
   attr :display_mode, :string, default: "tile", values: ~w(tile list)
   attr :elevated, :boolean, default: false
+  attr :click_rest, :map, default: %{}
 
   @doc """
   Browse card for Arqade catalogs and content groups (matches /home and /me_file group shells).
@@ -739,6 +740,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
             "hover:shadow-md"
           ]
       ]}
+      {@click_rest}
     >
       <img
         src={@image_src}
@@ -787,6 +789,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
             "hover:shadow-md"
           ]
       ]}
+      {@click_rest}
     >
       <img
         src={@image_src}

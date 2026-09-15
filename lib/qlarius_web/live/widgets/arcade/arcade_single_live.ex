@@ -4,6 +4,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   alias Qlarius.Accounts.Scope
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Tiqit.ContentAudiences
+  alias Qlarius.Tiqit.ContentEngagement
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass
@@ -115,6 +116,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           current_path: return_to,
           page_loading?: true,
           page_failed?: false,
+          why_you: nil,
           piece: nil,
           group: nil,
           catalog: nil,
@@ -179,6 +181,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
           else
             socket
           end
+
+        socket = maybe_record_content_open(socket, scope, piece, group, catalog)
 
         if has_tiqit? do
           send_post_message(socket, "tiqit_already_active", tiqit)
@@ -287,6 +291,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   end
 
   def handle_event("open-tiqit-content", _params, socket) do
+    maybe_record_preview(socket)
+
     socket
     |> cancel_tiqit_content_modal_close_timer()
     |> assign(:show_tiqit_content_modal, true)
@@ -726,5 +732,46 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
       end
 
     flag_on? and anonymous?
+  end
+
+  defp maybe_record_content_open(socket, scope, piece, group, catalog) do
+    surface = if socket.assigns[:inline?], do: :qlink, else: :direct
+    result = ContentAudiences.resolve_piece(piece, ContentAudiences.matches_for_scope(scope), ContentAudiences.gate_attachments())
+
+    _ =
+      ContentEngagement.record_content_open(scope, %{
+        surface: surface,
+        piece: piece,
+        group: group,
+        catalog: catalog,
+        creator: catalog && catalog.creator,
+        target_band_id: result.boost_match && result.boost_match.band_id,
+        target_id: result.boost_match && result.boost_match.target_id,
+        snapshot: result.matched_traits,
+        boost_level: result.boost_source && to_string(result.boost_source)
+      })
+
+    socket
+  rescue
+    _ -> socket
+  end
+
+  defp maybe_record_preview(socket) do
+    piece = socket.assigns[:piece]
+    group = socket.assigns[:group]
+    catalog = socket.assigns[:catalog]
+
+    if piece do
+      _ =
+        ContentEngagement.record_preview_start(socket.assigns.current_scope, %{
+          surface: if(socket.assigns[:inline?], do: :qlink, else: :direct),
+          piece: piece,
+          group: group,
+          catalog: catalog,
+          creator: catalog && catalog.creator
+        })
+    end
+  rescue
+    _ -> :ok
   end
 end
