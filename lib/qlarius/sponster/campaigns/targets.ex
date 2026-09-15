@@ -1,7 +1,17 @@
 defmodule Qlarius.Sponster.Campaigns.Targets do
   import Ecto.Query
   alias Qlarius.Repo
-  alias Qlarius.Sponster.Campaigns.{Target, TargetBand, TargetBandTraitGroup, TraitGroup}
+  alias Qlarius.Accounts.{Authz, Marketer, Marketers, Scope}
+  alias Qlarius.Creators
+  alias Qlarius.Creators.Creator
+
+  alias Qlarius.Sponster.Campaigns.{
+    Target,
+    TargetBand,
+    TargetBandTraitGroup,
+    TraitGroup,
+    TraitGroupTrait
+  }
 
   def list_targets_for_marketer(marketer_id) do
     from(t in Target,
@@ -201,6 +211,188 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
       |> Oban.insert()
 
     :ok
+  end
+
+  @doc """
+  Deep-copies a target into another organization.
+
+  The receiving org gets its own `targets` row, its own bands, and its own
+  `trait_groups` with the owner rewritten. Sharing trait-group rows across an
+  org boundary would leak ownership, so this is never a structural share —
+  same-org refinement, which *does* share groups, lives elsewhere.
+
+  Authorized by access to **both** orgs, using the same admin-bypass rules as
+  `Marketers.accessible_marketer!/2` and `Creators.accessible_creator!/2`.
+  Attribution (`user_created_by`) records `Authz.acting_user_id/1`, not the
+  bypass.
+
+  `dest` is `{:marketer, id}` or `{:creator, id}`. Returns
+  `{:ok, clone}`, `{:error, :unauthorized}`, `{:error, :same_org}`,
+  `{:error, :foreign_trait_group}`, or `{:error, changeset}`.
+
+  The clone is unpopulated. Pass `populate: true` to enqueue
+  `PopulateTargetWorker` after the copy — the default is off so a caller that
+  wants to inspect or further edit the structure is not racing a worker.
+  """
+  def clone_across_orgs(%Scope{} = scope, %Target{} = source, dest, opts \\ []) do
+    source_owner = owner_tuple(source)
+    dest_owner = normalize_dest(dest)
+
+    with :ok <- authorize_owner(scope, source_owner),
+         :ok <- authorize_owner(scope, dest_owner),
+         :ok <- reject_same_org(source_owner, dest_owner) do
+      created_by = Authz.acting_user_id(scope)
+      title = Keyword.get(opts, :title, source.title)
+
+      case Repo.transaction(fn ->
+             do_clone_across_orgs(source, dest_owner, title, created_by)
+           end) do
+        {:ok, clone} ->
+          if Keyword.get(opts, :populate, false), do: trigger_population(clone)
+          {:ok, reload_clone(clone)}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end
+  end
+
+  defp do_clone_across_orgs(source, dest_owner, title, created_by) do
+    source = Repo.preload(source, [target_bands: [trait_groups: :traits]], force: true)
+    owner_attrs = owner_attrs(dest_owner)
+
+    clone =
+      insert!(
+        %Target{},
+        %{
+          title: title,
+          description: source.description,
+          user_created_by: created_by,
+          population_status: "not_populated"
+        }
+        |> Map.merge(owner_attrs)
+      )
+
+    group_id_map =
+      source.target_bands
+      |> Enum.flat_map(& &1.trait_groups)
+      |> Enum.uniq_by(& &1.id)
+      |> Map.new(fn group ->
+        unless owned_by?(group, owner_tuple(source)) do
+          Repo.rollback(:foreign_trait_group)
+        end
+
+        {group.id, clone_trait_group!(group, owner_attrs, created_by).id}
+      end)
+
+    Enum.each(source.target_bands, fn band ->
+      cloned_band =
+        insert!(%TargetBand{}, %{
+          target_id: clone.id,
+          is_bullseye: band.is_bullseye || "0",
+          user_created_by: created_by
+        })
+
+      now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+      associations =
+        Enum.map(band.trait_groups, fn group ->
+          %{
+            target_band_id: cloned_band.id,
+            trait_group_id: Map.fetch!(group_id_map, group.id),
+            created_at: now,
+            updated_at: now
+          }
+        end)
+
+      if associations != [], do: Repo.insert_all(TargetBandTraitGroup, associations)
+    end)
+
+    clone
+  end
+
+  defp clone_trait_group!(group, owner_attrs, created_by) do
+    cloned =
+      insert!(
+        %TraitGroup{},
+        %{
+          title: group.title,
+          description: group.description,
+          parent_trait_id: group.parent_trait_id,
+          user_created_by: created_by
+        }
+        |> Map.merge(owner_attrs)
+      )
+
+    for trait <- group.traits do
+      insert!(%TraitGroupTrait{}, %{
+        trait_group_id: cloned.id,
+        trait_id: trait.id
+      })
+    end
+
+    cloned
+  end
+
+  defp insert!(%schema{} = struct, attrs) do
+    changeset = schema.changeset(struct, attrs)
+
+    case Repo.insert(changeset) do
+      {:ok, row} -> row
+      {:error, changeset} -> Repo.rollback(changeset)
+    end
+  end
+
+  defp reload_clone(%Target{} = clone) do
+    Repo.preload(clone, [target_bands: [trait_groups: :traits]], force: true)
+  end
+
+  defp normalize_dest({:marketer, id}) when is_integer(id), do: {:marketer, id}
+  defp normalize_dest({:creator, id}) when is_integer(id), do: {:creator, id}
+
+  defp owner_tuple(%{marketer_id: id, creator_id: nil}) when is_integer(id), do: {:marketer, id}
+  defp owner_tuple(%{creator_id: id, marketer_id: nil}) when is_integer(id), do: {:creator, id}
+  defp owner_tuple(%{marketer_id: id}) when is_integer(id), do: {:marketer, id}
+  defp owner_tuple(%{creator_id: id}) when is_integer(id), do: {:creator, id}
+
+  defp owner_attrs({:marketer, id}), do: %{marketer_id: id}
+  defp owner_attrs({:creator, id}), do: %{creator_id: id}
+
+  defp owned_by?(%{marketer_id: id}, {:marketer, id}), do: true
+  defp owned_by?(%{creator_id: id}, {:creator, id}), do: true
+  defp owned_by?(_group, _owner), do: false
+
+  defp reject_same_org(owner, owner), do: {:error, :same_org}
+  defp reject_same_org(_source, _dest), do: :ok
+
+  # Mirrors `accessible_*!/2` without raising, so a LiveView can pattern-match
+  # instead of rescuing. Admin bypass still reads `true_user` via `Authz.admin?/1`.
+  defp authorize_owner(scope, {:marketer, id}) do
+    reachable? =
+      if Authz.admin?(scope) do
+        Repo.exists?(from m in Marketer, where: m.id == ^id)
+      else
+        case Authz.acting_user_id(scope) do
+          nil -> false
+          user_id -> Marketers.user_has_marketer_access?(user_id, id)
+        end
+      end
+
+    if reachable?, do: :ok, else: {:error, :unauthorized}
+  end
+
+  defp authorize_owner(scope, {:creator, id}) do
+    reachable? =
+      if Authz.admin?(scope) do
+        Repo.exists?(from c in Creator, where: c.id == ^id)
+      else
+        case Authz.acting_user_id(scope) do
+          nil -> false
+          user_id -> Creators.user_has_creator_access?(user_id, id)
+        end
+      end
+
+    if reachable?, do: :ok, else: {:error, :unauthorized}
   end
 
   defp add_target_stats(target) do
