@@ -3,6 +3,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
   alias Qlarius.Accounts.Scope
   alias Qlarius.Tiqit.Arcade.Arcade
+  alias Qlarius.Tiqit.ContentAudiences
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.TiqitClass
@@ -143,35 +144,47 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
   defp maybe_load_piece_page(socket, piece_id, scope) do
     if connected?(socket) do
       %{piece: piece, group: group, catalog: catalog} = load_piece_page(piece_id)
-      tiqit = Arcade.get_valid_tiqit(scope, piece)
-      has_tiqit? = Arcade.has_valid_tiqit?(scope, piece)
-      return_to = socket.assigns.current_path
 
-      socket =
-        socket
-        |> assign(
+      if not ContentAudiences.piece_visible?(scope, piece) do
+        assign(socket,
           page_loading?: false,
-          page_failed?: false,
-          piece: piece,
+          page_failed?: true,
+          audience_blocked?: true,
+          piece: nil,
           group: group,
-          catalog: catalog,
-          tiqit: tiqit,
-          has_tiqit?: has_tiqit?,
-          default_tiqit_class: ContentPiece.default_tiqit_class(piece)
+          catalog: catalog
         )
-        |> assign(scope_assigns(scope, group, catalog))
+      else
+        tiqit = Arcade.get_valid_tiqit(scope, piece)
+        has_tiqit? = Arcade.has_valid_tiqit?(scope, piece)
+        return_to = socket.assigns.current_path
 
-      socket =
-        if socket.assigns.base_path == "/tiqit" and not socket.assigns.inline? do
-          Host.init_creator_scope(socket, catalog.creator, return_to)
+        socket =
+          socket
+          |> assign(
+            page_loading?: false,
+            page_failed?: false,
+            piece: piece,
+            group: group,
+            catalog: catalog,
+            tiqit: tiqit,
+            has_tiqit?: has_tiqit?,
+            default_tiqit_class: ContentPiece.default_tiqit_class(piece)
+          )
+          |> assign(scope_assigns(scope, group, catalog))
+
+        socket =
+          if socket.assigns.base_path == "/tiqit" and not socket.assigns.inline? do
+            Host.init_creator_scope(socket, catalog.creator, return_to)
+          else
+            socket
+          end
+
+        if has_tiqit? do
+          send_post_message(socket, "tiqit_already_active", tiqit)
         else
           socket
         end
-
-      if has_tiqit? do
-        send_post_message(socket, "tiqit_already_active", tiqit)
-      else
-        socket
       end
     else
       socket

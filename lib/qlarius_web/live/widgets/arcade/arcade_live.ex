@@ -169,8 +169,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          selected_piece: nil,
          default_tiqit_class: nil,
          tiqit: nil,
-         pending_content_id:
-           (is_map(params) && params["content_id"]) || session["content_id"],
+         pending_content_id: (is_map(params) && params["content_id"]) || session["content_id"],
          selected_tiqit_class: nil,
          show_connect_modal: false,
          show_share_gift_modal: false,
@@ -209,6 +208,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   defp maybe_load_group_page(socket, group_id, scope) do
     if connected?(socket) do
       %{group: group, pieces: pieces} = load_group_page(group_id)
+      pieces = Arcade.filter_visible_pieces(scope, group, pieces)
 
       socket
       |> assign(page_loading?: false, page_failed?: false, group: group, pieces: pieces)
@@ -939,9 +939,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
         refreshed = Scope.for_user(scope.true_user)
 
         socket
-        |> assign(
-          Map.merge(scope_assigns(refreshed, group, pieces), %{current_scope: refreshed})
-        )
+        |> assign(Map.merge(scope_assigns(refreshed, group, pieces), %{current_scope: refreshed}))
         |> sync_selected_tiqit()
 
       true ->

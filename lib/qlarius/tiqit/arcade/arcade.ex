@@ -10,6 +10,7 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   alias Qlarius.Tiqit.Arcade.ContentPiece
   alias Qlarius.Tiqit.Arcade.Tiqit
   alias Qlarius.Tiqit.Arcade.TiqitClass
+  alias Qlarius.Tiqit.ContentAudiences
   alias Qlarius.Wallets
   alias Qlarius.Wallets.LedgerEntry
   alias Qlarius.Wallets.LedgerHeader
@@ -1033,8 +1034,6 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
   end
 
   # --- Discovery queries ---
-  # Simple "show everything purchasable" for the first iteration.
-  # Future versions will filter by user tags and creator audience targeting.
 
   def list_discoverable_catalogs do
     catalog_ids_from_catalog_tc =
@@ -1081,10 +1080,53 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     |> Enum.filter(&(&1.creator_id == creator_id))
   end
 
-  def list_discoverable_groups do
+  def list_discoverable_groups(scope \\ nil) do
+    {matches, gates} = ContentAudiences.discovery_lookups(scope)
+
     list_discoverable_catalogs()
     |> Enum.flat_map(&navigable_groups_from_catalog/1)
-    |> Enum.sort_by(& &1.title)
+    |> Enum.filter(&group_visible?(&1, scope, matches, gates))
+    |> Enum.sort_by(&group_sort_key(&1, matches, gates))
+  end
+
+  @doc """
+  Mixed discovery feed: boosted matches first (groups and individual
+  pieces), then everything else as "more from creators."
+  """
+  def list_discovery_feed(scope \\ nil) do
+    {matches, gates} = ContentAudiences.discovery_lookups(scope)
+
+    groups =
+      list_discoverable_catalogs()
+      |> Enum.flat_map(&navigable_groups_from_catalog/1)
+      |> Enum.filter(&group_visible?(&1, scope, matches, gates))
+
+    piece_cards =
+      groups
+      |> Enum.flat_map(&boosted_pieces(&1, scope, matches, gates))
+
+    group_cards =
+      Enum.map(groups, fn group ->
+        result = ContentAudiences.resolve_group(group, matches, gates)
+        %{kind: :group, item: group, resolve: result}
+      end)
+
+    {picked, rest} = split_picked(group_cards ++ piece_cards)
+
+    %{
+      picked: picked,
+      more: Enum.sort_by(rest, &more_title/1)
+    }
+  end
+
+  def filter_visible_pieces(scope, group, pieces) do
+    {matches, gates} = ContentAudiences.discovery_lookups(scope)
+
+    Enum.filter(pieces, fn piece ->
+      piece = %{piece | content_group: group}
+      result = ContentAudiences.resolve_piece(piece, matches, gates)
+      result.visible? or entitled_to?(scope, piece)
+    end)
   end
 
   defp navigable_groups_from_catalog(catalog) do
@@ -1093,8 +1135,86 @@ defmodule Qlarius.Tiqit.Arcade.Arcade do
     |> Enum.map(&%{&1 | catalog: catalog})
   end
 
-  def list_discoverable_groups_by_creator(creator_id) do
-    list_discoverable_groups()
+  defp group_visible?(group, scope, matches, gates) do
+    result = ContentAudiences.resolve_group(group, matches, gates)
+    result.visible? or group_entitled?(scope, group)
+  end
+
+  defp group_sort_key(group, matches, gates) do
+    result = ContentAudiences.resolve_group(group, matches, gates)
+
+    cond do
+      result.rank -> {0, result.rank}
+      true -> {1, group.title}
+    end
+  end
+
+  defp boosted_pieces(group, scope, matches, gates) do
+    group.content_pieces
+    |> Enum.filter(&is_nil(&1.archived_at))
+    |> Enum.filter(&Enum.any?(&1.tiqit_classes || []))
+    |> Enum.map(&%{&1 | content_group: group})
+    |> Enum.flat_map(fn piece ->
+      result = ContentAudiences.resolve_piece(piece, matches, gates)
+
+      if result.visible? or entitled_to?(scope, piece) do
+        if result.boost_source == :piece do
+          [%{kind: :piece, item: piece, resolve: result}]
+        else
+          []
+        end
+      else
+        []
+      end
+    end)
+  end
+
+  defp split_picked(cards) do
+    matched =
+      cards
+      |> Enum.filter(& &1.resolve.boost_source)
+      |> Enum.sort_by(& &1.resolve.rank)
+
+    unmatched = Enum.reject(cards, & &1.resolve.boost_source)
+
+    {picked, overflow} = take_capped(matched, 3)
+    {picked, overflow ++ unmatched}
+  end
+
+  defp take_capped(cards, per_creator) do
+    {picked, overflow, _counts} =
+      Enum.reduce(cards, {[], [], %{}}, fn card, {keep, rest, counts} ->
+        creator_id = creator_id_of(card)
+        n = Map.get(counts, creator_id, 0)
+
+        if n < per_creator do
+          {keep ++ [card], rest, Map.put(counts, creator_id, n + 1)}
+        else
+          {keep, rest ++ [card], counts}
+        end
+      end)
+
+    {picked, overflow}
+  end
+
+  defp creator_id_of(%{kind: :group, item: group}), do: group.catalog.creator_id
+
+  defp creator_id_of(%{kind: :piece, item: piece}),
+    do: piece.content_group.catalog.creator_id
+
+  defp more_title(%{kind: :group, item: group}), do: group.title
+  defp more_title(%{kind: :piece, item: piece}), do: piece.title
+
+  defp entitled_to?(scope, piece), do: get_valid_tiqit(scope, piece) != nil
+
+  defp group_entitled?(scope, group) do
+    Enum.any?(group.content_pieces || [], fn piece ->
+      entitled_to?(scope, %{piece | content_group: group})
+    end)
+  end
+
+  def list_discoverable_groups_by_creator(creator_id, scope \\ nil) do
+    list_discoverable_groups(scope)
     |> Enum.filter(fn group -> group.catalog.creator_id == creator_id end)
   end
 

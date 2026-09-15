@@ -15,6 +15,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.ContentGroup
+  alias Qlarius.Tiqit.ContentAudiences
   alias QlariusWeb.TiqitArqade.Host
   alias QlariusWeb.Widgets.Arcade.Paths
 
@@ -33,6 +34,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
   def mount(_params, session, socket) do
+    scope = socket.assigns[:current_scope]
+
     socket =
       socket
       |> init_pwa_assigns(session)
@@ -43,8 +46,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
         display_mode: "tile",
         show_discovery_view_menu: false
       )
-      |> assign_async(:groups, fn ->
-        {:ok, %{groups: Arcade.list_discoverable_groups()}}
+      |> assign_async(:feed, fn ->
+        {:ok, %{feed: Arcade.list_discovery_feed(scope)}}
       end)
       |> maybe_init_tiqit_host()
 
@@ -80,7 +83,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
   end
 
   def handle_event("toggle_discovery_view_menu", _params, socket) do
-    {:noreply, assign(socket, :show_discovery_view_menu, !socket.assigns.show_discovery_view_menu)}
+    {:noreply,
+     assign(socket, :show_discovery_view_menu, !socket.assigns.show_discovery_view_menu)}
   end
 
   def handle_event("hide_discovery_view_menu", _params, socket) do
@@ -130,7 +134,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
         ]}>
           <p class="mobile-page-intro">Browse content from creators</p>
 
-          <.async_result :let={groups} assign={@groups}>
+          <.async_result :let={feed} assign={@feed}>
             <:loading>
               <.discovery_section_skeleton
                 display_mode={@display_mode}
@@ -143,26 +147,48 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
               </div>
             </:failed>
 
-            <%= if groups == [] do %>
+            <%= if feed.picked == [] and feed.more == [] do %>
               <div class="text-center text-base-content/50 py-12">
                 No content available yet. Check back soon.
               </div>
             <% else %>
-              <div class={discovery_grid_class(@display_mode)}>
-                <.discovery_item_card
-                  :for={group <- groups}
-                  elevated={@base_path == ""}
-                  display_mode={@display_mode}
-                  navigate={Paths.group(@base_path, group.id)}
-                  image_src={group_image_url(group)}
-                  image_alt={group.title}
-                  title={group.title}
-                  subtitle={group.catalog.creator.name}
-                  detail={group_card_detail(group)}
-                  price_info={group_price_info(group)}
-                  piece_type={to_string(group.catalog.piece_type)}
-                />
-              </div>
+              <section :if={feed.picked != []} class="flex flex-col gap-3">
+                <h2 class="text-lg font-semibold">Picked for you</h2>
+                <div class={discovery_grid_class(@display_mode)}>
+                  <.discovery_item_card
+                    :for={card <- feed.picked}
+                    elevated={@base_path == ""}
+                    display_mode={@display_mode}
+                    navigate={card_navigate(@base_path, card)}
+                    image_src={card_image(card)}
+                    image_alt={card_title(card)}
+                    title={card_title(card)}
+                    subtitle={card_subtitle(card)}
+                    detail={card_detail(card)}
+                    price_info={card_price(card)}
+                    piece_type={card_piece_type(card)}
+                  />
+                </div>
+              </section>
+
+              <section :if={feed.more != []} class="flex flex-col gap-3">
+                <h2 :if={feed.picked != []} class="text-lg font-semibold">More from creators</h2>
+                <div class={discovery_grid_class(@display_mode)}>
+                  <.discovery_item_card
+                    :for={card <- feed.more}
+                    elevated={@base_path == ""}
+                    display_mode={@display_mode}
+                    navigate={card_navigate(@base_path, card)}
+                    image_src={card_image(card)}
+                    image_alt={card_title(card)}
+                    title={card_title(card)}
+                    subtitle={card_subtitle(card)}
+                    detail={card_detail(card)}
+                    price_info={card_price(card)}
+                    piece_type={card_piece_type(card)}
+                  />
+                </div>
+              </section>
             <% end %>
           </.async_result>
         </div>
@@ -185,11 +211,63 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
     end
   end
 
+  defp card_navigate(base_path, %{kind: :group, item: group}),
+    do: Paths.group(base_path, group.id)
+
+  defp card_navigate(base_path, %{kind: :piece, item: piece}),
+    do: Paths.piece(base_path, piece.id)
+
+  defp card_image(%{kind: :group, item: group}), do: group_image_url(group)
+
+  defp card_image(%{kind: :piece, item: piece}),
+    do: content_image_url(piece, piece.content_group)
+
+  defp card_title(%{kind: :group, item: group}), do: group.title
+  defp card_title(%{kind: :piece, item: piece}), do: piece.title
+
+  defp card_subtitle(%{kind: :group, item: group}), do: group.catalog.creator.name
+
+  defp card_subtitle(%{kind: :piece, item: piece}),
+    do: piece.content_group.title
+
+  defp card_detail(%{kind: :group, item: group} = card) do
+    [group_card_detail(group), ContentAudiences.why_you_label(card.resolve)]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join(" · ")
+  end
+
+  defp card_detail(%{kind: :piece, item: piece} = card) do
+    [ContentAudiences.why_you_label(card.resolve) || piece.content_group.catalog.creator.name]
+    |> Enum.join(" · ")
+  end
+
+  defp card_price(%{kind: :group, item: group}), do: group_price_info(group)
+  defp card_price(%{kind: :piece, item: piece}), do: piece_price_info(piece)
+
+  defp card_piece_type(%{kind: :group, item: group}), do: to_string(group.catalog.piece_type)
+
+  defp card_piece_type(%{kind: :piece, item: piece}),
+    do: to_string(piece.content_group.catalog.piece_type)
+
   defp group_card_detail(group) do
     catalog = group.catalog
     count = length(ContentGroup.active_content_pieces(group.content_pieces))
 
     "#{count} #{Catalog.type_label(catalog.piece_type, count, capitalize: false)}"
+  end
+
+  defp piece_price_info(piece) do
+    classes = Enum.filter(piece.tiqit_classes || [], & &1.active)
+
+    case classes do
+      [] ->
+        nil
+
+      list ->
+        prices = Enum.map(list, & &1.price)
+        paid = Enum.reject(prices, &Decimal.eq?(&1, 0))
+        %{min_price: if(paid != [], do: "$#{Enum.min(paid)}"), free_count: 0}
+    end
   end
 
   defp group_price_info(group) do
