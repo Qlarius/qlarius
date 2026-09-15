@@ -167,7 +167,12 @@ defmodule QlariusWeb.Creators.AudiencesLive do
                 <h1 class="text-2xl font-bold">Audiences</h1>
                 <p class="text-base-content/60">{@creator.name}</p>
               </div>
-              <button type="button" class="btn btn-primary" phx-click="new">New audience</button>
+              <div class="flex gap-2">
+                <.link navigate={~p"/creators/#{@creator.id}/insights"} class="btn btn-ghost">
+                  Insights
+                </.link>
+                <button type="button" class="btn btn-primary" phx-click="new">New audience</button>
+              </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

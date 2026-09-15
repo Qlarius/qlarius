@@ -225,6 +225,12 @@ defmodule QlariusWeb.CreatorDashboard.Show do
                       </div>
 
                       <div class="card-actions gap-2">
+                        <.link navigate={~p"/creators/#{@creator.id}/audiences"} class="btn btn-ghost">
+                          Audiences
+                        </.link>
+                        <.link navigate={~p"/creators/#{@creator.id}/insights"} class="btn btn-ghost">
+                          Insights
+                        </.link>
                         <.link patch={~p"/creators/#{@creator.id}/edit"} class="btn btn-primary">
                           Edit Profile
                         </.link>

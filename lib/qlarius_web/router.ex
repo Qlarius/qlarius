@@ -525,6 +525,7 @@ defmodule QlariusWeb.Router do
       live "/creators/:id/referrals", CreatorDashboard.Referrals, :index
       live "/creators/:creator_id/audiences", Creators.AudiencesLive, :index
       live "/creators/:creator_id/audiences/:id", Creators.AudiencesLive, :edit
+      live "/creators/:creator_id/insights", Creators.InsightsLive, :index
 
       # Creator catalog/content routes (migrated from controllers)
       live "/creators/:creator_id/catalogs/new", Creators.CatalogLive.Form, :new

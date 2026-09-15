@@ -15,7 +15,7 @@ defmodule Qlarius.Tiqit.ContentEngagement do
   alias Qlarius.Accounts
   alias Qlarius.Accounts.Scope
   alias Qlarius.Repo
-  alias Qlarius.Tiqit.{ContentEngagementEvent, ContentImpressionDaily}
+  alias Qlarius.Tiqit.{ContentAudiences, ContentEngagementEvent, ContentImpressionDaily}
   alias Qlarius.Tiqit.Arcade.{Catalog, ContentGroup, ContentPiece, Tiqit, TiqitClass}
   alias Qlarius.Creators.Creator
   alias Qlarius.Sponster.Campaigns.{Target, TargetBand}
@@ -220,6 +220,39 @@ defmodule Qlarius.Tiqit.ContentEngagement do
       clicks: impression_row.clicks || 0,
       purchases: purchases || 0,
       revenue: revenue || Decimal.new(0)
+    }
+  end
+
+  @doc """
+  Creator-facing aggregate report. Never includes per-user rows.
+  """
+  def report_for_creator(creator_id) do
+    audiences = ContentAudiences.list_audiences(creator_id)
+    conversions = Map.new(per_audience_conversion(creator_id), &{&1.target_id, &1})
+
+    audience_rows =
+      Enum.map(audiences, fn audience ->
+        row =
+          Map.get(conversions, audience.id, %{
+            clicks: 0,
+            purchases: 0,
+            conversion: Decimal.new(0)
+          })
+
+        %{
+          target_id: audience.id,
+          title: audience.title,
+          reach: ContentAudiences.reach(audience),
+          clicks: row.clicks,
+          purchases: row.purchases,
+          conversion: row.conversion
+        }
+      end)
+
+    %{
+      funnel: funnel_for_creator(creator_id),
+      split: recommended_vs_organic(creator_id),
+      audiences: audience_rows
     }
   end
 

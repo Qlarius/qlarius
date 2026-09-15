@@ -7,7 +7,7 @@ defmodule Qlarius.Tiqit.ContentAudiencesTest do
   alias Qlarius.Accounts.{Marketers, Scope}
   alias Qlarius.Creators
   alias Qlarius.Sponster.Campaigns.{Target, TargetBand, TargetPopulation}
-  alias Qlarius.Tiqit.Arcade.{Catalog, ContentGroup, ContentPiece}
+  alias Qlarius.Tiqit.Arcade.{Catalog, ContentGroup, ContentPiece, Tiqit}
   alias Qlarius.Tiqit.ContentAudienceTarget
   alias Qlarius.Tiqit.ContentAudiences
 
@@ -388,6 +388,33 @@ defmodule Qlarius.Tiqit.ContentAudiencesTest do
       populate_band!(band, me_file_fixture())
 
       refute ContentAudiences.piece_visible?(ctx.scope, ctx.piece)
+    end
+
+    test "a valid tiqit bypasses a populated gate", ctx do
+      {:ok, gate} = ContentAudiences.create_audience(ctx.scope, ctx.creator.id, %{title: "21+"})
+      gate = mark_populated!(gate)
+
+      band =
+        %TargetBand{}
+        |> TargetBand.changeset(%{target_id: gate.id, is_bullseye: "1", tier: 0})
+        |> Repo.insert!()
+
+      {:ok, _} = ContentAudiences.set_attachment(ctx.scope, gate, ctx.catalog, :gate)
+      populate_band!(band, me_file_fixture())
+
+      refute ContentAudiences.piece_visible?(ctx.scope, ctx.piece)
+
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+      %Tiqit{me_file_id: ctx.scope.user.me_file.id}
+      |> Tiqit.changeset(%{
+        purchased_at: now,
+        expires_at: DateTime.add(now, 3, :hour),
+        content_piece_id: ctx.piece.id
+      })
+      |> Repo.insert!()
+
+      assert ContentAudiences.piece_visible?(ctx.scope, ctx.piece)
     end
   end
 

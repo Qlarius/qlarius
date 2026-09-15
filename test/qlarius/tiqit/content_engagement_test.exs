@@ -320,4 +320,14 @@ defmodule Qlarius.Tiqit.ContentEngagementTest do
     assert row.purchases == 1
     assert Decimal.eq?(row.conversion, Decimal.new(1))
   end
+
+  test "report_for_creator/1 stays aggregate and includes unused audiences", ctx do
+    report = ContentEngagement.report_for_creator(ctx.creator.id)
+
+    assert report.funnel.impressions == 0
+    assert report.funnel.purchases == 0
+    assert Decimal.eq?(report.funnel.revenue, 0)
+    assert Enum.any?(report.audiences, &(&1.target_id == ctx.target.id))
+    refute Map.has_key?(report, :me_file_ids)
+  end
 end
