@@ -32,6 +32,8 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
       discovery_view_toolbar: 1
     ]
 
+  import QlariusWeb.WhyYouPanel, only: [content_details_overlay: 1]
+
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
 
   def mount(_params, session, socket) do
@@ -45,7 +47,12 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
         current_path: Paths.discover(""),
         title: "Arqade",
         display_mode: "tile",
-        show_discovery_view_menu: false
+        show_discovery_view_menu: false,
+        show_why_you?: false,
+        why_you: nil,
+        content_details: nil,
+        right_sidebar_panel: nil,
+        right_sidebar_title: "Transaction Details"
       )
       |> assign_async(:feed, fn ->
         {:ok, %{feed: Arcade.list_discovery_feed(scope)}}
@@ -99,6 +106,33 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
     _ -> {:noreply, socket}
   end
 
+  def handle_event("open_why_you", %{"kind" => kind, "id" => id}, socket) do
+    card =
+      socket.assigns.feed
+      |> feed_cards()
+      |> find_card(kind, id)
+
+    {:noreply,
+     assign(socket,
+       show_why_you?: socket.assigns.base_path != "",
+       why_you: why_you_for_card(card),
+       content_details: content_details_for_card(card),
+       right_sidebar_panel: :content,
+       right_sidebar_title: "Content Details"
+     )}
+  end
+
+  def handle_event("close_why_you", _params, socket) do
+    {:noreply,
+     assign(socket,
+       show_why_you?: false,
+       why_you: nil,
+       content_details: nil,
+       right_sidebar_panel: nil,
+       right_sidebar_title: "Transaction Details"
+     )}
+  end
+
   def handle_event("open_auth_sheet", params, socket) do
     if Host.tiqit_host?(socket) do
       case Host.handle_event("open_auth_sheet", params, socket) do
@@ -135,12 +169,18 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
   def render(assigns) do
     ~H"""
     <div id="discovery-pwa-detect" phx-hook="PWADetect">
+      <.content_details_overlay
+        :if={@base_path != ""}
+        show={@show_why_you?}
+        why_you={@why_you}
+        content={@content_details}
+      />
+
       <.arqade_page_wrap base_path={@base_path} wrap_mobile={@base_path == ""} {assigns}>
         <div class={[
           "flex flex-col gap-6 pb-2",
           @base_path == "/tiqit" && "overflow-y-auto flex-1 min-h-0 px-4 py-4"
         ]}>
-          <p class="mobile-page-intro">Browse content from creators</p>
 
           <.async_result :let={feed} assign={@feed}>
             <:loading>
@@ -176,6 +216,10 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
                     price_info={card_price(card)}
                     piece_type={card_piece_type(card)}
                     click_rest={card_click_rest(card, :picked_for_you)}
+                    why_you_kind={to_string(card.kind)}
+                    why_you_id={to_string(card.item.id)}
+                    why_you_label={ContentAudiences.why_you_label(card.resolve)}
+                    why_you_sidebar?={@base_path == ""}
                   />
                 </div>
               </section>
@@ -209,6 +253,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
           show_view_menu={@show_discovery_view_menu}
         />
       </.arqade_page_wrap>
+
     </div>
     """
   end
@@ -315,15 +360,44 @@ defmodule QlariusWeb.Widgets.Arcade.ArqadeDiscoveryLive do
   defp card_subtitle(%{kind: :piece, item: piece}),
     do: piece.content_group.title
 
-  defp card_detail(%{kind: :group, item: group} = card) do
-    [group_card_detail(group), ContentAudiences.why_you_label(card.resolve)]
-    |> Enum.reject(&is_nil/1)
-    |> Enum.join(" · ")
+  defp card_detail(%{kind: :group, item: group}), do: group_card_detail(group)
+
+  defp card_detail(%{kind: :piece, item: piece}),
+    do: piece.content_group.catalog.creator.name
+
+  defp feed_cards(%Phoenix.LiveView.AsyncResult{ok?: true, result: %{feed: feed}}) do
+    (feed.picked || []) ++ (feed.more || [])
   end
 
-  defp card_detail(%{kind: :piece, item: piece} = card) do
-    [ContentAudiences.why_you_label(card.resolve) || piece.content_group.catalog.creator.name]
-    |> Enum.join(" · ")
+  defp feed_cards(%Phoenix.LiveView.AsyncResult{ok?: true, result: feed})
+       when is_map(feed) do
+    (Map.get(feed, :picked) || []) ++ (Map.get(feed, :more) || [])
+  end
+
+  defp feed_cards(_), do: []
+
+  defp find_card(cards, kind, id) do
+    id = String.to_integer(id)
+    kind = String.to_existing_atom(kind)
+    Enum.find(cards, &(&1.kind == kind and &1.item.id == id))
+  end
+
+  defp why_you_for_card(nil), do: nil
+
+  defp why_you_for_card(%{item: item, resolve: resolve}) do
+    ContentAudiences.why_you_from_resolve(resolve, ContentAudiences.ancestry_for(item))
+  end
+
+  defp content_details_for_card(nil), do: nil
+
+  defp content_details_for_card(card) do
+    %{
+      title: card_title(card),
+      subtitle: card_subtitle(card),
+      image_src: card_image(card),
+      detail: card_detail(card),
+      price_info: card_price(card)
+    }
   end
 
   defp card_price(%{kind: :group, item: group}), do: group_price_info(group)

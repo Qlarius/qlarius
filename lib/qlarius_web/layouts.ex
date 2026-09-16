@@ -56,15 +56,18 @@ defmodule QlariusWeb.Layouts do
     end
   end
 
-  def toggle_right_sidebar(:on) do
-    %JS{}
+  def toggle_right_sidebar(:on), do: toggle_right_sidebar(%JS{}, :on)
+  def toggle_right_sidebar(:off), do: toggle_right_sidebar(%JS{}, :off)
+
+  def toggle_right_sidebar(%JS{} = js, :on) do
+    js
     |> JS.add_class("translate-x-0", to: "#right-sidebar")
     |> JS.remove_class("translate-x-full", to: "#right-sidebar")
     |> JS.remove_class("opacity-0 pointer-events-none", to: "#right-sidebar-bg")
   end
 
-  def toggle_right_sidebar(:off) do
-    %JS{}
+  def toggle_right_sidebar(%JS{} = js, :off) do
+    js
     |> JS.remove_class("translate-x-0", to: "#right-sidebar")
     |> JS.add_class("translate-x-full", to: "#right-sidebar")
     |> JS.add_class("opacity-0 pointer-events-none", to: "#right-sidebar-bg")

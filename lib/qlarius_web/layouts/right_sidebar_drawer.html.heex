@@ -20,7 +20,9 @@
       <% end %>
 
       <div class="flex items-center justify-between px-4 py-3">
-        <h3 class="text-lg font-bold tracking-tight">Transaction Details</h3>
+        <h3 class="text-lg font-bold tracking-tight">
+          {assigns[:right_sidebar_title] || "Transaction Details"}
+        </h3>
 
         <button
           phx-click={toggle_right_sidebar(:off)}
@@ -33,6 +35,12 @@
     </div>
 
     <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <%= if assigns[:right_sidebar_panel] == :content do %>
+        <QlariusWeb.WhyYouPanel.content_details_body
+          why_you={assigns[:why_you]}
+          content={assigns[:content_details]}
+        />
+      <% else %>
       <%= if assigns[:selected_entry] && assigns[:entry_details] do %>
         <.surface_panel>
           <dl class="divide-y divide-base-300/60 dark:divide-base-content/10">
@@ -196,6 +204,7 @@
         <div class="flex items-center justify-center min-h-[12rem] text-base-content/50">
           <p class="text-sm">Select a transaction to view details</p>
         </div>
+      <% end %>
       <% end %>
     </div>
   </div>

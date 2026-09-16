@@ -6,6 +6,8 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Wallets
+  alias Phoenix.LiveView.JS
+  alias QlariusWeb.Layouts
   import QlariusWeb.CoreComponents
   import QlariusWeb.Money
   import QlariusWeb.TiqitClassHTML
@@ -722,109 +724,146 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   attr :display_mode, :string, default: "tile", values: ~w(tile list)
   attr :elevated, :boolean, default: false
   attr :click_rest, :map, default: %{}
+  attr :why_you_kind, :string, default: nil
+  attr :why_you_id, :string, default: nil
+  attr :why_you_label, :string, default: nil
+  attr :why_you_sidebar?, :boolean, default: false
 
   @doc """
   Browse card for Arqade catalogs and content groups (matches /home and /me_file group shells).
   """
   def discovery_item_card(%{display_mode: "list"} = assigns) do
     ~H"""
-    <.link
-      navigate={@navigate}
-      class={[
-        "group flex flex-row items-stretch gap-3 overflow-hidden transition-shadow duration-200 p-2 sm:p-2.5 min-h-[4.5rem]",
-        @elevated && "surface-panel surface-panel-shadow hover:shadow-lg",
-        !@elevated &&
-          [
-            "rounded-lg bg-base-200/50 dark:bg-black shadow-sm",
-            "border border-base-300/60 dark:border-base-content/10",
-            "hover:shadow-md"
-          ]
-      ]}
-      {@click_rest}
-    >
-      <img
-        src={@image_src}
-        alt={@image_alt}
-        class="h-16 w-16 sm:h-[4.5rem] sm:w-[4.5rem] shrink-0 rounded-md object-cover bg-base-300/40 dark:bg-base-700/40"
-      />
-      <div class="min-w-0 flex flex-1 flex-col justify-center gap-0.5">
-        <h3 class="font-bold text-sm text-base-content leading-snug line-clamp-2">{@title}</h3>
-        <p :if={@subtitle} class="text-xs text-base-content/60 truncate">{@subtitle}</p>
-        <p :if={@detail} class="text-[11px] text-base-content/50 leading-snug line-clamp-1">
-          {@detail}
-        </p>
-        <div :if={@price_info} class="text-[11px] font-medium pt-0.5">
-          <span :if={@price_info.min_price} class="text-widget-700">
-            from {@price_info.min_price}
-          </span>
-          <span
-            :if={@price_info.min_price && @price_info.free_count > 0}
-            class="text-base-content/50"
-          >
-            ·
-          </span>
-          <span :if={@price_info.free_count > 0} class="text-base-content/50">
-            Includes {@price_info.free_count} FREE {pluralize_discovery_piece_label(
-              @piece_type,
-              @price_info.free_count
-            )}
-          </span>
+    <div class={[
+      "group flex items-stretch overflow-hidden transition-shadow duration-200 hover:shadow-md",
+      @elevated && "surface-panel surface-panel-shadow",
+      !@elevated &&
+        "rounded-lg bg-base-200/50 dark:bg-black shadow-sm border border-base-300/60 dark:border-base-content/10"
+    ]}>
+      <.link
+        navigate={@navigate}
+        class="flex min-w-0 flex-1 flex-row items-stretch gap-3 p-2 sm:p-2.5 min-h-[4.5rem]"
+        {@click_rest}
+      >
+        <img
+          src={@image_src}
+          alt={@image_alt}
+          class="h-16 w-16 sm:h-[4.5rem] sm:w-[4.5rem] shrink-0 rounded-md object-cover bg-base-300/40 dark:bg-base-700/40"
+        />
+        <div class="min-w-0 flex flex-1 flex-col justify-center gap-0.5">
+          <h3 class="font-bold text-sm text-base-content leading-snug line-clamp-2">{@title}</h3>
+          <p :if={@subtitle} class="text-xs text-base-content/60 truncate">{@subtitle}</p>
+          <p :if={@detail} class="text-[11px] text-base-content/50 leading-snug line-clamp-1">
+            {@detail}
+          </p>
+          <div :if={@price_info} class="text-[11px] font-medium">
+            <.discovery_price_line price_info={@price_info} piece_type={@piece_type} />
+          </div>
         </div>
-      </div>
-    </.link>
+      </.link>
+      <.discovery_why_you_button
+        :if={@why_you_label}
+        kind={@why_you_kind}
+        id={@why_you_id}
+        sidebar?={@why_you_sidebar?}
+        class="self-center shrink-0 p-2"
+      />
+    </div>
     """
   end
 
   def discovery_item_card(assigns) do
     ~H"""
-    <.link
-      navigate={@navigate}
-      class={[
-        "group flex h-full flex-col overflow-hidden transition-shadow duration-200",
-        @elevated && "surface-panel surface-panel-shadow hover:shadow-lg",
-        !@elevated &&
-          [
-            "rounded-lg bg-base-200/50 dark:bg-black shadow-sm",
-            "border-t-2 border-neutral-300 dark:border-neutral-600",
-            "hover:shadow-md"
-          ]
-      ]}
-      {@click_rest}
-    >
-      <img
-        src={@image_src}
-        alt={@image_alt}
-        class="aspect-[4/3] sm:aspect-square w-full object-cover bg-base-300/40 dark:bg-base-700/40"
-      />
-      <div class="flex flex-1 flex-col gap-0.5 p-2 sm:p-3 min-w-0">
-        <h3 class="font-bold text-sm sm:text-base text-base-content leading-snug line-clamp-2">
-          {@title}
-        </h3>
-        <p :if={@subtitle} class="text-xs text-base-content/60 truncate">{@subtitle}</p>
-        <p :if={@detail} class="text-[11px] sm:text-xs text-base-content/50 leading-snug line-clamp-2">
-          {@detail}
-        </p>
-        <div :if={@price_info} class="text-[11px] sm:text-xs font-medium mt-auto pt-0.5">
-          <span :if={@price_info.min_price} class="text-widget-700">
-            from {@price_info.min_price}
-          </span>
-          <span
-            :if={@price_info.min_price && @price_info.free_count > 0}
-            class="text-base-content/50"
-          >
-            ·
-          </span>
-          <span :if={@price_info.free_count > 0} class="text-base-content/50">
-            Includes {@price_info.free_count} FREE {pluralize_discovery_piece_label(
-              @piece_type,
-              @price_info.free_count
-            )}
-          </span>
+    <div class={[
+      "group flex h-full flex-col overflow-hidden transition-shadow duration-200 hover:shadow-md",
+      @elevated && "surface-panel surface-panel-shadow",
+      !@elevated &&
+        "rounded-lg bg-base-200/50 dark:bg-black shadow-sm border-t-2 border-neutral-300 dark:border-neutral-600"
+    ]}>
+      <.link navigate={@navigate} class="block shrink-0" {@click_rest}>
+        <img
+          src={@image_src}
+          alt={@image_alt}
+          class="aspect-[4/3] sm:aspect-square w-full object-cover bg-base-300/40 dark:bg-base-700/40"
+        />
+      </.link>
+      <div class="flex flex-col p-2 sm:p-3 min-w-0">
+        <.link navigate={@navigate} class="min-w-0" {@click_rest}>
+          <h3 class="font-bold text-sm sm:text-base text-base-content leading-snug line-clamp-2">
+            {@title}
+          </h3>
+        </.link>
+        <div class="mt-0.5 flex items-end justify-between gap-2">
+          <.link navigate={@navigate} class="min-w-0 flex flex-1 flex-col gap-0.5" {@click_rest}>
+            <p :if={@subtitle} class="text-xs text-base-content/60 truncate">{@subtitle}</p>
+            <p :if={@detail} class="text-[11px] sm:text-xs text-base-content/50 leading-snug">
+              {@detail}
+            </p>
+            <p :if={@price_info} class="text-[11px] sm:text-xs font-medium">
+              <.discovery_price_line price_info={@price_info} piece_type={@piece_type} />
+            </p>
+          </.link>
+          <.discovery_why_you_button
+            :if={@why_you_label}
+            kind={@why_you_kind}
+            id={@why_you_id}
+            sidebar?={@why_you_sidebar?}
+            class="shrink-0"
+          />
         </div>
       </div>
-    </.link>
+    </div>
     """
   end
+
+  attr :kind, :string, required: true
+  attr :id, :string, required: true
+  attr :sidebar?, :boolean, default: false
+  attr :class, :string, default: ""
+
+  defp discovery_why_you_button(assigns) do
+    ~H"""
+    <button
+      type="button"
+      phx-click={why_you_click(@sidebar?, @kind, @id)}
+      phx-value-kind={@kind}
+      phx-value-id={@id}
+      class={["btn btn-neutral btn-sm rounded-full", @class]}
+    >
+      Why you?
+    </button>
+    """
+  end
+
+  attr :price_info, :map, required: true
+  attr :piece_type, :string, default: nil
+
+  defp discovery_price_line(assigns) do
+    ~H"""
+    <span :if={@price_info.min_price} class="text-widget-700">
+      from {@price_info.min_price}
+    </span>
+    <span
+      :if={@price_info.min_price && @price_info.free_count > 0}
+      class="text-base-content/50"
+    >
+      ·
+    </span>
+    <span :if={@price_info.free_count > 0} class="text-base-content/50">
+      Includes {@price_info.free_count} FREE {pluralize_discovery_piece_label(
+        @piece_type,
+        @price_info.free_count
+      )}
+    </span>
+    """
+  end
+
+  defp why_you_click(true, kind, id) do
+    JS.push("open_why_you", value: %{kind: kind, id: id})
+    |> Layouts.toggle_right_sidebar(:on)
+  end
+
+  defp why_you_click(false, _kind, _id), do: "open_why_you"
 
   attr :display_mode, :string, default: "tile", values: ~w(tile list)
   attr :elevated, :boolean, default: false
