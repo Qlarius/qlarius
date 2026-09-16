@@ -59,7 +59,12 @@ defmodule Qlarius.Tiqit.ContentEngagementTest do
 
     band =
       %TargetBand{}
-      |> TargetBand.changeset(%{target_id: target.id, is_bullseye: "1", tier: 0, population_count: 12})
+      |> TargetBand.changeset(%{
+        target_id: target.id,
+        is_bullseye: "1",
+        tier: 0,
+        population_count: 12
+      })
       |> Repo.insert!()
 
     user = Repo.preload(user, :me_file)
@@ -177,6 +182,32 @@ defmodule Qlarius.Tiqit.ContentEngagementTest do
     assert is_nil(reloaded.session_id)
     assert reloaded.content_piece_title_ss == "Episode"
     assert reloaded.surface == :direct
+  end
+
+  test "record_feed_impressions/1 writes one row per card, not per episode", ctx do
+    extra =
+      %ContentPiece{content_group_id: ctx.group.id}
+      |> ContentPiece.changeset(%{title: "Older", date_published: ~D[2024-01-01]})
+      |> Repo.insert!()
+
+    group = %{ctx.group | content_pieces: [ctx.piece, extra]}
+
+    :ok =
+      ContentEngagement.record_feed_impressions(%{
+        picked: [],
+        more: [%{kind: :group, item: group, resolve: %{}}]
+      })
+
+    rows =
+      from(d in ContentImpressionDaily,
+        where: d.content_piece_id in ^[ctx.piece.id, extra.id]
+      )
+      |> Repo.all()
+
+    assert length(rows) == 1
+    assert hd(rows).content_piece_id == ctx.piece.id
+    assert hd(rows).surface == "more_from_creators"
+    assert hd(rows).impressions == 1
   end
 
   test "record_impression/3 upserts the daily counter including organic rows", ctx do

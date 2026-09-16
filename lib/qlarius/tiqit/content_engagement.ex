@@ -147,9 +147,7 @@ defmodule Qlarius.Tiqit.ContentEngagement do
 
   def anonymize_for_me_file(me_file_id) do
     from(e in ContentEngagementEvent, where: e.me_file_id == ^me_file_id)
-    |> Repo.update_all(
-      set: [me_file_id: nil, matching_tags_snapshot: nil, session_id: nil]
-    )
+    |> Repo.update_all(set: [me_file_id: nil, matching_tags_snapshot: nil, session_id: nil])
   end
 
   def summary_for_creator(creator_id) do
@@ -302,15 +300,25 @@ defmodule Qlarius.Tiqit.ContentEngagement do
     record_impression(piece, surface, band_id_from(resolve))
   end
 
+  # One write per card. A group card is a single impression — fanning out
+  # to every episode made /arqade wait on thousands of sequential upserts.
   defp record_card_impression(%{kind: :group, item: group, resolve: resolve}, surface) do
-    band_id = band_id_from(resolve)
-
-    (group.content_pieces || [])
-    |> Enum.filter(&is_nil(&1.archived_at))
-    |> Enum.each(&record_impression(&1, surface, band_id))
+    case representative_piece(group) do
+      nil -> :ok
+      piece -> record_impression(piece, surface, band_id_from(resolve))
+    end
   end
 
   defp record_card_impression(_, _), do: :ok
+
+  defp representative_piece(group) do
+    (group.content_pieces || [])
+    |> Enum.filter(&is_nil(&1.archived_at))
+    |> Enum.max_by(&piece_recency/1, fn -> nil end)
+  end
+
+  defp piece_recency(%{date_published: %Date{} = date}), do: Date.to_gregorian_days(date)
+  defp piece_recency(_), do: 0
 
   defp band_id_from(%{boost_match: %{band_id: id}}) when is_integer(id), do: id
   defp band_id_from(_), do: nil
