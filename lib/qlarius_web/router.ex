@@ -523,7 +523,11 @@ defmodule QlariusWeb.Router do
       live "/creators/:id", CreatorDashboard.Show, :show
       live "/creators/:id/edit", CreatorDashboard.Show, :edit
       live "/creators/:id/referrals", CreatorDashboard.Referrals, :index
+      live "/creators/:creator_id/trait-groups", Creators.TraitGroupsLive, :index
+      live "/creators/:creator_id/trait-groups/new", Creators.TraitGroupsLive, :new_trait_group
       live "/creators/:creator_id/audiences", Creators.AudiencesLive, :index
+      live "/creators/:creator_id/audiences/:id/edit", Creators.AudiencesLive, :edit
+      live "/creators/:creator_id/audiences/:id/inspect", Creators.AudiencesLive, :inspect
       live "/creators/:creator_id/audiences/:id", Creators.AudiencesLive, :edit
       live "/creators/:creator_id/insights", Creators.InsightsLive, :index
 

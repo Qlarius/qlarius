@@ -62,6 +62,11 @@ defmodule QlariusWeb.CreatorAudienceRoutesTest do
     audiences = get(conn, ~p"/creators/#{creator.id}/audiences")
     assert html_response(audiences, 200) =~ "Audiences"
     assert html_response(audiences, 200) =~ "Insights"
+    assert html_response(audiences, 200) =~ "Trait groups"
+
+    trait_groups = get(conn, ~p"/creators/#{creator.id}/trait-groups")
+    assert html_response(trait_groups, 200) =~ "Trait groups"
+    assert html_response(trait_groups, 200) =~ "Audiences"
 
     insights = get(conn, ~p"/creators/#{creator.id}/insights")
     assert html_response(insights, 200) =~ "Insights"

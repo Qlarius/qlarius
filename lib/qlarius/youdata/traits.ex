@@ -156,27 +156,29 @@ defmodule Qlarius.YouData.Traits do
     |> Repo.preload(:traits)
   end
 
-  @doc """
-  Returns active trait groups for a specific marketer with stats.
-  """
-  def list_trait_groups_for_marketer(marketer_id) do
+  def list_trait_groups_for_marketer(marketer_id),
+    do: list_trait_groups_for_owner({:marketer, marketer_id})
+
+  def list_archived_trait_groups_for_marketer(marketer_id),
+    do: list_archived_trait_groups_for_owner({:marketer, marketer_id})
+
+  def list_trait_groups_for_owner(owner) do
     from(tg in TraitGroup,
-      where: tg.marketer_id == ^marketer_id and is_nil(tg.deactivated_at),
+      where: is_nil(tg.deactivated_at),
       order_by: [desc: tg.id]
     )
+    |> owner_filter(owner)
     |> Repo.all()
     |> Repo.preload(traits: :parent_trait)
     |> Enum.map(&add_trait_group_stats/1)
   end
 
-  @doc """
-  Returns archived trait groups for a specific marketer.
-  """
-  def list_archived_trait_groups_for_marketer(marketer_id) do
+  def list_archived_trait_groups_for_owner(owner) do
     from(tg in TraitGroup,
-      where: tg.marketer_id == ^marketer_id and not is_nil(tg.deactivated_at),
+      where: not is_nil(tg.deactivated_at),
       order_by: [desc: tg.deactivated_at]
     )
+    |> owner_filter(owner)
     |> Repo.all()
     |> Repo.preload(traits: :parent_trait)
     |> Enum.map(&add_trait_group_stats/1)
@@ -200,14 +202,8 @@ defmodule Qlarius.YouData.Traits do
 
     target_band_count =
       from(tbtg in Qlarius.Sponster.Campaigns.TargetBandTraitGroup,
-        join: tb in Qlarius.Sponster.Campaigns.TargetBand,
-        on: tbtg.target_band_id == tb.id,
-        join: t in Qlarius.Sponster.Campaigns.Target,
-        on: tb.target_id == t.id,
-        join: c in Qlarius.Sponster.Campaigns.Campaign,
-        on: c.target_id == t.id,
-        where: tbtg.trait_group_id == ^trait_group.id and is_nil(c.deactivated_at),
-        select: count(t.id, :distinct)
+        where: tbtg.trait_group_id == ^trait_group.id,
+        select: count(tbtg.id)
       )
       |> Repo.one()
 
@@ -229,21 +225,28 @@ defmodule Qlarius.YouData.Traits do
   @doc """
   Gets a trait_group for a specific marketer.
   """
-  def get_trait_group_for_marketer!(id, marketer_id) do
-    from(tg in TraitGroup,
-      where: tg.id == ^id and tg.marketer_id == ^marketer_id
-    )
+  def get_trait_group_for_marketer!(id, marketer_id),
+    do: get_trait_group_for_owner!(id, {:marketer, marketer_id})
+
+  def get_trait_group_for_owner!(id, owner) do
+    from(tg in TraitGroup, where: tg.id == ^id)
+    |> owner_filter(owner)
     |> Repo.one!()
     |> Repo.preload(:traits)
     |> add_trait_group_stats()
   end
 
+  defp owner_filter(query, {:marketer, id}), do: from(tg in query, where: tg.marketer_id == ^id)
+  defp owner_filter(query, {:creator, id}), do: from(tg in query, where: tg.creator_id == ^id)
+
   @doc """
   Creates a trait_group with associated traits.
   """
   def create_trait_group(attrs \\ %{}) do
-    trait_ids = Map.get(attrs, "trait_ids", []) |> Enum.map(&String.to_integer/1)
-    attrs = Map.delete(attrs, "trait_ids")
+    attrs = Map.new(attrs)
+    {trait_ids, attrs} = Map.pop(attrs, "trait_ids", Map.get(attrs, :trait_ids, []))
+    attrs = Map.drop(attrs, [:trait_ids])
+    trait_ids = Enum.map(List.wrap(trait_ids), &normalize_id/1)
 
     %TraitGroup{}
     |> TraitGroup.changeset(attrs)
@@ -309,6 +312,9 @@ defmodule Qlarius.YouData.Traits do
 
     Repo.insert_all(Qlarius.Sponster.Campaigns.TraitGroupTrait, trait_group_traits)
   end
+
+  defp normalize_id(id) when is_integer(id), do: id
+  defp normalize_id(id) when is_binary(id), do: String.to_integer(id)
 
   @doc """
   Returns traits indexed by trait category for target-building reference.

@@ -228,6 +228,12 @@ defmodule QlariusWeb.CreatorDashboard.Show do
                         <.link navigate={~p"/creators/#{@creator.id}/audiences"} class="btn btn-ghost">
                           Audiences
                         </.link>
+                        <.link
+                          navigate={~p"/creators/#{@creator.id}/trait-groups"}
+                          class="btn btn-ghost"
+                        >
+                          Trait groups
+                        </.link>
                         <.link navigate={~p"/creators/#{@creator.id}/insights"} class="btn btn-ghost">
                           Insights
                         </.link>

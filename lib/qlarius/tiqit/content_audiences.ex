@@ -32,6 +32,7 @@ defmodule Qlarius.Tiqit.ContentAudiences do
   alias Qlarius.Tiqit.Arcade.{Arcade, Catalog, ContentGroup, ContentPiece}
   alias Qlarius.Tiqit.ContentAudienceTarget
   alias Qlarius.YouData.TraitManager
+  alias Qlarius.YouData.Traits
   alias Qlarius.YouData.Traits.Trait
 
   @levels [:piece, :group, :catalog, :creator]
@@ -403,6 +404,58 @@ defmodule Qlarius.Tiqit.ContentAudiences do
   end
 
   @doc """
+  Creates a creator-owned trait group from a parent trait's answers and
+  adds it to the audience bullseye. Re-tagging the same parent updates
+  the existing group via `set_question_answers/4`.
+  """
+  def create_starter_group(scope, target, parent_trait_id, child_trait_ids, opts \\ [])
+
+  def create_starter_group(
+        %Scope{} = scope,
+        %Target{} = target,
+        parent_trait_id,
+        child_trait_ids,
+        opts
+      )
+      when is_integer(parent_trait_id) and is_list(child_trait_ids) do
+    with :ok <- authorize_target(scope, target) do
+      target = Repo.preload(target, target_bands: [trait_groups: :traits])
+      existing = Enum.find(groups_on(target), &(&1.parent_trait_id == parent_trait_id))
+
+      if existing do
+        set_question_answers(scope, target, parent_trait_id, child_trait_ids)
+      else
+        parent = Repo.get!(Trait, parent_trait_id)
+        child_trait_ids = Enum.uniq(child_trait_ids)
+        title = starter_title(opts, parent)
+
+        Repo.transaction(fn ->
+          attrs = %{
+            "title" => title,
+            "creator_id" => target.creator_id,
+            "parent_trait_id" => parent_trait_id,
+            "user_created_by" => Authz.acting_user_id(scope),
+            "trait_ids" => child_trait_ids
+          }
+
+          group =
+            case Traits.create_trait_group(attrs) do
+              {:ok, g} -> g
+              {:error, cs} -> Repo.rollback(cs)
+            end
+
+          bullseye = bullseye_or_create!(target, Authz.acting_user_id(scope))
+
+          case Targets.add_trait_group_to_band(bullseye.id, group.id) do
+            {:ok, _} -> group
+            {:error, reason} -> Repo.rollback(reason)
+          end
+        end)
+      end
+    end
+  end
+
+  @doc """
   Lists audiences owned by this creator.
   """
   def list_audiences(creator_id) when is_integer(creator_id) do
@@ -550,6 +603,17 @@ defmodule Qlarius.Tiqit.ContentAudiences do
   def trigger_population(%Target{} = target), do: Targets.trigger_population(target)
 
   # --- internals ---
+
+  defp starter_title(opts, parent) do
+    case Keyword.get(opts, :title) do
+      title when is_binary(title) ->
+        trimmed = String.trim(title)
+        if trimmed == "", do: parent.trait_name, else: trimmed
+
+      _ ->
+        parent.trait_name
+    end
+  end
 
   defp locate(%Creator{id: id}), do: {:ok, id, :creator, id}
 

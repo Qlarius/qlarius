@@ -26,9 +26,9 @@ defmodule QlariusWeb.Creators.InsightsLive do
     <Layouts.admin {assigns}>
       <div class="flex h-screen">
         <AdminSidebar.sidebar current_user={@current_scope.user} />
-        <div class="flex min-w-0 grow flex-col">
+        <div class="flex min-w-0 grow flex-col page-canvas">
           <AdminTopbar.topbar current_user={@current_scope.user} />
-          <div class="overflow-auto p-6 space-y-6">
+          <div class="overflow-auto flex-1 p-6 space-y-6">
             <div class="flex items-center justify-between gap-4">
               <div>
                 <h1 class="text-2xl font-bold">Insights</h1>
@@ -37,6 +37,9 @@ defmodule QlariusWeb.Creators.InsightsLive do
               <div class="flex gap-2">
                 <.link navigate={~p"/creators/#{@creator.id}/audiences"} class="btn btn-ghost">
                   Audiences
+                </.link>
+                <.link navigate={~p"/creators/#{@creator.id}/trait-groups"} class="btn btn-ghost">
+                  Trait groups
                 </.link>
                 <.link navigate={~p"/creators/#{@creator.id}"} class="btn btn-ghost">
                   Back
@@ -89,7 +92,7 @@ defmodule QlariusWeb.Creators.InsightsLive do
                       <tr :for={row <- @audiences}>
                         <td>
                           <.link
-                            navigate={~p"/creators/#{@creator.id}/audiences/#{row.target_id}"}
+                            navigate={~p"/creators/#{@creator.id}/audiences/#{row.target_id}/edit"}
                             class="link"
                           >
                             {row.title}

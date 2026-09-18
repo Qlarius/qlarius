@@ -1,8 +1,8 @@
 defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
   use QlariusWeb, :live_view
 
-  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
-  alias Qlarius.Sponster.Campaigns.{Target, TargetBand, Targets}
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar, Targeting}
+  alias Qlarius.Sponster.Campaigns.{Target, Targets}
   alias QlariusWeb.Live.Marketers.CurrentMarketer
 
   on_mount {CurrentMarketer, :load_current_marketer}
@@ -373,22 +373,6 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
     |> assign(:refreshing, false)
   end
 
-  defp excluded_trait_group_id(band, bands) do
-    sorted_bands = Enum.sort_by(bands, &length(&1.trait_groups), :desc)
-    current_index = Enum.find_index(sorted_bands, &(&1.id == band.id))
-
-    if current_index && current_index < length(sorted_bands) - 1 do
-      next_band = Enum.at(sorted_bands, current_index + 1)
-      current_tg_ids = Enum.map(band.trait_groups, & &1.id) |> MapSet.new()
-      next_tg_ids = Enum.map(next_band.trait_groups, & &1.id) |> MapSet.new()
-      excluded_ids = MapSet.difference(current_tg_ids, next_tg_ids) |> MapSet.to_list()
-
-      List.first(excluded_ids)
-    else
-      nil
-    end
-  end
-
   @impl true
   def render(assigns) do
     ~H"""
@@ -573,235 +557,52 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
         </button>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2">
-          <div :if={@editing_target_info} class="card bg-base-100 border border-base-300 mb-6">
-            <div class="card-body">
-              <.form for={@target_form} phx-submit="update_target" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text">Target Name</span>
-                    </label>
-                    <.input field={@target_form[:title]} type="text" />
-                  </div>
+      <div :if={@editing_target_info} class="card bg-base-100 border border-base-300 mb-6">
+        <div class="card-body">
+          <.form for={@target_form} phx-submit="update_target" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text">Target Name</span>
+                </label>
+                <.input field={@target_form[:title]} type="text" />
+              </div>
 
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text">Description</span>
-                    </label>
-                    <.input field={@target_form[:description]} type="text" />
-                  </div>
-                </div>
-
-                <div class="flex gap-2 justify-end">
-                  <button
-                    type="button"
-                    phx-click="cancel_edit_target_info"
-                    class="btn btn-ghost btn-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" class="btn btn-primary btn-sm">
-                    Save
-                  </button>
-                </div>
-              </.form>
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text">Description</span>
+                </label>
+                <.input field={@target_form[:description]} type="text" />
+              </div>
             </div>
-          </div>
 
-          <div :if={@target.description && !@editing_target_info} class="mb-6">
-            <p class="text-base-content/70">{@target.description}</p>
-          </div>
-
-          <%= if @bands == [] do %>
-            <div class="alert alert-info mb-6">
-              <.icon name="hero-information-circle" class="w-6 h-6" />
-              <span>
-                Start by creating a bullseye for this target. Select trait groups from the panel on the right.
-              </span>
-            </div>
-          <% end %>
-
-          <div class="mb-6 flex gap-2">
-            <button phx-click="done" class="btn btn-primary">
-              Done
-            </button>
-            <%= if @bands != [] do %>
+            <div class="flex gap-2 justify-end">
               <button
-                phx-click="populate_target"
-                class="btn btn-success"
-                data-confirm="This will calculate populations for all bands. Continue?"
+                type="button"
+                phx-click="cancel_edit_target_info"
+                class="btn btn-ghost btn-sm"
               >
-                Freeze and Populate Target
+                Cancel
               </button>
-            <% end %>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Target Rings</th>
-                  <th>Trait Groups</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr :for={band <- @bands}>
-                  <td class={[
-                    "font-bold !align-top",
-                    TargetBand.is_bullseye?(band) && "text-error"
-                  ]}>
-                    <div class="flex items-start gap-2">
-                      <span>{Targets.band_label(band, @bands)}</span>
-                      <%= if @outermost_band && band.id == @outermost_band.id && !TargetBand.is_bullseye?(@outermost_band) do %>
-                        <button
-                          phx-click="delete_outermost_band"
-                          class="btn btn-ghost btn-xs btn-circle"
-                          title="Delete this ring"
-                        >
-                          <.icon name="hero-trash" class="w-4 h-4" />
-                        </button>
-                      <% end %>
-                    </div>
-                  </td>
-                  <td class="!align-top">
-                    <div class="space-y-2">
-                      <%= if @expanding_target && @outermost_band && band.id == @outermost_band.id && length(band.trait_groups) > 1 do %>
-                        <div class="flex flex-wrap gap-2">
-                          <button
-                            :for={tg <- band.trait_groups}
-                            phx-click="create_outer_band"
-                            phx-value-excluded_trait_group_id={tg.id}
-                            class={[
-                              "badge badge-warning cursor-pointer py-3 px-3",
-                              tg.id == excluded_trait_group_id(band, @bands) && "opacity-60"
-                            ]}
-                            title={"Click to exclude #{tg.title}"}
-                          >
-                            {tg.title} <.icon name="hero-scissors" class="w-4 h-4" />
-                          </button>
-                        </div>
-                      <% else %>
-                        <%= if TargetBand.is_bullseye?(band) && length(@bands) == 1 do %>
-                          <div class="flex flex-wrap gap-2">
-                            <div
-                              :for={tg <- band.trait_groups}
-                              class="badge badge-outline py-3 px-3 flex items-center gap-2"
-                            >
-                              <span>{tg.title}</span>
-                              <button
-                                phx-click="remove_trait_group_from_bullseye"
-                                phx-value-band_id={band.id}
-                                phx-value-trait_group_id={tg.id}
-                                class="cursor-pointer hover:text-error"
-                                title="Remove from bullseye"
-                              >
-                                <.icon name="hero-x-mark" class="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        <% else %>
-                          <div class="flex flex-wrap gap-2">
-                            <span
-                              :for={tg <- band.trait_groups}
-                              class={[
-                                "badge badge-outline py-3",
-                                tg.id == excluded_trait_group_id(band, @bands) && "opacity-60"
-                              ]}
-                            >
-                              {tg.title}
-                            </span>
-                          </div>
-                        <% end %>
-                      <% end %>
-                    </div>
-                  </td>
-                </tr>
-                <tr :if={@expanding_target}>
-                  <td class="!align-top font-bold text-error">
-                    <div class="flex items-start gap-2">
-                      <span>Ring {length(@bands)}</span>
-                      <button
-                        phx-click="cancel_expanding_target"
-                        class="btn btn-ghost btn-xs btn-circle"
-                        title="Cancel"
-                      >
-                        <.icon name="hero-x-mark" class="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                  <td class="italic text-base-content/60 !align-top">
-                    Select a trait group from the ring above to exclude for this new ring.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <%= if @bands != [] && @outermost_band && length(@outermost_band.trait_groups) > 1 && !@expanding_target do %>
-            <div class="mt-6 flex gap-2">
-              <button phx-click="start_expanding_target" class="btn btn-primary btn-outline">
-                <.icon name="hero-plus" class="w-5 h-5" /> Expand Target
+              <button type="submit" class="btn btn-primary btn-sm">
+                Save
               </button>
             </div>
-          <% end %>
-        </div>
-
-        <div class="lg:col-span-1">
-          <div class="card bg-base-100 border border-base-300">
-            <div class="card-body">
-              <h2 class="text-lg font-bold mb-4">
-                Select a Trait Group to add to the Bullseye:
-              </h2>
-
-              <%= if length(@bands) > 1 do %>
-                <div class="alert alert-neutral mb-4">
-                  <.icon name="hero-lock-closed" class="w-5 h-5" />
-                  <div class="text-sm">
-                    <p class="font-semibold">Bullseye Locked</p>
-                    <p class="text-xs">
-                      Delete outer rings first to modify the bullseye.
-                    </p>
-                  </div>
-                </div>
-
-                <%= if @available_trait_groups == [] do %>
-                  <p class="text-sm text-base-content/50">
-                    No available trait groups. All trait groups have been added to this target.
-                  </p>
-                <% else %>
-                  <div class="space-y-2">
-                    <div
-                      :for={tg <- @available_trait_groups}
-                      class="btn btn-sm btn-block justify-start btn-disabled opacity-60"
-                    >
-                      {tg.title}
-                    </div>
-                  </div>
-                <% end %>
-              <% else %>
-                <%= if @available_trait_groups == [] do %>
-                  <p class="text-sm text-base-content/50">
-                    No available trait groups. All trait groups have been added to this target.
-                  </p>
-                <% else %>
-                  <div class="space-y-2">
-                    <button
-                      :for={tg <- @available_trait_groups}
-                      phx-click="add_trait_group"
-                      phx-value-trait_group_id={tg.id}
-                      class="btn btn-sm btn-block justify-start"
-                    >
-                      [+] {tg.title}
-                    </button>
-                  </div>
-                <% end %>
-              <% end %>
-            </div>
-          </div>
+          </.form>
         </div>
       </div>
+
+      <div :if={@target.description && !@editing_target_info} class="mb-6">
+        <p class="text-base-content/70">{@target.description}</p>
+      </div>
+
+      <Targeting.band_editor
+        copy={Targeting.copy(:target)}
+        bands={@bands}
+        outermost_band={@outermost_band}
+        available_trait_groups={@available_trait_groups}
+        expanding_target={@expanding_target}
+      />
     </div>
     """
   end
@@ -813,9 +614,6 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
   attr :editing_target_info, :boolean, required: true
 
   defp inspect_view(assigns) do
-    total_population = Map.values(assigns.band_population_counts) |> Enum.sum()
-    assigns = assign(assigns, :total_population, total_population)
-
     ~H"""
     <div class="p-6">
       <div class="flex items-center gap-3 mb-2">
@@ -829,118 +627,50 @@ defmodule QlariusWeb.Live.Marketers.TargetsManagerLive do
         </button>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-1 gap-6">
-        <div>
-          <div :if={@editing_target_info} class="card bg-base-100 border border-base-300 mb-6">
-            <div class="card-body">
-              <.form for={@target_form} phx-submit="update_target" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text">Target Name</span>
-                    </label>
-                    <.input field={@target_form[:title]} type="text" />
-                  </div>
+      <div :if={@editing_target_info} class="card bg-base-100 border border-base-300 mb-6">
+        <div class="card-body">
+          <.form for={@target_form} phx-submit="update_target" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text">Target Name</span>
+                </label>
+                <.input field={@target_form[:title]} type="text" />
+              </div>
 
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text">Description</span>
-                    </label>
-                    <.input field={@target_form[:description]} type="text" />
-                  </div>
-                </div>
-
-                <div class="flex gap-2 justify-end">
-                  <button
-                    type="button"
-                    phx-click="cancel_edit_target_info"
-                    class="btn btn-ghost btn-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" class="btn btn-primary btn-sm">
-                    Save
-                  </button>
-                </div>
-              </.form>
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text">Description</span>
+                </label>
+                <.input field={@target_form[:description]} type="text" />
+              </div>
             </div>
-          </div>
 
-          <div :if={@target.description && !@editing_target_info} class="mb-6">
-            <p class="text-base-content/70">{@target.description}</p>
-          </div>
-
-          <div class="mb-6 flex gap-2">
-            <button phx-click="done" class="btn btn-primary">
-              Done
-            </button>
-            <button
-              phx-click="refresh_population"
-              class="btn btn-success"
-              data-confirm="This will recalculate populations for all rings. Continue?"
-            >
-              Refresh Population
-            </button>
-            <button
-              phx-click="depopulate_target"
-              class="btn btn-error btn-outline"
-              data-confirm="This will delete all population data and unfreeze the target. Continue?"
-            >
-              Depopulate
-            </button>
-          </div>
-
-          <div class="mb-4 p-4 bg-base-200 rounded-lg">
-            <p class="text-sm font-semibold">Total Population: {@total_population}</p>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Target Rings</th>
-                  <th>Trait Groups</th>
-                  <th class="text-center">MeFiles</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr :for={band <- @bands}>
-                  <td class={[
-                    "font-bold !align-top",
-                    TargetBand.is_bullseye?(band) && "text-error"
-                  ]}>
-                    <span>{Targets.band_label(band, @bands)}</span>
-                  </td>
-                  <td class="!align-top">
-                    <div class="flex flex-wrap gap-2">
-                      <span
-                        :for={tg <- band.trait_groups}
-                        class={[
-                          "badge badge-outline py-3",
-                          tg.id == excluded_trait_group_id(band, @bands) && "opacity-60"
-                        ]}
-                      >
-                        {tg.title}
-                      </span>
-                    </div>
-                  </td>
-                  <td class="text-center !align-top">
-                    <span class="font-semibold">{Map.get(@band_population_counts, band.id, 0)}</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="alert alert-neutral mt-6">
-            <.icon name="hero-lock-closed" class="w-5 h-5" />
-            <div class="text-sm">
-              <p class="font-semibold">This target structure is frozen</p>
-              <p class="text-xs">Depopulate this target below to edit its structure.</p>
+            <div class="flex gap-2 justify-end">
+              <button
+                type="button"
+                phx-click="cancel_edit_target_info"
+                class="btn btn-ghost btn-sm"
+              >
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary btn-sm">
+                Save
+              </button>
             </div>
-          </div>
+          </.form>
         </div>
       </div>
+
+      <div :if={@target.description && !@editing_target_info} class="mb-6">
+        <p class="text-base-content/70">{@target.description}</p>
+      </div>
+
+      <Targeting.population_inspect
+        copy={Targeting.copy(:target)}
+        bands={@bands}
+        band_population_counts={@band_population_counts}
+      />
     </div>
     """
   end

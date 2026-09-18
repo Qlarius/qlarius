@@ -13,24 +13,34 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
     TraitGroupTrait
   }
 
-  def list_targets_for_marketer(marketer_id) do
+  def list_targets_for_marketer(marketer_id),
+    do: list_targets_for_owner({:marketer, marketer_id})
+
+  def list_targets_for_owner(owner) do
     from(t in Target,
-      where: t.marketer_id == ^marketer_id,
       order_by: [desc: t.created_at],
       preload: [target_bands: [:trait_groups]]
     )
+    |> owner_filter(owner)
     |> Repo.all()
     |> Enum.map(&add_target_stats/1)
   end
 
-  def get_target_for_marketer!(id, marketer_id) do
+  def get_target_for_marketer!(id, marketer_id),
+    do: get_target_for_owner!(id, {:marketer, marketer_id})
+
+  def get_target_for_owner!(id, owner) do
     from(t in Target,
-      where: t.id == ^id and t.marketer_id == ^marketer_id,
+      where: t.id == ^id,
       preload: [target_bands: [trait_groups: [], target_band_trait_groups: []]]
     )
+    |> owner_filter(owner)
     |> Repo.one!()
     |> add_target_stats()
   end
+
+  defp owner_filter(query, {:marketer, id}), do: from(t in query, where: t.marketer_id == ^id)
+  defp owner_filter(query, {:creator, id}), do: from(t in query, where: t.creator_id == ^id)
 
   def create_target(attrs) do
     %Target{}
@@ -182,7 +192,19 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
     |> Enum.min_by(&length(&1.trait_groups), fn -> nil end)
   end
 
-  def get_available_trait_groups_for_target(target_id, marketer_id) do
+  def get_available_trait_groups_for_target(target_id, owner) when is_integer(owner) do
+    get_available_trait_groups_for_target(target_id, {:marketer, owner})
+  end
+
+  def get_available_trait_groups_for_target(target_id, {:marketer, id}) do
+    available_trait_groups_query(target_id, {:marketer, id})
+  end
+
+  def get_available_trait_groups_for_target(target_id, {:creator, id}) do
+    available_trait_groups_query(target_id, {:creator, id})
+  end
+
+  defp available_trait_groups_query(target_id, owner) do
     used_trait_group_ids =
       from(tbtg in TargetBandTraitGroup,
         join: tb in TargetBand,
@@ -193,12 +215,12 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
       |> Repo.all()
 
     from(tg in TraitGroup,
-      where: tg.marketer_id == ^marketer_id,
       where: is_nil(tg.deactivated_at),
       where: tg.id not in ^used_trait_group_ids,
       order_by: [asc: tg.title],
       preload: [:traits]
     )
+    |> owner_filter(owner)
     |> Repo.all()
   end
 

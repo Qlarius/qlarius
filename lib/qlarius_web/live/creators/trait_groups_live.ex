@@ -1,31 +1,30 @@
-defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
+defmodule QlariusWeb.Creators.TraitGroupsLive do
   use QlariusWeb, :live_view
 
-  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar, Targeting}
+  alias Qlarius.Creators
   alias Qlarius.Repo
-  alias Qlarius.YouData.Traits
   alias Qlarius.Sponster.Campaigns.TraitGroup
-  alias QlariusWeb.Live.Marketers.CurrentMarketer
-
-  on_mount {CurrentMarketer, :load_current_marketer}
+  alias Qlarius.YouData.Traits
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar, Targeting}
 
   @impl true
-  def mount(_params, _session, socket) do
-    {:ok, socket}
+  def mount(%{"creator_id" => creator_id}, _session, socket) do
+    creator = Creators.accessible_creator!(socket.assigns.current_scope, creator_id)
+
+    {:ok,
+     socket
+     |> assign(:creator, creator)
+     |> assign(:page_title, "Trait groups")}
   end
 
   @impl true
   def handle_params(params, _uri, socket) do
-    socket =
-      socket
-      |> assign(:page_title, "Traits")
-      |> apply_action(socket.assigns.live_action, params)
-
-    {:noreply, socket}
+    {:noreply, apply_action(socket, socket.assigns.live_action, params)}
   end
 
   defp apply_action(socket, :index, _params) do
     socket
+    |> assign(:page_title, "Trait groups")
     |> assign(:show_modal, false)
     |> assign(:selected_parent_trait, nil)
     |> assign(:trait_group_form, nil)
@@ -36,11 +35,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
   end
 
   defp apply_action(socket, :new_trait_group, %{"parent_trait_id" => parent_trait_id}) do
-    parent_id =
-      case parent_trait_id do
-        id when is_integer(id) -> id
-        id when is_binary(id) -> String.to_integer(id)
-      end
+    parent_id = parent_trait_id_from_param(parent_trait_id)
 
     if socket.assigns[:show_modal] &&
          match?(%{id: ^parent_id}, socket.assigns[:selected_parent_trait]) do
@@ -51,42 +46,37 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
   end
 
   defp apply_action(socket, :new_trait_group, _params) do
-    push_navigate(socket, to: ~p"/marketer/traits")
+    push_navigate(socket, to: ~p"/creators/#{socket.assigns.creator.id}/trait-groups")
   end
 
+  defp parent_trait_id_from_param(id) when is_integer(id), do: id
+  defp parent_trait_id_from_param(id) when is_binary(id), do: String.to_integer(id)
+
   defp open_new_trait_group_modal(socket, parent_trait_id) do
-    if socket.assigns.current_marketer do
-      parent_trait = Traits.get_trait_with_full_survey_data!(parent_trait_id)
+    parent_trait = Traits.get_trait_with_full_survey_data!(parent_trait_id)
 
-      case parent_trait do
-        {:ok, trait} ->
-          form =
-            %TraitGroup{}
-            |> TraitGroup.changeset(%{
-              "marketer_id" => socket.assigns.current_marketer.id
-            })
-            |> to_form(as: :trait_group, id: "trait-group-form")
+    case parent_trait do
+      {:ok, trait} ->
+        form =
+          %TraitGroup{}
+          |> TraitGroup.changeset(%{"creator_id" => socket.assigns.creator.id})
+          |> to_form(as: :trait_group, id: "trait-group-form")
 
-          socket
-          |> assign(:show_modal, true)
-          |> assign(:selected_parent_trait, trait)
-          |> assign(:trait_group_form, form)
-          |> assign(:selected_ids, [])
-          |> assign(:zip_search_term, "")
-          |> assign(:selected_zips, [])
-          |> assign(:zip_search_results, [])
-          |> assign(:zip_search_limit, 1000)
-          |> assign_trait_data()
+        socket
+        |> assign(:show_modal, true)
+        |> assign(:selected_parent_trait, trait)
+        |> assign(:trait_group_form, form)
+        |> assign(:selected_ids, [])
+        |> assign(:zip_search_term, "")
+        |> assign(:selected_zips, [])
+        |> assign(:zip_search_results, [])
+        |> assign(:zip_search_limit, 1000)
+        |> assign_trait_data()
 
-        {:error, _} ->
-          socket
-          |> put_flash(:error, "Selected trait is not a parent trait")
-          |> push_navigate(to: ~p"/marketer/traits")
-      end
-    else
-      socket
-      |> put_flash(:error, "Please select a marketer first")
-      |> push_navigate(to: ~p"/marketer/traits")
+      {:error, _} ->
+        socket
+        |> put_flash(:error, "Selected trait is not a parent trait")
+        |> push_navigate(to: ~p"/creators/#{socket.assigns.creator.id}/trait-groups")
     end
   end
 
@@ -133,33 +123,19 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
   end
 
   defp assign_trait_data(socket) do
-    if socket.assigns.current_marketer do
-      trait_groups = Traits.list_trait_groups_for_marketer(socket.assigns.current_marketer.id)
+    owner = {:creator, socket.assigns.creator.id}
 
-      archived_trait_groups =
-        Traits.list_archived_trait_groups_for_marketer(socket.assigns.current_marketer.id)
-
-      categories_with_traits = Traits.list_trait_categories_with_traits()
-
-      socket
-      |> assign(:trait_groups, trait_groups)
-      |> assign(:archived_trait_groups, archived_trait_groups)
-      |> assign(:categories_with_traits, categories_with_traits)
-      |> assign(:search_term, "")
-      |> assign(:show_archived, false)
-    else
-      socket
-      |> assign(:trait_groups, [])
-      |> assign(:archived_trait_groups, [])
-      |> assign(:categories_with_traits, [])
-      |> assign(:search_term, "")
-      |> assign(:show_archived, false)
-    end
+    socket
+    |> assign(:trait_groups, Traits.list_trait_groups_for_owner(owner))
+    |> assign(:archived_trait_groups, Traits.list_archived_trait_groups_for_owner(owner))
+    |> assign(:categories_with_traits, Traits.list_trait_categories_with_traits())
+    |> assign(:search_term, socket.assigns[:search_term] || "")
+    |> assign(:show_archived, socket.assigns[:show_archived] || false)
   end
 
   @impl true
   def handle_event("close_modal", _params, socket) do
-    {:noreply, push_navigate(socket, to: ~p"/marketer/traits")}
+    {:noreply, push_navigate(socket, to: ~p"/creators/#{socket.assigns.creator.id}/trait-groups")}
   end
 
   def handle_event("validate_trait_group", params, socket) do
@@ -186,7 +162,6 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
       end
 
     socket = assign(socket, :zip_search_limit, limit)
-
     search_term = Map.get(socket.assigns, :zip_search_term, "")
 
     socket =
@@ -207,42 +182,35 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
         %{"trait_group" => trait_group_params, "trait_ids" => trait_ids},
         socket
       ) do
-    if !socket.assigns.current_marketer do
+    trait_ids_list = if is_list(trait_ids), do: trait_ids, else: []
+
+    if trait_ids_list == [] do
       {:noreply,
        socket
-       |> put_flash(:error, "Please select a marketer first")
-       |> push_navigate(to: ~p"/marketer/traits")}
+       |> put_flash(:error, "Please select at least one trait")
+       |> assign(
+         :trait_group_form,
+         to_form(
+           TraitGroup.changeset(%TraitGroup{}, trait_group_params)
+           |> Map.put(:action, :validate)
+         )
+       )}
     else
-      trait_ids_list = if is_list(trait_ids), do: trait_ids, else: []
+      attrs =
+        trait_group_params
+        |> Map.put("trait_ids", trait_ids_list)
+        |> Map.put("creator_id", socket.assigns.creator.id)
+        |> Map.put("parent_trait_id", socket.assigns.selected_parent_trait.id)
 
-      if trait_ids_list == [] do
-        {:noreply,
-         socket
-         |> put_flash(:error, "Please select at least one trait")
-         |> assign(
-           :trait_group_form,
-           to_form(
-             TraitGroup.changeset(%TraitGroup{}, trait_group_params)
-             |> Map.put(:action, :validate)
-           )
-         )}
-      else
-        attrs =
-          trait_group_params
-          |> Map.put("trait_ids", trait_ids_list)
-          |> Map.put("marketer_id", socket.assigns.current_marketer.id)
-          |> Map.put("parent_trait_id", socket.assigns.selected_parent_trait.id)
+      case Traits.create_trait_group(attrs) do
+        {:ok, _trait_group} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, "Trait group created successfully")
+           |> push_navigate(to: ~p"/creators/#{socket.assigns.creator.id}/trait-groups")}
 
-        case Traits.create_trait_group(attrs) do
-          {:ok, _trait_group} ->
-            {:noreply,
-             socket
-             |> put_flash(:info, "Trait group created successfully")
-             |> push_navigate(to: ~p"/marketer/traits")}
-
-          {:error, %Ecto.Changeset{} = changeset} ->
-            {:noreply, assign(socket, :trait_group_form, to_form(changeset))}
-        end
+        {:error, %Ecto.Changeset{} = changeset} ->
+          {:noreply, assign(socket, :trait_group_form, to_form(changeset))}
       end
     end
   end
@@ -266,7 +234,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
         attrs =
           trait_group_params
           |> Map.put("trait_ids", trait_ids_list)
-          |> Map.put("marketer_id", socket.assigns.current_marketer.id)
+          |> Map.put("creator_id", socket.assigns.creator.id)
           |> Map.put("parent_trait_id", socket.assigns.selected_parent_trait.id)
 
         case Traits.create_trait_group(attrs) do
@@ -274,7 +242,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
             {:noreply,
              socket
              |> put_flash(:info, "Trait group created successfully")
-             |> push_navigate(to: ~p"/marketer/traits")}
+             |> push_navigate(to: ~p"/creators/#{socket.assigns.creator.id}/trait-groups")}
 
           {:error, %Ecto.Changeset{} = changeset} ->
             {:noreply, assign(socket, :trait_group_form, to_form(changeset))}
@@ -292,68 +260,59 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
   end
 
   def handle_event("delete_trait_group", %{"id" => id}, socket) do
-    if socket.assigns.current_marketer do
-      trait_group = Traits.get_trait_group_for_marketer!(id, socket.assigns.current_marketer.id)
+    trait_group =
+      Traits.get_trait_group_for_owner!(id, {:creator, socket.assigns.creator.id})
 
-      if trait_group.target_band_count > 0 do
-        {:noreply,
-         put_flash(
-           socket,
-           :error,
-           "Cannot delete trait group that is in use. Please deactivate instead."
-         )}
-      else
-        case Traits.delete_trait_group(trait_group) do
-          {:ok, _} ->
-            {:noreply,
-             socket
-             |> put_flash(:info, "Trait group deleted successfully")
-             |> assign_trait_data()}
-
-          {:error, _} ->
-            {:noreply, put_flash(socket, :error, "Failed to delete trait group")}
-        end
-      end
+    if trait_group.target_band_count > 0 do
+      {:noreply,
+       put_flash(
+         socket,
+         :error,
+         "Cannot delete trait group that is in use. Please deactivate instead."
+       )}
     else
-      {:noreply, put_flash(socket, :error, "No marketer selected")}
+      case Traits.delete_trait_group(trait_group) do
+        {:ok, _} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, "Trait group deleted successfully")
+           |> assign_trait_data()}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to delete trait group")}
+      end
     end
   end
 
   def handle_event("deactivate_trait_group", %{"id" => id}, socket) do
-    if socket.assigns.current_marketer do
-      trait_group = Traits.get_trait_group_for_marketer!(id, socket.assigns.current_marketer.id)
+    trait_group =
+      Traits.get_trait_group_for_owner!(id, {:creator, socket.assigns.creator.id})
 
-      case Traits.deactivate_trait_group(trait_group) do
-        {:ok, _} ->
-          {:noreply,
-           socket
-           |> put_flash(:info, "Trait group deactivated successfully")
-           |> assign_trait_data()}
+    case Traits.deactivate_trait_group(trait_group) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Trait group deactivated successfully")
+         |> assign_trait_data()}
 
-        {:error, _} ->
-          {:noreply, put_flash(socket, :error, "Failed to deactivate trait group")}
-      end
-    else
-      {:noreply, put_flash(socket, :error, "No marketer selected")}
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to deactivate trait group")}
     end
   end
 
   def handle_event("reactivate_trait_group", %{"id" => id}, socket) do
-    if socket.assigns.current_marketer do
-      trait_group = Traits.get_trait_group_for_marketer!(id, socket.assigns.current_marketer.id)
+    trait_group =
+      Traits.get_trait_group_for_owner!(id, {:creator, socket.assigns.creator.id})
 
-      case Traits.reactivate_trait_group(trait_group) do
-        {:ok, _} ->
-          {:noreply,
-           socket
-           |> put_flash(:info, "Trait group reactivated successfully")
-           |> assign_trait_data()}
+    case Traits.reactivate_trait_group(trait_group) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Trait group reactivated successfully")
+         |> assign_trait_data()}
 
-        {:error, _} ->
-          {:noreply, put_flash(socket, :error, "Failed to reactivate trait group")}
-      end
-    else
-      {:noreply, put_flash(socket, :error, "No marketer selected")}
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to reactivate trait group")}
     end
   end
 
@@ -411,7 +370,6 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
   def handle_event("remove_selected_zips", %{"selected_ids" => selected_ids}, socket) do
     selected_ids = if is_list(selected_ids), do: selected_ids, else: [selected_ids]
     remove_ids = Enum.map(selected_ids, &String.to_integer/1)
-
     updated_zips = Enum.reject(socket.assigns.selected_zips, &(&1.id in remove_ids))
 
     {:noreply, assign(socket, :selected_zips, updated_zips)}
@@ -432,15 +390,10 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
       <div class="flex h-screen">
         <AdminSidebar.sidebar current_user={@current_scope.user} />
 
-        <div class="flex min-w-0 grow flex-col">
+        <div class="flex min-w-0 grow flex-col page-canvas">
           <AdminTopbar.topbar current_user={@current_scope.user} />
 
-          <div class="overflow-auto">
-            <.current_marketer_bar
-              current_marketer={@current_marketer}
-              current_path={~p"/marketer/traits"}
-            />
-
+          <div class="overflow-auto flex-1">
             <Targeting.trait_group_modal
               :if={@show_modal}
               show_modal={@show_modal}
@@ -453,21 +406,28 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
               selected_ids={Map.get(assigns, :selected_ids, [])}
             />
 
-            <div :if={!@current_marketer} class="p-6">
-              <div class="alert alert-warning">
-                <.icon name="hero-exclamation-circle" class="w-6 h-6" />
-                <span>Please select a marketer to manage trait groups.</span>
+            <div class="p-6">
+              <div class="flex items-center justify-between mb-6">
+                <div>
+                  <h1 class="text-2xl font-bold">Trait groups</h1>
+                  <p class="text-base-content/60">{@creator.name}</p>
+                </div>
+                <div class="flex gap-2">
+                  <.link navigate={~p"/creators/#{@creator.id}/audiences"} class="btn btn-ghost">
+                    Audiences
+                  </.link>
+                  <.link navigate={~p"/creators/#{@creator.id}"} class="btn btn-ghost">
+                    Back
+                  </.link>
+                </div>
               </div>
-            </div>
 
-            <div :if={@current_marketer} class="p-6">
               <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-2">
-                  <div class="flex justify-between items-center mb-4">
-                    <h1 class="text-2xl font-bold">Trait Groups</h1>
-                  </div>
-
-                  <div :if={@trait_groups == []} class="card bg-base-100 border border-base-300">
+                  <div
+                    :if={@trait_groups == []}
+                    class="card bg-base-100 dark:bg-base-200 border border-base-300"
+                  >
                     <div class="card-body text-center py-12">
                       <.icon
                         name="hero-document-plus"
@@ -487,7 +447,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
                           <th>Trait Group Name</th>
                           <th>Traits</th>
                           <th class="text-center">MeFiles</th>
-                          <th class="text-center">Active Targets</th>
+                          <th class="text-center">Audiences</th>
                           <th class="text-center"></th>
                         </tr>
                       </thead>
@@ -528,10 +488,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
                     :if={@archived_trait_groups != []}
                     class="mt-8 border-t border-base-300 pt-6"
                   >
-                    <button
-                      phx-click="toggle_archived"
-                      class="btn btn-ghost btn-sm mb-4"
-                    >
+                    <button phx-click="toggle_archived" class="btn btn-ghost btn-sm mb-4">
                       <.icon
                         name={if @show_archived, do: "hero-chevron-down", else: "hero-chevron-right"}
                         class="w-4 h-4"
@@ -602,7 +559,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
 
                     <div class="space-y-4 max-h-[calc(100vh-16rem)] overflow-y-auto">
                       <div :for={category <- filter_categories(@categories_with_traits, @search_term)}>
-                        <div class="collapse collapse-arrow bg-base-200 border border-base-300">
+                        <div class="collapse collapse-arrow bg-base-200 dark:bg-base-300/70 border border-base-300 dark:border-base-content/10">
                           <input type="checkbox" checked />
                           <div class="collapse-title font-medium">
                             {category.name}
@@ -614,8 +571,10 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
                             <div class="space-y-2">
                               <.link
                                 :for={trait <- category.traits}
-                                navigate={~p"/marketer/traits/new?parent_trait_id=#{trait.id}"}
-                                class="flex items-center justify-between p-2 hover:bg-base-100 rounded cursor-pointer group"
+                                navigate={
+                                  ~p"/creators/#{@creator.id}/trait-groups/new?parent_trait_id=#{trait.id}"
+                                }
+                                class="flex items-center justify-between p-2 hover:bg-base-100 dark:hover:bg-base-200 rounded cursor-pointer group"
                               >
                                 <span class="text-sm">{trait.trait_name}</span>
                                 <.icon
