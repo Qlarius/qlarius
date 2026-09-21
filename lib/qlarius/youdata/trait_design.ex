@@ -124,7 +124,9 @@ defmodule Qlarius.YouData.TraitDesign do
         "trait_category_id" => category_id,
         "display_order" => integer(params["display_order"]),
         "is_active" => active_flag(params, true)
-      },
+      }
+      |> put_meta(params)
+      |> put_search_filter(params),
       keep_display_order: is_integer(integer(params["display_order"])),
       keep_active: true
     )
@@ -159,7 +161,11 @@ defmodule Qlarius.YouData.TraitDesign do
         true -> Map.put(attrs, "trait_category_id", category_id)
       end
 
-    TraitManager.update_parent_trait(scope, parent, attrs)
+    TraitManager.update_parent_trait(
+      scope,
+      parent,
+      attrs |> put_meta(params) |> put_search_filter(params)
+    )
   end
 
   defp upsert_children(scope, parent, children) do
@@ -186,11 +192,18 @@ defmodule Qlarius.YouData.TraitDesign do
             if blank?(name) do
               {:error, :invalid_trait_name}
             else
-              TraitManager.create_child_trait(scope, parent, %{
-                "trait_name" => string(name),
-                "display_order" => integer(params["display_order"]),
-                "is_active" => active_flag(params, true)
-              })
+              TraitManager.create_child_trait(
+                scope,
+                parent,
+                put_meta(
+                  %{
+                    "trait_name" => string(name),
+                    "display_order" => integer(params["display_order"]),
+                    "is_active" => active_flag(params, true)
+                  },
+                  params
+                )
+              )
             end
 
           id ->
@@ -206,7 +219,7 @@ defmodule Qlarius.YouData.TraitDesign do
                     do: Map.put(attrs, "display_order", integer(params["display_order"])),
                     else: attrs
 
-                TraitManager.update_child_trait(scope, child, attrs)
+                TraitManager.update_child_trait(scope, child, put_meta(attrs, params))
 
               _ ->
                 {:error, :child_not_in_parent}
@@ -359,6 +372,10 @@ defmodule Qlarius.YouData.TraitDesign do
       is_active: parent.is_active,
       display_order: parent.display_order,
       trait_category_id: parent.trait_category_id,
+      meta_1: parent.meta_1,
+      meta_2: parent.meta_2,
+      meta_3: parent.meta_3,
+      has_search_filter: parent.has_search_filter,
       survey_question: question_json(Map.get(parent, :survey_question)),
       children: Enum.map(parent.child_traits || [], &child_json/1),
       child_traits_count: Map.get(parent, :child_traits_count)
@@ -379,6 +396,9 @@ defmodule Qlarius.YouData.TraitDesign do
       trait_name: child.trait_name,
       display_order: child.display_order,
       is_active: child.is_active,
+      meta_1: child.meta_1,
+      meta_2: child.meta_2,
+      meta_3: child.meta_3,
       me_file_tag_count: Map.get(child, :tags_count, 0),
       survey_answer: answer_json(answer)
     }
@@ -386,6 +406,35 @@ defmodule Qlarius.YouData.TraitDesign do
 
   defp answer_json(nil), do: nil
   defp answer_json(answer), do: %{id: answer.id, text: answer.text}
+
+  defp put_search_filter(attrs, params) do
+    if Map.has_key?(params, "has_search_filter") do
+      Map.put(attrs, "has_search_filter", truthy?(params["has_search_filter"]))
+    else
+      attrs
+    end
+  end
+
+  defp put_meta(attrs, params) do
+    Enum.reduce(["meta_1", "meta_2", "meta_3"], attrs, fn key, acc ->
+      if Map.has_key?(params, key) do
+        Map.put(acc, key, meta_value(params[key]))
+      else
+        acc
+      end
+    end)
+  end
+
+  defp meta_value(nil), do: nil
+
+  defp meta_value(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp meta_value(_), do: nil
 
   defp active_flag(params, default) do
     if Map.has_key?(params, "is_active"), do: truthy?(params["is_active"]), else: default

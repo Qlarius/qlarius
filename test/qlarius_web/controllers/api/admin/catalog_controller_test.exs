@@ -90,6 +90,97 @@ defmodule QlariusWeb.Api.Admin.CatalogControllerTest do
     assert encoded =~ "What kinds of live events do you go to?"
   end
 
+  test "saves lookup meta on children and finds them by code", %{token: token} do
+    created =
+      api(token, :post, ~p"/api/admin/traits/design_packs", %{
+        "mode" => "create",
+        "parent" => %{
+          "trait_name" => "Occupation #{unique()}",
+          "input_type" => "single_select",
+          "has_search_filter" => true
+        },
+        "survey_question" => %{"text" => "What is your occupation?"},
+        "children" => [
+          %{
+            "trait_name" => "Software Developers",
+            "survey_answer_text" => "Software Developers",
+            "meta_1" => "15-1252",
+            "meta_2" => "15-0000",
+            "meta_3" => "programmer, software engineer"
+          },
+          %{"trait_name" => "Prefer not to say"}
+        ]
+      })
+
+    software = Enum.find(created["children"], &(&1["trait_name"] == "Software Developers"))
+    prefer = Enum.find(created["children"], &(&1["trait_name"] == "Prefer not to say"))
+    assert created["has_search_filter"] == true
+    assert software["meta_1"] == "15-1252"
+    assert software["meta_2"] == "15-0000"
+    assert software["meta_3"] == "programmer, software engineer"
+
+    stored = Repo.get!(Trait, software["id"])
+    assert stored.meta_1 == "15-1252"
+
+    hits = api(token, :get, ~p"/api/admin/traits/#{created["id"]}/lookup?q=15-1252", nil)
+    assert [%{"trait_name" => "Software Developers", "meta_1" => "15-1252"}] = hits["children"]
+
+    title_hits =
+      api(token, :get, ~p"/api/admin/traits/#{created["id"]}/lookup?q=engineer", nil)
+
+    assert Enum.any?(title_hits["children"], &(&1["trait_name"] == "Software Developers"))
+
+    reformed =
+      api(token, :post, ~p"/api/admin/traits/design_packs", %{
+        "mode" => "reform",
+        "parent" => %{"id" => created["id"]},
+        "survey_question" => %{"text" => "What is your occupation?"},
+        "children" => [
+          %{"id" => software["id"], "trait_name" => "Software Developers"},
+          %{"id" => prefer["id"], "trait_name" => "Prefer not to say"}
+        ]
+      })
+
+    kept = Enum.find(reformed["children"], &(&1["id"] == software["id"]))
+    assert kept["meta_1"] == "15-1252"
+    assert kept["meta_3"] == "programmer, software engineer"
+    assert reformed["has_search_filter"] == true
+
+    cleared =
+      api(token, :patch, ~p"/api/admin/traits/#{created["id"]}", %{
+        "has_search_filter" => false
+      })
+
+    assert cleared["has_search_filter"] == false
+  end
+
+  test "tagging search text includes the title, answer, and every meta field" do
+    text =
+      QlariusWeb.Components.Targeting.tag_option_search_text(%{
+        trait_name: "Software Developers",
+        survey_answer: %{text: "Writes software"},
+        meta_1: "15-1252",
+        meta_2: "15-0000",
+        meta_3: "programmer, software engineer"
+      })
+
+    assert text =~ "Software Developers"
+    assert text =~ "Writes software"
+    assert text =~ "15-1252"
+    assert text =~ "15-0000"
+    assert text =~ "programmer, software engineer"
+
+    assert QlariusWeb.Components.Targeting.tag_option_answer(%{
+             trait_name: "Software Developers",
+             survey_answer: %{text: "Writes software"}
+           }) == "Writes software"
+
+    assert QlariusWeb.Components.Targeting.tag_option_answer(%{
+             trait_name: "Software Developers",
+             survey_answer: %{text: "Software Developers"}
+           }) == ""
+  end
+
   test "reform deactivates omitted children and keeps their tags", %{token: token} do
     created =
       api(token, :post, ~p"/api/admin/traits/design_packs", %{

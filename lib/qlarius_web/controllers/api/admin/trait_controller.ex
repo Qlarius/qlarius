@@ -26,7 +26,11 @@ defmodule QlariusWeb.Api.Admin.TraitController do
             input_type: trait.input_type,
             is_active: trait.is_active,
             display_order: trait.display_order,
-            trait_category_id: trait.trait_category_id
+            trait_category_id: trait.trait_category_id,
+            meta_1: trait.meta_1,
+            meta_2: trait.meta_2,
+            meta_3: trait.meta_3,
+            has_search_filter: trait.has_search_filter
           }
         end)
     })
@@ -75,7 +79,14 @@ defmodule QlariusWeb.Api.Admin.TraitController do
       |> json(%{
         children:
           Enum.map(created, fn child ->
-            %{id: child.id, trait_name: child.trait_name, display_order: child.display_order}
+            %{
+              id: child.id,
+              trait_name: child.trait_name,
+              display_order: child.display_order,
+              meta_1: child.meta_1,
+              meta_2: child.meta_2,
+              meta_3: child.meta_3
+            }
           end)
       })
     else
@@ -97,7 +108,10 @@ defmodule QlariusWeb.Api.Admin.TraitController do
         id: child.id,
         trait_name: child.trait_name,
         display_order: child.display_order,
-        is_active: child.is_active
+        is_active: child.is_active,
+        meta_1: child.meta_1,
+        meta_2: child.meta_2,
+        meta_3: child.meta_3
       })
     else
       {:error, reason} -> Responder.error(conn, reason)
@@ -110,6 +124,19 @@ defmodule QlariusWeb.Api.Admin.TraitController do
     with {:ok, trait} <- TraitManager.fetch_trait(scope, id),
          {:ok, trait} <- TraitManager.deactivate_trait(scope, trait) do
       json(conn, %{id: trait.id, is_active: trait.is_active})
+    else
+      {:error, reason} -> Responder.error(conn, reason)
+    end
+  end
+
+  def lookup(conn, %{"id" => id} = params) do
+    scope = conn.assigns.current_scope
+
+    with {:ok, trait} <- TraitManager.fetch_trait(scope, id),
+         :ok <- parent_only(trait) do
+      json(conn, %{
+        children: Traits.search_children(trait.id, params["q"] || "", integer(params["limit"]))
+      })
     else
       {:error, reason} -> Responder.error(conn, reason)
     end
@@ -132,10 +159,7 @@ defmodule QlariusWeb.Api.Admin.TraitController do
           {:halt, {:error, :invalid_trait_name}}
 
         true ->
-          case TraitManager.create_child_trait(scope, parent, %{
-                 "trait_name" => String.trim(name),
-                 "display_order" => integer(child["display_order"])
-               }) do
+          case TraitManager.create_child_trait(scope, parent, child_write_attrs(child, name)) do
             {:ok, created} -> {:cont, {:ok, acc ++ [created]}}
             {:error, reason} -> {:halt, {:error, reason}}
           end
@@ -154,11 +178,21 @@ defmodule QlariusWeb.Api.Admin.TraitController do
   defp child_of(parent, %{parent_trait_id: parent_id}) when parent_id == parent.id, do: :ok
   defp child_of(_, _), do: {:error, :child_not_in_parent}
 
+  defp child_write_attrs(child, name) do
+    %{
+      "trait_name" => String.trim(name),
+      "display_order" => integer(child["display_order"])
+    }
+    |> put_meta(child)
+  end
+
   defp parent_attrs(params) do
     params
     |> Map.take(["trait_name", "input_type", "trait_category_id", "display_order", "is_active"])
     |> Enum.reject(fn {_k, v} -> v == nil end)
     |> Map.new()
+    |> put_meta(params)
+    |> put_search_filter(params)
   end
 
   defp child_attrs(params) do
@@ -166,7 +200,37 @@ defmodule QlariusWeb.Api.Admin.TraitController do
     |> Map.take(["trait_name", "display_order", "is_active"])
     |> Enum.reject(fn {_k, v} -> v == nil end)
     |> Map.new()
+    |> put_meta(params)
   end
+
+  defp put_search_filter(attrs, params) do
+    if Map.has_key?(params, "has_search_filter") do
+      Map.put(attrs, "has_search_filter", truthy?(params["has_search_filter"]))
+    else
+      attrs
+    end
+  end
+
+  defp put_meta(attrs, params) do
+    Enum.reduce(["meta_1", "meta_2", "meta_3"], attrs, fn key, acc ->
+      if Map.has_key?(params, key) do
+        Map.put(acc, key, meta_value(params[key]))
+      else
+        acc
+      end
+    end)
+  end
+
+  defp meta_value(nil), do: nil
+
+  defp meta_value(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp meta_value(_), do: nil
 
   defp truthy?(value), do: value in [true, "true", "1", 1]
 

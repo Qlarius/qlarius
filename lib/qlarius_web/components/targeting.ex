@@ -365,6 +365,75 @@ defmodule QlariusWeb.Components.Targeting do
     """
   end
 
+  @doc """
+  Text matched by the tagging search box: title, survey answer, and every meta field.
+  """
+  def tag_option_search_text(trait) do
+    answer =
+      case Map.get(trait, :survey_answer) do
+        %{text: text} when is_binary(text) -> text
+        _ -> nil
+      end
+
+    [
+      Map.get(trait, :trait_name),
+      answer,
+      Map.get(trait, :meta_1),
+      Map.get(trait, :meta_2),
+      Map.get(trait, :meta_3)
+    ]
+    |> Enum.filter(&(is_binary(&1) and String.trim(&1) != ""))
+    |> Enum.map_join(" ", &String.trim/1)
+  end
+
+  def tag_option_meta(trait) do
+    [Map.get(trait, :meta_1), Map.get(trait, :meta_2), Map.get(trait, :meta_3)]
+    |> Enum.filter(&(is_binary(&1) and String.trim(&1) != ""))
+    |> Enum.map_join(" · ", &String.trim/1)
+  end
+
+  def tag_option_answer(trait) do
+    name = trait |> Map.get(:trait_name) |> to_string() |> String.trim()
+
+    case Map.get(trait, :survey_answer) do
+      %{text: text} when is_binary(text) ->
+        trimmed = String.trim(text)
+        if trimmed != "" and trimmed != name, do: trimmed, else: ""
+
+      _ ->
+        ""
+    end
+  end
+
+  def tag_option_detail?(trait) do
+    tag_option_meta(trait) != "" or tag_option_answer(trait) != ""
+  end
+
+  def tag_option_filter?(trait) do
+    Map.get(trait, :has_search_filter) == true and
+      Map.get(trait, :input_type) != "single_select_zip"
+  end
+
+  attr :id, :string, required: true
+
+  def tag_option_search(assigns) do
+    ~H"""
+    <div id={@id} phx-update="ignore" class="px-4 pt-4 shrink-0">
+      <label class="input input-bordered flex w-full items-center gap-2">
+        <.icon name="hero-magnifying-glass" class="h-4 w-4 opacity-50 shrink-0" />
+        <input
+          type="search"
+          data-tag-option-search
+          placeholder="Search"
+          autocomplete="off"
+          aria-label="Search"
+          class="grow bg-transparent outline-none"
+        />
+      </label>
+    </div>
+    """
+  end
+
   attr :show_modal, :boolean, required: true
   attr :parent_trait, :any, required: true
   attr :form, :any, required: true
@@ -406,165 +475,189 @@ defmodule QlariusWeb.Components.Targeting do
           </p>
         </div>
 
-        <.form
-          for={@form}
-          id="trait-group-form"
-          phx-change="validate_trait_group"
-          phx-submit="save_trait_group"
+        <div
+          id={"tag-option-filter-#{@parent_trait.id}"}
+          phx-hook={tag_option_filter?(@parent_trait) && "TagOptionFilter"}
           class="flex flex-col flex-1 min-h-0"
         >
-          <div class="flex-1 overflow-y-auto p-4 space-y-4">
-            <div>
-              <.input field={@form[:title]} type="text" label="Trait Group Name" required />
-            </div>
+          <.tag_option_search
+            :if={tag_option_filter?(@parent_trait)}
+            id={"tag-option-search-#{@parent_trait.id}"}
+          />
+          <.form
+            for={@form}
+            id="trait-group-form"
+            phx-change="validate_trait_group"
+            phx-submit="save_trait_group"
+            class="flex flex-col flex-1 min-h-0"
+          >
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+              <div>
+                <.input field={@form[:title]} type="text" label="Trait Group Name" required />
+              </div>
 
-            <div>
-              <.input field={@form[:description]} type="textarea" label="Description (optional)" />
-            </div>
+              <div>
+                <.input field={@form[:description]} type="textarea" label="Description (optional)" />
+              </div>
 
-            <%= if @parent_trait.input_type == "single_select_zip" do %>
-              <div class="divider">Select Zip Codes</div>
+              <%= if @parent_trait.input_type == "single_select_zip" do %>
+                <div class="divider">Select Zip Codes</div>
 
-              <div id="zip-selector" phx-hook="ZipSelector" class="flex gap-4 w-full">
-                <div class="flex-1 min-w-0">
-                  <% available_count =
-                    Enum.count(@zip_search_results, fn zip ->
-                      not Enum.any?(@selected_zips, &(&1.id == zip.id))
-                    end) %>
-                  <label class="label">
-                    <span class="label-text font-semibold">
-                      Available Zip Codes ({available_count})
-                    </span>
-                  </label>
-
-                  <div class="mb-2 flex gap-2">
-                    <label class="input input-bordered input-sm flex items-center gap-2 flex-1">
-                      <.icon name="hero-magnifying-glass" class="w-4 h-4 opacity-70" />
-                      <input
-                        type="text"
-                        phx-debounce="300"
-                        name="search"
-                        value={@zip_search_term}
-                        placeholder="Search (2+ chars)..."
-                        class="grow font-mono"
-                        autocomplete="off"
-                      />
+                <div id="zip-selector" phx-hook="ZipSelector" class="flex gap-4 w-full">
+                  <div class="flex-1 min-w-0">
+                    <% available_count =
+                      Enum.count(@zip_search_results, fn zip ->
+                        not Enum.any?(@selected_zips, &(&1.id == zip.id))
+                      end) %>
+                    <label class="label">
+                      <span class="label-text font-semibold">
+                        Available Zip Codes ({available_count})
+                      </span>
                     </label>
+
+                    <div class="mb-2 flex gap-2">
+                      <label class="input input-bordered input-sm flex items-center gap-2 flex-1">
+                        <.icon name="hero-magnifying-glass" class="w-4 h-4 opacity-70" />
+                        <input
+                          type="text"
+                          phx-debounce="300"
+                          name="search"
+                          value={@zip_search_term}
+                          placeholder="Search (2+ chars)..."
+                          class="grow font-mono"
+                          autocomplete="off"
+                        />
+                      </label>
+                      <select
+                        name="limit"
+                        phx-change="change_zip_limit"
+                        class="select select-bordered select-sm w-28"
+                      >
+                        <option value="1000" selected={@zip_search_limit == 1000}>1,000</option>
+                        <option value="5000" selected={@zip_search_limit == 5000}>5,000</option>
+                        <option value="10000" selected={@zip_search_limit == 10000}>10,000</option>
+                        <option value="all" selected={@zip_search_limit == :all}>All</option>
+                      </select>
+                    </div>
+
                     <select
-                      name="limit"
-                      phx-change="change_zip_limit"
-                      class="select select-bordered select-sm w-28"
+                      id="available-zips"
+                      multiple
+                      size="15"
+                      class="select select-bordered w-full h-80 text-sm font-mono [&::-webkit-scrollbar-button]:[display:none]"
                     >
-                      <option value="1000" selected={@zip_search_limit == 1000}>1,000</option>
-                      <option value="5000" selected={@zip_search_limit == 5000}>5,000</option>
-                      <option value="10000" selected={@zip_search_limit == 10000}>10,000</option>
-                      <option value="all" selected={@zip_search_limit == :all}>All</option>
+                      <%= for zip <- @zip_search_results do %>
+                        <% is_selected = Enum.any?(@selected_zips, &(&1.id == zip.id)) %>
+                        <option
+                          value={zip.id}
+                          disabled={is_selected}
+                          class={is_selected && "!text-base-content/40"}
+                        >
+                          {zip.zip_code} - {zip.location}
+                        </option>
+                      <% end %>
                     </select>
                   </div>
 
-                  <select
-                    id="available-zips"
-                    multiple
-                    size="15"
-                    class="select select-bordered w-full h-80 text-sm font-mono [&::-webkit-scrollbar-button]:[display:none]"
-                  >
-                    <%= for zip <- @zip_search_results do %>
-                      <% is_selected = Enum.any?(@selected_zips, &(&1.id == zip.id)) %>
-                      <option
-                        value={zip.id}
-                        disabled={is_selected}
-                        class={is_selected && "!text-base-content/40"}
+                  <div class="flex flex-col items-center justify-center gap-2">
+                    <button type="button" data-action="add-all" class="btn btn-sm btn-primary">
+                      >>
+                    </button>
+                    <button type="button" data-action="add-selected" class="btn btn-sm btn-primary">
                       >
+                    </button>
+                    <button
+                      type="button"
+                      data-action="remove-selected"
+                      class="btn btn-sm btn-secondary"
+                    >
+                      &lt;
+                    </button>
+                    <button type="button" data-action="clear-all" class="btn btn-sm btn-secondary">
+                      &lt;&lt;
+                    </button>
+                  </div>
+
+                  <div class="flex-1 min-w-0">
+                    <label class="label">
+                      <span class="label-text font-semibold">
+                        Selected Zip Codes ({length(@selected_zips)})
+                      </span>
+                    </label>
+
+                    <select
+                      id="selected-zips"
+                      multiple
+                      size="15"
+                      class="select select-bordered w-full h-80 text-sm mt-7 font-mono [&::-webkit-scrollbar-button]:[display:none]"
+                    >
+                      <option :for={zip <- @selected_zips} value={zip.id}>
                         {zip.zip_code} - {zip.location}
                       </option>
-                    <% end %>
-                  </select>
-                </div>
-
-                <div class="flex flex-col items-center justify-center gap-2">
-                  <button type="button" data-action="add-all" class="btn btn-sm btn-primary">
-                    >>
-                  </button>
-                  <button type="button" data-action="add-selected" class="btn btn-sm btn-primary">
-                    >
-                  </button>
-                  <button type="button" data-action="remove-selected" class="btn btn-sm btn-secondary">
-                    &lt;
-                  </button>
-                  <button type="button" data-action="clear-all" class="btn btn-sm btn-secondary">
-                    &lt;&lt;
-                  </button>
-                </div>
-
-                <div class="flex-1 min-w-0">
-                  <label class="label">
-                    <span class="label-text font-semibold">
-                      Selected Zip Codes ({length(@selected_zips)})
-                    </span>
-                  </label>
-
-                  <select
-                    id="selected-zips"
-                    multiple
-                    size="15"
-                    class="select select-bordered w-full h-80 text-sm mt-7 font-mono [&::-webkit-scrollbar-button]:[display:none]"
-                  >
-                    <option :for={zip <- @selected_zips} value={zip.id}>
-                      {zip.zip_code} - {zip.location}
-                    </option>
-                  </select>
-                </div>
-              </div>
-            <% else %>
-              <div class="divider">Select Traits</div>
-
-              <div :if={@parent_trait.child_traits} class="py-0">
-                <label
-                  :for={child_trait <- Enum.sort_by(@parent_trait.child_traits, & &1.display_order)}
-                  class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 dark:border-base-content/15 py-4 px-2 hover:bg-base-200/70 dark:hover:bg-base-300/35 cursor-pointer"
-                >
-                  <input
-                    :if={@parent_trait.input_type == "single_select"}
-                    type="radio"
-                    name="trait_ids[]"
-                    value={child_trait.id}
-                    id={"trait-#{child_trait.id}"}
-                    checked={child_trait.id in @selected_ids}
-                    class="radio w-7 h-7"
-                  />
-                  <input
-                    :if={@parent_trait.input_type != "single_select"}
-                    type="checkbox"
-                    name="trait_ids[]"
-                    value={child_trait.id}
-                    id={"trait-#{child_trait.id}"}
-                    checked={child_trait.id in @selected_ids}
-                    class="checkbox w-7 h-7"
-                  />
-                  <div class="text-lg text-base-content">
-                    {if child_trait.survey_answer &&
-                          child_trait.survey_answer.text not in [nil, ""],
-                        do: child_trait.survey_answer.text,
-                        else: child_trait.trait_name}
+                    </select>
                   </div>
-                </label>
-              </div>
-            <% end %>
-          </div>
+                </div>
+              <% else %>
+                <div class="divider">Select Traits</div>
 
-          <div class="p-4 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
-            <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost">
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="btn btn-lg btn-primary"
-              disabled={@parent_trait.input_type == "single_select_zip" && @selected_zips == []}
-            >
-              {@submit_label}
-            </button>
-          </div>
-        </.form>
+                <div :if={@parent_trait.child_traits} class="py-0">
+                  <label
+                    :for={child_trait <- Enum.sort_by(@parent_trait.child_traits, & &1.display_order)}
+                    data-tag-option-row
+                    data-tag-option-text={tag_option_search_text(child_trait)}
+                    class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 dark:border-base-content/15 py-4 px-2 hover:bg-base-200/70 dark:hover:bg-base-300/35 cursor-pointer"
+                  >
+                    <input
+                      :if={@parent_trait.input_type == "single_select"}
+                      type="radio"
+                      name="trait_ids[]"
+                      value={child_trait.id}
+                      id={"trait-#{child_trait.id}"}
+                      checked={child_trait.id in @selected_ids}
+                      class="radio w-7 h-7"
+                    />
+                    <input
+                      :if={@parent_trait.input_type != "single_select"}
+                      type="checkbox"
+                      name="trait_ids[]"
+                      value={child_trait.id}
+                      id={"trait-#{child_trait.id}"}
+                      checked={child_trait.id in @selected_ids}
+                      class="checkbox w-7 h-7"
+                    />
+                    <div class="text-lg text-base-content min-w-0">
+                      <div>
+                        {if child_trait.survey_answer &&
+                              child_trait.survey_answer.text not in [nil, ""],
+                            do: child_trait.survey_answer.text,
+                            else: child_trait.trait_name}
+                      </div>
+                      <div
+                        :if={tag_option_meta(child_trait) != ""}
+                        class="text-sm text-base-content/60 whitespace-normal break-words"
+                      >
+                        {tag_option_meta(child_trait)}
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              <% end %>
+            </div>
+
+            <div class="p-4 flex flex-row align-end gap-2 justify-end bg-base-200 border-t border-base-300 shrink-0">
+              <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost">
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="btn btn-lg btn-primary"
+                disabled={@parent_trait.input_type == "single_select_zip" && @selected_zips == []}
+              >
+                {@submit_label}
+              </button>
+            </div>
+          </.form>
+        </div>
       </div>
     </div>
     """

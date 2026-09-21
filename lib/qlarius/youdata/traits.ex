@@ -469,12 +469,19 @@ defmodule Qlarius.YouData.Traits do
               child
               |> Map.put(:is_active, true)
               |> Map.put(:input_type, cmeta && cmeta.input_type)
+              |> Map.put(:meta_1, cmeta && cmeta.meta_1)
+              |> Map.put(:meta_2, cmeta && cmeta.meta_2)
+              |> Map.put(:meta_3, cmeta && cmeta.meta_3)
               |> Map.put(:survey_answer, catalog_answer(cmeta && cmeta.survey_answer))
             end)
 
           parent
           |> Map.put(:input_type, meta && meta.input_type)
           |> Map.put(:is_active, true)
+          |> Map.put(:meta_1, meta && meta.meta_1)
+          |> Map.put(:meta_2, meta && meta.meta_2)
+          |> Map.put(:meta_3, meta && meta.meta_3)
+          |> Map.put(:has_search_filter, meta && meta.has_search_filter)
           |> Map.put(:survey_question, catalog_question(meta && meta.survey_question))
           |> Map.put(:children, kids)
         end)
@@ -658,6 +665,44 @@ defmodule Qlarius.YouData.Traits do
         select: t
     )
   end
+
+  @doc """
+  Searches active children of a parent by title or lookup metadata.
+
+  Matches `trait_name`, `meta_1`, `meta_2`, and `meta_3`. Used for code lists
+  such as occupations, where the wearable title and the SOC code live in
+  different columns. Zip search stays on `search_zip_codes/3`.
+  """
+  def search_children(parent_trait_id, search_term, limit \\ 50) do
+    search_term = to_string(search_term) |> String.trim()
+
+    if String.length(search_term) < 2 do
+      []
+    else
+      pattern = "%#{search_term}%"
+
+      Repo.all(
+        from t in Trait,
+          where: t.parent_trait_id == ^parent_trait_id and t.is_active == true,
+          where:
+            ilike(t.trait_name, ^pattern) or ilike(t.meta_1, ^pattern) or
+              ilike(t.meta_2, ^pattern) or ilike(t.meta_3, ^pattern),
+          order_by: [asc: t.trait_name, asc: t.id],
+          limit: ^bound_lookup_limit(limit),
+          select: %{
+            id: t.id,
+            trait_name: t.trait_name,
+            meta_1: t.meta_1,
+            meta_2: t.meta_2,
+            meta_3: t.meta_3,
+            display_order: t.display_order
+          }
+      )
+    end
+  end
+
+  defp bound_lookup_limit(limit) when is_integer(limit) and limit > 0, do: min(limit, 200)
+  defp bound_lookup_limit(_), do: 50
 
   @doc """
   Searches for zip code child traits by zip code prefix or city/state name.

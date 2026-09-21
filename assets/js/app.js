@@ -1599,6 +1599,45 @@ Hooks.CurrentMarketer = {
   }
 }
 
+Hooks.TagOptionFilter = {
+  mounted() {
+    this.query = this.input()?.value || ''
+    this.onInput = () => {
+      this.query = this.input()?.value || ''
+      this.apply()
+    }
+    this.onChange = (event) => {
+      if (event.target.closest('[data-tag-option-row]')) this.apply()
+    }
+    this.input()?.addEventListener('input', this.onInput)
+    this.el.addEventListener('change', this.onChange)
+    this.apply()
+  },
+  updated() {
+    const input = this.input()
+    if (input && this.query && input.value !== this.query) input.value = this.query
+    this.apply()
+  },
+  destroyed() {
+    this.input()?.removeEventListener('input', this.onInput)
+    this.el.removeEventListener('change', this.onChange)
+  },
+  input() {
+    return this.el.querySelector('[data-tag-option-search]')
+  },
+  apply() {
+    const query = (this.query || '').trim().toLowerCase()
+    this.el.querySelectorAll('[data-tag-option-row]').forEach((row) => {
+      const selected = !!row.querySelector(
+        'input[type="checkbox"]:checked, input[type="radio"]:checked'
+      )
+      const text = (row.dataset.tagOptionText || '').toLowerCase()
+      const show = query === '' || selected || text.includes(query)
+      row.classList.toggle('hidden', !show)
+    })
+  }
+}
+
 Hooks.ZipSelector = {
   mounted() {
     this.availableSelect = this.el.querySelector('#available-zips')

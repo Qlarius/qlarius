@@ -518,6 +518,9 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                                       Category: {if @selected_parent_trait.trait_category,
                                         do: @selected_parent_trait.trait_category.name,
                                         else: "None"}
+                                      <%= if @selected_parent_trait.has_search_filter do %>
+                                        · Search filter on
+                                      <% end %>
                                     </p>
                                   </div>
                                 </td>
@@ -778,6 +781,15 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                 </option>
               </select>
             </div>
+
+            <.input
+              field={@form[:has_search_filter]}
+              type="checkbox"
+              label="Show a search box when tagging"
+            />
+            <p class="text-xs text-base-content/60 -mt-2">
+              Matches the title, answer text, and meta fields. Zip parents keep the zip picker.
+            </p>
 
             <div class="form-control">
               <label class="label">

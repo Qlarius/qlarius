@@ -435,6 +435,7 @@ defmodule QlariusWeb.Router do
     get "/traits_catalog", TraitController, :catalog
     get "/traits", TraitController, :index
     post "/traits/design_packs", TraitController, :design_pack
+    get "/traits/:id/lookup", TraitController, :lookup
     get "/traits/:id", TraitController, :show
     patch "/traits/:id", TraitController, :update
     post "/traits/:id/children", TraitController, :create_children

@@ -1,6 +1,8 @@
 defmodule QlariusWeb.MeFileHTML do
   use QlariusWeb, :html
 
+  alias QlariusWeb.Components.Targeting
+
   embed_templates "me_file_html/*"
 
   def progress_bar_color(percentage) do
@@ -93,16 +95,12 @@ defmodule QlariusWeb.MeFileHTML do
               {Phoenix.HTML.raw(@trait_in_edit.survey_question.text)}
             </p>
 
-            <%!-- Toggle for expanded/simple view - only show if there are meaningful expanded answers --%>
+            <%!-- Toggle when a child has an answer or meta beyond the trait name --%>
             <.pill_join_selector
               :if={
                 @trait_in_edit.input_type != "single_select_zip" &&
                   Ecto.assoc_loaded?(@trait_in_edit.child_traits) &&
-                  Enum.any?(@trait_in_edit.child_traits, fn child ->
-                    child.survey_answer &&
-                      child.survey_answer.text not in [nil, ""] &&
-                      child.survey_answer.text != child.trait_name
-                  end)
+                  Enum.any?(@trait_in_edit.child_traits, &Targeting.tag_option_detail?/1)
               }
               label="Tag list view"
               class="mt-2"
@@ -125,182 +123,203 @@ defmodule QlariusWeb.MeFileHTML do
               </.pill_join_item>
             </.pill_join_selector>
           </div>
-          <.form
-            for={%{}}
-            phx-change="sync_tag_selection"
-            phx-submit="save_tags"
+          <div
+            id={"tag-option-filter-#{@trait_in_edit.id}"}
+            phx-hook={Targeting.tag_option_filter?(@trait_in_edit) && "TagOptionFilter"}
             class="flex flex-col flex-1 min-h-0"
           >
-            <div
-              id="tag-list-scroll-container"
-              class="flex-1 overflow-y-auto p-4"
+            <Targeting.tag_option_search
+              :if={Targeting.tag_option_filter?(@trait_in_edit)}
+              id={"tag-option-search-#{@trait_in_edit.id}"}
+            />
+            <.form
+              for={%{}}
+              phx-change="sync_tag_selection"
+              phx-submit="save_tags"
+              class="flex flex-col flex-1 min-h-0"
             >
-              <input type="hidden" name="me_file_id" value={@me_file_id} />
-              <input type="hidden" name="trait_id" value={@trait_in_edit.id} />
               <div
-                :if={@trait_in_edit.input_type == "single_select_zip"}
-                class="space-y-4"
+                id="tag-list-scroll-container"
+                class="flex-1 overflow-y-auto p-4"
               >
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text text-lg mb-2">Enter 5-digit zip code:</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="zip_code_input"
-                    value={@zip_lookup_input}
-                    phx-change="lookup_zip_code"
-                    maxlength="5"
-                    pattern="\d{5}"
-                    inputmode="numeric"
-                    autocomplete="postal-code"
-                    data-1p-ignore="true"
-                    data-lpignore="true"
-                    data-form-type="other"
-                    class="input input-bordered input-xl w-full text-xl"
-                  />
-                </div>
-
-                <div class="min-h-[4rem]">
-                  <div :if={@zip_lookup_trait && @zip_lookup_valid} class="space-y-2">
-                    <div class="badge badge-primary badge-lg p-4">
-                      <.icon name="hero-map-pin" class="w-5 h-5" />
-                      {@zip_lookup_trait.meta_1}
-                    </div>
+                <input type="hidden" name="me_file_id" value={@me_file_id} />
+                <input type="hidden" name="trait_id" value={@trait_in_edit.id} />
+                <div
+                  :if={@trait_in_edit.input_type == "single_select_zip"}
+                  class="space-y-4"
+                >
+                  <div class="form-control">
+                    <label class="label">
+                      <span class="label-text text-lg mb-2">Enter 5-digit zip code:</span>
+                    </label>
                     <input
-                      type="hidden"
-                      name="child_trait_ids[]"
-                      value={@zip_lookup_trait.id}
+                      type="text"
+                      name="zip_code_input"
+                      value={@zip_lookup_input}
+                      phx-change="lookup_zip_code"
+                      maxlength="5"
+                      pattern="\d{5}"
+                      inputmode="numeric"
+                      autocomplete="postal-code"
+                      data-1p-ignore="true"
+                      data-lpignore="true"
+                      data-form-type="other"
+                      class="input input-bordered input-xl w-full text-xl"
                     />
                   </div>
 
-                  <div :if={@zip_lookup_error} class="alert alert-error">
-                    <.icon name="hero-exclamation-triangle" class="w-6 h-6" />
-                    <span>{@zip_lookup_error}</span>
+                  <div class="min-h-[4rem]">
+                    <div :if={@zip_lookup_trait && @zip_lookup_valid} class="space-y-2">
+                      <div class="badge badge-primary badge-lg p-4">
+                        <.icon name="hero-map-pin" class="w-5 h-5" />
+                        {@zip_lookup_trait.meta_1}
+                      </div>
+                      <input
+                        type="hidden"
+                        name="child_trait_ids[]"
+                        value={@zip_lookup_trait.id}
+                      />
+                    </div>
+
+                    <div :if={@zip_lookup_error} class="alert alert-error">
+                      <.icon name="hero-exclamation-triangle" class="w-6 h-6" />
+                      <span>{@zip_lookup_error}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div
-                :if={
-                  @trait_in_edit.input_type != "single_select_zip" &&
-                    Ecto.assoc_loaded?(@trait_in_edit.child_traits) &&
-                    @trait_in_edit.child_traits != []
-                }
-                class="py-0"
-              >
-                <label
-                  :for={child_trait <- Enum.sort_by(@trait_in_edit.child_traits, & &1.display_order)}
-                  class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-4 px-2 hover:bg-base-200 cursor-pointer"
+                <div
+                  :if={
+                    @trait_in_edit.input_type != "single_select_zip" &&
+                      Ecto.assoc_loaded?(@trait_in_edit.child_traits) &&
+                      @trait_in_edit.child_traits != []
+                  }
+                  class="py-0"
                 >
-                  <input
-                    :if={@trait_in_edit.input_type == "single_select"}
-                    type="radio"
-                    name="child_trait_ids[]"
-                    value={child_trait.id}
-                    id={"trait-#{child_trait.id}"}
-                    checked={child_trait.id in @selected_ids}
-                    class="radio w-7 h-7"
-                  />
-                  <input
-                    :if={@trait_in_edit.input_type == "multi_select"}
-                    type="checkbox"
-                    name="child_trait_ids[]"
-                    value={child_trait.id}
-                    id={"trait-#{child_trait.id}"}
-                    checked={child_trait.id in @selected_ids}
-                    class="checkbox w-7 h-7"
-                  />
-                  <div class="flex-1">
-                    <div class="text-lg text-base-content font-medium">
-                      {child_trait.trait_name}
+                  <label
+                    :for={
+                      child_trait <- Enum.sort_by(@trait_in_edit.child_traits, & &1.display_order)
+                    }
+                    data-tag-option-row
+                    data-tag-option-text={Targeting.tag_option_search_text(child_trait)}
+                    class={[
+                      "flex gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-4 px-2 hover:bg-base-200 cursor-pointer",
+                      @show_expanded_tags && "items-start",
+                      !@show_expanded_tags && "items-center"
+                    ]}
+                  >
+                    <input
+                      :if={@trait_in_edit.input_type == "single_select"}
+                      type="radio"
+                      name="child_trait_ids[]"
+                      value={child_trait.id}
+                      id={"trait-#{child_trait.id}"}
+                      checked={child_trait.id in @selected_ids}
+                      class={["radio w-7 h-7 shrink-0", @show_expanded_tags && "mt-1"]}
+                    />
+                    <input
+                      :if={@trait_in_edit.input_type == "multi_select"}
+                      type="checkbox"
+                      name="child_trait_ids[]"
+                      value={child_trait.id}
+                      id={"trait-#{child_trait.id}"}
+                      checked={child_trait.id in @selected_ids}
+                      class={["checkbox w-7 h-7 shrink-0", @show_expanded_tags && "mt-1"]}
+                    />
+                    <div class="flex-1 min-w-0">
+                      <div class="text-lg text-base-content font-medium break-words">
+                        {child_trait.trait_name}
+                      </div>
+                      <div
+                        :if={@show_expanded_tags && Targeting.tag_option_answer(child_trait) != ""}
+                        class="text-sm text-base-content/60 mt-1 whitespace-normal break-words"
+                      >
+                        {Targeting.tag_option_answer(child_trait)}
+                      </div>
+                      <div
+                        :if={@show_expanded_tags && Targeting.tag_option_meta(child_trait) != ""}
+                        class="text-sm text-base-content/60 mt-1 whitespace-normal break-words"
+                      >
+                        {Targeting.tag_option_meta(child_trait)}
+                      </div>
                     </div>
-                    <div
-                      :if={
-                        @show_expanded_tags &&
-                          child_trait.survey_answer &&
-                          child_trait.survey_answer.text not in [nil, ""] &&
-                          child_trait.survey_answer.text != child_trait.trait_name
-                      }
-                      class="text-sm text-base-content/60 mt-1"
-                    >
-                      {child_trait.survey_answer.text}
+                  </label>
+                </div>
+              </div>
+
+              <%!-- Footer + delete confirm strip (slides up behind the button bar) --%>
+              <div class="relative shrink-0">
+                <div
+                  class={[
+                    "overflow-hidden transition-[max-height] duration-200 ease-out",
+                    @show_delete_confirm && "max-h-28",
+                    !@show_delete_confirm && "max-h-0"
+                  ]}
+                  aria-hidden={!@show_delete_confirm}
+                >
+                  <div class="bg-error text-error-content px-6 py-4 border-t border-error/60">
+                    <p class="text-sm font-semibold mb-3">
+                      Delete {length(@selected_ids)} selected tag{if length(@selected_ids) == 1,
+                        do: "",
+                        else: "s"}?
+                    </p>
+                    <div class="flex flex-row gap-2 justify-end">
+                      <button
+                        type="button"
+                        phx-click="cancel_delete_confirm"
+                        class="btn btn-sm btn-ghost rounded-full text-error-content hover:bg-error-content/15"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        phx-click="confirm_delete_tags"
+                        class="btn btn-sm rounded-full bg-error-content text-error hover:bg-error-content/90"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
-                </label>
-              </div>
-            </div>
+                </div>
 
-            <%!-- Footer + delete confirm strip (slides up behind the button bar) --%>
-            <div class="relative shrink-0">
-              <div
-                class={[
-                  "overflow-hidden transition-[max-height] duration-200 ease-out",
-                  @show_delete_confirm && "max-h-28",
-                  !@show_delete_confirm && "max-h-0"
-                ]}
-                aria-hidden={!@show_delete_confirm}
-              >
-                <div class="bg-error text-error-content px-6 py-4 border-t border-error/60">
-                  <p class="text-sm font-semibold mb-3">
-                    Delete {length(@selected_ids)} selected tag{if length(@selected_ids) == 1,
-                      do: "",
-                      else: "s"}?
-                  </p>
-                  <div class="flex flex-row gap-2 justify-end">
+                <div class="relative z-10 py-4 px-6 flex flex-row items-center justify-between gap-3 bg-base-200 border-t border-base-300">
+                  <div class="shrink-0">
+                    <button
+                      :if={deletable_trait?(@trait_in_edit)}
+                      type="button"
+                      phx-click="request_delete_confirm"
+                      class={[
+                        "btn btn-circle btn-lg btn-ghost text-error hover:bg-error/10",
+                        @show_delete_confirm && "btn-active bg-error/10"
+                      ]}
+                      disabled={length(@selected_ids) == 0}
+                      aria-label="Delete selected tags"
+                      aria-expanded={to_string(@show_delete_confirm)}
+                    >
+                      <.icon name="hero-trash" class="h-6 w-6" />
+                    </button>
+                  </div>
+                  <div class="flex flex-row items-center gap-2 justify-end min-w-0">
                     <button
                       type="button"
-                      phx-click="cancel_delete_confirm"
-                      class="btn btn-sm btn-ghost rounded-full text-error-content hover:bg-error-content/15"
+                      phx-click="close_modal"
+                      class="btn btn-lg btn-ghost rounded-full"
                     >
                       Cancel
                     </button>
                     <button
-                      type="button"
-                      phx-click="confirm_delete_tags"
-                      class="btn btn-sm rounded-full bg-error-content text-error hover:bg-error-content/90"
+                      type="submit"
+                      class="btn btn-lg btn-primary rounded-full"
+                      disabled={
+                        @trait_in_edit.input_type == "single_select_zip" && !@zip_lookup_valid
+                      }
                     >
-                      Delete
+                      Save/Update Tags
                     </button>
                   </div>
                 </div>
               </div>
-
-              <div class="relative z-10 py-4 px-6 flex flex-row items-center justify-between gap-3 bg-base-200 border-t border-base-300">
-                <div class="shrink-0">
-                  <button
-                    :if={deletable_trait?(@trait_in_edit)}
-                    type="button"
-                    phx-click="request_delete_confirm"
-                    class={[
-                      "btn btn-circle btn-lg btn-ghost text-error hover:bg-error/10",
-                      @show_delete_confirm && "btn-active bg-error/10"
-                    ]}
-                    disabled={length(@selected_ids) == 0}
-                    aria-label="Delete selected tags"
-                    aria-expanded={to_string(@show_delete_confirm)}
-                  >
-                    <.icon name="hero-trash" class="h-6 w-6" />
-                  </button>
-                </div>
-                <div class="flex flex-row items-center gap-2 justify-end min-w-0">
-                  <button
-                    type="button"
-                    phx-click="close_modal"
-                    class="btn btn-lg btn-ghost rounded-full"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    class="btn btn-lg btn-primary rounded-full"
-                    disabled={@trait_in_edit.input_type == "single_select_zip" && !@zip_lookup_valid}
-                  >
-                    Save/Update Tags
-                  </button>
-                </div>
-              </div>
-            </div>
-          </.form>
+            </.form>
+          </div>
         <% else %>
           <div class="flex-1 flex items-center justify-center p-8">
             <div class="text-base-content/50">No trait selected</div>

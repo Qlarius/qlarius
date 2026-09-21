@@ -14,6 +14,18 @@ info:
     does not remap tags.
 
     Dropped columns is_taggable, immutable, and max_selected are not accepted.
+
+    meta_1, meta_2, and meta_3 are optional lookup fields (text, no length cap).
+    Omit a key to leave the stored value. Send null or "" to clear it.
+    Zip children use meta_1 for "City, State" and meta_2 for "STANDARD".
+    Occupation children should use trait_name for the title, meta_1 for the
+    SOC code, meta_2 for the major-group code, and meta_3 for extra search text.
+
+    has_search_filter on a parent shows a client-side search box in tagging
+    modals. The box matches the child title, survey answer, and meta_1,
+    meta_2, and meta_3. Omit the key to leave the stored value. Zip parents
+    keep the zip picker.
+    GET /api/admin/traits/{id}/lookup matches title and all three meta fields.
 servers:
   - url: /
 paths:
@@ -101,6 +113,10 @@ paths:
                     category_name_hint: {type: string}
                     display_order: {type: integer}
                     is_active: {type: boolean}
+                    has_search_filter: {type: boolean}
+                    meta_1: {type: string, nullable: true}
+                    meta_2: {type: string, nullable: true}
+                    meta_3: {type: string, nullable: true}
                 survey_question:
                   type: object
                   properties:
@@ -116,6 +132,9 @@ paths:
                       display_order: {type: integer}
                       is_active: {type: boolean}
                       survey_answer_text: {type: string, maxLength: 4096}
+                      meta_1: {type: string, nullable: true}
+                      meta_2: {type: string, nullable: true}
+                      meta_3: {type: string, nullable: true}
                 attach_to_survey:
                   type: object
                   properties:
@@ -127,6 +146,20 @@ paths:
           description: Parent detail plus deactivated_child_ids and deactivated_tag_count
         "422":
           description: Empty pack, ambiguous hint, protected parent, or validation error
+  /api/admin/traits/{id}/lookup:
+    get:
+      summary: Search active children by title or meta_1, meta_2, meta_3
+      parameters:
+        - in: query
+          name: q
+          schema: {type: string}
+          description: At least 2 characters. Case-insensitive contains match.
+        - in: query
+          name: limit
+          schema: {type: integer, maximum: 200, default: 50}
+      responses:
+        "200":
+          description: Matching children with trait_name and meta fields
   /api/admin/traits/{id}/children:
     post:
       summary: Batch-create children under a parent

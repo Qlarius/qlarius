@@ -469,17 +469,21 @@ defmodule Qlarius.YouData.TraitManager do
       order =
         if is_integer(attrs["display_order"]), do: attrs["display_order"], else: max_order + 1
 
+      child_attrs =
+        %{
+          "trait_name" => attrs["trait_name"],
+          "parent_trait_id" => parent.id,
+          "trait_category_id" => parent.trait_category_id,
+          "input_type" => parent.input_type,
+          "is_active" => Map.get(attrs, "is_active", true),
+          "display_order" => order,
+          "added_by" => scope.true_user.id,
+          "modified_by" => scope.true_user.id
+        }
+        |> put_present_meta(attrs)
+
       %Trait{}
-      |> Trait.changeset(%{
-        "trait_name" => attrs["trait_name"],
-        "parent_trait_id" => parent.id,
-        "trait_category_id" => parent.trait_category_id,
-        "input_type" => parent.input_type,
-        "is_active" => Map.get(attrs, "is_active", true),
-        "display_order" => order,
-        "added_by" => scope.true_user.id,
-        "modified_by" => scope.true_user.id
-      })
+      |> Trait.changeset(child_attrs)
       |> Repo.insert()
     end
   end
@@ -511,6 +515,12 @@ defmodule Qlarius.YouData.TraitManager do
           "display_order" => child.display_order
         })
     end
+  end
+
+  defp put_present_meta(attrs, source) do
+    Enum.reduce(["meta_1", "meta_2", "meta_3"], attrs, fn key, acc ->
+      if Map.has_key?(source, key), do: Map.put(acc, key, source[key]), else: acc
+    end)
   end
 
   def restripe_active_children(scope, %Trait{} = parent) do
