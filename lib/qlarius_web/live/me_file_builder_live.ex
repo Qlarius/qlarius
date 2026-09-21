@@ -17,7 +17,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
     <div id="mefilebuilder-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile
         {assigns}
-        title="Tag Index"
+        title="Builder"
         slide_over_active={@editing}
         slide_over_title={(@survey_in_edit && @survey_in_edit.name) || "Survey"}
       >
@@ -212,13 +212,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
             </div>
           </.surface_panel>
         </div>
-
-        <h2 class="text-2xl font-bold text-base-content mt-6 mb-4">Tag Index</h2>
-
-        <%!-- Main content: Survey category index --%>
-        <Layouts.mobile_page_intro>
-          Select a category below and fill empty tags.
-        </Layouts.mobile_page_intro>
 
         <div class="mt-8 grid gap-10 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           <%= for category <- @categories do %>
