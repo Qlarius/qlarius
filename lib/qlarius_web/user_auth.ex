@@ -5,6 +5,7 @@ defmodule QlariusWeb.UserAuth do
   import Phoenix.Controller
 
   alias Qlarius.Accounts
+  alias Qlarius.Accounts.AdminApiTokens
   alias Qlarius.Accounts.Scope
   alias QlariusWeb.Plugs.HostAwareSession
 
@@ -289,6 +290,97 @@ defmodule QlariusWeb.UserAuth do
       |> put_flash(:error, "You must be an admin to access this page.")
       |> redirect(to: ~p"/")
       |> halt()
+    end
+  end
+
+  @doc """
+  Resolves an admin catalog API caller.
+
+  A bearer token wins. When the header is absent, the browser session is used
+  so a signed-in admin can call the same JSON routes.
+  """
+  def fetch_admin_api_scope(conn, _opts) do
+    case bearer_token(conn) do
+      nil ->
+        conn
+        |> fetch_session()
+        |> fetch_current_scope_for_user([])
+
+      token ->
+        case AdminApiTokens.authenticate(token) do
+          {:ok, user} ->
+            assign(conn, :current_scope, %Scope{true_user: user, user: user})
+
+          {:error, :forbidden} ->
+            conn
+            |> assign(:current_scope, nil)
+            |> assign(:admin_api_forbidden, true)
+
+          :error ->
+            conn
+            |> assign(:current_scope, nil)
+            |> assign(:admin_api_auth_failed, true)
+        end
+    end
+  end
+
+  def require_admin_api_user(conn, _opts) do
+    scope = conn.assigns[:current_scope]
+
+    cond do
+      scope && scope.true_user && scope.true_user.role == "admin" ->
+        conn
+
+      conn.assigns[:admin_api_forbidden] ->
+        conn
+        |> put_status(403)
+        |> json(%{error: "forbidden", message: "Admin role required"})
+        |> halt()
+
+      scope && scope.true_user ->
+        conn
+        |> put_status(403)
+        |> json(%{error: "forbidden", message: "Admin role required"})
+        |> halt()
+
+      true ->
+        conn
+        |> put_status(401)
+        |> json(%{error: "unauthorized", message: "Admin authentication required"})
+        |> halt()
+    end
+  end
+
+  def rate_limit_admin_api_writes(conn, _opts) do
+    if conn.method in ["GET", "HEAD", "OPTIONS"] do
+      conn
+    else
+      user_id = conn.assigns.current_scope.true_user.id
+
+      case Hammer.check_rate("admin_api_write:#{user_id}", 60_000, 60) do
+        {:allow, _count} ->
+          conn
+
+        {:deny, _count} ->
+          conn
+          |> put_status(429)
+          |> json(%{error: "rate_limited", message: "Too many writes"})
+          |> halt()
+      end
+    end
+  end
+
+  defp bearer_token(conn) do
+    case get_req_header(conn, "authorization") do
+      [header | _] ->
+        case String.split(header, " ", parts: 2) do
+          ["Bearer", token] -> String.trim(token)
+          ["bearer", token] -> String.trim(token)
+          _ -> nil
+        end
+
+      _ ->
+        nil
     end
   end
 

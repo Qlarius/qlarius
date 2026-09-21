@@ -417,6 +417,39 @@ defmodule QlariusWeb.Router do
     get "/extension/ad_count", ExtensionController, :ad_count
   end
 
+  scope "/api/admin", QlariusWeb.Api.Admin do
+    pipe_through [
+      :api,
+      :fetch_admin_api_scope,
+      :require_admin_api_user,
+      :rate_limit_admin_api_writes
+    ]
+
+    post "/tokens", TokenController, :create
+    delete "/tokens/:id", TokenController, :delete
+
+    get "/trait_categories", TraitCategoryController, :index
+    post "/trait_categories", TraitCategoryController, :create
+    patch "/trait_categories/:id", TraitCategoryController, :update
+
+    get "/traits_catalog", TraitController, :catalog
+    get "/traits", TraitController, :index
+    post "/traits/design_packs", TraitController, :design_pack
+    get "/traits/:id", TraitController, :show
+    patch "/traits/:id", TraitController, :update
+    post "/traits/:id/children", TraitController, :create_children
+    patch "/traits/:id/children/:child_id", TraitController, :update_child
+    post "/traits/:id/deactivate", TraitController, :deactivate
+
+    get "/surveys", SurveyController, :index
+    post "/surveys", SurveyController, :create
+    patch "/surveys/:id", SurveyController, :update
+    post "/surveys/:id/questions", SurveyController, :add_question
+    delete "/surveys/:id/questions/:question_id", SurveyController, :remove_question
+    patch "/survey_questions/:id", SurveyController, :update_question
+    patch "/survey_answers/:id", SurveyController, :update_answer
+  end
+
   # Dynamic manifest for PWA - includes referral code in start_url
   scope "/", QlariusWeb do
     pipe_through [:browser]

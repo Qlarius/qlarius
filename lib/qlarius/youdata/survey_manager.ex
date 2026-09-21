@@ -110,14 +110,25 @@ defmodule Qlarius.YouData.SurveyManager do
     )
   end
 
-  def create_survey(scope, attrs) do
-    max_display_order =
-      Repo.one(from s in Survey, select: max(s.display_order)) || 0
+  def create_survey(scope, attrs, opts \\ []) do
+    display_order =
+      if Keyword.get(opts, :keep_display_order) && is_integer(attrs["display_order"]) do
+        attrs["display_order"]
+      else
+        (Repo.one(from s in Survey, select: max(s.display_order)) || 0) + 1
+      end
+
+    active =
+      if Keyword.get(opts, :keep_active) && Map.has_key?(attrs, "active") do
+        attrs["active"]
+      else
+        true
+      end
 
     attrs =
       attrs
-      |> Map.put("display_order", max_display_order + 1)
-      |> Map.put("active", true)
+      |> Map.put("display_order", display_order)
+      |> Map.put("active", active)
       |> Map.put("created_by", scope.true_user.id)
       |> Map.put("updated_by", scope.true_user.id)
 
@@ -243,6 +254,85 @@ defmodule Qlarius.YouData.SurveyManager do
       end)
     else
       {:error, :already_last}
+    end
+  end
+
+  def list_surveys(_scope, search \\ "") do
+    questions =
+      from sqs in SurveyQuestionSurvey,
+        order_by: [asc: sqs.display_order],
+        preload: [:survey_question]
+
+    query =
+      from s in Survey,
+        order_by: [asc: s.display_order, asc: s.name],
+        preload: [:survey_category, survey_question_surveys: ^questions]
+
+    query =
+      if search == "" do
+        query
+      else
+        from s in query, where: ilike(s.name, ^"%#{search}%")
+      end
+
+    Repo.all(query)
+  end
+
+  def fetch_survey(_scope, id) do
+    case Repo.get(Survey, id) do
+      nil -> {:error, :not_found}
+      survey -> {:ok, get_survey_with_details(nil, survey.id)}
+    end
+  end
+
+  def place_question(_scope, survey_id, survey_question_id, display_order) do
+    survey = Repo.get(Survey, survey_id)
+    question = Repo.get(Qlarius.YouData.Surveys.SurveyQuestion, survey_question_id)
+
+    cond do
+      is_nil(survey) or is_nil(question) ->
+        {:error, :not_found}
+
+      true ->
+        Repo.transaction(fn ->
+          row =
+            Repo.get_by(SurveyQuestionSurvey,
+              survey_id: survey.id,
+              survey_question_id: question.id
+            ) ||
+              Repo.insert!(
+                SurveyQuestionSurvey.changeset(%SurveyQuestionSurvey{}, %{
+                  survey_id: survey.id,
+                  survey_question_id: question.id,
+                  display_order: 0
+                })
+              )
+
+          others =
+            Repo.all(
+              from sqs in SurveyQuestionSurvey,
+                where: sqs.survey_id == ^survey.id and sqs.id != ^row.id,
+                order_by: [asc: sqs.display_order, asc: sqs.id]
+            )
+
+          index =
+            case display_order do
+              n when is_integer(n) and n > 0 -> min(n - 1, length(others))
+              _ -> length(others)
+            end
+
+          {head, tail} = Enum.split(others, index)
+
+          (head ++ [row] ++ tail)
+          |> Enum.with_index(1)
+          |> Enum.each(fn {join, order} ->
+            join
+            |> Ecto.Changeset.change(%{display_order: order})
+            |> Repo.update!()
+          end)
+
+          row
+        end)
     end
   end
 end

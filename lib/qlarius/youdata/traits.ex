@@ -99,7 +99,12 @@ defmodule Qlarius.YouData.Traits do
           if trait.input_type == "single_select_zip" do
             [:survey_question]
           else
-            [:survey_question, child_traits: :survey_answer]
+            active_children =
+              from c in Trait,
+                where: c.is_active == true,
+                order_by: [asc: c.display_order, asc: c.trait_name]
+
+            [:survey_question, child_traits: {active_children, :survey_answer}]
           end
 
         {:ok, trait |> Repo.preload(preloads)}
@@ -417,6 +422,72 @@ defmodule Qlarius.YouData.Traits do
       }
     end)
   end
+
+  @doc """
+  Same hierarchy as `traits_index_by_parent/0`, plus input type and survey texts.
+  """
+  def traits_catalog do
+    index = traits_index_by_parent()
+
+    parent_ids =
+      index |> Enum.flat_map(fn c -> Enum.map(c.parent_traits, & &1.id) end) |> Enum.uniq()
+
+    child_ids =
+      index
+      |> Enum.flat_map(fn c ->
+        Enum.flat_map(c.parent_traits, fn p -> Enum.map(p.children, & &1.id) end)
+      end)
+      |> Enum.uniq()
+
+    parents =
+      if parent_ids == [] do
+        %{}
+      else
+        from(t in Trait, where: t.id in ^parent_ids, preload: [:survey_question])
+        |> Repo.all()
+        |> Map.new(&{&1.id, &1})
+      end
+
+    children =
+      if child_ids == [] do
+        %{}
+      else
+        from(t in Trait, where: t.id in ^child_ids, preload: [:survey_answer])
+        |> Repo.all()
+        |> Map.new(&{&1.id, &1})
+      end
+
+    Enum.map(index, fn category ->
+      parent_traits =
+        Enum.map(category.parent_traits, fn parent ->
+          meta = Map.get(parents, parent.id)
+
+          kids =
+            Enum.map(parent.children, fn child ->
+              cmeta = Map.get(children, child.id)
+
+              child
+              |> Map.put(:is_active, true)
+              |> Map.put(:input_type, cmeta && cmeta.input_type)
+              |> Map.put(:survey_answer, catalog_answer(cmeta && cmeta.survey_answer))
+            end)
+
+          parent
+          |> Map.put(:input_type, meta && meta.input_type)
+          |> Map.put(:is_active, true)
+          |> Map.put(:survey_question, catalog_question(meta && meta.survey_question))
+          |> Map.put(:children, kids)
+        end)
+
+      Map.put(category, :parent_traits, parent_traits)
+    end)
+  end
+
+  defp catalog_question(nil), do: nil
+  defp catalog_question(question), do: %{id: question.id, text: question.text}
+
+  defp catalog_answer(nil), do: nil
+  defp catalog_answer(answer), do: %{id: answer.id, text: answer.text}
 
   @doc """
   Returns the list of trait categories with their associated traits.

@@ -93,18 +93,32 @@ defmodule Qlarius.YouData.TraitManager do
     Repo.all(from tc in TraitCategory, order_by: [asc: tc.display_order, asc: tc.name])
   end
 
-  def create_parent_trait(scope, attrs) do
-    max_display_order =
-      Repo.one(
-        from t in Trait,
-          where: is_nil(t.parent_trait_id),
-          select: max(t.display_order)
-      ) || 0
+  def create_parent_trait(scope, attrs, opts \\ []) do
+    display_order =
+      if Keyword.get(opts, :keep_display_order) && is_integer(attrs["display_order"]) do
+        attrs["display_order"]
+      else
+        max_display_order =
+          Repo.one(
+            from t in Trait,
+              where: is_nil(t.parent_trait_id),
+              select: max(t.display_order)
+          ) || 0
+
+        max_display_order + 1
+      end
+
+    is_active =
+      if Keyword.get(opts, :keep_active) && Map.has_key?(attrs, "is_active") do
+        attrs["is_active"]
+      else
+        true
+      end
 
     attrs =
       attrs
-      |> Map.put("display_order", max_display_order + 1)
-      |> Map.put("is_active", true)
+      |> Map.put("display_order", display_order)
+      |> Map.put("is_active", is_active)
       |> Map.put("added_by", scope.true_user.id)
       |> Map.put("modified_by", scope.true_user.id)
 
@@ -252,7 +266,7 @@ defmodule Qlarius.YouData.TraitManager do
     end)
   end
 
-  defp create_survey_answer_for_child(scope, survey_question, child_trait) do
+  defp create_survey_answer_for_child(scope, survey_question, child_trait, text \\ nil) do
     max_display_order =
       Repo.one(
         from sa in SurveyAnswer,
@@ -261,10 +275,10 @@ defmodule Qlarius.YouData.TraitManager do
       ) || 0
 
     attrs = %{
-      "text" => child_trait.trait_name,
+      "text" => text || child_trait.trait_name,
       "survey_question_id" => survey_question.id,
       "trait_id" => child_trait.id,
-      "display_order" => max_display_order + 1,
+      "display_order" => child_trait.display_order || max_display_order + 1,
       "added_by" => scope.true_user.id,
       "modified_by" => scope.true_user.id
     }
@@ -367,6 +381,158 @@ defmodule Qlarius.YouData.TraitManager do
           modified_by: scope.true_user.id
         })
         |> Repo.update!()
+      end)
+    end)
+  end
+
+  def fetch_trait(_scope, id) do
+    case Repo.get(Trait, id) do
+      nil -> {:error, :not_found}
+      trait -> {:ok, trait}
+    end
+  end
+
+  def list_parents(_scope, opts) do
+    search = opts |> Keyword.get(:q, "") |> to_string()
+
+    query =
+      from t in Trait,
+        where: is_nil(t.parent_trait_id),
+        order_by: [asc: t.display_order, asc: t.trait_name],
+        preload: [:trait_category]
+
+    query =
+      if Keyword.get(opts, :include_inactive) do
+        query
+      else
+        from t in query, where: t.is_active == true
+      end
+
+    query =
+      case Keyword.get(opts, :category_id) do
+        nil -> query
+        id -> from t in query, where: t.trait_category_id == ^id
+      end
+
+    query =
+      if search == "" do
+        query
+      else
+        from t in query, where: ilike(t.trait_name, ^"%#{search}%")
+      end
+
+    Repo.all(query)
+  end
+
+  def create_trait_category(scope, attrs) do
+    attrs =
+      if attrs["display_order"] in [nil, ""] do
+        max_order = Repo.one(from c in TraitCategory, select: max(c.display_order)) || 0
+        Map.put(attrs, "display_order", max_order + 1)
+      else
+        attrs
+      end
+
+    %TraitCategory{}
+    |> TraitCategory.changeset(attrs)
+    |> Ecto.Changeset.put_change(:added_by, scope.true_user.id)
+    |> Ecto.Changeset.put_change(:modified_by, scope.true_user.id)
+    |> Repo.insert()
+  end
+
+  def update_trait_category(scope, %TraitCategory{} = category, attrs) do
+    category
+    |> TraitCategory.changeset(Map.take(attrs, ["name", "display_order"]))
+    |> Ecto.Changeset.put_change(:modified_by, scope.true_user.id)
+    |> Repo.update()
+  end
+
+  def get_trait_category(_scope, id) do
+    case Repo.get(TraitCategory, id) do
+      nil -> {:error, :not_found}
+      category -> {:ok, category}
+    end
+  end
+
+  def create_child_trait(scope, %Trait{} = parent, attrs) do
+    if parent.parent_trait_id do
+      {:error, :child_under_child}
+    else
+      parent = Repo.preload(parent, :child_traits)
+
+      max_order =
+        case parent.child_traits do
+          [] -> 0
+          children -> Enum.map(children, & &1.display_order) |> Enum.max()
+        end
+
+      order =
+        if is_integer(attrs["display_order"]), do: attrs["display_order"], else: max_order + 1
+
+      %Trait{}
+      |> Trait.changeset(%{
+        "trait_name" => attrs["trait_name"],
+        "parent_trait_id" => parent.id,
+        "trait_category_id" => parent.trait_category_id,
+        "input_type" => parent.input_type,
+        "is_active" => Map.get(attrs, "is_active", true),
+        "display_order" => order,
+        "added_by" => scope.true_user.id,
+        "modified_by" => scope.true_user.id
+      })
+      |> Repo.insert()
+    end
+  end
+
+  def deactivate_trait(scope, %Trait{} = trait) do
+    update_parent_trait(scope, trait, %{"is_active" => false})
+  end
+
+  def ensure_survey_question(scope, %Trait{} = parent, text) when is_binary(text) do
+    parent = Repo.preload(parent, :survey_question)
+
+    if parent.survey_question do
+      update_survey_question(scope, parent.survey_question, %{"text" => text})
+    else
+      create_survey_question(scope, parent, %{"text" => text})
+    end
+  end
+
+  def ensure_survey_answer(scope, %SurveyQuestion{} = question, %Trait{} = child, text) do
+    text = if is_binary(text) and String.trim(text) != "", do: text, else: child.trait_name
+
+    case Repo.get_by(SurveyAnswer, survey_question_id: question.id, trait_id: child.id) do
+      nil ->
+        create_survey_answer_for_child(scope, question, child, text)
+
+      answer ->
+        update_survey_answer(scope, answer, %{
+          "text" => text,
+          "display_order" => child.display_order
+        })
+    end
+  end
+
+  def restripe_active_children(scope, %Trait{} = parent) do
+    children =
+      Repo.all(
+        from t in Trait,
+          where: t.parent_trait_id == ^parent.id and t.is_active == true,
+          order_by: [asc: t.display_order, asc: t.trait_name, asc: t.id]
+      )
+
+    Repo.transaction(fn ->
+      children
+      |> Enum.with_index(1)
+      |> Enum.each(fn {child, order} ->
+        child
+        |> Ecto.Changeset.change(%{display_order: order, modified_by: scope.true_user.id})
+        |> Repo.update!()
+
+        Repo.update_all(
+          from(sa in SurveyAnswer, where: sa.trait_id == ^child.id),
+          set: [display_order: order, modified_by: scope.true_user.id]
+        )
       end)
     end)
   end

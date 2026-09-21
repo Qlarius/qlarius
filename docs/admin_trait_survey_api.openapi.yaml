@@ -1,0 +1,205 @@
+openapi: 3.0.3
+info:
+  title: Qlarius admin trait and survey API
+  version: "1"
+  description: |
+    Admin-only JSON API for catalog vocabulary. Bearer token or an admin
+    browser session. Audit columns use the authenticated admin user.
+
+    Design packs restripe active sibling display_order to 1..N after the
+    write (requested order, then name, then id). Soft-deactivated children
+    leave consumer answer lists. Their MeFile tags stay until a later
+    trait migration. Age (parent id 93) and single_select_zip parents reject
+    child replacement and input_type changes unless force is true. Force
+    does not remap tags.
+
+    Dropped columns is_taggable, immutable, and max_selected are not accepted.
+servers:
+  - url: /
+paths:
+  /api/admin/tokens:
+    post:
+      summary: Issue a bearer token for an admin user
+      security: [{bearerAuth: []}, {sessionAuth: []}]
+      responses:
+        "200":
+          description: Raw token, returned once
+  /api/admin/tokens/{id}:
+    delete:
+      summary: Revoke a token
+      responses:
+        "200":
+          description: Revoked
+  /api/admin/trait_categories:
+    get:
+      summary: List trait categories
+      responses:
+        "200":
+          description: Categories in display order
+    post:
+      summary: Create a trait category
+      responses:
+        "201":
+          description: Created
+  /api/admin/trait_categories/{id}:
+    patch:
+      summary: Rename or reorder a category
+      responses:
+        "200":
+          description: Updated
+  /api/admin/traits:
+    get:
+      summary: List parent traits
+      parameters:
+        - in: query
+          name: q
+          schema: {type: string}
+          description: Case-insensitive name contains
+        - in: query
+          name: category_id
+          schema: {type: integer}
+        - in: query
+          name: include_inactive
+          schema: {type: boolean}
+      responses:
+        "200":
+          description: Active parents unless include_inactive is set
+  /api/admin/traits/{id}:
+    get:
+      summary: Parent detail including inactive children, tag counts, and survey texts
+      responses:
+        "200":
+          description: Parent detail
+    patch:
+      summary: Update a parent trait
+      responses:
+        "200":
+          description: Updated parent detail
+        "422":
+          description: Protected parent, invalid input_type, or multiple tags without force
+  /api/admin/traits/design_packs:
+    post:
+      summary: Create or reform a parent with children and survey copy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode, parent, children, survey_question]
+              properties:
+                mode: {type: string, enum: [create, reform]}
+                force: {type: boolean}
+                deactivate_missing_children: {type: boolean}
+                parent:
+                  type: object
+                  properties:
+                    id: {type: integer}
+                    trait_name: {type: string, maxLength: 256}
+                    input_type: {type: string, enum: [single_select, multi_select, single_select_zip]}
+                    trait_category_id: {type: integer, nullable: true}
+                    category_name_hint: {type: string}
+                    display_order: {type: integer}
+                    is_active: {type: boolean}
+                survey_question:
+                  type: object
+                  properties:
+                    text: {type: string, maxLength: 4096}
+                children:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    properties:
+                      id: {type: integer}
+                      trait_name: {type: string, maxLength: 256}
+                      display_order: {type: integer}
+                      is_active: {type: boolean}
+                      survey_answer_text: {type: string, maxLength: 4096}
+                attach_to_survey:
+                  type: object
+                  properties:
+                    survey_id: {type: integer, nullable: true}
+                    survey_name_hint: {type: string}
+                    display_order: {type: integer}
+      responses:
+        "200":
+          description: Parent detail plus deactivated_child_ids and deactivated_tag_count
+        "422":
+          description: Empty pack, ambiguous hint, protected parent, or validation error
+  /api/admin/traits/{id}/children:
+    post:
+      summary: Batch-create children under a parent
+      responses:
+        "201":
+          description: Created children
+        "422":
+          description: Child under a child, or protected parent
+  /api/admin/traits/{id}/children/{child_id}:
+    patch:
+      summary: Rename, reorder, or deactivate a child
+      responses:
+        "200":
+          description: Updated child
+  /api/admin/traits/{id}/deactivate:
+    post:
+      summary: Soft-deactivate a trait
+      responses:
+        "200":
+          description: is_active false
+  /api/admin/traits_catalog:
+    get:
+      summary: Active catalog, traits_index plus input_type and survey texts
+      responses:
+        "200":
+          description: Categories, parents, and active children
+  /api/admin/surveys:
+    get:
+      summary: List surveys with question membership order
+      responses:
+        "200":
+          description: Surveys
+    post:
+      summary: Create a survey
+      responses:
+        "201":
+          description: Created survey
+  /api/admin/surveys/{id}:
+    patch:
+      summary: Update survey name, active, order, or category
+      responses:
+        "200":
+          description: Updated survey
+  /api/admin/surveys/{id}/questions:
+    post:
+      summary: Attach a survey question and set its order
+      responses:
+        "200":
+          description: Survey with questions
+  /api/admin/surveys/{id}/questions/{question_id}:
+    delete:
+      summary: Remove a question from a survey
+      responses:
+        "204":
+          description: Removed
+  /api/admin/survey_questions/{id}:
+    patch:
+      summary: Update question text
+      responses:
+        "200":
+          description: Updated question
+  /api/admin/survey_answers/{id}:
+    patch:
+      summary: Update expanded answer text
+      responses:
+        "200":
+          description: Updated answer
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: _qlarius_key
