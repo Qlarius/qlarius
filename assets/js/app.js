@@ -2305,11 +2305,12 @@ Hooks.VideoPlayer = {
       }, { once: true })
     }
     
-    // Start countdown on first play (not replay)
+    // Countdown starts once the poster is painted, so the slide-over
+    // does not count down over an empty frame.
     if (!this.isReplay) {
-      setTimeout(() => this.startCountdown(), 100)
+      this.whenPosterReady(() => this.startCountdown())
     } else {
-      setTimeout(() => this.showPlayIcon(), 100)
+      this.whenPosterReady(() => this.showPlayIcon())
     }
     
     this.video.addEventListener('ended', () => {
@@ -2339,6 +2340,36 @@ Hooks.VideoPlayer = {
     })
   },
   
+  posterImage() {
+    return document.getElementById('video-poster-image')
+  },
+
+  whenPosterReady(callback) {
+    const img = this.posterImage()
+    const badge = document.getElementById('video-countdown-display')
+
+    const reveal = () => {
+      if (badge) badge.classList.remove('opacity-0')
+      callback()
+    }
+
+    if (!img || (img.complete && img.naturalWidth > 0)) {
+      reveal()
+      return
+    }
+
+    if (badge) badge.classList.add('opacity-0')
+
+    const done = () => {
+      img.removeEventListener('load', done)
+      img.removeEventListener('error', done)
+      reveal()
+    }
+
+    img.addEventListener('load', done)
+    img.addEventListener('error', done)
+  },
+
   startCountdown() {
     const countdownNumber = document.getElementById('video-countdown-number')
     const playIcon = document.getElementById('video-play-icon')
@@ -2355,20 +2386,16 @@ Hooks.VideoPlayer = {
       playIcon.classList.add('hidden')
     }
     
-    setTimeout(() => {
-      const countdownInterval = setInterval(() => {
-        count--
-        if (count > 0) {
-          countdownNumber.textContent = count
-        } else {
-          clearInterval(countdownInterval)
-          this.countdownInterval = null
-          this.hidePosterAndPlay()
-        }
-      }, 1000)
-      
-      this.countdownInterval = countdownInterval
-    }, 100)
+    this.countdownInterval = setInterval(() => {
+      count--
+      if (count > 0) {
+        countdownNumber.textContent = count
+      } else {
+        clearInterval(this.countdownInterval)
+        this.countdownInterval = null
+        this.hidePosterAndPlay()
+      }
+    }, 1000)
   },
   
   hidePosterAndPlay() {

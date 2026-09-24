@@ -347,36 +347,33 @@ defmodule QlariusWeb.Components.AdsComponents do
   attr :show_replay_button, :boolean, default: false
 
   def video_player(assigns) do
+    media_piece = assigns.current_video_offer.media_run.media_piece
+    assigns = assign(assigns, :poster_url, poster_url(media_piece))
+
     ~H"""
-    <div class="mb-4 relative">
+    <div class="mb-4 relative aspect-video overflow-hidden rounded-lg bg-black">
       <%!-- Custom poster overlay with countdown --%>
       <div
         id="video-poster-overlay"
-        class="absolute inset-0 z-10 flex items-center justify-center rounded-lg overflow-hidden cursor-pointer"
+        class="absolute inset-0 z-10 flex items-center justify-center overflow-hidden cursor-pointer"
         phx-click="replay_video"
         phx-update="ignore"
       >
-        <%= if @current_video_offer.media_run.media_piece.video_poster_image do %>
-          <img
-            src={
-              QlariusWeb.Uploaders.VideoPoster.url(
-                {@current_video_offer.media_run.media_piece.video_poster_image,
-                 @current_video_offer.media_run.media_piece},
-                :original
-              )
-            }
-            alt="Video poster"
-            class="absolute inset-0 w-full h-full object-cover"
-          />
-        <% end %>
-        <%!-- Dark overlay --%>
+        <img
+          :if={@poster_url}
+          id="video-poster-image"
+          src={@poster_url}
+          alt=""
+          fetchpriority="high"
+          decoding="sync"
+          class="absolute inset-0 h-full w-full object-cover"
+        />
         <div class="absolute inset-0 bg-black/30"></div>
-        <%!-- Countdown / Play button --%>
-        <div id="video-countdown-display" class="relative z-10">
-          <div class="bg-black/70 rounded-full w-24 h-24 flex items-center justify-center">
-            <span id="video-countdown-number" class="text-white text-4xl font-bold"></span>
+        <div id="video-countdown-display" class="relative z-10 transition-opacity duration-200">
+          <div class="flex h-24 w-24 items-center justify-center rounded-full bg-black/70">
+            <span id="video-countdown-number" class="text-4xl font-bold text-white"></span>
             <div id="video-play-icon" class="hidden">
-              <.icon name="hero-play-solid" class="w-12 h-12 text-white" />
+              <.icon name="hero-play-solid" class="h-12 w-12 text-white" />
             </div>
           </div>
         </div>
@@ -387,8 +384,10 @@ defmodule QlariusWeb.Components.AdsComponents do
         phx-hook="VideoPlayer"
         data-payment-collected={@video_payment_collected}
         data-is-replay={@show_replay_button || @video_payment_collected}
-        class="w-full rounded-lg animate-fade-in"
+        class="absolute inset-0 h-full w-full object-contain"
         controls
+        preload="auto"
+        poster={@poster_url}
         src={
           QlariusWeb.Uploaders.AdVideo.url(
             {@current_video_offer.media_run.media_piece.video_file,
@@ -787,6 +786,9 @@ defmodule QlariusWeb.Components.AdsComponents do
     <%= if !@loading && Enum.empty?(@video_offers) do %>
       <div class="text-center text-base-content/70 py-8">{@empty_message}</div>
     <% else %>
+      <div class="pointer-events-none absolute h-0 w-0 overflow-hidden" aria-hidden="true">
+        <img :for={url <- poster_urls(@video_offers)} src={url} alt="" loading="eager" />
+      </div>
       <.surface_panel padding={false} class={@class}>
         <ul class="list divide-y divide-base-300/60 dark:divide-base-content/10 overflow-hidden">
           <.video_offer_list_item
@@ -896,6 +898,20 @@ defmodule QlariusWeb.Components.AdsComponents do
     </li>
     """
   end
+
+  defp poster_urls(offers) do
+    offers
+    |> Enum.map(fn {offer, _rate} -> poster_url(offer.media_run.media_piece) end)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
+  end
+
+  defp poster_url(%{video_poster_image: image} = media_piece)
+       when is_binary(image) and image != "" do
+    QlariusWeb.Uploaders.VideoPoster.url({image, media_piece}, :original)
+  end
+
+  defp poster_url(_), do: nil
 
   defp surface_panel_row_classes(true, true, _force_light) do
     ["cursor-default select-none bg-base-200/50 dark:bg-base-300/25"]
