@@ -182,10 +182,13 @@ paths:
           description: is_active false
   /api/admin/traits_catalog:
     get:
-      summary: Active catalog, traits_index plus input_type and survey texts
+      summary: Active catalog, traits_index plus input_type, survey texts, and active_survey_ids
       responses:
         "200":
-          description: Categories, parents, and active children
+          description: >
+            Categories, parents, and active children. Each parent includes
+            active_survey_ids, the surveys with active true that present
+            that parent's question.
   /api/admin/surveys:
     get:
       summary: List surveys with question membership order

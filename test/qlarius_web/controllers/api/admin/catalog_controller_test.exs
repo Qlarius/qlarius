@@ -90,6 +90,62 @@ defmodule QlariusWeb.Api.Admin.CatalogControllerTest do
     assert encoded =~ "What kinds of live events do you go to?"
   end
 
+  test "catalog lists only active surveys that present a parent", %{token: token} do
+    category =
+      authed(token)
+      |> post(
+        ~p"/api/admin/trait_categories",
+        Jason.encode!(%{"name" => "Presented #{unique()}", "display_order" => 1})
+      )
+      |> json_response(201)
+
+    created =
+      api(token, :post, ~p"/api/admin/traits/design_packs", %{
+        "mode" => "create",
+        "parent" => %{
+          "trait_name" => "Presented #{unique()}",
+          "input_type" => "single_select",
+          "trait_category_id" => category["id"]
+        },
+        "survey_question" => %{"text" => "Which do you do?"},
+        "children" => [%{"trait_name" => "One"}]
+      })
+
+    question_id = created["survey_question"]["id"]
+
+    active =
+      authed(token)
+      |> post(
+        ~p"/api/admin/surveys",
+        Jason.encode!(%{"name" => "Live #{unique()}", "active" => true})
+      )
+      |> json_response(201)
+
+    inactive =
+      authed(token)
+      |> post(
+        ~p"/api/admin/surveys",
+        Jason.encode!(%{"name" => "Off #{unique()}", "active" => false})
+      )
+      |> json_response(201)
+
+    for survey_id <- [active["id"], inactive["id"]] do
+      api(token, :post, ~p"/api/admin/surveys/#{survey_id}/questions", %{
+        "survey_question_id" => question_id,
+        "display_order" => 1
+      })
+    end
+
+    catalog = api(token, :get, ~p"/api/admin/traits_catalog", nil)
+
+    parent =
+      catalog["trait_categories"]
+      |> Enum.flat_map(& &1["parent_traits"])
+      |> Enum.find(&(&1["id"] == created["id"]))
+
+    assert parent["active_survey_ids"] == [active["id"]]
+  end
+
   test "saves lookup meta on children and finds them by code", %{token: token} do
     created =
       api(token, :post, ~p"/api/admin/traits/design_packs", %{

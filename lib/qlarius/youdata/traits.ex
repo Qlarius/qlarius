@@ -6,6 +6,8 @@ defmodule Qlarius.YouData.Traits do
   alias Qlarius.Sponster.Campaigns.TraitGroup
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.YouData.MeFiles.MeFileTag
+  alias Qlarius.YouData.Surveys.Survey
+  alias Qlarius.YouData.Surveys.SurveyQuestionSurvey
   alias Qlarius.YouData.Traits.Trait
   alias Qlarius.YouData.Traits.TraitCategory
 
@@ -424,7 +426,8 @@ defmodule Qlarius.YouData.Traits do
   end
 
   @doc """
-  Same hierarchy as `traits_index_by_parent/0`, plus input type and survey texts.
+  Same hierarchy as `traits_index_by_parent/0`, plus input type, survey texts,
+  and the active surveys that present each parent.
   """
   def traits_catalog do
     index = traits_index_by_parent()
@@ -447,6 +450,8 @@ defmodule Qlarius.YouData.Traits do
         |> Repo.all()
         |> Map.new(&{&1.id, &1})
       end
+
+    active_survey_ids_by_question = active_survey_ids_by_question(parents)
 
     children =
       if child_ids == [] do
@@ -483,6 +488,10 @@ defmodule Qlarius.YouData.Traits do
           |> Map.put(:meta_3, meta && meta.meta_3)
           |> Map.put(:has_search_filter, meta && meta.has_search_filter)
           |> Map.put(:survey_question, catalog_question(meta && meta.survey_question))
+          |> Map.put(
+            :active_survey_ids,
+            active_survey_ids_for(meta, active_survey_ids_by_question)
+          )
           |> Map.put(:children, kids)
         end)
 
@@ -492,6 +501,39 @@ defmodule Qlarius.YouData.Traits do
 
   defp catalog_question(nil), do: nil
   defp catalog_question(question), do: %{id: question.id, text: question.text}
+
+  defp active_survey_ids_by_question(parents) when parents == %{}, do: %{}
+
+  defp active_survey_ids_by_question(parents) do
+    question_ids =
+      parents
+      |> Map.values()
+      |> Enum.flat_map(fn
+        %{survey_question: %{id: id}} -> [id]
+        _ -> []
+      end)
+
+    if question_ids == [] do
+      %{}
+    else
+      from(sqs in SurveyQuestionSurvey,
+        join: s in Survey,
+        on: s.id == sqs.survey_id,
+        where: sqs.survey_question_id in ^question_ids and s.active == true,
+        order_by: [asc: s.display_order, asc: s.id],
+        select: {sqs.survey_question_id, s.id}
+      )
+      |> Repo.all()
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+      |> Map.new(fn {question_id, survey_ids} -> {question_id, Enum.uniq(survey_ids)} end)
+    end
+  end
+
+  defp active_survey_ids_for(%{survey_question: %{id: id}}, by_question) do
+    Map.get(by_question, id, [])
+  end
+
+  defp active_survey_ids_for(_, _), do: []
 
   defp catalog_answer(nil), do: nil
   defp catalog_answer(answer), do: %{id: answer.id, text: answer.text}
