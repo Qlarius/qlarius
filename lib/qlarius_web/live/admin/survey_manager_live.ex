@@ -327,7 +327,7 @@ defmodule QlariusWeb.Admin.SurveyManagerLive do
                           <%= for surveys <- Enum.chunk_by(@surveys, & &1.survey_category_id) do %>
                             <div class="mb-4">
                               <div class="text-xs font-bold text-base-content/60 px-2 py-1 uppercase">
-                                {hd(surveys).survey_category.survey_category_name}
+                                {category_name(hd(surveys))}
                               </div>
                               <%= for survey <- surveys do %>
                                 <div
@@ -363,7 +363,7 @@ defmodule QlariusWeb.Admin.SurveyManagerLive do
                           <div>
                             <h2 class="text-2xl font-bold">{@selected_survey.name}</h2>
                             <p class="text-sm text-base-content/70">
-                              Category: {@selected_survey.survey_category.survey_category_name}
+                              Category: {category_name(@selected_survey)}
                             </p>
                             <p class="text-sm text-base-content/70">
                               Questions: {length(@selected_survey.survey_question_surveys)}
@@ -687,4 +687,7 @@ defmodule QlariusWeb.Admin.SurveyManagerLive do
     </div>
     """
   end
+
+  defp category_name(%{survey_category: %{survey_category_name: name}}), do: name
+  defp category_name(_survey), do: "Uncategorized"
 end

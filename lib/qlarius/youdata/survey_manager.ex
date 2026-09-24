@@ -8,7 +8,7 @@ defmodule Qlarius.YouData.SurveyManager do
   def list_active_surveys(_scope, search \\ "") do
     base_query =
       from s in Survey,
-        join: sc in assoc(s, :survey_category),
+        left_join: sc in assoc(s, :survey_category),
         where: s.active == true
 
     query =
@@ -21,7 +21,13 @@ defmodule Qlarius.YouData.SurveyManager do
 
     query =
       from [s, sc] in query,
-        order_by: [asc: sc.display_order, asc: sc.id, asc: s.display_order, asc: s.name],
+        order_by: [
+          asc: fragment("CASE WHEN ? IS NULL THEN 0 ELSE 1 END", s.survey_category_id),
+          asc: sc.display_order,
+          asc: sc.id,
+          asc: s.display_order,
+          asc: s.name
+        ],
         select: s,
         preload: [survey_category: sc]
 
