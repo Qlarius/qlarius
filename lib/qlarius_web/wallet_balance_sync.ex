@@ -14,6 +14,7 @@ defmodule QlariusWeb.WalletBalanceSync do
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Wallets.MeFileStatsBroadcaster
   alias Qlarius.YouData.MeFiles.MeFile
+  alias Qlarius.YouData.StrongStart
 
   import Ecto.Query, only: [from: 2]
 
@@ -157,6 +158,7 @@ defmodule QlariusWeb.WalletBalanceSync do
         |> assign(:current_scope, refreshed)
         |> maybe_assign(:current_balance, refreshed.wallet_balance)
         |> maybe_assign(:balance, refreshed.wallet_balance)
+        |> maybe_refresh_strong_start(refreshed)
     end
   end
 
@@ -336,6 +338,26 @@ defmodule QlariusWeb.WalletBalanceSync do
   defp maybe_assign(socket, key, value) do
     if Map.has_key?(socket.assigns, key), do: assign(socket, key, value), else: socket
   end
+
+  defp maybe_refresh_strong_start(socket, %{trait_count: trait_count, user: %{me_file: me_file}}) do
+    if socket.assigns[:show_strong_start] do
+      progress = StrongStart.get_progress(me_file, trait_count)
+
+      if progress.completed_count == progress.total_count do
+        StrongStart.mark_all_complete(me_file)
+
+        socket
+        |> assign(:show_strong_start, false)
+        |> assign(:strong_start_progress, nil)
+      else
+        assign(socket, :strong_start_progress, progress)
+      end
+    else
+      socket
+    end
+  end
+
+  defp maybe_refresh_strong_start(socket, _scope), do: socket
 
   # `/wallet` keeps a summary card and paginated ledger in assigns. The global
   # sync hook otherwise only refreshes `wallet_balance` and would leave those

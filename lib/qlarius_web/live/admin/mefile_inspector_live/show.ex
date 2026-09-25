@@ -194,14 +194,9 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
     me_file_id = socket.assigns.me_file_id
     tag_map = MeFiles.me_file_tag_map_by_category_trait_tag(me_file_id)
 
-    tag_count =
-      tag_map
-      |> Enum.flat_map(fn {_category, parent_traits} -> parent_traits end)
-      |> length()
-
     socket
     |> assign(:tag_map, tag_map)
-    |> assign(:tag_count, tag_count)
+    |> assign(:tag_count, MeFile.trait_tag_count(socket.assigns.me_file))
   end
 
   defp assign_offers(socket) do
@@ -391,12 +386,12 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
                       <.icon name="hero-tag" class="w-5 h-5" /> Tags ({@tag_count})
                     </h3>
 
-                    <div :if={@tag_count == 0} class="text-center py-12">
+                    <div :if={@tag_map == []} class="text-center py-12">
                       <.icon name="hero-tag" class="w-16 h-16 mx-auto text-base-content/30 mb-4" />
                       <p class="text-lg font-medium text-base-content/70">No tags yet</p>
                     </div>
 
-                    <div :if={@tag_count > 0} class="space-y-6">
+                    <div :if={@tag_map != []} class="space-y-6">
                       <div :for={{{_id, name, _display_order}, parent_traits} <- @tag_map}>
                         <div class="flex flex-row justify-between items-baseline mb-3">
                           <h4 class="text-lg font-medium">{name}</h4>

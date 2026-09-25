@@ -101,6 +101,10 @@ defmodule Qlarius.YouData.MeFiles do
             modified_by: me_file.user_id
           })
           |> Repo.insert()
+          |> case do
+            {:ok, _} -> broadcast_tag_stats(me_file.id)
+            _ -> :ok
+          end
         end
       end
     end)
@@ -200,6 +204,7 @@ defmodule Qlarius.YouData.MeFiles do
         # Answering a trait resolves any pending assistant suggestion for it,
         # regardless of which surface the user answered through.
         Qlarius.MeCP.Suggestions.accept_pending_for_trait(me_file_id, parent_trait_id)
+        broadcast_tag_stats(me_file_id)
 
         :ok
 
@@ -261,6 +266,7 @@ defmodule Qlarius.YouData.MeFiles do
         # Answering a trait resolves any pending assistant suggestion for it,
         # regardless of which surface the user answered through.
         Qlarius.MeCP.Suggestions.accept_pending_for_trait(me_file_id, parent_trait_id)
+        broadcast_tag_stats(me_file_id)
 
         :ok
 
@@ -325,11 +331,17 @@ defmodule Qlarius.YouData.MeFiles do
         })
         |> Oban.insert()
 
+        broadcast_tag_stats(me_file_id)
+
         :ok
 
       {:error, _} ->
         :ok
     end
+  end
+
+  defp broadcast_tag_stats(me_file_id) do
+    Qlarius.Wallets.MeFileStatsBroadcaster.broadcast_stats_updated(me_file_id)
   end
 
   def parent_trait_with_tags_for_mefile(me_file_id, parent_trait_id) do

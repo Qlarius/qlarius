@@ -7,6 +7,8 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
   alias Qlarius.Repo
   alias Qlarius.Accounts.User
   alias Qlarius.YouData.MeFiles.MeFile
+  alias Qlarius.YouData.MeFiles.MeFileTag
+  alias Qlarius.YouData.Traits.Trait
   alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.Sponster.Offer
   alias Qlarius.DateTime, as: QlariusDateTime
@@ -76,6 +78,16 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
      |> assign_mefiles()}
   end
 
+  defmacrop trait_count_fragment(trait) do
+    quote do
+      fragment(
+        "CASE WHEN COUNT(DISTINCT ?) > 0 THEN COUNT(DISTINCT ?) + 1 ELSE 0 END",
+        unquote(trait).parent_trait_id,
+        unquote(trait).parent_trait_id
+      )
+    end
+  end
+
   defp assign_mefiles(socket) do
     query = socket.assigns[:search_query] || ""
     page = socket.assigns[:page] || 1
@@ -93,8 +105,10 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
         on: lh.me_file_id == mf.id,
         left_join: o in Offer,
         on: o.me_file_id == mf.id and o.is_current == true,
-        left_join: mft in Qlarius.YouData.MeFiles.MeFileTag,
+        left_join: mft in MeFileTag,
         on: mft.me_file_id == mf.id,
+        left_join: t in Trait,
+        on: t.id == mft.trait_id,
         where: ilike(u.alias, ^"%#{query}%"),
         group_by: [mf.id, u.alias, u.inserted_at, lh.balance]
       )
@@ -117,43 +131,43 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
           from q in base_query, order_by: [desc: q.alias]
 
         {:wallet_balance, :asc} ->
-          from [mf, u, lh, o, mft] in base_query, order_by: [asc: lh.balance]
+          from [mf, u, lh, o, mft, t] in base_query, order_by: [asc: lh.balance]
 
         {:wallet_balance, :desc} ->
-          from [mf, u, lh, o, mft] in base_query, order_by: [desc: lh.balance]
+          from [mf, u, lh, o, mft, t] in base_query, order_by: [desc: lh.balance]
 
         {:tag_count, :asc} ->
-          from [mf, u, lh, o, mft] in base_query,
-            order_by: [asc: count(mft.id, :distinct)]
+          from [mf, u, lh, o, mft, t] in base_query,
+            order_by: [asc: trait_count_fragment(t)]
 
         {:tag_count, :desc} ->
-          from [mf, u, lh, o, mft] in base_query,
-            order_by: [desc: count(mft.id, :distinct)]
+          from [mf, u, lh, o, mft, t] in base_query,
+            order_by: [desc: trait_count_fragment(t)]
 
         {:offer_count, :asc} ->
-          from [mf, u, lh, o, mft] in base_query, order_by: [asc: count(o.id, :distinct)]
+          from [mf, u, lh, o, mft, t] in base_query, order_by: [asc: count(o.id, :distinct)]
 
         {:offer_count, :desc} ->
-          from [mf, u, lh, o, mft] in base_query, order_by: [desc: count(o.id, :distinct)]
+          from [mf, u, lh, o, mft, t] in base_query, order_by: [desc: count(o.id, :distinct)]
 
         {:inserted_at, :asc} ->
-          from [mf, u, lh, o, mft] in base_query, order_by: [asc: u.inserted_at]
+          from [mf, u, lh, o, mft, t] in base_query, order_by: [asc: u.inserted_at]
 
         {:inserted_at, :desc} ->
-          from [mf, u, lh, o, mft] in base_query, order_by: [desc: u.inserted_at]
+          from [mf, u, lh, o, mft, t] in base_query, order_by: [desc: u.inserted_at]
 
         _ ->
-          from [mf, u, lh, o, mft] in base_query, order_by: [desc: u.inserted_at]
+          from [mf, u, lh, o, mft, t] in base_query, order_by: [desc: u.inserted_at]
       end
 
     mefiles =
-      from([mf, u, lh, o, mft] in base_query,
+      from([mf, u, lh, o, mft, t] in base_query,
         select: %{
           me_file_id: mf.id,
           alias: u.alias,
           wallet_balance: lh.balance,
           inserted_at: u.inserted_at,
-          tag_count: count(mft.id, :distinct),
+          tag_count: trait_count_fragment(t),
           offer_count: count(o.id, :distinct)
         },
         offset: ^offset,
@@ -176,10 +190,12 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
 
     users_with_rich_mefiles =
       from(mf in MeFile,
-        join: mft in Qlarius.YouData.MeFiles.MeFileTag,
+        join: mft in MeFileTag,
         on: mft.me_file_id == mf.id,
+        join: t in Trait,
+        on: t.id == mft.trait_id,
         group_by: mf.id,
-        having: count(mft.id) > 4,
+        having: trait_count_fragment(t) > 4,
         select: mf.id
       )
       |> Repo.all()
@@ -187,14 +203,23 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
 
     avg_tags_per_user =
       from(mf in MeFile,
-        join: mft in Qlarius.YouData.MeFiles.MeFileTag,
+        join: mft in MeFileTag,
         on: mft.me_file_id == mf.id,
-        select: fragment("CAST(COUNT(*) AS FLOAT) / CAST(COUNT(DISTINCT ?) AS FLOAT)", mf.id)
+        join: t in Trait,
+        on: t.id == mft.trait_id,
+        group_by: mf.id,
+        select: trait_count_fragment(t)
       )
-      |> Repo.one()
+      |> Repo.all()
       |> case do
-        nil -> 0.0
-        val -> Float.round(val, 1)
+        [] ->
+          0.0
+
+        counts ->
+          counts
+          |> Enum.sum()
+          |> Kernel./(length(counts))
+          |> Float.round(1)
       end
 
     users_with_active_offers =
