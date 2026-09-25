@@ -631,15 +631,10 @@ defmodule QlariusWeb.MeFileBuilderLive do
   defp suggestion_byline(_entry), do: "Suggested by"
 
   defp survey_ratio_text_class(answered, total) do
-    base = "text-sm font-medium shrink-0"
-
-    color =
-      cond do
-        answered == 0 -> "text-base-content/50"
-        answered == total -> "text-success"
-        true -> "text-warning"
-      end
-
-    "#{base} #{color}"
+    if answered == total do
+      "text-sm font-medium shrink-0 text-success"
+    else
+      "text-sm font-bold shrink-0 text-warning"
+    end
   end
 end
