@@ -83,7 +83,7 @@ defmodule QlariusWeb.Components.TraitComponents do
       <div class={["overflow-hidden rounded-lg", @block_mode? && "flex flex-col flex-1 min-h-0"]}>
         <div
           class={[
-            "border-t-2 text-base-content px-4 py-3 text-lg font-bold leading-tight flex justify-between items-center shrink-0",
+            "border-t-4 text-base-content px-4 py-3 text-base font-bold leading-tight flex justify-between items-center shrink-0",
             "bg-base-300/50 dark:bg-base-700/45",
             @tags_traits == [] && "border-warning empty-trait-header-strobe",
             @tags_traits != [] && "border-youdata-500"
@@ -112,7 +112,7 @@ defmodule QlariusWeb.Components.TraitComponents do
           <div :if={@block_mode? && @tags_traits != []} class="shrink-0">
             <div
               :for={{_tag_id, tag_value, _display_order} <- @tags_traits}
-              class="mx-0 my-1 text-base leading-tight text-base-content/80 [&:not(:last-child)]:border-b border-dashed border-base-content/20"
+              class="mx-0 my-1 text-sm leading-snug text-base-content/85 [&:not(:last-child)]:border-b border-dashed border-base-content/20"
             >
               <div class="px-4 py-0.5 leading-tight">{tag_value}</div>
             </div>
@@ -125,11 +125,11 @@ defmodule QlariusWeb.Components.TraitComponents do
           <div
             :if={!@block_mode?}
             :for={{_tag_id, tag_value, _display_order} <- @tags_traits}
-            class="mx-0 my-1 text-base leading-tight text-base-content/80 [&:not(:last-child)]:border-b border-dashed border-base-content/20"
+            class="mx-0 my-1 text-sm leading-snug text-base-content/85 [&:not(:last-child)]:border-b border-dashed border-base-content/20"
           >
             <div class="px-4 py-0.5 leading-tight">{tag_value}</div>
           </div>
-          <div :if={@tags_traits == []} class="mx-0 my-1 text-base leading-tight">
+          <div :if={@tags_traits == []} class="mx-0 my-1 text-sm leading-snug">
             <div class="px-4 py-0.5 italic text-base-content/40 leading-tight">
               {empty_tag_tease_message()}
             </div>
