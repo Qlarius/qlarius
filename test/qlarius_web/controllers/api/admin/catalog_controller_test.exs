@@ -424,6 +424,75 @@ defmodule QlariusWeb.Api.Admin.CatalogControllerTest do
     refute Enum.any?(created["children"], & &1["is_skipped_tag"])
   end
 
+  test "moves the skip answer onto another child and refuses to clear the last one", %{
+    token: token
+  } do
+    created =
+      api(token, :post, ~p"/api/admin/traits/design_packs", %{
+        "mode" => "create",
+        "parent" => %{
+          "trait_name" => "Hobbies #{unique()}",
+          "input_type" => "multi_select"
+        },
+        "survey_question" => %{"text" => "Hobbies?"},
+        "children" => [
+          %{"trait_name" => "Knitting"},
+          %{"trait_name" => "Prefer not to say", "is_skipped_tag" => true}
+        ]
+      })
+
+    knitting = Enum.find(created["children"], &(&1["trait_name"] == "Knitting"))
+    prefer = Enum.find(created["children"], &(&1["trait_name"] == "Prefer not to say"))
+
+    authed(token)
+    |> patch(
+      ~p"/api/admin/traits/#{created["id"]}/children/#{knitting["id"]}",
+      Jason.encode!(%{"is_skipped_tag" => true})
+    )
+    |> json_response(200)
+
+    assert Repo.get!(Trait, knitting["id"]).is_skipped_tag
+    refute Repo.get!(Trait, prefer["id"]).is_skipped_tag
+
+    refused =
+      authed(token)
+      |> patch(
+        ~p"/api/admin/traits/#{created["id"]}/children/#{knitting["id"]}",
+        Jason.encode!(%{"is_skipped_tag" => false})
+      )
+      |> json_response(422)
+
+    assert refused["error"] == "invalid"
+    assert Repo.get!(Trait, knitting["id"]).is_skipped_tag
+  end
+
+  test "refuses to mark a zip child as the skip answer", %{token: token} do
+    created =
+      api(token, :post, ~p"/api/admin/traits/design_packs", %{
+        "mode" => "create",
+        "force" => true,
+        "parent" => %{
+          "trait_name" => "Zip #{unique()}",
+          "input_type" => "single_select_zip"
+        },
+        "survey_question" => %{"text" => "Zip?"},
+        "children" => [%{"trait_name" => "00000"}]
+      })
+
+    child = Repo.get_by!(Trait, parent_trait_id: created["id"], trait_name: "00000")
+
+    refused =
+      authed(token)
+      |> patch(
+        ~p"/api/admin/traits/#{created["id"]}/children/#{child.id}",
+        Jason.encode!(%{"is_skipped_tag" => true, "force" => true})
+      )
+      |> json_response(422)
+
+    assert refused["error"] == "invalid"
+    refute Repo.get!(Trait, child.id).is_skipped_tag
+  end
+
   test "multi-select saves that mix the skip child with other answers conflict" do
     children = [
       %{id: 1, is_skipped_tag: false},

@@ -154,15 +154,17 @@ defmodule Qlarius.YouData.TraitManager do
   end
 
   def update_child_trait(scope, %Trait{} = trait, attrs) do
-    if skipped_tag?(attrs["is_skipped_tag"]) && trait.parent_trait_id do
-      clear_other_skip_flags(scope, trait.parent_trait_id, trait.id)
+    cond do
+      setting_skip?(attrs) && zip_child?(trait) ->
+        {:error, reject_skip(scope, trait, attrs, "Zip parents do not have a skip answer.")}
+
+      clearing_only_active_skip?(trait, attrs) ->
+        {:error,
+         reject_skip(scope, trait, attrs, "Choose another child as the skip answer first.")}
+
+      true ->
+        persist_child_update(scope, trait, attrs)
     end
-
-    attrs = Map.put(attrs, "modified_by", scope.true_user.id)
-
-    trait
-    |> Trait.changeset(attrs)
-    |> Repo.update()
   end
 
   def can_delete_trait?(%Trait{} = trait) do
@@ -610,6 +612,68 @@ defmodule Qlarius.YouData.TraitManager do
         where:
           t.parent_trait_id == ^parent_id and t.is_active == true and t.is_skipped_tag == true,
         limit: 1
+    )
+  end
+
+  defp persist_child_update(scope, trait, attrs) do
+    result =
+      Repo.transaction(fn ->
+        if setting_skip?(attrs) && trait.parent_trait_id do
+          clear_other_skip_flags(scope, trait.parent_trait_id, trait.id)
+        end
+
+        attrs = Map.put(attrs, "modified_by", scope.true_user.id)
+
+        case trait |> Trait.changeset(attrs) |> Repo.update() do
+          {:ok, trait} -> trait
+          {:error, changeset} -> Repo.rollback(changeset)
+        end
+      end)
+
+    case result do
+      {:ok, trait} -> {:ok, trait}
+      {:error, %Ecto.Changeset{} = changeset} -> {:error, changeset}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp reject_skip(scope, trait, attrs, message) do
+    attrs =
+      attrs
+      |> Map.put("modified_by", scope.true_user.id)
+      |> Map.put("is_skipped_tag", trait.is_skipped_tag)
+
+    trait
+    |> Trait.changeset(attrs)
+    |> Ecto.Changeset.add_error(:is_skipped_tag, message)
+    |> Map.put(:action, :validate)
+  end
+
+  defp setting_skip?(attrs) do
+    Map.has_key?(attrs, "is_skipped_tag") && skipped_tag?(attrs["is_skipped_tag"])
+  end
+
+  defp clearing_skip?(attrs) do
+    Map.has_key?(attrs, "is_skipped_tag") && not skipped_tag?(attrs["is_skipped_tag"])
+  end
+
+  defp clearing_only_active_skip?(%Trait{parent_trait_id: parent_id} = trait, attrs)
+       when is_integer(parent_id) do
+    clearing_skip?(attrs) && trait.is_skipped_tag && trait.is_active && not zip_child?(trait) &&
+      case active_skipped_child(parent_id) do
+        %Trait{id: id} -> id == trait.id
+        _ -> false
+      end
+  end
+
+  defp clearing_only_active_skip?(_, _), do: false
+
+  defp zip_child?(%Trait{parent_trait_id: nil}), do: false
+
+  defp zip_child?(%Trait{parent_trait_id: parent_id}) do
+    Repo.exists?(
+      from t in Trait,
+        where: t.id == ^parent_id and t.input_type == "single_select_zip"
     )
   end
 

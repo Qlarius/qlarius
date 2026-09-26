@@ -342,7 +342,7 @@ defmodule QlariusWeb.MeFileHTML do
                         @trait_in_edit.input_type == "single_select_zip" && !@zip_lookup_valid
                       }
                     >
-                      Save/Update Tags
+                      Save
                     </button>
                   </div>
                 </div>

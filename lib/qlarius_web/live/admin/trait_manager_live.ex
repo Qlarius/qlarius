@@ -587,7 +587,17 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                               <tbody>
                                 <%= for child <- @selected_parent_trait.child_traits do %>
                                   <tr class="hover">
-                                    <td>{child.trait_name}</td>
+                                    <td>
+                                      <span class="inline-flex items-center gap-2">
+                                        {child.trait_name}
+                                        <span
+                                          :if={child.is_skipped_tag}
+                                          class="badge badge-sm badge-ghost"
+                                        >
+                                          Skip
+                                        </span>
+                                      </span>
+                                    </td>
                                     <td class="text-center">{child.display_order}</td>
                                     <td class="text-center">{child.tags_count}</td>
                                     <td class="text-center">{child.grps_count}</td>
@@ -680,6 +690,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                       <.child_trait_form
                         form={@form}
                         child_trait={@editing_item}
+                        show_skip={@selected_parent_trait.input_type != "single_select_zip"}
                         on_save="save_child_trait"
                         on_cancel="cancel_edit"
                         on_delete={JS.push("delete_child_trait", value: %{id: @editing_item.id})}
@@ -824,7 +835,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
 
             <div class="flex gap-2">
               <button type="submit" class="btn btn-primary flex-1">
-                Save/update trait
+                Save
               </button>
               <button type="button" phx-click={@on_cancel} class="btn btn-ghost">
                 Cancel
@@ -910,7 +921,13 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
         <h2 class="card-title text-2xl mb-2">
           <.icon name="hero-pencil-square" class="w-6 h-6" /> Edit Child Trait
         </h2>
-        <p class="text-base-content/70 mb-4">{@child_trait.trait_name}</p>
+        <div class="mb-4">
+          <p class="text-base-content/70">{@child_trait.trait_name}</p>
+          <p :if={@child_trait.is_skipped_tag} class="mt-2 text-sm">
+            <span class="badge badge-sm badge-ghost">Skip</span>
+            <span class="text-base-content/70">This child is the skip answer.</span>
+          </p>
+        </div>
 
         <.form for={@form} phx-submit={@on_save}>
           <div class="space-y-4">
@@ -930,9 +947,23 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
               required
             />
 
+            <.input
+              :if={@show_skip}
+              field={@form[:is_skipped_tag]}
+              type="checkbox"
+              label="Skip answer"
+            />
+            <p :if={@show_skip} class="text-xs text-base-content/60 -mt-2">
+              <%= if @child_trait.is_skipped_tag do %>
+                This parent must keep one skip answer. Check this on another child to move it.
+              <% else %>
+                Checking this moves the skip answer onto this child.
+              <% end %>
+            </p>
+
             <div class="flex gap-2">
               <button type="submit" class="btn btn-primary flex-1">
-                Save/update trait
+                Save
               </button>
               <button type="button" phx-click={@on_cancel} class="btn btn-ghost">
                 Cancel
