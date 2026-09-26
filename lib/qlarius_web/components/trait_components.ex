@@ -11,6 +11,7 @@ defmodule QlariusWeb.Components.TraitComponents do
   attr :editable, :boolean, default: true
   attr :nav_indicator, :string, default: "edit", values: ["edit", "chevron", "none"]
   attr :display_mode, :string, default: "tag"
+  attr :skip_trait_id, :any, default: nil
 
   @protected_traits ["Birthdate", "Age", "Sex (Bio)"]
 
@@ -56,6 +57,7 @@ defmodule QlariusWeb.Components.TraitComponents do
       |> assign_new(:display_mode, fn -> "tag" end)
       |> assign_new(:nav_indicator, fn -> "edit" end)
       |> assign_new(:tags_traits, fn -> [] end)
+      |> assign_new(:skip_trait_id, fn -> nil end)
       |> assign(:strobe_delay_ms, rem(abs(assigns.parent_trait_id), 2000))
       |> then(fn a ->
         a
@@ -63,6 +65,11 @@ defmodule QlariusWeb.Components.TraitComponents do
         |> assign(
           :tap_to_edit?,
           a.clickable && a.editable && !protected_trait_name?(a.parent_trait_name)
+        )
+        |> assign(
+          :show_inline_skip?,
+          is_integer(a.skip_trait_id) && a.tags_traits == [] && a.editable &&
+            !protected_trait_name?(a.parent_trait_name)
         )
       end)
 
@@ -72,15 +79,14 @@ defmodule QlariusWeb.Components.TraitComponents do
       class={[
         "trait-card-animate rounded-lg border-x border-b bg-base-100 transition-shadow duration-300 ease-in-out",
         "border-youdata-200 dark:border-base-content/10",
-        @block_mode? && "h-full flex flex-col",
-        !@block_mode? && "h-full",
+        "flex h-full flex-col",
         @tap_to_edit? && "cursor-pointer hover:shadow-md hover:z-10 relative",
         @extra_classes
       ]}
       phx-click={@tap_to_edit? && "edit_tags"}
       phx-value-id={@tap_to_edit? && @parent_trait_id}
     >
-      <div class={["overflow-hidden rounded-lg", @block_mode? && "flex flex-col flex-1 min-h-0"]}>
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg">
         <div
           class={[
             "border-t-4 text-base-content px-4 py-3 text-base font-bold leading-tight flex justify-between items-center shrink-0",
@@ -106,8 +112,10 @@ defmodule QlariusWeb.Components.TraitComponents do
         </div>
         <div class={[
           "p-0 max-h-[245px] overflow-y-auto",
-          @block_mode? && @tags_traits != [] && "flex flex-1 flex-col min-h-0",
-          !@block_mode? && "space-y-1 pb-3"
+          @block_mode? && @tags_traits != [] && "flex min-h-0 flex-1 flex-col",
+          @show_inline_skip? && "flex-1",
+          !@block_mode? && !@show_inline_skip? && "space-y-1 pb-3",
+          !@block_mode? && @show_inline_skip? && "space-y-1"
         ]}>
           <div :if={@block_mode? && @tags_traits != []} class="shrink-0">
             <div
@@ -123,8 +131,8 @@ defmodule QlariusWeb.Components.TraitComponents do
             aria-hidden="true"
           />
           <div
-            :if={!@block_mode?}
             :for={{_tag_id, tag_value, _display_order} <- @tags_traits}
+            :if={!@block_mode?}
             class="mx-0 my-1 text-sm leading-snug text-base-content/85 [&:not(:last-child)]:border-b border-dashed border-base-content/20"
           >
             <div class="px-4 py-0.5 leading-tight">{tag_value}</div>
@@ -134,6 +142,19 @@ defmodule QlariusWeb.Components.TraitComponents do
               {empty_tag_tease_message()}
             </div>
           </div>
+        </div>
+        <div
+          :if={@show_inline_skip?}
+          class="mt-auto flex shrink-0 justify-end bg-base-200 px-2 py-1.5 dark:bg-base-300/55"
+        >
+          <button
+            type="button"
+            phx-click="skip_parent_trait"
+            phx-value-id={@parent_trait_id}
+            class="btn btn-ghost btn-sm rounded-full"
+          >
+            Skip
+          </button>
         </div>
       </div>
     </div>

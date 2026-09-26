@@ -26,6 +26,7 @@ defmodule Qlarius.YouData.Traits.Trait do
     field :meta_2, :string
     field :meta_3, :string
     field :has_search_filter, :boolean, default: false
+    field :is_skipped_tag, :boolean, default: false
 
     belongs_to :parent_trait, __MODULE__, foreign_key: :parent_trait_id
     # TraitCategory association commented - schema only in archive_hide
@@ -57,7 +58,8 @@ defmodule Qlarius.YouData.Traits.Trait do
       :meta_1,
       :meta_2,
       :meta_3,
-      :has_search_filter
+      :has_search_filter,
+      :is_skipped_tag
     ])
     |> validate_required([
       :trait_name,

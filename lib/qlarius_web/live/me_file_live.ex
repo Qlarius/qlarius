@@ -22,6 +22,8 @@ defmodule QlariusWeb.MeFileLive do
             selected_ids={@selected_child_trait_ids || []}
             show_modal={@show_modal}
             show_delete_confirm={@show_delete_confirm}
+            show_skip_conflict={@show_skip_conflict}
+            show_modal_skip={@show_modal_skip}
             zip_lookup_input={@zip_lookup_input}
             zip_lookup_trait={@zip_lookup_trait}
             zip_lookup_valid={@zip_lookup_valid}
@@ -73,8 +75,10 @@ defmodule QlariusWeb.MeFileLive do
       socket
       |> assign(:trait_in_edit, trait)
       |> assign(:selected_child_trait_ids, selected_ids)
+      |> assign(:show_modal_skip, selected_ids == [])
       |> assign(:show_modal, true)
       |> assign(:show_delete_confirm, false)
+      |> assign(:show_skip_conflict, false)
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
       |> push_event("scroll-tag-list-to-top", %{})
 
@@ -83,7 +87,11 @@ defmodule QlariusWeb.MeFileLive do
 
   @impl true
   def handle_event("close_modal", _params, socket) do
-    {:noreply, socket |> assign(:show_modal, false) |> assign(:show_delete_confirm, false)}
+    {:noreply,
+     socket
+     |> assign(:show_modal, false)
+     |> assign(:show_delete_confirm, false)
+     |> assign(:show_skip_conflict, false)}
   end
 
   def handle_event("request_delete_confirm", _params, socket) do
@@ -124,51 +132,26 @@ defmodule QlariusWeb.MeFileLive do
     {trait_id, _} = Integer.parse(trait_id)
     child_trait_ids = List.wrap(child_trait_ids)
 
-    # to capture the tag_value snapshot for me_file_tag
-    id_to_name_map =
-      case socket.assigns.trait_in_edit.child_traits do
-        %Ecto.Association.NotLoaded{} ->
-          %{}
+    if Traits.mixed_skip_selection?(socket.assigns.trait_in_edit, child_trait_ids) do
+      {:noreply, reveal_skip_conflict(socket)}
+    else
+      persist_me_file_tags(socket, trait_id, child_trait_ids)
+    end
+  end
 
-        child_traits when is_list(child_traits) ->
-          Enum.reduce(child_traits, %{}, fn ct, acc ->
-            Map.put(acc, ct.id, (ct.survey_answer && ct.survey_answer.text) || ct.trait_name)
-          end)
+  def handle_event("skip_trait", _params, socket) do
+    case modal_skip_child(socket.assigns.trait_in_edit) do
+      %{id: child_id} ->
+        persist_me_file_tags(socket, socket.assigns.trait_in_edit.id, [child_id])
 
-        _ ->
-          %{}
-      end
+      _ ->
+        {:noreply, socket}
+    end
+  end
 
-    :ok =
-      MeFiles.create_replace_mefile_tags(
-        socket.assigns.current_scope.user.me_file.id,
-        trait_id,
-        child_trait_ids,
-        socket.assigns.current_scope.user.id,
-        id_to_name_map
-      )
-
-    me_file_id = socket.assigns.current_scope.user.me_file.id
-    updated_parent_tuple = MeFiles.parent_trait_with_tags_for_mefile(me_file_id, trait_id)
-
-    socket =
-      socket
-      |> update(:me_file_tag_map_by_category_trait_tag, fn cat_map ->
-        Enum.map(cat_map, fn {category, parent_traits} ->
-          {category,
-           Enum.map(parent_traits, fn
-             {id, _name, _order, _tags} when id == trait_id -> updated_parent_tuple
-             other -> other
-           end)}
-        end)
-      end)
-      |> assign(:selected_child_trait_ids, Enum.map(elem(updated_parent_tuple, 3), &elem(&1, 0)))
-      |> assign(:show_modal, false)
-      |> assign(:show_delete_confirm, false)
-      |> assign_filtered_tag_display()
-      |> push_event("animate_trait", %{trait_id: trait_id, delay_ms: 250, value: "update_pulse"})
-
-    {:noreply, socket}
+  def handle_event("skip_parent_trait", %{"id" => parent_id}, socket) do
+    {parent_id, _} = Integer.parse(parent_id)
+    {:noreply, skip_unanswered_parent(socket, parent_id)}
   end
 
   def handle_event("lookup_zip_code", %{"zip_code_input" => zip_code}, socket) do
@@ -278,7 +261,11 @@ defmodule QlariusWeb.MeFileLive do
     case socket.assigns.trait_in_edit do
       %{input_type: type} when type in ["multi_select", "single_select"] ->
         ids = child_trait_ids_from_form_params(params)
-        {:noreply, assign(socket, :selected_child_trait_ids, ids)}
+
+        {:noreply,
+         socket
+         |> assign(:selected_child_trait_ids, ids)
+         |> assign(:show_skip_conflict, false)}
 
       _ ->
         {:noreply, socket}
@@ -286,6 +273,14 @@ defmodule QlariusWeb.MeFileLive do
   end
 
   @impl true
+  def handle_info({:clear_skip_conflict, token}, socket) do
+    if socket.assigns[:skip_conflict_token] == token do
+      {:noreply, assign(socket, :show_skip_conflict, false)}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_info({:perform_tag_deletion, trait_id, child_trait_ids, current_scope}, socket) do
     # Remove the selected tags from the me_file
     :ok =
@@ -332,6 +327,8 @@ defmodule QlariusWeb.MeFileLive do
       |> assign(:selected_child_trait_ids, [])
       |> assign(:show_modal, false)
       |> assign(:show_delete_confirm, false)
+      |> assign(:show_skip_conflict, false)
+      |> assign(:show_modal_skip, false)
       |> assign(:zip_lookup_input, "")
       |> assign(:zip_lookup_trait, nil)
       |> assign(:zip_lookup_valid, false)
@@ -391,6 +388,126 @@ defmodule QlariusWeb.MeFileLive do
       MeFiles.me_file_tag_map_by_category_trait_tag(me_file_id)
     )
   end
+
+  defp reveal_skip_conflict(socket) do
+    token = System.unique_integer([:positive])
+    Process.send_after(self(), {:clear_skip_conflict, token}, 3_000)
+
+    socket
+    |> assign(:show_skip_conflict, true)
+    |> assign(:show_delete_confirm, false)
+    |> assign(:skip_conflict_token, token)
+  end
+
+  defp persist_me_file_tags(socket, trait_id, child_trait_ids) do
+    id_to_name_map =
+      case socket.assigns.trait_in_edit.child_traits do
+        %Ecto.Association.NotLoaded{} ->
+          %{}
+
+        child_traits when is_list(child_traits) ->
+          Enum.reduce(child_traits, %{}, fn ct, acc ->
+            label =
+              if ct.is_skipped_tag do
+                ct.trait_name
+              else
+                (ct.survey_answer && ct.survey_answer.text) || ct.trait_name
+              end
+
+            Map.put(acc, ct.id, label)
+          end)
+
+        _ ->
+          %{}
+      end
+
+    :ok =
+      MeFiles.create_replace_mefile_tags(
+        socket.assigns.current_scope.user.me_file.id,
+        trait_id,
+        child_trait_ids,
+        socket.assigns.current_scope.user.id,
+        id_to_name_map
+      )
+
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+    updated_parent_tuple = MeFiles.parent_trait_with_tags_for_mefile(me_file_id, trait_id)
+
+    socket =
+      socket
+      |> update(:me_file_tag_map_by_category_trait_tag, fn cat_map ->
+        Enum.map(cat_map, fn {category, parent_traits} ->
+          {category,
+           Enum.map(parent_traits, fn
+             {id, _name, _order, _tags} when id == trait_id -> updated_parent_tuple
+             other -> other
+           end)}
+        end)
+      end)
+      |> assign(:selected_child_trait_ids, Enum.map(elem(updated_parent_tuple, 3), &elem(&1, 0)))
+      |> assign(:show_modal, false)
+      |> assign(:show_delete_confirm, false)
+      |> assign(:show_skip_conflict, false)
+      |> assign_filtered_tag_display()
+      |> push_event("animate_trait", %{trait_id: trait_id, delay_ms: 250, value: "update_pulse"})
+
+    {:noreply, socket}
+  end
+
+  defp skip_unanswered_parent(socket, parent_id) do
+    parent = Traits.get_trait!(parent_id)
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+    existing = MeFiles.existing_tags_per_parent_trait(me_file_id, parent_id)
+    skip = Traits.active_skipped_child(parent_id)
+
+    cond do
+      QlariusWeb.Components.TraitComponents.protected_trait_name?(parent.trait_name) ->
+        socket
+
+      parent.input_type == "single_select_zip" ->
+        socket
+
+      existing != [] ->
+        socket
+
+      is_nil(skip) ->
+        socket
+
+      true ->
+        :ok =
+          MeFiles.create_replace_mefile_tags(
+            me_file_id,
+            parent_id,
+            [skip.id],
+            socket.assigns.current_scope.user.id
+          )
+
+        updated_parent_tuple = MeFiles.parent_trait_with_tags_for_mefile(me_file_id, parent_id)
+
+        socket
+        |> update(:me_file_tag_map_by_category_trait_tag, fn cat_map ->
+          Enum.map(cat_map, fn {category, parent_traits} ->
+            {category,
+             Enum.map(parent_traits, fn
+               {id, _name, _order, _tags} when id == parent_id -> updated_parent_tuple
+               other -> other
+             end)}
+          end)
+        end)
+        |> assign_filtered_tag_display()
+        |> push_event("animate_trait", %{
+          trait_id: parent_id,
+          delay_ms: 250,
+          value: "update_pulse"
+        })
+    end
+  end
+
+  defp modal_skip_child(%{child_traits: children}) when is_list(children) do
+    Enum.find(children, & &1.is_skipped_tag)
+  end
+
+  defp modal_skip_child(_), do: nil
 
   defp assign_filtered_tag_display(socket) do
     display_map =

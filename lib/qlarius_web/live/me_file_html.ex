@@ -38,6 +38,8 @@ defmodule QlariusWeb.MeFileHTML do
   attr :selected_ids, :list, default: []
   attr :show_modal, :boolean, default: false
   attr :show_delete_confirm, :boolean, default: false
+  attr :show_skip_conflict, :boolean, default: false
+  attr :show_modal_skip, :boolean, default: false
   attr :zip_lookup_input, :string, default: ""
   attr :zip_lookup_trait, :any, default: nil
   attr :zip_lookup_valid, :boolean, default: false
@@ -47,6 +49,8 @@ defmodule QlariusWeb.MeFileHTML do
   attr :is_pwa, :boolean, default: false
 
   def tag_edit_modal(assigns) do
+    assigns = assign(assigns, :skip_child, modal_skip_child(assigns.trait_in_edit))
+
     ~H"""
     <div
       class={[
@@ -192,9 +196,7 @@ defmodule QlariusWeb.MeFileHTML do
                   class="py-0"
                 >
                   <label
-                    :for={
-                      child_trait <- Enum.sort_by(@trait_in_edit.child_traits, & &1.display_order)
-                    }
+                    :for={child_trait <- tag_options_with_skip_last(@trait_in_edit.child_traits)}
                     data-tag-option-row
                     data-tag-option-text={Targeting.tag_option_search_text(child_trait)}
                     class={[
@@ -245,12 +247,35 @@ defmodule QlariusWeb.MeFileHTML do
               <%!-- Footer + delete confirm strip (slides up behind the button bar) --%>
               <div class="relative shrink-0">
                 <div
+                  :if={@skip_child}
+                  class={[
+                    "grid transition-[grid-template-rows] duration-500 ease-out",
+                    @show_skip_conflict && "grid-rows-[1fr]",
+                    !@show_skip_conflict && "grid-rows-[0fr]"
+                  ]}
+                  aria-hidden={not @show_skip_conflict}
+                >
+                  <div class="overflow-hidden">
+                    <div
+                      class={[
+                        "border-t border-warning/60 bg-warning px-6 py-4 text-warning-content transition-transform duration-500 ease-out",
+                        @show_skip_conflict && "translate-y-0",
+                        !@show_skip_conflict && "translate-y-full"
+                      ]}
+                    >
+                      <p class="text-sm font-semibold">
+                        Unable to save: "{@skip_child.trait_name}" cannot exist with other selections.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div
                   class={[
                     "overflow-hidden transition-[max-height] duration-200 ease-out",
                     @show_delete_confirm && "max-h-28",
                     !@show_delete_confirm && "max-h-0"
                   ]}
-                  aria-hidden={!@show_delete_confirm}
+                  aria-hidden={not @show_delete_confirm}
                 >
                   <div class="bg-error text-error-content px-6 py-4 border-t border-error/60">
                     <p class="text-sm font-semibold mb-3">
@@ -301,6 +326,14 @@ defmodule QlariusWeb.MeFileHTML do
                       class="btn btn-lg btn-ghost rounded-full"
                     >
                       Cancel
+                    </button>
+                    <button
+                      :if={@skip_child && @show_modal_skip}
+                      type="button"
+                      phx-click="skip_trait"
+                      class="btn btn-lg btn-ghost rounded-full"
+                    >
+                      Skip
                     </button>
                     <button
                       type="submit"
@@ -524,6 +557,7 @@ defmodule QlariusWeb.MeFileHTML do
   attr :parent_traits, :list, required: true
   attr :tag_display_mode, :string, required: true
   attr :readonly, :boolean, default: false
+  attr :skip_child_ids, :map, default: %{}
 
   def parent_traits_display(assigns) do
     assigns =
@@ -598,6 +632,23 @@ defmodule QlariusWeb.MeFileHTML do
                 />
               </div>
             </div>
+            <button
+              :if={
+                inline_skip_id(
+                  @skip_child_ids,
+                  parent_trait_id,
+                  parent_trait_name,
+                  tags_traits,
+                  @readonly
+                )
+              }
+              type="button"
+              phx-click="skip_parent_trait"
+              phx-value-id={parent_trait_id}
+              class="btn btn-ghost btn-sm rounded-full shrink-0 self-center"
+            >
+              Skip
+            </button>
           </li>
         </ul>
       <% "block" -> %>
@@ -619,6 +670,15 @@ defmodule QlariusWeb.MeFileHTML do
             nav_indicator={if(@readonly, do: "none", else: "chevron")}
             display_mode="block"
             extra_classes={if(@readonly, do: "h-full !shadow-none", else: "h-full")}
+            skip_trait_id={
+              inline_skip_id(
+                @skip_child_ids,
+                parent_trait_id,
+                parent_trait_name,
+                tags_traits,
+                @readonly
+              )
+            }
           />
         </div>
       <% _ -> %>
@@ -641,6 +701,15 @@ defmodule QlariusWeb.MeFileHTML do
             nav_indicator={if(@readonly, do: "none", else: "chevron")}
             display_mode="tag"
             extra_classes={@readonly && "!shadow-none"}
+            skip_trait_id={
+              inline_skip_id(
+                @skip_child_ids,
+                parent_trait_id,
+                parent_trait_name,
+                tags_traits,
+                @readonly
+              )
+            }
           />
         </div>
     <% end %>
@@ -652,12 +721,12 @@ defmodule QlariusWeb.MeFileHTML do
   attr :tag_search, :string, default: ""
 
   def survey_traits_display(assigns) do
+    parent_traits = filter_parent_traits_by_search(assigns.parent_traits, assigns.tag_search)
+
     assigns =
-      assign(
-        assigns,
-        :parent_traits,
-        filter_parent_traits_by_search(assigns.parent_traits, assigns.tag_search)
-      )
+      assigns
+      |> assign(:parent_traits, parent_traits)
+      |> assign(:skip_child_ids, skip_child_ids_for(parent_traits))
 
     ~H"""
     <div id="mefilebuilder-tags-display" phx-hook="AnimateTrait">
@@ -671,6 +740,7 @@ defmodule QlariusWeb.MeFileHTML do
         <.parent_traits_display
           parent_traits={@parent_traits}
           tag_display_mode={@tag_display_mode}
+          skip_child_ids={@skip_child_ids}
         />
       </.surface_panel>
     </div>
@@ -684,6 +754,15 @@ defmodule QlariusWeb.MeFileHTML do
   attr :loading, :boolean, default: false
 
   def tags_display(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :skip_child_ids,
+        assigns.tag_display_map
+        |> Enum.flat_map(fn {_category, parent_traits} -> parent_traits end)
+        |> skip_child_ids_for()
+      )
+
     ~H"""
     <div
       id="mefile-tags-display"
@@ -727,9 +806,14 @@ defmodule QlariusWeb.MeFileHTML do
           :if={@tag_display_mode != "list"}
           parent_traits={parent_traits}
           tag_display_mode={@tag_display_mode}
+          skip_child_ids={@skip_child_ids}
         />
         <div :if={@tag_display_mode == "list"} class="max-w-3xl mx-auto w-full">
-          <.parent_traits_display parent_traits={parent_traits} tag_display_mode={@tag_display_mode} />
+          <.parent_traits_display
+            parent_traits={parent_traits}
+            tag_display_mode={@tag_display_mode}
+            skip_child_ids={@skip_child_ids}
+          />
         </div>
       </.surface_panel>
     </div>
@@ -808,6 +892,40 @@ defmodule QlariusWeb.MeFileHTML do
   end
 
   @protected_trait_names ["Birthdate", "Age", "Sex (Bio)"]
+
+  defp modal_skip_child(%{input_type: "single_select_zip"}), do: nil
+  defp modal_skip_child(%{trait_name: name}) when name in @protected_trait_names, do: nil
+
+  defp modal_skip_child(%{child_traits: children}) when is_list(children) do
+    Enum.find(children, & &1.is_skipped_tag)
+  end
+
+  defp modal_skip_child(_), do: nil
+
+  defp tag_options_with_skip_last(children) when is_list(children) do
+    {skipped, rest} = Enum.split_with(children, & &1.is_skipped_tag)
+    Enum.sort_by(rest, & &1.display_order) ++ Enum.sort_by(skipped, & &1.id)
+  end
+
+  defp tag_options_with_skip_last(_), do: []
+
+  defp skip_child_ids_for(parent_traits) when is_list(parent_traits) do
+    parent_traits
+    |> Enum.map(fn {id, _name, _order, _tags} -> id end)
+    |> Qlarius.YouData.Traits.active_skipped_child_id_by_parent()
+  end
+
+  defp inline_skip_id(_ids, _parent_id, _name, tags, _readonly) when tags != [], do: nil
+
+  defp inline_skip_id(_ids, _parent_id, name, _tags, _readonly)
+       when name in @protected_trait_names,
+       do: nil
+
+  defp inline_skip_id(_ids, _parent_id, _name, _tags, true), do: nil
+
+  defp inline_skip_id(ids, parent_id, _name, [], false) do
+    Map.get(ids, parent_id)
+  end
 
   defp deletable_trait?(%{trait_name: name}), do: editable_parent_trait?(name)
   defp deletable_trait?(_), do: false

@@ -92,6 +92,60 @@ defmodule Qlarius.YouData.Traits do
   """
   def get_trait!(id), do: Repo.get!(Trait, id)
 
+  @doc """
+  Active opt-out child ids for the given parents, keyed by parent id.
+  """
+  def active_skipped_child_id_by_parent(parent_ids) when is_list(parent_ids) do
+    parent_ids = Enum.uniq(parent_ids)
+
+    if parent_ids == [] do
+      %{}
+    else
+      Repo.all(
+        from t in Trait,
+          where:
+            t.parent_trait_id in ^parent_ids and t.is_active == true and t.is_skipped_tag == true,
+          select: {t.parent_trait_id, t.id}
+      )
+      |> Map.new()
+    end
+  end
+
+  def active_skipped_child(parent_id) do
+    Repo.one(
+      from t in Trait,
+        where:
+          t.parent_trait_id == ^parent_id and t.is_active == true and t.is_skipped_tag == true,
+        limit: 1
+    )
+  end
+
+  @doc """
+  True when a multi-select save includes the opt-out child and at least one other answer.
+  """
+  def mixed_skip_selection?(%{input_type: "multi_select", child_traits: children}, ids)
+      when is_list(children) do
+    selected = ids |> List.wrap() |> Enum.map(&normalize_trait_id/1) |> Enum.reject(&is_nil/1)
+
+    case Enum.find(children, & &1.is_skipped_tag) do
+      %{id: skip_id} -> skip_id in selected and Enum.any?(selected, &(&1 != skip_id))
+      _ -> false
+    end
+  end
+
+  def mixed_skip_selection?(_trait, _ids), do: false
+
+  defp normalize_trait_id(id) when is_integer(id), do: id
+
+  defp normalize_trait_id(id) when is_binary(id) do
+    case Integer.parse(id) do
+      {n, _} -> n
+      :error -> nil
+    end
+  end
+
+  defp normalize_trait_id(_), do: nil
+
   def get_trait_with_full_survey_data!(id) do
     trait = Repo.get!(Trait, id)
 

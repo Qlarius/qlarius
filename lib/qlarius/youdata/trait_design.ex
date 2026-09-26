@@ -59,6 +59,7 @@ defmodule Qlarius.YouData.TraitDesign do
          {:ok, question} <- upsert_question(scope, parent, params["survey_question"]),
          :ok <- upsert_answers(scope, question, child_traits, children),
          :ok <- attach_survey(scope, question, params["attach_to_survey"]),
+         {:ok, _} <- TraitManager.ensure_skipped_child(scope, parent),
          {:ok, _} <- TraitManager.restripe_active_children(scope, parent) do
       detail =
         parent.id
@@ -128,7 +129,8 @@ defmodule Qlarius.YouData.TraitDesign do
       |> put_meta(params)
       |> put_search_filter(params),
       keep_display_order: is_integer(integer(params["display_order"])),
-      keep_active: true
+      keep_active: true,
+      ensure_skip: false
     )
   end
 
@@ -164,7 +166,8 @@ defmodule Qlarius.YouData.TraitDesign do
     TraitManager.update_parent_trait(
       scope,
       parent,
-      attrs |> put_meta(params) |> put_search_filter(params)
+      attrs |> put_meta(params) |> put_search_filter(params),
+      ensure_skip: false
     )
   end
 
@@ -203,6 +206,7 @@ defmodule Qlarius.YouData.TraitDesign do
                   },
                   params
                 )
+                |> put_skip_flag(params)
               )
             end
 
@@ -219,7 +223,11 @@ defmodule Qlarius.YouData.TraitDesign do
                     do: Map.put(attrs, "display_order", integer(params["display_order"])),
                     else: attrs
 
-                TraitManager.update_child_trait(scope, child, put_meta(attrs, params))
+                TraitManager.update_child_trait(
+                  scope,
+                  child,
+                  put_meta(attrs, params) |> put_skip_flag(params)
+                )
 
               _ ->
                 {:error, :child_not_in_parent}
@@ -400,12 +408,21 @@ defmodule Qlarius.YouData.TraitDesign do
       meta_2: child.meta_2,
       meta_3: child.meta_3,
       me_file_tag_count: Map.get(child, :tags_count, 0),
+      is_skipped_tag: child.is_skipped_tag,
       survey_answer: answer_json(answer)
     }
   end
 
   defp answer_json(nil), do: nil
   defp answer_json(answer), do: %{id: answer.id, text: answer.text}
+
+  defp put_skip_flag(attrs, params) do
+    if Map.has_key?(params, "is_skipped_tag") do
+      Map.put(attrs, "is_skipped_tag", truthy?(params["is_skipped_tag"]))
+    else
+      attrs
+    end
+  end
 
   defp put_search_filter(attrs, params) do
     if Map.has_key?(params, "has_search_filter") do

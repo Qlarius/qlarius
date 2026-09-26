@@ -184,6 +184,15 @@ defmodule QlariusWeb.Api.Admin.TraitController do
       "display_order" => integer(child["display_order"])
     }
     |> put_meta(child)
+    |> put_skip_flag(child)
+  end
+
+  defp put_skip_flag(attrs, params) do
+    if Map.has_key?(params, "is_skipped_tag") do
+      Map.put(attrs, "is_skipped_tag", truthy?(params["is_skipped_tag"]))
+    else
+      attrs
+    end
   end
 
   defp parent_attrs(params) do
@@ -197,7 +206,7 @@ defmodule QlariusWeb.Api.Admin.TraitController do
 
   defp child_attrs(params) do
     params
-    |> Map.take(["trait_name", "display_order", "is_active"])
+    |> Map.take(["trait_name", "display_order", "is_active", "is_skipped_tag"])
     |> Enum.reject(fn {_k, v} -> v == nil end)
     |> Map.new()
     |> put_meta(params)

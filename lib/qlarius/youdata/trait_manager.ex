@@ -122,20 +122,42 @@ defmodule Qlarius.YouData.TraitManager do
       |> Map.put("added_by", scope.true_user.id)
       |> Map.put("modified_by", scope.true_user.id)
 
-    %Trait{}
-    |> Trait.changeset(attrs)
-    |> Repo.insert()
+    case %Trait{}
+         |> Trait.changeset(attrs)
+         |> Repo.insert() do
+      {:ok, trait} ->
+        case maybe_ensure_skipped_child(scope, trait, opts) do
+          {:ok, _} -> {:ok, trait}
+          error -> error
+        end
+
+      error ->
+        error
+    end
   end
 
-  def update_parent_trait(scope, %Trait{} = trait, attrs) do
+  def update_parent_trait(scope, %Trait{} = trait, attrs, opts \\ []) do
     attrs = Map.put(attrs, "modified_by", scope.true_user.id)
 
-    trait
-    |> Trait.changeset(attrs)
-    |> Repo.update()
+    case trait
+         |> Trait.changeset(attrs)
+         |> Repo.update() do
+      {:ok, trait} ->
+        case maybe_ensure_skipped_child(scope, trait, opts) do
+          {:ok, _} -> {:ok, trait}
+          error -> error
+        end
+
+      error ->
+        error
+    end
   end
 
   def update_child_trait(scope, %Trait{} = trait, attrs) do
+    if skipped_tag?(attrs["is_skipped_tag"]) && trait.parent_trait_id do
+      clear_other_skip_flags(scope, trait.parent_trait_id, trait.id)
+    end
+
     attrs = Map.put(attrs, "modified_by", scope.true_user.id)
 
     trait
@@ -469,6 +491,10 @@ defmodule Qlarius.YouData.TraitManager do
       order =
         if is_integer(attrs["display_order"]), do: attrs["display_order"], else: max_order + 1
 
+      if skipped_tag?(attrs["is_skipped_tag"]) do
+        clear_other_skip_flags(scope, parent.id, nil)
+      end
+
       child_attrs =
         %{
           "trait_name" => attrs["trait_name"],
@@ -476,6 +502,7 @@ defmodule Qlarius.YouData.TraitManager do
           "trait_category_id" => parent.trait_category_id,
           "input_type" => parent.input_type,
           "is_active" => Map.get(attrs, "is_active", true),
+          "is_skipped_tag" => skipped_tag?(attrs["is_skipped_tag"]),
           "display_order" => order,
           "added_by" => scope.true_user.id,
           "modified_by" => scope.true_user.id
@@ -522,6 +549,86 @@ defmodule Qlarius.YouData.TraitManager do
       if Map.has_key?(source, key), do: Map.put(acc, key, source[key]), else: acc
     end)
   end
+
+  @skip_label "Prefer not to say"
+
+  @doc """
+  Inserts the opt-out child when this parent has no active `is_skipped_tag` child.
+
+  The label is insert-time copy. This does not search for an existing name.
+  Zip parents are left alone.
+  """
+  def ensure_skipped_child(scope, %Trait{} = parent) do
+    parent = Repo.preload(parent, :survey_question)
+
+    cond do
+      parent.input_type == "single_select_zip" ->
+        {:ok, nil}
+
+      not is_nil(parent.parent_trait_id) ->
+        {:ok, nil}
+
+      parent.is_active == false ->
+        {:ok, nil}
+
+      true ->
+        case active_skipped_child(parent.id) do
+          %Trait{} = child ->
+            {:ok, child}
+
+          nil ->
+            case create_child_trait(scope, parent, %{
+                   "trait_name" => @skip_label,
+                   "is_skipped_tag" => true,
+                   "is_active" => true
+                 }) do
+              {:ok, child} ->
+                if parent.survey_question do
+                  ensure_survey_answer(scope, parent.survey_question, child, child.trait_name)
+                end
+
+                {:ok, child}
+
+              error ->
+                error
+            end
+        end
+    end
+  end
+
+  defp maybe_ensure_skipped_child(scope, trait, opts) do
+    if Keyword.get(opts, :ensure_skip, true) do
+      ensure_skipped_child(scope, trait)
+    else
+      {:ok, nil}
+    end
+  end
+
+  defp active_skipped_child(parent_id) do
+    Repo.one(
+      from t in Trait,
+        where:
+          t.parent_trait_id == ^parent_id and t.is_active == true and t.is_skipped_tag == true,
+        limit: 1
+    )
+  end
+
+  defp clear_other_skip_flags(scope, parent_id, except_id) do
+    query =
+      from t in Trait,
+        where: t.parent_trait_id == ^parent_id and t.is_skipped_tag == true
+
+    query =
+      if except_id do
+        from t in query, where: t.id != ^except_id
+      else
+        query
+      end
+
+    Repo.update_all(query, set: [is_skipped_tag: false, modified_by: scope.true_user.id])
+  end
+
+  defp skipped_tag?(value), do: value in [true, "true", "1", 1]
 
   def restripe_active_children(scope, %Trait{} = parent) do
     children =

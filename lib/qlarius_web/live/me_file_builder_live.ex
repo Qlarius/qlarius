@@ -28,6 +28,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
             selected_ids={@selected_child_trait_ids || []}
             show_modal={@show_modal}
             show_delete_confirm={@show_delete_confirm}
+            show_skip_conflict={@show_skip_conflict}
+            show_modal_skip={@show_modal_skip}
             zip_lookup_input={@zip_lookup_input || ""}
             zip_lookup_trait={@zip_lookup_trait}
             zip_lookup_valid={@zip_lookup_valid || false}
@@ -105,7 +107,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
           />
         </:floating_actions>
 
-
         <%!-- Suggested surveys: topics Qai looked for and found empty / stale --%>
         <div :if={@suggested_surveys != []} class="mt-8">
           <.surface_panel
@@ -128,7 +129,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
                     alt="Qai"
                     class="h-6 w-auto shrink-0"
                   />
-
                 </div>
                 <p class="text-sm text-base-content mt-1 font-normal normal-case">
                   <span class="font-bold text-qai-500">
@@ -148,7 +148,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                 </div>
               </div>
               <div class="collapse-content px-4 pb-4">
-              <div class="divider mb-2"></div>
+                <div class="divider mb-2"></div>
                 <p class="text-sm text-base-content mb-5">
                   Recent chats may have been more personal with these tags filled in
                   or brought up to date. Answer or dismiss; nothing is added without you.
@@ -160,9 +160,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                   <div
                     class="flex justify-between items-center cursor-pointer transition-colors hover:opacity-80"
                     phx-click={if entry.survey, do: "open_edit", else: "edit_tags"}
-                    phx-value-id={
-                      if entry.survey, do: entry.survey.id, else: entry.latest.trait_id
-                    }
+                    phx-value-id={if entry.survey, do: entry.survey.id, else: entry.latest.trait_id}
                   >
                     <span class="text-xl text-base-content">
                       {(entry.survey && entry.survey.name) || entry.latest.trait.trait_name}
@@ -293,6 +291,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:selected_child_trait_ids, [])
       |> assign(:show_modal, false)
       |> assign(:show_delete_confirm, false)
+      |> assign(:show_skip_conflict, false)
+      |> assign(:show_modal_skip, false)
       |> assign(:show_expanded_tags, false)
       |> assign(:tag_search, "")
       |> assign(:show_tag_search, false)
@@ -364,7 +364,11 @@ defmodule QlariusWeb.MeFileBuilderLive do
     case socket.assigns.trait_in_edit do
       %{input_type: type} when type in ["multi_select", "single_select"] ->
         ids = child_trait_ids_from_form_params(params)
-        {:noreply, assign(socket, :selected_child_trait_ids, ids)}
+
+        {:noreply,
+         socket
+         |> assign(:selected_child_trait_ids, ids)
+         |> assign(:show_skip_conflict, false)}
 
       _ ->
         {:noreply, socket}
@@ -419,8 +423,10 @@ defmodule QlariusWeb.MeFileBuilderLive do
       socket
       |> assign(:trait_in_edit, trait)
       |> assign(:selected_child_trait_ids, selected_ids)
+      |> assign(:show_modal_skip, selected_ids == [])
       |> assign(:show_modal, true)
       |> assign(:show_delete_confirm, false)
+      |> assign(:show_skip_conflict, false)
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
       |> push_event("scroll-tag-list-to-top", %{})
 
@@ -433,7 +439,11 @@ defmodule QlariusWeb.MeFileBuilderLive do
   end
 
   def handle_event("close_modal", _params, socket) do
-    {:noreply, socket |> assign(:show_modal, false) |> assign(:show_delete_confirm, false)}
+    {:noreply,
+     socket
+     |> assign(:show_modal, false)
+     |> assign(:show_delete_confirm, false)
+     |> assign(:show_skip_conflict, false)}
   end
 
   def handle_event("request_delete_confirm", _params, socket) do
@@ -460,76 +470,45 @@ defmodule QlariusWeb.MeFileBuilderLive do
     {trait_id, _} = Integer.parse(trait_id)
     child_trait_ids = List.wrap(child_trait_ids)
 
-    # to capture the tag_value snapshot for me_file_tag
-    _id_to_name_map =
-      case socket.assigns.trait_in_edit.child_traits do
-        %Ecto.Association.NotLoaded{} ->
-          %{}
+    if Traits.mixed_skip_selection?(socket.assigns.trait_in_edit, child_trait_ids) do
+      {:noreply, reveal_skip_conflict(socket)}
+    else
+      persist_builder_tags(socket, trait_id, child_trait_ids)
+    end
+  end
 
-        child_traits when is_list(child_traits) ->
-          Enum.reduce(child_traits, %{}, fn ct, acc ->
-            Map.put(acc, ct.id, (ct.survey_answer && ct.survey_answer.text) || ct.trait_name)
-          end)
+  def handle_event("skip_trait", _params, socket) do
+    case modal_skip_child(socket.assigns.trait_in_edit) do
+      %{id: child_id} ->
+        persist_builder_tags(socket, socket.assigns.trait_in_edit.id, [child_id])
 
-        _ ->
-          %{}
-      end
-
-    # Checked before the write: saving resolves the suggestion, and we stamp
-    # the capture surface on the fresh tags afterwards.
-    had_suggestion =
-      Suggestions.pending_for_trait?(socket.assigns.current_scope.user.me_file.id, trait_id)
-
-    # Update tags and refresh survey data
-    case MeFiles.create_replace_mefile_tags(
-           socket.assigns.current_scope.user.me_file.id,
-           trait_id,
-           child_trait_ids,
-           socket.assigns.current_scope.user.id
-         ) do
-      :ok ->
-        # Refresh the survey data after tag update
-        me_file_id = socket.assigns.current_scope.user.me_file.id
-
-        # The write above resolved any pending suggestion for this trait
-        # (surface-agnostic hook); stamp the capture surface here.
-        if had_suggestion do
-          MeFiles.set_tags_source_context(me_file_id, trait_id, "mecp_suggestion_confirmed")
-        end
-
-        answered_ids = MeFiles.get_answered_survey_question_ids(me_file_id)
-
-        categories_with_stats =
-          Surveys.list_survey_categories_with_surveys_and_stats(me_file_id, answered_ids)
-
-        survey_in_edit =
-          if socket.assigns.survey_in_edit do
-            parent_traits_with_tags =
-              Surveys.parent_traits_for_survey_with_tags(
-                socket.assigns.survey_in_edit.id,
-                me_file_id
-              )
-
-            Map.put(socket.assigns.survey_in_edit, :parent_traits, parent_traits_with_tags)
-          else
-            nil
-          end
-
-        socket =
-          socket
-          |> assign(:categories, categories_with_stats)
-          |> assign(:answered_survey_question_ids, answered_ids)
-          |> assign(:survey_in_edit, survey_in_edit)
-          |> assign(:suggested_surveys, Suggestions.suggested_surveys_for_me_file(me_file_id))
-          |> assign(:show_modal, false)
-          |> assign(:show_delete_confirm, false)
-          |> push_event("animate_trait", %{
-            trait_id: trait_id,
-            delay_ms: 250,
-            value: "update_pulse"
-          })
-
+      _ ->
         {:noreply, socket}
+    end
+  end
+
+  def handle_event("skip_parent_trait", %{"id" => parent_id}, socket) do
+    {parent_id, _} = Integer.parse(parent_id)
+    parent = Traits.get_trait!(parent_id)
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+    existing = MeFiles.existing_tags_per_parent_trait(me_file_id, parent_id)
+    skip = Traits.active_skipped_child(parent_id)
+
+    cond do
+      QlariusWeb.Components.TraitComponents.protected_trait_name?(parent.trait_name) ->
+        {:noreply, socket}
+
+      parent.input_type == "single_select_zip" ->
+        {:noreply, socket}
+
+      existing != [] ->
+        {:noreply, socket}
+
+      is_nil(skip) ->
+        {:noreply, socket}
+
+      true ->
+        persist_builder_tags(socket, parent_id, [skip.id])
     end
   end
 
@@ -582,6 +561,82 @@ defmodule QlariusWeb.MeFileBuilderLive do
       end
     end
   end
+
+  def handle_info({:clear_skip_conflict, token}, socket) do
+    if socket.assigns[:skip_conflict_token] == token do
+      {:noreply, assign(socket, :show_skip_conflict, false)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp reveal_skip_conflict(socket) do
+    token = System.unique_integer([:positive])
+    Process.send_after(self(), {:clear_skip_conflict, token}, 3_000)
+
+    socket
+    |> assign(:show_skip_conflict, true)
+    |> assign(:show_delete_confirm, false)
+    |> assign(:skip_conflict_token, token)
+  end
+
+  defp persist_builder_tags(socket, trait_id, child_trait_ids) do
+    had_suggestion =
+      Suggestions.pending_for_trait?(socket.assigns.current_scope.user.me_file.id, trait_id)
+
+    case MeFiles.create_replace_mefile_tags(
+           socket.assigns.current_scope.user.me_file.id,
+           trait_id,
+           child_trait_ids,
+           socket.assigns.current_scope.user.id
+         ) do
+      :ok ->
+        me_file_id = socket.assigns.current_scope.user.me_file.id
+
+        if had_suggestion do
+          MeFiles.set_tags_source_context(me_file_id, trait_id, "mecp_suggestion_confirmed")
+        end
+
+        answered_ids = MeFiles.get_answered_survey_question_ids(me_file_id)
+
+        categories_with_stats =
+          Surveys.list_survey_categories_with_surveys_and_stats(me_file_id, answered_ids)
+
+        survey_in_edit =
+          if socket.assigns.survey_in_edit do
+            parent_traits_with_tags =
+              Surveys.parent_traits_for_survey_with_tags(
+                socket.assigns.survey_in_edit.id,
+                me_file_id
+              )
+
+            Map.put(socket.assigns.survey_in_edit, :parent_traits, parent_traits_with_tags)
+          else
+            nil
+          end
+
+        socket
+        |> assign(:categories, categories_with_stats)
+        |> assign(:answered_survey_question_ids, answered_ids)
+        |> assign(:survey_in_edit, survey_in_edit)
+        |> assign(:suggested_surveys, Suggestions.suggested_surveys_for_me_file(me_file_id))
+        |> assign(:show_modal, false)
+        |> assign(:show_delete_confirm, false)
+        |> assign(:show_skip_conflict, false)
+        |> push_event("animate_trait", %{
+          trait_id: trait_id,
+          delay_ms: 250,
+          value: "update_pulse"
+        })
+        |> then(&{:noreply, &1})
+    end
+  end
+
+  defp modal_skip_child(%{child_traits: children}) when is_list(children) do
+    Enum.find(children, & &1.is_skipped_tag)
+  end
+
+  defp modal_skip_child(_), do: nil
 
   defp child_trait_ids_from_form_params(params) do
     params

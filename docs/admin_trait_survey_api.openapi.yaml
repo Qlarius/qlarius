@@ -92,6 +92,11 @@ paths:
   /api/admin/traits/design_packs:
     post:
       summary: Create or reform a parent with children and survey copy
+      description: >
+        If no active child has is_skipped_tag, one is added with the label
+        Prefer not to say. That label is not searched. Zip parents are unchanged.
+        Set is_skipped_tag on a child the pack already includes to use that child
+        as the opt-out.
       requestBody:
         required: true
         content:
@@ -131,6 +136,7 @@ paths:
                       trait_name: {type: string, maxLength: 256}
                       display_order: {type: integer}
                       is_active: {type: boolean}
+                      is_skipped_tag: {type: boolean}
                       survey_answer_text: {type: string, maxLength: 4096}
                       meta_1: {type: string, nullable: true}
                       meta_2: {type: string, nullable: true}

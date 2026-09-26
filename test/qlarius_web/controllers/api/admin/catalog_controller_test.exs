@@ -64,7 +64,7 @@ defmodule QlariusWeb.Api.Admin.CatalogControllerTest do
             "display_order" => 10,
             "survey_answer_text" => "Concerts and festivals."
           },
-          %{"trait_name" => "Prefer not to say", "display_order" => 20}
+          %{"trait_name" => "Prefer not to say", "display_order" => 20, "is_skipped_tag" => true}
         ]
       })
 
@@ -75,9 +75,11 @@ defmodule QlariusWeb.Api.Admin.CatalogControllerTest do
     [music, prefer] = Enum.filter(body["children"], & &1["is_active"])
     assert music["trait_name"] == "Live music"
     assert music["display_order"] == 1
+    assert music["is_skipped_tag"] == false
     assert music["survey_answer"]["text"] == "Concerts and festivals."
     assert prefer["trait_name"] == "Prefer not to say"
     assert prefer["display_order"] == 2
+    assert prefer["is_skipped_tag"] == true
 
     parent = Repo.get!(Trait, body["id"])
     assert parent.added_by == admin.id
@@ -164,7 +166,7 @@ defmodule QlariusWeb.Api.Admin.CatalogControllerTest do
             "meta_2" => "15-0000",
             "meta_3" => "programmer, software engineer"
           },
-          %{"trait_name" => "Prefer not to say"}
+          %{"trait_name" => "Prefer not to say", "is_skipped_tag" => true}
         ]
       })
 
@@ -302,7 +304,7 @@ defmodule QlariusWeb.Api.Admin.CatalogControllerTest do
         "children" => [%{"trait_name" => "Rarely", "survey_answer_text" => "Rarely"}]
       })
 
-    [child] = Enum.filter(created["children"], & &1["is_active"])
+    child = Enum.find(created["children"], &(&1["is_active"] && &1["trait_name"] == "Rarely"))
     answer_id = child["survey_answer"]["id"]
 
     updated =
@@ -322,7 +324,7 @@ defmodule QlariusWeb.Api.Admin.CatalogControllerTest do
         "children" => [%{"trait_name" => "Only"}]
       })
 
-    [child] = Enum.filter(created["children"], & &1["is_active"])
+    child = Enum.find(created["children"], &(&1["is_active"] && &1["trait_name"] == "Only"))
 
     conn =
       post(
@@ -364,6 +366,81 @@ defmodule QlariusWeb.Api.Admin.CatalogControllerTest do
       )
 
     assert %{"error" => "protected_parent"} = json_response(zip_conn, 422)
+  end
+
+  test "a pasted Prefer not to say stays a normal answer", %{token: token} do
+    created =
+      api(token, :post, ~p"/api/admin/traits/design_packs", %{
+        "mode" => "create",
+        "parent" => %{"trait_name" => "Opt out #{unique()}", "input_type" => "multi_select"},
+        "survey_question" => %{"text" => "Any?"},
+        "children" => [
+          %{"trait_name" => "Yes"},
+          %{"trait_name" => "Prefer not to say"}
+        ]
+      })
+
+    active = Enum.filter(created["children"], & &1["is_active"])
+    named = Enum.filter(active, &(&1["trait_name"] == "Prefer not to say"))
+
+    assert length(named) == 2
+    assert Enum.count(named, & &1["is_skipped_tag"]) == 1
+    refute Enum.find(active, &(&1["trait_name"] == "Yes"))["is_skipped_tag"]
+  end
+
+  test "a flagged child is the opt-out and no extra label is inserted", %{token: token} do
+    created =
+      api(token, :post, ~p"/api/admin/traits/design_packs", %{
+        "mode" => "create",
+        "parent" => %{"trait_name" => "Flagged #{unique()}", "input_type" => "single_select"},
+        "survey_question" => %{"text" => "Any?"},
+        "children" => [
+          %{"trait_name" => "Yes"},
+          %{"trait_name" => "Rather not", "is_skipped_tag" => true}
+        ]
+      })
+
+    active = Enum.filter(created["children"], & &1["is_active"])
+    rather = Enum.find(active, &(&1["trait_name"] == "Rather not"))
+
+    assert length(active) == 2
+    assert rather["is_skipped_tag"] == true
+    refute Enum.any?(active, &(&1["trait_name"] == "Prefer not to say"))
+  end
+
+  test "zip parents are not given a skip child", %{token: token} do
+    created =
+      api(token, :post, ~p"/api/admin/traits/design_packs", %{
+        "mode" => "create",
+        "force" => true,
+        "parent" => %{
+          "trait_name" => "Zip #{unique()}",
+          "input_type" => "single_select_zip"
+        },
+        "survey_question" => %{"text" => "Zip?"},
+        "children" => [%{"trait_name" => "00000"}]
+      })
+
+    refute Enum.any?(created["children"], & &1["is_skipped_tag"])
+  end
+
+  test "multi-select saves that mix the skip child with other answers conflict" do
+    children = [
+      %{id: 1, is_skipped_tag: false},
+      %{id: 2, is_skipped_tag: true}
+    ]
+
+    trait = %{input_type: "multi_select", child_traits: children}
+
+    assert Traits.mixed_skip_selection?(trait, [1, 2])
+    assert Traits.mixed_skip_selection?(trait, ["2", "1"])
+    refute Traits.mixed_skip_selection?(trait, [2])
+    refute Traits.mixed_skip_selection?(trait, [1])
+
+    refute Traits.mixed_skip_selection?(%{input_type: "single_select", child_traits: children}, [
+             1,
+             2
+           ])
   end
 
   defp api(token, method, path, body) do
