@@ -42,7 +42,7 @@ defmodule QlariusWeb.TiqitComponents do
     <span class={[
       "badge badge-md text-xs",
       if(@status == :active,
-        do: "!border-0 !bg-sponster-500 !text-primary-content",
+        do: "!border-0 !bg-tiqit-600 !text-primary-content",
         else: "badge-warning"
       )
     ]}>
@@ -71,7 +71,10 @@ defmodule QlariusWeb.TiqitComponents do
       |> assign(:content_path, tiqit_content_path(assigns.tiqit))
       |> assign(:scope_label, tiqit_scope_label(assigns.tiqit))
       |> assign(:show_preserve_cell?, !(assigns.status == :expired && assigns.tiqit.preserved))
-      |> assign(:show_refund_cell?, !assigns.tiqit.refund_locked_at && Arcade.undo_available?(assigns.tiqit))
+      |> assign(
+        :show_refund_cell?,
+        !assigns.tiqit.refund_locked_at && Arcade.undo_available?(assigns.tiqit)
+      )
 
     ~H"""
     <div class="tiqit-actions flex w-full flex-col gap-3">
@@ -90,8 +93,7 @@ defmodule QlariusWeb.TiqitComponents do
 
       <%= if @status in [:active, :expired] do %>
         <div :if={@refund_locked?} class="flex items-center gap-1 text-xs text-base-content/40">
-          <.icon name="hero-lock-closed-mini" class="h-4 w-4 shrink-0" />
-          Discount applied to TiqitUp
+          <.icon name="hero-lock-closed-mini" class="h-4 w-4 shrink-0" /> Discount applied to TiqitUp
         </div>
 
         <div class="flex w-full gap-2">
@@ -327,9 +329,7 @@ defmodule QlariusWeb.TiqitComponents do
               Expires in{" "}
               <span class="text-base-content/80">
                 <%= if @tiqit.expires_at do %>
-                  <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={
-                    @tiqit.expires_at
-                  } />
+                  <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={@tiqit.expires_at} />
                 <% else %>
                   <span class="font-semibold">Lifetime access</span>
                 <% end %>
@@ -346,9 +346,7 @@ defmodule QlariusWeb.TiqitComponents do
               <span class="text-base-content/80">
                 <%= if @fleet_at_deadline &&
                        DateTime.compare(@fleet_at_deadline, DateTime.utc_now()) == :gt do %>
-                  <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={
-                    @fleet_at_deadline
-                  } />
+                  <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={@fleet_at_deadline} />
                 <% else %>
                   <span class="font-semibold">AutoFleet pending</span>
                 <% end %>
@@ -521,7 +519,10 @@ defmodule QlariusWeb.TiqitComponents do
             phx-click="revoke-gift"
             phx-value-id={@gift.id}
             data-confirm="Withdraw this gift? The amount will return to your wallet."
-            class={[tiqit_action_btn_base(), "btn-error btn-outline flex-1 gap-2 text-sm font-semibold"]}
+            class={[
+              tiqit_action_btn_base(),
+              "btn-error btn-outline flex-1 gap-2 text-sm font-semibold"
+            ]}
           >
             <.icon name="hero-x-circle" class="h-4 w-4 shrink-0" /> Revoke
           </button>
@@ -582,7 +583,9 @@ defmodule QlariusWeb.TiqitComponents do
     """
   end
 
-  defp gift_status_display("picked_up"), do: {"Claimed", "!border-0 !bg-sponster-500 !text-primary-content"}
+  defp gift_status_display("picked_up"),
+    do: {"Claimed", "!border-0 !bg-sponster-500 !text-primary-content"}
+
   defp gift_status_display("expired"), do: {"Expired", "badge-warning"}
   defp gift_status_display("pulled"), do: {"Withdrawn", "badge-ghost"}
   defp gift_status_display(_), do: {"Awaiting pickup", "badge-warning"}
@@ -658,6 +661,7 @@ defmodule QlariusWeb.TiqitComponents do
 
   defp gift_content_summary_for_class(%TiqitClass{catalog_id: id}, catalog) when not is_nil(id) do
     {group_count, piece_count} = Arcade.catalog_content_counts(id)
+
     "#{piece_count} #{Catalog.type_label(catalog.piece_type, piece_count)} in #{group_count} #{Catalog.type_label(catalog.group_type, group_count)}"
   end
 
@@ -721,42 +725,42 @@ defmodule QlariusWeb.TiqitComponents do
     ~H"""
     <div class={@tiqit_card_shell_class}>
       <div class="tiqit-grid" data-status={@status}>
-      <div class="tiqit-tl"></div>
-      <div class="tiqit-top">
-        <div class="flex flex-col items-center justify-center py-4 text-center">
-          <.icon
-            name={if @status == :undone, do: "hero-arrow-uturn-left", else: "hero-shield-check"}
-            class="w-8 h-8 text-base-content/30 mb-2"
-          />
-          <p class="text-sm font-medium text-base-content/60">
+        <div class="tiqit-tl"></div>
+        <div class="tiqit-top">
+          <div class="flex flex-col items-center justify-center py-4 text-center">
+            <.icon
+              name={if @status == :undone, do: "hero-arrow-uturn-left", else: "hero-shield-check"}
+              class="w-8 h-8 text-base-content/30 mb-2"
+            />
+            <p class="text-sm font-medium text-base-content/60">
+              <%= if @status == :undone do %>
+                Tiqit Refunded
+              <% else %>
+                Tiqit Fleeted
+              <% end %>
+            </p>
+          </div>
+        </div>
+        <div class="tiqit-tr"></div>
+
+        <div class="tiqit-notch tiqit-notch-l">
+          <div></div>
+        </div>
+        <div class="tiqit-perf"></div>
+        <div class="tiqit-notch tiqit-notch-r">
+          <div></div>
+        </div>
+
+        <div class="tiqit-bl"></div>
+        <div class="tiqit-bot">
+          <p class="text-xs text-base-content/40 text-center">
             <%= if @status == :undone do %>
-              Tiqit Refunded
+              This tiqit was refunded and fleeted. Purchase details have been disconnected.
             <% else %>
-              Tiqit Fleeted
+              This tiqit has been fleeted. Purchase details are no longer available.
             <% end %>
           </p>
         </div>
-      </div>
-      <div class="tiqit-tr"></div>
-
-      <div class="tiqit-notch tiqit-notch-l">
-        <div></div>
-      </div>
-      <div class="tiqit-perf"></div>
-      <div class="tiqit-notch tiqit-notch-r">
-        <div></div>
-      </div>
-
-      <div class="tiqit-bl"></div>
-      <div class="tiqit-bot">
-        <p class="text-xs text-base-content/40 text-center">
-          <%= if @status == :undone do %>
-            This tiqit was refunded and fleeted. Purchase details have been disconnected.
-          <% else %>
-            This tiqit has been fleeted. Purchase details are no longer available.
-          <% end %>
-        </p>
-      </div>
         <div class="tiqit-br"></div>
       </div>
     </div>
@@ -767,7 +771,7 @@ defmodule QlariusWeb.TiqitComponents do
 
   def fleet_confirm_modal(assigns) do
     ~H"""
-    <.modal id={@id}>
+    <.modal id={@id} on_cancel={hide_modal(@id)}>
       <div class="p-6">
         <h3 class="text-lg font-bold mb-2">Fleet This Tiqit?</h3>
         <p class="text-base-content/70 mb-4">
@@ -794,7 +798,7 @@ defmodule QlariusWeb.TiqitComponents do
 
   def preserve_confirm_modal(assigns) do
     ~H"""
-    <.modal id={@id}>
+    <.modal id={@id} on_cancel={hide_modal(@id)}>
       <div class="p-6">
         <h3 class="text-lg font-bold mb-2">Keep This Tiqit?</h3>
         <p class="text-base-content/70 mb-4">
@@ -824,7 +828,7 @@ defmodule QlariusWeb.TiqitComponents do
 
   def unpreserve_confirm_modal(assigns) do
     ~H"""
-    <.modal id={@id}>
+    <.modal id={@id} on_cancel={hide_modal(@id)}>
       <div class="p-6">
         <h3 class="text-lg font-bold mb-2">Don't Keep This Tiqit?</h3>
         <p class="text-base-content/70 mb-4">
@@ -853,7 +857,7 @@ defmodule QlariusWeb.TiqitComponents do
 
   def undo_confirm_modal(assigns) do
     ~H"""
-    <.modal id={@id} on_cancel={JS.push("clear_undo_context")}>
+    <.modal id={@id} on_cancel={JS.push("clear_undo_context") |> hide_modal(@id)}>
       <div class="p-6">
         <h3 class="text-lg font-bold mb-2">Refund This Tiqit?</h3>
         <p class="text-base-content/70 mb-4">

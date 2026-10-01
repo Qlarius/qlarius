@@ -3865,8 +3865,8 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
 
 /* ── Status themes (light) ── */
 .tiqit-grid[data-status="active"] {
-  --ticket-border: var(--color-sponster-500);
-  --ticket-bg: oklch(99% 0.012 155 / 0.34);
+  --ticket-border: var(--color-tiqit-500);
+  --ticket-bg: oklch(99% 0.012 70 / 0.34);
 }
 .tiqit-grid[data-status="expired"] {
   --ticket-border: var(--color-tiqit-600);
@@ -3887,8 +3887,8 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
 
 /* ── Status themes (dark) ── */
 [data-theme="dark"] .tiqit-grid[data-status="active"] {
-  --ticket-border: var(--color-sponster-600);
-  --ticket-bg: oklch(28% 0.04 155 / 0.18);
+  --ticket-border: var(--color-tiqit-500);
+  --ticket-bg: oklch(28% 0.04 70 / 0.18);
 }
 [data-theme="dark"] .tiqit-grid[data-status="expired"] {
   --ticket-border: var(--color-tiqit-700);

@@ -363,7 +363,7 @@ defmodule QlariusWeb.ReferralsLive do
         </div>
 
         <:modals>
-          <.modal id="payout-modal">
+          <.modal id="payout-modal" on_cancel={hide_modal("payout-modal")}>
             <.surface_panel class="max-w-lg">
               <h3 class={referrals_panel_title_classes()}>Confirm Referral Payout</h3>
               <p class="py-4 text-base-content/80">
