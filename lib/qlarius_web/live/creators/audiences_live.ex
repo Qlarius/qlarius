@@ -251,7 +251,9 @@ defmodule QlariusWeb.Creators.AudiencesLive do
     {:noreply,
      socket
      |> put_flash(:info, "Populating audience “#{socket.assigns.target.title}”...")
-     |> push_navigate(to: inspect_path(socket.assigns.creator, socket.assigns.target))}
+     |> push_navigate(
+       to: inspect_path(socket.assigns.creator, socket.assigns.target, socket.assigns.attach)
+     )}
   end
 
   def handle_event("refresh_population", _params, socket) do
@@ -283,7 +285,8 @@ defmodule QlariusWeb.Creators.AudiencesLive do
       {:noreply,
        put_flash(socket, :error, "Add at least one tag or trait group before finishing")}
     else
-      {:noreply, push_navigate(socket, to: ~p"/creators/#{socket.assigns.creator.id}/audiences")}
+      {:noreply,
+       push_navigate(socket, to: index_path(socket.assigns.creator, socket.assigns.attach))}
     end
   end
 
@@ -298,7 +301,12 @@ defmodule QlariusWeb.Creators.AudiencesLive do
            mode
          ) do
       {:ok, _} ->
-        {:noreply, put_flash(socket, :info, "Audience attached as #{mode}")}
+        label = if mode == :gate, do: "restriction", else: "relevance"
+
+        {:noreply,
+         socket
+         |> put_flash(:info, "“#{socket.assigns.target.title}” attached as #{label}")
+         |> push_navigate(to: attach_return_path(socket.assigns.attach))}
 
       {:error, reason} ->
         {:noreply, put_flash(socket, :error, "Could not attach: #{inspect(reason)}")}
@@ -680,6 +688,7 @@ defmodule QlariusWeb.Creators.AudiencesLive do
                   band_population_counts={@band_population_counts}
                   target_form={@target_form}
                   editing_target_info={@editing_target_info}
+                  attach={@attach}
                 />
             <% end %>
           </div>
@@ -751,7 +760,7 @@ defmodule QlariusWeb.Creators.AudiencesLive do
                 </.link>
                 <.link
                   :if={aud.population_status == "populated"}
-                  navigate={inspect_path(@creator, aud)}
+                  navigate={inspect_path(@creator, aud, @attach)}
                   class="btn btn-sm btn-info btn-outline"
                 >
                   Inspect
@@ -897,24 +906,7 @@ defmodule QlariusWeb.Creators.AudiencesLive do
         <button type="button" class="btn btn-sm" phx-click="refine">Copy to refine</button>
       </div>
 
-      <div :if={@attach} class="flex gap-2 mb-6">
-        <button
-          type="button"
-          class="btn btn-sm btn-primary"
-          phx-click="attach"
-          phx-value-mode="boost"
-        >
-          Attach as relevance
-        </button>
-        <button
-          type="button"
-          class="btn btn-sm btn-outline"
-          phx-click="attach"
-          phx-value-mode="gate"
-        >
-          Attach as restriction
-        </button>
-      </div>
+      <.attach_buttons attach={@attach} />
 
       <form :if={@marketers != []} phx-submit="promote" class="flex gap-2 items-end mb-6">
         <label class="form-control grow">
@@ -979,6 +971,7 @@ defmodule QlariusWeb.Creators.AudiencesLive do
   attr :band_population_counts, :map, required: true
   attr :target_form, :any, required: true
   attr :editing_target_info, :boolean, required: true
+  attr :attach, :any, required: true
 
   defp inspect_view(assigns) do
     ~H"""
@@ -995,10 +988,7 @@ defmodule QlariusWeb.Creators.AudiencesLive do
             <.icon name="hero-pencil" class="w-5 h-5" />
           </button>
         </div>
-        <.link
-          navigate={~p"/creators/#{@creator.id}/audiences/#{@target.id}/edit"}
-          class="btn btn-ghost btn-sm"
-        >
+        <.link navigate={edit_path(@creator, @target, @attach)} class="btn btn-ghost btn-sm">
           Edit audience
         </.link>
       </div>
@@ -1039,12 +1029,29 @@ defmodule QlariusWeb.Creators.AudiencesLive do
         <p class="text-base-content/70">{@target.description}</p>
       </div>
 
+      <.attach_buttons attach={@attach} />
+
       <Targeting.population_inspect
         copy={Targeting.copy(:audience)}
         bands={@bands}
         band_population_counts={@band_population_counts}
         show_frozen_note?={false}
       />
+    </div>
+    """
+  end
+
+  attr :attach, :any, required: true
+
+  defp attach_buttons(assigns) do
+    ~H"""
+    <div :if={@attach} class="flex gap-2 mb-6">
+      <button type="button" class="btn btn-sm btn-primary" phx-click="attach" phx-value-mode="boost">
+        Attach as relevance
+      </button>
+      <button type="button" class="btn btn-sm btn-outline" phx-click="attach" phx-value-mode="gate">
+        Attach as restriction
+      </button>
     </div>
     """
   end
@@ -1078,8 +1085,21 @@ defmodule QlariusWeb.Creators.AudiencesLive do
   defp edit_path(creator, target, %{level: level, id: id}),
     do: ~p"/creators/#{creator.id}/audiences/#{target.id}/edit?attach=#{level}&attach_id=#{id}"
 
-  defp inspect_path(creator, target),
+  defp inspect_path(creator, target, nil),
     do: ~p"/creators/#{creator.id}/audiences/#{target.id}/inspect"
+
+  defp inspect_path(creator, target, %{level: level, id: id}),
+    do: ~p"/creators/#{creator.id}/audiences/#{target.id}/inspect?attach=#{level}&attach_id=#{id}"
+
+  defp index_path(creator, nil), do: ~p"/creators/#{creator.id}/audiences"
+
+  defp index_path(creator, %{level: level, id: id}),
+    do: ~p"/creators/#{creator.id}/audiences?attach=#{level}&attach_id=#{id}"
+
+  defp attach_return_path(%{level: :creator, id: id}), do: ~p"/creators/#{id}"
+  defp attach_return_path(%{level: :catalog, id: id}), do: ~p"/creators/catalogs/#{id}"
+  defp attach_return_path(%{level: :group, id: id}), do: ~p"/creators/content_groups/#{id}"
+  defp attach_return_path(%{level: :piece, id: id}), do: ~p"/creators/content_pieces/#{id}"
 
   defp load_attach_content!(%{level: :creator, id: id}), do: Creators.get_creator!(id)
   defp load_attach_content!(%{level: :catalog, id: id}), do: Repo.get!(Catalog, id)
