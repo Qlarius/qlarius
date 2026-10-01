@@ -18,6 +18,14 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
     field :show_piece_descriptions, :boolean, default: true
     field :show_open_in_tab, :boolean, default: true
 
+    field :source_provider, :string
+    field :source_url, :string
+    field :feed_url, :string
+    field :feed_season, :integer
+    field :feed_episode_types, {:array, :string}, default: []
+    field :feed_auto_sync, :boolean, default: false
+    field :last_synced_at, :utc_datetime
+
     has_many :content_pieces, ContentPiece
 
     has_many :tiqit_classes, TiqitClass,
@@ -27,7 +35,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
     timestamps(type: :utc_datetime)
   end
 
-  @piece_order_presets ~w(asc desc title_asc title_desc)
+  @piece_order_presets ~w(episode asc desc title_asc title_desc)
 
   @doc """
   True when the list has at least one non-archived content piece.
@@ -73,6 +81,7 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
   def sort_pieces_by_preset(pieces, preset)
       when is_list(pieces) and preset in @piece_order_presets do
     case preset do
+      "episode" -> Enum.sort_by(pieces, &episode_sort_key/1)
       "asc" -> Enum.sort_by(pieces, & &1.inserted_at, :asc)
       "desc" -> Enum.sort_by(pieces, & &1.inserted_at, :desc)
       "title_asc" -> Enum.sort_by(pieces, &title_sort_key/1, :asc)
@@ -81,6 +90,21 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
   end
 
   def piece_order_presets, do: @piece_order_presets
+
+  # Trailers first, then numbered episodes, then bonus and unnumbered items.
+  # Ties fall back to the current display order.
+  defp episode_sort_key(%ContentPiece{} = piece) do
+    rank =
+      case piece do
+        %{episode_type: "trailer"} -> 0
+        %{episode_type: "bonus"} -> 2
+        %{episode_number: n} when is_integer(n) -> 1
+        _ -> 2
+      end
+
+    number = if rank == 1, do: piece.episode_number, else: 0
+    {piece.season || 0, rank, number, piece.display_order || 0, piece.id}
+  end
 
   defp title_sort_key(%ContentPiece{title: title}) when is_binary(title),
     do: String.downcase(title)
@@ -111,5 +135,28 @@ defmodule Qlarius.Tiqit.Arcade.ContentGroup do
     content_group
     |> changeset(attrs)
     |> put_change(:image, attrs["image"])
+  end
+
+  @doc """
+  Source and feed fields written by imports (RSS, content packs).
+  """
+  def import_changeset(content_group, attrs) do
+    content_group
+    |> cast(attrs, [
+      :title,
+      :description,
+      :image,
+      :source_provider,
+      :source_url,
+      :feed_url,
+      :feed_season,
+      :feed_episode_types,
+      :feed_auto_sync,
+      :last_synced_at
+    ])
+    |> validate_required([:title])
+    |> validate_length(:title, max: 255)
+    |> validate_inclusion(:source_provider, ~w(youtube rss api_pack))
+    |> validate_subset(:feed_episode_types, ContentPiece.episode_types())
   end
 end

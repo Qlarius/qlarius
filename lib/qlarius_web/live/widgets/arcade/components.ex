@@ -1244,6 +1244,15 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         <.icon name="hero-gift" class="h-4 w-4" /> Gifted
       </span>
       <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-base-content/50 text-xs shrink-0">
+        <span
+          data-arqade-selected-episode
+          class={[
+            "font-semibold text-base-content/70",
+            is_nil(ContentPiece.episode_label(@piece)) && "hidden"
+          ]}
+        >
+          {ContentPiece.episode_label(@piece)}
+        </span>
         <span class="flex items-center gap-1">
           <.icon name="hero-clock" class="w-3 h-3" /><span data-arqade-selected-duration>{@piece.duration}</span>
         </span>

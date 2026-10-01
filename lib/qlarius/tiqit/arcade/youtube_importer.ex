@@ -18,10 +18,9 @@ defmodule Qlarius.Tiqit.Arcade.YoutubeImporter do
   """
 
   alias Qlarius.Repo
-  alias Qlarius.Tiqit.Arcade.{Arcade, ContentGroup, ContentPiece}
+  alias Qlarius.Tiqit.Arcade.{Arcade, ContentGroup, ContentPiece, ImportImage}
   alias Qlarius.Tiqit.Arcade.Creators
   alias Qlarius.Youtube.Client
-  alias QlariusWeb.Uploaders.CreatorImage
 
   require Logger
 
@@ -169,38 +168,9 @@ defmodule Qlarius.Tiqit.Arcade.YoutubeImporter do
   defp store_thumbnail(%ContentGroup{}, %{thumbnail_url: ""}), do: {:ok, nil}
 
   defp store_thumbnail(%ContentGroup{} = group, %{thumbnail_url: url, youtube_id: yt_id}) do
-    case Req.get(url) do
-      {:ok, %Req.Response{status: 200, body: body}} ->
-        ext = thumbnail_extension(url)
-        tmp_path = Path.join(System.tmp_dir!(), "yt-#{yt_id}-#{:rand.uniform(1_000_000)}#{ext}")
-        File.write!(tmp_path, body)
-
-        upload = %Plug.Upload{
-          path: tmp_path,
-          filename: "yt-#{yt_id}#{ext}",
-          content_type: "image/jpeg"
-        }
-
-        result = CreatorImage.store({upload, group})
-        File.rm(tmp_path)
-
-        case result do
-          {:ok, filename} -> {:ok, filename}
-          other -> {:error, "Failed to store thumbnail: #{inspect(other)}"}
-        end
-
-      {:ok, %Req.Response{status: status}} ->
-        {:error, "Thumbnail download failed (#{status})"}
-
-      {:error, exception} ->
-        {:error, "Thumbnail download error: #{Exception.message(exception)}"}
-    end
-  end
-
-  defp thumbnail_extension(url) do
-    case Path.extname(URI.parse(url).path || "") do
-      "" -> ".jpg"
-      ext -> ext
+    case ImportImage.store(url, group, "yt-#{yt_id}") do
+      {:ok, filename} -> {:ok, filename}
+      {:error, reason} -> {:error, "Thumbnail: #{reason}"}
     end
   end
 
@@ -212,6 +182,8 @@ defmodule Qlarius.Tiqit.Arcade.YoutubeImporter do
       length: video.length,
       image: image_filename,
       youtube_id: video.youtube_id,
+      media_type: "youtube",
+      external_id: video.youtube_id,
       display_order: display_order,
       source_provider: "youtube",
       source_url: "https://www.youtube.com/watch?v=#{video.youtube_id}",

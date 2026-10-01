@@ -359,12 +359,21 @@ defmodule QlariusWeb.CreatorDashboard.Show do
                 <div>
                   <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold">Tiqit Catalogs</h2>
-                    <.link
-                      navigate={~p"/creators/#{@creator.id}/catalogs/new"}
-                      class="btn btn-primary btn-sm"
-                    >
-                      New Catalog
-                    </.link>
+                    <div class="flex gap-2">
+                      <.link
+                        :if={@current_scope.true_user.role == "admin" and @creator.catalogs != []}
+                        navigate={~p"/creators/#{@creator.id}/rss_import"}
+                        class="btn btn-outline btn-primary btn-sm"
+                      >
+                        <.icon name="hero-rss" class="w-4 h-4 mr-1" /> Import from RSS
+                      </.link>
+                      <.link
+                        navigate={~p"/creators/#{@creator.id}/catalogs/new"}
+                        class="btn btn-primary btn-sm"
+                      >
+                        New Catalog
+                      </.link>
+                    </div>
                   </div>
 
                   <%= if @creator.catalogs == [] do %>

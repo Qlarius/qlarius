@@ -8,6 +8,8 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
   alias QlariusWeb.AudienceCard
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Tiqit.Arcade.ContentGroup
+  alias Qlarius.Tiqit.Arcade.ContentPiece
+  alias Qlarius.Tiqit.Arcade.RssImporter
   alias Qlarius.Tiqit.Arcade.TiqitClass
   alias QlariusWeb.Creators.ContentGroupHTML
   alias QlariusWeb.Helpers.ImageHelpers
@@ -29,7 +31,16 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
      |> assign(:page_title, content_group.title)
      |> assign(:piece_class_defaults, piece_class_defaults_from_group(content_group))
      |> assign(:piece_class_defaults_form_id, "piece-class-defaults-form")
+     |> assign(:admin?, admin?(socket))
+     |> assign(:feed_syncing?, false)
      |> assign(:audience, ContentAudiences.effective_audience(content_group))}
+  end
+
+  defp admin?(socket) do
+    case socket.assigns[:current_scope] do
+      %{true_user: %{role: "admin"}} -> true
+      _ -> false
+    end
   end
 
   @impl true
@@ -49,6 +60,30 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
      |> put_flash(:info, "Content group deleted successfully")
      |> push_navigate(to: ~p"/creators/catalogs/#{catalog.id}")}
   end
+
+  def handle_event("sync_feed", _params, %{assigns: %{admin?: true}} = socket) do
+    group = socket.assigns.content_group
+
+    {:noreply,
+     socket
+     |> assign(:feed_syncing?, true)
+     |> start_async(:sync_feed, fn -> RssImporter.sync_group(group) end)}
+  end
+
+  def handle_event("toggle_feed_auto_sync", _params, %{assigns: %{admin?: true}} = socket) do
+    group = socket.assigns.content_group
+
+    case RssImporter.set_auto_sync(group, !group.feed_auto_sync) do
+      {:ok, _group} ->
+        {:noreply, assign(socket, :content_group, Creators.get_content_group!(group.id))}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not change daily sync.")}
+    end
+  end
+
+  def handle_event(event, _params, socket) when event in ~w(sync_feed toggle_feed_auto_sync),
+    do: {:noreply, socket}
 
   def handle_event("add_default_tiqit_classes", _params, socket) do
     Arcade.write_default_group_tiqit_classes(socket.assigns.content_group)
@@ -153,6 +188,18 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
   end
 
   def handle_event("apply_piece_class_defaults", _params, socket), do: {:noreply, socket}
+
+  def handle_event(
+        "apply_piece_order_preset",
+        %{"preset" => "episode"},
+        %{assigns: %{admin?: true, content_group: %{feed_url: url} = group}} = socket
+      )
+      when is_binary(url) and url != "" do
+    {:noreply,
+     socket
+     |> assign(:feed_syncing?, true)
+     |> start_async(:reorder_by_episode, fn -> RssImporter.reorder_by_episode(group) end)}
+  end
 
   def handle_event("apply_piece_order_preset", params, socket) do
     preset = Map.get(params, "preset", "")
@@ -336,6 +383,75 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
   end
 
   @impl true
+  def handle_async(:sync_feed, {:ok, {:ok, detail}}, socket) do
+    %{created: created, updated: updated} = detail.counts
+
+    {:noreply,
+     socket
+     |> assign(:feed_syncing?, false)
+     |> assign(:content_group, Creators.get_content_group!(socket.assigns.content_group.id))
+     |> put_flash(:info, "Feed synced: #{created} new, #{updated} updated.")}
+  end
+
+  def handle_async(:sync_feed, {:ok, {:error, reason}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:feed_syncing?, false)
+     |> put_flash(:error, "Feed sync failed: #{sync_error_text(reason)}")}
+  end
+
+  def handle_async(:reorder_by_episode, {:ok, {:ok, _detail}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:feed_syncing?, false)
+     |> assign(:content_group, Creators.get_content_group!(socket.assigns.content_group.id))
+     |> put_flash(:info, "Renumbered from the feed and put in episode order.")}
+  end
+
+  def handle_async(:reorder_by_episode, {:ok, {:error, reason}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:feed_syncing?, false)
+     |> put_flash(:error, "Could not reorder: #{sync_error_text(reason)}")}
+  end
+
+  def handle_async(:reorder_by_episode, {:exit, reason}, socket) do
+    {:noreply,
+     socket
+     |> assign(:feed_syncing?, false)
+     |> put_flash(:error, "Reorder crashed: #{inspect(reason)}")}
+  end
+
+  def handle_async(:sync_feed, {:exit, reason}, socket) do
+    {:noreply,
+     socket
+     |> assign(:feed_syncing?, false)
+     |> put_flash(:error, "Feed sync crashed: #{inspect(reason)}")}
+  end
+
+  defp sync_error_text(reason) when is_binary(reason), do: reason
+
+  defp sync_error_text(reason) when is_atom(reason),
+    do: String.replace(to_string(reason), "_", " ")
+
+  defp sync_error_text(reason), do: inspect(reason)
+
+  defp feed_scope_label(group) do
+    season = if group.feed_season, do: "Season #{group.feed_season}", else: "All seasons"
+
+    types =
+      case group.feed_episode_types do
+        [_ | _] = types -> Enum.join(types, ", ")
+        _ -> Enum.join(RssImporter.default_episode_types(), ", ")
+      end
+
+    "#{season} · #{types}"
+  end
+
+  defp format_synced_at(nil), do: "never"
+  defp format_synced_at(%DateTime{} = at), do: Calendar.strftime(at, "%b %-d, %Y %H:%M UTC")
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div>
@@ -440,6 +556,48 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                             </div>
                           </div>
                         <% end %>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div :if={@content_group.feed_url} class="card bg-base-100 shadow-lg">
+                    <div class="card-body space-y-3">
+                      <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div class="min-w-0">
+                          <h3 class="text-lg font-semibold flex items-center gap-2">
+                            <.icon name="hero-rss" class="w-5 h-5 text-primary" /> Podcast feed
+                          </h3>
+                          <p class="text-xs text-base-content/60 break-all">
+                            {@content_group.feed_url}
+                          </p>
+                          <p class="text-sm text-base-content/70 mt-1">
+                            {feed_scope_label(@content_group)} · Last synced {format_synced_at(
+                              @content_group.last_synced_at
+                            )}
+                          </p>
+                        </div>
+                        <div :if={@admin?} class="flex items-center gap-3">
+                          <label class="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              class="toggle toggle-primary toggle-sm"
+                              checked={@content_group.feed_auto_sync}
+                              phx-click="toggle_feed_auto_sync"
+                            /> Daily sync
+                          </label>
+                          <button
+                            type="button"
+                            phx-click="sync_feed"
+                            class="btn btn-outline btn-sm"
+                            disabled={@feed_syncing?}
+                          >
+                            <%= if @feed_syncing? do %>
+                              <span class="loading loading-spinner loading-xs mr-1"></span> Syncing…
+                            <% else %>
+                              <.icon name="hero-arrow-path" class="w-4 h-4 mr-1" /> Sync now
+                            <% end %>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -645,6 +803,14 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                         >
                           <.icon name="hero-play-circle" class="w-4 h-4 mr-2" /> Import from YouTube
                         </.link>
+
+                        <.link
+                          :if={@admin?}
+                          navigate={~p"/creators/content_groups/#{@content_group.id}/rss_import"}
+                          class="btn btn-outline btn-primary"
+                        >
+                          <.icon name="hero-rss" class="w-4 h-4 mr-2" /> Import from RSS
+                        </.link>
                       </div>
                     </div>
 
@@ -672,6 +838,12 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                                       </h3>
 
                                       <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-base-content/50">
+                                        <span
+                                          :if={ContentPiece.episode_label(piece)}
+                                          class="font-semibold text-base-content/70"
+                                        >
+                                          {ContentPiece.episode_label(piece)}
+                                        </span>
                                         <span class="flex items-center gap-1">
                                           <.icon name="hero-calendar" class="w-3 h-3" />
                                           {Calendar.strftime(piece.inserted_at, "%b %d, %Y")}
@@ -781,6 +953,16 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
                                 <.icon name="hero-play-circle" class="w-5 h-5 mr-2" />
                                 Import from YouTube
                               </.link>
+
+                              <.link
+                                :if={@admin?}
+                                navigate={
+                                  ~p"/creators/content_groups/#{@content_group.id}/rss_import"
+                                }
+                                class="btn btn-outline btn-primary btn-lg"
+                              >
+                                <.icon name="hero-rss" class="w-5 h-5 mr-2" /> Import from RSS
+                              </.link>
                             </div>
                           </div>
                         </div>
@@ -811,6 +993,7 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Show do
             </label>
             <select name="preset" class="select select-bordered select-sm w-full">
               <option value="">Choose…</option>
+              <option value="episode">Episode order (trailer, then Ep 1, 2, 3…)</option>
               <option value="desc">Newest first (by date added)</option>
               <option value="asc">Oldest first (by date added)</option>
               <option value="title_asc">Title A–Z</option>

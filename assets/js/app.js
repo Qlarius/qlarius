@@ -1868,6 +1868,11 @@ Hooks.ArqadeEpisodesScroll = {
         el.textContent = duration
       })
     }
+    const episode = row.dataset.arqadeEpisode || ''
+    root.querySelectorAll('[data-arqade-selected-episode]').forEach((el) => {
+      el.textContent = episode
+      el.classList.toggle('hidden', episode === '')
+    })
 
     const rowDesc = row.querySelector('[data-arqade-row-description]')
     root.querySelectorAll('[data-arqade-selected-description]').forEach((el) => {

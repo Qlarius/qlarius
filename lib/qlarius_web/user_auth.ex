@@ -293,6 +293,8 @@ defmodule QlariusWeb.UserAuth do
     end
   end
 
+  @admin_api_guide "/api/admin/agent_guide"
+
   @doc """
   Resolves an admin catalog API caller.
 
@@ -334,19 +336,24 @@ defmodule QlariusWeb.UserAuth do
       conn.assigns[:admin_api_forbidden] ->
         conn
         |> put_status(403)
-        |> json(%{error: "forbidden", message: "Admin role required"})
+        |> json(%{error: "forbidden", message: "Admin role required", guide: @admin_api_guide})
         |> halt()
 
       scope && scope.true_user ->
         conn
         |> put_status(403)
-        |> json(%{error: "forbidden", message: "Admin role required"})
+        |> json(%{error: "forbidden", message: "Admin role required", guide: @admin_api_guide})
         |> halt()
 
       true ->
         conn
         |> put_status(401)
-        |> json(%{error: "unauthorized", message: "Admin authentication required"})
+        |> json(%{
+          error: "unauthorized",
+          message:
+            "Admin authentication required. Send an admin API token as Authorization: Bearer <token>.",
+          guide: @admin_api_guide
+        })
         |> halt()
     end
   end

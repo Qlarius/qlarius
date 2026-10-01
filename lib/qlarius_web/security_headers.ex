@@ -51,8 +51,8 @@ defmodule QlariusWeb.SecurityHeaders do
     {"base-uri", "'self'"},
     {"default-src", "'self'"},
     {"img-src", "'self' data: http: https: blob:"},
-    {"media-src",
-     "'self' http://localhost:4000 https://localhost:4001 https://*.s3.us-east-1.amazonaws.com https://*.s3.amazonaws.com"},
+    # Podcast audio is served from arbitrary hosts behind tracking redirects.
+    {"media-src", "'self' http://localhost:4000 https:"},
     {"style-src", "'self' 'unsafe-inline'"},
     {"script-src", "'self' 'unsafe-inline' 'unsafe-eval'"},
     {"connect-src", "'self' ws: wss: http: https:"},

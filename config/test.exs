@@ -56,3 +56,7 @@ config :qlarius, :in_app_browser_escape, enabled: true, auto_attempt: false
 config :qlarius, :qai,
   anthropic_api_key: "test-key",
   req_options: [plug: {Req.Test, Qlarius.Qai.Anthropic}]
+
+# Feed and image downloads for content imports go through a Req.Test stub.
+config :qlarius, :content_import,
+  req_options: [plug: {Req.Test, Qlarius.Tiqit.Arcade.ImportHttp}, retry: false]

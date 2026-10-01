@@ -428,6 +428,15 @@ defmodule QlariusWeb.Router do
     post "/tokens", TokenController, :create
     delete "/tokens/:id", TokenController, :delete
 
+    get "/agent_guide", AgentGuideController, :show
+
+    get "/creators", ContentGroupController, :creators
+    get "/content_groups", ContentGroupController, :index
+    post "/content_groups/packs", ContentGroupController, :pack
+    post "/content_groups/rss_imports", ContentGroupController, :rss_import
+    post "/content_groups/:id/sync", ContentGroupController, :sync
+    get "/rss/preview", ContentGroupController, :rss_preview
+
     get "/trait_categories", TraitCategoryController, :index
     post "/trait_categories", TraitCategoryController, :create
     patch "/trait_categories/:id", TraitCategoryController, :update
@@ -585,6 +594,12 @@ defmodule QlariusWeb.Router do
       live "/creators/content_groups/:content_group_id/youtube_import",
            Creators.ContentGroupLive.YoutubeImport,
            :index
+
+      live "/creators/:creator_id/rss_import", Creators.ContentGroupLive.RssImport, :new
+
+      live "/creators/content_groups/:content_group_id/rss_import",
+           Creators.ContentGroupLive.RssImport,
+           :into_group
 
       live "/creators/content_pieces/:id", Creators.ContentPieceLive.Show, :show
       live "/creators/content_pieces/:id/edit", Creators.ContentPieceLive.Form, :edit

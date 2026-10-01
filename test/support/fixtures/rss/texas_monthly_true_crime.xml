@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Texas Monthly True Crime</title>
+    <link>https://www.texasmonthly.com/podcasts/</link>
+    <description><![CDATA[<p>True stories from <b>Texas</b>.</p>]]></description>
+    <itunes:author>Texas Monthly</itunes:author>
+    <itunes:image href="https://cdn.example.com/show.jpg"/>
+    <item>
+      <title>Bonus: Behind the Story</title>
+      <guid isPermaLink="false">tm-s3-bonus-1</guid>
+      <pubDate>Wed, 01 May 2024 09:00:00 +0000</pubDate>
+      <enclosure url="https://audio.example.com/s3-bonus-1.mp3" length="1000" type="audio/mpeg"/>
+      <itunes:duration>1200</itunes:duration>
+      <itunes:season>3</itunes:season>
+      <itunes:episodeType>bonus</itunes:episodeType>
+      <description>A conversation with the reporters.</description>
+    </item>
+    <item>
+      <title>Episode 3: The Appeal</title>
+      <guid isPermaLink="false">tm-s3-e3</guid>
+      <pubDate>Wed, 17 Apr 2024 09:00:00 +0000</pubDate>
+      <enclosure url="http://audio.example.com/s3-e3.mp3" length="1000" type="audio/mpeg"/>
+      <itunes:duration>45:00</itunes:duration>
+      <itunes:season>3</itunes:season>
+      <itunes:episode>3</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <description>The appeal.</description>
+    </item>
+    <item>
+      <title>Episode 2: The Trial</title>
+      <guid isPermaLink="false">tm-s3-e2</guid>
+      <pubDate>Wed, 10 Apr 2024 09:00:00 +0000</pubDate>
+      <enclosure url="https://audio.example.com/s3-e2.mp3" length="1000" type="audio/mpeg"/>
+      <itunes:duration>3069</itunes:duration>
+      <itunes:season>3</itunes:season>
+      <itunes:episode>2</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <description>The trial.</description>
+    </item>
+    <item>
+      <title>Episode 1: The Crime</title>
+      <guid isPermaLink="false">tm-s3-e1</guid>
+      <link>https://www.texasmonthly.com/podcasts/episode-1/</link>
+      <pubDate>Wed, 03 Apr 2024 09:00:00 +0000</pubDate>
+      <enclosure url="https://audio.example.com/s3-e1.mp3" length="1000" type="audio/mpeg"/>
+      <itunes:duration>00:51:09</itunes:duration>
+      <itunes:season>3</itunes:season>
+      <itunes:episode>1</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:image href="https://cdn.example.com/s3-e1.jpg"/>
+      <description><![CDATA[<p>Where it began.</p><p>Part one.</p>]]></description>
+    </item>
+    <item>
+      <title>Trailer</title>
+      <guid isPermaLink="false">tm-s3-trailer</guid>
+      <pubDate>Wed, 27 Mar 2024 09:00:00 +0000</pubDate>
+      <enclosure url="https://audio.example.com/s3-trailer.mp3" length="1000" type="audio/mpeg"/>
+      <itunes:duration>2:30</itunes:duration>
+      <itunes:season>3</itunes:season>
+      <itunes:episodeType>trailer</itunes:episodeType>
+      <description>Coming soon.</description>
+    </item>
+    <item>
+      <title>Season 2, Episode 1</title>
+      <guid isPermaLink="false">tm-s2-e1</guid>
+      <pubDate>Sun, 01 Jan 2023 09:00:00 +0000</pubDate>
+      <enclosure url="https://audio.example.com/s2-e1.mp3" length="1000" type="audio/mpeg"/>
+      <itunes:duration>40:00</itunes:duration>
+      <itunes:season>2</itunes:season>
+      <itunes:episode>1</itunes:episode>
+      <description>An older season.</description>
+    </item>
+  </channel>
+</rss>

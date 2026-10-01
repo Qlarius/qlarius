@@ -1,0 +1,302 @@
+openapi: 3.0.3
+info:
+  title: Qlarius admin content group API
+  version: "1"
+  description: |
+    Admin-only JSON API for building tiqit arqade content groups from an
+    agent-built pack or a podcast RSS feed. Bearer token for an admin user.
+
+    Agents should read GET /api/admin/agent_guide first. Every error body
+    carries a guide field that points back to it.
+
+    Pieces are matched so repeated calls never duplicate them: external_id
+    in the group first, then youtube_id in the catalog (a match in another
+    group is skipped), then source_url in the group. Archived pieces are not
+    matched. Each piece reports created, updated, unchanged, or skipped.
+
+    Audio URLs must be https. Artwork is downloaded and stored; a failed
+    download is a warning, not an error. Send dry_run true to see the plan
+    without writing.
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+paths:
+  /api/admin/agent_guide:
+    get:
+      summary: How-to for AI agents that call this API
+      parameters:
+        - in: query
+          name: topic
+          schema: {type: string, enum: [all, content_groups, traits]}
+          description: The overview is always included
+        - in: query
+          name: format
+          schema: {type: string, enum: [markdown, json]}
+      responses:
+        "200":
+          description: Markdown by default; JSON has version, topics, guide, endpoints
+        "404":
+          description: Unknown topic
+  /api/admin/creators:
+    get:
+      summary: Creators with their catalogs
+      responses:
+        "200":
+          description: "{creators: [{id, name, catalogs: [{id, name, type, group_type, piece_type}]}]}"
+  /api/admin/content_groups:
+    get:
+      summary: Content groups in a catalog
+      parameters:
+        - in: query
+          name: catalog_id
+          required: true
+          schema: {type: integer}
+      responses:
+        "200":
+          description: "{content_groups: [ContentGroup + piece_count]}"
+        "422":
+          $ref: "#/components/responses/Error"
+  /api/admin/content_groups/packs:
+    post:
+      summary: Create or update a content group from a pack
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/Pack"}
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ImportResult"}
+          description: What was (or would be) written
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /api/admin/rss/preview:
+    get:
+      summary: Read a podcast feed without importing it
+      parameters:
+        - in: query
+          name: feed_url
+          required: true
+          schema: {type: string, format: uri}
+      responses:
+        "200":
+          description: |
+            {feed_url, channel, seasons: [{season, count, episode_types, first_title, first_published}],
+            renumbered_seasons, items: [{guid, title, description, date_published, published_at,
+            length_seconds, season, episode_number, feed_episode_number, episode_type, audio_url,
+            audio_type, image_url, link}]}
+
+            Items are in publish order (date and time). episode_number is the number an import
+            will store: full episodes keep the feed's numbers when they run consecutively in
+            publish order, otherwise they are numbered 1..N per season. feed_episode_number is
+            the raw feed value. renumbered_seasons lists seasons whose numbers were rebuilt
+            (null = items without a season).
+        "422":
+          $ref: "#/components/responses/Error"
+  /api/admin/content_groups/rss_imports:
+    post:
+      summary: Import a feed, or one season of it, as audio pieces
+      description: |
+        Items are imported oldest first and keyed by guid. Items without an
+        https audio file are skipped with a warning. The feed settings are
+        stored on the group for later syncs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/RssImport"}
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ImportResult"}
+          description: What was (or would be) written
+        "422":
+          $ref: "#/components/responses/Error"
+  /api/admin/content_groups/{id}/sync:
+    post:
+      summary: Re-read a group's stored feed
+      description: |
+        Adds new guids. Existing pieces only get their audio URL, duration,
+        and episode fields refreshed, so hand-edited titles are kept.
+        Existing pieces are not moved unless reorder is true, which syncs and
+        then orders the group: trailers, episodes by number, then bonus items.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: integer}
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reorder: {type: boolean, default: false}
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ImportResult"}
+          description: Sync result, plus reordered true when reorder was sent
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  responses:
+    Error:
+      description: Error with a machine code, a message, and the guide path
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: invalid_pack
+              message: {type: string}
+              errors:
+                type: array
+                description: For invalid_pack, one entry per problem
+                items:
+                  type: object
+                  properties:
+                    index: {type: integer, description: Piece index in the pack}
+                    field: {type: string}
+                    message: {type: string}
+              guide:
+                type: string
+                example: /api/admin/agent_guide
+  schemas:
+    Pack:
+      type: object
+      required: [mode, catalog_id, content_group, pieces]
+      properties:
+        mode: {type: string, enum: [create, update]}
+        catalog_id: {type: integer}
+        on_existing:
+          type: string
+          enum: [update, skip]
+          default: update
+        dry_run: {type: boolean, default: false}
+        content_group:
+          type: object
+          description: create needs title; update needs id
+          properties:
+            id: {type: integer}
+            title: {type: string}
+            description: {type: string}
+            image_url: {type: string, format: uri}
+            source_url: {type: string, format: uri}
+        pieces:
+          type: array
+          description: create needs at least one; update may send []
+          items: {$ref: "#/components/schemas/Piece"}
+    Piece:
+      type: object
+      required: [title, media]
+      properties:
+        title: {type: string, maxLength: 200}
+        description: {type: string}
+        external_id:
+          type: string
+          description: Stable id from the source (RSS guid, YouTube id). Defaults to youtube_id.
+        date_published: {type: string, format: date}
+        length_seconds: {type: integer}
+        season: {type: integer}
+        episode_number: {type: integer}
+        episode_type: {type: string, enum: [full, trailer, bonus]}
+        image_url:
+          type: string
+          format: uri
+          description: >-
+            Only for art unique to this piece. Not stored when it matches the
+            group image_url or repeats across pieces; the group image is shown instead.
+        source_url: {type: string, format: uri}
+        display_order: {type: integer}
+        media:
+          oneOf:
+            - type: object
+              required: [type, youtube_id]
+              properties:
+                type: {type: string, enum: [youtube]}
+                youtube_id: {type: string}
+            - type: object
+              required: [type, url]
+              properties:
+                type: {type: string, enum: [audio]}
+                url: {type: string, format: uri, description: Must be https}
+    RssImport:
+      type: object
+      required: [feed_url, catalog_id]
+      properties:
+        feed_url: {type: string, format: uri, description: http is upgraded to https}
+        catalog_id: {type: integer}
+        season: {type: integer, description: Omit for every season}
+        episode_types:
+          type: array
+          items: {type: string, enum: [full, trailer, bonus]}
+          default: [full, trailer]
+        content_group_id: {type: integer, description: Import into this group; otherwise a group is created}
+        group_title: {type: string, description: Defaults to the channel title}
+        guids:
+          type: array
+          items: {type: string}
+          description: Only these items
+        auto_sync: {type: boolean, description: Turn daily sync on or off}
+        dry_run: {type: boolean, default: false}
+    ContentGroup:
+      type: object
+      properties:
+        id: {type: integer, nullable: true, description: null on a dry-run create}
+        catalog_id: {type: integer}
+        title: {type: string}
+        description: {type: string}
+        image: {type: string}
+        source_provider: {type: string, enum: [youtube, rss, api_pack]}
+        source_url: {type: string}
+        feed_url: {type: string}
+        feed_season: {type: integer}
+        feed_episode_types:
+          type: array
+          items: {type: string}
+        feed_auto_sync: {type: boolean}
+        last_synced_at: {type: string, format: date-time}
+    ImportResult:
+      type: object
+      properties:
+        dry_run: {type: boolean}
+        content_group: {$ref: "#/components/schemas/ContentGroup"}
+        pieces:
+          type: array
+          items:
+            type: object
+            properties:
+              index: {type: integer}
+              status: {type: string, enum: [created, updated, unchanged, skipped]}
+              id: {type: integer, nullable: true}
+              external_id: {type: string}
+              title: {type: string}
+              media_type: {type: string, enum: [youtube, audio]}
+              reason: {type: string, description: Why a piece was skipped}
+        counts:
+          type: object
+          properties:
+            created: {type: integer}
+            updated: {type: integer}
+            unchanged: {type: integer}
+            skipped: {type: integer}
+        warnings:
+          type: array
+          items: {type: string}
