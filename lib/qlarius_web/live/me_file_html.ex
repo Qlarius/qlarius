@@ -256,13 +256,11 @@ defmodule QlariusWeb.MeFileHTML do
                   aria-hidden={not @show_skip_conflict}
                 >
                   <div class="overflow-hidden">
-                    <div
-                      class={[
-                        "border-t border-warning/60 bg-warning px-6 py-4 text-warning-content transition-transform duration-500 ease-out",
-                        @show_skip_conflict && "translate-y-0",
-                        !@show_skip_conflict && "translate-y-full"
-                      ]}
-                    >
+                    <div class={[
+                      "border-t border-warning/60 bg-warning px-6 py-4 text-warning-content transition-transform duration-500 ease-out",
+                      @show_skip_conflict && "translate-y-0",
+                      !@show_skip_conflict && "translate-y-full"
+                    ]}>
                       <p class="text-sm font-semibold">
                         Unable to save: "{@skip_child.trait_name}" cannot exist with other selections.
                       </p>
@@ -279,7 +277,7 @@ defmodule QlariusWeb.MeFileHTML do
                 >
                   <div class="bg-error text-error-content px-6 py-4 border-t border-error/60">
                     <p class="text-sm font-semibold mb-3">
-                      Delete {length(@selected_ids)} selected tag{if length(@selected_ids) == 1,
+                      Delete {length(@selected_ids)} selected tag value{if length(@selected_ids) == 1,
                         do: "",
                         else: "s"}?
                     </p>
@@ -313,7 +311,7 @@ defmodule QlariusWeb.MeFileHTML do
                         @show_delete_confirm && "btn-active bg-error/10"
                       ]}
                       disabled={length(@selected_ids) == 0}
-                      aria-label="Delete selected tags"
+                      aria-label="Delete selected tag values"
                       aria-expanded={to_string(@show_delete_confirm)}
                     >
                       <.icon name="hero-trash" class="h-6 w-6" />
