@@ -265,7 +265,8 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
                               </tr>
                             </thead>
                             <tbody class="divide-y divide-base-300">
-                              <%= for group <- @catalog.content_groups do %>
+                              <%= for group <- @catalog.content_groups,
+                                      group = %{group | catalog: @catalog} do %>
                                 <tr
                                   class="hover:bg-base-200 cursor-pointer transition-colors"
                                   phx-click={JS.navigate(~p"/creators/content_groups/#{group.id}")}
