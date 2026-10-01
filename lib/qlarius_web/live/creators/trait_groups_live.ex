@@ -617,6 +617,8 @@ defmodule QlariusWeb.Creators.TraitGroupsLive do
     end
   end
 
+  @trait_badge_limit 20
+
   attr :traits, :list, required: true
 
   defp trait_badges(assigns) do
@@ -626,21 +628,28 @@ defmodule QlariusWeb.Creators.TraitGroupsLive do
         if trait.parent_trait, do: trait.parent_trait.trait_name, else: nil
       end)
       |> Enum.sort_by(fn {parent_name, _} -> parent_name || "" end)
+      |> Enum.map(fn {parent_name, traits} ->
+        {shown, hidden} = Enum.split(traits, @trait_badge_limit)
+        {parent_name, shown, length(hidden)}
+      end)
 
     assigns = assign(assigns, :traits_by_parent, traits_by_parent)
 
     ~H"""
     <div class="space-y-2">
-      <div :for={{parent_name, traits} <- @traits_by_parent} class="space-y-1">
+      <div :for={{parent_name, traits, hidden_count} <- @traits_by_parent} class="space-y-1">
         <div :if={parent_name} class="text-xs font-semibold text-base-content/70">
           {parent_name}
         </div>
-        <div class="flex flex-wrap gap-1">
+        <div class="flex flex-wrap items-center gap-1">
           <span
             :for={trait <- traits}
             class="badge badge-outline badge-xs py-2 border border-base-content/30"
           >
             {trait.trait_name}
+          </span>
+          <span :if={hidden_count > 0} class="text-xs text-base-content/60">
+            … plus {hidden_count} other {if hidden_count == 1, do: "tag", else: "tags"}
           </span>
         </div>
       </div>
