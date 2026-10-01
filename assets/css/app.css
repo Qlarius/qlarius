@@ -922,6 +922,28 @@
   }
 
   /* Overlays (0% chip + % text on orange): same height and horizontal padding as each other */
+  /* Builder survey pills: faint left-to-right fill matching the category bar colors */
+  .survey-progress-pill {
+    --pill-fill: color-mix(in oklch, var(--color-warning) 12%, transparent);
+    background-image: linear-gradient(
+      to right,
+      var(--pill-fill) var(--pill-progress, 0%),
+      transparent var(--pill-progress, 0%)
+    );
+  }
+
+  .survey-progress-pill.survey-progress-pill-complete {
+    --pill-fill: color-mix(in oklch, var(--color-success) 12%, transparent);
+  }
+
+  [data-theme="dark"] .survey-progress-pill {
+    --pill-fill: color-mix(in oklch, var(--color-warning) 16%, transparent);
+  }
+
+  [data-theme="dark"] .survey-progress-pill.survey-progress-pill-complete {
+    --pill-fill: color-mix(in oklch, var(--color-success) 16%, transparent);
+  }
+
   .tagger-progress-fill-label {
     @apply absolute left-0 top-0 z-[1] flex items-center justify-center font-bold text-white pointer-events-none;
     height: var(--tagger-progress-h);

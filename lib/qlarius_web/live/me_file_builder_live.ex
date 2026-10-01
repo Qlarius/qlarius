@@ -244,7 +244,12 @@ defmodule QlariusWeb.MeFileBuilderLive do
                 <%= for survey <- category.surveys do %>
                   <% {answered_question_count, question_count} = survey.survey_stats || {0, 0} %>
                   <div
-                    class="mb-3 p-3 bg-base-200 dark:bg-base-300/40 rounded-full cursor-pointer transition-colors hover:bg-base-300 dark:hover:bg-base-300/60"
+                    class={[
+                      "survey-progress-pill mb-3 p-3 bg-base-200 dark:bg-base-300/40 rounded-full cursor-pointer transition-colors hover:bg-base-300 dark:hover:bg-base-300/60",
+                      answered_question_count == question_count && question_count > 0 &&
+                        "survey-progress-pill-complete"
+                    ]}
+                    style={"--pill-progress: #{survey_percent(answered_question_count, question_count)}%"}
                     phx-click="open_edit"
                     phx-value-id={survey.id}
                   >
@@ -692,4 +697,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
       "text-sm font-bold shrink-0 text-warning"
     end
   end
+
+  defp survey_percent(_answered, 0), do: 0
+  defp survey_percent(answered, total), do: min(round(answered / total * 100), 100)
 end
