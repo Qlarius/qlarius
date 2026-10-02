@@ -31,6 +31,7 @@ defmodule QlariusWeb.Router do
     plug QlariusWeb.Plugs.MobileDetection
     plug :fetch_current_scope_for_user
     plug :allow_iframe
+    plug :mark_embed_document
     plug :set_current_path
   end
 
@@ -74,9 +75,9 @@ defmodule QlariusWeb.Router do
     plug :require_admin_user
   end
 
-  # Marketer management is org-scoped, not public. `current_marketer` is chosen
-  # client-side (localStorage) and validated against `marketer_users` in
-  # `CurrentMarketer.on_mount`, so an authenticated user still only reaches orgs
+  # Marketer management is org-scoped, not public. `current_marketer` is stored
+  # in the session by `CurrentMarketerController` and validated against
+  # `marketer_users` in `CurrentMarketer.on_mount`, so an authenticated user still only reaches orgs
   # they belong to — admins reach all of them.
   pipeline :marketer do
     plug :put_layout, {QlariusWeb.Layouts, :admin}
@@ -110,6 +111,10 @@ defmodule QlariusWeb.Router do
       QlariusWeb.SecurityHeaders.content_security_policy()
     )
   end
+
+  # Widget pages render inside third-party iframes and must not paint a page
+  # background over the host site.
+  defp mark_embed_document(conn, _opts), do: assign(conn, :embed_document, true)
 
   # ------ QLINK SHARE HOST (qlinkin.bio) ------
   #
@@ -260,7 +265,7 @@ defmodule QlariusWeb.Router do
     pipe_through [:browser, :marketer]
 
     resources "/media_old", MediaPieceController
-    post "/set_current_marketer", CurrentMarketerController, :set
+    post "/select/:marketer_id", CurrentMarketerController, :select
 
     live_session :marketer,
       on_mount: [

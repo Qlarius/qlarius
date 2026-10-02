@@ -7,7 +7,7 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
   (`QlariusWeb.Components.SponsterPublicPage.sponster_stack/1`) with the
   announcer in `anon_display: :promo` mode for anonymous visitors
   (rotating banners + bouncing coin). The page background is transparent
-  (see the `html, #app` rule in app.css) so only the fixed bottom stack
+  (see the `html.embed-document` rule in app.css) so only the fixed bottom stack
   paints inside the host page.
 
   The embed script (`priv/static/sponster-tipjar-widget-ext-script.js`)

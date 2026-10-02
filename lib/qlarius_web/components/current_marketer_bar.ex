@@ -13,7 +13,7 @@ defmodule QlariusWeb.Components.CurrentMarketerBar do
 
   def current_marketer_bar(assigns) do
     ~H"""
-    <div class="bg-base-200 px-6 py-3 border-b border-base-300">
+    <div class="sticky top-0 z-30 border-b border-base-300 bg-base-200 px-6 py-3">
       <div class="flex items-center justify-between gap-6">
         <nav class="flex items-center gap-1">
           <.nav_item
@@ -65,28 +65,79 @@ defmodule QlariusWeb.Components.CurrentMarketerBar do
           />
         </nav>
 
-        <div class="flex items-center gap-2 shrink-0">
-          <%= if @current_marketer do %>
-            <%= if @current_path != "/admin/marketers" do %>
-              <.link navigate={~p"/admin/marketers"} class="btn btn-sm btn-ghost">
-                <.icon name="hero-arrows-right-left" class="w-4 h-4" />
-              </.link>
-            <% end %>
-            <span class="badge badge-outline badge-primary badge-xl text-lg text-base-content py-4 px-4">
-              {@current_marketer.business_name}
-            </span>
-          <% else %>
-            <.icon name="hero-exclamation-circle" class="w-5 h-5 text-warning" />
-            <span class="text-base-content/70">No marketer selected</span>
-            <span class="text-base-content/50">—</span>
-            <.link navigate={~p"/admin/marketers"} class="link link-primary text-sm">
-              Select a marketer
-            </.link>
-          <% end %>
-        </div>
+        <.marketer_switcher
+          current_marketer={@current_marketer}
+          on_switcher_page={@current_path == "/admin/marketers"}
+        />
       </div>
     </div>
     """
+  end
+
+  attr :current_marketer, :any, required: true
+  attr :on_switcher_page, :boolean, required: true
+
+  defp marketer_switcher(%{current_marketer: nil} = assigns) do
+    ~H"""
+    <.link
+      navigate={~p"/admin/marketers"}
+      class="flex shrink-0 items-center gap-2 rounded-xl border border-dashed border-warning/60 bg-base-100 px-3 py-1.5 text-sm transition-colors hover:border-warning"
+    >
+      <.icon name="hero-exclamation-circle" class="size-5 text-warning" />
+      <span class="font-medium">Select a marketer</span>
+      <.icon name="hero-chevron-right" class="size-4 text-base-content/50" />
+    </.link>
+    """
+  end
+
+  defp marketer_switcher(assigns) do
+    ~H"""
+    <%= if @on_switcher_page do %>
+      <div class={switcher_class()}>
+        <.switcher_label current_marketer={@current_marketer} />
+      </div>
+    <% else %>
+      <.link
+        navigate={~p"/admin/marketers"}
+        title="Switch marketer"
+        class={["group transition-colors hover:border-base-content/30", switcher_class()]}
+      >
+        <.switcher_label current_marketer={@current_marketer} />
+        <.icon
+          name="hero-chevron-up-down"
+          class="size-4 shrink-0 text-base-content/40 group-hover:text-base-content"
+        />
+      </.link>
+    <% end %>
+    """
+  end
+
+  defp switcher_class,
+    do:
+      "flex min-w-0 shrink-0 items-center gap-3 rounded-xl border border-base-300 bg-surface py-1.5 pr-3 pl-1.5 shadow-sm dark:bg-base-100"
+
+  attr :current_marketer, :any, required: true
+
+  defp switcher_label(assigns) do
+    ~H"""
+    <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-base-200 text-sm font-semibold text-base-content/70">
+      {initials(@current_marketer.business_name)}
+    </span>
+    <span class="min-w-0 leading-tight">
+      <span class="block text-[11px] text-base-content/50">Marketer</span>
+      <span class="block max-w-48 truncate text-sm font-semibold">
+        {@current_marketer.business_name}
+      </span>
+    </span>
+    """
+  end
+
+  defp initials(name) do
+    name
+    |> String.split(~r/\s+/, trim: true)
+    |> Enum.take(2)
+    |> Enum.map_join(&String.first/1)
+    |> String.upcase()
   end
 
   attr :icon, :string, required: true

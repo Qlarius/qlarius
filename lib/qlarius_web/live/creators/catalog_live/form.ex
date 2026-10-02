@@ -1,6 +1,8 @@
 defmodule QlariusWeb.Creators.CatalogLive.Form do
   use QlariusWeb, :live_view
 
+  import QlariusWeb.Components.MarketerUI
+
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.Creators
@@ -97,9 +99,21 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
   def handle_event("write_default_tiqit_classes", _params, socket) do
     Qlarius.Tiqit.Arcade.Arcade.write_default_catalog_tiqit_classes(socket.assigns.catalog)
 
-    catalog = Qlarius.Tiqit.Arcade.Creators.get_catalog!(socket.assigns.catalog.id)
+    catalog =
+      socket.assigns.catalog.id
+      |> Creators.get_catalog!()
+      |> Repo.preload(:tiqit_classes, force: true)
 
-    {:noreply, assign(socket, :catalog, catalog)}
+    unsaved_params =
+      Map.drop(socket.assigns.form.params || %{}, [
+        "tiqit_classes",
+        "tiqit_class_sort",
+        "tiqit_class_drop"
+      ])
+
+    form = catalog |> Creators.change_catalog(unsaved_params) |> to_form()
+
+    {:noreply, assign(socket, catalog: catalog, form: form)}
   end
 
   defp save_catalog(socket, :edit, catalog_params) do
@@ -147,5 +161,27 @@ defmodule QlariusWeb.Creators.CatalogLive.Form do
         assign(socket, :form, to_form(changeset, action: :validate))
     end
     |> noreply()
+  end
+
+  defp type_options(types), do: Enum.map(types, &{Catalog.type_label(&1), &1})
+
+  defp selected_type(form, field, types) do
+    case form[field].value do
+      value when value in [nil, ""] -> List.first(types)
+      value -> value
+    end
+  end
+
+  defp type_word(form, field, types, count \\ 1) do
+    Catalog.type_label(selected_type(form, field, types), count, capitalize: false)
+  end
+
+  defp structure_preview(form) do
+    [
+      selected_type(form, :type, Catalog.types()),
+      selected_type(form, :group_type, Catalog.group_types()),
+      selected_type(form, :piece_type, Catalog.piece_types())
+    ]
+    |> Enum.map_join(" › ", &Catalog.type_label/1)
   end
 end

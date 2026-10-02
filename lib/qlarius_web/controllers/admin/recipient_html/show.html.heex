@@ -3,182 +3,182 @@
   <div class="flex min-w-0 grow flex-col">
     <AdminTopbar.topbar current_user={@current_scope.user} />
     <div class="overflow-auto">
-      <div class="p-6">
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <div class="flex gap-2 mb-4">
-              <.link href={~p"/admin/recipients/#{@recipient}/edit"} class="btn btn-warning">
-                Edit
-              </.link>
-              <.link href={~p"/admin/recipients"} class="btn">Back</.link>
-            </div>
-            <h2 class="text-2xl font-bold mb-2">{@recipient.name}</h2>
-            <ul class="mb-4">
-              <li>
-                <strong>Brand Image:</strong>
-                <div class="mt-2">
+      <.page class="max-w-5xl">
+        <.page_header
+          title={@recipient.name}
+          subtitle={"Recipient ##{@recipient.id}"}
+          back_to={~p"/admin/recipients"}
+          back_label="Recipients"
+        >
+          <:actions>
+            <.link href={~p"/admin/recipients/#{@recipient}/edit"} class="btn btn-sm btn-ghost">
+              <.icon name="hero-pencil-square" class="size-4" /> Edit
+            </.link>
+            <.link
+              href={~p"/admin/recipients/#{@recipient}"}
+              method="delete"
+              data-confirm={"Delete #{@recipient.name}? This cannot be undone."}
+              class="btn btn-sm btn-ghost text-error"
+            >
+              <.icon name="hero-trash" class="size-4" /> Delete
+            </.link>
+          </:actions>
+        </.page_header>
+
+        <div class="space-y-8">
+          <.panel title="Details">
+            <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
+              <div class="shrink-0">
+                <p class="text-xs text-base-content/50">Brand image</p>
+                <%= if @recipient.graphic_url do %>
                   <img
-                    src={
-                      QlariusWeb.Uploaders.RecipientBrandImage.url(
-                        {@recipient.graphic_url, @recipient},
-                        :original
-                      )
-                    }
-                    class="w-32 h-auto object-cover rounded pb-3"
+                    src={brand_image_url(@recipient)}
+                    alt={"#{@recipient.name} brand image"}
+                    class="mt-1 w-32 rounded-lg border border-base-300 object-cover"
                   />
-                </div>
-              </li>
-              <li><strong>Message:</strong> {@recipient.message}</li>
-              <li><strong>Split Code:</strong> {@recipient.split_code}</li>
-              <li><strong>Type:</strong> {@recipient.recipient_type_id}</li>
-              <li><strong>Contact Email:</strong> {@recipient.contact_email}</li>
-            </ul>
-
-            <div class="mt-8 border-t border-base-300 pt-6">
-              <h3 class="text-xl font-semibold mb-2 flex items-center">
-                <.icon name="hero-code-bracket" class="w-5 h-5 mr-2" /> Sponster Embed Code
-              </h3>
-              <p class="text-sm text-base-content/70 mb-3">
-                Paste this on a third-party site to load the full Sponster experience
-                (announcer bar, ads, and tip jar) in a bottom iframe.
-              </p>
-              <div class="flex flex-col sm:flex-row items-stretch sm:items-start gap-4">
-                <div class="flex-1 min-w-0">
-                  <div
-                    class="relative bg-base-200 hover:bg-base-300 rounded-lg p-4 cursor-pointer transition-colors group"
-                    onclick="copySponsterEmbed(this)"
-                  >
-                    <div class="flex items-start justify-between gap-4">
-                      <pre class="text-sm font-mono text-base-content whitespace-pre-wrap break-all m-0"><code>{sponster_embed_code(@recipient)}</code></pre>
-                      <.icon
-                        name="hero-document-duplicate"
-                        class="w-5 h-5 shrink-0 text-base-content/60 group-hover:text-base-content mt-0.5"
-                      />
-                    </div>
-                    <div class="copy-notification hidden absolute -top-2 -right-2 bg-success text-success-content text-xs px-2 py-1 rounded shadow-lg">
-                      Copied!
-                    </div>
+                <% else %>
+                  <div class="mt-1 flex size-32 items-center justify-center rounded-lg bg-base-200">
+                    <.icon name="hero-photo" class="size-6 text-base-content/40" />
                   </div>
-                </div>
-                <a
-                  href={sponster_widget_preview_url(@recipient)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="btn btn-outline btn-sm whitespace-nowrap"
-                >
-                  <.icon name="hero-eye" class="w-4 h-4 mr-2" /> Preview
-                </a>
+                <% end %>
+              </div>
+              <dl class="grid min-w-0 flex-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+                <.detail_item label="Message" value={@recipient.message} />
+                <.detail_item label="Split code" value={@recipient.split_code} />
+                <.detail_item label="Type" value={@recipient.recipient_type_id} />
+                <.detail_item label="Contact email" value={@recipient.contact_email} />
+                <.detail_item label="Site URL" value={@recipient.site_url} />
+              </dl>
+            </div>
+          </.panel>
+
+          <.panel
+            title="Sponster embed code"
+            description="Paste this on a third-party site to load the full Sponster experience (announcer bar, ads, and tip jar) in a bottom iframe."
+          >
+            <:actions>
+              <a
+                href={sponster_widget_preview_url(@recipient)}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-sm btn-ghost"
+              >
+                <.icon name="hero-eye" class="size-4" /> Preview
+              </a>
+            </:actions>
+            <div
+              class="group relative cursor-pointer rounded-xl border border-base-300 bg-base-200/40 p-4 transition-colors hover:bg-base-200"
+              onclick="copySponsterEmbed(this)"
+              title="Click to copy"
+            >
+              <div class="flex items-start justify-between gap-4">
+                <pre class="m-0 whitespace-pre-wrap break-all font-mono text-sm text-base-content"><code>{sponster_embed_code(@recipient)}</code></pre>
+                <.icon
+                  name="hero-document-duplicate"
+                  class="mt-0.5 size-5 shrink-0 text-base-content/50 group-hover:text-base-content"
+                />
+              </div>
+              <div class="copy-notification absolute -top-2 -right-2 hidden rounded bg-success px-2 py-1 text-xs text-success-content shadow-lg">
+                Copied!
               </div>
             </div>
+          </.panel>
 
-            <div class="mt-8">
-              <h3 class="text-xl font-semibold mb-2 flex items-center">
-                <.icon name="hero-banknotes" class="w-5 h-5 mr-2 text-green-600" /> Tipjar Ledger
-              </h3>
-              <div>
-                <span class="font-bold">Ledger ID:</span>
-                <span class="text-green-700 font-mono">
-                  <%= if @ledger_header do %>
-                    {@ledger_header.id}
-                  <% else %>
-                    No ledger found.
-                  <% end %>
-                </span>
-              </div>
-              <div>
-                <span class="font-bold">Current Balance:</span>
-                <span class="text-green-700 font-mono">
-                  <%= if @ledger_header do %>
-                    <span>
-                      {QlariusWeb.Money.format_usd(@ledger_header.balance)}
-                    </span>
-                  <% else %>
-                    $0.00
-                  <% end %>
-                </span>
-              </div>
-              <div class="mb-2">
-                <span class="font-bold">As of:</span>
-                <span class="text-green-700 font-mono">
-                  <%= case DateTime.shift_zone(DateTime.utc_now(), "America/Chicago") do %>
-                    <% {:ok, chicago_time} -> %>
-                      {Calendar.strftime(chicago_time, "%Y-%m-%d %-I:%M %p CST")}
-                    <% {:error, _} -> %>
-                      {Calendar.strftime(DateTime.utc_now(), "%Y-%m-%d %-I:%M %p UTC")}
-                  <% end %>
-                </span>
-              </div>
-              <div class="overflow-x-auto">
-                <table class="table table-zebra w-full text-sm">
-                  <thead>
-                    <tr>
-                      <th>Created At</th>
-                      <th>Description</th>
-                      <th class="text-right">Amount</th>
-                      <th class="text-right">Running Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <%= for entry <- @ledger_entries_page.entries do %>
-                      <tr>
-                        <td>{entry.created_at |> Calendar.strftime("%Y-%m-%d %H:%M:%S")}</td>
-                        <td>{entry.description}</td>
-                        <%!-- Changed from deprecated Decimal.cmp to Decimal.compare --%>
-                        <td class={[
-                          "text-right",
-                          (Decimal.compare(entry.amt, 0) == :gt && "text-green-600") ||
-                            "text-red-600"
-                        ]}>
-                          {QlariusWeb.Money.format_usd(entry.amt)}
-                        </td>
-                        <td class="text-right">
-                          {QlariusWeb.Money.format_usd(entry.running_balance)}
-                        </td>
-                      </tr>
-                    <% end %>
-                    <%= if Enum.empty?(@ledger_entries_page.entries) do %>
-                      <tr>
-                        <td colspan="5" class="text-center text-gray-400">
-                          No ledger entries found.
-                        </td>
-                      </tr>
-                    <% end %>
-                  </tbody>
-                </table>
-              </div>
-              <div class="flex justify-between items-center mt-2">
+          <div class="grid gap-3 sm:grid-cols-3">
+            <.stat_tile label="Ledger ID" icon="hero-banknotes">
+              <%= if @ledger_header do %>
+                #{@ledger_header.id}
+              <% else %>
+                <span class="text-base text-base-content/50">No ledger found</span>
+              <% end %>
+            </.stat_tile>
+            <.stat_tile label="Current balance" icon="hero-wallet" value_class="text-success">
+              <%= if @ledger_header do %>
+                {QlariusWeb.Money.format_usd(@ledger_header.balance)}
+              <% else %>
+                $0.00
+              <% end %>
+            </.stat_tile>
+            <.stat_tile label="As of" icon="hero-clock">
+              <span class="text-base">{chicago_now_label()}</span>
+            </.stat_tile>
+          </div>
+
+          <.panel flush title="Tipjar ledger">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="border-b border-base-300 bg-base-200/40 text-xs text-base-content/60">
+                  <tr>
+                    <th class="px-6 py-3 font-medium">Created at</th>
+                    <th class="px-6 py-3 font-medium">Description</th>
+                    <th class="px-6 py-3 text-right font-medium">Amount</th>
+                    <th class="px-6 py-3 text-right font-medium">Running balance</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-base-300">
+                  <tr
+                    :for={entry <- @ledger_entries_page.entries}
+                    class="transition-colors hover:bg-base-200/40"
+                  >
+                    <td class="whitespace-nowrap px-6 py-3 text-base-content/70">
+                      {Calendar.strftime(entry.created_at, "%Y-%m-%d %H:%M:%S")}
+                    </td>
+                    <td class="px-6 py-3">{entry.description}</td>
+                    <td class={[
+                      "whitespace-nowrap px-6 py-3 text-right",
+                      if(Decimal.compare(entry.amt, 0) == :gt,
+                        do: "text-success",
+                        else: "text-error"
+                      )
+                    ]}>
+                      {QlariusWeb.Money.format_usd(entry.amt)}
+                    </td>
+                    <td class="whitespace-nowrap px-6 py-3 text-right">
+                      {QlariusWeb.Money.format_usd(entry.running_balance)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <.empty_state
+              :if={Enum.empty?(@ledger_entries_page.entries)}
+              icon="hero-banknotes"
+              title="No ledger entries found"
+            />
+            <:footer>
+              <div class="flex w-full items-center justify-between gap-3">
                 <%= if @ledger_entries_page.page_number > 1 do %>
                   <.link
-                    navigate={
+                    href={
                       ~p"/admin/recipients/#{@recipient.id}?page=#{@ledger_entries_page.page_number - 1}"
                     }
-                    class="btn btn-xs"
+                    class="btn btn-sm btn-ghost"
                   >
-                    Previous
+                    <.icon name="hero-chevron-left" class="size-4" /> Previous
                   </.link>
                 <% else %>
                   <span></span>
                 <% end %>
-                <span>
+                <span class="text-sm text-base-content/60">
                   Page {@ledger_entries_page.page_number} of {@ledger_entries_page.total_pages}
                 </span>
                 <%= if @ledger_entries_page.page_number < @ledger_entries_page.total_pages do %>
                   <.link
-                    navigate={
+                    href={
                       ~p"/admin/recipients/#{@recipient.id}?page=#{@ledger_entries_page.page_number + 1}"
                     }
-                    class="btn btn-xs"
+                    class="btn btn-sm btn-ghost"
                   >
-                    Next
+                    Next <.icon name="hero-chevron-right" class="size-4" />
                   </.link>
                 <% else %>
                   <span></span>
                 <% end %>
               </div>
-            </div>
-          </div>
+            </:footer>
+          </.panel>
         </div>
-      </div>
+      </.page>
     </div>
   </div>
 </div>

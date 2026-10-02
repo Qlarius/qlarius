@@ -1,5 +1,7 @@
 # Current Marketer Refactoring - localStorage to Phoenix Session
 
+> Historical. This earlier attempt relied on `Phoenix.LiveView.put_session/3`, which does not exist, and was reverted to localStorage. The current session-based design is in `current_marketer_implementation_decision.md`.
+
 ## Summary
 
 Refactored the current marketer selection from a JavaScript/localStorage approach to a Phoenix-native session-based approach.

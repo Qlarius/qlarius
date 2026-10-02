@@ -3,66 +3,96 @@
   <div class="flex min-w-0 grow flex-col">
     <AdminTopbar.topbar current_user={@current_scope.user} />
     <div class="overflow-auto">
-      <div class="p-6">
-        <div class="flex justify-between items-center mb-4">
-          <h1 class="text-2xl font-bold">Recipients</h1>
-          <.link navigate={~p"/admin/recipients/new"} class="btn btn-primary">
-            <.icon name="hero-plus" class="w-4 h-4 mr-1" /> New Recipient
-          </.link>
-        </div>
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body p-0">
-            <div class="overflow-x-auto">
-              <.table id="recipients-table" rows={@recipients}>
-                <:col :let={recipient} label="Name">{recipient.name}</:col>
-                <:col :let={recipient} label="Brand Graphic">
-                  <%= if recipient.graphic_url do %>
-                    <img
-                      src={
-                        QlariusWeb.Uploaders.RecipientBrandImage.url(
-                          {recipient.graphic_url, recipient},
-                          :original
-                        )
-                      }
-                      alt="Brand Graphic"
-                      class="w-20 h-auto object-cover rounded"
-                    />
-                  <% else %>
-                    <div class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center">
-                      <span class="text-gray-400 text-xs">No banner</span>
-                    </div>
-                  <% end %>
-                </:col>
-                <:col :let={recipient} label="Site URL">{recipient.site_url}</:col>
-                <:col :let={recipient} label="Actions">
-                  <div class="flex gap-2">
-                    <.link
-                      navigate={~p"/admin/recipients/#{recipient}"}
-                      class="btn btn-xs btn-info"
-                    >
-                      <.icon name="hero-eye" class="w-4 h-4" />
-                    </.link>
-                    <.link
-                      navigate={~p"/admin/recipients/#{recipient}/edit"}
-                      class="btn btn-xs btn-warning"
-                    >
-                      <.icon name="hero-pencil-square" class="w-4 h-4" />
-                    </.link>
-                    <.link
-                      navigate={~p"/admin/recipients/#{recipient}"}
-                      method="delete"
-                      data-confirm="Are you sure?"
-                      class="btn btn-xs btn-error"
-                    >
-                      <.icon name="hero-trash" class="w-4 h-4" />
-                    </.link>
-                  </div>
-                </:col>
-              </.table>
-            </div>
-          </div>
-        </div>
-      </div>
+      <.page>
+        <.page_header
+          title="Recipients"
+          count={length(@recipients)}
+          subtitle="Tip jar recipients and their Sponster embed codes."
+        >
+          <:actions>
+            <.link navigate={~p"/admin/recipients/new"} class="btn btn-primary btn-sm">
+              <.icon name="hero-plus" class="size-4" /> New recipient
+            </.link>
+          </:actions>
+        </.page_header>
+
+        <.panel flush>
+          <.empty_state :if={@recipients == []} icon="hero-gift" title="No recipients yet">
+            Create a recipient to get an embed code for a publisher site.
+            <:action>
+              <.link navigate={~p"/admin/recipients/new"} class="btn btn-primary btn-sm">
+                <.icon name="hero-plus" class="size-4" /> New recipient
+              </.link>
+            </:action>
+          </.empty_state>
+
+          <.data_table :if={@recipients != []} id="recipients-table" rows={@recipients}>
+            <:col :let={recipient} label="Recipient">
+              <div class="flex items-center gap-3">
+                <%= if recipient.graphic_url do %>
+                  <img
+                    src={brand_image_url(recipient)}
+                    alt=""
+                    class="size-10 shrink-0 rounded-lg border border-base-300 object-cover"
+                  />
+                <% else %>
+                  <span class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-base-200">
+                    <.icon name="hero-photo" class="size-5 text-base-content/40" />
+                  </span>
+                <% end %>
+                <div class="min-w-0">
+                  <.link
+                    navigate={~p"/admin/recipients/#{recipient}"}
+                    class="font-semibold hover:underline"
+                  >
+                    {recipient.name}
+                  </.link>
+                  <p class="truncate text-xs text-base-content/50">
+                    #{recipient.id}{recipient.split_code not in [nil, ""] &&
+                      " · #{recipient.split_code}"}
+                  </p>
+                </div>
+              </div>
+            </:col>
+            <:col :let={recipient} label="Site URL" class="max-md:hidden">
+              <span :if={recipient.site_url in [nil, ""]} class="text-base-content/40">-</span>
+              <a
+                :if={recipient.site_url not in [nil, ""]}
+                href={recipient.site_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-base-content/70 hover:underline"
+              >
+                {recipient.site_url}
+              </a>
+            </:col>
+            <:action :let={recipient}>
+              <.icon_button
+                icon="hero-eye"
+                label="View"
+                href={~p"/admin/recipients/#{recipient}"}
+              />
+            </:action>
+            <:action :let={recipient}>
+              <.icon_button
+                icon="hero-pencil-square"
+                label="Edit"
+                href={~p"/admin/recipients/#{recipient}/edit"}
+              />
+            </:action>
+            <:action :let={recipient}>
+              <.icon_button
+                icon="hero-trash"
+                label="Delete"
+                tone="error"
+                href={~p"/admin/recipients/#{recipient}"}
+                method="delete"
+                data-confirm={"Delete #{recipient.name}? This cannot be undone."}
+              />
+            </:action>
+          </.data_table>
+        </.panel>
+      </.page>
     </div>
   </div>
 </div>

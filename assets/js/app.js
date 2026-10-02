@@ -1580,23 +1580,94 @@ Hooks.SponsterWidgetBridge = {
   }
 }
 
-Hooks.CurrentMarketer = {
+// Guards a form whose server-rendered data-dirty is "true": link clicks open a
+// save/discard dialog, and reloads or tab closes get the browser's native prompt.
+Hooks.UnsavedChanges = {
   mounted() {
-    this.handleEvent('store_current_marketer', async ({ marketer_id }) => {
-      localStorage.setItem('current_marketer_id', marketer_id)
+    this.dialog = document.getElementById(this.el.dataset.dialog)
+    this.isDirty = () => this.el.dataset.dirty === 'true' && !this.bypass && !this.submitting
 
-      // Also store in Phoenix session for controller access
-      const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
-      await fetch('/marketer/set_current_marketer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken
-        },
-        body: JSON.stringify({ marketer_id })
-      })
-    })
+    this.onClick = (e) => {
+      if (!this.isDirty() || e.defaultPrevented || e.button !== 0) return
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      const link = e.target.closest('a[href]')
+      if (!link || link.target === '_blank' || link.getAttribute('href').startsWith('#')) return
+      if (this.dialog.contains(link)) return
+
+      e.preventDefault()
+      e.stopImmediatePropagation()
+      this.pendingLink = link
+      this.dialog.showModal()
+    }
+
+    this.onDialogClick = (e) => {
+      const action = e.target.closest('[data-unsaved-action]')?.dataset.unsavedAction
+      if (!action || !this.pendingLink) return
+      const link = this.pendingLink
+      this.pendingLink = null
+      this.dialog.close()
+
+      if (action === 'discard' && link) {
+        this.bypass = true
+        link.click()
+      } else if (action === 'save') {
+        this.submitWithReturnTo(link)
+      }
+    }
+
+    this.onSubmit = () => { this.submitting = true }
+
+    this.onBeforeUnload = (e) => {
+      if (!this.isDirty()) return
+      e.preventDefault()
+      e.returnValue = ''
+    }
+
+    window.addEventListener('click', this.onClick, true)
+    window.addEventListener('beforeunload', this.onBeforeUnload)
+    this.dialog.addEventListener('click', this.onDialogClick)
+    this.el.addEventListener('submit', this.onSubmit)
+  },
+
+  updated() {
+    this.submitting = false
+  },
+
+  submitWithReturnTo(link) {
+    const input = document.createElement('input')
+    input.type = 'hidden'
+    input.name = 'return_to'
+
+    if (link && !link.dataset.method) {
+      const url = new URL(link.href, window.location.href)
+      if (url.origin === window.location.origin) input.value = url.pathname + url.search
+    }
+
+    this.el.appendChild(input)
+    this.el.requestSubmit()
+    input.remove()
+  },
+
+  destroyed() {
+    window.removeEventListener('click', this.onClick, true)
+    window.removeEventListener('beforeunload', this.onBeforeUnload)
+    this.dialog.removeEventListener('click', this.onDialogClick)
   }
+}
+
+// Flags the 3-tap preview when its fixed-height text box overflows.
+Hooks.TextFitCheck = {
+  mounted() {
+    this.box = this.el.querySelector('[data-fit-box]')
+    this.check = () => {
+      this.el.toggleAttribute('data-clipped', this.box.scrollHeight > this.box.clientHeight + 1)
+    }
+    this.observer = new MutationObserver(this.check)
+    this.observer.observe(this.box, { childList: true, subtree: true, characterData: true })
+    this.check()
+  },
+  updated() { this.check() },
+  destroyed() { this.observer.disconnect() }
 }
 
 Hooks.TagOptionFilter = {
@@ -2725,7 +2796,6 @@ const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: () => ({
     _csrf_token: csrfToken,
-    current_marketer_id: localStorage.getItem('current_marketer_id'),
     extension: isExtension ? 'true' : null
   }),
   colocatedHooks: colocatedHooks,

@@ -6,411 +6,381 @@
       <AdminTopbar.topbar current_user={@current_scope.user} />
 
       <div class="overflow-auto">
-        <div class="p-6 space-y-6">
-          <!-- Header -->
-          <div class="flex items-center gap-4">
-            <.link
-              navigate={~p"/creators/content_groups/#{@content_group.id}"}
-              class="btn btn-ghost btn-sm"
-            >
-              <.icon name="hero-arrow-left" class="w-4 h-4" /> Back to {@content_group.title}
-            </.link>
-            <div>
-              <h1 class="text-2xl font-bold flex items-center gap-2">
-                <.icon name="hero-play-circle" class="w-6 h-6 text-primary" />
-                Import YouTube videos
-              </h1>
-              <p class="text-base-content/60 mt-1">
-                Adding {@catalog.piece_type |> to_string() |> String.capitalize()}(s)
-                to <span class="font-medium">{@content_group.title}</span>
-              </p>
-            </div>
-          </div>
-          
-<!-- Step indicator -->
-          <div class="card bg-base-100 border border-base-300">
-            <div class="card-body py-3">
-              <ul class="steps steps-horizontal w-full text-xs">
-                <li class={"step #{if step_at_or_past?(@wizard_step, :channel), do: "step-primary"}"}>
-                  Source
-                </li>
-                <li class={"step #{if step_at_or_past?(@wizard_step, :review), do: "step-primary"}"}>
-                  Review
-                </li>
-                <li class={"step #{if step_at_or_past?(@wizard_step, :confirm), do: "step-primary"}"}>
-                  Confirm
-                </li>
-                <li class={"step #{if step_at_or_past?(@wizard_step, :importing), do: "step-primary"}"}>
-                  Import
-                </li>
-                <li class={"step #{if step_at_or_past?(@wizard_step, :done), do: "step-primary"}"}>
-                  Done
-                </li>
-              </ul>
-            </div>
-          </div>
-          
-<!-- Pricing precondition warning (visible at every step until satisfied) -->
-          <%= if not @catalog_pricing_ok? do %>
-            <div class="alert alert-warning">
-              <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-              <div>
-                <p class="font-medium">No catalog pricing yet</p>
-                <p class="text-sm">
-                  The parent catalog <span class="font-semibold">{@catalog.name}</span>
-                  has no active Tiqit classes. Imported pieces still get default per-piece pricing,
-                  but the catalog itself should have at least one tier defined.
-                </p>
-              </div>
-              <.link
-                navigate={~p"/creators/catalogs/#{@catalog.id}/edit"}
-                class="btn btn-sm"
-              >
-                Edit catalog
-              </.link>
-            </div>
-          <% end %>
-          
-<!-- Step :channel -->
-          <%= if @wizard_step == :channel do %>
-            <div class="card bg-base-100 shadow-lg">
-              <div class="card-body space-y-4">
-                <h3 class="text-lg font-semibold">Look up YouTube channel or playlist</h3>
-                <p class="text-sm text-base-content/60">
-                  Paste a channel URL or handle (e.g. <code class="text-xs">@mkbhd</code>),
-                  a channel ID (<code class="text-xs">UC…</code>), or a playlist URL
-                  / link with <code class="text-xs">?list=…</code>
-                  (playlist order is preserved on import).
-                </p>
+        <% catalog_word = Catalog.type_label(@catalog.type, 1, capitalize: false) %>
+        <% group_word = Catalog.type_label(@catalog.group_type, 1) %>
+        <% pieces_word = Catalog.type_label(@catalog.piece_type, 2, capitalize: false) %>
+        <.page class="max-w-4xl">
+          <.page_header
+            title="Import from YouTube"
+            subtitle={"Adding #{pieces_word} to #{@content_group.title}"}
+            crumbs={[
+              {@creator.name, ~p"/creators/#{@creator.id}"},
+              {@catalog.name, ~p"/creators/catalogs/#{@catalog.id}"},
+              {@content_group.title, ~p"/creators/content_groups/#{@content_group.id}"}
+            ]}
+          />
 
-                <form phx-submit="lookup" class="flex flex-col sm:flex-row gap-3">
+          <.wizard_stepper steps={stepper_steps(@wizard_step)} />
+
+          <.notice
+            :if={not @catalog_pricing_ok?}
+            title={"No #{catalog_word} pricing yet"}
+            class="mb-6"
+          >
+            <span class="font-medium text-base-content">{@catalog.name}</span>
+            has no active tiqit classes. Imported {pieces_word} still get default prices,
+            but the {catalog_word} should offer at least one tiqit class.
+            <:action>
+              <.link navigate={~p"/creators/catalogs/#{@catalog.id}/edit"} class="btn btn-sm">
+                Edit {catalog_word}
+              </.link>
+            </:action>
+          </.notice>
+
+          <%= if @wizard_step == :channel do %>
+            <form phx-submit="lookup">
+              <.panel
+                title="Find the channel or playlist"
+                description="Look up a YouTube source to see its videos."
+              >
+                <label class="input w-full">
+                  <.icon name="hero-magnifying-glass" class="size-4 text-base-content/50" />
                   <input
                     type="text"
                     name="channel_input"
                     value={@channel_input}
                     placeholder="@handle, channel URL, or playlist URL (?list=…)"
-                    class="input input-bordered w-full"
+                    aria-label="YouTube channel or playlist"
+                    class="grow"
                     required
                   />
-                  <.button class="btn btn-primary">
-                    <.icon name="hero-magnifying-glass" class="w-4 h-4 mr-2" /> Look up
-                  </.button>
-                </form>
+                </label>
+                <p class="text-xs text-base-content/60">
+                  Paste a channel URL or handle (e.g. <code>@mkbhd</code>), a channel ID
+                  (<code>UC…</code>), or a playlist URL with <code>?list=…</code>.
+                  Playlist order is preserved on import.
+                </p>
 
-                <%= if @channel_error do %>
-                  <div class="alert alert-error">
-                    <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-                    <span>{@channel_error}</span>
-                  </div>
-                <% end %>
-              </div>
-            </div>
+                <.notice :if={@channel_error} tone="error">{@channel_error}</.notice>
+
+                <:footer>
+                  <.button variant="primary" class="btn-sm">
+                    <.icon name="hero-magnifying-glass" class="size-4" /> Look up
+                  </.button>
+                </:footer>
+              </.panel>
+            </form>
           <% end %>
-          
-<!-- Step :review -->
+
           <%= if @wizard_step == :review and @channel_preview do %>
             <% playlist? = Map.get(@channel_preview, :import_kind, :channel) == :playlist %>
-            <div class="card bg-base-100 shadow-lg">
-              <div class="card-body space-y-4">
-                <!-- Channel / playlist header -->
-                <div class="flex items-start gap-4 border-b border-base-300 pb-4">
-                  <%= if @channel_preview.thumbnail_url do %>
-                    <img
-                      src={@channel_preview.thumbnail_url}
-                      alt={@channel_preview.title}
-                      class={"w-20 h-20 object-cover shrink-0 #{if playlist?, do: "rounded-lg", else: "rounded-full"}"}
-                    />
-                  <% end %>
-                  <div class="min-w-0 flex-1">
-                    <h3 class="text-lg font-semibold">{@channel_preview.title}</h3>
-                    <p class="text-sm text-base-content/60 line-clamp-3">
-                      {@channel_preview.description}
-                    </p>
-                  </div>
-                  <button type="button" phx-click="back_to_channel" class="btn btn-ghost btn-sm">
-                    <.icon name="hero-arrow-uturn-left" class="w-4 h-4 mr-1" /> Change source
-                  </button>
-                </div>
-                
-<!-- Soft warning for large lists -->
-                <%= if length(@videos) > 50 do %>
-                  <div class="alert alert-warning">
-                    <.icon name="hero-information-circle" class="w-5 h-5" />
-                    <span>
-                      This {if playlist?, do: "playlist", else: "channel"} has
-                      <span class="font-semibold">{length(@videos)}</span>
-                      videos. Importing more than ~50 in a single batch can take a while and
-                      ties up this page — consider splitting into smaller batches.
-                    </span>
-                  </div>
-                <% end %>
-                
-<!-- Filter -->
-                <% visible_videos = filtered_videos(@videos, @filter, @min_seconds) %>
-                <% visible_count = length(visible_videos) %>
-                <% total_count = length(@videos) %>
-                <% selected_count = MapSet.size(@selected_video_ids) %>
-                <% selected_visible_count =
-                  Enum.count(visible_videos, &MapSet.member?(@selected_video_ids, &1.youtube_id)) %>
-                <% selected_hidden_count = selected_count - selected_visible_count %>
-                <% filters_active? = @filter != "" or @min_seconds > 0 %>
+            <% visible_videos = filtered_videos(@videos, @filter, @min_seconds) %>
+            <% visible_count = length(visible_videos) %>
+            <% total_count = length(@videos) %>
+            <% selected_count = MapSet.size(@selected_video_ids) %>
+            <% selected_visible_count =
+              Enum.count(visible_videos, &MapSet.member?(@selected_video_ids, &1.youtube_id)) %>
+            <% selected_hidden_count = selected_count - selected_visible_count %>
+            <% filters_active? = @filter != "" or @min_seconds > 0 %>
+            <% all_visible_selected? =
+              visible_videos
+              |> Enum.reject(&MapSet.member?(@existing_youtube_ids, &1.youtube_id))
+              |> Enum.all?(&MapSet.member?(@selected_video_ids, &1.youtube_id)) %>
 
-                <form phx-change="filter" class="flex items-center gap-2 min-w-0">
-                  <div class="relative min-w-0 flex-1">
-                    <.icon
-                      name="hero-magnifying-glass"
-                      class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none"
-                    />
+            <.panel
+              flush
+              title="Choose videos"
+              description={"Each selected video becomes one of the #{pieces_word} in #{@content_group.title}."}
+            >
+              <div class="flex items-start gap-4 border-b border-base-300 px-6 py-4">
+                <img
+                  :if={@channel_preview.thumbnail_url}
+                  src={@channel_preview.thumbnail_url}
+                  alt={@channel_preview.title}
+                  class={[
+                    "size-14 shrink-0 object-cover",
+                    if(playlist?, do: "rounded-lg", else: "rounded-full")
+                  ]}
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs text-base-content/50">
+                    {if playlist?, do: "Playlist", else: "Channel"}
+                  </p>
+                  <p class="truncate font-semibold">{@channel_preview.title}</p>
+                  <p class="mt-0.5 line-clamp-2 text-sm text-base-content/60">
+                    {@channel_preview.description}
+                  </p>
+                </div>
+                <button type="button" phx-click="back_to_channel" class="btn btn-ghost btn-sm">
+                  <.icon name="hero-arrow-uturn-left" class="size-4" /> Change source
+                </button>
+              </div>
+
+              <div class="space-y-3 border-b border-base-300 px-6 py-4">
+                <.notice :if={total_count > 50} icon="hero-information-circle">
+                  This {if playlist?, do: "playlist", else: "channel"} has
+                  <span class="font-medium text-base-content">{total_count}</span>
+                  videos. Importing more than ~50 at once can take a while and ties up this
+                  page, so consider smaller batches.
+                </.notice>
+
+                <form phx-change="filter" class="flex flex-wrap items-center gap-2">
+                  <label class="input input-sm min-w-48 flex-1">
+                    <.icon name="hero-magnifying-glass" class="size-4 text-base-content/50" />
                     <input
                       type="text"
                       name="filter"
                       value={@filter}
                       placeholder="Filter by title or description…"
-                      class="input input-bordered input-sm w-full pl-9"
+                      aria-label="Filter videos"
+                      class="grow"
                       phx-debounce="200"
                     />
-                  </div>
-                  <label class="flex items-center gap-2 shrink-0">
-                    <span class="text-xs text-base-content/70 whitespace-nowrap">Min</span>
+                  </label>
+                  <label class="input input-sm w-36">
+                    <span class="text-xs text-base-content/60">Min length</span>
                     <input
                       type="text"
                       name="min_length"
                       value={@min_length}
                       placeholder="m:ss"
-                      class="input input-bordered input-sm w-24"
+                      class="grow"
                       phx-debounce="200"
                     />
                   </label>
-                  <%= if @filter != "" do %>
-                    <button
-                      type="button"
-                      phx-click="clear_filter"
-                      class="btn btn-ghost btn-sm shrink-0"
-                    >
-                      Clear
-                    </button>
-                  <% end %>
-                </form>
-                
-<!-- Selection header -->
-                <div class="flex items-center justify-between">
-                  <h4 class="font-semibold">
-                    <%= if filters_active? do %>
-                      Showing {visible_count} of {total_count}
-                    <% else %>
-                      {total_count} videos found
-                    <% end %>
-                    <span class="text-sm font-normal text-base-content/60">
-                      — {selected_count} selected
-                      <%= if selected_hidden_count > 0 do %>
-                        ({selected_hidden_count} not in current filter)
-                      <% end %>
-                    </span>
-                  </h4>
-                  <button type="button" phx-click="toggle_all" class="btn btn-ghost btn-sm">
-                    <%= if filters_active? do %>
-                      Toggle filtered
-                    <% else %>
-                      Toggle all
-                    <% end %>
+                  <button
+                    :if={@filter != ""}
+                    type="button"
+                    phx-click="clear_filter"
+                    class="btn btn-ghost btn-sm"
+                  >
+                    Clear
                   </button>
-                </div>
+                </form>
+              </div>
 
-                <div class="border border-base-300 rounded-lg max-h-[28rem] overflow-y-auto divide-y divide-base-300">
-                  <%= if visible_videos == [] do %>
-                    <div class="p-8 text-center text-sm text-base-content/60">
-                      <%= cond do %>
-                        <% @filter != "" and @min_seconds > 0 -> %>
-                          No videos match "{@filter}" and at least {format_min_sec(@min_seconds)}.
-                        <% @min_seconds > 0 -> %>
-                          No videos are at least {format_min_sec(@min_seconds)} long.
-                        <% true -> %>
-                          No videos match "{@filter}".
-                      <% end %>
-                    </div>
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-base-300 bg-base-200/40 px-6 py-2.5">
+                <p class="text-sm">
+                  <span class="font-medium">{selected_count} of {total_count} selected</span>
+                  <span :if={filters_active?} class="text-base-content/60">
+                    · {visible_count} shown
+                  </span>
+                  <span :if={selected_hidden_count > 0} class="text-base-content/60">
+                    · {selected_hidden_count} outside the filter
+                  </span>
+                </p>
+                <button type="button" phx-click="toggle_all" class="btn btn-ghost btn-sm">
+                  <%= cond do %>
+                    <% all_visible_selected? and filters_active? -> %>
+                      Clear shown
+                    <% all_visible_selected? -> %>
+                      Select none
+                    <% filters_active? -> %>
+                      Select shown
+                    <% true -> %>
+                      Select all
                   <% end %>
-                  <%= for video <- visible_videos do %>
-                    <% already? = MapSet.member?(@existing_youtube_ids, video.youtube_id) %>
-                    <% selected? = MapSet.member?(@selected_video_ids, video.youtube_id) %>
-                    <label class={"flex items-start gap-3 p-3 cursor-pointer hover:bg-base-200 #{if already?, do: "opacity-60"}"}>
+                </button>
+              </div>
+
+              <.empty_state
+                :if={visible_videos == []}
+                icon="hero-funnel"
+                title="No matching videos"
+              >
+                <%= cond do %>
+                  <% @filter != "" and @min_seconds > 0 -> %>
+                    No videos match "{@filter}" and at least {format_min_sec(@min_seconds)}.
+                  <% @min_seconds > 0 -> %>
+                    No videos are at least {format_min_sec(@min_seconds)} long.
+                  <% true -> %>
+                    No videos match "{@filter}".
+                <% end %>
+              </.empty_state>
+
+              <ul
+                :if={visible_videos != []}
+                class="max-h-[32rem] divide-y divide-base-300 overflow-y-auto"
+              >
+                <%= for video <- visible_videos do %>
+                  <% already? = MapSet.member?(@existing_youtube_ids, video.youtube_id) %>
+                  <% selected? = MapSet.member?(@selected_video_ids, video.youtube_id) %>
+                  <% meta =
+                    [
+                      video.date_published &&
+                        Calendar.strftime(video.date_published, "%b %-d, %Y"),
+                      video.length > 0 && format_seconds(video.length)
+                    ]
+                    |> Enum.filter(& &1)
+                    |> Enum.join(" · ") %>
+                  <li>
+                    <label class={[
+                      "flex items-start gap-4 px-6 py-3 transition-colors",
+                      if(already?,
+                        do: "cursor-default opacity-60",
+                        else: "cursor-pointer hover:bg-base-200/40"
+                      ),
+                      selected? && "bg-primary/5"
+                    ]}>
                       <input
                         type="checkbox"
-                        class="checkbox checkbox-primary mt-1"
+                        class="checkbox checkbox-sm checkbox-primary mt-1"
                         checked={selected?}
                         disabled={already?}
                         phx-click="toggle_video"
                         phx-value-id={video.youtube_id}
                       />
-                      <%= if video.thumbnail_url do %>
-                        <img
-                          src={video.thumbnail_url}
-                          alt=""
-                          class="w-32 h-20 object-cover rounded shrink-0"
-                        />
-                      <% end %>
+                      <img
+                        :if={video.thumbnail_url}
+                        src={video.thumbnail_url}
+                        alt=""
+                        class="aspect-video w-28 shrink-0 rounded-lg bg-base-200 object-cover"
+                      />
                       <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2">
-                          <p class="font-medium truncate">{video.title}</p>
-                          <%= if already? do %>
-                            <span class="badge badge-ghost badge-sm">Already imported</span>
-                          <% end %>
+                        <div class="flex flex-wrap items-center gap-2">
+                          <p class="min-w-0 truncate text-sm font-medium">{video.title}</p>
+                          <.status_badge :if={already?}>Already imported</.status_badge>
                         </div>
-                        <p class="text-xs text-base-content/60 mt-1">
-                          <%= if video.date_published do %>
-                            {Calendar.strftime(video.date_published, "%b %-d, %Y")}
-                          <% end %>
-                          <%= if video.length > 0 do %>
-                            · {format_seconds(video.length)}
-                          <% end %>
-                        </p>
-                        <p class="text-sm text-base-content/70 line-clamp-2 mt-1">
+                        <p :if={meta != ""} class="mt-0.5 text-xs text-base-content/50">{meta}</p>
+                        <p class="mt-1 line-clamp-2 text-xs text-base-content/60">
                           {video.description}
                         </p>
                       </div>
                     </label>
-                  <% end %>
-                </div>
+                  </li>
+                <% end %>
+              </ul>
 
-                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-base-300">
-                  <button type="button" phx-click="continue_to_confirm" class="btn btn-primary">
-                    Continue ({MapSet.size(@selected_video_ids)} selected)
-                    <.icon name="hero-arrow-right" class="w-4 h-4 ml-2" />
-                  </button>
-                  <button type="button" phx-click="back_to_channel" class="btn btn-ghost">
-                    <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Back
-                  </button>
-                </div>
-              </div>
-            </div>
+              <:footer>
+                <button
+                  type="button"
+                  phx-click="back_to_channel"
+                  class="btn btn-ghost btn-sm mr-auto"
+                >
+                  <.icon name="hero-arrow-left" class="size-4" /> Back
+                </button>
+                <button
+                  type="button"
+                  phx-click="continue_to_confirm"
+                  class="btn btn-primary btn-sm"
+                >
+                  Continue ({MapSet.size(@selected_video_ids)} selected)
+                  <.icon name="hero-arrow-right" class="size-4" />
+                </button>
+              </:footer>
+            </.panel>
           <% end %>
-          
-<!-- Step :confirm -->
+
           <%= if @wizard_step == :confirm do %>
-            <div class="card bg-base-100 shadow-lg">
-              <div class="card-body space-y-4">
-                <h3 class="text-lg font-semibold flex items-center gap-2">
-                  <.icon name="hero-check-circle" class="w-5 h-5 text-success" /> Confirm import
-                </h3>
+            <.panel title="Confirm import" description="Check the details, then start the import.">
+              <dl class="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                <.detail_item
+                  label={
+                    if Map.get(@channel_preview || %{}, :import_kind, :channel) == :playlist,
+                      do: "Playlist",
+                      else: "Channel"
+                  }
+                  value={@channel_preview && @channel_preview.title}
+                />
+                <.detail_item
+                  label={Catalog.type_label(@catalog.type, 1)}
+                  value={@catalog.name}
+                />
+                <.detail_item label={group_word} value={@content_group.title} />
+                <.detail_item
+                  label="Videos to import"
+                  value={MapSet.size(@selected_video_ids)}
+                />
+                <.detail_item
+                  label={"#{Catalog.type_label(@catalog.piece_type, 1)} pricing"}
+                  value="Default tiqit classes (3h / 24h / 7d / 30d)"
+                />
+              </dl>
+              <p class="text-sm text-base-content/60">
+                Each {Catalog.type_label(@catalog.piece_type, 1, capitalize: false)} keeps its YouTube ID, so unlocked playback
+                embeds the real video in the existing player.
+              </p>
 
-                <div class="bg-base-200 rounded-lg p-4 space-y-2 text-sm">
-                  <div>
-                    <span class="font-medium">
-                      <%= if Map.get(@channel_preview || %{}, :import_kind, :channel) == :playlist do %>
-                        Playlist:
-                      <% else %>
-                        Channel:
-                      <% end %>
-                    </span>
-                    {@channel_preview && @channel_preview.title}
-                  </div>
-                  <div>
-                    <span class="font-medium">Catalog:</span> {@catalog.name}
-                  </div>
-                  <div>
-                    <span class="font-medium">Content group:</span> {@content_group.title}
-                  </div>
-                  <div>
-                    <span class="font-medium">Videos to import:</span>
-                    {MapSet.size(@selected_video_ids)}
-                  </div>
-                  <div>
-                    <span class="font-medium">Pricing per piece:</span>
-                    Default Tiqit classes (3h / 24h / 7d / 30d)
-                  </div>
-                </div>
-
-                <p class="text-sm text-base-content/60">
-                  Each piece will be created with its YouTube ID populated, so unlock playback
-                  embeds the real episode via the existing iframe player.
-                </p>
-
-                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-base-300">
-                  <button type="button" phx-click="start_import" class="btn btn-primary">
-                    <.icon name="hero-arrow-down-tray" class="w-4 h-4 mr-2" /> Import now
-                  </button>
-                  <button type="button" phx-click="back_to_review" class="btn btn-ghost">
-                    <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Back
-                  </button>
-                </div>
-              </div>
-            </div>
+              <:footer>
+                <button
+                  type="button"
+                  phx-click="back_to_review"
+                  class="btn btn-ghost btn-sm mr-auto"
+                >
+                  <.icon name="hero-arrow-left" class="size-4" /> Back
+                </button>
+                <button type="button" phx-click="start_import" class="btn btn-primary btn-sm">
+                  <.icon name="hero-arrow-down-tray" class="size-4" /> Import now
+                </button>
+              </:footer>
+            </.panel>
           <% end %>
-          
-<!-- Step :importing -->
+
           <%= if @wizard_step == :importing do %>
-            <div class="card bg-base-100 shadow-lg">
-              <div class="card-body space-y-4 text-center">
-                <h3 class="text-lg font-semibold">Importing…</h3>
-                <p class="text-sm text-base-content/60">
-                  Don't navigate away — this will take roughly 1-2 seconds per video.
-                </p>
+            <.panel
+              title="Importing videos…"
+              description="Keep this page open. Each video takes about 1-2 seconds."
+            >
+              <div aria-live="polite" class="space-y-3">
                 <progress
                   class="progress progress-primary w-full"
                   value={@progress}
                   max={@progress_total}
                 >
                 </progress>
-                <p class="text-sm">
-                  {@progress} / {@progress_total} pieces created
+                <p class="flex items-center gap-2 text-sm text-base-content/70">
+                  <span class="loading loading-spinner loading-xs"></span>
+                  {@progress} of {@progress_total} {pieces_word} created
                 </p>
               </div>
-            </div>
+            </.panel>
           <% end %>
-          
-<!-- Step :done -->
+
           <%= if @wizard_step == :done and @import_results do %>
-            <div class="card bg-base-100 shadow-lg">
-              <div class="card-body space-y-4">
-                <h3 class="text-lg font-semibold flex items-center gap-2">
-                  <.icon name="hero-check-badge" class="w-5 h-5 text-success" /> Import complete
-                </h3>
-
-                <% successes = Enum.count(@import_results, &(&1.status == :ok)) %>
-                <% failures = length(@import_results) - successes %>
-                <div class="stats shadow w-full">
-                  <div class="stat">
-                    <div class="stat-title">Pieces created</div>
-                    <div class="stat-value text-success">{successes}</div>
-                  </div>
-                  <%= if failures > 0 do %>
-                    <div class="stat">
-                      <div class="stat-title">Failures</div>
-                      <div class="stat-value text-error">{failures}</div>
-                    </div>
-                  <% end %>
-                </div>
-
-                <div class="border border-base-300 rounded-lg max-h-[24rem] overflow-y-auto divide-y divide-base-300">
-                  <%= for %{video: video, status: status} <- @import_results do %>
-                    <div class="flex items-start gap-3 p-3">
-                      <%= if status == :ok do %>
-                        <.icon name="hero-check-circle" class="w-5 h-5 text-success shrink-0" />
-                      <% else %>
-                        <.icon name="hero-x-circle" class="w-5 h-5 text-error shrink-0" />
-                      <% end %>
-                      <div class="min-w-0 flex-1">
-                        <p class="font-medium truncate">{video.title}</p>
-                        <%= case status do %>
-                          <% :ok -> %>
-                            <p class="text-xs text-base-content/60">Ready to play</p>
-                          <% {:error, reason} -> %>
-                            <p class="text-xs text-error">{reason}</p>
-                        <% end %>
-                      </div>
-                    </div>
-                  <% end %>
-                </div>
-
-                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-base-300">
-                  <button type="button" phx-click="finish" class="btn btn-primary">
-                    <.icon name="hero-arrow-right" class="w-4 h-4 mr-2" />
-                    Back to {@content_group.title}
-                  </button>
-                </div>
+            <% successes = Enum.count(@import_results, &(&1.status == :ok)) %>
+            <% failures = length(@import_results) - successes %>
+            <.panel
+              title="Import complete"
+              description={"New #{pieces_word} are ready in #{@content_group.title}."}
+            >
+              <div class="grid gap-3 sm:grid-cols-2">
+                <.stat_tile label="Created" icon="hero-check-circle" value_class="text-success">
+                  {successes}
+                </.stat_tile>
+                <.stat_tile
+                  label="Failed"
+                  icon="hero-x-circle"
+                  value_class={failures > 0 && "text-error"}
+                >
+                  {failures}
+                </.stat_tile>
               </div>
-            </div>
+
+              <div :if={failures > 0} class="rounded-xl border border-base-300">
+                <p class="border-b border-base-300 px-4 py-2.5 text-sm font-medium">
+                  Videos that failed
+                </p>
+                <ul class="max-h-72 divide-y divide-base-300 overflow-y-auto">
+                  <%= for %{video: video, status: {:error, reason}} <- @import_results do %>
+                    <li class="flex items-start gap-3 px-4 py-2.5">
+                      <.icon name="hero-x-circle" class="mt-0.5 size-4 shrink-0 text-error" />
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-medium">{video.title}</p>
+                        <p class="text-xs text-error">{reason}</p>
+                      </div>
+                    </li>
+                  <% end %>
+                </ul>
+              </div>
+
+              <:footer>
+                <button type="button" phx-click="finish" class="btn btn-primary btn-sm">
+                  View {@content_group.title} <.icon name="hero-arrow-right" class="size-4" />
+                </button>
+              </:footer>
+            </.panel>
           <% end %>
-        </div>
+        </.page>
       </div>
     </div>
   </div>

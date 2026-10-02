@@ -276,6 +276,24 @@ defmodule Qlarius.YouData.Traits do
   end
 
   @doc """
+  Returns `%{trait_group_id => count}` of distinct MeFiles tagged with any
+  trait in each group. Groups with no tagged MeFiles are absent from the map.
+  """
+  def me_file_counts_for_trait_groups([]), do: %{}
+
+  def me_file_counts_for_trait_groups(trait_group_ids) do
+    from(tgt in Qlarius.Sponster.Campaigns.TraitGroupTrait,
+      join: mft in MeFileTag,
+      on: mft.trait_id == tgt.trait_id,
+      where: tgt.trait_group_id in ^trait_group_ids,
+      group_by: tgt.trait_group_id,
+      select: {tgt.trait_group_id, count(mft.me_file_id, :distinct)}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  @doc """
   Gets a single trait_group.
   """
   def get_trait_group!(id) do

@@ -1,12 +1,15 @@
 defmodule QlariusWeb.Creators.ContentPieceLive.Show do
   use QlariusWeb, :live_view
 
+  import QlariusWeb.Components.MarketerUI
+
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
-  alias Qlarius.Tiqit.Arcade.Creators
+  alias Qlarius.Tiqit.Arcade.{Catalog, ContentPiece, Creators}
   alias Qlarius.Tiqit.ContentAudiences
   alias QlariusWeb.AudienceCard
+  alias QlariusWeb.Helpers.ImageHelpers
   alias QlariusWeb.TiqitClassHTML
-  import QlariusWeb.CoreComponents
+  alias QlariusWeb.Uploaders.CreatorImage
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -87,196 +90,199 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Show do
           <AdminTopbar.topbar current_user={@current_scope.user} />
 
           <div class="overflow-auto">
-            <div class="p-6">
-              <div class="space-y-6">
-                <!-- Header Section -->
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div class="min-w-0">
-                    <.breadcrumbs
-                      title={@piece.title}
-                      crumbs={[
-                        {@creator.name, ~p"/creators/#{@creator.id}"},
-                        {"#{String.capitalize(to_string(@catalog.type))}: #{@catalog.name}",
-                         ~p"/creators/catalogs/#{@catalog.id}"},
-                        {"#{String.capitalize(to_string(@catalog.group_type))}: #{@content_group.title}",
-                         ~p"/creators/content_groups/#{@content_group.id}"}
-                      ]}
-                      current={"#{String.capitalize(to_string(@catalog.piece_type))}: #{@piece.title}"}
+            <.page class="max-w-7xl">
+              <.page_header
+                title={@piece.title}
+                subtitle={"#{piece_label(@catalog)} in #{@content_group.title}"}
+                crumbs={[
+                  {@creator.name, ~p"/creators/#{@creator.id}"},
+                  {@catalog.name, ~p"/creators/catalogs/#{@catalog.id}"},
+                  {@content_group.title, ~p"/creators/content_groups/#{@content_group.id}"}
+                ]}
+              >
+                <:badges>
+                  <.status_badge :if={@piece.archived_at} tone="warning">Archived</.status_badge>
+                </:badges>
+                <:actions>
+                  <.link
+                    navigate={~p"/creators/content_pieces/#{@piece.id}/edit"}
+                    class="btn btn-ghost btn-sm"
+                  >
+                    <.icon name="hero-pencil-square" class="size-4" /> Edit
+                  </.link>
+                  <button
+                    :if={is_nil(@piece.archived_at) && @piece_hard_deletable}
+                    type="button"
+                    phx-click="delete"
+                    data-confirm={"Permanently delete this #{piece_label(@catalog, false)}? This cannot be undone."}
+                    class="btn btn-ghost btn-sm text-error"
+                  >
+                    <.icon name="hero-trash" class="size-4" /> Delete
+                  </button>
+                  <button
+                    :if={is_nil(@piece.archived_at) && !@piece_hard_deletable}
+                    type="button"
+                    phx-click="archive"
+                    data-confirm={"Archive this #{piece_label(@catalog, false)}? It will be hidden from lists; purchase and ledger history stay intact."}
+                    class="btn btn-ghost btn-sm"
+                  >
+                    <.icon name="hero-archive-box" class="size-4" /> Archive
+                  </button>
+                </:actions>
+              </.page_header>
+
+              <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+                <div class="min-w-0 space-y-6">
+                  <.panel id="piece-details" title="Details">
+                    <img
+                      :if={@piece.image}
+                      src={CreatorImage.url({@piece.image, @piece}, :original)}
+                      alt={@piece.title}
+                      class="aspect-video w-full rounded-xl object-cover"
                     />
-                    <p class="text-base-content/60 mt-1">
-                      Content Piece • ID: {@piece.id}
+                    <p
+                      :if={@piece.description not in [nil, ""]}
+                      class="whitespace-pre-line text-sm leading-relaxed text-base-content/80 [overflow-wrap:anywhere]"
+                    >
+                      {@piece.description}
                     </p>
-                    <div :if={@piece.archived_at} class="mt-2">
-                      <span class="badge badge-warning badge-lg">Archived</span>
-                      <p class="text-sm text-base-content/60 mt-1 max-w-xl">
-                        Removed from catalog and arcade lists. Existing access from past purchases is unchanged.
-                      </p>
+                    <p :if={@piece.description in [nil, ""]} class="text-sm text-base-content/50">
+                      No description yet.
+                    </p>
+                    <dl class="grid gap-x-6 gap-y-4 border-t border-base-300 pt-4 sm:grid-cols-3">
+                      <.detail_item label="Length" value={format_length(@piece.length)} />
+                      <.detail_item label="Published" value={format_date(@piece.date_published)} />
+                      <.detail_item
+                        :if={ContentPiece.episode_label(@piece)}
+                        label={piece_label(@catalog)}
+                        value={ContentPiece.episode_label(@piece)}
+                      />
+                    </dl>
+                  </.panel>
+
+                  <.panel
+                    id="piece-group"
+                    title={Catalog.type_label(@catalog.group_type)}
+                    description={"The #{Catalog.type_label(@catalog.group_type, 1, capitalize: false)} this #{piece_label(@catalog, false)} belongs to."}
+                    flush
+                  >
+                    <div class="flex items-center gap-4 px-6 py-4">
+                      <%= if ImageHelpers.group_image_url(@content_group) != ImageHelpers.placeholder_image_url() do %>
+                        <img
+                          src={ImageHelpers.group_image_url(@content_group)}
+                          alt={@content_group.title}
+                          class="size-12 shrink-0 rounded-lg object-cover"
+                        />
+                      <% else %>
+                        <span class="flex size-12 shrink-0 items-center justify-center rounded-lg bg-base-200 font-semibold text-base-content/70">
+                          {String.first(@content_group.title || "?")}
+                        </span>
+                      <% end %>
+                      <div class="min-w-0 flex-1">
+                        <.link
+                          navigate={~p"/creators/content_groups/#{@content_group.id}"}
+                          class="block truncate font-semibold hover:underline"
+                        >
+                          {@content_group.title}
+                        </.link>
+                        <p
+                          :if={@content_group.description not in [nil, ""]}
+                          class="line-clamp-2 text-sm text-base-content/60"
+                        >
+                          {@content_group.description}
+                        </p>
+                      </div>
+                      <.link
+                        navigate={~p"/creators/content_groups/#{@content_group.id}"}
+                        class="btn btn-sm"
+                      >
+                        Open
+                      </.link>
                     </div>
-                  </div>
-                  <div class="flex gap-2">
-                    <.link
-                      navigate={~p"/creators/content_pieces/#{@piece.id}/edit"}
-                      class="btn btn-outline"
-                    >
-                      <.icon name="hero-pencil" class="w-4 h-4 mr-2" /> Edit
-                    </.link>
-                    <button
-                      :if={is_nil(@piece.archived_at) && @piece_hard_deletable}
-                      phx-click="delete"
-                      data-confirm="Permanently delete this content piece? This cannot be undone."
-                      class="btn btn-outline btn-error"
-                    >
-                      <.icon name="hero-trash" class="w-4 h-4 mr-2" /> Delete
-                    </button>
-                    <button
-                      :if={is_nil(@piece.archived_at) && !@piece_hard_deletable}
-                      phx-click="archive"
-                      data-confirm="Archive this content piece? It will be hidden from lists; purchase and ledger history stay intact."
-                      class="btn btn-outline btn-warning"
-                    >
-                      <.icon name="hero-archive-box" class="w-4 h-4 mr-2" /> Archive
-                    </button>
-                  </div>
+                  </.panel>
                 </div>
-                
-    <!-- Content Details -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <!-- Main Content Card -->
-                  <div class="lg:col-span-2">
-                    <div class="card bg-base-100 shadow-lg">
-                      <div class="card-body">
-                        <div class="space-y-6">
-                          <!-- Basic Information -->
-                          <div>
-                            <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                              <.icon name="hero-information-circle" class="w-5 h-5 mr-3 text-info" />
-                              Basic Information
-                            </h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div class="form-control">
-                                <label class="label">
-                                  <span class="label-text font-medium">Title</span>
-                                </label>
-                                <div class="bg-base-200 rounded-lg p-3">
-                                  <p class="text-base-content font-medium">{@piece.title}</p>
-                                </div>
-                              </div>
 
-                              <div class="form-control">
-                                <label class="label">
-                                  <span class="label-text font-medium">Length</span>
-                                </label>
-                                <div class="bg-base-200 rounded-lg p-3">
-                                  <span class="badge badge-primary badge-lg">
-                                    <.icon name="hero-clock" class="w-4 h-4 mr-2" />
-                                    {format_duration(@piece.length)}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          
-    <!-- Description -->
-                          <div>
-                            <h4 class="text-md font-medium text-base-content mb-3">Description</h4>
-                            <div class="bg-base-200 rounded-lg p-4">
-                              <p class="text-base-content leading-relaxed">{@piece.description}</p>
-                            </div>
-                          </div>
-                          
-    <!-- Content Group Info -->
-                          <div>
-                            <h4 class="text-md font-medium text-base-content mb-3 flex items-center">
-                              <.icon name="hero-folder" class="w-4 h-4 mr-2 text-secondary" />
-                              Content Group
-                            </h4>
-                            <div class="bg-base-200 rounded-lg p-3">
-                              <div class="flex items-center gap-3">
-                                <div class="avatar placeholder">
-                                  <div class="bg-neutral-focus text-neutral-content rounded-full w-8 h-8">
-                                    <span class="text-xs">{String.at(@content_group.title, 0)}</span>
-                                  </div>
-                                </div>
-                                <div>
-                                  <.link
-                                    navigate={~p"/creators/content_groups/#{@content_group.id}"}
-                                    class="text-primary hover:text-primary-focus font-medium"
-                                  >
-                                    {@content_group.title}
-                                  </.link>
-                                  <p class="text-sm text-base-content/60">
-                                    {@content_group.description}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-    <!-- Tiqit Classes Sidebar -->
-                  <div class="lg:col-span-1">
-                    <div class="card bg-base-100 shadow-lg">
-                      <div class="card-body">
-                        <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                          <.icon name="hero-tag" class="w-5 h-5 mr-3 text-primary" />
-                          Tiqit Classes ({length(@piece.tiqit_classes)})
-                        </h3>
-
-                        <%= if Enum.any?(@piece.tiqit_classes) do %>
-                          <div class="overflow-x-auto">
-                            <TiqitClassHTML.tiqit_classes_table record={@piece} />
-                          </div>
-                        <% else %>
-                          <div class="text-center py-8">
-                            <div class="avatar placeholder mb-3">
-                              <div class="bg-neutral-focus text-neutral-content rounded-full w-12 h-12">
-                                <span class="text-lg">🏷️</span>
-                              </div>
-                            </div>
-                            <p class="text-base-content/60 text-sm">No pricing tiers configured</p>
-                          </div>
-                        <% end %>
-                      </div>
-                    </div>
-
-                    <AudienceCard.card
-                      creator={@creator}
-                      content={@piece}
-                      effective={@audience}
-                      level={:piece}
+                <aside class="space-y-6 lg:sticky lg:top-6">
+                  <.panel
+                    id="piece-pricing"
+                    title={"#{piece_label(@catalog)} pricing"}
+                    description={"Buy just this #{piece_label(@catalog, false)}."}
+                    flush
+                  >
+                    <:actions>
+                      <.link
+                        :if={@piece.tiqit_classes != []}
+                        navigate={~p"/creators/content_pieces/#{@piece.id}/edit"}
+                        class="btn btn-ghost btn-sm"
+                      >
+                        Edit prices
+                      </.link>
+                    </:actions>
+                    <TiqitClassHTML.tiqit_classes_table
+                      :if={@piece.tiqit_classes != []}
+                      record={@piece}
                     />
-                    
-    <!-- Stats Card -->
-                    <div class="card bg-base-100 shadow-lg mt-4">
-                      <div class="card-body">
-                        <h4 class="text-md font-medium text-base-content mb-4">Quick Stats</h4>
-                        <div class="space-y-3">
-                          <div class="flex justify-between items-center">
-                            <span class="text-sm text-base-content/60">Created</span>
-                            <span class="text-sm font-medium">
-                              {Calendar.strftime(@piece.inserted_at, "%b %d, %Y")}
-                            </span>
-                          </div>
-                          <div class="flex justify-between items-center">
-                            <span class="text-sm text-base-content/60">Last Updated</span>
-                            <span class="text-sm font-medium">
-                              {Calendar.strftime(@piece.updated_at, "%b %d, %Y")}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+                    <div
+                      :if={@piece.tiqit_classes == []}
+                      class="flex flex-col items-start gap-3 px-6 py-5"
+                    >
+                      <p class="text-sm text-base-content/60">
+                        No prices yet. Add one so this {piece_label(@catalog, false)} can be bought on its own.
+                      </p>
+                      <.link
+                        navigate={~p"/creators/content_pieces/#{@piece.id}/edit"}
+                        class="btn btn-sm"
+                      >
+                        <.icon name="hero-plus" class="size-4" /> Set prices
+                      </.link>
                     </div>
+                  </.panel>
+
+                  <AudienceCard.card
+                    creator={@creator}
+                    content={@piece}
+                    effective={@audience}
+                    level={:piece}
+                    class={nil}
+                  />
+
+                  <.panel id="piece-info" title="Info">
+                    <dl class="grid grid-cols-2 gap-x-6 gap-y-4">
+                      <.detail_item label="Created" value={format_date(@piece.inserted_at)} />
+                      <.detail_item label="Last updated" value={format_date(@piece.updated_at)} />
+                      <.detail_item label="ID" value={"##{@piece.id}"} />
+                    </dl>
+                  </.panel>
+
+                  <div
+                    :if={@piece.archived_at}
+                    id="piece-archived-note"
+                    class="rounded-xl border border-warning/30 bg-warning/10 p-4 text-sm"
+                  >
+                    <p class="flex items-center gap-2 font-medium">
+                      <.icon name="hero-archive-box" class="size-4 text-warning" />
+                      Archived {format_date(@piece.archived_at)}
+                    </p>
+                    <p class="mt-1 text-base-content/70">
+                      Removed from catalog and arcade lists. Existing access from past purchases is unchanged.
+                    </p>
                   </div>
-                </div>
+                </aside>
               </div>
-            </div>
+            </.page>
           </div>
         </div>
       </div>
     </Layouts.admin>
     """
   end
+
+  defp piece_label(catalog, capitalize \\ true),
+    do: Catalog.type_label(catalog.piece_type, 1, capitalize: capitalize)
+
+  defp format_length(length) when length in [nil, 0], do: nil
+  defp format_length(length), do: format_duration(length)
+
+  defp format_date(nil), do: nil
+  defp format_date(date), do: Calendar.strftime(date, "%b %-d, %Y")
 end

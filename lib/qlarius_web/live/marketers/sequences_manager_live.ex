@@ -1,12 +1,23 @@
 defmodule QlariusWeb.Live.Marketers.SequencesManagerLive do
   use QlariusWeb, :live_view
 
+  import QlariusWeb.Components.MarketerUI
+
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Sponster.Campaigns.MediaSequences
   alias Qlarius.Sponster.Ads
   alias QlariusWeb.Live.Marketers.CurrentMarketer
 
   on_mount {CurrentMarketer, :load_current_marketer}
+
+  @default_params %{
+    "media_piece_id" => "",
+    "frequency" => "3",
+    "frequency_buffer_hours" => "24",
+    "maximum_banner_count" => "3",
+    "banner_retry_buffer_hours" => "10",
+    "title" => ""
+  }
 
   @impl true
   def mount(_params, _session, socket) do
@@ -24,197 +35,168 @@ defmodule QlariusWeb.Live.Marketers.SequencesManagerLive do
   end
 
   defp assign_sequences_data(socket) do
-    if socket.assigns.current_marketer do
-      media_sequences =
-        MediaSequences.list_media_sequences_for_marketer(socket.assigns.current_marketer.id)
+    {media_sequences, archived_media_sequences, media_pieces} =
+      if socket.assigns.current_marketer do
+        marketer_id = socket.assigns.current_marketer.id
 
-      archived_media_sequences =
-        MediaSequences.list_archived_media_sequences_for_marketer(
-          socket.assigns.current_marketer.id
-        )
+        {MediaSequences.list_media_sequences_for_marketer(marketer_id),
+         MediaSequences.list_archived_media_sequences_for_marketer(marketer_id),
+         Ads.list_active_media_pieces_for_marketer(marketer_id)}
+      else
+        {[], [], []}
+      end
 
-      media_pieces = Ads.list_active_media_pieces_for_marketer(socket.assigns.current_marketer.id)
-
-      socket
-      |> assign(:media_sequences, media_sequences)
-      |> assign(:archived_media_sequences, archived_media_sequences)
-      |> assign(:media_pieces, media_pieces)
-      |> assign(:selected_media_piece_id, nil)
-      |> assign(:is_video_type, false)
-      |> assign(:show_archived, false)
-      |> assign_default_form()
-    else
-      socket
-      |> assign(:media_sequences, [])
-      |> assign(:archived_media_sequences, [])
-      |> assign(:media_pieces, [])
-      |> assign(:selected_media_piece_id, nil)
-      |> assign(:is_video_type, false)
-      |> assign(:show_archived, false)
-      |> assign_default_form()
-    end
+    socket
+    |> assign(:media_sequences, media_sequences)
+    |> assign(:archived_media_sequences, archived_media_sequences)
+    |> assign(:media_pieces, media_pieces)
+    |> assign(:show_archived, false)
+    |> assign_form(@default_params)
   end
 
-  defp assign_default_form(socket) do
-    assign(
-      socket,
-      :sequence_form,
-      to_form(%{
-        "frequency" => "3",
-        "frequency_buffer_hours" => "24",
-        "maximum_banner_count" => "3",
-        "banner_retry_buffer_hours" => "10",
-        "title" => ""
-      })
+  defp assign_form(socket, params) do
+    media_piece = find_media_piece(socket.assigns.media_pieces, params["media_piece_id"])
+
+    socket
+    |> assign(:sequence_form, to_form(params, as: :sequence))
+    |> assign(:selected_media_piece, media_piece)
+    |> assign(:auto_title, auto_title(media_piece, params))
+  end
+
+  defp find_media_piece(media_pieces, id) when is_binary(id) and id != "" do
+    Enum.find(media_pieces, &(to_string(&1.id) == id))
+  end
+
+  defp find_media_piece(_media_pieces, _id), do: nil
+
+  defp auto_title(nil, _params), do: ""
+
+  defp auto_title(media_piece, params) do
+    MediaSequences.generate_sequence_name(
+      media_piece,
+      params["frequency"],
+      params["frequency_buffer_hours"],
+      params["maximum_banner_count"],
+      params["banner_retry_buffer_hours"]
     )
   end
 
   @impl true
   def handle_event("update_form", %{"sequence" => params}, socket) do
-    media_piece_id = params["media_piece_id"]
+    params = Map.merge(@default_params, params)
+    media_piece = find_media_piece(socket.assigns.media_pieces, params["media_piece_id"])
+    title_untouched? = params["title"] in ["", socket.assigns.auto_title]
 
-    if media_piece_id && media_piece_id != "" do
-      media_piece = Ads.get_media_piece!(media_piece_id)
-      is_video = media_piece.media_piece_type_id == 2
+    params =
+      if title_untouched?,
+        do: Map.put(params, "title", auto_title(media_piece, params)),
+        else: params
 
-      updated_title =
-        MediaSequences.generate_sequence_name(
-          media_piece,
-          params["frequency"] || "3",
-          params["frequency_buffer_hours"] || "24",
-          params["maximum_banner_count"] || "3",
-          params["banner_retry_buffer_hours"] || "10"
-        )
-
-      form = to_form(Map.put(params, "title", updated_title))
-
-      {:noreply,
-       socket
-       |> assign(:selected_media_piece_id, String.to_integer(media_piece_id))
-       |> assign(:is_video_type, is_video)
-       |> assign(:sequence_form, form)}
-    else
-      form = to_form(params)
-
-      {:noreply,
-       socket
-       |> assign(:selected_media_piece_id, nil)
-       |> assign(:is_video_type, false)
-       |> assign(:sequence_form, form)}
-    end
+    {:noreply, assign_form(socket, params)}
   end
 
-  @impl true
-  def handle_event("create_sequence", %{"sequence" => params}, socket) do
-    if !socket.assigns.current_marketer do
-      {:noreply, put_flash(socket, :error, "Please select a marketer first")}
-    else
-      if !params["media_piece_id"] do
+  def handle_event("create_sequence", %{"sequence" => params} = all_params, socket) do
+    cond do
+      !socket.assigns.current_marketer ->
+        {:noreply, put_flash(socket, :error, "Please select a marketer first")}
+
+      params["media_piece_id"] in [nil, ""] ->
         {:noreply, put_flash(socket, :error, "Please select a media piece")}
-      else
+
+      true ->
         case MediaSequences.create_media_sequence_with_run(
                socket.assigns.current_marketer.id,
                params
              ) do
           {:ok, _sequence} ->
-            {:noreply,
-             socket
-             |> put_flash(:info, "Media sequence created successfully")
-             |> assign_sequences_data()}
+            socket = put_flash(socket, :info, "Media sequence created successfully")
 
-          {:error, %Ecto.Changeset{} = changeset} ->
+            case all_params["return_to"] do
+              nil ->
+                {:noreply, assign_sequences_data(socket)}
+
+              return_to ->
+                {:noreply,
+                 push_navigate(socket,
+                   to: safe_return_to(return_to, ~p"/marketer/sequences")
+                 )}
+            end
+
+          {:error, _changeset} ->
             {:noreply,
              socket
-             |> put_flash(:error, "Failed to create sequence")
-             |> assign(:sequence_form, to_form(changeset))}
+             |> put_flash(:error, "Failed to create sequence. Check the rules and name.")
+             |> assign_form(Map.merge(@default_params, params))}
         end
-      end
     end
   end
 
-  @impl true
   def handle_event("delete_sequence", %{"id" => id}, socket) do
-    if socket.assigns.current_marketer do
-      sequence =
-        MediaSequences.get_media_sequence_for_marketer!(
-          id,
-          socket.assigns.current_marketer.id
-        )
-
+    with_sequence(socket, id, fn sequence ->
       case MediaSequences.delete_media_sequence(sequence) do
         {:ok, _} ->
-          {:noreply,
-           socket
-           |> put_flash(:info, "Media sequence deleted successfully")
-           |> assign_sequences_data()}
+          socket
+          |> put_flash(:info, "Media sequence deleted successfully")
+          |> assign_sequences_data()
 
         {:error, :sequence_in_use} ->
-          {:noreply,
-           put_flash(
-             socket,
-             :error,
-             "Cannot delete sequence that is in use by active campaigns. Archive it instead."
-           )}
+          put_flash(
+            socket,
+            :error,
+            "Cannot delete sequence that is in use by active campaigns. Archive it instead."
+          )
 
         {:error, _} ->
-          {:noreply, put_flash(socket, :error, "Failed to delete sequence")}
+          put_flash(socket, :error, "Failed to delete sequence")
       end
-    else
-      {:noreply, put_flash(socket, :error, "No marketer selected")}
-    end
+    end)
   end
 
-  @impl true
   def handle_event("archive_sequence", %{"id" => id}, socket) do
-    if socket.assigns.current_marketer do
-      sequence =
-        MediaSequences.get_media_sequence_for_marketer!(
-          id,
-          socket.assigns.current_marketer.id
-        )
-
+    with_sequence(socket, id, fn sequence ->
       case MediaSequences.archive_media_sequence(sequence) do
         {:ok, _} ->
-          {:noreply,
-           socket
-           |> put_flash(:info, "Media sequence archived successfully")
-           |> assign_sequences_data()}
+          socket
+          |> put_flash(:info, "Media sequence archived successfully")
+          |> assign_sequences_data()
 
         {:error, _} ->
-          {:noreply, put_flash(socket, :error, "Failed to archive sequence")}
+          put_flash(socket, :error, "Failed to archive sequence")
       end
-    else
-      {:noreply, put_flash(socket, :error, "No marketer selected")}
-    end
+    end)
   end
 
-  @impl true
   def handle_event("unarchive_sequence", %{"id" => id}, socket) do
-    if socket.assigns.current_marketer do
-      sequence =
-        MediaSequences.get_media_sequence_for_marketer!(
-          id,
-          socket.assigns.current_marketer.id
-        )
-
+    with_sequence(socket, id, fn sequence ->
       case MediaSequences.unarchive_media_sequence(sequence) do
         {:ok, _} ->
-          {:noreply,
-           socket
-           |> put_flash(:info, "Media sequence unarchived successfully")
-           |> assign_sequences_data()}
+          socket
+          |> put_flash(:info, "Media sequence unarchived successfully")
+          |> assign_sequences_data()
 
         {:error, _} ->
-          {:noreply, put_flash(socket, :error, "Failed to unarchive sequence")}
+          put_flash(socket, :error, "Failed to unarchive sequence")
       end
+    end)
+  end
+
+  def handle_event("toggle_archived", _params, socket) do
+    {:noreply, assign(socket, :show_archived, !socket.assigns.show_archived)}
+  end
+
+  defp with_sequence(socket, id, fun) do
+    if socket.assigns.current_marketer do
+      sequence =
+        MediaSequences.get_media_sequence_for_marketer!(id, socket.assigns.current_marketer.id)
+
+      {:noreply, fun.(sequence)}
     else
       {:noreply, put_flash(socket, :error, "No marketer selected")}
     end
   end
 
-  @impl true
-  def handle_event("toggle_archived", _params, socket) do
-    {:noreply, assign(socket, :show_archived, !socket.assigns.show_archived)}
+  defp form_dirty?(form) do
+    Map.take(form.params, Map.keys(@default_params)) != @default_params
   end
 
   @impl true
@@ -233,209 +215,56 @@ defmodule QlariusWeb.Live.Marketers.SequencesManagerLive do
               current_path={~p"/marketer/sequences"}
             />
 
-            <div :if={!@current_marketer} class="p-6">
-              <div class="alert alert-warning">
-                <.icon name="hero-exclamation-circle" class="w-6 h-6" />
-                <span>Please select a marketer to manage media sequences.</span>
-              </div>
-            </div>
+            <.no_marketer_notice
+              :if={!@current_marketer}
+              message="Choose a marketer to manage their media sequences."
+            />
 
-            <div :if={@current_marketer} class="p-6">
-              <div class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-bold">Media Sequencer</h1>
-              </div>
+            <.page :if={@current_marketer}>
+              <.page_header
+                title="Media sequences"
+                count={length(@media_sequences)}
+                subtitle="Pair a media piece with delivery rules. Campaigns run their ads through a sequence."
+              />
 
-              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2">
-                  <div :if={@media_sequences == []} class="card bg-base-100 border border-base-300">
-                    <div class="card-body text-center py-12">
-                      <.icon
-                        name="hero-document-plus"
-                        class="w-16 h-16 mx-auto text-base-content/30 mb-4"
-                      />
-                      <p class="text-lg font-medium text-base-content/70">No media sequences yet</p>
-                      <p class="text-sm text-base-content/50 mt-2">
-                        Create your first sequence on the right to get started
-                      </p>
-                    </div>
-                  </div>
-
-                  <.sequences_table
-                    :if={@media_sequences != []}
-                    sequences={@media_sequences}
-                    archived={false}
-                  />
-
-                  <div
-                    :if={@archived_media_sequences != []}
-                    class="mt-8 border-t border-base-300 pt-6"
-                  >
-                    <button phx-click="toggle_archived" class="btn btn-ghost btn-sm mb-4">
-                      <.icon
-                        name={if @show_archived, do: "hero-chevron-down", else: "hero-chevron-right"}
-                        class="w-4 h-4"
-                      /> Archived Sequences ({length(@archived_media_sequences)})
-                    </button>
-
-                    <.sequences_table
-                      :if={@show_archived}
-                      sequences={@archived_media_sequences}
-                      archived={true}
+              <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+                <div class="min-w-0">
+                  <.panel flush>
+                    <.empty_state
+                      :if={@media_sequences == []}
+                      icon="hero-numbered-list"
+                      title="No media sequences yet"
+                    >
+                      Pick a media piece and set its rules in the form to create your first sequence.
+                    </.empty_state>
+                    <.sequence_list
+                      :if={@media_sequences != []}
+                      sequences={@media_sequences}
+                      archived={false}
                     />
-                  </div>
+                  </.panel>
+
+                  <.archived_section
+                    label="Archived sequences"
+                    count={length(@archived_media_sequences)}
+                    open={@show_archived}
+                    toggle="toggle_archived"
+                  >
+                    <.panel flush>
+                      <.sequence_list sequences={@archived_media_sequences} archived={true} />
+                    </.panel>
+                  </.archived_section>
                 </div>
 
-                <div class="lg:col-span-1">
-                  <div class="card bg-base-100 border border-base-300">
-                    <div class="card-body">
-                      <h2 class="card-title mb-4">Create New Sequence</h2>
-
-                      <%= if @media_pieces == [] do %>
-                        <div class="alert alert-warning">
-                          <.icon name="hero-exclamation-circle" class="w-5 h-5" />
-                          <span class="text-sm">
-                            No active media pieces. Create media pieces first.
-                          </span>
-                        </div>
-                      <% else %>
-                        <.form
-                          for={@sequence_form}
-                          phx-submit="create_sequence"
-                          phx-change="update_form"
-                          class="space-y-4"
-                        >
-                          <div class="form-control w-full">
-                            <label class="label">
-                              <span class="label-text font-semibold">1. Select Media Piece</span>
-                            </label>
-                            <select
-                              name="sequence[media_piece_id]"
-                              class="select select-bordered w-full"
-                              required
-                            >
-                              <option value="">Choose a media piece...</option>
-                              <option
-                                :for={piece <- @media_pieces}
-                                value={piece.id}
-                                selected={piece.id == @selected_media_piece_id}
-                              >
-                                {piece.title}
-                              </option>
-                            </select>
-                          </div>
-
-                          <div class="divider text-sm">2. Frequency Rules</div>
-
-                          <div class="form-control w-full">
-                            <label class="label">
-                              <span class="label-text">Frequency</span>
-                            </label>
-                            <input
-                              type="number"
-                              name="sequence[frequency]"
-                              value={@sequence_form.params["frequency"]}
-                              class="input input-bordered w-full"
-                              min="1"
-                              required
-                            />
-                            <label class="label">
-                              <span class="label-text-alt text-base-content/60 text-xs">
-                                Desired completions
-                              </span>
-                            </label>
-                          </div>
-
-                          <div class="form-control w-full">
-                            <label class="label">
-                              <span class="label-text">Frequency Buffer (hours)</span>
-                            </label>
-                            <input
-                              type="number"
-                              name="sequence[frequency_buffer_hours]"
-                              value={@sequence_form.params["frequency_buffer_hours"]}
-                              class="input input-bordered w-full"
-                              min="1"
-                              required
-                            />
-                            <label class="label">
-                              <span class="label-text-alt text-base-content/60 text-xs">
-                                Hours between completions
-                              </span>
-                            </label>
-                          </div>
-
-                          <%= if !@is_video_type do %>
-                            <div class="form-control w-full">
-                              <label class="label">
-                                <span class="label-text">Maximum Banner Attempts</span>
-                              </label>
-                              <input
-                                type="number"
-                                name="sequence[maximum_banner_count]"
-                                value={@sequence_form.params["maximum_banner_count"]}
-                                class="input input-bordered w-full"
-                                min="1"
-                                required
-                              />
-                              <label class="label">
-                                <span class="label-text-alt text-base-content/60 text-xs">
-                                  Max banners without completion
-                                </span>
-                              </label>
-                            </div>
-
-                            <div class="form-control w-full">
-                              <label class="label">
-                                <span class="label-text">Banner Retry Buffer (hours)</span>
-                              </label>
-                              <input
-                                type="number"
-                                name="sequence[banner_retry_buffer_hours]"
-                                value={@sequence_form.params["banner_retry_buffer_hours"]}
-                                class="input input-bordered w-full"
-                                min="1"
-                                required
-                              />
-                              <label class="label">
-                                <span class="label-text-alt text-base-content/60 text-xs">
-                                  Hours between banner retries
-                                </span>
-                              </label>
-                            </div>
-                          <% end %>
-
-                          <div class="divider text-sm">3. Name</div>
-
-                          <div class="form-control w-full">
-                            <input
-                              type="text"
-                              name="sequence[title]"
-                              value={@sequence_form.params["title"]}
-                              placeholder="Sequence name"
-                              class="input input-bordered w-full"
-                              required
-                            />
-                            <label class="label">
-                              <span class="label-text-alt text-base-content/60 text-xs">
-                                Auto-generated, but you can customize it
-                              </span>
-                            </label>
-                          </div>
-
-                          <button
-                            type="submit"
-                            class="btn btn-primary w-full"
-                            disabled={!@selected_media_piece_id}
-                          >
-                            <.icon name="hero-plus" class="w-5 h-5" /> Create Sequence
-                          </button>
-                        </.form>
-                      <% end %>
-                    </div>
-                  </div>
-                </div>
+                <.new_sequence_form
+                  form={@sequence_form}
+                  media_pieces={@media_pieces}
+                  selected_media_piece={@selected_media_piece}
+                />
               </div>
-            </div>
+            </.page>
+
+            <.unsaved_changes_dialog message="Your new sequence has not been created yet. Create it before you leave?" />
           </div>
         </div>
       </div>
@@ -443,99 +272,250 @@ defmodule QlariusWeb.Live.Marketers.SequencesManagerLive do
     """
   end
 
+  attr :form, :any, required: true
+  attr :media_pieces, :list, required: true
+  attr :selected_media_piece, :any, required: true
+
+  defp new_sequence_form(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :is_video,
+        match?(%{media_piece_type_id: 2}, assigns.selected_media_piece)
+      )
+
+    ~H"""
+    <div class="lg:sticky lg:top-22">
+      <.panel
+        :if={@media_pieces == []}
+        title="New sequence"
+        description="Sequences need an active media piece."
+      >
+        <.empty_state icon="hero-photo" title="No active media pieces">
+          Create a media piece first, then come back to sequence it.
+          <:action>
+            <.link navigate={~p"/marketer/media/new"} class="btn btn-primary btn-sm">
+              New media piece
+            </.link>
+          </:action>
+        </.empty_state>
+      </.panel>
+
+      <.form
+        :if={@media_pieces != []}
+        for={@form}
+        id="new-sequence-form"
+        phx-change="update_form"
+        phx-submit="create_sequence"
+        phx-hook="UnsavedChanges"
+        data-dirty={to_string(form_dirty?(@form))}
+        data-dialog="unsaved-changes-dialog"
+      >
+        <.panel title="New sequence" description="Choose an ad, then decide how often people see it.">
+          <.step number={1} title="Media piece">
+            <.input
+              type="select"
+              name="sequence[media_piece_id]"
+              value={@form.params["media_piece_id"]}
+              prompt="Choose a media piece"
+              options={Enum.map(@media_pieces, &{&1.title, &1.id})}
+              required
+            />
+            <p
+              :if={@selected_media_piece}
+              class="flex items-center gap-1.5 text-xs text-base-content/60"
+            >
+              <.icon
+                name={if @is_video, do: "hero-play-circle", else: "hero-photo"}
+                class="size-4"
+              />
+              {if @is_video, do: "Video ad", else: "3-tap banner ad"}
+            </p>
+          </.step>
+
+          <.step number={2} title="Delivery rules">
+            <div class="grid grid-cols-2 gap-x-3">
+              <.input
+                type="number"
+                name="sequence[frequency]"
+                value={@form.params["frequency"]}
+                label="Completions"
+                description="Times each person finishes the ad"
+                min="1"
+                required
+              />
+              <.input
+                type="number"
+                name="sequence[frequency_buffer_hours]"
+                value={@form.params["frequency_buffer_hours"]}
+                label="Hours between"
+                description="Wait before the next completion"
+                min="1"
+                required
+              />
+              <%= if !@is_video do %>
+                <.input
+                  type="number"
+                  name="sequence[maximum_banner_count]"
+                  value={@form.params["maximum_banner_count"]}
+                  label="Banner attempts"
+                  description="Banners shown without a completion"
+                  min="1"
+                  required
+                />
+                <.input
+                  type="number"
+                  name="sequence[banner_retry_buffer_hours]"
+                  value={@form.params["banner_retry_buffer_hours"]}
+                  label="Retry hours"
+                  description="Wait before showing the banner again"
+                  min="1"
+                  required
+                />
+              <% end %>
+            </div>
+          </.step>
+
+          <.step number={3} title="Name">
+            <.input
+              type="text"
+              name="sequence[title]"
+              value={@form.params["title"]}
+              placeholder="Sequence name"
+              description="Filled in for you. Edit it to use your own name."
+              required
+            />
+          </.step>
+
+          <:footer>
+            <.unsaved_note dirty={form_dirty?(@form)} id="unsaved-changes-note" />
+            <.button
+              variant="primary"
+              phx-disable-with="Creating..."
+              disabled={is_nil(@selected_media_piece)}
+            >
+              <.icon name="hero-plus" class="size-4" /> Create sequence
+            </.button>
+          </:footer>
+        </.panel>
+      </.form>
+    </div>
+    """
+  end
+
+  attr :number, :integer, required: true
+  attr :title, :string, required: true
+  slot :inner_block, required: true
+
+  defp step(assigns) do
+    ~H"""
+    <div class="space-y-2">
+      <div class="flex items-center gap-2">
+        <span class="flex size-5 items-center justify-center rounded-full bg-base-200 text-xs font-semibold text-base-content/70">
+          {@number}
+        </span>
+        <h3 class="text-sm font-semibold">{@title}</h3>
+      </div>
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
   defp sequence_has_active_campaigns?(sequence) do
-    Enum.any?(sequence.campaigns, fn campaign ->
-      is_nil(campaign.deactivated_at)
-    end)
+    Enum.any?(sequence.campaigns, &is_nil(&1.deactivated_at))
   end
 
   attr :sequences, :list, required: true
   attr :archived, :boolean, required: true
 
-  defp sequences_table(assigns) do
+  defp sequence_list(assigns) do
     ~H"""
-    <div class="overflow-x-auto">
-      <table class={["table", !@archived && "table-zebra"]}>
-        <thead>
-          <tr>
-            <th>Sequence Name</th>
-            <th>Media Piece</th>
-            <th class="text-center">Rules</th>
-            <th class="text-center">{if @archived, do: "Actions", else: ""}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr :for={sequence <- @sequences} class={@archived && "opacity-60"}>
-            <td class="font-medium !align-top">{sequence.title}</td>
-            <td class="!align-top">
-              <%= if sequence.media_runs != [] do %>
-                <% media_run = List.first(sequence.media_runs) %>
-                <div class="flex flex-col items-start">
-                  <%= if media_run.media_piece.banner_image do %>
-                    <img
-                      src={
-                        QlariusWeb.Uploaders.ThreeTapBanner.url(
-                          {media_run.media_piece.banner_image, media_run.media_piece},
-                          :original
-                        )
-                      }
-                      alt={media_run.media_piece.title}
-                      class="h-10 w-auto max-w-[200px] object-contain rounded border border-base-300"
-                    />
-                  <% end %>
-                  <span>{media_run.media_piece.title}</span>
-                </div>
-              <% end %>
-            </td>
-            <td class="text-sm !align-top">
-              <%= if sequence.media_runs != [] do %>
-                <% media_run = List.first(sequence.media_runs) %>
-                <% is_video = media_run.media_piece.media_piece_type_id == 2 %>
-                <div class="space-y-1">
-                  <div>Frequency: {media_run.frequency}/{media_run.frequency_buffer_hours}h</div>
-                  <%= if !is_video do %>
-                    <div>
-                      Banner: {media_run.maximum_banner_count}/{media_run.banner_retry_buffer_hours}h
-                    </div>
-                  <% end %>
-                </div>
-              <% end %>
-            </td>
-            <td class="text-center !align-top">
-              <%= if @archived do %>
-                <button
-                  phx-click="unarchive_sequence"
-                  phx-value-id={sequence.id}
-                  class="btn btn-sm btn-success btn-outline"
-                >
-                  Unarchive
-                </button>
-              <% else %>
-                <%= if sequence_has_active_campaigns?(sequence) do %>
-                  <button
-                    phx-click="archive_sequence"
-                    phx-value-id={sequence.id}
-                    class="btn btn-sm btn-warning btn-outline"
-                    data-confirm="Archive this sequence? It is currently in use."
-                  >
-                    Archive
-                  </button>
-                <% else %>
-                  <button
-                    phx-click="delete_sequence"
-                    phx-value-id={sequence.id}
-                    class="btn btn-sm btn-error btn-outline"
-                    data-confirm="Delete this sequence? This cannot be undone."
-                  >
-                    Delete
-                  </button>
-                <% end %>
-              <% end %>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <ul class="divide-y divide-base-300">
+      <li
+        :for={sequence <- @sequences}
+        id={"sequence-#{sequence.id}"}
+        class={[
+          "flex items-center gap-5 px-6 py-4 transition-colors hover:bg-base-200/40",
+          @archived && "opacity-70"
+        ]}
+      >
+        <% media_run = List.first(sequence.media_runs) %>
+        <% is_video = media_run && media_run.media_piece.media_piece_type_id == 2 %>
+
+        <div class="w-32 shrink-0">
+          <%= cond do %>
+            <% media_run && media_run.media_piece.banner_image -> %>
+              <img
+                src={
+                  QlariusWeb.Uploaders.ThreeTapBanner.url(
+                    {media_run.media_piece.banner_image, media_run.media_piece},
+                    :original
+                  )
+                }
+                alt=""
+                class="aspect-[3/1] w-full rounded-md border border-base-300 bg-white object-cover"
+              />
+            <% true -> %>
+              <div class="flex aspect-[3/1] w-full items-center justify-center rounded-md bg-base-200">
+                <.icon
+                  name={if is_video, do: "hero-play-circle", else: "hero-photo"}
+                  class="size-5 text-base-content/40"
+                />
+              </div>
+          <% end %>
+        </div>
+
+        <div class="min-w-0 flex-1">
+          <p class="truncate font-semibold">{sequence.title}</p>
+          <p :if={media_run} class="mt-0.5 truncate text-sm text-base-content/60">
+            {media_run.media_piece.title}
+          </p>
+          <div :if={media_run} class="mt-2 flex flex-wrap gap-1.5">
+            <.chip>
+              {media_run.frequency} completions, {media_run.frequency_buffer_hours}h apart
+            </.chip>
+            <.chip :if={!is_video}>
+              {media_run.maximum_banner_count} banner attempts, retry after {media_run.banner_retry_buffer_hours}h
+            </.chip>
+          </div>
+        </div>
+
+        <div class="shrink-0">
+          <%= cond do %>
+            <% @archived -> %>
+              <button
+                type="button"
+                phx-click="unarchive_sequence"
+                phx-value-id={sequence.id}
+                class="btn btn-sm btn-ghost"
+              >
+                <.icon name="hero-arrow-uturn-left" class="size-4" /> Unarchive
+              </button>
+            <% sequence_has_active_campaigns?(sequence) -> %>
+              <button
+                type="button"
+                phx-click="archive_sequence"
+                phx-value-id={sequence.id}
+                class="btn btn-sm btn-ghost"
+                data-confirm="Archive this sequence? It is used by an active campaign."
+              >
+                <.icon name="hero-archive-box" class="size-4" /> Archive
+              </button>
+            <% true -> %>
+              <button
+                type="button"
+                phx-click="delete_sequence"
+                phx-value-id={sequence.id}
+                class="btn btn-sm btn-ghost btn-square text-error"
+                aria-label={"Delete #{sequence.title}"}
+                data-confirm="Delete this sequence? This cannot be undone."
+              >
+                <.icon name="hero-trash" class="size-4" />
+              </button>
+          <% end %>
+        </div>
+      </li>
+    </ul>
     """
   end
 end

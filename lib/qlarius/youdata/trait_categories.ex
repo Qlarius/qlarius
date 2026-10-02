@@ -21,15 +21,18 @@ defmodule Qlarius.YouData.TraitCategories do
     Repo.get!(TraitCategory, id)
   end
 
-  def create_trait_category(_scope, attrs) do
+  def create_trait_category(scope, attrs) do
     %TraitCategory{}
     |> TraitCategory.changeset(attrs)
+    |> Ecto.Changeset.put_change(:added_by, scope.true_user.id)
+    |> Ecto.Changeset.put_change(:modified_by, scope.true_user.id)
     |> Repo.insert()
   end
 
-  def update_trait_category(_scope, %TraitCategory{} = category, attrs) do
+  def update_trait_category(scope, %TraitCategory{} = category, attrs) do
     category
     |> TraitCategory.changeset(attrs)
+    |> Ecto.Changeset.put_change(:modified_by, scope.true_user.id)
     |> Repo.update()
   end
 

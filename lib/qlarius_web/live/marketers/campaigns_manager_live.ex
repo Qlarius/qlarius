@@ -3,6 +3,8 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
   import Ecto.Query
   require Decimal
 
+  import QlariusWeb.Components.MarketerUI
+
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar, AdsComponents}
   alias Qlarius.Repo
   alias Qlarius.Sponster.Campaigns
@@ -10,6 +12,15 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
   alias QlariusWeb.Live.Marketers.CurrentMarketer
 
   on_mount {CurrentMarketer, :load_current_marketer}
+
+  @blank_campaign_params %{
+    "title" => "",
+    "target_id" => "",
+    "media_sequence_id" => "",
+    "is_payable" => "false",
+    "is_throttled" => "false",
+    "is_demo" => "false"
+  }
 
   @impl true
   def mount(_params, _session, socket) do
@@ -183,18 +194,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
   end
 
   defp assign_default_form(socket) do
-    assign(
-      socket,
-      :campaign_form,
-      to_form(%{
-        "title" => "",
-        "target_id" => "",
-        "media_sequence_id" => "",
-        "is_payable" => false,
-        "is_throttled" => false,
-        "is_demo" => false
-      })
-    )
+    assign(socket, :campaign_form, to_form(@blank_campaign_params, as: :campaign))
   end
 
   @impl true
@@ -208,6 +208,12 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
      socket
      |> assign(:show_create_modal, false)
      |> assign_default_form()}
+  end
+
+  @impl true
+  def handle_event("validate_campaign", %{"campaign" => params}, socket) do
+    params = Map.merge(@blank_campaign_params, params)
+    {:noreply, assign(socket, :campaign_form, to_form(params, as: :campaign))}
   end
 
   @impl true
@@ -228,11 +234,8 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
            |> assign(:show_create_modal, false)
            |> assign_campaigns_data()}
 
-        {:error, %Ecto.Changeset{} = changeset} ->
-          {:noreply,
-           socket
-           |> put_flash(:error, "Failed to create campaign")
-           |> assign(:campaign_form, to_form(changeset))}
+        {:error, %Ecto.Changeset{}} ->
+          {:noreply, put_flash(socket, :error, "Failed to create campaign")}
 
         {:error, reason} when is_binary(reason) ->
           {:noreply, put_flash(socket, :error, reason)}
@@ -511,22 +514,12 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
 
   defp normalize_campaign_params(params) do
     params
-    |> Map.update("is_throttled", false, fn
-      "on" -> true
-      "" -> false
-      val -> val
-    end)
-    |> Map.update("is_payable", false, fn
-      "on" -> true
-      "" -> false
-      val -> val
-    end)
-    |> Map.update("is_demo", false, fn
-      "on" -> true
-      "" -> false
-      val -> val
-    end)
+    |> Map.update("is_throttled", false, &truthy?/1)
+    |> Map.update("is_payable", false, &truthy?/1)
+    |> Map.update("is_demo", false, &truthy?/1)
   end
+
+  defp truthy?(value), do: value in [true, "true", "on"]
 
   defp validate_campaign_bids(campaign, bid_edits) do
     bid_edits = bid_edits || %{}
@@ -626,6 +619,9 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
 
   @impl true
   def render(assigns) do
+    assigns =
+      assign(assigns, :create_dirty, assigns.campaign_form.params != @blank_campaign_params)
+
     ~H"""
     <Layouts.admin {assigns}>
       <div class="flex h-screen">
@@ -640,30 +636,34 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
               current_path={~p"/marketer/campaigns"}
             />
 
-            <div :if={!@current_marketer} class="p-6">
-              <div class="alert alert-warning">
-                <.icon name="hero-exclamation-circle" class="w-6 h-6" />
-                <span>Please select a marketer to manage campaigns.</span>
-              </div>
-            </div>
+            <.no_marketer_notice
+              :if={!@current_marketer}
+              message="Choose a marketer to launch and manage their campaigns."
+            />
 
-            <div :if={@current_marketer} class="p-6">
-              <div class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-bold">Campaigns Manager</h1>
-                <button phx-click="open_create_modal" class="btn btn-primary">
-                  <.icon name="hero-plus" class="w-5 h-5" /> New Campaign
-                </button>
-              </div>
+            <.page :if={@current_marketer}>
+              <.page_header
+                title="Campaigns"
+                count={length(@campaigns)}
+                subtitle="Put a sequence in front of a target, then track reach and spend."
+              >
+                <:actions>
+                  <button type="button" phx-click="open_create_modal" class="btn btn-primary">
+                    <.icon name="hero-plus" class="size-5" /> New campaign
+                  </button>
+                </:actions>
+              </.page_header>
 
-              <div :if={@campaigns == []} class="card bg-base-100 border border-base-300">
-                <div class="card-body text-center py-12">
-                  <.icon name="hero-megaphone" class="w-16 h-16 mx-auto text-base-content/30 mb-4" />
-                  <p class="text-lg font-medium text-base-content/70">No campaigns yet</p>
-                  <p class="text-sm text-base-content/50 mt-2">
-                    Create your first campaign to start reaching your audience
-                  </p>
-                </div>
-              </div>
+              <.panel :if={@campaigns == []}>
+                <.empty_state icon="hero-megaphone" title="No campaigns yet">
+                  Pair one of your targets with a media sequence to start reaching people.
+                  <:action>
+                    <button type="button" phx-click="open_create_modal" class="btn btn-primary btn-sm">
+                      New campaign
+                    </button>
+                  </:action>
+                </.empty_state>
+              </.panel>
 
               <.campaigns_list
                 :if={@campaigns != []}
@@ -674,163 +674,112 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
                 show_traits={@show_traits}
               />
 
-              <div :if={@archived_campaigns != []} class="mt-8 border-t border-base-300 pt-6">
-                <button phx-click="toggle_archived" class="btn btn-ghost btn-sm mb-4">
-                  <.icon
-                    name={if @show_archived, do: "hero-chevron-down", else: "hero-chevron-right"}
-                    class="w-4 h-4"
-                  /> Archived Campaigns ({length(@archived_campaigns)})
-                </button>
-
+              <.archived_section
+                label="Archived campaigns"
+                count={length(@archived_campaigns)}
+                open={@show_archived}
+                toggle="toggle_archived"
+              >
                 <.campaigns_list
-                  :if={@show_archived}
                   campaigns={@archived_campaigns}
                   archived={true}
                   editing_bids={@editing_bids}
                   bid_errors={@bid_errors}
                   show_traits={@show_traits}
                 />
-              </div>
-            </div>
+              </.archived_section>
+            </.page>
 
             <.modal
               :if={@show_create_modal}
               id="create-campaign-modal"
               show
+              close_on_click_away={!@create_dirty}
+              panel_class="w-[min(100%,34rem)]"
               on_cancel={JS.push("close_create_modal")}
             >
-              <div class="space-y-6 p-8">
-                <h2 class="text-2xl font-bold">Create New Campaign</h2>
+              <.form
+                for={@campaign_form}
+                id="create-campaign-form"
+                phx-change="validate_campaign"
+                phx-submit="create_campaign"
+              >
+                <div class="space-y-5 p-6 sm:p-8">
+                  <div>
+                    <h2 class="text-xl font-semibold">New campaign</h2>
+                    <p class="mt-1 text-sm text-base-content/60">
+                      Choose who sees it and which ads they get.
+                    </p>
+                  </div>
 
-                <.form
-                  for={@campaign_form}
-                  phx-submit="create_campaign"
-                  class="space-y-4"
-                >
-                  <div class="form-control w-full">
-                    <label class="label">
-                      <span class="label-text font-semibold">Campaign Name</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="campaign[title]"
-                      value={@campaign_form.params["title"]}
-                      placeholder="Enter campaign name"
-                      class="input input-bordered w-full"
-                      required
+                  <.input
+                    type="text"
+                    name="campaign[title]"
+                    value={@campaign_form.params["title"]}
+                    label="Name"
+                    placeholder="Spring launch"
+                    required
+                  />
+
+                  <.campaign_picker
+                    label="Target"
+                    name="campaign[target_id]"
+                    value={@campaign_form.params["target_id"]}
+                    prompt="Choose a target"
+                    options={Enum.map(@targets, &{&1.title, &1.id})}
+                    empty_text="You have no targets yet."
+                    empty_link={~p"/marketer/targets"}
+                    empty_link_label="Build a target"
+                  />
+
+                  <.campaign_picker
+                    label="Media sequence"
+                    name="campaign[media_sequence_id]"
+                    value={@campaign_form.params["media_sequence_id"]}
+                    prompt="Choose a media sequence"
+                    options={Enum.map(@media_sequences, &{&1.title, &1.id})}
+                    empty_text="You have no media sequences yet."
+                    empty_link={~p"/marketer/sequences"}
+                    empty_link_label="Create a sequence"
+                  />
+
+                  <fieldset class="space-y-1">
+                    <legend class="mb-2 text-sm font-semibold">Options</legend>
+                    <.campaign_toggle
+                      name="campaign[is_payable]"
+                      value={@campaign_form.params["is_payable"]}
+                      label="Payable"
+                      description="Earnings from this campaign count toward people's payable balance."
                     />
-                  </div>
+                    <.campaign_toggle
+                      name="campaign[is_throttled]"
+                      value={@campaign_form.params["is_throttled"]}
+                      label="Throttled"
+                      description="Offers are released gradually instead of all at once."
+                    />
+                    <.campaign_toggle
+                      name="campaign[is_demo]"
+                      value={@campaign_form.params["is_demo"]}
+                      label="Demo mode"
+                      description="For demos and testing."
+                    />
+                  </fieldset>
+                </div>
 
-                  <div class="form-control w-full">
-                    <label class="label">
-                      <span class="label-text font-semibold">Target</span>
-                    </label>
-                    <%= if @targets == [] do %>
-                      <div class="alert alert-warning">
-                        <.icon name="hero-exclamation-circle" class="w-5 h-5" />
-                        <span class="text-sm">No targets available. Create a target first.</span>
-                      </div>
-                    <% else %>
-                      <select
-                        name="campaign[target_id]"
-                        class="select select-bordered w-full"
-                        required
-                      >
-                        <option value="">Choose a target...</option>
-                        <option
-                          :for={target <- @targets}
-                          value={target.id}
-                          selected={to_string(target.id) == @campaign_form.params["target_id"]}
-                        >
-                          {target.title} ({target.id})
-                        </option>
-                      </select>
-                    <% end %>
-                  </div>
-
-                  <div class="form-control w-full">
-                    <label class="label">
-                      <span class="label-text font-semibold">Media Sequence</span>
-                    </label>
-                    <%= if @media_sequences == [] do %>
-                      <div class="alert alert-warning">
-                        <.icon name="hero-exclamation-circle" class="w-5 h-5" />
-                        <span class="text-sm">
-                          No media sequences available. Create a sequence first.
-                        </span>
-                      </div>
-                    <% else %>
-                      <select
-                        name="campaign[media_sequence_id]"
-                        class="select select-bordered w-full"
-                        required
-                      >
-                        <option value="">Choose a media sequence...</option>
-                        <option
-                          :for={sequence <- @media_sequences}
-                          value={sequence.id}
-                          selected={
-                            to_string(sequence.id) == @campaign_form.params["media_sequence_id"]
-                          }
-                        >
-                          {sequence.title}
-                        </option>
-                      </select>
-                    <% end %>
-                  </div>
-
-                  <div class="divider">Options</div>
-
-                  <div class="form-control">
-                    <label class="label cursor-pointer justify-start gap-4">
-                      <input
-                        type="checkbox"
-                        name="campaign[is_payable]"
-                        checked={@campaign_form.params["is_payable"] == "true"}
-                        class="checkbox checkbox-primary"
-                      />
-                      <span class="label-text">Payable</span>
-                    </label>
-                  </div>
-
-                  <div class="form-control">
-                    <label class="label cursor-pointer justify-start gap-4">
-                      <input
-                        type="checkbox"
-                        name="campaign[is_throttled]"
-                        checked={@campaign_form.params["is_throttled"] == "true"}
-                        class="checkbox checkbox-primary"
-                      />
-                      <span class="label-text">Throttled</span>
-                    </label>
-                  </div>
-
-                  <div class="form-control">
-                    <label class="label cursor-pointer justify-start gap-4">
-                      <input
-                        type="checkbox"
-                        name="campaign[is_demo]"
-                        checked={@campaign_form.params["is_demo"] == "true"}
-                        class="checkbox checkbox-primary"
-                      />
-                      <span class="label-text">Demo Mode</span>
-                    </label>
-                  </div>
-
-                  <div class="flex gap-3 pt-4">
-                    <button
-                      type="submit"
-                      class="btn btn-primary flex-1"
-                      disabled={@targets == [] || @media_sequences == []}
-                    >
-                      Create Campaign
-                    </button>
-                    <button type="button" phx-click="close_create_modal" class="btn btn-ghost flex-1">
-                      Cancel
-                    </button>
-                  </div>
-                </.form>
-              </div>
+                <div class="flex flex-wrap items-center justify-end gap-2 border-t border-base-300 bg-base-200/40 px-6 py-4 sm:px-8">
+                  <.unsaved_note dirty={@create_dirty} id="create-campaign-unsaved-note" />
+                  <button type="button" phx-click="close_create_modal" class="btn btn-ghost">
+                    Cancel
+                  </button>
+                  <.button
+                    variant="primary"
+                    phx-disable-with="Creating..."
+                    disabled={@targets == [] || @media_sequences == []}
+                  >
+                    Create campaign
+                  </.button>
+                </div>
+              </.form>
             </.modal>
           </div>
         </div>
@@ -838,6 +787,86 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
     </Layouts.admin>
     """
   end
+
+  attr :label, :string, required: true
+  attr :name, :string, required: true
+  attr :value, :any, required: true
+  attr :prompt, :string, required: true
+  attr :options, :list, required: true
+  attr :empty_text, :string, required: true
+  attr :empty_link, :string, required: true
+  attr :empty_link_label, :string, required: true
+
+  defp campaign_picker(assigns) do
+    ~H"""
+    <%= if @options == [] do %>
+      <div>
+        <p class="mb-1 text-sm font-medium">{@label}</p>
+        <div class="flex items-center justify-between gap-3 rounded-xl border border-dashed border-base-300 px-4 py-3 text-sm">
+          <span class="text-base-content/60">{@empty_text}</span>
+          <.link navigate={@empty_link} class="btn btn-sm btn-ghost">{@empty_link_label}</.link>
+        </div>
+      </div>
+    <% else %>
+      <.input
+        type="select"
+        name={@name}
+        value={@value}
+        label={@label}
+        prompt={@prompt}
+        options={@options}
+        required
+      />
+    <% end %>
+    """
+  end
+
+  attr :name, :string, required: true
+  attr :value, :any, required: true
+  attr :label, :string, required: true
+  attr :description, :string, required: true
+
+  defp campaign_toggle(assigns) do
+    ~H"""
+    <label class="flex cursor-pointer items-start justify-between gap-4 rounded-xl px-1 py-2 hover:bg-base-200/40">
+      <span>
+        <span class="block text-sm font-medium">{@label}</span>
+        <span class="block text-xs text-base-content/60">{@description}</span>
+      </span>
+      <input type="hidden" name={@name} value="false" />
+      <input
+        type="checkbox"
+        name={@name}
+        value="true"
+        checked={@value == "true"}
+        class="toggle toggle-primary toggle-sm mt-0.5"
+      />
+    </label>
+    """
+  end
+
+  defp bids_dirty?(campaign, editing_bids) do
+    case Map.get(editing_bids, campaign.id) do
+      nil ->
+        false
+
+      edits ->
+        Enum.any?(campaign.bids, fn bid ->
+          case get_in(edits, [bid.id, :offer_amt]) do
+            nil ->
+              false
+
+            value ->
+              case Decimal.parse(value) do
+                {amount, ""} -> not Decimal.eq?(amount, bid.offer_amt)
+                _ -> true
+              end
+          end
+        end)
+    end
+  end
+
+  defp format_date(date), do: Calendar.strftime(date, "%b %-d, %Y")
 
   attr :campaigns, :list, required: true
   attr :archived, :boolean, required: true
@@ -848,476 +877,387 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
   defp campaigns_list(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div
+      <article
         :for={campaign <- @campaigns}
+        id={"campaign-#{campaign.id}"}
         class={[
-          "card bg-base-100 border",
-          if(@archived, do: "border-base-200 opacity-60", else: "border-base-300")
+          "rounded-2xl border border-base-300 bg-surface shadow-sm dark:bg-base-100",
+          @archived && "opacity-70"
         ]}
       >
-        <div class="card-body p-0">
-          <div class="flex justify-between items-center px-6 py-4 border-b border-base-300">
-            <div class="flex items-center gap-3">
-              <.icon name="hero-megaphone" class="w-6 h-6" />
-              <h3 class="text-xl font-bold">
-                {campaign.title} <span class="text-base-content/50">({campaign.id})</span>
-              </h3>
-              <button class="btn btn-ghost btn-sm btn-square">
-                <.icon name="hero-pencil" class="w-4 h-4" />
-              </button>
+        <header class="flex flex-wrap items-start justify-between gap-4 border-b border-base-300 px-6 py-5">
+          <div class="flex min-w-0 items-start gap-3">
+            <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-base-200">
+              <.icon name="hero-megaphone" class="size-5 text-base-content/60" />
             </div>
-            <div class="flex items-center gap-4">
-              <div class="flex flex-col text-sm">
-                <span class="text-xs text-base-content/60">Start Date</span>
-                <span class="font-semibold">
-                  {if campaign.launched_at do
-                    Calendar.strftime(campaign.launched_at, "%m/%d/%Y")
-                  else
-                    "Pending"
-                  end}
-                </span>
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-baseline gap-2">
+                <h2 class="truncate text-lg font-semibold">{campaign.title}</h2>
+                <span class="text-sm text-base-content/40">#{campaign.id}</span>
               </div>
-              <div class="flex flex-col text-sm">
-                <span class="text-xs text-base-content/60">End Date</span>
-                <span class="font-semibold">
-                  {(campaign.end_date && Calendar.strftime(campaign.end_date, "%m/%d/%Y")) ||
-                    "Ongoing"}
-                </span>
-              </div>
-              <div class="divider divider-horizontal mx-0"></div>
-              <div class="flex items-center gap-2">
-                <span :if={campaign.is_demo} class="badge badge-sm py-3">Demo</span>
-                <span :if={campaign.is_payable} class="badge badge-sm badge-success py-3">
-                  Payable
-                </span>
-                <%= if @archived do %>
-                  <span class="badge badge-sm badge-ghost py-3">Archived</span>
-                <% else %>
-                  <%= if campaign.launched_at do %>
-                    <span class="badge badge-sm badge-success py-3">Active</span>
-                  <% else %>
-                    <span class="badge badge-sm badge-warning py-3">Not Launched</span>
-                  <% end %>
-                <% end %>
-              </div>
+              <p class="mt-0.5 text-sm text-base-content/60">
+                {if campaign.launched_at,
+                  do: "Started #{format_date(campaign.launched_at)}",
+                  else: "Not launched yet"} · {if campaign.end_date,
+                  do: "Ends #{format_date(campaign.end_date)}",
+                  else: "No end date"}
+              </p>
             </div>
           </div>
 
-          <div class="px-6 py-4">
-            <div class="stats stats-vertical lg:stats-horizontal shadow-sm bg-base-200 w-full border border-base-300">
-              <div class="stat">
-                <div class="stat-figure text-warning">
-                  <.icon name="hero-queue-list" class="w-8 h-8" />
-                </div>
-                <div class="stat-title text-xs opacity-60">Pending Offers</div>
-                <div class="stat-value text-xl text-warning">
-                  {Map.get(campaign, :pending_offers, 0)}
-                </div>
-                <div class="stat-desc">Awaiting engagement</div>
-              </div>
-
-              <div class="stat">
-                <div class="stat-figure text-info">
-                  <.icon name="hero-calculator" class="w-8 h-8" />
-                </div>
-                <div class="stat-title text-xs opacity-60">Pending Spend</div>
-                <div class="stat-value text-xl text-info">
-                  {QlariusWeb.Money.format_usd(
-                    Map.get(campaign, :projected_spend, Decimal.new("0.00"))
-                  )}
-                </div>
-                <div class="stat-desc">Pending offers cost</div>
-              </div>
-
-              <div class="stat">
-                <div class="stat-figure text-error">
-                  <.icon name="hero-arrow-trending-down" class="w-8 h-8" />
-                </div>
-                <div class="stat-title text-xs opacity-60">Spend To-Date</div>
-                <div class="stat-value text-xl text-error">
-                  {QlariusWeb.Money.format_usd(Map.get(campaign, :spend_to_date, Decimal.new("0.00")))}
-                </div>
-                <div class="stat-desc">Total spent</div>
-              </div>
-
-              <div class="stat">
-                <div class="stat-figure text-success">
-                  <.icon name="hero-currency-dollar" class="w-8 h-8" />
-                </div>
-                <div class="stat-title text-xs opacity-60">Balance</div>
-                <div class={[
-                  "stat-value text-xl",
-                  campaign.ledger_header && Decimal.negative?(campaign.ledger_header.balance) &&
-                    "text-error",
-                  campaign.ledger_header && Decimal.positive?(campaign.ledger_header.balance) &&
-                    "text-success"
-                ]}>
-                  <%= if campaign.ledger_header do %>
-                    {QlariusWeb.Money.format_usd(campaign.ledger_header.balance)}
-                  <% else %>
-                    $0.00
-                  <% end %>
-                </div>
-                <div class="stat-desc">Available funds</div>
-              </div>
-
-              <div class="stat">
-                <div class="stat-figure text-info">
-                  <.icon name="hero-user-group" class="w-8 h-8" />
-                </div>
-                <div class="stat-title text-xs opacity-60">Unique Reach</div>
-                <div class="stat-value text-xl text-info">
-                  {Map.get(campaign, :unique_reach, 0)}
-                </div>
-                <div class="stat-desc">Users reached</div>
-              </div>
-
-              <div class="stat">
-                <div class="stat-figure text-primary">
-                  <.icon name="hero-eye" class="w-8 h-8" />
-                </div>
-                <div class="stat-title text-xs opacity-60">Banner Views</div>
-                <div class="stat-value text-xl text-primary">
-                  {Map.get(campaign, :banner_impressions, 0)}
-                </div>
-                <div class="stat-desc">Impressions</div>
-              </div>
-
-              <div class="stat">
-                <div class="stat-figure text-secondary">
-                  <.icon name="hero-cursor-arrow-ripple" class="w-8 h-8" />
-                </div>
-                <div class="stat-title text-xs opacity-60">Text Jumps</div>
-                <div class="stat-value text-xl text-secondary">
-                  {Map.get(campaign, :text_jumps, 0)}
-                </div>
-                <div class="stat-desc">Click-throughs</div>
-              </div>
-            </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <.status_badge :if={campaign.is_demo}>Demo</.status_badge>
+            <.status_badge :if={campaign.is_payable} tone="info">Payable</.status_badge>
+            <%= cond do %>
+              <% @archived -> %>
+                <.status_badge>Archived</.status_badge>
+              <% campaign.launched_at -> %>
+                <.status_badge tone="success">Active</.status_badge>
+              <% true -> %>
+                <.status_badge tone="warning">Not launched</.status_badge>
+            <% end %>
           </div>
+        </header>
 
-          <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 px-6 py-4">
-            <div>
-              <div class="flex items-center gap-2 mb-4">
-                <svg class="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor">
-                  <circle cx="10" cy="10" r="8.5" stroke-width="1.5" />
-                  <circle cx="10" cy="10" r="5.5" stroke-width="1.5" />
-                  <circle cx="10" cy="10" r="2.5" fill="currentColor" />
-                </svg>
-                <h4 class="font-semibold text-lg">Target</h4>
-              </div>
-              <div class="mb-3">
-                <div class="font-medium">{campaign.target.title} ({campaign.target.id})</div>
-              </div>
-
-              <div class="overflow-x-auto">
-                <table class="table table-sm border border-base-300">
-                  <thead>
-                    <tr class="bg-base-200">
-                      <th>Band</th>
-                      <th>
-                        <div class="flex items-center justify-between gap-2">
-                          <div class="flex items-center gap-1">
-                            <.icon name="hero-tag" class="w-4 h-4" />
-                            <span>Traits</span>
-                          </div>
-                          <button
-                            phx-click="toggle_traits"
-                            phx-value-campaign_id={campaign.id}
-                            class="btn btn-xs btn-ghost"
-                          >
-                            <.icon
-                              name={
-                                if MapSet.member?(@show_traits, campaign.id),
-                                  do: "hero-chevron-up",
-                                  else: "hero-chevron-down"
-                              }
-                              class="w-3 h-3"
-                            />
-                            <%= if MapSet.member?(@show_traits, campaign.id) do %>
-                              Hide
-                            <% else %>
-                              Show
-                            <% end %>
-                          </button>
-                        </div>
-                      </th>
-                      <th class="text-center">Pop</th>
-                      <th class="text-center">Bid | Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <%= for band <- campaign.target.target_bands do %>
-                      <% bid = Enum.find(campaign.bids, fn b -> b.target_band_id == band.id end) %>
-                      <tr>
-                        <td class="font-medium !align-top">
-                          {Targets.band_label(band, campaign.target.target_bands)}
-                        </td>
-                        <td class="!align-top">
-                          <%= if MapSet.member?(@show_traits, campaign.id) do %>
-                            <ul class="list-disc list-inside text-xs">
-                              <li :for={tg <- band.trait_groups}>{tg.title}</li>
-                            </ul>
-                          <% else %>
-                            <div class="text-start">
-                              {length(band.trait_groups)} trait groups
-                            </div>
-                          <% end %>
-                        </td>
-                        <td class="text-center !align-top">
-                          {Map.get(band, :population_count, 0)}
-                        </td>
-                        <td class="!align-top">
-                          <%= if bid do %>
-                            <% is_editing = Map.has_key?(@editing_bids, campaign.id) %>
-                            <%= if is_editing do %>
-                              <% edit_value =
-                                get_in(@editing_bids, [campaign.id, bid.id, :offer_amt]) ||
-                                  Decimal.to_string(bid.offer_amt) %>
-                              <% media_run = List.first(campaign.media_sequence.media_runs) %>
-                              <% media_piece_type =
-                                media_run && media_run.media_piece.media_piece_type %>
-                              <% calculated_cost =
-                                case Decimal.parse(edit_value) do
-                                  {decimal_val, _} ->
-                                    if media_piece_type do
-                                      decimal_val
-                                      |> Decimal.mult(media_piece_type.markup_multiplier)
-                                      |> Decimal.add(media_piece_type.base_fee)
-                                      |> Decimal.round(2)
-                                      |> Decimal.to_string()
-                                    else
-                                      "0.00"
-                                    end
-
-                                  :error ->
-                                    "0.00"
-                                end %>
-                              <% has_error =
-                                get_in(@bid_errors, [campaign.id, bid.id]) != nil %>
-                              <div class="flex flex-col items-center gap-1">
-                                <div class="flex items-center gap-1">
-                                  <div class="text-xs font-semibold">Bid:</div>
-                                  <span class="text-xs">$</span>
-                                  <input
-                                    type="text"
-                                    name="bid_amount"
-                                    value={edit_value}
-                                    phx-change="update_bid_amount"
-                                    phx-blur="validate_bid"
-                                    phx-value-campaign_id={campaign.id}
-                                    phx-value-bid_id={bid.id}
-                                    class={[
-                                      "input input-xs input-bordered w-16 text-center",
-                                      has_error && "!border-error !border-2"
-                                    ]}
-                                  />
-                                </div>
-                                <div class="flex items-center gap-1 text-xs text-base-content/70">
-                                  <div class="font-semibold">Cost:</div>
-                                  <div>${calculated_cost}</div>
-                                </div>
-                              </div>
-                            <% else %>
-                              <div class="flex flex-col items-center gap-1">
-                                <div class="flex items-center gap-1 text-xs">
-                                  <span class="badge badge-success badge-md py-3">
-                                    ${bid.offer_amt}
-                                  </span>
-                                  <span>|</span>
-                                  <span class="badge badge-ghost badge-md py-3">
-                                    ${bid.marketer_cost_amt}
-                                  </span>
-                                </div>
-                              </div>
-                            <% end %>
-                          <% else %>
-                            <div class="text-center text-xs text-base-content/50">
-                              No bid
-                            </div>
-                          <% end %>
-                        </td>
-                      </tr>
-                    <% end %>
-                    <tr class="font-bold bg-base-200">
-                      <td colspan="2">TOTAL</td>
-                      <td class="text-center">
-                        {Enum.sum(
-                          Enum.map(campaign.target.target_bands, fn band ->
-                            Map.get(band, :population_count, 0)
-                          end)
-                        )}
-                      </td>
-                      <td class="text-center">
-                        <%= if Map.has_key?(@editing_bids, campaign.id) do %>
-                          <% errors = Map.get(@bid_errors, campaign.id, %{}) %>
-                          <% has_errors = map_size(errors) > 0 %>
-                          <div class="flex flex-col gap-2 items-center">
-                            <%= if has_errors do %>
-                              <div class="text-xs text-error">
-                                <ul class="list-none">
-                                  <%= for {_bid_id, error_msg} <- errors, is_binary(error_msg) do %>
-                                    <li>• {error_msg}</li>
-                                  <% end %>
-                                </ul>
-                              </div>
-                            <% end %>
-                            <div class="flex gap-1 justify-center">
-                              <button
-                                phx-click="update_bid_amounts"
-                                phx-value-campaign_id={campaign.id}
-                                class="btn btn-primary btn-xs"
-                                disabled={has_errors}
-                              >
-                                Update bid amounts
-                              </button>
-                              <button
-                                phx-click="cancel_edit_bids"
-                                phx-value-campaign_id={campaign.id}
-                                class="btn btn-ghost btn-xs"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        <% else %>
-                          <button
-                            phx-click="start_edit_bids"
-                            phx-value-campaign_id={campaign.id}
-                            class="btn btn-primary btn-xs"
-                          >
-                            Edit bids
-                          </button>
-                        <% end %>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div>
-              <div class="flex items-center gap-2 mb-4">
-                <.icon name="hero-numbered-list" class="w-5 h-5" />
-                <h4 class="font-semibold text-lg">Media Sequence</h4>
-              </div>
-
-              <%= if campaign.media_sequence.media_runs != [] do %>
-                <% media_run = List.first(campaign.media_sequence.media_runs) %>
-                <% is_video = media_run.media_piece.media_piece_type_id == 2 %>
-                <table class="w-full">
-                  <tr>
-                    <td class="align-top pr-6">
-                      <div class="flex flex-wrap items-center gap-2 mb-3">
-                        <span class="font-semibold text-sm">Ad</span>
-                        <.icon
-                          name={if is_video, do: "hero-play-circle", else: "hero-photo"}
-                          class="w-4 h-4"
-                        />
-                        <span
-                          :if={
-                            Ecto.assoc_loaded?(media_run.media_piece.ad_category) &&
-                              media_run.media_piece.ad_category
-                          }
-                          class="badge badge-primary badge-lg h-auto py-1 gap-2"
-                        >
-                          {media_run.media_piece.ad_category.ad_label}
-                          <span class="opacity-75 text-xs">
-                            {media_run.media_piece.ad_category.category_label}
-                          </span>
-                        </span>
-                      </div>
-                      <%= if is_video do %>
-                        <div class="max-w-xs">
-                          <div class="text-blue-600 dark:text-blue-300 mb-2 font-bold text-lg leading-tight">
-                            {media_run.media_piece.title}
-                          </div>
-                          <AdsComponents.video_thumbnail
-                            media_piece={media_run.media_piece}
-                            class="w-full"
-                            id={"campaign-#{campaign.id}-mp-#{media_run.media_piece.id}"}
-                          />
-                        </div>
-                      <% else %>
-                        <AdsComponents.three_tap_ad
-                          media_piece={media_run.media_piece}
-                          show_banner={true}
-                        />
-                      <% end %>
-                    </td>
-                    <td class="align-top">
-                      <div class="font-semibold text-sm mb-3">Rules</div>
-                      <table class="text-sm">
-                        <tr>
-                          <td class="font-semibold py-1">Frequency</td>
-                          <td class="text-base-content/70 py-1 pl-4">{media_run.frequency}</td>
-                        </tr>
-                        <tr>
-                          <td class="font-semibold py-1">Buffer Hrs</td>
-                          <td class="text-base-content/70 py-1 pl-4">
-                            {media_run.frequency_buffer_hours}
-                          </td>
-                        </tr>
-                        <%= if !is_video do %>
-                          <tr>
-                            <td class="font-semibold py-1">Attempts</td>
-                            <td class="text-base-content/70 py-1 pl-4">
-                              {media_run.maximum_banner_count}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td class="font-semibold py-1">Retry Buffer Hrs</td>
-                            <td class="text-base-content/70 py-1 pl-4">
-                              {media_run.banner_retry_buffer_hours}
-                            </td>
-                          </tr>
-                        <% end %>
-                      </table>
-                    </td>
-                  </tr>
-                </table>
-              <% end %>
-            </div>
+        <div class="space-y-3 px-6 py-5">
+          <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <.stat_tile label="Pending offers" icon="hero-queue-list" hint="Awaiting engagement">
+              {Map.get(campaign, :pending_offers, 0)}
+            </.stat_tile>
+            <.stat_tile label="Pending spend" icon="hero-calculator" hint="Cost of pending offers">
+              {QlariusWeb.Money.format_usd(Map.get(campaign, :projected_spend, Decimal.new("0.00")))}
+            </.stat_tile>
+            <.stat_tile label="Spend to date" icon="hero-arrow-trending-down" hint="Total spent">
+              {QlariusWeb.Money.format_usd(Map.get(campaign, :spend_to_date, Decimal.new("0.00")))}
+            </.stat_tile>
+            <.stat_tile
+              label="Balance"
+              icon="hero-banknotes"
+              hint="Available funds"
+              value_class={
+                campaign.ledger_header && Decimal.negative?(campaign.ledger_header.balance) &&
+                  "text-error"
+              }
+            >
+              {if campaign.ledger_header,
+                do: QlariusWeb.Money.format_usd(campaign.ledger_header.balance),
+                else: "$0.00"}
+            </.stat_tile>
           </div>
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <.stat_tile label="Unique reach" icon="hero-user-group" hint="People reached">
+              {Map.get(campaign, :unique_reach, 0)}
+            </.stat_tile>
+            <.stat_tile label="Banner views" icon="hero-eye" hint="Impressions">
+              {Map.get(campaign, :banner_impressions, 0)}
+            </.stat_tile>
+            <.stat_tile label="Text jumps" icon="hero-cursor-arrow-ripple" hint="Click-throughs">
+              {Map.get(campaign, :text_jumps, 0)}
+            </.stat_tile>
+          </div>
+        </div>
 
-          <div class="flex justify-end gap-2 px-6 py-4 border-t border-base-300">
-            <%= if @archived do %>
+        <div class="grid gap-8 border-t border-base-300 px-6 py-5 xl:grid-cols-2">
+          <.campaign_target
+            campaign={campaign}
+            editing_bids={@editing_bids}
+            bid_errors={@bid_errors}
+            show_traits={@show_traits}
+          />
+          <.campaign_sequence campaign={campaign} />
+        </div>
+
+        <footer class="flex flex-wrap justify-end gap-2 rounded-b-2xl border-t border-base-300 bg-base-200/40 px-6 py-4">
+          <%= cond do %>
+            <% @archived -> %>
               <button
+                type="button"
                 phx-click="reactivate_campaign"
-                phx-value-id={campaign.id}
-                class="btn btn-sm btn-success btn-outline"
-              >
-                Reactivate
-              </button>
-            <% else %>
-              <%= if !campaign.launched_at do %>
-                <button
-                  phx-click="launch_campaign"
-                  phx-value-id={campaign.id}
-                  class="btn btn-sm btn-primary"
-                >
-                  Launch Campaign
-                </button>
-              <% else %>
-                <button
-                  phx-click="refresh_offers"
-                  phx-value-id={campaign.id}
-                  class="btn btn-sm btn-info btn-outline"
-                >
-                  <.icon name="hero-arrow-path" class="w-4 h-4" /> Refresh Offers
-                </button>
-              <% end %>
-              <button
-                phx-click="deactivate_campaign"
                 phx-value-id={campaign.id}
                 class="btn btn-sm btn-ghost"
               >
+                <.icon name="hero-arrow-uturn-left" class="size-4" /> Reactivate
+              </button>
+            <% true -> %>
+              <button
+                type="button"
+                phx-click="deactivate_campaign"
+                phx-value-id={campaign.id}
+                class="btn btn-sm btn-ghost"
+                data-confirm="Deactivate this campaign? It stops showing ads and moves to archived."
+              >
                 Deactivate
               </button>
-            <% end %>
-          </div>
+              <button
+                :if={campaign.launched_at}
+                type="button"
+                phx-click="refresh_offers"
+                phx-value-id={campaign.id}
+                class="btn btn-sm btn-outline"
+              >
+                <.icon name="hero-arrow-path" class="size-4" /> Refresh offers
+              </button>
+              <button
+                :if={!campaign.launched_at}
+                type="button"
+                phx-click="launch_campaign"
+                phx-value-id={campaign.id}
+                class="btn btn-sm btn-primary"
+              >
+                <.icon name="hero-rocket-launch" class="size-4" /> Launch campaign
+              </button>
+          <% end %>
+        </footer>
+      </article>
+    </div>
+    """
+  end
+
+  attr :campaign, :any, required: true
+  attr :editing_bids, :map, required: true
+  attr :bid_errors, :map, required: true
+  attr :show_traits, :any, required: true
+
+  defp campaign_target(assigns) do
+    campaign = assigns.campaign
+    media_run = List.first(campaign.media_sequence.media_runs)
+
+    assigns =
+      assign(assigns,
+        is_editing: Map.has_key?(assigns.editing_bids, campaign.id),
+        errors: Map.get(assigns.bid_errors, campaign.id, %{}),
+        show_traits?: MapSet.member?(assigns.show_traits, campaign.id),
+        media_piece_type: media_run && media_run.media_piece.media_piece_type,
+        bids_dirty?: bids_dirty?(campaign, assigns.editing_bids),
+        total_population:
+          campaign.target.target_bands
+          |> Enum.map(&Map.get(&1, :population_count, 0))
+          |> Enum.sum()
+      )
+
+    ~H"""
+    <section class="min-w-0">
+      <div class="mb-3 flex items-center justify-between gap-3">
+        <div class="flex min-w-0 items-center gap-2">
+          <.bullseye_icon class="size-4 shrink-0 text-base-content/60" />
+          <h3 class="whitespace-nowrap text-sm font-semibold">Target</h3>
+          <span class="truncate text-sm text-base-content/60">{@campaign.target.title}</span>
         </div>
+        <button
+          type="button"
+          phx-click="toggle_traits"
+          phx-value-campaign_id={@campaign.id}
+          class="btn btn-xs btn-ghost shrink-0"
+        >
+          <.icon name={if @show_traits?, do: "hero-eye-slash", else: "hero-eye"} class="size-3.5" />
+          {if @show_traits?, do: "Hide traits", else: "Show traits"}
+        </button>
       </div>
+
+      <div class="overflow-x-auto rounded-xl border border-base-300">
+        <table class="table table-sm">
+          <thead>
+            <tr class="bg-base-200/60 text-xs text-base-content/60">
+              <th>Ring</th>
+              <th>Trait groups</th>
+              <th class="text-right">People</th>
+              <th class="text-center">Bid / Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :for={band <- @campaign.target.target_bands}>
+              <% bid = Enum.find(@campaign.bids, &(&1.target_band_id == band.id)) %>
+              <td class="whitespace-nowrap font-medium !align-top">
+                {Targets.band_label(band, @campaign.target.target_bands)}
+              </td>
+              <td class="!align-top">
+                <div :if={@show_traits?} class="flex flex-wrap gap-1">
+                  <.chip :for={tg <- band.trait_groups}>{tg.title}</.chip>
+                </div>
+                <span :if={!@show_traits?} class="text-base-content/60">
+                  {length(band.trait_groups)} trait groups
+                </span>
+              </td>
+              <td class="text-right font-medium !align-top">
+                {Map.get(band, :population_count, 0)}
+              </td>
+              <td class="!align-top">
+                <%= cond do %>
+                  <% is_nil(bid) -> %>
+                    <div class="text-center text-xs text-base-content/50">No bid</div>
+                  <% @is_editing -> %>
+                    <% edit_value =
+                      get_in(@editing_bids, [@campaign.id, bid.id, :offer_amt]) ||
+                        Decimal.to_string(bid.offer_amt) %>
+                    <% has_error = get_in(@bid_errors, [@campaign.id, bid.id]) != nil %>
+                    <div class="flex flex-col items-center gap-1">
+                      <label class={[
+                        "input input-xs w-24",
+                        has_error && "input-error"
+                      ]}>
+                        <span class="text-base-content/50">$</span>
+                        <input
+                          type="text"
+                          name="bid_amount"
+                          inputmode="decimal"
+                          value={edit_value}
+                          phx-change="update_bid_amount"
+                          phx-blur="validate_bid"
+                          phx-value-campaign_id={@campaign.id}
+                          phx-value-bid_id={bid.id}
+                          aria-label={"Bid for #{Targets.band_label(band, @campaign.target.target_bands)}"}
+                          class="text-center"
+                        />
+                      </label>
+                      <span class="text-xs text-base-content/60">
+                        Cost ${calculated_cost(edit_value, @media_piece_type)}
+                      </span>
+                    </div>
+                  <% true -> %>
+                    <div class="flex items-center justify-center gap-1.5 text-sm">
+                      <span class="font-semibold">${bid.offer_amt}</span>
+                      <span class="text-base-content/30">/</span>
+                      <span class="text-base-content/60">${bid.marketer_cost_amt}</span>
+                    </div>
+                <% end %>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="bg-base-200/60 text-sm text-base-content">
+              <td colspan="2" class="font-semibold">Total</td>
+              <td class="text-right font-semibold">{@total_population}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="mt-3 flex flex-wrap items-center justify-end gap-2">
+        <%= if @is_editing do %>
+          <ul :if={@errors != %{}} class="mr-auto space-y-0.5 text-xs text-error">
+            <li :for={{_bid_id, msg} <- @errors} :if={is_binary(msg)}>{msg}</li>
+          </ul>
+          <.unsaved_note :if={@errors == %{}} dirty={@bids_dirty?} />
+          <button
+            type="button"
+            phx-click="cancel_edit_bids"
+            phx-value-campaign_id={@campaign.id}
+            class="btn btn-sm btn-ghost"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            phx-click="update_bid_amounts"
+            phx-value-campaign_id={@campaign.id}
+            class="btn btn-sm btn-primary"
+            disabled={@errors != %{}}
+          >
+            Save bids
+          </button>
+        <% else %>
+          <button
+            type="button"
+            phx-click="start_edit_bids"
+            phx-value-campaign_id={@campaign.id}
+            class="btn btn-sm btn-outline"
+          >
+            <.icon name="hero-pencil-square" class="size-4" /> Edit bids
+          </button>
+        <% end %>
+      </div>
+    </section>
+    """
+  end
+
+  defp calculated_cost(value, media_piece_type) do
+    with {amount, _} <- Decimal.parse(value), %{} <- media_piece_type do
+      amount
+      |> Decimal.mult(media_piece_type.markup_multiplier)
+      |> Decimal.add(media_piece_type.base_fee)
+      |> Decimal.round(2)
+      |> Decimal.to_string()
+    else
+      _ -> "0.00"
+    end
+  end
+
+  attr :campaign, :any, required: true
+
+  defp campaign_sequence(assigns) do
+    media_run = List.first(assigns.campaign.media_sequence.media_runs)
+
+    assigns =
+      assign(assigns,
+        media_run: media_run,
+        is_video: media_run && media_run.media_piece.media_piece_type_id == 2
+      )
+
+    ~H"""
+    <section class="min-w-0">
+      <div class="mb-3 flex min-w-0 items-center gap-2">
+        <.icon name="hero-numbered-list" class="size-4 shrink-0 text-base-content/60" />
+        <h3 class="whitespace-nowrap text-sm font-semibold">Media sequence</h3>
+        <span class="truncate text-sm text-base-content/60">{@campaign.media_sequence.title}</span>
+      </div>
+
+      <p :if={!@media_run} class="text-sm text-base-content/60">This sequence has no ads yet.</p>
+
+      <div :if={@media_run} class="flex flex-wrap items-start gap-6">
+        <div class="min-w-0 space-y-3">
+          <div
+            :if={
+              Ecto.assoc_loaded?(@media_run.media_piece.ad_category) &&
+                @media_run.media_piece.ad_category
+            }
+            class="inline-flex max-w-xs items-center gap-2 rounded-xl border border-base-300 bg-base-200 px-3 py-1.5 text-base-content"
+          >
+            <div class="min-w-0 leading-tight">
+              <div class="truncate text-sm font-semibold">
+                {@media_run.media_piece.ad_category.ad_label}
+              </div>
+              <div class="truncate text-xs text-base-content/60">
+                {@media_run.media_piece.ad_category.category_label}
+              </div>
+            </div>
+          </div>
+
+          <%= if @is_video do %>
+            <div class="max-w-xs">
+              <div class="mb-2 text-lg font-bold leading-tight text-blue-600 dark:text-blue-300">
+                {@media_run.media_piece.title}
+              </div>
+              <AdsComponents.video_thumbnail
+                media_piece={@media_run.media_piece}
+                class="w-full"
+                id={"campaign-#{@campaign.id}-mp-#{@media_run.media_piece.id}"}
+              />
+            </div>
+          <% else %>
+            <AdsComponents.three_tap_ad media_piece={@media_run.media_piece} show_banner={true} />
+          <% end %>
+        </div>
+
+        <dl class="min-w-40 space-y-2 text-sm">
+          <.rule label="Completions" value={@media_run.frequency} />
+          <.rule label="Hours between" value={@media_run.frequency_buffer_hours} />
+          <.rule :if={!@is_video} label="Banner attempts" value={@media_run.maximum_banner_count} />
+          <.rule :if={!@is_video} label="Retry hours" value={@media_run.banner_retry_buffer_hours} />
+        </dl>
+      </div>
+    </section>
+    """
+  end
+
+  attr :label, :string, required: true
+  attr :value, :any, required: true
+
+  defp rule(assigns) do
+    ~H"""
+    <div class="flex items-center justify-between gap-6 border-b border-dashed border-base-300 pb-2">
+      <dt class="text-base-content/60">{@label}</dt>
+      <dd class="font-semibold">{@value}</dd>
     </div>
     """
   end

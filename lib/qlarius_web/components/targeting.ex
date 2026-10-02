@@ -1,6 +1,8 @@
 defmodule QlariusWeb.Components.Targeting do
   use QlariusWeb, :html
 
+  import QlariusWeb.Components.MarketerUI, only: [panel: 1, empty_state: 1]
+
   alias Qlarius.Sponster.Campaigns.{TargetBand, Targets}
 
   def copy(:target) do
@@ -86,198 +88,199 @@ defmodule QlariusWeb.Components.Targeting do
   attr :expanding_target, :boolean, default: false
   attr :show_populate?, :boolean, default: true
 
+  attr :me_file_counts, :map,
+    default: nil,
+    doc: "trait group id => MeFile count; counts are hidden when nil"
+
   def band_editor(assigns) do
     ~H"""
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2">
-        <%= if @bands == [] do %>
-          <div class="alert alert-info mb-6">
-            <.icon name="hero-information-circle" class="w-6 h-6" />
-            <span>{@copy.empty_hint}</span>
-          </div>
-        <% end %>
-
-        <div class="mb-6 flex gap-2">
-          <button type="button" phx-click="done" class="btn btn-primary">Done</button>
+    <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <.panel
+        flush
+        title="Rings"
+        description="The bullseye is your most precise audience. Each outer ring drops one trait group to reach more people."
+      >
+        <:actions>
+          <button type="button" phx-click="done" class="btn btn-sm btn-ghost">Done</button>
           <button
             :if={@show_populate? and @bands != []}
             type="button"
             phx-click="populate_target"
-            class="btn btn-success"
+            class="btn btn-sm btn-primary"
             data-confirm={@copy.populate_confirm}
           >
             {@copy.populate}
           </button>
-        </div>
+        </:actions>
 
-        <div class="overflow-x-auto">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Rings</th>
-                <th>Trait Groups</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr :for={band <- @bands}>
-                <td class={[
-                  "font-bold !align-top",
-                  TargetBand.is_bullseye?(band) && "text-error"
-                ]}>
-                  <div class="flex items-start gap-2">
-                    <span>{Targets.band_label(band, @bands)}</span>
-                    <button
-                      :if={
-                        @outermost_band && band.id == @outermost_band.id &&
-                          !TargetBand.is_bullseye?(@outermost_band)
-                      }
-                      type="button"
-                      phx-click="delete_outermost_band"
-                      class="btn btn-ghost btn-xs btn-circle"
-                      title="Delete this ring"
-                    >
-                      <.icon name="hero-trash" class="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-                <td class="!align-top">
-                  <div class="space-y-2">
-                    <%= if @expanding_target && @outermost_band && band.id == @outermost_band.id &&
-                          length(band.trait_groups) > 1 do %>
-                      <div class="flex flex-wrap gap-2">
-                        <button
-                          :for={tg <- band.trait_groups}
-                          type="button"
-                          phx-click="create_outer_band"
-                          phx-value-excluded_trait_group_id={tg.id}
-                          class={[
-                            "badge badge-warning cursor-pointer py-3 px-3",
-                            tg.id == excluded_trait_group_id(band, @bands) && "opacity-60"
-                          ]}
-                          title={"Click to exclude #{tg.title}"}
-                        >
-                          {tg.title} <.icon name="hero-scissors" class="w-4 h-4" />
-                        </button>
-                      </div>
-                    <% else %>
-                      <%= if TargetBand.is_bullseye?(band) && length(@bands) == 1 do %>
-                        <div class="flex flex-wrap gap-2">
-                          <div
-                            :for={tg <- band.trait_groups}
-                            class="badge badge-outline py-3 px-3 flex items-center gap-2"
-                          >
-                            <span>{tg.title}</span>
-                            <button
-                              type="button"
-                              phx-click="remove_trait_group_from_bullseye"
-                              phx-value-band_id={band.id}
-                              phx-value-trait_group_id={tg.id}
-                              class="cursor-pointer hover:text-error"
-                              title="Remove from bullseye"
-                            >
-                              <.icon name="hero-x-mark" class="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      <% else %>
-                        <div class="flex flex-wrap gap-2">
-                          <span
-                            :for={tg <- band.trait_groups}
-                            class={[
-                              "badge badge-outline py-3",
-                              tg.id == excluded_trait_group_id(band, @bands) && "opacity-60"
-                            ]}
-                          >
-                            {tg.title}
-                          </span>
-                        </div>
-                      <% end %>
-                    <% end %>
-                  </div>
-                </td>
-              </tr>
-              <tr :if={@expanding_target}>
-                <td class="!align-top font-bold text-error">
-                  <div class="flex items-start gap-2">
-                    <span>Ring {length(@bands)}</span>
-                    <button
-                      type="button"
-                      phx-click="cancel_expanding_target"
-                      class="btn btn-ghost btn-xs btn-circle"
-                      title="Cancel"
-                    >
-                      <.icon name="hero-x-mark" class="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-                <td class="italic text-base-content/60 !align-top">
-                  Select a trait group from the ring above to exclude for this new ring.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <.empty_state :if={@bands == []} icon="hero-viewfinder-circle" title="No bullseye yet">
+          {@copy.empty_hint}
+        </.empty_state>
 
-        <div
-          :if={
-            @bands != [] && @outermost_band && length(@outermost_band.trait_groups) > 1 &&
-              !@expanding_target
-          }
-          class="mt-6 flex gap-2"
-        >
-          <button type="button" phx-click="start_expanding_target" class="btn btn-primary btn-outline">
-            <.icon name="hero-plus" class="w-5 h-5" /> {@copy.expand}
-          </button>
-        </div>
-      </div>
+        <ul :if={@bands != []} class="divide-y divide-base-300">
+          <li :for={band <- @bands} class="flex items-start gap-4 px-6 py-4">
+            <div class="flex w-28 shrink-0 items-center gap-2 pt-1">
+              <span class={[
+                "size-2 rounded-full",
+                if(TargetBand.is_bullseye?(band), do: "bg-error", else: "bg-base-content/30")
+              ]} />
+              <span class="text-sm font-semibold">{Targets.band_label(band, @bands)}</span>
+              <button
+                :if={
+                  @outermost_band && band.id == @outermost_band.id &&
+                    !TargetBand.is_bullseye?(@outermost_band)
+                }
+                type="button"
+                phx-click="delete_outermost_band"
+                class="btn btn-ghost btn-xs btn-square text-error"
+                title="Delete this ring"
+                aria-label="Delete this ring"
+              >
+                <.icon name="hero-trash" class="size-4" />
+              </button>
+            </div>
 
-      <div class="lg:col-span-1">
-        <div class="card bg-base-100 dark:bg-base-200 border border-base-300">
-          <div class="card-body">
-            <h2 class="text-lg font-bold mb-4">{@copy.picker_heading}</h2>
-
-            <%= if length(@bands) > 1 do %>
-              <div class="alert alert-neutral mb-4">
-                <.icon name="hero-lock-closed" class="w-5 h-5" />
-                <div class="text-sm">
-                  <p class="font-semibold">Bullseye Locked</p>
-                  <p class="text-xs">Delete outer rings first to modify the bullseye.</p>
-                </div>
-              </div>
-
-              <%= if @available_trait_groups == [] do %>
-                <p class="text-sm text-base-content/50">{@copy.none_available}</p>
-              <% else %>
-                <div class="space-y-2">
-                  <div
-                    :for={tg <- @available_trait_groups}
-                    class="btn btn-sm btn-block justify-start btn-disabled opacity-60"
-                  >
-                    {tg.title}
-                  </div>
-                </div>
-              <% end %>
-            <% else %>
-              <%= if @available_trait_groups == [] do %>
-                <p class="text-sm text-base-content/50">{@copy.none_available}</p>
-              <% else %>
-                <div class="space-y-2">
+            <div class="flex min-w-0 flex-1 flex-wrap gap-2">
+              <%= cond do %>
+                <% @expanding_target && @outermost_band && band.id == @outermost_band.id &&
+                    length(band.trait_groups) > 1 -> %>
                   <button
-                    :for={tg <- @available_trait_groups}
+                    :for={tg <- band.trait_groups}
                     type="button"
-                    phx-click="add_trait_group"
-                    phx-value-trait_group_id={tg.id}
-                    class="btn btn-sm btn-block justify-start"
+                    phx-click="create_outer_band"
+                    phx-value-excluded_trait_group_id={tg.id}
+                    class={[
+                      "inline-flex items-center gap-1.5 rounded-md border border-warning/40 bg-warning/10 px-2.5 py-1 text-sm transition-colors hover:border-warning hover:bg-warning/20",
+                      tg.id == excluded_trait_group_id(band, @bands) && "opacity-60"
+                    ]}
+                    title={"Exclude #{tg.title} from the new ring"}
                   >
-                    [+] {tg.title}
+                    {tg.title} <.me_file_count counts={@me_file_counts} id={tg.id} />
+                    <.icon name="hero-scissors" class="size-4 text-warning" />
                   </button>
-                </div>
+                <% TargetBand.is_bullseye?(band) && length(@bands) == 1 -> %>
+                  <span
+                    :for={tg <- band.trait_groups}
+                    class="inline-flex items-center gap-1.5 rounded-md border border-base-300 bg-base-200 py-1 pr-1 pl-2.5 text-sm"
+                  >
+                    {tg.title} <.me_file_count counts={@me_file_counts} id={tg.id} />
+                    <button
+                      type="button"
+                      phx-click="remove_trait_group_from_bullseye"
+                      phx-value-band_id={band.id}
+                      phx-value-trait_group_id={tg.id}
+                      class="rounded p-0.5 text-base-content/50 hover:bg-base-300 hover:text-error"
+                      title="Remove from bullseye"
+                      aria-label={"Remove #{tg.title} from bullseye"}
+                    >
+                      <.icon name="hero-x-mark" class="size-4" />
+                    </button>
+                  </span>
+                <% true -> %>
+                  <span
+                    :for={tg <- band.trait_groups}
+                    class={[
+                      "inline-flex items-center gap-1.5 rounded-md border border-base-300 bg-base-200 px-2.5 py-1 text-sm",
+                      tg.id == excluded_trait_group_id(band, @bands) &&
+                        "border-dashed bg-transparent text-base-content/50"
+                    ]}
+                    title={
+                      tg.id == excluded_trait_group_id(band, @bands) && "Dropped in the next ring"
+                    }
+                  >
+                    {tg.title} <.me_file_count counts={@me_file_counts} id={tg.id} />
+                  </span>
               <% end %>
-            <% end %>
+            </div>
+          </li>
+
+          <li :if={@expanding_target} class="flex items-start gap-4 bg-warning/5 px-6 py-4">
+            <div class="flex w-28 shrink-0 items-center gap-2 pt-1">
+              <span class="size-2 rounded-full bg-warning" />
+              <span class="text-sm font-semibold">Ring {length(@bands)}</span>
+              <button
+                type="button"
+                phx-click="cancel_expanding_target"
+                class="btn btn-ghost btn-xs btn-square"
+                title="Cancel"
+                aria-label="Cancel new ring"
+              >
+                <.icon name="hero-x-mark" class="size-4" />
+              </button>
+            </div>
+            <p class="pt-1 text-sm text-base-content/60">
+              Pick a trait group in the ring above to leave out of this new ring.
+            </p>
+          </li>
+        </ul>
+
+        <:footer :if={
+          @bands != [] && @outermost_band && length(@outermost_band.trait_groups) > 1 &&
+            !@expanding_target
+        }>
+          <button type="button" phx-click="start_expanding_target" class="btn btn-sm btn-outline">
+            <.icon name="hero-plus" class="size-4" /> {@copy.expand}
+          </button>
+        </:footer>
+      </.panel>
+
+      <.panel title="Trait groups" description={@copy.picker_heading} class="lg:sticky lg:top-22">
+        <div
+          :if={length(@bands) > 1}
+          class="flex items-start gap-3 rounded-xl border border-base-300 bg-base-200/60 p-3"
+        >
+          <.icon name="hero-lock-closed" class="mt-0.5 size-4 shrink-0 text-base-content/60" />
+          <div class="text-sm">
+            <p class="font-semibold">Bullseye locked</p>
+            <p class="text-xs text-base-content/60">
+              Delete the outer rings first to change the bullseye.
+            </p>
           </div>
         </div>
-      </div>
+
+        <p :if={@available_trait_groups == []} class="text-sm text-base-content/60">
+          {@copy.none_available}
+        </p>
+
+        <div :if={@available_trait_groups != []} class="space-y-1.5">
+          <button
+            :for={tg <- @available_trait_groups}
+            type="button"
+            phx-click="add_trait_group"
+            phx-value-trait_group_id={tg.id}
+            disabled={length(@bands) > 1}
+            class="group flex w-full items-center justify-between gap-2 rounded-lg border border-base-300 px-3 py-2 text-left text-sm transition-colors enabled:hover:border-base-content/30 enabled:hover:bg-base-200/60 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span class="min-w-0 truncate">{tg.title}</span>
+            <span class="flex shrink-0 items-center gap-2">
+              <.me_file_count counts={@me_file_counts} id={tg.id} />
+              <.icon
+                name="hero-plus"
+                class="size-4 text-base-content/40 group-enabled:group-hover:text-base-content"
+              />
+            </span>
+          </button>
+        </div>
+      </.panel>
     </div>
+    """
+  end
+
+  attr :counts, :map, default: nil
+  attr :id, :integer, required: true
+
+  defp me_file_count(%{counts: nil} = assigns), do: ~H""
+
+  defp me_file_count(assigns) do
+    assigns = assign(assigns, :count, Map.get(assigns.counts, assigns.id, 0))
+
+    ~H"""
+    <span
+      class="inline-flex items-center gap-0.5 text-xs text-base-content/50"
+      title={"#{@count} MeFiles"}
+    >
+      <.icon name="hero-user" class="size-3" />{@count}
+    </span>
     """
   end
 
@@ -291,74 +294,73 @@ defmodule QlariusWeb.Components.Targeting do
     assigns = assign(assigns, :total_population, total)
 
     ~H"""
-    <div>
-      <div class="mb-6 flex gap-2">
-        <button type="button" phx-click="done" class="btn btn-primary">Done</button>
-        <button
-          type="button"
-          phx-click="refresh_population"
-          class="btn btn-success"
-          data-confirm="This will recalculate populations for all rings. Continue?"
-        >
-          {@copy.refresh}
-        </button>
-        <button
-          type="button"
-          phx-click="depopulate_target"
-          class="btn btn-error btn-outline"
-          data-confirm="This will delete all population data. Continue?"
-        >
-          {@copy.depopulate}
-        </button>
-      </div>
+    <div class="space-y-6">
+      <.panel flush title="Population" description="How many people fall into each ring.">
+        <:actions>
+          <button type="button" phx-click="done" class="btn btn-sm btn-ghost">Done</button>
+          <button
+            type="button"
+            phx-click="depopulate_target"
+            class="btn btn-sm btn-ghost text-error"
+            data-confirm="This will delete all population data. Continue?"
+          >
+            {@copy.depopulate}
+          </button>
+          <button
+            type="button"
+            phx-click="refresh_population"
+            class="btn btn-sm btn-primary"
+            data-confirm="This will recalculate populations for all rings. Continue?"
+          >
+            <.icon name="hero-arrow-path" class="size-4" /> {@copy.refresh}
+          </button>
+        </:actions>
 
-      <div class="mb-4 p-4 bg-base-200 dark:bg-base-300/55 rounded-lg">
-        <p class="text-sm font-semibold">Total Population: {@total_population}</p>
-      </div>
+        <ul class="divide-y divide-base-300">
+          <li :for={band <- @bands} class="flex items-start gap-4 px-6 py-4">
+            <div class="flex w-28 shrink-0 items-center gap-2 pt-1">
+              <span class={[
+                "size-2 rounded-full",
+                if(TargetBand.is_bullseye?(band), do: "bg-error", else: "bg-base-content/30")
+              ]} />
+              <span class="text-sm font-semibold">{Targets.band_label(band, @bands)}</span>
+            </div>
+            <div class="flex min-w-0 flex-1 flex-wrap gap-2">
+              <span
+                :for={tg <- band.trait_groups}
+                class={[
+                  "inline-flex items-center rounded-md border border-base-300 bg-base-200 px-2.5 py-1 text-sm",
+                  tg.id == excluded_trait_group_id(band, @bands) &&
+                    "border-dashed bg-transparent text-base-content/50"
+                ]}
+                title={tg.id == excluded_trait_group_id(band, @bands) && "Dropped in the next ring"}
+              >
+                {tg.title}
+              </span>
+            </div>
+            <div class="shrink-0 pt-1 text-right">
+              <span class="text-lg font-semibold">
+                {Map.get(@band_population_counts, band.id, 0)}
+              </span>
+              <span class="text-xs text-base-content/50">people</span>
+            </div>
+          </li>
+        </ul>
 
-      <div class="overflow-x-auto">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Rings</th>
-              <th>Trait Groups</th>
-              <th class="text-center">People</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr :for={band <- @bands}>
-              <td class={[
-                "font-bold !align-top",
-                TargetBand.is_bullseye?(band) && "text-error"
-              ]}>
-                <span>{Targets.band_label(band, @bands)}</span>
-              </td>
-              <td class="!align-top">
-                <div class="flex flex-wrap gap-2">
-                  <span
-                    :for={tg <- band.trait_groups}
-                    class={[
-                      "badge badge-outline py-3",
-                      tg.id == excluded_trait_group_id(band, @bands) && "opacity-60"
-                    ]}
-                  >
-                    {tg.title}
-                  </span>
-                </div>
-              </td>
-              <td class="text-center !align-top">
-                <span class="font-semibold">{Map.get(@band_population_counts, band.id, 0)}</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        <:footer>
+          <span class="mr-auto text-sm font-semibold">Total population</span>
+          <span class="text-lg font-semibold">{@total_population}</span>
+        </:footer>
+      </.panel>
 
-      <div :if={@show_frozen_note?} class="alert alert-neutral mt-6">
-        <.icon name="hero-lock-closed" class="w-5 h-5" />
+      <div
+        :if={@show_frozen_note?}
+        class="flex items-start gap-3 rounded-xl border border-base-300 bg-base-200/60 p-4"
+      >
+        <.icon name="hero-lock-closed" class="mt-0.5 size-4 shrink-0 text-base-content/60" />
         <div class="text-sm">
           <p class="font-semibold">{@copy.locked_title}</p>
-          <p class="text-xs">{@copy.locked_body}</p>
+          <p class="text-xs text-base-content/60">{@copy.locked_body}</p>
         </div>
       </div>
     </div>

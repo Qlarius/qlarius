@@ -7,6 +7,8 @@ defmodule QlariusWeb.Creators.LinkInBioMigrationLive do
 
   use QlariusWeb, :live_view
 
+  import QlariusWeb.Components.MarketerUI
+
   alias Qlarius.Creators
   alias Qlarius.Qlink
   alias Qlarius.Qlink.LinkInBio.Draft
@@ -283,7 +285,7 @@ defmodule QlariusWeb.Creators.LinkInBioMigrationLive do
         "Alias must be at least 3 characters (lowercase letters, numbers, _ or -)."
 
       not Qlink.alias_available?(sanitized) ->
-        "Alias \"#{sanitized}\" is taken — import will append a suffix."
+        "Alias \"#{sanitized}\" is taken. Import will append a suffix."
 
       true ->
         nil

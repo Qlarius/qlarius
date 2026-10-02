@@ -15,6 +15,7 @@ defmodule Qlarius.Sponster.Campaigns.Target do
     field :user_created_by, :integer
     field :population_status, :string, default: "not_populated"
     field :last_populated_at, :naive_datetime
+    field :archived_at, :naive_datetime
 
     has_many :target_bands, TargetBand
 

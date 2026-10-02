@@ -1,10 +1,14 @@
 defmodule QlariusWeb.Admin.MarketerManagerLive do
   use QlariusWeb, :live_view
 
+  import QlariusWeb.Components.MarketerUI
+
   alias QlariusWeb.Components.AdminSidebar
   alias QlariusWeb.Components.AdminTopbar
   alias Qlarius.Accounts.Marketers
   alias Qlarius.Accounts.Marketer
+
+  on_mount {QlariusWeb.Live.Marketers.CurrentMarketer, :load_current_marketer}
 
   def render(assigns) do
     ~H"""
@@ -16,210 +20,35 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
           <AdminTopbar.topbar current_user={@current_scope.user} />
 
           <div class="overflow-auto">
+            <.current_marketer_bar
+              current_marketer={@current_marketer}
+              current_path={~p"/admin/marketers"}
+            />
+
             <%= case @live_action do %>
               <% :index -> %>
-                <div phx-hook="CurrentMarketer" id="marketer-manager-hook">
-                  <.current_marketer_bar
-                    current_marketer={@current_marketer}
-                    current_path={~p"/admin/marketers"}
+                <.index_view
+                  marketers={@marketers}
+                  total_marketers_count={@total_marketers_count}
+                  search_query={@search_query}
+                  current_marketer_id={@current_marketer_id}
+                />
+              <% action when action in [:new, :edit] -> %>
+                <.page class="max-w-3xl">
+                  <.page_header
+                    title={if action == :new, do: "New Marketer", else: "Edit Marketer"}
+                    subtitle={
+                      if action == :new,
+                        do: "Create a new marketer.",
+                        else: @marketer.business_name
+                    }
+                    back_to={~p"/admin/marketers"}
+                    back_label="Marketers"
                   />
-                  <div class="p-6">
-                    <h1 class="text-2xl font-bold mb-4">Marketers List</h1>
-                    <%!-- Search and New Button Row --%>
-                    <div class="flex justify-between items-center gap-4 mb-4">
-                      <form phx-change="search" class="flex-1">
-                        <label class="input input-bordered flex items-center gap-2 w-2/5 min-w-[400px]">
-                          <.icon name="hero-magnifying-glass" class="w-5 h-5 opacity-70" />
-                          <input
-                            type="text"
-                            phx-debounce="300"
-                            name="query"
-                            value={@search_query}
-                            class="grow"
-                            autocomplete="off"
-                          />
-                          <button
-                            :if={@search_query != ""}
-                            type="button"
-                            phx-click="clear_search"
-                            class="btn btn-ghost btn-xs btn-circle"
-                          >
-                            <.icon name="hero-x-mark" class="w-4 h-4" />
-                          </button>
-                        </label>
-                      </form>
-                      <.link patch={~p"/admin/marketers/new"} class="btn btn-primary">
-                        <.icon name="hero-plus" class="w-4 h-4 mr-1" /> New Marketer
-                      </.link>
-                    </div>
-                    <div class="mb-4 text-sm text-base-content/60">
-                      Showing {length(@marketers)} of {@total_marketers_count} marketers
-                    </div>
-                    <div class="card bg-base-100 shadow-xl">
-                      <div class="card-body p-0">
-                        <%= if @marketers == [] do %>
-                          <div class="p-8 text-center text-base-content/60">
-                            <.icon
-                              name="hero-magnifying-glass"
-                              class="w-12 h-12 mx-auto mb-2 opacity-50"
-                            />
-                            <p>No marketers found matching "{@search_query}"</p>
-                            <button phx-click="clear_search" class="btn btn-sm btn-ghost mt-2">
-                              Clear search
-                            </button>
-                          </div>
-                        <% else %>
-                          <div class="overflow-x-auto">
-                            <.table
-                              id="marketers-table"
-                              rows={@marketers}
-                              row_class={
-                                fn marketer ->
-                                  if @current_marketer_id == marketer.id,
-                                    do: "bg-success/10 ring-2 ring-success ring-inset",
-                                    else: ""
-                                end
-                              }
-                            >
-                              <:col :let={marketer} label="Business Name">
-                                {marketer.business_name}
-                                <span class="text-gray-400">({marketer.id})</span>
-                              </:col>
-                              <:col :let={marketer} label="Actions">
-                                <div class="flex gap-2">
-                                  <button
-                                    phx-click="set_current_marketer"
-                                    phx-value-id={marketer.id}
-                                    class={[
-                                      "btn btn-xs",
-                                      if(@current_marketer_id == marketer.id,
-                                        do: "btn-success ring-2 ring-success ring-offset-2",
-                                        else: "btn-outline btn-success"
-                                      )
-                                    ]}
-                                  >
-                                    <.icon name="hero-check" class="w-4 h-4" />
-                                  </button>
-                                  <.link
-                                    patch={~p"/admin/marketers/#{marketer}"}
-                                    class="btn btn-xs btn-info"
-                                  >
-                                    <.icon name="hero-eye" class="w-4 h-4" />
-                                  </.link>
-                                  <.link
-                                    patch={~p"/admin/marketers/#{marketer}/edit"}
-                                    class="btn btn-xs btn-warning"
-                                  >
-                                    <.icon name="hero-pencil-square" class="w-4 h-4" />
-                                  </.link>
-                                  <.link
-                                    phx-click="delete"
-                                    phx-value-id={marketer.id}
-                                    data-confirm="Are you sure?"
-                                    class="btn btn-xs btn-error"
-                                  >
-                                    <.icon name="hero-trash" class="w-4 h-4" />
-                                  </.link>
-                                </div>
-                              </:col>
-                            </.table>
-                          </div>
-                        <% end %>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              <% :new -> %>
-                <div class="container mx-auto px-4">
-                  <div class="mb-4">
-                    <%!-- Removed class="btn btn-outline" - back component doesn't support class attribute --%>
-                    <.back navigate={~p"/admin/marketers"}>Back to marketers</.back>
-                  </div>
-                  <div>
-                    <.header>
-                      <div class="flex items-center">
-                        <h1 class="text-2xl font-bold">New Marketer</h1>
-                      </div>
-                      <%!-- Removed class="mt-2 text-base-content/70" - subtitle slot doesn't support custom classes --%>
-                      <:subtitle>Create a new marketer.</:subtitle>
-                    </.header>
-                  </div>
                   {render_form(assigns)}
-                </div>
-              <% :edit -> %>
-                <div class="container mx-auto px-4">
-                  <div class="mb-4">
-                    <%!-- Removed class="btn btn-outline" - back component doesn't support class attribute --%>
-                    <.back navigate={~p"/admin/marketers"}>Back to marketers</.back>
-                  </div>
-                  <div>
-                    <.header>
-                      <div class="flex items-center">
-                        <h1 class="text-2xl font-bold">
-                          Edit Marketer "<span class="text-primary"><%= @marketer.business_name %></span>"
-                        </h1>
-                      </div>
-                      <%!-- Removed class="mt-2 text-base-content/70" - subtitle slot doesn't support custom classes --%>
-                      <:subtitle>Edit marketer information.</:subtitle>
-                    </.header>
-                  </div>
-                  {render_form(assigns)}
-                </div>
+                </.page>
               <% :show -> %>
-                <div class="p-6">
-                  <div class="card bg-base-100 shadow-xl">
-                    <div class="card-body">
-                      <div class="flex gap-2 mb-4">
-                        <.link patch={~p"/admin/marketers/#{@marketer}/edit"} class="btn btn-warning">
-                          Edit
-                        </.link>
-                        <.link
-                          phx-click="delete"
-                          phx-value-id={@marketer.id}
-                          data-confirm="Are you sure?"
-                          class="btn btn-error"
-                        >
-                          Delete
-                        </.link>
-                        <.link patch={~p"/admin/marketers"} class="btn">Back</.link>
-                      </div>
-                      <h2 class="text-2xl font-bold mb-2">{@marketer.business_name}</h2>
-                      <ul class="mb-4">
-                        <li><strong>ID:</strong> {@marketer.id}</li>
-                        <li><strong>Business Name:</strong> {@marketer.business_name}</li>
-                        <li><strong>Business URL:</strong> {@marketer.business_url}</li>
-                        <li><strong>Contact First Name:</strong> {@marketer.contact_first_name}</li>
-                        <li><strong>Contact Last Name:</strong> {@marketer.contact_last_name}</li>
-                        <li><strong>Contact Number:</strong> {@marketer.contact_number}</li>
-                        <li><strong>Contact Email:</strong> {@marketer.contact_email}</li>
-                        <li><strong>SIC Code:</strong> {@marketer.sic_code}</li>
-                      </ul>
-
-                      <h3 class="text-lg font-semibold mt-6 mb-2">Members</h3>
-                      <ul class="mb-4">
-                        <li :for={m <- @members}>
-                          User #{m.user_id} — {m.role}
-                        </li>
-                        <li :if={@members == []} class="text-base-content/60">No members yet.</li>
-                      </ul>
-                      <form phx-submit="add_member" class="flex gap-2 items-end">
-                        <label class="form-control">
-                          <span class="label-text">User id</span>
-                          <input type="number" name="user_id" class="input input-bordered" required />
-                        </label>
-                        <label class="form-control">
-                          <span class="label-text">Role</span>
-                          <select name="role" class="select select-bordered">
-                            <option value="owner">owner</option>
-                            <option value="admin">admin</option>
-                            <option value="member">member</option>
-                          </select>
-                        </label>
-                        <button class="btn btn-primary">Add member</button>
-                      </form>
-                    </div>
-                  </div>
-                </div>
+                <.show_view marketer={@marketer} members={@members} />
             <% end %>
           </div>
         </div>
@@ -228,89 +57,235 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
     """
   end
 
+  attr :marketers, :list, required: true
+  attr :total_marketers_count, :integer, required: true
+  attr :search_query, :string, required: true
+  attr :current_marketer_id, :any, required: true
+
+  defp index_view(assigns) do
+    ~H"""
+    <.page>
+      <.page_header
+        title="Marketers"
+        count={@total_marketers_count}
+        subtitle="Businesses that run campaigns. Select one to work on its traits, targets and campaigns."
+      >
+        <:actions>
+          <.link patch={~p"/admin/marketers/new"} class="btn btn-primary btn-sm">
+            <.icon name="hero-plus" class="size-4" /> New marketer
+          </.link>
+        </:actions>
+      </.page_header>
+
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <.search_field value={@search_query} placeholder="Search marketers" />
+        <p class="text-sm text-base-content/60">
+          Showing {length(@marketers)} of {@total_marketers_count} marketers
+        </p>
+      </div>
+
+      <.panel flush>
+        <.empty_state
+          :if={@marketers == []}
+          icon="hero-magnifying-glass"
+          title={"No marketers match \"#{@search_query}\""}
+        >
+          <:action>
+            <button type="button" phx-click="clear_search" class="btn btn-sm btn-ghost">
+              Clear search
+            </button>
+          </:action>
+        </.empty_state>
+
+        <.data_table
+          :if={@marketers != []}
+          id="marketers-table"
+          rows={@marketers}
+          row_class={fn marketer -> @current_marketer_id == marketer.id && "bg-primary/5" end}
+        >
+          <:col :let={marketer} label="Business">
+            <div class="flex items-center gap-3">
+              <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-base-200 text-sm font-semibold text-base-content/70">
+                {initials(marketer.business_name)}
+              </span>
+              <div class="min-w-0">
+                <.link
+                  patch={~p"/admin/marketers/#{marketer}"}
+                  class="font-semibold hover:underline"
+                >
+                  {marketer.business_name}
+                </.link>
+                <p class="truncate text-xs text-base-content/50">
+                  #{marketer.id}{marketer.business_url not in [nil, ""] &&
+                    " · #{marketer.business_url}"}
+                </p>
+              </div>
+            </div>
+          </:col>
+          <:col :let={marketer} label="Contact" class="max-md:hidden">
+            <p>{contact_name(marketer) || "-"}</p>
+            <p :if={marketer.contact_email} class="text-xs text-base-content/50">
+              {marketer.contact_email}
+            </p>
+          </:col>
+          <:action :let={marketer}>
+            <%= if @current_marketer_id == marketer.id do %>
+              <.status_badge tone="success">Current</.status_badge>
+            <% else %>
+              <.link
+                href={~p"/marketer/select/#{marketer.id}?return_to=/admin/marketers"}
+                method="post"
+                id={"select-marketer-#{marketer.id}"}
+                aria-label={"Set #{marketer.business_name} as current marketer"}
+                class="btn btn-sm"
+              >
+                Select
+              </.link>
+            <% end %>
+          </:action>
+          <:action :let={marketer}>
+            <.icon_button
+              icon="hero-eye"
+              label="View"
+              patch={~p"/admin/marketers/#{marketer}"}
+            />
+          </:action>
+          <:action :let={marketer}>
+            <.icon_button
+              icon="hero-pencil-square"
+              label="Edit"
+              patch={~p"/admin/marketers/#{marketer}/edit"}
+            />
+          </:action>
+          <:action :let={marketer}>
+            <.icon_button
+              icon="hero-trash"
+              label="Delete"
+              tone="error"
+              phx-click="delete"
+              phx-value-id={marketer.id}
+              data-confirm={"Delete #{marketer.business_name}? This cannot be undone."}
+            />
+          </:action>
+        </.data_table>
+      </.panel>
+    </.page>
+    """
+  end
+
+  attr :marketer, :any, required: true
+  attr :members, :list, required: true
+
+  defp show_view(assigns) do
+    ~H"""
+    <.page class="max-w-5xl">
+      <.page_header
+        title={@marketer.business_name}
+        subtitle={"Marketer ##{@marketer.id}"}
+        back_to={~p"/admin/marketers"}
+        back_label="Marketers"
+      >
+        <:actions>
+          <.link patch={~p"/admin/marketers/#{@marketer}/edit"} class="btn btn-sm btn-ghost">
+            <.icon name="hero-pencil-square" class="size-4" /> Edit
+          </.link>
+          <.link
+            phx-click="delete"
+            phx-value-id={@marketer.id}
+            data-confirm={"Delete #{@marketer.business_name}? This cannot be undone."}
+            class="btn btn-sm btn-ghost text-error"
+          >
+            <.icon name="hero-trash" class="size-4" /> Delete
+          </.link>
+        </:actions>
+      </.page_header>
+
+      <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <.panel title="Details">
+          <dl class="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+            <.detail_item label="Business name" value={@marketer.business_name} />
+            <.detail_item label="Business URL" value={@marketer.business_url} />
+            <.detail_item label="Contact name" value={contact_name(@marketer)} />
+            <.detail_item label="Contact number" value={@marketer.contact_number} />
+            <.detail_item label="Contact email" value={@marketer.contact_email} />
+            <.detail_item label="SIC code" value={@marketer.sic_code} />
+          </dl>
+        </.panel>
+
+        <.panel flush title="Members" description="People who can manage this marketer.">
+          <p :if={@members == []} class="px-6 py-4 text-sm text-base-content/60">No members yet.</p>
+          <ul :if={@members != []} class="divide-y divide-base-300">
+            <li :for={m <- @members} class="flex items-center justify-between gap-3 px-6 py-3">
+              <span class="text-sm">User #{m.user_id}</span>
+              <.status_badge>{m.role}</.status_badge>
+            </li>
+          </ul>
+          <:footer>
+            <form phx-submit="add_member" class="flex w-full flex-wrap items-end gap-2">
+              <label class="min-w-0 flex-1">
+                <span class="mb-1 block text-xs text-base-content/60">User id</span>
+                <input type="number" name="user_id" class="input input-sm w-full" required />
+              </label>
+              <label>
+                <span class="mb-1 block text-xs text-base-content/60">Role</span>
+                <select name="role" class="select select-sm">
+                  <option value="owner">owner</option>
+                  <option value="admin">admin</option>
+                  <option value="member">member</option>
+                </select>
+              </label>
+              <button class="btn btn-primary btn-sm">Add member</button>
+            </form>
+          </:footer>
+        </.panel>
+      </div>
+    </.page>
+    """
+  end
+
   defp render_form(assigns) do
     ~H"""
-    <.form
-      :let={f}
-      for={@form}
-      id="marketer-form"
-      phx-change="validate"
-      phx-submit="save"
-      class="space-y-4"
-    >
-      <.input
-        field={f[:business_name]}
-        type="text"
-        label="Business Name"
-        class="input input-bordered w-full"
-        required
-      />
-      <.input
-        field={f[:business_url]}
-        type="url"
-        label="Business URL"
-        class="input input-bordered w-full"
-      />
-      <.input
-        field={f[:contact_first_name]}
-        type="text"
-        label="Contact First Name"
-        class="input input-bordered w-full"
-      />
-      <.input
-        field={f[:contact_last_name]}
-        type="text"
-        label="Contact Last Name"
-        class="input input-bordered w-full"
-      />
-      <.input
-        field={f[:contact_number]}
-        type="tel"
-        label="Contact Number"
-        class="input input-bordered w-full"
-      />
-      <.input
-        field={f[:contact_email]}
-        type="email"
-        label="Contact Email"
-        class="input input-bordered w-full"
-      />
-      <.input field={f[:sic_code]} type="text" label="SIC Code" class="input input-bordered w-full" />
-      <div>
-        <.button phx-disable-with="Saving..." class="btn btn-primary">Save Marketer</.button>
-        <.link patch={~p"/admin/marketers"} class="btn ml-2">Cancel</.link>
-      </div>
+    <.form :let={f} for={@form} id="marketer-form" phx-change="validate" phx-submit="save">
+      <.panel>
+        <.input field={f[:business_name]} type="text" label="Business name" required />
+        <.input field={f[:business_url]} type="url" label="Business URL" />
+        <div class="grid gap-4 sm:grid-cols-2">
+          <.input field={f[:contact_first_name]} type="text" label="Contact first name" />
+          <.input field={f[:contact_last_name]} type="text" label="Contact last name" />
+          <.input field={f[:contact_number]} type="tel" label="Contact number" />
+          <.input field={f[:contact_email]} type="email" label="Contact email" />
+        </div>
+        <.input field={f[:sic_code]} type="text" label="SIC code" />
+        <:footer>
+          <.link patch={~p"/admin/marketers"} class="btn btn-ghost">Cancel</.link>
+          <.button variant="primary" phx-disable-with="Saving...">Save marketer</.button>
+        </:footer>
+      </.panel>
     </.form>
     """
   end
 
+  defp contact_name(marketer) do
+    case Enum.reject(
+           [marketer.contact_first_name, marketer.contact_last_name],
+           &(&1 in [nil, ""])
+         ) do
+      [] -> nil
+      parts -> Enum.join(parts, " ")
+    end
+  end
+
+  defp initials(name) do
+    name
+    |> String.split(~r/\s+/, trim: true)
+    |> Enum.take(2)
+    |> Enum.map_join(&String.first/1)
+    |> String.upcase()
+  end
+
   def mount(_params, _session, socket) do
-    scope = socket.assigns.current_scope
-
-    current_marketer_id =
-      case Phoenix.LiveView.get_connect_params(socket) do
-        %{"current_marketer_id" => id_string} when is_binary(id_string) and id_string != "" ->
-          String.to_integer(id_string)
-
-        _ ->
-          nil
-      end
-
-    current_marketer =
-      if current_marketer_id do
-        try do
-          Marketers.get_marketer!(scope, current_marketer_id)
-        rescue
-          Ecto.NoResultsError -> nil
-        end
-      else
-        nil
-      end
-
     socket =
       socket
-      |> assign(:current_marketer_id, current_marketer_id)
-      |> assign(:current_marketer, current_marketer)
       |> assign(:search_query, "")
       |> assign(:all_marketers, [])
       |> assign(:marketers, [])
@@ -421,25 +396,6 @@ defmodule QlariusWeb.Admin.MarketerManagerLive do
      socket
      |> put_flash(:info, "Marketer deleted successfully.")
      |> push_navigate(to: ~p"/admin/marketers")}
-  end
-
-  def handle_event("set_current_marketer", %{"id" => id}, socket) do
-    scope = socket.assigns.current_scope
-    marketer_id = String.to_integer(id)
-
-    marketer =
-      try do
-        Marketers.get_marketer!(scope, marketer_id)
-      rescue
-        Ecto.NoResultsError -> nil
-      end
-
-    {:noreply,
-     socket
-     |> assign(:current_marketer_id, marketer_id)
-     |> assign(:current_marketer, marketer)
-     |> push_event("store_current_marketer", %{marketer_id: id})
-     |> put_flash(:info, "Current marketer set to #{marketer.business_name}.")}
   end
 
   def handle_event("search", %{"query" => query}, socket) do

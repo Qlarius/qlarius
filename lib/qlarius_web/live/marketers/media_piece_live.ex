@@ -7,6 +7,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   alias Qlarius.Sponster.Ads.{AdCategories, MediaPiece}
   alias QlariusWeb.Components.SearchSelect
   import QlariusWeb.Components.AdsComponents, only: [video_thumbnail: 1]
+  import QlariusWeb.Components.MarketerUI
 
   on_mount {CurrentMarketer, :load_current_marketer}
 
@@ -122,7 +123,10 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   end
 
   @impl true
-  def handle_event("save", %{"media_piece" => attrs}, socket) do
+  def handle_event("save", %{"media_piece" => attrs} = params, socket) do
+    socket =
+      assign(socket, :return_to, safe_return_to(params["return_to"], ~p"/marketer/media"))
+
     save_media_piece(socket, socket.assigns.live_action, attrs)
   end
 
@@ -184,7 +188,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
         {:noreply,
          socket
          |> put_flash(:info, "Media piece created successfully.")
-         |> push_navigate(to: ~p"/marketer/media")}
+         |> push_navigate(to: socket.assigns.return_to)}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply,
@@ -206,7 +210,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
         {:noreply,
          socket
          |> put_flash(:info, "Media piece updated successfully.")
-         |> push_navigate(to: ~p"/marketer/media")}
+         |> push_navigate(to: socket.assigns.return_to)}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply,
@@ -397,144 +401,45 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
           <AdminTopbar.topbar current_user={@current_scope.user} />
 
           <div class="overflow-auto">
-            <%= case @live_action do %>
-              <% :index -> %>
-                <.current_marketer_bar
-                  current_marketer={@current_marketer}
-                  current_path={~p"/marketer/media"}
-                />
-                <div class="container mx-auto px-4 py-8">
-                  <div class="flex justify-between items-center mb-8">
-                    <h1 class="text-3xl font-bold">Media Pieces</h1>
-                    <.link patch={~p"/marketer/media/new"}>
-                      <button class="btn btn-primary gap-2">
-                        <.icon name="hero-plus" class="w-5 h-5" /> New Media Piece
-                      </button>
-                    </.link>
-                  </div>
+            <.current_marketer_bar
+              current_marketer={@current_marketer}
+              current_path={~p"/marketer/media"}
+            />
+            <%= cond do %>
+              <% !@current_marketer and @live_action in [:index, :new] -> %>
+                <.no_marketer_notice message="Choose a marketer to manage their media pieces." />
+              <% @live_action == :index -> %>
+                <.media_index media_pieces={@media_pieces} />
+              <% true -> %>
+                <.page class="max-w-6xl">
+                  <.page_header
+                    back_to={~p"/marketer/media"}
+                    back_label="Media pieces"
+                    title={if @live_action == :new, do: "New media piece", else: "Edit media piece"}
+                    subtitle={
+                      if @live_action == :new,
+                        do: "Create a 3-tap banner or video ad.",
+                        else: @media_piece.title
+                    }
+                  />
 
-                  <div class="card bg-base-100 shadow-xl">
-                    <div class="card-body p-0">
-                      <div class="overflow-x-auto">
-                        <table class="table table-zebra w-full">
-                          <thead>
-                            <tr>
-                              <th class="bg-base-200">Preview</th>
-                              <th class="bg-base-200">Title</th>
-                              <th class="bg-base-200">Display URL</th>
-                              <th class="bg-base-200">Ad Category</th>
-                              <th class="bg-base-200">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <%= for media_piece <- @media_pieces do %>
-                              <tr class="hover">
-                                <td class="align-top">
-                                  <%= if media_piece.media_piece_type_id == 2 do %>
-                                    <.video_thumbnail
-                                      media_piece={media_piece}
-                                      id={"mp-admin-#{media_piece.id}"}
-                                    />
-                                  <% else %>
-                                    <%= if media_piece.banner_image do %>
-                                      <img
-                                        src={
-                                          QlariusWeb.Uploaders.ThreeTapBanner.url(
-                                            {media_piece.banner_image, media_piece},
-                                            :original
-                                          )
-                                        }
-                                        alt="Banner"
-                                        class="w-32 h-auto object-cover rounded"
-                                      />
-                                    <% else %>
-                                      <div class="w-32 h-24 bg-gray-200 rounded flex items-center justify-center">
-                                        <span class="text-gray-400">No banner</span>
-                                      </div>
-                                    <% end %>
-                                  <% end %>
-                                </td>
-                                <td class="align-top">{media_piece.title}</td>
-                                <td class="text-emerald-600 align-top">{media_piece.display_url}</td>
-                                <td class="align-top">
-                                  <span class="badge whitespace-nowrap inline-flex items-center">
-                                    {media_piece.ad_category.ad_label}
-                                  </span>
-                                </td>
-                                <td class="align-top">
-                                  <div class="flex gap-2">
-                                    <.link patch={~p"/marketer/media/#{media_piece}/edit"}>
-                                      <button class="btn btn-sm btn-ghost btn-square">
-                                        <.icon name="hero-pencil-square" class="w-5 h-5" />
-                                      </button>
-                                    </.link>
-                                    <button
-                                      phx-click="delete"
-                                      phx-value-id={media_piece.id}
-                                      data-confirm="Are you sure you want to delete this media piece?"
-                                      class="btn btn-sm btn-ghost btn-square text-error"
-                                    >
-                                      <.icon name="hero-trash" class="w-5 h-5" />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            <% end %>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
+                  <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_349px]">
+                    <.media_piece_form
+                      form={@form}
+                      ad_category_options={@ad_category_options}
+                      uploads={@uploads}
+                      media_piece={if @live_action == :edit, do: @media_piece}
+                      selected_media_type={@selected_media_type}
+                    />
+                    <.ad_preview
+                      changeset={@changeset}
+                      media_piece={@media_piece}
+                      uploads={@uploads}
+                      selected_media_type={@selected_media_type}
+                    />
                   </div>
-                </div>
-              <% :new -> %>
-                <.current_marketer_bar
-                  current_marketer={@current_marketer}
-                  current_path={~p"/marketer/media"}
-                />
-                <div class="container mx-auto px-4">
-                  <div class="mb-4">
-                    <.back navigate={~p"/marketer/media"}>Back to media pieces</.back>
-                  </div>
-                  <div>
-                    <.header>
-                      <h1 class="text-2xl font-bold">New Media Piece</h1>
-                      <:subtitle>Create a new media piece.</:subtitle>
-                    </.header>
-                  </div>
-                  <.media_piece_form
-                    form={@form}
-                    action={~p"/marketer/media/new"}
-                    ad_category_options={@ad_category_options}
-                    uploads={@uploads}
-                    selected_media_type={@selected_media_type}
-                  />
-                </div>
-              <% :edit -> %>
-                <.current_marketer_bar
-                  current_marketer={@current_marketer}
-                  current_path={~p"/marketer/media"}
-                />
-                <div class="container mx-auto px-4">
-                  <div class="mb-4">
-                    <.back navigate={~p"/marketer/media"}>Back to media pieces</.back>
-                  </div>
-                  <div>
-                    <.header>
-                      <h1 class="text-2xl font-bold">
-                        Edit Media Piece "<span class="text-primary"><%= @media_piece.title %></span>"
-                      </h1>
-                      <:subtitle>Edit media piece information.</:subtitle>
-                    </.header>
-                  </div>
-                  <.media_piece_form
-                    form={@form}
-                    action={~p"/marketer/media/#{@media_piece}/edit"}
-                    ad_category_options={@ad_category_options}
-                    uploads={@uploads}
-                    media_piece={@media_piece}
-                    selected_media_type={@selected_media_type}
-                  />
-                </div>
+                </.page>
+                <.unsaved_changes_dialog message="This media piece has unsaved changes. Save them before you leave?" />
             <% end %>
           </div>
         </div>
@@ -543,8 +448,117 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
     """
   end
 
+  attr :media_pieces, :list, required: true
+
+  defp media_index(assigns) do
+    ~H"""
+    <.page>
+      <.page_header
+        title="Media pieces"
+        count={length(@media_pieces)}
+        subtitle="The banner and video ads you place into sequences."
+      >
+        <:actions>
+          <.link patch={~p"/marketer/media/new"} class="btn btn-primary">
+            <.icon name="hero-plus" class="size-5" /> New media piece
+          </.link>
+        </:actions>
+      </.page_header>
+
+      <.panel flush>
+        <.empty_state :if={@media_pieces == []} icon="hero-photo" title="No media pieces yet">
+          Create a 3-tap banner or video ad to use in your sequences.
+          <:action>
+            <.link patch={~p"/marketer/media/new"} class="btn btn-primary btn-sm">
+              New media piece
+            </.link>
+          </:action>
+        </.empty_state>
+
+        <ul :if={@media_pieces != []} class="divide-y divide-base-300">
+          <li
+            :for={media_piece <- @media_pieces}
+            id={"media-piece-#{media_piece.id}"}
+            class="group flex items-center gap-5 px-6 py-4 transition-colors hover:bg-base-200/40"
+          >
+            <div class="w-40 shrink-0">
+              <%= cond do %>
+                <% media_piece.media_piece_type_id == 2 -> %>
+                  <.video_thumbnail
+                    media_piece={media_piece}
+                    class="w-full"
+                    id={"mp-admin-#{media_piece.id}"}
+                  />
+                <% media_piece.banner_image -> %>
+                  <img
+                    src={
+                      QlariusWeb.Uploaders.ThreeTapBanner.url(
+                        {media_piece.banner_image, media_piece},
+                        :original
+                      )
+                    }
+                    alt=""
+                    class="aspect-[3/1] w-full rounded-md border border-base-300 bg-white object-cover"
+                  />
+                <% true -> %>
+                  <div class="flex aspect-[3/1] w-full items-center justify-center rounded-md bg-base-200 text-xs text-base-content/50">
+                    No banner
+                  </div>
+              <% end %>
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <.icon
+                  name={
+                    if media_piece.media_piece_type_id == 2,
+                      do: "hero-play-circle",
+                      else: "hero-photo"
+                  }
+                  class="size-4 shrink-0 text-base-content/40"
+                />
+                <.link
+                  patch={~p"/marketer/media/#{media_piece}/edit"}
+                  class="truncate font-semibold hover:underline"
+                >
+                  {media_piece.title}
+                </.link>
+              </div>
+              <p :if={media_piece.display_url} class="mt-0.5 truncate text-sm text-success">
+                {media_piece.display_url}
+              </p>
+              <div :if={media_piece.ad_category} class="mt-2">
+                <.chip>{media_piece.ad_category.ad_label}</.chip>
+              </div>
+            </div>
+
+            <div class="flex shrink-0 items-center gap-1">
+              <.link
+                patch={~p"/marketer/media/#{media_piece}/edit"}
+                class="btn btn-sm btn-ghost"
+                aria-label={"Edit #{media_piece.title}"}
+              >
+                <.icon name="hero-pencil-square" class="size-4" /> Edit
+              </.link>
+              <button
+                type="button"
+                phx-click="delete"
+                phx-value-id={media_piece.id}
+                data-confirm="Delete this media piece? This cannot be undone."
+                class="btn btn-sm btn-ghost btn-square text-error"
+                aria-label={"Delete #{media_piece.title}"}
+              >
+                <.icon name="hero-trash" class="size-4" />
+              </button>
+            </div>
+          </li>
+        </ul>
+      </.panel>
+    </.page>
+    """
+  end
+
   attr :form, :any, required: true
-  attr :action, :string, required: true
   attr :ad_category_options, :list, required: true
   attr :uploads, :map, required: true
   attr :media_piece, :map, default: nil
@@ -558,178 +572,333 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
       id="media-piece-form"
       phx-change="validate"
       phx-submit="save"
-      class="space-y-4"
+      phx-hook="UnsavedChanges"
+      data-dirty={to_string(unsaved_changes?(@form, @uploads))}
+      data-dialog="unsaved-changes-dialog"
+      class="space-y-6"
     >
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text font-semibold">Ad Type</span>
-        </label>
-        <div class="flex gap-4">
-          <label class="label cursor-pointer gap-2">
-            <input
-              type="radio"
-              name="media_type"
-              value="three_tap"
-              class="radio radio-primary"
-              checked={@selected_media_type == "three_tap"}
-              phx-click="select_media_type"
-              phx-value-type="three_tap"
-            />
-            <span class="label-text">3-Tap Banner</span>
-          </label>
-          <label class="label cursor-pointer gap-2">
-            <input
-              type="radio"
-              name="media_type"
-              value="video"
-              class="radio radio-primary"
-              checked={@selected_media_type == "video"}
-              phx-click="select_media_type"
-              phx-value-type="video"
-            />
-            <span class="label-text">Video Ad</span>
-          </label>
+      <.panel title="Ad type">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <.media_type_option
+            value="three_tap"
+            selected={@selected_media_type}
+            icon="hero-photo"
+            label="3-Tap Banner"
+            description="Banner image with a title, copy and link"
+          />
+          <.media_type_option
+            value="video"
+            selected={@selected_media_type}
+            icon="hero-play-circle"
+            label="Video Ad"
+            description="Short video with an optional poster image"
+          />
         </div>
-      </div>
+      </.panel>
 
-      <.input field={f[:title]} type="text" label="Title" required />
+      <.panel title="Content" description="What people see in the ad.">
+        <.input field={f[:title]} type="text" label="Title" required />
 
-      <%= if @selected_media_type == "three_tap" do %>
-        <.input field={f[:body_copy]} type="textarea" label="Body Copy" />
-        <.input field={f[:display_url]} type="text" label="Display URL" required />
-        <.input field={f[:jump_url]} type="text" label="Jump URL" required />
-      <% end %>
+        <%= if @selected_media_type == "three_tap" do %>
+          <.input field={f[:body_copy]} type="textarea" label="Body Copy" rows="3" />
+          <div class="grid gap-4 md:grid-cols-2">
+            <.input field={f[:display_url]} type="text" label="Display URL" required />
+            <.input field={f[:jump_url]} type="text" label="Jump URL" required />
+          </div>
+        <% end %>
+      </.panel>
 
-      <.live_component
-        module={SearchSelect}
-        id="ad-category-picker"
-        field={f[:ad_category_id]}
-        options={@ad_category_options}
-        label="Ad Category"
-        placeholder="Type words like pizza, yoga or car repair"
-        required
-      >
-        <:footer>{AdCategories.iab_attribution()}</:footer>
-      </.live_component>
-
-      <%= if @selected_media_type == "three_tap" do %>
-        <.image_upload_field
-          upload={@uploads.banner_image}
-          label="Banner Image"
-          current_image={if @media_piece, do: @media_piece.banner_image}
-          current_image_url={
-            if @media_piece && @media_piece.banner_image,
-              do:
-                QlariusWeb.Uploaders.ThreeTapBanner.url(
-                  {@media_piece.banner_image, @media_piece},
-                  :original
-                )
-          }
-          accept_text="PNG, JPG, GIF (max 10MB)"
-          preview_size="w-32 h-auto"
-          current_image_size="w-64 h-auto"
-        />
-      <% else %>
-        <.input
-          field={f[:duration]}
-          type="number"
-          label="Video Duration (seconds)"
+      <.panel title="Ad category" description="Helps match the ad to the right audience.">
+        <.live_component
+          module={SearchSelect}
+          id="ad-category-picker"
+          field={f[:ad_category_id]}
+          options={@ad_category_options}
+          label="Ad Category"
+          placeholder="Type words like pizza, yoga or car repair"
           required
-          min="1"
-          step="1"
-        />
+        >
+          <:footer>{AdCategories.iab_attribution()}</:footer>
+        </.live_component>
+      </.panel>
 
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text font-semibold">Video File</span>
-          </label>
+      <.panel
+        title="Media"
+        description={
+          if @selected_media_type == "three_tap",
+            do: "The banner shown above the ad copy.",
+            else: "The video file and the image shown before it plays."
+        }
+      >
+        <%= if @selected_media_type == "three_tap" do %>
+          <.image_upload_field
+            upload={@uploads.banner_image}
+            label="Banner Image"
+            current_image={if @media_piece, do: @media_piece.banner_image}
+            current_image_url={
+              if @media_piece && @media_piece.banner_image,
+                do:
+                  QlariusWeb.Uploaders.ThreeTapBanner.url(
+                    {@media_piece.banner_image, @media_piece},
+                    :original
+                  )
+            }
+            accept_text="PNG, JPG, GIF (max 10MB)"
+            preview_size="w-32 h-auto"
+            current_image_size="w-64 h-auto"
+            current_image_class="w-full h-auto rounded-lg object-cover"
+          />
+        <% else %>
+          <.input
+            field={f[:duration]}
+            type="number"
+            label="Video Duration (seconds)"
+            required
+            min="1"
+            step="1"
+          />
 
-          <div class={
-            if @media_piece && @media_piece.video_file,
-              do: "grid grid-cols-1 md:grid-cols-2 gap-4",
-              else: ""
-          }>
-            <%= if @media_piece && @media_piece.video_file do %>
-              <div class="p-3 bg-base-200 rounded-lg">
-                <.video_thumbnail
-                  media_piece={@media_piece}
-                  class="w-full"
-                  id={"mp-edit-#{@media_piece.id}"}
-                />
+          <div class="space-y-2">
+            <label class="label">
+              <span class="label-text">Video File</span>
+            </label>
+
+            <p
+              :if={@media_piece && @media_piece.video_file}
+              class="flex items-center gap-2 text-sm text-base-content/70"
+            >
+              <.icon name="hero-check-circle" class="size-4 text-success" />
+              A video is uploaded and shown in the preview. Upload a new file to replace it.
+            </p>
+
+            <div
+              class="flex w-full items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-base-300"
+              phx-drop-target={@uploads.video_file.ref}
+            >
+              <.live_file_input upload={@uploads.video_file} class="hidden" />
+              <label for={@uploads.video_file.ref} class="block w-full cursor-pointer p-6 text-center">
+                <.icon name="hero-cloud-arrow-up" class="mx-auto mb-2 size-8 text-base-content/60" />
+                <p class="text-sm text-base-content/60">Click to upload or drag and drop</p>
+                <p class="text-xs text-base-content/40">MP4 (max 100MB)</p>
+              </label>
+            </div>
+
+            <%= for entry <- @uploads.video_file.entries do %>
+              <div class="flex items-center gap-3 rounded-lg bg-base-200 p-3">
+                <.icon name="hero-film" class="size-5 shrink-0 text-base-content/60" />
+                <span class="min-w-0 flex-1 truncate text-sm">{entry.client_name}</span>
+                <progress class="progress progress-primary w-32" value={entry.progress} max="100">
+                </progress>
+                <button
+                  type="button"
+                  phx-click="cancel_upload"
+                  phx-value-ref={entry.ref}
+                  phx-value-upload="video_file"
+                  class="btn btn-sm btn-ghost btn-square"
+                  aria-label="Cancel upload"
+                >
+                  <.icon name="hero-x-mark" class="size-4" />
+                </button>
               </div>
             <% end %>
 
-            <div>
-              <div
-                class="w-full border-2 border-dashed border-base-300 rounded-lg flex items-center justify-center overflow-hidden"
-                phx-drop-target={@uploads.video_file.ref}
-              >
-                <.live_file_input upload={@uploads.video_file} class="hidden" />
-                <label
-                  for={@uploads.video_file.ref}
-                  class="cursor-pointer p-6 text-center w-full block"
-                >
-                  <.icon
-                    name="hero-arrow-up-tray"
-                    class="w-12 h-12 mx-auto mb-2 text-base-content/50"
-                  />
-                  <p class="text-sm text-base-content/70">
-                    Click to upload or drag and drop
-                  </p>
-                  <p class="text-xs text-base-content/50 mt-1">
-                    MP4 (max 100MB)
-                  </p>
-                </label>
-              </div>
-
-              <%= for entry <- @uploads.video_file.entries do %>
-                <div class="flex items-center gap-2 mt-2 p-2 bg-base-200 rounded">
-                  <span class="flex-1 text-sm">{entry.client_name}</span>
-                  <progress class="progress progress-primary w-32" value={entry.progress} max="100">
-                  </progress>
-                  <button
-                    type="button"
-                    phx-click="cancel_upload"
-                    phx-value-ref={entry.ref}
-                    phx-value-upload="video_file"
-                    class="btn btn-sm btn-ghost btn-square"
-                  >
-                    ✕
-                  </button>
-                </div>
-              <% end %>
-
-              <%= for err <- upload_errors(@uploads.video_file) do %>
-                <p class="text-error text-sm mt-2">{error_to_string(err)}</p>
-              <% end %>
-            </div>
+            <%= for err <- upload_errors(@uploads.video_file) do %>
+              <p class="text-sm text-error">{error_to_string(err)}</p>
+            <% end %>
           </div>
-        </div>
 
-        <.image_upload_field
-          upload={@uploads.video_poster_image}
-          label="Video Poster Image (Optional)"
-          current_image={if @media_piece, do: @media_piece.video_poster_image}
-          current_image_url={
-            if @media_piece && @media_piece.video_poster_image,
-              do:
-                QlariusWeb.Uploaders.VideoPoster.url(
-                  {@media_piece.video_poster_image, @media_piece},
-                  :original
-                )
-          }
-          accept_text="PNG, JPG, GIF, WEBP (max 10MB)"
-          preview_size="w-64 h-auto"
-          current_image_size="w-96 h-auto"
-        />
-      <% end %>
+          <.image_upload_field
+            upload={@uploads.video_poster_image}
+            label="Video Poster Image (Optional)"
+            current_image={if @media_piece, do: @media_piece.video_poster_image}
+            current_image_url={
+              if @media_piece && @media_piece.video_poster_image,
+                do:
+                  QlariusWeb.Uploaders.VideoPoster.url(
+                    {@media_piece.video_poster_image, @media_piece},
+                    :original
+                  )
+            }
+            accept_text="PNG, JPG, GIF, WEBP (max 10MB)"
+            preview_size="w-64 h-auto"
+            current_image_size="w-96 h-auto"
+            current_image_class="w-full h-auto rounded-lg object-cover"
+          />
+        <% end %>
+      </.panel>
 
-      <div>
-        <.button phx-disable-with="Saving..." class="btn btn-primary">Save Media Piece</.button>
-        <.link navigate={~p"/marketer/media"} class="btn ml-2">Cancel</.link>
-      </div>
+      <.save_bar dirty={unsaved_changes?(@form, @uploads)}>
+        <.link navigate={~p"/marketer/media"} class="btn btn-ghost">Cancel</.link>
+        <.button phx-disable-with="Saving..." variant="primary">Save media piece</.button>
+      </.save_bar>
     </.form>
     """
+  end
+
+  attr :value, :string, required: true
+  attr :selected, :string, required: true
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+  attr :description, :string, required: true
+
+  defp media_type_option(assigns) do
+    assigns = assign(assigns, :checked, assigns.value == assigns.selected)
+
+    ~H"""
+    <label class={[
+      "flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors",
+      @checked && "border-primary bg-primary/5",
+      !@checked && "border-base-300 hover:border-base-content/30"
+    ]}>
+      <input
+        type="radio"
+        name="media_type"
+        value={@value}
+        class="radio radio-primary radio-sm mt-0.5"
+        checked={@checked}
+        phx-click="select_media_type"
+        phx-value-type={@value}
+      />
+      <div class="min-w-0">
+        <div class="flex items-center gap-2 text-sm font-semibold">
+          <.icon name={@icon} class="size-4 text-base-content/60" />
+          {@label}
+        </div>
+        <p class="mt-0.5 text-xs text-base-content/60">{@description}</p>
+      </div>
+    </label>
+    """
+  end
+
+  attr :changeset, :any, required: true
+  attr :media_piece, :map, required: true
+  attr :uploads, :map, required: true
+  attr :selected_media_type, :string, required: true
+
+  defp ad_preview(assigns) do
+    preview = Ecto.Changeset.apply_changes(assigns.changeset)
+
+    pending_upload? =
+      Enum.any?(
+        [:banner_image, :video_file, :video_poster_image],
+        &(assigns.uploads[&1].entries != [])
+      )
+
+    assigns =
+      assign(assigns,
+        preview: %{preview | title: preview.title || "Your ad title"},
+        pending_upload?: pending_upload?
+      )
+
+    ~H"""
+    <aside class="space-y-3 lg:sticky lg:top-22">
+      <div class="flex items-baseline justify-between">
+        <h2 class="text-sm font-semibold">Preview</h2>
+        <span class="text-xs text-base-content/50">Updates as you type</span>
+      </div>
+
+      <%= if @selected_media_type == "three_tap" do %>
+        <div class="space-y-4">
+          <div>
+            <p class="mb-1.5 text-xs font-medium text-base-content/60">Tap 1: banner</p>
+            <.offer_frame>
+              <div class="flex items-center justify-center bg-white" style="height: 115px;">
+                <%= if @preview.banner_image do %>
+                  <img
+                    src={
+                      QlariusWeb.Uploaders.ThreeTapBanner.url(
+                        {@preview.banner_image, @preview},
+                        :original
+                      )
+                    }
+                    alt="Banner preview"
+                    style="width: 345px; height: 115px;"
+                  />
+                <% else %>
+                  <span class="text-sm text-gray-400">No banner yet</span>
+                <% end %>
+              </div>
+              <:tap>TAP</:tap>
+            </.offer_frame>
+          </div>
+
+          <div
+            id="tap-2-preview"
+            phx-hook="TextFitCheck"
+            phx-mounted={JS.ignore_attributes(["data-clipped"])}
+            class="group"
+          >
+            <p class="mb-1.5 text-xs font-medium text-base-content/60">Tap 2: text</p>
+            <.offer_frame>
+              <div data-fit-box class="overflow-hidden px-3 pt-2" style="height: 115px;">
+                <div class="truncate text-lg font-bold text-blue-600 underline dark:text-blue-300">
+                  {@preview.title}
+                </div>
+                <div class="mb-1 text-sm" style="line-height: 1.05rem">{@preview.body_copy}</div>
+                <div class="text-xs text-green-500">{@preview.display_url}</div>
+              </div>
+              <:tap><.icon name="hero-check" class="size-4 text-green-500" /></:tap>
+            </.offer_frame>
+            <p class="mt-2 hidden items-center gap-1.5 text-xs text-warning group-data-[clipped]:flex">
+              <.icon name="hero-exclamation-triangle" class="size-4 shrink-0" />
+              Text is cut off in the ad. Shorten the body copy so the display URL shows.
+            </p>
+          </div>
+        </div>
+      <% else %>
+        <div class="rounded-2xl border border-base-300 bg-surface p-4 shadow-sm dark:bg-base-100">
+          <div class="space-y-3">
+            <div class="text-lg font-bold leading-tight text-blue-600 dark:text-blue-300">
+              {@preview.title}
+            </div>
+            <%= if @media_piece.video_file do %>
+              <.video_thumbnail
+                media_piece={@media_piece}
+                class="w-full"
+                id={"mp-preview-#{@media_piece.id}"}
+              />
+            <% else %>
+              <div class="flex aspect-video items-center justify-center rounded-lg bg-base-200 text-sm text-base-content/50">
+                <.icon name="hero-film" class="mr-2 size-5" /> No video yet
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <p :if={@pending_upload?} class="text-xs text-base-content/50">
+        New uploads appear in the preview after saving.
+      </p>
+    </aside>
+    """
+  end
+
+  slot :inner_block, required: true
+  slot :tap, required: true
+
+  defp offer_frame(assigns) do
+    ~H"""
+    <div
+      class="three-tap-offer-cover surface-panel-fill relative overflow-hidden rounded-md border border-gray-300 dark:border-gray-600"
+      style="width: 347px; height: 152px;"
+    >
+      {render_slot(@inner_block)}
+      <div class="absolute inset-x-0 bottom-0 flex text-xs font-light" style="height: 35px;">
+        <div class="flex flex-1 items-center justify-center bg-base-200">{render_slot(@tap)}</div>
+        <div class="flex flex-1 items-center justify-center border-l border-gray-300 bg-base-200 dark:border-gray-600">
+          JUMP
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp unsaved_changes?(form, uploads) do
+    form.source.changes != %{} or
+      Enum.any?(
+        Map.values(uploads),
+        &match?(%Phoenix.LiveView.UploadConfig{entries: [_ | _]}, &1)
+      )
   end
 
   defp error_to_string(:too_large), do: "File is too large"

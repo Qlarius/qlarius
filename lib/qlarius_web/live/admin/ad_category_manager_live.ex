@@ -1,6 +1,8 @@
 defmodule QlariusWeb.Admin.AdCategoryManagerLive do
   use QlariusWeb, :live_view
 
+  import QlariusWeb.Components.MarketerUI
+
   alias Qlarius.Sponster.Ads.{AdCategories, AdCategory}
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar, SearchSelect}
 
@@ -410,33 +412,35 @@ defmodule QlariusWeb.Admin.AdCategoryManagerLive do
 
   defp render_index(assigns) do
     ~H"""
-    <div class="p-6 space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 class="text-2xl font-bold">Ad Categories</h1>
-          <p class="text-sm text-base-content/60">
-            Showing {length(@rows)} of {@total_count} rows in {length(@groups)} categories
-          </p>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" class="btn btn-outline btn-error btn-sm" phx-click="prune_preview">
+    <.page>
+      <.page_header
+        title="Ad categories"
+        count={@total_count}
+        subtitle="The ad taxonomy media pieces are filed under, grouped by category."
+      >
+        <:actions>
+          <button
+            type="button"
+            class="btn btn-sm btn-ghost text-error"
+            phx-click="prune_preview"
+          >
             <.icon name="hero-trash" class="size-4" /> Delete unused
           </button>
           <.link patch={~p"/admin/ad_categories/new"} class="btn btn-primary btn-sm">
             <.icon name="hero-plus" class="size-4" /> New rows
           </.link>
-        </div>
-      </div>
+        </:actions>
+      </.page_header>
 
       <.form
         for={%{}}
         as={:filters}
         id="ad-category-filters"
         phx-change="filter"
-        class="flex flex-wrap items-end gap-3"
+        class="mb-4 flex flex-wrap items-center gap-3"
       >
-        <label class="input input-bordered flex items-center gap-2 grow min-w-64">
-          <.icon name="hero-magnifying-glass" class="size-4 opacity-70" />
+        <label class="input min-w-64 grow sm:max-w-sm">
+          <.icon name="hero-magnifying-glass" class="size-4 text-base-content/50" />
           <input
             type="text"
             name="filters[q]"
@@ -447,21 +451,21 @@ defmodule QlariusWeb.Admin.AdCategoryManagerLive do
             class="grow"
           />
         </label>
-        <select name="filters[category_id]" class="select select-bordered">
+        <select name="filters[category_id]" class="select w-auto">
           <option value="">All categories</option>
           {Phoenix.HTML.Form.options_for_select(
             Enum.map(@categories, &{"#{&1.category_id} #{&1.category_label}", &1.category_id}),
             @filters["category_id"]
           )}
         </select>
-        <select name="filters[cohort]" class="select select-bordered">
+        <select name="filters[cohort]" class="select w-auto">
           <option value="">All cohorts</option>
           {Phoenix.HTML.Form.options_for_select(
             Enum.map(@cohorts, &{"#{&1.cohort} (#{&1.count})", &1.cohort}),
             @filters["cohort"]
           )}
         </select>
-        <select name="filters[active]" class="select select-bordered">
+        <select name="filters[active]" class="select w-auto">
           {Phoenix.HTML.Form.options_for_select(
             [{"Active and inactive", ""}, {"Active only", "true"}, {"Inactive only", "false"}],
             @filters["active"]
@@ -470,32 +474,35 @@ defmodule QlariusWeb.Admin.AdCategoryManagerLive do
         <button
           :if={filtered?(@filters)}
           type="button"
-          class="btn btn-ghost"
+          class="btn btn-sm btn-ghost"
           phx-click="clear_filters"
         >
           Clear
         </button>
       </.form>
 
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <details class="dropdown">
-          <summary class="btn btn-sm btn-ghost">
-            <.icon name="hero-bars-3" class="size-4" /> Jump to category
-          </summary>
-          <ul class="dropdown-content menu z-20 max-h-96 w-80 flex-nowrap overflow-y-auto rounded-box bg-base-100 p-2 shadow">
-            <li :for={group <- @groups}>
-              <a href={"#cat-#{group.category_id}"}>
-                <span class="font-mono text-xs">{group.category_id}</span>
-                {group.category_label}
-              </a>
-            </li>
-          </ul>
-        </details>
-        <div class="flex gap-1">
-          <button type="button" class="btn btn-ghost btn-sm" phx-click="expand_all">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-sm text-base-content/60">
+          Showing {length(@rows)} of {@total_count} rows in {length(@groups)} categories
+        </p>
+        <div class="flex flex-wrap items-center gap-1">
+          <details class="dropdown dropdown-end">
+            <summary class="btn btn-sm btn-ghost">
+              <.icon name="hero-bars-3" class="size-4" /> Jump to category
+            </summary>
+            <ul class="dropdown-content menu z-20 max-h-96 w-80 flex-nowrap overflow-y-auto rounded-box border border-base-300 bg-base-100 p-2 shadow-sm">
+              <li :for={group <- @groups}>
+                <a href={"#cat-#{group.category_id}"}>
+                  <span class="font-mono text-xs text-base-content/50">{group.category_id}</span>
+                  {group.category_label}
+                </a>
+              </li>
+            </ul>
+          </details>
+          <button type="button" class="btn btn-sm btn-ghost" phx-click="expand_all">
             Expand all
           </button>
-          <button type="button" class="btn btn-ghost btn-sm" phx-click="collapse_all">
+          <button type="button" class="btn btn-sm btn-ghost" phx-click="collapse_all">
             Collapse all
           </button>
         </div>
@@ -504,205 +511,227 @@ defmodule QlariusWeb.Admin.AdCategoryManagerLive do
       <div
         :if={MapSet.size(@selected) > 0}
         id="bulk-bar"
-        class="sticky top-0 z-10 flex flex-wrap items-center gap-3 rounded-box border border-primary/30 bg-base-100 p-3 shadow"
+        class="sticky top-0 z-10 mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-primary/30 bg-base-100/95 px-6 py-3 shadow-sm backdrop-blur"
       >
-        <span class="font-semibold">{MapSet.size(@selected)} selected</span>
+        <span class="text-sm font-semibold">{MapSet.size(@selected)} selected</span>
         <form id="bulk-cohort-form" phx-submit="bulk_cohort" class="flex items-center gap-2">
-          <select name="cohort" class="select select-bordered select-sm">
+          <select name="cohort" class="select select-sm w-auto">
             <option value="__new__">New cohort {@new_cohort_value}</option>
             {Phoenix.HTML.Form.options_for_select(cohort_options(@cohorts), nil)}
           </select>
           <button class="btn btn-primary btn-sm">Move to cohort</button>
         </form>
-        <button type="button" class="btn btn-ghost btn-sm" phx-click="clear_selection">Clear</button>
+        <button type="button" class="btn btn-sm btn-ghost ml-auto" phx-click="clear_selection">
+          Clear
+        </button>
       </div>
 
-      <div :if={@groups == []} class="rounded-box bg-base-100 p-8 text-center text-base-content/60">
-        No rows match these filters.
-      </div>
+      <.panel :if={@groups == []} flush>
+        <.empty_state icon="hero-magnifying-glass" title="No rows match these filters.">
+          <:action :if={filtered?(@filters)}>
+            <button type="button" phx-click="clear_filters" class="btn btn-sm btn-ghost">
+              Clear filters
+            </button>
+          </:action>
+        </.empty_state>
+      </.panel>
 
-      <section
-        :for={group <- @groups}
-        id={"cat-#{group.category_id}"}
-        class="rounded-box border border-base-300 bg-base-100 shadow-sm scroll-mt-4"
-      >
-        <header class="flex flex-wrap items-center gap-3 border-b border-base-300 px-4 py-3">
-          <button
-            type="button"
-            class="btn btn-ghost btn-xs btn-square"
-            phx-click="toggle_category"
-            phx-value-id={group.category_id}
-            aria-expanded={to_string(not MapSet.member?(@collapsed, group.category_id))}
-            aria-label={"Toggle #{group.category_id}"}
-          >
-            <.icon
-              name={
-                if MapSet.member?(@collapsed, group.category_id),
-                  do: "hero-chevron-right",
-                  else: "hero-chevron-down"
-              }
-              class="size-4"
-            />
-          </button>
-          <span class="badge badge-neutral font-mono text-white">{group.category_id}</span>
-          <div class="grow">
-            <div class="font-semibold">{group.category_label}</div>
-            <div class="text-xs text-base-content/60">{group.category_name}</div>
+      <div class="space-y-4">
+        <section
+          :for={group <- @groups}
+          id={"cat-#{group.category_id}"}
+          class="scroll-mt-4 rounded-2xl border border-base-300 bg-surface shadow-sm dark:bg-base-100"
+        >
+          <header class={[
+            "flex flex-wrap items-center gap-3 px-6 py-4",
+            not MapSet.member?(@collapsed, group.category_id) && "border-b border-base-300"
+          ]}>
+            <button
+              type="button"
+              class="btn btn-ghost btn-xs btn-square"
+              phx-click="toggle_category"
+              phx-value-id={group.category_id}
+              aria-expanded={to_string(not MapSet.member?(@collapsed, group.category_id))}
+              aria-label={"Toggle #{group.category_id}"}
+            >
+              <.icon
+                name={
+                  if MapSet.member?(@collapsed, group.category_id),
+                    do: "hero-chevron-right",
+                    else: "hero-chevron-down"
+                }
+                class="size-4"
+              />
+            </button>
+            <.chip class="font-mono">{group.category_id}</.chip>
+            <div class="min-w-0 grow">
+              <h2 class="font-semibold">{group.category_label}</h2>
+              <p class="text-xs text-base-content/50">{group.category_name}</p>
+            </div>
+            <span class="text-sm text-base-content/60">
+              {length(group.rows)} rows, {in_use_count(group.rows)} in use
+            </span>
+            <div class="flex items-center gap-1">
+              <button
+                type="button"
+                class="btn btn-sm btn-ghost"
+                phx-click="select_category"
+                phx-value-id={group.category_id}
+              >
+                Select
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-ghost"
+                phx-click="open_category"
+                phx-value-id={group.category_id}
+              >
+                <.icon name="hero-pencil-square" class="size-4" /> Edit category
+              </button>
+            </div>
+          </header>
+
+          <div :if={not MapSet.member?(@collapsed, group.category_id)} class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="border-b border-base-300 bg-base-200/40 text-xs text-base-content/60">
+                <tr>
+                  <th class="w-0 py-3 pr-0 pl-6"><span class="sr-only">Select</span></th>
+                  <th class="px-6 py-3 font-medium">Row</th>
+                  <th class="px-6 py-3 font-medium">Ad label</th>
+                  <th class="px-6 py-3 font-medium">Age</th>
+                  <th class="px-6 py-3 font-medium">Channel</th>
+                  <th class="px-6 py-3 font-medium">Cohort</th>
+                  <th class="px-6 py-3 font-medium">Status</th>
+                  <th class="px-6 py-3 font-medium whitespace-nowrap">Ads (all / active)</th>
+                  <th class="px-6 py-3"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-base-300">
+                <%= for row <- group.rows do %>
+                  <tr
+                    id={"row-#{row.id}"}
+                    class={[
+                      "transition-colors hover:bg-base-200/40",
+                      MapSet.member?(@selected, row.id) && "bg-primary/5",
+                      !row.active && "opacity-60"
+                    ]}
+                  >
+                    <td class="w-0 py-3 pr-0 pl-6 align-middle">
+                      <input
+                        type="checkbox"
+                        class="checkbox checkbox-sm"
+                        checked={MapSet.member?(@selected, row.id)}
+                        phx-click="toggle_select"
+                        phx-value-id={row.id}
+                        aria-label={"Select #{row.row_id}"}
+                      />
+                    </td>
+                    <td class="px-6 py-3 font-mono text-xs whitespace-nowrap text-base-content/60">
+                      {row.row_id}
+                    </td>
+                    <td class="px-6 py-3 font-medium">{row.ad_label}</td>
+                    <td class="px-6 py-3">
+                      <.status_badge :if={row.age_gated} tone="warning">
+                        {row.age_min}+
+                      </.status_badge>
+                    </td>
+                    <td class="px-6 py-3 text-xs text-base-content/70">
+                      {row.sales_channel_default}
+                    </td>
+                    <td class="px-6 py-3">
+                      <.chip class={[
+                        "whitespace-nowrap",
+                        row.cohort == "legacy" && "text-base-content/50"
+                      ]}>
+                        {row.cohort}
+                      </.chip>
+                    </td>
+                    <td class="px-6 py-3">
+                      <.status_badge :if={row.active} tone="success">Active</.status_badge>
+                      <.status_badge :if={!row.active}>Inactive</.status_badge>
+                    </td>
+                    <td class="px-6 py-3 whitespace-nowrap">
+                      {row.media_pieces_count}
+                      <span class="text-base-content/50">/ {row.active_media_pieces_count}</span>
+                    </td>
+                    <td class="w-0 px-6 py-3">
+                      <div class="flex items-center justify-end gap-1">
+                        <.row_button
+                          icon={
+                            if MapSet.member?(@details, row.id),
+                              do: "hero-chevron-up",
+                              else: "hero-chevron-down"
+                          }
+                          label="Details"
+                          phx-click="toggle_details"
+                          phx-value-id={row.id}
+                          aria-expanded={to_string(MapSet.member?(@details, row.id))}
+                        />
+                        <.icon_button
+                          icon="hero-pencil-square"
+                          label="Edit"
+                          patch={~p"/admin/ad_categories/#{row.id}/edit"}
+                        />
+                        <.row_button
+                          :if={row.media_pieces_count > 0}
+                          icon="hero-arrows-right-left"
+                          label="Remap"
+                          phx-click="open_remap"
+                          phx-value-id={row.id}
+                        />
+                        <.row_button
+                          :if={row.media_pieces_count > 0}
+                          icon={if row.active, do: "hero-no-symbol", else: "hero-check-circle"}
+                          label={if row.active, do: "Deactivate", else: "Activate"}
+                          phx-click="set_active"
+                          phx-value-id={row.id}
+                          phx-value-active={to_string(!row.active)}
+                        />
+                        <.row_button
+                          :if={row.media_pieces_count == 0}
+                          icon="hero-trash"
+                          label="Delete"
+                          tone="error"
+                          phx-click="delete"
+                          phx-value-id={row.id}
+                          data-confirm={"Delete #{row.row_id} #{row.ad_label}?"}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                  <tr
+                    :if={MapSet.member?(@details, row.id)}
+                    id={"details-#{row.id}"}
+                    class="bg-base-200/40"
+                  >
+                    <td></td>
+                    <td colspan="8" class="space-y-1.5 px-6 py-3">
+                      <div
+                        :for={
+                          {label, value} <- [
+                            {"Meta 1", row.meta_1},
+                            {"Meta 2", row.meta_2},
+                            {"Meta 3", row.meta_3}
+                          ]
+                        }
+                        class="flex flex-wrap items-center gap-1"
+                      >
+                        <span class="w-14 text-xs text-base-content/50">{label}</span>
+                        <.chip :for={tag <- meta_tags(value)}>{tag}</.chip>
+                        <span :if={meta_tags(value) == []} class="text-xs text-base-content/40">
+                          None
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
           </div>
-          <span class="text-sm text-base-content/70">
-            {length(group.rows)} rows, {in_use_count(group.rows)} in use
-          </span>
-          <button
-            type="button"
-            class="btn btn-ghost btn-xs"
-            phx-click="select_category"
-            phx-value-id={group.category_id}
-          >
-            Select
-          </button>
-          <button
-            type="button"
-            class="btn btn-ghost btn-xs"
-            phx-click="open_category"
-            phx-value-id={group.category_id}
-          >
-            <.icon name="hero-pencil-square" class="size-4" /> Edit category
-          </button>
-        </header>
+        </section>
+      </div>
 
-        <div :if={not MapSet.member?(@collapsed, group.category_id)} class="overflow-x-auto">
-          <table class="table table-sm">
-            <thead>
-              <tr>
-                <th class="w-8"></th>
-                <th>Row</th>
-                <th>Ad label</th>
-                <th>Age</th>
-                <th>Channel</th>
-                <th>Cohort</th>
-                <th>Status</th>
-                <th>Ads (all / active)</th>
-                <th class="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <%= for row <- group.rows do %>
-                <tr id={"row-#{row.id}"} class={[!row.active && "opacity-60"]}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      class="checkbox checkbox-sm"
-                      checked={MapSet.member?(@selected, row.id)}
-                      phx-click="toggle_select"
-                      phx-value-id={row.id}
-                      aria-label={"Select #{row.row_id}"}
-                    />
-                  </td>
-                  <td class="font-mono text-xs whitespace-nowrap">{row.row_id}</td>
-                  <td class="font-medium">{row.ad_label}</td>
-                  <td>
-                    <span :if={row.age_gated} class="badge badge-warning badge-sm">
-                      {row.age_min}+
-                    </span>
-                  </td>
-                  <td class="text-xs">{row.sales_channel_default}</td>
-                  <td>
-                    <span class={[
-                      "badge badge-sm whitespace-nowrap",
-                      row.cohort == "legacy" && "badge-ghost"
-                    ]}>
-                      {row.cohort}
-                    </span>
-                  </td>
-                  <td>
-                    <span :if={row.active} class="badge badge-success badge-sm">Active</span>
-                    <span :if={!row.active} class="badge badge-sm">Inactive</span>
-                  </td>
-                  <td class="whitespace-nowrap">
-                    {row.media_pieces_count} / {row.active_media_pieces_count}
-                  </td>
-                  <td>
-                    <div class="flex justify-end gap-1">
-                      <button
-                        type="button"
-                        class="btn btn-ghost btn-xs"
-                        phx-click="toggle_details"
-                        phx-value-id={row.id}
-                      >
-                        Details
-                      </button>
-                      <.link
-                        patch={~p"/admin/ad_categories/#{row.id}/edit"}
-                        class="btn btn-ghost btn-xs"
-                      >
-                        Edit
-                      </.link>
-                      <button
-                        :if={row.media_pieces_count > 0}
-                        type="button"
-                        class="btn btn-ghost btn-xs"
-                        phx-click="open_remap"
-                        phx-value-id={row.id}
-                      >
-                        Remap
-                      </button>
-                      <button
-                        :if={row.media_pieces_count == 0}
-                        type="button"
-                        class="btn btn-ghost btn-xs text-error"
-                        phx-click="delete"
-                        phx-value-id={row.id}
-                        data-confirm={"Delete #{row.row_id} #{row.ad_label}?"}
-                      >
-                        Delete
-                      </button>
-                      <button
-                        :if={row.media_pieces_count > 0}
-                        type="button"
-                        class="btn btn-ghost btn-xs"
-                        phx-click="set_active"
-                        phx-value-id={row.id}
-                        phx-value-active={to_string(!row.active)}
-                      >
-                        {if row.active, do: "Deactivate", else: "Activate"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                <tr
-                  :if={MapSet.member?(@details, row.id)}
-                  id={"details-#{row.id}"}
-                  class="bg-base-200/50"
-                >
-                  <td></td>
-                  <td colspan="8" class="space-y-1 py-2">
-                    <div
-                      :for={
-                        {label, value} <- [
-                          {"Meta 1", row.meta_1},
-                          {"Meta 2", row.meta_2},
-                          {"Meta 3", row.meta_3}
-                        ]
-                      }
-                      class="flex flex-wrap items-center gap-1"
-                    >
-                      <span class="w-14 text-xs text-base-content/60">{label}</span>
-                      <span :for={tag <- meta_tags(value)} class="badge badge-outline badge-sm">
-                        {tag}
-                      </span>
-                      <span :if={meta_tags(value) == []} class="text-xs text-base-content/40">
-                        None
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <p class="text-xs text-base-content/60">{AdCategories.iab_attribution()}</p>
+      <p class="mt-6 text-xs text-base-content/50">{AdCategories.iab_attribution()}</p>
 
       <.modal
         :if={@remap}
@@ -711,11 +740,10 @@ defmodule QlariusWeb.Admin.AdCategoryManagerLive do
         on_cancel={JS.push("close_modal")}
         panel_class="w-[min(100%,36rem)]"
       >
-        <div class="space-y-4 p-6">
-          <h3 class="text-lg font-bold">Remap {@remap.row.row_id} {@remap.row.ad_label}</h3>
-          <p>
-            Moves all {@remap.count} media piece(s) on this row to the target row you pick.
-          </p>
+        <.modal_body
+          title={"Remap #{@remap.row.row_id} #{@remap.row.ad_label}"}
+          description={"Moves all #{@remap.count} media piece(s) on this row to the target row you pick."}
+        >
           <.live_component
             module={SearchSelect}
             id="remap-target"
@@ -724,7 +752,7 @@ defmodule QlariusWeb.Admin.AdCategoryManagerLive do
             label="Target row"
             options={@remap.options}
           />
-          <div class="flex justify-end gap-2 pt-2">
+          <:footer>
             <button type="button" class="btn btn-ghost" phx-click="close_modal">Cancel</button>
             <button
               type="button"
@@ -734,8 +762,8 @@ defmodule QlariusWeb.Admin.AdCategoryManagerLive do
             >
               Move {@remap.count} media piece(s)
             </button>
-          </div>
-        </div>
+          </:footer>
+        </.modal_body>
       </.modal>
 
       <.modal
@@ -745,30 +773,30 @@ defmodule QlariusWeb.Admin.AdCategoryManagerLive do
         on_cancel={JS.push("close_modal")}
         panel_class="w-[min(100%,36rem)]"
       >
-        <div class="space-y-4 p-6">
-          <h3 class="text-lg font-bold">Delete unused rows</h3>
+        <.modal_body title="Delete unused rows">
           <%= if @prune.count == 0 do %>
-            <p>No unused rows match the current filters.</p>
-            <div class="flex justify-end">
-              <button type="button" class="btn" phx-click="close_modal">Close</button>
-            </div>
+            <p class="text-sm text-base-content/70">No unused rows match the current filters.</p>
           <% else %>
-            <p>
+            <p class="text-sm text-base-content/70">
               {@prune.count} row(s) {if filtered?(@filters),
                 do: "matching the current filters",
                 else: "in the whole taxonomy"} have no media pieces and will be deleted.
             </p>
-            <div class="max-h-48 overflow-y-auto rounded bg-base-200 p-2 font-mono text-xs">
+            <div class="max-h-48 overflow-y-auto rounded-xl border border-base-300 bg-base-200/40 px-4 py-3 font-mono text-xs text-base-content/70">
               {Enum.join(@prune.deleted, ", ")}
             </div>
-            <div class="flex justify-end gap-2">
+          <% end %>
+          <:footer>
+            <%= if @prune.count == 0 do %>
+              <button type="button" class="btn" phx-click="close_modal">Close</button>
+            <% else %>
               <button type="button" class="btn btn-ghost" phx-click="close_modal">Cancel</button>
               <button type="button" class="btn btn-error" phx-click="confirm_prune">
                 Delete {@prune.count} row(s)
               </button>
-            </div>
-          <% end %>
-        </div>
+            <% end %>
+          </:footer>
+        </.modal_body>
       </.modal>
 
       <.modal
@@ -778,42 +806,49 @@ defmodule QlariusWeb.Admin.AdCategoryManagerLive do
         on_cancel={JS.push("close_modal")}
         panel_class="w-[min(100%,32rem)]"
       >
-        <div class="space-y-4 p-6">
-          <h3 class="text-lg font-bold">Edit category {@category_edit.category.category_id}</h3>
-          <p class="text-sm text-base-content/70">Renames every row in this category.</p>
-          <.form for={@category_edit.form} id="category-form" phx-submit="save_category">
-            <.input field={@category_edit.form[:category_name]} label="Category name" required />
-            <.input field={@category_edit.form[:category_label]} label="Category label" required />
-            <p :if={@category_edit.error} class="text-sm text-error">{@category_edit.error}</p>
-            <div class="flex justify-end gap-2 pt-2">
-              <button type="button" class="btn btn-ghost" phx-click="close_modal">Cancel</button>
-              <button class="btn btn-primary">Save</button>
+        <.form for={@category_edit.form} id="category-form" phx-submit="save_category">
+          <.modal_body
+            title={"Edit category #{@category_edit.category.category_id}"}
+            description="Renames every row in this category."
+          >
+            <div>
+              <.input field={@category_edit.form[:category_name]} label="Category name" required />
+              <.input
+                field={@category_edit.form[:category_label]}
+                label="Category label"
+                required
+              />
             </div>
-          </.form>
-        </div>
+            <p :if={@category_edit.error} class="text-sm text-error">{@category_edit.error}</p>
+            <:footer>
+              <button type="button" class="btn btn-ghost" phx-click="close_modal">Cancel</button>
+              <.button variant="primary">Save</.button>
+            </:footer>
+          </.modal_body>
+        </.form>
       </.modal>
-    </div>
+    </.page>
     """
   end
 
   defp render_new(assigns) do
     ~H"""
-    <div class="mx-auto max-w-3xl space-y-4 p-6">
-      <.back navigate={~p"/admin/ad_categories"}>Back to ad categories</.back>
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title text-2xl">New ad category rows</h2>
-          <p class="text-base-content/70">
-            Pick a category, then enter one ad label per line. Every new row gets the next row id in
-            the category and shares one cohort.
-          </p>
-          <.form
-            for={@new_form}
-            id="new-rows-form"
-            phx-change="validate_new"
-            phx-submit="save_new"
-            class="space-y-2"
-          >
+    <.page class="max-w-3xl">
+      <.page_header
+        title="New ad category rows"
+        subtitle="Pick a category, then enter one ad label per line. Every new row gets the next row id in the category and shares one cohort."
+        back_to={~p"/admin/ad_categories"}
+        back_label="Ad categories"
+      />
+
+      <.form
+        for={@new_form}
+        id="new-rows-form"
+        phx-change="validate_new"
+        phx-submit="save_new"
+      >
+        <.panel>
+          <div>
             <.input
               field={@new_form[:category_id]}
               type="select"
@@ -825,7 +860,10 @@ defmodule QlariusWeb.Admin.AdCategoryManagerLive do
               }
               required
             />
-            <div :if={@new_form[:category_id].value == "__new__"} class="grid gap-2 sm:grid-cols-2">
+            <div
+              :if={@new_form[:category_id].value == "__new__"}
+              class="grid gap-x-4 sm:grid-cols-2"
+            >
               <.input field={@new_form[:category_name]} label="Category name" required />
               <.input field={@new_form[:category_label]} label="Category label" required />
             </div>
@@ -842,7 +880,7 @@ defmodule QlariusWeb.Admin.AdCategoryManagerLive do
               label="Cohort"
               options={[{"New cohort (generated)", "__new__"} | cohort_options(@cohorts)]}
             />
-            <div class="grid gap-2 sm:grid-cols-3">
+            <div class="grid gap-x-4 sm:grid-cols-3">
               <.input
                 field={@new_form[:age_gated]}
                 type="select"
@@ -867,46 +905,43 @@ defmodule QlariusWeb.Admin.AdCategoryManagerLive do
             <.input field={@new_form[:meta_1]} label="Meta 1 (pipe separated keywords)" />
             <.input field={@new_form[:meta_2]} label="Meta 2" />
             <.input field={@new_form[:meta_3]} label="Meta 3 (Overture slugs, free text)" />
-            <p :if={@new_error} class="text-sm text-error">{@new_error}</p>
-            <div class="flex gap-2 pt-2">
-              <.button phx-disable-with="Saving..." class="btn btn-primary">Create rows</.button>
-              <.link patch={~p"/admin/ad_categories"} class="btn btn-ghost">Cancel</.link>
-            </div>
-          </.form>
-          <p class="pt-4 text-xs text-base-content/60">{AdCategories.iab_attribution()}</p>
-        </div>
-      </div>
-    </div>
+          </div>
+          <p :if={@new_error} class="text-sm text-error">{@new_error}</p>
+          <:footer>
+            <.link patch={~p"/admin/ad_categories"} class="btn btn-ghost">Cancel</.link>
+            <.button variant="primary" phx-disable-with="Saving...">Create rows</.button>
+          </:footer>
+        </.panel>
+      </.form>
+
+      <p class="mt-6 text-xs text-base-content/50">{AdCategories.iab_attribution()}</p>
+    </.page>
     """
   end
 
   defp render_edit(assigns) do
     ~H"""
-    <div class="mx-auto max-w-3xl space-y-4 p-6">
-      <.back navigate={~p"/admin/ad_categories"}>Back to ad categories</.back>
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-          <h2 class="card-title text-2xl">Edit {@row.ad_label}</h2>
-          <div class="flex flex-wrap gap-4 text-sm">
-            <span>Row <span class="font-mono font-semibold">{@row.row_id}</span></span>
-            <span>
-              Category <span class="font-mono font-semibold">{@row.category_id}</span>
-              {@row.category_label}
-            </span>
-          </div>
-          <.form
-            for={@form}
-            id="ad-category-form"
-            phx-change="validate"
-            phx-submit="save"
-            class="space-y-2"
-          >
+    <.page class="max-w-3xl">
+      <.page_header
+        title={"Edit #{@row.ad_label}"}
+        subtitle={"Category #{@row.category_id} #{@row.category_label}"}
+        back_to={~p"/admin/ad_categories"}
+        back_label="Ad categories"
+      >
+        <:badges>
+          <.chip class="font-mono">{@row.row_id}</.chip>
+        </:badges>
+      </.page_header>
+
+      <.form for={@form} id="ad-category-form" phx-change="validate" phx-submit="save">
+        <.panel>
+          <div>
             <.input
               field={@form[:ad_label]}
               label={"Ad label (max #{AdCategory.ad_label_max()} characters)"}
               required
             />
-            <div class="grid gap-2 sm:grid-cols-3">
+            <div class="grid gap-x-4 sm:grid-cols-3">
               <.input
                 field={@form[:age_gated]}
                 type="select"
@@ -931,7 +966,7 @@ defmodule QlariusWeb.Admin.AdCategoryManagerLive do
             <.input field={@form[:meta_1]} label="Meta 1 (pipe separated keywords)" />
             <.input field={@form[:meta_2]} label="Meta 2" />
             <.input field={@form[:meta_3]} label="Meta 3 (Overture slugs, free text)" />
-            <div class="grid gap-2 sm:grid-cols-3">
+            <div class="grid gap-x-4 sm:grid-cols-3">
               <.input field={@form[:sort_order]} type="number" label="Sort order" />
               <.input
                 field={@form[:cohort]}
@@ -946,14 +981,54 @@ defmodule QlariusWeb.Admin.AdCategoryManagerLive do
                 options={[{"Active", "true"}, {"Inactive", "false"}]}
               />
             </div>
-            <div class="flex gap-2 pt-2">
-              <.button phx-disable-with="Saving..." class="btn btn-primary">Save</.button>
-              <.link patch={~p"/admin/ad_categories"} class="btn btn-ghost">Cancel</.link>
-            </div>
-          </.form>
-          <p class="pt-4 text-xs text-base-content/60">{AdCategories.iab_attribution()}</p>
-        </div>
-      </div>
+          </div>
+          <:footer>
+            <.link patch={~p"/admin/ad_categories"} class="btn btn-ghost">Cancel</.link>
+            <.button variant="primary" phx-disable-with="Saving...">Save</.button>
+          </:footer>
+        </.panel>
+      </.form>
+
+      <p class="mt-6 text-xs text-base-content/50">{AdCategories.iab_attribution()}</p>
+    </.page>
+    """
+  end
+
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+  attr :tone, :string, default: "neutral", values: ~w(neutral error)
+  attr :rest, :global
+
+  defp row_button(assigns) do
+    ~H"""
+    <button
+      type="button"
+      class={["btn btn-ghost btn-sm btn-square", @tone == "error" && "text-error"]}
+      title={@label}
+      {@rest}
+    >
+      <.icon name={@icon} class="size-4" />
+      <span class="sr-only">{@label}</span>
+    </button>
+    """
+  end
+
+  attr :title, :string, required: true
+  attr :description, :string, default: nil
+  slot :inner_block, required: true
+  slot :footer, required: true
+
+  defp modal_body(assigns) do
+    ~H"""
+    <div>
+      <header class="px-6 pt-6 pr-14 pb-4">
+        <h3 class="text-lg font-semibold">{@title}</h3>
+        <p :if={@description} class="mt-1 text-sm text-base-content/60">{@description}</p>
+      </header>
+      <div class="space-y-4 px-6 pb-6">{render_slot(@inner_block)}</div>
+      <footer class="flex flex-wrap items-center justify-end gap-2 border-t border-base-300 bg-base-200/40 px-6 py-4">
+        {render_slot(@footer)}
+      </footer>
     </div>
     """
   end

@@ -6,6 +6,7 @@ defmodule QlariusWeb.Admin.MeCPAccessLogLive do
 
   use QlariusWeb, :live_view
   import Ecto.Query
+  import QlariusWeb.Components.MarketerUI
 
   alias QlariusWeb.Components.AdminSidebar
   alias QlariusWeb.Components.AdminTopbar
@@ -82,10 +83,10 @@ defmodule QlariusWeb.Admin.MeCPAccessLogLive do
     )
   end
 
-  defp kind_badge_class("capsule"), do: "badge-primary"
-  defp kind_badge_class("oracle"), do: "badge-info"
-  defp kind_badge_class("rerank"), do: "badge-warning"
-  defp kind_badge_class(_), do: "badge-ghost"
+  defp kind_tone("capsule"), do: "info"
+  defp kind_tone("oracle"), do: "success"
+  defp kind_tone("rerank"), do: "warning"
+  defp kind_tone(_), do: "neutral"
 
   defp format_date(datetime, assigns) do
     user = assigns.current_scope.user
@@ -116,164 +117,126 @@ defmodule QlariusWeb.Admin.MeCPAccessLogLive do
           <AdminTopbar.topbar current_user={@current_scope.user} />
 
           <div class="overflow-auto">
-            <div class="p-6">
-              <div class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-bold">MeCP Access Log</h1>
+            <.page>
+              <.page_header
+                title="MeCP Access Log"
+                count={@total_count}
+                subtitle="Every external read of MeFile data through the gateway, newest first. Shapes only, never values."
+              />
+
+              <div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                <.stat_tile label="Capsule reads" icon="hero-document-text">
+                  {Map.get(@counts_by_kind, "capsule", 0)}
+                </.stat_tile>
+                <.stat_tile label="Oracle answers" icon="hero-question-mark-circle">
+                  {Map.get(@counts_by_kind, "oracle", 0)}
+                </.stat_tile>
+                <.stat_tile label="Active grants" icon="hero-key">{@active_grants}</.stat_tile>
+                <.stat_tile label="Clients" icon="hero-cpu-chip">{@client_count}</.stat_tile>
+                <.stat_tile label="Last 7 days" icon="hero-clock">{@events_7d}</.stat_tile>
               </div>
 
-              <div class="stats stats-vertical lg:stats-horizontal shadow-sm bg-base-200 w-full border border-base-300 mb-6">
-                <div class="stat">
-                  <div class="stat-figure text-primary">
-                    <.icon name="hero-document-text" class="w-8 h-8" />
-                  </div>
-                  <div class="stat-title text-xs opacity-60">Capsule Reads</div>
-                  <div class="stat-value text-xl text-primary">
-                    {Map.get(@counts_by_kind, "capsule", 0)}
-                  </div>
+              <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div class="inline-flex flex-wrap rounded-lg border border-base-300 bg-base-100 p-0.5">
+                  <button
+                    :for={kind <- ["all", "capsule", "oracle", "rerank", "handshake"]}
+                    type="button"
+                    phx-click="filter_kind"
+                    phx-value-kind={kind}
+                    aria-pressed={to_string(kind_selected?(kind, @kind_filter))}
+                    class={segment_class(kind_selected?(kind, @kind_filter))}
+                  >
+                    {kind}
+                  </button>
                 </div>
-
-                <div class="stat">
-                  <div class="stat-figure text-info">
-                    <.icon name="hero-question-mark-circle" class="w-8 h-8" />
-                  </div>
-                  <div class="stat-title text-xs opacity-60">Oracle Answers</div>
-                  <div class="stat-value text-xl text-info">
-                    {Map.get(@counts_by_kind, "oracle", 0)}
-                  </div>
-                </div>
-
-                <div class="stat">
-                  <div class="stat-figure text-success">
-                    <.icon name="hero-key" class="w-8 h-8" />
-                  </div>
-                  <div class="stat-title text-xs opacity-60">Active Grants</div>
-                  <div class="stat-value text-xl text-success">{@active_grants}</div>
-                </div>
-
-                <div class="stat">
-                  <div class="stat-figure text-warning">
-                    <.icon name="hero-cpu-chip" class="w-8 h-8" />
-                  </div>
-                  <div class="stat-title text-xs opacity-60">Clients</div>
-                  <div class="stat-value text-xl text-warning">{@client_count}</div>
-                </div>
-
-                <div class="stat">
-                  <div class="stat-figure text-secondary">
-                    <.icon name="hero-clock" class="w-8 h-8" />
-                  </div>
-                  <div class="stat-title text-xs opacity-60">Last 7 Days</div>
-                  <div class="stat-value text-xl text-secondary">{@events_7d}</div>
-                </div>
+                <p :if={@total_count > 0} class="text-sm text-base-content/60">
+                  Showing {(@page - 1) * @per_page + 1}-{min(@page * @per_page, @total_count)} of {@total_count}
+                </p>
               </div>
 
-              <div class="card bg-base-100 border border-base-300">
-                <div class="card-body">
-                  <div class="flex justify-between items-center mb-4">
-                    <h2 class="card-title">Access Events</h2>
-                    <div class="join">
-                      <button
-                        :for={kind <- ["all", "capsule", "oracle", "rerank", "handshake"]}
-                        phx-click="filter_kind"
-                        phx-value-kind={kind}
-                        class={"join-item btn btn-sm #{if @kind_filter == kind or (kind == "all" and is_nil(@kind_filter)), do: "btn-active"}"}
-                      >
-                        {kind}
-                      </button>
-                    </div>
+              <.panel flush>
+                <.empty_state :if={@events == []} icon="hero-shield-check" title="No access events">
+                  Every external read of MeFile data will appear here.
+                </.empty_state>
+
+                <.data_table :if={@events != []} id="mecp-access-events" rows={@events}>
+                  <:col :let={event} label="Occurred" class="whitespace-nowrap">
+                    {format_date(event.occurred_at, assigns)}
+                  </:col>
+                  <:col :let={event} label="Kind">
+                    <.status_badge tone={kind_tone(event.kind)}>{event.kind}</.status_badge>
+                  </:col>
+                  <:col :let={event} label="Client">
+                    <span class="font-medium">{event.mecp_grant.mecp_client.name}</span>
+                  </:col>
+                  <:col :let={event} label="User">{owner_label(event)}</:col>
+                  <:col :let={event} label="MeFile served" class="text-center">
+                    <.link
+                      navigate={~p"/admin/mefile_inspector/#{served_me_file_id(event)}"}
+                      class="link link-hover"
+                    >
+                      {served_me_file_id(event)}
+                    </.link>
+                  </:col>
+                  <:col :let={event} label="Grant" class="text-center">
+                    <span class="text-base-content/60">#{event.mecp_grant_id}</span>
+                  </:col>
+                  <:col :let={event} label="Tier" class="text-center">
+                    <.chip>{event.mecp_grant.tier}</.chip>
+                  </:col>
+                  <:col :let={event} label="Request digest">
+                    <span class="font-mono text-xs" title={event.request_digest}>
+                      {truncate_digest(event.request_digest)}
+                    </span>
+                  </:col>
+                  <:col :let={event} label="Response shape">
+                    <span class="font-mono text-xs text-base-content/70">
+                      {Jason.encode!(event.response_shape)}
+                    </span>
+                  </:col>
+                </.data_table>
+
+                <:footer :if={@total_pages > 1}>
+                  <div class="join">
+                    <button
+                      type="button"
+                      phx-click="paginate"
+                      phx-value-page={@page - 1}
+                      class="join-item btn btn-sm"
+                      disabled={@page == 1}
+                      aria-label="Previous page"
+                    >
+                      <.icon name="hero-chevron-left" class="size-4" />
+                    </button>
+                    <span class="join-item btn btn-sm btn-disabled">
+                      {@page} / {@total_pages}
+                    </span>
+                    <button
+                      type="button"
+                      phx-click="paginate"
+                      phx-value-page={@page + 1}
+                      class="join-item btn btn-sm"
+                      disabled={@page == @total_pages}
+                      aria-label="Next page"
+                    >
+                      <.icon name="hero-chevron-right" class="size-4" />
+                    </button>
                   </div>
-
-                  <div class="overflow-x-auto">
-                    <table class="table table-zebra">
-                      <thead>
-                        <tr>
-                          <th>Occurred</th>
-                          <th>Kind</th>
-                          <th>Client</th>
-                          <th>User</th>
-                          <th class="text-center">MeFile Served</th>
-                          <th class="text-center">Grant</th>
-                          <th class="text-center">Tier</th>
-                          <th>Request Digest</th>
-                          <th>Response Shape</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr :for={event <- @events}>
-                          <td class="whitespace-nowrap">{format_date(event.occurred_at, assigns)}</td>
-                          <td>
-                            <span class={"badge #{kind_badge_class(event.kind)}"}>{event.kind}</span>
-                          </td>
-                          <td class="font-medium">{event.mecp_grant.mecp_client.name}</td>
-                          <td class="text-sm">{owner_label(event)}</td>
-                          <td class="text-center">
-                            <.link
-                              navigate={~p"/admin/mefile_inspector/#{served_me_file_id(event)}"}
-                              class="link link-hover"
-                            >
-                              {served_me_file_id(event)}
-                            </.link>
-                          </td>
-                          <td class="text-center">{event.mecp_grant_id}</td>
-                          <td class="text-center">
-                            <span class="badge badge-ghost">{event.mecp_grant.tier}</span>
-                          </td>
-                          <td class="font-mono text-xs" title={event.request_digest}>
-                            {truncate_digest(event.request_digest)}
-                          </td>
-                          <td class="font-mono text-xs">
-                            {Jason.encode!(event.response_shape)}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-
-                    <div :if={@events == []} class="text-center py-12">
-                      <.icon
-                        name="hero-shield-check"
-                        class="w-16 h-16 mx-auto text-base-content/30 mb-4"
-                      />
-                      <p class="text-lg font-medium text-base-content/70">No access events</p>
-                      <p class="text-sm text-base-content/50 mt-2">
-                        Every external read of MeFile data will appear here
-                      </p>
-                    </div>
-                  </div>
-
-                  <div :if={@total_pages > 1} class="flex justify-between items-center mt-4">
-                    <div class="text-sm text-base-content/60">
-                      Showing {(@page - 1) * @per_page + 1}-{min(@page * @per_page, @total_count)} of {@total_count}
-                    </div>
-
-                    <div class="join">
-                      <button
-                        phx-click="paginate"
-                        phx-value-page={@page - 1}
-                        class="join-item btn btn-sm"
-                        disabled={@page == 1}
-                      >
-                        ‹
-                      </button>
-                      <button class="join-item btn btn-sm btn-disabled">
-                        {@page} / {@total_pages}
-                      </button>
-                      <button
-                        phx-click="paginate"
-                        phx-value-page={@page + 1}
-                        class="join-item btn btn-sm"
-                        disabled={@page == @total_pages}
-                      >
-                        ›
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+                </:footer>
+              </.panel>
+            </.page>
           </div>
         </div>
       </div>
     </Layouts.admin>
     """
   end
+
+  defp kind_selected?("all", kind_filter), do: is_nil(kind_filter)
+  defp kind_selected?(kind, kind_filter), do: kind == kind_filter
+
+  defp segment_class(true),
+    do: "btn btn-sm border-0 bg-primary/10 text-primary shadow-none hover:bg-primary/15"
+
+  defp segment_class(false), do: "btn btn-sm btn-ghost border-0 text-base-content/70"
 end

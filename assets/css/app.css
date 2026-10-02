@@ -387,6 +387,9 @@
 }
 
 @theme {
+  /* Light-mode card surface, a step above base-100 so panels lift off the page */
+  --color-surface: oklch(99.3% 0 0);
+
   /* Qlarius brand colors */
 
   /* Sponster */
@@ -3456,7 +3459,7 @@ html:not([data-theme="dark"]) .mobile-floating-fab.btn:not(.ring-2) {
   transition: all .5s ease-in-out;
 }
 
-html, #app {
+html.embed-document {
   background-color: transparent !important;
 }
 

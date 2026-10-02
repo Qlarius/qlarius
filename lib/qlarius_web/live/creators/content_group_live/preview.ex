@@ -1,7 +1,11 @@
 defmodule QlariusWeb.Creators.ContentGroupLive.Preview do
   use QlariusWeb, :live_view
 
+  import QlariusWeb.Components.MarketerUI
+
+  alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.Creators
+  alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -10,6 +14,8 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Preview do
     {:ok,
      socket
      |> assign(:group, group)
+     |> assign(:catalog, group.catalog)
+     |> assign(:creator, group.catalog.creator)
      |> assign(:page_title, "Arcade Preview")}
   end
 
@@ -24,54 +30,68 @@ defmodule QlariusWeb.Creators.ContentGroupLive.Preview do
 
   @impl true
   def render(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :group_word,
+        Catalog.type_label(assigns.catalog.group_type, 1, capitalize: false)
+      )
+
     ~H"""
-    <div class="min-h-screen bg-base-100">
-      <div class="container mx-auto px-4 py-8 max-w-6xl">
-        <!-- Header -->
-        <div class="card bg-base-100 shadow-xl mb-8">
-          <div class="card-body">
-            <div class="flex flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h1 class="text-3xl font-bold text-base-content">Arcade Preview</h1>
-                <p class="text-base-content/60 mt-2">
-                  Content Group: <span class="font-semibold text-primary">{@group.title}</span>
-                </p>
-              </div>
-              <div class="flex gap-2">
-                <.link navigate={~p"/creators/content_groups/#{@group.id}"} class="btn btn-outline">
-                  <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Back to Content Group
-                </.link>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-    <!-- Preview Frame -->
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <div class="bg-base-200 h-full rounded-lg p-4 border border-base-300">
-              <div class="flex items-center justify-center h-full">
+    <Layouts.admin {assigns}>
+      <div class="flex h-screen">
+        <AdminSidebar.sidebar current_user={@current_scope.user} />
+
+        <div class="flex min-w-0 grow flex-col">
+          <AdminTopbar.topbar current_user={@current_scope.user} />
+
+          <div class="overflow-auto">
+            <.page class="max-w-7xl">
+              <.page_header
+                title="Preview"
+                subtitle={"How this #{@group_word} appears to visitors in the arcade."}
+                crumbs={[
+                  {@creator.name, ~p"/creators/#{@creator.id}"},
+                  {@catalog.name, ~p"/creators/catalogs/#{@catalog.id}"},
+                  {@group.title, ~p"/creators/content_groups/#{@group.id}"}
+                ]}
+              >
+                <:actions>
+                  <a
+                    href={content_group_iframe_url(@group)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-ghost btn-sm"
+                  >
+                    <.icon name="hero-arrow-top-right-on-square" class="size-4" /> Open in new tab
+                  </a>
+                  <.link
+                    navigate={~p"/creators/content_groups/#{@group.id}"}
+                    class="btn btn-ghost btn-sm"
+                  >
+                    <.icon name="hero-arrow-left" class="size-4" /> Back to {@group_word}
+                  </.link>
+                </:actions>
+              </.page_header>
+
+              <.panel
+                id="group-preview"
+                flush
+                title={@group.title}
+                description="The live arcade widget, exactly as embedded on your site."
+              >
                 <iframe
                   src={content_group_iframe_url(@group)}
-                  class="w-full h-[600px] border border-base-300"
-                  title="Content Group Preview"
+                  class="block h-[70vh] min-h-[600px] w-full rounded-b-2xl bg-base-200/40"
+                  title={"#{@group.title} preview"}
                 >
                 </iframe>
-              </div>
-            </div>
-
-            <div class="mt-4 p-4 bg-base-200 rounded-lg">
-              <div class="flex items-center gap-2 text-sm text-base-content/60">
-                <.icon name="hero-information-circle" class="w-4 h-4" />
-                <span>
-                  This is how your content group will appear to visitors. The iframe displays the actual arcade interface.
-                </span>
-              </div>
-            </div>
+              </.panel>
+            </.page>
           </div>
         </div>
       </div>
-    </div>
+    </Layouts.admin>
     """
   end
 end

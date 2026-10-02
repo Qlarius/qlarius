@@ -39,7 +39,7 @@ defmodule QlariusWeb.MarketerRoutesAuthTest do
       end
 
       # The current-marketer setter is a write and must be protected too.
-      conn = post(conn, ~p"/marketer/set_current_marketer", %{"marketer_id" => "1"})
+      conn = post(conn, ~p"/marketer/select/1")
       assert redirected_to(conn) == ~p"/connect"
     end
   end

@@ -1,6 +1,7 @@
 defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
   use QlariusWeb, :live_view
   import Ecto.Query
+  import QlariusWeb.Components.MarketerUI
 
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Repo
@@ -281,221 +282,200 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive.Show do
           <AdminTopbar.topbar current_user={@current_scope.user} />
 
           <div class="overflow-auto">
-            <div class="p-6">
-              <div class="flex justify-between items-center mb-6">
-                <div class="flex items-center gap-4">
-                  <.link navigate={~p"/admin/mefile_inspector"} class="btn btn-sm btn-ghost">
-                    <.icon name="hero-arrow-left" class="w-4 h-4" /> Back to List
-                  </.link>
-                  <h1 class="text-2xl font-bold">MeFile Inspector</h1>
-                </div>
-
-                <div class="flex gap-2">
+            <.page class="max-w-5xl">
+              <.page_header
+                title={@user.alias}
+                subtitle={"MeFile ##{@me_file.id}"}
+                back_to={~p"/admin/mefile_inspector"}
+                back_label="MeFile Inspector"
+              >
+                <:badges>
+                  <.chip :if={@home_zip} class="gap-1">
+                    <.icon name="hero-map-pin" class="size-3.5" /> {@home_zip}
+                  </.chip>
+                </:badges>
+                <:actions>
                   <button
+                    type="button"
                     phx-click="send_test_notification"
                     data-confirm="Send a test ad count notification to this user right now?"
-                    class="btn btn-sm btn-info"
+                    class="btn btn-sm btn-ghost"
                     title="Send test ad count notification"
                   >
-                    <.icon name="hero-bell-alert" class="w-5 h-5" /> Send Test Notification
+                    <.icon name="hero-bell-alert" class="size-4" /> Send test notification
                   </button>
-                  <button
-                    phx-click="navigate_prev"
-                    disabled={is_nil(@prev_user_id)}
-                    class="btn btn-sm btn-outline"
-                  >
-                    <.icon name="hero-chevron-left" class="w-4 h-4" /> Previous
-                  </button>
-                  <button
-                    phx-click="navigate_next"
-                    disabled={is_nil(@next_user_id)}
-                    class="btn btn-sm btn-outline"
-                  >
-                    Next <.icon name="hero-chevron-right" class="w-4 h-4" />
-                  </button>
-                </div>
+                  <div class="join">
+                    <button
+                      type="button"
+                      phx-click="navigate_prev"
+                      disabled={is_nil(@prev_user_id)}
+                      class="join-item btn btn-sm"
+                    >
+                      <.icon name="hero-chevron-left" class="size-4" /> Previous
+                    </button>
+                    <button
+                      type="button"
+                      phx-click="navigate_next"
+                      disabled={is_nil(@next_user_id)}
+                      class="join-item btn btn-sm"
+                    >
+                      Next <.icon name="hero-chevron-right" class="size-4" />
+                    </button>
+                  </div>
+                </:actions>
+              </.page_header>
+
+              <div class="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <.stat_tile label="Available to spend" icon="hero-wallet">
+                  {QlariusWeb.Money.format_usd(@wallet_summary.available_to_spend)}
+                </.stat_tile>
+                <.stat_tile label="Activity" icon="hero-banknotes">
+                  {QlariusWeb.Money.format_usd(@wallet_balance)}
+                </.stat_tile>
+                <.stat_tile label="Tags" icon="hero-tag">{@tag_count}</.stat_tile>
+                <.stat_tile label="Active offers" icon="hero-megaphone">
+                  {length(@offers)}
+                </.stat_tile>
               </div>
 
-              <div class="card bg-base-100 border border-base-300 mb-6">
-                <div class="card-body">
-                  <div class="flex justify-between items-start">
-                    <div class="space-y-2">
-                      <h2 class="text-3xl font-bold">{@user.alias}</h2>
-                      <div class="flex items-center gap-6 text-sm">
-                        <div class="flex items-center gap-2">
-                          <.icon name="hero-phone" class="w-4 h-4 text-base-content/60" />
-                          <span class="font-mono">{@masked_mobile}</span>
-                        </div>
-                        <div :if={@home_zip} class="flex items-center gap-2">
-                          <.icon name="hero-map-pin" class="w-4 h-4 text-primary" />
-                          <span class="font-semibold text-primary text-lg">📍 {@home_zip}</span>
-                        </div>
-                      </div>
-                      <div class="flex items-center gap-4 text-xs text-base-content/60">
-                        <div>
-                          Registered: {Calendar.strftime(@registered_at, "%m/%d/%Y %I:%M %p")}
-                        </div>
-                        <div :if={@last_sign_in_at}>
-                          Last Sign-in: {Calendar.strftime(@last_sign_in_at, "%m/%d/%Y %I:%M %p")}
-                        </div>
-                      </div>
-                    </div>
+              <div class="mb-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+                <.panel title="Details">
+                  <dl class="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                    <.detail_item label="Alias" value={@user.alias} />
+                    <.detail_item label="Mobile" value={@masked_mobile} />
+                    <.detail_item label="Home zip" value={@home_zip} />
+                    <.detail_item
+                      label="Registered"
+                      value={Calendar.strftime(@registered_at, "%m/%d/%Y %I:%M %p")}
+                    />
+                    <.detail_item
+                      label="Last sign-in"
+                      value={
+                        @last_sign_in_at &&
+                          Calendar.strftime(@last_sign_in_at, "%m/%d/%Y %I:%M %p")
+                      }
+                    />
+                  </dl>
+                </.panel>
 
-                    <div class="stats shadow-sm bg-base-200 border border-base-300">
-                      <div class="stat py-3 px-4">
-                        <div class="stat-title text-xs">Available to spend</div>
-                        <div class="stat-value text-2xl">
-                          {QlariusWeb.Money.format_usd(@wallet_summary.available_to_spend)}
-                        </div>
-                      </div>
-                      <div class="stat py-3 px-4">
-                        <div class="stat-title text-xs">Activity</div>
-                        <div class="stat-value text-2xl">
-                          {QlariusWeb.Money.format_usd(@wallet_balance)}
-                        </div>
-                      </div>
-                      <div class="stat py-3 px-4">
-                        <div class="stat-title text-xs">Tags</div>
-                        <div class="stat-value text-2xl">{@tag_count}</div>
-                      </div>
-                      <div class="stat py-3 px-4">
-                        <div class="stat-title text-xs">Active Offers</div>
-                        <div class="stat-value text-2xl">{length(@offers)}</div>
-                      </div>
-                    </div>
-                  </div>
-                  <form phx-submit="update_credit_allowance" class="flex items-end gap-3 mt-4">
-                    <label class="form-control">
-                      <span class="label-text text-xs">Credit allowance</span>
+                <form phx-submit="update_credit_allowance">
+                  <.panel
+                    title="Credit allowance"
+                    description="Cannot be lowered below the amount already used."
+                  >
+                    <label class="block">
+                      <span class="mb-1 block text-xs text-base-content/60">Allowance</span>
                       <input
                         type="text"
                         name="credit_allowance"
                         value={@me_file.credit_allowance}
-                        class="input input-bordered input-sm w-32"
+                        class="input w-full"
                       />
                     </label>
-                    <button type="submit" class="btn btn-sm btn-primary">Update allowance</button>
-                  </form>
-                </div>
+                    <:footer>
+                      <button type="submit" class="btn btn-sm btn-primary">Update allowance</button>
+                    </:footer>
+                  </.panel>
+                </form>
               </div>
 
-              <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-                <div class="card bg-base-100 border border-base-300">
-                  <div class="card-body">
-                    <h3 class="card-title flex items-center gap-2">
-                      <.icon name="hero-tag" class="w-5 h-5" /> Tags ({@tag_count})
-                    </h3>
+              <div class="mb-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+                <.panel title="Tags">
+                  <:actions>
+                    <span class="rounded-full bg-base-200 px-2.5 py-0.5 text-xs font-medium text-base-content/70">
+                      {@tag_count}
+                    </span>
+                  </:actions>
+                  <.empty_state :if={@tag_map == []} icon="hero-tag" title="No tags yet" />
 
-                    <div :if={@tag_map == []} class="text-center py-12">
-                      <.icon name="hero-tag" class="w-16 h-16 mx-auto text-base-content/30 mb-4" />
-                      <p class="text-lg font-medium text-base-content/70">No tags yet</p>
-                    </div>
-
-                    <div :if={@tag_map != []} class="space-y-6">
-                      <div :for={{{_id, name, _display_order}, parent_traits} <- @tag_map}>
-                        <div class="flex flex-row justify-between items-baseline mb-3">
-                          <h4 class="text-lg font-medium">{name}</h4>
-                          <span class="text-sm text-gray-500">
-                            {length(parent_traits)} tags
-                          </span>
-                        </div>
-
-                        <div class="flex flex-row flex-wrap gap-3">
-                          <QlariusWeb.Components.TraitComponents.trait_card
-                            :for={
-                              {parent_trait_id, parent_trait_name, _parent_trait_display_order,
-                               tags_traits} <-
-                                parent_traits
-                            }
-                            parent_trait_id={parent_trait_id}
-                            parent_trait_name={parent_trait_name}
-                            tags_traits={tags_traits}
-                            clickable={false}
-                            editable={false}
-                          />
-                        </div>
-
-                        <div class="mt-4 border-b border-neutral-300 dark:border-neutral-500"></div>
+                  <div :if={@tag_map != []} class="divide-y divide-base-300">
+                    <section
+                      :for={{{_id, name, _display_order}, parent_traits} <- @tag_map}
+                      class="py-5 first:pt-0 last:pb-0"
+                    >
+                      <div class="mb-3 flex items-baseline justify-between gap-3">
+                        <h3 class="text-sm font-semibold">{name}</h3>
+                        <span class="text-xs text-base-content/50">
+                          {length(parent_traits)} tags
+                        </span>
                       </div>
-                    </div>
-                  </div>
-                </div>
 
-                <div class="card bg-base-100 border border-base-300">
-                  <div class="card-body">
-                    <h3 class="card-title flex items-center gap-2">
-                      <.icon name="hero-megaphone" class="w-5 h-5" />
-                      Active Offers ({length(@offers)})
-                    </h3>
-
-                    <div :if={@offers == []} class="text-center py-12">
-                      <.icon
-                        name="hero-megaphone"
-                        class="w-16 h-16 mx-auto text-base-content/30 mb-4"
-                      />
-                      <p class="text-lg font-medium text-base-content/70">No active offers</p>
-                    </div>
-
-                    <div :if={@offers != []} class="space-y-4">
-                      <div :for={offer <- @offers}>
-                        <QlariusWeb.Components.AdsComponents.three_tap_ad
-                          media_piece={offer.media_piece}
-                          show_banner={true}
+                      <div class="flex flex-row flex-wrap gap-3">
+                        <QlariusWeb.Components.TraitComponents.trait_card
+                          :for={
+                            {parent_trait_id, parent_trait_name, _parent_trait_display_order,
+                             tags_traits} <-
+                              parent_traits
+                          }
+                          parent_trait_id={parent_trait_id}
+                          parent_trait_name={parent_trait_name}
+                          tags_traits={tags_traits}
+                          clickable={false}
+                          editable={false}
                         />
-                        <div class="text-xs text-base-content/60 mt-1 flex justify-between">
-                          <span>Offer: {QlariusWeb.Money.format_usd(offer.offer_amt)}</span>
-                          <span>Campaign ID: {offer.campaign_id}</span>
-                        </div>
                       </div>
+                    </section>
+                  </div>
+                </.panel>
+
+                <.panel title="Active offers">
+                  <:actions>
+                    <span class="rounded-full bg-base-200 px-2.5 py-0.5 text-xs font-medium text-base-content/70">
+                      {length(@offers)}
+                    </span>
+                  </:actions>
+                  <.empty_state :if={@offers == []} icon="hero-megaphone" title="No active offers" />
+
+                  <div :for={offer <- @offers} class="space-y-1">
+                    <QlariusWeb.Components.AdsComponents.three_tap_ad
+                      media_piece={offer.media_piece}
+                      show_banner={true}
+                    />
+                    <div class="flex justify-between gap-2 text-xs text-base-content/60">
+                      <span>Offer {QlariusWeb.Money.format_usd(offer.offer_amt)}</span>
+                      <span class="text-base-content/50">Campaign #{offer.campaign_id}</span>
                     </div>
                   </div>
-                </div>
+                </.panel>
               </div>
 
-              <div class="card bg-base-100 border border-base-300">
-                <div class="card-body">
-                  <h3 class="card-title flex items-center gap-2">
-                    <.icon name="hero-banknotes" class="w-5 h-5" /> Recent Transactions (Last 50)
-                  </h3>
+              <.panel flush title="Recent transactions" description="Last 50 ledger entries.">
+                <.empty_state
+                  :if={@ledger_entries == []}
+                  icon="hero-banknotes"
+                  title="No transactions yet"
+                />
 
-                  <div :if={@ledger_entries == []} class="text-center py-12">
-                    <.icon name="hero-banknotes" class="w-16 h-16 mx-auto text-base-content/30 mb-4" />
-                    <p class="text-lg font-medium text-base-content/70">No transactions yet</p>
-                  </div>
-
-                  <div :if={@ledger_entries != []} class="overflow-x-auto">
-                    <table class="table table-sm table-zebra">
-                      <thead>
-                        <tr>
-                          <th>Date</th>
-                          <th>Type</th>
-                          <th>Description</th>
-                          <th class="text-right">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr :for={entry <- @ledger_entries}>
-                          <td class="text-xs">
-                            {Calendar.strftime(entry.created_at, "%m/%d/%y %I:%M %p")}
-                          </td>
-                          <td>
-                            <.icon name={icon_for_meta_1(entry.meta_1)} class="w-4 h-4" />
-                          </td>
-                          <td class="text-sm">{entry.description}</td>
-                          <td class={[
-                            "text-right font-mono text-sm",
-                            Decimal.positive?(entry.amt) && "text-success",
-                            Decimal.negative?(entry.amt) && "text-error"
-                          ]}>
-                            {QlariusWeb.Money.format_usd(entry.amt)}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
+                <.data_table
+                  :if={@ledger_entries != []}
+                  id="mefile-ledger-entries"
+                  rows={@ledger_entries}
+                  row_id={&"mefile-ledger-entry-#{&1.id}"}
+                >
+                  <:col
+                    :let={entry}
+                    label="Date"
+                    class="whitespace-nowrap text-xs text-base-content/60"
+                  >
+                    {Calendar.strftime(entry.created_at, "%m/%d/%y %I:%M %p")}
+                  </:col>
+                  <:col :let={entry} label="Type">
+                    <span title={entry.meta_1} class="text-base-content/60">
+                      <.icon name={icon_for_meta_1(entry.meta_1)} class="size-4" />
+                    </span>
+                  </:col>
+                  <:col :let={entry} label="Description">{entry.description}</:col>
+                  <:col :let={entry} label="Amount" class="text-right whitespace-nowrap">
+                    <span class={[
+                      Decimal.positive?(entry.amt) && "text-success",
+                      Decimal.negative?(entry.amt) && "text-error"
+                    ]}>
+                      {QlariusWeb.Money.format_usd(entry.amt)}
+                    </span>
+                  </:col>
+                </.data_table>
+              </.panel>
+            </.page>
           </div>
         </div>
       </div>

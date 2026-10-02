@@ -6,134 +6,122 @@
       <AdminTopbar.topbar current_user={@current_scope.user} />
 
       <div class="overflow-auto">
-        <div class="p-6 space-y-6">
-          <div class="flex items-center gap-4">
-            <.link navigate={@back_path} class="btn btn-ghost btn-sm">
-              <.icon name="hero-arrow-left" class="w-4 h-4" /> Back to {@back_label}
-            </.link>
-            <div>
-              <h1 class="text-2xl font-bold flex items-center gap-2">
-                <.icon name="hero-rss" class="w-6 h-6 text-primary" /> Import from RSS
-              </h1>
-              <p class="text-base-content/60 mt-1">
-                <%= if @fixed_group do %>
-                  Adding episodes to <span class="font-medium">{@fixed_group.title}</span>
-                <% else %>
-                  Building a content group for <span class="font-medium">{@creator.name}</span>
-                <% end %>
-              </p>
-            </div>
-          </div>
+        <% catalog_word = type_word(@catalogs, @catalog_id, :type, 1, capitalize: false) %>
+        <% group_word = type_word(@catalogs, @catalog_id, :group_type) %>
+        <% group_word_lower = type_word(@catalogs, @catalog_id, :group_type, 1, capitalize: false) %>
+        <% pieces_word = type_word(@catalogs, @catalog_id, :piece_type, 2, capitalize: false) %>
+        <.page class="max-w-4xl">
+          <.page_header
+            title="Import from RSS"
+            subtitle={
+              if @fixed_group,
+                do: "Adding #{pieces_word} to #{@fixed_group.title}",
+                else: "Building a #{group_word_lower} for #{@creator.name}"
+            }
+            crumbs={
+              if @fixed_group,
+                do: [
+                  {@creator.name, ~p"/creators/#{@creator.id}"},
+                  {@fixed_group.catalog.name, ~p"/creators/catalogs/#{@fixed_group.catalog.id}"},
+                  {@fixed_group.title, @back_path}
+                ],
+                else: [{@creator.name, @back_path}]
+            }
+          />
 
-          <div class="card bg-base-100 border border-base-300">
-            <div class="card-body py-3">
-              <ul class="steps steps-horizontal w-full text-xs">
-                <li class={"step #{if step_at_or_past?(@step, :source), do: "step-primary"}"}>
-                  Feed
-                </li>
-                <li class={"step #{if step_at_or_past?(@step, :review), do: "step-primary"}"}>
-                  Episodes
-                </li>
-                <li class={"step #{if step_at_or_past?(@step, :target), do: "step-primary"}"}>
-                  Target
-                </li>
-                <li class={"step #{if step_at_or_past?(@step, :confirm), do: "step-primary"}"}>
-                  Confirm
-                </li>
-                <li class={"step #{if step_at_or_past?(@step, :done), do: "step-primary"}"}>
-                  Done
-                </li>
-              </ul>
-            </div>
-          </div>
+          <.wizard_stepper steps={stepper_steps(@step)} />
 
           <%= if @step == :source do %>
-            <div class="card bg-base-100 shadow-lg">
-              <div class="card-body space-y-4">
-                <h3 class="text-lg font-semibold">Podcast feed URL</h3>
-                <p class="text-sm text-base-content/60">
-                  Paste the RSS feed of the show. Podcast pages often link it as "RSS";
-                  Apple Podcasts listings can be looked up to find it.
-                </p>
-
-                <form phx-submit="lookup" class="flex flex-col sm:flex-row gap-3">
+            <form phx-submit="lookup">
+              <.panel title="Podcast feed" description="Paste the RSS feed URL of the show.">
+                <label class="input w-full">
+                  <.icon name="hero-rss" class="size-4 text-base-content/50" />
                   <input
                     type="url"
                     name="feed_url"
                     value={@feed_input}
                     placeholder="https://www.spreaker.com/show/…/episodes/feed"
-                    class="input input-bordered w-full"
+                    aria-label="RSS feed URL"
+                    class="grow"
                     required
                   />
-                  <.button class="btn btn-primary" phx-disable-with="Reading feed…">
-                    <.icon name="hero-magnifying-glass" class="w-4 h-4 mr-2" /> Read feed
-                  </.button>
-                </form>
+                </label>
+                <p class="text-xs text-base-content/60">
+                  Podcast pages often link it as "RSS". Apple Podcasts listings can be looked up
+                  to find it.
+                </p>
 
-                <%= if @feed_error do %>
-                  <div class="alert alert-error">
-                    <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-                    <span>{@feed_error}</span>
-                  </div>
-                <% end %>
-              </div>
-            </div>
+                <.notice :if={@feed_error} tone="error">{@feed_error}</.notice>
+
+                <:footer>
+                  <.button variant="primary" class="btn-sm" phx-disable-with="Reading feed…">
+                    <.icon name="hero-magnifying-glass" class="size-4" /> Read feed
+                  </.button>
+                </:footer>
+              </.panel>
+            </form>
           <% end %>
 
           <%= if @step == :review and @feed do %>
             <% items = visible_items(assigns) %>
             <% selected = selected_in_view(assigns) %>
-            <div class="card bg-base-100 shadow-lg">
-              <div class="card-body space-y-4">
-                <div class="flex items-start gap-4 border-b border-base-300 pb-4">
-                  <%= if @feed.channel.image_url do %>
-                    <img
-                      src={@feed.channel.image_url}
-                      alt={@feed.channel.title}
-                      class="w-20 h-20 object-cover rounded-lg shrink-0"
-                    />
-                  <% end %>
-                  <div class="min-w-0 flex-1">
-                    <h3 class="text-lg font-semibold">{@feed.channel.title}</h3>
-                    <p class="text-xs text-base-content/50 break-all">{@feed.feed_url}</p>
-                    <p class="text-sm text-base-content/60 line-clamp-3 mt-1">
-                      {@feed.channel.description}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    phx-click="back"
-                    phx-value-to="source"
-                    class="btn btn-ghost btn-sm"
-                  >
-                    <.icon name="hero-arrow-uturn-left" class="w-4 h-4 mr-1" /> Change feed
-                  </button>
-                </div>
+            <% all_selected? =
+              items
+              |> Enum.filter(&(playable?(&1) and not MapSet.member?(@existing_guids, &1.guid)))
+              |> Enum.all?(&MapSet.member?(@selected_guids, &1.guid)) %>
 
-                <form phx-change="filter" class="flex flex-wrap items-center gap-4">
-                  <label class="flex items-center gap-2">
-                    <span class="text-sm font-medium">Season</span>
-                    <select name="season" class="select select-bordered select-sm">
+            <.panel
+              flush
+              title="Choose episodes"
+              description="Pick a season and episode types, then fine-tune the selection."
+            >
+              <div class="flex items-start gap-4 border-b border-base-300 px-6 py-4">
+                <img
+                  :if={@feed.channel.image_url}
+                  src={@feed.channel.image_url}
+                  alt={@feed.channel.title}
+                  class="size-14 shrink-0 rounded-lg object-cover"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="truncate font-semibold">{@feed.channel.title}</p>
+                  <p class="break-all text-xs text-base-content/50">{@feed.feed_url}</p>
+                  <p class="mt-1 line-clamp-2 text-sm text-base-content/60">
+                    {@feed.channel.description}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  phx-click="back"
+                  phx-value-to="source"
+                  class="btn btn-ghost btn-sm"
+                >
+                  <.icon name="hero-arrow-uturn-left" class="size-4" /> Change feed
+                </button>
+              </div>
+
+              <div class="space-y-3 border-b border-base-300 px-6 py-4">
+                <form phx-change="filter" class="flex flex-wrap items-center gap-x-6 gap-y-3">
+                  <label class="flex min-w-0 items-center gap-2">
+                    <span class="text-sm text-base-content/70">Season</span>
+                    <select name="season" class="select select-sm max-w-xs">
                       <option value="all" selected={is_nil(@season)}>
                         All seasons ({length(@feed.items)})
                       </option>
                       <%= for s <- @feed.seasons do %>
                         <% value = if(is_nil(s.season), do: "none", else: to_string(s.season)) %>
-                        <option
-                          value={value}
-                          selected={@season == (s.season || :none)}
-                        >
-                          {season_label(s.season)} ({s.count}) — {s.first_title}
+                        <option value={value} selected={@season == (s.season || :none)}>
+                          {season_label(s.season)} ({s.count}): {s.first_title}
                         </option>
                       <% end %>
                     </select>
                   </label>
 
-                  <div class="flex items-center gap-3">
-                    <span class="text-sm font-medium">Include</span>
+                  <fieldset class="flex flex-wrap items-center gap-3">
+                    <legend class="sr-only">Episode types</legend>
+                    <span class="text-sm text-base-content/70">Include</span>
                     <input type="hidden" name="episode_types[]" value="" />
                     <%= for type <- ~w(full trailer bonus) do %>
-                      <label class="flex items-center gap-1 text-sm">
+                      <label class="flex cursor-pointer items-center gap-1.5 text-sm">
                         <input
                           type="checkbox"
                           name="episode_types[]"
@@ -144,334 +132,374 @@
                         {String.capitalize(type)}
                       </label>
                     <% end %>
-                  </div>
+                  </fieldset>
                 </form>
 
-                <div :if={@feed.renumbered_seasons != []} class="alert alert-info text-sm">
-                  <.icon name="hero-information-circle" class="w-5 h-5" />
-                  <span>
-                    The feed's episode numbers are missing or out of order, so episodes are
-                    numbered by publish order.
-                  </span>
-                </div>
+                <.notice
+                  :if={@feed.renumbered_seasons != []}
+                  tone="info"
+                  icon="hero-information-circle"
+                >
+                  The feed's episode numbers are missing or out of order, so episodes are
+                  numbered by publish order.
+                </.notice>
+              </div>
 
-                <div class="flex items-center justify-between">
-                  <h4 class="font-semibold">
-                    {length(items)} episodes
-                    <span class="text-sm font-normal text-base-content/60">
-                      — {MapSet.size(selected)} selected
-                    </span>
-                  </h4>
-                  <button type="button" phx-click="toggle_all" class="btn btn-ghost btn-sm">
-                    Toggle all
-                  </button>
-                </div>
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-base-300 bg-base-200/40 px-6 py-2.5">
+                <p class="text-sm font-medium">
+                  {MapSet.size(selected)} of {length(items)} selected
+                </p>
+                <button type="button" phx-click="toggle_all" class="btn btn-ghost btn-sm">
+                  {if all_selected?, do: "Select none", else: "Select all"}
+                </button>
+              </div>
 
-                <div class="border border-base-300 rounded-lg max-h-[28rem] overflow-y-auto divide-y divide-base-300">
-                  <%= if items == [] do %>
-                    <div class="p-8 text-center text-sm text-base-content/60">
-                      No episodes match this season and type.
-                    </div>
-                  <% end %>
-                  <%= for item <- items do %>
-                    <% already? = MapSet.member?(@existing_guids, item.guid) %>
-                    <% playable? = playable?(item) %>
-                    <label class={"flex items-start gap-3 p-3 cursor-pointer hover:bg-base-200 #{if already? or not playable?, do: "opacity-60"}"}>
+              <.empty_state :if={items == []} icon="hero-funnel" title="No matching episodes">
+                No episodes match this season and type.
+              </.empty_state>
+
+              <ul :if={items != []} class="max-h-[32rem] divide-y divide-base-300 overflow-y-auto">
+                <%= for item <- items do %>
+                  <% already? = MapSet.member?(@existing_guids, item.guid) %>
+                  <% playable? = playable?(item) %>
+                  <% selected? = MapSet.member?(selected, item.guid) %>
+                  <% meta =
+                    [
+                      item.date_published && Calendar.strftime(item.date_published, "%b %-d, %Y"),
+                      format_seconds(item.length_seconds),
+                      episode_label(item)
+                    ]
+                    |> Enum.filter(& &1)
+                    |> Enum.join(" · ") %>
+                  <li>
+                    <label class={[
+                      "flex items-start gap-4 px-6 py-3 transition-colors",
+                      if(already? or not playable?,
+                        do: "cursor-default opacity-60",
+                        else: "cursor-pointer hover:bg-base-200/40"
+                      ),
+                      selected? && "bg-primary/5"
+                    ]}>
                       <input
                         type="checkbox"
-                        class="checkbox checkbox-primary mt-1"
-                        checked={MapSet.member?(selected, item.guid)}
+                        class="checkbox checkbox-sm checkbox-primary mt-1"
+                        checked={selected?}
                         disabled={already? or not playable?}
                         phx-click="toggle_item"
                         phx-value-guid={item.guid}
                       />
                       <div class="min-w-0 flex-1">
                         <div class="flex flex-wrap items-center gap-2">
-                          <p class="font-medium">{item.title}</p>
-                          <span
-                            :if={item.episode_type != "full"}
-                            class="badge badge-outline badge-sm"
-                          >
-                            {item.episode_type}
-                          </span>
-                          <span :if={already?} class="badge badge-ghost badge-sm">
-                            Already imported
-                          </span>
-                          <span :if={not playable?} class="badge badge-warning badge-sm">
+                          <p class="text-sm font-medium">{item.title}</p>
+                          <.chip :if={item.episode_type != "full"}>
+                            {String.capitalize(item.episode_type)}
+                          </.chip>
+                          <.status_badge :if={already?}>Already imported</.status_badge>
+                          <.status_badge :if={not playable?} tone="warning">
                             No https audio
-                          </span>
+                          </.status_badge>
                         </div>
-                        <p class="text-xs text-base-content/60 mt-1">
-                          <%= if item.date_published do %>
-                            {Calendar.strftime(item.date_published, "%b %-d, %Y")}
-                          <% end %>
-                          <%= if format_seconds(item.length_seconds) do %>
-                            · {format_seconds(item.length_seconds)}
-                          <% end %>
-                          <%= if label = episode_label(item) do %>
-                            · {label}
-                          <% end %>
-                        </p>
-                        <p class="text-sm text-base-content/70 line-clamp-2 mt-1">
+                        <p :if={meta != ""} class="mt-0.5 text-xs text-base-content/50">{meta}</p>
+                        <p class="mt-1 line-clamp-2 text-xs text-base-content/60">
                           {item.description}
                         </p>
                       </div>
                     </label>
-                  <% end %>
-                </div>
+                  </li>
+                <% end %>
+              </ul>
 
-                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-base-300">
-                  <button type="button" phx-click="continue_to_target" class="btn btn-primary">
-                    Continue ({MapSet.size(selected)} selected)
-                    <.icon name="hero-arrow-right" class="w-4 h-4 ml-2" />
-                  </button>
-                </div>
-              </div>
-            </div>
+              <:footer>
+                <button
+                  type="button"
+                  phx-click="back"
+                  phx-value-to="source"
+                  class="btn btn-ghost btn-sm mr-auto"
+                >
+                  <.icon name="hero-arrow-left" class="size-4" /> Back
+                </button>
+                <button
+                  type="button"
+                  phx-click="continue_to_target"
+                  class="btn btn-primary btn-sm"
+                >
+                  Continue ({MapSet.size(selected)} selected)
+                  <.icon name="hero-arrow-right" class="size-4" />
+                </button>
+              </:footer>
+            </.panel>
           <% end %>
 
           <%= if @step == :target do %>
-            <div class="card bg-base-100 shadow-lg">
-              <div class="card-body space-y-4">
-                <h3 class="text-lg font-semibold">Where should the episodes go?</h3>
-
-                <form phx-change="target" phx-submit="continue_to_confirm" class="space-y-4">
-                  <%= if @fixed_group do %>
-                    <div class="bg-base-200 rounded-lg p-4 text-sm">
-                      <span class="font-medium">Content group:</span> {@fixed_group.title}
-                      <span class="text-base-content/60">({@fixed_group.catalog.name})</span>
-                    </div>
+            <form phx-change="target" phx-submit="continue_to_confirm">
+              <.panel
+                title={"Where should the #{pieces_word} go?"}
+                description={
+                  if @fixed_group,
+                    do: "They will be added to this #{group_word_lower}.",
+                    else: "Choose a #{catalog_word} and a new or existing #{group_word_lower}."
+                }
+              >
+                <%= if @fixed_group do %>
+                  <dl class="grid gap-x-6 gap-y-4 rounded-xl border border-base-300 bg-base-200/40 p-4 sm:grid-cols-2">
+                    <.detail_item label={group_word} value={@fixed_group.title} />
+                    <.detail_item
+                      label={type_word(@catalogs, @catalog_id, :type)}
+                      value={@fixed_group.catalog.name}
+                    />
+                  </dl>
+                <% else %>
+                  <%= if @catalogs == [] do %>
+                    <.notice>This creator has no catalogs yet. Create one first.</.notice>
                   <% else %>
-                    <%= if @catalogs == [] do %>
-                      <div class="alert alert-warning">
-                        <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-                        <span>This creator has no catalogs yet. Create one first.</span>
-                      </div>
+                    <label class="block max-w-md">
+                      <span class="mb-1 block text-sm font-medium">
+                        {type_word(@catalogs, @catalog_id, :type)}
+                      </span>
+                      <select name="catalog_id" class="select w-full">
+                        <%= for catalog <- @catalogs do %>
+                          <option value={catalog.id} selected={catalog.id == @catalog_id}>
+                            {catalog.name}
+                          </option>
+                        <% end %>
+                      </select>
+                    </label>
+
+                    <fieldset class="grid gap-3 sm:grid-cols-2">
+                      <legend class="sr-only">Destination</legend>
+                      <label class={[
+                        "flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors",
+                        if(@target_mode == "new",
+                          do: "border-primary bg-primary/5",
+                          else: "border-base-300 hover:bg-base-200/40"
+                        )
+                      ]}>
+                        <input
+                          type="radio"
+                          name="target_mode"
+                          value="new"
+                          checked={@target_mode == "new"}
+                          class="radio radio-primary radio-sm mt-0.5"
+                        />
+                        <span>
+                          <span class="block text-sm font-medium">New {group_word_lower}</span>
+                          <span class="block text-xs text-base-content/60">
+                            Create it from this feed.
+                          </span>
+                        </span>
+                      </label>
+                      <label class={[
+                        "flex items-start gap-3 rounded-xl border p-4 transition-colors",
+                        cond do
+                          @groups == [] ->
+                            "cursor-not-allowed border-base-300 opacity-50"
+
+                          @target_mode == "existing" ->
+                            "cursor-pointer border-primary bg-primary/5"
+
+                          true ->
+                            "cursor-pointer border-base-300 hover:bg-base-200/40"
+                        end
+                      ]}>
+                        <input
+                          type="radio"
+                          name="target_mode"
+                          value="existing"
+                          checked={@target_mode == "existing"}
+                          disabled={@groups == []}
+                          class="radio radio-primary radio-sm mt-0.5"
+                        />
+                        <span>
+                          <span class="block text-sm font-medium">
+                            Existing {group_word_lower}
+                          </span>
+                          <span class="block text-xs text-base-content/60">
+                            {if @groups == [],
+                              do: "This #{catalog_word} has none yet.",
+                              else: "Add to one already in this #{catalog_word}."}
+                          </span>
+                        </span>
+                      </label>
+                    </fieldset>
+
+                    <%= if @target_mode == "new" do %>
+                      <label class="block max-w-md">
+                        <span class="mb-1 block text-sm font-medium">{group_word} title</span>
+                        <input
+                          type="text"
+                          name="group_title"
+                          value={@group_title}
+                          class="input w-full"
+                          phx-debounce="200"
+                        />
+                      </label>
                     <% else %>
-                      <label class="form-control max-w-md">
-                        <span class="label-text font-medium mb-1">Catalog</span>
-                        <select name="catalog_id" class="select select-bordered">
-                          <%= for catalog <- @catalogs do %>
-                            <option value={catalog.id} selected={catalog.id == @catalog_id}>
-                              {catalog.name}
+                      <label class="block max-w-md">
+                        <span class="mb-1 block text-sm font-medium">{group_word}</span>
+                        <select name="group_id" class="select w-full">
+                          <option value="">Choose…</option>
+                          <%= for group <- @groups do %>
+                            <option value={group.id} selected={group.id == @group_id}>
+                              {group.title}
                             </option>
                           <% end %>
                         </select>
                       </label>
-
-                      <div class="flex gap-6">
-                        <label class="flex items-center gap-2 text-sm">
-                          <input
-                            type="radio"
-                            name="target_mode"
-                            value="new"
-                            checked={@target_mode == "new"}
-                            class="radio radio-primary radio-sm"
-                          /> New content group
-                        </label>
-                        <label class="flex items-center gap-2 text-sm">
-                          <input
-                            type="radio"
-                            name="target_mode"
-                            value="existing"
-                            checked={@target_mode == "existing"}
-                            disabled={@groups == []}
-                            class="radio radio-primary radio-sm"
-                          /> Existing content group
-                        </label>
-                      </div>
-
-                      <%= if @target_mode == "new" do %>
-                        <label class="form-control max-w-md">
-                          <span class="label-text font-medium mb-1">Group title</span>
-                          <input
-                            type="text"
-                            name="group_title"
-                            value={@group_title}
-                            class="input input-bordered"
-                            phx-debounce="200"
-                          />
-                        </label>
-                      <% else %>
-                        <label class="form-control max-w-md">
-                          <span class="label-text font-medium mb-1">Content group</span>
-                          <select name="group_id" class="select select-bordered">
-                            <option value="">Choose…</option>
-                            <%= for group <- @groups do %>
-                              <option value={group.id} selected={group.id == @group_id}>
-                                {group.title}
-                              </option>
-                            <% end %>
-                          </select>
-                        </label>
-                      <% end %>
                     <% end %>
                   <% end %>
-
-                  <label class="flex items-start gap-2 text-sm">
-                    <input type="hidden" name="auto_sync" value="false" />
-                    <input
-                      type="checkbox"
-                      name="auto_sync"
-                      value="true"
-                      checked={@auto_sync}
-                      class="checkbox checkbox-sm checkbox-primary mt-0.5"
-                    />
-                    <span>
-                      Check the feed daily and add new episodes
-                      <span class="block text-xs text-base-content/60">
-                        Uses the same season and episode types chosen here.
-                      </span>
-                    </span>
-                  </label>
-
-                  <%= if @import_error do %>
-                    <div class="alert alert-error">
-                      <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-                      <span>{@import_error}</span>
-                    </div>
-                  <% end %>
-
-                  <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-base-300">
-                    <button type="submit" class="btn btn-primary" disabled={@catalogs == []}>
-                      Review import <.icon name="hero-arrow-right" class="w-4 h-4 ml-2" />
-                    </button>
-                    <button
-                      type="button"
-                      phx-click="back"
-                      phx-value-to="review"
-                      class="btn btn-ghost"
-                    >
-                      <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Back
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          <% end %>
-
-          <%= if @step in [:confirm, :importing] and @dry_run do %>
-            <div class="card bg-base-100 shadow-lg">
-              <div class="card-body space-y-4">
-                <h3 class="text-lg font-semibold flex items-center gap-2">
-                  <.icon name="hero-check-circle" class="w-5 h-5 text-success" /> Confirm import
-                </h3>
-
-                <div class="bg-base-200 rounded-lg p-4 space-y-2 text-sm">
-                  <div>
-                    <span class="font-medium">Feed:</span> {@feed.channel.title}
-                  </div>
-                  <div>
-                    <span class="font-medium">Catalog:</span> {catalog_name(
-                      @catalogs,
-                      @catalog_id
-                    )}
-                  </div>
-                  <div>
-                    <span class="font-medium">Content group:</span>
-                    <%= if @target_mode == "new" do %>
-                      {@group_title} (new)
-                    <% else %>
-                      {group_title(@groups, @group_id)}
-                    <% end %>
-                  </div>
-                  <div>
-                    <span class="font-medium">Daily sync:</span>
-                    {if @auto_sync, do: "On", else: "Off"}
-                  </div>
-                </div>
-
-                <div class="stats shadow w-full">
-                  <div class="stat">
-                    <div class="stat-title">New</div>
-                    <div class="stat-value text-success">{@dry_run.counts.created}</div>
-                  </div>
-                  <div class="stat">
-                    <div class="stat-title">Updated</div>
-                    <div class="stat-value">{@dry_run.counts.updated}</div>
-                  </div>
-                  <div class="stat">
-                    <div class="stat-title">Unchanged</div>
-                    <div class="stat-value">{@dry_run.counts.unchanged}</div>
-                  </div>
-                  <div class="stat">
-                    <div class="stat-title">Skipped</div>
-                    <div class="stat-value">{@dry_run.counts.skipped}</div>
-                  </div>
-                </div>
-
-                <ul
-                  :if={@dry_run.warnings != []}
-                  class="text-sm text-warning list-disc pl-5 space-y-1"
-                >
-                  <li :for={warning <- @dry_run.warnings}>{warning}</li>
-                </ul>
-
-                <%= if @import_error do %>
-                  <div class="alert alert-error">
-                    <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-                    <span>{@import_error}</span>
-                  </div>
                 <% end %>
 
-                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-base-300">
-                  <button
-                    type="button"
-                    phx-click="start_import"
-                    class="btn btn-primary"
-                    disabled={@step == :importing}
-                  >
-                    <%= if @step == :importing do %>
-                      <span class="loading loading-spinner loading-sm mr-2"></span> Importing…
-                    <% else %>
-                      <.icon name="hero-arrow-down-tray" class="w-4 h-4 mr-2" /> Import now
-                    <% end %>
-                  </button>
+                <label class="flex cursor-pointer items-start gap-3 border-t border-base-300 pt-4 text-sm">
+                  <input type="hidden" name="auto_sync" value="false" />
+                  <input
+                    type="checkbox"
+                    name="auto_sync"
+                    value="true"
+                    checked={@auto_sync}
+                    class="checkbox checkbox-sm checkbox-primary mt-0.5"
+                  />
+                  <span>
+                    <span class="block font-medium">
+                      Check the feed daily and add new episodes
+                    </span>
+                    <span class="block text-xs text-base-content/60">
+                      Uses the same season and episode types chosen here.
+                    </span>
+                  </span>
+                </label>
+
+                <.notice :if={@import_error} tone="error">{@import_error}</.notice>
+
+                <:footer>
                   <button
                     type="button"
                     phx-click="back"
-                    phx-value-to="target"
-                    class="btn btn-ghost"
-                    disabled={@step == :importing}
+                    phx-value-to="review"
+                    class="btn btn-ghost btn-sm mr-auto"
                   >
-                    <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Back
+                    <.icon name="hero-arrow-left" class="size-4" /> Back
                   </button>
-                </div>
+                  <button
+                    type="submit"
+                    class="btn btn-primary btn-sm"
+                    disabled={@catalogs == []}
+                  >
+                    Review import <.icon name="hero-arrow-right" class="size-4" />
+                  </button>
+                </:footer>
+              </.panel>
+            </form>
+          <% end %>
+
+          <%= if @step in [:confirm, :importing] and @dry_run do %>
+            <.panel
+              title="Confirm import"
+              description="This is a preview. Nothing is saved until you import."
+            >
+              <dl class="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                <.detail_item label="Feed" value={@feed.channel.title} />
+                <.detail_item
+                  label={type_word(@catalogs, @catalog_id, :type)}
+                  value={catalog_name(@catalogs, @catalog_id)}
+                />
+                <.detail_item
+                  label={group_word}
+                  value={
+                    if @target_mode == "new",
+                      do: "#{@group_title} (new)",
+                      else: group_title(@groups, @group_id)
+                  }
+                />
+                <.detail_item label="Daily sync" value={if @auto_sync, do: "On", else: "Off"} />
+              </dl>
+
+              <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <.stat_tile label="New" icon="hero-plus-circle" value_class="text-success">
+                  {@dry_run.counts.created}
+                </.stat_tile>
+                <.stat_tile label="Updated" icon="hero-arrow-path">
+                  {@dry_run.counts.updated}
+                </.stat_tile>
+                <.stat_tile label="Unchanged" icon="hero-minus-circle">
+                  {@dry_run.counts.unchanged}
+                </.stat_tile>
+                <.stat_tile label="Skipped" icon="hero-forward">
+                  {@dry_run.counts.skipped}
+                </.stat_tile>
               </div>
-            </div>
+
+              <.notice :if={@dry_run.warnings != []} title="Warnings">
+                <ul class="list-disc space-y-1 pl-5">
+                  <li :for={warning <- @dry_run.warnings}>{warning}</li>
+                </ul>
+              </.notice>
+
+              <.notice :if={@import_error} tone="error">{@import_error}</.notice>
+
+              <:footer>
+                <button
+                  type="button"
+                  phx-click="back"
+                  phx-value-to="target"
+                  class="btn btn-ghost btn-sm mr-auto"
+                  disabled={@step == :importing}
+                >
+                  <.icon name="hero-arrow-left" class="size-4" /> Back
+                </button>
+                <button
+                  type="button"
+                  phx-click="start_import"
+                  class="btn btn-primary btn-sm"
+                  disabled={@step == :importing}
+                >
+                  <%= if @step == :importing do %>
+                    <span class="loading loading-spinner loading-xs"></span> Importing…
+                  <% else %>
+                    <.icon name="hero-arrow-down-tray" class="size-4" /> Import now
+                  <% end %>
+                </button>
+              </:footer>
+            </.panel>
           <% end %>
 
           <%= if @step == :done and @result do %>
-            <div class="card bg-base-100 shadow-lg">
-              <div class="card-body space-y-4">
-                <h3 class="text-lg font-semibold flex items-center gap-2">
-                  <.icon name="hero-check-badge" class="w-5 h-5 text-success" /> Import complete
-                </h3>
+            <.panel
+              title="Import complete"
+              description={"#{@result.counts.created} new, #{@result.counts.updated} updated, #{@result.counts.unchanged} unchanged, #{@result.counts.skipped} skipped."}
+            >
+              <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <.stat_tile label="New" icon="hero-plus-circle" value_class="text-success">
+                  {@result.counts.created}
+                </.stat_tile>
+                <.stat_tile label="Updated" icon="hero-arrow-path">
+                  {@result.counts.updated}
+                </.stat_tile>
+                <.stat_tile label="Unchanged" icon="hero-minus-circle">
+                  {@result.counts.unchanged}
+                </.stat_tile>
+                <.stat_tile label="Skipped" icon="hero-forward">
+                  {@result.counts.skipped}
+                </.stat_tile>
+              </div>
 
-                <p class="text-sm">
-                  {@result.counts.created} new, {@result.counts.updated} updated, {@result.counts.unchanged} unchanged, {@result.counts.skipped} skipped.
-                </p>
-
-                <ul
-                  :if={@result.warnings != []}
-                  class="text-sm text-warning list-disc pl-5 space-y-1"
-                >
+              <.notice :if={@result.warnings != []} title="Warnings">
+                <ul class="list-disc space-y-1 pl-5">
                   <li :for={warning <- @result.warnings}>{warning}</li>
                 </ul>
+              </.notice>
 
-                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-base-300">
-                  <.link
-                    navigate={~p"/creators/content_groups/#{@result.content_group.id}"}
-                    class="btn btn-primary"
-                  >
-                    <.icon name="hero-arrow-right" class="w-4 h-4 mr-2" />
-                    Open {@result.content_group.title}
-                  </.link>
-                </div>
-              </div>
-            </div>
+              <:footer>
+                <.link
+                  navigate={~p"/creators/content_groups/#{@result.content_group.id}"}
+                  class="btn btn-primary btn-sm"
+                >
+                  View {@result.content_group.title}
+                  <.icon name="hero-arrow-right" class="size-4" />
+                </.link>
+              </:footer>
+            </.panel>
           <% end %>
-        </div>
+        </.page>
       </div>
     </div>
   </div>

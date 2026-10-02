@@ -277,12 +277,14 @@ defmodule QlariusWeb.Components.SearchSelect do
       <input type="hidden" name={@name} id={"#{@id}-value"} value={@selected || ""} />
 
       <div :if={@selected_option} class="flex items-center gap-2 mb-2">
-        <span class="badge badge-primary badge-lg h-auto py-1 gap-2">
-          {@selected_option.label}
-          <span :if={@selected_option.group} class="opacity-75 text-xs">
-            {@selected_option.group}
-          </span>
-        </span>
+        <div class="inline-flex min-w-0 max-w-full items-center gap-2 rounded-xl border border-base-300 bg-base-200 px-3 py-1.5 text-base-content">
+          <div class="min-w-0 leading-tight">
+            <div class="truncate text-sm font-semibold">{@selected_option.label}</div>
+            <div :if={@selected_option.group} class="truncate text-xs text-base-content/60">
+              {@selected_option.group}
+            </div>
+          </div>
+        </div>
         <button
           type="button"
           class="btn btn-ghost btn-xs"

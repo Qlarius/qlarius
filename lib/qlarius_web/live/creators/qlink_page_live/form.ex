@@ -2,6 +2,7 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
   use QlariusWeb, :live_view
 
   import QlariusWeb.Components.CustomComponentsMobile, only: [toggle: 1]
+  import QlariusWeb.Components.MarketerUI
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Qlink
   alias Qlarius.Qlink.QlinkPage
@@ -1273,55 +1274,42 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
   def render_section_item(assigns) do
     ~H"""
-    <div class="flex items-center gap-2 p-3 bg-base-100 rounded-lg border border-base-300">
-      <div class="flex items-center gap-2 flex-1 min-w-0">
-        <div class="flex-1 min-w-0">
-          <div class="font-medium truncate">{@section.title}</div>
-          <%= if @section.description do %>
-            <div class="text-sm text-base-content/60 truncate">{@section.description}</div>
-          <% end %>
+    <div class="flex items-center gap-3 px-6 py-3 transition-colors hover:bg-base-200/40">
+      <div class="min-w-0 flex-1">
+        <div class="truncate text-sm font-medium">{@section.title}</div>
+        <div :if={@section.description} class="truncate text-xs text-base-content/60">
+          {@section.description}
         </div>
       </div>
-      <div class="flex items-center gap-1 flex-shrink-0">
-        <button
-          type="button"
+      <div class="flex shrink-0 items-center">
+        <.row_button
+          icon="hero-arrow-up"
+          label="Move up"
           phx-click="move_section"
           phx-value-id={@section.id}
           phx-value-direction="up"
-          class="btn btn-xs btn-ghost"
-          title="Move up"
-        >
-          <.icon name="hero-arrow-up" class="w-4 h-4" />
-        </button>
-        <button
-          type="button"
+        />
+        <.row_button
+          icon="hero-arrow-down"
+          label="Move down"
           phx-click="move_section"
           phx-value-id={@section.id}
           phx-value-direction="down"
-          class="btn btn-xs btn-ghost"
-          title="Move down"
-        >
-          <.icon name="hero-arrow-down" class="w-4 h-4" />
-        </button>
-        <button
-          type="button"
+        />
+        <.row_button
+          icon="hero-pencil-square"
+          label="Edit"
           phx-click="show_edit_section_modal"
           phx-value-id={@section.id}
-          class="btn btn-xs btn-ghost"
-          title="Edit"
-        >
-          <.icon name="hero-pencil" class="w-4 h-4" />
-        </button>
-        <button
-          type="button"
+        />
+        <.row_button
+          icon="hero-trash"
+          label="Delete"
+          tone="error"
           phx-click="delete_section"
           phx-value-id={@section.id}
           data-confirm="Are you sure you want to delete this section? Links in this section will become unsectioned."
-          class="btn btn-xs btn-ghost text-error"
-          title="Delete"
-        >
-          <.icon name="hero-trash" class="w-4 h-4" />
-        </button>
+        />
       </div>
     </div>
     """
@@ -1332,74 +1320,107 @@ defmodule QlariusWeb.Creators.QlinkPageLive.Form do
 
   def render_link_item(assigns) do
     ~H"""
-    <div class="flex items-center gap-2 p-3 bg-base-100 rounded-lg border border-base-300">
-      <div class="flex items-center gap-2 flex-1 min-w-0">
-        <%= if @link.icon do %>
-          <span class="text-xl flex-shrink-0">{@link.icon}</span>
-        <% end %>
-        <div class="flex-1 min-w-0">
-          <div class="font-medium truncate">{@link.title}</div>
-          <%= if @link.description do %>
-            <div class="text-sm text-base-content/60 truncate">{@link.description}</div>
-          <% end %>
-          <div class="text-xs text-base-content/40 truncate">{@link.url}</div>
+    <div class="flex items-center gap-3 px-6 py-3 transition-colors hover:bg-base-200/40">
+      <span :if={@link.icon} class="shrink-0 text-xl">{@link.icon}</span>
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="truncate text-sm font-medium">{@link.title}</span>
+          <.chip>{link_type_label(@link.type)}</.chip>
+          <.status_badge :if={!@link.is_visible} tone="warning">Hidden</.status_badge>
         </div>
-        <%= case @link.type do %>
-          <% :embed -> %>
-            <span class="badge badge-info badge-sm">Embed</span>
-          <% :insta_tip -> %>
-            <span class="badge badge-success badge-sm">InstaTip</span>
-          <% :social_feed -> %>
-            <span class="badge badge-secondary badge-sm">Feed</span>
-          <% :standard -> %>
-            <span class="badge badge-ghost badge-sm">Link</span>
-        <% end %>
-        <%= unless @link.is_visible do %>
-          <span class="badge badge-warning badge-sm">Hidden</span>
-        <% end %>
+        <div :if={@link.description} class="truncate text-xs text-base-content/60">
+          {@link.description}
+        </div>
+        <div class="truncate text-xs text-base-content/50">{@link.url}</div>
       </div>
-      <div class="flex items-center gap-1 flex-shrink-0">
-        <button
-          type="button"
+      <div class="flex shrink-0 items-center">
+        <.row_button
+          icon="hero-arrow-up"
+          label="Move up"
           phx-click="move_link"
           phx-value-id={@link.id}
           phx-value-direction="up"
-          class="btn btn-xs btn-ghost"
-          title="Move up"
-        >
-          <.icon name="hero-arrow-up" class="w-4 h-4" />
-        </button>
-        <button
-          type="button"
+        />
+        <.row_button
+          icon="hero-arrow-down"
+          label="Move down"
           phx-click="move_link"
           phx-value-id={@link.id}
           phx-value-direction="down"
-          class="btn btn-xs btn-ghost"
-          title="Move down"
-        >
-          <.icon name="hero-arrow-down" class="w-4 h-4" />
-        </button>
-        <button
-          type="button"
+        />
+        <.row_button
+          icon="hero-pencil-square"
+          label="Edit"
           phx-click="show_edit_link_modal"
           phx-value-id={@link.id}
-          class="btn btn-xs btn-ghost"
-          title="Edit"
-        >
-          <.icon name="hero-pencil" class="w-4 h-4" />
-        </button>
-        <button
-          type="button"
+        />
+        <.row_button
+          icon="hero-trash"
+          label="Delete"
+          tone="error"
           phx-click="delete_link"
           phx-value-id={@link.id}
           data-confirm="Are you sure you want to delete this link?"
-          class="btn btn-xs btn-ghost text-error"
-          title="Delete"
-        >
-          <.icon name="hero-trash" class="w-4 h-4" />
-        </button>
+        />
       </div>
     </div>
+    """
+  end
+
+  defp link_type_label(:embed), do: "Embed"
+  defp link_type_label(:insta_tip), do: "InstaTip"
+  defp link_type_label(:social_feed), do: "Feed"
+  defp link_type_label(:standard), do: "Link"
+
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+  attr :tone, :string, default: "neutral", values: ~w(neutral error)
+  attr :rest, :global
+
+  defp row_button(assigns) do
+    ~H"""
+    <button
+      type="button"
+      class={["btn btn-ghost btn-sm btn-square", @tone == "error" && "text-error"]}
+      title={@label}
+      aria-label={@label}
+      {@rest}
+    >
+      <.icon name={@icon} class="size-4" />
+    </button>
+    """
+  end
+
+  attr :name, :string, required: true
+  attr :value, :string, required: true
+  attr :checked, :boolean, required: true
+  attr :label, :string, required: true
+  attr :class, :any, default: nil
+
+  defp style_option(assigns) do
+    ~H"""
+    <label class="cursor-pointer">
+      <input type="radio" name={@name} value={@value} checked={@checked} class="hidden peer" />
+      <span class={["btn btn-sm peer-checked:btn-primary", @class]}>{@label}</span>
+    </label>
+    """
+  end
+
+  attr :label, :string, required: true
+  attr :name, :string, required: true
+  attr :value, :string, default: nil
+
+  defp color_field(assigns) do
+    ~H"""
+    <label class="flex flex-col gap-1">
+      <span class="text-xs text-base-content/60">{@label}</span>
+      <input
+        type="color"
+        name={@name}
+        value={@value}
+        class="h-10 w-16 cursor-pointer rounded-lg border border-base-300 bg-base-100 p-1"
+      />
+    </label>
     """
   end
 end

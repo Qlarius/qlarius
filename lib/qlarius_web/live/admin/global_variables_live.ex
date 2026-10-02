@@ -1,6 +1,8 @@
 defmodule QlariusWeb.Admin.GlobalVariablesLive do
   use QlariusWeb, :live_view
 
+  import QlariusWeb.Components.MarketerUI
+
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.System
   alias Qlarius.System.GlobalVariable
@@ -61,8 +63,9 @@ defmodule QlariusWeb.Admin.GlobalVariablesLive do
 
   @impl true
   def handle_event("save_variable", params, socket) do
-    name = String.trim(params["name"])
-    value = String.trim(params["value"])
+    editing = socket.assigns.editing_variable
+    name = if editing, do: editing.name, else: String.trim(params["name"] || "")
+    value = String.trim(params["value"] || "")
 
     result =
       if socket.assigns.editing_variable do
@@ -136,157 +139,152 @@ defmodule QlariusWeb.Admin.GlobalVariablesLive do
           <AdminTopbar.topbar current_user={@current_scope.user} />
 
           <div class="overflow-auto">
-            <div class="p-6">
-              <div class="flex justify-between items-center mb-6">
-                <div>
-                  <h1 class="text-3xl font-bold">Global Variables</h1>
-                  <p class="text-base-content/60 mt-1">
-                    Manage application-wide configuration variables
-                  </p>
-                </div>
-                <button phx-click="new_variable" class="btn btn-primary gap-2">
-                  <.icon name="hero-plus" class="w-5 h-5" /> Add Variable
-                </button>
-              </div>
+            <.page class="max-w-5xl">
+              <.page_header
+                title="Global variables"
+                count={@total_count}
+                subtitle="Application-wide configuration values."
+              >
+                <:actions>
+                  <button type="button" phx-click="new_variable" class="btn btn-primary btn-sm">
+                    <.icon name="hero-plus" class="size-4" /> New variable
+                  </button>
+                </:actions>
+              </.page_header>
 
-              <%!-- Stats --%>
-              <div class="stats shadow mb-6">
-                <div class="stat">
-                  <div class="stat-title">Total Variables</div>
-                  <div class="stat-value">{@total_count}</div>
-                  <div class="stat-desc">Configuration settings</div>
-                </div>
-              </div>
-
-              <%!-- Search --%>
-              <div class="form-control mb-6">
-                <.form for={%{}} phx-change="search" phx-debounce="300">
-                  <input
-                    type="text"
-                    name="search"
-                    placeholder="Search by name..."
-                    class="input input-bordered w-full max-w-xs"
-                    value={@search_query}
-                  />
+              <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <.form for={%{}} phx-change="search" class="w-full sm:max-w-sm">
+                  <label class="input w-full">
+                    <.icon name="hero-magnifying-glass" class="size-4 text-base-content/50" />
+                    <input
+                      type="text"
+                      name="search"
+                      placeholder="Search by name"
+                      value={@search_query}
+                      phx-debounce="300"
+                      autocomplete="off"
+                      class="grow"
+                    />
+                  </label>
                 </.form>
               </div>
 
-              <%!-- Variable Form Modal --%>
-              <%= if @show_form do %>
-                <div class="modal modal-open">
-                  <div class="modal-box">
-                    <h3 class="font-bold text-lg mb-4">
-                      {if @editing_variable, do: "Edit Variable", else: "Add New Variable"}
-                    </h3>
+              <.panel flush>
+                <.empty_state
+                  :if={@variables == [] and @search_query == ""}
+                  icon="hero-cog-6-tooth"
+                  title="No variables yet"
+                >
+                  Add a variable to share a configuration value across the app.
+                  <:action>
+                    <button type="button" phx-click="new_variable" class="btn btn-primary btn-sm">
+                      <.icon name="hero-plus" class="size-4" /> New variable
+                    </button>
+                  </:action>
+                </.empty_state>
 
-                    <.form
-                      for={%{}}
-                      phx-submit="save_variable"
-                      class="space-y-4"
-                      autocomplete="off"
-                      data-form-type="other"
+                <.empty_state
+                  :if={@variables == [] and @search_query != ""}
+                  icon="hero-magnifying-glass"
+                  title={"No variables match \"#{@search_query}\""}
+                />
+
+                <.data_table
+                  :if={@variables != []}
+                  id="global-variables-table"
+                  rows={@variables}
+                  row_id={&"variable-#{&1.id}"}
+                >
+                  <:col :let={variable} label="Name">
+                    <span class="font-mono text-sm font-semibold">{variable.name}</span>
+                  </:col>
+                  <:col :let={variable} label="Value">
+                    <p
+                      class="max-w-md truncate font-mono text-sm text-base-content/70"
+                      title={variable.value}
                     >
-                      <div class="form-control">
-                        <label class="label">
-                          <span class="label-text">Name</span>
-                        </label>
-                        <input
-                          type="text"
-                          name="name"
-                          value={@form_name}
-                          class="input input-bordered"
-                          required
-                          pattern="[A-Z0-9_]+"
-                          title="Uppercase letters, numbers, and underscores only"
-                          maxlength="64"
-                          disabled={@editing_variable != nil}
-                        />
-                        <label class="label">
-                          <span class="label-text-alt">Use UPPERCASE_SNAKE_CASE</span>
-                        </label>
-                      </div>
+                      {variable.value || "(empty)"}
+                    </p>
+                  </:col>
+                  <:action :let={variable}>
+                    <.icon_button
+                      icon="hero-pencil-square"
+                      label="Edit"
+                      phx-click="edit_variable"
+                      phx-value-id={variable.id}
+                    />
+                  </:action>
+                  <:action :let={variable}>
+                    <.icon_button
+                      icon="hero-trash"
+                      label="Delete"
+                      tone="error"
+                      phx-click="delete_variable"
+                      phx-value-id={variable.id}
+                      data-confirm={"Delete #{variable.name}? This cannot be undone."}
+                    />
+                  </:action>
+                </.data_table>
+              </.panel>
 
-                      <div class="form-control">
-                        <label class="label">
-                          <span class="label-text">Value</span>
-                        </label>
-                        <textarea
-                          name="value"
-                          class="textarea textarea-bordered h-24"
-                          required
-                        >{@form_value}</textarea>
-                        <label class="label">
-                          <span class="label-text-alt">
-                            All values are stored as strings
-                          </span>
-                        </label>
-                      </div>
+              <div :if={@show_form} class="modal modal-open">
+                <div class="modal-box max-w-lg p-0">
+                  <.form
+                    for={%{}}
+                    phx-submit="save_variable"
+                    autocomplete="off"
+                    data-form-type="other"
+                  >
+                    <header class="px-6 pt-6 pb-4">
+                      <h3 class="text-lg font-semibold">
+                        {if @editing_variable, do: "Edit variable", else: "New variable"}
+                      </h3>
+                      <p class="mt-1 text-sm text-base-content/60">
+                        All values are stored as strings.
+                      </p>
+                    </header>
 
-                      <div class="modal-action">
-                        <button type="button" phx-click="cancel_form" class="btn">
-                          Cancel
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                          Save
-                        </button>
-                      </div>
-                    </.form>
-                  </div>
+                    <div class="px-6 pb-6">
+                      <fieldset class="fieldset mb-2">
+                        <label>
+                          <span class="fieldset-label mb-1">Name</span>
+                          <input
+                            type="text"
+                            name="name"
+                            value={@form_name}
+                            class="input w-full font-mono"
+                            required
+                            pattern="[A-Z0-9_]+"
+                            title="Uppercase letters, numbers, and underscores only"
+                            maxlength="64"
+                            disabled={@editing_variable != nil}
+                          />
+                        </label>
+                        <p class="fieldset-description mt-1">Use UPPERCASE_SNAKE_CASE</p>
+                      </fieldset>
+
+                      <fieldset class="fieldset mb-2">
+                        <label>
+                          <span class="fieldset-label mb-1">Value</span>
+                          <textarea
+                            name="value"
+                            class="textarea h-24 w-full font-mono"
+                            required
+                          >{@form_value}</textarea>
+                        </label>
+                      </fieldset>
+                    </div>
+
+                    <footer class="flex items-center justify-end gap-2 border-t border-base-300 bg-base-200/40 px-6 py-4">
+                      <button type="button" phx-click="cancel_form" class="btn btn-ghost">
+                        Cancel
+                      </button>
+                      <button type="submit" class="btn btn-primary">Save variable</button>
+                    </footer>
+                  </.form>
                 </div>
-              <% end %>
-
-              <%!-- Variables Table --%>
-              <div class="overflow-x-auto">
-                <table class="table table-zebra w-full">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Value</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <%= if @variables == [] do %>
-                      <tr>
-                        <td colspan="3" class="text-center py-8 text-base-content/60">
-                          No variables found. Click "Add Variable" to create one.
-                        </td>
-                      </tr>
-                    <% else %>
-                      <%= for variable <- @variables do %>
-                        <tr>
-                          <td class="font-mono font-bold text-primary">{variable.name}</td>
-                          <td class="font-mono max-w-md truncate" title={variable.value}>
-                            {variable.value || "(empty)"}
-                          </td>
-                          <td>
-                            <div class="flex gap-2">
-                              <button
-                                phx-click="edit_variable"
-                                phx-value-id={variable.id}
-                                class="btn btn-sm btn-ghost"
-                                title="Edit"
-                              >
-                                <.icon name="hero-pencil" class="w-4 h-4" />
-                              </button>
-                              <button
-                                phx-click="delete_variable"
-                                phx-value-id={variable.id}
-                                data-confirm="Are you sure you want to delete this variable?"
-                                class="btn btn-sm btn-ghost text-error"
-                                title="Delete"
-                              >
-                                <.icon name="hero-trash" class="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      <% end %>
-                    <% end %>
-                  </tbody>
-                </table>
               </div>
-            </div>
+            </.page>
           </div>
         </div>
       </div>

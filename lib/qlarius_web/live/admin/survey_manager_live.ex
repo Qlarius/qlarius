@@ -1,6 +1,8 @@
 defmodule QlariusWeb.Admin.SurveyManagerLive do
   use QlariusWeb, :live_view
 
+  import QlariusWeb.Components.MarketerUI
+
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.YouData.SurveyManager
   alias Qlarius.YouData.Surveys.Survey
@@ -276,232 +278,197 @@ defmodule QlariusWeb.Admin.SurveyManagerLive do
           <AdminTopbar.topbar current_user={@current_scope.user} />
 
           <div class="overflow-auto">
-            <div class="max-w-[1600px] mx-auto p-6">
-              <h1 class="text-3xl font-bold mb-6">Survey Manager</h1>
+            <.page class="max-w-[1600px]">
+              <.page_header
+                title="Survey manager"
+                subtitle="Pick a survey to order its questions, or add questions from the catalog."
+              >
+                <:actions>
+                  <button type="button" phx-click="new_survey" class="btn btn-primary btn-sm">
+                    <.icon name="hero-plus" class="size-4" /> New survey
+                  </button>
+                </:actions>
+              </.page_header>
 
-              <div class="grid grid-cols-12 gap-6">
-                <%!-- Column 1: Survey Selector --%>
-                <div class="col-span-3">
-                  <div class="card bg-base-100 shadow-xl">
-                    <div class="card-body p-4">
-                      <div class="flex items-center justify-between mb-4">
-                        <h2 class="card-title text-lg">Surveys</h2>
-                        <button
-                          phx-click="new_survey"
-                          class="btn btn-circle btn-sm btn-primary"
-                          title="New Survey"
-                        >
-                          <.icon name="hero-plus" class="w-5 h-5" />
-                        </button>
-                      </div>
+              <div class="grid items-start gap-6 lg:grid-cols-12">
+                <.panel flush title="Surveys" class="min-w-0 lg:col-span-3">
+                  <div class="border-b border-base-300 px-4 py-3">
+                    <.search_field
+                      value={@search_query}
+                      placeholder="Search surveys"
+                      name="search"
+                      class="w-full"
+                    />
+                  </div>
 
-                      <div class="form-control mb-4">
-                        <form phx-change="search" class="relative">
-                          <input
-                            type="text"
-                            placeholder="Search..."
-                            class="input input-bordered input-sm w-full pr-8"
-                            value={@search_query}
-                            phx-debounce="300"
-                            name="search"
-                          />
-                          <button
-                            type="button"
-                            phx-click="clear_search"
-                            class={[
-                              "absolute right-2 top-1/2 -translate-y-1/2",
-                              @search_query == "" && "invisible pointer-events-none"
-                            ]}
-                          >
-                            <.icon name="hero-x-circle" class="w-4 h-4 opacity-50 hover:opacity-100" />
-                          </button>
-                        </form>
-                      </div>
-
-                      <div class="overflow-y-auto max-h-[600px] space-y-1">
-                        <%= if @surveys == [] do %>
-                          <div class="text-center text-sm text-base-content/50 py-4">
-                            No surveys found
-                          </div>
-                        <% else %>
-                          <%= for surveys <- Enum.chunk_by(@surveys, & &1.survey_category_id) do %>
-                            <div class="mb-4">
-                              <div class="text-xs font-bold text-base-content/60 px-2 py-1 uppercase">
-                                {category_name(hd(surveys))}
-                              </div>
-                              <%= for survey <- surveys do %>
-                                <div
-                                  phx-click="select_survey"
-                                  phx-value-id={survey.id}
-                                  class={[
-                                    "flex items-center justify-between p-2 rounded hover:bg-base-200 cursor-pointer",
-                                    @selected_survey && @selected_survey.id == survey.id &&
-                                      "bg-primary/10"
-                                  ]}
-                                >
-                                  <span class="text-sm truncate flex-1">{survey.name}</span>
-                                  <.icon
-                                    name="hero-chevron-right"
-                                    class="w-4 h-4 text-base-content/40"
-                                  />
-                                </div>
-                              <% end %>
-                            </div>
-                          <% end %>
-                        <% end %>
-                      </div>
+                  <div class="max-h-[600px] overflow-y-auto py-2">
+                    <p
+                      :if={@surveys == []}
+                      class="px-6 py-4 text-center text-sm text-base-content/60"
+                    >
+                      No surveys found
+                    </p>
+                    <div
+                      :for={surveys <- Enum.chunk_by(@surveys, & &1.survey_category_id)}
+                      class="mb-2"
+                    >
+                      <p class="px-4 pt-2 pb-1 text-xs font-medium text-base-content/50">
+                        {category_name(hd(surveys))}
+                      </p>
+                      <button
+                        :for={survey <- surveys}
+                        type="button"
+                        phx-click="select_survey"
+                        phx-value-id={survey.id}
+                        class={[
+                          "flex w-full items-center justify-between gap-2 px-4 py-2 text-left text-sm transition-colors",
+                          if(@selected_survey && @selected_survey.id == survey.id,
+                            do: "bg-primary/10 font-medium text-primary",
+                            else: "hover:bg-base-200/60"
+                          )
+                        ]}
+                      >
+                        <span class="flex-1 truncate">{survey.name}</span>
+                        <.icon name="hero-chevron-right" class="size-4 text-base-content/40" />
+                      </button>
                     </div>
                   </div>
-                </div>
+                </.panel>
 
-                <%!-- Column 2: Survey Details --%>
-                <div class="col-span-6">
+                <div class="min-w-0 lg:col-span-6">
                   <%= if @selected_survey do %>
-                    <div class="card bg-base-100 shadow-xl">
-                      <div class="card-body p-4">
-                        <div class="flex items-center justify-between mb-4">
-                          <div>
-                            <h2 class="text-2xl font-bold">{@selected_survey.name}</h2>
-                            <p class="text-sm text-base-content/70">
-                              Category: {category_name(@selected_survey)}
-                            </p>
-                            <p class="text-sm text-base-content/70">
-                              Questions: {length(@selected_survey.survey_question_surveys)}
-                            </p>
+                    <.panel
+                      flush
+                      title={@selected_survey.name}
+                      description={"#{category_name(@selected_survey)} · #{length(@selected_survey.survey_question_surveys)} questions"}
+                    >
+                      <:actions>
+                        <.icon_button
+                          icon="hero-pencil-square"
+                          label="Edit survey"
+                          phx-click="edit_survey"
+                        />
+                      </:actions>
+
+                      <.empty_state
+                        :if={@selected_survey.survey_question_surveys == []}
+                        icon="hero-question-mark-circle"
+                        title="No questions in this survey yet"
+                      >
+                        Add questions from the catalog on the right.
+                      </.empty_state>
+
+                      <ul
+                        :if={@selected_survey.survey_question_surveys != []}
+                        class="divide-y divide-base-300"
+                      >
+                        <li
+                          :for={
+                            {sqs, index} <- Enum.with_index(@selected_survey.survey_question_surveys)
+                          }
+                          class="flex items-start gap-3 px-6 py-4 transition-colors hover:bg-base-200/40"
+                        >
+                          <div class="flex flex-col gap-1">
+                            <button
+                              type="button"
+                              phx-click="move_up"
+                              phx-value-question_id={sqs.survey_question_id}
+                              class={["btn btn-ghost btn-xs btn-square", index == 0 && "invisible"]}
+                              title="Move up"
+                              aria-label="Move up"
+                            >
+                              <.icon name="hero-chevron-up" class="size-4" />
+                            </button>
+                            <button
+                              type="button"
+                              phx-click="move_down"
+                              phx-value-question_id={sqs.survey_question_id}
+                              class={[
+                                "btn btn-ghost btn-xs btn-square",
+                                index == length(@selected_survey.survey_question_surveys) - 1 &&
+                                  "invisible"
+                              ]}
+                              title="Move down"
+                              aria-label="Move down"
+                            >
+                              <.icon name="hero-chevron-down" class="size-4" />
+                            </button>
                           </div>
-                          <button
-                            phx-click="edit_survey"
-                            class="btn btn-sm btn-ghost"
-                            title="Edit Survey"
-                          >
-                            <.icon name="hero-pencil-square" class="w-4 h-4" />
-                          </button>
-                        </div>
 
-                        <div class="divider"></div>
+                          <div class="min-w-0 flex-1">
+                            <%= if question = sqs.survey_question do %>
+                              <p :if={question.trait} class="text-xs text-base-content/50">
+                                {question.trait.trait_name}
+                              </p>
+                              <p class="mt-0.5 text-sm font-medium">{question.text}</p>
 
-                        <%= if @selected_survey.survey_question_surveys == [] do %>
-                          <div class="text-center py-8 text-base-content/50">
-                            No questions in this survey yet
-                          </div>
-                        <% else %>
-                          <div class="space-y-0">
-                            <%= for {sqs, index} <- Enum.with_index(@selected_survey.survey_question_surveys) do %>
-                              <div class="flex items-start gap-3 py-4 px-2 border-b border-base-content/10 hover:bg-base-200">
-                                <div class="flex flex-col gap-1">
-                                  <button
-                                    phx-click="move_up"
-                                    phx-value-question_id={sqs.survey_question_id}
-                                    class={[
-                                      "btn btn-xs btn-circle btn-ghost",
-                                      index == 0 && "invisible"
-                                    ]}
-                                    title="Move up"
-                                  >
-                                    <.icon name="hero-chevron-up" class="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    phx-click="move_down"
-                                    phx-value-question_id={sqs.survey_question_id}
-                                    class={[
-                                      "btn btn-xs btn-circle btn-ghost",
-                                      index == length(@selected_survey.survey_question_surveys) - 1 &&
-                                        "invisible"
-                                    ]}
-                                    title="Move down"
-                                  >
-                                    <.icon name="hero-chevron-down" class="w-4 h-4" />
-                                  </button>
-                                </div>
-
-                                <div class="flex-1">
-                                  <%= if question = sqs.survey_question do %>
-                                    <div
-                                      :if={question.trait}
-                                      class="text-sm font-semibold text-base-content/70"
-                                    >
-                                      {question.trait.trait_name}
-                                    </div>
-                                    <div class="text-base mt-1">
-                                      {question.text}
-                                    </div>
-
-                                    <%= if question.trait && question.trait.child_traits != [] do %>
-                                      <% is_expanded =
-                                        MapSet.member?(@expanded_questions, sqs.survey_question_id) %>
-                                      <button
-                                        phx-click="toggle_question_answers"
-                                        phx-value-question_id={sqs.survey_question_id}
-                                        class="btn btn-xs btn-ghost mt-2"
-                                      >
-                                        <.icon
-                                          name={
-                                            if is_expanded,
-                                              do: "hero-chevron-up",
-                                              else: "hero-chevron-down"
-                                          }
-                                          class="w-3 h-3"
-                                        />
-                                        {if is_expanded, do: "Hide", else: "Show"} Answers
-                                        ({length(question.trait.child_traits)})
-                                      </button>
-
-                                      <%= if is_expanded do %>
-                                        <div class="mt-3 ml-4 space-y-1">
-                                          <%= for child <- question.trait.child_traits do %>
-                                            <div class="flex items-start gap-2 text-sm">
-                                              <div class="badge badge-sm badge-outline">
-                                                {child.display_order}
-                                              </div>
-                                              <div class="flex-1">
-                                                <span class="font-medium">{child.trait_name}</span>
-                                                <span
-                                                  :if={child.survey_answer}
-                                                  class="text-base-content/60 ml-2"
-                                                >
-                                                  - {child.survey_answer.text}
-                                                </span>
-                                              </div>
-                                            </div>
-                                          <% end %>
-                                        </div>
-                                      <% end %>
-                                    <% end %>
-                                  <% else %>
-                                    <p class="text-sm text-error">
-                                      Question {sqs.survey_question_id} is missing from the catalog
-                                    </p>
-                                  <% end %>
-                                </div>
-
+                              <%= if question.trait && question.trait.child_traits != [] do %>
+                                <% is_expanded =
+                                  MapSet.member?(@expanded_questions, sqs.survey_question_id) %>
                                 <button
-                                  phx-click="remove_question"
+                                  type="button"
+                                  phx-click="toggle_question_answers"
                                   phx-value-question_id={sqs.survey_question_id}
-                                  data-confirm="Remove this question from the survey?"
-                                  class="btn btn-xs btn-circle btn-ghost text-error"
-                                  title="Remove from survey"
+                                  class="btn btn-ghost btn-xs mt-2 -ml-2"
+                                  aria-expanded={to_string(is_expanded)}
                                 >
-                                  <.icon name="hero-x-mark" class="w-4 h-4" />
+                                  <.icon
+                                    name={
+                                      if is_expanded, do: "hero-chevron-up", else: "hero-chevron-down"
+                                    }
+                                    class="size-3"
+                                  />
+                                  {if is_expanded, do: "Hide", else: "Show"} answers ({length(
+                                    question.trait.child_traits
+                                  )})
                                 </button>
-                              </div>
+
+                                <ul :if={is_expanded} class="mt-2 space-y-1.5">
+                                  <li
+                                    :for={child <- question.trait.child_traits}
+                                    class="flex items-start gap-2 text-sm"
+                                  >
+                                    <.chip>{child.display_order}</.chip>
+                                    <div class="min-w-0 flex-1">
+                                      <span class="font-medium">{child.trait_name}</span>
+                                      <span
+                                        :if={child.survey_answer}
+                                        class="ml-1 text-base-content/60"
+                                      >
+                                        - {child.survey_answer.text}
+                                      </span>
+                                    </div>
+                                  </li>
+                                </ul>
+                              <% end %>
+                            <% else %>
+                              <p class="text-sm text-error">
+                                Question {sqs.survey_question_id} is missing from the catalog
+                              </p>
                             <% end %>
                           </div>
-                        <% end %>
-                      </div>
-                    </div>
+
+                          <.icon_button
+                            icon="hero-x-mark"
+                            label="Remove from survey"
+                            tone="error"
+                            phx-click="remove_question"
+                            phx-value-question_id={sqs.survey_question_id}
+                            data-confirm="Remove this question from the survey?"
+                          />
+                        </li>
+                      </ul>
+                    </.panel>
                   <% else %>
-                    <div class="card bg-base-100 shadow-xl">
-                      <div class="card-body">
-                        <p class="text-center text-base-content/50">
-                          Select a survey to view details
-                        </p>
-                      </div>
-                    </div>
+                    <.panel>
+                      <.empty_state icon="hero-clipboard-document-list" title="No survey selected">
+                        Select a survey to view its questions.
+                      </.empty_state>
+                    </.panel>
                   <% end %>
                 </div>
 
-                <%!-- Column 3: Editor --%>
-                <div class="col-span-3">
+                <div class="min-w-0 lg:col-span-3">
                   <%= case @editor_mode do %>
                     <% :new_survey -> %>
                       <.survey_form
@@ -523,86 +490,72 @@ defmodule QlariusWeb.Admin.SurveyManagerLive do
                       />
                     <% nil -> %>
                       <%= if @selected_survey do %>
-                        <div class="card bg-base-100 shadow-xl">
-                          <div class="card-body p-4">
-                            <h3 class="text-lg font-bold mb-4">Add Questions</h3>
-
-                            <div class="form-control mb-4">
-                              <form phx-change="search_available" class="relative">
-                                <input
-                                  type="text"
-                                  placeholder="Search questions..."
-                                  class="input input-bordered input-sm w-full pr-8"
-                                  value={@available_search}
-                                  phx-debounce="300"
-                                  name="search"
-                                />
-                                <button
-                                  type="button"
-                                  phx-click="clear_available_search"
-                                  class={[
-                                    "absolute right-2 top-1/2 -translate-y-1/2",
-                                    @available_search == "" && "invisible pointer-events-none"
-                                  ]}
-                                >
-                                  <.icon
-                                    name="hero-x-circle"
-                                    class="w-4 h-4 opacity-50 hover:opacity-100"
-                                  />
-                                </button>
-                              </form>
-                            </div>
-
-                            <div class="overflow-y-auto max-h-[500px] space-y-2">
-                              <%= if @available_questions == [] do %>
-                                <div class="text-center text-sm text-base-content/50 py-4">
-                                  No available questions
-                                </div>
-                              <% else %>
-                                <%= for traits <- @available_questions |> Enum.reject(&is_nil(&1.trait_category)) |> Enum.chunk_by(& &1.trait_category_id) do %>
-                                  <div>
-                                    <div class="text-xs font-bold text-base-content/60 px-2 py-1 uppercase">
-                                      {hd(traits).trait_category.name}
-                                    </div>
-                                    <%= for trait <- traits do %>
-                                      <div class="flex items-start gap-2 p-2 rounded hover:bg-base-200">
-                                        <button
-                                          phx-click="add_question"
-                                          phx-value-question_id={trait.survey_question.id}
-                                          class="btn btn-xs btn-circle btn-primary"
-                                          title="Add to survey"
-                                        >
-                                          <.icon name="hero-arrow-left" class="w-3 h-3" />
-                                        </button>
-                                        <div class="flex-1">
-                                          <div class="text-xs font-semibold text-base-content/70">
-                                            {trait.trait_name}
-                                          </div>
-                                          <div class="text-xs mt-1 text-base-content/60">
-                                            {trait.survey_question.text}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    <% end %>
-                                  </div>
-                                <% end %>
-                              <% end %>
-                            </div>
+                        <.panel
+                          flush
+                          title="Add questions"
+                          description="Questions not yet in this survey."
+                        >
+                          <div class="border-b border-base-300 px-4 py-3">
+                            <.search_field
+                              value={@available_search}
+                              placeholder="Search questions"
+                              on_change="search_available"
+                              on_clear="clear_available_search"
+                              name="search"
+                              class="w-full"
+                            />
                           </div>
-                        </div>
-                      <% else %>
-                        <div class="card bg-base-100 shadow-xl">
-                          <div class="card-body">
-                            <p class="text-center text-base-content/50">
-                              Select a survey to add questions
+
+                          <div class="max-h-[500px] overflow-y-auto py-2">
+                            <p
+                              :if={@available_questions == []}
+                              class="px-6 py-4 text-center text-sm text-base-content/60"
+                            >
+                              No available questions
                             </p>
+                            <div
+                              :for={
+                                traits <-
+                                  @available_questions
+                                  |> Enum.reject(&is_nil(&1.trait_category))
+                                  |> Enum.chunk_by(& &1.trait_category_id)
+                              }
+                              class="mb-2"
+                            >
+                              <p class="px-4 pt-2 pb-1 text-xs font-medium text-base-content/50">
+                                {hd(traits).trait_category.name}
+                              </p>
+                              <div
+                                :for={trait <- traits}
+                                class="flex items-start gap-2 px-4 py-2 transition-colors hover:bg-base-200/40"
+                              >
+                                <.icon_button
+                                  icon="hero-arrow-left"
+                                  label="Add to survey"
+                                  phx-click="add_question"
+                                  phx-value-question_id={trait.survey_question.id}
+                                />
+                                <div class="min-w-0 flex-1">
+                                  <p class="text-xs font-medium">{trait.trait_name}</p>
+                                  <p class="mt-0.5 text-xs text-base-content/60">
+                                    {trait.survey_question.text}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
+                        </.panel>
+                      <% else %>
+                        <.panel>
+                          <.empty_state icon="hero-plus-circle" title="Add questions">
+                            Select a survey to add questions to it.
+                          </.empty_state>
+                        </.panel>
                       <% end %>
                   <% end %>
                 </div>
               </div>
-            </div>
+            </.page>
           </div>
         </div>
       </div>
@@ -612,79 +565,51 @@ defmodule QlariusWeb.Admin.SurveyManagerLive do
 
   defp survey_form(assigns) do
     ~H"""
-    <div class="card bg-base-100 shadow-xl">
-      <div class="card-body p-4">
-        <h2 class="card-title text-xl mb-4">
-          <.icon
-            name={if @mode == "new", do: "hero-plus-circle", else: "hero-pencil-square"}
-            class="w-5 h-5"
-          />
-          {if @mode == "new", do: "New Survey", else: "Edit Survey"}
-        </h2>
+    <.form for={@form} phx-submit={@on_save}>
+      <.panel
+        title={if @mode == "new", do: "New survey", else: "Edit survey"}
+        description={
+          if @mode == "new",
+            do: "Create a survey, then add questions.",
+            else: "Rename or recategorize."
+        }
+      >
+        <.input field={@form[:name]} type="text" label="Survey name" required />
 
-        <.form for={@form} phx-submit={@on_save}>
-          <div class="space-y-4">
-            <.input
-              field={@form[:name]}
-              type="text"
-              label="Survey name"
-              class="input input-bordered w-full"
-              required
-            />
+        <.input
+          field={@form[:survey_category_id]}
+          type="select"
+          label="Survey category"
+          prompt="Select category..."
+          options={Enum.map(@survey_categories, &{&1.survey_category_name, &1.id})}
+          required
+        />
 
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text font-semibold">Survey category</span>
-              </label>
-              <select name="survey[survey_category_id]" class="select select-bordered w-full" required>
-                <option value="">Select category...</option>
-                <%= for category <- @survey_categories do %>
-                  <option
-                    value={category.id}
-                    selected={
-                      Phoenix.HTML.Form.input_value(@form, :survey_category_id) == category.id
-                    }
-                  >
-                    {category.survey_category_name}
-                  </option>
-                <% end %>
-              </select>
-            </div>
+        <.input
+          :if={@mode == "edit"}
+          field={@form[:display_order]}
+          type="number"
+          label="Display order"
+          required
+        />
 
-            <%= if @mode == "edit" do %>
-              <.input
-                field={@form[:display_order]}
-                type="number"
-                label="Display order"
-                class="input input-bordered w-full"
-                required
-              />
-            <% end %>
-
-            <div class="flex gap-2">
-              <button type="submit" class="btn btn-primary flex-1">
-                {if @mode == "new", do: "Create Survey", else: "Update Survey"}
-              </button>
-              <button type="button" phx-click={@on_cancel} class="btn btn-ghost">
-                Cancel
-              </button>
-            </div>
-
-            <%= if @mode == "edit" && assigns[:on_delete] do %>
-              <div class="divider"></div>
-              <button
-                type="button"
-                phx-click={@on_delete}
-                data-confirm="Delete this survey? This cannot be undone."
-                class="btn btn-error w-full"
-              >
-                Delete Survey
-              </button>
-            <% end %>
-          </div>
-        </.form>
-      </div>
-    </div>
+        <:footer>
+          <button
+            :if={@mode == "edit" && assigns[:on_delete]}
+            type="button"
+            phx-click={@on_delete}
+            data-confirm="Delete this survey? This cannot be undone."
+            class="btn btn-ghost text-error mr-auto"
+          >
+            <.icon name="hero-trash" class="size-4" /> Delete
+          </button>
+          <button type="button" phx-click={@on_cancel} class="btn btn-ghost">Cancel</button>
+          <.button variant="primary">
+            {if @mode == "new", do: "Create survey", else: "Update survey"}
+          </.button>
+        </:footer>
+      </.panel>
+    </.form>
     """
   end
 

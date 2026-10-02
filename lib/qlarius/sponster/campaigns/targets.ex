@@ -16,15 +16,22 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
   def list_targets_for_marketer(marketer_id),
     do: list_targets_for_owner({:marketer, marketer_id})
 
-  def list_targets_for_owner(owner) do
+  def list_archived_targets_for_marketer(marketer_id),
+    do: list_targets_for_owner({:marketer, marketer_id}, archived: true)
+
+  def list_targets_for_owner(owner, opts \\ []) do
     from(t in Target,
       order_by: [desc: t.created_at],
       preload: [target_bands: [:trait_groups]]
     )
     |> owner_filter(owner)
+    |> archived_filter(Keyword.get(opts, :archived, false))
     |> Repo.all()
     |> Enum.map(&add_target_stats/1)
   end
+
+  defp archived_filter(query, true), do: where(query, [t], not is_nil(t.archived_at))
+  defp archived_filter(query, false), do: where(query, [t], is_nil(t.archived_at))
 
   def get_target_for_marketer!(id, marketer_id),
     do: get_target_for_owner!(id, {:marketer, marketer_id})
@@ -54,8 +61,59 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
     |> Repo.update()
   end
 
+  @doc """
+  Deletes a target with its bands, band trait group links and population.
+
+  Refused once any campaign has referenced the target, active or not: bids,
+  offers and ad events point at its bands without foreign keys, so deleting
+  would silently orphan billing history. Archive those instead.
+  """
   def delete_target(%Target{} = target) do
-    Repo.delete(target)
+    if used_in_campaign?(target.id) do
+      {:error, :used_in_campaign}
+    else
+      Repo.transaction(fn ->
+        band_ids = from(tb in TargetBand, where: tb.target_id == ^target.id, select: tb.id)
+
+        Repo.delete_all(
+          from(tp in Qlarius.Sponster.Campaigns.TargetPopulation,
+            where: tp.target_band_id in subquery(band_ids)
+          )
+        )
+
+        Repo.delete_all(
+          from(tbtg in TargetBandTraitGroup, where: tbtg.target_band_id in subquery(band_ids))
+        )
+
+        Repo.delete_all(from(tb in TargetBand, where: tb.target_id == ^target.id))
+
+        case Repo.delete(target) do
+          {:ok, target} -> target
+          {:error, changeset} -> Repo.rollback(changeset)
+        end
+      end)
+    end
+  end
+
+  def archive_target(%Target{} = target) do
+    if is_frozen?(target.id) do
+      {:error, :in_live_campaign}
+    else
+      target
+      |> Ecto.Changeset.change(archived_at: NaiveDateTime.utc_now(:second))
+      |> Repo.update()
+    end
+  end
+
+  def unarchive_target(%Target{} = target) do
+    target
+    |> Ecto.Changeset.change(archived_at: nil)
+    |> Repo.update()
+  end
+
+  def used_in_campaign?(target_id) do
+    from(c in Qlarius.Sponster.Campaigns.Campaign, where: c.target_id == ^target_id)
+    |> Repo.exists?()
   end
 
   def create_bullseye_band(target_id, attrs \\ %{}) do
@@ -439,13 +497,15 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
       |> Repo.one()
 
     is_frozen = is_frozen?(target.id)
+    used_in_campaign = is_frozen or used_in_campaign?(target.id)
 
     Map.merge(target, %{
       bullseye_trait_groups: bullseye_trait_groups,
       bullseye_trait_group_count: bullseye_count,
       outer_band_count: outer_band_count,
       total_population: total_population || 0,
-      is_frozen: is_frozen
+      is_frozen: is_frozen,
+      used_in_campaign: used_in_campaign
     })
   end
 

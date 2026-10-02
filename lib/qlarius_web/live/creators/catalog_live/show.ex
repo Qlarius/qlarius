@@ -1,11 +1,14 @@
 defmodule QlariusWeb.Creators.CatalogLive.Show do
   use QlariusWeb, :live_view
 
+  import QlariusWeb.Components.MarketerUI
+
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Tiqit.Arcade.Creators
   alias Qlarius.Tiqit.ContentAudiences
   alias QlariusWeb.AudienceCard
   alias Qlarius.Tiqit.Arcade.Arcade
+  alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.ContentGroup
   alias QlariusWeb.TiqitClassHTML
   alias QlariusWeb.Helpers.ImageHelpers
@@ -65,6 +68,16 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
 
   @impl true
   def render(assigns) do
+    assigns =
+      assign(assigns,
+        catalog_label: Catalog.type_label(assigns.catalog.type),
+        group_label: Catalog.type_label(assigns.catalog.group_type),
+        groups_label: Catalog.type_label(assigns.catalog.group_type, 2),
+        groups: Enum.map(assigns.catalog.content_groups, &%{&1 | catalog: assigns.catalog}),
+        has_image:
+          ImageHelpers.catalog_image_url(assigns.catalog) != ImageHelpers.placeholder_image_url()
+      )
+
     ~H"""
     <Layouts.admin {assigns}>
       <div class="flex h-screen">
@@ -74,286 +87,244 @@ defmodule QlariusWeb.Creators.CatalogLive.Show do
           <AdminTopbar.topbar current_user={@current_scope.user} />
 
           <div class="overflow-auto">
-            <div class="p-6">
-              <div class="space-y-6">
-                <!-- Header Section -->
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div class="min-w-0">
-                    <.breadcrumbs
-                      title={@catalog.name}
-                      crumbs={[
-                        {@creator.name, ~p"/creators/#{@creator.id}"}
-                      ]}
-                      current={"#{String.capitalize(to_string(@catalog.type))}: #{@catalog.name}"}
-                    />
-                    <p class="text-base-content/60 mt-1">
-                      {@catalog.type |> to_string() |> String.capitalize()} • {@creator.name}
-                    </p>
-                  </div>
-                  <div class="flex gap-2">
+            <.page class="max-w-7xl">
+              <.page_header
+                title={@catalog.name}
+                subtitle={"#{@catalog_label} by #{@creator.name}"}
+                crumbs={[{@creator.name, ~p"/creators/#{@creator.id}"}]}
+              >
+                <:actions>
+                  <.link
+                    navigate={~p"/creators/catalogs/#{@catalog.id}/edit"}
+                    class="btn btn-ghost btn-sm"
+                  >
+                    <.icon name="hero-pencil-square" class="size-4" /> Edit
+                  </.link>
+                  <button
+                    type="button"
+                    phx-click="delete"
+                    data-confirm={"Are you sure you want to delete this #{Catalog.type_label(@catalog.type, 1, capitalize: false)}?"}
+                    class="btn btn-ghost btn-sm text-error"
+                  >
+                    <.icon name="hero-trash" class="size-4" /> Delete
+                  </button>
+                </:actions>
+              </.page_header>
+
+              <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+                <.panel
+                  id="catalog-groups"
+                  flush
+                  title={@groups_label}
+                  description={group_count_label(@catalog)}
+                >
+                  <:actions>
                     <.link
-                      navigate={~p"/creators/catalogs/#{@catalog.id}/edit"}
-                      class="btn btn-outline"
+                      navigate={~p"/creators/catalogs/#{@catalog.id}/content_groups/new"}
+                      class="btn btn-primary btn-sm"
                     >
-                      <.icon name="hero-pencil" class="w-4 h-4 mr-2" /> Edit
+                      <.icon name="hero-plus" class="size-4" /> New {String.downcase(@group_label)}
                     </.link>
-                    <button
-                      phx-click="delete"
-                      data-confirm="Are you sure you want to delete this catalog?"
-                      class="btn btn-outline btn-error"
-                    >
-                      <.icon name="hero-trash" class="w-4 h-4 mr-2" /> Delete
-                    </button>
-                  </div>
-                </div>
-                
-    <!-- Overview Section -->
-                <div class="card bg-base-100 shadow-lg">
-                  <div class="card-body">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                      <div>
-                        <h3 class="text-sm font-medium text-base-content mb-2">Catalog Image</h3>
-                        <%= if ImageHelpers.catalog_image_url(@catalog) != ImageHelpers.placeholder_image_url() do %>
-                          <img
-                            src={ImageHelpers.catalog_image_url(@catalog)}
-                            class="w-50 h-50 object-cover rounded border border-base-300"
-                            alt={"#{@catalog.name} image"}
-                          />
-                        <% else %>
-                          <div class="w-48 h-32 rounded bg-base-200 flex items-center justify-center text-base-content/40">
-                            No image
-                          </div>
-                        <% end %>
-                      </div>
+                  </:actions>
 
-                      <div class="md:col-span-1">
-                        <h3 class="text-sm font-medium text-base-content mb-2">Type Hierarchy</h3>
-                        <div class="flex flex-col flex-wrap gap-2">
-                          <span class="badge badge-primary p-4">
-                            <.icon name="hero-rectangle-group" class="w-4 h-4 mr-1" />
-                            Catalog: {@catalog.type |> to_string() |> String.capitalize()}
-                          </span>
-                          <span class="badge badge-secondary p-4">
-                            <.icon name="hero-queue-list" class="w-4 h-4 mr-1" />
-                            Group: {@catalog.group_type |> to_string() |> String.capitalize()}
-                          </span>
-                          <span class="badge badge-info p-4">
-                            <.icon name="hero-document-text" class="w-4 h-4 mr-1" />
-                            Piece: {@catalog.piece_type |> to_string() |> String.capitalize()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-    <!-- URL Section -->
-                <%= if @catalog.url do %>
-                  <div class="card bg-base-100 shadow-lg">
-                    <div class="card-body">
-                      <div class="flex items-center gap-3">
-                        <.icon name="hero-link" class="w-5 h-5 text-base-content/60" />
-                        <div class="flex-1">
-                          <h3 class="text-sm font-medium text-base-content mb-1">Catalog URL</h3>
-                          <.link
-                            href={@catalog.url}
-                            target="_blank"
-                            class="text-primary hover:text-primary-focus break-all"
-                          >
-                            {@catalog.url}
-                          </.link>
-                        </div>
-                        <div class="flex gap-2">
-                          <.link href={@catalog.url} target="_blank" class="btn btn-ghost btn-sm">
-                            <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4" />
-                          </.link>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                <% end %>
-                
-    <!-- Tiqit Classes Section -->
-                <div class="space-y-4">
-                  <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-semibold text-base-content flex items-center">
-                      <.icon name="hero-tag" class="w-6 h-6 mr-3 text-primary" /> {@catalog.type
-                      |> to_string()
-                      |> String.capitalize()}-Level Tiqit Classes
-                    </h2>
-                  </div>
-
-                  <%= if Enum.any?(@catalog.tiqit_classes) do %>
-                    <div class="card bg-base-100 shadow-lg">
-                      <div class="card-body p-0">
-                        <TiqitClassHTML.tiqit_classes_table
-                          record={@catalog}
-                          on_delete="delete_tiqit_class"
-                        />
-                      </div>
-                    </div>
-                  <% else %>
-                    <!-- Empty State for Tiqit Classes -->
-                    <div class="hero min-h-32 bg-base-200 rounded-lg">
-                      <div class="hero-content text-center">
-                        <div class="max-w-md">
-                          <div class="avatar placeholder mb-4">
-                            <div class="bg-neutral-focus text-neutral-content rounded-full w-12 h-12">
-                              <span class="text-lg">🏷️</span>
-                            </div>
-                          </div>
-                          <h3 class="text-lg font-bold text-base-content mb-2">
-                            No Tiqit Classes Yet
-                          </h3>
-                          <p class="text-base-content/60 mb-4">
-                            Set up pricing tiers for this catalog.
-                          </p>
-                          <div class="flex flex-col sm:flex-row gap-3">
-                            <button phx-click="add_default_tiqit_classes" class="btn btn-primary">
-                              <.icon name="hero-plus" class="w-4 h-4 mr-2" /> Add Tiqit Class Defaults
-                            </button>
-                            <.link
-                              navigate={~p"/creators/catalogs/#{@catalog.id}/edit"}
-                              class="btn btn-outline"
-                            >
-                              <.icon name="hero-pencil" class="w-4 h-4 mr-2" /> Edit Manually
-                            </.link>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  <% end %>
-                </div>
-
-                <AudienceCard.card
-                  creator={@creator}
-                  content={@catalog}
-                  effective={@audience}
-                  level={:catalog}
-                />
-                
-    <!-- Content Groups Section -->
-                <div class="space-y-4">
-                  <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-semibold text-base-content flex items-center">
-                      <.icon name="hero-folder" class="w-6 h-6 mr-3 text-secondary" />
-                      {@catalog.group_type |> to_string() |> String.capitalize()}
-                    </h2>
-                    <div class="flex gap-2">
+                  <.empty_state
+                    :if={@catalog.content_groups == []}
+                    icon="hero-folder"
+                    title={"No #{Catalog.type_label(@catalog.group_type, 2, capitalize: false)} yet"}
+                  >
+                    Start building this {Catalog.type_label(@catalog.type, 1, capitalize: false)} by adding {Catalog.type_with_article(
+                      @catalog.group_type
+                    )}.
+                    <:action>
                       <.link
                         navigate={~p"/creators/catalogs/#{@catalog.id}/content_groups/new"}
-                        class="btn btn-primary"
+                        class="btn btn-primary btn-sm"
                       >
-                        <.icon name="hero-plus" class="w-4 h-4 mr-2" />
-                        New {@catalog.group_type |> to_string() |> String.capitalize()}
+                        <.icon name="hero-plus" class="size-4" />
+                        Add first {Catalog.type_label(@catalog.group_type, 1, capitalize: false)}
                       </.link>
-                    </div>
-                  </div>
+                    </:action>
+                  </.empty_state>
 
-                  <%= if Enum.any?(@catalog.content_groups) do %>
-                    <div class="card bg-base-100 shadow-lg">
-                      <div class="card-body p-0">
-                        <div class="overflow-x-auto">
-                          <table class="table table-zebra w-full">
-                            <thead class="bg-base-200">
-                              <tr>
-                                <th class="font-semibold text-base-content">Name</th>
-                                <th class="font-semibold text-base-content">
-                                  {@catalog.piece_type |> to_string() |> String.capitalize()} count
-                                </th>
-                                <th class="font-semibold text-base-content text-right">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody class="divide-y divide-base-300">
-                              <%= for group <- @catalog.content_groups,
-                                      group = %{group | catalog: @catalog} do %>
-                                <tr
-                                  class="hover:bg-base-200 cursor-pointer transition-colors"
-                                  phx-click={JS.navigate(~p"/creators/content_groups/#{group.id}")}
-                                >
-                                  <td class="font-medium text-base-content">
-                                    <div class="flex items-center gap-3">
-                                      <div class="w-10 h-10">
-                                        <%= if ImageHelpers.group_image_url(group) != ImageHelpers.placeholder_image_url() do %>
-                                          <img
-                                            src={ImageHelpers.group_image_url(group)}
-                                            class="w-10 h-10 object-cover rounded"
-                                            alt={"#{group.title} image"}
-                                          />
-                                        <% else %>
-                                          <div class="avatar placeholder">
-                                            <div class="bg-neutral-focus text-neutral-content rounded w-10 h-10">
-                                              <span class="text-sm">{String.at(group.title, 0)}</span>
-                                            </div>
-                                          </div>
-                                        <% end %>
-                                      </div>
-                                      <div class="font-medium">{group.title}</div>
-                                    </div>
-                                  </td>
-                                  <td class="text-base-content">
-                                    <span class="badge badge-secondary badge-sm p-2">
-                                      {length(
-                                        ContentGroup.active_content_pieces(group.content_pieces)
-                                      )}
-                                    </span>
-                                  </td>
-                                  <td class="text-right">
-                                    <div class="flex gap-2 justify-end">
-                                      <.link
-                                        navigate={~p"/creators/content_groups/#{group.id}/edit"}
-                                        class="btn btn-ghost btn-sm"
-                                      >
-                                        <.icon name="hero-pencil" class="w-4 h-4" />
-                                      </.link>
-                                      <.link
-                                        navigate={~p"/creators/content_groups/#{group.id}"}
-                                        class="btn btn-ghost btn-sm"
-                                      >
-                                        <.icon name="hero-eye" class="w-4 h-4" />
-                                      </.link>
-                                    </div>
-                                  </td>
-                                </tr>
-                              <% end %>
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                  <% else %>
-                    <!-- Empty State for Content Groups -->
-                    <div class="hero min-h-48 bg-base-200 rounded-lg">
-                      <div class="hero-content text-center">
-                        <div class="max-w-md">
-                          <div class="avatar placeholder mb-4">
-                            <div class="bg-neutral-focus text-neutral-content rounded-full w-16 h-16">
-                              <span class="text-xl">📁</span>
-                            </div>
-                          </div>
-                          <h3 class="text-lg font-bold text-base-content mb-2">
-                            No Content Groups Yet
-                          </h3>
-                          <p class="text-base-content/60 mb-6">
-                            Start building your catalog by adding your first {@catalog.group_type}.
-                          </p>
-                          <.link
-                            navigate={~p"/creators/catalogs/#{@catalog.id}/content_groups/new"}
-                            class="btn btn-primary btn-lg"
+                  <ul :if={@catalog.content_groups != []} class="divide-y divide-base-300">
+                    <li
+                      :for={group <- @groups}
+                      id={"content-group-#{group.id}"}
+                      class="relative flex items-center gap-4 px-6 py-4 transition-colors hover:bg-base-200/40"
+                    >
+                      <%= if ImageHelpers.group_image_url(group) != ImageHelpers.placeholder_image_url() do %>
+                        <img
+                          src={ImageHelpers.group_image_url(group)}
+                          alt=""
+                          class="size-12 shrink-0 rounded-lg object-cover"
+                        />
+                      <% else %>
+                        <span class="flex size-12 shrink-0 items-center justify-center rounded-lg bg-base-200 font-semibold text-base-content/70">
+                          {String.first(group.title || "?")}
+                        </span>
+                      <% end %>
+                      <div class="min-w-0 flex-1">
+                        <.link
+                          navigate={~p"/creators/content_groups/#{group.id}"}
+                          class="block truncate font-semibold after:absolute after:inset-0 hover:underline"
+                        >
+                          {group.title}
+                        </.link>
+                        <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <span class="text-xs text-base-content/50">
+                            {piece_count_label(@catalog, group)}
+                          </span>
+                          <TiqitClassHTML.price_chips
+                            :if={group.tiqit_classes != []}
+                            tiqit_classes={group.tiqit_classes}
+                          />
+                          <span
+                            :if={group.tiqit_classes == []}
+                            class="text-xs text-base-content/40"
                           >
-                            <.icon name="hero-plus" class="w-5 h-5 mr-2" /> Add First Content Group
-                          </.link>
+                            No {String.downcase(@group_label)} pass
+                          </span>
                         </div>
                       </div>
+                      <div class="relative z-10 flex shrink-0 items-center gap-1">
+                        <.icon_button
+                          icon="hero-eye"
+                          label="View"
+                          navigate={~p"/creators/content_groups/#{group.id}"}
+                        />
+                        <.icon_button
+                          icon="hero-pencil-square"
+                          label="Edit"
+                          navigate={~p"/creators/content_groups/#{group.id}/edit"}
+                        />
+                      </div>
+                    </li>
+                  </ul>
+                </.panel>
+
+                <aside class="space-y-6 lg:sticky lg:top-6">
+                  <.panel id="catalog-overview" title="Overview">
+                    <img
+                      :if={@has_image}
+                      src={ImageHelpers.catalog_image_url(@catalog)}
+                      alt={"#{@catalog.name} image"}
+                      class="aspect-square w-full rounded-xl border border-base-300 object-cover"
+                    />
+                    <.link
+                      :if={!@has_image}
+                      navigate={~p"/creators/catalogs/#{@catalog.id}/edit"}
+                      class="flex h-24 items-center justify-center gap-2 rounded-xl border border-dashed border-base-300 bg-base-200/40 text-sm text-base-content/50 hover:text-base-content"
+                    >
+                      <.icon name="hero-photo" class="size-5" /> Add an image
+                    </.link>
+                    <dl class="grid grid-cols-2 gap-x-6 gap-y-4">
+                      <div class="col-span-2">
+                        <.detail_item label="URL">
+                          <.link
+                            :if={@catalog.url}
+                            href={@catalog.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-flex items-center gap-1 break-all link link-hover"
+                          >
+                            {@catalog.url}
+                            <.icon
+                              name="hero-arrow-top-right-on-square"
+                              class="size-3.5 shrink-0 text-base-content/50"
+                            />
+                          </.link>
+                          <span :if={!@catalog.url} class="text-base-content/40">-</span>
+                        </.detail_item>
+                      </div>
+                      <div class="col-span-2">
+                        <.detail_item label="Structure" value={structure_label(@catalog)} />
+                      </div>
+                      <.detail_item
+                        label="Undo limit"
+                        value={
+                          if @catalog.tiqit_undo_limit,
+                            do: "#{@catalog.tiqit_undo_limit} per consumer",
+                            else: "Unlimited"
+                        }
+                      />
+                      <.detail_item
+                        label="Tiqit Up"
+                        value={if @catalog.tiqit_up_enabled, do: "On", else: "Off"}
+                      />
+                    </dl>
+                  </.panel>
+
+                  <.panel
+                    id="catalog-pricing"
+                    flush
+                    title={"#{@catalog_label} pass"}
+                    description={"Access to everything in this #{Catalog.type_label(@catalog.type, 1, capitalize: false)} for a set time."}
+                  >
+                    <:actions :if={@catalog.tiqit_classes != []}>
+                      <.link
+                        navigate={~p"/creators/catalogs/#{@catalog.id}/edit"}
+                        class="btn btn-ghost btn-sm"
+                      >
+                        Edit
+                      </.link>
+                    </:actions>
+                    <TiqitClassHTML.tiqit_classes_table
+                      :if={@catalog.tiqit_classes != []}
+                      record={@catalog}
+                      on_delete="delete_tiqit_class"
+                    />
+                    <div :if={@catalog.tiqit_classes == []} class="space-y-3 px-6 py-5">
+                      <p class="text-sm text-base-content/60">
+                        No {String.downcase(@catalog_label)} pass prices yet.
+                      </p>
+                      <div class="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          phx-click="add_default_tiqit_classes"
+                          class="btn btn-primary btn-sm"
+                        >
+                          <.icon name="hero-plus" class="size-4" /> Add default prices
+                        </button>
+                        <.link
+                          navigate={~p"/creators/catalogs/#{@catalog.id}/edit"}
+                          class="btn btn-ghost btn-sm"
+                        >
+                          Edit prices
+                        </.link>
+                      </div>
                     </div>
-                  <% end %>
-                </div>
+                  </.panel>
+
+                  <AudienceCard.card
+                    creator={@creator}
+                    content={@catalog}
+                    effective={@audience}
+                    level={:catalog}
+                    class={nil}
+                  />
+                </aside>
               </div>
-            </div>
+            </.page>
           </div>
         </div>
       </div>
     </Layouts.admin>
     """
+  end
+
+  defp structure_label(catalog) do
+    [catalog.type, catalog.group_type, catalog.piece_type]
+    |> Enum.map_join(" › ", &Catalog.type_label/1)
+  end
+
+  defp group_count_label(catalog) do
+    count = length(catalog.content_groups)
+    groups = Catalog.type_label(catalog.group_type, count, capitalize: false)
+    "#{count} #{groups} in this #{Catalog.type_label(catalog.type, 1, capitalize: false)}."
+  end
+
+  defp piece_count_label(catalog, group) do
+    count = length(ContentGroup.active_content_pieces(group.content_pieces))
+    "#{count} #{Catalog.type_label(catalog.piece_type, count, capitalize: false)}"
   end
 end

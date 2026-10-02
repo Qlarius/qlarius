@@ -1,37 +1,25 @@
 defmodule QlariusWeb.Live.Marketers.CurrentMarketer do
   @moduledoc """
   Helper functions for managing the current marketer selection in LiveViews.
-  The current marketer is stored in Phoenix session and used to scope
-  campaign management and other marketer-specific operations.
+
+  The selected marketer id lives in the Phoenix session, written by
+  `QlariusWeb.CurrentMarketerController.select/2`. Because the session is
+  available on both the static and the connected render, pages render with the
+  right marketer from the first paint.
   """
 
   alias Qlarius.Accounts.Marketers
 
   @doc """
-  on_mount hook that loads the current marketer from connect_params.
+  on_mount hook that loads the current marketer from the session.
 
-  The id arrives from client-controlled localStorage, so it is a *request*, not
-  a grant: it is resolved through `Marketers.get_marketer!/2`, which only
-  returns orgs the scope may act for. An id the user has no membership in is
-  discarded along with the id itself, so downstream code cannot fall back to
-  the raw value and act on an org the user does not belong to.
+  The stored id is a *request*, not a grant: it is resolved through
+  `Marketers.get_marketer!/2`, which only returns orgs the scope may act for. An
+  id the user has no membership in is discarded, so downstream code cannot act
+  on an org the user does not belong to.
   """
-  def on_mount(:load_current_marketer, _params, _session, socket) do
-    scope = socket.assigns[:current_scope]
-
-    requested_id =
-      case Phoenix.LiveView.get_connect_params(socket) do
-        %{"current_marketer_id" => id_string} when is_binary(id_string) and id_string != "" ->
-          case Integer.parse(id_string) do
-            {id, ""} -> id
-            _ -> nil
-          end
-
-        _ ->
-          nil
-      end
-
-    current_marketer = authorized_marketer(scope, requested_id)
+  def on_mount(:load_current_marketer, _params, session, socket) do
+    current_marketer = resolve(socket.assigns[:current_scope], session["current_marketer_id"])
 
     socket =
       socket
@@ -41,14 +29,26 @@ defmodule QlariusWeb.Live.Marketers.CurrentMarketer do
     {:cont, socket}
   end
 
-  defp authorized_marketer(nil, _id), do: nil
-  defp authorized_marketer(_scope, nil), do: nil
+  @doc """
+  Returns the marketer for `id` if the scope may act for it, otherwise nil.
+  Accepts an integer or a numeric string.
+  """
+  def resolve(nil, _id), do: nil
 
-  defp authorized_marketer(scope, id) do
+  def resolve(scope, id) when is_binary(id) do
+    case Integer.parse(id) do
+      {int_id, ""} -> resolve(scope, int_id)
+      _ -> nil
+    end
+  end
+
+  def resolve(scope, id) when is_integer(id) do
     Marketers.get_marketer!(scope, id)
   rescue
     Ecto.NoResultsError -> nil
   end
+
+  def resolve(_scope, _id), do: nil
 
   @doc """
   Gets the current marketer ID from socket assigns.
@@ -69,7 +69,7 @@ defmodule QlariusWeb.Live.Marketers.CurrentMarketer do
         {:error, :not_set}
 
       marketer_id ->
-        case authorized_marketer(scope, marketer_id) do
+        case resolve(scope, marketer_id) do
           nil -> {:error, :not_found}
           marketer -> {:ok, marketer}
         end

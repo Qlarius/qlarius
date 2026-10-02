@@ -1,6 +1,8 @@
 defmodule QlariusWeb.Creators.ContentPieceLive.Form do
   use QlariusWeb, :live_view
 
+  import QlariusWeb.Components.MarketerUI
+
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.ContentPiece
@@ -24,7 +26,7 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
     |> assign(catalog: catalog, creator: creator, group: group)
     |> assign(
       form: to_form(changeset),
-      page_title: "Edit Content Piece",
+      page_title: "Edit #{Catalog.type_label(catalog.piece_type, 1, capitalize: false)}",
       piece: piece
     )
     |> ImageUpload.setup_upload(:image)
@@ -41,7 +43,10 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
 
     socket
     |> assign(catalog: catalog, creator: creator, group: group)
-    |> assign(:page_title, "New Content Piece")
+    |> assign(
+      :page_title,
+      "New #{Catalog.type_label(catalog.piece_type, 1, capitalize: false)}"
+    )
     |> assign(:piece, %ContentPiece{})
     |> assign(:form, to_form(changeset))
     |> ImageUpload.setup_upload(:image)
@@ -84,6 +89,10 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
      socket
      |> assign(:piece, piece)
      |> assign(:form, to_form(changeset))}
+  end
+
+  def handle_event("cancel-upload", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :image, ref)}
   end
 
   def handle_event("delete_image", _params, socket) do
@@ -153,5 +162,31 @@ defmodule QlariusWeb.Creators.ContentPieceLive.Form do
         assign(socket, :form, to_form(changeset, action: :validate))
     end
     |> noreply()
+  end
+
+  attr :field, Phoenix.HTML.FormField, required: true
+  attr :label, :string, required: true
+  attr :description, :string, default: nil
+
+  defp toggle_row(assigns) do
+    ~H"""
+    <label class="flex cursor-pointer items-start justify-between gap-4 px-6 py-4 transition-colors hover:bg-base-200/40">
+      <span class="min-w-0">
+        <span class="block text-sm font-medium">{@label}</span>
+        <span :if={@description} class="mt-0.5 block text-sm text-base-content/60">
+          {@description}
+        </span>
+      </span>
+      <input type="hidden" name={@field.name} value="false" />
+      <input
+        type="checkbox"
+        id={@field.id}
+        name={@field.name}
+        value="true"
+        checked={Phoenix.HTML.Form.normalize_value("checkbox", @field.value)}
+        class="toggle toggle-primary toggle-sm mt-0.5 shrink-0"
+      />
+    </label>
+    """
   end
 end

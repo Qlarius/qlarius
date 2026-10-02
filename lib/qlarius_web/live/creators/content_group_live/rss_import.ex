@@ -12,10 +12,20 @@ defmodule QlariusWeb.Creators.ContentGroupLive.RssImport do
   use QlariusWeb, :live_view
 
   import Ecto.Query
+  import QlariusWeb.Components.MarketerUI
 
   alias Qlarius.Repo
   alias Qlarius.Creators.Creator
-  alias Qlarius.Tiqit.Arcade.{ContentGroup, ContentPiece, Creators, RssFeed, RssImporter}
+
+  alias Qlarius.Tiqit.Arcade.{
+    Catalog,
+    ContentGroup,
+    ContentPiece,
+    Creators,
+    RssFeed,
+    RssImporter
+  }
+
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
 
   @steps [:source, :review, :target, :confirm, :importing, :done]
@@ -291,6 +301,108 @@ defmodule QlariusWeb.Creators.ContentGroupLive.RssImport do
   def group_title(groups, id) do
     Enum.find_value(groups, "", fn group -> group.id == id && group.title end)
   end
+
+  @type_fallbacks %{type: "catalog", group_type: "group", piece_type: "episode"}
+
+  def type_word(catalogs, catalog_id, field, count \\ 1, opts \\ []) do
+    case Enum.find(catalogs, &(&1.id == catalog_id)) do
+      %{^field => type} when not is_nil(type) -> Catalog.type_label(type, count, opts)
+      _ -> Catalog.type_label(Map.fetch!(@type_fallbacks, field), count, opts)
+    end
+  end
+
+  @stepper_steps [
+    source: "Feed",
+    review: "Episodes",
+    target: "Target",
+    confirm: "Confirm",
+    done: "Done"
+  ]
+
+  defp stepper_steps(current) do
+    reached = Enum.filter(@stepper_steps, fn {step, _} -> step_at_or_past?(current, step) end)
+    {active, _} = List.last(reached)
+
+    Enum.map(@stepper_steps, fn {step, label} ->
+      state =
+        cond do
+          not step_at_or_past?(current, step) -> :upcoming
+          step == active and current != :done -> :current
+          true -> :complete
+        end
+
+      %{label: label, state: state}
+    end)
+  end
+
+  attr :steps, :list, required: true
+
+  defp wizard_stepper(assigns) do
+    ~H"""
+    <ol aria-label="Import steps" class="mb-6 flex flex-wrap items-center gap-x-3 gap-y-3">
+      <li
+        :for={{step, idx} <- Enum.with_index(@steps, 1)}
+        aria-current={step.state == :current && "step"}
+        class="flex items-center gap-2.5"
+      >
+        <span class={[
+          "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+          step.state == :complete && "bg-primary/15 text-primary",
+          step.state == :current && "bg-primary text-primary-content ring-4 ring-primary/20",
+          step.state == :upcoming && "border border-base-300 text-base-content/50"
+        ]}>
+          <.icon :if={step.state == :complete} name="hero-check" class="size-4" />
+          <span :if={step.state != :complete}>{idx}</span>
+        </span>
+        <span class={[
+          "text-sm",
+          step.state == :current && "font-medium text-base-content",
+          step.state == :complete && "text-base-content/70",
+          step.state == :upcoming && "text-base-content/50"
+        ]}>
+          {step.label}
+        </span>
+        <span
+          :if={idx < length(@steps)}
+          class="ml-0.5 h-px w-6 bg-base-300 sm:w-10"
+          aria-hidden="true"
+        >
+        </span>
+      </li>
+    </ol>
+    """
+  end
+
+  attr :tone, :string, default: "warning", values: ~w(warning error info)
+  attr :icon, :string, default: "hero-exclamation-triangle"
+  attr :title, :string, default: nil
+  attr :class, :any, default: nil
+  slot :inner_block, required: true
+
+  defp notice(assigns) do
+    ~H"""
+    <div
+      role={@tone == "error" && "alert"}
+      class={[
+        "flex items-start gap-3 rounded-xl border p-4 text-sm",
+        @tone == "warning" && "border-warning/30 bg-warning/10",
+        @tone == "error" && "border-error/30 bg-error/10",
+        @tone == "info" && "border-info/30 bg-info/10",
+        @class
+      ]}
+    >
+      <.icon name={@icon} class={notice_icon_class(@tone)} />
+      <div class="min-w-0 flex-1">
+        <p :if={@title} class="font-medium">{@title}</p>
+        <div class={[@title && "mt-0.5", "text-base-content/70"]}>{render_slot(@inner_block)}</div>
+      </div>
+    </div>
+    """
+  end
+
+  defp notice_icon_class("warning"), do: "size-5 shrink-0 text-warning"
+  defp notice_icon_class("error"), do: "size-5 shrink-0 text-error"
+  defp notice_icon_class("info"), do: "size-5 shrink-0 text-info"
 
   # ----- private -----
 

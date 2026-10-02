@@ -2,150 +2,59 @@
 
 ## Overview
 
-The current marketer selection feature allows admin users to set a "working context" for managing campaigns and other marketer-specific operations. The selected marketer is stored in the Phoenix session and persists for the duration of the user's session.
+The current marketer is the "working context" for campaigns, traits, targets, sequences and media. It is stored in the Phoenix session and validated against the user's marketer memberships on every mount. See `current_marketer_implementation_decision.md` for the design.
 
-## Implementation Details
+## Selecting a marketer
 
-### Storage
-- **Location**: Phoenix session (server-side cookie)
-- **Persistence**: Duration of user session
-- **Scope**: Per user session across all tabs
+From `/admin/marketers`, the check button in each row posts to:
 
-### Components
-
-1. **LiveView Module** (`lib/qlarius_web/live/admin/marketer_manager_live.ex`)
-   - Displays marketers list with selection UI
-   - Handles setting and displaying current marketer
-   - Uses `Phoenix.LiveView.put_session/3` to persist selection
-
-2. **Helper Module** (`lib/qlarius_web/live/marketers/current_marketer.ex`)
-   - Utility functions for accessing current marketer in other LiveViews
-   - Provides `on_mount` hook for easy integration
-
-3. **UI Enhancements** (`lib/qlarius_web/components/core_components.ex`)
-   - Added `row_class` attribute to table component for row highlighting
-
-## Visual Indicators
-
-### In Marketer Manager
-- **Header Badge**: Green badge showing current marketer name
-- **Table Row**: Highlighted with green tinted background and ring
-- **Set Button**: First button in actions column, styled green with checkmark icon
-  - Filled with ring when active (current marketer)
-  - Outlined when inactive
-
-## Usage in Other LiveViews
-
-### Method 1: Manual Mount (Simple)
-
-```elixir
-defmodule QlariusWeb.Admin.CampaignManagerLive do
-  use QlariusWeb, :live_view
-  
-  alias QlariusWeb.Live.Marketers.CurrentMarketer
-  alias Qlarius.Campaigns
-  
-  def mount(_params, session, socket) do
-    # Read current marketer from session
-    current_marketer_id = session["current_marketer_id"]
-    socket = assign(socket, :current_marketer_id, current_marketer_id)
-    {:ok, socket}
-  end
-  
-  def handle_params(params, _uri, socket) do
-    socket = apply_action(socket, socket.assigns.live_action, params)
-    {:noreply, socket}
-  end
-  
-  defp apply_action(socket, :index, _params) do
-    scope = socket.assigns.current_scope
-    
-    # Get current marketer if set
-    case CurrentMarketer.get_current_marketer(socket, scope) do
-      {:ok, marketer} ->
-        # Filter campaigns for this marketer
-        campaigns = Campaigns.list_campaigns_for_marketer(scope, marketer.id)
-        
-        socket
-        |> assign(:campaigns, campaigns)
-        |> assign(:current_marketer, marketer)
-      
-      {:error, :not_set} ->
-        # No marketer selected - show message or all campaigns
-        socket
-        |> assign(:campaigns, [])
-        |> put_flash(:info, "Please select a marketer first")
-      
-      {:error, :not_found} ->
-        # Selected marketer was deleted
-        socket
-        |> assign(:campaigns, [])
-        |> Phoenix.LiveView.put_session(:current_marketer_id, nil)
-        |> assign(:current_marketer_id, nil)
-        |> put_flash(:warning, "Selected marketer no longer exists")
-    end
-  end
-end
+```
+POST /marketer/select/:marketer_id?return_to=/admin/marketers
 ```
 
-### Method 2: Using on_mount Hook (Cleaner)
-
-```elixir
-defmodule QlariusWeb.Admin.CampaignManagerLive do
-  use QlariusWeb, :live_view
-  
-  alias QlariusWeb.Live.Marketers.CurrentMarketer
-  
-  # Automatically load current_marketer_id from session
-  on_mount {CurrentMarketer, :init_current_marketer}
-  
-  # Now mount/3 doesn't need to handle it
-  def mount(_params, _session, socket) do
-    {:ok, socket}
-  end
-  
-  # Rest of your LiveView...
-end
-```
-
-### Template Example
+To add a selection control elsewhere:
 
 ```heex
-<div class="p-6">
-  <%= if @current_marketer do %>
-    <div class="alert alert-info mb-4">
-      <.icon name="hero-information-circle" class="w-5 h-5" />
-      <span>Managing campaigns for: {@current_marketer.business_name}</span>
-    </div>
-  <% else %>
-    <div class="alert alert-warning mb-4">
-      <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-      <span>
-        No marketer selected. 
-        <.link navigate={~p"/admin/marketers"} class="link">Select one</.link>
-      </span>
-    </div>
-  <% end %>
-  
-  <!-- Your campaigns list here -->
-</div>
+<.link href={~p"/marketer/select/#{marketer.id}?return_to=/marketer/campaigns"} method="post">
+  Use {marketer.business_name}
+</.link>
 ```
 
-## Future Enhancements
+`return_to` must start with `/admin/marketers` or `/marketer/`; anything else falls back to `/admin/marketers`.
 
-Potential improvements to consider:
-- Add a global navbar indicator of current marketer
-- Add quick-switch dropdown in navbar
-- Add context-aware breadcrumbs
-- Add validation that selected marketer still exists on mount
-- Add ability to clear selection (if needed)
-- Add marketer-specific permissions checking
+## Using it in a LiveView
+
+```elixir
+defmodule QlariusWeb.Live.Marketers.SomethingLive do
+  use QlariusWeb, :live_view
+
+  alias QlariusWeb.Live.Marketers.CurrentMarketer
+
+  on_mount {CurrentMarketer, :load_current_marketer}
+
+  def mount(_params, _session, socket) do
+    items =
+      if socket.assigns.current_marketer do
+        list_items_for_marketer(socket.assigns.current_marketer.id)
+      else
+        []
+      end
+
+    {:ok, assign(socket, :items, items)}
+  end
+end
+```
+
+The hook assigns `@current_marketer` (or nil) and `@current_marketer_id`. Pass `@current_marketer` to `<.current_marketer_bar>` for the shared header.
+
+## Using it in a controller
+
+```elixir
+current_marketer =
+  CurrentMarketer.resolve(conn.assigns.current_scope, get_session(conn, :current_marketer_id))
+```
 
 ## Notes
 
-- The feature is admin-only currently
-- Non-admin users will be restricted to their linked marketer accounts
-- The session value persists for the duration of the user's session
-- Selection is shared across all browser tabs for the same user
-- Session expires based on Phoenix session configuration (typically on logout or after timeout)
-
+- The selection clears on logout and is shared across tabs in the same browser.
+- An id the user no longer has access to resolves to nil and renders as "No marketer selected".

@@ -1,6 +1,8 @@
 defmodule QlariusWeb.Admin.TraitCategoryManagerLive do
   use QlariusWeb, :live_view
 
+  import QlariusWeb.Components.MarketerUI
+
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.YouData.TraitCategories
   alias Qlarius.YouData.Traits.TraitCategory
@@ -17,108 +19,117 @@ defmodule QlariusWeb.Admin.TraitCategoryManagerLive do
           <div class="overflow-auto">
             <%= case @live_action do %>
               <% :index -> %>
-                <div class="p-6">
-                  <h1 class="text-2xl font-bold mb-4">Trait Categories</h1>
-                  <div class="flex justify-end items-center mb-4">
-                    <.link patch={~p"/admin/trait_categories/new"} class="btn btn-primary">
-                      <.icon name="hero-plus" class="w-4 h-4 mr-1" /> New Trait Category
-                    </.link>
-                  </div>
-                  <div class="card bg-base-100 shadow-xl">
-                    <div class="card-body p-0">
-                      <%= if @trait_categories == [] do %>
-                        <div class="p-8 text-center text-base-content/60">
-                          <.icon name="hero-tag" class="w-12 h-12 mx-auto mb-2 opacity-50" />
-                          <p>No trait categories found</p>
-                        </div>
-                      <% else %>
-                        <div class="overflow-x-auto">
-                          <.table id="trait-categories-table" rows={@trait_categories}>
-                            <:col :let={category} label="Display Order">
-                              <span class="badge badge-ghost">{category.display_order}</span>
-                            </:col>
-                            <:col :let={category} label="Category Name">{category.name}</:col>
-                            <:col :let={category} label="Trait Count">
-                              <span class="badge badge-info">
-                                {Map.get(category, :trait_count, 0)}
-                              </span>
-                            </:col>
-                            <:col :let={category} label="Actions">
-                              <div class="flex gap-2">
-                                <.link
-                                  patch={~p"/admin/trait_categories/#{category}/edit"}
-                                  class="btn btn-xs btn-warning"
-                                >
-                                  <.icon name="hero-pencil-square" class="w-4 h-4" />
-                                </.link>
-                                <%= if Map.get(category, :trait_count, 0) == 0 do %>
-                                  <.link
-                                    phx-click="delete"
-                                    phx-value-id={category.id}
-                                    data-confirm="Are you sure you want to delete this trait category?"
-                                    class="btn btn-xs btn-error"
-                                  >
-                                    <.icon name="hero-trash" class="w-4 h-4" />
-                                  </.link>
-                                <% else %>
-                                  <button
-                                    class="btn btn-xs btn-disabled"
-                                    disabled
-                                    title="Cannot delete category with associated traits"
-                                  >
-                                    <.icon name="hero-trash" class="w-4 h-4" />
-                                  </button>
-                                <% end %>
-                              </div>
-                            </:col>
-                          </.table>
-                        </div>
-                      <% end %>
-                    </div>
-                  </div>
-                </div>
-              <% :new -> %>
-                <div class="p-6 max-w-3xl mx-auto">
-                  <div class="mb-6">
-                    <.back navigate={~p"/admin/trait_categories"}>
-                      <.icon name="hero-arrow-left" class="w-4 h-4 mr-1" /> Back to trait categories
-                    </.back>
-                  </div>
-                  <div class="card bg-base-100 shadow-xl">
-                    <div class="card-body">
-                      <h2 class="card-title text-2xl mb-2">
-                        <.icon name="hero-plus-circle" class="w-6 h-6" /> New Trait Category
-                      </h2>
-                      <p class="text-base-content/70 mb-6">Create a new trait category.</p>
-                      {render_form(assigns)}
-                    </div>
-                  </div>
-                </div>
-              <% :edit -> %>
-                <div class="p-6 max-w-3xl mx-auto">
-                  <div class="mb-6">
-                    <.back navigate={~p"/admin/trait_categories"}>
-                      <.icon name="hero-arrow-left" class="w-4 h-4 mr-1" /> Back to trait categories
-                    </.back>
-                  </div>
-                  <div class="card bg-base-100 shadow-xl">
-                    <div class="card-body">
-                      <h2 class="card-title text-2xl mb-2">
-                        <.icon name="hero-pencil-square" class="w-6 h-6" /> Edit Trait Category
-                      </h2>
-                      <p class="text-base-content/70 mb-2">
-                        Editing:
-                        <span class="font-semibold text-primary">{@trait_category.name}</span>
-                      </p>
-                      {render_form(assigns)}
-                    </div>
-                  </div>
-                </div>
+                <.index_view trait_categories={@trait_categories} />
+              <% action when action in [:new, :edit] -> %>
+                <.page class="max-w-3xl">
+                  <.page_header
+                    title={if action == :new, do: "New trait category", else: "Edit trait category"}
+                    subtitle={
+                      if action == :new,
+                        do: "Create a new trait category.",
+                        else: @trait_category.name
+                    }
+                    back_to={~p"/admin/trait_categories"}
+                    back_label="Trait categories"
+                  />
+                  {render_form(assigns)}
+                </.page>
             <% end %>
           </div>
         </div>
       </div>
     </Layouts.admin>
+    """
+  end
+
+  attr :trait_categories, :list, required: true
+
+  defp index_view(assigns) do
+    ~H"""
+    <.page>
+      <.page_header
+        title="Trait categories"
+        count={length(@trait_categories)}
+        subtitle="Groups that organize traits. Display order controls where each group appears."
+      >
+        <:actions>
+          <.link patch={~p"/admin/trait_categories/new"} class="btn btn-primary btn-sm">
+            <.icon name="hero-plus" class="size-4" /> New trait category
+          </.link>
+        </:actions>
+      </.page_header>
+
+      <.panel flush>
+        <.empty_state :if={@trait_categories == []} icon="hero-tag" title="No trait categories yet">
+          Create a trait category to start grouping traits.
+          <:action>
+            <.link patch={~p"/admin/trait_categories/new"} class="btn btn-primary btn-sm">
+              <.icon name="hero-plus" class="size-4" /> New trait category
+            </.link>
+          </:action>
+        </.empty_state>
+
+        <.data_table
+          :if={@trait_categories != []}
+          id="trait-categories-table"
+          rows={@trait_categories}
+        >
+          <:col :let={category} label="Category">
+            <.link
+              patch={~p"/admin/trait_categories/#{category}/edit"}
+              class="font-semibold hover:underline"
+            >
+              {category.name}
+            </.link>
+            <p class="text-xs text-base-content/50">#{category.id}</p>
+          </:col>
+          <:col :let={category} label="Display order">
+            <.chip>{category.display_order}</.chip>
+          </:col>
+          <:col :let={category} label="Traits">
+            {Map.get(category, :trait_count, 0)}
+          </:col>
+          <:action :let={category}>
+            <.icon_button
+              icon="hero-pencil-square"
+              label="Edit"
+              patch={~p"/admin/trait_categories/#{category}/edit"}
+            />
+          </:action>
+          <:action :let={category}>
+            <%= if Map.get(category, :trait_count, 0) == 0 do %>
+              <.icon_button
+                icon="hero-trash"
+                label="Delete"
+                tone="error"
+                phx-click="delete"
+                phx-value-id={category.id}
+                data-confirm="Are you sure you want to delete this trait category?"
+              />
+            <% else %>
+              <.disabled_delete_button title="Cannot delete category with associated traits" />
+            <% end %>
+          </:action>
+        </.data_table>
+      </.panel>
+    </.page>
+    """
+  end
+
+  attr :title, :string, required: true
+
+  defp disabled_delete_button(assigns) do
+    ~H"""
+    <span class="inline-flex" title={@title}>
+      <button
+        type="button"
+        class="btn btn-ghost btn-sm btn-square"
+        disabled
+        aria-label={@title}
+      >
+        <.icon name="hero-trash" class="size-4" />
+      </button>
+    </span>
     """
   end
 
@@ -130,29 +141,17 @@ defmodule QlariusWeb.Admin.TraitCategoryManagerLive do
       id="trait-category-form"
       phx-change="validate"
       phx-submit="save"
-      class="space-y-6"
     >
-      <.input
-        field={f[:name]}
-        type="text"
-        label="Category Name"
-        class="input input-bordered w-full"
-        required
-      />
-      <.input
-        field={f[:display_order]}
-        type="number"
-        label="Display Order"
-        class="input input-bordered w-full"
-        required
-      />
-      <div class="divider"></div>
-      <div class="flex gap-3">
-        <.button phx-disable-with="Saving..." class="btn btn-primary flex-1">
-          <.icon name="hero-check" class="w-5 h-5" /> Save Trait Category
-        </.button>
-        <.link patch={~p"/admin/trait_categories"} class="btn btn-ghost">Cancel</.link>
-      </div>
+      <.panel>
+        <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
+          <.input field={f[:name]} type="text" label="Category name" required />
+          <.input field={f[:display_order]} type="number" label="Display order" required />
+        </div>
+        <:footer>
+          <.link patch={~p"/admin/trait_categories"} class="btn btn-ghost">Cancel</.link>
+          <.button variant="primary" phx-disable-with="Saving...">Save trait category</.button>
+        </:footer>
+      </.panel>
     </.form>
     """
   end

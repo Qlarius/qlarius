@@ -6,180 +6,117 @@
       <AdminTopbar.topbar current_user={@current_scope.user} />
 
       <div class="overflow-auto">
-        <div class="space-y-6">
-          <!-- Header Section -->
-          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div class="flex items-center gap-4">
+        <.page class="max-w-4xl">
+          <.page_header
+            title={
+              if @live_action == :edit,
+                do: "Edit #{Catalog.type_label(@catalog.group_type, 1, capitalize: false)}",
+                else: "New #{Catalog.type_label(@catalog.group_type, 1, capitalize: false)}"
+            }
+            subtitle={if @live_action == :edit, do: @group.title, else: "In #{@catalog.name}"}
+            crumbs={@crumbs}
+          />
+
+          <.form
+            for={@form}
+            id="content-group-form"
+            phx-change="validate"
+            phx-submit="save"
+            class="space-y-6"
+          >
+            <.panel
+              id="group-details-section"
+              title="Details"
+              description={"How this #{Catalog.type_label(@catalog.group_type, 1, capitalize: false)} is introduced to viewers."}
+            >
+              <.input
+                field={@form[:title]}
+                type="text"
+                label="Name"
+                placeholder={"#{Catalog.type_label(@catalog.group_type)} name"}
+                required
+              />
+              <.input
+                field={@form[:description]}
+                type="textarea"
+                label="Description"
+                placeholder="What is it about?"
+                rows="4"
+              />
+              <.image_upload_field
+                upload={@uploads.image}
+                label="Image"
+                current_image={@group.image}
+                current_image_url={
+                  if @group.image,
+                    do: QlariusWeb.Uploaders.CreatorImage.url({@group.image, @group}, :original)
+                }
+                on_delete="delete_image"
+              />
+            </.panel>
+
+            <.panel
+              id="group-display-section"
+              title="Display options"
+              description={"How the #{Catalog.type_label(@catalog.piece_type, 2, capitalize: false)} list looks in the player."}
+              flush
+            >
+              <div class="divide-y divide-base-300">
+                <.toggle_row
+                  field={@form[:show_piece_thumbnails]}
+                  label={"Show #{Catalog.type_label(@catalog.piece_type, 1, capitalize: false)} thumbnails"}
+                  description={"Show a thumbnail image next to each #{Catalog.type_label(@catalog.piece_type, 1, capitalize: false)}."}
+                />
+                <.toggle_row
+                  field={@form[:show_piece_descriptions]}
+                  label={"Show #{Catalog.type_label(@catalog.piece_type, 1, capitalize: false)} descriptions"}
+                  description={"Show each #{Catalog.type_label(@catalog.piece_type, 1, capitalize: false)}'s description in the list."}
+                />
+                <.toggle_row
+                  field={@form[:show_open_in_tab]}
+                  label={"Show \"Open in new tab\" button"}
+                  description="When the player is embedded in an iframe, show an icon that opens it in a new browser tab."
+                />
+              </div>
+            </.panel>
+
+            <.panel
+              id="group-pricing-section"
+              title={"#{Catalog.type_label(@catalog.group_type)} pass"}
+              description={"Access to every #{Catalog.type_label(@catalog.piece_type, 1, capitalize: false)} in this #{Catalog.type_label(@catalog.group_type, 1, capitalize: false)} for a set time."}
+            >
+              <:actions>
+                <button
+                  :if={@live_action == :edit}
+                  type="button"
+                  phx-click="write_default_tiqit_classes"
+                  class="btn btn-ghost btn-sm"
+                >
+                  <.icon name="hero-plus" class="size-4" /> Add default classes
+                </button>
+              </:actions>
+              <TiqitClassHTML.inputs_for_tiqit_classes form={@form} />
+            </.panel>
+
+            <.save_bar dirty={false}>
               <.link
                 navigate={
-                  if @live_action == :edit do
-                    ~p"/creators/content_groups/#{@group.id}"
-                  else
-                    ~p"/creators/catalogs/#{@catalog.id}"
-                  end
+                  if @live_action == :edit,
+                    do: ~p"/creators/content_groups/#{@group.id}",
+                    else: ~p"/creators/catalogs/#{@catalog.id}"
                 }
-                class="btn btn-ghost btn-sm"
+                class="btn btn-ghost"
               >
-                <.icon name="hero-arrow-left" class="w-4 h-4" /> Back
+                Cancel
               </.link>
-              <div>
-                <h1 class="text-2xl font-bold text-base-content">
-                  {if @live_action == :edit, do: "Edit Content Group", else: "New Content Group"}
-                </h1>
-                <p class="text-base-content/60 mt-1">
-                  {if @live_action == :new, do: "For #{@catalog.name}"}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-<!-- Main Form Card -->
-          <div class="card bg-base-100 shadow-lg">
-            <div class="card-body">
-              <.form
-                for={@form}
-                phx-change="validate"
-                phx-submit="save"
-                class="space-y-6"
-              >
-                <!-- Basic Information Section -->
-                <div>
-                  <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                    <.icon name="hero-information-circle" class="w-5 h-5 mr-3 text-info" />
-                    Basic Information
-                  </h3>
-
-                  <.image_upload_field
-                    upload={@uploads.image}
-                    label="Image"
-                    current_image={@group.image}
-                    current_image_url={
-                      if @group.image,
-                        do:
-                          QlariusWeb.Uploaders.CreatorImage.url({@group.image, @group}, :original)
-                    }
-                    on_delete="delete_image"
-                  />
-
-                  <div class="form-control mb-4">
-                    <label class="label">
-                      <span class="label-text font-medium">Name *</span>
-                    </label>
-                    <.input
-                      field={@form[:title]}
-                      type="text"
-                      class="input input-bordered w-full"
-                      placeholder="Enter content group name"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text font-medium">Description</span>
-                    </label>
-                    <.input
-                      field={@form[:description]}
-                      type="textarea"
-                      class="textarea textarea-bordered w-full"
-                      placeholder="Enter content group description"
-                      rows="4"
-                    />
-                  </div>
-
-                  <div class="form-control mt-4">
-                    <label class="label cursor-pointer">
-                      <span class="label-text font-medium">
-                        Display {String.capitalize(to_string(@catalog.piece_type))} Thumbnails
-                      </span>
-                      <.input
-                        field={@form[:show_piece_thumbnails]}
-                        type="checkbox"
-                        class="checkbox checkbox-primary"
-                      />
-                    </label>
-                    <div class="text-xs text-base-content/60 mt-1">
-                      Show thumbnail images in {to_string(@catalog.piece_type)} lists
-                    </div>
-                  </div>
-
-                  <div class="form-control mt-4">
-                    <label class="label cursor-pointer">
-                      <span class="label-text font-medium">
-                        Display {String.capitalize(to_string(@catalog.piece_type))} Descriptions
-                      </span>
-                      <.input
-                        field={@form[:show_piece_descriptions]}
-                        type="checkbox"
-                        class="checkbox checkbox-primary"
-                      />
-                    </label>
-                    <div class="text-xs text-base-content/60 mt-1">
-                      Show descriptions in {to_string(@catalog.piece_type)} lists
-                    </div>
-                  </div>
-
-                  <div class="form-control mt-4">
-                    <label class="label cursor-pointer">
-                      <span class="label-text font-medium">
-                        Show "Open in New Tab" Button
-                      </span>
-                      <.input
-                        field={@form[:show_open_in_tab]}
-                        type="checkbox"
-                        class="checkbox checkbox-primary"
-                      />
-                    </label>
-                    <div class="text-xs text-base-content/60 mt-1">
-                      Display an icon to open the widget in a new browser tab (when embedded in an iframe)
-                    </div>
-                  </div>
-                </div>
-                
-<!-- Tiqit Classes Section -->
-                <div class="border-t border-base-300 pt-6">
-                  <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-base-content flex items-center">
-                      <.icon name="hero-tag" class="w-5 h-5 mr-3 text-primary" /> Tiqit Classes
-                    </h3>
-
-                    <.button
-                      type="button"
-                      phx-click="write_default_tiqit_classes"
-                      class="btn btn-outline btn-sm"
-                    >
-                      <.icon name="hero-plus" class="w-4 h-4 mr-2" /> Add Default Classes
-                    </.button>
-                  </div>
-
-                  <div class="bg-base-200 rounded-lg p-4">
-                    <TiqitClassHTML.inputs_for_tiqit_classes form={@form} />
-                  </div>
-                </div>
-                
-<!-- Form Actions -->
-                <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-base-300">
-                  <.button class="btn btn-primary flex-1 sm:flex-none">
-                    <.icon name="hero-check" class="w-4 h-4 mr-2" /> Save Content Group
-                  </.button>
-
-                  <.link
-                    navigate={
-                      if @live_action == :edit do
-                        ~p"/creators/content_groups/#{@group.id}"
-                      else
-                        ~p"/creators/catalogs/#{@catalog.id}"
-                      end
-                    }
-                    class="btn btn-ghost"
-                  >
-                    <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Cancel
-                  </.link>
-                </div>
-              </.form>
-            </div>
-          </div>
-        </div>
+              <.button variant="primary" phx-disable-with="Saving…">
+                {if @live_action == :edit,
+                  do: "Save #{Catalog.type_label(@catalog.group_type, 1, capitalize: false)}",
+                  else: "Create #{Catalog.type_label(@catalog.group_type, 1, capitalize: false)}"}
+              </.button>
+            </.save_bar>
+          </.form>
+        </.page>
       </div>
     </div>
   </div>

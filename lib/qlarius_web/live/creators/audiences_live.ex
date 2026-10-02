@@ -1,6 +1,8 @@
 defmodule QlariusWeb.Creators.AudiencesLive do
   use QlariusWeb, :live_view
 
+  import QlariusWeb.Components.MarketerUI
+
   alias Qlarius.Accounts.Marketers
   alias Qlarius.Creators
   alias Qlarius.Repo
@@ -642,7 +644,7 @@ defmodule QlariusWeb.Creators.AudiencesLive do
     <Layouts.admin {assigns}>
       <div class="flex h-screen">
         <AdminSidebar.sidebar current_user={@current_scope.user} />
-        <div class="flex min-w-0 grow flex-col page-canvas">
+        <div class="flex min-w-0 grow flex-col">
           <AdminTopbar.topbar current_user={@current_scope.user} />
           <div class="overflow-auto flex-1">
             <%= case @live_action do %>
@@ -704,73 +706,141 @@ defmodule QlariusWeb.Creators.AudiencesLive do
 
   defp index_view(assigns) do
     ~H"""
-    <div class="p-6 space-y-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold">Audiences</h1>
-          <p class="text-base-content/60">{@creator.name}</p>
-        </div>
-        <div class="flex gap-2">
-          <.link navigate={~p"/creators/#{@creator.id}/trait-groups"} class="btn btn-ghost">
+    <.page>
+      <.page_header
+        title="Audiences"
+        count={length(@audiences)}
+        subtitle="Boost or restrict who sees this creator’s content."
+        back_to={~p"/creators/#{@creator.id}"}
+        back_label={@creator.name}
+      >
+        <:actions>
+          <.link navigate={~p"/creators/#{@creator.id}/trait-groups"} class="btn btn-sm btn-ghost">
             Trait groups
           </.link>
-          <.link navigate={~p"/creators/#{@creator.id}/insights"} class="btn btn-ghost">
+          <.link navigate={~p"/creators/#{@creator.id}/insights"} class="btn btn-sm btn-ghost">
             Insights
           </.link>
-          <button type="button" class="btn btn-primary" phx-click="new">New audience</button>
-        </div>
-      </div>
+          <button type="button" class="btn btn-sm btn-primary" phx-click="new">
+            <.icon name="hero-plus" class="size-4" /> New audience
+          </button>
+        </:actions>
+      </.page_header>
 
-      <div :if={@attach} class="alert alert-info">
-        <.icon name="hero-information-circle" class="w-6 h-6" />
+      <div
+        :if={@attach}
+        class="mb-4 flex items-center gap-3 rounded-xl border border-base-300 bg-base-200/40 px-4 py-3 text-sm text-base-content/70"
+      >
+        <.icon name="hero-information-circle" class="size-5 shrink-0 text-base-content/50" />
         <span>Pick an audience to attach, or create a new one.</span>
       </div>
 
-      <div :if={@audiences == []} class="card bg-base-100 dark:bg-base-200 border border-base-300">
-        <div class="card-body text-center py-12">
-          <.icon name="hero-user-group" class="w-16 h-16 mx-auto text-base-content/30 mb-4" />
-          <p class="text-lg font-medium text-base-content/70">No audiences yet</p>
-          <p class="text-sm text-base-content/50 mt-2">
-            Create one to boost or restrict who sees this creator’s content.
-          </p>
-        </div>
-      </div>
+      <.panel flush>
+        <.empty_state :if={@audiences == []} icon="hero-user-group" title="No audiences yet">
+          Create one to boost or restrict who sees this creator’s content.
+        </.empty_state>
 
-      <div :if={@audiences != []} class="overflow-x-auto">
-        <table class="table table-zebra">
-          <thead>
-            <tr>
-              <th>Audience</th>
-              <th class="text-center">Reach</th>
-              <th class="text-center">Uses</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr :for={aud <- @audiences}>
-              <td class="font-medium">{aud.title}</td>
-              <td class="text-center">{ContentAudiences.reach(aud)}</td>
-              <td class="text-center">{length(aud.used_on)}</td>
-              <td class="text-right">
-                <.link
-                  navigate={edit_path(@creator, aud, @attach)}
-                  class="btn btn-sm btn-primary btn-outline"
-                >
-                  Build/Edit
-                </.link>
-                <.link
-                  :if={aud.population_status == "populated"}
-                  navigate={inspect_path(@creator, aud, @attach)}
-                  class="btn btn-sm btn-info btn-outline"
-                >
-                  Inspect
-                </.link>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+        <.data_table
+          :if={@audiences != []}
+          id="audiences"
+          rows={@audiences}
+          row_id={&"audience-#{&1.id}"}
+        >
+          <:col :let={aud} label="Audience">
+            <div class="flex flex-wrap items-center gap-2">
+              <.link
+                navigate={edit_path(@creator, aud, @attach)}
+                class="font-semibold hover:underline"
+              >
+                {aud.title}
+              </.link>
+              <.audience_status_badge audience={aud} />
+            </div>
+            <p :if={aud.description} class="mt-0.5 truncate text-sm text-base-content/60">
+              {aud.description}
+            </p>
+          </:col>
+          <:col :let={aud} label="Reach" class="text-right">{ContentAudiences.reach(aud)}</:col>
+          <:col :let={aud} label="Uses" class="text-right">{length(aud.used_on)}</:col>
+          <:action :let={aud}>
+            <.link
+              :if={aud.population_status == "populated"}
+              navigate={inspect_path(@creator, aud, @attach)}
+              class="btn btn-sm btn-ghost"
+            >
+              <.icon name="hero-chart-bar" class="size-4" /> Inspect
+            </.link>
+            <.link navigate={edit_path(@creator, aud, @attach)} class="btn btn-sm btn-ghost">
+              <.icon name="hero-wrench-screwdriver" class="size-4" /> Build
+            </.link>
+          </:action>
+        </.data_table>
+      </.panel>
+    </.page>
+    """
+  end
+
+  attr :audience, :map, required: true
+
+  defp audience_status_badge(assigns) do
+    ~H"""
+    <%= case @audience.population_status do %>
+      <% "populated" -> %>
+        <.status_badge tone="success">Populated</.status_badge>
+      <% "populating" -> %>
+        <.status_badge tone="info">Populating</.status_badge>
+      <% _ -> %>
+        <.status_badge>Draft</.status_badge>
+    <% end %>
+    """
+  end
+
+  attr :creator, :map, required: true
+  attr :target, :map, required: true
+  attr :target_form, :any, required: true
+  attr :editing_target_info, :boolean, required: true
+  attr :attach, :any, required: true
+  slot :actions
+
+  defp audience_header(assigns) do
+    ~H"""
+    <.page_header
+      title={@target.title}
+      subtitle={!@editing_target_info && @target.description}
+      back_to={index_path(@creator, @attach)}
+      back_label="Audiences"
+    >
+      <:badges>
+        <.audience_status_badge audience={@target} />
+      </:badges>
+      <:actions>
+        <button
+          :if={!@editing_target_info}
+          type="button"
+          phx-click="toggle_edit_target_info"
+          class="btn btn-sm btn-ghost"
+          title="Edit audience name and description"
+        >
+          <.icon name="hero-pencil-square" class="size-4" /> Edit details
+        </button>
+        {render_slot(@actions)}
+      </:actions>
+    </.page_header>
+
+    <.form :if={@editing_target_info} for={@target_form} phx-submit="update_target" class="mb-8">
+      <.panel title="Details">
+        <div class="grid gap-x-4 md:grid-cols-2">
+          <.input field={@target_form[:title]} type="text" label="Audience name" />
+          <.input field={@target_form[:description]} type="text" label="Description" />
+        </div>
+        <:footer>
+          <button type="button" phx-click="cancel_edit_target_info" class="btn btn-sm btn-ghost">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-sm btn-primary">Save</button>
+        </:footer>
+      </.panel>
+    </.form>
     """
   end
 
@@ -825,7 +895,7 @@ defmodule QlariusWeb.Creators.AudiencesLive do
       |> assign(:show_audience_tags?, show_audience_tags?)
 
     ~H"""
-    <div class="p-6">
+    <.page>
       <Targeting.trait_group_modal
         :if={@show_modal && @selected_parent_trait}
         show_modal={@show_modal}
@@ -840,98 +910,42 @@ defmodule QlariusWeb.Creators.AudiencesLive do
         selected_ids={@selected_ids}
       />
 
-      <div class="flex items-center justify-between mb-2">
-        <div class="flex items-center gap-3">
-          <h1 class="text-2xl font-bold">{@target.title}</h1>
-          <button
-            type="button"
-            phx-click="toggle_edit_target_info"
-            class="btn btn-ghost btn-sm btn-circle"
-            title="Edit audience name and description"
-          >
-            <.icon name="hero-pencil" class="w-5 h-5" />
+      <.audience_header
+        creator={@creator}
+        target={@target}
+        target_form={@target_form}
+        editing_target_info={@editing_target_info}
+        attach={@attach}
+      >
+        <:actions>
+          <button type="button" class="btn btn-sm btn-ghost" phx-click="refine">
+            <.icon name="hero-document-duplicate" class="size-4" /> Copy to refine
           </button>
-        </div>
-        <div class="flex gap-2">
-          <.link navigate={~p"/creators/#{@creator.id}/trait-groups"} class="btn btn-ghost btn-sm">
+          <.link navigate={~p"/creators/#{@creator.id}/trait-groups"} class="btn btn-sm btn-ghost">
             Trait groups
           </.link>
-          <.link navigate={~p"/creators/#{@creator.id}/audiences"} class="btn btn-ghost btn-sm">
-            All audiences
-          </.link>
-        </div>
-      </div>
+        </:actions>
+      </.audience_header>
 
-      <p class="text-sm text-base-content/60 mb-4">{@creator.name}</p>
-
-      <div
-        :if={@editing_target_info}
-        class="card bg-base-100 dark:bg-base-200 border border-base-300 mb-6"
-      >
-        <div class="card-body">
-          <.form for={@target_form} phx-submit="update_target" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="form-control">
-                <label class="label">
-                  <span class="label-text">Audience Name</span>
-                </label>
-                <.input field={@target_form[:title]} type="text" />
-              </div>
-              <div class="form-control">
-                <label class="label">
-                  <span class="label-text">Description</span>
-                </label>
-                <.input field={@target_form[:description]} type="text" />
-              </div>
-            </div>
-            <div class="flex gap-2 justify-end">
-              <button type="button" phx-click="cancel_edit_target_info" class="btn btn-ghost btn-sm">
-                Cancel
-              </button>
-              <button type="submit" class="btn btn-primary btn-sm">Save</button>
-            </div>
-          </.form>
-        </div>
-      </div>
-
-      <div :if={@target.description && !@editing_target_info} class="mb-6">
-        <p class="text-base-content/70">{@target.description}</p>
-      </div>
-
-      <p class="text-sm text-warning mb-4">
+      <p class="mb-6 flex items-center gap-2 text-sm text-base-content/60">
+        <.icon name="hero-exclamation-triangle" class="size-4 shrink-0 text-warning" />
         Editing this audience changes every place it is attached.
       </p>
 
-      <div class="flex flex-wrap gap-2 mb-6">
-        <button type="button" class="btn btn-sm" phx-click="refine">Copy to refine</button>
-      </div>
-
       <.attach_buttons attach={@attach} />
 
-      <form :if={@marketers != []} phx-submit="promote" class="flex gap-2 items-end mb-6">
-        <label class="form-control grow">
-          <span class="label-text">Promote with an ad</span>
-          <select name="marketer_id" class="select select-bordered">
-            <option :for={m <- @marketers} value={m.id}>{m.business_name}</option>
-          </select>
-        </label>
-        <button class="btn btn-secondary">Clone to marketer</button>
-      </form>
-
-      <div :if={@show_starter?} class="card bg-base-100 dark:bg-base-200 border border-base-300 mb-6">
-        <div class="card-body space-y-6">
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <h2 class="text-xl font-bold">Tag your content</h2>
-              <p class="text-sm text-base-content/60 mt-1">
-                Tap a row and pick tags. These become the first groups on this audience.
-              </p>
-            </div>
-            <button type="button" class="btn btn-ghost btn-sm" phx-click="skip_tagging">
-              Skip tagging
-            </button>
-          </div>
-
+      <.panel
+        :if={@show_starter?}
+        title="Tag your content"
+        description="Tap a row and pick tags. These become the first groups on this audience."
+        class="mb-8"
+      >
+        <:actions>
+          <button type="button" class="btn btn-sm btn-ghost" phx-click="skip_tagging">
+            Skip tagging
+          </button>
+        </:actions>
+        <div class="space-y-6">
           <Targeting.tag_starter_cards
             :if={@content_tag_parents != []}
             title="What is this?"
@@ -946,11 +960,11 @@ defmodule QlariusWeb.Creators.AudiencesLive do
             tagged_by_parent={@tagged_by_parent}
           />
         </div>
-      </div>
+      </.panel>
 
-      <div :if={@show_collapsed?} class="mb-4">
-        <button type="button" class="btn btn-ghost btn-sm" phx-click="show_starter">
-          Add another tag
+      <div :if={@show_collapsed?} class="mb-6">
+        <button type="button" class="btn btn-sm btn-ghost" phx-click="show_starter">
+          <.icon name="hero-plus" class="size-4" /> Add another tag
         </button>
       </div>
 
@@ -961,7 +975,24 @@ defmodule QlariusWeb.Creators.AudiencesLive do
         available_trait_groups={@available_trait_groups}
         expanding_target={@expanding_target}
       />
-    </div>
+
+      <.panel
+        :if={@marketers != []}
+        title="Promote with an ad"
+        description="Clone this audience into one of your marketer accounts as a target."
+        class="mt-8"
+      >
+        <form phx-submit="promote" class="flex flex-wrap items-end gap-2">
+          <label class="min-w-0 grow">
+            <span class="mb-1 block text-xs text-base-content/50">Marketer</span>
+            <select name="marketer_id" class="select select-sm w-full">
+              <option :for={m <- @marketers} value={m.id}>{m.business_name}</option>
+            </select>
+          </label>
+          <button type="submit" class="btn btn-sm">Clone to marketer</button>
+        </form>
+      </.panel>
+    </.page>
     """
   end
 
@@ -975,59 +1006,20 @@ defmodule QlariusWeb.Creators.AudiencesLive do
 
   defp inspect_view(assigns) do
     ~H"""
-    <div class="p-6">
-      <div class="flex items-center justify-between mb-2">
-        <div class="flex items-center gap-3">
-          <h1 class="text-2xl font-bold">{@target.title}</h1>
-          <button
-            type="button"
-            phx-click="toggle_edit_target_info"
-            class="btn btn-ghost btn-sm btn-circle"
-            title="Edit audience name and description"
-          >
-            <.icon name="hero-pencil" class="w-5 h-5" />
-          </button>
-        </div>
-        <.link navigate={edit_path(@creator, @target, @attach)} class="btn btn-ghost btn-sm">
-          Edit audience
-        </.link>
-      </div>
-
-      <p class="text-sm text-base-content/60 mb-4">{@creator.name}</p>
-
-      <div
-        :if={@editing_target_info}
-        class="card bg-base-100 dark:bg-base-200 border border-base-300 mb-6"
+    <.page class="max-w-5xl">
+      <.audience_header
+        creator={@creator}
+        target={@target}
+        target_form={@target_form}
+        editing_target_info={@editing_target_info}
+        attach={@attach}
       >
-        <div class="card-body">
-          <.form for={@target_form} phx-submit="update_target" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="form-control">
-                <label class="label">
-                  <span class="label-text">Audience Name</span>
-                </label>
-                <.input field={@target_form[:title]} type="text" />
-              </div>
-              <div class="form-control">
-                <label class="label">
-                  <span class="label-text">Description</span>
-                </label>
-                <.input field={@target_form[:description]} type="text" />
-              </div>
-            </div>
-            <div class="flex gap-2 justify-end">
-              <button type="button" phx-click="cancel_edit_target_info" class="btn btn-ghost btn-sm">
-                Cancel
-              </button>
-              <button type="submit" class="btn btn-primary btn-sm">Save</button>
-            </div>
-          </.form>
-        </div>
-      </div>
-
-      <div :if={@target.description && !@editing_target_info} class="mb-6">
-        <p class="text-base-content/70">{@target.description}</p>
-      </div>
+        <:actions>
+          <.link navigate={edit_path(@creator, @target, @attach)} class="btn btn-sm btn-ghost">
+            <.icon name="hero-wrench-screwdriver" class="size-4" /> Edit audience
+          </.link>
+        </:actions>
+      </.audience_header>
 
       <.attach_buttons attach={@attach} />
 
@@ -1037,7 +1029,7 @@ defmodule QlariusWeb.Creators.AudiencesLive do
         band_population_counts={@band_population_counts}
         show_frozen_note?={false}
       />
-    </div>
+    </.page>
     """
   end
 
@@ -1045,13 +1037,24 @@ defmodule QlariusWeb.Creators.AudiencesLive do
 
   defp attach_buttons(assigns) do
     ~H"""
-    <div :if={@attach} class="flex gap-2 mb-6">
-      <button type="button" class="btn btn-sm btn-primary" phx-click="attach" phx-value-mode="boost">
-        Attach as relevance
-      </button>
-      <button type="button" class="btn btn-sm btn-outline" phx-click="attach" phx-value-mode="gate">
-        Attach as restriction
-      </button>
+    <div
+      :if={@attach}
+      class="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-base-300 bg-base-200/40 px-4 py-3"
+    >
+      <p class="text-sm text-base-content/70">Attach this audience to the content you came from.</p>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" class="btn btn-sm btn-ghost" phx-click="attach" phx-value-mode="gate">
+          Attach as restriction
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm btn-primary"
+          phx-click="attach"
+          phx-value-mode="boost"
+        >
+          Attach as relevance
+        </button>
+      </div>
     </div>
     """
   end

@@ -1,66 +1,39 @@
-<.form
-  :let={f}
-  for={@changeset}
-  action={@action}
-  method={@method}
-  multipart={true}
-  class="space-y-4"
->
-  <.input field={f[:name]} label="Name" class="input input-bordered w-full" />
-  <div>
-    <.input
-      field={f[:graphic_url]}
-      type="file"
-      label="Brand Image"
-      accept=".jpg,.jpeg,.gif,.png"
-      class="file-input"
-      value={nil}
-    />
-    <%!-- banner_value assigned but not used - only checking if value exists --%>
-    <%= if _banner_value = Phoenix.HTML.Form.input_value(f, :graphic_url) do %>
-      <div class="mt-2">
+<.form :let={f} for={@changeset} action={@action} method={@method} multipart={true}>
+  <.panel>
+    <.input field={f[:name]} label="Name" />
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
+      <%= if Phoenix.HTML.Form.input_value(f, :graphic_url) do %>
         <img
-          src={
-            QlariusWeb.Uploaders.RecipientBrandImage.url(
-              {@changeset.data.graphic_url, @changeset.data},
-              :original
-            )
-          }
-          class="w-32 h-auto object-cover rounded"
+          src={brand_image_url(@changeset.data)}
+          alt="Current brand image"
+          class="w-24 shrink-0 rounded-lg border border-base-300 object-cover sm:mb-2"
+        />
+      <% end %>
+      <div class="min-w-0 flex-1">
+        <.input
+          field={f[:graphic_url]}
+          type="file"
+          label="Brand image"
+          accept=".jpg,.jpeg,.gif,.png"
+          value={nil}
         />
       </div>
-    <% end %>
-  </div>
-  <.input
-    field={f[:message]}
-    label="Message"
-    type="text"
-    class="textarea textarea-bordered w-full"
-  />
-  <.input field={f[:split_code]} label="Split Code" class="input input-bordered w-full" />
-  <.input
-    field={f[:site_url]}
-    label="Website URL"
-    type="url"
-    placeholder="https://example.com"
-    class="input input-bordered w-full"
-  />
-  <.input
-    field={f[:recipient_type_id]}
-    label="Recipient Type ID"
-    type="number"
-    class="input input-bordered w-full"
-  />
-  <.input
-    field={f[:contact_email]}
-    label="Contact Email"
-    type="email"
-    class="input input-bordered w-full"
-  />
-  <div>
-    <.button class="btn btn-primary">
-      {@submit_label || "Save Recipient"}
-    </.button>
-    <.link navigate={~p"/admin/recipients"} class="btn ml-2">Cancel</.link>
-  </div>
+    </div>
+    <.input field={f[:message]} label="Message" type="text" />
+    <div class="grid gap-4 sm:grid-cols-2">
+      <.input field={f[:split_code]} label="Split code" />
+      <.input field={f[:recipient_type_id]} label="Recipient type ID" type="number" />
+      <.input
+        field={f[:site_url]}
+        label="Website URL"
+        type="url"
+        placeholder="https://example.com"
+      />
+      <.input field={f[:contact_email]} label="Contact email" type="email" />
+    </div>
+    <:footer>
+      <.link href={~p"/admin/recipients"} class="btn btn-ghost">Cancel</.link>
+      <.button variant="primary">{@submit_label || "Save recipient"}</.button>
+    </:footer>
+  </.panel>
 </.form>

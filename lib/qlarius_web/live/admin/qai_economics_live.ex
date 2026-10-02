@@ -16,6 +16,8 @@ defmodule QlariusWeb.Admin.QaiEconomicsLive do
 
   use QlariusWeb, :live_view
 
+  import QlariusWeb.Components.MarketerUI
+
   alias Qlarius.Qai.Economics
   alias QlariusWeb.Components.AdminSidebar
   alias QlariusWeb.Components.AdminTopbar
@@ -101,7 +103,10 @@ defmodule QlariusWeb.Admin.QaiEconomicsLive do
   end
 
   defp usd(value, decimals \\ 4)
-  defp usd(value, decimals) when is_number(value), do: "$#{:erlang.float_to_binary(value * 1.0, decimals: decimals)}"
+
+  defp usd(value, decimals) when is_number(value),
+    do: "$#{:erlang.float_to_binary(value * 1.0, decimals: decimals)}"
+
   defp usd(_, _), do: "-"
 
   defp pct(nil), do: "-"
@@ -110,6 +115,10 @@ defmodule QlariusWeb.Admin.QaiEconomicsLive do
   defp tokens(n) when n >= 1_000_000, do: "#{Float.round(n / 1_000_000, 2)}M"
   defp tokens(n) when n >= 1_000, do: "#{Float.round(n / 1_000, 1)}K"
   defp tokens(n), do: "#{n}"
+
+  defp max_daily_cost(daily, rates) do
+    daily |> Enum.map(&daily_cost(&1, rates)) |> Enum.max(fn -> 0 end)
+  end
 
   defp bar_width(_value, max) when max <= 0, do: 0
   defp bar_width(value, max), do: max(round(value / max * 100), 2)
@@ -128,260 +137,248 @@ defmodule QlariusWeb.Admin.QaiEconomicsLive do
           <AdminTopbar.topbar current_user={@current_scope.user} />
 
           <div class="overflow-auto">
-            <div class="p-6 max-w-6xl">
-              <div class="flex justify-between items-center mb-2">
-                <h1 class="text-2xl font-bold">Qai Economics</h1>
-                <div class="join">
-                  <button
-                    :for={w <- @windows}
-                    phx-click="set_window"
-                    phx-value-days={w}
-                    class={"join-item btn btn-sm #{if @days == w, do: "btn-active"}"}
-                  >
-                    {w}d
-                  </button>
-                </div>
-              </div>
-
-              <p class="text-sm text-base-content/60 mb-6">
-                Measured from stored per-turn provider usage. Costs are estimates from the
-                editable rates below; provider invoices are ground truth. Fleeting sessions
-                hard-delete after expiry, so totals in long windows are floors.
-              </p>
-
-              <%!-- KPI row --%>
-              <div class="stats stats-vertical lg:stats-horizontal shadow-sm bg-base-200 w-full border border-base-300 mb-6">
-                <div class="stat">
-                  <div class="stat-title text-xs opacity-60">Sessions</div>
-                  <div class="stat-value text-xl">{@totals.sessions}</div>
-                  <div class="stat-desc">{@totals.me_files} MeFiles</div>
-                </div>
-                <div class="stat">
-                  <div class="stat-title text-xs opacity-60">Assistant Turns</div>
-                  <div class="stat-value text-xl">{@totals.turns}</div>
-                  <div class="stat-desc">
-                    {if @totals.sessions > 0,
-                      do: "#{Float.round(@totals.turns / @totals.sessions, 1)}/session"}
-                    {if @totals.unmeasured > 0, do: "(#{@totals.unmeasured} unmeasured)"}
+            <.page>
+              <.page_header
+                title="Qai Economics"
+                subtitle="Measured from stored per-turn provider usage. Costs are estimates from the editable rates below; provider invoices are ground truth. Fleeting sessions hard-delete after expiry, so totals in long windows are floors."
+              >
+                <:actions>
+                  <div class="inline-flex rounded-lg border border-base-300 bg-base-100 p-0.5">
+                    <button
+                      :for={w <- @windows}
+                      type="button"
+                      phx-click="set_window"
+                      phx-value-days={w}
+                      aria-pressed={to_string(@days == w)}
+                      class={segment_class(@days == w)}
+                    >
+                      {w}d
+                    </button>
                   </div>
-                </div>
-                <div class="stat">
-                  <div class="stat-title text-xs opacity-60">Est. COGS</div>
-                  <div class="stat-value text-xl text-primary">{usd(@est_cost, 2)}</div>
-                  <div class="stat-desc">{usd(@cost_per_session)}/session avg</div>
-                </div>
-                <div class="stat">
-                  <div class="stat-title text-xs opacity-60">Session Cost p50 / p90</div>
-                  <div class="stat-value text-xl">{usd(@distribution.p50)}</div>
-                  <div class="stat-desc">p90 {usd(@distribution.p90)} · max {usd(@distribution.max)}</div>
-                </div>
-                <div class="stat">
-                  <div class="stat-title text-xs opacity-60">Cache Hit</div>
-                  <div class="stat-value text-xl text-success">{pct(@cache_hit)}</div>
-                  <div class="stat-desc">saved {usd(@cache_savings, 2)} vs uncached</div>
-                </div>
+                </:actions>
+              </.page_header>
+
+              <div class="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                <.stat_tile
+                  label="Sessions"
+                  icon="hero-chat-bubble-left-right"
+                  hint={"#{@totals.me_files} MeFiles"}
+                >
+                  {@totals.sessions}
+                </.stat_tile>
+                <.stat_tile label="Assistant turns" icon="hero-arrow-path" hint={turns_hint(@totals)}>
+                  {@totals.turns}
+                </.stat_tile>
+                <.stat_tile
+                  label="Est. COGS"
+                  icon="hero-banknotes"
+                  hint={"#{usd(@cost_per_session)}/session avg"}
+                >
+                  {usd(@est_cost, 2)}
+                </.stat_tile>
+                <.stat_tile
+                  label="Session cost p50 / p90"
+                  icon="hero-chart-bar"
+                  hint={"p90 #{usd(@distribution.p90)} · max #{usd(@distribution.max)}"}
+                >
+                  {usd(@distribution.p50)}
+                </.stat_tile>
+                <.stat_tile
+                  label="Cache hit"
+                  icon="hero-bolt"
+                  value_class="text-success"
+                  hint={"saved #{usd(@cache_savings, 2)} vs uncached"}
+                >
+                  {pct(@cache_hit)}
+                </.stat_tile>
               </div>
 
-              <%!-- Pricing scenario --%>
-              <div class="card bg-base-100 border border-base-300 mb-6">
-                <div class="card-body">
-                  <h2 class="card-title">Pricing Scenario</h2>
-                  <p class="text-sm text-base-content/60">
-                    Applied to the measured distribution above. A flat session price should
-                    clear p90 cost, not the average, or heavy sessions run negative.
-                  </p>
-
-                  <form id="pricing-scenario-form" phx-change="set_scenario" class="grid grid-cols-2 md:grid-cols-5 gap-3 py-2">
-                    <label class="form-control">
-                      <span class="label-text text-xs">Price / session $</span>
-                      <input type="text" name="price" value={@price} class="input input-bordered input-sm" />
-                    </label>
-                    <label class="form-control">
-                      <span class="label-text text-xs">Frontier in $/MTok</span>
-                      <input type="text" name="frontier_input" value={@rates.frontier.input} class="input input-bordered input-sm" />
-                    </label>
-                    <label class="form-control">
-                      <span class="label-text text-xs">Frontier out $/MTok</span>
-                      <input type="text" name="frontier_output" value={@rates.frontier.output} class="input input-bordered input-sm" />
-                    </label>
-                    <label class="form-control">
-                      <span class="label-text text-xs">Cheap in $/MTok</span>
-                      <input type="text" name="cheap_input" value={@rates.cheap.input} class="input input-bordered input-sm" />
-                    </label>
-                    <label class="form-control">
-                      <span class="label-text text-xs">Cheap out $/MTok</span>
-                      <input type="text" name="cheap_output" value={@rates.cheap.output} class="input input-bordered input-sm" />
-                    </label>
+              <div class="space-y-8">
+                <.panel
+                  title="Pricing Scenario"
+                  description="Applied to the measured distribution above. A flat session price should clear p90 cost, not the average, or heavy sessions run negative."
+                >
+                  <form
+                    id="pricing-scenario-form"
+                    phx-change="set_scenario"
+                    class="grid grid-cols-2 gap-3 md:grid-cols-5"
+                  >
+                    <.rate_input name="price" label="Price / session $" value={@price} />
+                    <.rate_input
+                      name="frontier_input"
+                      label="Frontier in $/MTok"
+                      value={@rates.frontier.input}
+                    />
+                    <.rate_input
+                      name="frontier_output"
+                      label="Frontier out $/MTok"
+                      value={@rates.frontier.output}
+                    />
+                    <.rate_input
+                      name="cheap_input"
+                      label="Cheap in $/MTok"
+                      value={@rates.cheap.input}
+                    />
+                    <.rate_input
+                      name="cheap_output"
+                      label="Cheap out $/MTok"
+                      value={@rates.cheap.output}
+                    />
                   </form>
 
-                  <div class="overflow-x-auto">
-                    <table class="table table-sm">
-                      <thead>
+                  <div class="-mx-6 overflow-x-auto border-y border-base-300">
+                    <table class="w-full text-left text-sm">
+                      <thead class="border-b border-base-300 bg-base-200/40 text-xs text-base-content/60">
                         <tr>
-                          <th>Session priced at {usd(@price, 2)}</th>
-                          <th class="text-right">Margin</th>
-                          <th class="text-right">Margin %</th>
+                          <th class="px-6 py-3 font-medium">Session priced at {usd(@price, 2)}</th>
+                          <th class="px-6 py-3 text-right font-medium">Margin</th>
+                          <th class="px-6 py-3 text-right font-medium">Margin %</th>
                         </tr>
                       </thead>
-                      <tbody>
-                        <tr>
-                          <td>vs average cost ({usd(@cost_per_session)})</td>
-                          <td class={"text-right font-semibold #{margin_class(@price - @cost_per_session)}"}>
-                            {usd(@price - @cost_per_session)}
+                      <tbody class="divide-y divide-base-300">
+                        <tr
+                          :for={
+                            {label, cost} <- [
+                              {"vs average cost", @cost_per_session},
+                              {"vs p50 session", @distribution.p50},
+                              {"vs p90 session", @distribution.p90}
+                            ]
+                          }
+                          class="transition-colors hover:bg-base-200/40"
+                        >
+                          <td class="px-6 py-3">
+                            {label} <span class="text-base-content/50">({usd(cost)})</span>
                           </td>
-                          <td class="text-right">
-                            {if @price > 0, do: pct((@price - @cost_per_session) / @price)}
+                          <td class={[
+                            "px-6 py-3 text-right font-semibold",
+                            margin_class(@price - cost)
+                          ]}>
+                            {usd(@price - cost)}
                           </td>
-                        </tr>
-                        <tr>
-                          <td>vs p50 session ({usd(@distribution.p50)})</td>
-                          <td class={"text-right font-semibold #{margin_class(@price - @distribution.p50)}"}>
-                            {usd(@price - @distribution.p50)}
-                          </td>
-                          <td class="text-right">
-                            {if @price > 0, do: pct((@price - @distribution.p50) / @price)}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td>vs p90 session ({usd(@distribution.p90)})</td>
-                          <td class={"text-right font-semibold #{margin_class(@price - @distribution.p90)}"}>
-                            {usd(@price - @distribution.p90)}
-                          </td>
-                          <td class="text-right">
-                            {if @price > 0, do: pct((@price - @distribution.p90) / @price)}
+                          <td class="px-6 py-3 text-right">
+                            {if @price > 0, do: pct((@price - cost) / @price)}
                           </td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
 
-                  <div class="text-sm text-base-content/70 pt-1">
-                    Break-even flat price is p90 cost:
-                    <span class="font-semibold">{usd(@distribution.p90)}</span>.
-                  </div>
-                </div>
-              </div>
+                  <p class="text-sm text-base-content/70">
+                    Break-even flat price is p90 cost: <span class="font-semibold">{usd(@distribution.p90)}</span>.
+                  </p>
+                </.panel>
 
-              <%!-- Daily trend --%>
-              <div class="card bg-base-100 border border-base-300 mb-6">
-                <div class="card-body">
-                  <h2 class="card-title">Daily Trend</h2>
-                  <% max_cost = @daily |> Enum.map(&daily_cost(&1, @rates)) |> Enum.max(fn -> 0 end) %>
-                  <div class="overflow-x-auto">
-                    <table class="table table-sm table-zebra">
-                      <thead>
-                        <tr>
-                          <th>Day</th>
-                          <th class="text-right">Sessions</th>
-                          <th class="text-right">Turns</th>
-                          <th class="text-right">Input</th>
-                          <th class="text-right">Cache Read</th>
-                          <th class="text-right">Output</th>
-                          <th class="text-right">Est. Cost</th>
-                          <th class="w-40"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr :for={day <- Enum.reverse(@daily)}>
-                          <td class="whitespace-nowrap">{day.day}</td>
-                          <td class="text-right">{day.sessions}</td>
-                          <td class="text-right">{day.turns}</td>
-                          <td class="text-right">{tokens(day.input)}</td>
-                          <td class="text-right">{tokens(day.cache_read)}</td>
-                          <td class="text-right">{tokens(day.output)}</td>
-                          <td class="text-right">{usd(daily_cost(day, @rates))}</td>
-                          <td>
-                            <div
-                              class="bg-primary/60 rounded h-2"
-                              style={"width: #{bar_width(daily_cost(day, @rates), max_cost)}%"}
-                            >
-                            </div>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  <p :if={@daily == []} class="text-sm text-base-content/60">
+                <.panel flush title="Daily Trend">
+                  <.empty_state :if={@daily == []} icon="hero-calendar-days" title="No measured turns">
                     No measured turns in this window yet.
-                  </p>
-                </div>
-              </div>
+                  </.empty_state>
+                  <.data_table :if={@daily != []} id="qai-daily-trend" rows={Enum.reverse(@daily)}>
+                    <:col :let={day} label="Day" class="whitespace-nowrap">{day.day}</:col>
+                    <:col :let={day} label="Sessions" class="text-right">{day.sessions}</:col>
+                    <:col :let={day} label="Turns" class="text-right">{day.turns}</:col>
+                    <:col :let={day} label="Input" class="text-right">{tokens(day.input)}</:col>
+                    <:col :let={day} label="Cache read" class="text-right">
+                      {tokens(day.cache_read)}
+                    </:col>
+                    <:col :let={day} label="Output" class="text-right">{tokens(day.output)}</:col>
+                    <:col :let={day} label="Est. cost" class="text-right">
+                      {usd(daily_cost(day, @rates))}
+                    </:col>
+                    <:col :let={day} class="w-40">
+                      <div
+                        class="h-2 rounded bg-primary/60"
+                        style={"width: #{bar_width(daily_cost(day, @rates), max_daily_cost(@daily, @rates))}%"}
+                      >
+                      </div>
+                    </:col>
+                  </.data_table>
+                </.panel>
 
-              <%!-- Model breakdown --%>
-              <div class="card bg-base-100 border border-base-300 mb-6">
-                <div class="card-body">
-                  <h2 class="card-title">By Model</h2>
-                  <div class="overflow-x-auto">
-                    <table class="table table-sm">
-                      <thead>
-                        <tr>
-                          <th>Model</th>
-                          <th class="text-right">Turns</th>
-                          <th class="text-right">Input</th>
-                          <th class="text-right">Cache Read</th>
-                          <th class="text-right">Cache Write</th>
-                          <th class="text-right">Output</th>
-                          <th class="text-right">Est. Cost</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr :for={row <- @breakdown}>
-                          <td class="font-mono text-xs">{row.model}</td>
-                          <td class="text-right">{row.turns}</td>
-                          <td class="text-right">{tokens(row.input)}</td>
-                          <td class="text-right">{tokens(row.cache_read)}</td>
-                          <td class="text-right">{tokens(row.cache_write)}</td>
-                          <td class="text-right">{tokens(row.output)}</td>
-                          <td class="text-right">{usd(Economics.cost(row, @rates))}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
+                <.panel flush title="By Model">
+                  <.empty_state :if={@breakdown == []} icon="hero-cpu-chip" title="No model usage">
+                    No measured turns in this window yet.
+                  </.empty_state>
+                  <.data_table :if={@breakdown != []} id="qai-model-breakdown" rows={@breakdown}>
+                    <:col :let={row} label="Model">
+                      <span class="font-mono text-xs">{row.model}</span>
+                    </:col>
+                    <:col :let={row} label="Turns" class="text-right">{row.turns}</:col>
+                    <:col :let={row} label="Input" class="text-right">{tokens(row.input)}</:col>
+                    <:col :let={row} label="Cache read" class="text-right">
+                      {tokens(row.cache_read)}
+                    </:col>
+                    <:col :let={row} label="Cache write" class="text-right">
+                      {tokens(row.cache_write)}
+                    </:col>
+                    <:col :let={row} label="Output" class="text-right">{tokens(row.output)}</:col>
+                    <:col :let={row} label="Est. cost" class="text-right">
+                      {usd(Economics.cost(row, @rates))}
+                    </:col>
+                  </.data_table>
+                </.panel>
 
-              <%!-- Suggestion conversion --%>
-              <div class="card bg-base-100 border border-base-300 mb-6">
-                <div class="card-body">
-                  <h2 class="card-title">Suggestion Loop (value beyond margin)</h2>
-                  <p class="text-sm text-base-content/60">
-                    Accepted suggestions are MeFile density created per session - the data
-                    flywheel side of the unit economics.
-                  </p>
-                  <div class="overflow-x-auto">
-                    <table class="table table-sm">
-                      <thead>
-                        <tr>
-                          <th>Client</th>
-                          <th class="text-right">Filed</th>
-                          <th class="text-right">Accepted</th>
-                          <th class="text-right">Dismissed</th>
-                          <th class="text-right">Pending</th>
-                          <th class="text-right">Acceptance</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr :for={row <- @suggestions}>
-                          <td>{row.client}</td>
-                          <td class="text-right">{row.filed}</td>
-                          <td class="text-right text-success">{row.accepted}</td>
-                          <td class="text-right">{row.dismissed}</td>
-                          <td class="text-right">{row.pending}</td>
-                          <td class="text-right font-semibold">{pct(row.acceptance_rate)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  <p :if={@suggestions == []} class="text-sm text-base-content/60">
+                <.panel
+                  flush
+                  title="Suggestion Loop (value beyond margin)"
+                  description="Accepted suggestions are MeFile density created per session, the data flywheel side of the unit economics."
+                >
+                  <.empty_state
+                    :if={@suggestions == []}
+                    icon="hero-light-bulb"
+                    title="No suggestions"
+                  >
                     No suggestions filed in this window.
-                  </p>
-                </div>
+                  </.empty_state>
+                  <.data_table :if={@suggestions != []} id="qai-suggestions" rows={@suggestions}>
+                    <:col :let={row} label="Client">{row.client}</:col>
+                    <:col :let={row} label="Filed" class="text-right">{row.filed}</:col>
+                    <:col :let={row} label="Accepted" class="text-right text-success">
+                      {row.accepted}
+                    </:col>
+                    <:col :let={row} label="Dismissed" class="text-right">{row.dismissed}</:col>
+                    <:col :let={row} label="Pending" class="text-right">{row.pending}</:col>
+                    <:col :let={row} label="Acceptance" class="text-right font-semibold">
+                      {pct(row.acceptance_rate)}
+                    </:col>
+                  </.data_table>
+                </.panel>
               </div>
-            </div>
+            </.page>
           </div>
         </div>
       </div>
     </Layouts.admin>
     """
   end
+
+  attr :name, :string, required: true
+  attr :label, :string, required: true
+  attr :value, :any, required: true
+
+  defp rate_input(assigns) do
+    ~H"""
+    <label class="block">
+      <span class="mb-1 block text-xs text-base-content/60">{@label}</span>
+      <input type="text" name={@name} value={@value} class="input input-sm w-full" />
+    </label>
+    """
+  end
+
+  defp turns_hint(totals) do
+    [
+      totals.sessions > 0 && "#{Float.round(totals.turns / totals.sessions, 1)}/session",
+      totals.unmeasured > 0 && "(#{totals.unmeasured} unmeasured)"
+    ]
+    |> Enum.filter(& &1)
+    |> Enum.join(" ")
+    |> case do
+      "" -> nil
+      hint -> hint
+    end
+  end
+
+  defp segment_class(true),
+    do: "btn btn-sm border-0 bg-primary/10 text-primary shadow-none hover:bg-primary/15"
+
+  defp segment_class(false), do: "btn btn-sm btn-ghost border-0 text-base-content/70"
 end

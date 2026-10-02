@@ -252,7 +252,8 @@ defmodule Qlarius.Tiqit.Arcade.Creators do
     if Map.has_key?(attrs, "display_order") || Map.has_key?(attrs, :display_order) do
       attrs
     else
-      Map.put(attrs, :display_order, next_content_piece_display_order(group))
+      key = if Enum.any?(Map.keys(attrs), &is_binary/1), do: "display_order", else: :display_order
+      Map.put(attrs, key, next_content_piece_display_order(group))
     end
   end
 

@@ -6,1212 +6,993 @@
       <AdminTopbar.topbar current_user={@current_scope.user} />
 
       <div class="overflow-auto">
-        <div class="p-6 space-y-6">
-          <!-- Header Section -->
-          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div class="flex items-center gap-4">
-              <.link
-                navigate={
-                  if @live_action == :edit do
-                    ~p"/creators/#{@creator.id}"
-                  else
-                    ~p"/creators/#{@creator.id}"
-                  end
-                }
-                class="btn btn-ghost btn-sm"
-              >
-                <.icon name="hero-arrow-left" class="w-4 h-4" /> Back
-              </.link>
-              <div>
-                <h1 class="text-2xl font-bold text-base-content">
-                  {if @live_action == :edit, do: "Edit Qlink Page", else: "New Qlink Page"}
-                </h1>
-                <p class="text-base-content/60 mt-1">
-                  {if @live_action == :new, do: "For #{@creator.name}"}
-                </p>
+        <.page class="max-w-6xl">
+          <.page_header
+            title={
+              if @live_action == :edit,
+                do: @page.title || "Edit Qlink page",
+                else: "New Qlink page"
+            }
+            subtitle={
+              if @live_action == :edit,
+                do: "Qlink page at /@#{@page.alias}",
+                else: "Link-in-bio page for #{@creator.name}"
+            }
+            back_to={~p"/creators/#{@creator.id}"}
+            back_label={@creator.name}
+          >
+            <:badges :if={@live_action == :edit}>
+              <.status_badge tone={if @page.is_published, do: "success", else: "neutral"}>
+                {if @page.is_published, do: "Published", else: "Draft"}
+              </.status_badge>
+            </:badges>
+            <:actions :if={@live_action == :edit}>
+              <div class="flex items-center gap-2 text-sm text-base-content/70">
+                <.toggle
+                  id="published-toggle"
+                  checked={@page.is_published}
+                  click="toggle_published"
+                />
+                <span>Published</span>
               </div>
+              <a
+                :if={@page.alias}
+                href={page_view_url(@page.alias)}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-sm btn-ghost"
+              >
+                <.icon name="hero-arrow-top-right-on-square" class="size-4" />
+                {if @page.is_published, do: "View page", else: "Preview"}
+              </a>
+            </:actions>
+          </.page_header>
+
+          <.form
+            for={@form}
+            phx-change="validate"
+            phx-submit="save"
+            multipart
+            class="space-y-6"
+            id="qlink-page-form"
+          >
+            <div :if={@live_action == :edit} role="tablist" class="tabs tabs-box tabs-sm w-fit">
+              <button
+                type="button"
+                role="tab"
+                class={["tab", @active_tab == "basics" && "tab-active"]}
+                phx-click="select_tab"
+                phx-value-tab="basics"
+              >
+                Basics
+              </button>
+              <button
+                type="button"
+                role="tab"
+                class={["tab", @active_tab == "content" && "tab-active"]}
+                phx-click="select_tab"
+                phx-value-tab="content"
+              >
+                Content
+              </button>
+              <button
+                type="button"
+                role="tab"
+                class={["tab", @active_tab == "style" && "tab-active"]}
+                phx-click="select_tab"
+                phx-value-tab="style"
+              >
+                Style
+              </button>
+              <button
+                type="button"
+                role="tab"
+                class={["tab", @active_tab == "monetization" && "tab-active"]}
+                phx-click="select_tab"
+                phx-value-tab="monetization"
+              >
+                Monetization
+              </button>
             </div>
 
-            <%= if @live_action == :edit do %>
-              <div class="flex items-center gap-4">
-                <%!-- Published Toggle (saves immediately) --%>
-                <div class="flex items-center gap-3 px-4 py-2 bg-base-200 rounded-full">
-                  <.toggle
-                    id="published-toggle"
-                    checked={@page.is_published}
-                    click="toggle_published"
-                  />
-                  <span class={[
-                    "font-semibold text-sm",
-                    if(@page.is_published, do: "text-success", else: "text-base-content/50")
-                  ]}>
-                    {if @page.is_published, do: "Published", else: "Draft"}
-                  </span>
-                </div>
-
-                <%= if @page.alias do %>
-                  <a
-                    href={page_view_url(@page.alias)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="btn btn-primary btn-sm"
-                  >
-                    <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4 mr-2" />
-                    {if @page.is_published, do: "View Page", else: "Preview"}
-                  </a>
-                <% end %>
-              </div>
-            <% end %>
-          </div>
-          
-<!-- Main Form Card -->
-          <div class="card bg-base-100 shadow-lg">
-            <div class="card-body">
-              <.form
-                for={@form}
-                phx-change="validate"
-                phx-submit="save"
-                multipart
-                class="space-y-6"
-                id="qlink-page-form"
+            <%= if @active_tab == "basics" do %>
+              <.panel
+                title="Basic information"
+                description="The title, alias and bio visitors see on the page."
               >
-                <%!-- Tab nav: server-driven via :active_tab; type="button" so clicks don't submit. --%>
-                <%= if @live_action == :edit do %>
-                  <div role="tablist" class="tabs tabs-boxed bg-base-200">
+                <div class="grid gap-6 md:grid-cols-2">
+                  <div>
+                    <.input
+                      field={@form[:title]}
+                      type="text"
+                      label="Title"
+                      placeholder="My Link Page"
+                      required
+                    />
+
+                    <%= if @live_action == :new do %>
+                      <.input
+                        field={@form[:alias]}
+                        type="text"
+                        label="Alias"
+                        placeholder="my-page"
+                        required
+                      />
+                      <p class="text-xs text-base-content/50">
+                        URL: /@{@form[:alias].value || "alias"}
+                      </p>
+                      <p :for={{error, _} <- @form[:alias].errors} class="mt-1 text-sm text-error">
+                        {error}
+                      </p>
+                    <% else %>
+                      <fieldset class="fieldset mb-2">
+                        <span class="fieldset-label mb-1">Alias</span>
+                        <div class="input w-full bg-base-200 text-base-content/70">
+                          @{@page.alias}
+                        </div>
+                        <p class="fieldset-description mt-1">URL: /@{@page.alias}</p>
+                      </fieldset>
+                    <% end %>
+                  </div>
+
+                  <.input
+                    field={@form[:bio_text]}
+                    type="textarea"
+                    label="Bio"
+                    placeholder="Tell visitors about your page..."
+                    rows="6"
+                  />
+                </div>
+              </.panel>
+
+              <.panel
+                title="Brand logo"
+                description="Optional. Replaces the title on the public page. The title is still used for the browser tab. PNG with transparency works best."
+              >
+                <.image_upload_field
+                  upload={@uploads.brand_logo}
+                  label=""
+                  current_image={@page.brand_logo}
+                  current_image_url={
+                    if @page.brand_logo,
+                      do:
+                        QlariusWeb.Uploaders.CreatorImage.url(
+                          {@page.brand_logo, @page},
+                          :original
+                        )
+                  }
+                  current_image_class="w-full max-w-48 max-h-20 h-auto object-contain"
+                  on_delete={if @page.id, do: "delete_brand_logo"}
+                  accept_text="JPG, PNG, GIF, WebP (max 10MB)"
+                />
+                <div class="max-w-xs">
+                  <.input
+                    field={@form[:brand_logo_max_width]}
+                    type="number"
+                    min={Themes.brand_logo_width_min()}
+                    max={Themes.brand_logo_width_max()}
+                    step="1"
+                    label="Max width (px)"
+                    description={"Height stays in ratio. Default and maximum #{Themes.brand_logo_width_max()}px."}
+                  />
+                </div>
+              </.panel>
+
+              <div class="grid items-start gap-6 lg:grid-cols-2">
+                <.panel title="Profile photo" description="Shown at the top of the page.">
+                  <.image_upload_field
+                    upload={@uploads.image}
+                    label=""
+                    current_image={@page.profile_photo}
+                    current_image_url={
+                      if @page.profile_photo,
+                        do:
+                          QlariusWeb.Uploaders.CreatorImage.url(
+                            {@page.profile_photo, @page},
+                            :original
+                          )
+                    }
+                    on_delete="delete_image"
+                  />
+                </.panel>
+
+                <.panel title="Social links" description="Add one link per platform.">
+                  <div class="flex items-center gap-2">
+                    <select
+                      id="social-platform-select"
+                      name="selected_social_platform"
+                      class="select min-w-0 flex-1"
+                      phx-change="select_social_platform"
+                      aria-label="Platform"
+                    >
+                      <option value="">Select platform</option>
+                      <%= for platform <- available_social_platforms(@used_social_platforms) do %>
+                        <option
+                          value={platform}
+                          selected={@selected_social_platform == platform}
+                        >
+                          {format_platform_name(platform)}
+                        </option>
+                      <% end %>
+                    </select>
                     <button
                       type="button"
-                      role="tab"
-                      class={["tab", @active_tab == "basics" && "tab-active"]}
-                      phx-click="select_tab"
-                      phx-value-tab="basics"
+                      phx-click="add_selected_social_link"
+                      class="btn btn-sm"
+                      disabled={
+                        @selected_social_platform == "" || @selected_social_platform == nil
+                      }
                     >
-                      Basics
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      class={["tab", @active_tab == "content" && "tab-active"]}
-                      phx-click="select_tab"
-                      phx-value-tab="content"
-                    >
-                      Content
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      class={["tab", @active_tab == "style" && "tab-active"]}
-                      phx-click="select_tab"
-                      phx-value-tab="style"
-                    >
-                      Style
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      class={["tab", @active_tab == "monetization" && "tab-active"]}
-                      phx-click="select_tab"
-                      phx-value-tab="monetization"
-                    >
-                      Monetization
+                      <.icon name="hero-plus" class="size-4" /> Add
                     </button>
                   </div>
-                <% end %>
 
-                <%= if @active_tab == "basics" do %>
-                  <!-- Basic Information Section -->
-                  <div>
-                    <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                      <.icon name="hero-information-circle" class="w-5 h-5 mr-3 text-info" />
-                      Basic Information
-                    </h3>
+                  <p :if={@social_links == []} class="text-sm text-base-content/50">
+                    No social links yet.
+                  </p>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <!-- Left Column: Title and Alias -->
-                      <div class="space-y-4">
-                        <div class="form-control">
-                          <label class="label">
-                            <span class="label-text font-medium">Title *</span>
-                          </label>
-                          <.input
-                            field={@form[:title]}
-                            type="text"
-                            class="input input-bordered w-full"
-                            placeholder="My Link Page"
-                            required
+                  <div id="social-links" class="space-y-3">
+                    <%= for link <- @social_links do %>
+                      <div id={link.id} class="flex items-end gap-2">
+                        <label class="min-w-0 flex-1">
+                          <span class="mb-1 block text-xs text-base-content/60">
+                            {format_platform_name(link.platform)}
+                          </span>
+                          <input
+                            type="url"
+                            name={"social_links[#{link.id}][url]"}
+                            value={link.url}
+                            class="input w-full"
+                            placeholder="https://..."
+                            phx-change="update_social_link"
+                            phx-value-id={link.id}
                           />
-                        </div>
+                        </label>
+                        <button
+                          type="button"
+                          phx-click="remove_social_link"
+                          phx-value-id={link.id}
+                          class="btn btn-ghost btn-square text-error"
+                          title="Remove"
+                          aria-label={"Remove #{format_platform_name(link.platform)}"}
+                        >
+                          <.icon name="hero-trash" class="size-4" />
+                        </button>
+                      </div>
+                    <% end %>
+                  </div>
+                </.panel>
+              </div>
+            <% end %>
 
-                        <div class="form-control">
-                          <label class="label">
-                            <span class="label-text font-medium">Brand logo</span>
-                          </label>
-                          <p class="text-sm text-base-content/60 mb-2">
-                            Optional. Overrides the title on the public page. Title is still used for the browser tab. PNG with transparency works best.
+            <%= if @active_tab == "content" && @live_action == :edit && @page.id do %>
+              <div class="grid items-start gap-6 lg:grid-cols-3">
+                <.panel
+                  id="qlink-sections"
+                  flush
+                  title="Sections"
+                  description="Group blocks under headings."
+                >
+                  <:actions>
+                    <button type="button" phx-click="show_add_section_modal" class="btn btn-sm">
+                      <.icon name="hero-plus" class="size-4" /> Add section
+                    </button>
+                  </:actions>
+
+                  <.empty_state :if={@sections == []} icon="hero-folder" title="No sections yet">
+                    Sections help organize your links into groups.
+                  </.empty_state>
+
+                  <div :if={@sections != []} class="divide-y divide-base-300">
+                    <%= for section <- @sections do %>
+                      <.render_section_item section={section} />
+                    <% end %>
+                  </div>
+                </.panel>
+
+                <.panel
+                  id="qlink-blocks"
+                  flush
+                  title="Blocks"
+                  description="Links, embeds and tip jars in display order."
+                  class="lg:col-span-2"
+                >
+                  <:actions>
+                    <button
+                      type="button"
+                      phx-click="show_add_link_modal"
+                      class="btn btn-primary btn-sm"
+                    >
+                      <.icon name="hero-plus" class="size-4" /> Add block
+                    </button>
+                  </:actions>
+
+                  <.empty_state :if={@links == []} icon="hero-squares-2x2" title="No blocks yet">
+                    Click "Add block" to get started.
+                  </.empty_state>
+
+                  <div :if={@links != []} class="divide-y divide-base-300">
+                    <% unsectioned_links =
+                      Enum.filter(@links, &is_nil(&1.qlink_section_id))
+                      |> Enum.sort_by(& &1.display_order) %>
+                    <%= for link <- unsectioned_links do %>
+                      <.render_link_item link={link} sections={@sections} />
+                    <% end %>
+
+                    <%= for section <- @sections do %>
+                      <% section_links =
+                        Enum.filter(@links, &(&1.qlink_section_id == section.id))
+                        |> Enum.sort_by(& &1.display_order) %>
+                      <%= if section_links != [] do %>
+                        <details
+                          id={"section-group-#{section.id}"}
+                          phx-mounted={JS.ignore_attributes(["open"])}
+                          class="group"
+                          open
+                        >
+                          <summary class="flex cursor-pointer list-none items-center gap-2 bg-base-200/40 px-6 py-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+                            <.icon
+                              name="hero-chevron-right"
+                              class="size-4 shrink-0 text-base-content/50 transition-transform group-open:rotate-90"
+                            />
+                            <span class="truncate">{section.title}</span>
+                            <span class="rounded-full bg-base-200 px-2 py-0.5 text-xs font-normal text-base-content/60">
+                              {length(section_links)}
+                            </span>
+                          </summary>
+                          <p
+                            :if={section.description}
+                            class="border-t border-base-300 px-6 pt-3 text-sm text-base-content/60"
+                          >
+                            {section.description}
                           </p>
+                          <div class="divide-y divide-base-300 border-t border-base-300">
+                            <%= for link <- section_links do %>
+                              <.render_link_item link={link} sections={@sections} />
+                            <% end %>
+                          </div>
+                        </details>
+                      <% end %>
+                    <% end %>
+                  </div>
+                </.panel>
+              </div>
+            <% end %>
+
+            <%= if @active_tab == "style" && @live_action == :edit && @page.id do %>
+              <% theme = style_theme(@form) %>
+              <% preview_page = style_preview_page(@form, @page) %>
+              <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
+                <div class="min-w-0 space-y-6">
+                  <%= if theme do %>
+                    <input
+                      type="hidden"
+                      name="qlink_page[theme_config][template_id]"
+                      value={theme_value(@form, ["template_id"], "")}
+                    />
+                  <% end %>
+
+                  <% origin = template_origin(@form) %>
+                  <details
+                    id="style-templates"
+                    phx-mounted={JS.ignore_attributes(["open"])}
+                    class="group rounded-2xl border border-base-300 bg-surface shadow-sm dark:bg-base-100"
+                  >
+                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-4 [&::-webkit-details-marker]:hidden">
+                      <div class="min-w-0">
+                        <h2 class="text-base font-semibold">Templates</h2>
+                        <p class="mt-0.5 truncate text-sm text-base-content/60">
+                          {Themes.template_summary(origin)}
+                        </p>
+                      </div>
+                      <.icon
+                        name="hero-chevron-down"
+                        class="size-4 shrink-0 text-base-content/50 transition-transform group-open:rotate-180"
+                      />
+                    </summary>
+                    <div class="space-y-4 border-t border-base-300 px-6 py-5">
+                      <div class="flex flex-wrap items-center justify-between gap-3">
+                        <p class="text-sm text-base-content/60">
+                          Applying a template replaces colors, fonts, buttons, and background.
+                        </p>
+                        <button
+                          :if={origin != :none}
+                          type="button"
+                          class="btn btn-ghost btn-sm shrink-0"
+                          phx-click="reset_template"
+                          data-confirm="Reset to the original template? This will overwrite any custom styling. Links and content stay the same."
+                        >
+                          Reset to template
+                        </button>
+                      </div>
+                      <div class="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                        <%= for t <- Themes.templates() do %>
+                          <button
+                            type="button"
+                            phx-click="apply_template"
+                            phx-value-id={t["id"]}
+                            data-confirm={
+                              if origin != :none,
+                                do:
+                                  "Replace colors, fonts, and buttons with the #{t["label"]} template? Links and content stay the same."
+                            }
+                            class={[
+                              "qlink-style-swatch",
+                              template_applied?(origin, t["id"]) && "is-selected"
+                            ]}
+                          >
+                            <span
+                              class="qlink-style-swatch__face"
+                              style={"background: #{t["swatch"]}; color: #{t["text_color"]}; font-family: #{Themes.font_family(t["font"])}"}
+                            >
+                              {t["label"]}
+                            </span>
+                          </button>
+                        <% end %>
+                      </div>
+                    </div>
+                  </details>
+
+                  <.panel
+                    title="Background"
+                    description="Fills the page column. Side panels stay the gutter color on wide screens."
+                  >
+                    <div
+                      class="h-16 max-w-md rounded-xl border border-base-300"
+                      style={bg_preview_style(@form, @page)}
+                    >
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      <%= for {label, value} <- [{"Color", "solid"}, {"Gradient", "gradient"}, {"Image", "image"}, {"Pattern", "pattern"}] do %>
+                        <.style_option
+                          name="qlink_page[background_config][type]"
+                          value={value}
+                          checked={bg_type(@form) == value}
+                          label={label}
+                        />
+                      <% end %>
+                    </div>
+
+                    <%= case bg_type(@form) do %>
+                      <% "solid" -> %>
+                        <.color_field
+                          label="Color"
+                          name="qlink_page[background_config][value]"
+                          value={bg_solid_hex(@form)}
+                        />
+                      <% "gradient" -> %>
+                        <% linear = bg_linear(@form) %>
+                        <%= if linear do %>
+                          <input
+                            type="hidden"
+                            name="qlink_page[background_config][value]"
+                            value={bg_value(@form)}
+                          />
+                          <div class="flex flex-wrap gap-6">
+                            <.color_field
+                              label="From"
+                              name="qlink_page[background_config][from]"
+                              value={linear["from"]}
+                            />
+                            <.color_field
+                              label="To"
+                              name="qlink_page[background_config][to]"
+                              value={linear["to"]}
+                            />
+                          </div>
+                          <div>
+                            <p class="mb-2 text-xs font-medium text-base-content/60">Direction</p>
+                            <div class="flex flex-wrap gap-2">
+                              <%= for {label, angle} <- gradient_angle_options(linear) do %>
+                                <button
+                                  type="button"
+                                  phx-click="set_bg_gradient_angle"
+                                  phx-value-angle={angle}
+                                  class={["btn btn-sm", linear["angle"] == angle && "btn-primary"]}
+                                >
+                                  {label}
+                                </button>
+                              <% end %>
+                            </div>
+                          </div>
+                        <% else %>
+                          <input
+                            type="hidden"
+                            name="qlink_page[background_config][value]"
+                            value={bg_value(@form)}
+                          />
+                          <p class="max-w-md text-sm text-base-content/60">
+                            This template uses a custom blend. Edit it as two colors, or keep it as-is.
+                          </p>
+                          <div>
+                            <button
+                              type="button"
+                              class="btn btn-sm"
+                              phx-click="simplify_background_gradient"
+                            >
+                              Edit as two colors
+                            </button>
+                          </div>
+                        <% end %>
+                      <% "image" -> %>
+                        <input
+                          type="hidden"
+                          name="qlink_page[background_config][file]"
+                          value={bg_file(@form) || ""}
+                        />
+                        <div class="max-w-md space-y-2">
                           <.image_upload_field
-                            upload={@uploads.brand_logo}
-                            label=""
-                            current_image={@page.brand_logo}
+                            upload={@uploads.background}
+                            label="Background image"
+                            current_image={bg_file(@form)}
                             current_image_url={
-                              if @page.brand_logo,
+                              if bg_file(@form),
                                 do:
                                   QlariusWeb.Uploaders.CreatorImage.url(
-                                    {@page.brand_logo, @page},
+                                    {bg_file(@form), @page},
                                     :original
                                   )
                             }
-                            current_image_class="w-full max-w-48 max-h-20 h-auto object-contain"
-                            on_delete={if @page.id, do: "delete_brand_logo"}
-                            accept_text="JPG, PNG, GIF, WebP (max 10MB)"
+                            on_delete="delete_background"
                           />
-                          <.input
-                            field={@form[:brand_logo_max_width]}
-                            type="number"
-                            min={Themes.brand_logo_width_min()}
-                            max={Themes.brand_logo_width_max()}
-                            step="1"
-                            label="Max width (px)"
-                            description={"Height stays in ratio. Default and maximum #{Themes.brand_logo_width_max()}px."}
-                          />
+                          <p class="text-sm text-base-content/60">
+                            Photo covers the page. Keep Page text high-contrast so copy stays readable.
+                          </p>
                         </div>
-
-                        <%= if @live_action == :new do %>
-                          <div class="form-control">
-                            <label class="label">
-                              <span class="label-text font-medium">Alias *</span>
-                            </label>
-                            <.input
-                              field={@form[:alias]}
-                              type="text"
-                              class="input input-bordered w-full"
-                              placeholder="my-page"
-                              required
-                            />
-                            <label class="label">
-                              <span class="label-text-alt text-base-content/60">
-                                URL: /@{@form[:alias].value || "alias"}
-                              </span>
-                            </label>
-                            <%= if @form[:alias].errors != [] do %>
-                              <%= for {error, _} <- @form[:alias].errors do %>
-                                <label class="label">
-                                  <span class="label-text-alt text-error">{error}</span>
-                                </label>
-                              <% end %>
-                            <% end %>
-                          </div>
-                        <% else %>
-                          <div class="form-control">
-                            <label class="label">
-                              <span class="label-text font-medium">Alias</span>
-                            </label>
-                            <div class="input input-bordered w-full bg-base-200">
-                              @{@page.alias}
-                            </div>
-                            <label class="label">
-                              <span class="label-text-alt text-base-content/60">
-                                URL: /@{@page.alias}
-                              </span>
-                            </label>
-                          </div>
-                        <% end %>
-                      </div>
-                      
-<!-- Right Column: Bio -->
-                      <div class="form-control">
-                        <label class="label">
-                          <span class="label-text font-medium">Bio</span>
-                        </label>
-                        <.input
-                          field={@form[:bio_text]}
-                          type="textarea"
-                          class="textarea textarea-bordered w-full h-full"
-                          placeholder="Tell visitors about your page..."
-                          rows="5"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-<!-- Profile Photo and Social Links Section -->
-                  <div class="border-t border-base-300 pt-6">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <!-- Profile Photo -->
-                      <div>
-                        <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                          <.icon name="hero-photo" class="w-5 h-5 mr-3 text-primary" />
-                          Profile Photo
-                        </h3>
-                        <.image_upload_field
-                          upload={@uploads.image}
-                          label=""
-                          current_image={@page.profile_photo}
-                          current_image_url={
-                            if @page.profile_photo,
-                              do:
-                                QlariusWeb.Uploaders.CreatorImage.url(
-                                  {@page.profile_photo, @page},
-                                  :original
-                                )
-                          }
-                          on_delete="delete_image"
-                        />
-                      </div>
-                      
-<!-- Social Links -->
-                      <div>
-                        <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                          <.icon name="hero-share" class="w-5 h-5 mr-3 text-accent" />
-                          Social Links
-                        </h3>
-                        
-<!-- Add Social Link Selector -->
-                        <div class="flex items-center gap-3 mb-4">
-                          <div class="form-control flex-1">
-                            <select
-                              id="social-platform-select"
-                              name="selected_social_platform"
-                              class="select select-bordered w-full"
-                              phx-change="select_social_platform"
-                            >
-                              <option value="">Select Platform</option>
-                              <%= for platform <- available_social_platforms(@used_social_platforms) do %>
-                                <option
-                                  value={platform}
-                                  selected={@selected_social_platform == platform}
-                                >
-                                  {format_platform_name(platform)}
-                                </option>
-                              <% end %>
-                            </select>
-                          </div>
-                          <button
-                            type="button"
-                            phx-click="add_selected_social_link"
-                            class="btn btn-primary btn-sm"
-                            disabled={
-                              @selected_social_platform == "" || @selected_social_platform == nil
-                            }
-                          >
-                            <.icon name="hero-plus" class="w-4 h-4" />
-                          </button>
-                        </div>
-                        
-<!-- Added Social Links -->
-                        <div id="social-links" class="space-y-3">
-                          <%= for link <- @social_links do %>
-                            <div id={link.id} class="flex items-center gap-3">
-                              <div class="form-control flex-1">
-                                <div class="label">
-                                  <span class="label-text font-medium">
-                                    {format_platform_name(link.platform)}
-                                  </span>
-                                </div>
-                                <input
-                                  type="url"
-                                  name={"social_links[#{link.id}][url]"}
-                                  value={link.url}
-                                  class="input input-bordered w-full"
-                                  placeholder="https://..."
-                                  phx-change="update_social_link"
-                                  phx-value-id={link.id}
-                                />
-                              </div>
-                              <button
-                                type="button"
-                                phx-click="remove_social_link"
-                                phx-value-id={link.id}
-                                class="btn btn-ghost btn-sm text-error mt-6"
-                                title="Remove"
-                              >
-                                <.icon name="hero-trash" class="w-4 h-4" />
-                              </button>
-                            </div>
-                          <% end %>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                <% end %>
-
-                <%= if @active_tab == "content" && @live_action == :edit && @page.id do %>
-                  <!-- Sections and Blocks Management -->
-                  <div class="border-t border-base-300 pt-6">
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      <!-- Sections Column -->
-                      <div class="lg:col-span-1">
-                        <div class="flex items-center justify-between mb-4">
-                          <h3 class="text-lg font-semibold text-base-content flex items-center">
-                            <.icon name="hero-folder" class="w-5 h-5 mr-3 text-secondary" />
-                            Sections
-                          </h3>
-                          <button
-                            type="button"
-                            phx-click="show_add_section_modal"
-                            class="btn btn-secondary btn-sm"
-                          >
-                            <.icon name="hero-plus" class="w-4 h-4 mr-1" /> Add Section
-                          </button>
-                        </div>
-
-                        <%= if @sections == [] do %>
-                          <div class="alert alert-info">
-                            <span>
-                              No sections yet. Sections help organize your links into groups.
-                            </span>
-                          </div>
-                        <% else %>
-                          <div class="space-y-2">
-                            <%= for section <- @sections do %>
-                              <.render_section_item section={section} />
-                            <% end %>
-                          </div>
-                        <% end %>
-                      </div>
-                      
-<!-- Blocks Column -->
-                      <div class="lg:col-span-2">
-                        <div class="flex items-center justify-between mb-4">
-                          <h3 class="text-lg font-semibold text-base-content flex items-center">
-                            <.icon name="hero-squares-2x2" class="w-5 h-5 mr-3 text-primary" />
-                            Blocks
-                          </h3>
-                          <button
-                            type="button"
-                            phx-click="show_add_link_modal"
-                            class="btn btn-primary btn-sm"
-                          >
-                            <.icon name="hero-plus" class="w-4 h-4 mr-1" /> Add Block
-                          </button>
-                        </div>
-
-                        <%= if @links == [] do %>
-                          <div class="alert alert-info">
-                            <span>No blocks yet. Click "Add Block" to get started.</span>
-                          </div>
-                        <% else %>
-                          <div class="space-y-4">
-                            <% unsectioned_links =
-                              Enum.filter(@links, &is_nil(&1.qlink_section_id))
-                              |> Enum.sort_by(& &1.display_order) %>
-                            <%= if unsectioned_links != [] do %>
-                              <div class="space-y-2">
-                                <%= for link <- unsectioned_links do %>
-                                  <.render_link_item link={link} sections={@sections} />
-                                <% end %>
-                              </div>
-                            <% end %>
-
-                            <%= for section <- @sections do %>
-                              <% section_links =
-                                Enum.filter(@links, &(&1.qlink_section_id == section.id))
-                                |> Enum.sort_by(& &1.display_order) %>
-                              <%= if section_links != [] do %>
-                                <div class="collapse collapse-arrow bg-base-200">
-                                  <input type="checkbox" checked />
-                                  <div class="collapse-title text-lg font-medium">
-                                    {section.title}
-                                  </div>
-                                  <div class="collapse-content">
-                                    <%= if section.description do %>
-                                      <p class="text-sm text-base-content/60 mb-3">
-                                        {section.description}
-                                      </p>
-                                    <% end %>
-                                    <div class="space-y-2">
-                                      <%= for link <- section_links do %>
-                                        <.render_link_item link={link} sections={@sections} />
-                                      <% end %>
-                                    </div>
-                                  </div>
-                                </div>
-                              <% end %>
-                            <% end %>
-                          </div>
-                        <% end %>
-                      </div>
-                    </div>
-                  </div>
-                <% end %>
-
-                <%= if @active_tab == "style" && @live_action == :edit && @page.id do %>
-                  <% theme = style_theme(@form) %>
-                  <% preview_page = style_preview_page(@form, @page) %>
-                  <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_280px] gap-8 items-start">
-                    <div class="space-y-8 min-w-0">
-                      <%= if theme do %>
-                        <input
-                          type="hidden"
-                          name="qlink_page[theme_config][template_id]"
-                          value={theme_value(@form, ["template_id"], "")}
-                        />
-                      <% end %>
-
-                      <% origin = template_origin(@form) %>
-                      <div class="collapse collapse-arrow border border-base-300 rounded-xl">
-                        <input type="checkbox" />
-                        <div class="collapse-title min-h-0 py-3">
-                          <div class="flex items-center justify-between gap-3 pr-4">
-                            <h3 class="text-lg font-semibold text-base-content flex items-center">
-                              <.icon name="hero-paint-brush" class="w-5 h-5 mr-3 text-primary" />
-                              Templates
-                            </h3>
-                            <span class="text-sm font-normal text-base-content/70 truncate">
-                              {Themes.template_summary(origin)}
-                            </span>
-                          </div>
-                        </div>
-                        <div class="collapse-content">
-                          <div class="flex items-center justify-between gap-3 mb-3">
-                            <p class="text-sm text-base-content/60">
-                              Applying a template replaces colors, fonts, buttons, and background.
-                            </p>
-                            <%= if origin != :none do %>
-                              <button
-                                type="button"
-                                class="btn btn-ghost btn-xs shrink-0"
-                                phx-click="reset_template"
-                                data-confirm="Reset to the original template? This will overwrite any custom styling. Links and content stay the same."
-                              >
-                                Reset to template
-                              </button>
-                            <% end %>
-                          </div>
-                          <div class="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                            <%= for t <- Themes.templates() do %>
-                              <button
-                                type="button"
-                                phx-click="apply_template"
-                                phx-value-id={t["id"]}
-                                data-confirm={
-                                  if origin != :none,
-                                    do:
-                                      "Replace colors, fonts, and buttons with the #{t["label"]} template? Links and content stay the same."
-                                }
-                                class={[
-                                  "qlink-style-swatch",
-                                  template_applied?(origin, t["id"]) && "is-selected"
-                                ]}
-                              >
-                                <span
-                                  class="qlink-style-swatch__face"
-                                  style={"background: #{t["swatch"]}; color: #{t["text_color"]}; font-family: #{Themes.font_family(t["font"])}"}
-                                >
-                                  {t["label"]}
-                                </span>
-                              </button>
-                            <% end %>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 class="text-lg font-semibold text-base-content flex items-center mb-3">
-                          <.icon name="hero-paint-brush" class="w-5 h-5 mr-3 text-primary" />
-                          Background
-                        </h3>
-                        <p class="text-sm text-base-content/60 mb-3 max-w-md">
-                          Fills the page column. Side panels stay the gutter color on wide screens.
-                        </p>
-                        <div
-                          class="h-16 max-w-md rounded-xl border border-base-300 mb-3"
-                          style={bg_preview_style(@form, @page)}
-                        >
-                        </div>
-                        <div class="flex flex-wrap gap-2 mb-4">
-                          <%= for {label, value} <- [{"Color", "solid"}, {"Gradient", "gradient"}, {"Image", "image"}, {"Pattern", "pattern"}] do %>
-                            <label class="cursor-pointer">
-                              <input
-                                type="radio"
-                                name="qlink_page[background_config][type]"
-                                value={value}
-                                checked={bg_type(@form) == value}
-                                class="hidden peer"
-                              />
-                              <span class="btn btn-sm btn-outline peer-checked:btn-primary">
-                                {label}
-                              </span>
-                            </label>
-                          <% end %>
-                        </div>
-
-                        <%= case bg_type(@form) do %>
-                          <% "solid" -> %>
-                            <div class="form-control max-w-md">
-                              <span class="label-text font-medium mb-1">Color</span>
-                              <input
-                                type="color"
-                                name="qlink_page[background_config][value]"
-                                value={bg_solid_hex(@form)}
-                                class="h-12 w-16 rounded border border-base-300"
-                              />
-                            </div>
-                          <% "gradient" -> %>
-                            <% linear = bg_linear(@form) %>
-                            <%= if linear do %>
-                              <input
-                                type="hidden"
-                                name="qlink_page[background_config][value]"
-                                value={bg_value(@form)}
-                              />
-                              <div class="flex flex-wrap gap-6 max-w-md">
-                                <label class="form-control">
-                                  <span class="label-text font-medium mb-1">From</span>
-                                  <input
-                                    type="color"
-                                    name="qlink_page[background_config][from]"
-                                    value={linear["from"]}
-                                    class="h-12 w-16 rounded border border-base-300"
-                                  />
-                                </label>
-                                <label class="form-control">
-                                  <span class="label-text font-medium mb-1">To</span>
-                                  <input
-                                    type="color"
-                                    name="qlink_page[background_config][to]"
-                                    value={linear["to"]}
-                                    class="h-12 w-16 rounded border border-base-300"
-                                  />
-                                </label>
-                              </div>
-                              <p class="text-sm text-base-content/60 mt-3 mb-2">Direction</p>
-                              <div class="flex flex-wrap gap-2 max-w-md">
-                                <%= for {label, angle} <- gradient_angle_options(linear) do %>
-                                  <button
-                                    type="button"
-                                    phx-click="set_bg_gradient_angle"
-                                    phx-value-angle={angle}
-                                    class={[
-                                      "btn btn-sm btn-outline",
-                                      linear["angle"] == angle && "btn-primary"
-                                    ]}
-                                  >
-                                    {label}
-                                  </button>
-                                <% end %>
-                              </div>
-                            <% else %>
-                              <input
-                                type="hidden"
-                                name="qlink_page[background_config][value]"
-                                value={bg_value(@form)}
-                              />
-                              <p class="text-sm text-base-content/60 max-w-md mb-3">
-                                This template uses a custom blend. Edit it as two colors, or keep it as-is.
-                              </p>
-                              <button
-                                type="button"
-                                class="btn btn-sm btn-outline"
-                                phx-click="simplify_background_gradient"
-                              >
-                                Edit as two colors
-                              </button>
-                            <% end %>
-                          <% "image" -> %>
-                            <input
-                              type="hidden"
-                              name="qlink_page[background_config][file]"
-                              value={bg_file(@form) || ""}
-                            />
-                            <div class="max-w-md">
-                              <.image_upload_field
-                                upload={@uploads.background}
-                                label="Background image"
-                                current_image={bg_file(@form)}
-                                current_image_url={
-                                  if bg_file(@form),
-                                    do:
-                                      QlariusWeb.Uploaders.CreatorImage.url(
-                                        {bg_file(@form), @page},
-                                        :original
-                                      )
-                                }
-                                on_delete="delete_background"
-                              />
-                              <p class="text-sm text-base-content/60 mt-2">
-                                Photo covers the page. Keep Page text high-contrast so copy stays readable.
-                              </p>
-                            </div>
-                          <% "pattern" -> %>
-                            <% pattern_cfg = bg_pattern_config(@form) %>
-                            <p class="text-sm text-base-content/60 mb-2">Pattern</p>
-                            <div class="flex flex-wrap gap-2 mb-4 max-w-lg">
-                              <%= for {label, id} <- Themes.pattern_options() do %>
-                                <label class="cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    name="qlink_page[background_config][pattern]"
-                                    value={id}
-                                    checked={pattern_cfg["pattern"] == id}
-                                    class="hidden peer"
-                                  />
-                                  <span
-                                    class={[
-                                      "qlink-pattern-chip border-2 border-transparent peer-checked:border-primary"
-                                    ]}
-                                    style={pattern_chip_style(pattern_cfg, id)}
-                                  >
-                                    {label}
-                                  </span>
-                                </label>
-                              <% end %>
-                            </div>
-                            <div class="flex flex-wrap gap-6 max-w-md mb-4">
-                              <label class="form-control">
-                                <span class="label-text font-medium mb-1">Base</span>
-                                <input
-                                  type="color"
-                                  name="qlink_page[background_config][base]"
-                                  value={pattern_cfg["base"]}
-                                  class="h-12 w-16 rounded border border-base-300"
-                                />
-                              </label>
-                              <label class="form-control">
-                                <span class="label-text font-medium mb-1">Pattern</span>
-                                <input
-                                  type="color"
-                                  name="qlink_page[background_config][fill]"
-                                  value={pattern_cfg["fill"]}
-                                  class="h-12 w-16 rounded border border-base-300"
-                                />
-                              </label>
-                            </div>
-                            <label class="form-control max-w-md mb-4">
-                              <span class="label-text font-medium mb-1">
-                                Pattern opacity · {pattern_cfg["opacity"]}%
-                              </span>
-                              <input
-                                type="range"
-                                min="10"
-                                max="100"
-                                step="5"
-                                name="qlink_page[background_config][opacity]"
-                                value={pattern_cfg["opacity"]}
-                                class="range range-sm range-primary"
-                              />
-                            </label>
-                            <p class="text-sm text-base-content/60 mb-2">Fit</p>
-                            <div class="flex flex-wrap gap-2">
-                              <%= for {label, value} <- [{"Stretch", "stretch"}, {"Tile", "tile"}] do %>
-                                <label class="cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    name="qlink_page[background_config][fit]"
-                                    value={value}
-                                    checked={pattern_cfg["fit"] == value}
-                                    class="hidden peer"
-                                  />
-                                  <span class="btn btn-sm btn-outline peer-checked:btn-primary">
-                                    {label}
-                                  </span>
-                                </label>
-                              <% end %>
-                            </div>
-                            <p class="text-sm text-base-content/60 mt-3 max-w-md">
-                              White at ~50% on a colored base reads as a lighter wash of that color.
-                            </p>
-                        <% end %>
-                      </div>
-
-                      <%= if theme do %>
+                      <% "pattern" -> %>
+                        <% pattern_cfg = bg_pattern_config(@form) %>
                         <div>
-                          <h3 class="text-lg font-semibold text-base-content mb-3">Bio photo</h3>
-                          <div class="flex flex-wrap gap-2">
-                            <%= for {label, value} <- [{"In-frame", "avatar"}, {"Hero fade", "hero"}] do %>
+                          <p class="mb-2 text-xs font-medium text-base-content/60">Pattern</p>
+                          <div class="flex max-w-lg flex-wrap gap-2">
+                            <%= for {label, id} <- Themes.pattern_options() do %>
                               <label class="cursor-pointer">
                                 <input
                                   type="radio"
-                                  name="qlink_page[theme_config][header]"
-                                  value={value}
-                                  checked={theme_value(@form, ["header"], "avatar") == value}
+                                  name="qlink_page[background_config][pattern]"
+                                  value={id}
+                                  checked={pattern_cfg["pattern"] == id}
                                   class="hidden peer"
                                 />
-                                <span class="btn btn-sm btn-outline peer-checked:btn-primary">
+                                <span
+                                  class="qlink-pattern-chip border-2 border-transparent peer-checked:border-primary"
+                                  style={pattern_chip_style(pattern_cfg, id)}
+                                >
                                   {label}
                                 </span>
                               </label>
                             <% end %>
                           </div>
-                          <%= if theme_value(@form, ["header"], "avatar") == "avatar" do %>
-                            <div class="flex flex-wrap gap-2 mt-3">
-                              <%= for {label, value} <- [{"Circle", "circle"}, {"Rounded", "rounded"}] do %>
-                                <label class="cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    name="qlink_page[theme_config][avatar]"
-                                    value={value}
-                                    checked={theme_value(@form, ["avatar"], "circle") == value}
-                                    class="hidden peer"
-                                  />
-                                  <span class="btn btn-sm btn-outline peer-checked:btn-primary">
-                                    {label}
-                                  </span>
-                                </label>
-                              <% end %>
-                            </div>
-                          <% else %>
-                            <input
-                              type="hidden"
-                              name="qlink_page[theme_config][avatar]"
-                              value={theme_value(@form, ["avatar"], "circle")}
+                        </div>
+                        <div class="flex flex-wrap gap-6">
+                          <.color_field
+                            label="Base"
+                            name="qlink_page[background_config][base]"
+                            value={pattern_cfg["base"]}
+                          />
+                          <.color_field
+                            label="Pattern"
+                            name="qlink_page[background_config][fill]"
+                            value={pattern_cfg["fill"]}
+                          />
+                        </div>
+                        <label class="block max-w-md">
+                          <span class="mb-2 block text-xs font-medium text-base-content/60">
+                            Pattern opacity · {pattern_cfg["opacity"]}%
+                          </span>
+                          <input
+                            type="range"
+                            min="10"
+                            max="100"
+                            step="5"
+                            name="qlink_page[background_config][opacity]"
+                            value={pattern_cfg["opacity"]}
+                            class="range range-sm"
+                          />
+                        </label>
+                        <div>
+                          <p class="mb-2 text-xs font-medium text-base-content/60">Fit</p>
+                          <div class="flex flex-wrap gap-2">
+                            <%= for {label, value} <- [{"Stretch", "stretch"}, {"Tile", "tile"}] do %>
+                              <.style_option
+                                name="qlink_page[background_config][fit]"
+                                value={value}
+                                checked={pattern_cfg["fit"] == value}
+                                label={label}
+                              />
+                            <% end %>
+                          </div>
+                        </div>
+                        <p class="max-w-md text-sm text-base-content/60">
+                          White at ~50% on a colored base reads as a lighter wash of that color.
+                        </p>
+                    <% end %>
+                  </.panel>
+
+                  <%= if theme do %>
+                    <.panel
+                      title="Bio photo"
+                      description="How the profile photo sits on the page."
+                    >
+                      <div class="flex flex-wrap gap-2">
+                        <%= for {label, value} <- [{"In-frame", "avatar"}, {"Hero fade", "hero"}] do %>
+                          <.style_option
+                            name="qlink_page[theme_config][header]"
+                            value={value}
+                            checked={theme_value(@form, ["header"], "avatar") == value}
+                            label={label}
+                          />
+                        <% end %>
+                      </div>
+                      <%= if theme_value(@form, ["header"], "avatar") == "avatar" do %>
+                        <div>
+                          <p class="mb-2 text-xs font-medium text-base-content/60">Frame</p>
+                          <div class="flex flex-wrap gap-2">
+                            <%= for {label, value} <- [{"Circle", "circle"}, {"Rounded", "rounded"}] do %>
+                              <.style_option
+                                name="qlink_page[theme_config][avatar]"
+                                value={value}
+                                checked={theme_value(@form, ["avatar"], "circle") == value}
+                                label={label}
+                              />
+                            <% end %>
+                          </div>
+                        </div>
+                      <% else %>
+                        <input
+                          type="hidden"
+                          name="qlink_page[theme_config][avatar]"
+                          value={theme_value(@form, ["avatar"], "circle")}
+                        />
+                      <% end %>
+                    </.panel>
+
+                    <.panel
+                      title="Colors"
+                      description="Side panels color the gutters on wide screens. On phones the page is full width."
+                    >
+                      <div class="flex flex-wrap gap-6">
+                        <.color_field
+                          label="Page text"
+                          name="qlink_page[theme_config][text_color]"
+                          value={theme_value(@form, ["text_color"], "#0c0a09")}
+                        />
+                        <.color_field
+                          label="Page color"
+                          name="qlink_page[theme_config][canvas]"
+                          value={theme_value(@form, ["canvas"], "#ffffff")}
+                        />
+                        <.color_field
+                          label="Side panels"
+                          name="qlink_page[theme_config][gutter]"
+                          value={theme_value(@form, ["gutter"], "#c5c9d0")}
+                        />
+                        <.color_field
+                          label="Button"
+                          name="qlink_page[theme_config][button][bg]"
+                          value={theme_value(@form, ["button", "bg"], "#0c0a09")}
+                        />
+                        <.color_field
+                          label="Button text"
+                          name="qlink_page[theme_config][button][text]"
+                          value={theme_value(@form, ["button", "text"], "#fafaf9")}
+                        />
+                        <.color_field
+                          label="Button border"
+                          name="qlink_page[theme_config][button][border]"
+                          value={
+                            theme_value(
+                              @form,
+                              ["button", "border"],
+                              theme_value(@form, ["button", "text"], "#fafaf9")
+                            )
+                          }
+                        />
+                      </div>
+                    </.panel>
+
+                    <.panel
+                      title="Buttons"
+                      description="Layout, shape and fill of the link buttons."
+                    >
+                      <div>
+                        <p class="mb-2 text-xs font-medium text-base-content/60">Layout</p>
+                        <div class="flex flex-wrap gap-2">
+                          <%= for layout <- Themes.layouts() do %>
+                            <.style_option
+                              name="qlink_page[theme_config][button][layout]"
+                              value={layout}
+                              checked={
+                                theme_value(@form, ["button", "layout"], "classic") == layout
+                              }
+                              label={layout}
+                              class="capitalize"
                             />
                           <% end %>
                         </div>
-
-                        <div>
-                          <h3 class="text-lg font-semibold text-base-content mb-3">Colors</h3>
-                          <div class="flex flex-wrap gap-6">
-                            <label class="form-control">
-                              <span class="label-text font-medium mb-1">Page text</span>
-                              <input
-                                type="color"
-                                name="qlink_page[theme_config][text_color]"
-                                value={theme_value(@form, ["text_color"], "#0c0a09")}
-                                class="h-12 w-16 rounded border border-base-300"
-                              />
-                            </label>
-                            <label class="form-control">
-                              <span class="label-text font-medium mb-1">Page color</span>
-                              <input
-                                type="color"
-                                name="qlink_page[theme_config][canvas]"
-                                value={theme_value(@form, ["canvas"], "#ffffff")}
-                                class="h-12 w-16 rounded border border-base-300"
-                              />
-                            </label>
-                            <label class="form-control">
-                              <span class="label-text font-medium mb-1">Side panels</span>
-                              <input
-                                type="color"
-                                name="qlink_page[theme_config][gutter]"
-                                value={theme_value(@form, ["gutter"], "#c5c9d0")}
-                                class="h-12 w-16 rounded border border-base-300"
-                              />
-                            </label>
-                            <label class="form-control">
-                              <span class="label-text font-medium mb-1">Button</span>
-                              <input
-                                type="color"
-                                name="qlink_page[theme_config][button][bg]"
-                                value={theme_value(@form, ["button", "bg"], "#0c0a09")}
-                                class="h-12 w-16 rounded border border-base-300"
-                              />
-                            </label>
-                            <label class="form-control">
-                              <span class="label-text font-medium mb-1">Button text</span>
-                              <input
-                                type="color"
-                                name="qlink_page[theme_config][button][text]"
-                                value={theme_value(@form, ["button", "text"], "#fafaf9")}
-                                class="h-12 w-16 rounded border border-base-300"
-                              />
-                            </label>
-                            <label class="form-control">
-                              <span class="label-text font-medium mb-1">Button border</span>
-                              <input
-                                type="color"
-                                name="qlink_page[theme_config][button][border]"
-                                value={
-                                  theme_value(
-                                    @form,
-                                    ["button", "border"],
-                                    theme_value(@form, ["button", "text"], "#fafaf9")
-                                  )
-                                }
-                                class="h-12 w-16 rounded border border-base-300"
-                              />
-                            </label>
-                          </div>
-                          <p class="text-sm text-base-content/60 mt-2 max-w-md">
-                            Side panels color the gutters on wide screens. On phones the page is full width.
-                          </p>
-                        </div>
-
-                        <div>
-                          <h3 class="text-lg font-semibold text-base-content mb-3">Buttons</h3>
-                          <p class="text-sm text-base-content/60 mb-2">Layout</p>
-                          <div class="flex flex-wrap gap-2 mb-4">
-                            <%= for layout <- Themes.layouts() do %>
-                              <label class="cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="qlink_page[theme_config][button][layout]"
-                                  value={layout}
-                                  checked={
-                                    theme_value(@form, ["button", "layout"], "classic") == layout
-                                  }
-                                  class="hidden peer"
-                                />
-                                <span class="btn btn-sm btn-outline capitalize peer-checked:btn-primary">
-                                  {layout}
-                                </span>
-                              </label>
-                            <% end %>
-                          </div>
-                          <p class="text-sm text-base-content/60 mb-2">Shape</p>
-                          <div class="flex flex-wrap gap-2 mb-4">
-                            <%= for shape <- Themes.shapes() do %>
-                              <label class="cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="qlink_page[theme_config][button][shape]"
-                                  value={shape}
-                                  checked={
-                                    theme_value(@form, ["button", "shape"], "pill") == shape
-                                  }
-                                  class="hidden peer"
-                                />
-                                <span class="btn btn-sm btn-outline capitalize peer-checked:btn-primary">
-                                  {shape}
-                                </span>
-                              </label>
-                            <% end %>
-                          </div>
-                          <p class="text-sm text-base-content/60 mb-2">Style</p>
-                          <div class="flex flex-wrap gap-2">
-                            <%= for style <- Themes.styles() do %>
-                              <label class="cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="qlink_page[theme_config][button][style]"
-                                  value={style}
-                                  checked={
-                                    theme_value(@form, ["button", "style"], "fill") == style
-                                  }
-                                  class="hidden peer"
-                                />
-                                <span class="btn btn-sm btn-outline capitalize peer-checked:btn-primary">
-                                  {style}
-                                </span>
-                              </label>
-                            <% end %>
-                          </div>
-                        </div>
-
-                        <div>
-                          <h3 class="text-lg font-semibold text-base-content mb-3">Type</h3>
-                          <div class="form-control max-w-md">
-                            <select
-                              name="qlink_page[theme_config][font]"
-                              class="select select-bordered"
-                            >
-                              <%= for {name, id} <- Themes.font_options() do %>
-                                <option
-                                  value={id}
-                                  selected={theme_value(@form, ["font"], "figtree") == id}
-                                >
-                                  {name}
-                                </option>
-                              <% end %>
-                            </select>
-                          </div>
-                          <label class="label cursor-pointer justify-start gap-3 mt-3 max-w-md">
-                            <input
-                              type="hidden"
-                              name="qlink_page[theme_config][grain]"
-                              value="false"
+                      </div>
+                      <div>
+                        <p class="mb-2 text-xs font-medium text-base-content/60">Shape</p>
+                        <div class="flex flex-wrap gap-2">
+                          <%= for shape <- Themes.shapes() do %>
+                            <.style_option
+                              name="qlink_page[theme_config][button][shape]"
+                              value={shape}
+                              checked={theme_value(@form, ["button", "shape"], "pill") == shape}
+                              label={shape}
+                              class="capitalize"
                             />
-                            <input
-                              type="checkbox"
-                              name="qlink_page[theme_config][grain]"
-                              value="true"
-                              checked={theme_value(@form, ["grain"]) == true}
-                              class="checkbox checkbox-sm"
+                          <% end %>
+                        </div>
+                      </div>
+                      <div>
+                        <p class="mb-2 text-xs font-medium text-base-content/60">Style</p>
+                        <div class="flex flex-wrap gap-2">
+                          <%= for style <- Themes.styles() do %>
+                            <.style_option
+                              name="qlink_page[theme_config][button][style]"
+                              value={style}
+                              checked={theme_value(@form, ["button", "style"], "fill") == style}
+                              label={style}
+                              class="capitalize"
                             />
-                            <span class="label-text">Film grain overlay</span>
-                          </label>
+                          <% end %>
                         </div>
+                      </div>
+                    </.panel>
 
-                        <div>
-                          <h3 class="text-lg font-semibold text-base-content mb-3">Widgets</h3>
-                          <div class="flex flex-wrap gap-2">
-                            <%= for value <- Themes.embed_themes() do %>
-                              <label class="cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="qlink_page[theme_config][embed_theme]"
-                                  value={value}
-                                  checked={theme_value(@form, ["embed_theme"], "light") == value}
-                                  class="hidden peer"
-                                />
-                                <span class="btn btn-sm btn-outline capitalize peer-checked:btn-primary">
-                                  {value}
-                                </span>
-                              </label>
+                    <.panel title="Type">
+                      <fieldset class="fieldset max-w-md">
+                        <label>
+                          <span class="fieldset-label mb-1">Font</span>
+                          <select name="qlink_page[theme_config][font]" class="select w-full">
+                            <%= for {name, id} <- Themes.font_options() do %>
+                              <option
+                                value={id}
+                                selected={theme_value(@form, ["font"], "figtree") == id}
+                              >
+                                {name}
+                              </option>
                             <% end %>
-                          </div>
-                          <p class="text-sm text-base-content/60 mt-2">
-                            Light or dark chrome for Tip Jar, Sponster, and Arqade. Independent of the page template.
-                          </p>
-                        </div>
-                      <% end %>
-                    </div>
-
-                    <div class="xl:sticky xl:top-4 flex justify-center">
-                      <.phone_preview
-                        page={preview_page}
-                        theme={theme}
-                        display_image={
-                          Qlarius.Qlink.get_display_image(@page) || "/images/default_avatar.png"
-                        }
-                        links={@links}
-                        embed_theme={Themes.embed_theme(theme)}
-                      />
-                    </div>
-                  </div>
-                <% end %>
-
-                <%= if @active_tab == "monetization" && @live_action == :edit && @page.id do %>
-                  <!-- Ad Revenue Recipient Section -->
-                  <div>
-                    <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                      <.icon name="hero-currency-dollar" class="w-5 h-5 mr-3 text-warning" />
-                      Ad Revenue Recipient
-                    </h3>
-
-                    <div class="form-control max-w-md">
-                      <label class="label">
-                        <span class="label-text font-medium">Recipient</span>
+                          </select>
+                        </label>
+                      </fieldset>
+                      <label class="flex w-fit cursor-pointer items-center gap-3 text-sm">
+                        <input
+                          type="hidden"
+                          name="qlink_page[theme_config][grain]"
+                          value="false"
+                        />
+                        <input
+                          type="checkbox"
+                          name="qlink_page[theme_config][grain]"
+                          value="true"
+                          checked={theme_value(@form, ["grain"]) == true}
+                          class="checkbox checkbox-sm"
+                        /> Film grain overlay
                       </label>
-                      <select
-                        name="qlink_page[recipient_id]"
-                        class="select select-bordered w-full"
-                      >
-                        <option value="">None (ads disabled)</option>
-                        <%= for recipient <- @recipients do %>
-                          <option
-                            value={recipient.id}
-                            selected={
-                              @form[:recipient_id].value == recipient.id ||
-                                @page.recipient_id == recipient.id
-                            }
-                          >
-                            {recipient.name}
-                          </option>
-                        <% end %>
-                      </select>
-                      <label class="label">
-                        <span class="label-text-alt text-base-content/60">
-                          Who receives ad revenue splits when visitors engage ads on this page
-                        </span>
-                      </label>
-                    </div>
-                  </div>
-                <% end %>
-                
-<!-- Form Actions -->
-                <%!-- Disable Update on :edit when no pending changes; :new is always enabled --%>
-                <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-base-300">
-                  <.button
-                    class="btn btn-primary flex-1 sm:flex-none"
-                    disabled={@live_action == :edit && !@dirty}
-                  >
-                    <.icon name="hero-check" class="w-4 h-4 mr-2" />
-                    {cond do
-                      @live_action != :edit -> "Create Page"
-                      @dirty -> "Update Page"
-                      true -> "No Changes"
-                    end}
-                  </.button>
+                    </.panel>
 
-                  <.link
-                    navigate={~p"/creators/#{@creator.id}"}
-                    class="btn btn-ghost"
-                  >
-                    <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Cancel
-                  </.link>
-                </div>
-              </.form>
-            </div>
-          </div>
-        </div>
-        
-<!-- Link Modal -->
-        <%= if @show_link_modal do %>
-          <div class="modal modal-open">
-            <div class="modal-box max-w-2xl">
-              <h3 class="text-lg font-bold mb-4">
-                {if @editing_link, do: "Edit Block", else: "Add Block"}
-              </h3>
-
-              <%= if @link_form && @link_form.source.action == :validate && @link_form.errors != [] do %>
-                <div class="alert alert-error mb-4">
-                  <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-                  <div>
-                    <%= for {field, {error, _}} <- @link_form.errors do %>
-                      <div>{Phoenix.Naming.humanize(field)}: {error}</div>
-                    <% end %>
-                  </div>
-                </div>
-              <% end %>
-
-              <.form
-                for={@link_form}
-                phx-change="validate_link"
-                phx-submit="save_link"
-                id="link-form"
-                class="space-y-4"
-              >
-                <%= if @live_action == :edit do %>
-                  <input type="hidden" name="qlink_link[qlink_page_id]" value={@page.id} />
-                <% end %>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text font-medium">Type *</span>
-                    </label>
-                    <.input
-                      field={@link_form[:type]}
-                      type="select"
-                      options={[
-                        {"Link", "standard"},
-                        {"Embed", "embed"},
-                        {"Tip Jar", "insta_tip"}
-                      ]}
-                      class="select select-bordered w-full"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text font-medium">Section</span>
-                    </label>
-                    <.input
-                      field={@link_form[:qlink_section_id]}
-                      type="select"
-                      options={
-                        [
-                          {"No Section", nil}
-                        ] ++ Enum.map(@sections, &{&1.title, &1.id})
-                      }
-                      class="select select-bordered w-full"
-                    />
-                  </div>
-                </div>
-
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text font-medium">Title *</span>
-                  </label>
-                  <.input
-                    field={@link_form[:title]}
-                    type="text"
-                    class="input input-bordered w-full"
-                    placeholder="Link Title"
-                    required
-                  />
-                </div>
-
-                <%= if to_string(@link_form[:type].value) != "insta_tip" do %>
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text font-medium">URL *</span>
-                    </label>
-                    <.input
-                      field={@link_form[:url]}
-                      type="url"
-                      class="input input-bordered w-full"
-                      placeholder="https://example.com"
-                      required
-                    />
-                    <label class="label">
-                      <span class="label-text-alt text-base-content/60">
-                        Embed types (YouTube, Spotify, TikTok, Tiqit/Qadabra) will be auto-detected
-                      </span>
-                    </label>
-                  </div>
-                <% end %>
-
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text font-medium">Description</span>
-                  </label>
-                  <.input
-                    field={@link_form[:description]}
-                    type="textarea"
-                    class="textarea textarea-bordered w-full"
-                    placeholder="Optional description"
-                    rows="2"
-                  />
-                </div>
-
-                <%= if to_string(@link_form[:type].value) == "embed" do %>
-                  <div class="alert alert-info mb-4">
-                    <.icon name="hero-information-circle" class="w-5 h-5" />
-                    <span>Embed configuration will be auto-detected from the URL</span>
-                  </div>
-
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text font-medium">Height (px)</span>
-                    </label>
-                    <.input
-                      field={@link_form[:embed_height]}
-                      type="number"
-                      class="input input-bordered w-full"
-                      placeholder="500"
-                      min="100"
-                      max="2000"
-                    />
-                    <label class="label">
-                      <span class="label-text-alt text-base-content/60">
-                        Default: 500px. Only applies to iframe embeds.
-                      </span>
-                    </label>
-                  </div>
-
-                  <div class="form-control mt-4">
-                    <label class="label cursor-pointer justify-start gap-3">
-                      <input type="hidden" name="qlink_link[embed_show_title]" value="false" />
-                      <input
-                        type="checkbox"
-                        name="qlink_link[embed_show_title]"
-                        value="true"
-                        checked={@link_form[:embed_show_title].value in [true, "true", nil]}
-                        class="checkbox checkbox-primary"
-                      />
-                      <span class="label-text font-medium">Show arcade title bar</span>
-                    </label>
-                    <label class="label pt-0 ml-9">
-                      <span class="label-text-alt text-base-content/60">
-                        Display the title bar at the top of embedded arcade widgets
-                      </span>
-                    </label>
-                  </div>
-                <% end %>
-
-                <%= if to_string(@link_form[:type].value) == "insta_tip" do %>
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text font-medium">Tip Recipient *</span>
-                    </label>
-                    <select
-                      name="qlink_link[recipient_id]"
-                      class="select select-bordered w-full"
-                      required
+                    <.panel
+                      title="Widgets"
+                      description="Light or dark chrome for Tip Jar, Sponster, and Arqade. Independent of the page template."
                     >
-                      <option value="">Select a recipient</option>
+                      <div class="flex flex-wrap gap-2">
+                        <%= for value <- Themes.embed_themes() do %>
+                          <.style_option
+                            name="qlink_page[theme_config][embed_theme]"
+                            value={value}
+                            checked={theme_value(@form, ["embed_theme"], "light") == value}
+                            label={value}
+                            class="capitalize"
+                          />
+                        <% end %>
+                      </div>
+                    </.panel>
+                  <% end %>
+                </div>
+
+                <aside class="space-y-3 xl:sticky xl:top-6">
+                  <h2 class="text-sm font-semibold">Preview</h2>
+                  <div class="flex justify-center">
+                    <.phone_preview
+                      page={preview_page}
+                      theme={theme}
+                      display_image={
+                        Qlarius.Qlink.get_display_image(@page) || "/images/default_avatar.png"
+                      }
+                      links={@links}
+                      embed_theme={Themes.embed_theme(theme)}
+                    />
+                  </div>
+                </aside>
+              </div>
+            <% end %>
+
+            <%= if @active_tab == "monetization" && @live_action == :edit && @page.id do %>
+              <.panel
+                title="Ad revenue recipient"
+                description="Who receives ad revenue splits when visitors engage ads on this page."
+              >
+                <fieldset class="fieldset max-w-md">
+                  <label>
+                    <span class="fieldset-label mb-1">Recipient</span>
+                    <select name="qlink_page[recipient_id]" class="select w-full">
+                      <option value="">None (ads disabled)</option>
                       <%= for recipient <- @recipients do %>
                         <option
                           value={recipient.id}
                           selected={
-                            to_string(@link_form[:recipient_id].value) == to_string(recipient.id)
+                            @form[:recipient_id].value == recipient.id ||
+                              @page.recipient_id == recipient.id
                           }
                         >
                           {recipient.name}
                         </option>
                       <% end %>
                     </select>
-                    <label class="label">
-                      <span class="label-text-alt text-base-content/60">
-                        Who will receive the tips from this block
-                      </span>
-                    </label>
-                  </div>
+                  </label>
+                </fieldset>
+              </.panel>
+            <% end %>
 
-                  <div class="form-control">
-                    <label class="label cursor-pointer justify-start gap-3">
+            <.save_bar dirty={@dirty}>
+              <.link navigate={~p"/creators/#{@creator.id}"} class="btn btn-ghost">
+                Cancel
+              </.link>
+              <.button variant="primary" disabled={@live_action == :edit && !@dirty}>
+                {cond do
+                  @live_action != :edit -> "Create page"
+                  @dirty -> "Update page"
+                  true -> "No changes"
+                end}
+              </.button>
+            </.save_bar>
+          </.form>
+        </.page>
+
+        <div :if={@show_link_modal} class="modal modal-open">
+          <div class="modal-box max-w-2xl p-0">
+            <header class="px-6 pt-6 pb-4">
+              <h3 class="text-lg font-semibold">
+                {if @editing_link, do: "Edit block", else: "Add block"}
+              </h3>
+              <p class="mt-1 text-sm text-base-content/60">
+                A link, embed or tip jar shown on the page.
+              </p>
+            </header>
+
+            <div
+              :if={@link_form && @link_form.source.action == :validate && @link_form.errors != []}
+              class="mx-6 mb-4 flex items-start gap-2 rounded-lg bg-error/10 px-3 py-2 text-sm text-error"
+            >
+              <.icon name="hero-exclamation-triangle" class="mt-0.5 size-4 shrink-0" />
+              <div>
+                <%= for {field, {error, _}} <- @link_form.errors do %>
+                  <div>{Phoenix.Naming.humanize(field)}: {error}</div>
+                <% end %>
+              </div>
+            </div>
+
+            <.form
+              for={@link_form}
+              phx-change="validate_link"
+              phx-submit="save_link"
+              id="link-form"
+            >
+              <div class="space-y-2 px-6 pb-6">
+                <%= if @live_action == :edit do %>
+                  <input type="hidden" name="qlink_link[qlink_page_id]" value={@page.id} />
+                <% end %>
+                <div class="grid gap-x-4 md:grid-cols-2">
+                  <.input
+                    field={@link_form[:type]}
+                    type="select"
+                    label="Type"
+                    options={[
+                      {"Link", "standard"},
+                      {"Embed", "embed"},
+                      {"Tip Jar", "insta_tip"}
+                    ]}
+                    required
+                  />
+                  <.input
+                    field={@link_form[:qlink_section_id]}
+                    type="select"
+                    label="Section"
+                    options={
+                      [
+                        {"No Section", nil}
+                      ] ++ Enum.map(@sections, &{&1.title, &1.id})
+                    }
+                  />
+                </div>
+
+                <.input
+                  field={@link_form[:title]}
+                  type="text"
+                  label="Title"
+                  placeholder="Link Title"
+                  required
+                />
+
+                <%= if to_string(@link_form[:type].value) != "insta_tip" do %>
+                  <.input
+                    field={@link_form[:url]}
+                    type="url"
+                    label="URL"
+                    placeholder="https://example.com"
+                    description="Embed types (YouTube, Spotify, TikTok, Tiqit/Qadabra) will be auto-detected."
+                    required
+                  />
+                <% end %>
+
+                <.input
+                  field={@link_form[:description]}
+                  type="textarea"
+                  label="Description"
+                  placeholder="Optional description"
+                  rows="2"
+                />
+
+                <%= if to_string(@link_form[:type].value) == "embed" do %>
+                  <p class="flex items-center gap-2 rounded-lg bg-base-200/60 px-3 py-2 text-sm text-base-content/70">
+                    <.icon name="hero-information-circle" class="size-4 shrink-0" />
+                    Embed configuration will be auto-detected from the URL.
+                  </p>
+
+                  <.input
+                    field={@link_form[:embed_height]}
+                    type="number"
+                    label="Height (px)"
+                    placeholder="500"
+                    min="100"
+                    max="2000"
+                    description="Default: 500px. Only applies to iframe embeds."
+                  />
+
+                  <div class="py-1">
+                    <label class="flex w-fit cursor-pointer items-center gap-3 text-sm font-medium">
+                      <input type="hidden" name="qlink_link[embed_show_title]" value="false" />
+                      <input
+                        type="checkbox"
+                        name="qlink_link[embed_show_title]"
+                        value="true"
+                        checked={@link_form[:embed_show_title].value in [true, "true", nil]}
+                        class="checkbox checkbox-sm"
+                      /> Show arcade title bar
+                    </label>
+                    <p class="mt-1 ml-8 text-xs text-base-content/60">
+                      Display the title bar at the top of embedded arcade widgets.
+                    </p>
+                  </div>
+                <% end %>
+
+                <%= if to_string(@link_form[:type].value) == "insta_tip" do %>
+                  <fieldset class="fieldset mb-2">
+                    <label>
+                      <span class="fieldset-label mb-1">Tip recipient</span>
+                      <select name="qlink_link[recipient_id]" class="select w-full" required>
+                        <option value="">Select a recipient</option>
+                        <%= for recipient <- @recipients do %>
+                          <option
+                            value={recipient.id}
+                            selected={
+                              to_string(@link_form[:recipient_id].value) ==
+                                to_string(recipient.id)
+                            }
+                          >
+                            {recipient.name}
+                          </option>
+                        <% end %>
+                      </select>
+                    </label>
+                    <p class="fieldset-description mt-1">
+                      Who will receive the tips from this block.
+                    </p>
+                  </fieldset>
+
+                  <div class="py-1">
+                    <label class="flex w-fit cursor-pointer items-center gap-3 text-sm font-medium">
                       <input type="hidden" name="qlink_link[show_tip_header]" value="false" />
                       <.toggle
                         id="show-tip-header-toggle"
@@ -1219,33 +1000,23 @@
                         value="true"
                         checked={@link_form[:show_tip_header].value not in [false, "false"]}
                       />
-                      <span class="label-text font-medium">Show recipient image & message</span>
+                      <span>Show recipient image & message</span>
                     </label>
-                    <label class="label pt-0">
-                      <span class="label-text-alt text-base-content/60">
-                        Display the recipient's image and message above the tip buttons
-                      </span>
-                    </label>
+                    <p class="mt-1 text-xs text-base-content/60">
+                      Display the recipient's image and message above the tip buttons.
+                    </p>
                   </div>
                 <% end %>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text font-medium">Icon</span>
-                    </label>
-                    <.input
-                      field={@link_form[:icon]}
-                      type="text"
-                      class="input input-bordered w-full"
-                      placeholder="🔗 or emoji"
-                    />
-                  </div>
-
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text font-medium">Thumbnail</span>
-                    </label>
+                <div class="grid items-start gap-x-4 md:grid-cols-2">
+                  <.input
+                    field={@link_form[:icon]}
+                    type="text"
+                    label="Icon"
+                    placeholder="🔗 or emoji"
+                  />
+                  <div class="space-y-1 pt-1">
+                    <span class="text-xs text-base-content/60">Thumbnail</span>
                     <.image_upload_field
                       upload={@uploads.link_thumbnail}
                       label=""
@@ -1260,122 +1031,107 @@
                       }
                       on_delete={if @editing_link, do: "delete_link_thumbnail"}
                     />
-                    <p class="text-xs text-base-content/60 mt-1">
+                    <p class="text-xs text-base-content/60">
                       Upload an image (not a URL). Used by Media, Cover, and Stack layouts.
                     </p>
                   </div>
                 </div>
 
-                <div class="form-control">
-                  <label class="label cursor-pointer">
-                    <span class="label-text font-medium">Visible</span>
-                    <input type="hidden" name={@link_form[:is_visible].name} value="false" />
-                    <.toggle
-                      id="link-visible-toggle"
-                      name={@link_form[:is_visible].name}
-                      value="true"
-                      checked={@link_form[:is_visible].value not in [false, "false", nil]}
-                    />
-                  </label>
-                </div>
+                <label class="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-base-300 px-4 py-3 text-sm font-medium">
+                  <span>Visible</span>
+                  <input type="hidden" name={@link_form[:is_visible].name} value="false" />
+                  <.toggle
+                    id="link-visible-toggle"
+                    name={@link_form[:is_visible].name}
+                    value="true"
+                    checked={@link_form[:is_visible].value not in [false, "false", nil]}
+                  />
+                </label>
+              </div>
 
-                <div class="modal-action">
-                  <.button class="btn btn-primary">
-                    <.icon name="hero-check" class="w-4 h-4 mr-2" />
-                    {if @editing_link, do: "Update", else: "Create"} Block
-                  </.button>
-                  <button
-                    type="button"
-                    phx-click="close_link_modal"
-                    class="btn btn-ghost"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </.form>
-            </div>
-            <form method="dialog" class="modal-backdrop">
-              <button phx-click="close_link_modal">close</button>
-            </form>
+              <footer class="flex items-center justify-end gap-2 border-t border-base-300 bg-base-200/40 px-6 py-4">
+                <button type="button" phx-click="close_link_modal" class="btn btn-ghost">
+                  Cancel
+                </button>
+                <.button variant="primary">
+                  {if @editing_link, do: "Update block", else: "Create block"}
+                </.button>
+              </footer>
+            </.form>
           </div>
-        <% end %>
-        
-<!-- Section Modal -->
-        <%= if @show_section_modal do %>
-          <div class="modal modal-open">
-            <div class="modal-box max-w-2xl">
-              <h3 class="text-lg font-bold mb-4">
-                {if @editing_section, do: "Edit Section", else: "Add Section"}
+          <form method="dialog" class="modal-backdrop">
+            <button phx-click="close_link_modal">close</button>
+          </form>
+        </div>
+
+        <div :if={@show_section_modal} class="modal modal-open">
+          <div class="modal-box max-w-lg p-0">
+            <header class="px-6 pt-6 pb-4">
+              <h3 class="text-lg font-semibold">
+                {if @editing_section, do: "Edit section", else: "Add section"}
               </h3>
+              <p class="mt-1 text-sm text-base-content/60">
+                Sections group blocks under a heading.
+              </p>
+            </header>
 
-              <%= if @section_form && @section_form.source.action == :validate && @section_form.errors != [] do %>
-                <div class="alert alert-error mb-4">
-                  <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
-                  <div>
-                    <%= for {field, {error, _}} <- @section_form.errors do %>
-                      <div>{Phoenix.Naming.humanize(field)}: {error}</div>
-                    <% end %>
-                  </div>
-                </div>
-              <% end %>
+            <div
+              :if={
+                @section_form && @section_form.source.action == :validate &&
+                  @section_form.errors != []
+              }
+              class="mx-6 mb-4 flex items-start gap-2 rounded-lg bg-error/10 px-3 py-2 text-sm text-error"
+            >
+              <.icon name="hero-exclamation-triangle" class="mt-0.5 size-4 shrink-0" />
+              <div>
+                <%= for {field, {error, _}} <- @section_form.errors do %>
+                  <div>{Phoenix.Naming.humanize(field)}: {error}</div>
+                <% end %>
+              </div>
+            </div>
 
-              <.form
-                for={@section_form}
-                phx-change="validate_section"
-                phx-submit="save_section"
-                id="section-form"
-                class="space-y-4"
-              >
+            <.form
+              for={@section_form}
+              phx-change="validate_section"
+              phx-submit="save_section"
+              id="section-form"
+            >
+              <div class="space-y-2 px-6 pb-6">
                 <%= if @live_action == :edit do %>
                   <input type="hidden" name="qlink_section[qlink_page_id]" value={@page.id} />
                 <% end %>
 
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text font-medium">Title *</span>
-                  </label>
-                  <.input
-                    field={@section_form[:title]}
-                    type="text"
-                    class="input input-bordered w-full"
-                    placeholder="Section Title"
-                    required
-                  />
-                </div>
+                <.input
+                  field={@section_form[:title]}
+                  type="text"
+                  label="Title"
+                  placeholder="Section Title"
+                  required
+                />
 
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text font-medium">Description</span>
-                  </label>
-                  <.input
-                    field={@section_form[:description]}
-                    type="textarea"
-                    class="textarea textarea-bordered w-full"
-                    placeholder="Optional description"
-                    rows="2"
-                  />
-                </div>
+                <.input
+                  field={@section_form[:description]}
+                  type="textarea"
+                  label="Description"
+                  placeholder="Optional description"
+                  rows="2"
+                />
+              </div>
 
-                <div class="modal-action">
-                  <.button class="btn btn-primary">
-                    <.icon name="hero-check" class="w-4 h-4 mr-2" />
-                    {if @editing_section, do: "Update", else: "Create"} Section
-                  </.button>
-                  <button
-                    type="button"
-                    phx-click="close_section_modal"
-                    class="btn btn-ghost"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </.form>
-            </div>
-            <form method="dialog" class="modal-backdrop">
-              <button phx-click="close_section_modal">close</button>
-            </form>
+              <footer class="flex items-center justify-end gap-2 border-t border-base-300 bg-base-200/40 px-6 py-4">
+                <button type="button" phx-click="close_section_modal" class="btn btn-ghost">
+                  Cancel
+                </button>
+                <.button variant="primary">
+                  {if @editing_section, do: "Update section", else: "Create section"}
+                </.button>
+              </footer>
+            </.form>
           </div>
-        <% end %>
+          <form method="dialog" class="modal-backdrop">
+            <button phx-click="close_section_modal">close</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>

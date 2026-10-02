@@ -1,6 +1,7 @@
 defmodule QlariusWeb.Admin.MeFileInspectorLive do
   use QlariusWeb, :live_view
   import Ecto.Query
+  import QlariusWeb.Components.MarketerUI
 
   alias QlariusWeb.Components.AdminSidebar
   alias QlariusWeb.Components.AdminTopbar
@@ -125,10 +126,10 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
     base_query =
       case {sort_by, sort_dir} do
         {:alias, :asc} ->
-          from q in base_query, order_by: [asc: q.alias]
+          from [mf, u] in base_query, order_by: [asc: u.alias]
 
         {:alias, :desc} ->
-          from q in base_query, order_by: [desc: q.alias]
+          from [mf, u] in base_query, order_by: [desc: u.alias]
 
         {:wallet_balance, :asc} ->
           from [mf, u, lh, o, mft, t] in base_query, order_by: [asc: lh.balance]
@@ -308,300 +309,246 @@ defmodule QlariusWeb.Admin.MeFileInspectorLive do
           <AdminTopbar.topbar current_user={@current_scope.user} />
 
           <div class="overflow-auto">
-            <div class="p-6">
-              <div class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-bold">MeFile Inspector</h1>
+            <.page>
+              <.page_header
+                title="MeFile Inspector"
+                count={@total_users}
+                subtitle="Consumer MeFiles with their tags, offers and wallet balances."
+              />
+
+              <div class="mb-8 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+                <.stat_tile label="Total users" icon="hero-user-group" hint="All registered users">
+                  {@total_users}
+                </.stat_tile>
+                <.stat_tile label="Rich MeFiles" icon="hero-star" hint="More than 4 tags">
+                  {@users_with_rich_mefiles}
+                </.stat_tile>
+                <.stat_tile label="Avg tags per user" icon="hero-tag" hint="Per user average">
+                  {@avg_tags_per_user}
+                </.stat_tile>
+                <.stat_tile label="Active offers" icon="hero-megaphone" hint="Users with offers">
+                  {@users_with_active_offers}
+                </.stat_tile>
+                <.stat_tile
+                  label="Avg balance"
+                  icon="hero-currency-dollar"
+                  hint={"#{@users_with_positive_balance} above $0, #{@users_with_zero_balance} at $0"}
+                >
+                  {QlariusWeb.Money.format_usd(@avg_wallet_balance)}
+                </.stat_tile>
+                <.stat_tile label="Recent" icon="hero-user-plus" hint="Last 7 days">
+                  {@recent_registrations}
+                </.stat_tile>
               </div>
 
-              <div class="stats stats-vertical lg:stats-horizontal shadow-sm bg-base-200 w-full border border-base-300 mb-6">
-                <div class="stat">
-                  <div class="stat-figure text-primary">
-                    <.icon name="hero-user-group" class="w-8 h-8" />
-                  </div>
-                  <div class="stat-title text-xs opacity-60">Total Users</div>
-                  <div class="stat-value text-xl text-primary">{@total_users}</div>
-                  <div class="stat-desc">All registered users</div>
-                </div>
-
-                <div class="stat">
-                  <div class="stat-figure text-success">
-                    <.icon name="hero-star" class="w-8 h-8" />
-                  </div>
-                  <div class="stat-title text-xs opacity-60">Rich MeFiles</div>
-                  <div class="stat-value text-xl text-success">{@users_with_rich_mefiles}</div>
-                  <div class="stat-desc">&gt;4 tags</div>
-                </div>
-
-                <div class="stat">
-                  <div class="stat-figure text-info">
-                    <.icon name="hero-tag" class="w-8 h-8" />
-                  </div>
-                  <div class="stat-title text-xs opacity-60">Avg Tags/User</div>
-                  <div class="stat-value text-xl text-info">{@avg_tags_per_user}</div>
-                  <div class="stat-desc">Per user average</div>
-                </div>
-
-                <div class="stat">
-                  <div class="stat-figure text-warning">
-                    <.icon name="hero-megaphone" class="w-8 h-8" />
-                  </div>
-                  <div class="stat-title text-xs opacity-60">Active Offers</div>
-                  <div class="stat-value text-xl text-warning">{@users_with_active_offers}</div>
-                  <div class="stat-desc">Users with offers</div>
-                </div>
-
-                <div class="stat">
-                  <div class="stat-figure text-success">
-                    <.icon name="hero-currency-dollar" class="w-8 h-8" />
-                  </div>
-                  <div class="stat-title text-xs opacity-60">Avg Balance</div>
-                  <div class="stat-value text-xl text-success">
-                    {QlariusWeb.Money.format_usd(@avg_wallet_balance)}
-                  </div>
-                  <div class="stat-desc">
-                    {@users_with_positive_balance} &gt; $0 | {@users_with_zero_balance} = $0
-                  </div>
-                </div>
-
-                <div class="stat">
-                  <div class="stat-figure text-secondary">
-                    <.icon name="hero-user-plus" class="w-8 h-8" />
-                  </div>
-                  <div class="stat-title text-xs opacity-60">Recent</div>
-                  <div class="stat-value text-xl text-secondary">{@recent_registrations}</div>
-                  <div class="stat-desc">Last 7 days</div>
-                </div>
+              <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <.search_field
+                  value={@search_query}
+                  placeholder="Search by alias"
+                  name="search"
+                />
+                <p class="text-sm text-base-content/60">
+                  {@total_count} {if @total_count == 1, do: "MeFile", else: "MeFiles"}
+                </p>
               </div>
 
-              <div class="card bg-base-100 border border-base-300">
-                <div class="card-body">
-                  <div class="flex justify-between items-center mb-4">
-                    <h2 class="card-title">MeFiles</h2>
-                    <.form for={%{}} phx-submit="search" class="flex gap-2">
-                      <input
-                        type="text"
-                        name="search"
-                        value={@search_query}
-                        placeholder="Search by alias..."
-                        class="input input-bordered input-sm"
-                      />
-                      <button type="submit" class="btn btn-sm btn-primary">
-                        <.icon name="hero-magnifying-glass" class="w-4 h-4" />
-                      </button>
-                      <button
-                        :if={@search_query != ""}
-                        type="button"
-                        phx-click="clear_search"
-                        class="btn btn-sm btn-ghost"
-                      >
-                        Clear
-                      </button>
-                    </.form>
-                  </div>
+              <.panel flush>
+                <.empty_state
+                  :if={@mefiles == []}
+                  icon="hero-magnifying-glass"
+                  title="No MeFiles found"
+                >
+                  <span :if={@search_query != ""}>Try a different search term</span>
+                  <:action :if={@search_query != ""}>
+                    <button type="button" phx-click="clear_search" class="btn btn-sm btn-ghost">
+                      Clear search
+                    </button>
+                  </:action>
+                </.empty_state>
 
-                  <div class="overflow-x-auto">
-                    <table class="table table-zebra">
-                      <thead>
-                        <tr>
-                          <th>
-                            <button
-                              phx-click="sort"
-                              phx-value-column="alias"
-                              class="flex items-center gap-1 hover:text-primary"
-                            >
-                              Alias
-                              <%= if @sort_by == :alias do %>
-                                <.icon
-                                  name={
-                                    if @sort_dir == :asc,
-                                      do: "hero-arrow-up",
-                                      else: "hero-arrow-down"
-                                  }
-                                  class="w-4 h-4"
-                                />
-                              <% end %>
-                            </button>
-                          </th>
-                          <th class="text-right">
-                            <button
-                              phx-click="sort"
-                              phx-value-column="wallet_balance"
-                              class="flex items-center gap-1 hover:text-primary ml-auto"
-                            >
-                              Wallet Balance
-                              <%= if @sort_by == :wallet_balance do %>
-                                <.icon
-                                  name={
-                                    if @sort_dir == :asc,
-                                      do: "hero-arrow-up",
-                                      else: "hero-arrow-down"
-                                  }
-                                  class="w-4 h-4"
-                                />
-                              <% end %>
-                            </button>
-                          </th>
-                          <th class="text-center">
-                            <button
-                              phx-click="sort"
-                              phx-value-column="tag_count"
-                              class="flex items-center gap-1 hover:text-primary mx-auto"
-                            >
-                              Tags
-                              <%= if @sort_by == :tag_count do %>
-                                <.icon
-                                  name={
-                                    if @sort_dir == :asc,
-                                      do: "hero-arrow-up",
-                                      else: "hero-arrow-down"
-                                  }
-                                  class="w-4 h-4"
-                                />
-                              <% end %>
-                            </button>
-                          </th>
-                          <th class="text-center">
-                            <button
-                              phx-click="sort"
-                              phx-value-column="offer_count"
-                              class="flex items-center gap-1 hover:text-primary mx-auto"
-                            >
-                              Active Offers
-                              <%= if @sort_by == :offer_count do %>
-                                <.icon
-                                  name={
-                                    if @sort_dir == :asc,
-                                      do: "hero-arrow-up",
-                                      else: "hero-arrow-down"
-                                  }
-                                  class="w-4 h-4"
-                                />
-                              <% end %>
-                            </button>
-                          </th>
-                          <th class="text-center">
-                            <button
-                              phx-click="sort"
-                              phx-value-column="inserted_at"
-                              class="flex items-center gap-1 hover:text-primary mx-auto"
-                            >
-                              Created
-                              <%= if @sort_by == :inserted_at do %>
-                                <.icon
-                                  name={
-                                    if @sort_dir == :asc,
-                                      do: "hero-arrow-up",
-                                      else: "hero-arrow-down"
-                                  }
-                                  class="w-4 h-4"
-                                />
-                              <% end %>
-                            </button>
-                          </th>
-                          <th></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr :for={mf <- @mefiles}>
-                          <td class="font-medium">{mf.alias}</td>
-                          <td class="text-right font-mono">
-                            {QlariusWeb.Money.format_usd(mf.wallet_balance)}
-                          </td>
-                          <td class="text-center">
-                            <span class="badge badge-ghost">{mf.tag_count}</span>
-                          </td>
-                          <td class="text-center">
-                            <span class="badge badge-warning">{mf.offer_count}</span>
-                          </td>
-                          <td class="text-center">
-                            {format_date(mf.inserted_at, assigns)}
-                          </td>
-                          <td class="text-right">
-                            <.link
-                              navigate={~p"/admin/mefile_inspector/#{mf.me_file_id}"}
-                              class="btn btn-sm btn-ghost"
-                            >
-                              View <.icon name="hero-arrow-right" class="w-4 h-4" />
-                            </.link>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-
-                    <div :if={@mefiles == []} class="text-center py-12">
-                      <.icon
-                        name="hero-magnifying-glass"
-                        class="w-16 h-16 mx-auto text-base-content/30 mb-4"
-                      />
-                      <p class="text-lg font-medium text-base-content/70">No MeFiles found</p>
-                      <p :if={@search_query != ""} class="text-sm text-base-content/50 mt-2">
-                        Try a different search term
-                      </p>
-                    </div>
-                  </div>
-
-                  <div :if={@total_pages > 1} class="flex justify-between items-center mt-4">
-                    <div class="text-sm text-base-content/60">
-                      Showing {(@page - 1) * 50 + 1}-{min(@page * 50, @total_count)} of {@total_count}
-                    </div>
-
-                    <div class="join">
-                      <button
-                        phx-click="paginate"
-                        phx-value-page="1"
-                        class="join-item btn btn-sm"
-                        disabled={@page == 1}
-                      >
-                        «
-                      </button>
-                      <button
-                        phx-click="paginate"
-                        phx-value-page={@page - 1}
-                        class="join-item btn btn-sm"
-                        disabled={@page == 1}
-                      >
-                        ‹
-                      </button>
-
-                      <%= for page_num <- pagination_range(@page, @total_pages) do %>
-                        <%= if page_num == :ellipsis do %>
-                          <button class="join-item btn btn-sm btn-disabled">...</button>
-                        <% else %>
-                          <button
-                            phx-click="paginate"
-                            phx-value-page={page_num}
-                            class={"join-item btn btn-sm #{if page_num == @page, do: "btn-active"}"}
+                <div :if={@mefiles != []} class="overflow-x-auto">
+                  <table class="w-full text-left text-sm">
+                    <thead class="border-b border-base-300 bg-base-200/40 text-xs text-base-content/60">
+                      <tr>
+                        <.sort_header
+                          column={:alias}
+                          label="Alias"
+                          sort_by={@sort_by}
+                          sort_dir={@sort_dir}
+                        />
+                        <.sort_header
+                          column={:wallet_balance}
+                          label="Wallet balance"
+                          sort_by={@sort_by}
+                          sort_dir={@sort_dir}
+                          align="right"
+                        />
+                        <.sort_header
+                          column={:tag_count}
+                          label="Tags"
+                          sort_by={@sort_by}
+                          sort_dir={@sort_dir}
+                          align="center"
+                        />
+                        <.sort_header
+                          column={:offer_count}
+                          label="Active offers"
+                          sort_by={@sort_by}
+                          sort_dir={@sort_dir}
+                          align="center"
+                        />
+                        <.sort_header
+                          column={:inserted_at}
+                          label="Created"
+                          sort_by={@sort_by}
+                          sort_dir={@sort_dir}
+                          class="max-md:hidden"
+                        />
+                        <th class="px-6 py-3"><span class="sr-only">Actions</span></th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-base-300">
+                      <tr :for={mf <- @mefiles} class="transition-colors hover:bg-base-200/40">
+                        <td class="px-6 py-3 align-middle">
+                          <.link
+                            navigate={~p"/admin/mefile_inspector/#{mf.me_file_id}"}
+                            class="font-semibold hover:underline"
                           >
-                            {page_num}
-                          </button>
-                        <% end %>
-                      <% end %>
-
-                      <button
-                        phx-click="paginate"
-                        phx-value-page={@page + 1}
-                        class="join-item btn btn-sm"
-                        disabled={@page == @total_pages}
-                      >
-                        ›
-                      </button>
-                      <button
-                        phx-click="paginate"
-                        phx-value-page={@total_pages}
-                        class="join-item btn btn-sm"
-                        disabled={@page == @total_pages}
-                      >
-                        »
-                      </button>
-                    </div>
-                  </div>
+                            {mf.alias}
+                          </.link>
+                          <p class="text-xs text-base-content/50">#{mf.me_file_id}</p>
+                        </td>
+                        <td class="px-6 py-3 text-right align-middle">
+                          {QlariusWeb.Money.format_usd(mf.wallet_balance)}
+                        </td>
+                        <td class="px-6 py-3 text-center align-middle">
+                          <.chip>{mf.tag_count}</.chip>
+                        </td>
+                        <td class="px-6 py-3 text-center align-middle">
+                          <.chip>{mf.offer_count}</.chip>
+                        </td>
+                        <td class="px-6 py-3 align-middle text-base-content/60 max-md:hidden">
+                          {format_date(mf.inserted_at, assigns)}
+                        </td>
+                        <td class="w-0 px-6 py-3 align-middle">
+                          <div class="flex items-center justify-end gap-1">
+                            <.icon_button
+                              icon="hero-eye"
+                              label="View"
+                              navigate={~p"/admin/mefile_inspector/#{mf.me_file_id}"}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-              </div>
-            </div>
+
+                <:footer :if={@total_pages > 1}>
+                  <p class="mr-auto text-sm text-base-content/60">
+                    Showing {(@page - 1) * 50 + 1}-{min(@page * 50, @total_count)} of {@total_count}
+                  </p>
+                  <div class="join">
+                    <button
+                      type="button"
+                      phx-click="paginate"
+                      phx-value-page="1"
+                      class="join-item btn btn-sm"
+                      disabled={@page == 1}
+                      aria-label="First page"
+                    >
+                      <.icon name="hero-chevron-double-left" class="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      phx-click="paginate"
+                      phx-value-page={@page - 1}
+                      class="join-item btn btn-sm"
+                      disabled={@page == 1}
+                      aria-label="Previous page"
+                    >
+                      <.icon name="hero-chevron-left" class="size-4" />
+                    </button>
+
+                    <%= for page_num <- pagination_range(@page, @total_pages) do %>
+                      <%= if page_num == :ellipsis do %>
+                        <button type="button" class="join-item btn btn-sm btn-disabled">...</button>
+                      <% else %>
+                        <button
+                          type="button"
+                          phx-click="paginate"
+                          phx-value-page={page_num}
+                          aria-current={page_num == @page && "page"}
+                          class={["join-item btn btn-sm", page_num == @page && "btn-primary"]}
+                        >
+                          {page_num}
+                        </button>
+                      <% end %>
+                    <% end %>
+
+                    <button
+                      type="button"
+                      phx-click="paginate"
+                      phx-value-page={@page + 1}
+                      class="join-item btn btn-sm"
+                      disabled={@page == @total_pages}
+                      aria-label="Next page"
+                    >
+                      <.icon name="hero-chevron-right" class="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      phx-click="paginate"
+                      phx-value-page={@total_pages}
+                      class="join-item btn btn-sm"
+                      disabled={@page == @total_pages}
+                      aria-label="Last page"
+                    >
+                      <.icon name="hero-chevron-double-right" class="size-4" />
+                    </button>
+                  </div>
+                </:footer>
+              </.panel>
+            </.page>
           </div>
         </div>
       </div>
     </Layouts.admin>
+    """
+  end
+
+  attr :column, :atom, required: true
+  attr :label, :string, required: true
+  attr :sort_by, :atom, required: true
+  attr :sort_dir, :atom, required: true
+  attr :align, :string, default: "left", values: ~w(left center right)
+  attr :class, :any, default: nil
+
+  defp sort_header(assigns) do
+    ~H"""
+    <th
+      class={["px-6 py-3 font-medium", @class]}
+      aria-sort={@sort_by == @column && if(@sort_dir == :asc, do: "ascending", else: "descending")}
+    >
+      <button
+        type="button"
+        phx-click="sort"
+        phx-value-column={@column}
+        class={[
+          "flex items-center gap-1 font-medium hover:text-base-content",
+          @sort_by == @column && "text-base-content",
+          @align == "right" && "ml-auto",
+          @align == "center" && "mx-auto"
+        ]}
+      >
+        {@label}
+        <.icon
+          :if={@sort_by == @column}
+          name={if @sort_dir == :asc, do: "hero-arrow-up", else: "hero-arrow-down"}
+          class="size-3.5"
+        />
+      </button>
+    </th>
     """
   end
 end

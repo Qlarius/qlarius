@@ -6,143 +6,123 @@
       <AdminTopbar.topbar current_user={@current_scope.user} />
 
       <div class="overflow-auto">
-        <div class="space-y-6">
-          <!-- Header Section -->
-          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div class="flex items-center gap-4">
-              <.link
-                navigate={~p"/creators/content_groups/#{@group.id}"}
-                class="btn btn-ghost btn-sm"
-              >
-                <.icon name="hero-arrow-left" class="w-4 h-4" /> Back to Content Group
-              </.link>
-              <div>
-                <h1 class="text-2xl font-bold text-base-content">{@page_title}</h1>
-                <p class="text-base-content/60 mt-1">
-                  Group: {@group.title}
-                </p>
+        <.page class="max-w-4xl">
+          <.page_header
+            title={
+              if @live_action == :edit,
+                do: "Edit #{Catalog.type_label(@catalog.piece_type, 1, capitalize: false)}",
+                else: "New #{Catalog.type_label(@catalog.piece_type, 1, capitalize: false)}"
+            }
+            subtitle={if @live_action == :edit, do: @piece.title, else: "In #{@group.title}"}
+            crumbs={
+              [
+                {@creator.name, ~p"/creators/#{@creator.id}"},
+                {@catalog.name, ~p"/creators/catalogs/#{@catalog.id}"},
+                {@group.title, ~p"/creators/content_groups/#{@group.id}"}
+              ] ++
+                if(@live_action == :edit,
+                  do: [{@piece.title, ~p"/creators/content_pieces/#{@piece.id}"}],
+                  else: []
+                )
+            }
+          />
+
+          <.form
+            for={@form}
+            id="content-piece-form"
+            phx-change="validate"
+            phx-submit="save"
+            class="space-y-6"
+          >
+            <.panel
+              id="piece-details-section"
+              title="Details"
+              description={"What viewers see for this #{Catalog.type_label(@catalog.piece_type, 1, capitalize: false)}."}
+            >
+              <div class="grid gap-x-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
+                <.input
+                  field={@form[:title]}
+                  type="text"
+                  label="Title"
+                  placeholder={"#{Catalog.type_label(@catalog.piece_type)} title"}
+                  required
+                />
+                <.input
+                  field={@form[:date_published]}
+                  type="date"
+                  label="Published date"
+                  required
+                />
               </div>
-            </div>
-          </div>
-          
-<!-- Main Form Card -->
-          <div class="card bg-base-100 shadow-lg">
-            <div class="card-body">
-              <.form for={@form} phx-change="validate" phx-submit="save" class="space-y-6">
-                <!-- Basic Information Section -->
-                <div>
-                  <h3 class="text-lg font-semibold text-base-content mb-4 flex items-center">
-                    <.icon name="hero-information-circle" class="w-5 h-5 mr-3 text-info" />
-                    Basic Information
-                  </h3>
+              <.input
+                field={@form[:description]}
+                type="textarea"
+                label="Description"
+                placeholder="What is it about?"
+                rows="4"
+              />
+              <.image_upload_field
+                upload={@uploads.image}
+                label="Image"
+                current_image={@piece.image}
+                current_image_url={
+                  if @piece.image,
+                    do: QlariusWeb.Uploaders.CreatorImage.url({@piece.image, @piece}, :original)
+                }
+                on_delete="delete_image"
+              />
+            </.panel>
 
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="form-control">
-                      <label class="label">
-                        <span class="label-text font-medium">Title *</span>
-                      </label>
-                      <.input
-                        field={@form[:title]}
-                        type="text"
-                        class="input input-bordered w-full"
-                        placeholder="Enter content piece title"
-                      />
-                    </div>
+            <.panel
+              id="piece-access-section"
+              title="Access exclusions"
+              description={"Opt this #{Catalog.type_label(@catalog.piece_type, 1, capitalize: false)} out of broader passes so buyers must purchase it separately."}
+              flush
+            >
+              <div class="divide-y divide-base-300">
+                <.toggle_row
+                  field={@form[:exclude_from_catalog_access]}
+                  label={"Exclude from #{Catalog.type_label(@catalog.type, 1, capitalize: false)} pass"}
+                  description={"Not included when someone buys a #{Catalog.type_label(@catalog.type, 1, capitalize: false)} pass."}
+                />
+                <.toggle_row
+                  field={@form[:exclude_from_group_access]}
+                  label={"Exclude from #{Catalog.type_label(@catalog.group_type, 1, capitalize: false)} pass"}
+                  description={"Not included when someone buys a #{Catalog.type_label(@catalog.group_type, 1, capitalize: false)} pass."}
+                />
+              </div>
+            </.panel>
 
-                    <div class="form-control">
-                      <label class="label">
-                        <span class="label-text font-medium">Published Date</span>
-                      </label>
-                      <.input
-                        field={@form[:date_published]}
-                        type="date"
-                        class="input input-bordered w-full"
-                      />
-                    </div>
-                  </div>
+            <.panel
+              id="piece-pricing-section"
+              title={"#{Catalog.type_label(@catalog.piece_type)} pricing"}
+              description={"Buy just this #{Catalog.type_label(@catalog.piece_type, 1, capitalize: false)}. Each row sets how long access lasts and what it costs."}
+            >
+              <:actions>
+                <button
+                  :if={@live_action == :edit}
+                  type="button"
+                  phx-click="write_default_tiqit_classes"
+                  class="btn btn-ghost btn-sm"
+                >
+                  <.icon name="hero-plus" class="size-4" /> Add default classes
+                </button>
+              </:actions>
+              <TiqitClassHTML.inputs_for_tiqit_classes form={@form} />
+            </.panel>
 
-                  <div class="form-control mt-4">
-                    <label class="label">
-                      <span class="label-text font-medium">Description</span>
-                    </label>
-                    <.input
-                      field={@form[:description]}
-                      type="textarea"
-                      class="textarea textarea-bordered w-full"
-                      placeholder="Enter content description"
-                      rows="4"
-                    />
-                  </div>
-
-                  <.image_upload_field
-                    upload={@uploads.image}
-                    label="Image"
-                    current_image={@piece.image}
-                    current_image_url={
-                      if @piece.image,
-                        do:
-                          QlariusWeb.Uploaders.CreatorImage.url({@piece.image, @piece}, :original)
-                    }
-                    on_delete="delete_image"
-                  />
-
-                  <div class="mt-6 space-y-3 rounded-lg border border-base-300 bg-base-200/50 p-4">
-                    <h4 class="text-sm font-semibold text-base-content">Access exclusions</h4>
-                    <p class="text-xs text-base-content/60">
-                      Opt this {Catalog.type_label(@catalog.piece_type, 1, capitalize: false)} out of
-                      broader Access Tiqits so buyers must purchase it separately.
-                    </p>
-                    <.input
-                      field={@form[:exclude_from_catalog_access]}
-                      type="checkbox"
-                      label={"Exclude from #{Catalog.type_label(@catalog.type)} Access Tiqit"}
-                    />
-                    <.input
-                      field={@form[:exclude_from_group_access]}
-                      type="checkbox"
-                      label={"Exclude from #{Catalog.type_label(@catalog.group_type)} Access Tiqit"}
-                    />
-                  </div>
-                </div>
-                
-<!-- Tiqit Classes Section -->
-                <div class="border-t border-base-300 pt-6">
-                  <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-base-content flex items-center">
-                      <.icon name="hero-tag" class="w-5 h-5 mr-3 text-primary" /> Tiqit Classes
-                    </h3>
-
-                    <.button
-                      type="button"
-                      phx-click="write_default_tiqit_classes"
-                      class="btn btn-outline btn-sm"
-                    >
-                      <.icon name="hero-plus" class="w-4 h-4 mr-2" /> Add Default Classes
-                    </.button>
-                  </div>
-
-                  <div class="bg-base-200 rounded-lg p-4">
-                    <TiqitClassHTML.inputs_for_tiqit_classes form={@form} />
-                  </div>
-                </div>
-                
-<!-- Form Actions -->
-                <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-base-300">
-                  <.button class="btn btn-primary flex-1 sm:flex-none">
-                    <.icon name="hero-check" class="w-4 h-4 mr-2" /> Save Content Piece
-                  </.button>
-
-                  <.link
-                    navigate={~p"/creators/content_groups/#{@group.id}"}
-                    class="btn btn-ghost"
-                  >
-                    <.icon name="hero-arrow-left" class="w-4 h-4 mr-2" /> Cancel
-                  </.link>
-                </div>
-              </.form>
-            </div>
-          </div>
-        </div>
+            <.save_bar dirty={false}>
+              <.link navigate={~p"/creators/content_groups/#{@group.id}"} class="btn btn-ghost">
+                Cancel
+              </.link>
+              <.button variant="primary" phx-disable-with="Saving…">
+                {if @live_action == :edit,
+                  do: "Save #{Catalog.type_label(@catalog.piece_type, 1, capitalize: false)}",
+                  else: "Create #{Catalog.type_label(@catalog.piece_type, 1, capitalize: false)}"}
+              </.button>
+            </.save_bar>
+          </.form>
+        </.page>
       </div>
     </div>
   </div>
