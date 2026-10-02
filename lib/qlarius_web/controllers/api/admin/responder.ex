@@ -55,6 +55,50 @@ defmodule QlariusWeb.Api.Admin.Responder do
     })
   end
 
+  def error(conn, {:invalid_rows, errors}) do
+    conn
+    |> put_status(422)
+    |> json(%{
+      error: "invalid_rows",
+      message: "Some rows have errors. Nothing was saved.",
+      errors: errors,
+      guide: @guide
+    })
+  end
+
+  def error(conn, {:in_use, count}) do
+    conn
+    |> put_status(409)
+    |> json(%{
+      error: "in_use",
+      message: "The row is used by #{count} media piece(s). Remap them or set active to false.",
+      media_pieces_count: count,
+      guide: @guide
+    })
+  end
+
+  def error(conn, {:row_inactive, row_id}) do
+    conn
+    |> put_status(422)
+    |> json(%{
+      error: "row_inactive",
+      message: "Row #{row_id} is inactive and can't receive media pieces",
+      row_id: row_id,
+      guide: @guide
+    })
+  end
+
+  def error(conn, {:not_found, row_id}) do
+    conn
+    |> put_status(404)
+    |> json(%{
+      error: "not_found",
+      message: "Row #{row_id} not found",
+      row_id: row_id,
+      guide: @guide
+    })
+  end
+
   def error(conn, message) when is_binary(message) do
     conn
     |> put_status(422)
@@ -140,8 +184,35 @@ defmodule QlariusWeb.Api.Admin.Responder do
   defp message(:no_feed_url),
     do: {422, "no_feed_url", "This content group has no stored feed_url to sync from"}
 
+  defp message(:in_use),
+    do: {409, "in_use", "The row is still used by media pieces"}
+
+  defp message(:row_inactive),
+    do: {422, "row_inactive", "Inactive rows can't receive media pieces"}
+
+  defp message(:invalid_cohort),
+    do:
+      {422, "invalid_cohort",
+       "cohort must be legacy or YYMMDD-xxxx (date plus 4 lowercase letters or digits)"}
+
+  defp message(:invalid_age),
+    do:
+      {422, "invalid_age", "age_min must be 18 or 21 when age_gated is true, and blank otherwise"}
+
+  defp message(:unknown_category),
+    do: {422, "unknown_category", "Pass an existing category_id or a new_category object"}
+
+  defp message(:immutable_key),
+    do: {422, "immutable_key", "row_id and category_id can't be changed"}
+
+  defp message(:selector_required),
+    do: {422, "selector_required", "Pass row_ids, category_id, or cohort to choose rows"}
+
+  defp message(:invalid_remap),
+    do: {422, "invalid_remap", "Pass mappings, or media_piece_ids with to_row_id"}
+
   defp message(:unknown_topic),
-    do: {404, "unknown_topic", "topic must be content_groups or traits"}
+    do: {404, "unknown_topic", "topic must be content_groups, traits, or ad_categories"}
 
   defp message(:not_admin), do: {403, "forbidden", "Admin role required"}
   defp message(other), do: {422, to_string(other), "Request failed"}

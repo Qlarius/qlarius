@@ -28,7 +28,7 @@ paths:
       parameters:
         - in: query
           name: topic
-          schema: {type: string, enum: [all, content_groups, traits]}
+          schema: {type: string, enum: [all, content_groups, traits, ad_categories]}
           description: The overview is always included
         - in: query
           name: format

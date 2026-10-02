@@ -28,7 +28,7 @@ defmodule Qlarius.Sponster.Campaigns do
       order_by: [desc: c.created_at],
       preload: [
         target: [target_bands: [:trait_groups]],
-        media_sequence: [media_runs: [media_piece: :media_piece_type]],
+        media_sequence: [media_runs: [media_piece: [:media_piece_type, :ad_category]]],
         bids: [],
         ledger_header: []
       ]
@@ -45,7 +45,7 @@ defmodule Qlarius.Sponster.Campaigns do
       order_by: [desc: c.deactivated_at],
       preload: [
         target: [target_bands: [:trait_groups]],
-        media_sequence: [media_runs: [media_piece: :media_piece_type]],
+        media_sequence: [media_runs: [media_piece: [:media_piece_type, :ad_category]]],
         bids: [],
         ledger_header: []
       ]
@@ -60,7 +60,7 @@ defmodule Qlarius.Sponster.Campaigns do
     Repo.get_by!(Campaign, id: id, marketer_id: marketer_id)
     |> Repo.preload(
       target: [target_bands: [:trait_groups]],
-      media_sequence: [media_runs: [media_piece: :media_piece_type]],
+      media_sequence: [media_runs: [media_piece: [:media_piece_type, :ad_category]]],
       bids: [],
       ledger_header: []
     )
@@ -423,7 +423,7 @@ defmodule Qlarius.Sponster.Campaigns do
       Repo.get!(Campaign, campaign_id)
       |> Repo.preload(
         target: [target_bands: [:trait_groups]],
-        media_sequence: [media_runs: [media_piece: :media_piece_type]],
+        media_sequence: [media_runs: [media_piece: [:media_piece_type, :ad_category]]],
         bids: [],
         ledger_header: []
       )

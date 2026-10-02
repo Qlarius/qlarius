@@ -7,9 +7,9 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
 
   alias QlariusWeb.Api.Admin.Responder
 
-  @version "2026-09-30.3"
+  @version "2026-10-02.1"
   @guides_dir Path.expand("../../../../../priv/agent_guides", __DIR__)
-  @topics ~w(overview content_groups traits)
+  @topics ~w(overview content_groups traits ad_categories)
 
   for topic <- @topics do
     @external_resource Path.join(@guides_dir, "#{topic}.md")
@@ -52,6 +52,26 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
       method: "POST",
       path: "/api/admin/traits/design_packs",
       purpose: "Create or reform a parent trait with children and survey"
+    },
+    %{
+      method: "GET",
+      path: "/api/admin/ad_categories?q=&category_id=&cohort=&active=",
+      purpose: "Ad taxonomy rows grouped by category, with media piece counts"
+    },
+    %{
+      method: "POST",
+      path: "/api/admin/ad_categories/import",
+      purpose: "Upsert taxonomy rows on row_id (dry_run supported)"
+    },
+    %{
+      method: "POST",
+      path: "/api/admin/ad_categories/remap",
+      purpose: "Move media pieces from one row to another (dry_run supported)"
+    },
+    %{
+      method: "POST",
+      path: "/api/admin/ad_categories/prune",
+      purpose: "Delete rows no media piece uses (dry_run supported)"
     }
   ]
 

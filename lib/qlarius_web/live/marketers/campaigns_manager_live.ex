@@ -1208,12 +1208,24 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
                 <table class="w-full">
                   <tr>
                     <td class="align-top pr-6">
-                      <div class="flex items-start gap-2 mb-3">
+                      <div class="flex flex-wrap items-center gap-2 mb-3">
                         <span class="font-semibold text-sm">Ad</span>
                         <.icon
                           name={if is_video, do: "hero-play-circle", else: "hero-photo"}
-                          class="w-4 h-4 mt-0.5"
+                          class="w-4 h-4"
                         />
+                        <span
+                          :if={
+                            Ecto.assoc_loaded?(media_run.media_piece.ad_category) &&
+                              media_run.media_piece.ad_category
+                          }
+                          class="badge badge-primary badge-lg h-auto py-1 gap-2"
+                        >
+                          {media_run.media_piece.ad_category.ad_label}
+                          <span class="opacity-75 text-xs">
+                            {media_run.media_piece.ad_category.category_label}
+                          </span>
+                        </span>
                       </div>
                       <%= if is_video do %>
                         <div class="max-w-xs">

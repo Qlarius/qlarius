@@ -1,0 +1,263 @@
+openapi: 3.0.3
+info:
+  title: Qlarius admin ad category API
+  version: "1"
+  description: |
+    Admin-only JSON API for the flat Sponster ad taxonomy. Bearer token for an
+    admin user. Agents should read GET /api/admin/agent_guide?topic=ad_categories
+    first. Every error body carries a guide field that points back to it.
+
+    Each row is a subcategory keyed by row_id (for example SP06-03). A
+    category is the set of rows sharing category_id. ad_label is the text
+    shown on ads. cohort is legacy or YYMMDD-xxxx.
+
+    This taxonomy includes material from the IAB Tech Lab Ad Product Taxonomy
+    2.0, which is licensed under CC BY 3.0
+    (https://creativecommons.org/licenses/by/3.0/). Source:
+    https://iabtechlab.com/standards/ad-product-taxonomy/
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+paths:
+  /api/admin/ad_categories:
+    get:
+      summary: Rows grouped by category, with media piece counts
+      parameters:
+        - {in: query, name: q, schema: {type: string}, description: Every word must match label, names, row_id, or meta; label matches rank first}
+        - {in: query, name: category_id, schema: {type: string}}
+        - {in: query, name: cohort, schema: {type: string}}
+        - {in: query, name: active, schema: {type: boolean}}
+      responses:
+        "200":
+          description: Grouped rows
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: {type: integer}
+                  attribution: {type: string}
+                  categories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        category_id: {type: string}
+                        category_name: {type: string}
+                        category_label: {type: string}
+                        rows: {type: array, items: {$ref: "#/components/schemas/Row"}}
+    post:
+      summary: Add one row (next row_id in the category, or a new SPnn category)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/EditableFields"
+                - type: object
+                  required: [ad_label]
+                  properties:
+                    category_id: {type: string, description: Existing category}
+                    new_category:
+                      type: object
+                      required: [category_name, category_label]
+                      properties:
+                        category_name: {type: string}
+                        category_label: {type: string}
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  row: {$ref: "#/components/schemas/Row"}
+                  cohort: {type: string}
+        "422": {$ref: "#/components/responses/Error"}
+  /api/admin/ad_categories/cohorts:
+    get:
+      summary: Cohorts with row counts, newest first
+      responses:
+        "200":
+          description: "{cohorts: [{cohort, count}]}"
+  /api/admin/ad_categories/{row_id}:
+    parameters:
+      - {in: path, name: row_id, required: true, schema: {type: string}}
+    patch:
+      summary: Edit a row (row_id and category_id never change)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/EditableFields"}
+      responses:
+        "200": {description: "{row}"}
+        "404": {$ref: "#/components/responses/Error"}
+        "422": {$ref: "#/components/responses/Error"}
+    delete:
+      summary: Delete one row no media piece uses
+      responses:
+        "200": {description: "{deleted: row_id}"}
+        "404": {$ref: "#/components/responses/Error"}
+        "409": {description: "in_use, with media_pieces_count"}
+  /api/admin/ad_categories/categories/{category_id}:
+    parameters:
+      - {in: path, name: category_id, required: true, schema: {type: string}}
+    patch:
+      summary: Rename a category on every row
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                category_name: {type: string}
+                category_label: {type: string}
+      responses:
+        "200": {description: "{category_id, updated}"}
+        "422": {$ref: "#/components/responses/Error"}
+  /api/admin/ad_categories/import:
+    post:
+      summary: Upsert CSV-shaped rows on row_id (never deletes)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rows]
+              properties:
+                rows:
+                  type: array
+                  items:
+                    allOf:
+                      - $ref: "#/components/schemas/EditableFields"
+                      - type: object
+                        required: [row_id, category_id, category_name, category_label, ad_label, sort_order]
+                        properties:
+                          row_id: {type: string}
+                          category_id: {type: string}
+                          age_gated: {description: "0, 1, true, or false"}
+                cohort: {type: string, description: Set on new rows only; defaults to a fresh cohort}
+                dry_run: {type: boolean}
+      responses:
+        "200":
+          description: Report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  loaded: {type: integer}
+                  inserted: {type: integer}
+                  updated: {type: integer}
+                  unchanged: {type: integer}
+                  missing: {type: array, items: {type: string}}
+                  legacy_rows: {type: integer}
+                  cohort: {type: string}
+                  dry_run: {type: boolean}
+        "422": {description: "invalid_rows with errors [{row_id, errors}], or invalid_cohort"}
+  /api/admin/ad_categories/cohort:
+    post:
+      summary: Move rows to a cohort
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cohort]
+              properties:
+                row_ids: {type: array, items: {type: string}}
+                category_id: {type: string}
+                cohort: {type: string}
+      responses:
+        "200": {description: "{cohort, updated}"}
+        "422": {$ref: "#/components/responses/Error"}
+  /api/admin/ad_categories/remap:
+    post:
+      summary: Move media pieces to other rows in one transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mappings:
+                  type: array
+                  items:
+                    type: object
+                    required: [from_row_id, to_row_id]
+                    properties:
+                      from_row_id: {type: string}
+                      to_row_id: {type: string}
+                media_piece_ids: {type: array, items: {type: integer}}
+                to_row_id: {type: string}
+                dry_run: {type: boolean}
+      responses:
+        "200": {description: "{moved, mappings: [{from_row_id or media_piece_ids, to_row_id, count}], dry_run}"}
+        "404": {$ref: "#/components/responses/Error"}
+        "422": {description: "row_inactive or invalid_remap"}
+  /api/admin/ad_categories/prune:
+    post:
+      summary: Delete rows that no media piece uses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                row_ids: {type: array, items: {type: string}}
+                category_id: {type: string}
+                cohort: {type: string}
+                dry_run: {type: boolean}
+      responses:
+        "200": {description: "{deleted: [row_id], count, dry_run}"}
+        "422": {description: selector_required}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer}
+  responses:
+    Error:
+      description: Error with code, message, and guide
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: {type: string}
+              message: {type: string}
+              guide: {type: string}
+              errors: {type: object}
+  schemas:
+    EditableFields:
+      type: object
+      properties:
+        ad_label: {type: string, maxLength: 46}
+        age_gated: {type: boolean}
+        age_min: {type: integer, enum: [18, 21], nullable: true}
+        sales_channel_default: {type: string, enum: [local, online, both], nullable: true}
+        meta_1: {type: string, nullable: true}
+        meta_2: {type: string, nullable: true}
+        meta_3: {type: string, nullable: true}
+        sort_order: {type: integer}
+        cohort: {type: string, pattern: "^(legacy|[0-9]{6}-[a-z0-9]{4})$"}
+        active: {type: boolean}
+        category_name: {type: string, description: Import only; use the category rename endpoint otherwise}
+        category_label: {type: string, description: Import only; use the category rename endpoint otherwise}
+    Row:
+      allOf:
+        - $ref: "#/components/schemas/EditableFields"
+        - type: object
+          properties:
+            id: {type: integer}
+            row_id: {type: string}
+            category_id: {type: string}
+            media_pieces_count: {type: integer}
+            active_media_pieces_count: {type: integer}

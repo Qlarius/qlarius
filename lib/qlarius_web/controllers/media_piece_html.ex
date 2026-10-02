@@ -14,7 +14,6 @@ defmodule QlariusWeb.MediaPieceHTML do
   """
   attr :changeset, Ecto.Changeset, required: true
   attr :action, :string, required: true
-  attr :ad_categories, :list, required: true
   attr :conn, Plug.Conn, required: true
 
   def media_piece_form(assigns)

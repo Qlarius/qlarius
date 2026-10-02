@@ -91,7 +91,7 @@ defmodule QlariusWeb.OfferHTML do
           >
             <div class="text-2xl font-bold mb-2">{format_usd(@offer.offer_amt)}</div>
             <div class="mb-4 text-base-content/50">
-              {@offer.media_piece.ad_category.ad_category_name}
+              {@offer.media_piece.ad_category.ad_label}
             </div>
             <div class="flex justify-between w-full">
               <div class="text-blue-400">

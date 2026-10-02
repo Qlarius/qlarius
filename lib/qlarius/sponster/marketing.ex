@@ -7,7 +7,7 @@ defmodule Qlarius.Sponster.Marketing do
   require Logger
   alias Qlarius.Repo
 
-  alias Qlarius.Sponster.Ads.{MediaPiece, AdCategory}
+  alias Qlarius.Sponster.Ads.MediaPiece
 
   @doc """
   Returns the list of media_pieces.
@@ -199,12 +199,5 @@ defmodule Qlarius.Sponster.Marketing do
   """
   def change_media_piece(%MediaPiece{} = media_piece, attrs \\ %{}) do
     MediaPiece.changeset(media_piece, attrs)
-  end
-
-  @doc """
-  Returns the list of ad categories for dropdown selection.
-  """
-  def list_ad_categories do
-    Repo.all(AdCategory)
   end
 end

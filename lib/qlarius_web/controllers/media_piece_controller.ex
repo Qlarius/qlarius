@@ -41,8 +41,7 @@ defmodule QlariusWeb.MediaPieceController do
 
   def new(conn, _params) do
     changeset = Marketing.change_media_piece(%MediaPiece{})
-    ad_categories = Marketing.list_ad_categories()
-    render(conn, :new, changeset: changeset, ad_categories: ad_categories, debug: @debug)
+    render(conn, :new, changeset: changeset, debug: @debug)
   end
 
   def create(conn, %{"media_piece" => media_piece_params}) do
@@ -60,20 +59,17 @@ defmodule QlariusWeb.MediaPieceController do
         |> redirect(to: ~p"/marketer/media_old")
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        ad_categories = Marketing.list_ad_categories()
-        render(conn, :new, changeset: changeset, ad_categories: ad_categories, debug: @debug)
+        render(conn, :new, changeset: changeset, debug: @debug)
     end
   end
 
   def edit(conn, %{"id" => id}) do
     media_piece = Marketing.get_media_piece!(id)
     changeset = Marketing.change_media_piece(media_piece)
-    ad_categories = Marketing.list_ad_categories()
 
     render(conn, :edit,
       media_piece: media_piece,
       changeset: changeset,
-      ad_categories: ad_categories,
       debug: true
     )
   end
@@ -90,12 +86,10 @@ defmodule QlariusWeb.MediaPieceController do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         Logger.error("Failed to update media piece #{id}. Errors: #{inspect(changeset.errors)}")
-        ad_categories = Marketing.list_ad_categories()
 
         render(conn, :edit,
           media_piece: media_piece,
           changeset: changeset,
-          ad_categories: ad_categories,
           debug: @debug
         )
     end

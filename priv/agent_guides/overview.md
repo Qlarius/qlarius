@@ -2,8 +2,8 @@
 
 You are calling the Qadabra admin API on behalf of a Qadabra admin. Read this
 guide before making any write. It is served at `GET /api/admin/agent_guide`
-(`?format=json` for JSON, `?topic=content_groups` or `?topic=traits` for one
-section).
+(`?format=json` for JSON, `?topic=content_groups`, `?topic=traits`, or
+`?topic=ad_categories` for one section).
 
 ## Authentication
 
@@ -52,6 +52,8 @@ Every error body has `error` (a code), `message`, and `guide` (this page).
 | POST | /api/admin/content_groups/packs | Create or update a group from a pack |
 | POST | /api/admin/content_groups/:id/sync | Add new episodes from a group's feed; `{"reorder": true}` also puts the group in episode order |
 | POST | /api/admin/traits/design_packs | Create or reform a parent trait |
+| GET | /api/admin/ad_categories | Sponster ad taxonomy rows by category; also import, remap, prune (see `?topic=ad_categories`) |
 
-Full schemas: `docs/admin_content_group_api.openapi.yaml` and
-`docs/admin_trait_survey_api.openapi.yaml` in the Qadabra repository.
+Full schemas: `docs/admin_content_group_api.openapi.yaml`,
+`docs/admin_trait_survey_api.openapi.yaml`, and
+`docs/admin_ad_category_api.openapi.yaml` in the Qadabra repository.

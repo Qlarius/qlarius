@@ -52,9 +52,20 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
       :active
     ])
     |> validate_media_type_fields()
+    |> validate_ad_category_active()
     |> foreign_key_constraint(:media_piece_type_id)
     |> foreign_key_constraint(:ad_category_id)
     |> foreign_key_constraint(:marketer_id)
+  end
+
+  defp validate_ad_category_active(changeset) do
+    validate_change(changeset, :ad_category_id, fn :ad_category_id, id ->
+      case Qlarius.Repo.get(AdCategory, id) do
+        nil -> [ad_category_id: "does not exist"]
+        %AdCategory{active: false} -> [ad_category_id: "is inactive and can't be newly assigned"]
+        _ -> []
+      end
+    end)
   end
 
   defp validate_media_type_fields(changeset) do

@@ -864,9 +864,9 @@ defmodule QlariusWeb.Components.AdsComponents do
             </div>
             <p
               class="min-w-0 truncate text-base text-base-content/50"
-              title={@offer.media_run.media_piece.ad_category.ad_category_name}
+              title={@offer.media_run.media_piece.ad_category.ad_label}
             >
-              {@offer.media_run.media_piece.ad_category.ad_category_name}
+              {@offer.media_run.media_piece.ad_category.ad_label}
             </p>
             <div class="flex min-w-0 items-center gap-2">
               <%= if @offer.matching_tags_snapshot && String.contains?(String.downcase(inspect(@offer.matching_tags_snapshot)), "zip code") do %>

@@ -59,14 +59,15 @@
           required
           class="input input-bordered w-full"
         />
-        <.input
-          field={f[:ad_category_id]}
-          type="select"
-          label="Ad Category"
-          options={Enum.map(@ad_categories, &{&1.ad_category_name, &1.id})}
-          required
-          class="select select-bordered w-full"
-        />
+        {live_render(@conn, QlariusWeb.SearchSelectLive,
+          session: %{
+            "source" => "ad_categories",
+            "name" => f[:ad_category_id].name,
+            "value" => to_string(f[:ad_category_id].value || ""),
+            "label" => "Ad Category",
+            "errors" => Enum.map(f[:ad_category_id].errors, &translate_error/1)
+          }
+        )}
         <input type="hidden" name={f[:media_piece_type_id].name} value="1" />
         <input type="hidden" name={f[:marketer_id].name} value={f.data.marketer_id} />
         <input type="hidden" name={f[:active].name} value="true" />

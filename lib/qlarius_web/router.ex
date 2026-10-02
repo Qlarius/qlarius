@@ -458,6 +458,17 @@ defmodule QlariusWeb.Router do
     delete "/surveys/:id/questions/:question_id", SurveyController, :remove_question
     patch "/survey_questions/:id", SurveyController, :update_question
     patch "/survey_answers/:id", SurveyController, :update_answer
+
+    get "/ad_categories", AdCategoryController, :index
+    get "/ad_categories/cohorts", AdCategoryController, :cohorts
+    post "/ad_categories", AdCategoryController, :create
+    post "/ad_categories/import", AdCategoryController, :import_rows
+    post "/ad_categories/cohort", AdCategoryController, :set_cohort
+    post "/ad_categories/remap", AdCategoryController, :remap
+    post "/ad_categories/prune", AdCategoryController, :prune
+    patch "/ad_categories/categories/:category_id", AdCategoryController, :rename_category
+    patch "/ad_categories/:row_id", AdCategoryController, :update
+    delete "/ad_categories/:row_id", AdCategoryController, :delete
   end
 
   # Dynamic manifest for PWA - includes referral code in start_url

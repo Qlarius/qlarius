@@ -4,7 +4,8 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias QlariusWeb.Live.Marketers.CurrentMarketer
   alias Qlarius.Sponster.Marketing
-  alias Qlarius.Sponster.Ads.MediaPiece
+  alias Qlarius.Sponster.Ads.{AdCategories, MediaPiece}
+  alias QlariusWeb.Components.SearchSelect
   import QlariusWeb.Components.AdsComponents, only: [video_thumbnail: 1]
 
   on_mount {CurrentMarketer, :load_current_marketer}
@@ -35,14 +36,14 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
 
   defp apply_action(socket, :new, _params) do
     changeset = Marketing.change_media_piece(%MediaPiece{})
-    ad_categories = Marketing.list_ad_categories()
+    ad_category_options = AdCategories.picker_options()
 
     socket
     |> assign(:page_title, "New Media Piece")
     |> assign(:media_piece, %MediaPiece{})
     |> assign(:changeset, changeset)
     |> assign(:form, to_form(changeset))
-    |> assign(:ad_categories, ad_categories)
+    |> assign(:ad_category_options, ad_category_options)
     |> assign(:selected_media_type, "three_tap")
     |> allow_upload(:banner_image,
       accept: ~w(.jpg .jpeg .png .gif),
@@ -67,7 +68,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   defp apply_action(socket, :edit, %{"id" => id}) do
     media_piece = Marketing.get_media_piece!(id)
     changeset = Marketing.change_media_piece(media_piece)
-    ad_categories = Marketing.list_ad_categories()
+    ad_category_options = AdCategories.picker_options(media_piece.ad_category_id)
 
     selected_media_type =
       case media_piece.media_piece_type_id do
@@ -80,7 +81,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
     |> assign(:media_piece, media_piece)
     |> assign(:changeset, changeset)
     |> assign(:form, to_form(changeset))
-    |> assign(:ad_categories, ad_categories)
+    |> assign(:ad_category_options, ad_category_options)
     |> assign(:selected_media_type, selected_media_type)
     |> allow_upload(:banner_image,
       accept: ~w(.jpg .jpeg .png .gif),
@@ -145,6 +146,18 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
   @impl true
   def handle_event("cancel_upload", %{"ref" => ref}, socket) do
     {:noreply, cancel_upload(socket, :banner_image, ref)}
+  end
+
+  @impl true
+  def handle_info({SearchSelect, "ad-category-picker", value}, socket) do
+    params = Map.put(socket.assigns.form.params || %{}, "ad_category_id", value)
+
+    changeset =
+      socket.assigns.media_piece
+      |> Marketing.change_media_piece(params)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, changeset: changeset, form: to_form(changeset))}
   end
 
   defp save_media_piece(socket, :new, attrs) do
@@ -445,7 +458,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
                                 <td class="text-emerald-600 align-top">{media_piece.display_url}</td>
                                 <td class="align-top">
                                   <span class="badge whitespace-nowrap inline-flex items-center">
-                                    {media_piece.ad_category.ad_category_name}
+                                    {media_piece.ad_category.ad_label}
                                   </span>
                                 </td>
                                 <td class="align-top">
@@ -491,7 +504,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
                   <.media_piece_form
                     form={@form}
                     action={~p"/marketer/media/new"}
-                    ad_categories={@ad_categories}
+                    ad_category_options={@ad_category_options}
                     uploads={@uploads}
                     selected_media_type={@selected_media_type}
                   />
@@ -516,7 +529,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
                   <.media_piece_form
                     form={@form}
                     action={~p"/marketer/media/#{@media_piece}/edit"}
-                    ad_categories={@ad_categories}
+                    ad_category_options={@ad_category_options}
                     uploads={@uploads}
                     media_piece={@media_piece}
                     selected_media_type={@selected_media_type}
@@ -532,7 +545,7 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
 
   attr :form, :any, required: true
   attr :action, :string, required: true
-  attr :ad_categories, :list, required: true
+  attr :ad_category_options, :list, required: true
   attr :uploads, :map, required: true
   attr :media_piece, :map, default: nil
   attr :selected_media_type, :string, required: true
@@ -587,18 +600,17 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
         <.input field={f[:jump_url]} type="text" label="Jump URL" required />
       <% end %>
 
-      <.input
+      <.live_component
+        module={SearchSelect}
+        id="ad-category-picker"
         field={f[:ad_category_id]}
-        type="select"
+        options={@ad_category_options}
         label="Ad Category"
-        options={
-          @ad_categories
-          |> Enum.sort_by(& &1.ad_category_name)
-          |> Enum.map(&{&1.ad_category_name, &1.id})
-        }
-        prompt="Select a category"
+        placeholder="Type words like pizza, yoga or car repair"
         required
-      />
+      >
+        <:footer>{AdCategories.iab_attribution()}</:footer>
+      </.live_component>
 
       <%= if @selected_media_type == "three_tap" do %>
         <.image_upload_field

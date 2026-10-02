@@ -349,7 +349,7 @@ defmodule QlariusWeb.AdsLive do
         slide_over_active={@show_video_player && @current_video_offer}
         slide_over_title={
           (@current_video_offer &&
-             @current_video_offer.media_run.media_piece.ad_category.ad_category_name) || "Video Ad"
+             @current_video_offer.media_run.media_piece.ad_category.ad_label) || "Video Ad"
         }
         slide_over_show_wallet={true}
       >

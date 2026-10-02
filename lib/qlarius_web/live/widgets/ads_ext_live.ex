@@ -239,9 +239,9 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
                   </div>
                   <p
                     class="mt-1.5 truncate text-sm text-base-content/60"
-                    title={@current_video_offer.media_run.media_piece.ad_category.ad_category_name}
+                    title={@current_video_offer.media_run.media_piece.ad_category.ad_label}
                   >
-                    {@current_video_offer.media_run.media_piece.ad_category.ad_category_name}
+                    {@current_video_offer.media_run.media_piece.ad_category.ad_label}
                   </p>
                 </div>
                 <button

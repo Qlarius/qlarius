@@ -206,9 +206,19 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
 
     ensure_three_tap_type_and_phase!(now)
 
+    n = System.unique_integer([:positive])
+
     category =
       %AdCategory{}
-      |> AdCategory.changeset(%{ad_category_name: "Cat #{System.unique_integer()}"})
+      |> AdCategory.create_changeset(%{
+        row_id: "TEST-#{n}",
+        category_id: "TEST",
+        category_name: "Test",
+        category_label: "Test",
+        ad_label: "Cat #{n}",
+        sort_order: n,
+        cohort: "legacy"
+      })
       |> Repo.insert!()
 
     media_piece =
