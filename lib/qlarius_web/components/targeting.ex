@@ -623,16 +623,6 @@ defmodule QlariusWeb.Components.Targeting do
                     class="flex items-center gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 dark:border-base-content/15 py-4 px-2 hover:bg-base-200/70 dark:hover:bg-base-300/35 cursor-pointer"
                   >
                     <input
-                      :if={@parent_trait.input_type == "single_select"}
-                      type="radio"
-                      name="trait_ids[]"
-                      value={child_trait.id}
-                      id={"trait-#{child_trait.id}"}
-                      checked={child_trait.id in @selected_ids}
-                      class="radio w-7 h-7"
-                    />
-                    <input
-                      :if={@parent_trait.input_type != "single_select"}
                       type="checkbox"
                       name="trait_ids[]"
                       value={child_trait.id}
