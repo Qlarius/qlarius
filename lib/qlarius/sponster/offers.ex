@@ -6,6 +6,7 @@ defmodule Qlarius.Sponster.Offers do
   import Ecto.Query
 
   alias Ecto.Multi
+  alias Qlarius.Accounts.UserProxy
   alias Qlarius.Repo
   alias Qlarius.Sponster.AdEvent
   alias Qlarius.Sponster.Ads.MediaPiecePhase
@@ -287,12 +288,53 @@ defmodule Qlarius.Sponster.Offers do
   end
 
   defp activate_pending_for_me_file(me_file_id, now) do
-    throttle_limit = System.get_global_variable_int("THROTTLE_AD_COUNT", 3)
-    throttle_days = System.get_global_variable_int("THROTTLE_DAYS", 7)
-
     unthrottled = activate_unthrottled_for_me_file(me_file_id, now)
-    throttled = activate_throttled_for_me_file(me_file_id, now, throttle_limit, throttle_days)
+    throttled = activate_throttled_for_me_file(me_file_id, now)
     unthrottled + throttled
+  end
+
+  def throttle_settings(me_file_id) when is_integer(me_file_id) do
+    if proxy_me_file?(me_file_id) do
+      %{
+        limit: System.get_global_variable_int("PROXY_THROTTLE_AD_COUNT", 25),
+        days: System.get_global_variable_int("PROXY_THROTTLE_DAYS", 0)
+      }
+    else
+      %{
+        limit: System.get_global_variable_int("THROTTLE_AD_COUNT", 3),
+        days: System.get_global_variable_int("THROTTLE_DAYS", 7)
+      }
+    end
+  end
+
+  def throttle_budget(me_file_id, now) when is_integer(me_file_id) do
+    %{limit: limit, days: days} = throttle_settings(me_file_id)
+    current = count_current_throttled_offers(me_file_id)
+
+    completed =
+      if days == 0 do
+        0
+      else
+        since = NaiveDateTime.add(now, -days * 24 * 60 * 60, :second)
+        count_completed_throttled_ads(me_file_id, since)
+      end
+
+    %{
+      limit: limit,
+      days: days,
+      current: current,
+      completed: completed,
+      remaining: max(0, limit - max(current, completed))
+    }
+  end
+
+  defp proxy_me_file?(me_file_id) do
+    from(up in UserProxy,
+      join: u in assoc(up, :proxy_user),
+      join: mf in assoc(u, :me_file),
+      where: mf.id == ^me_file_id
+    )
+    |> Repo.exists?()
   end
 
   defp activate_unthrottled_for_me_file(me_file_id, now) do
@@ -308,9 +350,7 @@ defmodule Qlarius.Sponster.Offers do
     count
   end
 
-  defp activate_throttled_for_me_file(me_file_id, now, throttle_limit, throttle_days) do
-    since = NaiveDateTime.add(now, -throttle_days * 24 * 60 * 60, :second)
-
+  defp activate_throttled_for_me_file(me_file_id, now) do
     pending =
       from(o in Offer,
         where: o.me_file_id == ^me_file_id,
@@ -322,11 +362,7 @@ defmodule Qlarius.Sponster.Offers do
       )
       |> Repo.all()
 
-    current_count = count_current_throttled_offers(me_file_id)
-    completed_count = count_completed_throttled_ads(me_file_id, since)
-    remaining_slots = max(0, throttle_limit - max(current_count, completed_count))
-
-    offer_ids = Enum.take(pending, remaining_slots)
+    offer_ids = Enum.take(pending, throttle_budget(me_file_id, now).remaining)
 
     if offer_ids == [] do
       0

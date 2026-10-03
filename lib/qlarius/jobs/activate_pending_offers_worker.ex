@@ -4,7 +4,7 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
   import Ecto.Query
   alias Qlarius.Repo
   alias Qlarius.Sponster.Offer
-  alias Qlarius.Sponster.AdEvent
+  alias Qlarius.Sponster.Offers
   alias Qlarius.System
   alias Qlarius.Sponster.Campaigns.CampaignPubSub
 
@@ -30,7 +30,7 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     unthrottled_activated = activate_unthrottled_offers(now)
 
     {throttled_activated, throttled_blocked, me_files_processed} =
-      activate_throttled_offers(now, throttle_limit, throttle_days)
+      activate_throttled_offers(now)
 
     # Summary log
     Logger.info("""
@@ -89,9 +89,8 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     count
   end
 
-  defp activate_throttled_offers(now, throttle_limit, throttle_days) do
+  defp activate_throttled_offers(now) do
     require Logger
-    seven_days_ago = NaiveDateTime.add(now, -throttle_days * 24 * 60 * 60, :second)
 
     throttled_offers_by_me_file =
       from(o in Offer,
@@ -113,11 +112,11 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     {total_activated, blocked_count} =
       Enum.reduce(throttled_offers_by_me_file, {0, 0}, fn {me_file_id, offers},
                                                           {activated_acc, blocked_acc} ->
-        current_count = count_current_throttled_offers(me_file_id)
-        completed_count = count_completed_throttled_ads(me_file_id, seven_days_ago)
-
-        max_used = max(current_count, completed_count)
-        remaining_slots = max(0, throttle_limit - max_used)
+        budget = Offers.throttle_budget(me_file_id, now)
+        current_count = budget.current
+        completed_count = budget.completed
+        remaining_slots = budget.remaining
+        throttle_limit = budget.limit
 
         if remaining_slots > 0 do
           offers_to_activate = Enum.take(offers, remaining_slots)
@@ -152,26 +151,6 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
 
     # Return tuple with counts for summary
     {total_activated, blocked_count, me_files_count}
-  end
-
-  defp count_current_throttled_offers(me_file_id) do
-    from(o in Offer,
-      where: o.me_file_id == ^me_file_id,
-      where: o.is_current == true,
-      where: o.is_throttled == true,
-      select: count(o.id)
-    )
-    |> Repo.one()
-  end
-
-  defp count_completed_throttled_ads(me_file_id, since_date) do
-    from(ae in AdEvent,
-      where: ae.me_file_id == ^me_file_id,
-      where: ae.is_throttled == true,
-      where: ae.created_at >= ^since_date,
-      select: count(ae.id)
-    )
-    |> Repo.one()
   end
 
   defp broadcast_activations do

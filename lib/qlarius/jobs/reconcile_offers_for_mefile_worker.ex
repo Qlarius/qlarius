@@ -10,7 +10,7 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
 
   import Ecto.Query
   alias Qlarius.Repo
-  alias Qlarius.Sponster.{Offer, AdEvent}
+  alias Qlarius.Sponster.{Offer, Offers, AdEvent}
   alias Qlarius.Sponster.Campaigns.{Campaign, Bid, TargetPopulation}
   alias Qlarius.Sponster.Campaigns.CampaignPubSub
   alias Qlarius.Wallets.MeFileStatsBroadcaster
@@ -191,7 +191,7 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
           }
         end)
 
-      offers_to_create = apply_new_user_activation(offers_to_create, is_new_user)
+      offers_to_create = apply_new_user_activation(offers_to_create, is_new_user, me_file_id)
 
       {count, _} =
         Repo.insert_all(Offer, offers_to_create,
@@ -209,10 +209,10 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
     end
   end
 
-  defp apply_new_user_activation(offers, false), do: offers
+  defp apply_new_user_activation(offers, false, _me_file_id), do: offers
 
-  defp apply_new_user_activation(offers, true) do
-    throttle_limit = get_throttle_ad_count()
+  defp apply_new_user_activation(offers, true, me_file_id) do
+    throttle_limit = Offers.throttle_settings(me_file_id).limit
 
     {unthrottled, throttled} = Enum.split_with(offers, fn offer -> !offer.is_throttled end)
 
@@ -223,10 +223,6 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
     activated_throttled = Enum.map(activated_throttled, &Map.put(&1, :is_current, true))
 
     activated_unthrottled ++ activated_throttled ++ pending_throttled
-  end
-
-  defp get_throttle_ad_count do
-    Qlarius.System.get_global_variable_int("THROTTLE_AD_COUNT", 3)
   end
 
   defp delete_invalid_offers(_me_file_id, existing_offers, keys_to_remove) do

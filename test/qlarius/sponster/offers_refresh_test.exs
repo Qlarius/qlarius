@@ -2,6 +2,8 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
   use Qlarius.DataCase, async: true
 
   alias Qlarius.Accounts.Marketer
+  alias Qlarius.Accounts.{User, UserProxy}
+  alias Qlarius.Jobs.ActivatePendingOffersWorker
   alias Qlarius.Repo
   alias Qlarius.Sponster.AdEvent
   alias Qlarius.Sponster.Ads.{AdCategory, MediaPiece, MediaPiecePhase, MediaPieceType}
@@ -163,6 +165,57 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
       assert {:ok, %{parked: 1}} = Offers.refresh_statuses_for_me_file(me_file.id)
 
       assert Offers.list_current_three_tap_offers(me_file.id) == []
+    end
+  end
+
+  describe "throttled PTP activation" do
+    test "a regular me file activates only THROTTLE_AD_COUNT due offers" do
+      set_user_throttle!(count: 2, days: 7)
+      ctx = build_three_tap_context!([])
+      offers = insert_due_throttled_offers!(ctx, 4)
+
+      assert {:ok, %{activated: 2}} = Offers.refresh_statuses_for_me_file(ctx.me_file.id)
+      assert Enum.count(reload!(offers), & &1.is_current) == 2
+    end
+
+    test "recent throttled events fill a regular me file's cap" do
+      set_user_throttle!(count: 2, days: 7)
+      ctx = build_three_tap_context!([])
+      insert_throttled_events!(ctx, 2)
+      offers = insert_due_throttled_offers!(ctx, 2)
+
+      assert {:ok, %{activated: 0}} = Offers.refresh_statuses_for_me_file(ctx.me_file.id)
+      refute Enum.any?(reload!(offers), & &1.is_current)
+    end
+
+    test "a proxy me file uses the proxy cap and ignores events when the window is zero days" do
+      set_user_throttle!(count: 2, days: 7)
+      Qlarius.System.set_global_variable("PROXY_THROTTLE_AD_COUNT", "4")
+      Qlarius.System.set_global_variable("PROXY_THROTTLE_DAYS", "0")
+
+      ctx = build_three_tap_context!([])
+      attach_proxy!(ctx.me_file)
+      insert_throttled_events!(ctx, 2)
+      offers = insert_due_throttled_offers!(ctx, 4)
+
+      assert {:ok, %{activated: 4}} = Offers.refresh_statuses_for_me_file(ctx.me_file.id)
+
+      reloaded = reload!(offers)
+      assert Enum.all?(reloaded, & &1.is_current)
+      assert Enum.all?(reloaded, & &1.is_throttled)
+    end
+
+    test "the activation job uses the proxy cap" do
+      set_user_throttle!(count: 2, days: 7)
+      Qlarius.System.set_global_variable("PROXY_THROTTLE_AD_COUNT", "4")
+      Qlarius.System.set_global_variable("PROXY_THROTTLE_DAYS", "0")
+
+      ctx = build_three_tap_context!([])
+      attach_proxy!(ctx.me_file)
+      offers = insert_due_throttled_offers!(ctx, 4)
+
+      assert :ok = ActivatePendingOffersWorker.perform(%Oban.Job{args: %{}})
+      assert Enum.all?(reload!(offers), & &1.is_current)
     end
   end
 
@@ -420,5 +473,69 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
     NaiveDateTime.utc_now()
     |> NaiveDateTime.add(hours * 3600, :second)
     |> NaiveDateTime.truncate(:second)
+  end
+
+  defp set_user_throttle!(opts) do
+    Qlarius.System.set_global_variable("THROTTLE_AD_COUNT", to_string(opts[:count]))
+    Qlarius.System.set_global_variable("THROTTLE_DAYS", to_string(opts[:days]))
+  end
+
+  defp attach_proxy!(me_file) do
+    owner = Repo.insert!(%User{alias: "owner-#{System.unique_integer([:positive])}"})
+    persona = Repo.insert!(%User{alias: "persona-#{System.unique_integer([:positive])}"})
+    Repo.update!(Ecto.Changeset.change(me_file, user_id: persona.id))
+
+    Repo.insert!(%UserProxy{
+      true_user_id: owner.id,
+      proxy_user_id: persona.id,
+      active: false
+    })
+  end
+
+  defp insert_due_throttled_offers!(ctx, count) do
+    Enum.map(1..count, fn _ ->
+      insert_offer!(%{ctx | media_run: insert_media_run!(ctx)}, %{
+        is_current: false,
+        is_throttled: true,
+        pending_until: hours_ago(1)
+      })
+    end)
+  end
+
+  defp insert_throttled_events!(ctx, count) do
+    anchor =
+      insert_offer!(ctx, %{
+        is_current: false,
+        is_throttled: true,
+        pending_until: hours_from_now(48)
+      })
+
+    Enum.each(1..count, fn _ ->
+      insert_banner_event!(anchor, ctx.phase_1_id, created_at: hours_ago(1))
+    end)
+  end
+
+  defp insert_media_run!(ctx) do
+    run = ctx.media_run
+
+    %MediaRun{}
+    |> MediaRun.changeset(%{
+      marketer_id: run.marketer_id,
+      media_piece_id: run.media_piece_id,
+      media_sequence_id: run.media_sequence_id,
+      frequency: run.frequency,
+      frequency_buffer_hours: run.frequency_buffer_hours,
+      maximum_banner_count: run.maximum_banner_count,
+      banner_retry_buffer_hours: run.banner_retry_buffer_hours,
+      is_active: true,
+      sequence_start_phase: run.sequence_start_phase,
+      sequence_end_phase: run.sequence_end_phase
+    })
+    |> Repo.insert!()
+  end
+
+  defp reload!(offers) do
+    ids = Enum.map(offers, & &1.id)
+    Repo.all(from o in Offer, where: o.id in ^ids)
   end
 end
