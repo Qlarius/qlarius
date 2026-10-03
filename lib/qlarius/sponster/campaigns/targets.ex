@@ -660,6 +660,25 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
 
   def snapshot_to_tuples(_), do: []
 
+  @doc """
+  Label stored on a matching-tags snapshot.
+
+  Survey answers keep their own `tag_value`. A blank `tag_value` falls back to
+  the trait name, which is the zip code for Home Zip Code children.
+  """
+  def snapshot_label(%{tag_value: value, trait_name: trait_name}) do
+    case value do
+      text when is_binary(text) ->
+        case String.trim(text) do
+          "" -> trait_name
+          trimmed -> trimmed
+        end
+
+      _ ->
+        trait_name
+    end
+  end
+
   defp convert_tags_to_tuples(tags) do
     Enum.map(tags, fn
       [parent_id, name, order, children] when is_list(children) ->

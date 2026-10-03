@@ -6,7 +6,7 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker do
 
   import Ecto.Query
   alias Qlarius.Repo
-  alias Qlarius.Sponster.Campaigns.{Campaign, Target, TargetPopulation, TargetBand}
+  alias Qlarius.Sponster.Campaigns.{Campaign, Target, TargetPopulation, TargetBand, Targets}
   alias Qlarius.Tiqit.ContentAudienceTarget
   alias Qlarius.YouData.MeFiles.MeFileTag
   alias Qlarius.YouData.Traits.Trait
@@ -271,7 +271,7 @@ defmodule Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker do
         child_tags =
           tags
           |> Enum.map(fn tag ->
-            [tag.trait_id, tag.tag_value, tag.display_order]
+            [tag.trait_id, Targets.snapshot_label(tag), tag.display_order]
           end)
           |> Enum.sort_by(fn [_id, _val, order] -> order end)
 

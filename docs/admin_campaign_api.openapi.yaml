@@ -407,8 +407,8 @@ components:
         marketer_id: {type: integer}
         media_piece_type_id: {type: integer, description: From GET /media_piece_types, writable true}
         ad_category_row_id: {type: string, description: Active row from the ad categories API}
-        title: {type: string}
-        body_copy: {type: string, nullable: true}
+        title: {type: string, maxLength: 32, description: "3-tap ads: at most 32 characters"}
+        body_copy: {type: string, nullable: true, maxLength: 120, description: "3-tap ads: at most 120 characters"}
         display_url: {type: string}
         jump_url: {type: string}
         active: {type: boolean}

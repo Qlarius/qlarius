@@ -7,7 +7,7 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
 
   alias QlariusWeb.Api.Admin.Responder
 
-  @version "2026-10-03.7"
+  @version "2026-10-03.8"
   @guides_dir Path.expand("../../../../../priv/agent_guides", __DIR__)
   @topics ~w(overview content_groups traits ad_categories campaigns)
 

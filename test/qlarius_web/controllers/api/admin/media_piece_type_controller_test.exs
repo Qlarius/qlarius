@@ -43,6 +43,7 @@ defmodule QlariusWeb.Api.Admin.MediaPieceTypeControllerTest do
 
     three_tap = Enum.find(body["media_piece_types"], &(&1["id"] == 1))
     assert three_tap["required_fields"] == ["banner_image", "display_url", "jump_url"]
+    assert three_tap["field_limits"] == %{"title" => 32, "body_copy" => 120}
     assert three_tap["writable"] == true
     assert three_tap["base_fee"] == "0.10"
     assert three_tap["markup_multiplier"] == "1.50" or three_tap["markup_multiplier"] == "1.5"

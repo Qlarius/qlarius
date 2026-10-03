@@ -70,6 +70,29 @@ defmodule QlariusWeb.Api.Admin.MediaPieceControllerTest do
     assert body["error"] == "image_required"
   end
 
+  test "rejects a 3-tap title or body that will not fit the panel", %{token: token} = ctx do
+    long_title = String.duplicate("A", MediaPiece.three_tap_title_max() + 1)
+
+    body =
+      token
+      |> authed()
+      |> post(~p"/api/admin/media_pieces", params(ctx, %{title: long_title}))
+      |> json_response(422)
+
+    assert body["error"] == "invalid"
+    assert body["errors"]["title"]
+
+    long_body = String.duplicate("a", MediaPiece.three_tap_body_max() + 1)
+
+    body =
+      token
+      |> authed()
+      |> post(~p"/api/admin/media_pieces", params(ctx, %{body_copy: long_body}))
+      |> json_response(422)
+
+    assert body["errors"]["body_copy"]
+  end
+
   test "rejects an inactive ad category and a video type", %{token: token} = ctx do
     inactive = row_fixture(active: false)
 

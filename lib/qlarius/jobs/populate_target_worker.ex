@@ -416,7 +416,7 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
         child_tags =
           tags
           |> Enum.map(fn tag ->
-            [tag.trait_id, tag.tag_value, tag.display_order]
+            [tag.trait_id, Targets.snapshot_label(tag), tag.display_order]
           end)
           |> Enum.sort_by(fn [_id, _val, order] -> order end)
 

@@ -597,14 +597,27 @@ defmodule QlariusWeb.Live.Marketers.MediaPieceLive do
       </.panel>
 
       <.panel title="Content" description="What people see in the ad.">
-        <.input field={f[:title]} type="text" label="Title" required />
-
         <%= if @selected_media_type == "three_tap" do %>
-          <.input field={f[:body_copy]} type="textarea" label="Body Copy" rows="3" />
+          <.input
+            field={f[:title]}
+            type="text"
+            label={"Title (#{MediaPiece.three_tap_title_max()} characters)"}
+            required
+            maxlength={MediaPiece.three_tap_title_max()}
+          />
+          <.input
+            field={f[:body_copy]}
+            type="textarea"
+            label={"Body Copy (#{MediaPiece.three_tap_body_max()} characters)"}
+            rows="3"
+            maxlength={MediaPiece.three_tap_body_max()}
+          />
           <div class="grid gap-4 md:grid-cols-2">
             <.input field={f[:display_url]} type="text" label="Display URL" required />
             <.input field={f[:jump_url]} type="text" label="Jump URL" required />
           </div>
+        <% else %>
+          <.input field={f[:title]} type="text" label="Title" required />
         <% end %>
       </.panel>
 

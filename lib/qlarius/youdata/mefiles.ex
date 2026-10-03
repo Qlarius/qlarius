@@ -236,12 +236,20 @@ defmodule Qlarius.YouData.MeFiles do
             id -> id
           end)
 
+        trait_names =
+          Repo.all(
+            from t in Trait,
+              where: t.id in ^child_trait_ids,
+              select: {t.id, t.trait_name}
+          )
+          |> Map.new()
+
         Enum.each(child_trait_ids, fn child_id ->
           %MeFileTag{}
           |> MeFileTag.changeset(%{
             me_file_id: me_file_id,
             trait_id: child_id,
-            tag_value: Map.get(id_to_name_map, child_id),
+            tag_value: label_for_child(id_to_name_map, child_id, trait_names),
             added_by: user_id,
             modified_by: user_id
           })
@@ -343,6 +351,24 @@ defmodule Qlarius.YouData.MeFiles do
   defp broadcast_tag_stats(me_file_id) do
     Qlarius.Wallets.MeFileStatsBroadcaster.broadcast_stats_updated(me_file_id)
   end
+
+  # The MeFile editor passes labels for children it has loaded. Zip parents do
+  # not load their children, so that map is empty and the zip must come from
+  # the trait name.
+  defp label_for_child(id_to_name_map, child_id, trait_names) do
+    present_label(Map.get(id_to_name_map, child_id)) ||
+      present_label(Map.get(id_to_name_map, to_string(child_id))) ||
+      Map.get(trait_names, child_id)
+  end
+
+  defp present_label(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp present_label(_), do: nil
 
   def parent_trait_with_tags_for_mefile(me_file_id, parent_trait_id) do
     parent = Repo.get!(Trait, parent_trait_id)

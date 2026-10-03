@@ -7,6 +7,13 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
   @primary_key {:id, :id, autogenerate: true}
   @timestamps_opts [type: :naive_datetime, inserted_at: :created_at, updated_at: :updated_at]
 
+  # One line of bold title, and three lines of body, inside the 3-tap text panel.
+  @three_tap_title_max 32
+  @three_tap_body_max 120
+
+  def three_tap_title_max, do: @three_tap_title_max
+  def three_tap_body_max, do: @three_tap_body_max
+
   schema "media_pieces" do
     field :title, :string
     field :body_copy, :string
@@ -82,6 +89,8 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
       1 ->
         changeset
         |> validate_required([:banner_image, :display_url, :jump_url])
+        |> validate_length(:title, max: @three_tap_title_max)
+        |> validate_length(:body_copy, max: @three_tap_body_max)
 
       2 ->
         changeset

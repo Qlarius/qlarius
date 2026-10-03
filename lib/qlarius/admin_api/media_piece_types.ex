@@ -9,7 +9,7 @@ defmodule Qlarius.AdminApi.MediaPieceTypes do
   import Ecto.Query
 
   alias Qlarius.Repo
-  alias Qlarius.Sponster.Ads.MediaPieceType
+  alias Qlarius.Sponster.Ads.{MediaPiece, MediaPieceType}
 
   def list do
     Repo.all(from(t in MediaPieceType, order_by: [asc: t.id]))
@@ -21,4 +21,10 @@ defmodule Qlarius.AdminApi.MediaPieceTypes do
 
   def writable?(1), do: true
   def writable?(_id), do: false
+
+  def field_limits(1) do
+    %{"title" => MediaPiece.three_tap_title_max(), "body_copy" => MediaPiece.three_tap_body_max()}
+  end
+
+  def field_limits(_id), do: %{}
 end

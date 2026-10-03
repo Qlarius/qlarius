@@ -17,6 +17,7 @@ defmodule QlariusWeb.Api.Admin.MediaPieceTypeController do
       base_fee: decimal(type.base_fee),
       markup_multiplier: decimal(type.markup_multiplier),
       required_fields: MediaPieceTypes.required_fields(type.id),
+      field_limits: MediaPieceTypes.field_limits(type.id),
       writable: MediaPieceTypes.writable?(type.id)
     }
   end

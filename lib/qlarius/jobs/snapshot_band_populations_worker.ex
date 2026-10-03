@@ -35,7 +35,7 @@ defmodule Qlarius.Jobs.SnapshotBandPopulationsWorker do
 
   import Ecto.Query
   alias Qlarius.Repo
-  alias Qlarius.Sponster.Campaigns.{TargetBand, TargetPopulation}
+  alias Qlarius.Sponster.Campaigns.{TargetBand, TargetPopulation, Targets}
   alias Qlarius.YouData.MeFiles.MeFileTag
   alias Qlarius.YouData.Traits.Trait
 
@@ -165,7 +165,7 @@ defmodule Qlarius.Jobs.SnapshotBandPopulationsWorker do
         child_tags =
           tags
           |> Enum.map(fn tag ->
-            [tag.trait_id, tag.tag_value, tag.display_order]
+            [tag.trait_id, Targets.snapshot_label(tag), tag.display_order]
           end)
           |> Enum.sort_by(fn [_id, _val, order] -> order end)
 

@@ -103,11 +103,12 @@ cashable) unless you send `is_payable`. Both flags can be changed later.
 
 `GET /api/admin/media_piece_types` lists every type with `id`, `name`,
 `description`, `ad_phase_count_to_complete`, `base_fee`,
-`markup_multiplier`, `required_fields`, and `writable`.
+`markup_multiplier`, `required_fields`, `field_limits`, and `writable`.
 
 - The standard banner is the 3-tap ad: media piece type **id 1**. It is the
   writable type today. Its `required_fields` are `banner_image`, `display_url`,
-  and `jump_url`. Confirm that on the GET response before you create.
+  and `jump_url`. `field_limits` caps `title` at 32 characters and `body_copy`
+  at 120. Confirm that on the GET response before you create.
 - Video ads are media piece type **id 2**. The list shows them with
   `writable: false` and `required_fields` of `video_file` and `duration`.
   Video creates are coming. Until `writable` is true, do not upload a video
@@ -127,10 +128,9 @@ cashable) unless you send `is_payable`. Both flags can be changed later.
   (an active row from the ad categories API), `title`, `display_url`,
   `jump_url`, and an image. `active` defaults to true when omitted. Optional:
   `body_copy`, `on_existing`, `dry_run`.
-- Write copy to the size of the ads already running. Those fit the panel:
-  `title` up to 40 characters (one line; the longest current title is 38),
-  `body_copy` up to 160 characters (the longest current body is 153, and most
-  sit between 120 and 140), `display_url` up to 40 characters.
+- A 3-tap `title` is one line, at most 32 characters. `body_copy` is at most
+  120 characters, about three lines, so the display URL stays visible. Longer
+  title or body copy is refused. `display_url` is at most 40 characters.
 - `display_url` is the green text under the body copy, not a link. Send the
   host only, for example `joestacos.example`, with no `https://`. `jump_url`
   is the address the tap opens, so that one is a full `https://` URL.
