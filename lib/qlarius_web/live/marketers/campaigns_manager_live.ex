@@ -94,8 +94,12 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
       banner_impressions = get_campaign_banner_impressions(refreshed_campaign.id)
       text_jumps = get_campaign_text_jumps(refreshed_campaign.id)
       spend_to_date = get_campaign_spend_to_date(refreshed_campaign.id)
-      pending_offers = get_campaign_pending_offers(refreshed_campaign.id)
-      projected_spend = get_campaign_projected_spend(refreshed_campaign.id)
+      offer_exposure = get_campaign_offer_exposure(refreshed_campaign.id)
+
+      frequency_funnels =
+        Map.new(refreshed_campaign.media_sequence.media_runs, fn run ->
+          {run.id, frequency_funnel(refreshed_campaign.target.id, run)}
+        end)
 
       updated_bands =
         Enum.map(refreshed_campaign.target.target_bands, fn band ->
@@ -107,10 +111,62 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
       |> Map.put(:banner_impressions, banner_impressions)
       |> Map.put(:text_jumps, text_jumps)
       |> Map.put(:spend_to_date, spend_to_date)
-      |> Map.put(:pending_offers, pending_offers)
-      |> Map.put(:projected_spend, projected_spend)
+      |> Map.merge(offer_exposure)
+      |> Map.put(:frequency_funnels, frequency_funnels)
       |> then(&put_in(&1.target.target_bands, updated_bands))
     end)
+  end
+
+  @funnel_max_rows 8
+
+  # Every completion counts toward the run's frequency, including offers closed
+  # by the banner-attempt limit, so they move a person down the funnel too.
+  defp frequency_funnel(target_id, media_run) do
+    alias Qlarius.Sponster.AdEvent
+    alias Qlarius.Sponster.Campaigns.{TargetBand, TargetPopulation}
+
+    in_target =
+      Repo.all(
+        from tp in TargetPopulation,
+          join: tb in TargetBand,
+          on: tb.id == tp.target_band_id,
+          where: tb.target_id == ^target_id,
+          distinct: true,
+          select: tp.me_file_id
+      )
+      |> MapSet.new()
+
+    completions =
+      Repo.all(
+        from ae in AdEvent,
+          where: ae.media_run_id == ^media_run.id and ae.is_offer_complete == true,
+          group_by: ae.me_file_id,
+          select: {ae.me_file_id, count(ae.id)}
+      )
+      |> Map.new()
+
+    people = MapSet.union(in_target, MapSet.new(Map.keys(completions)))
+    frequency = max(media_run.frequency || 1, 1)
+
+    counts =
+      Enum.frequencies_by(people, fn me_file_id ->
+        min(Map.get(completions, me_file_id, 0), frequency)
+      end)
+
+    last_row =
+      if frequency <= @funnel_max_rows,
+        do: frequency,
+        else: max(1, Enum.max(Map.keys(counts), fn -> 0 end))
+
+    %{
+      total: MapSet.size(people),
+      frequency: frequency,
+      truncated?: last_row < frequency,
+      rows:
+        for times <- 0..last_row do
+          %{times: times, people: Map.get(counts, times, 0), done?: times == frequency}
+        end
+    }
   end
 
   defp get_campaign_unique_reach(campaign_id) do
@@ -169,27 +225,64 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
     Decimal.add(old_format_spend, new_format_spend)
   end
 
-  defp get_campaign_pending_offers(campaign_id) do
+  defp get_campaign_offer_exposure(campaign_id) do
     alias Qlarius.Sponster.Offer
 
-    Qlarius.Repo.one(
-      from o in Offer,
-        where: o.campaign_id == ^campaign_id and o.is_current == true,
-        select: count(o.id)
-    ) || 0
-  end
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+    zero = Decimal.new("0.00")
 
-  defp get_campaign_projected_spend(campaign_id) do
-    alias Qlarius.Sponster.Offer
-
-    total =
-      Qlarius.Repo.one(
+    rows =
+      Qlarius.Repo.all(
         from o in Offer,
-          where: o.campaign_id == ^campaign_id and o.is_current == true,
-          select: sum(o.marketer_cost_amt)
+          where: o.campaign_id == ^campaign_id,
+          group_by: o.is_current,
+          select: %{
+            current?: o.is_current,
+            count: count(o.id),
+            spend: coalesce(sum(o.marketer_cost_amt), 0)
+          }
       )
 
-    total || Decimal.new("0.00")
+    offered = Enum.find(rows, & &1.current?) || %{count: 0, spend: zero}
+
+    waiting =
+      Qlarius.Repo.one(
+        from o in Offer,
+          where: o.campaign_id == ^campaign_id and o.is_current == false,
+          select: %{
+            count: count(o.id),
+            spend: coalesce(sum(o.marketer_cost_amt), 0),
+            throttle:
+              count(o.id)
+              |> filter(o.is_throttled == true and o.pending_until <= ^now),
+            timing: count(o.id) |> filter(o.pending_until > ^now)
+          }
+      ) || %{count: 0, spend: zero, throttle: 0, timing: 0}
+
+    %{
+      offered_now: offered.count,
+      offered_spend: offered.spend || zero,
+      waiting_offers: waiting.count,
+      waiting_spend: waiting.spend || zero,
+      waiting_hint: waiting_hint(waiting)
+    }
+  end
+
+  defp waiting_hint(%{count: 0}), do: "Nothing queued"
+
+  defp waiting_hint(%{throttle: throttle, timing: timing}) do
+    parts =
+      [
+        throttle > 0 && "#{throttle} on throttle",
+        timing > 0 && "#{timing} on sequence timing"
+      ]
+      |> Enum.filter(& &1)
+
+    case parts do
+      [] -> "Ready for the next activation"
+      [one] -> one
+      many -> Enum.join(many, " · ")
+    end
   end
 
   defp assign_default_form(socket) do
@@ -911,15 +1004,33 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
         </header>
 
         <div class="space-y-3 px-6 py-5">
-          <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <.stat_tile label="Pending offers" icon="hero-queue-list" hint="Awaiting engagement">
-              {Map.get(campaign, :pending_offers, 0)}
+          <div class="grid grid-cols-2 gap-3 lg:grid-cols-3">
+            <.stat_tile label="Offered now" icon="hero-megaphone" hint="Showing to people">
+              {Map.get(campaign, :offered_now, 0)}
             </.stat_tile>
-            <.stat_tile label="Pending spend" icon="hero-calculator" hint="Cost of pending offers">
-              {QlariusWeb.Money.format_usd(Map.get(campaign, :projected_spend, Decimal.new("0.00")))}
+            <.stat_tile
+              label="Offered spend"
+              icon="hero-calculator"
+              hint="If the live offers complete"
+            >
+              {QlariusWeb.Money.format_usd(Map.get(campaign, :offered_spend, Decimal.new("0.00")))}
             </.stat_tile>
             <.stat_tile label="Spend to date" icon="hero-arrow-trending-down" hint="Total spent">
               {QlariusWeb.Money.format_usd(Map.get(campaign, :spend_to_date, Decimal.new("0.00")))}
+            </.stat_tile>
+            <.stat_tile
+              label="Waiting"
+              icon="hero-queue-list"
+              hint={Map.get(campaign, :waiting_hint, "Nothing queued")}
+            >
+              {Map.get(campaign, :waiting_offers, 0)}
+            </.stat_tile>
+            <.stat_tile
+              label="Waiting spend"
+              icon="hero-calculator"
+              hint="If the waiting offers complete"
+            >
+              {QlariusWeb.Money.format_usd(Map.get(campaign, :waiting_spend, Decimal.new("0.00")))}
             </.stat_tile>
             <.stat_tile
               label="Balance"
@@ -948,7 +1059,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
           </div>
         </div>
 
-        <div class="grid gap-8 border-t border-base-300 px-6 py-5 xl:grid-cols-2">
+        <div class="grid items-start gap-4 border-t border-base-300 px-6 py-5 xl:grid-cols-2">
           <.campaign_target
             campaign={campaign}
             editing_bids={@editing_bids}
@@ -1027,8 +1138,8 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
       )
 
     ~H"""
-    <section class="min-w-0">
-      <div class="mb-3 flex items-center justify-between gap-3">
+    <section class={panel_class()}>
+      <div class="mb-4 flex items-center justify-between gap-3">
         <div class="flex min-w-0 items-center gap-2">
           <.bullseye_icon class="size-4 shrink-0 text-base-content/60" />
           <h3 class="whitespace-nowrap text-sm font-semibold">Target</h3>
@@ -1056,7 +1167,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
             </tr>
           </thead>
           <tbody>
-            <tr :for={band <- @campaign.target.target_bands}>
+            <tr :for={band <- Enum.sort_by(@campaign.target.target_bands, &length(&1.trait_groups))}>
               <% bid = Enum.find(@campaign.bids, &(&1.target_band_id == band.id)) %>
               <td class="whitespace-nowrap font-medium !align-top">
                 {Targets.band_label(band, @campaign.target.target_bands)}
@@ -1177,25 +1288,55 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
   attr :campaign, :any, required: true
 
   defp campaign_sequence(assigns) do
-    media_run = List.first(assigns.campaign.media_sequence.media_runs)
-
     assigns =
       assign(assigns,
-        media_run: media_run,
-        is_video: media_run && media_run.media_piece.media_piece_type_id == 2
+        media_runs: Enum.with_index(assigns.campaign.media_sequence.media_runs, 1),
+        funnels: Map.get(assigns.campaign, :frequency_funnels, %{})
       )
 
     ~H"""
-    <section class="min-w-0">
-      <div class="mb-3 flex min-w-0 items-center gap-2">
+    <section class={panel_class()}>
+      <div class="mb-4 flex min-w-0 items-center gap-2">
         <.icon name="hero-numbered-list" class="size-4 shrink-0 text-base-content/60" />
         <h3 class="whitespace-nowrap text-sm font-semibold">Media sequence</h3>
         <span class="truncate text-sm text-base-content/60">{@campaign.media_sequence.title}</span>
       </div>
 
-      <p :if={!@media_run} class="text-sm text-base-content/60">This sequence has no ads yet.</p>
+      <p :if={@media_runs == []} class="text-sm text-base-content/60">
+        This sequence has no ads yet.
+      </p>
 
-      <div :if={@media_run} class="flex flex-wrap items-start gap-6">
+      <div class="space-y-4">
+        <.media_run_block
+          :for={{run, index} <- @media_runs}
+          campaign={@campaign}
+          media_run={run}
+          index={index}
+          funnel={Map.get(@funnels, run.id)}
+        />
+      </div>
+    </section>
+    """
+  end
+
+  attr :campaign, :any, required: true
+  attr :media_run, :any, required: true
+  attr :index, :integer, required: true
+  attr :funnel, :map, default: nil
+
+  defp media_run_block(assigns) do
+    assigns = assign(assigns, :is_video, assigns.media_run.media_piece.media_piece_type_id == 2)
+
+    ~H"""
+    <div class="rounded-xl border border-base-content/10 bg-base-content/[0.03] p-4">
+      <div class="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-base-content/50">
+        <span class="flex size-5 items-center justify-center rounded-full bg-base-content/10 text-[0.65rem] text-base-content/70">
+          {@index}
+        </span>
+        Media run
+      </div>
+
+      <div>
         <div class="min-w-0 space-y-3">
           <div
             :if={
@@ -1229,26 +1370,165 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
             <AdsComponents.three_tap_ad media_piece={@media_run.media_piece} show_banner={true} />
           <% end %>
         </div>
-
-        <dl class="min-w-40 space-y-2 text-sm">
-          <.rule label="Completions" value={@media_run.frequency} />
-          <.rule label="Hours between" value={@media_run.frequency_buffer_hours} />
-          <.rule :if={!@is_video} label="Banner attempts" value={@media_run.maximum_banner_count} />
-          <.rule :if={!@is_video} label="Retry hours" value={@media_run.banner_retry_buffer_hours} />
-        </dl>
       </div>
-    </section>
+
+      <.frequency_funnel
+        :if={@funnel}
+        funnel={@funnel}
+        media_run={@media_run}
+        is_video={@is_video}
+      />
+    </div>
     """
   end
 
+  defp panel_class, do: "min-w-0 rounded-xl border border-base-300 bg-base-100 p-5 shadow-xs"
+
+  attr :funnel, :map, required: true
+  attr :media_run, :any, required: true
+  attr :is_video, :boolean, required: true
+
+  defp frequency_funnel(assigns) do
+    rows = assigns.funnel.rows
+
+    assigns =
+      assign(assigns,
+        peak: Enum.max([1 | Enum.map(rows, & &1.people)]),
+        started: rows |> Enum.filter(&(&1.times > 0)) |> Enum.map(& &1.people) |> Enum.sum(),
+        done: rows |> Enum.filter(& &1.done?) |> Enum.map(& &1.people) |> Enum.sum()
+      )
+
+    ~H"""
+    <div class="mt-5 rounded-lg border border-base-300 bg-base-100 p-4">
+      <div class="mb-4 flex min-w-0 items-center gap-2">
+        <.icon name="hero-funnel" class="size-4 shrink-0 text-base-content/60" />
+        <h4 class="whitespace-nowrap text-sm font-semibold">Frequency funnel</h4>
+        <span class="truncate text-sm text-base-content/60">
+          Completions of this run per person
+        </span>
+      </div>
+
+      <div class="@container mb-4">
+        <div class="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-base-300 bg-base-300 @md:grid-cols-4">
+          <.run_rule icon="hero-flag" label="Completions" value={@media_run.frequency} />
+          <.run_rule
+            icon="hero-clock"
+            label="Hours between"
+            value={@media_run.frequency_buffer_hours}
+          />
+          <.run_rule
+            :if={!@is_video}
+            icon="hero-eye"
+            label="Banner attempts"
+            value={@media_run.maximum_banner_count}
+          />
+          <.run_rule
+            :if={!@is_video}
+            icon="hero-arrow-path"
+            label="Retry hours"
+            value={@media_run.banner_retry_buffer_hours}
+          />
+        </div>
+      </div>
+
+      <div :if={@funnel.total > 0} class="mb-5 grid grid-cols-3 gap-2">
+        <div class="rounded-lg bg-base-200/60 px-3 py-2">
+          <div class="text-xs text-base-content/60">In audience</div>
+          <div class="text-lg font-semibold">{@funnel.total}</div>
+        </div>
+        <div class="rounded-lg bg-info/10 px-3 py-2">
+          <div class="text-xs text-info">Started</div>
+          <div class="text-lg font-semibold">
+            {@started}
+            <span class="text-xs font-normal text-base-content/50">
+              {percent(@started, @funnel.total)}
+            </span>
+          </div>
+        </div>
+        <div class="rounded-lg bg-success/10 px-3 py-2">
+          <div class="text-xs text-success">Done</div>
+          <div class="text-lg font-semibold">
+            {@done}
+            <span class="text-xs font-normal text-base-content/50">
+              {percent(@done, @funnel.total)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <p :if={@funnel.total == 0} class="text-sm text-base-content/60">
+        No one is in this target yet.
+      </p>
+
+      <ol :if={@funnel.total > 0} class="space-y-2.5">
+        <li
+          :for={row <- @funnel.rows}
+          class="grid grid-cols-[5rem_1fr_5.5rem] items-center gap-3 text-sm"
+        >
+          <span class={[
+            "flex items-center gap-1.5",
+            row.done? && "font-medium text-success",
+            !row.done? && "text-base-content/70"
+          ]}>
+            <.icon :if={row.done?} name="hero-check-circle-mini" class="size-4" />
+            {cond do
+              row.done? -> "Done"
+              row.times == 0 -> "Not yet"
+              true -> "#{row.times} of #{@funnel.frequency}"
+            end}
+          </span>
+          <span class="h-3 overflow-hidden rounded-full bg-base-200">
+            <span
+              class={[
+                "block h-full rounded-full transition-[width] duration-500",
+                row.done? && "bg-success",
+                !row.done? && row.times == 0 && "bg-base-content/25",
+                !row.done? && row.times > 0 && "bg-info"
+              ]}
+              style={"width: #{bar_width(row.people, @peak)}%"}
+            >
+            </span>
+          </span>
+          <span class="text-right">
+            <span class="font-semibold">{row.people}</span>
+            <span class="ml-1 text-xs text-base-content/50">
+              {percent(row.people, @funnel.total)}
+            </span>
+          </span>
+        </li>
+      </ol>
+
+      <p
+        :if={@funnel.total > 0}
+        class="mt-4 border-t border-dashed border-base-300 pt-3 text-xs text-base-content/50"
+      >
+        Offers closed by the banner-attempt limit count as a completion.
+        <span :if={@funnel.truncated?}>
+          Rows stop at the most completions anyone has so far.
+        </span>
+      </p>
+    </div>
+    """
+  end
+
+  defp bar_width(0, _peak), do: 0
+  defp bar_width(people, peak), do: max(2, round(people * 100 / peak))
+
+  defp percent(_part, 0), do: "0%"
+  defp percent(part, total), do: "#{round(part * 100 / total)}%"
+
+  attr :icon, :string, required: true
   attr :label, :string, required: true
   attr :value, :any, required: true
 
-  defp rule(assigns) do
+  defp run_rule(assigns) do
     ~H"""
-    <div class="flex items-center justify-between gap-6 border-b border-dashed border-base-300 pb-2">
-      <dt class="text-base-content/60">{@label}</dt>
-      <dd class="font-semibold">{@value}</dd>
+    <div class="bg-base-100 px-3 py-2.5">
+      <div class="flex items-center gap-1.5 whitespace-nowrap text-xs text-base-content/60">
+        <.icon name={@icon} class="size-3.5 shrink-0 text-base-content/40" />
+        {@label}
+      </div>
+      <div class="mt-0.5 text-base font-semibold">{@value || "—"}</div>
     </div>
     """
   end
