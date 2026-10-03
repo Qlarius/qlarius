@@ -11,6 +11,32 @@ defmodule Qlarius.AdminApi.PtpBuilds do
   alias Qlarius.Repo
   alias Qlarius.AdminApi.{Campaigns, Marketers, MediaPieces, MediaSequences, Targets, TraitGroups}
 
+  @doc """
+  Accepts a multipart build.
+
+  `payload` is the whole request as one JSON object. A sibling `banner_image`
+  file is the ad's banner. Form fields shaped like `trait_groups[0][title]`
+  arrive as index-keyed maps and are turned into lists.
+  """
+  def prepare(params) when is_map(params) do
+    params = nest_lists(params)
+
+    case params["payload"] do
+      payload when is_binary(payload) and payload != "" ->
+        case Jason.decode(payload) do
+          {:ok, body} when is_map(body) ->
+            {:ok,
+             body |> nest_lists() |> put_banner(params["banner_image"]) |> put_dry_run(params)}
+
+          _ ->
+            {:error, :invalid_payload}
+        end
+
+      _ ->
+        {:ok, put_banner(params, params["banner_image"])}
+    end
+  end
+
   def build(scope, params, opts) do
     with :ok <- require_base(params["api_ref_base"]) do
       Repo.transaction(fn ->
@@ -95,30 +121,42 @@ defmodule Qlarius.AdminApi.PtpBuilds do
     end
   end
 
-  defp groups(base, marketer, list) do
+  defp groups(base, marketer, list) when is_list(list) do
     list
     |> Enum.with_index(1)
-    |> Enum.reduce_while({:ok, [], []}, fn {attrs, index}, {:ok, groups, results} ->
-      attrs =
-        Map.merge(attrs, %{
-          "api_ref" => "#{base}.tg-#{index}",
-          "marketer_id" => id_of(marketer),
-          "on_existing" => "skip"
-        })
+    |> Enum.reduce_while({:ok, [], []}, fn
+      {attrs, index}, {:ok, groups, results} when is_map(attrs) ->
+        attrs =
+          Map.merge(attrs, %{
+            "api_ref" => "#{base}.tg-#{index}",
+            "marketer_id" => id_of(marketer),
+            "on_existing" => "skip"
+          })
 
-      case TraitGroups.create(attrs, dry_run: false) do
-        {:ok, %{record: group, result: result}} ->
-          {:cont, {:ok, groups ++ [group], results ++ [result]}}
+        case TraitGroups.create(attrs, dry_run: false) do
+          {:ok, %{record: group, result: result}} ->
+            {:cont, {:ok, groups ++ [group], results ++ [result]}}
 
-        {:error, reason} ->
-          {:halt, {:error, reason}}
-      end
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+        end
+
+      _item, _acc ->
+        {:halt, {:error, :invalid_trait_groups}}
     end)
   end
 
+  defp groups(_base, _marketer, _other), do: {:error, :invalid_trait_groups}
+
   defp target(scope, base, marketer, groups, attrs) do
     ids = Enum.map(groups, &id_of/1)
-    drop = Enum.map(attrs["drop_order"] || [], fn index -> Enum.at(ids, index) end)
+
+    drop =
+      attrs
+      |> Map.get("drop_order", [])
+      |> List.wrap()
+      |> Enum.map(&at_group(ids, &1))
+      |> Enum.reject(&is_nil/1)
 
     attrs = %{
       "api_ref" => base <> ".target",
@@ -181,6 +219,71 @@ defmodule Qlarius.AdminApi.PtpBuilds do
   defp id_of(%{id: id}), do: id
   defp id_of(%{"id" => id}), do: id
   defp id_of(other), do: other
+
+  defp put_banner(body, %Plug.Upload{} = upload) do
+    piece = if is_map(body["media_piece"]), do: body["media_piece"], else: %{}
+    Map.put(body, "media_piece", Map.put(piece, "banner_image", upload))
+  end
+
+  defp put_banner(body, _upload), do: body
+
+  defp put_dry_run(body, %{"dry_run" => dry_run}) when not is_map_key(body, "dry_run") do
+    Map.put(body, "dry_run", dry_run)
+  end
+
+  defp put_dry_run(body, _params), do: body
+
+  # Plug keeps `trait_groups[0][title]` as %{"0" => ...}` instead of a list.
+  defp nest_lists(%_{} = struct), do: struct
+
+  defp nest_lists(map) when is_map(map) do
+    map = Map.new(map, fn {key, value} -> {key, nest_lists(value)} end)
+
+    if index_keyed?(map) do
+      map
+      |> Enum.sort_by(fn {key, _} -> index_key(key) end)
+      |> Enum.map(fn {_key, value} -> value end)
+    else
+      map
+    end
+  end
+
+  defp nest_lists(list) when is_list(list), do: Enum.map(list, &nest_lists/1)
+  defp nest_lists(other), do: other
+
+  defp index_keyed?(map) do
+    keys = Map.keys(map)
+    keys != [] and Enum.all?(keys, &(index_key(&1) != nil))
+  end
+
+  defp index_key(key) when is_integer(key) and key >= 0, do: key
+
+  defp index_key(key) when is_binary(key) do
+    case Integer.parse(key) do
+      {n, ""} when n >= 0 -> n
+      _ -> nil
+    end
+  end
+
+  defp index_key(_key), do: nil
+
+  defp at_group(ids, index) do
+    case integer(index) do
+      n when is_integer(n) and n >= 0 -> Enum.at(ids, n)
+      _ -> nil
+    end
+  end
+
+  defp integer(value) when is_integer(value), do: value
+
+  defp integer(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {n, ""} -> n
+      _ -> nil
+    end
+  end
+
+  defp integer(_value), do: nil
 
   defp require_base(base) do
     cond do

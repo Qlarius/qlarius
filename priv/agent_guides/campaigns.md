@@ -137,11 +137,16 @@ cashable) unless you send `is_payable`. Both flags can be changed later.
 - The banner displays at 300 by 100 pixels. Send the image at double that,
   600 by 200 pixels, so it stays sharp. Both sizes are 3:1. A file that is
   not 3:1 is stretched to the slot.
-- The image is either `image_url` (HTTPS) or a multipart file field named
-  `banner_image`. Send `Accept: application/json` with the multipart request.
-  URL fetches must be HTTPS, at most 10 MB, and JPG, PNG, GIF, or WebP. Hosts
-  that resolve to a private, loopback, or link-local address are refused, and
-  every redirect is checked the same way.
+- Create and update both accept a banner file upload. On `POST` and `PATCH
+  /api/admin/media_pieces`, send a multipart file in a field named
+  `banner_image`, and send `Accept: application/json` with that request. The
+  same requests accept an HTTPS `image_url` instead of a file. Create requires
+  one of the two. On update, send an image only when you want to replace the
+  stored banner. Video file upload is not accepted.
+- The uploaded file and the URL are both limited to JPG, PNG, GIF, or WebP, at
+  most 10 MB. URL fetches must be HTTPS. Hosts that resolve to a private,
+  loopback, or link-local address are refused, and every redirect is checked
+  the same way.
 - After the piece exists, open its edit page in the app:
   `/marketer/media/<id>/edit`. That page has a Preview panel. For a 3-tap ad
   it shows the banner and the text panel. For a video ad it shows the video.
@@ -149,8 +154,9 @@ cashable) unless you send `is_payable`. Both flags can be changed later.
   also includes `banner_url`, the stored banner file.
 - A dry run checks the image and the fields and stores nothing.
 - `PATCH /api/admin/media_pieces/:id` edits the same fields, including
-  `ad_category_row_id` and `active`. `api_ref` cannot change. Send a new
-  image only when you want to replace it. A category change is allowed on a
+  `ad_category_row_id` and `active`. `api_ref` cannot change. A replacement
+  banner is the same multipart `banner_image` or HTTPS `image_url` as create.
+  Omit both to leave the stored image alone. A category change is allowed on a
   piece that already sits in a launched campaign. Offers do not store the
   category; the offer screen reads it from the piece, so the new row's label
   shows on offers that already exist. An inactive row is still refused.
@@ -308,6 +314,16 @@ of indexes into that array (0 drops the first group), not trait group ids.
 `campaign` sends it. Send `dry_run: true` first. A dry run rolls the database
 transaction back. Resending the same base returns `result: "matched"` and the
 same ids.
+
+To upload the banner on this call, send `multipart/form-data` with
+`Accept: application/json`. Put the whole JSON body in one string field named
+`payload`, and the file in a field named `banner_image`. The file becomes the
+ad's banner. Do not send `trait_groups` as separate form fields when you use
+`payload`.
+
+A form that does send fields directly is also accepted. `trait_groups[0][title]`
+and `trait_groups[0][trait_ids][0]` are read as lists, not as one collapsed
+group. Prefer `payload` whenever the body has nested lists.
 
 Keep a run log of each key and the id that came back.
 

@@ -265,7 +265,9 @@ paths:
       description: |
         api_ref_base derives base.marketer, base.ad, base.tg-N, base.target,
         base.seq, and base.campaign. target.drop_order is indexes into
-        trait_groups. dry_run rolls the transaction back.
+        trait_groups. dry_run rolls the transaction back. Multipart uploads
+        send the JSON body in a string field named payload, next to banner_image.
+        Index-keyed fields such as trait_groups[0][title] are read as lists.
       requestBody:
         required: true
         content:
@@ -308,6 +310,18 @@ paths:
               target: {title: "Phoenix taco fans", drop_order: [0]}
               sequence: {title: "Joe's Tacos"}
               campaign: {title: "Joe's Tacos PTP"}
+          multipart/form-data:
+            schema:
+              type: object
+              required: [payload, banner_image]
+              properties:
+                payload:
+                  type: string
+                  description: The same JSON body as application/json, as one string
+                banner_image:
+                  type: string
+                  format: binary
+                  description: Banner file. Becomes media_piece.banner_image
       responses:
         "201": {description: Created ids and bid preview. launched_at is null}
         "200": {description: would_create or matched}

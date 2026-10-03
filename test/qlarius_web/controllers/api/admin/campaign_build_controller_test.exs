@@ -259,6 +259,127 @@ defmodule QlariusWeb.Api.Admin.CampaignBuildControllerTest do
     assert matched["campaign_id"] == created["campaign_id"]
   end
 
+  test "a multipart PTP build accepts a JSON payload beside the banner file", %{
+    token: token,
+    row: row,
+    n: n
+  } do
+    parent = TargetingFixtures.parent_trait_fixture()
+    first = TargetingFixtures.trait_fixture(parent, "First #{n}")
+    second = TargetingFixtures.trait_fixture(parent, "Second #{n}")
+    base = "ptp-2610-brand#{n}-file"
+    conn = authed(token)
+
+    payload =
+      Jason.encode!(%{
+        api_ref_base: base,
+        dry_run: true,
+        marketer: %{business_name: "Brand #{n}", business_url: "https://brand#{n}.example"},
+        media_piece: %{
+          title: "Banner",
+          media_piece_type_id: 1,
+          ad_category_row_id: row.row_id,
+          display_url: "brand.example",
+          jump_url: "https://brand.example/go"
+        },
+        trait_groups: [
+          %{title: "Fans", parent_trait_id: parent.id, trait_ids: [first.id, second.id]},
+          %{title: "Local", parent_trait_id: parent.id, trait_ids: [second.id]}
+        ],
+        target: %{title: "Both", drop_order: [0]},
+        sequence: %{title: "Run"},
+        campaign: %{title: "Pump"}
+      })
+
+    dry =
+      conn
+      |> post(~p"/api/admin/ptp_campaigns/builds", %{
+        "payload" => payload,
+        "banner_image" => banner()
+      })
+      |> json_response(200)
+
+    assert dry["result"] == "would_create"
+    assert dry["api_refs"]["trait_groups"] == ["#{base}.tg-1", "#{base}.tg-2"]
+
+    bad =
+      conn
+      |> post(~p"/api/admin/ptp_campaigns/builds", %{"payload" => "{", "banner_image" => banner()})
+      |> json_response(422)
+
+    assert bad["error"] == "invalid_payload"
+  end
+
+  test "index-keyed trait groups are lists and a trait error is JSON", %{
+    token: token,
+    row: row,
+    n: n
+  } do
+    parent = TargetingFixtures.parent_trait_fixture()
+    first = TargetingFixtures.trait_fixture(parent, "Indexed #{n}")
+    second = TargetingFixtures.trait_fixture(parent, "Other #{n}")
+    base = "ptp-2610-brand#{n}-idx"
+    conn = authed(token)
+
+    dry =
+      conn
+      |> post(~p"/api/admin/ptp_campaigns/builds", %{
+        "api_ref_base" => base,
+        "dry_run" => "true",
+        "marketer" => %{"business_name" => "Brand #{n}"},
+        "media_piece" => %{
+          "title" => "Banner",
+          "media_piece_type_id" => "1",
+          "ad_category_row_id" => row.row_id,
+          "display_url" => "brand.example",
+          "jump_url" => "https://brand.example/go",
+          "banner_image" => banner()
+        },
+        "trait_groups" => %{
+          "0" => %{
+            "title" => "Fans",
+            "parent_trait_id" => to_string(parent.id),
+            "trait_ids" => %{"0" => to_string(first.id), "1" => to_string(second.id)}
+          },
+          "1" => %{
+            "title" => "Local",
+            "parent_trait_id" => to_string(parent.id),
+            "trait_ids" => %{"0" => to_string(second.id)}
+          }
+        },
+        "target" => %{"title" => "Both", "drop_order" => %{"0" => "0"}},
+        "sequence" => %{"title" => "Run"},
+        "campaign" => %{"title" => "Pump"}
+      })
+      |> json_response(200)
+
+    assert dry["result"] == "would_create"
+    assert length(dry["api_refs"]["trait_groups"]) == 2
+
+    refused =
+      conn
+      |> post(~p"/api/admin/ptp_campaigns/builds", %{
+        "api_ref_base" => base <> "b",
+        "marketer" => %{"business_name" => "Brand #{n}"},
+        "media_piece" => %{
+          "title" => "Banner",
+          "media_piece_type_id" => 1,
+          "ad_category_row_id" => row.row_id,
+          "display_url" => "brand.example",
+          "jump_url" => "https://brand.example/go",
+          "banner_image" => banner()
+        },
+        "trait_groups" => [
+          %{"title" => "Bad", "parent_trait_id" => parent.id, "trait_ids" => [parent.id]}
+        ],
+        "target" => %{"title" => "None"},
+        "campaign" => %{"title" => "Pump"}
+      })
+      |> json_response(422)
+
+    assert refused["error"] == "traits_not_children"
+  end
+
   test "a sequence is refused without a media piece and a dry run still shows the run", %{
     token: token,
     row: row,

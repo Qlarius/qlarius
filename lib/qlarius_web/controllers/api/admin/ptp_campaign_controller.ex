@@ -5,10 +5,18 @@ defmodule QlariusWeb.Api.Admin.PtpCampaignController do
   alias QlariusWeb.Api.Admin.Responder
 
   def build(conn, params) do
-    case PtpBuilds.build(conn.assigns.current_scope, params, dry_run: Responder.dry_run?(params)) do
-      {:ok, %{result: "created"} = result} -> conn |> put_status(201) |> json(money(result))
-      {:ok, result} -> json(conn, money(result))
-      {:error, reason} -> Responder.error(conn, reason)
+    case PtpBuilds.prepare(params) do
+      {:ok, params} ->
+        case PtpBuilds.build(conn.assigns.current_scope, params,
+               dry_run: Responder.dry_run?(params)
+             ) do
+          {:ok, %{result: "created"} = result} -> conn |> put_status(201) |> json(money(result))
+          {:ok, result} -> json(conn, money(result))
+          {:error, reason} -> Responder.error(conn, reason)
+        end
+
+      {:error, reason} ->
+        Responder.error(conn, reason)
     end
   end
 

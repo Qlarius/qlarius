@@ -131,7 +131,7 @@ defmodule QlariusWeb.Api.Admin.Responder do
     |> json(%{error: "request_failed", message: message, guide: @guide})
   end
 
-  def error(conn, reason) when is_atom(reason) do
+  def error(conn, reason) do
     {status, code, message} = message(reason)
 
     conn
@@ -367,6 +367,14 @@ defmodule QlariusWeb.Api.Admin.Responder do
   defp message(:ad_category_required),
     do: {422, "ad_category_required", "ad_category_row_id is required"}
 
+  defp message(:invalid_payload),
+    do: {422, "invalid_payload", "payload must be a JSON object"}
+
+  defp message(:invalid_trait_groups),
+    do: {422, "invalid_trait_groups", "trait_groups must be a list of groups"}
+
   defp message(:not_admin), do: {403, "forbidden", "Admin role required"}
-  defp message(other), do: {422, to_string(other), "Request failed"}
+  defp message({tag, _detail}) when is_atom(tag), do: {422, Atom.to_string(tag), "Request failed"}
+  defp message(other) when is_atom(other), do: {422, Atom.to_string(other), "Request failed"}
+  defp message(_other), do: {422, "request_failed", "Request failed"}
 end
