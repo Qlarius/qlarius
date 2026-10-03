@@ -716,7 +716,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
     ~H"""
     <Layouts.admin {assigns}>
       <div class="flex h-screen">
-        <AdminSidebar.sidebar current_user={@current_scope.user} />
+        <AdminSidebar.sidebar current_user={@current_scope.user} current_path={@current_path} />
 
         <div class="flex min-w-0 grow flex-col">
           <AdminTopbar.topbar current_user={@current_scope.user} />
@@ -1167,7 +1167,9 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
             </tr>
           </thead>
           <tbody>
-            <tr :for={band <- Enum.sort_by(@campaign.target.target_bands, &length(&1.trait_groups))}>
+            <tr :for={
+              band <- Enum.sort_by(@campaign.target.target_bands, &length(&1.trait_groups), :desc)
+            }>
               <% bid = Enum.find(@campaign.bids, &(&1.target_band_id == band.id)) %>
               <td class="whitespace-nowrap font-medium !align-top">
                 {Targets.band_label(band, @campaign.target.target_bands)}
@@ -1410,7 +1412,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
 
       <div class="@container mb-4">
         <div class="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-base-300 bg-base-300 @md:grid-cols-4">
-          <.run_rule icon="hero-flag" label="Completions" value={@media_run.frequency} />
+          <.run_rule icon="hero-flag" label="Frequency limit" value={@media_run.frequency} />
           <.run_rule
             icon="hero-clock"
             label="Hours between"
@@ -1419,7 +1421,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
           <.run_rule
             :if={!@is_video}
             icon="hero-eye"
-            label="Banner attempts"
+            label="Banner attempt limit"
             value={@media_run.maximum_banner_count}
           />
           <.run_rule

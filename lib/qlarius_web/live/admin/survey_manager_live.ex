@@ -272,7 +272,7 @@ defmodule QlariusWeb.Admin.SurveyManagerLive do
     ~H"""
     <Layouts.admin {assigns}>
       <div class="flex h-screen">
-        <AdminSidebar.sidebar current_user={@current_scope.user} />
+        <AdminSidebar.sidebar current_user={@current_scope.user} current_path={@current_path} />
 
         <div class="flex min-w-0 grow flex-col">
           <AdminTopbar.topbar current_user={@current_scope.user} />

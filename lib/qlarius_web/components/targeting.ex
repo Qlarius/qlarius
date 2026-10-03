@@ -81,6 +81,13 @@ defmodule QlariusWeb.Components.Targeting do
     end
   end
 
+  defp band_chips(band, bands) do
+    dropped_id = excluded_trait_group_id(band, bands)
+    {kept, dropped} = Enum.split_with(band.trait_groups, &(&1.id != dropped_id))
+
+    Enum.map(kept, &{&1, false}) ++ Enum.map(dropped, &{&1, true})
+  end
+
   attr :copy, :map, required: true
   attr :bands, :list, required: true
   attr :outermost_band, :any, required: true
@@ -178,17 +185,19 @@ defmodule QlariusWeb.Components.Targeting do
                   </span>
                 <% true -> %>
                   <span
-                    :for={tg <- band.trait_groups}
+                    :for={{tg, dropped?} <- band_chips(band, @bands)}
                     class={[
                       "inline-flex items-center gap-1.5 rounded-md border border-base-300 bg-base-200 px-2.5 py-1 text-sm",
-                      tg.id == excluded_trait_group_id(band, @bands) &&
-                        "border-dashed bg-transparent text-base-content/50"
+                      dropped? && "text-base-content/70"
                     ]}
-                    title={
-                      tg.id == excluded_trait_group_id(band, @bands) && "Dropped in the next ring"
-                    }
+                    title={dropped? && "Dropped in the next ring"}
                   >
                     {tg.title} <.me_file_count counts={@me_file_counts} id={tg.id} />
+                    <.icon
+                      :if={dropped?}
+                      name="hero-arrow-down-right"
+                      class="size-3 text-base-content/40"
+                    />
                   </span>
               <% end %>
             </div>
@@ -327,15 +336,19 @@ defmodule QlariusWeb.Components.Targeting do
             </div>
             <div class="flex min-w-0 flex-1 flex-wrap gap-2">
               <span
-                :for={tg <- band.trait_groups}
+                :for={{tg, dropped?} <- band_chips(band, @bands)}
                 class={[
-                  "inline-flex items-center rounded-md border border-base-300 bg-base-200 px-2.5 py-1 text-sm",
-                  tg.id == excluded_trait_group_id(band, @bands) &&
-                    "border-dashed bg-transparent text-base-content/50"
+                  "inline-flex items-center gap-1.5 rounded-md border border-base-300 bg-base-200 px-2.5 py-1 text-sm",
+                  dropped? && "text-base-content/70"
                 ]}
-                title={tg.id == excluded_trait_group_id(band, @bands) && "Dropped in the next ring"}
+                title={dropped? && "Dropped in the next ring"}
               >
                 {tg.title}
+                <.icon
+                  :if={dropped?}
+                  name="hero-arrow-down-right"
+                  class="size-3 text-base-content/40"
+                />
               </span>
             </div>
             <div class="shrink-0 pt-1 text-right">

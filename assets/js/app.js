@@ -737,82 +737,59 @@ Hooks.CarouselIndicators = {
   }
 }
 
+// The server opens the section holding the active link. This restores sections
+// the user toggled by hand plus scroll. It runs on DOMContentLoaded to cover
+// controller pages and the pre-connect render; the nav is phx-update="ignore"
+// so the LiveView join patch cannot reset the checkboxes afterwards.
+const ADMIN_SIDEBAR_SCROLL_KEY = 'admin_sidebar_scroll'
+
+const initAdminSidebar = (nav) => {
+  if (!nav || nav.dataset.sidebarReady) return
+  nav.dataset.sidebarReady = 'true'
+
+  nav.querySelectorAll('.collapse > input[type=checkbox]').forEach((checkbox) => {
+    const key = `admin_sidebar_${checkbox.id}`
+    const holdsActiveLink = checkbox.closest('[data-contains-active]')
+    const saved = localStorage.getItem(key)
+
+    if (!holdsActiveLink && saved !== null) checkbox.checked = saved === 'true'
+    checkbox.addEventListener('change', () => localStorage.setItem(key, checkbox.checked))
+  })
+
+  const scroller = nav.parentElement
+  const savedScroll = parseInt(localStorage.getItem(ADMIN_SIDEBAR_SCROLL_KEY), 10)
+  if (!Number.isNaN(savedScroll)) scroller.scrollTop = savedScroll
+
+  const active = nav.querySelector('a[aria-current="page"]')
+  if (active) {
+    const box = scroller.getBoundingClientRect()
+    const item = active.getBoundingClientRect()
+    if (item.top < box.top || item.bottom > box.bottom) {
+      scroller.scrollTop += item.top - box.top - (box.height - item.height) / 2
+    }
+  }
+
+  let scrollTimeout = null
+  scroller.addEventListener(
+    'scroll',
+    () => {
+      clearTimeout(scrollTimeout)
+      scrollTimeout = setTimeout(
+        () => localStorage.setItem(ADMIN_SIDEBAR_SCROLL_KEY, scroller.scrollTop),
+        150
+      )
+    },
+    { passive: true }
+  )
+}
+
+document.addEventListener('DOMContentLoaded', () =>
+  initAdminSidebar(document.getElementById('admin-sidebar-nav'))
+)
+
 Hooks.AdminSidebar = {
   mounted() {
-    const sectionIds = ['sidebar-consumer', 'sidebar-marketer', 'sidebar-creator', 'sidebar-admin']
-    
-    // Restore checkbox states IMMEDIATELY (synchronously)
-    sectionIds.forEach(id => {
-      const checkbox = document.getElementById(id)
-      if (checkbox) {
-        const savedState = localStorage.getItem(`admin_sidebar_${id}`)
-        if (savedState !== null) {
-          checkbox.checked = savedState === 'true'
-        }
-        
-        // Save on change
-        checkbox.addEventListener('change', () => {
-          localStorage.setItem(`admin_sidebar_${id}`, checkbox.checked)
-        })
-      }
-    })
-    
-    // Restore scroll position
-    const restoreScroll = () => {
-      // Try to find SimpleBar's scroll container first
-      const scrollContainer = this.el.querySelector('.simplebar-content-wrapper') || this.el
-      const savedScrollPosition = localStorage.getItem('admin_sidebar_scroll')
-      
-      if (savedScrollPosition && scrollContainer) {
-        const scrollPos = parseInt(savedScrollPosition, 10)
-        scrollContainer.scrollTop = scrollPos
-        
-        // Force a reflow to ensure it takes
-        void scrollContainer.offsetHeight
-      }
-    }
-    
-    // Restore immediately and then again after render
-    restoreScroll()
-    requestAnimationFrame(() => {
-      restoreScroll()
-      requestAnimationFrame(restoreScroll)
-    })
-    
-    // Save scroll position on scroll (with debounce)
-    this.scrollTimeout = null
-    this.scrollHandler = () => {
-      if (this.scrollTimeout) clearTimeout(this.scrollTimeout)
-      
-      this.scrollTimeout = setTimeout(() => {
-        const scrollContainer = this.el.querySelector('.simplebar-content-wrapper') || this.el
-        if (scrollContainer) {
-          localStorage.setItem('admin_sidebar_scroll', scrollContainer.scrollTop)
-        }
-      }, 150)
-    }
-    
-    // Attach scroll listener
-    const simplebarWrapper = this.el.querySelector('.simplebar-content-wrapper')
-    if (simplebarWrapper) {
-      simplebarWrapper.addEventListener('scroll', this.scrollHandler, { passive: true })
-    } else {
-      this.el.addEventListener('scroll', this.scrollHandler, { passive: true })
-    }
-  },
-  
-  destroyed() {
-    if (this.scrollTimeout) {
-      clearTimeout(this.scrollTimeout)
-    }
-    if (this.scrollHandler) {
-      const simplebarWrapper = this.el.querySelector('.simplebar-content-wrapper')
-      if (simplebarWrapper) {
-        simplebarWrapper.removeEventListener('scroll', this.scrollHandler)
-      } else {
-        this.el.removeEventListener('scroll', this.scrollHandler)
-      }
-    }
+    initAdminSidebar(this.el)
   }
 }
 
