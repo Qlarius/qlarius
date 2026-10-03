@@ -12,6 +12,7 @@ defmodule Qlarius.Sponster.Campaigns.MediaSequence do
     field :title, :string
     field :description, :string
     field :archived_at, :naive_datetime
+    field :api_ref, :string
 
     belongs_to :marketer, Marketer
     has_many :campaigns, Campaign
@@ -25,12 +26,14 @@ defmodule Qlarius.Sponster.Campaigns.MediaSequence do
     |> cast(attrs, [
       :title,
       :description,
-      :marketer_id
+      :marketer_id,
+      :api_ref
     ])
     |> validate_required([
       :title,
       :marketer_id
     ])
+    |> Qlarius.ApiRef.validate()
     |> foreign_key_constraint(:marketer_id)
   end
 end

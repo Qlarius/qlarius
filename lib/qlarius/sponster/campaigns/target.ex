@@ -16,6 +16,7 @@ defmodule Qlarius.Sponster.Campaigns.Target do
     field :population_status, :string, default: "not_populated"
     field :last_populated_at, :naive_datetime
     field :archived_at, :naive_datetime
+    field :api_ref, :string
 
     has_many :target_bands, TargetBand
 
@@ -31,10 +32,12 @@ defmodule Qlarius.Sponster.Campaigns.Target do
       :creator_id,
       :user_created_by,
       :population_status,
-      :last_populated_at
+      :last_populated_at,
+      :api_ref
     ])
     |> validate_required([:title])
     |> Ownership.validate_exactly_one_owner()
+    |> Qlarius.ApiRef.validate()
     |> validate_inclusion(:population_status, ["not_populated", "populating", "populated"])
   end
 end

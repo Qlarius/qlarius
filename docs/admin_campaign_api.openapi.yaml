@@ -1,0 +1,410 @@
+openapi: 3.0.3
+info:
+  title: Qlarius admin campaign API
+  version: "1"
+  description: |
+    Admin-only JSON API for building Sponster campaigns, starting with Prime
+    the Pump (PTP) campaigns. Bearer token for an admin user. Agents should
+    read GET /api/admin/agent_guide?topic=campaigns first. Every error body
+    carries a guide field that points back to it.
+
+    Every create requires an api_ref built from the inputs:
+    <program>-<yymm>-<brand>-<area>.<type>[-<n>], for example
+    ptp-2610-joes_tacos-phx.marketer. Brand slugs use underscores. The area
+    is nat, a place code such as phx, or niche-<topic>. Resending a known
+    api_ref returns the existing record with matched true; on_existing update
+    applies the differences.
+
+    The worked example is POST /api/admin/ptp_campaigns/builds with
+    api_ref_base ptp-2610-joes_tacos-phx and dry_run true. It never launches.
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+paths:
+  /api/admin/media_piece_types:
+    get:
+      summary: Ad types with pricing and the fields each type requires
+      responses:
+        "200":
+          description: Types
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: {type: integer}
+                  media_piece_types:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: {type: integer}
+                        name: {type: string}
+                        description: {type: string, nullable: true}
+                        ad_phase_count_to_complete: {type: integer}
+                        base_fee: {type: string, description: "Decimal string"}
+                        markup_multiplier: {type: string, description: "Decimal string"}
+                        required_fields: {type: array, items: {type: string}}
+                        writable: {type: boolean, description: "false for video until uploads exist"}
+  /api/admin/media_pieces:
+    get:
+      summary: Ads filtered by marketer, category row, and api_ref prefix
+      parameters:
+        - {in: query, name: marketer_id, schema: {type: integer}}
+        - {in: query, name: row_id, schema: {type: string}, description: Ad category row_id}
+        - {in: query, name: active, schema: {type: boolean}}
+        - {in: query, name: q, schema: {type: string}, description: Title contains}
+        - {in: query, name: api_ref_prefix, schema: {type: string}}
+        - {in: query, name: limit, schema: {type: integer, default: 100, maximum: 500}}
+      responses:
+        "200": {description: "{count, media_pieces}"}
+    post:
+      summary: Create an ad. Image is image_url or multipart banner_image.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/MediaPieceCreate"}
+            example:
+              api_ref: ptp-2610-joes_tacos-phx.ad
+              marketer_id: 12
+              media_piece_type_id: 1
+              ad_category_row_id: SP06-03
+              title: Joe's Tacos
+              display_url: joestacos.example
+              jump_url: https://joestacos.example
+              active: true
+              image_url: https://cdn.example/banner.png
+              dry_run: true
+          multipart/form-data:
+            schema: {$ref: "#/components/schemas/MediaPieceCreate"}
+      responses:
+        "201": {description: "{result: created, matched: false, media_piece, differences}"}
+        "200": {description: matched, would_create, would_update, or updated}
+        "409": {$ref: "#/components/responses/Error"}
+        "422": {$ref: "#/components/responses/Error"}
+  /api/admin/media_pieces/{id}:
+    parameters:
+      - {in: path, name: id, required: true, schema: {type: integer}}
+    get:
+      summary: One ad
+      responses:
+        "200": {description: "{media_piece}"}
+        "404": {$ref: "#/components/responses/Error"}
+    patch:
+      summary: Edit an ad. api_ref cannot change. Send an image only to replace it.
+      responses:
+        "200": {description: "{result, media_piece, differences}"}
+        "422": {$ref: "#/components/responses/Error"}
+    delete:
+      summary: Delete an ad that no media run or ad event uses
+      parameters:
+        - {in: query, name: dry_run, schema: {type: boolean}}
+      responses:
+        "200": {description: "{result: deleted | would_delete, removes}"}
+        "409": {description: has_dependents}
+  /api/admin/marketers:
+    get:
+      summary: Marketers with dependent counts
+      parameters:
+        - {in: query, name: q, schema: {type: string}, description: Business name contains}
+        - {in: query, name: domain, schema: {type: string}, description: "Host of business_url; https:// and www. are ignored"}
+        - {in: query, name: api_ref_prefix, schema: {type: string}}
+        - {in: query, name: has_ptp, schema: {type: boolean}}
+        - {in: query, name: limit, schema: {type: integer, default: 100, maximum: 500}}
+      responses:
+        "200":
+          description: Marketers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: {type: integer}
+                  marketers: {type: array, items: {$ref: "#/components/schemas/Marketer"}}
+    post:
+      summary: Find-or-create a marketer by api_ref
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/MarketerFields"
+                - $ref: "#/components/schemas/CreateOptions"
+                - type: object
+                  required: [api_ref, business_name]
+                  properties:
+                    api_ref: {$ref: "#/components/schemas/ApiRef"}
+            example:
+              api_ref: ptp-2610-joes_tacos-phx.marketer
+              business_name: Joe's Tacos
+              business_url: https://joestacos.example
+              dry_run: true
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MarketerResult"}
+        "200":
+          description: matched, would_create, would_update, or updated
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MarketerResult"}
+        "409": {$ref: "#/components/responses/Error"}
+        "422": {$ref: "#/components/responses/Error"}
+  /api/admin/marketers/{id}:
+    parameters:
+      - {in: path, name: id, required: true, schema: {type: integer}}
+    get:
+      summary: One marketer with dependent counts
+      responses:
+        "200": {description: "{marketer}"}
+        "404": {$ref: "#/components/responses/Error"}
+    patch:
+      summary: Edit a marketer (api_ref can't change)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/MarketerFields"
+                - type: object
+                  properties:
+                    dry_run: {type: boolean}
+      responses:
+        "200": {description: "{result: updated | would_update, marketer, differences}"}
+        "404": {$ref: "#/components/responses/Error"}
+        "422": {description: "invalid or api_ref_immutable"}
+    delete:
+      summary: Delete a marketer with no dependents
+      parameters:
+        - {in: query, name: dry_run, schema: {type: boolean}}
+      responses:
+        "200": {description: "{result: deleted | would_delete, removes}"}
+        "404": {$ref: "#/components/responses/Error"}
+        "409": {description: "has_dependents with dependents counts"}
+  /api/admin/trait_groups:
+    get:
+      summary: Trait groups for a marketer or creator
+      parameters:
+        - {in: query, name: marketer_id, schema: {type: integer}}
+        - {in: query, name: creator_id, schema: {type: integer}}
+        - {in: query, name: api_ref_prefix, schema: {type: string}}
+      responses:
+        "200": {description: "{count, trait_groups}"}
+    post:
+      summary: Create a trait group. trait_ids are active children of parent_trait_id
+      responses:
+        "201": {description: "{result: created, trait_group}"}
+        "200": {description: matched, would_create, would_update, or updated}
+  /api/admin/zip_codes:
+    get:
+      summary: Search zip traits. q must be at least 2 characters
+      parameters:
+        - {in: query, name: q, required: true, schema: {type: string}}
+      responses:
+        "200": {description: "{parent_trait_id, zip_codes}"}
+  /api/admin/targets/builds:
+    post:
+      summary: Build bands bullseye outward from existing trait groups
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [api_ref, title, bullseye]
+              properties:
+                api_ref: {$ref: "#/components/schemas/ApiRef"}
+                marketer_id: {type: integer}
+                creator_id: {type: integer}
+                title: {type: string}
+                bullseye: {type: array, items: {type: integer}}
+                drop_order: {type: array, items: {type: integer}, description: Trait group ids, each peeling one group off}
+                dry_run: {type: boolean}
+      responses:
+        "201": {description: Created target and bands with estimated_reach}
+        "200": {description: Dry run or matched. Near-zero reach locally is expected}
+  /api/admin/media_sequences:
+    post:
+      summary: Build a sequence from an existing media piece. The run is that piece plus frequency rules; a run without media_piece_id is refused. Omitted frequency fields use PTP defaults.
+      responses:
+        "201": {description: "{result, defaults_used, media_sequence}"}
+  /api/admin/campaigns/bid_preview:
+    post:
+      summary: Bid preview. Writes nothing
+      responses:
+        "200": {description: "{bids, worst_case_total}"}
+  /api/admin/campaigns:
+    post:
+      summary: Create a draft campaign and its bids
+      responses:
+        "201": {description: "is_ptp true defaults is_payable false and is_throttled true"}
+  /api/admin/campaigns/{id}/launch:
+    post:
+      summary: Launch. Requires confirm true. Does not wait for population
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirm]
+              properties:
+                confirm: {type: boolean}
+      responses:
+        "200": {description: "{result: launched}"}
+        "422": {description: confirm_required or a preflight code}
+  /api/admin/ptp_campaigns/builds:
+    post:
+      summary: One PTP campaign. Never launches
+      description: |
+        api_ref_base derives base.marketer, base.ad, base.tg-N, base.target,
+        base.seq, and base.campaign. target.drop_order is indexes into
+        trait_groups. dry_run rolls the transaction back.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [api_ref_base, marketer, media_piece, trait_groups, campaign]
+              properties:
+                api_ref_base: {type: string, example: ptp-2610-joes_tacos-phx}
+                dry_run: {type: boolean}
+                marketer: {$ref: "#/components/schemas/MarketerFields"}
+                media_piece: {$ref: "#/components/schemas/MediaPieceCreate"}
+                trait_groups: {type: array, items: {type: object}}
+                target:
+                  type: object
+                  properties:
+                    title: {type: string}
+                    drop_order: {type: array, items: {type: integer}, description: Indexes into trait_groups}
+                sequence: {type: object}
+                campaign:
+                  type: object
+                  properties:
+                    title: {type: string}
+                    is_throttled: {type: boolean, description: Defaults to true}
+                    is_payable: {type: boolean, description: Defaults to false for PTP}
+            example:
+              api_ref_base: ptp-2610-joes_tacos-phx
+              dry_run: true
+              marketer: {business_name: "Joe's Tacos", business_url: "https://joestacos.example"}
+              media_piece:
+                title: "Joe's Tacos"
+                media_piece_type_id: 1
+                ad_category_row_id: "<row_id from this system>"
+                display_url: joestacos.example
+                jump_url: "https://joestacos.example"
+                image_url: "https://cdn.example/joes.png"
+              trait_groups:
+                - {title: "Taco fans", parent_trait_id: 100, trait_ids: [101, 102]}
+                - {title: "Phoenix", parent_trait_id: 200, trait_ids: [85001]}
+              target: {title: "Phoenix taco fans", drop_order: [0]}
+              sequence: {title: "Joe's Tacos"}
+              campaign: {title: "Joe's Tacos PTP"}
+      responses:
+        "201": {description: Created ids and bid preview. launched_at is null}
+        "200": {description: would_create or matched}
+  /api/admin/reports/ptp_coverage:
+    get:
+      summary: PTP coverage for one month, grouped by campaign, band, and api_ref scope
+      parameters:
+        - {in: query, name: month, schema: {type: string}, description: YYYY-MM}
+      responses:
+        "200": {description: per_user, by_scope, by_campaign, by_band, throttle_blocked_users}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer}
+  responses:
+    Error:
+      description: Error with code, message, and guide
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                description: |
+                  api_ref_required, invalid_api_ref, api_ref_immutable,
+                  api_ref_conflict (409), has_dependents (409),
+                  invalid_on_existing, invalid, not_found
+              message: {type: string}
+              guide: {type: string}
+              errors: {type: object}
+              dependents: {type: object}
+  schemas:
+    ApiRef:
+      type: string
+      pattern: "^[a-z0-9][a-z0-9._-]{2,127}$"
+      description: "<program>-<yymm>-<brand>-<area>.<type>[-<n>]; brand uses underscores"
+    CreateOptions:
+      type: object
+      properties:
+        dry_run: {type: boolean, description: Validate and report without writing}
+        on_existing: {type: string, enum: [skip, update], default: skip}
+    Differences:
+      type: object
+      additionalProperties:
+        type: object
+        properties:
+          current: {}
+          requested: {}
+    MarketerFields:
+      type: object
+      properties:
+        business_name: {type: string}
+        business_url: {type: string, nullable: true}
+        contact_first_name: {type: string, nullable: true}
+        contact_last_name: {type: string, nullable: true}
+        contact_number: {type: string, nullable: true}
+        contact_email: {type: string, nullable: true}
+        sic_code: {type: string, nullable: true}
+    Marketer:
+      allOf:
+        - $ref: "#/components/schemas/MarketerFields"
+        - type: object
+          properties:
+            id: {type: integer, nullable: true, description: null on would_create}
+            api_ref: {type: string, nullable: true}
+            counts:
+              type: object
+              nullable: true
+              properties:
+                campaigns: {type: integer}
+                ptp_campaigns: {type: integer}
+                media_pieces: {type: integer}
+                targets: {type: integer}
+                trait_groups: {type: integer}
+                media_sequences: {type: integer}
+                members: {type: integer}
+    MediaPieceCreate:
+      type: object
+      required: [api_ref, marketer_id, media_piece_type_id, ad_category_row_id, title, display_url, jump_url, active]
+      properties:
+        api_ref: {$ref: "#/components/schemas/ApiRef"}
+        marketer_id: {type: integer}
+        media_piece_type_id: {type: integer, description: From GET /media_piece_types, writable true}
+        ad_category_row_id: {type: string, description: Active row from the ad categories API}
+        title: {type: string}
+        body_copy: {type: string, nullable: true}
+        display_url: {type: string}
+        jump_url: {type: string}
+        active: {type: boolean}
+        image_url: {type: string, description: "HTTPS. JPG, PNG, GIF, or WebP, at most 10 MB"}
+        banner_image: {type: string, format: binary, description: Multipart file instead of image_url}
+        dry_run: {type: boolean}
+        on_existing: {type: string, enum: [skip, update]}
+    MarketerResult:
+      type: object
+      properties:
+        result: {type: string, enum: [created, matched, would_create, would_update, updated]}
+        matched: {type: boolean}
+        marketer: {$ref: "#/components/schemas/Marketer"}
+        differences: {$ref: "#/components/schemas/Differences"}

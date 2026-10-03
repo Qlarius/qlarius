@@ -17,6 +17,8 @@ defmodule Qlarius.Sponster.Campaigns.Campaign do
     field :is_payable, :boolean
     field :is_throttled, :boolean
     field :is_demo, :boolean
+    field :is_ptp, :boolean, default: false
+    field :api_ref, :string
     field :launched_at, :naive_datetime
     field :deactivated_at, :naive_datetime
 
@@ -43,6 +45,8 @@ defmodule Qlarius.Sponster.Campaigns.Campaign do
       :is_payable,
       :is_throttled,
       :is_demo,
+      :is_ptp,
+      :api_ref,
       :launched_at,
       :deactivated_at
     ])
@@ -53,5 +57,29 @@ defmodule Qlarius.Sponster.Campaigns.Campaign do
       :title,
       :start_date
     ])
+    |> apply_ptp_defaults(attrs)
+    |> Qlarius.ApiRef.validate()
+  end
+
+  # PTP campaigns are Qadabra funded and spaced out by the global throttle, so
+  # a new one defaults to non-payable and throttled unless the caller says otherwise.
+  defp apply_ptp_defaults(%{data: %{id: nil}} = changeset, attrs) do
+    if get_field(changeset, :is_ptp) do
+      changeset
+      |> default_unless_given(attrs, :is_payable, false)
+      |> default_unless_given(attrs, :is_throttled, true)
+    else
+      changeset
+    end
+  end
+
+  defp apply_ptp_defaults(changeset, _attrs), do: changeset
+
+  defp default_unless_given(changeset, attrs, key, value) do
+    if Map.has_key?(attrs, key) or Map.has_key?(attrs, Atom.to_string(key)) do
+      changeset
+    else
+      put_change(changeset, key, value)
+    end
   end
 end

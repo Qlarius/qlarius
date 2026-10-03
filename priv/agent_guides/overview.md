@@ -2,8 +2,8 @@
 
 You are calling the Qadabra admin API on behalf of a Qadabra admin. Read this
 guide before making any write. It is served at `GET /api/admin/agent_guide`
-(`?format=json` for JSON, `?topic=content_groups`, `?topic=traits`, or
-`?topic=ad_categories` for one section).
+(`?format=json` for JSON, `?topic=content_groups`, `?topic=traits`,
+`?topic=ad_categories`, or `?topic=campaigns` for one section).
 
 ## Authentication
 
@@ -26,6 +26,9 @@ guide before making any write. It is served at `GET /api/admin/agent_guide`
    reliable than a web page.
 4. Report results plainly: what was created, updated, unchanged, or skipped,
    and every warning.
+5. Campaign-building creates (marketers and the records under them) require
+   an `api_ref` key you build from the inputs. Read `?topic=campaigns`,
+   section "API reference keys", before your first create.
 
 ## Errors
 
@@ -53,7 +56,12 @@ Every error body has `error` (a code), `message`, and `guide` (this page).
 | POST | /api/admin/content_groups/:id/sync | Add new episodes from a group's feed; `{"reorder": true}` also puts the group in episode order |
 | POST | /api/admin/traits/design_packs | Create or reform a parent trait |
 | GET | /api/admin/ad_categories | Sponster ad taxonomy rows by category; also import, remap, prune (see `?topic=ad_categories`) |
+| GET | /api/admin/marketers | Marketers with counts; also create (find-or-create by `api_ref`), update, delete (see `?topic=campaigns`) |
+| GET | /api/admin/media_piece_types | Ad types, pricing, required fields, and which types the API can create |
+| POST | /api/admin/media_pieces | Create an ad (HTTPS image or multipart banner); also list, update, delete |
+| POST | /api/admin/trait_groups | Trait groups, then targets, sequences, campaigns, a one-call PTP build, and the coverage report (see `?topic=campaigns`) |
 
 Full schemas: `docs/admin_content_group_api.openapi.yaml`,
-`docs/admin_trait_survey_api.openapi.yaml`, and
-`docs/admin_ad_category_api.openapi.yaml` in the Qadabra repository.
+`docs/admin_trait_survey_api.openapi.yaml`,
+`docs/admin_ad_category_api.openapi.yaml`, and
+`docs/admin_campaign_api.openapi.yaml` in the Qadabra repository.

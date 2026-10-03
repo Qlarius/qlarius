@@ -7,10 +7,26 @@ defmodule Qlarius.Sponster.Campaigns do
   alias Qlarius.Wallets
 
   @doc """
-  Calculates the marketer cost amount based on offer amount and media piece type.
-  Uses the pricing configuration stored in the media_piece_type:
-  - marketer_cost = (offer_amt × markup_multiplier) + base_fee
+  Bids for a campaign. Bands must be in creation order, bullseye first.
+  The outermost band is $0.10 and each band inward adds $0.01.
   """
+  def compute_bids(media_piece_type, bands) do
+    sorted = Enum.sort_by(bands, & &1.id)
+    count = length(sorted)
+
+    Enum.with_index(sorted, fn band, index ->
+      offer_amt =
+        Decimal.new("0.10")
+        |> Decimal.add(Decimal.mult(Decimal.new("0.01"), count - index - 1))
+
+      %{
+        target_band_id: band.id,
+        offer_amt: offer_amt,
+        marketer_cost_amt: calculate_marketer_cost(offer_amt, media_piece_type)
+      }
+    end)
+  end
+
   def calculate_marketer_cost(offer_amt, media_piece_type) do
     offer_amt
     |> Decimal.mult(media_piece_type.markup_multiplier)
@@ -123,25 +139,16 @@ defmodule Qlarius.Sponster.Campaigns do
         Repo.rollback("Media piece has no media_piece_type")
       end
 
-      band_count = length(bands)
-
-      bands
-      |> Enum.with_index()
-      |> Enum.each(fn {band, index} ->
-        offer_amt =
-          Decimal.new("0.10")
-          |> Decimal.add(Decimal.new("0.01") |> Decimal.mult(band_count - index - 1))
-
-        marketer_cost_amt =
-          calculate_marketer_cost(offer_amt, media_run.media_piece.media_piece_type)
-
+      media_run.media_piece.media_piece_type
+      |> compute_bids(bands)
+      |> Enum.each(fn bid ->
         %Bid{}
         |> Bid.changeset(%{
           campaign_id: campaign.id,
           media_run_id: media_run.id,
-          target_band_id: band.id,
-          offer_amt: offer_amt,
-          marketer_cost_amt: marketer_cost_amt
+          target_band_id: bid.target_band_id,
+          offer_amt: bid.offer_amt,
+          marketer_cost_amt: bid.marketer_cost_amt
         })
         |> Repo.insert!()
       end)

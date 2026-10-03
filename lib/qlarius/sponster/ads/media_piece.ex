@@ -18,6 +18,7 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
     field :banner_image, :string
     field :video_file, :string
     field :video_poster_image, :string
+    field :api_ref, :string
 
     belongs_to :media_piece_type, MediaPieceType
     belongs_to :ad_category, AdCategory
@@ -42,7 +43,8 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
       :duration,
       :banner_image,
       :video_file,
-      :video_poster_image
+      :video_poster_image,
+      :api_ref
     ])
     |> validate_required([
       :title,
@@ -51,8 +53,13 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
       :marketer_id,
       :active
     ])
+    |> validate_length(:title, max: 256)
+    |> validate_length(:body_copy, max: 1028)
+    |> validate_length(:display_url, max: 256)
+    |> validate_length(:jump_url, max: 512)
     |> validate_media_type_fields()
     |> validate_ad_category_active()
+    |> Qlarius.ApiRef.validate()
     |> foreign_key_constraint(:media_piece_type_id)
     |> foreign_key_constraint(:ad_category_id)
     |> foreign_key_constraint(:marketer_id)

@@ -488,46 +488,7 @@ defmodule Qlarius.Jobs.PopulateTargetWorker do
   end
 
   defp find_me_files_matching_all_trait_groups(trait_group_ids) do
-    trait_ids_by_group =
-      from(tgt in Qlarius.Sponster.Campaigns.TraitGroupTrait,
-        where: tgt.trait_group_id in ^trait_group_ids,
-        select: {tgt.trait_group_id, tgt.trait_id}
-      )
-      |> Repo.all()
-      |> Enum.group_by(fn {tg_id, _trait_id} -> tg_id end, fn {_tg_id, trait_id} -> trait_id end)
-
-    if map_size(trait_ids_by_group) != length(trait_group_ids) do
-      require Logger
-
-      Logger.warning(
-        "PopulateTargetWorker: Some trait_groups have no traits, expected #{length(trait_group_ids)}, got #{map_size(trait_ids_by_group)}"
-      )
-
-      []
-    else
-      base_query = from(mft in MeFileTag, as: :base)
-
-      query_with_conditions =
-        Enum.reduce(trait_group_ids, base_query, fn tg_id, query ->
-          trait_ids = Map.get(trait_ids_by_group, tg_id, [])
-
-          where(
-            query,
-            [base: mft],
-            exists(
-              from(mft2 in MeFileTag,
-                where:
-                  mft2.me_file_id == parent_as(:base).me_file_id and mft2.trait_id in ^trait_ids
-              )
-            )
-          )
-        end)
-
-      query_with_conditions
-      |> select([base: mft], mft.me_file_id)
-      |> distinct(true)
-      |> Repo.all()
-    end
+    Targets.me_file_ids_matching_groups(trait_group_ids)
   end
 
   defp filter_candidates_for_next_band(prev_candidates, new_trait_group_ids) do

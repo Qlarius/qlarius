@@ -1,6 +1,7 @@
 defmodule Qlarius.Sponster.Campaigns.MediaSequences do
   import Ecto.Query
   alias Qlarius.Repo
+  alias Qlarius.Sponster.Ads.MediaPiece
   alias Qlarius.Sponster.Campaigns.{MediaSequence, MediaRun}
 
   @doc """
@@ -28,19 +29,57 @@ defmodule Qlarius.Sponster.Campaigns.MediaSequences do
   end
 
   @doc """
-  Creates a media sequence with its associated media run.
+  Creates a sequence from a media piece.
 
-  ## Parameters
-    - marketer_id: The marketer's ID
-    - attrs: Map containing:
-      - media_piece_id
-      - frequency
-      - frequency_buffer_hours
-      - maximum_banner_count (optional - defaults to 1 for video types)
-      - banner_retry_buffer_hours (optional - defaults to 1 for video types)
-      - title (optional - will auto-generate if not provided)
+  The piece must already exist. A run is that piece plus frequency rules, and
+  a sequence is the container for its runs. Today that is one run. The sequence
+  row is inserted first only because the run stores its id.
   """
   def create_media_sequence_with_run(marketer_id, attrs) do
+    with {:ok, piece} <- fetch_piece(marketer_id, attrs) do
+      run_attrs = run_attrs(marketer_id, piece.id, attrs)
+
+      # Prove the run is complete before writing the sequence. The sequence id
+      # is filled in during the insert; the piece id has to be real now.
+      case MediaRun.changeset(%MediaRun{}, Map.put(run_attrs, "media_sequence_id", 0)) do
+        %{valid?: true} -> insert_sequence_and_run(marketer_id, attrs, run_attrs)
+        changeset -> {:error, changeset}
+      end
+    end
+  end
+
+  defp fetch_piece(marketer_id, attrs) do
+    case attrs["media_piece_id"] || attrs[:media_piece_id] do
+      id when id in [nil, ""] ->
+        {:error, :media_piece_required}
+
+      id ->
+        case Repo.get(MediaPiece, id) do
+          %MediaPiece{marketer_id: mid} = piece when mid == marketer_id -> {:ok, piece}
+          %MediaPiece{} -> {:error, :media_piece_wrong_marketer}
+          nil -> {:error, :media_piece_required}
+        end
+    end
+  end
+
+  defp run_attrs(marketer_id, media_piece_id, attrs) do
+    %{
+      "media_piece_id" => media_piece_id,
+      "marketer_id" => marketer_id,
+      "sequence_start_phase" => 1,
+      "sequence_end_phase" => 1,
+      "frequency" => attrs["frequency"] || attrs[:frequency],
+      "frequency_buffer_hours" =>
+        attrs["frequency_buffer_hours"] || attrs[:frequency_buffer_hours],
+      "maximum_banner_count" =>
+        attrs["maximum_banner_count"] || attrs[:maximum_banner_count] || 1,
+      "banner_retry_buffer_hours" =>
+        attrs["banner_retry_buffer_hours"] || attrs[:banner_retry_buffer_hours] || 1,
+      "is_active" => true
+    }
+  end
+
+  defp insert_sequence_and_run(marketer_id, attrs, run_attrs) do
     Repo.transaction(fn ->
       sequence_attrs = %{
         title: attrs["title"] || attrs[:title],
@@ -50,23 +89,9 @@ defmodule Qlarius.Sponster.Campaigns.MediaSequences do
 
       case Repo.insert(MediaSequence.changeset(%MediaSequence{}, sequence_attrs)) do
         {:ok, sequence} ->
-          media_run_attrs = %{
-            media_sequence_id: sequence.id,
-            media_piece_id: attrs["media_piece_id"] || attrs[:media_piece_id],
-            marketer_id: marketer_id,
-            sequence_start_phase: 1,
-            sequence_end_phase: 1,
-            frequency: attrs["frequency"] || attrs[:frequency],
-            frequency_buffer_hours:
-              attrs["frequency_buffer_hours"] || attrs[:frequency_buffer_hours],
-            maximum_banner_count:
-              attrs["maximum_banner_count"] || attrs[:maximum_banner_count] || 1,
-            banner_retry_buffer_hours:
-              attrs["banner_retry_buffer_hours"] || attrs[:banner_retry_buffer_hours] || 1,
-            is_active: true
-          }
+          run_attrs = Map.put(run_attrs, "media_sequence_id", sequence.id)
 
-          case Repo.insert(MediaRun.changeset(%MediaRun{}, media_run_attrs)) do
+          case Repo.insert(MediaRun.changeset(%MediaRun{}, run_attrs)) do
             {:ok, _media_run} -> sequence
             {:error, changeset} -> Repo.rollback(changeset)
           end

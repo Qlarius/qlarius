@@ -574,6 +574,48 @@ defmodule Qlarius.Sponster.Campaigns.Targets do
     })
   end
 
+  @doc """
+  MeFiles that have at least one trait from every given trait group.
+
+  An empty group matches nobody. This is the same match the population worker
+  uses for a band, so a dry-run reach count and a later population agree.
+  """
+  def me_file_ids_matching_groups([]), do: []
+
+  def me_file_ids_matching_groups(trait_group_ids) do
+    alias Qlarius.YouData.MeFiles.MeFileTag
+
+    trait_ids_by_group =
+      from(tgt in TraitGroupTrait,
+        where: tgt.trait_group_id in ^trait_group_ids,
+        select: {tgt.trait_group_id, tgt.trait_id}
+      )
+      |> Repo.all()
+      |> Enum.group_by(fn {tg_id, _trait_id} -> tg_id end, fn {_tg_id, trait_id} -> trait_id end)
+
+    if map_size(trait_ids_by_group) != length(trait_group_ids) do
+      []
+    else
+      trait_group_ids
+      |> Enum.reduce(from(mft in MeFileTag, as: :base), fn tg_id, query ->
+        trait_ids = Map.get(trait_ids_by_group, tg_id, [])
+
+        where(
+          query,
+          [base: mft],
+          exists(
+            from(mft2 in MeFileTag,
+              where: mft2.me_file_id == parent_as(:base).me_file_id and mft2.trait_id in ^trait_ids
+            )
+          )
+        )
+      end)
+      |> select([base: mft], mft.me_file_id)
+      |> distinct(true)
+      |> Repo.all()
+    end
+  end
+
   def get_band_population_counts(target_id) do
     from(tp in Qlarius.Sponster.Campaigns.TargetPopulation,
       join: tb in TargetBand,

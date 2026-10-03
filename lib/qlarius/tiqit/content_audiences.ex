@@ -25,8 +25,7 @@ defmodule Qlarius.Tiqit.ContentAudiences do
     TargetBandTraitGroup,
     TargetPopulation,
     Targets,
-    TraitGroup,
-    TraitGroupTrait
+    TraitGroup
   }
 
   alias Qlarius.Tiqit.Arcade.{Arcade, Catalog, ContentGroup, ContentPiece}
@@ -873,23 +872,7 @@ defmodule Qlarius.Tiqit.ContentAudiences do
   end
 
   defp replace_group_traits!(group, child_trait_ids) do
-    from(tgt in TraitGroupTrait, where: tgt.trait_group_id == ^group.id)
-    |> Repo.delete_all()
-
-    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-
-    rows =
-      Enum.map(child_trait_ids, fn trait_id ->
-        %{
-          trait_group_id: group.id,
-          trait_id: trait_id,
-          created_at: now,
-          updated_at: now
-        }
-      end)
-
-    if rows != [], do: Repo.insert_all(TraitGroupTrait, rows)
-    group
+    Qlarius.Sponster.Campaigns.AudienceBuilder.replace_traits!(group, child_trait_ids)
   end
 
   defp fork_group!(existing, target, child_trait_ids, created_by) do

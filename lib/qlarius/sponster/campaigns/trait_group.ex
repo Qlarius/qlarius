@@ -14,6 +14,7 @@ defmodule Qlarius.Sponster.Campaigns.TraitGroup do
     field :creator_id, :integer
     field :user_created_by, :integer
     field :deactivated_at, :naive_datetime
+    field :api_ref, :string
 
     has_many :trait_group_traits, TraitGroupTrait
     has_many :traits, through: [:trait_group_traits, :trait]
@@ -33,9 +34,11 @@ defmodule Qlarius.Sponster.Campaigns.TraitGroup do
       :marketer_id,
       :creator_id,
       :user_created_by,
-      :deactivated_at
+      :deactivated_at,
+      :api_ref
     ])
     |> validate_required([:title])
     |> Ownership.validate_exactly_one_owner()
+    |> Qlarius.ApiRef.validate()
   end
 end

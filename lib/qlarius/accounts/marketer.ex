@@ -13,6 +13,7 @@ defmodule Qlarius.Accounts.Marketer do
     field :contact_number, :string
     field :contact_email, :string
     field :sic_code, :string
+    field :api_ref, :string
 
     has_many :campaigns, Qlarius.Sponster.Campaigns.Campaign
     has_many :media_sequences, Qlarius.Sponster.Campaigns.MediaSequence
@@ -32,10 +33,12 @@ defmodule Qlarius.Accounts.Marketer do
       :contact_last_name,
       :contact_number,
       :contact_email,
-      :sic_code
+      :sic_code,
+      :api_ref
     ])
     |> validate_required([
       :business_name
     ])
+    |> Qlarius.ApiRef.validate()
   end
 end

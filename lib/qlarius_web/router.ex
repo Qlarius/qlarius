@@ -474,6 +474,58 @@ defmodule QlariusWeb.Router do
     patch "/ad_categories/categories/:category_id", AdCategoryController, :rename_category
     patch "/ad_categories/:row_id", AdCategoryController, :update
     delete "/ad_categories/:row_id", AdCategoryController, :delete
+
+    get "/media_piece_types", MediaPieceTypeController, :index
+
+    get "/media_pieces", MediaPieceController, :index
+    post "/media_pieces", MediaPieceController, :create
+    get "/media_pieces/:id", MediaPieceController, :show
+    patch "/media_pieces/:id", MediaPieceController, :update
+    delete "/media_pieces/:id", MediaPieceController, :delete
+
+    get "/marketers", MarketerController, :index
+    post "/marketers", MarketerController, :create
+    get "/marketers/:id", MarketerController, :show
+    patch "/marketers/:id", MarketerController, :update
+    delete "/marketers/:id", MarketerController, :delete
+
+    get "/zip_codes", ZipCodeController, :index
+
+    get "/trait_groups", TraitGroupController, :index
+    post "/trait_groups", TraitGroupController, :create
+    get "/trait_groups/:id", TraitGroupController, :show
+    patch "/trait_groups/:id", TraitGroupController, :update
+    post "/trait_groups/:id/traits", TraitGroupController, :traits
+    delete "/trait_groups/:id", TraitGroupController, :delete
+
+    post "/targets/builds", TargetController, :build
+    get "/targets", TargetController, :index
+    post "/targets/:id/bands", TargetController, :add_band
+    delete "/targets/:id/bands/outermost", TargetController, :delete_outermost
+    post "/targets/:id/clone", TargetController, :clone
+    post "/targets/:id/populate", TargetController, :populate
+    get "/targets/:id/population", TargetController, :population
+    get "/targets/:id", TargetController, :show
+    delete "/targets/:id", TargetController, :delete
+
+    get "/media_sequences", MediaSequenceController, :index
+    post "/media_sequences", MediaSequenceController, :create
+    get "/media_sequences/:id", MediaSequenceController, :show
+    delete "/media_sequences/:id", MediaSequenceController, :delete
+
+    post "/campaigns/bid_preview", CampaignController, :bid_preview
+    get "/campaigns", CampaignController, :index
+    post "/campaigns", CampaignController, :create
+    post "/campaigns/:id/launch", CampaignController, :launch
+    post "/campaigns/:id/deactivate", CampaignController, :deactivate
+    post "/campaigns/:id/reactivate", CampaignController, :reactivate
+    get "/campaigns/:id/offers", CampaignController, :offers
+    get "/campaigns/:id", CampaignController, :show
+    patch "/campaigns/:id", CampaignController, :update
+    delete "/campaigns/:id", CampaignController, :delete
+
+    post "/ptp_campaigns/builds", PtpCampaignController, :build
+    get "/reports/ptp_coverage", PtpCoverageController, :show
   end
 
   # Dynamic manifest for PWA - includes referral code in start_url
