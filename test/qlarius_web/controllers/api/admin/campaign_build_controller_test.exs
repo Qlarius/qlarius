@@ -446,6 +446,41 @@ defmodule QlariusWeb.Api.Admin.CampaignBuildControllerTest do
     assert zips["error"] == "zip_query_too_short"
   end
 
+  test "zip lookup defaults to Home Zip Code and can take another parent", %{token: token, n: n} do
+    zip = "85" <> (rem(n, 1000) |> Integer.to_string() |> String.pad_leading(3, "0"))
+    work = TargetingFixtures.zip_parent_fixture("Work Zip Code")
+    work_zip = TargetingFixtures.zip_code_fixture(work, zip, "Work")
+    conn = authed(token)
+
+    missing =
+      conn
+      |> get(~p"/api/admin/zip_codes?q=#{zip}")
+      |> json_response(422)
+
+    assert missing["error"] == "zip_parent_not_found"
+
+    home = TargetingFixtures.zip_parent_fixture("Home Zip Code")
+    home_zip = TargetingFixtures.zip_code_fixture(home, zip, "Home")
+
+    found =
+      conn
+      |> get(~p"/api/admin/zip_codes?q=#{zip}")
+      |> json_response(200)
+
+    assert found["parent_trait_id"] == home.id
+    assert found["parent_trait_name"] == "Home Zip Code"
+    assert Enum.map(found["zip_codes"], & &1["id"]) == [home_zip.id]
+
+    other =
+      conn
+      |> get(~p"/api/admin/zip_codes?q=#{zip}&parent_trait_id=#{work.id}")
+      |> json_response(200)
+
+    assert other["parent_trait_id"] == work.id
+    assert other["parent_trait_name"] == "Work Zip Code"
+    assert Enum.map(other["zip_codes"], & &1["id"]) == [work_zip.id]
+  end
+
   defp marketer_id(conn, ref) do
     body =
       conn

@@ -147,28 +147,55 @@ defmodule Qlarius.AdminApi.TraitGroups do
     end
   end
 
-  def search_zips(query) do
-    parent =
-      Repo.one(
-        from(t in Trait,
-          where:
-            t.input_type == "single_select_zip" and is_nil(t.parent_trait_id) and
-              t.is_active == true,
-          limit: 1
-        )
-      )
-
+  def search_zips(query, parent_trait_id \\ nil) do
     cond do
       query in [nil, ""] or String.length(String.trim(to_string(query))) < 2 ->
         {:error, :zip_query_too_short}
 
-      is_nil(parent) ->
-        {:error, :zip_parent_not_found}
-
       true ->
-        {:ok,
-         %{parent_trait_id: parent.id, zip_codes: Traits.search_zip_codes(parent.id, query, 50)}}
+        case zip_parent(parent_trait_id) do
+          nil ->
+            {:error, :zip_parent_not_found}
+
+          parent ->
+            {:ok,
+             %{
+               parent_trait_id: parent.id,
+               parent_trait_name: parent.trait_name,
+               zip_codes: Traits.search_zip_codes(parent.id, query, 50)
+             }}
+        end
     end
+  end
+
+  defp zip_parent(id) when id in [nil, ""], do: home_zip_parent()
+
+  defp zip_parent(id) do
+    case int(id) do
+      nil ->
+        nil
+
+      id ->
+        Repo.one(
+          from(t in Trait,
+            where:
+              t.id == ^id and t.input_type == "single_select_zip" and is_nil(t.parent_trait_id) and
+                t.is_active == true
+          )
+        )
+    end
+  end
+
+  defp home_zip_parent do
+    Repo.one(
+      from(t in Trait,
+        where:
+          t.trait_name == "Home Zip Code" and t.input_type == "single_select_zip" and
+            is_nil(t.parent_trait_id) and t.is_active == true,
+        order_by: [asc: t.id],
+        limit: 1
+      )
+    )
   end
 
   defp insert(attrs, owner, trait_ids) do

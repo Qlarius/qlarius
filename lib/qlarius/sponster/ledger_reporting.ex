@@ -27,23 +27,21 @@ defmodule Qlarius.Sponster.LedgerReporting do
   def period_to_range(_), do: period_to_range(@default_period)
 
   @doc """
-  Headline KPIs for the selected period. Revenue sums exclude demo events.
+  Headline KPIs for the selected period.
   """
   def summary_stats(start_at, end_at) do
     base = range_query(start_at, end_at)
-    revenue_base = from(ae in base, where: ae.is_demo == false)
 
     %{
       ledger_balance: ledger_balance(),
-      sponster_revenue: sum_decimal(revenue_base, :event_sponster_collect_amt, payable: true),
+      sponster_revenue: sum_decimal(base, :event_sponster_collect_amt, payable: true),
       ad_events: count_rows(base),
       payable_events: count_rows(from(ae in base, where: ae.is_payable == true)),
-      demo_events: count_rows(from(ae in base, where: ae.is_demo == true)),
       throttled_events: count_rows(from(ae in base, where: ae.is_throttled == true)),
-      marketer_spend: sum_decimal(revenue_base, :event_marketer_cost_amt),
-      consumer_payouts: sum_decimal(revenue_base, :event_me_file_collect_amt),
-      recipient_payouts: recipient_payouts_sum(revenue_base),
-      unique_consumers: count_distinct(revenue_base, :me_file_id),
+      marketer_spend: sum_decimal(base, :event_marketer_cost_amt),
+      consumer_payouts: sum_decimal(base, :event_me_file_collect_amt),
+      recipient_payouts: recipient_payouts_sum(base),
+      unique_consumers: count_distinct(base, :me_file_id),
       # Successful engagement completions only — exclude banner-max exhausted attempts.
       offer_completions:
         count_rows(
@@ -56,7 +54,7 @@ defmodule Qlarius.Sponster.LedgerReporting do
     }
     |> Map.put(
       :avg_revenue_per_payable,
-      avg_revenue_per_payable(revenue_base)
+      avg_revenue_per_payable(base)
     )
   end
 
@@ -64,7 +62,7 @@ defmodule Qlarius.Sponster.LedgerReporting do
   Time-bucketed activity. `bucket` is `:day`, `:week`, or `:month`.
   """
   def time_series(start_at, end_at, bucket) when bucket in [:day, :week, :month] do
-    base = from(ae in range_query(start_at, end_at), where: ae.is_demo == false)
+    base = range_query(start_at, end_at)
 
     query =
       case bucket do
@@ -127,7 +125,7 @@ defmodule Qlarius.Sponster.LedgerReporting do
         on: ae.media_piece_id == mp.id,
         join: mpt in MediaPieceType,
         on: mp.media_piece_type_id == mpt.id,
-        where: ae.is_demo == false and ae.is_payable == true,
+        where: ae.is_payable == true,
         group_by: mpt.id,
         order_by: [desc: sum(ae.event_sponster_collect_amt)],
         select: %{
@@ -164,7 +162,7 @@ defmodule Qlarius.Sponster.LedgerReporting do
       on: ae.campaign_id == c.id,
       join: m in Marketer,
       on: c.marketer_id == m.id,
-      where: ae.is_demo == false and ae.is_payable == true,
+      where: ae.is_payable == true,
       group_by: [m.id, m.business_name],
       order_by: [desc: sum(ae.event_sponster_collect_amt)],
       limit: ^limit,
@@ -185,7 +183,7 @@ defmodule Qlarius.Sponster.LedgerReporting do
     from(ae in range_query(start_at, end_at),
       join: c in Campaign,
       on: ae.campaign_id == c.id,
-      where: ae.is_demo == false and ae.is_payable == true,
+      where: ae.is_payable == true,
       group_by: [c.id, c.title],
       order_by: [desc: sum(ae.event_sponster_collect_amt)],
       limit: ^limit,
@@ -223,8 +221,7 @@ defmodule Qlarius.Sponster.LedgerReporting do
         ad_unit_type: mpt.name,
         sponster_revenue: ae.event_sponster_collect_amt,
         consumer_collect: ae.event_me_file_collect_amt,
-        marketer_cost: ae.event_marketer_cost_amt,
-        is_demo: ae.is_demo
+        marketer_cost: ae.event_marketer_cost_amt
       }
     )
     |> Repo.all()

@@ -11,7 +11,6 @@ defmodule Qlarius.Sponster.Offer do
     field :pending_until, :naive_datetime
     field :is_payable, :boolean, default: false
     field :is_throttled, :boolean, default: false
-    field :is_demo, :boolean, default: false
     field :is_current, :boolean, default: false
     field :is_jobbed, :boolean, default: false
     field :matching_tags_snapshot, :map
@@ -41,7 +40,6 @@ defmodule Qlarius.Sponster.Offer do
       :pending_until,
       :is_payable,
       :is_throttled,
-      :is_demo,
       :is_current,
       :is_jobbed,
       :matching_tags_snapshot,

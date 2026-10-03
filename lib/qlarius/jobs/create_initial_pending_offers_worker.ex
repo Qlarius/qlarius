@@ -112,7 +112,6 @@ defmodule Qlarius.Jobs.CreateInitialPendingOffersWorker do
               pending_until: campaign.launched_at,
               is_payable: campaign.is_payable,
               is_throttled: campaign.is_throttled,
-              is_demo: campaign.is_demo,
               is_current: false,
               is_jobbed: false,
               matching_tags_snapshot: tp.matching_tags_snapshot,

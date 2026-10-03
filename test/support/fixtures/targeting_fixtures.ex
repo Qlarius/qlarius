@@ -55,6 +55,31 @@ defmodule Qlarius.TargetingFixtures do
     })
   end
 
+  def zip_parent_fixture(name) do
+    Repo.insert!(%Trait{
+      trait_name: name,
+      display_order: 1,
+      is_active: true,
+      input_type: "single_select_zip",
+      added_by: @system_user,
+      modified_by: @system_user
+    })
+  end
+
+  def zip_code_fixture(parent, zip, location \\ "City") do
+    Repo.insert!(%Trait{
+      trait_name: zip,
+      parent_trait_id: parent.id,
+      display_order: 1,
+      is_active: true,
+      input_type: "single_select_zip",
+      meta_1: location,
+      meta_2: "STANDARD",
+      added_by: @system_user,
+      modified_by: @system_user
+    })
+  end
+
   def trait_fixture(parent, name \\ nil, display_order \\ 1) do
     Repo.insert!(%Trait{
       trait_name: name || unique("Answer"),

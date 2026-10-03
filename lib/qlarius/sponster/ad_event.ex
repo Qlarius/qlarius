@@ -23,7 +23,6 @@ defmodule Qlarius.Sponster.AdEvent do
     field :target_id, :integer
     field :target_band_id, :integer
     field :is_payable, :boolean
-    field :is_demo, :boolean
     field :offer_marketer_cost_amt, :decimal
     field :event_marketer_cost_amt, :decimal
     field :event_me_file_collect_amt, :decimal
@@ -65,7 +64,6 @@ defmodule Qlarius.Sponster.AdEvent do
       :target_id,
       :target_band_id,
       :is_payable,
-      :is_demo,
       :offer_marketer_cost_amt,
       :event_marketer_cost_amt,
       :event_me_file_collect_amt,

@@ -182,7 +182,6 @@ defmodule Qlarius.Jobs.ReconcileOffersForMeFileWorker do
             pending_until: now,
             is_payable: bid.campaign.is_payable,
             is_throttled: bid.campaign.is_throttled,
-            is_demo: bid.campaign.is_demo,
             is_current: false,
             is_jobbed: false,
             matching_tags_snapshot: matching_tags_snapshot,

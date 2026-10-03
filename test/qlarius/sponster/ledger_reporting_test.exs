@@ -17,7 +17,10 @@ defmodule Qlarius.Sponster.LedgerReportingTest do
 
     test "unknown period falls back to default" do
       {start_at, end_at} = LedgerReporting.period_to_range("invalid")
-      {default_start, default_end} = LedgerReporting.period_to_range(LedgerReporting.default_period())
+
+      {default_start, default_end} =
+        LedgerReporting.period_to_range(LedgerReporting.default_period())
+
       assert start_at == default_start
       assert end_at == default_end
     end
@@ -105,8 +108,7 @@ defmodule Qlarius.Sponster.LedgerReportingDataTest do
         marketer_id: marketer.id,
         title: "Test Campaign",
         is_payable: true,
-        is_throttled: false,
-        is_demo: false
+        is_throttled: false
       })
       |> Repo.insert!()
 

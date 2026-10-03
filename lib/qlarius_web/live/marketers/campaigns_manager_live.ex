@@ -18,8 +18,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
     "target_id" => "",
     "media_sequence_id" => "",
     "is_payable" => "false",
-    "is_throttled" => "false",
-    "is_demo" => "false"
+    "is_throttled" => "false"
   }
 
   @impl true
@@ -516,7 +515,6 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
     params
     |> Map.update("is_throttled", false, &truthy?/1)
     |> Map.update("is_payable", false, &truthy?/1)
-    |> Map.update("is_demo", false, &truthy?/1)
   end
 
   defp truthy?(value), do: value in [true, "true", "on"]
@@ -757,12 +755,6 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
                       label="Throttled"
                       description="Offers are released gradually instead of all at once."
                     />
-                    <.campaign_toggle
-                      name="campaign[is_demo]"
-                      value={@campaign_form.params["is_demo"]}
-                      label="Demo mode"
-                      description="For demos and testing."
-                    />
                   </fieldset>
                 </div>
 
@@ -906,7 +898,6 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
-            <.status_badge :if={campaign.is_demo}>Demo</.status_badge>
             <.status_badge :if={campaign.is_payable} tone="info">Payable</.status_badge>
             <%= cond do %>
               <% @archived -> %>

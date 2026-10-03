@@ -204,9 +204,12 @@ Build groups before targets. A target never creates groups for you.
   a new group instead of editing the shared one.
 - `DELETE /api/admin/trait_groups/:id` only when the group is on no band.
   `?dry_run=true` first.
-- `GET /api/admin/zip_codes?q=` searches zip traits under the zip parent.
-  `q` must be at least 2 characters. Zip targeting is an ordinary trait group
-  of those traits. There is no radius search.
+- `GET /api/admin/zip_codes?q=` searches zip traits. `q` must be at least 2
+  characters. With no `parent_trait_id`, the ids are children of Home Zip Code.
+  Pass `parent_trait_id` to search another zip parent, such as Work Zip Code.
+  The response names the parent. Use those ids as `trait_ids` on a group whose
+  `parent_trait_id` is that same parent. Do not adjust the ids. Zip targeting
+  is an ordinary trait group. There is no radius search.
 
 ## Targets
 
@@ -271,7 +274,7 @@ Qadabra PTP spend.
   worst-case total. It writes nothing.
 - `POST /api/admin/campaigns`:
   `{api_ref, marketer_id, target_id, media_sequence_id, title, is_ptp?,
-  is_payable?, is_throttled?, is_demo?, start_date?, end_date?, dry_run?}`.
+  is_payable?, is_throttled?, start_date?, end_date?, dry_run?}`.
   The target and sequence must belong to the marketer, and the target must
   not be archived. `is_ptp: true` sets `is_payable: false` and
   `is_throttled: true` unless you send those fields. A dry run returns the
@@ -282,7 +285,7 @@ Qadabra PTP spend.
   ledger balance, and the target's population status.
 - `PATCH /api/admin/campaigns/:id` edits title, dates, and the flags.
   `target_id` and `media_sequence_id` cannot change after launch. Changing
-  `is_payable`, `is_throttled`, `is_demo`, or `is_ptp` on a launched campaign
+  `is_payable`, `is_throttled`, or `is_ptp` on a launched campaign
   refreshes its offers. A dry run says it would.
 - `POST /api/admin/campaigns/:id/launch` requires `{confirm: true}`.
   Without it: `422 confirm_required`. Preflight refuses a target with no
@@ -380,7 +383,7 @@ campaign comes back with `is_ptp: true`, `is_payable: false`, and
 | Read this guide | `GET /api/admin/agent_guide?topic=campaigns` |
 | Choose an ad category row | `GET /api/admin/ad_categories` |
 | Choose a writable ad type | `GET /api/admin/media_piece_types` |
-| Look up traits, including zips | traits catalog, `GET /api/admin/zip_codes?q=` |
+| Look up traits, including zips | traits catalog, `GET /api/admin/zip_codes?q=` (Home Zip Code unless you pass `parent_trait_id`) |
 | Or build everything below in one call | `POST /api/admin/ptp_campaigns/builds` |
 | Create the marketer | `POST /api/admin/marketers` |
 | Create the ad | `POST /api/admin/media_pieces` |

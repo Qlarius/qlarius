@@ -29,7 +29,6 @@ defmodule Qlarius.Sponster.Ads.Video do
       me_file_id: offer.me_file_id,
       offer_bid_amt: offer.offer_amt,
       is_throttled: offer.is_throttled,
-      is_demo: offer.is_demo,
       media_piece_id: media_run.media_piece_id,
       media_piece_phase_id: phase.id,
       media_run_id: media_run.id,

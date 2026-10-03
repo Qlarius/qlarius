@@ -281,8 +281,7 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
         media_sequence_id: sequence.id,
         start_date: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
         is_payable: true,
-        is_throttled: false,
-        is_demo: false
+        is_throttled: false
       })
       |> Repo.insert!()
 
@@ -312,7 +311,6 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
       marketer_cost_amt: Decimal.new("0.30"),
       is_payable: true,
       is_throttled: false,
-      is_demo: false,
       is_jobbed: false,
       matching_tags_snapshot: %{},
       ad_phase_count_to_complete: 2,

@@ -144,14 +144,14 @@ defmodule QlariusWeb.Admin.SponsterLedgerLive do
                 <.stat_tile
                   label="Sponster revenue"
                   icon="hero-arrow-trending-up"
-                  hint="Payable, non-demo in period"
+                  hint="Payable events in the period"
                 >
                   {format_usd(@summary.sponster_revenue)}
                 </.stat_tile>
                 <.stat_tile
                   label="Ad events"
                   icon="hero-cursor-arrow-rays"
-                  hint={"#{@summary.payable_events} payable, #{@summary.demo_events} demo"}
+                  hint={"#{@summary.payable_events} payable"}
                 >
                   {@summary.ad_events}
                 </.stat_tile>

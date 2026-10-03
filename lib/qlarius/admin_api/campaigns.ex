@@ -298,7 +298,6 @@ defmodule Qlarius.AdminApi.Campaigns do
       is_ptp: campaign.is_ptp,
       is_payable: campaign.is_payable,
       is_throttled: campaign.is_throttled,
-      is_demo: campaign.is_demo,
       status: status(campaign),
       start_date: campaign.start_date,
       end_date: campaign.end_date,
@@ -321,7 +320,7 @@ defmodule Qlarius.AdminApi.Campaigns do
   defp status(_), do: "draft"
 
   defp flag_change?(params) do
-    Enum.any?(~w(is_payable is_throttled is_demo is_ptp), &Map.has_key?(params, &1))
+    Enum.any?(~w(is_payable is_throttled is_ptp), &Map.has_key?(params, &1))
   end
 
   defp filter_marketer(query, id) when id not in [nil, ""],

@@ -7,7 +7,7 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
 
   alias QlariusWeb.Api.Admin.Responder
 
-  @version "2026-10-03.5"
+  @version "2026-10-03.7"
   @guides_dir Path.expand("../../../../../priv/agent_guides", __DIR__)
   @topics ~w(overview content_groups traits ad_categories campaigns)
 
@@ -127,7 +127,8 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
     %{
       method: "GET",
       path: "/api/admin/zip_codes?q=",
-      purpose: "Search zip traits. q must be at least 2 characters"
+      purpose:
+        "Search zip traits under Home Zip Code, or parent_trait_id. q must be at least 2 characters"
     },
     %{
       method: "POST",

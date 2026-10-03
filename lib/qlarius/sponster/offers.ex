@@ -224,7 +224,6 @@ defmodule Qlarius.Sponster.Offers do
     |> AdEvent.changeset(%{
       offer_bid_amt: offer.offer_amt,
       is_throttled: offer.is_throttled,
-      is_demo: offer.is_demo,
       is_offer_complete: true,
       completion_kind: @completion_kind_banner_max,
       ip_address: "0.0.0.0",
@@ -250,9 +249,7 @@ defmodule Qlarius.Sponster.Offers do
 
   defp park_offer(offer_id, pending_until, now) do
     from(o in Offer, where: o.id == ^offer_id)
-    |> Repo.update_all(
-      set: [is_current: false, pending_until: pending_until, updated_at: now]
-    )
+    |> Repo.update_all(set: [is_current: false, pending_until: pending_until, updated_at: now])
   end
 
   defp latest_complete_event_at(offer_id) do

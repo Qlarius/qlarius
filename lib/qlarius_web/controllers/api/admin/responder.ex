@@ -308,7 +308,9 @@ defmodule QlariusWeb.Api.Admin.Responder do
        "This group is on more than one target. Create a new group instead of editing this one."}
 
   defp message(:zip_parent_not_found),
-    do: {422, "zip_parent_not_found", "No active zip parent trait"}
+    do:
+      {422, "zip_parent_not_found",
+       "No active Home Zip Code parent. Pass parent_trait_id to search another zip parent."}
 
   defp message(:zip_query_too_short),
     do: {422, "zip_query_too_short", "q must be at least 2 characters"}

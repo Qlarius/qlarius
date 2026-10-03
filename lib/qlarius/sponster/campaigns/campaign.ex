@@ -16,7 +16,6 @@ defmodule Qlarius.Sponster.Campaigns.Campaign do
     field :end_date, :naive_datetime
     field :is_payable, :boolean
     field :is_throttled, :boolean
-    field :is_demo, :boolean
     field :is_ptp, :boolean, default: false
     field :api_ref, :string
     field :launched_at, :naive_datetime
@@ -44,7 +43,6 @@ defmodule Qlarius.Sponster.Campaigns.Campaign do
       :end_date,
       :is_payable,
       :is_throttled,
-      :is_demo,
       :is_ptp,
       :api_ref,
       :launched_at,

@@ -85,7 +85,6 @@ defmodule Qlarius.Sponster.OfferCompletion do
       pending_until: pending_until,
       is_payable: original_offer.is_payable,
       is_throttled: original_offer.is_throttled,
-      is_demo: original_offer.is_demo,
       is_current: false,
       is_jobbed: false,
       matching_tags_snapshot: current_tags_snapshot,
