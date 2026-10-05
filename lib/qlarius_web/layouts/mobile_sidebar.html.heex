@@ -5,233 +5,172 @@
 />
 <div
   id="sponster-sidebar"
-  class="fixed inset-y-0 left-0 z-50 w-80 transform -translate-x-full transition-transform duration-300 ease-in-out bg-base-100 border-r border-base-300 dark:!border-base-200"
+  class="fixed inset-y-0 left-0 z-50 w-80 transform -translate-x-full transition-transform duration-300 ease-in-out surface-panel-fill border-r border-base-content/10 flex flex-col"
   tabindex="1"
   phx-click-away={toggle_sponster_sidebar(:off)}
 >
-  <div class="flex flex-col h-full overflow-y-auto py-0 px-0">
-    <!-- profile box -->
-    <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
-      <div class="bg-base-300" style="height: max(12px, env(safe-area-inset-top));"></div>
-    <% end %>
-    <div class="flex items-center justify-between px-4 pt-5 pb-6 bg-base-300">
-      <div class="flex items-center">
-        <img src="/images/qlarius_logo_squares.svg" class="h-5 mr-3" alt="Logo" />
-        <div>
-          <span class="font-bold text-base-content" data-app-target="mobileNumber">
-            {@current_scope.user.alias}
-          </span>
-          <div class="text-base-content/50 flex items-center text-sm">
-            <.icon name="hero-map-pin" class="h-4 w-4 mr-1" />
-            <span data-app-target="homeZip">
-              {@current_scope.home_zip}
-            </span>
-          </div>
-        </div>
+  <%= if assigns[:is_pwa] && assigns[:is_mobile] do %>
+    <div class="shrink-0" style="height: max(12px, env(safe-area-inset-top));"></div>
+  <% end %>
+
+  <%!-- Profile --%>
+  <div class="shrink-0 flex items-start gap-3 px-5 pt-5 pb-3">
+    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-base-200">
+      <img src="/images/qlarius_logo_squares.svg" class="h-5 w-auto" alt="" />
+    </div>
+    <div class="min-w-0 flex-1 pt-0.5">
+      <div class="font-semibold text-base-content truncate" data-app-target="mobileNumber">
+        {@current_scope.user.alias}
       </div>
-      <button
-        phx-click={toggle_sponster_sidebar(:off)}
-        class="text-base-content/50 hover:text-base-content cursor-pointer"
+      <div class="mt-0.5 flex items-center gap-1 text-sm text-base-content/60">
+        <.icon name="hero-map-pin" class="h-4 w-4" />
+        <span data-app-target="homeZip">{@current_scope.home_zip}</span>
+      </div>
+    </div>
+    <button
+      type="button"
+      phx-click={toggle_sponster_sidebar(:off)}
+      class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-base-200 text-base-content/60 hover:text-base-content cursor-pointer"
+      aria-label="Close menu"
+    >
+      <.icon name="hero-x-mark" class="h-4 w-4" />
+    </button>
+  </div>
+
+  <%!-- Destinations: the only scroll region in the drawer --%>
+  <nav class="flex-1 min-h-0 overflow-y-auto px-3 pb-2" aria-label="Menu">
+    <ul class="space-y-0.5">
+      <.mobile_menu_item
+        navigate={~p"/home"}
+        icon="hero-home"
+        label="Home"
+        active={mobile_menu_active?(assigns[:current_path], "/home")}
+      />
+      <.mobile_menu_item
+        navigate={~p"/wallet"}
+        icon="hero-wallet"
+        label="Wallet"
+        active={mobile_menu_active?(assigns[:current_path], "/wallet")}
       >
-        <.icon name="hero-x-mark" class="h-7 w-7" />
-      </button>
+        <:trailing>
+          <span class="text-sm text-base-content/60 tabular-amount" data-app-target="balance">
+            {format_usd(@current_scope.wallet_balance)}
+          </span>
+        </:trailing>
+      </.mobile_menu_item>
+      <.mobile_menu_item
+        navigate={~p"/qai"}
+        icon="hero-sparkles"
+        label="Qai"
+        active={mobile_menu_active?(assigns[:current_path], "/qai")}
+      />
+      <.mobile_menu_item
+        navigate={~p"/referrals"}
+        icon="hero-user-group"
+        label="Referrals"
+        active={mobile_menu_active?(assigns[:current_path], "/referrals")}
+      >
+        <:trailing :if={@current_scope.pending_referral_clicks_count > 0}>
+          <span class="mobile-menu-count" data-app-target="pendingReferralClicks">
+            {@current_scope.pending_referral_clicks_count}
+          </span>
+        </:trailing>
+      </.mobile_menu_item>
+    </ul>
+
+    <div class="px-3 pt-5 pb-1.5">
+      <img src="/images/YouData_logo_color_horiz.svg" class="h-3.5 w-auto" alt="YouData" />
     </div>
-    <%!-- Theme toggle straddles the header bottom edge; wrapper adds a contrasting border ring against bg-base-300. --%>
-    <div class="relative z-10 flex justify-center -mt-5">
-      <div class="rounded-full border border-base-content/20 bg-base-100 p-0.5">
-        <Layouts.theme_toggle />
-      </div>
+    <ul class="space-y-0.5">
+      <.mobile_menu_item
+        navigate={~p"/me_file"}
+        icon="hero-identification"
+        label="MeFile"
+        active={mobile_menu_active?(assigns[:current_path], "/me_file")}
+      >
+        <:trailing>
+          <span class="mobile-menu-count" data-app-target="traitCount">
+            {@current_scope.trait_count}
+          </span>
+        </:trailing>
+      </.mobile_menu_item>
+      <.mobile_menu_item
+        navigate={~p"/me_file_builder"}
+        icon="hero-wrench-screwdriver"
+        label="Builder"
+        active={mobile_menu_active?(assigns[:current_path], "/me_file_builder")}
+      />
+    </ul>
+
+    <div class="px-3 pt-5 pb-1.5">
+      <img src="/images/Sponster_logo_color_horiz.svg" class="h-3.5 w-auto" alt="Sponster" />
     </div>
-    <!-- * profile box -->
+    <ul class="space-y-0.5">
+      <.mobile_menu_item
+        navigate={~p"/ads"}
+        icon="hero-eye"
+        label="Ads"
+        active={mobile_menu_active?(assigns[:current_path], "/ads")}
+      >
+        <:trailing>
+          <span class="mobile-menu-count" data-app-target="offerCount">
+            {@current_scope.ads_count}
+          </span>
+        </:trailing>
+      </.mobile_menu_item>
+    </ul>
 
-    <div class="flex flex-col h-full overflow-y-auto py-4 px-3">
-      <ul class="space-y-1 mt-2">
-        <li>
-          <.link
-            navigate={~p"/home"}
-            class="flex items-center p-2 rounded-lg text-base-content hover:bg-base-200 group"
-          >
-            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-500">
-              <.icon name="hero-home" class="h-5 w-5 text-neutral-content" />
-            </div>
-            <span class="ml-3">Home</span>
-          </.link>
-        </li>
-        <li>
-          <.link
-            navigate={~p"/qai"}
-            class="flex items-center p-2 rounded-lg text-base-content hover:bg-base-200 group"
-          >
-            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-500">
-              <.icon name="hero-sparkles" class="h-5 w-5 text-neutral-content" />
-            </div>
-            <span class="ml-3">Qai</span>
-          </.link>
-        </li>
-        <li>
-          <.link
-            navigate={~p"/wallet"}
-            class="flex items-center justify-between p-2 rounded-lg text-base-content hover:bg-base-200 group"
-          >
-            <div class="flex items-center">
-              <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-500">
-                <.icon name="hero-wallet" class="h-5 w-5 text-neutral-content" />
-              </div>
-              <span class="ml-3">Wallet</span>
-            </div>
-            <span
-              class="badge badge-sm rounded px-2 py-3 !bg-gray-500 !text-neutral-content"
-              data-app-target="balance"
-            >
-              ${@current_scope.user.me_file.ledger_header.balance}
-            </span>
-          </.link>
-        </li>
-        <li>
-          <.link
-            navigate={~p"/referrals"}
-            class="flex items-center justify-between p-2 rounded-lg text-base-content hover:bg-base-200 group"
-          >
-            <div class="flex items-center">
-              <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-500">
-                <.icon name="hero-user-group" class="h-5 w-5 text-neutral-content" />
-              </div>
-              <span class="ml-3">Referrals</span>
-            </div>
-            <span
-              :if={@current_scope.pending_referral_clicks_count > 0}
-              class="badge badge-sm rounded px-2 py-3 !bg-gray-500 !text-neutral-content"
-              data-app-target="pendingReferralClicks"
-            >
-              {@current_scope.pending_referral_clicks_count}
-            </span>
-          </.link>
-        </li>
-      </ul>
-      <div class="divider my-1"></div>
-      <div class="mt-4 mb-1 px-2 mb-3 flex flex-row justify-between items-center">
-        <img src="/images/YouData_logo_color_horiz.svg" class="h-6" alt="YouData" />
-        <span class="text-base-content/50 text-sm ml-3 ml-auto">Own your data.</span>
-      </div>
-      <ul class="space-y-1">
-        <li>
-          <%!-- TODO: Route not implemented - was ~p"/me_file" (route doesn't exist) --%>
-          <.link
-            navigate={~p"/me_file"}
-            class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
-          >
-            <div class="flex items-center">
-              <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata-700">
-                <.icon name="hero-identification" class="h-5 w-5 text-primary-content" />
-              </div>
-              <span class="ml-3">MeFile</span>
-            </div>
-            <span
-              class="badge badge-sm rounded px-2 py-3 !bg-youdata-700 !text-primary-content"
-              data-app-target="traitCount"
-            >
-              {@current_scope.trait_count}
-            </span>
-          </.link>
-        </li>
-        <li>
-          <%!-- TODO: Route not implemented - was ~p"/me_file/surveys" (route doesn't exist) --%>
-          <.link
-            navigate={~p"/me_file_builder"}
-            class="flex items-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
-          >
-            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-youdata-700">
-              <.icon name="hero-wrench-screwdriver" class="h-5 w-5 text-primary-content" />
-            </div>
-            <span class="ml-3">Builder</span>
-          </.link>
-        </li>
-      </ul>
-
-      <div class="divider my-1"></div>
-      <div class="mt-4 mb-1 px-2 mb-3 flex flex-row justify-between items-center">
-        <img src="/images/Sponster_logo_color_horiz.svg" class="h-6" alt="Sponster" />
-        <span class="text-base-content/50 text-sm ml-3 ml-auto">Sell your attention.</span>
-      </div>
-      <ul class="space-y-1">
-        <li>
-          <.link
-            navigate={~p"/ads"}
-            class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
-          >
-            <div class="flex items-center">
-              <div class="flex items-center justify-center h-8 w-8 rounded-full bg-sponster-500">
-                <.icon name="hero-eye" class="h-5 w-5 text-primary-content" />
-              </div>
-              <span class="ml-3">Ads</span>
-            </div>
-            <span
-              class="badge badge-sm rounded px-2 py-3 !bg-sponster-500 !text-primary-content"
-              data-app-target="offerCount"
-            >
-              {@current_scope.ads_count}
-            </span>
-          </.link>
-        </li>
-      </ul>
-
-      <div class="divider my-1"></div>
-      <div class="mt-4 mb-1 px-2 mb-3 flex flex-row justify-between items-center">
-        <img src="/images/Tiqit_logo_color_horiz.svg" class="h-6" alt="Tiqit" />
-        <span class="text-base-content/50 text-sm ml-3 ml-auto">Buy your media.</span>
-      </div>
-      <ul class="space-y-1">
-        <li>
-          <.link
-            navigate={~p"/tiqits"}
-            class="flex items-center justify-between p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
-          >
-            <div class="flex items-center">
-              <div class="flex items-center justify-center h-8 w-8 rounded-full bg-tiqit-600">
-                <.icon name="hero-ticket" class="h-5 w-5 text-primary-content" />
-              </div>
-              <span class="ml-3">Stash</span>
-            </div>
-            <span
-              :if={@current_scope && @current_scope.active_tiqit_count > 0}
-              class="badge badge-sm rounded px-2 py-3 !bg-tiqit-600 !text-primary-content"
-            >
-              {@current_scope.active_tiqit_count}
-            </span>
-          </.link>
-        </li>
-        <li>
-          <.link
-            navigate={~p"/arqade"}
-            class="flex items-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 group"
-          >
-            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-tiqit-600">
-              <img src="/images/coin_slot.svg" class="h-5 w-5 text-primary-content" />
-            </div>
-            <span class="ml-3">Arqade</span>
-          </.link>
-        </li>
-      </ul>
+    <div class="px-3 pt-5 pb-1.5">
+      <img src="/images/Tiqit_logo_color_horiz.svg" class="h-3.5 w-auto" alt="Tiqit" />
     </div>
+    <ul class="space-y-0.5">
+      <.mobile_menu_item
+        navigate={~p"/tiqits"}
+        icon="hero-ticket"
+        label="Stash"
+        active={mobile_menu_active?(assigns[:current_path], "/tiqits")}
+      >
+        <:trailing :if={@current_scope && @current_scope.active_tiqit_count > 0}>
+          <span class="mobile-menu-count">{@current_scope.active_tiqit_count}</span>
+        </:trailing>
+      </.mobile_menu_item>
+      <.mobile_menu_item
+        navigate={~p"/arqade"}
+        icon="hero-play-circle"
+        label="Arqade"
+        active={mobile_menu_active?(assigns[:current_path], "/arqade")}
+      />
+    </ul>
+  </nav>
 
-    <div class="mt-auto p-3 bg-base-300">
-      <div class="grid grid-cols-2 gap-2">
-        <.link
-          navigate={~p"/settings"}
-          class="flex flex-col items-center justify-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 text-sm"
-        >
-          <.icon name="hero-cog-6-tooth" class="h-5 w-5 mb-1" /> Settings
-        </.link>
+  <%!-- Appearance, settings, log out --%>
+  <div
+    class="shrink-0 border-t border-base-content/10 px-3 pt-2"
+    style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));"
+  >
+    <div class="flex items-center justify-between h-11 px-3 text-[15px] font-medium text-base-content">
+      <span>Appearance</span>
+      <Layouts.theme_toggle />
+    </div>
+    <ul class="space-y-0.5">
+      <.mobile_menu_item
+        navigate={~p"/settings"}
+        icon="hero-cog-6-tooth"
+        label="Settings"
+        active={mobile_menu_active?(assigns[:current_path], "/settings")}
+      />
+      <li>
         <button
+          type="button"
           phx-click="show_logout_modal"
-          class="flex flex-col items-center justify-center p-2 rounded-lg text-base-content/80 hover:bg-base-200 text-sm w-full cursor-pointer"
+          class="flex w-full items-center gap-3.5 h-11 px-3 rounded-xl text-[15px] font-medium text-base-content/70 hover:bg-base-200/70 cursor-pointer"
         >
-          <.icon name="hero-arrow-right-on-rectangle" class="h-5 w-5 mb-1" /> Log out
+          <.icon
+            name="hero-arrow-right-on-rectangle"
+            class="h-[22px] w-[22px] shrink-0 text-base-content/60"
+          /> Log out
         </button>
-      </div>
-      <%!-- <%= if (@is_mobile || (assigns[:conn] && Map.get(assigns.conn.assigns, :is_mobile))) do %>
-        <div class="h-[env(safe-area-inset-bottom)] min-h-8 bg-base-300"></div>
-      <% end %> --%>
-    </div>
+      </li>
+    </ul>
   </div>
 </div>

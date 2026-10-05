@@ -2176,6 +2176,12 @@
     @apply px-3.5 py-1.5 text-base;
   }
 
+  /* Quiet count beside a mobile side-menu row. */
+  .mobile-menu-count {
+    @apply min-w-6 rounded-md px-1.5 py-0.5 text-center text-xs font-semibold text-base-content tabular-amount;
+    background-color: color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  }
+
   /* Ledger amounts read "+$0.10" with the sign attached; Admin keeps the badge. */
   /* !important: DaisyUI's .badge display otherwise wins over this layer. */
   .mobile-shell .ledger-sign-badge {

@@ -56,6 +56,43 @@ defmodule QlariusWeb.Layouts do
     end
   end
 
+  @doc "Row in the mobile side menu: line icon, label, optional trailing value."
+  attr :navigate, :string, required: true
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+  attr :active, :boolean, default: false
+  slot :trailing
+
+  def mobile_menu_item(assigns) do
+    ~H"""
+    <li>
+      <.link
+        navigate={@navigate}
+        aria-current={@active && "page"}
+        class={[
+          "flex items-center gap-3.5 h-11 px-3 rounded-xl text-[15px] text-base-content transition-colors",
+          if(@active, do: "bg-base-200 font-semibold", else: "font-medium hover:bg-base-200/70")
+        ]}
+      >
+        <.icon
+          name={@icon}
+          class={[
+            "h-[22px] w-[22px] shrink-0",
+            if(@active, do: "text-primary", else: "text-base-content/60")
+          ]}
+        />
+        <span class="flex-1 min-w-0 truncate">{@label}</span>
+        {render_slot(@trailing)}
+      </.link>
+    </li>
+    """
+  end
+
+  @doc "Whether `path` belongs to the menu section rooted at `root`."
+  def mobile_menu_active?(nil, _root), do: false
+  def mobile_menu_active?(path, "/home"), do: path == "/home"
+  def mobile_menu_active?(path, root), do: path == root or String.starts_with?(path, root <> "/")
+
   def toggle_right_sidebar(:on), do: toggle_right_sidebar(%JS{}, :on)
   def toggle_right_sidebar(:off), do: toggle_right_sidebar(%JS{}, :off)
 
