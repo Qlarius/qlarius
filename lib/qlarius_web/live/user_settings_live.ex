@@ -859,7 +859,7 @@ defmodule QlariusWeb.UserSettingsLive do
   end
 
   defp settings_list_classes do
-    "list !mx-0 !rounded-none !shadow-none !bg-base-100 dark:!bg-black divide-y divide-base-300/60 dark:divide-base-content/10"
+    "list !mx-0 !rounded-none !shadow-none !bg-base-100 dark:!bg-base-100 divide-y divide-base-300/60 dark:divide-base-content/10"
   end
 
   defp settings_list_row_classes do

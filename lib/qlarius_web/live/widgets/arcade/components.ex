@@ -738,7 +738,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       "group flex items-stretch overflow-hidden transition-shadow duration-200 hover:shadow-md",
       @elevated && "surface-panel surface-panel-shadow",
       !@elevated &&
-        "rounded-lg bg-base-200/50 dark:bg-black shadow-sm border border-base-300/60 dark:border-base-content/10"
+        "arqade-surface rounded-lg bg-base-200/50 dark:bg-black shadow-sm border border-base-300/60 dark:border-base-content/10"
     ]}>
       <.link
         navigate={@navigate}
@@ -778,7 +778,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       "group flex h-full flex-col overflow-hidden transition-shadow duration-200 hover:shadow-md",
       @elevated && "surface-panel surface-panel-shadow",
       !@elevated &&
-        "rounded-lg bg-base-200/50 dark:bg-black shadow-sm border-t-2 border-neutral-300 dark:border-neutral-600"
+        "arqade-surface rounded-lg bg-base-200/50 dark:bg-black shadow-sm border-t-2 border-neutral-300 dark:border-neutral-600"
     ]}>
       <.link navigate={@navigate} class="block shrink-0" {@click_rest}>
         <img
@@ -898,7 +898,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         @elevated && "surface-panel surface-panel-shadow",
         !@elevated &&
           [
-            "rounded-lg bg-base-200/50 dark:bg-black shadow-sm",
+            "arqade-surface rounded-lg bg-base-200/50 dark:bg-black shadow-sm",
             "border border-base-300/60 dark:border-base-content/10"
           ]
       ]}
@@ -922,7 +922,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         @elevated && "surface-panel surface-panel-shadow",
         !@elevated &&
           [
-            "rounded-lg bg-base-200/50 dark:bg-black shadow-sm",
+            "arqade-surface rounded-lg bg-base-200/50 dark:bg-black shadow-sm",
             "border-t-2 border-neutral-300 dark:border-neutral-600"
           ]
       ]}

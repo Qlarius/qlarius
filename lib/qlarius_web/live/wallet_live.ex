@@ -370,7 +370,7 @@ defmodule QlariusWeb.WalletLive do
                     page={@page}
                     current_scope={@current_scope}
                     show_pagination={false}
-                    list_class="list !mx-0 !rounded-none !shadow-none !bg-base-100 dark:!bg-black divide-y divide-base-300/60 dark:divide-base-content/10"
+                    list_class="list !mx-0 !rounded-none !shadow-none !bg-base-100 dark:!bg-base-100 divide-y divide-base-300/60 dark:divide-base-content/10"
                   />
                 </.surface_panel>
               <% end %>

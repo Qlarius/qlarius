@@ -69,7 +69,7 @@ The consumer shell covers phones, iPads and desktop browsers. Breakpoints are wi
 `.mobile-shell` (in `Layouts.mobile`) redefines a few DaisyUI tokens for the consumer app only, so Admin (whose light/dark themes also come from `nexus.css`) and embedded widgets are unaffected:
 
 - **Light:** `base-100` is pure white.
-- **Dark:** `base-100` `#2e2e30`, `base-200` `#222224`, `neutral` `#3a3a3c`, `base-content` `#f2f2f4`. These neutral greys replace Phoenix's default blue-grey so the side menu, inputs and sheets match the pages. Canvas (`base-300`, `#1c1c1e`) and black panels are unchanged.
+- **Dark:** black canvas with lifted surfaces, as in iOS and Material: `base-300` `#000` (page canvas), `base-100` `#141416` (panels, cards, side menu, sheets, 3-tap covers, Arqade cards), `base-200` `#232326` (tiles, inputs), `neutral` `#3a3a3c`, `base-content` `#f2f2f4`. Inside the shell, `.surface-panel`, `.surface-panel-fill` and `.three-tap-offer-cover` take `base-100` instead of the black they use elsewhere; avoid hard-coding `dark:bg-black` on mobile screens. The PWA `theme-color` for dark is `#000000` to match.
 - **Primary** is the theme's own (orange in light, indigo in dark). Use it for the main action on a screen, the active tab and progress.
 - **Header chips** (`.wallet-balance-pill` in the shell, `.header-count-chip`): neutral pill, fixed-width digits.
 - **Ledger amounts:** in the shell the sign badge is hidden and amounts read `+$0.10` / `−$0.10` (`.ledger-amount--credit` / `--debit`). Admin's ledger keeps the badge.

@@ -137,7 +137,7 @@ defmodule QlariusWeb.ProxyUsersLive do
           </div>
 
           <.surface_panel padding={false}>
-            <ul class="list !mx-0 !rounded-none !shadow-none !bg-base-100 dark:!bg-black divide-y divide-base-300/60 dark:divide-base-content/10">
+            <ul class="list !mx-0 !rounded-none !shadow-none !bg-base-100 dark:!bg-base-100 divide-y divide-base-300/60 dark:divide-base-content/10">
             <li
               :for={proxy <- @proxy_users}
               class={[

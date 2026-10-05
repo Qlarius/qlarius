@@ -22,10 +22,10 @@ Read `docs/ui-surfaces.md` for full vocabulary and rollout notes.
 
 3. **Metric tiles** — Inner Home stats (youdata/sponster/tiqit counts) keep brand colors until a dedicated tile pass. Do not nest another full section panel inside a section panel.
 
-4. **Contrast** — Light panels: `bg-base-100`. Dark panels: `bg-black` on `dark:` so they pop against the canvas (documented exception to pure `base-100` in dark).
+4. **Contrast** — Light panels: `bg-base-100` on a `base-200` canvas. Dark (inside `.mobile-shell`): black `base-300` canvas with `base-100` (`#141416`) panels lifted above it; don't hard-code `dark:bg-black` on mobile screens. Outside the shell (widgets) dark panels are still `bg-black`.
 
 5. **New screens** — Prefer `surface_panel` over ad-hoc `bg-base-200/50 dark:bg-black rounded-lg border-t-4` strings.
 
 6. **Corner radius** — Buttons are pills (`rounded-full`). Daisy `btn` defaults to `--radius-field` (a rounded rect) — always add `rounded-full`. Badges stay rounded rectangles (`badge` / `--radius-selector`). Do not put `rounded-full` on badges.
 
-7. **Mobile shell tokens** — `.mobile-shell` overrides `base-100` (white in light) and the dark `base-100`/`base-200`/`neutral`/`base-content` with neutral greys. Admin and widgets keep the theme defaults, so mobile-only colour changes belong under `.mobile-shell`, not in the theme blocks. Primary is for actions, the active tab and progress.
+7. **Mobile shell tokens** — `.mobile-shell` overrides `base-100` (white in light) and, in dark, `base-100` `#141416` / `base-200` `#232326` / `base-300` `#000` / `neutral` / `base-content` with neutral greys. Admin and widgets keep the theme defaults, so mobile-only colour changes belong under `.mobile-shell`, not in the theme blocks. Primary is for actions, the active tab and progress.

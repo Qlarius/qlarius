@@ -2145,12 +2145,23 @@
     --color-base-100: #ffffff;
   }
 
-  /* Neutral greys in place of Phoenix's default blue-grey; canvas (base-300) and black panels unchanged. */
+  /* Dark: black canvas (base-300) with surfaces lifted above it (base-100 cards,
+     menu and sheets; base-200 tiles and inputs), as in iOS and Material. Neutral
+     greys replace Phoenix's default blue-grey. */
   [data-theme="dark"] .mobile-shell {
-    --color-base-100: #2e2e30;
-    --color-base-200: #222224;
+    --color-base-100: #141416;
+    --color-base-200: #232326;
+    --color-base-300: #000000;
     --color-base-content: #f2f2f4;
     --color-neutral: #3a3a3c;
+  }
+
+  /* Panels and 3-tap covers are black elsewhere in dark mode; in the shell they
+     sit on the black canvas, so they take the surface colour instead. */
+  html[data-theme="dark"] .mobile-shell .surface-panel-fill:not([data-theme="light"]),
+  html[data-theme="dark"] .mobile-shell .surface-panel:not([data-theme="light"]),
+  html[data-theme="dark"] .mobile-shell .three-tap-offer-cover:not([data-theme="light"]) {
+    background-color: var(--color-base-100);
   }
 
   /* Flat panels: a hairline edge instead of the 4px accent bar. */
@@ -2167,11 +2178,6 @@
     border-color: color-mix(in oklab, var(--color-base-content) 12%, transparent);
   }
 
-  html[data-theme="dark"] .mobile-shell .wallet-balance-pill,
-  html[data-theme="dark"] .header-count-chip {
-    background-color: #000000;
-  }
-
   .mobile-shell .wallet-balance-pill--default {
     @apply px-3.5 py-1.5 text-base;
   }
@@ -2179,14 +2185,10 @@
   /*
    * Side menu (Layouts.mobile_menu_tile / mobile_menu_brand): neutral tiles for
    * everyday places, then one tinted card per product with branded tiles.
-   * --menu-surface matches the drawer fill (white, or black in dark like panels).
+   * --menu-surface matches the drawer fill (base-100 in both themes).
    */
   #sponster-sidebar {
     --menu-surface: var(--color-base-100);
-  }
-
-  html[data-theme="dark"] #sponster-sidebar {
-    --menu-surface: #000000;
   }
 
   .mobile-menu-tile {
@@ -2244,8 +2246,8 @@
     border: 1px solid color-mix(in oklab, var(--brand) 22%, transparent);
   }
 
-  /* Dark mode: mixing toward the black drawer crushes the tint, so mix into a
-     dark grey instead (as in the mockups) and strengthen the brand border. */
+  /* Dark mode: a stronger tint and brand border so the cards read on the dark
+     drawer surface. */
   html[data-theme="dark"] .mobile-menu-brand {
     background-color: color-mix(in oklab, var(--brand) 18%, #18181a);
     border-color: color-mix(in oklab, var(--brand) 34%, transparent);
@@ -2330,10 +2332,6 @@
     --home-card-bg: var(--color-base-100);
     --home-hair: color-mix(in oklab, var(--color-base-content) 8%, transparent);
     @apply flex flex-col gap-5;
-  }
-
-  html[data-theme="dark"] .home-page {
-    --home-card-bg: #000000;
   }
 
   .home-hero {
@@ -4883,4 +4881,11 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
   .mobile-shell #video-collection-drawer-scroll-lock {
     left: var(--shell-sidebar-w);
   }
+}
+
+/* Arqade cards are black in dark mode (shared with widgets). Inside the
+   consumer shell they sit on the black canvas, so lift them to the surface
+   colour. Unlayered to beat the dark:bg-black utility. */
+html[data-theme="dark"] .mobile-shell .arqade-surface {
+  background-color: var(--color-base-100);
 }
