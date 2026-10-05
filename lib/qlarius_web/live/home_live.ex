@@ -8,7 +8,11 @@ defmodule QlariusWeb.HomeLive do
 
   alias QlariusWeb.Layouts
   alias QlariusWeb.Components.StrongStartComponent
+  alias QlariusWeb.Components.LedgerEntriesList
+  alias Qlarius.Repo
   alias Qlarius.Tiqit.Arcade.Arcade
+  alias Qlarius.Wallets
+  alias Qlarius.Wallets.LedgerHeader
   alias Qlarius.YouData.StrongStart
 
   def mount(_params, session, socket) do
@@ -29,6 +33,8 @@ defmodule QlariusWeb.HomeLive do
       |> assign(:fleeting_tiqits_count, nil)
       |> assign(:fleeted_tiqits_count, nil)
       |> assign(:preserved_tiqits_count, nil)
+      |> assign(:home_wallet_summary, nil)
+      |> assign(:recent_entries, [])
 
     socket =
       if connected?(socket) do
@@ -54,7 +60,8 @@ defmodule QlariusWeb.HomeLive do
      |> assign(:active_tiqits_count, 0)
      |> assign(:fleeting_tiqits_count, 0)
      |> assign(:fleeted_tiqits_count, 0)
-     |> assign(:preserved_tiqits_count, 0)}
+     |> assign(:preserved_tiqits_count, 0)
+     |> assign(:recent_entries, [])}
   end
 
   def handle_event("pwa_detected", params, socket) do
@@ -130,8 +137,19 @@ defmodule QlariusWeb.HomeLive do
       active_tiqits_count: Arcade.count_active_tiqits(scope),
       fleeting_tiqits_count: Arcade.count_fleeting_tiqits(scope),
       fleeted_tiqits_count: Arcade.count_fleeted_tiqits(scope),
-      preserved_tiqits_count: Arcade.count_preserved_tiqits(scope)
+      preserved_tiqits_count: Arcade.count_preserved_tiqits(scope),
+      home_wallet_summary: Wallets.consumer_wallet_summary(me_file),
+      recent_entries: recent_entries(me_file)
     })
+  end
+
+  @recent_entry_count 3
+
+  defp recent_entries(me_file) do
+    case Repo.get_by(LedgerHeader, me_file_id: me_file.id) do
+      nil -> []
+      header -> Wallets.list_ledger_entries(header.id, 1, @recent_entry_count).entries
+    end
   end
 
   defp assign_strong_start(socket, me_file) do
@@ -162,120 +180,220 @@ defmodule QlariusWeb.HomeLive do
     ~H"""
     <div id="home-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile {assigns}>
-        <div class="flex flex-row flex-wrap justify-between items-center py-3 mb-6">
-          <h2 class="text-xl font-bold">{@current_scope.user.alias}</h2>
-          <p class="text-xl flex items-center gap-1">
-            <.icon name="hero-map-pin-solid" class="h-5 w-5 text-gray-500" />
-            {@current_scope.home_zip}
-          </p>
-        </div>
-
-        <%!-- Strong Start Component --%>
-        <%= if @show_strong_start do %>
-          <StrongStartComponent.strong_start
-            progress={@strong_start_progress}
-            starter_survey_id={@starter_survey_id}
-          />
-        <% end %>
-
-        <%!-- Three columns once the content area is 56rem+ wide (desktop beside the docked menu) --%>
+        <%!-- Phone: one column. Content area 56rem+ (desktop beside the docked menu):
+             hero in one row, setup steps as tiles, products in three columns. --%>
         <div class="@container">
-          <div class="home-stats grid gap-4 @4xl:grid-cols-3">
-            <.surface_panel class="home-stat-card home-stat-card--youdata">
-              <.home_stat_card_header
-                title="Own your data."
-                logo_src="/images/YouData_logo_color_horiz.svg"
-                logo_alt="YouData"
-              />
+          <div class="home-page">
+            <section class="home-hero" aria-label="Wallet">
+              <div class="min-w-0">
+                <p class="home-hero__label">Spendable balance</p>
+                <p class="home-hero__amount">{format_usd(@current_scope.wallet_balance)}</p>
+                <.link navigate={~p"/wallet"} class="home-hero__split">
+                  <%= if @home_wallet_summary do %>
+                    <span>
+                      <span class="tabular-amount">
+                        {format_usd(@home_wallet_summary.activity_balance)}
+                      </span>
+                      activity ·
+                      <span class="tabular-amount">
+                        {format_usd(@home_wallet_summary.credit_allowance)}
+                      </span>
+                      credit
+                    </span>
+                  <% else %>
+                    <span class="skeleton inline-block h-4 w-40 rounded align-middle"></span>
+                  <% end %>
+                  <.icon name="hero-chevron-right" class="h-3.5 w-3.5 shrink-0" />
+                </.link>
+              </div>
 
-              <.link navigate={~p"/me_file"} class="home-stat home-stat--interactive">
-                <span class="home-stat__value">{@current_scope.trait_count}</span>
-                <span class="home-stat__label">tags</span>
+              <.link
+                :if={(@current_scope.ads_count || 0) > 0}
+                navigate={~p"/ads"}
+                class="home-hero__cta btn btn-primary btn-lg rounded-full"
+              >
+                <.icon name="hero-eye" class="h-5 w-5" />
+                <span>
+                  Collect
+                  <span class="tabular-amount">{format_usd(@current_scope.offered_amount)}</span>
+                </span>
+                <span class="home-hero__cta-tag">
+                  {@current_scope.ads_count} {if @current_scope.ads_count == 1, do: "ad", else: "ads"}
+                </span>
               </.link>
-            </.surface_panel>
+              <.link
+                :if={(@current_scope.ads_count || 0) == 0}
+                navigate={~p"/me_file_builder"}
+                class="home-hero__cta btn btn-outline btn-lg rounded-full"
+              >
+                <.icon name="hero-tag" class="h-5 w-5" /> Add tags for more offers
+              </.link>
+            </section>
 
-            <.surface_panel class="home-stat-card home-stat-card--sponster">
-              <.home_stat_card_header
-                title="Sell your attention."
-                logo_src="/images/Sponster_logo_color_horiz.svg"
-                logo_alt="Sponster"
-              />
+            <StrongStartComponent.strong_start
+              :if={@show_strong_start}
+              progress={@strong_start_progress}
+              starter_survey_id={@starter_survey_id}
+            />
 
-              <div class="home-stat-grid--2">
-                <div
-                  class="home-stat home-stat--interactive"
-                  phx-click={JS.navigate("/ads")}
-                  role="link"
-                  tabindex="0"
-                >
-                  <span class="home-stat__value">{@current_scope.ads_count}</span>
-                  <span class="home-stat__label">ads</span>
-                </div>
-
-                <div
-                  class="home-stat home-stat--interactive"
-                  phx-click={JS.navigate("/ads")}
-                  role="link"
-                  tabindex="0"
-                >
-                  <span class="home-stat__value">{format_usd(@current_scope.offered_amount)}</span>
-                  <span class="home-stat__label">offered</span>
-                </div>
+            <div>
+              <div class="home-section-head">
+                <h2 id="home-overview-title">Overview</h2>
               </div>
-            </.surface_panel>
-
-            <.surface_panel class="home-stat-card home-stat-card--tiqit">
-              <.home_stat_card_header
-                title="Buy your media."
-                logo_src="/images/Tiqit_logo_color_horiz.svg"
-                logo_alt="Tiqit"
-              />
-
-              <div class="home-stat-grid--4">
-                <div
-                  class="home-stat home-stat--interactive"
-                  phx-click={JS.navigate("/tiqits?status=active")}
-                  role="link"
-                  tabindex="0"
+              <section class="home-products" aria-labelledby="home-overview-title">
+                <.home_product
+                  navigate={~p"/me_file"}
+                  brand="youdata"
+                  icon="hero-identification"
+                  title="MeFile"
+                  tagline="Own your data."
+                  logo="/images/YouData_logo_color_horiz.svg"
+                  logo_alt="YouData"
                 >
-                  <.home_stat_value loading={@home_extras_loading} value={@active_tiqits_count} />
-                  <span class="home-stat__label">active</span>
-                </div>
+                  <:value>
+                    <span class="home-product__v">{@current_scope.trait_count}</span>
+                    <span class="home-product__l">tags</span>
+                  </:value>
+                  <:stats>
+                    <div class="home-stat">
+                      <span class="home-stat__value">{@current_scope.trait_count}</span>
+                      <span class="home-stat__label">tags</span>
+                    </div>
+                  </:stats>
+                </.home_product>
 
-                <div
-                  class="home-stat home-stat--interactive"
-                  phx-click={JS.navigate("/tiqits?status=preserved")}
-                  role="link"
-                  tabindex="0"
+                <.home_product
+                  navigate={~p"/ads"}
+                  brand="sponster"
+                  icon="hero-play"
+                  title="Ads"
+                  tagline="Sell your attention."
+                  logo="/images/Sponster_logo_color_horiz.svg"
+                  logo_alt="Sponster"
                 >
-                  <.home_stat_value loading={@home_extras_loading} value={@preserved_tiqits_count} />
-                  <span class="home-stat__label">kept</span>
-                </div>
+                  <:value>
+                    <span class="home-product__v">{format_usd(@current_scope.offered_amount)}</span>
+                    <span class="home-product__l">{@current_scope.ads_count || 0} offers</span>
+                  </:value>
+                  <:stats>
+                    <div class="home-stat-grid--2">
+                      <div class="home-stat">
+                        <span class="home-stat__value">{@current_scope.ads_count || 0}</span>
+                        <span class="home-stat__label">ads</span>
+                      </div>
+                      <div class="home-stat">
+                        <span class="home-stat__value">
+                          {format_usd(@current_scope.offered_amount)}
+                        </span>
+                        <span class="home-stat__label">offered</span>
+                      </div>
+                    </div>
+                  </:stats>
+                </.home_product>
 
-                <div
-                  class="home-stat home-stat--interactive"
-                  phx-click={JS.navigate("/tiqits?status=expired")}
-                  role="link"
-                  tabindex="0"
+                <.home_product
+                  navigate={~p"/tiqits"}
+                  brand="tiqit"
+                  icon="hero-ticket"
+                  title="Stash"
+                  tagline="Buy your media."
+                  logo="/images/Tiqit_logo_color_horiz.svg"
+                  logo_alt="Tiqit"
                 >
-                  <.home_stat_value loading={@home_extras_loading} value={@fleeting_tiqits_count} />
-                  <span class="home-stat__label">fleeting</span>
-                </div>
+                  <:value>
+                    <span class="home-product__v">
+                      <.home_stat_value loading={@home_extras_loading} value={@active_tiqits_count} />
+                    </span>
+                    <span class="home-product__l">active</span>
+                  </:value>
+                  <:stats>
+                    <div class="home-stat-grid--4">
+                      <.link
+                        :for={
+                          {label, status, value} <- [
+                            {"active", "active", @active_tiqits_count},
+                            {"kept", "preserved", @preserved_tiqits_count},
+                            {"fleeting", "expired", @fleeting_tiqits_count},
+                            {"fleeted", "fleeted", @fleeted_tiqits_count}
+                          ]
+                        }
+                        navigate={"/tiqits?status=#{status}"}
+                        class="home-stat home-stat--interactive home-product__inner-link"
+                      >
+                        <span class="home-stat__value">
+                          <.home_stat_value loading={@home_extras_loading} value={value} />
+                        </span>
+                        <span class="home-stat__label">{label}</span>
+                      </.link>
+                    </div>
+                  </:stats>
+                </.home_product>
+              </section>
+            </div>
 
-                <div
-                  class="home-stat home-stat--interactive"
-                  phx-click={JS.navigate("/tiqits?status=fleeted")}
-                  role="link"
-                  tabindex="0"
-                >
-                  <.home_stat_value loading={@home_extras_loading} value={@fleeted_tiqits_count} />
-                  <span class="home-stat__label">fleeted</span>
-                </div>
+            <section
+              :if={@recent_entries != []}
+              class="home-activity"
+              aria-labelledby="home-activity-title"
+            >
+              <div class="home-section-head">
+                <h2 id="home-activity-title">Recent activity</h2>
+                <.link navigate={~p"/wallet"}>See all</.link>
               </div>
-            </.surface_panel>
+              <ul class="home-activity__list surface-panel">
+                <li :for={entry <- @recent_entries} class="home-activity__row">
+                  <span class="home-activity__icon">
+                    <.icon name={LedgerEntriesList.icon_for_entry(entry)} class="h-4 w-4" />
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <p class="home-activity__title">{entry.description}</p>
+                    <p class="home-activity__meta">
+                      {activity_meta(entry, @current_scope)}
+                    </p>
+                  </div>
+                  <span class={[
+                    "home-activity__amt",
+                    Decimal.compare(entry.amt, 0) == :gt && "is-credit"
+                  ]}>
+                    {signed_usd(entry.amt)}
+                  </span>
+                </li>
+              </ul>
+            </section>
           </div>
         </div>
       </Layouts.mobile>
+    </div>
+    """
+  end
+
+  attr :navigate, :string, required: true
+  attr :brand, :string, required: true
+  attr :icon, :string, required: true
+  attr :title, :string, required: true
+  attr :tagline, :string, required: true
+  attr :logo, :string, required: true
+  attr :logo_alt, :string, required: true
+  slot :value, required: true
+  slot :stats, required: true
+
+  # A phone row (chip, name, one figure) that becomes a card with full stats in
+  # the three-column wide layout. The title link stretches over the whole block;
+  # inner links (Stash filters) sit above it.
+  defp home_product(assigns) do
+    ~H"""
+    <div class={["home-product", "home-product--#{@brand}"]}>
+      <div class="home-product__head">
+        <span class="home-product__chip"><.icon name={@icon} class="h-5 w-5" /></span>
+        <div class="min-w-0 flex-1">
+          <.link navigate={@navigate} class="home-product__link">{@title}</.link>
+          <p class="home-product__tagline">{@tagline}</p>
+        </div>
+        <img src={@logo} alt={@logo_alt} class="home-product__logo" />
+        <div class="home-product__value">{render_slot(@value)}</div>
+        <span class="home-product__chev"><.icon name="hero-chevron-right" class="h-4 w-4" /></span>
+      </div>
+      <div class="home-product__stats">{render_slot(@stats)}</div>
     </div>
     """
   end
@@ -285,23 +403,19 @@ defmodule QlariusWeb.HomeLive do
 
   defp home_stat_value(assigns) do
     ~H"""
-    <span class="home-stat__value">
-      <span :if={@loading} class="skeleton inline-block h-12 w-14 rounded-md align-middle"></span>
-      <span :if={not @loading}>{@value}</span>
+    <span :if={@loading} class="skeleton inline-block h-[0.8em] w-[1.2em] rounded-md align-middle">
     </span>
+    <span :if={not @loading}>{@value}</span>
     """
   end
 
-  attr :title, :string, required: true
-  attr :logo_src, :string, required: true
-  attr :logo_alt, :string, required: true
+  defp activity_meta(entry, scope) do
+    date = Qlarius.DateTime.format_for_user(entry.created_at, scope.user, :month_day)
+    Enum.join(Enum.reject([entry.meta_1, date], &is_nil/1), " · ")
+  end
 
-  defp home_stat_card_header(assigns) do
-    ~H"""
-    <div class="flex items-start justify-between gap-3 mb-6">
-      <h2 class="text-xl font-bold tracking-tight text-base-content">{@title}</h2>
-      <img src={@logo_src} alt={@logo_alt} class="h-6 w-auto shrink-0" />
-    </div>
-    """
+  defp signed_usd(amt) do
+    sign = if Decimal.compare(amt, 0) == :lt, do: "−", else: "+"
+    sign <> format_usd(Decimal.abs(amt))
   end
 end

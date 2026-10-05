@@ -166,10 +166,11 @@ defmodule QlariusWeb.Components.LedgerEntriesList do
     QlariusDateTime.format_for_user(datetime, current_scope.user, :short)
   end
 
-  defp icon_for_entry(%{tiqit_id: tiqit_id}) when not is_nil(tiqit_id), do: "hero-ticket"
+  @doc "Heroicon name for a ledger entry (also used by Home recent activity)."
+  def icon_for_entry(%{tiqit_id: tiqit_id}) when not is_nil(tiqit_id), do: "hero-ticket"
   # Ad events: use meta_1 (Banner Tap / Text/Jump / Video Ad). Do not map
   # every ad_event_id to film — that incorrectly icons 3-tap phases as video.
-  defp icon_for_entry(entry), do: icon_for_meta_1(entry.meta_1)
+  def icon_for_entry(entry), do: icon_for_meta_1(entry.meta_1)
 
   defp icon_for_meta_1("Friend gift credit"), do: "hero-gift"
   defp icon_for_meta_1("Media gift credit"), do: "hero-gift"

@@ -2321,20 +2321,414 @@
     @apply grid grid-cols-4 gap-x-3 gap-y-2 sm:gap-x-4;
   }
 
-  /* Home in three columns (wide screens): smaller figures so "$1.56" and
-     three-digit counts fit a third-width panel; four counts go 2x2. */
+  /*
+   * Home (home_live.ex). Phone: one column. Inside the page's @container, at
+   * 56rem+ (desktop beside the docked menu) the hero sits in one row, setup steps
+   * become tiles and products become three cards.
+   */
+  .home-page {
+    --home-card-bg: var(--color-base-100);
+    --home-hair: color-mix(in oklab, var(--color-base-content) 8%, transparent);
+    @apply flex flex-col gap-5;
+  }
+
+  html[data-theme="dark"] .home-page {
+    --home-card-bg: #000000;
+  }
+
+  .home-hero {
+    @apply flex flex-col gap-4 pt-1;
+  }
+
+  .home-hero__label {
+    @apply text-sm font-medium text-base-content/60;
+  }
+
+  .home-hero__amount {
+    @apply mt-1 tabular-amount text-5xl font-semibold leading-none;
+    letter-spacing: -0.035em;
+  }
+
+  .home-hero__split {
+    @apply mt-2.5 inline-flex items-center gap-1 text-sm text-base-content/60 hover:text-base-content;
+  }
+
+  .home-hero__cta {
+    @apply w-full gap-2 text-base;
+  }
+
+  .home-hero__cta-tag {
+    @apply rounded-full px-2 py-0.5 text-xs font-semibold;
+    background-color: color-mix(in oklab, currentColor 18%, transparent);
+  }
+
+  .home-section-head {
+    @apply mb-2 flex items-baseline justify-between px-1;
+  }
+
+  .home-section-head h2 {
+    @apply text-lg font-semibold tracking-tight;
+  }
+
+  .home-section-head a {
+    @apply text-sm font-medium text-base-content/60 hover:text-base-content;
+  }
+
+  /* Products: rows in one card on phones. */
+  .home-products {
+    @apply overflow-hidden rounded-2xl;
+    background-color: var(--home-card-bg);
+    border: 1px solid var(--home-hair);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0, 0, 0, 0.03);
+  }
+
+  .home-product {
+    @apply relative transition-colors;
+  }
+
+  .home-product + .home-product {
+    border-top: 1px solid var(--home-hair);
+  }
+
+  .home-product:hover {
+    background-color: color-mix(in oklab, var(--color-base-content) 3%, transparent);
+  }
+
+  .home-product:has(.home-product__link:focus-visible) {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+  }
+
+  .home-product--youdata {
+    --product-color: var(--color-youdata-500);
+  }
+
+  .home-product--sponster {
+    --product-color: var(--color-sponster-500);
+  }
+
+  .home-product--tiqit {
+    --product-color: var(--color-tiqit-600);
+  }
+
+  .home-product__head {
+    @apply flex items-center gap-3 px-4 py-3.5;
+  }
+
+  .home-product__chip {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white;
+    background-color: var(--product-color);
+  }
+
+  .home-product__link {
+    @apply text-base font-semibold text-base-content outline-none;
+  }
+
+  /* Stretched link: the whole block goes to the product. */
+  .home-product__link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+
+  .home-product__inner-link {
+    @apply relative z-[1];
+  }
+
+  .home-product__tagline {
+    @apply text-sm text-base-content/60;
+  }
+
+  .home-product__logo {
+    display: none;
+    height: 1.0625rem;
+    width: auto;
+  }
+
+  .home-product__value {
+    @apply flex flex-col items-end text-right;
+  }
+
+  .home-product__v {
+    @apply tabular-amount text-base font-semibold;
+  }
+
+  .home-product__l {
+    @apply text-xs text-base-content/60;
+  }
+
+  .home-product__chev {
+    @apply flex shrink-0 text-base-content/35;
+  }
+
+  .home-product__stats {
+    display: none;
+  }
+
+  /* Recent activity */
+  .home-activity__list {
+    @apply m-0 list-none p-0;
+  }
+
+  .home-activity__row {
+    @apply flex items-center gap-3 px-4 py-3;
+  }
+
+  .home-activity__row + .home-activity__row {
+    border-top: 1px solid var(--home-hair);
+  }
+
+  .home-activity__icon {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-base-200 text-base-content/70;
+  }
+
+  .home-activity__title {
+    @apply truncate text-[15px] font-medium;
+  }
+
+  .home-activity__meta {
+    @apply mt-0.5 truncate text-xs text-base-content/60;
+  }
+
+  .home-activity__amt {
+    @apply shrink-0 tabular-amount font-semibold;
+  }
+
+  .home-activity__amt.is-credit {
+    @apply text-sponster-600 dark:text-sponster-300;
+  }
+
+  /* Setup checklist (StrongStartComponent): one row that opens the checklist. */
+  .setup-card.surface-panel {
+    @apply flex flex-col;
+  }
+
+  .setup-card__summary {
+    @apply flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.5 text-left;
+  }
+
+  .setup-ring {
+    @apply relative flex h-11 w-11 shrink-0 items-center justify-center;
+  }
+
+  .setup-ring svg {
+    @apply absolute inset-0 h-full w-full;
+  }
+
+  .setup-ring__track {
+    fill: none;
+    stroke: color-mix(in oklab, var(--color-base-content) 12%, transparent);
+    stroke-width: 4;
+  }
+
+  .setup-ring__fill {
+    fill: none;
+    stroke: var(--color-primary);
+    stroke-width: 4;
+    stroke-linecap: round;
+  }
+
+  .setup-ring__label {
+    @apply tabular-amount text-xs font-semibold;
+  }
+
+  .setup-card__title {
+    @apply block text-base font-semibold tracking-tight;
+  }
+
+  .setup-card__next {
+    @apply mt-0.5 line-clamp-2 text-[13px] leading-snug text-base-content/60;
+  }
+
+  .setup-card__chev {
+    @apply flex shrink-0 text-base-content/40 transition-transform;
+  }
+
+  .setup-card.is-open .setup-card__chev {
+    @apply rotate-90;
+  }
+
+  .setup-card__details {
+    @apply hidden flex-col gap-3 px-4 pb-4;
+  }
+
+  .setup-card.is-open .setup-card__details {
+    @apply flex;
+  }
+
+  .setup-steps {
+    @apply m-0 flex list-none flex-col p-0;
+    border-top: 1px solid var(--home-hair);
+    padding-top: 0.5rem;
+  }
+
+  .setup-step__link {
+    @apply flex items-center gap-3 rounded-xl px-1 py-2 hover:bg-base-200/60;
+  }
+
+  .setup-step__mark {
+    @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-base-content/60;
+    border: 1.5px solid color-mix(in oklab, var(--color-base-content) 22%, transparent);
+  }
+
+  .setup-step.is-done .setup-step__mark {
+    @apply border-transparent bg-success text-success-content;
+  }
+
+  .setup-step.is-next .setup-step__mark {
+    @apply border-primary text-primary;
+  }
+
+  .setup-step__title {
+    @apply min-w-0 flex-1 text-[15px] leading-snug;
+  }
+
+  .setup-step.is-done .setup-step__title {
+    @apply text-base-content/50;
+  }
+
+  .setup-step.is-next .setup-step__title {
+    @apply font-semibold;
+  }
+
+  .setup-step__meta {
+    @apply tabular-amount text-xs text-base-content/50;
+  }
+
+  .setup-next {
+    @apply flex flex-wrap items-start gap-3 rounded-2xl p-3.5;
+    background-color: color-mix(in oklab, var(--color-primary) 9%, transparent);
+  }
+
+  .setup-next__icon {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-content;
+  }
+
+  .setup-next__title {
+    @apply font-semibold leading-snug;
+  }
+
+  .setup-next__desc {
+    @apply mt-0.5 text-sm leading-snug text-base-content/70;
+  }
+
+  /* Phone: buttons on their own row, aligned with the text. */
+  .setup-next__actions {
+    @apply flex basis-full gap-2 pl-12;
+  }
+
+  .setup-card__footer {
+    @apply flex items-center justify-between gap-3 px-1 text-sm;
+  }
+
+  .setup-card__footer button {
+    @apply cursor-pointer font-medium text-base-content/60 hover:text-base-content;
+  }
+
   @container (min-width: 56rem) {
-    .home-stats .home-stat__value {
+    .home-page {
+      @apply gap-6;
+    }
+
+    .home-hero {
+      @apply flex-row items-end justify-between;
+    }
+
+    .home-hero__cta {
+      @apply w-auto min-w-60;
+    }
+
+    /* Products: three cards. Figures at 40px so "$1.56" and three-digit counts
+       fit a third-width card; the four Stash counts go 2x2. */
+    .home-products {
+      @apply grid grid-cols-3 gap-4 overflow-visible rounded-none border-0 bg-transparent shadow-none;
+    }
+
+    .home-product,
+    .home-product + .home-product {
+      @apply rounded-2xl p-5;
+      background-color: var(--home-card-bg);
+      border: 1px solid var(--home-hair);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0, 0, 0, 0.03);
+    }
+
+    .home-product__head {
+      @apply items-start p-0;
+    }
+
+    /* Wide cards carry the brand wordmark; the colour chip is for phone rows. */
+    .home-product__chip {
+      display: none;
+    }
+
+    .home-product__logo {
+      display: block;
+      margin-top: 0.25rem;
+    }
+
+    .home-product__value,
+    .home-product__chev {
+      display: none;
+    }
+
+    .home-product__stats {
+      @apply mt-5 block;
+    }
+
+    .home-product .home-stat__value {
       font-size: 2.5rem;
     }
 
-    .home-stats .home-stat-grid--2 {
+    .home-product .home-stat-grid--2 {
       column-gap: 1.5rem;
     }
 
-    .home-stats .home-stat-grid--4 {
+    .home-product .home-stat-grid--4 {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       row-gap: 1rem;
+    }
+
+    /* Setup: always open; the five steps as tiles, next step below. */
+    .setup-card__summary {
+      @apply cursor-default px-5 pt-4 pb-3;
+    }
+
+    .setup-card__chev {
+      display: none;
+    }
+
+    .setup-card__details,
+    .setup-card.is-open .setup-card__details {
+      @apply flex px-5 pb-5;
+    }
+
+    .setup-steps {
+      @apply grid grid-cols-5 gap-2 border-0 pt-0;
+    }
+
+    .setup-step__link {
+      @apply h-full flex-col items-start gap-2 bg-base-200 p-3;
+    }
+
+    .setup-step.is-next .setup-step__link {
+      box-shadow: inset 0 0 0 1.5px var(--color-primary);
+      background-color: color-mix(in oklab, var(--color-primary) 6%, var(--home-card-bg));
+    }
+
+    .setup-step__meta {
+      @apply mt-auto;
+    }
+
+    .setup-next {
+      @apply flex-nowrap items-center;
+    }
+
+    .setup-next__actions {
+      @apply ml-auto basis-auto self-center pl-0;
+    }
+
+    .setup-card__footer {
+      @apply justify-end gap-5;
     }
   }
 

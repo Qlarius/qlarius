@@ -48,7 +48,10 @@ The consumer shell covers phones, iPads and desktop browsers. Breakpoints are wi
 
 - `Layouts.shell_width/2` sets `data-shell-width="wide"` (72rem column) for screens that fill a grid: `/home`, `/me_file_builder`, `/arqade`, `/content`, `/tiqits` (Stash), and `/me_file` in Tags or Blocks mode. MeFile in List mode stays at the reading column. Slide-over screens (`.shell-narrow`) stay at the reading column on wide pages.
 - Grids inside wide screens should size by available space, not viewport breakpoints, because the docked sidebar takes 20rem: MeFile Blocks uses `repeat(auto-fill, minmax(10rem, 1fr))`, the Stash grid uses `repeat(auto-fill, minmax(min(19rem, 100%), 1fr))`, and the Builder's third column starts at `xl`.
-- Home's product panels sit in a container-query grid (`@container` + `@4xl:grid-cols-3`): three columns once the content area is 56rem wide (about a 1250px window beside the docked menu). In that state figures drop to 40px and the four Tiqit counts go 2×2 so values fit a third-width panel.
+- Home (`home_live.ex`) is one markup set inside an `@container`; the `.home-*` and `.setup-*` rules in `app.css` switch at a 56rem content width (about a 1250px window beside the docked menu):
+  - **Phone / narrow:** balance hero with Collect below it; setup checklist as one row (progress ring, "Finish setting up", next step) that opens the five steps, the next step's action, and Remind me later / Don't show again; products as rows (colour chip, name, tagline, one figure) in one card; recent activity (latest three ledger entries).
+  - **Wide:** hero and Collect in one row; the setup checklist stays open with the five steps as tiles with the next step highlighted and its action beside it; products as three cards with the brand wordmark and full stats (40px figures, Stash counts 2x2).
+  - The header balance chip is hidden on Home because the hero shows the balance.
 - 3-tap ads keep their own 470px cap, so they stay phone-sized everywhere.
 - Fixed floating elements follow the column, not the window: `#mefile-floating-toolbar` and `#discovery-view-toolbar` use `--shell-gutter-right`; `#onboarding-tip`, `.split-reminder-tip` and the video collection drawer shift past the docked sidebar. New fixed elements inside the shell need the same treatment.
 

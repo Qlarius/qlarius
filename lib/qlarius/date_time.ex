@@ -71,6 +71,11 @@ defmodule Qlarius.DateTime do
     Timex.format!(datetime, "%b %d %I:%M %p", :strftime)
   end
 
+  # "Oct 3": compact date for list rows (Home recent activity).
+  def format_datetime(%DateTime{} = datetime, :month_day) do
+    Timex.format!(datetime, "%b %-d", :strftime)
+  end
+
   def format_datetime(%DateTime{} = datetime, :date_only) do
     Timex.format!(datetime, "%b %d, %Y", :strftime)
   end

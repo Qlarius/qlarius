@@ -1,6 +1,16 @@
 defmodule QlariusWeb.Components.StrongStartComponent do
+  @moduledoc """
+  "Finish setting up" checklist on Home (Strong Start).
+
+  Phone: one row (progress ring, title, next step) that opens the checklist:
+  all five steps, the next step's action, and Remind me later / Don't show
+  again. Wide containers (56rem+, beside the docked menu) keep it open with the
+  steps as a row of tiles; see the `.setup-card` styles in app.css.
+  """
   use Phoenix.Component
   import QlariusWeb.CoreComponents
+
+  alias Phoenix.LiveView.JS
 
   attr :progress, :map, required: true
   attr :starter_survey_id, :integer, default: nil
@@ -10,310 +20,173 @@ defmodule QlariusWeb.Components.StrongStartComponent do
   attr :on_mark_referral, :string, default: "mark_referral_done"
 
   def strong_start(assigns) do
+    steps = steps(assigns)
+    next = Enum.find(steps, &(not &1.done))
+
+    assigns =
+      assigns
+      |> assign(:steps, steps)
+      |> assign(:next, next)
+      |> assign(
+        :pct,
+        round(assigns.progress.completed_count / assigns.progress.total_count * 100)
+      )
+
     ~H"""
-    <div class="surface-panel surface-panel--padded mb-4">
-      <%!-- Header --%>
-      <div class="flex justify-between items-center gap-3 mb-2">
-        <h2 class="text-xl font-bold tracking-tight text-base-content min-w-0">
-          Do these first.
-        </h2>
-        <div class="flex items-center gap-2 shrink-0">
-          <span class="text-md font-semibold tracking-tight text-base-content/50">
-            {@progress.completed_count}/{@progress.total_count}
-          </span>
-          <img
-            src="/images/qadabra_logo_squares_color.svg"
-            alt="Qadabra"
-            class="w-8 h-8"
-          />
-        </div>
-      </div>
-      <p class="text-sm text-base-content/60 mb-3">
-        Complete these tasks for a great start.
-      </p>
-
-      <%!-- Progress Bar --%>
-      <progress
-        class="progress progress-primary w-full mb-3 h-2"
-        value={@progress.percentage}
-        max="100"
+    <section id="strong-start" class="setup-card surface-panel" aria-labelledby="strong-start-title">
+      <%!-- One row: ring, title, next step. Tapping opens the checklist (phone);
+           wide containers always show it. --%>
+      <button
+        type="button"
+        class="setup-card__summary"
+        aria-expanded="false"
+        aria-controls="strong-start-details"
+        phx-click={
+          JS.toggle_class("is-open", to: "#strong-start")
+          |> JS.toggle_attribute({"aria-expanded", "true", "false"})
+        }
       >
-      </progress>
-
-      <%!-- Steps Carousel --%>
-      <div
-        phx-hook="CarouselIndicators"
-        id="strong-start-carousel"
-        class="w-full flex flex-col items-center justify-center"
-      >
-        <div class="carousel carousel-center w-full space-x-4 mb-1">
-          <%!-- Step 1: Complete ESSENTIALS survey --%>
-          <%!--
-            Fixed card widths; CarouselIndicators computes how many fit
-            per viewport (e.g. 3 → 2 page dots) and hides dots when all fit.
-          --%>
-          <div id="step1" class="carousel-item w-[85%] max-w-[320px] md:w-[320px]">
-            <div class={[
-              "flex flex-col gap-2 p-3 rounded-lg transition-all border w-full",
-              if(@progress.steps.essentials_survey_completed,
-                do: "bg-success/5 border-success/20",
-                else: "bg-base-100 border-primary"
-              )
-            ]}>
-              <div class="flex items-center gap-2">
-                <div class="flex-shrink-0">
-                  <%= if @progress.steps.essentials_survey_completed do %>
-                    <.icon name="hero-check-circle-solid" class="w-7 h-7 text-success" />
-                  <% else %>
-                    <.icon name="hero-check-circle" class="w-7 h-7 text-base-content/30" />
-                  <% end %>
-                </div>
-                <div class="flex-grow min-w-0">
-                  <div class="font-bold text-base leading-tight">Tag your "Essentials"</div>
-                </div>
-              </div>
-              <div class="text-sm text-base-content/60 min-h-[2.5rem] leading-snug">
-                <%= if @progress.steps.essentials_survey_completed do %>
-                  All essential tags added
-                <% else %>
-                  Add these <span class="font-bold text-primary">{@progress.survey_total}</span>
-                  most valuable tags to your MeFile.
-                  <span class="font-bold text-primary">{@progress.survey_answered}</span>
-                  already tagged.
-                <% end %>
-              </div>
-              <%= if !@progress.steps.essentials_survey_completed do %>
-                <.link
-                  navigate={
-                    if @starter_survey_id do
-                      "/me_file_builder?survey_id=#{@starter_survey_id}"
-                    else
-                      "/me_file"
-                    end
-                  }
-                  class="btn btn-sm btn-primary rounded-full w-full min-h-9 h-9 text-sm"
-                >
-                  {if @progress.survey_answered == 0, do: "Start", else: "Continue"}
-                </.link>
-              <% end %>
-            </div>
-          </div>
-
-          <%!-- Step 2: Check your first ads --%>
-          <div id="step2" class="carousel-item w-[85%] max-w-[320px] md:w-[320px]">
-            <div class={[
-              "flex flex-col gap-2 p-3 rounded-lg transition-all border w-full",
-              if(@progress.steps.first_ad_interacted,
-                do: "bg-success/5 border-success/20",
-                else: "bg-base-100 border-primary"
-              )
-            ]}>
-              <div class="flex items-center gap-2">
-                <div class="flex-shrink-0">
-                  <%= if @progress.steps.first_ad_interacted do %>
-                    <.icon name="hero-check-circle-solid" class="w-7 h-7 text-success" />
-                  <% else %>
-                    <.icon name="hero-check-circle" class="w-7 h-7 text-base-content/30" />
-                  <% end %>
-                </div>
-                <div class="flex-grow min-w-0">
-                  <div class="font-bold text-base leading-tight">Check your ads</div>
-                </div>
-              </div>
-              <div class="text-sm text-base-content/60 min-h-[2.5rem] leading-snug">
-                Sell your attention to your personal sponsors. Fuel your wallet.
-              </div>
-              <%= if !@progress.steps.first_ad_interacted do %>
-                <.link navigate="/ads" class="btn btn-sm btn-primary rounded-full w-full min-h-9 h-9 text-sm">
-                  View Ads
-                </.link>
-              <% end %>
-            </div>
-          </div>
-
-          <%!-- Step 3: Set up notifications --%>
-          <div id="step3" class="carousel-item w-[85%] max-w-[320px] md:w-[320px]">
-            <div class={[
-              "flex flex-col gap-2 p-3 rounded-lg transition-all border w-full",
-              if(@progress.steps.notifications_configured,
-                do: "bg-success/5 border-success/20",
-                else: "bg-base-100 border-primary"
-              )
-            ]}>
-              <div class="flex items-center gap-2">
-                <div class="flex-shrink-0">
-                  <%= if @progress.steps.notifications_configured do %>
-                    <.icon name="hero-check-circle-solid" class="w-7 h-7 text-success" />
-                  <% else %>
-                    <.icon name="hero-check-circle" class="w-7 h-7 text-base-content/30" />
-                  <% end %>
-                </div>
-                <div class="flex-grow min-w-0">
-                  <div class="font-bold text-base leading-tight">Set up notifications</div>
-                </div>
-              </div>
-              <div class="text-sm text-base-content/60 min-h-[2.5rem] leading-snug">
-                Set up alerts for when you have ads and want to see them.
-              </div>
-              <%= if !@progress.steps.notifications_configured do %>
-                <div class="flex gap-2">
-                  <.link
-                    navigate="/settings?setting=notifications"
-                    class="btn btn-sm btn-primary rounded-full flex-1 min-h-9 h-9 text-sm"
-                  >
-                    View
-                  </.link>
-                  <button
-                    phx-click={@on_mark_notifications}
-                    class="btn btn-sm btn-ghost rounded-full flex-1 min-h-9 h-9 text-sm"
-                  >
-                    Skip
-                  </button>
-                </div>
-              <% end %>
-            </div>
-          </div>
-
-          <%!-- Step 4: Create 25 tags --%>
-          <div id="step4" class="carousel-item w-[85%] max-w-[320px] md:w-[320px]">
-            <div class={[
-              "flex flex-col gap-2 p-3 rounded-lg transition-all border w-full",
-              if(@progress.steps.tags_25_reached,
-                do: "bg-success/5 border-success/20",
-                else: "bg-base-100 border-primary"
-              )
-            ]}>
-              <div class="flex items-center gap-2">
-                <div class="flex-shrink-0">
-                  <%= if @progress.steps.tags_25_reached do %>
-                    <.icon name="hero-check-circle-solid" class="w-7 h-7 text-success" />
-                  <% else %>
-                    <.icon name="hero-check-circle" class="w-7 h-7 text-base-content/30" />
-                  <% end %>
-                </div>
-                <div class="flex-grow min-w-0">
-                  <div class="font-bold text-base leading-tight">Get to {@progress.tag_goal} tags</div>
-                </div>
-              </div>
-              <div class="text-sm text-base-content/60 min-h-[2.5rem] leading-snug">
-                Optimize your MeFile by adding more tags. Current: {@progress.tag_count}/{@progress.tag_goal} tags
-              </div>
-              <%= if !@progress.steps.tags_25_reached do %>
-                <.link
-                  navigate="/me_file_builder"
-                  class="btn btn-sm btn-primary rounded-full w-full min-h-9 h-9 text-sm"
-                >
-                  Add Tags
-                </.link>
-              <% end %>
-            </div>
-          </div>
-
-          <%!-- Step 5: View referral program --%>
-          <div id="step5" class="carousel-item w-[85%] max-w-[320px] md:w-[320px]">
-            <div class={[
-              "flex flex-col gap-2 p-3 rounded-lg transition-all border w-full",
-              if(@progress.steps.referral_viewed,
-                do: "bg-success/5 border-success/20",
-                else: "bg-base-100 border-primary"
-              )
-            ]}>
-              <div class="flex items-center gap-2">
-                <div class="flex-shrink-0">
-                  <%= if @progress.steps.referral_viewed do %>
-                    <.icon name="hero-check-circle-solid" class="w-7 h-7 text-success" />
-                  <% else %>
-                    <.icon name="hero-check-circle" class="w-7 h-7 text-base-content/30" />
-                  <% end %>
-                </div>
-                <div class="flex-grow min-w-0">
-                  <div class="font-bold text-base leading-tight">Invite some friends</div>
-                </div>
-              </div>
-              <div class="text-sm text-base-content/60 min-h-[2.5rem] leading-snug">
-                Spread the word via referrals and feed your wallet.
-              </div>
-              <%= if !@progress.steps.referral_viewed do %>
-                <div class="flex gap-2">
-                  <.link
-                    navigate="/referrals"
-                    class="btn btn-sm btn-primary rounded-full flex-1 min-h-9 h-9 text-sm"
-                  >
-                    View
-                  </.link>
-                  <button
-                    phx-click={@on_mark_referral}
-                    class="btn btn-sm btn-ghost rounded-full flex-1 min-h-9 h-9 text-sm"
-                  >
-                    Skip
-                  </button>
-                </div>
-              <% end %>
-            </div>
-          </div>
-        </div>
-
-        <%!-- Carousel Indicators --%>
-        <div class="flex justify-center gap-2 py-2">
-          <a
-            href="#step1"
-            data-indicator="1"
-            class="carousel-indicator w-3 h-3 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
-          >
-          </a>
-          <a
-            href="#step2"
-            data-indicator="2"
-            class="carousel-indicator w-3 h-3 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
-          >
-          </a>
-          <a
-            href="#step3"
-            data-indicator="3"
-            class="carousel-indicator w-3 h-3 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
-          >
-          </a>
-          <a
-            href="#step4"
-            data-indicator="4"
-            class="carousel-indicator w-3 h-3 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
-          >
-          </a>
-          <a
-            href="#step5"
-            data-indicator="5"
-            class="carousel-indicator w-3 h-3 rounded-full bg-base-content/30 hover:bg-base-content/50 transition-all duration-300"
-          >
-          </a>
-        </div>
-      </div>
-
-      <%!-- Footer Actions --%>
-      <div class="flex justify-between items-center mt-3 pt-3 border-t border-base-300">
-        <button
-          phx-click={@on_skip}
-          class="btn btn-sm btn-ghost !text-base-content/20 hover:!text-error rounded-full text-sm min-h-9 h-9"
-        >
-          Dismiss forever
-        </button>
-        <button
-          phx-click={@on_remind}
-          class="btn btn-sm btn-ghost rounded-full text-sm min-h-9 h-9"
-        >
-          Remind me later
-        </button>
-      </div>
-
-      <%!-- Completion Message --%>
-      <%= if @progress.completed_count == @progress.total_count do %>
-        <div class="alert alert-success mt-3 text-sm">
-          <.icon name="hero-check-badge-solid" class="w-6 h-6" />
-          <span>
-            🎉 Congratulations! You've completed your Strong Start setup.
+        <span class="setup-ring" aria-hidden="true">
+          <svg viewBox="0 0 44 44">
+            <circle class="setup-ring__track" cx="22" cy="22" r="18" />
+            <circle
+              :if={@pct > 0}
+              class="setup-ring__fill"
+              cx="22"
+              cy="22"
+              r="18"
+              pathLength="100"
+              stroke-dasharray={"#{@pct} 100"}
+              transform="rotate(-90 22 22)"
+            />
+          </svg>
+          <span class="setup-ring__label">{@progress.completed_count}/{@progress.total_count}</span>
+        </span>
+        <span class="min-w-0 flex-1">
+          <span id="strong-start-title" class="setup-card__title">Finish setting up</span>
+          <span :if={@next} class="setup-card__next">
+            Next: {@next.title}{if @next.meta, do: " · #{@next.meta}"}
           </span>
+        </span>
+        <span class="setup-card__chev"><.icon name="hero-chevron-right" class="h-5 w-5" /></span>
+      </button>
+
+      <div id="strong-start-details" class="setup-card__details">
+        <ol class="setup-steps">
+          <li
+            :for={{step, index} <- Enum.with_index(@steps, 1)}
+            class={[
+              "setup-step",
+              step.done && "is-done",
+              @next && step.key == @next.key && "is-next"
+            ]}
+          >
+            <.link navigate={step.href} class="setup-step__link">
+              <span class="setup-step__mark">
+                <.icon :if={step.done} name="hero-check" class="h-3.5 w-3.5" />
+                <span :if={not step.done}>{index}</span>
+              </span>
+              <span class="setup-step__title">{step.title}</span>
+              <span :if={step.meta} class="setup-step__meta">{step.meta}</span>
+            </.link>
+          </li>
+        </ol>
+
+        <div :if={@next} class="setup-next">
+          <span class="setup-next__icon"><.icon name={@next.icon} class="h-5 w-5" /></span>
+          <div class="min-w-0 flex-1">
+            <p class="setup-next__title">{@next.title}</p>
+            <p class="setup-next__desc">{@next.desc}</p>
+          </div>
+          <div class="setup-next__actions">
+            <.link navigate={@next.href} class="btn btn-primary btn-sm rounded-full px-5">
+              {@next.cta}
+            </.link>
+            <button
+              :if={@next.skip}
+              type="button"
+              phx-click={@next.skip}
+              class="btn btn-ghost btn-sm rounded-full"
+            >
+              Skip
+            </button>
+          </div>
         </div>
-      <% end %>
-    </div>
+
+        <div class="setup-card__footer">
+          <button type="button" phx-click={@on_remind}>Remind me later</button>
+          <button type="button" phx-click={@on_skip}>Don't show again</button>
+        </div>
+      </div>
+    </section>
     """
+  end
+
+  defp steps(%{progress: progress, starter_survey_id: survey_id} = assigns) do
+    %{steps: done} = progress
+    answered = progress.survey_answered
+    survey_total = progress.survey_total
+
+    [
+      %{
+        key: :essentials,
+        icon: "hero-identification",
+        title: "Tag your Essentials",
+        desc:
+          if(answered == 0,
+            do: "Add the #{survey_total} tags sponsors value most.",
+            else: "#{answered} of #{survey_total} tagged. Keep going."
+          ),
+        meta: "#{answered}/#{survey_total}",
+        cta: if(answered == 0, do: "Start", else: "Continue"),
+        href: if(survey_id, do: "/me_file_builder?survey_id=#{survey_id}", else: "/me_file"),
+        skip: nil,
+        done: done.essentials_survey_completed
+      },
+      %{
+        key: :ads,
+        icon: "hero-eye",
+        title: "Check your ads",
+        desc: "Collect from your sponsors to fill your wallet.",
+        meta: nil,
+        cta: "View ads",
+        href: "/ads",
+        skip: nil,
+        done: done.first_ad_interacted
+      },
+      %{
+        key: :notifications,
+        icon: "hero-bell",
+        title: "Turn on notifications",
+        desc: "Get an alert when new ads arrive.",
+        meta: nil,
+        cta: "Set up",
+        href: "/settings?setting=notifications",
+        skip: assigns.on_mark_notifications,
+        done: done.notifications_configured
+      },
+      %{
+        key: :tags,
+        icon: "hero-tag",
+        title: "Reach #{progress.tag_goal} tags",
+        desc: "#{progress.tag_count} of #{progress.tag_goal}. More tags bring better offers.",
+        meta: "#{min(progress.tag_count || 0, progress.tag_goal)}/#{progress.tag_goal}",
+        cta: "Add tags",
+        href: "/me_file_builder",
+        skip: nil,
+        done: done.tags_25_reached
+      },
+      %{
+        key: :referral,
+        icon: "hero-user-group",
+        title: "Invite friends",
+        desc: "Earn $0.01 for every ad your friends complete.",
+        meta: nil,
+        cta: "Invite",
+        href: "/referrals",
+        skip: assigns.on_mark_referral,
+        done: done.referral_viewed
+      }
+    ]
   end
 end
