@@ -944,9 +944,9 @@ defmodule QlariusWeb.MeFileHTML do
 
   defp block_grid_cols_class(true), do: "grid-cols-2"
 
-  defp block_grid_cols_class(false) do
-    "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
-  end
+  # Fits as many 10rem blocks as the content column allows, so the count adapts
+  # to the docked side menu instead of following viewport breakpoints.
+  defp block_grid_cols_class(false), do: "grid-cols-[repeat(auto-fill,minmax(10rem,1fr))]"
 
   defp tag_display_mode_label("tag"), do: "Tags"
   defp tag_display_mode_label("block"), do: "Blocks"

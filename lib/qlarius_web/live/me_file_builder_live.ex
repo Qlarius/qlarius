@@ -211,7 +211,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
           </.surface_panel>
         </div>
 
-        <div class="mt-8 grid gap-10 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <div class="mt-8 grid gap-10 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           <%= for category <- @categories do %>
             <% {answered_total, question_total, percent_complete} =
               Map.get(category, :category_stats, {0, 0, 0}) %>

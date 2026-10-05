@@ -178,99 +178,102 @@ defmodule QlariusWeb.HomeLive do
           />
         <% end %>
 
-        <div class="flex flex-col gap-4">
-          <.surface_panel class="home-stat-card home-stat-card--youdata">
-            <.home_stat_card_header
-              title="Own your data."
-              logo_src="/images/YouData_logo_color_horiz.svg"
-              logo_alt="YouData"
-            />
+        <%!-- Three columns once the content area is 56rem+ wide (desktop beside the docked menu) --%>
+        <div class="@container">
+          <div class="home-stats grid gap-4 @4xl:grid-cols-3">
+            <.surface_panel class="home-stat-card home-stat-card--youdata">
+              <.home_stat_card_header
+                title="Own your data."
+                logo_src="/images/YouData_logo_color_horiz.svg"
+                logo_alt="YouData"
+              />
 
-            <.link navigate={~p"/me_file"} class="home-stat home-stat--interactive">
-              <span class="home-stat__value">{@current_scope.trait_count}</span>
-              <span class="home-stat__label">tags</span>
-            </.link>
-          </.surface_panel>
+              <.link navigate={~p"/me_file"} class="home-stat home-stat--interactive">
+                <span class="home-stat__value">{@current_scope.trait_count}</span>
+                <span class="home-stat__label">tags</span>
+              </.link>
+            </.surface_panel>
 
-          <.surface_panel class="home-stat-card home-stat-card--sponster">
-            <.home_stat_card_header
-              title="Sell your attention."
-              logo_src="/images/Sponster_logo_color_horiz.svg"
-              logo_alt="Sponster"
-            />
+            <.surface_panel class="home-stat-card home-stat-card--sponster">
+              <.home_stat_card_header
+                title="Sell your attention."
+                logo_src="/images/Sponster_logo_color_horiz.svg"
+                logo_alt="Sponster"
+              />
 
-            <div class="home-stat-grid--2">
-              <div
-                class="home-stat home-stat--interactive"
-                phx-click={JS.navigate("/ads")}
-                role="link"
-                tabindex="0"
-              >
-                <span class="home-stat__value">{@current_scope.ads_count}</span>
-                <span class="home-stat__label">ads</span>
+              <div class="home-stat-grid--2">
+                <div
+                  class="home-stat home-stat--interactive"
+                  phx-click={JS.navigate("/ads")}
+                  role="link"
+                  tabindex="0"
+                >
+                  <span class="home-stat__value">{@current_scope.ads_count}</span>
+                  <span class="home-stat__label">ads</span>
+                </div>
+
+                <div
+                  class="home-stat home-stat--interactive"
+                  phx-click={JS.navigate("/ads")}
+                  role="link"
+                  tabindex="0"
+                >
+                  <span class="home-stat__value">{format_usd(@current_scope.offered_amount)}</span>
+                  <span class="home-stat__label">offered</span>
+                </div>
               </div>
+            </.surface_panel>
 
-              <div
-                class="home-stat home-stat--interactive"
-                phx-click={JS.navigate("/ads")}
-                role="link"
-                tabindex="0"
-              >
-                <span class="home-stat__value">{format_usd(@current_scope.offered_amount)}</span>
-                <span class="home-stat__label">offered</span>
+            <.surface_panel class="home-stat-card home-stat-card--tiqit">
+              <.home_stat_card_header
+                title="Buy your media."
+                logo_src="/images/Tiqit_logo_color_horiz.svg"
+                logo_alt="Tiqit"
+              />
+
+              <div class="home-stat-grid--4">
+                <div
+                  class="home-stat home-stat--interactive"
+                  phx-click={JS.navigate("/tiqits?status=active")}
+                  role="link"
+                  tabindex="0"
+                >
+                  <.home_stat_value loading={@home_extras_loading} value={@active_tiqits_count} />
+                  <span class="home-stat__label">active</span>
+                </div>
+
+                <div
+                  class="home-stat home-stat--interactive"
+                  phx-click={JS.navigate("/tiqits?status=preserved")}
+                  role="link"
+                  tabindex="0"
+                >
+                  <.home_stat_value loading={@home_extras_loading} value={@preserved_tiqits_count} />
+                  <span class="home-stat__label">kept</span>
+                </div>
+
+                <div
+                  class="home-stat home-stat--interactive"
+                  phx-click={JS.navigate("/tiqits?status=expired")}
+                  role="link"
+                  tabindex="0"
+                >
+                  <.home_stat_value loading={@home_extras_loading} value={@fleeting_tiqits_count} />
+                  <span class="home-stat__label">fleeting</span>
+                </div>
+
+                <div
+                  class="home-stat home-stat--interactive"
+                  phx-click={JS.navigate("/tiqits?status=fleeted")}
+                  role="link"
+                  tabindex="0"
+                >
+                  <.home_stat_value loading={@home_extras_loading} value={@fleeted_tiqits_count} />
+                  <span class="home-stat__label">fleeted</span>
+                </div>
               </div>
-            </div>
-          </.surface_panel>
-
-          <.surface_panel class="home-stat-card home-stat-card--tiqit">
-            <.home_stat_card_header
-              title="Buy your media."
-              logo_src="/images/Tiqit_logo_color_horiz.svg"
-              logo_alt="Tiqit"
-            />
-
-            <div class="home-stat-grid--4">
-              <div
-                class="home-stat home-stat--interactive"
-                phx-click={JS.navigate("/tiqits?status=active")}
-                role="link"
-                tabindex="0"
-              >
-                <.home_stat_value loading={@home_extras_loading} value={@active_tiqits_count} />
-                <span class="home-stat__label">active</span>
-              </div>
-
-              <div
-                class="home-stat home-stat--interactive"
-                phx-click={JS.navigate("/tiqits?status=preserved")}
-                role="link"
-                tabindex="0"
-              >
-                <.home_stat_value loading={@home_extras_loading} value={@preserved_tiqits_count} />
-                <span class="home-stat__label">kept</span>
-              </div>
-
-              <div
-                class="home-stat home-stat--interactive"
-                phx-click={JS.navigate("/tiqits?status=expired")}
-                role="link"
-                tabindex="0"
-              >
-                <.home_stat_value loading={@home_extras_loading} value={@fleeting_tiqits_count} />
-                <span class="home-stat__label">fleeting</span>
-              </div>
-
-              <div
-                class="home-stat home-stat--interactive"
-                phx-click={JS.navigate("/tiqits?status=fleeted")}
-                role="link"
-                tabindex="0"
-              >
-                <.home_stat_value loading={@home_extras_loading} value={@fleeted_tiqits_count} />
-                <span class="home-stat__label">fleeted</span>
-              </div>
-            </div>
-          </.surface_panel>
+            </.surface_panel>
+          </div>
         </div>
       </Layouts.mobile>
     </div>

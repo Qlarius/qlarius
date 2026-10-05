@@ -88,6 +88,25 @@ defmodule QlariusWeb.Layouts do
     """
   end
 
+  @doc """
+  Content column width for the consumer shell on tablet and desktop widths
+  (see the responsive shell block in app.css). Screens that fill a grid get the
+  wide column: Home, Builder, Arqade, and MeFile unless it's in List mode (which
+  keeps its own narrower reading width).
+  """
+  def shell_width(path, tag_display_mode \\ nil)
+
+  def shell_width("/me_file", mode) when mode in ~w(tag block), do: "wide"
+  def shell_width("/me_file", _mode), do: "column"
+
+  def shell_width(path, _mode) when is_binary(path) do
+    if path == "/home" or String.starts_with?(path, ["/me_file_builder", "/arqade", "/content"]),
+      do: "wide",
+      else: "column"
+  end
+
+  def shell_width(_path, _mode), do: "column"
+
   @doc "Whether `path` belongs to the menu section rooted at `root`."
   def mobile_menu_active?(nil, _root), do: false
   def mobile_menu_active?(path, "/home"), do: path == "/home"
@@ -458,7 +477,12 @@ defmodule QlariusWeb.Layouts do
       }
     </style>
 
-    <div class="mobile-shell" id="mobile-shell" phx-hook="MobileWalletSync">
+    <div
+      class="mobile-shell"
+      id="mobile-shell"
+      phx-hook="MobileWalletSync"
+      data-shell-width={shell_width(assigns[:current_path], assigns[:tag_display_mode])}
+    >
       <div class={[
         "slide-panels",
         assigns[:slide_over_active] && "active"
@@ -485,7 +509,11 @@ defmodule QlariusWeb.Layouts do
                 ]}>
                   <div class="w-full mb-6 flex items-center flex-shrink-0">
                     <div class="w-8 flex justify-start">
-                      <button class="cursor-pointer" phx-click={toggle_sponster_sidebar(:on)}>
+                      <button
+                        class="shell-menu-button cursor-pointer"
+                        phx-click={toggle_sponster_sidebar(:on)}
+                        aria-label="Open menu"
+                      >
                         <.icon name="hero-bars-3" class="h-8 w-8 text-content-base" />
                       </button>
                     </div>
@@ -529,7 +557,7 @@ defmodule QlariusWeb.Layouts do
                 </div>
               <% end %>
               <div class="page-canvas flex flex-col min-h-full">
-                <div class="w-full max-w-4xl mx-auto px-4 pt-6 flex-1 flex flex-col mobile-layout-content">
+                <div class="shell-narrow w-full max-w-4xl mx-auto px-4 pt-6 flex-1 flex flex-col mobile-layout-content">
                   <div class="flex items-center justify-between mb-4">
                     <button
                       phx-click="close_slide_over"

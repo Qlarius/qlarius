@@ -36,6 +36,22 @@ Consumer mobile screens use a two-layer surface model inspired by high-contrast 
 - **Panel edge:** inside `.mobile-shell`, a 1px hairline (`base-content` at 7%) on all sides and no top accent bar; elevation comes from fill contrast and `.surface-panel-shadow` (shared with 3-tap offer cards). Outside the shell (widgets, marketer pages) panels keep the older `border-t-4` neutral accent until their own pass.
 - **Panel headings:** full `text-base-content`. Muted (`/50`) is only for group labels that sit above a card, as on Settings.
 
+## Wider screens
+
+The consumer shell covers phones, iPads and desktop browsers. Breakpoints are width-based (the responsive block at the end of `app.css`), because iPadOS sends a desktop user agent and `is_mobile` can't tell an iPad from a laptop.
+
+| Width | Navigation | Content |
+|-------|------------|---------|
+| < 48rem (phone) | Bottom tab bar + off-canvas side menu | Full width |
+| 48rem–64rem (iPad portrait) | Compact tab bar (27.5rem, centered) + off-canvas menu | Centered column, 42.5rem max |
+| ≥ 64rem (iPad landscape, desktop) | Side menu docked as a 20rem sidebar; hamburger and tab bar hidden | Centered column beside it |
+
+- `Layouts.shell_width/2` sets `data-shell-width="wide"` (72rem column) for screens that fill a grid: `/home`, `/me_file_builder`, `/arqade`, `/content`, and `/me_file` in Tags or Blocks mode. MeFile in List mode stays at the reading column. Slide-over screens (`.shell-narrow`) stay at the reading column on wide pages.
+- Grids inside wide screens should size by available space, not viewport breakpoints, because the docked sidebar takes 20rem: MeFile Blocks uses `repeat(auto-fill, minmax(10rem, 1fr))`, and the Builder's third column starts at `xl`.
+- Home's product panels sit in a container-query grid (`@container` + `@4xl:grid-cols-3`): three columns once the content area is 56rem wide (about a 1250px window beside the docked menu). In that state figures drop to 40px and the four Tiqit counts go 2×2 so values fit a third-width panel.
+- 3-tap ads keep their own 470px cap, so they stay phone-sized everywhere.
+- Fixed floating elements follow the column, not the window: `#mefile-floating-toolbar` and `#discovery-view-toolbar` use `--shell-gutter-right`; `#onboarding-tip`, `.split-reminder-tip` and the video collection drawer shift past the docked sidebar. New fixed elements inside the shell need the same treatment.
+
 ## Mobile shell tokens
 
 `.mobile-shell` (in `Layouts.mobile`) redefines a few DaisyUI tokens for the consumer app only, so Admin (whose light/dark themes also come from `nexus.css`) and embedded widgets are unaffected:

@@ -16,7 +16,7 @@ defmodule QlariusWeb.Components.SplitComponents do
     ~H"""
     <div
       id={@id}
-      class="fixed bottom-[90px] z-[75] animate-slide-in-right-to-left pl-6 pr-8"
+      class="split-reminder-tip fixed bottom-[90px] z-[75] animate-slide-in-right-to-left pl-6 pr-8"
       style="right: -34px; max-width: min(380px, calc(100vw - 2rem));"
       phx-remove={
         JS.transition(

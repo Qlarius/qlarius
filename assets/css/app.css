@@ -2239,6 +2239,23 @@
     @apply grid grid-cols-4 gap-x-3 gap-y-2 sm:gap-x-4;
   }
 
+  /* Home in three columns (wide screens): smaller figures so "$1.56" and
+     three-digit counts fit a third-width panel; four counts go 2x2. */
+  @container (min-width: 56rem) {
+    .home-stats .home-stat__value {
+      font-size: 2.5rem;
+    }
+
+    .home-stats .home-stat-grid--2 {
+      column-gap: 1.5rem;
+    }
+
+    .home-stats .home-stat-grid--4 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      row-gap: 1rem;
+    }
+  }
+
   .wallet-equation {
     @apply flex flex-wrap items-start gap-x-4 gap-y-2;
   }
@@ -4300,3 +4317,94 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
 }
 
 /* Nexus Admin CSS */
+/*
+ * Responsive consumer shell (Layouts.mobile). Unlayered so it can narrow the
+ * `container` utility. Width-based on purpose: iPadOS reports a desktop user
+ * agent, so `is_mobile` cannot tell an iPad from a laptop.
+ *   < 48rem   phone: full-width content, bottom tab bar, off-canvas menu.
+ *   >= 48rem  iPad portrait: centered content column, compact tab bar.
+ *   >= 64rem  iPad landscape and desktop: the menu docks as a left sidebar;
+ *             hamburger and tab bar hide.
+ */
+.mobile-shell {
+  --shell-sidebar-w: 0px;
+  --shell-column-max: 100vw;
+}
+
+@media (min-width: 48rem) {
+  .mobile-shell {
+    --shell-column-max: 42.5rem;
+    --shell-gutter-right: max(
+      1rem,
+      calc((100vw - var(--shell-sidebar-w) - var(--shell-column-max)) / 2 + 1rem)
+    );
+  }
+
+  .mobile-shell[data-shell-width="wide"] {
+    --shell-column-max: 72rem;
+  }
+
+  .mobile-shell .mobile-layout-content {
+    max-width: var(--shell-column-max);
+  }
+
+  /* Slide-over screens (survey editing) stay at reading width on wide pages. */
+  .mobile-shell .mobile-layout-content.shell-narrow {
+    max-width: 42.5rem;
+  }
+
+  .mobile-shell:has(.slide-panels.active) {
+    --shell-gutter-right: max(
+      1rem,
+      calc((100vw - var(--shell-sidebar-w) - 42.5rem) / 2 + 1rem)
+    );
+  }
+
+  .mobile-shell .mobile-bottom-nav {
+    max-width: 27.5rem;
+    margin-inline: auto;
+  }
+
+  /* Right-anchored floating toolbars follow the column edge, not the window edge. */
+  .mobile-shell #mefile-floating-toolbar,
+  .mobile-shell #discovery-view-toolbar {
+    right: var(--shell-gutter-right);
+  }
+}
+
+@media (min-width: 64rem) {
+  .mobile-shell,
+  html.ios-pwa .mobile-shell {
+    --shell-sidebar-w: 20rem;
+    --mobile-bottom-nav-offset: 0px;
+    padding-left: var(--shell-sidebar-w);
+  }
+
+  .mobile-shell .mobile-bottom-nav-area,
+  .mobile-shell .shell-menu-button,
+  #sponster-sidebar .shell-menu-close,
+  #sponster-sidebar-bg {
+    display: none;
+  }
+
+  /* Docked: overrides the -translate-x-full the toggle JS leaves on it. */
+  #sponster-sidebar {
+    translate: none;
+  }
+
+  /* No tab bar below them any more. */
+  .mobile-shell #mefile-floating-toolbar,
+  .mobile-shell #onboarding-tip,
+  .mobile-shell .split-reminder-tip {
+    bottom: 1.5rem;
+  }
+
+  /* Centre bottom sheets and tips over the content area beside the sidebar. */
+  .mobile-shell #onboarding-tip {
+    left: calc(var(--shell-sidebar-w) + 1rem);
+  }
+
+  .mobile-shell #video-collection-drawer-scroll-lock {
+    left: var(--shell-sidebar-w);
+  }
+}
