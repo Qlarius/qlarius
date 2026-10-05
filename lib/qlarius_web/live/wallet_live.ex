@@ -215,7 +215,7 @@ defmodule QlariusWeb.WalletLive do
     mode =
       case socket.assigns.current_scope.user.me_file do
         %{tag_display_mode: mode} when mode in ~w(tag block list) -> mode
-        _ -> "tag"
+        _ -> "list"
       end
 
     assign(socket, :tag_display_mode, mode)

@@ -26,7 +26,7 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
     field :strong_start_data, :map, default: %{}
     field :split_reminder_dismissed_at, :utc_datetime
     field :split_reminder_shown_count, :integer, default: 0
-    field :tag_display_mode, :string, default: "tag"
+    field :tag_display_mode, :string, default: "list"
     field :credit_allowance, :decimal, default: Decimal.new("0.00")
 
     belongs_to :user, User
@@ -182,9 +182,13 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
     |> Repo.update()
   end
 
+  # `force_change` because callers pass the MeFile loaded at mount: after
+  # tag -> list -> tag, a plain `change/2` against that stale struct sees no
+  # change and silently skips the write.
   def update_tag_display_mode(%__MODULE__{} = me_file, mode) when mode in ~w(tag block list) do
     me_file
-    |> Ecto.Changeset.change(tag_display_mode: mode)
+    |> Ecto.Changeset.change()
+    |> Ecto.Changeset.force_change(:tag_display_mode, mode)
     |> Repo.update()
   end
 

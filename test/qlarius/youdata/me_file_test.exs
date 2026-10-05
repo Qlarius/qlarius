@@ -8,8 +8,12 @@ defmodule Qlarius.YouData.MeFiles.MeFileTest do
       for mode <- ~w(tag block list) do
         changeset = MeFile.changeset(%MeFile{user_id: 1}, %{tag_display_mode: mode})
         assert changeset.valid?
-        assert Ecto.Changeset.get_change(changeset, :tag_display_mode) == mode
+        assert Ecto.Changeset.get_field(changeset, :tag_display_mode) == mode
       end
+    end
+
+    test "defaults to list" do
+      assert %MeFile{}.tag_display_mode == "list"
     end
 
     test "rejects invalid display mode" do
@@ -17,7 +21,6 @@ defmodule Qlarius.YouData.MeFiles.MeFileTest do
       refute changeset.valid?
       assert "is invalid" in errors_on(changeset).tag_display_mode
     end
-
   end
 
   defp errors_on(changeset) do
