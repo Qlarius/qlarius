@@ -33,8 +33,18 @@ Consumer mobile screens use a two-layer surface model inspired by high-contrast 
 
 - **Canvas:** `bg-base-200` (light), `bg-base-300` (dark).
 - **Panel fill:** `bg-base-100` (light), `bg-black` (dark) — dark uses black (not `base-100`) so panels stay clearly elevated on the charcoal canvas.
-- **Panel accent:** `border-t-4 border-neutral-300` / `dark:border-neutral-600`.
-- **Panel edge:** no side/bottom border; elevation comes from fill contrast and `.surface-panel-shadow` (shared with 3-tap offer cards).
+- **Panel edge:** inside `.mobile-shell`, a 1px hairline (`base-content` at 7%) on all sides and no top accent bar; elevation comes from fill contrast and `.surface-panel-shadow` (shared with 3-tap offer cards). Outside the shell (widgets, marketer pages) panels keep the older `border-t-4` neutral accent until their own pass.
+- **Panel headings:** full `text-base-content`. Muted (`/50`) is only for group labels that sit above a card, as on Settings.
+
+## Mobile shell tokens
+
+`.mobile-shell` (in `Layouts.mobile`) redefines a few DaisyUI tokens for the consumer app only, so Admin (whose light/dark themes also come from `nexus.css`) and embedded widgets are unaffected:
+
+- **Light:** `base-100` is pure white.
+- **Dark:** `base-100` `#2e2e30`, `base-200` `#222224`, `neutral` `#3a3a3c`, `base-content` `#f2f2f4`. These neutral greys replace Phoenix's default blue-grey so the side menu, inputs and sheets match the pages. Canvas (`base-300`, `#1c1c1e`) and black panels are unchanged.
+- **Primary** is the theme's own (orange in light, indigo in dark). Use it for the main action on a screen, the active tab and progress.
+- **Header chips** (`.wallet-balance-pill` in the shell, `.header-count-chip`): neutral pill, fixed-width digits.
+- **Ledger amounts:** in the shell the sign badge is hidden and amounts read `+$0.10` / `−$0.10` (`.ledger-amount--credit` / `--debit`). Admin's ledger keeps the badge.
 
 ## Usage
 

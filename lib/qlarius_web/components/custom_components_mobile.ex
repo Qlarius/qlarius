@@ -109,7 +109,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
 
   def tag_count(assigns) do
     ~H"""
-    <span class="inline-flex items-center w-auto text-lg bg-youdata-200 dark:bg-youdata-900 text-base-content px-3 py-1 rounded-lg border border-youdata-300 dark:border-youdata-500">
+    <span class="header-count-chip inline-flex items-center w-auto text-base px-3.5 py-1.5">
       <span class="font-bold">{@count}&nbsp;tags</span>
     </span>
     """

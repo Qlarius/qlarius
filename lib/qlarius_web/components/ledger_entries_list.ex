@@ -106,7 +106,7 @@ defmodule QlariusWeb.Components.LedgerEntriesList do
                 <span
                   :if={Decimal.compare(entry.amt, 0) != 0}
                   class={[
-                    "badge badge-md p-1 mr-1",
+                    "ledger-sign-badge badge badge-md p-1 mr-1",
                     if(Decimal.compare(entry.amt, 0) == :gt,
                       do: "!bg-sponster-200 dark:!bg-sponster-800",
                       else: "!bg-tiqit-200 dark:!bg-tiqit-800"
@@ -124,16 +124,17 @@ defmodule QlariusWeb.Components.LedgerEntriesList do
                   />
                 </span>
                 <span class={[
-                  "text-lg font-bold",
-                  if(Decimal.compare(entry.amt, 0) == :gt,
-                    do: "text-sponster-500 dark:text-sponster-300",
-                    else: "text-tiqit-500"
-                  )
+                  "ledger-amount text-lg font-bold",
+                  case Decimal.compare(entry.amt, 0) do
+                    :gt -> "ledger-amount--credit text-sponster-500 dark:text-sponster-300"
+                    :lt -> "ledger-amount--debit text-tiqit-500"
+                    :eq -> "text-tiqit-500"
+                  end
                 ]}>
                   {format_currency(Decimal.abs(entry.amt))}
                 </span>
               </div>
-              <div class="text-base-content/50 text-sm">
+              <div class="ledger-running-balance text-base-content/50 text-sm">
                 {format_currency(entry.running_balance)}
               </div>
             </div>

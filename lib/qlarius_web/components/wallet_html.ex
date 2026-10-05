@@ -19,7 +19,7 @@ defmodule QlariusWeb.WalletHTML do
     ~H"""
     <.surface_panel class="home-stat-card home-stat-card--wallet">
       <div class="flex items-start justify-between gap-3 mb-6">
-        <h2 class="text-xl font-bold tracking-tight text-base-content/50">Your wallet.</h2>
+        <h2 class="text-xl font-bold tracking-tight text-base-content">Your wallet.</h2>
         <.icon name="hero-wallet" class="h-7 w-7 shrink-0 text-sponster-500" />
       </div>
 

@@ -18,7 +18,7 @@ Read `docs/ui-surfaces.md` for full vocabulary and rollout notes.
 
 1. **Page canvas** — Use `.page-canvas` on mobile shell content areas (`bg-base-200` / `dark:bg-base-300`). Do not put section content directly on `bg-base-100` unless it is chrome (nav, modals).
 
-2. **Section panels** — Use `<.surface_panel>` (or `.surface-panel` + `.surface-panel--padded`) for grouped “hot” areas. Keep the **top accent** (`border-t-4` neutral). Do not replace with Daisy `card` unless explicitly migrating.
+2. **Section panels** — Use `<.surface_panel>` (or `.surface-panel` + `.surface-panel--padded`) for grouped “hot” areas. Inside `.mobile-shell` panels are flat with a 1px hairline edge (no top accent bar); panel headings use full `text-base-content`, not `/50`. Do not replace with Daisy `card` unless explicitly migrating.
 
 3. **Metric tiles** — Inner Home stats (youdata/sponster/tiqit counts) keep brand colors until a dedicated tile pass. Do not nest another full section panel inside a section panel.
 
@@ -27,3 +27,5 @@ Read `docs/ui-surfaces.md` for full vocabulary and rollout notes.
 5. **New screens** — Prefer `surface_panel` over ad-hoc `bg-base-200/50 dark:bg-black rounded-lg border-t-4` strings.
 
 6. **Corner radius** — Buttons are pills (`rounded-full`). Daisy `btn` defaults to `--radius-field` (a rounded rect) — always add `rounded-full`. Badges stay rounded rectangles (`badge` / `--radius-selector`). Do not put `rounded-full` on badges.
+
+7. **Mobile shell tokens** — `.mobile-shell` overrides `base-100` (white in light) and the dark `base-100`/`base-200`/`neutral`/`base-content` with neutral greys. Admin and widgets keep the theme defaults, so mobile-only colour changes belong under `.mobile-shell`, not in the theme blocks. Primary is for actions, the active tab and progress.

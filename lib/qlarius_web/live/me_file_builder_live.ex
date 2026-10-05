@@ -121,7 +121,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                   class="qai-suggestions-chevron pointer-events-none absolute right-3 top-4 h-7 w-7 text-base-content/50 transition-transform duration-200"
                 />
                 <div class="flex items-center gap-2">
-                  <h2 class="text-lg font-bold tracking-tight text-base-content/50">
+                  <h2 class="text-lg font-bold tracking-tight text-base-content">
                     Suggestions by
                   </h2>
                   <img
@@ -217,7 +217,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
               Map.get(category, :category_stats, {0, 0, 0}) %>
             <.surface_panel padding={false}>
               <div class="flex justify-between items-center px-4 pt-4 pb-3">
-                <h2 class="text-lg font-bold tracking-tight text-base-content/50">
+                <h2 class="text-lg font-bold tracking-tight text-base-content">
                   {category.survey_category_name}
                 </h2>
                 <span class="text-sm text-base-content/50">

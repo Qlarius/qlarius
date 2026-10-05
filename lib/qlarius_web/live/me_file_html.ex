@@ -791,7 +791,7 @@ defmodule QlariusWeb.MeFileHTML do
         padding={false}
       >
         <div class="flex justify-between items-center px-4 pt-4 pb-3">
-          <h2 class="text-lg font-bold tracking-tight text-base-content/50">
+          <h2 class="text-lg font-bold tracking-tight text-base-content">
             {name}
           </h2>
           <span class="text-sm text-base-content/50">

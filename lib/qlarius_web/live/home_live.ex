@@ -296,7 +296,7 @@ defmodule QlariusWeb.HomeLive do
   defp home_stat_card_header(assigns) do
     ~H"""
     <div class="flex items-start justify-between gap-3 mb-6">
-      <h2 class="text-xl font-bold tracking-tight text-base-content/50">{@title}</h2>
+      <h2 class="text-xl font-bold tracking-tight text-base-content">{@title}</h2>
       <img src={@logo_src} alt={@logo_alt} class="h-6 w-auto shrink-0" />
     </div>
     """

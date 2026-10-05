@@ -2137,6 +2137,69 @@
     @apply border-t-4 border-neutral-300 dark:border-neutral-600;
   }
 
+  /*
+   * Consumer mobile shell. Scoped to `.mobile-shell` so Admin (whose light/dark
+   * themes also come from nexus.css) and embedded widgets keep their current look.
+   */
+  [data-theme="light"] .mobile-shell {
+    --color-base-100: #ffffff;
+  }
+
+  /* Neutral greys in place of Phoenix's default blue-grey; canvas (base-300) and black panels unchanged. */
+  [data-theme="dark"] .mobile-shell {
+    --color-base-100: #2e2e30;
+    --color-base-200: #222224;
+    --color-base-content: #f2f2f4;
+    --color-neutral: #3a3a3c;
+  }
+
+  /* Flat panels: a hairline edge instead of the 4px accent bar. */
+  .mobile-shell .surface-panel {
+    border-width: 1px;
+    border-color: color-mix(in oklab, var(--color-base-content) 7%, transparent);
+  }
+
+  /* Header chips (wallet balance, MeFile tag count): neutral, fixed-width digits. */
+  .mobile-shell .wallet-balance-pill,
+  .header-count-chip {
+    @apply rounded-full border text-base-content tabular-amount;
+    background-color: var(--color-base-100);
+    border-color: color-mix(in oklab, var(--color-base-content) 12%, transparent);
+  }
+
+  html[data-theme="dark"] .mobile-shell .wallet-balance-pill,
+  html[data-theme="dark"] .header-count-chip {
+    background-color: #000000;
+  }
+
+  .mobile-shell .wallet-balance-pill--default {
+    @apply px-3.5 py-1.5 text-base;
+  }
+
+  /* Ledger amounts read "+$0.10" with the sign attached; Admin keeps the badge. */
+  /* !important: DaisyUI's .badge display otherwise wins over this layer. */
+  .mobile-shell .ledger-sign-badge {
+    display: none !important;
+  }
+
+  .mobile-shell .ledger-amount,
+  .mobile-shell .ledger-running-balance {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  /* inline-flex drops the template whitespace between the ::before sign and the amount. */
+  .mobile-shell .ledger-amount {
+    display: inline-flex;
+  }
+
+  .mobile-shell .ledger-amount--credit::before {
+    content: "+";
+  }
+
+  .mobile-shell .ledger-amount--debit::before {
+    content: "\2212";
+  }
+
   .surface-panel--padded {
     @apply p-4;
   }
@@ -2144,18 +2207,6 @@
   /* Home dashboard stat cards (/home) */
   .home-stat-card.surface-panel--padded {
     @apply px-5 py-6;
-  }
-
-  .home-stat-card--youdata.surface-panel {
-    @apply border-t-youdata-400 dark:border-t-youdata-400;
-  }
-
-  .home-stat-card--sponster.surface-panel {
-    @apply border-t-sponster-400 dark:border-t-sponster-500;
-  }
-
-  .home-stat-card--tiqit.surface-panel {
-    @apply border-t-tiqit-400 dark:border-t-tiqit-400;
   }
 
   .home-stat {
@@ -2180,10 +2231,6 @@
 
   .home-stat-grid--4 {
     @apply grid grid-cols-4 gap-x-3 gap-y-2 sm:gap-x-4;
-  }
-
-  .home-stat-card--wallet.surface-panel {
-    @apply border-t-sponster-400 dark:border-t-sponster-500;
   }
 
   .wallet-equation {

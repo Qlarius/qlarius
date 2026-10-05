@@ -14,7 +14,7 @@ defmodule QlariusWeb.Components.StrongStartComponent do
     <div class="surface-panel surface-panel--padded mb-4">
       <%!-- Header --%>
       <div class="flex justify-between items-center gap-3 mb-2">
-        <h2 class="text-xl font-bold tracking-tight text-base-content/50 min-w-0">
+        <h2 class="text-xl font-bold tracking-tight text-base-content min-w-0">
           Do these first.
         </h2>
         <div class="flex items-center gap-2 shrink-0">
