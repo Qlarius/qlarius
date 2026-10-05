@@ -409,12 +409,15 @@ defmodule QlariusWeb.Layouts do
         overflow: hidden;
       }
 
+      /* clip, not just hidden: a hidden box can still be scrolled by focus
+         (e.g. opening a dropdown), which slid the slide-over panel into view. */
       .slide-panels {
         flex: 1;
         min-height: 0;
         position: relative;
         width: 100%;
         overflow: hidden;
+        overflow: clip;
         z-index: 10;
       }
 
@@ -436,6 +439,7 @@ defmodule QlariusWeb.Layouts do
         flex: 0 0 50%;
         height: 100%;
         overflow: hidden;
+        overflow: clip;
       }
       .slide-panels .panel-scroll {
         position: relative;
