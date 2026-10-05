@@ -222,8 +222,7 @@ defmodule QlariusWeb.TiqitLive do
     do: "badge badge-sm ml-2 rounded px-2 py-3 !border-0 !bg-warning !text-warning-content"
 
   defp pill_count_badge_class(:neutral),
-    do:
-      "stash-pill-count-neutral badge badge-sm ml-2 rounded px-2 py-3 !border-0"
+    do: "stash-pill-count-neutral badge badge-sm ml-2 rounded px-2 py-3 !border-0"
 
   defp parse_status(nil), do: :all
   defp parse_status(s) when s in @valid_statuses, do: String.to_existing_atom(s)
@@ -272,7 +271,7 @@ defmodule QlariusWeb.TiqitLive do
                 You haven't gifted any content yet.
               </p>
             <% else %>
-              <div class="tiqit-stash-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch">
+              <div class="tiqit-stash-grid grid grid-cols-[repeat(auto-fill,minmax(min(19rem,100%),1fr))] gap-6 items-stretch">
                 <.tiqit_detail_card
                   :for={gift <- @gifts}
                   gift={gift}
@@ -281,51 +280,51 @@ defmodule QlariusWeb.TiqitLive do
               </div>
             <% end %>
           <% else %>
-          <%= if @status_filter == :fleeted do %>
-            <.surface_panel class="text-center">
-              <div class="text-4xl font-bold mb-2">
-                {@fleeted_count + @undone_count}
-              </div>
-              <div class="text-base-content/60 mb-4">
-                tiqits have been fleeted
-              </div>
-              <div class="flex justify-center gap-6 mb-4">
-                <div class="text-center">
-                  <div class="text-2xl font-bold">{@fleeted_count}</div>
-                  <div class="text-xs text-base-content/50">fleeted</div>
+            <%= if @status_filter == :fleeted do %>
+              <.surface_panel class="text-center">
+                <div class="text-4xl font-bold mb-2">
+                  {@fleeted_count + @undone_count}
                 </div>
-                <div class="text-center">
-                  <div class="text-2xl font-bold">{@undone_count}</div>
-                  <div class="text-xs text-base-content/50">refunded</div>
+                <div class="text-base-content/60 mb-4">
+                  tiqits have been fleeted
                 </div>
-              </div>
-              <p class="text-sm text-base-content/40 max-w-sm mx-auto">
-                Fleeted tiqits have been permanently disconnected from your account.
-                No details are retrievable. (That's the point.)
-              </p>
-            </.surface_panel>
-          <% else %>
-            <%= if stash_empty?(assigns) do %>
-              <p class="mobile-page-intro text-center py-8">
-                No tiqits found for this filter.
-              </p>
+                <div class="flex justify-center gap-6 mb-4">
+                  <div class="text-center">
+                    <div class="text-2xl font-bold">{@fleeted_count}</div>
+                    <div class="text-xs text-base-content/50">fleeted</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-2xl font-bold">{@undone_count}</div>
+                    <div class="text-xs text-base-content/50">refunded</div>
+                  </div>
+                </div>
+                <p class="text-sm text-base-content/40 max-w-sm mx-auto">
+                  Fleeted tiqits have been permanently disconnected from your account.
+                  No details are retrievable. (That's the point.)
+                </p>
+              </.surface_panel>
             <% else %>
-              <div class="tiqit-stash-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch">
-                <.tiqit_detail_card
-                  :for={tiqit <- @tiqits}
-                  tiqit={tiqit}
-                  user={@current_scope.user}
-                  fleet_after_hours={@fleet_after_hours}
-                />
-                <.tiqit_detail_card
-                  :for={gift <- @gifts}
-                  :if={@status_filter == :all}
-                  gift={gift}
-                  user={@current_scope.user}
-                />
-              </div>
+              <%= if stash_empty?(assigns) do %>
+                <p class="mobile-page-intro text-center py-8">
+                  No tiqits found for this filter.
+                </p>
+              <% else %>
+                <div class="tiqit-stash-grid grid grid-cols-[repeat(auto-fill,minmax(min(19rem,100%),1fr))] gap-6 items-stretch">
+                  <.tiqit_detail_card
+                    :for={tiqit <- @tiqits}
+                    tiqit={tiqit}
+                    user={@current_scope.user}
+                    fleet_after_hours={@fleet_after_hours}
+                  />
+                  <.tiqit_detail_card
+                    :for={gift <- @gifts}
+                    :if={@status_filter == :all}
+                    gift={gift}
+                    user={@current_scope.user}
+                  />
+                </div>
+              <% end %>
             <% end %>
-          <% end %>
           <% end %>
         </div>
       </Layouts.mobile>

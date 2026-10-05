@@ -5,7 +5,7 @@ defmodule QlariusWeb.LayoutsShellWidthTest do
 
   describe "shell_width/2" do
     test "grid screens get the wide column" do
-      for path <- ~w(/home /me_file_builder /arqade /arqade/creator/1 /content/9) do
+      for path <- ~w(/home /me_file_builder /arqade /arqade/creator/1 /content/9 /tiqits) do
         assert Layouts.shell_width(path, nil) == "wide", path
       end
     end
