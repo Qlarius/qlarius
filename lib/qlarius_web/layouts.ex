@@ -111,7 +111,7 @@ defmodule QlariusWeb.Layouts do
       aria-label={@name}
     >
       <div class="mobile-menu-brand__head">
-        <img src={@logo} alt={@name} class="h-[15px] w-auto" />
+        <img src={@logo} alt={@name} class="h-[18px] w-auto" />
         <span>{@tagline}</span>
       </div>
       <div class="mobile-menu-brand__tiles">
