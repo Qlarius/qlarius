@@ -52,6 +52,15 @@ The consumer shell covers phones, iPads and desktop browsers. Breakpoints are wi
 - 3-tap ads keep their own 470px cap, so they stay phone-sized everywhere.
 - Fixed floating elements follow the column, not the window: `#mefile-floating-toolbar` and `#discovery-view-toolbar` use `--shell-gutter-right`; `#onboarding-tip`, `.split-reminder-tip` and the video collection drawer shift past the docked sidebar. New fixed elements inside the shell need the same treatment.
 
+## Side menu
+
+`layouts/mobile_sidebar.html.heex` is the same component as the phone/iPad drawer and the docked desktop sidebar. It is a grid, not a list:
+
+- **Everyday tiles** (`Layouts.mobile_menu_tile/1`): Home, Wallet (spendable balance), Qai. Neutral `base-200` tiles; the active one gets a 1.5px `primary` ring.
+- **Product cards** (`Layouts.mobile_menu_brand/1`): one per brand, YouData, Sponster, Tiqit, each with its wordmark, tagline and two branded tiles (MeFile/Builder, Ads/Referrals, Stash/Arqade). The card sets `--brand` (tint, from the brand 500) and optionally `--brand-chip` (icon chip; Tiqit uses 600 so white icons stay legible). The active branded tile gets a ring in its brand colour.
+- Tiles show a live figure from `current_scope` where one exists (tag count, ads and offered amount, active tiqits). New destinations go into the right product card as another tile.
+- Settings is a gear button in the profile header, beside close (account-level, and it keeps the footer uncrowded). The footer holds only the appearance switch and Log out. The profile avatar uses the colour squares mark (`qadabra_logo_squares_color.svg`); long aliases wrap rather than truncate.
+
 ## Mobile shell tokens
 
 `.mobile-shell` (in `Layouts.mobile`) redefines a few DaisyUI tokens for the consumer app only, so Admin (whose light/dark themes also come from `nexus.css`) and embedded widgets are unaffected:

@@ -56,35 +56,68 @@ defmodule QlariusWeb.Layouts do
     end
   end
 
-  @doc "Row in the mobile side menu: line icon, label, optional trailing value."
+  @doc """
+  Tile in the mobile side menu. Plain tiles show a line icon; tiles inside a
+  `mobile_menu_brand/1` card set `branded` and pick up the card's `--brand` colour
+  for their icon chip.
+  """
   attr :navigate, :string, required: true
   attr :icon, :string, required: true
   attr :label, :string, required: true
+  attr :meta, :string, default: nil
   attr :active, :boolean, default: false
-  slot :trailing
+  attr :branded, :boolean, default: false
 
-  def mobile_menu_item(assigns) do
+  def mobile_menu_tile(assigns) do
     ~H"""
-    <li>
-      <.link
-        navigate={@navigate}
-        aria-current={@active && "page"}
-        class={[
-          "flex items-center gap-3.5 h-11 px-3 rounded-xl text-[15px] text-base-content transition-colors",
-          if(@active, do: "bg-base-200 font-semibold", else: "font-medium hover:bg-base-200/70")
-        ]}
-      >
-        <.icon
-          name={@icon}
-          class={[
-            "h-[22px] w-[22px] shrink-0",
-            if(@active, do: "text-primary", else: "text-base-content/60")
-          ]}
-        />
-        <span class="flex-1 min-w-0 truncate">{@label}</span>
-        {render_slot(@trailing)}
-      </.link>
-    </li>
+    <.link
+      navigate={@navigate}
+      aria-current={@active && "page"}
+      class={[
+        "mobile-menu-tile",
+        @branded && "mobile-menu-tile--branded",
+        @active && "mobile-menu-tile--active"
+      ]}
+    >
+      <span :if={@branded} class="mobile-menu-chip">
+        <.icon name={@icon} class="h-4 w-4" />
+      </span>
+      <.icon :if={!@branded} name={@icon} class="mobile-menu-tile__icon h-5 w-5" />
+      <span class="min-w-0">
+        <span class="mobile-menu-tile__label">{@label}</span>
+        <span :if={@meta} class="mobile-menu-tile__meta">{@meta}</span>
+      </span>
+    </.link>
+    """
+  end
+
+  @doc "Product card in the mobile side menu: wordmark, tagline and two branded tiles."
+  attr :logo, :string, required: true
+  attr :name, :string, required: true
+  attr :tagline, :string, required: true
+  attr :color, :string, required: true, doc: "CSS colour for the card tint (and chips by default)"
+
+  attr :chip_color, :string,
+    default: nil,
+    doc: "Darker chip colour when white icons need contrast"
+
+  slot :inner_block, required: true
+
+  def mobile_menu_brand(assigns) do
+    ~H"""
+    <section
+      class="mobile-menu-brand"
+      style={"--brand: #{@color}; --brand-chip: #{@chip_color || @color}"}
+      aria-label={@name}
+    >
+      <div class="mobile-menu-brand__head">
+        <img src={@logo} alt={@name} class="h-[15px] w-auto" />
+        <span>{@tagline}</span>
+      </div>
+      <div class="mobile-menu-brand__tiles">
+        {render_slot(@inner_block)}
+      </div>
+    </section>
     """
   end
 

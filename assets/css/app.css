@@ -2176,10 +2176,92 @@
     @apply px-3.5 py-1.5 text-base;
   }
 
-  /* Quiet count beside a mobile side-menu row. */
-  .mobile-menu-count {
-    @apply min-w-6 rounded-md px-1.5 py-0.5 text-center text-xs font-semibold text-base-content tabular-amount;
-    background-color: color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  /*
+   * Side menu (Layouts.mobile_menu_tile / mobile_menu_brand): neutral tiles for
+   * everyday places, then one tinted card per product with branded tiles.
+   * --menu-surface matches the drawer fill (white, or black in dark like panels).
+   */
+  #sponster-sidebar {
+    --menu-surface: var(--color-base-100);
+  }
+
+  html[data-theme="dark"] #sponster-sidebar {
+    --menu-surface: #000000;
+  }
+
+  .mobile-menu-tile {
+    @apply flex flex-col justify-between gap-2 rounded-[14px] p-2.5 min-h-[4.125rem] text-base-content transition-colors;
+    background-color: var(--color-base-200);
+  }
+
+  .mobile-menu-tile:hover {
+    background-color: color-mix(in oklab, var(--color-base-content) 10%, var(--menu-surface));
+  }
+
+  .mobile-menu-tile__icon {
+    color: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+  }
+
+  .mobile-menu-tile__label {
+    @apply block text-[13.5px] font-semibold leading-tight tracking-tight;
+  }
+
+  .mobile-menu-tile__meta {
+    @apply mt-0.5 block truncate text-[11.5px] leading-tight tabular-amount;
+    color: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+  }
+
+  .mobile-menu-tile--active {
+    box-shadow: inset 0 0 0 1.5px var(--color-primary);
+  }
+
+  .mobile-menu-tile--active .mobile-menu-tile__icon {
+    color: var(--color-primary);
+  }
+
+  .mobile-menu-tile--branded {
+    min-height: 4.625rem;
+    background-color: var(--menu-surface);
+    border: 1px solid color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  }
+
+  .mobile-menu-tile--branded:hover {
+    background-color: color-mix(in oklab, var(--brand) 6%, var(--menu-surface));
+  }
+
+  .mobile-menu-tile--branded.mobile-menu-tile--active {
+    box-shadow: inset 0 0 0 1.5px var(--brand);
+  }
+
+  .mobile-menu-chip {
+    @apply flex h-7 w-7 items-center justify-center rounded-lg text-white;
+    background-color: var(--brand-chip, var(--brand));
+  }
+
+  .mobile-menu-brand {
+    @apply rounded-[18px] p-[9px];
+    background-color: color-mix(in oklab, var(--brand) 11%, var(--menu-surface));
+    border: 1px solid color-mix(in oklab, var(--brand) 22%, transparent);
+  }
+
+  /* Dark mode: mixing toward the black drawer crushes the tint, so mix into a
+     dark grey instead (as in the mockups) and strengthen the brand border. */
+  html[data-theme="dark"] .mobile-menu-brand {
+    background-color: color-mix(in oklab, var(--brand) 18%, #18181a);
+    border-color: color-mix(in oklab, var(--brand) 34%, transparent);
+  }
+
+  .mobile-menu-brand__head {
+    @apply flex items-center justify-between gap-2 px-1 pt-0.5 pb-2;
+  }
+
+  .mobile-menu-brand__head span {
+    @apply text-[11.5px];
+    color: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+  }
+
+  .mobile-menu-brand__tiles {
+    @apply grid grid-cols-2 gap-[7px];
   }
 
   /* Ledger amounts read "+$0.10" with the sign attached; Admin keeps the badge. */

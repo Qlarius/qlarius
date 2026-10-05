@@ -16,161 +16,159 @@
   <%!-- Profile --%>
   <div class="shrink-0 flex items-start gap-3 px-5 pt-5 pb-3">
     <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-base-200">
-      <img src="/images/qlarius_logo_squares.svg" class="h-5 w-auto" alt="" />
+      <img src="/images/qadabra_logo_squares_color.svg" class="h-6 w-auto" alt="" />
     </div>
     <div class="min-w-0 flex-1 pt-0.5">
-      <div class="font-semibold text-base-content truncate" data-app-target="mobileNumber">
+      <div class="font-semibold leading-snug text-base-content break-words">
         {@current_scope.user.alias}
       </div>
       <div class="mt-0.5 flex items-center gap-1 text-sm text-base-content/60">
         <.icon name="hero-map-pin" class="h-4 w-4" />
-        <span data-app-target="homeZip">{@current_scope.home_zip}</span>
+        <span>{@current_scope.home_zip}</span>
       </div>
     </div>
-    <button
-      type="button"
-      phx-click={toggle_sponster_sidebar(:off)}
-      class="shell-menu-close flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-base-200 text-base-content/60 hover:text-base-content cursor-pointer"
-      aria-label="Close menu"
-    >
-      <.icon name="hero-x-mark" class="h-4 w-4" />
-    </button>
+    <div class="flex shrink-0 items-center gap-1.5">
+      <%!-- Settings lives with the profile: it's account-level, and it frees the footer --%>
+      <.link
+        navigate={~p"/settings"}
+        aria-label="Settings"
+        aria-current={mobile_menu_active?(assigns[:current_path], "/settings") && "page"}
+        class={[
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+          if(mobile_menu_active?(assigns[:current_path], "/settings"),
+            do: "bg-primary/15 text-primary",
+            else: "bg-base-200 text-base-content/60 hover:text-base-content"
+          )
+        ]}
+      >
+        <.icon name="hero-cog-6-tooth" class="h-[18px] w-[18px]" />
+      </.link>
+      <button
+        type="button"
+        phx-click={toggle_sponster_sidebar(:off)}
+        class="shell-menu-close flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-base-200 text-base-content/60 hover:text-base-content cursor-pointer"
+        aria-label="Close menu"
+      >
+        <.icon name="hero-x-mark" class="h-4 w-4" />
+      </button>
+    </div>
   </div>
 
-  <%!-- Destinations: the only scroll region in the drawer --%>
-  <nav class="flex-1 min-h-0 overflow-y-auto px-3 pb-2" aria-label="Menu">
-    <ul class="space-y-0.5">
-      <.mobile_menu_item
+  <%!-- Everyday places, then one card per product. The only scroll region in the drawer. --%>
+  <nav class="flex-1 min-h-0 overflow-y-auto px-3 pb-3 flex flex-col gap-2.5" aria-label="Menu">
+    <div class="grid grid-cols-3 gap-2">
+      <.mobile_menu_tile
         navigate={~p"/home"}
         icon="hero-home"
         label="Home"
         active={mobile_menu_active?(assigns[:current_path], "/home")}
       />
-      <.mobile_menu_item
+      <.mobile_menu_tile
         navigate={~p"/wallet"}
         icon="hero-wallet"
         label="Wallet"
+        meta={format_usd(@current_scope.wallet_balance)}
         active={mobile_menu_active?(assigns[:current_path], "/wallet")}
-      >
-        <:trailing>
-          <span class="text-sm text-base-content/60 tabular-amount" data-app-target="balance">
-            {format_usd(@current_scope.wallet_balance)}
-          </span>
-        </:trailing>
-      </.mobile_menu_item>
-      <.mobile_menu_item
+      />
+      <.mobile_menu_tile
         navigate={~p"/qai"}
         icon="hero-sparkles"
         label="Qai"
+        meta="Ask anything"
         active={mobile_menu_active?(assigns[:current_path], "/qai")}
       />
-      <.mobile_menu_item
-        navigate={~p"/referrals"}
-        icon="hero-user-group"
-        label="Referrals"
-        active={mobile_menu_active?(assigns[:current_path], "/referrals")}
-      >
-        <:trailing :if={@current_scope.pending_referral_clicks_count > 0}>
-          <span class="mobile-menu-count" data-app-target="pendingReferralClicks">
-            {@current_scope.pending_referral_clicks_count}
-          </span>
-        </:trailing>
-      </.mobile_menu_item>
-    </ul>
-
-    <div class="px-3 pt-5 pb-1.5">
-      <img src="/images/YouData_logo_color_horiz.svg" class="h-3.5 w-auto" alt="YouData" />
     </div>
-    <ul class="space-y-0.5">
-      <.mobile_menu_item
+
+    <.mobile_menu_brand
+      logo="/images/YouData_logo_color_horiz.svg"
+      name="YouData"
+      tagline="Own your data."
+      color="var(--color-youdata-500)"
+    >
+      <.mobile_menu_tile
         navigate={~p"/me_file"}
         icon="hero-identification"
         label="MeFile"
+        meta={"#{@current_scope.trait_count || 0} #{if @current_scope.trait_count == 1, do: "tag", else: "tags"}"}
         active={mobile_menu_active?(assigns[:current_path], "/me_file")}
-      >
-        <:trailing>
-          <span class="mobile-menu-count" data-app-target="traitCount">
-            {@current_scope.trait_count}
-          </span>
-        </:trailing>
-      </.mobile_menu_item>
-      <.mobile_menu_item
+        branded
+      />
+      <.mobile_menu_tile
         navigate={~p"/me_file_builder"}
         icon="hero-wrench-screwdriver"
         label="Builder"
+        meta="Add tags"
         active={mobile_menu_active?(assigns[:current_path], "/me_file_builder")}
+        branded
       />
-    </ul>
+    </.mobile_menu_brand>
 
-    <div class="px-3 pt-5 pb-1.5">
-      <img src="/images/Sponster_logo_color_horiz.svg" class="h-3.5 w-auto" alt="Sponster" />
-    </div>
-    <ul class="space-y-0.5">
-      <.mobile_menu_item
+    <.mobile_menu_brand
+      logo="/images/Sponster_logo_color_horiz.svg"
+      name="Sponster"
+      tagline="Sell your attention."
+      color="var(--color-sponster-500)"
+    >
+      <.mobile_menu_tile
         navigate={~p"/ads"}
-        icon="hero-eye"
+        icon="hero-play"
         label="Ads"
+        meta={"#{@current_scope.ads_count || 0} · #{format_usd(@current_scope.offered_amount)}"}
         active={mobile_menu_active?(assigns[:current_path], "/ads")}
-      >
-        <:trailing>
-          <span class="mobile-menu-count" data-app-target="offerCount">
-            {@current_scope.ads_count}
-          </span>
-        </:trailing>
-      </.mobile_menu_item>
-    </ul>
+        branded
+      />
+      <.mobile_menu_tile
+        navigate={~p"/referrals"}
+        icon="hero-user-group"
+        label="Referrals"
+        meta={
+          if (@current_scope.pending_referral_clicks_count || 0) > 0,
+            do: "#{@current_scope.pending_referral_clicks_count} new",
+            else: "Invite friends"
+        }
+        active={mobile_menu_active?(assigns[:current_path], "/referrals")}
+        branded
+      />
+    </.mobile_menu_brand>
 
-    <div class="px-3 pt-5 pb-1.5">
-      <img src="/images/Tiqit_logo_color_horiz.svg" class="h-3.5 w-auto" alt="Tiqit" />
-    </div>
-    <ul class="space-y-0.5">
-      <.mobile_menu_item
+    <.mobile_menu_brand
+      logo="/images/Tiqit_logo_color_horiz.svg"
+      name="Tiqit"
+      tagline="Buy your media."
+      color="var(--color-tiqit-500)"
+      chip_color="var(--color-tiqit-600)"
+    >
+      <.mobile_menu_tile
         navigate={~p"/tiqits"}
         icon="hero-ticket"
         label="Stash"
+        meta={"#{@current_scope.active_tiqit_count || 0} active"}
         active={mobile_menu_active?(assigns[:current_path], "/tiqits")}
-      >
-        <:trailing :if={@current_scope && @current_scope.active_tiqit_count > 0}>
-          <span class="mobile-menu-count">{@current_scope.active_tiqit_count}</span>
-        </:trailing>
-      </.mobile_menu_item>
-      <.mobile_menu_item
+        branded
+      />
+      <.mobile_menu_tile
         navigate={~p"/arqade"}
         icon="hero-play-circle"
         label="Arqade"
+        meta="Browse"
         active={mobile_menu_active?(assigns[:current_path], "/arqade")}
+        branded
       />
-    </ul>
+    </.mobile_menu_brand>
   </nav>
 
-  <%!-- Appearance, settings, log out --%>
+  <%!-- Appearance and log out --%>
   <div
-    class="shrink-0 border-t border-base-content/10 px-3 pt-2"
+    class="shrink-0 border-t border-base-content/10 px-4 pt-2.5 flex items-center justify-between gap-2"
     style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));"
   >
-    <div class="flex items-center justify-between h-11 px-3 text-[15px] font-medium text-base-content">
-      <span>Appearance</span>
-      <Layouts.theme_toggle />
-    </div>
-    <ul class="space-y-0.5">
-      <.mobile_menu_item
-        navigate={~p"/settings"}
-        icon="hero-cog-6-tooth"
-        label="Settings"
-        active={mobile_menu_active?(assigns[:current_path], "/settings")}
-      />
-      <li>
-        <button
-          type="button"
-          phx-click="show_logout_modal"
-          class="flex w-full items-center gap-3.5 h-11 px-3 rounded-xl text-[15px] font-medium text-base-content/70 hover:bg-base-200/70 cursor-pointer"
-        >
-          <.icon
-            name="hero-arrow-right-on-rectangle"
-            class="h-[22px] w-[22px] shrink-0 text-base-content/60"
-          /> Log out
-        </button>
-      </li>
-    </ul>
+    <Layouts.theme_toggle />
+    <button
+      type="button"
+      phx-click="show_logout_modal"
+      class="inline-flex items-center gap-1.5 text-sm font-medium text-base-content/70 hover:text-base-content cursor-pointer"
+    >
+      <.icon name="hero-arrow-right-on-rectangle" class="h-5 w-5" /> Log out
+    </button>
   </div>
 </div>
