@@ -22,7 +22,7 @@ defmodule QlariusWeb.TiqitLive do
     socket =
       socket
       |> assign(:current_path, "/tiqits")
-      |> assign(:title, "Tiqits")
+      |> assign(:title, "Stash")
       |> assign(:status_filter, status)
       |> assign(:tiqits, tiqits)
       |> assign(:gifts, load_gifts(scope, status))
