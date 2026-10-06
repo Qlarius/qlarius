@@ -10,9 +10,8 @@ defmodule QlariusWeb.LayoutsShellWidthTest do
       end
     end
 
-    test "MeFile is wide in Tags and Blocks, column in List" do
+    test "MeFile is wide in Tags and a column in List" do
       assert Layouts.shell_width("/me_file", "tag") == "wide"
-      assert Layouts.shell_width("/me_file", "block") == "wide"
       assert Layouts.shell_width("/me_file", "list") == "column"
       assert Layouts.shell_width("/me_file", nil) == "column"
     end

@@ -13,11 +13,6 @@ defmodule Qlarius.YouData.MeFiles.MeFileTagDisplayModeTest do
       assert {:ok, _} = MeFiles.update_tag_display_mode(stale, "list")
 
       assert Repo.get!(MeFile, stale.id).tag_display_mode == "list"
-
-      assert {:ok, _} = MeFiles.update_tag_display_mode(stale, "block")
-      assert {:ok, _} = MeFiles.update_tag_display_mode(stale, "list")
-
-      assert Repo.get!(MeFile, stale.id).tag_display_mode == "list"
     end
   end
 end

@@ -124,12 +124,12 @@ defmodule QlariusWeb.Layouts do
   @doc """
   Content column width for the consumer shell on tablet and desktop widths
   (see the responsive shell block in app.css). Screens that fill a grid get the
-  wide column: Home, Builder, Arqade, Stash, and MeFile unless it's in List mode
-  (which keeps its own narrower reading width).
+  wide column: Home, Builder, Arqade, Stash, and MeFile in Tags mode.
+  MeFile in List mode keeps its narrower reading width.
   """
   def shell_width(path, tag_display_mode \\ nil)
 
-  def shell_width("/me_file", mode) when mode in ~w(tag block), do: "wide"
+  def shell_width("/me_file", "tag"), do: "wide"
   def shell_width("/me_file", _mode), do: "column"
 
   def shell_width(path, _mode) when is_binary(path) do
@@ -269,7 +269,13 @@ defmodule QlariusWeb.Layouts do
     <.onboarding_tip :if={@current_scope} current_path={@current_path} current_scope={@current_scope} />
 
     <%!-- PWA detection for redirect to /hi (no in-app install UI) --%>
-    <div :if={@current_scope} phx-hook="PWAInstall" id="pwa-install-hook" class="hidden" aria-hidden="true" />
+    <div
+      :if={@current_scope}
+      phx-hook="PWAInstall"
+      id="pwa-install-hook"
+      class="hidden"
+      aria-hidden="true"
+    />
 
     <%!-- bottom dock with correct daisyUI structure and custom positioned indicators --%>
     <div :if={@current_scope} class="dock z-40">

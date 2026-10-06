@@ -43,13 +43,21 @@ defmodule QlariusWeb.MeFileHTML do
   attr :zip_lookup_input, :string, default: ""
   attr :zip_lookup_trait, :any, default: nil
   attr :zip_lookup_valid, :boolean, default: false
+
+  attr :current_values, :list,
+    default: [],
+    doc: "Values already on file, shown until a new zip is looked up"
+
   attr :zip_lookup_error, :string, default: nil
   attr :dual_pane, :boolean, default: false
   attr :show_expanded_tags, :boolean, default: false
   attr :is_pwa, :boolean, default: false
 
   def tag_edit_modal(assigns) do
-    assigns = assign(assigns, :skip_child, modal_skip_child(assigns.trait_in_edit))
+    assigns =
+      assigns
+      |> assign(:skip_child, modal_skip_child(assigns.trait_in_edit))
+      |> assign(:edit_values, edit_tag_values(assigns))
 
     ~H"""
     <div
@@ -68,23 +76,34 @@ defmodule QlariusWeb.MeFileHTML do
       <div class={[
         "tag-edit-modal__box modal-box flex flex-col bg-base-100 p-0 overflow-hidden",
         "w-full max-w-4xl mx-auto",
-        "border-x border-b border-youdata-200 dark:border-base-content/10",
+        "border-x border-b border-base-content/10",
         @is_pwa && "max-h-[calc(90vh-env(safe-area-inset-top))]",
         !@is_pwa && "max-h-[90vh]"
       ]}>
-        <%!-- Trait-card style header --%>
-        <div class="border-t-4 border-youdata-500 bg-base-300/50 dark:bg-base-700/45 shrink-0 px-4 py-3 flex flex-row justify-between items-center gap-3">
-          <h3 class="min-w-0 text-lg font-bold leading-tight text-youdata-800 dark:text-youdata-200">
-            {if @trait_in_edit, do: @trait_in_edit.trait_name, else: "Edit Trait"}
-          </h3>
-          <button
-            type="button"
-            phx-click="close_modal"
-            class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-base-200 dark:bg-base-300/70 border border-base-300/80 dark:border-base-content/10 text-base-content/60 hover:text-base-content hover:bg-base-300 dark:hover:bg-base-300/90 transition-colors"
-            aria-label="Close"
-          >
-            <.icon name="hero-x-mark" class="h-5 w-5" />
-          </button>
+        <%!-- The tag being edited: same element as the Tags view, values update as boxes change --%>
+        <div class="tag-edit-head shrink-0">
+          <div class="flex items-center justify-between gap-3">
+            <h3 class="tag-edit-head__title">Edit tag</h3>
+            <button
+              type="button"
+              phx-click="close_modal"
+              class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-base-200 text-base-content/60 hover:text-base-content transition-colors"
+              aria-label="Close"
+            >
+              <.icon name="hero-x-mark" class="h-5 w-5" />
+            </button>
+          </div>
+          <div :if={@trait_in_edit} class="trait-tag trait-tag--wide" aria-live="polite">
+            <span class="trait-tag__name">{@trait_in_edit.trait_name}</span>
+            <span :if={@edit_values != []} class="trait-tag__values">
+              {Enum.join(@edit_values, " · ")}
+            </span>
+            <span :if={@edit_values == []} class="trait-tag__empty">
+              {if @trait_in_edit.input_type == "single_select_zip",
+                do: "Enter a zip code below.",
+                else: "Nothing selected yet."}
+            </span>
+          </div>
         </div>
 
         <%!-- Expandable content area --%>
@@ -200,7 +219,7 @@ defmodule QlariusWeb.MeFileHTML do
                     data-tag-option-row
                     data-tag-option-text={Targeting.tag_option_search_text(child_trait)}
                     class={[
-                      "flex gap-3 [&:not(:last-child)]:border-b border-dashed border-base-content/10 py-4 px-2 hover:bg-base-200 cursor-pointer",
+                      "flex gap-3 [&:not(:last-child)]:border-b border-base-content/10 py-3.5 px-1 hover:bg-base-200/60 cursor-pointer",
                       @show_expanded_tags && "items-start",
                       !@show_expanded_tags && "items-center"
                     ]}
@@ -212,7 +231,7 @@ defmodule QlariusWeb.MeFileHTML do
                       value={child_trait.id}
                       id={"trait-#{child_trait.id}"}
                       checked={child_trait.id in @selected_ids}
-                      class={["radio w-7 h-7 shrink-0", @show_expanded_tags && "mt-1"]}
+                      class={["radio radio-primary w-6 h-6 shrink-0", @show_expanded_tags && "mt-1"]}
                     />
                     <input
                       :if={@trait_in_edit.input_type == "multi_select"}
@@ -221,7 +240,10 @@ defmodule QlariusWeb.MeFileHTML do
                       value={child_trait.id}
                       id={"trait-#{child_trait.id}"}
                       checked={child_trait.id in @selected_ids}
-                      class={["checkbox w-7 h-7 shrink-0", @show_expanded_tags && "mt-1"]}
+                      class={[
+                        "checkbox checkbox-primary w-6 h-6 shrink-0",
+                        @show_expanded_tags && "mt-1"
+                      ]}
                     />
                     <div class="flex-1 min-w-0">
                       <div class="text-lg text-base-content font-medium break-words">
@@ -436,7 +458,7 @@ defmodule QlariusWeb.MeFileHTML do
         </div>
 
         <div class="flex flex-row items-center justify-end gap-2">
-          <%!-- One capsule: search, then the three views selected in a single tap --%>
+          <%!-- One capsule: search, then the two views selected in a single tap --%>
           <div class="mefile-toolbar" role="group" aria-label="Tag tools">
             <button
               :if={@show_search}
@@ -450,7 +472,7 @@ defmodule QlariusWeb.MeFileHTML do
             </button>
             <span :if={@show_search} class="mefile-toolbar__sep" aria-hidden="true"></span>
             <button
-              :for={mode <- ~w(list tag block)}
+              :for={mode <- ~w(list tag)}
               type="button"
               phx-click="set_tag_display_mode"
               phx-value-mode={mode}
@@ -544,44 +566,9 @@ defmodule QlariusWeb.MeFileHTML do
             </button>
           </li>
         </ul>
-      <% "block" -> %>
-        <div class={[
-          "grid gap-3",
-          @inset_class,
-          block_grid_cols_class(@readonly)
-        ]}>
-          <.trait_card
-            :for={
-              {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
-                @parent_traits
-            }
-            parent_trait_id={parent_trait_id}
-            parent_trait_name={parent_trait_name}
-            tags_traits={tags_traits}
-            clickable={!@readonly}
-            editable={!@readonly}
-            nav_indicator={if(@readonly, do: "none", else: "chevron")}
-            display_mode="block"
-            extra_classes={if(@readonly, do: "h-full !shadow-none", else: "h-full")}
-            skip_trait_id={
-              inline_skip_id(
-                @skip_child_ids,
-                parent_trait_id,
-                parent_trait_name,
-                tags_traits,
-                @readonly
-              )
-            }
-          />
-        </div>
       <% _ -> %>
-        <div class={[
-          "flex flex-row flex-wrap",
-          @inset_class,
-          @readonly && "gap-3",
-          !@readonly && "gap-4"
-        ]}>
-          <.trait_card
+        <div class={["flex flex-row flex-wrap gap-2", @inset_class]}>
+          <.trait_tag
             :for={
               {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
                 @parent_traits
@@ -589,11 +576,7 @@ defmodule QlariusWeb.MeFileHTML do
             parent_trait_id={parent_trait_id}
             parent_trait_name={parent_trait_name}
             tags_traits={tags_traits}
-            clickable={!@readonly}
             editable={!@readonly}
-            nav_indicator={if(@readonly, do: "none", else: "chevron")}
-            display_mode="tag"
-            extra_classes={@readonly && "!shadow-none"}
             skip_trait_id={
               inline_skip_id(
                 @skip_child_ids,
@@ -825,22 +808,41 @@ defmodule QlariusWeb.MeFileHTML do
 
   defp editable_parent_trait?(name), do: name not in @protected_trait_names
 
+  @doc """
+  Display values for one parent trait from a list of
+  `{id, name, display_order, tags}` tuples (the tag map shape).
+  """
+  def parent_trait_values(parent_traits, parent_trait_id) do
+    Enum.find_value(parent_traits, [], fn
+      {^parent_trait_id, _name, _order, tags} -> Enum.map(tags, fn {_id, value, _} -> value end)
+      _ -> nil
+    end)
+  end
+
+  # Values for the tag at the top of the edit sheet, in option order.
+  # Zip: a valid new lookup wins; otherwise the zip already on file.
+  defp edit_tag_values(%{trait_in_edit: %{input_type: "single_select_zip"}} = assigns) do
+    case assigns do
+      %{zip_lookup_valid: true, zip_lookup_trait: %{} = zip} -> [zip.meta_1 || zip.trait_name]
+      _ -> Map.get(assigns, :current_values, [])
+    end
+  end
+
+  defp edit_tag_values(%{trait_in_edit: %{child_traits: children}, selected_ids: ids})
+       when is_list(children) do
+    for child <- children, child.id in ids, do: child.trait_name
+  end
+
+  defp edit_tag_values(_assigns), do: []
+
   defp plural_tag_word(1), do: "tag"
   defp plural_tag_word(_), do: "tags"
 
-  defp block_grid_cols_class(true), do: "grid-cols-2"
-
-  # Fits as many 10rem blocks as the content column allows, so the count adapts
-  # to the docked side menu instead of following viewport breakpoints.
-  defp block_grid_cols_class(false), do: "grid-cols-[repeat(auto-fill,minmax(10rem,1fr))]"
-
   defp tag_display_mode_label("tag"), do: "Tags"
-  defp tag_display_mode_label("block"), do: "Blocks"
   defp tag_display_mode_label("list"), do: "List"
   defp tag_display_mode_label(_), do: "Tags"
 
   defp tag_display_mode_icon("tag"), do: "hero-tag"
-  defp tag_display_mode_icon("block"), do: "hero-squares-2x2"
   defp tag_display_mode_icon("list"), do: "hero-bars-3-bottom-left"
   defp tag_display_mode_icon(_), do: "hero-tag"
 end

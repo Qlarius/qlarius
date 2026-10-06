@@ -33,6 +33,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
             zip_lookup_input={@zip_lookup_input || ""}
             zip_lookup_trait={@zip_lookup_trait}
             zip_lookup_valid={@zip_lookup_valid || false}
+            current_values={@trait_in_edit_values}
             zip_lookup_error={@zip_lookup_error}
             dual_pane={true}
             show_expanded_tags={@show_expanded_tags}
@@ -292,6 +293,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:active_survey_id, nil)
       |> assign(:survey_in_edit, nil)
       |> assign(:trait_in_edit, nil)
+      |> assign(:trait_in_edit_values, [])
       |> assign(:selected_child_trait_ids, [])
       |> assign(:show_modal, false)
       |> assign(:show_delete_confirm, false)
@@ -339,7 +341,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
   end
 
   def handle_event("set_tag_display_mode", %{"mode" => mode}, socket)
-      when mode in ~w(tag block list) do
+      when mode in ~w(tag list) do
     me_file = socket.assigns.current_scope.user.me_file
 
     case MeFiles.update_tag_display_mode(me_file, mode) do
@@ -415,6 +417,13 @@ defmodule QlariusWeb.MeFileBuilderLive do
     socket =
       socket
       |> assign(:trait_in_edit, trait)
+      |> assign(
+        :trait_in_edit_values,
+        parent_trait_values(
+          (socket.assigns.survey_in_edit && socket.assigns.survey_in_edit.parent_traits) || [],
+          trait.id
+        )
+      )
       |> assign(:selected_child_trait_ids, selected_ids)
       |> assign(:show_modal_skip, selected_ids == [])
       |> assign(:show_modal, true)
@@ -664,7 +673,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
   defp assign_tag_display_mode(socket) do
     mode =
       case socket.assigns.current_scope.user.me_file do
-        %{tag_display_mode: mode} when mode in ~w(tag block list) -> mode
+        %{tag_display_mode: mode} when mode in ~w(tag list) -> mode
         _ -> "list"
       end
 

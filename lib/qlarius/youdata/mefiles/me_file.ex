@@ -59,7 +59,7 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
     |> validate_required([:user_id])
     |> validate_number(:split_amount, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
     |> validate_inclusion(:strong_start_status, ["active", "completed", "skipped", "dismissed"])
-    |> validate_inclusion(:tag_display_mode, ~w(tag block list))
+    |> validate_inclusion(:tag_display_mode, ~w(tag list))
     |> validate_number(:credit_allowance, greater_than_or_equal_to: 0)
     |> foreign_key_constraint(:user_id)
   end
@@ -185,7 +185,7 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
   # `force_change` because callers pass the MeFile loaded at mount: after
   # tag -> list -> tag, a plain `change/2` against that stale struct sees no
   # change and silently skips the write.
-  def update_tag_display_mode(%__MODULE__{} = me_file, mode) when mode in ~w(tag block list) do
+  def update_tag_display_mode(%__MODULE__{} = me_file, mode) when mode in ~w(tag list) do
     me_file
     |> Ecto.Changeset.change()
     |> Ecto.Changeset.force_change(:tag_display_mode, mode)

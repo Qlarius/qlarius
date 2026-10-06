@@ -11,7 +11,7 @@ defmodule Qlarius.YouData.MeFiles do
     Repo.one(from mf in MeFile, where: mf.user_id == ^user_id)
   end
 
-  def update_tag_display_mode(%MeFile{} = me_file, mode) when mode in ~w(tag block list) do
+  def update_tag_display_mode(%MeFile{} = me_file, mode) when mode in ~w(tag list) do
     MeFile.update_tag_display_mode(me_file, mode)
   end
 

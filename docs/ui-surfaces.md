@@ -46,8 +46,8 @@ The consumer shell covers phones, iPads and desktop browsers. Breakpoints are wi
 | 48rem–64rem (iPad portrait) | Compact tab bar (27.5rem, centered) + off-canvas menu | Centered column, 42.5rem max |
 | ≥ 64rem (iPad landscape, desktop) | Side menu docked as a 20rem sidebar; hamburger and tab bar hidden | Centered column beside it |
 
-- `Layouts.shell_width/2` sets `data-shell-width="wide"` (72rem column) for screens that fill a grid: `/home`, `/me_file_builder`, `/arqade`, `/content`, `/tiqits` (Stash), and `/me_file` in Tags or Blocks mode. MeFile in List mode stays at the reading column. Slide-over screens (`.shell-narrow`) stay at the reading column on wide pages.
-- Grids inside wide screens should size by available space, not viewport breakpoints, because the docked sidebar takes 20rem: MeFile Blocks uses `repeat(auto-fill, minmax(10rem, 1fr))`, the Stash grid uses `repeat(auto-fill, minmax(min(19rem, 100%), 1fr))`, and the Builder's third column starts at `xl`.
+- `Layouts.shell_width/2` sets `data-shell-width="wide"` (72rem column) for screens that fill a grid: `/home`, `/me_file_builder`, `/arqade`, `/content`, `/tiqits` (Stash), and `/me_file` in Tags mode. MeFile in List mode stays at the reading column. Slide-over screens (`.shell-narrow`) stay at the reading column on wide pages.
+- Grids inside wide screens should size by available space, not viewport breakpoints, because the docked sidebar takes 20rem: the Stash grid uses `repeat(auto-fill, minmax(min(19rem, 100%), 1fr))`, and the Builder's third column starts at `xl`.
 - Home (`home_live.ex`) is one markup set inside an `@container`; the `.home-*` and `.setup-*` rules in `app.css` switch at a 56rem content width (about a 1250px window beside the docked menu):
   - **Phone / narrow:** balance hero with Collect below it; setup checklist as one row (progress ring, "Finish setting up", next step) that opens the five steps, the next step's action, and Remind me later / Don't show again; products as rows (colour chip, name, tagline, one figure) in one card; recent activity (latest three ledger entries).
   - **Wide:** hero and Collect in one row; the setup checklist stays open with the five steps as tiles with the next step highlighted and its action beside it; products as three cards with the brand wordmark and full stats (40px figures, Stash counts 2x2).
@@ -63,6 +63,13 @@ The consumer shell covers phones, iPads and desktop browsers. Breakpoints are wi
 - **Product cards** (`Layouts.mobile_menu_brand/1`): one per brand, YouData, Sponster, Tiqit, each with its wordmark, tagline and two branded tiles (MeFile/Builder, Ads/Referrals, Stash/Arqade). The card sets `--brand` (tint, from the brand 500) and optionally `--brand-chip` (icon chip; Tiqit uses 600 so white icons stay legible). The active branded tile gets a ring in its brand colour.
 - Tiles show a live figure from `current_scope` where one exists (tag count, ads and offered amount, active tiqits). New destinations go into the right product card as another tile.
 - Settings is a gear button in the profile header, beside close (account-level, and it keeps the footer uncrowded). The footer holds only the appearance switch and Log out. The profile avatar uses the colour squares mark (`qadabra_logo_squares_color.svg`); long aliases wrap rather than truncate.
+
+## MeFile views
+
+- **List** (default): label above value rows; multiple values join with " · ". Shared by MeFile, the Builder survey slide-over and the read-only "Why you?" lists.
+- **Tags**: one `trait_tag` per parent trait, the unit the app counts as a "tag" (counts are parent traits, so users aren't nudged to pile on values). The trait name sits on top and its values inside, joined with " · ". The `.trait-tag` shape is cut left corners plus a punched hole (a CSS mask, so it shows whatever surface is behind). Tags size to content and flow side by side; empty tags are paler with the tease prompt and inline Skip.
+- **Edit sheet**: "Edit tag", then the same `.trait-tag` for the trait being edited, whose values update live from the selection (zip shows the zip on file until a new one is looked up). No decorative header; options use solid hairlines and primary controls.
+- Category labels sit above each card. One floating capsule holds search and the two views (single tap).
 
 ## Mobile shell tokens
 

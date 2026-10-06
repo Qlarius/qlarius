@@ -2774,7 +2774,67 @@
     @apply mt-1 inline-block overflow-hidden rounded-md px-2 py-0.5 text-sm italic text-base-content/50;
   }
 
-  /* Floating tools: search and the three views in one capsule. */
+  /*
+   * MeFile Tags view: one tag per parent trait (the unit the app counts).
+   * Cut left corners plus a punched hole read as a tag at any height; the hole
+   * is a mask, so it shows whatever surface the tag sits on.
+   */
+  .trait-tag {
+    @apply relative inline-flex max-w-full flex-col;
+    padding: 0.5rem 0.875rem 0.5625rem 1.5625rem;
+    background-color: color-mix(in oklab, var(--color-youdata-500) 17%, var(--color-base-100));
+    border-radius: 0 0.625rem 0.625rem 0;
+    clip-path: polygon(11px 0, 100% 0, 100% 100%, 11px 100%, 0 calc(100% - 11px), 0 11px);
+    -webkit-mask: radial-gradient(circle 3px at 12px 50%, transparent 95%, #000 100%);
+    mask: radial-gradient(circle 3px at 12px 50%, transparent 95%, #000 100%);
+  }
+
+  .trait-tag--editable {
+    @apply cursor-pointer transition-colors;
+  }
+
+  .trait-tag--editable:hover {
+    background-color: color-mix(in oklab, var(--color-youdata-500) 26%, var(--color-base-100));
+  }
+
+  .trait-tag--empty {
+    background-color: color-mix(in oklab, var(--color-youdata-500) 7%, var(--color-base-100));
+  }
+
+  .trait-tag--wide {
+    @apply flex w-full;
+  }
+
+  .trait-tag__name {
+    @apply flex items-center gap-0.5 text-xs font-semibold text-youdata-800 dark:text-youdata-200;
+  }
+
+  .trait-tag__name .hero-chevron-right {
+    @apply opacity-60;
+  }
+
+  .trait-tag__values {
+    @apply mt-0.5 text-sm leading-snug text-base-content;
+  }
+
+  .trait-tag__empty {
+    @apply mt-0.5 flex flex-wrap items-center gap-x-2 text-sm italic leading-snug text-base-content/50;
+  }
+
+  .trait-tag__skip {
+    @apply cursor-pointer text-xs font-semibold not-italic text-base-content/70 underline-offset-2 hover:underline;
+  }
+
+  /* Edit sheet head: label, close, then the tag itself. */
+  .tag-edit-head {
+    @apply flex flex-col gap-3 px-4 pt-4 pb-3;
+  }
+
+  .tag-edit-head__title {
+    @apply text-xl font-semibold tracking-tight text-base-content;
+  }
+
+  /* Floating tools: search and the two views in one capsule. */
   .mefile-toolbar {
     @apply flex h-11 items-center gap-0.5 rounded-full p-1 shadow-lg;
     background-color: color-mix(in oklab, var(--color-base-100) 86%, transparent);

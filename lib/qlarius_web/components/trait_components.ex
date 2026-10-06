@@ -10,7 +10,6 @@ defmodule QlariusWeb.Components.TraitComponents do
   attr :clickable, :boolean, default: false
   attr :editable, :boolean, default: true
   attr :nav_indicator, :string, default: "edit", values: ["edit", "chevron", "none"]
-  attr :display_mode, :string, default: "tag"
   attr :skip_trait_id, :any, default: nil
 
   @protected_traits ["Birthdate", "Age", "Sex (Bio)"]
@@ -54,14 +53,12 @@ defmodule QlariusWeb.Components.TraitComponents do
       |> assign_new(:extra_classes, fn -> "" end)
       |> assign_new(:clickable, fn -> false end)
       |> assign_new(:editable, fn -> true end)
-      |> assign_new(:display_mode, fn -> "tag" end)
       |> assign_new(:nav_indicator, fn -> "edit" end)
       |> assign_new(:tags_traits, fn -> [] end)
       |> assign_new(:skip_trait_id, fn -> nil end)
       |> assign(:strobe_delay_ms, rem(abs(assigns.parent_trait_id), 2000))
       |> then(fn a ->
         a
-        |> assign(:block_mode?, a.display_mode == "block")
         |> assign(
           :tap_to_edit?,
           a.clickable && a.editable && !protected_trait_name?(a.parent_trait_name)
@@ -112,27 +109,11 @@ defmodule QlariusWeb.Components.TraitComponents do
         </div>
         <div class={[
           "p-0 max-h-[245px] overflow-y-auto",
-          @block_mode? && @tags_traits != [] && "flex min-h-0 flex-1 flex-col",
-          @show_inline_skip? && "flex-1",
-          !@block_mode? && !@show_inline_skip? && "space-y-1 pb-3",
-          !@block_mode? && @show_inline_skip? && "space-y-1"
+          @show_inline_skip? && "flex-1 space-y-1",
+          !@show_inline_skip? && "space-y-1 pb-3"
         ]}>
-          <div :if={@block_mode? && @tags_traits != []} class="shrink-0">
-            <div
-              :for={{_tag_id, tag_value, _display_order} <- @tags_traits}
-              class="mx-0 my-1 text-sm leading-snug text-base-content/85 [&:not(:last-child)]:border-b border-dashed border-base-content/20"
-            >
-              <div class="px-4 py-0.5 leading-tight">{tag_value}</div>
-            </div>
-          </div>
-          <div
-            :if={@block_mode? && @tags_traits != []}
-            class="flex-1 min-h-6 bg-base-200/60 dark:bg-base-300/25"
-            aria-hidden="true"
-          />
           <div
             :for={{_tag_id, tag_value, _display_order} <- @tags_traits}
-            :if={!@block_mode?}
             class="mx-0 my-1 text-sm leading-snug text-base-content/85 [&:not(:last-child)]:border-b border-dashed border-base-content/20"
           >
             <div class="px-4 py-0.5 leading-tight">{tag_value}</div>
@@ -157,6 +138,64 @@ defmodule QlariusWeb.Components.TraitComponents do
           </button>
         </div>
       </div>
+    </div>
+    """
+  end
+
+  @doc """
+  One parent trait as a tag: the trait name on top, its values inside joined
+  with " · ". The parent trait is the tag unit, matching how tag counts are
+  shown in the app. Shape and punched hole come from `.trait-tag` in app.css.
+  """
+  attr :parent_trait_id, :integer, required: true
+  attr :parent_trait_name, :string, required: true
+  attr :tags_traits, :list, default: []
+  attr :editable, :boolean, default: true
+  attr :skip_trait_id, :any, default: nil
+
+  def trait_tag(assigns) do
+    assigns =
+      assigns
+      |> assign(
+        :tap_to_edit?,
+        assigns.editable && !protected_trait_name?(assigns.parent_trait_name)
+      )
+      |> assign(
+        :show_inline_skip?,
+        is_integer(assigns.skip_trait_id) && assigns.tags_traits == [] && assigns.editable &&
+          !protected_trait_name?(assigns.parent_trait_name)
+      )
+
+    ~H"""
+    <div
+      id={"trait-card-#{@parent_trait_id}"}
+      class={[
+        "trait-card-animate trait-tag",
+        @tags_traits == [] && "trait-tag--empty",
+        @tap_to_edit? && "trait-tag--editable"
+      ]}
+      phx-click={@tap_to_edit? && "edit_tags"}
+      phx-value-id={@tap_to_edit? && @parent_trait_id}
+    >
+      <span class="trait-tag__name">
+        {@parent_trait_name}
+        <.icon :if={@tap_to_edit?} name="hero-chevron-right" class="h-3 w-3 shrink-0" />
+      </span>
+      <span :if={@tags_traits != []} class="trait-tag__values">
+        {Enum.map_join(@tags_traits, " · ", fn {_tag_id, tag_value, _order} -> tag_value end)}
+      </span>
+      <span :if={@tags_traits == []} class="trait-tag__empty">
+        {empty_tag_tease_message()}
+        <button
+          :if={@show_inline_skip?}
+          type="button"
+          phx-click="skip_parent_trait"
+          phx-value-id={@parent_trait_id}
+          class="trait-tag__skip"
+        >
+          Skip
+        </button>
+      </span>
     </div>
     """
   end
