@@ -98,6 +98,19 @@ Every slide-over (Builder survey, Settings, the Ads video player, Arqade, the Ti
 - **Rows** (`.ledger-row`): icon chip (`WalletHTML.icon_tone/1`: Tiqit colour for Tiqit lines, meaning a tiqit attached or a Tiqit / Will Call event, refunds included; Sponster tint for other credits; neutral otherwise), title, "event · time", amount over running balance, chevron. Tapping opens the detail pane.
 - **Transaction detail pane** (`right_sidebar_drawer.html.heex`): round close button like the slide-over header; one compact card whose first row is the summary (icon, title as stored, event, amount on the right), then Marketer or Creator, Date & Time, Balance after; section labels (`.detail-section-label`); Matching Tags in a YouData-rail card. Entries with nothing more to show stop at the summary.
 
+## Auth sheet
+
+`AuthSheet` (with `AuthSteps`) is the sign-in / sign-up sheet on `/connect`, Qlink, and widgets (Arqade, tip jar) on third-party sites. **Colours stay on the neutral widget ramp** (`widget-*`, `btn-widget`, plus semantic error red) so Qadabra branding never clashes with a host page; only structure follows the app. Classes are `.auth-*` in `app.css`.
+
+- One filled main action per step (`.auth-cta`: widget-800 fill, label flips with base-100 so it works on both widget ramps). Auth sheet only; other widget buttons keep the outlined `.btn-widget`.
+- Round close button (`.auth-close`). On sign-up steps a thin three-part step line with "Step N of 3 · Label" (`.auth-progress`) sits clear of it.
+- Large entry fields (`.auth-entry__field`) for mobile number and zip: icon inside, ring on focus / valid (widget-700) / error; the zip shows the place on a line below and opens the number pad. Birthdate boxes (`date_input` with `widget_theme`) and the sex select (`.select.auth-select`, unlayered because DaisyUI 5 puts `.select` in the utilities layer) share the same fill and ring.
+- Phone step: "New here?" is a second line under the opening sentence, not its own block.
+- Code step: the code verifies itself at six digits, so Resend code and Different number are quiet links (`.auth-link`). Resend is held for 30s after each send (`ResendCountdown` hook; the server's `code_sends` count keys the button id so the count restarts), and a refused resend shows its message on this step. The server send limit (3 per number per 10 minutes) still applies.
+- Alias choices are hairline pills (`.auth-option`; selected gets a widget-700 ring and check, unselected a drawn ring since Heroicons has no plain circle). The full alias wraps rather than truncates, and `alias_error` (regenerate rate limit) is shown.
+- Confirm step: label / value rows in one card (`.auth-rows`), agreements as hairline cards (`.auth-check`) that take a widget-700 border when ticked. Checked boxes are coloured through DaisyUI's `--input-color`.
+- Titles and field labels are sentence case ("Build your alias", "Home zip code"), matching "Connect via mobile".
+
 ## Mobile shell tokens
 
 `.mobile-shell` (in `Layouts.mobile`) redefines a few DaisyUI tokens for the consumer app only, so Admin (whose light/dark themes also come from `nexus.css`) and embedded widgets are unaffected:

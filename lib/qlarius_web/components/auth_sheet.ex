@@ -106,6 +106,8 @@ defmodule QlariusWeb.Components.AuthSheet do
      |> assign(:verification_code_error, nil)
      |> assign(:finalize_error, nil)
      |> assign(:signup_error, nil)
+     # Counts successful sends; keys the Resend button so its countdown restarts.
+     |> assign(:code_sends, 0)
      |> assign(:in_iframe, false)
      |> assign(:signup_initialized, false)
      |> assign(:true_user_id, nil)
@@ -978,7 +980,8 @@ defmodule QlariusWeb.Components.AuthSheet do
        socket
        |> assign(:state, :code)
        |> assign(:mobile_number_error, nil)
-       |> assign(:verification_code, "")}
+       |> assign(:verification_code, "")
+       |> update(:code_sends, &(&1 + 1))}
 
     if bypass do
       AuditLog.log(:"send_code.allowed", %{
@@ -1239,7 +1242,10 @@ defmodule QlariusWeb.Components.AuthSheet do
         />
 
         <div
-          class={["fixed inset-0 flex items-end md:items-center justify-center p-0 md:p-4", @overlay_z_class]}
+          class={[
+            "fixed inset-0 flex items-end md:items-center justify-center p-0 md:p-4",
+            @overlay_z_class
+          ]}
           id={"#{@id}-scroll-lock"}
           phx-hook="BodyScrollLock"
           data-body-scroll-lock="true"
@@ -1281,10 +1287,10 @@ defmodule QlariusWeb.Components.AuthSheet do
             <button
               type="button"
               phx-click={@on_cancel}
-              class="absolute top-3 right-3 btn btn-sm btn-circle btn-widget-ghost z-10"
+              class="auth-close"
               aria-label="Close"
             >
-              <.icon name="hero-x-mark" class="w-5 h-5" />
+              <.icon name="hero-x-mark" class="h-5 w-5" />
             </button>
 
             <div class="p-6 md:p-8 overflow-y-auto">
@@ -1323,7 +1329,7 @@ defmodule QlariusWeb.Components.AuthSheet do
         phx-hook="AuthPopup"
         data-auth-url={@popup_connect_url}
         data-fallback-url={@fallback_connect_url}
-        class="btn-widget btn-widget-emphasis btn-lg btn-block min-h-14 rounded-full py-3.5 text-base"
+        class="auth-cta w-full"
       >
         <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4" />
         Connect at {public_app_host_label()}
@@ -1378,8 +1384,13 @@ defmodule QlariusWeb.Components.AuthSheet do
         <h2 class="text-2xl font-bold text-widget-900 md:text-3xl dark:text-white">
           Connect via mobile
         </h2>
-        <p class="text-sm text-base-content/70 md:text-base">
+        <p class="mt-1.5 text-sm text-base-content/70 md:text-base">
           Enter your mobile number to receive a 6-digit code.
+        </p>
+        <%!-- Folded in from a separate "New here?" block to keep this step short --%>
+        <p class="mt-2 text-sm text-base-content/60">
+          <span class="font-semibold text-base-content/80">New here?</span>
+          Your US mobile is all you need to activate a new wallet, prefunded with $3.00+ on us. Takes 2 minutes or less.
         </p>
       </div>
 
@@ -1390,45 +1401,38 @@ defmodule QlariusWeb.Components.AuthSheet do
         autocomplete="off"
         class="space-y-4"
       >
-        <div class="form-control w-full">
-          <label class="label pb-1">
-            <span class="label-text text-sm font-medium dark:text-gray-300">Mobile number</span>
-          </label>
-          <input
-            type="text"
-            name="value"
-            id={"#{@id}-phone-input"}
-            value={@mobile_number}
-            phx-hook="AuthSheetPhone"
-            inputmode="tel"
-            autocomplete="tel"
-            maxlength="12"
-            placeholder="555-123-4567"
-            class="input input-bordered w-full text-xl md:text-2xl font-medium tabular-nums tracking-wide"
-            aria-invalid={if @mobile_number_error, do: "true"}
-          />
-          <%= if @mobile_number_error do %>
-            <p class="mt-2 text-sm text-error">{@mobile_number_error}</p>
-          <% end %>
+        <div class="w-full">
+          <label for={"#{@id}-phone-input"} class="auth-label">Mobile number</label>
+          <div class={["auth-entry__field", @mobile_number_error && "is-error"]}>
+            <.icon name="hero-device-phone-mobile" class="auth-entry__icon" />
+            <input
+              type="text"
+              name="value"
+              id={"#{@id}-phone-input"}
+              value={@mobile_number}
+              phx-hook="AuthSheetPhone"
+              inputmode="tel"
+              autocomplete="tel"
+              maxlength="12"
+              placeholder="555-123-4567"
+              class="auth-entry__input"
+              aria-invalid={if @mobile_number_error, do: "true"}
+            />
+          </div>
+          <p :if={@mobile_number_error} class="auth-entry__error">
+            <.icon name="hero-exclamation-circle" class="h-4 w-4 shrink-0" />
+            {@mobile_number_error}
+          </p>
         </div>
 
         <button
           type="submit"
-          class="btn-widget btn-widget-emphasis btn-lg btn-block min-h-14 rounded-full py-3.5 text-base"
+          class="auth-cta w-full"
           disabled={not valid_phone_shape?(@mobile_number)}
         >
           Send code
         </button>
       </.form>
-
-      <div class="flex flex-col items-center gap-0 text-center border-t border-base-content/[0.07] pt-5">
-        <h3 class="text-md font-bold text-base-content/70 md:text-base mb-0 tracking-tight">
-          New here?
-        </h3>
-        <p class="text-sm text-base-content/70 md:text-base">
-          Your US mobile phone is all you need to activate your new wallet, prefunded with $3.00+ on us. Takes 2 minutes or less.
-        </p>
-      </div>
 
       {powered_by_qadabra_footer()}
     </div>
@@ -1457,12 +1461,11 @@ defmodule QlariusWeb.Components.AuthSheet do
         <h2 class="text-2xl font-bold text-widget-900 md:text-3xl dark:text-white">
           Enter your code
         </h2>
-        <p class="text-sm text-base-content/70 md:text-base">
-          We sent a 6-digit code to{" "}
-          <span class="font-semibold text-widget-900 dark:text-white">
+        <p class="mt-1.5 text-sm text-base-content/70 md:text-base">
+          We sent a 6-digit code to
+          <span class="whitespace-nowrap font-semibold text-widget-900 dark:text-white">
             {AuthSteps.format_phone_number(@mobile_number)}
           </span>
-          .
         </p>
       </div>
 
@@ -1487,25 +1490,36 @@ defmodule QlariusWeb.Components.AuthSheet do
         />
       </div>
 
-      <div class="mx-auto flex w-full max-w-lg flex-col gap-2 border-t border-widget-200/40 pt-4 sm:flex-row sm:items-center sm:justify-center sm:gap-3">
+      <%!-- The code verifies itself once six digits are in, so these stay quiet --%>
+      <div class="flex items-center justify-center gap-1">
+        <%!-- Held for 30s after each send (ResendCountdown); the server limit still applies --%>
+        <button
+          id={"#{@id}-resend-#{@code_sends}"}
+          type="button"
+          phx-click="send_code"
+          phx-target={@myself}
+          phx-hook="ResendCountdown"
+          data-seconds="30"
+          data-label="Resend code"
+          class="auth-link disabled:cursor-default disabled:text-base-content/45 disabled:hover:bg-transparent"
+        >
+          Resend code
+        </button>
+        <span class="text-base-content/25" aria-hidden="true">·</span>
         <button
           type="button"
           phx-click="back_to_phone"
           phx-target={@myself}
           title="Use a different mobile number"
-          class="btn-widget-ghost btn-md order-2 min-h-11 w-full rounded-full text-sm sm:order-1 sm:flex-1"
+          class="auth-link"
         >
           Different number
         </button>
-        <button
-          type="button"
-          phx-click="send_code"
-          phx-target={@myself}
-          class="btn-widget btn-widget-emphasis btn-lg order-1 min-h-14 w-full rounded-full py-3.5 text-base sm:order-2 sm:flex-1"
-        >
-          Resend code
-        </button>
       </div>
+      <p :if={@mobile_number_error} class="auth-entry__error -mt-2 justify-center" role="alert">
+        <.icon name="hero-exclamation-circle" class="h-4 w-4 shrink-0" />
+        {@mobile_number_error}
+      </p>
 
       {powered_by_qadabra_footer()}
     </div>
@@ -1634,7 +1648,7 @@ defmodule QlariusWeb.Components.AuthSheet do
           type="button"
           phx-click="submit_signup"
           phx-target={@myself}
-          class="btn-widget btn-widget-emphasis btn-lg order-1 min-h-14 w-full rounded-full py-3.5 text-base sm:order-2 sm:flex-1"
+          class="auth-cta order-1 w-full sm:order-2 sm:flex-1"
           disabled={not can_complete?(assigns)}
         >
           Create account
@@ -1686,7 +1700,7 @@ defmodule QlariusWeb.Components.AuthSheet do
         phx-click="signup_next"
         phx-target={@target}
         class={[
-          "btn-widget btn-widget-emphasis btn-lg min-h-14 rounded-full py-3.5 text-base",
+          "auth-cta",
           if(@show_back,
             do: "order-1 w-full sm:order-2 sm:flex-1",
             else: "w-full"

@@ -416,7 +416,27 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
         do: "badge-widget-soft badge-lg px-4 py-3 text-base",
         else: "badge badge-primary badge-lg p-4 text-base"
 
-    assigns = assign(assigns, :age_badge_class, age_badge_class)
+    # Widget theme (AuthSheet): the same rounded fill and focus ring as the
+    # sheet's other entry fields; otherwise the original bordered inputs.
+    field_class =
+      cond do
+        assigns.widget_theme and assigns.error ->
+          "date-field auth-date-field is-error"
+
+        assigns.widget_theme ->
+          "date-field auth-date-field"
+
+        assigns.error ->
+          "date-field input input-bordered text-center text-xl font-medium tabular-nums tracking-wide dark:bg-base-100 dark:text-white md:text-2xl input-error"
+
+        true ->
+          "date-field input input-bordered text-center text-xl font-medium tabular-nums tracking-wide dark:bg-base-100 dark:text-white md:text-2xl"
+      end
+
+    assigns =
+      assigns
+      |> assign(:age_badge_class, age_badge_class)
+      |> assign(:field_class, field_class)
 
     ~H"""
     <div class="form-control w-full">
@@ -461,7 +481,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
             data-lpignore="true"
             data-bwignore="true"
             data-form-type="other"
-            class={"date-field input input-bordered flex-1 text-center text-xl font-medium tabular-nums tracking-wide dark:bg-base-100 dark:text-white md:text-2xl #{if @error, do: "input-error"}"}
+            class={[@field_class, "flex-1"]}
           />
           <input
             type="text"
@@ -475,7 +495,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
             data-lpignore="true"
             data-bwignore="true"
             data-form-type="other"
-            class={"date-field input input-bordered flex-1 text-center text-xl font-medium tabular-nums tracking-wide dark:bg-base-100 dark:text-white md:text-2xl #{if @error, do: "input-error"}"}
+            class={[@field_class, "flex-1"]}
           />
           <input
             type="text"
@@ -489,7 +509,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
             data-lpignore="true"
             data-bwignore="true"
             data-form-type="other"
-            class={"date-field input input-bordered flex-[1.5] text-center text-xl font-medium tabular-nums tracking-wide dark:bg-base-100 dark:text-white md:text-2xl #{if @error, do: "input-error"}"}
+            class={[@field_class, "flex-[1.5]"]}
           />
         </div>
 

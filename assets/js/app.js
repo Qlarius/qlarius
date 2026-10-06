@@ -3325,6 +3325,37 @@ function formatUsPhoneDigits(digits) {
   return d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6)
 }
 
+// AuthSheet code step: hold "Resend code" for a few seconds after each send so
+// people don't run into the send limit. The server re-keys the button id on
+// every send, so the hook remounts and the count restarts. `updated` reapplies
+// the state because LiveView patches restore the server-rendered label.
+Hooks.ResendCountdown = {
+  mounted() {
+    this.label = this.el.dataset.label || this.el.textContent.trim()
+    this.left = parseInt(this.el.dataset.seconds || "30", 10)
+    this.render()
+    this.timer = setInterval(() => {
+      this.left -= 1
+      this.render()
+      if (this.left <= 0) clearInterval(this.timer)
+    }, 1000)
+  },
+
+  updated() {
+    this.render()
+  },
+
+  render() {
+    const waiting = this.left > 0
+    this.el.disabled = waiting
+    this.el.textContent = waiting ? `Resend in ${this.left}s` : this.label
+  },
+
+  destroyed() {
+    clearInterval(this.timer)
+  }
+}
+
 Hooks.AuthSheetPhone = {
   mounted() {
     this.onInput = (e) => {
