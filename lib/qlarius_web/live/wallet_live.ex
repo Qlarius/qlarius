@@ -2,11 +2,15 @@ defmodule QlariusWeb.WalletLive do
   use QlariusWeb, :live_view
 
   import QlariusWeb.WalletHTML
-  import QlariusWeb.Components.LedgerEntriesList
   import QlariusWeb.PWAHelpers
   alias QlariusWeb.Layouts
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+
+  # By day shows this many entries at first and adds this many per Show more;
+  # By page uses a fixed page size.
+  @day_batch 30
+  @page_size 20
 
   alias Qlarius.ContentSharing
   alias Qlarius.Wallets
@@ -39,11 +43,12 @@ defmodule QlariusWeb.WalletLive do
     |> assign(:selected_entry, nil)
     |> assign(:entry_details, nil)
     |> assign(:page, 1)
+    |> assign(:ledger_view, "day")
+    |> assign(:ledger_limit, @day_batch)
     |> assign(:paginated_entries, nil)
     |> assign(:undo_context, nil)
     |> assign(:wallet_summary, nil)
     |> assign(:wallet_details_open, false)
-    |> assign(:wallet_details_section, :activity)
     |> assign_tag_display_mode()
     |> init_pwa_assigns(session)
     |> ok()
@@ -79,8 +84,17 @@ defmodule QlariusWeb.WalletLive do
     {:noreply, socket}
   end
 
-  def handle_event("paginate", %{"page" => page}, socket) do
-    {:noreply, push_patch(socket, to: ~p"/wallet?page=#{page}")}
+  def handle_event("set_ledger_view", %{"mode" => "pages"}, socket) do
+    {:noreply, push_patch(socket, to: ~p"/wallet?view=pages")}
+  end
+
+  def handle_event("set_ledger_view", _params, socket) do
+    {:noreply, push_patch(socket, to: ~p"/wallet")}
+  end
+
+  def handle_event("show_more_ledger", _params, socket) do
+    socket = update(socket, :ledger_limit, &(&1 + @day_batch))
+    {:noreply, assign(socket, :paginated_entries, ledger_entries(socket))}
   end
 
   def handle_event("toggle_sidebar", %{"state" => state}, socket) do
@@ -195,20 +209,8 @@ defmodule QlariusWeb.WalletLive do
     end
   end
 
-  def handle_event("toggle_wallet_details", %{"section" => section}, socket)
-      when section in ["activity", "credit"] do
-    section = String.to_existing_atom(section)
-
-    socket =
-      if socket.assigns.wallet_details_open and socket.assigns.wallet_details_section == section do
-        assign(socket, :wallet_details_open, false)
-      else
-        socket
-        |> assign(:wallet_details_open, true)
-        |> assign(:wallet_details_section, section)
-      end
-
-    {:noreply, socket}
+  def handle_event("toggle_wallet_details", _params, socket) do
+    {:noreply, update(socket, :wallet_details_open, &(!&1))}
   end
 
   defp assign_tag_display_mode(socket) do
@@ -243,12 +245,10 @@ defmodule QlariusWeb.WalletLive do
   defp reload_ledger(%{assigns: %{ledger_header: nil}} = socket), do: socket
 
   defp reload_ledger(socket) do
-    %{me_file: me_file, page: page} = socket.assigns
-    per_page = 20
-
-    me_file = Repo.get!(Qlarius.YouData.MeFiles.MeFile, me_file.id)
+    me_file = Repo.get!(Qlarius.YouData.MeFiles.MeFile, socket.assigns.me_file.id)
     ledger_header = Repo.get_by!(LedgerHeader, me_file_id: me_file.id)
-    paginated_entries = Wallets.list_ledger_entries(ledger_header.id, page, per_page)
+    socket = assign(socket, :ledger_header, ledger_header)
+    paginated_entries = ledger_entries(socket)
     summary = Wallets.consumer_wallet_summary(me_file)
 
     current_scope =
@@ -283,27 +283,31 @@ defmodule QlariusWeb.WalletLive do
     {:noreply, reload_ledger(socket)}
   end
 
+  # The ledger view lives in the URL (`?view=pages&page=3`) so refresh and Back
+  # keep it; By day is the default and ignores `page`.
   @impl true
   def handle_params(params, _url, socket) do
-    page = wallet_page_from_params(params, socket)
-    socket = assign(socket, :page, page)
+    view = if params["view"] == "pages", do: "pages", else: "day"
+    page = if view == "pages", do: wallet_page_from_params(params, socket), else: 1
+
+    socket =
+      socket
+      |> assign(:ledger_view, view)
+      |> assign(:page, page)
+      |> then(&if(view == "day", do: assign(&1, :ledger_limit, @day_batch), else: &1))
 
     cond do
       not socket.assigns.loading and socket.assigns.ledger_header ->
-        {:noreply,
-         assign(
-           socket,
-           :paginated_entries,
-           Wallets.list_ledger_entries(socket.assigns.ledger_header.id, page, 20)
-         )}
+        {:noreply, assign(socket, :paginated_entries, ledger_entries(socket))}
 
       connected?(socket) and not socket.assigns.wallet_async_started ->
         me_file = socket.assigns.me_file
+        {ledger_page, per_page} = ledger_window(socket)
 
         {:noreply,
          socket
          |> assign(:wallet_async_started, true)
-         |> start_async(:wallet_page, fn -> load_wallet_page(me_file, page) end)}
+         |> start_async(:wallet_page, fn -> load_wallet_page(me_file, ledger_page, per_page) end)}
 
       true ->
         {:noreply, socket}
@@ -338,12 +342,8 @@ defmodule QlariusWeb.WalletLive do
             <%= if @loading do %>
               <.wallet_page_skeleton />
             <% else %>
-              <.wallet_summary_card
-                summary={@wallet_summary}
-                details_open={@wallet_details_open}
-                details_section={@wallet_details_section}
-              />
-              <%= if Enum.empty?(@paginated_entries.entries) do %>
+              <.wallet_summary_card summary={@wallet_summary} details_open={@wallet_details_open} />
+              <%= if @paginated_entries.total_entries == 0 do %>
                 <div class="flex flex-col items-center justify-center py-12 gap-4">
                   <p class="mobile-page-intro text-center">No ledger activity to display.</p>
                   <p class="text-base text-base-content/60">
@@ -357,22 +357,20 @@ defmodule QlariusWeb.WalletLive do
                   </.link>
                 </div>
               <% else %>
-                <h2 class="pt-4 text-center text-xl font-bold tracking-tight text-base-content">
-                  Activity Ledger
-                </h2>
-                <.ledger_entries_pagination
-                  paginated_entries={@paginated_entries}
-                  page={@page}
-                />
-                <.surface_panel padding={false}>
-                  <.ledger_entries_list
+                <.ledger_head view={@ledger_view} />
+                <%= if @ledger_view == "pages" do %>
+                  <.ledger_by_page
                     paginated_entries={@paginated_entries}
                     page={@page}
-                    current_scope={@current_scope}
-                    show_pagination={false}
-                    list_class="list !mx-0 !rounded-none !shadow-none !bg-base-100 dark:!bg-base-100 divide-y divide-base-300/60 dark:divide-base-content/10"
+                    user={@current_scope.user}
                   />
-                </.surface_panel>
+                <% else %>
+                  <.ledger_by_day
+                    entries={@paginated_entries.entries}
+                    user={@current_scope.user}
+                    has_more={length(@paginated_entries.entries) < @paginated_entries.total_entries}
+                  />
+                <% end %>
               <% end %>
             <% end %>
           </div>
@@ -419,14 +417,24 @@ defmodule QlariusWeb.WalletLive do
     end
   end
 
-  defp load_wallet_page(me_file, page) do
+  # {page, per_page} for the current view: By day is the first `ledger_limit`
+  # entries, By page is page `page` of @page_size.
+  defp ledger_window(%{assigns: %{ledger_view: "pages", page: page}}), do: {page, @page_size}
+  defp ledger_window(%{assigns: %{ledger_limit: limit}}), do: {1, limit}
+
+  defp ledger_entries(socket) do
+    {page, per_page} = ledger_window(socket)
+    Wallets.list_ledger_entries(socket.assigns.ledger_header.id, page, per_page)
+  end
+
+  defp load_wallet_page(me_file, page, per_page) do
     ledger_header = Repo.get_by(LedgerHeader, me_file_id: me_file.id)
 
     paginated_entries =
       if ledger_header do
-        Wallets.list_ledger_entries(ledger_header.id, page, 20)
+        Wallets.list_ledger_entries(ledger_header.id, page, per_page)
       else
-        %{entries: [], page_number: page, page_size: 20, total_entries: 0, total_pages: 0}
+        %{entries: [], page_number: page, page_size: per_page, total_entries: 0, total_pages: 0}
       end
 
     %{
@@ -439,42 +447,38 @@ defmodule QlariusWeb.WalletLive do
   defp wallet_page_skeleton(assigns) do
     ~H"""
     <div aria-busy="true" aria-label="Loading wallet">
-      <.surface_panel class="home-stat-card home-stat-card--wallet">
-        <div class="flex items-start justify-between gap-3 mb-6">
-          <div class="skeleton h-6 w-36"></div>
+      <.surface_panel class="wallet-summary">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="skeleton h-9 w-28"></div>
+            <div class="skeleton mt-2 h-3 w-16"></div>
+          </div>
           <div class="skeleton h-7 w-7 rounded-md"></div>
         </div>
-        <div class="flex items-end justify-between gap-3">
-          <div class="space-y-2">
-            <div class="skeleton h-10 w-24"></div>
-            <div class="skeleton h-3 w-16"></div>
-          </div>
-          <div class="space-y-2">
-            <div class="skeleton h-10 w-20"></div>
-            <div class="skeleton h-3 w-14"></div>
-          </div>
-          <div class="space-y-2">
-            <div class="skeleton h-10 w-20"></div>
-            <div class="skeleton h-3 w-12"></div>
-          </div>
+        <div class="skeleton mt-4 mb-3 h-2 w-full rounded-full"></div>
+        <div class="flex gap-4">
+          <div class="skeleton h-3 w-20"></div>
+          <div class="skeleton h-3 w-24"></div>
+          <div class="skeleton h-3 w-20"></div>
         </div>
       </.surface_panel>
-      <div class="pt-8 space-y-3">
-        <div class="skeleton mx-auto h-6 w-40"></div>
-        <.surface_panel padding={false}>
-          <div
-            :for={_ <- 1..6}
-            class="flex items-center gap-3 px-4 py-4 border-b border-base-300/60 last:border-0"
-          >
-            <div class="skeleton h-10 w-10 shrink-0 rounded-full"></div>
+      <div class="ledger-head">
+        <div class="skeleton h-6 w-36"></div>
+        <div class="skeleton h-8 w-36 rounded-full"></div>
+      </div>
+      <div class="skeleton mt-4 mb-2 h-4 w-16"></div>
+      <.surface_panel padding={false}>
+        <ul class="ledger-list">
+          <li :for={_ <- 1..6} class="flex items-center gap-3 px-4 py-3">
+            <div class="skeleton h-9 w-9 shrink-0 rounded-full"></div>
             <div class="flex-1 space-y-2">
               <div class="skeleton h-4 w-2/3"></div>
               <div class="skeleton h-3 w-1/3"></div>
             </div>
             <div class="skeleton h-5 w-14"></div>
-          </div>
-        </.surface_panel>
-      </div>
+          </li>
+        </ul>
+      </.surface_panel>
     </div>
     """
   end

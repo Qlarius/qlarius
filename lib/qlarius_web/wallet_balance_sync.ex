@@ -365,17 +365,22 @@ defmodule QlariusWeb.WalletBalanceSync do
   defp maybe_reload_wallet_ledger(socket) do
     case socket.assigns do
       %{me_file: %{id: me_file_id}, page: page, paginated_entries: _, wallet_summary: _} ->
-        reload_wallet_ledger(socket, me_file_id, page)
+        reload_wallet_ledger(socket, me_file_id, wallet_ledger_window(socket.assigns, page))
 
       _ ->
         socket
     end
   end
 
-  defp reload_wallet_ledger(socket, me_file_id, page) do
+  # /wallet By day shows the first `ledger_limit` entries; By page shows page
+  # `page` of 20.
+  defp wallet_ledger_window(%{ledger_view: "day", ledger_limit: limit}, _page), do: {1, limit}
+  defp wallet_ledger_window(_assigns, page), do: {page, 20}
+
+  defp reload_wallet_ledger(socket, me_file_id, {page, per_page}) do
     me_file = Repo.get!(MeFile, me_file_id)
     ledger_header = Repo.get_by!(LedgerHeader, me_file_id: me_file.id)
-    paginated_entries = Wallets.list_ledger_entries(ledger_header.id, page, 20)
+    paginated_entries = Wallets.list_ledger_entries(ledger_header.id, page, per_page)
     summary = Wallets.consumer_wallet_summary(me_file)
 
     socket

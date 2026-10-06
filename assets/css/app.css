@@ -2968,12 +2968,268 @@
     padding-bottom: calc(1.5rem + var(--mobile-bottom-nav-offset) + 3.5rem);
   }
 
-  .wallet-equation {
-    @apply flex flex-wrap items-start gap-x-4 gap-y-2;
+  /*
+   * Wallet summary (wallet_html.ex): spendable leads; a bar and key show what
+   * it's made of. Two shades of Sponster green for in-app and cashable, light
+   * blue for credit (an allowance, not money taken in; grey read as disabled),
+   * hatched blue for credit already in use.
+   */
+  .wallet-summary__hero {
+    @apply text-4xl font-bold leading-none tracking-tight text-base-content tabular-amount;
   }
 
-  .wallet-equation__op {
-    @apply mt-1 text-2xl font-light leading-none text-base-content/35;
+  .wallet-summary__label {
+    @apply mt-1.5 text-sm text-base-content/55;
+  }
+
+  .wallet-bar {
+    @apply mt-4 mb-3 flex h-2 gap-0.5 overflow-hidden rounded-full;
+    background-color: color-mix(in oklab, var(--color-base-content) 7%, transparent);
+  }
+
+  .wallet-bar__seg {
+    @apply block h-full min-w-1.5;
+  }
+
+  .wallet-bar__seg--in_app,
+  .wallet-dot--in_app {
+    background-color: color-mix(in oklab, var(--color-sponster-500) 45%, var(--color-base-100));
+  }
+
+  .wallet-bar__seg--cashable,
+  .wallet-dot--cashable {
+    background-color: var(--color-sponster-500);
+  }
+
+  .wallet-bar__seg--credit,
+  .wallet-dot--credit {
+    @apply bg-sky-300;
+  }
+
+  .wallet-bar__seg--credit_used {
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--color-sky-300) 0 2px,
+      transparent 2px 5px
+    );
+  }
+
+  .wallet-dot {
+    @apply mr-1.5 inline-block h-2 w-2 shrink-0 rounded-[2px] align-[0.05em];
+  }
+
+  .wallet-key {
+    @apply m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-[13px] text-base-content/60;
+  }
+
+  .wallet-key b {
+    @apply ml-0.5 font-semibold text-base-content tabular-amount;
+  }
+
+  /* "How it adds up": the same figures as a short statement */
+  .wallet-statement {
+    @apply m-0 mt-4 pt-1;
+    border-top: 1px solid color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  }
+
+  .wallet-statement__row {
+    @apply flex items-start justify-between gap-4 py-2;
+  }
+
+  .wallet-statement__row dt {
+    @apply min-w-0 text-[15px] text-base-content;
+  }
+
+  .wallet-statement__row dt small {
+    @apply mt-0.5 block text-[13px] leading-snug text-base-content/55;
+  }
+
+  .wallet-statement__row dd {
+    @apply m-0 shrink-0 text-[15px] font-semibold text-base-content tabular-amount;
+  }
+
+  .wallet-statement__row--sub {
+    @apply pl-4;
+  }
+
+  .wallet-statement__row--sub dd {
+    @apply font-medium text-base-content/80;
+  }
+
+  .wallet-statement__row--total {
+    @apply mt-1 pt-3;
+    border-top: 1px solid color-mix(in oklab, var(--color-base-content) 12%, transparent);
+  }
+
+  .wallet-statement__row--total dt {
+    @apply font-semibold;
+  }
+
+  .wallet-summary__toggle {
+    @apply -mx-4 -mb-4 mt-3 flex w-[calc(100%+2rem)] cursor-pointer items-center justify-center gap-1 py-3 text-sm font-medium text-base-content/60 transition-colors hover:text-base-content;
+    border-top: 1px solid color-mix(in oklab, var(--color-base-content) 7%, transparent);
+  }
+
+  /*
+   * Activity Ledger: title with the By day / By page switch, day labels over
+   * one card each, MeFile-style rows. Credits in Sponster green, debits
+   * neutral with a true minus.
+   */
+  .ledger-head {
+    @apply flex items-center justify-between gap-3 px-1 pt-5;
+  }
+
+  .ledger-head h2 {
+    @apply text-lg font-bold tracking-tight text-base-content;
+  }
+
+  .ledger-days {
+    @apply flex flex-col gap-5;
+  }
+
+  .ledger-day {
+    @apply mb-2 px-1 text-sm font-semibold text-base-content/55;
+  }
+
+  .ledger-list {
+    @apply m-0 list-none p-0;
+  }
+
+  .ledger-list > li + li {
+    border-top: 1px solid color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  }
+
+  .ledger-row {
+    @apply flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-base-200/50;
+  }
+
+  .ledger-row__icon {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-base-200 text-base-content/65;
+  }
+
+  .ledger-row__icon.is-credit {
+    @apply text-sponster-700 dark:text-sponster-300;
+    background-color: color-mix(in oklab, var(--color-sponster-500) 16%, var(--color-base-100));
+  }
+
+  .ledger-row__icon.is-tiqit {
+    @apply text-tiqit-700 dark:text-tiqit-300;
+    background-color: color-mix(in oklab, var(--color-tiqit-500) 18%, var(--color-base-100));
+  }
+
+  .ledger-row__main {
+    @apply flex min-w-0 flex-1 flex-col;
+  }
+
+  .ledger-row__title {
+    @apply text-[15px] font-medium leading-snug text-base-content break-words;
+  }
+
+  .ledger-row__meta {
+    @apply mt-0.5 text-[13px] leading-snug text-base-content/55;
+  }
+
+  .ledger-row__amounts {
+    @apply flex shrink-0 flex-col items-end tabular-amount;
+  }
+
+  .ledger-row__amt {
+    @apply text-[15px] font-semibold text-base-content;
+  }
+
+  .ledger-row__amt.is-credit,
+  .txn-head__amt.is-credit {
+    @apply text-sponster-600 dark:text-sponster-300;
+  }
+
+  .ledger-row__amt.is-zero {
+    @apply text-base-content/50;
+  }
+
+  .ledger-row__bal {
+    @apply mt-0.5 text-xs text-base-content/45;
+  }
+
+  .ledger-row__chevron {
+    @apply shrink-0 text-base-content/30;
+  }
+
+  .ledger-more {
+    @apply mx-auto mt-4 flex h-11 cursor-pointer items-center justify-center rounded-full border px-8 text-sm font-semibold text-base-content transition-colors hover:bg-base-200/60;
+    background-color: var(--color-base-100);
+    border-color: color-mix(in oklab, var(--color-base-content) 12%, transparent);
+  }
+
+  .ledger-pager {
+    @apply my-3 flex items-center justify-between gap-2 text-sm;
+  }
+
+  .ledger-pager__mid {
+    @apply flex items-center gap-2;
+  }
+
+  .ledger-pager__count {
+    @apply whitespace-nowrap px-1 font-medium text-base-content tabular-amount;
+  }
+
+  .ledger-pager__btn {
+    @apply inline-flex h-9 min-w-9 items-center justify-center rounded-full border px-3 font-medium text-base-content transition-colors hover:bg-base-200/60;
+    background-color: var(--color-base-100);
+    border-color: color-mix(in oklab, var(--color-base-content) 12%, transparent);
+  }
+
+  .ledger-pager__btn.is-disabled {
+    @apply pointer-events-none text-base-content/30;
+  }
+
+  /* Transaction detail pane (right_sidebar_drawer.html.heex) */
+  .detail-pane-head {
+    @apply flex items-center justify-between gap-3 px-4 pt-3 pb-1;
+  }
+
+  .detail-pane-head h3 {
+    @apply text-xl font-bold tracking-tight text-base-content;
+  }
+
+  .txn-head {
+    @apply flex items-center gap-3 px-4 py-3;
+  }
+
+  .txn-head__main {
+    @apply min-w-0 flex-1;
+  }
+
+  .txn-head__title {
+    @apply text-[15px] font-semibold leading-snug text-base-content break-words;
+  }
+
+  .txn-head__meta {
+    @apply text-[13px] leading-snug text-base-content/55;
+  }
+
+  .txn-head__amt {
+    @apply shrink-0 text-2xl font-bold leading-none tracking-tight text-base-content tabular-amount;
+  }
+
+  .detail-rows {
+    @apply m-0;
+  }
+
+  .detail-rows > div {
+    @apply flex items-start justify-between gap-4 px-4 py-2.5;
+    border-top: 1px solid color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  }
+
+  .detail-rows dt {
+    @apply shrink-0 text-sm text-base-content/55;
+  }
+
+  .detail-rows dd {
+    @apply m-0 min-w-0 text-right text-sm font-medium text-base-content;
+  }
+
+  .detail-section-label {
+    @apply mb-2 px-1 text-sm font-semibold text-base-content/55;
   }
 
   /*
@@ -3012,24 +3268,6 @@
       transition-duration: 0.01ms;
       transition-delay: 0ms;
     }
-  }
-
-  .wallet-details-toggle {
-    @apply inline-flex size-4 shrink-0 cursor-pointer items-center justify-center;
-    @apply rounded-full border border-base-content/25 bg-transparent text-base-content/55;
-    @apply transition-colors hover:border-base-content/40 hover:bg-base-200/70 dark:hover:bg-base-content/10;
-  }
-
-  .wallet-details-toggle__chevron {
-    @apply transition-transform duration-200;
-  }
-
-  .wallet-stat__value {
-    @apply text-2xl font-bold leading-none tracking-tight text-base-content;
-  }
-
-  .wallet-stat__value--hero {
-    @apply text-3xl sm:text-4xl;
   }
 
   /*

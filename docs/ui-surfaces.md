@@ -51,7 +51,7 @@ The consumer shell covers phones, iPads and desktop browsers. Breakpoints are wi
 - Home (`home_live.ex`) is one markup set inside an `@container`; the `.home-*` and `.setup-*` rules in `app.css` switch at a 56rem content width (about a 1250px window beside the docked menu):
   - **Phone / narrow:** balance hero with Collect below it; setup checklist as one row (progress ring, "Finish setting up", next step) that opens the five steps, the next step's action, and Remind me later / Don't show again; products as rows (colour chip, name, tagline, one figure) in one card; recent activity (latest three ledger entries).
   - **Wide:** hero and Collect in one row; the setup checklist stays open with the five steps as tiles with the next step highlighted and its action beside it; products as three cards with the brand wordmark and full stats (40px figures, Stash counts 2x2).
-  - The header balance chip is hidden on Home because the hero shows the balance.
+  - The header balance chip is hidden on Home and Wallet because each leads with the balance.
 - 3-tap ads keep their own 470px cap, so they stay phone-sized everywhere.
 - Fixed floating elements follow the column, not the window: `#mefile-floating-toolbar` and `#discovery-view-toolbar` use `--shell-gutter-right`; `#onboarding-tip`, `.split-reminder-tip` and the video collection drawer shift past the docked sidebar. New fixed elements inside the shell need the same treatment.
 
@@ -88,6 +88,15 @@ The consumer shell covers phones, iPads and desktop browsers. Breakpoints are wi
 ## Slide-over header
 
 Every slide-over (Builder survey, Settings, the Ads video player, Arqade, the Tiqit player) shares one header row from `Layouts.mobile`: a round back button (header-chip style), the title, and an optional chip (`slide_over_show_wallet`). `.slide-over-head` is a `1fr minmax(0, auto) 1fr` grid, so a short title is centred; a long one wraps between the button and the chip. The right cell holds a back-button-wide ghost, so it balances the button when empty and grows to fit a chip.
+
+## Wallet
+
+`/wallet` (`wallet_live.ex`, components in `wallet_html.ex`). Titles and labels stay as written ("Activity Ledger", lowercase spendable / activity / in-app / cashable / credit), and ledger titles show as stored (many are saved in capitals).
+
+- **Summary card:** spendable leads (`.wallet-summary__hero`), with a bar and key for what it's made of: in-app (light Sponster green), cashable (Sponster green), credit (light blue; grey read as disabled). No card title, since the page title already says Wallet; the wallet icon sits beside the figure. With activity below zero the bar shows credit left plus credit in use (hatched). One "Details" toggle opens a statement: activity (in-app + cashable, each with a line of copy), credit, and a spendable total. Copy says "proceeds from attention sales", never "earned". Balances use `balance_usd/1` (minus only); ledger movements use `signed_usd/1` (`+$0.07` / `−$0.25`).
+- **Activity Ledger:** title on the left, a `pill_join_selector` on the right. **By day** (default) shows the latest 30 under day labels (Today, Yesterday, Aug 20, with the year for other years) and Show more adds 30. **By page** is 20 per page with Newest / ‹ Page N of M › / Oldest above and below, rows carrying date and time. The view is in the URL (`?view=pages&page=3`); `WalletBalanceSync` reloads whichever view is showing.
+- **Rows** (`.ledger-row`): icon chip (`WalletHTML.icon_tone/1`: Tiqit colour for Tiqit lines, meaning a tiqit attached or a Tiqit / Will Call event, refunds included; Sponster tint for other credits; neutral otherwise), title, "event · time", amount over running balance, chevron. Tapping opens the detail pane.
+- **Transaction detail pane** (`right_sidebar_drawer.html.heex`): round close button like the slide-over header; one compact card whose first row is the summary (icon, title as stored, event, amount on the right), then Marketer or Creator, Date & Time, Balance after; section labels (`.detail-section-label`); Matching Tags in a YouData-rail card. Entries with nothing more to show stop at the summary.
 
 ## Mobile shell tokens
 

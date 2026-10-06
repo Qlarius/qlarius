@@ -565,8 +565,8 @@ defmodule QlariusWeb.Layouts do
                       <h1 class="text-3xl font-bold text-center">{@title}</h1>
                     </div>
                     <div class="w-8 flex justify-end overflow-x-visible">
-                      <%!-- Home leads with the balance itself, so it skips the chip --%>
-                      <%= if assigns[:current_scope] && assigns[:current_path] != "/home" do %>
+                      <%!-- Home and Wallet lead with the balance itself, so they skip the chip --%>
+                      <%= if assigns[:current_scope] && assigns[:current_path] not in ["/home", "/wallet"] do %>
                         <%= if assigns[:current_path] && String.starts_with?(assigns[:current_path], "/me_file") do %>
                           <.tag_count count={@current_scope.trait_count} />
                         <% else %>

@@ -60,43 +60,69 @@ defmodule QlariusWeb.WalletLiveTest do
     %{conn: log_in_user(conn, user), user: user}
   end
 
-  test "shows the spendable equation and reveals section details on toggle", %{conn: conn} do
+  test "leads with spendable and opens the breakdown on Details", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/wallet")
     html = render_async(view)
 
     assert html =~ "spendable"
     assert html =~ "$2.00"
-    assert html =~ "activity"
-    assert html =~ "credit"
+    assert html =~ "Details"
     refute html =~ "wallet-details--open"
-    refute html =~ "Show wallet details"
 
-    view
-    |> element("button[aria-label='Show activity details']")
-    |> render_click()
+    view |> element("button.wallet-summary__toggle") |> render_click()
 
     html = render(view)
     assert html =~ "wallet-details--open"
     assert html =~ "in-app"
     assert html =~ "cashable"
-    refute html =~ "spending allowance"
-
-    view
-    |> element("button[aria-label='Show credit details']")
-    |> render_click()
-
-    html = render(view)
-    assert html =~ "wallet-details--open"
     assert html =~ "spending allowance"
-    assert html =~ "when all other funds are empty"
-    refute html =~ "in-app"
 
-    view
-    |> element("button[aria-label='Hide credit details']")
-    |> render_click()
+    view |> element("button.wallet-summary__toggle") |> render_click()
+    refute render(view) =~ "wallet-details--open"
+  end
 
-    html = render(view)
-    refute html =~ "wallet-details--open"
+  describe "Activity Ledger views" do
+    setup %{user: user} do
+      user = Repo.preload(user, :me_file)
+      header = Wallets.get_me_file_ledger_header(user.me_file)
+
+      Repo.transaction(fn ->
+        for n <- 1..35 do
+          Wallets.apply_credit!(header, Decimal.new("0.01"), %{
+            description: "LEDGER AD #{n}",
+            meta_1: "Banner Tap"
+          })
+        end
+      end)
+
+      :ok
+    end
+
+    test "By day shows 30 entries under day labels, and Show more adds the rest", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/wallet")
+      html = render_async(view)
+
+      assert html =~ "Today"
+      assert length(Regex.scan(~r/class="ledger-row"/, html)) == 30
+      assert html =~ "Show more"
+
+      html = view |> element("button.ledger-more") |> render_click()
+
+      assert length(Regex.scan(~r/class="ledger-row"/, html)) == 35
+      refute html =~ "Show more"
+    end
+
+    test "By page is a pager of 20 that lives in the URL", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/wallet?view=pages&page=2")
+      html = render_async(view)
+
+      assert html =~ "Page 2 of 2"
+      assert length(Regex.scan(~r/class="ledger-row"/, html)) == 15
+      refute html =~ "Show more"
+
+      view |> element("button[phx-value-mode='day']") |> render_click()
+      assert_patch(view, ~p"/wallet")
+    end
   end
 
   test "refreshes ledger and available-to-spend on wallet balance PubSub", %{
