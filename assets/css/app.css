@@ -5104,8 +5104,11 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
     left: calc(var(--shell-sidebar-w) + 1rem);
   }
 
-  .mobile-shell #video-collection-drawer-scroll-lock {
-    left: var(--shell-sidebar-w);
+  /* Ads renders the drawer after the shell rather than inside it, so it can't
+     inherit --shell-sidebar-w; match the docked width directly. */
+  .mobile-shell #video-collection-drawer-scroll-lock,
+  .mobile-shell ~ #video-collection-drawer-scroll-lock {
+    left: 20rem;
   }
 }
 
