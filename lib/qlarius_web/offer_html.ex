@@ -180,12 +180,14 @@ defmodule QlariusWeb.OfferHTML do
                 ThreeTap.calculate_offer_totals(@offer.id, @current_scope.user.me_file.id, @recipient) %>
               <div class="text-sm text-gray-400">
                 Collected:
-                <span class="font-semibold tabular-amount">{format_usd(me_file_collect_total)}</span>
+                <span class="text-[15px] font-semibold tabular-amount">
+                  {format_usd(me_file_collect_total)}
+                </span>
               </div>
               <%= if @recipient && !@tip_only do %>
                 <div class="text-sm text-gray-400">
                   Given:
-                  <span class="font-semibold tabular-amount">
+                  <span class="text-[15px] font-semibold tabular-amount">
                     {format_usd(recipient_collect_total)}
                   </span>
                 </div>
@@ -208,7 +210,7 @@ defmodule QlariusWeb.OfferHTML do
   def click_jump_actions(assigns) do
     ~H"""
     <div
-      class="flex items-center justify-center text-center text-xs font-light absolute bottom-0 left-0 right-0"
+      class="flex items-center justify-center text-center text-[13px] font-normal absolute bottom-0 left-0 right-0"
       style="height: 35px;"
     >
       <div
@@ -222,7 +224,7 @@ defmodule QlariusWeb.OfferHTML do
           <.icon name="hero-check" class="text-green-500 w-4 h-4" />
         <% else %>
           <span>TAP: </span>
-          <span class="font-bold ml-1 tabular-amount">$0.05</span>
+          <span class="font-semibold ml-1 tabular-amount">$0.05</span>
         <% end %>
       </div>
       <div
@@ -237,7 +239,7 @@ defmodule QlariusWeb.OfferHTML do
         style="height: 35px;"
       >
         <span>JUMP: </span>
-        <span class="font-bold ml-1 tabular-amount">{format_usd(@phase_2_amount)}</span>
+        <span class="font-semibold ml-1 tabular-amount">{format_usd(@phase_2_amount)}</span>
       </div>
     </div>
     """

@@ -852,7 +852,9 @@ defmodule QlariusWeb.Components.AdsComponents do
           <p class="video-app-row__done">Attention Paid™</p>
           <p class="video-app-row__collected">
             Collected:
-            <span class="font-semibold tabular-amount">{format_usd(me_file_collect_total)}</span>
+            <span class="text-[15px] font-semibold tabular-amount">
+              {format_usd(me_file_collect_total)}
+            </span>
           </p>
         </div>
         <.icon name="hero-check" class="video-app-row__check h-8 w-8" />
@@ -919,12 +921,14 @@ defmodule QlariusWeb.Components.AdsComponents do
               end %>
             <div class="text-sm text-gray-400">
               Collected:
-              <span class="font-semibold tabular-amount">{format_usd(me_file_collect_total)}</span>
+              <span class="text-[15px] font-semibold tabular-amount">
+                {format_usd(me_file_collect_total)}
+              </span>
             </div>
             <%= if @recipient && !@tip_only && recipient_collect_total do %>
               <div class="text-sm text-gray-400">
                 Given:
-                <span class="font-semibold tabular-amount">
+                <span class="text-[15px] font-semibold tabular-amount">
                   {format_usd(recipient_collect_total)}
                 </span>
               </div>
