@@ -194,35 +194,12 @@ defmodule QlariusWeb.TiqitLive do
 
   defp load_gifts(_scope, _status), do: []
 
-  defp filter_badge(assigns, :active) when assigns.active_count > 0 do
-    %{count: assigns.active_count, variant: :tiqit}
-  end
-
-  defp filter_badge(assigns, :preserved) when assigns.preserved_count > 0 do
-    %{count: assigns.preserved_count, variant: :info}
-  end
-
-  defp filter_badge(assigns, :expired) when assigns.fleeting_count > 0 do
-    %{count: assigns.fleeting_count, variant: :warning}
-  end
-
-  defp filter_badge(assigns, :gifted) when assigns.gifted_count > 0 do
-    %{count: assigns.gifted_count, variant: :neutral}
-  end
-
-  defp filter_badge(_assigns, _status), do: nil
-
-  defp pill_count_badge_class(:tiqit),
-    do: "badge badge-sm ml-2 rounded px-2 py-3 !border-0 !bg-tiqit-600 !text-primary-content"
-
-  defp pill_count_badge_class(:info),
-    do: "badge badge-sm ml-2 rounded px-2 py-3 !border-0 !bg-info !text-info-content"
-
-  defp pill_count_badge_class(:warning),
-    do: "badge badge-sm ml-2 rounded px-2 py-3 !border-0 !bg-warning !text-warning-content"
-
-  defp pill_count_badge_class(:neutral),
-    do: "stash-pill-count-neutral badge badge-sm ml-2 rounded px-2 py-3 !border-0"
+  # Counts stay neutral; the filter name says which state it is.
+  defp filter_count(assigns, :active), do: assigns.active_count
+  defp filter_count(assigns, :preserved), do: assigns.preserved_count
+  defp filter_count(assigns, :expired), do: assigns.fleeting_count
+  defp filter_count(assigns, :gifted), do: assigns.gifted_count
+  defp filter_count(_assigns, _status), do: 0
 
   defp parse_status(nil), do: :all
   defp parse_status(s) when s in @valid_statuses, do: String.to_existing_atom(s)
@@ -245,10 +222,10 @@ defmodule QlariusWeb.TiqitLive do
     <div id="tiqit-pwa-detect" phx-hook="HiPagePWADetect">
       <Layouts.mobile {assigns}>
         <div class="flex flex-col gap-6">
-          <div class="overflow-x-auto">
+          <div class="stash-filter-scroll">
             <.pill_join_selector label="Stash filter" class="min-w-max">
               <.pill_join_item
-                :for={status <- [:all, :active, :preserved, :expired, :fleeted, :gifted]}
+                :for={status <- [:all, :active, :expired, :fleeted, :preserved, :gifted]}
                 active={@status_filter == status}
                 class="gap-2"
                 phx-click="filter"
@@ -256,11 +233,12 @@ defmodule QlariusWeb.TiqitLive do
                 aria-pressed={to_string(@status_filter == status)}
               >
                 {filter_label(status)}
-                <%= if badge = filter_badge(assigns, status) do %>
-                  <span class={pill_count_badge_class(badge.variant)}>
-                    {badge.count}
-                  </span>
-                <% end %>
+                <span
+                  :if={filter_count(assigns, status) > 0}
+                  class="pill-join-count badge badge-sm ml-2 rounded px-2 py-3 !border-0 tabular-amount"
+                >
+                  {filter_count(assigns, status)}
+                </span>
               </.pill_join_item>
             </.pill_join_selector>
           </div>

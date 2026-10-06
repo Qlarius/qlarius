@@ -68,7 +68,7 @@ defmodule QlariusWeb.Components.AdsComponents do
         >
           3-Tap
           <%= if @three_tap_ad_count > 0 do %>
-            <span class="badge badge-sm ml-2 rounded px-2 py-3 !border-0 !bg-sponster-500 !text-primary-content">
+            <span class="pill-join-count badge badge-sm ml-2 rounded px-2 py-3 !border-0 tabular-amount">
               {@three_tap_ad_count}
             </span>
           <% end %>
@@ -82,7 +82,7 @@ defmodule QlariusWeb.Components.AdsComponents do
         >
           Video
           <%= if @video_ad_count > 0 do %>
-            <span class="badge badge-sm ml-2 rounded px-2 py-3 !border-0 !bg-sponster-500 !text-primary-content">
+            <span class="pill-join-count badge badge-sm ml-2 rounded px-2 py-3 !border-0 tabular-amount">
               {@video_ad_count}
             </span>
           <% end %>

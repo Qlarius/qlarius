@@ -15,39 +15,22 @@ defmodule QlariusWeb.TiqitComponents do
 
   @tiqit_card_shell_class "tiqit-card-shell overflow-hidden rounded-lg"
 
-  # Status badges use a combinable model:
-  # - Primary: Active (green) or Expired (yellow) — based on whether access has lapsed
-  # - Fleeting (orange): only if expired AND not kept — subject to auto-fleet
-  # - Kept (blue): if the user has bookmarked the tiqit to keep it
-  # Fleeted/refunded tiqits render as blank anonymous cards and don't use these badges.
-  attr :status, :atom, required: true
-  attr :preserved, :boolean, default: false
+  attr :tone, :atom, required: true, values: [:live, :warn, :muted, :done]
+  slot :inner_block, required: true
 
-  def tiqit_status_badges(assigns) do
+  # One status line per card, a coloured dot and plain words, in place of
+  # stacked badges:
+  # - Active: access is live (Tiqit orange), with time left or lifetime
+  # - Fleeting: already expired and counting down to AutoFleet (red)
+  # - Kept: expired but kept, so it won't AutoFleet (grey)
+  # - Gifted: by pickup state (claimed = green)
+  # Fleeted/refunded tiqits render as blank anonymous cards and have no line.
+  defp tiqit_status_line(assigns) do
     ~H"""
-    <.tiqit_primary_status_badge status={@status} />
-    <span :if={@status == :expired && !@preserved} class="badge badge-md badge-warning text-xs">
-      Fleeting
-    </span>
-    <span :if={@preserved} class="badge badge-md badge-info gap-1 text-xs">
-      <.icon name="hero-bookmark-mini" class="w-3.5 h-3.5" /> Kept
-    </span>
-    """
-  end
-
-  attr :status, :atom, required: true
-
-  defp tiqit_primary_status_badge(assigns) do
-    ~H"""
-    <span class={[
-      "badge badge-md text-xs",
-      if(@status == :active,
-        do: "!border-0 !bg-tiqit-600 !text-primary-content",
-        else: "badge-warning"
-      )
-    ]}>
-      {if @status == :active, do: "Active", else: "Expired"}
-    </span>
+    <p class="tiqit-status">
+      <span class={["tiqit-status__dot", "is-#{@tone}"]} aria-hidden="true"></span>
+      <span class="min-w-0">{render_slot(@inner_block)}</span>
+    </p>
     """
   end
 
@@ -68,8 +51,6 @@ defmodule QlariusWeb.TiqitComponents do
       assigns
       |> assign(:undo_deadline, undo_deadline)
       |> assign(:refund_locked?, not is_nil(assigns.tiqit.refund_locked_at))
-      |> assign(:content_path, tiqit_content_path(assigns.tiqit))
-      |> assign(:scope_label, tiqit_scope_label(assigns.tiqit))
       |> assign(:show_preserve_cell?, !(assigns.status == :expired && assigns.tiqit.preserved))
       |> assign(
         :show_refund_cell?,
@@ -77,19 +58,11 @@ defmodule QlariusWeb.TiqitComponents do
       )
 
     ~H"""
+    <%!-- Opened from "⋯" on the stub; Open itself sits on the stub --%>
     <div class="tiqit-actions flex w-full flex-col gap-3">
-      <div class="border-b border-base-300/30 pb-2 text-sm text-base-content/50 dark:border-base-content/15">
+      <p class="text-sm text-base-content/55">
         Purchased {format_purchased_at(@tiqit.purchased_at, @user)}
-      </div>
-
-      <.link
-        :if={@status in [:active, :expired] && @content_path}
-        navigate={@content_path}
-        class={[tiqit_action_btn_base(), "btn-primary gap-2 text-base font-semibold"]}
-      >
-        <.icon name="hero-play" class="h-5 w-5 shrink-0" />
-        Go to {if @scope_label != "", do: @scope_label, else: "Content"}
-      </.link>
+      </p>
 
       <%= if @status in [:active, :expired] do %>
         <div :if={@refund_locked?} class="flex items-center gap-1 text-xs text-base-content/40">
@@ -251,28 +224,21 @@ defmodule QlariusWeb.TiqitComponents do
       read_only={@gift_read_only}
     >
       <:status_row>
-        <span class="badge badge-md stash-gift-status-badge gap-1 text-xs">
-          <.icon name="hero-gift-mini" class="h-3.5 w-3.5" /> Gifted
-        </span>
-        <.gift_will_call_status_badge status={@gift.will_call_status} />
-        <%= unless @gift_read_only do %>
-          <.gift_claim_window_line gift={@gift} invitation={@invitation} />
-        <% else %>
-          <%= if @gift.will_call_status in ["expired", "pulled"] do %>
-            <.gift_claim_window_line gift={@gift} invitation={@invitation} />
-          <% end %>
-        <% end %>
+        <.gift_status_line gift={@gift} invitation={@invitation} read_only={@gift_read_only} />
       </:status_row>
       <:read_only_tail :if={
         @gift_read_only && @gift.will_call_status in ["at_will_call", "claim_check_required"]
       }>
-        <.gift_claim_window_line
-          gift={@gift}
-          invitation={@invitation}
-          in_read_only_tail={true}
-        />
+        <.gift_claim_window_line invitation={@invitation} />
       </:read_only_tail>
-      <:tail :if={!@gift_read_only}>
+      <:stub :if={!@gift_read_only}>
+        <p class="tiqit-stub__meta" title={"Gifted " <> format_purchased_at(@gift.inserted_at, @user)}>
+          Gifted {format_stub_date(@gift.inserted_at, @user)} ·
+          <span class="tabular-amount">{@amount_label}</span>
+          prepaid
+        </p>
+      </:stub>
+      <:tail :if={!@gift_read_only && @revokable?}>
         <.tiqit_gift_status_and_actions
           gift={@gift}
           user={@user}
@@ -324,37 +290,44 @@ defmodule QlariusWeb.TiqitComponents do
       <:status_row :if={@status in [:active, :expired]}>
         <%= cond do %>
           <% @status == :active -> %>
-            <.tiqit_primary_status_badge status={:active} />
-            <span class="text-sm text-base-content/55">
-              Expires in{" "}
-              <span class="text-base-content/80">
-                <%= if @tiqit.expires_at do %>
-                  <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={@tiqit.expires_at} />
-                <% else %>
-                  <span class="font-semibold">Lifetime access</span>
-                <% end %>
+            <.tiqit_status_line tone={:live}>
+              <b>Active</b>
+              ·
+              <%= if @tiqit.expires_at do %>
+                expires in
+                <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={@tiqit.expires_at} />
+              <% else %>
+                lifetime access
+              <% end %>
+              <span :if={@tiqit.preserved}>· Kept</span>
+            </.tiqit_status_line>
+          <% @tiqit.preserved -> %>
+            <.tiqit_status_line tone={:muted}>
+              <b>Kept</b>
+              <span :if={@tiqit.expires_at}>
+                · expired {Qlarius.DateTime.format_for_user(@tiqit.expires_at, @user, :date_only)}
               </span>
-            </span>
-          <% @status == :expired && @tiqit.preserved -> %>
-            <div class="flex flex-wrap items-center gap-2">
-              <.tiqit_status_badges status={:expired} preserved={true} />
-            </div>
-          <% @status == :expired -> %>
-            <.tiqit_primary_status_badge status={:expired} />
-            <span class="text-sm text-base-content/55">
-              Auto-Fleets in{" "}
-              <span class="text-base-content/80">
-                <%= if @fleet_at_deadline &&
-                       DateTime.compare(@fleet_at_deadline, DateTime.utc_now()) == :gt do %>
-                  <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={@fleet_at_deadline} />
-                <% else %>
-                  <span class="font-semibold">AutoFleet pending</span>
-                <% end %>
-              </span>
-            </span>
+            </.tiqit_status_line>
           <% true -> %>
+            <.tiqit_status_line tone={:warn}>
+              <b>Fleeting</b>
+              ·
+              <%= if @fleet_at_deadline &&
+                     DateTime.compare(@fleet_at_deadline, DateTime.utc_now()) == :gt do %>
+                auto-fleets in
+                <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={@fleet_at_deadline} />
+              <% else %>
+                AutoFleet pending
+              <% end %>
+            </.tiqit_status_line>
         <% end %>
       </:status_row>
+      <:stub :if={@status in [:active, :expired]}>
+        <.tiqit_stub_meta tiqit={@tiqit} user={@user} />
+      </:stub>
+      <:stub_action :if={@status in [:active, :expired]}>
+        <.tiqit_open_link tiqit={@tiqit} status={@status} />
+      </:stub_action>
       <:tail>
         <.tiqit_status_and_actions
           tiqit={@tiqit}
@@ -387,10 +360,28 @@ defmodule QlariusWeb.TiqitComponents do
   attr :image_url, :string, required: true
   attr :tiqit_card_shell_class, :string, required: true
   slot :status_row
+  slot :stub
+  slot :stub_action
   slot :tail
   slot :read_only_tail
 
   defp tiqit_detail_card_shell(assigns) do
+    assigns =
+      assigns
+      |> assign(
+        :kind_line,
+        Enum.join(
+          Enum.reject([assigns.scope_label, assigns.content_summary], &(&1 in [nil, ""])),
+          " · "
+        )
+      )
+      |> assign(:source, compact_source(assigns.hierarchy))
+      |> assign(:source_full, assigns.hierarchy |> source_parts() |> Enum.join(" › "))
+      |> assign(
+        :more_id,
+        "tiqit-more-#{if assigns.gift?, do: "gift", else: "tiqit"}-#{assigns.card_id}"
+      )
+
     ~H"""
     <div class={@tiqit_card_shell_class}>
       <div
@@ -405,29 +396,24 @@ defmodule QlariusWeb.TiqitComponents do
             <img
               src={@image_url}
               alt=""
-              class="h-24 w-24 shrink-0 rounded-lg border border-base-300/50 object-cover"
+              class="h-16 w-16 shrink-0 rounded-lg border border-base-300/50 object-cover"
             />
             <div class="min-w-0 flex-1 text-left">
-              <div
-                :if={@scope_label != ""}
-                class="mb-1 text-xs font-extralight uppercase leading-relaxed tracking-widest text-base-content/55"
+              <p :if={@kind_line != ""} class="text-xs text-base-content/55">{@kind_line}</p>
+              <p class="line-clamp-2 text-base font-semibold leading-snug" title={@title}>
+                {@title}
+              </p>
+              <p
+                :if={@source != ""}
+                class="mt-0.5 truncate text-sm text-base-content/55"
+                title={@source_full}
               >
-                {@scope_label}
-              </div>
-              <div class="text-base font-semibold leading-snug">{@title}</div>
-              <div :if={@content_summary} class="mt-0.5 text-sm text-base-content/50">
-                {@content_summary}
-              </div>
-              <div :if={@hierarchy != []} class="mt-1 text-sm text-base-content/50">
-                {Enum.join(@hierarchy, " › ")}
-              </div>
+                {@source}
+              </p>
             </div>
           </div>
 
-          <div
-            :if={@status_row != []}
-            class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-base-300/25 pt-3 dark:border-base-content/15"
-          >
+          <div :if={@status_row != []} class="tiqit-status-row">
             {render_slot(@status_row)}
           </div>
         </div>
@@ -448,30 +434,30 @@ defmodule QlariusWeb.TiqitComponents do
               {render_slot(@read_only_tail)}
             </div>
           <% else %>
-            <details
-              class="tiqit-tail-details min-w-0"
-              phx-hook="TiqitTailDetails"
-              id={"tiqit-tail-#{@card_id}"}
-            >
-              <summary
-                class="tiqit-tail-details-summary cursor-pointer list-none [&::-webkit-details-marker]:hidden"
-                aria-label="Show or hide purchase details and actions"
-              >
-                <div class="tiqit-tail-fold">
-                  <span class="tiqit-tail-toggle">
-                    <span class="tiqit-tail-expand-hit">
-                      <.icon
-                        name="hero-chevron-down"
-                        class="tiqit-tail-details-chevron h-5 w-5 shrink-0 text-base-content/55"
-                      />
-                    </span>
-                  </span>
-                </div>
-              </summary>
-              <div class="tiqit-tail-details-body">
-                {render_slot(@tail)}
+            <div :if={@stub != []} class="tiqit-stub">
+              {render_slot(@stub)}
+              <div class="tiqit-stub__actions">
+                <button
+                  :if={@tail != []}
+                  type="button"
+                  class="tiqit-stub-btn tiqit-more-btn"
+                  aria-label="Purchase details and actions"
+                  aria-expanded="false"
+                  aria-controls={@more_id}
+                  phx-click={toggle_more(@more_id)}
+                >
+                  <.icon name="hero-ellipsis-horizontal" class="h-5 w-5" />
+                </button>
+                {render_slot(@stub_action)}
               </div>
-            </details>
+            </div>
+            <div :if={@tail != []} id={@more_id} class="tiqit-more" inert>
+              <div class="tiqit-more__clip">
+                <div class="tiqit-more__body">
+                  {render_slot(@tail)}
+                </div>
+              </div>
+            </div>
           <% end %>
         </div>
         <div class="tiqit-br"></div>
@@ -489,10 +475,6 @@ defmodule QlariusWeb.TiqitComponents do
   defp tiqit_gift_status_and_actions(assigns) do
     ~H"""
     <div class="tiqit-actions flex w-full flex-col gap-3">
-      <div class="border-b border-base-300/30 pb-2 text-sm text-base-content/50 dark:border-base-content/15">
-        Gifted {format_purchased_at(@gift.inserted_at, @user)} · {@amount_label} prepaid
-      </div>
-
       <%= if @revokable? do %>
         <textarea
           :if={@invitation_message}
@@ -532,63 +514,74 @@ defmodule QlariusWeb.TiqitComponents do
     """
   end
 
-  attr :status, :string, required: true
-
-  defp gift_will_call_status_badge(assigns) do
-    {label, class} = gift_status_display(assigns.status)
-
-    assigns = assign(assigns, :label, label) |> assign(:class, class)
-
-    ~H"""
-    <span class={["badge badge-md text-xs", @class]}>{@label}</span>
-    """
-  end
-
   attr :gift, :any, required: true
   attr :invitation, :any, default: nil
-  attr :in_read_only_tail, :boolean, default: false
+  attr :read_only, :boolean, default: false
 
-  defp gift_claim_window_line(assigns) do
+  # The recipient's read-only view (Arqade gift landing) shows the claim
+  # countdown in its tail and keeps a neutral dot, as Arqade can be embedded.
+  defp gift_status_line(assigns) do
+    claim_ends_at =
+      with %{gift_expires_at: %DateTime{} = at} <- assigns.invitation,
+           :gt <- DateTime.compare(at, DateTime.utc_now()) do
+        at
+      else
+        _ -> nil
+      end
+
+    tone =
+      cond do
+        assigns.read_only -> :muted
+        assigns.gift.will_call_status == "picked_up" -> :done
+        assigns.gift.will_call_status in ["expired", "pulled"] -> :muted
+        true -> :live
+      end
+
+    assigns = assign(assigns, claim_ends_at: claim_ends_at, tone: tone)
+
     ~H"""
-    <%= cond do %>
-      <% @gift.will_call_status in ["at_will_call", "claim_check_required"] -> %>
-        <span class={[
-          "text-sm",
-          @in_read_only_tail && "tiqit-tail-read-only-claim font-medium text-primary",
-          !@in_read_only_tail && "text-base-content/55"
-        ]}>
-          Claim window ends in{" "}
-          <span class={!@in_read_only_tail && "text-base-content/80"}>
-            <%= if @invitation && @invitation.gift_expires_at &&
-                   DateTime.compare(@invitation.gift_expires_at, DateTime.utc_now()) == :gt do %>
-              <QlariusWeb.Components.TiqitExpirationCountdown.text
-                expires_at={@invitation.gift_expires_at}
-                class={if(@in_read_only_tail, do: "font-semibold text-primary", else: "")}
-              />
-            <% else %>
-              <span class="font-semibold">Awaiting pickup</span>
-            <% end %>
-          </span>
-        </span>
-      <% @gift.will_call_status == "expired" -> %>
-        <span class="text-sm text-base-content/55">
-          Unclaimed — amount refunded to your wallet
-        </span>
-      <% @gift.will_call_status == "pulled" -> %>
-        <span class="text-sm text-base-content/55">
-          Withdrawn — amount returned to your wallet
-        </span>
-      <% true -> %>
-    <% end %>
+    <.tiqit_status_line tone={@tone}>
+      <b>Gifted</b>
+      ·
+      <%= case @gift.will_call_status do %>
+        <% "picked_up" -> %>
+          claimed
+        <% "expired" -> %>
+          unclaimed, refunded
+        <% "pulled" -> %>
+          withdrawn, refunded
+        <% _ -> %>
+          <%= if @claim_ends_at && !@read_only do %>
+            claim ends in
+            <QlariusWeb.Components.TiqitExpirationCountdown.text expires_at={@claim_ends_at} />
+          <% else %>
+            awaiting pickup
+          <% end %>
+      <% end %>
+    </.tiqit_status_line>
     """
   end
 
-  defp gift_status_display("picked_up"),
-    do: {"Claimed", "!border-0 !bg-sponster-500 !text-primary-content"}
+  attr :invitation, :any, default: nil
 
-  defp gift_status_display("expired"), do: {"Expired", "badge-warning"}
-  defp gift_status_display("pulled"), do: {"Withdrawn", "badge-ghost"}
-  defp gift_status_display(_), do: {"Awaiting pickup", "badge-warning"}
+  # The recipient's read-only tail on the Arqade gift landing, while the gift
+  # waits to be claimed.
+  defp gift_claim_window_line(assigns) do
+    ~H"""
+    <span class="tiqit-tail-read-only-claim text-sm font-medium text-primary">
+      Claim window ends in{" "}
+      <%= if @invitation && @invitation.gift_expires_at &&
+             DateTime.compare(@invitation.gift_expires_at, DateTime.utc_now()) == :gt do %>
+        <QlariusWeb.Components.TiqitExpirationCountdown.text
+          expires_at={@invitation.gift_expires_at}
+          class="font-semibold text-primary"
+        />
+      <% else %>
+        <span class="font-semibold">Awaiting pickup</span>
+      <% end %>
+    </span>
+    """
+  end
 
   defp gift_title(gift) do
     cond do
@@ -913,6 +906,50 @@ defmodule QlariusWeb.TiqitComponents do
     """
   end
 
+  attr :tiqit, :any, required: true
+  attr :user, :any, default: nil
+
+  # The ticket stub's line: when it was bought and for how much
+  defp tiqit_stub_meta(assigns) do
+    ~H"""
+    <p
+      class="tiqit-stub__meta"
+      title={"Purchased " <> format_purchased_at(@tiqit.purchased_at, @user)}
+    >
+      Bought {format_stub_date(@tiqit.purchased_at, @user)}<span :if={@tiqit.price}>
+        · <span class="tabular-amount">{format_gift_amount(@tiqit.price)}</span></span>
+    </p>
+    """
+  end
+
+  attr :tiqit, :any, required: true
+  attr :status, :atom, required: true
+
+  # Open is the main action on a live tiqit; on an expired one it's quieter, as
+  # the content page sends you to the Arqade to buy again.
+  defp tiqit_open_link(assigns) do
+    assigns = assign(assigns, :content_path, tiqit_content_path(assigns.tiqit))
+
+    ~H"""
+    <.link
+      :if={@content_path}
+      navigate={@content_path}
+      class={["tiqit-stub-btn tiqit-stub-btn--open", @status == :active && "is-primary"]}
+    >
+      Open <.icon name="hero-chevron-right-mini" class="h-4 w-4" />
+    </.link>
+    """
+  end
+
+  # "⋯" opens and closes the panel below the stub line. JS commands survive
+  # LiveView patches, so the panel stays as the user left it.
+  defp toggle_more(id) do
+    JS.toggle_class("is-open")
+    |> JS.toggle_attribute({"aria-expanded", "true", "false"})
+    |> JS.toggle_class("is-open", to: "##{id}")
+    |> JS.toggle_attribute({"inert", ""}, to: "##{id}")
+  end
+
   # Helpers
 
   defp tiqit_action_btn_base do
@@ -921,6 +958,27 @@ defmodule QlariusWeb.TiqitComponents do
 
   defp format_purchased_at(datetime, user) do
     Qlarius.DateTime.format_for_user(datetime, user, :standard_no_tz)
+  end
+
+  # "Oct 3" this year, "Oct 03, 2025" before
+  defp format_stub_date(datetime, user) do
+    format = if datetime.year == DateTime.utc_now().year, do: :month_day, else: :date_only
+    Qlarius.DateTime.format_for_user(datetime, user, format)
+  end
+
+  # The source line: creator › catalog › group, without repeats (a creator
+  # whose catalog has the same name), and only the ends when there are three.
+  defp compact_source(hierarchy) do
+    case source_parts(hierarchy) do
+      [first, _ | _] = parts when length(parts) > 2 -> first <> " › " <> List.last(parts)
+      parts -> Enum.join(parts, " › ")
+    end
+  end
+
+  defp source_parts(hierarchy) do
+    hierarchy
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.dedup_by(&(&1 |> String.trim() |> String.downcase()))
   end
 
   defp tiqit_image_url(tiqit) do

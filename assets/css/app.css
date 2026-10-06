@@ -3132,13 +3132,25 @@
    * MeFile Tags view: one tag per parent trait (the unit the app counts).
    * Cut left corners plus a punched hole read as a tag at any height; the hole
    * is a mask, so it shows whatever surface the tag sits on.
+   *
+   * The edge: clip-path cuts a real border off the corners, so the tag itself
+   * paints the edge colour and ::before paints the fill 1px inside it (a
+   * hairline), cut to the same shape (corner 10.4px, the outer 11px offset
+   * inward) with a 1px larger hole, which leaves a ring of edge colour round
+   * the hole.
    */
   .trait-tag {
     @apply relative inline-flex max-w-full flex-col;
+    isolation: isolate;
     padding: 0.5rem 0.875rem 0.5625rem 1.5625rem;
-    background-color: color-mix(
+    --tag-fill: color-mix(
       in oklab,
       var(--color-youdata-500) var(--tag-tint, 17%),
+      var(--color-base-100)
+    );
+    background-color: color-mix(
+      in oklab,
+      var(--color-youdata-500) var(--tag-edge, 60%),
       var(--color-base-100)
     );
     border-radius: 0 0.625rem 0.625rem 0;
@@ -3147,20 +3159,42 @@
     mask: radial-gradient(circle 3px at 12px 50%, transparent 95%, #000 100%);
   }
 
+  .trait-tag::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    z-index: -1;
+    background-color: var(--tag-fill);
+    border-radius: 0 calc(0.625rem - 1px) calc(0.625rem - 1px) 0;
+    clip-path: polygon(
+      10.4px 0,
+      100% 0,
+      100% 100%,
+      10.4px 100%,
+      0 calc(100% - 10.4px),
+      0 10.4px
+    );
+    -webkit-mask: radial-gradient(circle 4px at 11px 50%, transparent 95%, #000 100%);
+    mask: radial-gradient(circle 4px at 11px 50%, transparent 95%, #000 100%);
+    transition: background-color 0.15s ease;
+  }
+
   .trait-tag--editable {
-    @apply cursor-pointer transition-colors;
+    @apply cursor-pointer;
   }
 
   .trait-tag--editable:hover {
-    background-color: color-mix(
+    --tag-fill: color-mix(
       in oklab,
       var(--color-youdata-500) var(--tag-tint-hover, 26%),
       var(--color-base-100)
     );
   }
 
+  /* Blank tags keep a lighter edge so filled ones still lead */
   .trait-tag--empty {
-    background-color: color-mix(
+    --tag-edge: var(--tag-edge-empty, 35%);
+    --tag-fill: color-mix(
       in oklab,
       var(--color-youdata-500) var(--tag-tint-empty, 7%),
       var(--color-base-100)
@@ -3190,7 +3224,7 @@
   }
 
   .trait-tag__name {
-    @apply flex items-center gap-0.5 text-xs font-semibold text-youdata-800 dark:text-youdata-200;
+    @apply flex items-center gap-0.5 text-xs font-semibold text-youdata-900 dark:text-youdata-300;
   }
 
   .trait-tag__name .hero-chevron-right {
@@ -3654,22 +3688,22 @@
     box-shadow: none;
   }
 
-  .pill-join-selector .stash-pill-count-neutral {
+  .pill-join-selector .pill-join-count {
     background-color: var(--color-base-300) !important;
     color: color-mix(in oklab, var(--color-base-content) 75%, transparent) !important;
   }
 
-  .pill-join-selector .join-item.btn.btn-active .stash-pill-count-neutral {
+  .pill-join-selector .join-item.btn.btn-active .pill-join-count {
     background-color: color-mix(in oklab, var(--color-base-content) 18%, var(--color-base-300)) !important;
     color: color-mix(in oklab, var(--color-base-content) 88%, transparent) !important;
   }
 
-  html[data-theme="dark"] .pill-join-selector .stash-pill-count-neutral {
+  html[data-theme="dark"] .pill-join-selector .pill-join-count {
     background-color: color-mix(in oklab, var(--color-base-content) 14%, transparent) !important;
     color: color-mix(in oklab, var(--color-base-content) 72%, transparent) !important;
   }
 
-  html[data-theme="dark"] .pill-join-selector .join-item.btn.btn-active .stash-pill-count-neutral {
+  html[data-theme="dark"] .pill-join-selector .join-item.btn.btn-active .pill-join-count {
     background-color: color-mix(in oklab, var(--color-base-content) 22%, transparent) !important;
     color: color-mix(in oklab, var(--color-base-content) 90%, transparent) !important;
   }
@@ -5178,18 +5212,6 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
   color: inherit;
 }
 
-.stash-gift-status-badge {
-  border-color: color-mix(in oklab, var(--color-base-content) 14%, transparent);
-  background-color: var(--color-base-200);
-  color: color-mix(in oklab, var(--color-base-content) 72%, transparent);
-}
-
-[data-theme="dark"] .stash-gift-status-badge {
-  border-color: color-mix(in oklab, var(--color-base-content) 18%, transparent);
-  background-color: color-mix(in oklab, var(--color-base-content) 10%, transparent);
-  color: color-mix(in oklab, var(--color-base-content) 78%, transparent);
-}
-
 /* Tiqit card shell — bottom-only drop shadow (avoids side shadow in perforation notches) */
 .tiqit-card-shell {
   box-shadow:
@@ -5206,29 +5228,55 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
 /* Tiqit ticket card — 3×3 structural grid with notch cutouts */
 .tiqit-grid {
   --notch-r: 12px;
-  --tiqit-tail-t: 0.48s;
-  --tiqit-tail-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --tiqit-more-t: 0.28s;
+  --tiqit-more-ease: cubic-bezier(0.4, 0, 0.2, 1);
   /* Match .page-canvas / panel-scroll so notch cutouts blend with the page */
   --tiqit-canvas-bg: var(--color-base-200);
   --tiqit-notch-inset-shadow: none;
   display: grid;
-  grid-template-columns: var(--notch-r) 1fr var(--notch-r);
+  /* minmax(0, …) so a truncated line can't widen the ticket */
+  grid-template-columns: var(--notch-r) minmax(0, 1fr) var(--notch-r);
   grid-template-rows: auto calc(var(--notch-r) * 2) auto;
 }
 
-/* Equal-height rows in stash grid only (wallet sidebar etc. stay content-sized) */
+/*
+ * Stash grid only (the wallet pane etc. stay content-sized): each card spans
+ * three rows of the page grid (top, tear line, stub) and takes them through
+ * subgrid, so a row's tallest top section sets the height for all its cards
+ * and the notches and tear lines line up across the row. Cards in a row also
+ * end level, as before. The tear-line row has no content of its own, so its
+ * cells carry its height.
+ */
 .tiqit-stash-grid > .tiqit-card-shell {
-  height: 100%;
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  row-gap: 0;
 }
 
 .tiqit-stash-grid .tiqit-grid {
-  height: 100%;
-  min-height: 100%;
-  grid-template-rows: auto calc(var(--notch-r) * 2) minmax(0, 1fr);
+  grid-row: 1 / -1;
+  grid-template-rows: subgrid;
+  row-gap: 0;
+}
+
+.tiqit-stash-grid .tiqit-notch,
+.tiqit-stash-grid .tiqit-perf {
+  height: calc(var(--notch-r) * 2);
+}
+
+/* The status row (badges / time left) sits just above the tear line, so it
+   lines up across the row too; the image and text block takes the slack. */
+.tiqit-stash-grid .tiqit-top {
+  display: flex;
+  flex-direction: column;
+}
+
+.tiqit-stash-grid .tiqit-top > :first-child {
+  flex: 1 0 auto;
 }
 
 .tiqit-stash-grid .tiqit-bot {
-  min-height: 100%;
   align-self: stretch;
 }
 
@@ -5236,46 +5284,30 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
   background-color: var(--ticket-bg);
 }
 
-/* ── Status themes (light) ── */
+/*
+ * One white ticket for every state, with a hairline edge. Only an active
+ * tiqit gets the Tiqit-orange top edge; the status line under the title
+ * (dot + words) says the rest. Fleeted/refunded blanks stay greyed.
+ */
+.tiqit-grid {
+  --ticket-bg: var(--color-base-100);
+  --ticket-border: color-mix(in oklab, var(--color-base-content) 28%, var(--color-base-100));
+  --ticket-top: var(--ticket-border);
+}
 .tiqit-grid[data-status="active"] {
-  --ticket-border: var(--color-tiqit-500);
-  --ticket-bg: oklch(99% 0.012 70 / 0.34);
-}
-.tiqit-grid[data-status="expired"] {
-  --ticket-border: var(--color-tiqit-600);
-  --ticket-bg: oklch(98.25% 0.02 89.35 / 0.6);
-}
-.tiqit-grid[data-status="gifted"] {
-  --ticket-border: color-mix(in oklab, var(--color-base-content) 32%, var(--color-base-300));
-  --ticket-bg: color-mix(in oklab, var(--color-base-100) 88%, var(--color-base-200));
+  --ticket-top: var(--color-tiqit-500);
 }
 .tiqit-grid[data-status="fleeted"],
-.tiqit-grid[data-status="undone"]    { --ticket-border: var(--color-base-300);  --ticket-bg: var(--color-base-200); }
-
-/* ── Kept+expired "on ice" override (light) ── */
-.tiqit-grid[data-status="expired"][data-preserved="true"] {
-  --ticket-border: oklch(70% 0.1 250);
-  --ticket-bg: oklch(97% 0.01 264);
+.tiqit-grid[data-status="undone"] {
+  --ticket-bg: var(--color-base-200);
+  --ticket-border: var(--color-base-300);
 }
 
-/* ── Status themes (dark) ── */
+[data-theme="dark"] .tiqit-grid {
+  --ticket-border: color-mix(in oklab, var(--color-base-content) 32%, var(--color-base-100));
+}
 [data-theme="dark"] .tiqit-grid[data-status="active"] {
-  --ticket-border: var(--color-tiqit-500);
-  --ticket-bg: oklch(28% 0.04 70 / 0.18);
-}
-[data-theme="dark"] .tiqit-grid[data-status="expired"] {
-  --ticket-border: var(--color-tiqit-700);
-  --ticket-bg: oklch(26.72% 0.08 39.05 / 0.25);
-}
-[data-theme="dark"] .tiqit-grid[data-status="gifted"] {
-  --ticket-border: color-mix(in oklab, var(--color-base-content) 42%, transparent);
-  --ticket-bg: oklch(32% 0.01 264 / 0.22);
-}
-
-/* ── Kept+expired "on ice" override (dark) ── */
-[data-theme="dark"] .tiqit-grid[data-status="expired"][data-preserved="true"] {
-  --ticket-bg: oklch(21% 0.06 265 / 0.3);
-  --ticket-border: oklch(55% 0.1 250);
+  --ticket-top: var(--color-tiqit-500);
 }
 
 [data-theme="dark"] .tiqit-grid {
@@ -5287,7 +5319,10 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
 .tiqit-tl,
 .tiqit-top,
 .tiqit-tr {
-  box-shadow: inset 0 4px 0 0 var(--ticket-border);
+  border-top: 1px solid var(--ticket-top);
+}
+.tiqit-grid[data-status="active"] :is(.tiqit-tl, .tiqit-top, .tiqit-tr) {
+  box-shadow: inset 0 2px 0 0 var(--ticket-top);
 }
 
 .tiqit-tl {
@@ -5317,20 +5352,176 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
   position: relative;
   z-index: 1;
   border-bottom: 1px solid var(--ticket-border);
-  padding: 10px 24px 8px 16px;
-  /* Single paint for translucent `--ticket-bg` (avoid stacking same token in tail, which shifts hue) */
+  padding: 6px 24px 8px 16px;
   background-color: var(--ticket-bg);
-  overflow: visible;
-  transition: padding-bottom var(--tiqit-tail-t) var(--tiqit-tail-ease);
-}
-
-.tiqit-bot:has(> .tiqit-tail-details:not([open])),
-.tiqit-bot:has(> .tiqit-tail-details[open].tiqit-tail-is-closing) {
-  padding-bottom: 2px;
 }
 
 .tiqit-bot--read-only {
   padding: 8px 16px 10px;
+}
+
+/* Status line: a dot and plain words, just above the tear line */
+.tiqit-status-row {
+  margin-top: 12px;
+  border-top: 1px solid color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  padding-top: 10px;
+}
+
+.tiqit-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  color: color-mix(in oklab, var(--color-base-content) 62%, transparent);
+}
+
+.tiqit-status b {
+  font-weight: 600;
+  color: var(--color-base-content);
+}
+
+.tiqit-status__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 0.36em;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--color-base-content) 30%, transparent);
+}
+.tiqit-status__dot.is-live { background: var(--color-tiqit-500); }
+.tiqit-status__dot.is-warn { background: var(--color-error); }
+.tiqit-status__dot.is-done { background: var(--color-success); }
+
+/* Stub: bought date and price on the left; "⋯" and Open on the right */
+.tiqit-stub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 2.25rem;
+}
+
+.tiqit-stub__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Stub buttons: "⋯" (a circle) and Open (a pill), outlined at rest, filled on
+   hover. "⋯" stays filled while its panel is open; Open on an active tiqit is
+   the solid primary pill. */
+.tiqit-stub-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 2rem;
+  min-width: 2rem;
+  border: 1px solid color-mix(in oklab, var(--color-base-content) 18%, transparent);
+  border-radius: 9999px;
+  background-color: var(--color-base-100);
+  color: color-mix(in oklab, var(--color-base-content) 75%, transparent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.tiqit-stub-btn:hover,
+.tiqit-stub-btn.is-open {
+  border-color: color-mix(in oklab, var(--color-base-content) 30%, transparent);
+  background-color: color-mix(in oklab, var(--color-base-content) 7%, var(--color-base-100));
+  color: var(--color-base-content);
+}
+.tiqit-stub-btn:active {
+  background-color: color-mix(in oklab, var(--color-base-content) 12%, var(--color-base-100));
+}
+.tiqit-stub-btn:focus-visible {
+  outline: 2px solid var(--color-base-content);
+  outline-offset: 2px;
+}
+
+.tiqit-stub-btn--open {
+  padding: 0 8px 0 14px;
+}
+
+.tiqit-stub-btn--open.is-primary {
+  border-color: transparent;
+  background-color: var(--color-primary);
+  color: var(--color-primary-content);
+}
+.tiqit-stub-btn--open.is-primary:hover {
+  background-color: color-mix(in oklab, var(--color-primary) 86%, black);
+  color: var(--color-primary-content);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
+}
+.tiqit-stub-btn--open.is-primary:active {
+  background-color: color-mix(in oklab, var(--color-primary) 78%, black);
+}
+
+/* The panel "⋯" opens, below the stub line. Collapsed it has no height and is
+   inert (out of the tab order); it slides open by animating the grid row. */
+.tiqit-more {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--tiqit-more-t) var(--tiqit-more-ease);
+}
+.tiqit-more.is-open {
+  grid-template-rows: 1fr;
+}
+.tiqit-more__clip {
+  min-height: 0;
+  overflow: hidden;
+}
+.tiqit-more__body {
+  margin-top: 6px;
+  border-top: 1px solid color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  padding: 12px 0 8px;
+  opacity: 0;
+  transition: opacity var(--tiqit-more-t) var(--tiqit-more-ease);
+}
+.tiqit-more.is-open .tiqit-more__body {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tiqit-more,
+  .tiqit-more__body {
+    transition-duration: 0.01ms;
+  }
+}
+
+.tiqit-stub__meta {
+  min-width: 0;
+  font-size: 0.875rem;
+  color: color-mix(in oklab, var(--color-base-content) 55%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Stash filters: one scrolling row on a phone, no scrollbar, faded at the
+   right edge. The end padding lets the last pill scroll clear of the fade. */
+.stash-filter-scroll {
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-inline: -16px;
+  padding-inline: 16px 40px;
+  mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+}
+.stash-filter-scroll::-webkit-scrollbar {
+  display: none;
+}
+@media (min-width: 40rem) {
+  .stash-filter-scroll {
+    mask-image: none;
+  }
 }
 
 .tiqit-tail-read-only-claim {
@@ -5365,233 +5556,6 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
   content: '';
   flex: 1;
   border-top: 1px dashed color-mix(in oklch, var(--ticket-border) 50%, transparent);
-}
-
-/* Tail `<details>`: keep backgrounds transparent so only `.tiqit-bot` paints `--ticket-bg`
-   (semi-transparent ticket tokens would compound and look like a mismatched “inner panel”). */
-.tiqit-tail-details,
-.tiqit-tail-details-summary,
-.tiqit-tail-details-body {
-  background-color: transparent;
-}
-
-.tiqit-tail-details-summary {
-  display: block;
-  padding: 0;
-}
-
-/* Pull toggle onto the perforation; padding reserves collapsed tail height */
-.tiqit-tail-fold {
-  position: relative;
-  margin-top: -36px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 2;
-  padding-bottom: 19px;
-  transition: padding-bottom var(--tiqit-tail-t) var(--tiqit-tail-ease);
-}
-
-.tiqit-tail-details[open]:not(.tiqit-tail-is-closing) .tiqit-tail-fold {
-  padding-bottom: 0;
-}
-
-.tiqit-tail-details[open].tiqit-tail-is-closing .tiqit-tail-fold,
-.tiqit-tail-details:not([open]) .tiqit-tail-fold {
-  padding-bottom: 19px;
-}
-
-.tiqit-tail-toggle {
-  position: relative;
-}
-
-.tiqit-tail-details[open] .tiqit-tail-details-summary {
-  min-height: 0;
-}
-
-.tiqit-tail-details-body {
-  margin-top: -16px;
-  padding-top: 24px;
-  padding-bottom: 14px;
-  opacity: 0;
-  transform: translateY(8px);
-  transition:
-    opacity calc(var(--tiqit-tail-t) * 0.55) var(--tiqit-tail-ease),
-    transform calc(var(--tiqit-tail-t) * 0.55) var(--tiqit-tail-ease);
-}
-
-.tiqit-tail-details[open]:not(.tiqit-tail-is-closing) .tiqit-tail-details-body {
-  opacity: 1;
-  transform: translateY(0);
-  transition-delay: calc(var(--tiqit-tail-t) * 0.12);
-}
-
-.tiqit-tail-details[open].tiqit-tail-is-closing .tiqit-tail-details-body {
-  opacity: 0;
-  transform: translateY(6px);
-  transition-delay: 0ms;
-  overflow: hidden;
-  margin-top: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-  transition:
-    opacity calc(var(--tiqit-tail-t) * 0.55) var(--tiqit-tail-ease),
-    transform calc(var(--tiqit-tail-t) * 0.55) var(--tiqit-tail-ease),
-    margin var(--tiqit-tail-t) var(--tiqit-tail-ease),
-    padding var(--tiqit-tail-t) var(--tiqit-tail-ease);
-}
-
-/* Smooth tail expand/collapse; hook keeps [open] until close animation completes */
-@supports (interpolate-size: allow-keywords) and (selector(details::details-content)) {
-  .tiqit-tail-details {
-    interpolate-size: allow-keywords;
-  }
-
-  .tiqit-tail-details::details-content {
-    height: 0;
-    overflow: clip;
-    content-visibility: hidden;
-    transition:
-      height var(--tiqit-tail-t) var(--tiqit-tail-ease),
-      content-visibility var(--tiqit-tail-t) var(--tiqit-tail-ease);
-    transition-behavior: allow-discrete;
-  }
-
-  /* Instant open (reduced motion / after animate-open class is removed) */
-  .tiqit-tail-details[open]:not(.tiqit-tail-is-closing):not(.tiqit-tail-animate-open)::details-content {
-    height: auto;
-    content-visibility: visible;
-  }
-
-  /* Open animation only when hook adds this class — avoids @starting-style flash on close */
-  @starting-style {
-    .tiqit-tail-details[open].tiqit-tail-animate-open::details-content {
-      height: 0;
-    }
-  }
-
-  .tiqit-tail-details[open].tiqit-tail-animate-open::details-content {
-    height: auto;
-    content-visibility: visible;
-  }
-
-  /* Hook-driven close: animate measured height → 0 on the content box (not body max-height) */
-  .tiqit-tail-details[open].tiqit-tail-is-closing::details-content {
-    height: var(--tiqit-tail-content-h, 0px);
-    overflow: clip;
-    content-visibility: visible;
-    transition:
-      height var(--tiqit-tail-t) var(--tiqit-tail-ease),
-      content-visibility var(--tiqit-tail-t) var(--tiqit-tail-ease);
-    transition-behavior: allow-discrete;
-  }
-
-  .tiqit-tail-details.tiqit-tail-instant-shut::details-content {
-    height: 0 !important;
-    transition: none !important;
-    content-visibility: hidden;
-  }
-}
-
-/* Fallback when ::details-content is unavailable — fade body; height may step */
-@supports not ((interpolate-size: allow-keywords) and (selector(details::details-content))) {
-  .tiqit-tail-details:not([open]) .tiqit-tail-details-body {
-    max-height: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    margin-top: 0;
-    overflow: hidden;
-    opacity: 0;
-  }
-
-  .tiqit-tail-details[open]:not(.tiqit-tail-is-closing) .tiqit-tail-details-body {
-    max-height: 1200px;
-    transition:
-      opacity calc(var(--tiqit-tail-t) * 0.55) var(--tiqit-tail-ease),
-      transform calc(var(--tiqit-tail-t) * 0.55) var(--tiqit-tail-ease),
-      max-height var(--tiqit-tail-t) var(--tiqit-tail-ease),
-      padding var(--tiqit-tail-t) var(--tiqit-tail-ease),
-      margin var(--tiqit-tail-t) var(--tiqit-tail-ease);
-  }
-
-  .tiqit-tail-details[open].tiqit-tail-is-closing .tiqit-tail-details-body {
-    max-height: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    margin-top: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tiqit-bot {
-    transition-duration: 0.01ms;
-  }
-
-  .tiqit-tail-details-summary {
-    transition-duration: 0.01ms;
-  }
-
-  .tiqit-tail-expand-hit {
-    transition-duration: 0.01ms;
-  }
-
-  .tiqit-tail-details-chevron {
-    transition-duration: 0.01ms;
-  }
-
-  .tiqit-tail-details[open] .tiqit-tail-details-body {
-    opacity: 1;
-    transform: none;
-  }
-
-  @supports (interpolate-size: allow-keywords) and (selector(details::details-content)) {
-    .tiqit-tail-details::details-content {
-      transition-duration: 0.01ms !important;
-    }
-  }
-}
-
-.tiqit-tail-expand-hit {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 46px;
-  padding: 3px 15px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in oklch, var(--ticket-border) 55%, transparent);
-  /* Opaque fill so dashed perf line cannot show through translucent `--ticket-bg` */
-  background-color: var(--ticket-bg);
-  color: inherit;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    filter 0.15s ease;
-}
-
-@supports (background-color: oklch(from peru l c h)) {
-  .tiqit-tail-expand-hit {
-    background-color: oklch(from var(--ticket-bg) l c h / 1);
-  }
-}
-
-.tiqit-tail-expand-hit:hover {
-  filter: brightness(1.12);
-  border-color: color-mix(in oklch, var(--ticket-border) 85%, transparent);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
-}
-
-[data-theme="dark"] .tiqit-tail-expand-hit:hover {
-  filter: brightness(1.18);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
-}
-
-.tiqit-tail-details-chevron {
-  transition: transform var(--tiqit-tail-t) var(--tiqit-tail-ease);
-}
-
-.tiqit-tail-details[open]:not(.tiqit-tail-is-closing) .tiqit-tail-details-chevron {
-  transform: rotate(180deg);
 }
 
 /* Nexus Admin CSS */
