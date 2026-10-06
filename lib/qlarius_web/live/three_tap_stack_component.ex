@@ -18,11 +18,16 @@ defmodule QlariusWeb.ThreeTapStackComponent do
   # import Ecto.Query, except: [update: 2, update: 3]
 
   @impl true
+  # `layout`: "stack" (default; widgets and the public page) is one centred
+  # column. "grid" (/ads) flows the same fixed-size cards into as many
+  # columns as fit, which is one column on a phone.
   def render(assigns) do
+    assigns = assign(assigns, :grid?, Map.get(assigns, :layout) == "grid")
+
     ~H"""
-    <div class="w-fit mx-auto">
+    <div class={if @grid?, do: "three-tap-grid", else: "w-fit mx-auto"}>
       <%= if Enum.any?(@active_offers) do %>
-        <div class="space-y-4">
+        <div class={if @grid?, do: "contents", else: "space-y-4"}>
           <.clickable_offer
             :for={{offer, phase} <- @active_offers}
             offer={offer}

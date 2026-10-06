@@ -46,13 +46,13 @@ The consumer shell covers phones, iPads and desktop browsers. Breakpoints are wi
 | 48rem–64rem (iPad portrait) | Compact tab bar (27.5rem, centered) + off-canvas menu | Centered column, 42.5rem max |
 | ≥ 64rem (iPad landscape, desktop) | Side menu docked as a 20rem sidebar; hamburger and tab bar hidden | Centered column beside it |
 
-- `Layouts.shell_width/2` sets `data-shell-width="wide"` (72rem column) for screens that fill a grid: `/home`, `/me_file_builder`, `/arqade`, `/content`, `/tiqits` (Stash), and `/me_file` in Tags mode. MeFile in List mode stays at the reading column. Slide-over screens (`.shell-narrow`) stay at the reading column on wide pages.
+- `Layouts.shell_width/2` sets `data-shell-width="wide"` (72rem column) for screens that fill a grid: `/home`, `/ads`, `/me_file_builder`, `/arqade`, `/content`, `/tiqits` (Stash), and `/me_file` in Tags mode. MeFile in List mode stays at the reading column. Slide-over screens (`.shell-narrow`) stay at the reading column on wide pages.
 - Grids inside wide screens should size by available space, not viewport breakpoints, because the docked sidebar takes 20rem: the Stash grid uses `repeat(auto-fill, minmax(min(19rem, 100%), 1fr))`, and the Builder index uses CSS columns (`columns: 18rem 3`).
 - Home (`home_live.ex`) is one markup set inside an `@container`; the `.home-*` and `.setup-*` rules in `app.css` switch at a 56rem content width (about a 1250px window beside the docked menu):
   - **Phone / narrow:** balance hero with Collect below it; setup checklist as one row (progress ring, "Finish setting up", next step) that opens the five steps, the next step's action, and Remind me later / Don't show again; products as rows (colour chip, name, tagline, one figure) in one card; recent activity (latest three ledger entries).
   - **Wide:** hero and Collect in one row; the setup checklist stays open with the five steps as tiles with the next step highlighted and its action beside it; products as three cards with the brand wordmark and full stats (40px figures, Stash counts 2x2).
   - The header balance chip is hidden on Home and Wallet because each leads with the balance.
-- 3-tap ads keep their own 470px cap, so they stay phone-sized everywhere.
+- 3-tap cards keep their fixed 347 × 152 size everywhere; on `/ads` they flow into columns instead of growing (see Ads below).
 - Fixed floating elements follow the column, not the window: `#mefile-floating-toolbar` and `#discovery-view-toolbar` use `--shell-gutter-right`; `#onboarding-tip`, `.split-reminder-tip` and the video collection drawer shift past the docked sidebar. New fixed elements inside the shell need the same treatment.
 
 ## Side menu
@@ -88,6 +88,16 @@ The consumer shell covers phones, iPads and desktop browsers. Breakpoints are wi
 ## Slide-over header
 
 Every slide-over (Builder survey, Settings, the Ads video player, Arqade, the Tiqit player) shares one header row from `Layouts.mobile`: a round back button (header-chip style), the title, and an optional chip (`slide_over_show_wallet`). `.slide-over-head` is a `1fr minmax(0, auto) 1fr` grid, so a short title is centred; a long one wraps between the button and the chip. The right cell holds a back-button-wide ghost, so it balances the button when empty and grows to fit a chip.
+
+## Ads
+
+`/ads` (`ads_live.ex`) renders both panes, 3-Tap and Video, inside `.ads-board`; CSS (a container query, so the docked menu is accounted for) decides what shows:
+
+- **Phone and medium widths:** the selected type only, with the ad-type pill when both exist. 3-taps sit in `.three-tap-grid` (`ThreeTapStackComponent layout="grid"`): fixed 347px columns, as many as fit, which is one on a phone (identical to the old stack). The public Sponster page and widgets keep the default `layout="stack"`.
+- **Wide** (content at least 1070px: two 3-tap columns + 12px + a 340px video column, about 1440px with the menu docked): both panes side by side, pill hidden, each with a label and count (`.ads-pane__label`).
+- **Never changed:** 3-tap card size, phases, tap feedback and jump links; the video player slide-over and collect drawer.
+- Video rows on `/ads` use `video_offer_list_item app_row`: icon chip left (ledger style), amount, category, length and rate, double chevron; still 120px tall. The amount (24px bold), category (16px, 50%) and green-600 chevron match the 3-tap card's first phase, and every $ amount on the page (cards, TAP / JUMP bar, Collected / Given, rates, the collect slider) uses `tabular-amount` like the rest of the app, and a finished row matches its Attention Paid™ phase (14px grey text, large green check right). Change them together. Widgets keep the original row (no `app_row`), on the neutral widget theme.
+- Empty panes show an icon, the message and a link to the Builder.
 
 ## Wallet
 

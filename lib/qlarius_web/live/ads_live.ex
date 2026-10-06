@@ -363,39 +363,67 @@ defmodule QlariusWeb.AdsLive do
           <% end %>
         </:slide_over_content>
 
-        <%= if @show_ad_type_tabs do %>
-          <.ad_type_tabs
-            selected_ad_type={@selected_ad_type}
-            three_tap_ad_count={@current_scope.three_tap_ad_count || 0}
-            video_ad_count={@current_scope.video_ad_count || 0}
-          />
-        <% end %>
+        <%!--
+          Both panes are always rendered; CSS picks what shows (see `.ads-board`
+          in app.css). Phone and medium widths show the selected type, with the
+          pill when both exist. Once two 3-tap columns and a video column fit,
+          both show side by side and the pill hides.
+        --%>
+        <div
+          id="ads-board"
+          class="ads-board"
+          data-ad-type={@selected_ad_type}
+          data-both={to_string(@show_ad_type_tabs)}
+        >
+          <div :if={@show_ad_type_tabs} class="ads-board__tabs">
+            <.ad_type_tabs
+              selected_ad_type={@selected_ad_type}
+              three_tap_ad_count={@current_scope.three_tap_ad_count || 0}
+              video_ad_count={@current_scope.video_ad_count || 0}
+            />
+          </div>
 
-        <%= if @selected_ad_type == "three_tap" do %>
-          <%= if !@loading && Enum.empty?(@active_offers) do %>
-            <div class="text-center text-base-content/70 py-8">
-              No 3-Tap ads available
-            </div>
-          <% else %>
-            <div class="max-w-3xl mx-auto">
-              <.live_component
-                module={QlariusWeb.ThreeTapStackComponent}
-                id="three-tap-stack"
-                active_offers={@active_offers}
-                user_ip={@user_ip}
-                current_scope={@current_scope}
-                host_uri={@host_uri}
-              />
-            </div>
-          <% end %>
-        <% else %>
-          <.video_offer_list
-            video_offers={@video_offers}
-            completed_video_offers={@completed_video_offers}
-            me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
-            loading={@loading}
-          />
-        <% end %>
+          <div class="ads-board__panes">
+            <section class="ads-pane ads-pane--three_tap" aria-label="3-Tap ads">
+              <div class="ads-pane__label">
+                <h2>3-Tap</h2>
+                <span>{@current_scope.three_tap_ad_count || 0}</span>
+              </div>
+              <%= if !@loading && Enum.empty?(@active_offers) do %>
+                <.ads_empty message="No 3-Tap ads available" />
+              <% else %>
+                <.live_component
+                  module={QlariusWeb.ThreeTapStackComponent}
+                  id="three-tap-stack"
+                  layout="grid"
+                  active_offers={@active_offers}
+                  user_ip={@user_ip}
+                  current_scope={@current_scope}
+                  host_uri={@host_uri}
+                />
+              <% end %>
+            </section>
+
+            <section class="ads-pane ads-pane--video" aria-label="Video ads">
+              <div class="ads-pane__label">
+                <h2>Video</h2>
+                <span>{@current_scope.video_ad_count || 0}</span>
+              </div>
+              <%= if !@loading && Enum.empty?(@video_offers) do %>
+                <.ads_empty message="No video ads available" />
+              <% else %>
+                <.video_offer_list
+                  video_offers={@video_offers}
+                  completed_video_offers={@completed_video_offers}
+                  me_file_id={@current_scope.user.me_file && @current_scope.user.me_file.id}
+                  loading={@loading}
+                  app_row={true}
+                  class="ads-video-list"
+                />
+              <% end %>
+            </section>
+          </div>
+        </div>
       </Layouts.mobile>
 
       <%= if @current_video_offer && @show_video_player do %>
@@ -411,6 +439,21 @@ defmodule QlariusWeb.AdsLive do
           has_bottom_dock={true}
         />
       <% end %>
+    </div>
+    """
+  end
+
+  attr :message, :string, required: true
+
+  # Empty pane: offers follow tags, so point at the Builder.
+  defp ads_empty(assigns) do
+    ~H"""
+    <div class="ads-empty">
+      <span class="ads-empty__icon"><.icon name="hero-megaphone" class="h-6 w-6" /></span>
+      <p class="ads-empty__text">{@message}</p>
+      <.link navigate={~p"/me_file_builder"} class="ads-empty__link">
+        Add tags to get more ads <.icon name="hero-arrow-right" class="h-4 w-4" />
+      </.link>
     </div>
     """
   end

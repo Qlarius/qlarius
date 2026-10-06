@@ -2063,6 +2063,145 @@
     margin-bottom: 1rem;
   }
 
+  /*
+   * /ads board (ads_live.ex). Phone and medium widths show the selected ad
+   * type only, with the pill when both exist. Once two 3-tap columns
+   * (2 x 347px + 12px) and a 340px video column fit side by side (1070px of
+   * content), both show and the pill hides. A container query, so the docked
+   * menu's width is already taken out.
+   */
+  .ads-board {
+    container: ads-board / inline-size;
+  }
+
+  .ads-pane,
+  .ads-pane__label {
+    display: none;
+  }
+
+  .ads-board[data-ad-type="three_tap"] .ads-pane--three_tap,
+  .ads-board[data-ad-type="video"] .ads-pane--video {
+    display: block;
+  }
+
+  .ads-pane__label h2 {
+    @apply text-lg font-bold tracking-tight text-base-content/55;
+  }
+
+  .ads-pane__label span {
+    @apply text-sm text-base-content/50 tabular-amount;
+  }
+
+  @container ads-board (min-width: 66.875rem) {
+    .ads-board[data-both="true"] .ads-board__tabs {
+      display: none;
+    }
+
+    .ads-board[data-both="true"] .ads-board__panes {
+      @apply grid items-start gap-6;
+      grid-template-columns: minmax(44.125rem, 1fr) minmax(21.25rem, 29.375rem);
+    }
+
+    .ads-board[data-both="true"] .ads-pane {
+      display: block;
+    }
+
+    .ads-board[data-both="true"] .ads-pane__label {
+      @apply mb-2.5 flex items-baseline justify-between px-1;
+    }
+
+    .ads-board[data-both="true"] .ads-video-list {
+      @apply max-w-none;
+    }
+  }
+
+  /*
+   * 3-tap cards in as many fixed 347px columns as fit (one on a phone). The
+   * cards keep their exact size; their stack margin would double the row gap
+   * here, so the grid owns the spacing. `safe center` falls back to start
+   * when a single card is wider than the column, as the stack did.
+   */
+  .three-tap-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 347px);
+    gap: 1rem 0.75rem;
+    justify-content: safe center;
+  }
+
+  .three-tap-grid .offer-container {
+    margin-bottom: 0;
+  }
+
+  .ads-video-list {
+    @apply mx-auto w-full max-w-[470px];
+  }
+
+  /* /ads video row: same 120px height and click target, laid out like a ledger row */
+  .video-app-row {
+    @apply flex h-[120px] w-full min-w-0 items-center gap-3 px-4 transition-colors;
+    border-radius: 0 !important;
+  }
+
+  .video-app-row__icon {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sponster-700 dark:text-sponster-300;
+    background-color: color-mix(in oklab, var(--color-sponster-500) 16%, var(--color-base-100));
+  }
+
+  .video-app-row__icon.is-done {
+    @apply bg-base-200 text-base-content/40;
+  }
+
+  .video-app-row__main {
+    @apply flex min-w-0 flex-1 flex-col;
+  }
+
+  /* Amount, category and chevron match the 3-tap card's first phase exactly;
+     amounts use the app's tabular figures, like every $ amount */
+  .video-app-row__amt {
+    @apply text-2xl font-bold text-base-content tabular-amount;
+  }
+
+  .video-app-row__label {
+    @apply truncate text-base text-base-content/50;
+  }
+
+  .video-app-row__meta {
+    @apply mt-0.5 flex min-w-0 items-center gap-1.5 text-sm text-base-content/50;
+  }
+
+  /* Finished: same as the 3-tap "Attention Paid" phase */
+  .video-app-row__done {
+    @apply text-sm font-semibold text-gray-400;
+  }
+
+  .video-app-row__collected {
+    @apply text-sm text-gray-400;
+  }
+
+  .video-app-row__check {
+    @apply shrink-0 text-green-500;
+  }
+
+  .video-app-row__go {
+    @apply shrink-0 text-green-600;
+  }
+
+  .ads-empty {
+    @apply mx-auto flex max-w-sm flex-col items-center gap-2 px-4 py-10 text-center;
+  }
+
+  .ads-empty__icon {
+    @apply mb-1 flex h-12 w-12 items-center justify-center rounded-full bg-base-200 text-base-content/50;
+  }
+
+  .ads-empty__text {
+    @apply text-[15px] font-medium text-base-content/70;
+  }
+
+  .ads-empty__link {
+    @apply inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline;
+  }
+
   .offer-phase {
     position: absolute;
     top: 0;

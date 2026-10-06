@@ -124,7 +124,7 @@ defmodule QlariusWeb.Layouts do
   @doc """
   Content column width for the consumer shell on tablet and desktop widths
   (see the responsive shell block in app.css). Screens that fill a grid get the
-  wide column: Home, Builder, Arqade, Stash, and MeFile in Tags mode.
+  wide column: Home, Ads, Builder, Arqade, Stash, and MeFile in Tags mode.
   MeFile in List mode keeps its narrower reading width.
   """
   def shell_width(path, tag_display_mode \\ nil)
@@ -133,7 +133,7 @@ defmodule QlariusWeb.Layouts do
   def shell_width("/me_file", _mode), do: "column"
 
   def shell_width(path, _mode) when is_binary(path) do
-    if path == "/home" or
+    if path in ["/home", "/ads"] or
          String.starts_with?(path, ["/me_file_builder", "/arqade", "/content", "/tiqits"]),
        do: "wide",
        else: "column"

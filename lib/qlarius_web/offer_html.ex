@@ -89,7 +89,7 @@ defmodule QlariusWeb.OfferHTML do
             target={@target}
             recipient={@recipient}
           >
-            <div class="text-2xl font-bold mb-2">{format_usd(@offer.offer_amt)}</div>
+            <div class="text-2xl font-bold mb-2 tabular-amount">{format_usd(@offer.offer_amt)}</div>
             <div class="mb-4 text-base-content/50">
               {@offer.media_piece.ad_category.ad_label}
             </div>
@@ -136,7 +136,11 @@ defmodule QlariusWeb.OfferHTML do
       <div class="absolute inset-0 overflow-hidden" style="height: 150px;">
         <div class={"offer-phase phase-2 #{if @phase > 2, do: "hidden"}"}>
           <.offer_container offer={@offer} class="px-3 py-2" target={@target} recipient={@recipient}>
-            <a class="block w-full h-full" href={jump_url(@offer, @recipient, tip_only: @tip_only)} target="_blank">
+            <a
+              class="block w-full h-full"
+              href={jump_url(@offer, @recipient, tip_only: @tip_only)}
+              target="_blank"
+            >
               <div class={[
                 "truncate text-blue-600 font-bold text-lg underline",
                 if(!@force_light, do: "dark:text-blue-300")
@@ -175,11 +179,15 @@ defmodule QlariusWeb.OfferHTML do
               {me_file_collect_total, recipient_collect_total} =
                 ThreeTap.calculate_offer_totals(@offer.id, @current_scope.user.me_file.id, @recipient) %>
               <div class="text-sm text-gray-400">
-                Collected: <span class="font-semibold">{format_usd(me_file_collect_total)}</span>
+                Collected:
+                <span class="font-semibold tabular-amount">{format_usd(me_file_collect_total)}</span>
               </div>
               <%= if @recipient && !@tip_only do %>
                 <div class="text-sm text-gray-400">
-                  Given: <span class="font-semibold">{format_usd(recipient_collect_total)}</span>
+                  Given:
+                  <span class="font-semibold tabular-amount">
+                    {format_usd(recipient_collect_total)}
+                  </span>
                 </div>
               <% end %>
             </div>
@@ -214,7 +222,7 @@ defmodule QlariusWeb.OfferHTML do
           <.icon name="hero-check" class="text-green-500 w-4 h-4" />
         <% else %>
           <span>TAP: </span>
-          <span class="font-bold ml-1">$0.05</span>
+          <span class="font-bold ml-1 tabular-amount">$0.05</span>
         <% end %>
       </div>
       <div
@@ -229,7 +237,7 @@ defmodule QlariusWeb.OfferHTML do
         style="height: 35px;"
       >
         <span>JUMP: </span>
-        <span class="font-bold ml-1">{format_usd(@phase_2_amount)}</span>
+        <span class="font-bold ml-1 tabular-amount">{format_usd(@phase_2_amount)}</span>
       </div>
     </div>
     """

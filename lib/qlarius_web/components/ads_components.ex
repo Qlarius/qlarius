@@ -207,7 +207,7 @@ defmodule QlariusWeb.Components.AdsComponents do
             id={"#{@id}-destination"}
           >
             <div class="relative flex items-center justify-center w-20 h-20 rounded-full border-4 border-dashed border-primary/40">
-              <span class="text-lg font-bold text-success">
+              <span class="text-lg font-bold text-success tabular-amount">
                 ${Decimal.round(@amount, 2)}
               </span>
             </div>
@@ -239,7 +239,7 @@ defmodule QlariusWeb.Components.AdsComponents do
             <%!-- Amount text (hidden by default, shown on success) --%>
             <span
               id={"#{@id}-handle-amount"}
-              class="text-lg font-bold text-white"
+              class="text-lg font-bold text-white tabular-amount"
             >
               ${Decimal.round(@amount, 2)}
             </span>
@@ -781,6 +781,10 @@ defmodule QlariusWeb.Components.AdsComponents do
   attr :empty_message, :string, default: "No video ads available"
   attr :class, :string, default: "max-w-[470px] mx-auto w-full"
 
+  attr :app_row, :boolean,
+    default: false,
+    doc: "First-party /ads row (icon left, ledger-style). Widgets keep the default row."
+
   def video_offer_list(assigns) do
     ~H"""
     <%= if !@loading && Enum.empty?(@video_offers) do %>
@@ -801,6 +805,7 @@ defmodule QlariusWeb.Components.AdsComponents do
             tip_only={@tip_only}
             force_light={@force_light}
             surface_panel_row?={true}
+            app_row={@app_row}
           />
         </ul>
       </.surface_panel>
@@ -817,6 +822,76 @@ defmodule QlariusWeb.Components.AdsComponents do
   attr :force_light, :boolean, default: false
   attr :surface_panel_row?, :boolean, default: false
   attr :tip_only, :boolean, default: false
+  attr :app_row, :boolean, default: false
+
+  # /ads only: the same 120px row, laid out like a ledger row (icon chip left,
+  # amount, category, length and rate, chevrons right). Same click target.
+  # Type matches the 3-tap card's first phase (amount, category, chevron).
+  def video_offer_list_item(%{app_row: true} = assigns) do
+    ~H"""
+    <li
+      class={[
+        "video-app-row",
+        surface_panel_row_classes(@completed, @surface_panel_row?, @force_light)
+      ]}
+      phx-click={if !@completed, do: "open_video_ad"}
+      phx-value-offer_id={@offer.id}
+    >
+      <%= if @completed do %>
+        <% {me_file_collect_total, _recipient_collect_total} =
+          if @me_file_id do
+            Qlarius.Sponster.Ads.Video.calculate_offer_totals(@offer.id, @me_file_id, @recipient)
+          else
+            {Decimal.new("0"), nil}
+          end %>
+        <%!-- Same finished cue as the 3-tap card: grey text, large green check right --%>
+        <span class="video-app-row__icon is-done">
+          <.icon name="hero-film" class="h-5 w-5" />
+        </span>
+        <div class="video-app-row__main">
+          <p class="video-app-row__done">Attention Paid™</p>
+          <p class="video-app-row__collected">
+            Collected:
+            <span class="font-semibold tabular-amount">{format_usd(me_file_collect_total)}</span>
+          </p>
+        </div>
+        <.icon name="hero-check" class="video-app-row__check h-8 w-8" />
+      <% else %>
+        <span class="video-app-row__icon">
+          <.icon name="hero-film" class="h-5 w-5" />
+        </span>
+        <div class="video-app-row__main">
+          <p class="video-app-row__amt">
+            ${Decimal.round(@offer.offer_amt || Decimal.new("0"), 2)}
+          </p>
+          <p class="video-app-row__label" title={@offer.media_run.media_piece.ad_category.ad_label}>
+            {@offer.media_run.media_piece.ad_category.ad_label}
+          </p>
+          <p class="video-app-row__meta">
+            <.icon
+              :if={
+                @offer.matching_tags_snapshot &&
+                  String.contains?(
+                    String.downcase(inspect(@offer.matching_tags_snapshot)),
+                    "zip code"
+                  )
+              }
+              name="hero-map-pin-solid"
+              class="h-4 w-4 shrink-0 text-blue-400"
+            />
+            <span class="truncate">
+              {format_duration(@offer.media_run.media_piece.duration || 0)} ·
+              <span class="font-bold text-sponster-600 dark:text-sponster-400 tabular-amount">
+                ${Decimal.round(@rate, 3)}/sec
+              </span>
+            </span>
+          </p>
+        </div>
+        <.icon name="hero-chevron-double-right" class="video-app-row__go h-6 w-6" />
+      <% end %>
+    </li>
+    """
+  end
 
   def video_offer_list_item(assigns) do
     ~H"""
@@ -843,11 +918,15 @@ defmodule QlariusWeb.Components.AdsComponents do
                 {Decimal.new("0"), nil}
               end %>
             <div class="text-sm text-gray-400">
-              Collected: <span class="font-semibold">{format_usd(me_file_collect_total)}</span>
+              Collected:
+              <span class="font-semibold tabular-amount">{format_usd(me_file_collect_total)}</span>
             </div>
             <%= if @recipient && !@tip_only && recipient_collect_total do %>
               <div class="text-sm text-gray-400">
-                Given: <span class="font-semibold">{format_usd(recipient_collect_total)}</span>
+                Given:
+                <span class="font-semibold tabular-amount">
+                  {format_usd(recipient_collect_total)}
+                </span>
               </div>
             <% end %>
           </div>
@@ -859,7 +938,7 @@ defmodule QlariusWeb.Components.AdsComponents do
         <%!-- Available state: text left; icon top-right, chevrons bottom-right in same column --%>
         <div class="flex min-w-0 flex-1 items-stretch gap-3">
           <div class="flex min-w-0 flex-1 flex-col justify-center gap-1">
-            <div class="text-2xl font-bold leading-none">
+            <div class="text-2xl font-bold leading-none tabular-amount">
               ${Decimal.round(@offer.offer_amt || Decimal.new("0"), 2)}
             </div>
             <p
@@ -876,7 +955,7 @@ defmodule QlariusWeb.Components.AdsComponents do
               <% end %>
               <div class="min-w-0 truncate text-sm text-base-content/50">
                 {format_duration(@offer.media_run.media_piece.duration || 0)} ·
-                <span class="font-bold text-sponster-600 dark:text-sponster-400">
+                <span class="font-bold text-sponster-600 dark:text-sponster-400 tabular-amount">
                   ${Decimal.round(@rate, 3)}/sec
                 </span>
               </div>
