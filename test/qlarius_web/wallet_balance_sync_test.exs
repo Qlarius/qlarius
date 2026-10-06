@@ -1,22 +1,36 @@
 defmodule QlariusWeb.WalletBalanceSyncTest do
   use ExUnit.Case, async: true
 
+  alias Qlarius.Accounts.User
+  alias Qlarius.Wallets.LedgerHeader
+  alias Qlarius.YouData.MeFiles.MeFile
   alias QlariusWeb.WalletBalanceSync
 
   describe "apply_sync_hook/2" do
+    # Real structs, as in a live session: the tippable amount is worked out
+    # from the preloaded MeFile and ledger header, so no database is needed.
     test "applies balance update without crashing" do
+      me_file = %MeFile{
+        id: 1,
+        credit_allowance: Decimal.new("2.00"),
+        ledger_header: %LedgerHeader{
+          balance: Decimal.new("1.25"),
+          balance_payable: Decimal.new("0.00")
+        }
+      }
+
       socket = %Phoenix.LiveView.Socket{
         assigns: %{
           __changed__: %{},
           current_scope: %{
-            wallet_balance: Decimal.new("1.25"),
-            user: %{me_file: %{ledger_header: %{balance: Decimal.new("1.25")}}}
+            wallet_balance: Decimal.new("3.25"),
+            user: %User{me_file: me_file}
           },
-          balance: Decimal.new("1.25")
+          balance: Decimal.new("3.25")
         }
       }
 
-      new_balance = Decimal.new("1.00")
+      new_balance = Decimal.new("3.00")
 
       updated =
         WalletBalanceSync.apply_sync_hook(
@@ -26,6 +40,8 @@ defmodule QlariusWeb.WalletBalanceSyncTest do
 
       assert updated.assigns.balance == new_balance
       assert updated.assigns.current_scope.wallet_balance == new_balance
+      # Tips spend activity only, never the credit allowance.
+      assert Decimal.equal?(updated.assigns.current_scope.available_to_tip, Decimal.new("1.25"))
     end
   end
 
