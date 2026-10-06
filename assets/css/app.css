@@ -2834,6 +2834,57 @@
     @apply text-xl font-semibold tracking-tight text-base-content;
   }
 
+  /* Zip entry in the tag edit sheet. */
+  .zip-entry {
+    @apply flex flex-col gap-2;
+  }
+
+  .zip-entry__label {
+    @apply px-1 text-sm font-medium text-base-content/60;
+  }
+
+  .zip-entry__field {
+    @apply flex h-16 items-center gap-3 rounded-2xl bg-base-200 px-4 transition-shadow;
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-base-content) 10%, transparent);
+  }
+
+  .zip-entry__field:focus-within {
+    box-shadow: inset 0 0 0 2px var(--color-primary);
+  }
+
+  .zip-entry__field.is-valid {
+    box-shadow: inset 0 0 0 2px var(--color-success);
+  }
+
+  .zip-entry__field.is-error {
+    box-shadow: inset 0 0 0 2px var(--color-error);
+  }
+
+  .zip-entry__pin {
+    @apply shrink-0 text-base-content/40;
+  }
+
+  .zip-entry__input {
+    @apply min-w-0 flex-1 bg-transparent text-2xl font-semibold tabular-amount outline-none placeholder:text-base-content/25;
+    letter-spacing: 0.18em;
+  }
+
+  .zip-entry__ok {
+    @apply shrink-0 text-success;
+  }
+
+  .zip-entry__status {
+    @apply min-h-6 px-1;
+  }
+
+  .zip-entry__place {
+    @apply text-base font-medium text-base-content;
+  }
+
+  .zip-entry__error {
+    @apply flex items-center gap-1.5 text-sm text-error;
+  }
+
   /* Floating tools: search and the two views in one capsule. */
   .mefile-toolbar {
     @apply flex h-11 items-center gap-0.5 rounded-full p-1 shadow-lg;

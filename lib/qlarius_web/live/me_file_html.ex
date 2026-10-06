@@ -163,47 +163,50 @@ defmodule QlariusWeb.MeFileHTML do
               >
                 <input type="hidden" name="me_file_id" value={@me_file_id} />
                 <input type="hidden" name="trait_id" value={@trait_in_edit.id} />
-                <div
-                  :if={@trait_in_edit.input_type == "single_select_zip"}
-                  class="space-y-4"
-                >
-                  <div class="form-control">
-                    <label class="label">
-                      <span class="label-text text-lg mb-2">Enter 5-digit zip code:</span>
-                    </label>
+                <%!-- Zip: one quiet field with the pin inside; the place confirms below --%>
+                <div :if={@trait_in_edit.input_type == "single_select_zip"} class="zip-entry">
+                  <label for="zip-code-input" class="zip-entry__label">Zip code</label>
+                  <div class={[
+                    "zip-entry__field",
+                    @zip_lookup_valid && "is-valid",
+                    @zip_lookup_error && "is-error"
+                  ]}>
+                    <.icon name="hero-map-pin" class="zip-entry__pin h-5 w-5" />
                     <input
+                      id="zip-code-input"
                       type="text"
                       name="zip_code_input"
                       value={@zip_lookup_input}
                       phx-change="lookup_zip_code"
                       maxlength="5"
-                      pattern="\d{5}"
+                      pattern="[0-9]*"
                       inputmode="numeric"
+                      enterkeyhint="done"
                       autocomplete="postal-code"
+                      placeholder="00000"
                       data-1p-ignore="true"
                       data-lpignore="true"
                       data-form-type="other"
-                      class="input input-bordered input-xl w-full text-xl"
+                      aria-describedby="zip-entry-status"
+                      aria-invalid={to_string(@zip_lookup_error != nil)}
+                      class="zip-entry__input"
+                    />
+                    <.icon
+                      :if={@zip_lookup_valid}
+                      name="hero-check-circle-solid"
+                      class="zip-entry__ok h-6 w-6"
                     />
                   </div>
 
-                  <div class="min-h-[4rem]">
-                    <div :if={@zip_lookup_trait && @zip_lookup_valid} class="space-y-2">
-                      <div class="badge badge-primary badge-lg p-4">
-                        <.icon name="hero-map-pin" class="w-5 h-5" />
-                        {@zip_lookup_trait.meta_1}
-                      </div>
-                      <input
-                        type="hidden"
-                        name="child_trait_ids[]"
-                        value={@zip_lookup_trait.id}
-                      />
-                    </div>
-
-                    <div :if={@zip_lookup_error} class="alert alert-error">
-                      <.icon name="hero-exclamation-triangle" class="w-6 h-6" />
-                      <span>{@zip_lookup_error}</span>
-                    </div>
+                  <div id="zip-entry-status" class="zip-entry__status" aria-live="polite">
+                    <%= if @zip_lookup_trait && @zip_lookup_valid do %>
+                      <p class="zip-entry__place">{@zip_lookup_trait.meta_1}</p>
+                      <input type="hidden" name="child_trait_ids[]" value={@zip_lookup_trait.id} />
+                    <% end %>
+                    <p :if={@zip_lookup_error} class="zip-entry__error">
+                      <.icon name="hero-exclamation-circle" class="h-4 w-4 shrink-0" />
+                      {@zip_lookup_error}
+                    </p>
                   </div>
                 </div>
                 <div
@@ -823,7 +826,7 @@ defmodule QlariusWeb.MeFileHTML do
   # Zip: a valid new lookup wins; otherwise the zip already on file.
   defp edit_tag_values(%{trait_in_edit: %{input_type: "single_select_zip"}} = assigns) do
     case assigns do
-      %{zip_lookup_valid: true, zip_lookup_trait: %{} = zip} -> [zip.meta_1 || zip.trait_name]
+      %{zip_lookup_valid: true, zip_lookup_trait: %{} = zip} -> [zip.trait_name]
       _ -> Map.get(assigns, :current_values, [])
     end
   end
