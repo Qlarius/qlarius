@@ -745,11 +745,13 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         class="flex min-w-0 flex-1 flex-row items-stretch gap-3 p-2 sm:p-2.5 min-h-[4.5rem]"
         {@click_rest}
       >
-        <img
-          src={@image_src}
-          alt={@image_alt}
-          class="h-16 w-16 sm:h-[4.5rem] sm:w-[4.5rem] shrink-0 rounded-md object-cover bg-base-300/40 dark:bg-base-700/40"
-        />
+        <span class="h-16 w-16 sm:h-[4.5rem] sm:w-[4.5rem] shrink-0 overflow-hidden rounded-md">
+          <img
+            src={@image_src}
+            alt={@image_alt}
+            class="h-full w-full object-cover bg-base-300/40 dark:bg-base-700/40 transition-transform duration-400 ease-out group-hover:scale-105"
+          />
+        </span>
         <div class="min-w-0 flex flex-1 flex-col justify-center gap-0.5">
           <h3 class="font-bold text-sm text-base-content leading-snug line-clamp-2">{@title}</h3>
           <p :if={@subtitle} class="text-xs text-base-content/60 truncate">{@subtitle}</p>
@@ -780,11 +782,11 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       !@elevated &&
         "arqade-surface rounded-lg bg-base-200/50 dark:bg-black shadow-sm border-t-2 border-neutral-300 dark:border-neutral-600"
     ]}>
-      <.link navigate={@navigate} class="block shrink-0" {@click_rest}>
+      <.link navigate={@navigate} class="block shrink-0 overflow-hidden" {@click_rest}>
         <img
           src={@image_src}
           alt={@image_alt}
-          class="aspect-[4/3] sm:aspect-square w-full object-cover bg-base-300/40 dark:bg-base-700/40"
+          class="aspect-[4/3] sm:aspect-square w-full object-cover bg-base-300/40 dark:bg-base-700/40 transition-transform duration-400 ease-out group-hover:scale-105"
         />
       </.link>
       <div class="flex flex-col p-2 sm:p-3 min-w-0">
