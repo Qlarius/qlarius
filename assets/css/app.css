@@ -2674,7 +2674,9 @@
 
   /*
    * MeFile (me_file_html.ex): category label above each card, Settings-style.
-   * List rows put a small label above the value; no boxes or accent rules.
+   * List rows put a small label above the value. YouData brand touches: a
+   * rail down each card's left edge (.youdata-card) and labels in the brand
+   * tint; values stay neutral.
    */
   .mefile-category__head {
     @apply mb-2.5 flex items-baseline justify-between px-1;
@@ -2686,6 +2688,16 @@
 
   .mefile-category__head span {
     @apply text-sm text-base-content/50;
+  }
+
+  /* Drawn inside the card, so the panel's rounded corners clip it */
+  .youdata-card {
+    @apply relative;
+  }
+
+  .youdata-card::before {
+    @apply pointer-events-none absolute inset-y-0 left-0 z-[1] w-[3px] bg-youdata-500;
+    content: "";
   }
 
   .mefile-list {
@@ -2705,7 +2717,7 @@
   }
 
   .mefile-row__label {
-    @apply text-[13px] font-medium leading-snug text-base-content/60;
+    @apply text-[13px] font-medium leading-snug text-youdata-600 dark:text-youdata-300;
   }
 
   .mefile-row__value {

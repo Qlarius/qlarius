@@ -642,7 +642,7 @@ defmodule QlariusWeb.MeFileHTML do
   # List rows sit in a card; tags are objects already, so they sit on the page.
   defp traits_frame(%{tag_display_mode: "list"} = assigns) do
     ~H"""
-    <.surface_panel padding={false}>{render_slot(@inner_block)}</.surface_panel>
+    <.surface_panel padding={false} class="youdata-card">{render_slot(@inner_block)}</.surface_panel>
     """
   end
 
@@ -677,7 +677,7 @@ defmodule QlariusWeb.MeFileHTML do
             <div class="skeleton h-5 w-28"></div>
             <div class="skeleton h-4 w-16"></div>
           </div>
-          <.surface_panel padding={false}>
+          <.surface_panel padding={false} class="youdata-card">
             <div :for={_ <- 1..3} class="mefile-row">
               <div class="flex-1 space-y-2">
                 <div class="skeleton h-3 w-24"></div>

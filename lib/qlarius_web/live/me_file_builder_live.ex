@@ -208,7 +208,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                 {answered_total}/{question_total}
               </span>
             </div>
-            <.surface_panel padding={false}>
+            <.surface_panel padding={false} class="youdata-card">
               <ul class="builder-list">
                 <li :for={survey <- category.surveys}>
                   <% {answered, total} = survey.survey_stats || {0, 0} %>
