@@ -42,46 +42,26 @@ defmodule QlariusWeb.MeFileBuilderLive do
         </:modals>
 
         <:slide_over_content>
-          <div :if={@survey_in_edit} class="mb-6">
-            <% total_traits = length(@survey_in_edit.parent_traits)
+          <%!-- Same thin line and check as the index row for this survey --%>
+          <div :if={@survey_in_edit} class="survey-progress">
+            <% total = length(@survey_in_edit.parent_traits)
 
-            completed_traits =
+            answered =
               Enum.count(@survey_in_edit.parent_traits, fn {_id, _name, _order, tags} ->
                 tags != []
-              end)
-
-            percent_complete =
-              if total_traits == 0, do: 0, else: trunc(completed_traits / total_traits * 100) %>
-            <div class="relative tagger-progress">
-              <progress
-                class={[
-                  "progress w-full h-6",
-                  cond do
-                    percent_complete == 0 -> "tagger-progress-zero"
-                    percent_complete == 100 -> "progress-success"
-                    true -> "progress-warning"
-                  end
-                ]}
-                value={if percent_complete == 0, do: 0, else: max(22, percent_complete)}
-                max="100"
-              >
-              </progress>
-              <%= if percent_complete == 0 do %>
-                <div class="tagger-progress-fill-label tagger-zero-progress-chip text-xs leading-none">
-                  {completed_traits}/{total_traits}
-                </div>
-              <% else %>
-                <div
-                  class="tagger-progress-fill-label text-xs leading-none"
-                  style={"width: #{max(22, percent_complete)}%"}
-                >
-                  {completed_traits}/{total_traits}
-                </div>
-              <% end %>
-            </div>
-            <p class="mobile-page-intro mt-2 mb-0">
-              Fill the empty tags below. Update or delete existing tags.
-            </p>
+              end) %>
+            <%= if total > 0 and answered == total do %>
+              <p class="survey-progress__label">
+                <.icon name="hero-check-circle-solid" class="h-5 w-5 text-success" /> All answered
+              </p>
+            <% else %>
+              <p class="survey-progress__label">{answered} of {total} answered</p>
+              <span class="progress-line" aria-hidden="true">
+                <span class="progress-line__fill" style={"width: #{survey_percent(answered, total)}%"}>
+                </span>
+              </span>
+            <% end %>
+            <p class="survey-progress__intro">Tap a tag to answer or change it.</p>
           </div>
 
           <.survey_traits_display

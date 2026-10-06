@@ -67,7 +67,7 @@ The consumer shell covers phones, iPads and desktop browsers. Breakpoints are wi
 ## MeFile views
 
 - **List** (default): label above value rows; multiple values join with " · ". Shared by MeFile, the Builder survey slide-over and the read-only "Why you?" lists.
-- **Tags**: one `trait_tag` per parent trait, the unit the app counts as a "tag" (counts are parent traits, so users aren't nudged to pile on values). The trait name sits on top and its values inside, joined with " · ". The `.trait-tag` shape is cut left corners plus a punched hole (a CSS mask, so it shows whatever surface is behind). Tags size to content and flow side by side; empty tags are paler with the tease prompt and inline Skip.
+- **Tags**: one `trait_tag` per parent trait, the unit the app counts as a "tag" (counts are parent traits, so users aren't nudged to pile on values). The trait name sits on top and its values inside, joined with " · ". The `.trait-tag` shape is cut left corners plus a punched hole (a CSS mask, so it shows whatever surface is behind). Tags size to content and flow side by side, straight on the page canvas with no card around them (`parent_traits_display bare`; the read-only "Why you?" lists keep their card). On the canvas, light mode uses a stronger tint for filled tags and near white for empty ones (a blank tag), via `--tag-tint` / `--tag-tint-empty` on `.trait-tags--bare`; empty tags carry the tease prompt, inline Skip and the same warm pulse as List's empty prompt (`empty-trait-header-strobe`, staggered per trait).
 - **Edit sheet**: "Edit tag", then the same `.trait-tag` for the trait being edited, whose values update live from the selection (zip shows the zip on file until a new one is looked up). No decorative header; options use solid hairlines and primary controls.
 - Category labels sit above each card. One floating capsule holds search and the two views (single tap).
 
@@ -79,6 +79,15 @@ The consumer shell covers phones, iPads and desktop browsers. Breakpoints are wi
 - The category count shows only when it holds more than one survey (the row already has it). When its only survey shares the category's name ("Your Home"), the row reads "4 questions" instead of repeating it.
 - Surveys with no questions, and categories left with none, are hidden.
 - CSS columns, up to three at 18rem or wider, so short cards stack without gaps beside the docked menu.
+
+### Survey slide-over
+
+- Under the title: "2 of 4 answered" over the same `.progress-line`, or a success check and "All answered", then one short line, "Tap a tag to answer or change it."
+- List rows sit in a card; Tags sit on the canvas, as on MeFile. Inline Skip comes before the chevron.
+
+## Slide-over header
+
+Every slide-over (Builder survey, Settings, the Ads video player, Arqade, the Tiqit player) shares one header row from `Layouts.mobile`: a round back button (header-chip style), the title, and an optional chip (`slide_over_show_wallet`). `.slide-over-head` is a `1fr minmax(0, auto) 1fr` grid, so a short title is centred; a long one wraps between the button and the chip. The right cell holds a back-button-wide ghost, so it balances the button when empty and grows to fit a chip.
 
 ## Mobile shell tokens
 

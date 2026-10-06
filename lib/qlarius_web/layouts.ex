@@ -603,34 +603,35 @@ defmodule QlariusWeb.Layouts do
               <% end %>
               <div class="page-canvas flex flex-col min-h-full">
                 <div class="shell-narrow w-full max-w-4xl mx-auto px-4 pt-6 flex-1 flex flex-col mobile-layout-content">
-                  <div class="flex items-center justify-between mb-4">
+                  <%!-- One row like the main header: round back button, title, optional chip --%>
+                  <div class="slide-over-head">
                     <button
+                      type="button"
                       phx-click="close_slide_over"
-                      class="btn btn-outline rounded-full text-lg !border-base-content/30 !px-3 !py-1"
+                      class="slide-over-head__back"
+                      aria-label="Back"
                     >
-                      <.icon name="hero-chevron-left" class="w-5 h-5" /> Back
+                      <.icon name="hero-chevron-left" class="h-5 w-5" />
                     </button>
-                    <%= if assigns[:slide_over_show_wallet] && assigns[:current_scope] do %>
-                      <div class="flex-shrink-0">
-                        <.wallet_balance
-                          id="wallet-balance-slide-over"
-                          balance={@current_scope.wallet_balance}
-                        />
-                      </div>
-                    <% end %>
-                  </div>
-
-                  <div class="flex-1 flex flex-col items-center justify-start min-h-0 overflow-y-auto">
                     <h1
                       :if={
                         is_binary(assigns[:slide_over_title]) and
                           String.trim(assigns[:slide_over_title]) != ""
                       }
-                      class="text-2xl font-bold mb-2 text-center shrink-0"
+                      class="slide-over-head__title"
                     >
                       {assigns[:slide_over_title]}
                     </h1>
+                    <div class="slide-over-head__end">
+                      <.wallet_balance
+                        :if={assigns[:slide_over_show_wallet] && assigns[:current_scope]}
+                        id="wallet-balance-slide-over"
+                        balance={@current_scope.wallet_balance}
+                      />
+                    </div>
+                  </div>
 
+                  <div class="flex-1 flex flex-col items-center justify-start min-h-0 overflow-y-auto">
                     <div class="w-full min-h-0">
                       {render_slot(assigns[:slide_over_content] || [])}
                     </div>

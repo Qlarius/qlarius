@@ -504,12 +504,20 @@ defmodule QlariusWeb.MeFileHTML do
   attr :readonly, :boolean, default: false
   attr :skip_child_ids, :map, default: %{}
 
+  attr :bare, :boolean,
+    default: false,
+    doc: "Tags sit straight on the page (no card around them), so drop the card inset."
+
   def parent_traits_display(assigns) do
     assigns =
       assign(
         assigns,
         :inset_class,
-        if(assigns.readonly, do: "p-4", else: "px-4 pb-4")
+        cond do
+          assigns.bare -> nil
+          assigns.readonly -> "p-4"
+          true -> "px-4 pb-4"
+        end
       )
 
     ~H"""
@@ -543,13 +551,7 @@ defmodule QlariusWeb.MeFileHTML do
                 {QlariusWeb.Components.TraitComponents.empty_tag_tease_message()}
               </p>
             </div>
-            <.trait_actions
-              parent_trait_id={parent_trait_id}
-              parent_trait_name={parent_trait_name}
-              editable={!@readonly}
-              nav_indicator={if(@readonly, do: "none", else: "chevron")}
-              actions_class="flex shrink-0 self-center"
-            />
+            <%!-- Skip before the chevron, so the chevron stays the row's last mark --%>
             <button
               :if={
                 inline_skip_id(
@@ -567,10 +569,17 @@ defmodule QlariusWeb.MeFileHTML do
             >
               Skip
             </button>
+            <.trait_actions
+              parent_trait_id={parent_trait_id}
+              parent_trait_name={parent_trait_name}
+              editable={!@readonly}
+              nav_indicator={if(@readonly, do: "none", else: "chevron")}
+              actions_class="flex shrink-0 self-center"
+            />
           </li>
         </ul>
       <% _ -> %>
-        <div class={["flex flex-row flex-wrap gap-2", @inset_class]}>
+        <div class={["flex flex-row flex-wrap gap-2", @inset_class, @bare && "trait-tags--bare"]}>
           <.trait_tag
             :for={
               {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
@@ -615,20 +624,29 @@ defmodule QlariusWeb.MeFileHTML do
       >
         <p>No tags match your search.</p>
       </div>
-      <.surface_panel
-        :if={@parent_traits != []}
-        padding={false}
-        class={@tag_display_mode != "list" && "pt-4"}
-      >
+      <.traits_frame :if={@parent_traits != []} tag_display_mode={@tag_display_mode}>
         <.parent_traits_display
           parent_traits={@parent_traits}
           tag_display_mode={@tag_display_mode}
           skip_child_ids={@skip_child_ids}
+          bare={@tag_display_mode != "list"}
         />
-      </.surface_panel>
+      </.traits_frame>
     </div>
     """
   end
+
+  attr :tag_display_mode, :string, required: true
+  slot :inner_block, required: true
+
+  # List rows sit in a card; tags are objects already, so they sit on the page.
+  defp traits_frame(%{tag_display_mode: "list"} = assigns) do
+    ~H"""
+    <.surface_panel padding={false}>{render_slot(@inner_block)}</.surface_panel>
+    """
+  end
+
+  defp traits_frame(assigns), do: ~H"{render_slot(@inner_block)}"
 
   attr :tag_display_map, :any, required: true
   attr :tag_display_mode, :string, required: true
@@ -687,13 +705,14 @@ defmodule QlariusWeb.MeFileHTML do
             {tag_count} {plural_tag_word(tag_count)}
           </span>
         </div>
-        <.surface_panel padding={false} class={@tag_display_mode != "list" && "pt-4"}>
+        <.traits_frame tag_display_mode={@tag_display_mode}>
           <.parent_traits_display
             parent_traits={parent_traits}
             tag_display_mode={@tag_display_mode}
             skip_child_ids={@skip_child_ids}
+            bare={@tag_display_mode != "list"}
           />
-        </.surface_panel>
+        </.traits_frame>
       </section>
     </div>
     """

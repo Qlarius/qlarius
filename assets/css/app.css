@@ -868,80 +868,6 @@
     color: #fff !important;
   }
 
-  /*
-   * MeFile Tagger progress: one visual system for track, native fill, and overlays.
-   * Daisy applies `border-radius` on all corners of `::-webkit-progress-value`, which
-   * gaps the fill from the track edge — zero the left radius on the value only.
-   */
-  .tagger-progress {
-    --tagger-progress-h: 1.5rem;
-    --radius-box: 0.125rem;
-  }
-
-  .tagger-progress progress {
-    height: var(--tagger-progress-h);
-    border-radius: var(--radius-box);
-  }
-
-  /* Empty / 0% track: lighter than default `base-content` mix so neutral bars read softer */
-  .tagger-progress progress.tagger-progress-zero {
-    background-color: oklch(94% 0.01 260);
-    color: oklch(94% 0.01 260);
-  }
-
-  [data-theme="dark"] .tagger-progress progress.tagger-progress-zero {
-    background-color: oklch(38% 0.022 260);
-    color: oklch(38% 0.022 260);
-  }
-
-  .tagger-progress progress.tagger-progress-zero::-webkit-progress-value {
-    background-color: transparent;
-  }
-
-  .tagger-progress progress.tagger-progress-zero::-moz-progress-bar {
-    background-color: transparent;
-  }
-
-  .tagger-progress progress::-webkit-progress-bar {
-    border-radius: var(--radius-box);
-  }
-
-  .tagger-progress progress::-webkit-progress-value {
-    border-top-left-radius: 0 !important;
-    border-bottom-left-radius: 0 !important;
-    border-top-right-radius: var(--radius-box);
-    border-bottom-right-radius: var(--radius-box);
-  }
-
-  .tagger-progress progress::-moz-progress-bar {
-    border-top-left-radius: 0 !important;
-    border-bottom-left-radius: 0 !important;
-    border-top-right-radius: var(--radius-box);
-    border-bottom-right-radius: var(--radius-box);
-  }
-
-  /* Overlays (0% chip + % text on orange): same height and horizontal padding as each other */
-  .tagger-progress-fill-label {
-    @apply absolute left-0 top-0 z-[1] flex items-center justify-center font-bold text-white pointer-events-none;
-    height: var(--tagger-progress-h);
-    min-height: var(--tagger-progress-h);
-    min-width: 3.5rem;
-    max-width: 100%;
-    padding-inline: 0.5rem;
-    box-sizing: border-box;
-  }
-
-  .tagger-zero-progress-chip {
-    min-width: 2.75rem;
-    background-color: oklch(68% 0.025 260);
-    border-radius: 0 var(--radius-box) var(--radius-box) 0;
-    box-sizing: border-box;
-  }
-
-  [data-theme="dark"] .tagger-zero-progress-chip {
-    background-color: oklch(52% 0.03 260);
-  }
-
   /* Qlink inline arqade full-pane: parent `.arqade-fullpane-active` wraps
      `live_render` (see QlinkPage.Show). Inline card + open-in-tab use
      utilities on the same nodes — utilities layer beats @layer components,
@@ -2157,6 +2083,48 @@
   }
 
   /*
+   * Slide-over header: back, title and an optional chip on one row. Equal 1fr
+   * sides keep a short title centred; a long one takes the room and wraps.
+   * Cells are placed by column so the chip stays right when there's no title.
+   */
+  .slide-over-head {
+    @apply mb-6 grid shrink-0 items-center gap-3;
+    grid-template-columns: 1fr minmax(0, auto) 1fr;
+  }
+
+  .slide-over-head__back {
+    @apply flex h-10 w-10 cursor-pointer items-center justify-center justify-self-start rounded-full border text-base-content/70 transition-colors hover:text-base-content;
+    grid-column: 1;
+    background-color: var(--color-base-100);
+    border-color: color-mix(in oklab, var(--color-base-content) 12%, transparent);
+  }
+
+  .slide-over-head__title {
+    @apply text-center text-2xl font-bold leading-tight tracking-tight text-balance;
+    grid-column: 2;
+  }
+
+  /*
+   * A back-button-wide ghost shares the cell with the chip, so the column is
+   * at least that wide when empty (title stays centred) and grows to fit a
+   * chip (a long title wraps instead of running under it).
+   */
+  .slide-over-head__end {
+    @apply grid justify-items-end justify-self-end;
+    grid-column: 3;
+  }
+
+  .slide-over-head__end::before {
+    @apply w-10;
+    content: "";
+    grid-area: 1 / 1;
+  }
+
+  .slide-over-head__end > * {
+    grid-area: 1 / 1;
+  }
+
+  /*
    * Side menu (Layouts.mobile_menu_tile / mobile_menu_brand): neutral tiles for
    * everyday places, then one tinted card per product with branded tiles.
    * --menu-surface matches the drawer fill (base-100 in both themes).
@@ -2784,7 +2752,7 @@
     @apply text-base leading-snug text-base-content;
   }
 
-  /* Thin progress line under each Builder index row */
+  /* Thin progress line: Builder index rows and the survey slide-over head */
   .progress-line {
     @apply block h-1 w-full overflow-hidden rounded-full;
     background-color: color-mix(in oklab, var(--color-base-content) 9%, transparent);
@@ -2792,6 +2760,19 @@
 
   .progress-line__fill {
     @apply block h-full rounded-full bg-primary;
+  }
+
+  /* Survey slide-over: "2 of 4 answered" over the line; a check once all are in */
+  .survey-progress {
+    @apply mb-6 flex flex-col gap-2;
+  }
+
+  .survey-progress__label {
+    @apply flex items-center gap-1.5 text-sm font-medium text-base-content/70 tabular-amount;
+  }
+
+  .survey-progress__intro {
+    @apply mt-2 text-sm leading-snug text-base-content/60;
   }
 
   /* Fixed width so every row's progress line ends at the same point */
@@ -2815,7 +2796,11 @@
   .trait-tag {
     @apply relative inline-flex max-w-full flex-col;
     padding: 0.5rem 0.875rem 0.5625rem 1.5625rem;
-    background-color: color-mix(in oklab, var(--color-youdata-500) 17%, var(--color-base-100));
+    background-color: color-mix(
+      in oklab,
+      var(--color-youdata-500) var(--tag-tint, 17%),
+      var(--color-base-100)
+    );
     border-radius: 0 0.625rem 0.625rem 0;
     clip-path: polygon(11px 0, 100% 0, 100% 100%, 11px 100%, 0 calc(100% - 11px), 0 11px);
     -webkit-mask: radial-gradient(circle 3px at 12px 50%, transparent 95%, #000 100%);
@@ -2827,11 +2812,37 @@
   }
 
   .trait-tag--editable:hover {
-    background-color: color-mix(in oklab, var(--color-youdata-500) 26%, var(--color-base-100));
+    background-color: color-mix(
+      in oklab,
+      var(--color-youdata-500) var(--tag-tint-hover, 26%),
+      var(--color-base-100)
+    );
   }
 
   .trait-tag--empty {
-    background-color: color-mix(in oklab, var(--color-youdata-500) 7%, var(--color-base-100));
+    background-color: color-mix(
+      in oklab,
+      var(--color-youdata-500) var(--tag-tint-empty, 7%),
+      var(--color-base-100)
+    );
+  }
+
+  /*
+   * Tags straight on the page canvas (MeFile and Builder Tags views). In light
+   * mode the canvas is nearly as light as a 17% tint, so filled tags go
+   * stronger and empty ones near white (a blank tag, like the cards); in dark
+   * the lifted fill already stands off the black canvas.
+   */
+  .trait-tags--bare {
+    --tag-tint: 26%;
+    --tag-tint-hover: 34%;
+    --tag-tint-empty: 3%;
+  }
+
+  [data-theme="dark"] .trait-tags--bare {
+    --tag-tint: 17%;
+    --tag-tint-hover: 26%;
+    --tag-tint-empty: 7%;
   }
 
   .trait-tag--wide {

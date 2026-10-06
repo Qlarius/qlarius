@@ -167,13 +167,15 @@ defmodule QlariusWeb.Components.TraitComponents do
       )
 
     ~H"""
+    <%!-- Blank tags pulse like the List view's empty prompt, staggered per trait --%>
     <div
       id={"trait-card-#{@parent_trait_id}"}
       class={[
         "trait-card-animate trait-tag",
-        @tags_traits == [] && "trait-tag--empty",
+        @tags_traits == [] && "trait-tag--empty empty-trait-header-strobe",
         @tap_to_edit? && "trait-tag--editable"
       ]}
+      style={@tags_traits == [] && "--animation-delay: #{rem(abs(@parent_trait_id), 2000)}ms"}
       phx-click={@tap_to_edit? && "edit_tags"}
       phx-value-id={@tap_to_edit? && @parent_trait_id}
     >
