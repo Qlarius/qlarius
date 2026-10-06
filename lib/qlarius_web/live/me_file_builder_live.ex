@@ -107,8 +107,12 @@ defmodule QlariusWeb.MeFileBuilderLive do
           />
         </:floating_actions>
 
+        <Layouts.mobile_page_intro>
+          Tap a topic to add or update its tags.
+        </Layouts.mobile_page_intro>
+
         <%!-- Suggested surveys: topics Qai looked for and found empty / stale --%>
-        <div :if={@suggested_surveys != []} class="mt-8">
+        <div :if={@suggested_surveys != []} class="pt-2 mb-7">
           <.surface_panel
             padding={false}
             class="border-t-qai-400 dark:border-t-qai-500"
@@ -211,65 +215,53 @@ defmodule QlariusWeb.MeFileBuilderLive do
           </.surface_panel>
         </div>
 
-        <div class="mt-8 grid gap-10 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-          <%= for category <- @categories do %>
-            <% {answered_total, question_total, percent_complete} =
+        <%!-- Index: a glance at every topic. Category label above one card of survey rows,
+             as on MeFile; a thin line shows progress and a check marks a finished survey. --%>
+        <div class="builder-index pt-2">
+          <section :for={category <- visible_categories(@categories)} class="mefile-category">
+            <% {answered_total, question_total, _percent} =
               Map.get(category, :category_stats, {0, 0, 0}) %>
+            <div class="mefile-category__head">
+              <h2>{category.survey_category_name}</h2>
+              <%!-- One survey: its row already carries the count --%>
+              <span :if={length(category.surveys) > 1} class="tabular-amount">
+                {answered_total}/{question_total}
+              </span>
+            </div>
             <.surface_panel padding={false}>
-              <div class="flex justify-between items-center px-4 pt-4 pb-3">
-                <h2 class="text-lg font-bold tracking-tight text-base-content">
-                  {category.survey_category_name}
-                </h2>
-                <span class="text-sm text-base-content/50">
-                  {answered_total}/{question_total}
-                </span>
-              </div>
-              <div class="px-4 pb-4">
-                <div class="tagger-progress tagger-progress-thin mb-4">
-                  <progress
-                    class={[
-                      "progress w-full",
-                      cond do
-                        percent_complete == 0 -> "tagger-progress-zero"
-                        percent_complete == 100 -> "progress-success"
-                        true -> "progress-warning"
-                      end
-                    ]}
-                    value={percent_complete}
-                    max="100"
-                  >
-                  </progress>
-                </div>
-
-                <%= for survey <- category.surveys do %>
-                  <% {answered_question_count, question_count} = survey.survey_stats || {0, 0} %>
-                  <div
-                    class={[
-                      "survey-progress-pill mb-3 p-3 bg-base-200 dark:bg-base-300/40 rounded-full cursor-pointer transition-colors hover:bg-base-300 dark:hover:bg-base-300/60",
-                      answered_question_count == question_count && question_count > 0 &&
-                        "survey-progress-pill-complete"
-                    ]}
-                    style={"--pill-progress: #{survey_percent(answered_question_count, question_count)}%"}
+              <ul class="builder-list">
+                <li :for={survey <- category.surveys}>
+                  <% {answered, total} = survey.survey_stats || {0, 0} %>
+                  <button
+                    type="button"
                     phx-click="open_edit"
                     phx-value-id={survey.id}
+                    class="builder-row"
                   >
-                    <div class="flex justify-between items-center">
-                      <span class="text-xl text-base-content">{survey.name}</span>
-                      <div class="flex items-center gap-2">
-                        <span class={survey_ratio_text_class(answered_question_count, question_count)}>
-                          {answered_question_count}/{question_count}
+                    <span class="builder-row__main">
+                      <span class="builder-row__name">
+                        {survey_row_name(survey, category, total)}
+                      </span>
+                      <span :if={answered < total} class="progress-line" aria-hidden="true">
+                        <span
+                          class="progress-line__fill"
+                          style={"width: #{survey_percent(answered, total)}%"}
+                        >
                         </span>
-                        <.icon
-                          name="hero-chevron-right"
-                          class="w-5 h-5 shrink-0 text-base-content/60"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                <% end %>
-              </div>
+                      </span>
+                    </span>
+                    <%= if answered < total do %>
+                      <span class="builder-row__count">{answered}/{total}</span>
+                    <% else %>
+                      <.icon name="hero-check-circle-solid" class="builder-row__done h-5 w-5" />
+                      <span class="sr-only">Complete</span>
+                    <% end %>
+                    <.icon name="hero-chevron-right" class="builder-row__chevron h-5 w-5" />
+                  </button>
+                </li>
+              </ul>
             </.surface_panel>
-          <% end %>
+          </section>
         </div>
       </Layouts.mobile>
     </div>
@@ -693,6 +685,33 @@ defmodule QlariusWeb.MeFileBuilderLive do
       "text-sm font-bold shrink-0 text-warning"
     end
   end
+
+  # Surveys with no questions open empty, so the index leaves them (and any
+  # category left with none) out.
+  defp visible_categories(categories) do
+    for category <- categories,
+        surveys = Enum.reject(category.surveys, &(survey_question_total(&1) == 0)),
+        surveys != [],
+        do: %{category | surveys: surveys}
+  end
+
+  defp survey_question_total(%{survey_stats: {_answered, total}}), do: total
+  defp survey_question_total(_survey), do: 0
+
+  # A category's only survey often shares its name ("Your Home"); say what's
+  # inside instead of repeating it.
+  defp survey_row_name(survey, %{surveys: [_only], survey_category_name: category_name}, total) do
+    if same_name?(survey.name, category_name) do
+      if total == 1, do: "1 question", else: "#{total} questions"
+    else
+      survey.name
+    end
+  end
+
+  defp survey_row_name(survey, _category, _total), do: survey.name
+
+  defp same_name?(a, b),
+    do: String.downcase(String.trim(to_string(a))) == String.downcase(String.trim(to_string(b)))
 
   defp survey_percent(_answered, 0), do: 0
   defp survey_percent(answered, total), do: min(round(answered / total * 100), 100)

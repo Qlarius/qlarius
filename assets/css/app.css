@@ -878,10 +878,6 @@
     --radius-box: 0.125rem;
   }
 
-  .tagger-progress.tagger-progress-thin {
-    --tagger-progress-h: 0.5rem;
-  }
-
   .tagger-progress progress {
     height: var(--tagger-progress-h);
     border-radius: var(--radius-box);
@@ -925,28 +921,6 @@
   }
 
   /* Overlays (0% chip + % text on orange): same height and horizontal padding as each other */
-  /* Builder survey pills: faint left-to-right fill matching the category bar colors */
-  .survey-progress-pill {
-    --pill-fill: color-mix(in oklch, var(--color-warning) 12%, transparent);
-    background-image: linear-gradient(
-      to right,
-      var(--pill-fill) var(--pill-progress, 0%),
-      transparent var(--pill-progress, 0%)
-    );
-  }
-
-  .survey-progress-pill.survey-progress-pill-complete {
-    --pill-fill: color-mix(in oklch, var(--color-success) 12%, transparent);
-  }
-
-  [data-theme="dark"] .survey-progress-pill {
-    --pill-fill: color-mix(in oklch, var(--color-warning) 16%, transparent);
-  }
-
-  [data-theme="dark"] .survey-progress-pill.survey-progress-pill-complete {
-    --pill-fill: color-mix(in oklch, var(--color-success) 16%, transparent);
-  }
-
   .tagger-progress-fill-label {
     @apply absolute left-0 top-0 z-[1] flex items-center justify-center font-bold text-white pointer-events-none;
     height: var(--tagger-progress-h);
@@ -2772,6 +2746,65 @@
 
   .mefile-row__empty {
     @apply mt-1 inline-block overflow-hidden rounded-md px-2 py-0.5 text-sm italic text-base-content/50;
+  }
+
+  /*
+   * Builder index: the same category label and card as MeFile, one row per
+   * survey. Columns rather than a grid so short cards stack without gaps; up
+   * to three, each at least 18rem, so the count follows the space left beside
+   * the docked menu.
+   */
+  .builder-index {
+    columns: 18rem 3;
+    column-gap: 1.5rem;
+  }
+
+  .builder-index > .mefile-category {
+    @apply mb-7;
+    break-inside: avoid;
+  }
+
+  .builder-list {
+    @apply m-0 list-none p-0;
+  }
+
+  .builder-list > li + li {
+    border-top: 1px solid color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  }
+
+  .builder-row {
+    @apply flex min-h-15 w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-base-200/50;
+  }
+
+  .builder-row__main {
+    @apply flex min-w-0 flex-1 flex-col gap-2;
+  }
+
+  .builder-row__name {
+    @apply text-base leading-snug text-base-content;
+  }
+
+  /* Thin progress line under each Builder index row */
+  .progress-line {
+    @apply block h-1 w-full overflow-hidden rounded-full;
+    background-color: color-mix(in oklab, var(--color-base-content) 9%, transparent);
+  }
+
+  .progress-line__fill {
+    @apply block h-full rounded-full bg-primary;
+  }
+
+  /* Fixed width so every row's progress line ends at the same point */
+  .builder-row__count {
+    @apply w-11 shrink-0 text-right text-sm text-base-content/55 tabular-amount;
+  }
+
+  .builder-row__done {
+    @apply shrink-0 text-success;
+  }
+
+  .builder-row__chevron {
+    @apply shrink-0 text-base-content/30;
   }
 
   /*

@@ -47,7 +47,7 @@ The consumer shell covers phones, iPads and desktop browsers. Breakpoints are wi
 | ≥ 64rem (iPad landscape, desktop) | Side menu docked as a 20rem sidebar; hamburger and tab bar hidden | Centered column beside it |
 
 - `Layouts.shell_width/2` sets `data-shell-width="wide"` (72rem column) for screens that fill a grid: `/home`, `/me_file_builder`, `/arqade`, `/content`, `/tiqits` (Stash), and `/me_file` in Tags mode. MeFile in List mode stays at the reading column. Slide-over screens (`.shell-narrow`) stay at the reading column on wide pages.
-- Grids inside wide screens should size by available space, not viewport breakpoints, because the docked sidebar takes 20rem: the Stash grid uses `repeat(auto-fill, minmax(min(19rem, 100%), 1fr))`, and the Builder's third column starts at `xl`.
+- Grids inside wide screens should size by available space, not viewport breakpoints, because the docked sidebar takes 20rem: the Stash grid uses `repeat(auto-fill, minmax(min(19rem, 100%), 1fr))`, and the Builder index uses CSS columns (`columns: 18rem 3`).
 - Home (`home_live.ex`) is one markup set inside an `@container`; the `.home-*` and `.setup-*` rules in `app.css` switch at a 56rem content width (about a 1250px window beside the docked menu):
   - **Phone / narrow:** balance hero with Collect below it; setup checklist as one row (progress ring, "Finish setting up", next step) that opens the five steps, the next step's action, and Remind me later / Don't show again; products as rows (colour chip, name, tagline, one figure) in one card; recent activity (latest three ledger entries).
   - **Wide:** hero and Collect in one row; the setup checklist stays open with the five steps as tiles with the next step highlighted and its action beside it; products as three cards with the brand wordmark and full stats (40px figures, Stash counts 2x2).
@@ -70,6 +70,15 @@ The consumer shell covers phones, iPads and desktop browsers. Breakpoints are wi
 - **Tags**: one `trait_tag` per parent trait, the unit the app counts as a "tag" (counts are parent traits, so users aren't nudged to pile on values). The trait name sits on top and its values inside, joined with " · ". The `.trait-tag` shape is cut left corners plus a punched hole (a CSS mask, so it shows whatever surface is behind). Tags size to content and flow side by side; empty tags are paler with the tease prompt and inline Skip.
 - **Edit sheet**: "Edit tag", then the same `.trait-tag` for the trait being edited, whose values update live from the selection (zip shows the zip on file until a new one is looked up). No decorative header; options use solid hairlines and primary controls.
 - Category labels sit above each card. One floating capsule holds search and the two views (single tap).
+
+## Builder index
+
+`/me_file_builder` is an index: a glance at every topic, not a guided flow (nudging belongs to a separate Guided flow, still to come).
+
+- Same category label and card as MeFile (`.mefile-category`), one `.builder-row` per survey: name, a thin primary progress line (`.progress-line`), the answered/total count, chevron. A finished survey shows a success check instead of the line and count.
+- The category count shows only when it holds more than one survey (the row already has it). When its only survey shares the category's name ("Your Home"), the row reads "4 questions" instead of repeating it.
+- Surveys with no questions, and categories left with none, are hidden.
+- CSS columns, up to three at 18rem or wider, so short cards stack without gaps beside the docked menu.
 
 ## Mobile shell tokens
 
