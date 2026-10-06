@@ -190,7 +190,14 @@ defmodule QlariusWeb.Widgets.InstaTipWidgetLive do
     >
     </div>
     <div data-theme="light" class="bg-base-100 h-screen flex items-center justify-center mt-2">
-      <div class="container mx-auto px-4">
+      <%!-- In a host iframe, reports the card height so the host can fit the iframe (TipjarAutoHeight) --%>
+      <div
+        id="insta-tip-card-wrap"
+        phx-hook="TipjarAutoHeight"
+        data-overlay-height="640"
+        data-extra-height="16"
+        class="container mx-auto px-4"
+      >
         <.insta_tip_card
           :if={@recipient}
           recipient={@recipient}

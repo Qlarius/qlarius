@@ -9,7 +9,8 @@ defmodule QlariusWeb.Components.GiftModalComponents do
 
   import QlariusWeb.CoreComponents, only: [icon: 1, modal: 1]
 
-  @primary_btn_classes "btn-widget btn-widget-emphasis btn-lg btn-block min-h-14 rounded-full py-3.5 text-base whitespace-nowrap"
+  # The dialog's one main action: filled, like Buy and the auth sheet's CTA
+  @primary_btn_classes "btn-widget btn-widget-solid btn-lg btn-block min-h-14 rounded-full py-3.5 text-base whitespace-nowrap"
   @ghost_btn_classes "btn-widget-ghost btn-md min-h-11 rounded-full text-sm"
   @modal_border_class "border border-widget-300"
   @tiqit_arqade_modal_border_class "modal-widget-frame"

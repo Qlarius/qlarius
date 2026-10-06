@@ -457,10 +457,10 @@ defmodule QlariusWeb.Widgets.TiqitPassLive do
               type="button"
               phx-click="purchase-tiqit"
               phx-value-tiqit-class-id={@selected_tiqit_class.id}
-              class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
+              class="btn-widget btn-widget-solid btn-lg btn-block rounded-full"
             >
               <.icon name="hero-check" class="mr-2 h-4 w-4" /> Confirm •
-              <span class="font-bold">
+              <span class="font-bold tabular-amount">
                 {format_usd(
                   @selected_tiqit_class_adjusted_price || @selected_tiqit_class.price,
                   zero_free: true

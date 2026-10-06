@@ -544,7 +544,7 @@ defmodule QlariusWeb.Components.AdsComponents do
       <div class="flex items-center gap-0">
         <%= if @authed do %>
           <div class="flex flex-col items-center justify-center bg-base-200 px-3 py-1 min-w-[88px] min-h-[64px]">
-            <%!-- WALLET label + default (non-compact) pill sizing for readability in drawer chrome. --%>
+            <%!-- Labelled (wallet icon) default-size pill, like the strip and the bar --%>
             <.wallet_balance
               id="sponster-drawer-header-wallet"
               balance={@wallet_balance || Decimal.new("0")}

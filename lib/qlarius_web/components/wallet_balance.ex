@@ -14,26 +14,48 @@ defmodule QlariusWeb.Components.WalletBalance do
   attr :id, :string, default: "wallet-balance"
   attr :footer_label, :string, default: nil
   attr :value_text, :string, default: nil
-  attr :anon_strobe?, :boolean, default: false,
+
+  attr :anon_strobe?, :boolean,
+    default: false,
     doc:
       "When true (e.g. anon wallet strip), applies `wallet-strip-anon-focus`: Sponster border strobe " <>
         "in sync with Connect CTA tempo. With `value_text`, READY gets a subtle scale throb; with " <>
         "`footer_label` as well, the footer label (e.g. WALLET) crossfades with strobing ellipsis."
+
   attr :compact?, :boolean, default: false
 
+  attr :icon?, :boolean,
+    default: true,
+    doc: "Labelled pills show a wallet icon; false drops it (e.g. confirmation dialogs)."
+
+  # With `footer_label` (widgets, the Sponster bar and drawer) the pill is
+  # labelled: a wallet icon beside the amount in tabular figures, and the label
+  # ("WALLET") becomes the accessible name. Without it (app headers) it is the
+  # plain amount chip. WalletPulse reads `innerText` for the amount, so the
+  # label stays out of the text.
   def wallet_balance(assigns) do
+    assigns = assign(assigns, :labelled?, assigns.footer_label not in [nil, ""])
+
     ~H"""
     <span
       id={@id}
       phx-hook="WalletPulse"
       data-wallet-balance={balance_string(@balance)}
+      role={@labelled? && "group"}
+      aria-label={@labelled? && String.capitalize(@footer_label)}
+      title={@labelled? && String.capitalize(@footer_label)}
       class={[
         "wallet-balance-pill",
         if(@compact?, do: "wallet-balance-pill--compact", else: "wallet-balance-pill--default"),
-        @footer_label && "wallet-balance-pill--with-footer",
+        @labelled? && "wallet-balance-pill--labelled",
         if(@anon_strobe?, do: "wallet-strip-anon-focus")
       ]}
     >
+      <span
+        :if={@labelled? && @icon?}
+        class="hero-wallet wallet-balance-pill__icon"
+        aria-hidden="true"
+      />
       <span class="font-bold leading-tight inline-flex flex-wrap items-center justify-center gap-0">
         <%= if @value_text not in [nil, ""] do %>
           <%= if @anon_strobe? do %>
@@ -47,30 +69,6 @@ defmodule QlariusWeb.Components.WalletBalance do
           {format_usd(@balance)}
         <% end %>
       </span>
-      <%= if @footer_label not in [nil, ""] do %>
-        <%= if @anon_strobe? && @value_text not in [nil, ""] do %>
-          <span
-            class="wallet-footer-label-dissolve-wrap text-base-content/40 font-medium"
-            style="font-size: 8px; line-height: 10px; letter-spacing: 0.2px; margin-top: -4px;"
-          >
-            <span class="wallet-footer-label-dissolve-word">{@footer_label}</span>
-            <span class="wallet-footer-label-dissolve-dots" aria-hidden="true">
-              <span class="wallet-footer-ellipsis">
-                <span class="wallet-footer-ellipsis-dot">.</span>
-                <span class="wallet-footer-ellipsis-dot">.</span>
-                <span class="wallet-footer-ellipsis-dot">.</span>
-              </span>
-            </span>
-          </span>
-        <% else %>
-          <span
-            class="text-base-content/40 font-medium"
-            style="font-size: 8px; line-height: 10px; letter-spacing: 0.2px; margin-top: -4px;"
-          >
-            {@footer_label}
-          </span>
-        <% end %>
-      <% end %>
     </span>
     """
   end

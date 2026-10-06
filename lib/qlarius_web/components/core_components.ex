@@ -982,7 +982,7 @@ defmodule QlariusWeb.CoreComponents do
           phx-value-recipient-id={@recipient_id}
           disabled={not enabled?}
           class={[
-            "btn-widget btn-circle btn-lg font-bold p-8 shrink-0",
+            "btn-widget btn-circle btn-lg p-8 shrink-0 text-lg font-semibold tabular-amount",
             not enabled? && "opacity-40 cursor-not-allowed pointer-events-none"
           ]}
         >

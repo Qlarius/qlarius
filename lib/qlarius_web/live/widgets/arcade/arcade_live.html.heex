@@ -118,7 +118,7 @@
             <% end %>
           <% end %>
           <%= if @show_title and (@inline? or @embed_card? or @base_path == "/widgets") do %>
-            <div class="grow-0 bg-base-200 text-base-content p-3 border-b border-base-300">
+            <div class="grow-0 bg-base-200 text-base-content px-4 py-3 border-b border-base-300">
               <h1 class="font-bold text-xl">{@group.title}</h1>
             </div>
           <% end %>
@@ -218,6 +218,10 @@
                     piece={@selected_piece}
                     group={@group}
                     gift_pending?={selected_gift_pending?}
+                    reserve_corner?={
+                      @group.show_open_in_tab && (@base_path == "/widgets" || @embed_card?) &&
+                        !(@show_title and (@inline? or @embed_card? or @base_path == "/widgets"))
+                    }
                     variant={
                       cond do
                         @in_app_group? -> :responsive
@@ -229,6 +233,7 @@
                 </div>
               </div>
 
+              <%!-- Side gutter matches the hero block above (16px, or 12px in Qlink / full-screen embeds) --%>
               <div
                 data-arqade-cta-block={
                   cond do
@@ -239,7 +244,10 @@
                 }
                 class={[
                   "relative z-[30] shrink-0 min-w-0 overflow-x-hidden pb-0",
-                  !@embed_card? && "px-2 md:px-0"
+                  !@embed_card? && (@full_viewport_embed? || @show_qlink_footer?) &&
+                    "px-3 md:!px-0",
+                  !@embed_card? && !(@full_viewport_embed? || @show_qlink_footer?) &&
+                    "px-4 md:!px-0"
                 ]}
               >
                 <div
@@ -270,14 +278,14 @@
                   >
                     <div class="flex w-full flex-row items-center gap-1.5">
                       <div class="skeleton h-14 flex-1 rounded-full"></div>
-                      <div class="skeleton h-14 w-10 shrink-0 rounded-full"></div>
+                      <div class="skeleton h-14 w-14 shrink-0 rounded-full"></div>
                     </div>
                   </div>
                   <div data-arqade-cta-ready="true">
                     <%= cond do %>
                       <% @tiqit -> %>
                         <div class="flex w-full flex-col items-stretch gap-3">
-                          <div class="mb-3 flex w-full flex-row items-center gap-1.5">
+                          <div class="mb-3 flex w-full flex-row items-center gap-2">
                             <button
                               type="button"
                               phx-click="play-piece"
@@ -299,12 +307,12 @@
                       <% selected_gift_pending? -> %>
                         <div
                           data-arqade-buy-row={if(@in_app_group? && !@show_qlink_footer?, do: "true")}
-                          class="mb-3 flex w-full flex-row items-center gap-1.5"
+                          class="mb-3 flex w-full flex-row items-center gap-2"
                         >
                           <button
                             type="button"
                             phx-click="accept-gift"
-                            class="btn-widget btn-widget-emphasis btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap"
+                            class="btn-widget btn-widget-solid btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap"
                           >
                             <.icon name="hero-gift" class="h-6 w-6 mr-1" /> Accept Gift
                           </button>
@@ -317,16 +325,16 @@
                         <% btn_enabled = !is_authed || can_afford %>
                         <div
                           data-arqade-buy-row={if(@in_app_group? && !@show_qlink_footer?, do: "true")}
-                          class="mb-3 flex w-full flex-row items-center gap-1.5"
+                          class="mb-3 flex w-full flex-row items-center gap-2"
                         >
                           <button
                             phx-click="select-tiqit-class"
                             phx-value-tiqit-class-id={default_tc.id}
                             disabled={is_authed && !can_afford}
-                            class={"btn-widget btn-widget-emphasis btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap #{if btn_enabled, do: "", else: "btn-disabled"}"}
+                            class={"btn-widget btn-widget-solid btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap #{if btn_enabled, do: "", else: "btn-disabled"}"}
                           >
                             {if Decimal.eq?(default_tc.price, 0), do: "Get", else: "Buy"} Tiqit •
-                            <span class="font-bold">
+                            <span class="font-bold tabular-amount">
                               {format_usd(default_tc.price, zero_free: true)}
                             </span>
                           </button>
@@ -372,7 +380,7 @@
                   id="arqade-cta-tiqit-logo"
                   data-arqade-tiqit-logo-row="inline"
                   phx-update="ignore"
-                  class="flex flex-row justify-center items-center mt-2 mb-3 max-md:mb-4"
+                  class="flex flex-row justify-center items-center mt-2 mb-3 max-md:mb-4 max-md:!hidden"
                 >
                   <img src="/images/Tiqit_logo_color_horiz.svg" alt="Tiqit" class="h-6 w-auto" />
                 </div>
@@ -387,8 +395,8 @@
                 "relative w-full min-h-0 flex flex-col border-t md:!border-t-0 md:border-l border-base-300 md:!w-1/2",
                 @embed_card? && "z-0 min-h-0 flex-1 overflow-hidden p-5 md:flex-1",
                 @in_app_group? &&
-                  "z-10 flex min-h-0 min-w-0 flex-col overflow-hidden px-3 pt-2 pb-0 max-md:min-h-0 md:p-5 md:flex-1",
-                @base_path == "/widgets" && "z-10 min-h-0 flex-1 overflow-hidden p-5 md:min-h-0 md:flex-1"
+                  "z-10 flex min-h-0 min-w-0 flex-col overflow-hidden px-4 pt-2 pb-0 max-md:min-h-0 md:!p-5 md:flex-1",
+                @base_path == "/widgets" && "z-10 min-h-0 flex-1 overflow-hidden p-4 md:min-h-0 md:flex-1 md:!p-5"
               ]}
             >
               <% visible_pieces =
@@ -536,7 +544,7 @@
                         >
                           <.icon name="hero-gift" class="h-4 w-4" /> Gifted to you
                         </span>
-                        <div class="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-base-content/50 leading-none">
+                        <div class="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs text-base-content/60 leading-none">
                           <%= if label = ContentPiece.episode_label(piece) do %>
                             <span class="font-semibold text-base-content/70">{label}</span>
                           <% end %>
@@ -607,10 +615,11 @@
         on_cancel={JS.push("close-confirm-purchase-modal")}
         show
       >
-        <.body>
+        <%!-- Extra top room so the close button doesn't sit on the content card --%>
+        <.body class="!pt-12">
           <% desc = purchase_description(@selected_tiqit_class, @group) %>
           <%= if assigns[:options_modal] do %>
-            <.title id="confirm-purchase-modal-title">Tiqit Purchase Options</.title>
+            <.title id="confirm-purchase-modal-title">Purchase options</.title>
             <.content_shelf
               image_url={purchase_image_url(desc.scope, @selected_piece, @group)}
               title={
@@ -669,7 +678,7 @@
               <%= if assigns[:purchase_intent] == :gift do %>
                 <.primary_button phx-click="confirm-gift-purchase">
                   <.icon name="hero-gift" class="mr-2 h-5 w-5 shrink-0" /> Confirm gift •
-                  <span class="font-bold">
+                  <span class="font-bold tabular-amount">
                     {format_usd(
                       assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price,
                       zero_free: true
@@ -685,7 +694,7 @@
                   phx-value-tiqit-class-id={@selected_tiqit_class.id}
                 >
                   <.icon name="hero-check" class="mr-2 h-5 w-5 shrink-0" /> Confirm •
-                  <span class="font-bold">
+                  <span class="font-bold tabular-amount">
                     {format_usd(
                       assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price,
                       zero_free: true
@@ -712,10 +721,10 @@
           <div class="flex flex-col gap-1">
             <%= if !assigns[:options_modal] && assigns[:purchase_intent] != :gift do %>
               <div class="divider m-1"></div>
-              <div class="flex flex-row gap-1 justify-center align-middle">
-                <p class="text-base-content/60">Want to binge? Full catalog access?</p>
-                <button phx-click="show-options" class="btn btn-outline btn-md rounded-full ml-3">
-                  All Tiqit Options
+              <div class="flex flex-col items-center gap-2 text-center">
+                <p class="text-sm text-base-content/60">Want to binge? Full catalog access?</p>
+                <button phx-click="show-options" class="btn-widget btn-md rounded-full px-5">
+                  All Tiqit options
                 </button>
               </div>
             <% end %>
@@ -765,7 +774,7 @@
           id="share-gift-mode-selector"
           label="Share or gift"
           size="large"
-          class="mx-auto w-fit min-w-max outline-none"
+          class="pill-join-selector--widget mx-auto w-fit min-w-max outline-none"
           tabindex="-1"
           phx-mounted={JS.focus(to: "#share-gift-mode-selector")}
         >

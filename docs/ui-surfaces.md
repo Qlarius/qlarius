@@ -119,6 +119,34 @@ Every slide-over (Builder survey, Settings, the Ads video player, Arqade, the Ti
 - **"⋯" panel** (`.tiqit-more`, below the stub line): the full purchase time, refund-lock note, Refund (with its countdown), Keep / Don't Keep, Fleet. LiveView JS commands toggle it (`is-open`, `aria-expanded`, `inert` while closed), so no hook; it slides open on the grid row.
 - **Stash filters:** All, Active, Fleeting, Fleeted, Kept, Gifted, with neutral counts (`.pill-join-count`, also on the Ads pill). On a phone the row scrolls with no scrollbar and fades at the right edge (`.stash-filter-scroll`).
 
+## Arqade
+
+The Arqade group and single-piece pages (`widgets/arcade/`) render in the app, as widgets and inside Qlink, so **colours stay on the neutral widget ramp** (see Auth sheet). The pre-purchase state stays minimal: "Buy Tiqit • $0.10" and ⋯, nothing more; what a tiqit gets you is in the confirm dialog.
+
+- **Buy / Get Tiqit / Accept Gift** use `.btn-widget-solid`: the one filled action, widget-800 with a base-100 label (flips on the dark ramp), like the auth sheet's `.auth-cta`. `.btn-widget-emphasis` (outlined) stays on Tiqit Pass, gift dialogs, the proxy sheet and the Qlink announcer toggle.
+- **⋯** is a circle the height of Buy (56px). Its menu (Full purchase options, Share, Gift) is compact rows with hairline dividers (`.arqade-menu`, `.arqade-menu-row`).
+- **Gutters:** the Buy row uses the hero's side gutter (16px; 12px in Qlink / full-screen embeds), and the list column is 16px on phones, so artwork, Buy and rows share one edge. Desktop overrides use `md:!…`, because `app.css` emits base spacing utilities twice and the later copy beats plain `md:` variants.
+- **Description:** three lines with a "Show full" chip floating over the end of the last line, so it costs no height. Phones keep vertical space for the episode list: no extra lines or gaps in the hero.
+- **Episode rows:** details (Ep, length, date) are 12px at 60%; dates read "Oct 9, 2020". Prices are 13px semibold with tabular figures in a hairline chip (`.badge-arqade-episode-cell`), and the Buy label and purchase options prices are tabular too.
+
+### Widget dialogs
+
+- **One filled main action** per dialog: Confirm • $0.10, Confirm gift, Create share link, Copy invitation, Tip, Done all use `.btn-widget-solid` (the shared kit's `primary_button` in `GiftModalComponents`); Cancel and secondary actions stay quiet. "All Tiqit options" is a neutral `.btn-widget` under its one-line question.
+- **Sentence case** titles ("Confirm tip", "Purchase options"); Tiqit stays capitalised as a name.
+- **Amounts** use tabular figures. The tip confirm shows the wallet pill without its icon (`wallet_balance icon?={false}`) and "After tip" as a dashed pill of the same height; copy says "attention sales", never "earned".
+- **Close button:** dialogs that open on a content card get extra top padding (`!pt-12`) so the × doesn't sit on the card.
+- **Share / Gift switch** uses `pill-join-selector--widget`: the active item is widget navy, not the app's orange.
+
+## Wallet in widgets
+
+Widgets (Arqade, tip jar, Tiqit Pass), Qlink pages and the Sponster bar all show the wallet; repeating it on one page is fine, and top up is part of the strip.
+
+- **Wallet pill** (`WalletBalance.wallet_balance` with `footer_label`): a wallet icon beside the amount in tabular figures, Sponster green, 40px tall (32px compact, as in the bar), the same in the in-widget strip, the Sponster bar and the ads drawer header. The label ("Wallet") is the pill's accessible name, not text, because `WalletPulse` reads the amount from `innerText`. App header chips (no label) are unchanged.
+- **Strip** (`.wallet-strip-tray`): a full-width row with a hairline above; the pill, an arrow (`hero-arrow-long-left`, pointing into the wallet) and the action sit together as one centred unit. Signed in, the action is "+ $1.64" (ads plus the daily gift, i.e. what the menu can add) and keeps its pulsing border; anonymous, the pill reads READY and the action is Connect, with the same arrow. The Sponster bar keeps its own layout (pill, then "9 ads • $1.14", which opens the drawer).
+- **Top up menu:** "Top up wallet", then compact rows (`.arqade-menu-row`): Sponster ads with the count and amount, Daily gift $0.50 (disabled once used), Credit / Debit (shows "Coming soon").
+- **Tip jar in a host iframe:** the widget posts `{type: "sponster_tipjar_height", height}` to the host (card height + 16px; at least 640px while a dialog or the sign-in sheet is open, as they were sized for it). The embed snippet listens and sets the iframe height; see `demosite/local_news/index.html`. Heights are measured on mount and with a timer, not `requestAnimationFrame`, which Chrome pauses in off-screen cross-origin iframes.
+- **Arqade in a Qlink page (phones):** the episode title keeps clear of the ↗ expand button when that button shows and there's no title bar above it (`reserve_corner?`), and the Tiqit logo row under the strip is hidden so the episode panel fits without its own scroll.
+
 ## Auth sheet
 
 `AuthSheet` (with `AuthSteps`) is the sign-in / sign-up sheet on `/connect`, Qlink, and widgets (Arqade, tip jar) on third-party sites. **Colours stay on the neutral widget ramp** (`widget-*`, `btn-widget`, plus semantic error red) so Qadabra branding never clashes with a host page; only structure follows the app. Classes are `.auth-*` in `app.css`.

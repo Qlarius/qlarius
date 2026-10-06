@@ -260,7 +260,9 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     <% else %>
       <%= if @is_free and @has_credit do %>
         <div class="flex flex-col items-center gap-0.5">
-          <span class="text-xs text-base-content/40 line-through">{format_usd(@original)}</span>
+          <span class="text-xs text-base-content/40 line-through tabular-amount">
+            {format_usd(@original)}
+          </span>
           <button
             phx-click={@select_event}
             phx-value-tiqit-class-id={@tiqit_class.id}
@@ -273,7 +275,9 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         <%= if @has_credit do %>
           <%= if Decimal.compare(@balance, @adjusted) != :lt do %>
             <div class="flex flex-col items-center gap-0.5">
-              <span class="text-xs text-base-content/40 line-through">{format_usd(@original)}</span>
+              <span class="text-xs text-base-content/40 line-through tabular-amount">
+                {format_usd(@original)}
+              </span>
               <button
                 phx-click={@select_event}
                 phx-value-tiqit-class-id={@tiqit_class.id}
@@ -284,8 +288,10 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
             </div>
           <% else %>
             <div class="flex flex-col items-center gap-0.5">
-              <span class="text-xs text-base-content/40 line-through">{format_usd(@original)}</span>
-              <div class="btn-widget btn-sm btn-disabled rounded-full px-4">
+              <span class="text-xs text-base-content/40 line-through tabular-amount">
+                {format_usd(@original)}
+              </span>
+              <div class="btn-widget btn-sm btn-disabled rounded-full tabular-amount px-4">
                 {format_usd(@adjusted)}
               </div>
             </div>
@@ -309,7 +315,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   defp tiqit_class_grid_price_locked(assigns) do
     ~H"""
     <div
-      class="btn-widget btn-sm btn-disabled rounded-full px-3 py-1 cursor-not-allowed opacity-60"
+      class="btn-widget btn-sm btn-disabled rounded-full tabular-amount px-3 py-1 cursor-not-allowed opacity-60"
       title="Upgrade only — you already have equal or better access"
     >
       {format_usd(@price, zero_free: true)}
@@ -352,7 +358,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           {format_usd(@tiqit_class.price, zero_free: true)}
         </button>
       <% else %>
-        <div class="btn-widget btn-sm btn-disabled rounded-full px-3 py-1">
+        <div class="btn-widget btn-sm btn-disabled rounded-full tabular-amount px-3 py-1">
           {format_usd(@tiqit_class.price, zero_free: true)}
         </div>
       <% end %>
@@ -365,8 +371,8 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
 
     base =
       if clickable?,
-        do: "btn-widget btn-sm rounded-full px-3 py-1 cursor-pointer",
-        else: "btn-widget btn-sm rounded-full px-3 py-1"
+        do: "btn-widget btn-sm rounded-full px-3 py-1 tabular-amount cursor-pointer",
+        else: "btn-widget btn-sm rounded-full px-3 py-1 tabular-amount"
 
     if selected?,
       do: base <> " ring-2 ring-primary ring-offset-1 bg-primary/15 font-semibold",
@@ -392,12 +398,12 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       position_strategy="fixed"
       trigger_type="click"
       use_floating_size={false}
-      class="w-max max-w-[min(28rem,calc(100vw-1.5rem))] min-w-[15rem] px-4 pt-3.5 pb-4 shadow-xl"
+      class="w-max max-w-[min(20rem,calc(100vw-1.5rem))] min-w-[13rem] p-1.5 shadow-xl"
     >
       <:trigger>
         <button
           type="button"
-          class="btn-widget flex h-14 w-10 shrink-0 items-center justify-center rounded-full border-widget-200 !p-0"
+          class="btn-widget flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-widget-200 !p-0"
           aria-label="More options"
           title="More options"
         >
@@ -405,7 +411,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         </button>
       </:trigger>
       <:content>
-        <div class="flex w-full flex-col gap-3">
+        <div class="arqade-menu">
           <button
             type="button"
             phx-click={
@@ -414,10 +420,10 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
               )
               |> Phoenix.LiveView.JS.push("browse-tiqit-options", target: @event_target)
             }
-            class="btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5"
+            class="arqade-menu-row"
           >
-            <.icon name="hero-squares-2x2" class="h-6 w-6 shrink-0" />
-            <span class="text-sm font-medium">Full purchase options</span>
+            <.icon name="hero-squares-2x2" class="arqade-menu-row__icon" />
+            <span>Full purchase options</span>
           </button>
           <.share_gift_option_button
             popover_id={@popover_id}
@@ -464,14 +470,11 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           )
         end
       }
-      class={[
-        "btn-widget btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5",
-        @disabled? && "btn-disabled opacity-60 cursor-not-allowed"
-      ]}
+      class="arqade-menu-row"
       title={if @disabled?, do: "Connect to #{String.downcase(@label)}", else: nil}
     >
-      <.icon name={@icon} class="h-6 w-6 shrink-0" />
-      <span class="text-sm font-medium">{@label}</span>
+      <.icon name={@icon} class="arqade-menu-row__icon" />
+      <span>{@label}</span>
     </button>
     """
   end
@@ -509,13 +512,16 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       <div class="wallet-strip-tray__row">
         <.wallet_balance id={@id} balance={@balance} footer_label="WALLET" />
 
+        <%!-- Top up flows into the wallet --%>
+        <.icon name="hero-arrow-long-left" class="wallet-strip-arrow" />
+
         <.popover
           id={"#{@id}-topup"}
           placement="top"
           position_strategy="fixed"
           trigger_type="click"
           use_floating_size={false}
-          class="w-max max-w-[min(28rem,calc(100vw-1.5rem))] min-w-[17rem] px-4 pt-3.5 pb-4 shadow-xl"
+          class="w-max max-w-[min(20rem,calc(100vw-1.5rem))] min-w-[15rem] p-1.5 shadow-xl"
         >
           <:trigger>
             <button class={[
@@ -523,19 +529,17 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
               @topup_funds_available? && "connect-strip-cta-border-strobe"
             ]}>
               <.icon name="hero-plus" class="w-4 h-4 shrink-0" />
-              <span class="font-bold">{@topup_button_label}</span>
+              <span class="font-bold tabular-amount">{@topup_button_label}</span>
             </button>
           </:trigger>
           <:content>
-            <div class="flex w-full flex-col gap-3">
-              <p class="text-xs font-semibold text-widget-600 uppercase tracking-wide text-center">
-                Top up wallet
-              </p>
+            <p class="px-3 pt-1.5 pb-1 text-xs font-medium text-base-content/55">Top up wallet</p>
+            <div class="arqade-menu">
               <button
                 :if={@sponster_ads_available?}
                 type="button"
                 id={"#{@id}-sponster-open"}
-                class="btn-widget btn-widget-emphasis btn-md btn-block flex min-h-14 w-full flex-row items-center justify-between gap-3 rounded-full px-4 py-3.5"
+                class="arqade-menu-row"
                 phx-hook="WalletTopupOpenSponster"
                 data-popover-id={"#{@id}-topup"}
                 data-drawer-delay-ms="280"
@@ -545,10 +549,10 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                 <img
                   src="/images/Sponster_logo_color_horiz.svg"
                   alt="Sponster"
-                  class="h-6 w-auto max-w-[8rem] shrink-0 object-contain object-left"
+                  class="h-5 w-auto max-w-[7rem] shrink-0 object-contain object-left"
                   decoding="async"
                 />
-                <span class="shrink-0 whitespace-nowrap text-end text-sm font-semibold opacity-90">
+                <span class="ml-auto shrink-0 whitespace-nowrap tabular-amount">
                   {@ads_count} ads • {if @offered_amount,
                     do: format_usd(@offered_amount),
                     else: "$0.00"}
@@ -561,59 +565,48 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
                 disabled
                 aria-disabled="true"
                 title="No ads available right now"
-                class="btn-widget btn-widget-emphasis btn-md btn-block flex min-h-14 w-full flex-row items-center justify-between gap-3 rounded-full px-4 py-3.5 btn-disabled cursor-not-allowed opacity-80"
+                class="arqade-menu-row"
               >
                 <img
                   src="/images/Sponster_logo_color_horiz.svg"
                   alt="Sponster"
-                  class="h-6 w-auto max-w-[8rem] shrink-0 object-contain object-left opacity-60"
+                  class="h-5 w-auto max-w-[7rem] shrink-0 object-contain object-left"
                   decoding="async"
                 />
-                <span class="shrink-0 whitespace-nowrap text-end text-sm font-semibold opacity-70">
+                <span class="ml-auto shrink-0 whitespace-nowrap tabular-amount">
                   {@ads_count} ads • {if @offered_amount,
                     do: format_usd(@offered_amount),
                     else: "$0.00"}
                 </span>
               </button>
               <button
-                :if={@daily_gift_available?}
                 type="button"
-                class="btn-widget btn-widget-emphasis btn-md btn-block flex min-h-14 w-full flex-row items-center justify-between gap-3 rounded-full px-4 py-3.5"
+                class="arqade-menu-row"
                 phx-click="daily-gift"
+                disabled={not @daily_gift_available?}
+                title={
+                  if not @daily_gift_available?,
+                    do: "You can claim again 24 hours after your last daily gift"
+                }
               >
-                <span class="flex min-w-0 flex-row items-center gap-2">
-                  <.icon name="hero-gift" class="h-6 w-6 shrink-0" />
-                  <span class="text-sm font-medium">Daily gift</span>
-                </span>
-                <span class="shrink-0 text-sm font-semibold opacity-90">$0.50</span>
-              </button>
-              <button
-                :if={not @daily_gift_available?}
-                type="button"
-                class="btn-widget btn-widget-emphasis btn-md btn-block flex min-h-14 w-full flex-row items-center justify-between gap-3 rounded-full px-4 py-3.5 btn-disabled cursor-not-allowed opacity-80"
-                disabled
-                title="You can claim again 24 hours after your last daily gift"
-              >
-                <span class="flex min-w-0 flex-row items-center gap-2">
-                  <.icon name="hero-gift" class="h-6 w-6 shrink-0" />
-                  <span class="text-sm font-medium">Daily gift</span>
-                </span>
-                <span class="shrink-0 text-sm font-semibold opacity-90">$0.50</span>
+                <.icon name="hero-gift" class="arqade-menu-row__icon" />
+                <span>Daily gift</span>
+                <span class="ml-auto shrink-0 tabular-amount">$0.50</span>
               </button>
               <button
                 type="button"
-                class="btn-widget btn-widget-emphasis btn-md btn-block flex min-h-14 w-full flex-row items-center gap-3 rounded-full px-4 py-3.5"
+                class="arqade-menu-row"
                 phx-click={Phoenix.LiveView.JS.show(to: "##{@id}-credit-debit-soon")}
               >
-                <.icon name="hero-credit-card" class="h-6 w-6 shrink-0" />
-                <span class="text-sm font-medium">Credit / Debit</span>
+                <.icon name="hero-credit-card" class="arqade-menu-row__icon" />
+                <span>Credit / Debit</span>
+                <span
+                  id={"#{@id}-credit-debit-soon"}
+                  class="ml-auto hidden shrink-0 text-xs text-base-content/55"
+                >
+                  Coming soon
+                </span>
               </button>
-              <p
-                id={"#{@id}-credit-debit-soon"}
-                class="hidden text-center text-sm text-base-content/60"
-              >
-                Coming soon
-              </p>
             </div>
           </:content>
         </.popover>
@@ -1133,6 +1126,12 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     """
   end
 
+  attr :reserve_corner?, :boolean,
+    default: false,
+    doc:
+      "true when the card's top-right expand button sits over the hero (no title bar above it): " <>
+        "the phone layout's title keeps clear of it"
+
   attr :piece, :map, required: true
   attr :group, :map, required: true
   attr :variant, :atom, default: :compact
@@ -1152,10 +1151,16 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           piece={@piece}
           group={@group}
           gift_pending?={@gift_pending?}
+          reserve_corner?={@reserve_corner?}
           class="md:hidden"
         />
       <% _ -> %>
-        <.selected_piece_hero_compact piece={@piece} group={@group} gift_pending?={@gift_pending?} />
+        <.selected_piece_hero_compact
+          piece={@piece}
+          group={@group}
+          gift_pending?={@gift_pending?}
+          reserve_corner?={@reserve_corner?}
+        />
     <% end %>
     """
   end
@@ -1192,6 +1197,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   attr :piece, :map, required: true
   attr :group, :map, required: true
   attr :gift_pending?, :boolean, default: false
+  attr :reserve_corner?, :boolean, default: false
   attr :class, :string, default: ""
 
   defp selected_piece_hero_compact(assigns) do
@@ -1212,6 +1218,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       <.selected_piece_hero_copy
         piece={@piece}
         gift_pending?={@gift_pending?}
+        reserve_corner?={@reserve_corner?}
         class="min-w-0 flex-1 flex flex-col gap-1.5 min-h-0 self-start"
       />
     </div>
@@ -1220,6 +1227,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
 
   attr :piece, :map, required: true
   attr :gift_pending?, :boolean, default: false
+  attr :reserve_corner?, :boolean, default: false
   attr :class, :string, default: "min-w-0 flex flex-col gap-1.5"
   attr :description_line_clamp, :integer, default: 3
 
@@ -1235,7 +1243,10 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
     <div class={@class}>
       <p
         data-arqade-selected-title
-        class="text-base sm:text-lg font-semibold leading-tight text-base-content [overflow-wrap:anywhere] shrink-0"
+        class={[
+          "text-base sm:text-lg font-semibold leading-tight text-base-content [overflow-wrap:anywhere] shrink-0",
+          @reserve_corner? && "pr-6"
+        ]}
       >
         {@piece.title}
       </p>
@@ -1245,7 +1256,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       >
         <.icon name="hero-gift" class="h-4 w-4" /> Gifted
       </span>
-      <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-base-content/50 text-xs shrink-0">
+      <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-base-content/60 text-xs shrink-0">
         <span
           data-arqade-selected-episode
           class={[
@@ -1314,7 +1325,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
 
   defp piece_published_date_label(%ContentPiece{} = piece) do
     case piece_display_date(piece) do
-      %Date{} = date -> Calendar.strftime(date, "%b %d, %Y")
+      %Date{} = date -> Calendar.strftime(date, "%b %-d, %Y")
       _ -> nil
     end
   end

@@ -611,7 +611,7 @@ defmodule QlariusWeb.SponsterRecipientSurface do
 
   defp insta_tip_offer_notice(%{allowed: allowed}) do
     if Decimal.compare(allowed, Decimal.new("0")) != :gt do
-      "No earned funds are available to tip right now."
+      "Nothing from attention sales is available to tip right now."
     end
   end
 

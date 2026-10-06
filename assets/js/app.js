@@ -1317,6 +1317,57 @@ Hooks.Carousel = {
   }
 }
 
+// Tip jar in a host page's iframe: tell the host how tall the card is, so the
+// embed snippet can fit the iframe to it, and ask for the full overlay height
+// back while a dialog or the sign-in sheet is open (they were sized for the
+// old fixed 640px iframe). Does nothing when the page isn't in an iframe.
+// Host side: listen for {type: "sponster_tipjar_height", height} from the
+// iframe and set its height (see demosite/local_news/index.html).
+Hooks.TipjarAutoHeight = {
+  mounted() {
+    if (window.parent === window) return
+    this.overlayHeight = parseInt(this.el.dataset.overlayHeight || "640", 10)
+    this.extra = parseInt(this.el.dataset.extraHeight || "0", 10)
+    // Measure directly (a timer, not requestAnimationFrame): Chrome pauses
+    // animation frames in off-screen cross-origin iframes, and the tip jar
+    // usually starts below the fold, so the host would only resize it when
+    // scrolled into view.
+    this.measure = () => {
+      let height = Math.ceil(this.el.getBoundingClientRect().height) + this.extra
+      const overlayOpen = [
+        ...document.querySelectorAll('[aria-modal="true"], [data-body-scroll-lock]')
+      ].some((el) => el.getClientRects().length > 0)
+      if (overlayOpen) height = Math.max(height, this.overlayHeight)
+      if (height === this.lastHeight) return
+      this.lastHeight = height
+      window.parent.postMessage({ type: "sponster_tipjar_height", height }, "*")
+    }
+    this.post = () => {
+      clearTimeout(this.timer)
+      this.timer = setTimeout(this.measure, 50)
+    }
+    this.resizeObserver = new ResizeObserver(this.post)
+    this.resizeObserver.observe(this.el)
+    // Dialogs and the sheet open by adding nodes or toggling classes
+    this.mutationObserver = new MutationObserver(this.post)
+    this.mutationObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class"]
+    })
+    this.measure()
+    // Web fonts and the recipient image can change the height after mount
+    window.addEventListener("load", this.post)
+  },
+  destroyed() {
+    this.resizeObserver?.disconnect()
+    this.mutationObserver?.disconnect()
+    window.removeEventListener("load", this.post)
+    clearTimeout(this.timer)
+  }
+}
+
 Hooks.PostMessage = {
   mounted() {
     this.handleEvent("send-post-message", (payload) => {

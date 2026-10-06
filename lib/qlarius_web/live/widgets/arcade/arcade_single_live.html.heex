@@ -159,22 +159,22 @@
                           is_authed &&
                             Decimal.compare(@balance, @default_tiqit_class.price) != :lt %>
                         <% btn_enabled = !is_authed || can_afford %>
-                        <div class="mb-3 flex w-full flex-row items-center gap-1.5">
+                        <div class="mb-3 flex w-full flex-row items-center gap-2">
                           <button
                             phx-click="select-tiqit-class"
                             phx-value-tiqit-class-id={@default_tiqit_class.id}
                             disabled={is_authed && !can_afford}
-                            class={"btn-widget btn-widget-emphasis btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap #{if btn_enabled, do: "", else: "btn-disabled"}"}
+                            class={"btn-widget btn-widget-solid btn-lg min-h-14 flex-1 rounded-full whitespace-nowrap #{if btn_enabled, do: "", else: "btn-disabled"}"}
                           >
                             {if Decimal.eq?(@default_tiqit_class.price, 0), do: "Get", else: "Buy"} Tiqit •
-                            <span class="font-bold">
+                            <span class="font-bold tabular-amount">
                               {format_usd(@default_tiqit_class.price, zero_free: true)}
                             </span>
                           </button>
                           <button
                             type="button"
                             phx-click="browse-tiqit-options"
-                            class="btn-widget flex h-14 w-10 shrink-0 items-center justify-center rounded-full border-widget-200 !p-0"
+                            class="btn-widget flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-widget-200 !p-0"
                             aria-label="More purchase options"
                             title="More purchase options"
                           >
@@ -243,14 +243,14 @@
       on_cancel={JS.push("close-confirm-purchase-modal")}
       show
     >
-      <div class="flex flex-col space-y-4 p-8">
+      <div class="flex flex-col space-y-4 px-8 pb-8 pt-12">
         <% desc = purchase_description(@selected_tiqit_class, @group) %>
         <%= if assigns[:options_modal] do %>
           <h2
             id="confirm-purchase-modal-title"
             class="text-xl font-bold text-base-content text-center"
           >
-            Tiqit Purchase Options
+            Purchase options
           </h2>
           <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/70 bg-base-200/40 p-3">
             <div class="flex flex-row items-center justify-center gap-4">
@@ -328,10 +328,10 @@
             <button
               phx-click="purchase-tiqit"
               phx-value-tiqit-class-id={@selected_tiqit_class.id}
-              class="btn-widget btn-widget-emphasis btn-lg btn-block rounded-full"
+              class="btn-widget btn-widget-solid btn-lg btn-block rounded-full"
             >
               <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm •
-              <span class="font-bold">
+              <span class="font-bold tabular-amount">
                 {format_usd(
                   assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price,
                   zero_free: true
@@ -356,10 +356,10 @@
         <div class="flex flex-col gap-1">
           <%= if !assigns[:options_modal] do %>
             <div class="divider m-1"></div>
-            <div class="flex flex-row gap-1 justify-center align-middle">
-              <p class="text-base-content/60">Want the full series? Or full catalog access?</p>
-              <button phx-click="show-options" class="btn btn-outline btn-md rounded-full ml-3">
-                All Tiqit Options
+            <div class="flex flex-col items-center gap-2 text-center">
+              <p class="text-sm text-base-content/60">Want the full series? Or full catalog access?</p>
+              <button phx-click="show-options" class="btn-widget btn-md rounded-full px-5">
+                All Tiqit options
               </button>
             </div>
           <% end %>

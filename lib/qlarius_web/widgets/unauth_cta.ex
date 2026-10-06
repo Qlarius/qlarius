@@ -97,18 +97,17 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
 
   @doc """
   Wallet strip that renders the authed `wallet_strip/1` when a user is
-  present, or the same two-column layout when anonymous: **READY** + WALLET
-  label (instead of a dollar amount) and a **Connect** button (instead of
+  present, or the same pill + action unit when anonymous: **READY** in the
+  wallet pill (instead of a dollar amount) and a **Connect** button (instead of
   **top-up**). The READY `wallet_balance` pill uses `anon_strobe?` for a Sponster
-  border strobe (same tempo as Connect), a subtle READY throb, and a WALLET ↔
-  ellipsis crossfade in the footer label row.
+  border strobe (same tempo as Connect) and a subtle READY throb.
   **Connect** uses the same Sponster styling as the wallet pill (`btn-wallet-strip-action`)
   plus border + scale + subtle bg strobe (`connect-strip-cta-border-strobe`).
 
   Accepts an `id` prefix so the component is usable more than once
   on a page (each arqade LC/widget can namespace independently).
 
-  Set `tray?={false}` to omit the outer base-200 tray (e.g. Sponster announcer bar).
+  Set `tray?={false}` to omit the strip row and its hairline (e.g. Sponster announcer bar).
   """
   attr :scope, :any, required: true, doc: "a %Scope{} or nil"
   attr :balance, :any, default: nil
@@ -173,6 +172,8 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
               value_text="READY"
               anon_strobe?={true}
             />
+            <%!-- Connecting funds the wallet, as top up does --%>
+            <.icon name="hero-arrow-long-left" class="wallet-strip-arrow" />
             <%= if @on_click do %>
               <button type="button" phx-click={@on_click} class={connect_classes}>
                 <.connect_strip_cta_label />

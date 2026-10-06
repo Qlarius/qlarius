@@ -598,181 +598,6 @@
   }
 
   /*
-   * Anon pill footer: WALLET ↔ strobing ellipsis (same slot). Ellipsis uses `scale()` only
-   * so row height stays 10px. `translateY` is in `em` (footer is 8px); period glyphs need a
-   * large negative em nudge — small values like -0.22em are only ~1px and read “too low”.
-   */
-  .wallet-footer-ellipsis {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: 0.02em;
-    height: 10px;
-    line-height: 1;
-    transform: translateY(-1.15em) scale(4);
-    transform-origin: center center;
-  }
-
-  .wallet-footer-ellipsis-dot {
-    display: inline-block;
-    animation: wallet-footer-ellipsis-wave 1.4s ease-in-out infinite both;
-    opacity: 0.35;
-  }
-
-  .wallet-footer-ellipsis-dot:nth-child(1) {
-    animation-delay: 0ms;
-  }
-
-  .wallet-footer-ellipsis-dot:nth-child(2) {
-    animation-delay: 160ms;
-  }
-
-  .wallet-footer-ellipsis-dot:nth-child(3) {
-    animation-delay: 320ms;
-  }
-
-  @keyframes wallet-footer-ellipsis-wave {
-    0%,
-    70%,
-    100% {
-      opacity: 0.2;
-      transform: translateY(0);
-    }
-
-    35% {
-      opacity: 1;
-      transform: translateY(-0.03em);
-    }
-  }
-
-  .wallet-footer-label-dissolve-wrap {
-    --wallet-footer-label-crossfade-cycle: 4.75s;
-    display: inline-grid;
-    place-items: center;
-    grid-template-areas: "stack";
-    min-width: 5.5ch;
-    height: 10px;
-    min-height: 10px;
-    max-height: 10px;
-    line-height: 10px;
-    vertical-align: middle;
-  }
-
-  .wallet-footer-label-dissolve-word,
-  .wallet-footer-label-dissolve-dots {
-    grid-area: stack;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 10px;
-    min-height: 10px;
-    max-height: 10px;
-    line-height: 10px;
-    overflow: visible;
-    font-size: inherit;
-  }
-
-  .wallet-footer-label-dissolve-word {
-    animation: wallet-footer-label-dissolve-word
-      var(--wallet-footer-label-crossfade-cycle, 4.75s) cubic-bezier(0.42, 0, 0.58, 1) infinite;
-  }
-
-  .wallet-footer-label-dissolve-dots {
-    animation: wallet-footer-label-dissolve-dots
-      var(--wallet-footer-label-crossfade-cycle, 4.75s) cubic-bezier(0.42, 0, 0.58, 1) infinite;
-  }
-
-  @keyframes wallet-footer-label-dissolve-word {
-    0%,
-    30% {
-      opacity: 1;
-    }
-
-    36% {
-      opacity: 0.65;
-    }
-
-    42% {
-      opacity: 0.2;
-    }
-
-    48% {
-      opacity: 0;
-    }
-
-    68% {
-      opacity: 0;
-    }
-
-    74% {
-      opacity: 0.2;
-    }
-
-    80% {
-      opacity: 0.65;
-    }
-
-    86%,
-    100% {
-      opacity: 1;
-    }
-  }
-
-  @keyframes wallet-footer-label-dissolve-dots {
-    0%,
-    30% {
-      opacity: 0;
-    }
-
-    36% {
-      opacity: 0.35;
-    }
-
-    42% {
-      opacity: 0.8;
-    }
-
-    48% {
-      opacity: 1;
-    }
-
-    68% {
-      opacity: 1;
-    }
-
-    74% {
-      opacity: 0.8;
-    }
-
-    80% {
-      opacity: 0.35;
-    }
-
-    86%,
-    100% {
-      opacity: 0;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .wallet-footer-ellipsis-dot {
-      animation: none;
-      opacity: 1;
-    }
-
-    .wallet-footer-label-dissolve-word {
-      animation: none;
-      opacity: 1;
-    }
-
-    .wallet-footer-label-dissolve-dots {
-      animation: none;
-      opacity: 0;
-      visibility: hidden;
-    }
-  }
-
-  /*
    * Wallet strip action CTAs (Connect, Top up when funded): border + scale + subtle
    * bg strobe (widget neutral → Sponster one step lighter than wallet pill).
    * Same 2.4s tempo as anon READY pill (`wallet-strip-anon-focus`).
@@ -1575,6 +1400,35 @@
     @apply border-widget-300;
   }
 
+  /* Solid widget CTA: the one main action on an Arqade page (Buy / Get Tiqit,
+     Accept Gift), filled like the auth sheet's `.auth-cta`. widget-800 with a
+     base-100 label flips on the dark widget ramp, so it stays neutral. */
+  .btn-widget.btn-widget-solid {
+    @apply border-widget-800 bg-widget-800 font-semibold text-base-100 shadow-none;
+  }
+  .btn-widget.btn-widget-solid:hover:not(:disabled):not(.btn-disabled) {
+    @apply border-widget-900 bg-widget-900 text-base-100;
+  }
+  .btn-widget.btn-widget-solid:disabled,
+  .btn-widget.btn-widget-solid[disabled],
+  .btn-widget.btn-widget-solid.btn-disabled {
+    @apply border-widget-200 bg-widget-200 text-widget-500;
+  }
+
+  /* Arqade ⋯ menu: compact rows (icon + label) with hairline dividers */
+  .arqade-menu {
+    @apply flex w-full flex-col divide-y divide-base-content/10;
+  }
+  .arqade-menu-row {
+    @apply flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-md px-3 text-left text-sm font-medium text-base-content transition-colors hover:bg-widget-100;
+  }
+  .arqade-menu-row__icon {
+    @apply h-5 w-5 shrink-0 text-widget-700;
+  }
+  .arqade-menu-row:disabled {
+    @apply cursor-not-allowed opacity-50 hover:bg-transparent;
+  }
+
   /*
    * Confirm Tip / Share / Gift / purchase dialog chrome.
    * `widget-700` is navy on light and a light blue on dark because
@@ -1963,17 +1817,33 @@
     @apply px-2 py-0.5 text-base items-center;
   }
 
-  .wallet-balance-pill--with-footer {
-    @apply flex-col items-center justify-center gap-0.5;
+  /* Labelled pill (widgets, Sponster bar and drawer): wallet icon + amount in
+     tabular figures, the same height as the strip's buttons (40px; 32px compact). */
+  .wallet-balance-pill--labelled {
+    @apply h-10 flex-row items-center justify-center gap-1.5 py-0 text-base tabular-amount;
+  }
+  .wallet-balance-pill--labelled.wallet-balance-pill--compact {
+    @apply h-8 gap-1 text-sm;
+  }
+  .wallet-balance-pill__icon {
+    @apply h-[1.1em] w-[1.1em] shrink-0 text-sponster-700 dark:text-sponster-300;
   }
 
-  /* Gray tray wrapping wallet pill + top-up in arqade buy row and anon connect strip. */
+  /* Wallet strip (wallet pill + top up / Connect) in Arqade, tip jar and
+     Tiqit Pass: a full-width row with a hairline above, the pill and its
+     action kept together as one centred unit. When funded, an arrow points
+     from top up into the wallet. */
   .wallet-strip-tray {
-    @apply w-fit mx-auto max-w-full min-w-0 rounded-xl border border-base-300 bg-base-200 px-2 py-1.5 text-base-content;
+    @apply w-full min-w-0 border-t pt-3 text-base-content;
+    border-color: color-mix(in oklab, var(--color-base-content) 10%, transparent);
   }
 
   .wallet-strip-tray__row {
-    @apply flex min-w-0 flex-row flex-nowrap items-center justify-between gap-2;
+    @apply flex min-w-0 flex-row flex-nowrap items-center justify-center gap-1.5;
+  }
+
+  .wallet-strip-arrow {
+    @apply h-4 w-4 shrink-0 text-sponster-600 dark:text-sponster-300;
   }
 
   /* Wallet strip Connect / Top up — transparent fill; border + text match `WalletBalance`. */
@@ -2004,8 +1874,8 @@
   }
 
   .badge-arqade-episode-cell {
-    @apply border-widget-400 bg-widget-100 text-widget-950;
-    @apply text-xs font-extrabold;
+    @apply border-widget-300 bg-widget-100 text-widget-950;
+    @apply text-[13px] font-semibold tabular-amount;
     font-family: "Inter", system-ui, sans-serif;
   }
 
@@ -3686,6 +3556,13 @@
     background-color: var(--color-base-300) !important;
     color: var(--color-primary) !important;
     box-shadow: none;
+  }
+
+  /* Widgets and their dialogs (Arqade share / gift): the active item uses the
+     neutral widget ramp, not the app's brand colour. */
+  .pill-join-selector--widget .join-item.btn.btn-active,
+  html[data-theme="dark"] .pill-join-selector--widget .join-item.btn.btn-active {
+    color: var(--color-widget-800) !important;
   }
 
   .pill-join-selector .pill-join-count {

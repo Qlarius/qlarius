@@ -373,8 +373,16 @@
                         var base = (host === "localhost" || host === "127.0.0.1")
                           ? "https://localhost:4001"
                           : "https://qadabra.app";
-                        document.getElementById("sponster-insta-tip-iframe").src =
-                          base + "/widgets/insta_tip?force_theme=light&split_code=daily_local";
+                        var tipFrame = document.getElementById("sponster-insta-tip-iframe");
+                        tipFrame.src = base + "/widgets/insta_tip?force_theme=light&split_code=daily_local";
+                        // The widget posts its height; fit the iframe to it (640px until then).
+                        window.addEventListener("message", function (event) {
+                          var data = event.data;
+                          if (event.source !== tipFrame.contentWindow || !data) return;
+                          if (data.type === "sponster_tipjar_height" && data.height > 0) {
+                            tipFrame.style.height = Math.ceil(data.height) + "px";
+                          }
+                        });
                       })();
                     </script>
                 </div>

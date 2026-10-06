@@ -1119,7 +1119,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   @doc false
   def piece_published_date_label(%ContentPiece{} = piece) do
     case piece_display_date(piece) do
-      %Date{} = date -> Calendar.strftime(date, "%b %d, %Y")
+      %Date{} = date -> Calendar.strftime(date, "%b %-d, %Y")
       _ -> nil
     end
   end
