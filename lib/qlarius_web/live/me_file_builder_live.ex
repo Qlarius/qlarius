@@ -101,7 +101,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
             tag_search={@tag_search}
             tag_display_mode={@tag_display_mode}
             show_tag_search={@show_tag_search}
-            show_view_menu={@show_view_menu}
             show_add_tags={false}
             show_search={false}
           />
@@ -301,7 +300,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:show_expanded_tags, false)
       |> assign(:tag_search, "")
       |> assign(:show_tag_search, false)
-      |> assign(:show_view_menu, false)
       |> assign_tag_display_mode()
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
       |> init_pwa_assigns(session)
@@ -340,15 +338,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
     {:noreply, assign(socket, :show_expanded_tags, expanded == "true")}
   end
 
-  def handle_event("toggle_view_menu", _params, socket) do
-    show = !socket.assigns.show_view_menu
-
-    {:noreply,
-     socket
-     |> assign(:show_view_menu, show)
-     |> assign(:show_tag_search, false)}
-  end
-
   def handle_event("set_tag_display_mode", %{"mode" => mode}, socket)
       when mode in ~w(tag block list) do
     me_file = socket.assigns.current_scope.user.me_file
@@ -357,8 +346,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
       {:ok, updated_me_file} ->
         {:noreply,
          socket
-         |> assign(:tag_display_mode, updated_me_file.tag_display_mode)
-         |> assign(:show_view_menu, false)}
+         |> assign(:tag_display_mode, updated_me_file.tag_display_mode)}
 
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Could not update display mode")}
@@ -670,7 +658,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
     socket
     |> assign(editing: true, active_survey_id: survey_id)
     |> assign(:survey_in_edit, survey_in_edit)
-    |> assign(:show_view_menu, false)
     |> assign(:show_tag_search, false)
   end
 

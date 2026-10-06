@@ -2730,6 +2730,77 @@
     }
   }
 
+  /*
+   * MeFile (me_file_html.ex): category label above each card, Settings-style.
+   * List rows put a small label above the value; no boxes or accent rules.
+   */
+  .mefile-category__head {
+    @apply mb-2.5 flex items-baseline justify-between px-1;
+  }
+
+  .mefile-category__head h2 {
+    @apply text-lg font-bold tracking-tight text-base-content/55;
+  }
+
+  .mefile-category__head span {
+    @apply text-sm text-base-content/50;
+  }
+
+  .mefile-list {
+    @apply m-0 list-none p-0;
+  }
+
+  .mefile-row {
+    @apply relative flex items-center gap-3 px-4 py-3;
+  }
+
+  .mefile-row + .mefile-row {
+    border-top: 1px solid color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  }
+
+  .mefile-row--editable {
+    @apply cursor-pointer transition-colors hover:bg-base-200/50;
+  }
+
+  .mefile-row__label {
+    @apply text-[13px] font-medium leading-snug text-base-content/60;
+  }
+
+  .mefile-row__value {
+    @apply mt-0.5 text-base leading-snug text-base-content;
+  }
+
+  .mefile-row__empty {
+    @apply mt-1 inline-block overflow-hidden rounded-md px-2 py-0.5 text-sm italic text-base-content/50;
+  }
+
+  /* Floating tools: search and the three views in one capsule. */
+  .mefile-toolbar {
+    @apply flex h-11 items-center gap-0.5 rounded-full p-1 shadow-lg;
+    background-color: color-mix(in oklab, var(--color-base-100) 86%, transparent);
+    border: 1px solid color-mix(in oklab, var(--color-base-content) 10%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .mefile-toolbar__btn {
+    @apply flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-base-content/60 transition-colors hover:text-base-content;
+  }
+
+  .mefile-toolbar__btn.is-on {
+    @apply bg-base-200 text-base-content;
+  }
+
+  .mefile-toolbar__sep {
+    @apply mx-0.5 h-5 w-px;
+    background-color: color-mix(in oklab, var(--color-base-content) 12%, transparent);
+  }
+
+  /* Keep the last tags clear of the floating toolbar above the tab bar. */
+  .mobile-shell:has(#mefile-floating-toolbar) .mobile-layout-content {
+    padding-bottom: calc(1.5rem + var(--mobile-bottom-nav-offset) + 3.5rem);
+  }
+
   .wallet-equation {
     @apply flex flex-wrap items-start gap-x-4 gap-y-2;
   }

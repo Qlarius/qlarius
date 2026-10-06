@@ -412,13 +412,10 @@ defmodule QlariusWeb.MeFileHTML do
   attr :tag_search, :string, required: true
   attr :tag_display_mode, :string, required: true
   attr :show_tag_search, :boolean, required: true
-  attr :show_view_menu, :boolean, required: true
   attr :show_add_tags, :boolean, default: true
   attr :show_search, :boolean, default: true
 
   def mefile_floating_toolbar(assigns) do
-    assigns = assign(assigns, :compact_toolbar?, !assigns.show_add_tags && !assigns.show_search)
-
     ~H"""
     <div
       id="mefile-floating-toolbar"
@@ -438,116 +435,41 @@ defmodule QlariusWeb.MeFileHTML do
           <.tag_search_input tag_search={@tag_search} autofocus={true} compact={true} />
         </div>
 
-        <.mefile_view_mode_menu
-          :if={@show_view_menu && @compact_toolbar?}
-          tag_display_mode={@tag_display_mode}
-        />
-
         <div class="flex flex-row items-center justify-end gap-2">
-          <button
-            :if={@show_search}
-            type="button"
-            phx-click="toggle_tag_search"
-            class={mefile_fab_class(@show_tag_search)}
-            aria-label="Search tags"
-            aria-expanded={to_string(@show_tag_search)}
-          >
-            <.icon name="hero-magnifying-glass" class="h-5 w-5" />
-          </button>
-          <div class="relative shrink-0">
-            <.mefile_view_mode_menu
-              :if={@show_view_menu && !@compact_toolbar?}
-              tag_display_mode={@tag_display_mode}
-              class="absolute bottom-full right-0 z-50 mb-2"
-            />
+          <%!-- One capsule: search, then the three views selected in a single tap --%>
+          <div class="mefile-toolbar" role="group" aria-label="Tag tools">
             <button
+              :if={@show_search}
               type="button"
-              phx-click="toggle_view_menu"
-              class={mefile_fab_class(@show_view_menu)}
-              aria-label={"View: #{tag_display_mode_label(@tag_display_mode)}"}
-              aria-expanded={to_string(@show_view_menu)}
+              phx-click="toggle_tag_search"
+              class={["mefile-toolbar__btn", @show_tag_search && "is-on"]}
+              aria-label="Search tags"
+              aria-expanded={to_string(@show_tag_search)}
             >
-              <.icon name={tag_display_mode_icon(@tag_display_mode)} class="h-5 w-5" />
+              <.icon name="hero-magnifying-glass" class="h-5 w-5" />
+            </button>
+            <span :if={@show_search} class="mefile-toolbar__sep" aria-hidden="true"></span>
+            <button
+              :for={mode <- ~w(list tag block)}
+              type="button"
+              phx-click="set_tag_display_mode"
+              phx-value-mode={mode}
+              class={["mefile-toolbar__btn", @tag_display_mode == mode && "is-on"]}
+              aria-label={"Show as #{tag_display_mode_label(mode)}"}
+              aria-pressed={to_string(@tag_display_mode == mode)}
+            >
+              <.icon name={tag_display_mode_icon(mode)} class="h-5 w-5" />
             </button>
           </div>
           <.link
             :if={@show_add_tags}
             navigate={~p"/me_file_builder"}
-            class="btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg"
+            class="btn btn-primary rounded-full flex items-center gap-1 px-4 h-11 min-h-11 shadow-lg"
           >
             <.icon name="hero-plus" class="h-5 w-5" /> Add tags
           </.link>
         </div>
       </div>
-    </div>
-    """
-  end
-
-  attr :tag_display_mode, :string, required: true
-  attr :class, :string, default: ""
-
-  def mefile_view_mode_menu(assigns) do
-    ~H"""
-    <div
-      class={[
-        "rounded-2xl border border-base-300 bg-base-100 dark:bg-base-200 shadow-lg p-2 flex flex-row gap-1 shrink-0",
-        @class
-      ]}
-      role="menu"
-      aria-label="Tag display mode"
-    >
-      <button
-        :for={mode <- ~w(tag block list)}
-        type="button"
-        phx-click="set_tag_display_mode"
-        phx-value-mode={mode}
-        class={[
-          "btn btn-sm btn-square btn-ghost",
-          @tag_display_mode == mode && "bg-youdata-300/50 dark:bg-youdata-800/50"
-        ]}
-        aria-label={tag_display_mode_label(mode)}
-        aria-current={@tag_display_mode == mode && "true"}
-        role="menuitem"
-      >
-        <.icon name={tag_display_mode_icon(mode)} class="h-5 w-5" />
-      </button>
-    </div>
-    """
-  end
-
-  attr :tag_display_mode, :string, required: true
-
-  def tag_display_mode_dropdown(assigns) do
-    ~H"""
-    <div class="dropdown dropdown-end shrink-0">
-      <div
-        tabindex="0"
-        role="button"
-        class="btn btn-ghost btn-sm btn-square"
-        aria-label={"Tag display: #{tag_display_mode_label(@tag_display_mode)}"}
-      >
-        <.icon name={tag_display_mode_icon(@tag_display_mode)} class="h-5 w-5" />
-      </div>
-      <ul
-        tabindex="0"
-        class="dropdown-content menu bg-base-100 rounded-box z-50 mt-1 w-auto min-w-0 border border-base-300 p-1 shadow-lg"
-      >
-        <li :for={mode <- ~w(tag block list)}>
-          <button
-            type="button"
-            phx-click="set_tag_display_mode"
-            phx-value-mode={mode}
-            class={[
-              "btn btn-ghost btn-sm btn-square",
-              @tag_display_mode == mode && "active bg-youdata-300/50 dark:bg-youdata-800/50"
-            ]}
-            aria-label={tag_display_mode_label(mode)}
-            aria-current={@tag_display_mode == mode && "true"}
-          >
-            <.icon name={tag_display_mode_icon(mode)} class="h-5 w-5" />
-          </button>
-        </li>
-      </ul>
     </div>
     """
   end
@@ -568,10 +490,8 @@ defmodule QlariusWeb.MeFileHTML do
     ~H"""
     <%= case @tag_display_mode do %>
       <% "list" -> %>
-        <ul class={[
-          "divide-y divide-base-300/60 dark:divide-base-content/10 list-trait-cards",
-          if(@readonly, do: @inset_class, else: "pb-4")
-        ]}>
+        <%!-- Label above value, no boxes: reads like Settings rows. Multiple values join with " · ". --%>
+        <ul class="mefile-list">
           <li
             :for={
               {parent_trait_id, parent_trait_name, _parent_trait_display_order, tags_traits} <-
@@ -579,57 +499,32 @@ defmodule QlariusWeb.MeFileHTML do
             }
             id={"trait-card-#{parent_trait_id}"}
             class={[
-              "trait-card-animate relative flex items-stretch gap-3 px-4 py-3",
-              !@readonly && editable_parent_trait?(parent_trait_name) &&
-                "cursor-pointer transition-colors duration-200 hover:bg-base-200/40 dark:hover:bg-base-300/20"
+              "trait-card-animate mefile-row",
+              !@readonly && editable_parent_trait?(parent_trait_name) && "mefile-row--editable"
             ]}
             phx-click={!@readonly && editable_parent_trait?(parent_trait_name) && "edit_tags"}
             phx-value-id={!@readonly && editable_parent_trait?(parent_trait_name) && parent_trait_id}
           >
-            <div class="w-[34%] max-w-[9rem] shrink-0 flex items-start pt-2.5">
-              <span class={[
-                "text-base font-bold leading-tight",
-                tags_traits == [] && "text-base-content/65 dark:text-base-content/75",
-                tags_traits != [] && "text-base-content"
-              ]}>
-                {parent_trait_name}
-              </span>
+            <div class="min-w-0 flex-1">
+              <p class="mefile-row__label">{parent_trait_name}</p>
+              <p :if={tags_traits != []} class="mefile-row__value">
+                {Enum.map_join(tags_traits, " · ", fn {_tag_id, tag_value, _order} -> tag_value end)}
+              </p>
+              <p
+                :if={tags_traits == []}
+                class="mefile-row__empty empty-trait-header-strobe"
+                style={"--animation-delay: #{rem(abs(parent_trait_id), 2000)}ms"}
+              >
+                {QlariusWeb.Components.TraitComponents.empty_tag_tease_message()}
+              </p>
             </div>
-            <div
-              class={[
-                "flex flex-1 min-w-0 items-stretch rounded-lg overflow-hidden",
-                "bg-base-200 dark:bg-base-300/55",
-                tags_traits == [] && "empty-trait-header-strobe"
-              ]}
-              style={tags_traits == [] && "--animation-delay: #{rem(abs(parent_trait_id), 2000)}ms"}
-            >
-              <div class="w-1 shrink-0 bg-youdata-500" aria-hidden="true"></div>
-              <div class="flex flex-1 min-w-0 items-center justify-between gap-2 px-3 py-2.5">
-                <div class="min-w-0 flex-1">
-                  <ul :if={tags_traits != []} class="space-y-0.5">
-                    <li
-                      :for={{_tag_id, tag_value, _display_order} <- tags_traits}
-                      class="text-sm leading-snug text-base-content/85"
-                    >
-                      {tag_value}
-                    </li>
-                  </ul>
-                  <p
-                    :if={tags_traits == []}
-                    class="text-sm leading-snug italic text-base-content/45"
-                  >
-                    {QlariusWeb.Components.TraitComponents.empty_tag_tease_message()}
-                  </p>
-                </div>
-                <.trait_actions
-                  parent_trait_id={parent_trait_id}
-                  parent_trait_name={parent_trait_name}
-                  editable={!@readonly}
-                  nav_indicator={if(@readonly, do: "none", else: "chevron")}
-                  actions_class="flex shrink-0 self-center"
-                />
-              </div>
-            </div>
+            <.trait_actions
+              parent_trait_id={parent_trait_id}
+              parent_trait_name={parent_trait_name}
+              editable={!@readonly}
+              nav_indicator={if(@readonly, do: "none", else: "chevron")}
+              actions_class="flex shrink-0 self-center"
+            />
             <button
               :if={
                 inline_skip_id(
@@ -734,7 +629,11 @@ defmodule QlariusWeb.MeFileHTML do
       >
         <p>No tags match your search.</p>
       </div>
-      <.surface_panel :if={@parent_traits != []} padding={false} class="pt-4">
+      <.surface_panel
+        :if={@parent_traits != []}
+        padding={false}
+        class={@tag_display_mode != "list" && "pt-4"}
+      >
         <.parent_traits_display
           parent_traits={@parent_traits}
           tag_display_mode={@tag_display_mode}
@@ -766,18 +665,23 @@ defmodule QlariusWeb.MeFileHTML do
       id="mefile-tags-display"
       phx-hook="AnimateTrait"
       phx-key={@tag_search_epoch}
-      class="flex flex-col gap-10"
+      class="flex flex-col gap-7"
     >
-      <div :if={@loading} class="flex flex-col gap-10" aria-busy="true" aria-label="Loading tags">
-        <.surface_panel :for={_ <- 1..2} padding={false}>
-          <div class="flex justify-between items-center px-4 pt-4 pb-3">
+      <div :if={@loading} class="flex flex-col gap-7" aria-busy="true" aria-label="Loading tags">
+        <section :for={_ <- 1..2} class="mefile-category">
+          <div class="mefile-category__head">
             <div class="skeleton h-5 w-28"></div>
             <div class="skeleton h-4 w-16"></div>
           </div>
-          <div class="flex flex-wrap gap-2 px-4 pb-4">
-            <div :for={_ <- 1..6} class="skeleton h-8 w-20 rounded-full"></div>
-          </div>
-        </.surface_panel>
+          <.surface_panel padding={false}>
+            <div :for={_ <- 1..3} class="mefile-row">
+              <div class="flex-1 space-y-2">
+                <div class="skeleton h-3 w-24"></div>
+                <div class="skeleton h-4 w-40"></div>
+              </div>
+            </div>
+          </.surface_panel>
+        </section>
       </div>
       <div
         :if={not @loading and Enum.empty?(@tag_display_map) and tag_search_active?(@tag_search)}
@@ -785,35 +689,26 @@ defmodule QlariusWeb.MeFileHTML do
       >
         <p>No tags match your search.</p>
       </div>
-      <.surface_panel
+      <section
         :for={{{_id, name, _display_order}, parent_traits} <- @tag_display_map}
         :if={not @loading}
-        padding={false}
+        class="mefile-category"
       >
-        <div class="flex justify-between items-center px-4 pt-4 pb-3">
-          <h2 class="text-lg font-bold tracking-tight text-base-content">
-            {name}
-          </h2>
-          <span class="text-sm text-base-content/50">
+        <div class="mefile-category__head">
+          <h2>{name}</h2>
+          <span>
             <% tag_count = length(parent_traits) %>
             {tag_count} {plural_tag_word(tag_count)}
           </span>
         </div>
-
-        <.parent_traits_display
-          :if={@tag_display_mode != "list"}
-          parent_traits={parent_traits}
-          tag_display_mode={@tag_display_mode}
-          skip_child_ids={@skip_child_ids}
-        />
-        <div :if={@tag_display_mode == "list"} class="max-w-3xl mx-auto w-full">
+        <.surface_panel padding={false} class={@tag_display_mode != "list" && "pt-4"}>
           <.parent_traits_display
             parent_traits={parent_traits}
             tag_display_mode={@tag_display_mode}
             skip_child_ids={@skip_child_ids}
           />
-        </div>
-      </.surface_panel>
+        </.surface_panel>
+      </section>
     </div>
     """
   end
@@ -929,15 +824,6 @@ defmodule QlariusWeb.MeFileHTML do
   defp deletable_trait?(_), do: false
 
   defp editable_parent_trait?(name), do: name not in @protected_trait_names
-
-  defp mefile_fab_class(active?) do
-    [
-      "mobile-floating-fab btn btn-lg btn-circle shadow-lg",
-      "bg-base-100 dark:bg-base-200 text-base-content",
-      "hover:bg-base-200 dark:hover:bg-base-300",
-      active? && "ring-2 ring-youdata-500/60"
-    ]
-  end
 
   defp plural_tag_word(1), do: "tag"
   defp plural_tag_word(_), do: "tags"

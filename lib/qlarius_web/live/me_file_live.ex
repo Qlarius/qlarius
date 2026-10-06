@@ -53,7 +53,6 @@ defmodule QlariusWeb.MeFileLive do
             tag_search={@tag_search}
             tag_display_mode={@tag_display_mode}
             show_tag_search={@show_tag_search}
-            show_view_menu={@show_view_menu}
           />
         </:floating_actions>
       </Layouts.mobile>
@@ -199,23 +198,12 @@ defmodule QlariusWeb.MeFileLive do
 
     {:noreply,
      socket
-     |> assign(:show_tag_search, show)
-     |> assign(:show_view_menu, false)}
+     |> assign(:show_tag_search, show)}
   end
 
   def handle_event("hide_tag_search", _params, socket) do
     {:noreply,
      socket
-     |> assign(:show_tag_search, false)
-     |> assign(:show_view_menu, false)}
-  end
-
-  def handle_event("toggle_view_menu", _params, socket) do
-    show = !socket.assigns.show_view_menu
-
-    {:noreply,
-     socket
-     |> assign(:show_view_menu, show)
      |> assign(:show_tag_search, false)}
   end
 
@@ -234,7 +222,6 @@ defmodule QlariusWeb.MeFileLive do
     {:noreply,
      socket
      |> assign(:tag_search, "")
-     |> assign(:show_view_menu, false)
      |> assign_me_file_tags()
      |> assign_filtered_tag_display()
      |> bump_tag_search_epoch()
@@ -249,8 +236,7 @@ defmodule QlariusWeb.MeFileLive do
       {:ok, updated_me_file} ->
         {:noreply,
          socket
-         |> assign(:tag_display_mode, updated_me_file.tag_display_mode)
-         |> assign(:show_view_menu, false)}
+         |> assign(:tag_display_mode, updated_me_file.tag_display_mode)}
 
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Could not update display mode")}
@@ -337,7 +323,6 @@ defmodule QlariusWeb.MeFileLive do
       |> assign(:tag_search, "")
       |> assign(:tag_search_epoch, 0)
       |> assign(:show_tag_search, false)
-      |> assign(:show_view_menu, false)
       |> assign_tag_display_mode()
       |> init_pwa_assigns(session)
 
