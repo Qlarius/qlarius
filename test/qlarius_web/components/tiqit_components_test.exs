@@ -14,16 +14,17 @@ defmodule QlariusWeb.TiqitComponentsTest do
   alias QlariusWeb.TiqitComponents
 
   defp piece(creator_name \\ "Tammy's Tasty Tips") do
-    creator = %Creator{name: creator_name}
+    creator = %Creator{id: 1, name: creator_name}
 
     catalog = %Catalog{
+      id: 2,
       name: "Tammy's Tasty Tips",
       piece_type: :episode,
       group_type: :season,
       creator: creator
     }
 
-    group = %ContentGroup{title: "Season 1", catalog: catalog}
+    group = %ContentGroup{id: 3, title: "Season 1", catalog: catalog}
     %ContentPiece{id: 41, title: "Grilled Cheese", content_group: group}
   end
 
@@ -112,22 +113,80 @@ defmodule QlariusWeb.TiqitComponentsTest do
   end
 
   describe "tiqit card header" do
-    test "the source line drops a repeated name and keeps the full path in its title" do
+    test "the source line drops a repeated name and links each shown name" do
       html = render_tiqit(tiqit(%{}))
 
       # creator and catalog share a name, so the line reads creator › group
-      assert html =~ "Tammy&#39;s Tasty Tips › Season 1"
+      assert html =~ ~s(href="/arqade/41")
+      assert html =~ ~s(href="/arqade/creator/1")
+      assert html =~ ~s(href="/arqade/group/3")
+      refute html =~ ~s(href="/arqade/catalog/2")
+      assert html =~ "tiqit-content-link"
       assert html =~ ~s(title="Tammy&#39;s Tasty Tips › Season 1")
       assert html =~ "Episode"
       assert html =~ "line-clamp-2"
     end
 
-    test "three distinct names keep the first and last on the line" do
+    test "three distinct names keep the first and last, each linked" do
       tiqit = tiqit(%{content_piece: piece("Team Coco")})
       html = render_tiqit(tiqit)
 
-      assert html =~ ~r/>\s*Team Coco › Season 1\s*</
+      assert html =~ ~s(href="/arqade/creator/1")
+      assert html =~ ~s(href="/arqade/group/3")
+      assert html =~ ~s(href="/arqade/41")
+      refute html =~ ~s(href="/arqade/catalog/2")
       assert html =~ ~s(title="Team Coco › Tammy&#39;s Tasty Tips › Season 1")
+    end
+
+    test "a group tiqit links its title plus the creator and catalog" do
+      creator = %Creator{id: 1, name: "Team Coco"}
+
+      catalog = %Catalog{
+        id: 2,
+        name: "Late Night",
+        piece_type: :episode,
+        group_type: :season,
+        creator: creator
+      }
+
+      group = %ContentGroup{id: 3, title: "Season 1", catalog: catalog}
+
+      html =
+        render_tiqit(
+          tiqit(%{
+            content_piece_id: nil,
+            content_piece: nil,
+            content_group_id: 3,
+            content_group: group
+          })
+        )
+
+      assert html =~ ~s(href="/arqade/group/3")
+      assert html =~ ~s(href="/arqade/creator/1")
+      assert html =~ ~s(href="/arqade/catalog/2")
+      refute html =~ ~s(href="/arqade/41")
+    end
+
+    test "a catalog tiqit links its title and the creator" do
+      creator = %Creator{id: 1, name: "Team Coco"}
+
+      catalog = %Catalog{
+        id: 2,
+        name: "Late Night",
+        type: :show,
+        piece_type: :episode,
+        group_type: :season,
+        creator: creator
+      }
+
+      html =
+        render_tiqit(
+          tiqit(%{content_piece_id: nil, content_piece: nil, catalog_id: 2, catalog: catalog})
+        )
+
+      assert html =~ ~s(href="/arqade/catalog/2")
+      assert html =~ ~s(href="/arqade/creator/1")
+      refute html =~ ~s(href="/arqade/41")
     end
   end
 

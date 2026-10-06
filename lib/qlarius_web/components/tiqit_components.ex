@@ -12,6 +12,7 @@ defmodule QlariusWeb.TiqitComponents do
   alias Qlarius.Tiqit.Arcade.Catalog
   alias Qlarius.Tiqit.Arcade.Tiqit
   alias Qlarius.Tiqit.Arcade.TiqitClass
+  alias QlariusWeb.Widgets.Arcade.Paths
 
   @tiqit_card_shell_class "tiqit-card-shell overflow-hidden rounded-lg"
 
@@ -193,6 +194,7 @@ defmodule QlariusWeb.TiqitComponents do
       |> assign(:card_id, gift.id)
       |> assign(:grid_status, grid_status)
       |> assign(:title, gift_title(gift))
+      |> assign(:title_path, gift_title_path(gift))
       |> assign(:scope_label, gift_scope_label(gift))
       |> assign(:content_summary, gift_content_summary(gift))
       |> assign(:hierarchy, gift_hierarchy(gift))
@@ -216,6 +218,7 @@ defmodule QlariusWeb.TiqitComponents do
       preserved={false}
       gift?={true}
       title={@title}
+      title_path={@title_path}
       scope_label={@scope_label}
       content_summary={@content_summary}
       hierarchy={@hierarchy}
@@ -267,6 +270,7 @@ defmodule QlariusWeb.TiqitComponents do
       |> assign(:status, status)
       |> assign(:fleet_at_deadline, fleet_at_deadline)
       |> assign(:title, tiqit_title(tiqit))
+      |> assign(:title_path, tiqit_title_path(tiqit))
       |> assign(:scope_label, tiqit_scope_label(tiqit))
       |> assign(:content_summary, tiqit_content_summary(tiqit))
       |> assign(:hierarchy, tiqit_hierarchy(tiqit))
@@ -281,6 +285,7 @@ defmodule QlariusWeb.TiqitComponents do
       preserved={@tiqit.preserved}
       gift?={false}
       title={@title}
+      title_path={@title_path}
       scope_label={@scope_label}
       content_summary={@content_summary}
       hierarchy={@hierarchy}
@@ -354,6 +359,7 @@ defmodule QlariusWeb.TiqitComponents do
   attr :gift?, :boolean, default: false
   attr :read_only, :boolean, default: false
   attr :title, :string, required: true
+  attr :title_path, :string, default: nil
   attr :scope_label, :string, default: ""
   attr :content_summary, :string, default: nil
   attr :hierarchy, :list, default: []
@@ -375,8 +381,11 @@ defmodule QlariusWeb.TiqitComponents do
           " · "
         )
       )
-      |> assign(:source, compact_source(assigns.hierarchy))
-      |> assign(:source_full, assigns.hierarchy |> source_parts() |> Enum.join(" › "))
+      |> assign(:source_parts, compact_source_parts(assigns.hierarchy))
+      |> assign(
+        :source_full,
+        assigns.hierarchy |> source_parts() |> Enum.map_join(" › ", & &1.name)
+      )
       |> assign(
         :more_id,
         "tiqit-more-#{if assigns.gift?, do: "gift", else: "tiqit"}-#{assigns.card_id}"
@@ -400,15 +409,33 @@ defmodule QlariusWeb.TiqitComponents do
             />
             <div class="min-w-0 flex-1 text-left">
               <p :if={@kind_line != ""} class="text-xs text-base-content/55">{@kind_line}</p>
-              <p class="line-clamp-2 text-base font-semibold leading-snug" title={@title}>
+              <.link
+                :if={@title_path}
+                navigate={@title_path}
+                class="tiqit-content-link line-clamp-2 text-base font-semibold leading-snug"
+                title={@title}
+              >
+                {@title}
+              </.link>
+              <p
+                :if={!@title_path}
+                class="line-clamp-2 text-base font-semibold leading-snug"
+                title={@title}
+              >
                 {@title}
               </p>
               <p
-                :if={@source != ""}
+                :if={@source_parts != []}
                 class="mt-0.5 truncate text-sm text-base-content/55"
                 title={@source_full}
               >
-                {@source}
+                <%= for {part, idx} <- Enum.with_index(@source_parts) do %>
+                  <span :if={idx > 0}> › </span>
+                  <.link :if={part.path} navigate={part.path} class="tiqit-content-link">
+                    {part.name}
+                  </.link>
+                  <span :if={!part.path}>{part.name}</span>
+                <% end %>
               </p>
             </div>
           </div>
@@ -591,6 +618,19 @@ defmodule QlariusWeb.TiqitComponents do
     end
   end
 
+  defp gift_title_path(gift) do
+    cond do
+      gift.content_piece && gift.content_piece.title != "" ->
+        arqade_path(:piece, gift.content_piece)
+
+      gift.content_group && gift.content_group.title != "" ->
+        arqade_path(:group, gift.content_group)
+
+      true ->
+        nil
+    end
+  end
+
   defp gift_scope_label(gift) do
     catalog = gift_catalog(gift)
 
@@ -612,12 +652,21 @@ defmodule QlariusWeb.TiqitComponents do
         group = gift.content_piece.content_group
         catalog = group.catalog
         creator = catalog.creator
-        [creator.name, catalog.name, group.title]
+
+        [
+          content_link(creator.name, arqade_path(:creator, creator)),
+          content_link(catalog.name, arqade_path(:catalog, catalog)),
+          content_link(group.title, arqade_path(:group, group))
+        ]
 
       gift.content_group && Ecto.assoc_loaded?(gift.content_group.catalog) ->
         catalog = gift.content_group.catalog
         creator = catalog.creator
-        [creator.name, catalog.name]
+
+        [
+          content_link(creator.name, arqade_path(:creator, creator)),
+          content_link(catalog.name, arqade_path(:catalog, catalog))
+        ]
 
       true ->
         []
@@ -968,18 +1017,28 @@ defmodule QlariusWeb.TiqitComponents do
 
   # The source line: creator › catalog › group, without repeats (a creator
   # whose catalog has the same name), and only the ends when there are three.
-  defp compact_source(hierarchy) do
+  # Each part keeps the arqade path for its own level.
+  defp compact_source_parts(hierarchy) do
     case source_parts(hierarchy) do
-      [first, _ | _] = parts when length(parts) > 2 -> first <> " › " <> List.last(parts)
-      parts -> Enum.join(parts, " › ")
+      [first, _ | _] = parts when length(parts) > 2 -> [first, List.last(parts)]
+      parts -> parts
     end
   end
 
   defp source_parts(hierarchy) do
     hierarchy
-    |> Enum.reject(&(&1 in [nil, ""]))
-    |> Enum.dedup_by(&(&1 |> String.trim() |> String.downcase()))
+    |> Enum.reject(&(is_nil(&1) or &1.name in [nil, ""]))
+    |> Enum.dedup_by(&(&1.name |> String.trim() |> String.downcase()))
   end
+
+  defp content_link(name, path) when is_binary(name) and name != "", do: %{name: name, path: path}
+  defp content_link(_, _), do: nil
+
+  defp arqade_path(:creator, %{id: id}) when not is_nil(id), do: Paths.creator("", id)
+  defp arqade_path(:catalog, %{id: id}) when not is_nil(id), do: Paths.catalog("", id)
+  defp arqade_path(:group, %{id: id}) when not is_nil(id), do: Paths.group("", id)
+  defp arqade_path(:piece, %{id: id}) when not is_nil(id), do: Paths.piece("", id)
+  defp arqade_path(_, _), do: nil
 
   defp tiqit_image_url(tiqit) do
     cond do
@@ -1016,6 +1075,15 @@ defmodule QlariusWeb.TiqitComponents do
       group = Tiqit.content_group(tiqit) -> group.title
       catalog = Tiqit.catalog(tiqit) -> catalog.name
       true -> "Unknown"
+    end
+  end
+
+  defp tiqit_title_path(tiqit) do
+    cond do
+      piece = Tiqit.content_piece(tiqit) -> arqade_path(:piece, piece)
+      group = Tiqit.content_group(tiqit) -> arqade_path(:group, group)
+      catalog = Tiqit.catalog(tiqit) -> arqade_path(:catalog, catalog)
+      true -> nil
     end
   end
 
@@ -1056,16 +1124,25 @@ defmodule QlariusWeb.TiqitComponents do
         group = piece.content_group
         catalog = group.catalog
         creator = catalog.creator
-        [creator.name, catalog.name, group.title]
+
+        [
+          content_link(creator.name, arqade_path(:creator, creator)),
+          content_link(catalog.name, arqade_path(:catalog, catalog)),
+          content_link(group.title, arqade_path(:group, group))
+        ]
 
       group = Tiqit.content_group(tiqit) ->
         catalog = group.catalog
         creator = catalog.creator
-        [creator.name, catalog.name]
+
+        [
+          content_link(creator.name, arqade_path(:creator, creator)),
+          content_link(catalog.name, arqade_path(:catalog, catalog))
+        ]
 
       catalog = Tiqit.catalog(tiqit) ->
         creator = catalog.creator
-        [creator.name]
+        [content_link(creator.name, arqade_path(:creator, creator))]
 
       true ->
         []

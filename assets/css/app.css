@@ -5348,6 +5348,16 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
 .tiqit-top {
   padding: 20px 24px 16px 16px;
 }
+
+.tiqit-content-link {
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.tiqit-content-link:hover {
+  text-decoration: underline;
+}
 .tiqit-bot {
   position: relative;
   z-index: 1;
