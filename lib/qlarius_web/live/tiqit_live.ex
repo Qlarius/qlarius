@@ -4,6 +4,7 @@ defmodule QlariusWeb.TiqitLive do
   import QlariusWeb.TiqitComponents
   import QlariusWeb.PWAHelpers
 
+  alias Phoenix.LiveView.AsyncResult
   alias QlariusWeb.Layouts
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.ContentSharing
@@ -13,41 +14,30 @@ defmodule QlariusWeb.TiqitLive do
   @valid_statuses ~w[active expired preserved fleeted gifted all]
 
   @impl true
-  def mount(params, session, socket) do
-    scope = socket.assigns.current_scope
-    status = parse_status(params["status"])
-
-    tiqits = Arcade.list_tiqits_by_status(scope, status)
-
-    socket =
-      socket
-      |> assign(:current_path, "/tiqits")
-      |> assign(:title, "Stash")
-      |> assign(:status_filter, status)
-      |> assign(:tiqits, tiqits)
-      |> assign(:gifts, load_gifts(scope, status))
-      |> assign(:fleet_after_hours, scope.user.fleet_after_hours)
-      |> assign(:undo_context, nil)
-      |> assign(:fleeted_count, Arcade.count_fleeted_tiqits(scope))
-      |> assign(:undone_count, Arcade.count_undone_tiqits(scope))
-      |> assign_stash_filter_counts(scope)
-      |> init_pwa_assigns(session)
-
-    {:ok, socket}
+  def mount(_params, session, socket) do
+    {:ok,
+     socket
+     |> assign(:current_path, "/tiqits")
+     |> assign(:title, "Stash")
+     |> assign(:fleet_after_hours, socket.assigns.current_scope.user.fleet_after_hours)
+     |> assign(:undo_context, nil)
+     |> init_pwa_assigns(session)}
   end
 
+  # The stash depends on the filter in the URL, so it loads here, with
+  # `assign_async/3`: the dead render and the wait for the socket show the
+  # skeleton from `<.async_result>`'s :loading slot, as Arqade's pages do. On a
+  # filter change the current cards stay until the new ones arrive
+  # (assign_async keeps the previous result).
   @impl true
   def handle_params(params, _uri, socket) do
     status = parse_status(params["status"])
     scope = socket.assigns.current_scope
-    tiqits = Arcade.list_tiqits_by_status(scope, status)
 
     {:noreply,
      socket
      |> assign(:status_filter, status)
-     |> assign(:tiqits, tiqits)
-     |> assign(:gifts, load_gifts(scope, status))
-     |> assign_stash_filter_counts(scope)}
+     |> assign_async(:stash, fn -> {:ok, %{stash: load_stash(scope, status)}} end)}
   end
 
   @impl true
@@ -68,7 +58,7 @@ defmodule QlariusWeb.TiqitLive do
 
     case Arcade.fleet_tiqit!(tiqit) do
       {:ok, _} ->
-        {:noreply, reload_tiqits(socket)}
+        {:noreply, reload_stash(socket)}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Could not fleet tiqit")}
@@ -79,7 +69,7 @@ defmodule QlariusWeb.TiqitLive do
     tiqit = Qlarius.Repo.get!(Qlarius.Tiqit.Arcade.Tiqit, id)
 
     case Arcade.preserve_tiqit(tiqit, true) do
-      {:ok, _} -> {:noreply, reload_tiqits(socket)}
+      {:ok, _} -> {:noreply, reload_stash(socket)}
       {:error, _} -> {:noreply, put_flash(socket, :error, "Could not keep tiqit")}
     end
   end
@@ -88,7 +78,7 @@ defmodule QlariusWeb.TiqitLive do
     tiqit = Qlarius.Repo.get!(Qlarius.Tiqit.Arcade.Tiqit, id)
 
     case Arcade.preserve_tiqit(tiqit, false) do
-      {:ok, _} -> {:noreply, reload_tiqits(socket)}
+      {:ok, _} -> {:noreply, reload_stash(socket)}
       {:error, _} -> {:noreply, put_flash(socket, :error, "Could not stop keeping tiqit")}
     end
   end
@@ -105,7 +95,7 @@ defmodule QlariusWeb.TiqitLive do
         {:noreply,
          socket
          |> put_flash(:info, "Gift withdrawn — credit returned to your wallet")
-         |> reload_tiqits()}
+         |> reload_stash()}
 
       {:error, :unauthorized} ->
         {:noreply, put_flash(socket, :error, "You can't withdraw this gift")}
@@ -140,7 +130,7 @@ defmodule QlariusWeb.TiqitLive do
          socket
          |> assign(:undo_context, nil)
          |> put_flash(:info, "Tiqit refunded successfully")
-         |> reload_tiqits()}
+         |> reload_stash()}
 
       {:error, :undo_window_expired} ->
         {:noreply,
@@ -168,25 +158,24 @@ defmodule QlariusWeb.TiqitLive do
     end
   end
 
-  defp reload_tiqits(socket) do
-    scope = socket.assigns.current_scope
-    status = socket.assigns.status_filter
-    tiqits = Arcade.list_tiqits_by_status(scope, status)
-
-    socket
-    |> assign(:tiqits, tiqits)
-    |> assign(:gifts, load_gifts(scope, status))
-    |> assign(:fleeted_count, Arcade.count_fleeted_tiqits(scope))
-    |> assign(:undone_count, Arcade.count_undone_tiqits(scope))
-    |> assign_stash_filter_counts(scope)
+  # After an action on a card: reload in place (no skeleton)
+  defp reload_stash(socket) do
+    %{current_scope: scope, status_filter: status, stash: stash} = socket.assigns
+    assign(socket, :stash, AsyncResult.ok(stash, load_stash(scope, status)))
   end
 
-  defp assign_stash_filter_counts(socket, scope) do
-    socket
-    |> assign(:active_count, Arcade.count_active_tiqits(scope))
-    |> assign(:preserved_count, Arcade.count_preserved_tiqits(scope))
-    |> assign(:fleeting_count, Arcade.count_fleeting_tiqits(scope))
-    |> assign(:gifted_count, ContentSharing.count_pending_sender_gifts(scope))
+  # Everything the page shows for one filter: the cards and every count
+  defp load_stash(scope, status) do
+    %{
+      tiqits: Arcade.list_tiqits_by_status(scope, status),
+      gifts: load_gifts(scope, status),
+      fleeted_count: Arcade.count_fleeted_tiqits(scope),
+      undone_count: Arcade.count_undone_tiqits(scope),
+      active_count: Arcade.count_active_tiqits(scope),
+      preserved_count: Arcade.count_preserved_tiqits(scope),
+      fleeting_count: Arcade.count_fleeting_tiqits(scope),
+      gifted_count: ContentSharing.count_pending_sender_gifts(scope)
+    }
   end
 
   defp load_gifts(scope, status) when status in [:gifted, :all],
@@ -194,12 +183,19 @@ defmodule QlariusWeb.TiqitLive do
 
   defp load_gifts(_scope, _status), do: []
 
-  # Counts stay neutral; the filter name says which state it is.
-  defp filter_count(assigns, :active), do: assigns.active_count
-  defp filter_count(assigns, :preserved), do: assigns.preserved_count
-  defp filter_count(assigns, :expired), do: assigns.fleeting_count
-  defp filter_count(assigns, :gifted), do: assigns.gifted_count
-  defp filter_count(_assigns, _status), do: 0
+  # Counts stay neutral; the filter name says which state it is. None while
+  # the stash first loads.
+  defp filter_count(%AsyncResult{ok?: true, result: stash}, status) do
+    case status do
+      :active -> stash.active_count
+      :preserved -> stash.preserved_count
+      :expired -> stash.fleeting_count
+      :gifted -> stash.gifted_count
+      _ -> 0
+    end
+  end
+
+  defp filter_count(_stash, _status), do: 0
 
   defp parse_status(nil), do: :all
   defp parse_status(s) when s in @valid_statuses, do: String.to_existing_atom(s)
@@ -212,8 +208,8 @@ defmodule QlariusWeb.TiqitLive do
   defp filter_label(:preserved), do: "Kept"
   defp filter_label(:gifted), do: "Gifted"
 
-  defp stash_empty?(assigns) do
-    assigns.tiqits == [] and (assigns.status_filter != :all or assigns.gifts == [])
+  defp stash_empty?(stash, status) do
+    stash.tiqits == [] and (status != :all or stash.gifts == [])
   end
 
   @impl true
@@ -234,76 +230,86 @@ defmodule QlariusWeb.TiqitLive do
               >
                 {filter_label(status)}
                 <span
-                  :if={filter_count(assigns, status) > 0}
+                  :if={filter_count(@stash, status) > 0}
                   class="pill-join-count badge badge-sm ml-2 rounded px-2 py-3 !border-0 tabular-amount"
                 >
-                  {filter_count(assigns, status)}
+                  {filter_count(@stash, status)}
                 </span>
               </.pill_join_item>
             </.pill_join_selector>
           </div>
 
-          <%= if @status_filter == :gifted do %>
-            <%= if @gifts == [] do %>
+          <.async_result :let={stash} assign={@stash}>
+            <:loading>
+              <.tiqit_stash_skeleton />
+            </:loading>
+            <:failed>
               <p class="mobile-page-intro text-center py-8">
-                You haven't gifted any content yet.
+                Couldn't load your tiqits. Try refreshing.
               </p>
-            <% else %>
-              <div class="tiqit-stash-grid grid grid-cols-[repeat(auto-fill,minmax(min(19rem,100%),1fr))] gap-6 items-stretch">
-                <.tiqit_detail_card
-                  :for={gift <- @gifts}
-                  gift={gift}
-                  user={@current_scope.user}
-                />
-              </div>
-            <% end %>
-          <% else %>
-            <%= if @status_filter == :fleeted do %>
-              <.surface_panel class="text-center">
-                <div class="text-4xl font-bold mb-2">
-                  {@fleeted_count + @undone_count}
-                </div>
-                <div class="text-base-content/60 mb-4">
-                  tiqits have been fleeted
-                </div>
-                <div class="flex justify-center gap-6 mb-4">
-                  <div class="text-center">
-                    <div class="text-2xl font-bold">{@fleeted_count}</div>
-                    <div class="text-xs text-base-content/50">fleeted</div>
-                  </div>
-                  <div class="text-center">
-                    <div class="text-2xl font-bold">{@undone_count}</div>
-                    <div class="text-xs text-base-content/50">refunded</div>
-                  </div>
-                </div>
-                <p class="text-sm text-base-content/40 max-w-sm mx-auto">
-                  Fleeted tiqits have been permanently disconnected from your account.
-                  No details are retrievable. (That's the point.)
-                </p>
-              </.surface_panel>
-            <% else %>
-              <%= if stash_empty?(assigns) do %>
+            </:failed>
+            <%= if @status_filter == :gifted do %>
+              <%= if stash.gifts == [] do %>
                 <p class="mobile-page-intro text-center py-8">
-                  No tiqits found for this filter.
+                  You haven't gifted any content yet.
                 </p>
               <% else %>
                 <div class="tiqit-stash-grid grid grid-cols-[repeat(auto-fill,minmax(min(19rem,100%),1fr))] gap-6 items-stretch">
                   <.tiqit_detail_card
-                    :for={tiqit <- @tiqits}
-                    tiqit={tiqit}
-                    user={@current_scope.user}
-                    fleet_after_hours={@fleet_after_hours}
-                  />
-                  <.tiqit_detail_card
-                    :for={gift <- @gifts}
-                    :if={@status_filter == :all}
+                    :for={gift <- stash.gifts}
                     gift={gift}
                     user={@current_scope.user}
                   />
                 </div>
               <% end %>
+            <% else %>
+              <%= if @status_filter == :fleeted do %>
+                <.surface_panel class="text-center">
+                  <div class="text-4xl font-bold mb-2">
+                    {stash.fleeted_count + stash.undone_count}
+                  </div>
+                  <div class="text-base-content/60 mb-4">
+                    tiqits have been fleeted
+                  </div>
+                  <div class="flex justify-center gap-6 mb-4">
+                    <div class="text-center">
+                      <div class="text-2xl font-bold">{stash.fleeted_count}</div>
+                      <div class="text-xs text-base-content/50">fleeted</div>
+                    </div>
+                    <div class="text-center">
+                      <div class="text-2xl font-bold">{stash.undone_count}</div>
+                      <div class="text-xs text-base-content/50">refunded</div>
+                    </div>
+                  </div>
+                  <p class="text-sm text-base-content/40 max-w-sm mx-auto">
+                    Fleeted tiqits have been permanently disconnected from your account.
+                    No details are retrievable. (That's the point.)
+                  </p>
+                </.surface_panel>
+              <% else %>
+                <%= if stash_empty?(stash, @status_filter) do %>
+                  <p class="mobile-page-intro text-center py-8">
+                    No tiqits found for this filter.
+                  </p>
+                <% else %>
+                  <div class="tiqit-stash-grid grid grid-cols-[repeat(auto-fill,minmax(min(19rem,100%),1fr))] gap-6 items-stretch">
+                    <.tiqit_detail_card
+                      :for={tiqit <- stash.tiqits}
+                      tiqit={tiqit}
+                      user={@current_scope.user}
+                      fleet_after_hours={@fleet_after_hours}
+                    />
+                    <.tiqit_detail_card
+                      :for={gift <- stash.gifts}
+                      :if={@status_filter == :all}
+                      gift={gift}
+                      user={@current_scope.user}
+                    />
+                  </div>
+                <% end %>
+              <% end %>
             <% end %>
-          <% end %>
+          </.async_result>
         </div>
       </Layouts.mobile>
 

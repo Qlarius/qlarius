@@ -754,6 +754,66 @@ defmodule QlariusWeb.TiqitComponents do
     "$" <> (amount |> Decimal.round(2) |> Decimal.to_string())
   end
 
+  attr :count, :integer, default: 6
+
+  @doc """
+  First-load placeholder for the Stash grid: blank tickets (same shell, notches
+  and tear line as `tiqit_detail_card/1`) with DaisyUI `.skeleton` bones, as
+  Arqade's loading states use.
+  """
+  def tiqit_stash_skeleton(assigns) do
+    assigns = assign(assigns, :tiqit_card_shell_class, @tiqit_card_shell_class)
+
+    ~H"""
+    <div
+      id="tiqit-stash-skeleton"
+      class="tiqit-stash-grid grid grid-cols-[repeat(auto-fill,minmax(min(19rem,100%),1fr))] gap-6 items-stretch"
+      aria-busy="true"
+      aria-label="Loading tiqits"
+    >
+      <div :for={_ <- 1..@count} class={@tiqit_card_shell_class} aria-hidden="true">
+        <div class="tiqit-grid" data-status="skeleton">
+          <div class="tiqit-tl"></div>
+          <div class="tiqit-top">
+            <div class="flex items-start gap-3">
+              <div class="skeleton h-16 w-16 shrink-0 rounded-lg"></div>
+              <div class="flex min-w-0 flex-1 flex-col gap-2 pt-0.5">
+                <div class="skeleton h-3 w-1/4"></div>
+                <div class="skeleton h-4 w-4/5"></div>
+                <div class="skeleton h-3 w-1/2"></div>
+              </div>
+            </div>
+            <div class="tiqit-status-row">
+              <div class="skeleton h-4 w-3/5"></div>
+            </div>
+          </div>
+          <div class="tiqit-tr"></div>
+
+          <div class="tiqit-notch tiqit-notch-l">
+            <div></div>
+          </div>
+          <div class="tiqit-perf"></div>
+          <div class="tiqit-notch tiqit-notch-r">
+            <div></div>
+          </div>
+
+          <div class="tiqit-bl"></div>
+          <div class="tiqit-bot">
+            <div class="tiqit-stub">
+              <div class="skeleton h-4 w-2/5"></div>
+              <div class="tiqit-stub__actions">
+                <div class="skeleton h-8 w-8 rounded-full"></div>
+                <div class="skeleton h-8 w-16 rounded-full"></div>
+              </div>
+            </div>
+          </div>
+          <div class="tiqit-br"></div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   attr :disconnect_reason, :atom, default: :fleeted
 
   def tiqit_fleeted_card(assigns) do

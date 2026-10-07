@@ -3,6 +3,7 @@ defmodule QlariusWeb.ReferralsLive do
 
   alias Qlarius.Referrals
   alias Qlarius.Qlink.Urls
+  import QlariusWeb.Money, only: [format_usd: 1]
   import QlariusWeb.PWAHelpers
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
@@ -111,7 +112,7 @@ defmodule QlariusWeb.ReferralsLive do
   end
 
   def handle_event("copy_success", _params, socket) do
-    {:noreply, put_flash(socket, :info, "Referral code copied to clipboard!")}
+    {:noreply, put_flash(socket, :info, "Copied to clipboard")}
   end
 
   def handle_event("confirm_payout", _params, socket) do
@@ -160,218 +161,205 @@ defmodule QlariusWeb.ReferralsLive do
     {:noreply, assign(socket, :current_scope, current_scope)}
   end
 
+  # Laid out like Wallet and Builder: a summary card (what referrals have paid,
+  # with any pending payout folded in), then labelled sections (your link,
+  # your referrer, the people you referred as rows). On wide content
+  # (.referrals-board container query) the people list moves into a second
+  # column beside the rest.
   def render(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :pending_amount,
+        Decimal.mult(Decimal.new("0.01"), assigns.pending_clicks_count)
+      )
+
     ~H"""
     <div>
       <Layouts.mobile {assigns}>
-        <div class="mx-auto flex max-w-2xl flex-col gap-6">
-          <.surface_panel>
-            <div class="flex items-start justify-between gap-4">
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-base-content/50">
-                  Lifetime Referral Earnings
-                </p>
-                <p class="mt-1 text-3xl font-bold tracking-tight text-base-content">
-                  ${Decimal.to_string(@total_paid, :normal)}
-                </p>
-                <p class="mt-1 text-sm text-base-content/60">
-                  From {referral_count_display(length(@referred_users), :description)}
-                </p>
-              </div>
-              <.icon name="hero-user-group" class="h-10 w-10 shrink-0 text-primary opacity-90" />
-            </div>
-          </.surface_panel>
-
-          <div>
-            <h2 class={referrals_section_heading_classes()}>Share</h2>
-            <.surface_panel>
-              <h3 class={referrals_panel_title_classes()}>Your Referral Link</h3>
-              <p class="text-sm text-base-content/70">
-                Share this link with friends. You'll earn $0.01 for each ad they complete for the first year!
-              </p>
-              <div class="mt-4 space-y-3">
-                <div class="flex w-full flex-col gap-3">
-                  <input
-                    id="referral-link-input"
-                    type="text"
-                    value={@referral_link_url}
-                    readonly
-                    class="input input-bordered w-full min-h-12 bg-base-100 px-4 py-3.5 font-mono text-sm dark:bg-black"
-                  />
-                  <button
-                    phx-hook="CopyToClipboard"
-                    id="copy-referral-link-btn"
-                    data-target="referral-link-input"
-                    class="btn btn-primary btn-block min-h-14 w-full rounded-full py-3.5"
-                  >
-                    Copy Link
-                  </button>
-                </div>
-                <div class={"collapse collapse-arrow #{referrals_inset_panel_classes()}"}>
-                  <input type="checkbox" />
-                  <div class="collapse-title min-h-0 py-3 text-xs font-medium">
-                    Just the code: {@my_referral_code}
-                  </div>
-                  <div class="collapse-content">
-                    <p class="pb-3 text-xs text-base-content/60">
-                      Use this code if someone needs to enter it manually.
+        <div class={["referrals-board", @referred_users != [] && "referrals-board--split"]}>
+          <div class="referrals-board__cols">
+            <div class="referrals-board__main">
+              <.surface_panel>
+                <div class="flex items-start justify-between gap-4">
+                  <div class="min-w-0">
+                    <p class="wallet-summary__hero">{format_usd(@total_paid)}</p>
+                    <p class="wallet-summary__label">
+                      paid from {referral_count_display(length(@referred_users))}
                     </p>
                   </div>
-                </div>
-              </div>
-            </.surface_panel>
-          </div>
-
-          <%= if @show_referral_form do %>
-            <div>
-              <h2 class={referrals_section_heading_classes()}>Referrer</h2>
-              <.surface_panel>
-                <h3 class={referrals_panel_title_classes()}>Add Your Referrer</h3>
-                <p class="text-sm text-base-content/70">
-                  If someone referred you, enter their code here within 10 days of registration.
-                </p>
-                <%= if @referral_error do %>
-                  <div class="alert alert-error mt-3">
-                    <span>{@referral_error}</span>
-                  </div>
-                <% end %>
-                <form phx-submit="save_referral_code" class="mt-4">
-                  <input
-                    type="text"
-                    name="code"
-                    placeholder="Enter referral code"
-                    value={@referral_code_input}
-                    class="input input-bordered w-full bg-base-100 dark:bg-black"
-                    required
-                  />
-                  <div class="mt-4 flex justify-end">
-                    <button type="submit" class="btn btn-primary rounded-full">
-                      Save Referral Code
-                    </button>
-                  </div>
-                </form>
-              </.surface_panel>
-            </div>
-          <% end %>
-
-          <%= if @referral do %>
-            <div>
-              <h2 class={referrals_section_heading_classes()}>Referrer</h2>
-              <.surface_panel>
-                <h3 class={referrals_panel_title_classes()}>Your Referrer</h3>
-                <p class="text-base-content/80">
-                  You were referred by:
-                  <span class="font-semibold">
-                    <%= if referrer_alias = Map.get(@referral, :referrer_alias) do %>
-                      {referrer_alias}
-                    <% else %>
-                      {String.capitalize(@referral.referrer_type)}
-                    <% end %>
+                  <span class="ledger-row__icon is-credit h-11 w-11">
+                    <.icon name="hero-user-group" class="h-6 w-6" />
                   </span>
-                </p>
-                <p class="mt-1 text-sm text-base-content/60">
-                  Expires: {Calendar.strftime(@referral.expires_at, "%B %d, %Y")}
-                </p>
-              </.surface_panel>
-            </div>
-          <% end %>
+                </div>
 
-          <%= if !@can_add_referral && @referral == nil do %>
-            <div>
-              <h2 class={referrals_section_heading_classes()}>Referrer</h2>
-              <.surface_panel>
-                <h3 class={referrals_panel_title_classes()}>Add Your Referrer</h3>
-                <p class="text-sm text-base-content/70">
-                  10-day grace period has expired. You cannot add a referrer at this time.
-                </p>
-                <div class="mt-4 flex flex-col gap-2 sm:flex-row">
-                  <input
-                    type="text"
-                    placeholder="Enter referral code"
-                    class="input input-bordered flex-1 bg-base-100 dark:bg-black"
-                    disabled
-                  />
-                  <button type="button" class="btn btn-primary shrink-0 rounded-full" disabled>
-                    Save Referral Code
+                <div :if={@pending_clicks_count > 0} class="referral-pending">
+                  <div class="min-w-0">
+                    <p class="text-[15px] font-semibold text-base-content tabular-amount">
+                      {format_usd(@pending_amount)} pending
+                    </p>
+                    <p class="mt-0.5 text-[13px] text-base-content/55">
+                      {click_count(@pending_clicks_count)} · pays out {Calendar.strftime(
+                        @next_payout_date,
+                        "%a, %b %-d"
+                      )}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    phx-click={show_modal("payout-modal")}
+                    class="referral-btn referral-btn--quiet"
+                  >
+                    Pay out now
                   </button>
                 </div>
               </.surface_panel>
-            </div>
-          <% end %>
 
-          <%= if @pending_clicks_count > 0 do %>
-            <.surface_panel class="border-t-primary dark:border-t-primary">
-              <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div class="min-w-0">
-                  <h3 class={referrals_panel_title_classes()}>Pending Referral Payout</h3>
-                  <p class="mt-1 text-sm text-base-content/70">
-                    You have <span class="font-bold text-primary">{@pending_clicks_count}</span>
-                    pending clicks ready for payout
-                    (<span class="font-bold">${Decimal.to_string(Decimal.mult(Decimal.new("0.01"), @pending_clicks_count), :normal)}</span>)
+              <section>
+                <div class="mefile-category__head">
+                  <h2>Your link</h2>
+                </div>
+                <.surface_panel>
+                  <p class="text-sm text-base-content/70">
+                    When friends join with your link, you get $0.01 for each ad they finish in their first year.
                   </p>
-                  <p class="mt-2 text-xs text-base-content/60">
-                    Next automatic payout:
-                    <span class="font-semibold">
-                      {Calendar.strftime(@next_payout_date, "%B %d, %Y at %I:%M %p UTC")}
+                  <div class="referral-link mt-4">
+                    <input
+                      id="referral-link-input"
+                      type="text"
+                      value={@referral_link_url}
+                      readonly
+                      aria-label="Your referral link"
+                      class="referral-link__field"
+                    />
+                    <button
+                      phx-hook="CopyToClipboard"
+                      id="copy-referral-link-btn"
+                      data-target="referral-link-input"
+                      data-copied-label="Copied"
+                      class="referral-btn"
+                    >
+                      <.icon name="hero-link" class="h-4 w-4" />
+                      <span data-copy-label>Copy</span>
+                    </button>
+                  </div>
+                  <div class="referral-code">
+                    <span class="text-sm text-base-content/55">Or share the code</span>
+                    <span id="referral-code-text" class="font-semibold text-base-content">
+                      {@my_referral_code}
                     </span>
-                  </p>
-                </div>
-                <button phx-click={show_modal("payout-modal")} class="btn btn-primary shrink-0 rounded-full">
-                  Process Now
-                </button>
-              </div>
-            </.surface_panel>
-          <% end %>
+                    <button
+                      phx-hook="CopyToClipboard"
+                      id="copy-referral-code-btn"
+                      data-target="referral-code-text"
+                      data-copied-label="Copied"
+                      class="referral-btn referral-btn--quiet referral-btn--sm ml-auto"
+                    >
+                      <span data-copy-label>Copy</span>
+                    </button>
+                  </div>
+                </.surface_panel>
+              </section>
 
-          <%= if Enum.any?(@referred_users) do %>
-            <div>
-              <h2 class={referrals_section_heading_classes()}>
-                Referred users{referral_count_display(length(@referred_users), :title_suffix)}
-              </h2>
-              <.surface_panel padding={false} class="overflow-hidden">
-                <div class="overflow-x-auto">
-                  <table class="table w-full [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-3">
-                    <thead>
-                      <tr class="border-b border-base-300/60 dark:border-base-content/10">
-                        <th class="text-base-content/60">Alias</th>
-                        <th class="text-base-content/60">Total Paid</th>
-                        <th class="text-base-content/60">Pending Clicks</th>
-                        <th class="text-base-content/60">Days Left</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <%= for user <- @referred_users do %>
-                        <tr class="border-t border-base-300/60 first:border-t-0 dark:border-base-content/10">
-                          <td class="font-mono text-sm">{user.alias}</td>
-                          <td>${Decimal.to_string(user.total_paid, :normal)}</td>
-                          <td>{user.pending_clicks}</td>
-                          <td>
-                            <%= if user.is_expired do %>
-                              <span class="badge badge-ghost">Fulfilled</span>
-                            <% else %>
-                              <span class="badge badge-success">{user.days_remaining}</span>
-                            <% end %>
-                          </td>
-                        </tr>
-                      <% end %>
-                    </tbody>
-                  </table>
+              <section>
+                <div class="mefile-category__head">
+                  <h2>Your referrer</h2>
                 </div>
-              </.surface_panel>
+                <.surface_panel>
+                  <%= cond do %>
+                    <% @referral -> %>
+                      <p class="text-[15px] text-base-content">
+                        Referred by
+                        <span class="font-semibold">
+                          <%= if referrer_alias = Map.get(@referral, :referrer_alias) do %>
+                            {referrer_alias}
+                          <% else %>
+                            {String.capitalize(@referral.referrer_type)}
+                          <% end %>
+                        </span>
+                      </p>
+                      <p class="mt-0.5 text-[13px] text-base-content/55">
+                        Until {Calendar.strftime(@referral.expires_at, "%b %-d, %Y")}
+                      </p>
+                    <% @show_referral_form -> %>
+                      <p class="text-sm text-base-content/70">
+                        Did someone refer you? Enter their code within 10 days of joining.
+                      </p>
+                      <form phx-submit="save_referral_code" class="referral-link mt-4">
+                        <input
+                          type="text"
+                          name="code"
+                          placeholder="Referral code"
+                          value={@referral_code_input}
+                          aria-label="Referral code"
+                          class="referral-link__field"
+                          required
+                        />
+                        <button type="submit" class="referral-btn">Save</button>
+                      </form>
+                      <p :if={@referral_error} class="mt-2 text-sm text-error">{@referral_error}</p>
+                    <% true -> %>
+                      <p class="text-sm text-base-content/60">
+                        The 10 days to add a referrer have passed.
+                      </p>
+                  <% end %>
+                </.surface_panel>
+              </section>
             </div>
-          <% end %>
+
+            <section :if={@referred_users != []}>
+              <div class="mefile-category__head">
+                <h2>People you referred</h2>
+                <span class="tabular-amount">{length(@referred_users)}</span>
+              </div>
+              <.surface_panel padding={false}>
+                <ul class="ledger-list">
+                  <li :for={user <- @referred_users}>
+                    <div class="ledger-row is-static">
+                      <span class="ledger-row__icon">
+                        <.icon name="hero-user" class="h-5 w-5" />
+                      </span>
+                      <span class="ledger-row__main">
+                        <span class="ledger-row__title">{user.alias}</span>
+                        <span class="ledger-row__meta">
+                          <%= if user.is_expired do %>
+                            First year complete
+                          <% else %>
+                            {days_left(user.days_remaining)}
+                          <% end %>
+                        </span>
+                      </span>
+                      <span class="ledger-row__amounts">
+                        <span class={[
+                          "ledger-row__amt",
+                          if(Decimal.gt?(user.total_paid, 0), do: "is-credit", else: "is-zero")
+                        ]}>
+                          {format_usd(user.total_paid)}
+                        </span>
+                        <span :if={user.pending_clicks > 0} class="ledger-row__bal">
+                          {user.pending_clicks} pending
+                        </span>
+                      </span>
+                    </div>
+                  </li>
+                </ul>
+              </.surface_panel>
+            </section>
+          </div>
         </div>
 
         <:modals>
           <.modal id="payout-modal" on_cancel={hide_modal("payout-modal")}>
-            <.surface_panel class="max-w-lg">
-              <h3 class={referrals_panel_title_classes()}>Confirm Referral Payout</h3>
-              <p class="py-4 text-base-content/80">
-                Process <span class="font-bold text-primary">{@pending_clicks_count}</span>
-                pending clicks
-                for <span class="font-bold text-success">${Decimal.to_string(Decimal.mult(Decimal.new("0.01"), @pending_clicks_count), :normal)}</span>?
+            <div class="max-w-md p-6">
+              <h3 class="text-xl font-bold text-base-content">Pay out now?</h3>
+              <p class="mt-2 text-base-content/70">
+                Add
+                <span class="font-semibold text-base-content tabular-amount">
+                  {format_usd(@pending_amount)}
+                </span>
+                from {click_count(@pending_clicks_count)} to your wallet now, instead of at Friday's payout.
               </p>
-              <div class="flex flex-wrap justify-end gap-2">
+              <div class="mt-6 flex flex-wrap justify-end gap-2">
                 <button class="btn btn-ghost rounded-full" phx-click={hide_modal("payout-modal")}>
                   Cancel
                 </button>
@@ -379,10 +367,10 @@ defmodule QlariusWeb.ReferralsLive do
                   class="btn btn-primary rounded-full"
                   phx-click={JS.push("confirm_payout") |> hide_modal("payout-modal")}
                 >
-                  Confirm Payout
+                  Pay out <span class="tabular-amount">{format_usd(@pending_amount)}</span>
                 </button>
               </div>
-            </.surface_panel>
+            </div>
           </.modal>
         </:modals>
       </Layouts.mobile>
@@ -390,24 +378,12 @@ defmodule QlariusWeb.ReferralsLive do
     """
   end
 
-  # Shared copy for referral counts from `length(@referred_users)`.
-  defp referral_count_display(1, :description), do: "1 total referral"
+  defp referral_count_display(1), do: "1 referral"
+  defp referral_count_display(n), do: "#{n} referrals"
 
-  defp referral_count_display(n, :description) when is_integer(n) and n >= 0,
-    do: "#{n} total referrals"
+  defp click_count(1), do: "1 click"
+  defp click_count(n), do: "#{n} clicks"
 
-  defp referral_count_display(n, :title_suffix) when is_integer(n) and n >= 0,
-    do: " (#{n})"
-
-  defp referrals_section_heading_classes do
-    "mb-3 text-lg font-bold tracking-tight text-base-content/50"
-  end
-
-  defp referrals_panel_title_classes do
-    "text-xl font-bold tracking-tight text-base-content"
-  end
-
-  defp referrals_inset_panel_classes do
-    "rounded-lg bg-base-200/60 dark:bg-base-300/40"
-  end
+  defp days_left(1), do: "1 day left"
+  defp days_left(n), do: "#{n} days left"
 end

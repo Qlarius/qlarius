@@ -46,7 +46,7 @@ The consumer shell covers phones, iPads and desktop browsers. Breakpoints are wi
 | 48rem–64rem (iPad portrait) | Compact tab bar (27.5rem, centered) + off-canvas menu | Centered column, 42.5rem max |
 | ≥ 64rem (iPad landscape, desktop) | Side menu docked as a 20rem sidebar; hamburger and tab bar hidden | Centered column beside it |
 
-- `Layouts.shell_width/2` sets `data-shell-width="wide"` (72rem column) for screens that fill a grid: `/home`, `/ads`, `/me_file_builder`, `/arqade`, `/content`, `/tiqits` (Stash), and `/me_file` in Tags mode. MeFile in List mode stays at the reading column. Slide-over screens (`.shell-narrow`) stay at the reading column on wide pages.
+- `Layouts.shell_width/2` sets `data-shell-width="wide"` (72rem column) for screens that fill a grid: `/home`, `/ads`, `/referrals`, `/me_file_builder`, `/arqade`, `/content`, `/tiqits` (Stash), and `/me_file` in Tags mode. MeFile in List mode stays at the reading column. Slide-over screens (`.shell-narrow`) stay at the reading column on wide pages.
 - Grids inside wide screens should size by available space, not viewport breakpoints, because the docked sidebar takes 20rem: the Stash grid uses `repeat(auto-fill, minmax(min(19rem, 100%), 1fr))` (each tiqit card spans three grid rows through `subgrid`, so notches, tear lines and status rows line up across a row), and the Builder index uses CSS columns (`columns: 18rem 3`).
 - Home (`home_live.ex`) is one markup set inside an `@container`; the `.home-*` and `.setup-*` rules in `app.css` switch at a 56rem content width (about a 1250px window beside the docked menu):
   - **Phone / narrow:** balance hero with Collect below it; setup checklist as one row (progress ring, "Finish setting up", next step) that opens the five steps, the next step's action, and Remind me later / Don't show again; products as rows (colour chip, name, tagline, one figure) in one card; recent activity (latest three ledger entries).
@@ -79,6 +79,7 @@ The consumer shell covers phones, iPads and desktop browsers. Breakpoints are wi
 - The category count shows only when it holds more than one survey (the row already has it). When its only survey shares the category's name ("Your Home"), the row reads "4 questions" instead of repeating it.
 - Surveys with no questions, and categories left with none, are hidden.
 - CSS columns, up to three at 18rem or wider, so short cards stack without gaps beside the docked menu.
+- **First load:** the index (categories with counts, Qai suggestions) loads with `assign_async` in `mount`; until it arrives, `<.async_result>`'s :loading slot shows `builder_index_skeleton` (labels, YouData cards and rows with `.skeleton` bones, in the same columns). Saving or deleting tags and dismissing suggestions refresh it in place with `AsyncResult.ok/2`.
 
 ### Survey slide-over
 
@@ -117,6 +118,7 @@ Every slide-over (Builder survey, Settings, the Ads video player, Arqade, the Ti
 - **Header:** 64px image; a small sentence-case kind line ("Episode", "Show · 96 Episodes"); title clamped to two lines (full title in `title`); one source line, creator › group, with repeated names dropped and only the ends kept for three parts (full path in `title`).
 - **Stub line** (`.tiqit-stub`, just below the tear line): "Bought Oct 3 · $0.10" on the left; "⋯" (circle) and Open (pill) on the right as `.tiqit-stub-btn`: outlined at rest, filled on hover, "⋯" stays filled while its panel is open. Open is the solid primary pill when Active and outlined once expired, as the content page sends you to the Arqade. Gifts show "Gifted Oct 3 · $0.29 prepaid" and only get "⋯" when there's something to do (copy invitation / revoke).
 - **"⋯" panel** (`.tiqit-more`, below the stub line): the full purchase time, refund-lock note, Refund (with its countdown), Keep / Don't Keep, Fleet. LiveView JS commands toggle it (`is-open`, `aria-expanded`, `inert` while closed), so no hook; it slides open on the grid row.
+- **Stash first load:** the stash depends on the `status` filter in the URL, so `handle_params` loads it with `assign_async`; until it arrives, `<.async_result>`'s :loading slot shows `tiqit_stash_skeleton/1` (blank tickets with the real shell, notches and tear line, and `.skeleton` bones). Filter changes keep the current cards until the new ones land; card actions refresh in place with `AsyncResult.ok/2`. Counts appear on the filters once loaded. Same pattern as Arqade's `assign_async` pages and DaisyUI's `.skeleton` shimmer.
 - **Stash filters:** All, Active, Fleeting, Fleeted, Kept, Gifted, with neutral counts (`.pill-join-count`, also on the Ads pill). On a phone the row scrolls with no scrollbar and fades at the right edge (`.stash-filter-scroll`).
 
 ## Qai
@@ -157,6 +159,15 @@ Widgets (Arqade, tip jar, Tiqit Pass), Qlink pages and the Sponster bar all show
 - **Top up menu:** "Top up wallet", then compact rows (`.arqade-menu-row`): Sponster ads with the count and amount, Daily gift $0.50 (disabled once used), Credit / Debit (shows "Coming soon").
 - **Tip jar in a host iframe:** the widget posts `{type: "sponster_tipjar_height", height}` to the host (card height + 16px; at least 640px while a dialog or the sign-in sheet is open, as they were sized for it). The embed snippet listens and sets the iframe height; see `demosite/local_news/index.html`. Heights are measured on mount and with a timer, not `requestAnimationFrame`, which Chrome pauses in off-screen cross-origin iframes.
 - **Arqade in a Qlink page (phones):** the episode title keeps clear of the ↗ expand button when that button shows and there's no title bar above it (`reserve_corner?`), and the Tiqit logo row under the strip is hidden so the episode panel fits without its own scroll.
+
+## Referrals
+
+`/referrals` (`referrals_live.ex`) uses Wallet's and Builder's parts:
+
+- **Summary card:** what referrals have paid (`.wallet-summary__hero`, "paid from 11 referrals"), a Sponster-tint icon chip, and, when there are pending clicks, a row under a hairline: "$0.02 pending", "2 clicks · pays out Fri, Oct 9", and a quiet "Pay out now" that opens the confirm ("Pay out now?", Cancel / "Pay out $0.02"). Copy never says "earn" or "earnings".
+- **Sections** use the Builder/MeFile label (`.mefile-category__head`): "Your link" (one line of copy, the link in a pill field with a filled Copy, then "Or share the code" with a quiet Copy; both use `CopyToClipboard` and flip to "Copied"), "Your referrer" (referred by …, the code form within the 10 days, or one line once they've passed; no disabled controls), and "People you referred" with the count.
+- **People you referred** are ledger rows (`.ledger-row.is-static`, not links): person chip, masked alias, "N days left" or "First year complete", amount paid (Sponster green when above zero) and "N pending" under it.
+- **Wide:** `.referrals-board` is a container; with people to list and at least 48rem of content, the list moves into a second column beside the summary, link and referrer. Otherwise one 42rem column.
 
 ## Auth sheet
 

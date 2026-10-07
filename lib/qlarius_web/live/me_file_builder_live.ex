@@ -1,6 +1,7 @@
 defmodule QlariusWeb.MeFileBuilderLive do
   use QlariusWeb, :live_view
 
+  alias Phoenix.LiveView.AsyncResult
   alias Qlarius.MeCP.Suggestions
   alias Qlarius.YouData.Surveys
   alias Qlarius.YouData.MeFiles
@@ -91,176 +92,184 @@ defmodule QlariusWeb.MeFileBuilderLive do
           Tap a topic to add or update its tags.
         </Layouts.mobile_page_intro>
 
-        <%!-- Suggested surveys: topics Qai looked for and found empty / stale --%>
-        <div :if={@suggested_surveys != []} class="pt-2 mb-7">
-          <.surface_panel
-            padding={false}
-            class="border-t-qai-400 dark:border-t-qai-500"
-          >
-            <div class="collapse">
-              <input type="checkbox" class="peer" />
-              <div class="collapse-title min-h-0 relative px-4 py-4 pr-12 peer-checked:[&_.qai-suggestions-chevron]:rotate-180">
-                <.icon
-                  name="hero-chevron-down"
-                  class="qai-suggestions-chevron pointer-events-none absolute right-3 top-4 h-7 w-7 text-base-content/50 transition-transform duration-200"
-                />
-                <div class="flex items-center gap-2">
-                  <h2 class="text-lg font-bold tracking-tight text-base-content">
-                    Suggestions by
-                  </h2>
-                  <img
-                    src="/images/qai_logo_color_horiz.svg"
-                    alt="Qai"
-                    class="h-6 w-auto shrink-0"
-                  />
-                </div>
-                <p class="text-sm text-base-content mt-1 font-normal normal-case">
-                  <span class="font-bold text-qai-500">
-                    {length(@suggested_surveys)} {if length(@suggested_surveys) == 1,
-                      do: "category",
-                      else: "categories"}
-                  </span>
-                  suggested for review based on recent chats and activity.
-                </p>
-                <div class="mt-3 flex flex-wrap gap-1.5 font-normal normal-case">
-                  <span
-                    :for={entry <- @suggested_surveys}
-                    class="badge badge-sm badge-neutral"
-                  >
-                    {(entry.survey && entry.survey.name) || entry.latest.trait.trait_name}
-                  </span>
-                </div>
-              </div>
-              <div class="collapse-content px-4 pb-4">
-                <div class="divider mb-2"></div>
-                <p class="text-sm text-base-content mb-5">
-                  Recent chats may have been more personal with these tags filled in
-                  or brought up to date. Answer or dismiss; nothing is added without you.
-                </p>
-                <div
-                  :for={entry <- @suggested_surveys}
-                  class="mb-3 p-3 bg-base-200 dark:bg-base-300/40 rounded-2xl last:mb-0"
-                >
-                  <div
-                    class="flex justify-between items-center cursor-pointer transition-colors hover:opacity-80"
-                    phx-click={if entry.survey, do: "open_edit", else: "edit_tags"}
-                    phx-value-id={if entry.survey, do: entry.survey.id, else: entry.latest.trait_id}
-                  >
-                    <span class="text-xl text-base-content">
-                      {(entry.survey && entry.survey.name) || entry.latest.trait.trait_name}
-                      <span
-                        :if={entry.update?}
-                        class="badge badge-secondary badge-sm align-middle ml-1"
-                      >
-                        Review
-                      </span>
-                    </span>
-                    <div class="flex items-center gap-2">
-                      <span class={survey_ratio_text_class(entry.answered, entry.total)}>
-                        {entry.answered}/{entry.total}
-                      </span>
-                      <.icon
-                        name="hero-chevron-right"
-                        class="w-5 h-5 shrink-0 text-base-content/60"
-                      />
-                    </div>
-                  </div>
-                  <div class="flex justify-between items-center mt-1">
-                    <span class="text-sm text-base-content/60">
-                      {suggestion_byline(entry)} {entry.latest.grant.mecp_client.name} on {Calendar.strftime(
-                        entry.latest.inserted_at,
-                        "%b %d"
-                      )}
-                    </span>
-                    <button
-                      class="btn btn-xs btn-ghost shrink-0"
-                      phx-click="dismiss_suggestion_group"
-                      phx-value-ids={Enum.map_join(entry.suggestions, ",", & &1.id)}
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                  <div :if={entry.latest.reason} class="text-sm text-base-content/60 italic mt-1">
-                    "{entry.latest.reason}"
-                  </div>
-                  <div
-                    :if={entry.latest.proposed_values != []}
-                    class="text-sm text-base-content/60 mt-1"
-                  >
-                    Mentioned in chat: {Enum.join(entry.latest.proposed_values, ", ")}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </.surface_panel>
-        </div>
+        <.async_result :let={index} assign={@index}>
+          <:loading>
+            <.builder_index_skeleton />
+          </:loading>
+          <:failed>
+            <p class="mobile-page-intro text-center py-8">
+              Couldn't load your topics. Try refreshing.
+            </p>
+          </:failed>
 
-        <%!-- Index: a glance at every topic. Category label above one card of survey rows,
-             as on MeFile; a thin line shows progress and a check marks a finished survey. --%>
-        <div class="builder-index pt-2">
-          <section :for={category <- visible_categories(@categories)} class="mefile-category">
-            <% {answered_total, question_total, _percent} =
-              Map.get(category, :category_stats, {0, 0, 0}) %>
-            <div class="mefile-category__head">
-              <h2>{category.survey_category_name}</h2>
-              <%!-- One survey: its row already carries the count --%>
-              <span :if={length(category.surveys) > 1} class="tabular-amount">
-                {answered_total}/{question_total}
-              </span>
-            </div>
-            <.surface_panel padding={false} class="youdata-card">
-              <ul class="builder-list">
-                <li :for={survey <- category.surveys}>
-                  <% {answered, total} = survey.survey_stats || {0, 0} %>
-                  <button
-                    type="button"
-                    phx-click="open_edit"
-                    phx-value-id={survey.id}
-                    class="builder-row"
+          <%!-- Suggested surveys: topics Qai looked for and found empty / stale --%>
+          <div :if={index.suggested_surveys != []} class="pt-2 mb-7">
+            <.surface_panel
+              padding={false}
+              class="border-t-qai-400 dark:border-t-qai-500"
+            >
+              <div class="collapse">
+                <input type="checkbox" class="peer" />
+                <div class="collapse-title min-h-0 relative px-4 py-4 pr-12 peer-checked:[&_.qai-suggestions-chevron]:rotate-180">
+                  <.icon
+                    name="hero-chevron-down"
+                    class="qai-suggestions-chevron pointer-events-none absolute right-3 top-4 h-7 w-7 text-base-content/50 transition-transform duration-200"
+                  />
+                  <div class="flex items-center gap-2">
+                    <h2 class="text-lg font-bold tracking-tight text-base-content">
+                      Suggestions by
+                    </h2>
+                    <img
+                      src="/images/qai_logo_color_horiz.svg"
+                      alt="Qai"
+                      class="h-6 w-auto shrink-0"
+                    />
+                  </div>
+                  <p class="text-sm text-base-content mt-1 font-normal normal-case">
+                    <span class="font-bold text-qai-500">
+                      {length(index.suggested_surveys)} {if length(index.suggested_surveys) == 1,
+                        do: "category",
+                        else: "categories"}
+                    </span>
+                    suggested for review based on recent chats and activity.
+                  </p>
+                  <div class="mt-3 flex flex-wrap gap-1.5 font-normal normal-case">
+                    <span
+                      :for={entry <- index.suggested_surveys}
+                      class="badge badge-sm badge-neutral"
+                    >
+                      {(entry.survey && entry.survey.name) || entry.latest.trait.trait_name}
+                    </span>
+                  </div>
+                </div>
+                <div class="collapse-content px-4 pb-4">
+                  <div class="divider mb-2"></div>
+                  <p class="text-sm text-base-content mb-5">
+                    Recent chats may have been more personal with these tags filled in
+                    or brought up to date. Answer or dismiss; nothing is added without you.
+                  </p>
+                  <div
+                    :for={entry <- index.suggested_surveys}
+                    class="mb-3 p-3 bg-base-200 dark:bg-base-300/40 rounded-2xl last:mb-0"
                   >
-                    <span class="builder-row__main">
-                      <span class="builder-row__name">
-                        {survey_row_name(survey, category, total)}
-                      </span>
-                      <span :if={answered < total} class="progress-line" aria-hidden="true">
+                    <div
+                      class="flex justify-between items-center cursor-pointer transition-colors hover:opacity-80"
+                      phx-click={if entry.survey, do: "open_edit", else: "edit_tags"}
+                      phx-value-id={if entry.survey, do: entry.survey.id, else: entry.latest.trait_id}
+                    >
+                      <span class="text-xl text-base-content">
+                        {(entry.survey && entry.survey.name) || entry.latest.trait.trait_name}
                         <span
-                          class="progress-line__fill"
-                          style={"width: #{survey_percent(answered, total)}%"}
+                          :if={entry.update?}
+                          class="badge badge-secondary badge-sm align-middle ml-1"
                         >
+                          Review
                         </span>
                       </span>
-                    </span>
-                    <%= if answered < total do %>
-                      <span class="builder-row__count">{answered}/{total}</span>
-                    <% else %>
-                      <.icon name="hero-check-circle-solid" class="builder-row__done h-5 w-5" />
-                      <span class="sr-only">Complete</span>
-                    <% end %>
-                    <.icon name="hero-chevron-right" class="builder-row__chevron h-5 w-5" />
-                  </button>
-                </li>
-              </ul>
+                      <div class="flex items-center gap-2">
+                        <span class={survey_ratio_text_class(entry.answered, entry.total)}>
+                          {entry.answered}/{entry.total}
+                        </span>
+                        <.icon
+                          name="hero-chevron-right"
+                          class="w-5 h-5 shrink-0 text-base-content/60"
+                        />
+                      </div>
+                    </div>
+                    <div class="flex justify-between items-center mt-1">
+                      <span class="text-sm text-base-content/60">
+                        {suggestion_byline(entry)} {entry.latest.grant.mecp_client.name} on {Calendar.strftime(
+                          entry.latest.inserted_at,
+                          "%b %d"
+                        )}
+                      </span>
+                      <button
+                        class="btn btn-xs btn-ghost shrink-0"
+                        phx-click="dismiss_suggestion_group"
+                        phx-value-ids={Enum.map_join(entry.suggestions, ",", & &1.id)}
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                    <div :if={entry.latest.reason} class="text-sm text-base-content/60 italic mt-1">
+                      "{entry.latest.reason}"
+                    </div>
+                    <div
+                      :if={entry.latest.proposed_values != []}
+                      class="text-sm text-base-content/60 mt-1"
+                    >
+                      Mentioned in chat: {Enum.join(entry.latest.proposed_values, ", ")}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </.surface_panel>
-          </section>
-        </div>
+          </div>
+
+          <%!-- Index: a glance at every topic. Category label above one card of survey rows,
+             as on MeFile; a thin line shows progress and a check marks a finished survey. --%>
+          <div class="builder-index pt-2">
+            <section :for={category <- visible_categories(index.categories)} class="mefile-category">
+              <% {answered_total, question_total, _percent} =
+                Map.get(category, :category_stats, {0, 0, 0}) %>
+              <div class="mefile-category__head">
+                <h2>{category.survey_category_name}</h2>
+                <%!-- One survey: its row already carries the count --%>
+                <span :if={length(category.surveys) > 1} class="tabular-amount">
+                  {answered_total}/{question_total}
+                </span>
+              </div>
+              <.surface_panel padding={false} class="youdata-card">
+                <ul class="builder-list">
+                  <li :for={survey <- category.surveys}>
+                    <% {answered, total} = survey.survey_stats || {0, 0} %>
+                    <button
+                      type="button"
+                      phx-click="open_edit"
+                      phx-value-id={survey.id}
+                      class="builder-row"
+                    >
+                      <span class="builder-row__main">
+                        <span class="builder-row__name">
+                          {survey_row_name(survey, category, total)}
+                        </span>
+                        <span :if={answered < total} class="progress-line" aria-hidden="true">
+                          <span
+                            class="progress-line__fill"
+                            style={"width: #{survey_percent(answered, total)}%"}
+                          >
+                          </span>
+                        </span>
+                      </span>
+                      <%= if answered < total do %>
+                        <span class="builder-row__count">{answered}/{total}</span>
+                      <% else %>
+                        <.icon name="hero-check-circle-solid" class="builder-row__done h-5 w-5" />
+                        <span class="sr-only">Complete</span>
+                      <% end %>
+                      <.icon name="hero-chevron-right" class="builder-row__chevron h-5 w-5" />
+                    </button>
+                  </li>
+                </ul>
+              </.surface_panel>
+            </section>
+          </div>
+        </.async_result>
       </Layouts.mobile>
     </div>
     """
   end
 
+  # The index (categories with their counts, and Qai's suggestions) loads with
+  # `assign_async/3`, so the dead render and the wait for the socket show the
+  # skeleton from `<.async_result>`'s :loading slot, as on Arqade and Stash.
   def mount(_params, session, socket) do
     me_file_id = socket.assigns.current_scope.user.me_file.id
-    answered_ids = MeFiles.get_answered_survey_question_ids(me_file_id)
-
-    categories_with_stats =
-      Surveys.list_survey_categories_with_surveys_and_stats(me_file_id, answered_ids)
 
     socket =
       socket
       |> assign(:current_path, "/me_file_builder")
-      |> assign(:categories, categories_with_stats)
-      |> assign(:suggested_surveys, Suggestions.suggested_surveys_for_me_file(me_file_id))
-      |> assign(:answered_survey_question_ids, answered_ids)
+      |> assign_async(:index, fn -> {:ok, %{index: load_index(me_file_id)}} end)
       |> assign(:editing, false)
       |> assign(:active_survey_id, nil)
       |> assign(:survey_in_edit, nil)
@@ -362,8 +371,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
     Suggestions.dismiss_many(suggestion_ids, me_file_id)
 
-    {:noreply,
-     assign(socket, :suggested_surveys, Suggestions.suggested_surveys_for_me_file(me_file_id))}
+    {:noreply, reload_index(socket)}
   end
 
   def handle_event("close_slide_over", _params, socket) do
@@ -500,10 +508,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
            ) do
         :ok ->
           me_file_id = socket.assigns.current_scope.user.me_file.id
-          answered_ids = MeFiles.get_answered_survey_question_ids(me_file_id)
-
-          categories_with_stats =
-            Surveys.list_survey_categories_with_surveys_and_stats(me_file_id, answered_ids)
 
           survey_in_edit =
             if socket.assigns.survey_in_edit do
@@ -520,8 +524,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
           socket =
             socket
-            |> assign(:categories, categories_with_stats)
-            |> assign(:answered_survey_question_ids, answered_ids)
+            |> reload_index()
             |> assign(:survey_in_edit, survey_in_edit)
             |> assign(:show_modal, false)
             |> assign(:show_delete_confirm, false)
@@ -571,11 +574,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
           MeFiles.set_tags_source_context(me_file_id, trait_id, "mecp_suggestion_confirmed")
         end
 
-        answered_ids = MeFiles.get_answered_survey_question_ids(me_file_id)
-
-        categories_with_stats =
-          Surveys.list_survey_categories_with_surveys_and_stats(me_file_id, answered_ids)
-
         survey_in_edit =
           if socket.assigns.survey_in_edit do
             parent_traits_with_tags =
@@ -590,10 +588,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
           end
 
         socket
-        |> assign(:categories, categories_with_stats)
-        |> assign(:answered_survey_question_ids, answered_ids)
+        |> reload_index()
         |> assign(:survey_in_edit, survey_in_edit)
-        |> assign(:suggested_surveys, Suggestions.suggested_surveys_for_me_file(me_file_id))
         |> assign(:show_modal, false)
         |> assign(:show_delete_confirm, false)
         |> assign(:show_skip_conflict, false)
@@ -622,6 +618,55 @@ defmodule QlariusWeb.MeFileBuilderLive do
         :error -> []
       end
     end)
+  end
+
+  # The Builder index: every category with its survey counts, and Qai's
+  # suggested surveys
+  defp load_index(me_file_id) do
+    answered_ids = MeFiles.get_answered_survey_question_ids(me_file_id)
+
+    %{
+      categories: Surveys.list_survey_categories_with_surveys_and_stats(me_file_id, answered_ids),
+      suggested_surveys: Suggestions.suggested_surveys_for_me_file(me_file_id)
+    }
+  end
+
+  # After tags change or a suggestion is dismissed: refresh in place (no skeleton)
+  defp reload_index(socket) do
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+    assign(socket, :index, AsyncResult.ok(socket.assigns.index, load_index(me_file_id)))
+  end
+
+  # First-load placeholder in the index's own layout: category label, then a
+  # card of rows (name, progress line, count), with DaisyUI `.skeleton` bones.
+  defp builder_index_skeleton(assigns) do
+    ~H"""
+    <div
+      id="builder-index-skeleton"
+      class="builder-index pt-2"
+      aria-busy="true"
+      aria-label="Loading topics"
+    >
+      <section :for={rows <- [3, 2, 4, 2, 3, 2]} class="mefile-category" aria-hidden="true">
+        <div class="mefile-category__head">
+          <div class="skeleton h-4 w-28"></div>
+        </div>
+        <.surface_panel padding={false} class="youdata-card">
+          <ul class="builder-list">
+            <li :for={_ <- 1..rows}>
+              <div class="builder-row cursor-default hover:bg-transparent">
+                <span class="builder-row__main">
+                  <span class="skeleton h-4 w-3/5"></span>
+                  <span class="skeleton h-1 w-full rounded-full"></span>
+                </span>
+                <span class="skeleton h-3 w-8 shrink-0"></span>
+              </div>
+            </li>
+          </ul>
+        </.surface_panel>
+      </section>
+    </div>
+    """
   end
 
   defp open_survey(socket, survey_id) do

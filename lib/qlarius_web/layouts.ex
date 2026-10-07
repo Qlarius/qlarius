@@ -133,7 +133,7 @@ defmodule QlariusWeb.Layouts do
   def shell_width("/me_file", _mode), do: "column"
 
   def shell_width(path, _mode) when is_binary(path) do
-    if path in ["/home", "/ads"] or
+    if path in ["/home", "/ads", "/referrals"] or
          String.starts_with?(path, ["/me_file_builder", "/arqade", "/content", "/tiqits"]),
        do: "wide",
        else: "column"

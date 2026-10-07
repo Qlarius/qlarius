@@ -3386,6 +3386,68 @@
     @apply shrink-0 text-base-content/30;
   }
 
+  /* A ledger-style row that isn't a link (Referrals) */
+  .ledger-row.is-static {
+    @apply cursor-default hover:bg-transparent;
+  }
+
+  /*
+   * Referrals (referrals_live.ex): the pending payout inside the summary card,
+   * the link / code-entry row (pill field + button) and the code line.
+   */
+  /* One reading column; with people to list and room (content 48rem+, after
+     the docked menu), two columns: summary, link and referrer beside the list. */
+  .referrals-board {
+    container: referrals / inline-size;
+  }
+
+  .referrals-board__cols,
+  .referrals-board__main {
+    @apply flex flex-col gap-7;
+  }
+
+  .referrals-board__cols {
+    @apply mx-auto w-full max-w-2xl;
+  }
+
+  @container referrals (min-width: 48rem) {
+    .referrals-board--split .referrals-board__cols {
+      @apply grid max-w-none items-start gap-x-6;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+  }
+
+  .referral-pending {
+    @apply mt-4 flex items-center justify-between gap-3 border-t pt-4;
+    border-color: color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  }
+
+  .referral-link {
+    @apply flex items-center gap-2;
+  }
+
+  .referral-link__field {
+    @apply h-11 min-w-0 flex-1 truncate rounded-full border bg-base-100 px-4 text-sm text-base-content outline-none focus:ring-2 focus:ring-primary/40;
+    border-color: color-mix(in oklab, var(--color-base-content) 14%, transparent);
+  }
+
+  .referral-code {
+    @apply mt-3 flex items-center gap-2;
+  }
+
+  .referral-btn {
+    @apply inline-flex h-11 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-primary-content transition-colors hover:brightness-95;
+  }
+
+  .referral-btn--quiet {
+    @apply border bg-base-100 text-base-content hover:bg-base-200/60 hover:brightness-100;
+    border-color: color-mix(in oklab, var(--color-base-content) 14%, transparent);
+  }
+
+  .referral-btn--sm {
+    @apply h-8 px-4;
+  }
+
   .ledger-more {
     @apply mx-auto mt-4 flex h-11 cursor-pointer items-center justify-center rounded-full border px-8 text-sm font-semibold text-base-content transition-colors hover:bg-base-200/60;
     background-color: var(--color-base-100);
