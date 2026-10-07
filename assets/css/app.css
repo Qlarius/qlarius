@@ -2008,7 +2008,7 @@
 
   /* /ads video row: same 120px height and click target, laid out like a ledger row */
   .video-app-row {
-    @apply flex h-[120px] w-full min-w-0 items-center gap-3 px-4 transition-colors;
+    @apply flex h-[120px] w-full min-w-0 items-center gap-4 px-5 transition-colors;
     border-radius: 0 !important;
   }
 
@@ -2028,15 +2028,20 @@
   /* Amount, category and chevron match the 3-tap card's first phase exactly;
      amounts use the app's tabular figures, like every $ amount */
   .video-app-row__amt {
-    @apply text-2xl font-bold text-base-content tabular-amount;
+    @apply text-2xl leading-none font-bold text-base-content tabular-amount;
   }
 
+  /* A little air between amount, category and the quiet length / rate line */
   .video-app-row__label {
-    @apply truncate text-base text-base-content/50;
+    @apply mt-2 truncate text-base leading-tight text-base-content/50;
   }
 
   .video-app-row__meta {
-    @apply mt-0.5 flex min-w-0 items-center gap-1.5 text-sm text-base-content/50;
+    @apply mt-1.5 flex min-w-0 items-center gap-1.5 text-[13px] leading-tight text-base-content/45 tabular-amount;
+  }
+
+  .video-app-row__rate {
+    @apply font-medium text-base-content/65;
   }
 
   /* Finished: same as the 3-tap "Attention Paid" phase */

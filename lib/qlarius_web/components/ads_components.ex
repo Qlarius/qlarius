@@ -883,13 +883,11 @@ defmodule QlariusWeb.Components.AdsComponents do
             />
             <span class="truncate">
               {format_duration(@offer.media_run.media_piece.duration || 0)} ·
-              <span class="font-bold text-sponster-600 dark:text-sponster-400 tabular-amount">
-                ${Decimal.round(@rate, 3)}/sec
-              </span>
+              <span class="video-app-row__rate">${Decimal.round(@rate, 3)}/sec</span>
             </span>
           </p>
         </div>
-        <.icon name="hero-chevron-double-right" class="video-app-row__go h-6 w-6" />
+        <.icon name="hero-chevron-double-right" class="video-app-row__go h-5 w-5" />
       <% end %>
     </li>
     """
