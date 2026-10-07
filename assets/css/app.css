@@ -3105,12 +3105,20 @@
     @apply mt-0.5 text-sm leading-snug text-base-content;
   }
 
+  /* Blank tag: the prompt, then Skip as a small pill at the bottom right,
+     kept clear of the prompt */
   .trait-tag__empty {
-    @apply mt-0.5 flex flex-wrap items-center gap-x-2 text-sm italic leading-snug text-base-content/50;
+    @apply mt-0.5 flex flex-wrap items-end gap-x-5 gap-y-1.5 text-sm italic leading-snug text-base-content/50;
   }
 
   .trait-tag__skip {
-    @apply cursor-pointer text-xs font-semibold not-italic text-base-content/70 underline-offset-2 hover:underline;
+    @apply ml-auto inline-flex h-6 shrink-0 cursor-pointer items-center rounded-full border px-2.5 text-xs font-semibold not-italic leading-none text-base-content/75 transition-colors hover:text-base-content;
+    border-color: color-mix(in oklab, var(--color-base-content) 16%, transparent);
+    background-color: color-mix(in oklab, var(--color-base-100) 70%, transparent);
+  }
+
+  .trait-tag__skip:hover {
+    background-color: var(--color-base-100);
   }
 
   /* Edit sheet head: label, close, then the tag itself. */
