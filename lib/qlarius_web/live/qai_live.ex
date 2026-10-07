@@ -86,7 +86,10 @@ defmodule QlariusWeb.QaiLive do
          socket
          |> assign(:composer_error, nil)
          |> reload_messages()
-         |> start_stream()}
+         |> start_stream()
+         # The composer field is phx-update="ignore" (it keeps focus, so a phone
+         # keyboard stays up); its hook clears it once the message is taken.
+         |> push_event("qai:composer_reset", %{})}
     end
   end
 
@@ -142,6 +145,16 @@ defmodule QlariusWeb.QaiLive do
 
   def handle_event("toggle_history", _params, socket) do
     {:noreply, socket |> assign_sessions() |> assign(:show_history, !socket.assigns.show_history)}
+  end
+
+  # The chat list is the shell's slide-over; its back button sends this.
+  def handle_event("close_slide_over", _params, socket) do
+    {:noreply, assign(socket, :show_history, false)}
+  end
+
+  # Pushed by the CopyToClipboard hook on a reply's Copy button.
+  def handle_event("copy_success", _params, socket) do
+    {:noreply, socket}
   end
 
   def handle_event("toggle_preserve", _params, socket) do
@@ -293,7 +306,9 @@ defmodule QlariusWeb.QaiLive do
   end
 
   defp finalize_partial(draft, ""), do: Qlarius.Repo.delete(draft)
-  defp finalize_partial(draft, partial), do: Sessions.finalize_message(draft, partial, stopped: true)
+
+  defp finalize_partial(draft, partial),
+    do: Sessions.finalize_message(draft, partial, stopped: true)
 
   defp ensure_system_prompt(%{assigns: %{system_prompt: prompt}} = socket)
        when is_binary(prompt),
@@ -368,14 +383,20 @@ defmodule QlariusWeb.QaiLive do
 
   defp error_message(:not_configured), do: "Qai is not configured on this server yet."
   defp error_message({:http, 429, _}), do: "Qai is busy right now. Try again in a moment."
-  defp error_message({:api_error, %{"type" => "overloaded_error"}}), do: "Qai is busy right now. Try again in a moment."
+
+  defp error_message({:api_error, %{"type" => "overloaded_error"}}),
+    do: "Qai is busy right now. Try again in a moment."
+
   defp error_message(_), do: "Something went wrong mid-reply. The partial answer was kept."
 
   ## Rendering helpers
 
+  # Hard breaks: replies often put each item on its own line with a single
+  # newline ("🤙 **Austin local** — …"), which CommonMark would run together.
   defp markdown(content) do
     MDEx.to_html(content,
-      extension: [strikethrough: true, table: true, autolink: true, tasklist: true]
+      extension: [strikethrough: true, table: true, autolink: true, tasklist: true],
+      render: [hardbreaks: true]
     )
     |> case do
       {:ok, html} -> Phoenix.HTML.raw(html)
@@ -388,17 +409,60 @@ defmodule QlariusWeb.QaiLive do
   defp session_label(%Session{title: title}) when is_binary(title) and title != "", do: title
   defp session_label(_), do: "New chat"
 
+  # History rows: "Kept · Oct 3" (last activity) or "Fleeting · auto-fleets in 5 hrs",
+  # the same wording as a tiqit's status line.
+  defp session_meta(%Session{} = session, user) do
+    if Session.preserved?(session),
+      do: "Kept · #{day_label(session.updated_at, user)}",
+      else: "Fleeting · auto-fleets in #{time_left(session.expires_at)}"
+  end
+
+  defp time_left(%DateTime{} = expires_at) do
+    seconds = max(DateTime.diff(expires_at, DateTime.utc_now()), 0)
+
+    if seconds >= 3600 do
+      hours = div(seconds + 1800, 3600)
+      "#{hours} #{if hours == 1, do: "hr", else: "hrs"}"
+    else
+      "#{max(div(seconds, 60), 1)} min"
+    end
+  end
+
+  defp day_label(datetime, user) do
+    date = datetime |> Qlarius.DateTime.to_user_timezone(user) |> DateTime.to_date()
+    today = DateTime.utc_now() |> Qlarius.DateTime.to_user_timezone(user) |> DateTime.to_date()
+
+    cond do
+      date == today -> "Today"
+      date == Date.add(today, -1) -> "Yesterday"
+      date.year == today.year -> Calendar.strftime(date, "%b %-d")
+      true -> Calendar.strftime(date, "%b %-d, %Y")
+    end
+  end
+
+  defp last_assistant?(messages, message),
+    do: message.role == "assistant" and List.last(messages).id == message.id
+
   @impl true
   def render(assigns) do
     ~H"""
     <div id="qai-pwa-detect" phx-hook="HiPagePWADetect">
-      <Layouts.mobile {assigns} title="Qai" fixed_viewport={true}>
+      <Layouts.mobile
+        {assigns}
+        title="Qai"
+        fixed_viewport={true}
+        slide_over_active={@show_history}
+        slide_over_title="Chats"
+      >
         <div class="flex flex-col flex-1 min-h-0 mx-auto w-full max-w-2xl">
           <%= cond do %>
             <% !@configured -> %>
-              <div class="text-center py-12 text-base-content/60">
-                <.icon name="hero-sparkles" class="w-12 h-12 mx-auto mb-3 text-base-content/30" />
-                <p>Qai is not configured on this server yet.</p>
+              <div class="qai-empty">
+                <span class="qai-mark qai-mark--lg">
+                  <.icon name="hero-sparkles" class="size-7" />
+                </span>
+                <p class="qai-empty__title">Qai isn't available yet</p>
+                <p class="qai-empty__copy">Qai is not configured on this server yet.</p>
               </div>
             <% @grant == nil -> %>
               {render_optin(assigns)}
@@ -406,6 +470,10 @@ defmodule QlariusWeb.QaiLive do
               {render_chat(assigns)}
           <% end %>
         </div>
+
+        <:slide_over_content>
+          {render_history(assigns)}
+        </:slide_over_content>
       </Layouts.mobile>
     </div>
     """
@@ -413,160 +481,289 @@ defmodule QlariusWeb.QaiLive do
 
   defp render_optin(assigns) do
     ~H"""
-    <form phx-submit="enable_qai" class="card bg-base-100 border border-base-300 mt-2">
-      <div class="card-body gap-4">
-        <h3 class="card-title text-base">
-          <.icon name="hero-sparkles" class="w-5 h-5 text-primary" /> Meet Qai
-        </h3>
-        <p class="text-sm text-base-content/70">
-          Qai is your personal AI. It is private by design: chats disappear after a day
-          unless you keep them, and requests reach the model anonymously.
-        </p>
-        <p class="text-sm text-base-content/70">
-          To personalize, Qai reads your MeFile through the same gated access any AI
-          connector gets. Every read is logged, and you can revoke access any time from
-          AI Connectors.
-        </p>
-
-        <fieldset>
-          <span class="label-text font-medium">What Qai can see</span>
-          <p class="text-xs text-base-content/60 pb-2">
-            Leave all unchecked to share your full MeFile.
-          </p>
-          <div class="flex flex-col gap-1 max-h-48 overflow-y-auto">
-            <label :for={cat <- @categories} class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" name="category_ids[]" value={cat.id} class="checkbox checkbox-sm" />
-              <span class="text-sm">{cat.name}</span>
-            </label>
-          </div>
-        </fieldset>
-
-        <div class="card-actions justify-end">
-          <button type="submit" class="btn btn-primary">Enable Qai</button>
+    <div class="qai-scroll">
+      <form phx-submit="enable_qai" class="qai-optin">
+        <div class="qai-optin__hero">
+          <span class="qai-mark qai-mark--lg">
+            <.icon name="hero-sparkles" class="size-7" />
+          </span>
+          <h2 class="qai-optin__title">Meet Qai</h2>
+          <p class="qai-optin__lead">Qai is your personal AI.</p>
         </div>
-      </div>
-    </form>
+
+        <.surface_panel padding={false}>
+          <ul class="qai-facts">
+            <li class="qai-fact">
+              <span class="qai-fact__icon"><.icon name="hero-eye-slash" class="size-5" /></span>
+              <div>
+                <p class="qai-fact__title">Private by design</p>
+                <p class="qai-fact__copy">
+                  Chats disappear after a day unless you keep them, and requests reach the
+                  model anonymously.
+                </p>
+              </div>
+            </li>
+            <li class="qai-fact">
+              <span class="qai-fact__icon">
+                <.icon name="hero-identification" class="size-5" />
+              </span>
+              <div>
+                <p class="qai-fact__title">Personal, through your MeFile</p>
+                <p class="qai-fact__copy">
+                  To personalize, Qai reads your MeFile through the same gated access any AI
+                  connector gets.
+                </p>
+              </div>
+            </li>
+            <li class="qai-fact">
+              <span class="qai-fact__icon">
+                <.icon name="hero-shield-check" class="size-5" />
+              </span>
+              <div>
+                <p class="qai-fact__title">Logged and revocable</p>
+                <p class="qai-fact__copy">
+                  Every read is logged, and you can revoke access any time from AI Connectors.
+                </p>
+              </div>
+            </li>
+          </ul>
+        </.surface_panel>
+
+        <section>
+          <h3 class="detail-section-label">What Qai can see</h3>
+          <.surface_panel>
+            <p class="qai-optin__hint">Leave all unchecked to share your full MeFile.</p>
+            <div class="qai-cats">
+              <label :for={cat <- @categories} class="qai-cat">
+                <input type="checkbox" name="category_ids[]" value={cat.id} class="sr-only" />
+                <.icon name="hero-check" class="qai-cat__check size-4" />
+                {cat.name}
+              </label>
+            </div>
+          </.surface_panel>
+        </section>
+
+        <button type="submit" class="btn btn-primary rounded-full qai-optin__cta">
+          Enable Qai
+        </button>
+      </form>
+    </div>
     """
   end
 
   defp render_chat(assigns) do
     ~H"""
-    <div class="flex flex-col flex-1 min-h-0">
-      <%!-- Session bar --%>
-      <div class="flex items-center gap-2 pb-2 flex-shrink-0">
-        <button class="btn btn-sm btn-ghost" phx-click="toggle_history" title="Chat history">
-          <.icon name="hero-clock" class="w-4 h-4" />
-        </button>
-        <div class="flex-1 truncate text-sm font-medium text-center">
-          {if @session, do: session_label(@session), else: "New chat"}
-        </div>
+    <div id="qai-chat" class="flex flex-col flex-1 min-h-0" phx-hook="QaiKeyboard">
+      <%!-- Session bar: like the slide-over header, round chips either side of the title --%>
+      <div class="qai-bar">
         <button
-          :if={@session}
-          class="btn btn-sm btn-ghost"
-          phx-click="toggle_preserve"
-          title={if Session.preserved?(@session), do: "Preserved. Tap to make fleeting.", else: "Fleeting. Tap to preserve."}
+          type="button"
+          class="qai-bar__btn"
+          phx-click="toggle_history"
+          aria-label="Chats"
+          title="Chats"
         >
-          <.icon
-            name={if Session.preserved?(@session), do: "hero-lock-closed", else: "hero-clock"}
-            class={"w-4 h-4 " <> if(Session.preserved?(@session), do: "text-primary", else: "text-base-content/50")}
-          />
+          <.icon name="hero-chat-bubble-left-right" class="size-5" />
         </button>
-        <button class="btn btn-sm btn-ghost" phx-click="new_chat" title="New chat">
-          <.icon name="hero-pencil-square" class="w-4 h-4" />
-        </button>
-      </div>
-
-      <%!-- History drawer --%>
-      <div :if={@show_history} class="card bg-base-100 border border-base-300 mb-2 flex-shrink-0">
-        <div class="card-body py-3 gap-1 max-h-64 overflow-y-auto">
-          <p :if={@sessions == []} class="text-sm text-base-content/60 text-center py-2">
-            No chats yet. Fleeting chats expire after {Sessions.fleeting_hours()} hours.
-          </p>
-          <div :for={session <- @sessions} class="flex items-center gap-2">
+        <div class="qai-bar__center">
+          <p class="qai-bar__title">{if @session, do: session_label(@session), else: "New chat"}</p>
+          <%= if @session do %>
             <button
-              class="flex-1 text-left text-sm truncate hover:text-primary py-1"
-              phx-click="open_session"
-              phx-value-id={session.id}
+              type="button"
+              phx-click="toggle_preserve"
+              class={["qai-keep", Session.preserved?(@session) && "is-kept"]}
+              title={
+                if Session.preserved?(@session),
+                  do: "Kept until you delete it. Tap to make it fleeting.",
+                  else:
+                    "Auto-fleets #{Sessions.fleeting_hours()} hours after your last message. Tap to keep it."
+              }
             >
               <.icon
-                :if={Session.preserved?(session)}
-                name="hero-lock-closed"
-                class="w-3 h-3 text-primary inline"
+                name={if Session.preserved?(@session), do: "hero-lock-closed", else: "hero-clock"}
+                class="size-3.5"
               />
-              {session_label(session)}
+              {if Session.preserved?(@session), do: "Kept", else: "Fleeting"}
             </button>
-            <button
-              class="btn btn-xs btn-ghost text-error"
-              phx-click="delete_session"
-              phx-value-id={session.id}
-              data-confirm="Delete this chat permanently?"
-            >
-              <.icon name="hero-trash" class="w-3 h-3" />
-            </button>
-          </div>
+          <% else %>
+            <span class="qai-keep is-static">
+              <.icon name="hero-clock" class="size-3.5" /> Fleeting
+            </span>
+          <% end %>
         </div>
+        <button
+          type="button"
+          class="qai-bar__btn"
+          phx-click="new_chat"
+          disabled={@session == nil and @stream == nil}
+          aria-label="New chat"
+          title="New chat"
+        >
+          <.icon name="hero-pencil-square" class="size-5" />
+        </button>
       </div>
 
       <%!-- Messages --%>
-      <div
-        id="qai-messages"
-        class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3 py-2"
-        phx-hook="QaiScroll"
-      >
-        <div :if={@messages == [] && @stream == nil} class="text-center py-12 text-base-content/50">
-          <.icon name="hero-sparkles" class="w-10 h-10 mx-auto mb-2 text-base-content/30" />
-          <p class="text-sm">Private, fleeting, yours. Ask anything.</p>
-          <p :if={@degraded} class="text-xs pt-2">
+      <div id="qai-messages" class="qai-thread" phx-hook="QaiScroll">
+        <div :if={@messages == [] && @stream == nil} class="qai-empty">
+          <span class="qai-mark qai-mark--lg">
+            <.icon name="hero-sparkles" class="size-7" />
+          </span>
+          <p class="qai-empty__title">Private, fleeting, yours.</p>
+          <p class="qai-empty__copy">
+            Ask anything. Chats auto-fleet {Sessions.fleeting_hours()} hours after your last
+            message unless you keep them.
+          </p>
+          <p :if={@degraded} class="qai-empty__note">
+            <.icon name="hero-exclamation-triangle" class="size-4 shrink-0" />
             Heads up: your MeFile capsule could not be loaded, so this chat is unpersonalized.
           </p>
         </div>
 
-        <div :for={message <- @messages} :if={message.content != "" or message.stopped}>
-          <div :if={message.role == "user"} class="chat chat-end">
-            <div class="chat-bubble chat-bubble-primary whitespace-pre-wrap">{message.content}</div>
+        <%= for message <- @messages, message.content != "" or message.stopped do %>
+          <div :if={message.role == "user"} class="qai-msg qai-msg--user">
+            <div class="qai-bubble">{message.content}</div>
           </div>
-          <div :if={message.role == "assistant"} class="chat chat-start">
-            <div class="chat-bubble bg-base-200 text-base-content prose prose-sm max-w-none">
-              {markdown(message.content)}
-              <p :if={message.stopped} class="text-xs text-base-content/50 italic mt-1">stopped</p>
+          <div :if={message.role == "assistant"} class="qai-msg qai-msg--assistant">
+            <span class="qai-mark"><.icon name="hero-sparkles" class="size-4" /></span>
+            <div class="qai-msg__body">
+              <div class="qai-md">{markdown(message.content)}</div>
+              <p :if={message.stopped} class="qai-msg__stopped">
+                <.icon name="hero-stop-circle" class="size-3.5" /> Stopped
+              </p>
+              <div
+                :if={@stream == nil && last_assistant?(@messages, message)}
+                class="qai-msg__actions"
+              >
+                <textarea id={"qai-msg-raw-#{message.id}"} class="hidden" readonly>{message.content}</textarea>
+                <button
+                  id={"qai-copy-#{message.id}"}
+                  type="button"
+                  class="qai-action"
+                  phx-hook="CopyToClipboard"
+                  data-target={"qai-msg-raw-#{message.id}"}
+                  data-copied-label="Copied"
+                >
+                  <.icon name="hero-clipboard-document" class="size-4" />
+                  <span data-copy-label>Copy</span>
+                </button>
+                <button type="button" class="qai-action" phx-click="regenerate">
+                  <.icon name="hero-arrow-path" class="size-4" /> Regenerate
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        <% end %>
 
-        <div :if={@stream} class="chat chat-start">
-          <div class="chat-bubble bg-base-200 text-base-content whitespace-pre-wrap">
-            {streaming_text(@stream)}<span class="animate-pulse">▍</span>
+        <div :if={@stream} class="qai-msg qai-msg--assistant">
+          <span class="qai-mark"><.icon name="hero-sparkles" class="size-4" /></span>
+          <div class="qai-msg__body">
+            <%= if streaming_text(@stream) == "" do %>
+              <span class="qai-typing" aria-label="Qai is replying"><i></i><i></i><i></i></span>
+            <% else %>
+              <div class="qai-md">{markdown(streaming_text(@stream))}</div>
+            <% end %>
           </div>
         </div>
       </div>
 
-      <%!-- Composer --%>
-      <div class="flex-shrink-0 pt-2 pb-1">
-        <p :if={@composer_error} class="text-xs text-error pb-1">{@composer_error}</p>
-        <form :if={@stream == nil} phx-submit="send" class="flex items-end gap-2">
-          <textarea
-            id={"qai-composer-#{if @session, do: @session.id, else: "new"}-#{length(@messages)}"}
-            name="message"
-            rows="1"
-            placeholder="Message Qai"
-            class="textarea textarea-bordered flex-1 resize-none min-h-[2.75rem]"
-            autocomplete="off"
-          ></textarea>
-          <button type="submit" class="btn btn-primary btn-circle">
-            <.icon name="hero-arrow-up" class="w-5 h-5" />
+      <%!-- Composer: one capsule; send becomes Stop while a reply streams --%>
+      <div class="qai-composer-area">
+        <p :if={@composer_error} class="qai-composer-error">
+          <.icon name="hero-exclamation-circle" class="size-4 shrink-0" /> {@composer_error}
+        </p>
+        <form
+          id="qai-composer"
+          phx-submit="send"
+          phx-hook="QaiComposer"
+          class="qai-composer"
+          data-streaming={to_string(@stream != nil)}
+        >
+          <div id="qai-composer-field" class="qai-composer__field" phx-update="ignore">
+            <textarea
+              id="qai-composer-input"
+              name="message"
+              rows="1"
+              placeholder="Message Qai"
+              aria-label="Message Qai"
+              autocomplete="off"
+              enterkeyhint="send"
+              class="qai-composer__input"
+            ></textarea>
+          </div>
+          <button :if={@stream == nil} type="submit" class="qai-composer__send" aria-label="Send">
+            <.icon name="hero-arrow-up" class="size-5" />
+          </button>
+          <button
+            :if={@stream}
+            type="button"
+            class="qai-composer__send is-stop"
+            phx-click="stop"
+            aria-label="Stop"
+            title="Stop"
+          >
+            <.icon name="hero-stop-solid" class="size-4" />
           </button>
         </form>
-        <div :if={@stream} class="flex justify-center">
-          <button class="btn btn-sm btn-outline" phx-click="stop">
-            <.icon name="hero-stop" class="w-4 h-4" /> Stop
-          </button>
-        </div>
-        <div :if={@stream == nil && @messages != [] && List.last(@messages).role == "assistant"} class="flex justify-center pt-1">
-          <button class="btn btn-xs btn-ghost text-base-content/60" phx-click="regenerate">
-            <.icon name="hero-arrow-path" class="w-3 h-3" /> Regenerate
-          </button>
-        </div>
       </div>
+    </div>
+    """
+  end
+
+  # Chat list for the slide-over: current chat tinted, Kept chats marked with a lock.
+  defp render_history(assigns) do
+    ~H"""
+    <div class="qai-history">
+      <button type="button" class="qai-history__new" phx-click="new_chat">
+        <.icon name="hero-pencil-square" class="size-4" /> New chat
+      </button>
+
+      <p :if={@sessions == []} class="qai-history__empty">
+        No chats yet. Fleeting chats auto-fleet {Sessions.fleeting_hours()} hours after your
+        last message.
+      </p>
+
+      <ul :if={@sessions != []} class="surface-panel qai-history__list">
+        <li
+          :for={session <- @sessions}
+          class={["qai-history__item", @session && @session.id == session.id && "is-current"]}
+        >
+          <button
+            type="button"
+            class="qai-history__open"
+            phx-click="open_session"
+            phx-value-id={session.id}
+          >
+            <span class={["qai-history__icon", Session.preserved?(session) && "is-kept"]}>
+              <.icon
+                name={
+                  if Session.preserved?(session),
+                    do: "hero-lock-closed",
+                    else: "hero-chat-bubble-left"
+                }
+                class="size-[18px]"
+              />
+            </span>
+            <span class="qai-history__main">
+              <span class="qai-history__title">{session_label(session)}</span>
+              <span class="qai-history__meta">
+                {session_meta(session, @current_scope.user)}
+              </span>
+            </span>
+          </button>
+          <button
+            type="button"
+            class="qai-history__delete"
+            phx-click="delete_session"
+            phx-value-id={session.id}
+            data-confirm="Delete this chat permanently?"
+            aria-label="Delete chat"
+            title="Delete chat"
+          >
+            <.icon name="hero-trash" class="size-4" />
+          </button>
+        </li>
+      </ul>
     </div>
     """
   end

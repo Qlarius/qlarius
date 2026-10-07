@@ -105,7 +105,8 @@ document.addEventListener('click', primeAudioForIOS, { once: true })
 document.addEventListener('touchstart', primeAudioForIOS, { once: true })
 
 // Qai chat: keep the message list pinned to the bottom while streaming,
-// unless the user has scrolled up to read something.
+// unless the user has scrolled up to read something. Sending re-pins it, and
+// so does the list shrinking (keyboard up, composer growing) while pinned.
 Hooks.QaiScroll = {
   mounted() {
     this._pinned = true
@@ -114,7 +115,16 @@ Hooks.QaiScroll = {
         this.el.scrollHeight - this.el.scrollTop - this.el.clientHeight < 80
       this._pinned = nearBottom
     }
+    this._onPin = () => {
+      this._pinned = true
+      this._scrollToBottom()
+    }
     this.el.addEventListener("scroll", this._onScroll, { passive: true })
+    window.addEventListener("qai:pin", this._onPin)
+    this._resize = new ResizeObserver(() => {
+      if (this._pinned) this._scrollToBottom()
+    })
+    this._resize.observe(this.el)
     this._scrollToBottom()
   },
   updated() {
@@ -122,9 +132,102 @@ Hooks.QaiScroll = {
   },
   destroyed() {
     this.el.removeEventListener("scroll", this._onScroll)
+    window.removeEventListener("qai:pin", this._onPin)
+    this._resize.disconnect()
   },
   _scrollToBottom() {
     this.el.scrollTop = this.el.scrollHeight
+  }
+}
+
+// Qai composer: the field grows with its text; Return sends (phone keyboards
+// included, labelled by enterkeyhint="send") and Shift+Return adds a new line.
+// The field is phx-update="ignore", so it keeps focus and its draft across
+// renders, and is cleared only when the server takes the message.
+Hooks.QaiComposer = {
+  mounted() {
+    this._input = this.el.querySelector("textarea")
+    this._fit = () => {
+      this._input.style.height = "auto"
+      this._input.style.height = `${this._input.scrollHeight}px`
+    }
+    this._onKeydown = (e) => {
+      if (e.key !== "Enter" || e.shiftKey || e.isComposing) return
+      e.preventDefault()
+      if (this.el.dataset.streaming !== "true") this.el.requestSubmit()
+    }
+    // A tap anywhere on the capsule (send, Stop, its padding) keeps focus in
+    // the field, so a phone keyboard doesn't drop between messages.
+    this._onMousedown = (e) => {
+      if (e.target === this._input) return
+      e.preventDefault()
+      this._input.focus()
+    }
+    this._onSubmit = () => window.dispatchEvent(new CustomEvent("qai:pin"))
+
+    this._input.addEventListener("input", this._fit)
+    this._input.addEventListener("keydown", this._onKeydown)
+    this.el.addEventListener("mousedown", this._onMousedown)
+    this.el.addEventListener("submit", this._onSubmit)
+    this.handleEvent("qai:composer_reset", () => {
+      this._input.value = ""
+      this._fit()
+    })
+  },
+  destroyed() {
+    this._input.removeEventListener("input", this._fit)
+    this._input.removeEventListener("keydown", this._onKeydown)
+    this.el.removeEventListener("mousedown", this._onMousedown)
+    this.el.removeEventListener("submit", this._onSubmit)
+  }
+}
+
+// Qai on phones: the on-screen keyboard shrinks the visual viewport but not the
+// layout viewport (iOS, and Android Chrome by default), so the 100vh shell
+// would leave the composer under the keyboard. While it's up, publish the
+// visible area for the html.qai-keyboard-open rules in app.css, which pin the
+// shell to it and drop the tab bar. Pinch zoom also shrinks the visual
+// viewport, so only an unzoomed shrink counts.
+Hooks.QaiKeyboard = {
+  mounted() {
+    this._vv = window.visualViewport
+    if (!this._vv) return
+
+    this._root = document.documentElement
+    this._frame = null
+    this._sync = () => {
+      if (this._frame) return
+      this._frame = requestAnimationFrame(() => {
+        this._frame = null
+        this._apply()
+      })
+    }
+    this._vv.addEventListener("resize", this._sync)
+    this._vv.addEventListener("scroll", this._sync)
+    this._apply()
+  },
+  destroyed() {
+    if (!this._vv) return
+    this._vv.removeEventListener("resize", this._sync)
+    this._vv.removeEventListener("scroll", this._sync)
+    if (this._frame) cancelAnimationFrame(this._frame)
+    this._reset()
+  },
+  _apply() {
+    const vv = this._vv
+    const unzoomed = Math.abs(vv.scale - 1) < 0.01
+    const open = unzoomed && this._root.clientHeight - vv.height > 120
+
+    if (!open) return this._reset()
+
+    this._root.classList.add("qai-keyboard-open")
+    this._root.style.setProperty("--qai-vv-height", `${Math.round(vv.height)}px`)
+    this._root.style.setProperty("--qai-vv-top", `${Math.round(vv.offsetTop)}px`)
+  },
+  _reset() {
+    this._root.classList.remove("qai-keyboard-open")
+    this._root.style.removeProperty("--qai-vv-height")
+    this._root.style.removeProperty("--qai-vv-top")
   }
 }
 

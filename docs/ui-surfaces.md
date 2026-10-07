@@ -119,6 +119,17 @@ Every slide-over (Builder survey, Settings, the Ads video player, Arqade, the Ti
 - **"⋯" panel** (`.tiqit-more`, below the stub line): the full purchase time, refund-lock note, Refund (with its countdown), Keep / Don't Keep, Fleet. LiveView JS commands toggle it (`is-open`, `aria-expanded`, `inert` while closed), so no hook; it slides open on the grid row.
 - **Stash filters:** All, Active, Fleeting, Fleeted, Kept, Gifted, with neutral counts (`.pill-join-count`, also on the Ads pill). On a phone the row scrolls with no scrollbar and fades at the right edge (`.stash-filter-scroll`).
 
+## Qai
+
+`/qai` (`qai_live.ex`, `.qai-*` in `app.css`). A `fixed_viewport` page: the thread scrolls, the session bar and composer stay put.
+
+- **Session bar** (`.qai-bar`): the slide-over header's shape, round header-chip buttons either side of a centred title: Chats (opens the list) on the left, New chat on the right. Under the title a chip shows **Fleeting** (clock) or **Kept** (lock, primary tint); tapping it keeps or un-keeps the chat. A new chat with no session yet shows plain "Fleeting" text, not a chip.
+- **Thread:** the user's messages in primary bubbles on the right (indigo in dark, orange in light, like Collect); Qai's replies as plain text on the canvas beside a small Qai mark (`.qai-mark`, the only place Qai coral appears). Replies are markdown with hard breaks (a model's one-item-per-line answers keep their lines), styled by `.qai-md` since there's no typography plugin. Copy and Regenerate sit under the latest reply; a stopped reply says "Stopped". Three dots show while waiting for the first token.
+- **Composer** (`.qai-composer`): one capsule with the field and a round send button, which becomes Stop while a reply streams (the field stays usable). Return sends and Shift+Return adds a line, on phones too (`enterkeyhint="send"`). The field is `phx-update="ignore"` and the `QaiComposer` hook clears it when the server takes the message, so it keeps focus and a phone keyboard stays up. 16px text so iOS doesn't zoom.
+- **Keyboard:** the `QaiKeyboard` hook watches `visualViewport`; while a phone keyboard is up it sets `html.qai-keyboard-open` with the visible height and offset, and unlayered rules at the end of `app.css` pin the shell to that area, hide the tab bar and drop its clearance, so the composer sits on the keyboard. `QaiScroll` keeps the thread on the latest message as it shrinks.
+- **Chats** are the shell's slide-over ("Chats"): New chat, then one card of rows (icon chip, title, "Fleeting · auto-fleets in 5 hrs" or "Kept · Oct 3", delete), the open chat tinted.
+- **Opt-in:** Qai mark, "Meet Qai", one card of three facts (private, personal through the MeFile, logged and revocable), "What Qai can see" as category chips on a card, and a full-width Enable Qai pill.
+
 ## Arqade
 
 The Arqade group and single-piece pages (`widgets/arcade/`) render in the app, as widgets and inside Qlink, so **colours stay on the neutral widget ramp** (see Auth sheet). The pre-purchase state stays minimal: "Buy Tiqit • $0.10" and ⋯, nothing more; what a tiqit gets you is in the confirm dialog.

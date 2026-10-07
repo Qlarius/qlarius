@@ -4098,6 +4098,432 @@
     }
   }
 
+  /*
+   * Qai (qai_live.ex): chat on the page canvas. The session bar copies the
+   * slide-over header (round chip buttons either side of a centred title, with
+   * a Fleeting / Kept chip under it); Qai's replies are plain text beside a
+   * small brand mark, the user's sit in primary bubbles, and one composer
+   * capsule holds the field and send (Stop while streaming). Qai coral is only
+   * on the mark; actions stay primary, as everywhere else.
+   */
+  .qai-mark {
+    @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-qai-600 dark:text-qai-300;
+    background-color: color-mix(in oklab, var(--color-qai-500) 16%, var(--color-base-100));
+  }
+
+  .qai-mark--lg {
+    @apply h-14 w-14;
+  }
+
+  .qai-bar {
+    @apply grid shrink-0 items-center gap-3 pb-3;
+    grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem;
+  }
+
+  .qai-bar__btn {
+    @apply flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border text-base-content/70 transition-colors hover:text-base-content disabled:cursor-default disabled:opacity-40 disabled:hover:text-base-content/70;
+    background-color: var(--color-base-100);
+    border-color: color-mix(in oklab, var(--color-base-content) 12%, transparent);
+  }
+
+  .qai-bar__center {
+    @apply flex min-w-0 flex-col items-center gap-1;
+  }
+
+  .qai-bar__title {
+    @apply max-w-full truncate text-[15px] font-semibold leading-tight text-base-content;
+  }
+
+  .qai-keep {
+    @apply inline-flex h-6 cursor-pointer items-center gap-1 rounded-full border px-2.5 text-xs font-medium text-base-content/65 transition-colors hover:text-base-content;
+    background-color: var(--color-base-100);
+    border-color: color-mix(in oklab, var(--color-base-content) 12%, transparent);
+  }
+
+  .qai-keep.is-kept {
+    @apply text-primary;
+    background-color: color-mix(in oklab, var(--color-primary) 12%, var(--color-base-100));
+    border-color: transparent;
+  }
+
+  /* New chat, before there's a session to keep: says what it will be, not a button */
+  .qai-keep.is-static {
+    @apply cursor-default border-transparent bg-transparent px-0 text-base-content/50 hover:text-base-content/50;
+  }
+
+  .qai-thread {
+    @apply flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain py-3;
+  }
+
+  .qai-empty {
+    @apply m-auto flex max-w-sm flex-col items-center gap-2 px-4 py-10 text-center;
+  }
+
+  .qai-empty .qai-mark {
+    @apply mb-2;
+  }
+
+  .qai-empty__title {
+    @apply text-lg font-semibold tracking-tight text-base-content;
+  }
+
+  .qai-empty__copy {
+    @apply text-sm leading-snug text-base-content/60;
+  }
+
+  .qai-empty__note {
+    @apply mt-3 flex items-start gap-2 rounded-xl px-3 py-2.5 text-left text-xs leading-snug text-base-content/70;
+    background-color: color-mix(in oklab, var(--color-warning) 14%, var(--color-base-100));
+  }
+
+  .qai-msg--user {
+    @apply flex justify-end pl-10;
+  }
+
+  .qai-bubble {
+    @apply max-w-full whitespace-pre-wrap break-words rounded-[1.25rem] rounded-br-md bg-primary px-4 py-2.5 text-[15px] leading-relaxed text-primary-content;
+  }
+
+  .qai-msg--assistant {
+    @apply flex items-start gap-3;
+  }
+
+  .qai-msg__body {
+    @apply min-w-0 flex-1 pt-0.5;
+  }
+
+  .qai-msg__stopped {
+    @apply mt-2 flex items-center gap-1 text-xs text-base-content/50;
+  }
+
+  .qai-msg__actions {
+    @apply -ml-2.5 mt-2 flex items-center gap-1;
+  }
+
+  .qai-action {
+    @apply inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium text-base-content/55 transition-colors hover:text-base-content;
+  }
+
+  .qai-action:hover {
+    background-color: color-mix(in oklab, var(--color-base-content) 6%, transparent);
+  }
+
+  /* Waiting for the first token */
+  .qai-typing {
+    @apply inline-flex h-6 items-center gap-1;
+  }
+
+  .qai-typing i {
+    @apply block h-1.5 w-1.5 rounded-full bg-base-content/40;
+    animation: qai-typing 1.2s ease-in-out infinite;
+  }
+
+  .qai-typing i:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+
+  .qai-typing i:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+
+  @keyframes qai-typing {
+    0%,
+    80%,
+    100% {
+      opacity: 0.35;
+      transform: translateY(0);
+    }
+
+    40% {
+      opacity: 1;
+      transform: translateY(-2px);
+    }
+  }
+
+  /* Markdown replies (no typography plugin here, so the basics are set by hand) */
+  .qai-md {
+    @apply text-[15px] leading-relaxed text-base-content break-words;
+  }
+
+  .qai-md > * + * {
+    margin-top: 0.75em;
+  }
+
+  .qai-md :where(h1, h2, h3, h4) {
+    @apply font-semibold leading-snug tracking-tight;
+  }
+
+  .qai-md > :where(h1, h2, h3, h4):not(:first-child) {
+    margin-top: 1.1em;
+  }
+
+  .qai-md h1 {
+    font-size: 1.25em;
+  }
+
+  .qai-md h2 {
+    font-size: 1.15em;
+  }
+
+  .qai-md h3 {
+    font-size: 1.05em;
+  }
+
+  .qai-md :where(ul, ol) {
+    padding-left: 1.25em;
+  }
+
+  .qai-md ul {
+    list-style: disc;
+  }
+
+  .qai-md ol {
+    list-style: decimal;
+  }
+
+  .qai-md li + li,
+  .qai-md li > :where(ul, ol) {
+    margin-top: 0.3em;
+  }
+
+  .qai-md li::marker {
+    color: color-mix(in oklab, var(--color-base-content) 45%, transparent);
+  }
+
+  .qai-md :where(strong, b) {
+    @apply font-semibold;
+  }
+
+  .qai-md a {
+    @apply text-primary underline underline-offset-2;
+  }
+
+  .qai-md :not(pre) > code {
+    @apply rounded-md px-1.5 py-0.5 font-mono text-[0.875em];
+    background-color: color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  }
+
+  .qai-md pre {
+    @apply overflow-x-auto rounded-xl border p-3 font-mono text-[13px] leading-relaxed;
+    background-color: var(--color-base-100);
+    border-color: color-mix(in oklab, var(--color-base-content) 9%, transparent);
+  }
+
+  .qai-md blockquote {
+    @apply pl-3 text-base-content/75;
+    border-left: 3px solid color-mix(in oklab, var(--color-base-content) 15%, transparent);
+  }
+
+  .qai-md table {
+    @apply block max-w-full overflow-x-auto text-[0.9em];
+    border-collapse: collapse;
+  }
+
+  .qai-md :where(th, td) {
+    @apply px-2.5 py-1.5 text-left align-top;
+    border-bottom: 1px solid color-mix(in oklab, var(--color-base-content) 10%, transparent);
+  }
+
+  .qai-md th {
+    @apply font-semibold;
+  }
+
+  .qai-md hr {
+    border-top: 1px solid color-mix(in oklab, var(--color-base-content) 12%, transparent);
+  }
+
+  .qai-md input[type="checkbox"] {
+    @apply mr-1.5 align-middle;
+  }
+
+  .qai-composer-area {
+    @apply shrink-0 pt-2;
+  }
+
+  .qai-composer-error {
+    @apply mb-2 flex items-center gap-1.5 px-1 text-[13px] text-error;
+  }
+
+  .qai-composer {
+    @apply flex items-end gap-2 rounded-[1.625rem] border p-1.5 pl-4 transition-colors;
+    background-color: var(--color-base-100);
+    border-color: color-mix(in oklab, var(--color-base-content) 12%, transparent);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 1px 4px rgba(0, 0, 0, 0.03);
+  }
+
+  .qai-composer:focus-within {
+    border-color: color-mix(in oklab, var(--color-primary) 45%, transparent);
+  }
+
+  .qai-composer__field {
+    @apply flex min-w-0 flex-1 self-center;
+  }
+
+  /* 16px so iOS doesn't zoom in on focus; the hook grows it up to max-h-40 */
+  .qai-composer__input {
+    @apply block max-h-40 w-full resize-none border-0 bg-transparent p-0 py-1.5 text-base leading-6 text-base-content shadow-none outline-none placeholder:text-base-content/40 focus:outline-none focus:ring-0;
+  }
+
+  .qai-composer__send {
+    @apply flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-content transition-opacity;
+  }
+
+  .qai-composer:has(.qai-composer__input:placeholder-shown) .qai-composer__send:not(.is-stop) {
+    @apply pointer-events-none opacity-35;
+  }
+
+  .qai-composer__send.is-stop {
+    @apply bg-base-content text-base-100;
+  }
+
+  /* Chats slide-over */
+  .qai-history {
+    @apply flex flex-col gap-4;
+  }
+
+  .qai-history__new {
+    @apply flex h-11 cursor-pointer items-center justify-center gap-2 self-center rounded-full border px-6 text-sm font-semibold text-base-content transition-colors hover:bg-base-200/60;
+    background-color: var(--color-base-100);
+    border-color: color-mix(in oklab, var(--color-base-content) 12%, transparent);
+  }
+
+  .qai-history__empty {
+    @apply px-4 py-6 text-center text-sm leading-snug text-base-content/60;
+  }
+
+  .qai-history__list {
+    @apply m-0 list-none p-0;
+  }
+
+  .qai-history__list > li + li {
+    border-top: 1px solid color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  }
+
+  .qai-history__item {
+    @apply flex items-center gap-1 pr-2;
+  }
+
+  .qai-history__item.is-current {
+    background-color: color-mix(in oklab, var(--color-primary) 7%, var(--color-base-100));
+  }
+
+  .qai-history__open {
+    @apply flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-3 pl-4 text-left;
+  }
+
+  .qai-history__icon {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-base-200 text-base-content/65;
+  }
+
+  .qai-history__icon.is-kept {
+    @apply text-primary;
+    background-color: color-mix(in oklab, var(--color-primary) 14%, var(--color-base-100));
+  }
+
+  .qai-history__main {
+    @apply flex min-w-0 flex-1 flex-col;
+  }
+
+  .qai-history__title {
+    @apply truncate text-[15px] font-medium leading-snug text-base-content;
+  }
+
+  .qai-history__meta {
+    @apply mt-0.5 text-[13px] leading-snug text-base-content/55;
+  }
+
+  .qai-history__delete {
+    @apply flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-base-content/40 transition-colors hover:text-error;
+  }
+
+  .qai-history__delete:hover {
+    background-color: color-mix(in oklab, var(--color-error) 10%, transparent);
+  }
+
+  /* Opt-in */
+  .qai-scroll {
+    @apply min-h-0 flex-1 overflow-y-auto overscroll-contain;
+  }
+
+  .qai-optin {
+    @apply flex flex-col gap-6 pb-2;
+  }
+
+  .qai-optin__hero {
+    @apply flex flex-col items-center gap-1 pt-2 text-center;
+  }
+
+  .qai-optin__title {
+    @apply mt-2 text-2xl font-bold tracking-tight text-base-content;
+  }
+
+  .qai-optin__lead {
+    @apply text-[15px] text-base-content/65;
+  }
+
+  .qai-facts {
+    @apply m-0 list-none p-0;
+  }
+
+  .qai-facts > li + li {
+    border-top: 1px solid color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  }
+
+  .qai-fact {
+    @apply flex items-start gap-3 px-4 py-3.5;
+  }
+
+  .qai-fact__icon {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-base-200 text-base-content/65;
+  }
+
+  .qai-fact__title {
+    @apply text-[15px] font-semibold leading-snug text-base-content;
+  }
+
+  .qai-fact__copy {
+    @apply mt-0.5 text-sm leading-snug text-base-content/60;
+  }
+
+  .qai-optin__hint {
+    @apply mb-3 text-sm leading-snug text-base-content/60;
+  }
+
+  .qai-cats {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .qai-cat {
+    @apply inline-flex h-9 cursor-pointer select-none items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium text-base-content/80 transition-colors;
+    background-color: var(--color-base-100);
+    border-color: color-mix(in oklab, var(--color-base-content) 14%, transparent);
+  }
+
+  .qai-cat:has(:checked) {
+    @apply text-primary;
+    background-color: color-mix(in oklab, var(--color-primary) 10%, var(--color-base-100));
+    border-color: color-mix(in oklab, var(--color-primary) 55%, transparent);
+  }
+
+  .qai-cat:has(:focus-visible) {
+    @apply outline-2 outline-offset-2 outline-primary;
+  }
+
+  /* Scoped under .qai-cat so it outranks the hero-* icon's own display */
+  .qai-cat .qai-cat__check {
+    display: none;
+  }
+
+  .qai-cat:has(:checked) .qai-cat__check {
+    display: inline-block;
+  }
+
+  .qai-optin__cta {
+    @apply h-12 w-full text-base;
+  }
+
 }
 
 /*
@@ -5567,4 +5993,27 @@ html[data-theme="dark"] .mobile-shell .arqade-surface {
 .select.auth-select:focus-within {
   outline: none;
   box-shadow: inset 0 0 0 2px var(--color-widget-700);
+}
+
+/*
+ * Qai on phones: the on-screen keyboard shrinks the visual viewport but not the
+ * layout one (iOS, and Android Chrome by default), so the 100vh shell would
+ * leave the composer under it. While it's up, the QaiKeyboard hook (app.js)
+ * sets these vars and the shell follows the visible area, with the tab bar
+ * and its clearance dropped. Unlayered, like the shell's own height rule.
+ */
+html.qai-keyboard-open .mobile-shell {
+  position: fixed;
+  inset-inline: 0;
+  top: var(--qai-vv-top, 0px);
+  height: var(--qai-vv-height, 100vh);
+  --mobile-bottom-nav-offset: 0px;
+}
+
+html.qai-keyboard-open .mobile-shell .mobile-bottom-nav-area {
+  display: none;
+}
+
+html.qai-keyboard-open .mobile-shell .mobile-layout-content {
+  padding-bottom: 0.5rem;
 }
