@@ -945,36 +945,55 @@ defmodule QlariusWeb.Layouts do
 
   def flash_group(assigns) do
     ~H"""
-    <div id={@id} aria-live="polite">
+    <div id={@id} aria-live="polite" class="flash-stack">
       <.flash kind={:info} flash={@flash} is_pwa={@is_pwa} is_mobile={@is_mobile} />
       <.flash kind={:error} flash={@flash} is_pwa={@is_pwa} is_mobile={@is_mobile} />
 
+      <%!-- Connection notices: shown while LiveView reconnects (lost connection)
+           or rejoins (server error); they stay until it's back. Each shows only
+           when its own class is on the page (`to:` the selector: an untargeted
+           remove_attribute used to unhide "Something went wrong" on every
+           disconnect), and as flex so the pill keeps its layout. --%>
       <.flash
         id="client-error"
         kind={:error}
+        auto_hide={false}
+        icon="hero-arrow-path"
+        icon_class="motion-safe:animate-spin"
         is_pwa={@is_pwa}
         is_mobile={@is_mobile}
-        title={gettext("We can't find the internet")}
-        phx-disconnected={show(".phx-client-error #client-error") |> JS.remove_attribute("hidden")}
-        phx-connected={hide("#client-error") |> JS.set_attribute({"hidden", ""})}
+        title={gettext("Connection lost")}
+        phx-disconnected={
+          JS.show(to: ".phx-client-error #client-error", display: "flex")
+          |> JS.remove_attribute("hidden", to: ".phx-client-error #client-error")
+        }
+        phx-connected={
+          JS.hide(to: "#client-error") |> JS.set_attribute({"hidden", ""}, to: "#client-error")
+        }
         hidden
       >
-        {gettext("Attempting to reconnect")}
-        <.icon name="hero-arrow-path" class="ml-1 h-3 w-3 motion-safe:animate-spin" />
+        {gettext("Trying to reconnect now…")}
       </.flash>
 
       <.flash
         id="server-error"
         kind={:error}
+        auto_hide={false}
+        icon="hero-arrow-path"
+        icon_class="motion-safe:animate-spin"
         is_pwa={@is_pwa}
         is_mobile={@is_mobile}
-        title={gettext("Something went wrong!")}
-        phx-disconnected={show(".phx-client-error #client-error") |> JS.remove_attribute("hidden")}
-        phx-connected={hide("#client-error") |> JS.set_attribute({"hidden", ""})}
+        title={gettext("Something went wrong")}
+        phx-disconnected={
+          JS.show(to: ".phx-server-error #server-error", display: "flex")
+          |> JS.remove_attribute("hidden", to: ".phx-server-error #server-error")
+        }
+        phx-connected={
+          JS.hide(to: "#server-error") |> JS.set_attribute({"hidden", ""}, to: "#server-error")
+        }
         hidden
       >
-        {gettext("Hang in there while we get back on track")}
-        <.icon name="hero-arrow-path" class="ml-1 h-3 w-3 motion-safe:animate-spin" />
+        {gettext("Trying to reconnect now…")}
       </.flash>
     </div>
     """

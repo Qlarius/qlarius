@@ -33,7 +33,11 @@ defmodule QlariusWeb.CoreComponents do
   alias Phoenix.LiveView.JS
 
   @doc """
-  Renders flash notices.
+  Renders a flash notice: a pill at the top centre of the screen with a
+  primary border. It drops in from above with a small shimmy, then rises back
+  out after a few seconds (or when tapped) and clears itself (FlashAutoHide).
+  Pass `auto_hide={false}` for notices that stay until something else hides
+  them (the connection notices in `flash_group/1`).
 
   ## Examples
 
@@ -44,6 +48,9 @@ defmodule QlariusWeb.CoreComponents do
   attr :flash, :map, default: %{}, doc: "the map of flash messages to display"
   attr :title, :string, default: nil
   attr :kind, :atom, values: [:info, :error], doc: "used for styling and flash lookup"
+  attr :auto_hide, :boolean, default: true, doc: "rise out and clear after a few seconds"
+  attr :icon, :string, default: nil, doc: "icon in the circle (defaults by kind)"
+  attr :icon_class, :string, default: nil
   attr :is_pwa, :boolean, default: false, doc: "whether running as PWA"
   attr :is_mobile, :boolean, default: false, doc: "whether on mobile device"
   attr :rest, :global, doc: "the arbitrary HTML attributes to add to the flash container"
@@ -59,30 +66,27 @@ defmodule QlariusWeb.CoreComponents do
       id={@id}
       phx-hook="FlashAutoHide"
       data-kind={@kind}
-      phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> JS.hide(to: "##{@id}")}
-      role="alert"
-      class={[
-        "toast toast-top toast-end z-[1000]",
-        @is_pwa && "mt-10"
-      ]}
+      data-auto-hide={to_string(@auto_hide)}
+      phx-click={
+        !@auto_hide && JS.push("lv:clear-flash", value: %{key: @kind}) |> JS.hide(to: "##{@id}")
+      }
+      role={if @kind == :error, do: "alert", else: "status"}
+      class={["flash-pill", "flash-pill--#{@kind}"]}
       {@rest}
     >
-      <div class={[
-        "alert w-80 sm:w-96 max-w-80 sm:max-w-96 text-wrap",
-        @kind == :info && "alert-info",
-        @kind == :error && "alert-error"
-      ]}>
-        <.icon :if={@kind == :info} name="hero-hand-raised" class="size-5 shrink-0" />
-        <.icon :if={@kind == :error} name="hero-exclamation-circle" class="size-5 shrink-0" />
-        <div>
-          <p :if={@title} class="font-semibold">{@title}</p>
-          <p>{msg}</p>
-        </div>
-        <div class="flex-1" />
-        <button type="button" class="group self-start cursor-pointer" aria-label={gettext("close")}>
-          <.icon name="hero-x-mark" class="size-5 opacity-40 group-hover:opacity-70" />
-        </button>
+      <span class="flash-pill__icon" aria-hidden="true">
+        <.icon
+          name={@icon || if(@kind == :error, do: "hero-exclamation-triangle", else: "hero-check")}
+          class={"size-4 #{@icon_class}"}
+        />
+      </span>
+      <div class="min-w-0">
+        <p :if={@title} class="flash-pill__title">{@title}</p>
+        <p class="flash-pill__msg">{msg}</p>
       </div>
+      <button type="button" class="flash-pill__close" aria-label={gettext("close")}>
+        <.icon name="hero-x-mark" class="size-4" />
+      </button>
     </div>
     """
   end
@@ -874,7 +878,7 @@ defmodule QlariusWeb.CoreComponents do
       class="relative z-[150] hidden"
     >
       <.backdrop id={"#{@id}-bg"} />
-
+      
     <!-- Modal Container -->
       <!--
         Centered dialog: default width is `min(100%, max-content)` so narrow
@@ -916,7 +920,7 @@ defmodule QlariusWeb.CoreComponents do
                   <.icon name="hero-x-mark" class="w-5 h-5" />
                 </button>
               </div>
-
+              
     <!-- Modal Content -->
               <div id={"#{@id}-content"} class="p-0">
                 {render_slot(@inner_block)}

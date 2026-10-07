@@ -331,20 +331,46 @@ Hooks.CopyToClipboard = {
   }
 }
 
+// Flash pill (core_components flash/1): it drops in through CSS; after the
+// display time, or when tapped, it rises back out (`.is-leaving`) and then
+// clears the flash on the server. `data-auto-hide="false"` (the connection
+// notices) skips both; those hide with their own phx-click.
 Hooks.FlashAutoHide = {
   mounted() {
-    this.timeout = setTimeout(() => {
-      this.el.style.transition = "opacity 300ms ease-in"
-      this.el.style.opacity = "0"
-      setTimeout(() => {
+    if (this.el.dataset.autoHide === "false") return
+
+    this.duration = parseInt(this.el.dataset.duration || "4000", 10)
+    this.leave = () => {
+      if (this.leaving) return
+      this.leaving = true
+      clearTimeout(this.timeout)
+
+      const clear = () => {
+        if (this.cleared) return
+        this.cleared = true
+        clearTimeout(this.fallback)
         this.pushEvent("lv:clear-flash", { key: this.el.dataset.kind })
-      }, 300)
-    }, 3000)
+      }
+
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return clear()
+      this.el.classList.add("is-leaving")
+      this.el.addEventListener("animationend", clear, { once: true })
+      this.fallback = setTimeout(clear, 600)
+    }
+
+    this.el.addEventListener("click", this.leave)
+    this.timeout = setTimeout(this.leave, this.duration)
+  },
+  // A new message of the same kind while one is showing: give it the full time
+  updated() {
+    if (!this.leave || this.leaving) return
+    clearTimeout(this.timeout)
+    this.timeout = setTimeout(this.leave, this.duration)
   },
   destroyed() {
-    if (this.timeout) {
-      clearTimeout(this.timeout)
-    }
+    clearTimeout(this.timeout)
+    clearTimeout(this.fallback)
+    if (this.leave) this.el.removeEventListener("click", this.leave)
   }
 }
 

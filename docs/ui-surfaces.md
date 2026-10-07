@@ -160,6 +160,14 @@ Widgets (Arqade, tip jar, Tiqit Pass), Qlink pages and the Sponster bar all show
 - **Tip jar in a host iframe:** the widget posts `{type: "sponster_tipjar_height", height}` to the host (card height + 16px; at least 640px while a dialog or the sign-in sheet is open, as they were sized for it). The embed snippet listens and sets the iframe height; see `demosite/local_news/index.html`. Heights are measured on mount and with a timer, not `requestAnimationFrame`, which Chrome pauses in off-screen cross-origin iframes.
 - **Arqade in a Qlink page (phones):** the episode title keeps clear of the ↗ expand button when that button shows and there's no title bar above it (`reserve_corner?`), and the Tiqit logo row under the strip is hidden so the episode panel fits without its own scroll.
 
+## Flash notices
+
+`CoreComponents.flash/1`, rendered by `Layouts.flash_group/1` (mobile shell, creators, admin; widgets don't render flashes).
+
+- **Pill** (`.flash-pill`): top centre below the safe area, base-100 with a 1.5px primary border, rounded-full, shadow; an icon in a tinted circle (check for info, warning triangle in error red for errors), the message (15px medium; a title above it in the connection notices) and a small round ×. Several stack in `.flash-stack`.
+- **Motion:** drops in from above with a short settle and a small side-to-side shimmy (`flash-drop`), stays 4s, then rises back out (`flash-rise`, `.is-leaving`) and clears (`FlashAutoHide` pushes `lv:clear-flash`). Tapping anywhere on it leaves early. Reduced motion: no animation. A new message of the same kind restarts the timer.
+- **Connection notices** (`auto_hide={false}`, spinning `hero-arrow-path`): "Connection lost · Trying to reconnect now…" while the socket reconnects, "Something went wrong · Trying to reconnect now…" while a crashed LiveView rejoins. Each unhides only when its own class (`.phx-client-error` / `.phx-server-error`) is on the page, with `display: flex`; the generator's untargeted `remove_attribute("hidden")` used to reveal "Something went wrong" on every disconnect.
+
 ## Referrals
 
 `/referrals` (`referrals_live.ex`) uses Wallet's and Builder's parts:
