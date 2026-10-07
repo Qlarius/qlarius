@@ -1188,6 +1188,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       <.selected_piece_hero_copy
         piece={@piece}
         gift_pending?={@gift_pending?}
+        id_suffix="roomy"
         class="w-full min-w-0 flex flex-col gap-1.5"
       />
     </div>
@@ -1219,6 +1220,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         piece={@piece}
         gift_pending?={@gift_pending?}
         reserve_corner?={@reserve_corner?}
+        id_suffix="compact"
         class="min-w-0 flex-1 flex flex-col gap-1.5 min-h-0 self-start"
       />
     </div>
@@ -1226,6 +1228,13 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
   end
 
   attr :piece, :map, required: true
+
+  attr :id_suffix, :string,
+    required: true,
+    doc:
+      "layout name (\"roomy\" / \"compact\") appended to the description popover id; " <>
+        "the responsive hero renders both layouts at once, so each copy needs its own id"
+
   attr :gift_pending?, :boolean, default: false
   attr :reserve_corner?, :boolean, default: false
   attr :class, :string, default: "min-w-0 flex flex-col gap-1.5"
@@ -1289,7 +1298,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           </p>
           <%= if description_exceeds_preview?(@piece.description, @description_line_clamp) do %>
             <.popover
-              id={"arcade-selected-desc-#{@piece.id}"}
+              id={"arcade-selected-desc-#{@piece.id}-#{@id_suffix}"}
               placement="top"
               position_strategy="fixed"
               trigger_type="click"
