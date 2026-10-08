@@ -18,14 +18,19 @@ defmodule QlariusWeb.PWAResumeFlashHooks do
       if connected?(socket) do
         connect_params = get_connect_params(socket) || %{}
 
-        case connect_params do
-          %{"pwa_bg_pending" => "1"} ->
-            socket
-            |> put_flash(:info, "The app refreshed while you were away.")
-            |> push_event(@clear_event, %{})
+        pending =
+          case connect_params do
+            %{"pwa_bg_pending" => "1"} -> true
+            %{pwa_bg_pending: "1"} -> true
+            _ -> false
+          end
 
-          _ ->
-            socket
+        if pending do
+          socket
+          |> put_flash(:info, "The app refreshed while you were away.")
+          |> push_event(@clear_event, %{})
+        else
+          socket
         end
       else
         socket

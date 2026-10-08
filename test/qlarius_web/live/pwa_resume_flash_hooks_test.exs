@@ -23,8 +23,10 @@ defmodule QlariusWeb.PWAResumeFlashHooksTest do
   end
 
   test "shows a friendly flash when the client indicates a background return", %{conn: conn} do
+    conn = put_connect_params(conn, %{"pwa_bg_pending" => "1", "pwa_bg_at" => 1})
+
     {:ok, view, _html} =
-      live_isolated(conn, Host, connect_params: %{"pwa_bg_pending" => "1", "pwa_bg_at" => 1})
+      live_isolated(conn, Host)
 
     html = render(view)
     assert html =~ "The app refreshed while you were away."
