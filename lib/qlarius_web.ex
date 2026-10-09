@@ -55,6 +55,7 @@ defmodule QlariusWeb do
       use Phoenix.LiveView
 
       on_mount QlariusWeb.PWAInstallHooks
+      on_mount QlariusWeb.PWAResumeFlashHooks
       on_mount QlariusWeb.LogoutModalHooks
       on_mount QlariusWeb.SessionSyncHooks
       on_mount QlariusWeb.LiveViewDebugHooks

@@ -38,6 +38,98 @@ let Hooks = {}
 
 Hooks.ExtensionBridge = ExtensionBridgeHook
 
+// iOS standalone PWA lifecycle:
+// When the app is backgrounded, iOS may suspend or evict the WebContent process.
+// Returning can cause either a LiveView remount (socket reconnect) or a full reload.
+// We can't prevent those OS decisions, but we *can* detect that we came back from
+// background and warn the user that transient UI state may have been lost.
+const PWA_BG_PENDING_KEY = "qadabra:pwa_bg_pending"
+const PWA_BG_AT_KEY = "qadabra:pwa_bg_at"
+
+function safeLocalStorageGet(key) {
+  try {
+    return localStorage.getItem(key)
+  } catch (_e) {
+    return null
+  }
+}
+
+function safeLocalStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, value)
+  } catch (_e) {}
+}
+
+function safeLocalStorageRemove(key) {
+  try {
+    localStorage.removeItem(key)
+  } catch (_e) {}
+}
+
+function markPwaBackgroundPending() {
+  safeLocalStorageSet(PWA_BG_PENDING_KEY, "1")
+  safeLocalStorageSet(PWA_BG_AT_KEY, String(Date.now()))
+}
+
+function clearPwaBackgroundPending() {
+  safeLocalStorageRemove(PWA_BG_PENDING_KEY)
+  safeLocalStorageRemove(PWA_BG_AT_KEY)
+}
+
+function readPwaBackgroundPending() {
+  const pending = safeLocalStorageGet(PWA_BG_PENDING_KEY)
+  if (pending !== "1") return null
+
+  const atRaw = safeLocalStorageGet(PWA_BG_AT_KEY)
+  const at = atRaw ? parseInt(atRaw, 10) : NaN
+  return Number.isFinite(at) ? {at} : {at: null}
+}
+
+function installPwaBackgroundTracker(liveSocket, {isExtension}) {
+  if (isExtension) return
+  if (!detectIosPwa()) return
+
+  const isTopLevel = (() => {
+    try {
+      return window.self === window.top
+    } catch (_e) {
+      return false
+    }
+  })()
+
+  if (!isTopLevel) return
+
+  const clearIfConnected = () => {
+    if (document.visibilityState !== "visible") return
+    if (!liveSocket) return
+
+    const connected = (() => {
+      if (typeof liveSocket.isConnected === "function" && liveSocket.isConnected()) return true
+      const rawSocket = typeof liveSocket.socket === "function" ? liveSocket.socket() : liveSocket.socket
+      return !!(rawSocket && typeof rawSocket.isConnected === "function" && rawSocket.isConnected())
+    })()
+
+    if (connected) clearPwaBackgroundPending()
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      markPwaBackgroundPending()
+    } else {
+      clearIfConnected()
+    }
+  })
+
+  // Defensive: some WebKit paths fire pageshow without a visibilitychange transition.
+  window.addEventListener("pageshow", clearIfConnected)
+}
+
+Hooks.PwaLifecycle = {
+  mounted() {
+    this.handleEvent("pwa_clear_bg_pending", () => clearPwaBackgroundPending())
+  }
+}
+
 // LiveView `push_event("qadabra:reconnect-socket")` (SessionSyncHooks) and
 // AuthFinalize both land here — remount with the current session cookie.
 function reconnectLiveSocket() {
@@ -2865,10 +2957,20 @@ if (isExtension) {
 
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: () => ({
-    _csrf_token: csrfToken,
-    extension: isExtension ? 'true' : null
-  }),
+  params: () => {
+    const params = {
+      _csrf_token: csrfToken,
+      extension: isExtension ? 'true' : null
+    }
+
+    const bg = readPwaBackgroundPending()
+    if (bg) {
+      params.pwa_bg_pending = "1"
+      if (bg.at != null) params.pwa_bg_at = bg.at
+    }
+
+    return params
+  },
   colocatedHooks: colocatedHooks,
   hooks: Hooks
 })
@@ -2896,6 +2998,7 @@ window.addEventListener("phx:close-modal", (e) => {
 
 // connect if there are any LiveViews on the page
 liveSocket.connect()
+installPwaBackgroundTracker(liveSocket, {isExtension})
 
 // Extension SSO: silent exchange / vault mint on Qadabra-origin loads.
 startExtensionAuthBridge()

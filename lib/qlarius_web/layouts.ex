@@ -946,6 +946,7 @@ defmodule QlariusWeb.Layouts do
   def flash_group(assigns) do
     ~H"""
     <div id={@id} aria-live="polite" class="flash-stack">
+      <div id="pwa-lifecycle-hook" class="hidden" phx-hook="PwaLifecycle"></div>
       <.flash kind={:info} flash={@flash} is_pwa={@is_pwa} is_mobile={@is_mobile} />
       <.flash kind={:error} flash={@flash} is_pwa={@is_pwa} is_mobile={@is_mobile} />
 
