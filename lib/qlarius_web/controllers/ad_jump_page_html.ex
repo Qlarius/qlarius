@@ -1,10 +1,24 @@
 defmodule QlariusWeb.AdJumpPageHTML do
   use QlariusWeb, :html
 
+  attr :exit_path, :string, required: true
+  attr :label, :string, default: "Back to app"
+  attr :class, :string, default: "btn btn-secondary btn-block rounded-xl"
+  attr :id, :string, default: nil
+
+  defp exit_to_app(assigns) do
+    ~H"""
+    <.link href={@exit_path} class={@class} id={@id}>
+      {@label}
+    </.link>
+    """
+  end
+
   attr :offer, :any, required: true
   attr :recipient_id, :string, default: nil
   attr :use_location_replace, :boolean, default: true
   attr :autosplit_disabled, :boolean, default: false
+  attr :exit_path, :string, required: true
 
   def jump(assigns) do
     ~H"""
@@ -14,6 +28,7 @@ defmodule QlariusWeb.AdJumpPageHTML do
       data-offer-id={@offer.id}
       data-recipient-id={@recipient_id || ""}
       data-jump-url={@offer.media_piece.jump_url}
+      data-exit-path={@exit_path}
       data-csrf={Plug.CSRFProtection.get_csrf_token()}
       data-use-location-replace={to_string(@use_location_replace)}
       data-autosplit-disabled={to_string(@autosplit_disabled)}
@@ -40,6 +55,10 @@ defmodule QlariusWeb.AdJumpPageHTML do
           <progress id="progress-bar" class="progress progress-primary w-full" value="0" max="100">
           </progress>
         </div>
+
+        <div class="w-full mt-6">
+          <.exit_to_app exit_path={@exit_path} class="btn btn-ghost btn-sm" />
+        </div>
       </div>
 
       <%!-- Collect failed — no payment; user can retry or open advertiser without earning --%>
@@ -53,6 +72,7 @@ defmodule QlariusWeb.AdJumpPageHTML do
         <button type="button" id="retry-collect-btn" class="btn btn-primary btn-block rounded-xl">
           Try again
         </button>
+        <.exit_to_app exit_path={@exit_path} id="ad-jump-exit" />
         <p class="text-xs text-base-content/50">
           <a id="advertiser-fallback-link" href={@offer.media_piece.jump_url} class="link link-hover">
             Open advertiser site (visit may not earn reward)
@@ -76,6 +96,10 @@ defmodule QlariusWeb.AdJumpPageHTML do
         >
           Close This Window
         </button>
+
+        <div class="mt-4">
+          <.exit_to_app exit_path={@exit_path} class="btn btn-outline btn-lg" />
+        </div>
       </div>
     </div>
 
@@ -85,6 +109,7 @@ defmodule QlariusWeb.AdJumpPageHTML do
         const offerId = container.dataset.offerId;
         const recipientId = container.dataset.recipientId;
         const datasetJumpUrl = container.dataset.jumpUrl;
+        const exitPath = container.dataset.exitPath || '/ads';
         const csrfToken = container.dataset.csrf;
         const useLocationReplace = container.dataset.useLocationReplace === 'true';
         const autosplitDisabled = container.dataset.autosplitDisabled === 'true';
@@ -109,7 +134,7 @@ defmodule QlariusWeb.AdJumpPageHTML do
 
         document.addEventListener('visibilitychange', function() {
           if (document.visibilityState === 'visible' && hasRedirected) {
-            window.location.href = '/ads';
+            window.location.href = exitPath;
           }
         });
 
