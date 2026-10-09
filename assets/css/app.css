@@ -3018,6 +3018,13 @@
     @apply py-6 text-sm text-base-content/60;
   }
 
+  /* Rows kept on screen while a follow-up search runs. */
+  .builder-results--pending {
+    opacity: 0.45;
+    pointer-events: none;
+    transition: opacity 150ms ease;
+  }
+
   /* Tag edit sheet: what Qai heard in chat, and the options it ticked */
   .tag-edit-chat-note {
     @apply mb-1 flex items-start gap-1.5 text-sm leading-snug text-qai-600 dark:text-qai-300;

@@ -118,13 +118,24 @@ defmodule QlariusWeb.MeFileBuilderLive do
           Tap a topic to add or update its tags.
         </Layouts.mobile_page_intro>
 
-        <.trait_search_results
-          :if={@trait_results}
-          results={@trait_results}
-          trait_search={@trait_search}
-        />
+        <.async_result :let={results} :if={searchable?(@trait_search)} assign={@trait_results}>
+          <:loading>
+            <.trait_search_skeleton />
+          </:loading>
+          <:failed>
+            <p class="mobile-page-intro text-center py-8">
+              Couldn't search topics. Try again.
+            </p>
+          </:failed>
+          <%!-- A later keystroke keeps these rows (assign_async does) and fades
+               them until the new ones arrive. The skeleton is only the first
+               search, while there is nothing to keep. --%>
+          <div class={@trait_results.loading && "builder-results--pending"}>
+            <.trait_search_results results={results} trait_search={@trait_search} />
+          </div>
+        </.async_result>
 
-        <.async_result :let={index} :if={!@trait_results} assign={@index}>
+        <.async_result :let={index} :if={not searchable?(@trait_search)} assign={@index}>
           <:loading>
             <.builder_index_skeleton />
           </:loading>
@@ -295,7 +306,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:show_tag_search, false)
       |> assign(:trait_search, "")
       |> assign(:show_trait_search, false)
-      |> assign(:trait_results, nil)
+      |> assign(:trait_results, %AsyncResult{})
       |> assign(:highlight_child_ids, [])
       |> assign(:chat_note, nil)
       |> assign_tag_display_mode()
@@ -681,25 +692,50 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
   # Taxonomy search: traits (and their tag options and search terms) that
   # match, limited to ones in an active survey so each opens an editor. A
-  # query too short to search shows the index again.
+  # query too short to search shows the index again. The lookup runs with
+  # assign_async, so the first search shows the results skeleton and a
+  # follow-up search keeps the rows already on screen.
   defp assign_trait_search(socket, q) do
     q = q |> to_string() |> String.slice(0, @trait_search_max_length)
 
-    results =
-      case TraitSearch.tokenize(q) do
-        {:ok, tokens} ->
-          ranked =
-            tokens |> TraitSearch.rank(surveyed_only: true) |> Enum.take(@trait_result_limit)
+    case TraitSearch.tokenize(q) do
+      {:error, :empty_query} ->
+        assign(socket, :trait_search, q)
 
-          me_file_id = socket.assigns.current_scope.user.me_file.id
-          tagged = MeFiles.tagged_parent_trait_ids(me_file_id, Enum.map(ranked, & &1.trait_id))
-          Enum.map(ranked, &Map.put(&1, :tagged?, MapSet.member?(tagged, &1.trait_id)))
+      {:ok, _} ->
+        me_file_id = socket.assigns.current_scope.user.me_file.id
+        showing_results? = showing_trait_results?(socket)
 
-        {:error, :empty_query} ->
-          nil
-      end
+        socket =
+          socket
+          |> assign(:trait_search, q)
+          |> assign_async(:trait_results, fn ->
+            {:ok, %{trait_results: search_traits(me_file_id, q)}}
+          end)
 
-    assign(socket, trait_search: q, trait_results: results)
+        if showing_results?,
+          do: socket,
+          else: assign(socket, :trait_results, AsyncResult.loading())
+    end
+  end
+
+  # Words under 3 characters are not a search. The field still shows them;
+  # the results component is left idle, which it cannot render.
+  defp searchable?(query), do: match?({:ok, _}, TraitSearch.tokenize(query))
+
+  defp showing_trait_results?(socket) do
+    searchable?(socket.assigns.trait_search) and
+      match?(%AsyncResult{ok?: true}, socket.assigns.trait_results)
+  end
+
+  defp search_traits(me_file_id, q) do
+    {:ok, tokens} = TraitSearch.tokenize(q)
+
+    ranked =
+      tokens |> TraitSearch.rank(surveyed_only: true) |> Enum.take(@trait_result_limit)
+
+    tagged = MeFiles.tagged_parent_trait_ids(me_file_id, Enum.map(ranked, & &1.trait_id))
+    Enum.map(ranked, &Map.put(&1, :tagged?, MapSet.member?(tagged, &1.trait_id)))
   end
 
   defp open_suggestion(socket, suggestion_id) do
@@ -825,6 +861,35 @@ defmodule QlariusWeb.MeFileBuilderLive do
     do: "Matches " <> (values |> Enum.uniq() |> Enum.join(", "))
 
   defp result_detail(%{category: category}), do: category
+
+  # One results card of row bones, the same shape the search list arrives in.
+  defp trait_search_skeleton(assigns) do
+    ~H"""
+    <section
+      id="builder-trait-results-skeleton"
+      class="mefile-category builder-results"
+      aria-busy="true"
+      aria-label="Searching topics"
+    >
+      <div class="mefile-category__head">
+        <h2>Results</h2>
+      </div>
+      <.surface_panel padding={false} class="youdata-card">
+        <ul class="builder-list" aria-hidden="true">
+          <li :for={name <- ["skeleton h-4 w-2/5", "skeleton h-4 w-1/2", "skeleton h-4 w-1/3"]}>
+            <div class="builder-row cursor-default hover:bg-transparent">
+              <span class="builder-row__main">
+                <span class={name}></span>
+                <span class="skeleton h-3 w-1/4"></span>
+              </span>
+              <span class="skeleton h-5 w-5 shrink-0 rounded-full"></span>
+            </div>
+          </li>
+        </ul>
+      </.surface_panel>
+    </section>
+    """
+  end
 
   # First-load placeholder in the index's own layout: category label, then a
   # card of rows (name, progress line, count), with DaisyUI `.skeleton` bones.

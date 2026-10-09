@@ -144,6 +144,7 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
       {:ok, view, _html} = live(ctx.conn, ~p"/me_file_builder?q=pottery")
 
       assert has_element?(view, "#builder-trait-search-input[value=pottery]")
+      render_async(view)
       assert has_element?(view, "#builder-trait-results", "Arts and Crafts")
       assert has_element?(view, "#builder-trait-results", "Matches Pottery")
 
@@ -162,14 +163,27 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
       render_async(view)
 
       view |> element("button[aria-label='Search topics and tags']") |> render_click()
-      view |> form("#builder-trait-search", %{q: "ceramics"}) |> render_change()
-      assert has_element?(view, "#builder-trait-results", "Matches Pottery")
+      html = view |> form("#builder-trait-search", %{q: "ceramics"}) |> render_change()
+      assert html =~ "builder-trait-results-skeleton" or html =~ "Matches Pottery"
 
-      view |> form("#builder-trait-search", %{q: "zzzunknown"}) |> render_change()
+      render_async(view)
+      assert has_element?(view, "#builder-trait-results", "Matches Pottery")
+      refute has_element?(view, "#builder-trait-results-skeleton")
+
+      html = view |> form("#builder-trait-search", %{q: "zzzunknown"}) |> render_change()
+      assert html =~ "builder-results--pending"
+      refute has_element?(view, "#builder-trait-results-skeleton")
+
+      render_async(view)
       assert has_element?(view, "#builder-trait-results", ~s(No topics match "zzzunknown"))
 
       view |> element("button[phx-click=clear_trait_search]") |> render_click()
       refute has_element?(view, "#builder-trait-results")
+      assert has_element?(view, "#qai-suggestion-#{ctx.suggestion.id}")
+
+      view |> form("#builder-trait-search", %{q: "ca"}) |> render_change()
+      refute has_element?(view, "#builder-trait-results")
+      refute has_element?(view, "#builder-trait-results-skeleton")
       assert has_element?(view, "#qai-suggestion-#{ctx.suggestion.id}")
     end
 
@@ -179,6 +193,7 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
 
       view |> element("#qai-suggestion-#{ctx.suggestion.id} a", "Related") |> render_click()
       assert_patch(view, ~p"/me_file_builder?q=Pottery")
+      render_async(view)
       assert has_element?(view, "#builder-trait-results", "Arts and Crafts")
     end
   end
