@@ -22,6 +22,8 @@ defmodule QlariusWeb.Admin.QaiOracleLive do
   @windows [7, 30, 90]
   # People filter for taxonomy gaps: {label, minimum distinct people}
   @gap_filters [{"All", 1}, {"3+", 3}, {"10+", 10}]
+  # Opens on All while there's little data; raise to 3 as volume grows
+  @default_gap_min 1
 
   @impl true
   def mount(_params, _session, socket) do
@@ -31,7 +33,7 @@ defmodule QlariusWeb.Admin.QaiOracleLive do
      |> assign(:days, 30)
      |> assign(:windows, @windows)
      |> assign(:gap_filters, @gap_filters)
-     |> assign(:gap_min, TaxonomyGaps.min_people())
+     |> assign(:gap_min, @default_gap_min)
      |> assign_data()}
   end
 

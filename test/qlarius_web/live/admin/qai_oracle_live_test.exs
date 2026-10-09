@@ -19,7 +19,7 @@ defmodule QlariusWeb.Admin.QaiOracleLiveTest do
     %{conn: log_in_user(conn, user)}
   end
 
-  test "shows activity and gaps raised by enough people, and switches windows", %{conn: conn} do
+  test "shows activity and gaps, filters by people, and switches windows", %{conn: conn} do
     ctx = seed!(%{tier: 2, scope: %{}})
 
     grants = [
@@ -28,17 +28,18 @@ defmodule QlariusWeb.Admin.QaiOracleLiveTest do
     ]
 
     for grant <- grants, do: {:ok, _} = Oracle.search_traits(grant, "anime conventions")
-    # One person alone: counted, but not shown
+    # One person alone
     {:ok, _} = Oracle.search_traits(ctx.grant, "sailing lessons")
     {:ok, _} = Oracle.ask(ctx.grant, {:has_trait, ctx.housing.id})
 
     {:ok, view, html} = live(conn, ~p"/admin/qai_oracle")
 
+    # Opens on All: one-person subjects show too
     assert html =~ "Qai Oracle"
     assert html =~ "Taxonomy Gaps"
     assert html =~ "anime conventions"
-    refute html =~ "sailing lessons"
-    assert html =~ "1 more below 3 people"
+    assert html =~ "sailing lessons"
+    assert html =~ "all subjects"
     assert html =~ "Most-Asked Traits"
     assert html =~ "Housing"
     assert html =~ "Test Client"
@@ -46,24 +47,25 @@ defmodule QlariusWeb.Admin.QaiOracleLiveTest do
     html = view |> element("button[phx-value-days='7']") |> render_click()
     assert html =~ "anime conventions"
 
-    # People filter: All shows one-person subjects; 10+ hides the 3-person one
-    html = view |> element("button[phx-value-min='1']") |> render_click()
-    assert html =~ "sailing lessons"
-    assert html =~ "anime conventions"
-    assert html =~ "all subjects"
-
-    html = view |> element("button[phx-value-min='10']") |> render_click()
-    refute html =~ "anime conventions"
-    assert html =~ "Nothing raised by 10+ people in this window"
-
+    # 3+ hides the one-person subject; 10+ hides the 3-person one
     html = view |> element("button[phx-value-min='3']") |> render_click()
     assert html =~ "anime conventions"
     refute html =~ "sailing lessons"
+    assert html =~ "1 more below 3 people"
+
+    html = view |> element("button[phx-value-min='10']") |> render_click()
+    refute html =~ "anime conventions"
+    assert html =~ "Nothing raised by 10+ people in this window (2 subjects from fewer people)"
+
+    html = view |> element("button[phx-value-min='1']") |> render_click()
+    assert html =~ "sailing lessons"
   end
 
   test "non-admins are sent away", %{conn: _conn} do
     {:ok, %{user: user}} =
-      Qlarius.Accounts.register_new_user(%{alias: "not-admin-#{System.unique_integer([:positive])}"})
+      Qlarius.Accounts.register_new_user(%{
+        alias: "not-admin-#{System.unique_integer([:positive])}"
+      })
 
     conn = log_in_user(build_conn(), user)
     assert {:error, {:redirect, _}} = live(conn, ~p"/admin/qai_oracle")

@@ -22,8 +22,9 @@ defmodule Qlarius.MeCP.TaxonomyGaps do
       access events by time
     * subject text is trimmed, length-capped and scrubbed of emails, links and
       long digit runs; the assistant's `reason` is never stored
-    * the admin list defaults to subjects `min_people/0` (3) different people
-      raised; admins can widen it to All or narrow it to 10+
+    * `list_subjects/2` defaults to subjects `min_people/0` (3) different
+      people raised; the admin page filters All, 3+ or 10+ (opening on All
+      while data is thin)
 
   It is de-identified, not anonymous: someone holding the server secret could
   re-derive person keys. Recording is best-effort and can never fail the read
@@ -46,7 +47,7 @@ defmodule Qlarius.MeCP.TaxonomyGaps do
   @max_values 5
   @value_max 60
 
-  @doc "Default minimum of distinct people for the admin gap list."
+  @doc "Default minimum of distinct people for `list_subjects/2`."
   def min_people, do: @min_people
 
   # --- capture -------------------------------------------------------------------
