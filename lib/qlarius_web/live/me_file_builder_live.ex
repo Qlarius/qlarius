@@ -5,6 +5,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
   alias Qlarius.MeCP.Suggestions
   alias Qlarius.YouData.Surveys
   alias Qlarius.YouData.MeFiles
+  alias Qlarius.YouData.TraitSearch
   alias Qlarius.YouData.Traits
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
 
@@ -12,6 +13,9 @@ defmodule QlariusWeb.MeFileBuilderLive do
   import QlariusWeb.PWAHelpers
 
   on_mount {QlariusWeb.DetectMobile, :detect_mobile}
+
+  @trait_search_max_length 80
+  @trait_result_limit 15
 
   def render(assigns) do
     ~H"""
@@ -39,6 +43,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
             dual_pane={true}
             show_expanded_tags={@show_expanded_tags}
             is_pwa={@is_pwa}
+            highlight_ids={@highlight_child_ids}
+            chat_note={@chat_note}
           />
         </:modals>
 
@@ -78,6 +84,26 @@ defmodule QlariusWeb.MeFileBuilderLive do
         </:slide_over_content>
 
         <:floating_actions>
+          <%!-- Index: the same floating search as MeFile. A survey's own toolbar
+               (its two views) takes over while one is open. --%>
+          <.mefile_floating_toolbar
+            :if={!@editing}
+            tag_search={@trait_search}
+            tag_display_mode={@tag_display_mode}
+            show_tag_search={@show_trait_search}
+            show_add_tags={false}
+            show_view_modes={false}
+            search_toggle="toggle_trait_search"
+            search_change="trait_search"
+            search_clear="clear_trait_search"
+            search_hide="hide_trait_search"
+            search_name="q"
+            search_form_id="builder-trait-search"
+            search_input_id="builder-trait-search-input"
+            search_label="Search topics and tags"
+            search_placeholder="Topics and tags"
+            search_debounce="200"
+          />
           <.mefile_floating_toolbar
             :if={@editing}
             tag_search={@tag_search}
@@ -92,7 +118,13 @@ defmodule QlariusWeb.MeFileBuilderLive do
           Tap a topic to add or update its tags.
         </Layouts.mobile_page_intro>
 
-        <.async_result :let={index} assign={@index}>
+        <.trait_search_results
+          :if={@trait_results}
+          results={@trait_results}
+          trait_search={@trait_search}
+        />
+
+        <.async_result :let={index} :if={!@trait_results} assign={@index}>
           <:loading>
             <.builder_index_skeleton />
           </:loading>
@@ -105,11 +137,12 @@ defmodule QlariusWeb.MeFileBuilderLive do
           <%!-- Index: a glance at every topic. Category label above one card of survey rows,
              as on MeFile; a thin line shows progress and a check marks a finished survey. --%>
           <div class="builder-index pt-2">
-            <%!-- Qai suggestions: topics an assistant asked about that are empty or out of
-                 date, grouped by their (active) survey; orphaned traits never show. The
+            <%!-- Qai suggestions: one row per trait an assistant asked about or proposed,
+                 naming the values from chat that aren't on file yet. A tap opens that
+                 trait's editor with them ticked; orphaned traits never show. The
                  index's first card (label, card, rows), with a Qai rail. --%>
             <section
-              :if={index.suggested_surveys != []}
+              :if={index.suggested_traits != []}
               class="mefile-category qai-suggestions"
             >
               <div class="mefile-category__head">
@@ -121,49 +154,62 @@ defmodule QlariusWeb.MeFileBuilderLive do
                     class="h-5 w-auto shrink-0"
                   />
                 </h2>
-                <span class="tabular-amount">{length(index.suggested_surveys)}</span>
+                <span class="tabular-amount">{length(index.suggested_traits)}</span>
               </div>
               <.surface_panel padding={false} class="qai-card">
                 <p class="qai-suggestions__intro">
                   From your recent chats. Answer or dismiss; nothing is added without you.
                 </p>
                 <ul class="builder-list">
-                  <li :for={entry <- index.suggested_surveys} class="qai-suggestion">
+                  <li
+                    :for={entry <- index.suggested_traits}
+                    id={"qai-suggestion-#{entry.suggestion.id}"}
+                    class="qai-suggestion"
+                  >
                     <button
                       type="button"
-                      phx-click="open_edit"
-                      phx-value-id={entry.survey.id}
+                      phx-click="open_suggestion"
+                      phx-value-id={entry.suggestion.id}
                       class="builder-row"
                     >
                       <span class="builder-row__main">
                         <span class="builder-row__name">
-                          {entry.survey.name}
+                          {entry.trait.trait_name}
                           <span :if={entry.update?} class="qai-suggestion__badge">Review</span>
                         </span>
+                        <span :if={entry.new_values != []} class="qai-suggestion__add">
+                          Add {join_names(entry.new_values)}
+                        </span>
                         <span class="qai-suggestion__meta">
-                          {suggestion_byline(entry)} {entry.latest.grant.mecp_client.name} · {Calendar.strftime(
-                            entry.latest.inserted_at,
+                          In {entry.survey.name} · {suggestion_byline(entry)} {entry.suggestion.grant.mecp_client.name} · {Calendar.strftime(
+                            entry.suggestion.inserted_at,
                             "%b %-d"
                           )}
                         </span>
                       </span>
-                      <span class="builder-row__count">{entry.answered}/{entry.total}</span>
                       <.icon name="hero-chevron-right" class="builder-row__chevron h-5 w-5" />
                     </button>
                     <div class="qai-suggestion__foot">
                       <div class="min-w-0 flex-1">
-                        <p :if={entry.latest.reason} class="qai-suggestion__reason">
-                          "{entry.latest.reason}"
+                        <p :if={entry.suggestion.reason} class="qai-suggestion__reason">
+                          "{entry.suggestion.reason}"
                         </p>
-                        <p :if={entry.latest.proposed_values != []} class="qai-suggestion__said">
-                          Mentioned in chat: {Enum.join(entry.latest.proposed_values, ", ")}
+                        <p :if={entry.unmatched_values != []} class="qai-suggestion__said">
+                          Also mentioned: {Enum.join(entry.unmatched_values, ", ")}
                         </p>
                       </div>
+                      <.link
+                        :if={related_query(entry)}
+                        patch={~p"/me_file_builder?#{[q: related_query(entry)]}"}
+                        class="qai-suggestion__related"
+                      >
+                        Related
+                      </.link>
                       <button
                         type="button"
                         class="qai-suggestion__dismiss"
-                        phx-click="dismiss_suggestion_group"
-                        phx-value-ids={Enum.map_join(entry.suggestions, ",", & &1.id)}
+                        phx-click="dismiss_suggestion"
+                        phx-value-id={entry.suggestion.id}
                       >
                         Dismiss
                       </button>
@@ -247,6 +293,11 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:show_expanded_tags, false)
       |> assign(:tag_search, "")
       |> assign(:show_tag_search, false)
+      |> assign(:trait_search, "")
+      |> assign(:show_trait_search, false)
+      |> assign(:trait_results, nil)
+      |> assign(:highlight_child_ids, [])
+      |> assign(:chat_note, nil)
       |> assign_tag_display_mode()
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
       |> init_pwa_assigns(session)
@@ -254,24 +305,46 @@ defmodule QlariusWeb.MeFileBuilderLive do
     {:ok, socket, temporary_assigns: [survey_to_open: nil]}
   end
 
+  # ?survey_id= opens a survey, ?q= fills the search, and ?suggestion= opens
+  # that suggestion's tag editor (links from Qai land here).
   def handle_params(params, _url, socket) do
     socket =
-      case Map.get(params, "survey_id") do
-        nil ->
-          socket
-
-        survey_id_str ->
-          case Integer.parse(survey_id_str) do
-            {survey_id, _} ->
-              open_survey(socket, survey_id)
-
-            :error ->
-              socket
-          end
-      end
+      socket
+      |> maybe_open_survey(parse_id(params["survey_id"]))
+      |> maybe_search(params["q"])
+      |> maybe_open_suggestion(parse_id(params["suggestion"]))
 
     {:noreply, socket}
   end
+
+  defp maybe_open_survey(socket, nil), do: socket
+  defp maybe_open_survey(socket, survey_id), do: open_survey(socket, survey_id)
+
+  # Drops the query, and a ?q= link's param with it.
+  defp close_trait_search(socket) do
+    socket
+    |> assign(:show_trait_search, false)
+    |> assign_trait_search("")
+    |> push_patch(to: ~p"/me_file_builder")
+  end
+
+  defp maybe_search(socket, q) when is_binary(q) and q != "" do
+    socket |> assign(:show_trait_search, true) |> assign_trait_search(q)
+  end
+
+  defp maybe_search(socket, _q), do: socket
+
+  defp maybe_open_suggestion(socket, nil), do: socket
+  defp maybe_open_suggestion(socket, suggestion_id), do: open_suggestion(socket, suggestion_id)
+
+  defp parse_id(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {id, ""} -> id
+      _ -> nil
+    end
+  end
+
+  defp parse_id(_value), do: nil
 
   def handle_event("pwa_detected", params, socket) do
     handle_pwa_detection(socket, params)
@@ -320,22 +393,52 @@ defmodule QlariusWeb.MeFileBuilderLive do
     {:noreply, open_survey(socket, survey_id)}
   end
 
-  def handle_event("dismiss_suggestion_group", %{"ids" => ids}, socket) do
+  def handle_event("open_suggestion", %{"id" => id}, socket) do
+    case parse_id(to_string(id)) do
+      nil -> {:noreply, socket}
+      suggestion_id -> {:noreply, open_suggestion(socket, suggestion_id)}
+    end
+  end
+
+  def handle_event("dismiss_suggestion", %{"id" => id}, socket) do
     me_file_id = socket.assigns.current_scope.user.me_file.id
 
-    suggestion_ids =
-      ids
-      |> String.split(",", trim: true)
-      |> Enum.flat_map(fn raw ->
-        case Integer.parse(raw) do
-          {id, _} -> [id]
-          :error -> []
-        end
-      end)
-
-    Suggestions.dismiss_many(suggestion_ids, me_file_id)
+    case parse_id(to_string(id)) do
+      nil -> :ok
+      suggestion_id -> Suggestions.dismiss(suggestion_id, me_file_id)
+    end
 
     {:noreply, reload_index(socket)}
+  end
+
+  def handle_event("toggle_trait_search", _params, socket) do
+    if socket.assigns.show_trait_search do
+      {:noreply, close_trait_search(socket)}
+    else
+      {:noreply, assign(socket, :show_trait_search, true)}
+    end
+  end
+
+  def handle_event("hide_trait_search", _params, socket) do
+    {:noreply, assign(socket, :show_trait_search, false)}
+  end
+
+  def handle_event("trait_search", %{"q" => q}, socket) do
+    {:noreply, assign_trait_search(socket, q)}
+  end
+
+  def handle_event("clear_trait_search", _params, socket) do
+    {:noreply,
+     socket
+     |> assign_trait_search("")
+     |> push_patch(to: ~p"/me_file_builder")}
+  end
+
+  def handle_event("open_trait", %{"id" => id}, socket) do
+    case parse_id(to_string(id)) do
+      nil -> {:noreply, socket}
+      trait_id -> {:noreply, open_trait_editor(socket, trait_id)}
+    end
   end
 
   def handle_event("close_slide_over", _params, socket) do
@@ -347,36 +450,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
   def handle_event("edit_tags", %{"id" => trait_id}, socket) do
     {trait_id, _} = Integer.parse(trait_id)
-    {:ok, trait} = Traits.get_trait_with_full_survey_data!(trait_id)
-
-    # Load existing tags for this trait
-    existing_tags =
-      MeFiles.existing_tags_per_parent_trait(
-        socket.assigns.current_scope.user.me_file.id,
-        trait_id
-      )
-
-    selected_ids = Enum.map(existing_tags, & &1.trait_id)
-
-    socket =
-      socket
-      |> assign(:trait_in_edit, trait)
-      |> assign(
-        :trait_in_edit_values,
-        parent_trait_values(
-          (socket.assigns.survey_in_edit && socket.assigns.survey_in_edit.parent_traits) || [],
-          trait.id
-        )
-      )
-      |> assign(:selected_child_trait_ids, selected_ids)
-      |> assign(:show_modal_skip, selected_ids == [])
-      |> assign(:show_modal, true)
-      |> assign(:show_delete_confirm, false)
-      |> assign(:show_skip_conflict, false)
-      |> ZipCodeLookup.initialize_zip_lookup_assigns()
-      |> push_event("scroll-tag-list-to-top", %{})
-
-    {:noreply, socket}
+    {:noreply, open_trait_editor(socket, trait_id)}
   end
 
   def handle_event("lookup_zip_code", %{"zip_code_input" => zip_code}, socket) do
@@ -591,15 +665,166 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
     %{
       categories: Surveys.list_survey_categories_with_surveys_and_stats(me_file_id, answered_ids),
-      suggested_surveys: Suggestions.suggested_surveys_for_me_file(me_file_id)
+      suggested_traits: Suggestions.suggested_traits_for_me_file(me_file_id)
     }
   end
 
-  # After tags change or a suggestion is dismissed: refresh in place (no skeleton)
+  # After tags change or a suggestion is dismissed: refresh in place (no
+  # skeleton), and the search results' checks with it
   defp reload_index(socket) do
     me_file_id = socket.assigns.current_scope.user.me_file.id
-    assign(socket, :index, AsyncResult.ok(socket.assigns.index, load_index(me_file_id)))
+
+    socket
+    |> assign(:index, AsyncResult.ok(socket.assigns.index, load_index(me_file_id)))
+    |> assign_trait_search(socket.assigns.trait_search)
   end
+
+  # Taxonomy search: traits (and their tag options and search terms) that
+  # match, limited to ones in an active survey so each opens an editor. A
+  # query too short to search shows the index again.
+  defp assign_trait_search(socket, q) do
+    q = q |> to_string() |> String.slice(0, @trait_search_max_length)
+
+    results =
+      case TraitSearch.tokenize(q) do
+        {:ok, tokens} ->
+          ranked =
+            tokens |> TraitSearch.rank(surveyed_only: true) |> Enum.take(@trait_result_limit)
+
+          me_file_id = socket.assigns.current_scope.user.me_file.id
+          tagged = MeFiles.tagged_parent_trait_ids(me_file_id, Enum.map(ranked, & &1.trait_id))
+          Enum.map(ranked, &Map.put(&1, :tagged?, MapSet.member?(tagged, &1.trait_id)))
+
+        {:error, :empty_query} ->
+          nil
+      end
+
+    assign(socket, trait_search: q, trait_results: results)
+  end
+
+  defp open_suggestion(socket, suggestion_id) do
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+
+    case Suggestions.suggested_trait_for_me_file(me_file_id, suggestion_id) do
+      nil ->
+        put_flash(socket, :info, "That suggestion has already been answered or dismissed.")
+
+      entry ->
+        open_trait_editor(socket, entry.trait.id,
+          suggested_ids: Enum.map(entry.new_values, & &1.id),
+          chat_note: chat_note(entry)
+        )
+    end
+  end
+
+  # Opens a parent trait's tag editor on its own (from a survey, a search
+  # result or a suggestion). `suggested_ids` are ticked and highlighted on top
+  # of what's on file; nothing is written until Save.
+  defp open_trait_editor(socket, trait_id, opts \\ []) do
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+    {:ok, trait} = Traits.get_trait_with_full_survey_data!(trait_id)
+    existing = MeFiles.existing_tags_per_parent_trait(me_file_id, trait_id)
+    suggested_ids = Keyword.get(opts, :suggested_ids, [])
+
+    selected_ids =
+      selection_with_suggested(trait, Enum.map(existing, & &1.trait_id), suggested_ids)
+
+    socket
+    |> assign(:trait_in_edit, trait)
+    |> assign(:trait_in_edit_values, Enum.map(existing, & &1.trait.trait_name))
+    |> assign(:selected_child_trait_ids, selected_ids)
+    |> assign(:highlight_child_ids, suggested_ids)
+    |> assign(:chat_note, Keyword.get(opts, :chat_note))
+    |> assign(:show_modal_skip, selected_ids == [])
+    |> assign(:show_modal, true)
+    |> assign(:show_delete_confirm, false)
+    |> assign(:show_skip_conflict, false)
+    |> ZipCodeLookup.initialize_zip_lookup_assigns()
+    |> scroll_tag_list(suggested_ids)
+  end
+
+  # Suggested values join what's on file (a skip answer gives way to them);
+  # a single-select takes the first suggested value instead.
+  defp selection_with_suggested(_trait, existing_ids, []), do: existing_ids
+
+  defp selection_with_suggested(%{input_type: "single_select"}, _existing_ids, [first | _]),
+    do: [first]
+
+  defp selection_with_suggested(
+         %{input_type: "multi_select"} = trait,
+         existing_ids,
+         suggested_ids
+       ) do
+    skip_ids = for child <- trait.child_traits, child.is_skipped_tag, do: child.id
+    Enum.uniq((existing_ids -- skip_ids) ++ suggested_ids)
+  end
+
+  defp selection_with_suggested(_trait, existing_ids, _suggested_ids), do: existing_ids
+
+  defp scroll_tag_list(socket, []), do: push_event(socket, "scroll-tag-list-to-top", %{})
+
+  defp scroll_tag_list(socket, [first | _]),
+    do: push_event(socket, "scroll-tag-option-into-view", %{id: "trait-#{first}"})
+
+  defp chat_note(%{new_values: [_ | _] = values}),
+    do: "Ticked from your chat: #{join_names(values)}. Nothing is added until you save."
+
+  defp chat_note(%{suggestion: %{proposed_values: [_ | _] = values}}),
+    do: "Mentioned in chat: #{Enum.join(values, ", ")}"
+
+  defp chat_note(_entry), do: nil
+
+  defp join_names(traits), do: traits |> Enum.map(& &1.trait_name) |> Enum.join(", ")
+
+  # What "Related" searches for: a word from chat that named no tag option
+  # first (the likeliest gap), else the new value itself.
+  defp related_query(%{unmatched_values: [value | _]}), do: value
+  defp related_query(%{new_values: [value | _]}), do: value.trait_name
+  defp related_query(_entry), do: nil
+
+  attr :results, :list, required: true
+  attr :trait_search, :string, required: true
+
+  defp trait_search_results(assigns) do
+    ~H"""
+    <section id="builder-trait-results" class="mefile-category builder-results" aria-live="polite">
+      <div class="mefile-category__head">
+        <h2>Results</h2>
+        <span :if={@results != []} class="tabular-amount">{length(@results)}</span>
+      </div>
+      <p :if={@results == []} class="builder-results__empty">
+        No topics match "{@trait_search}".
+      </p>
+      <.surface_panel :if={@results != []} padding={false} class="youdata-card">
+        <ul class="builder-list">
+          <li :for={result <- @results}>
+            <button
+              type="button"
+              phx-click="open_trait"
+              phx-value-id={result.trait_id}
+              class="builder-row"
+            >
+              <span class="builder-row__main">
+                <span class="builder-row__name">{result.trait}</span>
+                <span class="qai-suggestion__meta">{result_detail(result)}</span>
+              </span>
+              <%= if result.tagged? do %>
+                <.icon name="hero-check-circle-solid" class="builder-row__done h-5 w-5" />
+                <span class="sr-only">Has tags</span>
+              <% end %>
+              <.icon name="hero-chevron-right" class="builder-row__chevron h-5 w-5" />
+            </button>
+          </li>
+        </ul>
+      </.surface_panel>
+    </section>
+    """
+  end
+
+  defp result_detail(%{matched_values: [_ | _] = values}),
+    do: "Matches " <> (values |> Enum.uniq() |> Enum.join(", "))
+
+  defp result_detail(%{category: category}), do: category
 
   # First-load placeholder in the index's own layout: category label, then a
   # card of rows (name, progress line, count), with DaisyUI `.skeleton` bones.
@@ -661,10 +886,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
     assign(socket, :tag_display_mode, mode)
   end
 
-  # Update entries mean the anchor trait already has tags: the assistant heard
-  # something newer in chat. Gap entries are fills for empty traits.
-  defp suggestion_byline(%{update?: true}), do: "Review suggested by"
-  defp suggestion_byline(%{latest: %{source: "observed"}}), do: "Asked about by"
+  # Observed entries: an assistant's read hit a gap; the rest it proposed.
+  defp suggestion_byline(%{suggestion: %{source: "observed"}}), do: "Asked about by"
   defp suggestion_byline(_entry), do: "Suggested by"
 
   # Surveys with no questions open empty, so the index leaves them (and any

@@ -127,6 +127,24 @@ had no way to follow through. This closes that loop.
    the assistant's words). Suggestions store the effective MeFile at suggestion
    time, so proxy personas resolve naturally. suggest_tag accepts only traits that
    have a survey question, guaranteeing renderability.
+   **Revised (October 2026):** the virtual survey shipped as a "Suggested by Qai"
+   card in the Builder, one row per trait rather than per survey (grouping by
+   survey hid the trait inside grab-bag surveys like \*ESSENTIALS\*). Each row
+   names the trait, the values from chat not yet on file ("Add Pottery", matched
+   to child traits by name or search term), the survey as context, and the
+   assistant's reason. A tap opens that trait's tag editor directly with those
+   values pre-ticked and highlighted ("From chat"); Save is still the
+   confirmation. `/me_file_builder?suggestion=<id>` deep-links to the same
+   editor (own pending suggestions only). Words that match no tag option show
+   as "Also mentioned" and feed a "Related" search.
+   **Builder search:** `/me_file_builder?q=` and the search field above the
+   index search the taxonomy (`Qlarius.YouData.TraitSearch`, shared with the
+   oracle's `search_traits`): trait, tag option and category names plus
+   admin-editable `traits.search_terms` (synonyms such as "ceramics" on
+   Pottery), limited to traits in an active survey. Results open the editor.
+   Search terms are edited in trait admin and the admin API (design packs,
+   parent and child PATCH); the agent guide asks agents to propose them when
+   designing traits.
 4. **Noise controls.** Cap pending suggestions per grant (~10), dedupe by trait,
    silently drop repeats. Taxonomy-bound only in v1: proposing new traits is taxonomy
    governance, out of scope.

@@ -239,7 +239,7 @@ defmodule QlariusWeb.QaiLiveTest do
     assert suggestion.proposed_values == ["Rarely"]
     assert suggestion.grant.mecp_client.name == "Qai"
 
-    assert [entry] = Suggestions.suggested_surveys_for_me_file(me_file.id)
+    assert [entry] = Suggestions.suggested_traits_for_me_file(me_file.id)
     assert entry.update?
 
     # And the tool call is in the access log like any counterparty's.

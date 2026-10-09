@@ -231,6 +231,54 @@ Hooks.QaiKeyboard = {
   }
 }
 
+// Phones: the on-screen keyboard shrinks the visual viewport but not the layout
+// one, so a fixed control at the bottom (the floating search) ends up behind
+// it. While it's up, pin the shell to the visible area via the html.keyboard-open
+// rules. Pinch zoom also shrinks the visual viewport, so only an unzoomed
+// shrink counts.
+Hooks.KeyboardLift = {
+  mounted() {
+    this._vv = window.visualViewport
+    if (!this._vv) return
+
+    this._root = document.documentElement
+    this._frame = null
+    this._sync = () => {
+      if (this._frame) return
+      this._frame = requestAnimationFrame(() => {
+        this._frame = null
+        this._apply()
+      })
+    }
+    this._vv.addEventListener("resize", this._sync)
+    this._vv.addEventListener("scroll", this._sync)
+    this._apply()
+  },
+  destroyed() {
+    if (!this._vv) return
+    this._vv.removeEventListener("resize", this._sync)
+    this._vv.removeEventListener("scroll", this._sync)
+    if (this._frame) cancelAnimationFrame(this._frame)
+    this._reset()
+  },
+  _apply() {
+    const vv = this._vv
+    const unzoomed = Math.abs(vv.scale - 1) < 0.01
+    const covered = this._root.clientHeight - vv.height - vv.offsetTop
+
+    if (!unzoomed || covered < 120) return this._reset()
+
+    this._root.classList.add("keyboard-open")
+    this._root.style.setProperty("--vv-height", `${Math.round(vv.height)}px`)
+    this._root.style.setProperty("--vv-top", `${Math.round(vv.offsetTop)}px`)
+  },
+  _reset() {
+    this._root.classList.remove("keyboard-open")
+    this._root.style.removeProperty("--vv-height")
+    this._root.style.removeProperty("--vv-top")
+  }
+}
+
 Hooks.CopyToClipboard = {
   mounted() {
     this._confirmationTimeout = null
@@ -2767,6 +2815,22 @@ window.addEventListener("phx:scroll-tag-list-to-top", () => {
   if (container) {
     container.scrollTop = 0
   }
+})
+
+// Centre a tag option (one ticked from a Qai suggestion) in the modal's list.
+// Scrolls the list itself, not the page, once the modal has laid out.
+window.addEventListener("phx:scroll-tag-option-into-view", (event) => {
+  requestAnimationFrame(() => {
+    const container = document.getElementById("tag-list-scroll-container")
+    const input = document.getElementById(event.detail.id)
+    const row = input && input.closest("label")
+    if (!container || !row) return
+
+    const containerRect = container.getBoundingClientRect()
+    const rowRect = row.getBoundingClientRect()
+    container.scrollTop +=
+      rowRect.top - containerRect.top - (containerRect.height - rowRect.height) / 2
+  })
 })
 
 Hooks.MeFilePanelScroll = {

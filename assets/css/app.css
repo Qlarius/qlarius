@@ -2992,6 +2992,41 @@
     border-color: color-mix(in oklab, var(--color-base-content) 14%, transparent);
   }
 
+  /* The value from chat that isn't on file yet: the row's one action */
+  .qai-suggestion__add {
+    @apply -mt-1 text-sm font-semibold leading-snug text-qai-600 dark:text-qai-300;
+  }
+
+  .qai-suggestion__related {
+    @apply inline-flex h-7 shrink-0 items-center rounded-full px-2 text-xs font-semibold text-base-content/60 transition-colors hover:text-base-content;
+  }
+
+  .qai-suggestion__related + .qai-suggestion__dismiss {
+    @apply ml-0;
+  }
+
+  .qai-suggestion__foot > .qai-suggestion__related {
+    @apply ml-auto;
+  }
+
+  /* Builder search results replace the index while a query is active. */
+  .builder-results {
+    @apply max-w-xl pt-2;
+  }
+
+  .builder-results__empty {
+    @apply py-6 text-sm text-base-content/60;
+  }
+
+  /* Tag edit sheet: what Qai heard in chat, and the options it ticked */
+  .tag-edit-chat-note {
+    @apply mb-1 flex items-start gap-1.5 text-sm leading-snug text-qai-600 dark:text-qai-300;
+  }
+
+  .tag-option--from-chat {
+    background-color: color-mix(in oklab, var(--color-qai-400) 10%, transparent);
+  }
+
   .builder-list {
     @apply m-0 list-none p-0;
   }
@@ -6226,4 +6261,33 @@ html.qai-keyboard-open .mobile-shell .mobile-bottom-nav-area {
 
 html.qai-keyboard-open .mobile-shell .mobile-layout-content {
   padding-bottom: 0.5rem;
+}
+
+/*
+ * Any phone keyboard, not just Qai's. The KeyboardLift hook (on the floating
+ * search) publishes the visible area and adds this class. The shell follows
+ * it and hides the tab bar, and a transform contains position:fixed
+ * descendants (the search, bottom sheets) so they sit in that visible area
+ * instead of under the keyboard. The transform is only present while the
+ * keyboard is up.
+ */
+html.keyboard-open .mobile-shell {
+  position: fixed;
+  inset-inline: 0;
+  top: var(--vv-top, 0px);
+  height: var(--vv-height, 100vh);
+  transform: translateZ(0);
+  --mobile-bottom-nav-offset: 0px;
+}
+
+html.keyboard-open .mobile-shell .mobile-bottom-nav-area {
+  display: none;
+}
+
+html.keyboard-open .mobile-shell #mefile-floating-toolbar {
+  bottom: 0.75rem;
+}
+
+html.keyboard-open .tag-edit-modal__box {
+  max-height: calc(var(--vv-height, 90vh) - 1rem);
 }

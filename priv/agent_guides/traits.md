@@ -24,6 +24,29 @@ children, the survey question, and the answers in one transaction.
   when reforming an existing child.
 - `deactivate_missing_children`: `true` to retire children you left out.
   Their MeFile tags stay.
+- `search_terms` on `parent` and on each child (optional, see below).
+
+## Search terms
+
+Builder search and assistants' `search_traits` match trait names, category
+names, and each trait's `search_terms`: extra words people use for the same
+thing. "pottery" already finds Arts and Crafts through its Pottery child;
+`search_terms: ["ceramics", "clay", "wheel throwing"]` on that child makes
+those words find it too.
+
+- Put a term on the child it means (Pottery), or on the parent when it means
+  the whole topic ("crafting" on Arts and Crafts).
+- A list of strings, or one comma-separated string. Terms are lowercased,
+  trimmed and deduplicated; at most 20 per trait, 60 characters each. Sending
+  `search_terms` replaces the list; `[]` or `null` clears it; leaving the key
+  out keeps it.
+- Write them in a design pack, `PATCH /api/admin/traits/:id` (parent),
+  `PATCH /api/admin/traits/:id/children/:child_id` (child), or with new
+  children on `POST /api/admin/traits/:id/children`. Reads return them as
+  `search_terms`.
+- Propose terms whenever you create or reform a trait: synonyms, everyday
+  phrasing, and common misspellings a person would type. Skip words that
+  belong to a different trait, and don't repeat the trait's own name.
 
 ## The skip answer
 

@@ -34,7 +34,8 @@ defmodule Qlarius.MeCP.Oracle do
   alias Qlarius.MeCP.TaxonomyGaps
   alias Qlarius.Repo
   alias Qlarius.YouData.MeFiles.MeFileTag
-  alias Qlarius.YouData.Traits.{Trait, TraitCategory}
+  alias Qlarius.YouData.TraitSearch
+  alias Qlarius.YouData.Traits.Trait
 
   # Questions may target a trait by id or by (case-insensitive exact) name.
   @type trait_ref :: integer() | String.t()
@@ -105,7 +106,8 @@ defmodule Qlarius.MeCP.Oracle do
   tier-gated (oracle), draws one unit of disclosure budget, and writes one
   access-log row like any other oracle read.
 
-  Child trait names match and resolve to their effective parent, so a query
+  Matching is `Qlarius.YouData.TraitSearch` (names, search terms and category
+  names). Child trait names match and resolve to their effective parent, so a query
   like "dog" finds "Pet Ownership" when "Dog" is one of its child traits.
   Results without data are the gaps a MeFile owner can fill; the MCP layer
   turns them into gentle add-your-tags nudges.
@@ -120,21 +122,22 @@ defmodule Qlarius.MeCP.Oracle do
 
     with :ok <- Grants.check(grant, :oracle, now),
          :ok <- Grants.check_budget(grant, now),
-         {:ok, tokens} <- tokenize(query) do
+         {:ok, tokens} <- TraitSearch.tokenize(query) do
       me_file_id = Qlarius.MeCP.effective_me_file_id(grant)
-      ranked = matching_effective_traits(tokens)
+      ranked = TraitSearch.rank(tokens)
 
       # Coverage is judged on the whole taxonomy, not the grant's scope: a
       # subject outside this grant's categories is still covered.
       note_search_gap(grant, query, ranked, now)
 
-      matches =
+      scoped =
         ranked
         |> Enum.filter(
           &Scope.allows?(scope, %{trait_id: &1.trait_id, category_key: &1.category_id})
         )
         |> Enum.take(@search_result_limit)
-        |> mark_has_data(me_file_id)
+
+      matches = mark_has_data(scoped, me_file_id)
 
       AccessLog.record!(
         grant,
@@ -151,14 +154,16 @@ defmodule Qlarius.MeCP.Oracle do
       )
 
       # The assistant searched for something the MeFile lacks: queue the top
-      # gap matches as observed suggestions (matches are already
-      # score-ordered; best-effort, never fails the read). The Builder groups
-      # anchors by survey, so several anchors in one topic collapse to a
-      # single suggested survey rather than adding noise.
-      matches
-      |> Enum.filter(&(&1.has_data == false))
+      # gap matches as observed suggestions (score-ordered; best-effort, never
+      # fails the read). Each becomes its own Builder row, so category-only
+      # hits (score below 2) don't qualify.
+      scoped
+      |> Enum.zip(matches)
+      |> Enum.filter(fn {ranked, match} -> ranked.score >= 2 and match.has_data == false end)
       |> Enum.take(3)
-      |> Enum.each(&Suggestions.observe_gap(grant, &1.trait_id, now: now))
+      |> Enum.each(fn {_ranked, match} ->
+        Suggestions.observe_gap(grant, match.trait_id, now: now)
+      end)
 
       {:ok, matches}
     end
@@ -276,79 +281,6 @@ defmodule Qlarius.MeCP.Oracle do
 
   # --- taxonomy search helpers -------------------------------------------------
 
-  defp tokenize(query) do
-    tokens =
-      query
-      |> String.downcase()
-      |> String.split(~r/[^a-z0-9]+/, trim: true)
-      |> Enum.filter(&(String.length(&1) >= 3))
-      # Naive singular fallback so "dogs" still matches a "Dog" child trait.
-      |> Enum.flat_map(fn t ->
-        if String.ends_with?(t, "s"), do: [t, String.trim_trailing(t, "s")], else: [t]
-      end)
-      |> Enum.uniq()
-
-    if tokens == [], do: {:error, :empty_query}, else: {:ok, tokens}
-  end
-
-  # Matches tokens against trait names (parents and children) and category
-  # names, resolving child hits to their effective parent. The taxonomy is
-  # small enough to score in memory, which keeps ranking deterministic.
-  defp matching_effective_traits(tokens) do
-    categories = Repo.all(from c in TraitCategory, select: {c.id, c.name}) |> Map.new()
-
-    traits =
-      Repo.all(
-        from t in Trait,
-          where: t.is_active == true,
-          select: %{
-            id: t.id,
-            name: t.trait_name,
-            parent_id: t.parent_trait_id,
-            category_id: t.trait_category_id
-          }
-      )
-
-    by_id = Map.new(traits, &{&1.id, &1})
-
-    traits
-    |> Enum.reduce(%{}, fn trait, acc ->
-      effective = if trait.parent_id, do: by_id[trait.parent_id], else: trait
-      score = match_score(tokens, trait.name, categories[effective && effective.category_id])
-
-      if effective && score > 0 do
-        Map.update(acc, effective.id, {score, effective}, fn {prev, eff} ->
-          {max(prev, score), eff}
-        end)
-      else
-        acc
-      end
-    end)
-    |> Enum.map(fn {_id, {score, eff}} ->
-      %{
-        trait_id: eff.id,
-        trait: eff.name,
-        category: categories[eff.category_id],
-        category_id: eff.category_id,
-        score: score
-      }
-    end)
-    |> Enum.sort_by(&{-&1.score, &1.trait, &1.trait_id})
-  end
-
-  defp match_score(tokens, trait_name, category_name) do
-    trait_down = String.downcase(trait_name)
-    category_down = String.downcase(category_name || "")
-
-    Enum.reduce(tokens, 0, fn token, acc ->
-      cond do
-        String.contains?(trait_down, token) -> acc + 2
-        String.contains?(category_down, token) -> acc + 1
-        true -> acc
-      end
-    end)
-  end
-
   defp mark_has_data(matches, me_file_id) do
     effective_ids = Enum.map(matches, & &1.trait_id)
 
@@ -368,7 +300,7 @@ defmodule Qlarius.MeCP.Oracle do
     for match <- matches do
       match
       |> Map.put(:has_data, MapSet.member?(with_data, match.trait_id))
-      |> Map.drop([:score, :category_id])
+      |> Map.drop([:score, :category_id, :matched_values])
     end
   end
 

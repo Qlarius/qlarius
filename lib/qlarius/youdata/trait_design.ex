@@ -127,7 +127,8 @@ defmodule Qlarius.YouData.TraitDesign do
         "is_active" => active_flag(params, true)
       }
       |> put_meta(params)
-      |> put_search_filter(params),
+      |> put_search_filter(params)
+      |> put_search_terms(params),
       keep_display_order: is_integer(integer(params["display_order"])),
       keep_active: true,
       ensure_skip: false
@@ -166,7 +167,7 @@ defmodule Qlarius.YouData.TraitDesign do
     TraitManager.update_parent_trait(
       scope,
       parent,
-      attrs |> put_meta(params) |> put_search_filter(params),
+      attrs |> put_meta(params) |> put_search_filter(params) |> put_search_terms(params),
       ensure_skip: false
     )
   end
@@ -207,6 +208,7 @@ defmodule Qlarius.YouData.TraitDesign do
                   params
                 )
                 |> put_skip_flag(params)
+                |> put_search_terms(params)
               )
             end
 
@@ -226,7 +228,10 @@ defmodule Qlarius.YouData.TraitDesign do
                 TraitManager.update_child_trait(
                   scope,
                   child,
-                  put_meta(attrs, params) |> put_skip_flag(params)
+                  attrs
+                  |> put_meta(params)
+                  |> put_skip_flag(params)
+                  |> put_search_terms(params)
                 )
 
               _ ->
@@ -384,6 +389,7 @@ defmodule Qlarius.YouData.TraitDesign do
       meta_2: parent.meta_2,
       meta_3: parent.meta_3,
       has_search_filter: parent.has_search_filter,
+      search_terms: parent.search_terms,
       survey_question: question_json(Map.get(parent, :survey_question)),
       children: Enum.map(parent.child_traits || [], &child_json/1),
       child_traits_count: Map.get(parent, :child_traits_count)
@@ -407,6 +413,7 @@ defmodule Qlarius.YouData.TraitDesign do
       meta_1: child.meta_1,
       meta_2: child.meta_2,
       meta_3: child.meta_3,
+      search_terms: child.search_terms,
       me_file_tag_count: Map.get(child, :tags_count, 0),
       is_skipped_tag: child.is_skipped_tag,
       survey_answer: answer_json(answer)
@@ -422,6 +429,13 @@ defmodule Qlarius.YouData.TraitDesign do
     else
       attrs
     end
+  end
+
+  # A list, or one comma-separated string; `null` clears
+  defp put_search_terms(attrs, params) do
+    if Map.has_key?(params, "search_terms"),
+      do: Map.put(attrs, "search_terms", params["search_terms"] || []),
+      else: attrs
   end
 
   defp put_search_filter(attrs, params) do

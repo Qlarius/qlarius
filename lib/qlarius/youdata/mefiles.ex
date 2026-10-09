@@ -137,6 +137,21 @@ defmodule Qlarius.YouData.MeFiles do
     add_birthdate_tag_to_result(result, me_file_id)
   end
 
+  @doc "Which of these effective (parent) trait ids carry tags on this MeFile."
+  def tagged_parent_trait_ids(_me_file_id, []), do: MapSet.new()
+
+  def tagged_parent_trait_ids(me_file_id, trait_ids) when is_list(trait_ids) do
+    Repo.all(
+      from mt in MeFileTag,
+        join: t in Trait,
+        on: mt.trait_id == t.id,
+        where: mt.me_file_id == ^me_file_id and coalesce(t.parent_trait_id, t.id) in ^trait_ids,
+        select: coalesce(t.parent_trait_id, t.id),
+        distinct: true
+    )
+    |> MapSet.new()
+  end
+
   def existing_tags_per_parent_trait(me_file_id, parent_trait_id) do
     Repo.all(
       from mt in MeFileTag,

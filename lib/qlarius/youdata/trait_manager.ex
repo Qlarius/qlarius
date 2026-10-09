@@ -510,6 +510,11 @@ defmodule Qlarius.YouData.TraitManager do
           "modified_by" => scope.true_user.id
         }
         |> put_present_meta(attrs)
+        |> then(fn child_attrs ->
+          if Map.has_key?(attrs, "search_terms"),
+            do: Map.put(child_attrs, "search_terms", attrs["search_terms"]),
+            else: child_attrs
+        end)
 
       %Trait{}
       |> Trait.changeset(child_attrs)

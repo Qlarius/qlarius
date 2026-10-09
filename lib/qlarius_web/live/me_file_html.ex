@@ -52,6 +52,8 @@ defmodule QlariusWeb.MeFileHTML do
   attr :dual_pane, :boolean, default: false
   attr :show_expanded_tags, :boolean, default: false
   attr :is_pwa, :boolean, default: false
+  attr :highlight_ids, :list, default: [], doc: "Tag options ticked from a chat suggestion"
+  attr :chat_note, :string, default: nil
 
   def tag_edit_modal(assigns) do
     assigns =
@@ -112,6 +114,10 @@ defmodule QlariusWeb.MeFileHTML do
           <div class="p-4 bg-base-100 text-base-content/70 shrink-0 border-b border-base-300/40 dark:border-base-content/10">
             <p :if={@trait_in_edit && @trait_in_edit.survey_question} class="text-lg mb-3">
               {Phoenix.HTML.raw(@trait_in_edit.survey_question.text)}
+            </p>
+            <p :if={@chat_note} class="tag-edit-chat-note">
+              <.icon name="hero-sparkles" class="h-4 w-4 shrink-0" />
+              <span>{@chat_note}</span>
             </p>
 
             <%!-- Toggle when a child has an answer or meta beyond the trait name --%>
@@ -224,7 +230,8 @@ defmodule QlariusWeb.MeFileHTML do
                     class={[
                       "flex gap-3 [&:not(:last-child)]:border-b border-base-content/10 py-3.5 px-1 hover:bg-base-200/60 cursor-pointer",
                       @show_expanded_tags && "items-start",
-                      !@show_expanded_tags && "items-center"
+                      !@show_expanded_tags && "items-center",
+                      child_trait.id in @highlight_ids && "tag-option--from-chat"
                     ]}
                   >
                     <input
@@ -251,6 +258,12 @@ defmodule QlariusWeb.MeFileHTML do
                     <div class="flex-1 min-w-0">
                       <div class="text-lg text-base-content font-medium break-words">
                         {child_trait.trait_name}
+                        <span
+                          :if={child_trait.id in @highlight_ids}
+                          class="qai-suggestion__badge"
+                        >
+                          From chat
+                        </span>
                       </div>
                       <div
                         :if={@show_expanded_tags && Targeting.tag_option_answer(child_trait) != ""}
@@ -386,10 +399,23 @@ defmodule QlariusWeb.MeFileHTML do
   attr :tag_search, :string, required: true
   attr :autofocus, :boolean, default: false
   attr :compact, :boolean, default: false
+  attr :form_id, :string, default: "mefile-tag-search-form"
+  attr :input_id, :string, default: "mefile-tag-search-input"
+  attr :input_name, :string, default: "tag_search"
+  attr :change_event, :string, default: "tag_search_changed"
+  attr :clear_event, :string, default: "clear_tag_search"
+  attr :placeholder, :string, default: nil
+  attr :label, :string, default: "Search tags"
+  attr :debounce, :string, default: nil
 
   def tag_search_input(assigns) do
     ~H"""
-    <form phx-change="tag_search_changed" class="flex-1 min-w-0 w-full">
+    <form
+      id={@form_id}
+      phx-change={@change_event}
+      phx-submit={@change_event}
+      class="flex-1 min-w-0 w-full"
+    >
       <label class={[
         "input flex w-full items-center min-w-0 shadow-lg bg-base-100 dark:bg-base-200 border-base-300",
         @compact && "input-lg gap-3 rounded-full px-4",
@@ -400,16 +426,18 @@ defmodule QlariusWeb.MeFileHTML do
           class={if(@compact, do: "opacity-50 shrink-0 h-5 w-5", else: "opacity-50 shrink-0 h-4 w-4")}
         />
         <input
-          id="mefile-tag-search-input"
+          id={@input_id}
           type="text"
-          name="tag_search"
+          name={@input_name}
           value={@tag_search}
+          placeholder={@placeholder}
           inputmode="search"
           enterkeyhint="search"
           role="searchbox"
           autocomplete="off"
-          aria-label="Search tags"
+          aria-label={@label}
           autofocus={@autofocus}
+          phx-debounce={@debounce}
           class={[
             "grow min-w-0 bg-transparent outline-none",
             @compact && "text-lg",
@@ -419,7 +447,7 @@ defmodule QlariusWeb.MeFileHTML do
         <button
           :if={@tag_search != ""}
           type="button"
-          phx-click="clear_tag_search"
+          phx-click={@clear_event}
           class={[
             "btn btn-ghost btn-circle shrink-0",
             @compact && "btn-sm",
@@ -439,25 +467,49 @@ defmodule QlariusWeb.MeFileHTML do
   attr :show_tag_search, :boolean, required: true
   attr :show_add_tags, :boolean, default: true
   attr :show_search, :boolean, default: true
+  attr :show_view_modes, :boolean, default: true
+  attr :search_toggle, :string, default: "toggle_tag_search"
+  attr :search_change, :string, default: "tag_search_changed"
+  attr :search_clear, :string, default: "clear_tag_search"
+  attr :search_hide, :string, default: "hide_tag_search"
+  attr :search_name, :string, default: "tag_search"
+  attr :search_input_id, :string, default: "mefile-tag-search-input"
+  attr :search_form_id, :string, default: "mefile-tag-search-form"
+  attr :search_label, :string, default: "Search tags"
+  attr :search_placeholder, :string, default: nil
+  attr :search_debounce, :string, default: nil
 
   def mefile_floating_toolbar(assigns) do
     ~H"""
     <div
       id="mefile-floating-toolbar"
+      phx-hook="KeyboardLift"
       class="fixed right-4 bottom-[5.75rem] z-40 max-w-[calc(100vw-2rem)] pointer-events-none"
     >
       <div
         id="mefile-floating-toolbar-inner"
-        phx-click-away={@show_search && @show_tag_search && "hide_tag_search"}
+        phx-click-away={@show_search && @show_tag_search && @search_hide}
         class="flex flex-col items-end gap-2 pointer-events-auto"
       >
         <div
           :if={@show_search && @show_tag_search}
           id="mefile-tag-search-panel"
           class="w-full min-w-[16rem] max-w-[calc(100vw-2rem)]"
-          phx-mounted={JS.dispatch("phx:focus", detail: %{id: "mefile-tag-search-input"})}
+          phx-mounted={JS.dispatch("phx:focus", detail: %{id: @search_input_id})}
         >
-          <.tag_search_input tag_search={@tag_search} autofocus={true} compact={true} />
+          <.tag_search_input
+            tag_search={@tag_search}
+            autofocus={true}
+            compact={true}
+            form_id={@search_form_id}
+            input_id={@search_input_id}
+            input_name={@search_name}
+            change_event={@search_change}
+            clear_event={@search_clear}
+            placeholder={@search_placeholder}
+            label={@search_label}
+            debounce={@search_debounce}
+          />
         </div>
 
         <div class="flex flex-row items-center justify-end gap-2">
@@ -466,16 +518,22 @@ defmodule QlariusWeb.MeFileHTML do
             <button
               :if={@show_search}
               type="button"
-              phx-click="toggle_tag_search"
+              phx-click={@search_toggle}
               class={["mefile-toolbar__btn", @show_tag_search && "is-on"]}
-              aria-label="Search tags"
+              aria-label={@search_label}
               aria-expanded={to_string(@show_tag_search)}
             >
               <.icon name="hero-magnifying-glass" class="h-5 w-5" />
             </button>
-            <span :if={@show_search} class="mefile-toolbar__sep" aria-hidden="true"></span>
+            <span
+              :if={@show_search && @show_view_modes}
+              class="mefile-toolbar__sep"
+              aria-hidden="true"
+            >
+            </span>
             <button
               :for={mode <- ~w(list tag)}
+              :if={@show_view_modes}
               type="button"
               phx-click="set_tag_display_mode"
               phx-value-mode={mode}

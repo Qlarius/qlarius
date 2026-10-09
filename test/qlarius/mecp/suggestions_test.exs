@@ -232,10 +232,10 @@ defmodule Qlarius.MeCP.SuggestionsTest do
       assert Suggestions.pending_count_for_me_file(ctx.me_file.id) == 0
     end
 
-    test "suggested_surveys groups anchors by survey with progress and byline data" do
+    test "suggested_traits gives one entry per trait, newest first, with its survey" do
       ctx = seed_with_gap!(survey: false)
 
-      # A second gap trait in the same survey collapses into one entry.
+      # Two gap traits in one survey stay separate entries.
       sibling =
         insert_trait!(ctx.lifestyle, "Ideal Vacation Activities #{System.unique_integer()}")
 
@@ -258,20 +258,56 @@ defmodule Qlarius.MeCP.SuggestionsTest do
         })
       end
 
-      {:ok, _} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{})
-      {:ok, _} = Suggestions.create_suggestion(ctx.grant, sibling.id, %{})
+      {:ok, first} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{})
+      {:ok, second} = Suggestions.create_suggestion(ctx.grant, sibling.id, %{})
 
-      assert [entry] = Suggestions.suggested_surveys_for_me_file(ctx.me_file.id)
-      assert entry.survey.id == survey.id
-      assert length(entry.suggestions) == 2
-      assert entry.answered == 0
-      assert entry.total == 2
-      assert entry.latest.grant.mecp_client.name == "Test Client"
+      assert [newest, oldest] = Suggestions.suggested_traits_for_me_file(ctx.me_file.id)
+      assert newest.suggestion.id == second.id
+      assert newest.trait.id == sibling.id
+      assert oldest.suggestion.id == first.id
+      assert Enum.all?([newest, oldest], &(&1.survey.id == survey.id))
+      assert newest.suggestion.grant.mecp_client.name == "Test Client"
+      refute newest.update?
 
-      # Group dismissal clears both anchors.
-      ids = Enum.map(entry.suggestions, & &1.id)
-      assert 2 = Suggestions.dismiss_many(ids, ctx.me_file.id)
-      assert Suggestions.suggested_surveys_for_me_file(ctx.me_file.id) == []
+      assert Suggestions.suggested_trait_for_me_file(ctx.me_file.id, first.id).trait.id ==
+               ctx.gap.id
+
+      :ok = Suggestions.dismiss(second.id, ctx.me_file.id)
+      assert [only] = Suggestions.suggested_traits_for_me_file(ctx.me_file.id)
+      assert only.suggestion.id == first.id
+      assert Suggestions.suggested_trait_for_me_file(ctx.me_file.id, second.id) == nil
+    end
+
+    test "suggested_trait_for_me_file only returns this MeFile's suggestions" do
+      ctx = seed_with_gap!()
+      {:ok, suggestion} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{})
+      other = Repo.insert!(%Qlarius.YouData.MeFiles.MeFile{})
+
+      assert Suggestions.suggested_trait_for_me_file(other.id, suggestion.id) == nil
+      assert Suggestions.suggested_trait_for_me_file(ctx.me_file.id, suggestion.id)
+    end
+
+    test "values from chat sort into new tag options, ones on file, and unmatched words" do
+      ctx = seed_with_gap!()
+      painting = insert_trait!(nil, "Painting", parent_trait_id: ctx.gap.id, display_order: 1)
+      pottery = insert_trait!(nil, "Pottery", parent_trait_id: ctx.gap.id, display_order: 2)
+
+      clay =
+        insert_trait!(nil, "Sculpture", parent_trait_id: ctx.gap.id, display_order: 3)
+        |> Ecto.Changeset.change(search_terms: ["clay"])
+        |> Repo.update!()
+
+      insert_tag!(ctx.me_file, painting, "Painting")
+
+      {:ok, _} =
+        Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{
+          proposed_values: ["Painting", "pottery", "Clay", "Origami"]
+        })
+
+      assert [entry] = Suggestions.suggested_traits_for_me_file(ctx.me_file.id)
+      assert Enum.map(entry.new_values, & &1.id) == [pottery.id, clay.id]
+      assert entry.unmatched_values == ["Origami"]
+      assert entry.update?
     end
 
     test "traits in no active survey are orphaned and refused" do
@@ -295,13 +331,13 @@ defmodule Qlarius.MeCP.SuggestionsTest do
     test "pending suggestions whose trait is later orphaned are left out of the Builder" do
       ctx = seed_with_gap!()
       {:ok, _} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{})
-      assert [_entry] = Suggestions.suggested_surveys_for_me_file(ctx.me_file.id)
+      assert [_entry] = Suggestions.suggested_traits_for_me_file(ctx.me_file.id)
 
       # The gap's only survey is switched off: the trait is now inactive
       Repo.update_all(Survey, set: [active: false])
 
       assert Suggestions.list_pending_for_me_file(ctx.me_file.id) == []
-      assert Suggestions.suggested_surveys_for_me_file(ctx.me_file.id) == []
+      assert Suggestions.suggested_traits_for_me_file(ctx.me_file.id) == []
     end
 
     test "orphaned pending suggestions don't count against the grant's cap" do
@@ -327,7 +363,6 @@ defmodule Qlarius.MeCP.SuggestionsTest do
       pets_question = make_askable_question!(ctx.pets)
       gap_question = Repo.get_by!(SurveyQuestion, trait_id: ctx.gap.id)
 
-      # Separate surveys so the tagged and untagged anchors group apart.
       for {name, question} <- [{"Pets", pets_question}, {"New Topics", gap_question}] do
         survey =
           Repo.insert!(%Qlarius.YouData.Surveys.Survey{
@@ -356,13 +391,13 @@ defmodule Qlarius.MeCP.SuggestionsTest do
 
       {:ok, _} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{})
 
-      entries = Suggestions.suggested_surveys_for_me_file(ctx.me_file.id)
+      entries = Suggestions.suggested_traits_for_me_file(ctx.me_file.id)
       update_entry = Enum.find(entries, & &1.update?)
       gap_entry = Enum.find(entries, &(not &1.update?))
 
-      assert update_entry.latest.trait_id == ctx.pets.id
-      assert update_entry.latest.proposed_values == ["Dog", "Bird"]
-      assert gap_entry.latest.trait_id == ctx.gap.id
+      assert update_entry.trait.id == ctx.pets.id
+      assert update_entry.suggestion.proposed_values == ["Dog", "Bird"]
+      assert gap_entry.trait.id == ctx.gap.id
     end
 
     test "child-trait tags mark the parent anchor's entry as an update" do
@@ -372,7 +407,7 @@ defmodule Qlarius.MeCP.SuggestionsTest do
 
       {:ok, _} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{})
 
-      assert [entry] = Suggestions.suggested_surveys_for_me_file(ctx.me_file.id)
+      assert [entry] = Suggestions.suggested_traits_for_me_file(ctx.me_file.id)
       assert entry.update?
     end
 

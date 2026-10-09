@@ -27,6 +27,7 @@ defmodule Qlarius.YouData.Traits.Trait do
     field :meta_3, :string
     field :has_search_filter, :boolean, default: false
     field :is_skipped_tag, :boolean, default: false
+    field :search_terms, {:array, :string}, default: []
 
     belongs_to :parent_trait, __MODULE__, foreign_key: :parent_trait_id
     # TraitCategory association commented - schema only in archive_hide
@@ -43,9 +44,14 @@ defmodule Qlarius.YouData.Traits.Trait do
     timestamps()
   end
 
+  @max_search_terms 20
+  @search_term_max_length 60
+
+  def max_search_terms, do: @max_search_terms
+
   def changeset(trait, attrs) do
     trait
-    |> cast(attrs, [
+    |> cast(split_search_terms(attrs), [
       :trait_name,
       :is_active,
       :input_type,
@@ -59,7 +65,8 @@ defmodule Qlarius.YouData.Traits.Trait do
       :meta_2,
       :meta_3,
       :has_search_filter,
-      :is_skipped_tag
+      :is_skipped_tag,
+      :search_terms
     ])
     |> validate_required([
       :trait_name,
@@ -69,8 +76,37 @@ defmodule Qlarius.YouData.Traits.Trait do
       :modified_by,
       :added_by
     ])
+    |> normalize_search_terms()
+    |> validate_length(:search_terms, max: @max_search_terms)
     |> foreign_key_constraint(:parent_trait_id)
     |> foreign_key_constraint(:trait_category_id)
+  end
+
+  # Admin forms send one comma-separated string; the API sends a list.
+  defp split_search_terms(%{"search_terms" => terms} = attrs) when is_binary(terms),
+    do: Map.put(attrs, "search_terms", String.split(terms, ","))
+
+  defp split_search_terms(%{search_terms: terms} = attrs) when is_binary(terms),
+    do: Map.put(attrs, :search_terms, String.split(terms, ","))
+
+  defp split_search_terms(attrs), do: attrs
+
+  defp normalize_search_terms(changeset) do
+    case get_change(changeset, :search_terms) do
+      terms when is_list(terms) ->
+        put_change(changeset, :search_terms, clean_search_terms(terms))
+
+      _ ->
+        changeset
+    end
+  end
+
+  defp clean_search_terms(terms) do
+    terms
+    |> Enum.map(&(&1 |> String.trim() |> String.downcase()))
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.map(&String.slice(&1, 0, @search_term_max_length))
+    |> Enum.uniq()
   end
 
   def is_geo?(trait) do

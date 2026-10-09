@@ -30,7 +30,8 @@ defmodule QlariusWeb.Api.Admin.TraitController do
             meta_1: trait.meta_1,
             meta_2: trait.meta_2,
             meta_3: trait.meta_3,
-            has_search_filter: trait.has_search_filter
+            has_search_filter: trait.has_search_filter,
+            search_terms: trait.search_terms
           }
         end)
     })
@@ -85,7 +86,8 @@ defmodule QlariusWeb.Api.Admin.TraitController do
               display_order: child.display_order,
               meta_1: child.meta_1,
               meta_2: child.meta_2,
-              meta_3: child.meta_3
+              meta_3: child.meta_3,
+              search_terms: child.search_terms
             }
           end)
       })
@@ -111,7 +113,8 @@ defmodule QlariusWeb.Api.Admin.TraitController do
         is_active: child.is_active,
         meta_1: child.meta_1,
         meta_2: child.meta_2,
-        meta_3: child.meta_3
+        meta_3: child.meta_3,
+        search_terms: child.search_terms
       })
     else
       {:error, reason} -> Responder.error(conn, reason)
@@ -185,6 +188,7 @@ defmodule QlariusWeb.Api.Admin.TraitController do
     }
     |> put_meta(child)
     |> put_skip_flag(child)
+    |> put_search_terms(child)
   end
 
   defp put_skip_flag(attrs, params) do
@@ -202,6 +206,7 @@ defmodule QlariusWeb.Api.Admin.TraitController do
     |> Map.new()
     |> put_meta(params)
     |> put_search_filter(params)
+    |> put_search_terms(params)
   end
 
   defp child_attrs(params) do
@@ -210,6 +215,14 @@ defmodule QlariusWeb.Api.Admin.TraitController do
     |> Enum.reject(fn {_k, v} -> v == nil end)
     |> Map.new()
     |> put_meta(params)
+    |> put_search_terms(params)
+  end
+
+  # Sent as given (a list, or one comma-separated string); `null` clears
+  defp put_search_terms(attrs, params) do
+    if Map.has_key?(params, "search_terms"),
+      do: Map.put(attrs, "search_terms", params["search_terms"] || []),
+      else: attrs
   end
 
   defp put_search_filter(attrs, params) do

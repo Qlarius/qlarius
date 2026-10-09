@@ -652,6 +652,12 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                     {child.trait_name}
                     <.status_badge :if={child.is_skipped_tag}>Skip</.status_badge>
                   </span>
+                  <span
+                    :if={child.search_terms != []}
+                    class="block text-xs text-base-content/50"
+                  >
+                    Also: {Enum.join(child.search_terms, ", ")}
+                  </span>
                 </td>
                 <td class="px-3 py-2.5 text-center align-middle">{child.display_order}</td>
                 <td class="px-3 py-2.5 text-center align-middle">{child.tags_count}</td>
@@ -707,11 +713,13 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
     category =
       if parent_trait.trait_category, do: parent_trait.trait_category.name, else: "None"
 
-    if parent_trait.has_search_filter do
-      "Category: #{category} · Search filter on"
-    else
-      "Category: #{category}"
-    end
+    [
+      "Category: #{category}",
+      parent_trait.has_search_filter && "Search filter on",
+      parent_trait.search_terms != [] && "Also: #{Enum.join(parent_trait.search_terms, ", ")}"
+    ]
+    |> Enum.filter(& &1)
+    |> Enum.join(" · ")
   end
 
   defp parent_trait_form(assigns) do
@@ -785,6 +793,8 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
           </p>
         </div>
 
+        <.search_terms_input form={@form} />
+
         <p
           :if={@mode == "edit" && assigns[:on_delete] && assigns[:can_delete] == false}
           class="text-xs text-base-content/60"
@@ -841,6 +851,33 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
     """
   end
 
+  attr :form, :any, required: true
+
+  defp search_terms_input(assigns) do
+    ~H"""
+    <div>
+      <.input
+        field={@form[:search_terms]}
+        type="text"
+        label="Search terms"
+        value={search_terms_value(@form)}
+        placeholder="ceramics, clay, wheel throwing"
+      />
+      <p class="text-xs text-base-content/60">
+        Comma-separated words people might use for this ({Trait.max_search_terms()} at most). Builder search and assistants' trait search match them.
+      </p>
+    </div>
+    """
+  end
+
+  defp search_terms_value(form) do
+    case Phoenix.HTML.Form.input_value(form, :search_terms) do
+      terms when is_list(terms) -> Enum.join(terms, ", ")
+      terms when is_binary(terms) -> terms
+      _ -> ""
+    end
+  end
+
   defp child_trait_form(assigns) do
     ~H"""
     <.form for={@form} phx-submit={@on_save}>
@@ -854,6 +891,8 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
           <.input field={@form[:trait_name]} type="text" label="Trait name" required />
           <.input field={@form[:display_order]} type="number" label="Display order" required />
         </div>
+
+        <.search_terms_input form={@form} />
 
         <div :if={@show_skip}>
           <.input field={@form[:is_skipped_tag]} type="checkbox" label="Skip answer" />

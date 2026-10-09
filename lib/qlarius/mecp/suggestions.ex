@@ -4,10 +4,11 @@ defmodule Qlarius.MeCP.Suggestions do
 
   Suggestions arrive two ways: MeCP observes a read hitting a gap
   (`observe_gap/3`, the frictionless default) or an assistant explicitly calls
-  `suggest_tag` (`create_suggestion/4`). Pending anchors group by their
-  survey (`suggested_surveys_for_me_file/1`) and surface in the Builder's
-  "From Recent Chats" panel, which opens the real survey. Nothing touches the
-  MeFile until the user answers there; the write resolves the suggestion via
+  `suggest_tag` (`create_suggestion/4`). Each pending suggestion surfaces as
+  its own trait in the Builder's "Suggested by Qai" panel
+  (`suggested_traits_for_me_file/1`), which opens that trait's tag editor with
+  the values mentioned in chat pre-ticked. Nothing touches the MeFile until
+  the user saves there; the write resolves the suggestion via
   `accept_pending_for_trait/2`.
 
   Queue rules: suggestions target effective traits whose survey question sits
@@ -31,6 +32,7 @@ defmodule Qlarius.MeCP.Suggestions do
   alias Qlarius.Repo
   alias Qlarius.YouData.Surveys
   alias Qlarius.YouData.Surveys.SurveyQuestion
+  alias Qlarius.YouData.TraitSearch
   alias Qlarius.YouData.Traits.Trait
 
   @max_pending_per_grant 10
@@ -98,14 +100,24 @@ defmodule Qlarius.MeCP.Suggestions do
   every active survey (orphaned) stays pending in the table but isn't shown.
   """
   def list_pending_for_me_file(me_file_id) do
-    Repo.all(
-      from s in TagSuggestion,
-        where:
-          s.me_file_id == ^me_file_id and s.status == "pending" and
-            s.trait_id in subquery(Surveys.surveyed_trait_ids_query()),
-        order_by: [asc: s.inserted_at, asc: s.id],
-        preload: [trait: [:survey_question, :trait_category], grant: [:mecp_client]]
-    )
+    Repo.all(pending_query(me_file_id))
+  end
+
+  defp pending_query(me_file_id) do
+    active_children =
+      from c in Trait,
+        where: c.is_active == true,
+        order_by: [asc: c.display_order, asc: c.trait_name]
+
+    from s in TagSuggestion,
+      where:
+        s.me_file_id == ^me_file_id and s.status == "pending" and
+          s.trait_id in subquery(Surveys.surveyed_trait_ids_query()),
+      order_by: [asc: s.inserted_at, asc: s.id],
+      preload: [
+        trait: [:survey_question, :trait_category, child_traits: ^active_children],
+        grant: [:mecp_client]
+      ]
   end
 
   def pending_count_for_me_file(me_file_id) do
@@ -117,67 +129,69 @@ defmodule Qlarius.MeCP.Suggestions do
   end
 
   @doc """
-  Pending suggestions grouped by the survey their anchor trait belongs to,
-  newest first. The survey is the taxonomy's curated cluster of related
-  traits, so a single asked-about gap ("Ideal Vacation: Destinations")
-  surfaces the whole topic ("Ideal Vacation/Getaway", 6 questions) in the
-  Builder, which opens the real survey through the normal flow.
+  Pending suggestions as Builder entries, one per trait, newest first.
 
-  Returns entries of `%{survey: %Survey{}, suggestions: [...], answered: n,
-  total: n, latest: %TagSuggestion{}, update?: boolean}`. Only active surveys
-  count, and suggestions on orphaned traits (in no active survey) are left
-  out, so every entry opens a real survey. `update?` marks entries whose
-  anchor trait already carries tags: the assistant is proposing a revision to
-  existing data (only it sees the conversation), not a fill for a gap.
+  The Builder opens each entry's own tag editor, so the entry names the trait
+  and the values from chat sorted into what's new and what's already there:
+
+    * `new_values`: child traits named in chat (by name or search term) not yet
+      on the MeFile; the editor pre-ticks these
+    * `unmatched_values`: words from chat that name no child trait
+    * `update?`: the trait already carries tags, so the assistant is proposing
+      a revision (only it sees the conversation), not a fill for a gap
+    * `survey`: the trait's first active survey, shown as context
+
+  Returns entries of `%{suggestion: %TagSuggestion{}, trait: %Trait{}, survey:
+  %Survey{}, new_values: [%Trait{}], unmatched_values: [String.t()], update?:
+  boolean}`. Suggestions on orphaned traits (in no active survey) are left out.
   """
-  def suggested_surveys_for_me_file(me_file_id) do
-    suggestions = list_pending_for_me_file(me_file_id)
-    trait_ids = suggestions |> Enum.map(& &1.trait_id) |> Enum.uniq()
-    tagged_trait_ids = tagged_anchor_trait_ids(me_file_id, trait_ids)
-
-    survey_by_trait =
-      Repo.all(
-        from sq in SurveyQuestion,
-          join: sqs in "survey_question_surveys",
-          on: sqs.survey_question_id == sq.id,
-          join: s in Qlarius.YouData.Surveys.Survey,
-          on: s.id == sqs.survey_id,
-          where: sq.trait_id in ^trait_ids and s.active == true,
-          select: {sq.trait_id, s},
-          order_by: [asc: sq.trait_id, asc: s.id]
-      )
-      |> Enum.group_by(fn {trait_id, _survey} -> trait_id end, fn {_trait_id, survey} ->
-        survey
-      end)
-      |> Map.new(fn {trait_id, [first_survey | _]} -> {trait_id, first_survey} end)
-
-    suggestions
-    |> Enum.group_by(&survey_by_trait[&1.trait_id])
-    # list_pending_for_me_file/1 already keeps to surveyed traits; this guards
-    # a survey deactivated between the two queries.
-    |> Map.delete(nil)
-    |> Enum.map(fn {survey, group} ->
-      latest = Enum.max_by(group, & &1.inserted_at, DateTime)
-      {answered, total} = survey_progress(survey, group, me_file_id)
-
-      %{
-        survey: survey,
-        suggestions: group,
-        answered: answered,
-        total: total,
-        latest: latest,
-        update?: Enum.any?(group, &(&1.trait_id in tagged_trait_ids))
-      }
-    end)
-    |> Enum.sort_by(& &1.latest.inserted_at, {:desc, DateTime})
+  def suggested_traits_for_me_file(me_file_id) do
+    me_file_id
+    |> list_pending_for_me_file()
+    |> build_entries(me_file_id)
+    |> Enum.sort_by(&{&1.suggestion.inserted_at, &1.suggestion.id}, :desc)
   end
 
-  # Anchor traits (of the given ids) that already carry tags for this MeFile.
-  # Tags live on child traits; they resolve to their effective parent the same
-  # way the oracle counts data.
-  defp tagged_anchor_trait_ids(_me_file_id, []), do: MapSet.new()
+  @doc "One pending suggestion of this MeFile as a Builder entry, or `nil`."
+  def suggested_trait_for_me_file(me_file_id, suggestion_id) when is_integer(suggestion_id) do
+    me_file_id
+    |> pending_query()
+    |> where([s], s.id == ^suggestion_id)
+    |> Repo.all()
+    |> build_entries(me_file_id)
+    |> List.first()
+  end
 
-  defp tagged_anchor_trait_ids(me_file_id, trait_ids) do
+  def suggested_trait_for_me_file(_me_file_id, _suggestion_id), do: nil
+
+  defp build_entries([], _me_file_id), do: []
+
+  defp build_entries(suggestions, me_file_id) do
+    trait_ids = Enum.map(suggestions, & &1.trait_id)
+    tagged = tagged_children_by_anchor(me_file_id, trait_ids)
+    surveys = first_active_survey_by_trait(trait_ids)
+
+    for suggestion <- suggestions, survey = surveys[suggestion.trait_id], survey != nil do
+      tagged_ids = Map.get(tagged, suggestion.trait_id, MapSet.new())
+
+      {matched, unmatched} =
+        TraitSearch.match_values(suggestion.trait.child_traits, suggestion.proposed_values)
+
+      %{
+        suggestion: suggestion,
+        trait: suggestion.trait,
+        survey: survey,
+        new_values: Enum.reject(matched, &MapSet.member?(tagged_ids, &1.id)),
+        unmatched_values: unmatched,
+        update?: MapSet.size(tagged_ids) > 0
+      }
+    end
+  end
+
+  # Tagged child trait ids per anchor (effective) trait for this MeFile. Tags
+  # live on child traits and resolve to their parent the way the oracle counts
+  # data.
+  defp tagged_children_by_anchor(me_file_id, trait_ids) do
     Repo.all(
       from tag in Qlarius.YouData.MeFiles.MeFileTag,
         join: t in Trait,
@@ -185,10 +199,24 @@ defmodule Qlarius.MeCP.Suggestions do
         where:
           tag.me_file_id == ^me_file_id and
             coalesce(t.parent_trait_id, t.id) in ^trait_ids,
-        select: coalesce(t.parent_trait_id, t.id),
-        distinct: true
+        select: {coalesce(t.parent_trait_id, t.id), t.id}
     )
-    |> MapSet.new()
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+    |> Map.new(fn {anchor_id, child_ids} -> {anchor_id, MapSet.new(child_ids)} end)
+  end
+
+  defp first_active_survey_by_trait(trait_ids) do
+    Repo.all(
+      from sq in SurveyQuestion,
+        join: sqs in "survey_question_surveys",
+        on: sqs.survey_question_id == sq.id,
+        join: s in Qlarius.YouData.Surveys.Survey,
+        on: s.id == sqs.survey_id,
+        where: sq.trait_id in ^trait_ids and s.active == true,
+        select: {sq.trait_id, s},
+        order_by: [asc: sq.trait_id, asc: s.id]
+    )
+    |> Enum.reduce(%{}, fn {trait_id, survey}, acc -> Map.put_new(acc, trait_id, survey) end)
   end
 
   @doc "Whether a pending suggestion exists for this effective trait."
@@ -199,7 +227,7 @@ defmodule Qlarius.MeCP.Suggestions do
     )
   end
 
-  @doc "Dismisses several pending suggestions at once (a survey group)."
+  @doc "Dismisses several pending suggestions at once."
   def dismiss_many(suggestion_ids, me_file_id, now \\ DateTime.utc_now()) do
     {count, _} =
       Repo.update_all(
@@ -210,14 +238,6 @@ defmodule Qlarius.MeCP.Suggestions do
       )
 
     count
-  end
-
-  defp survey_progress(survey, _group, me_file_id) do
-    parent_traits =
-      Qlarius.YouData.Surveys.parent_traits_for_survey_with_tags(survey.id, me_file_id)
-
-    answered = Enum.count(parent_traits, fn {_id, _name, _order, tags} -> tags != [] end)
-    {answered, length(parent_traits)}
   end
 
   @doc """
