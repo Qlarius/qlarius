@@ -43,10 +43,42 @@ those words find it too.
 - Write them in a design pack, `PATCH /api/admin/traits/:id` (parent),
   `PATCH /api/admin/traits/:id/children/:child_id` (child), or with new
   children on `POST /api/admin/traits/:id/children`. Reads return them as
-  `search_terms`.
+  `search_terms`, including `GET /api/admin/traits_catalog` (on each parent
+  and each child).
 - Propose terms whenever you create or reform a trait: synonyms, everyday
   phrasing, and common misspellings a person would type. Skip words that
   belong to a different trait, and don't repeat the trait's own name.
+- A term is how a short or ambiguous word finds the right trait. "pot" is a
+  prefix of Pottery, so Cannabis needs `search_terms: ["pot"]` to outrank it.
+  The same for "car" (Cards, Career), "cat" (anything starting with those
+  letters), "trans" (Transmission).
+
+## How search ranks
+
+`GET /api/admin/trait_search?q=pottery&scope=builder` returns the Builder's
+ranking (traits in an active survey, top 15). `scope=all` (the default)
+returns Qai's `search_traits` ranking (every active trait, top 10). Each
+result includes `score`, `tag_count`, and `matches` (the field and tier each
+query word hit).
+
+Query words under 3 characters are dropped, except a word that is all digits
+("420"). A trailing "s" is stripped, and a word ending in "ies" is also tried
+as "y" ("dispensaries" finds "dispensary").
+
+Each word scores the best hit on a name or a search term. A search term
+counts the same as a name at the same tier, and wins a tie so the result
+reports the term. Highest tier first:
+
+1. Exact match on a search term or the full trait or child name.
+2. A whole word inside a name or search term.
+3. A prefix of a word, so "vet" finds "veterinary" but not "corvette".
+4. A substring anywhere in the text, only for query words of 5 or more
+   characters. Shorter words do not match inside unrelated words, so "cat"
+   does not find Education, Location, or Vacation.
+
+A category name is the weakest hit, below all four. Ties go to the parent
+with more MeFile tags, then to the name A to Z. A child hit counts toward
+its parent, and the parent's tag total is the one that breaks the tie.
 
 ## The skip answer
 

@@ -5,6 +5,7 @@ defmodule QlariusWeb.Api.Admin.TraitControllerTest do
 
   alias Qlarius.Accounts.{AdminApiTokens, User}
   alias Qlarius.Repo
+  alias Qlarius.YouData.Surveys.{SurveyAnswer, SurveyQuestion}
   alias Qlarius.YouData.Traits.Trait
 
   setup do
@@ -94,5 +95,108 @@ defmodule QlariusWeb.Api.Admin.TraitControllerTest do
     terms = Map.new(body["children"], &{&1["trait_name"], &1["search_terms"]})
     assert terms["Pottery"] == ["wheel throwing"]
     assert terms["Knitting"] == ["yarn", "needles"]
+  end
+
+  test "catalog returns search terms on parents and children", ctx do
+    ctx.crafts |> Ecto.Changeset.change(search_terms: ["crafting"]) |> Repo.update!()
+    ctx.pottery |> Ecto.Changeset.change(search_terms: ["clay"]) |> Repo.update!()
+
+    body =
+      ctx.token |> authed() |> get(~p"/api/admin/traits_catalog") |> json_response(200)
+
+    parent =
+      body["trait_categories"]
+      |> Enum.flat_map(& &1["parent_traits"])
+      |> Enum.find(&(&1["id"] == ctx.crafts.id))
+
+    assert parent["search_terms"] == ["crafting"]
+
+    child = Enum.find(parent["children"], &(&1["id"] == ctx.pottery.id))
+    assert child["search_terms"] == ["clay"]
+  end
+
+  test "trait search returns the ranked results the Builder and Qai see", ctx do
+    ctx.pottery |> Ecto.Changeset.change(search_terms: ["ceramics"]) |> Repo.update!()
+
+    body =
+      ctx.token
+      |> authed()
+      |> get(~p"/api/admin/trait_search?q=ceramics&scope=all")
+      |> json_response(200)
+
+    hit = Enum.find(body["results"], &(&1["trait_id"] == ctx.crafts.id))
+    assert hit["matched_values"] == ["Pottery"]
+    assert hit["score"] > 1
+
+    assert Enum.any?(
+             hit["matches"],
+             &(&1["field"] == "search_term" and &1["tier"] == "exact" and &1["token"] == "ceramics")
+           )
+
+    missed =
+      ctx.token
+      |> authed()
+      |> get(~p"/api/admin/trait_search?q=ceramics&scope=builder")
+      |> json_response(200)
+
+    refute Enum.any?(missed["results"], &(&1["trait_id"] == ctx.crafts.id))
+
+    survey_trait!(ctx.crafts)
+
+    found =
+      ctx.token
+      |> authed()
+      |> get(~p"/api/admin/trait_search?q=ceramics&scope=builder")
+      |> json_response(200)
+
+    assert Enum.any?(found["results"], &(&1["trait_id"] == ctx.crafts.id))
+
+    bad =
+      ctx.token
+      |> authed()
+      |> get(~p"/api/admin/trait_search?q=ceramics&scope=nope")
+      |> json_response(422)
+
+    assert bad["error"] == "invalid_scope"
+  end
+
+  test "show returns one question and one answer when a trait has duplicates", ctx do
+    survey_trait!(ctx.crafts)
+    question = Repo.get_by!(SurveyQuestion, trait_id: ctx.crafts.id)
+
+    Repo.insert!(%SurveyQuestion{
+      text: "A second question about crafts",
+      trait_id: ctx.crafts.id,
+      active: "1",
+      display_order: 2,
+      added_by: 0,
+      modified_by: 0
+    })
+
+    Repo.insert!(%SurveyAnswer{
+      text: "Yes",
+      trait_id: ctx.pottery.id,
+      survey_question_id: question.id,
+      display_order: 1,
+      added_by: 0,
+      modified_by: 0
+    })
+
+    Repo.insert!(%SurveyAnswer{
+      text: "Prefer not to say",
+      trait_id: ctx.pottery.id,
+      survey_question_id: question.id,
+      display_order: 9,
+      added_by: 0,
+      modified_by: 0
+    })
+
+    body =
+      ctx.token |> authed() |> get(~p"/api/admin/traits/#{ctx.crafts.id}") |> json_response(200)
+
+    assert body["survey_question"]["id"] == question.id
+
+    child = Enum.find(body["children"], &(&1["id"] == ctx.pottery.id))
+    assert child["survey_answer"]["text"] == "Yes"
   end
 end

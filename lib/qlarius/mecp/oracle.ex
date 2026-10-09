@@ -300,7 +300,7 @@ defmodule Qlarius.MeCP.Oracle do
     for match <- matches do
       match
       |> Map.put(:has_data, MapSet.member?(with_data, match.trait_id))
-      |> Map.drop([:score, :category_id, :matched_values])
+      |> Map.drop([:score, :category_id, :matched_values, :matches, :tag_count])
     end
   end
 

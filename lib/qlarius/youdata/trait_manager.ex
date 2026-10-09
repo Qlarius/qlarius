@@ -25,12 +25,11 @@ defmodule Qlarius.YouData.TraitManager do
   end
 
   def get_parent_trait_with_details(_scope, id) do
-    parent =
-      Repo.get!(Trait, id)
-      |> Repo.preload([
-        :trait_category,
-        :survey_question
-      ])
+    parent = Repo.get!(Trait, id) |> Repo.preload(:trait_category)
+    # A parent can have more than one question (Employment Status does). The
+    # has_one preload raises on that, so pick the oldest question instead.
+    question = primary_survey_question(parent.id)
+    parent = %{parent | survey_question: question}
 
     # For single_select_zip traits, only fetch the count to avoid loading 42K+ records
     if parent.input_type == "single_select_zip" do
@@ -52,6 +51,9 @@ defmodule Qlarius.YouData.TraitManager do
           child_traits: from(t in Trait, order_by: [asc: t.display_order, asc: t.trait_name])
         )
 
+      answers =
+        survey_answers_by_trait(Enum.map(parent.child_traits, & &1.id), question && question.id)
+
       children_with_stats =
         Enum.map(parent.child_traits, fn child ->
           stats = get_trait_stats(child.id)
@@ -59,7 +61,7 @@ defmodule Qlarius.YouData.TraitManager do
           Map.merge(child, %{
             tags_count: stats.tags_count,
             grps_count: stats.grps_count,
-            survey_answer: get_survey_answer_for_trait(child.id)
+            survey_answer: Map.get(answers, child.id)
           })
         end)
 
@@ -67,8 +69,34 @@ defmodule Qlarius.YouData.TraitManager do
     end
   end
 
-  defp get_survey_answer_for_trait(trait_id) do
-    Repo.one(from sa in SurveyAnswer, where: sa.trait_id == ^trait_id)
+  # Lowest id: the original question, stable when a parent has two.
+  defp primary_survey_question(trait_id) do
+    Repo.one(
+      from q in SurveyQuestion,
+        where: q.trait_id == ^trait_id,
+        order_by: [asc: q.id],
+        limit: 1
+    )
+  end
+
+  # One answer per child. Prefer the parent's question, then display order.
+  # Repo.one raises when a child has two answers, which is what 500s the show
+  # endpoint for traits like Employment Status.
+  defp survey_answers_by_trait([], _question_id), do: %{}
+
+  defp survey_answers_by_trait(trait_ids, question_id) do
+    from(a in SurveyAnswer,
+      where: a.trait_id in ^trait_ids,
+      order_by: [asc: a.display_order, asc: a.id]
+    )
+    |> Repo.all()
+    |> Enum.group_by(& &1.trait_id)
+    |> Map.new(fn {trait_id, answers} ->
+      chosen =
+        Enum.find(answers, &(&1.survey_question_id == question_id)) || List.first(answers)
+
+      {trait_id, chosen}
+    end)
   end
 
   def get_trait_stats(trait_id) do

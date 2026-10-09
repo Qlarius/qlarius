@@ -4,6 +4,7 @@ defmodule QlariusWeb.Api.Admin.TraitController do
   alias Qlarius.YouData.TraitDesign
   alias Qlarius.YouData.TraitGuards
   alias Qlarius.YouData.TraitManager
+  alias Qlarius.YouData.TraitSearch
   alias Qlarius.YouData.Traits
   alias QlariusWeb.Api.Admin.Responder
 
@@ -40,6 +41,35 @@ defmodule QlariusWeb.Api.Admin.TraitController do
   def catalog(conn, _params) do
     json(conn, %{trait_categories: Traits.traits_catalog()})
   end
+
+  # Same ranking the Builder (scope=builder, top 15 surveyed traits) and Qai
+  # (scope=all, top 10 active traits) use, including the score and the field
+  # each query word hit.
+  def search(conn, params) do
+    case search_scope(params["scope"]) do
+      {:ok, opts, limit} ->
+        results =
+          case TraitSearch.tokenize(params["q"] || "") do
+            {:ok, tokens} -> tokens |> TraitSearch.rank(opts) |> Enum.take(limit)
+            {:error, :empty_query} -> []
+          end
+
+        json(conn, %{results: results})
+
+      :error ->
+        conn
+        |> put_status(422)
+        |> json(%{
+          error: "invalid_scope",
+          message: "scope must be builder or all"
+        })
+    end
+  end
+
+  defp search_scope(nil), do: {:ok, [], 10}
+  defp search_scope("all"), do: {:ok, [], 10}
+  defp search_scope("builder"), do: {:ok, [surveyed_only: true], 15}
+  defp search_scope(_), do: :error
 
   def show(conn, %{"id" => id}) do
     scope = conn.assigns.current_scope

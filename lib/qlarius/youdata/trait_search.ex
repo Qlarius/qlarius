@@ -1,13 +1,21 @@
 defmodule Qlarius.YouData.TraitSearch do
   @moduledoc """
   Keyword search over the trait taxonomy, shared by the MeCP oracle
-  (`search_traits`) and the MeFile Builder.
+  (`search_traits`, top 10 active traits) and the MeFile Builder (top 15
+  traits in an active survey).
 
-  Tokens match trait names, trait `search_terms` (parents and children) and
-  category names. A hit on a child trait counts toward its effective parent,
-  so "pottery" finds "Arts and Crafts" and reports "Pottery" as the matched
-  value. A trait name or search-term hit scores 2 per token, a category-name
-  hit 1, so a best score below 2 means only a category matched.
+  Each query word scores a trait by the best hit on its name or `search_terms`
+  (a parent or a child; a child counts toward its parent):
+
+    * exact match on the full name or a search term
+    * a whole word in a name or search term
+    * a prefix of a word, so "vet" finds "veterinary" but not "corvette"
+    * a substring, only when the query word is 5 or more characters
+
+  A search term scores the same as a name at the same tier. A category-name
+  hit is weaker than all of those, and a best score below 2 means only a
+  category matched. Ties break toward the parent with more MeFile tags, then
+  by name.
 
   Names and terms are shared vocabulary, not anyone's answers; callers decide
   what else (such as whether a MeFile has data) a result may carry.
@@ -16,26 +24,31 @@ defmodule Qlarius.YouData.TraitSearch do
   import Ecto.Query
 
   alias Qlarius.Repo
+  alias Qlarius.YouData.MeFiles.MeFileTag
   alias Qlarius.YouData.Surveys
   alias Qlarius.YouData.Traits.{Trait, TraitCategory}
 
   @min_token_length 3
+  @substring_min_length 5
+
+  # Name and term tiers stay at 2 or above so a category-only hit (1) is still
+  # the weak match the oracle records.
+  @tier_scores %{exact: 8, word: 6, prefix: 4, substring: 2}
 
   @doc """
-  Splits a query into lowercase tokens of at least #{@min_token_length}
-  characters, with a naive singular so "dogs" still matches "Dog".
+  Splits a query into lowercase tokens.
+
+  Words under #{@min_token_length} characters are dropped, except a token that
+  is all digits ("420"). A trailing "s" is stripped, and "ies" is also tried
+  as "y", so "dogs" matches "dog" and "dispensaries" matches "dispensary".
   """
   def tokenize(query) when is_binary(query) do
     tokens =
       query
       |> String.downcase()
       |> String.split(~r/[^a-z0-9]+/, trim: true)
-      |> Enum.filter(&(String.length(&1) >= @min_token_length))
-      |> Enum.flat_map(fn token ->
-        if String.ends_with?(token, "s"),
-          do: [token, String.trim_trailing(token, "s")],
-          else: [token]
-      end)
+      |> Enum.filter(&keep_token?/1)
+      |> Enum.flat_map(&forms/1)
       |> Enum.uniq()
 
     if tokens == [], do: {:error, :empty_query}, else: {:ok, tokens}
@@ -46,9 +59,10 @@ defmodule Qlarius.YouData.TraitSearch do
   @doc """
   Effective traits matching `tokens`, best first.
 
-  Returns `[%{trait_id, trait, category, category_id, score, matched_values}]`
-  where `matched_values` are the names of matching child traits (skip answers
-  left out). With `surveyed_only: true`, only traits whose question sits in an
+  Returns `[%{trait_id, trait, category, category_id, score, tag_count,
+  matched_values, matches}]`. `matched_values` are the names of matching child
+  traits (skip answers left out). `matches` says which field each query word
+  hit. With `surveyed_only: true`, only traits whose question sits in an
   active survey are returned, so every result can be answered.
   """
   def rank(tokens, opts \\ []) when is_list(tokens) do
@@ -56,41 +70,60 @@ defmodule Qlarius.YouData.TraitSearch do
     traits = active_traits(Keyword.get(opts, :surveyed_only, false))
     parents = Map.new(traits, &{&1.id, &1})
 
-    traits
-    |> Enum.reduce(%{}, fn trait, acc ->
-      effective = if trait.parent_id, do: parents[trait.parent_id], else: trait
+    ranked =
+      traits
+      |> Enum.reduce(%{}, fn trait, acc ->
+        effective = if trait.parent_id, do: parents[trait.parent_id], else: trait
 
-      {score, named?} =
-        if effective,
-          do: score(tokens, trait, categories[effective.category_id]),
-          else: {0, false}
+        {score, named?, matches} =
+          if effective,
+            do: score(tokens, trait, categories[effective.category_id]),
+            else: {0, false, []}
 
-      if score > 0 do
-        matched = if named? && trait.parent_id && not trait.skip?, do: [trait.name], else: []
+        if score > 0 do
+          matched = if named? && trait.parent_id && not trait.skip?, do: [trait.name], else: []
 
-        Map.update(acc, effective.id, {score, effective, matched}, fn {best, eff, values} ->
-          {max(best, score), eff, values ++ matched}
-        end)
-      else
-        acc
-      end
-    end)
-    |> Enum.map(fn {_id, {score, eff, matched}} ->
-      %{
-        trait_id: eff.id,
-        trait: eff.name,
-        category: categories[eff.category_id],
-        category_id: eff.category_id,
-        score: score,
-        matched_values: matched
-      }
-    end)
-    |> Enum.sort_by(&{-&1.score, &1.trait, &1.trait_id})
+          Map.update(
+            acc,
+            effective.id,
+            {score, effective, matched, matches},
+            fn {best, eff, values, prev} ->
+              kept =
+                cond do
+                  score > best -> matches
+                  score == best -> matches ++ prev
+                  true -> prev
+                end
+
+              {max(best, score), eff, values ++ matched, kept}
+            end
+          )
+        else
+          acc
+        end
+      end)
+      |> Enum.map(fn {_id, {score, eff, matched, matches}} ->
+        %{
+          trait_id: eff.id,
+          trait: eff.name,
+          category: categories[eff.category_id],
+          category_id: eff.category_id,
+          score: score,
+          matched_values: Enum.uniq(matched),
+          matches: best_matches(matches)
+        }
+      end)
+
+    counts = tag_counts(Enum.map(ranked, & &1.trait_id))
+
+    ranked
+    |> Enum.map(&Map.put(&1, :tag_count, Map.get(counts, &1.trait_id, 0)))
+    |> Enum.sort_by(&{-&1.score, -&1.tag_count, &1.trait, &1.trait_id})
   end
 
   @doc """
   The children (of one parent) named by `values`: case-insensitive exact name
-  or search term, with the same naive singular as `tokenize/1`. Returns
+  or search term, with the same singular forms as `tokenize/1`. Returns
   `{matched_children, unmatched_values}`, children in their display order.
   """
   def match_values(children, values) when is_list(children) and is_list(values) do
@@ -109,10 +142,14 @@ defmodule Qlarius.YouData.TraitSearch do
 
   defp names_value?(child, value) do
     wanted = value |> to_string() |> String.trim() |> String.downcase()
-    forms = Enum.uniq([wanted, String.trim_trailing(wanted, "s")])
-    names = [String.downcase(child.trait_name) | child.search_terms || []]
 
-    wanted != "" and Enum.any?(names, &(&1 in forms or String.trim_trailing(&1, "s") in forms))
+    if wanted == "" do
+      false
+    else
+      wanted_forms = forms(wanted)
+      names = [String.downcase(child.trait_name) | child.search_terms || []]
+      Enum.any?(names, &overlaps?(wanted_forms, forms(&1)))
+    end
   end
 
   defp active_traits(surveyed_only?) do
@@ -141,17 +178,141 @@ defmodule Qlarius.YouData.TraitSearch do
     Repo.all(query)
   end
 
-  # {score, whether the trait's own name or terms matched}
-  defp score(tokens, trait, category_name) do
-    words = [String.downcase(trait.name) | trait.terms || []]
-    category = String.downcase(category_name || "")
+  defp tag_counts([]), do: %{}
 
-    Enum.reduce(tokens, {0, false}, fn token, {acc, named?} ->
-      cond do
-        Enum.any?(words, &String.contains?(&1, token)) -> {acc + 2, true}
-        String.contains?(category, token) -> {acc + 1, named?}
-        true -> {acc, named?}
+  defp tag_counts(parent_ids) do
+    from(tag in MeFileTag,
+      join: t in Trait,
+      on: tag.trait_id == t.id,
+      where: coalesce(t.parent_trait_id, t.id) in ^parent_ids,
+      group_by: fragment("COALESCE(?, ?)", t.parent_trait_id, t.id),
+      select: {fragment("COALESCE(?, ?)", t.parent_trait_id, t.id), count(tag.id)}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  # {score, whether the trait's own name or terms matched, match descriptions}
+  defp score(tokens, trait, category_name) do
+    Enum.reduce(tokens, {0, false, []}, fn token, {acc, named?, matches} ->
+      case best_name_match(token, trait.name, trait.terms || []) do
+        {tier, field, text} ->
+          match = %{token: token, field: field, text: text, tier: Atom.to_string(tier)}
+          {acc + @tier_scores[tier], true, [match | matches]}
+
+        nil ->
+          if category_name && match_tier(token, category_name) do
+            match = %{
+              token: token,
+              field: "category",
+              text: category_name,
+              tier: "category"
+            }
+
+            {acc + 1, named?, [match | matches]}
+          else
+            {acc, named?, matches}
+          end
       end
     end)
+  end
+
+  # Highest tier wins. A search term wins a tie with the name, so a curated
+  # synonym is what the result reports.
+  defp best_name_match(token, name, terms) do
+    candidates = [{name, "name"} | Enum.map(terms, &{&1, "search_term"})]
+
+    candidates
+    |> Enum.flat_map(fn {text, field} ->
+      case match_tier(token, text) do
+        nil -> []
+        tier -> [{@tier_scores[tier], field == "search_term", field, text, tier}]
+      end
+    end)
+    |> Enum.sort_by(fn {score, term?, _, _, _} -> {-score, not term?} end)
+    |> List.first()
+    |> case do
+      nil -> nil
+      {_score, _term?, field, text, tier} -> {tier, field, text}
+    end
+  end
+
+  # One row per query word: the hit that earned the score.
+  defp best_matches(matches) do
+    matches
+    |> Enum.uniq()
+    |> Enum.group_by(& &1.token)
+    |> Enum.map(fn {_token, group} ->
+      Enum.max_by(group, &tier_rank(&1.tier))
+    end)
+  end
+
+  defp tier_rank("exact"), do: 5
+  defp tier_rank("word"), do: 4
+  defp tier_rank("prefix"), do: 3
+  defp tier_rank("substring"), do: 2
+  defp tier_rank("category"), do: 1
+  defp tier_rank(_), do: 0
+
+  defp match_tier(token, text) when is_binary(text) do
+    down = String.downcase(text)
+    token_forms = forms(token)
+    words = String.split(down, ~r/[^a-z0-9]+/, trim: true)
+
+    cond do
+      overlaps?(token_forms, forms(down)) ->
+        :exact
+
+      Enum.any?(words, &overlaps?(token_forms, forms(&1))) ->
+        :word
+
+      Enum.any?(words, &prefix?(token_forms, &1)) ->
+        :prefix
+
+      String.length(token) >= @substring_min_length and
+          Enum.any?(
+            token_forms,
+            &(String.length(&1) >= @substring_min_length and String.contains?(down, &1))
+          ) ->
+        :substring
+
+      true ->
+        nil
+    end
+  end
+
+  defp match_tier(_, _), do: nil
+
+  defp prefix?(token_forms, word) do
+    word_forms = forms(word)
+
+    Enum.any?(token_forms, fn token ->
+      token != "" and
+        Enum.any?(word_forms, fn form ->
+          String.starts_with?(form, token) and form != token
+        end)
+    end)
+  end
+
+  defp overlaps?(left, right), do: Enum.any?(left, &(&1 in right))
+
+  defp keep_token?(token) do
+    String.length(token) >= @min_token_length or String.match?(token, ~r/^\d+$/)
+  end
+
+  defp forms(token) do
+    extra =
+      cond do
+        String.ends_with?(token, "ies") ->
+          [String.replace_suffix(token, "ies", "y"), String.trim_trailing(token, "s")]
+
+        String.ends_with?(token, "s") ->
+          [String.trim_trailing(token, "s")]
+
+        true ->
+          []
+      end
+
+    Enum.uniq([token | extra])
   end
 end

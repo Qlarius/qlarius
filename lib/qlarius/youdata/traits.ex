@@ -7,6 +7,8 @@ defmodule Qlarius.YouData.Traits do
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.YouData.MeFiles.MeFileTag
   alias Qlarius.YouData.Surveys.Survey
+  alias Qlarius.YouData.Surveys.SurveyAnswer
+  alias Qlarius.YouData.Surveys.SurveyQuestion
   alias Qlarius.YouData.Surveys.SurveyQuestionSurvey
   alias Qlarius.YouData.Traits.Trait
   alias Qlarius.YouData.Traits.TraitCategory
@@ -518,9 +520,14 @@ defmodule Qlarius.YouData.Traits do
       if parent_ids == [] do
         %{}
       else
-        from(t in Trait, where: t.id in ^parent_ids, preload: [:survey_question])
+        # has_one raises when a parent has two questions, so attach the oldest.
+        questions = one_question_per_trait(parent_ids)
+
+        from(t in Trait, where: t.id in ^parent_ids)
         |> Repo.all()
-        |> Map.new(&{&1.id, &1})
+        |> Map.new(fn trait ->
+          {trait.id, %{trait | survey_question: Map.get(questions, trait.id)}}
+        end)
       end
 
     active_survey_ids_by_question = active_survey_ids_by_question(parents)
@@ -529,9 +536,13 @@ defmodule Qlarius.YouData.Traits do
       if child_ids == [] do
         %{}
       else
-        from(t in Trait, where: t.id in ^child_ids, preload: [:survey_answer])
+        answers = one_answer_per_trait(child_ids, parents)
+
+        from(t in Trait, where: t.id in ^child_ids)
         |> Repo.all()
-        |> Map.new(&{&1.id, &1})
+        |> Map.new(fn trait ->
+          {trait.id, %{trait | survey_answer: Map.get(answers, trait.id)}}
+        end)
       end
 
     Enum.map(index, fn category ->
@@ -549,6 +560,7 @@ defmodule Qlarius.YouData.Traits do
               |> Map.put(:meta_1, cmeta && cmeta.meta_1)
               |> Map.put(:meta_2, cmeta && cmeta.meta_2)
               |> Map.put(:meta_3, cmeta && cmeta.meta_3)
+              |> Map.put(:search_terms, (cmeta && cmeta.search_terms) || [])
               |> Map.put(:survey_answer, catalog_answer(cmeta && cmeta.survey_answer))
             end)
 
@@ -559,6 +571,7 @@ defmodule Qlarius.YouData.Traits do
           |> Map.put(:meta_2, meta && meta.meta_2)
           |> Map.put(:meta_3, meta && meta.meta_3)
           |> Map.put(:has_search_filter, meta && meta.has_search_filter)
+          |> Map.put(:search_terms, (meta && meta.search_terms) || [])
           |> Map.put(:survey_question, catalog_question(meta && meta.survey_question))
           |> Map.put(
             :active_survey_ids,
@@ -573,6 +586,36 @@ defmodule Qlarius.YouData.Traits do
 
   defp catalog_question(nil), do: nil
   defp catalog_question(question), do: %{id: question.id, text: question.text}
+
+  defp one_question_per_trait(trait_ids) do
+    from(q in SurveyQuestion, where: q.trait_id in ^trait_ids, order_by: [asc: q.id])
+    |> Repo.all()
+    |> Enum.reduce(%{}, fn question, acc -> Map.put_new(acc, question.trait_id, question) end)
+  end
+
+  defp one_answer_per_trait(trait_ids, parents) do
+    grouped =
+      from(a in SurveyAnswer,
+        where: a.trait_id in ^trait_ids,
+        order_by: [asc: a.display_order, asc: a.id]
+      )
+      |> Repo.all()
+      |> Enum.group_by(& &1.trait_id)
+
+    from(t in Trait, where: t.id in ^trait_ids, select: {t.id, t.parent_trait_id})
+    |> Repo.all()
+    |> Map.new(fn {trait_id, parent_id} ->
+      question_id =
+        case Map.get(parents, parent_id) do
+          %{survey_question: %{id: id}} -> id
+          _ -> nil
+        end
+
+      answers = Map.get(grouped, trait_id, [])
+      chosen = Enum.find(answers, &(&1.survey_question_id == question_id)) || List.first(answers)
+      {trait_id, chosen}
+    end)
+  end
 
   defp active_survey_ids_by_question(parents) when parents == %{}, do: %{}
 

@@ -3,6 +3,7 @@ defmodule Qlarius.YouData.TraitSearchTest do
 
   import Qlarius.MeCPFixtures
 
+  alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.YouData.TraitSearch
   alias Qlarius.YouData.Traits.Trait
 
@@ -25,8 +26,13 @@ defmodule Qlarius.YouData.TraitSearchTest do
   end
 
   test "a child trait's name finds its parent and is reported as the matched value", ctx do
-    assert [%{trait_id: id, matched_values: ["Pottery"], score: 2} | _] = rank("pottery")
+    assert [%{trait_id: id, matched_values: ["Pottery"], matches: [match]} | _] =
+             rank("pottery")
+
     assert id == ctx.crafts.id
+    assert match.tier == "exact"
+    assert match.field == "name"
+    assert match.text == "Pottery"
   end
 
   test "search terms match like names, on children and parents", ctx do
@@ -61,9 +67,175 @@ defmodule Qlarius.YouData.TraitSearchTest do
     assert unmatched == ["Origami"]
   end
 
-  test "tokenize drops short words and adds a naive singular" do
+  test "tokenize drops short words, keeps numbers, and singularizes ies" do
     assert {:ok, ["dogs", "dog"]} = TraitSearch.tokenize("a dogs")
     assert {:error, :empty_query} = TraitSearch.tokenize("to")
+    assert {:ok, ["420"]} = TraitSearch.tokenize("420")
+    assert {:ok, ["42"]} = TraitSearch.tokenize("42")
+
+    assert {:ok, tokens} = TraitSearch.tokenize("dispensaries")
+    assert "dispensary" in tokens
+  end
+
+  describe "ranking" do
+    setup do
+      category = insert_category!("Rank")
+      %{category: category}
+    end
+
+    test "exact beats a whole word, which beats a prefix, which beats a long substring",
+         ctx do
+      exact = insert_trait!(ctx.category, "Exact Holder") |> with_terms!(["brindle"])
+      word = insert_trait!(ctx.category, "Has Brindle Coat")
+      prefix = insert_trait!(ctx.category, "Brindlehound")
+      substr = insert_trait!(ctx.category, "xxbrindle Extra")
+
+      ids = rank("brindle") |> Enum.map(& &1.trait_id)
+
+      assert order(ids, [exact.id, word.id, prefix.id, substr.id])
+      refute rank("brin") |> Enum.any?(&(&1.trait_id == substr.id))
+    end
+
+    test "a prefix matches the start of a word and not the middle", ctx do
+      vet = insert_trait!(ctx.category, "Veterinary Care")
+      corvette = insert_trait!(ctx.category, "Corvette Club")
+
+      ids = rank("vet") |> Enum.map(& &1.trait_id)
+      assert vet.id in ids
+      refute corvette.id in ids
+    end
+
+    test "a search term scores at least as high as the same match on a name", ctx do
+      by_name = insert_trait!(ctx.category, "Quokka")
+      by_term = insert_trait!(ctx.category, "Something Else") |> with_terms!(["quokka"])
+
+      results = rank("quokka")
+      name_hit = Enum.find(results, &(&1.trait_id == by_name.id))
+      term_hit = Enum.find(results, &(&1.trait_id == by_term.id))
+
+      assert name_hit.score == term_hit.score
+      assert hd(term_hit.matches).field == "search_term"
+    end
+
+    test "short words do not match inside unrelated words", ctx do
+      education = insert_trait!(ctx.category, "Education")
+      location = insert_trait!(ctx.category, "Location")
+      vacation = insert_trait!(ctx.category, "Vacation")
+      pets = insert_trait!(ctx.category, "Pet Ownership")
+      insert_trait!(nil, "Cat", parent_trait_id: pets.id)
+
+      ids = rank("cat") |> Enum.map(& &1.trait_id)
+
+      assert pets.id in ids
+      refute education.id in ids
+      refute location.id in ids
+      refute vacation.id in ids
+    end
+
+    test "curated terms outrank lookalike names", ctx do
+      pets = insert_trait!(ctx.category, "Pet Ownership")
+      insert_trait!(nil, "Cat", parent_trait_id: pets.id)
+      insert_trait!(nil, "Kitten", parent_trait_id: pets.id)
+      insert_trait!(nil, "Dog", parent_trait_id: pets.id)
+      insert_trait!(nil, "Puppy", parent_trait_id: pets.id)
+      hot_dogs = insert_trait!(ctx.category, "Hot Dogs")
+
+      auto = insert_trait!(ctx.category, "Auto Ownership") |> with_terms!(["car"])
+      cards = insert_trait!(ctx.category, "Cards")
+
+      cannabis =
+        insert_trait!(ctx.category, "Cannabis Use")
+        |> with_terms!(["weed", "marijuana", "pot", "420"])
+
+      pottery = insert_trait!(ctx.category, "Arts and Crafts")
+      insert_trait!(nil, "Pottery", parent_trait_id: pottery.id)
+      potatoes = insert_trait!(ctx.category, "Potatoes")
+
+      religion = insert_trait!(ctx.category, "Religious Affiliation") |> with_terms!(["religion"])
+      religious = insert_trait!(ctx.category, "Religion Class")
+
+      nicotine =
+        insert_trait!(ctx.category, "Nicotine Products") |> with_terms!(["smoke", "smoking"])
+
+      children = insert_trait!(ctx.category, "Number of Children") |> with_terms!(["kids"])
+
+      gender =
+        insert_trait!(ctx.category, "Gender Identity") |> with_terms!(["trans", "transgender"])
+
+      transmission = insert_trait!(ctx.category, "Transmission")
+      income = insert_trait!(ctx.category, "Household Income") |> with_terms!(["money", "salary"])
+
+      assert tops(rank("cat"), pets.id)
+      assert tops(rank("kitten"), pets.id)
+      assert tops(rank("dog"), pets.id)
+      assert tops(rank("puppy"), pets.id)
+      assert before?(rank("dog"), pets.id, hot_dogs.id)
+
+      assert tops(rank("car"), auto.id)
+      assert before?(rank("car"), auto.id, cards.id)
+
+      for query <- ~w(weed marijuana pot 420) do
+        assert tops(rank(query), cannabis.id)
+      end
+
+      assert before?(rank("pot"), cannabis.id, pottery.id)
+      assert before?(rank("pot"), cannabis.id, potatoes.id)
+
+      assert tops(rank("religion"), religion.id)
+      assert before?(rank("religion"), religion.id, religious.id)
+
+      assert tops(rank("smoke"), nicotine.id)
+      assert tops(rank("smoking"), nicotine.id)
+      assert tops(rank("kids"), children.id)
+
+      assert tops(rank("trans"), gender.id)
+      assert tops(rank("transgender"), gender.id)
+      assert before?(rank("trans"), gender.id, transmission.id)
+
+      assert tops(rank("money"), income.id)
+      assert tops(rank("salary"), income.id)
+    end
+
+    test "ties break toward the parent with more tags, then by name", ctx do
+      popular = insert_trait!(ctx.category, "Zzz Popular") |> with_terms!(["xylotag"])
+      quiet = insert_trait!(ctx.category, "Aaa Quiet") |> with_terms!(["xylotag"])
+      child = insert_trait!(nil, "Zzz Child", parent_trait_id: popular.id)
+      insert_tag!(Repo.insert!(%MeFile{}), child, "yes")
+
+      assert before?(rank("xylotag"), popular.id, quiet.id)
+
+      alpha = insert_trait!(ctx.category, "Aaa Even") |> with_terms!(["xylotie"])
+      zulu = insert_trait!(ctx.category, "Zzz Even") |> with_terms!(["xylotie"])
+      assert before?(rank("xylotie"), alpha.id, zulu.id)
+    end
+
+    test "a category-only hit scores below a name hit and names no values", ctx do
+      trait = insert_trait!(ctx.category, "Unrelated Topic")
+      named = insert_trait!(ctx.category, ctx.category.name)
+
+      [category_hit] = rank(ctx.category.name) |> Enum.filter(&(&1.trait_id == trait.id))
+      name_hit = rank(ctx.category.name) |> Enum.find(&(&1.trait_id == named.id))
+
+      assert category_hit.matched_values == []
+      assert Enum.all?(category_hit.matches, &(&1.tier == "category"))
+      assert name_hit.score > category_hit.score
+    end
+  end
+
+  defp order(ids, expected) do
+    indexes = Enum.map(expected, &Enum.find_index(ids, fn id -> id == &1 end))
+    indexes == Enum.sort(indexes) and Enum.all?(indexes, &is_integer/1)
+  end
+
+  defp tops(results, trait_id) do
+    results |> Enum.take(3) |> Enum.any?(&(&1.trait_id == trait_id))
+  end
+
+  defp before?(results, winner_id, loser_id) do
+    ids = Enum.map(results, & &1.trait_id)
+    win = Enum.find_index(ids, &(&1 == winner_id))
+    lose = Enum.find_index(ids, &(&1 == loser_id))
+    is_integer(win) and is_integer(lose) and win < lose
   end
 
   describe "Trait search_terms" do

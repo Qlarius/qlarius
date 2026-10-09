@@ -7,7 +7,7 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
 
   alias QlariusWeb.Api.Admin.Responder
 
-  @version "2026-10-09.1"
+  @version "2026-10-09.2"
   @guides_dir Path.expand("../../../../../priv/agent_guides", __DIR__)
   @topics ~w(overview content_groups traits ad_categories campaigns)
 
@@ -52,6 +52,11 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
       method: "POST",
       path: "/api/admin/traits/design_packs",
       purpose: "Create or reform a parent trait with children and survey"
+    },
+    %{
+      method: "GET",
+      path: "/api/admin/trait_search?q=&scope=builder|all",
+      purpose: "Ranked trait search as the Builder (builder, top 15) or Qai (all, top 10) sees it"
     },
     %{
       method: "GET",
