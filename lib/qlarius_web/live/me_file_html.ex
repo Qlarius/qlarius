@@ -561,6 +561,7 @@ defmodule QlariusWeb.MeFileHTML do
   attr :tag_display_mode, :string, required: true
   attr :readonly, :boolean, default: false
   attr :skip_child_ids, :map, default: %{}
+  attr :match_notes, :map, default: %{}
 
   attr :bare, :boolean,
     default: false,
@@ -608,6 +609,9 @@ defmodule QlariusWeb.MeFileHTML do
               >
                 {QlariusWeb.Components.TraitComponents.empty_tag_tease_message()}
               </p>
+              <p :if={Map.get(@match_notes, parent_trait_id)} class="qai-suggestion__meta mt-0.5">
+                {Map.get(@match_notes, parent_trait_id)}
+              </p>
             </div>
             <%!-- Skip before the chevron, so the chevron stays the row's last mark --%>
             <button
@@ -647,6 +651,7 @@ defmodule QlariusWeb.MeFileHTML do
             parent_trait_name={parent_trait_name}
             tags_traits={tags_traits}
             editable={!@readonly}
+            match_note={Map.get(@match_notes, parent_trait_id)}
             skip_trait_id={
               inline_skip_id(
                 @skip_child_ids,
@@ -698,13 +703,13 @@ defmodule QlariusWeb.MeFileHTML do
   slot :inner_block, required: true
 
   # List rows sit in a card; tags are objects already, so they sit on the page.
-  defp traits_frame(%{tag_display_mode: "list"} = assigns) do
+  def traits_frame(%{tag_display_mode: "list"} = assigns) do
     ~H"""
     <.surface_panel padding={false} class="youdata-card">{render_slot(@inner_block)}</.surface_panel>
     """
   end
 
-  defp traits_frame(assigns), do: ~H"{render_slot(@inner_block)}"
+  def traits_frame(assigns), do: ~H"{render_slot(@inner_block)}"
 
   attr :tag_display_map, :any, required: true
   attr :tag_display_mode, :string, required: true

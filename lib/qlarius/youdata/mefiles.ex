@@ -137,6 +137,24 @@ defmodule Qlarius.YouData.MeFiles do
     add_birthdate_tag_to_result(result, me_file_id)
   end
 
+  @doc """
+  Tag values on file for these parent traits, each list in the children's
+  display order. A parent with no tags is absent.
+  """
+  def tag_values_by_parent(_me_file_id, []), do: %{}
+
+  def tag_values_by_parent(me_file_id, parent_ids) when is_list(parent_ids) do
+    from(mt in MeFileTag,
+      join: t in Trait,
+      on: mt.trait_id == t.id,
+      where: mt.me_file_id == ^me_file_id and t.parent_trait_id in ^parent_ids,
+      order_by: [asc: t.display_order, asc: t.trait_name],
+      select: {t.parent_trait_id, t.trait_name}
+    )
+    |> Repo.all()
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+  end
+
   @doc "Which of these effective (parent) trait ids carry tags on this MeFile."
   def tagged_parent_trait_ids(_me_file_id, []), do: MapSet.new()
 

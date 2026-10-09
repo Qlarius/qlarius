@@ -56,8 +56,11 @@ those words find it too.
 ## How search ranks
 
 `GET /api/admin/trait_search?q=pottery&scope=builder` returns the Builder's
-ranking (traits in an active survey, top 15). `scope=all` (the default)
-returns Qai's `search_traits` ranking (every active trait, top 10). Each
+ranking (traits in an active survey, top 15). A parent whose question is on
+an active survey is included even when that parent's `is_active` flag is
+false, which is how the survey screen already decides the topic is taggable.
+A child still has to be active. `scope=all` (the default) returns Qai's
+`search_traits` ranking (every trait with `is_active` true, top 10). Each
 result includes `score`, `tag_count`, and `matches` (the field and tier each
 query word hit).
 

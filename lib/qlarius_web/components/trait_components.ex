@@ -152,6 +152,7 @@ defmodule QlariusWeb.Components.TraitComponents do
   attr :tags_traits, :list, default: []
   attr :editable, :boolean, default: true
   attr :skip_trait_id, :any, default: nil
+  attr :match_note, :string, default: nil
 
   def trait_tag(assigns) do
     assigns =
@@ -198,6 +199,7 @@ defmodule QlariusWeb.Components.TraitComponents do
           Skip
         </button>
       </span>
+      <span :if={@match_note} class="qai-suggestion__meta mt-0.5">{@match_note}</span>
     </div>
     """
   end

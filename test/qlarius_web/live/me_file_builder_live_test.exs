@@ -140,17 +140,22 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
   describe "search" do
     setup :seed_suggestion
 
-    test "?q= prefills the search; results name the trait and the matching tag option", ctx do
+    test "?q= prefills the search; results name the trait and the tags on file", ctx do
       {:ok, view, _html} = live(ctx.conn, ~p"/me_file_builder?q=pottery")
 
       assert has_element?(view, "#builder-trait-search-input[value=pottery]")
       render_async(view)
-      assert has_element?(view, "#builder-trait-results", "Arts and Crafts")
-      assert has_element?(view, "#builder-trait-results", "Matches Pottery")
 
-      view
-      |> element("#builder-trait-results button[phx-value-id='#{ctx.crafts.id}']")
-      |> render_click()
+      assert has_element?(
+               view,
+               "#trait-card-#{ctx.crafts.id} .mefile-row__label",
+               "Arts and Crafts"
+             )
+
+      assert has_element?(view, "#trait-card-#{ctx.crafts.id} .mefile-row__value", "Painting")
+      assert has_element?(view, "#trait-card-#{ctx.crafts.id}", "Matches Pottery")
+
+      view |> element("#trait-card-#{ctx.crafts.id}") |> render_click()
 
       assert has_element?(view, ".tag-edit-modal.modal-open")
       assert has_element?(view, "#trait-#{ctx.painting.id}[checked]")
@@ -164,10 +169,17 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
 
       view |> element("button[aria-label='Search topics and tags']") |> render_click()
       html = view |> form("#builder-trait-search", %{q: "ceramics"}) |> render_change()
-      assert html =~ "builder-trait-results-skeleton" or html =~ "Matches Pottery"
+      assert html =~ "builder-trait-results-skeleton" or html =~ "Arts and Crafts"
 
       render_async(view)
-      assert has_element?(view, "#builder-trait-results", "Matches Pottery")
+
+      assert has_element?(
+               view,
+               "#trait-card-#{ctx.crafts.id} .mefile-row__label",
+               "Arts and Crafts"
+             )
+
+      assert has_element?(view, "#trait-card-#{ctx.crafts.id}", "Matches Pottery")
       refute has_element?(view, "#builder-trait-results-skeleton")
 
       html = view |> form("#builder-trait-search", %{q: "zzzunknown"}) |> render_change()
@@ -195,6 +207,39 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
       assert_patch(view, ~p"/me_file_builder?q=Pottery")
       render_async(view)
       assert has_element?(view, "#builder-trait-results", "Arts and Crafts")
+    end
+
+    test "saving from a result shows the new tag values on that row", ctx do
+      {:ok, view, _html} = live(ctx.conn, ~p"/me_file_builder?q=pottery")
+      render_async(view)
+
+      render_hook(view, "save_tags", %{
+        "me_file_id" => to_string(ctx.me_file.id),
+        "trait_id" => to_string(ctx.crafts.id),
+        "child_trait_ids" => [to_string(ctx.painting.id), to_string(ctx.pottery.id)]
+      })
+
+      assert has_element?(
+               view,
+               "#trait-card-#{ctx.crafts.id} .mefile-row__value",
+               "Painting · Pottery"
+             )
+
+      view |> element("button[aria-label='Show as Tags']") |> render_click()
+
+      assert has_element?(
+               view,
+               "#trait-card-#{ctx.crafts.id} .trait-tag__name",
+               "Arts and Crafts"
+             )
+
+      assert has_element?(
+               view,
+               "#trait-card-#{ctx.crafts.id} .trait-tag__values",
+               "Painting · Pottery"
+             )
+
+      assert has_element?(view, "#trait-card-#{ctx.crafts.id}", "Matches Pottery")
     end
   end
 

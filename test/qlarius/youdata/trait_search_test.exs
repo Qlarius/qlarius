@@ -57,6 +57,33 @@ defmodule Qlarius.YouData.TraitSearchTest do
     assert id == ctx.crafts.id
   end
 
+  test "a parent on an active survey is searchable with its catalog flag off", ctx do
+    token = "xyloshoe#{System.unique_integer([:positive])}"
+
+    parent =
+      insert_trait!(ctx.hobbies, "Size #{token}")
+      |> Ecto.Changeset.change(is_active: false)
+      |> Repo.update!()
+
+    kept = insert_trait!(nil, "Wide #{token}", parent_trait_id: parent.id)
+
+    retired =
+      insert_trait!(nil, "Retired #{token}", parent_trait_id: parent.id)
+      |> Ecto.Changeset.change(is_active: false)
+      |> Repo.update!()
+
+    assert rank(token, surveyed_only: true) == []
+    refute Enum.any?(rank(token), &(&1.trait_id == parent.id))
+
+    survey_trait!(parent)
+
+    assert [%{trait_id: id, matched_values: values}] = rank(token, surveyed_only: true)
+    assert id == parent.id
+    assert values == [kept.trait_name]
+    refute retired.trait_name in values
+    refute Enum.any?(rank(token), &(&1.trait_id == parent.id))
+  end
+
   test "match_values sorts chat words into child traits and leftovers", ctx do
     with_terms!(ctx.pottery, ["clay"])
     children = Repo.all(from t in Trait, where: t.parent_trait_id == ^ctx.crafts.id)

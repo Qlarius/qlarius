@@ -62,8 +62,10 @@ defmodule Qlarius.YouData.TraitSearch do
   Returns `[%{trait_id, trait, category, category_id, score, tag_count,
   matched_values, matches}]`. `matched_values` are the names of matching child
   traits (skip answers left out). `matches` says which field each query word
-  hit. With `surveyed_only: true`, only traits whose question sits in an
-  active survey are returned, so every result can be answered.
+  hit. With `surveyed_only: true`, a parent is included when its question
+  sits in an active survey, even if that parent's catalog `is_active` flag
+  is false. Children still have to be active, so a retired answer stays out.
+  Without that option, every trait has to be active.
   """
   def rank(tokens, opts \\ []) when is_list(tokens) do
     categories = Repo.all(from c in TraitCategory, select: {c.id, c.name}) |> Map.new()
@@ -152,8 +154,32 @@ defmodule Qlarius.YouData.TraitSearch do
     end
   end
 
-  defp active_traits(surveyed_only?) do
-    query =
+  # Builder search follows the survey screen: a parent whose question is on
+  # an active survey is askable even when its catalog `is_active` flag is
+  # false. Children still have to be active. Catalog search keeps requiring
+  # `is_active` on every row.
+  defp active_traits(true) do
+    surveyed = Surveys.surveyed_trait_ids_query()
+
+    Repo.all(
+      from t in Trait,
+        where:
+          (is_nil(t.parent_trait_id) and t.id in subquery(surveyed)) or
+            (not is_nil(t.parent_trait_id) and t.is_active == true and
+               t.parent_trait_id in subquery(surveyed)),
+        select: %{
+          id: t.id,
+          name: t.trait_name,
+          parent_id: t.parent_trait_id,
+          category_id: t.trait_category_id,
+          terms: t.search_terms,
+          skip?: t.is_skipped_tag
+        }
+    )
+  end
+
+  defp active_traits(false) do
+    Repo.all(
       from t in Trait,
         where: t.is_active == true,
         select: %{
@@ -164,18 +190,7 @@ defmodule Qlarius.YouData.TraitSearch do
           terms: t.search_terms,
           skip?: t.is_skipped_tag
         }
-
-    query =
-      if surveyed_only? do
-        surveyed = Surveys.surveyed_trait_ids_query()
-
-        from t in query,
-          where: coalesce(t.parent_trait_id, t.id) in subquery(surveyed)
-      else
-        query
-      end
-
-    Repo.all(query)
+    )
   end
 
   defp tag_counts([]), do: %{}

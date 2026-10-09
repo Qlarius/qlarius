@@ -92,7 +92,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
             tag_display_mode={@tag_display_mode}
             show_tag_search={@show_trait_search}
             show_add_tags={false}
-            show_view_modes={false}
+            show_view_modes={@show_trait_search or searchable?(@trait_search)}
             search_toggle="toggle_trait_search"
             search_change="trait_search"
             search_clear="clear_trait_search"
@@ -118,9 +118,15 @@ defmodule QlariusWeb.MeFileBuilderLive do
           Tap a topic to add or update its tags.
         </Layouts.mobile_page_intro>
 
-        <.async_result :let={results} :if={searchable?(@trait_search)} assign={@trait_results}>
+        <%!-- Hidden while a survey is open: that survey already owns the
+             trait-card ids the strobe looks up. --%>
+        <.async_result
+          :let={results}
+          :if={searchable?(@trait_search) and not @editing}
+          assign={@trait_results}
+        >
           <:loading>
-            <.trait_search_skeleton />
+            <.trait_search_skeleton tag_display_mode={@tag_display_mode} />
           </:loading>
           <:failed>
             <p class="mobile-page-intro text-center py-8">
@@ -131,7 +137,11 @@ defmodule QlariusWeb.MeFileBuilderLive do
                them until the new ones arrive. The skeleton is only the first
                search, while there is nothing to keep. --%>
           <div class={@trait_results.loading && "builder-results--pending"}>
-            <.trait_search_results results={results} trait_search={@trait_search} />
+            <.trait_search_results
+              results={results}
+              trait_search={@trait_search}
+              tag_display_mode={@tag_display_mode}
+            />
           </div>
         </.async_result>
 
@@ -681,13 +691,28 @@ defmodule QlariusWeb.MeFileBuilderLive do
   end
 
   # After tags change or a suggestion is dismissed: refresh in place (no
-  # skeleton), and the search results' checks with it
+  # skeleton). Search ranking stays; the values on each result update now, so
+  # the green confirmation plays over the new tag rather than the old one.
   defp reload_index(socket) do
     me_file_id = socket.assigns.current_scope.user.me_file.id
 
     socket
     |> assign(:index, AsyncResult.ok(socket.assigns.index, load_index(me_file_id)))
-    |> assign_trait_search(socket.assigns.trait_search)
+    |> refresh_search_tags(me_file_id)
+  end
+
+  defp refresh_search_tags(socket, me_file_id) do
+    case socket.assigns.trait_results do
+      %AsyncResult{ok?: true, result: results} when is_list(results) ->
+        assign(
+          socket,
+          :trait_results,
+          AsyncResult.ok(socket.assigns.trait_results, with_tags(me_file_id, results))
+        )
+
+      _ ->
+        socket
+    end
   end
 
   # Taxonomy search: traits (and their tag options and search terms) that
@@ -734,8 +759,16 @@ defmodule QlariusWeb.MeFileBuilderLive do
     ranked =
       tokens |> TraitSearch.rank(surveyed_only: true) |> Enum.take(@trait_result_limit)
 
-    tagged = MeFiles.tagged_parent_trait_ids(me_file_id, Enum.map(ranked, & &1.trait_id))
-    Enum.map(ranked, &Map.put(&1, :tagged?, MapSet.member?(tagged, &1.trait_id)))
+    with_tags(me_file_id, ranked)
+  end
+
+  defp with_tags(me_file_id, results) do
+    tags = MeFiles.tag_values_by_parent(me_file_id, Enum.map(results, & &1.trait_id))
+
+    Enum.map(results, fn result ->
+      values = Map.get(tags, result.trait_id, [])
+      Map.merge(result, %{tags: values, tagged?: values != []})
+    end)
   end
 
   defp open_suggestion(socket, suggestion_id) do
@@ -820,49 +853,71 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
   attr :results, :list, required: true
   attr :trait_search, :string, required: true
+  attr :tag_display_mode, :string, required: true
 
+  # The same list rows and tag chips as /me_file, in that page's current view.
   defp trait_search_results(assigns) do
+    parent_traits =
+      Enum.map(assigns.results, fn result ->
+        tags =
+          result.tags
+          |> Enum.with_index()
+          |> Enum.map(fn {value, index} -> {index, value, index} end)
+
+        {result.trait_id, result.trait, 0, tags}
+      end)
+
+    match_notes =
+      Map.new(assigns.results, fn result -> {result.trait_id, match_note(result)} end)
+
+    assigns =
+      assigns
+      |> assign(:parent_traits, parent_traits)
+      |> assign(:match_notes, match_notes)
+      |> assign(
+        :skip_child_ids,
+        Traits.active_skipped_child_id_by_parent(Enum.map(parent_traits, &elem(&1, 0)))
+      )
+
     ~H"""
-    <section id="builder-trait-results" class="mefile-category builder-results" aria-live="polite">
+    <section
+      id="builder-trait-results"
+      class="mefile-category builder-results"
+      aria-live="polite"
+      phx-hook="AnimateTrait"
+    >
       <div class="mefile-category__head">
         <h2>Results</h2>
-        <span :if={@results != []} class="tabular-amount">{length(@results)}</span>
+        <span :if={@parent_traits != []} class="tabular-amount">{length(@parent_traits)}</span>
       </div>
-      <p :if={@results == []} class="builder-results__empty">
+      <p :if={@parent_traits == []} class="builder-results__empty">
         No topics match "{@trait_search}".
       </p>
-      <.surface_panel :if={@results != []} padding={false} class="youdata-card">
-        <ul class="builder-list">
-          <li :for={result <- @results}>
-            <button
-              type="button"
-              phx-click="open_trait"
-              phx-value-id={result.trait_id}
-              class="builder-row"
-            >
-              <span class="builder-row__main">
-                <span class="builder-row__name">{result.trait}</span>
-                <span class="qai-suggestion__meta">{result_detail(result)}</span>
-              </span>
-              <%= if result.tagged? do %>
-                <.icon name="hero-check-circle-solid" class="builder-row__done h-5 w-5" />
-                <span class="sr-only">Has tags</span>
-              <% end %>
-              <.icon name="hero-chevron-right" class="builder-row__chevron h-5 w-5" />
-            </button>
-          </li>
-        </ul>
-      </.surface_panel>
+      <.traits_frame :if={@parent_traits != []} tag_display_mode={@tag_display_mode}>
+        <.parent_traits_display
+          parent_traits={@parent_traits}
+          tag_display_mode={@tag_display_mode}
+          skip_child_ids={@skip_child_ids}
+          match_notes={@match_notes}
+          bare={@tag_display_mode != "list"}
+        />
+      </.traits_frame>
     </section>
     """
   end
 
-  defp result_detail(%{matched_values: [_ | _] = values}),
-    do: "Matches " <> (values |> Enum.uniq() |> Enum.join(", "))
+  # Child names that hit the query, or the category when the topic itself did.
+  defp match_note(%{matched_values: [_ | _] = values}) do
+    "Matches " <> (values |> Enum.uniq() |> Enum.join(", "))
+  end
 
-  defp result_detail(%{category: category}), do: category
+  defp match_note(%{category: category}) when is_binary(category) and category != "", do: category
+  defp match_note(_), do: nil
 
-  # One results card of row bones, the same shape the search list arrives in.
+  attr :tag_display_mode, :string, required: true
+
+  # Bones in the shape of the view that's about to arrive: list rows in a
+  # card, or tag chips on the page.
   defp trait_search_skeleton(assigns) do
     ~H"""
     <section
@@ -874,19 +929,19 @@ defmodule QlariusWeb.MeFileBuilderLive do
       <div class="mefile-category__head">
         <h2>Results</h2>
       </div>
-      <.surface_panel padding={false} class="youdata-card">
-        <ul class="builder-list" aria-hidden="true">
-          <li :for={name <- ["skeleton h-4 w-2/5", "skeleton h-4 w-1/2", "skeleton h-4 w-1/3"]}>
-            <div class="builder-row cursor-default hover:bg-transparent">
-              <span class="builder-row__main">
-                <span class={name}></span>
-                <span class="skeleton h-3 w-1/4"></span>
-              </span>
-              <span class="skeleton h-5 w-5 shrink-0 rounded-full"></span>
+      <.surface_panel :if={@tag_display_mode == "list"} padding={false} class="youdata-card">
+        <ul class="mefile-list" aria-hidden="true">
+          <li :for={_ <- 1..3} class="mefile-row">
+            <div class="min-w-0 flex-1 space-y-2">
+              <span class="skeleton h-3 w-24"></span>
+              <span class="skeleton h-4 w-40"></span>
             </div>
           </li>
         </ul>
       </.surface_panel>
+      <div :if={@tag_display_mode != "list"} class="flex flex-row flex-wrap gap-2" aria-hidden="true">
+        <span :for={_ <- 1..3} class="skeleton h-14 w-36 rounded-lg"></span>
+      </div>
     </section>
     """
   end
