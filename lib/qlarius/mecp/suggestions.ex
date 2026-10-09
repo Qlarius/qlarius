@@ -10,8 +10,9 @@ defmodule Qlarius.MeCP.Suggestions do
   MeFile until the user answers there; the write resolves the suggestion via
   `accept_pending_for_trait/2`.
 
-  Queue rules: suggestions target effective traits that carry a survey
-  question (guaranteeing the Builder can render them), must be inside the
+  Queue rules: suggestions target effective traits whose survey question sits
+  in an active survey (`Surveys.surveyed_trait_ids_query/0`; a trait in no
+  active survey is orphaned and treated as inactive), must be inside the
   grant's scope, dedupe per (me_file, trait) against pending and recently
   dismissed rows, and each grant holds at most #{10} pending. Suggesting costs
   no disclosure budget (it discloses nothing) but requires an unrevoked,
@@ -26,7 +27,9 @@ defmodule Qlarius.MeCP.Suggestions do
   alias Qlarius.MeCP.Grants
   alias Qlarius.MeCP.Grants.Grant
   alias Qlarius.MeCP.Suggestions.TagSuggestion
+  alias Qlarius.MeCP.TaxonomyGaps
   alias Qlarius.Repo
+  alias Qlarius.YouData.Surveys
   alias Qlarius.YouData.Surveys.SurveyQuestion
   alias Qlarius.YouData.Traits.Trait
 
@@ -53,9 +56,10 @@ defmodule Qlarius.MeCP.Suggestions do
     now = Keyword.get(opts, :now, DateTime.utc_now())
 
     with :ok <- check_grant_active(grant, now),
-         {:ok, trait} <- resolve_effective_trait(trait_ref),
+         {:ok, trait} <-
+           trait_ref |> resolve_effective_trait() |> note_unknown(grant, trait_ref, attrs, now),
          :ok <- check_scope(grant, trait),
-         :ok <- check_askable(trait),
+         :ok <- trait |> check_askable() |> note_orphaned(grant, trait, attrs, now),
          me_file_id = MeCP.effective_me_file_id(grant),
          :ok <- check_not_duplicate(me_file_id, trait.id, now),
          :ok <- check_pending_cap(grant.id) do
@@ -88,11 +92,17 @@ defmodule Qlarius.MeCP.Suggestions do
 
   # --- app-facing ----------------------------------------------------------------
 
-  @doc "Pending suggestions for a MeFile, oldest first, with trait and client preloaded."
+  @doc """
+  Pending suggestions for a MeFile, oldest first, with trait and client
+  preloaded. Only surveyed traits: a suggestion whose trait has since left
+  every active survey (orphaned) stays pending in the table but isn't shown.
+  """
   def list_pending_for_me_file(me_file_id) do
     Repo.all(
       from s in TagSuggestion,
-        where: s.me_file_id == ^me_file_id and s.status == "pending",
+        where:
+          s.me_file_id == ^me_file_id and s.status == "pending" and
+            s.trait_id in subquery(Surveys.surveyed_trait_ids_query()),
         order_by: [asc: s.inserted_at, asc: s.id],
         preload: [trait: [:survey_question, :trait_category], grant: [:mecp_client]]
     )
@@ -113,13 +123,12 @@ defmodule Qlarius.MeCP.Suggestions do
   surfaces the whole topic ("Ideal Vacation/Getaway", 6 questions) in the
   Builder, which opens the real survey through the normal flow.
 
-  Returns entries of `%{survey: %Survey{} | nil, suggestions: [...],
-  answered: n, total: n, latest: %TagSuggestion{}, update?: boolean}`.
-  Entries with `survey: nil` (anchor question attached to no survey) fall
-  back to trait-level handling; their totals count the suggestions
-  themselves. `update?` marks entries whose anchor trait already carries
-  tags: the assistant is proposing a revision to existing data (only it
-  sees the conversation), not a fill for a gap.
+  Returns entries of `%{survey: %Survey{}, suggestions: [...], answered: n,
+  total: n, latest: %TagSuggestion{}, update?: boolean}`. Only active surveys
+  count, and suggestions on orphaned traits (in no active survey) are left
+  out, so every entry opens a real survey. `update?` marks entries whose
+  anchor trait already carries tags: the assistant is proposing a revision to
+  existing data (only it sees the conversation), not a fill for a gap.
   """
   def suggested_surveys_for_me_file(me_file_id) do
     suggestions = list_pending_for_me_file(me_file_id)
@@ -133,7 +142,7 @@ defmodule Qlarius.MeCP.Suggestions do
           on: sqs.survey_question_id == sq.id,
           join: s in Qlarius.YouData.Surveys.Survey,
           on: s.id == sqs.survey_id,
-          where: sq.trait_id in ^trait_ids,
+          where: sq.trait_id in ^trait_ids and s.active == true,
           select: {sq.trait_id, s},
           order_by: [asc: sq.trait_id, asc: s.id]
       )
@@ -144,6 +153,9 @@ defmodule Qlarius.MeCP.Suggestions do
 
     suggestions
     |> Enum.group_by(&survey_by_trait[&1.trait_id])
+    # list_pending_for_me_file/1 already keeps to surveyed traits; this guards
+    # a survey deactivated between the two queries.
+    |> Map.delete(nil)
     |> Enum.map(fn {survey, group} ->
       latest = Enum.max_by(group, & &1.inserted_at, DateTime)
       {answered, total} = survey_progress(survey, group, me_file_id)
@@ -199,8 +211,6 @@ defmodule Qlarius.MeCP.Suggestions do
 
     count
   end
-
-  defp survey_progress(nil, group, _me_file_id), do: {0, length(group)}
 
   defp survey_progress(survey, _group, me_file_id) do
     parent_traits =
@@ -300,13 +310,41 @@ defmodule Qlarius.MeCP.Suggestions do
     end
   end
 
-  # Renderability guarantee: the Builder presents suggestions as survey
-  # questions, so the trait must carry one.
-  defp check_askable(trait) do
-    exists =
-      Repo.exists?(from q in SurveyQuestion, where: q.trait_id == ^trait.id)
+  # Taxonomy-gap signals for admins (de-identified; see TaxonomyGaps): an
+  # assistant wanted a trait we don't have, or one that's orphaned. The
+  # proposed values are kept (scrubbed); the assistant's reason is not.
+  defp note_unknown({:error, :unknown_trait} = error, grant, name, attrs, now)
+       when is_binary(name) do
+    TaxonomyGaps.record(grant, gap_source(attrs), "unknown_trait", name,
+      proposed_values: attrs[:proposed_values] || [],
+      now: now
+    )
 
-    if exists, do: :ok, else: {:error, :not_askable}
+    error
+  end
+
+  defp note_unknown(result, _grant, _ref, _attrs, _now), do: result
+
+  defp note_orphaned({:error, :not_askable} = error, grant, trait, attrs, now) do
+    TaxonomyGaps.record(grant, gap_source(attrs), "not_askable", trait.trait_name,
+      nearest_trait_id: trait.id,
+      proposed_values: attrs[:proposed_values] || [],
+      now: now
+    )
+
+    error
+  end
+
+  defp note_orphaned(result, _grant, _trait, _attrs, _now), do: result
+
+  defp gap_source(%{source: "observed"}), do: "observed"
+  defp gap_source(_attrs), do: "suggest"
+
+  # Renderability guarantee: the Builder presents suggestions as surveys, so
+  # the trait's question must sit in an active survey. Orphaned traits (a
+  # question in no active survey, or none at all) are inactive.
+  defp check_askable(trait) do
+    if Surveys.surveyed_trait?(trait.id), do: :ok, else: {:error, :not_askable}
   end
 
   defp check_not_duplicate(me_file_id, trait_id, now) do
@@ -324,11 +362,15 @@ defmodule Qlarius.MeCP.Suggestions do
     if duplicate, do: {:duplicate, :already_suggested}, else: :ok
   end
 
+  # Leftover pending rows on orphaned traits aren't shown, so they don't
+  # count against the grant's cap either.
   defp check_pending_cap(grant_id) do
     count =
       Repo.one(
         from s in TagSuggestion,
-          where: s.mecp_grant_id == ^grant_id and s.status == "pending",
+          where:
+            s.mecp_grant_id == ^grant_id and s.status == "pending" and
+              s.trait_id in subquery(Surveys.surveyed_trait_ids_query()),
           select: count(s.id)
       )
 

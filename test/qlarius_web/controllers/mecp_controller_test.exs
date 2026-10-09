@@ -315,15 +315,8 @@ defmodule QlariusWeb.MeCPControllerTest do
       ctx = seed_with_token!(%{tier: 2, scope: %{}})
       gap = insert_trait!(ctx.lifestyle, "Pet Ownership")
 
-      Qlarius.Repo.insert!(%Qlarius.YouData.Surveys.SurveyQuestion{
-        text: "Do you have pets?",
-        trait_id: gap.id,
-        # Legacy bytea column holding ASCII "1" for active.
-        active: "1",
-        display_order: 1,
-        added_by: 0,
-        modified_by: 0
-      })
+      # Suggestible traits sit in an active survey
+      survey_trait!(gap, "Do you have pets?")
 
       args = %{
         "trait" => "Pet Ownership",
@@ -340,7 +333,7 @@ defmodule QlariusWeb.MeCPControllerTest do
       envelope = body["result"]["content"] |> hd() |> Map.fetch!("text") |> Jason.decode!()
       assert envelope["status"] == "already_suggested"
 
-      # Trait without a survey question refuses with a clear reason.
+      # A trait in no active survey (inactive) refuses with a clear reason.
       body =
         call_tool(build_conn(), ctx.token, "suggest_tag", %{
           "trait" => "Housing",

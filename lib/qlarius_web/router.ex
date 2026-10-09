@@ -866,6 +866,7 @@ defmodule QlariusWeb.Router do
       ] do
       live "/mecp_access_log", MeCPAccessLogLive, :index
       live "/qai_economics", QaiEconomicsLive, :index
+      live "/qai_oracle", QaiOracleLive, :index
     end
   end
 end

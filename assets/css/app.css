@@ -2947,6 +2947,51 @@
     break-inside: avoid;
   }
 
+  /*
+   * Qai suggestions (Builder): the index's first card. Category label with
+   * the Qai logo and a count, a Qai rail like .youdata-card, a quiet intro,
+   * then builder rows; each row's reason sits under it with a small Dismiss.
+   */
+  .qai-card {
+    @apply relative;
+  }
+
+  .qai-card::before {
+    @apply pointer-events-none absolute inset-y-0 left-0 z-[1] w-[3px] bg-qai-400;
+    content: "";
+  }
+
+  .qai-suggestions__intro {
+    @apply border-b px-4 py-3 text-[13px] leading-snug text-base-content/60;
+    border-color: color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  }
+
+  .qai-suggestion__meta {
+    @apply text-[13px] leading-snug text-base-content/55;
+  }
+
+  .qai-suggestion__badge {
+    @apply ml-1.5 inline-flex items-center rounded-full px-2 py-0.5 align-middle text-[11px] font-semibold leading-none text-qai-600 dark:text-qai-300;
+    background-color: color-mix(in oklab, var(--color-qai-400) 16%, var(--color-base-100));
+  }
+
+  .qai-suggestion__foot {
+    @apply -mt-1.5 flex items-end gap-3 px-4 pb-3;
+  }
+
+  .qai-suggestion__reason {
+    @apply text-[13px] italic leading-snug text-base-content/60;
+  }
+
+  .qai-suggestion__said {
+    @apply mt-0.5 text-[13px] leading-snug text-base-content/55;
+  }
+
+  .qai-suggestion__dismiss {
+    @apply ml-auto inline-flex h-7 shrink-0 cursor-pointer items-center rounded-full border px-3 text-xs font-semibold text-base-content/70 transition-colors hover:bg-base-200/60 hover:text-base-content;
+    border-color: color-mix(in oklab, var(--color-base-content) 14%, transparent);
+  }
+
   .builder-list {
     @apply m-0 list-none p-0;
   }

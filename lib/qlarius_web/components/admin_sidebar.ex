@@ -280,6 +280,7 @@ defmodule QlariusWeb.Components.AdminSidebar do
               nav_link("Global Variables", ~p"/admin/global_variables"),
               nav_link("Sponster Ledger", ~p"/admin/sponster_ledger"),
               nav_link("MeCP Access Log", ~p"/admin/mecp_access_log"),
+              nav_link("Qai Oracle", ~p"/admin/qai_oracle"),
               nav_link("Qai Economics", ~p"/admin/qai_economics")
             ]
           }

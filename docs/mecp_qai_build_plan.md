@@ -200,6 +200,22 @@ routing from the concept doc is deferred past v1 (frontier tier ships first).
 
 **Not on the current roadmap:** the commercial re-ranking API and agentic-commerce rail integrations have been separated out as a suggested future addition; see `docs/mecp_future_commercial_agents.md`. The marketplace is not currently asking for it, and its GTM differs fundamentally from the current consumer/advertiser/media direction.
 
+## Taxonomy gaps and the Qai Oracle admin page (October 2026)
+
+Goal: learn what people ask assistants about that the trait taxonomy doesn't cover, so admins can add trait sets, and monitor oracle activity.
+
+- **Capture** (`Qlarius.MeCP.TaxonomyGaps`, table `mecp_taxonomy_gaps`) at the oracle's miss points: `search_traits` with no match (`no_match`) or only category-name hits (`weak_match`, with the nearest trait); `ask_me` naming an unknown trait (`unknown_trait`); `suggest_tag` naming an unknown trait (`unknown_trait`) or an orphaned one, in no active survey (`not_askable`). Best-effort; never fails the read.
+- **De-identified** (owner's decision, October 2026), the one place MeCP keeps subject text:
+  - no person, grant or MeFile column; `person_key` is a keyed one-way hash of the MeFile id (`Qlarius.MeCP.Keys`, HMAC from `secret_key_base`) used only to count distinct people
+  - day granularity only (`occurred_on`, no timestamps), so rows can't be joined to access events by time
+  - subject text trimmed, capped at 160 chars and scrubbed of emails, links and 4+ digit runs; proposed values kept (scrubbed, max 5); the assistant's `reason` is never stored
+  - one row per subject, person, day and source
+  - the admin gap list defaults to subjects `TaxonomyGaps.min_people/0` (3) different people raised; a People filter switches to All (any subject, even one person) or 10+ (owner's request, October 2026). Orphaned-trait demand shows by trait name without a threshold (system vocabulary). It counts `not_askable` refusals plus suggestions already filed on orphaned traits in any status (from before the orphan rule or before the trait was orphaned), one person once across both via the same keyed hash; a trait put back in an active survey drops out
+  - de-identified, not anonymous: someone with the server secret could re-derive person keys
+- **Access-log digests** are now keyed too (`AccessLog.digest/1` → `Keys.hmac("access-digest", …)`), so short queries can't be recovered from an unsalted SHA-256. Older rows hold plain SHA-256; the two aren't comparable.
+- **Admin page** `/admin/qai_oracle` (`QaiOracleLive`, data in `Qlarius.MeCP.OracleStats` and `TaxonomyGaps`), 7/30/90-day window: totals (asks, searches, capsule reads, suggestions, active grants and MeFiles), taxonomy gaps (subject, people, mentions, how, nearest trait, values mentioned, seen), orphaned traits still wanted, daily activity, by assistant, most-asked traits, suggestions by trait. Activity is counted from the access log; no content or answers are stored to show. To see the orphaned-traits panel locally, `mix run --no-start priv/repo/dev_orphaned_trait_demand.exs` adds an orphaned "Favorite Color" trait and replays the dev grants suggesting it (refuses to run against anything but localhost `qlarius_dev`).
+- **Not captured:** refusals before a read is logged (budget, scope, tier) aren't events, so they don't appear; `weak_match` is a heuristic (a token hit a category name but no trait name).
+
 ## Verification plan
 
 - Property tests on capsule rendering (determinism, scope containment: a capsule must never contain a trait outside its grant scope).

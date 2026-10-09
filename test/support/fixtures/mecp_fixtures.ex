@@ -31,6 +31,39 @@ defmodule Qlarius.MeCPFixtures do
     })
   end
 
+  @doc """
+  Gives a trait a survey question in an active survey, which is what makes it
+  suggestible (a trait in no active survey is orphaned and inactive).
+  """
+  def survey_trait!(trait, text \\ nil) do
+    question =
+      Repo.insert!(%Qlarius.YouData.Surveys.SurveyQuestion{
+        text: text || "Question about #{trait.trait_name}?",
+        trait_id: trait.id,
+        # Legacy bytea column holding ASCII "1" for active.
+        active: "1",
+        display_order: 1,
+        added_by: 0,
+        modified_by: 0
+      })
+
+    survey =
+      Repo.insert!(%Qlarius.YouData.Surveys.Survey{
+        name: "Survey #{System.unique_integer([:positive])}",
+        active: true,
+        created_by: 0,
+        updated_by: 0
+      })
+
+    Repo.insert!(%Qlarius.YouData.Surveys.SurveyQuestionSurvey{
+      survey_question_id: question.id,
+      survey_id: survey.id,
+      display_order: 1
+    })
+
+    trait
+  end
+
   def insert_tag!(me_file, trait, value) do
     Repo.insert!(%MeFileTag{
       me_file_id: me_file.id,

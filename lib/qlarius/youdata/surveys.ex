@@ -8,6 +8,31 @@ defmodule Qlarius.YouData.Surveys do
   alias Qlarius.YouData.Surveys.SurveyAnswer
   alias Qlarius.YouData.Traits.Trait
 
+  # Surveyed traits
+
+  @doc """
+  Query of the trait ids consumers can answer: their survey question sits in at
+  least one active survey. A trait whose question is in no active survey is
+  "orphaned" and counts as inactive (e.g. for MeCP suggestions). Survey
+  questions attach to effective (parent) traits.
+  """
+  def surveyed_trait_ids_query do
+    from sq in SurveyQuestion,
+      join: sqs in "survey_question_surveys",
+      on: sqs.survey_question_id == sq.id,
+      join: s in Survey,
+      on: s.id == sqs.survey_id,
+      where: s.active == true,
+      select: sq.trait_id,
+      distinct: true
+  end
+
+  @doc "Whether a trait's survey question is in at least one active survey."
+  def surveyed_trait?(trait_id) do
+    # First binding is the survey question
+    Repo.exists?(from sq in surveyed_trait_ids_query(), where: sq.trait_id == ^trait_id)
+  end
+
   # Survey Category functions
 
   def list_survey_categories do

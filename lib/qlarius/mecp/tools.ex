@@ -282,8 +282,8 @@ defmodule Qlarius.MeCP.Tools do
 
       {:error, :not_askable} ->
         tool_refusal(
-          "not_askable: this trait has no survey question, so the owner cannot " <>
-            "be asked it in the Builder"
+          "not_askable: this trait isn't in an active survey (it's inactive), so the " <>
+            "owner cannot be asked it in the Builder"
         )
 
       {:error, reason} ->

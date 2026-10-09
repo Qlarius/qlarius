@@ -118,15 +118,8 @@ defmodule Qlarius.Qai.EconomicsTest do
 
     ctx = seed!(%{tier: 2, scope: %{}})
     trait = insert_trait!(ctx.lifestyle, "Pet Ownership #{System.unique_integer([:positive])}")
-
-    Repo.insert!(%Qlarius.YouData.Surveys.SurveyQuestion{
-      text: "Pets?",
-      trait_id: trait.id,
-      active: "1",
-      display_order: 1,
-      added_by: 0,
-      modified_by: 0
-    })
+    # Suggestible: its question sits in an active survey
+    survey_trait!(trait, "Pets?")
 
     {:ok, suggestion} = Suggestions.create_suggestion(ctx.grant, trait.id, %{})
     :ok = Suggestions.dismiss(suggestion.id, ctx.me_file.id)

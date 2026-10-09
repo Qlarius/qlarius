@@ -102,113 +102,77 @@ defmodule QlariusWeb.MeFileBuilderLive do
             </p>
           </:failed>
 
-          <%!-- Suggested surveys: topics Qai looked for and found empty / stale --%>
-          <div :if={index.suggested_surveys != []} class="pt-2 mb-7">
-            <.surface_panel
-              padding={false}
-              class="border-t-qai-400 dark:border-t-qai-500"
+          <%!-- Index: a glance at every topic. Category label above one card of survey rows,
+             as on MeFile; a thin line shows progress and a check marks a finished survey. --%>
+          <div class="builder-index pt-2">
+            <%!-- Qai suggestions: topics an assistant asked about that are empty or out of
+                 date, grouped by their (active) survey; orphaned traits never show. The
+                 index's first card (label, card, rows), with a Qai rail. --%>
+            <section
+              :if={index.suggested_surveys != []}
+              class="mefile-category qai-suggestions"
             >
-              <div class="collapse">
-                <input type="checkbox" class="peer" />
-                <div class="collapse-title min-h-0 relative px-4 py-4 pr-12 peer-checked:[&_.qai-suggestions-chevron]:rotate-180">
-                  <.icon
-                    name="hero-chevron-down"
-                    class="qai-suggestions-chevron pointer-events-none absolute right-3 top-4 h-7 w-7 text-base-content/50 transition-transform duration-200"
+              <div class="mefile-category__head">
+                <h2 class="flex items-center gap-2">
+                  Suggested by
+                  <img
+                    src="/images/qai_logo_color_horiz.svg"
+                    alt="Qai"
+                    class="h-5 w-auto shrink-0"
                   />
-                  <div class="flex items-center gap-2">
-                    <h2 class="text-lg font-bold tracking-tight text-base-content">
-                      Suggestions by
-                    </h2>
-                    <img
-                      src="/images/qai_logo_color_horiz.svg"
-                      alt="Qai"
-                      class="h-6 w-auto shrink-0"
-                    />
-                  </div>
-                  <p class="text-sm text-base-content mt-1 font-normal normal-case">
-                    <span class="font-bold text-qai-500">
-                      {length(index.suggested_surveys)} {if length(index.suggested_surveys) == 1,
-                        do: "category",
-                        else: "categories"}
-                    </span>
-                    suggested for review based on recent chats and activity.
-                  </p>
-                  <div class="mt-3 flex flex-wrap gap-1.5 font-normal normal-case">
-                    <span
-                      :for={entry <- index.suggested_surveys}
-                      class="badge badge-sm badge-neutral"
+                </h2>
+                <span class="tabular-amount">{length(index.suggested_surveys)}</span>
+              </div>
+              <.surface_panel padding={false} class="qai-card">
+                <p class="qai-suggestions__intro">
+                  From your recent chats. Answer or dismiss; nothing is added without you.
+                </p>
+                <ul class="builder-list">
+                  <li :for={entry <- index.suggested_surveys} class="qai-suggestion">
+                    <button
+                      type="button"
+                      phx-click="open_edit"
+                      phx-value-id={entry.survey.id}
+                      class="builder-row"
                     >
-                      {(entry.survey && entry.survey.name) || entry.latest.trait.trait_name}
-                    </span>
-                  </div>
-                </div>
-                <div class="collapse-content px-4 pb-4">
-                  <div class="divider mb-2"></div>
-                  <p class="text-sm text-base-content mb-5">
-                    Recent chats may have been more personal with these tags filled in
-                    or brought up to date. Answer or dismiss; nothing is added without you.
-                  </p>
-                  <div
-                    :for={entry <- index.suggested_surveys}
-                    class="mb-3 p-3 bg-base-200 dark:bg-base-300/40 rounded-2xl last:mb-0"
-                  >
-                    <div
-                      class="flex justify-between items-center cursor-pointer transition-colors hover:opacity-80"
-                      phx-click={if entry.survey, do: "open_edit", else: "edit_tags"}
-                      phx-value-id={if entry.survey, do: entry.survey.id, else: entry.latest.trait_id}
-                    >
-                      <span class="text-xl text-base-content">
-                        {(entry.survey && entry.survey.name) || entry.latest.trait.trait_name}
-                        <span
-                          :if={entry.update?}
-                          class="badge badge-secondary badge-sm align-middle ml-1"
-                        >
-                          Review
+                      <span class="builder-row__main">
+                        <span class="builder-row__name">
+                          {entry.survey.name}
+                          <span :if={entry.update?} class="qai-suggestion__badge">Review</span>
+                        </span>
+                        <span class="qai-suggestion__meta">
+                          {suggestion_byline(entry)} {entry.latest.grant.mecp_client.name} · {Calendar.strftime(
+                            entry.latest.inserted_at,
+                            "%b %-d"
+                          )}
                         </span>
                       </span>
-                      <div class="flex items-center gap-2">
-                        <span class={survey_ratio_text_class(entry.answered, entry.total)}>
-                          {entry.answered}/{entry.total}
-                        </span>
-                        <.icon
-                          name="hero-chevron-right"
-                          class="w-5 h-5 shrink-0 text-base-content/60"
-                        />
+                      <span class="builder-row__count">{entry.answered}/{entry.total}</span>
+                      <.icon name="hero-chevron-right" class="builder-row__chevron h-5 w-5" />
+                    </button>
+                    <div class="qai-suggestion__foot">
+                      <div class="min-w-0 flex-1">
+                        <p :if={entry.latest.reason} class="qai-suggestion__reason">
+                          "{entry.latest.reason}"
+                        </p>
+                        <p :if={entry.latest.proposed_values != []} class="qai-suggestion__said">
+                          Mentioned in chat: {Enum.join(entry.latest.proposed_values, ", ")}
+                        </p>
                       </div>
-                    </div>
-                    <div class="flex justify-between items-center mt-1">
-                      <span class="text-sm text-base-content/60">
-                        {suggestion_byline(entry)} {entry.latest.grant.mecp_client.name} on {Calendar.strftime(
-                          entry.latest.inserted_at,
-                          "%b %d"
-                        )}
-                      </span>
                       <button
-                        class="btn btn-xs btn-ghost shrink-0"
+                        type="button"
+                        class="qai-suggestion__dismiss"
                         phx-click="dismiss_suggestion_group"
                         phx-value-ids={Enum.map_join(entry.suggestions, ",", & &1.id)}
                       >
                         Dismiss
                       </button>
                     </div>
-                    <div :if={entry.latest.reason} class="text-sm text-base-content/60 italic mt-1">
-                      "{entry.latest.reason}"
-                    </div>
-                    <div
-                      :if={entry.latest.proposed_values != []}
-                      class="text-sm text-base-content/60 mt-1"
-                    >
-                      Mentioned in chat: {Enum.join(entry.latest.proposed_values, ", ")}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </.surface_panel>
-          </div>
+                  </li>
+                </ul>
+              </.surface_panel>
+            </section>
 
-          <%!-- Index: a glance at every topic. Category label above one card of survey rows,
-             as on MeFile; a thin line shows progress and a check marks a finished survey. --%>
-          <div class="builder-index pt-2">
             <section :for={category <- visible_categories(index.categories)} class="mefile-category">
               <% {answered_total, question_total, _percent} =
                 Map.get(category, :category_stats, {0, 0, 0}) %>
@@ -702,14 +666,6 @@ defmodule QlariusWeb.MeFileBuilderLive do
   defp suggestion_byline(%{update?: true}), do: "Review suggested by"
   defp suggestion_byline(%{latest: %{source: "observed"}}), do: "Asked about by"
   defp suggestion_byline(_entry), do: "Suggested by"
-
-  defp survey_ratio_text_class(answered, total) do
-    if answered == total do
-      "text-sm font-medium shrink-0 text-success"
-    else
-      "text-sm font-bold shrink-0 text-warning"
-    end
-  end
 
   # Surveys with no questions open empty, so the index leaves them (and any
   # category left with none) out.

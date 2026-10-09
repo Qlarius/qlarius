@@ -103,10 +103,13 @@ defmodule Qlarius.MeCP.AccessLog do
   defp events_query(nil), do: AccessEvent
   defp events_query(kind), do: from(e in AccessEvent, where: e.kind == ^kind)
 
-  @doc "SHA-256 digest of a request term, for `request_digest`."
+  @doc """
+  Keyed digest (HMAC-SHA256, `Qlarius.MeCP.Keys`) of a request term, for
+  `request_digest`. Keyed so a short request (a search query) can't be
+  recovered by hashing guesses. Rows written before this change hold a plain
+  SHA-256; the two aren't comparable.
+  """
   def digest(term) do
-    :sha256
-    |> :crypto.hash(inspect(term, limit: :infinity))
-    |> Base.encode16(case: :lower)
+    Qlarius.MeCP.Keys.hmac("access-digest", inspect(term, limit: :infinity))
   end
 end

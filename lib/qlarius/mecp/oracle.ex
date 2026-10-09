@@ -31,6 +31,7 @@ defmodule Qlarius.MeCP.Oracle do
   alias Qlarius.MeCP.Grants
   alias Qlarius.MeCP.Grants.Grant
   alias Qlarius.MeCP.Suggestions
+  alias Qlarius.MeCP.TaxonomyGaps
   alias Qlarius.Repo
   alias Qlarius.YouData.MeFiles.MeFileTag
   alias Qlarius.YouData.Traits.{Trait, TraitCategory}
@@ -68,7 +69,8 @@ defmodule Qlarius.MeCP.Oracle do
     with :ok <- Grants.check(grant, :oracle, now),
          :ok <- Grants.check_budget(grant, now),
          {:ok, trait_id} <- question_trait_id(question),
-         {:ok, trait_ref} <- effective_trait_ref(trait_id),
+         {:ok, trait_ref} <-
+           trait_id |> effective_trait_ref() |> note_unknown(grant, trait_id, now),
          :ok <- check_scope(scope, trait_ref) do
       me_file_id = Qlarius.MeCP.effective_me_file_id(grant)
 
@@ -120,10 +122,14 @@ defmodule Qlarius.MeCP.Oracle do
          :ok <- Grants.check_budget(grant, now),
          {:ok, tokens} <- tokenize(query) do
       me_file_id = Qlarius.MeCP.effective_me_file_id(grant)
+      ranked = matching_effective_traits(tokens)
+
+      # Coverage is judged on the whole taxonomy, not the grant's scope: a
+      # subject outside this grant's categories is still covered.
+      note_search_gap(grant, query, ranked, now)
 
       matches =
-        tokens
-        |> matching_effective_traits()
+        ranked
         |> Enum.filter(
           &Scope.allows?(scope, %{trait_id: &1.trait_id, category_key: &1.category_id})
         )
@@ -201,6 +207,29 @@ defmodule Qlarius.MeCP.Oracle do
   def answer(%Capsule{}, _question), do: {:error, :unsupported_question}
 
   # --- helpers --------------------------------------------------------------
+
+  # Taxonomy-gap signals for admins (de-identified; see TaxonomyGaps). A
+  # search with no hits is a subject we don't cover; one whose best hit came
+  # only from a category name (no trait-name token) is a weak match.
+  defp note_search_gap(grant, query, [], now),
+    do: TaxonomyGaps.record(grant, "search", "no_match", query, now: now)
+
+  defp note_search_gap(grant, query, [%{score: score} = top | _], now) when score < 2,
+    do:
+      TaxonomyGaps.record(grant, "search", "weak_match", query,
+        nearest_trait_id: top.trait_id,
+        now: now
+      )
+
+  defp note_search_gap(_grant, _query, _ranked, _now), do: :ok
+
+  # `ask_me` by a trait name the taxonomy doesn't have
+  defp note_unknown({:error, :unknown_trait} = error, grant, name, now) when is_binary(name) do
+    TaxonomyGaps.record(grant, "ask", "unknown_trait", name, now: now)
+    error
+  end
+
+  defp note_unknown(result, _grant, _ref, _now), do: result
 
   defp question_trait_id({:has_trait, ref}) when is_integer(ref) or is_binary(ref),
     do: {:ok, ref}

@@ -167,15 +167,8 @@ defmodule QlariusWeb.QaiLiveTest do
     category = insert_category!("Eating")
     trait = insert_trait!(category, "Fast Food Frequency")
     insert_tag!(me_file, trait, "Weekly")
-
-    Repo.insert!(%Qlarius.YouData.Surveys.SurveyQuestion{
-      text: "How often do you eat fast food?",
-      trait_id: trait.id,
-      active: "1",
-      display_order: 1,
-      added_by: 0,
-      modified_by: 0
-    })
+    # Suggestible: its question sits in an active survey
+    survey_trait!(trait, "How often do you eat fast food?")
 
     test_pid = self()
 

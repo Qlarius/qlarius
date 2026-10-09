@@ -4,9 +4,10 @@ defmodule Qlarius.MeCP.SuggestionsTest do
   import Qlarius.MeCPFixtures
 
   alias Qlarius.MeCP.{AccessLog, Grants, Suggestions}
-  alias Qlarius.YouData.Surveys.SurveyQuestion
+  alias Qlarius.YouData.Surveys.{Survey, SurveyQuestion, SurveyQuestionSurvey}
 
-  # Suggestions render as survey questions, so suggestible traits need one.
+  # Suggestions render as surveys, so suggestible traits need a question in an
+  # active survey; a question alone (in no active survey) is orphaned.
   defp make_askable_question!(trait) do
     Repo.insert!(%SurveyQuestion{
       text: "Question about #{trait.trait_name}?",
@@ -19,17 +20,38 @@ defmodule Qlarius.MeCP.SuggestionsTest do
     })
   end
 
+  defp put_in_survey!(question, opts \\ []) do
+    survey =
+      Repo.insert!(%Survey{
+        name: Keyword.get(opts, :name, "Survey #{System.unique_integer([:positive])}"),
+        active: Keyword.get(opts, :active, true),
+        created_by: 0,
+        updated_by: 0
+      })
+
+    Repo.insert!(%SurveyQuestionSurvey{
+      survey_question_id: question.id,
+      survey_id: survey.id,
+      display_order: 1
+    })
+
+    survey
+  end
+
   defp make_askable!(trait) do
-    make_askable_question!(trait)
+    trait |> make_askable_question!() |> put_in_survey!()
     trait
   end
 
-  defp seed_with_gap! do
+  # `survey: false` leaves the gap's question out of every survey, for tests
+  # that build their own surveys (or need an orphaned trait).
+  defp seed_with_gap!(opts \\ []) do
     ctx = seed!(%{tier: 2, scope: %{}})
 
     gap =
       insert_trait!(ctx.lifestyle, "Pet Ownership #{System.unique_integer([:positive])}")
-      |> make_askable!()
+
+    if Keyword.get(opts, :survey, true), do: make_askable!(gap), else: make_askable_question!(gap)
 
     Map.put(ctx, :gap, gap)
   end
@@ -211,7 +233,7 @@ defmodule Qlarius.MeCP.SuggestionsTest do
     end
 
     test "suggested_surveys groups anchors by survey with progress and byline data" do
-      ctx = seed_with_gap!()
+      ctx = seed_with_gap!(survey: false)
 
       # A second gap trait in the same survey collapses into one entry.
       sibling =
@@ -252,19 +274,56 @@ defmodule Qlarius.MeCP.SuggestionsTest do
       assert Suggestions.suggested_surveys_for_me_file(ctx.me_file.id) == []
     end
 
-    test "anchors without a survey fall back to a trait-level entry" do
+    test "traits in no active survey are orphaned and refused" do
+      ctx = seed_with_gap!(survey: false)
+
+      # A question alone isn't enough
+      assert {:error, :not_askable} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{})
+
+      # Nor is a question in an inactive survey
+      ctx.gap
+      |> then(&Repo.get_by!(SurveyQuestion, trait_id: &1.id))
+      |> put_in_survey!(active: false)
+
+      assert {:error, :not_askable} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{})
+
+      # And an observed gap on it queues nothing
+      assert {:ok, false} = Qlarius.MeCP.Oracle.ask(ctx.grant, {:has_trait, ctx.gap.id})
+      assert Suggestions.list_pending_for_me_file(ctx.me_file.id) == []
+    end
+
+    test "pending suggestions whose trait is later orphaned are left out of the Builder" do
       ctx = seed_with_gap!()
       {:ok, _} = Suggestions.create_suggestion(ctx.grant, ctx.gap.id, %{})
+      assert [_entry] = Suggestions.suggested_surveys_for_me_file(ctx.me_file.id)
 
-      assert [entry] = Suggestions.suggested_surveys_for_me_file(ctx.me_file.id)
-      assert entry.survey == nil
-      assert entry.total == 1
-      assert entry.latest.trait.trait_name == ctx.gap.trait_name
-      refute entry.update?
+      # The gap's only survey is switched off: the trait is now inactive
+      Repo.update_all(Survey, set: [active: false])
+
+      assert Suggestions.list_pending_for_me_file(ctx.me_file.id) == []
+      assert Suggestions.suggested_surveys_for_me_file(ctx.me_file.id) == []
+    end
+
+    test "orphaned pending suggestions don't count against the grant's cap" do
+      ctx = seed_with_gap!()
+
+      for i <- 1..Suggestions.max_pending_per_grant() do
+        trait =
+          make_askable!(insert_trait!(ctx.lifestyle, "Filler #{i}-#{System.unique_integer()}"))
+
+        {:ok, _} = Suggestions.create_suggestion(ctx.grant, trait.id, %{})
+      end
+
+      # Orphan all of them, then add one surveyed trait: room again
+      Repo.update_all(Survey, set: [active: false])
+      fresh = make_askable!(insert_trait!(ctx.lifestyle, "Fresh"))
+
+      assert {:ok, %Qlarius.MeCP.Suggestions.TagSuggestion{}} =
+               Suggestions.create_suggestion(ctx.grant, fresh.id, %{})
     end
 
     test "suggestions on already-tagged traits queue and mark the entry as an update" do
-      ctx = seed_with_gap!()
+      ctx = seed_with_gap!(survey: false)
       pets_question = make_askable_question!(ctx.pets)
       gap_question = Repo.get_by!(SurveyQuestion, trait_id: ctx.gap.id)
 
