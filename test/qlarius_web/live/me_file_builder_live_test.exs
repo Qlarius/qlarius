@@ -199,6 +199,25 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
       assert has_element?(view, "#qai-suggestion-#{ctx.suggestion.id}")
     end
 
+    test "a hit on the topic name does not cite a tag value or the category", ctx do
+      token = "zedqua#{System.unique_integer([:positive])}"
+      category = insert_category!("Notes")
+
+      parent =
+        category
+        |> insert_trait!("Topic #{token}")
+        |> survey_trait!()
+
+      insert_trait!(nil, "Value #{token}", parent_trait_id: parent.id)
+
+      {:ok, view, _html} = live(ctx.conn, ~p"/me_file_builder?q=#{token}")
+      render_async(view)
+
+      assert has_element?(view, "#trait-card-#{parent.id} .mefile-row__label", parent.trait_name)
+      refute has_element?(view, "#trait-card-#{parent.id}", "Matches")
+      refute has_element?(view, "#trait-card-#{parent.id}", category.name)
+    end
+
     test "the Related link searches for the value from chat", ctx do
       {:ok, view, _html} = live(ctx.conn, ~p"/me_file_builder")
       render_async(view)

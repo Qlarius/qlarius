@@ -62,7 +62,8 @@ defmodule Qlarius.YouData.TraitSearch do
   Returns `[%{trait_id, trait, category, category_id, score, tag_count,
   matched_values, matches}]`. `matched_values` are the names of matching child
   traits (skip answers left out). `matches` says which field each query word
-  hit. With `surveyed_only: true`, a parent is included when its question
+  hit. When the topic name ties a child value, `matches` names the topic.
+  With `surveyed_only: true`, a parent is included when its question
   sits in an active survey, even if that parent's catalog `is_active` flag
   is false. Children still have to be active, so a retired answer stays out.
   Without that option, every trait has to be active.
@@ -112,7 +113,7 @@ defmodule Qlarius.YouData.TraitSearch do
           category_id: eff.category_id,
           score: score,
           matched_values: Enum.uniq(matched),
-          matches: best_matches(matches)
+          matches: best_matches(matches, eff.name)
         }
       end)
 
@@ -252,13 +253,17 @@ defmodule Qlarius.YouData.TraitSearch do
     end
   end
 
-  # One row per query word: the hit that earned the score.
-  defp best_matches(matches) do
+  # One row per query word: the hit that earned the score. A tie between the
+  # topic name and a tag value reports the topic name, so the result does not
+  # claim a value matched when the title itself did.
+  defp best_matches(matches, parent_name) do
     matches
     |> Enum.uniq()
     |> Enum.group_by(& &1.token)
     |> Enum.map(fn {_token, group} ->
-      Enum.max_by(group, &tier_rank(&1.tier))
+      Enum.max_by(group, fn match ->
+        {tier_rank(match.tier), match.field == "name" and match.text == parent_name}
+      end)
     end)
   end
 

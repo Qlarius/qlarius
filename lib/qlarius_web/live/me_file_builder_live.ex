@@ -906,12 +906,36 @@ defmodule QlariusWeb.MeFileBuilderLive do
     """
   end
 
-  # Child names that hit the query, or the category when the topic itself did.
-  defp match_note(%{matched_values: [_ | _] = values}) do
-    "Matches " <> (values |> Enum.uniq() |> Enum.join(", "))
+  # Cite a tag value only when that value is why the topic is here. A hit on
+  # the topic name needs no line — the title already shows it, and naming a
+  # value (or the category) instead reads as the wrong reason. A parent
+  # search term is quoted because it is not on the card. A category name is
+  # the reason only when nothing else matched.
+  defp match_note(%{matches: matches, trait: trait, matched_values: values, category: category}) do
+    terms =
+      matches
+      |> Enum.filter(&(&1.field == "search_term"))
+      |> Enum.map(& &1.text)
+      |> Enum.uniq()
+
+    cond do
+      Enum.any?(matches, &(&1.field == "name" and &1.text == trait)) ->
+        nil
+
+      values != [] ->
+        "Matches " <> Enum.join(Enum.uniq(values), ", ")
+
+      terms != [] ->
+        "Matches " <> Enum.join(terms, ", ")
+
+      Enum.any?(matches, &(&1.field == "category")) and is_binary(category) and category != "" ->
+        category
+
+      true ->
+        nil
+    end
   end
 
-  defp match_note(%{category: category}) when is_binary(category) and category != "", do: category
   defp match_note(_), do: nil
 
   attr :tag_display_mode, :string, required: true

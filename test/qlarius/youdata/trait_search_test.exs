@@ -44,6 +44,18 @@ defmodule Qlarius.YouData.TraitSearchTest do
     assert [%{trait_id: ^id, matched_values: []} | _] = rank("crafting")
   end
 
+  test "a topic-name hit is the reported match when a value hits the same word", ctx do
+    token = "zedqua#{System.unique_integer([:positive])}"
+    parent = insert_trait!(ctx.hobbies, "Topic #{token}")
+    insert_trait!(nil, "Value #{token}", parent_trait_id: parent.id)
+
+    hit = rank(token) |> Enum.find(&(&1.trait_id == parent.id))
+
+    assert [%{field: "name", text: text, tier: "word"}] = hit.matches
+    assert text == parent.trait_name
+    assert hit.matched_values == ["Value #{token}"]
+  end
+
   test "a category-only hit finds the trait but names no matched values", ctx do
     crafts = rank(ctx.hobbies.name) |> Enum.find(&(&1.trait_id == ctx.crafts.id))
     assert crafts.matched_values == []

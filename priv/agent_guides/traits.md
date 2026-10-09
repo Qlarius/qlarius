@@ -62,7 +62,8 @@ false, which is how the survey screen already decides the topic is taggable.
 A child still has to be active. `scope=all` (the default) returns Qai's
 `search_traits` ranking (every trait with `is_active` true, top 10). Each
 result includes `score`, `tag_count`, and `matches` (the field and tier each
-query word hit).
+query word hit). When the topic name and a value tie, `matches` names the
+topic.
 
 Query words under 3 characters are dropped, except a word that is all digits
 ("420"). A trailing "s" is stripped, and a word ending in "ies" is also tried
