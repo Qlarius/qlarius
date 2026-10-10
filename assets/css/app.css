@@ -3213,6 +3213,17 @@
     background-color: var(--color-base-100);
   }
 
+  /* Search reason under a result. Two lines, then an ellipsis. A hairline
+     keeps it clear of the tag values above. */
+  .trait-match {
+    @apply mt-2 w-full min-w-0 max-w-full border-t pt-1.5 text-[13px] leading-snug text-base-content/55;
+    border-color: color-mix(in oklab, var(--color-base-content) 12%, transparent);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
   /* Edit sheet head: label, close, then the tag itself. */
   .tag-edit-head {
     @apply flex flex-col gap-3 px-4 pt-4 pb-3;

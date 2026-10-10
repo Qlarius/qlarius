@@ -199,7 +199,7 @@ defmodule QlariusWeb.Components.TraitComponents do
           Skip
         </button>
       </span>
-      <span :if={@match_note} class="qai-suggestion__meta mt-0.5">{@match_note}</span>
+      <span :if={@match_note} class="trait-match" title={@match_note}>{@match_note}</span>
     </div>
     """
   end

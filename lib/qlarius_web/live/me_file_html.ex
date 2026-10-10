@@ -609,7 +609,11 @@ defmodule QlariusWeb.MeFileHTML do
               >
                 {QlariusWeb.Components.TraitComponents.empty_tag_tease_message()}
               </p>
-              <p :if={Map.get(@match_notes, parent_trait_id)} class="qai-suggestion__meta mt-0.5">
+              <p
+                :if={Map.get(@match_notes, parent_trait_id)}
+                class="trait-match"
+                title={Map.get(@match_notes, parent_trait_id)}
+              >
                 {Map.get(@match_notes, parent_trait_id)}
               </p>
             </div>

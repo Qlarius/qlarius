@@ -57,6 +57,14 @@ defmodule Qlarius.YouData.TraitSearch do
   def tokenize(_query), do: {:error, :empty_query}
 
   @doc """
+  True when `token` already reads in `text` the way a search hit would:
+  the whole string, a word, the start of a word, or a longer substring.
+  """
+  def obvious?(token, text) when is_binary(token) do
+    match_tier(token, text) != nil
+  end
+
+  @doc """
   Effective traits matching `tokens`, best first.
 
   Returns `[%{trait_id, trait, category, category_id, score, tag_count,

@@ -153,7 +153,7 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
              )
 
       assert has_element?(view, "#trait-card-#{ctx.crafts.id} .mefile-row__value", "Painting")
-      assert has_element?(view, "#trait-card-#{ctx.crafts.id}", "Matches Pottery")
+      assert has_element?(view, "#trait-card-#{ctx.crafts.id}", "Match: Pottery")
 
       view |> element("#trait-card-#{ctx.crafts.id}") |> render_click()
 
@@ -179,7 +179,7 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
                "Arts and Crafts"
              )
 
-      assert has_element?(view, "#trait-card-#{ctx.crafts.id}", "Matches Pottery")
+      assert has_element?(view, "#trait-card-#{ctx.crafts.id}", "Match: Pottery")
       refute has_element?(view, "#builder-trait-results-skeleton")
 
       html = view |> form("#builder-trait-search", %{q: "zzzunknown"}) |> render_change()
@@ -258,7 +258,55 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
                "Painting · Pottery"
              )
 
-      assert has_element?(view, "#trait-card-#{ctx.crafts.id}", "Matches Pottery")
+      refute has_element?(view, "#trait-card-#{ctx.crafts.id}", "Match:")
+    end
+
+    test "a slug hit adds no match line when the query is already on the card", ctx do
+      token = "auvo#{System.unique_integer([:positive])}"
+      category = insert_category!("Notes")
+
+      named =
+        category
+        |> insert_trait!("Current #{token} Make")
+        |> Ecto.Changeset.change(search_terms: [token])
+        |> Repo.update!()
+        |> survey_trait!()
+
+      financed =
+        category
+        |> insert_trait!("Financing")
+        |> survey_trait!()
+
+      loan =
+        insert_trait!(nil, "#{token} Loan", parent_trait_id: financed.id)
+        |> Ecto.Changeset.change(search_terms: [token])
+        |> Repo.update!()
+
+      insert_tag!(ctx.me_file, loan, loan.trait_name)
+
+      quiet =
+        category
+        |> insert_trait!("Desk")
+        |> survey_trait!()
+
+      insert_trait!(nil, "Pencil", parent_trait_id: quiet.id)
+      |> then(&insert_tag!(ctx.me_file, &1, &1.trait_name))
+
+      repair =
+        insert_trait!(nil, "Repair #{token}", parent_trait_id: quiet.id)
+        |> Ecto.Changeset.change(search_terms: [token])
+        |> Repo.update!()
+
+      {:ok, view, _html} = live(ctx.conn, ~p"/me_file_builder?q=#{token}")
+      render_async(view)
+
+      assert has_element?(view, "#trait-card-#{named.id}", named.trait_name)
+      refute has_element?(view, "#trait-card-#{named.id}", "Match:")
+
+      assert has_element?(view, "#trait-card-#{financed.id}", loan.trait_name)
+      refute has_element?(view, "#trait-card-#{financed.id}", "Match:")
+
+      assert has_element?(view, "#trait-card-#{quiet.id}", "Match: #{repair.trait_name}")
     end
   end
 

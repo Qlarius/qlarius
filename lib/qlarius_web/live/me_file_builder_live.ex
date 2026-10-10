@@ -887,7 +887,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
       phx-hook="AnimateTrait"
     >
       <div class="mefile-category__head">
-        <h2>Results</h2>
+        <h2>Matched Tags</h2>
         <span :if={@parent_traits != []} class="tabular-amount">{length(@parent_traits)}</span>
       </div>
       <p :if={@parent_traits == []} class="builder-results__empty">
@@ -906,12 +906,23 @@ defmodule QlariusWeb.MeFileBuilderLive do
     """
   end
 
-  # Cite a tag value only when that value is why the topic is here. A hit on
-  # the topic name needs no line — the title already shows it, and naming a
-  # value (or the category) instead reads as the wrong reason. A parent
-  # search term is quoted because it is not on the card. A category name is
-  # the reason only when nothing else matched.
-  defp match_note(%{matches: matches, trait: trait, matched_values: values, category: category}) do
+  # Cite a tag value only when that value is why the topic is here and it is
+  # not already on the card. The topic name and the tag values showing now
+  # count, even when a search-term slug outscored that name. A parent search
+  # term is quoted because it is not on the card. A category name is the
+  # reason only when nothing else matched.
+  defp match_note(
+         %{matches: matches, trait: trait, matched_values: values, category: category} = result
+       ) do
+    displayed = [trait | Map.get(result, :tags, [])]
+    tokens = matches |> Enum.map(& &1.token) |> Enum.uniq()
+
+    obvious? =
+      tokens != [] and
+        Enum.all?(tokens, fn token ->
+          Enum.any?(displayed, &TraitSearch.obvious?(token, &1))
+        end)
+
     terms =
       matches
       |> Enum.filter(&(&1.field == "search_term"))
@@ -919,14 +930,14 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> Enum.uniq()
 
     cond do
-      Enum.any?(matches, &(&1.field == "name" and &1.text == trait)) ->
+      obvious? ->
         nil
 
       values != [] ->
-        "Matches " <> Enum.join(Enum.uniq(values), ", ")
+        "Match: " <> Enum.join(Enum.uniq(values), ", ")
 
       terms != [] ->
-        "Matches " <> Enum.join(terms, ", ")
+        "Match: " <> Enum.join(terms, ", ")
 
       Enum.any?(matches, &(&1.field == "category")) and is_binary(category) and category != "" ->
         category
@@ -951,7 +962,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
       aria-label="Searching topics"
     >
       <div class="mefile-category__head">
-        <h2>Results</h2>
+        <h2>Matched Tags</h2>
       </div>
       <.surface_panel :if={@tag_display_mode == "list"} padding={false} class="youdata-card">
         <ul class="mefile-list" aria-hidden="true">
