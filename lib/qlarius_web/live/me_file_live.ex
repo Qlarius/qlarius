@@ -2,6 +2,7 @@ defmodule QlariusWeb.MeFileLive do
   use QlariusWeb, :live_view
 
   alias Qlarius.YouData.Traits
+  alias Qlarius.YouData.TraitSearch
   alias Qlarius.YouData.MeFiles
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
 
@@ -45,6 +46,7 @@ defmodule QlariusWeb.MeFileLive do
             tag_display_mode={@tag_display_mode}
             tag_search={@tag_search}
             tag_search_epoch={@tag_search_epoch}
+            match_notes={@tag_match_notes}
             loading={@tags_loading}
           />
         </div>
@@ -316,6 +318,7 @@ defmodule QlariusWeb.MeFileLive do
       |> assign(:current_path, "/me_file")
       |> assign(:me_file_tag_map_by_category_trait_tag, [])
       |> assign(:tag_display_map, [])
+      |> assign(:tag_match_notes, %{})
       |> assign(:tags_loading, true)
       |> assign(:trait_in_edit, nil)
       |> assign(:trait_in_edit_values, [])
@@ -504,13 +507,42 @@ defmodule QlariusWeb.MeFileLive do
   defp modal_skip_child(_), do: nil
 
   defp assign_filtered_tag_display(socket) do
-    display_map =
-      filter_tag_map_by_search(
-        socket.assigns.me_file_tag_map_by_category_trait_tag,
-        socket.assigns.tag_search
-      )
+    tag_map = socket.assigns.me_file_tag_map_by_category_trait_tag
 
-    assign(socket, :tag_display_map, display_map)
+    terms =
+      case TraitSearch.tokenize(socket.assigns.tag_search) do
+        {:ok, _} -> MeFiles.search_fields_by_ids(displayed_trait_ids(tag_map))
+        _ -> %{}
+      end
+
+    filtered = filter_tag_map_by_search(tag_map, socket.assigns.tag_search, terms)
+
+    socket
+    |> assign(:tag_display_map, filtered)
+    |> assign(
+      :tag_match_notes,
+      search_match_notes(filtered, socket.assigns.tag_search, terms)
+    )
+  end
+
+  defp displayed_trait_ids(tag_categories) do
+    tag_categories
+    |> List.wrap()
+    |> Enum.flat_map(fn
+      {_category, parents} when is_list(parents) ->
+        Enum.flat_map(parents, fn
+          {id, _name, _order, tags} when is_list(tags) ->
+            [id | Enum.map(tags, fn {child_id, _, _} -> child_id end)]
+
+          _ ->
+            []
+        end)
+
+      _ ->
+        []
+    end)
+    |> Enum.filter(&is_integer/1)
+    |> Enum.uniq()
   end
 
   defp bump_tag_search_epoch(socket) do

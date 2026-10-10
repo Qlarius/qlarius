@@ -155,6 +155,27 @@ defmodule Qlarius.YouData.MeFiles do
     |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
   end
 
+  @doc """
+  Search terms and meta tags for these traits, keyed by trait id.
+  Unknown ids are absent.
+  """
+  def search_fields_by_ids([]), do: %{}
+
+  def search_fields_by_ids(trait_ids) when is_list(trait_ids) do
+    from(t in Trait,
+      where: t.id in ^trait_ids,
+      select: {t.id, t.search_terms, t.meta_1, t.meta_2, t.meta_3}
+    )
+    |> Repo.all()
+    |> Map.new(fn {id, terms, meta_1, meta_2, meta_3} ->
+      metas =
+        [meta_1, meta_2, meta_3]
+        |> Enum.filter(&(is_binary(&1) and String.trim(&1) != ""))
+
+      {id, %{terms: terms || [], metas: metas}}
+    end)
+  end
+
   @doc "Which of these effective (parent) trait ids carry tags on this MeFile."
   def tagged_parent_trait_ids(_me_file_id, []), do: MapSet.new()
 

@@ -12,11 +12,12 @@ defmodule Qlarius.YouData.TraitSearch do
     * a prefix of a word, so "vet" finds "veterinary" but not "corvette"
     * a substring, only when the query word is 5 or more characters
 
-  A search term scores the same as a name at the same tier. Results are
-  listed with a topic-name hit first, then a child-name hit, then a search
-  term or category. A category-name hit is weaker than all of those, and a
-  best score below 2 means only a category matched. Within a group, ties
-  break toward the parent with more MeFile tags, then by name.
+  A search term scores the same as a name at the same tier. `meta_1`,
+  `meta_2`, and `meta_3` score the same way. Results are listed with a
+  topic-name hit first, then a child-name hit, then a meta tag, then a
+  search term or category. A category-name hit is weaker than all of those,
+  and a best score below 2 means only a category matched. Within a group,
+  ties break toward the parent with more MeFile tags, then by name.
 
   Names and terms are shared vocabulary, not anyone's answers; callers decide
   what else (such as whether a MeFile has data) a result may carry.
@@ -69,7 +70,7 @@ defmodule Qlarius.YouData.TraitSearch do
   Effective traits matching `tokens`, best first.
 
   Returns `[%{trait_id, trait, category, category_id, score, tag_count,
-  matched_values, matches}]`. `matched_values` are the names of matching child
+  matched_values, metas, matches}]`. `matched_values` are the names of matching child
   traits (skip answers left out). `matches` says which field each query word
   hit. When the topic name ties a child value, `matches` names the topic.
   With `surveyed_only: true`, a parent is included when its question
@@ -94,12 +95,13 @@ defmodule Qlarius.YouData.TraitSearch do
 
         if score > 0 do
           matched = if named? && trait.parent_id && not trait.skip?, do: [trait.name], else: []
+          metas = meta_texts(trait)
 
           Map.update(
             acc,
             effective.id,
-            {score, effective, matched, matches},
-            fn {best, eff, values, prev} ->
+            {score, effective, matched, matches, metas},
+            fn {best, eff, values, prev, prev_metas} ->
               kept =
                 cond do
                   score > best -> matches
@@ -107,14 +109,14 @@ defmodule Qlarius.YouData.TraitSearch do
                   true -> prev
                 end
 
-              {max(best, score), eff, values ++ matched, kept}
+              {max(best, score), eff, values ++ matched, kept, prev_metas ++ metas}
             end
           )
         else
           acc
         end
       end)
-      |> Enum.map(fn {_id, {score, eff, matched, matches}} ->
+      |> Enum.map(fn {_id, {score, eff, matched, matches, metas}} ->
         %{
           trait_id: eff.id,
           trait: eff.name,
@@ -122,6 +124,7 @@ defmodule Qlarius.YouData.TraitSearch do
           category_id: eff.category_id,
           score: score,
           matched_values: Enum.uniq(matched),
+          metas: Enum.uniq(metas),
           matches: best_matches(matches, eff.name)
         }
       end)
@@ -133,13 +136,21 @@ defmodule Qlarius.YouData.TraitSearch do
     |> Enum.sort_by(&{-name_band(&1, tokens), -&1.score, -&1.tag_count, &1.trait, &1.trait_id})
   end
 
-  # A hit already written in the topic name leads, then one written in a
-  # child name. A search term that is not on either name follows those.
+  # Topic name, then a child name, then meta_1/meta_2/meta_3. A search term
+  # that is not on any of those follows.
   defp name_band(result, tokens) do
     cond do
-      Enum.any?(tokens, &obvious?(&1, result.trait)) -> 2
-      Enum.any?(result.matched_values, fn name -> Enum.any?(tokens, &obvious?(&1, name)) end) -> 1
-      true -> 0
+      Enum.any?(tokens, &obvious?(&1, result.trait)) ->
+        3
+
+      Enum.any?(result.matched_values, fn name -> Enum.any?(tokens, &obvious?(&1, name)) end) ->
+        2
+
+      Enum.any?(result.metas, fn meta -> Enum.any?(tokens, &obvious?(&1, meta)) end) ->
+        1
+
+      true ->
+        0
     end
   end
 
@@ -193,6 +204,9 @@ defmodule Qlarius.YouData.TraitSearch do
           parent_id: t.parent_trait_id,
           category_id: t.trait_category_id,
           terms: t.search_terms,
+          meta_1: t.meta_1,
+          meta_2: t.meta_2,
+          meta_3: t.meta_3,
           skip?: t.is_skipped_tag
         }
     )
@@ -208,6 +222,9 @@ defmodule Qlarius.YouData.TraitSearch do
           parent_id: t.parent_trait_id,
           category_id: t.trait_category_id,
           terms: t.search_terms,
+          meta_1: t.meta_1,
+          meta_2: t.meta_2,
+          meta_3: t.meta_3,
           skip?: t.is_skipped_tag
         }
     )
@@ -227,10 +244,10 @@ defmodule Qlarius.YouData.TraitSearch do
     |> Map.new()
   end
 
-  # {score, whether the trait's own name or terms matched, match descriptions}
+  # {score, whether the trait's own name, meta, or terms matched, match descriptions}
   defp score(tokens, trait, category_name) do
     Enum.reduce(tokens, {0, false, []}, fn token, {acc, named?, matches} ->
-      case best_name_match(token, trait.name, trait.terms || []) do
+      case best_name_match(token, trait.name, trait.terms || [], meta_texts(trait)) do
         {tier, field, text} ->
           match = %{token: token, field: field, text: text, tier: Atom.to_string(tier)}
           {acc + @tier_scores[tier], true, [match | matches]}
@@ -252,24 +269,37 @@ defmodule Qlarius.YouData.TraitSearch do
     end)
   end
 
-  # Highest tier wins. A search term wins a tie with the name, so a curated
-  # synonym is what the result reports.
-  defp best_name_match(token, name, terms) do
-    candidates = [{name, "name"} | Enum.map(terms, &{&1, "search_term"})]
+  # Highest tier wins. On a tie a search term is reported ahead of a meta
+  # tag, which is reported ahead of the name, so a curated synonym is what
+  # the result cites.
+  defp best_name_match(token, name, terms, metas) do
+    candidates =
+      [{name, "name"}] ++
+        Enum.map(metas, &{&1, "meta"}) ++
+        Enum.map(terms, &{&1, "search_term"})
 
     candidates
     |> Enum.flat_map(fn {text, field} ->
       case match_tier(token, text) do
         nil -> []
-        tier -> [{@tier_scores[tier], field == "search_term", field, text, tier}]
+        tier -> [{@tier_scores[tier], report_rank(field), field, text, tier}]
       end
     end)
-    |> Enum.sort_by(fn {score, term?, _, _, _} -> {-score, not term?} end)
+    |> Enum.sort_by(fn {score, report, _, _, _} -> {-score, report} end)
     |> List.first()
     |> case do
       nil -> nil
-      {_score, _term?, field, text, tier} -> {tier, field, text}
+      {_score, _report, field, text, tier} -> {tier, field, text}
     end
+  end
+
+  defp report_rank("search_term"), do: 0
+  defp report_rank("meta"), do: 1
+  defp report_rank(_), do: 2
+
+  defp meta_texts(trait) do
+    [trait.meta_1, trait.meta_2, trait.meta_3]
+    |> Enum.filter(&(is_binary(&1) and String.trim(&1) != ""))
   end
 
   # One row per query word: the hit that earned the score. A tie between the

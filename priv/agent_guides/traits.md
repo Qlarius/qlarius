@@ -69,12 +69,13 @@ Query words under 3 characters are dropped, except a word that is all digits
 ("420"). A trailing "s" is stripped, and a word ending in "ies" is also tried
 as "y" ("dispensaries" finds "dispensary").
 
-Each word scores the best hit on a name or a search term. A search term
-counts the same as a name at the same tier, and wins a tie so the result
-reports the term. Highest tier first:
+Each word scores the best hit on a name, a meta tag (`meta_1`, `meta_2`, or
+`meta_3`), or a search term. Those three count the same at the same tier.
+On a tie the result reports a search term ahead of a meta tag, and a meta
+tag ahead of the name. Highest tier first:
 
-1. Exact match on a search term or the full trait or child name.
-2. A whole word inside a name or search term.
+1. Exact match on a search term, a meta tag, or the full trait or child name.
+2. A whole word inside a name, meta tag, or search term.
 3. A prefix of a word, so "vet" finds "veterinary" but not "corvette".
 4. A substring anywhere in the text, only for query words of 5 or more
    characters. Shorter words do not match inside unrelated words, so "cat"
@@ -82,9 +83,10 @@ reports the term. Highest tier first:
 
 A category name is the weakest hit, below all four. A topic whose own name
 contains the query is listed first, then one whose child name contains it,
-then a search term or category. Inside that group, ties go to the parent
-with more MeFile tags, then to the name A to Z. A child hit counts toward
-its parent, and the parent's tag total is the one that breaks the tie.
+then one whose meta tag contains it, then a search term or category. Inside
+that group, ties go to the parent with more MeFile tags, then to the name A
+to Z. A child hit counts toward its parent, and the parent's tag total is
+the one that breaks the tie.
 
 ## The skip answer
 

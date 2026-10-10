@@ -11,6 +11,10 @@ defmodule Qlarius.YouData.TraitSearchTest do
     trait |> Ecto.Changeset.change(search_terms: terms) |> Repo.update!()
   end
 
+  defp with_metas!(trait, metas) do
+    trait |> Ecto.Changeset.change(Map.new(metas)) |> Repo.update!()
+  end
+
   setup do
     hobbies = insert_category!("Hobbies")
     crafts = insert_trait!(hobbies, "Arts and Crafts #{System.unique_integer([:positive])}")
@@ -235,6 +239,34 @@ defmodule Qlarius.YouData.TraitSearchTest do
 
       assert tops(rank("money"), income.id)
       assert tops(rank("salary"), income.id)
+    end
+
+    test "a meta tag ranks after a trait name and before a search term", ctx do
+      by_name = insert_trait!(ctx.category, "Green Buying")
+      by_child = insert_trait!(ctx.category, "Shade")
+      insert_trait!(nil, "Evergreen", parent_trait_id: by_child.id)
+
+      by_meta =
+        insert_trait!(ctx.category, "Campus")
+        |> with_metas!(meta_2: "bowling green")
+
+      by_child_meta = insert_trait!(ctx.category, "College")
+      insert_trait!(nil, "State U", parent_trait_id: by_child_meta.id)
+      |> with_metas!(meta_1: "green quad", meta_3: "quad")
+
+      by_term = insert_trait!(ctx.category, "Party") |> with_terms!(["green party"])
+
+      ids = rank("green") |> Enum.map(& &1.trait_id)
+
+      assert order(ids, [by_name.id, by_child.id, by_meta.id, by_child_meta.id, by_term.id])
+
+      meta_hit = rank("green") |> Enum.find(&(&1.trait_id == by_meta.id))
+      assert hd(meta_hit.matches).field == "meta"
+      assert hd(meta_hit.matches).text == "bowling green"
+
+      child_hit = rank("green") |> Enum.find(&(&1.trait_id == by_child_meta.id))
+      assert hd(child_hit.matches).field == "meta"
+      assert child_hit.matched_values == ["State U"]
     end
 
     test "ties break toward the parent with more tags, then by name", ctx do

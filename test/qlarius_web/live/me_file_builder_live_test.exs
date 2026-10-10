@@ -308,6 +308,26 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
 
       assert has_element?(view, "#trait-card-#{quiet.id}", "Match: #{repair.trait_name}")
     end
+
+    test "a meta tag is cited when the tag name does not contain the query", ctx do
+      token = "zelvo#{System.unique_integer([:positive])}"
+      category = insert_category!("Notes")
+
+      parent =
+        category
+        |> insert_trait!("Campus")
+        |> survey_trait!()
+
+      insert_trait!(nil, "35905", parent_trait_id: parent.id)
+      |> Ecto.Changeset.change(meta_1: "#{token} City")
+      |> Repo.update!()
+
+      {:ok, view, _html} = live(ctx.conn, ~p"/me_file_builder?q=#{token}")
+      render_async(view)
+
+      assert has_element?(view, "#trait-card-#{parent.id}", "Match: #{token} City")
+      refute has_element?(view, "#trait-card-#{parent.id}", "35905")
+    end
   end
 
   test "the first paint is the index skeleton; the index replaces it once loaded", %{

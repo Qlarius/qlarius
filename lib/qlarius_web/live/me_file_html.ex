@@ -1,6 +1,7 @@
 defmodule QlariusWeb.MeFileHTML do
   use QlariusWeb, :html
 
+  alias Qlarius.YouData.TraitSearch
   alias QlariusWeb.Components.Targeting
 
   embed_templates "me_file_html/*"
@@ -719,6 +720,7 @@ defmodule QlariusWeb.MeFileHTML do
   attr :tag_display_mode, :string, required: true
   attr :tag_search, :string, default: ""
   attr :tag_search_epoch, :integer, default: 0
+  attr :match_notes, :map, default: %{}
   attr :loading, :boolean, default: false
 
   def tags_display(assigns) do
@@ -777,6 +779,7 @@ defmodule QlariusWeb.MeFileHTML do
             parent_traits={parent_traits}
             tag_display_mode={@tag_display_mode}
             skip_child_ids={@skip_child_ids}
+            match_notes={@match_notes}
             bare={@tag_display_mode != "list"}
           />
         </.traits_frame>
@@ -786,48 +789,123 @@ defmodule QlariusWeb.MeFileHTML do
   end
 
   @doc """
-  Filters the me-file tag map by search text.
+  Filters the me-file tag map with the same rules as Builder search, and only
+  against traits already on the map.
 
-  When a parent trait name or any child tag value matches, the full parent
-  entry (all child tags) is kept. Categories with no matching parents are omitted.
+  A query word hits a topic name, a displayed tag value, a meta tag, a search
+  term on one of those, or the category name. Words under 3 characters are
+  not a search. A topic-name hit is listed before a tag-value hit, which is
+  listed before a meta tag, which is listed before a search term. The full
+  parent entry is kept. Categories with no matching parents are omitted.
+  `search_match_notes/3` cites a meta tag or search term when that is why the
+  topic is here and the query is not already on the card.
   """
-  def filter_parent_traits_by_search(parent_traits, search) when search in [nil, ""],
+  def filter_parent_traits_by_search(parent_traits, search, terms \\ %{})
+
+  def filter_parent_traits_by_search(parent_traits, search, _terms) when search in [nil, ""],
     do: parent_traits
 
-  def filter_parent_traits_by_search(parent_traits, search) do
-    needle =
-      search
-      |> to_string()
-      |> String.trim()
-      |> String.downcase()
-
-    if needle == "" do
-      parent_traits
-    else
-      Enum.filter(parent_traits, &parent_trait_matches_search?(&1, needle))
+  def filter_parent_traits_by_search(parent_traits, search, terms) do
+    case TraitSearch.tokenize(search) do
+      {:error, :empty_query} -> parent_traits
+      {:ok, tokens} -> select_matching_parents(parent_traits, tokens, terms, nil)
     end
   end
 
-  def filter_tag_map_by_search(tag_categories, search) when search in [nil, ""],
+  def filter_tag_map_by_search(tag_categories, search, terms \\ %{})
+
+  def filter_tag_map_by_search(tag_categories, search, _terms) when search in [nil, ""],
     do: normalize_tag_categories(tag_categories)
 
-  def filter_tag_map_by_search(tag_categories, search) do
-    needle =
-      search
-      |> to_string()
-      |> String.trim()
-      |> String.downcase()
+  def filter_tag_map_by_search(tag_categories, search, terms) do
+    categories = normalize_tag_categories(tag_categories)
 
-    if needle == "" do
-      normalize_tag_categories(tag_categories)
-    else
-      tag_categories
-      |> normalize_tag_categories()
-      |> Enum.map(fn {category, parent_traits} ->
-        {category, Enum.filter(parent_traits, &parent_trait_matches_search?(&1, needle))}
-      end)
-      |> Enum.reject(fn {_category, parent_traits} -> parent_traits == [] end)
+    case TraitSearch.tokenize(search) do
+      {:error, :empty_query} ->
+        categories
+
+      {:ok, tokens} ->
+        categories
+        |> Enum.map(fn {{_id, name, _order} = category, parent_traits} ->
+          {category, select_matching_parents(parent_traits, tokens, terms, name)}
+        end)
+        |> Enum.reject(fn {_category, parent_traits} -> parent_traits == [] end)
     end
+  end
+
+  @doc """
+  Match lines for a filtered tag map. A note is omitted when every query word
+  already reads in the topic name or a displayed tag value. Otherwise a meta
+  tag is cited ahead of a search term, and a category name only when nothing
+  else matched.
+  """
+  def search_match_notes(_categories, search, _terms) when search in [nil, ""], do: %{}
+
+  def search_match_notes(categories, search, terms) when is_list(categories) do
+    case TraitSearch.tokenize(search) do
+      {:error, :empty_query} ->
+        %{}
+
+      {:ok, tokens} ->
+        categories
+        |> Enum.flat_map(fn {{_id, category_name, _order}, parents} ->
+          Enum.flat_map(parents, fn parent ->
+            case search_match_note(parent, tokens, terms, category_name) do
+              nil -> []
+              note -> [{elem(parent, 0), note}]
+            end
+          end)
+        end)
+        |> Map.new()
+    end
+  end
+
+  defp search_match_note({id, parent_name, _order, tags}, tokens, terms, category_name) do
+    displayed = [parent_name | Enum.map(tags, fn {_id, value, _order} -> value end)]
+
+    obvious? =
+      Enum.all?(tokens, fn token ->
+        Enum.any?(displayed, &TraitSearch.obvious?(token, &1))
+      end)
+
+    metas = texts_matching(collected_fields({id, tags}, terms, :metas), tokens)
+    term_texts = texts_matching(collected_fields({id, tags}, terms, :terms), tokens)
+
+    category_hit? =
+      is_binary(category_name) and category_name != "" and
+        Enum.any?(tokens, &TraitSearch.obvious?(&1, category_name))
+
+    cond do
+      obvious? -> nil
+      metas != [] -> "Match: " <> Enum.join(metas, ", ")
+      term_texts != [] -> "Match: " <> Enum.join(term_texts, ", ")
+      category_hit? -> category_name
+      true -> nil
+    end
+  end
+
+  defp collected_fields({id, tags}, terms, key) do
+    field_texts(terms, id, key) ++
+      Enum.flat_map(tags, fn {child_id, _value, _order} -> field_texts(terms, child_id, key) end)
+  end
+
+  defp texts_matching(texts, tokens) do
+    texts
+    |> Enum.filter(fn text ->
+      is_binary(text) and Enum.any?(tokens, &TraitSearch.obvious?(&1, text))
+    end)
+    |> Enum.uniq()
+    |> Enum.sort()
+  end
+
+  defp select_matching_parents(parent_traits, tokens, terms, category_name) do
+    parent_traits
+    |> Enum.with_index()
+    |> Enum.filter(fn {parent, _index} ->
+      parent_trait_matches_search?(parent, tokens, terms, category_name)
+    end)
+    |> Enum.sort_by(fn {parent, index} -> {-search_name_band(parent, tokens, terms), index} end)
+    |> Enum.map(&elem(&1, 0))
   end
 
   defp normalize_tag_categories(tag_categories) when is_list(tag_categories), do: tag_categories
@@ -838,18 +916,65 @@ defmodule QlariusWeb.MeFileHTML do
     |> Enum.sort_by(fn {{_id, name, display_order}, _parent_traits} -> [display_order, name] end)
   end
 
-  defp parent_trait_matches_search?({_id, parent_name, _order, tags_traits}, needle) do
-    text_matches_search?(parent_name, needle) or
-      Enum.any?(tags_traits, fn {_id, tag_value, _order} ->
-        text_matches_search?(tag_value, needle)
-      end)
+  defp parent_trait_matches_search?(parent, tokens, terms, category_name) do
+    parent
+    |> searchable_texts(terms, category_name)
+    |> Enum.any?(fn text ->
+      Enum.any?(tokens, &TraitSearch.obvious?(&1, text))
+    end)
   end
 
-  defp text_matches_search?(text, needle) do
-    text
-    |> to_string()
-    |> String.downcase()
-    |> String.contains?(needle)
+  # Topic name, then a displayed tag value, then meta_1/meta_2/meta_3.
+  # A search term or the category name still matches, and sorts after those.
+  defp search_name_band({id, parent_name, _order, tags_traits}, tokens, terms) do
+    metas =
+      field_texts(terms, id, :metas) ++
+        Enum.flat_map(tags_traits, fn {child_id, _value, _order} ->
+          field_texts(terms, child_id, :metas)
+        end)
+
+    cond do
+      Enum.any?(tokens, &TraitSearch.obvious?(&1, parent_name)) ->
+        3
+
+      Enum.any?(tags_traits, fn {_id, tag_value, _order} ->
+        Enum.any?(tokens, &TraitSearch.obvious?(&1, tag_value))
+      end) ->
+        2
+
+      Enum.any?(metas, fn meta -> Enum.any?(tokens, &TraitSearch.obvious?(&1, meta)) end) ->
+        1
+
+      true ->
+        0
+    end
+  end
+
+  defp searchable_texts({id, parent_name, _order, tags_traits}, terms, category_name) do
+    child_texts =
+      Enum.flat_map(tags_traits, fn {child_id, tag_value, _order} ->
+        [tag_value | field_texts(terms, child_id, :terms)] ++ field_texts(terms, child_id, :metas)
+      end)
+
+    [parent_name, category_name | field_texts(terms, id, :terms)] ++
+      field_texts(terms, id, :metas) ++ child_texts
+  end
+
+  # `%{id => %{terms: [...], metas: [...]}}` from the database, or a bare
+  # term list `%{id => ["ceramics"]}` from a caller that has no meta tags.
+  defp field_texts(terms, id, :terms) do
+    case Map.get(terms, id) do
+      %{terms: list} when is_list(list) -> list
+      list when is_list(list) -> list
+      _ -> []
+    end
+  end
+
+  defp field_texts(terms, id, :metas) do
+    case Map.get(terms, id) do
+      %{metas: list} when is_list(list) -> list
+      _ -> []
+    end
   end
 
   defp tag_search_active?(search) do

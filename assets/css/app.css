@@ -3234,6 +3234,10 @@
     overflow: hidden;
   }
 
+  .trait-tag .trait-match {
+    @apply text-xs italic text-base-content/40;
+  }
+
   /* Edit sheet head: label, close, then the tag itself. */
   .tag-edit-head {
     @apply flex flex-col gap-3 px-4 pt-4 pb-3;

@@ -912,9 +912,10 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
   # Cite a tag value only when that value is why the topic is here and it is
   # not already on the card. The topic name and the tag values showing now
-  # count, even when a search-term slug outscored that name. A parent search
-  # term is quoted because it is not on the card. A category name is the
-  # reason only when nothing else matched.
+  # count, even when a search-term slug outscored that name. A meta tag is
+  # quoted when the tag name itself does not contain the query, ahead of that
+  # tag name or a search term. A category name is the reason only when
+  # nothing else matched.
   defp match_note(
          %{matches: matches, trait: trait, matched_values: values, category: category} = result
        ) do
@@ -927,6 +928,18 @@ defmodule QlariusWeb.MeFileBuilderLive do
           Enum.any?(displayed, &TraitSearch.obvious?(token, &1))
         end)
 
+    name_values =
+      values
+      |> Enum.filter(fn name -> Enum.any?(tokens, &TraitSearch.obvious?(&1, name)) end)
+      |> Enum.uniq()
+
+    metas =
+      result
+      |> Map.get(:metas, [])
+      |> Enum.filter(fn meta -> Enum.any?(tokens, &TraitSearch.obvious?(&1, meta)) end)
+      |> Enum.uniq()
+      |> Enum.sort()
+
     terms =
       matches
       |> Enum.filter(&(&1.field == "search_term"))
@@ -936,6 +949,12 @@ defmodule QlariusWeb.MeFileBuilderLive do
     cond do
       obvious? ->
         nil
+
+      name_values != [] ->
+        "Match: " <> Enum.join(name_values, ", ")
+
+      metas != [] ->
+        "Match: " <> Enum.join(metas, ", ")
 
       values != [] ->
         "Match: " <> Enum.join(Enum.uniq(values), ", ")
