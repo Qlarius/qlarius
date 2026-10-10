@@ -887,8 +887,9 @@ defmodule QlariusWeb.MeFileBuilderLive do
       phx-hook="AnimateTrait"
     >
       <div class="mefile-category__head">
-        <h2>Matched Tags</h2>
-        <span :if={@parent_traits != []} class="tabular-amount">{length(@parent_traits)}</span>
+        <h2>
+          Matched Tags<span :if={@parent_traits != []}> ({length(@parent_traits)})</span>
+        </h2>
       </div>
       <p :if={@parent_traits == []} class="builder-results__empty">
         No topics match "{@trait_search}".

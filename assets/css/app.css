@@ -3009,9 +3009,15 @@
     @apply ml-auto;
   }
 
-  /* Builder search results replace the index while a query is active. */
+  /* Builder search results replace the index while a query is active.
+     The column uses the page width; a tag still stops at a readable width
+     so a long match does not stretch across a wide screen. */
   .builder-results {
-    @apply max-w-xl pt-2;
+    @apply w-full pt-2;
+  }
+
+  .builder-results .trait-tag {
+    max-width: min(100%, 24rem);
   }
 
   .builder-results__empty {

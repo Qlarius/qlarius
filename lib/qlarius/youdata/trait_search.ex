@@ -12,10 +12,11 @@ defmodule Qlarius.YouData.TraitSearch do
     * a prefix of a word, so "vet" finds "veterinary" but not "corvette"
     * a substring, only when the query word is 5 or more characters
 
-  A search term scores the same as a name at the same tier. A category-name
-  hit is weaker than all of those, and a best score below 2 means only a
-  category matched. Ties break toward the parent with more MeFile tags, then
-  by name.
+  A search term scores the same as a name at the same tier. Results are
+  listed with a topic-name hit first, then a child-name hit, then a search
+  term or category. A category-name hit is weaker than all of those, and a
+  best score below 2 means only a category matched. Within a group, ties
+  break toward the parent with more MeFile tags, then by name.
 
   Names and terms are shared vocabulary, not anyone's answers; callers decide
   what else (such as whether a MeFile has data) a result may carry.
@@ -129,7 +130,17 @@ defmodule Qlarius.YouData.TraitSearch do
 
     ranked
     |> Enum.map(&Map.put(&1, :tag_count, Map.get(counts, &1.trait_id, 0)))
-    |> Enum.sort_by(&{-&1.score, -&1.tag_count, &1.trait, &1.trait_id})
+    |> Enum.sort_by(&{-name_band(&1, tokens), -&1.score, -&1.tag_count, &1.trait, &1.trait_id})
+  end
+
+  # A hit already written in the topic name leads, then one written in a
+  # child name. A search term that is not on either name follows those.
+  defp name_band(result, tokens) do
+    cond do
+      Enum.any?(tokens, &obvious?(&1, result.trait)) -> 2
+      Enum.any?(result.matched_values, fn name -> Enum.any?(tokens, &obvious?(&1, name)) end) -> 1
+      true -> 0
+    end
   end
 
   @doc """

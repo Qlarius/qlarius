@@ -122,7 +122,7 @@ defmodule Qlarius.YouData.TraitSearchTest do
       %{category: category}
     end
 
-    test "exact beats a whole word, which beats a prefix, which beats a long substring",
+    test "among names, a whole word beats a prefix, which beats a long substring",
          ctx do
       exact = insert_trait!(ctx.category, "Exact Holder") |> with_terms!(["brindle"])
       word = insert_trait!(ctx.category, "Has Brindle Coat")
@@ -131,7 +131,7 @@ defmodule Qlarius.YouData.TraitSearchTest do
 
       ids = rank("brindle") |> Enum.map(& &1.trait_id)
 
-      assert order(ids, [exact.id, word.id, prefix.id, substr.id])
+      assert order(ids, [word.id, prefix.id, substr.id, exact.id])
       refute rank("brin") |> Enum.any?(&(&1.trait_id == substr.id))
     end
 
@@ -171,7 +171,7 @@ defmodule Qlarius.YouData.TraitSearchTest do
       refute vacation.id in ids
     end
 
-    test "curated terms outrank lookalike names", ctx do
+    test "a topic name leads a child name, and both lead a search term", ctx do
       pets = insert_trait!(ctx.category, "Pet Ownership")
       insert_trait!(nil, "Cat", parent_trait_id: pets.id)
       insert_trait!(nil, "Kitten", parent_trait_id: pets.id)
@@ -208,20 +208,22 @@ defmodule Qlarius.YouData.TraitSearchTest do
       assert tops(rank("kitten"), pets.id)
       assert tops(rank("dog"), pets.id)
       assert tops(rank("puppy"), pets.id)
-      assert before?(rank("dog"), pets.id, hot_dogs.id)
+      # "Hot Dogs" has the word in the topic name, so it leads the child "Dog".
+      assert before?(rank("dog"), hot_dogs.id, pets.id)
 
       assert tops(rank("car"), auto.id)
-      assert before?(rank("car"), auto.id, cards.id)
+      # "Cards" starts with the query, so the topic name leads the "car" term.
+      assert before?(rank("car"), cards.id, auto.id)
 
-      for query <- ~w(weed marijuana pot 420) do
+      for query <- ~w(weed marijuana 420) do
         assert tops(rank(query), cannabis.id)
       end
 
-      assert before?(rank("pot"), cannabis.id, pottery.id)
-      assert before?(rank("pot"), cannabis.id, potatoes.id)
+      assert before?(rank("pot"), potatoes.id, pottery.id)
+      assert before?(rank("pot"), pottery.id, cannabis.id)
 
       assert tops(rank("religion"), religion.id)
-      assert before?(rank("religion"), religion.id, religious.id)
+      assert before?(rank("religion"), religious.id, religion.id)
 
       assert tops(rank("smoke"), nicotine.id)
       assert tops(rank("smoking"), nicotine.id)
@@ -229,7 +231,7 @@ defmodule Qlarius.YouData.TraitSearchTest do
 
       assert tops(rank("trans"), gender.id)
       assert tops(rank("transgender"), gender.id)
-      assert before?(rank("trans"), gender.id, transmission.id)
+      assert before?(rank("trans"), transmission.id, gender.id)
 
       assert tops(rank("money"), income.id)
       assert tops(rank("salary"), income.id)

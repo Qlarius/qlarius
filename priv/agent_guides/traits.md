@@ -80,7 +80,9 @@ reports the term. Highest tier first:
    characters. Shorter words do not match inside unrelated words, so "cat"
    does not find Education, Location, or Vacation.
 
-A category name is the weakest hit, below all four. Ties go to the parent
+A category name is the weakest hit, below all four. A topic whose own name
+contains the query is listed first, then one whose child name contains it,
+then a search term or category. Inside that group, ties go to the parent
 with more MeFile tags, then to the name A to Z. A child hit counts toward
 its parent, and the parent's tag total is the one that breaks the tie.
 
