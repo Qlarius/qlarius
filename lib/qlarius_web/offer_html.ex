@@ -140,6 +140,7 @@ defmodule QlariusWeb.OfferHTML do
               class="block w-full h-full"
               href={jump_url(@offer, @recipient, tip_only: @tip_only)}
               target="_blank"
+              rel="opener"
             >
               <div class={[
                 "truncate text-blue-600 font-bold text-lg underline",

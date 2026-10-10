@@ -1,10 +1,24 @@
 defmodule QlariusWeb.AdJumpPageHTML do
   use QlariusWeb, :html
 
+  attr :exit_path, :string, required: true
+  attr :label, :string, default: "Back to app"
+  attr :class, :string, default: "btn btn-secondary btn-block rounded-xl"
+  attr :id, :string, default: nil
+
+  defp exit_to_app(assigns) do
+    ~H"""
+    <.link href={@exit_path} class={@class} id={@id} data-exit-to-app>
+      {@label}
+    </.link>
+    """
+  end
+
   attr :offer, :any, required: true
   attr :recipient_id, :string, default: nil
   attr :use_location_replace, :boolean, default: true
   attr :autosplit_disabled, :boolean, default: false
+  attr :exit_path, :string, required: true
 
   def jump(assigns) do
     ~H"""
@@ -14,6 +28,7 @@ defmodule QlariusWeb.AdJumpPageHTML do
       data-offer-id={@offer.id}
       data-recipient-id={@recipient_id || ""}
       data-jump-url={@offer.media_piece.jump_url}
+      data-exit-path={@exit_path}
       data-csrf={Plug.CSRFProtection.get_csrf_token()}
       data-use-location-replace={to_string(@use_location_replace)}
       data-autosplit-disabled={to_string(@autosplit_disabled)}
@@ -40,6 +55,10 @@ defmodule QlariusWeb.AdJumpPageHTML do
           <progress id="progress-bar" class="progress progress-primary w-full" value="0" max="100">
           </progress>
         </div>
+
+        <div class="w-full mt-6">
+          <.exit_to_app exit_path={@exit_path} class="btn btn-ghost btn-sm" />
+        </div>
       </div>
 
       <%!-- Collect failed — no payment; user can retry or open advertiser without earning --%>
@@ -53,6 +72,7 @@ defmodule QlariusWeb.AdJumpPageHTML do
         <button type="button" id="retry-collect-btn" class="btn btn-primary btn-block rounded-xl">
           Try again
         </button>
+        <.exit_to_app exit_path={@exit_path} id="ad-jump-exit" />
         <p class="text-xs text-base-content/50">
           <a id="advertiser-fallback-link" href={@offer.media_piece.jump_url} class="link link-hover">
             Open advertiser site (visit may not earn reward)
@@ -76,6 +96,10 @@ defmodule QlariusWeb.AdJumpPageHTML do
         >
           Close This Window
         </button>
+
+        <div class="mt-4">
+          <.exit_to_app exit_path={@exit_path} class="btn btn-outline btn-lg" />
+        </div>
       </div>
     </div>
 
@@ -85,6 +109,7 @@ defmodule QlariusWeb.AdJumpPageHTML do
         const offerId = container.dataset.offerId;
         const recipientId = container.dataset.recipientId;
         const datasetJumpUrl = container.dataset.jumpUrl;
+        const exitPath = container.dataset.exitPath || '/ads';
         const csrfToken = container.dataset.csrf;
         const useLocationReplace = container.dataset.useLocationReplace === 'true';
         const autosplitDisabled = container.dataset.autosplitDisabled === 'true';
@@ -107,9 +132,52 @@ defmodule QlariusWeb.AdJumpPageHTML do
           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         const shouldAutoClose = isStandalone && !isMobile;
 
+        // The visit opens in a new tab (target=_blank, rel=opener) beside the
+        // app. Loading the app in this tab would leave two copies. Close this
+        // tab and focus the one that opened it. A same-window visit has no
+        // opener, so follow the link. A frame navigates its top window so the
+        // app is not painted inside the frame. If the browser refuses to
+        // close the tab, fall through to the link.
+        function returnToApp(event) {
+          if (event) event.preventDefault();
+
+          const openerLive = window.opener && !window.opener.closed;
+          if (openerLive) {
+            try { window.opener.focus(); } catch (_e) {}
+            window.close();
+            setTimeout(function() {
+              if (!window.closed) window.location.href = exitPath;
+            }, 250);
+            return;
+          }
+
+          let framed = false;
+          try { framed = window.self !== window.top; } catch (_e) { framed = true; }
+          if (framed) {
+            try {
+              window.top.location.href = exitPath;
+              return;
+            } catch (_e) {}
+          }
+
+          if (shouldAutoClose) {
+            window.close();
+            setTimeout(function() {
+              if (!window.closed) window.location.href = exitPath;
+            }, 250);
+            return;
+          }
+
+          window.location.href = exitPath;
+        }
+
+        document.querySelectorAll('[data-exit-to-app]').forEach(function(el) {
+          el.addEventListener('click', returnToApp);
+        });
+
         document.addEventListener('visibilitychange', function() {
           if (document.visibilityState === 'visible' && hasRedirected) {
-            window.location.href = '/ads';
+            returnToApp();
           }
         });
 

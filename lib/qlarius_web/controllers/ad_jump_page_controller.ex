@@ -5,6 +5,7 @@ defmodule QlariusWeb.AdJumpPageController do
   alias Qlarius.Sponster.Offers
   alias Qlarius.Sponster.Ads.ThreeTap
   alias Qlarius.Sponster.Recipient
+  alias QlariusWeb.Plugs.HostAwareSession
 
   @doc """
   Renders the jump page with countdown. Payment is NOT processed here.
@@ -18,16 +19,20 @@ defmodule QlariusWeb.AdJumpPageController do
       nil ->
         conn
         |> put_flash(:error, "This offer is no longer available.")
-        |> redirect(to: ~p"/ads")
+        |> redirect(to: resolve_exit_path(conn, params))
 
       offer ->
+        exit_path = resolve_exit_path(conn, params)
+        conn = put_session(conn, "qlarius_ad_jump_exit_path", exit_path)
+
         # Pass data to template - payment will be processed at redirect time
         render(conn, :jump,
           layout: false,
           offer: offer,
           recipient_id: recipient_id,
           autosplit_disabled: params["autosplit"] == "0",
-          use_location_replace: use_location_replace?(conn)
+          use_location_replace: use_location_replace?(conn),
+          exit_path: exit_path
         )
     end
   end
@@ -97,6 +102,75 @@ defmodule QlariusWeb.AdJumpPageController do
       end
     else
       false
+    end
+  end
+
+  defp resolve_exit_path(conn, params) do
+    default =
+      if HostAwareSession.host_under_qadabra?(conn.host) do
+        ~p"/ads"
+      else
+        ~p"/"
+      end
+
+    normalize_internal_path(params["return_to"]) ||
+      Plug.Conn.get_session(conn, "qlarius_ad_jump_exit_path") |> normalize_internal_path() ||
+      referer_internal_path(conn) ||
+      default
+  end
+
+  defp normalize_internal_path(nil), do: nil
+
+  defp normalize_internal_path(path) when is_binary(path) do
+    path = String.trim(path)
+
+    cond do
+      path == "" ->
+        nil
+
+      String.contains?(path, ["\n", "\r"]) ->
+        nil
+
+      true ->
+        uri = URI.parse(path)
+
+        cond do
+          not is_nil(uri.scheme) or not is_nil(uri.host) ->
+            nil
+
+          not is_binary(uri.path) ->
+            nil
+
+          String.starts_with?(uri.path, "//") ->
+            nil
+
+          not String.starts_with?(uri.path, "/") ->
+            nil
+
+          true ->
+            uri
+            |> Map.put(:fragment, nil)
+            |> URI.to_string()
+        end
+    end
+  end
+
+  defp referer_internal_path(conn) do
+    case Plug.Conn.get_req_header(conn, "referer") do
+      [referer | _] when is_binary(referer) ->
+        case URI.parse(referer) do
+          %URI{host: host} = uri when is_binary(host) and host == conn.host ->
+            uri
+            |> Map.merge(%{scheme: nil, host: nil, port: nil, fragment: nil})
+            |> URI.to_string()
+            |> normalize_internal_path()
+
+          _ ->
+            nil
+        end
+
+      _ ->
+        nil
     end
   end
 end
