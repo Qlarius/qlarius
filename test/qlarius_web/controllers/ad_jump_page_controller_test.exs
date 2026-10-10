@@ -33,6 +33,8 @@ defmodule QlariusWeb.AdJumpPageControllerTest do
 
       assert html =~ ~s(id="ad-jump-exit")
       assert html =~ ~s(href="#{return_to}")
+      assert html =~ ~s(data-exit-to-app)
+      assert html =~ "window.opener"
     end
 
     test "falls back to /ads on qadabra hosts when origin is missing", %{conn: conn} do

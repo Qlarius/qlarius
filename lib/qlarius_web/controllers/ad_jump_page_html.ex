@@ -8,7 +8,7 @@ defmodule QlariusWeb.AdJumpPageHTML do
 
   defp exit_to_app(assigns) do
     ~H"""
-    <.link href={@exit_path} class={@class} id={@id}>
+    <.link href={@exit_path} class={@class} id={@id} data-exit-to-app>
       {@label}
     </.link>
     """
@@ -132,9 +132,52 @@ defmodule QlariusWeb.AdJumpPageHTML do
           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         const shouldAutoClose = isStandalone && !isMobile;
 
+        // The visit opens in a new tab (target=_blank, rel=opener) beside the
+        // app. Loading the app in this tab would leave two copies. Close this
+        // tab and focus the one that opened it. A same-window visit has no
+        // opener, so follow the link. A frame navigates its top window so the
+        // app is not painted inside the frame. If the browser refuses to
+        // close the tab, fall through to the link.
+        function returnToApp(event) {
+          if (event) event.preventDefault();
+
+          const openerLive = window.opener && !window.opener.closed;
+          if (openerLive) {
+            try { window.opener.focus(); } catch (_e) {}
+            window.close();
+            setTimeout(function() {
+              if (!window.closed) window.location.href = exitPath;
+            }, 250);
+            return;
+          }
+
+          let framed = false;
+          try { framed = window.self !== window.top; } catch (_e) { framed = true; }
+          if (framed) {
+            try {
+              window.top.location.href = exitPath;
+              return;
+            } catch (_e) {}
+          }
+
+          if (shouldAutoClose) {
+            window.close();
+            setTimeout(function() {
+              if (!window.closed) window.location.href = exitPath;
+            }, 250);
+            return;
+          }
+
+          window.location.href = exitPath;
+        }
+
+        document.querySelectorAll('[data-exit-to-app]').forEach(function(el) {
+          el.addEventListener('click', returnToApp);
+        });
+
         document.addEventListener('visibilitychange', function() {
           if (document.visibilityState === 'visible' && hasRedirected) {
-            window.location.href = exitPath;
+            returnToApp();
           }
         });
 
