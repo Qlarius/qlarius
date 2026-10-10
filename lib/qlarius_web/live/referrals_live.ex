@@ -82,6 +82,9 @@ defmodule QlariusWeb.ReferralsLive do
     else
       case Referrals.update_referral(socket.assigns.me_file.id, code) do
         {:ok, referral} ->
+          # Reload so the referrer's masked alias is on the row, as on mount.
+          referral = Referrals.get_referral_by_me_file(socket.assigns.me_file.id) || referral
+
           {:noreply,
            socket
            |> assign(:referral, referral)

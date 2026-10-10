@@ -4,6 +4,7 @@ defmodule QlariusWeb.ReferralsLiveTest do
   import Phoenix.LiveViewTest
 
   alias Qlarius.Accounts
+  alias Qlarius.Referrals
   alias Qlarius.Repo
   alias Qlarius.YouData.Traits.Trait
 
@@ -59,5 +60,32 @@ defmodule QlariusWeb.ReferralsLiveTest do
     html = view |> form("form[phx-submit='save_referral_code']", code: "nope") |> render_submit()
 
     assert html =~ "Invalid referral code"
+  end
+
+  test "saving a valid code shows the referrer by alias and closes the form", %{conn: conn} do
+    {:ok, %{user: referrer}} =
+      Accounts.register_new_user(%{
+        alias: "refs-src-#{System.unique_integer([:positive])}",
+        date_of_birth: ~D[1990-01-01],
+        sex_trait_id: 200_001,
+        age_trait_id: 200_093
+      })
+
+    referrer_me_file = Accounts.get_me_file_by_user_id(referrer.id)
+
+    {:ok, referrer_me_file} =
+      Referrals.set_referral_code(referrer_me_file, "m-referrer1234")
+
+    {:ok, view, html} = live(conn, ~p"/referrals")
+    assert html =~ "Did someone refer you?"
+
+    html =
+      view
+      |> form("form[phx-submit='save_referral_code']", code: referrer_me_file.referral_code)
+      |> render_submit()
+
+    assert html =~ "Referred by"
+    refute html =~ "Referred by Mefile"
+    refute html =~ ~s(phx-submit="save_referral_code")
   end
 end
