@@ -3010,10 +3010,14 @@
   }
 
   /* Builder search results replace the index while a query is active.
-     The column uses the page width; a tag still stops at a readable width
-     so a long match does not stretch across a wide screen. */
+     Tag view uses the page width, with each tag capped so a long match
+     does not stretch across a wide screen. List view stays a narrow column. */
   .builder-results {
     @apply w-full pt-2;
+  }
+
+  .builder-results--list {
+    @apply max-w-xl;
   }
 
   .builder-results .trait-tag {

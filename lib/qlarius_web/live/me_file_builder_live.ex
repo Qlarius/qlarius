@@ -882,7 +882,10 @@ defmodule QlariusWeb.MeFileBuilderLive do
     ~H"""
     <section
       id="builder-trait-results"
-      class="mefile-category builder-results"
+      class={[
+        "mefile-category builder-results",
+        @tag_display_mode == "list" && "builder-results--list"
+      ]}
       aria-live="polite"
       phx-hook="AnimateTrait"
     >
@@ -958,7 +961,10 @@ defmodule QlariusWeb.MeFileBuilderLive do
     ~H"""
     <section
       id="builder-trait-results-skeleton"
-      class="mefile-category builder-results"
+      class={[
+        "mefile-category builder-results",
+        @tag_display_mode == "list" && "builder-results--list"
+      ]}
       aria-busy="true"
       aria-label="Searching topics"
     >
