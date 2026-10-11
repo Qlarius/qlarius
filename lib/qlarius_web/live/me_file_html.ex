@@ -6,6 +6,10 @@ defmodule QlariusWeb.MeFileHTML do
 
   embed_templates "me_file_html/*"
 
+  def quality_entry(_quality, nil), do: nil
+
+  def quality_entry(quality, %{id: id}), do: Map.get(quality || %{}, id)
+
   def progress_bar_color(percentage) do
     cond do
       percentage == 100.0 -> "bg-green-500"
@@ -55,6 +59,7 @@ defmodule QlariusWeb.MeFileHTML do
   attr :is_pwa, :boolean, default: false
   attr :highlight_ids, :list, default: [], doc: "Tag options ticked from a chat suggestion"
   attr :chat_note, :string, default: nil
+  attr :quality, :map, default: nil
 
   def tag_edit_modal(assigns) do
     assigns =
@@ -107,6 +112,9 @@ defmodule QlariusWeb.MeFileHTML do
                 else: "Nothing selected yet."}
             </span>
           </div>
+          <ul :if={@quality && @quality.reasons != []} class="tag-quality">
+            <li :for={reason <- @quality.reasons}>{reason.text}</li>
+          </ul>
         </div>
 
         <%!-- Expandable content area --%>
@@ -563,6 +571,8 @@ defmodule QlariusWeb.MeFileHTML do
   attr :readonly, :boolean, default: false
   attr :skip_child_ids, :map, default: %{}
   attr :match_notes, :map, default: %{}
+  attr :quality, :map, default: %{}
+  attr :nudges, :map, default: %{}
 
   attr :bare, :boolean,
     default: false,
@@ -599,7 +609,14 @@ defmodule QlariusWeb.MeFileHTML do
             phx-value-id={!@readonly && editable_parent_trait?(parent_trait_name) && parent_trait_id}
           >
             <div class="min-w-0 flex-1">
-              <p class="mefile-row__label">{parent_trait_name}</p>
+              <p class="mefile-row__label">
+                <.trait_signal
+                  :if={tags_traits != []}
+                  quality={Map.get(@quality, parent_trait_id)}
+                  inline
+                />
+                {parent_trait_name}
+              </p>
               <p :if={tags_traits != []} class="mefile-row__value">
                 {Enum.map_join(tags_traits, " · ", fn {_tag_id, tag_value, _order} -> tag_value end)}
               </p>
@@ -616,6 +633,9 @@ defmodule QlariusWeb.MeFileHTML do
                 title={Map.get(@match_notes, parent_trait_id)}
               >
                 {Map.get(@match_notes, parent_trait_id)}
+              </p>
+              <p :if={Map.get(@nudges, parent_trait_id)} class="trait-nudge">
+                {Map.get(@nudges, parent_trait_id)}
               </p>
             </div>
             <%!-- Skip before the chevron, so the chevron stays the row's last mark --%>
@@ -657,6 +677,8 @@ defmodule QlariusWeb.MeFileHTML do
             tags_traits={tags_traits}
             editable={!@readonly}
             match_note={Map.get(@match_notes, parent_trait_id)}
+            quality={Map.get(@quality, parent_trait_id)}
+            nudge={Map.get(@nudges, parent_trait_id)}
             skip_trait_id={
               inline_skip_id(
                 @skip_child_ids,
@@ -675,6 +697,8 @@ defmodule QlariusWeb.MeFileHTML do
   attr :parent_traits, :list, required: true
   attr :tag_display_mode, :string, required: true
   attr :tag_search, :string, default: ""
+  attr :quality, :map, default: %{}
+  attr :nudges, :map, default: %{}
 
   def survey_traits_display(assigns) do
     parent_traits = filter_parent_traits_by_search(assigns.parent_traits, assigns.tag_search)
@@ -697,6 +721,8 @@ defmodule QlariusWeb.MeFileHTML do
           parent_traits={@parent_traits}
           tag_display_mode={@tag_display_mode}
           skip_child_ids={@skip_child_ids}
+          quality={@quality}
+          nudges={@nudges}
           bare={@tag_display_mode != "list"}
         />
       </.traits_frame>
@@ -721,6 +747,7 @@ defmodule QlariusWeb.MeFileHTML do
   attr :tag_search, :string, default: ""
   attr :tag_search_epoch, :integer, default: 0
   attr :match_notes, :map, default: %{}
+  attr :quality, :map, default: %{}
   attr :loading, :boolean, default: false
 
   def tags_display(assigns) do
@@ -780,6 +807,7 @@ defmodule QlariusWeb.MeFileHTML do
             tag_display_mode={@tag_display_mode}
             skip_child_ids={@skip_child_ids}
             match_notes={@match_notes}
+            quality={@quality}
             bare={@tag_display_mode != "list"}
           />
         </.traits_frame>

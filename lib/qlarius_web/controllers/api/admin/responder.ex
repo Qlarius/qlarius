@@ -140,6 +140,13 @@ defmodule QlariusWeb.Api.Admin.Responder do
   end
 
   defp message(:not_found), do: {404, "not_found", "Not found"}
+
+  defp message(:trait_id_required),
+    do: {422, "trait_id_required", "Send trait_id or parent_id"}
+
+  defp message(:too_many_operations),
+    do: {422, "too_many_operations", "At most 1000 operations per call"}
+
   defp message(:category_not_found), do: {422, "category_not_found", "Trait category not found"}
   defp message(:survey_not_found), do: {422, "survey_not_found", "Survey not found"}
 

@@ -154,8 +154,10 @@ defmodule Qlarius.YouData.TraitManager do
          |> Trait.changeset(attrs)
          |> Repo.insert() do
       {:ok, trait} ->
+        Qlarius.YouData.TraitAudit.record_changes(%Trait{}, trait, attrs)
+
         case maybe_ensure_skipped_child(scope, trait, opts) do
-          {:ok, _} -> {:ok, trait}
+          {:ok, inserted} -> {:ok, %{trait | inserted_children: List.wrap(inserted)}}
           error -> error
         end
 
@@ -164,15 +166,17 @@ defmodule Qlarius.YouData.TraitManager do
     end
   end
 
-  def update_parent_trait(scope, %Trait{} = trait, attrs, opts \\ []) do
+  def update_parent_trait(scope, %Trait{} = before, attrs, opts \\ []) do
     attrs = Map.put(attrs, "modified_by", scope.true_user.id)
 
-    case trait
+    case before
          |> Trait.changeset(attrs)
          |> Repo.update() do
       {:ok, trait} ->
+        Qlarius.YouData.TraitAudit.record_changes(before, trait, attrs)
+
         case maybe_ensure_skipped_child(scope, trait, opts) do
-          {:ok, _} -> {:ok, trait}
+          {:ok, inserted} -> {:ok, %{trait | inserted_children: List.wrap(inserted)}}
           error -> error
         end
 
@@ -533,6 +537,7 @@ defmodule Qlarius.YouData.TraitManager do
           "input_type" => parent.input_type,
           "is_active" => Map.get(attrs, "is_active", true),
           "is_skipped_tag" => skipped_tag?(attrs["is_skipped_tag"]),
+          "is_exclusive" => truthy_flag?(attrs["is_exclusive"]) or skipped_tag?(attrs["is_skipped_tag"]),
           "display_order" => order,
           "added_by" => scope.true_user.id,
           "modified_by" => scope.true_user.id
@@ -547,6 +552,10 @@ defmodule Qlarius.YouData.TraitManager do
       %Trait{}
       |> Trait.changeset(child_attrs)
       |> Repo.insert()
+      |> tap(fn
+        {:ok, child} -> Qlarius.YouData.TraitAudit.record_changes(%Trait{}, child, child_attrs)
+        _ -> :ok
+      end)
     end
   end
 
@@ -600,6 +609,9 @@ defmodule Qlarius.YouData.TraitManager do
       parent.input_type == "single_select_zip" ->
         {:ok, nil}
 
+      parent.skip_exempt ->
+        {:ok, nil}
+
       not is_nil(parent.parent_trait_id) ->
         {:ok, nil}
 
@@ -608,8 +620,8 @@ defmodule Qlarius.YouData.TraitManager do
 
       true ->
         case active_skipped_child(parent.id) do
-          %Trait{} = child ->
-            {:ok, child}
+          %Trait{} = _child ->
+            {:ok, nil}
 
           nil ->
             case create_child_trait(scope, parent, %{
@@ -658,8 +670,12 @@ defmodule Qlarius.YouData.TraitManager do
         attrs = Map.put(attrs, "modified_by", scope.true_user.id)
 
         case trait |> Trait.changeset(attrs) |> Repo.update() do
-          {:ok, trait} -> trait
-          {:error, changeset} -> Repo.rollback(changeset)
+          {:ok, updated} ->
+            Qlarius.YouData.TraitAudit.record_changes(trait, updated, attrs)
+            updated
+
+          {:error, changeset} ->
+            Repo.rollback(changeset)
         end
       end)
 
@@ -726,6 +742,8 @@ defmodule Qlarius.YouData.TraitManager do
   end
 
   defp skipped_tag?(value), do: value in [true, "true", "1", 1]
+
+  defp truthy_flag?(value), do: value in [true, "true", "1", 1]
 
   def restripe_active_children(scope, %Trait{} = parent) do
     children =

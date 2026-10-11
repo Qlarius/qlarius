@@ -7,7 +7,7 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
 
   alias QlariusWeb.Api.Admin.Responder
 
-  @version "2026-10-10.2"
+  @version "2026-10-11.3"
   @guides_dir Path.expand("../../../../../priv/agent_guides", __DIR__)
   @topics ~w(overview content_groups traits ad_categories campaigns)
 
@@ -57,6 +57,61 @@ defmodule QlariusWeb.Api.Admin.AgentGuideController do
       method: "GET",
       path: "/api/admin/trait_search?q=&scope=builder|all",
       purpose: "Ranked trait search as the Builder (builder, top 15) or Qai (all, top 10) sees it"
+    },
+    %{
+      method: "GET",
+      path: "/api/admin/traits/integrity_report?skip_rate_threshold=",
+      purpose: "Read-only catalog checks, including skip rates. Nothing is written."
+    },
+    %{
+      method: "GET",
+      path: "/api/admin/trait_relationships?trait_id=&parent_id=&type=conflicts|requires",
+      purpose: "Links touching a trait, or the links among one parent's children"
+    },
+    %{
+      method: "POST",
+      path: "/api/admin/trait_relationships",
+      purpose: "Add a conflicts or requires link between two traits"
+    },
+    %{
+      method: "POST",
+      path: "/api/admin/trait_relationships/bulk",
+      purpose: "Create and delete links in one transaction. One write. dry_run supported."
+    },
+    %{
+      method: "PATCH",
+      path: "/api/admin/trait_relationships/:id",
+      purpose: "Change a link's note or type in place"
+    },
+    %{
+      method: "DELETE",
+      path: "/api/admin/trait_relationships/:id",
+      purpose: "Remove one trait relationship"
+    },
+    %{
+      method: "POST",
+      path: "/api/admin/traits/:id/children/:child_id/make_exclusive",
+      purpose: "Add conflicts between one child and each of its siblings"
+    },
+    %{
+      method: "POST",
+      path: "/api/admin/traits/:id/children/:child_id/unmake_exclusive",
+      purpose: "Remove sibling conflicts for one child"
+    },
+    %{
+      method: "PATCH",
+      path: "/api/admin/traits/bulk_rules",
+      purpose: "Set count, freshness, skip_exempt, and nudge_text on many parents. One write. No skip is inserted."
+    },
+    %{
+      method: "PATCH",
+      path: "/api/admin/traits/bulk_search_terms",
+      purpose: "Replace search terms on many traits. One write. No skip is inserted."
+    },
+    %{
+      method: "GET",
+      path: "/api/admin/audit_log?trait_id=",
+      purpose: "Read-only log of relationship, rule, and search-term changes"
     },
     %{
       method: "GET",

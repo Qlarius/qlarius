@@ -4,6 +4,7 @@ defmodule QlariusWeb.MeFileLive do
   alias Qlarius.YouData.Traits
   alias Qlarius.YouData.TraitSearch
   alias Qlarius.YouData.MeFiles
+  alias Qlarius.YouData.TagQuality
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
 
   import QlariusWeb.MeFileHTML
@@ -33,6 +34,7 @@ defmodule QlariusWeb.MeFileLive do
             dual_pane={true}
             show_expanded_tags={@show_expanded_tags}
             is_pwa={@is_pwa}
+            quality={quality_entry(@tag_quality, @trait_in_edit)}
           />
         </:modals>
 
@@ -47,6 +49,7 @@ defmodule QlariusWeb.MeFileLive do
             tag_search={@tag_search}
             tag_search_epoch={@tag_search_epoch}
             match_notes={@tag_match_notes}
+            quality={@tag_quality}
             loading={@tags_loading}
           />
         </div>
@@ -303,6 +306,7 @@ defmodule QlariusWeb.MeFileLive do
         |> Enum.reject(fn {_category, parent_traits} -> parent_traits == [] end)
       end)
       |> assign(:selected_child_trait_ids, [])
+      |> assign_tag_quality()
       |> assign_filtered_tag_display()
 
     {:noreply, socket}
@@ -319,6 +323,7 @@ defmodule QlariusWeb.MeFileLive do
       |> assign(:me_file_tag_map_by_category_trait_tag, [])
       |> assign(:tag_display_map, [])
       |> assign(:tag_match_notes, %{})
+      |> assign(:tag_quality, %{})
       |> assign(:tags_loading, true)
       |> assign(:trait_in_edit, nil)
       |> assign(:trait_in_edit_values, [])
@@ -356,6 +361,7 @@ defmodule QlariusWeb.MeFileLive do
      socket
      |> assign(:me_file_tag_map_by_category_trait_tag, tag_map)
      |> assign(:tags_loading, false)
+     |> assign_tag_quality()
      |> assign_filtered_tag_display()}
   end
 
@@ -445,6 +451,7 @@ defmodule QlariusWeb.MeFileLive do
       |> assign(:show_modal, false)
       |> assign(:show_delete_confirm, false)
       |> assign(:show_skip_conflict, false)
+      |> assign_tag_quality()
       |> assign_filtered_tag_display()
       |> push_event("animate_trait", %{trait_id: trait_id, delay_ms: 250, value: "update_pulse"})
 
@@ -491,6 +498,7 @@ defmodule QlariusWeb.MeFileLive do
              end)}
           end)
         end)
+        |> assign_tag_quality()
         |> assign_filtered_tag_display()
         |> push_event("animate_trait", %{
           trait_id: parent_id,
@@ -505,6 +513,11 @@ defmodule QlariusWeb.MeFileLive do
   end
 
   defp modal_skip_child(_), do: nil
+
+  defp assign_tag_quality(socket) do
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+    assign(socket, :tag_quality, TagQuality.for_me_file(me_file_id))
+  end
 
   defp assign_filtered_tag_display(socket) do
     tag_map = socket.assigns.me_file_tag_map_by_category_trait_tag

@@ -43,7 +43,7 @@ defmodule Qlarius.Accounts.AdminApiTokens do
           set: [last_used_at: now]
         )
 
-        {:ok, user}
+        {:ok, user, token}
 
       %{user: %User{}} ->
         {:error, :forbidden}

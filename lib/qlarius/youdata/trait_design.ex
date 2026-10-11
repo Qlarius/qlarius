@@ -19,7 +19,7 @@ defmodule Qlarius.YouData.TraitDesign do
   alias Qlarius.YouData.Traits.Trait
   alias Qlarius.YouData.Traits.TraitCategory
 
-  def apply(scope, params) when is_map(params) do
+  def apply(scope, params, opts \\ []) when is_map(params) do
     mode = params["mode"]
     parent_params = params["parent"] || %{}
     children = params["children"]
@@ -40,7 +40,7 @@ defmodule Qlarius.YouData.TraitDesign do
 
       true ->
         Repo.transaction(fn ->
-          case do_apply(scope, mode, parent_params, children, params, force) do
+          case do_apply(scope, mode, parent_params, children, params, force, opts) do
             {:ok, detail} -> detail
             {:error, reason} -> Repo.rollback(reason)
           end
@@ -48,25 +48,43 @@ defmodule Qlarius.YouData.TraitDesign do
     end
   end
 
-  defp do_apply(scope, mode, parent_params, children, params, force) do
+  defp do_apply(scope, mode, parent_params, children, params, force, opts) do
     with {:ok, category_id} <- resolve_category(parent_params),
          {:ok, parent} <- load_or_build(scope, mode, parent_params, category_id),
          :ok <- guard(parent, mode, parent_params, force),
          {:ok, parent} <- save_parent(scope, mode, parent, parent_params, category_id),
-         {:ok, child_traits} <- upsert_children(scope, parent, children),
+         {:ok, child_traits, new_ids} <- upsert_children(scope, parent, children),
          {:ok, deactivated_ids} <-
            deactivate_missing(scope, parent, child_traits, params),
          {:ok, question} <- upsert_question(scope, parent, params["survey_question"]),
          :ok <- upsert_answers(scope, question, child_traits, children),
          :ok <- attach_survey(scope, question, params["attach_to_survey"]),
-         {:ok, _} <- TraitManager.ensure_skipped_child(scope, parent),
+         {:ok, inserted_skip} <- TraitManager.ensure_skipped_child(scope, parent),
          {:ok, _} <- TraitManager.restripe_active_children(scope, parent) do
+      new_ids =
+        case inserted_skip do
+          %Trait{id: id} -> new_ids ++ [id]
+          _ -> new_ids
+        end
+
+      links =
+        if extend_conflicts?(params) do
+          Qlarius.YouData.TraitRelationships.extend_exclusive_conflicts(parent.id, new_ids, opts)
+        else
+          []
+        end
+
       detail =
         parent.id
         |> then(&TraitManager.get_parent_trait_with_details(scope, &1))
         |> parent_detail()
         |> Map.put(:deactivated_child_ids, deactivated_ids)
         |> Map.put(:deactivated_tag_count, TraitGuards.tag_count(deactivated_ids))
+        |> Map.put(:inserted_children, inserted_children_json(inserted_skip))
+        |> Map.put(
+          :inserted_relationships,
+          Enum.map(links, &Qlarius.YouData.TraitRelationships.to_json/1)
+        )
 
       {:ok, detail}
     end
@@ -128,7 +146,8 @@ defmodule Qlarius.YouData.TraitDesign do
       }
       |> put_meta(params)
       |> put_search_filter(params)
-      |> put_search_terms(params),
+      |> put_search_terms(params)
+      |> put_skip_controls(params),
       keep_display_order: is_integer(integer(params["display_order"])),
       keep_active: true,
       ensure_skip: false
@@ -167,7 +186,7 @@ defmodule Qlarius.YouData.TraitDesign do
     TraitManager.update_parent_trait(
       scope,
       parent,
-      attrs |> put_meta(params) |> put_search_filter(params) |> put_search_terms(params),
+      attrs |> put_meta(params) |> put_search_filter(params) |> put_search_terms(params) |> put_skip_controls(params),
       ensure_skip: false
     )
   end
@@ -175,9 +194,10 @@ defmodule Qlarius.YouData.TraitDesign do
   defp upsert_children(scope, parent, children) do
     parent = Repo.get!(Trait, parent.id)
 
-    Enum.reduce_while(children, {:ok, []}, fn child_params, {:ok, acc} ->
+    Enum.reduce_while(children, {:ok, [], []}, fn child_params, {:ok, acc, new_ids} ->
       case upsert_child(scope, parent, child_params) do
-        {:ok, child} -> {:cont, {:ok, acc ++ [child]}}
+        {:ok, child, :new} -> {:cont, {:ok, acc ++ [child], new_ids ++ [child.id]}}
+        {:ok, child, :existing} -> {:cont, {:ok, acc ++ [child], new_ids}}
         {:error, reason} -> {:halt, {:error, reason}}
       end
     end)
@@ -210,6 +230,7 @@ defmodule Qlarius.YouData.TraitDesign do
                 |> put_skip_flag(params)
                 |> put_search_terms(params)
               )
+              |> tag_new()
             end
 
           id ->
@@ -233,6 +254,7 @@ defmodule Qlarius.YouData.TraitDesign do
                   |> put_skip_flag(params)
                   |> put_search_terms(params)
                 )
+                |> tag_existing()
 
               _ ->
                 {:error, :child_not_in_parent}
@@ -390,10 +412,40 @@ defmodule Qlarius.YouData.TraitDesign do
       meta_3: parent.meta_3,
       has_search_filter: parent.has_search_filter,
       search_terms: parent.search_terms,
+      ideal_min_tags: parent.ideal_min_tags,
+      ideal_max_tags: parent.ideal_max_tags,
+      hard_max_tags: parent.hard_max_tags,
+      unripe_days: parent.unripe_days,
+      ripen_days: parent.ripen_days,
+      stale_days: parent.stale_days,
+      expired_days: parent.expired_days,
+      skip_exempt: parent.skip_exempt,
+      nudge_text: parent.nudge_text,
+      exclusive_child_ids: Qlarius.YouData.TraitRelationships.exclusive_child_ids(parent.id),
       survey_question: question_json(Map.get(parent, :survey_question)),
       children: Enum.map(parent.child_traits || [], &child_json/1),
       child_traits_count: Map.get(parent, :child_traits_count)
     }
+  end
+
+  defp inserted_children_json(nil), do: []
+
+  defp inserted_children_json(%Trait{} = child), do: [child_json(child)]
+
+  defp put_skip_controls(attrs, params) do
+    attrs
+    |> put_flag(params, "skip_exempt")
+    |> put_nudge(params)
+  end
+
+  defp put_flag(attrs, params, key) do
+    if Map.has_key?(params, key), do: Map.put(attrs, key, truthy?(params[key])), else: attrs
+  end
+
+  defp put_nudge(attrs, params) do
+    if Map.has_key?(params, "nudge_text"),
+      do: Map.put(attrs, "nudge_text", params["nudge_text"]),
+      else: attrs
   end
 
   defp question_json(nil), do: nil
@@ -416,10 +468,12 @@ defmodule Qlarius.YouData.TraitDesign do
       search_terms: child.search_terms,
       me_file_tag_count: Map.get(child, :tags_count, 0),
       is_skipped_tag: child.is_skipped_tag,
+      is_exclusive: child.is_exclusive,
       survey_answer: answer_json(answer)
     }
   end
 
+  defp answer_json(%Ecto.Association.NotLoaded{}), do: nil
   defp answer_json(nil), do: nil
   defp answer_json(answer), do: %{id: answer.id, text: answer.text}
 
@@ -466,6 +520,19 @@ defmodule Qlarius.YouData.TraitDesign do
   end
 
   defp meta_value(_), do: nil
+
+  defp tag_new({:ok, child}), do: {:ok, child, :new}
+  defp tag_new(error), do: error
+
+  defp tag_existing({:ok, child}), do: {:ok, child, :existing}
+  defp tag_existing(error), do: error
+
+  defp extend_conflicts?(params) do
+    case Map.get(params, "extend_exclusive_conflicts") do
+      nil -> true
+      value -> truthy?(value)
+    end
+  end
 
   defp active_flag(params, default) do
     if Map.has_key?(params, "is_active"), do: truthy?(params["is_active"]), else: default

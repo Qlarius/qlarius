@@ -7,6 +7,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
   alias Qlarius.YouData.MeFiles
   alias Qlarius.YouData.TraitSearch
   alias Qlarius.YouData.Traits
+  alias Qlarius.YouData.TagQuality
+  alias Qlarius.YouData.TraitNudges
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
 
   import QlariusWeb.MeFileHTML
@@ -45,6 +47,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
             is_pwa={@is_pwa}
             highlight_ids={@highlight_child_ids}
             chat_note={@chat_note}
+            quality={quality_entry(@tag_quality, @trait_in_edit)}
           />
         </:modals>
 
@@ -76,6 +79,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
             parent_traits={@survey_in_edit.parent_traits}
             tag_display_mode={@tag_display_mode}
             tag_search={@tag_search}
+            quality={@tag_quality}
+            nudges={@nudges}
           />
 
           <div :if={!@active_survey_id} class="text-base-content/50 text-sm">
@@ -141,6 +146,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
               results={results}
               trait_search={@trait_search}
               tag_display_mode={@tag_display_mode}
+              quality={@tag_quality}
+              nudges={@nudges}
             />
           </div>
         </.async_result>
@@ -319,6 +326,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:trait_results, %AsyncResult{})
       |> assign(:highlight_child_ids, [])
       |> assign(:chat_note, nil)
+      |> assign(:tag_quality, TagQuality.for_me_file(me_file_id))
+      |> assign(:nudges, TraitNudges.due(me_file_id, DateTime.utc_now(), record: connected?(socket)))
       |> assign_tag_display_mode()
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
       |> init_pwa_assigns(session)
@@ -587,6 +596,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
             |> assign(:survey_in_edit, survey_in_edit)
             |> assign(:show_modal, false)
             |> assign(:show_delete_confirm, false)
+            |> assign_tag_quality()
             |> push_event("animate_trait", %{
               trait_id: trait_id,
               delay_ms: 250,
@@ -652,6 +662,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
         |> assign(:show_modal, false)
         |> assign(:show_delete_confirm, false)
         |> assign(:show_skip_conflict, false)
+        |> assign_tag_quality()
         |> push_event("animate_trait", %{
           trait_id: trait_id,
           delay_ms: 250,
@@ -659,6 +670,14 @@ defmodule QlariusWeb.MeFileBuilderLive do
         })
         |> then(&{:noreply, &1})
     end
+  end
+
+  defp assign_tag_quality(socket) do
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+
+    socket
+    |> assign(:tag_quality, TagQuality.for_me_file(me_file_id))
+    |> assign(:nudges, TraitNudges.due(me_file_id, DateTime.utc_now(), record: true))
   end
 
   defp modal_skip_child(%{child_traits: children}) when is_list(children) do
@@ -854,6 +873,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
   attr :results, :list, required: true
   attr :trait_search, :string, required: true
   attr :tag_display_mode, :string, required: true
+  attr :quality, :map, default: %{}
+  attr :nudges, :map, default: %{}
 
   # The same list rows and tag chips as /me_file, in that page's current view.
   defp trait_search_results(assigns) do
@@ -903,6 +924,8 @@ defmodule QlariusWeb.MeFileBuilderLive do
           tag_display_mode={@tag_display_mode}
           skip_child_ids={@skip_child_ids}
           match_notes={@match_notes}
+          quality={@quality}
+          nudges={@nudges}
           bare={@tag_display_mode != "list"}
         />
       </.traits_frame>

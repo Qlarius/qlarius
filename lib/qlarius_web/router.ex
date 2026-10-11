@@ -427,6 +427,7 @@ defmodule QlariusWeb.Router do
       :api,
       :fetch_admin_api_scope,
       :require_admin_api_user,
+      :put_trait_audit_label,
       :rate_limit_admin_api_writes
     ]
 
@@ -448,12 +449,23 @@ defmodule QlariusWeb.Router do
 
     get "/traits_catalog", TraitController, :catalog
     get "/trait_search", TraitController, :search
+    get "/trait_relationships", TraitRelationshipController, :index
+    post "/trait_relationships/bulk", TraitRelationshipController, :bulk
+    post "/trait_relationships", TraitRelationshipController, :create
+    patch "/trait_relationships/:id", TraitRelationshipController, :update
+    delete "/trait_relationships/:id", TraitRelationshipController, :delete
+    get "/audit_log", AuditLogController, :index
     get "/traits", TraitController, :index
+    get "/traits/integrity_report", TraitController, :integrity_report
+    patch "/traits/bulk_rules", TraitController, :bulk_rules
+    patch "/traits/bulk_search_terms", TraitController, :bulk_search_terms
     post "/traits/design_packs", TraitController, :design_pack
     get "/traits/:id/lookup", TraitController, :lookup
     get "/traits/:id", TraitController, :show
     patch "/traits/:id", TraitController, :update
     post "/traits/:id/children", TraitController, :create_children
+    post "/traits/:id/children/:child_id/make_exclusive", TraitController, :make_exclusive
+    post "/traits/:id/children/:child_id/unmake_exclusive", TraitController, :unmake_exclusive
     patch "/traits/:id/children/:child_id", TraitController, :update_child
     post "/traits/:id/deactivate", TraitController, :deactivate
 

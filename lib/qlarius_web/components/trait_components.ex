@@ -153,6 +153,8 @@ defmodule QlariusWeb.Components.TraitComponents do
   attr :editable, :boolean, default: true
   attr :skip_trait_id, :any, default: nil
   attr :match_note, :string, default: nil
+  attr :quality, :map, default: nil
+  attr :nudge, :string, default: nil
 
   def trait_tag(assigns) do
     assigns =
@@ -168,40 +170,96 @@ defmodule QlariusWeb.Components.TraitComponents do
       )
 
     ~H"""
-    <%!-- Blank tags pulse like the List view's empty prompt, staggered per trait --%>
-    <div
-      id={"trait-card-#{@parent_trait_id}"}
-      class={[
-        "trait-card-animate trait-tag",
-        @tags_traits == [] && "trait-tag--empty empty-trait-header-strobe",
-        @tap_to_edit? && "trait-tag--editable"
-      ]}
-      style={@tags_traits == [] && "--animation-delay: #{rem(abs(@parent_trait_id), 2000)}ms"}
-      phx-click={@tap_to_edit? && "edit_tags"}
-      phx-value-id={@tap_to_edit? && @parent_trait_id}
-    >
-      <span class="trait-tag__name">
-        {@parent_trait_name}
-        <.icon :if={@tap_to_edit?} name="hero-chevron-right" class="h-3 w-3 shrink-0" />
-      </span>
-      <span :if={@tags_traits != []} class="trait-tag__values">
-        {Enum.map_join(@tags_traits, " · ", fn {_tag_id, tag_value, _order} -> tag_value end)}
-      </span>
-      <span :if={@tags_traits == []} class="trait-tag__empty">
-        {empty_tag_tease_message()}
-        <button
-          :if={@show_inline_skip?}
-          type="button"
-          phx-click="skip_parent_trait"
-          phx-value-id={@parent_trait_id}
-          class="trait-tag__skip"
-        >
-          Skip
-        </button>
-      </span>
-      <span :if={@match_note} class="trait-match" title={@match_note}>{@match_note}</span>
+    <div class="trait-tag-stack">
+    <div class="trait-tag-wrap">
+      <.trait_signal :if={@tags_traits != []} quality={@quality} />
+      <%!-- Blank tags pulse like the List view's empty prompt, staggered per trait --%>
+      <div
+        id={"trait-card-#{@parent_trait_id}"}
+        class={[
+          "trait-card-animate trait-tag",
+          @tags_traits == [] && "trait-tag--empty empty-trait-header-strobe",
+          @tap_to_edit? && "trait-tag--editable"
+        ]}
+        style={@tags_traits == [] && "--animation-delay: #{rem(abs(@parent_trait_id), 2000)}ms"}
+        phx-click={@tap_to_edit? && "edit_tags"}
+        phx-value-id={@tap_to_edit? && @parent_trait_id}
+      >
+        <span class="trait-tag__name">
+          {@parent_trait_name}
+          <.icon :if={@tap_to_edit?} name="hero-chevron-right" class="h-3 w-3 shrink-0" />
+        </span>
+        <span :if={@tags_traits != []} class="trait-tag__values">
+          {Enum.map_join(@tags_traits, " · ", fn {_tag_id, tag_value, _order} -> tag_value end)}
+        </span>
+        <span :if={@tags_traits == []} class="trait-tag__empty">
+          {empty_tag_tease_message()}
+          <button
+            :if={@show_inline_skip?}
+            type="button"
+            phx-click="skip_parent_trait"
+            phx-value-id={@parent_trait_id}
+            class="trait-tag__skip"
+          >
+            Skip
+          </button>
+        </span>
+        <span :if={@match_note} class="trait-match" title={@match_note}>{@match_note}</span>
+      </div>
+    </div>
+    <p :if={@nudge} class="trait-nudge">{@nudge}</p>
     </div>
     """
+  end
+
+  attr :quality, :map, default: nil
+  attr :inline, :boolean, default: false
+
+  def trait_signal(assigns) do
+    quality = assigns.quality
+    status = if is_map(quality), do: quality[:status]
+    # A skip fills the hole with the tag border. Green, yellow, and red
+    # replace that. No reading at all leaves the hole empty.
+    neutral? = status == :skipped
+    status = if status in [:green, :yellow, :red], do: status
+
+    assigns =
+      assigns
+      |> assign(:status, status)
+      |> assign(:neutral?, neutral?)
+      |> assign(:label, status && signal_label(quality))
+
+    ~H"""
+    <span
+      :if={@label}
+      class={[
+        "trait-signal",
+        @inline && "trait-signal--inline",
+        "trait-signal--#{@status}"
+      ]}
+      title={@label}
+      aria-label={@label}
+    >
+    </span>
+    <span
+      :if={@neutral? && !@inline}
+      class="trait-signal trait-signal--neutral"
+      aria-label="Skipped"
+    >
+    </span>
+    """
+  end
+
+  defp signal_label(%{status: :green}), do: "In good shape"
+
+  defp signal_label(%{status: status, reasons: reasons}) do
+    text =
+      Enum.find_value(reasons, fn reason ->
+        if reason.status == status, do: reason.text
+      end)
+
+    prefix = if status == :red, do: "Needs attention", else: "Needs review"
+    "#{prefix}: #{text}"
   end
 
   def protected_trait_name?(name), do: name in @protected_traits

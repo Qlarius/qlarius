@@ -1,11 +1,13 @@
 defmodule QlariusWeb.Api.Admin.TraitController do
   use QlariusWeb, :controller
 
+  alias Qlarius.YouData.TraitBulk
   alias Qlarius.YouData.TraitDesign
   alias Qlarius.YouData.TraitGuards
   alias Qlarius.YouData.TraitManager
   alias Qlarius.YouData.TraitSearch
   alias Qlarius.YouData.Traits
+  alias Qlarius.YouData.TraitRelationships
   alias QlariusWeb.Api.Admin.Responder
 
   def index(conn, params) do
@@ -76,7 +78,7 @@ defmodule QlariusWeb.Api.Admin.TraitController do
 
     with {:ok, trait} <- TraitManager.fetch_trait(scope, id),
          :ok <- parent_only(trait) do
-      json(conn, TraitDesign.parent_detail(TraitManager.get_parent_trait_with_details(scope, id)))
+      json(conn, parent_json(TraitManager.get_parent_trait_with_details(scope, id)))
     else
       {:error, reason} -> Responder.error(conn, reason)
     end
@@ -89,8 +91,12 @@ defmodule QlariusWeb.Api.Admin.TraitController do
     with {:ok, trait} <- TraitManager.fetch_trait(scope, id),
          :ok <- parent_only(trait),
          :ok <- TraitGuards.ensure_input_type_change(trait, params["input_type"], force),
-         {:ok, _} <- TraitManager.update_parent_trait(scope, trait, parent_attrs(params)) do
-      json(conn, TraitDesign.parent_detail(TraitManager.get_parent_trait_with_details(scope, id)))
+         {:ok, trait} <- TraitManager.update_parent_trait(scope, trait, parent_attrs(params)) do
+      json(
+        conn,
+        parent_json(TraitManager.get_parent_trait_with_details(scope, id))
+        |> Map.put(:inserted_children, brief_children(trait.inserted_children))
+      )
     else
       {:error, reason} -> Responder.error(conn, reason)
     end
@@ -104,7 +110,22 @@ defmodule QlariusWeb.Api.Admin.TraitController do
     with {:ok, parent} <- TraitManager.fetch_trait(scope, id),
          :ok <- no_children_of_children(parent),
          :ok <- TraitGuards.ensure_child_mutation(parent, force),
-         {:ok, created} <- insert_children(scope, parent, children) do
+         {:ok, created} <- insert_children(scope, parent, children),
+         {:ok, inserted_skip} <- TraitManager.ensure_skipped_child(scope, parent) do
+      new_ids =
+        Enum.map(created, & &1.id) ++
+          case inserted_skip do
+            %{id: id} -> [id]
+            _ -> []
+          end
+
+      links =
+        if params["extend_exclusive_conflicts"] in [false, "false", "0", 0] do
+          []
+        else
+          TraitRelationships.extend_exclusive_conflicts(parent.id, new_ids)
+        end
+
       conn
       |> put_status(201)
       |> json(%{
@@ -117,13 +138,52 @@ defmodule QlariusWeb.Api.Admin.TraitController do
               meta_1: child.meta_1,
               meta_2: child.meta_2,
               meta_3: child.meta_3,
-              search_terms: child.search_terms
+              search_terms: child.search_terms,
+              is_exclusive: child.is_exclusive,
+              is_skipped_tag: child.is_skipped_tag
             }
-          end)
+          end),
+        inserted_children: brief_children(inserted_skip),
+        inserted_relationships: Enum.map(links, &TraitRelationships.to_json/1)
       })
     else
       {:error, reason} -> Responder.error(conn, reason)
     end
+  end
+
+  def make_exclusive(conn, %{"id" => parent_id, "child_id" => child_id} = params) do
+    opts = [
+      note: params["note"],
+      include_inactive: truthy?(params["include_inactive"])
+    ]
+
+    case TraitRelationships.make_exclusive(parent_id, child_id, opts) do
+      {:ok, summary} -> json(conn, summary)
+      {:error, reason} -> Responder.error(conn, reason)
+    end
+  end
+
+  def unmake_exclusive(conn, %{"id" => parent_id, "child_id" => child_id}) do
+    case TraitRelationships.unmake_exclusive(parent_id, child_id) do
+      {:ok, summary} -> json(conn, summary)
+      {:error, reason} -> Responder.error(conn, reason)
+    end
+  end
+
+  def bulk_rules(conn, params) do
+    write_bulk(conn, TraitBulk.apply_rules(conn.assigns.current_scope, params))
+  end
+
+  def bulk_search_terms(conn, params) do
+    write_bulk(conn, TraitBulk.apply_search_terms(conn.assigns.current_scope, params))
+  end
+
+  defp write_bulk(conn, {:ok, body}), do: json(conn, body)
+
+  defp write_bulk(conn, {:error, reason}) when is_atom(reason), do: Responder.error(conn, reason)
+
+  defp write_bulk(conn, {:error, body}) do
+    conn |> put_status(422) |> json(Map.put(body, :error, "invalid"))
   end
 
   def update_child(conn, %{"id" => id, "child_id" => child_id} = params) do
@@ -160,6 +220,10 @@ defmodule QlariusWeb.Api.Admin.TraitController do
     else
       {:error, reason} -> Responder.error(conn, reason)
     end
+  end
+
+  def integrity_report(conn, params) do
+    json(conn, Qlarius.YouData.TraitIntegrity.report(skip_rate_threshold: threshold(params)))
   end
 
   def lookup(conn, %{"id" => id} = params) do
@@ -218,7 +282,32 @@ defmodule QlariusWeb.Api.Admin.TraitController do
     }
     |> put_meta(child)
     |> put_skip_flag(child)
+    |> put_exclusive(child)
     |> put_search_terms(child)
+  end
+
+  defp put_exclusive(attrs, params) do
+    if Map.has_key?(params, "is_exclusive") do
+      Map.put(attrs, "is_exclusive", truthy?(params["is_exclusive"]))
+    else
+      attrs
+    end
+  end
+
+  defp brief_children(nil), do: []
+
+  defp brief_children(%{id: _} = child), do: brief_children([child])
+
+  defp brief_children(children) when is_list(children) do
+    Enum.map(children, fn child ->
+      %{
+        id: child.id,
+        trait_name: child.trait_name,
+        is_skipped_tag: child.is_skipped_tag,
+        is_exclusive: child.is_exclusive,
+        display_order: child.display_order
+      }
+    end)
   end
 
   defp put_skip_flag(attrs, params) do
@@ -237,7 +326,80 @@ defmodule QlariusWeb.Api.Admin.TraitController do
     |> put_meta(params)
     |> put_search_filter(params)
     |> put_search_terms(params)
+    |> put_quality(params)
+    |> put_parent_controls(params)
   end
+
+  defp put_parent_controls(attrs, params) do
+    attrs =
+      if Map.has_key?(params, "skip_exempt") do
+        Map.put(attrs, "skip_exempt", truthy?(params["skip_exempt"]))
+      else
+        attrs
+      end
+
+    if Map.has_key?(params, "nudge_text") do
+      Map.put(attrs, "nudge_text", params["nudge_text"])
+    else
+      attrs
+    end
+  end
+
+  defp threshold(params) do
+    raw = params["skip_rate_threshold"]
+
+    value =
+      cond do
+        is_integer(raw) -> raw / 1
+        is_float(raw) -> raw
+        is_binary(raw) ->
+          case Float.parse(raw) do
+            {n, _} -> n
+            :error -> 15.0
+          end
+
+        true -> 15.0
+      end
+
+    if value <= 1, do: value, else: value / 100
+  end
+
+  defp parent_json(parent) do
+    parent
+    |> TraitDesign.parent_detail()
+    |> Map.put(
+      :relationships,
+      parent.id
+      |> TraitRelationships.list_for_parent()
+      |> Enum.map(&TraitRelationships.to_json/1)
+    )
+  end
+
+  @quality_keys ~w(ideal_min_tags ideal_max_tags hard_max_tags unripe_days ripen_days stale_days expired_days)
+
+  # Sending a key replaces it. null clears it. Leaving the key out keeps it.
+  defp put_quality(attrs, params) do
+    Enum.reduce(@quality_keys, attrs, fn key, acc ->
+      if Map.has_key?(params, key) do
+        Map.put(acc, key, quality_value(params[key]))
+      else
+        acc
+      end
+    end)
+  end
+
+  defp quality_value(nil), do: nil
+  defp quality_value(""), do: nil
+  defp quality_value(value) when is_integer(value), do: value
+
+  defp quality_value(value) when is_binary(value) do
+    case Integer.parse(String.trim(value)) do
+      {n, ""} -> n
+      _ -> value
+    end
+  end
+
+  defp quality_value(value), do: value
 
   defp child_attrs(params) do
     params
@@ -246,6 +408,14 @@ defmodule QlariusWeb.Api.Admin.TraitController do
     |> Map.new()
     |> put_meta(params)
     |> put_search_terms(params)
+    |> put_exclusive(params)
+    |> put_sent_count_rules(params)
+  end
+
+  defp put_sent_count_rules(attrs, params) do
+    Enum.reduce(~w(ideal_min_tags ideal_max_tags hard_max_tags), attrs, fn key, acc ->
+      if Map.has_key?(params, key), do: Map.put(acc, key, params[key]), else: acc
+    end)
   end
 
   # Sent as given (a list, or one comma-separated string); `null` clears

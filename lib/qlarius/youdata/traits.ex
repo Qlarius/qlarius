@@ -531,6 +531,7 @@ defmodule Qlarius.YouData.Traits do
       end
 
     active_survey_ids_by_question = active_survey_ids_by_question(parents)
+    exclusive_ids = Qlarius.YouData.TraitRelationships.exclusive_ids_by_parent(parent_ids)
 
     children =
       if child_ids == [] do
@@ -561,6 +562,8 @@ defmodule Qlarius.YouData.Traits do
               |> Map.put(:meta_2, cmeta && cmeta.meta_2)
               |> Map.put(:meta_3, cmeta && cmeta.meta_3)
               |> Map.put(:search_terms, (cmeta && cmeta.search_terms) || [])
+              |> Map.put(:is_exclusive, cmeta && cmeta.is_exclusive)
+              |> Map.put(:is_skipped_tag, cmeta && cmeta.is_skipped_tag)
               |> Map.put(:survey_answer, catalog_answer(cmeta && cmeta.survey_answer))
             end)
 
@@ -572,6 +575,16 @@ defmodule Qlarius.YouData.Traits do
           |> Map.put(:meta_3, meta && meta.meta_3)
           |> Map.put(:has_search_filter, meta && meta.has_search_filter)
           |> Map.put(:search_terms, (meta && meta.search_terms) || [])
+          |> Map.put(:ideal_min_tags, meta && meta.ideal_min_tags)
+          |> Map.put(:ideal_max_tags, meta && meta.ideal_max_tags)
+          |> Map.put(:hard_max_tags, meta && meta.hard_max_tags)
+          |> Map.put(:unripe_days, meta && meta.unripe_days)
+          |> Map.put(:ripen_days, meta && meta.ripen_days)
+          |> Map.put(:stale_days, meta && meta.stale_days)
+          |> Map.put(:expired_days, meta && meta.expired_days)
+          |> Map.put(:skip_exempt, meta && meta.skip_exempt)
+          |> Map.put(:nudge_text, meta && meta.nudge_text)
+          |> Map.put(:exclusive_child_ids, Map.get(exclusive_ids, parent.id, []))
           |> Map.put(:survey_question, catalog_question(meta && meta.survey_question))
           |> Map.put(
             :active_survey_ids,
@@ -766,6 +779,7 @@ defmodule Qlarius.YouData.Traits do
 
       # Create new tags
       value_ids
+      |> Qlarius.YouData.MeFiles.prepare_child_ids(trait_id)
       |> Enum.map(fn value_id ->
         %MeFileTag{}
         |> MeFileTag.changeset(%{me_file_id: user.me_file.id, trait_id: value_id})

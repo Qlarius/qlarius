@@ -5,6 +5,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
 
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar}
   alias Qlarius.YouData.TraitManager
+  alias Qlarius.YouData.TraitRelationships
   alias Qlarius.YouData.Traits.Trait
   alias Qlarius.YouData.Surveys.{SurveyQuestion, SurveyAnswer}
 
@@ -22,7 +23,10 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
      |> assign(:editing_item, nil)
      |> assign(:form, nil)
      |> assign(:batch_traits_text, "")
-     |> assign(:can_delete_parent, false)}
+     |> assign(:can_delete_parent, false)
+     |> assign(:trait_relationships, [])
+     |> assign(:relationship_matches, [])
+     |> assign(:relationship_query, "")}
   end
 
   def handle_event("search", %{"search" => search_query}, socket) do
@@ -50,6 +54,9 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
     {:noreply,
      socket
      |> assign(:selected_parent_trait, parent_trait)
+     |> assign_relationships(parent_trait.id)
+     |> assign(:relationship_query, "")
+     |> assign(:relationship_matches, [])
      |> assign(:editor_mode, nil)
      |> assign(:editing_item, nil)
      |> assign(:form, nil)}
@@ -126,12 +133,59 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
            TraitManager.list_parent_traits(scope, socket.assigns.search_query)
          )
          |> assign(:selected_parent_trait, nil)
+         |> assign(:trait_relationships, [])
          |> assign(:editor_mode, nil)}
 
       {:error, :has_associations} ->
         {:noreply,
          socket
          |> put_flash(:error, "Cannot delete trait with active associations (tags or groups).")}
+    end
+  end
+
+  def handle_event("search_relationship_traits", %{"q" => query}, socket) do
+    {:noreply,
+     socket
+     |> assign(:relationship_query, query)
+     |> assign(:relationship_matches, TraitRelationships.search(query))}
+  end
+
+  def handle_event("add_trait_relationship", params, socket) do
+    parent = socket.assigns.selected_parent_trait
+
+    attrs = %{
+      "trait_id" => params["trait_id"],
+      "related_trait_id" => params["related_trait_id"],
+      "kind" => params["kind"],
+      "note" => params["note"]
+    }
+
+    case TraitRelationships.create(attrs) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Relationship added.")
+         |> assign_relationships(parent.id)
+         |> assign(:relationship_query, "")
+         |> assign(:relationship_matches, [])}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, put_flash(socket, :error, relationship_error(changeset))}
+    end
+  end
+
+  def handle_event("remove_trait_relationship", %{"id" => id}, socket) do
+    case TraitRelationships.get(id) do
+      nil ->
+        {:noreply, socket}
+
+      relationship ->
+        {:ok, _} = TraitRelationships.delete(relationship)
+
+        {:noreply,
+         socket
+         |> put_flash(:info, "Relationship removed.")
+         |> assign_relationships(socket.assigns.selected_parent_trait.id)}
     end
   end
 
@@ -165,6 +219,38 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
      )
      |> assign(:editor_mode, nil)
      |> assign(:batch_traits_text, "")}
+  end
+
+  def handle_event("make_child_exclusive", %{"id" => id}, socket) do
+    parent = socket.assigns.selected_parent_trait
+    Process.put(:trait_audit_label, "session")
+
+    case TraitRelationships.make_exclusive(parent.id, id) do
+      {:ok, summary} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Marked exclusive: #{summary.created} new links, #{summary.skipped} already there.")
+         |> assign_relationships(parent.id)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not mark that child exclusive.")}
+    end
+  end
+
+  def handle_event("unmake_child_exclusive", %{"id" => id}, socket) do
+    parent = socket.assigns.selected_parent_trait
+    Process.put(:trait_audit_label, "session")
+
+    case TraitRelationships.unmake_exclusive(parent.id, id) do
+      {:ok, summary} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Removed #{summary.deleted} exclusive links.")
+         |> assign_relationships(parent.id)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not clear those links.")}
+    end
   end
 
   def handle_event("edit_child_trait", %{"id" => id}, socket) do
@@ -420,7 +506,12 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
 
                 <div class="min-w-0">
                   <%= if @selected_parent_trait do %>
-                    <.parent_trait_details parent_trait={@selected_parent_trait} />
+                    <.parent_trait_details
+                      parent_trait={@selected_parent_trait}
+                      trait_relationships={@trait_relationships}
+                      relationship_matches={@relationship_matches}
+                      relationship_query={@relationship_query}
+                    />
                   <% else %>
                     <.panel>
                       <.empty_state icon="hero-square-3-stack-3d" title="Select a parent trait">
@@ -565,6 +656,15 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
   end
 
   defp parent_trait_details(assigns) do
+    exclusive =
+      if assigns[:parent_trait] do
+        TraitRelationships.exclusive_child_ids(assigns.parent_trait.id)
+      else
+        []
+      end
+
+    assigns = assign(assigns, :exclusive_child_ids, MapSet.new(exclusive))
+
     ~H"""
     <.panel flush title={@parent_trait.trait_name} description={parent_trait_summary(@parent_trait)}>
       <:actions>
@@ -651,6 +751,9 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                   <span class="inline-flex items-center gap-2">
                     {child.trait_name}
                     <.status_badge :if={child.is_skipped_tag}>Skip</.status_badge>
+                    <.status_badge :if={MapSet.member?(@exclusive_child_ids, child.id)}>
+                      Exclusive
+                    </.status_badge>
                   </span>
                   <span
                     :if={child.search_terms != []}
@@ -658,6 +761,23 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                   >
                     Also: {Enum.join(child.search_terms, ", ")}
                   </span>
+                  <button
+                    type="button"
+                    phx-click="make_child_exclusive"
+                    phx-value-id={child.id}
+                    class="btn btn-xs btn-ghost mt-1"
+                  >
+                    Mark as exclusive to other children
+                  </button>
+                  <button
+                    :if={MapSet.member?(@exclusive_child_ids, child.id)}
+                    type="button"
+                    phx-click="unmake_child_exclusive"
+                    phx-value-id={child.id}
+                    class="btn btn-xs btn-ghost"
+                  >
+                    Clear exclusive links
+                  </button>
                 </td>
                 <td class="px-3 py-2.5 text-center align-middle">{child.display_order}</td>
                 <td class="px-3 py-2.5 text-center align-middle">{child.tags_count}</td>
@@ -692,6 +812,13 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
         </div>
       <% end %>
 
+      <.trait_relationships
+        parent_trait={@parent_trait}
+        trait_relationships={@trait_relationships}
+        relationship_matches={@relationship_matches}
+        relationship_query={@relationship_query}
+      />
+
       <:footer :if={@parent_trait.input_type != "single_select_zip"}>
         <span class="mr-auto text-xs text-base-content/50">Display order</span>
         <button type="button" phx-click="restripe_display_order" class="btn btn-sm btn-ghost">
@@ -708,6 +835,104 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
     </.panel>
     """
   end
+
+  defp assign_relationships(socket, parent_id) do
+    assign(socket, :trait_relationships, TraitRelationships.list_for_parent(parent_id))
+  end
+
+  defp relationship_error(changeset) do
+    changeset.errors
+    |> Enum.map(fn {field, {message, _}} -> "#{field} #{message}" end)
+    |> Enum.join(", ")
+    |> case do
+      "" -> "Could not add that relationship."
+      text -> text
+    end
+  end
+
+  defp trait_relationships(assigns) do
+    ~H"""
+    <div class="border-t border-base-300 px-6 py-4">
+      <h3 class="text-sm font-semibold">Relationships</h3>
+      <p class="mt-1 text-xs text-base-content/60">
+        Conflicts light both tags. Requires lights only the first trait, when the second is missing.
+      </p>
+      <ul :if={@trait_relationships != []} class="mt-3 space-y-2">
+        <li
+          :for={relationship <- @trait_relationships}
+          class="flex items-start justify-between gap-3 text-sm"
+        >
+          <span class="min-w-0">
+            <span class="font-medium">{relationship.kind}</span>
+            {relationship.trait.trait_name} and {relationship.related_trait.trait_name}
+            <span :if={relationship.note} class="block text-xs text-base-content/60">
+              {relationship.note}
+            </span>
+          </span>
+          <button
+            type="button"
+            phx-click="remove_trait_relationship"
+            phx-value-id={relationship.id}
+            class="btn btn-ghost btn-xs shrink-0"
+          >
+            Remove
+          </button>
+        </li>
+      </ul>
+      <form
+        phx-change="search_relationship_traits"
+        phx-submit="add_trait_relationship"
+        class="mt-3 grid gap-2"
+      >
+        <div class="grid grid-cols-2 gap-2">
+          <select name="kind" class="select select-sm w-full">
+            <option value="conflicts">Conflicts</option>
+            <option value="requires">Requires</option>
+          </select>
+          <select name="trait_id" class="select select-sm w-full">
+            <option value={@parent_trait.id}>{@parent_trait.trait_name}</option>
+            <option :for={child <- relationship_sides(@parent_trait)} value={child.id}>
+              {child.trait_name}
+            </option>
+          </select>
+        </div>
+        <input
+          type="text"
+          name="q"
+          value={@relationship_query}
+          phx-debounce="300"
+          placeholder="Search the other trait"
+          class="input input-sm w-full"
+          autocomplete="off"
+        />
+        <select name="related_trait_id" class="select select-sm w-full">
+          <option value="">Choose a match</option>
+          <option :for={match <- @relationship_matches} value={match.id}>
+            {match.trait_name}
+          </option>
+        </select>
+        <input
+          type="text"
+          name="note"
+          placeholder="Note for the person, if the names are not enough"
+          class="input input-sm w-full"
+        />
+        <button type="submit" class="btn btn-sm btn-ghost justify-self-start">
+          Add relationship
+        </button>
+      </form>
+    </div>
+    """
+  end
+
+  defp relationship_sides(%{input_type: "single_select_zip"}), do: []
+
+  defp relationship_sides(%{child_traits: children})
+       when is_list(children) and length(children) > 80,
+       do: []
+
+  defp relationship_sides(%{child_traits: children}) when is_list(children), do: children
+  defp relationship_sides(_), do: []
 
   defp parent_trait_summary(parent_trait) do
     category =
@@ -794,6 +1019,36 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
         </div>
 
         <.search_terms_input form={@form} />
+
+        <.input field={@form[:skip_exempt]} type="checkbox" label="Skip exempt" />
+        <p class="text-xs text-base-content/60">
+          Required answers such as age, sex, and zip never get an automatic skip.
+        </p>
+        <.input
+          field={@form[:nudge_text]}
+          type="textarea"
+          label="Nudge"
+          placeholder="This helps you see more relevant offers"
+        />
+        <p class="text-xs text-base-content/60">
+          Shown once in the Builder after a skip passes the ripen days. Leave blank to stay quiet.
+        </p>
+
+        <div class="mt-4 grid grid-cols-2 gap-x-3">
+          <p class="col-span-2 mb-1 text-xs font-medium text-base-content/70">
+            Honest answer count
+          </p>
+          <.input field={@form[:ideal_min_tags]} type="number" label="Ideal minimum" min="0" />
+          <.input field={@form[:ideal_max_tags]} type="number" label="Ideal maximum" min="0" />
+          <.input field={@form[:hard_max_tags]} type="number" label="Hard maximum" min="0" />
+          <p class="col-span-2 mb-1 mt-2 text-xs font-medium text-base-content/70">
+            Freshness, in days
+          </p>
+          <.input field={@form[:unripe_days]} type="number" label="Unripe" min="0" />
+          <.input field={@form[:ripen_days]} type="number" label="Ripen" min="0" />
+          <.input field={@form[:stale_days]} type="number" label="Stale" min="0" />
+          <.input field={@form[:expired_days]} type="number" label="Expired" min="0" />
+        </div>
 
         <p
           :if={@mode == "edit" && assigns[:on_delete] && assigns[:can_delete] == false}
@@ -893,6 +1148,11 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
         </div>
 
         <.search_terms_input form={@form} />
+
+        <.input field={@form[:is_exclusive]} type="checkbox" label="Exclusive answer" />
+        <p class="text-xs text-base-content/60">
+          A mix of this answer with others shows a warning. Tags already saved are left for the person to change. A skip answer is always flagged.
+        </p>
 
         <div :if={@show_skip}>
           <.input field={@form[:is_skipped_tag]} type="checkbox" label="Skip answer" />

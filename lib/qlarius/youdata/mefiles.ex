@@ -214,11 +214,7 @@ defmodule Qlarius.YouData.MeFiles do
         )
         |> Repo.delete_all()
 
-        child_trait_ids =
-          Enum.map(child_trait_ids, fn
-            id when is_binary(id) -> String.to_integer(id)
-            id -> id
-          end)
+        child_trait_ids = normalize_child_ids(child_trait_ids)
 
         trait_names =
           Repo.all(
@@ -284,11 +280,7 @@ defmodule Qlarius.YouData.MeFiles do
         )
         |> Repo.delete_all()
 
-        child_trait_ids =
-          Enum.map(child_trait_ids, fn
-            id when is_binary(id) -> String.to_integer(id)
-            id -> id
-          end)
+        child_trait_ids = normalize_child_ids(child_trait_ids)
 
         trait_names =
           Repo.all(
@@ -409,6 +401,17 @@ defmodule Qlarius.YouData.MeFiles do
   # The MeFile editor passes labels for children it has loaded. Zip parents do
   # not load their children, so that map is empty and the zip must come from
   # the trait name.
+  def prepare_child_ids(ids, _parent_trait_id) when is_list(ids) do
+    normalize_child_ids(ids)
+  end
+
+  defp normalize_child_ids(ids) do
+    Enum.map(ids, fn
+      id when is_binary(id) -> String.to_integer(id)
+      id -> id
+    end)
+  end
+
   defp label_for_child(id_to_name_map, child_id, trait_names) do
     present_label(Map.get(id_to_name_map, child_id)) ||
       present_label(Map.get(id_to_name_map, to_string(child_id))) ||

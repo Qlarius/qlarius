@@ -90,13 +90,220 @@ the one that breaks the tie.
 
 ## The skip answer
 
-Every parent (except zip) keeps one child flagged `is_skipped_tag`, shown to
-people as Skip. You do not need to include it: if no child is flagged, one
-named "Prefer not to say" is added. To use your own wording, include a child
-with `is_skipped_tag: true`. A child named "Prefer not to say" without the
-flag is a normal answer.
+Every parent keeps one child flagged `is_skipped_tag`, shown to people as
+Skip, unless the parent is zip or `skip_exempt`. Age (93), Sex (Bio) (1),
+Home Zip (4), and Days From Birthday (2607) are exempt, and so is every zip
+parent. You do not need to include the skip: if no child is flagged, one
+named "Prefer not to say" is added and returned as `inserted_children`. An
+empty list means nothing new was inserted. To use your own wording, include
+a child with `is_skipped_tag: true`. A child named "Prefer not to say"
+without the flag is a normal answer. A flagged skip is always exclusive.
 
 ## Protected parents
 
 Age and zip parents reject child changes and input type changes unless
 `force` is true. Do not send `force` unless the admin asks.
+
+## Tag quality
+
+A tag that has values shows a light. Green means nothing is wrong, including
+a parent with no rules. A tag with no values shows no light. You set the
+rules; the app does not invent them.
+
+Read before you write.
+
+- `GET /api/admin/traits?q=` to find the parents and children. Use ids from
+  the catalog, never names, when you write.
+- `GET /api/admin/traits/:id` shows the parent's count and freshness rules
+  and the relationships already on it or its children. Do not create a
+  relationship that is already there.
+- Age and zip are protected. Set their freshness days (a zip change should
+  ripen) and do not send `force`.
+
+### Counts, on multi-select parents only
+
+`PATCH /api/admin/traits/:id` with `ideal_min_tags`, `ideal_max_tags`, and
+`hard_max_tags`. Sending a field replaces it; `null` clears it; leaving the
+key out keeps it.
+
+- Set them when a parent has enough children that picking all of them would
+  look like padding. A parent with 30 children whose honest answers cluster
+  around 3 to 8 gets `ideal_min_tags: 3`, `ideal_max_tags: 8`,
+  `hard_max_tags: 15` (or whatever the catalog supports).
+- Leave all three null when any count is honest: a short list, or a list
+  where selecting every child is reasonable.
+- Do not send count fields for a single-select parent or for a child. Those
+  saves are rejected. A skip does not count toward the minimum, and a parent
+  whose only answer is a skip stays neutral.
+- Inside the ideal range, inclusive, is green. Below the minimum, or above
+  the maximum but at or under the hard maximum, is yellow. Over the hard
+  maximum is red.
+
+### Freshness, on any parent
+
+The same PATCH, with `unripe_days`, `ripen_days`, `stale_days`, and
+`expired_days`. Any of them may be null.
+
+- A fact that changes slowly (a degree, a childhood activity) gets a long
+  `stale_days` and usually no `expired_days`, so it goes yellow and stays
+  yellow.
+- A fact that goes out of date (income, zip, job, address) gets a shorter
+  `stale_days` and an `expired_days` after it.
+- A fact that is untrustworthy right after a change (zip) gets `unripe_days`
+  and `ripen_days`. Leave `unripe_days` null when new data is only mildly
+  untrusted.
+- Order must be `unripe_days <= ripen_days < stale_days <= expired_days`
+  for the values that are set. A save replaces the parent's tags, so the
+  clock restarts from that save.
+
+### Relationships
+
+`POST /api/admin/trait_relationships` with `trait_id`, `related_trait_id`,
+`kind` (`conflicts` or `requires`), and an optional `note` written for the
+person who owns the MeFile ("You can't have 0 children and also have a
+son"). `DELETE /api/admin/trait_relationships/:id` removes one.
+`GET /api/admin/trait_relationships?trait_id=` lists the ones touching a
+trait.
+
+- `conflicts` is red and points both ways. Store it once; the API keeps the
+  two ids in a fixed order. Use it for values that cannot both be true,
+  including "this child conflicts with any value of that parent" by passing
+  the parent id.
+- `requires` is yellow and points one way: the first trait needs the second.
+  Use it when one tag is incomplete without another ("working on my golf
+  game" requires Golf under Activities).
+- Relate the specific children when the clash is between values, and a
+  parent when any of its values is enough.
+- Write a `note` whenever the trait names alone would not explain the
+  problem.
+- Do not relate a trait to itself, and do not invent traits to relate. If
+  the other side does not exist yet, skip it and say so.
+- A link is still saved when it looks odd. Read `warnings`. You will see one
+  when a child conflicts with its own parent, when two children of a
+  single-select parent conflict, when either side is inactive or is a skip,
+  or when the same pair already has the other kind of link.
+
+## Exclusive answers
+
+`is_exclusive` on a child is a warning flag. A skip is always flagged. When a
+person holds that answer and another answer under the same parent, the tag
+shows yellow: "exclusive answer combined with other answers". Saving does
+not remove either tag. Leave the cleanup to the person.
+
+A skip stays a normal tag. Trait groups and targets match it, tag counts
+include it, and its freshness clock still runs. The only definition of a
+skip is `is_skipped_tag`. Do not treat a name like "Rather not say" as a
+skip unless that flag is set.
+
+A parent whose only tag is a skip fills the hole with the tag border color.
+Freshness can still color that hole yellow or red. A skip does not count toward ideal or hard
+limits, does not satisfy a `requires` link, and does not trigger a
+`conflicts` link.
+
+To define exclusivity with links, `POST /api/admin/traits/:parent_id/children/:child_id/make_exclusive`.
+That adds a `conflicts` link between the child and every other active sibling,
+and skips links that already exist. Optional body: `{"note": "...", "include_inactive": false}`.
+The response has `created`, `skipped`, and `relationship_ids`.
+`POST .../unmake_exclusive` removes only the `conflicts` links between that
+child and its siblings.
+
+`exclusive_child_ids` on `GET /api/admin/traits/:id` and on `traits_catalog`
+lists children that conflict with every other active sibling.
+
+When a design pack or `POST /traits/:id/children` adds a child, and a sibling
+already conflicts with all the other active children, the new child gets that
+conflict too. Those links come back as `inserted_relationships`. Packs do this
+unless `extend_exclusive_conflicts` is false. It defaults to true.
+
+## Bulk writes
+
+Each of these is one write against the rate limit, up to 1,000 operations,
+in one transaction. `dry_run: true` returns the same per-item results and
+writes nothing. If any item is an error, nothing is written.
+
+`POST /api/admin/trait_relationships/bulk`
+
+```json
+{"create": [{"trait_id": 1, "related_trait_id": 2, "type": "conflicts", "note": "..."}], "delete": [10, {"trait_id": 3, "related_trait_id": 4, "type": "requires"}], "dry_run": false}
+```
+
+`type` and `kind` are the same field (`conflicts` or `requires`). Each result
+is `created`, `exists`, `deleted`, `not_found`, or `error`, and created or
+existing links include the same `warnings` as a single POST.
+
+`PATCH /api/admin/trait_relationships/:id` changes `note` or `type` in place.
+Leave a key out to keep it. `null` clears a note.
+
+`PATCH /api/admin/traits/bulk_rules`
+
+```json
+{"items": [{"trait_id": 1, "ideal_min_tags": 2, "nudge_text": "This helps you see more relevant offers"}], "dry_run": false}
+```
+
+Same rules as a single parent PATCH. A missing field is kept. `null` clears
+it. Count rules on a child or a non-multi-select parent are an error for that
+item. This does not insert a skip child.
+
+`PATCH /api/admin/traits/bulk_search_terms`
+
+```json
+{"items": [{"trait_id": 1, "search_terms": ["clay"]}, {"trait_id": 1, "child_id": 2, "search_terms": ["wheel"]}], "dry_run": false}
+```
+
+Replaces each list the way a single PATCH does. No skip child is inserted.
+
+`GET /api/admin/trait_relationships?parent_id=` returns the links among that
+parent's children. Add `type=conflicts` or `type=requires` to filter. `trait_id`
+still lists every link touching that trait or, for a parent, its children.
+
+`GET /api/admin/audit_log?trait_id=` is read-only. Each row has the admin
+token label, the time, and the before and after values for relationship,
+rule, and search-term changes.
+
+## Nudges
+
+`nudge_text` on a parent is one plain sentence about why the answer helps,
+such as "This helps you see more relevant offers". After a skip ages past
+`ripen_days`, the Builder shows that sentence once. A later save of the
+skip can earn one more showing after it ripens again. Leave `nudge_text`
+blank to stay quiet. People can always skip again.
+
+Set `skip_exempt` on a parent that must be answered, so it never receives
+an automatic skip.
+
+## Integrity report
+
+`GET /api/admin/traits/integrity_report` reads the catalog and writes
+nothing. `skip_rate_threshold` defaults to 15 (percent). A value of 1 or
+less is a ratio.
+
+`summary` counts issues per check. `issues` is one row per problem, with
+the trait id, name, parent, tag count, and severity. `skip_monitoring`
+lists each answered parent with its skip count, skip rate (skips divided
+by everyone who answered), skips in the last 30 and 90 days, and the
+survey name. A rate above the threshold is `review_wording` and also an
+issue: the question may need different wording. Sort your review by skip
+rate.
+
+The checks are:
+
+- an active child named like a skip ("rather not say", "prefer not to say",
+  "prefer not say", "decline") that is not flagged, on a parent that
+  already has a flagged skip
+- an active parent with no active flagged skip, other than zip and
+  `skip_exempt`
+- more than one active flagged skip on a parent
+- a flagged skip that is not last, or two children with the same
+  `display_order`
+- an active parent on no active survey
+- a name containing TEST, placeholder, or lorem
+- a child with a blank survey answer
+- leftover survey wording: "click Add/Update", a `<br`, or a double space
+- a search term that repeats the trait's own name, or the same term on
+  more than three parents
+- a relationship that points at an inactive trait, conflicts inside a
+  family, or a pair that has both kinds
+- count or freshness values that contradict each other, including count
+  rules on a parent that is not multi-select
+- a skip rate above the threshold
+

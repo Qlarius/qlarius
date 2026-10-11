@@ -310,8 +310,10 @@ defmodule QlariusWeb.UserAuth do
 
       token ->
         case AdminApiTokens.authenticate(token) do
-          {:ok, user} ->
-            assign(conn, :current_scope, %Scope{true_user: user, user: user})
+        {:ok, user, token} ->
+          conn
+          |> assign(:current_scope, %Scope{true_user: user, user: user})
+          |> assign(:admin_api_token_label, token.label)
 
           {:error, :forbidden} ->
             conn
@@ -356,6 +358,11 @@ defmodule QlariusWeb.UserAuth do
         })
         |> halt()
     end
+  end
+
+  def put_trait_audit_label(conn, _opts) do
+    Process.put(:trait_audit_label, conn.assigns[:admin_api_token_label] || "session")
+    conn
   end
 
   def rate_limit_admin_api_writes(conn, _opts) do
