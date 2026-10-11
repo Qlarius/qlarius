@@ -8,6 +8,10 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
   alias Qlarius.MeCP.Suggestions
   alias Qlarius.MeCP.Suggestions.TagSuggestion
   alias Qlarius.Repo
+  alias Qlarius.YouData.Surveys.Survey
+  alias Qlarius.YouData.Surveys.SurveyCategory
+  alias Qlarius.YouData.Surveys.SurveyQuestion
+  alias Qlarius.YouData.Surveys.SurveyQuestionSurvey
   alias Qlarius.YouData.Traits.Trait
 
   setup %{conn: conn} do
@@ -343,5 +347,100 @@ defmodule QlariusWeb.MeFileBuilderLiveTest do
 
     refute html =~ "builder-index-skeleton"
     assert html =~ ~s(class="builder-index pt-2")
+  end
+
+  test "a topic keeps its progress line until finished, then a check or the worst tag status",
+       %{conn: conn, user: user} do
+    me_file = Repo.preload(user, :me_file).me_file
+    traits = insert_category!("Topics")
+
+    group =
+      Repo.insert!(%SurveyCategory{
+        survey_category_name: "Quality #{System.unique_integer([:positive])}",
+        display_order: 1,
+        added_by: 0,
+        modified_by: 0
+      })
+
+    good = question!(traits, "Good Topic")
+    tag_child!(me_file, good, "Yes")
+    survey!(group, "Good Topic", [good])
+
+    crowded = question!(traits, "Crowded Topic", %{input_type: "multi_select", ideal_max_tags: 1})
+    tag_child!(me_file, crowded, "One")
+    tag_child!(me_file, crowded, "Two")
+    survey!(group, "Crowded Topic", [crowded])
+
+    over = question!(traits, "Too Many", %{input_type: "multi_select", hard_max_tags: 1})
+    tag_child!(me_file, over, "Only")
+    tag_child!(me_file, over, "Extra")
+    survey!(group, "Open Topic", [over, question!(traits, "Still open")])
+
+    {:ok, view, _html} = live(conn, ~p"/me_file_builder")
+    render_async(view)
+
+    good_row = render(element(view, "button.builder-row", "Good Topic"))
+    assert good_row =~ "builder-row__done"
+    refute good_row =~ "survey-alert"
+    refute good_row =~ "progress-line"
+
+    crowded_row = render(element(view, "button.builder-row", "Crowded Topic"))
+    assert crowded_row =~ "survey-alert--yellow"
+    assert crowded_row =~ "Needs review"
+    refute crowded_row =~ "builder-row__done"
+    refute crowded_row =~ "progress-line"
+
+    open_row = render(element(view, "button.builder-row", "Open Topic"))
+    assert open_row =~ "progress-line"
+    assert open_row =~ "1/2"
+    assert open_row =~ "survey-alert--red"
+    assert open_row =~ "Needs attention"
+    refute open_row =~ "builder-row__done"
+
+    view |> element("button.builder-row", "Crowded Topic") |> render_click()
+    assert has_element?(view, ".survey-progress", "Needs review")
+    refute has_element?(view, ".survey-progress", "All answered")
+  end
+
+  defp question!(category, name, attrs \\ %{}) do
+    category
+    |> insert_trait!(name)
+    |> Ecto.Changeset.change(attrs)
+    |> Repo.update!()
+  end
+
+  defp survey!(category, name, traits) do
+    survey =
+      Repo.insert!(%Survey{
+        name: name,
+        active: true,
+        survey_category_id: category.id,
+        display_order: 1,
+        created_by: 0,
+        updated_by: 0
+      })
+
+    Enum.each(traits, fn trait ->
+      question =
+        Repo.insert!(%SurveyQuestion{
+          text: "Question about #{trait.trait_name}?",
+          trait_id: trait.id,
+          active: "1",
+          display_order: 1,
+          added_by: 0,
+          modified_by: 0
+        })
+
+      Repo.insert!(%SurveyQuestionSurvey{
+        survey_question_id: question.id,
+        survey_id: survey.id,
+        display_order: 1
+      })
+    end)
+  end
+
+  defp tag_child!(me_file, parent, name) do
+    child = insert_trait!(nil, name, parent_trait_id: parent.id)
+    insert_tag!(me_file, child, name)
   end
 end

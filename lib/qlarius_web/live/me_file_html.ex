@@ -10,6 +10,75 @@ defmodule QlariusWeb.MeFileHTML do
 
   def quality_entry(quality, %{id: id}), do: Map.get(quality || %{}, id)
 
+  defp conflict_reasons(%{reasons: reasons}) when is_list(reasons) do
+    Enum.filter(reasons, &(&1.check == :conflict))
+  end
+
+  defp conflict_reasons(_), do: []
+
+  defp conflict_tags(quality) do
+    quality
+    |> conflict_reasons()
+    |> Enum.group_by(& &1.tag.parent_id)
+    |> Enum.map(fn {_id, reasons} ->
+      tags = Enum.map(reasons, & &1.tag)
+
+      values =
+        tags
+        |> Enum.map(& &1.value)
+        |> Enum.reject(&is_nil/1)
+        |> Enum.uniq()
+
+      texts =
+        reasons
+        |> Enum.map(& &1.text)
+        |> Enum.reject(&(&1 in [nil, ""]))
+        |> Enum.uniq()
+        |> collapse_repeated_reasons()
+
+      %{parent: hd(tags).parent, value: Enum.join(values, " · "), reasons: texts}
+    end)
+  end
+
+  # Notes written once per answer ("can't be combined with \"Lager\"") say the
+  # same thing. Keep the wording they share and drop the answer already on the tag.
+  defp collapse_repeated_reasons(texts) when length(texts) < 2, do: texts
+
+  defp collapse_repeated_reasons(texts) do
+    shapes = Enum.map(texts, &String.replace(&1, ~r/"[^"]*"/, "\"\""))
+
+    if Enum.uniq(shapes) |> length() == 1 do
+      [shared_reason(texts)]
+    else
+      texts
+    end
+  end
+
+  defp shared_reason([first | _] = texts) do
+    quotes =
+      ~r/"([^"]*)"/
+      |> Regex.scan(first, capture: :all_but_first)
+      |> List.flatten()
+
+    varying =
+      Enum.reject(quotes, fn quoted ->
+        Enum.all?(texts, &String.contains?(&1, "\"#{quoted}\""))
+      end)
+
+    varying
+    |> Enum.sort_by(&String.length/1, :desc)
+    |> Enum.reduce(first, fn quoted, acc -> String.replace(acc, "\"#{quoted}\"", "") end)
+    |> String.replace(~r/[ ]{2,}/, " ")
+    |> String.replace(~r/with\s+\(([^)]+)\)/, "with \\1")
+    |> String.trim()
+  end
+
+  defp other_quality_reasons(%{reasons: reasons}) when is_list(reasons) do
+    Enum.reject(reasons, &(&1.check == :conflict))
+  end
+
+  defp other_quality_reasons(_), do: []
+
   def progress_bar_color(percentage) do
     cond do
       percentage == 100.0 -> "bg-green-500"
@@ -101,19 +170,46 @@ defmodule QlariusWeb.MeFileHTML do
               <.icon name="hero-x-mark" class="h-5 w-5" />
             </button>
           </div>
-          <div :if={@trait_in_edit} class="trait-tag trait-tag--wide" aria-live="polite">
-            <span class="trait-tag__name">{@trait_in_edit.trait_name}</span>
-            <span :if={@edit_values != []} class="trait-tag__values">
-              {Enum.join(@edit_values, " · ")}
-            </span>
-            <span :if={@edit_values == []} class="trait-tag__empty">
-              {if @trait_in_edit.input_type == "single_select_zip",
-                do: "Enter a zip code below.",
-                else: "Nothing selected yet."}
-            </span>
+          <div :if={@trait_in_edit} class="trait-tag-wrap tag-edit-tag">
+            <.trait_signal :if={@edit_values != []} quality={@quality} />
+            <div class="trait-tag trait-tag--wide" aria-live="polite">
+              <span class="trait-tag__name">{@trait_in_edit.trait_name}</span>
+              <span :if={@edit_values != []} class="trait-tag__values">
+                {Enum.join(@edit_values, " · ")}
+              </span>
+              <span :if={@edit_values == []} class="trait-tag__empty">
+                {if @trait_in_edit.input_type == "single_select_zip",
+                  do: "Enter a zip code below.",
+                  else: "Nothing selected yet."}
+              </span>
+            </div>
           </div>
-          <ul :if={@quality && @quality.reasons != []} class="tag-quality">
-            <li :for={reason <- @quality.reasons}>{reason.text}</li>
+          <div :if={@trait_in_edit && conflict_reasons(@quality) != []} class="tag-conflicts">
+            <span class="trait-signal trait-signal--inline trait-signal--red" aria-hidden="true">
+            </span>
+            <span>Conflicting tags detected</span>
+            <.popover
+              id={"tag-conflicts-#{@trait_in_edit.id}"}
+              placement="bottom-start"
+              trigger_type="click"
+              class="tag-conflicts__panel"
+            >
+              <:trigger>
+                <button type="button" class="tag-conflicts__show">Show</button>
+              </:trigger>
+              <:content>
+                <div class="tag-conflicts__tags">
+                  <div :for={tag <- conflict_tags(@quality)} class="trait-tag">
+                    <span class="trait-tag__name">{tag.parent}</span>
+                    <span :if={tag.value != ""} class="trait-tag__values">{tag.value}</span>
+                    <span :for={text <- tag.reasons} class="tag-conflicts__reason">{text}</span>
+                  </div>
+                </div>
+              </:content>
+            </.popover>
+          </div>
+          <ul :if={@quality && other_quality_reasons(@quality) != []} class="tag-quality">
+            <li :for={reason <- other_quality_reasons(@quality)}>{reason.text}</li>
           </ul>
         </div>
 

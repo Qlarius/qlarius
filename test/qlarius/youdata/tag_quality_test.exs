@@ -28,8 +28,10 @@ defmodule Qlarius.YouData.TagQualityTest do
     assert status(tagged(parent, Enum.take(children, 2))) == :green
     assert status(tagged(parent, Enum.take(children, 3))) == :green
     assert reason(tagged(parent, Enum.take(children, 1)), :count).text == "Fewer than usual"
-    assert reason(tagged(parent, Enum.take(children, 4)), :count).text == "More than usual"
-    assert reason(tagged(parent, children), :count).status == :red
+    assert reason(tagged(parent, Enum.take(children, 4)), :count).text ==
+             "For best results, consider selecting fewer tag values."
+    assert reason(tagged(parent, children), :count).text ==
+             "Too many selected. Advertisers will likely suspect and exclude. Try to stay between 2 and 3 tag values."
 
     skipped = tagged(parent, [skip])
     assert status(skipped) == :skipped
@@ -48,13 +50,15 @@ defmodule Qlarius.YouData.TagQualityTest do
 
     maximum = parent!(category, "Maximum", %{ideal_max_tags: 1})
     max_children = [child!(maximum, "A"), child!(maximum, "B")]
-    assert reason(tagged(maximum, max_children), :count).text == "More than usual"
+    assert reason(tagged(maximum, max_children), :count).text ==
+             "For best results, consider selecting fewer tag values."
 
     hard = parent!(category, "Hard", %{hard_max_tags: 1})
     hard_one = child!(hard, "Only")
     hard_two = child!(hard, "Extra")
     assert status(tagged(hard, [hard_one])) == :green
-    assert reason(tagged(hard, [hard_one, hard_two]), :count).status == :red
+    assert reason(tagged(hard, [hard_one, hard_two]), :count).text ==
+             "Too many selected. Advertisers will likely suspect and exclude. Try to stay at 1 or fewer tag values."
   end
 
   test "freshness bands, including a null expiry and a null unripe threshold", %{
@@ -68,8 +72,11 @@ defmodule Qlarius.YouData.TagQualityTest do
         expired_days: 90
       })
 
-    assert reason(aged(full, 0), :unripe).status == :red
-    assert reason(aged(full, 5), :ripen).status == :yellow
+    assert reason(aged(full, 0), :unripe).status == :green
+    assert reason(aged(full, 0), :unripe).text =~ "wait until this is ripe"
+    assert status(aged(full, 0)) == :green
+    assert reason(aged(full, 5), :ripen).status == :green
+    assert status(aged(full, 5)) == :green
     assert status(aged(full, 20)) == :green
     assert reason(aged(full, 40), :stale).status == :yellow
     assert reason(aged(full, 100), :expired).status == :red
@@ -83,7 +90,8 @@ defmodule Qlarius.YouData.TagQualityTest do
     ripens =
       parent!(category, "Zip", %{ripen_days: 7, stale_days: 30})
 
-    assert reason(aged(ripens, 1), :ripen).status == :yellow
+    assert reason(aged(ripens, 1), :ripen).status == :green
+    assert status(aged(ripens, 1)) == :green
     refute reason(aged(ripens, 1), :unripe)
   end
 

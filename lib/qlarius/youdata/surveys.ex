@@ -77,19 +77,22 @@ defmodule Qlarius.YouData.Surveys do
       category
       |> Map.get(:surveys)
       |> Enum.map(fn survey ->
-        question_ids = survey_question_ids_per_survey(survey.id)
-        Map.put(survey, :survey_question_ids, question_ids)
+        pairs = survey_question_rows(survey.id)
+
+        survey
+        |> Map.put(:survey_question_ids, Enum.map(pairs, &elem(&1, 0)))
+        |> Map.put(:trait_ids, pairs |> Enum.map(&elem(&1, 1)) |> Enum.uniq())
       end)
 
     Map.put(category, :surveys, surveys_with_ids)
   end
 
-  defp survey_question_ids_per_survey(survey_id) do
+  defp survey_question_rows(survey_id) do
     from(sqs in "survey_question_surveys",
       join: sq in SurveyQuestion,
       on: sq.id == sqs.survey_question_id,
       where: sqs.survey_id == ^survey_id,
-      select: sq.id
+      select: {sq.id, sq.trait_id}
     )
     |> Repo.all()
   end

@@ -52,24 +52,38 @@ defmodule QlariusWeb.MeFileBuilderLive do
         </:modals>
 
         <:slide_over_content>
-          <%!-- Same thin line and check as the index row for this survey --%>
+          <%!-- Same thin line, check, and status mark as the index row --%>
           <div :if={@survey_in_edit} class="survey-progress">
             <% total = length(@survey_in_edit.parent_traits)
 
             answered =
               Enum.count(@survey_in_edit.parent_traits, fn {_id, _name, _order, tags} ->
                 tags != []
-              end) %>
-            <%= if total > 0 and answered == total do %>
-              <p class="survey-progress__label">
-                <.icon name="hero-check-circle-solid" class="h-5 w-5 text-success" /> All answered
-              </p>
-            <% else %>
-              <p class="survey-progress__label">{answered} of {total} answered</p>
-              <span class="progress-line" aria-hidden="true">
-                <span class="progress-line__fill" style={"width: #{survey_percent(answered, total)}%"}>
+              end)
+
+            alert =
+              survey_alert(
+                Enum.map(@survey_in_edit.parent_traits, &elem(&1, 0)),
+                @tag_quality
+              ) %>
+            <%= cond do %>
+              <% total > 0 and answered == total and alert -> %>
+                <p class="survey-progress__label">
+                  <.survey_status_mark status={alert} /> {alert_label(alert)}
+                </p>
+              <% total > 0 and answered == total -> %>
+                <p class="survey-progress__label">
+                  <.icon name="hero-check-circle-solid" class="h-5 w-5 text-success" /> All answered
+                </p>
+              <% true -> %>
+                <p class="survey-progress__label">
+                  {answered} of {total} answered
+                  <.survey_status_mark :if={alert} status={alert} />
+                </p>
+                <span class="progress-line" aria-hidden="true">
+                  <span class="progress-line__fill" style={"width: #{survey_percent(answered, total)}%"}>
+                  </span>
                 </span>
-              </span>
             <% end %>
             <p class="survey-progress__intro">Tap a tag to answer or change it.</p>
           </div>
@@ -162,8 +176,9 @@ defmodule QlariusWeb.MeFileBuilderLive do
             </p>
           </:failed>
 
-          <%!-- Index: a glance at every topic. Category label above one card of survey rows,
-             as on MeFile; a thin line shows progress and a check marks a finished survey. --%>
+          <%!-- Index: a glance at every topic. A thin line shows an unfinished survey,
+             a check marks one whose tags are all in good shape, and a colored !
+             marks the worst status among the tags inside. --%>
           <div class="builder-index pt-2">
             <%!-- Qai suggestions: one row per trait an assistant asked about or proposed,
                  naming the values from chat that aren't on file yet. A tap opens that
@@ -261,6 +276,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
                 <ul class="builder-list">
                   <li :for={survey <- category.surveys}>
                     <% {answered, total} = survey.survey_stats || {0, 0} %>
+                    <% alert = survey_alert(Map.get(survey, :trait_ids, []), @tag_quality) %>
                     <button
                       type="button"
                       phx-click="open_edit"
@@ -279,11 +295,15 @@ defmodule QlariusWeb.MeFileBuilderLive do
                           </span>
                         </span>
                       </span>
-                      <%= if answered < total do %>
-                        <span class="builder-row__count">{answered}/{total}</span>
-                      <% else %>
-                        <.icon name="hero-check-circle-solid" class="builder-row__done h-5 w-5" />
-                        <span class="sr-only">Complete</span>
+                      <%= cond do %>
+                        <% answered < total -> %>
+                          <span class="builder-row__count">{answered}/{total}</span>
+                          <.survey_status_mark :if={alert} status={alert} />
+                        <% alert -> %>
+                          <.survey_status_mark status={alert} />
+                        <% true -> %>
+                          <.icon name="hero-check-circle-solid" class="builder-row__done h-5 w-5" />
+                          <span class="sr-only">Complete</span>
                       <% end %>
                       <.icon name="hero-chevron-right" class="builder-row__chevron h-5 w-5" />
                     </button>
@@ -1123,4 +1143,41 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
   defp survey_percent(_answered, 0), do: 0
   defp survey_percent(answered, total), do: min(round(answered / total * 100), 100)
+
+  # Yellow or red, whichever is worse, among the parent traits in a survey.
+  # Green, skipped, and untagged traits leave the check (or the progress line) alone.
+  defp survey_alert(trait_ids, quality) when is_list(trait_ids) and is_map(quality) do
+    Enum.reduce(trait_ids, nil, fn id, worst ->
+      worse_status(trait_status(quality, id), worst)
+    end)
+  end
+
+  defp survey_alert(_, _), do: nil
+
+  defp trait_status(quality, id) do
+    case quality[id] do
+      %{status: status} when status in [:yellow, :red] -> status
+      _ -> nil
+    end
+  end
+
+  defp worse_status(nil, worst), do: worst
+  defp worse_status(:red, _), do: :red
+  defp worse_status(:yellow, :red), do: :red
+  defp worse_status(:yellow, _), do: :yellow
+  defp worse_status(_, worst), do: worst
+
+  defp alert_label(:red), do: "Needs attention"
+  defp alert_label(:yellow), do: "Needs review"
+
+  attr :status, :atom, required: true
+
+  def survey_status_mark(assigns) do
+    ~H"""
+    <span class={"survey-alert survey-alert--#{@status}"} title={alert_label(@status)}>
+      <.icon name="hero-exclamation-circle-solid" class="h-5 w-5" />
+      <span class="sr-only">{alert_label(@status)}</span>
+    </span>
+    """
+  end
 end

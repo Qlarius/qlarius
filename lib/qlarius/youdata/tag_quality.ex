@@ -3,7 +3,8 @@ defmodule Qlarius.YouData.TagQuality do
   Green, yellow, or red for each tagged parent on a MeFile.
 
   A tag with values is green unless a count, freshness, or consistency rule
-  is broken. A parent whose only value is a skip is neutral. A parent with
+  is broken. A tag that is not ripe yet stays green and says some marketers
+  will wait. A parent whose only value is a skip is neutral. A parent with
   no tags is absent, so its hole stays plain. Birthdate is not a trait:
   when the MeFile has a date of birth, parent id -1 is always green.
   """
@@ -15,6 +16,8 @@ defmodule Qlarius.YouData.TagQuality do
   alias Qlarius.YouData.MeFiles.MeFileTag
   alias Qlarius.YouData.Traits.Trait
   alias Qlarius.YouData.Traits.TraitRelationship
+
+  @not_ripe "Some marketers will wait until this is ripe before they target it."
 
   def for_me_file(me_file_id, now \\ DateTime.utc_now()) do
     rows = tag_rows(me_file_id)
@@ -190,15 +193,37 @@ defmodule Qlarius.YouData.TagQuality do
 
     cond do
       hard != nil and count > hard ->
-        reason(:red, :count, "Far more than advertisers expect")
+        reason(:red, :count, too_many_text(min, max, hard))
 
       (min != nil and count < min) or (max != nil and count > max) ->
-        text = if min != nil and count < min, do: "Fewer than usual", else: "More than usual"
+        text =
+          if min != nil and count < min,
+            do: "Fewer than usual",
+            else: "For best results, consider selecting fewer tag values."
         reason(:yellow, :count, text)
 
       true ->
         nil
     end
+  end
+
+  defp too_many_text(min, max, hard) do
+    range =
+      cond do
+        min != nil and max != nil ->
+          " Try to stay between #{min} and #{max} tag values."
+
+        max != nil ->
+          " Try to stay at #{max} or fewer tag values."
+
+        hard != nil ->
+          " Try to stay at #{hard} or fewer tag values."
+
+        true ->
+          ""
+      end
+
+    "Too many selected. Advertisers will likely suspect and exclude." <> range
   end
 
   defp exclusive_mix_reason(rows) do
@@ -235,10 +260,10 @@ defmodule Qlarius.YouData.TagQuality do
         nil
 
       parent.unripe_days != nil and age < parent.unripe_days ->
-        reason(:red, :unripe, "Too new to trust yet")
+        reason(:green, :unripe, @not_ripe)
 
       parent.ripen_days != nil and age < parent.ripen_days ->
-        reason(:yellow, :ripen, "Recently updated")
+        reason(:green, :ripen, @not_ripe)
 
       parent.expired_days != nil and age > parent.expired_days ->
         reason(:red, :expired, "Out of date. Saving confirms these values.")
@@ -275,7 +300,15 @@ defmodule Qlarius.YouData.TagQuality do
 
       if parent_id in owners do
         other = if owner(left, child_owner) == parent_id, do: right, else: left
-        [reason(:red, :conflict, conflict_text(relationship, names, other))]
+
+        [
+          %{
+            status: :red,
+            check: :conflict,
+            text: conflict_text(relationship, names, other),
+            tag: tag_side(other, child_owner, names)
+          }
+        ]
       else
         []
       end
@@ -299,6 +332,20 @@ defmodule Qlarius.YouData.TagQuality do
   defp present?(id, presence), do: MapSet.member?(presence, id)
 
   defp owner(id, child_owner), do: Map.get(child_owner, id, id)
+
+  defp tag_side(id, child_owner, names) do
+    parent_id = owner(id, child_owner)
+
+    if parent_id == id do
+      %{parent_id: id, parent: Map.get(names, id, "Tag"), value: nil}
+    else
+      %{
+        parent_id: parent_id,
+        parent: Map.get(names, parent_id, "Tag"),
+        value: Map.get(names, id, "Tag")
+      }
+    end
+  end
 
   defp conflict_text(%{note: note}, _names, _other) when is_binary(note) and note != "", do: note
 

@@ -135,9 +135,11 @@ key out keeps it.
 - Do not send count fields for a single-select parent or for a child. Those
   saves are rejected. A skip does not count toward the minimum, and a parent
   whose only answer is a skip stays neutral.
-- Inside the ideal range, inclusive, is green. Below the minimum, or above
-  the maximum but at or under the hard maximum, is yellow. Over the hard
-  maximum is red.
+- Inside the ideal range, inclusive, is green. Below the minimum is yellow
+  ("Fewer than usual"). Above the maximum but at or under the hard maximum
+  is yellow: "For best results, consider selecting fewer tag values." Over
+  the hard maximum is red: "Too many selected. Advertisers will likely
+  suspect and exclude." followed by the ideal range when one is set.
 
 ### Freshness, on any parent
 
@@ -151,7 +153,9 @@ The same PATCH, with `unripe_days`, `ripen_days`, `stale_days`, and
   `stale_days` and an `expired_days` after it.
 - A fact that is untrustworthy right after a change (zip) gets `unripe_days`
   and `ripen_days`. Leave `unripe_days` null when new data is only mildly
-  untrusted.
+  untrusted. Until `ripen_days` (or `unripe_days`, when ripen is null), the
+  light stays green. The edit sheet warns that some marketers will wait
+  until the tag is ripe before they target it.
 - Order must be `unripe_days <= ripen_days < stale_days <= expired_days`
   for the values that are set. A save replaces the parent's tags, so the
   clock restarts from that save.

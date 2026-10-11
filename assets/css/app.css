@@ -3096,6 +3096,25 @@
     @apply shrink-0 text-success;
   }
 
+  /* Worst tag status inside a finished or unfinished topic. */
+  .survey-alert {
+    @apply inline-flex shrink-0;
+  }
+
+  /* Traffic-light yellow. The warning token is orange, so this lamp is its own color. */
+  .survey-alert--yellow,
+  .trait-signal--yellow {
+    --tag-signal-yellow: oklch(82% 0.176 99);
+  }
+
+  .survey-alert--yellow {
+    color: var(--tag-signal-yellow);
+  }
+
+  .survey-alert--red {
+    color: var(--color-error);
+  }
+
   .builder-row__chevron {
     @apply shrink-0 text-base-content/30;
   }
@@ -3143,7 +3162,7 @@
   }
 
   .trait-signal--yellow {
-    background-color: var(--color-warning);
+    background-color: var(--tag-signal-yellow);
   }
 
   .trait-signal--red {
@@ -3177,6 +3196,26 @@
 
   .tag-quality {
     @apply m-0 flex list-none flex-col gap-1 px-4 pb-3 text-sm leading-snug text-base-content/70;
+  }
+
+  .tag-conflicts {
+    @apply flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-base-content;
+  }
+
+  .tag-conflicts__show {
+    @apply cursor-pointer border-0 bg-transparent p-0 text-sm text-primary underline;
+  }
+
+  .tag-conflicts__panel {
+    @apply w-80 max-w-[80vw] p-3;
+  }
+
+  .tag-conflicts__tags {
+    @apply flex flex-col items-start gap-2;
+  }
+
+  .tag-conflicts__reason {
+    @apply mt-1 text-xs font-normal leading-snug text-base-content/55;
   }
 
   .trait-tag {
@@ -3313,6 +3352,10 @@
 
   .tag-edit-head__title {
     @apply text-xl font-semibold tracking-tight text-base-content;
+  }
+
+  .tag-edit-tag {
+    @apply w-full;
   }
 
   /* Zip entry in the tag edit sheet. */

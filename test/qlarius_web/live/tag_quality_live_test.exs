@@ -6,6 +6,7 @@ defmodule QlariusWeb.TagQualityLiveTest do
 
   alias Qlarius.Accounts
   alias Qlarius.Repo
+  alias Qlarius.YouData.TraitRelationships
   alias Qlarius.YouData.Traits.Trait
 
   setup %{conn: conn} do
@@ -97,7 +98,10 @@ defmodule QlariusWeb.TagQualityLiveTest do
     assert html =~ "Out of date. Saving confirms these values."
 
     view |> element("#trait-card-#{ctx.income.id}") |> render_click()
-    assert render(view) =~ "Out of date. Saving confirms these values."
+    html = render(view)
+    assert html =~ "tag-edit-tag"
+    assert html =~ "trait-signal--red"
+    assert html =~ "Out of date. Saving confirms these values."
 
     view
     |> form("form[phx-submit='save_tags']", %{
@@ -135,5 +139,56 @@ defmodule QlariusWeb.TagQualityLiveTest do
     assert builder_html =~ "trait-signal--neutral"
     assert builder_html =~ "trait-nudge"
     assert builder_html =~ "This helps you see more relevant offers"
+  end
+
+  test "the edit sheet summarizes conflicts behind Show", ctx do
+    category = insert_category!("Cannabis")
+
+    formats =
+      category
+      |> insert_trait!("Formats")
+      |> Ecto.Changeset.change(input_type: "multi_select")
+      |> Repo.update!()
+      |> survey_trait!("Which kinds do you use?")
+
+    prerolls = insert_trait!(category, "Pre-rolls", parent_trait_id: formats.id)
+    edibles = insert_trait!(category, "Edibles", parent_trait_id: formats.id)
+
+    frequency =
+      category
+      |> insert_trait!("Frequency")
+      |> survey_trait!("How often?")
+
+    never = insert_trait!(category, "Never", parent_trait_id: frequency.id)
+    me_file = Repo.preload(ctx.user, :me_file).me_file
+    insert_tag!(me_file, prerolls, "Pre-rolls")
+    insert_tag!(me_file, edibles, "Edibles")
+    insert_tag!(me_file, never, "Never")
+
+    for {child, name} <- [{prerolls, "Pre-rolls"}, {edibles, "Edibles"}] do
+      {:ok, _link} =
+        TraitRelationships.create(%{
+          trait_id: child.id,
+          related_trait_id: never.id,
+          kind: "conflicts",
+          note: "\"Never\" (Frequency) cannot be combined with \"#{name}\" (Formats)."
+        })
+    end
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/me_file")
+    render_async(view)
+    view |> element("#trait-card-#{formats.id}") |> render_click()
+    html = render(view)
+
+    assert html =~ "Conflicting tags detected"
+    assert html =~ "trait-signal--red"
+    assert html =~ "Show"
+    assert html =~ "Frequency"
+    assert html =~ "Never"
+    assert html =~
+             "class=\"tag-conflicts__reason\">&quot;Never&quot; (Frequency) cannot be combined with Formats.</span>"
+
+    assert length(String.split(html, "tag-conflicts__reason")) == 2
+    refute html =~ ~s(class="tag-quality")
   end
 end
