@@ -36,39 +36,46 @@ defmodule QlariusWeb.MeFileLive do
             show_expanded_tags={@show_expanded_tags}
             is_pwa={@is_pwa}
             quality={quality_entry(@tag_quality, @trait_in_edit)}
+            timezone={@timezone}
           />
         </:modals>
 
-        <div class="mb-6 flex items-center justify-between gap-3">
-          <Layouts.mobile_page_intro class="!mb-0 min-w-0">
-            Manage your tags below.
-          </Layouts.mobile_page_intro>
+        <div class="mb-6">
+          <div class="flex items-center justify-between gap-3">
+            <Layouts.mobile_page_intro class="!mb-0 min-w-0">
+              Manage your tags below.
+            </Layouts.mobile_page_intro>
 
-          <div :if={@tag_status_options != []} class="flex shrink-0 items-center gap-3">
-            <p :if={@tag_status != "all" and not @tags_loading} class="mefile-status__count">
-              {status_count_label(@tag_display_map)}
-            </p>
-            <.pill_join_selector label="Tag status">
-              <.pill_join_item
-                :for={status <- @tag_status_options}
-                active={@tag_status == status}
-                class={status != "all" && "mefile-status__color"}
-                phx-click="set_tag_status"
-                phx-value-status={status}
-                aria-label={status_pill_label(status)}
-                aria-pressed={to_string(@tag_status == status)}
-              >
-                <span :if={status == "all"}>All</span>
-                <.icon :if={status == "confirmed"} name="hero-check" class="!size-3.5 text-success" />
-                <span
-                  :if={status not in ["all", "confirmed"]}
-                  class={"mefile-status__dot trait-signal--#{status}"}
-                  aria-hidden="true"
+            <div :if={@tag_status_options != []} class="flex shrink-0 items-center">
+              <.pill_join_selector label="Tag status">
+                <.pill_join_item
+                  :for={status <- @tag_status_options}
+                  active={@tag_status == status}
+                  class={status != "all" && "mefile-status__color"}
+                  phx-click="set_tag_status"
+                  phx-value-status={status}
+                  aria-label={status_pill_label(status)}
+                  aria-pressed={to_string(@tag_status == status)}
                 >
-                </span>
-              </.pill_join_item>
-            </.pill_join_selector>
+                  <span :if={status == "all"}>All</span>
+                  <.icon
+                    :if={status == "confirmed"}
+                    name="hero-check"
+                    class="!size-3.5 text-success"
+                  />
+                  <span
+                    :if={status not in ["all", "confirmed"]}
+                    class={"mefile-status__dot trait-signal--#{status}"}
+                    aria-hidden="true"
+                  >
+                  </span>
+                </.pill_join_item>
+              </.pill_join_selector>
+            </div>
           </div>
+          <p :if={@tag_status != "all" and not @tags_loading} class="mefile-status__explain">
+            {status_explanation(@tag_status, displayed_tag_count(@tag_display_map))}
+          </p>
         </div>
 
         <.tags_display
@@ -572,10 +579,27 @@ defmodule QlariusWeb.MeFileLive do
   defp status_pill_label("confirmed"), do: "Confirmed"
   defp status_pill_label(status), do: String.capitalize(status)
 
-  defp status_count_label(tag_display_map) do
-    n = displayed_tag_count(tag_display_map)
-    "#{n} #{if n == 1, do: "tag", else: "tags"}"
-  end
+  defp status_explanation("green", n), do: "#{n} #{tag_word(n)} in good shape."
+
+  defp status_explanation("yellow", n),
+    do: "#{n} #{tag_word(n)} that #{need_word(n)} review."
+
+  defp status_explanation("red", n),
+    do: "#{n} #{tag_word(n)} that #{need_word(n)} attention."
+
+  defp status_explanation("neutral", n),
+    do: "#{n} #{tag_word(n)} skipped or with no status."
+
+  defp status_explanation("confirmed", n),
+    do: "#{n} #{tag_word(n)} confirmed accurate despite suggestions."
+
+  defp status_explanation(_, _), do: nil
+
+  defp tag_word(1), do: "tag"
+  defp tag_word(_), do: "tags"
+
+  defp need_word(1), do: "needs"
+  defp need_word(_), do: "need"
 
   defp assign_tag_quality(socket) do
     me_file_id = socket.assigns.current_scope.user.me_file.id

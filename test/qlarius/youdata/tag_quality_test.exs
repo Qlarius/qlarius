@@ -34,10 +34,10 @@ defmodule Qlarius.YouData.TagQualityTest do
     assert reason(tagged(parent, Enum.take(children, 1)), :count).text == "Fewer than usual"
 
     assert reason(tagged(parent, Enum.take(children, 4)), :count).text ==
-             "For best results, consider selecting fewer tag values."
+             "For best results, consider selecting fewer tag values. Recommended sweet spot is 2-3, but personal accuracy is more important: confirm if accurate as is."
 
     assert reason(tagged(parent, children), :count).text ==
-             "Too many selected. Advertisers will likely suspect and exclude. Try to stay between 2 and 3 tag values."
+             "Too many selected. Advertisers will likely suspect and exclude. Try to stay between 2 and 3 tag values. Recommended sweet spot is 2-3, but personal accuracy is more important: confirm if accurate as is."
 
     skipped = tagged(parent, [skip])
     assert status(skipped) == :skipped
@@ -285,7 +285,8 @@ defmodule Qlarius.YouData.TagQualityTest do
 
     held = TagQuality.for_me_file(me_file.id, @now)[living.id]
     assert held.status == :green
-    assert reason(held, :confirmed).text == "Confirmed"
+    assert reason(held, :confirmed).text == "Conflicts with Roommates"
+    assert %DateTime{} = reason(held, :confirmed).confirmed_at
     refute reason(held, :conflict)
 
     :ok = MeFiles.create_replace_mefile_tags(me_file.id, living.id, [alone.id], 0)
@@ -302,6 +303,10 @@ defmodule Qlarius.YouData.TagQualityTest do
     assert QualityConfirmations.confirm(wide.id, "count", hobbies.id) == :ok
     confirmed = TagQuality.for_me_file(wide.id, @now)[hobbies.id]
     assert confirmed.status == :green
+
+    assert reason(confirmed, :confirmed).text ==
+             "For best results, consider selecting fewer tag values."
+
     refute reason(confirmed, :count)
 
     :ok = MeFiles.create_replace_mefile_tags(wide.id, hobbies.id, [first.id, second.id], 0)

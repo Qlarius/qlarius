@@ -88,6 +88,23 @@ defmodule QlariusWeb.MeFileHTML do
 
   defp other_quality_reasons(_), do: []
 
+  defp confirmed_on(%DateTime{} = at, timezone) do
+    zone =
+      if is_binary(timezone) and timezone != "",
+        do: timezone,
+        else: Qlarius.Timezones.default()
+
+    shifted =
+      case DateTime.shift_zone(at, zone) do
+        {:ok, local} -> local
+        _ -> at
+      end
+
+    Calendar.strftime(shifted, "%b %-d, %Y")
+  end
+
+  defp confirmed_on(_, _), do: nil
+
   def progress_bar_color(percentage) do
     cond do
       percentage == 100.0 -> "bg-green-500"
@@ -138,6 +155,7 @@ defmodule QlariusWeb.MeFileHTML do
   attr :highlight_ids, :list, default: [], doc: "Tag options ticked from a chat suggestion"
   attr :chat_note, :string, default: nil
   attr :quality, :map, default: nil
+  attr :timezone, :string, default: nil
 
   def tag_edit_modal(assigns) do
     assigns =
@@ -225,7 +243,7 @@ defmodule QlariusWeb.MeFileHTML do
                       phx-value-kind="conflict"
                       phx-value-id={item.relationship_id}
                     >
-                      Tag is accurate as is
+                      Confirm: tag accurate as is
                     </button>
                   </div>
                 </div>
@@ -235,6 +253,9 @@ defmodule QlariusWeb.MeFileHTML do
           <ul :if={@quality && other_quality_reasons(@quality) != []} class="tag-quality">
             <li :for={reason <- other_quality_reasons(@quality)} class="tag-quality__item">
               <span>{reason.text}</span>
+              <span :if={reason.check == :confirmed} class="tag-quality__confirmed">
+                Confirmed as accurate {confirmed_on(Map.get(reason, :confirmed_at), @timezone)}.
+              </span>
               <button
                 :if={Map.get(reason, :confirmable)}
                 type="button"
@@ -243,7 +264,7 @@ defmodule QlariusWeb.MeFileHTML do
                 phx-value-kind="count"
                 phx-value-id={@trait_in_edit.id}
               >
-                Tag is accurate as is
+                Confirm: tag accurate as is
               </button>
             </li>
           </ul>

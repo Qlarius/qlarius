@@ -137,12 +137,17 @@ key out keeps it.
   whose only answer is a skip stays neutral.
 - Inside the ideal range, inclusive, is green. Below the minimum is yellow
   ("Fewer than usual"). Above the maximum but at or under the hard maximum
-  is yellow: "For best results, consider selecting fewer tag values." Over
-  the hard maximum is red: "Too many selected. Advertisers will likely
-  suspect and exclude." followed by the ideal range when one is set.
+  is yellow: "For best results, consider selecting fewer tag values." When
+  both an ideal minimum and maximum are set, that sentence continues
+  "Recommended sweet spot is {min}-{max}, but personal accuracy is more important: confirm if accurate as is."
+  Over the hard maximum is red: "Too many selected. Advertisers will likely
+  suspect and exclude." followed by the ideal range when one is set, and the
+  same sweet-spot sentence when both bounds are set.
 - Those ranges are estimates. On a too-many warning, yellow or red, the
-  person can tap "Tag is accurate as is" after reading that a wide set can work
-  against them. The tag goes green and shows "Confirmed". "Fewer than usual"
+  person can tap "Confirm: tag accurate as is" after reading that a wide set can work
+  against them. The tag goes green. The warning stays on the edit sheet,
+  with a badge "Confirmed as accurate {date}", so they can still read it.
+  "Fewer than usual"
   has no such button. Saving that parent, even with the same values, deletes
   the confirmation. It also ends after the parent's `stale_days`, counted
   from the tap. If `stale_days` is null, only a save clears it.
@@ -183,8 +188,9 @@ trait.
   With no note, a soft link reads "{value} ({parent}) is unusual with
   {other}. Keep both if accurate." A `note` replaces that sentence. Do not
   rewrite notes that are already stored.
-- A person who sees a hard or soft conflict can tap "Tag is accurate as is" and
-  keep both answers. That pair goes green with a "Confirmed" note and stops
+- A person who sees a hard or soft conflict can tap "Confirm: tag accurate as is" and
+  keep both answers. That pair goes green. The conflict sentence stays on
+  the edit sheet, with a badge "Confirmed as accurate {date}", and stops
   coloring the tag. Saving either parent deletes the confirmation, even when
   the values do not change. It also ends after the shorter `stale_days` of
   the two parents, counted from the tap. If neither parent has `stale_days`,

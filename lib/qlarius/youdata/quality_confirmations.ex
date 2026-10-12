@@ -55,8 +55,8 @@ defmodule Qlarius.YouData.QualityConfirmations do
 
     %{
       conflicts:
-        MapSet.new(for row <- live, row.kind == "conflict", do: row.trait_relationship_id),
-      counts: MapSet.new(for row <- live, row.kind == "count", do: row.trait_id)
+        Map.new(for row <- live, row.kind == "conflict", do: {row.trait_relationship_id, row.confirmed_at}),
+      counts: Map.new(for row <- live, row.kind == "count", do: {row.trait_id, row.confirmed_at})
     }
   end
 

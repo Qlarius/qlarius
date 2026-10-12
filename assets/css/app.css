@@ -3182,8 +3182,8 @@
     border-radius: 9999px;
   }
 
-  .mefile-status__count {
-    @apply text-sm text-base-content/50;
+  .mefile-status__explain {
+    @apply mt-2 text-sm text-base-content/60;
   }
 
   /* Same mix as the tag's own edge, so a skip reads as part of the border. */
@@ -3249,6 +3249,12 @@
 
   .tag-quality__item {
     @apply flex flex-wrap items-center gap-x-2 gap-y-1;
+  }
+
+  .tag-quality__confirmed {
+    @apply inline-flex w-fit items-center rounded-full border px-2 py-0.5 text-xs font-medium text-success;
+    background-color: color-mix(in oklab, var(--color-success) 12%, transparent);
+    border-color: color-mix(in oklab, var(--color-success) 28%, transparent);
   }
 
   .trait-tag {

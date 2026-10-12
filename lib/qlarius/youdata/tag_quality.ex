@@ -198,7 +198,10 @@ defmodule Qlarius.YouData.TagQuality do
       true ->
         case count_band(parent, length(values)) do
           %{confirmable: true} = reason ->
-            if MapSet.member?(confirmed_counts, parent.id), do: confirmed_reason(), else: reason
+            case Map.get(confirmed_counts, parent.id) do
+              %DateTime{} = confirmed_at -> confirmed_reason(reason, confirmed_at)
+              _ -> reason
+            end
 
           other ->
             other
@@ -216,9 +219,7 @@ defmodule Qlarius.YouData.TagQuality do
         reason(:red, :count, too_many_text(min, max, hard), %{confirmable: true})
 
       max != nil and count > max ->
-        reason(:yellow, :count, "For best results, consider selecting fewer tag values.", %{
-          confirmable: true
-        })
+        reason(:yellow, :count, fewer_text(min, max), %{confirmable: true})
 
       min != nil and count < min ->
         reason(:yellow, :count, "Fewer than usual")
@@ -227,6 +228,16 @@ defmodule Qlarius.YouData.TagQuality do
         nil
     end
   end
+
+  defp fewer_text(min, max) do
+    "For best results, consider selecting fewer tag values." <> sweet_spot_sentence(min, max)
+  end
+
+  defp sweet_spot_sentence(min, max) when is_integer(min) and is_integer(max) do
+    " Recommended sweet spot is #{min}-#{max}, but personal accuracy is more important: confirm if accurate as is."
+  end
+
+  defp sweet_spot_sentence(_, _), do: ""
 
   defp too_many_text(min, max, hard) do
     range =
@@ -244,7 +255,8 @@ defmodule Qlarius.YouData.TagQuality do
           ""
       end
 
-    "Too many selected. Advertisers will likely suspect and exclude." <> range
+    "Too many selected. Advertisers will likely suspect and exclude." <> range <>
+      sweet_spot_sentence(min, max)
   end
 
   defp exclusive_mix_reason(rows) do
@@ -323,19 +335,18 @@ defmodule Qlarius.YouData.TagQuality do
         other = if owner(left, child_owner) == parent_id, do: right, else: left
         local = if other == right, do: left, else: right
 
-        if MapSet.member?(confirmed, relationship.id) do
-          [confirmed_reason()]
-        else
-          [
-            %{
-              status: if(relationship.severity == "soft", do: :yellow, else: :red),
-              check: :conflict,
-              text: conflict_text(relationship, names, parent_id, local, other),
-              tag: tag_side(other, child_owner, names),
-              relationship_id: relationship.id,
-              confirmable: true
-            }
-          ]
+        reason = %{
+          status: if(relationship.severity == "soft", do: :yellow, else: :red),
+          check: :conflict,
+          text: conflict_text(relationship, names, parent_id, local, other),
+          tag: tag_side(other, child_owner, names),
+          relationship_id: relationship.id,
+          confirmable: true
+        }
+
+        case Map.get(confirmed, relationship.id) do
+          %DateTime{} = confirmed_at -> [confirmed_reason(reason, confirmed_at)]
+          _ -> [reason]
         end
       else
         []
@@ -406,11 +417,17 @@ defmodule Qlarius.YouData.TagQuality do
     Map.merge(%{status: status, check: check, text: text}, extra)
   end
 
-  defp confirmed_reason, do: reason(:green, :confirmed, "Confirmed")
+  # Keep the warning they already read. Green and :confirmed stop it from
+  # coloring the tag, and the edit sheet can still show the sentence.
+  defp confirmed_reason(reason, confirmed_at) do
+    reason
+    |> Map.drop([:confirmable, :tag, :relationship_id])
+    |> Map.merge(%{status: :green, check: :confirmed, confirmed_at: confirmed_at})
+  end
 
   defp collapse_confirmed(reasons) do
     Enum.uniq_by(reasons, fn
-      %{check: :confirmed} -> :confirmed
+      %{check: :confirmed, text: text} -> {:confirmed, text}
       reason -> reason
     end)
   end

@@ -49,6 +49,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
             highlight_ids={@highlight_child_ids}
             chat_note={@chat_note}
             quality={quality_entry(@tag_quality, @trait_in_edit)}
+            timezone={@timezone}
           />
         </:modals>
 
