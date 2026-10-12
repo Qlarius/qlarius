@@ -1,12 +1,11 @@
 defmodule QlariusWeb.PWAResumeFlashHooks do
   @moduledoc """
-  Shows a friendly notice when the app had to reconnect/remount after being backgrounded.
+  Shows a notice when an iOS PWA reloaded after the user switched back to it.
 
-  iOS standalone PWAs may get their WebContent process suspended/evicted. When the app
-  returns, LiveView can remount (socket reconnect) or the page can fully reload.
-  In either case, we can detect the "coming back from background" signal provided by
-  the client via LiveSocket connect params and warn the user that transient UI state
-  may have been lost.
+  The client sends `pwa_bg_pending` only when this same visit was backgrounded
+  and the document then reloaded. A fresh launch from the home screen does not
+  send it: that flag used to live only in localStorage, so it survived quitting
+  and the next open looked like a return.
   """
 
   import Phoenix.LiveView

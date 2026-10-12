@@ -959,13 +959,13 @@ defmodule QlariusWeb.Layouts do
            disconnect), and as flex so the pill keeps its layout. --%>
       <.flash
         id="client-error"
-        kind={:error}
+        kind={:info}
         auto_hide={false}
         icon="hero-arrow-path"
         icon_class="motion-safe:animate-spin"
         is_pwa={@is_pwa}
         is_mobile={@is_mobile}
-        title={gettext("Connection lost")}
+        title={gettext("Hang tight.")}
         phx-disconnected={
           JS.show(to: ".phx-client-error #client-error", display: "flex")
           |> JS.remove_attribute("hidden", to: ".phx-client-error #client-error")
@@ -975,7 +975,7 @@ defmodule QlariusWeb.Layouts do
         }
         hidden
       >
-        {gettext("Trying to reconnect now…")}
+        {gettext("Getting a fresh connection for you.")}
       </.flash>
 
       <.flash

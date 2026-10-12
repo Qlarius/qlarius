@@ -167,7 +167,7 @@ Widgets (Arqade, tip jar, Tiqit Pass), Qlink pages and the Sponster bar all show
 
 - **Pill** (`.flash-pill`): top centre below the safe area, base-100 with a 1.5px primary border, rounded-full, shadow; an icon in a tinted circle (check for info, warning triangle in error red for errors), the message (15px medium; a title above it in the connection notices) and a small round ×. Several stack in `.flash-stack`.
 - **Motion:** drops in from above with a short settle and a small side-to-side shimmy (`flash-drop`), stays 4s, then rises back out (`flash-rise`, `.is-leaving`) and clears (`FlashAutoHide` pushes `lv:clear-flash`). Tapping anywhere on it leaves early. Reduced motion: no animation. A new message of the same kind restarts the timer.
-- **Connection notices** (`auto_hide={false}`, spinning `hero-arrow-path`): "Connection lost · Trying to reconnect now…" while the socket reconnects, "Something went wrong · Trying to reconnect now…" while a crashed LiveView rejoins. Each unhides only when its own class (`.phx-client-error` / `.phx-server-error`) is on the page, with `display: flex`; the generator's untargeted `remove_attribute("hidden")` used to reveal "Something went wrong" on every disconnect.
+- **Connection notices** (`auto_hide={false}`, spinning `hero-arrow-path`): "Hang tight. · Getting a fresh connection for you." while the socket reconnects, "Something went wrong · Trying to reconnect now…" while a crashed LiveView rejoins. Each unhides only when its own class (`.phx-client-error` / `.phx-server-error`) is on the page, with `display: flex`; the generator's untargeted `remove_attribute("hidden")` used to reveal "Something went wrong" on every disconnect.
 
 ## Referrals
 

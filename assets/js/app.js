@@ -39,12 +39,17 @@ let Hooks = {}
 Hooks.ExtensionBridge = ExtensionBridgeHook
 
 // iOS standalone PWA lifecycle:
-// When the app is backgrounded, iOS may suspend or evict the WebContent process.
-// Returning can cause either a LiveView remount (socket reconnect) or a full reload.
-// We can't prevent those OS decisions, but we *can* detect that we came back from
-// background and warn the user that transient UI state may have been lost.
+// Switching away can lead iOS to reload the page, which drops transient UI.
+// That notice is only for coming back to an app still in the switcher, and
+// only when this visit actually reloaded. A fresh launch from the icon must
+// stay quiet. localStorage alone can't tell those apart (it survives quitting),
+// so the flag is tied to this page session. sessionStorage dies with the
+// process, which is also how a wiped eviction looks — indistinguishable from
+// a fresh launch, so those stay quiet too.
 const PWA_BG_PENDING_KEY = "qadabra:pwa_bg_pending"
 const PWA_BG_AT_KEY = "qadabra:pwa_bg_at"
+const PWA_BG_SESSION_KEY = "qadabra:pwa_bg_session"
+const PWA_SESSION_KEY = "qadabra:pwa_session"
 
 function safeLocalStorageGet(key) {
   try {
@@ -66,23 +71,71 @@ function safeLocalStorageRemove(key) {
   } catch (_e) {}
 }
 
+function safeSessionStorageGet(key) {
+  try {
+    return sessionStorage.getItem(key)
+  } catch (_e) {
+    return null
+  }
+}
+
+function safeSessionStorageSet(key, value) {
+  try {
+    sessionStorage.setItem(key, value)
+  } catch (_e) {}
+}
+
+function pwaSessionId() {
+  let id = safeSessionStorageGet(PWA_SESSION_KEY)
+  if (!id) {
+    id = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    safeSessionStorageSet(PWA_SESSION_KEY, id)
+  }
+  return id
+}
+
 function markPwaBackgroundPending() {
   safeLocalStorageSet(PWA_BG_PENDING_KEY, "1")
   safeLocalStorageSet(PWA_BG_AT_KEY, String(Date.now()))
+  safeLocalStorageSet(PWA_BG_SESSION_KEY, pwaSessionId())
 }
 
 function clearPwaBackgroundPending() {
   safeLocalStorageRemove(PWA_BG_PENDING_KEY)
   safeLocalStorageRemove(PWA_BG_AT_KEY)
+  safeLocalStorageRemove(PWA_BG_SESSION_KEY)
 }
 
+function isTopLevelWindow() {
+  try {
+    return window.self === window.top
+  } catch (_e) {
+    return false
+  }
+}
+
+// True only when this same visit was backgrounded and then the document
+// reloaded. A leftover flag from a previous quit is cleared, not shown.
+// Iframes share localStorage but not sessionStorage, so only the top window
+// may read or clear the flag.
 function readPwaBackgroundPending() {
+  if (!isTopLevelWindow()) return null
+
   const pending = safeLocalStorageGet(PWA_BG_PENDING_KEY)
   if (pending !== "1") return null
 
+  const session = safeSessionStorageGet(PWA_SESSION_KEY)
+  const pendingSession = safeLocalStorageGet(PWA_BG_SESSION_KEY)
+  if (!session || !pendingSession || session !== pendingSession) {
+    clearPwaBackgroundPending()
+    return null
+  }
+
   const atRaw = safeLocalStorageGet(PWA_BG_AT_KEY)
   const at = atRaw ? parseInt(atRaw, 10) : NaN
-  return Number.isFinite(at) ? {at} : {at: null}
+  if (!Number.isFinite(at) || performance.timeOrigin <= at) return null
+
+  return {at}
 }
 
 function installPwaBackgroundTracker(liveSocket, {isExtension}) {
@@ -99,29 +152,57 @@ function installPwaBackgroundTracker(liveSocket, {isExtension}) {
 
   if (!isTopLevel) return
 
+  // Created after the first connect, so a fresh launch can see an empty
+  // sessionStorage and ignore a leftover flag. Later hides share this id.
+  pwaSessionId()
+
+  let armed = false
+
+  const socketConnected = () => {
+    if (!liveSocket) return false
+    if (typeof liveSocket.isConnected === "function" && liveSocket.isConnected()) return true
+    const rawSocket = typeof liveSocket.socket === "function" ? liveSocket.socket() : liveSocket.socket
+    return !!(rawSocket && typeof rawSocket.isConnected === "function" && rawSocket.isConnected())
+  }
+
+  // Armed once this visit has actually been on screen. A hide before that
+  // is the load itself, not the user switching away.
+  const arm = () => {
+    if (document.visibilityState === "visible") armed = true
+  }
+
+  // Coming back to a page that never reloaded: nothing to warn about.
   const clearIfConnected = () => {
     if (document.visibilityState !== "visible") return
-    if (!liveSocket) return
-
-    const connected = (() => {
-      if (typeof liveSocket.isConnected === "function" && liveSocket.isConnected()) return true
-      const rawSocket = typeof liveSocket.socket === "function" ? liveSocket.socket() : liveSocket.socket
-      return !!(rawSocket && typeof rawSocket.isConnected === "function" && rawSocket.isConnected())
-    })()
-
-    if (connected) clearPwaBackgroundPending()
+    if (!socketConnected()) return
+    const atRaw = safeLocalStorageGet(PWA_BG_AT_KEY)
+    const at = atRaw ? parseInt(atRaw, 10) : NaN
+    if (Number.isFinite(at) && performance.timeOrigin <= at) clearPwaBackgroundPending()
   }
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
-      markPwaBackgroundPending()
+      if (armed) markPwaBackgroundPending()
     } else {
       clearIfConnected()
+      arm()
     }
   })
 
   // Defensive: some WebKit paths fire pageshow without a visibilitychange transition.
-  window.addEventListener("pageshow", clearIfConnected)
+  window.addEventListener("pageshow", () => {
+    clearIfConnected()
+    arm()
+  })
+
+  const rawSocket = typeof liveSocket.socket === "function" ? liveSocket.socket() : liveSocket.socket
+  if (rawSocket && typeof rawSocket.onOpen === "function") {
+    rawSocket.onOpen(() => {
+      arm()
+      clearIfConnected()
+    })
+  }
+  arm()
 }
 
 Hooks.PwaLifecycle = {

@@ -33,16 +33,16 @@ defmodule QlariusWeb.FlashTest do
     html = render_component(&Layouts.flash_group/1, flash: %{})
 
     assert html =~ ~s(class="flash-stack")
-    assert html =~ "Connection lost"
+    assert html =~ "Hang tight."
+    assert html =~ "Getting a fresh connection for you."
     assert html =~ "Something went wrong"
     assert html =~ "Trying to reconnect now…"
     assert html =~ ~s(data-auto-hide="false")
     assert html =~ "hero-arrow-path"
+    refute html =~ "Connection lost"
 
     # Each unhides only when its selector matches, and as flex
     assert html =~ ~s(.phx-client-error #client-error)
     assert html =~ ~s(.phx-server-error #server-error)
-    refute html =~ "Hang in there"
-    refute html =~ "find the internet"
   end
 end
