@@ -3169,6 +3169,23 @@
     background-color: var(--color-error);
   }
 
+  /* MeFile status filter: a color, not a word, in the same lamps as the tags. */
+  .mefile-status__color {
+    min-width: 3rem;
+    padding-inline: 0.85rem;
+  }
+
+  .mefile-status__dot {
+    display: block;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 9999px;
+  }
+
+  .mefile-status__count {
+    @apply text-sm text-base-content/50;
+  }
+
   /* Same mix as the tag's own edge, so a skip reads as part of the border. */
   .trait-signal--neutral {
     background-color: color-mix(

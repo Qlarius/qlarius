@@ -128,4 +128,83 @@ defmodule QlariusWeb.MeFileHTMLTest do
       assert notes[4] == "Match: green room"
     end
   end
+
+  describe "filter_tag_map_by_status/3" do
+    setup do
+      category = {1, "Demographics", 1}
+      green = {10, "Age", 1, [{101, "30", 1}]}
+      yellow = {20, "Diet", 2, [{201, "Vegan", 1}]}
+      skipped = {30, "Income", 3, [{301, "Skip", 1}]}
+
+      list = [{category, [green, yellow, skipped]}]
+
+      quality = %{
+        10 => %{status: :green, reasons: []},
+        20 => %{status: :yellow, reasons: []},
+        30 => %{status: :skipped, reasons: []}
+      }
+
+      {:ok, list: list, category: category, green: green, yellow: yellow, quality: quality}
+    end
+
+    test "all keeps every tag", %{list: list, quality: quality} do
+      assert MeFileHTML.filter_tag_map_by_status(list, "all", quality) == list
+      assert MeFileHTML.filter_tag_map_by_status(list, nil, quality) == list
+    end
+
+    test "a color keeps only that status", %{
+      list: list,
+      category: category,
+      yellow: yellow,
+      quality: quality
+    } do
+      assert MeFileHTML.filter_tag_map_by_status(list, "yellow", quality) == [
+               {category, [yellow]}
+             ]
+    end
+
+    test "a skip is not green", %{list: list, category: category, green: green, quality: quality} do
+      assert MeFileHTML.filter_tag_map_by_status(list, "green", quality) == [{category, [green]}]
+    end
+
+    test "neutral keeps a skip and a tag with no status", %{
+      list: list,
+      category: category,
+      quality: quality
+    } do
+      blank = {40, "Hobby", 4, [{401, "Chess", 1}]}
+      list = [{category, [blank | elem(hd(list), 1)]}]
+
+      assert MeFileHTML.filter_tag_map_by_status(list, "neutral", quality) == [
+               {category, [blank, {30, "Income", 3, [{301, "Skip", 1}]}]}
+             ]
+    end
+
+    test "drops a category with nothing in that color", %{quality: quality} do
+      list = [{{2, "Other", 1}, [{40, "Hobby", 1, [{401, "Chess", 1}]}]}]
+
+      assert MeFileHTML.filter_tag_map_by_status(list, "red", quality) == []
+    end
+
+    test "a color pill appears only when that status has tags", %{list: list, quality: quality} do
+      assert MeFileHTML.visible_tag_statuses(list, quality) == ~w(all green yellow neutral)
+    end
+
+    test "an all-green file has no status selector", %{category: category, green: green} do
+      list = [{category, [green]}]
+      quality = %{10 => %{status: :green, reasons: []}}
+
+      assert MeFileHTML.visible_tag_statuses(list, quality) == []
+    end
+
+    test "one status besides green also hides the selector", %{
+      category: category,
+      yellow: yellow
+    } do
+      list = [{category, [yellow]}]
+      quality = %{20 => %{status: :yellow, reasons: []}}
+
+      assert MeFileHTML.visible_tag_statuses(list, quality) == []
+    end
+  end
 end

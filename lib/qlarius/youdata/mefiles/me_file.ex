@@ -113,17 +113,20 @@ defmodule Qlarius.YouData.MeFiles.MeFile do
   end
 
   def trait_tag_count(me_file) do
-    count =
+    # Same parents the MeFile page lists. A tag whose category row is gone
+    # is not shown, so it is not counted. Birthdate is not a trait; the page
+    # adds that proxy when a date of birth is on file.
+    parents =
       from(t in Trait,
         join: mt in MeFileTag,
         on: mt.trait_id == t.id,
+        join: _category in assoc(t, :trait_category),
         where: mt.me_file_id == ^me_file.id,
-        select: count(fragment("DISTINCT ?", t.parent_trait_id))
+        select: count(fragment("DISTINCT COALESCE(?, ?)", t.parent_trait_id, t.id))
       )
       |> Repo.one()
 
-    # add one for birthdate if me_file has traits
-    if count > 0, do: count + 1, else: count
+    parents + if(me_file.date_of_birth, do: 1, else: 0)
   end
 
   def ad_offer_count(me_file) do

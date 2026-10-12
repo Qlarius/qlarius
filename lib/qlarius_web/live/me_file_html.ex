@@ -842,6 +842,7 @@ defmodule QlariusWeb.MeFileHTML do
   attr :tag_display_mode, :string, required: true
   attr :tag_search, :string, default: ""
   attr :tag_search_epoch, :integer, default: 0
+  attr :tag_status, :string, default: "all"
   attr :match_notes, :map, default: %{}
   attr :quality, :map, default: %{}
   attr :loading, :boolean, default: false
@@ -880,10 +881,17 @@ defmodule QlariusWeb.MeFileHTML do
         </section>
       </div>
       <div
-        :if={not @loading and Enum.empty?(@tag_display_map) and tag_search_active?(@tag_search)}
+        :if={
+          not @loading and Enum.empty?(@tag_display_map) and
+            (tag_search_active?(@tag_search) or @tag_status != "all")
+        }
         class="text-center py-12 text-base-content/60"
       >
-        <p>No tags match your search.</p>
+        <p>
+          {if tag_search_active?(@tag_search),
+            do: "No tags match your search.",
+            else: "No tags to show."}
+        </p>
       </div>
       <section
         :for={{{_id, name, _display_order}, parent_traits} <- @tag_display_map}
@@ -934,6 +942,70 @@ defmodule QlariusWeb.MeFileHTML do
       {:error, :empty_query} -> parent_traits
       {:ok, tokens} -> select_matching_parents(parent_traits, tokens, terms, nil)
     end
+  end
+
+  @doc """
+  Keeps parents whose integrity status is green, yellow, or red.
+  "neutral" keeps a skip and any tag with no color. "all" leaves the map
+  alone. Categories left with nothing are dropped.
+  """
+  def filter_tag_map_by_status(tag_categories, status, quality \\ %{})
+
+  def filter_tag_map_by_status(tag_categories, status, _quality)
+      when status in [nil, "", "all"] do
+    normalize_tag_categories(tag_categories)
+  end
+
+  def filter_tag_map_by_status(tag_categories, "neutral", quality) do
+    filter_parents(tag_categories, &neutral_parent?(&1, quality))
+  end
+
+  def filter_tag_map_by_status(tag_categories, status, quality)
+      when status in ["green", "yellow", "red"] do
+    status = String.to_existing_atom(status)
+    filter_parents(tag_categories, &parent_status?(&1, status, quality))
+  end
+
+  @doc """
+  Status pills worth showing. A color appears only when at least one tag has
+  it. The selector itself stays hidden when every tag shares one status,
+  including a file that is entirely green.
+  """
+  def visible_tag_statuses(tag_categories, quality \\ %{}) do
+    present =
+      ~w(green yellow red neutral)
+      |> Enum.filter(&(tag_status_count(tag_categories, &1, quality) > 0))
+
+    if length(present) > 1, do: ["all" | present], else: []
+  end
+
+  defp tag_status_count(tag_categories, status, quality) do
+    tag_categories
+    |> filter_tag_map_by_status(status, quality)
+    |> Enum.reduce(0, fn {_category, parents}, count -> count + length(parents) end)
+  end
+
+  defp filter_parents(tag_categories, fun) do
+    tag_categories
+    |> normalize_tag_categories()
+    |> Enum.map(fn {category, parents} ->
+      {category, Enum.filter(parents, fun)}
+    end)
+    |> Enum.reject(fn {_category, parents} -> parents == [] end)
+  end
+
+  defp parent_status?({id, _name, _order, _tags}, status, quality) do
+    match?(%{status: ^status}, Map.get(quality || %{}, id))
+  end
+
+  defp neutral_parent?({id, _name, _order, _tags}, quality) do
+    status =
+      case Map.get(quality || %{}, id) do
+        %{status: status} -> status
+        _ -> nil
+      end
+
+    status not in [:green, :yellow, :red]
   end
 
   def filter_tag_map_by_search(tag_categories, search, terms \\ %{})

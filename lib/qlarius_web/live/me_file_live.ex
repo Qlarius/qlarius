@@ -38,21 +38,47 @@ defmodule QlariusWeb.MeFileLive do
           />
         </:modals>
 
-        <Layouts.mobile_page_intro>
-          Manage your tags below.
-        </Layouts.mobile_page_intro>
+        <div class="mb-6 flex items-center justify-between gap-3">
+          <Layouts.mobile_page_intro class="!mb-0 min-w-0">
+            Manage your tags below.
+          </Layouts.mobile_page_intro>
 
-        <div class="pt-2">
-          <.tags_display
-            tag_display_map={@tag_display_map}
-            tag_display_mode={@tag_display_mode}
-            tag_search={@tag_search}
-            tag_search_epoch={@tag_search_epoch}
-            match_notes={@tag_match_notes}
-            quality={@tag_quality}
-            loading={@tags_loading}
-          />
+          <div :if={@tag_status_options != []} class="flex shrink-0 items-center gap-3">
+            <p :if={@tag_status != "all" and not @tags_loading} class="mefile-status__count">
+              {status_count_label(@tag_display_map)}
+            </p>
+            <.pill_join_selector label="Tag status">
+              <.pill_join_item
+                :for={status <- @tag_status_options}
+                active={@tag_status == status}
+                class={status != "all" && "mefile-status__color"}
+                phx-click="set_tag_status"
+                phx-value-status={status}
+                aria-label={if(status == "all", do: "All", else: String.capitalize(status))}
+                aria-pressed={to_string(@tag_status == status)}
+              >
+                <span :if={status == "all"}>All</span>
+                <span
+                  :if={status != "all"}
+                  class={"mefile-status__dot trait-signal--#{status}"}
+                  aria-hidden="true"
+                >
+                </span>
+              </.pill_join_item>
+            </.pill_join_selector>
+          </div>
         </div>
+
+        <.tags_display
+          tag_display_map={@tag_display_map}
+          tag_display_mode={@tag_display_mode}
+          tag_search={@tag_search}
+          tag_search_epoch={@tag_search_epoch}
+          tag_status={@tag_status}
+          match_notes={@tag_match_notes}
+          quality={@tag_quality}
+          loading={@tags_loading}
+        />
 
         <:floating_actions>
           <.mefile_floating_toolbar
@@ -241,6 +267,15 @@ defmodule QlariusWeb.MeFileLive do
      |> push_event("scroll-mefile-tags-to-top", %{})}
   end
 
+  def handle_event("set_tag_status", %{"status" => status}, socket)
+      when status in ~w(all green yellow red neutral) do
+    {:noreply,
+     socket
+     |> assign(:tag_status, status)
+     |> assign_filtered_tag_display()
+     |> push_event("scroll-mefile-tags-to-top", %{})}
+  end
+
   def handle_event("set_tag_display_mode", %{"mode" => mode}, socket)
       when mode in ~w(tag list) do
     me_file = socket.assigns.current_scope.user.me_file
@@ -339,6 +374,8 @@ defmodule QlariusWeb.MeFileLive do
       |> assign(:show_expanded_tags, false)
       |> assign(:tag_search, "")
       |> assign(:tag_search_epoch, 0)
+      |> assign(:tag_status, "all")
+      |> assign(:tag_status_options, [])
       |> assign(:show_tag_search, false)
       |> assign_tag_display_mode()
       |> init_pwa_assigns(session)
@@ -514,6 +551,17 @@ defmodule QlariusWeb.MeFileLive do
 
   defp modal_skip_child(_), do: nil
 
+  defp displayed_tag_count(tag_display_map) do
+    Enum.reduce(tag_display_map, 0, fn {_category, parents}, count ->
+      count + length(parents)
+    end)
+  end
+
+  defp status_count_label(tag_display_map) do
+    n = displayed_tag_count(tag_display_map)
+    "#{n} #{if n == 1, do: "tag", else: "tags"}"
+  end
+
   defp assign_tag_quality(socket) do
     me_file_id = socket.assigns.current_scope.user.me_file.id
     assign(socket, :tag_quality, TagQuality.for_me_file(me_file_id))
@@ -528,9 +576,19 @@ defmodule QlariusWeb.MeFileLive do
         _ -> %{}
       end
 
-    filtered = filter_tag_map_by_search(tag_map, socket.assigns.tag_search, terms)
+    options = visible_tag_statuses(tag_map, socket.assigns.tag_quality)
+
+    status =
+      if socket.assigns.tag_status in options, do: socket.assigns.tag_status, else: "all"
+
+    filtered =
+      tag_map
+      |> filter_tag_map_by_search(socket.assigns.tag_search, terms)
+      |> filter_tag_map_by_status(status, socket.assigns.tag_quality)
 
     socket
+    |> assign(:tag_status, status)
+    |> assign(:tag_status_options, options)
     |> assign(:tag_display_map, filtered)
     |> assign(
       :tag_match_notes,
