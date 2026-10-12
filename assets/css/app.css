@@ -3443,7 +3443,7 @@
    * hatched blue for credit already in use.
    */
   .wallet-summary__hero {
-    @apply text-4xl font-bold leading-none tracking-tight text-base-content tabular-amount;
+    @apply text-4xl font-bold leading-none text-base-content tabular-amount;
   }
 
   .wallet-summary__label {
