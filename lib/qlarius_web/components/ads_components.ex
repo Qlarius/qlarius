@@ -386,6 +386,7 @@ defmodule QlariusWeb.Components.AdsComponents do
         data-is-replay={@show_replay_button || @video_payment_collected}
         class="absolute inset-0 h-full w-full object-contain"
         controls
+        playsinline
         preload="auto"
         poster={@poster_url}
         src={
@@ -437,6 +438,12 @@ defmodule QlariusWeb.Components.AdsComponents do
         }
         #video-player::-webkit-media-controls-time-remaining-display {
           display: none !important;
+        }
+        /* Painted above the page on iOS, so it covers the 3-2-1. */
+        #video-player::-webkit-media-controls-overlay-play-button,
+        #video-player::-webkit-media-controls-start-playback-button {
+          display: none !important;
+          -webkit-appearance: none;
         }
       </style>
     <% end %>

@@ -2658,8 +2658,15 @@ Hooks.VideoPlayer = {
     
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
                   window.navigator.standalone === true
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
     const isAndroid = /Android/.test(navigator.userAgent)
+
+    // iOS draws its own play button in a layer above the page whenever
+    // controls are enabled, which covers the 3-2-1. Leave controls off
+    // until playback, and stay inline so the poster remains the countdown.
+    this.video.playsInline = true
+    this.video.setAttribute('playsinline', '')
+    this.video.setAttribute('webkit-playsinline', '')
+    this.suppressNativePlayButton()
     
     // Prevent seeking forward only on initial unpaid viewing (before first completion)
     if (!this.paymentCollected) {
@@ -2737,25 +2744,40 @@ Hooks.VideoPlayer = {
     const badge = document.getElementById('video-countdown-display')
 
     const reveal = () => {
+      if (this._posterSettled) return
+      this._posterSettled = true
       if (badge) badge.classList.remove('opacity-0')
       callback()
     }
 
-    if (!img || (img.complete && img.naturalWidth > 0)) {
+    // No poster, or it has already settled. `complete` with a zero width
+    // is a failed image — still reveal, or the number stays invisible.
+    // The iOS app can also mark a cached poster complete without a load event.
+    if (!img || img.complete) {
       reveal()
       return
     }
 
     if (badge) badge.classList.add('opacity-0')
 
-    const done = () => {
-      img.removeEventListener('load', done)
-      img.removeEventListener('error', done)
-      reveal()
-    }
+    img.addEventListener('load', reveal, { once: true })
+    img.addEventListener('error', reveal, { once: true })
 
-    img.addEventListener('load', done)
-    img.addEventListener('error', done)
+    const started = performance.now()
+    const watch = () => {
+      if (this._posterSettled) return
+      if (img.complete || performance.now() - started > 800) {
+        reveal()
+        return
+      }
+      requestAnimationFrame(watch)
+    }
+    requestAnimationFrame(watch)
+  },
+
+  suppressNativePlayButton() {
+    const poster = document.getElementById('video-poster-overlay')
+    if (poster && poster.style.display !== 'none') this.video.controls = false
   },
 
   startCountdown() {
@@ -2793,6 +2815,7 @@ Hooks.VideoPlayer = {
       posterOverlay.classList.add('pointer-events-none')
     }
     
+    this.video.controls = true
     this.video.play().catch(() => {})
   },
   
@@ -2802,6 +2825,7 @@ Hooks.VideoPlayer = {
       posterOverlay.style.display = ''
       posterOverlay.classList.remove('pointer-events-none')
     }
+    this.video.controls = false
     this.showPlayIcon()
   },
   
@@ -2821,9 +2845,13 @@ Hooks.VideoPlayer = {
   updated() {
     this.paymentCollected = this.el.dataset.paymentCollected === 'true'
     this.isReplay = this.el.dataset.isReplay === 'true'
+    // A re-render puts `controls` back on the tag and the iOS play button
+    // covers the number again.
+    this.suppressNativePlayButton()
   },
   
   destroyed() {
+    this._posterSettled = true
     if (this.countdownInterval) {
       clearInterval(this.countdownInterval)
     }
