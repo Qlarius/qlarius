@@ -5,7 +5,11 @@ defmodule Qlarius.YouData.TagQualityTest do
 
   alias Qlarius.Repo
   alias Qlarius.YouData.MeFiles.MeFile
+  alias Qlarius.YouData.MeFiles
+  alias Qlarius.YouData.MeFiles.QualityConfirmation
+  alias Qlarius.YouData.QualityConfirmations
   alias Qlarius.YouData.TagQuality
+  alias Qlarius.YouData.TraitIntegrity
   alias Qlarius.YouData.TraitRelationships
 
   @now ~U[2026-06-15 12:00:00Z]
@@ -28,8 +32,10 @@ defmodule Qlarius.YouData.TagQualityTest do
     assert status(tagged(parent, Enum.take(children, 2))) == :green
     assert status(tagged(parent, Enum.take(children, 3))) == :green
     assert reason(tagged(parent, Enum.take(children, 1)), :count).text == "Fewer than usual"
+
     assert reason(tagged(parent, Enum.take(children, 4)), :count).text ==
              "For best results, consider selecting fewer tag values."
+
     assert reason(tagged(parent, children), :count).text ==
              "Too many selected. Advertisers will likely suspect and exclude. Try to stay between 2 and 3 tag values."
 
@@ -50,6 +56,7 @@ defmodule Qlarius.YouData.TagQualityTest do
 
     maximum = parent!(category, "Maximum", %{ideal_max_tags: 1})
     max_children = [child!(maximum, "A"), child!(maximum, "B")]
+
     assert reason(tagged(maximum, max_children), :count).text ==
              "For best results, consider selecting fewer tag values."
 
@@ -57,6 +64,7 @@ defmodule Qlarius.YouData.TagQualityTest do
     hard_one = child!(hard, "Only")
     hard_two = child!(hard, "Extra")
     assert status(tagged(hard, [hard_one])) == :green
+
     assert reason(tagged(hard, [hard_one, hard_two]), :count).text ==
              "Too many selected. Advertisers will likely suspect and exclude. Try to stay at 1 or fewer tag values."
   end
@@ -220,6 +228,162 @@ defmodule Qlarius.YouData.TagQualityTest do
     refute reason(quiet_quality[banned.id], :conflict)
   end
 
+  test "a soft conflict is yellow and a note still replaces the sentence", %{category: category} do
+    living = parent!(category, "Living Arrangements", %{})
+    alone = child!(living, "Alone")
+    household = parent!(category, "Household", %{})
+    roommates = child!(household, "Roommates")
+
+    {:ok, _} =
+      TraitRelationships.create(%{
+        "trait_id" => alone.id,
+        "related_trait_id" => roommates.id,
+        "kind" => "conflicts",
+        "severity" => "soft"
+      })
+
+    entry = tagged_pair(living, [alone], [roommates])
+    assert reason(entry, :conflict).status == :yellow
+
+    assert reason(entry, :conflict).text ==
+             "Alone (Living Arrangements) is unusual with Roommates. Keep both if accurate."
+
+    noted = parent!(category, "Noted", %{})
+    left = child!(noted, "Left")
+    other = parent!(category, "Other", %{})
+    right = child!(other, "Right")
+
+    {:ok, _} =
+      TraitRelationships.create(%{
+        "trait_id" => left.id,
+        "related_trait_id" => right.id,
+        "kind" => "conflicts",
+        "severity" => "soft",
+        "note" => "Keep the stored note"
+      })
+
+    assert reason(tagged_pair(noted, [left], [right]), :conflict).text == "Keep the stored note"
+  end
+
+  test "confirming a conflict or a wide count turns it green until a save or it goes stale", %{
+    category: category
+  } do
+    living = parent!(category, "Living", %{stale_days: 30})
+    alone = child!(living, "Alone")
+    household = parent!(category, "Home", %{stale_days: 10})
+    roommates = child!(household, "Roommates")
+
+    {:ok, relationship} =
+      TraitRelationships.create(%{
+        "trait_id" => alone.id,
+        "related_trait_id" => roommates.id,
+        "kind" => "conflicts"
+      })
+
+    me_file = me_file!([alone, roommates])
+    assert QualityConfirmations.confirm(me_file.id, "conflict", relationship.id) == :ok
+
+    held = TagQuality.for_me_file(me_file.id, @now)[living.id]
+    assert held.status == :green
+    assert reason(held, :confirmed).text == "Confirmed"
+    refute reason(held, :conflict)
+
+    :ok = MeFiles.create_replace_mefile_tags(me_file.id, living.id, [alone.id], 0)
+    saved = TagQuality.for_me_file(me_file.id, @now)[living.id]
+    assert reason(saved, :conflict).status == :red
+
+    hobbies =
+      parent!(category, "Wide", %{ideal_max_tags: 1, hard_max_tags: 3, stale_days: 30})
+
+    first = child!(hobbies, "One")
+    second = child!(hobbies, "Two")
+    wide = me_file!([first, second])
+    assert reason(TagQuality.for_me_file(wide.id, @now)[hobbies.id], :count).confirmable
+    assert QualityConfirmations.confirm(wide.id, "count", hobbies.id) == :ok
+    confirmed = TagQuality.for_me_file(wide.id, @now)[hobbies.id]
+    assert confirmed.status == :green
+    refute reason(confirmed, :count)
+
+    :ok = MeFiles.create_replace_mefile_tags(wide.id, hobbies.id, [first.id, second.id], 0)
+    assert reason(TagQuality.for_me_file(wide.id, @now)[hobbies.id], :count).status == :yellow
+
+    thin = parent!(category, "Thin", %{ideal_min_tags: 2})
+    only = child!(thin, "Only")
+    refute Map.get(reason(tagged(thin, [only]), :count), :confirmable)
+
+    stale_parent = parent!(category, "Stale pair", %{stale_days: 100})
+    stale_child = child!(stale_parent, "Value")
+    other_parent = parent!(category, "Stale other", %{stale_days: 10})
+    other_child = child!(other_parent, "Other value")
+
+    {:ok, stale_link} =
+      TraitRelationships.create(%{
+        "trait_id" => stale_child.id,
+        "related_trait_id" => other_child.id,
+        "kind" => "conflicts",
+        "severity" => "soft"
+      })
+
+    stale_file = me_file!([stale_child, other_child])
+    assert QualityConfirmations.confirm(stale_file.id, "conflict", stale_link.id) == :ok
+
+    QualityConfirmation
+    |> Repo.get_by!(me_file_id: stale_file.id, trait_relationship_id: stale_link.id)
+    |> Ecto.Changeset.change(
+      confirmed_at: DateTime.add(@now, -20, :day) |> DateTime.truncate(:second)
+    )
+    |> Repo.update!()
+
+    expired = TagQuality.for_me_file(stale_file.id, @now)[stale_parent.id]
+    assert reason(expired, :conflict).status == :yellow
+
+    refute Repo.get_by(QualityConfirmation,
+             me_file_id: stale_file.id,
+             trait_relationship_id: stale_link.id
+           )
+  end
+
+  test "the integrity report counts a live confirmation and keeps an expired row", %{
+    category: category
+  } do
+    parent = parent!(category, "Reported", %{stale_days: 10})
+    child = child!(parent, "A")
+    other = parent!(category, "Reported other", %{})
+    other_child = child!(other, "B")
+
+    {:ok, link} =
+      TraitRelationships.create(%{
+        "trait_id" => child.id,
+        "related_trait_id" => other_child.id,
+        "kind" => "conflicts",
+        "severity" => "soft"
+      })
+
+    me_file = me_file!([child, other_child])
+    assert QualityConfirmations.confirm(me_file.id, "conflict", link.id) == :ok
+
+    assert Enum.any?(TraitIntegrity.report().confirmed_overrides, fn row ->
+             row.relationship_id == link.id and row.count == 1 and row.severity == "soft"
+           end)
+
+    QualityConfirmation
+    |> Repo.get_by!(me_file_id: me_file.id, trait_relationship_id: link.id)
+    |> Ecto.Changeset.change(
+      confirmed_at: DateTime.add(@now, -20, :day) |> DateTime.truncate(:second)
+    )
+    |> Repo.update!()
+
+    refute Enum.any?(
+             TraitIntegrity.report().confirmed_overrides,
+             &(&1.relationship_id == link.id)
+           )
+
+    assert Repo.get_by(QualityConfirmation,
+             me_file_id: me_file.id,
+             trait_relationship_id: link.id
+           )
+  end
+
   test "an exclusive answer kept beside another answer is yellow", %{category: category} do
     parent = parent!(category, "Diet", %{})
     none = child!(parent, "None of these", %{is_exclusive: true})
@@ -252,6 +416,11 @@ defmodule Qlarius.YouData.TagQualityTest do
 
   defp tagged(parent, traits) do
     me_file = me_file!(traits)
+    TagQuality.for_me_file(me_file.id, @now)[parent.id]
+  end
+
+  defp tagged_pair(parent, traits, others) do
+    me_file = me_file!(traits ++ others)
     TagQuality.for_me_file(me_file.id, @now)[parent.id]
   end
 

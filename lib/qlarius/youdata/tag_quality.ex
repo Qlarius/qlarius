@@ -14,6 +14,7 @@ defmodule Qlarius.YouData.TagQuality do
   alias Qlarius.Repo
   alias Qlarius.YouData.MeFiles.MeFile
   alias Qlarius.YouData.MeFiles.MeFileTag
+  alias Qlarius.YouData.QualityConfirmations
   alias Qlarius.YouData.Traits.Trait
   alias Qlarius.YouData.Traits.TraitRelationship
 
@@ -30,6 +31,7 @@ defmodule Qlarius.YouData.TagQuality do
     child_owner = Map.new(rows, &{&1.trait_id, &1.parent_id})
     relationships = relationships(MapSet.to_list(presence) ++ parent_ids)
     names = names_for(relationships, parents, rows)
+    confirmed = QualityConfirmations.prepare(me_file_id, now)
 
     Enum.reduce(by_parent, %{}, fn {parent_id, parent_rows}, acc ->
       parent = Map.get(parents, parent_id)
@@ -37,12 +39,24 @@ defmodule Qlarius.YouData.TagQuality do
       if parent do
         reasons =
           []
-          |> maybe(&count_reason/2, parent, parent_rows)
+          |> maybe(
+            fn parent, rows -> count_reason(parent, rows, confirmed.counts) end,
+            parent,
+            parent_rows
+          )
           |> maybe(&freshness_reason/3, parent, parent_rows, today)
           |> maybe(&exclusive_mix_reason/1, parent_rows)
           |> Kernel.++(
-            consistency_reasons(parent_id, relationships, presence, child_owner, names)
+            consistency_reasons(
+              parent_id,
+              relationships,
+              presence,
+              child_owner,
+              names,
+              confirmed.conflicts
+            )
           )
+          |> collapse_confirmed()
 
         Map.put(acc, parent_id, %{status: status(reasons, parent_rows), reasons: reasons})
       else
@@ -167,7 +181,7 @@ defmodule Qlarius.YouData.TagQuality do
     Map.merge(known, extra)
   end
 
-  defp count_reason(parent, rows) do
+  defp count_reason(parent, rows, confirmed_counts) do
     values = Enum.reject(rows, & &1.skip?)
 
     cond do
@@ -182,7 +196,13 @@ defmodule Qlarius.YouData.TagQuality do
         nil
 
       true ->
-        count_band(parent, length(values))
+        case count_band(parent, length(values)) do
+          %{confirmable: true} = reason ->
+            if MapSet.member?(confirmed_counts, parent.id), do: confirmed_reason(), else: reason
+
+          other ->
+            other
+        end
     end
   end
 
@@ -193,14 +213,15 @@ defmodule Qlarius.YouData.TagQuality do
 
     cond do
       hard != nil and count > hard ->
-        reason(:red, :count, too_many_text(min, max, hard))
+        reason(:red, :count, too_many_text(min, max, hard), %{confirmable: true})
 
-      (min != nil and count < min) or (max != nil and count > max) ->
-        text =
-          if min != nil and count < min,
-            do: "Fewer than usual",
-            else: "For best results, consider selecting fewer tag values."
-        reason(:yellow, :count, text)
+      max != nil and count > max ->
+        reason(:yellow, :count, "For best results, consider selecting fewer tag values.", %{
+          confirmable: true
+        })
+
+      min != nil and count < min ->
+        reason(:yellow, :count, "Fewer than usual")
 
       true ->
         nil
@@ -276,11 +297,11 @@ defmodule Qlarius.YouData.TagQuality do
     end
   end
 
-  defp consistency_reasons(parent_id, relationships, presence, child_owner, names) do
+  defp consistency_reasons(parent_id, relationships, presence, child_owner, names, confirmed) do
     Enum.flat_map(relationships, fn relationship ->
       case relationship.kind do
         "conflicts" ->
-          conflict_reasons(parent_id, relationship, presence, child_owner, names)
+          conflict_reasons(parent_id, relationship, presence, child_owner, names, confirmed)
 
         "requires" ->
           require_reasons(parent_id, relationship, presence, child_owner, names)
@@ -291,7 +312,7 @@ defmodule Qlarius.YouData.TagQuality do
     end)
   end
 
-  defp conflict_reasons(parent_id, relationship, presence, child_owner, names) do
+  defp conflict_reasons(parent_id, relationship, presence, child_owner, names, confirmed) do
     left = relationship.trait_id
     right = relationship.related_trait_id
 
@@ -300,15 +321,22 @@ defmodule Qlarius.YouData.TagQuality do
 
       if parent_id in owners do
         other = if owner(left, child_owner) == parent_id, do: right, else: left
+        local = if other == right, do: left, else: right
 
-        [
-          %{
-            status: :red,
-            check: :conflict,
-            text: conflict_text(relationship, names, other),
-            tag: tag_side(other, child_owner, names)
-          }
-        ]
+        if MapSet.member?(confirmed, relationship.id) do
+          [confirmed_reason()]
+        else
+          [
+            %{
+              status: if(relationship.severity == "soft", do: :yellow, else: :red),
+              check: :conflict,
+              text: conflict_text(relationship, names, parent_id, local, other),
+              tag: tag_side(other, child_owner, names),
+              relationship_id: relationship.id,
+              confirmable: true
+            }
+          ]
+        end
       else
         []
       end
@@ -347,9 +375,24 @@ defmodule Qlarius.YouData.TagQuality do
     end
   end
 
-  defp conflict_text(%{note: note}, _names, _other) when is_binary(note) and note != "", do: note
+  defp conflict_text(%{note: note}, _names, _parent_id, _local_id, _other_id)
+       when is_binary(note) and note != "",
+       do: note
 
-  defp conflict_text(_relationship, names, other_id) do
+  defp conflict_text(%{severity: "soft"}, names, parent_id, local_id, other_id) do
+    other = Map.get(names, other_id, "another tag")
+
+    subject =
+      if local_id == parent_id do
+        Map.get(names, parent_id, "Tag")
+      else
+        "#{Map.get(names, local_id, "Tag")} (#{Map.get(names, parent_id, "Tag")})"
+      end
+
+    "#{subject} is unusual with #{other}. Keep both if accurate."
+  end
+
+  defp conflict_text(_relationship, names, _parent_id, _local_id, other_id) do
     "Conflicts with #{Map.get(names, other_id, "another tag")}"
   end
 
@@ -359,7 +402,18 @@ defmodule Qlarius.YouData.TagQuality do
     "Usually comes with #{Map.get(names, other_id, "another tag")}"
   end
 
-  defp reason(status, check, text), do: %{status: status, check: check, text: text}
+  defp reason(status, check, text, extra \\ %{}) do
+    Map.merge(%{status: status, check: check, text: text}, extra)
+  end
+
+  defp confirmed_reason, do: reason(:green, :confirmed, "Confirmed")
+
+  defp collapse_confirmed(reasons) do
+    Enum.uniq_by(reasons, fn
+      %{check: :confirmed} -> :confirmed
+      reason -> reason
+    end)
+  end
 
   defp status(reasons, rows) do
     case worst(reasons) do

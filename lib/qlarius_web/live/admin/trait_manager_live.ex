@@ -157,6 +157,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
       "trait_id" => params["trait_id"],
       "related_trait_id" => params["related_trait_id"],
       "kind" => params["kind"],
+      "severity" => params["severity"],
       "note" => params["note"]
     }
 
@@ -229,7 +230,10 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
       {:ok, summary} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Marked exclusive: #{summary.created} new links, #{summary.skipped} already there.")
+         |> put_flash(
+           :info,
+           "Marked exclusive: #{summary.created} new links, #{summary.skipped} already there."
+         )
          |> assign_relationships(parent.id)}
 
       {:error, _} ->
@@ -840,6 +844,10 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
     assign(socket, :trait_relationships, TraitRelationships.list_for_parent(parent_id))
   end
 
+  defp relationship_label(%{kind: "conflicts", severity: "soft"}), do: "conflicts · soft"
+  defp relationship_label(%{kind: "conflicts"}), do: "conflicts · hard"
+  defp relationship_label(%{kind: kind}), do: kind
+
   defp relationship_error(changeset) do
     changeset.errors
     |> Enum.map(fn {field, {message, _}} -> "#{field} #{message}" end)
@@ -855,7 +863,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
     <div class="border-t border-base-300 px-6 py-4">
       <h3 class="text-sm font-semibold">Relationships</h3>
       <p class="mt-1 text-xs text-base-content/60">
-        Conflicts light both tags. Requires lights only the first trait, when the second is missing.
+        Hard conflicts light both tags red. Soft conflicts light them yellow. Requires lights only the first trait, when the second is missing.
       </p>
       <ul :if={@trait_relationships != []} class="mt-3 space-y-2">
         <li
@@ -863,7 +871,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
           class="flex items-start justify-between gap-3 text-sm"
         >
           <span class="min-w-0">
-            <span class="font-medium">{relationship.kind}</span>
+            <span class="font-medium">{relationship_label(relationship)}</span>
             {relationship.trait.trait_name} and {relationship.related_trait.trait_name}
             <span :if={relationship.note} class="block text-xs text-base-content/60">
               {relationship.note}
@@ -888,6 +896,10 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
           <select name="kind" class="select select-sm w-full">
             <option value="conflicts">Conflicts</option>
             <option value="requires">Requires</option>
+          </select>
+          <select name="severity" class="select select-sm w-full">
+            <option value="hard">Hard</option>
+            <option value="soft">Soft</option>
           </select>
           <select name="trait_id" class="select select-sm w-full">
             <option value={@parent_trait.id}>{@parent_trait.trait_name}</option>

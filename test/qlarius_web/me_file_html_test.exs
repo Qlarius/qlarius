@@ -190,11 +190,49 @@ defmodule QlariusWeb.MeFileHTMLTest do
       assert MeFileHTML.visible_tag_statuses(list, quality) == ~w(all green yellow neutral)
     end
 
+    test "confirmed keeps a green tag that is green by override", %{
+      category: category,
+      green: green
+    } do
+      confirmed = {50, "Beer", 5, [{501, "Lager", 1}]}
+      still_yellow = {20, "Diet", 2, [{201, "Vegan", 1}]}
+      list = [{category, [green, confirmed, still_yellow]}]
+
+      quality = %{
+        10 => %{status: :green, reasons: []},
+        50 => %{status: :green, reasons: [%{check: :confirmed, text: "Confirmed"}]},
+        20 => %{status: :yellow, reasons: [%{check: :confirmed, text: "Confirmed"}]}
+      }
+
+      assert MeFileHTML.filter_tag_map_by_status(list, "confirmed", quality) == [
+               {category, [confirmed]}
+             ]
+
+      assert MeFileHTML.filter_tag_map_by_status(list, "green", quality) == [
+               {category, [green, confirmed]}
+             ]
+
+      assert MeFileHTML.visible_tag_statuses(list, quality) ==
+               ~w(all green confirmed yellow)
+    end
+
     test "an all-green file has no status selector", %{category: category, green: green} do
       list = [{category, [green]}]
       quality = %{10 => %{status: :green, reasons: []}}
 
       assert MeFileHTML.visible_tag_statuses(list, quality) == []
+    end
+
+    test "an override among green tags shows the check", %{category: category, green: green} do
+      confirmed = {50, "Beer", 5, [{501, "Lager", 1}]}
+      list = [{category, [green, confirmed]}]
+
+      quality = %{
+        10 => %{status: :green, reasons: []},
+        50 => %{status: :green, reasons: [%{check: :confirmed, text: "Confirmed"}]}
+      }
+
+      assert MeFileHTML.visible_tag_statuses(list, quality) == ~w(all green confirmed)
     end
 
     test "one status besides green also hides the selector", %{

@@ -16,6 +16,10 @@ defmodule QlariusWeb.MeFileHTML do
 
   defp conflict_reasons(_), do: []
 
+  defp conflict_tone(quality) do
+    if Enum.any?(conflict_reasons(quality), &(&1.status == :red)), do: "red", else: "yellow"
+  end
+
   defp conflict_tags(quality) do
     quality
     |> conflict_reasons()
@@ -36,7 +40,12 @@ defmodule QlariusWeb.MeFileHTML do
         |> Enum.uniq()
         |> collapse_repeated_reasons()
 
-      %{parent: hd(tags).parent, value: Enum.join(values, " · "), reasons: texts}
+      items =
+        reasons
+        |> Enum.map(&%{text: &1.text, relationship_id: &1.relationship_id})
+        |> Enum.uniq_by(& &1.relationship_id)
+
+      %{parent: hd(tags).parent, value: Enum.join(values, " · "), reasons: texts, items: items}
     end)
   end
 
@@ -185,7 +194,10 @@ defmodule QlariusWeb.MeFileHTML do
             </div>
           </div>
           <div :if={@trait_in_edit && conflict_reasons(@quality) != []} class="tag-conflicts">
-            <span class="trait-signal trait-signal--inline trait-signal--red" aria-hidden="true">
+            <span
+              class={"trait-signal trait-signal--inline trait-signal--#{conflict_tone(@quality)}"}
+              aria-hidden="true"
+            >
             </span>
             <span>Conflicting tags detected</span>
             <.popover
@@ -199,17 +211,41 @@ defmodule QlariusWeb.MeFileHTML do
               </:trigger>
               <:content>
                 <div class="tag-conflicts__tags">
-                  <div :for={tag <- conflict_tags(@quality)} class="trait-tag">
-                    <span class="trait-tag__name">{tag.parent}</span>
-                    <span :if={tag.value != ""} class="trait-tag__values">{tag.value}</span>
-                    <span :for={text <- tag.reasons} class="tag-conflicts__reason">{text}</span>
+                  <div :for={tag <- conflict_tags(@quality)}>
+                    <div class="trait-tag">
+                      <span class="trait-tag__name">{tag.parent}</span>
+                      <span :if={tag.value != ""} class="trait-tag__values">{tag.value}</span>
+                      <span :for={text <- tag.reasons} class="tag-conflicts__reason">{text}</span>
+                    </div>
+                    <button
+                      :for={item <- tag.items}
+                      type="button"
+                      class="tag-conflicts__confirm"
+                      phx-click="confirm_quality"
+                      phx-value-kind="conflict"
+                      phx-value-id={item.relationship_id}
+                    >
+                      Tag is accurate as is
+                    </button>
                   </div>
                 </div>
               </:content>
             </.popover>
           </div>
           <ul :if={@quality && other_quality_reasons(@quality) != []} class="tag-quality">
-            <li :for={reason <- other_quality_reasons(@quality)}>{reason.text}</li>
+            <li :for={reason <- other_quality_reasons(@quality)} class="tag-quality__item">
+              <span>{reason.text}</span>
+              <button
+                :if={Map.get(reason, :confirmable)}
+                type="button"
+                class="tag-quality__confirm"
+                phx-click="confirm_quality"
+                phx-value-kind="count"
+                phx-value-id={@trait_in_edit.id}
+              >
+                Tag is accurate as is
+              </button>
+            </li>
           </ul>
         </div>
 
@@ -946,6 +982,7 @@ defmodule QlariusWeb.MeFileHTML do
 
   @doc """
   Keeps parents whose integrity status is green, yellow, or red.
+  "confirmed" keeps a green tag whose green comes from an override.
   "neutral" keeps a skip and any tag with no color. "all" leaves the map
   alone. Categories left with nothing are dropped.
   """
@@ -960,6 +997,10 @@ defmodule QlariusWeb.MeFileHTML do
     filter_parents(tag_categories, &neutral_parent?(&1, quality))
   end
 
+  def filter_tag_map_by_status(tag_categories, "confirmed", quality) do
+    filter_parents(tag_categories, &confirmed_parent?(&1, quality))
+  end
+
   def filter_tag_map_by_status(tag_categories, status, quality)
       when status in ["green", "yellow", "red"] do
     status = String.to_existing_atom(status)
@@ -968,12 +1009,13 @@ defmodule QlariusWeb.MeFileHTML do
 
   @doc """
   Status pills worth showing. A color appears only when at least one tag has
-  it. The selector itself stays hidden when every tag shares one status,
-  including a file that is entirely green.
+  it, and the check appears when a green tag is green because of an override.
+  The selector itself stays hidden when every tag shares one status,
+  including a file that is entirely green with no overrides.
   """
   def visible_tag_statuses(tag_categories, quality \\ %{}) do
     present =
-      ~w(green yellow red neutral)
+      ~w(green confirmed yellow red neutral)
       |> Enum.filter(&(tag_status_count(tag_categories, &1, quality) > 0))
 
     if length(present) > 1, do: ["all" | present], else: []
@@ -996,6 +1038,16 @@ defmodule QlariusWeb.MeFileHTML do
 
   defp parent_status?({id, _name, _order, _tags}, status, quality) do
     match?(%{status: ^status}, Map.get(quality || %{}, id))
+  end
+
+  defp confirmed_parent?({id, _name, _order, _tags}, quality) do
+    case Map.get(quality || %{}, id) do
+      %{status: :green, reasons: reasons} when is_list(reasons) ->
+        Enum.any?(reasons, &(&1.check == :confirmed))
+
+      _ ->
+        false
+    end
   end
 
   defp neutral_parent?({id, _name, _order, _tags}, quality) do

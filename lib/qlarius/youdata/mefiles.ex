@@ -4,6 +4,7 @@ defmodule Qlarius.YouData.MeFiles do
   alias Qlarius.YouData.Traits.Trait
   alias Qlarius.Repo
   alias Qlarius.YouData.Surveys.SurveyQuestion
+  alias Qlarius.YouData.QualityConfirmations
   alias Qlarius.YouData.StrongStart
   alias Qlarius.System
 
@@ -102,8 +103,12 @@ defmodule Qlarius.YouData.MeFiles do
           })
           |> Repo.insert()
           |> case do
-            {:ok, _} -> broadcast_tag_stats(me_file.id)
-            _ -> :ok
+            {:ok, _} ->
+              QualityConfirmations.clear_for_parent(me_file.id, 93)
+              broadcast_tag_stats(me_file.id)
+
+            _ ->
+              :ok
           end
         end
       end
@@ -239,24 +244,8 @@ defmodule Qlarius.YouData.MeFiles do
 
     case result do
       {:ok, _} ->
-        Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker.new(%{me_file_id: me_file_id})
-        |> Oban.insert()
-
-        me_file = Repo.get(MeFile, me_file_id)
-        tag_goal = System.get_global_variable_int("STRONG_START_TAG_GOAL", 25)
-
-        if MeFile.trait_tag_count(me_file) >= tag_goal do
-          StrongStart.mark_step_complete(me_file, "tags_25_reached")
-        end
-
-        check_and_mark_survey_complete(me_file, parent_trait_id)
-
-        # Answering a trait resolves any pending assistant suggestion for it,
-        # regardless of which surface the user answered through.
-        Qlarius.MeCP.Suggestions.accept_pending_for_trait(me_file_id, parent_trait_id)
-        broadcast_tag_stats(me_file_id)
-
-        :ok
+        QualityConfirmations.clear_for_parent(me_file_id, parent_trait_id)
+        finish_tag_save(me_file_id, parent_trait_id)
 
       {:error, _} ->
         :ok
@@ -305,28 +294,33 @@ defmodule Qlarius.YouData.MeFiles do
 
     case result do
       {:ok, _} ->
-        Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker.new(%{me_file_id: me_file_id})
-        |> Oban.insert()
-
-        me_file = Repo.get(MeFile, me_file_id)
-        tag_goal = System.get_global_variable_int("STRONG_START_TAG_GOAL", 25)
-
-        if MeFile.trait_tag_count(me_file) >= tag_goal do
-          StrongStart.mark_step_complete(me_file, "tags_25_reached")
-        end
-
-        check_and_mark_survey_complete(me_file, parent_trait_id)
-
-        # Answering a trait resolves any pending assistant suggestion for it,
-        # regardless of which surface the user answered through.
-        Qlarius.MeCP.Suggestions.accept_pending_for_trait(me_file_id, parent_trait_id)
-        broadcast_tag_stats(me_file_id)
-
-        :ok
+        QualityConfirmations.clear_for_parent(me_file_id, parent_trait_id)
+        finish_tag_save(me_file_id, parent_trait_id)
 
       {:error, _} ->
         :ok
     end
+  end
+
+  defp finish_tag_save(me_file_id, parent_trait_id) do
+    Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker.new(%{me_file_id: me_file_id})
+    |> Oban.insert()
+
+    me_file = Repo.get(MeFile, me_file_id)
+    tag_goal = System.get_global_variable_int("STRONG_START_TAG_GOAL", 25)
+
+    if MeFile.trait_tag_count(me_file) >= tag_goal do
+      StrongStart.mark_step_complete(me_file, "tags_25_reached")
+    end
+
+    check_and_mark_survey_complete(me_file, parent_trait_id)
+
+    # Answering a trait resolves any pending assistant suggestion for it,
+    # regardless of which surface the user answered through.
+    Qlarius.MeCP.Suggestions.accept_pending_for_trait(me_file_id, parent_trait_id)
+    broadcast_tag_stats(me_file_id)
+
+    :ok
   end
 
   @doc """
@@ -379,6 +373,8 @@ defmodule Qlarius.YouData.MeFiles do
 
     case result do
       {:ok, {_count, deleted_trait_ids}} ->
+        QualityConfirmations.clear_for_parent(me_file_id, parent_trait_id)
+
         Qlarius.Jobs.SyncMeFileToTargetPopulationsWorker.new(%{
           me_file_id: me_file_id,
           deleted_trait_ids: deleted_trait_ids

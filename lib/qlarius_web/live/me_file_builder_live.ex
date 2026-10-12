@@ -7,6 +7,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
   alias Qlarius.YouData.MeFiles
   alias Qlarius.YouData.TraitSearch
   alias Qlarius.YouData.Traits
+  alias Qlarius.YouData.QualityConfirmations
   alias Qlarius.YouData.TagQuality
   alias Qlarius.YouData.TraitNudges
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
@@ -77,11 +78,13 @@ defmodule QlariusWeb.MeFileBuilderLive do
                 </p>
               <% true -> %>
                 <p class="survey-progress__label">
-                  {answered} of {total} answered
-                  <.survey_status_mark :if={alert} status={alert} />
+                  {answered} of {total} answered <.survey_status_mark :if={alert} status={alert} />
                 </p>
                 <span class="progress-line" aria-hidden="true">
-                  <span class="progress-line__fill" style={"width: #{survey_percent(answered, total)}%"}>
+                  <span
+                    class="progress-line__fill"
+                    style={"width: #{survey_percent(answered, total)}%"}
+                  >
                   </span>
                 </span>
             <% end %>
@@ -347,7 +350,10 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:highlight_child_ids, [])
       |> assign(:chat_note, nil)
       |> assign(:tag_quality, TagQuality.for_me_file(me_file_id))
-      |> assign(:nudges, TraitNudges.due(me_file_id, DateTime.utc_now(), record: connected?(socket)))
+      |> assign(
+        :nudges,
+        TraitNudges.due(me_file_id, DateTime.utc_now(), record: connected?(socket))
+      )
       |> assign_tag_display_mode()
       |> ZipCodeLookup.initialize_zip_lookup_assigns()
       |> init_pwa_assigns(session)
@@ -526,6 +532,15 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
   def handle_event("cancel_delete_confirm", _params, socket) do
     {:noreply, assign(socket, :show_delete_confirm, false)}
+  end
+
+  def handle_event("confirm_quality", %{"kind" => kind, "id" => id}, socket) do
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+
+    case QualityConfirmations.confirm(me_file_id, kind, id) do
+      :ok -> {:noreply, assign_tag_quality(socket)}
+      :error -> {:noreply, socket}
+    end
   end
 
   def handle_event(

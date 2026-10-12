@@ -4,6 +4,7 @@ defmodule QlariusWeb.MeFileLive do
   alias Qlarius.YouData.Traits
   alias Qlarius.YouData.TraitSearch
   alias Qlarius.YouData.MeFiles
+  alias Qlarius.YouData.QualityConfirmations
   alias Qlarius.YouData.TagQuality
   alias QlariusWeb.Live.Helpers.ZipCodeLookup
 
@@ -54,12 +55,13 @@ defmodule QlariusWeb.MeFileLive do
                 class={status != "all" && "mefile-status__color"}
                 phx-click="set_tag_status"
                 phx-value-status={status}
-                aria-label={if(status == "all", do: "All", else: String.capitalize(status))}
+                aria-label={status_pill_label(status)}
                 aria-pressed={to_string(@tag_status == status)}
               >
                 <span :if={status == "all"}>All</span>
+                <.icon :if={status == "confirmed"} name="hero-check" class="!size-3.5 text-success" />
                 <span
-                  :if={status != "all"}
+                  :if={status not in ["all", "confirmed"]}
                   class={"mefile-status__dot trait-signal--#{status}"}
                   aria-hidden="true"
                 >
@@ -156,6 +158,15 @@ defmodule QlariusWeb.MeFileLive do
     #   |> assign_categories()
 
     {:noreply, socket}
+  end
+
+  def handle_event("confirm_quality", %{"kind" => kind, "id" => id}, socket) do
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+
+    case QualityConfirmations.confirm(me_file_id, kind, id) do
+      :ok -> {:noreply, assign_tag_quality(socket)}
+      :error -> {:noreply, socket}
+    end
   end
 
   def handle_event(
@@ -268,7 +279,7 @@ defmodule QlariusWeb.MeFileLive do
   end
 
   def handle_event("set_tag_status", %{"status" => status}, socket)
-      when status in ~w(all green yellow red neutral) do
+      when status in ~w(all green confirmed yellow red neutral) do
     {:noreply,
      socket
      |> assign(:tag_status, status)
@@ -556,6 +567,10 @@ defmodule QlariusWeb.MeFileLive do
       count + length(parents)
     end)
   end
+
+  defp status_pill_label("all"), do: "All"
+  defp status_pill_label("confirmed"), do: "Confirmed"
+  defp status_pill_label(status), do: String.capitalize(status)
 
   defp status_count_label(tag_display_map) do
     n = displayed_tag_count(tag_display_map)

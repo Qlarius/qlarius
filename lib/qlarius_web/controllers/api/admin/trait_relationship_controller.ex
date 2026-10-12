@@ -30,18 +30,23 @@ defmodule QlariusWeb.Api.Admin.TraitRelationshipController do
   end
 
   def create(conn, params) do
-    attrs = %{
-      "trait_id" => params["trait_id"],
-      "related_trait_id" => params["related_trait_id"],
-      "kind" => params["kind"] || params["type"],
-      "note" => params["note"]
-    }
+    attrs =
+      %{
+        "trait_id" => params["trait_id"],
+        "related_trait_id" => params["related_trait_id"],
+        "kind" => params["kind"] || params["type"],
+        "note" => params["note"]
+      }
+      |> put_severity(params)
 
     case TraitRelationships.create(attrs) do
       {:ok, relationship} ->
         conn
         |> put_status(201)
-        |> json(%{relationship: TraitRelationships.to_json(relationship), warnings: TraitRelationships.warnings(relationship)})
+        |> json(%{
+          relationship: TraitRelationships.to_json(relationship),
+          warnings: TraitRelationships.warnings(relationship)
+        })
 
       {:error, reason} ->
         Responder.error(conn, reason)
@@ -69,6 +74,7 @@ defmodule QlariusWeb.Api.Admin.TraitRelationshipController do
       %{}
       |> put_present("note", params)
       |> put_kind(params)
+      |> put_severity(params)
 
     case TraitRelationships.get(id) do
       nil ->
@@ -106,6 +112,13 @@ defmodule QlariusWeb.Api.Admin.TraitRelationshipController do
   defp put_kind(attrs, params) do
     kind = params["type"] || params["kind"]
     if kind in [nil, ""], do: attrs, else: Map.put(attrs, "kind", kind)
+  end
+
+  defp put_severity(attrs, params) do
+    case params["severity"] do
+      severity when severity in [nil, ""] -> attrs
+      severity -> Map.put(attrs, "severity", severity)
+    end
   end
 
   defp integer(value) when is_integer(value), do: value

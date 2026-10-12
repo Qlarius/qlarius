@@ -304,6 +304,7 @@ defmodule Qlarius.YouData.TraitRelationships do
       related_trait_id: relationship.related_trait_id,
       related_trait_name: relationship.related_trait.trait_name,
       kind: relationship.kind,
+      severity: relationship.severity,
       note: relationship.note
     }
   end
@@ -330,12 +331,14 @@ defmodule Qlarius.YouData.TraitRelationships do
   end
 
   defp create_item(item) when is_map(item) do
-    attrs = %{
-      "trait_id" => int(item["trait_id"]),
-      "related_trait_id" => int(item["related_trait_id"]),
-      "kind" => item["type"] || item["kind"],
-      "note" => item["note"]
-    }
+    attrs =
+      %{
+        "trait_id" => int(item["trait_id"]),
+        "related_trait_id" => int(item["related_trait_id"]),
+        "kind" => item["type"] || item["kind"],
+        "note" => item["note"]
+      }
+      |> put_severity(item)
 
     case create(attrs) do
       {:ok, relationship} ->
@@ -354,6 +357,13 @@ defmodule Qlarius.YouData.TraitRelationships do
   end
 
   defp create_item(_), do: %{status: "error", errors: %{"item" => ["must be an object"]}}
+
+  defp put_severity(attrs, item) do
+    case item["severity"] do
+      severity when severity in [nil, ""] -> attrs
+      severity -> Map.put(attrs, "severity", severity)
+    end
+  end
 
   defp delete_item(id) when is_integer(id), do: delete_by_id(id)
 

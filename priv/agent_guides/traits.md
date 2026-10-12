@@ -140,6 +140,12 @@ key out keeps it.
   is yellow: "For best results, consider selecting fewer tag values." Over
   the hard maximum is red: "Too many selected. Advertisers will likely
   suspect and exclude." followed by the ideal range when one is set.
+- Those ranges are estimates. On a too-many warning, yellow or red, the
+  person can tap "Tag is accurate as is" after reading that a wide set can work
+  against them. The tag goes green and shows "Confirmed". "Fewer than usual"
+  has no such button. Saving that parent, even with the same values, deletes
+  the confirmation. It also ends after the parent's `stale_days`, counted
+  from the tap. If `stale_days` is null, only a save clears it.
 
 ### Freshness, on any parent
 
@@ -163,16 +169,26 @@ The same PATCH, with `unripe_days`, `ripen_days`, `stale_days`, and
 ### Relationships
 
 `POST /api/admin/trait_relationships` with `trait_id`, `related_trait_id`,
-`kind` (`conflicts` or `requires`), and an optional `note` written for the
-person who owns the MeFile ("You can't have 0 children and also have a
-son"). `DELETE /api/admin/trait_relationships/:id` removes one.
+`kind` (`conflicts` or `requires`), an optional `severity` (`hard` or
+`soft`, conflicts only), and an optional `note` written for the person who
+owns the MeFile ("You can't have 0 children and also have a son").
+`DELETE /api/admin/trait_relationships/:id` removes one.
 `GET /api/admin/trait_relationships?trait_id=` lists the ones touching a
 trait.
 
-- `conflicts` is red and points both ways. Store it once; the API keeps the
-  two ids in a fixed order. Use it for values that cannot both be true,
-  including "this child conflicts with any value of that parent" by passing
-  the parent id.
+- `conflicts` points both ways. Store it once; the API keeps the two ids in
+  a fixed order. Use it for values that cannot both be true, including
+  "this child conflicts with any value of that parent" by passing the
+  parent id. `severity` defaults to `hard`, which is red. `soft` is yellow.
+  With no note, a soft link reads "{value} ({parent}) is unusual with
+  {other}. Keep both if accurate." A `note` replaces that sentence. Do not
+  rewrite notes that are already stored.
+- A person who sees a hard or soft conflict can tap "Tag is accurate as is" and
+  keep both answers. That pair goes green with a "Confirmed" note and stops
+  coloring the tag. Saving either parent deletes the confirmation, even when
+  the values do not change. It also ends after the shorter `stale_days` of
+  the two parents, counted from the tap. If neither parent has `stale_days`,
+  only a save clears it. Confirming a pair does not change ad targeting.
 - `requires` is yellow and points one way: the first trait needs the second.
   Use it when one tag is incomplete without another ("working on my golf
   game" requires Golf under Activities).
@@ -228,15 +244,17 @@ writes nothing. If any item is an error, nothing is written.
 `POST /api/admin/trait_relationships/bulk`
 
 ```json
-{"create": [{"trait_id": 1, "related_trait_id": 2, "type": "conflicts", "note": "..."}], "delete": [10, {"trait_id": 3, "related_trait_id": 4, "type": "requires"}], "dry_run": false}
+{"create": [{"trait_id": 1, "related_trait_id": 2, "type": "conflicts", "severity": "soft", "note": "..."}], "delete": [10, {"trait_id": 3, "related_trait_id": 4, "type": "requires"}], "dry_run": false}
 ```
 
-`type` and `kind` are the same field (`conflicts` or `requires`). Each result
-is `created`, `exists`, `deleted`, `not_found`, or `error`, and created or
-existing links include the same `warnings` as a single POST.
+`type` and `kind` are the same field (`conflicts` or `requires`). `severity`
+is `hard` or `soft` and applies to conflicts; leave it out for hard. Each
+result is `created`, `exists`, `deleted`, `not_found`, or `error`, and
+created or existing links include the same `warnings` as a single POST.
 
-`PATCH /api/admin/trait_relationships/:id` changes `note` or `type` in place.
-Leave a key out to keep it. `null` clears a note.
+`PATCH /api/admin/trait_relationships/:id` changes `note`, `type`, or
+`severity` in place. Leave a key out to keep it. `null` clears a note.
+`severity` left out stays as it is. `requires` ignores `severity`.
 
 `PATCH /api/admin/traits/bulk_rules`
 
@@ -288,6 +306,14 @@ by everyone who answered), skips in the last 30 and 90 days, and the
 survey name. A rate above the threshold is `review_wording` and also an
 issue: the question may need different wording. Sort your review by skip
 rate.
+
+`confirmed_overrides` lists links and parents that people are currently
+confirming, highest count first. A conflict row has `relationship_id`, both
+trait ids, `severity`, and `count`. A count row has the parent `trait_id`
+and `count`. A link people often confirm should be softened or removed. A
+parent people often confirm should have a wider range. These are not
+catalog issues. The report does not delete expired confirmations; a row
+older than the relevant `stale_days` is left out of the count.
 
 The checks are:
 

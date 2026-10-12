@@ -7,6 +7,7 @@ defmodule Qlarius.YouData.TraitIntegrity do
 
   alias Qlarius.Repo
   alias Qlarius.YouData.MeFiles.MeFileTag
+  alias Qlarius.YouData.QualityConfirmations
   alias Qlarius.YouData.Surveys
   alias Qlarius.YouData.Surveys.{Survey, SurveyAnswer, SurveyQuestion}
   alias Qlarius.YouData.TraitRelationships
@@ -46,7 +47,8 @@ defmodule Qlarius.YouData.TraitIntegrity do
       summary: summary(issues),
       skip_rate_threshold: threshold,
       skip_monitoring: monitoring,
-      issues: issues
+      issues: issues,
+      confirmed_overrides: QualityConfirmations.report()
     }
   end
 
@@ -368,7 +370,12 @@ defmodule Qlarius.YouData.TraitIntegrity do
     |> Enum.map(fn row ->
       issue(
         "high_skip_rate",
-        %{id: row.parent_id, name: row.parent_name, parent_id: row.parent_id, parent_name: row.parent_name},
+        %{
+          id: row.parent_id,
+          name: row.parent_name,
+          parent_id: row.parent_id,
+          parent_name: row.parent_name
+        },
         counts,
         row.parent_id
       )

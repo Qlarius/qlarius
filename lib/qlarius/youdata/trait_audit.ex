@@ -100,6 +100,7 @@ defmodule Qlarius.YouData.TraitAudit do
       "trait_id" => relationship.trait_id,
       "related_trait_id" => relationship.related_trait_id,
       "kind" => relationship.kind,
+      "severity" => relationship.severity,
       "note" => relationship.note
     }
   end

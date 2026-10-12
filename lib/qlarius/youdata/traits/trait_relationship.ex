@@ -5,9 +5,11 @@ defmodule Qlarius.YouData.Traits.TraitRelationship do
   alias Qlarius.YouData.Traits.Trait
 
   @kinds ~w(conflicts requires)
+  @severities ~w(hard soft)
 
   schema "trait_relationships" do
     field :kind, :string
+    field :severity, :string, default: "hard"
     field :note, :string
 
     belongs_to :trait, Trait
@@ -18,12 +20,16 @@ defmodule Qlarius.YouData.Traits.TraitRelationship do
 
   def kinds, do: @kinds
 
+  def severities, do: @severities
+
   def changeset(relationship, attrs) do
     relationship
-    |> cast(attrs, [:trait_id, :related_trait_id, :kind, :note])
+    |> cast(attrs, [:trait_id, :related_trait_id, :kind, :note, :severity])
     |> update_change(:note, &blank_note/1)
     |> validate_required([:trait_id, :related_trait_id, :kind])
     |> validate_inclusion(:kind, @kinds)
+    |> normalize_severity()
+    |> validate_inclusion(:severity, @severities)
     |> canonicalize_conflict()
     |> validate_not_self()
     |> foreign_key_constraint(:trait_id)
@@ -32,6 +38,24 @@ defmodule Qlarius.YouData.Traits.TraitRelationship do
       name: :trait_relationships_pair_kind_index,
       message: "already exists"
     )
+  end
+
+  # Requires stays a yellow miss and does not use severity. A blank conflict
+  # severity is the historical hard link.
+  defp normalize_severity(changeset) do
+    case get_field(changeset, :kind) do
+      "conflicts" ->
+        case get_field(changeset, :severity) do
+          severity when severity in [nil, ""] -> put_change(changeset, :severity, "hard")
+          _ -> changeset
+        end
+
+      "requires" ->
+        put_change(changeset, :severity, "hard")
+
+      _ ->
+        changeset
+    end
   end
 
   # A conflict is the same either way, so store the smaller id first.

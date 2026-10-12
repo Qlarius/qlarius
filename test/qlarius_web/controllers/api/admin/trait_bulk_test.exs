@@ -73,11 +73,18 @@ defmodule QlariusWeb.Api.Admin.TraitBulkTest do
     cleared =
       ctx.token
       |> authed()
-      |> post(~p"/api/admin/traits/#{ctx.parent.id}/children/#{ctx.none.id}/unmake_exclusive", %{})
+      |> post(
+        ~p"/api/admin/traits/#{ctx.parent.id}/children/#{ctx.none.id}/unmake_exclusive",
+        %{}
+      )
       |> json_response(200)
 
     assert cleared["deleted"] == 2
-    assert Repo.get_by(TraitRelationship, trait_id: min(ctx.none.id, outside.id), related_trait_id: max(ctx.none.id, outside.id))
+
+    assert Repo.get_by(TraitRelationship,
+             trait_id: min(ctx.none.id, outside.id),
+             related_trait_id: max(ctx.none.id, outside.id)
+           )
   end
 
   test "a new child inherits an exclusive sibling's conflicts", ctx do
@@ -173,6 +180,7 @@ defmodule QlariusWeb.Api.Admin.TraitBulkTest do
       |> json_response(200)
 
     assert hd(created["results"])["status"] == "created"
+    assert hd(created["results"])["relationship"]["severity"] == "hard"
     refute created["rolled_back"]
 
     again =
@@ -219,7 +227,10 @@ defmodule QlariusWeb.Api.Admin.TraitBulkTest do
     patched =
       ctx.token
       |> authed()
-      |> patch(~p"/api/admin/trait_relationships/#{link_id}", %{"note" => "Choose one", "type" => "conflicts"})
+      |> patch(~p"/api/admin/trait_relationships/#{link_id}", %{
+        "note" => "Choose one",
+        "type" => "conflicts"
+      })
       |> json_response(200)
 
     assert patched["relationship"]["note"] == "Choose one"
@@ -239,7 +250,10 @@ defmodule QlariusWeb.Api.Admin.TraitBulkTest do
     parent = Repo.get!(Trait, ctx.parent.id)
     assert parent.ripen_days == 7
     assert parent.nudge_text == "Helps"
-    refute Repo.exists?(from t in Trait, where: t.parent_trait_id == ^parent.id and t.is_skipped_tag == true)
+
+    refute Repo.exists?(
+             from t in Trait, where: t.parent_trait_id == ^parent.id and t.is_skipped_tag == true
+           )
 
     kept =
       ctx.token
@@ -294,7 +308,11 @@ defmodule QlariusWeb.Api.Admin.TraitBulkTest do
     assert Enum.map(terms["results"], & &1["status"]) == ["updated", "updated"]
     assert Repo.get!(Trait, ctx.parent.id).search_terms == ["eating"]
     assert Repo.get!(Trait, ctx.fish.id).search_terms == ["seafood"]
-    refute Repo.exists?(from t in Trait, where: t.parent_trait_id == ^ctx.parent.id and t.is_skipped_tag == true)
+
+    refute Repo.exists?(
+             from t in Trait,
+               where: t.parent_trait_id == ^ctx.parent.id and t.is_skipped_tag == true
+           )
   end
 
   test "changes are logged with the token label, before, and after", ctx do

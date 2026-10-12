@@ -5,6 +5,8 @@ defmodule QlariusWeb.Api.Admin.TraitControllerTest do
 
   alias Qlarius.Accounts.{AdminApiTokens, User}
   alias Qlarius.Repo
+  alias Qlarius.YouData.MeFiles.MeFile
+  alias Qlarius.YouData.QualityConfirmations
   alias Qlarius.YouData.Surveys.{SurveyAnswer, SurveyQuestion}
   alias Qlarius.YouData.Traits.Trait
 
@@ -266,6 +268,7 @@ defmodule QlariusWeb.Api.Admin.TraitControllerTest do
     assert relationship["trait_id"] == min(knitting.id, ctx.pottery.id)
     assert relationship["related_trait_id"] == max(knitting.id, ctx.pottery.id)
     assert relationship["note"] == "Pick one craft"
+    assert relationship["severity"] == "hard"
 
     listed =
       ctx.token
@@ -324,7 +327,13 @@ defmodule QlariusWeb.Api.Admin.TraitControllerTest do
       })
       |> json_response(201)
 
-    assert [%{"trait_name" => "Prefer not to say", "is_skipped_tag" => true, "is_exclusive" => true}] =
+    assert [
+             %{
+               "trait_name" => "Prefer not to say",
+               "is_skipped_tag" => true,
+               "is_exclusive" => true
+             }
+           ] =
              body["inserted_children"]
 
     exempt =
@@ -384,6 +393,87 @@ defmodule QlariusWeb.Api.Admin.TraitControllerTest do
     assert "a child conflicts with its own parent" in body["warnings"]
   end
 
+  test "conflict severity can be set, and live confirmations show in the report", ctx do
+    created =
+      ctx.token
+      |> authed()
+      |> post(~p"/api/admin/trait_relationships", %{
+        "trait_id" => ctx.pottery.id,
+        "related_trait_id" => ctx.crafts.id,
+        "kind" => "conflicts",
+        "severity" => "soft"
+      })
+      |> json_response(201)
+
+    assert created["relationship"]["severity"] == "soft"
+    id = created["relationship"]["id"]
+
+    kept =
+      ctx.token
+      |> authed()
+      |> patch(~p"/api/admin/trait_relationships/#{id}", %{"note" => "Unusual"})
+      |> json_response(200)
+
+    assert kept["relationship"]["severity"] == "soft"
+    assert kept["relationship"]["note"] == "Unusual"
+
+    hardened =
+      ctx.token
+      |> authed()
+      |> patch(~p"/api/admin/trait_relationships/#{id}", %{"severity" => "hard"})
+      |> json_response(200)
+
+    assert hardened["relationship"]["severity"] == "hard"
+
+    ctx.token
+    |> authed()
+    |> patch(~p"/api/admin/trait_relationships/#{id}", %{"severity" => "maybe"})
+    |> json_response(422)
+
+    requires =
+      ctx.token
+      |> authed()
+      |> post(~p"/api/admin/trait_relationships/bulk", %{
+        "create" => [
+          %{
+            "trait_id" => ctx.pottery.id,
+            "related_trait_id" => ctx.crafts.id,
+            "type" => "requires",
+            "severity" => "soft"
+          }
+        ]
+      })
+      |> json_response(200)
+
+    assert hd(requires["results"])["relationship"]["severity"] == "hard"
+
+    me_file = Repo.insert!(%MeFile{})
+    assert QualityConfirmations.confirm(me_file.id, "conflict", id) == :ok
+    assert QualityConfirmations.confirm(me_file.id, "count", ctx.crafts.id) == :ok
+
+    body =
+      ctx.token
+      |> authed()
+      |> get(~p"/api/admin/traits/integrity_report")
+      |> json_response(200)
+
+    conflict =
+      Enum.find(
+        body["confirmed_overrides"],
+        &(&1["kind"] == "conflict" and &1["relationship_id"] == id)
+      )
+
+    count =
+      Enum.find(
+        body["confirmed_overrides"],
+        &(&1["kind"] == "count" and &1["trait_id"] == ctx.crafts.id)
+      )
+
+    assert conflict["count"] == 1
+    assert conflict["severity"] == "hard"
+    assert count["count"] == 1
+  end
+
   test "the integrity report is read only", ctx do
     body =
       ctx.token
@@ -394,6 +484,7 @@ defmodule QlariusWeb.Api.Admin.TraitControllerTest do
     assert is_map(body["summary"])
     assert is_list(body["issues"])
     assert is_list(body["skip_monitoring"])
+    assert is_list(body["confirmed_overrides"])
     assert body["skip_rate_threshold"] == 0.15
 
     ctx.token
