@@ -3237,7 +3237,7 @@
 
   .tag-conflicts__confirm,
   .tag-quality__confirm {
-    @apply inline-flex cursor-pointer items-center rounded-full border px-2.5 py-0.5 text-xs font-medium text-base-content/80 transition-colors;
+    @apply mt-3 inline-flex cursor-pointer items-center rounded-full border px-3.5 py-1.5 text-xs font-medium text-base-content/80 transition-colors;
     background-color: var(--color-base-100);
     border-color: color-mix(in oklab, var(--color-base-content) 14%, transparent);
   }
@@ -3249,6 +3249,16 @@
 
   .tag-quality__item {
     @apply flex flex-wrap items-center gap-x-2 gap-y-1;
+  }
+
+  .tag-quality__remove {
+    @apply inline-flex cursor-pointer items-center rounded-full border px-3.5 py-1.5 text-xs font-medium text-base-content/80 transition-colors;
+    background-color: var(--color-base-100);
+    border-color: color-mix(in oklab, var(--color-base-content) 14%, transparent);
+  }
+
+  .tag-quality__remove:hover {
+    background-color: color-mix(in oklab, var(--color-base-content) 6%, var(--color-base-100));
   }
 
   .tag-quality__confirmed {

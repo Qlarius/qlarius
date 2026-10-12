@@ -388,7 +388,7 @@ defmodule Qlarius.YouData.TagQuality do
 
   defp conflict_text(%{note: note}, _names, _parent_id, _local_id, _other_id)
        when is_binary(note) and note != "",
-       do: note
+       do: rephrase_combination(note)
 
   defp conflict_text(%{severity: "soft"}, names, parent_id, local_id, other_id) do
     other = Map.get(names, other_id, "another tag")
@@ -407,6 +407,22 @@ defmodule Qlarius.YouData.TagQuality do
     "Conflicts with #{Map.get(names, other_id, "another tag")}"
   end
 
+  # Catalog notes are stored as "{a} can't be combined with {b}."
+  # The sheet reads "{a} combined with {b} does not make sense."
+  defp rephrase_combination(note) do
+    case String.replace(note, "can't be combined with", "combined with", global: false) do
+      ^note ->
+        note
+
+      rephrased ->
+        if String.ends_with?(rephrased, ".") do
+          String.replace_suffix(rephrased, ".", " does not make sense.")
+        else
+          rephrased <> " does not make sense."
+        end
+    end
+  end
+
   defp require_text(%{note: note}, _names, _other) when is_binary(note) and note != "", do: note
 
   defp require_text(_relationship, names, other_id) do
@@ -419,16 +435,37 @@ defmodule Qlarius.YouData.TagQuality do
 
   # Keep the warning they already read. Green and :confirmed stop it from
   # coloring the tag, and the edit sheet can still show the sentence.
+  # withdraw_ids lets that sheet delete the override without a save.
   defp confirmed_reason(reason, confirmed_at) do
+    id = Map.get(reason, :relationship_id)
+
     reason
     |> Map.drop([:confirmable, :tag, :relationship_id])
-    |> Map.merge(%{status: :green, check: :confirmed, confirmed_at: confirmed_at})
+    |> Map.merge(%{
+      status: :green,
+      check: :confirmed,
+      confirmed_at: confirmed_at,
+      withdraw_kind: if(reason.check == :count, do: "count", else: "conflict"),
+      withdraw_ids: if(is_integer(id), do: [id], else: [])
+    })
   end
 
   defp collapse_confirmed(reasons) do
-    Enum.uniq_by(reasons, fn
-      %{check: :confirmed, text: text} -> {:confirmed, text}
-      reason -> reason
+    Enum.reduce(reasons, [], fn
+      %{check: :confirmed, text: text} = reason, acc ->
+        case Enum.split_while(acc, &(!match?(%{check: :confirmed, text: ^text}, &1))) do
+          {head, [existing | tail]} ->
+            merged =
+              %{existing | withdraw_ids: Enum.uniq(existing.withdraw_ids ++ reason.withdraw_ids)}
+
+            head ++ [merged | tail]
+
+          {_, []} ->
+            acc ++ [reason]
+        end
+
+      reason, acc ->
+        acc ++ [reason]
     end)
   end
 

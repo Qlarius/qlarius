@@ -105,6 +105,12 @@ defmodule QlariusWeb.MeFileHTML do
 
   defp confirmed_on(_, _), do: nil
 
+  defp withdraw_ids(%{withdraw_kind: "count"}, %{id: id}), do: id
+
+  defp withdraw_ids(%{withdraw_ids: ids}, _trait) when is_list(ids), do: Enum.join(ids, ",")
+
+  defp withdraw_ids(_, _), do: nil
+
   def progress_bar_color(percentage) do
     cond do
       percentage == 100.0 -> "bg-green-500"
@@ -236,14 +242,13 @@ defmodule QlariusWeb.MeFileHTML do
                       <span :for={text <- tag.reasons} class="tag-conflicts__reason">{text}</span>
                     </div>
                     <button
-                      :for={item <- tag.items}
                       type="button"
                       class="tag-conflicts__confirm"
                       phx-click="confirm_quality"
                       phx-value-kind="conflict"
-                      phx-value-id={item.relationship_id}
+                      phx-value-id={Enum.map_join(tag.items, ",", & &1.relationship_id)}
                     >
-                      Confirm: tag accurate as is
+                      Confirm accuracy
                     </button>
                   </div>
                 </div>
@@ -257,6 +262,16 @@ defmodule QlariusWeb.MeFileHTML do
                 Confirmed as accurate {confirmed_on(Map.get(reason, :confirmed_at), @timezone)}.
               </span>
               <button
+                :if={reason.check == :confirmed}
+                type="button"
+                class="tag-quality__remove"
+                phx-click="withdraw_quality"
+                phx-value-kind={reason.withdraw_kind}
+                phx-value-id={withdraw_ids(reason, @trait_in_edit)}
+              >
+                Remove confirmation
+              </button>
+              <button
                 :if={Map.get(reason, :confirmable)}
                 type="button"
                 class="tag-quality__confirm"
@@ -264,7 +279,7 @@ defmodule QlariusWeb.MeFileHTML do
                 phx-value-kind="count"
                 phx-value-id={@trait_in_edit.id}
               >
-                Confirm: tag accurate as is
+                Confirm accuracy
               </button>
             </li>
           </ul>

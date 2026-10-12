@@ -170,7 +170,16 @@ defmodule QlariusWeb.MeFileLive do
   def handle_event("confirm_quality", %{"kind" => kind, "id" => id}, socket) do
     me_file_id = socket.assigns.current_scope.user.me_file.id
 
-    case QualityConfirmations.confirm(me_file_id, kind, id) do
+    case QualityConfirmations.confirm_ids(me_file_id, kind, id) do
+      :ok -> {:noreply, assign_tag_quality(socket)}
+      :error -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("withdraw_quality", %{"kind" => kind, "id" => id}, socket) do
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+
+    case QualityConfirmations.withdraw_ids(me_file_id, kind, to_string(id)) do
       :ok -> {:noreply, assign_tag_quality(socket)}
       :error -> {:noreply, socket}
     end

@@ -171,7 +171,7 @@ defmodule QlariusWeb.TagQualityLiveTest do
           trait_id: child.id,
           related_trait_id: never.id,
           kind: "conflicts",
-          note: "\"Never\" (Frequency) cannot be combined with \"#{name}\" (Formats)."
+          note: "\"Never\" (Frequency) can't be combined with \"#{name}\" (Formats)."
         })
     end
 
@@ -186,9 +186,10 @@ defmodule QlariusWeb.TagQualityLiveTest do
     assert html =~ "Frequency"
     assert html =~ "Never"
     assert html =~
-             "class=\"tag-conflicts__reason\">&quot;Never&quot; (Frequency) cannot be combined with Formats.</span>"
+             "class=\"tag-conflicts__reason\">&quot;Never&quot; (Frequency) combined with Formats does not make sense.</span>"
 
     assert length(String.split(html, "tag-conflicts__reason")) == 2
+    assert length(String.split(html, "Confirm accuracy")) == 2
     refute html =~ ~s(class="tag-quality")
   end
 end

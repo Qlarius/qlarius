@@ -45,6 +45,54 @@ defmodule Qlarius.YouData.QualityConfirmations do
 
   def confirm(_me_file_id, _kind, _id), do: :error
 
+  # One tap can cover every relationship shown on a single conflicting tag.
+  def confirm_ids(me_file_id, kind, ids) when is_binary(ids) do
+    apply_ids(me_file_id, kind, ids, &confirm/3)
+  end
+
+  def withdraw(me_file_id, "conflict", relationship_id) do
+    with id when is_integer(id) <- parse_id(relationship_id) do
+      Repo.delete_all(
+        from c in QualityConfirmation,
+          where:
+            c.me_file_id == ^me_file_id and c.kind == "conflict" and
+              c.trait_relationship_id == ^id
+      )
+
+      :ok
+    else
+      _ -> :error
+    end
+  end
+
+  def withdraw(me_file_id, "count", trait_id) do
+    with id when is_integer(id) <- parse_id(trait_id) do
+      Repo.delete_all(
+        from c in QualityConfirmation,
+          where: c.me_file_id == ^me_file_id and c.kind == "count" and c.trait_id == ^id
+      )
+
+      :ok
+    else
+      _ -> :error
+    end
+  end
+
+  def withdraw(_me_file_id, _kind, _id), do: :error
+
+  def withdraw_ids(me_file_id, kind, ids) when is_binary(ids) do
+    apply_ids(me_file_id, kind, ids, &withdraw/3)
+  end
+
+  defp apply_ids(me_file_id, kind, ids, fun) do
+    results =
+      ids
+      |> String.split(",", trim: true)
+      |> Enum.map(&fun.(me_file_id, kind, &1))
+
+    if :ok in results, do: :ok, else: :error
+  end
+
   @doc """
   Drops expired confirmations for this MeFile and returns the ones that still hold.
   """

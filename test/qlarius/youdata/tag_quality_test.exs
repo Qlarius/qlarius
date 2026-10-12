@@ -263,6 +263,23 @@ defmodule Qlarius.YouData.TagQualityTest do
       })
 
     assert reason(tagged_pair(noted, [left], [right]), :conflict).text == "Keep the stored note"
+
+    frequency = parent!(category, "Nicotine Frequency", %{})
+    never = child!(frequency, "Never")
+    products = parent!(category, "Nicotine Products", %{})
+    pouches = child!(products, "Pouches")
+
+    {:ok, _} =
+      TraitRelationships.create(%{
+        "trait_id" => never.id,
+        "related_trait_id" => pouches.id,
+        "kind" => "conflicts",
+        "note" =>
+          "\"Never\" (Nicotine Frequency) can't be combined with \"Pouches\" (Nicotine Products)."
+      })
+
+    assert reason(tagged_pair(products, [pouches], [never]), :conflict).text ==
+             "\"Never\" (Nicotine Frequency) combined with \"Pouches\" (Nicotine Products) does not make sense."
   end
 
   test "confirming a conflict or a wide count turns it green until a save or it goes stale", %{
@@ -287,8 +304,14 @@ defmodule Qlarius.YouData.TagQualityTest do
     assert held.status == :green
     assert reason(held, :confirmed).text == "Conflicts with Roommates"
     assert %DateTime{} = reason(held, :confirmed).confirmed_at
+    assert reason(held, :confirmed).withdraw_kind == "conflict"
+    assert reason(held, :confirmed).withdraw_ids == [relationship.id]
     refute reason(held, :conflict)
 
+    assert QualityConfirmations.withdraw(me_file.id, "conflict", relationship.id) == :ok
+    assert reason(TagQuality.for_me_file(me_file.id, @now)[living.id], :conflict).status == :red
+
+    assert QualityConfirmations.confirm(me_file.id, "conflict", relationship.id) == :ok
     :ok = MeFiles.create_replace_mefile_tags(me_file.id, living.id, [alone.id], 0)
     saved = TagQuality.for_me_file(me_file.id, @now)[living.id]
     assert reason(saved, :conflict).status == :red
@@ -307,8 +330,13 @@ defmodule Qlarius.YouData.TagQualityTest do
     assert reason(confirmed, :confirmed).text ==
              "For best results, consider selecting fewer tag values."
 
+    assert reason(confirmed, :confirmed).withdraw_kind == "count"
     refute reason(confirmed, :count)
 
+    assert QualityConfirmations.withdraw(wide.id, "count", hobbies.id) == :ok
+    assert reason(TagQuality.for_me_file(wide.id, @now)[hobbies.id], :count).status == :yellow
+
+    assert QualityConfirmations.confirm(wide.id, "count", hobbies.id) == :ok
     :ok = MeFiles.create_replace_mefile_tags(wide.id, hobbies.id, [first.id, second.id], 0)
     assert reason(TagQuality.for_me_file(wide.id, @now)[hobbies.id], :count).status == :yellow
 

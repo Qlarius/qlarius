@@ -144,11 +144,11 @@ key out keeps it.
   suspect and exclude." followed by the ideal range when one is set, and the
   same sweet-spot sentence when both bounds are set.
 - Those ranges are estimates. On a too-many warning, yellow or red, the
-  person can tap "Confirm: tag accurate as is" after reading that a wide set can work
+  person can tap "Confirm accuracy" after reading that a wide set can work
   against them. The tag goes green. The warning stays on the edit sheet,
   with a badge "Confirmed as accurate {date}", so they can still read it.
-  "Fewer than usual"
-  has no such button. Saving that parent, even with the same values, deletes
+  "Remove confirmation" deletes that override and brings the warning back.
+  "Fewer than usual" has no such button. Saving that parent, even with the same values, deletes
   the confirmation. It also ends after the parent's `stale_days`, counted
   from the tap. If `stale_days` is null, only a save clears it.
 
@@ -187,11 +187,14 @@ trait.
   parent id. `severity` defaults to `hard`, which is red. `soft` is yellow.
   With no note, a soft link reads "{value} ({parent}) is unusual with
   {other}. Keep both if accurate." A `note` replaces that sentence. Do not
-  rewrite notes that are already stored.
-- A person who sees a hard or soft conflict can tap "Confirm: tag accurate as is" and
+  rewrite notes that are already stored. A stored note of the form
+  "{a} can't be combined with {b}." is shown as
+  "{a} combined with {b} does not make sense."
+- A person who sees a hard or soft conflict can tap "Confirm accuracy" and
   keep both answers. That pair goes green. The conflict sentence stays on
   the edit sheet, with a badge "Confirmed as accurate {date}", and stops
-  coloring the tag. Saving either parent deletes the confirmation, even when
+  coloring the tag. "Remove confirmation" deletes that override.
+  Saving either parent deletes the confirmation, even when
   the values do not change. It also ends after the shorter `stale_days` of
   the two parents, counted from the tap. If neither parent has `stale_days`,
   only a save clears it. Confirming a pair does not change ad targeting.
