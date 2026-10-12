@@ -6407,6 +6407,32 @@ html.qai-keyboard-open .mobile-shell .mobile-layout-content {
 }
 
 /*
+ * The page padding already leaves the composer 1.5rem above the tab bar.
+ * iOS standalone is the exception. WebKit lifts a fixed bottom bar above the
+ * home indicator, and the ios-pwa rules drop that inset from the content
+ * clearance so it is not counted twice. The bar then overlaps the gap, and
+ * the composer needs this air back. A narrow browser window has no home
+ * indicator, so the same padding is just an empty band.
+ */
+@media (max-width: 63.99rem) {
+  html.ios-pwa .qai-composer-area {
+    padding-bottom: 1.5rem;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) and (max-width: 63.99rem) {
+    .qai-composer-area {
+      padding-bottom: 1.5rem;
+    }
+  }
+}
+
+html.qai-keyboard-open .qai-composer-area {
+  padding-bottom: 0;
+}
+
+/*
  * Any phone keyboard, not just Qai's. The KeyboardLift hook (on the floating
  * search) publishes the visible area and adds this class. The shell follows
  * it and hides the tab bar, and a transform contains position:fixed

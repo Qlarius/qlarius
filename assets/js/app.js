@@ -327,14 +327,24 @@ Hooks.QaiKeyboard = {
 // one, so a fixed control at the bottom (the floating search) ends up behind
 // it. While it's up, pin the shell to the visible area via the html.keyboard-open
 // rules. Pinch zoom also shrinks the visual viewport, so only an unzoomed
-// shrink counts.
+// shrink counts. Key off the height shrink alone: once the browser pans the
+// visual viewport to reveal the field, offsetTop swallows that shrink and the
+// pin would turn itself off.
+//
+// Focusing the search field also makes the browser scroll the page so the
+// input (fixed at the bottom) is "visible", which shoves the first results
+// above the screen. While that field is focused, put the page back at the top
+// unless the person has started dragging the list themselves.
 Hooks.KeyboardLift = {
   mounted() {
     this._vv = window.visualViewport
-    if (!this._vv) return
-
     this._root = document.documentElement
     this._frame = null
+    this._open = false
+    this._userScrolling = false
+    this._correcting = false
+    this._pinUntil = 0
+    this._pinTimers = []
     this._sync = () => {
       if (this._frame) return
       this._frame = requestAnimationFrame(() => {
@@ -342,27 +352,101 @@ Hooks.KeyboardLift = {
         this._apply()
       })
     }
-    this._vv.addEventListener("resize", this._sync)
-    this._vv.addEventListener("scroll", this._sync)
+    this._onVvScroll = () => {
+      this._sync()
+      this._keepResultsAtTop()
+    }
+    if (this._vv) {
+      this._vv.addEventListener("resize", this._sync)
+      this._vv.addEventListener("scroll", this._onVvScroll)
+    }
+    this._onFocusIn = (event) => {
+      if (!this._isSearchField(event.target)) return
+      this._userScrolling = false
+      this._pinTop()
+    }
+    this._onInput = (event) => {
+      if (!this._isSearchField(event.target)) return
+      this._userScrolling = false
+      this._pinTop()
+    }
+    this._onTouchStart = (event) => {
+      if (this.el.contains(event.target)) return
+      this._userScrolling = true
+      this._pinUntil = 0
+    }
+    this._onScroll = () => {
+      this._keepResultsAtTop()
+    }
+    this.el.addEventListener("focusin", this._onFocusIn)
+    this.el.addEventListener("input", this._onInput)
+    document.addEventListener("touchstart", this._onTouchStart, { passive: true })
+    document.addEventListener("scroll", this._onScroll, true)
     this._apply()
   },
   destroyed() {
-    if (!this._vv) return
-    this._vv.removeEventListener("resize", this._sync)
-    this._vv.removeEventListener("scroll", this._sync)
+    if (this._vv) {
+      this._vv.removeEventListener("resize", this._sync)
+      this._vv.removeEventListener("scroll", this._onVvScroll)
+    }
+    this.el.removeEventListener("focusin", this._onFocusIn)
+    this.el.removeEventListener("input", this._onInput)
+    document.removeEventListener("touchstart", this._onTouchStart)
+    document.removeEventListener("scroll", this._onScroll, true)
     if (this._frame) cancelAnimationFrame(this._frame)
+    this._clearPinTimers()
     this._reset()
   },
+  _isSearchField(target) {
+    return target && target.matches && target.matches("input, textarea")
+  },
+  _searchFocused() {
+    const active = document.activeElement
+    return this._isSearchField(active) && this.el.contains(active)
+  },
+  _pinTop() {
+    this._pinUntil = Date.now() + 1500
+    this._scrollPageToTop()
+    this._clearPinTimers()
+    this._pinTimers = [50, 150, 300, 500, 800, 1200].map((ms) =>
+      setTimeout(() => this._keepResultsAtTop(), ms)
+    )
+  },
+  _clearPinTimers() {
+    this._pinTimers.forEach((id) => clearTimeout(id))
+    this._pinTimers = []
+  },
+  _keepResultsAtTop() {
+    if (this._correcting || this._userScrolling || !this._searchFocused()) return
+    if (Date.now() >= this._pinUntil) return
+    this._scrollPageToTop()
+  },
+  _scrollPageToTop() {
+    this._correcting = true
+    document.querySelectorAll(".mobile-shell .panel-scroll").forEach((el) => {
+      if (el.scrollTop !== 0) el.scrollTop = 0
+    })
+    if (window.scrollY !== 0) window.scrollTo(0, 0)
+    this._correcting = false
+  },
   _apply() {
+    if (!this._vv) return
+
     const vv = this._vv
     const unzoomed = Math.abs(vv.scale - 1) < 0.01
-    const covered = this._root.clientHeight - vv.height - vv.offsetTop
+    const covered = this._root.clientHeight - vv.height
 
-    if (!unzoomed || covered < 120) return this._reset()
+    if (!unzoomed || covered < 120) {
+      this._open = false
+      return this._reset()
+    }
 
+    const justOpened = !this._open
+    this._open = true
     this._root.classList.add("keyboard-open")
     this._root.style.setProperty("--vv-height", `${Math.round(vv.height)}px`)
     this._root.style.setProperty("--vv-top", `${Math.round(vv.offsetTop)}px`)
+    if (justOpened && this._searchFocused()) this._pinTop()
   },
   _reset() {
     this._root.classList.remove("keyboard-open")
@@ -2893,9 +2977,12 @@ Hooks.SlideToCollect = {
 window.addEventListener("phx:focus", (e) => {
   const el = document.getElementById(e.detail.id)
   if (el) {
-    // Small delay to ensure DOM is updated
+    // Small delay to ensure DOM is updated. A search field is fixed at the
+    // bottom; letting the browser scroll it into view shoves the first
+    // results above the screen.
     setTimeout(() => {
-      el.focus()
+      const search = el.getAttribute("role") === "searchbox"
+      el.focus(search ? { preventScroll: true } : undefined)
       el.select()
     }, 100)
   }
