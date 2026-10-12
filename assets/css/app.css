@@ -4547,7 +4547,12 @@
     @apply m-auto flex max-w-sm flex-col items-center gap-2 px-4 py-10 text-center;
   }
 
-  .qai-empty .qai-mark {
+  .qai-logo {
+    @apply h-16 w-auto;
+  }
+
+  .qai-empty .qai-mark,
+  .qai-empty .qai-logo {
     @apply mb-2;
   }
 

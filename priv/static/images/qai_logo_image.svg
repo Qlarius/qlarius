@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="812px" height="729px" viewBox="0 0 812 729" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Qai Image</title>
+    <defs>
+        <filter x="-8%" y="-8%" width="116%" height="124%" filterUnits="objectBoundingBox" id="filter-1">
+            <feOffset dx="0" dy="4" in="SourceAlpha" result="shadowOffsetOuter1"></feOffset>
+            <feGaussianBlur stdDeviation="4" in="shadowOffsetOuter1" result="shadowBlurOuter1"></feGaussianBlur>
+            <feColorMatrix values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.25 0" type="matrix" in="shadowBlurOuter1" result="shadowMatrixOuter1"></feColorMatrix>
+            <feMerge>
+                <feMergeNode in="shadowMatrixOuter1"></feMergeNode>
+                <feMergeNode in="SourceGraphic"></feMergeNode>
+            </feMerge>
+        </filter>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Qai-Image" filter="url(#filter-1)" transform="translate(8, 4)">
+            <g id="Qai" transform="translate(-16, 0)">
+                <path d="M743.450644,218.005466 L743.450644,713 L86,713 L86,53.0072886 L496.906652,53.0072886 L496.906652,135.506378 L579.087983,135.506378 L579.087983,218.005466 L743.450644,218.005466 Z" id="Rectangle-1" fill="#E26565"></path>
+                <rect id="Rectangle-7" fill="#E26565" x="587.656652" y="116.408163" width="82.0515021" height="82.1093294"></rect>
+                <rect id="Rectangle-7" fill="#E26565" x="684.248927" y="100.817784" width="82.0515021" height="82.1093294"></rect>
+                <rect id="Rectangle-7" fill="#E26565" x="729.948498" y="0" width="82.0515021" height="82.1093294"></rect>
+                <rect id="Rectangle-7" fill="#E26565" x="614.660944" y="8.3148688" width="82.0515021" height="82.1093294"></rect>
+                <rect id="Rectangle-7" fill="#E26565" x="510.798283" y="28.0626822" width="82.0515021" height="82.1093294"></rect>
+                <rect id="Rectangle-2" fill-opacity="0.50152972" fill="#000000" x="175" y="274" width="475" height="224" rx="112"></rect>
+                <circle id="Oval-2" fill="#E26565" cx="304.5" cy="385.5" r="69.5"></circle>
+                <circle id="Oval-2-Copy" fill="#E26565" cx="523.5" cy="386.5" r="69.5"></circle>
+                <circle id="Oval-2-Copy-2" fill="#E26565" cx="85.5" cy="386.5" r="69.5"></circle>
+                <circle id="Oval-2-Copy-3" fill="#E26565" cx="742.5" cy="386.5" r="69.5"></circle>
+            </g>
+        </g>
+    </g>
+</svg>

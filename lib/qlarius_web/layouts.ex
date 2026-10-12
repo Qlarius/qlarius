@@ -62,7 +62,8 @@ defmodule QlariusWeb.Layouts do
   for their icon chip.
   """
   attr :navigate, :string, required: true
-  attr :icon, :string, required: true
+  attr :icon, :string, default: nil
+  attr :image, :string, default: nil
   attr :label, :string, required: true
   attr :meta, :string, default: nil
   attr :active, :boolean, default: false
@@ -82,7 +83,8 @@ defmodule QlariusWeb.Layouts do
       <span :if={@branded} class="mobile-menu-chip">
         <.icon name={@icon} class="h-4 w-4" />
       </span>
-      <.icon :if={!@branded} name={@icon} class="mobile-menu-tile__icon h-5 w-5" />
+      <img :if={!@branded && @image} src={@image} alt="" class="h-6 w-auto self-start" />
+      <.icon :if={!@branded && !@image} name={@icon} class="mobile-menu-tile__icon h-5 w-5" />
       <span class="min-w-0">
         <span class="mobile-menu-tile__label">{@label}</span>
         <span :if={@meta} class="mobile-menu-tile__meta">{@meta}</span>

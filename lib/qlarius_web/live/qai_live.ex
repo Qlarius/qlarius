@@ -458,9 +458,7 @@ defmodule QlariusWeb.QaiLive do
           <%= cond do %>
             <% !@configured -> %>
               <div class="qai-empty">
-                <span class="qai-mark qai-mark--lg">
-                  <.icon name="hero-sparkles" class="size-7" />
-                </span>
+                <img src="/images/qai_logo_image.svg" alt="" class="qai-logo" />
                 <p class="qai-empty__title">Qai isn't available yet</p>
                 <p class="qai-empty__copy">Qai is not configured on this server yet.</p>
               </div>
@@ -484,9 +482,7 @@ defmodule QlariusWeb.QaiLive do
     <div class="qai-scroll">
       <form phx-submit="enable_qai" class="qai-optin">
         <div class="qai-optin__hero">
-          <span class="qai-mark qai-mark--lg">
-            <.icon name="hero-sparkles" class="size-7" />
-          </span>
+          <img src="/images/qai_logo_image.svg" alt="" class="qai-logo" />
           <h2 class="qai-optin__title">Meet Qai</h2>
           <p class="qai-optin__lead">Qai is your personal AI.</p>
         </div>
@@ -606,9 +602,7 @@ defmodule QlariusWeb.QaiLive do
       <%!-- Messages --%>
       <div id="qai-messages" class="qai-thread" phx-hook="QaiScroll">
         <div :if={@messages == [] && @stream == nil} class="qai-empty">
-          <span class="qai-mark qai-mark--lg">
-            <.icon name="hero-sparkles" class="size-7" />
-          </span>
+          <img src="/images/qai_logo_image.svg" alt="" class="qai-logo" />
           <p class="qai-empty__title">Private, fleeting, yours.</p>
           <p class="qai-empty__copy">
             Ask anything. Chats auto-fleet {Sessions.fleeting_hours()} hours after your last
