@@ -6438,6 +6438,24 @@ html.qai-keyboard-open .qai-composer-area {
 }
 
 /*
+ * iOS draws the keyboard's shortcut bar (previous / next / done) over the
+ * bottom of the visual viewport, which slices the composer. The tab-bar gap
+ * above is already gone while the keyboard is up; this is only enough to
+ * clear that bar.
+ */
+html.ios-pwa.qai-keyboard-open .qai-composer-area {
+  padding-bottom: 0.75rem;
+}
+
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    html.qai-keyboard-open .qai-composer-area {
+      padding-bottom: 0.75rem;
+    }
+  }
+}
+
+/*
  * Any phone keyboard, not just Qai's. The KeyboardLift hook (on the floating
  * search) publishes the visible area and adds this class. The shell follows
  * it and hides the tab bar, and a transform contains position:fixed

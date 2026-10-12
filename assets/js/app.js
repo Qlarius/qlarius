@@ -2686,9 +2686,6 @@ Hooks.VideoPlayer = {
     if (isPWA) {
       this._enterFullscreenOnPlay = () => this.enterPlaybackFullscreen()
       this.video.addEventListener('play', this._enterFullscreenOnPlay)
-      this.video.addEventListener('webkitendfullscreen', () => {
-        if (this.video.ended) this.showPosterWithPlayIcon()
-      })
     }
     
     // Countdown starts once the poster is painted, so the slide-over
@@ -2709,6 +2706,14 @@ Hooks.VideoPlayer = {
       this.exitPlaybackFullscreen()
       this.showPosterWithPlayIcon()
     })
+
+    // Leaving fullscreen (the system player on iOS, or the element on Android)
+    // can land on the last frame. Put the poster back if the ad has finished.
+    this._onFullscreenExit = () => {
+      if (this.video.ended || this._posterRestored) this.showPosterWithPlayIcon()
+    }
+    this.video.addEventListener('webkitendfullscreen', this._onFullscreenExit)
+    document.addEventListener('fullscreenchange', this._onFullscreenExit)
     
     this.handleEvent('replay-video', () => {
       this.video.currentTime = 0
@@ -2770,6 +2775,9 @@ Hooks.VideoPlayer = {
 
   enterPlaybackFullscreen() {
     const video = this.video
+    // Reloading to bring the poster back can emit a play event. That is not
+    // the ad starting again.
+    if (this._posterRestored) return
     if (video.webkitDisplayingFullscreen || document.fullscreenElement || document.webkitFullscreenElement) return
     if (detectIosPwa()) this.enterIosFullscreen()
     else this.enterElementFullscreen()
@@ -2836,6 +2844,7 @@ Hooks.VideoPlayer = {
   },
   
   hidePosterAndPlay() {
+    this._posterRestored = false
     const posterOverlay = document.getElementById('video-poster-overlay')
     if (posterOverlay) {
       posterOverlay.style.display = 'none'
@@ -2861,6 +2870,21 @@ Hooks.VideoPlayer = {
     this.keepInline()
     this.video.controls = false
     this.showPlayIcon()
+    this.restorePosterFrame()
+  },
+
+  // The poster attribute is only shown until the first play. Reloading the
+  // element puts that frame back, under the overlay, instead of the last
+  // frame of the ad.
+  restorePosterFrame() {
+    const video = this.video
+    if (!video || this._posterRestored) return
+    // Wait until the system player has closed. Reloading while it is up
+    // leaves the last frame in place.
+    if (video.webkitDisplayingFullscreen || document.fullscreenElement || document.webkitFullscreenElement) return
+    this._posterRestored = true
+    try { video.pause() } catch (_e) {}
+    video.load()
   },
   
   showPlayIcon() {
@@ -2880,14 +2904,20 @@ Hooks.VideoPlayer = {
     this.paymentCollected = this.el.dataset.paymentCollected === 'true'
     this.isReplay = this.el.dataset.isReplay === 'true'
     // A re-render puts `controls` back on the tag and the iOS play button
-    // covers the number again.
-    this.suppressNativePlayButton()
+    // covers the number again. Once the ad has finished, keep the poster up
+    // across that patch.
+    if (this.video.ended || this._posterRestored) this.showPosterWithPlayIcon()
+    else this.suppressNativePlayButton()
   },
   
   destroyed() {
     this._posterSettled = true
     if (this._enterFullscreenOnPlay) {
       this.video.removeEventListener('play', this._enterFullscreenOnPlay)
+    }
+    if (this._onFullscreenExit) {
+      this.video.removeEventListener('webkitendfullscreen', this._onFullscreenExit)
+      document.removeEventListener('fullscreenchange', this._onFullscreenExit)
     }
     if (this.countdownInterval) {
       clearInterval(this.countdownInterval)
