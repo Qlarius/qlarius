@@ -2658,14 +2658,10 @@ Hooks.VideoPlayer = {
     
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
                   window.navigator.standalone === true
-    const isAndroid = /Android/.test(navigator.userAgent)
 
-    // iOS draws its own play button in a layer above the page whenever
-    // controls are enabled, which covers the 3-2-1. Leave controls off
-    // until playback, and stay inline so the poster remains the countdown.
-    this.video.playsInline = true
-    this.video.setAttribute('playsinline', '')
-    this.video.setAttribute('webkit-playsinline', '')
+    // Countdown stays inline. iOS draws its own play button above the page
+    // whenever controls are on, so those stay off until playback.
+    this.keepInline()
     this.suppressNativePlayButton()
     
     // Prevent seeking forward only on initial unpaid viewing (before first completion)
@@ -2685,19 +2681,14 @@ Hooks.VideoPlayer = {
       })
     }
     
-    // Request fullscreen on play for Android PWAs
-    if (isPWA && isAndroid) {
-      this.video.addEventListener('play', () => {
-        if (this.video.requestFullscreen) {
-          this.video.requestFullscreen().catch(err => {
-            console.log('Fullscreen request failed:', err)
-          })
-        } else if (this.video.webkitRequestFullscreen) {
-          this.video.webkitRequestFullscreen().catch(err => {
-            console.log('Webkit fullscreen request failed:', err)
-          })
-        }
-      }, { once: true })
+    // Installed app (iOS or Android): fullscreen each time playback starts,
+    // including replay. Completion leaves it and returns to the page.
+    if (isPWA) {
+      this._enterFullscreenOnPlay = () => this.enterPlaybackFullscreen()
+      this.video.addEventListener('play', this._enterFullscreenOnPlay)
+      this.video.addEventListener('webkitendfullscreen', () => {
+        if (this.video.ended) this.showPosterWithPlayIcon()
+      })
     }
     
     // Countdown starts once the poster is painted, so the slide-over
@@ -2715,16 +2706,7 @@ Hooks.VideoPlayer = {
         this.pushEvent('video_watched_complete', {})
       }
       
-      // Exit fullscreen
-      if (this.video.webkitDisplayingFullscreen) {
-        this.video.webkitExitFullscreen()
-      } else if (document.fullscreenElement) {
-        document.exitFullscreen()
-      } else if (document.webkitFullscreenElement) {
-        document.webkitExitFullscreen()
-      }
-      
-      // Show poster overlay with play icon
+      this.exitPlaybackFullscreen()
       this.showPosterWithPlayIcon()
     })
     
@@ -2780,6 +2762,51 @@ Hooks.VideoPlayer = {
     if (poster && poster.style.display !== 'none') this.video.controls = false
   },
 
+  keepInline() {
+    this.video.playsInline = true
+    this.video.setAttribute('playsinline', '')
+    this.video.setAttribute('webkit-playsinline', '')
+  },
+
+  enterPlaybackFullscreen() {
+    const video = this.video
+    if (video.webkitDisplayingFullscreen || document.fullscreenElement || document.webkitFullscreenElement) return
+    if (detectIosPwa()) this.enterIosFullscreen()
+    else this.enterElementFullscreen()
+  },
+
+  enterIosFullscreen() {
+    const video = this.video
+    if (typeof video.webkitEnterFullscreen === 'function') {
+      try {
+        video.webkitEnterFullscreen()
+      } catch (_e) {}
+      return
+    }
+    this.enterElementFullscreen()
+  },
+
+  enterElementFullscreen() {
+    const video = this.video
+    const request = video.requestFullscreen || video.webkitRequestFullscreen
+    if (typeof request === 'function') request.call(video).catch(() => {})
+  },
+
+  exitPlaybackFullscreen() {
+    const video = this.video
+    const leave = () => {
+      if (video.webkitDisplayingFullscreen && typeof video.webkitExitFullscreen === 'function') {
+        video.webkitExitFullscreen()
+      } else if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {})
+      } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
+        document.webkitExitFullscreen()
+      }
+    }
+    leave()
+    requestAnimationFrame(leave)
+  },
+
   startCountdown() {
     const countdownNumber = document.getElementById('video-countdown-number')
     const playIcon = document.getElementById('video-play-icon')
@@ -2816,6 +2843,12 @@ Hooks.VideoPlayer = {
     }
     
     this.video.controls = true
+    // Without playsinline, iPhone opens the system player as play() starts.
+    if (detectIosPwa()) {
+      this.video.playsInline = false
+      this.video.removeAttribute('playsinline')
+      this.video.removeAttribute('webkit-playsinline')
+    }
     this.video.play().catch(() => {})
   },
   
@@ -2825,6 +2858,7 @@ Hooks.VideoPlayer = {
       posterOverlay.style.display = ''
       posterOverlay.classList.remove('pointer-events-none')
     }
+    this.keepInline()
     this.video.controls = false
     this.showPlayIcon()
   },
@@ -2852,6 +2886,9 @@ Hooks.VideoPlayer = {
   
   destroyed() {
     this._posterSettled = true
+    if (this._enterFullscreenOnPlay) {
+      this.video.removeEventListener('play', this._enterFullscreenOnPlay)
+    }
     if (this.countdownInterval) {
       clearInterval(this.countdownInterval)
     }
