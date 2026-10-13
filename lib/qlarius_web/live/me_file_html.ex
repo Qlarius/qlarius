@@ -195,7 +195,7 @@ defmodule QlariusWeb.MeFileHTML do
     ~H"""
     <div
       class={[
-        "modal modal-bottom tag-edit-modal",
+        "modal modal-bottom md:modal-middle tag-edit-modal",
         @dual_pane && "modal-dual-pane",
         @show_modal && "modal-open"
       ]}
@@ -209,7 +209,7 @@ defmodule QlariusWeb.MeFileHTML do
       <div class={[
         "tag-edit-modal__box modal-box flex flex-col bg-base-100 p-0 overflow-hidden",
         "w-full max-w-4xl mx-auto",
-        "border-x border-b border-base-content/10",
+        "border-x border-b border-base-content/10 md:border-t",
         @is_pwa && "max-h-[calc(90vh-env(safe-area-inset-top))]",
         !@is_pwa && "max-h-[90vh]"
       ]}>

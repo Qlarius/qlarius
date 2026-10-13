@@ -227,7 +227,7 @@ defmodule QlariusWeb.Admin.GlobalVariablesLive do
                 </.data_table>
               </.panel>
 
-              <div :if={@show_form} class="modal modal-open">
+              <div :if={@show_form} class="modal modal-bottom md:modal-middle modal-open">
                 <div class="modal-box max-w-lg p-0">
                   <.form
                     for={%{}}

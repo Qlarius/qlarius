@@ -295,7 +295,7 @@ defmodule QlariusWeb.Admin.AliasWordsLive do
               </.panel>
             </.page>
 
-            <div :if={@show_form} class="modal modal-open">
+            <div :if={@show_form} class="modal modal-bottom md:modal-middle modal-open">
               <div class="modal-box max-w-md p-0">
                 <.form
                   for={%{}}

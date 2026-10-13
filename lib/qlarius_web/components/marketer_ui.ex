@@ -190,7 +190,7 @@ defmodule QlariusWeb.Components.MarketerUI do
 
   def unsaved_changes_dialog(assigns) do
     ~H"""
-    <dialog id={@id} class="modal" phx-update="ignore">
+    <dialog id={@id} class="modal modal-bottom md:modal-middle" phx-update="ignore">
       <div class="modal-box max-w-md">
         <h3 class="text-lg font-semibold">Save your changes?</h3>
         <p class="py-2 text-sm text-base-content/70">{@message}</p>

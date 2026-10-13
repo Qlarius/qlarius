@@ -470,7 +470,7 @@ defmodule QlariusWeb.Components.Targeting do
 
     ~H"""
     <div class={[
-      "modal modal-bottom sm:modal-middle",
+      "modal modal-bottom md:modal-middle",
       @show_modal && "modal-open bg-base-300/80 backdrop-blur-sm"
     ]}>
       <div class={[

@@ -4552,15 +4552,27 @@
     --modal-br: 0;
   }
 
-  @media (min-width: 56rem) {
-    .tag-edit-modal .modal-box {
-      --modal-bl: 1rem;
-      --modal-br: 1rem;
-    }
-  }
-
   .tag-edit-modal.modal:not(.modal-open) .modal-box {
     translate: 0 100%;
+  }
+
+  /* From md the sheet is a centered dialog (`md:modal-middle`): it rises a
+     little and fades instead, since a 100% slide would stay on screen. */
+  @media (min-width: 48rem) {
+    .tag-edit-modal .modal-box {
+      width: min(100% - 2rem, 56rem);
+      --modal-bl: 1rem;
+      --modal-br: 1rem;
+      box-shadow: 0 16px 48px rgb(0 0 0 / 0.25);
+      transition:
+        translate var(--tag-edit-modal-duration) var(--tag-edit-modal-ease),
+        opacity 0.2s ease !important;
+    }
+
+    .tag-edit-modal.modal:not(.modal-open) .modal-box {
+      translate: 0 1.5rem;
+      opacity: 0 !important;
+    }
   }
 
   .tag-edit-modal.modal.modal-open .modal-box {

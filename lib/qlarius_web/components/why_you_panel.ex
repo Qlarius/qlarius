@@ -18,7 +18,7 @@ defmodule QlariusWeb.WhyYouPanel do
     <div
       :if={@show}
       id="why-you-modal"
-      class="fixed inset-0 z-[200] flex items-center justify-center p-4"
+      class="fixed inset-0 z-[200] flex justify-center max-md:items-end md:items-center md:p-4"
     >
       <button
         type="button"
@@ -26,7 +26,7 @@ defmodule QlariusWeb.WhyYouPanel do
         aria-label="Close"
         phx-click="close_why_you"
       />
-      <div class="relative z-10 flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden bg-base-100 rounded-box shadow-2xl">
+      <div class="relative z-10 flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden bg-base-100 rounded-t-box md:rounded-box shadow-2xl pb-[env(safe-area-inset-bottom)] md:pb-0">
         <div class="flex items-center justify-between border-b border-base-300 px-5 py-4">
           <h3 class="text-lg font-semibold">Why you?</h3>
           <button

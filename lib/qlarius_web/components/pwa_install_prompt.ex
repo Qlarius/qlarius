@@ -82,9 +82,9 @@ defmodule QlariusWeb.Components.PWAInstallPrompt do
   def ios_install_guide(assigns) do
     ~H"""
     <%= if @show do %>
-      <div class="modal modal-open" phx-click="hide_ios_guide">
+      <div class="modal modal-bottom md:modal-middle modal-open" phx-click="hide_ios_guide">
         <div
-          class="shadow-xl bg-base-100 dark:bg-base-200 !border-2 !border-primary rounded-xl overflow-hidden max-w-lg mx-4"
+          class="shadow-xl bg-base-100 dark:bg-base-200 !border-2 !border-primary rounded-t-xl md:rounded-xl overflow-hidden max-w-lg justify-self-center md:mx-4 pb-[env(safe-area-inset-bottom)] md:pb-0"
           phx-click="stop_propagation"
         >
           <%!-- Header banner with logo and close button --%>
@@ -185,9 +185,9 @@ defmodule QlariusWeb.Components.PWAInstallPrompt do
   def android_install_guide(assigns) do
     ~H"""
     <%= if @show do %>
-      <div class="modal modal-open" phx-click="hide_android_guide">
+      <div class="modal modal-bottom md:modal-middle modal-open" phx-click="hide_android_guide">
         <div
-          class="shadow-xl bg-base-100 dark:bg-base-200 !border-2 !border-primary rounded-xl overflow-hidden max-w-lg mx-4"
+          class="shadow-xl bg-base-100 dark:bg-base-200 !border-2 !border-primary rounded-t-xl md:rounded-xl overflow-hidden max-w-lg justify-self-center md:mx-4 pb-[env(safe-area-inset-bottom)] md:pb-0"
           phx-click="stop_propagation"
         >
           <%!-- Header banner with logo and close button --%>

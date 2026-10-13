@@ -222,14 +222,14 @@ defmodule QlariusWeb.Widgets.AdsExtLive do
             ) %>
           <div
             id="video-player-modal"
-            class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+            class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex justify-center max-md:items-end md:items-center md:p-6"
             phx-click="close_video_player"
             phx-mounted={video_modal_enter}
             phx-remove={video_modal_leave}
           >
             <div
               id="video-player-content"
-              class={"relative flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden bg-base-100 shadow-2xl #{modal_panel_radius_class()}"}
+              class={"relative flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden bg-base-100 shadow-2xl #{modal_sheet_panel_radius_class()}"}
               phx-click={%Phoenix.LiveView.JS{}}
             >
               <div class="flex items-start justify-between gap-3 border-b border-base-300 px-6 pt-5 pb-4">

@@ -1243,7 +1243,7 @@ defmodule QlariusWeb.Components.AuthSheet do
 
         <div
           class={[
-            "fixed inset-0 flex items-end md:items-center justify-center p-0 md:p-4",
+            "fixed inset-0 flex justify-center max-md:items-end md:items-center md:p-4",
             @overlay_z_class
           ]}
           id={"#{@id}-scroll-lock"}

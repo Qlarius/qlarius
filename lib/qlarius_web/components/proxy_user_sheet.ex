@@ -457,7 +457,7 @@ defmodule QlariusWeb.Components.ProxyUserSheet do
     ~H"""
     <div id={@id} data-proxy-user-sheet="true">
       <%= if @show do %>
-        <div class="fixed inset-0 z-50 flex items-end md:items-center justify-center">
+        <div class="fixed inset-0 z-50 flex justify-center max-md:items-end md:items-center">
           <%!-- Backdrop --%>
           <div
             id={"#{@id}-backdrop"}

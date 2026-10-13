@@ -886,9 +886,9 @@ defmodule QlariusWeb.CoreComponents do
       
     <!-- Modal Container -->
       <!--
-        Centered dialog: default width is `min(100%, max-content)` so narrow
-        UIs stay compact, with `max-w-[min(56rem,96%)]` capping wide forms.
-        Pass `panel_class` to fix the centered shell’s width explicitly.
+        Bottom sheet on mobile, centered dialog from `md`. Content sets the
+        width (`w-fit`); `max-w-[min(56rem,96%)]` only caps wide forms. Pass
+        `panel_class` to fix the shell’s width explicitly.
       -->
       <div
         class="fixed inset-0 z-10 overflow-y-auto"
@@ -898,10 +898,10 @@ defmodule QlariusWeb.CoreComponents do
         aria-modal="true"
         tabindex="0"
       >
-        <div class="flex min-h-full items-center justify-center p-3 sm:p-4">
+        <div class="flex min-h-full justify-center max-md:items-end md:items-center md:p-4">
           <div class={[
             "mx-auto min-w-0",
-            @panel_class || "w-[min(100%,max-content)] max-w-[min(56rem,96%)]"
+            @panel_class || "w-fit md:max-w-[min(56rem,96%)]"
           ]}>
             <!-- Modal Card -->
             <.focus_wrap
@@ -910,7 +910,8 @@ defmodule QlariusWeb.CoreComponents do
               phx-key="escape"
               phx-click-away={@close_on_click_away && JS.exec("data-cancel", to: "##{@id}")}
               class={[
-                "relative hidden w-full overflow-hidden bg-base-100 rounded-box shadow-2xl transition-all duration-200",
+                "relative hidden w-full overflow-hidden bg-base-100 rounded-t-box md:rounded-box shadow-2xl transition-all duration-200",
+                "pb-[env(safe-area-inset-bottom)] md:pb-0",
                 @border_class
               ]}
             >

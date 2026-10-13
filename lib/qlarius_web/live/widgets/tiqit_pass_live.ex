@@ -270,8 +270,8 @@ defmodule QlariusWeb.Widgets.TiqitPassLive do
     >
       <div class="fixed inset-0 bg-black/55" aria-hidden="true"></div>
 
-      <div class="relative z-10 flex min-h-screen items-center justify-center p-4">
-        <div class="relative w-full max-w-md rounded-2xl border border-base-300 bg-base-100 shadow-2xl">
+      <div class="relative z-10 flex min-h-screen justify-center max-md:items-end md:items-center md:p-4">
+        <div class="relative w-full max-w-md rounded-t-2xl md:rounded-2xl border border-base-300 bg-base-100 shadow-2xl">
           <button
             type="button"
             phx-click="tiqit_pass_back_home"
