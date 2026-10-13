@@ -1261,7 +1261,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
       </p>
       <span
         :if={@gift_pending?}
-        class="badge badge-primary mt-0.5 h-auto w-fit gap-1.5 py-2.5 text-sm shrink-0"
+        class="badge badge-gifted mt-0.5 h-auto w-fit gap-1.5 py-2.5 text-sm shrink-0"
       >
         <.icon name="hero-gift" class="h-4 w-4" /> Gifted
       </span>

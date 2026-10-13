@@ -866,13 +866,18 @@ defmodule QlariusWeb.CoreComponents do
   # this wrapper — not the inner card — or `max-content` stays wide and the
   # card sits left/off-center. Do not nest a second bordered `rounded-box`.
   attr :panel_class, :string, default: nil
+
+  attr :focus_first, :boolean,
+    default: true,
+    doc: "Focus the first focusable element on open. Off leaves focus where it was."
+
   slot :inner_block, required: true
 
   def modal(assigns) do
     ~H"""
     <div
       id={@id}
-      phx-mounted={@show && show_modal(@id)}
+      phx-mounted={@show && show_modal(@id, focus_first: @focus_first)}
       phx-remove={hide_modal(@id)}
       data-cancel={@on_cancel}
       class="relative z-[150] hidden"
@@ -933,7 +938,23 @@ defmodule QlariusWeb.CoreComponents do
     """
   end
 
-  def show_modal(js \\ %JS{}, id) when is_binary(id) do
+  def show_modal(js \\ %JS{}, id)
+
+  def show_modal(id, opts) when is_binary(id) and is_list(opts) do
+    js = open_modal(%JS{}, id)
+
+    if Keyword.get(opts, :focus_first, true),
+      do: JS.focus_first(js, to: "##{id}-content"),
+      else: js
+  end
+
+  def show_modal(js, id) when is_binary(id) do
+    js
+    |> open_modal(id)
+    |> JS.focus_first(to: "##{id}-content")
+  end
+
+  defp open_modal(js, id) do
     js
     |> JS.show(to: "##{id}")
     |> JS.show(
@@ -943,7 +964,6 @@ defmodule QlariusWeb.CoreComponents do
     )
     |> show("##{id}-container")
     |> JS.add_class("overflow-hidden", to: "body")
-    |> JS.focus_first(to: "##{id}-content")
   end
 
   def hide_modal(js \\ %JS{}, id) do

@@ -49,6 +49,7 @@ defmodule QlariusWeb.TiqitArqadeLive do
               |> assign(:invitation_token, token)
               |> assign(:show_invitation_overlay, true)
               |> assign(:pin_error, nil)
+              |> assign(:claim_pin, "")
               |> assign(:gift_claim_succeeded, false)
               |> assign_invitation_referral_context(invitation)
               |> SponsterRecipientSurface.init_assigns(recipient, tip_only?: true)
@@ -89,6 +90,7 @@ defmodule QlariusWeb.TiqitArqadeLive do
           |> assign(:invitation_token, nil)
           |> assign(:show_invitation_overlay, false)
           |> assign(:pin_error, nil)
+          |> assign(:claim_pin, "")
           |> assign(:gift_claim_succeeded, false)
           |> assign_auth_referral_context(page.creator)
           |> SponsterRecipientSurface.init_assigns(recipient, tip_only?: true)
@@ -143,6 +145,14 @@ defmodule QlariusWeb.TiqitArqadeLive do
 
   def handle_event("reopen-invitation-overlay", _params, socket) do
     {:noreply, assign(socket, :show_invitation_overlay, true)}
+  end
+
+  def handle_event("update-claim-pin", %{"verification_code" => pin}, socket) do
+    {:noreply, assign(socket, claim_pin: pin, pin_error: nil)}
+  end
+
+  def handle_event("verify-claim-pin", %{"code" => pin}, socket) do
+    handle_event("verify-claim-pin", %{"pin" => pin}, socket)
   end
 
   def handle_event("verify-claim-pin", %{"pin" => pin}, socket) do
@@ -332,11 +342,11 @@ defmodule QlariusWeb.TiqitArqadeLive do
             {:noreply,
              socket
              |> refresh_invitation()
-             |> assign(:pin_error, "That PIN didn't match. Try again.")}
+             |> assign(claim_pin: "", pin_error: "That PIN didn't match. Try again.")}
 
           {:error, :locked} ->
             {:noreply,
-             assign(socket, :pin_error, "Too many attempts. This ticket is locked.")}
+             assign(socket, claim_pin: "", pin_error: "Too many attempts. This ticket is locked.")}
         end
 
       _ ->

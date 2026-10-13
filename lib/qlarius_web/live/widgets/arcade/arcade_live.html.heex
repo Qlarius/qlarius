@@ -454,7 +454,7 @@
               </div>
               <p
                 :if={@gift_header_label && gift_scope_pending?(@gift_scope)}
-                class="mb-2 flex shrink-0 items-center gap-1.5 text-xs font-medium text-primary sm:text-sm"
+                class="mb-2 flex shrink-0 items-center gap-1.5 text-xs font-medium text-gifted sm:text-sm"
               >
                 <.icon name="hero-gift" class="h-4 w-4 shrink-0" />
                 {@gift_header_label}
@@ -540,7 +540,7 @@
                         </p>
                         <span
                           :if={gift_piece_highlight?(piece.id, @gift_piece_id, @valid_tiqit_piece_ids)}
-                          class="badge badge-primary mt-0.5 h-auto w-fit gap-1.5 py-1.5 text-sm"
+                          class="badge badge-gifted mt-0.5 h-auto w-fit gap-1.5 py-1.5 text-sm"
                         >
                           <.icon name="hero-gift" class="h-4 w-4" /> Gifted to you
                         </span>
@@ -585,7 +585,7 @@
                                  @valid_tiqit_piece_ids
                                ) do %>
                             <span title="Included in your gift">
-                              <.icon name="hero-gift" class="h-4 w-4 shrink-0 text-primary" />
+                              <.icon name="hero-gift" class="h-4 w-4 shrink-0 text-gifted" />
                             </span>
                           <% else %>
                             {ContentPiece.default_tiqit_class(piece).price

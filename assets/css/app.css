@@ -1415,6 +1415,15 @@
     @apply border-widget-200 bg-widget-200 text-widget-500;
   }
 
+  /* Gift accents on Arqade (Gifted badge, "Gifted to you" header, gift icons,
+     Gift waiting): Tiqit orange in both themes, like a gifted tiqit card. */
+  .text-gifted {
+    @apply text-tiqit-700 dark:text-tiqit-400;
+  }
+  .btn-gift-waiting {
+    @apply btn btn-lg rounded-full border-0 bg-tiqit-500 text-tiqit-950 shadow-lg hover:bg-tiqit-400;
+  }
+
   /* Arqade ⋯ menu: compact rows (icon + label) with hairline dividers */
   .arqade-menu {
     @apply flex w-full flex-col divide-y divide-base-content/10;
@@ -1436,6 +1445,22 @@
    */
   .modal-widget-frame {
     @apply border border-widget-700 bg-base-100;
+  }
+
+  /*
+   * Sign-in and claim dialogs (auth sheet, Connect, gift claim) open on pages
+   * outside `.mobile-shell` and in widgets, so they bring the shell's sheet
+   * tokens with them: white in light; in dark a #141416 sheet with #232326
+   * fields over a black canvas. Anything inside using base-100/200/300 follows.
+   */
+  .sheet-surface {
+    --color-base-100: #ffffff;
+    background-color: var(--color-base-100);
+  }
+  [data-theme="dark"] .sheet-surface {
+    --color-base-100: #141416;
+    --color-base-200: #232326;
+    --color-base-300: #000000;
   }
 
   /*
@@ -1620,6 +1645,19 @@
   .auth-cta:disabled,
   .auth-cta[disabled] {
     @apply cursor-not-allowed bg-widget-200 text-widget-500;
+  }
+
+  /* "New here? More info" expander on the phone step */
+  .auth-more__toggle {
+    @apply inline-flex cursor-pointer list-none items-center gap-1 rounded-full px-2 py-1 text-sm font-semibold text-base-content/70 transition-colors hover:text-base-content;
+  }
+
+  .auth-more__toggle::-webkit-details-marker {
+    display: none;
+  }
+
+  .auth-more__body {
+    @apply mx-auto mt-1 max-w-sm text-sm leading-snug text-base-content/60;
   }
 
   /* Quiet text actions (Resend code, Different number) */
@@ -1863,7 +1901,6 @@
   .btn-wallet-strip-action.btn-disabled {
     @apply opacity-60 cursor-not-allowed;
   }
-
   /* Arqade episode list: fixed box — Daisy `badge` padding varies by content,
      so we use explicit flex + h/w instead of `badge` for pixel parity. */
   .badge-arqade-episode-cell,
@@ -2243,15 +2280,19 @@
   /*
    * Consumer mobile shell. Scoped to `.mobile-shell` so Admin (whose light/dark
    * themes also come from nexus.css) and embedded widgets keep their current look.
+   * The public Tiqit pages (`TiqitArqadeShell`: /tiqit/arqade, gift, share) are
+   * the same Arqade outside the shell, so they share its tokens.
    */
-  [data-theme="light"] .mobile-shell {
+  [data-theme="light"] .mobile-shell,
+  [data-theme="light"] .tiqit-public-shell {
     --color-base-100: #ffffff;
   }
 
   /* Dark: black canvas (base-300) with surfaces lifted above it (base-100 cards,
      menu and sheets; base-200 tiles and inputs), as in iOS and Material. Neutral
      greys replace Phoenix's default blue-grey. */
-  [data-theme="dark"] .mobile-shell {
+  [data-theme="dark"] .mobile-shell,
+  [data-theme="dark"] .tiqit-public-shell {
     --color-base-100: #141416;
     --color-base-200: #232326;
     --color-base-300: #000000;
@@ -4969,6 +5010,13 @@
 
 }
 
+/* Unlayered: DaisyUI 5 puts .badge in the utilities layer. */
+.badge-gifted {
+  border-color: transparent;
+  background-color: var(--color-tiqit-500);
+  color: var(--color-tiqit-950);
+}
+
 /*
  * Qlink page themes — unlayered so tokens beat Tailwind/Daisy utilities,
  * and so a parse error cannot drop the rest of @layer components.
@@ -6031,8 +6079,8 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
 }
 
 /*
- * One white ticket for every state, with a hairline edge. Only an active
- * tiqit gets the Tiqit-orange top edge; the status line under the title
+ * One white ticket for every state, with a hairline edge. Active and gifted
+ * tiqits get the Tiqit-orange top edge; the status line under the title
  * (dot + words) says the rest. Fleeted/refunded blanks stay greyed.
  */
 .tiqit-grid {
@@ -6040,7 +6088,7 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
   --ticket-border: color-mix(in oklab, var(--color-base-content) 28%, var(--color-base-100));
   --ticket-top: var(--ticket-border);
 }
-.tiqit-grid[data-status="active"] {
+.tiqit-grid:is([data-status="active"], [data-status="gifted"]) {
   --ticket-top: var(--color-tiqit-500);
 }
 .tiqit-grid[data-status="fleeted"],
@@ -6052,7 +6100,7 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
 [data-theme="dark"] .tiqit-grid {
   --ticket-border: color-mix(in oklab, var(--color-base-content) 32%, var(--color-base-100));
 }
-[data-theme="dark"] .tiqit-grid[data-status="active"] {
+[data-theme="dark"] .tiqit-grid:is([data-status="active"], [data-status="gifted"]) {
   --ticket-top: var(--color-tiqit-500);
 }
 
@@ -6061,13 +6109,22 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
   --tiqit-notch-inset-shadow: none;
 }
 
+/* Gift invitation dialog: the whole ticket edge is Tiqit orange, and the
+   notch cutouts take the dialog's sheet fill. */
+.gift-invitation-tiqit .tiqit-grid,
+[data-theme="dark"] .gift-invitation-tiqit .tiqit-grid {
+  --ticket-border: var(--color-tiqit-500);
+  --ticket-top: var(--color-tiqit-500);
+  --tiqit-canvas-bg: var(--color-base-100);
+}
+
 /* ── Corner cells ── */
 .tiqit-tl,
 .tiqit-top,
 .tiqit-tr {
   border-top: 1px solid var(--ticket-top);
 }
-.tiqit-grid[data-status="active"] :is(.tiqit-tl, .tiqit-top, .tiqit-tr) {
+.tiqit-grid:is([data-status="active"], [data-status="gifted"]) :is(.tiqit-tl, .tiqit-top, .tiqit-tr) {
   box-shadow: inset 0 2px 0 0 var(--ticket-top);
 }
 

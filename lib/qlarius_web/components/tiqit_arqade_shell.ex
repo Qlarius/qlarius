@@ -67,10 +67,10 @@ defmodule QlariusWeb.Components.TiqitArqadeShell do
   def shell(assigns) do
     ~H"""
     <div
-      class="flex h-dvh flex-col overflow-hidden bg-base-100"
+      class="tiqit-public-shell page-canvas flex h-dvh flex-col overflow-hidden"
       data-arqade-in-app-page="true"
     >
-      <header class="shrink-0 border-b border-base-300 bg-base-100">
+      <header class="shrink-0 border-b border-base-content/[0.07]">
         <div class="flex w-full items-center justify-center px-4 py-4">
           <img
             src="/images/Tiqit_logo_color_horiz.svg"

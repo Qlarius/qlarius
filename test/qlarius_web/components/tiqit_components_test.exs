@@ -215,7 +215,7 @@ defmodule QlariusWeb.TiqitComponentsTest do
       refute html =~ "tiqit-more"
     end
 
-    test "the recipient's read-only view keeps a neutral dot and its claim countdown tail" do
+    test "the recipient's read-only view keeps a neutral dot and its claim deadline tail" do
       invitation = %ShareInvitation{gift_expires_at: DateTime.add(DateTime.utc_now(), 1, :day)}
 
       html =
@@ -226,7 +226,7 @@ defmodule QlariusWeb.TiqitComponentsTest do
 
       assert html =~ "tiqit-status__dot is-muted"
       assert html =~ "awaiting pickup"
-      assert html =~ "Claim window ends in"
+      assert html =~ ~r/Must claim before <span[^>]*>\d{2}\/\d{2}\/\d{4} \d{1,2}:\d{2} (am|pm)/
       refute html =~ "tiqit-stub"
     end
   end

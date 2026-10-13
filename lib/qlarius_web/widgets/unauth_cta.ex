@@ -313,7 +313,7 @@ defmodule QlariusWeb.Widgets.UnauthCTA do
     <.modal
       :if={@show}
       id={@id}
-      border_class={tiqit_arqade_modal_border_class()}
+      border_class={"#{tiqit_arqade_modal_border_class()} sheet-surface"}
       on_cancel={@on_cancel}
       show
     >

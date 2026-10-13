@@ -232,7 +232,7 @@ defmodule QlariusWeb.TiqitComponents do
       <:read_only_tail :if={
         @gift_read_only && @gift.will_call_status in ["at_will_call", "claim_check_required"]
       }>
-        <.gift_claim_window_line invitation={@invitation} />
+        <.gift_claim_window_line invitation={@invitation} user={@user} />
       </:read_only_tail>
       <:stub :if={!@gift_read_only}>
         <p class="tiqit-stub__meta" title={"Gifted " <> format_purchased_at(@gift.inserted_at, @user)}>
@@ -405,7 +405,7 @@ defmodule QlariusWeb.TiqitComponents do
             <img
               src={@image_url}
               alt=""
-              class="h-16 w-16 shrink-0 rounded-lg border border-base-300/50 object-cover"
+              class="block h-auto w-16 shrink-0 rounded-lg border border-base-300/50"
             />
             <div class="min-w-0 flex-1 text-left">
               <p :if={@kind_line != ""} class="text-xs text-base-content/55">{@kind_line}</p>
@@ -590,24 +590,44 @@ defmodule QlariusWeb.TiqitComponents do
   end
 
   attr :invitation, :any, default: nil
+  attr :user, :any, default: nil
 
   # The recipient's read-only tail on the Arqade gift landing, while the gift
   # waits to be claimed.
   defp gift_claim_window_line(assigns) do
+    deadline =
+      with %{gift_expires_at: %DateTime{} = at} <- assigns.invitation,
+           :gt <- DateTime.compare(at, DateTime.utc_now()) do
+        format_claim_deadline(at, assigns.user)
+      else
+        _ -> nil
+      end
+
+    assigns = assign(assigns, :deadline, deadline)
+
     ~H"""
-    <span class="tiqit-tail-read-only-claim text-sm font-medium text-primary">
-      Claim window ends in{" "}
-      <%= if @invitation && @invitation.gift_expires_at &&
-             DateTime.compare(@invitation.gift_expires_at, DateTime.utc_now()) == :gt do %>
-        <QlariusWeb.Components.TiqitExpirationCountdown.text
-          expires_at={@invitation.gift_expires_at}
-          class="font-semibold text-primary"
-        />
+    <span class="tiqit-tail-read-only-claim text-sm text-base-content/70">
+      <%= if @deadline do %>
+        Must claim before <span class="font-semibold text-base-content">{@deadline}</span>
       <% else %>
         <span class="font-semibold">Awaiting pickup</span>
       <% end %>
     </span>
     """
+  end
+
+  # Signed-out recipients fall back to the app default zone; the abbreviation
+  # keeps the time unambiguous.
+  defp format_claim_deadline(at, user) do
+    timezone =
+      case user do
+        %{timezone: tz} when is_binary(tz) -> tz
+        _ -> Qlarius.Timezones.default()
+      end
+
+    local = Qlarius.DateTime.to_timezone(at, timezone)
+    meridiem = if local.hour < 12, do: "am", else: "pm"
+    Calendar.strftime(local, "%m/%d/%Y %-I:%M ") <> meridiem <> " " <> local.zone_abbr
   end
 
   defp gift_title(gift) do

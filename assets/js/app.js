@@ -4281,7 +4281,7 @@ Hooks.OTPInput = {
   mounted() {
     this.input = this.el.querySelector('.otp-input')
     this.slots = this.el.querySelectorAll('.otp-slot')
-    this.length = 6
+    this.length = parseInt(this.el.dataset.length, 10) || 6
     this.widgetTheme = this.el.dataset.widgetTheme === 'true'
     this.ringActive = this.widgetTheme ? 'ring-widget-700' : 'ring-primary'
 
@@ -4291,7 +4291,7 @@ Hooks.OTPInput = {
     
     // Handle input changes
     this.input.addEventListener('input', (e) => {
-      // Strip non-digits and limit to 6
+      // Strip non-digits and limit to the slot count
       let value = e.target.value.replace(/\D/g, '').slice(0, this.length)
       e.target.value = value
       
@@ -4322,8 +4322,14 @@ Hooks.OTPInput = {
     this.input.addEventListener('keyup', () => this.updateActiveSlot())
     this.input.addEventListener('click', () => this.updateActiveSlot())
     
-    // No auto-focus - user tap triggers autofill reliably
-    // The pulsing first slot draws attention to tap
+    // No auto-focus by default - user tap triggers SMS autofill reliably, and
+    // the pulsing first slot draws attention to tap. Opt-in callers (gift
+    // Claim PIN) focus after the modal's own focus_first has run.
+    if (this.el.dataset.autofocus === 'true') {
+      setTimeout(() => {
+        if (this.el.isConnected) this.input.focus({ preventScroll: true })
+      }, 50)
+    }
   },
   
   pushTargeted(event, payload) {

@@ -76,107 +76,61 @@
 </QlariusWeb.Components.TiqitArqadeShell.shell>
 
 <%= if @invitation && @show_invitation_overlay do %>
-  <% inv = @invitation.invitation %>
+  <% card = recipient_gift_card(@invitation, @group) %>
   <.overlay id="gift-invitation-modal" on_dismiss={JS.push("dismiss-invitation-overlay")}>
-    <:footnote :if={
-      !@gift_claim_succeeded &&
-        !(@invitation.state == :active_gift and authed?(@current_scope))
-    }>
-      <.footnote>
-        <%= cond do %>
-          <% @invitation.state == :redeemed -> %>
-            {if authed?(@current_scope),
-              do: "Use your Qadabra wallet to purchase your media.",
-              else: "Connect to your Qadabra wallet to purchase your media."}
-          <% inv.share_type == "gift" -> %>
-            Your wallet is set up automatically when you join.
-          <% true -> %>
-            Just use your mobile number to connect.
-        <% end %>
-      </.footnote>
-    </:footnote>
+    <.content_stack class="space-y-6">
+      <.brand_logo />
 
-    <%= case @invitation.state do %>
-      <% :active_gift -> %>
-        <% gift_card = recipient_gift_card(@invitation, @group) %>
-        <% gift_claim_authed? = authed?(@current_scope) %>
-        <.content_stack>
-          <.brand_logo />
-          <.icon_title icon="hero-gift">A friend bought this for you.</.icon_title>
-          <.tiqit_detail_card :if={gift_card} gift={gift_card} gift_read_only={true} />
+      <%= case @invitation.state do %>
+        <% :active_gift -> %>
+          <div :if={card} class="gift-invitation-tiqit">
+            <.tiqit_detail_card
+              gift={card}
+              gift_read_only={true}
+              user={@current_scope && @current_scope.user}
+            />
+          </div>
 
-          <%= if gift_claim_authed? do %>
-            <%= if @gift_claim_succeeded do %>
-              <.lede class="font-medium text-success">Tiqit claim successful. Enjoy this content.</.lede>
+          <%= cond do %>
+            <% @gift_claim_succeeded -> %>
+              <.lede class="font-medium text-success">Tiqit claimed. Enjoy!</.lede>
               <.primary_button phx-click="dismiss-invitation-overlay">OK</.primary_button>
-            <% else %>
-              <div class="flex w-full flex-col gap-4">
-                <.lede>Enter the 4-digit claim PIN from your invitation.</.lede>
-                <form phx-submit="verify-claim-pin" class="flex w-full flex-col gap-4">
-                  <.pin_input />
-                  <.submit_button>Claim your tiqit</.submit_button>
-                </form>
-                <.ghost_button phx-click="dismiss-invitation-overlay">Later. Let me browse first.</.ghost_button>
+            <% authed?(@current_scope) -> %>
+              <div class="flex w-full flex-col items-center gap-4">
+                <p class="text-center text-lg font-semibold leading-snug text-base-content md:text-xl">
+                  Enter the 4-digit Claim PIN from your invitation.
+                </p>
+                <.claim_pin_input value={@claim_pin} error={@pin_error} />
               </div>
-            <% end %>
-
-            <p :if={@pin_error} class="text-sm text-error">{@pin_error}</p>
-          <% else %>
-            <.lede>
-              Connect to save this gifted tiqit to your wallet.
-            </.lede>
-            <.actions_group>
-              <div class="w-full max-w-md flex justify-center">
-                <.wallet_strip_or_connect
-                  scope={@current_scope}
-                  balance={Decimal.new("0")}
-                  id="gift-invitation-wallet-strip"
+              <.browse_link phx-click="dismiss-invitation-overlay">Let me browse first.</.browse_link>
+            <% true -> %>
+              <div class="flex w-full flex-col items-center gap-2">
+                <.connect_button
                   on_click={
                     if QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns),
-                      do: JS.push("open_auth_sheet", value: %{brand: "tiqit"}),
-                      else: nil
+                      do: JS.push("open_auth_sheet", value: %{brand: "tiqit"})
                   }
-                  connect_href={
-                    if QlariusWeb.TiqitArqadeLive.auth_sheet_enabled?(assigns),
-                      do: nil,
-                      else: ~p"/login?return_to=#{@return_to}"
-                  }
-                  connect_link_target="_self"
+                  href={~p"/login?return_to=#{@return_to}"}
                 />
+                <.lede>to claim this pre-paid tiqit.</.lede>
               </div>
-              <.ghost_button phx-click="dismiss-invitation-overlay">Maybe later. Let me browse first.</.ghost_button>
-            </.actions_group>
+              <.browse_link phx-click="dismiss-invitation-overlay">Let me browse first.</.browse_link>
           <% end %>
-        </.content_stack>
-      <% state when state in [:active_share, :expired_share] -> %>
-        <.content_stack>
-          <.brand_logo />
-          <.icon_title icon="hero-arrow-up-on-square">A friend shared this with you.</.icon_title>
-          <.lede>{@group.title}</.lede>
+        <% state when state in [:active_share, :expired_share] -> %>
+          <.lede class="font-semibold text-base-content">{@group.title}</.lede>
           <.lede>
-            It's not free, but you don't have to use your own money — we have a prefunded wallet ready for you.
+            A friend shared this with you. It's not free, but you don't have to use your own money — we have a prefunded wallet ready for you.
           </.lede>
           <.primary_button phx-click="dismiss-invitation-overlay">View content</.primary_button>
-        </.content_stack>
-      <% :redeemed -> %>
-        <% gift_card = recipient_gift_card(@invitation, @group) %>
-        <.content_stack>
-          <.brand_logo />
-          <.icon_title icon="hero-check-circle" icon_class="h-8 w-8 shrink-0 text-success md:h-9 md:w-9">
-            This tiqit has already been claimed.
-          </.icon_title>
-          <.tiqit_detail_card :if={gift_card} gift={gift_card} gift_read_only={true} />
+        <% :redeemed -> %>
+          <.tiqit_detail_card :if={card} gift={card} gift_read_only={true} />
+          <.lede>This tiqit has already been claimed.</.lede>
           <.primary_button phx-click="dismiss-invitation-overlay">OK</.primary_button>
-        </.content_stack>
-      <% _ -> %>
-        <.content_stack>
-          <.brand_logo />
-          <.icon_title icon="hero-x-circle" icon_class="h-8 w-8 shrink-0 text-error md:h-9 md:w-9">
-            This invitation is no longer available.
-          </.icon_title>
+        <% _ -> %>
+          <.lede>This invitation is no longer available.</.lede>
           <.primary_button phx-click="dismiss-invitation-overlay">View content</.primary_button>
-        </.content_stack>
-    <% end %>
+      <% end %>
+    </.content_stack>
   </.overlay>
 <% end %>
 
@@ -185,7 +139,7 @@
     <button
       type="button"
       phx-click="reopen-invitation-overlay"
-      class="btn btn-primary btn-lg rounded-full flex items-center gap-1 px-4 py-5 shadow-lg pointer-events-auto"
+      class="btn-gift-waiting flex items-center gap-1 px-4 py-5 pointer-events-auto"
     >
       <.icon name="hero-gift" class="h-5 w-5" /> Gift waiting
     </button>

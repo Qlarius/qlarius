@@ -1273,7 +1273,7 @@ defmodule QlariusWeb.Components.AuthSheet do
           --%>
           <div
             class={[
-              "relative flex w-full max-h-[90vh] flex-col overflow-hidden bg-base-100 shadow-2xl md:max-w-lg dark:bg-base-200",
+              "sheet-surface relative flex w-full max-h-[90vh] flex-col overflow-hidden shadow-2xl md:max-w-lg",
               @panel_radius_class,
               @panel_border_class,
               if(@modal_exiting,
@@ -1387,11 +1387,19 @@ defmodule QlariusWeb.Components.AuthSheet do
         <p class="mt-1.5 text-sm text-base-content/70 md:text-base">
           Enter your mobile number to receive a 6-digit code.
         </p>
-        <%!-- Folded in from a separate "New here?" block to keep this step short --%>
-        <p class="mt-2 text-sm text-base-content/60">
-          <span class="font-semibold text-base-content/80">New here?</span>
-          Your US mobile is all you need to activate a new wallet, prefunded with $3.00+ on us. Takes 2 minutes or less.
-        </p>
+        <%!-- Ignored so typing the number (phx-change re-renders) doesn't close it --%>
+        <details id={"#{@id}-new-here"} phx-update="ignore" class="auth-more group mt-2">
+          <summary class="auth-more__toggle">
+            New here? <span class="font-normal underline underline-offset-4">More info</span>
+            <.icon
+              name="hero-chevron-down-mini"
+              class="h-4 w-4 transition-transform group-open:rotate-180"
+            />
+          </summary>
+          <p class="auth-more__body">
+            Your US mobile number is all you need to activate. Takes 2 minutes or less. Your new wallet comes preloaded with $3.00+ to spend on tiqits, on us.
+          </p>
+        </details>
       </div>
 
       <.form

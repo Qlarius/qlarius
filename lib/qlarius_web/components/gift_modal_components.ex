@@ -29,13 +29,13 @@ defmodule QlariusWeb.Components.GiftModalComponents do
     assigns =
       assigns
       |> assign(:modal_body_padding, @modal_body_padding)
-      |> assign(:tiqit_arqade_modal_border_class, @tiqit_arqade_modal_border_class)
 
     ~H"""
     <.modal
       id={@id}
       show
-      border_class={@tiqit_arqade_modal_border_class}
+      border_class="modal-widget-frame sheet-surface"
+      focus_first={false}
       on_cancel={@on_dismiss}
     >
       <div class={"mx-auto w-full max-w-lg overflow-y-auto #{@modal_body_padding}"}>
@@ -244,29 +244,75 @@ defmodule QlariusWeb.Components.GiftModalComponents do
     """
   end
 
-  attr :name, :string, default: "pin"
-  attr :rest, :global
+  attr :id, :string, default: "gift-claim-pin"
+  attr :value, :string, default: ""
+  attr :error, :string, default: nil
 
-  def pin_input(assigns) do
+  @doc "Four digit boxes for the gift Claim PIN; submits on the fourth digit."
+  def claim_pin_input(assigns) do
     ~H"""
-    <input
-      type="text"
-      name={@name}
-      inputmode="numeric"
-      pattern="[0-9]*"
-      maxlength="4"
-      autocomplete="off"
-      autocorrect="off"
-      autocapitalize="off"
-      spellcheck="false"
-      data-form-type="other"
-      data-1p-ignore="true"
-      data-lpignore="true"
-      data-bwignore="true"
-      placeholder="1234"
-      class="input input-bordered w-full border-widget-300 text-center text-xl font-medium tracking-[0.5em] focus:border-widget-700 focus:outline-none focus:ring-2 focus:ring-widget-200 md:text-2xl"
+    <div class="mx-auto w-full max-w-xs">
+      <QlariusWeb.Components.CustomComponentsMobile.otp_input
+        id={@id}
+        value={@value}
+        error={@error}
+        length={4}
+        input_name="pin"
+        autocomplete="off"
+        aria_label="Enter the 4-digit Claim PIN"
+        verifying_label="Claiming..."
+        verify_event="verify-claim-pin"
+        update_event="update-claim-pin"
+        widget_theme={true}
+        autofocus={true}
+      />
+    </div>
+    """
+  end
+
+  attr :id, :string, default: "gift-invitation-connect"
+  attr :on_click, :any, default: nil
+  attr :href, :string, default: nil
+
+  @doc """
+  Connect, styled like the wallet strip's Connect. Opens the auth sheet when
+  `on_click` is given, otherwise links to `href`.
+  """
+  def connect_button(assigns) do
+    ~H"""
+    <%= if @on_click do %>
+      <button
+        id={@id}
+        type="button"
+        phx-click={@on_click}
+        class="btn-wallet-strip-action connect-strip-cta-border-strobe btn-lg min-h-14 w-full max-w-xs text-lg"
+      >
+        Connect
+      </button>
+    <% else %>
+      <a
+        id={@id}
+        href={@href}
+        class="btn-wallet-strip-action connect-strip-cta-border-strobe btn-lg min-h-14 w-full max-w-xs text-lg"
+      >
+        Connect
+      </a>
+    <% end %>
+    """
+  end
+
+  attr :rest, :global
+  slot :inner_block, required: true
+
+  def browse_link(assigns) do
+    ~H"""
+    <button
+      type="button"
+      class="text-sm font-medium text-base-content/70 underline underline-offset-4 hover:text-base-content"
       {@rest}
-    />
+    >
+      {render_slot(@inner_block)}
+    </button>
     """
   end
 

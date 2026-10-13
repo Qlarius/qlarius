@@ -245,7 +245,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
   end
 
   @doc """
-  A 6-digit OTP verification code input using single-input pattern for reliability.
+  A digit code input (6 slots by default) using single-input pattern for reliability.
   Uses one real input with visual slots - handles paste, autofill, and keyboard naturally.
 
   ## Examples
@@ -264,7 +264,7 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
 
   attr :verify_event, :string,
     required: true,
-    doc: "Event name for auto-submit when 6 digits entered"
+    doc: "Event name for auto-submit when every slot is filled"
 
   attr :update_event, :string,
     required: true,
@@ -278,19 +278,30 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
       "When true, OTP slot accents use the embedded widget palette (qlink / " <>
         "AuthSheet) instead of Daisy `primary`."
 
+  attr :length, :integer, default: 6
+  attr :input_name, :string, default: "verification-code"
+  attr :autocomplete, :string, default: "one-time-code"
+  attr :aria_label, :string, default: nil
+  attr :verifying_label, :string, default: "Verifying..."
+
+  attr :autofocus, :boolean,
+    default: false,
+    doc: "Focus the input on mount, after any modal has placed its own initial focus."
+
   def otp_input(assigns) do
     # Split value into individual characters for display
     chars = String.graphemes(assigns.value || "")
-    slots = for i <- 0..5, do: Enum.at(chars, i)
+    slots = for i <- 0..(assigns.length - 1), do: Enum.at(chars, i)
 
     slot_active_class =
       if assigns.widget_theme,
-        do: "border-widget-700 bg-base-100 dark:bg-base-200 animate-pulse",
-        else: "border-primary bg-base-100 dark:bg-base-200 animate-pulse"
+        do: "border-widget-700 bg-base-200 animate-pulse",
+        else: "border-primary bg-base-200 animate-pulse"
 
     assigns =
       assigns
       |> assign(:slots, slots)
+      |> assign(:aria_label, assigns.aria_label || "Enter #{assigns.length}-digit verification code")
       |> assign(:slot_active_class, slot_active_class)
 
     ~H"""
@@ -303,6 +314,8 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
         data-verify-event={@verify_event}
         data-update-event={@update_event}
         data-widget-theme={to_string(@widget_theme)}
+        data-length={@length}
+        data-autofocus={to_string(@autofocus)}
         class="flex w-full flex-col gap-4"
       >
         <%!-- Visual slots container with real input layered on top --%>
@@ -311,9 +324,9 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
           <input
             type="text"
             inputmode="numeric"
-            autocomplete="one-time-code"
-            name="verification-code"
-            maxlength="6"
+            autocomplete={@autocomplete}
+            name={@input_name}
+            maxlength={@length}
             pattern="[0-9]*"
             value={@value}
             data-form-type="other"
@@ -324,14 +337,14 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
               "otp-input absolute inset-0 w-full h-full z-10 #{if @error, do: ""} #{if @widget_theme, do: "[caret-color:var(--color-widget-700)]", else: "[caret-color:#3b82f6]"}"
             }
             style="font-size: 1px; color: transparent; background: transparent; border: none; outline: none; padding: 0; margin: 0;"
-            aria-label="Enter 6-digit verification code"
+            aria-label={@aria_label}
           />
 
           <%!-- Visual slots that display the digits --%>
           <div class="flex justify-center gap-2 sm:gap-3">
             <%= for {char, i} <- Enum.with_index(@slots) do %>
               <div
-                class={"otp-slot w-12 h-14 sm:w-14 sm:h-16 flex items-center justify-center text-2xl font-bold rounded-lg border-2 transition-all #{if @error, do: "border-error bg-error/10", else: if(i == 0 && is_nil(char), do: @slot_active_class, else: "border-base-300 bg-base-100 dark:bg-base-200")}"}
+                class={"otp-slot w-12 h-14 sm:w-14 sm:h-16 flex items-center justify-center text-2xl font-bold rounded-lg border-2 transition-all #{if @error, do: "border-error bg-error/10", else: if(i == 0 && is_nil(char), do: @slot_active_class, else: "border-base-content/10 bg-base-200")}"}
                 data-index={i}
               >
                 {char}
@@ -345,9 +358,9 @@ defmodule QlariusWeb.Components.CustomComponentsMobile do
           <%= cond do %>
             <% @error -> %>
               <span class="text-error">{@error}</span>
-            <% String.length(@value) == 6 -> %>
+            <% String.length(@value) == @length -> %>
               <span class="text-base-content/60">
-                <span class="loading loading-spinner loading-xs mr-1"></span> Verifying...
+                <span class="loading loading-spinner loading-xs mr-1"></span> {@verifying_label}
               </span>
             <% true -> %>
           <% end %>
