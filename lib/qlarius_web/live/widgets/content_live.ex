@@ -33,7 +33,7 @@ defmodule QlariusWeb.Widgets.ContentLive do
 
         {:ok,
          socket
-         |> put_flash(:error, "You don't have access to this content")
+         |> put_flash(:error, "No active tiqits found for this content. Ready for fresh purchases.")
          |> redirect(to: "/arqade/group/#{group_id}?content_id=#{piece.id}")}
 
       tiqit ->

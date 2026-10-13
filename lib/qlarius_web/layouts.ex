@@ -953,10 +953,11 @@ defmodule QlariusWeb.Layouts do
       <.flash kind={:error} flash={@flash} is_pwa={@is_pwa} is_mobile={@is_mobile} />
 
       <%!-- Connection notices: shown while LiveView reconnects (lost connection)
-           or rejoins (server error); they stay until it's back. Each shows only
-           when its own class is on the page (`to:` the selector: an untargeted
-           remove_attribute used to unhide "Something went wrong" on every
-           disconnect), and as flex so the pill keeps its layout. --%>
+           or rejoins (server error); they stay until it's back. Both use the
+           same wording. Each shows only when its own class is on the page
+           (`to:` the selector: an untargeted remove_attribute used to unhide
+           the server notice on every disconnect), and as flex so the pill
+           keeps its layout. --%>
       <.flash
         id="client-error"
         kind={:info}
@@ -980,13 +981,13 @@ defmodule QlariusWeb.Layouts do
 
       <.flash
         id="server-error"
-        kind={:error}
+        kind={:info}
         auto_hide={false}
         icon="hero-arrow-path"
         icon_class="motion-safe:animate-spin"
         is_pwa={@is_pwa}
         is_mobile={@is_mobile}
-        title={gettext("Something went wrong")}
+        title={gettext("Hang tight.")}
         phx-disconnected={
           JS.show(to: ".phx-server-error #server-error", display: "flex")
           |> JS.remove_attribute("hidden", to: ".phx-server-error #server-error")
@@ -996,7 +997,7 @@ defmodule QlariusWeb.Layouts do
         }
         hidden
       >
-        {gettext("Trying to reconnect now…")}
+        {gettext("Getting a fresh connection for you.")}
       </.flash>
     </div>
     """

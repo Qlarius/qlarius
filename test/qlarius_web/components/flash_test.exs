@@ -35,8 +35,8 @@ defmodule QlariusWeb.FlashTest do
     assert html =~ ~s(class="flash-stack")
     assert html =~ "Hang tight."
     assert html =~ "Getting a fresh connection for you."
-    assert html =~ "Something went wrong"
-    assert html =~ "Trying to reconnect now…"
+    refute html =~ "Something went wrong"
+    refute html =~ "Trying to reconnect"
     assert html =~ ~s(data-auto-hide="false")
     assert html =~ "hero-arrow-path"
     refute html =~ "Connection lost"

@@ -32,7 +32,7 @@ defmodule QlariusWeb.Widgets.ContentController do
         end
 
       conn
-      |> put_flash(:error, "You don't have access to this content")
+      |> put_flash(:error, "No active tiqits found for this content. Ready for fresh purchases.")
       |> redirect(to: redirect_path)
     end
   end
