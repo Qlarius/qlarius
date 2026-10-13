@@ -25,6 +25,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
      |> assign(:batch_traits_text, "")
      |> assign(:can_delete_parent, false)
      |> assign(:trait_relationships, [])
+     |> assign(:exclusive_child_ids, MapSet.new())
      |> assign(:relationship_matches, [])
      |> assign(:relationship_query, "")}
   end
@@ -220,41 +221,6 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
      )
      |> assign(:editor_mode, nil)
      |> assign(:batch_traits_text, "")}
-  end
-
-  def handle_event("make_child_exclusive", %{"id" => id}, socket) do
-    parent = socket.assigns.selected_parent_trait
-    Process.put(:trait_audit_label, "session")
-
-    case TraitRelationships.make_exclusive(parent.id, id) do
-      {:ok, summary} ->
-        {:noreply,
-         socket
-         |> put_flash(
-           :info,
-           "Marked exclusive: #{summary.created} new links, #{summary.skipped} already there."
-         )
-         |> assign_relationships(parent.id)}
-
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Could not mark that child exclusive.")}
-    end
-  end
-
-  def handle_event("unmake_child_exclusive", %{"id" => id}, socket) do
-    parent = socket.assigns.selected_parent_trait
-    Process.put(:trait_audit_label, "session")
-
-    case TraitRelationships.unmake_exclusive(parent.id, id) do
-      {:ok, summary} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Removed #{summary.deleted} exclusive links.")
-         |> assign_relationships(parent.id)}
-
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Could not clear those links.")}
-    end
   end
 
   def handle_event("edit_child_trait", %{"id" => id}, socket) do
@@ -513,6 +479,7 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                     <.parent_trait_details
                       parent_trait={@selected_parent_trait}
                       trait_relationships={@trait_relationships}
+                      exclusive_child_ids={@exclusive_child_ids}
                       relationship_matches={@relationship_matches}
                       relationship_query={@relationship_query}
                     />
@@ -660,15 +627,6 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
   end
 
   defp parent_trait_details(assigns) do
-    exclusive =
-      if assigns[:parent_trait] do
-        TraitRelationships.exclusive_child_ids(assigns.parent_trait.id)
-      else
-        []
-      end
-
-    assigns = assign(assigns, :exclusive_child_ids, MapSet.new(exclusive))
-
     ~H"""
     <.panel flush title={@parent_trait.trait_name} description={parent_trait_summary(@parent_trait)}>
       <:actions>
@@ -755,33 +713,10 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
                   <span class="inline-flex items-center gap-2">
                     {child.trait_name}
                     <.status_badge :if={child.is_skipped_tag}>Skip</.status_badge>
-                    <.status_badge :if={MapSet.member?(@exclusive_child_ids, child.id)}>
+                    <.status_badge :if={exclusive_child?(child, @parent_trait, @exclusive_child_ids)}>
                       Exclusive
                     </.status_badge>
                   </span>
-                  <span
-                    :if={child.search_terms != []}
-                    class="block text-xs text-base-content/50"
-                  >
-                    Also: {Enum.join(child.search_terms, ", ")}
-                  </span>
-                  <button
-                    type="button"
-                    phx-click="make_child_exclusive"
-                    phx-value-id={child.id}
-                    class="btn btn-xs btn-ghost mt-1"
-                  >
-                    Mark as exclusive to other children
-                  </button>
-                  <button
-                    :if={MapSet.member?(@exclusive_child_ids, child.id)}
-                    type="button"
-                    phx-click="unmake_child_exclusive"
-                    phx-value-id={child.id}
-                    class="btn btn-xs btn-ghost"
-                  >
-                    Clear exclusive links
-                  </button>
                 </td>
                 <td class="px-3 py-2.5 text-center align-middle">{child.display_order}</td>
                 <td class="px-3 py-2.5 text-center align-middle">{child.tags_count}</td>
@@ -841,7 +776,20 @@ defmodule QlariusWeb.Admin.TraitManagerLive do
   end
 
   defp assign_relationships(socket, parent_id) do
-    assign(socket, :trait_relationships, TraitRelationships.list_for_parent(parent_id))
+    socket
+    |> assign(:trait_relationships, TraitRelationships.list_for_parent(parent_id))
+    |> assign(
+      :exclusive_child_ids,
+      MapSet.new(TraitRelationships.exclusive_child_ids(parent_id))
+    )
+  end
+
+  defp exclusive_child?(%{is_skipped_tag: true}, _parent, _exclusive_ids), do: false
+
+  defp exclusive_child?(_child, %{input_type: "single_select"}, _exclusive_ids), do: true
+
+  defp exclusive_child?(child, _parent, exclusive_ids) do
+    child.is_exclusive || MapSet.member?(exclusive_ids, child.id)
   end
 
   defp relationship_label(%{kind: "conflicts", severity: "soft"}), do: "conflicts · soft"

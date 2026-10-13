@@ -50,6 +50,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
             chat_note={@chat_note}
             quality={quality_entry(@tag_quality, @trait_in_edit)}
             timezone={@timezone}
+            mode={@tag_modal_mode}
           />
         </:modals>
 
@@ -350,6 +351,7 @@ defmodule QlariusWeb.MeFileBuilderLive do
       |> assign(:trait_results, %AsyncResult{})
       |> assign(:highlight_child_ids, [])
       |> assign(:chat_note, nil)
+      |> assign(:tag_modal_mode, "edit")
       |> assign(:tag_quality, TagQuality.for_me_file(me_file_id))
       |> assign(
         :nudges,
@@ -533,6 +535,46 @@ defmodule QlariusWeb.MeFileBuilderLive do
 
   def handle_event("cancel_delete_confirm", _params, socket) do
     {:noreply, assign(socket, :show_delete_confirm, false)}
+  end
+
+  def handle_event("begin_tag_edit", _params, socket) do
+    {:noreply, assign(socket, :tag_modal_mode, "edit")}
+  end
+
+  def handle_event("confirm_tag_accuracy", _params, socket) do
+    quality = quality_entry(socket.assigns.tag_quality, socket.assigns.trait_in_edit)
+    %{conflicts: conflicts, count: count?} = open_confirmations(quality)
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+    parent_id = socket.assigns.trait_in_edit.id
+
+    results =
+      []
+      |> then(fn acc ->
+        if conflicts == [] do
+          acc
+        else
+          [
+            QualityConfirmations.confirm_ids(me_file_id, "conflict", Enum.join(conflicts, ","))
+            | acc
+          ]
+        end
+      end)
+      |> then(fn acc ->
+        if count?,
+          do: [QualityConfirmations.confirm(me_file_id, "count", parent_id) | acc],
+          else: acc
+      end)
+
+    if :ok in results do
+      {:noreply,
+       socket
+       |> assign(:show_modal, false)
+       |> assign(:show_delete_confirm, false)
+       |> assign(:show_skip_conflict, false)
+       |> assign_tag_quality()}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("confirm_quality", %{"kind" => kind, "id" => id}, socket) do
@@ -859,13 +901,15 @@ defmodule QlariusWeb.MeFileBuilderLive do
     existing = MeFiles.existing_tags_per_parent_trait(me_file_id, trait_id)
     suggested_ids = Keyword.get(opts, :suggested_ids, [])
 
-    selected_ids =
-      selection_with_suggested(trait, Enum.map(existing, & &1.trait_id), suggested_ids)
+    stored_ids = Enum.map(existing, & &1.trait_id)
+
+    selected_ids = selection_with_suggested(trait, stored_ids, suggested_ids)
 
     socket
     |> assign(:trait_in_edit, trait)
     |> assign(:trait_in_edit_values, Enum.map(existing, & &1.trait.trait_name))
     |> assign(:selected_child_trait_ids, selected_ids)
+    |> assign(:tag_modal_mode, tag_modal_mode(quality_entry(socket.assigns.tag_quality, trait)))
     |> assign(:highlight_child_ids, suggested_ids)
     |> assign(:chat_note, Keyword.get(opts, :chat_note))
     |> assign(:show_modal_skip, selected_ids == [])

@@ -1,11 +1,13 @@
 defmodule QlariusWeb.TagQualityLiveTest do
   use QlariusWeb.ConnCase, async: true
 
+  import Ecto.Query
   import Phoenix.LiveViewTest
   import Qlarius.MeCPFixtures
 
   alias Qlarius.Accounts
   alias Qlarius.Repo
+  alias Qlarius.YouData.MeFiles.MeFileTag
   alias Qlarius.YouData.TraitRelationships
   alias Qlarius.YouData.Traits.Trait
 
@@ -91,6 +93,7 @@ defmodule QlariusWeb.TagQualityLiveTest do
 
   test "a stale tag shows a red light, the edit sheet explains it, and saving freshens it",
        ctx do
+    me_file = Repo.preload(ctx.user, :me_file).me_file
     {:ok, view, _html} = live(ctx.conn, ~p"/me_file")
     html = render_async(view)
 
@@ -99,13 +102,17 @@ defmodule QlariusWeb.TagQualityLiveTest do
 
     view |> element("#trait-card-#{ctx.income.id}") |> render_click()
     html = render(view)
+    assert html =~ "Review tag"
     assert html =~ "tag-edit-tag"
     assert html =~ "trait-signal--red"
     assert html =~ "Out of date. Saving confirms these values."
+    refute html =~ ~s(name="child_trait_ids[])
+
+    view |> element("button", "Edit tag") |> render_click()
 
     view
     |> form("form[phx-submit='save_tags']", %{
-      "me_file_id" => Repo.preload(ctx.user, :me_file).me_file.id,
+      "me_file_id" => me_file.id,
       "trait_id" => ctx.income.id,
       "child_trait_ids" => [ctx.high.id]
     })
@@ -115,6 +122,17 @@ defmodule QlariusWeb.TagQualityLiveTest do
     refute html =~ "trait-signal--red"
     refute html =~ "Out of date"
     assert html =~ "trait-signal--green"
+
+    saved =
+      Repo.one!(
+        from mt in MeFileTag,
+          join: t in Trait,
+          on: mt.trait_id == t.id,
+          where: mt.me_file_id == ^me_file.id and t.parent_trait_id == ^ctx.income.id,
+          select: mt.added_date
+      )
+
+    assert NaiveDateTime.diff(NaiveDateTime.utc_now(), saved, :second) < 120
   end
 
   test "builder results show the same red light", ctx do
@@ -180,16 +198,79 @@ defmodule QlariusWeb.TagQualityLiveTest do
     view |> element("#trait-card-#{formats.id}") |> render_click()
     html = render(view)
 
-    assert html =~ "Conflicting tags detected"
+    assert html =~ "Review tag"
+    refute html =~ "Which kinds do you use?"
     assert html =~ "trait-signal--red"
-    assert html =~ "Show"
     assert html =~ "Frequency"
     assert html =~ "Never"
+
     assert html =~
              "class=\"tag-conflicts__reason\">&quot;Never&quot; (Frequency) combined with Formats does not make sense.</span>"
 
     assert length(String.split(html, "tag-conflicts__reason")) == 2
-    assert length(String.split(html, "Confirm accuracy")) == 2
+    assert html =~ "Confirm accuracy"
+    refute html =~ ~s(name="child_trait_ids[])
     refute html =~ ~s(class="tag-quality")
+
+    view |> element("button", "Edit tag") |> render_click()
+    html = render(view)
+    assert html =~ "Edit tag"
+    assert html =~ "Which kinds do you use?"
+    assert html =~ "Save"
+    assert html =~ ~s(name="child_trait_ids[])
+    refute html =~ "Confirm accuracy"
+
+    view |> element("button.btn-lg", "Cancel") |> render_click()
+    view |> element("#trait-card-#{formats.id}") |> render_click()
+    view |> element("button", "Confirm accuracy") |> render_click()
+    view |> element("#trait-card-#{formats.id}") |> render_click()
+    html = render(view)
+    assert html =~ "trait-signal--green"
+    assert html =~ "Confirmed as accurate"
+    assert html =~ "Remove confirmation"
+    refute html =~ "Confirm accuracy"
+
+    view |> element("button", "Edit tag") |> render_click()
+
+    view
+    |> form("form[phx-submit='save_tags']", %{
+      "me_file_id" => me_file.id,
+      "trait_id" => formats.id,
+      "child_trait_ids" => [prerolls.id, edibles.id]
+    })
+    |> render_submit()
+
+    view |> element("#trait-card-#{formats.id}") |> render_click()
+    html = render(view)
+    refute html =~ "Confirmed as accurate"
+    assert html =~ "trait-signal--red"
+    assert html =~ "combined with Formats does not make sense"
+  end
+
+  test "a tag with no warning opens ready to edit", ctx do
+    category = insert_category!("Plain")
+
+    parent =
+      category
+      |> insert_trait!("Plain Fact")
+      |> Ecto.Changeset.change(input_type: "single_select")
+      |> Repo.update!()
+      |> survey_trait!("What is plain?")
+
+    value = insert_trait!(category, "Yes", parent_trait_id: parent.id)
+    me_file = Repo.preload(ctx.user, :me_file).me_file
+    insert_tag!(me_file, value, "Yes")
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/me_file")
+    render_async(view)
+    view |> element("#trait-card-#{parent.id}") |> render_click()
+    html = render(view)
+
+    assert html =~ "Edit tag"
+    assert html =~ "What is plain?"
+    assert html =~ "Save"
+    assert html =~ ~s(name="child_trait_ids[])
+    refute html =~ "Review tag"
+    refute html =~ "Confirm accuracy"
   end
 end

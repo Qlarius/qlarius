@@ -218,6 +218,11 @@ defmodule Qlarius.YouData.TraitRelationships do
     end)
   end
 
+  # Writes a hard conflict from this child to every sibling. Not shown in the
+  # trait manager: Exclusive answer there is the is_exclusive flag, a yellow
+  # mix warning, not these links. Call this again if a parent should get real
+  # pairwise conflicts instead. The admin API still exposes it at
+  # POST /api/admin/traits/:id/children/:child_id/make_exclusive.
   def make_exclusive(parent_id, child_id, opts \\ []) do
     with {:ok, child} <- fetch_child(parent_id, child_id) do
       siblings = sibling_ids(parent_id, child.id, Keyword.get(opts, :include_inactive, false))
@@ -234,6 +239,7 @@ defmodule Qlarius.YouData.TraitRelationships do
     end
   end
 
+  # Removes only the sibling conflict links created by make_exclusive/3.
   def unmake_exclusive(parent_id, child_id) do
     with {:ok, child} <- fetch_child(parent_id, child_id) do
       ids = child_ids(parent_id)

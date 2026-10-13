@@ -10,6 +10,28 @@ defmodule QlariusWeb.MeFileHTML do
 
   def quality_entry(quality, %{id: id}), do: Map.get(quality || %{}, id)
 
+  def tag_modal_mode(%{reasons: reasons}) when is_list(reasons) and reasons != [], do: "review"
+  def tag_modal_mode(_), do: "edit"
+
+  def open_confirmations(%{reasons: reasons}) when is_list(reasons) do
+    conflicts =
+      for %{check: :conflict, relationship_id: id} = reason <- reasons,
+          Map.get(reason, :confirmable),
+          is_integer(id),
+          uniq: true,
+          do: id
+
+    count? = Enum.any?(reasons, &(&1.check == :count && Map.get(&1, :confirmable)))
+    %{conflicts: conflicts, count: count?}
+  end
+
+  def open_confirmations(_), do: %{conflicts: [], count: false}
+
+  def confirmable_quality?(quality) do
+    %{conflicts: conflicts, count: count?} = open_confirmations(quality)
+    conflicts != [] or count?
+  end
+
   defp conflict_reasons(%{reasons: reasons}) when is_list(reasons) do
     Enum.filter(reasons, &(&1.check == :conflict))
   end
@@ -162,6 +184,7 @@ defmodule QlariusWeb.MeFileHTML do
   attr :chat_note, :string, default: nil
   attr :quality, :map, default: nil
   attr :timezone, :string, default: nil
+  attr :mode, :string, default: "edit"
 
   def tag_edit_modal(assigns) do
     assigns =
@@ -193,7 +216,9 @@ defmodule QlariusWeb.MeFileHTML do
         <%!-- The tag being edited: same element as the Tags view, values update as boxes change --%>
         <div class="tag-edit-head shrink-0">
           <div class="flex items-center justify-between gap-3">
-            <h3 class="tag-edit-head__title">Edit tag</h3>
+            <h3 class="tag-edit-head__title">
+              {if @mode == "review", do: "Review tag", else: "Edit tag"}
+            </h3>
             <button
               type="button"
               phx-click="close_modal"
@@ -217,7 +242,20 @@ defmodule QlariusWeb.MeFileHTML do
               </span>
             </div>
           </div>
-          <div :if={@trait_in_edit && conflict_reasons(@quality) != []} class="tag-conflicts">
+          <div
+            :if={@mode == "review" && @trait_in_edit && conflict_reasons(@quality) != []}
+            class="tag-review-conflicts"
+          >
+            <div :for={tag <- conflict_tags(@quality)} class="trait-tag">
+              <span class="trait-tag__name">{tag.parent}</span>
+              <span :if={tag.value != ""} class="trait-tag__values">{tag.value}</span>
+              <span :for={text <- tag.reasons} class="tag-conflicts__reason">{text}</span>
+            </div>
+          </div>
+          <div
+            :if={@mode != "review" && @trait_in_edit && conflict_reasons(@quality) != []}
+            class="tag-conflicts"
+          >
             <span
               class={"trait-signal trait-signal--inline trait-signal--#{conflict_tone(@quality)}"}
               aria-hidden="true"
@@ -241,15 +279,6 @@ defmodule QlariusWeb.MeFileHTML do
                       <span :if={tag.value != ""} class="trait-tag__values">{tag.value}</span>
                       <span :for={text <- tag.reasons} class="tag-conflicts__reason">{text}</span>
                     </div>
-                    <button
-                      type="button"
-                      class="tag-conflicts__confirm"
-                      phx-click="confirm_quality"
-                      phx-value-kind="conflict"
-                      phx-value-id={Enum.map_join(tag.items, ",", & &1.relationship_id)}
-                    >
-                      Confirm accuracy
-                    </button>
                   </div>
                 </div>
               </:content>
@@ -262,7 +291,7 @@ defmodule QlariusWeb.MeFileHTML do
                 Confirmed as accurate {confirmed_on(Map.get(reason, :confirmed_at), @timezone)}.
               </span>
               <button
-                :if={reason.check == :confirmed}
+                :if={@mode == "review" && reason.check == :confirmed}
                 type="button"
                 class="tag-quality__remove"
                 phx-click="withdraw_quality"
@@ -271,16 +300,6 @@ defmodule QlariusWeb.MeFileHTML do
               >
                 Remove confirmation
               </button>
-              <button
-                :if={Map.get(reason, :confirmable)}
-                type="button"
-                class="tag-quality__confirm"
-                phx-click="confirm_quality"
-                phx-value-kind="count"
-                phx-value-id={@trait_in_edit.id}
-              >
-                Confirm accuracy
-              </button>
             </li>
           </ul>
         </div>
@@ -288,8 +307,11 @@ defmodule QlariusWeb.MeFileHTML do
         <%!-- Expandable content area --%>
         <%= if @trait_in_edit do %>
           <%!-- Question section --%>
-          <div class="p-4 bg-base-100 text-base-content/70 shrink-0 border-b border-base-300/40 dark:border-base-content/10">
-            <p :if={@trait_in_edit && @trait_in_edit.survey_question} class="text-lg mb-3">
+          <div
+            :if={@chat_note || @mode == "edit"}
+            class="p-4 bg-base-100 text-base-content/70 shrink-0 border-b border-base-300/40 dark:border-base-content/10"
+          >
+            <p :if={@mode == "edit" && @trait_in_edit.survey_question} class="text-lg mb-3">
               {Phoenix.HTML.raw(@trait_in_edit.survey_question.text)}
             </p>
             <p :if={@chat_note} class="tag-edit-chat-note">
@@ -300,7 +322,8 @@ defmodule QlariusWeb.MeFileHTML do
             <%!-- Toggle when a child has an answer or meta beyond the trait name --%>
             <.pill_join_selector
               :if={
-                @trait_in_edit.input_type != "single_select_zip" &&
+                @mode == "edit" &&
+                  @trait_in_edit.input_type != "single_select_zip" &&
                   Ecto.assoc_loaded?(@trait_in_edit.child_traits) &&
                   Enum.any?(@trait_in_edit.child_traits, &Targeting.tag_option_detail?/1)
               }
@@ -326,6 +349,32 @@ defmodule QlariusWeb.MeFileHTML do
             </.pill_join_selector>
           </div>
           <div
+            :if={@mode == "review"}
+            class="mt-auto shrink-0 border-t border-base-300 bg-base-200 px-6 py-4"
+          >
+            <div class="flex flex-row items-center justify-end gap-2">
+              <button type="button" phx-click="close_modal" class="btn btn-lg btn-ghost rounded-full">
+                Cancel
+              </button>
+              <button
+                :if={confirmable_quality?(@quality)}
+                type="button"
+                phx-click="confirm_tag_accuracy"
+                class="btn btn-lg btn-outline btn-success rounded-full"
+              >
+                Confirm accuracy
+              </button>
+              <button
+                type="button"
+                phx-click="begin_tag_edit"
+                class="btn btn-lg btn-primary rounded-full"
+              >
+                Edit tag
+              </button>
+            </div>
+          </div>
+          <div
+            :if={@mode == "edit"}
             id={"tag-option-filter-#{@trait_in_edit.id}"}
             phx-hook={Targeting.tag_option_filter?(@trait_in_edit) && "TagOptionFilter"}
             class="flex flex-col flex-1 min-h-0"

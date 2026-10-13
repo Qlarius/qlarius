@@ -3227,7 +3227,8 @@
     @apply w-80 max-w-[80vw] p-3;
   }
 
-  .tag-conflicts__tags {
+  .tag-conflicts__tags,
+  .tag-review-conflicts {
     @apply flex flex-col items-start gap-2;
   }
 

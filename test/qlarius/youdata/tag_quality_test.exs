@@ -34,10 +34,10 @@ defmodule Qlarius.YouData.TagQualityTest do
     assert reason(tagged(parent, Enum.take(children, 1)), :count).text == "Fewer than usual"
 
     assert reason(tagged(parent, Enum.take(children, 4)), :count).text ==
-             "For best results, consider selecting fewer tag values. Recommended sweet spot is 2-3, but personal accuracy is more important: confirm if accurate as is."
+             "2–3 works best. Keep more and confirm only if every choice is truly accurate."
 
     assert reason(tagged(parent, children), :count).text ==
-             "Too many selected. Advertisers will likely suspect and exclude. Try to stay between 2 and 3 tag values. Recommended sweet spot is 2-3, but personal accuracy is more important: confirm if accurate as is."
+             "2–3 works best. Keep these and confirm only if every choice is truly accurate."
 
     skipped = tagged(parent, [skip])
     assert status(skipped) == :skipped

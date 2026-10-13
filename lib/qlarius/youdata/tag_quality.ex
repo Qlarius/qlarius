@@ -229,22 +229,21 @@ defmodule Qlarius.YouData.TagQuality do
     end
   end
 
-  defp fewer_text(min, max) do
-    "For best results, consider selecting fewer tag values." <> sweet_spot_sentence(min, max)
+  defp fewer_text(min, max) when is_integer(min) and is_integer(max) do
+    "#{min}–#{max} works best. Keep more and confirm only if every choice is truly accurate."
   end
 
-  defp sweet_spot_sentence(min, max) when is_integer(min) and is_integer(max) do
-    " Recommended sweet spot is #{min}-#{max}, but personal accuracy is more important: confirm if accurate as is."
+  defp fewer_text(_min, _max) do
+    "For best results, consider selecting fewer tag values."
   end
 
-  defp sweet_spot_sentence(_, _), do: ""
+  defp too_many_text(min, max, _hard) when is_integer(min) and is_integer(max) do
+    "#{min}–#{max} works best. Keep these and confirm only if every choice is truly accurate."
+  end
 
-  defp too_many_text(min, max, hard) do
+  defp too_many_text(_min, max, hard) do
     range =
       cond do
-        min != nil and max != nil ->
-          " Try to stay between #{min} and #{max} tag values."
-
         max != nil ->
           " Try to stay at #{max} or fewer tag values."
 
@@ -255,8 +254,7 @@ defmodule Qlarius.YouData.TagQuality do
           ""
       end
 
-    "Too many selected. Advertisers will likely suspect and exclude." <> range <>
-      sweet_spot_sentence(min, max)
+    "Too many selected. Advertisers will likely suspect and exclude." <> range
   end
 
   defp exclusive_mix_reason(rows) do

@@ -37,6 +37,7 @@ defmodule QlariusWeb.MeFileLive do
             is_pwa={@is_pwa}
             quality={quality_entry(@tag_quality, @trait_in_edit)}
             timezone={@timezone}
+            mode={@tag_modal_mode}
           />
         </:modals>
 
@@ -123,6 +124,7 @@ defmodule QlariusWeb.MeFileLive do
       )
       |> assign(:selected_child_trait_ids, selected_ids)
       |> assign(:show_modal_skip, selected_ids == [])
+      |> assign(:tag_modal_mode, tag_modal_mode(quality_entry(socket.assigns.tag_quality, trait)))
       |> assign(:show_modal, true)
       |> assign(:show_delete_confirm, false)
       |> assign(:show_skip_conflict, false)
@@ -165,6 +167,47 @@ defmodule QlariusWeb.MeFileLive do
     #   |> assign_categories()
 
     {:noreply, socket}
+  end
+
+  def handle_event("begin_tag_edit", _params, socket) do
+    {:noreply, assign(socket, :tag_modal_mode, "edit")}
+  end
+
+  def handle_event("confirm_tag_accuracy", _params, socket) do
+    quality = quality_entry(socket.assigns.tag_quality, socket.assigns.trait_in_edit)
+    %{conflicts: conflicts, count: count?} = open_confirmations(quality)
+    me_file_id = socket.assigns.current_scope.user.me_file.id
+    parent_id = socket.assigns.trait_in_edit.id
+
+    results =
+      []
+      |> then(fn acc ->
+        if conflicts == [] do
+          acc
+        else
+          [
+            QualityConfirmations.confirm_ids(me_file_id, "conflict", Enum.join(conflicts, ","))
+            | acc
+          ]
+        end
+      end)
+      |> then(fn acc ->
+        if count?,
+          do: [QualityConfirmations.confirm(me_file_id, "count", parent_id) | acc],
+          else: acc
+      end)
+
+    if :ok in results do
+      {:noreply,
+       socket
+       |> assign(:show_modal, false)
+       |> assign(:show_delete_confirm, false)
+       |> assign(:show_skip_conflict, false)
+       |> assign_tag_quality()
+       |> assign_filtered_tag_display()}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("confirm_quality", %{"kind" => kind, "id" => id}, socket) do
@@ -394,6 +437,7 @@ defmodule QlariusWeb.MeFileLive do
       |> assign(:show_delete_confirm, false)
       |> assign(:show_skip_conflict, false)
       |> assign(:show_modal_skip, false)
+      |> assign(:tag_modal_mode, "edit")
       |> assign(:zip_lookup_input, "")
       |> assign(:zip_lookup_trait, nil)
       |> assign(:zip_lookup_valid, false)

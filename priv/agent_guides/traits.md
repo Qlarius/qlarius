@@ -137,20 +137,27 @@ key out keeps it.
   whose only answer is a skip stays neutral.
 - Inside the ideal range, inclusive, is green. Below the minimum is yellow
   ("Fewer than usual"). Above the maximum but at or under the hard maximum
-  is yellow: "For best results, consider selecting fewer tag values." When
-  both an ideal minimum and maximum are set, that sentence continues
-  "Recommended sweet spot is {min}-{max}, but personal accuracy is more important: confirm if accurate as is."
-  Over the hard maximum is red: "Too many selected. Advertisers will likely
-  suspect and exclude." followed by the ideal range when one is set, and the
-  same sweet-spot sentence when both bounds are set.
+  is yellow. When both an ideal minimum and maximum are set, it reads
+  "{min}–{max} works best. Keep more and confirm only if every choice is truly accurate."
+  Otherwise it reads "For best results, consider selecting fewer tag values."
+  Over the hard maximum is red. When both bounds are set, it reads
+  "{min}–{max} works best. Keep these and confirm only if every choice is truly accurate."
+  Otherwise it reads "Too many selected. Advertisers will likely suspect and exclude."
+  followed by the limit when one is set.
 - Those ranges are estimates. On a too-many warning, yellow or red, the
   person can tap "Confirm accuracy" after reading that a wide set can work
-  against them. The tag goes green. The warning stays on the edit sheet,
+  against them. The tag goes green. The warning stays on the sheet,
   with a badge "Confirmed as accurate {date}", so they can still read it.
   "Remove confirmation" deletes that override and brings the warning back.
-  "Fewer than usual" has no such button. Saving that parent, even with the same values, deletes
-  the confirmation. It also ends after the parent's `stale_days`, counted
+  "Fewer than usual" has no such button. Saving that parent replaces its
+  tags and deletes the confirmation, even when the values are the same.
+  It also ends after the parent's `stale_days`, counted
   from the tap. If `stale_days` is null, only a save clears it.
+- A tag that has a warning or a confirmation opens as Review tag. The guidance
+  is shown, and the question and the answers are not. Cancel closes it.
+  Edit tag opens the answers, with Cancel and Save. Confirm accuracy, when
+  the warning can be kept, records the override and closes the sheet. A tag
+  with no warning opens straight on Edit tag.
 
 ### Freshness, on any parent
 
@@ -168,8 +175,8 @@ The same PATCH, with `unripe_days`, `ripen_days`, `stale_days`, and
   light stays green. The edit sheet warns that some marketers will wait
   until the tag is ripe before they target it.
 - Order must be `unripe_days <= ripen_days < stale_days <= expired_days`
-  for the values that are set. A save replaces the parent's tags, so the
-  clock restarts from that save.
+  for the values that are set. A save replaces the parent's tags, even
+  when the values are the same, so the clock restarts from that save.
 
 ### Relationships
 
@@ -194,8 +201,8 @@ trait.
   keep both answers. That pair goes green. The conflict sentence stays on
   the edit sheet, with a badge "Confirmed as accurate {date}", and stops
   coloring the tag. "Remove confirmation" deletes that override.
-  Saving either parent deletes the confirmation, even when
-  the values do not change. It also ends after the shorter `stale_days` of
+  Saving either parent replaces its tags and deletes the confirmation,
+  even when the values are the same. It also ends after the shorter `stale_days` of
   the two parents, counted from the tap. If neither parent has `stale_days`,
   only a save clears it. Confirming a pair does not change ad targeting.
 - `requires` is yellow and points one way: the first trait needs the second.

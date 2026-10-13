@@ -364,7 +364,7 @@ defmodule QlariusWeb.Api.Admin.TraitBulkTest do
     |> json_response(429)
   end
 
-  test "the trait manager marks a child exclusive without clearing tags", ctx do
+  test "the child editor keeps the exclusive flag and hides sibling conflict links", ctx do
     for {id, name, parent_id} <- [
           {1, "Sex", nil},
           {93, "Age", nil},
@@ -402,14 +402,56 @@ defmodule QlariusWeb.Api.Admin.TraitBulkTest do
     |> render_click()
 
     view
-    |> element("button[phx-value-id='#{ctx.none.id}']", "Mark as exclusive to other children")
+    |> element("a[phx-value-id='#{ctx.none.id}'][aria-label='Edit child trait']")
     |> render_click()
 
     html = render(view)
-    assert html =~ "Exclusive"
-    assert html =~ "Clear exclusive links"
+    assert html =~ "Exclusive answer"
+    refute html =~ "Mark as exclusive to other children"
+    refute html =~ "Clear exclusive links"
+  end
 
-    ids = TraitRelationships.exclusive_child_ids(ctx.parent.id)
-    assert ctx.none.id in ids
+  test "a single_select list shows every answer as exclusive", ctx do
+    ctx.parent |> Ecto.Changeset.change(input_type: "single_select") |> Repo.update!()
+
+    for {id, name, parent_id} <- [
+          {1, "Sex", nil},
+          {93, "Age", nil},
+          {200_001, "Male", 1},
+          {200_093, "25-34", 93}
+        ] do
+      Repo.insert!(%Trait{
+        id: id,
+        trait_name: name,
+        parent_trait_id: parent_id,
+        input_type: "text",
+        display_order: 1,
+        modified_by: 0,
+        added_by: 0
+      })
+    end
+
+    {:ok, %{user: user}} =
+      Accounts.register_new_user(%{
+        alias: "bulk-lv-#{System.unique_integer([:positive])}",
+        date_of_birth: ~D[1990-01-01],
+        sex_trait_id: 200_001,
+        age_trait_id: 200_093
+      })
+
+    user |> Ecto.Changeset.change(role: "admin") |> Repo.update!()
+
+    {:ok, view, _html} =
+      user
+      |> then(&log_in_user(build_conn(), &1))
+      |> live(~p"/admin/traits")
+
+    view |> element("button[phx-value-id='#{ctx.parent.id}']") |> render_click()
+    html = render(view)
+
+    assert html =~ "Plants"
+    assert html =~ "Fish"
+    assert length(Regex.scan(~r/>\s*Exclusive\s*</, html)) == 3
+    refute html =~ ">Skip<"
   end
 end
