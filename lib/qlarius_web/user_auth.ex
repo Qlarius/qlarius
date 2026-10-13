@@ -139,15 +139,15 @@ defmodule QlariusWeb.UserAuth do
 
   @doc """
   Clears the user's session (DB token, session cookie, remember-me
-  cookie) and redirects to `/login` by default.
+  cookie) and redirects to `/hi` by default. `/hi?reconnect=1` asks that
+  page to prompt a reconnect.
 
   Pass `to: "/some/path"` to redirect somewhere else after logout —
   used by the Qlink-page "Log out" surface to drop the visitor back on
-  the same Qlink page as an anonymous viewer rather than bouncing
-  them to the generic `/login` screen.
+  the same Qlink page as an anonymous viewer.
   """
   def log_out_user(conn, opts \\ []) do
-    redirect_to = Keyword.get(opts, :to, ~p"/login")
+    redirect_to = Keyword.get(opts, :to, ~p"/hi?reconnect=1")
 
     conn
     |> clear_user_session()

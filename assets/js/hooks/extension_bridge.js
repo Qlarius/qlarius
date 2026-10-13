@@ -284,9 +284,46 @@ function wireGlobalLogoutIntercept() {
       if (!form.action || !form.action.includes("/logout")) return
 
       event.preventDefault()
+
+      const body = new URLSearchParams(new FormData(form))
+      const csrf = body.get("_csrf_token") || csrfToken()
+      const returnTo = body.get("return_to")
+      const dest =
+        returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")
+          ? returnTo
+          : "/hi?reconnect=1"
+
+      // Clear the vault first so another frame cannot mint a new token.
+      // That also posts /logout from the content script, which rotates the
+      // CSRF secret. Submitting this form afterwards navigates to a bare
+      // Forbidden page, so finish here and go to the destination ourselves.
       try {
         await globalExtensionLogout()
-      } finally {
+      } catch (_e) {
+        // Extension optional; the fetch below still clears this session.
+      }
+
+      let cleared = false
+      try {
+        const res = await fetch(form.action, {
+          method: "POST",
+          credentials: "same-origin",
+          redirect: "follow",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "x-csrf-token": csrf,
+            Accept: "text/html"
+          },
+          body: body.toString()
+        })
+        cleared = res.type === "opaqueredirect" || res.status === 403 || res.ok
+      } catch (_e) {
+        cleared = false
+      }
+
+      if (cleared) {
+        window.location.assign(dest)
+      } else {
         HTMLFormElement.prototype.submit.call(form)
       }
     },

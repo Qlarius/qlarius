@@ -32,6 +32,16 @@ defmodule QlariusWeb.HiLive do
     {:ok, socket}
   end
 
+  def handle_params(%{"reconnect" => "1"}, _uri, socket) do
+    {:noreply,
+     socket
+     |> put_flash(
+       :info,
+       "You're disconnected. Reconnect anytime with your mobile number."
+     )
+     |> push_patch(to: ~p"/hi")}
+  end
+
   def handle_params(_params, _uri, socket) do
     # Required for push_patch to work - we don't need to do anything here
     # as the URL update is just to ensure the ref code is in the address bar for PWA install
@@ -248,6 +258,7 @@ defmodule QlariusWeb.HiLive do
   def render(assigns) do
     ~H"""
     <div phx-hook="HiPagePWADetect" id="hi-page">
+      <Layouts.flash_group flash={@flash} />
       <%= if @mode == :loading do %>
         <%!-- Brief blank state while JS detects PWA --%>
         <div class="page-canvas h-screen"></div>
