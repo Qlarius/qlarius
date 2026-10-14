@@ -6100,7 +6100,7 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
   --ticket-border: color-mix(in oklab, var(--color-base-content) 28%, var(--color-base-100));
   --ticket-top: var(--ticket-border);
 }
-.tiqit-grid:is([data-status="active"], [data-status="gifted"]) {
+.tiqit-grid:is([data-status="active"], [data-status="gifted"][data-pending="true"]) {
   --ticket-top: var(--color-tiqit-500);
 }
 .tiqit-grid[data-status="fleeted"],
@@ -6112,7 +6112,7 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
 [data-theme="dark"] .tiqit-grid {
   --ticket-border: color-mix(in oklab, var(--color-base-content) 32%, var(--color-base-100));
 }
-[data-theme="dark"] .tiqit-grid:is([data-status="active"], [data-status="gifted"]) {
+[data-theme="dark"] .tiqit-grid:is([data-status="active"], [data-status="gifted"][data-pending="true"]) {
   --ticket-top: var(--color-tiqit-500);
 }
 
@@ -6136,7 +6136,7 @@ html[data-theme="dark"] .sponster-announcer-bar:not([data-theme="light"]) .spons
 .tiqit-tr {
   border-top: 1px solid var(--ticket-top);
 }
-.tiqit-grid:is([data-status="active"], [data-status="gifted"]) :is(.tiqit-tl, .tiqit-top, .tiqit-tr) {
+.tiqit-grid:is([data-status="active"], [data-status="gifted"][data-pending="true"]) :is(.tiqit-tl, .tiqit-top, .tiqit-tr) {
   box-shadow: inset 0 2px 0 0 var(--ticket-top);
 }
 

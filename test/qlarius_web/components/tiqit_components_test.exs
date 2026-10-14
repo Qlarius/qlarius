@@ -213,6 +213,7 @@ defmodule QlariusWeb.TiqitComponentsTest do
       assert html =~ "$0.29"
       assert html =~ "prepaid"
       refute html =~ "tiqit-more"
+      refute html =~ ~s(data-pending="true")
     end
 
     test "the recipient's read-only view keeps a neutral dot and its claim deadline tail" do
@@ -225,6 +226,7 @@ defmodule QlariusWeb.TiqitComponentsTest do
         )
 
       assert html =~ "tiqit-status__dot is-muted"
+      assert html =~ ~s(data-pending="true")
       assert html =~ "awaiting pickup"
       assert html =~ ~r/Must claim before <span[^>]*>\d{2}\/\d{2}\/\d{4} \d{1,2}:\d{2} (am|pm)/
       refute html =~ "tiqit-stub"

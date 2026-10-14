@@ -217,6 +217,7 @@ defmodule QlariusWeb.TiqitComponents do
       grid_status={@grid_status}
       preserved={false}
       gift?={true}
+      pending?={@revokable?}
       title={@title}
       title_path={@title_path}
       scope_label={@scope_label}
@@ -357,6 +358,7 @@ defmodule QlariusWeb.TiqitComponents do
   attr :grid_status, :string, required: true
   attr :preserved, :boolean, default: false
   attr :gift?, :boolean, default: false
+  attr :pending?, :boolean, default: false, doc: "Gift still waiting to be claimed"
   attr :read_only, :boolean, default: false
   attr :title, :string, required: true
   attr :title_path, :string, default: nil
@@ -398,6 +400,7 @@ defmodule QlariusWeb.TiqitComponents do
         data-status={@grid_status}
         data-preserved={to_string(@preserved)}
         data-gift={to_string(@gift?)}
+        data-pending={@pending? && "true"}
       >
         <div class="tiqit-tl"></div>
         <div class="tiqit-top">

@@ -54,7 +54,7 @@ defmodule QlariusWeb.TiqitArqadeGiftTest do
   } do
     {:ok, view, _html} = live(conn, ~p"/tiqit/gift/#{token}")
 
-    card = view |> element(~s(#gift-invitation-modal .tiqit-grid[data-status="gifted"])) |> render()
+    card = view |> element(~s(#gift-invitation-modal .tiqit-grid[data-status="gifted"][data-pending="true"])) |> render()
     assert card =~ "Gift Show"
     assert card =~ "Gift Creator"
     assert card =~ "awaiting pickup"
