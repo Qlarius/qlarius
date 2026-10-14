@@ -12,6 +12,13 @@ defmodule QlariusWeb.Plugs.MobileDetection do
     conn
     |> assign(:is_mobile, is_mobile)
     |> assign(:user_agent, user_agent)
-    |> put_session(:is_mobile, is_mobile)
+    |> put_session_if_changed(:is_mobile, is_mobile)
+  end
+
+  # Rewriting an unchanged value still marks the session dirty, so every
+  # response would resend the cookie and a concurrent request could clobber a
+  # session change made by another request.
+  defp put_session_if_changed(conn, key, value) do
+    if get_session(conn, key) == value, do: conn, else: put_session(conn, key, value)
   end
 end
