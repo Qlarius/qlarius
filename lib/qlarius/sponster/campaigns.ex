@@ -53,6 +53,19 @@ defmodule Qlarius.Sponster.Campaigns do
   end
 
   @doc """
+  Campaigns that have never been launched and are not deactivated, newest first.
+  Preloads the marketer and the sequence's ads so a list can show a banner or poster.
+  """
+  def list_unlaunched_campaigns do
+    from(c in Campaign,
+      where: is_nil(c.launched_at) and is_nil(c.deactivated_at),
+      order_by: [desc: c.created_at],
+      preload: [:marketer, media_sequence: [media_runs: :media_piece]]
+    )
+    |> Repo.all()
+  end
+
+  @doc """
   Lists all archived campaigns for a marketer.
   """
   def list_archived_campaigns_for_marketer(marketer_id) do
@@ -156,6 +169,55 @@ defmodule Qlarius.Sponster.Campaigns do
       campaign
     end)
   end
+
+  @doc """
+  Updates a campaign's own details: name, end date, payable, and throttled.
+
+  Target and sequence are left alone. When payable or throttled changes, the
+  campaign's existing offers take the new flags so a launched campaign matches
+  what was just saved.
+  """
+  def update_campaign_details(%Campaign{} = campaign, attrs) do
+    attrs =
+      attrs
+      |> Map.take(~w(title end_date is_payable is_throttled))
+      |> Map.update("end_date", nil, &blank_to_nil/1)
+
+    changeset = Campaign.changeset(campaign, attrs)
+
+    case Repo.update(changeset) do
+      {:ok, updated} ->
+        if updated.is_payable != campaign.is_payable or
+             updated.is_throttled != campaign.is_throttled do
+          now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+          from(o in Offer, where: o.campaign_id == ^updated.id)
+          |> Repo.update_all(
+            set: [
+              is_payable: updated.is_payable || false,
+              is_throttled: updated.is_throttled || false,
+              updated_at: now
+            ]
+          )
+        end
+
+        {:ok, updated}
+
+      {:error, changeset} ->
+        {:error, changeset}
+    end
+  end
+
+  defp blank_to_nil(value) when value in [nil, ""], do: nil
+
+  defp blank_to_nil(value) when is_binary(value) do
+    case Date.from_iso8601(value) do
+      {:ok, date} -> NaiveDateTime.new!(date, ~T[00:00:00])
+      _ -> value
+    end
+  end
+
+  defp blank_to_nil(value), do: value
 
   @doc """
   Deactivates a campaign by setting deactivated_at and deleting all associated offers.

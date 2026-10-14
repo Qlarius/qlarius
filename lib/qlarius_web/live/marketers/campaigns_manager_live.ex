@@ -31,14 +31,26 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
   end
 
   @impl true
-  def handle_params(_params, _uri, socket) do
+  def handle_params(params, _uri, socket) do
     socket =
       socket
       |> assign(:page_title, "Campaigns")
+      |> assign(:highlight_campaign_id, campaign_param(params["campaign"]))
       |> assign_campaigns_data()
+      |> assign(:editing_campaign_id, nil)
+      |> assign(:edit_form, blank_edit_form())
 
     {:noreply, socket}
   end
+
+  defp campaign_param(id) when is_binary(id) do
+    case Integer.parse(id) do
+      {int, ""} -> int
+      _ -> nil
+    end
+  end
+
+  defp campaign_param(_), do: nil
 
   defp assign_campaigns_data(socket) do
     if socket.assigns.current_marketer do
@@ -336,6 +348,59 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
   end
 
   @impl true
+  def handle_event("edit_campaign", %{"id" => id}, socket) do
+    if socket.assigns.current_marketer do
+      campaign = Campaigns.get_campaign_for_marketer!(id, socket.assigns.current_marketer.id)
+
+      {:noreply,
+       socket
+       |> assign(:editing_campaign_id, campaign.id)
+       |> assign(:edit_form, to_form(edit_params(campaign), as: :campaign))}
+    else
+      {:noreply, put_flash(socket, :error, "No marketer selected")}
+    end
+  end
+
+  @impl true
+  def handle_event("close_edit_campaign", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:editing_campaign_id, nil)
+     |> assign(:edit_form, blank_edit_form())}
+  end
+
+  @impl true
+  def handle_event("validate_campaign_edit", %{"campaign" => params}, socket) do
+    {:noreply, assign(socket, :edit_form, to_form(params, as: :campaign))}
+  end
+
+  @impl true
+  def handle_event("save_campaign_edit", %{"campaign" => params}, socket) do
+    if socket.assigns.current_marketer do
+      campaign =
+        Campaigns.get_campaign_for_marketer!(
+          socket.assigns.editing_campaign_id,
+          socket.assigns.current_marketer.id
+        )
+
+      case Campaigns.update_campaign_details(campaign, params) do
+        {:ok, updated} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, "Saved \"#{updated.title}\"")
+           |> assign(:editing_campaign_id, nil)
+           |> assign(:edit_form, blank_edit_form())
+           |> assign_campaigns_data()}
+
+        {:error, %Ecto.Changeset{} = changeset} ->
+          {:noreply, assign(socket, :edit_form, to_form(changeset))}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "No marketer selected")}
+    end
+  end
+
+  @impl true
   def handle_event("deactivate_campaign", %{"id" => id}, socket) do
     if socket.assigns.current_marketer do
       campaign = Campaigns.get_campaign_for_marketer!(id, socket.assigns.current_marketer.id)
@@ -604,6 +669,22 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
     end
   end
 
+  defp blank_edit_form do
+    to_form(
+      %{"title" => "", "end_date" => "", "is_payable" => "false", "is_throttled" => "false"},
+      as: :campaign
+    )
+  end
+
+  defp edit_params(campaign) do
+    %{
+      "title" => campaign.title || "",
+      "end_date" => (campaign.end_date && Calendar.strftime(campaign.end_date, "%Y-%m-%d")) || "",
+      "is_payable" => if(campaign.is_payable, do: "true", else: "false"),
+      "is_throttled" => if(campaign.is_throttled, do: "true", else: "false")
+    }
+  end
+
   defp normalize_campaign_params(params) do
     params
     |> Map.update("is_throttled", false, &truthy?/1)
@@ -710,8 +791,20 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
 
   @impl true
   def render(assigns) do
+    editing_campaign =
+      Enum.find(
+        assigns.campaigns ++ assigns.archived_campaigns,
+        &(&1.id == assigns.editing_campaign_id)
+      )
+
     assigns =
-      assign(assigns, :create_dirty, assigns.campaign_form.params != @blank_campaign_params)
+      assigns
+      |> assign(:create_dirty, assigns.campaign_form.params != @blank_campaign_params)
+      |> assign(:editing_campaign, editing_campaign)
+      |> assign(
+        :edit_dirty,
+        editing_campaign && assigns.edit_form.params != edit_params(editing_campaign)
+      )
 
     ~H"""
     <Layouts.admin {assigns}>
@@ -760,6 +853,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
                 :if={@campaigns != []}
                 campaigns={@campaigns}
                 archived={false}
+                highlight_campaign_id={@highlight_campaign_id}
                 editing_bids={@editing_bids}
                 bid_errors={@bid_errors}
                 show_traits={@show_traits}
@@ -866,6 +960,65 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
                 </div>
               </.form>
             </.modal>
+
+            <.modal
+              :if={@editing_campaign}
+              id="edit-campaign-modal"
+              show
+              close_on_click_away={!@edit_dirty}
+              panel_class="w-[min(100%,34rem)]"
+              on_cancel={JS.push("close_edit_campaign")}
+            >
+              <.form
+                for={@edit_form}
+                id="edit-campaign-form"
+                phx-change="validate_campaign_edit"
+                phx-submit="save_campaign_edit"
+              >
+                <div class="space-y-5 p-6 sm:p-8">
+                  <div>
+                    <h2 class="text-xl font-semibold">Edit campaign</h2>
+                    <p class="mt-1 text-sm text-base-content/60">
+                      Name, end date, and whether earnings are payable or offers are throttled.
+                    </p>
+                  </div>
+
+                  <.input field={@edit_form[:title]} type="text" label="Name" required />
+                  <.input field={@edit_form[:end_date]} type="date" label="End date" />
+                  <p class="-mt-3 text-xs text-base-content/60">
+                    Leave the end date blank to keep the campaign open.
+                  </p>
+
+                  <fieldset class="space-y-1">
+                    <legend class="mb-2 text-sm font-semibold">Options</legend>
+                    <.campaign_toggle
+                      name="campaign[is_payable]"
+                      value={@edit_form.params["is_payable"]}
+                      label="Payable"
+                      description="Earnings from this campaign count toward people's payable balance."
+                    />
+                    <.campaign_toggle
+                      name="campaign[is_throttled]"
+                      value={@edit_form.params["is_throttled"]}
+                      label="Throttled"
+                      description="Offers are released gradually instead of all at once."
+                    />
+                  </fieldset>
+
+                  <p :if={@editing_campaign.launched_at} class="text-sm text-base-content/60">
+                    Payable and throttled also update this campaign's current offers.
+                  </p>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-end gap-2 border-t border-base-300 bg-base-200/40 px-6 py-4 sm:px-8">
+                  <.unsaved_note dirty={@edit_dirty} id="edit-campaign-unsaved-note" />
+                  <button type="button" phx-click="close_edit_campaign" class="btn btn-ghost">
+                    Cancel
+                  </button>
+                  <.button variant="primary" phx-disable-with="Saving...">Save</.button>
+                </div>
+              </.form>
+            </.modal>
           </div>
         </div>
       </div>
@@ -923,7 +1076,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
         type="checkbox"
         name={@name}
         value="true"
-        checked={@value == "true"}
+        checked={@value in [true, "true"]}
         class="toggle toggle-primary toggle-sm mt-0.5"
       />
     </label>
@@ -955,6 +1108,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
 
   attr :campaigns, :list, required: true
   attr :archived, :boolean, required: true
+  attr :highlight_campaign_id, :integer, default: nil
   attr :editing_bids, :map, required: true
   attr :bid_errors, :map, required: true
   attr :show_traits, :any, required: true
@@ -965,9 +1119,11 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
       <article
         :for={campaign <- @campaigns}
         id={"campaign-#{campaign.id}"}
+        phx-hook={@highlight_campaign_id == campaign.id && "ScrollIntoView"}
         class={[
-          "rounded-2xl border border-base-300 bg-surface shadow-sm dark:bg-base-100",
-          @archived && "opacity-70"
+          "scroll-mt-24 rounded-2xl border border-base-300 bg-surface shadow-sm dark:bg-base-100",
+          @archived && "opacity-70",
+          @highlight_campaign_id == campaign.id && "ring-2 ring-primary"
         ]}
       >
         <header class="flex flex-wrap items-start justify-between gap-4 border-b border-base-300 px-6 py-5">
@@ -992,6 +1148,7 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
 
           <div class="flex flex-wrap items-center gap-2">
             <.status_badge :if={campaign.is_payable} tone="info">Payable</.status_badge>
+            <.status_badge :if={campaign.is_throttled}>Throttled</.status_badge>
             <%= cond do %>
               <% @archived -> %>
                 <.status_badge>Archived</.status_badge>
@@ -1000,6 +1157,14 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
               <% true -> %>
                 <.status_badge tone="warning">Not launched</.status_badge>
             <% end %>
+            <button
+              type="button"
+              phx-click="edit_campaign"
+              phx-value-id={campaign.id}
+              class="btn btn-sm btn-ghost"
+            >
+              <.icon name="hero-pencil-square" class="size-4" /> Edit
+            </button>
           </div>
         </header>
 
@@ -1391,10 +1556,11 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
   attr :is_video, :boolean, required: true
 
   defp frequency_funnel(assigns) do
-    rows = assigns.funnel.rows
+    rows = Enum.filter(assigns.funnel.rows, &(&1.people > 0))
 
     assigns =
       assign(assigns,
+        rows: rows,
         peak: Enum.max([1 | Enum.map(rows, & &1.people)]),
         started: rows |> Enum.filter(&(&1.times > 0)) |> Enum.map(& &1.people) |> Enum.sum(),
         done: rows |> Enum.filter(& &1.done?) |> Enum.map(& &1.people) |> Enum.sum()
@@ -1462,9 +1628,9 @@ defmodule QlariusWeb.Live.Marketers.CampaignsManagerLive do
         No one is in this target yet.
       </p>
 
-      <ol :if={@funnel.total > 0} class="space-y-2.5">
+      <ol :if={@rows != []} class="space-y-2.5">
         <li
-          :for={row <- @funnel.rows}
+          :for={row <- @rows}
           class="grid grid-cols-[5rem_1fr_5.5rem] items-center gap-3 text-sm"
         >
           <span class={[

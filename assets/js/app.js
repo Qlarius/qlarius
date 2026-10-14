@@ -2069,6 +2069,12 @@ Hooks.HideOpenInTabWhenFullscreen = {
   }
 }
 
+Hooks.ScrollIntoView = {
+  mounted() {
+    this.el.scrollIntoView({ block: 'start' })
+  }
+}
+
 Hooks.FadeIn = {
   mounted() {
     // Set up transition

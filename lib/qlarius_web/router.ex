@@ -787,6 +787,7 @@ defmodule QlariusWeb.Router do
         {QlariusWeb.UserAuth, :mount_current_scope},
         {QlariusWeb.Layouts, :set_current_path}
       ] do
+      live "/campaigns", UnlaunchedCampaignsLive, :index
       live "/marketers", MarketerManagerLive, :index
       live "/marketers/new", MarketerManagerLive, :new
       live "/marketers/:id", MarketerManagerLive, :show
