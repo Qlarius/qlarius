@@ -2308,8 +2308,11 @@
     background-color: var(--color-base-100);
   }
 
-  /* Flat panels: a hairline edge instead of the 4px accent bar. */
-  .mobile-shell .surface-panel {
+  /* Flat panels: a hairline edge instead of the 4px accent bar.
+     The Sponster ads list (widget and Qlink drawer) opts in with
+     .surface-panel--flat; it sits outside .mobile-shell. */
+  .mobile-shell .surface-panel,
+  .surface-panel.surface-panel--flat {
     border-width: 1px;
     border-color: color-mix(in oklab, var(--color-base-content) 7%, transparent);
   }
