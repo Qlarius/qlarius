@@ -438,7 +438,10 @@ defmodule Qlarius.ContentSharing do
       where: is_nil(t.expires_at) or t.expires_at > ^now,
       order_by: [desc: w.claimed_at],
       limit: 1,
-      preload: [share_invitation: [:content_group, content_piece: :content_group]]
+      preload: [
+        :recipient_tiqit,
+        share_invitation: [:content_group, content_piece: :content_group]
+      ]
     )
     |> Repo.one()
   end

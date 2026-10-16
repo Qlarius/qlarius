@@ -32,8 +32,6 @@ defmodule QlariusWeb.HomeLive do
       |> assign(:home_extras_loading, true)
       |> assign(:active_tiqits_count, nil)
       |> assign(:fleeting_tiqits_count, nil)
-      |> assign(:fleeted_tiqits_count, nil)
-      |> assign(:preserved_tiqits_count, nil)
       |> assign(:home_wallet_summary, nil)
       |> assign(:recent_entries, [])
       |> assign(:received_gift, nil)
@@ -61,8 +59,6 @@ defmodule QlariusWeb.HomeLive do
      |> assign(:show_strong_start, false)
      |> assign(:active_tiqits_count, 0)
      |> assign(:fleeting_tiqits_count, 0)
-     |> assign(:fleeted_tiqits_count, 0)
-     |> assign(:preserved_tiqits_count, 0)
      |> assign(:recent_entries, [])}
   end
 
@@ -138,8 +134,6 @@ defmodule QlariusWeb.HomeLive do
     Map.merge(load_strong_start(me_file, trait_count), %{
       active_tiqits_count: Arcade.count_active_tiqits(scope),
       fleeting_tiqits_count: Arcade.count_fleeting_tiqits(scope),
-      fleeted_tiqits_count: Arcade.count_fleeted_tiqits(scope),
-      preserved_tiqits_count: Arcade.count_preserved_tiqits(scope),
       home_wallet_summary: Wallets.consumer_wallet_summary(me_file),
       recent_entries: recent_entries(me_file),
       received_gift: received_gift(me_file)
@@ -152,18 +146,23 @@ defmodule QlariusWeb.HomeLive do
 
   defp received_gift(me_file) do
     case ContentSharing.recent_claimed_gift(me_file.id, @received_gift_window_hours) do
-      %{share_invitation: %{content_piece: %{} = piece}} ->
-        %{
-          title: piece.title,
-          path: ~p"/arqade/group/#{piece.content_group_id}?#{[content_id: piece.id]}"
-        }
+      %{recipient_tiqit: tiqit, share_invitation: %{content_piece: %{} = piece}} ->
+        gift_row(
+          piece.title,
+          ~p"/arqade/group/#{piece.content_group_id}?#{[content_id: piece.id]}",
+          tiqit
+        )
 
-      %{share_invitation: %{content_group: %{} = group}} ->
-        %{title: group.title, path: ~p"/arqade/group/#{group.id}"}
+      %{recipient_tiqit: tiqit, share_invitation: %{content_group: %{} = group}} ->
+        gift_row(group.title, ~p"/arqade/group/#{group.id}", tiqit)
 
       _ ->
         nil
     end
+  end
+
+  defp gift_row(title, path, tiqit) do
+    %{title: title, path: path, expires_at: tiqit && tiqit.expires_at}
   end
 
   @recent_entry_count 3
@@ -267,9 +266,15 @@ defmodule QlariusWeb.HomeLive do
                 <p class="truncate font-semibold text-base-content" title={@received_gift.title}>
                   {@received_gift.title}
                 </p>
+                <QlariusWeb.Components.TiqitExpirationCountdown.badge
+                  :if={@received_gift.expires_at}
+                  id="home-received-gift-expires"
+                  expires_at={@received_gift.expires_at}
+                  class="badge-outline badge-xs mt-1.5 rounded-lg px-2 py-3"
+                />
               </div>
               <.link navigate={@received_gift.path} class="btn btn-primary rounded-full shrink-0">
-                <.icon name="hero-play" class="size-4" /> Watch
+                Open
               </.link>
             </section>
 
@@ -350,14 +355,12 @@ defmodule QlariusWeb.HomeLive do
                     <span class="home-product__l">active</span>
                   </:value>
                   <:stats>
-                    <div class="home-stat-grid--4">
+                    <div class="home-stat-grid--2">
                       <.link
                         :for={
                           {label, status, value} <- [
                             {"active", "active", @active_tiqits_count},
-                            {"kept", "preserved", @preserved_tiqits_count},
-                            {"fleeting", "expired", @fleeting_tiqits_count},
-                            {"fleeted", "fleeted", @fleeted_tiqits_count}
+                            {"fleeting", "expired", @fleeting_tiqits_count}
                           ]
                         }
                         navigate={"/tiqits?status=#{status}"}

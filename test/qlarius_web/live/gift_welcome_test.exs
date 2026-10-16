@@ -109,7 +109,7 @@ defmodule QlariusWeb.GiftWelcomeTest do
   end
 
   describe "Home" do
-    test "shows a recently claimed gift with a Watch link", %{
+    test "shows a recently claimed gift with an expiration badge and an Open link", %{
       conn: conn,
       user: user,
       group: group,
@@ -131,8 +131,10 @@ defmodule QlariusWeb.GiftWelcomeTest do
       assert has_element?(
                view,
                ~s(#home-received-gift a[href="/arqade/group/#{group.id}"]),
-               "Watch"
+               "Open"
              )
+
+      assert has_element?(view, "#home-received-gift-expires", "Expires in")
     end
 
     test "has no gift card without a claimed gift", %{conn: conn} do

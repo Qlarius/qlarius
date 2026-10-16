@@ -2516,10 +2516,6 @@
     @apply grid grid-cols-2 gap-x-8 gap-y-2;
   }
 
-  .home-stat-grid--4 {
-    @apply grid grid-cols-4 gap-x-3 gap-y-2 sm:gap-x-4;
-  }
-
   /*
    * Home (home_live.ex). Phone: one column. Inside the page's @container, at
    * 56rem+ (desktop beside the docked menu) the hero sits in one row, setup steps
@@ -2834,7 +2830,7 @@
     }
 
     /* Products: three cards. Figures at 40px so "$1.56" and three-digit counts
-       fit a third-width card; the four Stash counts go 2x2. */
+       fit a third-width card. */
     .home-products {
       @apply grid grid-cols-3 gap-4 overflow-visible rounded-none border-0 bg-transparent shadow-none;
     }
@@ -2876,11 +2872,6 @@
 
     .home-product .home-stat-grid--2 {
       column-gap: 1.5rem;
-    }
-
-    .home-product .home-stat-grid--4 {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      row-gap: 1rem;
     }
 
     /* Setup: always open; the five steps as tiles, next step below. */
