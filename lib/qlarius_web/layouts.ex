@@ -725,7 +725,7 @@ defmodule QlariusWeb.Layouts do
         current_scope={@current_scope}
       />
 
-      <%!-- PWA detection for redirect to /hi (no in-app install UI) --%>
+      <%!-- PWA detection: redirects phone browsers to /hi, or shows the soft install prompt on welcome=gift visits --%>
       <div
         :if={@current_scope}
         phx-hook="PWAInstall"
@@ -733,6 +733,19 @@ defmodule QlariusWeb.Layouts do
         class="hidden"
         aria-hidden="true"
       />
+      <%= if assigns[:soft_install?] do %>
+        <QlariusWeb.Components.PWAInstallPrompt.install_banner
+          show_banner={assigns[:show_install_banner] || false}
+          is_ios={assigns[:is_ios] || false}
+          is_android={assigns[:is_android] || false}
+        />
+        <QlariusWeb.Components.PWAInstallPrompt.ios_install_guide show={
+          assigns[:show_ios_guide] || false
+        } />
+        <QlariusWeb.Components.PWAInstallPrompt.android_install_guide show={
+          assigns[:show_android_guide] || false
+        } />
+      <% end %>
 
       <%!-- Bottom navigation — fixed liquid glass pill overlaying content --%>
       <.mobile_bottom_nav :if={@current_scope}>

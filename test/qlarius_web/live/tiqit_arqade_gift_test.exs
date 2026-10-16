@@ -1,6 +1,7 @@
 defmodule QlariusWeb.TiqitArqadeGiftTest do
   use QlariusWeb.ConnCase, async: true
 
+  import Ecto.Query, only: [from: 2]
   import Phoenix.LiveViewTest
 
   alias Qlarius.Accounts
@@ -45,7 +46,7 @@ defmodule QlariusWeb.TiqitArqadeGiftTest do
         content_group_id: group.id
       })
 
-    %{token: token, pin: pin, will_call: will_call}
+    %{token: token, pin: pin, will_call: will_call, group: group}
   end
 
   test "a signed-out visitor sees the tiqit, Connect, and the claim deadline", %{
@@ -54,7 +55,13 @@ defmodule QlariusWeb.TiqitArqadeGiftTest do
   } do
     {:ok, view, _html} = live(conn, ~p"/tiqit/gift/#{token}")
 
-    card = view |> element(~s(#gift-invitation-modal .tiqit-grid[data-status="gifted"][data-pending="true"])) |> render()
+    card =
+      view
+      |> element(
+        ~s(#gift-invitation-modal .tiqit-grid[data-status="gifted"][data-pending="true"])
+      )
+      |> render()
+
     assert card =~ "Gift Show"
     assert card =~ "Gift Creator"
     assert card =~ "awaiting pickup"
@@ -76,15 +83,61 @@ defmodule QlariusWeb.TiqitArqadeGiftTest do
     {:ok, view, _html} = live(conn, ~p"/tiqit/gift/#{token}")
 
     assert has_element?(view, ~s(#gift-claim-pin[data-length="4"][data-autofocus="true"]))
-    assert view |> element("#gift-claim-pin") |> render() |> then(&Regex.scan(~r/otp-slot/, &1)) |> length() == 4
+
+    assert view
+           |> element("#gift-claim-pin")
+           |> render()
+           |> then(&Regex.scan(~r/otp-slot/, &1))
+           |> length() == 4
+
     assert render(view) =~ "Enter the 4-digit Claim PIN from your invitation."
     refute has_element?(view, "#gift-invitation-connect")
 
     render_hook(view, "verify-claim-pin", %{"code" => wrong_pin(pin)})
     assert render(view) =~ "That PIN didn&#39;t match. Try again."
 
-    render_hook(view, "verify-claim-pin", %{"code" => pin})
-    assert render(view) =~ "Tiqit claimed. Enjoy!"
+    assert {:error, {:redirect, %{to: _}}} =
+             render_hook(view, "verify-claim-pin", %{"code" => pin})
+  end
+
+  test "a new user's claim opens the tiqit in the app with the gift welcome", %{
+    conn: conn,
+    token: token,
+    pin: pin,
+    group: group
+  } do
+    conn = log_in_user(conn, register_user!())
+    {:ok, view, _html} = live(conn, ~p"/tiqit/gift/#{token}")
+
+    assert {:error, {:redirect, %{to: to}}} =
+             render_hook(view, "verify-claim-pin", %{"code" => pin})
+
+    uri = URI.parse(to)
+    assert uri.path == "/arqade/group/#{group.id}"
+    assert URI.decode_query(uri.query || "")["welcome"] == "gift"
+  end
+
+  test "an existing user's claim opens the tiqit in the app without the welcome", %{
+    conn: conn,
+    token: token,
+    pin: pin,
+    group: group
+  } do
+    user = register_user!()
+
+    Repo.update_all(from(u in Accounts.User, where: u.id == ^user.id),
+      set: [inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now(), -2, :hour)]
+    )
+
+    conn = log_in_user(conn, user)
+    {:ok, view, _html} = live(conn, ~p"/tiqit/gift/#{token}")
+
+    assert {:error, {:redirect, %{to: to}}} =
+             render_hook(view, "verify-claim-pin", %{"code" => pin})
+
+    uri = URI.parse(to)
+    assert uri.path == "/arqade/group/#{group.id}"
+    refute URI.decode_query(uri.query || "")["welcome"]
   end
 
   defp wrong_pin(pin), do: Enum.find(["0000", "1111", "2222"], &(&1 != pin))

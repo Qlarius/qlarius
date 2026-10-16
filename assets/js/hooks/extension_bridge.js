@@ -98,7 +98,14 @@ async function fetchJson(url, options = {}) {
   return res
 }
 
+function logoutNavigationPending() {
+  return window.__qlariusLogoutNavigation === true
+}
+
 function reconnectLiveSocket() {
+  // This page is already navigating to a fresh anonymous load.
+  if (logoutNavigationPending()) return
+
   const socket = window.liveSocket
   if (!socket) {
     window.location.reload()
@@ -157,6 +164,9 @@ export async function mintTokenIntoExtension(opts = {}) {
 }
 
 export async function exchangeExtensionToken() {
+  const guard = await sendToExtension({ type: "qadabra:auth:logout-guard-active" })
+  if (guard?.active) return false
+
   const vault = await sendToExtension({ type: "qadabra:auth:get-token" })
   if (!vault?.token || !vault?.device_id) return false
 
@@ -224,6 +234,14 @@ export async function syncExtensionWithSession() {
     return "absent"
   }
 
+  // Disconnect set this guard so a still-authed vault cannot sign the
+  // page back in before the anonymous load finishes.
+  const guard = await sendToExtension({ type: "qadabra:auth:logout-guard-active" })
+  if (guard?.active) {
+    lastSyncResult = "noop"
+    return "noop"
+  }
+
   // Already aligned (session + vault) — avoid /auth/session_status storms.
   if (lastSyncResult === "noop" && extAuthed) return "noop"
   if (lastSyncResult === "minted" && extAuthed) return "noop"
@@ -284,6 +302,7 @@ function wireGlobalLogoutIntercept() {
       if (!form.action || !form.action.includes("/logout")) return
 
       event.preventDefault()
+      window.__qlariusLogoutNavigation = true
 
       const body = new URLSearchParams(new FormData(form))
       const csrf = body.get("_csrf_token") || csrfToken()
@@ -340,6 +359,7 @@ function wireExtensionPageListener() {
   // partition). It may also perform exchange itself and ask us to reconnect.
   window.addEventListener("message", (event) => {
     if (event.origin !== window.location.origin) return
+    if (logoutNavigationPending()) return
 
     if (event.data?.type === "qadabra:extension-hello" && event.data.id) {
       const prev = document.documentElement.dataset.qadabraExtensionId

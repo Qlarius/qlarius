@@ -80,24 +80,7 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
   def mount(%{"group_id" => group_id} = params, session, socket) do
     if connected?(socket) && socket.assigns[:mounted] && socket.assigns[:group] do
-      scope = socket.assigns.current_scope
-      group = socket.assigns.group
-      pieces = socket.assigns.pieces || []
-
-      refreshed =
-        if scope && scope.true_user, do: Scope.for_user(scope.true_user), else: scope
-
-      {:ok,
-       socket
-       |> assign(
-         Map.merge(scope_assigns(refreshed, group, pieces), %{
-           current_scope: refreshed,
-           arqade_expand_parent?: is_pid(socket.parent_pid)
-         })
-       )
-       |> sync_selected_tiqit()
-       |> ensure_share_gift_assigns()
-       |> WalletBalanceSync.notify_inline_parent()}
+      {:ok, reset_mounted_connection(socket, params, session)}
     else
       scope = socket.assigns.current_scope
 
@@ -197,12 +180,57 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
          gift_header_label: session["gift_header_label"],
          play_frame: nil,
          slide_over_active: false,
-         slide_over_title: "Now playing"
+         slide_over_title: "Now playing",
+         show_gift_welcome:
+           in_app_group? and not full_viewport_embed? and gift_welcome_params?(params)
        )
        |> assign(loading_scope_assigns(scope))
        |> maybe_load_group_page(group_id, scope)
        |> WalletBalanceSync.notify_inline_parent()}
     end
+  end
+
+  # A second mount on this process (socket reconnect that did not start a new
+  # one) must not keep the previous sign-in, gift highlight, or open player.
+  # The parent already has this pid, so we do not notify it again.
+  defp reset_mounted_connection(socket, params, session) do
+    scope = socket.assigns.current_scope
+    group = socket.assigns.group
+    pieces = socket.assigns.pieces || []
+
+    refreshed =
+      if scope && scope.true_user, do: Scope.for_user(scope.true_user), else: scope
+
+    content_id = (is_map(params) && params["content_id"]) || session["content_id"]
+
+    socket =
+      socket
+      |> assign(
+        Map.merge(scope_assigns(refreshed, group, pieces), %{
+          current_scope: refreshed,
+          arqade_expand_parent?: is_pid(socket.parent_pid),
+          gift_piece_id: parse_int(session["gift_piece_id"]),
+          gift_scope: session["gift_scope"],
+          gift_header_label: session["gift_header_label"],
+          show_gift_welcome:
+            socket.assigns.in_app_group? and not socket.assigns.full_viewport_embed? and
+              gift_welcome_params?(params),
+          show_connect_modal: false,
+          show_share_gift_modal: false,
+          show_auth_sheet: false,
+          show_tiqit_content_modal: false,
+          tiqit_content_modal_leaving?: false,
+          play_frame: nil,
+          slide_over_active: false,
+          show_logout_modal: false
+        })
+      )
+
+    socket = if content_id, do: select_content_by_id(socket, content_id), else: socket
+
+    socket
+    |> sync_selected_tiqit()
+    |> ensure_share_gift_assigns()
   end
 
   defp maybe_load_group_page(socket, group_id, scope) do
@@ -417,6 +445,10 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
 
   def handle_event("dismiss-tiqit-up-nudge", _params, socket) do
     socket |> assign(:tiqit_up_nudge, false) |> noreply()
+  end
+
+  def handle_event("dismiss-gift-welcome", _params, socket) do
+    socket |> assign(:show_gift_welcome, false) |> noreply()
   end
 
   def handle_event("hide-options", _params, socket) do
@@ -1192,6 +1224,59 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeLive do
   end
 
   defp parse_int(_), do: nil
+
+  defp gift_welcome_params?(%{"welcome" => "gift"}), do: true
+  defp gift_welcome_params?(_params), do: false
+
+  defp ads_label(1), do: "1 ad"
+  defp ads_label(count), do: "#{count} ads"
+
+  attr :title, :string, required: true
+  attr :current_scope, :any, required: true
+
+  defp gift_welcome_card(assigns) do
+    ~H"""
+    <div
+      id="gift-welcome-card"
+      class="surface-panel surface-panel-shadow shrink-0 mb-3 rounded-2xl bg-base-100 p-4"
+    >
+      <div class="flex items-start gap-3">
+        <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <.icon name="hero-gift" class="size-5" />
+        </div>
+        <div class="min-w-0 flex-1">
+          <h2 class="text-lg font-bold leading-snug text-base-content">Your tiqit is ready</h2>
+          <p class="truncate text-sm text-base-content/70" title={@title}>{@title}</p>
+        </div>
+      </div>
+
+      <p class="mt-3 text-sm text-base-content/80">
+        You have
+        <span class="font-semibold tabular-amount">{format_usd(@current_scope.wallet_balance)}</span>
+        in your wallet<span :if={(@current_scope.ads_count || 0) > 0}>, plus {ads_label(@current_scope.ads_count)} worth <span class="font-semibold tabular-amount">{format_usd(@current_scope.offered_amount)}</span></span>.
+        Your tiqit stays in Stash.
+      </p>
+
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          id="gift-welcome-watch"
+          phx-click="dismiss-gift-welcome"
+          class="btn btn-primary rounded-full flex-1 min-w-48"
+        >
+          <.icon name="hero-play" class="size-4" /> Watch now
+        </button>
+        <.link
+          id="gift-welcome-wallet"
+          navigate={~p"/ads?#{[welcome: "gift"]}"}
+          class="btn btn-outline rounded-full flex-1 min-w-48"
+        >
+          <.icon name="hero-wallet" class="size-4" /> See your wallet
+        </.link>
+      </div>
+    </div>
+    """
+  end
 
   defp ensure_share_gift_assigns(socket) do
     assign(socket, %{

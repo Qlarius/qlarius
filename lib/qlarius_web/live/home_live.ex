@@ -9,6 +9,7 @@ defmodule QlariusWeb.HomeLive do
   alias QlariusWeb.Layouts
   alias QlariusWeb.Components.StrongStartComponent
   alias QlariusWeb.Components.LedgerEntriesList
+  alias Qlarius.ContentSharing
   alias Qlarius.Repo
   alias Qlarius.Tiqit.Arcade.Arcade
   alias Qlarius.Wallets
@@ -35,6 +36,7 @@ defmodule QlariusWeb.HomeLive do
       |> assign(:preserved_tiqits_count, nil)
       |> assign(:home_wallet_summary, nil)
       |> assign(:recent_entries, [])
+      |> assign(:received_gift, nil)
 
     socket =
       if connected?(socket) do
@@ -139,8 +141,29 @@ defmodule QlariusWeb.HomeLive do
       fleeted_tiqits_count: Arcade.count_fleeted_tiqits(scope),
       preserved_tiqits_count: Arcade.count_preserved_tiqits(scope),
       home_wallet_summary: Wallets.consumer_wallet_summary(me_file),
-      recent_entries: recent_entries(me_file)
+      recent_entries: recent_entries(me_file),
+      received_gift: received_gift(me_file)
     })
+  end
+
+  # An installed app opens at /home with a fresh session, so it can't know which
+  # gift brought the user here; a recently claimed one leads them back to it.
+  @received_gift_window_hours 48
+
+  defp received_gift(me_file) do
+    case ContentSharing.recent_claimed_gift(me_file.id, @received_gift_window_hours) do
+      %{share_invitation: %{content_piece: %{} = piece}} ->
+        %{
+          title: piece.title,
+          path: ~p"/arqade/group/#{piece.content_group_id}?#{[content_id: piece.id]}"
+        }
+
+      %{share_invitation: %{content_group: %{} = group}} ->
+        %{title: group.title, path: ~p"/arqade/group/#{group.id}"}
+
+      _ ->
+        nil
+    end
   end
 
   @recent_entry_count 3
@@ -227,6 +250,26 @@ defmodule QlariusWeb.HomeLive do
                 class="home-hero__cta btn btn-outline btn-lg rounded-full"
               >
                 <.icon name="hero-tag" class="h-5 w-5" /> Add tags for more offers
+              </.link>
+            </section>
+
+            <section
+              :if={@received_gift}
+              id="home-received-gift"
+              class="surface-panel flex items-center gap-3 p-4"
+              aria-label="Your gift"
+            >
+              <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <.icon name="hero-gift" class="size-5" />
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm text-base-content/70">Your gift</p>
+                <p class="truncate font-semibold text-base-content" title={@received_gift.title}>
+                  {@received_gift.title}
+                </p>
+              </div>
+              <.link navigate={@received_gift.path} class="btn btn-primary rounded-full shrink-0">
+                <.icon name="hero-play" class="size-4" /> Watch
               </.link>
             </section>
 

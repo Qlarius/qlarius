@@ -420,6 +420,30 @@ defmodule Qlarius.ContentSharing do
   end
 
   @doc """
+  Returns the most recent gift the MeFile claimed within the last `hours` whose
+  tiqit is still active, with the invitation's content preloaded, or `nil`.
+
+  Nothing records whether a tiqit has been opened, so recency stands in for
+  "not opened yet".
+  """
+  def recent_claimed_gift(me_file_id, hours) do
+    now = DateTime.utc_now()
+    since = DateTime.add(now, -hours, :hour)
+
+    from(w in WillCallTiqit,
+      join: t in assoc(w, :recipient_tiqit),
+      where: w.claimed_by_me_file_id == ^me_file_id,
+      where: w.will_call_status == "picked_up" and w.claimed_at >= ^since,
+      where: is_nil(t.disconnected_at) and is_nil(t.undone_at),
+      where: is_nil(t.expires_at) or t.expires_at > ^now,
+      order_by: [desc: w.claimed_at],
+      limit: 1,
+      preload: [share_invitation: [:content_group, content_piece: :content_group]]
+    )
+    |> Repo.one()
+  end
+
+  @doc """
   Records lightweight attribution for a share redemption without granting any
   paid entitlement. Shares remain reusable; only the first redeemer is recorded.
   """

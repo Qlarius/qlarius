@@ -73,8 +73,14 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
       {:ok,
        socket
-       |> assign(Map.merge(scope_assigns(refreshed, group, catalog), %{current_scope: refreshed}))
-       |> WalletBalanceSync.notify_inline_parent()}
+       |> assign(
+         Map.merge(scope_assigns(refreshed, group, catalog), %{
+           current_scope: refreshed,
+           show_connect_modal: false,
+           show_auth_sheet: false,
+           show_logout_modal: false
+         })
+       )}
     else
       scope = socket.assigns.current_scope
 
@@ -735,7 +741,13 @@ defmodule QlariusWeb.Widgets.Arcade.ArcadeSingleLive do
 
   defp maybe_record_content_open(socket, scope, piece, group, catalog) do
     surface = if socket.assigns[:inline?], do: :qlink, else: :direct
-    result = ContentAudiences.resolve_piece(piece, ContentAudiences.matches_for_scope(scope), ContentAudiences.gate_attachments())
+
+    result =
+      ContentAudiences.resolve_piece(
+        piece,
+        ContentAudiences.matches_for_scope(scope),
+        ContentAudiences.gate_attachments()
+      )
 
     _ =
       ContentEngagement.record_content_open(scope, %{

@@ -310,10 +310,10 @@ defmodule QlariusWeb.UserAuth do
 
       token ->
         case AdminApiTokens.authenticate(token) do
-        {:ok, user, token} ->
-          conn
-          |> assign(:current_scope, %Scope{true_user: user, user: user})
-          |> assign(:admin_api_token_label, token.label)
+          {:ok, user, token} ->
+            conn
+            |> assign(:current_scope, %Scope{true_user: user, user: user})
+            |> assign(:admin_api_token_label, token.label)
 
           {:error, :forbidden} ->
             conn
@@ -498,20 +498,14 @@ defmodule QlariusWeb.UserAuth do
     end
   end
 
+  # Read the session on every mount. `assign_new` would keep the previous
+  # user when this process mounts again after Disconnect.
   defp mount_current_scope(socket, session) do
-    socket
-    |> Phoenix.Component.assign_new(:current_scope, fn ->
-      user_token = session["user_token"]
-      user = user_token && Accounts.get_user_by_session_token(user_token)
+    user_token = session["user_token"]
+    user = user_token && Accounts.get_user_by_session_token(user_token)
 
-      if user do
-        Scope.for_user(user)
-      else
-        nil
-      end
-    end)
-    |> Phoenix.Component.assign_new(:is_mobile, fn ->
-      Map.get(session, "is_mobile", false)
-    end)
+    socket
+    |> Phoenix.Component.assign(:current_scope, if(user, do: Scope.for_user(user)))
+    |> Phoenix.Component.assign(:is_mobile, Map.get(session, "is_mobile", false))
   end
 end

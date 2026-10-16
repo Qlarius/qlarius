@@ -5,12 +5,13 @@ defmodule QlariusWeb.LogoutModalHooks do
   """
 
   import Phoenix.Component, only: [assign: 3]
-  import Phoenix.LiveView, only: [attach_hook: 4]
+  import Phoenix.LiveView, only: [attach_hook: 4, detach_hook: 3]
 
   def on_mount(:default, _params, _session, socket) do
     {:cont,
      socket
      |> assign(:show_logout_modal, false)
+     |> detach_hook(:logout_modal_events, :handle_event)
      |> attach_hook(:logout_modal_events, :handle_event, &handle_logout_events/3)}
   end
 

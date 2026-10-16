@@ -92,9 +92,6 @@
           </div>
 
           <%= cond do %>
-            <% @gift_claim_succeeded -> %>
-              <.lede class="font-medium text-success">Tiqit claimed. Enjoy!</.lede>
-              <.primary_button phx-click="dismiss-invitation-overlay">OK</.primary_button>
             <% authed?(@current_scope) -> %>
               <div class="flex w-full flex-col items-center gap-4">
                 <p class="text-center text-lg font-semibold leading-snug text-base-content md:text-xl">

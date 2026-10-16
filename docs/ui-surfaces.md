@@ -152,6 +152,15 @@ The Arqade group and single-piece pages (`widgets/arcade/`) render in the app, a
 - **Close button:** dialogs that open on a content card get extra top padding (`!pt-12`) so the × doesn't sit on the card.
 - **Share / Gift switch** uses `pill-join-selector--widget`: the active item is widget navy, not the app's orange.
 
+## Gift claim
+
+The gift page (`/tiqit/gift/:token`) is public and has no wallet, ads or Stash, so a successful claim leaves it:
+
+- **Redirect:** the accepted PIN `redirect`s (a different live session) to the in-app tiqit page, `/arqade/group/:id?content_id=…`. An account created within the last 30 minutes (`TiqitArqadeLive.new_user?/1`) also gets `welcome=gift`.
+- **Welcome card** (`#gift-welcome-card`, `welcome=gift` only, above the Arqade content): "Your tiqit is ready" with the content title; the wallet balance plus the ads count and value from `current_scope` ("Your tiqit stays in Stash."); Watch now (hides the card) and See your wallet (`/ads?welcome=gift`). Hiding it keeps the param, so a reload still skips `/hi`.
+- **Install:** with `welcome=gift`, a phone browser isn't forced to `/hi`. `PWAInstallHooks` sets `soft_install?` and `Layouts.mobile` renders `PWAInstallPrompt`'s install banner and iOS / Android guides; Maybe later stores `pwa_install_dismissed_at` (hidden for 7 days). Every other visit still goes to `/hi`.
+- **Home:** an installed app opens at `/home` with a fresh session, so Home shows a "Your gift" row (`#home-received-gift`, title and Watch) for a gift claimed in the last 48 hours whose tiqit is still active. Nothing records whether a tiqit has been opened, so recency stands in for that.
+
 ## Wallet in widgets
 
 Widgets (Arqade, tip jar, Tiqit Pass), Qlink pages and the Sponster bar all show the wallet; repeating it on one page is fine, and top up is part of the strip.
@@ -198,7 +207,7 @@ Widgets (Arqade, tip jar, Tiqit Pass), Qlink pages and the Sponster bar all show
 `.mobile-shell` (in `Layouts.mobile`) redefines a few DaisyUI tokens for the consumer app only, so Admin (whose light/dark themes also come from `nexus.css`) and embedded widgets are unaffected. The public Tiqit pages (`/tiqit/arqade`, gift, share and single piece, via `.tiqit-public-shell` in `TiqitArqadeShell`) share the same tokens so they match the in-app Arqade:
 
 - **Light:** `base-100` is pure white.
-- **Dark:** black canvas with lifted surfaces, as in iOS and Material: `base-300` `#000` (page canvas), `base-100` `#141416` (panels, cards, side menu, sheets, 3-tap covers, Arqade cards), `base-200` `#232326` (tiles, inputs), `neutral` `#3a3a3c`, `base-content` `#f2f2f4`. Inside the shell, `.surface-panel`, `.surface-panel-fill` and `.three-tap-offer-cover` take `base-100` instead of the black they use elsewhere; avoid hard-coding `dark:bg-black` on mobile screens. The PWA `theme-color` for dark is `#000000` to match.
+- **Dark:** black canvas with lifted surfaces, as in iOS and Material: `base-300` `#000` (page canvas), `base-100` `#141416` (panels, cards, side menu, sheets, 3-tap covers, Arqade cards), `base-200` `#232326` (tiles, inputs), `neutral` `#3a3a3c`, `base-content` `#f2f2f4`. Inside the shell, `.surface-panel` and `.surface-panel-fill` take `base-100` instead of the black they use elsewhere. `.three-tap-offer-cover` (and the phase fill inside it) and the Sponster video list (`.surface-panel--flat`) use that same `#141416` on every surface that shows an ad unit, including the tiqit drawer, Qlink and the ads widget. Avoid hard-coding `dark:bg-black` on mobile screens. The PWA `theme-color` for dark is `#000000` to match.
 - **Primary** is the theme's own (orange in light, indigo in dark). Use it for the main action on a screen, the active tab and progress.
 - **Gift accents** on Arqade (the "Gifted" badges, the "Gifted to you" header, episode gift icons, "Gift waiting") are Tiqit orange in both themes (`.badge-gifted`, `.text-gifted`, `.btn-gift-waiting`), like a gifted tiqit card, not primary.
 - **Header chips** (`.wallet-balance-pill` in the shell, `.header-count-chip`): neutral pill, fixed-width digits.

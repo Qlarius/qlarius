@@ -19,12 +19,21 @@ defmodule QlariusWeb.WalletBalanceSyncHooks do
   @max_subscribe_attempts 100
 
   def on_mount(:default, _params, _session, socket) do
+    socket =
+      socket
+      |> WalletBalanceSync.drop_subscriptions()
+      |> put_private(@subscribe_key, false)
+      |> put_private(@subscribe_attempts_key, 0)
+
     if connected?(socket) do
       Process.send_after(self(), @subscribe_msg, 0)
     end
 
     socket =
-      attach_hook(socket, :wallet_balance_sync, :handle_info, fn
+      socket
+      |> detach_hook(:wallet_balance_sync, :handle_info)
+      |> detach_hook(:wallet_balance_sync_event, :handle_event)
+      |> attach_hook(:wallet_balance_sync, :handle_info, fn
         @subscribe_msg, socket ->
           {:halt, subscribe_once(socket)}
 

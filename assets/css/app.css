@@ -2300,12 +2300,20 @@
     --color-neutral: #3a3a3c;
   }
 
-  /* Panels and 3-tap covers are black elsewhere in dark mode; in the shell they
-     sit on the black canvas, so they take the surface colour instead. */
+  /* Panels are black outside the shell. 3-tap covers and the Sponster video
+     list match the shell's lifted surface on every screen that shows them
+     (Ads, the tiqit drawer, Qlink, the ads widget). Inner phase fills are
+     `.surface-panel-fill`, so they have to lift with the cover. */
   html[data-theme="dark"] .mobile-shell .surface-panel-fill:not([data-theme="light"]),
   html[data-theme="dark"] .mobile-shell .surface-panel:not([data-theme="light"]),
   html[data-theme="dark"] .mobile-shell .three-tap-offer-cover:not([data-theme="light"]) {
     background-color: var(--color-base-100);
+  }
+
+  html[data-theme="dark"] .three-tap-offer-cover:not([data-theme="light"]),
+  html[data-theme="dark"] .three-tap-offer-cover:not([data-theme="light"]) .surface-panel-fill:not([data-theme="light"]),
+  html[data-theme="dark"] .surface-panel.surface-panel--flat:not([data-theme="light"]) {
+    background-color: #141416;
   }
 
   /* Flat panels: a hairline edge instead of the 4px accent bar.

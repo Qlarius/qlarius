@@ -368,11 +368,7 @@ defmodule QlariusWeb.TiqitArqadeLive do
       true ->
         case ContentSharing.redeem_gift(resolved.will_call, scope) do
           {:ok, _will_call} ->
-            {:noreply,
-             socket
-             |> assign(:gift_claim_succeeded, true)
-             |> assign(:pin_error, nil)
-             |> notify_arcade_embed_gift_claimed()}
+            {:noreply, redirect(socket, to: app_gift_path(socket.assigns, scope))}
 
           {:error, :not_claimable} ->
             {:noreply,
@@ -385,6 +381,29 @@ defmodule QlariusWeb.TiqitArqadeLive do
         end
     end
   end
+
+  # The claimed gift opens in the app, where the wallet, ads and Stash are.
+  # The public gift page has none of those.
+  defp app_gift_path(assigns, scope) do
+    query =
+      [
+        content_id:
+          invitation_content_piece_id(assigns[:invitation]) || assigns[:selected_piece_id]
+      ]
+      |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+      |> then(&if(new_user?(scope.true_user), do: &1 ++ [welcome: "gift"], else: &1))
+
+    ~p"/arqade/group/#{assigns.group.id}?#{query}"
+  end
+
+  @new_user_window_minutes 30
+
+  @doc false
+  def new_user?(%{inserted_at: %NaiveDateTime{} = inserted_at}) do
+    NaiveDateTime.diff(NaiveDateTime.utc_now(), inserted_at, :minute) < @new_user_window_minutes
+  end
+
+  def new_user?(_), do: false
 
   defp maybe_refresh_claimed_invitation(%{assigns: %{gift_claim_succeeded: true}} = socket),
     do: refresh_invitation(socket)
@@ -417,17 +436,6 @@ defmodule QlariusWeb.TiqitArqadeLive do
     gift_highlight_piece_id(assigns[:invitation], assigns[:gift_claim_succeeded]) ||
       invitation_content_piece_id(assigns[:invitation]) ||
       assigns[:selected_piece_id]
-  end
-
-  # Tell the inline arcade embed to refresh its scope/tiqits and drop the gift
-  # highlight so the claimed piece renders as Active (Play) instead of Gifted.
-  defp notify_arcade_embed_gift_claimed(socket) do
-    case socket.assigns[:arcade_embed_pid] do
-      pid when is_pid(pid) -> send(pid, :gift_claimed)
-      _ -> :ok
-    end
-
-    socket
   end
 
   @doc false
@@ -565,7 +573,10 @@ defmodule QlariusWeb.TiqitArqadeLive do
   defp gift_access_scope(%TiqitClass{content_group_id: id}, _invitation) when not is_nil(id),
     do: :group
 
-  defp gift_access_scope(%TiqitClass{catalog_id: id, content_piece_id: nil, content_group_id: nil}, _invitation)
+  defp gift_access_scope(
+         %TiqitClass{catalog_id: id, content_piece_id: nil, content_group_id: nil},
+         _invitation
+       )
        when not is_nil(id),
        do: :catalog
 

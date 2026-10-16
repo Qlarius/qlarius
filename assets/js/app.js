@@ -214,6 +214,8 @@ Hooks.PwaLifecycle = {
 // LiveView `push_event("qadabra:reconnect-socket")` (SessionSyncHooks) and
 // AuthFinalize both land here — remount with the current session cookie.
 function reconnectLiveSocket() {
+  if (window.__qlariusLogoutNavigation) return
+
   const socket = window.liveSocket
   if (!socket) {
     window.location.reload()

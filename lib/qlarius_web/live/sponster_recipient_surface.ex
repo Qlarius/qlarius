@@ -113,11 +113,19 @@ defmodule QlariusWeb.SponsterRecipientSurface do
   def subscribe(socket) do
     socket = WalletBalanceSync.subscribe(socket)
 
-    if socket.assigns.current_scope && socket.assigns.current_scope.user do
-      Phoenix.PubSub.subscribe(Qlarius.PubSub, "user:#{socket.assigns.current_scope.user.id}")
+    if topic = socket.assigns[:sponster_user_topic] do
+      Phoenix.PubSub.unsubscribe(Qlarius.PubSub, topic)
     end
 
-    socket
+    case socket.assigns[:current_scope] do
+      %{user: %{id: user_id}} when is_integer(user_id) ->
+        topic = "user:#{user_id}"
+        Phoenix.PubSub.subscribe(Qlarius.PubSub, topic)
+        assign(socket, :sponster_user_topic, topic)
+
+      _ ->
+        assign(socket, :sponster_user_topic, nil)
+    end
   end
 
   @doc "Opens the Sponster ad drawer if not already open (Qlink / Tiqit parent pages)."

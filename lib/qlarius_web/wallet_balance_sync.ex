@@ -36,27 +36,36 @@ defmodule QlariusWeb.WalletBalanceSync do
 
   @doc "Subscribe to me_file stats + wallet topics for the scoped user."
   def subscribe(socket) do
+    socket = drop_subscriptions(socket)
+
     case wallet_user(socket) do
-      {user_id, me_file_id} when is_integer(me_file_id) ->
-        MeFileStatsBroadcaster.subscribe_to_me_file_stats(me_file_id)
-        Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{user_id}")
-        socket
+      {user_id, me_file_id} when is_integer(user_id) ->
+        me_file_id =
+          if is_integer(me_file_id), do: me_file_id, else: resolve_me_file_id(socket)
 
-      {user_id, nil} when is_integer(user_id) ->
-        case resolve_me_file_id(socket) do
-          me_file_id when is_integer(me_file_id) ->
+        topics =
+          if is_integer(me_file_id) do
             MeFileStatsBroadcaster.subscribe_to_me_file_stats(me_file_id)
-
-          _ ->
-            :ok
-        end
+            ["wallet:#{user_id}", MeFileStatsBroadcaster.topic(me_file_id)]
+          else
+            ["wallet:#{user_id}"]
+          end
 
         Phoenix.PubSub.subscribe(Qlarius.PubSub, "wallet:#{user_id}")
-        socket
+        assign(socket, :wallet_sync_topics, topics)
 
       _ ->
         socket
     end
+  end
+
+  @doc "Drop wallet PubSub subscriptions left by a previous scope."
+  def drop_subscriptions(socket) do
+    Enum.each(socket.assigns[:wallet_sync_topics] || [], fn topic ->
+      Phoenix.PubSub.unsubscribe(Qlarius.PubSub, topic)
+    end)
+
+    assign(socket, :wallet_sync_topics, [])
   end
 
   @doc """
@@ -260,6 +269,14 @@ defmodule QlariusWeb.WalletBalanceSync do
   Monitors the child so stale pids are cleared when the embed remounts.
   """
   def register_inline_embed(socket, pid) when is_pid(pid) do
+    if socket.assigns[:arcade_embed_pid] == pid do
+      socket
+    else
+      register_new_inline_embed(socket, pid)
+    end
+  end
+
+  defp register_new_inline_embed(socket, pid) do
     socket =
       case socket.assigns[:arcade_embed_monitor_ref] do
         ref when is_reference(ref) ->

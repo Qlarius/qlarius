@@ -14,8 +14,10 @@ defmodule Qlarius.Wallets.MeFileStatsBroadcaster do
 
   @topic_prefix "me_file_stats_updates:"
 
+  def topic(me_file_id), do: "#{@topic_prefix}#{me_file_id}"
+
   def subscribe_to_me_file_stats(me_file_id) do
-    PubSub.subscribe(Qlarius.PubSub, "#{@topic_prefix}#{me_file_id}")
+    PubSub.subscribe(Qlarius.PubSub, topic(me_file_id))
   end
 
   def broadcast_balance_updated(me_file_id, new_balance) do
@@ -42,7 +44,10 @@ defmodule Qlarius.Wallets.MeFileStatsBroadcaster do
   `:update_balance` on `wallet:USER_ID` so LiveViews subscribed to either
   channel refresh (see `WalletBalanceSyncHooks`).
   """
-  def broadcast_user_balance_updated(%User{id: user_id, me_file: %MeFile{id: me_file_id}}, new_balance) do
+  def broadcast_user_balance_updated(
+        %User{id: user_id, me_file: %MeFile{id: me_file_id}},
+        new_balance
+      ) do
     broadcast_balance_updated(me_file_id, new_balance)
     broadcast_wallet_refetch(user_id)
   end
