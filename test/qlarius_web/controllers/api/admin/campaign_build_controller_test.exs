@@ -1,11 +1,15 @@
 defmodule QlariusWeb.Api.Admin.CampaignBuildControllerTest do
   use QlariusWeb.ConnCase, async: false
 
+  import Ecto.Query
+
   alias Qlarius.Accounts.{AdminApiTokens, User}
   alias Qlarius.AdCategoryFixtures
   alias Qlarius.Repo
   alias Qlarius.Sponster.Campaigns.Campaign
+  alias Qlarius.Sponster.Campaigns.{TraitGroup, TraitGroupTrait}
   alias Qlarius.TargetingFixtures
+  alias Qlarius.YouData.Traits.Trait
 
   @png <<137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8,
          2, 0, 0, 0, 144, 119, 83, 222, 0, 0, 0, 12, 73, 68, 65, 84, 8, 215, 99, 248, 255, 255,
@@ -32,6 +36,40 @@ defmodule QlariusWeb.Api.Admin.CampaignBuildControllerTest do
     path = Path.join(System.tmp_dir!(), "banner-#{System.unique_integer([:positive])}.png")
     File.write!(path, @png)
     %Plug.Upload{path: path, filename: "banner.png", content_type: "image/png"}
+  end
+
+  defp insert_zip_children(parent_trait_id, count) when is_integer(count) and count >= 0 do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+    if count == 0 do
+      []
+    else
+      0..(count - 1)
+      |> Enum.chunk_every(5_000)
+      |> Enum.flat_map(fn chunk ->
+        rows =
+          Enum.map(chunk, fn index ->
+            zip = Integer.to_string(10_000 + index)
+
+            %{
+              trait_name: zip,
+              parent_trait_id: parent_trait_id,
+              display_order: index + 1,
+              is_active: true,
+              input_type: "single_select_zip",
+              meta_1: "City",
+              meta_2: "STANDARD",
+              added_by: 0,
+              modified_by: 0,
+              added_date: now,
+              modified_date: now
+            }
+          end)
+
+        {_count, inserted} = Repo.insert_all(Trait, rows, returning: [:id])
+        Enum.map(inserted, & &1.id)
+      end)
+    end
   end
 
   test "builds trait groups, a target, a sequence, and a throttled PTP campaign", %{
@@ -257,6 +295,62 @@ defmodule QlariusWeb.Api.Admin.CampaignBuildControllerTest do
 
     assert matched["result"] == "matched"
     assert matched["campaign_id"] == created["campaign_id"]
+  end
+
+  test "a PTP build can create a single zip trait group with 40,000 ids and dry_run writes nothing",
+       %{
+         token: token,
+         row: row,
+         n: n
+       } do
+    parent = TargetingFixtures.zip_parent_fixture("Big Zip Parent #{n}")
+    zip_ids = insert_zip_children(parent.id, 40_000)
+
+    before_trait_groups = Repo.aggregate(TraitGroup, :count)
+    before_links = Repo.aggregate(TraitGroupTrait, :count)
+    base = "ptp-2610-brand#{n}-bigzips"
+    conn = authed(token)
+
+    params = %{
+      api_ref_base: base,
+      marketer: %{business_name: "Brand #{n}", business_url: "https://brand#{n}.example"},
+      media_piece: %{
+        title: "Banner",
+        media_piece_type_id: 1,
+        ad_category_row_id: row.row_id,
+        display_url: "brand.example",
+        jump_url: "https://brand.example/go",
+        banner_image: banner()
+      },
+      trait_groups: [%{title: "Big Zips", parent_trait_id: parent.id, trait_ids: zip_ids}],
+      target: %{title: "Big", drop_order: []},
+      sequence: %{title: "Run"},
+      campaign: %{title: "Pump"}
+    }
+
+    dry =
+      conn
+      |> post(~p"/api/admin/ptp_campaigns/builds", Map.put(params, :dry_run, true))
+      |> json_response(200)
+
+    assert dry["result"] == "would_create"
+    assert Repo.aggregate(TraitGroup, :count) == before_trait_groups
+    assert Repo.aggregate(TraitGroupTrait, :count) == before_links
+    assert Repo.get_by(TraitGroup, api_ref: "#{base}.tg-1") == nil
+
+    created =
+      conn
+      |> post(~p"/api/admin/ptp_campaigns/builds", params)
+      |> json_response(201)
+
+    assert created["result"] == "created"
+
+    [trait_group_id] = created["trait_group_ids"]
+
+    assert Repo.aggregate(
+             from(tgt in TraitGroupTrait, where: tgt.trait_group_id == ^trait_group_id),
+             :count
+           ) == 40_000
   end
 
   test "a multipart PTP build accepts a JSON payload beside the banner file", %{

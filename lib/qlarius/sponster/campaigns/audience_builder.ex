@@ -85,7 +85,14 @@ defmodule Qlarius.Sponster.Campaigns.AudienceBuilder do
         }
       end)
 
-    if rows != [], do: Repo.insert_all(TraitGroupTrait, rows)
+    if rows != [] do
+      rows
+      |> Enum.chunk_every(5_000)
+      |> Enum.each(fn chunk ->
+        Repo.insert_all(TraitGroupTrait, chunk)
+      end)
+    end
+
     group
   end
 

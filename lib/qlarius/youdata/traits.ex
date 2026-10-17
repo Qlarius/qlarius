@@ -381,17 +381,23 @@ defmodule Qlarius.YouData.Traits do
   end
 
   defp add_traits_to_group(trait_group, trait_ids) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
     trait_group_traits =
       Enum.map(trait_ids, fn trait_id ->
         %{
           trait_group_id: trait_group.id,
           trait_id: trait_id,
-          created_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
-          updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+          created_at: now,
+          updated_at: now
         }
       end)
 
-    Repo.insert_all(Qlarius.Sponster.Campaigns.TraitGroupTrait, trait_group_traits)
+    trait_group_traits
+    |> Enum.chunk_every(5_000)
+    |> Enum.each(fn chunk ->
+      Repo.insert_all(Qlarius.Sponster.Campaigns.TraitGroupTrait, chunk)
+    end)
   end
 
   defp normalize_id(id) when is_integer(id), do: id
