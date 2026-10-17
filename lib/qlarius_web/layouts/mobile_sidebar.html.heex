@@ -27,31 +27,14 @@
         <span>{@current_scope.home_zip}</span>
       </div>
     </div>
-    <div class="flex shrink-0 items-center gap-1.5">
-      <%!-- Settings lives with the profile: it's account-level, and it frees the footer --%>
-      <.link
-        navigate={~p"/settings"}
-        aria-label="Settings"
-        aria-current={mobile_menu_active?(assigns[:current_path], "/settings") && "page"}
-        class={[
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-          if(mobile_menu_active?(assigns[:current_path], "/settings"),
-            do: "bg-primary/15 text-primary",
-            else: "bg-base-200 text-base-content/60 hover:text-base-content"
-          )
-        ]}
-      >
-        <.icon name="hero-cog-6-tooth" class="h-[18px] w-[18px]" />
-      </.link>
-      <button
-        type="button"
-        phx-click={toggle_sponster_sidebar(:off)}
-        class="shell-menu-close flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-base-200 text-base-content/60 hover:text-base-content cursor-pointer"
-        aria-label="Close menu"
-      >
-        <.icon name="hero-x-mark" class="h-4 w-4" />
-      </button>
-    </div>
+    <button
+      type="button"
+      phx-click={toggle_sponster_sidebar(:off)}
+      class="shell-menu-close flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-base-200 text-base-content/60 hover:text-base-content cursor-pointer"
+      aria-label="Close menu"
+    >
+      <.icon name="hero-x-mark" class="h-4 w-4" />
+    </button>
   </div>
 
   <%!-- Everyday places, then one card per product. The only scroll region in the drawer. --%>
@@ -157,16 +140,32 @@
     </.mobile_menu_brand>
   </nav>
 
-  <%!-- Appearance and log out --%>
+  <%!-- Appearance, settings in the center, log out --%>
   <div
-    class="shrink-0 border-t border-base-content/10 px-4 pt-2.5 flex items-center justify-between gap-2"
+    class="shrink-0 border-t border-base-content/10 px-4 pt-2.5 grid grid-cols-[1fr_auto_1fr] items-center"
     style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));"
   >
-    <Layouts.theme_toggle />
+    <div class="justify-self-start">
+      <Layouts.theme_toggle />
+    </div>
+    <.link
+      navigate={~p"/settings"}
+      aria-label="Settings"
+      aria-current={mobile_menu_active?(assigns[:current_path], "/settings") && "page"}
+      class={[
+        "flex h-8 w-8 items-center justify-center rounded-full",
+        if(mobile_menu_active?(assigns[:current_path], "/settings"),
+          do: "bg-primary/15 text-primary",
+          else: "bg-base-200 text-base-content/60 hover:text-base-content"
+        )
+      ]}
+    >
+      <.icon name="hero-cog-6-tooth" class="h-[18px] w-[18px]" />
+    </.link>
     <button
       type="button"
       phx-click="show_logout_modal"
-      class="inline-flex items-center gap-1.5 text-sm font-medium text-base-content/70 hover:text-base-content cursor-pointer"
+      class="justify-self-end inline-flex items-center gap-1.5 text-sm font-medium text-base-content/70 hover:text-base-content cursor-pointer"
     >
       <.icon name="hero-arrow-right-on-rectangle" class="h-5 w-5" /> Log out
     </button>
