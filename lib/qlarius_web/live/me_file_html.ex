@@ -67,7 +67,13 @@ defmodule QlariusWeb.MeFileHTML do
         |> Enum.map(&%{text: &1.text, relationship_id: &1.relationship_id})
         |> Enum.uniq_by(& &1.relationship_id)
 
-      %{parent: hd(tags).parent, value: Enum.join(values, " · "), reasons: texts, items: items}
+      %{
+        parent_id: hd(tags).parent_id,
+        parent: hd(tags).parent,
+        value: Enum.join(values, " · "),
+        reasons: texts,
+        items: items
+      }
     end)
   end
 
@@ -246,9 +252,19 @@ defmodule QlariusWeb.MeFileHTML do
             :if={@mode == "review" && @trait_in_edit && conflict_reasons(@quality) != []}
             class="tag-review-conflicts"
           >
-            <div :for={tag <- conflict_tags(@quality)} class="trait-tag">
-              <span class="trait-tag__name">{tag.parent}</span>
-              <span :if={tag.value != ""} class="trait-tag__values">{tag.value}</span>
+            <div :for={tag <- conflict_tags(@quality)} class="w-full">
+              <p
+                :if={tag.parent_id != @trait_in_edit.id}
+                class="text-sm font-medium text-base-content"
+              >
+                {tag.parent}{if(tag.value != "", do: ": " <> tag.value, else: "")}
+              </p>
+              <p
+                :if={tag.parent_id == @trait_in_edit.id && tag.value != ""}
+                class="text-sm text-base-content/70"
+              >
+                {tag.value}
+              </p>
               <span :for={text <- tag.reasons} class="tag-conflicts__reason">{text}</span>
             </div>
           </div>
