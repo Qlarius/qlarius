@@ -208,7 +208,7 @@ defmodule QlariusWeb.TagQualityLiveTest do
              "class=\"tag-conflicts__reason\">&quot;Never&quot; (Frequency) combined with Formats does not make sense.</span>"
 
     assert length(String.split(html, "tag-conflicts__reason")) == 2
-    assert html =~ "Confirm"
+    assert has_element?(view, "button", "Confirm")
     refute html =~ ~s(name="child_trait_ids[])
     refute html =~ ~s(class="tag-quality")
 
@@ -218,7 +218,7 @@ defmodule QlariusWeb.TagQualityLiveTest do
     assert html =~ "Which kinds do you use?"
     assert html =~ "Save"
     assert html =~ ~s(name="child_trait_ids[])
-    refute html =~ "Confirm"
+    refute has_element?(view, "button", "Confirm")
 
     view |> element("button.btn-lg", "Cancel") |> render_click()
     view |> element("#trait-card-#{formats.id}") |> render_click()
@@ -228,7 +228,7 @@ defmodule QlariusWeb.TagQualityLiveTest do
     assert html =~ "trait-signal--green"
     assert html =~ "Confirmed as accurate"
     assert html =~ "Remove confirmation"
-    refute html =~ "Confirm"
+    refute has_element?(view, "button", "Confirm")
 
     view |> element("button", "Edit tag") |> render_click()
 
@@ -321,6 +321,6 @@ defmodule QlariusWeb.TagQualityLiveTest do
     assert html =~ "Save"
     assert html =~ ~s(name="child_trait_ids[])
     refute html =~ "Review tag"
-    refute html =~ "Confirm"
+    refute has_element?(view, "button", "Confirm")
   end
 end
