@@ -378,7 +378,7 @@ defmodule QlariusWeb.MeFileHTML do
                 phx-click="confirm_tag_accuracy"
                 class="btn btn-lg btn-outline btn-success rounded-full"
               >
-                Confirm accuracy
+                Confirm
               </button>
               <button
                 type="button"
