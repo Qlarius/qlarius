@@ -247,6 +247,56 @@ defmodule QlariusWeb.TagQualityLiveTest do
     assert html =~ "combined with Formats does not make sense"
   end
 
+  test "review mode shows conflict warnings as text (not an extra tag card) for conflicts within the same tag",
+       ctx do
+    category = insert_category!("Body")
+
+    goals =
+      category
+      |> insert_trait!("Body Condition Goals")
+      |> Ecto.Changeset.change(%{
+        input_type: "multi_select",
+        ideal_min_tags: 1,
+        ideal_max_tags: 4
+      })
+      |> Repo.update!()
+      |> survey_trait!("What are your goals?")
+
+    gain = insert_trait!(category, "Gain weight", parent_trait_id: goals.id)
+    lose = insert_trait!(category, "Lose weight", parent_trait_id: goals.id)
+    maintain = insert_trait!(category, "Maintain current weight", parent_trait_id: goals.id)
+    stamina = insert_trait!(category, "Increase aerobic stamina", parent_trait_id: goals.id)
+    flexibility = insert_trait!(category, "Increase flexibility", parent_trait_id: goals.id)
+
+    me_file = Repo.preload(ctx.user, :me_file).me_file
+
+    for child <- [gain, lose, maintain, stamina, flexibility] do
+      insert_tag!(me_file, child, child.trait_name)
+    end
+
+    {:ok, _link} =
+      TraitRelationships.create(%{
+        trait_id: lose.id,
+        related_trait_id: maintain.id,
+        kind: "conflicts",
+        note: "Weight goals are mutually exclusive"
+      })
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/me_file")
+    render_async(view)
+    view |> element("#trait-card-#{goals.id}") |> render_click()
+    html = render(view)
+
+    assert html =~ "Review tag"
+    assert html =~ "Weight goals are mutually exclusive"
+    assert html =~ "1–4 works best."
+
+    doc = Floki.parse_document!(html)
+    assert Floki.find(doc, ".tag-review-conflicts .trait-tag") == []
+    assert Floki.find(doc, ".tag-review-conflicts .trait-tag__name") == []
+    assert Floki.find(doc, ".tag-review-conflicts .trait-tag__values") == []
+  end
+
   test "a tag with no warning opens ready to edit", ctx do
     category = insert_category!("Plain")
 
