@@ -274,15 +274,13 @@ defmodule QlariusWeb.TagQualityLiveTest do
       insert_tag!(me_file, child, child.trait_name)
     end
 
-    for {left, right} <- [{lose, maintain}, {maintain, lose}] do
-      {:ok, _link} =
-        TraitRelationships.create(%{
-          trait_id: left.id,
-          related_trait_id: right.id,
-          kind: "conflicts",
-          note: "Weight goals are mutually exclusive"
-        })
-    end
+    {:ok, _link} =
+      TraitRelationships.create(%{
+        trait_id: lose.id,
+        related_trait_id: maintain.id,
+        kind: "conflicts",
+        note: "Weight goals are mutually exclusive"
+      })
 
     {:ok, view, _html} = live(ctx.conn, ~p"/me_file")
     render_async(view)
