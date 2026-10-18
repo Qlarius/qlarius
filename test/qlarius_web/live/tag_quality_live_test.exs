@@ -208,7 +208,7 @@ defmodule QlariusWeb.TagQualityLiveTest do
              "class=\"tag-conflicts__reason\">&quot;Never&quot; (Frequency) combined with Formats does not make sense.</span>"
 
     assert length(String.split(html, "tag-conflicts__reason")) == 2
-    assert html =~ "Confirm accuracy"
+    assert html =~ "Confirm"
     refute html =~ ~s(name="child_trait_ids[])
     refute html =~ ~s(class="tag-quality")
 
@@ -218,17 +218,17 @@ defmodule QlariusWeb.TagQualityLiveTest do
     assert html =~ "Which kinds do you use?"
     assert html =~ "Save"
     assert html =~ ~s(name="child_trait_ids[])
-    refute html =~ "Confirm accuracy"
+    refute html =~ "Confirm"
 
     view |> element("button.btn-lg", "Cancel") |> render_click()
     view |> element("#trait-card-#{formats.id}") |> render_click()
-    view |> element("button", "Confirm accuracy") |> render_click()
+    view |> element("button", "Confirm") |> render_click()
     view |> element("#trait-card-#{formats.id}") |> render_click()
     html = render(view)
     assert html =~ "trait-signal--green"
     assert html =~ "Confirmed as accurate"
     assert html =~ "Remove confirmation"
-    refute html =~ "Confirm accuracy"
+    refute html =~ "Confirm"
 
     view |> element("button", "Edit tag") |> render_click()
 
@@ -321,6 +321,6 @@ defmodule QlariusWeb.TagQualityLiveTest do
     assert html =~ "Save"
     assert html =~ ~s(name="child_trait_ids[])
     refute html =~ "Review tag"
-    refute html =~ "Confirm accuracy"
+    refute html =~ "Confirm"
   end
 end
