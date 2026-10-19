@@ -911,7 +911,7 @@ defmodule QlariusWeb.CoreComponents do
               phx-click-away={@close_on_click_away && JS.exec("data-cancel", to: "##{@id}")}
               class={[
                 "relative hidden w-full overflow-hidden bg-base-100 rounded-t-box md:rounded-box shadow-2xl transition-all duration-200",
-                "pb-[env(safe-area-inset-bottom)] md:pb-0",
+                "modal-sheet-safe-bottom",
                 @border_class
               ]}
             >

@@ -1464,6 +1464,23 @@
   }
 
   /*
+   * Modal/bottom-sheet safe bottom padding.
+   * - iOS: clears the home indicator via env(safe-area-inset-bottom).
+   * - Android: env() is often 0, so keep a guaranteed minimum.
+   * Desktop (md+): centered dialogs don't need bottom safe padding.
+   */
+  .modal-sheet-safe-bottom {
+    padding-bottom: 1rem;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  @media (min-width: 768px) {
+    .modal-sheet-safe-bottom {
+      padding-bottom: 0;
+    }
+  }
+
+  /*
    * Auth sheet (auth_sheet.ex, auth_steps.ex). It also opens from widgets on
    * third-party sites, so every colour stays on the neutral widget ramp (plus
    * the semantic error red); only the structure follows the app: round close,

@@ -25,6 +25,341 @@
         tiqit={@tiqit}
       />
     </:slide_over_content>
+    <:modals>
+      <.modal
+        :if={@selected_tiqit_class}
+        id="confirm-purchase-modal"
+        border_class={tiqit_arqade_modal_border_class()}
+        on_cancel={JS.push("close-confirm-purchase-modal")}
+        show
+      >
+        <%!-- Extra top room so the close button doesn't sit on the content card --%>
+        <.body class="!pt-12">
+          <% desc = purchase_description(@selected_tiqit_class, @group) %>
+          <%= if assigns[:options_modal] do %>
+            <.title id="confirm-purchase-modal-title">Purchase options</.title>
+            <.content_shelf
+              image_url={purchase_image_url(desc.scope, @selected_piece, @group)}
+              title={
+                case desc.scope do
+                  :piece -> @selected_piece.title
+                  :group -> @group.title
+                  :catalog -> @group.catalog.name
+                end
+              }
+              subtitle={if desc.scope == :piece, do: @group.title, else: nil}
+            />
+            <.tiqit_class_grid
+              piece={@selected_piece}
+              group={@group}
+              balance={@balance}
+              tiqit_up_group_credit={@tiqit_up_group_credit}
+              tiqit_up_catalog_credit={@tiqit_up_catalog_credit}
+              active_tiqit_classes={
+                Arcade.active_tiqit_classes(@current_scope, @selected_piece)
+              }
+            />
+          <% else %>
+            <.content_shelf
+              image_url={purchase_image_url(desc.scope, @selected_piece, @group)}
+              title={
+                case desc.scope do
+                  :piece -> @selected_piece.title
+                  :group -> @group.title
+                  :catalog -> @group.catalog.name
+                end
+              }
+              subtitle={if desc.scope == :piece, do: @group.title, else: nil}
+            />
+            <.lede>
+              <%= if assigns[:purchase_intent] == :gift do %>
+                You are purchasing and gifting access to:
+              <% else %>
+                You are purchasing access to:
+              <% end %>
+              <span class="mt-1 flex flex-col items-center gap-0">
+                <span class="text-base font-bold leading-none text-base-content md:text-lg">
+                  <%= if @selected_tiqit_class.duration_hours do %>
+                    {desc.label} for {format_tiqit_class_duration(
+                      @selected_tiqit_class.duration_hours
+                    )}
+                  <% else %>
+                    {desc.label} for lifetime
+                  <% end %>
+                </span>
+                <span
+                  :if={desc.detail}
+                  class="mt-1 text-sm font-normal leading-none text-base-content/50"
+                >
+                  Includes {desc.detail}.
+                </span>
+              </span>
+            </.lede>
+            <div class="flex w-full flex-col gap-4">
+              <%= if assigns[:purchase_intent] == :gift do %>
+                <.primary_button phx-click="confirm-gift-purchase">
+                  <.icon name="hero-gift" class="mr-2 h-5 w-5 shrink-0" /> Confirm gift •
+                  <span class="font-bold tabular-amount">
+                    {format_usd(
+                      assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price,
+                      zero_free: true
+                    )}
+                  </span>
+                </.primary_button>
+                <.footnote class="leading-snug px-2">
+                  Recipients have 48 hours to claim gifted tiqits. Full credit back for unclaimed
+                  gift tiqits.
+                </.footnote>
+              <% else %>
+                <.primary_button
+                  phx-click="purchase-tiqit"
+                  phx-value-tiqit-class-id={@selected_tiqit_class.id}
+                >
+                  <.icon name="hero-check" class="mr-2 h-5 w-5 shrink-0" /> Confirm •
+                  <span class="font-bold tabular-amount">
+                    {format_usd(
+                      assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price,
+                      zero_free: true
+                    )}
+                  </span>
+                </.primary_button>
+              <% end %>
+            </div>
+            <%= if assigns[:purchase_intent] != :gift && assigns[:selected_tiqit_class_credit] &&
+                    Decimal.gt?(assigns.selected_tiqit_class_credit, 0) do %>
+              <div class="alert bg-widget-100 border border-widget-300 mt-2 py-2 justify-center">
+                <span class="text-sm flex items-center gap-1">
+                  <.icon name="hero-sparkles-solid" class="h-4 w-4 text-widget-700" />
+                  TiqitUp discount of {format_usd(@selected_tiqit_class_credit)} applied. (
+                  {@selected_tiqit_class_active_count} active
+                  {if @selected_tiqit_class_active_count == 1, do: "tiqit", else: "tiqits"})
+                </span>
+              </div>
+            <% end %>
+          <% end %>
+          <div class="flex flex-col gap-1">
+            <%= if !assigns[:options_modal] && assigns[:purchase_intent] != :gift do %>
+              <div class="divider m-1"></div>
+              <div class="flex flex-col items-center gap-2 text-center">
+                <p class="text-sm text-base-content/60">Want to binge? Full catalog access?</p>
+                <button phx-click="show-options" class="btn-widget btn-md rounded-full px-5">
+                  All Tiqit options
+                </button>
+              </div>
+            <% end %>
+          </div>
+          <div class="flex justify-center">
+            <img src="/images/TIQIT_logo_color_square.svg" alt="Tiqit" class="h-8 w-auto" />
+          </div>
+        </.body>
+      </.modal>
+
+      <.connect_wallet_modal
+        show={@show_connect_modal}
+        scope={@current_scope}
+        connect_brand={:tiqit}
+        on_click={
+          if QlariusWeb.Widgets.Arcade.ArcadeLive.auth_sheet_enabled?(assigns),
+            do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+            else: nil
+        }
+      />
+
+      <.modal
+        :if={@show_share_gift_modal}
+        id={"share-gift-modal-#{@share_gift_modal_token}"}
+        show={@show_share_gift_modal}
+        border_class={tiqit_arqade_modal_border_class()}
+        close_on_click_away={is_nil(@share_gift_result)}
+        on_cancel={JS.push("close-share-gift-modal")}
+      >
+        <.body>
+          <div class={
+            [
+              "mx-auto flex w-full flex-col items-center",
+              modal_content_stack(),
+              @share_gift_result && "max-w-lg",
+              !@share_gift_result && @share_gift_mode == "share" && "max-w-[400px]"
+            ]
+          }>
+          <.pill_join_selector
+            :if={is_nil(@share_gift_result)}
+            id="share-gift-mode-selector"
+            label="Share or gift"
+            size="large"
+            class="pill-join-selector--widget mx-auto w-fit min-w-max outline-none"
+            tabindex="-1"
+            phx-mounted={JS.focus(to: "#share-gift-mode-selector")}
+          >
+            <.pill_join_item
+              active={@share_gift_mode == "share"}
+              phx-click="share-gift-set-mode"
+              phx-value-mode="share"
+            >
+              <.icon name="hero-arrow-up-on-square" class="mr-1 h-5 w-5" /> Share
+            </.pill_join_item>
+            <.pill_join_item
+              active={@share_gift_mode == "gift"}
+              phx-click="share-gift-set-mode"
+              phx-value-mode="gift"
+            >
+              <.icon name="hero-gift" class="mr-1 h-5 w-5" /> Gift
+            </.pill_join_item>
+          </.pill_join_selector>
+
+          <%= if @share_gift_result do %>
+            <div class="mb-2 w-full">
+              <.brand_logo />
+            </div>
+            <div class="flex w-full flex-col items-stretch gap-5 text-center">
+              <%= if @share_gift_result.type == "gift" do %>
+                <.title class="px-1">
+                  Gift purchase successful. Send this info via text or email:
+                </.title>
+              <% else %>
+                <.lede class="font-medium text-base-content/80 px-1">
+                  Your share link is ready. Send this to your friend:
+                </.lede>
+              <% end %>
+              <.invitation_textarea id="share-gift-message" value={@share_gift_result.message} />
+              <%= if @share_gift_result.pin do %>
+                <.lede>
+                  Claim PIN:
+                  <span class="text-base font-bold tracking-widest">{@share_gift_result.pin}</span>
+                </.lede>
+              <% end %>
+              <.primary_button
+                id="copy-share-gift"
+                phx-hook="CopyToClipboard"
+                data-target="share-gift-message"
+                data-confirmation="copy-share-gift-confirmation"
+                data-copied-label="Copied!"
+              >
+                <.icon name="hero-clipboard-document" class="mr-2 h-5 w-5 shrink-0" />
+                <span data-copy-label>Copy invitation</span>
+              </.primary_button>
+              <p
+                id="copy-share-gift-confirmation"
+                class="hidden text-sm font-medium text-success"
+                aria-live="polite"
+                role="status"
+              >
+                Copied to clipboard!
+              </p>
+            </div>
+          <% else %>
+            <% share_header_scope =
+              if @share_gift_mode == "share" && @share_gift_share_target == "content_group",
+                do: :group,
+                else: :piece %>
+            <.content_shelf
+              image_url={purchase_image_url(share_header_scope, @selected_piece, @group)}
+              title={
+                if share_header_scope == :piece,
+                  do: @selected_piece.title,
+                  else: @group.title
+              }
+              subtitle={
+                if share_header_scope == :piece,
+                  do: @group.title,
+                  else: @group.catalog.name
+              }
+            />
+
+            <%= if @share_gift_mode == "share" do %>
+              <div class="mx-auto grid w-full max-w-md grid-cols-2 gap-2">
+                <label
+                  :if={@selected_piece}
+                  class={[
+                    "label cursor-pointer justify-start gap-3 rounded-lg border px-3 py-2",
+                    @share_gift_share_target == "content_piece" &&
+                      "border-widget-700 bg-widget-100 text-widget-900",
+                    @share_gift_share_target != "content_piece" &&
+                      "border-base-300"
+                  ]}
+                >
+                  <input
+                    type="radio"
+                    name="share-target"
+                    class="radio radio-sm"
+                    checked={@share_gift_share_target == "content_piece"}
+                    phx-click="share-gift-set-target"
+                    phx-value-target="content_piece"
+                  />
+                  <span class="label-text text-sm">
+                    This {to_string(@group.catalog.piece_type)}
+                  </span>
+                </label>
+                <label
+                  class={[
+                    "label cursor-pointer items-start justify-start gap-3 rounded-lg border px-3 py-2",
+                    @share_gift_share_target == "content_group" &&
+                      "border-widget-700 bg-widget-100 text-widget-900",
+                    @share_gift_share_target != "content_group" &&
+                      "border-base-300"
+                  ]}
+                >
+                  <input
+                    type="radio"
+                    name="share-target"
+                    class="radio radio-sm"
+                    checked={@share_gift_share_target == "content_group"}
+                    phx-click="share-gift-set-target"
+                    phx-value-target="content_group"
+                  />
+                  <span class="label-text text-sm leading-snug">
+                    <span class="block">Full {to_string(@group.catalog.group_type)}</span>
+                    <span class="block text-xs text-base-content/50">
+                      {group_piece_count_label(@group)}
+                    </span>
+                  </span>
+                </label>
+              </div>
+              <.lede class="max-w-[360px]">
+                Simple share. No purchase.<br/>(Or switch to Gift mode above.)
+              </.lede>
+              <.primary_button phx-click="create-share">
+                <.icon name="hero-link" class="mr-2 h-5 w-5 shrink-0" /> Create share link
+              </.primary_button>
+            <% else %>
+              <.lede class="max-w-[420px]">
+                Buy it for them.<br/>Pick a tiqit to purchase and share as a gift.
+              </.lede>
+              <.tiqit_class_grid
+                piece={@selected_piece}
+                group={@group}
+                balance={@balance}
+                apply_tiqit_up?={false}
+              />
+            <% end %>
+          <% end %>
+
+          <.footnote>
+            You get referral credit for new joins!
+            <.link navigate="/referrals" class="link">See referral details.</.link>
+          </.footnote>
+
+          <div :if={is_nil(@share_gift_result)} class="flex justify-center">
+            <img src="/images/TIQIT_logo_color_square.svg" alt="Tiqit" class="h-8 w-auto" />
+          </div>
+          </div>
+        </.body>
+      </.modal>
+
+      <%= if QlariusWeb.Widgets.Arcade.ArcadeLive.auth_sheet_enabled?(assigns) and not @inline? do %>
+        <.live_component
+          module={QlariusWeb.Components.AuthSheet}
+          id="arcade-auth-sheet"
+          show={@show_auth_sheet}
+          surface={:on_widget_standalone}
+          iframe_hint={not @inline?}
+          referral_context={@auth_referral_context}
+          client_ip={assigns[:user_ip] || "0.0.0.0"}
+          connect_brand={:tiqit}
+          on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
+        />
+      <% end %>
+    </:modals>
     <div
       data-arqade-in-app-page={if(@in_app_group?, do: "true")}
       class={[
@@ -612,352 +947,12 @@
           </div>
         </div>
       </div>
-
-      <.modal
-        :if={@selected_tiqit_class}
-        id="confirm-purchase-modal"
-        border_class={tiqit_arqade_modal_border_class()}
-        on_cancel={JS.push("close-confirm-purchase-modal")}
-        show
-      >
-        <%!-- Extra top room so the close button doesn't sit on the content card --%>
-        <.body class="!pt-12">
-          <% desc = purchase_description(@selected_tiqit_class, @group) %>
-          <%= if assigns[:options_modal] do %>
-            <.title id="confirm-purchase-modal-title">Purchase options</.title>
-            <.content_shelf
-              image_url={purchase_image_url(desc.scope, @selected_piece, @group)}
-              title={
-                case desc.scope do
-                  :piece -> @selected_piece.title
-                  :group -> @group.title
-                  :catalog -> @group.catalog.name
-                end
-              }
-              subtitle={if desc.scope == :piece, do: @group.title, else: nil}
-            />
-            <.tiqit_class_grid
-              piece={@selected_piece}
-              group={@group}
-              balance={@balance}
-              tiqit_up_group_credit={@tiqit_up_group_credit}
-              tiqit_up_catalog_credit={@tiqit_up_catalog_credit}
-              active_tiqit_classes={
-                Arcade.active_tiqit_classes(@current_scope, @selected_piece)
-              }
-            />
-          <% else %>
-            <.content_shelf
-              image_url={purchase_image_url(desc.scope, @selected_piece, @group)}
-              title={
-                case desc.scope do
-                  :piece -> @selected_piece.title
-                  :group -> @group.title
-                  :catalog -> @group.catalog.name
-                end
-              }
-              subtitle={if desc.scope == :piece, do: @group.title, else: nil}
-            />
-            <.lede>
-              <%= if assigns[:purchase_intent] == :gift do %>
-                You are purchasing and gifting access to:
-              <% else %>
-                You are purchasing access to:
-              <% end %>
-              <span class="mt-1 flex flex-col items-center gap-0">
-                <span class="text-base font-bold leading-none text-base-content md:text-lg">
-                  <%= if @selected_tiqit_class.duration_hours do %>
-                    {desc.label} for {format_tiqit_class_duration(
-                      @selected_tiqit_class.duration_hours
-                    )}
-                  <% else %>
-                    {desc.label} for lifetime
-                  <% end %>
-                </span>
-                <span :if={desc.detail} class="mt-1 text-sm font-normal leading-none text-base-content/50">
-                  Includes {desc.detail}.
-                </span>
-              </span>
-            </.lede>
-            <div class="flex w-full flex-col gap-4">
-              <%= if assigns[:purchase_intent] == :gift do %>
-                <.primary_button phx-click="confirm-gift-purchase">
-                  <.icon name="hero-gift" class="mr-2 h-5 w-5 shrink-0" /> Confirm gift •
-                  <span class="font-bold tabular-amount">
-                    {format_usd(
-                      assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price,
-                      zero_free: true
-                    )}
-                  </span>
-                </.primary_button>
-                <.footnote class="leading-snug px-2">
-                  Recipients have 48 hours to claim gifted tiqits. Full credit back for unclaimed gift tiqits.
-                </.footnote>
-              <% else %>
-                <.primary_button
-                  phx-click="purchase-tiqit"
-                  phx-value-tiqit-class-id={@selected_tiqit_class.id}
-                >
-                  <.icon name="hero-check" class="mr-2 h-5 w-5 shrink-0" /> Confirm •
-                  <span class="font-bold tabular-amount">
-                    {format_usd(
-                      assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price,
-                      zero_free: true
-                    )}
-                  </span>
-                </.primary_button>
-              <% end %>
-            </div>
-            <%= if assigns[:purchase_intent] != :gift && assigns[:selected_tiqit_class_credit] &&
-                    Decimal.gt?(assigns.selected_tiqit_class_credit, 0) do %>
-              <div class="alert bg-widget-100 border border-widget-300 mt-2 py-2 justify-center">
-                <span class="text-sm flex items-center gap-1">
-                  <.icon name="hero-sparkles-solid" class="h-4 w-4 text-widget-700" />
-                  TiqitUp discount of {format_usd(@selected_tiqit_class_credit)} applied. ({@selected_tiqit_class_active_count} active {if @selected_tiqit_class_active_count ==
-                                                                                                                                             1,
-                                                                                                                                           do:
-                                                                                                                                             "tiqit",
-                                                                                                                                           else:
-                                                                                                                                             "tiqits"})
-                </span>
-              </div>
-            <% end %>
-          <% end %>
-          <div class="flex flex-col gap-1">
-            <%= if !assigns[:options_modal] && assigns[:purchase_intent] != :gift do %>
-              <div class="divider m-1"></div>
-              <div class="flex flex-col items-center gap-2 text-center">
-                <p class="text-sm text-base-content/60">Want to binge? Full catalog access?</p>
-                <button phx-click="show-options" class="btn-widget btn-md rounded-full px-5">
-                  All Tiqit options
-                </button>
-              </div>
-            <% end %>
-          </div>
-          <div class="flex justify-center">
-            <img src="/images/TIQIT_logo_color_square.svg" alt="Tiqit" class="h-8 w-auto" />
-          </div>
-        </.body>
-      </.modal>
     <% else %>
       Unable to render this content group as it has no valid Tiqit classes
     <% end %>
         <% end %>
       <% end %>
     </div>
-
-    <.connect_wallet_modal
-      show={@show_connect_modal}
-      scope={@current_scope}
-      connect_brand={:tiqit}
-      on_click={
-        if QlariusWeb.Widgets.Arcade.ArcadeLive.auth_sheet_enabled?(assigns),
-          do: Phoenix.LiveView.JS.push("open_auth_sheet"),
-          else: nil
-      }
-    />
-
-    <.modal
-      :if={@show_share_gift_modal}
-      id={"share-gift-modal-#{@share_gift_modal_token}"}
-      show={@show_share_gift_modal}
-      border_class={tiqit_arqade_modal_border_class()}
-      close_on_click_away={is_nil(@share_gift_result)}
-      on_cancel={JS.push("close-share-gift-modal")}
-    >
-      <.body>
-        <div class={
-          [
-            "mx-auto flex w-full flex-col items-center",
-            modal_content_stack(),
-            @share_gift_result && "max-w-lg",
-            !@share_gift_result && @share_gift_mode == "share" && "max-w-[400px]"
-          ]
-        }>
-        <.pill_join_selector
-          :if={is_nil(@share_gift_result)}
-          id="share-gift-mode-selector"
-          label="Share or gift"
-          size="large"
-          class="pill-join-selector--widget mx-auto w-fit min-w-max outline-none"
-          tabindex="-1"
-          phx-mounted={JS.focus(to: "#share-gift-mode-selector")}
-        >
-          <.pill_join_item
-            active={@share_gift_mode == "share"}
-            phx-click="share-gift-set-mode"
-            phx-value-mode="share"
-          >
-            <.icon name="hero-arrow-up-on-square" class="mr-1 h-5 w-5" /> Share
-          </.pill_join_item>
-          <.pill_join_item
-            active={@share_gift_mode == "gift"}
-            phx-click="share-gift-set-mode"
-            phx-value-mode="gift"
-          >
-            <.icon name="hero-gift" class="mr-1 h-5 w-5" /> Gift
-          </.pill_join_item>
-        </.pill_join_selector>
-
-        <%= if @share_gift_result do %>
-          <div class="mb-2 w-full">
-            <.brand_logo />
-          </div>
-          <div class="flex w-full flex-col items-stretch gap-5 text-center">
-            <%= if @share_gift_result.type == "gift" do %>
-              <.title class="px-1">
-                Gift purchase successful. Send this info via text or email:
-              </.title>
-            <% else %>
-              <.lede class="font-medium text-base-content/80 px-1">
-                Your share link is ready. Send this to your friend:
-              </.lede>
-            <% end %>
-            <.invitation_textarea id="share-gift-message" value={@share_gift_result.message} />
-            <%= if @share_gift_result.pin do %>
-              <.lede>
-                Claim PIN:
-                <span class="text-base font-bold tracking-widest">{@share_gift_result.pin}</span>
-              </.lede>
-            <% end %>
-            <.primary_button
-              id="copy-share-gift"
-              phx-hook="CopyToClipboard"
-              data-target="share-gift-message"
-              data-confirmation="copy-share-gift-confirmation"
-              data-copied-label="Copied!"
-            >
-              <.icon name="hero-clipboard-document" class="mr-2 h-5 w-5 shrink-0" />
-              <span data-copy-label>Copy invitation</span>
-            </.primary_button>
-            <p
-              id="copy-share-gift-confirmation"
-              class="hidden text-sm font-medium text-success"
-              aria-live="polite"
-              role="status"
-            >
-              Copied to clipboard!
-            </p>
-          </div>
-        <% else %>
-          <% share_header_scope =
-            if @share_gift_mode == "share" && @share_gift_share_target == "content_group",
-              do: :group,
-              else: :piece %>
-          <.content_shelf
-            image_url={purchase_image_url(share_header_scope, @selected_piece, @group)}
-            title={
-              if share_header_scope == :piece,
-                do: @selected_piece.title,
-                else: @group.title
-            }
-            subtitle={
-              if share_header_scope == :piece,
-                do: @group.title,
-                else: @group.catalog.name
-            }
-          />
-
-          <%= if @share_gift_mode == "share" do %>
-            <div class="mx-auto grid w-full max-w-md grid-cols-2 gap-2">
-              <label
-                :if={@selected_piece}
-                class={[
-                  "label cursor-pointer justify-start gap-3 rounded-lg border px-3 py-2",
-                  @share_gift_share_target == "content_piece" &&
-                    "border-widget-700 bg-widget-100 text-widget-900",
-                  @share_gift_share_target != "content_piece" &&
-                    "border-base-300"
-                ]}
-              >
-                <input
-                  type="radio"
-                  name="share-target"
-                  class="radio radio-sm"
-                  checked={@share_gift_share_target == "content_piece"}
-                  phx-click="share-gift-set-target"
-                  phx-value-target="content_piece"
-                />
-                <span class="label-text text-sm">
-                  This {to_string(@group.catalog.piece_type)}
-                </span>
-              </label>
-              <label
-                class={[
-                  "label cursor-pointer items-start justify-start gap-3 rounded-lg border px-3 py-2",
-                  @share_gift_share_target == "content_group" &&
-                    "border-widget-700 bg-widget-100 text-widget-900",
-                  @share_gift_share_target != "content_group" &&
-                    "border-base-300"
-                ]}
-              >
-                <input
-                  type="radio"
-                  name="share-target"
-                  class="radio radio-sm"
-                  checked={@share_gift_share_target == "content_group"}
-                  phx-click="share-gift-set-target"
-                  phx-value-target="content_group"
-                />
-                <span class="label-text text-sm leading-snug">
-                  <span class="block">Full {to_string(@group.catalog.group_type)}</span>
-                  <span class="block text-xs text-base-content/50">
-                    {group_piece_count_label(@group)}
-                  </span>
-                </span>
-              </label>
-            </div>
-            <.lede class="max-w-[360px]">
-              Simple share. No purchase.<br/>(Or switch to Gift mode above.)
-            </.lede>
-            <.primary_button phx-click="create-share">
-              <.icon name="hero-link" class="mr-2 h-5 w-5 shrink-0" /> Create share link
-            </.primary_button>
-          <% else %>
-            <.lede class="max-w-[420px]">
-              Buy it for them.<br/>Pick a tiqit to purchase and share as a gift.
-            </.lede>
-            <.tiqit_class_grid
-              piece={@selected_piece}
-              group={@group}
-              balance={@balance}
-              apply_tiqit_up?={false}
-            />
-          <% end %>
-        <% end %>
-
-        <.footnote>
-          You get referral credit for new joins!
-          <.link navigate="/referrals" class="link">See referral details.</.link>
-        </.footnote>
-
-        <div :if={is_nil(@share_gift_result)} class="flex justify-center">
-          <img src="/images/TIQIT_logo_color_square.svg" alt="Tiqit" class="h-8 w-auto" />
-        </div>
-        </div>
-      </.body>
-    </.modal>
-
-    <%!--
-  In-place AuthSheet, mounted ONLY when this LV is standalone.
-  When nested inside a hosting LV (e.g. a Qlink page), the parent
-  hosts the single page-wide AuthSheet and our `open_auth_sheet`
-  event handler forwards to it via `socket.parent_pid` — so we don't
-  render a second instance here. Keeps exactly one sheet per page.
---%>
-    <%= if QlariusWeb.Widgets.Arcade.ArcadeLive.auth_sheet_enabled?(assigns) and not @inline? do %>
-      <.live_component
-        module={QlariusWeb.Components.AuthSheet}
-        id="arcade-auth-sheet"
-        show={@show_auth_sheet}
-        surface={:on_widget_standalone}
-        iframe_hint={not @inline?}
-        referral_context={@auth_referral_context}
-        client_ip={assigns[:user_ip] || "0.0.0.0"}
-        connect_brand={:tiqit}
-        on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
-      />
-    <% end %>
   </Layouts.maybe_mobile>
   <.player_modal_frame
     :if={
