@@ -9,7 +9,7 @@ defmodule Qlarius.Sponster.Ads.MediaPiece do
 
   # One line of bold title, and three lines of body, inside the 3-tap text panel.
   @three_tap_title_max 32
-  @three_tap_body_max 120
+  @three_tap_body_max 135
 
   def three_tap_title_max, do: @three_tap_title_max
   def three_tap_body_max, do: @three_tap_body_max

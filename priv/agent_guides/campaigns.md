@@ -108,7 +108,7 @@ cashable) unless you send `is_payable`. Both flags can be changed later.
 - The standard banner is the 3-tap ad: media piece type **id 1**. It is the
   writable type today. Its `required_fields` are `banner_image`, `display_url`,
   and `jump_url`. `field_limits` caps `title` at 32 characters and `body_copy`
-  at 120. Confirm that on the GET response before you create.
+  at 135. Confirm that on the GET response before you create.
 - Video ads are media piece type **id 2**. The list shows them with
   `writable: false` and `required_fields` of `video_file` and `duration`.
   Video creates are coming. Until `writable` is true, do not upload a video
@@ -129,7 +129,7 @@ cashable) unless you send `is_payable`. Both flags can be changed later.
   `jump_url`, and an image. `active` defaults to true when omitted. Optional:
   `body_copy`, `on_existing`, `dry_run`.
 - A 3-tap `title` is one line, at most 32 characters. `body_copy` is at most
-  120 characters, about three lines, so the display URL stays visible. Longer
+  135 characters, about three lines, so the display URL stays visible. Longer
   title or body copy is refused. `display_url` is at most 40 characters.
 - `display_url` is the green text under the body copy, not a link. Send the
   host only, for example `joestacos.example`, with no `https://`. `jump_url`
