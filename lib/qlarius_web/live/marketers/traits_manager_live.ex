@@ -5,6 +5,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
 
   alias QlariusWeb.Components.{AdminSidebar, AdminTopbar, Targeting}
   alias Qlarius.Repo
+  alias Qlarius.YouData.TraitSearch
   alias Qlarius.YouData.Traits
   alias Qlarius.Sponster.Campaigns.TraitGroup
   alias QlariusWeb.Live.Marketers.CurrentMarketer
@@ -148,6 +149,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
       |> assign(:archived_trait_groups, archived_trait_groups)
       |> assign(:categories_with_traits, categories_with_traits)
       |> assign(:search_term, "")
+      |> assign(:trait_match_ids, nil)
       |> assign(:show_archived, false)
     else
       socket
@@ -155,6 +157,7 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
       |> assign(:archived_trait_groups, [])
       |> assign(:categories_with_traits, [])
       |> assign(:search_term, "")
+      |> assign(:trait_match_ids, nil)
       |> assign(:show_archived, false)
     end
   end
@@ -364,11 +367,14 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
   end
 
   def handle_event("search_traits", %{"search" => search_term}, socket) do
-    {:noreply, assign(socket, :search_term, String.trim(search_term))}
+    search_term = String.trim(search_term)
+
+    {:noreply,
+     assign(socket, search_term: search_term, trait_match_ids: trait_match_ids(search_term))}
   end
 
   def handle_event("clear_search", _params, socket) do
-    {:noreply, assign(socket, :search_term, "")}
+    {:noreply, assign(socket, search_term: "", trait_match_ids: nil)}
   end
 
   def handle_event("add_selected_zips", %{"selected_ids" => selected_ids}, socket) do
@@ -496,7 +502,11 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
                   </.archived_section>
                 </div>
 
-                <.trait_browser categories={@categories_with_traits} search_term={@search_term} />
+                <.trait_browser
+                  categories={@categories_with_traits}
+                  search_term={@search_term}
+                  trait_match_ids={@trait_match_ids}
+                />
               </div>
             </.page>
           </div>
@@ -577,10 +587,15 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
 
   attr :categories, :list, required: true
   attr :search_term, :string, required: true
+  attr :trait_match_ids, :any, required: true
 
   defp trait_browser(assigns) do
     assigns =
-      assign(assigns, :filtered, filter_categories(assigns.categories, assigns.search_term))
+      assign(
+        assigns,
+        :filtered,
+        filter_categories(assigns.categories, assigns.trait_match_ids)
+      )
 
     ~H"""
     <.panel
@@ -650,23 +665,24 @@ defmodule QlariusWeb.Live.Marketers.TraitsManagerLive do
     """
   end
 
-  defp filter_categories(categories, search_term) do
-    if search_term == "" do
-      categories
-    else
-      search_term_lower = String.downcase(search_term)
-
-      Enum.map(categories, fn category ->
-        filtered_traits =
-          Enum.filter(category.traits, fn trait ->
-            String.contains?(String.downcase(trait.trait_name), search_term_lower) ||
-              String.contains?(String.downcase(category.name), search_term_lower)
-          end)
-
-        %{category | traits: filtered_traits}
-      end)
-      |> Enum.filter(fn category -> category.traits != [] end)
+  # Same match as Builder and MeFile: a query word hits a topic name, a child
+  # answer, a meta tag, a search-term slug, or the category. Words under 3
+  # characters are not a search. `nil` means show the whole browser.
+  defp trait_match_ids(search) do
+    case TraitSearch.tokenize(search) do
+      {:ok, tokens} -> tokens |> TraitSearch.rank() |> MapSet.new(& &1.trait_id)
+      {:error, :empty_query} -> nil
     end
+  end
+
+  defp filter_categories(categories, nil), do: categories
+
+  defp filter_categories(categories, match_ids) do
+    categories
+    |> Enum.map(fn category ->
+      %{category | traits: Enum.filter(category.traits, &MapSet.member?(match_ids, &1.id))}
+    end)
+    |> Enum.reject(&(&1.traits == []))
   end
 
   attr :traits, :list, required: true
