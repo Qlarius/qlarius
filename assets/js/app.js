@@ -4017,6 +4017,13 @@ Hooks.MobileWalletSync = {
 
 Hooks.WalletPulse = {
   mounted() {
+    // The installed app already opens Wallet from the shell. A pill link is for
+    // a browser tab or an embedded widget.
+    if (this.el.tagName === "A" && this.inInstalledApp()) {
+      this.el.removeAttribute("href")
+      this.el.removeAttribute("target")
+    }
+
     this.lastBalance = this.el.innerText.trim()
     this.lastBalanceNum = this.parseBalance(this.lastBalance)
     
@@ -4028,6 +4035,11 @@ Hooks.WalletPulse = {
     this.coinSound = window.walletCoinSound
   },
   
+  inInstalledApp() {
+    return window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true
+  },
+
   parseBalance(text) {
     // Strip $ and commas, convert to float
     const cleaned = text.replace(/[$,]/g, '')

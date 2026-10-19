@@ -1884,6 +1884,30 @@
     @apply h-[1.1em] w-[1.1em] shrink-0 text-sponster-700 dark:text-sponster-300;
   }
 
+  /* Outside the installed app, the widget and Qlink pill opens /wallet. */
+  a.wallet-balance-pill--link {
+    @apply cursor-pointer no-underline transition-colors duration-150;
+  }
+
+  a.wallet-balance-pill--link:hover {
+    @apply bg-sponster-300 border-sponster-400;
+    @apply dark:bg-sponster-700 dark:border-sponster-400;
+  }
+
+  @media (display-mode: standalone) {
+    a.wallet-balance-pill--link,
+    a.wallet-balance-pill--link:hover {
+      pointer-events: none;
+      cursor: default;
+    }
+  }
+
+  html.ios-pwa a.wallet-balance-pill--link,
+  html.ios-pwa a.wallet-balance-pill--link:hover {
+    pointer-events: none;
+    cursor: default;
+  }
+
   /* Wallet strip (wallet pill + top up / Connect) in Arqade, tip jar and
      Tiqit Pass: a full-width row with a hairline above, the pill and its
      action kept together as one centred unit. When funded, an arrow points

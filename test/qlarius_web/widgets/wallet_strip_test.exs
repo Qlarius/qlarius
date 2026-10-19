@@ -18,6 +18,9 @@ defmodule QlariusWeb.Widgets.WalletStripTest do
         )
 
       assert html =~ "wallet-balance-pill--labelled"
+      assert html =~ "wallet-balance-pill--link"
+      assert html =~ ~s(href="/wallet")
+      assert html =~ ~s(target="_blank")
       assert html =~ "hero-wallet"
       assert html =~ ~s(aria-label="Wallet")
       assert html =~ "$40.67"
@@ -37,6 +40,7 @@ defmodule QlariusWeb.Widgets.WalletStripTest do
       assert html =~ "wallet-balance-pill--labelled"
       assert html =~ ~s(aria-label="Wallet")
       refute html =~ "hero-wallet"
+      refute html =~ ~s(href="/wallet")
     end
 
     test "the app header chip stays a plain amount" do
@@ -44,6 +48,7 @@ defmodule QlariusWeb.Widgets.WalletStripTest do
 
       refute html =~ "wallet-balance-pill--labelled"
       refute html =~ "hero-wallet"
+      refute html =~ ~s(href="/wallet")
     end
   end
 
