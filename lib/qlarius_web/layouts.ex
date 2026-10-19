@@ -389,10 +389,18 @@ defmodule QlariusWeb.Layouts do
         <:slide_over_content :for={entry <- assigns[:slide_over_content] || []}>
           {render_slot(entry)}
         </:slide_over_content>
+        <:modals :for={entry <- assigns[:modals] || []}>
+          {render_slot(entry)}
+        </:modals>
+        <:floating_actions :for={entry <- assigns[:floating_actions] || []}>
+          {render_slot(entry)}
+        </:floating_actions>
         {render_slot(@inner_block)}
       </.mobile>
     <% else %>
       {render_slot(@inner_block)}
+      {render_slot(assigns[:modals] || [])}
+      {render_slot(assigns[:floating_actions] || [])}
     <% end %>
     """
   end

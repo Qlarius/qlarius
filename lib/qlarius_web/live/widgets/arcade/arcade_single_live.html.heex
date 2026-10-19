@@ -4,6 +4,174 @@
     wrap_mobile={@base_path == "" and not @inline?}
     {assigns}
   >
+    <:modals>
+      <.modal
+        :if={@selected_tiqit_class}
+        id="confirm-purchase-modal"
+        border_class={tiqit_arqade_modal_border_class()}
+        on_cancel={JS.push("close-confirm-purchase-modal")}
+        show
+      >
+        <div class="flex flex-col space-y-4 px-8 pb-8 pt-12">
+          <% desc = purchase_description(@selected_tiqit_class, @group) %>
+          <%= if assigns[:options_modal] do %>
+            <h2
+              id="confirm-purchase-modal-title"
+              class="text-xl font-bold text-base-content text-center"
+            >
+              Purchase options
+            </h2>
+            <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+              <div class="flex flex-row items-center justify-center gap-4">
+                <div class="relative shrink-0">
+                  <img
+                    src={purchase_image_url(desc.scope, @piece, @group)}
+                    alt={if desc.scope == :piece, do: @piece.title, else: @group.title}
+                    class="block w-28 h-auto object-contain rounded-lg"
+                  />
+                </div>
+                <div class="min-w-0 flex-1 text-left space-y-1">
+                  <%= if desc.scope == :piece do %>
+                    <p class="text-sm text-base-content/60">{@group.title}</p>
+                    <h3 class="text-xl font-bold leading-snug text-base-content [overflow-wrap:anywhere] md:text-2xl">
+                      {@piece.title}
+                    </h3>
+                  <% else %>
+                    <h3 class="text-xl font-bold leading-snug text-base-content [overflow-wrap:anywhere] md:text-2xl">
+                      {if desc.scope == :catalog, do: @group.catalog.name, else: @group.title}
+                    </h3>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+            <.tiqit_class_grid
+              piece={@piece}
+              group={@group}
+              balance={@balance}
+              tiqit_up_group_credit={@tiqit_up_group_credit}
+              tiqit_up_catalog_credit={@tiqit_up_catalog_credit}
+              active_tiqit_classes={Arcade.active_tiqit_classes(@current_scope, @piece)}
+            />
+          <% else %>
+            <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/70 bg-base-200/40 p-3">
+              <div class="flex flex-row items-center justify-center gap-4">
+                <div class="relative shrink-0">
+                  <img
+                    src={purchase_image_url(desc.scope, @piece, @group)}
+                    alt={if desc.scope == :piece, do: @piece.title, else: @group.title}
+                    class="block w-28 h-auto object-contain rounded-lg"
+                  />
+                </div>
+                <div class="min-w-0 flex-1 text-left space-y-1">
+                  <%= if desc.scope == :piece do %>
+                    <p class="text-sm text-base-content/60">{@group.title}</p>
+                    <h3 class="text-xl font-bold leading-snug text-base-content [overflow-wrap:anywhere] md:text-2xl">
+                      {@piece.title}
+                    </h3>
+                  <% else %>
+                    <h3 class="text-xl font-bold leading-snug text-base-content [overflow-wrap:anywhere] md:text-2xl">
+                      {if desc.scope == :catalog, do: @group.catalog.name, else: @group.title}
+                    </h3>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+            <p class="text-center text-sm text-base-content/70 md:text-base">
+              You are purchasing access to:
+              <span class="mt-1 flex flex-col items-center gap-0">
+                <span class="text-base font-bold leading-none text-base-content md:text-lg">
+                  <%= if @selected_tiqit_class.duration_hours do %>
+                    {desc.label} for {format_tiqit_class_duration(
+                      @selected_tiqit_class.duration_hours
+                    )}
+                  <% else %>
+                    {desc.label} for lifetime
+                  <% end %>
+                </span>
+                <span
+                  :if={desc.detail}
+                  class="mt-1 text-sm font-normal leading-none text-base-content/50"
+                >
+                  Includes {desc.detail}.
+                </span>
+              </span>
+            </p>
+            <div class="flex items-center">
+              <button
+                phx-click="purchase-tiqit"
+                phx-value-tiqit-class-id={@selected_tiqit_class.id}
+                class="btn-widget btn-widget-solid btn-lg btn-block rounded-full"
+              >
+                <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm •
+                <span class="font-bold tabular-amount">
+                  {format_usd(
+                    assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price,
+                    zero_free: true
+                  )}
+                </span>
+              </button>
+            </div>
+            <%= if assigns[:selected_tiqit_class_credit] &&
+                    Decimal.gt?(assigns.selected_tiqit_class_credit, 0) do %>
+              <div class="alert bg-widget-100 border border-widget-300 mt-2 py-2 justify-center">
+                <span class="text-sm flex items-center gap-1">
+                  <.icon name="hero-sparkles-solid" class="h-4 w-4 text-widget-700" />
+                  TiqitUp discount of {format_usd(@selected_tiqit_class_credit)} applied. (
+                  {@selected_tiqit_class_active_count} active
+                  {if @selected_tiqit_class_active_count == 1, do: "tiqit", else: "tiqits"})
+                </span>
+              </div>
+            <% end %>
+          <% end %>
+          <div class="flex flex-col gap-1">
+            <%= if !assigns[:options_modal] do %>
+              <div class="divider m-1"></div>
+              <div class="flex flex-col items-center gap-2 text-center">
+                <p class="text-sm text-base-content/60">
+                  Want the full series? Or full catalog access?
+                </p>
+                <button phx-click="show-options" class="btn-widget btn-md rounded-full px-5">
+                  All Tiqit options
+                </button>
+              </div>
+            <% end %>
+          </div>
+          <div class="flex justify-center mt-2">
+            <img
+              src="/images/TIQIT_logo_color_square.svg"
+              alt="Tiqit"
+              class="h-8 w-auto"
+            />
+          </div>
+        </div>
+      </.modal>
+
+      <.connect_wallet_modal
+        show={@show_connect_modal}
+        scope={@current_scope}
+        connect_brand={:tiqit}
+        on_click={
+          if QlariusWeb.Widgets.Arcade.ArcadeSingleLive.auth_sheet_enabled?(assigns),
+            do: Phoenix.LiveView.JS.push("open_auth_sheet"),
+            else: nil
+        }
+      />
+
+      <%= if QlariusWeb.Widgets.Arcade.ArcadeSingleLive.auth_sheet_enabled?(assigns) and not @inline? and
+              @base_path != "/tiqit" do %>
+        <.live_component
+          module={QlariusWeb.Components.AuthSheet}
+          id="arcade-single-auth-sheet"
+          show={@show_auth_sheet}
+          surface={:on_widget_standalone}
+          iframe_hint={not @inline?}
+          referral_context={@auth_referral_context}
+          client_ip={assigns[:user_ip] || "0.0.0.0"}
+          connect_brand={:tiqit}
+          on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
+        />
+      <% end %>
+    </:modals>
     <%= if @page_loading? do %>
       <.arcade_single_page_skeleton show_header={not @inline? and @base_path != "/widgets"} />
     <% else %>
@@ -233,176 +401,6 @@
       <% end %>
     <% end %>
 
-    <%!-- Lives as a sibling of the rounded wrapper above — keeps the
-      Tiqit purchase modal outside any overflow-hidden ancestor so
-      iOS Safari does not clip the fixed overlay to the card box. --%>
-    <.modal
-      :if={@selected_tiqit_class}
-      id="confirm-purchase-modal"
-      border_class={tiqit_arqade_modal_border_class()}
-      on_cancel={JS.push("close-confirm-purchase-modal")}
-      show
-    >
-      <div class="flex flex-col space-y-4 px-8 pb-8 pt-12">
-        <% desc = purchase_description(@selected_tiqit_class, @group) %>
-        <%= if assigns[:options_modal] do %>
-          <h2
-            id="confirm-purchase-modal-title"
-            class="text-xl font-bold text-base-content text-center"
-          >
-            Purchase options
-          </h2>
-          <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/70 bg-base-200/40 p-3">
-            <div class="flex flex-row items-center justify-center gap-4">
-              <div class="relative shrink-0">
-                <img
-                  src={purchase_image_url(desc.scope, @piece, @group)}
-                  alt={if desc.scope == :piece, do: @piece.title, else: @group.title}
-                  class="block w-28 h-auto object-contain rounded-lg"
-                />
-              </div>
-              <div class="min-w-0 flex-1 text-left space-y-1">
-                <%= if desc.scope == :piece do %>
-                  <p class="text-sm text-base-content/60">{@group.title}</p>
-                  <h3 class="text-xl font-bold leading-snug text-base-content [overflow-wrap:anywhere] md:text-2xl">
-                    {@piece.title}
-                  </h3>
-                <% else %>
-                  <h3 class="text-xl font-bold leading-snug text-base-content [overflow-wrap:anywhere] md:text-2xl">
-                    {if desc.scope == :catalog, do: @group.catalog.name, else: @group.title}
-                  </h3>
-                <% end %>
-              </div>
-            </div>
-          </div>
-          <.tiqit_class_grid
-            piece={@piece}
-            group={@group}
-            balance={@balance}
-            tiqit_up_group_credit={@tiqit_up_group_credit}
-            tiqit_up_catalog_credit={@tiqit_up_catalog_credit}
-            active_tiqit_classes={Arcade.active_tiqit_classes(@current_scope, @piece)}
-          />
-        <% else %>
-          <div class="mx-auto w-full max-w-[400px] rounded-xl border border-base-300/70 bg-base-200/40 p-3">
-            <div class="flex flex-row items-center justify-center gap-4">
-              <div class="relative shrink-0">
-                <img
-                  src={purchase_image_url(desc.scope, @piece, @group)}
-                  alt={if desc.scope == :piece, do: @piece.title, else: @group.title}
-                  class="block w-28 h-auto object-contain rounded-lg"
-                />
-              </div>
-              <div class="min-w-0 flex-1 text-left space-y-1">
-                <%= if desc.scope == :piece do %>
-                  <p class="text-sm text-base-content/60">{@group.title}</p>
-                  <h3 class="text-xl font-bold leading-snug text-base-content [overflow-wrap:anywhere] md:text-2xl">
-                    {@piece.title}
-                  </h3>
-                <% else %>
-                  <h3 class="text-xl font-bold leading-snug text-base-content [overflow-wrap:anywhere] md:text-2xl">
-                    {if desc.scope == :catalog, do: @group.catalog.name, else: @group.title}
-                  </h3>
-                <% end %>
-              </div>
-            </div>
-          </div>
-          <p class="text-center text-sm text-base-content/70 md:text-base">
-            You are purchasing access to:
-            <span class="mt-1 flex flex-col items-center gap-0">
-              <span class="text-base font-bold leading-none text-base-content md:text-lg">
-                <%= if @selected_tiqit_class.duration_hours do %>
-                  {desc.label} for {format_tiqit_class_duration(
-                    @selected_tiqit_class.duration_hours
-                  )}
-                <% else %>
-                  {desc.label} for lifetime
-                <% end %>
-              </span>
-              <span :if={desc.detail} class="mt-1 text-sm font-normal leading-none text-base-content/50">
-                Includes {desc.detail}.
-              </span>
-            </span>
-          </p>
-          <div class="flex items-center">
-            <button
-              phx-click="purchase-tiqit"
-              phx-value-tiqit-class-id={@selected_tiqit_class.id}
-              class="btn-widget btn-widget-solid btn-lg btn-block rounded-full"
-            >
-              <.icon name="hero-check" class="h-4 w-4 mr-2" /> Confirm •
-              <span class="font-bold tabular-amount">
-                {format_usd(
-                  assigns[:selected_tiqit_class_adjusted_price] || @selected_tiqit_class.price,
-                  zero_free: true
-                )}
-              </span>
-            </button>
-          </div>
-          <%= if assigns[:selected_tiqit_class_credit] && Decimal.gt?(assigns.selected_tiqit_class_credit, 0) do %>
-            <div class="alert bg-widget-100 border border-widget-300 mt-2 py-2 justify-center">
-              <span class="text-sm flex items-center gap-1">
-                <.icon name="hero-sparkles-solid" class="h-4 w-4 text-widget-700" />
-                TiqitUp discount of {format_usd(@selected_tiqit_class_credit)} applied. ({@selected_tiqit_class_active_count} active {if @selected_tiqit_class_active_count ==
-                                                                                                                                           1,
-                                                                                                                                         do:
-                                                                                                                                           "tiqit",
-                                                                                                                                         else:
-                                                                                                                                           "tiqits"})
-              </span>
-            </div>
-          <% end %>
-        <% end %>
-        <div class="flex flex-col gap-1">
-          <%= if !assigns[:options_modal] do %>
-            <div class="divider m-1"></div>
-            <div class="flex flex-col items-center gap-2 text-center">
-              <p class="text-sm text-base-content/60">Want the full series? Or full catalog access?</p>
-              <button phx-click="show-options" class="btn-widget btn-md rounded-full px-5">
-                All Tiqit options
-              </button>
-            </div>
-          <% end %>
-        </div>
-        <div class="flex justify-center mt-2">
-          <img
-            src="/images/TIQIT_logo_color_square.svg"
-            alt="Tiqit"
-            class="h-8 w-auto"
-          />
-        </div>
-      </div>
-    </.modal>
-
-    <.connect_wallet_modal
-      show={@show_connect_modal}
-      scope={@current_scope}
-      connect_brand={:tiqit}
-      on_click={
-        if QlariusWeb.Widgets.Arcade.ArcadeSingleLive.auth_sheet_enabled?(assigns),
-          do: Phoenix.LiveView.JS.push("open_auth_sheet"),
-          else: nil
-      }
-    />
-
-    <%!--
-  In-place AuthSheet, mounted ONLY when this LV is standalone.
-  Nested mounts forward `open_auth_sheet` to the hosting LV's sheet.
-  See `ArcadeLive` template for the full rationale.
---%>
-    <%= if QlariusWeb.Widgets.Arcade.ArcadeSingleLive.auth_sheet_enabled?(assigns) and not @inline? and @base_path != "/tiqit" do %>
-      <.live_component
-        module={QlariusWeb.Components.AuthSheet}
-        id="arcade-single-auth-sheet"
-        show={@show_auth_sheet}
-        surface={:on_widget_standalone}
-        iframe_hint={not @inline?}
-        referral_context={@auth_referral_context}
-        client_ip={assigns[:user_ip] || "0.0.0.0"}
-        connect_brand={:tiqit}
-        on_cancel={Phoenix.LiveView.JS.push("close_auth_sheet")}
-      />
-    <% end %>
   </.arqade_page_wrap>
   <.player_modal_frame
     :if={@show_tiqit_content_modal and @inline? and not is_nil(@piece) and not is_nil(@tiqit)}

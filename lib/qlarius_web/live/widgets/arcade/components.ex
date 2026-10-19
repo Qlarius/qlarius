@@ -967,8 +967,7 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         <div class="flex-1 min-h-0 flex flex-col md:!flex-row md:items-stretch">
           <div class="w-full md:!w-1/2 p-4 md:p-5">
             <div class="flex flex-row gap-3 md:flex-col">
-              <div class="skeleton h-28 w-28 md:h-64 md:w-full md:max-w-xs rounded-lg shrink-0">
-              </div>
+              <div class="skeleton h-28 w-28 md:h-64 md:w-full md:max-w-xs rounded-lg shrink-0"></div>
               <div class="flex-1 flex flex-col gap-2">
                 <div class="skeleton h-5 w-4/5"></div>
                 <div class="skeleton h-3 w-1/2"></div>
@@ -1060,6 +1059,8 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
 
   slot :inner_block, required: true
   slot :slide_over_content
+  slot :modals
+  slot :floating_actions
 
   def arqade_page_wrap(assigns) do
     ~H"""
@@ -1068,15 +1069,25 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
         <QlariusWeb.Components.TiqitArqadeShell.shell {@rest}>
           {render_slot(@inner_block)}
         </QlariusWeb.Components.TiqitArqadeShell.shell>
+        {render_slot(@modals)}
+        {render_slot(@floating_actions)}
       <% @wrap_mobile -> %>
         <QlariusWeb.Layouts.maybe_mobile wrap={@base_path == ""} {@rest}>
           <:slide_over_content :for={entry <- @slide_over_content}>
             {render_slot(entry)}
           </:slide_over_content>
+          <:modals :for={entry <- @modals}>
+            {render_slot(entry)}
+          </:modals>
+          <:floating_actions :for={entry <- @floating_actions}>
+            {render_slot(entry)}
+          </:floating_actions>
           {render_slot(@inner_block)}
         </QlariusWeb.Layouts.maybe_mobile>
       <% true -> %>
         {render_slot(@inner_block)}
+        {render_slot(@modals)}
+        {render_slot(@floating_actions)}
     <% end %>
     """
   end
@@ -1276,7 +1287,9 @@ defmodule QlariusWeb.Widgets.Arcade.Components do
           {ContentPiece.episode_label(@piece)}
         </span>
         <span class="flex items-center gap-1">
-          <.icon name="hero-clock" class="w-3 h-3" /><span data-arqade-selected-duration>{@piece.duration}</span>
+          <.icon name="hero-clock" class="w-3 h-3" /><span data-arqade-selected-duration>
+            {@piece.duration}
+          </span>
         </span>
         <%= if label = piece_published_date_label(@piece) do %>
           <span class="flex items-center gap-1">
