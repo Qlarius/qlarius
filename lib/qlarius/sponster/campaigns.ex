@@ -132,7 +132,11 @@ defmodule Qlarius.Sponster.Campaigns do
       campaign =
         %Campaign{}
         |> Campaign.changeset(campaign_attrs)
-        |> Repo.insert!()
+        |> Repo.insert()
+        |> case do
+          {:ok, campaign} -> campaign
+          {:error, changeset} -> Repo.rollback(changeset)
+        end
 
       Wallets.create_campaign_ledger_header(campaign, marketer_id)
 
@@ -212,7 +216,7 @@ defmodule Qlarius.Sponster.Campaigns do
 
   defp blank_to_nil(value) when is_binary(value) do
     case Date.from_iso8601(value) do
-      {:ok, date} -> NaiveDateTime.new!(date, ~T[00:00:00])
+      {:ok, date} -> NaiveDateTime.new!(date, ~T[23:59:59])
       _ -> value
     end
   end

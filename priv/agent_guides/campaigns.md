@@ -279,6 +279,23 @@ Qadabra PTP spend.
   not be archived. `is_ptp: true` sets `is_payable: false` and
   `is_throttled: true` unless you send those fields. A dry run returns the
   bid preview and does not create a ledger.
+
+  Dates:
+  - `start_date` and `end_date` accept either an ISO8601 date (`YYYY-MM-DD`)
+    or an ISO8601 datetime (`YYYY-MM-DDThh:mm:ss`, with optional `Z` or
+    `±hh:mm` timezone offset).
+  - If you send a **date**:
+    - `start_date` is interpreted as the start of that day (`00:00:00`).
+    - `end_date` is interpreted as the end of that day (`23:59:59`).
+  - If you send a **datetime without an offset**, it is interpreted as **UTC**.
+    If you send a datetime **with** an offset (including `Z`), it is converted
+    to **UTC** before saving.
+  - Validation: `end_date` must be on or after `start_date`.
+
+  Serving behavior:
+  - Offers/ads from a campaign are served only while `now` is within the
+    campaign window: `start_date <= now <= end_date` (when `end_date` is set).
+    If `end_date` is blank/null, the campaign has no automatic stop time.
 - `GET /api/admin/campaigns?marketer_id=&is_ptp=&status=&api_ref_prefix=`
   filters `status` as `draft`, `launched`, or `deactivated`.
   `GET /api/admin/campaigns/:id` adds bids, offer count, ad event count,
@@ -314,7 +331,8 @@ Required: `api_ref_base`, shaped like a key without the type, for example
 `trait_groups` is an array in bullseye order. `target.drop_order` is a list
 of indexes into that array (0 drops the first group), not trait group ids.
 `campaign.is_ptp` is always true. `is_throttled` defaults to true unless
-`campaign` sends it. Send `dry_run: true` first. A dry run rolls the database
+`campaign` sends it. `campaign.start_date` and `campaign.end_date` follow the
+same rules as `POST /api/admin/campaigns`. Send `dry_run: true` first. A dry run rolls the database
 transaction back. Resending the same base returns `result: "matched"` and the
 same ids.
 

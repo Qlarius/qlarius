@@ -51,12 +51,21 @@ defmodule Qlarius.AdminApi.Campaigns do
           {:ok, %{result: "matched", matched: true, record: detail(existing), bids: bids}}
 
         opts[:dry_run] ->
-          {:ok,
-           %{
-             result: if(existing, do: "would_update", else: "would_create"),
-             bids: bids,
-             record: existing && detail(existing)
-           }}
+          if existing do
+            update(existing, params, opts)
+          else
+            changeset =
+              %Campaign{}
+              |> Campaign.changeset(ensure_default_start_date(params))
+
+            case changeset do
+              %Ecto.Changeset{valid?: true} ->
+                {:ok, %{result: "would_create", bids: bids, record: nil}}
+
+              %Ecto.Changeset{} = changeset ->
+                {:error, changeset}
+            end
+          end
 
         existing ->
           update(existing, params, opts)
@@ -81,12 +90,18 @@ defmodule Qlarius.AdminApi.Campaigns do
         {:error, :api_ref_immutable}
 
       opts[:dry_run] ->
-        {:ok,
-         %{
-           result: "would_update",
-           would_refresh_offers: launched && flag_change?(params),
-           record: detail(campaign)
-         }}
+        changeset = Campaign.changeset(campaign, params)
+
+        if changeset.valid? do
+          {:ok,
+           %{
+             result: "would_update",
+             would_refresh_offers: launched && flag_change?(params),
+             record: detail(campaign)
+           }}
+        else
+          {:error, changeset}
+        end
 
       true ->
         case campaign |> Campaign.changeset(params) |> Repo.update() do
@@ -359,4 +374,13 @@ defmodule Qlarius.AdminApi.Campaigns do
   end
 
   defp int(_), do: nil
+
+  defp ensure_default_start_date(params) when is_map(params) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+    case Map.get(params, "start_date") do
+      nil -> Map.put(params, "start_date", now)
+      _ -> params
+    end
+  end
 end

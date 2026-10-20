@@ -166,6 +166,36 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
 
       assert Offers.list_current_three_tap_offers(me_file.id) == []
     end
+
+    test "omits offers whose campaign has not started yet" do
+      %{me_file: me_file, campaign: campaign, offer: offer} = setup_current_three_tap_offer!([])
+
+      start_date = hours_from_now(2)
+
+      Repo.update!(
+        Ecto.Changeset.change(campaign, %{
+          start_date: start_date,
+          end_date: nil
+        })
+      )
+
+      assert Offers.list_current_three_tap_offers(me_file.id) == []
+      assert Repo.get!(Offer, offer.id).is_current
+    end
+
+    test "omits offers whose campaign has ended" do
+      %{me_file: me_file, campaign: campaign, offer: offer} = setup_current_three_tap_offer!([])
+
+      Repo.update!(
+        Ecto.Changeset.change(campaign, %{
+          start_date: hours_ago(24),
+          end_date: hours_ago(1)
+        })
+      )
+
+      assert Offers.list_current_three_tap_offers(me_file.id) == []
+      assert Repo.get!(Offer, offer.id).is_current
+    end
   end
 
   describe "throttled PTP activation" do
@@ -219,6 +249,23 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
     end
   end
 
+  describe "activation respects campaign dates" do
+    test "does not activate a pending offer when the campaign has ended" do
+      %{me_file: me_file, campaign: campaign, offer: offer} =
+        setup_pending_three_tap_offer!(pending_until: hours_ago(1))
+
+      Repo.update!(
+        Ecto.Changeset.change(campaign, %{
+          start_date: hours_ago(24),
+          end_date: hours_ago(1)
+        })
+      )
+
+      assert {:ok, %{activated: 0}} = Offers.refresh_statuses_for_me_file(me_file.id)
+      refute Repo.get!(Offer, offer.id).is_current
+    end
+  end
+
   defp setup_current_three_tap_offer!(opts) do
     ctx = build_three_tap_context!(opts)
 
@@ -260,11 +307,12 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
     ensure_three_tap_type_and_phase!(now)
 
     n = System.unique_integer([:positive])
+    row_id = "TEST-" <> (n |> Integer.to_string() |> String.pad_leading(2, "0"))
 
     category =
       %AdCategory{}
       |> AdCategory.create_changeset(%{
-        row_id: "TEST-#{n}",
+        row_id: row_id,
         category_id: "TEST",
         category_name: "Test",
         category_label: "Test",
@@ -450,7 +498,6 @@ defmodule Qlarius.Sponster.OffersRefreshTest do
 
     unless Repo.get_by(MediaPiecePhase, media_piece_type_id: 1, phase: 1) do
       Repo.insert!(%MediaPiecePhase{
-        id: 1,
         media_piece_type_id: 1,
         phase: 1,
         name: "Banner",

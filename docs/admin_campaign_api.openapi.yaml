@@ -243,8 +243,44 @@ paths:
   /api/admin/campaigns:
     post:
       summary: Create a draft campaign and its bids
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/CampaignCreate"}
+            example:
+              api_ref: ptp-2610-joes_tacos-phx.campaign
+              marketer_id: 12
+              target_id: 34
+              media_sequence_id: 56
+              title: "Joe's Tacos PTP"
+              is_ptp: true
+              is_throttled: true
+              is_payable: false
+              start_date: "2026-10-20"
+              end_date: "2026-10-31"
+              dry_run: true
       responses:
         "201": {description: "is_ptp true defaults is_payable false and is_throttled true"}
+        "422": {$ref: "#/components/responses/Error"}
+  /api/admin/campaigns/{id}:
+    parameters:
+      - {in: path, name: id, required: true, schema: {type: integer}}
+    patch:
+      summary: Edit a campaign (title, dates, flags). target_id and media_sequence_id are locked after launch.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/CampaignUpdate"}
+            example:
+              end_date: "2026-10-31"
+              dry_run: true
+      responses:
+        "200": {description: "{result: updated | would_update, record}"}
+        "404": {$ref: "#/components/responses/Error"}
+        "409": {$ref: "#/components/responses/Error"}
+        "422": {$ref: "#/components/responses/Error"}
   /api/admin/campaigns/{id}/launch:
     post:
       summary: Launch. Requires confirm true. Does not wait for population
@@ -294,6 +330,8 @@ paths:
                     title: {type: string}
                     is_throttled: {type: boolean, description: Defaults to true}
                     is_payable: {type: boolean, description: Defaults to false for PTP}
+                    start_date: {$ref: "#/components/schemas/CampaignDateTime"}
+                    end_date: {$ref: "#/components/schemas/CampaignDateTime"}
             example:
               api_ref_base: ptp-2610-joes_tacos-phx
               dry_run: true
@@ -364,6 +402,55 @@ components:
       properties:
         dry_run: {type: boolean, description: Validate and report without writing}
         on_existing: {type: string, enum: [skip, update], default: skip}
+    CampaignDateTime:
+      type: string
+      nullable: true
+      description: |
+        ISO8601 date or datetime. Accepted:
+        - Date: YYYY-MM-DD
+        - Datetime: YYYY-MM-DDThh:mm:ss (optionally with Z or ±hh:mm)
+
+        Timezone handling:
+        - Datetimes without an offset are interpreted as UTC.
+        - Datetimes with an offset (including Z) are converted to UTC before saving.
+        - Date-only values are expanded:
+          - start_date → 00:00:00 UTC
+          - end_date → 23:59:59 UTC
+
+        Validation:
+        - end_date must be on or after start_date (when both are present).
+
+        Serving behavior:
+        - Offers/ads are served only while now is within the campaign window
+          (start_date <= now, and when end_date is set: now <= end_date).
+    CampaignCreate:
+      allOf:
+        - $ref: "#/components/schemas/CreateOptions"
+        - type: object
+          required: [api_ref, marketer_id, target_id, media_sequence_id, title]
+          properties:
+            api_ref: {$ref: "#/components/schemas/ApiRef"}
+            marketer_id: {type: integer}
+            target_id: {type: integer}
+            media_sequence_id: {type: integer}
+            title: {type: string}
+            description: {type: string, nullable: true}
+            is_ptp: {type: boolean}
+            is_payable: {type: boolean}
+            is_throttled: {type: boolean}
+            start_date: {$ref: "#/components/schemas/CampaignDateTime"}
+            end_date: {$ref: "#/components/schemas/CampaignDateTime"}
+    CampaignUpdate:
+      type: object
+      properties:
+        dry_run: {type: boolean}
+        title: {type: string}
+        description: {type: string, nullable: true}
+        is_ptp: {type: boolean}
+        is_payable: {type: boolean}
+        is_throttled: {type: boolean}
+        start_date: {$ref: "#/components/schemas/CampaignDateTime"}
+        end_date: {$ref: "#/components/schemas/CampaignDateTime"}
     Differences:
       type: object
       additionalProperties:

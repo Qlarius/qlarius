@@ -297,6 +297,157 @@ defmodule QlariusWeb.Api.Admin.CampaignBuildControllerTest do
     assert matched["campaign_id"] == created["campaign_id"]
   end
 
+  test "a PTP build accepts campaign start_date and end_date (date strings), including dry_run",
+       %{token: token, row: row, n: n} do
+    parent = TargetingFixtures.parent_trait_fixture()
+    trait = TargetingFixtures.trait_fixture(parent)
+    base = "ptp-2610-brand#{n}-dates"
+    conn = authed(token)
+
+    params = %{
+      api_ref_base: base,
+      marketer: %{business_name: "Brand #{n}", business_url: "https://brand#{n}.example"},
+      media_piece: %{
+        title: "Banner",
+        media_piece_type_id: 1,
+        ad_category_row_id: row.row_id,
+        display_url: "brand.example",
+        jump_url: "https://brand.example/go",
+        banner_image: banner()
+      },
+      trait_groups: [%{title: "Fans", parent_trait_id: parent.id, trait_ids: [trait.id]}],
+      target: %{title: "National", drop_order: []},
+      sequence: %{title: "Run"},
+      campaign: %{title: "Pump", start_date: "2026-10-20", end_date: "2026-10-31"}
+    }
+
+    dry =
+      conn
+      |> post(~p"/api/admin/ptp_campaigns/builds", Map.put(params, :dry_run, true))
+      |> json_response(200)
+
+    assert dry["result"] == "would_create"
+
+    created =
+      conn
+      |> post(~p"/api/admin/ptp_campaigns/builds", params)
+      |> json_response(201)
+
+    campaign = Repo.get!(Campaign, created["campaign_id"])
+    assert campaign.start_date == ~N[2026-10-20 00:00:00]
+    assert campaign.end_date == ~N[2026-10-31 23:59:59]
+  end
+
+  test "a PTP build returns a 422 (never 500) on invalid campaign dates", %{
+    token: token,
+    row: row,
+    n: n
+  } do
+    parent = TargetingFixtures.parent_trait_fixture()
+    trait = TargetingFixtures.trait_fixture(parent)
+    base = "ptp-2610-brand#{n}-baddates"
+    conn = authed(token)
+
+    params = %{
+      api_ref_base: base,
+      marketer: %{business_name: "Brand #{n}", business_url: "https://brand#{n}.example"},
+      media_piece: %{
+        title: "Banner",
+        media_piece_type_id: 1,
+        ad_category_row_id: row.row_id,
+        display_url: "brand.example",
+        jump_url: "https://brand.example/go",
+        banner_image: banner()
+      },
+      trait_groups: [%{title: "Fans", parent_trait_id: parent.id, trait_ids: [trait.id]}],
+      target: %{title: "National", drop_order: []},
+      sequence: %{title: "Run"},
+      campaign: %{title: "Pump", start_date: "not-a-date", end_date: "2026-10-31"}
+    }
+
+    bad =
+      conn
+      |> post(~p"/api/admin/ptp_campaigns/builds", Map.put(params, :dry_run, true))
+      |> json_response(422)
+
+    assert bad["error"] == "invalid"
+
+    assert bad["errors"]["start_date"] == [
+             "must be an ISO8601 date (YYYY-MM-DD) or datetime (YYYY-MM-DDThh:mm:ss[Z|±hh:mm])"
+           ]
+
+    order =
+      conn
+      |> post(
+        ~p"/api/admin/ptp_campaigns/builds",
+        put_in(params, [:campaign, :start_date], "2026-10-31")
+        |> put_in([:campaign, :end_date], "2026-10-20")
+      )
+      |> json_response(422)
+
+    assert order["error"] == "invalid"
+    assert order["errors"]["end_date"] == ["must be on or after start_date"]
+  end
+
+  test "PATCH /api/admin/campaigns/:id accepts campaign dates and validates them", %{
+    token: token,
+    row: row,
+    n: n
+  } do
+    parent = TargetingFixtures.parent_trait_fixture()
+    trait = TargetingFixtures.trait_fixture(parent)
+    base = "ptp-2610-brand#{n}-patchdates"
+    conn = authed(token)
+
+    created =
+      conn
+      |> post(~p"/api/admin/ptp_campaigns/builds", %{
+        api_ref_base: base,
+        marketer: %{business_name: "Brand #{n}", business_url: "https://brand#{n}.example"},
+        media_piece: %{
+          title: "Banner",
+          media_piece_type_id: 1,
+          ad_category_row_id: row.row_id,
+          display_url: "brand.example",
+          jump_url: "https://brand.example/go",
+          banner_image: banner()
+        },
+        trait_groups: [%{title: "Fans", parent_trait_id: parent.id, trait_ids: [trait.id]}],
+        target: %{title: "National", drop_order: []},
+        sequence: %{title: "Run"},
+        campaign: %{title: "Pump"}
+      })
+      |> json_response(201)
+
+    id = created["campaign_id"]
+
+    updated =
+      conn
+      |> patch(~p"/api/admin/campaigns/#{id}", %{
+        start_date: "2026-10-20T12:34:56Z",
+        end_date: "2026-10-20"
+      })
+      |> json_response(200)
+
+    assert updated["result"] == "updated"
+
+    campaign = Repo.get!(Campaign, id)
+    assert campaign.start_date == ~N[2026-10-20 12:34:56]
+    assert campaign.end_date == ~N[2026-10-20 23:59:59]
+
+    invalid =
+      conn
+      |> patch(~p"/api/admin/campaigns/#{id}", %{
+        dry_run: true,
+        start_date: "2026-10-31",
+        end_date: "2026-10-20"
+      })
+      |> json_response(422)
+
+    assert invalid["error"] == "invalid"
+    assert invalid["errors"]["end_date"] == ["must be on or after start_date"]
+  end
+
   test "a PTP build can create a single zip trait group with 40,000 ids and dry_run writes nothing",
        %{
          token: token,

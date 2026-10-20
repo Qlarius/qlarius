@@ -3,7 +3,7 @@ defmodule QlariusWeb.AdsLive do
 
   # Commented out unused alias - MeFile not directly referenced
   # alias Qlarius.YouData.MeFiles.MeFile
-  alias Qlarius.Sponster.Offer
+  alias Qlarius.Sponster.Offers
   # Commented out unused alias - Users not directly referenced
   # alias Qlarius.Accounts.Users
   # Commented out unused alias - User not directly referenced
@@ -12,10 +12,8 @@ defmodule QlariusWeb.AdsLive do
   # alias Qlarius.Wallets.{LedgerHeader, LedgerEntry}
   # Commented out unused alias - AdEvent not directly referenced
   # alias Qlarius.Sponster.AdEvent
-  alias Qlarius.Repo
   # Commented out unused import - OfferHTML functions not used in this LiveView
   # import QlariusWeb.OfferHTML
-  import Ecto.Query, except: [update: 2, update: 3]
   import QlariusWeb.PWAHelpers
   import QlariusWeb.Components.AdsComponents
 
@@ -291,29 +289,8 @@ defmodule QlariusWeb.AdsLive do
   def handle_info(:load_offers, socket) do
     me_file_id = socket.assigns.current_scope.user.me_file.id
 
-    three_tap_query =
-      from(o in Offer,
-        join: mp in assoc(o, :media_piece),
-        where:
-          o.me_file_id == ^me_file_id and o.is_current == true and mp.media_piece_type_id == 1,
-        order_by: [desc: o.offer_amt],
-        preload: [media_piece: :ad_category]
-      )
-
-    active_offers =
-      three_tap_query
-      |> Repo.all()
-      |> Enum.map(fn offer -> {offer, 0} end)
-
-    video_query =
-      from(o in Offer,
-        join: mp in assoc(o, :media_piece),
-        where:
-          o.me_file_id == ^me_file_id and o.is_current == true and mp.media_piece_type_id == 2,
-        preload: [media_run: [media_piece: :ad_category]]
-      )
-
-    video_offers = Repo.all(video_query)
+    active_offers = Offers.list_current_three_tap_offers(me_file_id)
+    video_offers = Offers.list_current_video_offers(me_file_id)
 
     video_offers_with_rate =
       Enum.map(video_offers, fn offer ->
