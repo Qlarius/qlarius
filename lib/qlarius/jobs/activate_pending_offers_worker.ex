@@ -13,7 +13,7 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
     require Logger
     Logger.info("📊 ActivatePendingOffersWorker: Starting activation cycle")
 
-    now = NaiveDateTime.utc_now()
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
     throttle_limit = System.get_global_variable_int("THROTTLE_AD_COUNT", 3)
     throttle_days = System.get_global_variable_int("THROTTLE_DAYS", 7)
 
@@ -51,9 +51,13 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
 
   defp count_pending_unthrottled_offers(now) do
     from(o in Offer,
+      join: c in assoc(o, :campaign),
       where: o.is_current == false,
       where: o.is_throttled == false,
       where: o.pending_until <= ^now,
+      where: is_nil(c.deactivated_at),
+      where: is_nil(c.start_date) or c.start_date <= ^now,
+      where: is_nil(c.end_date) or c.end_date >= ^now,
       select: count(o.id)
     )
     |> Repo.one()
@@ -61,9 +65,13 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
 
   defp count_pending_throttled_offers(now) do
     from(o in Offer,
+      join: c in assoc(o, :campaign),
       where: o.is_current == false,
       where: o.is_throttled == true,
       where: o.pending_until <= ^now,
+      where: is_nil(c.deactivated_at),
+      where: is_nil(c.start_date) or c.start_date <= ^now,
+      where: is_nil(c.end_date) or c.end_date >= ^now,
       select: count(o.id)
     )
     |> Repo.one()
@@ -74,9 +82,13 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
 
     {count, _} =
       from(o in Offer,
+        join: c in assoc(o, :campaign),
         where: o.is_current == false,
         where: o.is_throttled == false,
-        where: o.pending_until <= ^now
+        where: o.pending_until <= ^now,
+        where: is_nil(c.deactivated_at),
+        where: is_nil(c.start_date) or c.start_date <= ^now,
+        where: is_nil(c.end_date) or c.end_date >= ^now
       )
       |> Repo.update_all(set: [is_current: true, updated_at: now])
 
@@ -94,9 +106,13 @@ defmodule Qlarius.Jobs.ActivatePendingOffersWorker do
 
     throttled_offers_by_me_file =
       from(o in Offer,
+        join: c in assoc(o, :campaign),
         where: o.is_current == false,
         where: o.is_throttled == true,
         where: o.pending_until <= ^now,
+        where: is_nil(c.deactivated_at),
+        where: is_nil(c.start_date) or c.start_date <= ^now,
+        where: is_nil(c.end_date) or c.end_date >= ^now,
         order_by: [asc: o.me_file_id, asc: o.pending_until, asc: o.id],
         select: %{
           id: o.id,
