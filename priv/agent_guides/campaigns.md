@@ -296,6 +296,8 @@ Qadabra PTP spend.
   - Offers/ads from a campaign are served only while `now` is within the
     campaign window: `start_date <= now <= end_date` (when `end_date` is set).
     If `end_date` is blank/null, the campaign has no automatic stop time.
+  - Within 15 minutes after `end_date`, a launched campaign is deactivated
+    (status `deactivated`) and its offers are removed, as with a manual stop.
 - `GET /api/admin/campaigns?marketer_id=&is_ptp=&status=&api_ref_prefix=`
   filters `status` as `draft`, `launched`, or `deactivated`.
   `GET /api/admin/campaigns/:id` adds bids, offer count, ad event count,

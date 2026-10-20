@@ -66,6 +66,19 @@ defmodule Qlarius.Sponster.Campaigns do
   end
 
   @doc """
+  Launched campaigns that are still active although their `end_date` has passed.
+  Drafts are left alone; they never served.
+  """
+  def list_ended_active_campaigns(%NaiveDateTime{} = now) do
+    from(c in Campaign,
+      where: not is_nil(c.launched_at) and is_nil(c.deactivated_at),
+      where: not is_nil(c.end_date) and c.end_date < ^now,
+      order_by: [asc: c.end_date]
+    )
+    |> Repo.all()
+  end
+
+  @doc """
   Lists all archived campaigns for a marketer.
   """
   def list_archived_campaigns_for_marketer(marketer_id) do
