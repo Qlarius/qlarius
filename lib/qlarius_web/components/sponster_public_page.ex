@@ -337,7 +337,7 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                   />
                 </div>
                 <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-base-200">
-                  <div class="w-full bg-base-100 border-b border-base-300 p-5 flex justify-between items-center shadow-sm flex-shrink-0">
+                  <div class="w-full bg-base-100 border-b border-base-300 px-5 py-3 flex justify-between items-center shadow-sm flex-shrink-0">
                     <div class="text-base-content font-bold uppercase tracking-wider text-sm">
                       TIP TO SUPPORT WHAT MATTERS
                     </div>
@@ -350,8 +350,8 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                     </button>
                   </div>
 
-                  <div class="flex min-h-0 flex-1 flex-col gap-3 md:gap-8 overflow-y-auto bg-base-200 px-4 md:px-8 pb-6 md:pb-12 pt-4 md:pt-6 max-w-3xl mx-auto mt-1 md:!flex-row">
-                    <div class="flex-1 flex flex-col items-center md:items-start">
+                  <div class="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto bg-base-200 w-full max-w-3xl mx-auto px-5 pt-6 pb-8 md:!flex-row md:items-start md:gap-0 md:px-8 md:pt-8 md:pb-8">
+                    <div class="flex-1 min-w-0 flex flex-col items-center gap-5 md:pr-8">
                       <.auto_split_controls
                         split_amount={
                           (@current_scope.user.me_file && @current_scope.user.me_file.split_amount) ||
@@ -359,41 +359,40 @@ defmodule QlariusWeb.Components.SponsterPublicPage do
                         }
                       />
 
-                      <div class="divider my-2 md:my-4 w-full max-w-[280px] mx-auto"></div>
+                      <div class="border-divider-color w-full max-w-[18rem]"></div>
 
-                      <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
-                      <.insta_tip_funds_line
-                        id={"#{@announcer_id_prefix}-tip-drawer-wallet"}
-                        wallet_balance={@current_scope.wallet_balance}
-                        available_to_tip={@current_scope.available_to_tip}
-                      />
-                      <.insta_tip_button_group
-                        amounts={["0.25", "0.50", "1.00", "2.00"]}
-                        wallet_balance={@current_scope.wallet_balance}
-                        available_to_tip={@current_scope.available_to_tip}
-                        recipient_id={@recipient && @recipient.id}
-                      />
+                      <div class="flex flex-col items-center">
+                        <div class="text-lg font-bold text-base-content mb-1">InstaTip</div>
+                        <.insta_tip_funds_line
+                          id={"#{@announcer_id_prefix}-tip-drawer-wallet"}
+                          wallet_balance={@current_scope.wallet_balance}
+                          available_to_tip={@current_scope.available_to_tip}
+                        />
+                        <.insta_tip_button_group
+                          amounts={["0.25", "0.50", "1.00", "2.00"]}
+                          wallet_balance={@current_scope.wallet_balance}
+                          available_to_tip={@current_scope.available_to_tip}
+                          recipient_id={@recipient && @recipient.id}
+                        />
+                      </div>
                     </div>
 
-                    <div class="border-divider-color my-2 md:my-4 w-full max-w-[280px] mx-auto md:hidden">
-                    </div>
+                    <div class="border-divider-color w-full max-w-[18rem] mx-auto md:hidden"></div>
 
-                    <div class="flex-1 flex flex-col items-center pt-1 md:pt-0">
-                      <div class="text-2xl font-bold text-base-content mb-1 md:mb-2 text-center">
+                    <div class="flex-1 min-w-0 flex flex-col items-center gap-3 md:self-stretch md:pl-8 md:border-l md:border-base-content/10">
+                      <div class="text-xl md:text-2xl font-bold leading-tight text-base-content text-center">
                         {@recipient.name || "Recipient"}
                       </div>
-                      <div class="flex flex-col items-center gap-2 md:gap-4">
-                        <div class="w-32 md:w-40 h-auto bg-base-300 shadow-md flex items-center justify-center overflow-hidden rounded">
-                          <img
-                            src={recipient_brand_image_url(@recipient, creator: @creator)}
-                            alt={@recipient.name || "Recipient"}
-                            class="object-contain w-full h-full"
-                          />
-                        </div>
-                        <div class="text-base-content/70 text-sm text-center max-w-xs">
-                          {@recipient.message ||
-                            "Thank you for supporting this content. Your Sponster tips are greatly appreciated!"}
-                        </div>
+                      <div class="w-28 md:w-36 h-auto bg-base-300 shadow-md flex items-center justify-center overflow-hidden rounded">
+                        <img
+                          src={recipient_brand_image_url(@recipient, creator: @creator)}
+                          alt={@recipient.name || "Recipient"}
+                          class="object-contain w-full h-full"
+                        />
+                      </div>
+                      <div class="text-base-content/70 text-sm leading-relaxed text-center max-w-xs">
+                        {@recipient.message ||
+                          "Thank you for supporting this content. Your Sponster tips are greatly appreciated!"}
                       </div>
                     </div>
                   </div>

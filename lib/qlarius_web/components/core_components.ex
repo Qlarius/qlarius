@@ -1043,8 +1043,8 @@ defmodule QlariusWeb.CoreComponents do
     assigns = assign(assigns, :credit_excluded, credit_excluded(assigns))
 
     ~H"""
-    <div class="mb-2 md:mb-4 flex flex-col items-center md:items-start gap-0.5">
-      <div class="text-base-content/70 text-sm inline-flex flex-wrap items-center justify-center md:justify-start gap-1">
+    <div class="mb-4 flex flex-col items-center gap-0.5 text-center">
+      <div class="text-base-content/70 text-sm inline-flex flex-wrap items-center justify-center gap-1">
         Wallet available for tipping
         <.icon name="hero-arrow-right" class="w-4 h-4 inline-block shrink-0" />
         <span id={@id} class="font-semibold text-base-content">
