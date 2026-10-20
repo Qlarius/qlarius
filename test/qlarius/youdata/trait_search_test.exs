@@ -311,6 +311,45 @@ defmodule Qlarius.YouData.TraitSearchTest do
     is_integer(win) and is_integer(lose) and win < lose
   end
 
+  describe "zip code parents" do
+    setup do
+      places = insert_category!("Places")
+
+      home =
+        insert_trait!(places, "Home Zip #{System.unique_integer([:positive])}")
+        |> Ecto.Changeset.change(input_type: "single_select_zip")
+        |> Repo.update!()
+
+      austin =
+        insert_trait!(nil, "78701", parent_trait_id: home.id)
+        |> Ecto.Changeset.change(meta_1: "Austin, TX")
+        |> Repo.update!()
+
+      boston = insert_trait!(nil, "02140", parent_trait_id: home.id)
+
+      %{home: home, austin: austin, boston: boston}
+    end
+
+    test "a digit query matches the zip prefix without loading the other zips", ctx do
+      hit = rank("787") |> Enum.find(&(&1.trait_id == ctx.home.id))
+
+      assert hit.matched_values == ["78701"]
+      refute "02140" in hit.matched_values
+    end
+
+    test "a city name matches through the zip's location", ctx do
+      hit = rank("austin") |> Enum.find(&(&1.trait_id == ctx.home.id))
+
+      assert hit
+      assert "78701" in hit.matched_values
+      refute "02140" in hit.matched_values
+    end
+
+    test "a word that is not a city leaves the zip list alone", ctx do
+      refute rank("pottery") |> Enum.any?(&(&1.trait_id == ctx.home.id))
+    end
+  end
+
   describe "Trait search_terms" do
     test "takes a comma-separated string or a list, cleaned and deduplicated" do
       changeset = Trait.changeset(%Trait{}, %{"search_terms" => " Ceramics, clay,,CLAY "})

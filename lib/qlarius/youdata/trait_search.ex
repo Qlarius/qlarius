@@ -80,7 +80,12 @@ defmodule Qlarius.YouData.TraitSearch do
   """
   def rank(tokens, opts \\ []) when is_list(tokens) do
     categories = Repo.all(from c in TraitCategory, select: {c.id, c.name}) |> Map.new()
-    traits = active_traits(Keyword.get(opts, :surveyed_only, false))
+    surveyed_only = Keyword.get(opts, :surveyed_only, false)
+    # Zip parents hold tens of thousands of children. A word never matches a
+    # zip code, so those children stay out of the scan and come back from SQL
+    # only for a digit prefix or a city/meta hit.
+    zip_ids = zip_parent_ids(surveyed_only)
+    traits = active_traits(surveyed_only, zip_ids) ++ matching_zip_children(tokens, zip_ids)
     parents = Map.new(traits, &{&1.id, &1})
 
     ranked =
@@ -189,45 +194,125 @@ defmodule Qlarius.YouData.TraitSearch do
   # an active survey is askable even when its catalog `is_active` flag is
   # false. Children still have to be active. Catalog search keeps requiring
   # `is_active` on every row.
-  defp active_traits(true) do
+  defp active_traits(true, zip_ids) do
+    surveyed = Surveys.surveyed_trait_ids_query()
+
+    from(t in Trait,
+      where:
+        (is_nil(t.parent_trait_id) and t.id in subquery(surveyed)) or
+          (not is_nil(t.parent_trait_id) and t.is_active == true and
+             t.parent_trait_id in subquery(surveyed))
+    )
+    |> exclude_zip_children(zip_ids)
+    |> select_search_row()
+    |> Repo.all()
+  end
+
+  defp active_traits(false, zip_ids) do
+    from(t in Trait, where: t.is_active == true)
+    |> exclude_zip_children(zip_ids)
+    |> select_search_row()
+    |> Repo.all()
+  end
+
+  defp exclude_zip_children(query, []), do: query
+
+  defp exclude_zip_children(query, zip_ids) do
+    from t in query, where: is_nil(t.parent_trait_id) or t.parent_trait_id not in ^zip_ids
+  end
+
+  # Parents whose answers are zip codes. Identified by input type so Home and
+  # Work (and any later zip list) are covered without hard-coded ids.
+  defp zip_parent_ids(true) do
     surveyed = Surveys.surveyed_trait_ids_query()
 
     Repo.all(
       from t in Trait,
         where:
-          (is_nil(t.parent_trait_id) and t.id in subquery(surveyed)) or
-            (not is_nil(t.parent_trait_id) and t.is_active == true and
-               t.parent_trait_id in subquery(surveyed)),
-        select: %{
-          id: t.id,
-          name: t.trait_name,
-          parent_id: t.parent_trait_id,
-          category_id: t.trait_category_id,
-          terms: t.search_terms,
-          meta_1: t.meta_1,
-          meta_2: t.meta_2,
-          meta_3: t.meta_3,
-          skip?: t.is_skipped_tag
-        }
+          is_nil(t.parent_trait_id) and t.input_type == "single_select_zip" and
+            t.id in subquery(surveyed),
+        select: t.id
     )
   end
 
-  defp active_traits(false) do
+  defp zip_parent_ids(false) do
     Repo.all(
       from t in Trait,
-        where: t.is_active == true,
-        select: %{
-          id: t.id,
-          name: t.trait_name,
-          parent_id: t.parent_trait_id,
-          category_id: t.trait_category_id,
-          terms: t.search_terms,
-          meta_1: t.meta_1,
-          meta_2: t.meta_2,
-          meta_3: t.meta_3,
-          skip?: t.is_skipped_tag
-        }
+        where:
+          is_nil(t.parent_trait_id) and t.input_type == "single_select_zip" and
+            t.is_active == true,
+        select: t.id
     )
+  end
+
+  # Digit tokens match the start of a zip code. Other tokens match a city or
+  # meta tag. One digit is too broad, same as the zip picker.
+  defp matching_zip_children(_tokens, []), do: []
+
+  defp matching_zip_children(tokens, zip_ids) do
+    prefixes =
+      tokens
+      |> Enum.filter(&String.match?(&1, ~r/^\d{2,}$/))
+      |> Enum.map(&(&1 <> "%"))
+
+    words =
+      tokens
+      |> Enum.reject(&String.match?(&1, ~r/^\d+$/))
+      |> Enum.map(&("%" <> &1 <> "%"))
+
+    cond do
+      prefixes == [] and words == [] ->
+        []
+
+      true ->
+        from(t in Trait, where: t.parent_trait_id in ^zip_ids and t.is_active == true)
+        |> where(^zip_match_filter(prefixes, words))
+        |> select_search_row()
+        |> Repo.all()
+    end
+  end
+
+  defp zip_match_filter(prefixes, words) do
+    prefix_filter =
+      if prefixes == [] do
+        dynamic(false)
+      else
+        dynamic([t], fragment("? ILIKE ANY(?)", t.trait_name, ^prefixes))
+      end
+
+    word_filter =
+      if words == [] do
+        dynamic(false)
+      else
+        dynamic(
+          [t],
+          fragment("COALESCE(?, '') ILIKE ANY(?)", t.meta_1, ^words) or
+            fragment("COALESCE(?, '') ILIKE ANY(?)", t.meta_2, ^words) or
+            fragment("COALESCE(?, '') ILIKE ANY(?)", t.meta_3, ^words) or
+            fragment(
+              "EXISTS (SELECT 1 FROM unnest(COALESCE(?, ARRAY[]::text[])) AS term WHERE term ILIKE ANY(?))",
+              t.search_terms,
+              ^words
+            )
+        )
+      end
+
+    dynamic(^prefix_filter or ^word_filter)
+  end
+
+  defp select_search_row(query) do
+    from t in query,
+      select: %{
+        id: t.id,
+        name: t.trait_name,
+        parent_id: t.parent_trait_id,
+        category_id: t.trait_category_id,
+        terms: t.search_terms,
+        meta_1: t.meta_1,
+        meta_2: t.meta_2,
+        meta_3: t.meta_3,
+        skip?: t.is_skipped_tag
+      }
   end
 
   defp tag_counts([]), do: %{}
