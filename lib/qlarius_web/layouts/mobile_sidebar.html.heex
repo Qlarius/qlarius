@@ -153,21 +153,21 @@
       aria-label="Settings"
       aria-current={mobile_menu_active?(assigns[:current_path], "/settings") && "page"}
       class={[
-        "flex h-8 w-8 items-center justify-center rounded-full",
+        "flex size-9 items-center justify-center rounded-full border-2",
         if(mobile_menu_active?(assigns[:current_path], "/settings"),
-          do: "bg-primary/15 text-primary",
-          else: "bg-base-200 text-base-content/60 hover:text-base-content"
+          do: "border-primary/30 bg-primary/15 text-primary",
+          else: "border-base-300 bg-base-300 text-base-content [&>span]:opacity-75 hover:[&>span]:opacity-100"
         )
       ]}
     >
-      <.icon name="hero-cog-6-tooth" class="h-[18px] w-[18px]" />
+      <.icon name="hero-cog-6-tooth-micro" class="size-4" />
     </.link>
     <button
       type="button"
       phx-click="show_logout_modal"
-      class="justify-self-end inline-flex items-center gap-1.5 text-sm font-medium text-base-content/70 hover:text-base-content cursor-pointer"
+      class="justify-self-end inline-flex h-9 items-center gap-1.5 rounded-full border-2 border-base-300 bg-base-300 px-3 text-sm font-medium text-base-content/75 hover:text-base-content cursor-pointer"
     >
-      <.icon name="hero-arrow-right-on-rectangle" class="h-5 w-5" /> Log out
+      <.icon name="hero-arrow-right-start-on-rectangle-micro" class="size-4" /> Log out
     </button>
   </div>
 </div>
