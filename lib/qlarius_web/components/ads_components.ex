@@ -846,7 +846,7 @@ defmodule QlariusWeb.Components.AdsComponents do
       <.icon
         :if={@zip?}
         name="hero-map-pin-solid"
-        class={["shrink-0 text-blue-400", if(@size == :md, do: "size-5", else: "size-4")]}
+        class={"shrink-0 text-blue-400 #{if(@size == :md, do: "size-5", else: "size-4")}"}
       />
       <span
         :if={@age_min}
