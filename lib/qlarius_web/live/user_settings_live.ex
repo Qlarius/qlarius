@@ -114,6 +114,21 @@ defmodule QlariusWeb.UserSettingsLive do
                   <.icon name="hero-chevron-right" class="h-5 w-5 text-base-content/40" />
                 </div>
               </li>
+              <li
+                class={settings_list_row_classes()}
+                phx-click="open_setting"
+                phx-value-setting="me_file_tag_export"
+              >
+                <div class="flex items-center mr-3">
+                  <.icon name="hero-arrow-down-tray" class="h-6 w-6 text-base-content/70" />
+                </div>
+                <div class="list-col-grow">
+                  <div class="text-xl font-medium text-base-content">MeFile Tag Export</div>
+                </div>
+                <div class="flex items-center">
+                  <.icon name="hero-chevron-right" class="h-5 w-5 text-base-content/40" />
+                </div>
+              </li>
               </ul>
             </.surface_panel>
           </div>
@@ -186,6 +201,9 @@ defmodule QlariusWeb.UserSettingsLive do
 
         "ai_connectors" ->
           assign(socket, :selected_setting, "ai_connectors")
+
+        "me_file_tag_export" ->
+          assign(socket, :selected_setting, "me_file_tag_export")
 
         _ ->
           socket
@@ -499,6 +517,7 @@ defmodule QlariusWeb.UserSettingsLive do
   defp get_setting_title("audio_alerts"), do: "Audio Alerts"
   defp get_setting_title("tiqit_privacy"), do: "Tiqit Privacy"
   defp get_setting_title("ai_connectors"), do: "AI Connectors"
+  defp get_setting_title("me_file_tag_export"), do: "MeFile Tag Export"
   defp get_setting_title("proxy_users"), do: "Manage Proxy Users"
   defp get_setting_title(_), do: "Settings"
 
@@ -821,6 +840,16 @@ defmodule QlariusWeb.UserSettingsLive do
     <.live_component
       module={QlariusWeb.MeCPConnectorsPanel}
       id="ai-connectors-panel"
+      current_scope={@current_scope}
+    />
+    """
+  end
+
+  defp render_setting_content(%{selected_setting: "me_file_tag_export"} = assigns) do
+    ~H"""
+    <.live_component
+      module={QlariusWeb.MeFileTagExportPanel}
+      id="me-file-tag-export-panel"
       current_scope={@current_scope}
     />
     """
