@@ -820,6 +820,72 @@ defmodule QlariusWeb.Components.AdsComponents do
     """
   end
 
+  @doc """
+  At-a-glance targeting cues for an offer: zip-targeted (pin), age-gated
+  category (18+/21+) and payable cash (green $). Renders nothing when none apply.
+  """
+  attr :offer, :map, required: true
+  attr :ad_category, :map, default: nil
+  attr :size, :atom, values: [:sm, :md], default: :md
+  # See docs/embedded_theming.md for force_light/pub_theme strategy
+  attr :force_light, :boolean, default: false
+
+  def offer_indicators(assigns) do
+    assigns =
+      assigns
+      |> assign(:zip?, zip_targeted?(assigns.offer))
+      |> assign(:age_min, age_min(assigns.ad_category))
+      |> assign(:payable?, Map.get(assigns.offer, :is_payable) == true)
+
+    ~H"""
+    <span
+      :if={@zip? || @age_min || @payable?}
+      class="inline-flex shrink-0 items-center gap-1.5"
+      data-offer-indicators
+    >
+      <.icon
+        :if={@zip?}
+        name="hero-map-pin-solid"
+        class={["shrink-0 text-blue-400", if(@size == :md, do: "size-5", else: "size-4")]}
+      />
+      <span
+        :if={@age_min}
+        title={"Ages #{@age_min} and up"}
+        aria-label={"Ages #{@age_min} and up"}
+        data-indicator="age"
+        class={[
+          "inline-flex shrink-0 items-center rounded-full border border-amber-500 px-1.5 font-bold leading-none text-amber-600",
+          if(@size == :md, do: "h-5 text-[11px]", else: "h-4 text-[10px]"),
+          if(!@force_light, do: "dark:text-amber-400")
+        ]}
+      >
+        {@age_min}+
+      </span>
+      <span
+        :if={@payable?}
+        title="Payable: cash you can withdraw"
+        aria-label="Payable: cash you can withdraw"
+        data-indicator="payable"
+        class={[
+          "inline-flex shrink-0 items-center justify-center rounded-full bg-green-600 font-bold leading-none text-white",
+          if(@size == :md, do: "size-5 text-xs", else: "size-4 text-[10px]")
+        ]}
+      >
+        $
+      </span>
+    </span>
+    """
+  end
+
+  defp zip_targeted?(%{matching_tags_snapshot: snapshot}) when not is_nil(snapshot) do
+    snapshot |> inspect() |> String.downcase() |> String.contains?("zip code")
+  end
+
+  defp zip_targeted?(_offer), do: false
+
+  defp age_min(%{age_gated: true, age_min: min}) when is_integer(min), do: min
+  defp age_min(_ad_category), do: nil
+
   attr :offer, :map, required: true
   attr :rate, :any, required: true
   attr :completed, :boolean, required: true
@@ -877,16 +943,11 @@ defmodule QlariusWeb.Components.AdsComponents do
             {@offer.media_run.media_piece.ad_category.ad_label}
           </p>
           <p class="video-app-row__meta">
-            <.icon
-              :if={
-                @offer.matching_tags_snapshot &&
-                  String.contains?(
-                    String.downcase(inspect(@offer.matching_tags_snapshot)),
-                    "zip code"
-                  )
-              }
-              name="hero-map-pin-solid"
-              class="h-4 w-4 shrink-0 text-blue-400"
+            <.offer_indicators
+              offer={@offer}
+              ad_category={@offer.media_run.media_piece.ad_category}
+              size={:sm}
+              force_light={@force_light}
             />
             <span class="truncate">
               {format_duration(@offer.media_run.media_piece.duration || 0)} ·
@@ -957,11 +1018,12 @@ defmodule QlariusWeb.Components.AdsComponents do
               {@offer.media_run.media_piece.ad_category.ad_label}
             </p>
             <div class="flex min-w-0 items-center gap-2">
-              <%= if @offer.matching_tags_snapshot && String.contains?(String.downcase(inspect(@offer.matching_tags_snapshot)), "zip code") do %>
-                <div class="shrink-0 text-blue-400">
-                  <.icon name="hero-map-pin-solid" class="h-4 w-4" />
-                </div>
-              <% end %>
+              <.offer_indicators
+                offer={@offer}
+                ad_category={@offer.media_run.media_piece.ad_category}
+                size={:sm}
+                force_light={@force_light}
+              />
               <div class="min-w-0 truncate text-sm text-base-content/50">
                 {format_duration(@offer.media_run.media_piece.duration || 0)} ·
                 <span class="font-bold text-sponster-600 dark:text-sponster-400 tabular-amount">

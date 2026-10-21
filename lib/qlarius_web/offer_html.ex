@@ -90,14 +90,20 @@ defmodule QlariusWeb.OfferHTML do
             recipient={@recipient}
           >
             <div class="text-2xl font-bold mb-2 tabular-amount">{format_usd(@offer.offer_amt)}</div>
-            <div class="mb-4 text-base-content/50">
+            <div
+              class="mb-4 truncate text-base-content/50"
+              title={@offer.media_piece.ad_category.ad_label}
+            >
               {@offer.media_piece.ad_category.ad_label}
             </div>
             <div class="flex justify-between w-full">
-              <div class="text-blue-400">
-                <%= if @offer.matching_tags_snapshot && String.contains?(String.downcase(inspect(@offer.matching_tags_snapshot)), "zip code") do %>
-                  <.icon name="hero-map-pin-solid" class="w-5 h-5" />
-                <% end %>
+              <div class="flex items-center">
+                <.offer_indicators
+                  offer={@offer}
+                  ad_category={@offer.media_piece.ad_category}
+                  size={:md}
+                  force_light={@force_light}
+                />
               </div>
               <div class="text-green-600">
                 <.icon name="hero-chevron-double-right" class="w-6 h-6" />
